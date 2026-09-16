@@ -1,0 +1,723 @@
+{
+ "device": "/Users/haosiyu/Desktop/quant_research/docs/fixprogram_2026-09-13/VER_OVERLAP/devices/ver_overlap_stats.py",
+ "device_self_sha256": "325bba991d6dbcfcc076a5a0c224cda74bb4a3e4f46024f6783bac7944574264",
+ "facts_input": "docs/fixprogram_2026-09-13/VER_OVERLAP/receipts/FACTS_ver_overlap_20260916.json",
+ "facts_input_sha256": "98d8136e523b9b2e29e1c72e133b749524e444e1751001cefe55533806b3efc1",
+ "run_utc": "2026-09-16T04:29:30Z",
+ "live_only_events": {
+  "20260826": "watchdog TRIP 12:47:02Z -> whole-book flatten + reduce-only; 16Z anchor placed 0 orders with realized_gross 0.0; 20Z rebuilt from flat to only 1.04x gross. Also gross_mult 1.5 for 5 of 6 anchors vs replay 1.95.",
+  "20260827": "external deposit +5449.62 USDT (36% of NAV) intraday, and the leverage ramp 1.5 -> 1.75 -> 2.0 completed during the day (live mean gross/NAV 1.85 vs replay 2.02).",
+  "20260829": "20Z anchor: producer target file missing after 21 attempts -> action=HOLD, no anchors row, no orders; book held 16Z -> 08-30 00Z (8h instead of 4h)."
+ },
+ "CONV_B_midnight": {
+  "per_day": {
+   "20260826": {
+    "status": "OK",
+    "clean": false,
+    "replay_net_pct": 1.4781783201514118,
+    "live_net_pct": -0.1900972061658394,
+    "diff_net_pp": -1.6682755263172513,
+    "replay_buckets_pp": {
+     "price": 1.6473706195170765,
+     "funding": -0.15332470145188196,
+     "fee_trade": -0.01562148918012586,
+     "fee_settle": -0.0002461087336568214
+    },
+    "live_buckets_pp": {
+     "price": -0.040285678789235044,
+     "funding": -0.10498549087671684,
+     "fee_trade": -0.0448260364998875,
+     "fee_settle": 0.0
+    },
+    "diff_buckets_pp": {
+     "price": -1.6876562983063115,
+     "funding": 0.04833921057516512,
+     "fee_trade": -0.029204547319761638,
+     "fee_settle": 0.0002461087336568214
+    },
+    "diff_identity_residual_pp": -2.220446049250313e-16,
+    "replay_gross_over_nav": 1.9457009856926653,
+    "live_gross_over_nav": 1.2273726699140077,
+    "replay_net_per_unit_gross_pp": 0.7597150492397904,
+    "live_net_per_unit_gross_pp": -0.15488140711097795,
+    "diff_net_per_unit_gross_pp": -0.9145964563507684,
+    "replay_turnover_over_nav": 0.4437923062536064,
+    "live_turnover_over_nav": 2.143840026373073,
+    "replay_fee_bps_of_turnover": 3.5199999999997553,
+    "live_fee_bps_of_turnover": 2.090922641076151
+   },
+   "20260827": {
+    "status": "OK",
+    "clean": false,
+    "replay_net_pct": 1.2003694096644508,
+    "live_net_pct": -0.1505780635145787,
+    "diff_net_pp": -1.3509474731790294,
+    "replay_buckets_pp": {
+     "price": 1.3302415755837875,
+     "funding": -0.11358029789387102,
+     "fee_trade": -0.01629186802546578,
+     "fee_settle": -0.0
+    },
+    "live_buckets_pp": {
+     "price": 0.1432942540623141,
+     "funding": -0.2636090470700373,
+     "fee_trade": -0.030263270506855514,
+     "fee_settle": 0.0
+    },
+    "diff_buckets_pp": {
+     "price": -1.1869473215214734,
+     "funding": -0.15002874917616627,
+     "fee_trade": -0.013971402481389734,
+     "fee_settle": 0.0
+    },
+    "diff_identity_residual_pp": 0.0,
+    "replay_gross_over_nav": 2.0233902097477405,
+    "live_gross_over_nav": 1.849059081964639,
+    "replay_net_per_unit_gross_pp": 0.5932466233560075,
+    "live_net_per_unit_gross_pp": -0.08143496602314534,
+    "diff_net_per_unit_gross_pp": -0.6746815893791529,
+    "replay_turnover_over_nav": 0.46283715981437806,
+    "live_turnover_over_nav": 1.4713223533636803,
+    "replay_fee_bps_of_turnover": 3.519999999999929,
+    "live_fee_bps_of_turnover": 2.0568756015749226
+   },
+   "20260828": {
+    "status": "OK",
+    "clean": true,
+    "replay_net_pct": 0.8475085444096384,
+    "live_net_pct": 0.6349977608854447,
+    "diff_net_pp": -0.21251078352419372,
+    "replay_buckets_pp": {
+     "price": 0.9858942303229217,
+     "funding": -0.12414989451363782,
+     "fee_trade": -0.014235791399645526,
+     "fee_settle": -0.0
+    },
+    "live_buckets_pp": {
+     "price": 0.8371887215747862,
+     "funding": -0.1954408080747897,
+     "fee_trade": -0.006750152614551858,
+     "fee_settle": 0.0
+    },
+    "diff_buckets_pp": {
+     "price": -0.14870550874813548,
+     "funding": -0.07129091356115187,
+     "fee_trade": 0.007485638785093668,
+     "fee_settle": 0.0
+    },
+    "diff_identity_residual_pp": -2.7755575615628914e-17,
+    "replay_gross_over_nav": 1.9840301186827056,
+    "live_gross_over_nav": 1.9987502973914204,
+    "replay_net_per_unit_gross_pp": 0.42716516066416405,
+    "live_net_per_unit_gross_pp": 0.31769739407377884,
+    "diff_net_per_unit_gross_pp": -0.10946776659038521,
+    "replay_turnover_over_nav": 0.4044258920353673,
+    "live_turnover_over_nav": 0.34716140295095327,
+    "replay_fee_bps_of_turnover": 3.520000000000148,
+    "live_fee_bps_of_turnover": 1.9443845304155296
+   },
+   "20260829": {
+    "status": "OK",
+    "clean": false,
+    "replay_net_pct": 2.2953826101467647,
+    "live_net_pct": 3.121392305551175,
+    "diff_net_pp": 0.8260096954044105,
+    "replay_buckets_pp": {
+     "price": 2.4721454081515204,
+     "funding": -0.15167709977583926,
+     "fee_trade": -0.02508569822891636,
+     "fee_settle": -0.0
+    },
+    "live_buckets_pp": {
+     "price": 3.3880378856595486,
+     "funding": -0.25025185493952723,
+     "fee_trade": -0.01639372516884603,
+     "fee_settle": 0.0
+    },
+    "diff_buckets_pp": {
+     "price": 0.9158924775080282,
+     "funding": -0.09857475516368797,
+     "fee_trade": 0.008691973060070333,
+     "fee_settle": 0.0
+    },
+    "diff_identity_residual_pp": 0.0,
+    "replay_gross_over_nav": 2.0025216630017497,
+    "live_gross_over_nav": 2.003494717887574,
+    "replay_net_per_unit_gross_pp": 1.1462460819055615,
+    "live_net_per_unit_gross_pp": 1.557973813298734,
+    "diff_net_per_unit_gross_pp": 0.4117277313931724,
+    "replay_turnover_over_nav": 0.7126618815032867,
+    "live_turnover_over_nav": 0.8203913312261387,
+    "replay_fee_bps_of_turnover": 3.5200000000000937,
+    "live_fee_bps_of_turnover": 1.9982811305848796
+   },
+   "20260830": {
+    "status": "OK",
+    "clean": true,
+    "replay_net_pct": -1.7291132620653304,
+    "live_net_pct": -1.7646640420029713,
+    "diff_net_pp": -0.035550779937640886,
+    "replay_buckets_pp": {
+     "price": -1.529760358478038,
+     "funding": -0.1823816732255433,
+     "fee_trade": -0.01697123036174907,
+     "fee_settle": -0.0
+    },
+    "live_buckets_pp": {
+     "price": -1.439779972619119,
+     "funding": -0.31231738127813924,
+     "fee_trade": -0.012566688105713276,
+     "fee_settle": 0.0
+    },
+    "diff_buckets_pp": {
+     "price": 0.08998038585891899,
+     "funding": -0.12993570805259594,
+     "fee_trade": 0.004404542256035792,
+     "fee_settle": 0.0
+    },
+    "diff_identity_residual_pp": 2.706168622523819e-16,
+    "replay_gross_over_nav": 1.977360880276607,
+    "live_gross_over_nav": 1.9939092510055072,
+    "replay_net_per_unit_gross_pp": -0.8744550776302655,
+    "live_net_per_unit_gross_pp": -0.8850272604498274,
+    "diff_net_per_unit_gross_pp": -0.010572182819561848,
+    "replay_turnover_over_nav": 0.48213722618603555,
+    "live_turnover_over_nav": 0.6403393274066248,
+    "replay_fee_bps_of_turnover": 3.5200000000001284,
+    "live_fee_bps_of_turnover": 1.9625044984521536
+   },
+   "20260831": {
+    "status": "OK",
+    "clean": true,
+    "replay_net_pct": -1.125776389786101,
+    "live_net_pct": -1.5706077486424794,
+    "diff_net_pp": -0.44483135885637837,
+    "replay_buckets_pp": {
+     "price": -0.9566331923965171,
+     "funding": -0.14907750387322907,
+     "fee_trade": -0.0200656935163549,
+     "fee_settle": -0.0
+    },
+    "live_buckets_pp": {
+     "price": -1.3128678790042052,
+     "funding": -0.24626182287226775,
+     "fee_trade": -0.011478046766006337,
+     "fee_settle": 0.0
+    },
+    "diff_buckets_pp": {
+     "price": -0.3562346866076881,
+     "funding": -0.09718431899903868,
+     "fee_trade": 0.008587646750348562,
+     "fee_settle": 0.0
+    },
+    "diff_identity_residual_pp": -1.6653345369377348e-16,
+    "replay_gross_over_nav": 1.9255954500635832,
+    "live_gross_over_nav": 1.9808079149016926,
+    "replay_net_per_unit_gross_pp": -0.5846380607873414,
+    "live_net_per_unit_gross_pp": -0.792912698312006,
+    "diff_net_per_unit_gross_pp": -0.20827463752466457,
+    "replay_turnover_over_nav": 0.5700481112600959,
+    "live_turnover_over_nav": 0.5725427857441742,
+    "replay_fee_bps_of_turnover": 3.5199999999999165,
+    "live_fee_bps_of_turnover": 2.0047491736512777
+   }
+  },
+  "all6": {
+   "days": [
+    "20260826",
+    "20260827",
+    "20260828",
+    "20260829",
+    "20260830",
+    "20260831"
+   ],
+   "net_diff_pp": {
+    "n": 6,
+    "mean": -0.48101770440168057,
+    "sd": 0.9106619308067151,
+    "se": 0.37177617644236216,
+    "half_width_95": 0.9558365496333132,
+    "lo": -1.4368542540349938,
+    "hi": 0.47481884523163265
+   },
+   "price_diff_pp": {
+    "n": 6,
+    "mean": -0.3956118253027769,
+    "sd": 0.9288646196118383,
+    "se": 0.37920739302889944,
+    "half_width_95": 0.9749422074773005,
+    "lo": -1.3705540327800774,
+    "hi": 0.5793303821745237
+   },
+   "funding_diff_pp": {
+    "n": 6,
+    "mean": -0.0831125390629126,
+    "sd": 0.07003798506509326,
+    "se": 0.028592887670357895,
+    "half_width_95": 0.07351231420049015,
+    "lo": -0.15662485326340275,
+    "hi": -0.009600224862422457
+   },
+   "fee_diff_pp": {
+    "n": 6,
+    "mean": -0.0023343581582671697,
+    "sd": 0.015748924765041156,
+    "se": 0.0064294716119720485,
+    "half_width_95": 0.01653017151438014,
+    "lo": -0.018864529672647307,
+    "hi": 0.014195813356112969
+   },
+   "net_diff_per_unit_gross_pp": {
+    "n": 6,
+    "mean": -0.25097748354522675,
+    "sd": 0.4772288243479121,
+    "se": 0.1948278517001143,
+    "half_width_95": 0.5009024067209938,
+    "lo": -0.7518798902662206,
+    "hi": 0.2499249231757671
+   },
+   "replay_daily_sd_pp": 1.575018689010201,
+   "live_daily_sd_pp": 1.7767887972884964,
+   "replay_cum_pct": 2.939943563655145,
+   "live_cum_pct": 0.002195586799280669
+  },
+  "clean_only": {
+   "days": [
+    "20260828",
+    "20260830",
+    "20260831"
+   ],
+   "net_diff_pp": {
+    "n": 3,
+    "mean": -0.23096430743940433,
+    "sd": 0.20526336126713204,
+    "se": 0.1185088568823461,
+    "half_width_95": 0.5099436111647352,
+    "lo": -0.7409079186041395,
+    "hi": 0.27897930372533086
+   },
+   "price_diff_pp": {
+    "n": 3,
+    "mean": -0.1383199364989682,
+    "sd": 0.22328875432341383,
+    "se": 0.1289158224156392,
+    "half_width_95": 0.5547247838544955,
+    "lo": -0.6930447203534638,
+    "hi": 0.4164048473555273
+   },
+   "funding_diff_pp": {
+    "n": 3,
+    "mean": -0.0994703135375955,
+    "sd": 0.029389152905598705,
+    "se": 0.016967835341302487,
+    "half_width_95": 0.0730125954736246,
+    "lo": -0.1724829090112201,
+    "hi": -0.026457718063970903
+   },
+   "fee_diff_pp": {
+    "n": 3,
+    "mean": 0.006825942597159341,
+    "sd": 0.0021681766758883457,
+    "se": 0.0012517973874748044,
+    "half_width_95": 0.005386484158304084,
+    "lo": 0.001439458438855257,
+    "hi": 0.012212426755463425
+   },
+   "net_diff_per_unit_gross_pp": {
+    "n": 3,
+    "mean": -0.10943819564487055,
+    "sd": 0.09885123066981216,
+    "se": 0.05707178463694185,
+    "half_width_95": 0.24557988929276076,
+    "lo": -0.3550180849376313,
+    "hi": 0.1361416936478902
+   },
+   "replay_daily_sd_pp": 1.3476429266548995,
+   "live_daily_sd_pp": 1.3329622573360451,
+   "replay_cum_pct": -2.011945616737887,
+   "live_cum_pct": -2.693560985105792
+  }
+ },
+ "CONV_A_watchdog": {
+  "per_day": {
+   "20260826": {
+    "status": "OK",
+    "clean": false,
+    "replay_net_pct": 1.4781783201514118,
+    "live_net_pct": 0.4699681367407753,
+    "diff_net_pp": -1.0082101834106365,
+    "replay_buckets_pp": {
+     "price": 1.6473706195170765,
+     "funding": -0.15332470145188196,
+     "fee_trade": -0.01562148918012586,
+     "fee_settle": -0.0002461087336568214
+    },
+    "live_buckets_pp": {
+     "price": 0.6086689878520309,
+     "funding": -0.10365897875106658,
+     "fee_trade": -0.03504187236018907,
+     "fee_settle": 0.0
+    },
+    "diff_buckets_pp": {
+     "price": -1.0387016316650457,
+     "funding": 0.04966572270081537,
+     "fee_trade": -0.019420383180063207,
+     "fee_settle": 0.0002461087336568214
+    },
+    "diff_identity_residual_pp": 2.220446049250313e-16,
+    "replay_gross_over_nav": 1.9457009856926653,
+    "live_gross_over_nav": 1.2273726699140077,
+    "replay_net_per_unit_gross_pp": 0.7597150492397904,
+    "live_net_per_unit_gross_pp": 0.38290581846970917,
+    "diff_net_per_unit_gross_pp": -0.3768092307700812,
+    "replay_turnover_over_nav": 0.4437923062536064,
+    "live_turnover_over_nav": 1.7664449781031335,
+    "replay_fee_bps_of_turnover": 3.5199999999997553,
+    "live_fee_bps_of_turnover": 1.9837511382787694
+   },
+   "20260827": {
+    "status": "OK",
+    "clean": false,
+    "replay_net_pct": 1.2003694096644508,
+    "live_net_pct": -0.42453879531182453,
+    "diff_net_pp": -1.6249082049762753,
+    "replay_buckets_pp": {
+     "price": 1.3302415755837875,
+     "funding": -0.11358029789387102,
+     "fee_trade": -0.01629186802546578,
+     "fee_settle": -0.0
+    },
+    "live_buckets_pp": {
+     "price": -0.15100243547062886,
+     "funding": -0.23256115905385638,
+     "fee_trade": -0.040975200787339294,
+     "fee_settle": 0.0
+    },
+    "diff_buckets_pp": {
+     "price": -1.4812440110544163,
+     "funding": -0.11898086115998537,
+     "fee_trade": -0.024683332761873514,
+     "fee_settle": 0.0
+    },
+    "diff_identity_residual_pp": -2.220446049250313e-16,
+    "replay_gross_over_nav": 2.0233902097477405,
+    "live_gross_over_nav": 1.849059081964639,
+    "replay_net_per_unit_gross_pp": 0.5932466233560075,
+    "live_net_per_unit_gross_pp": -0.22959720403349626,
+    "diff_net_per_unit_gross_pp": -0.8228438273895038,
+    "replay_turnover_over_nav": 0.46283715981437806,
+    "live_turnover_over_nav": 1.8845435728705802,
+    "replay_fee_bps_of_turnover": 3.519999999999929,
+    "live_fee_bps_of_turnover": 2.174277176564558
+   },
+   "20260828": {
+    "status": "OK",
+    "clean": true,
+    "replay_net_pct": 0.8475085444096384,
+    "live_net_pct": 0.8244116688966894,
+    "diff_net_pp": -0.023096875512949033,
+    "replay_buckets_pp": {
+     "price": 0.9858942303229217,
+     "funding": -0.12414989451363782,
+     "fee_trade": -0.014235791399645526,
+     "fee_settle": -0.0
+    },
+    "live_buckets_pp": {
+     "price": 1.0343357428536746,
+     "funding": -0.20337968887681826,
+     "fee_trade": -0.0065443850801669146,
+     "fee_settle": 0.0
+    },
+    "diff_buckets_pp": {
+     "price": 0.048441512530752906,
+     "funding": -0.07922979436318044,
+     "fee_trade": 0.0076914063194786116,
+     "fee_settle": 0.0
+    },
+    "diff_identity_residual_pp": -1.1449174941446927e-16,
+    "replay_gross_over_nav": 1.9840301186827056,
+    "live_gross_over_nav": 1.9987502973914204,
+    "replay_net_per_unit_gross_pp": 0.42716516066416405,
+    "live_net_per_unit_gross_pp": 0.4124635628435595,
+    "diff_net_per_unit_gross_pp": -0.01470159782060454,
+    "replay_turnover_over_nav": 0.4044258920353673,
+    "live_turnover_over_nav": 0.3351260383317236,
+    "replay_fee_bps_of_turnover": 3.520000000000148,
+    "live_fee_bps_of_turnover": 1.9528130707912859
+   },
+   "20260829": {
+    "status": "OK",
+    "clean": false,
+    "replay_net_pct": 2.2953826101467647,
+    "live_net_pct": 1.9882480417881871,
+    "diff_net_pp": -0.30713456835857755,
+    "replay_buckets_pp": {
+     "price": 2.4721454081515204,
+     "funding": -0.15167709977583926,
+     "fee_trade": -0.02508569822891636,
+     "fee_settle": -0.0
+    },
+    "live_buckets_pp": {
+     "price": 2.2164792111746277,
+     "funding": -0.21706143887903898,
+     "fee_trade": -0.01116973050740175,
+     "fee_settle": 0.0
+    },
+    "diff_buckets_pp": {
+     "price": -0.25566619697689275,
+     "funding": -0.06538433910319971,
+     "fee_trade": 0.013915967721514612,
+     "fee_settle": 0.0
+    },
+    "diff_identity_residual_pp": 2.7755575615628914e-16,
+    "replay_gross_over_nav": 2.0025216630017497,
+    "live_gross_over_nav": 2.003494717887574,
+    "replay_net_per_unit_gross_pp": 1.1462460819055615,
+    "live_net_per_unit_gross_pp": 0.9923899594227718,
+    "diff_net_per_unit_gross_pp": -0.1538561224827898,
+    "replay_turnover_over_nav": 0.7126618815032867,
+    "live_turnover_over_nav": 0.5502772444762247,
+    "replay_fee_bps_of_turnover": 3.5200000000000937,
+    "live_fee_bps_of_turnover": 2.0298368903176316
+   },
+   "20260830": {
+    "status": "OK",
+    "clean": true,
+    "replay_net_pct": -1.7291132620653304,
+    "live_net_pct": -0.8145882238325913,
+    "diff_net_pp": 0.9145250382327391,
+    "replay_buckets_pp": {
+     "price": -1.529760358478038,
+     "funding": -0.1823816732255433,
+     "fee_trade": -0.01697123036174907,
+     "fee_settle": -0.0
+    },
+    "live_buckets_pp": {
+     "price": -0.4697456600816855,
+     "funding": -0.3280390273071339,
+     "fee_trade": -0.016803536443771885,
+     "fee_settle": 0.0
+    },
+    "diff_buckets_pp": {
+     "price": 1.0600146983963525,
+     "funding": -0.1456573540815906,
+     "fee_trade": 0.00016769391797718386,
+     "fee_settle": 0.0
+    },
+    "diff_identity_residual_pp": 0.0,
+    "replay_gross_over_nav": 1.977360880276607,
+    "live_gross_over_nav": 1.9939092510055072,
+    "replay_net_per_unit_gross_pp": -0.8744550776302655,
+    "live_net_per_unit_gross_pp": -0.40853826392640646,
+    "diff_net_per_unit_gross_pp": 0.46591681370385907,
+    "replay_turnover_over_nav": 0.48213722618603555,
+    "live_turnover_over_nav": 0.8661148618754586,
+    "replay_fee_bps_of_turnover": 3.5200000000001284,
+    "live_fee_bps_of_turnover": 1.9401048502257565
+   },
+   "20260831": {
+    "status": "OK",
+    "clean": true,
+    "replay_net_pct": -1.125776389786101,
+    "live_net_pct": -1.2760484278294097,
+    "diff_net_pp": -0.1502720380433087,
+    "replay_buckets_pp": {
+     "price": -0.9566331923965171,
+     "funding": -0.14907750387322907,
+     "fee_trade": -0.0200656935163549,
+     "fee_settle": -0.0
+    },
+    "live_buckets_pp": {
+     "price": -1.0047592585350553,
+     "funding": -0.25949744390068524,
+     "fee_trade": -0.011791725393669251,
+     "fee_settle": 0.0
+    },
+    "diff_buckets_pp": {
+     "price": -0.048126066138538204,
+     "funding": -0.11041994002745617,
+     "fee_trade": 0.008273968122685648,
+     "fee_settle": 0.0
+    },
+    "diff_identity_residual_pp": 2.7755575615628914e-17,
+    "replay_gross_over_nav": 1.9255954500635832,
+    "live_gross_over_nav": 1.9808079149016926,
+    "replay_net_per_unit_gross_pp": -0.5846380607873414,
+    "live_net_per_unit_gross_pp": -0.6442060425090436,
+    "diff_net_per_unit_gross_pp": -0.05956798172170219,
+    "replay_turnover_over_nav": 0.5700481112600959,
+    "live_turnover_over_nav": 0.5882014905176879,
+    "replay_fee_bps_of_turnover": 3.5199999999999165,
+    "live_fee_bps_of_turnover": 2.0047085197439944
+   }
+  },
+  "all6": {
+   "days": [
+    "20260826",
+    "20260827",
+    "20260828",
+    "20260829",
+    "20260830",
+    "20260831"
+   ],
+   "net_diff_pp": {
+    "n": 6,
+    "mean": -0.36651613867816796,
+    "sd": 0.8723087536846525,
+    "se": 0.3561185574484224,
+    "half_width_95": 0.9155808111998941,
+    "lo": -1.282096949878062,
+    "hi": 0.5490646725217261
+   },
+   "price_diff_pp": {
+    "n": 6,
+    "mean": -0.2858802824846312,
+    "sd": 0.8917711307166681,
+    "se": 0.3640640396001059,
+    "half_width_95": 0.9360086458118724,
+    "lo": -1.2218889282965035,
+    "hi": 0.6501283633272412
+   },
+   "funding_diff_pp": {
+    "n": 6,
+    "mean": -0.07833442767243282,
+    "sd": 0.06894422970730951,
+    "se": 0.02814636391535699,
+    "half_width_95": 0.07236430162638283,
+    "lo": -0.15069872929881564,
+    "hi": -0.005970126046049989
+   },
+   "fee_diff_pp": {
+    "n": 6,
+    "mean": -0.002342446643380111,
+    "sd": 0.0159674319787138,
+    "se": 0.0065186768084079276,
+    "half_width_95": 0.016759518074416783,
+    "lo": -0.019101964717796894,
+    "hi": 0.014417071431036672
+   },
+   "net_diff_per_unit_gross_pp": {
+    "n": 6,
+    "mean": -0.1603103244134704,
+    "sd": 0.42646815241645103,
+    "se": 0.17410489416129832,
+    "half_width_95": 0.447623682888698,
+    "lo": -0.6079340073021684,
+    "hi": 0.28731335847522765
+   },
+   "replay_daily_sd_pp": 1.575018689010201,
+   "live_daily_sd_pp": 1.2022959547335614,
+   "replay_cum_pct": 2.939943563655145,
+   "live_cum_pct": 0.7336916582603825
+  },
+  "clean_only": {
+   "days": [
+    "20260828",
+    "20260830",
+    "20260831"
+   ],
+   "net_diff_pp": {
+    "n": 3,
+    "mean": 0.24705204155882712,
+    "sd": 0.5815354945811949,
+    "se": 0.33574967433977504,
+    "half_width_95": 1.444730848684052,
+    "lo": -1.197678807125225,
+    "hi": 1.691782890242879
+   },
+   "price_diff_pp": {
+    "n": 3,
+    "mean": 0.3534433815961891,
+    "sd": 0.6138107148022509,
+    "se": 0.35438378142255617,
+    "half_width_95": 1.5249134114612592,
+    "lo": -1.1714700298650702,
+    "hi": 1.8783567930574483
+   },
+   "funding_diff_pp": {
+    "n": 3,
+    "mean": -0.11176902949074241,
+    "sd": 0.033234322684849466,
+    "se": 0.019187845148432726,
+    "half_width_95": 0.08256529767370602,
+    "lo": -0.19433432716444843,
+    "hi": -0.029203731817036394
+   },
+   "fee_diff_pp": {
+    "n": 3,
+    "mean": 0.005377689453380481,
+    "sd": 0.004521380836960173,
+    "se": 0.0026104204433277716,
+    "half_width_95": 0.011232639167639401,
+    "lo": -0.00585494971425892,
+    "hi": 0.016610328621019882
+   },
+   "net_diff_per_unit_gross_pp": {
+    "n": 3,
+    "mean": 0.13054907805385077,
+    "sd": 0.2913020540390173,
+    "se": 0.16818331931491756,
+    "half_width_95": 0.7236928230120903,
+    "lo": -0.5931437449582395,
+    "hi": 0.854241901065941
+   },
+   "replay_daily_sd_pp": 1.3476429266548995,
+   "live_daily_sd_pp": 1.103871881619269,
+   "replay_cum_pct": -2.011945616737887,
+   "live_cum_pct": -1.2729802012498292
+  }
+ },
+ "replay_august_split": [
+  {
+   "name": "2026-08 whole month (doc says -5.9586%)",
+   "from": "20260801",
+   "to": "20260901",
+   "n_days": 31,
+   "nav0": 345372.18658736214,
+   "nav1": 324792.97474255355,
+   "pct": -5.958560834951042,
+   "price_pp": -0.16393104825008065,
+   "funding_pp": -5.206691316945789,
+   "fee_pp": -0.5867532523569908,
+   "daily_mean_pp": -0.1806564308398382,
+   "daily_sd_pp": 1.8919082869249435,
+   "daily_sharpe_ann": -1.8243147878027566,
+   "worst_day_pp": -3.3940399064281923,
+   "best_day_pp": 3.466329480283692
+  },
+  {
+   "name": "2026-08-01..08-25 (before live combo started)",
+   "from": "20260801",
+   "to": "20260826",
+   "n_days": 25,
+   "nav0": 345372.18658736214,
+   "nav1": 315516.9543508743,
+   "pct": -8.644364947707201,
+   "price_pp": -3.775596307998114,
+   "funding_pp": -4.383030739428361,
+   "fee_pp": -0.48477751707909816,
+   "daily_mean_pp": -0.3426759435422331,
+   "daily_sd_pp": 1.9534736472779533,
+   "daily_sharpe_ann": -3.3513708864504492,
+   "worst_day_pp": -3.3940399064281923,
+   "best_day_pp": 3.466329480283692
+  },
+  {
+   "name": "2026-08-26..08-31 (the overlap window)",
+   "from": "20260826",
+   "to": "20260901",
+   "n_days": 6,
+   "nav0": 315516.9543508743,
+   "nav1": 324792.97474255355,
+   "pct": 2.9399435636551394,
+   "price_pp": 3.953412679667416,
+   "funding_pp": -0.9015979989039077,
+   "fee_pp": -0.11162500837471144,
+   "daily_mean_pp": 0.4944248720868072,
+   "daily_sd_pp": 1.5750186890102018,
+   "daily_sharpe_ann": 5.997372592436598,
+   "worst_day_pp": -1.7291132620653293,
+   "best_day_pp": 2.295382610146768
+  }
+ ]
+}
