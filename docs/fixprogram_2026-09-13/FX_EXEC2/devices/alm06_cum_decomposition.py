@@ -60,6 +60,8 @@ def day_of_ms(ms):
     return time.strftime("%Y%m%d", time.gmtime(ms / 1000))
 
 
+import bisect
+
 snaps_all = jl(os.path.join(STATE, "snapshots.jsonl"))
 inc_all = jl(os.path.join(STATE, "income.jsonl"))
 cmp_all = jl(os.path.join(STATE, "compare.jsonl"))
@@ -110,11 +112,41 @@ def wd_chain_arith_pct(dn, now_ts):
     return round((cum - 1.0) * 100.0, 4) if n else None
 
 
+# income indexed by day and bucket, with prefix sums, so a per-day figure "as of now_ts" is two bisects
+_INC = {}
+for _r in inc_all:
+    _d = day_of_ms(_r["time"])
+    if _r["type"] == "TRANSFER":
+        _b = "TRANSFER"
+    elif _r["type"] in REALISED_TYPES and _r.get("asset") == "USDT":
+        _b = "REALISED"
+    else:
+        continue
+    _INC.setdefault((_d, _b), []).append((float(_r["time"]), float(_r["income"])))
+_INCP = {}
+for _k, _v in _INC.items():
+    _v.sort()
+    _ts = [x[0] for x in _v]
+    _cs, _acc = [], 0.0
+    for _x in _v:
+        _acc += _x[1]
+        _cs.append(_acc)
+    _INCP[_k] = (_ts, _cs)
+
+
+def _inc_upto(day, bucket, now_ts):
+    e = _INCP.get((day, bucket))
+    if not e:
+        return 0.0
+    ts, cs = e
+    i = bisect.bisect_right(ts, now_ts * 1000.0)
+    return cs[i - 1] if i else 0.0
+
+
 def chains(now_ts):
     """T / C1 / C2a / C2b as of now_ts, plus the shared prefix. Mirrors guard_twin's cum_twin_pct construction."""
     dn = dn_as_of(now_ts)
     snaps = [s for s in snaps_all if float(s["ts"]) <= now_ts]
-    inc = [r for r in inc_all if float(r["time"]) / 1000.0 <= now_ts]
     days = sorted(dn)
     twin_days = sorted({s["day"] for s in snaps})
     first_twin_day = twin_days[0] if twin_days else None
@@ -157,12 +189,13 @@ def chains(now_ts):
     for s in snaps:
         by_day[s["day"]] = s                      # last per day, as guard_twin does
 
+    # ★ per-day prefix sums over the income ledger, built ONCE (109k rows); the first version rescanned the whole
+    #   ledger per day per compare row (1,655 x ~44 x 109k) and did not finish. Same arithmetic, indexed.
     def transfers(d):
-        return sum(r["income"] for r in inc if r["type"] == "TRANSFER" and day_of_ms(r["time"]) == d)
+        return _inc_upto(d, "TRANSFER", now_ts)
 
     def realised_income(d):
-        return sum(r["income"] for r in inc
-                   if r["type"] in REALISED_TYPES and r.get("asset") == "USDT" and day_of_ms(r["time"]) == d)
+        return _inc_upto(d, "REALISED", now_ts)
 
     # T: the twin as it runs
     t_twr, p_eq = prefix_twr, prefix_prev[0]
