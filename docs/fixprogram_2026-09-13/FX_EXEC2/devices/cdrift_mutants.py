@@ -72,7 +72,7 @@ MUTANTS = [
      "    w = []\n    for key in KEYS:",
      "    w = []\n    for key in []:",
      "keep the drift BLOCK but raise no warning from it, so the daily summary prints numbers and no verdict",
-     "raises the drift VERDICT"),
+     "RAISED WARNING LINE"),
 ]
 
 
