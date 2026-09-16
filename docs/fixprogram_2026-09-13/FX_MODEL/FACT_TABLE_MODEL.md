@@ -216,7 +216,7 @@ VERIFIED three ways, not one: by reading the save lines; by enumerating the keys
 |---|---|---|---|
 | O1 | Cells where v2ext has no row (22,892 in 2022, 2,000 in 2026) | **NOT CHECKED** | Needs a third source (settlement stream); the rebuild must keep them explicitly unknown, not zero |
 | O2 | Cell-level identity of the 8,365 legs cells | **NOT CHECKED** | Optional; counts already agree across two instruments |
-| O3 | `seed_fold = YM + SEED` on every fold | **NOT CHECKED** | Enumerate the 40 configs when the prereg is drafted |
+| O3 | `seed_fold = YM + SEED` on every fold | **VERIFIED 2026-09-16** | All 40 fold configs enumerated on pod2: `seed_fold == fold + 42` holds for every one, and the source line is `torch.manual_seed(SEED + YM); np.random.seed(SEED + YM)`. **And a constraint found with it**: `pod_f10_train_monthly.py` (`7bb39f8d`) carries an E-0826-D env whitelist asserting **`SEED == 42`**, so the in-service-lineage trainer cannot run a second seed; `pod_f10_train_monthly_v4.py` (`fd5707bd`) asserts `SEED in (42, 2027)` and uses a **constant** per-fold seed instead. The two recipes therefore differ on both the seed set and the seeding rule — see PREREG §4. |
 | O4 | Arm-B reconstruction control (§1.3(e)) | **NOT CHECKED** | Must pass before any arm-B number is quoted; a failure is reportable, not substitutable |
 | O5 | Effect of the rebuild on F10 predictions and on the book | **NOT MEASURED** | That is the prereg's job, not this table's |
 

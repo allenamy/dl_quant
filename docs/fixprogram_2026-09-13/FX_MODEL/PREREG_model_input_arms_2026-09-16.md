@@ -108,7 +108,20 @@ Builders, with their legacy arms already certified bitwise:
 
 - **DL folds**: the 20 monthly walk-forward folds `202501 … 202608`, tag `mE1` (embargo 1 anchor). The `mE60` tag is a **sensitivity column only**, not a second primary reading.
 - **King folds**: the yearly folds the exporter defines — 2024, 2025, 2026. King has **zero embargo** (`tr_ = YRA < YV; te_ = YRA == YV`); that is a fact of the existing design, is stated here, and is **not** changed by this experiment.
-- **Seeds**: **42 and 2027**, both arms. Two seeds are used to bound seed noise, and results are reported **per seed**. Multi-seed ensembling and any post-hoc selection across seeds are forbidden (user's hard rule). Before any multi-seed claim the device must first assert the two runs share an identical `self_sha256`.
+- **Seeds and the trainer this constrains us to** (established 2026-09-16, before the freeze — this corrected an earlier draft that simply said "42 and 2027"):
+
+| trainer | sha256 | seed whitelist | per-fold RNG | data dirs pinned to |
+|---|---|---|---|---|
+| in-service lineage `pod_f10_train_monthly.py` | `7bb39f8d93f2daf7…` | **`SEED == 42` only** | `manual_seed(SEED + YM)` — **varies per fold** | `dlw_ext` / `f8_ext` (hard) |
+| v4 chain `pod_f10_train_monthly_v4.py` | `fd5707bd3acccdbb…` | **`SEED in (42, 2027)`** | `manual_seed(SEED)` — **constant every fold** (`mE1_constseed`, addendum §11) | `V4_DLW_RAW` / `V4_F8`, **env-overridable by design** |
+
+  Both assertions are deliberate E-0826-D env whitelists. Consequences, pre-committed:
+  1. **Two-seed arms run on the v4 chain trainer only.** The in-service-lineage trainer cannot take seed 2027 without a trainer change, and trainer changes belong to fx-train, not to me. I will not widen an E-0826-D whitelist to make an experiment fit.
+  2. So arms `DA/DB/DC` and `XA/XB/XC` use **`pod_f10_train_monthly_v4.py`**, with `V4_DLW_RAW` / `V4_F8` pointed at this experiment's output dirs — which that trainer supports by design, unlike the hard-pinned one.
+  3. The two trainers **disagree on the fold seeding rule**. Whichever is used, its rule is quoted in the receipt; readings from the two are never pooled.
+  4. Verified across all 40 fold configs: `seed_fold == fold + 42` holds everywhere for the in-service lineage, i.e. its published OOF is a **per-fold-seeded** object.
+
+  Results are reported **per seed**. Multi-seed ensembling and any post-hoc selection across seeds are forbidden (user's hard rule). Before any multi-seed claim the device must first assert the two runs share an identical `self_sha256`.
 - **Label maturity, respected explicitly**:
 
 | Object | label rows | completes at |
