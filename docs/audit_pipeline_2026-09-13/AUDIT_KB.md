@@ -1,4 +1,4 @@
-> **创建:** 2026-09-16T04:19:14Z | **Session:** aud-kb (team audit, read-only) | **状态:** 审计登记(只读; 不改任何源文件与记忆; 更正由 lead 复核后应用) | **作废条件:** 被登记的源文件或记忆条目改动后对应行需复核; 新收据推翻本登记的任一 superseding 证据
+> **创建:** 2026-09-16T04:21:32Z | **Session:** aud-kb (team audit, read-only) | **状态:** 审计登记(只读; 不改任何源文件与记忆; 更正由 lead 复核后应用) | **作废条件:** 被登记的源文件或记忆条目改动后对应行需复核; 新收据推翻本登记的任一 superseding 证据
 
 # AUDIT_KB · 评估装置与知识库陈旧结论审计(2026-09-13)
 
@@ -820,6 +820,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 
 ### KB-73 · P2 · OPEN_NOT_MEASURED
 - **Source:** `CLAUDE.md:46`
+- **Resolution:** **PARTLY APPLIED + ESCALATED TO BLOCKING** 2026-09-16. (a) The `CLAUDE.md:46` half is applied by the lead in commit **e9876c3a**, as an in-place rewrite of the routing pointer rather than an appended annotation — defensible for a routing cell whose content was a path, and the pre-correction wording is preserved in this row's `quote` field, so nothing is lost. (b) The lead escalated the rest to a **blocking** item (FIXPROGRAM §20.6–20.9), accepting this register's 'proposal, not applied' as mandatory: **① every battery run this round must record the interpreter** (before and after: whether `ACCEPT_PY` was set, the resolved absolute `$PY`, `sys.version`, `torch.__version__`), recorded in each worker's own wrapper, **`run_acceptance.sh` itself unchanged** — issued to FX-EXEC (05:05Z), FX-PROD (04:50Z) and FX-EXEC2; **② FX-EXEC must make the runner write the resolved `$PY` and `sys.version` into the log header and JSON, and change `tests_acceptance_entrypoints` from a source-substring assertion to an assertion on the effective interpreter — and this must land BEFORE the three-branch stacked battery**, otherwise the stacked battery certifies nothing either. Red test = the shape this row gives: on the old code point `ACCEPT_PY` at 3.14 and run that suite; it still prints OK ⇒ red for the right reason.
 - **Quote:** 「| 部署/回滚/电池 | `~/dl_quant_live/ops/safe_commit.sh` + `run_acceptance.sh` |」
 - **Superseding evidence:**
   - `~/dl_quant_live/run_acceptance.sh:28` — 「PY="${ACCEPT_PY:-/usr/bin/python3}"」
@@ -833,6 +834,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 
 ### KB-74 · P2 · DOC_STALE
 - **Source:** `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:311`
+- **Resolution:** APPLIED by lead 2026-09-16, commit **b87ed509** (FIXPROGRAM §20.6): §15.2's TRN-28 renumbered to **TRN-30**, original marked SUPERSEDED-ID, §15.2/§15.3 references synchronised. The lead's own framing confirms why this was worse than the PROD case: 「同一份文件的 §3.2 第 100 行早已把 `TRN-28` 按 AUDIT_TRAIN 的原义路由给 K4 —— 一个号、两个主、两个严重度, 在同一个文件里」。 `PROD-28-STALE` retained on the distinction this register drew (§20.6): it is a status annotation on AUDIT_PROD's PROD-28 **record**, not a new finding hung on an existing id, so the reason for renumbering PROD-36b does not apply to it.
 - **Quote:** 「| **TRN-28** | `pod_f10_np_export.py` 在**自己的 V1 门判词之前**就写出可部署 npz」
 - **Superseding evidence:**
   - `docs/audit_pipeline_2026-09-13/AUDIT_TRAIN.md:3` — 「AUDIT_TRAIN」
@@ -841,10 +843,11 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **A reader could wrongly conclude:** One document assigns TRN-28 to two owners (K4 at §3.2, FX-TRAIN at §15.2) with two severities (P2 doc-routing vs P1 live-artefact overwrite). Whoever works the queue by id either fixes a documentation pointer believing they closed a P1, or cannot tell which is meant.
 - **Affects:** future_retrain, reporting · **Severity reason:** The PROD family was renumbered on 2026-09-16 but the same defect survives at TRN-28: §15.2 opens it as a P1 owned by FX-TRAIN (`pod_f10_np_export.py` writes a deployable npz before its own gate verdict), while AUDIT_TRAIN (7e1ecf9a) TRN-28 is 「CLAUDE.md routes 月度重训 to the superseded September runbook」 — and §3.2 of the SAME document already routes TRN-28 to K4 in the AUDIT_TRAIN sense.
 - **Proposed correction (exact text):** [§15.2 表内原编号字节保留, 就地注明] ⚠ **2026-09-16 编号更正(aud-kb KB-74, 与 §17.5 同一把尺子)**: 本行的 **TRN-28 与 `AUDIT_TRAIN`(7e1ecf9a)已占用的 TRN-28 撞号**(原主 = 「CLAUDE.md 把月度重训指向已作废的九月 runbook」), 且**本纲领 §3.2 已按原主义把 TRN-28 派给 K4** ⇒ 同一文件内一号两主两级。**AUDIT_TRAIN 最高号 TRN-29, 空号自 TRN-30 起** ⇒ 本项改为 **TRN-30**(原号标 SUPERSEDED-ID)。§15.2 与 §15.3 内对本项的引用同步改。**其余 §13–§17 新号经逐一查重均不撞**: OPS-04(AUDIT_EXEC 只到 OPS-03)· LED-09(AUDIT_EXEC 只到 LED-08, AUDIT_DATA 只有 LED-01)· RES-01 · TEST-01 · BAT-01 · EXEC-RACE-01 · DATA-COR-1 · W6C-I6 · MON-1..4 · FXR-* 全部为空号。**`PROD-28-STALE` 保留**: 它是对 AUDIT_PROD PROD-28 这条记录的**状态标注**, 不是新发现, 后缀语义正确(与 PROD-36b 不同 —— 那是另一个发现被挂了子项后缀)。
-- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** absent
+- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** applied: stale quote no longer present
 
 ### KB-75 · P2 · DOC_STALE
 - **Source:** `docs/audit_pipeline_2026-09-13/AUDIT_EXEC.md:88`
+- **Resolution:** **RESOLVED-BY-CONVENTION** 2026-09-16, commit **b87ed509** (FIXPROGRAM §20.6, and the dedup rule in §17.5 extended). Ruling: the two pre-existing collisions are **not renumbered** — AUDIT_EXEC and AUDIT_DATA are two other auditors' committed registers and renumbering would dangle every existing citation, which is exactly the cost the lead avoided by renumbering their own new ids instead. **Cite with a register prefix: `EXEC:LED-01` / `DATA:LED-01` / `EXEC:DOC-01` / `DATA:DOC-01`.** §17.5's dedup rule now explicitly covers the four audits **against each other**, not only the programme against the audits.
 - **Quote:** 「| LED-01 | ledger / fills.jsonl | fills.jsonl holds every trade exactly twice; in-repo readers collapse the copies, a naive reader double counts |」
 - **Superseding evidence:**
   - `docs/audit_pipeline_2026-09-13/AUDIT_DATA.md:91` — 「| LED-01 | research readers of daily_nav (AUDIT_EXEC LED-04) | Research tools that read daily_nav.realised_by_type COMMISSION/REALIZED_PNL inside 07-29..09-12 print wrong fee columns; their conclusions do not use them |」
