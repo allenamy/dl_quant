@@ -1,0 +1,94 @@
+  ok   fixture source is the REAL committed day: 4 scheduled anchors, a FLATTEN batch, and that batch's readback under its OWN key 0.131 s later (the shape 10/10 live batches have)
+  ok   the fixture broker holds the REAL book of that anchor (names and notionals straight off the readback rows), so any response sizes from a real book. The two names §4-5e flags that day (ALTUSDT, RVNUSDT) read 0.0 there — being flat where we intended a position IS the deviation — so a per-name response on them correctly has nothing to send
+
+[A] the newest scheduled anchor was never observed
+  ok   ★★★ A0 POSITIVE CONTROL — the untouched real day detects a real §4-5e BREAK at its last scheduled anchor and ACTS on it (this is the 2026-08-01 incident, in its own rows; on ef60f85 the whole-book ladder, on this branch EXE-01's two-name local response on exactly ALTUSDT and RVNUSDT). Green on BOTH trees: nothing in W6C-B13 weakens detection or the response to it
+  ok   ★★ A0b and on that untouched day neither position guard is blind — every scheduled anchor carries its readback, including the one that broke. (cond2_day_loss is blind on a one-day tree for its own, unrelated reason: there is no previous equity day.)
+  ok   ★★★★ A1 THE DEFECT, on real rows: with that anchor's readback gone, §4-5e judges the PREVIOUS anchor and reports CLEAN — the real BREAK simply vanishes, and the evaluation looks like a healthy one. (This half is identical on both trees; it is the fact the rest must name.)
+  FAIL ★★★ A2 §4-5b says so instead of printing CLEAN: it names the unobserved anchor and goes blind (ef60f85: state CLEAN, blind False — the defect)   [{'state': 'CLEAN', 'blind': False}]
+  FAIL ★★★ A3 §4-5b publishes BOTH anchors so a reader sees the gap, not just the verdict   [{'newest_scheduled_anchor_ts': None, 'observed_at_newest_scheduled': None, 'last_reconciled_anchor_ts': 1785600098.2220259}]
+  FAIL ★★★ A4 §4-5e is blind too, and names which anchor it did NOT get to judge   [{'state': 'CLEAN', 'blind': False, 'latest_anchor_ts': 1785600098.2220259, 'observed_at_newest_scheduled': None}]
+  FAIL ★★★ A5 §4-7's drift half is blind too — it reads the same reconciliation   [{'blind': False, 'drift_state': 'CLEAN'}]
+  FAIL ★★★ A6 all three reach `conditions_blind`, which is what pages (run_anchor.py:652) and what refuses a resume (resume_from_trip.sh:229)   [['cond2_day_loss']]
+  ok   ★★★★ A7 AND NOTHING IS FLATTENED. We cannot see the book, so we do not act on it: not tripped, no flatten of any kind, reduce-only NOT engaged (user rule 2026-09-12 — instrument doubt never triggers a book-level response)
+  FAIL ★★ A8 the evaluation carries ONE observability block: the state, the reference it used, whether opening should halt, and what it cannot see   [{}]
+  ok   ★★ A9 it is NOT a new §4 condition — a new top-level condition would need its own routing into the trip path, and this must never reach the ladder
+  ok   ★★★ A9b RECOVERY — put that anchor's readback back and the blindness is gone with no timer, no counter and no operator action, AND the real BREAK it was hiding fires exactly as it did before. Blindness costs one anchor of opening, never a position
+  FAIL ★★ A10 NEIGHBOUR — the ladder's own readback 18 minutes later does NOT count as having looked at the scheduled anchor: §4-5b's newest reconciliation is that later one, and it still never compared the anchor that matters. The rule is 'was THAT anchor observed', not 'is there some newer row'   [{'state': 'CLEAN', 'blind': False, 'last_reconciled_anchor_ts': 1785615547.6313741}]
+  ok   ★★ A10b and that neighbour flattens nothing either
+  FAIL ★★ A11 NEIGHBOUR — a TRUNCATED readback (one rejected row breaks the write loop, anchor_loop.py:2652-2653) is NOT the same fact as a missing one: the anchor IS observed, so no blindness and no halt; the shortfall is counted beside it   [{'5b': 'CLEAN', 'obs': {}}]
+  ok   ★★ A12 NEIGHBOUR — and a truncated readback still flattens nothing
+
+[N] negative controls
+  ok   ★★ N2 the real 20:19Z FLATTEN batch is an anchor key with orders and NO readback, and it must NOT make the watchdog blind — `max(anchor_ts)` as the reference would halt opening after every trip and every local response (10/10 live batches have this shape). Green on BOTH trees
+  ok   ★★ N3 the REAL HOLD-anchor shape (2026-08-29 20Z: external book missing ⇒ no rebalance ⇒ no `anchors` row, but the account WAS read and 256 readback rows written): the newest SCHEDULED anchor was observed, so not blind
+  ok   ★★ N4 no readback ANYWHERE (the DRY_RUN shape — binance_broker.account_snapshot returns None in DRY_RUN, so no rows are ever written): §4-5b was ALREADY blind here on ef60f85 and stays exactly as blind; nothing about that changes
+  FAIL ★★★ N5 and that case must NOT produce an opening halt — a tree that never observes the book is not a tree that LOST sight of it; halting every DRY_RUN anchor is how a guard gets ignored   [{}]
+  ok   ★★★ N6 NOT ONE ORDER is sent in ANY evaluation whose newest anchor could not be seen — three unobserved shapes and the never-observed one, counting the ladder's whole-book flatten AND EXE-01's per-name local response, which both close positions
+  ok   ★★★ N7 a REAL book-level trigger on the very tree that is blind: §4-5a venue outage still trips and still flattens with reduce-only. Blindness suppresses nothing — it only stops US manufacturing a book-level response out of our own gap
+
+[P] the producer states WHY there are no rows
+  FAIL ★★ P1 a normal anchor: the verdict is OBSERVED and carries the row count and the anchor it was taken at   [None]
+  FAIL ★★★ P2 the end-of-anchor account read RAISED (anchor_loop.py:2592-2598): verdict READ_FAILED, 0 rows — today this prints identically to three other causes   [None]
+  FAIL ★★★ P3 DRY_RUN — account_snapshot returns None by design (binance_broker.py:1943): verdict NO_ACCOUNT, which must never be read as a lost book   [None]
+  FAIL ★★★ P4 a SUCCESSFUL read with an empty readback universe (readback_universe, anchor_loop.py:631-639 — flat venue ∧ nothing targeted ∧ nothing held before): verdict OBSERVED_EMPTY, 0 rows. Distinguishable from P2 for the first time   [None]
+  FAIL ★★★ P5 a row the logger refuses breaks the write loop (`break`, anchor_loop.py:2653) and the tail is silently absent: verdict WRITE_TRUNCATED, with how many were written   [None]
+  FAIL P6 the verdict never invents a book: every shape reports n_rows equal to what was written   [[(None, 1), (None, 0), (None, 0), (None, 0), (None, 4)]]
+  FAIL ★★★ P7 a HOLD anchor whose account read ALSO failed leaves NO row of any kind, so no pure-log test can see it — the producer's verdict can, and the watchdog uses it in preference to the record and says which it used   [run() got an unexpected keyword argument 'book_observation']
+  FAIL ★★ P8 and a caller that DOES supply it on a healthy tree gets OBSERVED, from the producer   [run() got an unexpected keyword argument 'book_observation']
+
+[G] the gate — halt opening, flatten nothing
+  FAIL ★★★ G0 anchor_loop exposes the gate as a module-level function, so it is testable without driving a whole anchor   [NoneType]
+  FAIL ★★ G1 the newest evaluation saw the book ⇒ no halt   [{'halt': None, 'why': 'no gate on this tree'}]
+  FAIL ★★★ G2 the newest evaluation could NOT see the book ⇒ halt, naming the state   [{'halt': None, 'why': 'no gate on this tree'}]
+  FAIL ★★★ G3 NEVER_OBSERVED (DRY_RUN) ⇒ no halt, however blind §4-5b is   [{'halt': None, 'why': 'no gate on this tree'}]
+  FAIL ★★ G4 no file at all (a fresh state tree, first anchor) ⇒ no halt — gate 0b's own rule (anchor_loop.py:986: only an EXISTING file that cannot be read fails closed)   [{'halt': None, 'why': 'no gate on this tree'}]
+  FAIL ★★★ G5 a file that EXISTS and cannot be parsed ⇒ fail closed, halt   [{'halt': None, 'why': 'no gate on this tree'}]
+  FAIL ★★★ G6 another mode's evaluation is refused, not believed — a cross-mode file is self-consistent and reads as 'nothing happened' (state_root.read_stamped)   [{'halt': None, 'why': 'no gate on this tree'}]
+  FAIL ★★★ G7 an evaluation written BEFORE this code has no such key: that is a deploy boundary, not a lost book ⇒ no halt, and it is NAMED so it cannot persist silently   [{'halt': None, 'why': 'no gate on this tree'}]
+  FAIL ★★★★ G8 THE GATE CANNOT CLOSE A POSITION — its body mentions no flatten, no reduce-only key, no trip state and no position read at all. Structural, not a test of one path (user rule 2026-09-12: an instrument's own doubt never triggers a book-level response)   [[]]
+
+[W] wiring
+  FAIL ★★★ W1 STATIC the production caller passes the producer's verdict to the watchdog — the whole point of watchdog_inputs.py's opening note is that a component can be right while nobody wires it   [book_observation= not found after WD.run(]
+  FAIL ★★★ W2 STATIC the gate is CALLED by the anchor, not merely defined (the scanner's own finding: a guard whose only caller is its test)   [0]
+  FAIL ★★★★ W3 STATIC the anchors row carries the held-book halt kind for this halt, and position_break treats it as a HELD book. Without it a no-submission anchor under this halt is judged against intent ZERO, reads as a ~99% break and trips the ladder ONE ANCHOR LATER — an instrument doubt flattening the book by the back door (the B14 lesson, EXE-01 step 3)   [{'anchor_loop': False, 'position_break': False}]
+  FAIL ★★ W4 the two halt kinds that hold their book are ONE list, in the judge   [None]
+  FAIL ★★ W5 the newest-scheduled-anchor reference has ONE implementation, in reconcile, and position_break uses that one — a reference that exists twice is one that will disagree   [{'reconcile': False, 'position_break': False}]
+  FAIL ★★★ W6 reconcile.newest_scheduled_anchor_ts exists   [absent on this tree]
+  FAIL ★★ W7 and returns None on an empty record   [absent on this tree]
+
+15/48 checks passed
+FAILED:
+  ★★★ A2 §4-5b says so instead of printing CLEAN: it names the unobserved anchor and goes blind (ef60f85: state CLEAN, blind False — the defect)
+  ★★★ A3 §4-5b publishes BOTH anchors so a reader sees the gap, not just the verdict
+  ★★★ A4 §4-5e is blind too, and names which anchor it did NOT get to judge
+  ★★★ A5 §4-7's drift half is blind too — it reads the same reconciliation
+  ★★★ A6 all three reach `conditions_blind`, which is what pages (run_anchor.py:652) and what refuses a resume (resume_from_trip.sh:229)
+  ★★ A8 the evaluation carries ONE observability block: the state, the reference it used, whether opening should halt, and what it cannot see
+  ★★ A10 NEIGHBOUR — the ladder's own readback 18 minutes later does NOT count as having looked at the scheduled anchor: §4-5b's newest reconciliation is that later one, and it still never compared the anchor that matters. The rule is 'was THAT anchor observed', not 'is there some newer row'
+  ★★ A11 NEIGHBOUR — a TRUNCATED readback (one rejected row breaks the write loop, anchor_loop.py:2652-2653) is NOT the same fact as a missing one: the anchor IS observed, so no blindness and no halt; the shortfall is counted beside it
+  ★★★ N5 and that case must NOT produce an opening halt — a tree that never observes the book is not a tree that LOST sight of it; halting every DRY_RUN anchor is how a guard gets ignored
+  ★★ P1 a normal anchor: the verdict is OBSERVED and carries the row count and the anchor it was taken at
+  ★★★ P2 the end-of-anchor account read RAISED (anchor_loop.py:2592-2598): verdict READ_FAILED, 0 rows — today this prints identically to three other causes
+  ★★★ P3 DRY_RUN — account_snapshot returns None by design (binance_broker.py:1943): verdict NO_ACCOUNT, which must never be read as a lost book
+  ★★★ P4 a SUCCESSFUL read with an empty readback universe (readback_universe, anchor_loop.py:631-639 — flat venue ∧ nothing targeted ∧ nothing held before): verdict OBSERVED_EMPTY, 0 rows. Distinguishable from P2 for the first time
+  ★★★ P5 a row the logger refuses breaks the write loop (`break`, anchor_loop.py:2653) and the tail is silently absent: verdict WRITE_TRUNCATED, with how many were written
+  P6 the verdict never invents a book: every shape reports n_rows equal to what was written
+  ★★★ P7 a HOLD anchor whose account read ALSO failed leaves NO row of any kind, so no pure-log test can see it — the producer's verdict can, and the watchdog uses it in preference to the record and says which it used
+  ★★ P8 and a caller that DOES supply it on a healthy tree gets OBSERVED, from the producer
+  ★★★ G0 anchor_loop exposes the gate as a module-level function, so it is testable without driving a whole anchor
+  ★★ G1 the newest evaluation saw the book ⇒ no halt
+  ★★★ G2 the newest evaluation could NOT see the book ⇒ halt, naming the state
+  ★★★ G3 NEVER_OBSERVED (DRY_RUN) ⇒ no halt, however blind §4-5b is
+  ★★ G4 no file at all (a fresh state tree, first anchor) ⇒ no halt — gate 0b's own rule (anchor_loop.py:986: only an EXISTING file that cannot be read fails closed)
+  ★★★ G5 a file that EXISTS and cannot be parsed ⇒ fail closed, halt
+  ★★★ G6 another mode's evaluation is refused, not believed — a cross-mode file is self-consistent and reads as 'nothing happened' (state_root.read_stamped)
+  ★★★ G7 an evaluation written BEFORE this code has no such key: that is a deploy boundary, not a lost book ⇒ no halt, and it is NAMED so it cannot persist silently
+  ★★★★ G8 THE GATE CANNOT CLOSE A POSITION — its body mentions no flatten, no reduce-only key, no trip state and no position read at all. Structural, not a test of one path (user rule 2026-09-12: an instrument's own doubt never triggers a book-level response)
+  ★★★ W1 STATIC the production caller passes the producer's verdict to the watchdog — the whole point of watchdog_inputs.py's opening note is that a component can be right while nobody wires it
+  ★★★ W2 STATIC the gate is CALLED by the anchor, not merely defined (the scanner's own finding: a guard whose only caller is its test)
+  ★★★★ W3 STATIC the anchors row carries the held-book halt kind for this halt, and position_break treats it as a HELD book. Without it a no-submission anchor under this halt is judged against intent ZERO, reads as a ~99% break and trips the ladder ONE ANCHOR LATER — an instrument doubt flattening the book by the back door (the B14 lesson, EXE-01 step 3)
+  ★★ W4 the two halt kinds that hold their book are ONE list, in the judge
+  ★★ W5 the newest-scheduled-anchor reference has ONE implementation, in reconcile, and position_break uses that one — a reference that exists twice is one that will disagree
+  ★★★ W6 reconcile.newest_scheduled_anchor_ts exists
+  ★★ W7 and returns None on an empty record

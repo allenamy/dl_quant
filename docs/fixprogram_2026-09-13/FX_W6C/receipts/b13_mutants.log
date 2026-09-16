@@ -1,0 +1,25 @@
+── control (unmutated) ──
+control rc=0  48/48 checks passed
+── M1: the reference becomes AT-OR-AFTER instead of AT (the ladder's own readback would count as having looked at the scheduled anchor) ──
+M1     rc=1  47/48 checks passed
+        red: ★★ A10 NEIGHBOUR — the ladder's own readback 18 minutes later does NOT count as hav
+── M2: NEVER_OBSERVED (DRY_RUN) also halts opening ──
+M2     rc=1  47/48 checks passed
+        red: ★★★ N5 and that case must NOT produce an opening halt — a tree that never observes 
+── M3: the new halt kind is dropped from the judge's held-book list (5e would judge the halted anchor against intent ZERO) ──
+Traceback (most recent call last):
+  File "<stdin>", line 5, in <module>
+AssertionError
+M3     rc=0  48/48 checks passed
+── M4: an ABSENT last_eval fails closed (every fresh tree halts) ──
+M4     rc=1  47/48 checks passed
+        red: ★★ G4 no file at all (a fresh state tree, first anchor) ⇒ no halt — gate 0b's own r
+── M5: 5b stops inheriting the observability verdict ──
+M5     rc=1  46/48 checks passed
+        red: ★★★ A2 §4-5b says so instead of printing CLEAN: it names the unobserved anchor and 
+        red: ★★ A10 NEIGHBOUR — the ladder's own readback 18 minutes later does NOT count as hav
+── M6: the producer no longer distinguishes a failed read from DRY_RUN ──
+M6     rc=1  47/48 checks passed
+        red: ★★★ P2 the end-of-anchor account read RAISED (anchor_loop.py:2592-2598): verdict RE
+── restored control ──
+control_after rc=0  48/48 checks passed

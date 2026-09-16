@@ -1,0 +1,20 @@
+  ok   ★★ the fixture is the REAL 2026-08-01 06:29Z off-schedule LIVE anchor: an `anchors` row with a positive target_gross, order rows that were NEVER submitted, and a readback whose whole book is 0.00 — CLEAN by luck of timing, not by design (probe_i6_offschedule)
+
+[R] the real off-schedule anchor, empty book and held book
+  ok   ★★ R1 as it actually happened (empty book): judged, CLEAN, not triggered — and the gate that cleared it is `flat_intent_legacy` against a 1% limit on a 0.00 book. Green on BOTH trees
+  ok   ★★★★ R2 the same real anchor, the day's REAL book in its readback, and the row the fixed writer produces: the judge reads `off_schedule` as a HELD book, so the intent is the target vector instead of ZERO and nothing trips. On ef60f85 the marker means nothing — that tree reads intent ZERO, a 96.39% deviation against a 1% limit, and flattens all 105 names
+  ok   ★★★ R2b and the size of what ef60f85 would have closed is measured, not asserted: the deviation on that anchor is the whole held book
+  ok   ★★★ R3 THE MARKER IS WHAT MOVES IT, and the counterfactual proves it: strip `halt_kind` from that row and the same held book is judged against intent ZERO again — `halted_intent_flat`, `flat_intent_legacy`, a deviation far over the 1% line, triggered. This is the row shape every off-schedule run writes on ef60f85
+  ok   ★★★★ R3b and that trip is BOOK-LEVEL: no name scope is set for a flat-intent break, so EXE-01's proportional gate routes it to the LADDER and every name is flattened. That is the whole-book response an off-schedule run would produce today
+
+[N] negative controls
+  ok   ★★ N1 the marker vocabulary is ONE list in the judge — the three halts that leave their book in place (EXE-01's proportional local response, W6C-B13's unobserved book, W6C-I6's off-schedule halt) — and a kind outside it still gets intent ZERO
+  ok   ★★ N2 a TRIP halt still gets intent ZERO — its book WAS flattened, so the 1% rule is the right one there and the 2026-07-29 ghost book stays catchable. (Same row shape as R3: no marker.) Green on BOTH trees
+  ok   ★★★ N3 THE WRITER — an off-schedule halted anchor's row now carries halt_kind=off_schedule and opening_halted=True, so the judge can tell 'refused to open' from 'was emptied'
+  ok   ★★★ N4 …and NOT when the run is emptying the book on purpose (the staleness ladder's FLATTEN action): that anchor keeps intent ZERO, which is correct for a book being closed
+  ok   N5 an ordinary on-schedule anchor's row is unchanged: no halt_kind, not opening_halted
+  ok   ★★ N6 a TRIP halt's row still carries NO halt_kind — the ladder flattened the book, so intent ZERO is the correct judgement there and nothing about it changes
+  ok   ★★ N7 STATIC the writer and the judge name the same string, and the vocabulary lives only in the judge's list — not re-spelled at the comparison site
+
+13/13 checks passed
+ALL PASS
