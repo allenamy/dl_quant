@@ -215,7 +215,116 @@ VERIFIED three ways, not one: by reading the save lines; by enumerating the keys
 
 ---
 
-## §2 TIM-01 — NOT YET WRITTEN
+## §2 TIM-01 — the king training clock and the king label are each one bar earlier than production
+
+**AUDIT_DATA severity P1.** In one sentence: king training fits *(data through E−1) → (returns from E)*, while production applies *(data through E) → (returns from E+1)*. Both halves are internally contiguous and causal; they are **shifted one 5-minute bar relative to each other**. This is a definition difference, not a peek at future prices — see §2.3.
+
+### §2.1 Per-column parity — king features, members and label
+
+| Axis | Training (`pod_fea_ext_clamp.py`, `b9f9c72816241715`) | Serving (`shadow_loop_v3.py`, `e9c9837412130884`) | Same? | Status |
+|---|---|---|---|---|
+| **feature clock** | rows **[E−w, E−1]**, last input bar **E−1** (L48–53) | rows **[E−w+1, E]**, last input bar **E** (L358) | **no**, one bar | VERIFIED |
+| **member-stat clock** | rows **[E−2016, E−1]** (L28–32) | rows **[E−2015, E]** (L365, L371) | **no**, one bar | VERIFIED |
+| **label clock** | rows **[E, E+47]** (L33–34) | live accounting rows **[E+1, E+48]** | **no**, one bar | VERIFIED |
+| **clamping of the member window** | `covr` clamped (L29); **n7 / qvm / m7 / v7 use an unclamped `E−2016`** (L28, 30, 31, 32) | `max(ai+1−2016, 0)`, always clamped | **no** | VERIFIED — §2.5(a) |
+| **unit** | col 80 v0, col 81 raw | col 80 v1, col 81 raw | col 80 **no** | VERIFIED — P1 (T4); FX-PROD fix not deployed |
+| **dtype** | stored `np.float16` (L67) | `float32` | **no**, immaterial | VERIFIED — P10, 0 deciles changed 47/47 |
+| **membership universe** | top 400 of all 829 cache names | top 400 of the live 450 | **no** | VERIFIED — PROD-02 / PROD-11, §3 |
+| **normalisation** | **none** — LightGBM is fit on raw features | none | **yes (vacuously)** | VERIFIED — §2.8 |
+| **feature order / support** | 82 builder columns; the export keeps all but the `ret5_sum_48` / `ret5_sum_288` families (L46) and asserts the kept order equals the live pins (L47) | the 78 served columns | asserted equal | VERIFIED — `pod_export_bundle_v4.py:46-47` (`42555a37c0cd3a7e`); 78 served / 4 not served per AUDIT_PROD |
+| **sha actually consumed** | `PANEL_IN = PANEL_KING` = **v2ext**, not the splice | producer's own state | — | VERIFIED — `chain_v4_monthly.sh:148`. **King is outside FEA-01** |
+
+### §2.2 The exact windows, with the prefix-sum semantics spelled out
+
+`cs_pair` builds cumulative sums with a **leading zero row** (`pod_fea_ext_clamp.py:13-17`), so `CS[b] − CS[a]` is the sum over rows **[a, b−1]**. Reading the sites with that in hand:
+
+| Quantity | Code | Rows |
+|---|---|---|
+| builder feature window | `s_[E] − s_[Ew]`, `Ew = max(E−w, 0)` (L48–53) | **[E−w, E−1]** |
+| builder member stats | `qv_f[E] − qv_f[E−2016]` (L28) | **[E−2016, E−1]** |
+| builder label `y4` | `CS["ret5"][0][E+48] − CS["ret5"][0][E]` (L34) | **[E, E+47]** |
+| producer feature window | `CDf[max(ai+1−w, 0):ai+1]` (L358) | **[E−w+1, E]** |
+| producer member stats | `CDf[max(ai+1−2016, 0):ai+1]` (L365, L371) | **[E−2015, E]** |
+
+**Bar E is the bar that closes exactly at the anchor.** The producer enforces this: it requests `endTime = anchor*1000 − 1` (L280) and rejects any kline with `close_s > anchor` (L285–286). So bar E's return is already realised at decision time, and the producer's inclusion of it is causal.
+
+### §2.3 Why this is a definition shift and not leakage
+
+- **In training**: features end at row E−1, the label begins at row E. Contiguous, no overlap. The label is causal with respect to the features it is fit against.
+- **In serving**: features end at row E, the accounting return begins at row E+1. Contiguous, no overlap. Also causal.
+- The two are simply **offset by one bar**. The independent review's anchor-bar impulse test on the original label statement confirms the mechanism: set only E's return to ±10% and the label reads ±10% while the true four hours after E read 0 — because row E is the label's **first summand**, not because anything future leaked in.
+- **Required wording**: the fitted relation is *(data ≤ E−1) → (returns from E)*; the applied relation is *(data ≤ E) → (returns from E+1)*. It must **not** be written as "the model peeked at future prices". The mechanism by which scores move is that these are two different conditional relations whenever 5-minute returns have any short-horizon autocorrelation — not leakage.
+
+### §2.4 Label maturity and embargo — the row the prereg needs
+
+| Object | Label rows | Completes at | Source |
+|---|---|---|---|
+| king training label `y4` | [E, E+47] | **A + 3h55m** | `pod_fea_ext_clamp.py:33-34` |
+| clock-aligned builder label | [E+1, E+48] | A + 4h | `pod_fea_ext_e.py:36-37` |
+| DL target `y4s` | [E+1, E+48] | A + 4h | `pod_dlw_targets_ext.py` L93 (accounting caliber) |
+
+- **King folds are yearly, and there is zero embargo.** `tr = YRA < 2026; te = YRA == 2026` for the shipped booster, and `tr_ = YRA < YV; te_ = YRA == YV` for the 2024 / 2025 legs folds (`pod_export_bundle_v4.py:63,74`). The last training anchor of a fold is 12-31 20:00Z, whose label runs to 23:55Z; the first test anchor is 01-01 00:00Z. So there is **no overlap — but no embargo either**, a 5-minute gap under the current label and a 0-minute gap under the aligned one. VERIFIED. This is not by itself a defect at yearly granularity; it is a fact the prereg must state, because the DL side is different:
+- **The DL monthly trainer has an explicit embargo and a printed causality assert**: `EMBM ∈ {60, 1}` with `assert max_tr < first_te − EMBM and max_label_end <= cutoff`, using `max_label_end = E_ts[max_tr] + 48*300` = A + 4h (`pod_f10_train_monthly_v4.py:324-327`). That bound is **exact for DL** and **conservative for king** (A+4h > A+3h55m).
+- **The exporter's provenance record misstates the king label end by 5 minutes**: it writes `king_train_last_label_end_utc = _king_train_end + 4*3600` (L264, printed at L66), i.e. A + 4h, while the clamp builder's label actually ends at A + 3h55m. Conservative in the safe direction, but it is **not the builder's definition** — another instance of a register carrying the DL clock where the king clock was meant. VERIFIED.
+- **King's gradient stops at label-year < 2026** (L15-16, L63): the monthly export rebuilds the 2026 fold and does not move this cutoff.
+
+### §2.5 Same-family sites
+
+**(a) The unclamped member-statistic window wraps on exactly 30 anchors.** `n7`, `qvm`, `m7`, `v7` index `E − 2016` with no clamp (L28, 30, 31, 32) while `covr` is clamped (L29). Since `grid` is filtered to `E ≥ 576`, every anchor with `E < 2016` indexes negatively, and a negative index into the leading-zero prefix-sum array wraps to the **cache tail**.
+
+Measured on the in-service cache axis (`dlnative_5m_wide829_f16_ext.npz`, read-only, `ts` member only): axis 2022-01-01 00:00Z .. 2026-09-01 00:00Z, 490,753 bars, grid spacing uniformly 48 with no gaps, 10,213 anchors at `E ≥ 576`. Anchors with `E < 2016`: **exactly 30**, `E = 576, 624, …, 1968` = **2022-01-03 00:00Z .. 2022-01-07 20:00Z**. VERIFIED (measured this session).
+
+Those 30 anchors' member screen (`v7 >= 1e-4`) and top-400 ranking (`qvm`) are therefore computed from wrapped statistics. **Independent corroboration from my own receipt**: FACTS_DATA T1 records that the clock-aligned builder — which clamps via `LO7 = max(HI−2016, 0)` — *adds exactly two anchors*, **2022-01-07 16:00Z and 2022-01-07 20:00Z** (`E = 1920, 1968`), both inside the wrap window, and removes none. That is the expected signature: clamping repairs the statistics so two more early anchors pass the `len(m) >= 50` screen.
+
+Blast radius: 30 of 10,213 anchors = 0.29%, all in the first week of the axis. **NOT CHECKED**: whether those 30 anchors' member sets differ materially, beyond the two added anchors already counted.
+
+**(b) The DL targets' member clock is a third window.** DL targets choose members on rows **[E−2016, E−1]** while DL features and the producer use **[E−2015, E]** (C-TIM-5, `pod_dlw_targets_raw.py:88`). So within one DL training row the member screen and the features are on different clocks. VERIFIED. This is the row shared with FEA-01 §1.1 and is a **separate intervention**.
+
+### §2.6 Measured skew, and the contrast discipline
+
+**Clock-only contrast** (same booster, same members, features on [E−w, E−1] vs [E−w+1, E]), 2024..2026-08, common members — FACTS_DATA T1:
+
+| Booster | anchors | Spearman median | p5 | min | top-decile overlap median | p5 | max\|Δ\|/sd median |
+|---|---|---|---|---|---|---|---|
+| v4 `slow2026` (`f23657710f3a6d00`) | 5,844 | **0.9865** | 0.9709 | 0.8794 | 0.8846 | 0.80 | 1.2249 |
+| in-service `8d79186b` | 5,844 | **0.9866** | 0.9709 | 0.8725 | 0.8889 | 0.8077 | 1.2532 |
+
+By year (v4 / in-service Spearman median): 2024 **0.9905 / 0.9899** (2,196 anchors, mean 273.9 members), 2025 **0.9856 / 0.9861** (2,190, 388.0), 2026 **0.9827 / 0.9834** (1,458, 399.9). The skew is *larger* in the recent years, where the member count is larger.
+
+Member sets under the two clocks differ on **206 of 10,182 common anchors**; 193 pairs only-old, 205 only-new; the new clock adds the two anchors of §2.5(a) and drops none.
+
+**Contrast discipline — these numbers are not additive.** The independently reproduced figures are different contrasts:
+
+| Contrast | Median | Source |
+|---|---|---|
+| served matrix re-fed to the booster vs recorded scores | **47/47 anchors bitwise equal** | review §3.1 |
+| stored research inputs vs served inputs, common members (**total**) | **0.9353434309** (min 0.7601561963), 32 anchors | review §3.1, AUDIT_PROD PROD-03 |
+| **clock only** | 0.98434 | review §3.1 |
+| **ranking universe only** | 0.94700 | review §3.1 |
+
+0.9353 / 0.98434 / 0.94700 are **different contrasts and must not be added or decomposed into "how much alpha each cost"**. The total also carries the column-80 unit (PROD-04). None of these is a return IC, and none of them demonstrates the absence of predictive power.
+
+### §2.7 The clock-aligned builder already exists and is a clean control
+
+`pod_fea_ext_e.py` (`2cfc98609a99167b`) is `pod_fea_ext_clamp.py` **verbatim with only the clock changed** — `HI = E+1` as a half-open upper bound, `LO7 = max(HI−2016, 0)`, label rows [E+1, E+48], and `grid + 49 <= TT`. I diffed the two files this session: every other line is identical. This is exactly the shape queue item 3 asks for — one builder, one knob, and the legacy setting must reproduce the old artifact bitwise.
+
+Its previous verdict is **not** a verdict on the clock: it passed its parity gate and failed the **export guard by rule**, Sharpe 2.260 against a threshold of 2.27, on a guard whose sampling error is about ±0.6 (AUDIT_DATA TIM-01, HANDOFF_round2_b0a573a1 L68). A ±0.6-noise guard cannot resolve a 0.01 difference. The prereg must judge this with a CI-based book judge under the frozen δ, not that guard.
+
+### §2.8 Arm B for king is a different problem from arm B for DL
+
+- **King has no feature normalisation.** LightGBM is fit on raw features (`pod_export_bundle_v4.py:67-68`), so the review's "freeze the training-time mu/sd" constraint is **vacuous for king**. What must be frozen instead is the **feature order and support** — the export asserts `[names[k] for k in keep] == PINS["keep_names"]` (L47), and that assertion is the object to hold fixed.
+- **Only the shipped booster is saved.** `gbm` (fit on label-year < 2026) is written to `slow2026.txt`; the 2024 and 2025 fold boosters are the local variable `g2` and are **never saved** (L75-76). So king's historical OOF has the same problem as the DL monthly folds: the checkpoint that produced it does not exist. LightGBM fits are deterministic given identical data and parameters, so the same pattern applies — reconstruct, then certify with a positive control that reproduces the stored `PRED` before any arm-B number is quoted, and report a failure rather than substitute.
+- **King OOF exists only where the forward label is finite.** `ok = np.isfinite(yv)` gates the training rows (L55-56) and `PRED[a, m[okm]] = pv[sel]` gates the predictions (L81). This is AUDIT_DATA D3 and the TRN-06 axis, pinned at the line. VERIFIED.
+
+### §2.9 Open rows for TIM-01
+
+| # | Row | Status | How it closes |
+|---|---|---|---|
+| T-O1 | Material effect of the 30 wrapped anchors beyond the 2 added | **NOT CHECKED** | Cheap; batch with the TRD-05 pod2 pass |
+| T-O2 | Arm-B reconstruction control for king (reproduce stored `PRED`) | **NOT CHECKED** | Must pass before any king arm-B number |
+| T-O3 | Book-layer effect of the clock | **NOT MEASURED** | The prereg's job; the old ±0.6-noise guard does not count as a verdict |
+| T-O4 | Whether `pod_fea_ext_e.py` reproduces the clamp artifact bitwise under a legacy knob | **NOT CHECKED** | It is currently a separate file, not a knob; queue item 3 turns it into one |
+
 ## §3 PROD-11 — NOT YET WRITTEN
 ## §4 UNI-01 — NOT YET WRITTEN
 ## §5 TRD-05 (+ TRN-06 coordination) — NOT YET WRITTEN
