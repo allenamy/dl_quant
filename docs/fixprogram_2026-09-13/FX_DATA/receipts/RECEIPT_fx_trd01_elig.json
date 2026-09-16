@@ -1,0 +1,90 @@
+{
+ "device": "fx_trd01_elig.py",
+ "self_sha256": "92bb7df746c9006d8c039cede1afa0951504be486f5641101efbca5c8ba905ee",
+ "module_sha256": "a9fad82ce26845a6f3d61cfa9077a6286949346e92c1fbfea17a663363264914",
+ "spec_sha256": "99ae35e01ec3dd06ba7bf69ea62de8f36cfd2695492ccf53757d985b8a0946b2",
+ "numpy": "2.4.6",
+ "argv": [
+  "devices/fx_trd01_elig.py",
+  "out/trd/tradability_v1.npz",
+  "54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302",
+  "out/inject",
+  "out/inject/RECEIPT_fx_trd01_elig.json"
+ ],
+ "env": {
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "MKL_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+  "PYTHONPATH": "/workspace/fx_data_2026-09-13/common"
+ },
+ "inputs": {
+  "/workspace/data/wide_panel_4h_v2ext.npz": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116"
+ },
+ "rule": "elig_tradable = elig AND tradable(A, s), SPEC section 6",
+ "utc_start": "2026-09-16T04:51Z",
+ "artifact_sha256": "54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302",
+ "counts": {
+  "elig_true": 3082243,
+  "elig_true_and_untradable": 5530,
+  "elig_tradable_true": 3076713,
+  "cells_removed": 5530,
+  "removed_share": 0.001794,
+  "of_removed_nodata": 0,
+  "by_year": {
+   "2022": {
+    "elig_true": 280614,
+    "removed": 288
+   },
+   "2023": {
+    "elig_true": 410361,
+    "removed": 108
+   },
+   "2024": {
+    "elig_true": 601407,
+    "removed": 1215
+   },
+   "2025": {
+    "elig_true": 961026,
+    "removed": 1809
+   },
+   "2026": {
+    "elig_true": 828835,
+    "removed": 2110
+   }
+  }
+ },
+ "output": {
+  "path": "out/inject/panel_elig_tradable_W24H.npz",
+  "sha256": "c55c8069e856fab743f9e1abc70d7aa3cef2f312e698acf792702b0bde33fd17",
+  "bytes": 198708
+ },
+ "checks": [
+  {
+   "check": "C1.elig_is_boolean",
+   "ok": true,
+   "detail": {
+    "dtype": "bool"
+   }
+  },
+  {
+   "check": "C3.every_panel_anchor_on_the_tradability_grid",
+   "ok": true,
+   "detail": {
+    "n_missing": 0
+   }
+  },
+  {
+   "check": "C2.corrected_column_is_a_strict_subset",
+   "ok": true,
+   "detail": {
+    "added": 0
+   }
+  }
+ ],
+ "n_failed": 0,
+ "failed": [],
+ "utc_end": "2026-09-16T04:51Z"
+}

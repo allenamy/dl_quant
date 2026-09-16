@@ -301,3 +301,14 @@ The stated reason a cell is red is one sentence: **the legacy rule admits (ancho
 | Q4 | **The module does not over-reject the neighbours.** BTCUSDT is tradable on **100%** of the axis; the thinnest live name in the fixed universe at the last anchor (IRYSUSDT) is tradable there | `neighbour_fixtures` |
 
 **What TRD-01 still owes: nothing.** SPEC frozen, module and builder committed, artifact built and reconciled against the audit census, injection artifacts built, red tests red on all nine legacy rules and green on the five with a fixed artifact, A0 effect measured under the frozen estimator and labelled under the frozen δ. **TRD-03 does not close** (label INCONCLUSIVE, §TRD-D3). The four rules with no fixed artifact belong to FX-MODEL (A9/A10), the panel rebuild (A8) and A2's mask (A1).
+
+### §TRD-E addendum — rule A8 now has a fixed artifact
+
+Device `fx_trd01_elig.py` (`92bb7df7`), committed before run 20 (rc=0, 3/3 controls). Receipt `RECEIPT_fx_trd01_elig.json`; artifact `FX_DATA/artifacts/panel_elig_tradable_W24H.npz` sha256 **`c55c8069e856fab743f9e1abc70d7aa3cef2f312e698acf792702b0bde33fd17`**, carrying both `elig_tradable` and the unchanged `elig_legacy` so the eventual panel rebuild can check itself bitwise against the column it must reproduce.
+
+| # | Fact | Receipt |
+|---|---|---|
+| Q5 | `elig_tradable = elig ∧ tradable(A, s)` removes **5,530 of 3,082,243** eligible cells (**0.18%**), leaving 3,076,713. **A8's cell in §TRD-E therefore flips RED → GREEN**, and 6 of the 9 legacy rules now have a fixed artifact | `counts` |
+| Q6 | **Independent cross-check of the flag.** The per-year removals are **288 / 108 / 1,215 / 1,809 / 2,110** (2022–26) — *identical* to `AD_H_tradability.json` `H6.elig_true_Z24`, which the audit computed from `ret5` with its own Z24 definition. **And `of_removed_nodata` is 0**: every removed cell is UNTRADED, never NODATA, which is what `covr ≥ 0.95` implies. So on the eligible population the two definitions coincide exactly, from two independent computations | `counts.by_year` vs `AD_H_tradability.json` H6 |
+
+**This is the standalone column, not the rebuild.** The panel rebuild (blocked with FND/HOL-01) must still regenerate `elig` from the builder on the hole-fixed cache and reproduce `elig_legacy` bitwise before applying the intersection.
