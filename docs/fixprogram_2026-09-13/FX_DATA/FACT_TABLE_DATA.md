@@ -277,7 +277,7 @@ Devices: `fx_trd01_inject.py` (`26a60e80`, committed at the injection commit bef
 
 ## §TRD-E — the red tests on the legacy rules A1–A11
 
-Device `fx_trd01_redtests.py` (`b6b1a137`), committed at `03fd2bd1` before it ran. Run 19, rc=0, `receipts/run19_redtests.sh` (`ccdb9a94`), receipt `RECEIPT_fx_trd01_redtests.json` (`44a03a0c`).
+Device `fx_trd01_redtests.py` (`b6b1a137`), committed at `30814219` before it ran. Run 19, rc=0, `receipts/run19_redtests.sh` (`ccdb9a94`), receipt `RECEIPT_fx_trd01_redtests.json` (`ba64920e`).
 
 The stated reason a cell is red is one sentence: **the legacy rule admits (anchor, symbol) pairs with no trade in the trailing 24 h.** Every cell is the same count, `|{rule admits ∧ ¬tradable(A, s)}|`, over the real 10,039-anchor A0 axis and the real 829-name universe — on the rule's own artifact or its own expression. Non-zero on the legacy object is RED; zero on the fixed object is GREEN. Rules FX-DATA has fixed are run on **both** and must flip; rules owned elsewhere are run on the legacy object only, recorded RED, and named — a rule with no fixed artifact is an open defect, not a passing test. **9 rules, 9 RED on legacy, 5 flipped to GREEN.**
 
