@@ -369,7 +369,7 @@ Its previous verdict is **not** a verdict on the clock: it passed its parity gat
 
 | # | Row | Status | How it closes |
 |---|---|---|---|
-| T-O1 | Material effect of the 30 wrapped anchors beyond the 2 added | **NOT CHECKED** | Cheap; batch with the TRD-05 pod2 pass |
+| T-O1 | Material effect of the 30 wrapped anchors | **CLOSED 2026-09-16 — superseded by the §2.5(a) correction** | This row's original framing ("beyond the 2 added") came from my superseded reading and is withdrawn. The effect is **total, not marginal**: king holds **0** of the 30, so the anchors are absent from the training axis entirely rather than present with corrupted statistics. Measured on the real axes and reproduced interventionally by K3 (+2 / +0 / +30). |
 | T-O2 | Arm-B reconstruction control for king (reproduce stored `PRED`) | **NOT CHECKED** | Must pass before any king arm-B number |
 | T-O3 | Book-layer effect of the clock | **NOT MEASURED** | The prereg's job; the old ±0.6-noise guard does not count as a verdict |
 | T-O4 | Whether `pod_fea_ext_e.py` reproduces the clamp artifact bitwise under a legacy knob | **NOT CHECKED** | It is currently a separate file, not a knob; queue item 3 turns it into one |
@@ -550,6 +550,10 @@ The obvious fix — apply the class filter the replay already uses — is option
 
 1. The venue class snapshot `fa9196a34ce92028` is **one snapshot dated 2026-09-08**. Using it to classify 2022–2025 rows is defensible because instrument class does not change, but it is still a later-dated artifact and must be declared as such, not assumed PIT. **NOT CHECKED**: whether any symbol's class differs from what it would have been at the time.
 2. The mask keeps unknown-class names, so applying it does **not** remove the 25,024 unknown 2022 pairs. Whoever adopts it should say whether unknown means keep or drop, and that is a choice, not a fact.
+3. **★ "Unknown class" is not ambiguity — it is survivorship (measured 2026-09-16, closing U-O3).** All **31** unknown-class axis symbols are **delisted crypto**: `LUNA`, `MATIC`, `EOS`, `SRM`, `BTCST`, `BZRX`, `LEND`, `TOMO`, `ANC`, `COCOS`, `BTT`, `HNT`, `RNDR`, `KEEP`, `NU`, `YFII` and the rest. Every axis symbol that *is* in the snapshot carries an `underlyingType` — **0 exceptions**. So a name is "unknown" precisely because it was **already gone before 2026-09-08**, when the snapshot was taken.
+   Two consequences, in opposite directions:
+   - The mask's **keep-unknown rule is right on class grounds** for these 31: they are crypto, and dropping them would delete real crypto history. So caution (2) above stands as a statement about *who decides*, not as a claim that keeping them is wrong.
+   - But it sharpens caution (1) considerably: the class snapshot is **survivor-biased by construction**. It cannot classify anything that died before it was taken, so "classify 2022–2025 rows with a 2026-09-08 snapshot" fails *silently* on exactly the delisted population — which is the same population TRD-01/TRD-05 are about. The residual risk on those 25,024 pairs is therefore **dead-contract contamination (a different axis), not class contamination**.
 
 This is a **separate intervention** from the funding rebuild and the clock (review narrowing iii).
 
@@ -559,7 +563,7 @@ This is a **separate intervention** from the funding rebuild and the clock (revi
 |---|---|---|---|
 | U-O1 | The leveraged-inverse-pair mechanism (a) | **MEASURED 2026-09-16 — consequence REFUTED** | Premise holds (returns ρ −0.987) but the book does NOT hold them on opposite legs: score ρ +0.06/+0.27, opposite-leg rate 0.364/0.255 vs a null median of 0.479. Receipt `UNI01_PAIRS.json`. The residual concern is different and unmeasured: the cluster is scored alike while its returns move oppositely. |
 | U-O2 | Closed-hours return process for (b) | **NOT MEASURED** | Return variance by hour-of-day and weekday vs weekend, crypto control |
-| U-O3 | Identity of the 31 unknown-class symbols | **NOT CHECKED** | One read of the class snapshot |
+| U-O3 | Identity of the 31 unknown-class symbols | **CLOSED 2026-09-16 — they are all DELISTED CRYPTO** | `1000BTTC, AERGO, AKRO, ANC, ANT, AUDIO, BDXN, BLUEBIRD, BTCST, BTS, BTT, BZRX, COCOS, DODO, DOTECO, EOS, FOOTBALL, FRONT, GAL, HNT, KEEP, LEND, LUNA, MATIC, MBL, NU, RNDR, SRM, SXP, TOMO, YFII`. Every axis symbol present in the snapshot has an `underlyingType` (0 exceptions), so "unknown" means **absent from a 2026-09-08 snapshot**, i.e. **already delisted by then** — not genuinely ambiguous. See §4.3(3). |
 | U-O4 | Whether the class snapshot is PIT-safe per symbol | **NOT CHECKED** | Declare as a later-dated artifact until checked |
 | U-O5 | Model/book effect of excluding them | **NOT MEASURED** | Prereg arm, held separate from the funding rebuild |
 
