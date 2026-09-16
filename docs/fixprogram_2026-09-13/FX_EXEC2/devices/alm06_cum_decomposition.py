@@ -256,19 +256,27 @@ def chains(now_ts):
             "incomplete": incomplete, "per_day": detail}
 
 
-def led04_allowance_pp(wd_pct, now_ts):
-    """How much the watchdog's cum would move if its pre-fix transfer days were priced from the amendment records.
-    FROZEN table; applied only for transfer days at or before now_ts. None when the watchdog value is unreadable."""
-    if wd_pct is None:
+def led04_allowance_pp(c2b_pct, now_ts, first_twin_day):
+    """The FROZEN expected value of the input-bias leg (C2a - C2b), in pp of the cum.
+
+    ★ ONLY transfer days INSIDE THE TWIN SEGMENT count. Days before `first_twin_day` are priced by daily_nav in BOTH
+      chains — identically — so a LED-04 bias there cancels out of the gap entirely. Run 4 applied the whole 7-day
+      table and left a residual sitting at the median 0.246 pp, i.e. almost exactly the prefix days' 0.25 pp that
+      cannot appear in the gap at all. The four big days (08-02, 08-05, 08-10, 08-18) are all prefix; only 08-27,
+      09-03 and 09-08 are inside the twin segment, and they are 4th-decimal.
+    ★ It is expressed against C2b (the reconstructed watchdog chain) because that is the level the input bias moves."""
+    if c2b_pct is None:
         return None, []
     ratio, used = 1.0, []
     for d, (r_rec, r_am) in sorted(LED04.items()):
+        if first_twin_day is not None and d < first_twin_day:
+            continue
         day_end = calendar.timegm(time.strptime(d + " 235959", "%Y%m%d %H%M%S"))
         if day_end > now_ts:
             continue
         ratio *= (1.0 + r_am) / (1.0 + r_rec)
         used.append(d)
-    return ((1.0 + wd_pct / 100.0) * ratio - 1.0) * 100.0 - wd_pct, used
+    return ((1.0 + c2b_pct / 100.0) * ratio - 1.0) * 100.0 - c2b_pct, used
 
 
 rows_out, cum_rows = [], []
@@ -293,7 +301,7 @@ for c in cmp_all:
     inp = ch["C2a"] - ch["C2b"]
     identity = (ch["C2b"] - ch["wd_arith"]) if ch["wd_arith"] is not None else None
     arith_gap = (ch["wd_arith"] - float(wd_rec)) if ch["wd_arith"] is not None else None
-    allow, allow_days = led04_allowance_pp(float(wd_rec), float(ts))
+    allow, allow_days = led04_allowance_pp(ch["C2b"], float(ts), ch["first_twin_day"])
     residual = None if allow is None else gap - timing - formula - allow
     one = {"utc": c.get("utc"), "ts": ts, "comparable": c.get("comparable"),
            "cum_pct_twin_recorded": twin_rec, "wd_cum_recorded": wd_rec, "gap_pp": gap,
@@ -305,7 +313,11 @@ for c in cmp_all:
            "alert_i_arith_vs_wd_pp": arith_gap,
            "led04_allowance_pp": allow, "led04_days_applied": allow_days,
            "residual_pp": residual, "incomplete": ch["incomplete"],
-           "prefix_flow_mismatch_days": ch["prefix_flow_mismatch_days"], "n_twin_days": ch["n_twin_days"]}
+           "prefix_flow_mismatch_days": ch["prefix_flow_mismatch_days"], "n_twin_days": ch["n_twin_days"],
+           "first_twin_day": ch["first_twin_day"],
+           # per-day detail only where a caliber leg is large, so the receipt stays readable but the outliers are
+           # explainable rather than merely reported
+           "per_day": (ch["per_day"] if abs(timing) > 5.0 or abs(formula) > 5.0 else None)}
     rows_out.append(one)
 
 fin = [r for r in rows_out if r["residual_pp"] is not None]
@@ -325,7 +337,11 @@ rec = {"device": os.path.basename(__file__),
                                        if r["identity_C2b_minus_wd_arith_pp"] is not None), default=None),
            "max_abs_residual_pp": max((abs(r["residual_pp"]) for r in fin), default=None),
            "max_abs_alert_i_pp": max((abs(r["alert_i_arith_vs_wd_pp"]) for r in rows_out
-                                      if r["alert_i_arith_vs_wd_pp"] is not None), default=None)},
+                                      if r["alert_i_arith_vs_wd_pp"] is not None), default=None),
+           "n_rows_timing_leg_over_5pp": sum(1 for r in rows_out if abs(r["cause_day_close_timing_pp"]) > 5.0),
+           "n_rows_residual_over_0p50": sum(1 for r in fin if abs(r["residual_pp"]) > 0.50),
+           "n_rows_residual_over_0p50_comparable": sum(1 for r in fin if abs(r["residual_pp"]) > 0.50
+                                                       and r.get("comparable"))},
        "rows": rows_out}
 json.dump(rec, open(OUT, "w"), ensure_ascii=False, indent=1)
 
