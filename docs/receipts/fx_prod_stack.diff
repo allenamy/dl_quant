@@ -1,3 +1,595 @@
+diff --git a/fea171/combo_anchor_record.py b/fea171/combo_anchor_record.py
+new file mode 100644
+index 0000000..f5454cf
+--- /dev/null
++++ b/fea171/combo_anchor_record.py
+@@ -0,0 +1,529 @@
++#!/usr/bin/env python3
++"""combo_anchor_record.py — PROD-27 / P12 observability for the combo rewrite.
++
++Every outcome of combo_live_daemon.sh, including the ones that used to be silent, becomes:
++  * a named, counted event appended to  state/combo_anchor_events.jsonl   (append-only)
++  * a per-anchor record at             state/combo_anchor_record/<A>.json (atomic, idempotent)
++  * a page, at a severity decided by CAUSE x CONSEQUENCE (lead's ruling 2026-09-16)
++
++Why this exists (AUDIT_PROD PROD-27 + the census in FX_PROD/receipts/prod27/PROD27_CENSUS.json):
++over 125 combo-era anchors the daemon produced 0 pages, 0 `skip aux-not-settled` lines and 0
++`COMBO_LIVE ABORT` lines.  Two branches were silent in the strong sense -- not merely unpaged but
++absent from combo_live.log altogether:
++  (a) L27-29, the producer landed past the daemon's gate (2026-08-30 00Z: N+24:27.8);
++  (b) `[ -f "$TL" ]` never true, the producer wrote nothing at all (2026-08-29 20Z), which froze
++      the book for a whole anchor -- the executor polled 21 times and held.
++Those two are one incident: (b) left no state_H_f10 for 08-29 20Z, so 08-30 00Z ran with
++h_source "king_fallback" and self_parity 6.58e-3 against ~2.5e-10 elsewhere, and nothing paged on
++h_source either.  So h_source and the identity of the state's writer are part of this record.
++
++WHAT THIS RECORD DOES NOT CLAIM.  The producer cannot know which form was *traded*; it knows only
++what it *wrote*.  The field is `form_written`, and the record carries a join key (anchor,
++json_sha256, written_utc) so a reader can reconcile it against the executor's own
++phase_A.external_book {producer, written_utc, json_sha}, which is the authority on what traded.
++Two combo-era anchors (09-02 00Z, 09-09 12Z) have a combo file on disk and no LIVE phase_A row at
++all, so a producer-side "traded" claim would simply be false there.
++
++Severity (lead, 2026-09-16), cause x consequence:
++  no_producer_file        -> HIGH always (independent of daemon timing; the worst branch)
++  late_producer           -> HIGH        (daemon was up the whole window; the producer was late)
++  late_daemon_start       -> INFO/counted, ESCALATED to HIGH if either
++                              (i) the executor had no usable external book for that anchor, or
++                              (ii) >= 2 consecutive anchors fell into any silent branch.
++  aux_not_settled / stage_abort / stage_crash -> HIGH (already named today, now counted + margins)
++Consequence (i) is not observable when the daemon acts (the executor reads at N+24:00), so each
++anchor's record is revisited at the NEXT anchor and escalated then; that pass is idempotent.
++
++Margin levels are a LEVEL rule, not a slope: the census shows no drift toward the deadline
++(producer landing -0.80 s/anchor, margins widening), so an extrapolation would never fire before a
++single-anchor excursion.  Thresholds were pre-declared from exceedance counts before this file was
++written -- see FACT_TABLE_PROD.md 27.17/27.18 and CFG["_basis"].
++
++Usage (from combo_live_daemon.sh; every call is safe to repeat):
++  combo_anchor_record.py --anchor A --outcome <name> [--stage-rc N] [--no-page]
++  combo_anchor_record.py --selftest-alarm      # proves both alarm outcomes are observable
++"""
++import argparse
++import json
++import os
++import re
++import sys
++import time
++
++HOME = os.path.expanduser("~")
++WS = os.environ.get("WIDE_SHADOW_HOME", f"{HOME}/wide_shadow")
++ANCHOR_S = 14400
++
++# Gates, read from the code they live in; not re-derived here.
++DAEMON_SKIP_S = 1355          # combo_live_daemon.sh
++STAGE_BAIL_S = 22 * 60 + 40   # combo_stage.py
++EXEC_READ_S = 24 * 60         # dl_quant_live config/book.json external_book.anchor_offset_min = 24
++
++CFG = {
++    "m_gate_warn_s": 50,
++    "m_bail_warn_s": 20,
++    "warn_30d_escalate": 12,
++    "_basis": (
++        "Pre-declared from the 125-anchor exceedance table in FACT_TABLE_PROD.md 27.17 BEFORE this "
++        "file was written. m_gate<50s fired 2/125 (0 in the last 14 days) and both firings are the "
++        "anchors that came closest to the silent skip: 2026-08-30 00Z at -112.8s and 2026-08-27 16Z "
++        "at +49.1s. m_bail<20s fired 5/125 (1 in the last 14 days). Rejected as too noisy: m_gate 60s "
++        "(13/125), m_bail 30s (20/125). m_read needs no level of its own (0 firings below 90s). "
++        "Weekly m_gate minima W35..W38 used for calibration: -112.8 / 55.0 / 54.8 / 103.0. "
++        "Single breaches carry little information at these rates, so every WARN carries its own "
++        "30-day count and escalates to HIGH on two consecutive breaches or a 30-day count > 12."
++    ),
++}
++
++SILENT_BRANCHES = {"no_producer_file", "late_producer", "late_daemon_start"}
++ALWAYS_HIGH = {"no_producer_file", "late_producer", "aux_not_settled", "stage_abort", "stage_crash"}
++
++REC_DIR = f"{WS}/state/combo_anchor_record"
++EVENTS = f"{WS}/state/combo_anchor_events.jsonl"
++
++
++def utc(ts):
++    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(ts)))
++
++
++def sha256(path):
++    import hashlib
++    h = hashlib.sha256()
++    try:
++        with open(path, "rb") as f:
++            for c in iter(lambda: f.read(1 << 20), b""):
++                h.update(c)
++    except OSError:
++        return None
++    return h.hexdigest()
++
++
++def atomic_json(path, obj):
++    os.makedirs(os.path.dirname(path), exist_ok=True)
++    tmp = path + ".tmp"
++    with open(tmp, "w") as f:
++        json.dump(obj, f, indent=1)
++    os.replace(tmp, path)
++
++
++def daemon_start_ts():
++    """Start time of the combolive daemon, so `late_daemon_start` is a fact and not a guess."""
++    pid = os.environ.get("COMBO_DAEMON_PID") or str(os.getppid())
++    try:
++        import subprocess
++        out = subprocess.run(["ps", "-p", str(pid), "-o", "lstart="],
++                             capture_output=True, text=True).stdout.strip()
++        if out:
++            import datetime as dt
++            return int(dt.datetime.strptime(out, "%a %b %d %H:%M:%S %Y").timestamp())
++    except Exception:
++        pass
++    return None
++
++
++def page(sev, msg):
++    """Page, and RETURN WHAT HAPPENED. The old code swallowed every failure into a log line, so a
++    broken notifier was indistinguishable from no event; the caller records this dict either way."""
++    if os.environ.get("COMBO_RECORD_ALARM_SINK"):          # sandbox / selftest
++        sink = os.environ["COMBO_RECORD_ALARM_SINK"]
++        with open(sink, "a") as f:
++            f.write(json.dumps({"severity": sev, "message": msg}, ensure_ascii=False) + "\n")
++        return {"delivered": True, "via": "sink", "status": "SINK"}
++    try:
++        sys.path.insert(0, f"{HOME}/dl_quant_live/live")
++        import telegram_notify as TN
++        tok = cid = None
++        for ln in open(f"{HOME}/dl_quant_live/.env"):
++            ln = ln.strip()
++            if ln.startswith("TELEGRAM_BOT_TOKEN="):
++                tok = ln.split("=", 1)[1].strip().strip('"')
++            elif ln.startswith("TELEGRAM_CHAT_ID="):
++                cid = ln.split("=", 1)[1].strip().strip('"')
++        r = TN.TelegramNotifier(token=tok, chat_id=cid).alarm(sev, msg)
++        status = r.get("status") if isinstance(r, dict) else str(r)
++        return {"delivered": status in ("DELIVERED", "SINK"), "via": "telegram", "status": status,
++                "raw": r if isinstance(r, dict) else None}
++    except Exception as e:
++        return {"delivered": False, "via": "telegram", "status": "PAGE_FAIL",
++                "error": f"{type(e).__name__}: {str(e)[:200]}"}
++
++
++def read_events():
++    out = []
++    try:
++        for ln in open(EVENTS, errors="replace"):
++            ln = ln.strip()
++            if ln:
++                try:
++                    out.append(json.loads(ln))
++                except Exception:
++                    pass
++    except FileNotFoundError:
++        pass
++    return out
++
++
++def append_event(ev):
++    os.makedirs(os.path.dirname(EVENTS), exist_ok=True)
++    with open(EVENTS, "a") as f:
++        f.write(json.dumps(ev, sort_keys=True) + "\n")
++
++
++def count_30d(events, reason, now):
++    lo = now - 30 * 86400
++    return sum(1 for e in events if e.get("reason") == reason and e.get("ts", 0) >= lo)
++
++
++def h_source_of(a):
++    """h_source for anchor a, plus which process most likely wrote the file we read (P12).
++
++    state/target_blend/<A>.json is written by combo_stage and then OVERWRITTEN by sidecar_blend
++    about 168 s later (P12: the sidecar is the last writer of state_H_f10 on 128/129 anchors), so
++    the record names the writer instead of pretending the file has one author.
++    """
++    # Every key is always present, set to None when the source is absent. A short dict would make a
++    # reader's `if "state_H_f10_writer" in chain` silently skip the check -- the same absent-key
++    # family that let `bundle_mismatch=None` pass for a bundle that was never examined.
++    p = f"{WS}/state/target_blend/{a}.json"
++    hp = f"{WS}/fea171/state_H_f10_{a}.npz"
++    out = {"present": os.path.exists(p), "h_source": None, "self_parity_maxdw": None,
++           "target_blend_mtime_s": None, "target_blend_writer": None,
++           "state_H_f10_present": os.path.exists(hp), "state_H_f10_mtime_s": None,
++           "state_H_f10_writer": None,
++           "state_H_f10_prev_present": os.path.exists(f"{WS}/fea171/state_H_f10_{a - ANCHOR_S}.npz"),
++           "parse_error": None}
++    if out["state_H_f10_present"]:
++        out["state_H_f10_mtime_s"] = round(os.path.getmtime(hp) - a, 1)
++        out["state_H_f10_writer"] = _writer(os.path.getmtime(hp), a)
++    if not out["present"]:
++        return out
++    try:
++        j = json.load(open(p))
++    except Exception as e:
++        out["parse_error"] = f"{type(e).__name__}"
++        return out
++    mt = os.path.getmtime(p)
++    out.update(h_source=j.get("h_source"), self_parity_maxdw=j.get("self_parity_maxdw"),
++               target_blend_mtime_s=round(mt - a, 1), target_blend_writer=_writer(mt, a))
++    return out
++
++
++def _writer(mtime, a):
++    """Attribute a write to combo_stage or sidecar_blend by each one's own log, not by guessing."""
++    def last(path, pat):
++        v = None
++        try:
++            for ln in open(path, errors="replace"):
++                m = pat.match(ln.strip())
++                if m and int(m.group(1)) == a:
++                    v = m.group(2)
++        except FileNotFoundError:
++            return None
++        if v is None:
++            return None
++        import datetime as dt
++        return int(dt.datetime.strptime(v.strip(), "%a %b %d %H:%M:%S UTC %Y")
++                   .replace(tzinfo=dt.timezone.utc).timestamp())
++    c = last(f"{WS}/fea171/combo_live.log", re.compile(r"^=== combo_live anchor=(\d+) rc=\d+ (.+)$"))
++    s = last(f"{WS}/fea171/sidecar_daemon.log", re.compile(r"^=== ran for (\d+)\.json rc=\d+ (.+)$"))
++    for name, t in (("sidecar_blend", s), ("combo_stage", c)):
++        if t is not None and abs(mtime - t) <= 3.0:
++            return name
++    return "UNATTRIBUTED"
++
++
++def exec_book_ok(a):
++    """Did the executor have a usable external book for this anchor? LIVE rows only.
++
++    DRY_RUN rows (the acceptance battery appends them) read whatever file is newest at an arbitrary
++    wall time and report `stale` for anchors that traded perfectly well, so mixing them in would
++    invent consequences that never happened.
++    """
++    p = f"{HOME}/dl_quant_live/state/anchor_runs.log"
++    mode = None
++    found = None
++    try:
++        for ln in open(p, errors="replace"):
++            m = re.search(r"anchor start mode=([A-Z_]+)", ln)
++            if m:
++                mode = m.group(1)
++                continue
++            if mode != "LIVE" or " phase_A: {" not in ln:
++                continue
++            mm = re.match(r"^\S+ phase_A: (\{.*\})\s*$", ln.rstrip("\n"))
++            if not mm:
++                continue
++            try:
++                d = json.loads(mm.group(1))
++            except Exception:
++                continue
++            eb = d.get("external_book") or {}
++            nom = eb.get("nominal_ts") or (d.get("external_wait") or {}).get("nominal_anchor_ts")
++            if nom is not None and int(nom) == a:
++                found = {"ok": eb.get("ok"), "reason": eb.get("reason"),
++                         "attempts": eb.get("attempts"), "action": d.get("action"),
++                         "producer": eb.get("producer"), "json_sha": eb.get("json_sha"),
++                         "written_utc": eb.get("written_utc")}
++    except FileNotFoundError:
++        return {"observable": False, "why": "executor ledger not readable from here"}
++    if found is None:
++        return {"observable": True, "usable": False, "why": "no LIVE phase_A row for this anchor"}
++    return {"observable": True, "usable": bool(found.get("ok")), **found}
++
++
++def target_live_join(a):
++    """The join key a reader needs to reconcile 'written' against the executor's 'traded'."""
++    p = f"{WS}/state/target_live/{a}.json"
++    if not os.path.exists(p):
++        return {"present": False}
++    try:
++        j = json.load(open(p))
++    except Exception:
++        j = {}
++    prod = j.get("producer") or ""
++    return {"present": True, "json_sha256": sha256(p), "written_utc": j.get("written_utc"),
++            "producer_field": prod,
++            "form_written": ("combo" if prod.startswith("combo_stage_v1")
++                             else "king" if prod.startswith("shadow_loop_v3") else "unknown"),
++            "mtime_s": round(os.path.getmtime(p) - a, 1)}
++
++
++def king_backup_mtime_s(a):
++    p = f"{WS}/state/target_live_king/{a}.json"
++    return round(os.path.getmtime(p) - a, 1) if os.path.exists(p) else None
++
++
++def build(a, outcome, stage_rc, now):
++    tl = target_live_join(a)
++    kb = king_backup_mtime_s(a)
++    # the producer's own landing time: the king backup preserves its mtime (shutil.copy2); if combo
++    # never ran there is no backup and target_live has not been rewritten, so its mtime is it.
++    producer_write_s = kb if kb is not None else (tl.get("mtime_s") if tl.get("present") else None)
++    combo_write_s = tl.get("mtime_s") if (tl.get("present") and kb is not None) else None
++    ds = daemon_start_ts()
++    rec = {
++        "schema": "combo_anchor_record_v1",
++        "anchor": a, "anchor_utc": utc(a),
++        "outcome": outcome,
++        "form_written": tl.get("form_written") if tl.get("present") else None,
++        "not_a_traded_claim": ("the producer records only what it WROTE; reconcile `join` against "
++                               "the executor's phase_A.external_book to learn what traded"),
++        "join": tl,
++        "producer_write_s": producer_write_s,
++        "combo_write_s": combo_write_s,
++        "margins_s": {
++            "m_gate": None if producer_write_s is None else round(DAEMON_SKIP_S - producer_write_s, 1),
++            "m_bail": None if combo_write_s is None else round(STAGE_BAIL_S - combo_write_s, 1),
++            "m_read": None if combo_write_s is None else round(EXEC_READ_S - combo_write_s, 1),
++        },
++        "gates_s": {"daemon_skip": DAEMON_SKIP_S, "stage_bail": STAGE_BAIL_S, "exec_read": EXEC_READ_S},
++        "daemon": {"pid": os.environ.get("COMBO_DAEMON_PID") or os.getppid(),
++                   "start_utc": utc(ds) if ds else None,
++                   "started_after_gate": (None if ds is None else bool(ds > a + DAEMON_SKIP_S))},
++        "stage_rc": stage_rc,
++        "chain": h_source_of(a),
++        "written_utc": utc(now),
++    }
++    return rec
++
++
++def classify(rec):
++    """Cause, then consequence. Returns (reason, severity, notes)."""
++    o = rec["outcome"]
++    notes = []
++    if o == "no_producer_file":
++        return o, "HIGH", ["no producer target_live file for this anchor; the executor has nothing "
++                           "to read and will hold the book"]
++    if o == "skipped_late":
++        started_after = rec["daemon"]["started_after_gate"]
++        if started_after:
++            return "late_daemon_start", "INFO", ["the daemon itself came up after the gate; a restart, "
++                                                 "not a late producer"]
++        return "late_producer", "HIGH", ["the daemon was up for the whole window and the producer "
++                                         "landed past the gate"]
++    return o, ("HIGH" if o in ALWAYS_HIGH else "INFO"), notes
++
++
++def main():
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--anchor", type=int)
++    ap.add_argument("--outcome", choices=["rewritten", "skipped_late", "no_producer_file",
++                                          "aux_not_settled", "stage_abort", "stage_crash"])
++    ap.add_argument("--stage-rc", type=int, default=None)
++    ap.add_argument("--no-page", action="store_true")
++    ap.add_argument("--selftest-alarm", action="store_true")
++    args = ap.parse_args()
++
++    if args.selftest_alarm:
++        return selftest_alarm()
++    if args.anchor is None or args.outcome is None:
++        ap.error("--anchor and --outcome are required unless --selftest-alarm")
++
++    now = int(time.time())
++    a = args.anchor
++    rec = build(a, args.outcome, args.stage_rc, now)
++    reason, sev, notes = classify(rec)
++    events = read_events()
++
++    # consequence (ii): consecutive silent-branch anchors
++    prev_silent = 0
++    for k in (1, 2, 3):
++        pe = [e for e in events if e.get("anchor") == a - k * ANCHOR_S
++              and e.get("reason") in SILENT_BRANCHES]
++        if pe:
++            prev_silent += 1
++        else:
++            break
++    if reason in SILENT_BRANCHES and prev_silent >= 1 and sev != "HIGH":
++        sev = "HIGH"
++        notes.append(f"escalated: {prev_silent + 1} consecutive anchors in a silent branch")
++
++    # margin-trend levels (a level rule; see CFG["_basis"])
++    warns = []
++    mg, mb = rec["margins_s"]["m_gate"], rec["margins_s"]["m_bail"]
++    if mg is not None and mg < CFG["m_gate_warn_s"]:
++        warns.append({"level": "m_gate", "value_s": mg, "threshold_s": CFG["m_gate_warn_s"]})
++    if mb is not None and mb < CFG["m_bail_warn_s"]:
++        warns.append({"level": "m_bail", "value_s": mb, "threshold_s": CFG["m_bail_warn_s"]})
++    for w in warns:
++        w["count_30d"] = count_30d(events, "margin_" + w["level"], now) + 1
++        if w["count_30d"] > CFG["warn_30d_escalate"]:
++            w["escalated"] = True
++
++    # chain health (P12): h_source other than "own" is a named, counted event
++    chain_bad = rec["chain"].get("present") and rec["chain"].get("h_source") not in (None, "own")
++    rec["classification"] = {"reason": reason, "severity": sev, "notes": notes,
++                             "margin_warnings": warns, "chain_degraded": bool(chain_bad)}
++    rec["counts_30d"] = {reason: count_30d(events, reason, now) + 1}
++
++    pages = []
++    if not args.no_page:
++        if reason != "rewritten":
++            body = (f"combo 逐锚记录 [{time.strftime('%m-%d %H:%M', time.gmtime(a))}锚] {reason}\n"
++                    f"form_written={rec['form_written']} margins m_gate={mg}s m_bail={mb}s "
++                    f"m_read={rec['margins_s']['m_read']}s\n"
++                    f"本因 30 天第 {rec['counts_30d'][reason]} 次; " + "; ".join(notes))
++            pages.append({"reason": reason, "severity": sev, **page(sev, body)})
++        for w in warns:
++            body = (f"combo 余量告警 [{time.strftime('%m-%d %H:%M', time.gmtime(a))}锚] "
++                    f"{w['level']}={w['value_s']}s < {w['threshold_s']}s\n"
++                    f"30 天第 {w['count_30d']} 次" + ("; 已升 HIGH" if w.get("escalated") else ""))
++            s2 = "HIGH" if w.get("escalated") else "INFO"
++            pages.append({"reason": "margin_" + w["level"], "severity": s2, **page(s2, body)})
++        if chain_bad:
++            body = (f"combo 链状态降级 [{time.strftime('%m-%d %H:%M', time.gmtime(a))}锚] "
++                    f"h_source={rec['chain'].get('h_source')} "
++                    f"self_parity={rec['chain'].get('self_parity_maxdw')}\n"
++                    f"上一锚 state_H_f10 在场={rec['chain'].get('state_H_f10_prev_present')}; "
++                    f"本锚写者={rec['chain'].get('state_H_f10_writer')}")
++            pages.append({"reason": "chain_h_source_not_own", "severity": "HIGH",
++                          **page("HIGH", body)})
++
++    rec["pages"] = pages
++    rec["page_delivery_unverified"] = [p for p in pages if not p.get("delivered")]
++    atomic_json(f"{REC_DIR}/{a}.json", rec)
++    for p in pages:
++        append_event({"ts": now, "anchor": a, "reason": p["reason"], "severity": p["severity"],
++                      "delivered": p.get("delivered"), "status": p.get("status"),
++                      "m_gate": mg, "m_bail": mb, "form_written": rec["form_written"],
++                      "h_source": rec["chain"].get("h_source")})
++    if not pages:
++        append_event({"ts": now, "anchor": a, "reason": reason, "severity": "INFO",
++                      "delivered": None, "status": "NO_PAGE_NEEDED",
++                      "m_gate": mg, "m_bail": mb, "form_written": rec["form_written"],
++                      "h_source": rec["chain"].get("h_source")})
++
++    # revisit the previous anchor once its consequence is observable (the executor reads at N+24:00)
++    finalise_previous(a - ANCHOR_S, now, args.no_page)
++
++    print(f"[combo_record] anchor={utc(a)} outcome={args.outcome} reason={reason} sev={sev} "
++          f"form_written={rec['form_written']} m_gate={mg} m_bail={mb} "
++          f"h_source={rec['chain'].get('h_source')} pages={len(pages)} "
++          f"undelivered={len(rec['page_delivery_unverified'])}")
++    return 0
++
++
++def finalise_previous(a, now, no_page):
++    """Escalate a `late_daemon_start` once we can see the executor's outcome. Idempotent."""
++    p = f"{REC_DIR}/{a}.json"
++    if not os.path.exists(p):
++        return
++    try:
++        rec = json.load(open(p))
++    except Exception:
++        return
++    if rec.get("consequence_finalised"):
++        return
++    ex = exec_book_ok(a)
++    rec["executor_outcome"] = ex
++    rec["consequence_finalised"] = True
++    # a file declared absent at the gate may still have landed afterwards (2026-08-30 00Z landed at
++    # N+24:27.8). Record that rather than leave "no_producer_file" standing as the last word.
++    if rec.get("outcome") == "no_producer_file":
++        late = target_live_join(a)
++        if late.get("present"):
++            rec["producer_file_arrived_late"] = late
++            rec.setdefault("classification", {}).setdefault("notes", []).append(
++                f"the producer file did land, at N+{late.get('mtime_s')}s, after the gate")
++    cls = rec.get("classification") or {}
++    if (cls.get("reason") == "late_daemon_start" and cls.get("severity") != "HIGH"
++            and ex.get("observable") and not ex.get("usable")):
++        cls["severity"] = "HIGH"
++        cls.setdefault("notes", []).append(
++            "escalated on consequence: the executor had no usable external book for this anchor "
++            f"({ex.get('why') or ex.get('reason')}, action={ex.get('action')})")
++        rec["classification"] = cls
++        if not no_page:
++            body = (f"combo 逐锚记录升级 [{time.strftime('%m-%d %H:%M', time.gmtime(a))}锚] "
++                    f"late_daemon_start ⇒ HIGH\n执行器该锚无可用外部书: "
++                    f"{ex.get('why') or ex.get('reason')}, action={ex.get('action')}")
++            r = page("HIGH", body)
++            rec.setdefault("pages", []).append({"reason": "late_daemon_start_escalated",
++                                                "severity": "HIGH", **r})
++            append_event({"ts": now, "anchor": a, "reason": "late_daemon_start_escalated",
++                          "severity": "HIGH", "delivered": r.get("delivered"),
++                          "status": r.get("status")})
++    atomic_json(p, rec)
++
++
++def selftest_alarm():
++    """Positive control for the alarm channel (lead's requirement).
++
++    125 anchors produced 0 pages, and the only delivery proof on record is one manual run on
++    2026-08-26 whose FIRST attempt returned NOT_CONFIGURED.  So the channel must be shown to make
++    BOTH outcomes observable: a delivery, and a failure that is NAMED rather than swallowed.
++    Sends nothing real -- it drives the sandbox sink and a deliberately broken notifier.
++    """
++    import tempfile
++    ok = []
++    with tempfile.TemporaryDirectory() as d:
++        sink = os.path.join(d, "sink.jsonl")
++        os.environ["COMBO_RECORD_ALARM_SINK"] = sink
++        r1 = page("HIGH", "combo alarm self-test: delivery path")
++        lines = open(sink).read().strip().splitlines() if os.path.exists(sink) else []
++        ok.append(("delivery observable", r1.get("delivered") is True and len(lines) == 1))
++
++        del os.environ["COMBO_RECORD_ALARM_SINK"]
++        home = os.environ.get("HOME")
++        os.environ["HOME"] = d                      # no .env, no telegram_notify -> must fail NAMED
++        global HOME
++        _h = HOME
++        HOME = d
++        r2 = page("HIGH", "combo alarm self-test: failure path")
++        HOME = _h
++        if home is not None:
++            os.environ["HOME"] = home
++        ok.append(("failure is named, not swallowed",
++                   r2.get("delivered") is False and r2.get("status") == "PAGE_FAIL"
++                   and bool(r2.get("error"))))
++        ok.append(("failure carries a reason a reader can act on",
++                   isinstance(r2.get("error"), str) and len(r2["error"]) > 0))
++    for name, good in ok:
++        print(f"  {'OK  ' if good else 'FAIL'} {name}")
++    bad = [n for n, g in ok if not g]
++    print(f"SUMMARY combo_anchor_record alarm self-test: {len(ok)} checks, {len(bad)} fail")
++    return 1 if bad else 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/fea171/combo_live_daemon.sh b/fea171/combo_live_daemon.sh
+index 319bd3d..8eae10c 100755
+--- a/fea171/combo_live_daemon.sh
++++ b/fea171/combo_live_daemon.sh
+@@ -5,6 +5,13 @@
+ cd "$HOME/wide_shadow/fea171"
+ WS="$HOME/wide_shadow"
+ LASTF="$WS/fea171/combo_live_last_anchor"
++# PROD-27: every outcome below is recorded and counted by this helper. It also pages, at a severity
++# decided by cause x consequence, and revisits the previous anchor once the executor's outcome is
++# observable. COMBO_DAEMON_PID lets it read this daemon's own start time, which is what separates
++# "the producer was late" from "this daemon came up after the gate".
++export COMBO_DAEMON_PID=$$
++REC="$WS/venv/bin/python -u $WS/fea171/combo_anchor_record.py"
++record() { $REC --anchor "$1" --outcome "$2" ${3:+--stage-rc "$3"} >> combo_live.log 2>&1; }
+ page() {
+   "$WS/venv/bin/python" - "$1" "$2" <<'PYEOF'
+ import sys
+@@ -23,9 +30,18 @@ while true; do
+   A=$(( NOW / 14400 * 14400 ))
+   TL="$WS/state/target_live/$A.json"
+   LAST=$(cat "$LASTF" 2>/dev/null || echo 0)
++  # PROD-27 分支(b): 生产者根本没写文件时, 原循环体从不进入 —— 无页报、无日志、连 LASTF 都不推进。
++  # 2026-08-29 20Z 即此形态: 执行器轮询 21 次后 HOLD, 整锚不下单, 两侧都不出声。一律 HIGH。
++  if [ ! -f "$TL" ] && [ "$A" != "$LAST" ] && [ $(( NOW - A )) -gt 1355 ]; then
++    record "$A" no_producer_file
++    echo "$A" > "$LASTF"
++  fi
+   if [ -f "$TL" ] && [ "$A" != "$LAST" ]; then
+     if [ $(( NOW - A )) -gt 1355 ]; then
+       # 已过 N+22:35(守护迟到/重启), 不做无谓重写(combo_stage 的硬截止同判), 静默跳过
++      # PROD-27: 不再静默 —— 具名 + 计数 + 进逐锚记录; 严重度按「因 x 果」(late_producer HIGH /
++      # late_daemon_start 默认 INFO, 后果成立时升 HIGH)。原行为(不重写、推进 LASTF)逐字保留。
++      record "$A" skipped_late
+       echo "$A" > "$LASTF"
+     else
+       OK=""
+@@ -42,11 +58,19 @@ while true; do
+         echo "=== combo_live anchor=$A rc=$RC $(date -u)" >> combo_live.log
+         if [ "$RC" != "0" ] && ! grep -q "COMBO_LIVE ABORT" "$RUNLOG"; then
+           page HIGH "combo_live 守护: combo_stage 异常退出 rc=$RC(锚 $A), 本锚交易 king 形态(原文件在位)"
++          record "$A" stage_crash "$RC"
++        elif [ "$RC" != "0" ]; then
++          # combo_stage 自己的 _bail 已页报, 守护按原逻辑不重复页报; 但记录与计数不能也一起缺席 ——
++          # _page 把异常吞成 PAGE_FAIL 后 _bail 照样 exit 3, 端到端可以完全无声。
++          record "$A" stage_abort "$RC"
++        else
++          record "$A" rewritten "$RC"
+         fi
+         rm -f "$RUNLOG"
+       else
+         page HIGH "combo_live 守护: aux/rolling 150s 未落定(锚 $A), 跳过重写, 本锚交易 king 形态"
+         echo "skip aux-not-settled anchor=$A $(date -u)" >> combo_live.log
++        record "$A" aux_not_settled
+       fi
+       echo "$A" > "$LASTF"
+     fi
 diff --git a/fea171/combo_stage.py b/fea171/combo_stage.py
 index 5389fe4..5e12111 100644
 --- a/fea171/combo_stage.py
@@ -2139,10 +2731,10 @@ index 0000000..747b707
 +    sys.exit(main())
 diff --git a/fx/prod27_sandbox.py b/fx/prod27_sandbox.py
 new file mode 100644
-index 0000000..375a2d0
+index 0000000..531b653
 --- /dev/null
 +++ b/fx/prod27_sandbox.py
-@@ -0,0 +1,158 @@
+@@ -0,0 +1,179 @@
 +#!/usr/bin/env python3
 +"""PROD-27 sandbox: drive combo_live_daemon.sh through a fake clock without editing it.
 +
@@ -2188,9 +2780,17 @@ index 0000000..375a2d0
 +  -c) shift; exec /usr/bin/python3 -c "$@" ;;
 +  -)  { echo "=== PAGE sev=$2"; echo "--- msg: $3"; cat >/dev/null; } >> "$P27_OUT/page_calls.txt"
 +      exit 0 ;;
-+  -u) echo "STAGE_RUN cwd=$(pwd) arg=$2 now=$(cat "$FAKE_NOW_FILE")" >> "$P27_OUT/stage_calls.txt"
-+      if [ -n "$P27_STAGE_STDOUT" ]; then printf '%s\n' "$P27_STAGE_STDOUT"; fi
-+      exit "${P27_STAGE_RC:-0}" ;;
++  -u) case "$2" in
++        *combo_anchor_record.py)
++          # exercise the real helper; its pages go to a sink file, never to Telegram
++          shift
++          COMBO_RECORD_ALARM_SINK="$P27_OUT/page_calls.txt" WIDE_SHADOW_HOME="$HOME/wide_shadow" \
++            exec /usr/bin/python3 -B "$@" ;;
++        *)
++          echo "STAGE_RUN cwd=$(pwd) arg=$2 now=$(cat "$FAKE_NOW_FILE")" >> "$P27_OUT/stage_calls.txt"
++          if [ -n "$P27_STAGE_STDOUT" ]; then printf '%s\n' "$P27_STAGE_STDOUT"; fi
++          exit "${P27_STAGE_RC:-0}" ;;
++      esac ;;
 +esac
 +echo "UNEXPECTED $*" >> "$P27_OUT/python_calls.txt"
 +exit 99
@@ -2205,7 +2805,8 @@ index 0000000..375a2d0
 +
 +
 +def build(sbx, daemon_src, anchor, now_offset_s, *, king_file=True,
-+          aux_anchor="match", rolling_newer=True, last_anchor="0"):
++          aux_anchor="match", rolling_newer=True, last_anchor="0",
++          producer_write_s=1250, h_source="own"):
 +    """Lay out one scenario.  Returns a dict of the paths the assertions need.
 +
 +    king_file      write a producer target_live/<A>.json (False = branch (b))
@@ -2224,6 +2825,9 @@ index 0000000..375a2d0
 +
 +    shutil.copyfile(daemon_src, os.path.join(fea, "combo_live_daemon.sh"))
 +    os.chmod(os.path.join(fea, "combo_live_daemon.sh"), 0o755)
++    helper = os.path.join(os.path.dirname(daemon_src), "combo_anchor_record.py")
++    if os.path.exists(helper):
++        shutil.copyfile(helper, os.path.join(fea, "combo_anchor_record.py"))
 +    _w(os.path.join(sbx, "bin", "date"), DATE_SHIM, 0o755)
 +    _w(os.path.join(sbx, "bin", "sleep"), SLEEP_SHIM, 0o755)
 +    _w(os.path.join(ws, "venv", "bin", "python"), PY_STUB, 0o755)
@@ -2242,7 +2846,16 @@ index 0000000..375a2d0
 +               "producer": "shadow_loop_v3"}
 +        _w(tl, json.dumps(doc))
 +        _w(tl + ".sha256", "0" * 64 + f"  {anchor}.json\n")
++        # the margins the record computes come from real mtimes, so the fixture must set them to
++        # what the producer would have produced; otherwise every margin is nonsense and the level
++        # rule fires on an artefact of the harness rather than on the scenario under test.
++        os.utime(tl, (anchor + producer_write_s, anchor + producer_write_s))
 +
++    if h_source is not None:
++        _w(os.path.join(state, "target_blend", f"{anchor}.json"), json.dumps(
++            {"schema": "wide_target_blend_v2_execcal", "anchor_ts": anchor, "h_source": h_source,
++             "self_parity_maxdw": 2.5e-10 if h_source == "own" else 6.58e-3}))
++        _w(os.path.join(fea, f"state_H_f10_{anchor}.npz"), "not-a-real-npz\n")
 +    _w(os.path.join(state, "aux.json"), json.dumps(
 +        {"prev_rec": {"anchor_ts": anchor if aux_anchor == "match" else anchor - ANCHOR_S}}))
 +    roll = os.path.join(state, "rolling.npz")
@@ -3534,10 +4147,10 @@ index e7c3f60..2af4672 100644
                          "coverage": round(coverage, 4), "status": status})
 diff --git a/tests_fx_prod.py b/tests_fx_prod.py
 new file mode 100644
-index 0000000..74eea0d
+index 0000000..de286d9
 --- /dev/null
 +++ b/tests_fx_prod.py
-@@ -0,0 +1,698 @@
+@@ -0,0 +1,747 @@
 +#!/usr/bin/env python3
 +"""tests_fx_prod.py — FIXPROGRAM 2026-09-13 FX-PROD red/green battery (P1 king col 80, P2 V2MAIN col 80 + neighbours, P6 seed loader).
 +Real shapes only: frozen producer snapshots (work/frozen, SHA256SUMS), the in-service bundle and booster (read-only), real anchors, real ledger rows.
@@ -4062,66 +4675,115 @@ index 0000000..74eea0d
 +    cell("KEEP", "P27-H0 harness: the daemon under test is the code under test (sha)",
 +         H.gsha(src) == dsha and os.path.getsize(src) > 0, dsha[:16])
 +
-+    def ev(res):
++    def rec_of(paths, A):
++        q = os.path.join(paths["state"], "combo_anchor_record", f"{A}.json")
++        return json.load(open(q)) if os.path.exists(q) else None
++
++    def ev(res, paths, A):
 +        """What a reader of the producer's own records would see for this anchor."""
++        r = rec_of(paths, A)
++        pages = res["pages"].strip().splitlines()
 +        return {"log_lines": len([x for x in res["log"].splitlines() if x.strip()]),
-+                "pages": res["pages"].count("=== PAGE"),
-+                "stage_runs": res["stage"].count("STAGE_RUN"),
-+                "last": res["last"],
-+                "named_event": ("margin_s" in res["log"] or "margin_s" in res["pages"])}
++                "pages": len(pages), "stage_runs": res["stage"].count("STAGE_RUN"),
++                "last": res["last"], "record": r is not None,
++                "reason": (r or {}).get("classification", {}).get("reason"),
++                "severity": (r or {}).get("classification", {}).get("severity"),
++                "margins": (r or {}).get("margins_s"),
++                "form_written": (r or {}).get("form_written"),
++                "counts": (r or {}).get("counts_30d"),
++                "page_has_margin": any("m_gate=" in x for x in pages)}
 +
 +    # ---- S1 RED: producer late past the daemon gate (the 2026-08-30 00Z shape) -------------
 +    p = SB.build(root + "/s1", src, A, 1400)          # N+23:20 > N+22:35
-+    r1 = SB.run(p, seconds=2.5)
-+    e1 = ev(r1)
-+    reached = (e1["last"] == str(A))                  # the branch really executed
++    r1 = SB.run(p, seconds=4.0)
++    e1 = ev(r1, p, A)
 +    cell("KEEP", "P27-S1a fixture: the late-skip branch actually ran (combo_live_last_anchor advanced to A)",
-+         reached, dict(last=e1["last"], expected=A, stdout=r1["stdout"][-200:]))
-+    cell("RED", "P27-S1 producer late (N+23:20): the skip is a NAMED COUNTED event — a page and a record "
-+                "carrying anchor, reason and margin_s. Old code: %d log lines, %d pages, %d stage runs" %
-+                (e1["log_lines"], e1["pages"], e1["stage_runs"]),
-+         reached and e1["pages"] >= 1 and e1["named_event"], e1)
-+    cell("KEEP", "P27-S1b the skip does not rewrite the book (producer file byte-identical, stage not run)",
-+         r1["target_live"] == open(p["target_live"]).read() and e1["stage_runs"] == 0, dict(stage=e1["stage_runs"]))
++         e1["last"] == str(A), dict(last=e1["last"], expected=A, stdout=r1["stdout"][-200:]))
++    cell("RED", "P27-S1 producer late (N+23:20): a NAMED COUNTED event with anchor, reason and margin "
++                "in seconds, plus a per-anchor record (old code: 0 log lines, 0 pages, 0 records)",
++         e1["record"] and e1["pages"] >= 1 and e1["page_has_margin"]
++         and e1["reason"] in ("late_producer", "late_daemon_start")
++         and e1["margins"] and e1["margins"].get("m_gate") is not None
++         and (e1["counts"] or {}).get(e1["reason"], 0) >= 1, e1)
++    cell("KEEP", "P27-S1b the skip still does not rewrite the book (producer file untouched, stage not run)",
++         r1["target_live"] == open(p["target_live"]).read() and e1["stage_runs"] == 0,
++         dict(stage=e1["stage_runs"]))
 +
 +    # ---- S2 RED: no producer file at all (the 2026-08-29 20Z shape) -------------------------
 +    p2s = SB.build(root + "/s2", src, A, 1500, king_file=False)
-+    r2 = SB.run(p2s, seconds=2.5)
-+    e2 = ev(r2)
-+    cell("KEEP", "P27-S2a fixture: with no producer file the loop body never runs (last_anchor untouched)",
-+         e2["last"] == "0", dict(last=e2["last"]))
-+    cell("RED", "P27-S2 producer wrote NOTHING for this anchor: a named counted event is still required "
-+                "(the executor holds the book for a full anchor). Old code: %d log lines, %d pages" %
-+                (e2["log_lines"], e2["pages"]),
-+         e2["pages"] >= 1 and e2["named_event"], e2)
++    r2 = SB.run(p2s, seconds=4.0)
++    e2 = ev(r2, p2s, A)
++    cell("RED", "P27-S2 producer wrote NOTHING for this anchor: named, counted, HIGH, with a record "
++                "(old code never entered the loop body at all — no page, no log, LASTF not advanced)",
++         e2["record"] and e2["pages"] >= 1 and e2["reason"] == "no_producer_file"
++         and e2["severity"] == "HIGH" and e2["last"] == str(A), e2)
 +
 +    # ---- S3 KEEP: the normal path must be untouched by the fix -----------------------------
 +    p3 = SB.build(root + "/s3", src, A, 600)
-+    r3 = SB.run(p3, seconds=3.0)
-+    e3 = ev(r3)
++    r3 = SB.run(p3, seconds=5.0)
++    e3 = ev(r3, p3, A)
 +    cell("KEEP", "P27-S3 in-window run still invokes combo_stage exactly once and advances last_anchor",
 +         e3["stage_runs"] == 1 and e3["last"] == str(A), e3)
++    cell("NEW", "P27-S3b a successful rewrite is still recorded (form_written, margins) but pages nothing",
++         e3["record"] and e3["reason"] == "rewritten" and e3["pages"] == 0, e3)
 +
 +    # ---- S4 KEEP: the already-named aux/rolling path keeps its page ------------------------
 +    p4 = SB.build(root + "/s4", src, A, 600, aux_anchor="stale")
-+    r4 = SB.run(p4, seconds=8.0)
-+    e4 = ev(r4)
-+    cell("KEEP", "P27-S4 aux/rolling never settles: still one HIGH page, still no rewrite, last_anchor advanced",
-+         e4["pages"] == 1 and e4["stage_runs"] == 0 and e4["last"] == str(A), e4)
-+    cell("RED", "P27-S4b that page carries the anchor, the reason AND margin_s in seconds "
++    r4 = SB.run(p4, seconds=10.0)
++    e4 = ev(r4, p4, A)
++    cell("KEEP", "P27-S4 aux/rolling never settles: the original HIGH page is still sent verbatim, "
++                 "still no rewrite, last_anchor advanced",
++         "aux/rolling 150s" in r4["pages"] and e4["stage_runs"] == 0 and e4["last"] == str(A), e4)
++    cell("RED", "P27-S4b that path now also carries a counted record with the margin in seconds "
 +                "(today it carries neither a count nor a margin)",
-+         "margin_s" in r4["pages"], dict(page=r4["pages"][:200]))
++         e4["record"] and e4["reason"] == "aux_not_settled" and e4["margins"] is not None
++         and (e4["counts"] or {}).get("aux_not_settled", 0) >= 1, e4)
 +
-+    # ---- S5 RED: a bail from combo_stage must leave a per-anchor record of the traded form --
++    # ---- S5 RED: a bail from combo_stage must leave a per-anchor record of the form left in place
 +    p5 = SB.build(root + "/s5", src, A, 600)
-+    r5 = SB.run(p5, seconds=3.0, stage_rc="3", stage_stdout="COMBO_LIVE ABORT: synthetic")
-+    e5 = ev(r5)
-+    cell("KEEP", "P27-S5a fixture: stage ran and exited 3 with an ABORT line, so the daemon suppresses its own page",
-+         e5["stage_runs"] == 1 and e5["pages"] == 0, e5)
-+    cell("RED", "P27-S5 after a stage ABORT the producer still writes a per-anchor record naming the form it "
-+                "left in place (king) — today combo_live_status.json keeps the previous anchor's ok:true",
-+         os.path.exists(os.path.join(p5["state"], "combo_anchor_record", f"{A}.json")),
-+         dict(state_dir=sorted(os.listdir(p5["state"]))))
++    r5 = SB.run(p5, seconds=5.0, stage_rc="3", stage_stdout="COMBO_LIVE ABORT: synthetic")
++    e5 = ev(r5, p5, A)
++    cell("KEEP", "P27-S5a fixture: stage ran and exited 3 with an ABORT line, so the daemon still "
++                 "suppresses its own duplicate page",
++         e5["stage_runs"] == 1 and "combo_stage 异常退出" not in r5["pages"], e5)
++    cell("RED", "P27-S5 after a stage ABORT the producer writes a per-anchor record naming the form "
++                "left in place — today combo_live_status.json keeps the PREVIOUS anchor's ok:true",
++         e5["record"] and e5["reason"] == "stage_abort" and e5["form_written"] == "king", e5)
++
++    # ---- NEW: the record is explicitly not a claim about what traded ------------------------
++    r_ = rec_of(p3, A)
++    cell("NEW", "P27-N1 the record says form_WRITTEN and carries the join key (anchor, json_sha256, "
++                "written_utc) instead of claiming what traded",
++         bool(r_) and "form_written" in r_ and "not_a_traded_claim" in r_
++         and (r_.get("join") or {}).get("json_sha256") and "form_traded" not in json.dumps(r_),
++         dict(join=(r_ or {}).get("join", {}).get("json_sha256", "")[:16]))
++    cell("NEW", "P27-N2 P12: the record carries h_source and the identity of the state's writer, so "
++                "the 08-30 00Z king_fallback shape would not be dumb",
++         bool(r_) and "chain" in r_ and "h_source" in r_["chain"]
++         and "state_H_f10_writer" in r_["chain"], (r_ or {}).get("chain"))
++    # ---- NEW: P12 chain degradation is a named, counted, pageable event ---------------------
++    p6 = SB.build(root + "/s6", src, A, 600, h_source="king_fallback")
++    r6 = SB.run(p6, seconds=5.0)
++    e6 = ev(r6, p6, A)
++    r6rec = rec_of(p6, A)
++    cell("NEW", "P27-N2b h_source != own is itself a named HIGH event (the 2026-08-30 00Z shape: the "
++                "only king_fallback in 136 anchors, self_parity 6.58e-3 vs ~2.5e-10, and nothing paged)",
++         bool(r6rec) and r6rec["classification"]["chain_degraded"] is True
++         and any(x["reason"] == "chain_h_source_not_own" and x["severity"] == "HIGH"
++                 for x in (r6rec.get("pages") or []))
++         and "链状态降级" in r6["pages"],
++         dict(h_source=(r6rec or {}).get("chain", {}).get("h_source"),
++              degraded=(r6rec or {}).get("classification", {}).get("chain_degraded"),
++              page_reasons=[x["reason"] for x in ((r6rec or {}).get("pages") or [])]))
++
++    cell("NEW", "P27-N3 alarm channel positive control: BOTH a delivery and a NAMED non-delivery are "
++                "observable (125 anchors produced 0 pages; the only delivery proof on record is one "
++                "2026-08-26 manual run whose first attempt returned NOT_CONFIGURED)",
++         subprocess.run([os.environ.get("PYBIN", H.WS + "/venv/bin/python"), "-B",
++                         os.path.join(CODE, "fea171", "combo_anchor_record.py"), "--selftest-alarm"],
++                        capture_output=True, text=True,
++                        env={"PATH": "/usr/bin:/bin", "HOME": os.path.expanduser("~"),
++                             "PYTHONDONTWRITEBYTECODE": "1"}).returncode == 0)
 +
 +# ======================================================================================== FXR-PROD-1
 +def fxr1():
