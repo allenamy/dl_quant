@@ -69,6 +69,9 @@ Average in-sample → out-of-sample decay of the selected member: −0.39 SR (W_
 
 SR0 (annualized selection benchmark): W_FULL 0.235 (N_eff) / 1.179 (125) / 1.309 (300) / 1.446 (825) / 1.497 (1,221); FROZEN 0.379 / 1.902 / 2.111 / 2.333 / 2.414. Undeflated references: A0 FROZEN PSR(0) 0.9998, PSR(3.0) 0.4694. Cross-member sd of SR is 0.452 on W_FULL and 0.729 on FROZEN, close to pure estimation noise √(2190/T) = 0.467 / 0.831. Seed 2027 reproduces the table (A0 FROZEN P(SR>3.0) 0.284 / 0.013 / 0.004; XIB 0.595 / 0.082 / 0.035). **How to read the N columns:** N_eff is AMENDMENT 5's primary and says the 125 members are ≈1.6 independent trials; N_raw, 300 and the ledger counts treat trials as independent, which the family is not, but the program's wider history of heterogeneous screens partly is. The truth for "how many independent looks" lies between, which is exactly why the probabilities span 0.30 → 0.005 for A0's 2.94 exceeding 3.0.
 
+> ⚠ **更正 DEV-09 · P2 · AUD-KB K4 2026-09-16**(原句字节保留, 不改写): N 列读法: N_eff(参与比)是谱维数, 不是极值意义下的有效试验数; 各 N 列只是代入读数, 不是真夏普超过阈值的概率; 需用联合时间块重抽样或前向验证校准后才可作门
+
+
 ## §5 Nested walk-forward selection (expanding training; annual re-selection by training SR)
 
 | family · seed | window | hindsight best H\* | SR(H\*, window) | **SR nested** [CI95] | SR(H\*, span) | SR(A0, span) | **haircut** [CI95] | level haircut |
@@ -117,6 +120,9 @@ F5 ≈ F1: the 17 A1-base members (A1, PHI0, r12 intervention arms) change nothi
 2. **Selection haircut (lower bound).** −0.65 SR on the full-cycle span and −1.56 SR on the frozen window (seed 42; seed 2027 −0.61 / −1.40). Lower bound because unsaved/off-caliber trials (ledger) and the August design family are absent. Statistically the haircuts are not distinguishable from 0 at 95 % (conditional CIs include 0).
 3. **Planning numbers.** A0's planning number (W_ALPHA SR 1.29, CLOSEOUT §7) is **not lowered by within-family evidence**: A0 is not the family's selected member and the nested procedure did not beat it significantly (+0.235 [−0.849, +1.283]). What must be lowered is any planning or target number built on a best-candidate backtest: subtract at least 0.65 SR (full cycle) / 1.56 SR (frozen window). The frozen-window 2.94 should keep its "do not plan on it" status (`DOCKET_r7_ship_2026-09-12.md` L332); after deflation its P(true SR > 3.0) is 0.30 at N_eff and 0.005 at N = 300.
 
+> ⚠ **更正 KB-45 · P1 · AUD-KB K4 2026-09-16**(原句字节保留, 不改写): 在 §8 前插入: ⚠ 复审第四轮(REVIEW_round4 §4.2)与 STATE 2026-09-13 12:1xZ ③ 撤回三处读法: (1) N_eff 参与比是谱维数, 不是已校准的有效试验数; (2) −0.65/−1.56 是本家族在已实现选择路径上的描述, 不是今后任意候选的最低折价下界; (3) 0.30/0.0047 是不同 N 假设下的代入读数, 不是真 Sharpe>3 的概率。仍成立: 候选家族高度相关、冻结窗高水平为全家族共有、A0 冻结窗 CI95 [1.306, 4.565] 不显著高于 3。
+
+
 ## §9 Reconciliation with earlier records (quoted)
 
 - **Qualifies the T6 premise.** AMENDMENT 5: 「在役形态与「冻结窗回测 2.94」是在同一段历史上从大量候选里挑出来的。挑选本身把回测抬高了多少?」. In the testable family A0 is mid-pack (27/125 on FROZEN; training ranks 43–75), and the frozen level is common to the family (median 2.673). The within-family data therefore attribute most of 2.94 to the window, as `CLOSEOUT_uplift_program_2026-09-12.md` L11 already did (「冻结窗的高夏普里有 **2.075×** 是 regime 租金」). The selection of A0 itself happened in August on families that are not on this device (`docs/PREREG_leg_ablation_2026-08-26.md` L15 「多重比较台账 +7(消融), 累计 ≈88」; `docs/CANDIDATE_wide_v2main_norev24_2026-08-26.md` L61 「多重比较台账 ≈95 臂 … DSR 折价适用 ⇒ 前向影子为终审」) and remains unmeasured. This is a gap, not a finding of no inflation.
@@ -148,6 +154,9 @@ T6's measurements say our admission failure mode is **ranking on the same histor
 5. **Pre-selection carries its N.** A candidate that entered through a post-hoc pick (e.g. XIB_LAG50: 78 arms, 2 mix ratios) carries that screen size into its DSR N, and cannot be admitted on CSCV evidence from a later family.
 6. **Eligibility.** Arms flagged timing-sensitive or leak-suspect by their own round (T2 Nσ, T2 tripwire offsets) are excluded from the nested selection pool.
 7. **Quoting rule.** Any best-candidate backtest Sharpe in a planning or target document is quoted with its nested counterpart and haircut: at least −0.65 SR full cycle and −1.56 SR frozen window from T6, both lower bounds.
+
+> ⚠ **更正 KB-46 · P1 · AUD-KB K4 2026-09-16**(原句字节保留, 不改写): 7. **Quoting rule.** 任何最佳候选回测夏普须同时引用其嵌套前推对应值与本家族实测差(W_FULL −0.652 [−1.735,+0.392] / FROZEN −1.555 [−3.347,+0.200], 描述性, 非普适下界); §11 录取门先冻结统计量(ΔSharpe 或差收益均值)、合法人口、选择时点、主窗、依赖块长与前向验证段后再提交用户裁定
+
 
 ## §12 Reproduction (commands as run) and files
 

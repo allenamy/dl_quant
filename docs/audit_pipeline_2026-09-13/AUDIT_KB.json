@@ -1,43 +1,43 @@
 {
  "meta": {
-  "created_utc": "2026-09-16T04:08:45Z",
+  "created_utc": "2026-09-16T04:15:16Z",
   "auditor": "aud-kb",
   "read_only": true,
   "scope": "Evaluation devices and knowledge base: CLAUDE.md, STATE.md, docs/MILESTONE_2026-08-26.md, docs/CANDIDATE_wide_v2main_norev24_2026-08-26.md, docs/CHECKLIST_combo_switch_2026-08-26.md, docs/ERROR_LEDGER_2026-08-20.md (index + caliber/seat entries), uplift_r2/uplift_r3 programmes and their T/L results, uplift CLOSEOUT 09-12, memory MEMORY.md + all 262 linked notes (5 sub-auditor sweeps), judge_v4.py and label predicates of T/L/P2 devices, per-anchor deep-check cron template.",
   "snapshot_sha256": {
-   "CLAUDE.md": "67ebd49480f715619e3e5ca4cdb55e91289c2b4b8f45b556d342c1b75ea50d9f",
+   "CLAUDE.md": "dcb478ec339e1f4f16ffb7c0616e521ff07e582a84f909346fb5e4d997222ea2",
    "STATE.md": "2479f94b13584ff9d23c9713c24317ed30d5158924f113252b39208feecea05f",
    "docs/MILESTONE_2026-08-26.md": "469d603bfc7d7fc462a19ae9423f2f22e57a59760c323f3a02281ba74bb0684b",
    "docs/CANDIDATE_wide_v2main_norev24_2026-08-26.md": "da305570cfda0d733c4030003c6a1ff950df857fbd4ca674e9212d2b60905815",
    "docs/CHECKLIST_combo_switch_2026-08-26.md": "ef6a84572f0c39a5cc96f9dc13a824cfa09710666641e081d2bda4161223f3e6",
    "docs/ERROR_LEDGER_2026-08-20.md": "0406a634793268f47e0ae1b0d7653951a58ba29765b9d4266dc6d58b5b6be49c",
    "docs/CRON_TEMPLATES_2026-09-04.md": "d5baee2a37449ec399b27503976b18481f5476905b847a3826c0121e0da5d5b2",
-   "multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md": "389a00787010ab4a122dc1d7f4d9e21c399c6f790d497ebef2ba3f6434a851b7",
-   "multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md": "e7c62106c28a7f5c4f0a3d6388f692f460206f629dcdc93c7fe426b28f645f99",
-   "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py": "c2a81c48f037756067b23225b5a6bbee43ce6589898db3230437a17d398956ba",
-   "/Users/haosiyu/.claude/projects/-Users-haosiyu-Desktop-quant-research/memory/MEMORY.md": "881311eb1b9b2039130738d9a6e76c696f92adc66a82369d6f4f71ac6aef355a"
+   "multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md": "0a94f9bcb4a9112a6837398f7e13b46927cffafbd439b5196d63c988e48beeb3",
+   "multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md": "c8128d8505443f8468e0f62a5c040cd40f59bc8ab90ad0b205a9725f5c8877a0",
+   "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py": "3884e093ab91a8caab543c2b8dce568c5dc77fdc2e3fa8828c29d2aff6aa0d68",
+   "/Users/haosiyu/.claude/projects/-Users-haosiyu-Desktop-quant-research/memory/MEMORY.md": "fb37797a5eab647172e5cae7e10745652d86508216ce9a7cad47d2f62ee098b2"
   }
  },
  "counts": {
-  "rows": 307,
+  "rows": 312,
   "status": {
-   "DOC_STALE": 277,
+   "DOC_STALE": 279,
    "PENDING_USER_DECISION": 5,
    "OPEN_NOT_MEASURED": 18,
-   "VERIFIED_CURRENT": 7
+   "VERIFIED_CURRENT": 10
   },
   "severity": {
    "P0": 3,
-   "P1": 61,
-   "P2": 149,
-   "P3": 94
+   "P1": 63,
+   "P2": 151,
+   "P3": 95
   },
   "by_area_severity": {
    "KB": {
     "P0": 1,
     "P1": 22,
-    "P2": 37,
-    "P3": 14
+    "P2": 38,
+    "P3": 15
    },
    "MEM": {
     "P0": 1,
@@ -46,8 +46,8 @@
     "P3": 70
    },
    "DEV": {
-    "P1": 1,
-    "P2": 9,
+    "P1": 3,
+    "P2": 10,
     "P3": 4
    },
    "CRON": {
@@ -2247,7 +2247,7 @@
    "severity": "P2",
    "severity_reason": "The canonical table names the 10,038-anchor axis `W_TAIL` and reserves it for maxDD/worst-day/halt numbers only, but T6 and the parity prereg call the identical set `W_FULL` and publish a Sharpe on it (1.1062); a reader obeying this rule literally would treat a published W_FULL Sharpe as a caliber violation rather than as the third legitimate window.",
    "wrong_conclusion_risk": "Two names for one anchor set: a reader either rejects the W_FULL Sharpe as out-of-caliber, or assumes W_FULL is a fourth window and mixes it with the 9,139-anchor variant.",
-   "proposed_correction": "[在第 5 条末尾追加] ⚠ **2026-09-16 补注(FXR-DOC-3)**: 同一个 10,038 锚集合在本纲领内有**两个名字** —— 本表叫 `W_TAIL`, T6 与 `PREREG_producer_parity_phase2_oos_2026-09-12.md` §258 叫 `W_FULL`(定义逐字相同: 不丢暖机, 上界 2026-08-30 20Z)。**「只用于 maxDD/最差日/停机」这条限制属本表的使用约定, 不是该窗不可报 Sharpe** —— T6 GATE-0 在该窗上发表 **SR 1.1062**(g 0.5608), 与 W_ALPHA 的 1.2912 并列且**不可互换**。第四个在流通的数是 9,139 锚 / 1.2947(多读 08-31 00Z 一锚)。引用任一 Sharpe 必须同时写窗名、锚数与成本面。",
+   "proposed_correction": "[§5 原字节保留, 在第 5 条末尾追加] ⚠ **2026-09-16 绑定(FXR-DOC-3; lead 裁定措辞)**: ① **`W_FULL`(T6 与 `PREREG_producer_parity_phase2_oos_2026-09-12.md` §258)与 `W_TAIL`(本表第 5 条)是同一个 10,038 锚集合的两个名字** —— 定义逐字相同(不丢暖启锚, 天花板 2026-08-30 20Z)。**规范名 = `W_FULL`, `W_TAIL` 为其别名**(不是反过来), 因为 T6 的 GATE-0 已经在该窗上发布了 Sharpe。② 本条「仅用于 maxDD / 最差日 / 停机数」是**本表自身的使用约定, 不是对在该窗上报告 Sharpe 的禁令**。T6 GATE-0 发布的 **W_FULL g 0.5607541 · SR 1.1061630(published 1.1062)是合法的第三个窗读数**, 条件是**同时写出窗名、锚数与成本面**。③ **四个在流通的数, 各自绑定, 互不可混用**: **W_ALPHA 9,138 锚 SR 1.29122344 CI95 [0.3207, 2.2822]**(探索性 2,000 次 UTC 日块自举, 保留日内不保留跨日, **非选择校正区间**; 拟合成本面 `costb_PWR_G230k.json` sha 295b4e7b…)· **W_FULL / W_TAIL 10,038 锚 SR 1.1062**(g 0.5608)· **9,139 锚 SR 1.2947**(多含 08-31 00Z 一锚)· **n=9018 SR 1.4150**(已被取代, 且**正是本表 §0-3 点名的那个陷阱** —— 拟合成本面在该窗读 0.689021 / 1.4150, 与在役纯费成本面在 W_ALPHA 上的 0.688853 / 1.4025 数值几乎相同但**是两回事**)。④ 引用任一夏普**必须写窗名 + 锚数 + 成本面**, 缺一即作废。",
    "confidence": "VERIFIED (quote+receipt opened)",
    "resolution": null,
    "xref": [],
@@ -2465,6 +2465,47 @@
     ]
    },
    "subauditor_file": "rows_NEW5.jsonl"
+  },
+  {
+   "id": "KB-76",
+   "area": "KB",
+   "source": "docs/fixprogram_2026-09-13/FX_DATA/FACT_TABLE_DATA.md:129",
+   "quote": "whose anchor state is **NODATA** (no 5m rows in the window) yet which carries `f_fund_now` = **−205.7 bps** 8h-equivalent on the panel row",
+   "superseding_evidence": [
+    {
+     "path": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:518",
+     "quote": "**−205.7 bps 是真实的场所费率**: zip 申报 `iv 8.0`, 两侧 8 小时间距干净 ⇒ **「间距被标错」这一假设对该格被证伪**"
+    },
+    {
+     "path": "multi_asset/exports/research/uplift_r3_2026-09-13/L4b/RESULT_L4b.md:47",
+     "quote": "fund_aug keeps recording funding for some stopped perps (MDT 1,197 events after its last trade; AMB 23; LINA 5; BTTC 3; BNX 3), so the no-funding exit never fired."
+    },
+    {
+     "path": "multi_asset/exports/research/uplift_2026-09-11/r18_foundation/RESULT_r18_foundation_2026-09-12.md:9",
+     "quote": "3 newly ineligible = BNXUSDT at its first anchor after a data gap"
+    }
+   ],
+   "status": "DOC_STALE",
+   "affects": [
+    "future_eval",
+    "future_retrain"
+   ],
+   "severity": "P2",
+   "severity_reason": "The F6 row presents the BNXUSDT −205.7 bps cell in a context that invites reading it as a funding-interval defect (it closes 「relevant to the FND items」), but FX-PROD checked the zip: it declares `iv 8.0` with clean 8-hour spacing on both sides, so the mislabelled-interval hypothesis is falsified for this cell.",
+   "wrong_conclusion_risk": "A reader takes −205.7 bps as an example of the x0910 / FND interval defect and either counts it toward that defect's size or expects the FND fix to remove it. It is a tradability / membership problem: the name passes the member rule on a NODATA anchor because its qvk is finite.",
+   "proposed_correction": "[F6 行原字节保留, 在其后插入] > ⚠ **更正 KB-76(2026-09-16, FX-PROD 核; FIXPROGRAM §20.3)**: **−205.7 bps 是真实的场所费率, 不是间隔缺陷** —— zip 申报 `iv 8.0`, 该格两侧 8 小时间距干净 ⇒ **「间距被标错」这一假设对该格被证伪**, 本行末句「relevant to the FND items」**不适用于这个数**, **不得把 BNXUSDT 这个值当作资金费间隔缺陷的例子**。**F6 的另一半仍然成立**: 该锚 `NODATA`(窗内无 5m 行)而 `qvk` 有限故通过成员筛, 且审计的两个旗标都看不见它(`Z24` 要求窗内 `ret5` 有限; `DEAD` 要求该名此后再不交易, 而 BNXUSDT 交易至 2025-03-17)⇒ **只有可交易性旗标抓得住这一类**。即本条是**可交易性 / 成员资格**问题(TRD 族), 不是 FND 族。旁证同向: 该名在 `L4b` 里正是「合约停交易后 fund_aug 仍记 3 次资金费」的名单之一, 在 `r18` 里是「数据缺口后首锚资格改变」的 3 格之一。",
+   "confidence": "VERIFIED (quote+receipt opened)",
+   "resolution": null,
+   "xref": [],
+   "verification_at_assembly": {
+    "source_check": "exact",
+    "evidence_checks": [
+     "exact",
+     "exact",
+     "exact"
+    ]
+   },
+   "subauditor_file": "rows_NEW6.jsonl"
   },
   {
    "id": "KB-03",
@@ -2961,6 +3002,41 @@
     ]
    },
    "subauditor_file": "rows_NEW2.jsonl"
+  },
+  {
+   "id": "KB-77",
+   "area": "KB",
+   "source": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:507",
+   "quote": "**G-1(整类设计否决)**",
+   "superseding_evidence": [
+    {
+     "path": "docs/PREREG_combo_chain_residual_attribution_2026-09-13.md:6",
+     "quote": "G2-C"
+    },
+    {
+     "path": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:40",
+     "quote": "G2-C-BIND"
+    }
+   ],
+   "status": "DOC_STALE",
+   "affects": [
+    "reporting"
+   ],
+   "severity": "P3",
+   "severity_reason": "`G-1` / `G-2` / `G-3` are one hyphen away from the P2 replay-certification gate family `G2-A/B/C/D/E/S` and `G-P2`, which together appear 200+ times across the docs; `G-2` and `G2-B` will be conflated in prose and in grep.",
+   "wrong_conclusion_risk": "A reader or a grep for 「G-2」 picks up the P2 replay gate `G2-*` results, or a citation of 「G2」 is taken for the new general item; the two families mean entirely different things (a coding rule vs a replay parity gate).",
+   "proposed_correction": "[原编号字节保留; 建议, 归 lead] ⚠ **命名建议 KB-77(2026-09-16)**: `G-1 / G-2 / G-3` 与 P2 回放认证的门族 **`G2-A/B/C/D/E/S` 与 `G-P2`** 只差一个连字符, 而后者在 docs 下出现 200+ 次(G2-C 77 · G2-B 37 · G-P2 30 · G2-A 29 · G2-D 17 · G2-C-BIND 15 · G2-E 12 · G2-S 11)。**建议把通用条目改前缀为 `GEN-1 / GEN-2 / GEN-3`**(原号就地保留标 SUPERSEDED-ID, 同 §17.5 规矩), 理由与 `PROD-36b` 后缀那条相同: **编号的可辨识性是引用可解析性的前提**。不是撞号, 是可混淆 —— 但两族语义毫无关系(编码规则 vs 回放平价门), 混淆代价与撞号相同。",
+   "confidence": "VERIFIED (quote+receipt opened)",
+   "resolution": null,
+   "xref": [],
+   "verification_at_assembly": {
+    "source_check": "exact (line moved 521->507)",
+    "evidence_checks": [
+     "exact",
+     "exact"
+    ]
+   },
+   "subauditor_file": "rows_NEW6.jsonl"
   },
   {
    "id": "M3-35",
@@ -11264,7 +11340,7 @@
   {
    "id": "M4-30",
    "area": "MEM",
-   "source": "/Users/haosiyu/.claude/projects/-Users-haosiyu-Desktop-quant-research/memory/MEMORY.md:107",
+   "source": "/Users/haosiyu/.claude/projects/-Users-haosiyu-Desktop-quant-research/memory/MEMORY.md:108",
    "quote": "- V4/V5/单资产时代(04..05): `v4_*` `v5*` `single_asset_*` `y600_*`; 结论已入 07-06 终版文档",
    "superseding_evidence": [
     {
@@ -11289,7 +11365,7 @@
    "resolution": null,
    "xref": [],
    "verification_at_assembly": {
-    "source_check": "exact (line moved 96->107)",
+    "source_check": "exact (line moved 96->108)",
     "evidence_checks": [
      "exact",
      "exact"
@@ -11300,7 +11376,7 @@
   {
    "id": "M4-31",
    "area": "MEM",
-   "source": "/Users/haosiyu/.claude/projects/-Users-haosiyu-Desktop-quant-research/memory/MEMORY.md:103",
+   "source": "/Users/haosiyu/.claude/projects/-Users-haosiyu-Desktop-quant-research/memory/MEMORY.md:104",
    "quote": "[残差第四腿关](wide_book_carry_correction.md)",
    "superseding_evidence": [
     {
@@ -11324,7 +11400,7 @@
    "resolution": null,
    "xref": [],
    "verification_at_assembly": {
-    "source_check": "exact (line moved 92->103)",
+    "source_check": "exact (line moved 92->104)",
     "evidence_checks": [
      "exact",
      "exact"
@@ -12070,6 +12146,78 @@
    "subauditor_file": "rows_KB.jsonl"
   },
   {
+   "id": "DEV-15",
+   "area": "DEV",
+   "source": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:507",
+   "quote": "**G-1(整类设计否决)**: `ShadowState.save()` 写**固定键集** ⇒ 任何写进 `aux.json` 的额外键都会在**下一个锚**被丢掉",
+   "superseding_evidence": [
+    {
+     "path": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:507",
+     "quote": "**对任何未来的迁移工具都适用**, 不只 FXR-PROD-1。**由读 `save()` 得到, 不由行为推断。**"
+    },
+    {
+     "path": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:205",
+     "quote": "`setdefault` 钉住旧标签、当前输入的标签冲突**只收集不拒绝**"
+    }
+   ],
+   "status": "VERIFIED_CURRENT",
+   "affects": [
+    "future_eval",
+    "live_trading"
+   ],
+   "severity": "P1",
+   "severity_reason": "This vetoes a whole class of designs, not one tool: because `ShadowState.save()` writes a fixed key set, nothing written into `aux.json` survives the next anchor, so no marker, version field or applied-corrections list can record inside producer state which version that state has absorbed. Any future migration tool that relies on such a record is unsound before it is written.",
+   "wrong_conclusion_risk": "A later session designs an idempotency marker, a schema-version field or an applied-fixes ledger inside producer state, tests it within one anchor where it appears to work, and ships a migration whose re-run protection silently evaporates at the next anchor.",
+   "proposed_correction": "(登记为通用条目, 无源文件需改 —— 受据 FX-PROD 6684895e, 纲领 §20.1-1) **G-1 = 整类设计否决**: 「把『本状态已吸收到哪一版 / 哪些行』记录在生产者状态内部」这一整类设计**都不成立** —— 不是标记, 不是版本字段, 不是已应用修正清单。机制: `ShadowState.save()` 写固定键集, 额外键在下一个锚被丢掉。**适用范围 = 任何未来的迁移工具**, 不限 FXR-PROD-1。**取证方式本身是本条的一半**: 该结论**由读 `save()` 源码得到, 不由行为推断** —— 单锚内观察会显示标记「有效」, 正是 [[defect_with_no_behavioural_signature]] 的形状。⇒ 幂等性必须记在**状态之外**(独立工件 + sha), 或由**输入的内容哈希**推出。",
+   "confidence": "VERIFIED (quote+receipt opened)",
+   "resolution": null,
+   "xref": [],
+   "verification_at_assembly": {
+    "source_check": "exact (line moved 521->507)",
+    "evidence_checks": [
+     "exact",
+     "exact"
+    ]
+   },
+   "subauditor_file": "rows_NEW6.jsonl"
+  },
+  {
+   "id": "DEV-17",
+   "area": "DEV",
+   "source": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:509",
+   "quote": "**G-3(新)**: **凡失败模式是返回码的调度, 该返回码必须被读取并写进记录。**",
+   "superseding_evidence": [
+    {
+     "path": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:509",
+     "quote": "Python: **`subprocess.run` 在非零退出时不抛异常** ⇒ 不读 `returncode` 等于没发"
+    },
+    {
+     "path": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:509",
+     "quote": "FX-PROD 今天第三次撞到同一形态(PROD-46 的页报调度), **是从测试 stderr 看到子进程失败而格子仍绿才发现的**"
+    }
+   ],
+   "status": "VERIFIED_CURRENT",
+   "affects": [
+    "live_trading",
+    "future_eval"
+   ],
+   "severity": "P1",
+   "severity_reason": "Third recurrence of one shape, and the failing dispatch was a HIGH page: `subprocess.run` does not raise on a non-zero exit, so an unread `returncode` means the alert was never delivered while the test cell stayed green; it was caught only because a human read the test's stderr.",
+   "wrong_conclusion_risk": "An alert path is certified green by a test that proves the call was made, not that it succeeded — 「装置绿 ≠ 被测动作发生」. The same shape hides a failed page, a failed commit and a failed backfill.",
+   "proposed_correction": "(登记为通用条目, 受据 FX-PROD 6684895e, 纲领 §20.1-3) **G-3**: **凡失败模式是返回码的调度, 该返回码必须被读取并写进记录。** shell: `rc=$?` 不得与被测命令之间隔管道或 `tail`(有管道用 `PIPESTATUS` / zsh `pipestatus`); Python: **`subprocess.run` 非零退出不抛异常** ⇒ **不读 `returncode` 等于没发**。FX-PROD 2026-09-16 第三次撞到同一形态(PROD-46 的页报调度), **发现方式是从测试 stderr 看到子进程失败而格子仍绿** ⇒ 本条的真正教训是「**装置绿 ≠ 被测动作发生**」。同族: [[background_completion_is_not_the_test_result]] · [[defect_with_no_behavioural_signature]]。**给 K5 的推论**: 深查模板里凡「发页报 / 提交 / 回填」一类动作, 报的必须是**该动作的返回码**, 不是「已调用」。",
+   "confidence": "VERIFIED (quote+receipt opened)",
+   "resolution": null,
+   "xref": [],
+   "verification_at_assembly": {
+    "source_check": "exact (line moved 523->509)",
+    "evidence_checks": [
+     "exact",
+     "exact"
+    ]
+   },
+   "subauditor_file": "rows_NEW6.jsonl"
+  },
+  {
    "id": "DEV-02",
    "area": "DEV",
    "source": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py:298",
@@ -12405,6 +12553,41 @@
     ]
    },
    "subauditor_file": "rows_NEW3.jsonl"
+  },
+  {
+   "id": "DEV-16",
+   "area": "DEV",
+   "source": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:508",
+   "quote": "**G-2(检查表规则)**: **返回 dict 的函数必须返回恒定键集**, 源缺席处给 `None`。",
+   "superseding_evidence": [
+    {
+     "path": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:508",
+     "quote": "短字典会把 `if key in d` 变成**对「该函数存在的意义」那一项检查的静默跳过**"
+    },
+    {
+     "path": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:508",
+     "quote": "PROD-28 装置找 `MANIFEST` 而文件名是 `MANIFEST.json`(⇒ `bundle_mismatch=None`); `h_source_of()` 在 `target_blend` 缺席时返回短字典"
+    }
+   ],
+   "status": "VERIFIED_CURRENT",
+   "affects": [
+    "future_eval"
+   ],
+   "severity": "P2",
+   "severity_reason": "Two instances inside one hour of the same shape: a function returns a short dict when a source is absent, so every `if key in d` guard downstream skips exactly the check the function exists to perform, and the skip is silent.",
+   "wrong_conclusion_risk": "A green check is read as 'the property holds' when it means 'the key was not there, so nothing was checked' — the same family as 「字段缺了就跳过」.",
+   "proposed_correction": "(登记为通用条目, 受据 FX-PROD 6684895e, 纲领 §20.1-2) **G-2 = 检查表规则**: **返回 dict 的函数必须返回恒定键集**, 源缺席处显式给 `None`, 由调用方区分「值为 None」与「键不存在」。短字典会把 `if key in d` 变成对**该函数存在的意义**那一项检查的**静默跳过**。两个实测实例(同一小时): PROD-28 装置找 `MANIFEST` 而实际文件名是 `MANIFEST.json` ⇒ `bundle_mismatch=None` 而无人察觉; `h_source_of()` 在 `target_blend` 缺席时返回短字典。同族: [[absent_key_means_skip_defect_family]]。",
+   "confidence": "VERIFIED (quote+receipt opened)",
+   "resolution": null,
+   "xref": [],
+   "verification_at_assembly": {
+    "source_check": "exact (line moved 522->508)",
+    "evidence_checks": [
+     "exact",
+     "exact"
+    ]
+   },
+   "subauditor_file": "rows_NEW6.jsonl"
   },
   {
    "id": "DEV-07",
@@ -13133,8 +13316,8 @@
    "subauditor_file": "rows_KB.jsonl"
   }
  ],
- "revised_deep_check_prompt": "**结构 = 在役 cron a84f2bd4 同构: 用户模板逐字(`docs/CRON_TEMPLATES_2026-09-04.md` L13, 一字不改)+ 下面这一块「lead 更正附注」。附注只更正事实与补盲态, 不改用户的任何判据。**\n\n—— lead 更正附注(2026-09-13 / 2026-09-16 受据; 深查只读, 实盘书零接触)——\n\n**〇 盲态条(最高优先, 逐字取自 CFG-06 冻结版 AMENDMENT 1 与 CFG-04 AMENDMENT 1)**: 到 CFG-06 §3 读数产出前, 分臂**只报臂平衡**(各臂计数 / behind 占比 / 必要时逐臂**残差名义**作成本上界), **不报任何逐臂结果量**(拒单率 / 成交率 / markout / 成本 / 价差 / H 或 X 的任何形式)。用户模板 ③ 原文要求的「`chase_arm_assigned` 分臂计数, placement behind 占比≈0.50」**就是**臂平衡, 照做; **不得**在其上自行追加逐臂拆读。maker 份额、费 bps、−5022 首拒率**一律只报书级合计**。安全线 SL1/SL3 照评, 但只输出布尔与触发日, 不附逐臂数值。\n\n**① 守护进程的权威是 launchd, 不是 PID 句柄**(同 ⑥ 的 08-30 KeepAlive 事实): 用 `launchctl print gui/$(id -u)/com.hsy.{shadowloop,combolive,sidecar}` 读 state / pid / runs / last exit code —— **runs 较上锚增长 = 被重启过**, 报; 句柄文件(shadow.lock、fea171/combo_live_daemon.pid)降为交叉核对。另核 `launchctl print-disabled gui/$(id -u)` 中 `com.hsy.sigma_ladder` 仍 disabled(OPS-01 退役, 6cc95943)、`com.hsy.execprobe2` 仍 disabled(OPS-02 退役, b63a0144)。\n\n**② 反事实改写幅度的基线数字更正**: 模板写「09-03 08Z 起新台阶 19–20%」已陈旧 —— 该幅度随 king 席位滚动, **现水平 ≈25–27%**(09-13 16Z 实测 **27.90%**; 归因 = V2MAIN 链离开 king 书, AUDIT_PROD PROD-26 11/11 值)。**判据不变, 仍用用户原文**: level 再升一档, 或连续 3 锚增量 > +0.2pp 才升级。越界时把归因写清(席位 / FTRIM 名数 / rho_kc_fc 三者之一)。\n\n**③ maker 份额与费用带的基线数字更正**: 模板写「maker ≥90% / 费 1.80–2.3 bps」已陈旧 —— **现水平 maker ≈74–78%, 费 ≈2.4–2.7 bps**(X-COST fdee4894 桶恒等分解 93.1253% → 73.9049%, −19.2204 pp; 驱动 = requote 实验 direct 臂 + chase 实验臂 + 存款后 chase_forced + from_reject)。**只报合计**(见〇)。换手稳态 2–5.5% 不变。⚠ 引用 X-COST 时按 FXR-DOC-2: 「执行成本侧没有隐藏缺陷」一句**已作废**, 11.3831 pp 依赖可交换性假设(不作该假设时 [−0.4178, +15.5642] pp), chase 4.3531 / forced 2.4401 pp 是**已成交桶份额**非反事实, 首拒 −5022 由 14.3% → 23.0% 的原因**未测**。\n\n**④ guard_twin 判词读对文件**: 模板的「guard_twin AGREE」不在它读的那个文件里 —— 判词读 `~/guard_twin/state/latest.json` 的 `status` / `comparable` / `disagreements`, 明细读 `~/guard_twin/state/compare.jsonl`, 告警读 `~/guard_twin/state/alerts.log`; **只有 `comparable=true` 且 `disagreements` 为空才记 AGREE**。\n\n**⑤ 实收资金费按名的当前结算间隔核**: 模板的「实收 FUNDING_FEE(00/08/16Z 结算锚)」会漏掉大多数结算 —— 书内多数名现为 4h / 1h 间隔, 每锚(或锚内)结算, 只有 8h 名落在 00/08/16Z。逐锚按名的当前 `fundingInfo` 间隔核, 并把间隔一并记录(P9: 间隔切换行会把 rn 放大 2–4×)。\n\n**⑥ net/gross 必须点名是哪个量**: 模板的「net/gross 带内(±1%)」没说是哪一个。分两列报, **不得互换**: (i) **补单前 `book_net`** = 执行器 1.5% 中性带的判据量; (ii) **readback 后 net/gross** = 观察带 ±1%。\n\n**⑦ 回滚动词(P0, 与 STATE §1 同, b63a0144 已更正)**: 回滚缺省 = king 形态; 生产者重启动词 = `launchctl kickstart -k gui/$(id -u)/com.hsy.shadowloop`(E-0904-A, 禁 nohup 裸 env); **整体回滚(临时)= `launchctl bootout gui/$(id -u)/com.hsy.combolive`** —— 08-30 起 combo 守护由 launchd KeepAlive 管理, **`kill $(cat …/combo_live_daemon.pid)` 会在 1 s 内被拉起, 不构成回滚**(同形哑任务演练收据 `docs/fixprogram_2026-09-13/receipts/OPS_rollback_verb_drill2_20260913T144746Z.log`; 第 1 次 3 s 演练读「未重生」是错的, 收据保留标错)。持久回滚(跨重登)再加 `launchctl disable gui/$(id -u)/com.hsy.combolive`; 恢复 = `launchctl enable …` + `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.hsy.combolive.plist`; 执行后核 `launchctl print gui/$(id -u)/com.hsy.combolive` 与下一锚 target_live 的 producer 字段。\n\n**⑧ 已知实盘假阳性(见到即按仪器处理, 不得触发全书级动作)**: E9 `NO_PRODUCER` 产物断言误报 · EXE-03 / PROD-25 reshape 去均值把小空头翻多(109 个 combo 锚中 99 个)后「撤名残差」告警归错因 · E-0912-A reduce-only 截量 × 身份核对 1e-6 假阳性 · E-0909-G 账本缺口触发的逐名门。**用户规则**: 仪器疑问不得触发全书级响应(`feedback_no_book_level_response_to_instrument_doubt`); 在役看门狗**任何触发仍整书平仓**(EXE-01, 比例响应在克隆未部署)。\n\n**⑨ 部署状态(每次深查都要说)**: 本修复纲领**没有任何修复已部署**, 执行器运行树仍 `ef60f85`; 深查**只读**, 不动任何实盘文件、不改配置、不发信号给在役 PID。核 `git -C ~/dl_quant_live rev-parse --short HEAD` 并报, 与 origin/main 不一致时**照报不动作**。\n\n**⑩ 未获批准的增查提案(不在本 cron 内执行; 随复审包上交用户后才可加)**: (a) 反事实改写幅度改用近 42 锚 p5–p95 动态带、升级步长 +0.2pp→+0.5pp、带外连续 3 锚才升级(FXR-KB-1 判为新监控政策); (b) 补查 per_name_stop 的「已停名当锚 readback 是否归零」(W9 缺陷 08-20..09-12 未被看见); (c) 补查本 rid `orders.jsonl` 行数 > 0(E-0909-G); (d) 补查 `request_ledger` 四类不一致与 capacity_conflict / reduce-only 截量 UNKNOWN 事件数(E-0912-A 前兆); (e) 补查 `apiTradingStatus` 与 −4400 / −2027 计数(E-0910-A / E-0909-E); (f) 当日 `daily_nav.external_flow ≠ 0` 时标注日损守卫盲区; (g) 读 `~/regime_dash/REGIME_DASH.md` 的席位 / FTRIM 名单 / 旗标。**(b)–(f) 各自对应一个当前无人守的在役盲区, 建议优先批。**",
- "revised_parabolic_prompt": "**结构 = 在役 cron 同构: 用户文本逐字 + 下面这一块「lead 更正附注」。**\n\n—— lead 更正附注(aud-kb CRON-11 / CRON-12; 只读研究, 实盘零接触, 不调 API)——\n\n**① 提交必须带显式 pathspec(CRON-11)**: 用户文本的「然后 git add/commit(无新增则不提交)」在一个多代理并发暂存的仓库里会把别人的暂存改动扫进一次 `parabolic_onset_forward` 提交。改为: 仅在有新增时 `git -C /Users/haosiyu/Desktop/quant_research add -- multi_asset/exports/live/parabolic_onset_forward/events.jsonl multi_asset/exports/live/parabolic_onset_forward/run_log.jsonl`, 然后 `git -C … commit -m \"parabolic_onset_forward: 每日追加 <UTC 日期>\" -- <同两个路径>`; 提交后 `git -C … show --name-only --format= HEAD` 核**只含这两个文件**, 否则报告不修; git 锁被占用则本日不提交并报告。**不得裸 `commit`, 不得静默 git stderr。**\n\n**② 前向值的口径标注(CRON-12 / DEV-08)**: 本日志的 onset 与前向收益取自生产者 5m 缓存 `ret5` 通道(**float16, 硬裁 ±0.300048828125**, E-0908-B 同族), 一切读数标「**裁剪缓存口径, 尾部为下界**」。若本批新增事件的 onset 或前向窗内出现 |ret5| 顶到界的饱和格, 报其事件数(装置未输出则报「未测」)。**规则(r18)**: 任何装置不得从缓存 `ret5` 重算收益; 记账正典是未裁剪的 `meta_newprod_v4` y4 = Π(1+r)−1。\n\n**③ 复判门的措辞更正(CRON-12)**: 用户文本的「当 P 层 θ8 已填事件 ≥ 200 且距 2026-09-06 ≥ 14 天时, 向用户报『可复判』」改为报: 「**计数已达复判门, 但前向值取自裁剪 ±0.30 的 float16 缓存口径**; 复判前须先按记账口径(未裁剪原始收盘价)重算 onset 与前向收益, 或预注册该口径偏差的处理」。复判仍按 `PREREG_crash_continuation_parabolic_stratum_2026-09-06` §2 六条另起。\n\n**④ 盲态不变**: 累计读数**只报计数**(θ8 P 层已填前向事件数 / 距 200 门), **不看均值、不比 P 与 Q、不做 CI、不判**(门未到按设计保持盲态; r11_verdict §「唯一还活着、但门没开的 alpha 线索」)。运行失败(rc≠0 或断言)**只报不修**。",
+ "revised_deep_check_prompt": "**结构 = 在役 cron a84f2bd4 同构: 用户模板逐字(`docs/CRON_TEMPLATES_2026-09-04.md` L13, 一字不改)+ 下面这一块「lead 更正附注」。附注只更正事实与补盲态, 不改用户的任何判据。**\n\n—— lead 更正附注(2026-09-13 / 2026-09-16 受据; 深查只读, 实盘书零接触)——\n\n**〇 盲态条(最高优先, 逐字取自 CFG-06 冻结版 AMENDMENT 1 与 CFG-04 AMENDMENT 1)**: 到 CFG-06 §3 读数产出前, 分臂**只报臂平衡**(各臂计数 / behind 占比 / 必要时逐臂**残差名义**作成本上界), **不报任何逐臂结果量**(拒单率 / 成交率 / markout / 成本 / 价差 / H 或 X 的任何形式)。用户模板 ③ 原文要求的「`chase_arm_assigned` 分臂计数, placement behind 占比≈0.50」**就是**臂平衡, 照做; **不得**在其上自行追加逐臂拆读。maker 份额、费 bps、−5022 首拒率**一律只报书级合计**。安全线 SL1/SL3 照评, 但只输出布尔与触发日, 不附逐臂数值。\n\n**① 守护进程的权威是 launchd, 不是 PID 句柄**(同 ⑥ 的 08-30 KeepAlive 事实): 用 `launchctl print gui/$(id -u)/com.hsy.{shadowloop,combolive,sidecar}` 读 state / pid / runs / last exit code —— **runs 较上锚增长 = 被重启过**, 报; 句柄文件(shadow.lock、fea171/combo_live_daemon.pid)降为交叉核对。另核 `launchctl print-disabled gui/$(id -u)` 中 `com.hsy.sigma_ladder` 仍 disabled(OPS-01 退役, 6cc95943)、`com.hsy.execprobe2` 仍 disabled(OPS-02 退役, b63a0144)。\n\n**② 反事实改写幅度的基线数字更正**: 模板写「09-03 08Z 起新台阶 19–20%」已陈旧 —— 该幅度随 king 席位滚动, **现水平 ≈25–27%**(09-13 16Z 实测 **27.90%**; 归因 = V2MAIN 链离开 king 书, AUDIT_PROD PROD-26 11/11 值)。**判据不变, 仍用用户原文**: level 再升一档, 或连续 3 锚增量 > +0.2pp 才升级。越界时把归因写清(席位 / FTRIM 名数 / rho_kc_fc 三者之一)。\n\n**③ maker 份额与费用带的基线数字更正**: 模板写「maker ≥90% / 费 1.80–2.3 bps」已陈旧 —— **现水平 maker ≈74–78%, 费 ≈2.4–2.7 bps**(X-COST fdee4894 桶恒等分解 93.1253% → 73.9049%, −19.2204 pp; 驱动 = requote 实验 direct 臂 + chase 实验臂 + 存款后 chase_forced + from_reject)。**只报合计**(见〇)。换手稳态 2–5.5% 不变。⚠ 引用 X-COST 时按 FXR-DOC-2: 「执行成本侧没有隐藏缺陷」一句**已作废**, 11.3831 pp 依赖可交换性假设(不作该假设时 [−0.4178, +15.5642] pp), chase 4.3531 / forced 2.4401 pp 是**已成交桶份额**非反事实, 首拒 −5022 由 14.3% → 23.0% 的原因**未测**。\n\n**④ guard_twin 判词读对文件**: 模板的「guard_twin AGREE」不在它读的那个文件里 —— 判词读 `~/guard_twin/state/latest.json` 的 `status` / `comparable` / `disagreements`, 明细读 `~/guard_twin/state/compare.jsonl`, 告警读 `~/guard_twin/state/alerts.log`; **只有 `comparable=true` 且 `disagreements` 为空才记 AGREE**。\n\n**⑤ 实收资金费按名的当前结算间隔核**: 模板的「实收 FUNDING_FEE(00/08/16Z 结算锚)」会漏掉大多数结算 —— 书内多数名现为 4h / 1h 间隔, 每锚(或锚内)结算, 只有 8h 名落在 00/08/16Z。逐锚按名的当前 `fundingInfo` 间隔核, 并把间隔一并记录(P9: 间隔切换行会把 rn 放大 2–4×)。\n\n**⑥ net/gross 必须点名是哪个量**: 模板的「net/gross 带内(±1%)」没说是哪一个。分两列报, **不得互换**: (i) **补单前 `book_net`** = 执行器 1.5% 中性带的判据量; (ii) **readback 后 net/gross** = 观察带 ±1%。\n\n**⑦ 回滚动词(P0, 与 STATE §1 同, b63a0144 已更正)**: 回滚缺省 = king 形态; 生产者重启动词 = `launchctl kickstart -k gui/$(id -u)/com.hsy.shadowloop`(E-0904-A, 禁 nohup 裸 env); **整体回滚(临时)= `launchctl bootout gui/$(id -u)/com.hsy.combolive`** —— 08-30 起 combo 守护由 launchd KeepAlive 管理, **`kill $(cat …/combo_live_daemon.pid)` 会在 1 s 内被拉起, 不构成回滚**(同形哑任务演练收据 `docs/fixprogram_2026-09-13/receipts/OPS_rollback_verb_drill2_20260913T144746Z.log`; 第 1 次 3 s 演练读「未重生」是错的, 收据保留标错)。持久回滚(跨重登)再加 `launchctl disable gui/$(id -u)/com.hsy.combolive`; 恢复 = `launchctl enable …` + `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.hsy.combolive.plist`; 执行后核 `launchctl print gui/$(id -u)/com.hsy.combolive` 与下一锚 target_live 的 producer 字段。\n\n**⑧ 已知实盘假阳性(见到即按仪器处理, 不得触发全书级动作)**: E9 `NO_PRODUCER` 产物断言误报 · EXE-03 / PROD-25 reshape 去均值把小空头翻多(109 个 combo 锚中 99 个)后「撤名残差」告警归错因 · E-0912-A reduce-only 截量 × 身份核对 1e-6 假阳性 · E-0909-G 账本缺口触发的逐名门。**用户规则**: 仪器疑问不得触发全书级响应(`feedback_no_book_level_response_to_instrument_doubt`); 在役看门狗**任何触发仍整书平仓**(EXE-01, 比例响应在克隆未部署)。\n\n**⑨ 部署状态(每次深查都要说)**: 本修复纲领**没有任何修复已部署**, 执行器运行树仍 `ef60f85`; 深查**只读**, 不动任何实盘文件、不改配置、不发信号给在役 PID。核 `git -C ~/dl_quant_live rev-parse --short HEAD` 并报, 与 origin/main 不一致时**照报不动作**。\n\n**⑩ 观察并报告(lead 2026-09-16 裁定: 五条只读观察项, 不改任何判据、不触发任何动作, 故不属「未经批准的新政策」)**: (b) `per_name_stop` **已停名当锚 readback 是否归零** —— 已停且持仓 ≠ 0 的名逐一报桶(flatten_only / add_blocked / reduced)(W9 缺陷 2026-08-20..09-12 无人看见); (c) 本 rid `orders.jsonl` **行数 > 0**(E-0909-G: 缺行触发过逐名门); (d) `request_ledger` 四类不一致标记与 **capacity_conflict / reduce-only 截量 UNKNOWN 事件数**(E-0912-A 前兆); (e) `apiTradingStatus` 与 **−4400 / −2027 计数**(E-0910-A 场所量化规则锁 / E-0909-E 上限截断); (f) 当日 `daily_nav.external_flow ≠ 0` 时**标注日损守卫盲区**(提醒勿划转)。**五条只报数与名单, 不判、不动作、不升级。**\n\n**⑪ 未获批准的提案(不在本 cron 内执行; 随复审包上交用户后才可加)**: (a) 反事实改写幅度改用近 42 锚 p5–p95 动态带; 升级步长 +0.2pp → +0.5pp; 带外连续 3 锚才升级 —— **三项都改的是判据, 属书/监控行为改动, 维持 NOT ADOPTED**(FXR-KB-1, CRON-14)。(g) 读 `~/regime_dash/REGIME_DASH.md` 的席位 / FTRIM 名单 / 旗标 —— 属新增读源, 待裁; **若采纳, 收据须取自追加式 `~/regime_dash/regime_dash.jsonl` 按 `anchor_utc`, 不取滚动的 .md**(DEV-14)。",
+ "revised_parabolic_prompt": "**结构 = 在役 cron 同构: 用户文本逐字 + 下面这一块「lead 更正附注」。**\n\n—— lead 更正附注(aud-kb CRON-11 / CRON-12; 只读研究, 实盘零接触, 不调 API)——\n\n**① 提交必须带显式 pathspec(CRON-11)**: 用户文本的「然后 git add/commit(无新增则不提交)」在一个多代理并发暂存的仓库里会把别人的暂存改动扫进一次 `parabolic_onset_forward` 提交。改为: 仅在有新增时 `git -C /Users/haosiyu/Desktop/quant_research add -- multi_asset/exports/live/parabolic_onset_forward/events.jsonl multi_asset/exports/live/parabolic_onset_forward/run_log.jsonl`, 然后 `git -C … commit -m \"parabolic_onset_forward: 每日追加 <UTC 日期>\" -- <同两个路径>`; 提交后 `git -C … show --name-only --format= HEAD` 核**只含这两个文件**, 否则报告不修; git 锁被占用则本日不提交并报告。**不得裸 `commit`, 不得静默 git stderr。**\n\n**② 前向值的口径标注(CRON-12 / DEV-08)**: 本日志的 onset 与前向收益取自生产者 5m 缓存 `ret5` 通道(**float16, 硬裁 ±0.300048828125**, E-0908-B 同族), 一切读数标「**裁剪缓存口径, 尾部为下界**」。若本批新增事件的 onset 或前向窗内出现 |ret5| 顶到界的饱和格, 报其事件数(装置未输出则报「未测」)。**规则(r18)**: 任何装置不得从缓存 `ret5` 重算收益; 记账正典是未裁剪的 `meta_newprod_v4` y4 = Π(1+r)−1。\n\n**③ 复判门: 原句逐字保留, 口径警告附在其后(CRON-12; lead 2026-09-16 裁定的形式要求 —— **不替换**, 只追加)**: 用户文本的「当 P 层 θ8 已填事件 ≥ 200 且距 2026-09-06 ≥ 14 天时, 向用户报『可复判』」**照原样报**, 紧接着**必须**附上: 「**但**前向值取自裁剪 ±0.30 的 float16 缓存口径(E-0908-B 同族), **尾部为下界**; 复判前须先按记账口径(未裁剪原始收盘价)重算 onset 与前向收益, 或预注册该口径偏差的处理」。读者先看到原判词, 再看到警告。复判仍按 `PREREG_crash_continuation_parabolic_stratum_2026-09-06` §2 六条另起。\n\n**④ 盲态不变**: 累计读数**只报计数**(θ8 P 层已填前向事件数 / 距 200 门), **不看均值、不比 P 与 Q、不做 CI、不判**(门未到按设计保持盲态; r11_verdict §「唯一还活着、但门没开的 alpha 线索」)。运行失败(rc≠0 或断言)**只报不修**。",
  "devices_answers": [
   "**Q2(a) Verdict labels generated purely by significance, without an economic equivalence band** (current or still quoted):",
   "- `uplift_r2_2026-09-13/T4/devices/t4_judge.py` NOT MATERIAL (DEV-04, KB-41/KB-48; K2 F01).",

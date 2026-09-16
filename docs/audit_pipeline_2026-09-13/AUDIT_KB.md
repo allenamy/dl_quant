@@ -1,4 +1,4 @@
-> **创建:** 2026-09-16T04:08:45Z | **Session:** aud-kb (team audit, read-only) | **状态:** 审计登记(只读; 不改任何源文件与记忆; 更正由 lead 复核后应用) | **作废条件:** 被登记的源文件或记忆条目改动后对应行需复核; 新收据推翻本登记的任一 superseding 证据
+> **创建:** 2026-09-16T04:15:16Z | **Session:** aud-kb (team audit, read-only) | **状态:** 审计登记(只读; 不改任何源文件与记忆; 更正由 lead 复核后应用) | **作废条件:** 被登记的源文件或记忆条目改动后对应行需复核; 新收据推翻本登记的任一 superseding 证据
 
 # AUDIT_KB · 评估装置与知识库陈旧结论审计(2026-09-13)
 
@@ -12,13 +12,13 @@
 **A register-level receipt repair (DEV-14).** Ten rows cited `~/regime_dash/REGIME_DASH.md` for the masked seat. That file is rewritten every anchor, so the quoted line was gone by assembly time. The same reading is re-verifiable in the append-only `~/regime_dash/regime_dash.jsonl`: **2026-09-13T12:00Z king 0.3821 / fund 0.6179** (= the quoted 0.382/0.618), and **2026-09-16T00:00Z king 0.3780 / fund 0.6220**. All ten receipts are repointed. The rule stands on its own: a rolling file is not a receipt.
 **A caliber item on every battery count (KB-73).** 「逐套件 N/M」 receipts are comparable only under one interpreter. The runner pins `PY="${ACCEPT_PY:-/usr/bin/python3}"` (3.9.6, the only one with torch) against a bare `python3` that resolves to 3.14.4 with no torch — but the pin is an **overridable default**, the suite certifying it checks only that the *string* appears in the source, and **0 of 38,177 artefacts in `state/acceptance/` record which interpreter ran**. Before 2026-07-27 the two entry points disagreed, and the bare one manufactured two false 「known failures」. Rows KB-12, KB-13, KB-35, M3-35 and M5-02 cite such counts and now carry the caveat.
 
-**Rows: 307.** Status: DOC_STALE 277 · OPEN_NOT_MEASURED 18 · PENDING_USER_DECISION 5 · VERIFIED_CURRENT 7. Severity: P0 3 · P1 61 · P2 149 · P3 94.
+**Rows: 312.** Status: DOC_STALE 279 · OPEN_NOT_MEASURED 18 · PENDING_USER_DECISION 5 · VERIFIED_CURRENT 10. Severity: P0 3 · P1 63 · P2 151 · P3 95.
 
 | area | rows | P0 | P1 | P2 | P3 |
 |---|---|---|---|---|---|
-| Core knowledge-base documents | 74 | 1 | 22 | 37 | 14 |
+| Core knowledge-base documents | 76 | 1 | 22 | 38 | 15 |
 | Memory notes (MEMORY.md and linked notes) | 205 | 1 | 38 | 96 | 70 |
-| Evaluation devices | 14 | 0 | 1 | 9 | 4 |
+| Evaluation devices | 17 | 0 | 3 | 10 | 4 |
 | Per-anchor deep-check template | 14 | 1 | 0 | 7 | 6 |
 
 ### Top 18 (severity first, then blast radius)
@@ -52,7 +52,7 @@
 - **Proposed correction** is exact text in the source's language, to insert or to replace the quoted span; the lead applies it after review. Where a row says INFERRED, the runtime behaviour was inferred from configuration and receipts, and nothing was executed.
 - Every quote was re-located by exact substring against the file on disk when this register was assembled, so line numbers are current as of then. The lead is editing memory notes concurrently, so some rows may already be partly applied.
 
-## §2 Core knowledge-base documents (74 rows)
+## §2 Core knowledge-base documents (76 rows)
 
 Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repeated across CLAUDE.md, STATE.md, MILESTONE, CANDIDATE and CHECKLIST. Each file gets its own row because the replacement text differs per file.
 
@@ -118,6 +118,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 | KB-73 | P2 | OPEN_NOT_MEASURED | reporting, future_eval | `CLAUDE.md:46` | \| 部署/回滚/电池 \| `~/dl_quant_live/ops/safe_commit.sh` + `run_acceptance.sh` \| |
 | KB-74 | P2 | DOC_STALE | future_retrain, reporting | `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:311` | \| **TRN-28** \| `pod_f10_np_export.py` 在**自己的 V1 门判词之前**就写出可部署 npz |
 | KB-75 | P2 | DOC_STALE | reporting, future_eval | `docs/audit_pipeline_2026-09-13/AUDIT_EXEC.md:88` | \| LED-01 \| ledger / fills.jsonl \| fills.jsonl holds every trade exactly twice; in-repo readers collapse the copies, a naive reader double co |
+| KB-76 | P2 | DOC_STALE | future_eval, future_retrain | `docs/fixprogram_2026-09-13/FX_DATA/FACT_TABLE_DATA.md:129` | whose anchor state is **NODATA** (no 5m rows in the window) yet which carries `f_fund_now` = **−205.7 bps** 8h-equivalent on the panel row |
 | KB-03 | P3 | DOC_STALE | reporting | `CLAUDE.md:14` | N+23 读取交易 |
 | KB-11 | P3 | DOC_STALE | reporting | `STATE.md:142` | N+23 读并交易 |
 | KB-12 | P3 | DOC_STALE | reporting | `STATE.md:149` | `~/dl_quant_live/ops/safe_commit.sh` + 电池 123/123 |
@@ -132,6 +133,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 | KB-58 | P3 | DOC_STALE | reporting | `STATE.md:226` | @2× 2024→26 算术/CAGR |
 | KB-62 | P3 | DOC_STALE | live_trading, reporting | `docs/ERROR_LEDGER_2026-08-20.md:266` | ③**修复项(待用户字)**: 生产者栈 launchd 化(RunAtLoad, shadow.lock 防双跑), 消灭"重启即断链"类。 |
 | KB-71 | P3 | VERIFIED_CURRENT | reporting | `CLAUDE.md:14` | **N+24:00 读取交易** |
+| KB-77 | P3 | DOC_STALE | reporting | `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:507` | **G-1(整类设计否决)** |
 
 ### KB-09 · P0 · DOC_STALE
 - **Source:** `STATE.md:146 (text before lead commit b63a0144)`
@@ -791,7 +793,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
   - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:217` — 「T6 的 **W_FULL 2022-01-31 起 10,038 锚 = 1.1062**」
 - **A reader could wrongly conclude:** Two names for one anchor set: a reader either rejects the W_FULL Sharpe as out-of-caliber, or assumes W_FULL is a fourth window and mixes it with the 9,139-anchor variant.
 - **Affects:** future_eval, reporting · **Severity reason:** The canonical table names the 10,038-anchor axis `W_TAIL` and reserves it for maxDD/worst-day/halt numbers only, but T6 and the parity prereg call the identical set `W_FULL` and publish a Sharpe on it (1.1062); a reader obeying this rule literally would treat a published W_FULL Sharpe as a caliber violation rather than as the third legitimate window.
-- **Proposed correction (exact text):** [在第 5 条末尾追加] ⚠ **2026-09-16 补注(FXR-DOC-3)**: 同一个 10,038 锚集合在本纲领内有**两个名字** —— 本表叫 `W_TAIL`, T6 与 `PREREG_producer_parity_phase2_oos_2026-09-12.md` §258 叫 `W_FULL`(定义逐字相同: 不丢暖机, 上界 2026-08-30 20Z)。**「只用于 maxDD/最差日/停机」这条限制属本表的使用约定, 不是该窗不可报 Sharpe** —— T6 GATE-0 在该窗上发表 **SR 1.1062**(g 0.5608), 与 W_ALPHA 的 1.2912 并列且**不可互换**。第四个在流通的数是 9,139 锚 / 1.2947(多读 08-31 00Z 一锚)。引用任一 Sharpe 必须同时写窗名、锚数与成本面。
+- **Proposed correction (exact text):** [§5 原字节保留, 在第 5 条末尾追加] ⚠ **2026-09-16 绑定(FXR-DOC-3; lead 裁定措辞)**: ① **`W_FULL`(T6 与 `PREREG_producer_parity_phase2_oos_2026-09-12.md` §258)与 `W_TAIL`(本表第 5 条)是同一个 10,038 锚集合的两个名字** —— 定义逐字相同(不丢暖启锚, 天花板 2026-08-30 20Z)。**规范名 = `W_FULL`, `W_TAIL` 为其别名**(不是反过来), 因为 T6 的 GATE-0 已经在该窗上发布了 Sharpe。② 本条「仅用于 maxDD / 最差日 / 停机数」是**本表自身的使用约定, 不是对在该窗上报告 Sharpe 的禁令**。T6 GATE-0 发布的 **W_FULL g 0.5607541 · SR 1.1061630(published 1.1062)是合法的第三个窗读数**, 条件是**同时写出窗名、锚数与成本面**。③ **四个在流通的数, 各自绑定, 互不可混用**: **W_ALPHA 9,138 锚 SR 1.29122344 CI95 [0.3207, 2.2822]**(探索性 2,000 次 UTC 日块自举, 保留日内不保留跨日, **非选择校正区间**; 拟合成本面 `costb_PWR_G230k.json` sha 295b4e7b…)· **W_FULL / W_TAIL 10,038 锚 SR 1.1062**(g 0.5608)· **9,139 锚 SR 1.2947**(多含 08-31 00Z 一锚)· **n=9018 SR 1.4150**(已被取代, 且**正是本表 §0-3 点名的那个陷阱** —— 拟合成本面在该窗读 0.689021 / 1.4150, 与在役纯费成本面在 W_ALPHA 上的 0.688853 / 1.4025 数值几乎相同但**是两回事**)。④ 引用任一夏普**必须写窗名 + 锚数 + 成本面**, 缺一即作废。
 - **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact
 
 ### KB-68 · P2 · DOC_STALE
@@ -852,6 +854,18 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **A reader could wrongly conclude:** A bare citation of 「LED-01」 or 「DOC-01」 resolves to whichever register the reader opens first: the fills.jsonl double-write (P3, VERIFIED_IMMATERIAL, owner FX-EXEC2) or the daily_nav fee-column reader defect (P3, owner K4); 「DOC-01」 is either the executor facts in STATE/CLAUDE.md or the data-lineage facts in the caliber documents. The new rule in §17.5 prevents future collisions but does not resolve these two, which predate it.
 - **Affects:** reporting, future_eval · **Severity reason:** Two of the four audit registers themselves double-book two ids for different findings — AUDIT_EXEC and AUDIT_DATA each define LED-01 and DOC-01 — and the fix programme routes them to different owners, disambiguating only by an optional parenthetical (§86 bare 「LED-01」 → FX-EXEC2 = the EXEC item; §126 「LED-01(研究工具打印错费列)」 → K4 = the DATA item).
 - **Proposed correction (exact text):** [两份登记的原编号字节保留, **不建议重编已发布的审计登记**; 改为在引用侧加限定] ⚠ **2026-09-16 补注(aud-kb KB-75)**: **`LED-01` 与 `DOC-01` 在 `AUDIT_EXEC`(842bbffa)与 `AUDIT_DATA`(bb8a2806)中各有一个不同的发现**, 且两者**先于** §17.5 的新规矩存在, 不是本纲领开的号。四条原主: `EXEC:LED-01` = fills.jsonl 每笔成交写两次(P3, VERIFIED_IMMATERIAL)· `DATA:LED-01` = 研究工具读 daily_nav 的 COMMISSION/REALIZED_PNL 在 07-29..09-12 打印错费列(P3)· `EXEC:DOC-01` = STATE §1 与 CLAUDE.md 的执行器事实陈旧(P3)· `DATA:DOC-01` = 口径文档与记忆条目缺漏/写错数据谱系事实(P2)。**处置建议(不重编已发布登记, 因为它们是另两位审计者的已提交产物, 重编会让其全部既有引用悬空)**: 引用时一律带登记前缀 —— **`EXEC:LED-01` / `DATA:LED-01` / `EXEC:DOC-01` / `DATA:DOC-01`**; 纲领 §3.1 L86 的裸 `LED-01` 应读作 `EXEC:LED-01`, §4.3 L126 的两项应读作 `DATA:DOC-01` 与 `DATA:LED-01`, §3.1 L92 的 `DOC-01(STATE/CLAUDE.md 侧)` 应读作 `EXEC:DOC-01`。**§17.5 的新规矩建议补一句**: 查重范围包含四份审计**彼此之间**, 不只是纲领对审计。
+- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact
+
+### KB-76 · P2 · DOC_STALE
+- **Source:** `docs/fixprogram_2026-09-13/FX_DATA/FACT_TABLE_DATA.md:129`
+- **Quote:** 「whose anchor state is **NODATA** (no 5m rows in the window) yet which carries `f_fund_now` = **−205.7 bps** 8h-equivalent on the panel row」
+- **Superseding evidence:**
+  - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:518` — 「**−205.7 bps 是真实的场所费率**: zip 申报 `iv 8.0`, 两侧 8 小时间距干净 ⇒ **「间距被标错」这一假设对该格被证伪**」
+  - `multi_asset/exports/research/uplift_r3_2026-09-13/L4b/RESULT_L4b.md:47` — 「fund_aug keeps recording funding for some stopped perps (MDT 1,197 events after its last trade; AMB 23; LINA 5; BTTC 3; BNX 3), so the no-funding exit never fired.」
+  - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/RESULT_r18_foundation_2026-09-12.md:9` — 「3 newly ineligible = BNXUSDT at its first anchor after a data gap」
+- **A reader could wrongly conclude:** A reader takes −205.7 bps as an example of the x0910 / FND interval defect and either counts it toward that defect's size or expects the FND fix to remove it. It is a tradability / membership problem: the name passes the member rule on a NODATA anchor because its qvk is finite.
+- **Affects:** future_eval, future_retrain · **Severity reason:** The F6 row presents the BNXUSDT −205.7 bps cell in a context that invites reading it as a funding-interval defect (it closes 「relevant to the FND items」), but FX-PROD checked the zip: it declares `iv 8.0` with clean 8-hour spacing on both sides, so the mislabelled-interval hypothesis is falsified for this cell.
+- **Proposed correction (exact text):** [F6 行原字节保留, 在其后插入] > ⚠ **更正 KB-76(2026-09-16, FX-PROD 核; FIXPROGRAM §20.3)**: **−205.7 bps 是真实的场所费率, 不是间隔缺陷** —— zip 申报 `iv 8.0`, 该格两侧 8 小时间距干净 ⇒ **「间距被标错」这一假设对该格被证伪**, 本行末句「relevant to the FND items」**不适用于这个数**, **不得把 BNXUSDT 这个值当作资金费间隔缺陷的例子**。**F6 的另一半仍然成立**: 该锚 `NODATA`(窗内无 5m 行)而 `qvk` 有限故通过成员筛, 且审计的两个旗标都看不见它(`Z24` 要求窗内 `ret5` 有限; `DEAD` 要求该名此后再不交易, 而 BNXUSDT 交易至 2025-03-17)⇒ **只有可交易性旗标抓得住这一类**。即本条是**可交易性 / 成员资格**问题(TRD 族), 不是 FND 族。旁证同向: 该名在 `L4b` 里正是「合约停交易后 fund_aug 仍记 3 次资金费」的名单之一, 在 `r18` 里是「数据缺口后首锚资格改变」的 3 格之一。
 - **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact
 
 ### KB-03 · P3 · DOC_STALE
@@ -1011,6 +1025,17 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **Affects:** reporting · **Severity reason:** Recorded so the register does not re-propose an already-applied correction: KB-03 (CLAUDE.md) and KB-11 (STATE.md) proposed N+23 → N+24 and the lead applied both on 2026-09-16, keeping the original wording visible in the parenthetical.
 - **Proposed correction (exact text):** (无需改动 —— KB-03 / KB-11 已于 2026-09-16 由 lead 应用, 原字节以「本行原写 N+23, 09-16 更正」形式保留; 受据 AUDIT_PROD PROD-33)
 - **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact
+
+### KB-77 · P3 · DOC_STALE
+- **Source:** `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:507`
+- **Quote:** 「**G-1(整类设计否决)**」
+- **Superseding evidence:**
+  - `docs/PREREG_combo_chain_residual_attribution_2026-09-13.md:6` — 「G2-C」
+  - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:40` — 「G2-C-BIND」
+- **A reader could wrongly conclude:** A reader or a grep for 「G-2」 picks up the P2 replay gate `G2-*` results, or a citation of 「G2」 is taken for the new general item; the two families mean entirely different things (a coding rule vs a replay parity gate).
+- **Affects:** reporting · **Severity reason:** `G-1` / `G-2` / `G-3` are one hyphen away from the P2 replay-certification gate family `G2-A/B/C/D/E/S` and `G-P2`, which together appear 200+ times across the docs; `G-2` and `G2-B` will be conflated in prose and in grep.
+- **Proposed correction (exact text):** [原编号字节保留; 建议, 归 lead] ⚠ **命名建议 KB-77(2026-09-16)**: `G-1 / G-2 / G-3` 与 P2 回放认证的门族 **`G2-A/B/C/D/E/S` 与 `G-P2`** 只差一个连字符, 而后者在 docs 下出现 200+ 次(G2-C 77 · G2-B 37 · G-P2 30 · G2-A 29 · G2-D 17 · G2-C-BIND 15 · G2-E 12 · G2-S 11)。**建议把通用条目改前缀为 `GEN-1 / GEN-2 / GEN-3`**(原号就地保留标 SUPERSEDED-ID, 同 §17.5 规矩), 理由与 `PROD-36b` 后缀那条相同: **编号的可辨识性是引用可解析性的前提**。不是撞号, 是可混淆 —— 但两族语义毫无关系(编码规则 vs 回放平价门), 混淆代价与撞号相同。
+- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact (line moved 521->507)
 
 ## §3 Memory notes (MEMORY.md and linked notes) (205 rows)
 
@@ -1203,8 +1228,8 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 | M4-24 | P3 | DOC_STALE | reporting | `memory/sharpe5_has_no_clean_precedent.md:37` | **It does NOT argue against the model swap.** Live runs *that same dirty generation* |
 | M4-25 | P3 | DOC_STALE | future_eval | `memory/hybrid_forest_admission.md:13` | **证据链**(可复现, 脚本 jpline w3lane/jp_hybrid.py + 特征缓存 hyb_fea47.npy) |
 | M4-26 | P3 | DOC_STALE | reporting | `memory/metric_discipline_spearman_primary.md:13` | - CLAUDE.md "Metric Discipline" section mirrors it. |
-| M4-30 | P3 | DOC_STALE | future_retrain, reporting | `memory/MEMORY.md:107` | - V4/V5/单资产时代(04..05): `v4_*` `v5*` `single_asset_*` `y600_*`; 结论已入 07-06 终版文档 |
-| M4-31 | P3 | DOC_STALE | reporting | `memory/MEMORY.md:103` | [残差第四腿关](wide_book_carry_correction.md) |
+| M4-30 | P3 | DOC_STALE | future_retrain, reporting | `memory/MEMORY.md:108` | - V4/V5/单资产时代(04..05): `v4_*` `v5*` `single_asset_*` `y600_*`; 结论已入 07-06 终版文档 |
+| M4-31 | P3 | DOC_STALE | reporting | `memory/MEMORY.md:104` | [残差第四腿关](wide_book_carry_correction.md) |
 | M4-36 | P3 | DOC_STALE | future_eval | `memory/dl_ceiling_solo_rho_catch22.md:18` | ③ 15 臂判官与预测件在 pod /workspace(exports_train/arm*_pred_*.npy), 装置与结论同寿命 |
 | M4-40 | P3 | DOC_STALE | future_eval, reporting | `memory/residual_regime_survival_peaks_at_y12.md:40 (+1 more)` | **为什么重要**: 实盘坏掉的量**就是残差在坏窗里的增值**(STATE §0-octies: 残差全期 +0.091 / 最近 6 锚 −0.008, 而风格 +0.085 还活着)。**在役目标 y4 恰好是残差最脆的那个视界。** |
 | M4-41 | P3 | DOC_STALE | future_eval | `memory/substratum_noise_needs_own_calibration.md:35` | 视界表(y12 vs y4 = +0.0060, 8.6 SE)不受影响。 |
@@ -3635,7 +3660,7 @@ under `~/Desktop`.」
 - **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact
 
 ### M4-30 · P3 · DOC_STALE
-- **Source:** `memory/MEMORY.md:107`
+- **Source:** `memory/MEMORY.md:108`
 - **Quote:** 「- V4/V5/单资产时代(04..05): `v4_*` `v5*` `single_asset_*` `y600_*`; 结论已入 07-06 终版文档」
 - **Superseding evidence:**
   - `memory/MEMORY.md:22` — 「(v4_monthly_chain_driver_2026_09_12.md)」
@@ -3643,10 +3668,10 @@ under `~/Desktop`.」
 - **A reader could wrongly conclude:** A reader skips v4_chain_retrain_2026_09_09 / v4_monthly_chain_driver_2026_09_12 as closed single-asset history.
 - **Affects:** future_retrain, reporting · **Severity reason:** The closed-era glob `v4_*` also matches the current September v4-caliber chain notes, so the index labels live retrain notes as a concluded single-asset era.
 - **Proposed correction (exact text):** - V4/V5/单资产时代(04..05): `v4_3fold_*` `v4_design_reference` `v4_overnight_*` `v4_y300_*` `v5*` `single_asset_*` `y600_*`; 结论已入 07-06 终版文档(⚠ `v4_chain_retrain_2026_09_09` / `v4_monthly_chain_driver_2026_09_12` 是 9 月 v4 口径链, 属在役, 不在此列)
-- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact (line moved 96->107)
+- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact (line moved 96->108)
 
 ### M4-31 · P3 · DOC_STALE
-- **Source:** `memory/MEMORY.md:103`
+- **Source:** `memory/MEMORY.md:104`
 - **Quote:** 「[残差第四腿关](wide_book_carry_correction.md)」
 - **Superseding evidence:**
   - `memory/wide_book_carry_correction.md:3` — 「carry记账/2 bug隐藏0.53bps/锚资金费净支付」
@@ -3654,7 +3679,7 @@ under `~/Desktop`.」
 - **A reader could wrongly conclude:** A reader looking for the residual-fourth-leg receipt lands on the carry note and either cites it wrongly or concludes the DNR has no receipt.
 - **Affects:** reporting · **Severity reason:** The DNR index link text names a closure (residual fourth leg) that the linked note does not contain; the note is the carry-accounting correction.
 - **Proposed correction (exact text):** [carry记账/2 修正(宽书头条 3.59→2.42, 已被 v4 1.29 取代)](wide_book_carry_correction.md) · 残差第四腿关: 受据见 MILESTONE_2026-08-26 §2 / DESIGN_optimization_path_2026-08-21 L153(需补独立记忆条)
-- **Confidence:** INFERRED (link-text/content mismatch verified; the residual-fourth-leg receipt itself was not opened) · **Quote re-verified at assembly:** exact (line moved 92->103)
+- **Confidence:** INFERRED (link-text/content mismatch verified; the residual-fourth-leg receipt itself was not opened) · **Quote re-verified at assembly:** exact (line moved 92->104)
 
 ### M4-36 · P3 · DOC_STALE
 - **Source:** `memory/dl_ceiling_solo_rho_catch22.md:18`
@@ -3868,13 +3893,15 @@ under `~/Desktop`.」
 - **Proposed correction (exact text):** description 改为: "08-21 在役书 S1 旧仪器: 净额对山寨−BTC 价差 β −0.249 / r −0.767, 暴露≈收益 78%; ⚠ A0 v4(在役 combo 形态)同期 corr +0.05、逐折 β 为正(T8 §6.1), 该结论不迁移, 两仪器待对账"; 删除 L17 重复的英文警示段(与 L14 同义)
 - **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
 
-## §4 Evaluation devices (14 rows)
+## §4 Evaluation devices (17 rows)
 
 Devices in current use or whose labels are still quoted in decisions. The FX-EVAL K2 fact table (`docs/fixprogram_2026-09-13/FX_EVAL/FACT_TABLE_K2.md`, F01–F26) already enumerates the no-difference label family with a frozen δ table. Rows here cover the items K2 does not own or that bear on the answers below.
 
 | id | sev | status | affects | source | claim (abridged) |
 |---|---|---|---|---|---|
 | DEV-01 | P1 | PENDING_USER_DECISION | future_retrain, future_eval | `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py:346` |             v = "(A) PROMOTE" if all(x["delta"] > 0 and x["ci95"][0] > 0 for x in r) else ("(B) REJECT" if all(x["ci95"][1] < 0 for x in r)  |
+| DEV-15 | P1 | VERIFIED_CURRENT | future_eval, live_trading | `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:507` | **G-1(整类设计否决)**: `ShadowState.save()` 写**固定键集** ⇒ 任何写进 `aux.json` 的额外键都会在**下一个锚**被丢掉 |
+| DEV-17 | P1 | VERIFIED_CURRENT | live_trading, future_eval | `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:509` | **G-3(新)**: **凡失败模式是返回码的调度, 该返回码必须被读取并写进记录。** |
 | DEV-02 | P2 | DOC_STALE | reporting, future_retrain | `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py:298` | print("\n== LEVELS (bps/anchor per gross; annual % per gross = mean*2190/1e4; at 2.0x gross multiply by 2) ==") |
 | DEV-03 | P2 | DOC_STALE | future_retrain, future_eval | `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/run_v4_arms.sh:15` | W3FIX=0.21,0,0.79 |
 | DEV-04 | P2 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/T4/devices/t4_judge.py:150` | verdict = "MATERIAL" if (condA or condB) else "NOT MATERIAL (at this resolution)" |
@@ -3884,6 +3911,7 @@ Devices in current use or whose labels are still quoted in decisions. The FX-EVA
 | DEV-09 | P2 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:70` | **How to read the N columns:** N_eff is AMENDMENT 5's primary and says the 125 members are ≈1.6 independent trials |
 | DEV-11 | P2 | OPEN_NOT_MEASURED | future_eval | `multi_asset/exports/research/parity_replay_2026-09-12/phase2/devices/p2_g2c_judge.py:41 (+2 more)` | combo_ok |
 | DEV-14 | P2 | DOC_STALE | reporting, future_eval | `/Users/haosiyu/regime_dash/REGIME_DASH.md:1` | # REGIME DASH(只读)— 最新锚 |
+| DEV-16 | P2 | VERIFIED_CURRENT | future_eval | `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:508` | **G-2(检查表规则)**: **返回 dict 的函数必须返回恒定键集**, 源缺席处给 `None`。 |
 | DEV-07 | P3 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/devices/t5b_q1.py:248` | reading=("FROZEN-RESIDUAL-MATERIAL" if x.mean() >= 0.05 else "NOT MATERIAL") |
 | DEV-10 | P3 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:22` | S2 不开; 无任何书行为提案。 |
 | DEV-12 | P3 | DOC_STALE | reporting, live_trading | `docs/CRON_TEMPLATES_2026-09-04.md:16 (+1 more)` | guard_twin AGREE |
@@ -3902,6 +3930,28 @@ Devices in current use or whose labels are still quoted in decisions. The FX-EVA
 - **Affects:** future_retrain, future_eval · **Severity reason:** The October chain's judge stage (sha c2a81c48) promotes on significance in one 17-month window; there is no economic floor, no worst-year or regime condition, and yearly levels are print-only.
 - **Proposed correction (exact text):** 判官 (A) 追加两个条件(预注册修订, 用户裁定): ① 双种子 CI 下界 > δ(K2 D1 = 0.05 bps/锚/gross, 非 0); ② 全周期逐年(2023–2026)无一年 Δ 的 CI 上界 < −δ, 且 2023(弱年)点估计 ≥ −δ; 冻结窗之外的扩展/逐年读数写入 verdict 旁并在 (A) 时强制打印
 - **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
+
+### DEV-15 · P1 · VERIFIED_CURRENT
+- **Source:** `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:507`
+- **Quote:** 「**G-1(整类设计否决)**: `ShadowState.save()` 写**固定键集** ⇒ 任何写进 `aux.json` 的额外键都会在**下一个锚**被丢掉」
+- **Superseding evidence:**
+  - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:507` — 「**对任何未来的迁移工具都适用**, 不只 FXR-PROD-1。**由读 `save()` 得到, 不由行为推断。**」
+  - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:205` — 「`setdefault` 钉住旧标签、当前输入的标签冲突**只收集不拒绝**」
+- **A reader could wrongly conclude:** A later session designs an idempotency marker, a schema-version field or an applied-fixes ledger inside producer state, tests it within one anchor where it appears to work, and ships a migration whose re-run protection silently evaporates at the next anchor.
+- **Affects:** future_eval, live_trading · **Severity reason:** This vetoes a whole class of designs, not one tool: because `ShadowState.save()` writes a fixed key set, nothing written into `aux.json` survives the next anchor, so no marker, version field or applied-corrections list can record inside producer state which version that state has absorbed. Any future migration tool that relies on such a record is unsound before it is written.
+- **Proposed correction (exact text):** (登记为通用条目, 无源文件需改 —— 受据 FX-PROD 6684895e, 纲领 §20.1-1) **G-1 = 整类设计否决**: 「把『本状态已吸收到哪一版 / 哪些行』记录在生产者状态内部」这一整类设计**都不成立** —— 不是标记, 不是版本字段, 不是已应用修正清单。机制: `ShadowState.save()` 写固定键集, 额外键在下一个锚被丢掉。**适用范围 = 任何未来的迁移工具**, 不限 FXR-PROD-1。**取证方式本身是本条的一半**: 该结论**由读 `save()` 源码得到, 不由行为推断** —— 单锚内观察会显示标记「有效」, 正是 [[defect_with_no_behavioural_signature]] 的形状。⇒ 幂等性必须记在**状态之外**(独立工件 + sha), 或由**输入的内容哈希**推出。
+- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact (line moved 521->507)
+
+### DEV-17 · P1 · VERIFIED_CURRENT
+- **Source:** `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:509`
+- **Quote:** 「**G-3(新)**: **凡失败模式是返回码的调度, 该返回码必须被读取并写进记录。**」
+- **Superseding evidence:**
+  - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:509` — 「Python: **`subprocess.run` 在非零退出时不抛异常** ⇒ 不读 `returncode` 等于没发」
+  - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:509` — 「FX-PROD 今天第三次撞到同一形态(PROD-46 的页报调度), **是从测试 stderr 看到子进程失败而格子仍绿才发现的**」
+- **A reader could wrongly conclude:** An alert path is certified green by a test that proves the call was made, not that it succeeded — 「装置绿 ≠ 被测动作发生」. The same shape hides a failed page, a failed commit and a failed backfill.
+- **Affects:** live_trading, future_eval · **Severity reason:** Third recurrence of one shape, and the failing dispatch was a HIGH page: `subprocess.run` does not raise on a non-zero exit, so an unread `returncode` means the alert was never delivered while the test cell stayed green; it was caught only because a human read the test's stderr.
+- **Proposed correction (exact text):** (登记为通用条目, 受据 FX-PROD 6684895e, 纲领 §20.1-3) **G-3**: **凡失败模式是返回码的调度, 该返回码必须被读取并写进记录。** shell: `rc=$?` 不得与被测命令之间隔管道或 `tail`(有管道用 `PIPESTATUS` / zsh `pipestatus`); Python: **`subprocess.run` 非零退出不抛异常** ⇒ **不读 `returncode` 等于没发**。FX-PROD 2026-09-16 第三次撞到同一形态(PROD-46 的页报调度), **发现方式是从测试 stderr 看到子进程失败而格子仍绿** ⇒ 本条的真正教训是「**装置绿 ≠ 被测动作发生**」。同族: [[background_completion_is_not_the_test_result]] · [[defect_with_no_behavioural_signature]]。**给 K5 的推论**: 深查模板里凡「发页报 / 提交 / 回填」一类动作, 报的必须是**该动作的返回码**, 不是「已调用」。
+- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact (line moved 523->509)
 
 ### DEV-02 · P2 · DOC_STALE
 - **Source:** `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py:298`
@@ -4002,6 +4052,17 @@ Devices in current use or whose labels are still quoted in decisions. The FX-EVA
 - **Affects:** reporting, future_eval · **Severity reason:** Ten rows of this register (M1-10, M1-11, M2-04, M2-11, M2-12, M2-15, M2-22, M2-29, M2-30, M5-05) cite `~/regime_dash/REGIME_DASH.md:16` 「席位(掩码后) king 0.382 / fund 0.618」 as their receipt, but that file is regenerated every anchor by the launchd collector, so the quoted line was gone the next anchor and none of those receipts could be re-located at assembly time.
 - **Proposed correction (exact text):** [登记规则, 适用于本登记全部引用席位/regime 读数的行] **滚动文件不得作收据。** `~/regime_dash/REGIME_DASH.md` 每锚被采集器 `regime_dash.py` 整份重写(launchd, 只保留最新锚)⇒ 引用它等于引用一个会消失的字节。可复核的同源收据是**追加式** `~/regime_dash/regime_dash.jsonl`, 按 `anchor_utc` 取行, 字段 `w3_masked_king` / `w3_masked_fund`。逐锚核实: **2026-09-13T12:00Z king 0.3821 / fund 0.6179**(= 本登记各行引用的 0.382 / 0.618, 成立)· 2026-09-13T00Z 0.3692 · 04Z 0.3819 · 08Z 0.3782 · 16Z 0.3871 · 20Z 0.3837 · **2026-09-16T00:00Z king 0.3780 / fund 0.6220**。**⇒ 席位逐锚滚动, 任何构成/席位引用必须带锚时刻**; 本登记 10 行的收据路径一律改指 `regime_dash.jsonl` + `anchor_utc`。注意该日志现只覆盖 **2026-09-02T08:00Z → 2026-09-16T00:00Z(83 行)**, 更早的席位读数在此不可复核。
 - **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact
+
+### DEV-16 · P2 · VERIFIED_CURRENT
+- **Source:** `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:508`
+- **Quote:** 「**G-2(检查表规则)**: **返回 dict 的函数必须返回恒定键集**, 源缺席处给 `None`。」
+- **Superseding evidence:**
+  - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:508` — 「短字典会把 `if key in d` 变成**对「该函数存在的意义」那一项检查的静默跳过**」
+  - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:508` — 「PROD-28 装置找 `MANIFEST` 而文件名是 `MANIFEST.json`(⇒ `bundle_mismatch=None`); `h_source_of()` 在 `target_blend` 缺席时返回短字典」
+- **A reader could wrongly conclude:** A green check is read as 'the property holds' when it means 'the key was not there, so nothing was checked' — the same family as 「字段缺了就跳过」.
+- **Affects:** future_eval · **Severity reason:** Two instances inside one hour of the same shape: a function returns a short dict when a source is absent, so every `if key in d` guard downstream skips exactly the check the function exists to perform, and the skip is silent.
+- **Proposed correction (exact text):** (登记为通用条目, 受据 FX-PROD 6684895e, 纲领 §20.1-2) **G-2 = 检查表规则**: **返回 dict 的函数必须返回恒定键集**, 源缺席处显式给 `None`, 由调用方区分「值为 None」与「键不存在」。短字典会把 `if key in d` 变成对**该函数存在的意义**那一项检查的**静默跳过**。两个实测实例(同一小时): PROD-28 装置找 `MANIFEST` 而实际文件名是 `MANIFEST.json` ⇒ `bundle_mismatch=None` 而无人察觉; `h_source_of()` 在 `target_blend` 缺席时返回短字典。同族: [[absent_key_means_skip_defect_family]]。
+- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact (line moved 522->508)
 
 ### DEV-07 · P3 · DOC_STALE
 - **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/devices/t5b_q1.py:248` · xref K2-F04, K2-F05, RELABEL_TABLE_K2 T5b
@@ -4293,7 +4354,9 @@ Template = `docs/CRON_TEMPLATES_2026-09-04.md` line 13. The live job 41df7caa wa
 
 **⑨ 部署状态(每次深查都要说)**: 本修复纲领**没有任何修复已部署**, 执行器运行树仍 `ef60f85`; 深查**只读**, 不动任何实盘文件、不改配置、不发信号给在役 PID。核 `git -C ~/dl_quant_live rev-parse --short HEAD` 并报, 与 origin/main 不一致时**照报不动作**。
 
-**⑩ 未获批准的增查提案(不在本 cron 内执行; 随复审包上交用户后才可加)**: (a) 反事实改写幅度改用近 42 锚 p5–p95 动态带、升级步长 +0.2pp→+0.5pp、带外连续 3 锚才升级(FXR-KB-1 判为新监控政策); (b) 补查 per_name_stop 的「已停名当锚 readback 是否归零」(W9 缺陷 08-20..09-12 未被看见); (c) 补查本 rid `orders.jsonl` 行数 > 0(E-0909-G); (d) 补查 `request_ledger` 四类不一致与 capacity_conflict / reduce-only 截量 UNKNOWN 事件数(E-0912-A 前兆); (e) 补查 `apiTradingStatus` 与 −4400 / −2027 计数(E-0910-A / E-0909-E); (f) 当日 `daily_nav.external_flow ≠ 0` 时标注日损守卫盲区; (g) 读 `~/regime_dash/REGIME_DASH.md` 的席位 / FTRIM 名单 / 旗标。**(b)–(f) 各自对应一个当前无人守的在役盲区, 建议优先批。**
+**⑩ 观察并报告(lead 2026-09-16 裁定: 五条只读观察项, 不改任何判据、不触发任何动作, 故不属「未经批准的新政策」)**: (b) `per_name_stop` **已停名当锚 readback 是否归零** —— 已停且持仓 ≠ 0 的名逐一报桶(flatten_only / add_blocked / reduced)(W9 缺陷 2026-08-20..09-12 无人看见); (c) 本 rid `orders.jsonl` **行数 > 0**(E-0909-G: 缺行触发过逐名门); (d) `request_ledger` 四类不一致标记与 **capacity_conflict / reduce-only 截量 UNKNOWN 事件数**(E-0912-A 前兆); (e) `apiTradingStatus` 与 **−4400 / −2027 计数**(E-0910-A 场所量化规则锁 / E-0909-E 上限截断); (f) 当日 `daily_nav.external_flow ≠ 0` 时**标注日损守卫盲区**(提醒勿划转)。**五条只报数与名单, 不判、不动作、不升级。**
+
+**⑪ 未获批准的提案(不在本 cron 内执行; 随复审包上交用户后才可加)**: (a) 反事实改写幅度改用近 42 锚 p5–p95 动态带; 升级步长 +0.2pp → +0.5pp; 带外连续 3 锚才升级 —— **三项都改的是判据, 属书/监控行为改动, 维持 NOT ADOPTED**(FXR-KB-1, CRON-14)。(g) 读 `~/regime_dash/REGIME_DASH.md` 的席位 / FTRIM 名单 / 旗标 —— 属新增读源, 待裁; **若采纳, 收据须取自追加式 `~/regime_dash/regime_dash.jsonl` 按 `anchor_utc`, 不取滚动的 .md**(DEV-14)。
 ```
 
 **Replacement prompt 2 — 抛物线起始前向日志 (exact; replaces live job 4a2f33e3 at re-creation; cron `52 14 * * *` local, recurring):**
@@ -4307,7 +4370,7 @@ Template = `docs/CRON_TEMPLATES_2026-09-04.md` line 13. The live job 41df7caa wa
 
 **② 前向值的口径标注(CRON-12 / DEV-08)**: 本日志的 onset 与前向收益取自生产者 5m 缓存 `ret5` 通道(**float16, 硬裁 ±0.300048828125**, E-0908-B 同族), 一切读数标「**裁剪缓存口径, 尾部为下界**」。若本批新增事件的 onset 或前向窗内出现 |ret5| 顶到界的饱和格, 报其事件数(装置未输出则报「未测」)。**规则(r18)**: 任何装置不得从缓存 `ret5` 重算收益; 记账正典是未裁剪的 `meta_newprod_v4` y4 = Π(1+r)−1。
 
-**③ 复判门的措辞更正(CRON-12)**: 用户文本的「当 P 层 θ8 已填事件 ≥ 200 且距 2026-09-06 ≥ 14 天时, 向用户报『可复判』」改为报: 「**计数已达复判门, 但前向值取自裁剪 ±0.30 的 float16 缓存口径**; 复判前须先按记账口径(未裁剪原始收盘价)重算 onset 与前向收益, 或预注册该口径偏差的处理」。复判仍按 `PREREG_crash_continuation_parabolic_stratum_2026-09-06` §2 六条另起。
+**③ 复判门: 原句逐字保留, 口径警告附在其后(CRON-12; lead 2026-09-16 裁定的形式要求 —— **不替换**, 只追加)**: 用户文本的「当 P 层 θ8 已填事件 ≥ 200 且距 2026-09-06 ≥ 14 天时, 向用户报『可复判』」**照原样报**, 紧接着**必须**附上: 「**但**前向值取自裁剪 ±0.30 的 float16 缓存口径(E-0908-B 同族), **尾部为下界**; 复判前须先按记账口径(未裁剪原始收盘价)重算 onset 与前向收益, 或预注册该口径偏差的处理」。读者先看到原判词, 再看到警告。复判仍按 `PREREG_crash_continuation_parabolic_stratum_2026-09-06` §2 六条另起。
 
 **④ 盲态不变**: 累计读数**只报计数**(θ8 P 层已填前向事件数 / 距 200 门), **不看均值、不比 P 与 Q、不做 CI、不判**(门未到按设计保持盲态; r11_verdict §「唯一还活着、但门没开的 alpha 线索」)。运行失败(rc≠0 或断言)**只报不修**。
 ```
@@ -4350,15 +4413,15 @@ Template = `docs/CRON_TEMPLATES_2026-09-04.md` line 13. The live job 41df7caa wa
 
 | file | sha256 at render |
 |---|---|
-| `CLAUDE.md` | `67ebd49480f715619e3e5ca4cdb55e91289c2b4b8f45b556d342c1b75ea50d9f` |
+| `CLAUDE.md` | `dcb478ec339e1f4f16ffb7c0616e521ff07e582a84f909346fb5e4d997222ea2` |
 | `STATE.md` | `2479f94b13584ff9d23c9713c24317ed30d5158924f113252b39208feecea05f` |
 | `docs/MILESTONE_2026-08-26.md` | `469d603bfc7d7fc462a19ae9423f2f22e57a59760c323f3a02281ba74bb0684b` |
 | `docs/CANDIDATE_wide_v2main_norev24_2026-08-26.md` | `da305570cfda0d733c4030003c6a1ff950df857fbd4ca674e9212d2b60905815` |
 | `docs/CHECKLIST_combo_switch_2026-08-26.md` | `ef6a84572f0c39a5cc96f9dc13a824cfa09710666641e081d2bda4161223f3e6` |
 | `docs/ERROR_LEDGER_2026-08-20.md` | `0406a634793268f47e0ae1b0d7653951a58ba29765b9d4266dc6d58b5b6be49c` |
 | `docs/CRON_TEMPLATES_2026-09-04.md` | `d5baee2a37449ec399b27503976b18481f5476905b847a3826c0121e0da5d5b2` |
-| `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md` | `389a00787010ab4a122dc1d7f4d9e21c399c6f790d497ebef2ba3f6434a851b7` |
-| `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md` | `e7c62106c28a7f5c4f0a3d6388f692f460206f629dcdc93c7fe426b28f645f99` |
-| `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py` | `c2a81c48f037756067b23225b5a6bbee43ce6589898db3230437a17d398956ba` |
-| `memory/MEMORY.md` | `881311eb1b9b2039130738d9a6e76c696f92adc66a82369d6f4f71ac6aef355a` |
+| `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md` | `0a94f9bcb4a9112a6837398f7e13b46927cffafbd439b5196d63c988e48beeb3` |
+| `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md` | `c8128d8505443f8468e0f62a5c040cd40f59bc8ab90ad0b205a9725f5c8877a0` |
+| `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py` | `3884e093ab91a8caab543c2b8dce568c5dc77fdc2e3fa8828c29d2aff6aa0d68` |
+| `memory/MEMORY.md` | `fb37797a5eab647172e5cae7e10745652d86508216ce9a7cad47d2f62ee098b2` |
 

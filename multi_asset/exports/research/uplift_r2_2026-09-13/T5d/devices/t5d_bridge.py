@@ -71,6 +71,9 @@ def readings(dk, rk, kind, sel=None, dd=None):
         loss_d = bool(mean_dk[0] < 0); loss_r = bool(mean_rk[0] < 0)
         if loss_d and loss_r:
             label = "BOTH LOST, DEPLOYMENT GAP" if gap else ("STRATEGY'S OWN LOSS (king chain, target layer)" if same else "BOTH LOST, UNDECIDABLE")
+
+            # ⚠ 更正 DEV-06 · P2 · AUD-KB K4 2026-09-16(原句字节保留, 不改写): 引用 T5d 标签时改引 FX-EVAL K2 重标(R-LOSS, δ D1 = 0.05; RELABEL_TABLE_K2 T5d 行: 价格/净额 SHARED LOSS, DIFFERENCE INCONCLUSIVE); PREREG §6.2 的 δ = 0.25 只能写作「A0 全周期净额约 40% 的量级线(≈10.95% NAV/年 @2×)」, 不得称「经济上可忽略」
+
         else:
             label = "NOT A SHARED LOSS (%s lost; %s)" % ({(True, False): "deployed only", (False, True): "replay only", (False, False): "neither"}[(loss_d, loss_r)], "gap" if gap else "no gap")
     else:

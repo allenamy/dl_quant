@@ -296,6 +296,9 @@ if _nonfinite and not PARTIAL:
     print("JUDGE_REFUSED non-finite g/reference:", _nonfinite, flush=True); sys.exit(3)
 # --- levels
 print("\n== LEVELS (bps/anchor per gross; annual % per gross = mean*2190/1e4; at 2.0x gross multiply by 2) ==")
+
+# ⚠ 更正 DEV-02 · P2 · AUD-KB K4 2026-09-16(原句字节保留, 不改写): levels() 增列 `maxdd_nav2x_compound = max 峰谷 of Π(1+2·g·1e−4)`, 打印行改为「annual % per gross = mean*2190/1e4; NAV 回撤按固定 2× 逐锚复利列, 勿用算术 ×2」
+
 for k, (ts, g, R) in sorted(ARMS.items()):
     L = levels(ts, g, R); out["levels"]["_".join(k)] = L
     print(f"\n-- {'_'.join(k)} --"); print("%-34s %5s %8s %6s %8s %9s %11s %9s %11s %6s %6s %5s" % ("window", "n", "bps/anch", "Shp", "ann%/g", "maxDD", "worst day", "wd bps", "worst month", "negM", "w3k", "NEG"))
@@ -344,6 +347,9 @@ for a, b in CON:
             v = "EXPLORATORY (partial inputs; no verdict issued)"
         else:
             v = "(A) PROMOTE" if all(x["delta"] > 0 and x["ci95"][0] > 0 for x in r) else ("(B) REJECT" if all(x["ci95"][1] < 0 for x in r) else "(C) UNDECIDED")
+
+            # ⚠ 更正 DEV-01 · P1 · AUD-KB K4 2026-09-16(原句字节保留, 不改写): 判官 (A) 追加两个条件(预注册修订, 用户裁定): ① 双种子 CI 下界 > δ(K2 D1 = 0.05 bps/锚/gross, 非 0); ② 全周期逐年(2023–2026)无一年 Δ 的 CI 上界 < −δ, 且 2023(弱年)点估计 ≥ −δ; 冻结窗之外的扩展/逐年读数写入 verdict 旁并在 (A) 时强制打印
+
             if v == "(A) PROMOTE" and a not in _eligible_arms: v = f"(A) INFO — no bound export-gate PASS for arm {a}: informational only, no promotion"
         out["verdicts"][f"{a}-{b}|{seat}"] = v; print(f"  {a}-{b:3s} {seat}: {v}")
 out["utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()); _jo = os.environ.get("JUDGE_OUT", "/workspace/review_scratch/v4_gates/JUDGE_v4.json"); os.makedirs(os.path.dirname(_jo), exist_ok=True); json.dump(out, open(_jo, "w"), indent=1); print("JUDGE_V4_DONE")

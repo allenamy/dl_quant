@@ -148,6 +148,9 @@ B_ic = SCORE["KING_LIVE"]["dIC_K1_minus_K0"]; condB = bool(B_ic["ci95_excl0"])
 A_f = [BOOK[f"K0f_minus_K0|C0|s{s}"]["KING_LIVE"] for s in ("42", "2027")]
 condA_f = bool(all(x["ci95_excl0"] for x in A_f) and (np.sign(A_f[0]["dg"]) == np.sign(A_f[1]["dg"]))); condB_f = bool(SCORE["KING_LIVE"]["dIC_K0f_minus_K0"]["ci95_excl0"])
 verdict = "MATERIAL" if (condA or condB) else "NOT MATERIAL (at this resolution)"
+
+# ⚠ 更正 DEV-04 · P2 · AUD-KB K4 2026-09-16(原句字节保留, 不改写): 采用 FX-EVAL K2 规则 R-T4(δ D1 = 0.05 / D4 = 0.003)替换 L150 谓词; 本次存档读数重标 = INCONCLUSIVE(RELABEL_TABLE_K2 T4 行), 不另立标签
+
 labels = []
 if condA != condA_nw: labels.append("BASE-DEPENDENT")
 if condA_f or condB_f: labels.append("INSTRUMENT-FLAG")

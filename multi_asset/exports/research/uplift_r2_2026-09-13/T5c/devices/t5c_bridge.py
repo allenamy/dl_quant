@@ -205,6 +205,9 @@ def readings(dk, rk, sel=None):
     mean_dk = boot(dk, one, 81, sel); mean_rk = boot(rk, one, 81, sel); diff = boot(dk - rk, one, 87, sel)
     same = bool(mean_dk[1] <= mean_rk[0] <= mean_dk[2]); gap = bool(diff[1] > 0 or diff[2] < 0)
     label = {(True, False): "STRATEGY'S OWN LOSS (king chain)", (False, True): "DEPLOYMENT DIFFERENCE", (True, True): "SAME DIRECTION WITH A GAP", (False, False): "UNDECIDABLE"}[(same, gap)]
+
+    # ⚠ 更正 DEV-05 · P2 · AUD-KB K4 2026-09-16(原句字节保留, 不改写): T5c 装置保留原样(存档); 引用其标签时改引 FX-EVAL K2 重标(R-LOSS, δ D1 = 0.05): 价格与净额 = **SHARED LOSS, DIFFERENCE INCONCLUSIVE**, carry = INCONCLUSIVE(RELABEL_TABLE_K2 T5c 行); 新装置复用 R-LOSS, 不复用本谓词
+
     return dict(D_K=mean_dk, R_K=mean_rk, diff_D_minus_R=diff, SAME_LOSS=same, DEPLOYMENT_GAP=gap, label=label, replay_lost_point=bool(mean_rk[0] < 0))
 RES = dict(groups=GROUPS, order=["T", "B", "W", "V", "M", "S", "X", "P", "H"], window=[utc(CAL[kW[0]]), utc(CAL[kW[-1]])], n_window=len(kW), n_days=int(len(np.unique(days))), seeds={})
 NPZ = {}

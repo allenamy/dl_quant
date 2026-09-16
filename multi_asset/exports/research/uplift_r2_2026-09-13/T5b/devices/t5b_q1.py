@@ -246,6 +246,9 @@ for name, b, key, k in (("PRIMARY_tl_FROZ", "tl", "C_FROZ", 501), ("tl_chain_FRO
     ci = TC.boot_ratio(x, np.ones(len(x)), days, k)
     READ[name] = dict(n_anchors=int(len(x)), mean=float(x.mean()), ci95=[ci[1], ci[2]], cumulative=float(x.sum()), k=k,
                       reading=("FROZEN-RESIDUAL-MATERIAL" if x.mean() >= 0.05 else "NOT MATERIAL"), role=("PRIMARY" if name.startswith("PRIMARY") else "secondary"),
+
+                      # ⚠ 更正 DEV-07 · P3 · AUD-KB K4 2026-09-16(原句字节保留, 不改写): 采用 FX-EVAL K2 R-T5B(δ D8 = 0.05, 上侧 = 付出): MATERIAL ⇔ CI 下界 ≥ 0.05; NOT MATERIAL (established below line) ⇔ CI 上界 < 0.05; 其余 INCONCLUSIVE; mean None ⇒ NOT MEASURED(RELABEL_TABLE_K2 T5b 行: 主读法不变, 三个次级 MATERIAL → INCONCLUSIVE)
+
                       per_anchor=[[utc(a), float(v)] for a, v in zip(As, x)], cum_series=[[utc(a), float(v)] for a, v in zip(As, np.cumsum(x))])
 for name, b, key, k in (("share_tl_FROZ", "tl", "share_FROZ", 511), ("share_tl_RES", "tl", "share_RES", 512)):
     As, days, x = series(b, key); ci = TC.boot_ratio(x, np.ones(len(x)), days, k)
