@@ -1,0 +1,381 @@
+{
+ "tool": "fx_evl01_manifest.py",
+ "self_sha256": "8caa8bbda900d900749eedd5746a9b8a377f44beef3c906bc1c4df9999a95fee",
+ "commit": "HEAD",
+ "detection": "AST: a call to os.environ.get('CAL', <default != log>); text mentions are not counted",
+ "candidate_prefilter": "git grep -l -F CAL",
+ "built_utc": "2026-09-16T05:12:48Z",
+ "ruling": "FIXPROGRAM EVL-01 = (a) archives untouched + (c) launch-side guard; never (b) re-pin the frozen spec",
+ "n_paths": 54,
+ "n_distinct_blobs": 38,
+ "devices": [
+  {
+   "sha256": "1264bd83568b5a5ec81409f126d9f32ad6e67322415edb1415be387ae20cf2ed",
+   "paths": [
+    "eda/w10_ablation_replay_2026-08-25.py"
+   ],
+   "bytes": 17007,
+   "default": "simple"
+  },
+  {
+   "sha256": "9f15dea0131f23443919dfd87af17a2eef2ccfa74ee4318f3714886b290321c2",
+   "paths": [
+    "eda/w10_ablation_replay_hardened_9f15dea0131f_2026-08-26.py"
+   ],
+   "bytes": 17627,
+   "default": "simple"
+  },
+  {
+   "sha256": "63feb2f7193f7ab50620ac741a1a0e8a5b864f8d7fde112205a56da8ce58a7ac",
+   "paths": [
+    "eda/w10_ftrim_63feb2f7193f_2026-08-30.py"
+   ],
+   "bytes": 18473,
+   "default": "simple"
+  },
+  {
+   "sha256": "28e9b5e956428bea535db6efc9456d55cc27e0bff45ade484ae3196cce94351a",
+   "paths": [
+    "multi_asset/exports/research/allweather_2026-09-05/carry_layers/w10_carry.py"
+   ],
+   "bytes": 35262,
+   "default": "simple"
+  },
+  {
+   "sha256": "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d",
+   "paths": [
+    "multi_asset/exports/research/allweather_2026-09-05/carry_layers/w10_health_orig.py",
+    "multi_asset/exports/research/allweather_2026-09-05/t3c_revalidation/w10_health.py",
+    "multi_asset/exports/research/allweather_2026-09-05/trackB/scripts/w10_health.py",
+    "multi_asset/exports/research/allweather_2026-09-05/trackC/w10_health_orig.py",
+    "multi_asset/exports/research/retrain_2026-09/dl_monthly_gate_2026-09-05/replay/w10_health.py",
+    "multi_asset/exports/research/retrain_2026-09/f10_caliber_2026-09-05/w10_health.py",
+    "multi_asset/exports/research/retrain_2026-09/phi_grid_2026-09-05/w10_health.py",
+    "multi_asset/exports/research/retrain_2026-09/seat_round2_2026-09-05/w10_health_orig.py"
+   ],
+   "bytes": 29620,
+   "default": "simple"
+  },
+  {
+   "sha256": "6d225a42aae5cf4ca4a86f6001ab84ea72f01974bff9a7885b14bfc9ee937d0e",
+   "paths": [
+    "multi_asset/exports/research/allweather_2026-09-05/trackA/scripts/w10_health_spotsup.py"
+   ],
+   "bytes": 30907,
+   "default": "simple"
+  },
+  {
+   "sha256": "55ba5028c06e15e7ad22fa8b1e1e035ff357a75e78d0a608906c1b120fa1764e",
+   "paths": [
+    "multi_asset/exports/research/allweather_2026-09-05/trackC/w10_agew.py"
+   ],
+   "bytes": 32276,
+   "default": "simple"
+  },
+  {
+   "sha256": "5424aceb34b4595b8b9be0d720e90a60e1944fd9bb915fad4c934bc4cf59e9f9",
+   "paths": [
+    "multi_asset/exports/research/retrain_2026-09/cadence_seats_2026-09-05/axisA/w10_universe_recheck.py",
+    "multi_asset/exports/research/retrain_2026-09/cadence_seats_2026-09-05/axisA_incremental/w10_universe_recheck.py",
+    "multi_asset/exports/research/retrain_2026-09/cadence_seats_2026-09-05/axisB/w10_universe_recheck.py",
+    "multi_asset/exports/research/retrain_2026-09/health_check_2026-09-05/w10_universe_recheck_rollingking.py",
+    "multi_asset/exports/research/retrain_2026-09/review_caliber_wf/combo_recheck/w10_universe_recheck.py",
+    "multi_asset/exports/research/retrain_2026-09/rolling_king_2026-09-05/w10_universe_recheck.py"
+   ],
+   "bytes": 26502,
+   "default": "simple"
+  },
+  {
+   "sha256": "944fa277c074059e7629b9cc2bddc911117b899ab7576212b4e480b7c5c7cfc1",
+   "paths": [
+    "multi_asset/exports/research/retrain_2026-09/cadence_seats_2026-09-05/axisB/w10_universe_seats.py"
+   ],
+   "bytes": 35546,
+   "default": "simple"
+  },
+  {
+   "sha256": "5285f0049286d8964d10ee1d4ce9e428b9343af3048924e94f52ae55eda0b8f0",
+   "paths": [
+    "multi_asset/exports/research/retrain_2026-09/dl_monthly_gate_2026-09-05/replay/w10_seat2_orig.py",
+    "multi_asset/exports/research/retrain_2026-09/seat_round2_2026-09-05/w10_seat2.py"
+   ],
+   "bytes": 37396,
+   "default": "simple"
+  },
+  {
+   "sha256": "13d0c849fc472fb1b1cbe1d37855aff481fe6fe048a61225fef2a74f520fda57",
+   "paths": [
+    "multi_asset/exports/research/retrain_2026-09/dl_monthly_gate_2026-09-05/replay/w10_seat2g.py"
+   ],
+   "bytes": 37529,
+   "default": "simple"
+  },
+  {
+   "sha256": "2cce0909eebc09d5f6146f57dbc16c3e25eed20dd65bde0fa454c57a63f04f71",
+   "paths": [
+    "multi_asset/exports/research/retrain_2026-09/health_check_2026-09-05/w10_health.py"
+   ],
+   "bytes": 28589,
+   "default": "simple"
+  },
+  {
+   "sha256": "64c70a44ee88b79547a444ccb969c58d17d3a25f2f02af9cc77055b767bfe430",
+   "paths": [
+    "multi_asset/exports/research/retrain_2026-09/review_caliber_wf/combo_recheck/w10_universe_port.py"
+   ],
+   "bytes": 26085,
+   "default": "simple"
+  },
+  {
+   "sha256": "8102b8c7a4250a2c18ba4595aa2bf31b974d04f8d597ea3ce4292bc965ddb0ef",
+   "paths": [
+    "multi_asset/exports/research/retrain_2026-09/tail_aware_sizing_2026-09-06/scripts/w10_volcap.py"
+   ],
+   "bytes": 33139,
+   "default": "simple"
+  },
+  {
+   "sha256": "b15f0d4dd55318b4dc9c4459969c11254d181dd7712478a0bebb33e31cc8701a",
+   "paths": [
+    "multi_asset/exports/research/retrain_2026-09/w10_ftrim_band.py"
+   ],
+   "bytes": 19977,
+   "default": "simple"
+  },
+  {
+   "sha256": "1e8148fd712bbfca78604ec0a1d0b66c16e7622d29dcda76833eef4710ecac69",
+   "paths": [
+    "multi_asset/exports/research/retrain_2026-09/w10_fundleg.py"
+   ],
+   "bytes": 18344,
+   "default": "simple"
+  },
+  {
+   "sha256": "586b6b42c3b494f32b74f1bea07b887aac100bcf7133d7de26e5db058ffa0e47",
+   "paths": [
+    "multi_asset/exports/research/retrain_2026-09/w10_seat.py"
+   ],
+   "bytes": 18512,
+   "default": "simple"
+  },
+  {
+   "sha256": "520e5a1b6f9d63a3288422049de61edc25a89852ea57c3db454e87756b28e1e1",
+   "paths": [
+    "multi_asset/exports/research/retrain_2026-09/w10_side.py"
+   ],
+   "bytes": 19797,
+   "default": "simple"
+  },
+  {
+   "sha256": "644633774cca4108640141146a0617f79e417aed73f630c5c7c278e3f493a89e",
+   "paths": [
+    "multi_asset/exports/research/retrain_2026-09/w10_side_band.py"
+   ],
+   "bytes": 21226,
+   "default": "simple"
+  },
+  {
+   "sha256": "43578158a90e7067fe10fcbb0a36cf4b2ca1acc8e6d7d0fd277be7f96fb2281b",
+   "paths": [
+    "multi_asset/exports/research/retrain_2026-09/w10_universe.py"
+   ],
+   "bytes": 26173,
+   "default": "simple"
+  },
+  {
+   "sha256": "5894cc71cd32413ef02dfdcb949a9d8ed79d9b43a6b905c1b658f0b075eea649",
+   "paths": [
+    "multi_asset/exports/research/uplift_2026-09-11/r12_intervene/devices/w12_intervene.py"
+   ],
+   "bytes": 38832,
+   "default": "simple"
+  },
+  {
+   "sha256": "ce3b79836a60647d7a110f6e82c0c929e19b4ce86e7e460ebf801f99883f5926",
+   "paths": [
+    "multi_asset/exports/research/uplift_2026-09-11/r12_intervene/devices/w12b_intervene.py"
+   ],
+   "bytes": 40021,
+   "default": "simple"
+  },
+  {
+   "sha256": "79d7f5709b6602413181ccf69c5580b112ea9bbce0150620a93662b744f32e47",
+   "paths": [
+    "multi_asset/exports/research/uplift_2026-09-11/r12_smoothing/devices/w10_r12.py"
+   ],
+   "bytes": 36261,
+   "default": "simple"
+  },
+  {
+   "sha256": "6a6d2b0a426d4ca6a175873d707e5ecbae9850df1678b2559cf544624e8c2fcd",
+   "paths": [
+    "multi_asset/exports/research/uplift_2026-09-11/r12_smoothing/devices/w10_r12c.py"
+   ],
+   "bytes": 37935,
+   "default": "simple"
+  },
+  {
+   "sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650",
+   "paths": [
+    "multi_asset/exports/research/uplift_2026-09-11/r12_smoothing/devices/w10_sleeve.py",
+    "multi_asset/exports/research/uplift_2026-09-11/r13_A_halfscale/w10_sleeve.py",
+    "multi_asset/exports/research/uplift_2026-09-11/r2_sleeve/devices/w10_sleeve.py",
+    "multi_asset/exports/research/uplift_2026-09-11/trackA/w10_sleeve.py"
+   ],
+   "bytes": 34058,
+   "default": "simple"
+  },
+  {
+   "sha256": "4c96cfffcd14815b2d48c3893d964132f331db1494e38a8de168d8f697e51254",
+   "paths": [
+    "multi_asset/exports/research/uplift_2026-09-11/r15_structural/devices/w10_sleeve_r15.py"
+   ],
+   "bytes": 39753,
+   "default": "simple"
+  },
+  {
+   "sha256": "caf7ffdb3bde581bc34438d5e9df695546564c0669bbaa5812e5c9b62e4a87a0",
+   "paths": [
+    "multi_asset/exports/research/uplift_2026-09-11/r16_asym_band/devices/w10_r16.py"
+   ],
+   "bytes": 38978,
+   "default": "simple"
+  },
+  {
+   "sha256": "e542c7292ce1306ec0c6e1504e39b8a6f295c33bcb77a0d04874197d6ee7c12e",
+   "paths": [
+    "multi_asset/exports/research/uplift_2026-09-11/r17_fill_pricing/devices/w10_sleeve_r17.py"
+   ],
+   "bytes": 41562,
+   "default": "simple"
+  },
+  {
+   "sha256": "9b8a6323e8f0ac31ecb4046f6759dce09ba89645cbfc356db71f51c662b2c5c4",
+   "paths": [
+    "multi_asset/exports/research/uplift_2026-09-11/r18_foundation/devices/w10_sleeve_r18.py"
+   ],
+   "bytes": 36731,
+   "default": "simple"
+  },
+  {
+   "sha256": "b35f37d58909f1f9731e087a65e783308a4c96ff9c48aea7b66b9fc35c65c430",
+   "paths": [
+    "multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge/devices/w21_intervene.py"
+   ],
+   "bytes": 40661,
+   "default": "simple"
+  },
+  {
+   "sha256": "4836245c1d570881ddadc16fc2ad2cbf1fb33c0ee51005b77999c606b2888fa8",
+   "paths": [
+    "multi_asset/exports/research/uplift_2026-09-11/r5_angle2/w10_sleeve_w3seq.py"
+   ],
+   "bytes": 34845,
+   "default": "simple"
+  },
+  {
+   "sha256": "a2693feccb676f4136465f9c4e312bf074238c96dcd959af992c67c2b5edb55c",
+   "paths": [
+    "multi_asset/exports/research/uplift_2026-09-11/r5_seeds/device/w10_sleeve_seatgrid.py"
+   ],
+   "bytes": 34691,
+   "default": "simple"
+  },
+  {
+   "sha256": "a6bae3a1975c7b325321f798f0e3d46c8bb1e022dc604e2e39d0b0db8a28ea87",
+   "paths": [
+    "multi_asset/exports/research/uplift_2026-09-11/trackB_devices/w10_tb.py"
+   ],
+   "bytes": 31634,
+   "default": "simple"
+  },
+  {
+   "sha256": "4a9953c527148e6627f073ab8e4cfc2db326665b41a3588108c93216594005b6",
+   "paths": [
+    "multi_asset/exports/research/uplift_2026-09-11/trackE/devices/w10_seat.py"
+   ],
+   "bytes": 31721,
+   "default": "simple"
+  },
+  {
+   "sha256": "0a8114398e7626abe27a3294c1508e1a46bf2f7c2a6fdbda318bc9a262ca00e3",
+   "paths": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1/devices/w10_sleeve_t1.py"
+   ],
+   "bytes": 42106,
+   "default": "simple"
+  },
+  {
+   "sha256": "380d6265082c67742a8cf47f844d76cf0e3cc3ca25557b29bdaf6c747907d341",
+   "paths": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T2/devices/w10_sleeve_t2.py"
+   ],
+   "bytes": 42886,
+   "default": "simple"
+  },
+  {
+   "sha256": "4c5b972eebfb48c3423b0f6c1336b13cb588fb8ec8edf9c7948d67c59dc05add",
+   "paths": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5/devices/w10_sleeve_t5.py"
+   ],
+   "bytes": 44204,
+   "default": "simple"
+  },
+  {
+   "sha256": "23604230871b8fc7efd7b3ba31fccaf6850a3d159ce08f872755dd6068a0a8c5",
+   "paths": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c/devices/w10_sleeve_t5c.py"
+   ],
+   "bytes": 44424,
+   "default": "simple"
+  }
+ ],
+ "extra": [
+  {
+   "name": "w10_sleeve.py (pod2 runtime, not a git file)",
+   "sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650",
+   "why": "SPEC section 7 pins this exact sha as the A0 reference device; it reads CAL with the same default"
+  }
+ ],
+ "requiring_cal_sha256": [
+  "0a8114398e7626abe27a3294c1508e1a46bf2f7c2a6fdbda318bc9a262ca00e3",
+  "1264bd83568b5a5ec81409f126d9f32ad6e67322415edb1415be387ae20cf2ed",
+  "13d0c849fc472fb1b1cbe1d37855aff481fe6fe048a61225fef2a74f520fda57",
+  "1e8148fd712bbfca78604ec0a1d0b66c16e7622d29dcda76833eef4710ecac69",
+  "23604230871b8fc7efd7b3ba31fccaf6850a3d159ce08f872755dd6068a0a8c5",
+  "28e9b5e956428bea535db6efc9456d55cc27e0bff45ade484ae3196cce94351a",
+  "2cce0909eebc09d5f6146f57dbc16c3e25eed20dd65bde0fa454c57a63f04f71",
+  "380d6265082c67742a8cf47f844d76cf0e3cc3ca25557b29bdaf6c747907d341",
+  "43578158a90e7067fe10fcbb0a36cf4b2ca1acc8e6d7d0fd277be7f96fb2281b",
+  "4836245c1d570881ddadc16fc2ad2cbf1fb33c0ee51005b77999c606b2888fa8",
+  "4a9953c527148e6627f073ab8e4cfc2db326665b41a3588108c93216594005b6",
+  "4c5b972eebfb48c3423b0f6c1336b13cb588fb8ec8edf9c7948d67c59dc05add",
+  "4c96cfffcd14815b2d48c3893d964132f331db1494e38a8de168d8f697e51254",
+  "520e5a1b6f9d63a3288422049de61edc25a89852ea57c3db454e87756b28e1e1",
+  "5285f0049286d8964d10ee1d4ce9e428b9343af3048924e94f52ae55eda0b8f0",
+  "5424aceb34b4595b8b9be0d720e90a60e1944fd9bb915fad4c934bc4cf59e9f9",
+  "55ba5028c06e15e7ad22fa8b1e1e035ff357a75e78d0a608906c1b120fa1764e",
+  "586b6b42c3b494f32b74f1bea07b887aac100bcf7133d7de26e5db058ffa0e47",
+  "5894cc71cd32413ef02dfdcb949a9d8ed79d9b43a6b905c1b658f0b075eea649",
+  "63feb2f7193f7ab50620ac741a1a0e8a5b864f8d7fde112205a56da8ce58a7ac",
+  "644633774cca4108640141146a0617f79e417aed73f630c5c7c278e3f493a89e",
+  "64c70a44ee88b79547a444ccb969c58d17d3a25f2f02af9cc77055b767bfe430",
+  "6a6d2b0a426d4ca6a175873d707e5ecbae9850df1678b2559cf544624e8c2fcd",
+  "6d225a42aae5cf4ca4a86f6001ab84ea72f01974bff9a7885b14bfc9ee937d0e",
+  "79d7f5709b6602413181ccf69c5580b112ea9bbce0150620a93662b744f32e47",
+  "8102b8c7a4250a2c18ba4595aa2bf31b974d04f8d597ea3ce4292bc965ddb0ef",
+  "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d",
+  "944fa277c074059e7629b9cc2bddc911117b899ab7576212b4e480b7c5c7cfc1",
+  "9b8a6323e8f0ac31ecb4046f6759dce09ba89645cbfc356db71f51c662b2c5c4",
+  "9f15dea0131f23443919dfd87af17a2eef2ccfa74ee4318f3714886b290321c2",
+  "a2693feccb676f4136465f9c4e312bf074238c96dcd959af992c67c2b5edb55c",
+  "a6bae3a1975c7b325321f798f0e3d46c8bb1e022dc604e2e39d0b0db8a28ea87",
+  "b15f0d4dd55318b4dc9c4459969c11254d181dd7712478a0bebb33e31cc8701a",
+  "b35f37d58909f1f9731e087a65e783308a4c96ff9c48aea7b66b9fc35c65c430",
+  "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650",
+  "caf7ffdb3bde581bc34438d5e9df695546564c0669bbaa5812e5c9b62e4a87a0",
+  "ce3b79836a60647d7a110f6e82c0c929e19b4ce86e7e460ebf801f99883f5926",
+  "e542c7292ce1306ec0c6e1504e39b8a6f295c33bcb77a0d04874197d6ee7c12e"
+ ],
+ "a0_sha_already_among_the_git_copies": true
+}
