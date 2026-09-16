@@ -44,10 +44,20 @@ stage "chain_v4_monthly start month=$V4_MONTH env=$ENVF sha=$(gate_sha "$ENVF" |
 
 # ── preflight ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 if want preflight; then
-  stage "preflight: device files, gate approval, inputs"
+  # ── FX-TRAIN TRN-01: for any month AFTER September, preflight additionally requires the ROLL_PATHS receipt. Preflight checks that
+  #    each contract path EXISTS, and a path that exists because LAST month put it there passes — which is exactly how a new month
+  #    ends up reading September's data or overwriting files September's receipts hash (E-0912-B). ROLL_PATHS decides the other
+  #    question: that this month is not pointed at the previous month's artifacts. September is excluded by construction — its
+  #    contract predates the isolation convention and is the counter-example the gate exists for; string comparison is correct for
+  #    YYYY-MM. It is checked INSIDE preflight, not as a prerequisite, so a missing or wrong receipt appears in preflight's own
+  #    fails list: the negative control's criterion is that the empty root produces an HONEST preflight receipt (PASS=false with
+  #    named failures), and a prerequisite would stop before any receipt was written, which reads the same as a crash.
+  V4_ROLL_REQUIRED=0; [ "$V4_MONTH" \> "2026-09" ] && V4_ROLL_REQUIRED=1
+  V4_ROLL_SRC=""; [ "$V4_ROLL_REQUIRED" = 1 ] && { V4_ROLL_SRC=$(gate_sha "$D/v4_gate_roll_paths.py") || die "gate_source_unreadable_v4_gate_roll_paths" 3; }
+  stage "preflight: device files, gate approval, inputs (roll_paths required: $V4_ROLL_REQUIRED)"
   DEV_FILES="chain_lib.sh chain_v4_monthly.sh v4_months.py v4_gate_common.py ELIGIBILITY_CONTRACT.json $GATE_STEP1 $GATE_STEP2 pod_dlw_targets_raw.py pod_fea_ext_clamp.py pod_export_bundle_v4.py pod_legs_v4b.py pod_f10_train_monthly_v4.py launch_mwf_v4b.sh merge_mwf_v4b.py pod_f10_refit_v4.py build_dev_v4.py run_v4_arms.sh judge_v4.py v4e_gate_export_v2.py gate_signal_parity_v2.py cache_coverage_gate_v2.py"
   PF_INPUTS="CACHE PANEL_SPLICE PANEL_KING RAW_PATCH HOLE_CELLS BUNDLE_BASE EXPORT_PANEL EMA_STATE_JSON LIVE_PINS FUND_AUG FUNDING_DIR LEGS_OLD LEGS_PANEL SIGNAL_RECEIPT BUILDER_FEA82 BUILDER_FEA89 BASE_TRAINER PREV_META REF_META"
-  V4_DEV_FILES="$DEV_FILES" V4_PF_INPUTS="$PF_INPUTS" "$PY" - "$R/v4_gates/preflight.json" <<'PYEOF'; rc=$?
+  V4_DEV_FILES="$DEV_FILES" V4_PF_INPUTS="$PF_INPUTS" V4_ROLL_REQUIRED="$V4_ROLL_REQUIRED" V4_ROLL_SRC="$V4_ROLL_SRC" V4_MONTH_ENV="$V4_MONTH_ENV" "$PY" - "$R/v4_gates/preflight.json" <<'PYEOF'; rc=$?
 import hashlib, json, os, subprocess, sys, time
 out = sys.argv[1]; E = os.environ; D = E["D"]; R = E["R"]; fails = []; dev = {}; ext = {}; inputs = {}
 def sha(p):
@@ -63,6 +73,30 @@ for k in ("BUILDER_FEA82", "BUILDER_FEA89", "BASE_TRAINER"):
     p = E[k]
     if os.path.isfile(p): ext[k] = {"path": p, "sha256": sha(p)}
     else: fails.append(f"external builder missing: {k}={p}")
+# FX-TRAIN TRN-01: the roll receipt, verified here so its verdict lands in THIS receipt's fails (see the comment above the stage)
+roll = {"required": E.get("V4_ROLL_REQUIRED") == "1"}
+if roll["required"]:
+    rp = os.path.join(R, "v4_gates", "ROLL_PATHS.json"); roll["receipt"] = rp
+    if not os.path.isfile(rp):
+        fails.append(f"roll receipt missing: {rp} (every month after 2026-09 must pass v4_gate_roll_paths.py first)")
+    else:
+        try:
+            rr = json.load(open(rp))
+        except Exception as e:                                                  # noqa: BLE001
+            rr = None; fails.append(f"roll receipt unreadable: {type(e).__name__}: {e}")
+        if rr is not None:
+            roll["gate"], roll["PASS"], roll["self_sha256"] = rr.get("gate"), rr.get("PASS"), rr.get("self_sha256")
+            if rr.get("gate") != "ROLL_PATHS": fails.append(f"roll receipt is from gate {rr.get('gate')!r}, expected 'ROLL_PATHS'")
+            if rr.get("PASS") is not True: fails.append(f"roll receipt says PASS={rr.get('PASS')!r} ({rr.get('utc')})")
+            if E.get("V4_ROLL_SRC") and rr.get("self_sha256") != E["V4_ROLL_SRC"]:
+                fails.append(f"roll receipt was written by gate source {str(rr.get('self_sha256'))[:12]}, this chain trusts {E['V4_ROLL_SRC'][:12]}")
+            me = E.get("V4_MONTH_ENV") or ""
+            rec_env = (rr.get("inputs_sha256") or {}).get("month_env")
+            roll["month_env_sha256_recorded"] = rec_env
+            if not me or not os.path.isfile(me):
+                fails.append(f"roll receipt cannot be bound: V4_MONTH_ENV={me!r} is not a readable file")
+            elif rec_env != sha(me):
+                fails.append(f"roll receipt was written for a contract with sha {str(rec_env)[:12]}, this run's contract is {sha(me)[:12]}")
 for k in E["V4_PF_INPUTS"].split():
     p = E[k]
     if os.path.exists(p): inputs[k] = {"path": p, "bytes": os.path.getsize(p) if os.path.isfile(p) else None, "is_dir": os.path.isdir(p)}
@@ -94,7 +128,7 @@ except Exception as e:                        # noqa: BLE001
 seeds = E["SEEDS"].split(",")
 if not all(s in ("42", "2027") for s in seeds): fails.append(f"SEEDS not in the trainer whitelist {{42,2027}}: {seeds}")
 res = {"gate": "PREFLIGHT", "PASS": not fails, "month": E["V4_MONTH"], "month_env": E["V4_MONTH_ENV"], "month_env_sha256": sha(E["V4_MONTH_ENV"]), "device_dir": D, "root": R,
-       "device_sha256": dev, "external_sha256": ext, "inputs": inputs, "gate_approval": approval, "months_all": E["MONTHS_ALL"], "seeds": seeds, "generation": E["BUNDLE_GENERATION"],
+       "device_sha256": dev, "external_sha256": ext, "inputs": inputs, "gate_approval": approval, "months_all": E["MONTHS_ALL"], "seeds": seeds, "generation": E["BUNDLE_GENERATION"], "roll_paths": roll,
        "fails": fails, "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "dryrun": E.get("V4_DRYRUN", "0")}
 os.makedirs(os.path.dirname(out), exist_ok=True); json.dump(res, open(out, "w"), indent=1)
 print(f"PREFLIGHT {'PASS' if not fails else 'FAIL'} device_files={len(dev)} inputs={len(inputs)} approvals={sum(1 for a in approval.values() if a['ok'])}/3 fails={len(fails)}")

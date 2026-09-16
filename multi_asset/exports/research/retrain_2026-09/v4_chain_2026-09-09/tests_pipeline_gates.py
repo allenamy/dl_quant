@@ -1002,6 +1002,18 @@ with tempfile.TemporaryDirectory() as d:
     check("★★ [P] the dryrun receipt binds the driver / chain_lib / env shas and lists the preflight failures (every input under the empty root is missing)",
           _rr and _rr["driver_sha256"] == _sha(f"{HERE}/chain_v4_monthly.sh") and _rr["chain_lib_sha256"] == _sha(f"{HERE}/chain_lib.sh") and _rr["preflight_PASS"] is False and any("input missing" in f for f in _rr["preflight_fails"]), _rr and _rr["preflight_fails"][:2])
     # ── a root where EVERY input exists (fakes): preflight PASSES; under V4_DRYRUN=1 the next stage dies at the guard; without it the stage really runs ──
+    def _roll_receipt(root, envf):
+        """FX-TRAIN TRN-01: every month AFTER 2026-09 needs a ROLL_PATHS receipt before preflight, and the fake contract's month
+        is 2026-99, which is after it. The receipt is written here for the SPECIFIC contract file, because require_gate binds it
+        to that file's sha and _mock_env rewrites the contract into a second file with a different sha."""
+        rp = f"{root}/v4_gates/ROLL_PATHS.json"
+        os.makedirs(os.path.dirname(rp), exist_ok=True)
+        json.dump({"gate": "ROLL_PATHS", "PASS": True, "self_sha256": _sha(f"{HERE}/v4_gate_roll_paths.py"),
+                   "inputs_path": {"month_env": envf}, "inputs_sha256": {"month_env": _sha(envf)}, "utc": "fixture",
+                   "argv": ["fixture"], "receipt_schema": "v4_gate_common/2 (gate, PASS, self_sha256, inputs_sha256 bound)"},
+                  open(rp, "w"), indent=1)
+        return rp
+
     def _fake_root(dd):
         root = f"{dd}/root"; os.makedirs(f"{root}/v4_gates", exist_ok=True); os.makedirs(f"{root}/funding", exist_ok=True)
         def touch(rel):
@@ -1017,7 +1029,9 @@ with tempfile.TemporaryDirectory() as d:
                     PREV_DLW_CLIP=f"{root}/prev_clip", PREV_F8=f"{root}/prev_f8", PREV_KING_FEA=touch("prev_king_fea.npy"), PREV_KING_FEA_UNCLAMPED="NONE", PREV_CLAMP_BUILDER_SHA256=_sha(f"{HERE}/pod_fea_ext_clamp.py"))
         touch("dlw_ext/data/dlw_targets.npz"); touch("f8_ext/preds/f10_V2MAIN_s42.npy"); touch("prev/slow_pred_pinned.npy")
         for rel in ["masks/umask_UPIT_CRYPTO.npz", "calib/costb_fee_steady.json", "run_arm.sh"] + [f"dev_v4/probe_artifacts/w10_ablation_series_V4_A0_{seat}_s{s}.npz" for seat in ("dyn", "fix") for s in (42, 2027)]: touch(f"hc/{rel}")
-        envf = f"{dd}/fake.env"; open(envf, "w").write("\n".join(f"{k}={v}" for k, v in keys.items()) + "\n"); return root, envf
+        envf = f"{dd}/fake.env"; open(envf, "w").write("\n".join(f"{k}={v}" for k, v in keys.items()) + "\n")
+        _roll_receipt(root, envf)
+        return root, envf
     _root, _envf = _fake_root(d)
     rc, out = _bash(f"V4_DRYRUN=1 V4_STAGES=preflight,cache bash {HERE}/chain_v4_monthly.sh {_envf}")
     _pf = json.load(open(f"{_root}/v4_gates/preflight.json"))
@@ -1292,7 +1306,7 @@ if n == "pod_fea_ext_clamp.py": w(os.environ["FEA_OUT"]); w(os.environ["META_OUT
 print("MOCK_INTERCEPT_NO_BUSINESS_CODE " + n); sys.exit(77)
 '''); os.chmod(_MOCK, 0o755)
     def _mock_env(dd):
-        _r, _e = _fake_root(dd); _em = f"{dd}.env"; _txt = open(_e).read(); assert f"PY={PY}\n" in _txt; open(_em, "w").write(_txt.replace(f"PY={PY}\n", f"PY={_MOCK}\n")); return _r, _em
+        _r, _e = _fake_root(dd); _em = f"{dd}.env"; _txt = open(_e).read(); assert f"PY={PY}\n" in _txt; open(_em, "w").write(_txt.replace(f"PY={PY}\n", f"PY={_MOCK}\n")); _roll_receipt(_r, _em); return _r, _em
     def _drv(stages, envf, dryrun=False):
         open(_MLOG, "w").close(); e = {"V4_STAGES": stages, "W7_CANARY": "leak", "DLWT_RAW_PATCH": "stale-inherited-patch"}
         if dryrun: e["V4_DRYRUN"] = "1"
@@ -2478,6 +2492,118 @@ with tempfile.TemporaryDirectory() as _f1d:
           and "V4_MONTH|MONTHS_ALL|SEEDS|BUNDLE_GENERATION|EXPORT_ARM) ;;" in _f1src
           and "V4_MONTH|MONTHS_ALL|SEEDS|BUNDLE_GENERATION|EXPORT_ARM|GATE_STEP1|GATE_STEP2)" not in _f1src,
           (_i_dots, _i_pref, _i_lab))
+
+# ── [Q] FX-TRAIN TRN-01 slice A (2026-09-16; FACT_TABLE_TRN §TRN-01): preflight checks that each contract path EXISTS, and a path
+#     that exists because LAST month put it there passes. That is how a new month ends up reading September's data, or overwriting
+#     files September's receipts hash (E-0912-B). v4_gate_roll_paths.py decides the other question — whether this month is pointed
+#     at the previous month's artifacts — and preflight requires its receipt for every month after September.
+_QG = "v4_gate_roll_paths.py"
+_QSEP, _QOCT = f"{HERE}/v4_month_2026-09.env", f"{HERE}/v4_month_2026-10.env.template"
+with tempfile.TemporaryDirectory() as _qd:
+    def _qrun(cur, prev, extra=None, tag="q"):
+        out = f"{_qd}/{tag}_receipt.json"
+        env = {"V4_MONTH_ENV": cur, "ROLL_PREV_MONTH_ENV": prev, "ROLL_OUT": out,
+               "ROLL_ALLOW_OUTSIDE_ROOT": "", "ROLL_PREV_SHA_JSON": ""}
+        env.update(extra or {})
+        rc, o = run([_QG], env)
+        return rc, o, (json.load(open(out)) if os.path.exists(out) else None)
+
+    def _qmk(tag, root, **over):
+        """A minimal month contract with the eight rolled keys under its own root."""
+        kv = {"V4_MONTH": "2026-10", "R": root}
+        for k in ("CACHE", "PANEL_SPLICE", "PANEL_KING", "RAW_PATCH", "HOLE_CELLS", "FUND_AUG", "EMA_STATE_JSON", "EXPORT_PANEL"):
+            kv[k] = f"$R/{k.lower()}.bin"
+        kv.update(over)
+        p = f"{_qd}/{tag}.env"
+        open(p, "w").write("# synthetic month contract\n" + "".join(f"{k}={v}\n" for k, v in kv.items()))
+        return p
+
+    # Q1 — the two REAL contracts. This is the cell that found the finding, so it asserts the finding.
+    _rc_self, _o_self, _r_self = _qrun(_QSEP, _QSEP, tag="q1a")
+    _rc_oct, _o_oct, _r_oct = _qrun(_QOCT, _QSEP, tag="q1b")
+    _p3 = _r_oct["checks"]["P3_rolled_under_root"]["violations"] if _r_oct else []
+    check("★★★ [Q] TRN-01 Q1 (the real contracts): September against ITSELF ⇒ rc 3 with P1 and P2 both failing (the degenerate reuse). The October TEMPLATE against September ⇒ P1 and P2 PASS (its TODO_ names are distinct) but **P3 FAILS on six of its eight rolled values** — CACHE / PANEL_SPLICE / PANEL_KING / FUND_AUG / EMA_STATE_JSON / EXPORT_PANEL sit in shared /workspace/data/ and /workspace/, while the template's own header says 'the month root R and every output dir live under /workspace/m2026-10 — nothing of September'. The gate found that contradiction on its first real run",
+          _rc_self == 3 and _r_self["PASS"] is False
+          and "P1_rolled_keys_differ" in _r_self["failed_checks"] and "P2_no_cross_key_reuse" in _r_self["failed_checks"]
+          and _rc_oct == 3 and _r_oct["PASS"] is False and _r_oct["failed_checks"] == ["P3_rolled_under_root"]
+          and sorted(v["key"] for v in _p3) == ["CACHE", "EMA_STATE_JSON", "EXPORT_PANEL", "FUND_AUG", "PANEL_KING", "PANEL_SPLICE"],
+          (_rc_self, _r_self and _r_self["failed_checks"], _rc_oct, [v["key"] for v in _p3]))
+
+    # Q2 — a contract that honours the isolation the template describes
+    _rc, _o, _r = _qrun(_qmk("ok", "/workspace/m2026-10"), _QSEP, tag="q2")
+    check("★★★ [Q] TRN-01 Q2 (positive): a month whose eight rolled values all live under its own root, none of them September's ⇒ rc 0 PASS, every check OK — the gate is satisfiable by the convention the October template states",
+          _rc == 0 and _r["PASS"] is True and all(c["ok"] for c in _r["checks"].values()), (_rc, _r and _r["failed_checks"]))
+
+    # Q3 — one key left behind
+    _rc, _o, _r = _qrun(_qmk("stale", "/workspace/m2026-10", RAW_PATCH="/workspace/review_scratch/raw_patch.npz",
+                             HOLE_CELLS="/workspace/m2026-10/hole_cells.bin"), _QSEP, tag="q3",
+                        extra={"ROLL_ALLOW_OUTSIDE_ROOT": "RAW_PATCH"})
+    _v = _r["checks"]["P1_rolled_keys_differ"]["violations"] if _r else []
+    check("★★★ [Q] TRN-01 Q3 (P1): ONE rolled key left at September's value — RAW_PATCH, the key the October template gives a real path with no TODO_ marker and therefore the easiest one to forget ⇒ rc 3, P1 names the key with both values. Declaring it an outside-root exception does NOT rescue it: P3's exception list is about WHERE, never about WHOSE",
+          _rc == 3 and [x["key"] for x in _v] == ["RAW_PATCH"]
+          and _v[0]["previous_month_value"] == "/workspace/review_scratch/raw_patch.npz", (_rc, _v))
+
+    # Q4 — the same path under a DIFFERENT key
+    _rc, _o, _r = _qrun(_qmk("cross", "/workspace/m2026-10", CACHE="/workspace/data/wide_panel_4h_v3splice.npz"), _QSEP, tag="q4",
+                        extra={"ROLL_ALLOW_OUTSIDE_ROOT": "CACHE"})
+    _v = _r["checks"]["P2_no_cross_key_reuse"]["violations"] if _r else []
+    check("★★★ [Q] TRN-01 Q4 (P2): this month's CACHE pointed at September's PANEL_SPLICE ⇒ rc 3, and P2 names which previous-month keys that path was — the dangerous improvisation is not only 'same key, same path'",
+          _rc == 3 and len(_v) == 1 and _v[0]["key"] == "CACHE" and "PANEL_SPLICE" in _v[0]["is_previous_month"], (_rc, _v))
+
+    # Q5 — an exception is allowed, but only when DECLARED, and it is named in the receipt
+    _c5 = _qmk("outside", "/workspace/m2026-10", FUND_AUG="/workspace/fund_aug_2026-10.json.gz")
+    _rc_a, _o_a, _r_a = _qrun(_c5, _QSEP, tag="q5a")
+    _rc_b, _o_b, _r_b = _qrun(_c5, _QSEP, tag="q5b", extra={"ROLL_ALLOW_OUTSIDE_ROOT": "FUND_AUG"})
+    check("★★★ [Q] TRN-01 Q5 (P3 exceptions): a rolled product outside the month root ⇒ rc 3 naming the key; declaring it in ROLL_ALLOW_OUTSIDE_ROOT ⇒ rc 0, and the receipt records declared_exceptions_outside_root so the exception is visible rather than absent. An undeclared reality becomes a declared one",
+          _rc_a == 3 and [v["key"] for v in _r_a["checks"]["P3_rolled_under_root"]["violations"]] == ["FUND_AUG"]
+          and _rc_b == 0 and _r_b["declared_exceptions_outside_root"] == ["FUND_AUG"], (_rc_a, _rc_b))
+
+    # Q6 — the FXR-TRN-1 family, at the contract layer this time
+    _rc, _o, _r = _qrun(_qmk("dots", "/workspace/m2026-10", CACHE="$R/../review_scratch/cache.npz"), _QSEP, tag="q6")
+    check("★★★ [Q] TRN-01 Q6 (P5, the FXR-TRN-1 family one layer up): a '..' component in a contract value ⇒ rc 3. Without it every containment test in this gate is lexical only — the same reasoning as the dryrun's derived-env check, applied to the contract the driver will actually run",
+          _rc == 3 and "P5_no_parent_escape" in _r["failed_checks"]
+          and [v["key"] for v in _r["checks"]["P5_no_parent_escape"]["violations"]] == ["CACHE"], (_rc, _r and _r["failed_checks"]))
+
+    # Q7 — P4 is NOT_EVALUABLE without its record, and a real check with it
+    _f7 = f"{_qd}/prev_artifact.bin"
+    open(_f7, "wb").write(b"september artifact")
+    _rec_ok, _rec_bad = f"{_qd}/prev_ok.json", f"{_qd}/prev_moved.json"
+    json.dump({_f7: _sha(_f7)}, open(_rec_ok, "w"))
+    json.dump({_f7: "0" * 64}, open(_rec_bad, "w"))
+    _c7 = _qmk("p4", "/workspace/m2026-10")
+    _rc_n, _o_n, _r_n = _qrun(_c7, _QSEP, tag="q7n")
+    _rc_g, _o_g, _r_g = _qrun(_c7, _QSEP, tag="q7g", extra={"ROLL_PREV_SHA_JSON": _rec_ok})
+    _rc_m, _o_m, _r_m = _qrun(_c7, _QSEP, tag="q7m", extra={"ROLL_PREV_SHA_JSON": _rec_bad})
+    check("★★★ [Q] TRN-01 Q7 (P4): without ROLL_PREV_SHA_JSON the previous-month check is recorded NOT_EVALUABLE with evaluated=false and its reason — it does not silently count as evidence; with a record that matches, it is a real check that passes with n_checked=1; with a record whose sha has moved, rc 3 naming the path, the recorded sha and the current one",
+          _rc_n == 0 and _r_n["checks"]["P4_previous_untouched"]["evaluated"] is False and "NOT_EVALUABLE" in _r_n["checks"]["P4_previous_untouched"]
+          and _rc_g == 0 and _r_g["checks"]["P4_previous_untouched"]["evaluated"] is True and _r_g["checks"]["P4_previous_untouched"]["n_checked"] == 1
+          and _rc_m == 3 and _r_m["checks"]["P4_previous_untouched"]["moved"][0]["path"] == _f7, (_rc_n, _rc_g, _rc_m))
+
+    # Q8 — refusals name what is missing, and no ROLL_OUT means no verdict at all
+    _rc_a, _o_a, _r_a = _qrun("", _QSEP, tag="q8a")
+    _rc_b, _o_b, _r_b = _qrun(f"{_qd}/does_not_exist.env", _QSEP, tag="q8b")
+    _rc_c, _o_c = run([_QG], {"V4_MONTH_ENV": _QSEP, "ROLL_PREV_MONTH_ENV": _QSEP, "ROLL_OUT": ""})
+    check("★★★ [Q] TRN-01 Q8: an empty V4_MONTH_ENV ⇒ rc 3 with a PASS=false receipt naming the missing env; a contract path that does not exist ⇒ rc 3 naming the missing file; no ROLL_OUT ⇒ rc 3 and NOTHING written, because a gate with no receipt path has no verdict to give",
+          _rc_a == 3 and "V4_MONTH_ENV" in str(_r_a["REFUSED"]) and _rc_b == 3 and "month_env" in str(_r_b["REFUSED"]["missing_files"])
+          and _rc_c == 3 and "ROLL_PATHS_REFUSED missing ROLL_OUT" in _o_c, (_rc_a, _rc_b, _rc_c))
+
+    # Q9 — STATIC: preflight requires the receipt for months AFTER September only, and binds it
+    _qdrv = open(f"{HERE}/chain_v4_monthly.sh").read()
+    _qpf = _xsec(_qdrv, "if want preflight; then")
+    check("★★★ [Q] TRN-01 Q9 (STATIC): preflight verifies the ROLL_PATHS receipt INSIDE its own body — gate name, PASS, the gate source sha this chain trusts, and the recorded month_env sha against this run's contract — so a missing or wrong receipt lands in preflight's own fails list rather than stopping the stage before any receipt exists. That placement is load-bearing: the dryrun negative control's PASS criterion is an HONEST preflight receipt (PASS=false WITH named failures), and a prerequisite failure, which writes nothing, reads exactly like a crash. It applies only when V4_MONTH is after 2026-09, so September — whose contract predates the isolation convention and is the counter-example the gate exists for — is excluded by construction, and the receipt records the roll block either way",
+          'V4_ROLL_REQUIRED=0; [ "$V4_MONTH" \\> "2026-09" ] && V4_ROLL_REQUIRED=1' in _qpf
+          and 'roll receipt missing' in _qpf and 'this chain trusts' in _qpf
+          and "roll receipt was written for a contract with sha" in _qpf
+          and '"roll_paths": roll,' in _qdrv
+          and "prereq_receipt preflight roll_paths" not in _qpf)
+
+    # Q10 — the month comparison itself, since the whole branch hangs on it
+    _qm = {}
+    for _a, _b in (("2026-10", True), ("2026-09", False), ("2026-08", False), ("2027-01", True), ("2026-12", True)):
+        _rcx, _ = _bash(f'if [ "{_a}" \\> "2026-09" ]; then echo YES; else echo NO; fi')
+        _qm[_a] = (_bash(f'if [ "{_a}" \\> "2026-09" ]; then echo YES; else echo NO; fi')[1].strip() == "YES") == _b
+    check("★★★ [Q] TRN-01 Q10: the branch condition is string comparison on YYYY-MM, which is correct for this format — 2026-10, 2026-12 and 2027-01 are after 2026-09; 2026-09 itself and 2026-08 are not. The whole prerequisite hangs on this one test, so it is tested rather than reasoned about",
+          all(_qm.values()), _qm)
 
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
 sys.exit(1 if FAILS else 0)
