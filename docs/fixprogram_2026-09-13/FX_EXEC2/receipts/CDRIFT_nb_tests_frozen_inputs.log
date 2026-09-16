@@ -1,0 +1,29 @@
+[B27] the census is COMPLETE — a new artifact is a decision, not a default
+  OK    ★★ no file under config/ or checkpoints/ is undeclared  — UNDECLARED: [] — classify it as a model input or as explicitly not one
+  OK    ★ the two known-missing artifacts are IN the census rather than remembered  — ['checkpoints/king_fold4.pt', 'checkpoints/norm_stats.npz', 'checkpoints/s2_fold4.pt', 'config/book.json#panel', 'config/funding_span_table.json', 'training_member_union']
+  OK    ★ every entry says what it DETERMINES (a list of paths explains nothing)
+  OK    ★★ every entry says what its fingerprint ESTABLISHES — 'changed since we ran it' and 'equals what training used' are different claims and only one of them is available here
+  OK    ★ an UNPINNABLE artifact names its owner and what it blocks
+  OK    ★ every not-an-input carries a reason, so the exemption is reviewable
+
+[B27] ★★ the census reads the REAL manifest and the REAL files
+  OK    ★★ the signed checkpoints verify against MANIFEST — the comparison nobody was making  — [('checkpoints/king_fold4.pt', 'OK'), ('checkpoints/norm_stats.npz', 'OK'), ('checkpoints/s2_fold4.pt', 'OK')]
+  OK    ★ ...across a non-zero number of them (a verdict over an empty set is not a verdict)  — 3
+  OK    ★★ MISSING_PIN and UNPINNABLE are distinct states (one we can fix here, one we cannot)  — {'checkpoints/king_fold4.pt': 'OK', 'checkpoints/norm_stats.npz': 'OK', 'checkpoints/s2_fold4.pt': 'OK', 'config/book.json#panel': 'OK', 'config/funding_span_table.json': 'OK', 'training_member_union': 'UNPINNABLE'}
+
+[B27] ★★ RED CAPABILITY: a mutated artifact must be caught, in each fingerprint source
+  OK    ★ NEGATIVE control: with correct pins the PIN-sourced rows read OK  — [('config/book.json#panel', 'OK'), ('config/funding_span_table.json', 'OK')]
+  OK    ★★ POSITIVE control: adding ONE symbol to the span table is caught as MISMATCH  — ('MISMATCH', 'DRIFT')
+  OK    ★★ an operating change elsewhere in book.json does NOT fire (the pin is the `panel` subtree, and a guard that cries on every edit gets switched off)  — OK
+  OK    ★★ ...while a change INSIDE it does (that constant decides how much history the features are built from)  — MISMATCH
+  OK    ★ a MISSING artifact is ABSENT, never OK (nothing to hash is not 'nothing changed')  — ABSENT
+
+[B27] wiring: the census must have a PRODUCTION reader, or it is the sixth writer-only
+  OK    ★★ the anchor consults the census (a guard nothing calls is not a guard)  — MANIFEST's hashes had no reader at all before this
+  OK    ★★ ...and a MISMATCH BLOCKS the anchor, matching the caliber-stamp precedent one block up  — when we cannot say WHICH model is speaking, we do not trade
+  OK    ★ ...while a merely unpinned artifact alarms without blocking (the two claims differ)  — 2
+  OK    ★ the pin file is written by an ACTION, never by the reader (a guard that re-pins what it finds clears its own red)  — frozen_inputs opens 0 file(s) for writing; census() must only read
+
+  18 checks run
+
+ALL PASS

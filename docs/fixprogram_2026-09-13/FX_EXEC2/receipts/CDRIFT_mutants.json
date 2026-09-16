@@ -1,0 +1,195 @@
+{
+ "device": "cdrift_mutants.py",
+ "device_sha256": "63cd3514e15b2f215642a7d45b6d00bdb120ccdd7aa20c7db55c1075fba45f81",
+ "clone": "/Users/haosiyu/cc_tmp/fx_exec2",
+ "clone_head": "e808697922290834532d17d0d7044ef0a37b1aea",
+ "file_sha_before": {
+  "live/cost_drift.py": "e684bdd8f5c4dca21d804e09db3a9d0fead9fbc81ca12fea270e1e6bf3a186c1",
+  "live/tests_cost_drift.py": "36bed78f53bfaa8080a37d4a1b0be331a17a4939309390e168b73fdde5be0450",
+  "ops/anchor_report.py": "95fba2e480933487b74c31a854f991d328eedec0eba722e88117418117a3d0fd",
+  "ops/daily_summary.py": "1209940c29eabeb6fa3abf78028c8685842d331cb352091c24ef3d6c8ce2af2e"
+ },
+ "file_sha_after": {
+  "live/cost_drift.py": "e684bdd8f5c4dca21d804e09db3a9d0fead9fbc81ca12fea270e1e6bf3a186c1",
+  "live/tests_cost_drift.py": "36bed78f53bfaa8080a37d4a1b0be331a17a4939309390e168b73fdde5be0450",
+  "ops/anchor_report.py": "95fba2e480933487b74c31a854f991d328eedec0eba722e88117418117a3d0fd",
+  "ops/daily_summary.py": "1209940c29eabeb6fa3abf78028c8685842d331cb352091c24ef3d6c8ce2af2e"
+ },
+ "tree_restored_bitwise": true,
+ "n_mutants": 8,
+ "n_killed": 8,
+ "results": [
+  {
+   "id": "BASELINE",
+   "rc": 0,
+   "n_failed": 0,
+   "failed": [],
+   "expected_red_cell": null,
+   "verdict": "green"
+  },
+  {
+   "id": "M1_band_not_reference",
+   "file": "live/cost_drift.py",
+   "applied": true,
+   "breaks": "scale the threshold by the CURRENT band's dispersion instead of the frozen reference's — i.e. make the drift check self-calibrating again, which is the very defect being fixed",
+   "expected_red_cell_contains": "the line came from the FROZEN reference",
+   "rc": 1,
+   "n_failed": 6,
+   "named_cell_went_red": true,
+   "which": [
+    "★★★ ...and it trips because the line came from the FROZEN reference's dispersion, not the current band's (the current band is 3x wider, so scaling by it would NOT trip — mutant M1)"
+   ],
+   "failed": [
+    "★★★ it raises the drift VERDICT for the step (old tree: nothing)",
+    "★★★ ...and the verdict is a RAISED WARNING LINE, not merely a number in the table — a block that prints the levels and raises nothing would otherwise pass this section (mutant M8)",
+    "★★★ the 7%→26% step trips the drift check the band absorbed",
+    "★★★ ...and it trips because the line came from the FROZEN reference's dispersion, not the current band's (the current band is 3x wider, so scaling by it would NOT trip — mutant M1)",
+    "★★★ one warning for the stepped book, naming both levels",
+    "★★ a below-threshold |net/gross| drift is silent AND not undecidable (it is a real 'no' answer)"
+   ],
+   "crashed_no_summary": false,
+   "tail": null,
+   "verdict": "KILLED"
+  },
+  {
+   "id": "M2_delta_in_trip_condition",
+   "file": "live/cost_drift.py",
+   "applied": true,
+   "breaks": "fold the frozen K2 delta into the trip condition, so an economically small but real level shift is silenced",
+   "expected_red_cell_contains": "mutating the frozen",
+   "rc": 1,
+   "n_failed": 5,
+   "named_cell_went_red": true,
+   "which": [
+    "★★★ mutating the frozen δ to 0 and to 1e9 leaves the verdict unchanged"
+   ],
+   "failed": [
+    "★★★ it raises the drift VERDICT for the step (old tree: nothing)",
+    "★★★ ...and the verdict is a RAISED WARNING LINE, not merely a number in the table — a block that prints the levels and raises nothing would otherwise pass this section (mutant M8)",
+    "★★★ the 7%→26% step trips the drift check the band absorbed",
+    "★★★ mutating the frozen δ to 0 and to 1e9 leaves the verdict unchanged",
+    "★★★ one warning for the stepped book, naming both levels"
+   ],
+   "crashed_no_summary": false,
+   "tail": null,
+   "verdict": "KILLED"
+  },
+  {
+   "id": "M3_unavailable_reads_as_match",
+   "file": "live/cost_drift.py",
+   "applied": true,
+   "breaks": "let a reference window that is no longer in the ledger read as a clean MATCH — the silent-skip defect family",
+   "expected_red_cell_contains": "reference_window_unavailable",
+   "rc": 1,
+   "n_failed": 1,
+   "named_cell_went_red": true,
+   "which": [
+    "★★★ gate status is reference_window_unavailable, not match and not mismatch"
+   ],
+   "failed": [
+    "★★★ gate status is reference_window_unavailable, not match and not mismatch"
+   ],
+   "crashed_no_summary": false,
+   "tail": null,
+   "verdict": "KILLED"
+  },
+  {
+   "id": "M4_degenerate_mad_warns",
+   "file": "live/cost_drift.py",
+   "applied": true,
+   "breaks": "drop the degenerate-reference guard, so a zero-MAD reference gives a threshold of 0 and warns on a float wobble",
+   "expected_red_cell_contains": "zero-MAD reference",
+   "rc": 1,
+   "n_failed": 2,
+   "named_cell_went_red": true,
+   "which": [
+    "★★★ a 1e-7 wobble against a zero-MAD reference does NOT warn (threshold 0 would warn on anything)"
+   ],
+   "failed": [
+    "★★★ a 1e-7 wobble against a zero-MAD reference does NOT warn (threshold 0 would warn on anything)",
+    "★★★ and it says WHY it cannot decide, rather than passing silently"
+   ],
+   "crashed_no_summary": false,
+   "tail": null,
+   "verdict": "KILLED"
+  },
+  {
+   "id": "M5_rebuild_not_excluded",
+   "file": "live/cost_drift.py",
+   "applied": true,
+   "breaks": "include rebuild anchors in the reference levels, so the two sides stop being the same population",
+   "expected_red_cell_contains": "excludes them from the levels",
+   "rc": 1,
+   "n_failed": 1,
+   "named_cell_went_red": true,
+   "which": [
+    "★★★ window_levels counts them and excludes them from the levels"
+   ],
+   "failed": [
+    "★★★ window_levels counts them and excludes them from the levels"
+   ],
+   "crashed_no_summary": false,
+   "tail": null,
+   "verdict": "KILLED"
+  },
+  {
+   "id": "M6_min_n_ignored",
+   "file": "live/cost_drift.py",
+   "applied": true,
+   "breaks": "drop the minimum-sample requirement, so a three-anchor band can issue a verdict",
+   "expected_red_cell_contains": "thin CURRENT band",
+   "rc": 1,
+   "n_failed": 2,
+   "named_cell_went_red": true,
+   "which": [
+    "★★ a thin CURRENT band gives no verdict and says why"
+   ],
+   "failed": [
+    "★★ a thin REFERENCE gives no verdict and says why",
+    "★★ a thin CURRENT band gives no verdict and says why"
+   ],
+   "crashed_no_summary": false,
+   "tail": null,
+   "verdict": "KILLED"
+  },
+  {
+   "id": "M7_reference_level_not_printed",
+   "file": "live/cost_drift.py",
+   "applied": true,
+   "breaks": "stop labelling the per-anchor line as the frozen reference, so the operator cannot tell the two levels apart",
+   "expected_red_cell_contains": "carries the FROZEN reference level",
+   "rc": 1,
+   "n_failed": 1,
+   "named_cell_went_red": true,
+   "which": [
+    "★★ the baseline line carries the FROZEN reference level beside the trailing one (old tree: band only)"
+   ],
+   "failed": [
+    "★★ the baseline line carries the FROZEN reference level beside the trailing one (old tree: band only)"
+   ],
+   "crashed_no_summary": false,
+   "tail": null,
+   "verdict": "KILLED"
+  },
+  {
+   "id": "M8_summary_raises_no_warning",
+   "file": "live/cost_drift.py",
+   "applied": true,
+   "breaks": "keep the drift BLOCK but raise no warning from it, so the daily summary prints numbers and no verdict",
+   "expected_red_cell_contains": "RAISED WARNING LINE",
+   "rc": 1,
+   "n_failed": 2,
+   "named_cell_went_red": true,
+   "which": [
+    "★★★ ...and the verdict is a RAISED WARNING LINE, not merely a number in the table — a block that prints the levels and raises nothing would otherwise pass this section (mutant M8)"
+   ],
+   "failed": [
+    "★★★ ...and the verdict is a RAISED WARNING LINE, not merely a number in the table — a block that prints the levels and raises nothing would otherwise pass this section (mutant M8)",
+    "★★★ one warning for the stepped book, naming both levels"
+   ],
+   "crashed_no_summary": false,
+   "tail": null,
+   "verdict": "KILLED"
+  }
+ ]
+}

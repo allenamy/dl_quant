@@ -1,0 +1,74 @@
+[0] the synthetic book has the shape the cells assume
+  OK    72 external-era traded slots on the 4h grid, none halted, none rebuild  — (72, 0, 0)
+  OK    order_facts reads the intended taker shares back exactly (pre 0.07±jitter, post 0.26±jitter)  — (0.07, 0.28)
+
+[R0] PRE: the ef60f85 FIXED 10% taker line would fire on this step (it is not the blind instrument)
+  OK    the judged anchor's taker share is above the old fixed 10% line  — 0.28
+
+[R1] ★★★ PRE: the trailing band CATCHES the step immediately and is BLIND ten days later
+  OK    ★★ at the FIRST anchor after the step the band warns (so the band is not useless)  — ({'n': 12, 'median': 0.07500000000000001, 'mad': 0.01999999999999999, 'threshold': 0.16395599999999996}, 0.26)
+  OK    ★★★ ten days later the band is BLIND: 42 trailing anchors, all post-step, no warning  — ({'n': 42, 'median': 0.265, 'mad': 0.01999999999999999, 'threshold': 0.35395599999999994}, 0.28)
+  OK    ★★★ and the band's own median has moved to the post-step level (that IS the absorption)  — 0.265
+
+[R2] ★★★ RED on e808697: ops/daily_summary.py prints no drift section
+  OK    daily_summary ran (rc 0)
+  OK    ★★★ it names the frozen reference window (old tree: no such section at all)  — ['【成本组合漂移】 —— 对冻结参照窗 S1a_2026-08-28_2026-09-01T12Z (2026-08-28T00:00:00Z .. 2026-09-01T12:00:00Z), 非自校准', '   taker 占比   参照 5.01% (n 27) | 当前 26.50% (n 42) | Δ +21.49pp | 线 +10.43pp  → ⚠️ 漂移越线', '   |净/gross|  参照 0.36% (n 27) | 当前 0.43% (n 42) | Δ +0.06pp | 线 +1.02pp  → 带内', '   门限: |中位差| > 3.0×1.4826×MAD_参照, 两侧各需 ≥12 锚 —— PROPOSAL for K5 (the deep-check template owns the policy level; this file o
+  OK    ★★★ it prints BOTH levels — the frozen reference median and the current trailing median  — ['【成本组合漂移】 —— 对冻结参照窗 S1a_2026-08-28_2026-09-01T12Z (2026-08-28T00:00:00Z .. 2026-09-01T12:00:00Z), 非自校准', '   taker 占比   参照 5.01% (n 27) | 当前 26.50% (n 42) | Δ +21.49pp | 线 +10.43pp  → ⚠️ 漂移越线', '   |净/gross|  参照 0.36% (n 27) | 当前 0.43% (n 42) | Δ +0.06pp | 线 +1.02pp  → 带内', '   门限: |中位差| > 3.0×1.4826×MAD_参照, 两侧各需 ≥12 锚 —— PROPOSAL for K5 (the deep-check template owns the policy level; this file o
+  OK    ★★★ it raises the drift VERDICT for the step (old tree: nothing)  — ['【成本组合漂移】 —— 对冻结参照窗 S1a_2026-08-28_2026-09-01T12Z (2026-08-28T00:00:00Z .. 2026-09-01T12:00:00Z), 非自校准', '   taker 占比   参照 5.01% (n 27) | 当前 26.50% (n 42) | Δ +21.49pp | 线 +10.43pp  → ⚠️ 漂移越线', '   ⚠️ taker 占比 漂移越线: 参照 5.01% → 当前 26.50% (Δ +21.49pp > 线 +10.43pp)']
+
+[R3] ★★ RED on e808697: ops/anchor_report.py --dry prints no frozen reference level
+  OK    anchor_report ran (rc 0) and sent nothing
+  OK    ★★ the baseline line carries the FROZEN reference level beside the trailing one (old tree: band only)  — ['基线(近42锚, 不含重建/停开仓): taker 中位 26% 线 35% | |净/gross| 中位 0.43% 线 0.87%']
+  OK    ★★ and the per-anchor report does NOT page the drift (the verdict belongs to the daily summary)  — ✅ 全绿
+
+[P1] cost_drift.window_levels recomputes a window and the gate says MATCH
+  OK    the window selects the 12 pre-step anchors, none halted, none rebuild  — {'first_nominal_ts_inclusive': 1785542400, 'last_nominal_ts_inclusive': 1785700800, 'n_slots': 12, 'n_halted': 0, 'n_rebuild': 0, 'n_eligible': 12, 'taker_share': {'n': 12, 'median': 0.07500000000000001, 'mad': 0.01999999999999999, 'threshold': 0.16395599999999996, 'min': 0.04, 'max': 0.1}, 'net_over_gross_abs': {'n': 12, 'median': 0.00425, 'mad': 0.0009999999999999996, 'threshold': 0.008697799999
+  OK    ★★ gate MATCH when the pin equals the recomputation  — {'status': 'match', 'n_eligible': 12, 'tol': 1e-12, 'first_nominal_ts_inclusive': 1785542400, 'last_nominal_ts_inclusive': 1785700800, 'pinned': {'taker_share': {'median': 0.07500000000000001, 'mad': 0.01999999999999999, 'n': 12}, 'net_over_gross_abs': {'median': 0.00425, 'mad': 0.0009999999999999996, 'n': 12}}, 'recomputed': {'taker_share': {'median': 0.07500000000000001, 'mad': 0.019999999999999
+
+[P2] a perturbed pin ⇒ MISMATCH with both numbers named, pinned value still operative
+  OK    ★★★ gate MISMATCH  — {'status': 'mismatch', 'n_eligible': 12, 'tol': 1e-12, 'first_nominal_ts_inclusive': 1785542400, 'last_nominal_ts_inclusive': 1785700800, 'pinned': {'taker_share': {'median': 0.085, 'mad': 0.01999999999999999, 'n': 12}, 'net_over_gross_abs': {'median': 0.00425, 'mad': 0.0009999999999999996, 'n': 12}}, 'recomputed': {'taker_share': {'median': 0.07500000000000001, 'mad': 0.01999999999999999, 'n': 12
+  OK    ★★ it names the pinned AND the recomputed number  — {'status': 'mismatch', 'n_eligible': 12, 'tol': 1e-12, 'first_nominal_ts_inclusive': 1785542400, 'last_nominal_ts_inclusive': 1785700800, 'pinned': {'taker_share': {'median': 0.085, 'mad': 0.01999999999999999, 'n': 12}, 'net_over_gross_abs': {'median': 0.00425, 'mad': 0.0009999999999999996, 'n': 12}}, 'recomputed': {'taker_share': {'median': 0.07500000000000001, 'mad': 0.01999999999999999, 'n': 12
+  OK    ★★★ the PINNED value stays operative (the drift is measured against the pin, not the recomputation)  — 0.085
+
+[P3] the window's days absent from the ledger ⇒ named unavailable, never a silent skip
+  OK    ★★★ gate status is reference_window_unavailable, not match and not mismatch  — {'status': 'reference_window_unavailable', 'n_eligible': 0, 'first_nominal_ts_inclusive': 1779782400, 'last_nominal_ts_inclusive': 1781222400, 'pinned': {'taker_share': {'median': 0.07500000000000001, 'mad': 0.01999999999999999, 'n': 12}, 'net_over_gross_abs': {'median': 0.00425, 'mad': 0.0009999999999999996, 'n': 12}}, 'recomputed': None, 'diffs': None}
+  OK    ★★ and it says how many eligible anchors it found (0)  — {'status': 'reference_window_unavailable', 'n_eligible': 0, 'first_nominal_ts_inclusive': 1779782400, 'last_nominal_ts_inclusive': 1781222400, 'pinned': {'taker_share': {'median': 0.07500000000000001, 'mad': 0.01999999999999999, 'n': 12}, 'net_over_gross_abs': {'median': 0.00425, 'mad': 0.0009999999999999996, 'n': 12}}, 'recomputed': None, 'diffs': None}
+
+[P4] drift_facts: the step trips, a stable book does not
+  OK    ★★★ the 7%→26% step trips the drift check the band absorbed  — {'reference_median': 0.07500000000000001, 'reference_mad': 0.01999999999999999, 'reference_n': 12, 'current_median': 0.265, 'current_n': 42, 'drift': 0.19, 'threshold': 0.08895599999999995, 'k_mads': 3.0, 'min_n': 12, 'undecidable_reason': None, 'warn': True, 'threshold_alternative_se_of_median': 0.03218397356267116, 'economic_fee_only': {'formula': 'drift x (taker_fee_bps - maker_fee_bps) x media
+  OK    ★★★ NEIGHBOUR: a stable book raises nothing on either quantity  — {'taker_share': (0.0, 0.08895599999999995), 'net_over_gross_abs': (0.0, 0.004447799999999998)}
+
+[P5] fewer than min_n on EITHER side ⇒ no verdict, named
+  OK    ★★ a thin REFERENCE gives no verdict and says why  — {'reference_median': 0.05, 'reference_mad': 0.02, 'reference_n': 5, 'current_median': 0.265, 'current_n': 42, 'drift': 0.21500000000000002, 'threshold': 0.08895600000000001, 'k_mads': 3.0, 'min_n': 12, 'undecidable_reason': 'reference has 5 anchors, needs 12', 'warn': False, 'threshold_alternative_se_of_median': 0.049859197449202086, 'economic_fee_only': {'formula': 'drift x (taker_fee_bps - maker
+  OK    ★★ a thin CURRENT band gives no verdict and says why  — {'reference_median': 0.07500000000000001, 'reference_mad': 0.01999999999999999, 'reference_n': 12, 'current_median': 0.26, 'current_n': 3, 'drift': 0.185, 'threshold': 0.08895599999999995, 'k_mads': 3.0, 'min_n': 12, 'undecidable_reason': 'current band has 3 anchors, needs 12', 'warn': False, 'threshold_alternative_se_of_median': 0.03218397356267116, 'economic_fee_only': {'formula': 'drift x (take
+
+[P6] the fee-only economic translation is reported, never gated on
+  OK    ★★★ mutating the frozen δ to 0 and to 1e9 leaves the verdict unchanged  — (True, True)
+  OK    ★★ but the translation IS reported, in bps per anchor per gross  — {'formula': 'drift x (taker_fee_bps - maker_fee_bps) x median(filled_notional / realized_gross)', 'maker_fee_bps': 2.0, 'taker_fee_bps': 5.0, 'turnover_median_filled_over_realized_gross': 0.047, 'bps_per_anchor_per_gross': 0.02679, 'delta_bps_per_anchor_per_gross': 0.0, 'within_delta': False, 'note': 'REPORTED, never part of the trip condition'}
+
+[N1] |net/gross|: a small drift stays silent while the 5% HARD line still fires
+  OK    ★★ the reference |net/gross| MAD is NOT degenerate, so this cell tests the real below-threshold case  — {'median': 0.00425, 'mad': 0.0009999999999999996, 'n': 12}
+  OK    ★★ a below-threshold |net/gross| drift is silent AND not undecidable (it is a real 'no' answer)  — {'reference_median': 0.00425, 'reference_mad': 0.0009999999999999996, 'reference_n': 12, 'current_median': 0.0075, 'current_n': 42, 'drift': 0.0032499999999999994, 'threshold': 0.004447799999999998, 'k_mads': 3.0, 'min_n': 12, 'undecidable_reason': None, 'warn': False, 'threshold_alternative_se_of_median': 0.001609198678133558}
+  OK    ★★★ the 5% absolute ceiling is untouched by this change
+
+[N3] a DEGENERATE reference (MAD 0) issues no verdict instead of warning on everything
+  OK    ★★★ a 1e-7 wobble against a zero-MAD reference does NOT warn (threshold 0 would warn on anything)  — {'reference_median': 0.05, 'reference_mad': 0.0, 'reference_n': 27, 'current_median': 0.0500001, 'current_n': 42, 'drift': 9.999999999593667e-08, 'threshold': 0.0, 'k_mads': 3.0, 'min_n': 12, 'undecidable_reason': 'reference MAD is 0 (degenerate dispersion) — no scale for a threshold', 'warn': False, 'threshold_alternative_se_of_median': 0.0, 'economic_fee_only': {'formula': 'drift x (taker_fee_bp
+  OK    ★★★ and it says WHY it cannot decide, rather than passing silently  — {'reference_median': 0.05, 'reference_mad': 0.0, 'reference_n': 27, 'current_median': 0.0500001, 'current_n': 42, 'drift': 9.999999999593667e-08, 'threshold': 0.0, 'k_mads': 3.0, 'min_n': 12, 'undecidable_reason': 'reference MAD is 0 (degenerate dispersion) — no scale for a threshold', 'warn': False, 'threshold_alternative_se_of_median': 0.0, 'economic_fee_only': {'formula': 'drift x (taker_fee_bp
+  OK    ★★ both levels and Δ are still carried, so nothing is hidden by declining the verdict  — {'reference_median': 0.05, 'reference_mad': 0.0, 'reference_n': 27, 'current_median': 0.0500001, 'current_n': 42, 'drift': 9.999999999593667e-08, 'threshold': 0.0, 'k_mads': 3.0, 'min_n': 12, 'undecidable_reason': 'reference MAD is 0 (degenerate dispersion) — no scale for a threshold', 'warn': False, 'threshold_alternative_se_of_median': 0.0, 'economic_fee_only': {'formula': 'drift x (taker_fee_bp
+
+[N2] rebuild and halted slots are excluded from BOTH sides, as the band excludes them
+  OK    the synthetic tree really contains one halted slot and one rebuild slot  — ([1785744000], [1785700800])
+  OK    ★★★ window_levels counts them and excludes them from the levels  — {'first_nominal_ts_inclusive': 1785542400, 'last_nominal_ts_inclusive': 1785873600, 'n_slots': 24, 'n_halted': 1, 'n_rebuild': 1, 'n_eligible': 22, 'taker_share': {'n': 22, 'median': 0.165, 'mad': 0.095, 'threshold': 0.587541, 'min': 0.04, 'max': 0.29}, 'net_over_gross_abs': {'n': 22, 'median': 0.00425, 'mad': 0.0009999999999999996, 'threshold': 0.008697799999999999, 'min': 0.0025, 'max': 0.0055},
+
+[P7] the shipped config/cost_drift_reference.json
+  OK    ★★ every required key is present  — []
+  OK    ★★ the window bounds are ints on the 4h grid and ordered  — (1787875200, 1788264000)
+  OK    ★★★ the caliber is declared as the REPORT's, and X-COST's is declared as NOT it  — {'name': 'anchor_report_order_type_topup_taker_over_filled', 'taker_share': "per anchor: sum |filled_notional| of order rows whose order_type == 'topup_taker', over sum |filled_notional| of all order rows of that anchor; None when any row's filled_notional is unreadable (never folded to 0)", 'net_over_gross_abs': 'abs(anchors row net_over_gross)', 'NOT_this_caliber': 'X-COST RESULT_X_COST.md T1 ma
+  OK    ★★ both pinned levels carry a finite median, mad and n  — {'taker_share': {'median': 0.05010273247425126, 'mad': 0.02345233920549095, 'n': 27}, 'net_over_gross_abs': {'median': 0.003638, 'mad': 0.0022960000000000003, 'n': 27}}
+  OK    ★★ the basis names the device and the receipt that produced the numbers  — {'device': 'docs/fixprogram_2026-09-13/FX_EXEC2/devices/led08_drift_reference.py', 'receipt': 'docs/fixprogram_2026-09-13/FX_EXEC2/receipts/LED08_drift_reference.json'}
+  OK    ★★ the threshold block states k, min_n and that it is a PROPOSAL for K5  — {'status': 'PROPOSAL for K5 (the deep-check template owns the policy level; this file only reports departure from the characterised mix)', 'rule': '|median_current - median_reference| > k_mads * mad_to_sigma * MAD_reference, with at least min_n eligible anchors on BOTH sides', 'k_mads': 3.0, 'mad_to_sigma': 1.4826, 'min_n': 12, '_derived_values_at_pin_time': {'taker_share_pp': 0.10431131431818265,
+
+[P8] static pin on the caliber the reference is expressed in
+  OK    ★★★ order_facts still defines taker share as the |filled_notional| share of topup_taker order rows (if this changes, the pinned reference must be re-derived)  — ['taker_known = sum((CB.filled_abs(o) or 0.0) for o in O if o.get("order_type") == "topup_taker")']
+
+41/41 pass

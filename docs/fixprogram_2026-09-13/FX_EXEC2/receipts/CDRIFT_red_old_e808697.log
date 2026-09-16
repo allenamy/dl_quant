@@ -1,0 +1,42 @@
+[0] the synthetic book has the shape the cells assume
+  OK    72 external-era traded slots on the 4h grid, none halted, none rebuild  — (72, 0, 0)
+  OK    order_facts reads the intended taker shares back exactly (pre 0.07±jitter, post 0.26±jitter)  — (0.07, 0.32)
+
+[R0] PRE: the ef60f85 FIXED 10% taker line would fire on this step (it is not the blind instrument)
+  OK    the judged anchor's taker share is above the old fixed 10% line  — 0.32
+
+[R1] ★★★ PRE: the trailing band CATCHES the step immediately and is BLIND ten days later
+  OK    ★★ at the FIRST anchor after the step the band warns (so the band is not useless)  — ({'n': 12, 'median': 0.07500000000000001, 'mad': 0.01999999999999999, 'threshold': 0.16395599999999996}, 0.26)
+  OK    ★★★ ten days later the band is BLIND: 42 trailing anchors, all post-step, no warning  — ({'n': 42, 'median': 0.275, 'mad': 0.05999999999999997, 'threshold': 0.5418679999999999}, 0.32)
+  OK    ★★★ and the band's own median has moved to the post-step level (that IS the absorption)  — 0.275
+
+[R2] ★★★ RED on e808697: ops/daily_summary.py prints no drift section
+  OK    daily_summary ran (rc 0)
+  FAIL  ★★★ it names the frozen reference window (old tree: no such section at all)  — no reference line
+  FAIL  ★★★ it prints BOTH levels — the frozen reference median and the current trailing median  — no both-levels line
+  FAIL  ★★★ it raises the drift VERDICT for the step (old tree: nothing)  — no verdict
+  FAIL  ★★★ ...and the verdict is a RAISED WARNING LINE, not merely a number in the table — a block that prints the levels and raises nothing would otherwise pass this section (mutant M8)  — no raised warning line
+
+[R3] ★★ RED on e808697: ops/anchor_report.py --dry prints no frozen reference level
+  OK    anchor_report ran (rc 0) and sent nothing
+  FAIL  ★★ the baseline line carries the FROZEN reference level beside the trailing one (old tree: band only)  — ['基线(近42锚, 不含重建/停开仓): taker 中位 28% 线 54% | |净/gross| 中位 0.43% 线 0.87%']
+  OK    ★★ and the per-anchor report does NOT page the drift (the verdict belongs to the daily summary)  — ✅ 全绿
+  FAIL  ★★★ [P1] recompute MATCH — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture)  — ModuleNotFoundError("No module named 'cost_drift'")
+  FAIL  ★★★ [P2] perturbed pin ⇒ MISMATCH — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture)  — ModuleNotFoundError("No module named 'cost_drift'")
+  FAIL  ★★★ [P3] window absent ⇒ named — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture)  — ModuleNotFoundError("No module named 'cost_drift'")
+  FAIL  ★★★ [P4] step trips / stable does not — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture)  — ModuleNotFoundError("No module named 'cost_drift'")
+  FAIL  ★★★ [P5] min_n on both sides — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture)  — ModuleNotFoundError("No module named 'cost_drift'")
+  FAIL  ★★★ [P6] δ not in the trip condition — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture)  — ModuleNotFoundError("No module named 'cost_drift'")
+  FAIL  ★★★ [P9] summary_warnings raises for a step and not for a stable book — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture)  — ModuleNotFoundError("No module named 'cost_drift'")
+  FAIL  ★★★ [N1] |net/gross| below threshold silent, 5% hard line fires — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture)  — ModuleNotFoundError("No module named 'cost_drift'")
+  FAIL  ★★★ [N3] a degenerate reference declines the verdict — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture)  — ModuleNotFoundError("No module named 'cost_drift'")
+  FAIL  ★★★ [N2] rebuild/halted excluded — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture)  — ModuleNotFoundError("No module named 'cost_drift'")
+
+[P7] the shipped config/cost_drift_reference.json
+  FAIL  ★★★ config/cost_drift_reference.json exists (this IS the defect: no frozen reference is named)  — /Users/haosiyu/cc_tmp/e808697_h3QY/config/cost_drift_reference.json
+
+[P8] static pin on the caliber the reference is expressed in
+  OK    ★★★ order_facts still defines taker share as the |filled_notional| share of topup_taker order rows (if this changes, the pinned reference must be re-derived)  — ['taker_known = sum((CB.filled_abs(o) or 0.0) for o in O if o.get("order_type") == "topup_taker")']
+
+10/26 pass
+FAILED: ★★★ it names the frozen reference window (old tree: no such section at all); ★★★ it prints BOTH levels — the frozen reference median and the current trailing median; ★★★ it raises the drift VERDICT for the step (old tree: nothing); ★★★ ...and the verdict is a RAISED WARNING LINE, not merely a number in the table — a block that prints the levels and raises nothing would otherwise pass this section (mutant M8); ★★ the baseline line carries the FROZEN reference level beside the trailing one (old tree: band only); ★★★ [P1] recompute MATCH — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture); ★★★ [P2] perturbed pin ⇒ MISMATCH — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture); ★★★ [P3] window absent ⇒ named — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture); ★★★ [P4] step trips / stable does not — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture); ★★★ [P5] min_n on both sides — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture); ★★★ [P6] δ not in the trip condition — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture); ★★★ [P9] summary_warnings raises for a step and not for a stable book — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture); ★★★ [N1] |net/gross| below threshold silent, 5% hard line fires — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture); ★★★ [N3] a degenerate reference declines the verdict — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture); ★★★ [N2] rebuild/halted excluded — live/cost_drift.py ABSENT (this IS the defect, not a missing fixture); ★★★ config/cost_drift_reference.json exists (this IS the defect: no frozen reference is named)
