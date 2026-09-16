@@ -10,9 +10,12 @@
 4. 历史脉络: `multi_asset/exports/live/pilot_journal/`(只追加)+ `docs/ERROR_LEDGER_2026-08-20.md`。
 
 ## 项目身份
-**Binance USDT-perp 宽宇宙中频市场中性**: 宇宙 450 币, 4h 锚(00/04/08/12/16/20Z), maker-only, gross 2.0×NAV(2026-09-03 入金后 constant_leverage_2.00; 此前 1.5×)。
-**在役书 = combo**(构成 ≈77% funding 动量 + 13% king LGBM + 10% V2MAIN 书损失 DL): 生产者 `~/wide_shadow`(非 git, 快照入研究仓)写 king 文件 → combo_stage 重写 target_live(五层安全, 失败自动回滚 king 形态)→ 执行器 `~/dl_quant_live`(git, **改动只经 `ops/safe_commit.sh` + 电池全绿**)**N+24:00 读取交易**(`config/book.json external_book.anchor_offset_min=24`, `poll_grace_min=5` ⇒ 重试到 N+29:00; 2026-08-27 05:2xZ 由 N+23 改为 N+24, 原因是 combo 写入只剩 34 s; 本行原写 N+23, 2026-09-16 按实盘配置更正)。
-**数据**: share 面板 READ-ONLY(mode="r"); 宽面板/判官在 jpline `/mnt/storage/private/work_hsy/`; GPU/LOB 在 pod2 `/workspace/`。**★ 面板默认值陷阱: `engine/panel_source.py` 默认=as-trained 脏面板 — 特征类实验必须显式传因果面板。**
+**Binance USDT-perp 宽宇宙中频市场中性**: 宇宙 450 币, 4h 锚(00/04/08/12/16/20Z), maker-only, gross 2.0×NAV(2026-09-03 入金后 constant_leverage_2.00; 此前 1.5×)
+> ⚠ **更正 KB-02 · P2 · AUD-KB K4 2026-09-16**(原句字节保留, 不改写): maker **优先** + 追单实验(chase 50/50, 09-01 起; 逐名止损残差经 chase 臂 MARKET reduce-only), 09-08 起逐锚 maker 成交占比 **0.56–0.89**; gross_mult 2.0 自 **2026-08-27 08:00Z** 生效, 此前 1.5→1.75 爬坡。。
+**在役书 = combo**(构成 ≈77% funding 动量 + 13% king LGBM + 10% V2MAIN 书损失 DL
+> ⚠ **更正 KB-01 · P1 · AUD-KB K4 2026-09-16**(原句字节保留, 不改写): 构成随 msharpe 席位**逐锚滚动**, 不是常数: 08-26 00Z 掩码席位 king 0.232 ⇒ ≈77/13/10; 09-05 播种后 0.300; **2026-09-13 12Z king 0.3821 / fund 0.6179 ⇒ ≈62% funding 动量 + 21% king LGBM + 17% V2MAIN**; 09-16 00Z 为 0.3780 / 0.6220。**引用构成必须带锚时刻。** 来源 = **追加式** `~/regime_dash/regime_dash.jsonl`(按 `anchor_utc` 取 `w3_masked_*`); **滚动的 `REGIME_DASH.md` 每锚整份重写, 不可作收据**(DEV-14), 覆盖 2026-09-02T08:00Z 起。): 生产者 `~/wide_shadow`(非 git, 快照入研究仓)写 king 文件 → combo_stage 重写 target_live(五层安全, 失败自动回滚 king 形态)→ 执行器 `~/dl_quant_live`(git, **改动只经 `ops/safe_commit.sh` + 电池全绿**)**N+24:00 读取交易**(`config/book.json external_book.anchor_offset_min=24`, `poll_grace_min=5` ⇒ 重试到 N+29:00; 2026-08-27 05:2xZ 由 N+23 改为 N+24, 原因是 combo 写入只剩 34 s; 本行原写 N+23, 2026-09-16 按实盘配置更正)。
+**数据**: share 面板 READ-ONLY(mode="r"); 宽面板/判官在 jpline `/mnt/storage/private/work_hsy/`
+> ⚠ **更正 KB-04 · P2 · AUD-KB K4 2026-09-16**(原句字节保留, 不改写): 现役在 **pod2 `/workspace/`**(v4 链 `review_scratch/`、uplift 各线 `uplift_*`); jpline `/mnt/storage/private/work_hsy/` **自 2026-09-04 起不可达**, 仅历史装置。; GPU/LOB 在 pod2 `/workspace/`。**★ 面板默认值陷阱: `engine/panel_source.py` 默认=as-trained 脏面板 — 特征类实验必须显式传因果面板。**
 
 ## 不可违反约束 (Core Constraints)
 1. **信号极弱 (R²<1%)** — 容量匹配信号; 有效样本是一切; 任何聚焦/加权/复杂化先过样本算术。
@@ -25,7 +28,8 @@
 **决策检查清单**(架构/特征/loss 改动必答): 机制? 前置门(Ridge/LGBM)? 复杂度预算? 泄漏(shuffle-future + 偏移谱峰@0 + 折外泄出=0)? OOS 逐折同号? σŷ/σy≥0.02?
 
 ## Metric Discipline(全文 MILESTONE_2026-08-11 §2)
-- **收益口径绑定面板文件, 不绑定变量名(E-0904-F)**: pod 5m 缓存谱系(`pod_panel_ext.py` L58 / `pod_fea_ext.py` L34 / `pod_dlw_targets_ext.py` L96)的 y4/Y4 = Σ 5 分钟简单收益, **禁 expm1**; 记账口径 = `pod_dlw_targets_ext.py` L93 的 y4s = Π(1+r)−1; expm1 只施于 `multi_asset/data/build_wide_dl.py` L151 谱系(对数面板 wide_dl*.npz)。换面板先逐位重验定义。双口径必报(per-asset P + xsec rank-IC), net-of-fee, clean+dense。
+- **收益口径绑定面板文件, 不绑定变量名(E-0904-F)**: pod 5m 缓存谱系(`pod_panel_ext.py` L58 / `pod_fea_ext.py` L34 / `pod_dlw_targets_ext.py` L96)的 y4/Y4 = Σ 5 分钟简单收益, **禁 expm1**; 记账口径 = `pod_dlw_targets_ext.py` L93 的 y4s = Π(1+r)−1
+> ⚠ **更正 KB-05 · P1 · AUD-KB K4 2026-09-16**(原句字节保留, 不改写): 记账口径 = **RAW Π(1+r)−1**(v4 记账元 `meta_newprod_v4.npz` / `pod_dlw_targets_raw.py`, 见 `CALIBER_PIN_v4_2026-09-11.md`); `pod_dlw_targets_ext.py` L93 是对 **±0.30 裁剪缓存**的复利(E-0908-B), **只作对照**; 禁止从 5m 缓存 ret5 重算收益; 回撤按固定 2× 逐锚复利 NAV 报。; expm1 只施于 `multi_asset/data/build_wide_dl.py` L151 谱系(对数面板 wide_dl*.npz)。换面板先逐位重验定义。双口径必报(per-asset P + xsec rank-IC), net-of-fee, clean+dense。
 - **IC 是 alpha, β 是量纲**: β 禁作质量门; 塌缩守卫=σŷ/σy。**口径三层**(模型分数/复合目标/持仓书, 逐层差 20-25%)引用必须声明层。
 - **排序≠净额**(五例在案): 分数层录取必要非充分, 必须过书层净额 CI。
 
@@ -40,11 +44,14 @@ docs 首行元信息 `> **创建:** … | **Session:** … | **状态:** … | *
 |---|---|
 | 实盘状态/链路/回滚/在飞 | `STATE.md` |
 | 在役书证据/杠杆/局限 | `docs/CANDIDATE_wide_v2main_norev24_2026-08-26.md` |
+> ⚠ **更正 KB-06 · P1 · AUD-KB K4 2026-09-16**(原句字节保留, 不改写): 在役形态水平与逐年/回撤 = `uplift_2026-09-11/r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md`(含勘误); combo 选型在正确口径下的复测 = `retrain_2026-09/review_caliber_wf/combo_recheck/REPORT.md`; `CANDIDATE_wide_v2main_norev24_2026-08-26.md` **只作定义与历史**(其 §2 数字为 CAL=simple 作废口径)。
 | 换装工程/组件/校验 | `docs/CHECKLIST_combo_switch_2026-08-26.md` |
 | 恢复研究某条轴 / DNR | `docs/MILESTONE_2026-08-26.md` §2/§5(08-11 前的查上期) |
+> ⚠ **更正 KB-07 · P1 · AUD-KB K4 2026-09-16**(原句字节保留, 不改写): ⚠ 其中 **08-25 13:35Z 之后**以 w7/w8/w10 **CAL=simple** 装置判定的数字与腿/席位层判决**全部待正确口径(v4 RAW)重判**(E-0904-F); **重开这些轴不需要新证据, 需要同口径重判**。
 | 判决翻转案例/装置纪律 | `docs/PREREG_leg_ablation_2026-08-26.md` RECONCILIATION + `docs/ERROR_LEDGER_2026-08-20.md` |
 | 部署/回滚/电池 | `~/dl_quant_live/ops/safe_commit.sh` + **`~/dl_quant_live/run_acceptance.sh`(在仓库根, 不在 `ops/`)**; 其 L28 是 `PY="${ACCEPT_PY:-/usr/bin/python3}"` —— **可覆盖的缺省而非硬钉**, 且认证它的守卫只查源码子串 ⇒ **绿电池认证的是「钉写在文件里」不是「钉被用了」**; 引用任何「逐套件 N/M」必须同时说明解释器(KB-73, 2026-09-16 更正) |
 | 月度重训 | `docs/RUNBOOK_monthly_retrain_2026-09.md` |
+> ⚠ **更正 KB-08 · P2 · AUD-KB K4 2026-09-16**(原句字节保留, 不改写): 唯一执行步骤单 = `docs/RUNBOOK_monthly_retrain_2026-10.md` §0★(v4 口径); `RUNBOOK_monthly_retrain_2026-09.md` **已被取代, 仅作历史**(owner `AUDIT_TRAIN TRN-28`)。
 | 长期记忆索引 | `~/.claude/projects/...quant-research/memory/MEMORY.md` |
 
 ## 当前进度
