@@ -1176,3 +1176,73 @@ fx-exec 那套(bytes, sha256)前缀验证的设计是对的 —— 旧的整文�
   填 0 等于同时做错两件事: 谎报了值, 又丢掉了旗标里的信息。
 - **验收必须是行为的**: 改后跑一次, 断言那 7 个名字在新编码下与费率真为 0 的名字**可区分**,
   且未改动的 523 个名字逐位不变。
+
+---
+
+## §37 三支叠加 + 叠加电池(2026-09-16, lead)
+
+### 37.1 叠加链
+`ef60f85`(生产树) → `fx_w6c` 9c75b60 → `fx_exec` 4f9d439 → `fx_exec2` fff0ea2 → **`4f0419f`**(D3 门修复)
+**183 文件 / +20,994 −380**, diff 收据 `receipts/STACKED_ef60f85_to_4f0419f.diff` sha16 `d6bf1fcde19ed122`(1.6M)。
+
+合并期间**只有一处 git 冲突**(`live/tests_disposition_matrix.py`), 是**纯追加**:
+fx_w6c 加 EXE-01 flatten 范围切分格, fx_exec 加 G7-E5/EXE-07 标尺格, 语义不相干 ⇒ **双方原字节全保留**。
+跑后两边关键格皆绿(`EXE-01 synthetic` OK · `E5-R1` OK · `E5-R4 parity` OK)。
+**对照实验**: 同树同 state 跑 ef60f85 版 ⇒ base 9 红 / stack 10 红, **新增恰好 1 格且零格被改坏**;
+那格 `E3 THE REAL EVENT LOG IS READABLE` 是 fx_exec 提交 `c28c0a7` 新加的格, 因该树缺 `events.jsonl` 而红。
+
+**★ D3 合并门按设计打响**: git 三方合并 rc=0 零冲突, 但一棵树里出现两份 amendment 读取器 ——
+**语义冲突 git 看不见**, 被 fx_w6c 预先写好的 D3 门抓住。详见 §35 与提交 4f0419f。
+
+### 37.2 叠加电池判词
+`BATTERY_20260916T090507Z`, head `4f0419f`, 窗内(N+65min)持 `BATTERY.lock` 运行, 收工释放。
+
+> **159 套件 · 6 格非零 · `ACCEPTANCE: NOT GREEN` · rc=1**
+> 其中 **5 格 FAIL(exit 1) + 1 格 UNAVAILABLE(exit 3)**
+
+| 套件 | 退出 | 归因 | lead 是否独立核过 |
+|---|---|---|---|
+| `drift_gate` / `tests_drift_gate` | 1 | **真漂移**: `live/pilot_metrics.py` 的研究仓 vendored 副本落后 | ✓ 三方 sha 对照 |
+| `tests_entrypoint_wiring` | 1 | **本机在用电池**(`power=BATTERY`, 早先为 AC) | ✓ `pmset` 实测 |
+| `tests_ledger_notary` | 1 | 34 OK / 3 FAIL; W9·V1 需新格式清单(`t_tables=[]`) | 部分 |
+| `tests_proportional_response` | 1 | 既有 B14 格 58/59 | ✓ 与 fx-w6c 归因逐字相符 |
+| `tests_env_loading` | **3** | **`.env` 缺失 ⇒ UNAVAILABLE, 非 FAIL** | ✓ |
+
+### 37.3 ★ 两条纪律被本次电池**实证**
+1. **ENVRED-1 生效**: `tests_env_loading` 退出码是 **3** 不是 1 —— 读者能从退出码分辨
+   「测不了」与「没通过」。fx-exec 的修复按设计工作。
+2. **ENVRED-2 被实证**: 本次**刻意把实盘账本 rsync 进 state/**(树外状态已记录进
+   `receipts/STACKED_BATTERY_TREE_STATE.json`: pilot_log 47 天 · notify_audit 1986 行距今 3.64h ·
+   watchdog events 15 行)。结果 **`tests_alarm_digest` 由红转绿** ——
+   **同一份代码、不同树外状态、不同判词。跨树电池计数未声明树外状态即作废, 这条从此有了实证。**
+
+### 37.4 ★ 漂移是真的, 且必须在部署前处理
+| | `live/pilot_metrics.py` sha16 |
+|---|---|
+| 清单声明 / **叠加树** | `cd508c3f6a2727cc` |
+| 生产树 / **研究仓 vendored 副本** | `5ac7b16d0f97f2f8` |
+
+改动内容(LED-01, fx_exec2, 8 行):
+`by_id[tid] = f` → `by_id[(f.get("symbol"), tid)] = f`。
+理由: **Binance trade_id 是每 symbol 各自的序列**, 只按 id 去重会把两笔不同成交合并成一笔。
+
+**lead 独立验证(实盘 111,061 行成交)**:
+- **前提成立**: 411 个 symbol 各有紧凑 id 区间, **相邻 symbol 区间重叠 261/410 = 63.7%**
+  ⇒ 碰撞是真实的未来风险, 不是理论风险;
+- **当前影响 = 0**: 48,296 个不同 trade_id, **跨 symbol 共用者 0 个**, 新旧码去重结果逐笔相同。
+  **与 fx_exec2 自称的「bitwise equal before/after」一致 ⇒ 是正确的预防性加固, 不是在修正在流血的伤口。**
+
+**部署前动作**: 研究仓 `multi_asset/engine/live/pilot_metrics.py` 需按新 sha 重新 vendor。
+
+### 37.5 副发现: 漂移那格**红得对, 理由说错了**
+`drift_gate` 的红格判词是 `★ it states its DENOMINATOR`, 断言为 `any(c.isdigit() for c in out)`。
+守卫检测到漂移时输出的是漂移报告(**无数字**), 于是这格红。
+**但真实原因是「检测到漂移」, 不是「守卫没声明分母」。** 读者会去修守卫的打印, 而不是去修漂移。
+生产树对照: `no drift across 5 vendored modules (declared A-set 5, all covered)` —— 有数字, 绿。
+**登记为 DRIFT-01(P3): 漂移检出时也必须打印分母, 使这两种红可区分。**
+
+### 37.6 一条必须声明的污染
+我在 §35 报的 `tests_pipeline_gates.py` **ALL PASS (473 checks)** 是在**含 FX-TRAIN 未提交 TRN-01 改动**
+的工作树上跑的(两文件 mtime 2026-09-16T05:36:59Z, 我的运行在 05:41Z)。
+**K4 回退本身的结论不受影响**(八个装置 sha 我是逐个实测复原的, 不依赖该套件),
+但那个 473 描述的是一个**包含他人未提交工作的树**, 不是已提交状态。**FX-TRAIN 已撞额度, TRN-01 半截留在工作树。**
