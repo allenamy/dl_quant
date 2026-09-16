@@ -122,8 +122,12 @@ neigh = [(CACHE_T0 + int(a) * BAR, CACHE_T0 + int(b) * BAR) for a, b in np.asarr
 rec["hole_runs_utc"] = [[U(a), U(b)] for a, b in runs]
 rec["hole_neighbourhoods_utc"] = [[U(a), U(b)] for a, b in neigh]
 near = np.zeros(nC, bool)
-for a, b in neigh:
-    near |= (ct >= a) & (ct <= b)
+# AD_D's own rule, in its own words: an anchor is near iff its LONGEST window (8,640 cache rows back, 288 forward) touches a
+# fill run -- i.e. in row space, a - 288 <= r <= b + 8640. The npz's `neigh_rows` is narrower on the lower side (a - 48, one
+# anchor) and using it left 555 cells in the "away" bucket; AD_D reports 0. The stated rule is the one to implement.
+for a, b in np.asarray(HZ["fill_runs"]).tolist():
+    lo = CACHE_T0 + (int(a) - 288) * BAR; hi = CACHE_T0 + (int(b) + 8640) * BAR
+    near |= (ct >= lo) & (ct <= hi)
 c1 = {}
 tot_near = tot_away = 0
 for k in KLINE:
@@ -212,7 +216,8 @@ def build_funding(mode):
         rate_nf = fr * (8.0 / iv_full)
         ns = {"np": np, "CAN": CAN, "out": out, "j": j, "s": s, "ft": ft, "fr": fr, "iv_full": iv_full,
               "rate_nf": rate_nf, "cut": cut, "tail_ts": tail_ts, "nC": nC, "HL": HL, "state": state,
-              "n_cont": 0}
+              "n_cont": 0, "n_noseed": 0, "n_tail_events": 0,
+              "sel": ft > cut}          # r6_panel_splice.py L93, the one statement above the extracted span; pass 1's bitwise control is its proof
         missing = [n for n in FREE_NAMES if n not in ns]
         assert not missing, ("the verbatim block reads names this device does not supply", missing)
         exec(EMA_CODE, ns)
