@@ -39,6 +39,8 @@ On the batch the lead named, `FLATTEN-20260912T124737Z` (255 rows): `anchor_ts =
 | `live/venue_fills.py:1165,1288` | joins fills by client id / leg | not by time ⇒ unaffected (NEW-02's `attempt_idx` is FX-EXEC's item) |
 | `ops/backfill_fills.py:114` | `client_ids` + leg | unaffected |
 
+| `ops/assert_anchor_artifacts.py` | the anchor's own rows, and a `FILL_DEPENDENT` column set (`:341`) | **checked and clear**: its selector is `mine = [o for o in orders if o.get("rebalance_id") == rebalance_id]` (`:163`), i.e. the scheduled anchor's own `A<ts>` batch — a `FLATTEN-<trip_key>` batch is never in it, so the new `submit_ts_source` column cannot reach that assertion. It is also not in the battery's suite list; it runs inside `run_anchor` (measured on a real DRY anchor with this change in place: `artifacts: OK (7/7 hold; N/A in DRY_RUN: 2)`) |
+
 ⇒ Two real consumers: **§4-5e can never judge a flatten anchor**, and **the ledger contains 204+ rows whose execution precedes their own submission**.
 
 ## §4 The constraint the lead set, and what follows from it
