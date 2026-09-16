@@ -1,0 +1,40 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_fill_backfill.py head=48e99389d58f7e8cd24e9bf457bac26f24715575 dirty=3 start=2026-09-16T03:11:09Z py=Python 3.9.6
+# suite_sha256=cc2ecf610e48b5113ed7c2bd4b5949d2ceee36bfbb712434798f8fc27e007f95
+[B26b] the gap is found from the record, per SYMBOL, and only when something executed
+  OK    ★★ a batch that executed with no fill rows is a gap  — [{'rebalance_id': 'A1785110400', 'anchor_ts': 1785110400.0, 'kind': 'rebalance', 'n_executed_symbols': 1, 'n_missing_symbols': 1, 'missing_symbols': ['BTCUSDT'], 'client_ids': {}, 'attempt_by_client_id': {}, 'n_order_rows_fee_unmeasured': 1}]
+  OK    ★ ...named down to the symbol, so a partial collection is a gap too  — [{'rebalance_id': 'A1785110400', 'anchor_ts': 1785110400.0, 'kind': 'rebalance', 'n_executed_symbols': 1, 'n_missing_symbols': 1, 'missing_symbols': ['BTCUSDT'], 'client_ids': {}, 'attempt_by_client_id': {}, 'n_order_rows_fee_unmeasured': 1}]
+  OK    ★ a batch whose fills WERE collected is not a gap (the job stays quiet when it should)
+  OK    ★★ an UNKNOWN fill is not a gap — nothing is owed for a leg we cannot say executed
+
+[B26b] ★★ the legs are rebuilt from the VENUE, because the process that sent them is gone
+  OK    ★ `submitted_order_legs` returns NOTHING in a fresh process (this is the reason for the second reader, measured rather than assumed)
+  OK    ★★ ...while the venue's copy of our own clientOrderId rebuilds it exactly  — [('BTCUSDT', 11), ('BTCUSDT', 12)]
+  OK    ★ the leg comes from the TIF: GTX is the maker leg, IOC the top-up  — {('BTCUSDT', 11): 'maker', ('BTCUSDT', 12): 'topup_taker'}
+  OK    ★★ another party's order in the same window and symbol is NOT ours  — [('BTCUSDT', 11), ('BTCUSDT', 12)]
+
+[B26b] the recovered rows are appended, and someone else's trade is not
+  OK    ★★ the two child fills are recovered and written  — {'n_trades_seen': 3, 'n_rows_recoverable': 2, 'n_rows_written': 2}
+  OK    ★★ the foreign trade is seen but NOT attributed to us (a window is not attribution)  — {'n_trades_seen': 3, 'n_trades_unattributed': 1}
+  OK    ★ the rows carry the venue's trade id and its commission, per fill  — [(1, 0.12), (2, 0.16)]
+  OK    ★ ...and each names the leg it belongs to  — ['maker', 'topup_taker']
+  OK    ★ the +60s mark stays PENDING with its reason, never 0.0 (markout backfill owns that)
+
+[B26b] ★★ running it twice must not double the ledger
+  OK    ★★ the second run writes nothing — idempotent by trade id, not by run
+  OK    ★ ...and the fills table still holds exactly two rows  — 2
+
+[B26b] a REPORT-ONLY run touches nothing
+  OK    ★★ without --apply the recoverable rows are counted and NOT written  — {'n_rows_recoverable': 2, 'n_rows_written': 0}
+
+[B26b] ★★ what it CANNOT repair is counted, not omitted
+  OK    ★★ an order row whose fill is still UNKNOWN is reported, with why it is not rewritten  — 1
+
+[B26b] ★★ refusals: no legs, and an unreachable symbol
+  OK    ★★ trades exist but no leg can be established => REFUSE to write, and say so  — no order legs could be rebuilt from the venue, so every trade would be unattribu
+  OK    ★ ...and the ledger is untouched by the refusal
+  OK    ★★ a symbol we could not ask is NAMED, not silently counted as 'no trades'  — {'symbols_reached': 0, 'symbols_unreached': ['BTCUSDT']}
+
+  20 checks run
+
+ALL PASS
+# end=2026-09-16T03:11:10Z rc=0

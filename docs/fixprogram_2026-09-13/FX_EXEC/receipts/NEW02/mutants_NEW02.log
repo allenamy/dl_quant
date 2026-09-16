@@ -1,0 +1,27 @@
+# NEW-02 mutants  2026-09-16T03:11:42Z  head=48e99389d58f7e8cd24e9bf457bac26f24715575
+# baseline venue_fills=5c3362249af8035d5b129a31a06fdbb34f02758813a31967379aa7e310a761ba  backfill_fills=cf98db3999f5c88545b485d371b330d8c7dc90b8e2a2753f7e0eae77d0c8c0a5
+MUT M1  rc=1  red_cells=1  crashy_lines=0  CAUGHT  — drop the 36-char truncation guard in attempt_from_client_id
+          FAIL  ★★ N2-5c an id AT the venue's 36-char limit is REFUSED rather than parsed: the mint truncates with [:36], so at the boundary a cut inside the suffix turns -12 into -1 — a number that is WRONG rather than absent. Both the truncated id (which really does now end -1) and an id that is 36 chars honestly are refused
+MUT M2  rc=1  red_cells=1  crashy_lines=0  CAUGHT  — parse the attempt by splitting on the last dash (ignore the rebalance-id/symbol shape)
+          FAIL  ★★ N2-5d a non-numeric tail is REFUSED (an id we did not mint, or a shape that changed under us)
+MUT M3  rc=1  red_cells=5  crashy_lines=0  CAUGHT  — attribute_trades stops carrying the leg attempt onto the trade row
+          FAIL  ★★★ N2-1 the flatten backfill's own rows JOIN to their order rows on (rebalance_id, symbol, order_type, attempt_idx) — 0 of 4 unjoinable (old code: 4 of 4, the 2026-09-12 shape at 7,312/7,312) — and the attempt was RESOLVED from the order rows, not defaulted (no note), so a dropped attempt map cannot pass this cell by landing on the same number
+          FAIL  ★★★ N2-2 when the ladder's order rows record attempt 3 (the real 2026-07-26 shape: 103/103/2 over three attempts), the fills rows say 3 — not 2 (leg-type proxy) and not 1 (the other writer's hardcode)
+          FAIL  ★★ N2-3 two legs of ONE flatten batch resolve to their OWN attempts (1 and 2) — the column is per leg, not per batch, and the client-id suffix (1 and 7) is never the source
+          FAIL  ★ N2-4b …and a RESOLVED attempt carries no such note (the note means exactly one thing)
+          FAIL  ★★ N2-7 NEIGHBOUR (F23, latent) — a REQUOTED maker leg (client id …-2) gives attempt 2, matching its order row; the old leg-type proxy gave 1
+MUT M4  rc=1  red_cells=2  crashy_lines=0  CAUGHT  — unresolvable flatten falls back to 2 again (the original defect value)
+          FAIL  ★★ N2-4 a flatten leg whose attempt CANNOT be joined (the 09-09 no-client-id shape) still gets its row — the fill is a fact — at the tree's unknown-attempt default of 1, and the row NAMES that it was not joined so a reader can tell a resolved attempt from a defaulted one
+          FAIL  ★★ N2-5b and with NO caller map the suffix is still not parsed: the leg is unresolved (default + note), never 255
+MUT M5  rc=1  red_cells=1  crashy_lines=0  CAUGHT  — keep the leg-type proxy for maker legs (ignore a resolved attempt of 2)
+          FAIL  ★★ N2-7 NEIGHBOUR (F23, latent) — a REQUOTED maker leg (client id …-2) gives attempt 2, matching its order row; the old leg-type proxy gave 1
+MUT M6  rc=1  red_cells=2  crashy_lines=0  CAUGHT  — find_gaps stops emitting attempt_by_client_id
+          FAIL  ★★★ N2-1 the flatten backfill's own rows JOIN to their order rows on (rebalance_id, symbol, order_type, attempt_idx) — 0 of 4 unjoinable (old code: 4 of 4, the 2026-09-12 shape at 7,312/7,312) — and the attempt was RESOLVED from the order rows, not defaulted (no note), so a dropped attempt map cannot pass this cell by landing on the same number
+          FAIL  ★★★ N2-2 when the ladder's order rows record attempt 3 (the real 2026-07-26 shape: 103/103/2 over three attempts), the fills rows say 3 — not 2 (leg-type proxy) and not 1 (the other writer's hardcode)
+MUT M7  rc=1  red_cells=2  crashy_lines=0  CAUGHT  — backfill_batch stops passing the map to order_legs_from_venue
+          FAIL  ★★★ N2-1 the flatten backfill's own rows JOIN to their order rows on (rebalance_id, symbol, order_type, attempt_idx) — 0 of 4 unjoinable (old code: 4 of 4, the 2026-09-12 shape at 7,312/7,312) — and the attempt was RESOLVED from the order rows, not defaulted (no note), so a dropped attempt map cannot pass this cell by landing on the same number
+          FAIL  ★★★ N2-2 when the ladder's order rows record attempt 3 (the real 2026-07-26 shape: 103/103/2 over three attempts), the fills rows say 3 — not 2 (leg-type proxy) and not 1 (the other writer's hardcode)
+MUT M8  rc=0  red_cells=0  crashy_lines=0  *** NOT CAUGHT ***  — drop the isdigit guard (a non-numeric tail becomes an exception, not an absence)
+MUT M9  rc=1  red_cells=1  crashy_lines=0  CAUGHT  — order_legs_from_venue ignores the caller map and parses the id instead
+          FAIL  ★★★ N2-2 when the ladder's order rows record attempt 3 (the real 2026-07-26 shape: 103/103/2 over three attempts), the fills rows say 3 — not 2 (leg-type proxy) and not 1 (the other writer's hardcode)
+# restored: venue_fills=5c3362249af8035d5b129a31a06fdbb34f02758813a31967379aa7e310a761ba  backfill_fills=cf98db3999f5c88545b485d371b330d8c7dc90b8e2a2753f7e0eae77d0c8c0a5

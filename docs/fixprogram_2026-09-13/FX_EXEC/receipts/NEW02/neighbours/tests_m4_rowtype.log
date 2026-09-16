@@ -1,0 +1,26 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_m4_rowtype.py head=48e99389d58f7e8cd24e9bf457bac26f24715575 dirty=3 start=2026-09-16T03:11:08Z py=Python 3.9.6
+# suite_sha256=05acc1796181a713b1e064b8c853739cdc3e8dec92aae91a1c5641a18d774d91
+[h] m4 must not raise on a protective_flatten row
+  OK    the rebalance-only baseline computes  — n_anchors=2 ann=328.5
+  OK    ★★ m4 does not raise when ladder rows are present
+
+[h] and the GATE OUTPUT must be unchanged — not merely 'it did not raise'
+  OK    ★★ n_anchors is unchanged (ladder rows must not open anchor buckets)  — 2 -> 2
+  OK    ★★ target_weight_turnover_annualised is unchanged (the §3d gate value)  — 328.5 -> 328.5
+  OK    ★ ...and so is realized turnover  — 438.0 -> 438.0
+  OK    ★ the dilution is what would have happened: adding them to the denominator lowers the gate  — baseline n_anchors=2
+
+[h] the §2.5.7 component set is pinned to what measurement_complete actually reads
+  OK    m1 names the components its completeness flag consumes  — ('n_unmeasured_slippage', 'n_unmeasured_fee')
+  OK    ★★ the pinned set is exactly {slippage, fee}  — ('n_unmeasured_slippage', 'n_unmeasured_fee')
+  OK    ★ the alias is NOT in the component set (it is a back-compat field, not a component)  — ('n_unmeasured_slippage', 'n_unmeasured_fee')
+  OK    ★ the alias still tracks its principal — decoupling is itself a defect  — fills=0 slippage=0
+
+[h2] PM.compute must be EXECUTABLE, not merely hash-frozen
+  OK    ★★ PM.compute RUNS on a tree containing a protective_flatten row
+  OK    ★★ ...and produces every metric the sign-off reads  — ['M1_effective_cost', 'M2_markout', 'M3_fill_rate', 'M4_turnover', 'M5_weight_fidelity', 'M6_funding', 'M6_sign_consistency']
+
+  12 checks run
+
+ALL PASS
+# end=2026-09-16T03:11:09Z rc=0

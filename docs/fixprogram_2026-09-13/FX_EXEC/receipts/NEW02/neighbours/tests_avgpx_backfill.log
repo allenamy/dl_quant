@@ -1,0 +1,92 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_avgpx_backfill.py head=48e99389d58f7e8cd24e9bf457bac26f24715575 dirty=3 start=2026-09-16T03:05:52Z py=Python 3.9.6
+# suite_sha256=92dd351fe2446bdde12b443dcc61f433b0ffc33cb783f56137896b1ce74c7996
+[1] a leg WITH child fills must carry their qty-weighted price
+  OK    ★★ a leg whose child fills we hold gets a PRICE (this is the 08:01:24Z defect)  — 0.0127
+  OK    ★ and it is a real price, never 0.0 (0 divides into an infinite quantity)  — 0.0127
+  OK    ★★ it equals Σ(child notional)/Σ(child qty) — the venue's own avgPrice identity  — 0.0127 vs 0.0127
+  OK    ★ NOT the last child's price (identical on one fill, wrong on several)  — 0.0127
+  OK    ★ NOT the unweighted mean of the children  — 0.0127
+  OK    the derived quantity is the children's summed qty, which is what §4-5b compares  — 10.0
+  OK    the row says where the price came from  — Σ(child fill notional)/Σ(child qty) over 2 child fill(s) attributed to the topup_taker leg (/fapi/v1/userTrades) — the venue's own avgPrice identity, rebuilt because the order response carried no price
+  OK    the report counts it, so a caller is not blind to whether it happened  — {'stamped': 1, 'measured_zero': 0, 'structural_zero': 0, 'unknown': 0, 'not_applicable': 0, 'px_backfilled': 1, 'px_unavailable': 0}
+
+[2] each leg's price is derived from ITS OWN children
+  OK    the maker row carries the MAKER child's price  — 0.01
+  OK    ★ the top-up row does NOT inherit it  — 0.0127
+
+[3] a leg with no child fills keeps a NULL price — not 0.0
+  OK    ★★ absence stays absence: avg_fill_px is None
+  OK    ★ and specifically not 0.0 — a zero satisfies not_null and then divides into an infinite quantity, i.e. a fabricated position
+  OK    no provenance is claimed for a price that was not written
+  OK    the fee on that leg is a MEASURED zero (queried, no fills), not an unknown  — {'stamped': 0, 'measured_zero': 1, 'structural_zero': 0, 'unknown': 0, 'not_applicable': 0, 'px_backfilled': 0, 'px_unavailable': 0}
+
+[3b] a leg we could not read, or hold no submit response for, stays unpriced
+  OK    symbol unreachable -> price stays None (the guard's anomaly is CORRECT here)
+  OK    no submit response for the leg -> price stays None (fills are not attributable to it)
+  OK    a leg that never left the process stays unpriced and structurally fee-zero  — {'stamped': 0, 'measured_zero': 0, 'structural_zero': 1, 'unknown': 0, 'not_applicable': 0, 'px_backfilled': 0, 'px_unavailable': 0}
+
+[4] the venue's own avgPrice, when the order response carried it, wins
+  OK    an existing price is left alone (same identity, same venue — not a second opinion)  — 0.0129
+  OK    and nothing is counted as backfilled  — {'stamped': 1, 'measured_zero': 0, 'structural_zero': 0, 'unknown': 0, 'not_applicable': 0, 'px_backfilled': 0, 'px_unavailable': 0}
+
+[5] 2026-07-28 08:01:24Z replayed: the backfill is what clears §4-5b / §4-7
+  OK    ★ REVERSE CONTROL: without the price the fixture really does trip the guard (2 x execution_of_unknown_size) — otherwise 'clean after' would prove nothing  — [('SAGAUSDT', 'execution_of_unknown_size'), ('SKLUSDT', 'execution_of_unknown_size')]
+  OK    ★★ with the price the SAME production reconciler reports §4-5b CLEAN
+  OK    ★★ and §4-7's drift half — the same walk — is CLEAN too  — 1785225684.348149
+  OK    the residual is not merely inside a tolerance: the quantities close EXACTLY  — [('SAGAUSDT', -24759.9, -24759.9), ('SKLUSDT', -32261.0, -32261.0)]
+  OK    nothing was reclassified into silence: no unreconcilable rows appear either
+
+[6] a flatten leg with an unreadable amount is rebuilt from its child fills
+  OK    ★★ a flatten leg the response could not size IS recovered from its child fills  — 175.533637
+  OK    ★★ the notional is Σ(child quote volume)  — 175.533637
+  OK    ★ SIGNED: a BUY-to-close reads POSITIVE (an unsigned one would make the exit look like a doubling)  — 175.533637
+  OK    ★★ the price is Σ(notional)/Σ(qty), not any one child's  — 0.009437951953631167 vs 0.009437951953631167
+  OK    ★ and NOT the last child's price  — 0.009437951953631167
+  OK    ★★ so the derived quantity is exactly what the venue's position moved by  — 18598.7
+  OK    the commission on the exit is picked up from the same rows, not left null  — 0.06
+  OK    the recovery names its own source on the leg  — /fapi/v1/userTrades, 3 child fill(s) joined on the venue ord
+  OK    the report counts it  — {'n_candidates': 1, 'n_recovered': 1, 'n_no_order_id': 0, 'n_no_trades': 0, 'symbols_unreached': [], 'error': None}
+
+[7] and only where the join is EXACT — otherwise the leg keeps its honest None
+  OK    ★★ no orderId -> untouched. The alternative is a TIME WINDOW, which charges a foreign fill to our exit  — {'submitted': True, 'error': None, 'filled_notional': None, 'avg_fill_px': None, 'fill_ts': 1785226728.403, 'order_id': None, 'mid_at_submit': 0.009434999999999999}
+  OK    ★ an id with no matching child fills -> untouched, never 0.0
+  OK    a REFUSED leg is not a candidate (it executed nothing; nothing to recover)
+  OK    a leg the response DID size is left exactly as it was (no second opinion)  — -123.0
+  OK    ★ the venue is asked ONLY about the symbols that need recovering  — ['PORTALUSDT']
+  OK    nothing found -> nothing written, and the report says so  — {'n_candidates': 1, 'n_recovered': 0, 'n_no_order_id': 0, 'n_no_trades': 1, 'symbols_unreached': [], 'error': None}
+  OK    a fully-sized batch makes no request at all (no cost on the crisis path)  — {'n_candidates': 0, 'n_recovered': 0, 'n_no_order_id': 0, 'n_no_trades': 0, 'symbols_unreached': [], 'error': None}
+
+[8] the LEDGER ROW that comes out of it (production writer, real PORTALUSDT shape)
+  OK    ★ REVERSE CONTROL: without the recovery the writer reproduces the real row exactly (filled_amount_unknown, both columns null)  — ('filled_amount_unknown', None, None)
+  OK    ★★ with it the row states the amount, so the leg stops being unquantifiable  — (175.533637, 0.009437951953631167)
+  OK    ★ and the row's own VERDICT follows the evidence: `filled`, not `filled_amount_unknown`  — filled
+  OK    the exit's commission reaches the row instead of staying null after being read  — 0.06
+  OK    a recovered row says where its numbers came from  — /fapi/v1/userTrades, 3 child fill(s) joined on the venue ord
+
+[9] and the ladder actually CALLS it — a producer nobody calls is a producer that does not exist
+  OK    ★★ the ladder ran the recovery on its own orders  — {'n_candidates': 1, 'n_recovered': 1, 'n_no_order_id': 0, 'n_no_trades': 0, 'symbols_unreached': [], 'error': None}
+  OK    ★ and the repaired facts are on the orders the row writer will read  — [175.533637]
+  OK    the flatten itself still succeeded (the recovery runs after the exit, never inside it)
+  OK    ★ when the venue yields nothing the ladder SAYS the legs stay unsized, and does not invent one  — ['1 flatten leg(s) reported a fill we could not size, and userTrades did not resolve them (no_order_id=0, no_trades=1, unreached=[], error=None) — they stay `filled_amount_unknown` and §4-5b will report them as executions of unknown size, which is correct']
+  OK    ★★ a recovery that FAILS cannot take the flatten down with it (rung isolation)  — ["1 flatten leg(s) reported a fill we could not size, and userTrades did not resolve them (no_order_id=0, no_trades=1, unreached=['PORTALUSDT'], error=None) — they stay `filled_amount_unknown` and §4-5b will report them as executions of unknown size, which is correct"]
+
+[10] the real flatten anchor, through the production reconciler
+  OK    ★ REVERSE CONTROL: the unrecovered row really is what trips §4-5b at that anchor  — [('PORTALUSDT', 'execution_of_unknown_size')]
+  OK    ★★ recovered -> §4-5b CLEAN and §4-7's drift half CLEAN, from the same walk
+  OK    ★ and the verdict does not depend on WHICH prices the children had — §4-5b compares quantity, and Σnotional/Σqty returns Σqty for any split
+
+[M] red capability — the same assertions, run against deliberately broken producers
+  OK    ★ m1 no backfill at all (the 08:01:24Z code shape) -> the suite goes RED  — 6 assertion(s) failed: ['★★ a leg whose child fills we hold gets a PRICE (this is the 08:01:24Z defect)', '★ and it is a real price, never 0.0 (0 divides into an infinite quantity)']
+  OK    ★ m2 the LAST child's price -> the suite goes RED  — 3 assertion(s) failed: ["★★ it equals Σ(child notional)/Σ(child qty) — the venue's own avgPrice identity", "★ NOT the last child's price (identical on one fill, wrong on several)"]
+  OK    ★ m3 a zero (satisfies not_null, divides into infinity) -> the suite goes RED  — 3 assertion(s) failed: ['★ and it is a real price, never 0.0 (0 divides into an infinite quantity)', "★★ it equals Σ(child notional)/Σ(child qty) — the venue's own avgPrice identity"]
+  OK    ★ m4 the unweighted mean of the children -> the suite goes RED  — 3 assertion(s) failed: ["★★ it equals Σ(child notional)/Σ(child qty) — the venue's own avgPrice identity", '★ NOT the unweighted mean of the children']
+  OK    the real implementation is restored after the mutation run
+  OK    ★ and the restored implementation is green again (a mutation harness that left the module broken would make every later suite lie)
+  OK    ★ n1 no recovery at all (the PORTALUSDT code shape) -> the suite goes RED  — 8 assertion(s) failed: ['★★ a flatten leg the response could not size IS recovered from its child fills', '★★ the notional is Σ(child quote volume)']
+  OK    ★ n2 unsigned notional (a closing BUY would read as a further sale) -> the suite goes RED  — 3 assertion(s) failed: ['★★ the notional is Σ(child quote volume)', '★ SIGNED: a BUY-to-close reads POSITIVE (an unsigned one would make the exit look like a doubling)']
+  OK    ★ n3 the LAST child's price -> the suite goes RED  — 3 assertion(s) failed: ["★★ the price is Σ(notional)/Σ(qty), not any one child's", "★ and NOT the last child's price"]
+  OK    the real flatten recovery is restored
+  OK    ★ and it is green again
+
+ALL PASS  (64 checks)
+# end=2026-09-16T03:05:53Z rc=0

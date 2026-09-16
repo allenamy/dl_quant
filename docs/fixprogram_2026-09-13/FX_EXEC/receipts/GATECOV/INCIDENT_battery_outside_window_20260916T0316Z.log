@@ -1,0 +1,36 @@
+# INCIDENT receipt — accidental run_acceptance.sh outside the permitted window
+# recorded 2026-09-16T03:20:13Z  clone head=6d11ba3868ae2e60945ea05363fce7da96c5ecef
+## what happened
+  I ran live/tests_acceptance_entrypoints.py as a neighbour cell for the gate_coverage item.
+  That suite shells out to 'bash run_acceptance.sh' TWICE (lines 85-90) to compare the two
+  entry points byte for byte — i.e. it runs the FULL battery, which contains
+  tests_entrypoint_wiring (DRY_RUN run_anchor, unauthenticated public market-data GETs).
+  I did not check what the suite invoked before running it.
+## window
+  start 2026-09-16T03:16:25Z (from the runner's log stamp); killed 03:18:49Z; elapsed ~2m24s.
+  00Z anchor window permits N+65min..N+3h15m = 01:05Z..03:15Z. Start was ~1m10s AFTER it closed.
+  /Users/haosiyu/cc_tmp/BATTERY.lock was NOT held: no lock file present
+## what went out
+  Unauthenticated PUBLIC market-data GETs only. Evidence = state files the DRY_RUN run_anchor wrote:
+    state/exchange_info_cache.json  mtime=2026-09-16T11:17:59Z
+    state/funding_last_pull.json  mtime=2026-09-16T11:18:00Z
+    state/panel_cache/funding.npz  mtime=2026-09-16T11:17:47Z
+    state/panel_cache/klines_1h.npz  mtime=2026-09-16T11:17:11Z
+  tests_entrypoint_wiring's own log is 0 bytes (created 03:17Z, killed mid-run, stdout buffered)
+  ⇒ I cannot bound the request count from the log; only 9 suite logs exist for this run.
+## what did NOT happen (asserted, not assumed)
+  no .env in the clone: ABSENT
+  BINANCE_API_KEY unset; LIVE_MODE unset ⇒ code default DRY_RUN
+  state/pilot_log/20260916/: _schema.json 
+    orders.jsonl ABSENT, fills.jsonl ABSENT ⇒ no order was placed or cancelled
+  ~/dl_quant_live and ~/wide_shadow untouched (this clone only)
+## cleanup performed
+  rm state/acceptance/20260916T031625Z_*  and  state/pilot_log/20260916/
+  git checkout -- state   (tracked state files back to HEAD)
+  NOT run: 'git clean -- state' — it would delete pre-existing untracked REAL-state copies
+    (state/live/pilot_log/202608*, rate_timeline, fixtures) that the suites read.
+## clone source status after cleanup
+ M live/tests_acceptance_entrypoints.py
+ M ops/gate_coverage.py
+## tracked state files still dirty after checkout:
+  0

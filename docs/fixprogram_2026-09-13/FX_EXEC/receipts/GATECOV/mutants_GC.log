@@ -1,0 +1,21 @@
+# gate_coverage mutants  2026-09-16T03:23:45Z  head=6d11ba3868ae2e60945ea05363fce7da96c5ecef
+# baseline gate_coverage=f20a4c1088b022fa09986f3779fbe492ad3124560bfa9a6a8e19d9e114c2d623
+GM GM1  suite_rc=1  gate_rc=0  CAUGHT  — duplicate_literal_keys always returns {}
+          FAIL ★★★ S7c ...and the checker has the red capability: it finds a planted duplicate, names every line it was written on, counts int keys, and flags neither the same key in a different dict nor a repeated value
+          FAIL ★★ S7d ...and gate_coverage.verify() CONSULTS it — asserted by pointing verify at the fixture, not by grepping its source, so a rename cannot leave the check inert
+        tracebacks=0
+GM GM2  suite_rc=1  gate_rc=0  CAUGHT  — scan only the FIRST dict literal (stop after one)
+          FAIL ★★★ S7c ...and the checker has the red capability: it finds a planted duplicate, names every line it was written on, counts int keys, and flags neither the same key in a different dict nor a repeated value — {'x': [2, 4]}
+        tracebacks=0
+GM GM3  suite_rc=1  gate_rc=0  CAUGHT  — verify() stops consulting the checker
+          FAIL ★★ S7d ...and gate_coverage.verify() CONSULTS it — asserted by pointing verify at the fixture, not by grepping its source, so a rename cannot leave the check inert
+        tracebacks=0
+GM GM4  suite_rc=1  gate_rc=0  CAUGHT  — sort the duplicates without str() (mixed int/str keys ⇒ TypeError)
+        tracebacks=1
+GM GM5  suite_rc=1  gate_rc=0  CAUGHT  — ignore int keys (only string keys count as duplicates)
+          FAIL ★★★ S7c ...and the checker has the red capability: it finds a planted duplicate, names every line it was written on, counts int keys, and flags neither the same key in a different dict nor a repeated value — {'x': [2, 4]}
+        tracebacks=0
+GM GM6  suite_rc=1  gate_rc=1  CAUGHT  — re-insert the stale duplicate SUITE_SCOPE entry (the defect itself)
+          FAIL ★★★ S7b ...and carries it exactly ONCE — no dict literal in gate_coverage.py loses a statement to a duplicate key (the parser keeps only the last, silently) — {'tests_external_book': [267, 268]}
+        tracebacks=0
+# restored: f20a4c1088b022fa09986f3779fbe492ad3124560bfa9a6a8e19d9e114c2d623

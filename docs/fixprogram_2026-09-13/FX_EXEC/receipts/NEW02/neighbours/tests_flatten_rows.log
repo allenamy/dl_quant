@@ -1,0 +1,29 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_flatten_rows.py head=48e99389d58f7e8cd24e9bf457bac26f24715575 dirty=3 start=2026-09-16T03:06:50Z py=Python 3.9.6
+# suite_sha256=3a7093f2b5d8a3444413fa1a7a45e67265624f9ccc018c25d46ad20a5e0b5744
+[b] every attempt's orders survive to the ladder record
+  OK    ★★ the ladder kept ALL attempts' orders, not just the last  — 208
+  OK    ★★ attempt distribution is 103 / 103 / 2 (the real sequence)  — {1: 103, 2: 103, 3: 2}
+
+[b] every ladder order becomes a row
+  OK    ★★ 208 rows written (not 2)  — 208
+  OK    the ladder reports what it wrote  — 208
+
+[b] attempt_idx on a ladder row means WHICH ATTEMPT
+  OK    ★★ row attempt distribution is 103 / 103 / 2  — {1: 103, 2: 103, 3: 2}
+
+[b] three row classes, each with its own honest facts
+  OK    ★★ the 101 real flattens are recorded as filled  — {'submitted_rejected': 107, 'filled': 101}
+  OK    ★★ refused-but-SENT orders are `submitted_rejected`, not `venue_reject`  — {'submitted_rejected': 107, 'filled': 101}
+  OK    ★★ ...and they carry a REAL submit_ts (they did leave the process)  — [1789528010.6957371, 1789528010.6957371]
+  OK    ★ ...and no fill (None, never 0.0)  — {None}
+  OK    ★ ...and the venue's own error is on the row  — VenueError: [-1111] Precision
+  OK    a filled row has a fill AND a submit_ts  — 101
+
+[b] the never-submitted signature now means exactly one thing
+  OK    ★★ NO row in this trip is `never_submitted` — every order was sent  — {'submitted_rejected': 107, 'filled': 101}
+  OK    ★★ ...so no row has a null submit_ts
+
+  13 checks run
+
+ALL PASS
+# end=2026-09-16T03:06:50Z rc=0

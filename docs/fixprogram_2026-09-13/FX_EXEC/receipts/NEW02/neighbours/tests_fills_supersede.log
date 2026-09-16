@@ -1,0 +1,35 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_fills_supersede.py head=48e99389d58f7e8cd24e9bf457bac26f24715575 dirty=3 start=2026-09-16T03:05:53Z py=Python 3.9.6
+# suite_sha256=1b9315f4451b0113a3128e65427ddb768862668fae3e8886fe82932d9d1a4570
+[A] the fixture really does carry supersede rows
+  OK   ★★★ the naive sum is STRICTLY GREATER than the collapsed one — without this the whole suite could pass on a fixture that has no backfills at all, which is the 'a pattern matching nothing looks like a guard confirming safety' shape — naive 325.0 vs collapsed 175.0
+  OK   ★★ and the inflation is the real one in miniature: 5 rows -> 3 executions — 3 rows, sum 175.0
+
+[B] last write wins, on the venue's own key
+  OK   ★★★ the SURVIVING row for a backfilled fill is the MARKED one — collapsing must keep the row that carries the measurement, not merely delete a duplicate — [(3, None), (1, 1.001), (2, 1.001)]
+  OK   ★★ an unbackfilled fill survives untouched
+  OK   ★★★ rows WITHOUT a trade_id pass through untouched — a synthetic key from (symbol, ts, notional) would silently merge two genuinely distinct executions that happened to agree, which is worse than keeping a duplicate
+  OK   ★★ order is preserved for survivors, so a caller walking the table chronologically still can — the previous implementation returned untagged rows first and re-ordered the table
+
+[C] the metrics-side name delegates rather than re-implementing
+  OK   ★★★ the two spellings agree on the SET of surviving rows — a duplicated rule's real risk is silent divergence, and this is the assertion that sees it — 3 vs 3
+  OK   ★★ ...and they agree on the METRIC, which is the property that actually matters: M2 over either ordering is identical
+  OK   ★★★ the CONTRACT is written beside the writer, in SCHEMA["fills"] — it previously lived only in the docstring of the one consumer that already obeyed it, which is why three other readers never met it
+
+[D] every consumer reads the collapsed value
+  OK   ★★★ M2's population is the COLLAPSED count (3), not the raw rows (5) — marked + unmeasured must add up to the unique executions, or `n_unmeasured` can never fall — n_fills=2 + n_unmeasured=1 = 3
+  OK   ★★★ the watchdog reports BOTH: unique executions and raw rows, with a caliber note — dropping the raw count would hide the backfill's own progress (62 of 118 today), and reporting only rows is what misled the first reader
+  OK   ★★ ops/first_real_anchor.py prints unique executions beside the raw row count
+  OK   ★★ ops/first_anchor_review.py prints unique executions beside the raw row count
+
+[E] the safe readers, pinned so they stay safe
+  OK   ★★★ signed_fills_by_anchor walks the ORDERS table (its parameter is `orders`, it reads `filled_notional`) — §4-5b / §4-7 / M5 all share it, and the name saying 'fills' means 'the amount filled', not that file. Pinned because the NAME invites the wrong edit
+  OK   ★★★ ...and the function SAYS SO in its own docstring, naming fills.jsonl as the thing it is NOT. It survived the 2026-08-01 audit by luck of inspection rather than by declaring itself; a name that invites the wrong edit must carry its own warning, or the next audit has to re-derive the same finding
+  OK   ★★ §4-1 costs a day from ORDERS, not fills — the denominator-inflation failure mode does not exist on that path
+
+[F] red capability
+  OK   M1 injection target matches exactly once — 1
+  OK   ★★★ M1 collapse disabled => 5 rows survive and the maker sum inflates, which is the state every raw-count reader was in this morning — [A] and [D] go red — 5 rows
+  OK   ★★ ...and M2 would then count each backfilled fill twice, freezing n_unmeasured — the exact consequence dedupe_fills was written for
+
+19/19 passed
+# end=2026-09-16T03:05:54Z rc=0

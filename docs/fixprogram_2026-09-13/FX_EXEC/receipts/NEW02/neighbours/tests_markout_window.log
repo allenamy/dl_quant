@@ -1,0 +1,17 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_markout_window.py head=48e99389d58f7e8cd24e9bf457bac26f24715575 dirty=3 start=2026-09-16T03:08:36Z py=Python 3.9.6
+# suite_sha256=b26eb9d9b266f0aa504615c4811698811cc5d1b57f02cdf46aaf6f9d95677d76
+  OK    MARK_WINDOW_MS is 60s  — 60000
+  OK    AGG_WINDOW_S = 47h (inside the venue's 2-day rule) and the venue code is -4166  — 169200/-4166
+  OK    DEFAULT_MAX_REQUESTS 900 / DEFAULT_MAX_SECONDS 1800 / PACE_S 2.0 (900×2s = 30 min ≤ 1800s)  — 900/1800/2.0
+  OK    four rows pending before the run  — 4
+  OK    (e) a fill older than the venue window is NOT requested and gets a terminal expired row  — status=aggtrades_window_expired n_expired=1 calls_old=[]
+  OK    (a) trade 30s after the mark resolves under the 60s window  — mid=2.5 lag=30.0 win=60.0
+  OK    (b) empty fully-returned window writes a TERMINAL row: mid None, mark_status set, supersedes the trade id  — status=no_trade_within_window sup=102
+  OK    (b) terminal row counted once (n_terminal=1, n_no_trade=1)  — {"n_terminal": 1, "n_no_trade": 1, "n_written": 2, "n_requests": 4, "n_truncated_groups": 1}
+  OK    (c) truncated group fell back to the per-target path and resolved LIQ at the mark  — mid=3.0 trunc=1
+  OK    (f) a -4166 refusal writes terminal expired rows with ONE request and no per-target retry  — status=aggtrades_window_expired n_expired=1 calls=1
+  OK    (b) after the run nothing is pending: resolved rows and the terminal row both left the set  — []
+  OK    terminal rows (no-trade 102, expired 104) are unmeasured for readers (mid None), not fabricated zeros  — [102, 104]
+  OK    per-target request uses the 60s window (endTime − startTime = MARK_WINDOW_MS)  — [('/fapi/v1/aggTrades', {'symbol': 'LIQUSDT', 'startTime': 1000060000, 'endTime': 1000120000, 'limit': 1})]
+PASS
+# end=2026-09-16T03:08:36Z rc=0

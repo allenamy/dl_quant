@@ -1,0 +1,449 @@
+diff --git a/live/tests_flatten_fee_backfill.py b/live/tests_flatten_fee_backfill.py
+index 8250bbf..1b19ea7 100644
+--- a/live/tests_flatten_fee_backfill.py
++++ b/live/tests_flatten_fee_backfill.py
+@@ -26,10 +26,14 @@ ASSERTED HERE:
+   [C] a flatten batch whose client ids the venue does not list ⇒ 0 legs, warning, nothing written (fail closed).
+   [D] regression: a normal rebalance gap still resolves by the `<rid>-` prefix (maker leg from GTX).
+   [E] the flatten's leg bucket does not disturb the maker/topup_taker buckets a normal batch produces.
++  [N2] NEW-02: a fills row's `attempt_idx` is the LEG's attempt (joinable to its order row), not the leg TYPE's
++      1=maker/2=other. Includes the trap cell: a flatten client id ends in a PROCESS-WIDE counter (1..255 on the
++      real 12Z batch, all at attempt 1), so the suffix is never read as the attempt.
+ 
+ NOT asserted: that the venue's allOrders reaches back to the flatten (limit 500 / startTime — the runner reports
+ `symbols_unreached`), nor the live run (`LIVE_MODE=LIVE python3 ops/backfill_fills.py --day 20260912 [--apply]` is the
+-operator's step, with credentials). Old code (918559f): [A] has no client_ids / kind, [B] rebuilds 0 legs ⇒ red.
++operator's step, with credentials). Old code (918559f): [A] has no client_ids / kind, [B] rebuilds 0 legs ⇒ red. Old code (48e9938): [N2] 1/2/3/4/5/5b/7 red
++(every flatten fills row written at attempt 2 against an order row at 1).
+ 
+ Exit 0 = all pass.
+ """
+@@ -216,6 +220,231 @@ _rows = VF.fill_rows_from_trades(_att["attributed_trades"], TS, RID_F)
+ check("★ E fill_rows_from_trades writes order_type protective_flatten for that leg and maker for the other",
+       sorted(r["order_type"] for r in _rows) == ["maker", "protective_flatten"], [r["order_type"] for r in _rows])
+ 
++# ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
++# [N2] NEW-02 — `attempt_idx` ON A FILLS ROW IS THE LEG'S ATTEMPT, NOT THE LEG TYPE'S
++#
++# THE DEFECT (fact table FACT_TABLE_NEW02.md, F8/F17/F21): `fill_rows_from_trades` derived the column from the leg
++# TYPE — `1 if otype == "maker" else 2` — while the ORDERS table records the attempt that actually produced the row:
++# a ladder row carries WHICH LADDER ATTEMPT (`watchdog.py:2390`, `tests_flatten_rows.py:30`, asserted at 103/103/2 on
++# the real 2026-07-26 trip) and a requoted maker carries 2 (`binance_executor.py:1307`). So every protective_flatten
++# fill was written as attempt 2 against an order row that said 1: on 2026-09-12 all 7,312 flatten fills rows fail an
++# orders↔fills join on (rebalance_id, symbol, order_type, attempt_idx) — the key two research cost devices use
++# (`calib/markout_diag.py:16,24`, `calib/cost_calib.py:118,120`).
++#
++# THE TRAP THIS MUST NOT FALL INTO (F12/F13): a rebalance client id ends in the attempt
++# (`f"{rid}-{sym}-{attempt}"`), but a FLATTEN id ends in a PROCESS-WIDE COUNTER (`_FLATTEN_SEQ`). On the real 12Z
++# batch those suffixes are 255 distinct values 1..255 across 255 orders that were every one of them attempt 1.
++# Parsing the suffix would therefore be worse than the defect. Asserted below on the real fixture.
++#
++# WHY NOT "just hardcode 1": that is the OTHER writer's bug. The 2026-09-09 one-off repair script
++# (`pilot_journal/tools/backfill_flatten_fills_20260909.py:85`) overwrote the column with a literal 1, and it only
++# looked right because every ladder in live history so far succeeded on its FIRST attempt (1,708/1,708 order rows).
++# N2-2/N2-3 are the cells that a hardcode-to-1 fix still fails.
++print("\n[N2] NEW-02: a fills row's attempt is the LEG's attempt, joinable to its order row")
++
++_FIXO = PL.read_day(FIX, DAY)["orders"]
++_FIXF = [o for o in _FIXO if o.get("order_type") == "protective_flatten"]
++_sfx = [str(o.get("client_id", "")).rsplit("-", 1)[-1] for o in _FIXF if o.get("client_id")]
++check("★★ N2-F fixture validity: the REAL 12Z batch is 255 flatten order rows ALL at attempt 1, whose client-id "
++      "suffixes are 255 DISTINCT values 1..255 — i.e. the suffix is a process-wide counter, not the attempt",
++      len(_FIXF) == 255 and {o.get("attempt_idx") for o in _FIXF} == {1}
++      and len(_sfx) == 255 and len(set(_sfx)) == 255 and min(map(int, _sfx)) == 1 and max(map(int, _sfx)) == 255,
++      (len(_FIXF), sorted({o.get("attempt_idx") for o in _FIXF}), len(set(_sfx))))
++
++
++def _flat_legs(pop, attempt_by_cid=None, cid_fn=None, leg="protective_flatten"):
++    """{(symbol, orderId): leg-entry} exactly as `order_legs_from_venue` returns it for a flatten batch."""
++    out = {}
++    for sym, side, qty, px, oid in pop:
++        cid = (cid_fn(sym) if cid_fn else f"F20260912124738-{sym}-1")
++        e = {"symbol": sym, "client_id": cid, "leg": leg, "tif": "IOC", "source": "allOrders"}
++        if attempt_by_cid is not None and cid in attempt_by_cid:
++            e["attempt_idx"] = attempt_by_cid[cid]
++        out[(sym, oid)] = e
++    return out
++
++
++def _flat_trades(pop, tid0=60000):
++    return {sym: {"trades": [{"id": tid0 + i, "order_id": oid, "side": side.upper(), "price": px, "qty": qty,
++                              "quote_qty": qty * px, "commission": 0.001 * qty * px, "commission_asset": "USDT",
++                              "ts": int((TS - 100.0) * 1000), "maker": False}]}
++            for i, (sym, side, qty, px, oid) in enumerate(pop)}
++
++
++# ── N2-1 ★★★ the production path end to end: every written fills row joins to an order row ──────────────────────
++def _tree_att(attempt):
++    """the [B] synthetic flatten tree, with the ladder attempt the order rows record set explicitly."""
++    root = tempfile.mkdtemp(prefix="n2_bf_")
++    lg = PL.PilotLogger(root, day=DAY)
++    for sym, side, qty, px, _oid in POP:
++        lg.order(anchor_ts=TS, symbol=sym, side=side, target_w=0.0, prev_w=None, intended_notional=qty * px,
++                 order_type="protective_flatten", submit_ts=TS, price_submit=None, mid_at_submit=px,
++                 mid_at_anchor=None, filled_notional=(qty * px if side == "buy" else -qty * px), avg_fill_px=px,
++                 first_fill_ts=TS - 100.0, last_fill_ts=TS - 100.0, cancel_ts=None, fee_paid=None,
++                 rebalance_id=RID_F, client_id=f"F20260912124738-{sym}-1", attempt_idx=attempt,
++                 terminal_reason="filled", notional_currency="USDT", flatten_error=None)
++    lg.close()
++    return root
++
++
++def _apply_and_join(attempt):
++    """run the real backfill against the scripted venue; return (fills rows, order rows) of the flatten batch."""
++    root = _tree_att(attempt)
++    b = broker(); _script_venue()
++    BF.run(root=root, day=DAY, apply=True, broker=b)
++    d = PL.read_day(root, DAY)
++    return ([f for f in d["fills"] if f.get("rebalance_id") == RID_F],
++            [o for o in d["orders"] if o.get("rebalance_id") == RID_F])
++
++
++_f1, _o1 = _apply_and_join(1)
++_okeys1 = {(o["rebalance_id"], o["symbol"], o["order_type"], int(o.get("attempt_idx") or 1)) for o in _o1}
++_miss1 = [f for f in _f1 if (f.get("rebalance_id"), f.get("symbol"), f.get("order_type"),
++                             int(f.get("attempt_idx") or 1)) not in _okeys1]
++check("★★★ N2-1 the flatten backfill's own rows JOIN to their order rows on (rebalance_id, symbol, order_type, "
++      "attempt_idx) — 0 of 4 unjoinable (old code: 4 of 4, the 2026-09-12 shape at 7,312/7,312) — and the attempt "
++      "was RESOLVED from the order rows, not defaulted (no note), so a dropped attempt map cannot pass this cell "
++      "by landing on the same number",
++      len(_f1) == 4 and not _miss1 and not any(f.get("attempt_idx_source") for f in _f1),
++      {"n_fills": len(_f1), "n_unjoinable": len(_miss1),
++       "n_defaulted": sum(1 for f in _f1 if f.get("attempt_idx_source")),
++       "fill_attempts": sorted({f.get("attempt_idx") for f in _f1}),
++       "order_attempts": sorted({o.get("attempt_idx") for o in _o1})})
++
++# ── N2-2 ★★★ the discriminating cell: a ladder that needed THREE attempts ────────────────────────────────────────
++# A fix that hardcodes 1 (the 09-09 script's bug) fails here exactly as the old code (which hardcodes 2) does.
++_f3, _o3 = _apply_and_join(3)
++check("★★★ N2-2 when the ladder's order rows record attempt 3 (the real 2026-07-26 shape: 103/103/2 over three "
++      "attempts), the fills rows say 3 — not 2 (leg-type proxy) and not 1 (the other writer's hardcode)",
++      bool(_f3) and {f.get("attempt_idx") for f in _f3} == {3},
++      {"fill_attempts": sorted({f.get("attempt_idx") for f in _f3}),
++       "order_attempts": sorted({o.get("attempt_idx") for o in _o3})})
++
++# ── N2-3 ★★ one batch, two attempts, per-leg resolution ─────────────────────────────────────────────────────────
++_pop2 = [("AAAUSDT", "sell", 100.0, 2.0, 9001), ("AAAUSDT2", "sell", 100.0, 2.0, 9002)]
++_cids = {"F20260912124738-AAAUSDT-1": 1, "F20260912124738-AAAUSDT2-7": 2}
++_legs2 = _flat_legs(_pop2, attempt_by_cid=_cids, cid_fn=lambda s: f"F20260912124738-{s}-{1 if s == 'AAAUSDT' else 7}")
++_att2 = VF.attribute_trades(_flat_trades(_pop2), _legs2)
++_rows2 = VF.fill_rows_from_trades(_att2["attributed_trades"], TS, RID_F)
++check("★★ N2-3 two legs of ONE flatten batch resolve to their OWN attempts (1 and 2) — the column is per leg, not "
++      "per batch, and the client-id suffix (1 and 7) is never the source",
++      sorted((r["symbol"], r["attempt_idx"]) for r in _rows2) == [("AAAUSDT", 1), ("AAAUSDT2", 2)],
++      [(r["symbol"], r.get("attempt_idx")) for r in _rows2])
++
++# ── N2-4 ★★ the 2026-09-09 shape: the venue minted the ids, so no leg can be joined ──────────────────────────────
++_legs4 = _flat_legs(POP)                      # no attempt supplied by the caller at all
++for e in _legs4.values():
++    e["client_id"] = None                     # 09-09: `flatten_all` sent no client id (F14)
++_att4 = VF.attribute_trades(_flat_trades(POP), _legs4)
++_rows4 = VF.fill_rows_from_trades(_att4["attributed_trades"], TS, RID_F)
++check("★★ N2-4 a flatten leg whose attempt CANNOT be joined (the 09-09 no-client-id shape) still gets its row — "
++      "the fill is a fact — at the tree's unknown-attempt default of 1, and the row NAMES that it was not joined "
++      "so a reader can tell a resolved attempt from a defaulted one",
++      bool(_rows4) and {r["attempt_idx"] for r in _rows4} == {1}
++      and all(r.get("attempt_idx_source") and "not" in str(r["attempt_idx_source"]).lower() for r in _rows4),
++      [(r["symbol"], r.get("attempt_idx"), str(r.get("attempt_idx_source"))[:70]) for r in _rows4])
++check("★ N2-4b …and a RESOLVED attempt carries no such note (the note means exactly one thing)",
++      all(not r.get("attempt_idx_source") for r in _rows2),
++      [(r["symbol"], r.get("attempt_idx_source")) for r in _rows2])
++
++# ── N2-5 ★★★ the trap: the flatten client-id suffix is NEVER read as the attempt ─────────────────────────────────
++_pop5 = [("ZZZUSDT", "sell", 10.0, 3.0, 9100)]
++_legs5 = _flat_legs(_pop5, attempt_by_cid={"F20260912124738-ZZZUSDT-255": 1},
++                    cid_fn=lambda s: f"F20260912124738-{s}-255")
++_att5 = VF.attribute_trades(_flat_trades(_pop5), _legs5)
++_rows5 = VF.fill_rows_from_trades(_att5["attributed_trades"], TS, RID_F)
++check("★★★ N2-5 a flatten leg whose client id ends -255 (the real 12Z counter's last value) against an order row "
++      "at attempt 1 gives attempt 1 — the process-wide counter is never mistaken for the attempt",
++      [r["attempt_idx"] for r in _rows5] == [1], [(r["symbol"], r.get("attempt_idx")) for r in _rows5])
++check("★★ N2-5b and with NO caller map the suffix is still not parsed: the leg is unresolved (default + note), "
++      "never 255",
++      (lambda rs: [r["attempt_idx"] for r in rs] == [1] and all(r.get("attempt_idx_source") for r in rs))(
++          VF.fill_rows_from_trades(VF.attribute_trades(
++              _flat_trades(_pop5), _flat_legs(_pop5, cid_fn=lambda s: f"F20260912124738-{s}-255")
++          )["attributed_trades"], TS, RID_F)))
++
++# ── N2-5c / N2-5d the parser's own two refusals (the shape test is the whole safety of this fix) ─────────────────
++# ★ Resolved through getattr so that on the OLD tree these read as a FAIL, not an AttributeError: a red that is a
++#   crash proves nothing about the defect.
++_afc = getattr(VF, "attempt_from_client_id", None)
++# the mint is `f"{rid}-{sym}-{attempt}"[:36]`. Build a symbol long enough that the 12th attempt's id is 37 chars:
++# truncation then eats the "2" and leaves a perfectly well-formed "-1" — attempt 12 reading as attempt 1.
++_sym37 = "X" * (37 - len("A1789212401-") - len("-12"))
++_cid37 = f"A1789212401-{_sym37}-12"[:36]
++_sym36 = "X" * (36 - len("A1789212401-") - len("-12"))
++check("★★ N2-5c an id AT the venue's 36-char limit is REFUSED rather than parsed: the mint truncates with [:36], so "
++      "at the boundary a cut inside the suffix turns -12 into -1 — a number that is WRONG rather than absent. Both "
++      "the truncated id (which really does now end -1) and an id that is 36 chars honestly are refused",
++      bool(_afc) and len(_cid37) == 36 and _cid37.endswith("-1") and not _cid37.endswith("-12")
++      and _afc(_cid37, "A1789212401", _sym37) is None
++      and _afc(f"A1789212401-{_sym36}-12", "A1789212401", _sym36) is None,
++      {"truncated": (_cid37[-6:], len(_cid37), (_afc(_cid37, "A1789212401", _sym37) if _afc else "absent")),
++       "exactly_36": (len(f"A1789212401-{_sym36}-12"), (_afc(f"A1789212401-{_sym36}-12", "A1789212401", _sym36) if _afc else "absent"))})
++# ★ The last two are why the tail is tested with `isdigit()` and not merely handed to `int()`: `int(" 12")` and
++#   `int("+12")` are both 12, so a try/except alone would ACCEPT a tail we did not mint in that form. The guard
++#   makes the answer absent instead of plausible. (Found by a mutant that dropping `isdigit` left green.)
++_bad_tails = ("A1789212401-EEEUSDT-1a", "A1789212401-EEEUSDT-", "SOMEONE-ELSE-1",
++              "A1789212401-FFFUSDT-1",                 # right batch, WRONG symbol
++              "A1789212401-EEEUSDT- 12", "A1789212401-EEEUSDT-+12")
++check("★★ N2-5d every tail we did not mint is REFUSED — a wrong shape, an empty tail, another party's id, the "
++      "right batch with the wrong symbol, and the two that `int()` alone would have swallowed (' 12' and '+12')",
++      bool(_afc) and all(_afc(c, "A1789212401", "EEEUSDT") is None for c in _bad_tails),
++      [(c[-6:], (_afc(c, "A1789212401", "EEEUSDT") if _afc else "absent")) for c in _bad_tails])
++check("★ N2-5e …and the one shape it DOES accept still works (the refusals are not a blanket refusal)",
++      bool(_afc) and _afc("A1789212401-EEEUSDT-2", "A1789212401", "EEEUSDT") == 2,
++      _afc("A1789212401-EEEUSDT-2", "A1789212401", "EEEUSDT") if _afc else "absent")
++
++# ── N2-6 / N2-7 neighbours: the rebalance legs ──────────────────────────────────────────────────────────────────
++# ★ These two cells drive the REAL leg producer (`submitted_order_legs`, the per-anchor path) rather than a
++#   hand-built map, so they assert the wiring and not just the row writer.
++_RID_R = "A1789212401"
++
++
++class _SubmitBroker:
++    """the shape `submitted_order_legs` reads: broker.actions, one record per submit."""
++
++    def __init__(self, recs):
++        self.actions = [{"action": "submit", "resp": {"clientOrderId": c, "orderId": o},
++                         "order": {"symbol": sy, "tif": tf, "client_id": c}} for sy, c, o, tf in recs]
++
++
++_legs6 = VF.submitted_order_legs(_SubmitBroker([
++    ("EEEUSDT", f"{_RID_R}-EEEUSDT-1", 8001, "GTX"),
++    ("FFFUSDT", f"{_RID_R}-FFFUSDT-2", 8002, "IOC")]), _RID_R)
++check("★ N2-6a the leg producer itself carries the attempt off our own client id (1 for the first maker, 2 for "
++      "the top-up leg)",
++      sorted((v["symbol"], v["leg"], v.get("attempt_idx")) for v in _legs6.values())
++      == [("EEEUSDT", "maker", 1), ("FFFUSDT", "topup_taker", 2)],
++      [(v["symbol"], v["leg"], v.get("attempt_idx")) for v in _legs6.values()])
++_tr6 = {"EEEUSDT": {"trades": [{"id": 11, "order_id": 8001, "side": "BUY", "price": 1.0, "qty": 8.0, "quote_qty": 8.0,
++                                "commission": 0.0016, "commission_asset": "USDT", "ts": 1, "maker": True}]},
++        "FFFUSDT": {"trades": [{"id": 12, "order_id": 8002, "side": "BUY", "price": 1.0, "qty": 3.0, "quote_qty": 3.0,
++                                "commission": 0.0012, "commission_asset": "USDT", "ts": 1, "maker": False}]}}
++_rows6 = VF.fill_rows_from_trades(VF.attribute_trades(_tr6, _legs6)["attributed_trades"], TS, _RID_R)
++check("★★ N2-6 NEIGHBOUR — the classic legs are unchanged: maker ⇒ 1, topup_taker ⇒ 2, and no note",
++      sorted((r["order_type"], r["attempt_idx"]) for r in _rows6) == [("maker", 1), ("topup_taker", 2)]
++      and not any(r.get("attempt_idx_source") for r in _rows6),
++      [(r["order_type"], r.get("attempt_idx")) for r in _rows6])
++
++# F23: the latent second site — a REQUOTED maker order row carries attempt 2 while its order_type stays "maker",
++# so the leg-type proxy wrote 1 against an order row that said 2. Never observed live (both requoted maker rows on
++# 09-09 and 09-12 filled nothing), and fixed here by construction rather than by a second special case.
++_legs7 = VF.submitted_order_legs(_SubmitBroker([("GGGUSDT", f"{_RID_R}-GGGUSDT-2", 8003, "GTX")]), _RID_R)
++_tr7 = {"GGGUSDT": {"trades": [{"id": 13, "order_id": 8003, "side": "BUY", "price": 1.0, "qty": 5.0, "quote_qty": 5.0,
++                                "commission": 0.001, "commission_asset": "USDT", "ts": 1, "maker": True}]}}
++_rows7 = VF.fill_rows_from_trades(VF.attribute_trades(_tr7, _legs7)["attributed_trades"], TS, _RID_R)
++check("★★ N2-7 NEIGHBOUR (F23, latent) — a REQUOTED maker leg (client id …-2) gives attempt 2, matching its order "
++      "row; the old leg-type proxy gave 1",
++      [(r["order_type"], r["attempt_idx"]) for r in _rows7] == [("maker", 2)],
++      [(r["order_type"], r.get("attempt_idx")) for r in _rows7])
++
++# ── N2-8 the schema still accepts every row, and the column is still never None ──────────────────────────────────
++_all_n2 = _f1 + _f3 + _rows2 + _rows4 + _rows5 + _rows6 + _rows7
++check("★★ N2-8 every row above validates against SCHEMA['fills'] and attempt_idx is never None (it is not_null "
++      "precisely because it is OURS)",
++      all(PL.validate("fills", r) is None for r in _all_n2)
++      and all(r.get("attempt_idx") is not None for r in _all_n2), len(_all_n2))
++
+ print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
+ if FAILS:
+     print("FAILED:", *FAILS, sep="\n  ")
+diff --git a/live/venue_fills.py b/live/venue_fills.py
+index 5f2accf..b158ef8 100644
+--- a/live/venue_fills.py
++++ b/live/venue_fills.py
+@@ -877,6 +877,41 @@ def fee_asset_change_verdict(by_symbol, baseline):
+             "baseline": new_base, "baseline_write": True, "record": rec}
+ 
+ 
++def attempt_from_client_id(client_id, rebalance_id, symbol) -> Optional[int]:
++    """The attempt index ENCODED IN OUR OWN rebalance client id, or None — never a guess.
++
++    ★★ NEW-02. `binance_executor` mints `f"{rebalance_id}-{symbol}-{int(pl.get('attempt_idx') or 1)}"[:36]`, so for a
++    REBALANCE id the suffix IS the attempt: `-1` the first maker, `-2` a requote or a top-up leg. That is the only
++    place an attempt is recoverable from an id, and it is recoverable only because WE put it there.
++
++    ★★★ AND IT IS NOT TRUE OF A FLATTEN, WHICH IS WHY THIS CHECKS THE SHAPE INSTEAD OF SPLITTING ON THE LAST DASH.
++    `binance_broker.flatten_all` mints `F<yyyymmddHHMMSS>-SYM-<seq>` where `seq` is `next(_FLATTEN_SEQ)` — a
++    PROCESS-WIDE counter, deliberately not a per-symbol or per-attempt index (round 4, review E2: a retry inside the
++    same UTC second used to mint the same id). On the real 2026-09-12 12:47Z ladder those suffixes ran 1..255 across
++    255 orders that were EVERY ONE OF THEM attempt 1. So reading the suffix would not merely be unfounded, it would
++    be wronger than the leg-type proxy it replaces. A flatten id does not start with `{rebalance_id}-{symbol}-`
++    (the rebalance id there is `FLATTEN-<trip>`), so the shape test refuses it by construction.
++
++    ★ A 36-CHARACTER ID IS REFUSED. The mint truncates with `[:36]`, and a cut that lands inside the suffix leaves a
++    shorter number that still parses — `-12` becomes `-1`. No live id is anywhere near the limit (a rebalance id and
++    a symbol come to ~25 characters), so refusing at the boundary costs nothing real and removes the one way this
++    function could return a number that is wrong rather than absent.
++    """
++    cid = str(client_id or "")
++    if not cid or len(cid) >= 36:
++        return None
++    pre = f"{rebalance_id}-{symbol}-"
++    if not cid.startswith(pre):
++        return None
++    tail = cid[len(pre):]
++    if not tail.isdigit():
++        return None
++    try:
++        return int(tail)
++    except ValueError:                                  # pragma: no cover — isdigit already guarantees it
++        return None
++
++
+ def submitted_order_legs(broker, rebalance_id: str) -> Dict[Tuple[str, int], dict]:
+     """{venue orderId -> {"symbol", "leg", "client_id", "tif"}} for the orders WE sent under this
+     rebalance, harvested from the broker's own action log. No request, and exact.
+@@ -932,7 +967,10 @@ def submitted_order_legs(broker, rebalance_id: str) -> Dict[Tuple[str, int], dic
+             _LAST_LEG_CONFLICTS.append({"symbol": _k[0], "orderId": _k[1], "kept": out[_k]["client_id"],
+                                         "refused": cid, "refused_leg": leg})
+             continue
+-        out[_k] = {"symbol": order.get("symbol"), "client_id": cid, "leg": leg, "tif": tif}
++        # ★ NEW-02: the attempt travels WITH the leg. `fill_rows_from_trades` used to re-derive it from the leg
++        #   TYPE (`1 if maker else 2`), which is wrong for a requoted maker (order row says 2, type still "maker").
++        out[_k] = {"symbol": order.get("symbol"), "client_id": cid, "leg": leg, "tif": tif,
++                   "attempt_idx": attempt_from_client_id(cid, rebalance_id, order.get("symbol"))}
+     return out
+ 
+ 
+@@ -983,6 +1021,10 @@ def attribute_trades(trades: Dict[str, dict],
+                 continue
+             leg = info["leg"]
+             row = dict(t); row["leg"] = leg
++            # ★ NEW-02: carried exactly like `leg`, and only when the leg map actually knows it — an absent
++            #   attempt stays absent here so the row writer can say so rather than invent one.
++            if info.get("attempt_idx") is not None:
++                row["attempt_idx"] = int(info["attempt_idx"])
+             mine.append(row)
+             # E-0912-A (b) fee population: a leg outside maker/topup_taker (`protective_flatten`) gets its own bucket
+             bucket = legs_here.setdefault(leg, {"commission": 0.0, "other": {}, "trades": []})
+@@ -1170,13 +1212,39 @@ def fill_rows_from_trades(trades: Dict[str, dict], anchor_ts: float, rebalance_i
+             # first in every time-ordered report and satisfies not_null on the way in.
+             _side = t.get("side")
+             _px, _qq = t.get("price"), t.get("quote_qty")
++            # ★★ NEW-02: `attempt_idx` IS THE LEG'S ATTEMPT, NOT THE LEG TYPE'S. It was `1 if otype == "maker"
++            # else 2` — a proxy that reads the column as "which leg" when both tables define it as "which
++            # attempt": a ladder row carries WHICH LADDER ATTEMPT (`watchdog.py`, asserted at 103/103/2 on the
++            # real 2026-07-26 trip) and a requoted maker carries 2 while its type stays "maker". So every
++            # protective_flatten fill was written as 2 against an order row that said 1 — all 7,312 rows of the
++            # 2026-09-12 batch fail an orders↔fills join on (rebalance_id, symbol, order_type, attempt_idx),
++            # the key the research cost devices use.
++            # ⇒ Use what the leg map carried. Where it carried nothing the proxy still holds for the rebalance
++            #   legs (a maker leg with no id to read IS the first attempt, a top-up IS the second), but for a
++            #   flatten it does not hold at all, and the honest value is the tree's unknown-attempt default —
++            #   `int(x.get("attempt_idx") or 1)`, the reading every consumer already applies — WITH THE ROW
++            #   SAYING SO. Silently keeping 2 would be the same mistake one value along; hardcoding 1 is the
++            #   other writer's bug (the 2026-09-09 repair script), and it only ever looked right because every
++            #   ladder in live history so far succeeded on its first attempt.
++            _leg_attempt = t.get("attempt_idx")
++            _attempt_note = None
++            if _leg_attempt is not None:
++                _attempt = int(_leg_attempt)
++            elif otype == "protective_flatten":
++                _attempt = 1
++                _attempt_note = ("the ladder attempt could NOT be joined to this fill (no attempt reached the leg "
++                                 "map: the order carried no client id of ours, or none was supplied for this "
++                                 "batch), so this is the tree's unknown-attempt default of 1 and NOT a reading of "
++                                 "which attempt produced the fill")
++            else:
++                _attempt = 1 if otype == "maker" else 2
+             row = {
+                 "anchor_ts": anchor_ts,
+                 "symbol": sym,
+                 "side": (str(_side).lower() if _side else None),
+                 # maker vs taker is the distinction M2 exists to compare
+                 "order_type": otype,
+-                "attempt_idx": 1 if otype == "maker" else 2,
++                "attempt_idx": _attempt,
+                 "fill_ts": (ts_ms / 1000.0 if ts_ms else None),
+                 "fill_px": (float(_px) if _px not in (None, "") else None),
+                 "fill_notional": (float(_qq) if _qq not in (None, "") else None),
+@@ -1192,6 +1260,8 @@ def fill_rows_from_trades(trades: Dict[str, dict], anchor_ts: float, rebalance_i
+                     f"we sent this as the {leg} leg but the venue reports maker={venue_maker}; "
+                     f"order_type follows the order we sent. A GTX order cannot take and an IOC "
+                     f"cannot make, so this row should not exist — it is written, not resolved.")
++            if _attempt_note:
++                row["attempt_idx_source"] = _attempt_note
+             if mark is None:
+                 row["mid_at_fill_plus_60s_note"] = (
+                     "not yet observable when this row was written (the +60s mark had not passed "
+@@ -1262,7 +1332,8 @@ def make_provider(broker, since_ms: Optional[int] = None) -> Callable[[str, List
+ 
+ def order_legs_from_venue(broker, rebalance_id: str, symbols: List[str],
+                           since_ms: Optional[int] = None, client_ids: Optional[set] = None,
+-                          leg: Optional[str] = None) -> Dict[Tuple[str, int], dict]:
++                          leg: Optional[str] = None,
++                          attempt_by_client_id: Optional[Dict[str, int]] = None) -> Dict[Tuple[str, int], dict]:
+     """[B26b] The SAME map as `submitted_order_legs`, rebuilt from the VENUE instead of memory.
+ 
+     ★ WHY A SECOND SOURCE FOR ONE MAP, WHICH IS NORMALLY THE MISTAKE. `submitted_order_legs` reads
+@@ -1293,6 +1364,9 @@ def order_legs_from_venue(broker, rebalance_id: str, symbols: List[str],
+         return out
+     since_ms = since_ms or int((time.time() - 3600) * 1000)
+     _cids = {str(c) for c in (client_ids or ())}
++    # ★ NEW-02: {client_id: attempt_idx} read off the batch's own order rows by the caller. Only consulted when
++    #   supplied; an id it does not name leaves the leg's attempt absent rather than defaulted here.
++    _att_by_cid = {str(k): int(v) for k, v in (attempt_by_client_id or {}).items() if v is not None}
+     for sym in symbols:
+         rows, ok = _read_symbol(broker, "/fapi/v1/allOrders",
+                                 {"symbol": sym, "startTime": int(since_ms), "limit": 500}, sym)
+@@ -1313,8 +1387,14 @@ def order_legs_from_venue(broker, rebalance_id: str, symbols: List[str],
+                            "topup_taker" if tif else
+                            ("maker" if (cid.endswith("-1") or cid.endswith("-2")) else "topup_taker"))   # -2 = requote (maker)
+             try:
++                # ★ NEW-02: a flatten's id suffix is a process-wide counter, so the attempt cannot come from the id
++                #   (see `attempt_from_client_id`). It comes from the caller, which reads it off the batch's own
++                #   ORDER ROWS — the only record of which ladder attempt sent the order.
++                _att = (_att_by_cid.get(cid) if _att_by_cid
++                        else attempt_from_client_id(cid, rebalance_id, r.get("symbol") or sym))
+                 out[(str(r.get("symbol") or sym), _BB.order_id_int(oid))] = {"symbol": r.get("symbol") or sym, "client_id": cid,
+                                                                 "leg": _leg, "tif": tif,
++                                                                "attempt_idx": (int(_att) if _att is not None else None),
+                                                                 "source": ("venue allOrders (client ids from the batch's own rows)" if _cids else "venue allOrders")}
+             except (TypeError, ValueError):
+                 continue
+diff --git a/ops/backfill_fills.py b/ops/backfill_fills.py
+index bcec0b0..6168094 100644
+--- a/ops/backfill_fills.py
++++ b/ops/backfill_fills.py
+@@ -66,7 +66,7 @@ def find_gaps(day_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+         rid, sym = o.get("rebalance_id"), o.get("symbol")
+         b = by_batch.setdefault(rid, {"rebalance_id": rid, "anchor_ts": float(o["anchor_ts"]),
+                                       "executed_symbols": set(), "missing_symbols": set(), "client_ids": {},
+-                                      "n_fee_unmeasured": 0})
++                                      "attempt_by_client_id": {}, "n_fee_unmeasured": 0})
+         b["anchor_ts"] = min(b["anchor_ts"], float(o["anchor_ts"]))
+         b["executed_symbols"].add(sym)
+         if o.get("fee_paid") is None:
+@@ -77,6 +77,11 @@ def find_gaps(day_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+             #   (`F<utc>-SYM-n`), which is the only join key the venue has for them (see `order_legs_from_venue`)
+             if o.get("client_id"):
+                 b["client_ids"].setdefault(sym, []).append(str(o["client_id"]))
++                # ★★ NEW-02: WHICH LADDER ATTEMPT SENT THIS ORDER, carried beside its id. A flatten's client-id
++                #   suffix is a process-wide counter (`binance_broker._FLATTEN_SEQ`: 1..255 across the real 12Z
++                #   batch, all of them attempt 1), so the order row is the ONLY record of the attempt — and the
++                #   fills rows have to carry the same value or they cannot be joined back to it.
++                b["attempt_by_client_id"][str(o["client_id"])] = int(o.get("attempt_idx") or 1)
+     out = []
+     for b in by_batch.values():
+         if not b["missing_symbols"]:
+@@ -88,6 +93,7 @@ def find_gaps(day_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+                     "n_missing_symbols": len(b["missing_symbols"]),
+                     "missing_symbols": sorted(b["missing_symbols"]),
+                     "client_ids": {s: sorted(v) for s, v in b["client_ids"].items()},
++                    "attempt_by_client_id": dict(b["attempt_by_client_id"]),
+                     "n_order_rows_fee_unmeasured": b["n_fee_unmeasured"]})
+     return sorted(out, key=lambda g: g["anchor_ts"])
+ 
+@@ -111,7 +117,8 @@ def backfill_batch(broker, root: str, day: str, gap: Dict[str, Any],
+         # ★ E-0912-A (b) fee population: the flatten's legs are joined by the rows' OWN client ids and are ONE leg
+         _cids = {c for v in (gap.get("client_ids") or {}).values() for c in v}
+         legs = VF.order_legs_from_venue(broker, gap["rebalance_id"], syms, since_ms=since_ms,
+-                                        client_ids=_cids, leg="protective_flatten")
++                                        client_ids=_cids, leg="protective_flatten",
++                                        attempt_by_client_id=gap.get("attempt_by_client_id"))
+     else:
+         legs = VF.order_legs_from_venue(broker, gap["rebalance_id"], syms, since_ms=since_ms)
+     trades = VF.user_trades_for(broker, syms, since_ms=since_ms)

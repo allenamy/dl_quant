@@ -1,0 +1,32 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_ghost_rows.py head=48e99389d58f7e8cd24e9bf457bac26f24715575 dirty=3 start=2026-09-16T03:11:08Z py=Python 3.9.6
+# suite_sha256=f2cde1b21346ff03e06d3fa82170ce4bcf4eeb67842e2069bc6220d9c3c13c6b
+[g] the same tree, with and without 50 never-submitted rows
+  OK    the fixture really injected the ghosts (otherwise this proves nothing)  — 2 -> 52
+  OK    gate output unchanged: m1_c_bps_overall  — 4.0 vs 4.0
+  OK    gate output unchanged: m1_filled_notional_total  — 2000.0 vs 2000.0
+  OK    gate output unchanged: m1_measurement_complete  — True vs True
+  OK    gate output unchanged: m3_fill_rate  — 1.0 vs 1.0
+  OK    gate output unchanged: m4_n_anchors  — 2 vs 2
+  OK    gate output unchanged: m4_realized_ann  — 219.0 vs 219.0
+  OK    gate output unchanged: m4_target_ann  — 328.5 vs 328.5
+  OK    gate output unchanged: m5_mean_abs_weight_error  — 0.0 vs 0.0
+  OK    gate output unchanged: m5_n_comparisons  — 2 vs 2
+  OK    gate output unchanged: ops_fail_rate  — [0.0] vs [0.0]
+  OK    gate output unchanged: ops_n_orders  — [2] vs [2]
+  OK    gate output unchanged: reconcile_n_anomalies  — 0 vs 0
+  OK    gate output unchanged: reconcile_n_latest  — 0 vs 0
+  OK    gate output unchanged: reconcile_n_unreconcilable  — 0 vs 0
+  OK    gate output unchanged: wd_conditions  — {'cond1_c_persist': False, 'cond2_day_loss': False, 'cond3_crash_markout': False, 'cond4_drawdown': False, 'cond5_venue_event': False, 'cond4b_leverage': False, 'cond6_weight_fidelity': False, 'cond7_ops': False} vs {'cond1_c_persist': False, 'cond2_day_loss': False, 'cond3_crash_markout': False, 'cond4_drawdown': False, 'cond5_venue_event': False, 'cond4b_leverage': False, 'cond6_weight_fidelity': False, 'cond7_ops': False}
+  OK    gate output unchanged: wd_tripped  — False vs False
+
+[g] and the immunity is BY PROPERTY, not by an enumerated exemption
+  OK    ★★ no consumer filters on a hardcoded FLATTEN- id or a known contamination source  — an enumerated exemption would not hold for the next unforeseen source
+
+[g] a REAL refused flatten is still counted — g must not erase what [b] rescues
+  OK    ★★ a genuinely refused flatten is distinguishable from an artifact (it has a submit_ts)  — [('submitted_rejected', 1789522868.625189)]
+  OK    ★ ...and the artifacts are exactly the rows with no submit_ts  — never_submitted <=> submit_ts is None
+
+  20 checks run
+
+ALL PASS
+# end=2026-09-16T03:11:08Z rc=0

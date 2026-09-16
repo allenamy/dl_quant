@@ -1,0 +1,12 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_markout_import.py head=48e99389d58f7e8cd24e9bf457bac26f24715575 dirty=3 start=2026-09-16T03:08:36Z py=Python 3.9.6
+# suite_sha256=01b2daf1459daeef18f825ed5693a52260bdb1994e5d9b4e54d9e98bf274529c
+  OK    (g) dry-run appends nothing  — {'days': [{'day': '20260901', 'n_marked': 2, 'n_no_trade': 1, 'n_already_marked': 1, 'n_missing': 1}], 'n_marked': 2, 'n_no_trade': 1, 'n_already_marked': 1, 'n_missing': 1, 'n_not_in_marks': 0, 'dry_run': True, 'marks_sha256': 'deadbeef'}
+  OK    (a) ok mark supersedes the pending row: mid 1.5, lag 1.0, window 60, source names the archive  — {'mid_at_fill_plus_60s': 1.5, 'mark_lag_s': 1.0, 'mark_source': 'data.binance.vision daily aggTrades: first trade at-or-after fill_ts + 60s (import 2026-09-16T03:08:37Z; file AUSDT-aggTrades-2026-09-01.zip)'}
+  OK    (b) ok mark supersedes the expired terminal row (mark_status cleared, mid 2.5)  — {'mid_at_fill_plus_60s': 2.5, 'mark_status': None}
+  OK    (c) a venue-marked row is left alone (mid 9.9 kept)  — 9.9
+  OK    (d) no_trade_within_60s becomes a terminal no-trade row with mid None  — no_trade_within_window
+  OK    (e) archive_missing is skipped (still pending)  — {'days': [{'day': '20260901', 'n_marked': 2, 'n_no_trade': 1, 'n_already_marked': 1, 'n_missing': 1}], 'n_marked': 2, 'n_no_trade': 1, 'n_already_marked': 1, 'n_missing': 1, 'n_not_in_marks': 0, 'dry_run': False, 'marks_sha256': 'deadbeef'}
+  OK    counts: marked 2 / no_trade 1 / already 1 / missing 1  — {'days': [{'day': '20260901', 'n_marked': 2, 'n_no_trade': 1, 'n_already_marked': 1, 'n_missing': 1}], 'n_marked': 2, 'n_no_trade': 1, 'n_already_marked': 1, 'n_missing': 1, 'n_not_in_marks': 0, 'dry_run': False, 'marks_sha256': 'deadbeef'}
+  OK    (f) idempotent: second run appends nothing and marks nothing  — {'days': [{'day': '20260901', 'n_marked': 0, 'n_no_trade': 0, 'n_already_marked': 3, 'n_missing': 1}], 'n_marked': 0, 'n_no_trade': 0, 'n_already_marked': 3, 'n_missing': 1, 'n_not_in_marks': 0, 'dry_run': False, 'marks_sha256': 'deadbeef'}
+PASS
+# end=2026-09-16T03:08:37Z rc=0

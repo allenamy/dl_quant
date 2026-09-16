@@ -1,0 +1,54 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_flatten_fee_backfill.py head=48e99389d58f7e8cd24e9bf457bac26f24715575 dirty=1 start=2026-09-16T03:13:34Z py=Python 3.9.6
+# suite_sha256=fda6ad5f90ff971fcfe1fad3243836f44ad51bcd64399f5fd33b4e71b834586e
+[A] the REAL 2026-09-12 day: the flatten batch is the one gap, with its own client ids
+  OK    ★★★ A one gap = the FLATTEN batch, kind flatten, 255 executed / 255 missing / 255 client ids / 255 order rows fee-unmeasured  — [('FLATTEN-20260912T124737Z', 'flatten', 255, 255)]
+  OK    ★ A every client id has the flatten prefix F20260912124738-<SYM>-
+
+[B] synthetic flatten population: report, apply, idempotence
+  OK    ★★★ B report-only: one flatten gap, 3 legs rebuilt from the venue by exact client id, 4 rows recoverable, 1 foreign trade unattributed, nothing written  — {'kind': 'flatten', 'n_legs_rebuilt_from_venue': 3, 'n_rows_recoverable': 4, 'n_trades_unattributed': 1, 'n_rows_written': 0, 'warning': None}
+  OK    ★★ B the report says where the fee lands and how many order rows stay fee-unmeasured (3)  — fills rows (commission per child fill); order rows are not rewritten
+  OK    ★★★ B --apply: exactly 4 fills rows written for the FLATTEN batch — order_type protective_flatten, the venue's trade ids, commission per fill, backfilled_utc stamped  — [('AAAUSDT', 70000, 0.12, 'protective_flatten'), ('AAAUSDT', 70001, 0.08, 'protective_flatten'), ('BBBUSDT', 70002, 0.5, 'protective_flatten'), ('CCCUSDT', 70004, 0.7000000000000001, 'protective_flatten')]
+  OK    ★★ B the measured commission per name = Σ child commissions (AAAUSDT 0.12 + 0.08 = 0.20, BBBUSDT 0.5, CCCUSDT 0.7 USDT)  — [('AAAUSDT', 0.12), ('AAAUSDT', 0.08), ('BBBUSDT', 0.5), ('CCCUSDT', 0.7000000000000001)]
+  OK    ★★ B the ORDER rows are untouched (append-only): still fee_paid None, same 4 order rows
+  OK    ★★★ B a second --apply writes 0 rows (idempotent by trade id) and the gap is gone from find_gaps  — (0, [])
+
+[C] a flatten batch the venue does not list under our client ids ⇒ fail closed
+  OK    ★★★ C 0 legs rebuilt, warning present, nothing written even with --apply  — {'n_legs_rebuilt_from_venue': 0, 'n_rows_written': 0, 'warning': 'no order legs could be rebuilt from the venue, so every trade would be unattributed — refusing to write rows that name a leg we cannot establish. Check that the rebalance_id prefix still matches the clientOrderIds at the venue, and that allOrders reaches back this far.'}
+
+[D]/[E] regression: a normal rebalance gap still resolves by prefix; leg buckets undisturbed
+  OK    ★★ D the rebalance gap (A1789212401 / EEEUSDT) resolves by the <rid>- prefix: 1 leg, 1 row recoverable, kind rebalance  — {'rebalance_id': 'A1789212401', 'kind': 'rebalance', 'n_order_rows_fee_unmeasured': 1, 'fee_measurement_lands_on': 'fills rows (commission per child fill); order rows are not rewritten', 'symbols_requested': 1, 'symbols_reached': 1, 'symbols_unreached': [], 'read_failures': {}, 'n_legs_rebuilt_from_venue': 1, 'n_trades_seen': 1, 'n_trades_unattributed': 0, 'n_rows_recoverable': 1, 'n_rows_already_
+  OK    ★★ D …and the flatten gap in the same run resolves by client ids: 3 legs, 3 rows  — {'rebalance_id': 'FLATTEN-20260912T124737Z', 'kind': 'flatten', 'n_order_rows_fee_unmeasured': 3, 'fee_measurement_lands_on': 'fills rows (commission per child fill); order rows are not rewritten', 'symbols_requested': 3, 'symbols_reached': 3, 'symbols_unreached': [], 'read_failures': {}, 'n_legs_rebuilt_from_venue': 3, 'n_trades_seen': 3, 'n_trades_unattributed': 0, 'n_rows_recoverable': 3, 'n_ro
+  OK    ★★ E attribute_trades: EEEUSDT keeps exactly the two classic buckets (maker fee 0.0016, topup 0); AAAUSDT gains a protective_flatten bucket (0.12) beside them  — {'AAAUSDT': ['maker', 'topup_taker', 'protective_flatten'], 'EEEUSDT': ['maker', 'topup_taker']}
+  OK    ★ E fill_rows_from_trades writes order_type protective_flatten for that leg and maker for the other  — ['protective_flatten', 'maker']
+
+[N2] NEW-02: a fills row's attempt is the LEG's attempt, joinable to its order row
+  OK    ★★ N2-F fixture validity: the REAL 12Z batch is 255 flatten order rows ALL at attempt 1, whose client-id suffixes are 255 DISTINCT values 1..255 — i.e. the suffix is a process-wide counter, not the attempt  — (255, [1], 255)
+  FAIL  ★★★ N2-1 the flatten backfill's own rows JOIN to their order rows on (rebalance_id, symbol, order_type, attempt_idx) — 0 of 4 unjoinable (old code: 4 of 4, the 2026-09-12 shape at 7,312/7,312) — and the attempt was RESOLVED from the order rows, not defaulted (no note), so a dropped attempt map cannot pass this cell by landing on the same number  — {'n_fills': 4, 'n_unjoinable': 4, 'n_defaulted': 0, 'fill_attempts': [2], 'order_attempts': [1]}
+  FAIL  ★★★ N2-2 when the ladder's order rows record attempt 3 (the real 2026-07-26 shape: 103/103/2 over three attempts), the fills rows say 3 — not 2 (leg-type proxy) and not 1 (the other writer's hardcode)  — {'fill_attempts': [2], 'order_attempts': [3]}
+  FAIL  ★★ N2-3 two legs of ONE flatten batch resolve to their OWN attempts (1 and 2) — the column is per leg, not per batch, and the client-id suffix (1 and 7) is never the source  — [('AAAUSDT', 2), ('AAAUSDT2', 2)]
+  FAIL  ★★ N2-4 a flatten leg whose attempt CANNOT be joined (the 09-09 no-client-id shape) still gets its row — the fill is a fact — at the tree's unknown-attempt default of 1, and the row NAMES that it was not joined so a reader can tell a resolved attempt from a defaulted one  — [('AAAUSDT', 2, 'None'), ('BBBUSDT', 2, 'None'), ('CCCUSDT', 2, 'None')]
+  OK    ★ N2-4b …and a RESOLVED attempt carries no such note (the note means exactly one thing)  — [('AAAUSDT', None), ('AAAUSDT2', None)]
+  FAIL  ★★★ N2-5 a flatten leg whose client id ends -255 (the real 12Z counter's last value) against an order row at attempt 1 gives attempt 1 — the process-wide counter is never mistaken for the attempt  — [('ZZZUSDT', 2)]
+  FAIL  ★★ N2-5b and with NO caller map the suffix is still not parsed: the leg is unresolved (default + note), never 255
+  FAIL  ★★ N2-5c an id AT the venue's 36-char limit is REFUSED rather than parsed: the mint truncates with [:36], so at the boundary a cut inside the suffix turns -12 into -1 — a number that is WRONG rather than absent. Both the truncated id (which really does now end -1) and an id that is 36 chars honestly are refused  — {'truncated': ('XXXX-1', 36, 'absent'), 'exactly_36': (36, 'absent')}
+  FAIL  ★★ N2-5d every tail we did not mint is REFUSED — a wrong shape, an empty tail, another party's id, the right batch with the wrong symbol, and the two that `int()` alone would have swallowed (' 12' and '+12')  — [('SDT-1a', 'absent'), ('EUSDT-', 'absent'), ('ELSE-1', 'absent'), ('USDT-1', 'absent'), ('DT- 12', 'absent'), ('DT-+12', 'absent')]
+  FAIL  ★ N2-5e …and the one shape it DOES accept still works (the refusals are not a blanket refusal)  — absent
+  FAIL  ★ N2-6a the leg producer itself carries the attempt off our own client id (1 for the first maker, 2 for the top-up leg)  — [('EEEUSDT', 'maker', None), ('FFFUSDT', 'topup_taker', None)]
+  OK    ★★ N2-6 NEIGHBOUR — the classic legs are unchanged: maker ⇒ 1, topup_taker ⇒ 2, and no note  — [('maker', 1), ('topup_taker', 2)]
+  FAIL  ★★ N2-7 NEIGHBOUR (F23, latent) — a REQUOTED maker leg (client id …-2) gives attempt 2, matching its order row; the old leg-type proxy gave 1  — [('maker', 1)]
+  OK    ★★ N2-8 every row above validates against SCHEMA['fills'] and attempt_idx is never None (it is not_null precisely because it is OURS)  — 17
+
+17/28 checks passed
+FAILED:
+  ★★★ N2-1 the flatten backfill's own rows JOIN to their order rows on (rebalance_id, symbol, order_type, attempt_idx) — 0 of 4 unjoinable (old code: 4 of 4, the 2026-09-12 shape at 7,312/7,312) — and the attempt was RESOLVED from the order rows, not defaulted (no note), so a dropped attempt map cannot pass this cell by landing on the same number
+  ★★★ N2-2 when the ladder's order rows record attempt 3 (the real 2026-07-26 shape: 103/103/2 over three attempts), the fills rows say 3 — not 2 (leg-type proxy) and not 1 (the other writer's hardcode)
+  ★★ N2-3 two legs of ONE flatten batch resolve to their OWN attempts (1 and 2) — the column is per leg, not per batch, and the client-id suffix (1 and 7) is never the source
+  ★★ N2-4 a flatten leg whose attempt CANNOT be joined (the 09-09 no-client-id shape) still gets its row — the fill is a fact — at the tree's unknown-attempt default of 1, and the row NAMES that it was not joined so a reader can tell a resolved attempt from a defaulted one
+  ★★★ N2-5 a flatten leg whose client id ends -255 (the real 12Z counter's last value) against an order row at attempt 1 gives attempt 1 — the process-wide counter is never mistaken for the attempt
+  ★★ N2-5b and with NO caller map the suffix is still not parsed: the leg is unresolved (default + note), never 255
+  ★★ N2-5c an id AT the venue's 36-char limit is REFUSED rather than parsed: the mint truncates with [:36], so at the boundary a cut inside the suffix turns -12 into -1 — a number that is WRONG rather than absent. Both the truncated id (which really does now end -1) and an id that is 36 chars honestly are refused
+  ★★ N2-5d every tail we did not mint is REFUSED — a wrong shape, an empty tail, another party's id, the right batch with the wrong symbol, and the two that `int()` alone would have swallowed (' 12' and '+12')
+  ★ N2-5e …and the one shape it DOES accept still works (the refusals are not a blanket refusal)
+  ★ N2-6a the leg producer itself carries the attempt off our own client id (1 for the first maker, 2 for the top-up leg)
+  ★★ N2-7 NEIGHBOUR (F23, latent) — a REQUOTED maker leg (client id …-2) gives attempt 2, matching its order row; the old leg-type proxy gave 1
+# end=2026-09-16T03:13:35Z rc=1

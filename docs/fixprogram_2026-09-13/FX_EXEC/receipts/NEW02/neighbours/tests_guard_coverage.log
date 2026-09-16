@@ -1,0 +1,90 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_guard_coverage.py head=48e99389d58f7e8cd24e9bf457bac26f24715575 dirty=3 start=2026-09-16T03:08:38Z py=Python 3.9.6
+# suite_sha256=cade17398a106ac5e39738e8c7f5ac1208d48eb08304dc43993c17d4be07c7ab
+[F1] §4-3 crash markout: the coverage term
+  OK    ★★ 1 marked fill in 10 is NOT a pass: the state says DEGRADED  — DEGRADED
+  OK    ★ the pair that the old code could not produce: triggered False AND a stated coverage  — (False, 0.1)
+  OK    ★ it is surfaced where a reader looks, not only inside the condition  — ['cond3_crash_markout']
+  OK    the note SAYS what is thin (the ladder had no low-coverage rung at all)  — DEGRADED: only 1/10 (10.0%) of the maker fills inside stress anchors carry a +60
+  OK    the marked/unmarked counts are reported, not just the ratio  — {'caliber': 'adverse_bps: positive = mid moved against us; both fields below share it', 'worst_adverse_bps': 1.0, 'limit_adverse_bps': 25.0, 'breached': False, 'triggered': False, 'n_fills_unique': 10, 'n_fill_rows': 10, 'n_fill_rows_caliber': 'rows counts markout backfills twice (a backfill re-appends the same trade_id); unique is after pilot_log.collapse_supersedes', 'n_stress_anchors': 1, 'state': 'DEGRADED', 'coverage': 0.1, 'coverage_floor': 0.5, 'n_marked_stress_fills': 1, 'n_unmarked_stress_fills': 9, 'coverage_all_fills': 0.1, 'n_marked_window': 1, 'n_unmarked_window': 9, 'blind': False, 'degraded': True, 'partial': True, 'coverage_caliber': 'marked / (marked + unmarked) over MAKER fills inside stress anchors — the population the -25bps limit is about. `coverage_all_fills` is the same ratio over the whole window and measures the BACKFILL, not the gate.', 'note': "DEGRADED: only 1/10 (10.0%) of the maker fills inside stress anchors carry a +60s mark, below the 50% floor. A tail statistic over this subset cannot be read as 'the tail is fine' — the unmarked set is NOT random (it is the most recent fills and the thinnest symbols, i.e. exactly where adverse selection lives). The supply side is ops/backfill_markout.py; window-wide mark coverage is 10.0%"}
+  OK    90% coverage with a harmless tail reads OK  — OK
+  OK    and OK is neither blind nor degraded  — (False, False)
+  OK    ★★ COVERAGE DOES NOT SUPPRESS A BREACH — a 60bps adverse tail seen through 10% coverage still fires (using the instrument's weakness to excuse the reading is the opposite error)  — (True, 60.0)
+  OK    a stress anchor with no maker fill at all is BLIND, not OK  — BLIND
+  OK    and BLIND reaches conditions_blind (which is the resume gate's hard input)  — ['cond1_c_persist', 'cond2_day_loss', 'cond3_crash_markout', 'cond4_drawdown', 'cond4b_leverage', 'cond7_ops']
+  OK    no stress anchors -> NO_STRESS: not applicable, and deliberately NOT blind (the regime label was produced and said 'not stress')  — NO_STRESS
+  OK    ★ DEGRADED is deliberately NOT in conditions_blind: that list is a HARD GATE in ops/resume_from_trip.sh, and gating a resume on a measurement backlog is self-locking
+  OK    the window-wide coverage is reported too — the BACKFILL's health, a different question from the gate's  — 0.1
+
+[F1-M] red capability: with the floor removed the same assertions must go red
+  OK    ★ floor 0.0 (no coverage requirement) -> RED  — 3 assertion(s) failed: ['★★ 1 marked fill in 10 is NOT a pass: the state says DEGRADED', '★ it is surfaced where a reader looks, not only inside the condition']
+  OK    the floor is restored
+
+[F2] protective_flatten_cost: the fee counter
+  OK    ★★ 3 exits, no fee readable anywhere -> the cost is None, NOT the 0 that was reported
+  OK    ★ and specifically not 0/0.0 — that is the number that made the exit look free
+  OK    the rows it could not measure are COUNTED (the sibling block above it always did)  — {'n_rows': 3, 'filled_notional': 3000.0, 'n_unknown_fill': 0, 'fee_paid': None, 'n_measured_fee': 0, 'n_unmeasured_fee': 3, 'measurement_complete': False, 'caliber': "event-driven exit cost, EXCLUDED from c (which measures rebalance execution quality, the quantity §4-1's limit was set for). Reported, not discarded. `fee_paid` is the sum over the rows whose fee we ACTUALLY read — never a zero standing in for rows we did not."}
+  OK    ★ and the block declares itself incomplete
+  OK    a partially measured batch sums ONLY what was measured  — 0.75
+  OK    ...and still reports itself incomplete, naming how many it could not see  — {'n_rows': 3, 'filled_notional': 3000.0, 'n_unknown_fill': 0, 'fee_paid': 0.75, 'n_measured_fee': 2, 'n_unmeasured_fee': 1, 'measurement_complete': False, 'caliber': "event-driven exit cost, EXCLUDED from c (which measures rebalance execution quality, the quantity §4-1's limit was set for). Reported, not discarded. `fee_paid` is the sum over the rows whose fee we ACTUALLY read — never a zero standing in for rows we did not."}
+  OK    a fully measured batch is complete, and a real 0 stays a real 0  — {'n_rows': 1, 'filled_notional': 1000.0, 'n_unknown_fill': 0, 'fee_paid': 0.5, 'n_measured_fee': 1, 'n_unmeasured_fee': 0, 'measurement_complete': True, 'caliber': "event-driven exit cost, EXCLUDED from c (which measures rebalance execution quality, the quantity §4-1's limit was set for). Reported, not discarded. `fee_paid` is the sum over the rows whose fee we ACTUALLY read — never a zero standing in for rows we did not."}
+  OK    ★ no flatten at all is None, not False: 'nothing happened' is not 'we failed to measure'  — {'n_rows': 0, 'filled_notional': 0, 'n_unknown_fill': 0, 'fee_paid': None, 'n_measured_fee': 0, 'n_unmeasured_fee': 0, 'measurement_complete': None, 'caliber': "event-driven exit cost, EXCLUDED from c (which measures rebalance execution quality, the quantity §4-1's limit was set for). Reported, not discarded. `fee_paid` is the sum over the rows whose fee we ACTUALLY read — never a zero standing in for rows we did not."}
+
+[F2-M] red capability: the pre-fix sum (filter, no counter) must go red
+  OK    ★ the pre-fix block (sum-over-not-None, no counter) -> RED  — 4 assertion(s) failed: ['★★ 3 exits, no fee readable anywhere -> the cost is None, NOT the 0 that was reported', '★ and specifically not 0/0.0 — that is the number that made the exit look free']
+  OK    m1 is restored
+
+[F3] markout backfill: one request per cluster, and the budget counts REQUESTS
+  OK    ★★ 8 fills inside one 5s cluster cost ONE request (they used to cost 8)  — 1 call(s)
+  OK    ...and all 8 marks are written from it  — {'n_pending': 8, 'n_written': 8, 'n_no_trade': 0, 'n_terminal': 0, 'n_expired': 0, 'n_requests': 1, 'days': [{'day': '20260726', 'n_pending': 8, 'n_written': 8, 'n_no_trade': 0, 'n_terminal': 0, 'n_expired': 0, 'n_requests': 1, 'n_groups': 1, 'n_truncated_groups': 0, 'capped': False, 'max_requests': 50}], 'max_requests': 50, 'pace_s': 2.0, 'budget_unit': 'venue REQUESTS (aggTrades, weight 20 each) — not rows: a window with no trade costs a request and must pay for it', 'order': 'oldest day first, each with a guaranteed share of the budget', 'n_requests_spent': 1, 'stopped_by': None}
+  OK    every mark is a real price, resolved per fill  — {'20260726-0': 100.0, '20260726-1': 100.0, '20260726-2': 100.0, '20260726-3': 100.0, '20260726-4': 100.0, '20260726-5': 100.0, '20260726-6': 100.0, '20260726-7': 100.0}
+  OK    ★ each fill's mark is the first trade at-or-after ITS OWN +60s, not the cluster's first  — (0.0, 0.0)
+  OK    ★★ a no-trade window PAYS: 3 requests of budget buy at most 3 requests, not 20  — 3 call(s), budget 3
+  OK    the run reports what it spent, in the unit the venue charges  — (3, 3)
+  OK    nothing was written and it says why it stopped  — request_budget
+  OK    ★ an empty (not truncated) window is NOT re-requested per fill — that is the spend this fix exists to stop  — 17 call(s) for 17 still-pending groups (first run served 3)
+  OK    ★ and once every empty window is TERMINAL nothing is re-requested at all (2026-09-05)  — 0 call(s)
+
+[F3-b] fairness: the oldest day must not starve behind the newest
+  OK    ★★ with 3 requests and 3 days, EVERY day is served (the old order gave all 3 to the newest and froze the other two)  — {'20260727', '20260726', '20260728'}
+  OK    ★ and the oldest is served FIRST — an unmarked fill ages out of the window  — ['20260726', '20260727', '20260728']
+
+[F3-c] truncation, deadline, and the corrected weight
+  OK    ★ a CUT-OFF window (limit rows returned) falls back to per-target requests rather than answering from a window it knows is incomplete  — 5
+  OK    ★★ a deadline stops it: this job runs last inside a process that self-terminates, and over-running it would make the NEXT anchor skip  — deadline
+  OK    ★★ aggTrades is priced at its real weight (20). It was absent from the table, so `.get(path, 1)` charged the budget's largest consumer as 1 — a budget 20x optimistic about the endpoint it most needed to throttle  — 20
+  OK    every endpoint the backfill and the fills readback use is priced, not defaulted
+
+[F3-M] red capability: the pre-fix run() (newest-first, budget in ROWS)
+  OK    ★ pre-fix run(): budget-in-rows -> RED  — 1 failed: ['nothing was written and it says why it stopped']
+  OK    ★ pre-fix run(): newest-day-first -> RED  — 2 failed: ['★★ with 3 requests and 3 days, EVERY day is served (the old order gave all 3 to the newest and froze the other two)']
+  OK    run() is restored
+
+[F5] fill_details_for: an unreadable amount must not become 0.0
+  OK    ★★ the symbol is REPORTED (it did trade) with filled_notional None — not 0.0  — {'filled_notional': None, 'executed_qty': 6.0, 'executed_qty_final': False, 'filled_notional_final': False, 'executed_qty_derived': [], 'inconsistent': [], 'orig_qty': 0.0, 'non_terminal': [], 'terminal': True, 'avg_fill_px': None, 'first_fill_ts': 1785110400.0, 'last_fill_ts': 1785110400.0, 'amount_unreadable': "1 child order(s) reported a filled QUANTITY with no cumQuote and no avgPrice to rebuild it from (['R1-BTCUSDT-1']), so this symbol's filled notional is UNKNOWN. Sizing a top-up from an assumed zero here is the 2.00x doubling."}
+  OK    ★ and it says why, because a None with no reason is re-defaulted by the next reader  — 1 child order(s) reported a filled QUANTITY with no cumQuote
+  OK    ★ the retry sweep gives the SAME answer (it used to be a second copy of the fold)  — {'filled_notional': None, 'executed_qty': 6.0, 'executed_qty_final': False, 'filled_notional_final': False, 'executed_qty_derived': [], 'inconsistent': [], 'orig_qty': 0.0, 'non_terminal': [], 'terminal': True, 'avg_fill_px': None, 'first_fill_ts': 1785110400.0, 'last_fill_ts': 1785110400.0, 'amount_unreadable': "1 child order(s) reported a filled QUANTITY with no cumQuote and no avgPrice to rebuild it from (['R1-BTCUSDT-1']), so this symbol's filled notional is UNKNOWN. Sizing a top-up from an assumed zero here is the 2.00x doubling."}
+  OK    a normal child is unaffected: cumQuote is the amount  — {'filled_notional': 600.0, 'executed_qty': 6.0, 'executed_qty_final': False, 'filled_notional_final': False, 'executed_qty_derived': [], 'inconsistent': [], 'orig_qty': 0.0, 'non_terminal': [], 'terminal': True, 'avg_fill_px': 100.0, 'first_fill_ts': 1785110400.0, 'last_fill_ts': 1785110400.0}
+  OK    ★ cumQuote missing but avgPrice present -> RECONSTRUCTED (avg x qty), the venue's own identity, not an estimate and not an unknown  — {'filled_notional': 600.0, 'executed_qty': 6.0, 'executed_qty_final': False, 'filled_notional_final': False, 'executed_qty_derived': [], 'inconsistent': [], 'orig_qty': 0.0, 'non_terminal': [], 'terminal': True, 'avg_fill_px': 100.0, 'first_fill_ts': 1785110400.0, 'last_fill_ts': 1785110400.0}
+  OK    the reconstruction keeps the sign convention (SELL is negative)  — {'filled_notional': -600.0, 'executed_qty': -6.0, 'executed_qty_final': False, 'filled_notional_final': False, 'executed_qty_derived': [], 'inconsistent': [], 'orig_qty': 0.0, 'non_terminal': [], 'terminal': True, 'avg_fill_px': 100.0, 'first_fill_ts': 1785110400.0, 'last_fill_ts': 1785110400.0}
+  OK    ★★ ONE unreadable child poisons the SYMBOL's total — a partial sum next to a full delta is exactly the top-up sizing error  — {'filled_notional': None, 'executed_qty': 12.0, 'executed_qty_final': False, 'filled_notional_final': False, 'executed_qty_derived': [], 'inconsistent': [], 'orig_qty': 0.0, 'non_terminal': [], 'terminal': True, 'avg_fill_px': 100.0, 'first_fill_ts': 1785110400.0, 'last_fill_ts': 1785110400.0, 'amount_unreadable': "1 child order(s) reported a filled QUANTITY with no cumQuote and no avgPrice to rebuild it from (['R1-BTCUSDT-2']), so this symbol's filled notional is UNKNOWN. Sizing a top-up from an assumed zero here is the 2.00x doubling."}
+
+[F5-M] red capability: the pre-fix fold (`cumQuote or 0.0`) must go red
+  OK    ★ the pre-fix fold -> RED  — 2 assertion(s) failed: ['★★ the symbol is REPORTED (it did trade) with filled_notional None — not 0.0', '★ and it says why, because a None with no reason is re-defaulted by the next reader']
+  OK    the fold is restored
+  OK    ★ and green again (a harness that left a module mutated would make every later suite lie)
+
+[F1-gate] the clock may not start while §4-3 cannot see
+  OK    ★★ a calm tree with 10% marks REFUSES the clock — 'no stress today' is not evidence the guard could see one  — ('NO_STRESS', 0.1)
+  OK    ★ and the refusal names the producer and the numbers, not just a verdict  — ['window-wide mark coverage 10.0% is below the 50% floor (1 marked / 9 not). §4-3 reads NO_STRESS today only because no stress anchor exists yet; at this coverage it would be DEGRADED the moment one does. The producer is ops/backfill_markout.py — let it catch up (it runs each anchor at ~2.2x peak supply) and re-run this gate']
+  OK    ★★ a DEGRADED §4-3 refuses the clock (the ruling's own case)  — ['§4-3 is DEGRADED right now: 1/10 of the maker fills it judges carry a +60s mark (floor 50%)']
+  OK    a caught-up producer passes  — ('NO_STRESS', 0.9)
+  OK    ★★ ASKING DOES NOT CHANGE THE ANSWER: the gate writes nothing into the tree it judges (`evaluate`, never `run` — the ladder would append rows describing a flatten that never happened)  — {'anchors.jsonl': 239, '_schema.json': 1228, 'fills.jsonl': 2421}
+  OK    ★★ and it is WIRED: the clock gate actually runs it, and exits on its failure (a precondition nobody calls is not a precondition)  — True
+  OK    ★ the coverage floor is the CONDITION's constant, not a second number invented at the gate
+
+[F1-gate-M] red capability: a gate that reads only the condition's own state
+  OK    ★ dropping the window-wide reading -> RED (on a calm tree the condition's own state is vacuous, which is exactly the case that binds today)  — 2 assertion(s) failed: ["★★ a calm tree with 10% marks REFUSES the clock — 'no stress today' is not evidence the guard could see one", '★ and the refusal names the producer and the numbers, not just a verdict']
+  OK    the gate is restored and green
+
+ALL PASS  (62 checks)
+# end=2026-09-16T03:11:05Z rc=0

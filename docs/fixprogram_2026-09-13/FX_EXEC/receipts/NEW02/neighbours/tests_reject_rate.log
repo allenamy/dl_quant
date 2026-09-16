@@ -1,0 +1,27 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_reject_rate.py head=48e99389d58f7e8cd24e9bf457bac26f24715575 dirty=3 start=2026-09-16T03:08:37Z py=Python 3.9.6
+# suite_sha256=f2ba3c161ef42878caa423f4a9d8ae6f8087498bf98cb8287c31af6dfe7c7f87
+PASS denominator = first-attempt makers the venue answered (67 refused + 91 rested = 158)
+PASS numerator counts a name ONCE (attempt-2 refusals are not first-attempt refusals)
+PASS true first-attempt -5022 rate 67/158 = 42.4%
+PASS requotes that rested are reported, not put in the denominator
+PASS skipped rows never enter the denominator
+PASS the legacy ratio is reproduced and labelled: 87/187 = 46.5% (what the alarm printed)
+PASS no non-recoverable refusal in this anchor
+PASS adding 200 skipped rows leaves the true rate bitwise unchanged
+PASS ... while the legacy ratio drops from 46.5% to 22.5% (the deposit effect, reversed)
+PASS codes split: one -5022, two -1111, denominator 3 refused + 5 rested = 8
+PASS rate_bad = 2/8 (malformed orders), rate_5022 = 1/8
+PASS rows without attempt_idx count as attempt 1
+PASS empty anchor: rates None, counts zero, no exception
+PASS non-dict entries are ignored; a non-dict requote report is dropped
+PASS render_bad matches the alarm_policy pattern and names the malformed codes
+PASS render_post_only matches the pattern, prints the true rate AND the legacy ratio side by side
+PASS render_post_only reports the requote outcome (47 rested, 20 refused again)
+PASS _trade computes the refusal summary with reject_rate.summarise on (rows, live, requote_report)
+PASS the HIGH alarm for non-recoverable refusals keys on rate_bad vs VENUE_REJECT_FRAC
+PASS the post-only meter escalates on POST_ONLY_REFUSAL_ESCALATE and is a policy float
+PASS the summary travels in the phase-A record (post_only_refusals)
+PASS the legacy formula is gone from the alarm: no len(_vr) / len(_rows)
+
+ALL PASS
+# end=2026-09-16T03:08:38Z rc=0

@@ -1,0 +1,19 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_pilot_log.py head=48e99389d58f7e8cd24e9bf457bac26f24715575 dirty=3 start=2026-09-16T03:08:24Z py=Python 3.9.6
+# suite_sha256=9d4b9b4c13f28014a0d2d2c812ee784f691d1141c5b43485449953e782986592
+[1] write-time validation
+  OK   rejects missing mid_at_anchor
+  OK   rejects missing terminal_reason
+  OK   rejects unknown terminal_reason
+  OK   rejects unknown regime label
+  OK   rejects null rebalance_id
+  OK   ...and a null mid_at_anchor is now ACCEPTED (no book is a fact, not a zero price)
+  OK   ★★ every not_null column is one we necessarily know ourselves (R19) — not_null on venue/future-derived column(s): [] — not_null there forces the writer to choose between fabricating a value and dropping the row
+  OK   accepts a valid order row
+[2] stress blind-spot warning
+  OK   stress correctly reported absent
+  OK   blind-spot warning fires — STRESS SAMPLE MISSING — the c reading above has a known blin…
+  OK   c still stratified by the regimes present
+  OK   regimes_missing lists stress
+
+  ALL PASS
+# end=2026-09-16T03:08:24Z rc=0
