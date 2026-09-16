@@ -273,7 +273,7 @@
 ## §14 电池窗口事故 + 第二轮登记与裁定(2026-09-16 03:2xZ, lead)
 
 ### 14.1 ★ 电池规则按传递闭包重述(全体工作者, 立即生效)
-**事故**: FX-EXEC 于 **03:16:25Z 起跑 `live/tests_acceptance_entrypoints.py`**, 该套件第 85–90 行**两次 `bash run_acceptance.sh`**(做入口逐字节对比)⇒ 整套电池连同 `tests_entrypoint_wiring` 一起跑了; 窗口 01:05Z–03:15Z 已于 **70 秒前关闭**, 且**未取 `BATTERY.lock`**。03:18:49Z 由工作者自行 kill。
+**事故**: FX-EXEC 于 **03:16:25Z 起跑 `live/tests_acceptance_entrypoints.py`**, 该套件第 85–90 行**两次 `bash run_acceptance.sh`**(做入口逐字节对比)⇒ 整套电池连同 `tests_entrypoint_wiring` 一起跑了; 窗口 01:05Z–03:15Z 已于 **85 秒前关闭**(原写「70 秒」是估计; FX-EXEC 自行重算: 03:16:25Z 距锚 11,785 s, 限 11,700 s ⇒ **85 s**), 且**未取 `BATTERY.lock`**。03:18:49Z 由工作者自行 kill。
 - **出去的是什么**: 只有未签名的公共行情 GET(证据 = 克隆内 DRY_RUN run_anchor 写出的 `exchange_info_cache.json` 03:17:59Z / `funding_last_pull.json` 03:18:00Z / `panel_cache/funding.npz` 03:17:47Z / `panel_cache/klines_1h.npz` 03:17:11Z ⇒ 端点为 exchangeInfo、funding/premiumIndex、klines)。**权重数不可得**(套件日志 0 字节, kill 时 stdout 仍在缓冲)——**工作者如实写「给不出」, 这是对的**。
 - **没有发生的**(按树断言, 非假设): 克隆无 `.env`; `BINANCE_API_KEY` 未设; `LIVE_MODE` 未设 ⇒ 默认 DRY_RUN; `state/pilot_log/20260916/` 只有 `_schema.json`, **无 orders.jsonl / fills.jsonl** ⇒ 未下单未撤单; `~/dl_quant_live` 与 `~/wide_shadow` 未被触碰。
 - **lead 风险核(03:21Z, 只读)**: 04Z 锚**尚未开始**, GET 距锚起点 42 分钟, 场所权重窗为 1 分钟 ⇒ 已完全衰减; 00Z 锚峰值 847/2400, 远离上限 ⇒ **对下一锚无实际影响**。不改变违规性质。04Z 锚跑完后由 lead 核 `rate_budget` 与 −1003/−4400 计数并补进收据。

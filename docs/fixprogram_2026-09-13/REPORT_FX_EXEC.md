@@ -303,7 +303,7 @@ Diff: docs/receipts/fx_exec_E7.diff sha256 f33b38fec64a16714c604dac5e7e46f670a34
 
 **什么**: 为做 gate_coverage 那项的邻格, 我跑了 `live/tests_acceptance_entrypoints.py`。该套件在其第 85–90 行 **两次 `bash run_acceptance.sh`** 以逐字节比较两个入口 —— 于是它跑了**整套电池**, 含 `tests_entrypoint_wiring`。**我在运行之前没有读它调用了什么。这是我的错误**: lead 给的电池规则点名的是 `run_acceptance.sh`, 而我没有检查一个套件是否**传递地**到达它。
 
-**窗口**: 起 2026-09-16T03:16:25Z(运行器日志戳), 03:18:49Z 被我 kill, 约 2m24s。00Z 锚允许的窗是 01:05Z..03:15Z ⇒ **我在窗口关闭约 70 秒后开始**。**锁没有被持有。**
+**窗口**: 起 2026-09-16T03:16:25Z(运行器日志戳), 03:18:49Z 被我 kill, 约 2m24s。00Z 锚允许的窗是 01:05Z..03:15Z ⇒ **我在窗口关闭 85 秒后开始**(我先报的「约 70 秒 / ~1m10s」是估计不是测量; 精确重算: 03:16:25Z 距锚 11,785 s, 限 11,700 s ⇒ **85 s**。收据已带实测值并把原估计标注为估计)。**锁没有被持有。**
 
 **出去了什么**: 只有未签名的公共行情 GET。证据是克隆内 DRY_RUN run_anchor 写出的状态: `exchange_info_cache.json` 03:17:59Z · `funding_last_pull.json` 03:18:00Z · `panel_cache/funding.npz` 03:17:47Z · `panel_cache/klines_1h.npz` 03:17:11Z。**我给不出请求权重数** —— `tests_entrypoint_wiring` 自己的日志是 0 字节(03:17Z 建立, 运行中被 kill, stdout 仍在缓冲)⇒ 该计数在我这侧无上界。由那些文件推出的端点为 exchangeInfo、funding/premiumIndex、klines。我 kill 时**第二次 run_acceptance 也已经启动**。
 
