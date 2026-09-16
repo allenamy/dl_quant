@@ -1,0 +1,99 @@
+{
+ "device": "fm_o6_export_gate_recheck.py",
+ "self_sha256": "c0b8511fbe6687ce4bab03959dd727b6083a0022b9731a099d70e1fcc5390ed3",
+ "utc_start": "2026-09-16T04:54:14Z",
+ "python": "3.11.10",
+ "numpy": "2.4.6",
+ "torch": "2.11.0+cu128",
+ "question": "O6: did the in-service f10_live_s42_np.npz pass its own V1 parity gate? The exporter writes the file before the verdict (TRN-28) and no log of the 2026-09-01 verdict survives on pod2.",
+ "writes_nothing_but_the_receipt": true,
+ "inputs": {
+  "/workspace/f8_ext/models/f10_live_s42.pt": "c983b3e362316a42362fc5d3688c91007afe2999f0099be17339dbc00266d281",
+  "/workspace/f8_ext/models/f10_live_s42_np.npz": "351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4",
+  "/workspace/dlw_ext/data/dlw_fea82.npz": "not hashed (466MB; identity by path+shape)"
+ },
+ "deployed_npz_is_the_live_one": true,
+ "G0_identity_npz_matches_checkpoint": {
+  "PASS": true,
+  "per_array": {
+   "w0": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 43776,
+    "maxabs": 0.0
+   },
+   "b0": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 256,
+    "maxabs": 0.0
+   },
+   "w1": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 65536,
+    "maxabs": 0.0
+   },
+   "b1": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 256,
+    "maxabs": 0.0
+   },
+   "w2": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 256,
+    "maxabs": 0.0
+   },
+   "b2": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 1,
+    "maxabs": 0.0
+   },
+   "mu": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 171,
+    "maxabs": 0.0
+   },
+   "sd_": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 171,
+    "maxabs": 0.0
+   }
+  },
+  "meaning": "if FAIL, the deployed npz came from a different .pt and nothing else here is interpretable"
+ },
+ "gate_rows": {
+  "n_rows_in_fea82": 2745557,
+  "n_drawn": 30000,
+  "n_cols": 171,
+  "draw": "np.random.default_rng(0).choice(n, 30000, replace=False), identical to the exporter"
+ },
+ "G1_V1_gate_reproduced": {
+  "spearman": 0.9999999999919997,
+  "maxabs": 1.0261340060990776e-07,
+  "thresholds": {
+   "spearman_min": 0.99999,
+   "maxabs_max": 1e-05
+  },
+  "PASS": true,
+  "note": "the exporter's own check, reproduced without writing anything"
+ },
+ "G2_deployed_weights_vs_checkpoint": {
+  "spearman": 0.9999999999919997,
+  "maxabs": 1.0261340060990776e-07,
+  "PASS": true,
+  "note": "scores the DEPLOYED npz's own w/mu/sd_ through the production numpy path (combo_stage.py L165-166) against torch on the checkpoint -- this is the contrast production actually depends on"
+ },
+ "verdict": {
+  "gate_verdict_recoverable_from_logs": false,
+  "gate_verdict_reproduced_now": true,
+  "reading": "The 2026-09-01 verdict itself is unrecoverable -- no log survives and the artifact would exist either way (TRN-28). What CAN be established is whether the artifacts as they stand satisfy the gate today, which is what G0/G1/G2 report. A PASS today does not prove the original run passed; it proves the deployed file is consistent with its checkpoint now."
+ },
+ "utc_end": "2026-09-16T04:54:19Z",
+ "wall_s": 4.6
+}
