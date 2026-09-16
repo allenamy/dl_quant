@@ -27,6 +27,7 @@ days at or before the evaluation time.
 Usage:
   /usr/bin/python3 alm06_cum_decomposition.py <guard_twin_state_dir> <pilot_log_root_copy> <cond4_receipt.json> <out.json>
 """
+import calendar
 import hashlib
 import json
 import os
@@ -253,7 +254,7 @@ def led04_allowance_pp(wd_pct, now_ts):
         return None, []
     ratio, used = 1.0, []
     for d, (r_rec, r_am) in sorted(LED04.items()):
-        day_end = time.mktime(time.strptime(d + " 235959", "%Y%m%d %H%M%S")) - time.timezone
+        day_end = calendar.timegm(time.strptime(d + " 235959", "%Y%m%d %H%M%S"))
         if day_end > now_ts:
             continue
         ratio *= (1.0 + r_am) / (1.0 + r_rec)
@@ -265,7 +266,10 @@ rows_out, cum_rows = [], []
 for c in cmp_all:
     ts = c.get("ts") or c.get("utc")
     if isinstance(ts, str):
-        ts = time.mktime(time.strptime(ts, "%Y-%m-%dT%H:%M:%SZ")) - time.timezone
+        # ★ calendar.timegm, NOT time.mktime(...) - time.timezone: the latter reads the struct as LOCAL time and the
+        #   correction is only right when tm_isdst == 0, which strptime does not set. The first run used it and T
+        #   reproduced the recorded twin on 0 of 1,654 rows.
+        ts = calendar.timegm(time.strptime(ts, "%Y-%m-%dT%H:%M:%SZ"))
     if ts is None:
         continue
     twin_rec, wd_rec = c.get("cum_pct_twin"), c.get("wd_cum_from_start_pct")
@@ -284,7 +288,8 @@ for c in cmp_all:
     residual = None if allow is None else gap - timing - formula - allow
     one = {"utc": c.get("utc"), "ts": ts, "comparable": c.get("comparable"),
            "cum_pct_twin_recorded": twin_rec, "wd_cum_recorded": wd_rec, "gap_pp": gap,
-           "T_reproduced": ch["T"], "reproduces_recorded_twin": abs(ch["T"] - float(twin_rec)) < 1e-6,
+           "T_reproduced": ch["T"], "T_minus_recorded_pp": ch["T"] - float(twin_rec),
+           "reproduces_recorded_twin": abs(ch["T"] - float(twin_rec)) < 1e-6,
            "C1": ch["C1"], "C2a": ch["C2a"], "C2b": ch["C2b"], "wd_chain_arith": ch["wd_arith"],
            "cause_day_close_timing_pp": timing, "cause_transfer_day_formula_pp": formula,
            "cause_input_bias_pp": inp, "identity_C2b_minus_wd_arith_pp": identity,
@@ -306,6 +311,7 @@ rec = {"device": os.path.basename(__file__),
        "n_reproducing_recorded_twin": sum(1 for r in rows_out if r["reproduces_recorded_twin"]),
        "led04_frozen_table_days": sorted(LED04),
        "summary": {
+           "max_abs_T_minus_recorded_pp": max((abs(r["T_minus_recorded_pp"]) for r in rows_out), default=None),
            "max_abs_identity_pp": max((abs(r["identity_C2b_minus_wd_arith_pp"]) for r in rows_out
                                        if r["identity_C2b_minus_wd_arith_pp"] is not None), default=None),
            "max_abs_residual_pp": max((abs(r["residual_pp"]) for r in fin), default=None),
@@ -316,6 +322,7 @@ json.dump(rec, open(OUT, "w"), ensure_ascii=False, indent=1)
 
 print(f"compare rows {len(cmp_all)} | decomposed {len(rows_out)} | "
       f"T reproduces recorded twin {rec['n_reproducing_recorded_twin']}/{len(rows_out)}")
+print(f"max |T - recorded twin|      {rec['summary']['max_abs_T_minus_recorded_pp']}")
 print(f"max |identity C2b - wd_arith| {rec['summary']['max_abs_identity_pp']}")
 print(f"max |alert (i) arith - wd|    {rec['summary']['max_abs_alert_i_pp']}")
 print(f"max |residual (ii)|           {rec['summary']['max_abs_residual_pp']}")
