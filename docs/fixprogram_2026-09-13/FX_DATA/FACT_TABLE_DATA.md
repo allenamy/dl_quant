@@ -64,3 +64,34 @@ Conventions:
 | D5 | D: independent bisect implementation, 123,820 cells, 0 mismatches (both windows) |
 | D6 | T7 third-party control: 362 symbols, 7,638,831 hours compared. Traded-in-hour agreement is **100%** (7,566,867 both traded + 71,964 both zero; 0 disagreements either way); 504 hours where the cache has no data but T7 has a row |
 | D7 | Census 2022 (W24H): dead_after name-anchors 17,380; lag (TRADABLE ∧ dead) 84; UNTRADED ∧ dead 2,893; UNTRADED but trades again later 1,911. W4H lag 14. Other years are in the log line truncated at 600 chars; the full table goes into the run 2 receipt |
+
+### TRD-D2. Run 2 of the builder (rc=0) and the census verification — authoritative; supersedes the PROVISIONAL rows of §TRD-D
+
+**Order disclosure.** The builder was already committed (`8ab0d769`, writer fix in `30c635e6`). `fx_trd_verify.py` was committed at `fe49fc86` and `fx_trd_probe_ret5nan.py` at `3df68676` (amended at `062b5594`), each **before** the run that produced its receipt. Run 1's literal command line was never recorded — `STATE_PAUSE.md` paraphrased it — so `receipts/run2_fx_trd_build.sh` (sha16 `a63e2935`) is the authoritative transcription for this artifact; `run3_fx_trd_verify.sh` (`8919caa6`) and `run4_fx_trd_probe.sh` (`44e9cbb1`) likewise.
+
+| # | Fact | Receipt |
+|---|---|---|
+| D8 | **Run 2, rc=0**, 2026-09-16T02:57–02:59Z, 140.0 s. Device `066c3d74` (writer fix), module `a9fad82c`, spec `99ae35e0`, numpy 2.4.6. Env exactly the 6 whitelisted vars + `LC_CTYPE`; the receipt carries `env` and `argv` verbatim | `receipts/RECEIPT_fx_trd_build.json` (`cc66f8be`), `receipts/fx_trd_build_run2.log` |
+| D9 | **Artifact** `tradability_v1.npz` sha256 **`54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302`**, 2,501,576 bytes, 16 keys, anchor grid 2022-01-01T00:00Z → 2026-09-11T00:00Z (10,285 anchors), `reload_roundtrip: true`. Committed at `FX_DATA/artifacts/tradability_v1.npz`; pod2 copy `/workspace/fx_data_2026-09-13/out/trd/tradability_v1.npz` | same |
+| D10 | Every run-1 pre-write reading (P / A / R / D / C / T7) reproduced **line for line** in run 2 — the two logs differ only in elapsed seconds. The run-1 artifact `b84f324d` stays on pod2 quarantined as `out/trd/INVALID_run1_tradability_v1.npz.b84f324d` (sha unchanged) | both logs |
+| D11 | Inputs pinned: holefix2 `1d7f459dee434ec4…`, x0910 `8115299410cd5e8d…`; identical to the audit's holefix2 input sha | `RECEIPT_fx_trd_build.json`, `RECEIPT_fx_trd_verify.json` |
+
+**Verification run 3 (`fx_trd_verify.py` `2715658c`, rc=0, 125 checks, 0 failed), against the committed audit receipt `AD_H_tradability.json` (`529df8b3`).** The audit device and the SPEC do **not** share a definition or an axis: `ad_tradability.py` gates every bar state on `isfinite(ret5)` and stops at holefix2 (2026-09-01), while the SPEC reads `log_cnt` only and runs to 2026-09-11. Equal counts are therefore not evidence of equal sets, and each row below is a set or key-by-key comparison, not a count match.
+
+| # | Check | Result |
+|---|---|---|
+| D12 | **V1** — the audit's H1 recomputed with the audit's own expressions on its own axis, compared key by key (a key present in the receipt and missing from the recomputation is a failure, not a skip): `TT` 490,753 · `cache_end` 2026-09-01T00:00Z · `symbols_with_trades` **825** · `symbols_dead_inside_cache` **156** · post-death signature **13,770,575** rows with `ret5==0`, `log_qv==0`, `cpos` NaN and `tbf` NaN all 13,770,575 · 5 by-year rows · 4 zero-trade-run keys · all 40 `top_symbols_post_death_rows` entries | all equal |
+| D13 | **V2** — SPEC vs audit on the same prefix: SPEC-TRADED-not-audit **840**, SPEC-UNTRADED-not-audit **1**, audit-not-SPEC **0** in both directions (the SPEC is a strict superset by construction; a non-zero here would be a real disagreement). `last_traded` row differs for **0 of 829** names. The SPEC dead set at the audit's own threshold **equals** the audit dead set (symmetric difference empty) | as stated |
+| D14 | **V3** — the artifact ties to that recomputation: `traded5_bits` and `nodata5_bits` on the holefix2 prefix equal the SPEC bar states **bitwise**; `last_traded_ts` equals the prefix value for all **160** names that do not trade in the x0910 tail (669 do) | bitwise equal |
+| D15 | **V4** — dead-name **SETS** compared name by name: artifact (union axis, last trade < 2026-09-10T00:00Z) vs audit (holefix2, last trade < 2026-08-31T00:00Z) — **156 = 156 and identical**, symmetric difference empty in both directions. No contract joined the dead set between the two cache ends | identical |
+| D16 | **V5** — H5 reproduced from the **artifact's own** `last_traded_ts` over the audit's dead names and the same three funding sources (`wide_multisrc/funding/*.zip` ∪ `fund_aug.json.gz` ∪ `r6_fund_sep.json.gz`): **60** names with settlements after death, **60,438** events (zip 58,509 / aug 60,188 / sep 328), 5 by-year keys, all 40 `per_symbol` entries equal | all equal |
+| D17 | **V6** — the artifact's own union-axis census: **14,142,095** post-death untraded rows, **all** with `ret5` exactly 0 (0 NaN, 0 non-zero finite). Difference vs the audit's 13,770,575 is **371,520**, which equals `AD_H.H1_x0910_tail.untraded_rows_of_those` exactly = 129 already-dead names × 2,880 tail rows. The reconciliation has no residual term | `RECEIPT_fx_trd_verify.json` (`1c3ee363`) |
+
+**Probe run 5 (`fx_trd_probe_ret5nan.py` `dce683ce`, rc=0)** — what the 841 definition-difference cells of D13 actually are:
+
+| # | Fact | Receipt |
+|---|---|---|
+| D18 | 841 cells have a SPEC bar state but no finite `ret5` = **826** "first bar of that symbol's data" + **15** "first bar after a NODATA gap" + **0** anything else. 840 are TRADED, 1 is UNTRADED (BTCSTUSDT). Every one is a bar with no immediately preceding bar, so a return cannot be formed — which is the case SPEC §1 named when it excluded `ret5` from the definition | `receipts/RECEIPT_fx_trd_probe_ret5nan.json` (`65e36e53`) |
+| D19 | 826 and not 829 because **BZRXUSDT, DOTECOUSDT, LENDUSDT have no data bar at all** on this axis (named, not inferred from 829−826); **BTCSTUSDT** has data but never trades. Smallest data-bar count among names that have data: **7,339** bars (≈25.5 days) | same |
+
+**What is still not closed for TRD-01.** The artifact exists and reconciles with the audit census; no eligibility rule has been changed yet. Remaining: the red tests on the legacy rules A1–A11, the injection artifacts, the A0 four-arm effect measurement of SPEC §7, and the D1 equivalence label. TRD-03 closes with that label, not with this receipt.
