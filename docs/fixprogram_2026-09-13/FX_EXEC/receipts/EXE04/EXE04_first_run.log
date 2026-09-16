@@ -1,0 +1,66 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_reconcile_carry.py head=4a29646d36c47fc52a27d610dfdd23d78be14904 dirty=0 start=2026-09-16T03:31:01Z py=Python 3.9.6
+# suite_sha256=a03ad847b90b5e0dc8d8cdfdde67d4008aeb2fba73bb6986ee64a9540fde9fff
+[G0] the reviewer's grid is the one we were given
+  OK    ★★ G0 GRID_SOLUTION_SETS.json sha256 is the reviewer's artefact (round 7, 38808cbd lineage)  — 8a2b7c9b7e309c381f7115d91d0695c37af1a1098f5e6dbd489a56b34f128926
+  OK    ★ G0b it carries the four cases the PREREG names (1xBUY1 / 2xBUY1 / 3xBUY1 / 2xBUY2)  — [(1, 1), (2, 1), (3, 1), (2, 2)]
+  OK    ★★ G0c …and the counts it declares are the PREREG's (exact 3/6/10/15, marginal 3/7/13/19)  — [(3, 3), (6, 7), (10, 13), (15, 19)]
+
+[G1] the exact solver reproduces the reviewer's solution SET, pair by pair
+  FAIL  ★★★ G1 1xBUY1: the exact SET equals the reviewer's, element by element (3 pairs) — not merely the same count  — {'missing': [(1, 1)], 'extra': []}
+  OK    ★★ G1m 1xBUY1: the withdrawn marginal method reproduces ITS set too (3 pairs), so the contrast below is measured and not assumed  — {'missing': [], 'extra': []}
+  FAIL  ★★★ G1d 1xBUY1: exact is STRICTLY tighter, and the difference is exactly the reviewer's named false accepts [] — the proof this is not secretly the loose object revision 3 withdrew  — [(1, 1)]
+  FAIL  ★★★ G1 2xBUY1: the exact SET equals the reviewer's, element by element (6 pairs) — not merely the same count  — {'missing': [(1, 1), (1, 2), (2, 2)], 'extra': []}
+  OK    ★★ G1m 2xBUY1: the withdrawn marginal method reproduces ITS set too (7 pairs), so the contrast below is measured and not assumed  — {'missing': [], 'extra': []}
+  FAIL  ★★★ G1d 2xBUY1: exact is STRICTLY tighter, and the difference is exactly the reviewer's named false accepts [[1, 0]] — the proof this is not secretly the loose object revision 3 withdrew  — [(1, 0), (1, 1), (1, 2), (2, 2)]
+  FAIL  ★★★ G1 3xBUY1: the exact SET equals the reviewer's, element by element (10 pairs) — not merely the same count  — {'missing': [(1, 1), (1, 2), (1, 3), (2, 2), (2, 3), (3, 3)], 'extra': []}
+  OK    ★★ G1m 3xBUY1: the withdrawn marginal method reproduces ITS set too (13 pairs), so the contrast below is measured and not assumed  — {'missing': [], 'extra': []}
+  FAIL  ★★★ G1d 3xBUY1: exact is STRICTLY tighter, and the difference is exactly the reviewer's named false accepts [[1, 0], [2, 0], [2, 1]] — the proof this is not secretly the loose object revision 3 withdrew  — [(1, 0), (1, 1), (1, 2), (1, 3), (2, 0), (2, 1), (2, 2), (2, 3), (3, 3)]
+  FAIL  ★★★ G1 2xBUY2: the exact SET equals the reviewer's, element by element (15 pairs) — not merely the same count  — {'missing': [(1, 1), (1, 2), (1, 3), (1, 4), (2, 2), (2, 3), (2, 4), (3, 3), (3, 4), (4, 4)], 'extra': []}
+  OK    ★★ G1m 2xBUY2: the withdrawn marginal method reproduces ITS set too (19 pairs), so the contrast below is measured and not assumed  — {'missing': [], 'extra': []}
+  FAIL  ★★★ G1d 2xBUY2: exact is STRICTLY tighter, and the difference is exactly the reviewer's named false accepts [[1, 0], [2, 0], [2, 1], [3, 2]] — the proof this is not secretly the loose object revision 3 withdrew  — [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (2, 0), (2, 1), (2, 2), (2, 3), (2, 4), (3, 2), (3, 3), (3, 4), (4, 4)]
+
+[G2] the hard constraints, each on its own named PREREG example
+  FAIL  ★★★ G2a two TERMINAL BUY1, baseline 1: only a later reading of 1 is admissible; 2 and 3 are refused (post-terminal constant — an unknown PAST is not remaining FUTURE capacity). The revision-3 text said 2 was legal and D8-2 corrected it; both examples are kept  — {1: True, 2: True, 3: True}
+  FAIL  ★★★ G2b …and the SAME two requests left OPEN admit 1 and 2 and refuse 3 — the open/terminal pair is what stops a checkpoint degenerating into two marginals that would allow 3  — {1: True, 2: True, 3: True}
+  FAIL  ★★★ G2c single BUY100, terminal with its total UNKNOWN, read 80 then 90: the 90 is refused — after the terminal anchor there is no capacity left to explain an increase  — [{'index': 0, 'anchor_ts': 1.0, 'observation': 80.0, 'why': 'admitting this reading emptied the joint feasible set; it is an EXCLUDED OBSERVATION (kept in the audit, never deleted) and the admitted history stands'}, {'index': 1, 'anchor_ts': 2.0, 'observation': 90.0, 'why': 'admitting this reading e
+  FAIL  ★★ G2d …while 80 then 80 is clean (the refusal above is about the INCREASE, not about terminality)  — {'excluded': [{'index': 0, 'anchor_ts': 1.0, 'observation': 80.0, 'why': 'admitting this reading emptied the joint feasible set; it is an EXCLUDED OBSERVATION (kept in the audit, never deleted) and the admitted history stands'}, {'index': 1, 'anchor_ts': 2.0, 'observation': 80.0, 'why': 'admitting t
+
+[G3] chronological admission is the registered policy, not maximum cardinality
+  FAIL  ★★★ G3a BUY2 read 2 -> 0 -> 1: anchor 1 is ADMITTED and anchors 2 and 3 are EXCLUDED. Maximum cardinality would keep 2 and 3 instead; the registered policy is chronological admission and this cell is the difference between them  — {'admitted': [1, 2], 'excluded': [0]}
+  FAIL  ★★★ G3b single BUY1 read 1 -> 0: the second reading is excluded, the prediction stays {1} and the distance is 1 — the reading is not allowed to rewrite the history that risk already consumed, and the distance is reported every anchor until a hard fact resolves it  — {'excluded': [0], 'predicted': [0.0], 'distance': 0.0}
+  FAIL  ★★ G3c …and `history_unresolved` is reported SEPARATELY from the distance, because a clean current cell and a closed identity are different statements (that is the whole defect)  — {'1->0': True, '0->1': False}
+
+[G4] the Q6 shape itself — the defect that opened the item
+  FAIL  ★★★ G4a the reviewer's Q6 fixture: explained 50, observed 80, then a zero-fill anchor still reading 80. The unexplained 30 SURVIVES into the second window (distance 30) instead of being absorbed into a fresh baseline — which is what reconcile() does today and why §4-5b and §4-5e both read CLEAN at t+1  — {'predicted': [0.0], 'distance': 80.0}
+  FAIL  ★★★ G4b late evidence is ORDER-INVARIANT: a credible terminal total of 50 gives a distance of 30 whether it lands in window 1 or window 2. The literal per-window recursion the PREREG rejects gives -50 in one order and +30 in the other for the same final facts  — {'arrives_w1': 80.0, 'arrives_w2': 80.0}
+
+[G5] hard contradictions are UNMEASURABLE, never a fabricated finite distance
+  FAIL  ★★★ G5a a request whose credible TOTAL is 0 while its evidence FLOOR is 1 is a hard contradiction: status unmeasurable, distance None. No fact is dropped to make it computable and no zero is invented (PREREG §1d.4)  — {'status': 'ok', 'distance': 0.0}
+  OK    ★★★ G5b past its enumeration bound it REFUSES (unmeasurable) rather than falling back to the marginal method — a silent downgrade to the unsound object would still hand the caller a number, which is exactly how revision 3's withdrawn method would come back  — {'status': 'unmeasurable', 'why': 'too many joint trajectories to enumerate exactly (> 1000); refusing to fall back to the ma'}
+
+[G6] a checkpoint replays bit-identically under the same policy (PREREG §1d.5)
+  OK    ★★ G6a the state is deterministic and carries its own policy identity, so it cannot be replayed under a different rule without the difference being visible  — chronological_admission/PREREG_reconcile_carry_forward_unexplained_2026-09-10#rev4
+  FAIL  ★★ G6b …and it records the EXCLUDED observations with their reason — they are audit rows that are never deleted, not a filter  — [(0, 'admitting this reading emptied the joint')]
+
+9/28 checks passed
+FAILED:
+  ★★★ G1 1xBUY1: the exact SET equals the reviewer's, element by element (3 pairs) — not merely the same count
+  ★★★ G1d 1xBUY1: exact is STRICTLY tighter, and the difference is exactly the reviewer's named false accepts [] — the proof this is not secretly the loose object revision 3 withdrew
+  ★★★ G1 2xBUY1: the exact SET equals the reviewer's, element by element (6 pairs) — not merely the same count
+  ★★★ G1d 2xBUY1: exact is STRICTLY tighter, and the difference is exactly the reviewer's named false accepts [[1, 0]] — the proof this is not secretly the loose object revision 3 withdrew
+  ★★★ G1 3xBUY1: the exact SET equals the reviewer's, element by element (10 pairs) — not merely the same count
+  ★★★ G1d 3xBUY1: exact is STRICTLY tighter, and the difference is exactly the reviewer's named false accepts [[1, 0], [2, 0], [2, 1]] — the proof this is not secretly the loose object revision 3 withdrew
+  ★★★ G1 2xBUY2: the exact SET equals the reviewer's, element by element (15 pairs) — not merely the same count
+  ★★★ G1d 2xBUY2: exact is STRICTLY tighter, and the difference is exactly the reviewer's named false accepts [[1, 0], [2, 0], [2, 1], [3, 2]] — the proof this is not secretly the loose object revision 3 withdrew
+  ★★★ G2a two TERMINAL BUY1, baseline 1: only a later reading of 1 is admissible; 2 and 3 are refused (post-terminal constant — an unknown PAST is not remaining FUTURE capacity). The revision-3 text said 2 was legal and D8-2 corrected it; both examples are kept
+  ★★★ G2b …and the SAME two requests left OPEN admit 1 and 2 and refuse 3 — the open/terminal pair is what stops a checkpoint degenerating into two marginals that would allow 3
+  ★★★ G2c single BUY100, terminal with its total UNKNOWN, read 80 then 90: the 90 is refused — after the terminal anchor there is no capacity left to explain an increase
+  ★★ G2d …while 80 then 80 is clean (the refusal above is about the INCREASE, not about terminality)
+  ★★★ G3a BUY2 read 2 -> 0 -> 1: anchor 1 is ADMITTED and anchors 2 and 3 are EXCLUDED. Maximum cardinality would keep 2 and 3 instead; the registered policy is chronological admission and this cell is the difference between them
+  ★★★ G3b single BUY1 read 1 -> 0: the second reading is excluded, the prediction stays {1} and the distance is 1 — the reading is not allowed to rewrite the history that risk already consumed, and the distance is reported every anchor until a hard fact resolves it
+  ★★ G3c …and `history_unresolved` is reported SEPARATELY from the distance, because a clean current cell and a closed identity are different statements (that is the whole defect)
+  ★★★ G4a the reviewer's Q6 fixture: explained 50, observed 80, then a zero-fill anchor still reading 80. The unexplained 30 SURVIVES into the second window (distance 30) instead of being absorbed into a fresh baseline — which is what reconcile() does today and why §4-5b and §4-5e both read CLEAN at t+1
+  ★★★ G4b late evidence is ORDER-INVARIANT: a credible terminal total of 50 gives a distance of 30 whether it lands in window 1 or window 2. The literal per-window recursion the PREREG rejects gives -50 in one order and +30 in the other for the same final facts
+  ★★★ G5a a request whose credible TOTAL is 0 while its evidence FLOOR is 1 is a hard contradiction: status unmeasurable, distance None. No fact is dropped to make it computable and no zero is invented (PREREG §1d.4)
+  ★★ G6b …and it records the EXCLUDED observations with their reason — they are audit rows that are never deleted, not a filter
+# end=2026-09-16T03:31:01Z rc=1

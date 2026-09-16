@@ -1,0 +1,40 @@
+# EXE-04 core mutants  2026-09-16T03:35:40Z  head=4a29646d36c47fc52a27d610dfdd23d78be14904
+# baseline reconcile_carry=58e637eadf58bec8797b6fb0138302bf4cb462b89cbd1015695813fdd3377b7f
+EM EM1  rc=1  red=15  tracebacks=0  CAUGHT  — drop the monotone constraint (b)
+          FAIL  ★★★ G1 1xBUY1
+          FAIL  ★★★ G1 2xBUY1
+          FAIL  ★★★ G1d 2xBUY1
+          FAIL  ★★★ G1 3xBUY1
+          FAIL  ★★★ G1d 3xBUY1
+EM EM2  rc=1  red=2  tracebacks=0  CAUGHT  — drop post-terminal constancy (c)
+          FAIL  ★★★ G2a two TERMINAL BUY1, baseline 1
+          FAIL  ★★★ G2c single BUY100, terminal with its total UNKNOWN, read 80 then 90
+EM EM3  rc=1  red=3  tracebacks=0  CAUGHT  — drop the birth-zero constraint (a)
+          FAIL  ★★ G2f …and the SECOND reading still has to equal the total
+          FAIL  ★★★ G4a the reviewer's Q6 fixture
+          FAIL  ★★★ G4b late evidence NARROWS the same request rather than creating a second execution
+EM EM4  rc=1  red=1  tracebacks=0  CAUGHT  — let feasible_exact fall back to the UNSOUND marginal method instead of refusing
+          FAIL  ★★★ G5b past its enumeration bound it REFUSES (unmeasurable) rather than falling back to the marginal method — a silent downgrade to the unsound object would still hand the caller a number, which is exactly how revision 3's withdrawn method would come back
+EM EM5  rc=1  red=4  tracebacks=0  CAUGHT  — form the prediction AFTER admitting the current anchor's own equation
+          FAIL  ★★ G2f …and the SECOND reading still has to equal the total
+          FAIL  ★★★ G3a BUY2 read 2 -> 0 -> 1
+          FAIL  ★★★ G3b single BUY1 read 1 -> 0
+          FAIL  ★★ G6b …and it records the EXCLUDED observations with their reason — they are audit rows that are never deleted, not a filter
+EM EM6  rc=1  red=17  tracebacks=0  CAUGHT  — revisit admitted equations (maximum cardinality instead of chronological admission)
+          FAIL  ★★★ G1 1xBUY1
+          FAIL  ★★★ G1 2xBUY1
+          FAIL  ★★★ G1d 2xBUY1
+          FAIL  ★★★ G1 3xBUY1
+          FAIL  ★★★ G1d 3xBUY1
+EM EM7  rc=1  red=2  tracebacks=0  CAUGHT  — apply the credible terminal total at EVERY anchor, not from d_i onward
+          FAIL  ★★★ G2e a request still OPEN at the first reading and terminal at 100 by the second
+          FAIL  ★★ G2f …and the SECOND reading still has to equal the total
+EM EM8  rc=1  red=1  tracebacks=0  CAUGHT  — stop reporting hard contradictions as unmeasurable (treat them as an empty-but-ok set)
+          FAIL  ★★★ G5a2 a credible TOTAL of 2 on a request whose capacity is 1 is also unmeasurable — the contradiction is named rather than quietly accepted as a reachable value
+EM EM9  rc=1  red=8  tracebacks=0  CAUGHT  — pin the FIRST post-terminal anchor too (forbid the fills that closed the request)
+          FAIL  ★★★ G2a two TERMINAL BUY1, baseline 1
+          FAIL  ★★★ G2c single BUY100, terminal with its total UNKNOWN, read 80 then 90
+          FAIL  ★★ G2d …while 80 then 80 is clean (the refusal above is about the INCREASE, not about terminality)
+          FAIL  ★★★ G2e a request still OPEN at the first reading and terminal at 100 by the second
+          FAIL  ★★ G2f …and the SECOND reading still has to equal the total
+# restored: 58e637eadf58bec8797b6fb0138302bf4cb462b89cbd1015695813fdd3377b7f

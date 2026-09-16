@@ -1,0 +1,82 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_reconcile_qty_caliber.py head=4a29646d36c47fc52a27d610dfdd23d78be14904 dirty=2 start=2026-09-16T03:36:39Z py=Python 3.9.6
+# suite_sha256=915f42281fa6c9766e8ca13e00ccc0b135038bd15d1f1d3f7bc5732ba0004d3c
+[B30-1] the 2026-07-27T16:18:34Z trip, replayed from the production rows
+  OK    ★ CONTROL: under the shipped NOTIONAL comparison all three names are unexplained  — [('ADAUSDT', -13.27), ('FILUSDT', -12.89), ('STGUSDT', -7.56)]
+  OK    ★★ under the QUANTITY comparison the same three names are explained to zero
+  OK    ★ ...and the walk actually ran (a zero from 'nothing was compared' is not a pass)  — anchors=1 unreconcilable=0
+
+[B30-2] ★★ reverse control — a MISSING FILL must still trip (this is not an exemption)
+  OK    ★★ an execution we failed to record leaves the position unexplained, and it FIRES  — [{'anchor_ts': 1785168070.499456, 'symbol': 'ADAUSDT', 'kind': 'quantity_residual', 'expected': 297.61, 'observed': 99.31, 'expected_qty': 1885.0, 'observed_qty': 629.0, 'residual_qty': -1256.0, 'residual_usdt': 198.3, 'residual_qty_raw': -1256.0, 'authorised_band_qty': [0.0, 0.0], 'mark_used': 0.15788122000000002, 'mark_source': 'readback(T2) notional / qty', 'dust_floor_usdt': 5.0, 'unexplained_frac': 0.6663}]
+  OK    ★ ...and the residual is reported as the unexplained QUANTITY, not a price move  — -1256.0
+  OK    ★ ...priced at the current mark so an operator can judge it (1256 x 0.1579 = 198.3)  — 198.3
+  OK    ★ the other two names stay clean — one bad name does not condemn the anchor  — [{'anchor_ts': 1785168070.499456, 'symbol': 'ADAUSDT', 'kind': 'quantity_residual', 'expected': 297.61, 'observed': 99.31, 'expected_qty': 1885.0, 'observed_qty': 629.0, 'residual_qty': -1256.0, 'residual_usdt': 198.3, 'residual_qty_raw': -1256.0, 'authorised_band_qty': [0.0, 0.0], 'mark_used': 0.15788122000000002, 'mark_source': 'readback(T2) notional / qty', 'dust_floor_usdt': 5.0, 'unexplained_frac': 0.6663}]
+
+[B30-3] ★★ the signature — identical quantities, a 12% mark move, no fills
+  OK    ★ CONTROL: the notional comparison would call this 120 USDT unexplained (>10% of 1000)  — -120.0
+  OK    ★★ the quantity comparison is SILENT — no contract moved, so nothing is unexplained
+
+[B30-4] the per-symbol dust floor still applies, now to the PRICED residual
+  OK    ★ a residual worth 40 USDT on BTC (min_notional 50) is NOT actionable => silent
+  OK    ★★ ...while 60 USDT clears the same symbol's floor and fires (a floor, not a mute)
+
+[B30-5] ★★ a pre-B30 row (no quantity) is UNRECONCILABLE, never silently clean
+  OK    ★★ the comparison is refused, not answered — the venue's quantity is not in the record  — [{'anchor_ts': 200.0, 'symbol': 'YUSDT', 'kind': 'no_qty_column', 'why': "row carries no `venue_position_qty` and its notional is non-zero, so the venue's quantity cannot be recovered from it (pre-B30 row)"}]
+  OK    ★ ...and it is NAMED, with the reason, at the latest anchor  — [{'anchor_ts': 200.0, 'symbol': 'YUSDT', 'kind': 'no_qty_column', 'why': "row carries no `venue_position_qty` and its notional is non-zero, so the venue's quantity cannot be recovered from it (pre-B30 row)"}]
+
+[B30-6] ★ ...but a FLAT pre-B30 row reconciles by identity (notional 0 <=> qty 0)
+  OK    ★★ flat -> 50 contracts, explained by a 50-contract fill, across the schema change  — ([], [])
+  OK    ★ ...and with the fill absent the same transition FIRES (the identity has teeth)  — [{'anchor_ts': 200.0, 'symbol': 'ZUSDT', 'kind': 'quantity_residual', 'expected': 0.0, 'observed': 500.0, 'expected_qty': 0.0, 'observed_qty': 50.0, 'residual_qty': 50.0, 'residual_usdt': 500.0, 'residual_qty_raw': 50.0, 'authorised_band_qty': [0.0, 0.0], 'mark_used': 10.0, 'mark_source': 'readback(T2) notional / qty', 'dust_floor_usdt': 5.0, 'unexplained_frac': 1.0}]
+
+[B30-7] ★ an execution with no price to divide by is UNKNOWN, not zero
+  OK    ★★ the leg is not read as zero contracts — it fires as an execution of unknown size  — [{'anchor_ts': 200.0, 'symbol': 'STRKUSDT', 'kind': 'execution_of_unknown_size', 'why': 'the leg reports a filled_notional but no avg_fill_px, so its quantity cannot be derived', 'order_type': 'maker', 'terminal_reason': 'filled', 'rebalance_id': 'FIXTURE', 'expected_qty': None, 'observed_qty': 200.0, 'residual_qty': None, 'residual_usdt': None, 'mark_used': None, 'mark_source': 'not applicable — the interval contains an execution whose size is unknown, so no residual exists to price', 'dust_floor_usdt': 5.0, 'unexplained_frac': None}]
+  OK    ★ ...and the reason names the missing price, not the position  — the leg reports a filled_notional but no avg_fill_px, so its quantity cannot be derived
+
+[D2] ★★ a leg we SENT whose size we cannot read must FIRE, not go quiet
+  OK    ★ CONTROL: with NO row at all the position change fires (this always worked)  — [{'anchor_ts': 200.0, 'symbol': 'SEIUSDT', 'kind': 'quantity_residual', 'expected': 53.44, 'observed': 0.0, 'expected_qty': 1186.0, 'observed_qty': 0.0, 'residual_qty': -1186.0, 'residual_usdt': 53.44, 'residual_qty_raw': -1186.0, 'authorised_band_qty': [0.0, 0.0], 'mark_used': 0.045059021922428326, 'mark_source': 'readback(T1) notional / qty (no usable mark at T2)', 'dust_floor_usdt': 5.0, 'unexplained_frac': 1.0}]
+  OK    ★★ ...and with the leg PRESENT but unreadable it fires too — never less protection  — ([{'anchor_ts': 200.0, 'symbol': 'SEIUSDT', 'kind': 'execution_of_unknown_size', 'why': "submitted (terminal_reason='filled_amount_unknown') and its filled_notional was never read — an execution of unknown size", 'order_type': 'protective_flatten', 'terminal_reason': 'filled_amount_unknown', 'rebalance_id': 'FLATTEN-20260727T161834Z', 'expected_qty': None, 'observed_qty': 0.0, 'residual_qty': None, 'residual_usdt': None, 'mark_used': None, 'mark_source': 'not applicable — the interval contains an execution whose size is unknown, so no residual exists to price', 'dust_floor_usdt': 5.0, 'unexplained_frac': None}], [])
+  OK    ★★ ...classified as its own kind, so the two are not confused in a report  — ('execution_of_unknown_size', 'quantity_residual')
+  OK    ★★ ...and it claims NO residual — a number there would be an assumption about the size  — {'anchor_ts': 200.0, 'symbol': 'SEIUSDT', 'kind': 'execution_of_unknown_size', 'why': "submitted (terminal_reason='filled_amount_unknown') and its filled_notional was never read — an execution of unknown size", 'order_type': 'protective_flatten', 'terminal_reason': 'filled_amount_unknown', 'rebalance_id': 'FLATTEN-20260727T161834Z', 'expected_qty': None, 'observed_qty': 0.0, 'residual_qty': None, 'residual_usdt': None, 'mark_used': None, 'mark_source': 'not applicable — the interval contains an execution whose size is unknown, so no residual exists to price', 'dust_floor_usdt': 5.0, 'unexplained_frac': None}
+  OK    ★ it is NOT filed as unreconcilable (that is the exemption being removed)
+
+[D2] ★★ ...while a leg that NEVER LEFT the process is a structural zero, not an unknown
+  OK    ★★ a rejected/never-sent leg does not blind its symbol — the book still reconciles  — ([], [])
+  OK    ★ ...and the guard is still ARMED on it: 100 contracts appearing from nowhere fires  — [{'anchor_ts': 200.0, 'symbol': 'WUSDT', 'kind': 'quantity_residual', 'expected': 1000.0, 'observed': 2000.0, 'expected_qty': 100.0, 'observed_qty': 200.0, 'residual_qty': 100.0, 'residual_usdt': 1000.0, 'residual_qty_raw': 100.0, 'authorised_band_qty': [0.0, 0.0], 'mark_used': 10.0, 'mark_source': 'readback(T2) notional / qty', 'dust_floor_usdt': 5.0, 'unexplained_frac': 0.5}]
+
+[D1] ★★ a non-zero quantity with a zero notional must not silence the guard
+  OK    ★★ 100 contracts from nowhere with a zero notional is NOT silence  — ([], [{'anchor_ts': 200.0, 'symbol': 'VUSDT', 'kind': 'no_usable_mark', 'why': 'residual of 100.0 contracts and no positive finite mark to price it (n2=0.0, q2=100.0, n1=0.0, q1=0.0)'}])
+  OK    ★ ...and it says WHY it could not be priced rather than pricing it at 0  — [{'anchor_ts': 200.0, 'symbol': 'VUSDT', 'kind': 'no_usable_mark', 'why': 'residual of 100.0 contracts and no positive finite mark to price it (n2=0.0, q2=100.0, n1=0.0, q1=0.0)'}]
+
+[D3] ★★ the two kinds of un-comparability are counted apart
+  OK    ★ a pre-B30 row is kind `no_qty_column` (history, a legitimate reason to be quiet)  — no_qty_column
+  OK    ★★ ...and the walk reports the breakdown, so one cannot hide inside the other's total  — {'no_qty_column': 1}
+  OK    ★ anomalies carry the same breakdown by kind  — {'execution_of_unknown_size': 1}
+
+[D3] ★★ §4-5b exposes the state a GATE can read, and PARTIAL is not CLEAN
+  OK    ★ a fully compared, clean anchor reads CLEAN with zero un-compared names  — {'state': 'CLEAN', 'n_unreconcilable_latest': 0}
+  OK    ★★ an anchor where NOTHING could be compared reads PARTIAL, never CLEAN  — {'state': 'PARTIAL', 'n_unreconcilable_latest': 1, 'triggered': False}
+  OK    ★ ...and it does NOT trip (a gap in our own record is not a position anomaly)
+  OK    ★★ ...but the count reaches the field a consumer reads, with the names  — [{'anchor_ts': 200.0, 'symbol': 'AUSDT', 'kind': 'no_qty_column', 'why': "row carries no `venue_position_qty` and its notional is non-zero, so the venue's quantity cannot be recovered from it (pre-B30 row)"}]
+
+[B32] ★★ the PARTIAL state must reach a PRODUCTION consumer, not only this suite
+  OK    PRE-ASSERT: stripping comments leaves a file (an empty haystack matches nothing)  — 24318/72262 chars survive
+  OK    ★★ run_anchor CODE consumes `n_unreconcilable_latest` (a state nobody reads is not a state)  — D3 added the alarm; without this assertion its deletion would be silent
+  OK    ★ ...and it alarms rather than trips (structural old rows must not flatten the book)  — the dominant source of `unreconcilable` is history, so a trip here would misfire
+  OK    ★★ D1's case (100 contracts, zero notional) reaches the field the consumer reads  — {'state': 'PARTIAL', 'n_unreconcilable_latest': 1, 'triggered': False}
+
+[D3] ★★ 0C's ④: §4-5b and §4-7 must benefit AUTOMATICALLY, from ONE walk
+  OK    ★★ [clean] 5b and 4-7 agree on the anchor, the verdict AND the un-compared count  — (False, False, 0, 0)
+  OK    ★★ [partial] 5b and 4-7 agree on the anchor, the verdict AND the un-compared count  — (False, False, 1, 1)
+
+[D2/D3] ★★ the contradiction is now UNWRITABLE, not merely detected downstream
+  OK    ★★ `terminal_reason='filled'` with `filled_notional=None` is REFUSED at write time  — [orders] terminal_reason='filled' with filled_notional=None is a row that contradicts itself: it claims the leg executed and disclaims knowing how much. Use terminal_reason='filled_amount_unknown' — the amount stays None (never 0.0, which is the reading that produced the 2x doubling) and the row stops asserting a fill it cannot evidence.
+  OK    ★ ...while the honest label writes, with the amount still None (never 0.0)  — filled_amount_unknown
+  OK    ★★ a readback WITHOUT `venue_position_qty` fails to WRITE (not: writes and degrades)  — [position_readback] missing required field(s): ['venue_position_qty']. Schema v2 is frozen -- a missing field means the metric it feeds cannot be reconstructed later.
+
+[B30-8] the output names its own caliber
+  OK    ★ every anomaly carries the quantities it was computed from, and names its kind  — ['anchor_ts', 'symbol', 'kind', 'expected', 'observed', 'expected_qty', 'observed_qty', 'residual_qty', 'residual_usdt', 'residual_qty_raw', 'authorised_band_qty', 'mark_used', 'mark_source', 'dust_floor_usdt', 'unexplained_frac']
+  OK    ★ and the walk states the caliber it used  — QUANTITY: expected_qty = qty(T1) + sum dq_fills, compared against qty(T2). The residual is converted to USDT at ONE mark (T2's) only to judge whether it is actionable — see [B30]. `expected`/`observed` are that same conversion, NOT the notionals the venue reported.
+
+  44 checks run
+
+ALL PASS
+# end=2026-09-16T03:36:40Z rc=0

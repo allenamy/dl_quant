@@ -1,0 +1,1155 @@
+diff --git a/live/reconcile_carry.py b/live/reconcile_carry.py
+new file mode 100644
+index 0000000..9fe4ffc
+--- /dev/null
++++ b/live/reconcile_carry.py
+@@ -0,0 +1,304 @@
++"""EXE-04 / Q6 — the JOINT feasible set of per-request cumulative fills, carried ACROSS windows.
++
++*** PURE FUNCTIONS. No venue, no credentials, no I/O. Nothing here is wired into a gate yet. ***
++
++THE DEFECT THIS EXISTS FOR (`docs/PREREG_reconcile_carry_forward_unexplained_2026-09-10.md` §0).
++`reconcile.reconcile()` compares window by window: the baseline for window t+1 is the venue's
++OBSERVED position at t (`live/reconcile.py`: `n1, q1, _ = prev_rb.get(sym, ...)`,
++`expected_qty = q1 + Σ_window`, and `prev_rb = cur` at the foot of the loop). So an unexplained
++balance is absorbed into the next window's baseline and reads clean one anchor later: explained 50,
++observed 80, residual 30; next anchor no fills and still 80 ⇒ residual 0 and §4-5b/5e both CLEAN.
++The reviewer reproduced it on a real top-up (two requests EXPIRED at 25 each, read back 80, next
++anchor zero fills, read back 80). THE NEWEST CELL BEING CLEAN IS NOT THE SAME STATEMENT AS THE
++QUANTITY IDENTITY BEING CLOSED.
++
++★★★ WHY THE OBJECT IS A JOINT SET AND NOT A PER-REQUEST INTERVAL. Revision 3 WITHDREW interval
++propagation as the wrong object — not as an approximation that was too loose, but as a thing that
++loses the correlation between requests. Two open BUY1 requests, read 1 then 0: the joint feasible
++set at the first anchor is {(1,0), (0,1)}, so each request's MARGINAL lower bound is 0, and
++propagating only the marginals admits (0,0) at the second anchor — while no single monotone
++trajectory reaches it. The reviewer's grid: 2xBUY1 exact 6 pairs vs propagated 7, 3xBUY1 10 vs 13,
++2xBUY2 15 vs 19. `feasible_exact` is therefore the contract and `feasible_marginal_UNSOUND` is kept
++BESIDE it, never as a fallback, purely so the tests can assert the two disagree on exactly the
++reviewer's named false accepts. A "faster" reimplementation that silently equals the marginal one
++is the failure this file is shaped to make visible.
++
++THE CONTRACT (PREREG §1c.1; where §1/§1b conflict, §1c governs). For each symbol, over requests
++i with side sigma_i in {+1,-1}, capacity Q_i, birth anchor b_i and terminal anchor d_i (or None),
++the joint feasible set F(t) is the set of vectors x(t) = (x_i(t)) of cumulative filled quantity
++satisfying, for every anchor t_k <= t:
++    (a) birth        t_k <  b_i          =>  x_i(t_k) = 0
++    (b) monotone     t_1 <= t_2          =>  x_i(t_1) <= x_i(t_2)
++    (c) post-terminal t_k >= d_i         =>  x_i(t_k) = x_i(d_i)   (an unknown PAST does not mean
++                                             remaining FUTURE capacity)
++    (d) evidence     x_i(t_k) >= C_i(t_k), and x_i = C_i exactly when terminal with a credible C
++    (e) observation  sum_i sigma_i [x_i(t_k) - x_i(t_0)] = Q_s(t_k) - Q_s(t_0) - F_s(t_k)
++(a)-(d) are HARD and never degrade. (e) is the only degradable constraint.
++
++RECOVERY POLICY (PREREG §1d.2, registered, NOT an implementation detail). Observation equations are
++admitted in ANCHOR-TIME ORDER; the first one whose admission empties F is downgraded to an EXCLUDED
++OBSERVATION (recorded, never deleted) and admission continues. This is deliberately NOT the maximum
++cardinality satisfiable subset: BUY2 read 2 -> 0 -> 1 keeps anchor 1 and excludes anchors 2 and 3,
++where maximum cardinality would keep 2 and 3. Chronological admission is chosen because it is
++deterministic (no ties), because a reading has already been consumed by risk by the time the next
++one arrives, and because it matches "one judgement per anchor".
++
++TWO NUMBERS, REPORTED SEPARATELY (PREREG §1b D1, §1d.6), because they answer different questions:
++  `distance`            how far the CURRENT observation is from what the admitted history predicts;
++                        may legitimately be 0 while history is unresolved.
++  `history_unresolved`  whether any observation had to be excluded, and which.
++Which of them trips which gate is NOT decided here (PREREG §1b: "本文不擅定停机政策").
++
++HARD CONTRADICTION => UNMEASURABLE (PREREG §1d.4). If (a)-(d) alone are unsatisfiable — two
++different credible terminal totals for one request, say — the symbol is NOT given a finite distance
++and no fact is dropped to make it computable. `status = "unmeasurable"`.
++
++NOT DONE HERE, and named so nobody reads this file as the whole fix: the wiring
++(`carry_by_symbol` / `pending_requests` out of `reconcile()`, §4-5b/5e reading |E_s| instead of
++|e_t|, the `reconstructed` supersedes rows, the next-anchor terminal lookup) and the 41-day ledger
++replay. PREREG §2 and §3.5-3.6.
++"""
++from typing import Any, Dict, List, Optional, Sequence, Tuple
++
++__all__ = ["Request", "feasible_exact", "feasible_marginal_UNSOUND", "carry_state"]
++
++
++class Request:
++    """One order request of one symbol, as the reconciler knows it.
++
++    `cap` is capacity in the SAME unit the observations are expressed in (contracts). `lower` is
++    the credible evidence lower bound C on cumulative filled quantity — sub-fill union, or a
++    trusted executedQty snapshot, which per PREREG §1c.5 is a CUMULATIVE constraint and not that
++    instant's increment. `exact` is set only when the request is terminal AND its total is
++    credible; it is a different statement from `lower` and is kept apart on purpose (§1c.2:
++    evidence lower bounds enter K, feasibility-derived bounds never do).
++    """
++
++    def __init__(self, rid: str, side: int, cap: float, birth: float,
++                 terminal: Optional[float] = None, lower: float = 0.0,
++                 exact: Optional[float] = None):
++        if side not in (1, -1):
++            raise ValueError(f"side must be +1 or -1, got {side!r}")
++        if not (cap >= 0):
++            raise ValueError(f"cap must be a non-negative number, got {cap!r}")
++        self.rid, self.side, self.cap = rid, int(side), float(cap)
++        self.birth, self.terminal = float(birth), (None if terminal is None else float(terminal))
++        self.lower, self.exact = float(lower), (None if exact is None else float(exact))
++
++    def __repr__(self):                                       # pragma: no cover — diagnostics only
++        return (f"Request({self.rid!r}, side={self.side:+d}, cap={self.cap}, birth={self.birth}, "
++                f"terminal={self.terminal}, lower={self.lower}, exact={self.exact})")
++
++    def contradiction(self) -> Optional[str]:
++        """A HARD contradiction in this request alone, or None. (PREREG §1d.4: such a name is
++        UNMEASURABLE — we do not drop a fact to make it computable.)"""
++        if self.exact is None:
++            return None if self.lower <= self.cap + 1e-12 else (
++                f"evidence floor {self.lower} exceeds capacity {self.cap}")
++        if self.exact + 1e-12 < self.lower:
++            return f"credible total {self.exact} is below the evidence floor {self.lower}"
++        if self.exact > self.cap + 1e-12:
++            return f"credible total {self.exact} exceeds capacity {self.cap}"
++        return None
++
++    def domain(self, t: float, step: float) -> List[float]:
++        """The values x_i(t) may take under the HARD constraints alone, on the lattice.
++
++        ★ `exact` IS A STATEMENT ABOUT THE TERMINAL TOTAL, SO IT BINDS ONLY FROM d_i ONWARD.
++        Applying it at every anchor would assert that the request was filled to its final total
++        from birth — over-constraining the past, and in the Q6 fixture it makes the 80 read at the
++        FIRST anchor look impossible for the wrong reason. Before d_i the cumulative fill is only
++        bounded by the evidence floor and the capacity.
++        """
++        if t < self.birth:
++            return [0.0]
++        if self.contradiction():
++            return []
++        lo, hi = self.lower, self.cap
++        if self.exact is not None and self.terminal is not None and t >= self.terminal:
++            lo = hi = self.exact
++        if lo > hi + 1e-12:
++            return []
++        n = int(round((hi - lo) / step)) if step > 0 else 0
++        return [lo + k * step for k in range(max(n, 0) + 1)]
++
++
++def _trajectories(reqs: Sequence[Request], times: Sequence[float], step: float):
++    """Every HARD-feasible joint trajectory, as a tuple of per-anchor vectors.
++
++    Enumeration, not a solver: the reviewer's acceptance is a SOLUTION SET and contract quantities
++    live on the lot-size lattice, so the honest object is the set itself. `feasible_exact` bounds
++    the size before calling this and refuses rather than truncating.
++    """
++    def per_request(i: int):
++        r = reqs[i]
++        out: List[Tuple[float, ...]] = []
++
++        def walk(k: int, sofar: Tuple[float, ...], pinned: bool):
++            if k == len(times):
++                out.append(sofar)
++                return
++            t = times[k]
++            prev = sofar[-1] if sofar else 0.0
++            if pinned:
++                # (c) post-terminal constant
++                walk(k + 1, sofar + (prev,), True)
++                return
++            # ★ THE FIRST ANCHOR AT OR AFTER d_i IS STILL FREE. x_i(d_i) is whatever the request
++            #   reached by the moment it went terminal, and fills between the previous anchor and
++            #   d_i are part of that. Only from the NEXT anchor on is the value constant. Pinning
++            #   at the first post-terminal anchor would forbid the very fills that closed it.
++            is_post = r.terminal is not None and t >= r.terminal
++            for v in r.domain(t, step):
++                if v + 1e-12 < prev:                          # (b) monotone
++                    continue
++                walk(k + 1, sofar + (v,), is_post)
++        walk(0, (), False)
++        return out
++
++    per = [per_request(i) for i in range(len(reqs))]
++    if any(not p for p in per):
++        return []
++
++    combos: List[Tuple[Tuple[float, ...], ...]] = [()]
++    for p in per:
++        combos = [c + (one,) for c in combos for one in p]
++    return combos
++
++
++def _sum_at(reqs: Sequence[Request], traj, k: int) -> float:
++    """sum_i sigma_i [x_i(t_k) - x_i(t_0)] — the quantity observation equation (e) constrains."""
++    return sum(r.side * (traj[i][k] - traj[i][0]) for i, r in enumerate(reqs))
++
++
++def feasible_exact(reqs: Sequence[Request], times: Sequence[float],
++                   observations: Sequence[Optional[float]], step: float = 1.0,
++                   max_trajectories: int = 2_000_000) -> Dict[str, Any]:
++    """Admit observation equations in anchor order; return what survived and how far we are.
++
++    `observations[k]` is the RIGHT-HAND SIDE of (e) at `times[k]` — already net of non-trading flow
++    and of the baseline Q_s(t_0) — or None where no readback exists for that anchor.
++
++    Returns {status, admitted, excluded, distance, predicted, history_unresolved, n_trajectories}.
++    `status` is "ok" or "unmeasurable"; a distance is never invented for the latter.
++    """
++    times = list(times)
++    if len(observations) != len(times):
++        raise ValueError(f"{len(observations)} observations for {len(times)} anchors")
++
++    est = 1
++    for r in reqs:
++        est *= max(len(r.domain(times[-1], step)), 1) ** len(times)
++        if est > max_trajectories:
++            # ★ refuse rather than fall back to the marginal method. A silent downgrade to the
++            #   UNSOUND object is precisely the failure revision 3 withdrew, and it would be
++            #   invisible: the caller would still get a number.
++            return {"status": "unmeasurable", "why": "too many joint trajectories to enumerate "
++                                                     f"exactly (> {max_trajectories}); refusing "
++                                                     "to fall back to the marginal method",
++                    "admitted": [], "excluded": [], "distance": None, "predicted": None,
++                    "history_unresolved": True, "n_trajectories": None}
++
++    pool = _trajectories(reqs, times, step)
++    if not pool:
++        return {"status": "unmeasurable",
++                "why": "the HARD constraints (birth / monotone / post-terminal / evidence) are "
++                       "themselves unsatisfiable — no trajectory exists before any observation is "
++                       "considered",
++                "admitted": [], "excluded": [], "distance": None, "predicted": None,
++                "history_unresolved": True, "n_trajectories": 0}
++
++    admitted: List[int] = []
++    excluded: List[Dict[str, Any]] = []
++    live = pool
++    # ★★ THE PREDICTION SET IS FORMED BEFORE THE CURRENT ANCHOR'S OWN EQUATION IS CONSIDERED
++    # (PREREG §1c.3: "P(tₙ) = 满足 (a)–(d) 与 k < n 的所有和约束(不含当前锚的和约束)"). Folding the
++    # current reading in first and THEN measuring the distance to it makes the distance 0 whenever
++    # the reading is admissible at all — a number that can only ever report what it was just told.
++    _idx = [k for k, o in enumerate(observations) if o is not None]
++    _n = _idx[-1] if _idx else None
++    predicted: List[float] = []
++    distance: Optional[float] = None
++
++    def _admit(k: int, obs: float):
++        nonlocal live
++        kept = [tr for tr in live if abs(_sum_at(reqs, tr, k) - obs) <= 1e-9]
++        if kept:
++            live = kept
++            admitted.append(k)
++        else:
++            # ★ PREREG §1d.2: downgrade THIS equation, never revisit the ones already admitted.
++            #   Deterministic, and it matches how the reading was actually consumed at the time.
++            excluded.append({"index": k, "anchor_ts": times[k], "observation": obs,
++                             "why": "admitting this reading emptied the joint feasible set; it is "
++                                    "an EXCLUDED OBSERVATION (kept in the audit, never deleted) "
++                                    "and the admitted history stands"})
++
++    for k, obs in enumerate(observations):
++        if obs is None or k == _n:
++            continue
++        _admit(k, obs)
++    if _n is not None:
++        predicted = sorted({round(_sum_at(reqs, tr, _n), 12) for tr in live})
++        _last = observations[_n]
++        distance = (None if not predicted else min(abs(_last - p) for p in predicted))
++        _admit(_n, _last)
++    return {"status": "ok", "admitted": admitted, "excluded": excluded,
++            "distance": distance, "predicted": predicted,
++            "history_unresolved": bool(excluded), "n_trajectories": len(live)}
++
++
++def feasible_marginal_UNSOUND(reqs: Sequence[Request], times: Sequence[float],
++                              observations: Sequence[Optional[float]],
++                              step: float = 1.0) -> bool:
++    """The WITHDRAWN method (PREREG §1b "判定", withdrawn by §1c), kept ONLY as a contrast.
++
++    ★★★ DO NOT CALL THIS FROM ANYTHING THAT DECIDES. It propagates each request's MARGINAL
++    interval and therefore loses the correlation between requests, admitting readback paths for
++    which no single joint monotone trajectory exists. It is here so the tests can assert that
++    `feasible_exact` is NOT this — on the reviewer's own grid it over-admits exactly 1 pair at
++    2xBUY1, 3 at 3xBUY1 and 4 at 2xBUY2. Without it in the tree, "the exact solver agrees with the
++    solution set" is checkable but "the exact solver is not secretly the loose one" is not.
++    """
++    los = [0.0] * len(reqs)
++    his = [r.cap for r in reqs]
++    for k, obs in enumerate(observations):
++        if obs is None:
++            continue
++        t = times[k]
++        for i, r in enumerate(reqs):
++            if t < r.birth:
++                los[i] = his[i] = 0.0
++            else:
++                his[i] = min(his[i], r.cap)
++                los[i] = max(los[i], r.lower)
++                if r.exact is not None:
++                    los[i] = his[i] = r.exact
++        lo = sum(r.side * (los[i] if r.side > 0 else his[i]) for i, r in enumerate(reqs))
++        hi = sum(r.side * (his[i] if r.side > 0 else los[i]) for i, r in enumerate(reqs))
++        if not (min(lo, hi) - 1e-9 <= obs <= max(lo, hi) + 1e-9):
++            return False
++        # propagate only the MARGINAL lower bounds forward — the step that loses the correlation
++        for i, r in enumerate(reqs):
++            if r.side > 0:
++                los[i] = max(los[i], min(his[i], obs - sum(
++                    r2.side * his[j] for j, r2 in enumerate(reqs) if j != i)))
++    return True
++
++
++def carry_state(reqs: Sequence[Request], times: Sequence[float],
++                observations: Sequence[Optional[float]], step: float = 1.0) -> Dict[str, Any]:
++    """The reportable pair: the current distance, and whether history is unresolved.
++
++    PREREG §1d.5 — a checkpoint must carry the HARD constraint set, the admitted equations, the
++    excluded ones WITH their reason, and the policy identity, and replaying it under the same
++    policy must be bit-identical. That is what this returns; `policy` is part of the value so a
++    checkpoint can never be replayed under a different rule without the difference being visible.
++    """
++    out = feasible_exact(reqs, times, observations, step=step)
++    out["policy"] = "chronological_admission/PREREG_reconcile_carry_forward_unexplained_2026-09-10#rev4"
++    out["requests"] = [{"rid": r.rid, "side": r.side, "cap": r.cap, "birth": r.birth,
++                        "terminal": r.terminal, "lower": r.lower, "exact": r.exact} for r in reqs]
++    out["times"] = list(times)
++    out["observations"] = list(observations)
++    return out
+diff --git a/live/tests_fixtures/exe04_q6/GRID_SOLUTION_SETS.json b/live/tests_fixtures/exe04_q6/GRID_SOLUTION_SETS.json
+new file mode 100644
+index 0000000..c57d373
+--- /dev/null
++++ b/live/tests_fixtures/exe04_q6/GRID_SOLUTION_SETS.json
+@@ -0,0 +1,521 @@
++[
++  {
++    "requests": 1,
++    "cap": 1,
++    "domain": [
++      0,
++      1
++    ],
++    "exact_count": 3,
++    "marginal_count": 3,
++    "false_accepts": [],
++    "cases": [
++      {
++        "positions": [
++          0,
++          0
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          0,
++          1
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          1,
++          0
++        ],
++        "exact": false,
++        "marginal": false
++      },
++      {
++        "positions": [
++          1,
++          1
++        ],
++        "exact": true,
++        "marginal": true
++      }
++    ]
++  },
++  {
++    "requests": 2,
++    "cap": 1,
++    "domain": [
++      0,
++      2
++    ],
++    "exact_count": 6,
++    "marginal_count": 7,
++    "false_accepts": [
++      [
++        1,
++        0
++      ]
++    ],
++    "cases": [
++      {
++        "positions": [
++          0,
++          0
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          0,
++          1
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          0,
++          2
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          1,
++          0
++        ],
++        "exact": false,
++        "marginal": true
++      },
++      {
++        "positions": [
++          1,
++          1
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          1,
++          2
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          2,
++          0
++        ],
++        "exact": false,
++        "marginal": false
++      },
++      {
++        "positions": [
++          2,
++          1
++        ],
++        "exact": false,
++        "marginal": false
++      },
++      {
++        "positions": [
++          2,
++          2
++        ],
++        "exact": true,
++        "marginal": true
++      }
++    ]
++  },
++  {
++    "requests": 3,
++    "cap": 1,
++    "domain": [
++      0,
++      3
++    ],
++    "exact_count": 10,
++    "marginal_count": 13,
++    "false_accepts": [
++      [
++        1,
++        0
++      ],
++      [
++        2,
++        0
++      ],
++      [
++        2,
++        1
++      ]
++    ],
++    "cases": [
++      {
++        "positions": [
++          0,
++          0
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          0,
++          1
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          0,
++          2
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          0,
++          3
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          1,
++          0
++        ],
++        "exact": false,
++        "marginal": true
++      },
++      {
++        "positions": [
++          1,
++          1
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          1,
++          2
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          1,
++          3
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          2,
++          0
++        ],
++        "exact": false,
++        "marginal": true
++      },
++      {
++        "positions": [
++          2,
++          1
++        ],
++        "exact": false,
++        "marginal": true
++      },
++      {
++        "positions": [
++          2,
++          2
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          2,
++          3
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          3,
++          0
++        ],
++        "exact": false,
++        "marginal": false
++      },
++      {
++        "positions": [
++          3,
++          1
++        ],
++        "exact": false,
++        "marginal": false
++      },
++      {
++        "positions": [
++          3,
++          2
++        ],
++        "exact": false,
++        "marginal": false
++      },
++      {
++        "positions": [
++          3,
++          3
++        ],
++        "exact": true,
++        "marginal": true
++      }
++    ]
++  },
++  {
++    "requests": 2,
++    "cap": 2,
++    "domain": [
++      0,
++      4
++    ],
++    "exact_count": 15,
++    "marginal_count": 19,
++    "false_accepts": [
++      [
++        1,
++        0
++      ],
++      [
++        2,
++        0
++      ],
++      [
++        2,
++        1
++      ],
++      [
++        3,
++        2
++      ]
++    ],
++    "cases": [
++      {
++        "positions": [
++          0,
++          0
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          0,
++          1
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          0,
++          2
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          0,
++          3
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          0,
++          4
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          1,
++          0
++        ],
++        "exact": false,
++        "marginal": true
++      },
++      {
++        "positions": [
++          1,
++          1
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          1,
++          2
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          1,
++          3
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          1,
++          4
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          2,
++          0
++        ],
++        "exact": false,
++        "marginal": true
++      },
++      {
++        "positions": [
++          2,
++          1
++        ],
++        "exact": false,
++        "marginal": true
++      },
++      {
++        "positions": [
++          2,
++          2
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          2,
++          3
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          2,
++          4
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          3,
++          0
++        ],
++        "exact": false,
++        "marginal": false
++      },
++      {
++        "positions": [
++          3,
++          1
++        ],
++        "exact": false,
++        "marginal": false
++      },
++      {
++        "positions": [
++          3,
++          2
++        ],
++        "exact": false,
++        "marginal": true
++      },
++      {
++        "positions": [
++          3,
++          3
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          3,
++          4
++        ],
++        "exact": true,
++        "marginal": true
++      },
++      {
++        "positions": [
++          4,
++          0
++        ],
++        "exact": false,
++        "marginal": false
++      },
++      {
++        "positions": [
++          4,
++          1
++        ],
++        "exact": false,
++        "marginal": false
++      },
++      {
++        "positions": [
++          4,
++          2
++        ],
++        "exact": false,
++        "marginal": false
++      },
++      {
++        "positions": [
++          4,
++          3
++        ],
++        "exact": false,
++        "marginal": false
++      },
++      {
++        "positions": [
++          4,
++          4
++        ],
++        "exact": true,
++        "marginal": true
++      }
++    ]
++  }
++]
+\ No newline at end of file
+diff --git a/live/tests_reconcile_carry.py b/live/tests_reconcile_carry.py
+new file mode 100644
+index 0000000..1b636e2
+--- /dev/null
++++ b/live/tests_reconcile_carry.py
+@@ -0,0 +1,285 @@
++"""[EXE-04 / Q6] The joint feasible set is the reviewer's SOLUTION SET, not a count that matches it.
++
++*** MOCK ONLY: pure functions, no venue, no credentials, no ledger, no I/O beyond one JSON read. ***
++
++WHAT THIS PINS. `docs/PREREG_reconcile_carry_forward_unexplained_2026-09-10.md` revision 4 is
++accepted mathematics that was never coded (repo-wide grep for `carry_by_symbol` /
++`pending_requests.jsonl` is empty). Its acceptance criteria are SOLUTION SETS, and the PREREG says
++why in as many words: for the single-BUY100 case the correct contract and a wrong one both admit
++exactly 5,151 pairs, so "验收必须核解集而非计数" — checking the count would pass the wrong contract.
++Every cell below therefore compares SETS, element by element.
++
++THE GRID (PREREG §1c "验收判据", reviewer artefact `design/attempt01/GRID_SOLUTION_SETS.json`):
++1xBUY1 3 pairs / 2xBUY1 6 / 3xBUY1 10 / 2xBUY2 15, against the withdrawn marginal method's
++3 / 7 / 13 / 19. The differences are the reviewer's named false accepts — (1,0) at 2xBUY1, and so
++on — every one of them a readback path that DECREASES while only BUY requests exist, which no
++monotone trajectory can produce. The file is vendored here rather than read from the reviewer's
++worktree so this suite has no dependency on a branch it does not own; [G0] pins its sha256.
++
++BLIND SPOTS, stated because this file will be read as "EXE-04 is done" otherwise:
++ (a) it tests the CORE only. Nothing here is wired into `reconcile()`, `position_break` or the
++     watchdog, so §4-5b/5e still read the per-window residual and the live defect still stands.
++ (b) no ledger: the 41-day replay (PREREG §2, §3.5) has not been run, and until it is, nobody
++     knows which historical names would have carried a non-zero E_s.
++ (c) `pending_requests.jsonl`, the next-anchor terminal lookup and the `reconstructed` supersedes
++     rows (PREREG §2) do not exist.
++ (d) enumeration is exponential in requests x anchors; `feasible_exact` refuses above its bound
++     rather than falling back, but the bound itself is not calibrated against real per-symbol
++     request counts.
++
++Exit 0 = all pass.
++"""
++import json
++import os
++import sys
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++sys.path.insert(0, HERE)
++import reconcile_carry as RC          # noqa: E402
++
++# ★ THE DENOMINATOR IS PRINTED, AND A ZERO DENOMINATOR IS A RED (battery convention, 2026-07-27).
++FAILS = []
++N_CHECKS = [0]
++
++
++def check(name, cond, extra=""):
++    N_CHECKS[0] += 1
++    print(f"  {'OK  ' if cond else 'FAIL'}  {name}{('  — ' + str(extra)[:300]) if extra != '' else ''}")
++    if not cond:
++        FAILS.append(name)
++
++
++GRID = os.path.join(HERE, "tests_fixtures", "exe04_q6", "GRID_SOLUTION_SETS.json")
++
++print("[G0] the reviewer's grid is the one we were given")
++import hashlib                        # noqa: E402
++_raw = open(GRID, "rb").read()
++check("★★ G0 GRID_SOLUTION_SETS.json sha256 is the reviewer's artefact (round 7, 38808cbd lineage)",
++      hashlib.sha256(_raw).hexdigest()
++      == "8a2b7c9b7e309c381f7115d91d0695c37af1a1098f5e6dbd489a56b34f128926",
++      hashlib.sha256(_raw).hexdigest())
++_grid = json.loads(_raw.decode())
++check("★ G0b it carries the four cases the PREREG names (1xBUY1 / 2xBUY1 / 3xBUY1 / 2xBUY2)",
++      [(c["requests"], c["cap"]) for c in _grid] == [(1, 1), (2, 1), (3, 1), (2, 2)],
++      [(c["requests"], c["cap"]) for c in _grid])
++check("★★ G0c …and the counts it declares are the PREREG's (exact 3/6/10/15, marginal 3/7/13/19)",
++      [(c["exact_count"], c["marginal_count"]) for c in _grid]
++      == [(3, 3), (6, 7), (10, 13), (15, 19)],
++      [(c["exact_count"], c["marginal_count"]) for c in _grid])
++
++print("\n[G1] the exact solver reproduces the reviewer's solution SET, pair by pair")
++# ★★ t_0 IS AN EXPLICIT ROW. Equation (e) is `sum sigma_i [x_i(t_k) - x_i(t_0)] = Q(t_k) - Q(t_0)`,
++# so the grid's `positions` — which are position LEVELS at two readbacks, from a flat book — are the
++# right-hand sides at t_1 and t_2 against a baseline at t_0 where every x_i is 0. Passing the first
++# level as the equation at t_0 would be asserting `level = 0`, which is a different claim entirely
++# (and was this suite's first red).
++T0 = 0.0
++T = [T0, 1.0, 2.0]
++for case in _grid:
++    n, cap = case["requests"], case["cap"]
++    reqs = [RC.Request(f"r{i}", +1, float(cap), birth=0.0) for i in range(n)]
++    exact_set, marginal_set = set(), set()
++    for cell in case["cases"]:
++        first, second = cell["positions"]
++        obs = [0.0, float(first), float(second)]
++        ok_e = RC.feasible_exact(reqs, T, obs)
++        ok_m = RC.feasible_marginal_UNSOUND(reqs, T, obs)
++        # a pair is EXACT-feasible iff no observation had to be excluded
++        if ok_e["status"] == "ok" and not ok_e["excluded"]:
++            exact_set.add((first, second))
++        if ok_m:
++            marginal_set.add((first, second))
++    want_exact = {tuple(c["positions"]) for c in case["cases"] if c["exact"]}
++    want_marg = {tuple(c["positions"]) for c in case["cases"] if c["marginal"]}
++    tag = f"{n}xBUY{cap}"
++    check(f"★★★ G1 {tag}: the exact SET equals the reviewer's, element by element "
++          f"({len(want_exact)} pairs) — not merely the same count",
++          exact_set == want_exact,
++          {"missing": sorted(want_exact - exact_set), "extra": sorted(exact_set - want_exact)})
++    check(f"★★ G1m {tag}: the withdrawn marginal method reproduces ITS set too "
++          f"({len(want_marg)} pairs), so the contrast below is measured and not assumed",
++          marginal_set == want_marg,
++          {"missing": sorted(want_marg - marginal_set), "extra": sorted(marginal_set - want_marg)})
++    check(f"★★★ G1d {tag}: exact is STRICTLY tighter, and the difference is exactly the reviewer's "
++          f"named false accepts {case['false_accepts']} — the proof this is not secretly the loose "
++          f"object revision 3 withdrew",
++          marginal_set - exact_set == {tuple(x) for x in case["false_accepts"]},
++          sorted(marginal_set - exact_set))
++
++# ★ AND THE SETS DO NOT DEPEND ON THE BASELINE BEING FREE. Above, the requests are born AT t_0, so
++#   x_i(t_0) is unconstrained and only the DIFFERENCES matter. Re-running with the requests born
++#   after t_0 — where constraint (a) pins x_i(t_0) = 0 — must give the same sets, or the agreement
++#   with the reviewer's grid would be an artefact of how the baseline happened to be modelled.
++for case in _grid:
++    n, cap = case["requests"], case["cap"]
++    reqs_b = [RC.Request(f"r{i}", +1, float(cap), birth=0.25) for i in range(n)]
++    got = set()
++    for cell in case["cases"]:
++        first, second = cell["positions"]
++        r = RC.feasible_exact(reqs_b, T, [0.0, float(first), float(second)])
++        if r["status"] == "ok" and not r["excluded"]:
++            got.add((first, second))
++    want = {tuple(c["positions"]) for c in case["cases"] if c["exact"]}
++    check(f"★★ G1b {n}xBUY{cap}: the same set with the requests born AFTER t_0 (baseline pinned to "
++          f"0 by constraint (a)) — the agreement is not an artefact of a free baseline",
++          got == want, {"missing": sorted(want - got), "extra": sorted(got - want)})
++
++print("\n[G2] the hard constraints, each on its own named PREREG example")
++# §1c.4 / D8-2: two TERMINAL BUY1 sharing a checkpoint. Post-terminal constant ⇒ only 1 is legal.
++# terminal at 0.5: both requests are already closed when the FIRST reading is taken, so that
++# reading is the last free one and everything after it is constant.
++_term = [RC.Request("a", +1, 1.0, birth=0.0, terminal=0.5),
++         RC.Request("b", +1, 1.0, birth=0.0, terminal=0.5)]
++_res_term = {v: RC.feasible_exact(_term, T, [0.0, 1.0, float(v)]) for v in (1, 2, 3)}
++check("★★★ G2a two TERMINAL BUY1, baseline 1: only a later reading of 1 is admissible; 2 and 3 are "
++      "refused (post-terminal constant — an unknown PAST is not remaining FUTURE capacity). The "
++      "revision-3 text said 2 was legal and D8-2 corrected it; both examples are kept",
++      not _res_term[1]["excluded"] and _res_term[2]["excluded"] and _res_term[3]["excluded"],
++      {v: bool(r["excluded"]) for v, r in _res_term.items()})
++# §1c.4: the same two requests still OPEN ⇒ 1 and 2 legal, 3 refused (capacity)
++_open = [RC.Request("a", +1, 1.0, birth=0.0), RC.Request("b", +1, 1.0, birth=0.0)]
++_res_open = {v: RC.feasible_exact(_open, T, [0.0, 1.0, float(v)]) for v in (1, 2, 3)}
++check("★★★ G2b …and the SAME two requests left OPEN admit 1 and 2 and refuse 3 — the open/terminal "
++      "pair is what stops a checkpoint degenerating into two marginals that would allow 3",
++      not _res_open[1]["excluded"] and not _res_open[2]["excluded"] and _res_open[3]["excluded"],
++      {v: bool(r["excluded"]) for v, r in _res_open.items()})
++# §1c.3 / §3.2: single BUY100, terminal with C unknown, 80 then 90
++_c_unknown = [RC.Request("big", +1, 100.0, birth=0.0, terminal=0.5)]
++_r = RC.feasible_exact(_c_unknown, T, [0.0, 80.0, 90.0], step=10.0)
++check("★★★ G2c single BUY100, terminal with its total UNKNOWN, read 80 then 90: the 90 is refused — "
++      "after the terminal anchor there is no capacity left to explain an increase",
++      bool(_r["excluded"]) and _r["excluded"][0]["observation"] == 90.0, _r["excluded"])
++_r2 = RC.feasible_exact(_c_unknown, T, [0.0, 80.0, 80.0], step=10.0)
++check("★★ G2d …while 80 then 80 is clean (the refusal above is about the INCREASE, not about "
++      "terminality)", not _r2["excluded"] and _r2["distance"] == 0.0,
++      {"excluded": _r2["excluded"], "distance": _r2["distance"]})
++
++# ★ A REQUEST THAT FILLS PROGRESSIVELY AND CLOSES LATER. Every `exact` above belongs to a request
++#   that was ALREADY terminal at the first reading, so "apply the total from d_i" and "apply it
++#   always" coincide and neither is tested. Here the request is still open at t_1 and closes before
++#   t_2: the cumulative fill at t_1 is genuinely BELOW the final total, and a rule that pinned the
++#   total at every anchor would call the intermediate reading impossible. (Found by a mutant that
++#   moved the pin to every anchor and left the suite green.)
++_prog = [RC.Request("p", +1, 100.0, birth=0.25, terminal=1.5, exact=100.0)]
++_rp = RC.feasible_exact(_prog, T, [0.0, 40.0, 100.0], step=20.0)
++check("★★★ G2e a request still OPEN at the first reading and terminal at 100 by the second: 40 then "
++      "100 is admissible — the credible TOTAL binds from d_i onward, not from birth, so a partial "
++      "fill on the way there is not a contradiction",
++      not _rp["excluded"] and _rp["distance"] == 0.0,
++      {"excluded": [e["anchor_ts"] for e in _rp["excluded"]], "distance": _rp["distance"]})
++_rp2 = RC.feasible_exact(_prog, T, [0.0, 40.0, 60.0], step=20.0)
++check("★★ G2f …and the SECOND reading still has to equal the total: 40 then 60 is refused (60 is "
++      "not 100), so G2e is not merely a loosening",
++      [e["anchor_ts"] for e in _rp2["excluded"]] == [2.0] and _rp2["predicted"] == [100.0],
++      {"excluded_at": [e["anchor_ts"] for e in _rp2["excluded"]], "predicted": _rp2["predicted"]})
++
++print("\n[G3] chronological admission is the registered policy, not maximum cardinality")
++# §1d.2: BUY2 read 2 -> 0 -> 1 keeps anchor 1, excludes anchors 2 and 3.
++_b2 = [RC.Request("x", +1, 2.0, birth=0.0)]
++_T3 = [T0, 1.0, 2.0, 3.0]
++_r3 = RC.feasible_exact(_b2, _T3, [0.0, 2.0, 0.0, 1.0])
++check("★★★ G3a BUY2 read 2 -> 0 -> 1: anchor 1 is ADMITTED and anchors 2 and 3 are EXCLUDED. "
++      "Maximum cardinality would keep 2 and 3 instead; the registered policy is chronological "
++      "admission and this cell is the difference between them",
++      [_T3[k] for k in _r3["admitted"]] == [T0, 1.0]
++      and [e["anchor_ts"] for e in _r3["excluded"]] == [2.0, 3.0],
++      {"admitted_at": [_T3[k] for k in _r3["admitted"]],
++       "excluded_at": [e["anchor_ts"] for e in _r3["excluded"]]})
++# §1c.3 / §1d: single BUY1 read 1 -> 0 ⇒ anchor 2 excluded, prediction stays {1}, distance 1
++_b1 = [RC.Request("x", +1, 1.0, birth=0.0)]
++_r4 = RC.feasible_exact(_b1, T, [0.0, 1.0, 0.0])
++check("★★★ G3b single BUY1 read 1 -> 0: the second reading is excluded, the prediction stays {1} "
++      "and the distance is 1 — the reading is not allowed to rewrite the history that risk already "
++      "consumed, and the distance is reported every anchor until a hard fact resolves it",
++      [e["anchor_ts"] for e in _r4["excluded"]] == [2.0] and _r4["predicted"] == [1.0]
++      and _r4["distance"] == 1.0,
++      {"excluded_at": [e["anchor_ts"] for e in _r4["excluded"]], "predicted": _r4["predicted"],
++       "distance": _r4["distance"]})
++check("★★ G3c …and `history_unresolved` is reported SEPARATELY from the distance, because a clean "
++      "current cell and a closed identity are different statements (that is the whole defect)",
++      _r4["history_unresolved"] is True and _r4["distance"] == 1.0
++      and RC.feasible_exact(_b1, T, [0.0, 0.0, 1.0])["history_unresolved"] is False,
++      {"1->0": _r4["history_unresolved"],
++       "0->1": RC.feasible_exact(_b1, T, [0.0, 0.0, 1.0])["history_unresolved"]})
++
++print("\n[G4] the Q6 shape itself — the defect that opened the item")
++# PREREG §0 / §3.1: two requests EXPIRED at 25 each (so 50 is explained), read back 80, next anchor
++# no fills, read back 80. The live reconciler calls window 2 CLEAN. Here the 30 must not vanish.
++# ★ BIRTH AFTER t_0, TERMINAL BEFORE t_1. The two top-ups did not exist at the baseline readback
++#   (so x_i(t_0) = 0 by constraint (a), which is what makes the baseline a baseline) and were
++#   already closed when the 80 was read. Giving them birth=t_0 would leave x_i(t_0) free, and the
++#   identity is stated as a CHANGE since t_0 — a free baseline lets the whole 80 be explained as
++#   "already there", which is the very absorption this item exists to stop.
++_q6 = [RC.Request("t1", +1, 25.0, birth=0.25, terminal=0.5, exact=25.0),
++       RC.Request("t2", +1, 25.0, birth=0.25, terminal=0.5, exact=25.0)]
++_rq = RC.feasible_exact(_q6, T, [0.0, 80.0, 80.0], step=5.0)
++check("★★★ G4a the reviewer's Q6 fixture: explained 50, observed 80, then a zero-fill anchor still "
++      "reading 80. The unexplained 30 SURVIVES into the second window (distance 30) instead of "
++      "being absorbed into a fresh baseline — which is what reconcile() does today and why §4-5b "
++      "and §4-5e both read CLEAN at t+1",
++      _rq["predicted"] == [50.0] and _rq["distance"] == 30.0,
++      {"predicted": _rq["predicted"], "distance": _rq["distance"]})
++# §1.2 / §3.3: late terminal C50 must give the same +30 whichever window it arrives in
++# BEFORE the terminal evidence lands, a BUY100 with 100 of capacity explains 80 outright.
++_no_ev = RC.feasible_exact([RC.Request("u", +1, 100.0, birth=0.25)], T, [0.0, 80.0, 80.0], step=10.0)
++# AFTER it lands (credible total 50), the same readings leave 30 unexplained — and because the
++# distance is recomputed from the CUMULATIVE identity over the whole prefix, it does not matter at
++# which anchor we were told: the answer is a function of the evidence set, not of arrival order.
++_ev = RC.feasible_exact([RC.Request("u", +1, 100.0, birth=0.25, terminal=0.5, exact=50.0)],
++                        T, [0.0, 80.0, 80.0], step=10.0)
++check("★★★ G4b late evidence NARROWS the same request rather than creating a second execution: with "
++      "no terminal total, 100 of capacity explains 80 (distance 0, history clean); with a credible "
++      "total of 50, the same two readings leave 30 — computed from the cumulative identity over the "
++      "whole prefix, so it is a function of the EVIDENCE SET and not of which window the evidence "
++      "arrived in (the literal per-window recursion the PREREG rejects gives -50 in one order and "
++      "+30 in the other for the same final facts)",
++      _no_ev["distance"] == 0.0 and not _no_ev["history_unresolved"]
++      and _ev["distance"] == 30.0 and _ev["predicted"] == [50.0],
++      {"before": (_no_ev["distance"], _no_ev["history_unresolved"]),
++       "after": (_ev["distance"], _ev["predicted"])})
++
++print("\n[G5] hard contradictions are UNMEASURABLE, never a fabricated finite distance")
++_bad = [RC.Request("x", +1, 1.0, birth=0.0, terminal=0.5, exact=0.0, lower=1.0)]
++_rb = RC.feasible_exact(_bad, T, [0.0, 0.0, 0.0])
++check("★★★ G5a a request whose credible TOTAL is 0 while its evidence FLOOR is 1 is a hard "
++      "contradiction: status unmeasurable, distance None. No fact is dropped to make it "
++      "computable and no zero is invented (PREREG §1d.4)",
++      _rb["status"] == "unmeasurable" and _rb["distance"] is None,
++      {"status": _rb["status"], "distance": _rb["distance"]})
++# ★ the OTHER hard contradiction: a credible total ABOVE capacity. Without the explicit check this
++#   one slips through — lo = hi = exact is not "lo > hi", so the domain would simply be a value the
++#   request could never reach. (Found by a mutant that removed the check and left the suite green;
++#   the exact-below-floor case above is caught by monotonicity even without it, this one is not.)
++_over = [RC.Request("x", +1, 1.0, birth=0.25, terminal=0.5, exact=2.0)]
++_ro = RC.feasible_exact(_over, T, [0.0, 2.0, 2.0])
++check("★★★ G5a2 a credible TOTAL of 2 on a request whose capacity is 1 is also unmeasurable — the "
++      "contradiction is named rather than quietly accepted as a reachable value",
++      _ro["status"] == "unmeasurable" and _ro["distance"] is None,
++      {"status": _ro["status"], "distance": _ro["distance"]})
++
++_huge = [RC.Request(f"r{i}", +1, 50.0, birth=0.0) for i in range(6)]
++_rh = RC.feasible_exact(_huge, _T3, [0.0, 1.0, 2.0, 3.0], step=0.5, max_trajectories=1000)
++check("★★★ G5b past its enumeration bound it REFUSES (unmeasurable) rather than falling back to the "
++      "marginal method — a silent downgrade to the unsound object would still hand the caller a "
++      "number, which is exactly how revision 3's withdrawn method would come back",
++      _rh["status"] == "unmeasurable" and "refusing" in str(_rh.get("why", "")),
++      {"status": _rh["status"], "why": str(_rh.get("why"))[:90]})
++
++print("\n[G6] a checkpoint replays bit-identically under the same policy (PREREG §1d.5)")
++_s1 = RC.carry_state(_b2, _T3, [0.0, 2.0, 0.0, 1.0])
++_s2 = RC.carry_state(_b2, _T3, [0.0, 2.0, 0.0, 1.0])
++check("★★ G6a the state is deterministic and carries its own policy identity, so it cannot be "
++      "replayed under a different rule without the difference being visible",
++      json.dumps(_s1, sort_keys=True) == json.dumps(_s2, sort_keys=True)
++      and "chronological_admission" in _s1["policy"] and "rev4" in _s1["policy"],
++      _s1["policy"])
++check("★★ G6b …and it records the EXCLUDED observations with their reason — they are audit rows "
++      "that are never deleted, not a filter",
++      len(_s1["excluded"]) == 2 and all(e.get("why") for e in _s1["excluded"]),
++      [(e["index"], str(e["why"])[:40]) for e in _s1["excluded"]])
++
++print(f"\n{N_CHECKS[0] - len(FAILS)}/{N_CHECKS[0]} checks passed")
++if FAILS:
++    print("FAILED:", *FAILS, sep="\n  ")
++    sys.exit(1)
++print("ALL PASS")
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index fd719ad..6a9c17f 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -262,6 +262,7 @@ SUITE_SCOPE = {
+     "tests_head_liveness": "that a head which passes the liveness test is USEFUL — it proves a collapsed head is caught and that the verdict is scale-free, not that a live head carries signal. IC is what says that, and no liveness test can",
+     "tests_universe_tripwire": "that the frozen model actually saw every pinned symbol in TRAINING — the union was determined from a live-extended REBUILD, so it may be wider than the panel the training runs consumed, and that error is one-directional: it makes the guard LESS likely to fire. Only the training host can close it. It also cannot show the guard catching a monthly ROTATION: while the column set is frozen, members are a subset of the union by construction and OK is structural. That is the finding, not a gap in the suite",
+     "tests_fee_asset_detection": "that NON-USDT FEES ARE MEASURED AND ALARMED PROPORTIONATELY — [A-C] the column takes all three states from the real commissionAsset; [D] the per-LEG BNB→USDT conversion (c05f1f5) reaches the stamp and M1, so a converted fee is measured in full and a known-incomplete one is refused, never zero; [E] the alarm reports CHANGES of the fee-asset set, not its state (2026-08-06 re-tier, user-ruled: BNB fees are deliberate config — the old alarm paged HIGH six times in 6h for one known fact, and its text was FALSE post-conversion), with incomplete conversion still paging every anchor. Five blind spots: (a) the conversion price is a collect-time bookTicker mid, not the fill-time price — a fast BNB move between fill and collect misprices the fee by that drift, and nothing here bounds it; (b) the [E] change detection is SET-based: BNB's SHARE can swing arbitrarily without a page so long as the set {BNB} is unchanged — a slow depletion shows up only at the cliff, not on the slope; (c) the baseline is a file a human or a tree reset can delete, costing one spurious first-seen page (fail-noisy, by design); (d) the wiring checks are substring-grade statics over anchor_loop — they prove the call and the env override EXIST, not that the branch is reached on a real anchor; (e) baseline reads are not cross-mode-guarded (worst case: one wrong page after a mode mixup, judged not worth the read_stamped ceremony — revisit if a wrong-mode page is ever observed)",
++    "tests_reconcile_carry": "that the Q6 CROSS-WINDOW object is the reviewer's — it proves the joint feasible set of per-request cumulative fills reproduces GRID_SOLUTION_SETS.json element by element (1xBUY1 3 / 2xBUY1 6 / 3xBUY1 10 / 2xBUY2 15), that it is STRICTLY tighter than the withdrawn marginal method on exactly the reviewer's named false accepts, that each hard constraint (birth-zero, monotone, post-terminal constancy, evidence floor and credible total) is separately load-bearing, that admission is CHRONOLOGICAL and not maximum-cardinality (BUY2 2->0->1 keeps anchor 1), that the reviewer's own Q6 fixture leaves a distance of 30 at t+1 instead of being absorbed into a fresh baseline, that a hard contradiction is UNMEASURABLE rather than a fabricated zero, that past its enumeration bound it refuses rather than silently falling back to the unsound method, and that a checkpoint replays bit-identically and carries its policy identity. Four blind spots, and they are large: (a) THIS IS THE CORE ONLY — nothing is wired into reconcile(), position_break or the watchdog, so §4-5b/5e still read the per-window residual and the live defect EXE-04 stands; (b) the 41-day ledger replay (PREREG §2, §3.5) has not been run, so which historical names would have carried a non-zero E_s is unknown; (c) pending_requests.jsonl, the next-anchor terminal lookup and the `reconstructed` supersedes rows do not exist; (d) enumeration is exponential in requests x anchors and the refusal bound is not calibrated against real per-symbol request counts",
+     "tests_reconcile_severity": "that the 5%% band and the 5 USDT floor are the RIGHT numbers — it proves the grading separates revaluation from structural difference (sign flip, one-sided name) and that venue truth is still adopted unconditionally. It cannot separate the two EXACTLY, because the cache stores no mark; a name whose price moved >5%% between anchors will be graded REAL and is a false page by construction",
+     "tests_numerator_honesty": "that the venue's income ledger is COMPLETE — it proves we page it, do not double-count colliding timestamps, and that a truncated day is withheld rather than priced. It cannot prove the venue reported every settlement in the first place, and it says nothing about whether -6.7%/-6.0% are the right limits: this batch repairs the numerator and deliberately leaves the thresholds where they are",
+     "tests_external_book": "that the WIDE BOOK IS WORTH TRADING — it proves the adapter reads the producer's signed target exactly (in-universe w / in-universe sum|w| x NAV x gross_mult, bitwise on a neutral unit-gross fixture; no EMA, no band, no risk budget), that every named defect of the file (missing / sidecar missing / sha mismatch / bad json / schema incl. a missing universe list / universe-list sha / anchor mismatch / stale / future-dated / pin mismatch / bad weights / gross_norm mismatch) HOLDS the anchor with zero orders and a HIGH `external_book_unavailable`, that the hold never falls back to the internal composer, that the age feeds the pre-registered ladder (and `on_unavailable: hold` pins it), that internal mode is byte-identical (the external reader is never invoked; a mutant that forces the external branch goes red), that INVALID config blocks, that names outside the producer's universe list are never targets (popped; the book normalised by the in-universe sum so the live gross is undiluted; a >25% tail pages HIGH; a reader that does not split is a red mutant), that a HELD name the file no longer targets is exited reduce-only through clamp/flatten_only (never market-exited), that the two KEPT per-name filters (venue meta: non-COIN/non-ASCII/non-USDT/leveraged/non-TRADING; 2x min-notional) withhold exactly the named names, and that the per_name_stop profile switch resolves (null = base bitwise, wide = d30_n2_c42, unknown = base + alarm) and is coupled to book_source; every fixture is the REAL config pinned to the internal baseline, so the suite is green with the disk in either state. Seven blind spots: (a) every loop test runs DRY_RUN with a stub bookTicker and hand-set filters — no venue, no fills, no real NAV; the first LIVE external anchor is the first; (b) the wait-for-slot is tested as a pure plan (wake time, 0/positive) — whether the real process actually idles to N+offset and the 3000s cap suffices is a wall-clock fact only a scheduled anchor shows; (c) it proves the file is READ FAITHFULLY, never that the producer's weights are RIGHT — the wide book's alpha, turnover and the N+8/N+23 phase question live in the shadow/audit, not here; (d) the producer side (shadow_loop_v3.write_target_live) is tested in the research repo (tests_target_live_output), and the pair agreement (its output is accepted by this reader; a v2-style file is refused) is asserted THERE, not in this battery; (e) venue eligibility is a pure function over a synthetic exchangeInfo — the real payload's field names drifting (underlyingType) would exclude nothing and this stays green; (f) the 2x min-notional rule, the 10% breadth-loss line (EXT_DUST_ALARM_FRAC) and the 25% tail line (OUTSIDE_UNIVERSE_ALARM_FRAC) are policy numbers — none is calibrated here; (g) the universe LIST is trusted once its sha matches the declared universe_sha — whether it is the RIGHT universe (450 = symbols_live) is the producer's claim, pinned only if `universe_sha_pin` is set",
+diff --git a/run_acceptance.sh b/run_acceptance.sh
+index a2daf42..e2f4fce 100644
+--- a/run_acceptance.sh
++++ b/run_acceptance.sh
+@@ -105,6 +105,9 @@ SUITES=(
+   # B30: §4-5b/§4-7 compare positions, not prices. The suite replays the 2026-07-27T16:18:34Z
+   # trip from the production rows, with the reverse control (a missing fill must still fire).
+   "tests_reconcile_qty_caliber:$_SELF/live/tests_reconcile_qty_caliber.py"
++  # EXE-04 / Q6: the JOINT feasible set of per-request cumulative fills (core only; not yet wired
++  # into reconcile / position_break / the watchdog — see the suite docstring's blind spots)
++  "tests_reconcile_carry:$_SELF/live/tests_reconcile_carry.py"
+   # B23/B24/B25 batch: funding pagination, the inter-anchor readback blind spot, and the
+   # protective-flatten row spec.
+   "tests_flatten_record:$_SELF/live/tests_flatten_record.py"
