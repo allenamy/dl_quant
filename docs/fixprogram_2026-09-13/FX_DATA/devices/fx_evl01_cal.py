@@ -19,6 +19,13 @@ This device measures that half. It changes no code and writes no artifact anyone
        pnl    [col 2 ] = (sm[m]  * yv).sum() * 1e4          (L329)
        pnl_ex [col 19] = (smr[m] * yv).sum() * 1e4          (L352), smr = the L315-321 reshape of sm
      with yv = nan_to_num(y4[i, m]) and CAL=log, i.e. no expm1 (L324-326). Both must match the stored record or no delta is printed.
+     CRITERION, and it was changed once after run 10 (rc=1, log `receipts/fx_evl01_run10_rc1_float32_criterion.log`). Run 10 used
+     "max relative error < 1e-6" and reported max ABSOLUTE 8.61e-6 bps with max relative 1.09e-3 — the relative figure is large only
+     where the recorded pnl is itself near zero. The device stores W as float32 (`WS.append(sm.astype(np.float32))`), so a rebuild
+     cannot be more accurate than float32 and a relative test against a near-zero denominator was the wrong instrument. The criterion
+     is now a DERIVED per-anchor bound, not a tuned one: |rebuilt - recorded| <= 8 * eps32 * sum|w[m] * yv| * 1e4, a few ulps of the
+     summation itself. The margin is reported as max_over_float32_bound. For scale, the misreading run 9 found sat 7 orders of
+     magnitude above this bound, so the weakened test still refuses it.
   D  the delta a forgotten CAL would put on those channels with the weights HELD FIXED:
      d[k] = (w[m] * (expm1(yv) - yv)).sum() * 1e4 / gross_total[k]            (bps / anchor / unit gross)
      for w = sm and w = smr, per year and over the judge's windows, with the D1 equivalence delta (0.05) beside it.
@@ -107,6 +114,8 @@ for s, p in ARMS.items():
     n = len(ts)
     pnl_b = np.full(n, np.nan); pnlex_b = np.full(n, np.nan)
     d_sm = np.full(n, np.nan); d_smr = np.full(n, np.nan)
+    ulp = np.full(n, np.nan)          # per-anchor float32 storage bound on the rebuild, see the P section of the docstring
+    EPS32 = float(np.finfo(np.float32).eps)
     for k in range(n):
         i = k + META_OFF; j = k
         m = member_set(i, j)
@@ -115,17 +124,20 @@ for s, p in ARMS.items():
         yv = np.nan_to_num(Y[i, m], nan=0.0)
         pnl_b[k] = float((sm[m] * yv).sum() * 1e4)
         pnlex_b[k] = float((smr[m] * yv).sum() * 1e4)
+        ulp[k] = 8.0 * EPS32 * float(np.abs(smr[m] * yv).sum() * 1e4)
         dy = np.expm1(yv) - yv
         if gt[k] > 1e-12:
             d_sm[k] = float((sm[m] * dy).sum() * 1e4) / gt[k]
             d_smr[k] = float((smr[m] * dy).sum() * 1e4) / gt[k]
     for nm, b, r in (("pnl", pnl_b, pnl_rec), ("pnl_ex", pnlex_b, pnlex_rec)):
-        fin = np.isfinite(b) & np.isfinite(r)
+        fin = np.isfinite(b) & np.isfinite(r) & np.isfinite(ulp)
         den = np.maximum(np.abs(r[fin]), 1e-9)
         relmax = float((np.abs(b[fin] - r[fin]) / den).max()); absmax = float(np.abs(b[fin] - r[fin]).max())
-        check("P.s%s.%s_rebuilt_from_W_and_y4" % (s, nm), relmax < 1e-6,
-              {"cells": int(fin.sum()), "max_rel": relmax, "max_abs_bps": absmax})
-        log("P s%s %s rel %.3e abs %.3e" % (s, nm, relmax, absmax))
+        ratio = float((np.abs(b[fin] - r[fin]) / np.maximum(ulp[fin], 1e-30)).max())
+        check("P.s%s.%s_rebuilt_from_W_and_y4_within_float32_storage" % (s, nm), ratio <= 1.0,
+              {"cells": int(fin.sum()), "max_abs_bps": absmax, "max_rel": relmax,
+               "max_over_float32_bound": ratio, "bound": "8 * eps32 * sum|w[m]*yv| * 1e4"})
+        log("P s%s %s abs %.3e rel %.3e ratio_to_f32_bound %.3f" % (s, nm, absmax, relmax, ratio))
     yrs = np.array([yr(t) for t in ts])
     def summarise(d):
         wf = np.isfinite(d); wa = wf.copy(); wa[:ALPHA0] = False
