@@ -38,6 +38,13 @@ STATE, PLOG, COND4, OUT = sys.argv[1:5]
 
 REALISED_TYPES = ("REALIZED_PNL", "COMMISSION", "FUNDING_FEE")
 
+# ★ The compare row's only timestamp is `utc`, floored to the SECOND, while the snapshot it was built from carries
+#   milliseconds (…595.935 vs …595). The running twin appends that snapshot to `snaps` BEFORE computing the chain,
+#   so an exclusive `ts <= now_ts` drops it and the replay is one snapshot behind — which is exactly what run 2
+#   showed: T equalled the PREVIOUS row's recorded cum on essentially every row. One second of inclusivity restores
+#   the twin's own view; it cannot pull in a later snapshot because the twin runs every 1,200 s.
+TS_INCLUSIVE_EPS = 1.0
+
 
 def sha(p):
     raw = open(p, "rb").read()
@@ -83,7 +90,8 @@ for d in sorted(x for x in os.listdir(PLOG) if x.isdigit() and len(x) == 8):
 def dn_as_of(now_ts):
     out = {}
     for d, rows in dn_all.items():
-        keep = [r for r in rows if r.get("nav_ts") is not None and float(r["nav_ts"]) <= now_ts]
+        keep = [r for r in rows if r.get("nav_ts") is not None
+                and float(r["nav_ts"]) <= now_ts + TS_INCLUSIVE_EPS]
         if keep:
             out[d] = keep
     return out
@@ -93,7 +101,8 @@ def wd_chain_arith_pct(dn, now_ts):
     """VERBATIM re-implementation of guard_twin.wd_chain_arith_pct (which itself mirrors watchdog cond4)."""
     prev, cum, n = None, 1.0, 0
     for d in sorted(dn):
-        rows = [r for r in dn[d] if r.get("nav_ts") is not None and float(r["nav_ts"]) <= now_ts]
+        rows = [r for r in dn[d] if r.get("nav_ts") is not None
+                and float(r["nav_ts"]) <= now_ts + TS_INCLUSIVE_EPS]
         if not rows:
             continue
         last = rows[-1]
@@ -140,14 +149,14 @@ def _inc_upto(day, bucket, now_ts):
     if not e:
         return 0.0
     ts, cs = e
-    i = bisect.bisect_right(ts, now_ts * 1000.0)
+    i = bisect.bisect_right(ts, (now_ts + TS_INCLUSIVE_EPS) * 1000.0)
     return cs[i - 1] if i else 0.0
 
 
 def chains(now_ts):
     """T / C1 / C2a / C2b as of now_ts, plus the shared prefix. Mirrors guard_twin's cum_twin_pct construction."""
     dn = dn_as_of(now_ts)
-    snaps = [s for s in snaps_all if float(s["ts"]) <= now_ts]
+    snaps = [s for s in snaps_all if float(s["ts"]) <= now_ts + TS_INCLUSIVE_EPS]
     days = sorted(dn)
     twin_days = sorted({s["day"] for s in snaps})
     first_twin_day = twin_days[0] if twin_days else None
