@@ -48,12 +48,15 @@ MUTANTS = [
      "                if used + weight >= WEIGHT_PER_MIN:",
      "wait at the cap instead of above it — spends summing to exactly the cap would now block",
      "exactly the cap are admitted with 0 waits"),
-    ("M4_window_never_pruned",
+    ("M4_wrong_window_horizon",
      "live/rate_budget.py",
      "                self._w = [(t, w) for t, w in self._w if now - t < 60]",
-     "                self._w = list(self._w)",
-     "never expire entries, so the window grows without bound and the shaper eventually blocks everything",
-     "the blocked spend waits"),
+     "                self._w = [(t, w) for t, w in self._w if now - t < 6]",
+     "prune on a 6 s horizon instead of 60 s, so the window under-counts and the boundary burst is admitted again",
+     "no sliding 60s window of admitted weight"),
+    # NOT a mutant: "never prune at all" makes the shaper loop forever rather than answer wrongly. With a fake
+    # clock the sleep is instantaneous, so it spins, and the first run of this device had to be killed. A mutant
+    # has to be something a suite can CATCH, not something that hangs it. Recorded so nobody adds it back.
     ("M5_weight_in_window_running_total",
      "live/rate_budget.py",
      "                        weight_in_window=sum(w for t, w in self._w if _now - t < 60),",
@@ -81,7 +84,11 @@ def sha_tree():
 
 
 def run_suite():
-    p = subprocess.run(["/usr/bin/python3", "-B", SUITE], capture_output=True, text=True, cwd=CLONE, timeout=600)
+    try:
+        p = subprocess.run(["/usr/bin/python3", "-B", SUITE], capture_output=True, text=True, cwd=CLONE, timeout=120)
+    except subprocess.TimeoutExpired:
+        # a mutant that HANGS is its own verdict; it must not take the runner (and the tree restore) down with it
+        return 124, ["__TIMEOUT__"], "timed out after 120s"
     failed, saw = [], False
     for line in p.stdout.splitlines():
         if line.startswith("FAILED: "):
@@ -122,8 +129,11 @@ try:
         expect_survive = want == "__EXPECTED_TO_SURVIVE__"
         hit = [] if expect_survive else [f for f in failed if want in f]
         crashed = bool(applied and rc == 1 and not failed)
+        timed_out = failed == ["__TIMEOUT__"]
         if not applied:
             v = "NOT APPLIED — fragment not found, mutant is stale"
+        elif timed_out:
+            v = "TIMED OUT — the mutant hangs the suite rather than failing it"
         elif crashed:
             v = "CRASHED — not a red cell"
         elif expect_survive:
