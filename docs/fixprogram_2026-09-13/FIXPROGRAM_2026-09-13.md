@@ -308,7 +308,7 @@
 ### 15.2 新登记
 | 编号 | 事实 | 级别 | owner |
 |---|---|---|---|
-| **TRN-28** | `pod_f10_np_export.py` 在**自己的 V1 门判词之前**就写出可部署 npz(`np.savez` L56, `sys.exit(0 if ok else 3)` 在其后), 且默认 `F10_OUT` **就是在役工件路径** ⇒ **失败的门仍在实盘路径留下完整可加载模型并覆盖原件**。比审计的「产生在所有门之外」更锋利: **门存在, 只是判词不控制写入**。与 FXR-PROD-1(修正态先于控制落盘)同族 | **P1** | FX-TRAIN(并进 TRN-03) |
+| **TRN-30**(原登记为 TRN-28, 与 AUDIT_TRAIN 撞号, 2026-09-16 改号; 原号标 SUPERSEDED-ID) | `pod_f10_np_export.py` 在**自己的 V1 门判词之前**就写出可部署 npz(`np.savez` L56, `sys.exit(0 if ok else 3)` 在其后), 且默认 `F10_OUT` **就是在役工件路径** ⇒ **失败的门仍在实盘路径留下完整可加载模型并覆盖原件**。比审计的「产生在所有门之外」更锋利: **门存在, 只是判词不控制写入**。与 FXR-PROD-1(修正态先于控制落盘)同族 | **P1** | FX-TRAIN(并进 TRN-03) |
 | **LED-09** | NEW-02 修复之后, 实盘 `fills.jsonl` 里**已落盘的 7,312 行**(09-12 平仓批)仍带 `attempt_idx 2` 而其订单行是 1 ⇒ 按 (rebalance_id, symbol, order_type, attempt_idx) 连接的读者仍漏这 7,312 行。账本只追加 ⇒ 走 **LED-04 修订记录同族**, 与 LED-03/04/05 一同由 lead 在复审时执行(先 `--rehearse` 于实盘根, 再 `--apply`, 锚窗外) | P2(实盘写回) | lead |
 | **RES-01** | 两个研究装置按该缺陷键连接 orders→fills, **受影响**: `retrain_2026-09/health_check_2026-09-05/calib/markout_diag.py:16,24`(平仓成交丢 `spread_at_submit_bps`)与 `calib/cost_calib.py:118,120`(平仓成交的 BNB 费变得不可归属, 计入 `nofee`)。**限定句必须保留**: markout_diag 的已发布窗 08-26..09-05 不含整书平仓 ⇒ **没有已发布数字会动, 缺陷在代码里**。`export_fills_for_markout.py` 与 `survey_keys.py` 传播该列 | P2 | 待派(非 FX-EXEC 分支) |
 | **TRD-02 更正** | AUDIT_DATA「秩基 0.7–5.3%」用的是描述性旗标; 因果条件 `¬tradable = UNTRADED ∪ NODATA` 实测 **2.34–6.68%**, 且 **2026 年几乎全是 NODATA**(Z24 看不见)⇒ 原行对 2026 **低估约 7 倍**。已就地标注(bf809ed6) | P2 | lead(已改) |
@@ -548,3 +548,36 @@ FX-MODEL 在重审自己引用的每个 sha 时抓到**两个被引文件在它�
 - **规模: 自 0c65883b 起新增 1,079 个 markdown, 分布在 68 个 `multi_asset/exports/research/codex_*` 目录**; 09-14/09-15 的工作几乎全在 `codex_causal_fullchain_2026-09-14/{book,data,f10,integration,plans}/` 下。
 - **仅凭文件名即已看出压在我方登记上的件**(尚未读, 只作标记): `data/canonical_month_repair_20260914/ORIGINAL_FULL_AXIS_AUDIT_20260915.md` · `integration/root_missing_four_funding_months_20260915/REVIEW.md`(**缺四个资金费月** → 我方 FND-01/02/03 与 P9 表)· `integration/current_fee_model_clarification_20260915/REPORT.md`(→ X-COST 与 FXR-DOC-2)· `plans/FINDING_executor_sizing_boundary_2026-09-15.md`(→ 执行器三条线)· `f10/strict_production_identity_audit_20260915/REVIEW.md`(→ PROD-28 与训练/服务平价)· `f10/current_rules_oos_candidate_20260915/REPORT.md` 与 `f10/formal_known89_lifecycle_20260914/RESULT.md`(→ TRD-01/05 与 FX-MODEL 成员规则选项表)。
 **读序裁定**: **`docs/RESULT_current_strategy_replay_2026-09-15.md` 先读且单独回报** —— 它是当前模型的 608 天条件回放, 是任何人做出来的、最接近正面回答「为什么回测 3.0+ 而实盘差」的东西。对它要逐项问: 估计量(模型 / 输入 / 宇宙 / 成本面 / 记账口径 / 窗与锚数)· **它自己声明没有确立的东西** · **它的输入是否带着我们已登记的缺陷**(FEA-01 / TIM-01 / UNI-01 / PROD-11)—— 若带着, 则它回放的是「**带缺陷的当前模型**」, 结论须照此限定 · 任何 Sharpe 必须连窗、锚数、成本面、CI 方法一起抄(FXR-DOC-3)。
+
+
+### 20.6 编号第二轮扫除(AUD-KB 410555c8, lead 裁定)
+**再一处活撞号: TRN-28 → TRN-30。** AUDIT_TRAIN 的 **TRN-28** = 「CLAUDE.md 把月度重训路由到已被取代的九月 runbook」; 我在 §15.2 开的 TRN-28 = P1「`pod_f10_np_export.py` 在自己的 V1 门判词之前写出可部署 npz, 且默认 `F10_OUT` 就是在役工件路径」。**比 PROD 那次更糟: 同一份文件的 §3.2 第 100 行早已把 `TRN-28` 按 AUDIT_TRAIN 的原义路由给 K4** —— 一个号、两个主、两个严重度, 在同一个文件里。AUDIT_TRAIN 最高号 TRN-29 ⇒ **改 TRN-30**, 原号标 SUPERSEDED-ID, §15.2/§15.3 引用已同步。
+**其余 32 个新号全部干净**(逐一对五份登记查过): OPS-04(AUDIT_EXEC 止于 OPS-03)· LED-09 · RES-01 · TEST-01 · BAT-01 · EXEC-RACE-01 · DATA-COR-1 · W6C-I6 · MON-1..4 · 全部 15 个 FXR-\*。
+**`PROD-28-STALE` 保留**: 它是对 AUDIT_PROD 的 PROD-28 **记录本身的状态标注**, 不是把一个**新发现**挂到既有号上 —— 与 PROD-36b 恰好相反, 我给 PROD-36b 改号的理由对它不适用。
+**两处撞号早于本纲领, 裁定不改号**: `LED-01` 与 `DOC-01` **各被 AUDIT_EXEC 与 AUDIT_DATA 定义两次, 所指不同**(LED-01: fills 每笔成交存两份 / 研究读者从 daily_nav 打印错费列; DOC-01: STATE+CLAUDE 携带陈旧执行器事实 / 口径文档与记忆条目误述数据谱系)。**不改号**, 因为那是另外两位审计者已提交的登记, 改号会让**每一条既有引用悬空** —— 那正是我给自己的新号改号所避开的代价。**一律加前缀引用: `EXEC:LED-01` / `DATA:LED-01` / `EXEC:DOC-01` / `DATA:DOC-01`。**
+**§17.5 的规矩补一条**: 查重范围**包括四份审计彼此之间**, 不只是纲领对审计。
+
+### 20.7 ★ KB-73: 绿电池认证的是「钉写在文件里」, 不是「钉被用了」
+AUD-KB 实测四条边(比我先前转述的锋利):
+1. `run_acceptance.sh` 在**仓库根**, 不在 `ops/`(`safe_commit.sh` 才在 `ops/`); **CLAUDE.md:46 读起来像两个都在** —— 该行由 lead 更正。
+2. L28 是 `PY="${ACCEPT_PY:-/usr/bin/python3}"` —— **可覆盖的缺省, 不是硬钉**。文件自己 L20-22 列出三个解释器: `/usr/bin/python3` 3.9.6(torch 2.2.2 + numpy 1.26.4 + pandas 2.3.3, **唯一能跑推理的**)· `/usr/local/bin/python3` 3.14.4(裸 `python3` 解析到它, **无 torch**)· `/opt/anaconda3` 3.7.6。
+3. **守卫查的是文本不是行为**: `live/tests_acceptance_entrypoints.py:55` 断言 `"ACCEPT_PY:-/usr/bin/python3" in open(ROOT_SH).read()` —— **源文件的一个子串**。把 `ACCEPT_PY` 指向 3.14 跑, `tests_inference_parity` / `tests_panel_build` 因无 torch 而红, **而该套件照样打印 OK「ACCEPT_PY pinned」**。同族: 「守卫查的是文本不是行为」。
+4. **没有任何收据记录解释器**: `state/acceptance/` 38,177 个工件中 **0 个**记 Python 版本(465 个匹配该路径的全是 gate_coverage 的字节码缓存盲区注记, 非运行收据); L278 逐套件调 `"$PY"` 却从不回显解析后的路径。
+**历史证明风险非假想**: `live/run_acceptance.sh` L15 自记 2026-07-27 之前的双门分裂「制造了两个假的 known failures」—— 正是那两个套件, 在裸 `python3` 下红、在钉住的解释器下**双双通过**。
+⇒ **任何 2026-07-27 之前的「逐套件 N/M」与之后的不可比, 且没有任何日期的计数说明它是由哪个解释器产生的。** 已标注引用此类计数的五行 KB(KB-12 123/123 · KB-13 124/124 · KB-35 135/135 · M3-35 132/132 · M5-02 135/135)。
+**lead 裁定**: ① **本轮每次电池的收据必须记下解释器**(`ACCEPT_PY` 是否被设 / 解析后 `$PY` 绝对路径 / 该解释器 `sys.version` 与 `torch.__version__`, 无则具名), 跑前跑后各一次 —— 已下发 FX-EXEC 与 FX-PROD, **不改 `run_acceptance.sh`, 在各自外层记**; ② **运行器改造与守卫改造(从源码子串改为断言有效解释器)由 FX-EXEC 落地, 且必须在三分支叠加电池之前** —— 否则叠加电池同样什么都没认证; 红测试 = 旧码上把 `ACCEPT_PY` 指向 3.14 跑该套件仍打印 OK。
+
+### 20.8 PROD-44 归属与修法裁定
+**唯一实盘消费者 = `~/dl_quant_live/ops/anchor_report.py:49-50`**(`S.get("ok") and S.get("reader_ok")`, **不比 `S["anchor"]` 与本报告的 `A`**), 由 FX-PROD 全仓 grep 三棵树复核, 并与早于本纲领的独立记录相符(`PREREG_ship1_amihud_4th_leg_2026-09-11.md:159`「唯一消费者」)。**同一文件在别处都比锚**(L40 `d.get("anchor_ts") == A`; 按锚读 `target_combo/{A}.json`)—— **只有状态文件这一处忘了**, 这把它从风格疏忽钉成干净缺陷。
+**归属**: 文件属 **FX-EXEC2**(它刚为 LED-08 改过 `anchor_report.py`)⇒ 派给 FX-EXEC2, FX-PROD 交出事实表 `0c3f6a4e`, FX-EXEC 只需在 gate_coverage 为新读者留具名边界。
+**修法按 FX-PROD 的提法, 不按 lead 原框架**: **不是「加一个 `status["anchor"]` 比较」**, 而是让读者改读 **`state/combo_anchor_record/<A>.json`**(PROD-27 新增, 按构造逐锚, 带 `form_written` / join key / 三个余量 / `h_source`), 把单槽对象**从消费者路径里拿掉**; 旧槽继续写以保持兼容。判据: **把一个陈旧也能满足的活性检查, 换成一个陈旧无法满足的。**
+**两处克制保留**: ① 两个静默锚上危害是**部分的** —— 槽里是另一个锚的成功, 但 `target_combo/<A>.json` 对两者**确实缺失**, 姊妹检查会报警 ⇒ 报告不会全绿; 缺陷精确地是「『combo 写者**在本锚**成功了吗』被另一个锚回答了」。② **当天报告实际说了什么不可复原**(`anchor_report_last.json` 只存最近一份)⇒ 标 NOT ESTABLISHED, 不从代码倒推。
+
+### 20.9 UNI-03 交付(FX-DATA `7a761621`, 装置 `e14df41a`)
+run 14 rc=0, **5/5**; 收据 `RECEIPT_fx_uni03_sep_mask.json`(`08bf49d4`)。**不需要新缓存谱系**: `dlnative_5m_wide829_f16_ext.npz` 恰好止于 2026-09-01T00:00Z, 而那**就是**九月首锚, 规则的窗是其前 8640 根 bar ⇒ 同规则同缓存, 往前一个月。
+**正控双掩码逐位**: `umask_UPIT.npz` 全部 56 个已提交月行零差异格重建, `umask_UPIT_CRYPTO.npz` 过类过滤后同样; 任一失败即拒写九月行。
+**2026-09 行**: 挂牌 826 · 合格 676 · top 449 · 第 449 名尾随 30 日成交额 57.53 M USD(八月 53.19 M)· **CRYPTO 放行 375**(八月 373)。
+**对照被结转的八月行: 加 60 / 减 58 = 373 中的 118 个名格 = 31.6%。** **但工作者自己先量了基准而不是让 31.6% 裸奔**: 过去 12 个月 CRYPTO 放行集的月度换手中位是 **40 加 / 41 减**(2026-03→08: 39/41 · 41/50 · 54/59 · 43/55 · 34/54 · 49/76)⇒ **九月约为常态的 1.5 倍, 其中大部分是任何结转都会有的普通换手, 九月偏重但不是九月特异的异常**。**不得脱离这个基准引用 31.6%。** 60 个新进者**没有一个**经由 `build_crypto_mask.py` 的「未知类别 ⇒ 保留」兜底进来。
+**自报两次做错月界**: x0910 面板轴比已提交掩码多 60 个锚, 但**其中 5 个(2026-08-31 04:00Z..20:00Z)仍属八月**, 而月度规则按**日历月**赋行 ⇒ run 12/13 把九月行写到了那五个上; 真实九月锚数是 **55 不是 60**。现按日历月赋行并加了覆盖八月尾巴的断言。**被取代的工件 sha `023adc09` 不得使用。**
+**工件**(x0910 轴 10,099 锚, 前缀与已提交掩码逐位相同): `umask_UPIT_x0910_sep.npz` → `66e21c89…` · `umask_UPIT_CRYPTO_x0910_sep.npz` → `de7c34d7…`。
+**UNI-03 未关闭**: 没有任何既有九月读数在真实行上重跑过 —— 那属于 T2 d4 · T5c/T5d · `t1_states.py:78-81`(它同样是结转)。**十月的滚动应调用该装置而不是再结转一次** ⇒ 已转 FX-TRAIN 并入 TRN-01。
