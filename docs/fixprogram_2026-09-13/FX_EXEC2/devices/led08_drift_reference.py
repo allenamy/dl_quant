@@ -51,9 +51,13 @@ TAKER_FEE_BPS = 5.00
 DELTA_BPS_ANCHOR_GROSS = 0.05   # FIXPROGRAM §4.1, book-level equivalence band (K2), frozen before this measurement
 
 # (name, first nominal slot inclusive, last nominal slot inclusive, expected (n_slots, n_halted, n_rebuild) or None)
+# NAMES ARE NOT X-COST'S. Only the first window is X-COST's S1a and only its expected population is an INDEPENDENT
+# control (RESULT_X_COST.md T1: 27 anchors / 0 halted / 0 rebuild, written by a device I did not write). The second
+# window is MINE; X-COST's "S3" is a DIFFERENT window (34 anchors / 6 halted / 2 rebuild, from 09-05 12Z), so it is
+# named LAST5D_ here and its expected population is my own earlier read, i.e. a regression pin, NOT a control.
 WINDOWS = [
     ("S1a_2026-08-28_2026-09-01T12Z", "2026-08-28T00:00:00Z", "2026-09-01T12:00:00Z", (27, 0, 0)),
-    ("S3_2026-09-08_2026-09-13T12Z", "2026-09-08T00:00:00Z", "2026-09-13T12:00:00Z", (27, 0, 2)),
+    ("LAST5D_2026-09-08_2026-09-13T12Z", "2026-09-08T00:00:00Z", "2026-09-13T12:00:00Z", (27, 0, 2)),
 ]
 
 
@@ -133,10 +137,21 @@ for name, lo_s, hi_s, expect in WINDOWS:
         "per_anchor": per_anchor,
     }
 
-REF, CUR = WINDOWS[0][0], WINDOWS[1][0]
+REF, XREF = WINDOWS[0][0], WINDOWS[1][0]
+
+# THE OPERATIVE CURRENT SIDE is not a window I chose: it is the report's own trailing band, computed by the report's
+# own history_facts as the next report run would compute it (slots strictly before the latest slot + one anchor, i.e.
+# the last <=42 eligible slots inclusive of the latest). The fixed window above is cross-reference only.
+LATEST = max(t for t, _ in slots)
+CURBAND = AR.history_facts(anchors, orders_by_rid, LATEST + 14400)
+current = {"as_of_latest_nominal_ts": LATEST, "n_slots_in_band": len(CURBAND["slots"]),
+           "first_slot": (CURBAND["slots"][0] if CURBAND["slots"] else None),
+           "last_slot": (CURBAND["slots"][-1] if CURBAND["slots"] else None),
+           "taker_share": CURBAND["taker"], "net_over_gross_abs": CURBAND["net_over_gross_abs"]}
+
 drift = {}
 for key in ("taker_share", "net_over_gross_abs"):
-    ref, cur = out_windows[REF][key], out_windows[CUR][key]
+    ref, cur = out_windows[REF][key], current[key]
     thr = (None if ref["mad"] is None else K_MADS * MAD_TO_SIGMA * ref["mad"])
     d = (None if (ref["median"] is None or cur["median"] is None) else cur["median"] - ref["median"])
     drift[key] = {
@@ -151,12 +166,13 @@ for key in ("taker_share", "net_over_gross_abs"):
             K_MADS * 1.2533 * (MAD_TO_SIGMA * ref["mad"]) / (ref["n"] ** 0.5)),
     }
 
-turn_med = out_windows[CUR]["filled_over_realized_gross"]["median"]
+turn_med = out_windows[XREF]["filled_over_realized_gross"]["median"]
 dt_taker = drift["taker_share"]["drift"]
 drift["taker_share"]["economic_fee_only"] = {
     "formula": "drift x (taker_fee_bps - maker_fee_bps) x median(filled_notional / realized_gross)",
     "maker_fee_bps": MAKER_FEE_BPS, "taker_fee_bps": TAKER_FEE_BPS,
     "median_filled_over_realized_gross_current": turn_med,
+    "turnover_source_window": XREF,
     "bps_per_anchor_per_gross": (None if (dt_taker is None or turn_med is None)
                                  else dt_taker * (TAKER_FEE_BPS - MAKER_FEE_BPS) * turn_med),
     "delta_bps_per_anchor_per_gross": DELTA_BPS_ANCHOR_GROSS,
@@ -185,21 +201,28 @@ rec = {
                                    "S3_ex_rebuild_maker_share_pooled": 0.739, "S3_maker_share_median_anchor": 0.772,
                                    "source": "docs/fixprogram_2026-09-13/X_COST/RESULT_X_COST.md T1"},
     },
-    "reference_window": REF, "current_window": CUR,
+    "reference_window": REF, "cross_reference_window": XREF,
+    "current_side": "ops/anchor_report.history_facts trailing band as of the latest ledger slot",
     "windows": out_windows,
+    "current": current,
     "drift": drift,
 }
 with open(RECEIPT, "w") as f:
     json.dump(rec, f, ensure_ascii=False, indent=1, sort_keys=False)
 
 print(f"device_sha256 {rec['device_sha256'][:16]}  ledger files {len(day_shas)}")
-for w in (REF, CUR):
+for w in (REF, XREF):
     o = out_windows[w]
     print(f"{w}: slots {o['n_slots_in_window']} halted {o['n_halted']} rebuild {o['n_rebuild']} "
           f"eligible {o['n_eligible']}")
     for key in ("taker_share", "net_over_gross_abs"):
         b = o[key]
         print(f"   {key:<20} n {b['n']:>3}  median {b['median']!r}  MAD {b['mad']!r}")
+print(f"TRAILING BAND as of {current['as_of_latest_nominal_ts']} : {current['n_slots_in_band']} slots "
+      f"{current['first_slot']}..{current['last_slot']}")
+for key in ("taker_share", "net_over_gross_abs"):
+    b = current[key]
+    print(f"   {key:<20} n {b['n']:>3}  median {b['median']!r}  MAD {b['mad']!r}")
 for key, d in drift.items():
     print(f"DRIFT {key:<20} ref {d['reference_median']!r} -> now {d['current_median']!r}  "
           f"drift {d['drift']!r}  threshold {d['threshold']!r}  WARN {d['warn']}")
