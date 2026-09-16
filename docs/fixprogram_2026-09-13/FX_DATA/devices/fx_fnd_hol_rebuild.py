@@ -77,11 +77,14 @@ body = loop[0].body
 start = next(i for i, n in enumerate(body)
              if isinstance(n, ast.Assign) and any(getattr(t_, "id", None) == "seeds" for t_ in n.targets))
 EMA_STMTS = body[start:]
-EMA_SRC = "\n".join(ast.get_source_segment(src, n) for n in EMA_STMTS)
+# The block contains a bare `continue` (the "no canonical funding history, leave the tail as the ext build" branch), which is
+# illegal outside a loop. Wrapping it in a single-iteration loop keeps that statement's meaning EXACTLY as it was -- skip the
+# rest of this symbol -- without editing one character of the extracted source. `padded=True` keeps the original indentation.
+EMA_SRC = "for _once in (0,):\n" + "\n".join(ast.get_source_segment(src, n, padded=True) for n in EMA_STMTS)
 rec["verbatim_ema_block"] = {"source": SPLICE_SRC, "first_line": EMA_STMTS[0].lineno, "last_line": EMA_STMTS[-1].end_lineno,
-                             "n_statements": len(EMA_STMTS),
+                             "n_statements": len(EMA_STMTS), "wrapper": "for _once in (0,): -- so the block's bare `continue` keeps its original meaning",
                              "ast_sha256": hashlib.sha256("".join(ast.dump(n) for n in EMA_STMTS).encode()).hexdigest()}
-EMA_CODE = compile(EMA_SRC, SPLICE_SRC, "exec")
+EMA_CODE = compile(EMA_SRC, SPLICE_SRC + " [statements %d-%d, wrapped in a 1-iteration loop]" % (EMA_STMTS[0].lineno, EMA_STMTS[-1].end_lineno), "exec")
 log("verbatim EMA block: lines %d-%d, %d statements" % (EMA_STMTS[0].lineno, EMA_STMTS[-1].end_lineno, len(EMA_STMTS)))
 
 # ---------------- load panels ----------------
