@@ -252,7 +252,12 @@ def targets_fixture(d, tag, ts, syms, data, anchors=None):
     os.makedirs(os.path.join(o, "data"), exist_ok=True)
     os.makedirs(os.path.join(o, "results"), exist_ok=True)
     rows = [r for r in grid_rows()] if anchors is None else anchors
-    MS = np.array([np.arange(NW, dtype=np.int64) for _ in rows], dtype=object)
+    # NOTE: np.array([...], dtype=object) on EQUAL-LENGTH lists builds a 2-D object array, and the builder's `v[i, m]`
+    # then raises IndexError. The real targets file is ragged, so allocate 1-D object and assign, and make the member
+    # lists genuinely ragged to match the real artifact's shape.
+    MS = np.empty(len(rows), dtype=object)
+    for k in range(len(rows)):
+        MS[k] = np.arange(NW - (k % 3), dtype=np.int64)
     r5 = data[:, :, 0].astype(np.float64)
     y4s = np.stack([r5[r + 1:r + 49].sum(0) for r in rows]).astype(np.float32)
     np.savez(os.path.join(o, "data", "dlw_targets.npz"), E_ts=np.array([int(ts[r]) for r in rows], np.int64),
