@@ -60,7 +60,7 @@ def grid_rows():
     return [r for r in range(0, T_ROWS, 48) if r >= 576 and r + 48 <= T_ROWS - 1]
 
 
-def make_cache(path, seed=0, impulse=None, qv_bump=None, nan_from=None, freeze_from=None):
+def make_cache(path, seed=0, impulse=None, qv_bump=None, nan_from=None, freeze_from=None, symbols=None):
     """Well-behaved cache: every bar finite, every name liquid and volatile, distinct per-name volume.
 
     impulse     (row, j, v) set ret5 at exactly one cell
@@ -87,7 +87,10 @@ def make_cache(path, seed=0, impulse=None, qv_bump=None, nan_from=None, freeze_f
         data[impulse[0], impulse[1], 0] = np.float16(impulse[2])
     if qv_bump is not None:
         data[qv_bump[0], qv_bump[1], 3] = np.float16(qv_bump[2])
-    syms = ["BTCUSDT"] + ["N%03dUSDT" % i for i in range(1, NW)]      # the targets builder indexes BTCUSDT
+    # `symbols` lets a caller supply REAL venue names when a downstream artifact (e.g. the tradability file) must be
+    # joined on the symbol axis. Default is unchanged, so every existing case produces exactly the same fixture.
+    syms = list(symbols) if symbols is not None else (["BTCUSDT"] + ["N%03dUSDT" % i for i in range(1, NW)])
+    assert len(syms) == NW and "BTCUSDT" in syms, "the targets builder indexes BTCUSDT"
     np.savez(path, ts=ts, data=data, symbols=np.array(syms), ch=np.array(CHN))
     return ts, np.array(syms), data
 

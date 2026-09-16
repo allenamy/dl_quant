@@ -1,13 +1,13 @@
 {
  "device": "fm_red_builders.py",
- "self_sha256": "2b76ae355e4ca1f3efa506e72e09b3c546b16cc3ac9d1a0836479e668aa82d1f",
- "utc_start": "2026-09-16T04:12:11Z",
+ "self_sha256": "0bac1d49443808632c22c908349043aad4d9a9b5bf23667f5bf5a67128b102bd",
+ "utc_start": "2026-09-16T04:30:16Z",
  "python": "3.14.4",
  "numpy": "2.4.4",
  "builders_under_test": {
   "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/pod_fea_ext_clamp.py": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
   "multi_asset/exports/research/retrain_2026-09/pod_dlw_features_ext.py": "e86725cc2768bb6265dd8fb2b3580629706166da012298768b1c0788e8f5a624",
-  "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/pod_dlw_targets_raw.py": "d7c528231f00902964c5244fe8402bbd84688af05c04c2dab8760fe8ad584be2"
+  "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/pod_dlw_targets_raw.py": "4568bea6063fd21f600f4ab31eb2f17aa73ee296b62171967c285b19cffd44e0"
  },
  "fixture_spec": {
   "T_rows": 10320,
@@ -104,7 +104,7 @@
     "j_member_in_B": false
    },
    "why_red": "the two caches are bitwise identical on every row <= E and differ ONLY on rows AFTER the anchor, yet the member set changed. Cause: the isfinite(y4s) term in the screen (pod_dlw_targets_raw.py L107) lets a property of the FUTURE decide whether a row is trained on. Production's screen (shadow_loop_v3.py L374) has no forward term at all. Interventional, not correlational: nothing else differs.",
-   "builder_stdout_tail": "xt_row\": 0.0016643225503984998}}\n[    0.0s] sha256 inputs ...\n[    0.0s] cache 10320x80x7 ts 1640995200..1644090900\n[    0.1s] cumsums done\n[    0.1s] anchors 202 \u5e73\u5747\u6210\u5458 79 (\u2265360: 0) \u5e74\u4efd {np.int64(2022): np.int64(202)}\n[    0.4s] YR4s \u5b8c\u6210 202/202 \u951a(\u6709\u9762\u677f\u884c 202), \u516d\u56e0\u5b50\u503c\u7a7a\u95f4 R\u00b2 \u4e2d\u4f4d 0.0712\n[    0.6s] \u5bf9\u9f50\u81ea\u68c0(y4s vs \u9762\u677f\u65e7 Y4): @0 +1.000 @-1 +0.006 @+1 +0.003 (n=82)\n[    0.6s] TARGETS_DONE {\"n_anchors\": 202, \"mean_members\": 79.35643564356435, \"n_res\": 202, \"years\": {\"2022\": 202}, \"target_vs_old\": {\"median_abs_diff_bps\": 19.096107482910156, \"mean_diff_bps\": -0.020828790962696075, \"spearman_same_row_median\": 0.9999756572541385, \"spearman_prev_row\": 0.005963972736124635, \"spearman_next_row\": 0.0025073028237585205}}\n",
+   "builder_stdout_tail": "xt_row\": 0.0016643225503984998}}\n[    0.0s] sha256 inputs ...\n[    0.0s] cache 10320x80x7 ts 1640995200..1644090900\n[    0.1s] cumsums done\n[    0.1s] anchors 202 \u5e73\u5747\u6210\u5458 79 (\u2265360: 0) \u5e74\u4efd {np.int64(2022): np.int64(202)}\n[    0.4s] YR4s \u5b8c\u6210 202/202 \u951a(\u6709\u9762\u677f\u884c 202), \u516d\u56e0\u5b50\u503c\u7a7a\u95f4 R\u00b2 \u4e2d\u4f4d 0.0712\n[    0.5s] \u5bf9\u9f50\u81ea\u68c0(y4s vs \u9762\u677f\u65e7 Y4): @0 +1.000 @-1 +0.006 @+1 +0.003 (n=82)\n[    0.5s] TARGETS_DONE {\"n_anchors\": 202, \"mean_members\": 79.35643564356435, \"n_res\": 202, \"years\": {\"2022\": 202}, \"target_vs_old\": {\"median_abs_diff_bps\": 19.096107482910156, \"mean_diff_bps\": -0.020828790962696075, \"spearman_same_row_median\": 0.9999756572541385, \"spearman_prev_row\": 0.005963972736124635, \"spearman_next_row\": 0.0025073028237585205}}\n",
    "error": null,
    "item": "TRD-05/TRN-06",
    "asserted_correct_behaviour": "DL membership must not depend on any cache row AFTER the anchor: no look-ahead term"
@@ -119,7 +119,7 @@
     "label": 0.0
    },
    "why_red": "name 12 has no traded bar after the anchor -- its rows are frozen at exactly 0, which is FINITE, not NaN. So coverage stays 1.0 and isfinite(y4s) is TRUE, and the name enters training with a label of exactly 0. This is TRD-05's channel A: the row is kept and teaches the model that a dead contract returns zero. Note it is the opposite direction to R-TRD-1's channel B.",
-   "builder_stdout_tail": "[    0.0s] sha256 inputs ...\n[    0.1s] cache 10320x80x7 ts 1640995200..1644090900\n[    0.3s] cumsums done\n[    0.4s] anchors 202 \u5e73\u5747\u6210\u5458 80 (\u2265360: 0) \u5e74\u4efd {np.int64(2022): np.int64(202)}\n[    0.8s] YR4s \u5b8c\u6210 202/202 \u951a(\u6709\u9762\u677f\u884c 202), \u516d\u56e0\u5b50\u503c\u7a7a\u95f4 R\u00b2 \u4e2d\u4f4d 0.0679\n[    0.9s] \u5bf9\u9f50\u81ea\u68c0(y4s vs \u9762\u677f\u65e7 Y4): @0 +1.000 @-1 +0.028 @+1 +0.028 (n=82)\n[    0.9s] TARGETS_DONE {\"n_anchors\": 202, \"mean_members\": 79.56930693069307, \"n_res\": 202, \"years\": {\"2022\": 202}, \"target_vs_old\": {\"median_abs_diff_bps\": 18.843318939208984, \"mean_diff_bps\": 0.024463890120387077, \"spearman_same_row_median\": 0.9999765588373184, \"spearman_prev_row\": 0.027555086732301923, \"spearman_next_row\": 0.02790670417252696}}\n",
+   "builder_stdout_tail": "[    0.0s] sha256 inputs ...\n[    0.0s] cache 10320x80x7 ts 1640995200..1644090900\n[    0.1s] cumsums done\n[    0.1s] anchors 202 \u5e73\u5747\u6210\u5458 80 (\u2265360: 0) \u5e74\u4efd {np.int64(2022): np.int64(202)}\n[    0.4s] YR4s \u5b8c\u6210 202/202 \u951a(\u6709\u9762\u677f\u884c 202), \u516d\u56e0\u5b50\u503c\u7a7a\u95f4 R\u00b2 \u4e2d\u4f4d 0.0679\n[    0.5s] \u5bf9\u9f50\u81ea\u68c0(y4s vs \u9762\u677f\u65e7 Y4): @0 +1.000 @-1 +0.028 @+1 +0.028 (n=82)\n[    0.5s] TARGETS_DONE {\"n_anchors\": 202, \"mean_members\": 79.56930693069307, \"n_res\": 202, \"years\": {\"2022\": 202}, \"target_vs_old\": {\"median_abs_diff_bps\": 18.843318939208984, \"mean_diff_bps\": 0.024463890120387077, \"spearman_same_row_median\": 0.9999765588373184, \"spearman_prev_row\": 0.027555086732301923, \"spearman_next_row\": 0.02790670417252696}}\n",
    "error": null,
    "item": "TRD-05/TRN-06",
    "asserted_correct_behaviour": "a contract with no traded bar after the anchor must not be a member with a label of exactly 0"
@@ -136,7 +136,7 @@
     "control_moved": true
    },
    "why_red": "log_qv was raised on the anchor bar E of one name and NOTHING else changed, yet that anchor's own qvk is bit-identical: the legacy member window is rows [E-2016, E-1] (pod_dlw_targets_raw.py L88, S = max(E-TRAIL, 0), half-open at E), so the bar closing AT the anchor -- which the producer does use (shadow_loop_v3.py L365, rows [E-2015, E]) -- is invisible to it. Positive control: the NEXT anchor, whose window contains row E under both definitions, does move.",
-   "builder_stdout_tail": "spearman_next_row\": 0.0002578527894983592}}\n[    0.0s] sha256 inputs ...\n[    0.0s] cache 10320x80x7 ts 1640995200..1644090900\n[    0.1s] cumsums done\n[    0.1s] anchors 202 \u5e73\u5747\u6210\u5458 80 (\u2265360: 0) \u5e74\u4efd {np.int64(2022): np.int64(202)}\n[    0.5s] YR4s \u5b8c\u6210 202/202 \u951a(\u6709\u9762\u677f\u884c 202), \u516d\u56e0\u5b50\u503c\u7a7a\u95f4 R\u00b2 \u4e2d\u4f4d 0.0709\n[    0.6s] \u5bf9\u9f50\u81ea\u68c0(y4s vs \u9762\u677f\u65e7 Y4): @0 +1.000 @-1 -0.000 @+1 +0.000 (n=82)\n[    0.6s] TARGETS_DONE {\"n_anchors\": 202, \"mean_members\": 80.0, \"n_res\": 202, \"years\": {\"2022\": 202}, \"target_vs_old\": {\"median_abs_diff_bps\": 19.207731246948242, \"mean_diff_bps\": -0.018241718411445618, \"spearman_same_row_median\": 0.9999765588373184, \"spearman_prev_row\": -0.0002109772641101308, \"spearman_next_row\": 0.0002578527894983592}}\n",
+   "builder_stdout_tail": "spearman_next_row\": 0.0002578527894983592}}\n[    0.0s] sha256 inputs ...\n[    0.0s] cache 10320x80x7 ts 1640995200..1644090900\n[    0.1s] cumsums done\n[    0.1s] anchors 202 \u5e73\u5747\u6210\u5458 80 (\u2265360: 0) \u5e74\u4efd {np.int64(2022): np.int64(202)}\n[    0.3s] YR4s \u5b8c\u6210 202/202 \u951a(\u6709\u9762\u677f\u884c 202), \u516d\u56e0\u5b50\u503c\u7a7a\u95f4 R\u00b2 \u4e2d\u4f4d 0.0709\n[    0.5s] \u5bf9\u9f50\u81ea\u68c0(y4s vs \u9762\u677f\u65e7 Y4): @0 +1.000 @-1 -0.000 @+1 +0.000 (n=82)\n[    0.5s] TARGETS_DONE {\"n_anchors\": 202, \"mean_members\": 80.0, \"n_res\": 202, \"years\": {\"2022\": 202}, \"target_vs_old\": {\"median_abs_diff_bps\": 19.207731246948242, \"mean_diff_bps\": -0.018241718411445618, \"spearman_same_row_median\": 0.9999765588373184, \"spearman_prev_row\": -0.0002109772641101308, \"spearman_next_row\": 0.0002578527894983592}}\n",
    "error": null,
    "item": "TIM-01",
    "asserted_correct_behaviour": "DL member statistics must include row E, matching the producer's [E-2015, E] window"
@@ -157,6 +157,6 @@
  ],
  "green": [],
  "invalid": [],
- "utc_end": "2026-09-16T04:12:29Z",
- "wall_s": 17.5
+ "utc_end": "2026-09-16T04:30:30Z",
+ "wall_s": 14.1
 }
