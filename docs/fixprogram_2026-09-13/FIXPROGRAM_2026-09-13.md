@@ -253,13 +253,13 @@
 ### 13.1 新登记
 | 编号 | 事实(工作者实测) | 级别 | owner |
 |---|---|---|---|
-| **PROD-31** | **08-29 20Z: 生产者根本没出 king 文件**(16:21Z 打印 `next 20:16:00Z in 14061s` 后无输出, 至 23:28:01Z 重启)。守护的守卫是 `[ -f "$TL" ]` ⇒ 循环体从不执行: **无页报、无日志行、`combo_live_last_anchor` 都不推进**; 执行器 N+24:00→N+29:00 轮询 21 次全 `{ok:false,"missing"}`, **整锚 HOLD、持仓冻结、`anchors_row: false`**。比 PROD-27 命名的「静默跳过」更严重。FX-W6C 在同一锚上独立测到同一事实(§5 洞的实例) | **P1** | FX-PROD |
-| **PROD-32** | **该守护的全部告警路径在生产中从未被执行过**: 125 锚 `combo_live.log` 0 条 PAGE / 0 条 `skip aux-not-settled` / 0 条 `COMBO_LIVE ABORT`; 唯一投递证明是 08-26 手工跑的 4 行, **第一行 `status: NOT_CONFIGURED`**。且 `_page` 把异常吞成 `PAGE_FAIL` 后 `_bail` 照退 3, 守护又因看见 `COMBO_LIVE ABORT` **故意不页报** ⇒ **bail + 通道坏 = 端到端静默**。告警通道正控已裁定为 PROD-27 修复的一部分 | **P1** | FX-PROD |
-| **PROD-30** | G1(守护跳过 `NOW-A>1355`)与 G2(`combo_stage` bail `A+1360`)**仍按已退役的 N+23:00 标定**; 执行器 08-27 05:2xZ 起读 **N+24:00**(`anchor_offset_min=24` / `poll_grace_min=5`, 重试到 N+29:00)⇒ **G1 比首读早 85 s 关门, G2 早 80 s** ⇒ 本可按时写出的 combo 形态被主动放弃、改交 king 形态 | P2(**书行为, 待用户裁定**) | lead → 用户 |
+| **PROD-42**(原登记为 PROD-31, 与 AUDIT_PROD 撞号, 2026-09-16 改号; 原号标 SUPERSEDED-ID) | **08-29 20Z: 生产者根本没出 king 文件**(16:21Z 打印 `next 20:16:00Z in 14061s` 后无输出, 至 23:28:01Z 重启)。守护的守卫是 `[ -f "$TL" ]` ⇒ 循环体从不执行: **无页报、无日志行、`combo_live_last_anchor` 都不推进**; 执行器 N+24:00→N+29:00 轮询 21 次全 `{ok:false,"missing"}`, **整锚 HOLD、持仓冻结、`anchors_row: false`**。比 PROD-27 命名的「静默跳过」更严重。FX-W6C 在同一锚上独立测到同一事实(§5 洞的实例) | **P1** | FX-PROD |
+| **PROD-43**(原登记为 PROD-32, 与 AUDIT_PROD 撞号, 2026-09-16 改号; 原号标 SUPERSEDED-ID) | **该守护的全部告警路径在生产中从未被执行过**: 125 锚 `combo_live.log` 0 条 PAGE / 0 条 `skip aux-not-settled` / 0 条 `COMBO_LIVE ABORT`; 唯一投递证明是 08-26 手工跑的 4 行, **第一行 `status: NOT_CONFIGURED`**。且 `_page` 把异常吞成 `PAGE_FAIL` 后 `_bail` 照退 3, 守护又因看见 `COMBO_LIVE ABORT` **故意不页报** ⇒ **bail + 通道坏 = 端到端静默**。告警通道正控已裁定为 PROD-27 修复的一部分 | **P1** | FX-PROD |
+| **PROD-41**(原登记为 PROD-30, 与 AUDIT_PROD 撞号, 2026-09-16 改号; 原号标 SUPERSEDED-ID) | G1(守护跳过 `NOW-A>1355`)与 G2(`combo_stage` bail `A+1360`)**仍按已退役的 N+23:00 标定**; 执行器 08-27 05:2xZ 起读 **N+24:00**(`anchor_offset_min=24` / `poll_grace_min=5`, 重试到 N+29:00)⇒ **G1 比首读早 85 s 关门, G2 早 80 s** ⇒ 本可按时写出的 combo 形态被主动放弃、改交 king 形态 | P2(**书行为, 待用户裁定**) | lead → 用户 |
 | **PROD-28-STALE** | AUDIT_PROD PROD-28(「运行中进程执行盘上代码/bundle/F10 模型」)是对 PID 10900 / 30944 / 30943 验的; **09-14 15:43:56Z 重启后三守护为 797/801/812, 15:45:14Z 起** ⇒ 该验证记录**已过期**, 复审包中引用它处一律标 STALE 直到重取 | P2 | FX-PROD(重取) |
 | **OPS-04** | `ops/daily_summary.py` **既无 launchd 作业也不在 `docs/CRON_TEMPLATES_2026-09-04.md`** ⇒ 今天没有任何东西调度它 ⇒ LED-08 的每日漂移告警落地后也不会响(「已声明的盲区≠已关闭」同族; 一个没人调度的告警不是告警) | P1(投递) | lead(部署 runbook) |
-| **PROD-33** | `combo_live_status.json` 是**单槽可变文件**, 两条静默分支上都保留上一锚的 `{"ok": true}` ⇒ 读者不比对 `status["anchor"]` 就会读到上一次成功(与 P2 AMENDMENT 12 同一对象) | P2 | FX-PROD |
-| **PROD-34** | 排练模式用 `WS` 而非 `_outdir` 备份(`combo_stage.py` L340)⇒ **写进实盘状态树**; 08-26 00Z 因此有 king 备份却无 combo 运行 ⇒「有备份 ⇒ 跑过 combo」的朴素判据误计(装置污染被测对象同族) | P2 | FX-PROD |
+| **PROD-44**(原登记为 PROD-33, 与 AUDIT_PROD 撞号, 2026-09-16 改号; 原号标 SUPERSEDED-ID) | `combo_live_status.json` 是**单槽可变文件**, 两条静默分支上都保留上一锚的 `{"ok": true}` ⇒ 读者不比对 `status["anchor"]` 就会读到上一次成功(与 P2 AMENDMENT 12 同一对象) | P2 | FX-PROD |
+| **PROD-45**(原登记为 PROD-34, 与 AUDIT_PROD 撞号, 2026-09-16 改号; 原号标 SUPERSEDED-ID) | 排练模式用 `WS` 而非 `_outdir` 备份(`combo_stage.py` L340)⇒ **写进实盘状态树**; 08-26 00Z 因此有 king 备份却无 combo 运行 ⇒「有备份 ⇒ 跑过 combo」的朴素判据误计(装置污染被测对象同族) | P2 | FX-PROD |
 | **DATA-COR-1** | 交接 §4.5 与 FX_DATA/STATE_PAUSE 写「run 1 在 writer 处失败」**不准确**: traceback 是**重载回环**被拒 —— `Artifact.load` 比 spec sha `['99ae35e01ec3dd`(shape-(1,) 数组的打印)与模块的 `99ae35e01ec3dd06`; 根因同(`np.ascontiguousarray` 提升 0-d 标量), 但抓住它的是**工件自身的守卫**, 这才是收据里该留的部分 | 记录 | FX-DATA(已自报) |
 
 ### 13.2 裁定
@@ -285,8 +285,8 @@
 | 编号 | 事实 | 级别 | owner |
 |---|---|---|---|
 | **PROD-29 重定级** | VERIFIED_IMMATERIAL/P3 → **DISPUTED/P2**(见 AUDIT_PROD 就地标注, 提交 4f86635a): 侧车在 **128/129 锚**上是 `state_H_f10_<A>.npz` 的**最后写者**(±1.0 s), `combo_stage` 的链状态每锚被丢弃 ⇒ 用 `combo_stage` 代码重算该状态的回放**按构造**与实盘不同(= P2 的 96 名 2.63e-8); **79/129 次写入落在执行器首读 N+24:00 之后**; 「0 次碰撞」是错的检验 —— 没有碰撞是因为侧车每锚都赢 | P2 | lead(已改) |
-| **PROD-36b** | **08-29 20Z 无文件 ⇒ 无 `state_H_f10_1788033600.npz` ⇒ 08-30 00Z 唯一一次 `h_source: king_fallback`, `self_parity_maxdw` 6.58e-3 vs 其余锚 ~2.3–3.2e-10(差七个数量级), 且 `h_source` 上无任何页报**; 同锚 combo 又静默跳过 ⇒ 该链状态只由侧车写成。**两个静默缺陷是同一次事故的两截** | **P1** | FX-PROD(并进 PROD-27) |
-| **PROD-35** | 侧车的 `LAST` 是内存 shell 变量(`sidecar_daemon.sh` L4)⇒ 重启后按 `ls -t | head -1` 重处理**过去的锚**并在数小时后覆写其链状态。四次实例: 08-24 08Z(+2.84h)· 08-29 16Z(+7.50h)· 08-30 04Z(+1.09h)· 09-14 12Z(+3.79h); 其中 **08-30 04Z → 08-30 08Z 与 09-14 12Z → 09-14 16Z 两次确实把事后重写的状态喂给了随后的实盘锚**。四次都未拉入锚后市场数据(0.8–2.4 s, 无 171 管线重建, 复用各自锚的 `mini/cache.npz`), **但该否定是有条件的**(缓存检查只按锚) | P2 | FX-PROD(排 PROD-27 之后) |
+| **PROD-47**(原登记为 PROD-36b, 与 AUDIT_PROD 撞号, 2026-09-16 改号; 原号标 SUPERSEDED-ID) | **08-29 20Z 无文件 ⇒ 无 `state_H_f10_1788033600.npz` ⇒ 08-30 00Z 唯一一次 `h_source: king_fallback`, `self_parity_maxdw` 6.58e-3 vs 其余锚 ~2.3–3.2e-10(差七个数量级), 且 `h_source` 上无任何页报**; 同锚 combo 又静默跳过 ⇒ 该链状态只由侧车写成。**两个静默缺陷是同一次事故的两截** | **P1** | FX-PROD(并进 PROD-27) |
+| **PROD-46**(原登记为 PROD-35, 与 AUDIT_PROD 撞号, 2026-09-16 改号; 原号标 SUPERSEDED-ID) | 侧车的 `LAST` 是内存 shell 变量(`sidecar_daemon.sh` L4)⇒ 重启后按 `ls -t | head -1` 重处理**过去的锚**并在数小时后覆写其链状态。四次实例: 08-24 08Z(+2.84h)· 08-29 16Z(+7.50h)· 08-30 04Z(+1.09h)· 09-14 12Z(+3.79h); 其中 **08-30 04Z → 08-30 08Z 与 09-14 12Z → 09-14 16Z 两次确实把事后重写的状态喂给了随后的实盘锚**。四次都未拉入锚后市场数据(0.8–2.4 s, 无 171 管线重建, 复用各自锚的 `mini/cache.npz`), **但该否定是有条件的**(缓存检查只按锚) | P2 | FX-PROD(排 PROD-27 之后) |
 | **LED-08 交付缺口** | = OPS-04, 由 FX-EXEC2 独立测到并具名(D9): 无 plist 引用 `ops/daily_summary.py`, 亦不在 cron 模板 ⇒ 判词今天无人调度; **levels 仍每锚经报告基线行到 Telegram** | P1(投递) | lead |
 
 ### 14.3 裁定
@@ -386,3 +386,20 @@
 2. **电池窗口越界的迟到量按实测更正**: 「70 秒」是估计, 实测 **85 秒**(11,785 s 对限 11,700 s); §14.1 已就地更正。**此类数一律算出来, 不估。**
 3. **`tests_proportional_response` B14 归 FX-W6C, 修的是断言不是行为**: 该格断言 `ev3_5e_state == 'BREAK'` 而实际路由是 LOCAL 且保护成立 ⇒ 它断言的是**状态标签**而非它要保护的性质。改为断言**路由与行为**, 原状态标签断言保留为**数据存在时才生效**的附加格(缺数据具名 SKIP, 不红)。必须在合并电池之前落地。**附带事实**: `run_acceptance.sh:28` 钉 `/usr/bin/python3`(3.9.6), 而裸 `python3` 是 3.14.4 —— 此前所有逐套件数字的可比性都取决于此, 进报告。
 4. **EXE-04 停在核, 不进接线**(重申); 被撤回的区间传播法留在文件里标 UNSOUND 且不被任何做决定的东西调用 —— **否则测试只能查「与解集一致」, 查不了「不是那个被撤回的宽对象」**; 比**集合**不比计数(PREREG 自证: 正确合同与错误合同在单 BUY100 上都恰好接受 5,151 对)。
+
+
+### 17.5 ★ 编号冲突更正(AUD-KB 发现, lead 自身错误; 2026-09-16 05:0xZ)
+**事实**: §13.1 与 §14.2 开出的 **PROD-30/31/32/33/34/35** 以及 **PROD-36b** 所用的号, **AUDIT_PROD(ee2a8c4d)已经占用且指的是别的发现**。两个登记**证明是同一个命名空间** —— §13.1 自己那张表就用号码交叉引用了「AUDIT_PROD PROD-28」。
+**为何是 P1 而不是记账**: `STATE.md:144`(唯一现状源)当时写着「登记为 PROD-30, 待用户裁定, 属书行为」, 而该号在同一个包交给复审的登记里解析为 **exec_n6 沙箱生产者**; 谁打开 PROD-30 去裁定, 读到的是**错的证据**。
+
+| 号 | AUDIT_PROD ee2a8c4d 的原主 | 我方 §13/§14 的新项 | 改为 |
+|---|---|---|---|
+| PROD-30 | exec_n6 沙箱生产者自 09-06 起在 N+1 对着实盘 bundle 运行 | G1/G2 仍按已退役的 N+23 标定 | **PROD-41** |
+| PROD-31 | `fea171/f10_live_s42.pt` 是八月模型, 不是 351ae26b 背后的 checkpoint | 08-29 20Z 生产者根本没写 king 文件 | **PROD-42** |
+| PROD-32 | `stop_overlay.py` 是 king 形态权重上的报告影子 | 守护的告警路径在生产中从未执行(125 锚 0 页报) | **PROD-43** |
+| PROD-33 | CLAUDE.md 写 N+23 而执行器读 N+24 | `combo_live_status.json` 是单槽可变文件 | **PROD-44** |
+| PROD-34 | 在役 booster 8d79186b 训练在未 clamp 的构建器上(E-0909-A) | 排练模式用 `WS` 备份 ⇒ 写进实盘状态树 | **PROD-45** |
+| PROD-35 | 在役 V2MAIN 训练时 fund 列对非 live450 名置 0, 且在 pre-holefix 缓存上 | 侧车 `LAST` 是内存变量 ⇒ 重启后重处理过去的锚 | **PROD-46** |
+| PROD-36(b) | 回放缓存短于约 37 天把 btcv 回填放进 180 锚 z 窗 | 08-29 20Z 无文件 ⇒ 08-30 00Z 唯一一次 `h_source: king_fallback` | **PROD-47** |
+**处置**: AUDIT_PROD 的最高号是 **PROD-40**, 故 **PROD-41 起为空号**。上表七项已在 §13.1 / §14.2 就地改号并注明「原登记为 PROD-3x, 与 AUDIT_PROD 撞号, 原号标 SUPERSEDED-ID」; `STATE.md` 的引用同步改为 PROD-41 并在括号里保留原号。**原字节保留, 以本节为准。**
+**规矩(新)**: 本纲领新开的登记号**必须先对四份审计登记(AUDIT_EXEC 842bbffa / AUDIT_TRAIN 7e1ecf9a / AUDIT_DATA bb8a2806 / AUDIT_PROD ee2a8c4d)查重**再使用; 四份审计与本纲领**共用一个命名空间**。AUD-KB 已把本条登记为 **KB-69 / KB-70**, 并新增 **KB-71** 记录 KB-03 / KB-11(N+23→N+24)已由 lead 于 09-16 应用。
