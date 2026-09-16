@@ -1439,3 +1439,20 @@ R16R 说得对, 且每条我都逐行证实:
 
 ### 41.6 留开(R16R §5, 不得借本轮宣布关闭)
 R16-D2 面板装置三处(有限/非有限门、两列自证、写出 payload 验证)· R16-D1 v2 后视中位数 · NOSLEEP 证据盲区(未重跑 180MB)· 冻结月链 UNAVAILABLE 标签混同与上月依赖记录未绑定 · 通用 CLOSE 终止瞬间归属。
+
+## §42 R16R 六条已修(2026-09-16, 独立复审第二轮响应; 全文 `HANDOFF_R16R_RESPONSE_2026-09-16.md`)
+
+**修复链**: 叠加树 facdf24 → **183915f**(E1 broker/stage1 + E3 root→plog + 两条入口级测试); 研究仓 1c00948b(受理)→ 1f86f769(M1)→ fda1d3ef(E2 写入端)→ ce9fdd16(T1a/T1b + 五份测试日志 + diff 收据)。生产仍 ef60f85, 零部署。
+
+**方法上的改变**: 每条修复配一条驱动**真实入口/真实方法**的测试, 修前对照从 git **按缺陷形态**取源(HEAD..HEAD~3 中第一个含该形态者), 修前红/修后绿在同一输入上成对出现; 缺对照报 UNAVAILABLE 3 不假造。撤回「159/159 同退出码 = 零回归」。
+
+| 条 | 修前(同一输入) | 修后 | 测试 |
+|---|---|---|---|
+| E3 | 真实 main() 渲染 `+12.0000 [假定全 USDT]` | `+101.0000 [修订记录]`, 增量行 +11→+101 | tests_daily_summary_entry 5/5 |
+| M1 | 真 PASS 判词退出 3 | PASS→0 / PARTIAL→3 / INVALID→3 | tests_fm_gate_b_repro_king_exit 5/5 |
+| T1a | `{}`/`[]` 记录 PASS rc 0 | rc 3 schema_errors; 无记录 UNAVAILABLE; 覆盖 1/8 点名 7 | tests_pipeline_gates Q7/Q7b(475/475) |
+| T1b | 别名+ALLOW=CACHE 绕过 | rc 3, P6 samefile=True previous_key=CACHE | Q7d |
+| E2 | 对调 nav_ts 的记录被准入 exit 0 | REFUSE 2 + 两条 C2b; NaN 拒 | tests_led04_apply_identity 5/5 |
+| E1 | NaN 被丢(inf 却留); flatten_all 为非有限发 2 单; NaN 账户→空书→stage1 ok=True | 保留为未知; 0 单 2 跳过; stage1 ok=False unknown=[…] | tests_broker_nonfinite_positions 8/8 |
+
+**自查**: E3 入口测试第一版被三处静默改道同时骗过(1970 时间戳窗外 / 回退真实告警文件 / 裸子串匹配到 `101 name(s)`), 已改并入记忆; 电池脚本 `TREE_STATE.json` 原是 08:24Z 静态文件, 改为开跑时现算; zsh 不分词吞掉一整轮提交(无半提交)。**未做**: R16R §5 六项、B14(FX-W6C)、`finalize` 标签(冻结装置待裁定)。电池结果见交接文 §3.2(回填)。
