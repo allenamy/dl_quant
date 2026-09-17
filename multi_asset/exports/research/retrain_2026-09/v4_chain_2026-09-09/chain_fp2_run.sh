@@ -89,7 +89,7 @@ PY
         "$PY" "$D/fp2_per_year_table.py" > "$R/per_year_table.log" 2>&1 < /dev/null; rc=$?
       say2 "stage per_year rc=$rc $(tail -1 "$R/per_year_table.log" | cut -c1-160)"; [ $rc -eq 0 ] || { say2 "FAIL_stage_per_year_rc_$rc"; exit $rc; } ;;
     decision)   # F03: the swap recommendation under AMENDMENT 7 (G1′ non-inferiority × G2 per-year × G3 export gate); judge receipt informational only
-      env R=$R D=$D PROFILE=formal PER_YEAR_JSON=$R/v4_gates/PER_YEAR_TABLE.json EXPORT_RECEIPT=$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM:-A1}.json JUDGE_JSON=$R/v4_gates/JUDGE_v4_eligible.json \
+      env R=$R D=$D PROFILE=formal EXPORT_GATE=${GATE_EXPORT:-v4e_gate_export_v2.py} PER_YEAR_JSON=$R/v4_gates/PER_YEAR_TABLE.json EXPORT_RECEIPT=$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM:-A1}.json JUDGE_JSON=$R/v4_gates/JUDGE_v4_eligible.json \
         MEMBER_RULE_JSON=$R/v4_gates/MEMBER_RULE_CHECK.json STEP1_JSON=$R/v4_gates/step1.json EXPECTED_UMASK=$UM \
         OUT_JSON=$R/v4_gates/DECISION_FP2.json OUT_MD=$R/v4_gates/DECISION_FP2.md "$PY" "$D/fp2_decision.py" > "$R/decision_fp2.log" 2>&1 < /dev/null; rc=$?
       say2 "stage decision rc=$rc $(tail -1 "$R/decision_fp2.log" | cut -c1-160)"; [ $rc -eq 0 ] || { say2 "FAIL_stage_decision_rc_$rc"; exit $rc; } ;;

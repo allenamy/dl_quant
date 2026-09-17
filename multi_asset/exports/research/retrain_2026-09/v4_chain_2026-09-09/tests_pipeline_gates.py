@@ -192,9 +192,9 @@ with tempfile.TemporaryDirectory() as d:
         on-disk sha matches (no dangling or unexplained approvals); every declared variant must in turn be in the approved list."""
         lst = g["approved_source_sha256"]; var = g.get("approved_variants", {})
         return archived in lst and set(lst) - {archived} == {v["sha256"] for v in var.values()} and all(os.path.isfile(f"{HERE}/{f}") and _sha(f"{HERE}/{f}") == v["sha256"] for f, v in var.items())
-    check("★★★ [r5→r6] the ARCHIVED contract is self-consistent: approved sources of G2 are exactly the archived gate's sha, STEP1/STEP2 = archived sha + declared approved_variants (FP2 gates) with matching on-disk shas; BUNDLE_export approves exactly the archived v2 export gate (v4e_gate_export_v2.py, applied 2026-09-12 on user word after r20 closed N1; was [] while the physical gate did not exist); every candidate arm maps to BUNDLE_export with book binding",
+    check("★★★ [r5→r6] the ARCHIVED contract is self-consistent: approved sources of G2 are exactly the archived gate's sha, STEP1/STEP2 = archived sha + declared approved_variants (FP2 gates) with matching on-disk shas; BUNDLE_export = archived v2 export gate + declared approved_variants with matching on-disk shas (PROPOSED5 fp2dyn, 2026-09-17; v2 applied 2026-09-12 on user word after r20 closed N1; was [] while the physical gate did not exist); every candidate arm maps to BUNDLE_export with book binding",
           _ct["gates"]["G2_closure"]["approved_source_sha256"] == [_sha(f"{HERE}/v4_gate_closure.py")] and _approved_ok(_ct["gates"]["STEP1"], _sha(f"{HERE}/v4_gate_step1.py"))
-          and _approved_ok(_ct["gates"]["STEP2"], _sha(f"{HERE}/v4_gate_step2.py")) and _ct["gates"]["BUNDLE_export"]["approved_source_sha256"] == [_sha(f"{HERE}/v4e_gate_export_v2.py")] and _ct["gates"]["BUNDLE_export"]["source"] == "v4e_gate_export_v2.py" and _ct["status"].startswith("APPLIED 2026-09-12")
+          and _approved_ok(_ct["gates"]["STEP2"], _sha(f"{HERE}/v4_gate_step2.py")) and _approved_ok(_ct["gates"]["BUNDLE_export"], _sha(f"{HERE}/v4e_gate_export_v2.py")) and _ct["gates"]["BUNDLE_export"]["source"] == "v4e_gate_export_v2.py" and _ct["status"].startswith("APPLIED 2026-09-12")
           and set(_ct["arms"]) == {"A1", "A1s", "A1e", "A2", "A3"} and all(a["candidacy_gate"] == "BUNDLE_export" and a["book_binding"] for a in _ct["arms"].values()),
           {g: [x[:8] for x in v["approved_source_sha256"]] for g, v in _ct["gates"].items()})
     check("★ [r5] make_sha_manifest.py lists the contract as a reviewed file", 'f == "ELIGIBILITY_CONTRACT.json"' in open(f"{HERE}/make_sha_manifest.py").read())
@@ -676,7 +676,7 @@ with tempfile.TemporaryDirectory() as d:
     rc, out, j = judge_case(d, "r5_shipped_contract_empty_approved", promote=True, eligibility=lambda q: {"A1e": {k: v for k, v in bound_entry(q, "A1e").items() if k in ("receipt", "inputs")}}, contract="archive")
     check("★★★ [r5→r6] the ARCHIVED judge + its shipped contract (APPLIED 2026-09-12: BUNDLE_export approves ONLY v4e_gate_export_v2.py): a fully bound (28-name closure), book-bound A1e receipt signed by the archived EXPORTER (pod_export_bundle_v4.py) ⇒ STILL not eligible ('not an approved source'), 0 PROMOTE — the exporter is not the gate; only a receipt written by the reviewed v2 gate can confer candidacy",
           rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "not an approved source" in j["eligibility_by_arm"]["A1e"]["why"]
-          and j["contract"]["approved_sources"]["BUNDLE_export"] == [_sha(f"{HERE}/v4e_gate_export_v2.py")] and _n_promote(j) == 0,
+          and sorted(j["contract"]["approved_sources"]["BUNDLE_export"]) == sorted(_ct["gates"]["BUNDLE_export"]["approved_source_sha256"]) and _sha(f"{HERE}/v4e_gate_export_v2.py") in j["contract"]["approved_sources"]["BUNDLE_export"] and _n_promote(j) == 0,   # PROPOSED5: archived v2 + declared variants; the exporter still is not one
           (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
     rc, out, j = judge_case(d, "r5_device_without_contract", promote=True, eligibility=lambda q: {"A1e": bound_entry(q, "A1e")}, contract="none")
     check("★★ [r5] a device copy with NO contract beside the judge ⇒ informational, contract.error set, a warning printed, 0 PROMOTE", rc == 0 and j and j["contract"]["error"] and j["eligibility"] == "informational" and "frozen eligibility contract unavailable" in out and _n_promote(j) == 0, (rc, j and j["contract"]["error"]))
@@ -1592,13 +1592,15 @@ def _contract_is_r1_plus_proposed3():
         cur["gates"][g]["approved_source_sha256"] = [x for x in cur["gates"][g]["approved_source_sha256"] if x not in {v["sha256"] for v in var.values()}]
     if not (isinstance(cur.get("status"), str) and "PROPOSED3" in cur["status"]): return False
     cur["status"] = cur["status"].split(" | PROPOSED3")[0]
+    be = cur["gates"]["BUNDLE_export"]; v5 = be.pop("approved_variants", {})    # PROPOSED5 (2026-09-17): the fp2dyn variant is an ADDED approved source with its own entry
+    be["approved_source_sha256"] = [x for x in be["approved_source_sha256"] if x not in {e["sha256"] for e in v5.values()}]
     ab = cur["gates"]["BUNDLE_export"].get("approved_baseline") or {}
     p4 = ab.pop("PROPOSED4", None)                                   # PROPOSED4 (FP2-8 regime pins, 2026-09-17): restore the two r1 values it superseded
     if p4:
         for k, v in (p4.get("superseded_r1_values") or {}).items(): ab[k] = v
     pc = list(cur.get("proposed_changes_vs_frozen", []))
     if not (pc and str(pc[-1]).startswith("PROPOSED")): return False
-    while pc and str(pc[-1]).startswith(("PROPOSED3", "PROPOSED4")): pc.pop()   # PROPOSED3 (and its AMENDMENT 8 revisions) and PROPOSED4 are all trailing entries
+    while pc and str(pc[-1]).startswith(("PROPOSED3", "PROPOSED4", "PROPOSED5")): pc.pop()   # PROPOSED3 (and its AMENDMENT 8 revisions) and PROPOSED4 are all trailing entries
     cur["proposed_changes_vs_frozen"] = pc
     return cur == r1
 check("★★★ [T] G0 the FOUR contract-frozen files are byte-identical after round 3 as well (STEP1 278fdce6, STEP2 db7ab356, the contract 1188267a, the v2 export gate d63f4ec3) — round 3 touched none of them",

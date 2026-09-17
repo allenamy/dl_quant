@@ -82,8 +82,7 @@
   "BUNDLE_export": {
    "source": "v4e_gate_export_v2.py",
    "approved_source_sha256": [
-    "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
-    "9a61420cdeb193846c789ca2fda2a212dc4e85b0c2d127df812d9dd6b65f3c61"
+    "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e"
    ],
    "approved_baseline": {
     "device_sha256": "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d",
@@ -207,25 +206,7 @@
      "review": "independent researcher review requested (post-hoc, same protocol as PROPOSED3)"
     }
    },
-   "note": "r20 gate closure 2026-09-12. Replaces the 2026-09-11 INFRA2 proposal (v4e_gate_export.py sha f814c728\u2026, WITHDRAWN: the independent reviewer showed it not falsifiable \u2014 wrong-gate PASS accepted, failing signal gate accepted, different cost/knobs accepted, zero W / non-finite pnl accepted, shipped bundle unbound). v2 keeps E1\u2013E4 verbatim and adds E0 contract block, E2b pin identity, E5 finite+baseline symbols, E6 all 27 knobs + cost/mask/king/FEMAT by file, E7 bound signal receipt with PASS re-derived, E8 exact device identities on the arrays, E9 gross band vs the approved A0 books; `require` mode re-verifies the full floor and re-runs the content gates. Approving this sha approves those checks, the approved_baseline shas and the thresholds AS the export standard.",
-   "approved_variants": {
-    "v4e_gate_export_fp2dyn.py": {
-     "sha256": "9a61420cdeb193846c789ca2fda2a212dc4e85b0c2d127df812d9dd6b65f3c61",
-     "base": "v4e_gate_export_v2.py d63f4ec3 (unchanged, still approved)",
-     "diff_receipt": "docs/fixprogram_2026-09-13/FP2_receipts/diff_v4e_gate_export_v2_to_fp2dyn.patch (52 lines, 5 hunks)",
-     "scope": {
-      "V4_MONTH": "2026-09",
-      "R": "/workspace/fp2_2026-09",
-      "note": "PROPOSED5: FP2-8 only; later chains need their own approval"
-     },
-     "what": "E8/E9 book-content verdicts fold only CHECK_SEATS={dyn} (the in-service seat); fix-seat results computed and recorded as informational_seat=True; E5/E6/E7, the 28-name input floor and every hash unchanged",
-     "why": "user word 2026-09-17\u300c\u7ebf\u4e0a\u7684\u7b56\u7565\u90fd\u662f\u52a8\u6001\u5e2d\u4f4d, \u56de\u6d4b\u5e94\u8be5\u4e5f\u662f\u52a8\u6001\u7684\u300d; the fix seat was a September control for E-0902-D (replay dynamic seat \u2260 live); in the v4 chain the replay dynamic seat tracks live (AMENDMENT 11); under the tradable umask the fix-seat books carry stuck untradable weight and exceed gross 1 (A0 and A1 alike) \u2014 a regime property of a seat not in service",
-     "not_changed": "thresholds (gross_max 1.000001 etc.), pins, floors \u2014 no threshold moved; the fix-seat K6 breach is still recorded in every receipt",
-     "proposed_utc": "2026-09-17T13:13:31Z",
-     "review": "independent researcher review requested (post-hoc, same protocol as PROPOSED3/4)",
-     "real_data_smoke": "pod2 12:5xZ: PASS, seats_checked [dyn], E8 dyn ok / fix informational, E9 medians 0.9995/1.0025 (dyn), band outside 0"
-    }
-   }
+   "note": "r20 gate closure 2026-09-12. Replaces the 2026-09-11 INFRA2 proposal (v4e_gate_export.py sha f814c728\u2026, WITHDRAWN: the independent reviewer showed it not falsifiable \u2014 wrong-gate PASS accepted, failing signal gate accepted, different cost/knobs accepted, zero W / non-finite pnl accepted, shipped bundle unbound). v2 keeps E1\u2013E4 verbatim and adds E0 contract block, E2b pin identity, E5 finite+baseline symbols, E6 all 27 knobs + cost/mask/king/FEMAT by file, E7 bound signal receipt with PASS re-derived, E8 exact device identities on the arrays, E9 gross band vs the approved A0 books; `require` mode re-verifies the full floor and re-runs the content gates. Approving this sha approves those checks, the approved_baseline shas and the thresholds AS the export standard."
   }
  },
  "arms": {
@@ -270,7 +251,7 @@
   "file": "<JUDGE_HC>/dev_v4/probe_artifacts/w10_ablation_series_V4_<arm>_<seat>_s<seed>.npz",
   "rule": "the judge adds these four paths to the arm's declared inputs; require then demands the receipt hashed each of them and that the hash equals the file the judge loaded (a book replaced after the receipt, or a receipt written for another arm's books, is not this arm's permission)"
  },
- "status": "APPLIED 2026-09-12 (user word 09-12: \"10 \u6708 runbook \u4e3a\u4ec0\u4e48\u8fd8\u4e0d\u4fee, \u8981\u4fdd\u6301\u8001\u7684\u94fe\u8def\u548c\u51fa\u53e3\u95e8?\"); was PROPOSED2 01692565\u2026; frozen predecessor 3299dc97\u2026 kept at ELIGIBILITY_CONTRACT.r0_3299dc97.json | PROPOSED3 (FP2-8, 2026-09-17): gates.STEP1/STEP2 approved_source_sha256 += fp2_gate_step1.py / fp2_gate_step2.py (approved_variants records scope); applied by lead under the user's standing rule (fix known issues without waiting, independent review after); frozen predecessor kept at ELIGIBILITY_CONTRACT.r1_1188267a.json | PROPOSED3 rev (AMENDMENT 8, 2026-09-17 09:3xZ): variant shas replaced by the on-disk revisions; fp2_gate_lib.py sha recorded under approved_variants.requires | PROPOSED4 (FP2-8 regime pins, 2026-09-17): approved_baseline.umask_npz_sha256 \u2192 3badc4b6\u2026, baseline_books_sha256 \u2192 A0 re-run under the tradable umask; thresholds untouched | PROPOSED5 (fp2dyn export-gate variant, 2026-09-17): BUNDLE_export.approved_source_sha256 += 9a61420cdeb1 (approved_variants, scope 2026-09 @ /workspace/fp2_2026-09)",
+ "status": "APPLIED 2026-09-12 (user word 09-12: \"10 \u6708 runbook \u4e3a\u4ec0\u4e48\u8fd8\u4e0d\u4fee, \u8981\u4fdd\u6301\u8001\u7684\u94fe\u8def\u548c\u51fa\u53e3\u95e8?\"); was PROPOSED2 01692565\u2026; frozen predecessor 3299dc97\u2026 kept at ELIGIBILITY_CONTRACT.r0_3299dc97.json | PROPOSED3 (FP2-8, 2026-09-17): gates.STEP1/STEP2 approved_source_sha256 += fp2_gate_step1.py / fp2_gate_step2.py (approved_variants records scope); applied by lead under the user's standing rule (fix known issues without waiting, independent review after); frozen predecessor kept at ELIGIBILITY_CONTRACT.r1_1188267a.json | PROPOSED3 rev (AMENDMENT 8, 2026-09-17 09:3xZ): variant shas replaced by the on-disk revisions; fp2_gate_lib.py sha recorded under approved_variants.requires | PROPOSED4 (FP2-8 regime pins, 2026-09-17): approved_baseline.umask_npz_sha256 \u2192 3badc4b6\u2026, baseline_books_sha256 \u2192 A0 re-run under the tradable umask; thresholds untouched",
  "proposed_changes_vs_frozen": [
   "top-level status (new) \u2014 PROPOSED marker",
   "review_status appended",
@@ -281,8 +262,7 @@
   "companion (not part of this file): REQUIRED_INPUTS['BUNDLE_export'] in v4_gate_common.py still lists 11 names; the v2 gate's own require mode enforces the full floor; extending the v4_gate_common floor so judge_v4's require also demands the bundle closure is a separate proposed diff (v4chain_PROPOSED2/v4_gate_common.PROPOSED.diff)",
   "PROPOSED3: gates.STEP1.approved_source_sha256 += ae21f86f6867 (fp2_gate_step1.py); gates.STEP2.approved_source_sha256 += db5b44d15bd3 (fp2_gate_step2.py); gates.*.approved_variants (new, informational)",
   "PROPOSED3 rev: STEP1/STEP2 variant shas replaced (AMENDMENT 8); approved_variants.requires.fp2_gate_lib.py = d3023421a484",
-  "PROPOSED4: gates.BUNDLE_export.approved_baseline.umask_npz_sha256 47d87b51\u2026 \u2192 3badc4b6\u2026 (tradable W24H); baseline_books_sha256 \u2192 A0 re-run books (dyn_s42 b0b9dff9\u2026, dyn_s2027 aed3c8f9\u2026, fix_s42 27b4ff47\u2026, fix_s2027 661cc25b\u2026); r1 values kept under approved_baseline.PROPOSED4.superseded_r1_values; thresholds untouched",
-  "PROPOSED5: gates.BUNDLE_export.approved_source_sha256 += 9a61420cdeb1 (v4e_gate_export_fp2dyn.py; E8/E9 fold only the in-service seat); approved_variants entry with scope; thresholds untouched"
+  "PROPOSED4: gates.BUNDLE_export.approved_baseline.umask_npz_sha256 47d87b51\u2026 \u2192 3badc4b6\u2026 (tradable W24H); baseline_books_sha256 \u2192 A0 re-run books (dyn_s42 b0b9dff9\u2026, dyn_s2027 aed3c8f9\u2026, fix_s42 27b4ff47\u2026, fix_s2027 661cc25b\u2026); r1 values kept under approved_baseline.PROPOSED4.superseded_r1_values; thresholds untouched"
  ],
  "proposed_utc": "2026-09-12T05:21:47Z",
  "applied_utc": "2026-09-12T09:04:39Z",

@@ -78,11 +78,12 @@ def main():
     rec["inputs"]["v4_gate_common"] = {"path": gcp, "sha256": sha(gcp)}
     # ── export gate: the chain's own require, every recorded input re-hashed NOW ──
     x = json.load(open(E["EXPORT_RECEIPT"])); xin = x.get("inputs_path") or {}; xsh = x.get("inputs_sha256") or {}
-    xdev = os.path.join(D, "v4e_gate_export_v2.py"); xdev_sha = sha(xdev) if os.path.isfile(xdev) else None
+    xgate = os.environ.get("EXPORT_GATE", "") or "v4e_gate_export_v2.py"; rec["params"]["EXPORT_GATE"] = xgate   # PROPOSED5: the approved variant the chain used; require verifies its approval
+    xdev = os.path.join(D, xgate); xdev_sha = sha(xdev) if os.path.isfile(xdev) else None
     B["export"] = {"arm": x.get("arm"), "PASS": x.get("PASS"), "failed_checks": x.get("failed_checks"), "self_sha256": x.get("self_sha256"), "contract_sha256": x.get("contract_sha256"), "gate_in_D": xdev_sha}
     if x.get("arm") != arm: un.append(f"export receipt arm {x.get('arm')!r} != {arm}")
     if x.get("contract_sha256") != rec["inputs"]["contract"]["sha256"]: un.append("export receipt hashed a different contract than the one in D")
-    if not xdev_sha: un.append("v4e_gate_export_v2.py missing in D")
+    if not xdev_sha: un.append(f"{xgate} missing in D")
     elif not isinstance(xin, dict) or not xin: un.append("export receipt records no inputs_path: nothing to re-verify")
     else:
         ok, why = GC.require(E["EXPORT_RECEIPT"], inputs=dict(xin), expected_gate="BUNDLE_export", expected_self_sha=xdev_sha, profile=None, recorded_extras=True)

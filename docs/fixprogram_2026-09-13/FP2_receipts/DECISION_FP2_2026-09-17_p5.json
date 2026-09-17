@@ -1,0 +1,387 @@
+{
+ "gate": "FP2_DECISION",
+ "self_sha256": "4296fa0aa8c9b55ae9489fbd896132302fd6134064790a16333c2b2b8a21dbca",
+ "utc": "2026-09-17T13:16:44Z",
+ "profile": "formal",
+ "rule": "DESIGN_FP2-8 AMENDMENT 7 (G1\u2032 non-inferiority, G2 per-year POINT-ESTIMATE rule, G3 bound export gate); closure F2 (require with recorded_extras on export + STEP1; member-rule inputs re-hashed and bound by semantic key); frozen window F3",
+ "params": {
+  "DELTA": "0.05",
+  "SEAT": "dyn",
+  "SEEDS": "42,2027",
+  "WINDOWS": "W_ALPHA,KING_LIVE",
+  "EXPORT_ARM": "A1",
+  "CURRENT_YEAR": "2026",
+  "WA_START": "2022-06-30T00:00:00Z",
+  "UB": "2026-08-30T20:00:00Z",
+  "KL_START": "2024-01-01T00:00:00Z",
+  "LEV": "2.0",
+  "YEARS": "2022,2023,2024,2025,2026",
+  "EXPORT_GATE": "v4e_gate_export_fp2dyn.py"
+ },
+ "inputs": {
+  "PER_YEAR_JSON": {
+   "path": "/workspace/fp2_2026-09/v4_gates/PER_YEAR_TABLE.json",
+   "sha256": "8d8ac69eaa3eda69eb5eab69dd8c924e52e2377b932066bd2e08d8036ef8fa06"
+  },
+  "EXPORT_RECEIPT": {
+   "path": "/workspace/fp2_2026-09/v4_gates/BUNDLE_export_v2_A1.json",
+   "sha256": "7d2a0cfe27568035eb7019b0ac987523d3f0edac7e817b1f310bfa9bed8dfccc"
+  },
+  "MEMBER_RULE_JSON": {
+   "path": "/workspace/fp2_2026-09/v4_gates/MEMBER_RULE_CHECK.json",
+   "sha256": "2966478b16834898a81c9e593f1c4759360aa7e2cb783cc1e083bb7322511da6"
+  },
+  "STEP1_JSON": {
+   "path": "/workspace/fp2_2026-09/v4_gates/step1.json",
+   "sha256": "b107f783f52917d10b00d53ec606ccb586f1647de7feb42821ab7e6a59dd77be"
+  },
+  "EXPECTED_UMASK": {
+   "path": "/workspace/fx_data_2026-09-13/out/inject/umask_UPIT_CRYPTO_tradable_W24H.npz",
+   "sha256": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c"
+  },
+  "contract": {
+   "path": "/workspace/fp2_2026-09/devices_v4chain/ELIGIBILITY_CONTRACT.json",
+   "sha256": "5c077511f6f0c22c1da7af3c58bd61577da0a03dae213d1264f42508d7b92ea1"
+  },
+  "v4_gate_common": {
+   "path": "/workspace/fp2_2026-09/devices_v4chain/v4_gate_common.py",
+   "sha256": "24e813f145c35033552ee54ae166092a8204490ff52c011a87217a8e81a187a1"
+  }
+ },
+ "binding": {
+  "export": {
+   "arm": "A1",
+   "PASS": true,
+   "failed_checks": [],
+   "self_sha256": "9a61420cdeb193846c789ca2fda2a212dc4e85b0c2d127df812d9dd6b65f3c61",
+   "contract_sha256": "5c077511f6f0c22c1da7af3c58bd61577da0a03dae213d1264f42508d7b92ea1",
+   "gate_in_D": "9a61420cdeb193846c789ca2fda2a212dc4e85b0c2d127df812d9dd6b65f3c61",
+   "require": {
+    "ok": true,
+    "why": "PASS (BUNDLE_export, 2026-09-17T13:16:19Z, self 9a61420cdeb1 approved, 28 inputs verified (0 recorded beyond the caller's declaration, located from the receipt's inputs_path), registered floor BUNDLE_export=28)"
+   }
+  },
+  "step1": {
+   "VERDICT": "PASS",
+   "gate": "STEP1",
+   "self_sha256": "3ad3a6c604dd5310ab59b9ea361e52c4700e261b84e7d7c116d108e6d26dfa69",
+   "gate_in_D": "3ad3a6c604dd5310ab59b9ea361e52c4700e261b84e7d7c116d108e6d26dfa69",
+   "require": {
+    "ok": true,
+    "why": "PASS (STEP1, 2026-09-17T11:46:55Z, self 3ad3a6c604dd approved, 12 inputs verified (0 recorded beyond the caller's declaration, located from the receipt's inputs_path), registered floor STEP1@v4=4)"
+   }
+  },
+  "member_rule": {
+   "VERDICT": "PASS",
+   "self_sha256": "396f6a518d6fddffdba3e8126f94cc5f8d49e40b24b2ac056b84d5ade91de49f"
+  },
+  "semantic": {
+   "member.MASKED_KING_META == export.wide_fea_v4_meta": {
+    "same_path": true,
+    "same_sha": true
+   },
+   "member.MASKED_DL_TARGETS == step1.dlw_v4raw_targets": {
+    "same_path": true,
+    "same_sha": true
+   },
+   "member.CACHE == step1.cache": {
+    "same_path": true,
+    "same_sha": true
+   },
+   "member.MEMBER_MASK == step1.member_mask": {
+    "same_path": true,
+    "same_sha": true
+   },
+   "member.RAW_PATCH == step1.raw_patch": {
+    "same_path": true,
+    "same_sha": true
+   },
+   "member.CONTROL_KING_META == controls.control_king_meta": {
+    "same_path": true,
+    "same_sha": true
+   },
+   "member.CONTROL_DL_TARGETS == controls.control_dl_targets": {
+    "same_path": true,
+    "same_sha": true
+   }
+  },
+  "umask": {
+   "expected_sha256": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c",
+   "table_sha256": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c",
+   "export_umask_sha256": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c"
+  },
+  "coverage": {
+   "ts_min": "2022-01-31T00:00:00Z",
+   "ts_max": "2026-08-31T00:00:00Z",
+   "UB": "2026-08-30T20:00:00Z",
+   "reaches_UB": true,
+   "WA_START": "2022-06-30T00:00:00Z",
+   "n_anchors": 10039,
+   "n_W_ALPHA": 9138,
+   "n_KING_LIVE": 5838,
+   "years": [
+    "2022",
+    "2023",
+    "2024",
+    "2025",
+    "2026"
+   ]
+  },
+  "arms": {
+   "A0/dyn/s42": {
+    "path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz",
+    "sha_then": "b0b9dff9253eb0d1b21f5b35ed1ecf974eb29efbc0ae9de5cc03f4fc95d964bb",
+    "sha_now": "b0b9dff9253eb0d1b21f5b35ed1ecf974eb29efbc0ae9de5cc03f4fc95d964bb",
+    "ts0": 1643587200,
+    "ts_900": 1656547200,
+    "ts_last": 1788134400,
+    "n_W_ALPHA": 9138,
+    "n_KING_LIVE": 5838
+   },
+   "A0/dyn/s2027": {
+    "path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s2027.npz",
+    "sha_then": "aed3c8f920c0b111842e435a6e4e18f68e4efddd1a2d8d25ab3b5201341d0e52",
+    "sha_now": "aed3c8f920c0b111842e435a6e4e18f68e4efddd1a2d8d25ab3b5201341d0e52",
+    "ts0": 1643587200,
+    "ts_900": 1656547200,
+    "ts_last": 1788134400,
+    "n_W_ALPHA": 9138,
+    "n_KING_LIVE": 5838
+   },
+   "A1/dyn/s42": {
+    "path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A1_dyn_s42.npz",
+    "sha_then": "43d9e07fc45e562fdbd313c469e1240b583a346b4e2bcf95583740d5814c5a73",
+    "sha_now": "43d9e07fc45e562fdbd313c469e1240b583a346b4e2bcf95583740d5814c5a73",
+    "ts0": 1643587200,
+    "ts_900": 1656547200,
+    "ts_last": 1788134400,
+    "n_W_ALPHA": 9138,
+    "n_KING_LIVE": 5838
+   },
+   "A1/dyn/s2027": {
+    "path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A1_dyn_s2027.npz",
+    "sha_then": "8af73fbd4ede56ff47da159d40b9653b14fffbab83260f543022cabf4a2df339",
+    "sha_now": "8af73fbd4ede56ff47da159d40b9653b14fffbab83260f543022cabf4a2df339",
+    "ts0": 1643587200,
+    "ts_900": 1656547200,
+    "ts_last": 1788134400,
+    "n_W_ALPHA": 9138,
+    "n_KING_LIVE": 5838
+   }
+  },
+  "same_books": {
+   "A0/dyn/s42": {
+    "export_key": "base_dyn_s42",
+    "same_path": true,
+    "same_sha": true
+   },
+   "A0/dyn/s2027": {
+    "export_key": "base_dyn_s2027",
+    "same_path": true,
+    "same_sha": true
+   },
+   "A1/dyn/s42": {
+    "export_key": "book_dyn_s42",
+    "same_path": true,
+    "same_sha": true
+   },
+   "A1/dyn/s2027": {
+    "export_key": "book_dyn_s2027",
+    "same_path": true,
+    "same_sha": true
+   }
+  }
+ },
+ "UNAVAILABLE": [],
+ "G1": {
+  "cells": {
+   "W_ALPHA/s42": {
+    "dg": 0.05714401998457054,
+    "ci95": [
+     -0.04313164441960712,
+     0.15717593331266422
+    ],
+    "n": 9138,
+    "n_days": 1523,
+    "lower_gt_minus_delta": true,
+    "lower_gt_0": false,
+    "upper_lt_minus_delta": false
+   },
+   "KING_LIVE/s42": {
+    "dg": 0.08944536735508836,
+    "ci95": [
+     -0.061363346962513214,
+     0.25174011866758494
+    ],
+    "n": 5838,
+    "n_days": 973,
+    "lower_gt_minus_delta": false,
+    "lower_gt_0": false,
+    "upper_lt_minus_delta": false
+   },
+   "W_ALPHA/s2027": {
+    "dg": 0.03323899174451082,
+    "ci95": [
+     -0.060369199273935074,
+     0.13105668962750983
+    ],
+    "n": 9138,
+    "n_days": 1523,
+    "lower_gt_minus_delta": false,
+    "lower_gt_0": false,
+    "upper_lt_minus_delta": false
+   },
+   "KING_LIVE/s2027": {
+    "dg": 0.052027733223936244,
+    "ci95": [
+     -0.09961008373710376,
+     0.21082536159099965
+    ],
+    "n": 5838,
+    "n_days": 973,
+    "lower_gt_minus_delta": false,
+    "lower_gt_0": false,
+    "upper_lt_minus_delta": false
+   }
+  },
+  "verdict": "UNDECIDED"
+ },
+ "G2": {
+  "per_seed": {
+   "s42": {
+    "years": {
+     "2022": {
+      "dg": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 1110
+     },
+     "2023": {
+      "dg": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 2190
+     },
+     "2024": {
+      "dg": -0.006681662084419373,
+      "ci95": [
+       -0.28273331185890344,
+       0.2774011311183925
+      ],
+      "n": 2196
+     },
+     "2025": {
+      "dg": 0.20429678278333832,
+      "ci95": [
+       -0.07233712050014598,
+       0.5040204738326544
+      ],
+      "n": 2190
+     },
+     "2026": {
+      "dg": 0.061601260510247724,
+      "ci95": [
+       -0.09994059863988702,
+       0.22373205525146225
+      ],
+      "n": 1452
+     }
+    },
+    "years_worse_than_delta": [],
+    "ok": true
+   },
+   "s2027": {
+    "years": {
+     "2022": {
+      "dg": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 1110
+     },
+     "2023": {
+      "dg": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 2190
+     },
+     "2024": {
+      "dg": 0.0018640091182111974,
+      "ci95": [
+       -0.2611558382996027,
+       0.27150747293507344
+      ],
+      "n": 2196
+     },
+     "2025": {
+      "dg": 0.11721101121142248,
+      "ci95": [
+       -0.1626929859428693,
+       0.3962602531423162
+      ],
+      "n": 2190
+     },
+     "2026": {
+      "dg": 0.029581561972956392,
+      "ci95": [
+       -0.18806601292722697,
+       0.252561248614598
+      ],
+      "n": 1452
+     }
+    },
+    "years_worse_than_delta": [],
+    "ok": true
+   }
+  },
+  "ok": true,
+  "note": "point-estimate rule per year, not a statistical non-inferiority proof"
+ },
+ "G3": {
+  "ok": true,
+  "PASS": true,
+  "arm": "A1",
+  "expected_arm": "A1",
+  "require": {
+   "ok": true,
+   "why": "PASS (BUNDLE_export, 2026-09-17T13:16:19Z, self 9a61420cdeb1 approved, 28 inputs verified (0 recorded beyond the caller's declaration, located from the receipt's inputs_path), registered floor BUNDLE_export=28)"
+  }
+ },
+ "judge_informational": {
+  "path": "/workspace/fp2_2026-09/v4_gates/JUDGE_v4_eligible.json",
+  "sha256": "71602478cf0ce7015d548404adb9b86475a0efa0399a51634394ed726c0551ee",
+  "note": "judge_v4.py's frozen (A)/(B)/(C) rule on its own window \u2014 recorded, NOT a criterion",
+  "verdicts": {
+   "A1-A0|dyn": "(C) UNDECIDED",
+   "A1-A0|fix": "(C) UNDECIDED",
+   "A2-A0|dyn": "(C) UNDECIDED",
+   "A2-A0|fix": "(A) INFO \u2014 no bound export-gate PASS for arm A2: informational only, no promotion",
+   "A3-A0|dyn": "(C) UNDECIDED",
+   "A3-A0|fix": "(A) INFO \u2014 no bound export-gate PASS for arm A3: informational only, no promotion",
+   "A1-A2|dyn": "(C) UNDECIDED",
+   "A1-A2|fix": "(C) UNDECIDED",
+   "A1-A3|dyn": "(C) UNDECIDED",
+   "A1-A3|fix": "(C) UNDECIDED",
+   "A1s-A0|dyn": "(C) UNDECIDED",
+   "A1s-A0|fix": "(A) INFO \u2014 no bound export-gate PASS for arm A1s: informational only, no promotion",
+   "A1s-A1|dyn": "(C) UNDECIDED",
+   "A1s-A1|fix": "(C) UNDECIDED",
+   "A1e-A1|dyn": "(C) UNDECIDED",
+   "A1e-A1|fix": "(A) INFO \u2014 no bound export-gate PASS for arm A1e: informational only, no promotion",
+   "A1e-A0|dyn": "(C) UNDECIDED",
+   "A1e-A0|fix": "(A) INFO \u2014 no bound export-gate PASS for arm A1e: informational only, no promotion"
+  }
+ },
+ "RECOMMENDATION": "NO_SWAP",
+ "reasons": [
+  "G1\u2032 = UNDECIDED"
+ ],
+ "PASS": true
+}

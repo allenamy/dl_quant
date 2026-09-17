@@ -62,7 +62,7 @@ if want preflight; then
   V4_ROLL_REQUIRED=0; [ "$V4_MONTH" \> "2026-09" ] && V4_ROLL_REQUIRED=1
   V4_ROLL_SRC=""; [ "$V4_ROLL_REQUIRED" = 1 ] && { V4_ROLL_SRC=$(gate_sha "$D/v4_gate_roll_paths.py") || die "gate_source_unreadable_v4_gate_roll_paths" 3; }
   stage "preflight: device files, gate approval, inputs (roll_paths required: $V4_ROLL_REQUIRED)"
-  DEV_FILES="chain_lib.sh chain_v4_monthly.sh v4_months.py v4_gate_common.py ELIGIBILITY_CONTRACT.json $GATE_STEP1 $GATE_STEP2 pod_dlw_targets_raw.py pod_fea_ext_clamp.py $BT $BK pod_export_bundle_v4.py pod_legs_v4b.py pod_f10_train_monthly_v4.py launch_mwf_v4b.sh merge_mwf_v4b.py pod_f10_refit_v4.py build_dev_v4.py run_v4_arms.sh judge_v4.py v4e_gate_export_v2.py gate_signal_parity_v2.py cache_coverage_gate_v2.py"
+  DEV_FILES="chain_lib.sh chain_v4_monthly.sh v4_months.py v4_gate_common.py ELIGIBILITY_CONTRACT.json $GATE_STEP1 $GATE_STEP2 ${GATE_EXPORT:-v4e_gate_export_v2.py} pod_dlw_targets_raw.py pod_fea_ext_clamp.py $BT $BK pod_export_bundle_v4.py pod_legs_v4b.py pod_f10_train_monthly_v4.py launch_mwf_v4b.sh merge_mwf_v4b.py pod_f10_refit_v4.py build_dev_v4.py run_v4_arms.sh judge_v4.py v4e_gate_export_v2.py gate_signal_parity_v2.py cache_coverage_gate_v2.py"
   PF_INPUTS="CACHE PANEL_SPLICE PANEL_KING RAW_PATCH HOLE_CELLS BUNDLE_BASE EXPORT_PANEL EMA_STATE_JSON LIVE_PINS FUND_AUG FUNDING_DIR LEGS_OLD LEGS_PANEL SIGNAL_RECEIPT BUILDER_FEA82 BUILDER_FEA89 BASE_TRAINER PREV_META REF_META"
   [ -z "${MEMBER_MASK:-}" ] || PF_INPUTS="$PF_INPUTS MEMBER_MASK"   # FP2-8: a declared mask is a preflight-hashed input
   # ★ FP2-3 (2026-09-17): for a month that needs the roll gate, the previous contract and its sha record must be DECLARED in this
@@ -155,7 +155,7 @@ for rel in ["masks/umask_UPIT_CRYPTO.npz", "calib/costb_fee_steady.json", "run_a
     if os.path.isfile(p): inputs[f"HC/{rel}"] = {"path": p, "bytes": os.path.getsize(p)}
     else: fails.append(f"dev tree file missing: HC/{rel}={p}")
 approval = {}
-for gate, src in (("STEP1", E["GATE_STEP1"]), ("STEP2", E["GATE_STEP2"]), ("BUNDLE_export", "v4e_gate_export_v2.py")):
+for gate, src in (("STEP1", E["GATE_STEP1"]), ("STEP2", E["GATE_STEP2"]), ("BUNDLE_export", E.get("GATE_EXPORT") or "v4e_gate_export_v2.py")):
     p = os.path.join(D, src)
     if not os.path.isfile(p): approval[gate] = {"source": src, "ok": False, "why": "source missing"}; continue
     r = subprocess.run([E["PY"], os.path.join(D, "v4_gate_common.py"), "approved", gate, sha(p)], capture_output=True, text=True)
@@ -415,12 +415,13 @@ if want export; then
   prereq_receipt export preflight "$R/v4_gates/preflight.json" PREFLIGHT
   prereq_marker export judge "$R/judge_v4.log" JUDGE_V4_DONE; prereq_file export judge_json "$R/v4_gates/JUDGE_v4.json"
   prereq_marker export arms "$R/arms_${EXPORT_ARM}.log" ARMS_DONE ARMS_FAIL; prereq_marker export bundle "$R/export_v4.log" BUNDLE_DONE BUNDLE_FAIL
-  guard export; stage "export: v4e_gate_export_v2.py gate + require on arm $EXPORT_ARM (V4CHAIN_DIR=$D)"
+  GE=${GATE_EXPORT:-v4e_gate_export_v2.py}; [ -f "$D/$GE" ] || die "export_gate_missing_$GE" 3   # PROPOSED5: the month contract may select an approved variant
+  guard export; stage "export: $GE gate + require on arm $EXPORT_ARM (V4CHAIN_DIR=$D)"
   GX="EXPORT_ARM=$EXPORT_ARM BUNDLE_OUT=$BUNDLE_OUT BUNDLE_FEA=$KING_FEA BUNDLE_META=$KING_META BUNDLE_BASE=$BUNDLE_BASE EXPORT_PANEL=$EXPORT_PANEL BUNDLE_CACHE=$CACHE FUND_AUG=$FUND_AUG LIVE_PINS=$LIVE_PINS JUDGE_HC=$HC V4CHAIN_DIR=$D SIGNAL_RECEIPT=$SIGNAL_RECEIPT"
   REC=$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM}.json
-  env $GX EXPORT_GATE_OUT=$REC "$PY" "$D/v4e_gate_export_v2.py" > "$R/export_gate_v2.log" 2>&1; rc=$?
+  env $GX EXPORT_GATE_OUT=$REC "$PY" "$D/$GE" > "$R/export_gate_v2.log" 2>&1; rc=$?
   stage "export gate rc=$rc $(tail -1 "$R/export_gate_v2.log" | cut -c1-140)"; [ $rc -eq 0 ] || die "export_gate_v2_rc_$rc" 3
-  env $GX EXPORT_GATE_OUT=/dev/null REQUIRE_OUT=$R/v4_gates/REQUIRE_v2_${EXPORT_ARM}.json "$PY" "$D/v4e_gate_export_v2.py" require "$REC" > "$R/export_require_v2.log" 2>&1; rc=$?
+  env $GX EXPORT_GATE_OUT=/dev/null REQUIRE_OUT=$R/v4_gates/REQUIRE_v2_${EXPORT_ARM}.json "$PY" "$D/$GE" require "$REC" > "$R/export_require_v2.log" 2>&1; rc=$?
   stage "export require rc=$rc $(tail -1 "$R/export_require_v2.log" | cut -c1-140)"; [ $rc -eq 0 ] || die "export_require_v2_rc_$rc" 3
   check_marker "$R/export_require_v2.log" "REQUIRE_OK"
   "$PY" -c "import json,sys;r=json.load(open(sys.argv[1]));json.dump({sys.argv[2]:{'receipt':sys.argv[1],'inputs':r['inputs_path']}},open(sys.argv[3],'w'),indent=1);print('eligibility locator',sys.argv[3],len(r['inputs_path']),'inputs')" "$REC" "$EXPORT_ARM" "$R/v4_gates/JUDGE_ELIGIBILITY.json" >> "$STAGE_LOG" 2>&1 || die "eligibility_locator_write" 3
