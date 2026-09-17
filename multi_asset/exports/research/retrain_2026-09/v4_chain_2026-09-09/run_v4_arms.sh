@@ -4,7 +4,7 @@
 # (V4_HC / V4_KING_DIR; defaults = the September constants), and every arm process is waited on BY PID with its rc collected — the old bare
 # `wait; grep ... | tail -4` could read a previous run's END lines as this run's result. Non-zero rc of any arm ⇒ exit 1 (no silent success).
 ARM=$1; SEEDS=${2:-"42 2027"}; H=${V4_HC:-/workspace/review_scratch/health_check}; KD=${V4_KING_DIR:-/workspace/review_scratch/king_v4}; cd $H || exit 2
-UP=$H/masks/umask_UPIT_CRYPTO.npz; CB=$H/calib/costb_fee_steady.json; K3=$KD/SLOW_v3_on_v4axis.npy; K4=$KD/SLOW_v4.npy; K4E=$KD/SLOW_v4e.npy
+UP=${V4_UMASK_NPZ:-$H/masks/umask_UPIT_CRYPTO.npz}; CB=$H/calib/costb_fee_steady.json;   # FP2-8 §2.2: V4_UMASK_NPZ overrides the evaluation umask for EVERY arm run by this call (A0 and A1 alike); the path lands in each arm's config_json via UMASK_NPZ K3=$KD/SLOW_v3_on_v4axis.npy; K4=$KD/SLOW_v4.npy; K4E=$KD/SLOW_v4e.npy
 COMMON="LEGS=101 CAL=log WRULE=msharpe LOOK=900 MEMBERS_TOPN=829 FTRIM=zero PHI=0.45 UMASK_SCOPE=m1 UMASK_NPZ=$UP COSTB_JSON=$CB"
 pids=(); names=()
 for s in $SEEDS; do

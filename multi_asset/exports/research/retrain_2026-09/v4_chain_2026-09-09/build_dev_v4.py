@@ -25,8 +25,32 @@ for lo, hi in NEIGH: inn |= (rows >= lo) & (rows <= hi)
 a = y4[i4][~inn]; b = MR["y4"][ir][~inn]; fa, fb = np.isfinite(a), np.isfinite(b); M4m = M4["members"]; MRm = MR["members"]   # materialise once
 chk = {"n_common": int(len(com)), "n_outside_neigh": int((~inn).sum()), "finite_pattern_equal_outside": bool(np.array_equal(fa, fb)), "y4_maxabs_outside": float(np.abs(a[fa & fb] - b[fa & fb]).max()),
        "members_equal_outside": bool(all(np.array_equal(M4m[i4[k]], MRm[ir[k]]) for k in np.nonzero(~inn)[0])), "qvk_equal_outside": bool(np.array_equal(M4["qvk"][i4][~inn], MR["qvk"][ir][~inn], equal_nan=True))}
+# ★ FP2-8 (2026-09-17, DESIGN_FP2-8 §2.2): under a declared TRAINING MEMBER MASK (env DEV_MEMBER_MASK_NPZ, the contract's MEMBER_MASK, passed by the driver's arms
+#   stage) the king members legitimately differ from the reference on common anchors — by REMOVALS only. The members check then becomes: masked ⊆ reference and
+#   every removed member is mask-False at that anchor (mask symbols == cache symbols; every common anchor must have a mask row). Absent/empty env ⇒ the
+#   original bitwise rule, unchanged. The mask path + sha and the removal counts are recorded in the receipt; a mask that cannot explain a removal FAILs.
+_mk = os.environ.get("DEV_MEMBER_MASK_NPZ", "")
+if _mk:
+    import hashlib
+    _mz = np.load(_mk, allow_pickle=True); _msy = [str(x) for x in _mz["symbols"]]; assert _msy == [str(x) for x in np.load(CACHE)["symbols"]], "mask symbols != cache symbols"
+    _mrow = {int(t): i for i, t in enumerate(_mz["ts"].astype(np.int64))}; _MM = np.asarray(_mz["mask"]); assert _MM.dtype == bool, "mask dtype"
+    _sub = 0; _bad = 0; _rem = 0; _rows = 0; _nomask = 0
+    for k in np.nonzero(~inn)[0]:
+        a_ = set(int(x) for x in M4m[i4[k]].tolist()); b_ = set(int(x) for x in MRm[ir[k]].tolist())
+        if a_ == b_: continue
+        if not a_ <= b_: _sub += 1; continue
+        r_ = _mrow.get(int(com[k]))
+        if r_ is None: _nomask += 1; continue
+        d_ = b_ - a_; _rows += 1; _rem += len(d_)
+        if any(bool(_MM[r_, j]) for j in d_): _bad += 1
+    chk["member_mask"] = {"path": _mk, "sha256": hashlib.sha256(open(_mk, "rb").read()).hexdigest(), "rows_with_removals": _rows, "cells_removed": _rem,
+                          "members_not_subset_rows": _sub, "removed_not_mask_false_rows": _bad, "rows_without_mask_row": _nomask}
+    chk["members_ok_under_mask"] = bool(_sub == 0 and _bad == 0 and _nomask == 0)
+    _members_ok = chk["members_ok_under_mask"]
+else:
+    _members_ok = chk["members_equal_outside"]
 print("selfcheck vs meta_newprod_raw:", json.dumps(chk), flush=True)
-assert chk["finite_pattern_equal_outside"] and chk["y4_maxabs_outside"] <= 1e-6 and chk["members_equal_outside"] and chk["qvk_equal_outside"], "meta_newprod_v4 self-check FAIL"
+assert chk["finite_pattern_equal_outside"] and chk["y4_maxabs_outside"] <= 1e-6 and _members_ok and chk["qvk_equal_outside"], "meta_newprod_v4 self-check FAIL"
 # tree
 for d in (f"{D}/logs", f"{D}/probe_artifacts", f"{D}/pod_backup_2026-08-21", f"{D}/f8_2026-08-22/preds", KING_DIR): os.makedirs(d, exist_ok=True)
 def ln(src, dst):

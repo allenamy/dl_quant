@@ -40,6 +40,13 @@ stage(){ say "$*"; echo "[$(date -u +%FT%TZ)] $*" | tee -a "$STAGE_LOG"; }
 want(){ [ "$V4_STAGES" = all ] || [[ ",$V4_STAGES," == *",$1,"* ]]; }
 guard(){ [ "$DRY" = 1 ] && die "dryrun_guard_${1}_would_launch" 9; return 0; }
 SEED_LIST=${SEEDS//,/ }
+# ★ FP2-8 (2026-09-17, DESIGN_FP2-8 AMENDMENT 1.3): the data-stage builders are contract-selected BY BASENAME in D (optional keys; default = the frozen
+#   v1 names, so every existing contract is unchanged); a selected builder must be a bare basename that exists in D. MEMBER_MASK (optional) reaches
+#   BOTH builders as MEMBER_MASK_NPZ; empty ⇒ the builders behave as v1 (all-True). Both selected builders join DEV_FILES (sha-recorded by preflight). Defined at TOP LEVEL: every stage subset (V4_STAGES=data …) needs them, not only preflight.
+BT=${BUILDER_TARGETS:-pod_dlw_targets_raw.py}; BK=${BUILDER_KING_FEA:-pod_fea_ext_clamp.py}
+case "$BT$BK" in */*) die "builder_key_not_a_basename_${BT}_${BK}" 4 ;; esac
+[ -f "$D/$BT" ] || die "builder_missing_in_D_$BT" 3; [ -f "$D/$BK" ] || die "builder_missing_in_D_$BK" 3
+[ -z "${MEMBER_MASK:-}" ] || [ -f "$MEMBER_MASK" ] || die "member_mask_missing_$MEMBER_MASK" 3
 stage "chain_v4_monthly start month=$V4_MONTH env=$ENVF sha=$(gate_sha "$ENVF" || echo unreadable) device=$D root=$R stages=$V4_STAGES dryrun=$DRY"
 
 # ── preflight ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -55,8 +62,9 @@ if want preflight; then
   V4_ROLL_REQUIRED=0; [ "$V4_MONTH" \> "2026-09" ] && V4_ROLL_REQUIRED=1
   V4_ROLL_SRC=""; [ "$V4_ROLL_REQUIRED" = 1 ] && { V4_ROLL_SRC=$(gate_sha "$D/v4_gate_roll_paths.py") || die "gate_source_unreadable_v4_gate_roll_paths" 3; }
   stage "preflight: device files, gate approval, inputs (roll_paths required: $V4_ROLL_REQUIRED)"
-  DEV_FILES="chain_lib.sh chain_v4_monthly.sh v4_months.py v4_gate_common.py ELIGIBILITY_CONTRACT.json $GATE_STEP1 $GATE_STEP2 pod_dlw_targets_raw.py pod_fea_ext_clamp.py pod_export_bundle_v4.py pod_legs_v4b.py pod_f10_train_monthly_v4.py launch_mwf_v4b.sh merge_mwf_v4b.py pod_f10_refit_v4.py build_dev_v4.py run_v4_arms.sh judge_v4.py v4e_gate_export_v2.py gate_signal_parity_v2.py cache_coverage_gate_v2.py"
+  DEV_FILES="chain_lib.sh chain_v4_monthly.sh v4_months.py v4_gate_common.py ELIGIBILITY_CONTRACT.json $GATE_STEP1 $GATE_STEP2 pod_dlw_targets_raw.py pod_fea_ext_clamp.py $BT $BK pod_export_bundle_v4.py pod_legs_v4b.py pod_f10_train_monthly_v4.py launch_mwf_v4b.sh merge_mwf_v4b.py pod_f10_refit_v4.py build_dev_v4.py run_v4_arms.sh judge_v4.py v4e_gate_export_v2.py gate_signal_parity_v2.py cache_coverage_gate_v2.py"
   PF_INPUTS="CACHE PANEL_SPLICE PANEL_KING RAW_PATCH HOLE_CELLS BUNDLE_BASE EXPORT_PANEL EMA_STATE_JSON LIVE_PINS FUND_AUG FUNDING_DIR LEGS_OLD LEGS_PANEL SIGNAL_RECEIPT BUILDER_FEA82 BUILDER_FEA89 BASE_TRAINER PREV_META REF_META"
+  [ -z "${MEMBER_MASK:-}" ] || PF_INPUTS="$PF_INPUTS MEMBER_MASK"   # FP2-8: a declared mask is a preflight-hashed input
   # ★ FP2-3 (2026-09-17): for a month that needs the roll gate, the previous contract and its sha record must be DECLARED in this
   #   month's contract (optional keys PREV_MONTH_ENV / PREV_SHA_JSON), and the roll gate is RE-RUN HERE, live, against them — an
   #   archived ROLL_PATHS receipt is no longer sufficient: "改旧 CACHE 后旧 PASS 仍被接受" (independent review 2026-09-17). The live
@@ -217,10 +225,10 @@ if want data; then
   guard data; DL=$R/chain_v4_data.log; : > "$DL"; clean_env
   mkdir -p "$DLW_RAW/data" "$DLW_RAW/results" "$DLW_CLIP/data" "$DLW_CLIP/results" "$F8/data" "$F8/results" "$F8/preds" "$F8/models" "$F8/logs" "$F8/gates" "$(dirname "$KING_FEA")" || die "data_mkdir" 1
   stage "data: RAW targets (holefix2 + raw_patch) -> $DLW_RAW"
-  env -i "${CLEAN_ENV[@]}" DLWT_CACHE=$CACHE DLWT_PANEL=$PANEL_SPLICE DLWT_OUT=$DLW_RAW DLWT_RET_CH=0 DLWT_RAW_PATCH=$RAW_PATCH "$PY" "$D/pod_dlw_targets_raw.py" >> "$DL" 2>&1 || die "targets_raw" 1   # B-R3: every DLWT_* the builder reads is set here
+  env -i "${CLEAN_ENV[@]}" DLWT_CACHE=$CACHE DLWT_PANEL=$PANEL_SPLICE DLWT_OUT=$DLW_RAW DLWT_RET_CH=0 DLWT_RAW_PATCH=$RAW_PATCH MEMBER_MASK_NPZ=${MEMBER_MASK:-} "$PY" "$D/$BT" >> "$DL" 2>&1 || die "targets_raw" 1   # B-R3: every DLWT_* the builder reads is set here
   [ -f "$DLW_RAW/data/dlw_targets.npz" ] || die "targets_raw_output_missing" 1
   stage "data: CLIP targets (holefix2, clipped ret5 channel, no patch) -> $DLW_CLIP"
-  env -i "${CLEAN_ENV[@]}" DLWT_CACHE=$CACHE DLWT_PANEL=$PANEL_SPLICE DLWT_OUT=$DLW_CLIP DLWT_RET_CH=0 DLWT_RAW_PATCH= "$PY" "$D/pod_dlw_targets_raw.py" >> "$DL" 2>&1 || die "targets_clip" 1   # B-R3: DLWT_RAW_PATCH EXPLICITLY EMPTY — the CLIP build never inherits a patch
+  env -i "${CLEAN_ENV[@]}" DLWT_CACHE=$CACHE DLWT_PANEL=$PANEL_SPLICE DLWT_OUT=$DLW_CLIP DLWT_RET_CH=0 DLWT_RAW_PATCH= MEMBER_MASK_NPZ=${MEMBER_MASK:-} "$PY" "$D/$BT" >> "$DL" 2>&1 || die "targets_clip" 1   # B-R3: DLWT_RAW_PATCH EXPLICITLY EMPTY — the CLIP build never inherits a patch
   [ -f "$DLW_CLIP/data/dlw_targets.npz" ] || die "targets_clip_output_missing" 1
   stage "data: fea82 -> $DLW_CLIP (copied + verified to $DLW_RAW)"
   ( cd "$(dirname "$BUILDER_FEA82")" && env -i "${CLEAN_ENV[@]}" F171_CACHE=$CACHE F171_PANEL=$PANEL_SPLICE F171_OUT=$DLW_CLIP "$PY" "$BUILDER_FEA82" ) >> "$DL" 2>&1 || die "fea82" 1   # B-R3: the three F171_* the builder reads
@@ -231,8 +239,8 @@ if want data; then
   stage "data: fea89 -> $F8"
   ( cd "$(dirname "$BUILDER_FEA89")" && env -i "${CLEAN_ENV[@]}" F8_DLW=$DLW_CLIP F8_CACHE=$CACHE F8_OUT=$F8 "$PY" "$BUILDER_FEA89" build ) >> "$DL" 2>&1 || die "fea89" 1   # B-R3: the three F8_* the builder reads
   [ -f "$F8/data/f8_fea89.npz" ] || die "fea89_output_missing" 1
-  stage "data: king features (clamp) -> $KING_FEA"
-  env -i "${CLEAN_ENV[@]}" CACHE_IN=$CACHE PANEL_IN=$PANEL_KING FEA_OUT=$KING_FEA META_OUT=$KING_META "$PY" "$D/pod_fea_ext_clamp.py" >> "$DL" 2>&1 || die "king_fea" 1   # B-R3: the four env the clamp builder reads
+  stage "data: king features ($BK) -> $KING_FEA"
+  env -i "${CLEAN_ENV[@]}" CACHE_IN=$CACHE PANEL_IN=$PANEL_KING FEA_OUT=$KING_FEA META_OUT=$KING_META MEMBER_MASK_NPZ=${MEMBER_MASK:-} "$PY" "$D/$BK" >> "$DL" 2>&1 || die "king_fea" 1   # B-R3: the four env the clamp builder reads
   [ -f "$KING_FEA" ] && [ -f "$KING_META" ] || die "king_fea_output_missing" 1
   for T in RAW CLIP; do
     case $T in RAW) DW=$DLW_RAW ;; CLIP) DW=$DLW_CLIP ;; esac
@@ -379,7 +387,7 @@ if want arms; then
   for SD in $SEED_LIST; do prereq_refit_sidecar arms refit_s$SD "$F8/models/f10_live_s$SD.json" "$DLW_RAW" "$F8" "$SD" "$D/pod_f10_refit_v4.py"; done   # round 3: expected SEED + complete key set + this month's expected paths + the ACTUAL sha of the .pt and all four inputs + which program wrote the sidecar
   guard arms; stage "arms: build_dev_v4 (raw meta, SLOW_v4 from $BUNDLE_OUT, A0 preds) then run_v4_arms.sh $EXPORT_ARM seeds [$SEED_LIST]"
   mkdir -p "$HC/dev_v4/logs" "$KING_DIR" || die "arms_mkdir" 1
-  env KING_META=$KING_META DLW_RAW=$DLW_RAW CACHE=$CACHE HOLE_CELLS=$HOLE_CELLS BUNDLE_OUT=$BUNDLE_OUT "$PY" "$D/build_dev_v4.py" > "$R/build_dev_v4.log" 2>&1; rc=$?
+  env KING_META=$KING_META DLW_RAW=$DLW_RAW CACHE=$CACHE HOLE_CELLS=$HOLE_CELLS BUNDLE_OUT=$BUNDLE_OUT DEV_MEMBER_MASK_NPZ=${MEMBER_MASK:-} "$PY" "$D/build_dev_v4.py" > "$R/build_dev_v4.log" 2>&1; rc=$?   # FP2-8: the declared member mask reaches the dev-tree self-check
   stage "build_dev_v4 rc=$rc $(tail -1 "$R/build_dev_v4.log" | cut -c1-100)"; [ $rc -eq 0 ] || die "build_dev_v4_rc_$rc" 1; check_marker "$R/build_dev_v4.log" "DEV_V4_DONE"
   N0=$(grep -a -c "^END\[V4_${EXPORT_ARM}_.*rc=0" "$HC/logs/commands.txt" 2>/dev/null || echo 0)
   bash "$D/run_v4_arms.sh" "$EXPORT_ARM" "$SEED_LIST" > "$R/arms_${EXPORT_ARM}.log" 2>&1; rc=$?

@@ -231,3 +231,8 @@ w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025
 3. **三态判词**: `v4_gate_common_v2.finalize3`(PASS 0 / FAIL 3 / UNAVAILABLE 3, 收据 `VERDICT` 字段, 打印真实标签); roll gate 已切; 冻结 `v4_gate_common`(24e813f1)不动; 所有读者读 JSON `PASS`, UNAVAILABLE 永远 PASS=False。
 4. dryrun 负控派生 env 按存在带入可选键; 负控仍以「preflight 诚实 FAIL 且零启动」为通过。
 收据: `docs/fixprogram_2026-09-13/receipts/FP2_tests_20260917/`; 测试 `tests_month_env_optional_keys.py` / `tests_v4_gate_common_v2.py` / `tests_pipeline_gates.py`。
+
+### §0★ 修订 8(2026-09-17, FP2-8 试跑发现; 待研究员复核)
+- **缺陷**: dev 树内 `health_check/run_arm.sh` 第 9 行硬编码 `ROOT=/workspace/review_scratch/health_check`。驱动虽由 `chain_lib` 导出 `V4_HC/V4_KING_DIR`, 且 `run_v4_arms.sh` 会 `cd $H`, 但 `run_arm.sh` 用自己的 ROOT 定 `cwd=$ROOT/dev_v4` 与 `logs/commands.txt` ⇒ **任何非九月根(含本模板 `HC=$R/health_check`)跑臂都会写进九月树**(probe_artifacts / logs 被覆盖), 判官读的却是本月 HC —— 静默错树。
+- **处置**: 每月复制 dev 树后必须把 `run_arm.sh` 第 9 行改为 `ROOT=$(cd "$(dirname "$0")" && pwd -P)`(FP2 副本已改, sha8 69e1e949 → f30b2c7c, 原件留 `run_arm.sh.orig_sept`), 并**重跑 preflight**(它把 `HC/run_arm.sh` 当输入哈希)。根治 = 把 `run_arm.sh` 收进研究仓装置目录并由驱动按 D 分发(待做, 登记 FP2-9 采纳项)。
+- 同类隐患: `run_v4_arms.sh` 的 umask 与 costb 已按 `$H` 取; A0 的 `SLOW_v3_on_v4axis.npy` 与 `f10_A0_*` 预测在**九月轴**上, 本月轴若变(FP2 v2 king 轴 +30 锚)需按时间戳对齐而非按行(见 DESIGN_FP2-8 AMENDMENT 3)。

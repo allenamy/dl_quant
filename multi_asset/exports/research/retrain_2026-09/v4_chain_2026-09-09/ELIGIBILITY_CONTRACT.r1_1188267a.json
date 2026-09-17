@@ -20,32 +20,14 @@
   "STEP1": {
    "source": "v4_gate_step1.py",
    "approved_source_sha256": [
-    "278fdce611e91571d24ec26c78ddc4620668bfd4598a01f577f1f6887dd62be4",
-    "ae21f86f6867c6ccb62d544b1188cea3a6e3c8792e95b634104eba33c4f2b55d"
-   ],
-   "approved_variants": {
-    "fp2_gate_step1.py": {
-     "sha256": "ae21f86f6867c6ccb62d544b1188cea3a6e3c8792e95b634104eba33c4f2b55d",
-     "scope": "FP2-8 contract only (v4_month_2026-09_fp2.env): a from-scratch retrain whose masked build fails the previous-month increment comparison by construction; the variant binds to fp2_controls.py's receipt instead (DESIGN_FP2-8 AMENDMENT 1.3; tests_fp2_gates.py 8/8)",
-     "proposed_utc": "2026-09-17T05:23:53Z",
-     "review": "independent researcher review requested (post-hoc, same as PROPOSED2)"
-    }
-   }
+    "278fdce611e91571d24ec26c78ddc4620668bfd4598a01f577f1f6887dd62be4"
+   ]
   },
   "STEP2": {
    "source": "v4_gate_step2.py",
    "approved_source_sha256": [
-    "db7ab3561f97423a8d5dd74251257adcedd743129d22a07d7cd186d102dd80d8",
-    "db5b44d15bd3825573abed7e66e577c018abca182a33601ac1329f58dd758ad9"
-   ],
-   "approved_variants": {
-    "fp2_gate_step2.py": {
-     "sha256": "db5b44d15bd3825573abed7e66e577c018abca182a33601ac1329f58dd758ad9",
-     "scope": "FP2-8 contract only (v4_month_2026-09_fp2.env): a from-scratch retrain whose masked build fails the previous-month increment comparison by construction; the variant binds to fp2_controls.py's receipt instead (DESIGN_FP2-8 AMENDMENT 1.3; tests_fp2_gates.py 8/8)",
-     "proposed_utc": "2026-09-17T05:23:53Z",
-     "review": "independent researcher review requested (post-hoc, same as PROPOSED2)"
-    }
-   }
+    "db7ab3561f97423a8d5dd74251257adcedd743129d22a07d7cd186d102dd80d8"
+   ]
   },
   "BUNDLE_export": {
    "source": "v4e_gate_export_v2.py",
@@ -201,7 +183,7 @@
   "file": "<JUDGE_HC>/dev_v4/probe_artifacts/w10_ablation_series_V4_<arm>_<seat>_s<seed>.npz",
   "rule": "the judge adds these four paths to the arm's declared inputs; require then demands the receipt hashed each of them and that the hash equals the file the judge loaded (a book replaced after the receipt, or a receipt written for another arm's books, is not this arm's permission)"
  },
- "status": "APPLIED 2026-09-12 (user word 09-12: \"10 月 runbook 为什么还不修, 要保持老的链路和出口门?\"); was PROPOSED2 01692565…; frozen predecessor 3299dc97… kept at ELIGIBILITY_CONTRACT.r0_3299dc97.json | PROPOSED3 (FP2-8, 2026-09-17): gates.STEP1/STEP2 approved_source_sha256 += fp2_gate_step1.py / fp2_gate_step2.py (approved_variants records scope); applied by lead under the user's standing rule (fix known issues without waiting, independent review after); frozen predecessor kept at ELIGIBILITY_CONTRACT.r1_1188267a.json",
+ "status": "APPLIED 2026-09-12 (user word 09-12: \"10 月 runbook 为什么还不修, 要保持老的链路和出口门?\"); was PROPOSED2 01692565…; frozen predecessor 3299dc97… kept at ELIGIBILITY_CONTRACT.r0_3299dc97.json",
  "proposed_changes_vs_frozen": [
   "top-level status (new) — PROPOSED marker",
   "review_status appended",
@@ -209,8 +191,7 @@
   "gates.BUNDLE_export.source/approved_source_sha256/approved_baseline/note filled",
   "arms: UNCHANGED",
   "book_binding: UNCHANGED",
-  "companion (not part of this file): REQUIRED_INPUTS['BUNDLE_export'] in v4_gate_common.py still lists 11 names; the v2 gate's own require mode enforces the full floor; extending the v4_gate_common floor so judge_v4's require also demands the bundle closure is a separate proposed diff (v4chain_PROPOSED2/v4_gate_common.PROPOSED.diff)",
-  "PROPOSED3: gates.STEP1.approved_source_sha256 += ae21f86f6867 (fp2_gate_step1.py); gates.STEP2.approved_source_sha256 += db5b44d15bd3 (fp2_gate_step2.py); gates.*.approved_variants (new, informational)"
+  "companion (not part of this file): REQUIRED_INPUTS['BUNDLE_export'] in v4_gate_common.py still lists 11 names; the v2 gate's own require mode enforces the full floor; extending the v4_gate_common floor so judge_v4's require also demands the bundle closure is a separate proposed diff (v4chain_PROPOSED2/v4_gate_common.PROPOSED.diff)"
  ],
  "proposed_utc": "2026-09-12T05:21:47Z",
  "applied_utc": "2026-09-12T09:04:39Z",

@@ -81,3 +81,25 @@ STATE.md 顶部新条(运行树 6661ea3, 时刻, 链, 电池, 回滚命令) · F
 - 02:25:11Z §2.7 更正: 上一行「drift_gate 单独复跑 exit=2」是我猜错了脚本路径(python3 找不到文件的退出码), 非门的判词; 按 run_acceptance.sh 的确切条目复跑 drift_gate: exit=0 — no drift across 5 vendored modules (declared A-set 5, all covered)
 - 02:42:19Z §2.6b re-vendor 后生产全量电池(02:25:36→02:41:27Z, head 6661ea3): **160 绿 / 1 红 / 0 UNAVAILABLE**; 相对 re-vendor 前 158/3/0: drift_gate 与 tests_drift_gate 转绿, 新红 0; 唯一余红 tests_entrypoint_wiring = NOSLEEP-1(睡眠日志未读到, 守卫 caffeinate 在、AC), 与本次部署无关。收据 PROD_BATTERY_20260917T022536Z_6661ea3_post_revendor.log sha8=5fe53996。**部署收据收口: 执行器侧无与代码相关的红。**
 - 03:38:36Z §7 观测: state/anchor_runs.log 末行 02:27:40Z 'anchor done rc=0' 是电池 tests_entrypoint_wiring 以 **mode=DRY_RUN** 跑真实入口(arm skipped — no venue contacted, phase_C anchors_row=false, readback 0, per_name_stop SKIPPED_NON_LIVE)追加到共享日志; LIVE 账本 02:00–03:30Z 零 anchors/orders/fills, 持仓 247 名不变。不是 I6 类非计划 LIVE 运行。**深查纪律**: 读 anchor_runs.log 时按 'anchor start mode=LIVE' 块定位末锚, 不取文件末行。
+
+## §8 首锚验收(2026-09-17 04:00Z 锚, 运行树 6661ea3; 后台等待器 04:58:46Z 只读采集, 原样)
+- `HEAD=6661ea3 origin/main=6661ea3`; `anchor_runs.log` 末行 `2026-09-17T04:56:48Z anchor done rc=0`(04:24Z 读书 → 04:56Z 收尾, 正常时长)。
+- anchors 行 1; orders 513; readback 248; `realized_gross=244,270 target_gross=242,523`(+0.7%); `halted=False halt_kind=None regime=calm`。
+- 终态: `skipped_min_notional 191 / partial_expired 182 / venue_reject 83 / filled 49 / skipped_no_chase_arm 8`(逐臂结果按盲态不报)。
+- 看门狗 `tripped=False local_responses=0 cond2=False eval=04:46:09Z`。
+- **新码新动作出现次数 = 0**(`flatten_skip_nonfinite` / `derisk_unknown|recovered|resolved_flat` / `QuantityNotFinite` / `stale_ref_late` 均未出现)—— 本次部署的六项都是防御路径, 正常锚不触发, 符合预期; 它们的行为证据在电池(160/1/0)而非首锚。
+- 通知 04:24Z 起 8 条(DELIVERED 3 / RECORDED_NOT_PUSHED 5); 内容见 §8.1。
+- 判定: **首锚在新树上正常成交, 无回归信号**。更深的执行质量表由用户的每锚深查模板出(那条模板里「运行树仍 ef60f85 / 无修复已部署」一句应改为「运行树 = 6661ea3」)。
+
+### §8.1 首锚 8 条通知(04:24Z–04:57Z, `state/notify_audit.jsonl` 原文头; 全部为既有告警族, 无新树特有签名)
+| 时刻 | 状态 | 级 | 文本头 |
+|---|---|---|---|
+| 04:24:00 | DELIVERED | HIGH | position reconcile: 5 name(s) differ from the venue beyond revaluation — adopting venue truth |
+| 04:24:02 | RECORDED | INFO | 重整后 2 个名字跨过 min_notional 门槛 ['LTCUSDT','SAHARAUSDT'] 仅报告 |
+| 04:24:02 | RECORDED | INFO | 撤名残差 −22,462 USDT = 目标 gross −9.24% (>2%) = 生产者书自身净 −8.45% − 撤下 5 名 +0.79% |
+| 04:24:02 | RECORDED | INFO | 12 held name(s) withheld, reduce-only — 外部书不再持有 |
+| 04:24:02 | DELIVERED | INFO | 场所上限截断 2 名 (Σ|Δ| 459U = gross 0.19%) BUSDT / PIEVERSEUSDT |
+| 04:43:08 | RECORDED | INFO | 42 个 maker 被 −5022 拒(post-only 会立刻成交), 残差全额进 taker 补单 |
+| 04:44:49 | DELIVERED | HIGH | ★ per_name_stop 触发: ONEUSDT 深度 −39.2% 连续 2 终锚 ≤ −30% ⇒ flatten_only(reduce-only maker → 被拒转市价, 25 bps 点差门) |
+| 04:46:14 | RECORDED | INFO | funding span 表(执行器内部 DL 面板专用)已过期: 15 symbol 结算间隔与交易所不符 |
+逐名止损在新树上走的正是本次修复过的 flatten 路径(非有限量守卫 `flatten_skip_nonfinite`); 本锚该守卫零触发 = 读回量全部有限, 与预期一致。

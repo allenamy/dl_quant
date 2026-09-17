@@ -187,9 +187,14 @@ with tempfile.TemporaryDirectory() as d:
     rc, out = run([f"{d}/nocontract/v4_gate_common.py", "require", f"{d}/g9.json", "gate=G9_unregistered", "self_sha=" + s1["self_sha256"], f"extra_recorded={d}/holes.npz"])
     check("★ [r5] an UNGOVERNED gate (not registered, not in the contract) is unaffected by a missing contract (rc 0) — and confers nothing (arms map only to contract gates)", rc == 0, out.strip()[-120:])
     _ct = json.load(open(f"{HERE}/ELIGIBILITY_CONTRACT.json"))
-    check("★★★ [r5→r6] the ARCHIVED contract is self-consistent: approved sources of G2/STEP1/STEP2 are exactly the archived gate files' shas; BUNDLE_export approves exactly the archived v2 export gate (v4e_gate_export_v2.py, applied 2026-09-12 on user word after r20 closed N1; was [] while the physical gate did not exist); every candidate arm maps to BUNDLE_export with book binding",
-          _ct["gates"]["G2_closure"]["approved_source_sha256"] == [_sha(f"{HERE}/v4_gate_closure.py")] and _ct["gates"]["STEP1"]["approved_source_sha256"] == [_sha(f"{HERE}/v4_gate_step1.py")]
-          and _ct["gates"]["STEP2"]["approved_source_sha256"] == [_sha(f"{HERE}/v4_gate_step2.py")] and _ct["gates"]["BUNDLE_export"]["approved_source_sha256"] == [_sha(f"{HERE}/v4e_gate_export_v2.py")] and _ct["gates"]["BUNDLE_export"]["source"] == "v4e_gate_export_v2.py" and _ct["status"].startswith("APPLIED 2026-09-12")
+    def _approved_ok(g, archived):
+        """FP2-8 (2026-09-17): the archived gate's sha must be approved, and EVERY other approved sha must be a declared approved_variants file whose
+        on-disk sha matches (no dangling or unexplained approvals); every declared variant must in turn be in the approved list."""
+        lst = g["approved_source_sha256"]; var = g.get("approved_variants", {})
+        return archived in lst and set(lst) - {archived} == {v["sha256"] for v in var.values()} and all(os.path.isfile(f"{HERE}/{f}") and _sha(f"{HERE}/{f}") == v["sha256"] for f, v in var.items())
+    check("★★★ [r5→r6] the ARCHIVED contract is self-consistent: approved sources of G2 are exactly the archived gate's sha, STEP1/STEP2 = archived sha + declared approved_variants (FP2 gates) with matching on-disk shas; BUNDLE_export approves exactly the archived v2 export gate (v4e_gate_export_v2.py, applied 2026-09-12 on user word after r20 closed N1; was [] while the physical gate did not exist); every candidate arm maps to BUNDLE_export with book binding",
+          _ct["gates"]["G2_closure"]["approved_source_sha256"] == [_sha(f"{HERE}/v4_gate_closure.py")] and _approved_ok(_ct["gates"]["STEP1"], _sha(f"{HERE}/v4_gate_step1.py"))
+          and _approved_ok(_ct["gates"]["STEP2"], _sha(f"{HERE}/v4_gate_step2.py")) and _ct["gates"]["BUNDLE_export"]["approved_source_sha256"] == [_sha(f"{HERE}/v4e_gate_export_v2.py")] and _ct["gates"]["BUNDLE_export"]["source"] == "v4e_gate_export_v2.py" and _ct["status"].startswith("APPLIED 2026-09-12")
           and set(_ct["arms"]) == {"A1", "A1s", "A1e", "A2", "A3"} and all(a["candidacy_gate"] == "BUNDLE_export" and a["book_binding"] for a in _ct["arms"].values()),
           {g: [x[:8] for x in v["approved_source_sha256"]] for g, v in _ct["gates"].items()})
     check("★ [r5] make_sha_manifest.py lists the contract as a reviewed file", 'f == "ELIGIBILITY_CONTRACT.json"' in open(f"{HERE}/make_sha_manifest.py").read())
@@ -288,9 +293,9 @@ if n.startswith("merge_"): print("MERGE_DONE"); sys.exit(0)
 if n == "pod_dlw_features_ext.py":
     if cfg.get("scenario") != "data_fea82_missing": open({root!r} + "/dlw_hf3/data/dlw_fea82.npz", "wb").write(b"fea82")
     sys.exit(0)
-if n == "pod_dlw_targets_raw.py": open({root!r} + "/dlw_v4raw/data/dlw_targets.npz", "wb").write(b"raw-targets"); sys.exit(0)
+if n in ("pod_dlw_targets_raw.py", "pod_dlw_targets_raw_v2.py"): open({root!r} + "/dlw_v4raw/data/dlw_targets.npz", "wb").write(b"raw-targets"); sys.exit(0)
 if n == "pod_f8_build_ext.py": open({root!r} + "/f8_v4/data/f8_fea89.npz", "wb").write(b"fea89"); sys.exit(0)
-if n == "pod_fea_ext_clamp.py":
+if n in ("pod_fea_ext_clamp.py", "pod_fea_ext_clamp_v2.py"):
     open({root!r} + "/data/wide_fea_v4.npy", "wb").write(b"k"); open({root!r} + "/data/wide_fea_v4_meta.npz", "wb").write(b"m"); sys.exit(0)
 if n == "pod_legs_v4b.py": print("LEGS_V4B_DONE"); sys.exit(0)
 print("STUB_DONE"); sys.exit(0)
@@ -916,7 +921,7 @@ _NOPE = {"BUNDLE_FEA": "/nonexistent/w3/fea.npy", "BUNDLE_META": "/nonexistent/w
 # ★ SUITE RULE (team-lead, E-0912-B): a cell that invokes a REAL WRITER runs it only through run_sandboxed() — every input key it reads is a nonexistent
 #   path, every output key is a fresh temp dir, and the cell asserts the temp dir stays empty. The static cell below greps THIS file for writer
 #   invocations outside the helper (or outside the incident-sandbox `_NOPE` block) and fails if any exists.
-_REAL_WRITERS = ("pod_export_bundle_v4.py", "pod_f10_refit_v4.py", "pod_legs_v4b.py", "build_dev_v4.py", "pod_dlw_targets_raw.py", "pod_fea_ext_clamp.py",
+_REAL_WRITERS = ("pod_export_bundle_v4.py", "pod_f10_refit_v4.py", "pod_legs_v4b.py", "build_dev_v4.py", "pod_dlw_targets_raw.py", "pod_fea_ext_clamp.py", "pod_dlw_targets_raw_v2.py", "pod_fea_ext_clamp_v2.py",
                  "merge_mwf_v4b.py", "pod_f10_train_monthly_v4.py", "pod_f8_build_stable.py", "pod_dlw_targets_raw.py")
 _WRITER_INPUT_KEYS = ("BUNDLE_FEA", "BUNDLE_META", "BUNDLE_BASE", "LIVE_PINS", "EXPORT_PANEL", "BUNDLE_CACHE", "FUND_AUG", "FUNDING_DIR", "EMA_STATE_JSON",
                       "F10_DLW", "LEGS_TG", "LEGS_META", "LEGS_PRED", "LEGS_OLD", "LEGS_PANEL", "KING_META", "DLW_RAW", "CACHE", "HOLE_CELLS", "PREV_META", "V4_REF_META",
@@ -1294,7 +1299,7 @@ with tempfile.TemporaryDirectory() as d:
     open(_MOCK, "w").write(f'''#!{PY}
 import json, os, sys, subprocess
 LOG = {_MLOG!r}; a = sys.argv[1:]; n = os.path.basename(a[0]) if a else ""
-open(LOG, "a").write(json.dumps({{"argv": a, "env": {{k: os.environ.get(k) for k in ("F10_DLW", "F10_OUT", "BEST_EP_FIX", "SEED", "DLWT_RAW_PATCH", "DLWT_CACHE", "DLWT_OUT", "F171_OUT", "F8_OUT", "FEA_OUT", "W7_CANARY", "PATH")}}}}) + "\\n")
+open(LOG, "a").write(json.dumps({{"argv": a, "env": {{k: os.environ.get(k) for k in ("F10_DLW", "F10_OUT", "BEST_EP_FIX", "SEED", "DLWT_RAW_PATCH", "DLWT_CACHE", "DLWT_OUT", "MEMBER_MASK_NPZ", "F171_OUT", "F8_OUT", "FEA_OUT", "W7_CANARY", "PATH")}}}}) + "\\n")
 if n in ("v4_gate_common.py", "-", "v4_months.py", "v4_gate_roll_paths.py") or (a and a[0] == "-c"): sys.exit(subprocess.call([{PY!r}, "-B"] + a, stdin=sys.stdin))   # FP2-3: the roll gate is delegated (pure gate, real fixture files)
 def w(p, b=b"x"): os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "wb").write(b)
 if n == "cache_coverage_gate_v2.py": sys.exit(0)
@@ -1312,10 +1317,10 @@ if n == "v4_gate_rawpatch.py":   # FX-TRAIN TRN-02: the mock cannot run the real
                "receipt_schema": "v4_gate_common/2 (gate, PASS, self_sha256, inputs_sha256 bound)"}},
               open(os.environ["RAWPATCH_OUT"], "w"), indent=1)
     sys.exit(0)
-if n == "pod_dlw_targets_raw.py": w(os.environ["DLWT_OUT"] + "/data/dlw_targets.npz", ("raw" if os.environ.get("DLWT_RAW_PATCH") else "clip").encode()); sys.exit(0)
+if n in ("pod_dlw_targets_raw.py", "pod_dlw_targets_raw_v2.py"): w(os.environ["DLWT_OUT"] + "/data/dlw_targets.npz", ("raw" if os.environ.get("DLWT_RAW_PATCH") else "clip").encode()); sys.exit(0)
 if n == "b82.py": w(os.environ["F171_OUT"] + "/data/dlw_fea82.npz"); sys.exit(0)
 if n == "b89.py": w(os.environ["F8_OUT"] + "/data/f8_fea89.npz"); sys.exit(0)
-if n == "pod_fea_ext_clamp.py": w(os.environ["FEA_OUT"]); w(os.environ["META_OUT"]); sys.exit(0)
+if n in ("pod_fea_ext_clamp.py", "pod_fea_ext_clamp_v2.py"): w(os.environ["FEA_OUT"]); w(os.environ["META_OUT"]); sys.exit(0)
 print("MOCK_INTERCEPT_NO_BUSINESS_CODE " + n); sys.exit(77)
 '''); os.chmod(_MOCK, 0o755)
     def _mock_env(dd):
@@ -1351,6 +1356,31 @@ print("MOCK_INTERCEPT_NO_BUSINESS_CODE " + n); sys.exit(77)
     check("★★★ [S] B-R3 env -i: none of the 5 data subprocesses sees the parent's canary W7_CANARY=leak (allowlist only: PATH kept), all 5 called in order, DATA_DONE written",
           len(_prod) == 5 and all(c["env"]["W7_CANARY"] is None and c["env"]["PATH"] for c in _prod) and [os.path.basename(c["argv"][0]) for c in _prod] == ["pod_dlw_targets_raw.py", "pod_dlw_targets_raw.py", "b82.py", "b89.py", "pod_fea_ext_clamp.py"] and "CHAIN_V4_MONTHLY_DATA_DONE" in open(f"{_rP}/chain_v4_monthly.log").read(), [os.path.basename(c["argv"][0]) for c in _prod])
     check("★★ [S] B-R3 the CLIP targets file was built WITHOUT a patch and the RAW one WITH (the mock wrote what it was told)", open(f"{_rP}/dlw_hf3/data/dlw_targets.npz", "rb").read() == b"clip" and open(f"{_rP}/dlw_v4raw/data/dlw_targets.npz", "rb").read() == b"raw")
+    # ── FP2-8 (2026-09-17): contract-selected builders + member mask (DESIGN_FP2-8 AMENDMENT 1.3) ──
+    _mkp = f"{d}/member_mask.npz"; open(_mkp, "wb").write(b"mask")
+    _eF = f"{_eP}.fp2"; open(_eF, "w").write(open(_eP).read() + f"BUILDER_TARGETS=pod_dlw_targets_raw_v2.py\nBUILDER_KING_FEA=pod_fea_ext_clamp_v2.py\nMEMBER_MASK={_mkp}\n"); _roll_receipt(_rP, _eF)
+    rc, out, calls = _drv("preflight", _eF); _pf2 = json.load(open(f"{_rP}/v4_gates/preflight.json"))
+    check("★★★ [FP2] preflight under a contract that selects the v2 builders + a member mask: PASS; both v2 builders sha-pinned in device_sha256 (23 files); MEMBER_MASK is a hashed input",
+          rc == 0 and _pf2["PASS"] is True and len(_pf2["device_sha256"]) == 23 and _pf2["device_sha256"]["pod_fea_ext_clamp_v2.py"] == _sha(f"{HERE}/pod_fea_ext_clamp_v2.py")
+          and _pf2["device_sha256"]["pod_dlw_targets_raw_v2.py"] == _sha(f"{HERE}/pod_dlw_targets_raw_v2.py") and "MEMBER_MASK" in _pf2["inputs"], (rc, len(_pf2.get("device_sha256", {})), _pf2.get("fails")))
+    rc, out, calls = _drv("cache", _eF); rc, out, calls = _drv("data", _eF)
+    _tg2 = [c for c in calls if c["argv"] and os.path.basename(c["argv"][0]) in ("pod_dlw_targets_raw.py", "pod_dlw_targets_raw_v2.py")]; _kg2 = [c for c in calls if c["argv"] and os.path.basename(c["argv"][0]) in ("pod_fea_ext_clamp.py", "pod_fea_ext_clamp_v2.py")]
+    check("★★★ [FP2] data stage ROUTES to the selected builders: both targets builds and the king build call the *_v2.py basenames, each with MEMBER_MASK_NPZ=<contract MEMBER_MASK>; RAW/CLIP patch semantics unchanged",
+          rc == 0 and [os.path.basename(c["argv"][0]) for c in _tg2] == ["pod_dlw_targets_raw_v2.py"] * 2 and [os.path.basename(c["argv"][0]) for c in _kg2] == ["pod_fea_ext_clamp_v2.py"]
+          and all(c["env"]["MEMBER_MASK_NPZ"] == _mkp for c in _tg2 + _kg2) and _tg2[0]["env"]["DLWT_RAW_PATCH"] == f"{_rP}/raw_patch.npz" and _tg2[1]["env"]["DLWT_RAW_PATCH"] == "",
+          (rc, [os.path.basename(c["argv"][0]) for c in _tg2 + _kg2], [c["env"].get("MEMBER_MASK_NPZ") for c in _tg2 + _kg2], out[-160:]))
+    _roll_receipt(_rP, _eP); rc, out, calls = _drv("preflight", _eP); rc, out, calls = _drv("cache", _eP); rc, out, calls = _drv("data", _eP)   # the ROLL_PATHS receipt is per contract FILE: rebind to the default one
+    _tg0 = [c for c in calls if c["argv"] and os.path.basename(c["argv"][0]) in ("pod_dlw_targets_raw.py", "pod_dlw_targets_raw_v2.py")]; _kg0 = [c for c in calls if c["argv"] and os.path.basename(c["argv"][0]) in ("pod_fea_ext_clamp.py", "pod_fea_ext_clamp_v2.py")]
+    check("★★★ [FP2] DEFAULT (no optional keys): the frozen v1 basenames are called and MEMBER_MASK_NPZ is EMPTY (v1 behaviour, 21 device files) — existing contracts are untouched",
+          rc == 0 and [os.path.basename(c["argv"][0]) for c in _tg0] == ["pod_dlw_targets_raw.py"] * 2 and [os.path.basename(c["argv"][0]) for c in _kg0] == ["pod_fea_ext_clamp.py"]
+          and all(c["env"]["MEMBER_MASK_NPZ"] == "" for c in _tg0 + _kg0) and len(json.load(open(f"{_rP}/v4_gates/preflight.json"))["device_sha256"]) == 21, (rc, [c["env"].get("MEMBER_MASK_NPZ") for c in _tg0 + _kg0]))
+    _eB = f"{_eP}.badbuilder"; open(_eB, "w").write(open(_eP).read() + "BUILDER_KING_FEA=no_such_builder.py\n"); _roll_receipt(_rP, _eB); rc, out, calls = _drv("preflight", _eB)
+    _eC = f"{_eP}.pathbuilder"; open(_eC, "w").write(open(_eP).read() + "BUILDER_TARGETS=/tmp/pod_dlw_targets_raw_v2.py\n"); _roll_receipt(_rP, _eC); rc2, out2, calls2 = _drv("preflight", _eC)
+    _eM = f"{_eP}.badmask"; open(_eM, "w").write(open(_eP).read() + f"MEMBER_MASK={d}/no_such_mask.npz\n"); _roll_receipt(_rP, _eM); rc3, out3, calls3 = _drv("preflight", _eM)
+    check("★★★ [FP2] REFUSALS before preflight: a selected builder absent from D ⇒ FAIL_builder_missing_in_D (rc 3); a path instead of a basename ⇒ FAIL_builder_key_not_a_basename (rc 4); a declared mask that does not exist ⇒ FAIL_member_mask_missing (rc 3); no builder ever called",
+          rc == 3 and "FAIL_builder_missing_in_D_no_such_builder.py" in out and rc2 == 4 and "FAIL_builder_key_not_a_basename" in out2 and rc3 == 3 and "FAIL_member_mask_missing" in out3 and not _producers(calls) and not _producers(calls2) and not _producers(calls3),
+          (rc, out[-100:], rc2, out2[-100:], rc3, out3[-100:]))
+    _roll_receipt(_rP, _eP); rc, out, calls = _drv("preflight", _eP); rc, out, calls = _drv("cache", _eP); rc, out, calls = _drv("data", _eP)   # restore the default root state for the cells below
     rc, out, calls = _drv("gates", _eP)
     check("★★★ [S] B-R1 positive control of the graph: after data, V4_STAGES=gates finds its prerequisites (F10_GATE receipts, identical targets/fea89) and DISPATCHES the gate programs (mock ⇒ rc 77, no receipt) ⇒ stops at FAIL_gate_require_step1, rc 3", rc == 3 and "v4_gate_step1.py" in _producers(calls) and "FAIL_gate_require_step1" in out and "_prereq_" not in out.split("gates ran")[-1], (rc, _producers(calls), out[-160:]))
     open(f"{_rP}/dlw_v4raw/data/dlw_targets.npz", "wb").write(b"raw-changed-after-data-stage")
@@ -1548,8 +1578,26 @@ with tempfile.TemporaryDirectory() as d:
     check("★★ [T] D3 command substitution is still caught by the round-2 line grammar (rc 4 month_env_malformed), so the two layers do not depend on each other", _rc_n == 4 and "malformed" in _o_n, (_rc_n, _o_n[-160:]))
 check("★★★ [S] G0 after every run: frozen gate sources, v4_gate_common and the contract byte-identical to what [R] started with",
       _sha(f"{HERE}/v4_gate_step1.py") == _FROZEN_SHA["v4_gate_step1.py"] and _sha(f"{HERE}/v4_gate_step2.py") == _FROZEN_SHA["v4_gate_step2.py"] and _sha(f"{HERE}/v4_gate_common.py") == _COMMON_SHA and _sha(f"{HERE}/ELIGIBILITY_CONTRACT.json") == _CON_SHA)
+
+def _contract_is_r1_plus_proposed3():
+    """FP2-8 (2026-09-17): ELIGIBILITY_CONTRACT.json changed by design (PROPOSED3: FP2 gate variants approved). The frozen predecessor is kept
+    byte-identical at ELIGIBILITY_CONTRACT.r1_1188267a.json, and the current contract must equal it apart from EXACTLY the PROPOSED3 fields."""
+    import copy as _cp
+    r1p = f"{HERE}/ELIGIBILITY_CONTRACT.r1_1188267a.json"
+    if not os.path.isfile(r1p) or not _sha(r1p).startswith("1188267a"): return False
+    r1 = json.load(open(r1p)); cur = _cp.deepcopy(json.load(open(f"{HERE}/ELIGIBILITY_CONTRACT.json")))
+    for g in ("STEP1", "STEP2"):
+        var = cur["gates"][g].pop("approved_variants", {})
+        if not var: return False
+        cur["gates"][g]["approved_source_sha256"] = [x for x in cur["gates"][g]["approved_source_sha256"] if x not in {v["sha256"] for v in var.values()}]
+    if not (isinstance(cur.get("status"), str) and "PROPOSED3" in cur["status"]): return False
+    cur["status"] = cur["status"].split(" | PROPOSED3")[0]
+    pc = cur.get("proposed_changes_vs_frozen", [])
+    if not (pc and str(pc[-1]).startswith("PROPOSED3")): return False
+    cur["proposed_changes_vs_frozen"] = pc[:-1]
+    return cur == r1
 check("★★★ [T] G0 the FOUR contract-frozen files are byte-identical after round 3 as well (STEP1 278fdce6, STEP2 db7ab356, the contract 1188267a, the v2 export gate d63f4ec3) — round 3 touched none of them",
-      _sha(f"{HERE}/v4_gate_step1.py").startswith("278fdce6") and _sha(f"{HERE}/v4_gate_step2.py").startswith("db7ab356") and _sha(f"{HERE}/ELIGIBILITY_CONTRACT.json").startswith("1188267a") and _sha(f"{HERE}/v4e_gate_export_v2.py").startswith("d63f4ec3"),
+      _sha(f"{HERE}/v4_gate_step1.py").startswith("278fdce6") and _sha(f"{HERE}/v4_gate_step2.py").startswith("db7ab356") and _contract_is_r1_plus_proposed3() and _sha(f"{HERE}/v4e_gate_export_v2.py").startswith("d63f4ec3"),   # FP2-8: contract = kept r1 (1188267a) + PROPOSED3 delta only
       [_sha(f"{HERE}/{f}")[:8] for f in ("v4_gate_step1.py", "v4_gate_step2.py", "ELIGIBILITY_CONTRACT.json", "v4e_gate_export_v2.py")])
 
 # ── [U] ROUND 4 (2026-09-13, X3; independent review REVIEW_round3_code_and_research_2026-09-13 §4 + codex_round3_code_review_2026-09-13/retrain/RESULT.md R3-D1 / R3-D3 / R3-D2):
@@ -1729,11 +1777,11 @@ with tempfile.TemporaryDirectory() as d:
     _rc_n, _r_n = _umemb(np.array([[0, 1], [2, 3]], dtype=np.int64), "u2n_ndim2", "v4_gate_step2_m.py")
     check("★★ [U] D2 the pre-existing structural rules still follow the dtype rule: an INTEGER but 2-D index ⇒ FAIL rc 3 'ndim 2 != 1' (dtype first, then 1-D / range / uniqueness)",
           _rc_n == 3 and _r_n["tail_quality"]["member_index_ok"] is False and "ndim 2" in _r_n["tail_quality"]["member_index_bad"][0]["why"][0], (_rc_n, _r_n and _r_n.get("tail_quality")))
-check("★★★ [U] G0 the contract-frozen and do-not-touch files are byte-identical after round 4: v4_gate_step1 278fdce6, v4_gate_step2 db7ab356, ELIGIBILITY_CONTRACT 1188267a, v4e_gate_export_v2 d63f4ec3, v4_gate_common 24e813f1, judge_v4 c2a81c48, make_sha_manifest ba521004, tests_judge_dynamic_deps 4dfee3fd",
+check("★★★ [U] G0 the contract-frozen and do-not-touch files are byte-identical after round 4: v4_gate_step1 278fdce6, v4_gate_step2 db7ab356, ELIGIBILITY_CONTRACT r1 predecessor 1188267a (current = r1 + PROPOSED3, FP2-8), v4e_gate_export_v2 d63f4ec3, v4_gate_common 24e813f1, judge_v4 c2a81c48, make_sha_manifest ba521004, tests_judge_dynamic_deps 4dfee3fd",
       all(_sha(f"{HERE}/{f}") == s for f, s in (("v4_gate_step1.py", "278fdce611e91571d24ec26c78ddc4620668bfd4598a01f577f1f6887dd62be4"), ("v4_gate_step2.py", "db7ab3561f97423a8d5dd74251257adcedd743129d22a07d7cd186d102dd80d8"),
-                                                ("ELIGIBILITY_CONTRACT.json", "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732"), ("v4e_gate_export_v2.py", "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e"),
+                                                ("ELIGIBILITY_CONTRACT.r1_1188267a.json", "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732"), ("v4e_gate_export_v2.py", "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e"),
                                                 ("v4_gate_common.py", "24e813f145c35033552ee54ae166092a8204490ff52c011a87217a8e81a187a1"), ("judge_v4.py", "c2a81c48f037756067b23225b5a6bbee43ce6589898db3230437a17d398956ba"),
-                                                ("make_sha_manifest.py", "ba521004daaa164e815d92a7ee28810f84e1d4dd526fd3ed06550720e50cd4b1"), ("tests_judge_dynamic_deps.py", "4dfee3fd016a708ee320c5d23585632071e4f79331209d6a88f06d9829aa5122"))),
+                                                ("make_sha_manifest.py", "ba521004daaa164e815d92a7ee28810f84e1d4dd526fd3ed06550720e50cd4b1"), ("tests_judge_dynamic_deps.py", "4dfee3fd016a708ee320c5d23585632071e4f79331209d6a88f06d9829aa5122"))) and _contract_is_r1_plus_proposed3(),
       [_sha(f"{HERE}/{f}")[:8] for f in ("v4_gate_step1.py", "v4_gate_step2.py", "ELIGIBILITY_CONTRACT.json", "v4e_gate_export_v2.py", "v4_gate_common.py", "judge_v4.py", "make_sha_manifest.py", "tests_judge_dynamic_deps.py")])
 
 # ── [V] FX-TRAIN (2026-09-13; docs/fixprogram_2026-09-13/FX_TRAIN/, AUDIT_TRAIN 7e1ecf9a): every cell runs the ARCHIVED pre-fix source (RED) and the current one

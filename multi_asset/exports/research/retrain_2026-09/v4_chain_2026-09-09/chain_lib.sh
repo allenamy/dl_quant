@@ -25,7 +25,9 @@ V4_MONTH_KEYS="V4_MONTH R PY CACHE PANEL_SPLICE PANEL_KING RAW_PATCH HOLE_CELLS 
 # ★ FP2-3 (2026-09-17, PENDING_DECISIONS「月度重训启动重核上月合同」): OPTIONAL contract keys — registered (the parser accepts them) but NOT
 #   required (a contract without them still loads: the frozen September contract has no previous month). The monthly driver's preflight REQUIRES
 #   them for every month after 2026-09 and re-runs the roll gate live against them (see chain_v4_monthly.sh preflight).
-V4_MONTH_OPTIONAL_KEYS="PREV_MONTH_ENV PREV_SHA_JSON"
+# ★ FP2-8 (2026-09-17, DESIGN_FP2-8 AMENDMENT 1.3): BUILDER_TARGETS / BUILDER_KING_FEA select the data-stage builders BY BASENAME in D (default = the
+#   frozen v1 names); MEMBER_MASK is an optional training member mask (ts, symbols, mask) passed to both builders as MEMBER_MASK_NPZ (empty ⇒ v1 behaviour).
+V4_MONTH_OPTIONAL_KEYS="PREV_MONTH_ENV PREV_SHA_JSON BUILDER_TARGETS BUILDER_KING_FEA MEMBER_MASK"
 load_month_env(){  # load_month_env <v4_month.env> — PARSES the contract as DATA (round 4: the file is never sourced) and exports exactly the parsed pairs; rc 4 on any defect
   # ★ ROUND 4 (2026-09-13, independent review REVIEW_round3_code_and_research_2026-09-13 §4 R3-D3; probes D3_bundle_continuation_A/B, D3_source_parse_error_ignored,
   #   D3_assignment_prefixed_command_marker_written, D3_parent_tilde_parent_A/B): rounds 2-3 checked PHYSICAL LINES with grep/awk and then let Bash source the file,
