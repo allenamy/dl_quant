@@ -70,3 +70,9 @@
 | 7-2 | `probe_c1c3_targets.py` / `.out` | y4s BOB/BMT 2026-02 168/168 有限、MTL 2026-04 180/180 有限, qvk>0 全部; holefix2_cells 键(fill_runs 4×2) |
 | 7-3 | `probe_c6_open_bars.py` / `.out` | 13/13 OPEN 首根交易 bar ret5=NaN, prev NaN; 前 30 日冻结行数逐名 |
 | 7-4 | `fp2-6_booster_pin_book_json.patch` | FP2-6 配置补丁(未应用) |
+
+## AMENDMENT 1(2026-09-17 05:1xZ, 先于任何数字; 原文字节保留)
+1. **king 轴修法改为「与 DL 同构的全窗 clamp」而非 `grid>=2016`**: 读源码后确认 v1 的缺陷不是起点错, 是成员统计块(n7/qvm/m7/v7)漏掉了逐特征窗已有的 E-0909-A clamp(负索引绕回缓存尾 ⇒ v7=0 ⇒ 30 锚静默删除), 且 covr 除常数 2016。v2 = `S7=max(E−2016,0)` + covr 按实际窗长归一 = `pod_dlw_targets_raw.py` 冻结约定 P.1 `[max(E−2016,0), E)`。**正控**: E≥2016 全部数组逐位等于 v1(S7≡E−2016; /2016 ≡ /max(E−S7,1)); 30 个 E<2016 锚以部分窗进入, 与 DL 轴同构。派生脚本 `derive_fp2_builders_v2.py` 以「恰一次」hunk 替换从冻结 v1 生成 v2, 脚本本身即受据(重跑必须字节相同)。
+2. **成员掩码语义**: A1 训练成员掩码 = TRADABLE(W24H)@锚, 在缓存自身 4h 网格上(装置 `fp2_member_mask_build.py`), **不含** U-PIT/CRYPTO umask(那是宇宙政策, 不混入数据修正); 正控 P2 = (掩码 ∧ umask) 在 A0 轴上与 FX_DATA 认证注入件 3badc4b6 **逐位相等**。评估(两臂)用 3badc4b6 本件, 路径更正为 `/workspace/fx_data_2026-09-13/out/inject/umask_UPIT_CRYPTO_tradable_W24H.npz`(§1 表写的 `$H/masks/` 不存在)。
+3. **接入路径**: 月度驱动 `chain_v4_monthly.sh` 以 basename 硬编码两构建器, 且 AMENDMENT-1 钉逻辑与 478 格套件的 mock 按 basename 识别 ⇒ v2 用**新文件名**, 由可选合同键 `BUILDER_TARGETS` / `BUILDER_KING_FEA`(缺省 = v1 名)选择, `MEMBER_MASK`(可选)经 `MEMBER_MASK_NPZ` 显式传入两构建器; mock/`_REAL_WRITERS`/钉逻辑同步扩到所选构建器; 套件加格。不用同名覆盖(latest-copy 族)。
+4. **legs 局限(如实)**: `pod_legs_v4b.py` 按 AMENDMENT 5 逐位复制在役旧行(Z24/ZFD/WL), 只新算新锚 ⇒ A1 在 2026-08-30 前的 legs 行来自**未掩码**成员。不在本轮改(改了会重现 AMENDMENT 5 的 2023 king 席位问题); 记为 A1 的已声明局限, 消融臂 A1nt 可测其影响。
