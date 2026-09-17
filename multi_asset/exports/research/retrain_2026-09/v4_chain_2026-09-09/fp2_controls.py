@@ -80,8 +80,11 @@ def main():
     if VERIFY_ONLY and not (os.path.isfile(envk["FEA_OUT"]) and os.path.isfile(envk["META_OUT"]) and os.path.isfile(f"{dd}/data/dlw_targets.npz")): write("UNAVAILABLE"); return 3
     if VERIFY_ONLY:   # F02: identity binding — inputs now == inputs then; outputs now == outputs then; else this is NOT the same build and no verdict is re-issued
         pi = rec["previous_receipt"]["inputs_sha256"] or {}; po = rec["previous_receipt"]["outputs_sha256"] or {}
-        now_out = {"control_king_fea": sha(envk["FEA_OUT"]), "control_king_meta": sha(envk["META_OUT"]), "control_dl_targets": sha(f"{dd}/data/dlw_targets.npz")}
-        diff_in = sorted(k for k in set(pi) | set(rec["inputs_sha256"]) if pi.get(k) != rec["inputs_sha256"].get(k)); diff_out = sorted(k for k in now_out if po.get(k) != now_out[k])
+        prev_paths = rec["previous_receipt"].get("outputs_path") or {}
+        now_out = {k: (sha(p) if os.path.isfile(p) else None) for k, p in prev_paths.items()}          # R07: EVERY output the previous receipt registered (incl. control_dl_report), by ITS paths
+        for k, p in (("control_king_fea", envk["FEA_OUT"]), ("control_king_meta", envk["META_OUT"]), ("control_dl_targets", f"{dd}/data/dlw_targets.npz"), ("control_dl_report", f"{dd}/results/dlw_targets_report.json")):
+            if k not in now_out: now_out[k] = sha(p) if os.path.isfile(p) else None
+        diff_in = sorted(k for k in set(pi) | set(rec["inputs_sha256"]) if pi.get(k) != rec["inputs_sha256"].get(k)); diff_out = sorted(k for k in set(po) | set(now_out) if po.get(k) != now_out.get(k))
         rec["verify_only_binding"] = {"inputs_changed": diff_in, "outputs_changed": diff_out}
         if diff_in or diff_out: log("CONTROLS_REFUSED verify_only: not the same build —", json.dumps(rec["verify_only_binding"])); write("UNAVAILABLE"); return 3
     rec["outputs_path"] = {"control_king_fea": envk["FEA_OUT"], "control_king_meta": envk["META_OUT"], "control_dl_targets": f"{dd}/data/dlw_targets.npz", "control_dl_report": f"{dd}/results/dlw_targets_report.json"}

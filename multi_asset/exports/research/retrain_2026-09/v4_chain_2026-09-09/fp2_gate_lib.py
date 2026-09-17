@@ -49,6 +49,16 @@ def check_scope(D, gate):
     sc = ent.get("scope") or {}
     if not sc: return ["variant has no scope binding (V4_MONTH, R) in the contract"]
     why = []
+    # R03 (independent review round 2): recording a sha is not executing the approval — the running gate must BE the approved variant and its
+    # required helpers on disk must BE the recorded ones (a helper swapped under an approved gate is refused here, before any verdict)
+    me_path = os.path.abspath(sys.argv[0]) if sys.argv and sys.argv[0] else ""
+    if not me_path or not os.path.isfile(me_path): why.append("cannot locate the running gate source to verify its approval")
+    elif sha256_file(me_path) != ent.get("sha256"): why.append(f"running gate {sha256_file(me_path)[:12]} != approved variant sha {str(ent.get('sha256'))[:12]}")
+    for req, rsha in (ent.get("requires") or {}).items():
+        rp = os.path.join(D, req)
+        if not os.path.isfile(rp): why.append(f"required helper missing in D: {req}")
+        elif sha256_file(rp) != rsha: why.append(f"required helper {req} on disk {sha256_file(rp)[:12]} != contract requires {str(rsha)[:12]}")
+    if not (ent.get("requires") or {}): why.append("variant has no `requires` in the contract (the helper it imports must be approved)")
     if os.environ.get("V4_MONTH") != sc.get("V4_MONTH"): why.append(f"scope V4_MONTH {sc.get('V4_MONTH')!r} != running {os.environ.get('V4_MONTH')!r}")
     if os.path.realpath(os.environ.get("R", "")) != os.path.realpath(sc.get("R", "/nonexistent")): why.append(f"scope R {sc.get('R')!r} != running {os.environ.get('R')!r}")
     return why

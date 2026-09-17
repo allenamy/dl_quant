@@ -5,7 +5,7 @@
 # tree to this root and re-projected A0's king score / F10 preds onto this root's axes) and BEFORE judge; the four A0 probe artifacts' shas before/after
 # are receipted. usage: bash chain_fp2_run.sh <fp2.env> [stage ...]   default: data_wait controls_run gates king legs mwf refit np_export arms a0rerun judge export; then per_year decision (F03)
 set -o pipefail
-D=$(cd "$(dirname "$0")" && pwd -P); export CHAIN_DEVICE_DIR=$D; ENVF=$1; shift; STAGES=${*:-"data_wait controls_run gates king legs mwf refit np_export arms a0rerun judge export"}
+D=$(cd "$(dirname "$0")" && pwd -P); export CHAIN_DEVICE_DIR=$D; ENVF=$1; shift; STAGES=${*:-"data_wait controls_run gates king legs mwf refit np_export arms a0rerun judge export member_rule per_year decision"}   # R10: the default run ENDS with the decision, not before it
 [ -n "$ENVF" ] && [ -f "$ENVF" ] || { echo "usage: chain_fp2_run.sh <fp2.env> [stages]" >&2; exit 2; }
 L=/dev/stderr; . "$D/chain_lib.sh"; export D PY R; load_month_env "$ENVF" || exit 4
 LOG=$R/chain_fp2_run.log; say2(){ echo "[$(date -u +%FT%TZ)] $*" | tee -a "$LOG"; }
@@ -49,6 +49,7 @@ a = sys.argv[1]; fs = sorted(f for f in os.listdir(a) if f.startswith("w10_ablat
 print(json.dumps({f: hashlib.sha256(open(os.path.join(a, f), "rb").read()).hexdigest() for f in fs}))
 PY
 )
+      T_START=$(date +%s)
       ( cd "$HC" && V4_HC=$HC V4_KING_DIR=$KING_DIR V4_UMASK_NPZ=$UM bash "$D/run_v4_arms.sh" A0 "${SEEDS//,/ }" ) > "$R/arms_A0_tradable.log" 2>&1 < /dev/null; rc=$?
       grep -aq "ARMS_DONE" "$R/arms_A0_tradable.log" || rc=$((rc == 0 ? 1 : rc))
       AFTER=$("$PY" - "$ARTS" <<'PY'
@@ -57,15 +58,29 @@ a = sys.argv[1]; fs = sorted(f for f in os.listdir(a) if f.startswith("w10_ablat
 print(json.dumps({f: hashlib.sha256(open(os.path.join(a, f), "rb").read()).hexdigest() for f in fs}))
 PY
 )
-      "$PY" - "$REC" "$BEFORE" "$AFTER" "$UM" "$rc" "$R/arms_A0_tradable.log" <<'PY'
+      ARTS=$ARTS "$PY" - "$REC" "$BEFORE" "$AFTER" "$UM" "$rc" "$R/arms_A0_tradable.log" "$T_START" <<'PY'
 import hashlib, json, sys, time
 out, before, after, um, rc, log = sys.argv[1:7]; b = json.loads(before); a = json.loads(after)
-rec = {"gate": "A0_RERUN_TRADABLE", "PASS": rc == "0" and all(a.get(k) != v for k, v in b.items()) and len(a) >= 4, "rc": int(rc), "umask": um,
-       "umask_sha256": hashlib.sha256(open(um, "rb").read()).hexdigest(), "before_sha256": b, "after_sha256": a, "log": log, "utc": time.strftime("%FT%TZ", time.gmtime()),
-       "meaning": "A0 (in-service form) re-run under the SAME tradable umask as A1 so the judge compares like with like (DESIGN_FP2-8 §2.2); every A0 artifact must have changed"}
-json.dump(rec, open(out, "w"), indent=1); print("A0_RERUN", "PASS" if rec["PASS"] else "FAIL", {k[:40]: (v[:8], a.get(k, "")[:8]) for k, v in b.items()})
+# R11 (independent review round 2): "every artifact changed" rejected a correct idempotent re-run. The receipt now proves EXECUTION and IDENTITY:
+#   rc 0 + ARMS_DONE, and every A0 artifact present now was (re)written by THIS run (mtime ≥ the run's start) under THIS umask (its cfg UMASK_NPZ),
+#   with the before/after shas recorded as information.
+import numpy as np, os
+t_start = float(sys.argv[7]) if len(sys.argv) > 7 else 0.0; arts = os.path.dirname(log) and os.path.join(os.environ.get("ARTS", ""), "")
+arts_dir = os.environ["ARTS"]; um_sha = hashlib.sha256(open(um, "rb").read()).hexdigest(); per = {}
+for f in sorted(a):
+    p = os.path.join(arts_dir, f); z = np.load(p, allow_pickle=True); cfg = json.loads(str(z["config_json"])) if "config_json" in z.files else {}
+    per[f] = {"written_by_this_run": os.path.getmtime(p) >= t_start, "cfg_umask": cfg.get("UMASK_NPZ"), "cfg_umask_is_this_umask": os.path.realpath(str(cfg.get("UMASK_NPZ") or "")) == os.path.realpath(um), "fseed": cfg.get("FSEED"), "sha_before": b.get(f, "")[:12], "sha_after": a[f][:12], "changed": b.get(f) != a[f]}
+ok = rc == "0" and len(a) >= 4 and all(v["written_by_this_run"] and v["cfg_umask_is_this_umask"] for v in per.values())
+rec = {"gate": "A0_RERUN_TRADABLE", "PASS": bool(ok), "rc": int(rc), "umask": um, "umask_sha256": um_sha, "run_start_utc": time.strftime("%FT%TZ", time.gmtime(t_start)), "artifacts": per, "log": log, "utc": time.strftime("%FT%TZ", time.gmtime()),
+       "meaning": "A0 (in-service form) re-run under the SAME tradable umask as A1 (DESIGN_FP2-8 §2.2): rc 0 + ARMS_DONE, every artifact written by this run and carrying this umask in its cfg; an identical re-run is a PASS (R11)"}
+json.dump(rec, open(out, "w"), indent=1); print("A0_RERUN", "PASS" if rec["PASS"] else "FAIL", {k[:40]: (v["written_by_this_run"], v["cfg_umask_is_this_umask"], v["changed"]) for k, v in per.items()})
 PY
       say2 "a0rerun rc=$rc receipt $REC"; [ $rc -eq 0 ] && "$PY" -c "import json,sys; sys.exit(0 if json.load(open(sys.argv[1]))['PASS'] else 1)" "$REC" || { say2 "FAIL_a0rerun"; exit 1; } ;;
+    member_rule)   # R09: the masked builds must be EXACTLY the builders' rule (recomputed from the cache); receipt bound by the decision stage
+      env CACHE=$CACHE RAW_PATCH=$RAW_PATCH MEMBER_MASK=$MEMBER_MASK CONTROL_KING_META=$R/controls/king_nomask/wide_fea_v4_meta.npz MASKED_KING_META=$KING_META \
+          CONTROL_DL_TARGETS=$R/controls/dl_nomask/data/dlw_targets.npz MASKED_DL_TARGETS=$DLW_RAW/data/dlw_targets.npz OUT_JSON=$R/v4_gates/MEMBER_RULE_CHECK.json \
+          nice -n 10 "$PY" -u "$D/fp2_member_rule_check.py" > "$R/member_rule_check.log" 2>&1 < /dev/null; rc=$?
+      say2 "stage member_rule rc=$rc $(tail -1 "$R/member_rule_check.log" | cut -c1-160)"; [ $rc -eq 0 ] || { say2 "FAIL_stage_member_rule_rc_$rc"; exit $rc; } ;;
     per_year)   # F03/F09/F10: the per-year table (judge-same arm records, both arms under the same umask, per-anchor maxDD, W_ALPHA pinned to a time)
       REC=$R/v4_gates/A0_RERUN_TRADABLE.json
       [ -f "$REC" ] && "$PY" -c "import json,sys; sys.exit(0 if json.load(open(sys.argv[1]))['PASS'] else 1)" "$REC" || { say2 "FAIL_per_year_prereq_a0rerun (A0 must be re-run under the same umask first)"; exit 3; }
@@ -74,8 +89,9 @@ PY
         "$PY" "$D/fp2_per_year_table.py" > "$R/per_year_table.log" 2>&1 < /dev/null; rc=$?
       say2 "stage per_year rc=$rc $(tail -1 "$R/per_year_table.log" | cut -c1-160)"; [ $rc -eq 0 ] || { say2 "FAIL_stage_per_year_rc_$rc"; exit $rc; } ;;
     decision)   # F03: the swap recommendation under AMENDMENT 7 (G1′ non-inferiority × G2 per-year × G3 export gate); judge receipt informational only
-      env PER_YEAR_JSON=$R/v4_gates/PER_YEAR_TABLE.json EXPORT_RECEIPT=$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM:-A1}.json JUDGE_JSON=$R/v4_gates/JUDGE_v4_eligible.json \
-        EXPORT_ARM=${EXPORT_ARM:-A1} SEEDS=$SEEDS OUT_JSON=$R/v4_gates/DECISION_FP2.json OUT_MD=$R/v4_gates/DECISION_FP2.md "$PY" "$D/fp2_decision.py" > "$R/decision_fp2.log" 2>&1 < /dev/null; rc=$?
+      env R=$R D=$D PROFILE=formal PER_YEAR_JSON=$R/v4_gates/PER_YEAR_TABLE.json EXPORT_RECEIPT=$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM:-A1}.json JUDGE_JSON=$R/v4_gates/JUDGE_v4_eligible.json \
+        MEMBER_RULE_JSON=$R/v4_gates/MEMBER_RULE_CHECK.json STEP1_JSON=$R/v4_gates/step1.json EXPECTED_UMASK=$UM \
+        OUT_JSON=$R/v4_gates/DECISION_FP2.json OUT_MD=$R/v4_gates/DECISION_FP2.md "$PY" "$D/fp2_decision.py" > "$R/decision_fp2.log" 2>&1 < /dev/null; rc=$?
       say2 "stage decision rc=$rc $(tail -1 "$R/decision_fp2.log" | cut -c1-160)"; [ $rc -eq 0 ] || { say2 "FAIL_stage_decision_rc_$rc"; exit $rc; } ;;
     *)
       say2 "stage $st: V4_STAGES=$st chain_v4_monthly.sh"
