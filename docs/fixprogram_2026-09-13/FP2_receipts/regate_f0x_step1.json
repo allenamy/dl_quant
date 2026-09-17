@@ -1,0 +1,140 @@
+{
+ "A_raw_vs_clip": {
+  "E_ts": true,
+  "E_row": true,
+  "members": true,
+  "yrs": true,
+  "has_panel": true,
+  "symbols": true,
+  "btcv": true,
+  "qvk": true,
+  "y4old": true,
+  "y4s_finite_pattern_equal": true,
+  "y4s_diff_cells": 638,
+  "y4s_big_cells": 590,
+  "y4s_big_outside_patch_windows": 0,
+  "y4s_noise_max_outside_patch": 4.656612873077393e-10,
+  "patch_window_cells_finite": 590,
+  "patch_window_cells_zero_diff": 0,
+  "y4s_maxabs_in_patch": 1.6057785749435425,
+  "patch_anchors": 200,
+  "patch_symbols": 440,
+  "YR4s_diff_rows": 163,
+  "YR4s_diff_rows_outside_patch_rows": 0,
+  "YR4s_noise_max_outside_patch_rows": 1.862645149230957e-09,
+  "YRZ_diff_rows": 163,
+  "YRZ_diff_rows_outside_patch_rows": 0,
+  "YRZ_noise_max_outside_patch_rows": 0.0,
+  "PASS": true
+ },
+ "B_controls": {
+  "receipt": "/workspace/fp2_2026-09/controls/CONTROLS.json",
+  "receipt_sha256": "5058f5f9813cc7ad3fc35a6ece417ffd42edc84a9f05166824ff6062cb319677",
+  "controls_device_sha256": "e89dcc7d8394b2387fd3ab5ac0aa206eee1e8aa5df9a4b72b0ec2031e2a2a7a7",
+  "controls_mode": "verify_only",
+  "control_king_fea": "/workspace/fp2_2026-09/controls/king_nomask/wide_fea_v4.npy",
+  "control_king_meta": "/workspace/fp2_2026-09/controls/king_nomask/wide_fea_v4_meta.npz",
+  "control_dl_targets": "/workspace/fp2_2026-09/controls/dl_nomask/data/dlw_targets.npz",
+  "builder": {
+   "key": "builder_targets",
+   "name": "pod_dlw_targets_raw_v2.py",
+   "sha256": "9e9dfd94857d4c6dbbecedb752bb8b57bbc1f344ff0ef3d4ba5d01fccc127a42"
+  },
+  "controls_checks": {
+   "K1 every September anchor is present in v2": true,
+   "K2 common anchors: FEA rows / members / y4 / qvk BITWISE equal": true,
+   "K3 anchors only in v2 are EXACTLY the pre-2016-bar anchors (E_row in [576, 2016)) and their member features are finite on the non-funding columns": true,
+   "K4 names / builder self-report": true,
+   "D1 every array of dlw_targets.npz BITWISE equal to September (meta_json excluded)": true,
+   "D2 builder self-report: v2 name, mask not applied": true
+  }
+ },
+ "C_masked_vs_control": {
+  "mask_rows_control_axis": "ok",
+  "n_control": 10212,
+  "n_masked": 10212,
+  "anchors_only_masked": 0,
+  "anchors_only_control(dropped_by_mask)": 0,
+  "dropped_first_utc": null,
+  "rows_with_removals": 1338,
+  "cells_removed": 2377,
+  "removed_not_masked_rows": 0,
+  "rows_with_additions": 109,
+  "cells_added": 146,
+  "additions_without_truncation_rows": 0,
+  "additions_not_mask_true_rows": 0,
+  "ntop": 400,
+  "min_mem": 50,
+  "retained_not_mask_true_rows": 0,
+  "retained_not_mask_true_cells": 0,
+  "dropped_unexplained_rows": 0,
+  "dropped_unverified_rows": 0,
+  "dropped_unexplained_first": [],
+  "PASS": true,
+  "mask_sha256": "e0f67739faa10f191b5e6cdd50abd0455fbc30c5dad87d28d352d3018a3b3d7e",
+  "y4s_bitwise": true,
+  "y4old_bitwise": true,
+  "qvk_bitwise": true,
+  "btcv_bitwise": true,
+  "yrs_bitwise": true,
+  "has_panel_bitwise": true,
+  "symbols_equal": true
+ },
+ "fea82_copy_identical": true,
+ "PASS": true,
+ "VERDICT": "PASS",
+ "neigh_rows": [
+  [
+   16081,
+   25632
+  ],
+  [
+   25873,
+   35136
+  ],
+  [
+   484945,
+   497136
+  ],
+  [
+   490417,
+   499392
+  ]
+ ],
+ "built_utc": "2026-09-17T10:30:31Z",
+ "gate": "STEP1",
+ "inputs_sha256": {
+  "dlw_v4raw_targets": "be4e1129e323a67282f561cb3022f3c009a1388df0fd9307e97bf36955619e5b",
+  "dlw_hf3_targets": "5a52467e724aff2eb1014c6d0d2fe9fcbbec8964268c3dd874b6cfedb032f40f",
+  "fea82_hf3": "52cd1af99880e4358ce1d1e91e58382500dc374e3dacc52defce7dfbafdffdf2",
+  "fea82_v4raw": "52cd1af99880e4358ce1d1e91e58382500dc374e3dacc52defce7dfbafdffdf2",
+  "fea89_f8v4": "ad4eaed4fa2133e942a582017b49485b4e6eb0484efb5bfafc4eec1c79fa81f6",
+  "raw_patch": "adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b",
+  "hole_cells": "6156f97a0709f073147e392d5b0cb542f6b6d463cc3be2500f8791a0d1a8dfda",
+  "cache": "1d7f459dee434ec49e7714a2a612807f2e38e97f35c6c39471a8a4aaa7452488",
+  "member_mask": "e0f67739faa10f191b5e6cdd50abd0455fbc30c5dad87d28d352d3018a3b3d7e",
+  "fp2_gate_lib": "c7e6b76a2f883a7e88d3382e292fd876e53c69c9754e2fb5e99210602006fc9d",
+  "control_dl_targets": "d292e1364d95d6d63dcd3eb172eee570e6feaa668d399ddeb2be0d54b9536ca0",
+  "controls_receipt": "5058f5f9813cc7ad3fc35a6ece417ffd42edc84a9f05166824ff6062cb319677"
+ },
+ "inputs_path": {
+  "dlw_v4raw_targets": "/workspace/fp2_2026-09/dlw_v4raw/data/dlw_targets.npz",
+  "dlw_hf3_targets": "/workspace/fp2_2026-09/dlw_hf3/data/dlw_targets.npz",
+  "fea82_hf3": "/workspace/fp2_2026-09/dlw_hf3/data/dlw_fea82.npz",
+  "fea82_v4raw": "/workspace/fp2_2026-09/dlw_v4raw/data/dlw_fea82.npz",
+  "fea89_f8v4": "/workspace/fp2_2026-09/f8_v4/data/f8_fea89.npz",
+  "raw_patch": "/workspace/fp2_2026-09/raw_patch.npz",
+  "hole_cells": "/workspace/fp2_2026-09/holefix2_cells.npz",
+  "cache": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+  "member_mask": "/workspace/fp2_2026-09/masks/member_mask_tradable_W24H_cachegrid.npz",
+  "fp2_gate_lib": "/workspace/fp2_2026-09/devices_v4chain/fp2_gate_lib.py",
+  "control_dl_targets": "/workspace/fp2_2026-09/controls/dl_nomask/data/dlw_targets.npz",
+  "controls_receipt": "/workspace/fp2_2026-09/controls/CONTROLS.json"
+ },
+ "utc": "2026-09-17T10:30:35Z",
+ "argv": [
+  "/workspace/fp2_2026-09/devices_v4chain/fp2_gate_step1.py"
+ ],
+ "self_sha256": "3ad3a6c604dd5310ab59b9ea361e52c4700e261b84e7d7c116d108e6d26dfa69",
+ "receipt_schema": "v4_gate_common_v2/3 (gate, PASS, VERDICT \u2208 PASS|FAIL|UNAVAILABLE, self_sha256, inputs_sha256 bound)"
+}
