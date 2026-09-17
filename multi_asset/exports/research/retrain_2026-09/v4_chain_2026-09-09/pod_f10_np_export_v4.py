@@ -242,8 +242,12 @@ for k in ("trained_through_label_utc", "trained_through_pool_end_utc", "trained_
         META[k] = json.dumps(side[k]) if isinstance(side[k], (list, dict)) else str(side[k])
 
 os.makedirs(os.path.dirname(os.path.abspath(NP_OUT)), exist_ok=True)
-tmp = NP_OUT + ".tmp"
+# E-0917-B (2026-09-17 11:42:58Z, FP2 chain np_export s42): `np.savez(NP_OUT + ".tmp")` — numpy APPENDS ".npz" to any name that does not end in it,
+# so the bytes landed at "<NP_OUT>.tmp.npz" and os.replace raised FileNotFoundError after V1 had PASSed. The September chain ran the r0 exporter
+# (no temp file), so this path had never executed. The temp name now ends in ".npz" and the write is asserted before the rename.
+tmp = NP_OUT[:-4] + ".tmp.npz" if NP_OUT.endswith(".npz") else NP_OUT + ".tmp.npz"
 np.savez(tmp, **ARRS, **{k: np.array(v) for k, v in META.items()})
+assert os.path.isfile(tmp), f"np.savez did not write the temp path {tmp}"
 os.replace(tmp, NP_OUT)
 res["PASS"] = True
 res["wrote_npz"] = True

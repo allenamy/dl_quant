@@ -615,3 +615,10 @@ C5 授权证据的对照项: A5 案 — 授权一个改动前先问"它的对照
 - 触发我去扫进程的「still running?!」本身是**假阳性**: `pgrep -f "[f]0x_regate.sh"` 命中的是远端 ssh shell 自己的命令行(命令文本含该脚本名), 与 E-0913 pgrep 家族同型。
 - **实际代价小(运气)**: `commands.txt` 记 RAW s42 四分片 `END rc=0` 于 10:24:36–10:26:37Z(每分片 5 折 + `MWF_TRAIN_DONE`), 即 kill 前后 2 秒内已全部完成; 未做的是 s42 merge 与 s2027 训练(≈40 min)。训练器 `pod_f10_train_monthly_v4.py` 按折断点续跑(models/.pt + preds_fold/.npz + _config.json 三件齐 ⇒ skip), 重启 mwf 阶段 ⇒ s42 秒级跳过 → merge → s2027。分片日志被启动器 `>` 覆盖 ⇒ 重启前复制为 `train_RAW_s42_shard*.log.run1_completed_before_kill_20260917T1026Z`(sha daf5b874/5dea648b/8f0b57f5/4775faa2), 阶段日志同样保留。
 - **规则(与记忆同步)**: (1) 后台任务一律 `setsid` 启动并记 PGID, 清理只 `kill -- -PGID`; (2) 禁止按 `chain_*`/`run_*` 等驱动名 pgrep 扫杀; (3) 清理前 `ps -o pid,ppid,pgid,args` 核对 PPID/PGID 属于自己的会话; (4) 「是否还在跑」用 `/proc/<记录的 pid>` 判, 不用名字。
+
+### E-0917-B · np 导出器原子写的临时文件名不以 .npz 结尾 ⇒ numpy 自动补后缀 ⇒ os.replace 找不到文件, np_export 阶段 rc 1(2026-09-17 11:42:58Z, FP2 运行器 2; V1 谱相关已 PASS 之后)
+**事实链**:
+- `pod_f10_np_export_v4.py`(TRN-03/TRN-14 修复 dbc473e6 引入「先判后写 + 临时文件 + os.replace」)写 `tmp = NP_OUT + ".tmp"` 再 `np.savez(tmp)`; **numpy 对不以 .npz 结尾的文件名自动追加 .npz** ⇒ 字节落在 `f10_live_s42_np.npz.tmp.npz`(450,178 B, 已移作收据 `E-0917-B_stray_…`), `os.replace` 抛 FileNotFoundError, 阶段 rc 1, 运行器退出。
+- 九月链跑的是 r0 版导出器(无临时文件), 这条路径在 pod2 上**从未执行过** —— 与「门存在、判词也算了, 但写入路径没跑过」同族(gate_exists_but_its_verdict_does_not_control_the_write 的镜像: 判词对了, 写入自己坏了)。
+- **修**: 临时名改为 `<out>.tmp.npz` + 写后 `assert os.path.isfile(tmp)` 再 rename; 回归 `tests_np_export_tmpwrite.py` 3/3 —— 从源码 AST 抽出写块逐字执行(W1 绿), 修前语句作红能力(W3 复现 FileNotFoundError 与 `.tmp.npz` 残留)。
+- **教训**: 凡改写落盘路径(临时文件/重命名), 必须在合成夹具上真跑那 4 行, 而不是只跑判词; numpy `savez`/`save` 的补后缀是已知陷阱, 写临时文件一律用以 `.npz`/`.npy` 结尾的名字或文件句柄。
