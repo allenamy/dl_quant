@@ -147,6 +147,12 @@ check("★★ P2-1f preflight pinned another fp2_gate_lib.py sha ⇒ UNAVAILABLE
 rc, o, j = Z.run(Z.per_year(both(0.01, 0.10)), Z.export()); check("★ P2-1g the same root with everything restored ⇒ SWAP_RECOMMENDED (baseline green for the cells above)", rc == 0 and j["RECOMMENDATION"] == "SWAP_RECOMMENDED", j["UNAVAILABLE"][:2])
 Q = Root(); write_book(Q.books["A1/dyn/s42"], shift=0.5); rc, o, j = Q.run(Q.per_year(both(0.01, 0.10)), Q.export())
 check("★★★ P2-3 reviewer: A1/s42 raw ts all +0.5 s (hash bindings intact) ⇒ UNAVAILABLE 'raw ts axis is not integer seconds' (old device truncated to the grid and PASSed)", rc == 3 and any("not integer seconds" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
+# ── round 5 P2 (path alias) ──
+rc, o, j = X.run(X.per_year(both(0.01, 0.10)), X.export(), extra={"EXPORT_GATE": "./v4e_gate_export_v2.py"})
+check("★★★ R5-1 reviewer: EXPORT_GATE written as ./<file> (same bytes) ⇒ UNAVAILABLE 'must be a bare basename' (the path form used to skip the variant scope binding)", rc == 3 and any("bare basename" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
+Zv = Root(); Zv.write_contract(); c = json.load(open(f"{Zv.D}/ELIGIBILITY_CONTRACT.json")); c["gates"]["STEP1"]["approved_variants"] = {"renamed_step1.py": c["gates"]["STEP1"]["approved_variants"]["fp2_gate_step1.py"]}; json.dump(c, open(f"{Zv.D}/ELIGIBILITY_CONTRACT.json", "w"))
+rc, o, j = Zv.run(Zv.per_year(both(0.01, 0.10)), Zv.export())
+check("★★ R5-2 the STEP1 bytes are an approved variant registered under ANOTHER file name ⇒ bound by sha and refused ('carries the bytes of approved variant … under another name')", rc == 3 and any("under another name" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
 # ── R05 / R08 / earlier identity cells ──
 py = X.per_year(both(0.01, 0.10)); d = json.load(open(py)); d["delta"]["A1-A0/dyn/s42"]["W_ALPHA"] = {"n": N_WA, "dg": float("inf"), "ci95": [float("inf"), float("inf")], "n_days": 800}; json.dump(d, open(py, "w")); rc, o, j = X.run(py, X.export())
 check("★★★ R05a Inf cell ⇒ UNAVAILABLE", rc == 3 and any("not a finite measurement" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])

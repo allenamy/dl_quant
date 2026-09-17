@@ -415,7 +415,7 @@ if want export; then
   prereq_receipt export preflight "$R/v4_gates/preflight.json" PREFLIGHT
   prereq_marker export judge "$R/judge_v4.log" JUDGE_V4_DONE; prereq_file export judge_json "$R/v4_gates/JUDGE_v4.json"
   prereq_marker export arms "$R/arms_${EXPORT_ARM}.log" ARMS_DONE ARMS_FAIL; prereq_marker export bundle "$R/export_v4.log" BUNDLE_DONE BUNDLE_FAIL
-  GE=${GATE_EXPORT:-v4e_gate_export_v2.py}; [ -f "$D/$GE" ] || die "export_gate_missing_$GE" 3   # PROPOSED5: the month contract may select an approved variant
+  GE=${GATE_EXPORT:-v4e_gate_export_v2.py}; case "$GE" in */*|.*) die "export_gate_not_a_basename_$GE" 3;; esac; [ -f "$D/$GE" ] || die "export_gate_missing_$GE" 3   # PROPOSED5: the month contract may select an approved variant, by BASENAME only (round 5 P2)
   guard export; stage "export: $GE gate + require on arm $EXPORT_ARM (V4CHAIN_DIR=$D)"
   GX="EXPORT_ARM=$EXPORT_ARM BUNDLE_OUT=$BUNDLE_OUT BUNDLE_FEA=$KING_FEA BUNDLE_META=$KING_META BUNDLE_BASE=$BUNDLE_BASE EXPORT_PANEL=$EXPORT_PANEL BUNDLE_CACHE=$CACHE FUND_AUG=$FUND_AUG LIVE_PINS=$LIVE_PINS JUDGE_HC=$HC V4CHAIN_DIR=$D SIGNAL_RECEIPT=$SIGNAL_RECEIPT"
   REC=$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM}.json

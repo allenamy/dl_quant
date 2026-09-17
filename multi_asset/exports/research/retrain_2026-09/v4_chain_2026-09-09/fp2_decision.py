@@ -84,10 +84,15 @@ def main():
             elif not os.path.isfile(os.path.join(D, fname)) or sha(os.path.join(D, fname)) != pdev[fname]: un.append(f"preflight pinned {fname} {str(pdev[fname])[:12]} != on disk now")
     except Exception as e: un.append(f"preflight receipt unreadable: {e!r}")   # noqa: BLE001
     def bind_variant(gate, fname, needed_keys=None, recorded=None):
-        """execute the contract's approval of a VARIANT file: sha, requires (helpers on disk), scope (month, root), required recorded keys"""
-        g = (contract.get("gates") or {}).get(gate) or {}; var = (g.get("approved_variants") or {}).get(fname)
+        """execute the contract's approval of a VARIANT file: sha, requires (helpers on disk), scope (month, root), required recorded keys.
+        round 5 P2 (path alias): the entry is found by BASENAME and, failing that, by the file's SHA — bytes that ARE an approved variant are bound to
+        that variant's entry whatever the caller called the file; a path-form name is refused before this point."""
+        g = (contract.get("gates") or {}).get(gate) or {}; variants = g.get("approved_variants") or {}
+        fname = os.path.basename(fname); p = os.path.join(D, fname); var = variants.get(fname)
+        if var is None and os.path.isfile(p):
+            fsha = sha(p); hits = [(k, v) for k, v in variants.items() if v.get("sha256") == fsha]
+            if hits: un.append(f"{gate}: file {fname} carries the bytes of approved variant {hits[0][0]} under another name — refused"); return hits[0][1]
         if var is None: return None                      # not a variant (the archived base gate): the flat approved list, checked by require, is the whole approval
-        p = os.path.join(D, fname)
         if not os.path.isfile(p) or sha(p) != var.get("sha256"): un.append(f"{gate} variant {fname}: on-disk sha != approved variant sha")
         for req, rsha in (var.get("requires") or {}).items():
             rp = os.path.join(D, req)
@@ -108,6 +113,8 @@ def main():
     # ── export gate: the chain's own require, every recorded input re-hashed NOW ──
     x = json.load(open(E["EXPORT_RECEIPT"])); xin = x.get("inputs_path") or {}; xsh = x.get("inputs_sha256") or {}
     xgate = os.environ.get("EXPORT_GATE", "") or "v4e_gate_export_v2.py"; rec["params"]["EXPORT_GATE"] = xgate   # PROPOSED5: the approved variant the chain used; require verifies its approval
+    if xgate != os.path.basename(xgate) or os.sep in xgate or xgate.startswith(".") or "/" in xgate or "\\" in xgate:   # round 5 P2 (path alias): a gate is named by its BASENAME only
+        un.append(f"EXPORT_GATE must be a bare basename in D, got {xgate!r} (a path form skipped the variant scope binding)"); return finish("UNAVAILABLE", list(un), 3)
     xdev = os.path.join(D, xgate); xdev_sha = sha(xdev) if os.path.isfile(xdev) else None
     B["export"] = {"arm": x.get("arm"), "PASS": x.get("PASS"), "failed_checks": x.get("failed_checks"), "self_sha256": x.get("self_sha256"), "contract_sha256": x.get("contract_sha256"), "gate_in_D": xdev_sha}
     if x.get("arm") != arm: un.append(f"export receipt arm {x.get('arm')!r} != {arm}")

@@ -161,6 +161,7 @@ PYEOF
     k=${line%%=*}; v=${line#*=}
     case $k in ""|*[!ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_]*) echo "month env $f: parser output line is not KEY=VALUE: ${line:0:80}" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
     case " $V4_MONTH_KEYS $V4_MONTH_OPTIONAL_KEYS " in *" $k "*) ;; *) echo "month env $f: parser emitted an unregistered key $k" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
+    case $k in GATE_EXPORT) case ${line#*=} in */*|.*|"") echo "month env $f: GATE_EXPORT must be a bare basename in D (got '${line#*=}'): a path alias skipped the variant scope binding (review round 5); BUILDER_* keys are checked by the driver, STEP gates check their own basename" >&2; die "month_env_not_a_basename_${k}_$(basename "$f")" 4 ;; esac ;; esac
     case $got in *" $k "*) echo "month env $f: parser emitted $k twice" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
     case $v in ""|*[!ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_./,:@%+=-]*) echo "month env $f: parser emitted a value for $k outside the LITERAL grammar" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
     got="$got$k "

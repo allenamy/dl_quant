@@ -83,7 +83,7 @@
    "source": "v4e_gate_export_v2.py",
    "approved_source_sha256": [
     "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
-    "e55875d08db1318cd0db581058547d364d4b585dff229c6e8de88c8559be1409"
+    "16e9cc32369daf634b03d05a5e1294cbae4ab2a8dc3f91a3e761100c0f7b453c"
    ],
    "approved_baseline": {
     "device_sha256": "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d",
@@ -210,7 +210,7 @@
    "note": "r20 gate closure 2026-09-12. Replaces the 2026-09-11 INFRA2 proposal (v4e_gate_export.py sha f814c728\u2026, WITHDRAWN: the independent reviewer showed it not falsifiable \u2014 wrong-gate PASS accepted, failing signal gate accepted, different cost/knobs accepted, zero W / non-finite pnl accepted, shipped bundle unbound). v2 keeps E1\u2013E4 verbatim and adds E0 contract block, E2b pin identity, E5 finite+baseline symbols, E6 all 27 knobs + cost/mask/king/FEMAT by file, E7 bound signal receipt with PASS re-derived, E8 exact device identities on the arrays, E9 gross band vs the approved A0 books; `require` mode re-verifies the full floor and re-runs the content gates. Approving this sha approves those checks, the approved_baseline shas and the thresholds AS the export standard.",
    "approved_variants": {
     "v4e_gate_export_fp2dyn.py": {
-     "sha256": "e55875d08db1318cd0db581058547d364d4b585dff229c6e8de88c8559be1409",
+     "sha256": "16e9cc32369daf634b03d05a5e1294cbae4ab2a8dc3f91a3e761100c0f7b453c",
      "base": "v4e_gate_export_v2.py d63f4ec3 (unchanged, still approved)",
      "diff_receipt": "docs/fixprogram_2026-09-13/FP2_receipts/diff_v4e_gate_export_v2_to_fp2dyn.patch (rev2, 58 lines)",
      "scope": {
@@ -218,16 +218,17 @@
       "R": "/workspace/fp2_2026-09",
       "note": "PROPOSED5: FP2-8 only; later chains need their own approval"
      },
-     "what": "rev2 (independent review round 4): for a seat outside CHECK_SEATS={dyn} ONLY the gross ceiling K6 and the E9 gross-ratio band are informational; K1\u2013K4/K7 accounting identities and the E9 baseline identity (approved sha, frozen-window coverage) still fold into the verdict; E5/E6/E7, the 28-name input floor and every hash unchanged",
+     "what": "rev3 (independent review round 5): for a seat outside CHECK_SEATS={dyn} ONLY the K6 gross CEILING (gt \u2264 gross_max) and the E9 gross-ratio band are informational; K6 positivity (frozen-window gross > 0, gross \u2265 0), K1\u2013K4/K7 identities and the E9 baseline identity fold into the verdict; E5/E6/E7, the 28-name input floor and every hash unchanged",
      "why": "user word 2026-09-17\u300c\u7ebf\u4e0a\u7684\u7b56\u7565\u90fd\u662f\u52a8\u6001\u5e2d\u4f4d, \u56de\u6d4b\u5e94\u8be5\u4e5f\u662f\u52a8\u6001\u7684\u300d; the fix seat was a September control for E-0902-D (replay dynamic seat \u2260 live); in the v4 chain the replay dynamic seat tracks live (AMENDMENT 11); under the tradable umask the fix-seat books carry stuck untradable weight and exceed gross 1 (A0 and A1 alike) \u2014 a regime property of a seat not in service",
      "not_changed": "thresholds (gross_max 1.000001 etc.), pins, floors \u2014 no threshold moved; the fix-seat K6 breach is still recorded in every receipt",
      "proposed_utc": "2026-09-17T13:13:31Z",
      "review": "independent researcher review requested (post-hoc, same protocol as PROPOSED3/4)",
      "real_data_smoke": "pod2 12:5xZ: PASS, seats_checked [dyn], E8 dyn ok / fix informational, E9 medians 0.9995/1.0025 (dyn), band outside 0",
      "superseded_variant_sha256": [
+      "e55875d08db1318cd0db581058547d364d4b585dff229c6e8de88c8559be1409",
       "9a61420cdeb193846c789ca2fda2a212dc4e85b0c2d127df812d9dd6b65f3c61"
      ],
-     "revised_utc": "2026-09-17T14:11:17Z",
+     "revised_utc": "2026-09-17T14:38:54Z",
      "nature": "AFTER-THE-FACT CHANGE OF THE GATE'S ACCEPTANCE DOMAIN (the same old books: v2 FAIL, variant PASS) \u2014 not a mere identity correction; the v2 FAIL receipts are kept (BUNDLE_export_v2_A1_FAIL_E6E8E9, _final); approval requested post-hoc",
      "limitation": "seat-level agreement of the replay dynamic seat with live (2026 mean 0.36\u20130.37 vs live 0.36\u20130.38) is NOT per-anchor production parity; the fix-seat control's former role (E-0902-D) is redefined, not certified away"
     }
@@ -289,7 +290,8 @@
   "PROPOSED3 rev: STEP1/STEP2 variant shas replaced (AMENDMENT 8); approved_variants.requires.fp2_gate_lib.py = d3023421a484",
   "PROPOSED4: gates.BUNDLE_export.approved_baseline.umask_npz_sha256 47d87b51\u2026 \u2192 3badc4b6\u2026 (tradable W24H); baseline_books_sha256 \u2192 A0 re-run books (dyn_s42 b0b9dff9\u2026, dyn_s2027 aed3c8f9\u2026, fix_s42 27b4ff47\u2026, fix_s2027 661cc25b\u2026); r1 values kept under approved_baseline.PROPOSED4.superseded_r1_values; thresholds untouched",
   "PROPOSED5: gates.BUNDLE_export.approved_source_sha256 += 9a61420cdeb1 (v4e_gate_export_fp2dyn.py; E8/E9 fold only the in-service seat); approved_variants entry with scope; thresholds untouched",
-  "PROPOSED5 rev2: fp2dyn variant sha 9a61420cdeb1 \u2192 e55875d08db1 (only K6 and the E9 band informational for non-checked seats; identities and baseline identity fold); the policy is an acceptance-domain change, approved post-hoc for 2026-09 @ /workspace/fp2_2026-09 only"
+  "PROPOSED5 rev2: fp2dyn variant sha 9a61420cdeb1 \u2192 e55875d08db1 (only K6 and the E9 band informational for non-checked seats; identities and baseline identity fold); the policy is an acceptance-domain change, approved post-hoc for 2026-09 @ /workspace/fp2_2026-09 only",
+  "PROPOSED5 rev3: fp2dyn variant sha e55875d08db1 \u2192 16e9cc32369d (K6 split: only the ceiling informational; positivity hard); gate names are basenames only (path aliases refused by loader, driver and decision)"
  ],
  "proposed_utc": "2026-09-12T05:21:47Z",
  "applied_utc": "2026-09-12T09:04:39Z",

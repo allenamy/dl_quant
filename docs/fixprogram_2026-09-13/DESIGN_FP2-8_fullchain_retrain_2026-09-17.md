@@ -169,3 +169,7 @@
 - **P2-2 父环境隔离**: `load_month_env` 装载前 unset 全部可选键(GATE_EXPORT / MEMBER_MASK / BUILDER_* / PREV_*); pipeline 套件加格: 父 shell 带 GATE_EXPORT 与 MEMBER_MASK、月合同不含 ⇒ 装载后 UNSET。
 - **P2-3 轴取整**: 逐年表与决策在转整数前校验 ts: 有限、整数秒、4h 格点, 且四臂原始轴逐位相同; +0.5 s 反例拒(Y14 / P2-3 格)。
 - 决策套件 39/39, 逐年表 18/18, 变体 6/6, pipeline 见提交。真实重跑见 `FP2_receipts/*_r4.*`。
+
+## AMENDMENT 14(2026-09-17 14:5xZ, 复审五轮 P2-R4-A/B)
+- 路径别名: 门/构建器名只认裸 basename(装载器 rc 4 / 驱动 die / 决策 UNAVAILABLE); 变体按 basename 查不到时按文件 sha 绑定并拒绝(「查不到」不再等于「基础门」)。
+- K6 拆分: 非在役席位只豁免 gross 上限, positivity 仍硬。变体 rev3 16e9cc32, 合同 753f9752。真实 14:40Z: 出口 PASS, 决策 NO_SWAP。套件: decision 41/41, 变体 7/7, pipeline 见提交。

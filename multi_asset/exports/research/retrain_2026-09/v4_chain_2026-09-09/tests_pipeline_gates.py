@@ -985,6 +985,10 @@ with tempfile.TemporaryDirectory() as d:
     rc, out = _bash(f". {HERE}/chain_lib.sh; load_month_env {HERE}/v4_month_2026-09.env >/dev/null; echo GATE_EXPORT=${{GATE_EXPORT:-UNSET}} MEMBER_MASK=${{MEMBER_MASK:-UNSET}}", {"L": "/dev/null", "GATE_EXPORT": "v4e_gate_export_fp2dyn.py", "MEMBER_MASK": "/tmp/leaked_mask.npz"})
     check("★★★ [P2-2] optional keys inherited from the PARENT environment (GATE_EXPORT, MEMBER_MASK) are cleared by load_month_env when the month file omits them ⇒ the driver falls back to its literal defaults, never to the caller's shell",
           rc == 0 and "GATE_EXPORT=UNSET" in out and "MEMBER_MASK=UNSET" in out, out.strip()[-120:])
+    # round 5 P2 (path alias): the loader refuses a gate/builder key whose value is not a bare basename
+    _al = f"{HERE}/v4_month_2026-09.env.alias_probe"; open(_al, "w").write(open(f"{HERE}/v4_month_2026-09.env").read() + "GATE_EXPORT=./v4e_gate_export_fp2dyn.py\n")
+    rc, out = _bash(f". {HERE}/chain_lib.sh; load_month_env {_al}; echo GATE_EXPORT=${{GATE_EXPORT:-UNSET}}", {"L": "/dev/null"}); os.remove(_al)
+    check("★★★ [R5] GATE_EXPORT=./<file> in the month file ⇒ load_month_env rc 4 'month_env_not_a_basename_GATE_EXPORT' (an alias of an approved file is not an approved name)", rc == 4 and "not_a_basename_GATE_EXPORT" in out, out.strip()[-160:])
     open(f"{d}/missing.env", "w").write("\n".join(l for l in _lines if not l.startswith("SEEDS=")) + "\n")
     rc, out = _bash(f". {HERE}/chain_lib.sh; load_month_env {d}/missing.env", {"L": "/dev/null"})
     check("★★★ [P] a contract missing one key (SEEDS) ⇒ rc 4 FAIL_month_env_key_missing_SEEDS", rc == 4 and "FAIL_month_env_key_missing_SEEDS" in out, out[-200:])

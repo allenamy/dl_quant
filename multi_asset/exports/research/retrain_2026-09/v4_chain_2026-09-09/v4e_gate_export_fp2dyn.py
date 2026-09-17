@@ -64,7 +64,7 @@ SEATS = (("dyn", "42"), ("dyn", "2027"), ("fix", "42"), ("fix", "2027"))
 # ★ fp2dyn VARIANT (2026-09-17, user word「线上的策略都是动态席位, 回测应该也是动态的」; PROPOSED5): every book is still LOADED, HASHED and shape-checked
 #   (E5/E6/E7 unchanged, the 28-name input floor unchanged), but the BOOK-CONTENT verdicts E8/E9 fold only the IN-SERVICE seat(s) into the gate
 #   verdict — NARROWED after independent review round 4: for a seat outside CHECK_SEATS only the two invariants the tradable regime breaks are
-#   informational (K6 gross ceiling; E9 gross-ratio band). Its ACCOUNTING IDENTITIES (K1 Σ|W|=gross, K2 turnover, K3 netlong, K4 net identity,
+#   informational (the K6 gross CEILING gt ≤ gross_max; the E9 gross-ratio band) — K6 positivity (frozen-window gross > 0, gross ≥ 0) stays hard. Its ACCOUNTING IDENTITIES (K1 Σ|W|=gross, K2 turnover, K3 netlong, K4 net identity,
 #   K7 cost bounds) and the E9 BASELINE IDENTITY (baseline book sha approved, axis covers the frozen window) still fold into the verdict: a
 #   diagnostic book must still be an honest book. This is an after-the-fact change of the gate's acceptance domain (old file: v2 FAIL, variant
 #   PASS), not a mere identity correction. The fix seat is a September control (E-0902-D: the replay's dynamic
@@ -441,7 +441,8 @@ def E8_books_content(cx):
         d["K7_cost_le_turnover_x_ratemax_violations"] = int((cost > to * rate_max * (1 + 1e-6) + 1e-9).sum()); d["K7_rate_max"] = rate_max
         d["K7_ok"] = d["K7_cost_pos_frozen"] and d["K7_cost_le_turnover_x_ratemax_violations"] == 0
         d["ok"] = all(d[k] for k in ("K1_ok", "K2_ok", "K3_ok", "K4_ok", "K6_ok", "K7_ok")); d["informational_seat"] = nm.split("_")[1] not in CHECK_SEATS
-        d["identities_ok"] = all(d[k] for k in ("K1_ok", "K2_ok", "K3_ok", "K4_ok", "K7_ok"))
+        d["K6_positivity_ok"] = bool(fm.any() and (gt[fm] > 0).all() and (gt >= 0).all()); d["K6_ceiling_ok"] = bool((gt <= th["gross_max"]).all())   # rev3 (review round 5): K6 split
+        d["identities_ok"] = all(d[k] for k in ("K1_ok", "K2_ok", "K3_ok", "K4_ok", "K7_ok", "K6_positivity_ok"))                                 # only the CEILING is exempt for a non-checked seat
         ok_all &= (d["ok"] if not d["informational_seat"] else d["identities_ok"]); per[nm] = d   # fp2dyn (narrowed): non-checked seat — identities still fold, only K6 is informational
     return cx.chk("E8_books_content", ok_all, per)
 
@@ -496,7 +497,7 @@ def gate_main():
     E = read_env(); cx = Ctx(E); run_all(cx, guards=True)
     R = cx.R; R["PASS"] = bool(not cx.fails); R["failed_checks"] = cx.fails
     R["registered_inputs"] = sorted(cx.inputs); R["registered_floor_v4_gate_common"] = cx.gc.REQUIRED_INPUTS.get(GATE)
-    R["built_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()); R["gate_version"] = "v2 (r20 gate closure 2026-09-12) + fp2dyn variant rev2 (2026-09-17: for seats outside CHECK_SEATS only K6 and the E9 band are informational; identities and baseline identity fold)"; R["seats_checked"] = sorted(CHECK_SEATS); R["seats_informational"] = sorted({s for s, _ in SEATS} - CHECK_SEATS)
+    R["built_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()); R["gate_version"] = "v2 (r20 gate closure 2026-09-12) + fp2dyn variant rev3 (2026-09-17: for seats outside CHECK_SEATS only the K6 gross CEILING and the E9 band are informational; K6 positivity, K1–K4/K7 identities and baseline identity fold)"; R["seats_checked"] = sorted(CHECK_SEATS); R["seats_informational"] = sorted({s for s, _ in SEATS} - CHECK_SEATS)
     print(("EXPORT_GATE_V2 PASS " if R["PASS"] else "EXPORT_GATE_V2 FAIL ") + str(cx.fails), flush=True)
     cx.gc.finalize(GATE, R, E["EXPORT_GATE_OUT"], cx.inputs)
 
