@@ -1,0 +1,28 @@
+[R1] funding at the CLOSE instant on non-zero old quantity: counted once, before settlement
+  OK   ★★★ funding@CLOSE with old qty 1 ⇒ total_funding_proxy == −1 (one settlement of q·mark·rate = 1·100·0.01), settlement count 1  — (-1.0, 1)
+  OK   ★★ …and exactly one funding-event's worth relative to the no-funding run  — (-1.0, 0.0)
+
+[R2] funding AFTER the CLOSE instant for the closed generation is not counted
+  OK   ★★★ funding@CLOSE+1ms ⇒ total_funding_proxy == 0 (quantity is 0 after settlement)  — 0.0
+  OK   ★★ funding well after CLOSE ⇒ 0  — 0.0
+
+[R3] funding at the OPEN instant of the new generation is not counted (it holds 0 at that instant)
+  OK   ★★★ funding@OPEN(2500) ⇒ 0 funding; new generation trades afterwards (q_after last = 5 at price 20)  — (0.0, [1.0, 0.0, 5.0])
+  OK   ★★ funding at the SAME instant as the new generation's first trade ⇒ applied to the pre-trade quantity (0): nothing counted  — 0.0
+  OK   ★★ funding after the new generation traded (q=5 held, event mark 100, rate 0.01) ⇒ counted on the NEW quantity only: −5  — -5.0
+
+[R4] input order of same-ms events does not change the result
+  OK   ★★★ two names, funding@CLOSE for both, either input order ⇒ identical state, funding −1 total, 2 settlements  — (-1.0, -1.0)
+
+[R5] same-ms ambiguity without evidence is REFUSED at the settlement primitive
+  OK   ★★★ settlement at the same ms as a prior FUNDING with no declared order ⇒ ValueError (refused, not guessed)  — same_time settlement order requires explicit evidence/assumption
+  OK   ★★ …and with the explicit order 'funding_before_settlement' it settles: quantity → 0, instrument closed
+
+[R6] the closed instrument cannot accrue or trade afterwards
+  OK   ★★★ trade on a terminated instrument ⇒ refused  — terminated instrument cannot trade
+
+[R7] coverage is clipped at termination (their own cell, re-run on the frozen engine)
+  OK   ★★ frozen test_coverage_is_clipped_at_termination passes  — ([], [])
+
+12/12 checks passed
+ALL PASS
