@@ -78,3 +78,4 @@ STATE.md 顶部新条(运行树 6661ea3, 时刻, 链, 电池, 回滚命令) · F
 - 02:24:41Z §2.7 漂移门 ops/check_upstream_drift.py exit=0 (期望 0)
 - 02:24:42Z §2.7 drift_gate 单独复跑 exit=2 
 - 02:24:42Z §2.7 tests_drift_gate 单独复跑 exit=0 ALL PASS
+- 02:25:11Z §2.7 更正: 上一行「drift_gate 单独复跑 exit=2」是我猜错了脚本路径(python3 找不到文件的退出码), 非门的判词; 按 run_acceptance.sh 的确切条目复跑 drift_gate: exit=0 — no drift across 5 vendored modules (declared A-set 5, all covered)
