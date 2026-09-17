@@ -42,7 +42,12 @@ def scenario(fix_over=False, fix_k4=False, dyn_over=False, fix_base_sha_wrong=Fa
         bk = f"book_{seat}_s{s}"; bs = f"base_{seat}_s{s}"; fx = seat == "fix"
         B[bk] = book(gross_over=(fix_over and fx) or (dyn_over and not fx), break_k4=fix_k4 and fx)
         if fix_band and fx: B[bk]["rec"][:, V2.C["gross_total"]] *= 2.0                                     # ratio 2.0 > band 1.6
-        if fix_zero_gross and fx: B[bk]["W"][1500, :] = 0.0; B[bk]["rec"][1500, V2.C["gross_total"]] = 0.0; B[bk]["rec"][1500, V2.C["turnover"]] = float(np.abs(B[bk]["W"][1500] - B[bk]["W"][1499]).sum()); B[bk]["rec"][1500, V2.C["cost"]] = B[bk]["rec"][1500, V2.C["cost_ex"]] = 0.5 * B[bk]["rec"][1500, V2.C["turnover"]] * RATE_MAX; B[bk]["rec"][1501, V2.C["turnover"]] = float(np.abs(B[bk]["W"][1501] - B[bk]["W"][1500]).sum()); B[bk]["rec"][1501, V2.C["cost"]] = B[bk]["rec"][1501, V2.C["cost_ex"]] = 0.5 * B[bk]["rec"][1501, V2.C["turnover"]] * RATE_MAX; B[bk]["rec"][1500, V2.C["netlong"]] = 0.0   # a flat row INSIDE the frozen window (K6 positivity), identities kept consistent
+        if fix_zero_gross and fx:                                                                            # a flat row INSIDE the frozen window: K6 positivity only; every identity kept consistent
+            b = B[bk]; r = b["rec"]; Wb = b["W"]; i = 1500; Wb[i, :] = 0.0
+            for j in (i, i + 1):
+                r[j, V2.C["gross_total"]] = float(np.abs(Wb[j]).sum()); r[j, V2.C["turnover"]] = float(np.abs(Wb[j] - Wb[j - 1]).sum()); r[j, V2.C["cost"]] = r[j, V2.C["cost_ex"]] = 0.5 * r[j, V2.C["turnover"]] * RATE_MAX
+                r[j, V2.C["net"]] = r[j, V2.C["pnl"]] - r[j, V2.C["carry"]] - r[j, V2.C["cost"]]; r[j, V2.C["net_ex"]] = r[j, V2.C["pnl_ex"]] - r[j, V2.C["carry_ex"]] - r[j, V2.C["cost_ex"]]   # K4 kept
+                r[j, V2.C["netlong"]] = float(Wb[j].sum() / r[j, V2.C["gross_total"]]) if r[j, V2.C["gross_total"]] > 0 else 0.0
         BASE[bs] = book(); p = f"{d}/{bs}.npz"; np.savez(p, x=np.zeros(1)); base_shas[f"{seat}_s{s}"] = ("0" * 64) if (fix_base_sha_wrong and fx) else hashlib.sha256(open(p, "rb").read()).hexdigest()
         BASE[bs]["_path"] = p
     cx = Cx(B, BASE, base_shas); cx.bases = {k: v["_path"] for k, v in BASE.items()}; cx.books = {k: k for k in B}
@@ -63,7 +68,9 @@ check("★★★ S4 reviewer: fix-seat baseline book sha not the approved one: v
 r2 = run(V2, scenario(fix_band=True)); rd = run(VD, scenario(fix_band=True))
 check("★★ S5 fix-seat gross ratio 2.0 (outside the band, identity intact): v2 E9 FAIL, variant E9 PASS with informational_seat True (only the band is informational)", (not r2[1]) and rd[1] and rd[2]["E9_gross_band_vs_baseline"][1]["book_fix_s42"]["informational_seat"] is True, (r2[1], rd[1]))
 r2 = run(V2, scenario(fix_zero_gross=True)); rd = run(VD, scenario(fix_zero_gross=True))
-check("★★★ S6 reviewer (round 5): fix-seat gross == 0 on a frozen-window row (positivity, not the ceiling): v2 E8 FAIL and variant E8 FAIL (rev3 exempts ONLY the ceiling)", (not r2[0]) and (not rd[0]) and rd[2]["E8_books_content"][1]["book_fix_s42"]["K6_positivity_ok"] is False and rd[2]["E8_books_content"][1]["book_fix_s42"]["K6_ceiling_ok"] is True, (r2[0], rd[0]))
+_fx = rd[2]["E8_books_content"][1]["book_fix_s42"]
+check("★★★ S6 reviewer (round 5): fix-seat gross == 0 on ONE frozen-window row with every accounting identity kept (K1–K4/K7 all True — asserted, so the red is positivity alone): v2 E8 FAIL and variant E8 FAIL (rev3 exempts ONLY the ceiling)",
+      (not r2[0]) and (not rd[0]) and all(_fx[k] for k in ("K1_ok", "K2_ok", "K3_ok", "K4_ok", "K7_ok")) and _fx["K6_positivity_ok"] is False and _fx["K6_ceiling_ok"] is True, (r2[0], rd[0], {k: _fx.get(k) for k in ("K1_ok", "K2_ok", "K3_ok", "K4_ok", "K7_ok", "K6_positivity_ok", "K6_ceiling_ok")}))
 print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
 if FAILS: print("FAILED:", *FAILS, sep="\n  "); sys.exit(1)
 print("ALL PASS")
