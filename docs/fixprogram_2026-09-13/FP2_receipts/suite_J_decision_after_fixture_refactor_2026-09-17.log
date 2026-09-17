@@ -1,0 +1,44 @@
+  OK   ★★★ P0 positive control: real require on export (28-name floor + recorded extras) and STEP1 (v4 floor) pass, member-rule inputs re-hash, semantic bindings hold, frozen window re-derived from the book axes ⇒ NONINFERIOR ⇒ SWAP_RECOMMENDED rc 0  — (0, 'SWAP_RECOMMENDED', [], '')
+  OK   ★★★ T2 one cell [−0.06, −0.01] ⇒ UNDECIDED ⇒ NO_SWAP  — ('UNDECIDED', ['G1′ = UNDECIDED'])
+  OK   ★★★ T3 cells [−0.04, −0.01] ⇒ NONINFERIOR ⇒ SWAP_RECOMMENDED  — NONINFERIOR
+  OK   ★★ T4 upper < −δ ⇒ WORSE ⇒ NO_SWAP  — WORSE
+  OK   ★★ T5 all lower > 0 ⇒ BETTER ⇒ SWAP_RECOMMENDED  — BETTER
+  OK   ★★ T7 two bad years ⇒ NO_SWAP  — ['2022', '2023']
+  OK   ★★ T8 the bad year is 2026 ⇒ NO_SWAP  — ['2026']
+  OK   ★★★ F2a reviewer: bundle/slow2026.txt bytes changed AFTER the export gate passed (four books unchanged) ⇒ UNAVAILABLE 'export gate require: … changed since the receipt'  — ["export gate require: input 'bundle/slow2026.txt' changed since the receipt: 76ad1ed1fd7e != 7b176c031668"]
+  OK   ★★★ F2b reviewer: DL targets file replaced on disk while STEP1 and MEMBER receipts still carry the old sha ⇒ UNAVAILABLE (STEP1 require + member input re-hash both refuse)  — ["STEP1 require: input 'dlw_v4raw_targets' changed since the receipt: 1560f5d810fa != 0bf998897213", 'member-rule input MASKED_DL_TARGETS changed since the check (0bf998897213 → 1560f5d810fa)']
+  OK   ★★★ F2c reviewer: STEP1 outside the root, gate NOT_STEP1, all-zero source, PASS=false, VERDICT=PASS with aligned targets ⇒ UNAVAILABLE (root + require refuse)  — ['STEP1_JSON is not under R/v4_gates: /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/fp2dec_tb2_67w9/fake_step1.json', "STEP1 require: receipt is from gate 'NOT_STEP1', caller expected 'STEP1'"]
+  OK   ★★★ F2d reviewer: the member-rule king meta appears in the export inputs under ANOTHER key (bundle_manifest) while wide_fea_v4_meta is a different file ⇒ UNAVAILABLE (semantic key binding)  — ['semantic binding failed: member.MASKED_KING_META == export.wide_fea_v4_meta (path False, sha False)']
+  OK   ★★★ F2e member-rule check ran on a different CACHE than STEP1 ⇒ UNAVAILABLE (semantic binding member.CACHE == step1.cache)  — ['semantic binding failed: member.CACHE == step1.cache (path False, sha False)']
+  OK   ★★ F2f member-rule FAIL ⇒ UNAVAILABLE  — ["member-rule check VERDICT 'FAIL'"]
+  OK   ★★★ F3a reviewer: table self-declares a 2025-06 → 2026-01 window, reaches_UB=True, by_year only 2026 (file hashes intact) ⇒ UNAVAILABLE (coverage/years/counts vs frozen)  — ["per-year coverage is not the frozen window (coverage={'reaches_UB': True, 'years': ['2026'], 'ts_max': '2026-08-31T00:00:00Z', 'UB': '2026-01-01T00:00:00Z', 'WA_START': '2025-06-01T00:00:00Z', 'n_W_ALPHA': 1000, 'n_KING_LIVE': 800})", "per-year years ['2026'
+  OK   ★★★ F3b table produced with an overridden UB env ⇒ UNAVAILABLE (env is bound to the formal value)  — ["per-year table env UB='2026-01-01T00:00:00Z' is not the formal value '2026-08-30T20:00:00Z'"]
+  OK   ★★★ F3c the BOOK FILES end in 2026-03 while the table claims the frozen window ⇒ UNAVAILABLE (axis read from the books: ends before UB, counts differ)  — ['arm A0/dyn/s42: axis ends before the frozen UB', "arm A0/dyn/s42: anchors in the frozen windows 8041/4741 != {'W_ALPHA': 9138, 'KING_LIVE': 5838}"]
+  OK   ★★ F3d a cell whose n is not the frozen anchor count ⇒ UNAVAILABLE  — ["per-year anchor counts 9000/5838 != frozen {'W_ALPHA': 9138, 'KING_LIVE': 5838}"]
+  OK   ★★★ P2-1a reviewer: contract STEP1 variant `requires` helper sha zeroed (flat list intact) ⇒ UNAVAILABLE 'required helper fp2_gate_lib.py on disk != contract requires'  — ['STEP1 variant fp2_gate_step1.py: required helper fp2_gate_lib.py on disk != contract requires 000000000000']
+  OK   ★★★ P2-1b reviewer: STEP1 variant scope month 2026-10 while the preflight says 2026-09 ⇒ UNAVAILABLE (scope executed at the terminal)  — ["STEP1 variant fp2_gate_step1.py: scope month '2026-10' != preflight month '2026-09'"]
+  OK   ★★ P2-1b′ scope root != R ⇒ UNAVAILABLE  — ["STEP1 variant fp2_gate_step1.py: scope root '/somewhere/else' != R"]
+  OK   ★★★ P2-1c reviewer: fp2_controls.py in D replaced while the controls receipt keeps the old self sha ⇒ UNAVAILABLE (controls chain + preflight pin)  — ['preflight pinned fp2_controls.py d5672fc29625 != on disk now', 'controls receipt not written by the fp2_controls.py in D']
+  OK   ★★★ P2-1d reviewer: STEP1 receipt with hole_cells / fea82_hf3 / fp2_gate_lib removed from BOTH dicts ⇒ UNAVAILABLE 'receipt lacks required input' ×3 (the variant's key set is fixed at the terminal)  — ["STEP1 variant fp2_gate_step1.py: receipt lacks required input 'fea82_hf3'", "STEP1 variant fp2_gate_step1.py: receipt lacks required input 'fp2_gate_lib'", "STEP1 variant fp2_gate_step1.py: receipt lacks required input 'hole_cells'"]
+  OK   ★★ P2-1e a controls INPUT (cache) changed on disk after the controls receipt ⇒ UNAVAILABLE (transitive: STEP1 require + controls chain + member binding)  — ['controls input cache changed since the controls receipt']
+  OK   ★★ P2-1f preflight pinned another fp2_gate_lib.py sha ⇒ UNAVAILABLE  — ['preflight pinned fp2_gate_lib.py 999999999999 != on disk now']
+  OK   ★ P2-1g the same root with everything restored ⇒ SWAP_RECOMMENDED (baseline green for the cells above)  — []
+  OK   ★★★ P2-3 reviewer: A1/s42 raw ts all +0.5 s (hash bindings intact) ⇒ UNAVAILABLE 'raw ts axis is not integer seconds' (old device truncated to the grid and PASSed)  — ['arm A1/dyn/s42: raw ts axis is not integer seconds on the 4h grid (non-finite/non-integer/off-grid)']
+  OK   ★★★ R5-1 reviewer: EXPORT_GATE written as ./<file> (same bytes) ⇒ UNAVAILABLE 'must be a bare basename' (the path form used to skip the variant scope binding)  — ["EXPORT_GATE must be a bare basename in D, got './v4e_gate_export_v2.py' (a path form skipped the variant scope binding)"]
+  OK   ★★ R5-2 the STEP1 bytes are an approved variant registered under ANOTHER file name ⇒ bound by sha and refused ('carries the bytes of approved variant … under another name')  — ['STEP1: file fp2_gate_step1.py carries the bytes of approved variant renamed_step1.py under another name — refused']
+  OK   ★★★ R05a Inf cell ⇒ UNAVAILABLE  — ['G1 cell not a finite measurement on the frozen window: A1-A0/dyn/s42 W_ALPHA dg=inf ci=[inf, inf] n=9138 (frozen 9138) n_days=800']
+  OK   ★★★ R05b NaN dg 2026 ⇒ UNAVAILABLE  — ["G2 seed 42: non-finite dg for years ['2026']"]
+  OK   ★★★ R04a bare {PASS,arm} export receipt ⇒ UNAVAILABLE  — ['export receipt hashed a different contract than the one in D', 'export receipt records no inputs_path: nothing to re-verify']
+  OK   ★★★ R04b fake table (arm shas) ⇒ UNAVAILABLE  — ['arm record A0/dyn/s42 changed since the table (000000000000 → bb6f3938abce)']
+  OK   ★★★ R04c export written by another gate source ⇒ UNAVAILABLE (require refuses)  — ['export gate require: receipt was written by gate source 111111111111, caller trusts d63f4ec3f9e6']
+  OK   ★★★ R04f export hashed a different A1/s42 book than the table ⇒ UNAVAILABLE  — ['export gate did not hash the same book as the table for A1/dyn/s42 (book_dyn_s42)']
+  OK   ★★★ R08a SEEDS=42 under formal ⇒ REFUSED_PROFILE  — ["formal profile does not accept overrides: {'SEEDS': '42'}"]
+  OK   ★★★ R08b DELTA=inf under formal ⇒ REFUSED_PROFILE  — ["formal profile does not accept overrides: {'DELTA': 'inf'}"]
+  OK   ★★★ F3e UB override under formal ⇒ REFUSED_PROFILE (the window is part of the profile)  — ["formal profile does not accept overrides: {'UB': '2026-01-01T00:00:00Z'}"]
+  OK   ★★★ R08c exploratory ⇒ EXPLORATORY_NO_RECOMMENDATION  — EXPLORATORY_NO_RECOMMENDATION
+  OK   ★★ T9 export PASS=false ⇒ UNAVAILABLE  — ['export gate require: receipt says PASS=False (gate BUNDLE_export, None)']
+  OK   ★★ T12 table PARTIAL ⇒ UNAVAILABLE  — ["per-year table VERDICT 'PARTIAL' (need PASS)"]
+  OK   ★★ T6 seed 2027 cells missing ⇒ UNAVAILABLE  — ['G1 cell missing: A1-A0/dyn/s2027 W_ALPHA']
+
+41/41 checks passed
+ALL PASS

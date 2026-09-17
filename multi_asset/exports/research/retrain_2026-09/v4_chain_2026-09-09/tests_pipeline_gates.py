@@ -1062,7 +1062,7 @@ with tempfile.TemporaryDirectory() as d:
     rc, out = _bash(f"V4_DRYRUN=1 V4_STAGES=preflight,cache bash {HERE}/chain_v4_monthly.sh {_envf}")
     _pf = json.load(open(f"{_root}/v4_gates/preflight.json"))
     check("★★★ [P] a root where every input EXISTS: preflight PASSES (26 device files pinned — 21 + the five FP2 devices since review round 4, 3/3 gate sources approved by the frozen contract) and, under V4_DRYRUN=1, the next stage dies at the guard (rc 9 FAIL_dryrun_guard_cache_would_launch) before running anything",
-          rc == 9 and _pf["PASS"] is True and len(_pf["device_sha256"]) == 26 and all(a["ok"] for a in _pf["gate_approval"].values()) and "FAIL_dryrun_guard_cache_would_launch" in out and not os.path.exists(f"{_root}/cache_coverage.log"), (rc, _pf["fails"][:2], out[-200:]))
+          rc == 9 and _pf["PASS"] is True and len(_pf["device_sha256"]) == 27 and all(a["ok"] for a in _pf["gate_approval"].values()) and "FAIL_dryrun_guard_cache_would_launch" in out and not os.path.exists(f"{_root}/cache_coverage.log"), (rc, _pf["fails"][:2], out[-200:]))
     rc, out = _bash(f"V4_STAGES=preflight,cache bash {HERE}/chain_v4_monthly.sh {_envf}")
     check("★★ [P] MUTATION: the same root WITHOUT V4_DRYRUN ⇒ the cache stage really runs (cache_coverage.log written) and fails on the fake cache with FAIL_cache_coverage_rc_*, rc 3 — the guard is what stopped the dryrun",
           rc == 3 and "FAIL_cache_coverage_rc_" in out and os.path.exists(f"{_root}/cache_coverage.log") and json.load(open(f"{_root}/v4_gates/cache_coverage.json"))["PASS"] is False, (rc, out[-200:]))
@@ -1369,7 +1369,7 @@ print("MOCK_INTERCEPT_NO_BUSINESS_CODE " + n); sys.exit(77)
     _eF = f"{_eP}.fp2"; open(_eF, "w").write(open(_eP).read() + f"BUILDER_TARGETS=pod_dlw_targets_raw_v2.py\nBUILDER_KING_FEA=pod_fea_ext_clamp_v2.py\nMEMBER_MASK={_mkp}\n"); _roll_receipt(_rP, _eF)
     rc, out, calls = _drv("preflight", _eF); _pf2 = json.load(open(f"{_rP}/v4_gates/preflight.json"))
     check("★★★ [FP2] preflight under a contract that selects the v2 builders + a member mask: PASS; both v2 builders sha-pinned in device_sha256 (28 files = 23 + the five FP2 devices); MEMBER_MASK is a hashed input",
-          rc == 0 and _pf2["PASS"] is True and len(_pf2["device_sha256"]) == 28 and _pf2["device_sha256"]["pod_fea_ext_clamp_v2.py"] == _sha(f"{HERE}/pod_fea_ext_clamp_v2.py")
+          rc == 0 and _pf2["PASS"] is True and len(_pf2["device_sha256"]) == 29 and _pf2["device_sha256"]["pod_fea_ext_clamp_v2.py"] == _sha(f"{HERE}/pod_fea_ext_clamp_v2.py")
           and _pf2["device_sha256"]["pod_dlw_targets_raw_v2.py"] == _sha(f"{HERE}/pod_dlw_targets_raw_v2.py") and "MEMBER_MASK" in _pf2["inputs"], (rc, len(_pf2.get("device_sha256", {})), _pf2.get("fails")))
     rc, out, calls = _drv("cache", _eF); rc, out, calls = _drv("data", _eF)
     _tg2 = [c for c in calls if c["argv"] and os.path.basename(c["argv"][0]) in ("pod_dlw_targets_raw.py", "pod_dlw_targets_raw_v2.py")]; _kg2 = [c for c in calls if c["argv"] and os.path.basename(c["argv"][0]) in ("pod_fea_ext_clamp.py", "pod_fea_ext_clamp_v2.py")]
@@ -1381,7 +1381,7 @@ print("MOCK_INTERCEPT_NO_BUSINESS_CODE " + n); sys.exit(77)
     _tg0 = [c for c in calls if c["argv"] and os.path.basename(c["argv"][0]) in ("pod_dlw_targets_raw.py", "pod_dlw_targets_raw_v2.py")]; _kg0 = [c for c in calls if c["argv"] and os.path.basename(c["argv"][0]) in ("pod_fea_ext_clamp.py", "pod_fea_ext_clamp_v2.py")]
     check("★★★ [FP2] DEFAULT (no optional keys): the frozen v1 basenames are called and MEMBER_MASK_NPZ is EMPTY (v1 behaviour, 26 device files) — existing contracts are untouched",
           rc == 0 and [os.path.basename(c["argv"][0]) for c in _tg0] == ["pod_dlw_targets_raw.py"] * 2 and [os.path.basename(c["argv"][0]) for c in _kg0] == ["pod_fea_ext_clamp.py"]
-          and all(c["env"]["MEMBER_MASK_NPZ"] == "" for c in _tg0 + _kg0) and len(json.load(open(f"{_rP}/v4_gates/preflight.json"))["device_sha256"]) == 26, (rc, [c["env"].get("MEMBER_MASK_NPZ") for c in _tg0 + _kg0]))
+          and all(c["env"]["MEMBER_MASK_NPZ"] == "" for c in _tg0 + _kg0) and len(json.load(open(f"{_rP}/v4_gates/preflight.json"))["device_sha256"]) == 27, (rc, [c["env"].get("MEMBER_MASK_NPZ") for c in _tg0 + _kg0]))
     _eB = f"{_eP}.badbuilder"; open(_eB, "w").write(open(_eP).read() + "BUILDER_KING_FEA=no_such_builder.py\n"); _roll_receipt(_rP, _eB); rc, out, calls = _drv("preflight", _eB)
     _eC = f"{_eP}.pathbuilder"; open(_eC, "w").write(open(_eP).read() + "BUILDER_TARGETS=/tmp/pod_dlw_targets_raw_v2.py\n"); _roll_receipt(_rP, _eC); rc2, out2, calls2 = _drv("preflight", _eC)
     _eM = f"{_eP}.badmask"; open(_eM, "w").write(open(_eP).read() + f"MEMBER_MASK={d}/no_such_mask.npz\n"); _roll_receipt(_rP, _eM); rc3, out3, calls3 = _drv("preflight", _eM)

@@ -62,7 +62,7 @@ if want preflight; then
   V4_ROLL_REQUIRED=0; [ "$V4_MONTH" \> "2026-09" ] && V4_ROLL_REQUIRED=1
   V4_ROLL_SRC=""; [ "$V4_ROLL_REQUIRED" = 1 ] && { V4_ROLL_SRC=$(gate_sha "$D/v4_gate_roll_paths.py") || die "gate_source_unreadable_v4_gate_roll_paths" 3; }
   stage "preflight: device files, gate approval, inputs (roll_paths required: $V4_ROLL_REQUIRED)"
-  DEV_FILES="chain_lib.sh chain_v4_monthly.sh v4_months.py v4_gate_common.py ELIGIBILITY_CONTRACT.json $GATE_STEP1 $GATE_STEP2 ${GATE_EXPORT:-v4e_gate_export_v2.py} fp2_gate_lib.py fp2_controls.py fp2_member_rule_check.py fp2_per_year_table.py fp2_decision.py pod_dlw_targets_raw.py pod_fea_ext_clamp.py $BT $BK pod_export_bundle_v4.py pod_legs_v4b.py pod_f10_train_monthly_v4.py launch_mwf_v4b.sh merge_mwf_v4b.py pod_f10_refit_v4.py build_dev_v4.py run_v4_arms.sh judge_v4.py v4e_gate_export_v2.py gate_signal_parity_v2.py cache_coverage_gate_v2.py"
+  DEV_FILES="chain_lib.sh chain_v4_monthly.sh v4_months.py v4_gate_common.py ELIGIBILITY_CONTRACT.json $GATE_STEP1 $GATE_STEP2 ${GATE_EXPORT:-v4e_gate_export_v2.py} fp2_gate_lib.py fp2_controls.py fp2_member_rule_check.py fp2_per_year_table.py fp2_decision.py pod_dlw_targets_raw.py pod_fea_ext_clamp.py $BT $BK pod_export_bundle_v4.py pod_legs_v4b.py pod_f10_train_monthly_v4.py launch_mwf_v4b.sh merge_mwf_v4b.py pod_f10_refit_v4.py build_dev_v4.py run_v4_arms.sh run_arm.sh judge_v4.py v4e_gate_export_v2.py gate_signal_parity_v2.py cache_coverage_gate_v2.py"
   PF_INPUTS="CACHE PANEL_SPLICE PANEL_KING RAW_PATCH HOLE_CELLS BUNDLE_BASE EXPORT_PANEL EMA_STATE_JSON LIVE_PINS FUND_AUG FUNDING_DIR LEGS_OLD LEGS_PANEL SIGNAL_RECEIPT BUILDER_FEA82 BUILDER_FEA89 BASE_TRAINER PREV_META REF_META"
   [ -z "${MEMBER_MASK:-}" ] || PF_INPUTS="$PF_INPUTS MEMBER_MASK"   # FP2-8: a declared mask is a preflight-hashed input
   # ★ FP2-3 (2026-09-17): for a month that needs the roll gate, the previous contract and its sha record must be DECLARED in this
@@ -150,7 +150,7 @@ p = os.path.join(E["PREV_BUNDLE"], "slow_pred_pinned.npy")
 if os.path.isfile(p): inputs["PREV_BUNDLE/slow_pred_pinned.npy"] = {"path": p, "bytes": os.path.getsize(p)}
 else: fails.append(f"input missing: PREV_BUNDLE/slow_pred_pinned.npy={p}")
 HC = E["HC"]
-for rel in ["masks/umask_UPIT_CRYPTO.npz", "calib/costb_fee_steady.json", "run_arm.sh"] + [f"dev_v4/probe_artifacts/w10_ablation_series_V4_A0_{seat}_s{s}.npz" for seat in ("dyn", "fix") for s in (42, 2027)]:
+for rel in ["masks/umask_UPIT_CRYPTO.npz", "calib/costb_fee_steady.json"] + [f"dev_v4/probe_artifacts/w10_ablation_series_V4_A0_{seat}_s{s}.npz" for seat in ("dyn", "fix") for s in (42, 2027)]:   # FP3 J: run_arm.sh is a DEVICE file now (DEV_FILES), not a tree input
     p = os.path.join(HC, rel)
     if os.path.isfile(p): inputs[f"HC/{rel}"] = {"path": p, "bytes": os.path.getsize(p)}
     else: fails.append(f"dev tree file missing: HC/{rel}={p}")
@@ -392,8 +392,9 @@ if want arms; then
   mkdir -p "$HC/dev_v4/logs" "$KING_DIR" || die "arms_mkdir" 1
   env KING_META=$KING_META DLW_RAW=$DLW_RAW CACHE=$CACHE HOLE_CELLS=$HOLE_CELLS BUNDLE_OUT=$BUNDLE_OUT DEV_MEMBER_MASK_NPZ=${MEMBER_MASK:-} "$PY" "$D/build_dev_v4.py" > "$R/build_dev_v4.log" 2>&1; rc=$?   # FP2-8: the declared member mask reaches the dev-tree self-check
   stage "build_dev_v4 rc=$rc $(tail -1 "$R/build_dev_v4.log" | cut -c1-100)"; [ $rc -eq 0 ] || die "build_dev_v4_rc_$rc" 1; check_marker "$R/build_dev_v4.log" "DEV_V4_DONE"
+  [ -f "$D/run_arm.sh" ] || die "arms_device_run_arm_missing_$D/run_arm.sh" 1   # FP3 J: the wrapper executes the device copy; the tree copy (if any) is dead
   N0=$(grep -a -c "^END\[V4_${EXPORT_ARM}_.*rc=0" "$HC/logs/commands.txt" 2>/dev/null || echo 0)
-  bash "$D/run_v4_arms.sh" "$EXPORT_ARM" "$SEED_LIST" > "$R/arms_${EXPORT_ARM}.log" 2>&1; rc=$?
+  V4_PY="$PY" bash "$D/run_v4_arms.sh" "$EXPORT_ARM" "$SEED_LIST" > "$R/arms_${EXPORT_ARM}.log" 2>&1; rc=$?   # FP3 J: the interpreter reaches the device runner by name (inline, not via the loader export set)
   N1=$(grep -a -c "^END\[V4_${EXPORT_ARM}_.*rc=0" "$HC/logs/commands.txt" 2>/dev/null || echo 0); NEED=$(( 2 * $(echo $SEED_LIST | wc -w) ))
   stage "arms $EXPORT_ARM rc=$rc fresh END rc=0 lines $((N1 - N0))/$NEED"; [ $rc -eq 0 ] || die "arms_${EXPORT_ARM}_rc_$rc" 1
   check_marker "$R/arms_${EXPORT_ARM}.log" "ARMS_DONE"; [ $((N1 - N0)) -ge $NEED ] || die "arms_${EXPORT_ARM}_fresh_END_lines_$((N1 - N0))_lt_$NEED" 1
