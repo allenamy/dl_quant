@@ -29,6 +29,9 @@ V4_MONTH_KEYS="V4_MONTH R PY CACHE PANEL_SPLICE PANEL_KING RAW_PATCH HOLE_CELLS 
 #   frozen v1 names); MEMBER_MASK is an optional training member mask (ts, symbols, mask) passed to both builders as MEMBER_MASK_NPZ (empty ⇒ v1 behaviour).
 V4_MONTH_OPTIONAL_KEYS="PREV_MONTH_ENV PREV_SHA_JSON BUILDER_TARGETS BUILDER_KING_FEA MEMBER_MASK GATE_EXPORT"   # GATE_EXPORT (PROPOSED5): export-gate variant basename in D, default v4e_gate_export_v2.py
 load_month_env(){  # load_month_env <v4_month.env> — PARSES the contract as DATA (round 4: the file is never sourced) and exports exactly the parsed pairs; rc 4 on any defect
+  # ★ P2-2 (independent review round 4, 2026-09-17): an OPTIONAL key absent from the month file must be ABSENT after loading — never inherited from the
+  #   parent environment (a leftover GATE_EXPORT / MEMBER_MASK in the caller's shell selected a gate / a mask the contract did not name).
+  local _ok; for _ok in $V4_MONTH_OPTIONAL_KEYS; do unset "$_ok"; done
   # ★ ROUND 4 (2026-09-13, independent review REVIEW_round3_code_and_research_2026-09-13 §4 R3-D3; probes D3_bundle_continuation_A/B, D3_source_parse_error_ignored,
   #   D3_assignment_prefixed_command_marker_written, D3_parent_tilde_parent_A/B): rounds 2-3 checked PHYSICAL LINES with grep/awk and then let Bash source the file,
   #   i.e. two different grammars. A trailing backslash joined `BUNDLE_OUT=$R\` with the next line into `$RBUNDLE_TAR`, a PARENT variable, under an unchanged

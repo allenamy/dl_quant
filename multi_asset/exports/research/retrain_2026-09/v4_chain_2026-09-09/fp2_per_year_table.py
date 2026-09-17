@@ -25,8 +25,12 @@ def load(p, seat, seed=None):
     if seat == "dyn" and cfg.get("W3FIX") is not None: why.append(f"dyn seat with W3FIX={cfg.get('W3FIX')!r}")
     if seat == "fix" and cfg.get("W3FIX") != "0.21,0,0.79": why.append(f"fix seat W3FIX={cfg.get('W3FIX')!r} != '0.21,0,0.79'")
     col = lambda k: rec[:, C.index(k)]
-    ts = col("ts").astype(np.int64); gt = col("gross_total")
-    d = dict(ts=ts, gt=gt, g=col("net_ex") / gt, pnl=col("pnl_ex") / gt, car=col("carry_ex") / gt, cst=col("cost_ex") / gt, tau_raw=col("turnover"), nl=col("netlong"),
+    ts_raw = col("ts")                                   # P2-3 (independent review round 4): the axis is validated BEFORE any integer conversion
+    if not np.isfinite(ts_raw).all(): why.append("ts has non-finite values")
+    elif (ts_raw != np.round(ts_raw)).any(): why.append(f"ts is not integer seconds on {int((ts_raw != np.round(ts_raw)).sum())} rows (a half-second offset truncates onto the grid)")
+    elif (np.round(ts_raw).astype(np.int64) % 14400 != 0).any(): why.append(f"ts off the 4h grid on {int((np.round(ts_raw).astype(np.int64) % 14400 != 0).sum())} rows")
+    ts = np.round(ts_raw).astype(np.int64); gt = col("gross_total")
+    d = dict(ts=ts, ts_raw=ts_raw.copy(), gt=gt, g=col("net_ex") / gt, pnl=col("pnl_ex") / gt, car=col("carry_ex") / gt, cst=col("cost_ex") / gt, tau_raw=col("turnover"), nl=col("netlong"),
              cfg={k: cfg.get(k) for k in ("UMASK_NPZ", "COSTB_JSON", "SLOW_NPY", "FPRED", "FSEED", "W3FIX", "FEMAT_NPZ")}, sha=sha(p), path=p, why=why)
     if not np.allclose(d["pnl"] - d["car"] - d["cst"], d["g"], atol=1e-9): why.append("pnl - carry - cost != g")
     if (np.diff(ts) <= 0).any(): why.append("ts not increasing")
@@ -108,9 +112,11 @@ def main():
         try: return sha(p) if p and os.path.isfile(p) else None
         except Exception: return None   # noqa: BLE001
     um_sha0 = _fsha(um0); rec["arm_umask"] = {"path": um0, "sha256": um_sha0}
+    ts_raw0 = next(iter(X.values()))["ts_raw"]
     for k, x in list(X.items()):
         why = []
         if not np.array_equal(x["ts"], ts0): why.append("ts axis differs from the first arm")
+        if not np.array_equal(x["ts_raw"], ts_raw0): why.append("RAW ts column differs from the first arm bitwise (P2-3)")
         if x["symbols"] is None or sym0 is None or x["symbols"] != sym0: why.append("symbols axis missing or differs")
         if x["cfg"].get("UMASK_NPZ") != um0: why.append(f"UMASK_NPZ differs across arms ({x['cfg'].get('UMASK_NPZ')} vs {um0})")
         if um_sha0 is None: why.append("arm umask file not readable for identity (UMASK_NPZ path)")

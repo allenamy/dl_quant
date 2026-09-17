@@ -72,6 +72,35 @@ def main():
         if not under(E[k], os.path.join(R, "v4_gates")): un.append(f"{k} is not under R/v4_gates: {E[k]}")
     try: contract = json.load(open(os.path.join(D, "ELIGIBILITY_CONTRACT.json"))); rec["inputs"]["contract"] = {"path": os.path.join(D, "ELIGIBILITY_CONTRACT.json"), "sha256": sha(os.path.join(D, "ELIGIBILITY_CONTRACT.json"))}
     except Exception as e: return finish("UNAVAILABLE", [f"contract unreadable in D: {e!r}"], 3)   # noqa: BLE001
+    # ── P2-1 (review round 4): the preflight receipt is the chain's own pin of the device set and the month; bind it here
+    pfp = os.path.join(R, "v4_gates", "preflight.json"); month = None
+    try:
+        pf = json.load(open(pfp)); rec["inputs"]["preflight"] = {"path": pfp, "sha256": sha(pfp), "month": pf.get("month"), "PASS": pf.get("PASS")}; month = pf.get("month")
+        if pf.get("PASS") is not True: un.append(f"preflight PASS={pf.get('PASS')!r}")
+        if os.path.realpath(pf.get("root") or "") != os.path.realpath(R): un.append(f"preflight root {pf.get('root')!r} != R")
+        pdev = pf.get("device_sha256") or {}
+        for fname in ("fp2_gate_step1.py", "fp2_gate_lib.py", "fp2_controls.py", "fp2_member_rule_check.py", "fp2_per_year_table.py", "fp2_decision.py"):
+            if fname not in pdev: un.append(f"preflight did not pin {fname}")
+            elif not os.path.isfile(os.path.join(D, fname)) or sha(os.path.join(D, fname)) != pdev[fname]: un.append(f"preflight pinned {fname} {str(pdev[fname])[:12]} != on disk now")
+    except Exception as e: un.append(f"preflight receipt unreadable: {e!r}")   # noqa: BLE001
+    def bind_variant(gate, fname, needed_keys=None, recorded=None):
+        """execute the contract's approval of a VARIANT file: sha, requires (helpers on disk), scope (month, root), required recorded keys"""
+        g = (contract.get("gates") or {}).get(gate) or {}; var = (g.get("approved_variants") or {}).get(fname)
+        if var is None: return None                      # not a variant (the archived base gate): the flat approved list, checked by require, is the whole approval
+        p = os.path.join(D, fname)
+        if not os.path.isfile(p) or sha(p) != var.get("sha256"): un.append(f"{gate} variant {fname}: on-disk sha != approved variant sha")
+        for req, rsha in (var.get("requires") or {}).items():
+            rp = os.path.join(D, req)
+            if not os.path.isfile(rp) or sha(rp) != rsha: un.append(f"{gate} variant {fname}: required helper {req} on disk != contract requires {str(rsha)[:12]}")
+            if recorded is not None and (recorded.get(req.rsplit(".", 1)[0]) or recorded.get(req)) not in (None, rsha): un.append(f"{gate} variant {fname}: receipt recorded {req} {str(recorded.get(req.rsplit('.', 1)[0]))[:12]} != contract requires")
+        sc = var.get("scope") or {}
+        if not sc: un.append(f"{gate} variant {fname}: no scope in the contract")
+        else:
+            if month is None or sc.get("V4_MONTH") != month: un.append(f"{gate} variant {fname}: scope month {sc.get('V4_MONTH')!r} != preflight month {month!r}")
+            if os.path.realpath(sc.get("R") or "") != os.path.realpath(R): un.append(f"{gate} variant {fname}: scope root {sc.get('R')!r} != R")
+        for k in (needed_keys or ()):
+            if recorded is None or k not in recorded: un.append(f"{gate} variant {fname}: receipt lacks required input {k!r}")
+        return var
     gcp = os.path.join(D, "v4_gate_common.py")
     if not os.path.isfile(gcp): return finish("UNAVAILABLE", ["v4_gate_common.py missing in D: the chain's require mechanism is unavailable"], 3)
     spec = importlib.util.spec_from_file_location("v4_gate_common_for_decision", gcp); GC = importlib.util.module_from_spec(spec); spec.loader.exec_module(GC)
@@ -89,6 +118,7 @@ def main():
         ok, why = GC.require(E["EXPORT_RECEIPT"], inputs=dict(xin), expected_gate="BUNDLE_export", expected_self_sha=xdev_sha, profile=None, recorded_extras=True)
         B["export"]["require"] = {"ok": ok, "why": why}
         if not ok: un.append("export gate require: " + why)
+    B["export"]["variant"] = bind_variant("BUNDLE_export", xgate, recorded=xsh)
     if x.get("failed_checks"): un.append(f"export receipt PASS={x.get('PASS')} failed={x.get('failed_checks')}")
     # ── STEP1: the same require (approved FP2 variant in D, profile v4, recorded_extras) ──
     s1 = json.load(open(E["STEP1_JSON"])); s1in = s1.get("inputs_path") or {}; s1sh = s1.get("inputs_sha256") or {}
@@ -100,7 +130,25 @@ def main():
         ok, why = GC.require(E["STEP1_JSON"], inputs=dict(s1in), expected_gate="STEP1", expected_self_sha=s1dev_sha, profile="v4", recorded_extras=True)
         B["step1"]["require"] = {"ok": ok, "why": why}
         if not ok: un.append("STEP1 require: " + why)
+    STEP1_KEYS = ("cache", "control_dl_targets", "controls_receipt", "dlw_hf3_targets", "dlw_v4raw_targets", "fea82_hf3", "fea82_v4raw", "fea89_f8v4", "fp2_gate_lib", "hole_cells", "member_mask", "raw_patch")
+    B["step1"]["variant"] = bind_variant("STEP1", "fp2_gate_step1.py", needed_keys=STEP1_KEYS, recorded=s1sh)
     if s1.get("VERDICT") != "PASS": un.append(f"STEP1 receipt VERDICT {s1.get('VERDICT')!r}")
+    # controls chain: the receipt STEP1 consumed must have been written by the fp2_controls.py in D, and everything it hashed must still be those bytes
+    crp = s1in.get("controls_receipt")
+    if crp and os.path.isfile(crp):
+        cr_ = json.load(open(crp)); cdev = os.path.join(D, "fp2_controls.py")
+        B["controls"] = {"self_sha256": cr_.get("self_sha256"), "VERDICT": cr_.get("VERDICT"), "mode": cr_.get("mode")}
+        if not os.path.isfile(cdev) or cr_.get("self_sha256") != sha(cdev): un.append("controls receipt not written by the fp2_controls.py in D")
+        if cr_.get("VERDICT") != "PASS": un.append(f"controls receipt VERDICT {cr_.get('VERDICT')!r}")
+        for k, p in (cr_.get("inputs_path") or {}).items():
+            s_ = (cr_.get("inputs_sha256") or {}).get(k)
+            if not p: continue
+            if not os.path.isfile(p): un.append(f"controls input {k} missing on disk: {p}")
+            elif sha(p) != s_: un.append(f"controls input {k} changed since the controls receipt")
+        for k, p in (cr_.get("outputs_path") or {}).items():
+            s_ = (cr_.get("outputs_sha256") or {}).get(k)
+            if not p or not os.path.isfile(p): un.append(f"controls output {k} missing on disk: {p}")
+            elif sha(p) != s_: un.append(f"controls output {k} changed since the controls receipt")
     # ── member rule: device identity, PASS, every recorded input re-hashed, semantic bindings ──
     mr = json.load(open(E["MEMBER_RULE_JSON"])); min_ = mr.get("inputs") or {}
     mdev = os.path.join(D, "fp2_member_rule_check.py"); B["member_rule"] = {"VERDICT": mr.get("VERDICT"), "self_sha256": mr.get("self_sha256")}
@@ -147,7 +195,10 @@ def main():
         s1_ = sha(p); arms_now[k] = {"path": p, "sha_then": s0, "sha_now": s1_}
         if s1_ != s0: un.append(f"arm record {k} changed since the table ({str(s0)[:12]} → {s1_[:12]})"); continue
         try:   # F3: the window is a property of the BOOK, read from its axis, not of the table's self-report
-            z = np.load(p, allow_pickle=True); C = [str(c) for c in z["cols"]]; ts = np.asarray(z["d30_n2_c42_rec"], float)[:, C.index("ts")].astype(np.int64)
+            z = np.load(p, allow_pickle=True); C = [str(c) for c in z["cols"]]; ts_raw = np.asarray(z["d30_n2_c42_rec"], float)[:, C.index("ts")]
+            if not np.isfinite(ts_raw).all() or (ts_raw != np.round(ts_raw)).any() or (np.round(ts_raw).astype(np.int64) % 14400 != 0).any():   # P2-3: validate BEFORE conversion
+                un.append(f"arm {k}: raw ts axis is not integer seconds on the 4h grid (non-finite/non-integer/off-grid)"); continue
+            ts = np.round(ts_raw).astype(np.int64)
             n_wa = int(((ts >= WA0) & (ts <= UB)).sum()); n_kl = int(((ts >= KL0) & (ts <= UB)).sum())
             arms_now[k].update({"ts0": int(ts[0]), "ts_900": int(ts[900]) if len(ts) > 900 else None, "ts_last": int(ts[-1]), "n_W_ALPHA": n_wa, "n_KING_LIVE": n_kl})
             if len(ts) <= 900 or int(ts[900]) != WA0: un.append(f"arm {k}: ts[900] is not the frozen W_ALPHA start")

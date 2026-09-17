@@ -63,7 +63,11 @@ TH_REQUIRED = ["guard_band", "n_frozen", "frozen_window_utc", "ic_tol", "sharpe_
 SEATS = (("dyn", "42"), ("dyn", "2027"), ("fix", "42"), ("fix", "2027"))
 # ★ fp2dyn VARIANT (2026-09-17, user word「线上的策略都是动态席位, 回测应该也是动态的」; PROPOSED5): every book is still LOADED, HASHED and shape-checked
 #   (E5/E6/E7 unchanged, the 28-name input floor unchanged), but the BOOK-CONTENT verdicts E8/E9 fold only the IN-SERVICE seat(s) into the gate
-#   verdict; fix-seat results are computed and recorded as informational. The fix seat is a September control (E-0902-D: the replay's dynamic
+#   verdict — NARROWED after independent review round 4: for a seat outside CHECK_SEATS only the two invariants the tradable regime breaks are
+#   informational (K6 gross ceiling; E9 gross-ratio band). Its ACCOUNTING IDENTITIES (K1 Σ|W|=gross, K2 turnover, K3 netlong, K4 net identity,
+#   K7 cost bounds) and the E9 BASELINE IDENTITY (baseline book sha approved, axis covers the frozen window) still fold into the verdict: a
+#   diagnostic book must still be an honest book. This is an after-the-fact change of the gate's acceptance domain (old file: v2 FAIL, variant
+#   PASS), not a mere identity correction. The fix seat is a September control (E-0902-D: the replay's dynamic
 #   seat then did not track live); in the v4 chain the replay's dynamic seat tracks the live seat (0.32–0.37 vs 0.36–0.38, AMENDMENT 11).
 CHECK_SEATS = {"dyn"}
 
@@ -437,7 +441,8 @@ def E8_books_content(cx):
         d["K7_cost_le_turnover_x_ratemax_violations"] = int((cost > to * rate_max * (1 + 1e-6) + 1e-9).sum()); d["K7_rate_max"] = rate_max
         d["K7_ok"] = d["K7_cost_pos_frozen"] and d["K7_cost_le_turnover_x_ratemax_violations"] == 0
         d["ok"] = all(d[k] for k in ("K1_ok", "K2_ok", "K3_ok", "K4_ok", "K6_ok", "K7_ok")); d["informational_seat"] = nm.split("_")[1] not in CHECK_SEATS
-        ok_all &= (d["ok"] or d["informational_seat"]); per[nm] = d   # fp2dyn: a fix-seat failure is recorded, not folded
+        d["identities_ok"] = all(d[k] for k in ("K1_ok", "K2_ok", "K3_ok", "K4_ok", "K7_ok"))
+        ok_all &= (d["ok"] if not d["informational_seat"] else d["identities_ok"]); per[nm] = d   # fp2dyn (narrowed): non-checked seat — identities still fold, only K6 is informational
     return cx.chk("E8_books_content", ok_all, per)
 
 
@@ -450,7 +455,7 @@ def E9_gross_band_vs_baseline(cx):
         d["baseline_sha_ok"] = d["baseline_sha256"] == ab["baseline_books_sha256"][f"{seat}_s{s}"]
         b = cx.B.get(kn); base = cx.BASE.get(bn)
         if not (b and base and b["rec"] is not None and base["rec"] is not None and d["baseline_sha_ok"]):
-            d["ok"] = False; d["informational_seat"] = seat not in CHECK_SEATS; per[kn] = d; ok_all &= d["informational_seat"]; continue   # fp2dyn
+            d["ok"] = False; d["informational_seat"] = seat not in CHECK_SEATS; per[kn] = d; ok_all = False; continue   # fp2dyn (narrowed): baseline identity / missing book folds for EVERY seat
         R, RB = b["rec"], base["rec"]; ts = np.round(R[:, 0]).astype(np.int64); tsb = np.round(RB[:, 0]).astype(np.int64)
         gb = dict(zip(tsb.tolist(), RB[:, C["gross_total"]].tolist())); fm = (ts >= F0) & (ts < F1)
         bt = np.array([gb.get(int(t), np.nan) for t in ts[fm]]); ga = R[fm, C["gross_total"]]
@@ -462,7 +467,8 @@ def E9_gross_band_vs_baseline(cx):
             d["band_ok"] = d["n_anchors_outside_band"] == 0 and mlo <= d["ratio_median"] <= mhi
         else: d["band_ok"] = False
         d["ok"] = d["baseline_sha_ok"] and d["baseline_axis_covers_frozen"] and d["band_ok"]; d["informational_seat"] = seat not in CHECK_SEATS
-        ok_all &= (d["ok"] or d["informational_seat"]); per[kn] = d   # fp2dyn
+        d["identity_ok"] = d["baseline_sha_ok"] and d["baseline_axis_covers_frozen"]
+        ok_all &= (d["ok"] if not d["informational_seat"] else d["identity_ok"]); per[kn] = d   # fp2dyn (narrowed): non-checked seat — identity folds, only the band is informational
     return cx.chk("E9_gross_band_vs_baseline", ok_all, {"band": [lo, hi], "median_band": [mlo, mhi], "baseline_arm": ab["baseline_arm"], **per})
 
 
@@ -490,7 +496,7 @@ def gate_main():
     E = read_env(); cx = Ctx(E); run_all(cx, guards=True)
     R = cx.R; R["PASS"] = bool(not cx.fails); R["failed_checks"] = cx.fails
     R["registered_inputs"] = sorted(cx.inputs); R["registered_floor_v4_gate_common"] = cx.gc.REQUIRED_INPUTS.get(GATE)
-    R["built_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()); R["gate_version"] = "v2 (r20 gate closure 2026-09-12) + fp2dyn variant (2026-09-17: E8/E9 fold only CHECK_SEATS)"; R["seats_checked"] = sorted(CHECK_SEATS); R["seats_informational"] = sorted({s for s, _ in SEATS} - CHECK_SEATS)
+    R["built_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()); R["gate_version"] = "v2 (r20 gate closure 2026-09-12) + fp2dyn variant rev2 (2026-09-17: for seats outside CHECK_SEATS only K6 and the E9 band are informational; identities and baseline identity fold)"; R["seats_checked"] = sorted(CHECK_SEATS); R["seats_informational"] = sorted({s for s, _ in SEATS} - CHECK_SEATS)
     print(("EXPORT_GATE_V2 PASS " if R["PASS"] else "EXPORT_GATE_V2 FAIL ") + str(cx.fails), flush=True)
     cx.gc.finalize(GATE, R, E["EXPORT_GATE_OUT"], cx.inputs)
 

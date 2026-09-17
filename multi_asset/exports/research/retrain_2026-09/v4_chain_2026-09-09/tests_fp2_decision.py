@@ -18,15 +18,25 @@ T0 = WA0 - 900 * 14400; TS = T0 + 14400 * np.arange((calendar.timegm((2026, 8, 3
 N_WA = int(((TS >= WA0) & (TS <= UB)).sum()); N_KL = int(((TS >= KL0) & (TS <= UB)).sum())
 spec = importlib.util.spec_from_file_location("gc_t", f"{HERE}/v4_gate_common.py"); GC = importlib.util.module_from_spec(spec); spec.loader.exec_module(GC)
 EXPORT_FLOOR = GC.required_inputs("BUNDLE_export")[0]; STEP1_FLOOR = GC.required_inputs("STEP1", "v4")[0]
-def write_book(p, ts=TS):
-    rec = np.zeros((len(ts), 3)); rec[:, 0] = ts; rec[:, 1] = 2.0; np.savez(p, cols=np.array(["ts", "gross_total", "net_ex"]), d30_n2_c42_rec=rec, config_json=np.array("{}"))
+def write_book(p, ts=TS, shift=0.0):
+    rec = np.zeros((len(ts), 3)); rec[:, 0] = ts + shift; rec[:, 1] = 2.0; np.savez(p, cols=np.array(["ts", "gross_total", "net_ex"]), d30_n2_c42_rec=rec, config_json=np.array("{}"))
 class Root:
     def __init__(self):
         self.T = tempfile.mkdtemp(prefix="fp2dec_"); self.R = f"{self.T}/R"; self.D = f"{self.T}/D"; os.makedirs(f"{self.R}/v4_gates"); os.makedirs(f"{self.R}/hc/probe_artifacts"); os.makedirs(f"{self.R}/controls"); os.makedirs(self.D)
-        for f in ("fp2_per_year_table.py", "v4e_gate_export_v2.py", "fp2_member_rule_check.py", "fp2_gate_step1.py", "v4_gate_common.py"): shutil.copy2(f"{HERE}/{f}", f"{self.D}/{f}")
-        self.contract = json.load(open(f"{HERE}/ELIGIBILITY_CONTRACT.json"))            # the REAL schema (load_contract checks contract_schema/gates/arms); only the approved sources point at the fixture's copies
-        self.contract["gates"]["BUNDLE_export"]["approved_source_sha256"] = [sha(f"{self.D}/v4e_gate_export_v2.py")]; self.contract["gates"]["STEP1"]["approved_source_sha256"] = [sha(f"{self.D}/fp2_gate_step1.py")]
-        json.dump(self.contract, open(f"{self.D}/ELIGIBILITY_CONTRACT.json", "w"))
+        self.DEV = ("fp2_per_year_table.py", "v4e_gate_export_v2.py", "fp2_member_rule_check.py", "fp2_gate_step1.py", "v4_gate_common.py", "fp2_gate_lib.py", "fp2_controls.py", "fp2_decision.py")
+        for f in self.DEV: shutil.copy2(f"{HERE}/{f}", f"{self.D}/{f}")
+        self.month = "2026-09"; self.write_contract()
+    def write_contract(self, helper_sha=None, scope=None):
+        """the REAL schema (load_contract checks contract_schema/gates/arms); approved sources point at the fixture's copies; the STEP1 variant entry carries
+        requires (fp2_gate_lib.py) + scope (month, root) — P2-1: the decision EXECUTES these"""
+        c = json.load(open(f"{HERE}/ELIGIBILITY_CONTRACT.json"))
+        c["gates"]["BUNDLE_export"]["approved_source_sha256"] = [sha(f"{self.D}/v4e_gate_export_v2.py")]; c["gates"]["BUNDLE_export"].pop("approved_variants", None)
+        c["gates"]["STEP1"]["approved_source_sha256"] = [sha(f"{self.D}/fp2_gate_step1.py")]
+        c["gates"]["STEP1"]["approved_variants"] = {"fp2_gate_step1.py": {"sha256": sha(f"{self.D}/fp2_gate_step1.py"), "requires": {"fp2_gate_lib.py": helper_sha or sha(f"{self.D}/fp2_gate_lib.py")}, "scope": scope or {"V4_MONTH": self.month, "R": self.R}}}
+        self.contract = c; json.dump(c, open(f"{self.D}/ELIGIBILITY_CONTRACT.json", "w")); self.preflight()
+    def preflight(self, pins=None, month=None, PASS=True):
+        pf = {"gate": "PREFLIGHT", "PASS": PASS, "month": month or self.month, "root": self.R, "device_sha256": pins or {f: sha(f"{self.D}/{f}") for f in self.DEV}, "inputs": {}}
+        json.dump(pf, open(f"{self.R}/v4_gates/preflight.json", "w"))
         self.books = {}
         for a in ("A0", "A1"):
             for seat in ("dyn", "fix"):
@@ -35,7 +45,12 @@ class Root:
         self.f = {}
         for name in ("umask", "kmeta", "kfea", "dlt", "dlt_hf3", "fea82", "fea89", "cache", "mmask", "rawp", "hole", "gatelib", "ckmeta", "cdlt", "bundle_slow2026", "other_meta"):
             p = f"{self.R}/data/{name}.bin"; os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "wb").write(f"file {name}".encode()); self.f[name] = p
-        json.dump({"gate": "FP2_CONTROLS", "VERDICT": "PASS", "outputs_path": {"control_king_meta": self.f["ckmeta"], "control_dl_targets": self.f["cdlt"]}, "outputs_sha256": {"control_king_meta": sha(self.f["ckmeta"]), "control_dl_targets": sha(self.f["cdlt"])}}, open(f"{self.R}/controls/CONTROLS.json", "w"))
+        self.f["gatelib"] = f"{self.D}/fp2_gate_lib.py"          # the helper STEP1 records is the one in D (its sha is the contract's `requires`)
+        self.controls()
+    def controls(self, self_sha=None):
+        ins = {"cache": self.f["cache"], "raw_patch": self.f["rawp"], "builder_targets": self.f["fea82"]}
+        json.dump({"gate": "FP2_CONTROLS", "VERDICT": "PASS", "mode": "run", "self_sha256": self_sha or sha(f"{self.D}/fp2_controls.py"), "inputs_path": ins, "inputs_sha256": {k: sha(p) for k, p in ins.items()},
+                   "outputs_path": {"control_king_meta": self.f["ckmeta"], "control_dl_targets": self.f["cdlt"]}, "outputs_sha256": {"control_king_meta": sha(self.f["ckmeta"]), "control_dl_targets": sha(self.f["cdlt"])}}, open(f"{self.R}/controls/CONTROLS.json", "w"))
     def per_year(self, cells, years=None, verdict="PASS", seeds=SEEDS, arms_sha=None, self_sha=None, umask_sha=None, coverage=None, env=None, n_wa=N_WA, n_kl=N_KL):
         years = years or YEARS; d = {}
         for s in seeds:
@@ -59,9 +74,10 @@ class Root:
         p = path or f"{self.R}/v4_gates/BUNDLE_export_v2_A1.json"; json.dump(rec, open(p, "w")); return p
     def _dummy(self, name):
         p = f"{self.R}/data/dummy_{name.replace('/', '_')}.bin"; open(p, "wb").write(f"dummy {name}".encode()); return p
-    def step1(self, verdict="PASS", PASS=True, gate="STEP1", self_sha=None, path=None, dlt=None, cache=None):
-        xin = {"dlw_v4raw_targets": dlt or self.f["dlt"], "dlw_hf3_targets": self.f["dlt_hf3"], "fea82_v4raw": self.f["fea82"], "fea89_f8v4": self.f["fea89"], "cache": cache or self.f["cache"], "member_mask": self.f["mmask"], "raw_patch": self.f["rawp"],
+    def step1(self, verdict="PASS", PASS=True, gate="STEP1", self_sha=None, path=None, dlt=None, cache=None, drop=()):
+        xin = {"dlw_v4raw_targets": dlt or self.f["dlt"], "dlw_hf3_targets": self.f["dlt_hf3"], "fea82_v4raw": self.f["fea82"], "fea82_hf3": self.f["fea82"], "fea89_f8v4": self.f["fea89"], "cache": cache or self.f["cache"], "member_mask": self.f["mmask"], "raw_patch": self.f["rawp"],
                "hole_cells": self.f["hole"], "fp2_gate_lib": self.f["gatelib"], "controls_receipt": f"{self.R}/controls/CONTROLS.json", "control_dl_targets": self.f["cdlt"]}
+        for k in drop: xin.pop(k, None)
         rec = {"gate": gate, "VERDICT": verdict, "PASS": PASS, "self_sha256": self_sha or sha(f"{self.D}/fp2_gate_step1.py"), "inputs_path": xin, "inputs_sha256": {k: sha(p) for k, p in xin.items()}}
         p = path or f"{self.R}/v4_gates/step1.json"; json.dump(rec, open(p, "w")); return p
     def member_rule(self, verdict="PASS", kmeta=None, dlt=None, cache=None):
@@ -112,6 +128,25 @@ rc, o, j = Y.run(Y.per_year(both(0.01, 0.10)), Y.export())
 check("★★★ F3c the BOOK FILES end in 2026-03 while the table claims the frozen window ⇒ UNAVAILABLE (axis read from the books: ends before UB, counts differ)", rc == 3 and any("axis ends before the frozen UB" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:2])
 rc, o, j = X.run(X.per_year(both(0.01, 0.10), n_wa=9000), X.export())
 check("★★ F3d a cell whose n is not the frozen anchor count ⇒ UNAVAILABLE", rc == 3 and any("frozen" in u and "G1 cell" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
+# ── P2-1 / P2-3 (review round 4): the terminal EXECUTES the variant approval, the controls chain and the preflight pin; raw axis exactness ──
+Z = Root(); Z.write_contract(helper_sha="0" * 64); rc, o, j = Z.run(Z.per_year(both(0.01, 0.10)), Z.export())
+check("★★★ P2-1a reviewer: contract STEP1 variant `requires` helper sha zeroed (flat list intact) ⇒ UNAVAILABLE 'required helper fp2_gate_lib.py on disk != contract requires'", rc == 3 and any("required helper fp2_gate_lib.py" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
+Z.write_contract(scope={"V4_MONTH": "2026-10", "R": Z.R}); rc, o, j = Z.run(Z.per_year(both(0.01, 0.10)), Z.export())
+check("★★★ P2-1b reviewer: STEP1 variant scope month 2026-10 while the preflight says 2026-09 ⇒ UNAVAILABLE (scope executed at the terminal)", rc == 3 and any("scope month" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
+Z.write_contract(scope={"V4_MONTH": Z.month, "R": "/somewhere/else"}); rc, o, j = Z.run(Z.per_year(both(0.01, 0.10)), Z.export())
+check("★★ P2-1b′ scope root != R ⇒ UNAVAILABLE", rc == 3 and any("scope root" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1]); Z.write_contract()
+open(f"{Z.D}/fp2_controls.py", "a").write("\n# swapped\n"); rc, o, j = Z.run(Z.per_year(both(0.01, 0.10)), Z.export())
+check("★★★ P2-1c reviewer: fp2_controls.py in D replaced while the controls receipt keeps the old self sha ⇒ UNAVAILABLE (controls chain + preflight pin)", rc == 3 and any("controls receipt not written by" in u for u in j["UNAVAILABLE"]) and any("preflight pinned fp2_controls.py" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:2])
+shutil.copy2(f"{HERE}/fp2_controls.py", f"{Z.D}/fp2_controls.py"); Z.preflight()
+rc, o, j = Z.run(Z.per_year(both(0.01, 0.10)), Z.export(), s1=Z.step1(drop=("hole_cells", "fea82_hf3", "fp2_gate_lib")))
+check("★★★ P2-1d reviewer: STEP1 receipt with hole_cells / fea82_hf3 / fp2_gate_lib removed from BOTH dicts ⇒ UNAVAILABLE 'receipt lacks required input' ×3 (the variant's key set is fixed at the terminal)", rc == 3 and sum(1 for u in j["UNAVAILABLE"] if "lacks required input" in u) == 3, [u for u in j["UNAVAILABLE"] if "lacks" in u][:3])
+open(Z.f["cache"], "ab").write(b" x"); rc, o, j = Z.run(Z.per_year(both(0.01, 0.10)), Z.export()); open(Z.f["cache"], "wb").write(b"file cache")
+check("★★ P2-1e a controls INPUT (cache) changed on disk after the controls receipt ⇒ UNAVAILABLE (transitive: STEP1 require + controls chain + member binding)", rc == 3 and any("controls input cache changed" in u for u in j["UNAVAILABLE"]), [u for u in j["UNAVAILABLE"] if "cache" in u][:2])
+Z.preflight(pins={**{f: sha(f"{Z.D}/{f}") for f in Z.DEV}, "fp2_gate_lib.py": "9" * 64}); rc, o, j = Z.run(Z.per_year(both(0.01, 0.10)), Z.export())
+check("★★ P2-1f preflight pinned another fp2_gate_lib.py sha ⇒ UNAVAILABLE", rc == 3 and any("preflight pinned fp2_gate_lib.py" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1]); Z.preflight()
+rc, o, j = Z.run(Z.per_year(both(0.01, 0.10)), Z.export()); check("★ P2-1g the same root with everything restored ⇒ SWAP_RECOMMENDED (baseline green for the cells above)", rc == 0 and j["RECOMMENDATION"] == "SWAP_RECOMMENDED", j["UNAVAILABLE"][:2])
+Q = Root(); write_book(Q.books["A1/dyn/s42"], shift=0.5); rc, o, j = Q.run(Q.per_year(both(0.01, 0.10)), Q.export())
+check("★★★ P2-3 reviewer: A1/s42 raw ts all +0.5 s (hash bindings intact) ⇒ UNAVAILABLE 'raw ts axis is not integer seconds' (old device truncated to the grid and PASSed)", rc == 3 and any("not integer seconds" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
 # ── R05 / R08 / earlier identity cells ──
 py = X.per_year(both(0.01, 0.10)); d = json.load(open(py)); d["delta"]["A1-A0/dyn/s42"]["W_ALPHA"] = {"n": N_WA, "dg": float("inf"), "ci95": [float("inf"), float("inf")], "n_days": 800}; json.dump(d, open(py, "w")); rc, o, j = X.run(py, X.export())
 check("★★★ R05a Inf cell ⇒ UNAVAILABLE", rc == 3 and any("not a finite measurement" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])

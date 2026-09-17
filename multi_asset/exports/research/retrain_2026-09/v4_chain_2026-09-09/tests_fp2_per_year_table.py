@@ -16,7 +16,7 @@ def check(name, ok, detail=None):
 COLS = ['ts', 'net', 'pnl', 'carry', 'cost', 'gross_total', 'gross_member', 'gross_sel', 'nsel', 'nmember', 'fires', 'leg_king', 'leg_rev24', 'leg_fund', 'w3_king', 'w3_rev24', 'w3_fund', 'turnover', 'net_ex', 'pnl_ex', 'carry_ex', 'cost_ex', 'netlong']
 T0 = calendar.timegm((2022, 1, 31, 0, 0, 0)); ts = T0 + 14400 * np.arange(1200 + 900, dtype=np.int64)   # 900 warm-up + 2100 anchors ≈ 2022-01-31 → 2023-06
 YEAR = np.array([calendar.timegm((2023, 1, 1, 0, 0, 0)) <= t for t in ts])
-def arm(path, gfun, seat, cal="log", W=None, syms=None, umask=None, gt_row=None, fseed=None, inf_row=None):
+def arm(path, gfun, seat, cal="log", W=None, syms=None, umask=None, gt_row=None, fseed=None, inf_row=None, ts_shift=0.0):
     """F09/F10 fixture: every arm carries a symbols axis and a REAL umask path in cfg (the device verifies its identity across arms)."""
     dd = os.path.dirname(path); syms = syms or ["AUSDT", "BUSDT", "CUSDT"]; umask = umask or f"{dd}/umask.npz"
     if not os.path.isfile(umask): np.savez(umask, ts=ts, symbols=np.array(syms), mask=np.ones((len(ts), len(syms)), bool), definition=np.array("test"))
@@ -26,6 +26,7 @@ def arm(path, gfun, seat, cal="log", W=None, syms=None, umask=None, gt_row=None,
     if gt_row is not None: rec[gt_row, COLS.index("gross_total")] = -2.0          # Y7: one non-positive gross row
     cfg["UMASK_NPZ"] = umask; cfg["FSEED"] = fseed if fseed is not None else os.path.basename(path).rsplit("_s", 1)[1].split(".")[0]   # the record's own seed (R08)
     if inf_row is not None: rec[inf_row, COLS.index("net_ex")] = np.inf; rec[inf_row, COLS.index("pnl_ex")] = np.inf                        # R05: a non-finite return cell
+    if ts_shift: rec[:, 0] = rec[:, 0] + ts_shift                                                                                        # P2-3: a sub-second axis offset
     d = {"cols": np.array(COLS), "d30_n2_c42_rec": rec, "config_json": np.array(json.dumps(cfg)), "symbols": np.array(syms)}
     if W is not None: d["d30_n2_c42_W"] = W
     np.savez(path, **d)
@@ -106,6 +107,12 @@ with tempfile.TemporaryDirectory() as d:
     arm(f"{d}/w10_ablation_series_V4_A0_dyn_s42.npz", lambda i: 1.0, "dyn", umask=f"{d}/short.npz"); arm(f"{d}/w10_ablation_series_V4_A1_dyn_s42.npz", lambda i: 1.5, "dyn", umask=f"{d}/short.npz")
     rc, out, j = run(d, umask=f"{d}/short.npz")
     check("★★★ Y13 R08: umask covering only 1000 of 2100 anchors ⇒ UNAVAILABLE 'umask has no row for 1100 of 2100 anchors'", rc == 3 and not j["arms"] and any("no row for 1100 of 2100" in json.dumps(u) for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
+
+# ── P2-3 (review round 4): the axis is validated before integer conversion; a +0.5 s A1 axis is refused, not truncated onto the grid ──
+with tempfile.TemporaryDirectory() as d:
+    arm(f"{d}/w10_ablation_series_V4_A0_dyn_s42.npz", lambda i: 1.0, "dyn"); arm(f"{d}/w10_ablation_series_V4_A1_dyn_s42.npz", lambda i: 1.5, "dyn", ts_shift=0.5)
+    rc, out, j = run(d)
+    check("★★★ Y14 P2-3 reviewer: A1 raw ts all +0.5 s ⇒ A1 UNAVAILABLE 'ts is not integer seconds' (old device truncated and PASSed), rc 3", rc == 3 and "A1/dyn/s42" not in j["arms"] and any("not integer seconds" in json.dumps(u) for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
 
 print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
 if FAILS: print("FAILED:", *FAILS, sep="\n  "); sys.exit(1)
