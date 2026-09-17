@@ -3,7 +3,7 @@
 # contract IN ORDER, stopping at the first non-zero rc; the controls receipt must be PASS before `gates`; both arms are evaluated under the tradable
 # umask (V4_UMASK_NPZ, read by run_v4_arms.sh); A0 is RE-RUN under that umask AFTER the driver's arms stage (build_dev_v4 has by then re-linked the dev
 # tree to this root and re-projected A0's king score / F10 preds onto this root's axes) and BEFORE judge; the four A0 probe artifacts' shas before/after
-# are receipted. usage: bash chain_fp2_run.sh <fp2.env> [stage ...]   default: data_wait controls_wait gates king legs mwf refit np_export arms a0rerun judge export
+# are receipted. usage: bash chain_fp2_run.sh <fp2.env> [stage ...]   default: data_wait controls_run gates king legs mwf refit np_export arms a0rerun judge export; then per_year decision (F03)
 set -o pipefail
 D=$(cd "$(dirname "$0")" && pwd -P); export CHAIN_DEVICE_DIR=$D; ENVF=$1; shift; STAGES=${*:-"data_wait controls_run gates king legs mwf refit np_export arms a0rerun judge export"}
 [ -n "$ENVF" ] && [ -f "$ENVF" ] || { echo "usage: chain_fp2_run.sh <fp2.env> [stages]" >&2; exit 2; }
@@ -66,6 +66,17 @@ rec = {"gate": "A0_RERUN_TRADABLE", "PASS": rc == "0" and all(a.get(k) != v for 
 json.dump(rec, open(out, "w"), indent=1); print("A0_RERUN", "PASS" if rec["PASS"] else "FAIL", {k[:40]: (v[:8], a.get(k, "")[:8]) for k, v in b.items()})
 PY
       say2 "a0rerun rc=$rc receipt $REC"; [ $rc -eq 0 ] && "$PY" -c "import json,sys; sys.exit(0 if json.load(open(sys.argv[1]))['PASS'] else 1)" "$REC" || { say2 "FAIL_a0rerun"; exit 1; } ;;
+    per_year)   # F03/F09/F10: the per-year table (judge-same arm records, both arms under the same umask, per-anchor maxDD, W_ALPHA pinned to a time)
+      REC=$R/v4_gates/A0_RERUN_TRADABLE.json
+      [ -f "$REC" ] && "$PY" -c "import json,sys; sys.exit(0 if json.load(open(sys.argv[1]))['PASS'] else 1)" "$REC" || { say2 "FAIL_per_year_prereq_a0rerun (A0 must be re-run under the same umask first)"; exit 3; }
+      grep -aq "ARMS_DONE" "$R/arms_${EXPORT_ARM:-A1}.log" 2>/dev/null || { say2 "FAIL_per_year_prereq_arms_${EXPORT_ARM:-A1}"; exit 3; }
+      env ARMS_DIR=$HC/dev_v4/probe_artifacts UMASK_NPZ=$UM ARMS=A0,${EXPORT_ARM:-A1} SEATS=dyn SEEDS=$SEEDS OUT_JSON=$R/v4_gates/PER_YEAR_TABLE.json OUT_MD=$R/v4_gates/PER_YEAR_TABLE.md \
+        "$PY" "$D/fp2_per_year_table.py" > "$R/per_year_table.log" 2>&1 < /dev/null; rc=$?
+      say2 "stage per_year rc=$rc $(tail -1 "$R/per_year_table.log" | cut -c1-160)"; [ $rc -eq 0 ] || { say2 "FAIL_stage_per_year_rc_$rc"; exit $rc; } ;;
+    decision)   # F03: the swap recommendation under AMENDMENT 7 (G1′ non-inferiority × G2 per-year × G3 export gate); judge receipt informational only
+      env PER_YEAR_JSON=$R/v4_gates/PER_YEAR_TABLE.json EXPORT_RECEIPT=$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM:-A1}.json JUDGE_JSON=$R/v4_gates/JUDGE_v4_eligible.json \
+        EXPORT_ARM=${EXPORT_ARM:-A1} SEEDS=$SEEDS OUT_JSON=$R/v4_gates/DECISION_FP2.json OUT_MD=$R/v4_gates/DECISION_FP2.md "$PY" "$D/fp2_decision.py" > "$R/decision_fp2.log" 2>&1 < /dev/null; rc=$?
+      say2 "stage decision rc=$rc $(tail -1 "$R/decision_fp2.log" | cut -c1-160)"; [ $rc -eq 0 ] || { say2 "FAIL_stage_decision_rc_$rc"; exit $rc; } ;;
     *)
       say2 "stage $st: V4_STAGES=$st chain_v4_monthly.sh"
       env V4_STAGES=$st bash "$D/chain_v4_monthly.sh" "$ENVF" > "$R/chain_fp2_stage_$st.log" 2>&1 < /dev/null; rc=$?
