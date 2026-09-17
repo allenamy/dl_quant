@@ -42,13 +42,14 @@
    "ok": true
   },
   "nosleep_line_log_verified": {
-   "line": null,
-   "ok": false,
-   "status": "ABSENT at epilogue time"
+   "line": "2026-09-17T20:45:28Z nosleep: ok=True agent_pid=815 guard_age_h=77.003 power=AC | interval=4.5h log_verified=True slept_since_guard=0 slept_before_guard=0 src=asl:1 file(s) 2026.09.18.asl..2026.09.18.asl in 0.1s",
+   "ok": true,
+   "status": "present (anchor_runs.log, the run's own log)",
+   "source": "state/anchor_runs.log"
   },
   "anchor_done_and_ledger_row": {
-   "anchor_done_line": null,
-   "anchor_done_ok": false,
+   "anchor_done_line": "2026-09-17T20:53:41Z anchor done rc=0",
+   "anchor_done_ok": true,
    "ledger_rows_20Z": 1,
    "ledger_external_book": {
     "ok": true,
@@ -60,13 +61,15 @@
    "ledger_ok": true,
    "realized_gross": 235136.2268735202,
    "target_gross": 235745.5885078836,
-   "net_over_gross": -0.001549
+   "net_over_gross": -0.001549,
+   "status": "present"
   },
   "alarm_lines_20Z_21Z": []
  },
  "collector_log": "waiting until 2026-09-17T20:31:00Z for the 20Z anchor read under the pin\n=== 20Z anchor · pin acceptance evidence 2026-09-17T20:31:02Z ===\nprod HEAD d858c36 origin/main d858c36\nconfig f10_sha_pin: 351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4\n20Z target f10_sha: 351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4 written 2026-09-17T20:20:38Z n 240\nphase_A 2026-09-17T20:24:45Z {'ok': True, 'reason': None, 'anchor_ts': 1789675200, 'f10_sha': '351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4', 'json_sha': '4d059ffe475781fe029043396138216b722215755e5934ced56d4c559cb31eb7', 'age_s': 202.1, 'attempts': 1}\n2026-09-17T20:24:45Z phase_A: {\"anchor_wall_ts\": 1789675240.8014941, \"book_source\": \"external\", \"external_wait\": {\"nominal_anchor_ts\": 1789675200, \"wake_at\": 1789676640.0, \"wait_s\": 1399.2, \"reason\": \"inside the slot's pre-window: wait for the producer\", \"slep\nF10SHA_PIN_EVIDENCE_DONE\n",
  "VERDICT": "ACCEPTED_UNDER_PIN",
  "epilogue_pending": false,
- "epilogue_utc": "2026-09-17T20:52:24Z",
- "VERDICT_FINAL": "ACCEPTED_UNDER_PIN_WITH_OPEN_ITEMS"
+ "epilogue_utc": "2026-09-17T20:54:25Z",
+ "VERDICT_FINAL": "ACCEPTED_UNDER_PIN_COMPLETE",
+ "observation_log_streams": "launchd_out.log lagged the run's own state/anchor_runs.log after phase_A until the run exited (stdout flushed at exit); the 20Z lines after 20:24:45Z became visible in launchd_out.log only at 20:53:41Z. Read anchor_runs.log for in-flight state (note it also carries the battery's DRY_RUN lines; keep the LIVE lines by timestamp)."
 }
