@@ -92,7 +92,7 @@ cd ~/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chai
   | 已知→未知→恢复 | 沿用**原**参考, 减仓恢复 | 未知期间每锚具名 `derisk_unknown` + HIGH |
   | 快照时缺席→之后出现 | 同迟到参考(reason `absent_at_snapshot`) | 同上 |
   | 仍未知 | 不采用、不减、每锚持续具名告警 | `derisk_unknown` + HIGH |
-  为什么采用迟到参考而不是只告警不减: 陈旧期把一个名字留在全敞口直到阶段结束, 违背梯子的目的; 开仓已停, 迟到读数只可能 ≤ 真实陈旧期起点数量, 因此只会多减不会少减(偏向少风险)。**这是对既定 DERISK 政策「每个仓位按 frac×快照减」在快照不可读角落的实现, 不是新政策**; 若你裁定改为「只告警不减」, 是一处开关。
+  为什么采用迟到参考而不是只告警不减: 陈旧期把一个名字留在全敞口直到阶段结束, 违背梯子的目的。~~开仓已停, 迟到读数只可能 ≤ 真实陈旧期起点数量, 因此只会多减不会少减~~ **更正(第五轮复审 1004d6d6)**: 开仓虽停, 陈旧期**之前**挂出的旧单仍可能迟到成交, 迟到读数可高可低于从未读到的起点数量, 减仓量可能大于或小于比例量 —— 这是**恢复政策选择**, 不是推导出的保证。固定迟到参考(只设一次)保留; 若你裁定改为「只告警不减」, 是一处开关, 属你的裁定。
 - **证据** `tests_broker_nonfinite_positions.py` **23/23**: B1 未知→有限(锚 2 采用 10, 一单 sell 5.0, 锚 3 读 5 静默) · B1b 读 12 再读 10 参考仍 12(sell 6.0 / 4.0, 不重采用) · B2 未知→缺席 · B3 已知→未知→恢复(原参考) · B4 跨进程(state 经 JSON 往返) · B5 有限对照不变 · B6 持续未知每锚告警; **C7(cdfc06b 对照)**: 锚 2/3 读 10 却 0 单、无未知、无告警、参考空 —— 复审发现复现。
 ### 7.2 B14 下一锚改为真实 run(复审 §3)
 `evaluate` 不带 broker、不执行, 旧「flatten 计数不变」断言无鉴别力 —— 复审对。ev3 改为 `WD.run(broker=vb, state_dir=sd)`: 有标记 ⇒ 无新增 flatten、**其余 99 仓保留**; 无标记正控 ⇒ 新增一次 flatten、**99→0**。`tests_proportional_response` **60/60**。生产者未动。
@@ -101,3 +101,9 @@ cd ~/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chai
 - `HONEST_EXPECTATION` §3.6「只活在未跟踪文件/不可复现」→ 收窄为「尚未全部入库、未按 sha 逐条固化」(C6 已证可恢复, 且复审证据已归档独立分支); §5「从 126 格里挑出来的一格」→「126 格预注册网格中唯一交付的一格」(未完成不证明择优过程发生过)。原句划去保留。
 ### 7.4 提交与电池
 叠加树 `cdfc06b → d580eb5`(`scheduler/anchor_loop.py` + 两份测试; 收据 `receipts/STACKED_RFR_cdfc06b_to_d580eb5.diff` 227 行 sha8 c1d98f62); 研究仓 `41ee91c3 → (本节)`。电池(01:05:00Z→01:23:27Z, head `d580eb5`, `/usr/bin/python3` 3.9.6): 收据 `receipts/STACKED_BATTERY_20260917T010500Z.log`(sha8 dd38c901)。**157 绿 / 3 红 / 1 UNAVAILABLE, RC=1(既有红仍在)。** 相对 22:42Z(157/3/1, cdfc06b): **161 套退出码逐套件零差异**, 新红 0; 本轮改过的 `tests_broker_nonfinite_positions`、`tests_proportional_response`、`tests_signal_and_loop` 均 0。余红同前: 真漂移×2 · 本机 nosleep · 无 .env(UNAVAILABLE)。ENVRED-2 计数与前两次逐项相同(1986 / 47 / 15 / 无 env), audit 年龄随钟 20.32h。同样按复审读法: 证明已执行验收集合无退化, 恢复路径反例由 B1–B6/C7 覆盖, 不在电池断言里。零部署, 生产仍 ef60f85。
+
+### 7.5 第五轮复审(1004d6d6, 2026-09-17)收口与两处更正
+- 复审接受恢复修复与 B14 验收, 独立验证 27 条断言(恢复 / 重试 / 空头对称 / 状态保存恢复)通过, broker 23/23、proportional 60/60 复跑一致, 两次电池 161 套退出码完全一致(157/3/1)。**未发现新的阻断性执行器问题, 可以收口。**
+- 更正 1(已改 `_scale_to` docstring + 本文 §7.1): 「开仓已停 ⇒ 迟到读数必 ≤ 起点」不成立(旧单可迟到成交); 迟到参考是**恢复政策选择**, 保留固定规则, 写明可选替代。
+- 更正 2(已改测试): C7 的 cdfc06b 对照缺席时原脚本仍落到 ALL PASS —— 与 King 测试同一形态; 现改为 `CONTROL UNAVAILABLE` exit 3(对照缺席演练实测 rc=3)。本次对照在场, 23/23 有效。
+- **代码收口 ≠ 部署条件满足**(复审明言, 接受): 真漂移(`drift_gate`/`tests_drift_gate`, pilot_metrics 研究副本 vs 上游, 按方向审后同步、不削弱门)、防休眠证据(`tests_entrypoint_wiring`, NOSLEEP-1 有界查询)、运行环境凭据加载(`tests_env_loading`, 生产 .env 在生产树验收, 不向研究员提供凭据)三项**仍需验收**, 之后由你按原协议决定合并与部署。零部署, 生产仍 ef60f85, 无新收益结论。
