@@ -1,6 +1,6 @@
 # 全链逐环节验收表(v1, 2026-09-17 03:1xZ)—— 源码版本 · 实际输入 · 模型/产物 · 测试证据 · 是否部署 · 判定 · 缺口
 
-> **创建:** 2026-09-17 | **Session:** 0134cBjSFjjurUhAz95RNuWk | **状态:** v1.2(FP2-1..5 已落地 §8 ✅; FP2-7 实测收口 §9; FP2-6 提案待裁定; FP2-8 预注册; FP2-9 开放)(每格标 VERIFIED=本会话读到原件 / INFERRED=由原件推出 / UNVERIFIED=未核) | **作废条件:** 任一格的版本或收据变化; FP2 各项完成后升 v2
+> **创建:** 2026-09-17 | **Session:** 0134cBjSFjjurUhAz95RNuWk | **状态:** v1.3(FP2-1..5 §8 ✅; FP2-7 §9; FP2-6 提案待裁定; FP2-8 在跑 §10; FP2-9 开放)(每格标 VERIFIED=本会话读到原件 / INFERRED=由原件推出 / UNVERIFIED=未核) | **作废条件:** 任一格的版本或收据变化; FP2 各项完成后升 v2
 > **读法:** 本表只回答「现在能证明什么」。「有中间版本」≠「正式流程已修好」; 「训练跑完」≠「流程认证」。缺口一律映射到 §8 的 FP2 编号, 不在表内宣布关闭。
 
 ## 0. 两个总判(先说结论)
@@ -79,3 +79,14 @@
 | A0 重基(死合约) | 「FP2-7c」 | FX_DATA TRD-D3 N1-N9 已测(TF Δg −0.0603/−0.0519, INCONCLUSIVE@δ0.05, 几乎全在 2026); 掩码工件 3badc4b6 在 pod2 | → FP2-8 两臂同掩码评估 | FACT_TABLE_DATA §TRD-D3 |
 | king 轴首 5 天 | 「FP2-8(修后重训)」 | 机制核实: `pod_fea_ext_clamp.py` L26-32 `grid>=576` 但窗 2016, 负索引绕回 ⇒ v7=0 ⇒ 30 锚静默删除(非污染) | → FP2-8 v2 builder 显式 `grid>=2016` + 逐位正控 | DESIGN_FP2-8 §2 |
 | FP2-6 钉 | 「需裁定」 | 读者 R2/H6/源码钉三格已认证; 生产 `on_unavailable=hold`; target_live 无 F10 身份字段 | **提案 + 补丁已备, 待用户字** | `PROPOSAL_FP2-6_booster_pin_2026-09-17.md`, `fp2-6_booster_pin_book_json.patch` |
+
+## §10 FP2-8 运行与仪器(2026-09-17 06:0xZ; 状态随 pod2 收据更新)
+| 项 | 位置 | 状态 |
+|---|---|---|
+| 合同 / 装置目录 / 根 | `v4_month_2026-09_fp2.env`(b7d0afa7)/ `$R/devices_v4chain` / `/workspace/fp2_2026-09` | preflight PASS 05:27:58Z(重跑 05:42Z 钉最终装置 sha) |
+| cache 门 | `$R/v4_gates/cache_coverage.json`, `RAW_PATCH_COVERAGE.json` | PASS / PASS(952/952, unaccounted 0) |
+| controls(v2 无掩码 vs 九月 v1 逐位) | `$R/controls/CONTROLS.json` | 在跑 |
+| data / gates / king / legs / mwf / refit / np_export / arms / a0rerun / judge / export | `$R/chain_fp2_stage_*.log`, `$R/v4_gates/*.json`, `$R/chain_fp2_run.log` | 运行器 `chain_fp2_run.sh` 在跑 |
+| 逐年表 | `fp2_per_year_table.py` → `$R/v4_gates/PER_YEAR_TABLE.{json,md}`(判官同源臂记录, AMENDMENT 4) | 装置就绪; 干跑(九月 A0 副本, 原 umask)仅验 schema, **非结果** |
+| lifecycle 交叉核对 | AMENDMENT 4.3 | PENDING |
+| 独立复审 | `HANDOFF_FP2_REVIEW_2026-09-17.md` | 已交 |
