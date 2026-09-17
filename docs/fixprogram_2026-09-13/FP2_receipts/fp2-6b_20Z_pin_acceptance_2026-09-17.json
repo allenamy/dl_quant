@@ -1,0 +1,55 @@
+{
+ "utc": "2026-09-17T20:34:09Z",
+ "anchor_ts": 1789675200,
+ "step": "FP2-6b 3/3: first anchor read under external_book.f10_sha_pin",
+ "executor_tree": {
+  "HEAD": "d858c36",
+  "origin_main": "d858c36",
+  "pin_commit": "d858c36"
+ },
+ "checks": {
+  "config_pin_in_force": {
+   "value": "351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4",
+   "ok": true
+  },
+  "target_f10_sha_equals_pin": {
+   "value": "351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4",
+   "ok": true,
+   "written_utc": "2026-09-17T20:20:38Z",
+   "n_names": 240,
+   "gross_norm": 0.8041054255390935,
+   "producer": "combo_stage_v1(kingLGBM 0.55 + V2MAIN 0.45, rev24 leg removed; base shadow_loop_v3)"
+  },
+  "target_json_sha_equals_sidecar": {
+   "json_sha": "4d059ffe475781fe029043396138216b722215755e5934ced56d4c559cb31eb7",
+   "sidecar": "4d059ffe475781fe029043396138216b722215755e5934ced56d4c559cb31eb7",
+   "ok": true
+  },
+  "executor_phase_A_accepted": {
+   "log_utc": "2026-09-17T20:24:45Z",
+   "ok": true,
+   "reason": null,
+   "f10_sha": "351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4",
+   "f10_sha_equals_pin": true,
+   "json_sha_equals_target": true,
+   "attempts": 1,
+   "age_s": 202.1,
+   "n_names": 240,
+   "action": "TRADE"
+  },
+  "no_refusal_or_hold_lines_20Z": {
+   "lines": [],
+   "ok": true
+  },
+  "nosleep_line_log_verified": {
+   "status": "PENDING — the run's nosleep check prints near N+47 min (16Z: 16:47:50Z); epilogue appended by the 20:52Z step",
+   "battery_evidence_17_16Z": "log_verified=True src=asl:2 file(s) 1.6s (tests_entrypoint_wiring under 81ea654)"
+  },
+  "anchor_done_and_ledger_row": {
+   "status": "PENDING — run in flight at receipt time; epilogue appended by the 20:52Z step"
+  }
+ },
+ "collector_log": "waiting until 2026-09-17T20:31:00Z for the 20Z anchor read under the pin\n=== 20Z anchor · pin acceptance evidence 2026-09-17T20:31:02Z ===\nprod HEAD d858c36 origin/main d858c36\nconfig f10_sha_pin: 351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4\n20Z target f10_sha: 351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4 written 2026-09-17T20:20:38Z n 240\nphase_A 2026-09-17T20:24:45Z {'ok': True, 'reason': None, 'anchor_ts': 1789675200, 'f10_sha': '351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4', 'json_sha': '4d059ffe475781fe029043396138216b722215755e5934ced56d4c559cb31eb7', 'age_s': 202.1, 'attempts': 1}\n2026-09-17T20:24:45Z phase_A: {\"anchor_wall_ts\": 1789675240.8014941, \"book_source\": \"external\", \"external_wait\": {\"nominal_anchor_ts\": 1789675200, \"wake_at\": 1789676640.0, \"wait_s\": 1399.2, \"reason\": \"inside the slot's pre-window: wait for the producer\", \"slep\nF10SHA_PIN_EVIDENCE_DONE\n",
+ "VERDICT": "ACCEPTED_UNDER_PIN",
+ "epilogue_pending": true
+}
