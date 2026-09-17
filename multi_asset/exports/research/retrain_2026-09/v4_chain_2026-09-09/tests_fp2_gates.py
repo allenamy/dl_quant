@@ -32,10 +32,18 @@ def controls(R, sept_king=f"{TMP}/sept_king", sept_dl=f"{TMP}/sept_dl"):
     r = subprocess.run([PY, f"{HERE}/fp2_controls.py"], env=e, cwd=TMP, capture_output=True, text=True)
     rec = json.load(open(f"{R}/controls/CONTROLS.json")) if os.path.isfile(f"{R}/controls/CONTROLS.json") else None
     return r.returncode, r.stdout + r.stderr, rec
+# the king panel starts AFTER the first anchors (as the real v2ext panel starts 2022-01-31 while the cache starts 2022-01-01): fund columns are NaN there
+_kp = np.load(S["KPANEL"]); _cut = 40; np.savez(S["KPANEL"], ts=_kp["ts"][_cut:], f_fund_ema=_kp["f_fund_ema"][_cut:], f_fund_now=_kp["f_fund_now"][_cut:])
 R1 = f"{TMP}/R1"; os.makedirs(R1); rc, out, rec = controls(R1)
 if not os.path.isdir(f"{R1}/controls"): print("UNAVAILABLE: controls produced no directory —", out[-900:]); sys.exit(3)
-check("G1 controls PASS (rc 0, VERDICT PASS); K3 n_extra == 30; D1 bitwise", rc == 0 and rec and rec["VERDICT"] == "PASS" and rec["checks"]["K3 anchors only in v2 are EXACTLY the pre-2016-bar anchors (E_row in [576, 2016)) and their member features are finite"]["detail"]["n_extra"] == 30,
+check("G1 controls PASS (rc 0, VERDICT PASS) with a king panel that starts after the first anchors (fund columns NaN there — real v2ext layout); K3 n_extra == 30 with extra_rows_with_fund_nan > 0; D1 bitwise", rc == 0 and rec and rec["VERDICT"] == "PASS" and next(v for k, v in rec["checks"].items() if k.startswith("K3"))["detail"]["n_extra"] == 30,
       (rc, rec["VERDICT"] if rec else out[-300:], {k: v["ok"] for k, v in (rec or {}).get("checks", {}).items()}))
+_k3 = next((v for k, v in (rec or {}).get("checks", {}).items() if k.startswith("K3")), {}); check("G1b K3 detail records the early anchors' funding-NaN rows (> 0) — the criterion that FAILED the first real run", (_k3.get("detail") or {}).get("extra_rows_with_fund_nan", 0) > 0, _k3.get("detail"))
+_l0 = os.path.getmtime(f"{R1}/controls/king_nomask/build.log"); _e0 = dict(BASE, VERIFY_ONLY="1"); rcv, outv, recv = controls(R1) if False else (None, None, None)
+_ev = dict(BASE, R=R1, D=HERE, PY=PY, CACHE=S["CACHE"], PANEL_SPLICE=S["DPANEL"], PANEL_KING=S["KPANEL"], RAW_PATCH="", SEPT_KING_FEA=f"{TMP}/sept_king/wide_fea_v4.npy", SEPT_KING_META=f"{TMP}/sept_king/wide_fea_v4_meta.npz", SEPT_DL_TARGETS=f"{TMP}/sept_dl/data/dlw_targets.npz", BUILDER_TARGETS="pod_dlw_targets_raw_v2.py", BUILDER_KING_FEA="pod_fea_ext_clamp_v2.py", VERIFY_ONLY="1")
+_rv = subprocess.run([PY, f"{HERE}/fp2_controls.py"], env=_ev, cwd=TMP, capture_output=True, text=True); _recv = json.load(open(f"{R1}/controls/CONTROLS.json"))
+check("G1c VERIFY_ONLY=1 re-evaluates on the existing rc-0 outputs: PASS, mode verify_only, previous_receipt recorded, no rebuild (build.log untouched)",
+      _rv.returncode == 0 and _recv["VERDICT"] == "PASS" and _recv["mode"] == "verify_only" and _recv["previous_receipt"]["VERDICT"] == "PASS" and os.path.getmtime(f"{R1}/controls/king_nomask/build.log") == _l0, (_rv.returncode, _recv.get("mode"), _rv.stdout[-200:]))
 # masked builds under the contract mask (symbol 7 False at 3 anchors; symbol 9 False everywhere)
 mk = np.ones((S["nP"], S["NW"]), bool); mk[40:43, 7] = False; mk[:, 9] = False; MASK = maskfile("contract_mask", mk)
 def masked_run(root, mask):

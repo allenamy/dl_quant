@@ -109,3 +109,9 @@
   3. 生命周期日历 + 现金登记表: candidate2(5248d459, 166 名/168 CLOSE/13 OPEN, 非全 829 PIT 认证)+ `CASH_REGISTRY.json`(calendar_expanded1/2/3; 需核其 `calendar_sha256` 是否绑定 candidate2, 见本会话核查输出)。
 - 若做: 对 A0/A1 同一权重(臂记录 `d30_n2_c42_W`, 10,039 锚轴)跑冻结引擎 7a05b4f4, 报 CLOSE 归属与现金恒等式误差, 作附表; **不参与 G1–G3**。
 - **更正(同时段核查, 原行字节保留)**: (1) `/workspace/wide_multisrc/klines5m/<SYM>/` 在 pod2 上为**空目录**(缓存来源已不在盘上)⇒ 逐锚价格表需要**下载作业**(data.binance.vision 4h 月度 kline zip, 829 名 × 56 月 ≈ 4.6 万小文件)才能建; (2) 三份 `CASH_REGISTRY.json` 都**不**绑定 candidate2, 各绑定自己的扩展日历(expanded1 854bfde5 / expanded2 b09ccef1 / expanded3 d36598dc); 一致的输入对应取 `calendar_expanded3/CONTRACT_LIFECYCLE.json`(d36598dc)+ 其 `CASH_REGISTRY.json`(34456b53), candidate2 只是更早的证据版。⇒ 可行性降为「需下载作业 + 用 expanded3 对」, 状态仍 PENDING, 估计 5–6 h。
+
+## AMENDMENT 6(2026-09-17 08:3xZ, controls 首次真实判词 FAIL 是判据错, 不是数据错)
+- **真实数据结果(串行重跑, 08:19Z)**: K1 ✓(九月 10,182 锚全在 v2 的 10,212 中)· **K2 ✓ 共同 10,182 锚 FEA/members/y4/qvk 逐位相等** · K4 ✓ · **D1 ✓ DL 目标 12 数组逐位等于九月** · D2 ✓ · K3 ✗。
+- **K3 为何红**: 我的判据要求 30 个新锚的成员特征全部有限, 但 king 构建器对 king 面板(`wide_panel_4h_v2ext`, 起 2022-01-31)首行之前的锚**不写 fund_ema/fund_now 两列**(留 NaN)——九月 v1 自己的首 ~138 锚同样如此(K2 已逐位证明)。合成套件的面板覆盖全部锚, 所以从未触发。⇒ 判据改为「非资金费列有限」, 资金费 NaN 行数记入收据; 合成套件加「面板晚于首锚」布局(G1/G1b)。
+- **不重建**: 两次构建 rc 0 的产物原样, 新增 `VERIFY_ONLY=1` 只重算判词并记录 `previous_receipt`(G1c 证明不重建); FAIL 收据留档 `controls/CONTROLS_fail_K3criterion_20260917T0819Z.json`。
+- 结论: v2 构建器与九月 v1 在真实数据上**逐位一致**(共同锚), 且恰多出 30 个 E<2016 锚 —— AMENDMENT 1.1 的机制声明在真实数据上成立。

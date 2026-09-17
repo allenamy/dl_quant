@@ -38,8 +38,16 @@ def main():
     def write(verdict):
         rec["VERDICT"] = verdict; rec["PASS"] = verdict == "PASS"; rec["utc_end"] = time.strftime("%FT%TZ", time.gmtime())
         os.makedirs(OUT, exist_ok=True); json.dump(rec, open(REC, "w"), indent=1, default=str); log("CONTROLS", verdict, REC)
-    for k in ("king_nomask", "dl_nomask"):
-        if os.path.exists(os.path.join(OUT, k)): print(f"CONTROLS_REFUSED {OUT}/{k} exists (fresh directory required)", flush=True); return 3
+    VERIFY_ONLY = os.environ.get("VERIFY_ONLY", "") == "1"   # re-evaluate the checks on EXISTING rc-0 outputs (a criterion fix), never rebuild; recorded in the receipt
+    rec["mode"] = "verify_only" if VERIFY_ONLY else "build_and_verify"
+    if VERIFY_ONLY:
+        if os.path.isfile(REC):
+            prev = json.load(open(REC)); rec["previous_receipt"] = {"sha256": sha(REC), "VERDICT": prev.get("VERDICT"), "self_sha256": prev.get("self_sha256"), "runs": prev.get("runs")}
+            if not all(v.get("rc") == 0 for v in (prev.get("runs") or {}).values()): print("CONTROLS_REFUSED verify_only needs a previous receipt whose builds all had rc 0", flush=True); return 3
+        else: print("CONTROLS_REFUSED verify_only without a previous receipt", flush=True); return 3
+    else:
+        for k in ("king_nomask", "dl_nomask"):
+            if os.path.exists(os.path.join(OUT, k)): print(f"CONTROLS_REFUSED {OUT}/{k} exists (fresh directory required)", flush=True); return 3
     bk = os.path.join(D, E["BUILDER_KING_FEA"]); bt = os.path.join(D, E["BUILDER_TARGETS"])
     try:
         rec["inputs_sha256"] = {"cache": sha(E["CACHE"]), "panel_splice": sha(E["PANEL_SPLICE"]), "panel_king": sha(E["PANEL_KING"]), "raw_patch": (sha(E["RAW_PATCH"]) if E["RAW_PATCH"] else None),
@@ -52,17 +60,19 @@ def main():
     log("inputs hashed", json.dumps({k: (v[:8] if v else None) for k, v in rec["inputs_sha256"].items()}))
     base = {"PATH": os.environ.get("PATH", ""), "HOME": os.environ.get("HOME", "/root"), "OMP_NUM_THREADS": os.environ.get("OMP_NUM_THREADS", "8"), "MEMBER_MASK_NPZ": ""}
     if os.environ.get("PYTHONPATH"): base["PYTHONPATH"] = os.environ["PYTHONPATH"]   # passed through ONLY when the caller set it (local synthetic tests: the zload shim); recorded in runs.env
-    kd = os.path.join(OUT, "king_nomask"); dd = os.path.join(OUT, "dl_nomask"); os.makedirs(kd); os.makedirs(dd)
+    kd = os.path.join(OUT, "king_nomask"); dd = os.path.join(OUT, "dl_nomask")
+    if not VERIFY_ONLY: os.makedirs(kd); os.makedirs(dd)
     envk = dict(base, CACHE_IN=E["CACHE"], PANEL_IN=E["PANEL_KING"], FEA_OUT=f"{kd}/wide_fea_v4.npy", META_OUT=f"{kd}/wide_fea_v4_meta.npz")
     envd = dict(base, DLWT_CACHE=E["CACHE"], DLWT_PANEL=E["PANEL_SPLICE"], DLWT_OUT=dd, DLWT_RET_CH="0", DLWT_RAW_PATCH=E["RAW_PATCH"])
     runs = {}
-    for tag, script, env, logp in (("king", bk, envk, f"{kd}/build.log"), ("dl", bt, envd, f"{dd}/build.log")):
+    for tag, script, env, logp in (() if VERIFY_ONLY else (("king", bk, envk, f"{kd}/build.log"), ("dl", bt, envd, f"{dd}/build.log"))):
         log("run", tag, os.path.basename(script), "(env -i, mask empty)")
         with open(logp, "w") as lf: rc = subprocess.call(["env", "-i"] + [f"{k}={v}" for k, v in env.items()] + [E["PY"], script], stdout=lf, stderr=subprocess.STDOUT, cwd=D)
         runs[tag] = {"rc": rc, "log": logp, "env": env, "tail": open(logp).read().strip().splitlines()[-1][:200] if os.path.getsize(logp) else ""}
         log(tag, "rc", rc, runs[tag]["tail"])
-    rec["runs"] = runs
-    if runs["king"]["rc"] != 0 or runs["dl"]["rc"] != 0: write("UNAVAILABLE"); return 3
+    rec["runs"] = runs if not VERIFY_ONLY else rec["previous_receipt"]["runs"]
+    if not VERIFY_ONLY and (runs["king"]["rc"] != 0 or runs["dl"]["rc"] != 0): write("UNAVAILABLE"); return 3
+    if VERIFY_ONLY and not (os.path.isfile(envk["FEA_OUT"]) and os.path.isfile(envk["META_OUT"]) and os.path.isfile(f"{dd}/data/dlw_targets.npz")): write("UNAVAILABLE"); return 3
     rec["outputs_path"] = {"control_king_fea": envk["FEA_OUT"], "control_king_meta": envk["META_OUT"], "control_dl_targets": f"{dd}/data/dlw_targets.npz", "control_dl_report": f"{dd}/results/dlw_targets_report.json"}
     rec["outputs_sha256"] = {k: sha(v) for k, v in rec["outputs_path"].items()}
     # ---- K: king v2 (no mask) vs September v1 ----
@@ -83,11 +93,15 @@ def main():
     sept = {int(t) for t in E1}; extra = [j for j in range(len(E2)) if int(E2[j]) not in sept]
     erow = np.searchsorted(cts, E2[extra]) if extra else np.zeros(0, np.int64)
     okrow = bool(len(extra)) and np.array_equal(cts[erow], E2[extra]) and all(576 <= int(r) < 2016 for r in erow)
-    fin = all(np.isfinite(np.asarray(F2[j])[m2[j]].astype(np.float32)).all() for j in extra) if extra else False
-    check("K3 anchors only in v2 are EXACTLY the pre-2016-bar anchors (E_row in [576, 2016)) and their member features are finite",
+    # finiteness is judged on the NON-funding columns: the builder leaves fund_ema/fund_now NaN for anchors before the king panel's first row
+    # (September's own first anchors carry the same NaNs and passed K2 bitwise) — so fund columns are counted, not required finite.
+    names2 = [str(x) for x in M2["names"]]; nonfund = np.array([n not in ("fund_ema", "fund_now") for n in names2])
+    fin = all(np.isfinite(np.asarray(F2[j])[m2[j]][:, nonfund].astype(np.float32)).all() for j in extra) if extra else False
+    fund_nan_rows = int(sum(1 for j in extra if not np.isfinite(np.asarray(F2[j])[m2[j]][:, ~nonfund].astype(np.float32)).all())) if extra else 0
+    check("K3 anchors only in v2 are EXACTLY the pre-2016-bar anchors (E_row in [576, 2016)) and their member features are finite on the non-funding columns",
           okrow and fin and len(extra) == int(((cts % 14400 == 0) & (np.arange(len(cts)) >= 576) & (np.arange(len(cts)) < 2016)).sum()),
           {"n_extra": len(extra), "E_rows": [int(r) for r in erow[:6]], "expected_n": int(((cts % 14400 == 0) & (np.arange(len(cts)) >= 576) & (np.arange(len(cts)) < 2016)).sum()),
-           "first_extra_utc": time.strftime("%F %H:%MZ", time.gmtime(int(E2[extra[0]]))) if extra else None})
+           "first_extra_utc": time.strftime("%F %H:%MZ", time.gmtime(int(E2[extra[0]]))) if extra else None, "extra_rows_with_fund_nan": fund_nan_rows, "nonfund_cols": int(nonfund.sum())})
     check("K4 names / builder self-report", [str(x) for x in M1["names"]] == [str(x) for x in M2["names"]] and str(M2["builder"]) == E["BUILDER_KING_FEA"] and json.loads(str(M2["member_mask_json"]))["applied"] is False,
           {"builder": str(M2["builder"]), "n_anchors_before_2016": int(M2["n_anchors_before_2016"])})
     # ---- D: DL v2 (no mask) vs September dlw_v4raw ----
