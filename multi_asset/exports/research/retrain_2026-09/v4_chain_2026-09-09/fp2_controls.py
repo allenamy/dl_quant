@@ -83,10 +83,10 @@ def main():
     with zipfile.ZipFile(E["CACHE"]) as z: cts = np.load(z.open("ts.npy")).astype(np.int64)
     row = {int(t): i for i, t in enumerate(E2)}; common = [(i, row[int(t)]) for i, t in enumerate(E1) if int(t) in row]
     check("K1 every September anchor is present in v2", len(common) == len(E1), {"sept": int(len(E1)), "v2": int(len(E2))})
-    m1 = M1["members"]; m2 = M2["members"]; bad = []
+    m1 = M1["members"]; m2 = M2["members"]; y1 = M1["y4"]; y2 = M2["y4"]; q1 = M1["qvk"]; q2 = M2["qvk"]; bad = []   # materialised ONCE (an NpzFile key access re-reads the whole array)
     for i, j in common:
-        if not (np.array_equal(m1[i], m2[j]) and np.array_equal(F1[i].view(np.uint16), F2[j].view(np.uint16))
-                and np.array_equal(M1["y4"][i].view(np.uint32), M2["y4"][j].view(np.uint32)) and np.array_equal(M1["qvk"][i].view(np.uint32), M2["qvk"][j].view(np.uint32))):
+        if not (np.array_equal(m1[i], m2[j]) and np.array_equal(np.asarray(F1[i]).view(np.uint16), np.asarray(F2[j]).view(np.uint16))
+                and np.array_equal(y1[i].view(np.uint32), y2[j].view(np.uint32)) and np.array_equal(q1[i].view(np.uint32), q2[j].view(np.uint32))):
             bad.append(int(E1[i]))
             if len(bad) > 20: break
     check("K2 common anchors: FEA rows / members / y4 / qvk BITWISE equal", not bad, {"n_common": len(common), "first_bad_E_ts": bad[:5]})

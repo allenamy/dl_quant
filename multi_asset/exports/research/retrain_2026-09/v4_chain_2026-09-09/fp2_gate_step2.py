@@ -50,10 +50,11 @@ else:
     RC.update(GL.members_subset_check(EC, MCm, E4, M4m, MASK)); RC["mask_sha256"] = sha256_file(INPUTS["member_mask"])
     rc_ = {int(t): i for i, t in enumerate(EC)}; pairs = [(j, rc_[int(t)]) for j, t in enumerate(E4) if int(t) in rc_]
     vcols = np.nonzero(~isrank)[0]; bad_val = 0; bad_y = 0; checked = 0
+    Y4, YC, Q4, QC = M4["y4"], MC["y4"], M4["qvk"], MC["qvk"]   # materialised ONCE (an NpzFile key access re-reads the whole array per iteration)
     for j, i in pairs:
         m = np.asarray(M4m[j]); a = np.asarray(F4[j])[m][:, vcols]; c = np.asarray(FC[i])[m][:, vcols]
         if not np.array_equal(a.view(np.uint16), c.view(np.uint16)): bad_val += 1
-        if not (np.array_equal(M4["y4"][j].view(np.uint32), MC["y4"][i].view(np.uint32)) and np.array_equal(M4["qvk"][j].view(np.uint32), MC["qvk"][i].view(np.uint32))): bad_y += 1
+        if not (np.array_equal(Y4[j].view(np.uint32), YC[i].view(np.uint32)) and np.array_equal(Q4[j].view(np.uint32), QC[i].view(np.uint32))): bad_y += 1
         checked += 1
     RC.update({"common_checked": checked, "value_cols_not_bitwise_rows": bad_val, "y4_qvk_not_bitwise_rows": bad_y})
     RC["PASS"] = bool(RC["PASS"] and bad_val == 0 and bad_y == 0)
