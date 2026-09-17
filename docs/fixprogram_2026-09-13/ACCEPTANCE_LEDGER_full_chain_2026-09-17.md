@@ -1,6 +1,6 @@
 # 全链逐环节验收表(v1, 2026-09-17 03:1xZ)—— 源码版本 · 实际输入 · 模型/产物 · 测试证据 · 是否部署 · 判定 · 缺口
 
-> **创建:** 2026-09-17 | **Session:** 0134cBjSFjjurUhAz95RNuWk | **状态:** v1.1(FP2-1..5 已落地, 见 §8 ✅; FP2-6..9 开放)(每格标 VERIFIED=本会话读到原件 / INFERRED=由原件推出 / UNVERIFIED=未核) | **作废条件:** 任一格的版本或收据变化; FP2 各项完成后升 v2
+> **创建:** 2026-09-17 | **Session:** 0134cBjSFjjurUhAz95RNuWk | **状态:** v1.2(FP2-1..5 已落地 §8 ✅; FP2-7 实测收口 §9; FP2-6 提案待裁定; FP2-8 预注册; FP2-9 开放)(每格标 VERIFIED=本会话读到原件 / INFERRED=由原件推出 / UNVERIFIED=未核) | **作废条件:** 任一格的版本或收据变化; FP2 各项完成后升 v2
 > **读法:** 本表只回答「现在能证明什么」。「有中间版本」≠「正式流程已修好」; 「训练跑完」≠「流程认证」。缺口一律映射到 §8 的 FP2 编号, 不在表内宣布关闭。
 
 ## 0. 两个总判(先说结论)
@@ -67,3 +67,15 @@
 | FP2-7 | 采纳 C1/C3/C5/C7 进正式 v4 数据链(逐文件、带其测试); C6 内容审(6ef59338 51 文件); A0 参照重基(死合约) | 数据/评估 | FP2-1/2 | 否 |
 | FP2-8 | 修复版全链重训(pod2): 数据门 → legs → F10 20 折 s42/s2027 → king 导出(轴修) → JUDGE A1 vs A0(同窗同政策) → 出口门; 再经 lifecycle 回放(含停机政策臂)出**逐年 v4 RAW 口径表** = 最可信回测 | 重训/评估 | FP2-1..7 | 否(跑) |
 | FP2-9 | 换装决策(bundle sha + F10 np sha) | 上线 | FP2-8 | **是** |
+
+## §9 FP2-7 实测收口(2026-09-17 04:3x-04:5xZ, 只读探针, 受据 `FP2_receipts/`)
+| 项 | 原登记 | 实测 | 判定 | 受据 |
+|---|---|---|---|---|
+| C1 三月 raw 回填 | 「未接入正式 v4 链」 | 我方 holefix2 缓存 BOB/BMT [2026-01-30, 03-03) 各 9216 行: ch0 NaN 0、冻结 0、log_cnt 无 0; MTL [03-30, 05-03) 9792 行同 | **不适用于我方数据**(缺陷在独立研究员的 canonical 档案, 其 `canonical_data.py:20,23` 前推) | `probe_c1c3_ours.out` |
+| C3 519 标签重算 | 同上 | RAW 目标 y4s: BOB/BMT 2026-02 168/168 有限、MTL 2026-04 180/180 有限, qvk>0 全部 | **不适用**(我方这些锚从未被 mask) | `probe_c1c3_targets.out` |
+| C6 内容审(6ef59338) | 「内容未审(仅 sha 相符)」 | 对象 = `fullaxis_continuous_scalar_20260915` 冻结(51 文件): 溯源绑定门(`repair_completion.py` 硬编码 3 档案/24,768 行)+ `funding_support.py` 诊断掩码(`exchange_pit_certified: False`); 主源 `build_funding.py`(53 行 dcc9fe92)/`build_targets.py`(18 行 938b4488)在 pod2 未入库: 逐名逐位复现原公式 + 代际外资金费 null 测 + 知识 HOLD; 日历 candidate2 166 名/168 CLOSE/13 OPEN, 非全 829 PIT | **已审**; 对我方数据: 13/13 OPEN 首根新代 bar ret5=NaN、prev NaN ⇒ 无跨代假收益 ⇒ **无需进链** | `probe_c6_open_bars.out` |
+| C5 AERGO 估值点 | 「未接入」 | 属回放估值层 | → FP2-8 §2 估值覆盖门 | DESIGN_FP2-8 |
+| C7 E60 顺序 | 「采纳但需改」 | 只在 RiskEngine 路径 | → FP2-8 停机政策臂 v2 引擎副本 | DESIGN_FP2-8 |
+| A0 重基(死合约) | 「FP2-7c」 | FX_DATA TRD-D3 N1-N9 已测(TF Δg −0.0603/−0.0519, INCONCLUSIVE@δ0.05, 几乎全在 2026); 掩码工件 3badc4b6 在 pod2 | → FP2-8 两臂同掩码评估 | FACT_TABLE_DATA §TRD-D3 |
+| king 轴首 5 天 | 「FP2-8(修后重训)」 | 机制核实: `pod_fea_ext_clamp.py` L26-32 `grid>=576` 但窗 2016, 负索引绕回 ⇒ v7=0 ⇒ 30 锚静默删除(非污染) | → FP2-8 v2 builder 显式 `grid>=2016` + 逐位正控 | DESIGN_FP2-8 §2 |
+| FP2-6 钉 | 「需裁定」 | 读者 R2/H6/源码钉三格已认证; 生产 `on_unavailable=hold`; target_live 无 F10 身份字段 | **提案 + 补丁已备, 待用户字** | `PROPOSAL_FP2-6_booster_pin_2026-09-17.md`, `fp2-6_booster_pin_book_json.patch` |
