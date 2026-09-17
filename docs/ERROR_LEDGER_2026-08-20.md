@@ -622,3 +622,9 @@ C5 授权证据的对照项: A5 案 — 授权一个改动前先问"它的对照
 - 九月链跑的是 r0 版导出器(无临时文件), 这条路径在 pod2 上**从未执行过** —— 与「门存在、判词也算了, 但写入路径没跑过」同族(gate_exists_but_its_verdict_does_not_control_the_write 的镜像: 判词对了, 写入自己坏了)。
 - **修**: 临时名改为 `<out>.tmp.npz` + 写后 `assert os.path.isfile(tmp)` 再 rename; 回归 `tests_np_export_tmpwrite.py` 3/3 —— 从源码 AST 抽出写块逐字执行(W1 绿), 修前语句作红能力(W3 复现 FileNotFoundError 与 `.tmp.npz` 残留)。
 - **教训**: 凡改写落盘路径(临时文件/重命名), 必须在合成夹具上真跑那 4 行, 而不是只跑判词; numpy `savez`/`save` 的补后缀是已知陷阱, 写临时文件一律用以 `.npz`/`.npy` 结尾的名字或文件句柄。
+
+### E-0917-C · 送审版逐年表不写 delta 格的 n_days, 而同批送审的决策装置强制要求 ⇒ 真实首跑四格全拒(2026-09-17 12:06:37Z; 独立研究员三轮 F1 指出「不能把已修现场倒写成送审冻结版曾正确」)
+**事实链**:
+- 送审提交 4edb813d(决策)要求每格 `n_days` 为正整数; 送审提交 f3037a89(逐年表)的 `delta()` 只在 `level()` 里给 n_days。夹具两边都造了 n_days ⇒ 33/33 与 17/17 全绿, 真实首跑(runner 4, 12:06:37Z)decision G1=None, 四格「not a finite measurement」。同型: 夹具与真实收据布局不一致(AMENDMENT 6/8、F07 首版同族)。
+- 现场后继补丁(表 `delta()` 加 `n_days=bb["n_days"]`, 在 d1af114f 与其它改动混提; 本条单独归档为 `FP2_receipts/patch_F1_per_year_n_days_and_note_d1af114f.diff`)⇒ runner 5 12:10:29Z G1 = UNDECIDED。生成 12:10 表的源码 = 21a38721(只补 n_days); 12:15 盘上又改了掩码脚注 ⇒ 84fe0906。**三者分开记**: 送审源 c34db786 / 生成表源 21a38721 / 现盘 84fe0906。
+- **规则**: (1) 表与决策之间加「原表 → 原决策」集成正控(表装置真跑出的收据直接喂决策), 不允许两边各自造夹具; (2) 收据的 self_sha256 与现盘装置不一致时 require 必拒, 不靠人工忽略; (3) 终端收据用最终稳定源码重新形成, 不改历史票据。

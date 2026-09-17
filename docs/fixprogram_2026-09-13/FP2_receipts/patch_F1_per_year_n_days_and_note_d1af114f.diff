@@ -1,0 +1,31 @@
+commit d1af114fdb994e6d651756b143916fd21c7e2377
+Author: haosiyu <haosiyu@quant.dev>
+Date:   Thu Sep 17 20:14:25 2026 +0800
+
+    FP2-8 出数(2026-09-17 12:1xZ): 逐年表 PASS(两臂同 tradable 掩码, RAW 口径); 配对 Δg 四格点估计 +0.03…+0.09 bps/锚/gross 但三格 CI95 下界 < −δ ⇒ G1′ UNDECIDED ⇒ 不换装; 出口门首跑 FAIL E6/E8/E9 → PROPOSED4(合同只更正机制钉: umask 3badc4b6 + A0 重跑四书; thresholds 不动; 前身保留; pipeline 482/482)→ 只剩 E8 fix 席位 K6(gross>1, A0/A1 同现象 = tradable 掩码机制性质)⇒ G3 FAIL ⇒ 决策 UNAVAILABLE(唯一原因); 新装置 fp2_outside_mask_pnl.py + 收据(掩码外格 P&L 份额 0.5%, 两臂同; 8 书 92% 锚持有不可交易名权重); 逐年表 delta 格补 n_days、脚注改如实语义; AMENDMENT 11 + STATE 首行
+    
+    Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_0134cBjSFjjurUhAz95RNuWk
+
+diff --git a/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/fp2_per_year_table.py b/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/fp2_per_year_table.py
+index 48d4716d..85c2dfdc 100644
+--- a/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/fp2_per_year_table.py
++++ b/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/fp2_per_year_table.py
+@@ -72,7 +72,7 @@ def delta(a, b, mask, DAY):
+     n = int(mask.sum())
+     if n == 0: return dict(n=0)
+     d = a["g"] - b["g"]; bb = boot(d, mask, DAY)
+-    o = dict(n=n, dg=float(d[mask].mean()), ci95=bb["ci95"], se_boot=bb["se"], dpnl=float((a["pnl"] - b["pnl"])[mask].mean()), dcarry=float((a["car"] - b["car"])[mask].mean()), dcost=float((a["cst"] - b["cst"])[mask].mean()),
++    o = dict(n=n, dg=float(d[mask].mean()), ci95=bb["ci95"], se_boot=bb["se"], n_days=bb["n_days"], dpnl=float((a["pnl"] - b["pnl"])[mask].mean()), dcarry=float((a["car"] - b["car"])[mask].mean()), dcost=float((a["cst"] - b["cst"])[mask].mean()),
+              dtau_raw=float((a["tau_raw"] - b["tau_raw"])[mask].mean()), n_anchors_g_differs=int((np.abs(d[mask]) > 1e-12).sum()))
+     o["ci95_excl0"] = bool(o["ci95"][0] > 0 or o["ci95"][1] < 0); return o
+ def mask_stats(x, um):
+@@ -159,7 +159,7 @@ def main():
+             v = r["by_year"].get(w) if w.isdigit() else r[w]
+             if not v or v.get("n", 0) == 0: L.append(f"| {w} | 0 | — | — | — | — | — | — | — | — | — |"); continue
+             L.append(f"| {w} | {v['n']} | {f(v['g'])} | [{f(v['ci95'][0],3)}, {f(v['ci95'][1],3)}] | {f(v['sharpe_anchor'],3) if v['sharpe_anchor'] is not None else '—'} | {f(v['sharpe_daily'],3) if v['sharpe_daily'] is not None else '—'} | {('%.2f%%' % (100*v['maxdd_L'])) if v['maxdd_L'] is not None else '—'} | {('%.2f%%' % (100*v['maxdd_L_dayend'])) if v.get('maxdd_L_dayend') is not None else '—'} | {f(v['pnl'],3)} / {f(v['carry'],3)} / {f(v['cost'],3)} | {v['tau_raw']:.4f} | {f(v['netlong'],3)} |")
+-        if r["mask_stats"]: L.append(f"\nmask: traded cells {r['mask_stats']['traded_cells']}, outside umask {r['mask_stats']['traded_cells_outside_mask']} (must be 0), anchors with mask row {r['mask_stats']['anchors_with_mask_row']}/{r['mask_stats']['anchors_total']}")
++        if r["mask_stats"]: L.append(f"\nmask: traded cells {r['mask_stats']['traded_cells']}, outside umask {r['mask_stats']['traded_cells_outside_mask']} (scope m1: the mask shrinks the member/rank base and does not zero holdings — positions unwinding after a name left the tradable set; P&L share measured in OUTSIDE_MASK_PNL receipt), anchors with mask row {r['mask_stats']['anchors_with_mask_row']}/{r['mask_stats']['anchors_total']}")
+         L.append("")
+     for k in sorted(rec["delta"]):
+         r = rec["delta"][k]; L += [f"## Δ {k} (paired, same anchors)", "", "| window | n | Δg | CI95 | excl 0 | Δpnl / Δcarry / Δcost | Δτ raw | anchors differ |", "|---|---|---|---|---|---|---|---|"]
