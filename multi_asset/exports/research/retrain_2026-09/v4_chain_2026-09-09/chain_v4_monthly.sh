@@ -258,6 +258,9 @@ PYEOF
 fi
 
 # ── STEP1 / STEP2 gates: RUN, then REQUIRE ──────────────────────────────────────────────────────────────────────────────────────────────────
+# ── R03 (independent review round 2, 2026-09-17): every `require` of a STEP1/STEP2 receipt passes recorded_extras=1 — the inputs the RECEIPT recorded
+#    beyond the caller's static declaration (controls receipt, member mask, gate helper, …) are re-hashed from the receipt's own inputs_path at every
+#    later stage. A controls receipt edited after the gates passed made `require` say REQUIRE_OK before this (reviewer's counterexample).
 if want gates; then
   prereq_receipt gates preflight "$R/v4_gates/preflight.json" PREFLIGHT
   for T in RAW CLIP; do prereq_file gates f10_gate_$T "$F8/gates/F10_GATE_$T.json"; done   # the data stage finished in THIS root (identity receipts written last)
@@ -270,8 +273,8 @@ if want gates; then
   stage "gates ran: STEP1 rc=$rc1 STEP2 rc=$rc2 (receipts $R/v4_gates/step{1,2}.json)"
   S1_SRC=$(gate_sha "$D/$GATE_STEP1") || die "gate_source_unreadable_$GATE_STEP1" 3
   S2_SRC=$(gate_sha "$D/$GATE_STEP2") || die "gate_source_unreadable_$GATE_STEP2" 3
-  require_gate "$R/v4_gates/step1.json" gate=STEP1 profile=v4 self_sha=$S1_SRC dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz dlw_hf3_targets=$DLW_CLIP/data/dlw_targets.npz fea82_v4raw=$DLW_RAW/data/dlw_fea82.npz fea89_f8v4=$F8/data/f8_fea89.npz
-  require_gate "$R/v4_gates/step2.json" gate=STEP2 self_sha=$S2_SRC wide_fea_v4=$KING_FEA wide_fea_v4_meta=$KING_META
+  require_gate "$R/v4_gates/step1.json" recorded_extras=1 gate=STEP1 profile=v4 self_sha=$S1_SRC dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz dlw_hf3_targets=$DLW_CLIP/data/dlw_targets.npz fea82_v4raw=$DLW_RAW/data/dlw_fea82.npz fea89_f8v4=$F8/data/f8_fea89.npz
+  require_gate "$R/v4_gates/step2.json" recorded_extras=1 gate=STEP2 self_sha=$S2_SRC wide_fea_v4=$KING_FEA wide_fea_v4_meta=$KING_META
   [ $rc1 -eq 0 ] && [ $rc2 -eq 0 ] || die "gates_rc_${rc1}_${rc2}" 3
   stage "gates PASS + required (STEP1 self $S1_SRC, STEP2 self $S2_SRC)"
 fi
@@ -282,7 +285,7 @@ if want king; then
   prereq_receipt king step2 "$R/v4_gates/step2.json" STEP2
   guard king; stage "king: export bundle generation=$BUNDLE_GENERATION -> $BUNDLE_OUT (requires the STEP2 receipt bound to $KING_FEA/$KING_META)"
   S2_SRC=$(gate_sha "$D/$GATE_STEP2") || die "gate_source_unreadable_$GATE_STEP2" 3
-  require_gate "$R/v4_gates/step2.json" gate=STEP2 self_sha=$S2_SRC wide_fea_v4=$KING_FEA wide_fea_v4_meta=$KING_META
+  require_gate "$R/v4_gates/step2.json" recorded_extras=1 gate=STEP2 self_sha=$S2_SRC wide_fea_v4=$KING_FEA wide_fea_v4_meta=$KING_META
   env BUNDLE_OUT=$BUNDLE_OUT BUNDLE_BASE=$BUNDLE_BASE BUNDLE_FEA=$KING_FEA BUNDLE_META=$KING_META BUNDLE_CACHE=$CACHE BUNDLE_TAR=$BUNDLE_TAR EXPORT_PANEL=$EXPORT_PANEL EMA_STATE_JSON=$EMA_STATE_JSON \
       LIVE_PINS=$LIVE_PINS FUND_AUG=$FUND_AUG FUNDING_DIR=$FUNDING_DIR BUNDLE_GENERATION=$BUNDLE_GENERATION V4_MONTH_ENV=$V4_MONTH_ENV "$PY" "$D/pod_export_bundle_v4.py" > "$R/export_v4.log" 2>&1; rc=$?
   stage "king export rc=$rc $(tail -1 "$R/export_v4.log" | cut -c1-120)"; [ $rc -eq 0 ] || die "king_export_rc_$rc" 1
@@ -295,7 +298,7 @@ fi
 if want legs; then
   prereq_receipt legs preflight "$R/v4_gates/preflight.json" PREFLIGHT
   prereq_receipt legs step1 "$R/v4_gates/step1.json" STEP1; S1_SRC=$(gate_sha "$D/$GATE_STEP1") || die "gate_source_unreadable_$GATE_STEP1" 3
-  require_gate "$R/v4_gates/step1.json" gate=STEP1 profile=v4 self_sha=$S1_SRC dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz dlw_hf3_targets=$DLW_CLIP/data/dlw_targets.npz fea82_v4raw=$DLW_RAW/data/dlw_fea82.npz fea89_f8v4=$F8/data/f8_fea89.npz   # legs read THIS month's RAW targets: bound through STEP1
+  require_gate "$R/v4_gates/step1.json" recorded_extras=1 gate=STEP1 profile=v4 self_sha=$S1_SRC dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz dlw_hf3_targets=$DLW_CLIP/data/dlw_targets.npz fea82_v4raw=$DLW_RAW/data/dlw_fea82.npz fea89_f8v4=$F8/data/f8_fea89.npz   # legs read THIS month's RAW targets: bound through STEP1
   guard legs; stage "legs: pod_legs_v4b.py LEGS_PRED=$BUNDLE_OUT/slow_pred_pinned.npy LEGS_OLD=$LEGS_OLD"
   [ -f "$BUNDLE_OUT/slow_pred_pinned.npy" ] || die "legs_king_pred_missing" 3
   check_marker "$R/export_v4.log" "BUNDLE_DONE"; check_no_marker "$R/export_v4.log" "BUNDLE_FAIL"   # legs consume THIS month's export: its marker must be present in this root
@@ -322,7 +325,7 @@ if want mwf; then
   "$PY" "$D/v4_months.py" check "$DLW_RAW/data/dlw_targets.npz" "$MONTHS_ALL" >> "$STAGE_LOG" 2>&1 || die "months_all_not_admissible_for_axis" 3
   set_shards_from_months_all; export MWF_ROOT
   S1_SRC=$(gate_sha "$D/$GATE_STEP1") || die "gate_source_unreadable_$GATE_STEP1" 3
-  require_gate "$R/v4_gates/step1.json" gate=STEP1 profile=v4 self_sha=$S1_SRC dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz dlw_hf3_targets=$DLW_CLIP/data/dlw_targets.npz fea82_v4raw=$DLW_RAW/data/dlw_fea82.npz fea89_f8v4=$F8/data/f8_fea89.npz
+  require_gate "$R/v4_gates/step1.json" recorded_extras=1 gate=STEP1 profile=v4 self_sha=$S1_SRC dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz dlw_hf3_targets=$DLW_CLIP/data/dlw_targets.npz fea82_v4raw=$DLW_RAW/data/dlw_fea82.npz fea89_f8v4=$F8/data/f8_fea89.npz
   check_marker "$R/legs_v4.log" "LEGS_V4B_DONE"; [ -f "$F8/data/f10v2_legs.npz" ] || die "legs_missing" 3
   pin_deps v4_monthly_mwf "$D/pod_f10_train_monthly_v4.py" "$D/launch_mwf_v4b.sh" "$D/merge_mwf_v4b.py" "$D/chain_lib.sh" "$D/v4_months.py" "$BASE_TRAINER" "$F8/data/f10v2_legs.npz" "$F8/data/f8_fea89.npz" "$DLW_RAW/data/dlw_targets.npz" "$DLW_CLIP/data/dlw_targets.npz" "$DLW_RAW/data/dlw_fea82.npz" "$F8/gates/F10_GATE_RAW.json" "$ENVF"
   for SD in $SEED_LIST; do
@@ -338,7 +341,7 @@ fi
 if want refit; then
   prereq_receipt refit preflight "$R/v4_gates/preflight.json" PREFLIGHT
   prereq_receipt refit step1 "$R/v4_gates/step1.json" STEP1; S1_SRC=$(gate_sha "$D/$GATE_STEP1") || die "gate_source_unreadable_$GATE_STEP1" 3
-  require_gate "$R/v4_gates/step1.json" gate=STEP1 profile=v4 self_sha=$S1_SRC dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz dlw_hf3_targets=$DLW_CLIP/data/dlw_targets.npz fea82_v4raw=$DLW_RAW/data/dlw_fea82.npz fea89_f8v4=$F8/data/f8_fea89.npz
+  require_gate "$R/v4_gates/step1.json" recorded_extras=1 gate=STEP1 profile=v4 self_sha=$S1_SRC dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz dlw_hf3_targets=$DLW_CLIP/data/dlw_targets.npz fea82_v4raw=$DLW_RAW/data/dlw_fea82.npz fea89_f8v4=$F8/data/f8_fea89.npz
   prereq_marker refit legs "$R/legs_v4.log" LEGS_V4B_DONE; prereq_file refit legs_file "$F8/data/f10v2_legs.npz"
   for SD in $SEED_LIST; do prereq_marker refit merge_s$SD "$F8/logs/merge_v4b_RAW_s$SD.log" MERGE_DONE; done
   prereq_deps_identity refit mwf_inputs "$R/v4_gates/deps_v4_monthly_mwf.json" "$F8/data/f10v2_legs.npz" "$F8/data/f8_fea89.npz" "$DLW_RAW/data/dlw_targets.npz" "$DLW_CLIP/data/dlw_targets.npz" "$DLW_RAW/data/dlw_fea82.npz" "$D/pod_f10_train_monthly_v4.py"   # the mwf dispatch pinned these; refit consumes the same files
@@ -382,7 +385,7 @@ fi
 if want arms; then
   prereq_receipt arms preflight "$R/v4_gates/preflight.json" PREFLIGHT
   prereq_receipt arms step2 "$R/v4_gates/step2.json" STEP2; S2_SRC=$(gate_sha "$D/$GATE_STEP2") || die "gate_source_unreadable_$GATE_STEP2" 3
-  require_gate "$R/v4_gates/step2.json" gate=STEP2 self_sha=$S2_SRC wide_fea_v4=$KING_FEA wide_fea_v4_meta=$KING_META   # build_dev reads KING_META
+  require_gate "$R/v4_gates/step2.json" recorded_extras=1 gate=STEP2 self_sha=$S2_SRC wide_fea_v4=$KING_FEA wide_fea_v4_meta=$KING_META   # build_dev reads KING_META
   prereq_marker arms bundle "$R/export_v4.log" BUNDLE_DONE BUNDLE_FAIL; prereq_file arms king_pred "$BUNDLE_OUT/slow_pred_pinned.npy"
   for SD in $SEED_LIST; do prereq_refit_sidecar arms refit_s$SD "$F8/models/f10_live_s$SD.json" "$DLW_RAW" "$F8" "$SD" "$D/pod_f10_refit_v4.py"; done   # round 3: expected SEED + complete key set + this month's expected paths + the ACTUAL sha of the .pt and all four inputs + which program wrote the sidecar
   guard arms; stage "arms: build_dev_v4 (raw meta, SLOW_v4 from $BUNDLE_OUT, A0 preds) then run_v4_arms.sh $EXPORT_ARM seeds [$SEED_LIST]"
