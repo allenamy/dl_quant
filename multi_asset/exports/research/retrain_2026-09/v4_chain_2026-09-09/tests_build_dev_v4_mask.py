@@ -51,7 +51,7 @@ with tempfile.TemporaryDirectory() as t:
           rc == 0 and "DEV_V4_DONE" in out and sc.get("members_ok_under_mask") is True and sc["member_mask"]["rows_with_removals"] == 50 and sc["member_mask"]["cells_removed"] == 53 and len(sc["member_mask"]["sha256"]) == 64, (rc, sc.get("member_mask"), out[-120:]))
 with tempfile.TemporaryDirectory() as t:
     R, env = fixture(masked, t); other = MASK.copy(); other[6, 3] = True; env["DEV_MEMBER_MASK_NPZ"] = maskfile(t, other); rc, out = run(env)
-    check("★★★ M4 RED: a mask that does NOT explain one removal (anchor 6 symbol 3 is mask-True yet removed) ⇒ self-check FAIL, removed_not_mask_false_rows 1", rc != 0 and "self-check FAIL" in out and '"removed_not_mask_false_rows": 1' in out, (rc, out[-200:]))
+    check("★★★ M4 RED: a mask that does NOT explain one removal (anchor 6 symbol 3 is mask-True yet removed) ⇒ self-check FAIL, removed_not_masked_rows 1 (AMENDMENT 8 + F06 receipt keys, shared with fp2_gate_lib)", rc != 0 and "self-check FAIL" in out and '"removed_not_masked_rows": 1' in out, (rc, out[-200:]))
 def added(i, m): return np.append(masked(i, m), np.int64(NW - 1)) if i == 2 and (NW - 1) not in masked(i, m) else masked(i, m)
 MASK2 = MASK.copy(); MASK2[:, NW - 1] = False
 def masked2(i, m):
@@ -61,7 +61,7 @@ with tempfile.TemporaryDirectory() as t:
     # reference has all NW; a masked build can only REMOVE. Make anchor 2 contain a symbol index outside the reference's set by shrinking the reference there.
     R, env = fixture(masked2, t); ref = np.load(f"{R}/ref/meta_newprod_raw.npz", allow_pickle=True); rm = np.array(ref["members"], dtype=object); rm[2] = np.arange(NW - 1, dtype=np.int64)
     np.savez(f"{R}/ref/meta_newprod_raw.npz", E_ts=ref["E_ts"], members=rm, y4=ref["y4"], qvk=ref["qvk"]); env["DEV_MEMBER_MASK_NPZ"] = maskfile(t, MASK2); rc, out = run(env)
-    check("★★★ M5 RED: a masked build with a member the reference does not have (not a subset) ⇒ self-check FAIL, members_not_subset_rows 1", rc != 0 and "self-check FAIL" in out and '"members_not_subset_rows": 1' in out, (rc, out[-200:]))
+    check("★★★ M5 RED: a masked build with a member the reference does not have at a NON-truncated reference row ⇒ self-check FAIL, additions_without_truncation_rows 1 (AMENDMENT 8: additions are legal only at rows the reference truncated at NTOP)", rc != 0 and "self-check FAIL" in out and '"additions_without_truncation_rows": 1' in out, (rc, out[-200:]))
 print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
 if FAILS: print("FAILED:", *FAILS, sep="\n  "); sys.exit(1)
 print("ALL PASS")
