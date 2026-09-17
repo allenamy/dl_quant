@@ -281,13 +281,16 @@ def dedupe_fills(fills):
     chronology; trusting a self-declared timestamp would let a mis-stamped row overwrite a correct
     one. The one thing the caller must not do is reorder the rows before calling this.
     """
+    # ★★ LED-01 (2026-09-13; RE-FROZEN, config/metrics_freeze.json): keyed on (symbol, trade_id). Binance trade ids
+    #    are per-SYMBOL sequences, so the id alone could merge two different executions. Identity proof on the
+    #    44-day ledger copy (M2 per day, its stress subset, the watchdog cond3 detail): bitwise equal before/after.
     out, by_id = [], {}
     for f in fills:
         tid = f.get("trade_id")
         if tid is None:
             out.append(f)
             continue
-        by_id[tid] = f          # later occurrence replaces the earlier one
+        by_id[(f.get("symbol"), tid)] = f          # later occurrence replaces the earlier one
     return out + list(by_id.values())
 
 
