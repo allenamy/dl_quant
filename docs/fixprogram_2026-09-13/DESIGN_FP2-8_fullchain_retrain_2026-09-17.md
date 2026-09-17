@@ -101,3 +101,11 @@
 - **事实**: pod2 容器 cgroup `memory.max = 61,0GB`(宿主 247 GB 无关); `memory.peak` 61.0 GB, `memory.events oom_kill 3`; controls 的 king 构建 rc **−9**(SIGKILL)于 `cumsum log_qv (1828s)`, DL 构建 rc 0 完成。当时数据层的 RAW/CLIP 目标构建并行在跑。king 构建器(v1/v2 同算术)保留 7 通道 float64 累计和 ≈34 GB + 瞬时 ≈13 GB + 缓存 5.7 GB ≈ 50–58 GB, **单独跑才在 61 GB 内**(九月 v1 构建即单独跑)。
 - **处置**: 不改构建器(K2 要求与九月 v1 逐位相等, 算术不能动); 运行器加 `controls_run` 阶段, 在 `data_wait` 之后**单独**运行 `fp2_controls.py`(已有 PASS 收据则复用; 失败目录整体保留为受据 `controls_oomkilled_20260917T0625Z`)。规则: **任何 king 构建(数据层 king v2+掩码、controls king 无掩码)不得与其它大内存任务并行**。
 - **影响**: ETA 顺延约 1 h(controls 在数据层完成后串行 ≈55 min); 判据不变。十月 runbook 登记为 §0★ 修订 9。
+
+## AMENDMENT 4.3 补记(2026-09-17 06:4xZ, lifecycle 交叉核对可行性调查; 未开工)
+- **可行**, 但需三件输入装置(估计 3–4 h 装置 + 1–2 h 运行), 本轮未开工, 状态 **PENDING**:
+  1. 逐锚收盘价表 [T, 829]: 源 = `/workspace/wide_multisrc/klines5m/<SYM>/` 月度 zip(缓存本身的来源; 月度 CSV `raw5m_kl` 只覆盖补丁用到的 1,058 个(名, 月), **不是**全价格表; 日 zip 只有 08-22..31)。
+  2. 结算事件流: `/workspace/wide_multisrc/funding/<SYM>/<YYYY-MM>.zip` 列 `calc_time, funding_interval_hours, last_funding_rate` —— **无结算标记价**; `premidx_daily` 仅 08-22..31。⇒ 历史事件的 mark 只能用锚收盘价代理, 引擎按 `proxy_mark_events` 计数, 现金记账为近似(必须在表头声明)。
+  3. 生命周期日历 + 现金登记表: candidate2(5248d459, 166 名/168 CLOSE/13 OPEN, 非全 829 PIT 认证)+ `CASH_REGISTRY.json`(calendar_expanded1/2/3; 需核其 `calendar_sha256` 是否绑定 candidate2, 见本会话核查输出)。
+- 若做: 对 A0/A1 同一权重(臂记录 `d30_n2_c42_W`, 10,039 锚轴)跑冻结引擎 7a05b4f4, 报 CLOSE 归属与现金恒等式误差, 作附表; **不参与 G1–G3**。
+- **更正(同时段核查, 原行字节保留)**: (1) `/workspace/wide_multisrc/klines5m/<SYM>/` 在 pod2 上为**空目录**(缓存来源已不在盘上)⇒ 逐锚价格表需要**下载作业**(data.binance.vision 4h 月度 kline zip, 829 名 × 56 月 ≈ 4.6 万小文件)才能建; (2) 三份 `CASH_REGISTRY.json` 都**不**绑定 candidate2, 各绑定自己的扩展日历(expanded1 854bfde5 / expanded2 b09ccef1 / expanded3 d36598dc); 一致的输入对应取 `calendar_expanded3/CONTRACT_LIFECYCLE.json`(d36598dc)+ 其 `CASH_REGISTRY.json`(34456b53), candidate2 只是更早的证据版。⇒ 可行性降为「需下载作业 + 用 expanded3 对」, 状态仍 PENDING, 估计 5–6 h。
