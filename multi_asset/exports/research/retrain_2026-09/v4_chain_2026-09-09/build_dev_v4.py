@@ -32,20 +32,18 @@ chk = {"n_common": int(len(com)), "n_outside_neigh": int((~inn).sum()), "finite_
 _mk = os.environ.get("DEV_MEMBER_MASK_NPZ", "")
 if _mk:
     import hashlib
-    _mz = np.load(_mk, allow_pickle=True); _msy = [str(x) for x in _mz["symbols"]]; assert _msy == [str(x) for x in np.load(CACHE)["symbols"]], "mask symbols != cache symbols"
-    _mrow = {int(t): i for i, t in enumerate(_mz["ts"].astype(np.int64))}; _MM = np.asarray(_mz["mask"]); assert _MM.dtype == bool, "mask dtype"
-    _sub = 0; _bad = 0; _rem = 0; _rows = 0; _nomask = 0
-    for k in np.nonzero(~inn)[0]:
-        a_ = set(int(x) for x in M4m[i4[k]].tolist()); b_ = set(int(x) for x in MRm[ir[k]].tolist())
-        if a_ == b_: continue
-        if not a_ <= b_: _sub += 1; continue
-        r_ = _mrow.get(int(com[k]))
-        if r_ is None: _nomask += 1; continue
-        d_ = b_ - a_; _rows += 1; _rem += len(d_)
-        if any(bool(_MM[r_, j]) for j in d_): _bad += 1
-    chk["member_mask"] = {"path": _mk, "sha256": hashlib.sha256(open(_mk, "rb").read()).hexdigest(), "rows_with_removals": _rows, "cells_removed": _rem,
-                          "members_not_subset_rows": _sub, "removed_not_mask_false_rows": _bad, "rows_without_mask_row": _nomask}
-    chk["members_ok_under_mask"] = bool(_sub == 0 and _bad == 0 and _nomask == 0)
+    # ★ AMENDMENT 8 + F06 (2026-09-17): ONE implementation of the member rule — fp2_gate_lib.members_subset_check (truncation-aware: additions only at
+    #   control rows of exactly NTOP and mask-True; removals mask-False; every RETAINED member mask-True; the reference here is the unmasked control on
+    #   the common anchors outside the hole neighbourhoods). A subset-only rule would have FAILed the 109 truncation rows the real gates PASSed, and a
+    #   build that ignored the mask would have PASSed a subset-only rule (F06).
+    import sys as _sys; _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import fp2_gate_lib as _GL
+    _csyms = [str(x) for x in np.load(CACHE)["symbols"]]; _nz = np.nonzero(~inn)[0]; _Ek = com[_nz].astype(np.int64)
+    _MASKk, _mw = _GL.mask_rows(_mk, _Ek, _csyms)
+    chk["member_mask"] = {"path": _mk, "sha256": hashlib.sha256(open(_mk, "rb").read()).hexdigest(), "rule": "fp2_gate_lib.members_subset_check (AMENDMENT 8 + F06)", "n_common_outside_neigh": int(len(_nz))}
+    if _mw: chk["member_mask"]["refused"] = _mw; chk["members_ok_under_mask"] = False
+    else:
+        _sc = _GL.members_subset_check(_Ek, [MRm[ir[k]] for k in _nz], _Ek, [M4m[i4[k]] for k in _nz], _MASKk, ntop=400, MASK_c=_MASKk, min_mem=50)
+        chk["member_mask"].update(_sc); chk["members_ok_under_mask"] = bool(_sc["PASS"])
     _members_ok = chk["members_ok_under_mask"]
 else:
     _members_ok = chk["members_equal_outside"]
