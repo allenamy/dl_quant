@@ -42,14 +42,31 @@
    "ok": true
   },
   "nosleep_line_log_verified": {
-   "status": "PENDING — the run's nosleep check prints near N+47 min (16Z: 16:47:50Z); epilogue appended by the 20:52Z step",
-   "battery_evidence_17_16Z": "log_verified=True src=asl:2 file(s) 1.6s (tests_entrypoint_wiring under 81ea654)"
+   "line": null,
+   "ok": false,
+   "status": "ABSENT at epilogue time"
   },
   "anchor_done_and_ledger_row": {
-   "status": "PENDING — run in flight at receipt time; epilogue appended by the 20:52Z step"
-  }
+   "anchor_done_line": null,
+   "anchor_done_ok": false,
+   "ledger_rows_20Z": 1,
+   "ledger_external_book": {
+    "ok": true,
+    "f10_sha": "351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4",
+    "json_sha": "4d059ffe475781fe029043396138216b722215755e5934ced56d4c559cb31eb7",
+    "attempts": 1,
+    "age_s": 202.1
+   },
+   "ledger_ok": true,
+   "realized_gross": 235136.2268735202,
+   "target_gross": 235745.5885078836,
+   "net_over_gross": -0.001549
+  },
+  "alarm_lines_20Z_21Z": []
  },
  "collector_log": "waiting until 2026-09-17T20:31:00Z for the 20Z anchor read under the pin\n=== 20Z anchor · pin acceptance evidence 2026-09-17T20:31:02Z ===\nprod HEAD d858c36 origin/main d858c36\nconfig f10_sha_pin: 351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4\n20Z target f10_sha: 351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4 written 2026-09-17T20:20:38Z n 240\nphase_A 2026-09-17T20:24:45Z {'ok': True, 'reason': None, 'anchor_ts': 1789675200, 'f10_sha': '351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4', 'json_sha': '4d059ffe475781fe029043396138216b722215755e5934ced56d4c559cb31eb7', 'age_s': 202.1, 'attempts': 1}\n2026-09-17T20:24:45Z phase_A: {\"anchor_wall_ts\": 1789675240.8014941, \"book_source\": \"external\", \"external_wait\": {\"nominal_anchor_ts\": 1789675200, \"wake_at\": 1789676640.0, \"wait_s\": 1399.2, \"reason\": \"inside the slot's pre-window: wait for the producer\", \"slep\nF10SHA_PIN_EVIDENCE_DONE\n",
  "VERDICT": "ACCEPTED_UNDER_PIN",
- "epilogue_pending": true
+ "epilogue_pending": false,
+ "epilogue_utc": "2026-09-17T20:52:24Z",
+ "VERDICT_FINAL": "ACCEPTED_UNDER_PIN_WITH_OPEN_ITEMS"
 }
