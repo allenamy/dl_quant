@@ -96,3 +96,8 @@
 2. **口径(冻结)**: g = net_ex / gross_total(bps/锚/单位 gross, 扣费扣 carry); 年 = UTC 年; 每年一行 + 全窗(W_ALPHA 2022-06-30 起, 与 r18 同); 年化 Sharpe 报两种并标注: (a) r18 约定 逐锚 mean/std·√2190, (b) 本设计 §4 UTC 日聚合 mean/std·√365; maxDD 按固定 2× 逐锚复利 NAV(NAV_t = Π(1 + 2·g_t·1e-4)); 换手/锚、费用 bps/锚、carry bps/锚、有效锚数、可交易掩码剔除格数(自 config_json UMASK_NPZ 与掩码文件)。两臂同表同窗; 配对 Δ(A1−A0)逐年点估计 + UTC 日块 bootstrap 2000 CI95(种子 [20260905, k], 与 r18_judge 同)。
 3. **lifecycle 引擎降为交叉核对(范围声明)**: 若在 FP2-9 前能为一段窗口(候选 2025-01→2026-08)组装出有受据的价格/结算/日历输入, 则对 A1/A0 的同一权重做第二套记账(CLOSE 归属、现金恒等式), 作为附表; 做不到就在验收表标 **PENDING**, 不作声明、不影响 G1–G3。
 4. 判据 G2 的「年」以本表为准; G1 仍以 `JUDGE_v4.json`(W_ALPHA / KING_LIVE, s42/s2027, dyn)为准。
+
+## AMENDMENT 5(2026-09-17 06:3xZ, 首次 controls 被 OOM 杀; 处置 = 顺序而非改码)
+- **事实**: pod2 容器 cgroup `memory.max = 61,0GB`(宿主 247 GB 无关); `memory.peak` 61.0 GB, `memory.events oom_kill 3`; controls 的 king 构建 rc **−9**(SIGKILL)于 `cumsum log_qv (1828s)`, DL 构建 rc 0 完成。当时数据层的 RAW/CLIP 目标构建并行在跑。king 构建器(v1/v2 同算术)保留 7 通道 float64 累计和 ≈34 GB + 瞬时 ≈13 GB + 缓存 5.7 GB ≈ 50–58 GB, **单独跑才在 61 GB 内**(九月 v1 构建即单独跑)。
+- **处置**: 不改构建器(K2 要求与九月 v1 逐位相等, 算术不能动); 运行器加 `controls_run` 阶段, 在 `data_wait` 之后**单独**运行 `fp2_controls.py`(已有 PASS 收据则复用; 失败目录整体保留为受据 `controls_oomkilled_20260917T0625Z`)。规则: **任何 king 构建(数据层 king v2+掩码、controls king 无掩码)不得与其它大内存任务并行**。
+- **影响**: ETA 顺延约 1 h(controls 在数据层完成后串行 ≈55 min); 判据不变。十月 runbook 登记为 §0★ 修订 9。

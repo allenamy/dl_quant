@@ -236,3 +236,6 @@ w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025
 - **缺陷**: dev 树内 `health_check/run_arm.sh` 第 9 行硬编码 `ROOT=/workspace/review_scratch/health_check`。驱动虽由 `chain_lib` 导出 `V4_HC/V4_KING_DIR`, 且 `run_v4_arms.sh` 会 `cd $H`, 但 `run_arm.sh` 用自己的 ROOT 定 `cwd=$ROOT/dev_v4` 与 `logs/commands.txt` ⇒ **任何非九月根(含本模板 `HC=$R/health_check`)跑臂都会写进九月树**(probe_artifacts / logs 被覆盖), 判官读的却是本月 HC —— 静默错树。
 - **处置**: 每月复制 dev 树后必须把 `run_arm.sh` 第 9 行改为 `ROOT=$(cd "$(dirname "$0")" && pwd -P)`(FP2 副本已改, sha8 69e1e949 → f30b2c7c, 原件留 `run_arm.sh.orig_sept`), 并**重跑 preflight**(它把 `HC/run_arm.sh` 当输入哈希)。根治 = 把 `run_arm.sh` 收进研究仓装置目录并由驱动按 D 分发(待做, 登记 FP2-9 采纳项)。
 - 同类隐患: `run_v4_arms.sh` 的 umask 与 costb 已按 `$H` 取; A0 的 `SLOW_v3_on_v4axis.npy` 与 `f10_A0_*` 预测在**九月轴**上, 本月轴若变(FP2 v2 king 轴 +30 锚)需按时间戳对齐而非按行(见 DESIGN_FP2-8 AMENDMENT 3)。
+
+### §0★ 修订 9(2026-09-17, FP2-8 试跑; 容器内存上限)
+- pod2 容器 cgroup **`memory.max = 61 GB`**(不是 `free` 看到的 247 GB); `pod_fea_ext_clamp*.py` 全缓存构建峰值 ≈50–58 GB。**king 特征构建必须单独跑**(数据层内它在 fea82/fea89 之后串行, 本身满足; 但不得与 controls / 其它构建并行), 否则 SIGKILL(rc −9)且日志无 traceback(`memory.events oom_kill` 计数是唯一证据)。步 2 前先 `cat /sys/fs/cgroup/memory.max memory.events`。
