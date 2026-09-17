@@ -139,3 +139,12 @@
 - **F09(P2)** 逐年表 maxDD 主口径 = 逐锚复利 NAV(日末采样为次口径; 1→1.1→1 日内案例真 −9.09%)。
 - **F10(P2)** 逐年表输入门: 两臂同 UMASK 路径与文件 sha(且 == 合同 umask sha)、gross_total 有限正、symbols 轴同、4h 无缝网格; W_ALPHA 起点钉 **2022-06-30 00Z**(不是「第 900 行」)。
 - 套件: gates 17/17, decision 14/14, per-year 11/11, fnd_hol 20/20, exposure 5/5, arms 5/5; pipeline 套件见提交。真实数据: 重跑 preflight → controls(verify-only, 新装置)→ gates(F06/F07 绑定)——结果见 `REVIEW_RESPONSE_FP2_2026-09-17.md`。
+
+## AMENDMENT 10(2026-09-17 11:5xZ, 独立研究员二轮复审 e0ddd4cc 的 R01–R11 修复; 仍先于任何书层数字)
+- **R09(P2, 最重)** 成员规则精确核 `fp2_member_rule_check.py`: 从缓存按两构建器**各自**公式重算资格(覆盖率 ≥0.95、波动 ≥1e-4、目标有限)、qvm 与截断; **先**要求无掩码复刻逐锚等于控制构建(把复刻绑到真构建器), **再**要求掩码构建逐锚等于「规则 ∧ 掩码 → top-400 → ≥50」的精确集合与锚轴。合成 430 名夹具: 少 1 名 / 错 1 名 / 多 1 名 / 错删锚 / 控制被改 ⇒ 全 FAIL(旧规则均放行)。**真实数据(11:47Z)**: king 与 DL 各 10,212 锚 **PASS**(控制复刻精确; 掩码集精确; 截断行 2,887; 无删锚; 最小掩码池 135), 收据 `FP2_receipts/MEMBER_RULE_CHECK_2026-09-17.json`。⇒ 在飞链的训练成员集**就是**规则集, 复审的四类反例在真实数据上不存在。运行器新增 `member_rule` 阶段, 决策装置绑定其收据。
+- **R04/R05/R06/R08(P1)** 决策装置: formal profile 冻结(种子/窗/席位/δ/臂/年; 覆盖 ⇒ REFUSED_PROFILE; exploratory 永不建议); 身份闭包(表在 R 下且由 D 内装置写出、umask == 期望、臂记录 sha == 盘上现值; 出口收据在 R 下、臂相符、PASS 无败项、由 D 内出口门写出且 sha 在合同批准表、哈希 D 内合同、book/base 与表四书同路径同 sha; 成员规则收据 PASS 且 king meta == 出口门哈希的 bundle meta、DL targets == STEP1 哈希); 数值有限、lo ≤ hi、n > 0; 年份自首年到当前年连续且表达冻结上界。逐年表: 任一收益列非有限 ⇒ 臂 UNAVAILABLE; FSEED == 文件名种子; 掩码符号轴有序相等且覆盖全部锚; coverage 记录, 未达 UB ⇒ UNAVAILABLE。**G2 仍是逐年点估计规则, 不是逐年统计非劣证明**(报告措辞按此)。
+- **R03(P1)** `check_scope` 执行批准: 运行中的门 sha == 合同变体 sha; 合同 `requires` 的每个 helper 盘上 sha == 记录值(缺 requires 拒跑)。合同 requires lib 刷新至 e98b15b0。驱动 `require` 的 `recorded_extras=1` 未加(登记: 需改 chain_v4_monthly.sh, 在本链跑完后随 K3 细化一起做)。
+- **R07(P2)** verify-only 比对前次收据登记的**全部**产物(含 control_dl_report)。**R10** 运行器默认阶段到 decision。**R11** A0 重跑收据改为「rc 0 + ARMS_DONE + 每件工件由本次运行写出且 cfg.UMASK_NPZ == 本掩码」, 幂等复跑合法; `tests_build_dev_v4_mask` M4/M5 改共享收据键(5/5)。
+- **R01/R02(P1, FP2-1)** `build_funding` 返回 namedtuple 并修 p9 调用处(AST 普查格); 重建覆盖改为按名×列×行实写掩码(哨兵观测), 有源无 v1 种子 ⇒ 三列 EMA = COPIED_NO_SEED, C2 只比实写格; 30/30。真实重建仍 PENDING。
+- **E-0917-B**(与复审无关, 运行中发现): np 导出器原子写临时名被 numpy 补后缀 ⇒ np_export s42 rc 1; 修 + 回归 3/3; 运行器 3 从 np_export 重启。
+- 本轮**未关**(登记): FP2-1 真实重建; driver `require` recorded_extras; K3 细化; `run_arm.sh` 入装置; 生命周期现金独立核账; F08 经济影响。

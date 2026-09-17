@@ -241,5 +241,6 @@ w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025
 - pod2 容器 cgroup **`memory.max = 61 GB`**(不是 `free` 看到的 247 GB); `pod_fea_ext_clamp*.py` 全缓存构建峰值 ≈50–58 GB。**king 特征构建必须单独跑**(数据层内它在 fea82/fea89 之后串行, 本身满足; 但不得与 controls / 其它构建并行), 否则 SIGKILL(rc −9)且日志无 traceback(`memory.events oom_kill` 计数是唯一证据)。步 2 前先 `cat /sys/fs/cgroup/memory.max memory.events`。
 
 ### §0★ 修订 10(2026-09-17 09:16Z, FP2-6 用户字: 钉 king 模型身份已部署 6e177c4)
+> ⚠ **修订 11(2026-09-17 复审二轮 R10)**: FP2 运行器 `chain_fp2_run.sh` 默认阶段串现在以 `member_rule per_year decision` 结尾(此前止于 export ⇒ 默认一键跑不出数); 换装建议只读 `$R/v4_gates/DECISION_FP2.{json,md}`(formal profile, 身份闭包见 AMENDMENT 10), 判官 JUDGE_v4.json 只作信息。
 - 步 8 换装新增硬条件: **换 bundle 与改 `~/dl_quant_live/config/book.json external_book.booster_sha_pin`(← 新 bundle 的 slow2026.txt sha256 = MANIFEST 项)必须在同一个锚间静默窗内完成**(顺序无关, 但都要赶在下一锚 N+24:00 前), 执行器提交仍走 safe_commit/电池 + push + `pull --ff-only`; 忘改钉 ⇒ 下锚起 HOLD + HIGH 直到改对(不交易、不平仓)。回滚 bundle 时同步把钉改回旧 sha。
 - `universe_sha_pin` 保持 null(用户字: 宇宙月度滚动)。DL 腿身份钉(FP2-6b)待生产者 combo_stage 写 `f10_sha` 字段后另行部署。

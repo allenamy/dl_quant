@@ -93,3 +93,6 @@
 | FP2-6 钉 king(用户字 09:0xZ) | 执行器 **6e177c4**(config/book.json booster_sha_pin=8d79186b…; universe 不钉) | 生产电池 160/1/0(唯一红 NOSLEEP-1) | 已部署 09:16Z; 首锚 12:24Z 验 | DL 钉 = FP2-6b(生产者写 f10_sha 后) |
 
 > ⚠ **复审 F05 降级(2026-09-17 10:5xZ)**: FP2-1 资金费/假日面板重建的 `C2 … REPRODUCED` 判词在用新装置(`c2_compare_columns_sourced`, 提交 a1444008)重跑前**降级为「有源名部分未知」**: 旧装置把无源流的名(照抄旧面板)也计入 REPRODUCED。重跑后按 `C2_no_source` 的 n_with_source/n_no_source 重写本行。
+
+> ★ **复审二轮 R09 真实读数(2026-09-17 11:47Z)**: 成员规则精确核 PASS —— king / DL 各 10,212 锚, 控制构建被复刻逐锚精确, 掩码构建 == 规则精确集(截断行 2,887, 无删锚, 最小掩码池 135); 收据 `FP2_receipts/MEMBER_RULE_CHECK_2026-09-17.json`(装置 396f6a51, 输入 cache 1d7f459d / mask e0f67739 / king meta 61e54c8c / dl targets be4e1129 / patch adecf276)。在飞链的训练成员集 = 规则集; 复审的少选/错选/多选/错删锚四类反例在真实数据上不存在。
+> ★ **E-0917-B(2026-09-17 11:42:58Z)**: np_export s42 rc 1(导出器临时名被 numpy 补后缀), V1 已 PASS; 修复后运行器 3 自 np_export 重启; 残留 `f10_live_s42_np.npz.tmp.npz` 移作收据 `E-0917-B_stray_…`(b039e4cd)。
