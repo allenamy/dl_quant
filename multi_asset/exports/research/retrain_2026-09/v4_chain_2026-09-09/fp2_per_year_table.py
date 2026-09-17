@@ -17,7 +17,7 @@ def sha(p):
     with open(p, "rb") as f:
         for b in iter(lambda: f.read(1 << 22), b""): h.update(b)
     return h.hexdigest()
-def load(p, seat):
+def load(p, seat, seed=None):
     Z = np.load(p, allow_pickle=True); C = [str(c) for c in Z["cols"]]; rec = np.asarray(Z["d30_n2_c42_rec"], float); cfg = json.loads(str(Z["config_json"]))
     why = []
     for k, v in (("CAL", "log"), ("PHI", 0.45), ("LEGS", "101"), ("WRULE", "msharpe"), ("UMASK_SCOPE", "m1"), ("LOOK", 900), ("FTRIM", "zero"), ("MEMBERS_TOPN", 829)):
@@ -30,6 +30,10 @@ def load(p, seat):
              cfg={k: cfg.get(k) for k in ("UMASK_NPZ", "COSTB_JSON", "SLOW_NPY", "FPRED", "FSEED", "W3FIX", "FEMAT_NPZ")}, sha=sha(p), path=p, why=why)
     if not np.allclose(d["pnl"] - d["car"] - d["cst"], d["g"], atol=1e-9): why.append("pnl - carry - cost != g")
     if (np.diff(ts) <= 0).any(): why.append("ts not increasing")
+    for k in ("g", "pnl", "car", "cst", "tau_raw", "nl"):      # R05 (review round 2): an Inf/NaN return cell must make the arm UNAVAILABLE, never flow into a mean/CI
+        nb = int((~np.isfinite(d[k])).sum())
+        if nb: why.append(f"{k} not finite on {nb} rows")
+    if seed is not None and str(cfg.get("FSEED")) != str(seed): why.append(f"cfg FSEED={cfg.get('FSEED')!r} != file-name seed {seed!r}")   # R08: the seed is a fact of the record, not of the file name
     d["W"] = np.asarray(Z["d30_n2_c42_W"], np.float32) if "d30_n2_c42_W" in Z.files else None; d["symbols"] = [str(s) for s in Z["symbols"]] if "symbols" in Z.files else None
     return d
 _DRAW = {}
@@ -93,7 +97,7 @@ def main():
             for s in SEEDS:
                 p = os.path.join(E["ARMS_DIR"], f"w10_ablation_series_V4_{arm}_{seat}_s{s}.npz"); key = f"{arm}/{seat}/s{s}"
                 if not os.path.isfile(p): rec["UNAVAILABLE"].append({key: "file missing: " + p}); continue
-                try: x = load(p, seat)
+                try: x = load(p, seat, seed=s)
                 except Exception as e: rec["UNAVAILABLE"].append({key: f"load error: {e!r}"}); continue   # noqa: BLE001
                 if x["why"]: rec["UNAVAILABLE"].append({key: x["why"]}); continue
                 X[key] = x
@@ -115,6 +119,11 @@ def main():
         gt = x["gt"]
         if not (np.isfinite(gt).all() and (gt > 0).all()): why.append(f"gross_total not finite-positive on {int((~(np.isfinite(gt) & (gt > 0))).sum())} rows")
         if (np.diff(x["ts"]) != 14400).any(): why.append("ts is not a gap-free 4h grid")
+        if um is not None:   # R08: the mask is bound by its ORDERED symbol axis and must cover every anchor — a file hash alone proves neither
+            msy = [str(v) for v in um["symbols"]]
+            if msy != x["symbols"]: why.append("umask symbols axis != arm symbols axis (order matters)")
+            mrow = set(um["ts"].astype(np.int64).tolist()); nomask = int(sum(1 for t in x["ts"] if int(t) not in mrow))
+            if nomask: why.append(f"umask has no row for {nomask} of {len(x['ts'])} anchors")
         if why: rec["UNAVAILABLE"].append({k: why}); X[k] = None
     X = {k: v for k, v in X.items() if v is not None}
     if not X: rec["VERDICT"] = "UNAVAILABLE"; json.dump(rec, open(E["OUT_JSON"], "w"), indent=1, default=str); open(E["OUT_MD"], "w").write("# FP2 per-year table — UNAVAILABLE (no arm passed the input gates)\n" + json.dumps(rec["UNAVAILABLE"], indent=1, default=str)); print("UNAVAILABLE", rec["UNAVAILABLE"]); return 3
@@ -124,6 +133,11 @@ def main():
     if int(ts[900]) != WA_START:
         rec["VERDICT"] = "UNAVAILABLE"; rec["UNAVAILABLE"].append({"W_ALPHA": f"ts[900]={time.strftime('%FT%TZ', time.gmtime(int(ts[900])))} != pinned start {time.strftime('%FT%TZ', time.gmtime(WA_START))}"})
         json.dump(rec, open(E["OUT_JSON"], "w"), indent=1, default=str); open(E["OUT_MD"], "w").write("# FP2 per-year table — UNAVAILABLE (W_ALPHA start not on the pinned time)\n"); print("UNAVAILABLE W_ALPHA start"); return 3
+    rec["coverage"] = {"ts_min": time.strftime("%FT%TZ", time.gmtime(int(ts[0]))), "ts_max": time.strftime("%FT%TZ", time.gmtime(int(ts[-1]))), "UB": time.strftime("%FT%TZ", time.gmtime(UB)), "reaches_UB": bool(int(ts[-1]) >= UB),
+                       "WA_START": time.strftime("%FT%TZ", time.gmtime(WA_START)), "n_anchors": int(len(ts)), "n_W_ALPHA": int(WA.sum()), "n_KING_LIVE": int(KL.sum()), "years": [str(y) for y in years]}
+    if not rec["coverage"]["reaches_UB"]:   # R06: a table whose data end before the frozen upper bound cannot say anything about the missing tail (e.g. a missing 2026)
+        rec["VERDICT"] = "UNAVAILABLE"; rec["UNAVAILABLE"].append({"coverage": f"last anchor {rec['coverage']['ts_max']} < frozen UB {rec['coverage']['UB']}"})
+        json.dump(rec, open(E["OUT_JSON"], "w"), indent=1, default=str); open(E["OUT_MD"], "w").write("# FP2 per-year table — UNAVAILABLE (data end before the frozen upper bound)\n" + json.dumps(rec["coverage"], indent=1)); print("UNAVAILABLE coverage", rec["coverage"]); return 3
     rec["windows"] = {"n_anchors": int(len(ts)), "W_FULL": int(WT.sum()), "W_ALPHA": int(WA.sum()), "KING_LIVE": int(KL.sum()), "years": years, "first_anchor_utc": time.strftime("%FT%TZ", time.gmtime(int(ts[0]))), "last_anchor_utc": time.strftime("%FT%TZ", time.gmtime(int(ts[-1])))}
     for k, x in X.items():
         rec["arms"][k] = {"path": x["path"], "sha256": x["sha"], "cfg": x["cfg"], "mask_stats": mask_stats(x, um), "W_ALPHA": level(x, WA, DAY, DAYS, LEV), "KING_LIVE": level(x, KL, DAY, DAYS, LEV),

@@ -5,7 +5,7 @@
   Y3 traded cells outside the umask are counted (a cell planted deliberately ⇒ 1)
   Y4 A1 missing ⇒ VERDICT PARTIAL, rc 3, A0 rows present, delta UNAVAILABLE
   Y5 cfg assertion violated (CAL=simple) ⇒ that arm UNAVAILABLE"""
-import calendar, json, os, subprocess, sys, tempfile
+import time, calendar, json, os, subprocess, sys, tempfile
 import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__)); PY = sys.executable
 FAILS, N = [], [0]
@@ -16,7 +16,7 @@ def check(name, ok, detail=None):
 COLS = ['ts', 'net', 'pnl', 'carry', 'cost', 'gross_total', 'gross_member', 'gross_sel', 'nsel', 'nmember', 'fires', 'leg_king', 'leg_rev24', 'leg_fund', 'w3_king', 'w3_rev24', 'w3_fund', 'turnover', 'net_ex', 'pnl_ex', 'carry_ex', 'cost_ex', 'netlong']
 T0 = calendar.timegm((2022, 1, 31, 0, 0, 0)); ts = T0 + 14400 * np.arange(1200 + 900, dtype=np.int64)   # 900 warm-up + 2100 anchors ≈ 2022-01-31 → 2023-06
 YEAR = np.array([calendar.timegm((2023, 1, 1, 0, 0, 0)) <= t for t in ts])
-def arm(path, gfun, seat, cal="log", W=None, syms=None, umask=None, gt_row=None):
+def arm(path, gfun, seat, cal="log", W=None, syms=None, umask=None, gt_row=None, fseed=None, inf_row=None):
     """F09/F10 fixture: every arm carries a symbols axis and a REAL umask path in cfg (the device verifies its identity across arms)."""
     dd = os.path.dirname(path); syms = syms or ["AUSDT", "BUSDT", "CUSDT"]; umask = umask or f"{dd}/umask.npz"
     if not os.path.isfile(umask): np.savez(umask, ts=ts, symbols=np.array(syms), mask=np.ones((len(ts), len(syms)), bool), definition=np.array("test"))
@@ -24,12 +24,14 @@ def arm(path, gfun, seat, cal="log", W=None, syms=None, umask=None, gt_row=None)
     rec[:, COLS.index("gross_total")] = gt; rec[:, COLS.index("net_ex")] = g * gt; rec[:, COLS.index("pnl_ex")] = (g + 0.1) * gt; rec[:, COLS.index("carry_ex")] = 0.1 * gt; rec[:, COLS.index("cost_ex")] = 0.0; rec[:, COLS.index("turnover")] = 0.05 * gt
     cfg = {"CAL": cal, "PHI": 0.45, "LEGS": "101", "WRULE": "msharpe", "UMASK_SCOPE": "m1", "LOOK": 900, "FTRIM": "zero", "MEMBERS_TOPN": 829, "W3FIX": None if seat == "dyn" else "0.21,0,0.79", "UMASK_NPZ": "/x/umask.npz", "COSTB_JSON": "/x/c.json", "SLOW_NPY": "/x/SLOW.npy", "FPRED": "f.npy", "FSEED": "42"}
     if gt_row is not None: rec[gt_row, COLS.index("gross_total")] = -2.0          # Y7: one non-positive gross row
-    cfg["UMASK_NPZ"] = umask
+    cfg["UMASK_NPZ"] = umask; cfg["FSEED"] = fseed if fseed is not None else os.path.basename(path).rsplit("_s", 1)[1].split(".")[0]   # the record's own seed (R08)
+    if inf_row is not None: rec[inf_row, COLS.index("net_ex")] = np.inf; rec[inf_row, COLS.index("pnl_ex")] = np.inf                        # R05: a non-finite return cell
     d = {"cols": np.array(COLS), "d30_n2_c42_rec": rec, "config_json": np.array(json.dumps(cfg)), "symbols": np.array(syms)}
     if W is not None: d["d30_n2_c42_W"] = W
     np.savez(path, **d)
 def run(d, arms="A0,A1", umask="", extra=None):
-    e = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"], "ARMS_DIR": d, "OUT_JSON": f"{d}/t.json", "OUT_MD": f"{d}/t.md", "ARMS": arms, "SEATS": "dyn", "SEEDS": "42", "UMASK_NPZ": umask}; e.update(extra or {})
+    e = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"], "ARMS_DIR": d, "OUT_JSON": f"{d}/t.json", "OUT_MD": f"{d}/t.md", "ARMS": arms, "SEATS": "dyn", "SEEDS": "42", "UMASK_NPZ": umask,
+         "UB": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(ts[-1])))}; e.update(extra or {})   # the fixture's frozen upper bound = its last anchor (R06: the table must reach it)
     r = subprocess.run([PY, f"{HERE}/fp2_per_year_table.py"], env=e, capture_output=True, text=True); j = json.load(open(f"{d}/t.json")) if os.path.isfile(f"{d}/t.json") else None
     return r.returncode, r.stdout + r.stderr, j
 with tempfile.TemporaryDirectory() as d:
@@ -79,6 +81,32 @@ with tempfile.TemporaryDirectory() as d:
     check("★★★ Y8 F10 W_ALPHA start pinned to a TIME: ts[900] (2022-06-30 00Z) != pinned 2022-07-01 ⇒ VERDICT UNAVAILABLE, no arms, rc 3", rc == 3 and j["VERDICT"] == "UNAVAILABLE" and not j.get("arms") and any("W_ALPHA" in u for u in j["UNAVAILABLE"]), (rc, j["UNAVAILABLE"]))
     rc, out, j = run(d, extra={"WA_START": "2022-06-30T00:00:00Z"})
     check("Y8b the same axis with the correct pin ⇒ PASS (baseline green for the pin control)", rc == 0 and j["VERDICT"] == "PASS", (rc, j["VERDICT"]))
+# ── review round 2: R05 finiteness, R06 coverage to the frozen UB, R08 seed + mask axis/coverage ──
+with tempfile.TemporaryDirectory() as d:
+    arm(f"{d}/w10_ablation_series_V4_A0_dyn_s42.npz", lambda i: 1.0, "dyn"); arm(f"{d}/w10_ablation_series_V4_A1_dyn_s42.npz", lambda i: 1.5, "dyn")
+    rc, out, j = run(d, extra={"UB": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(ts[-1]) + 14400 * 6))})
+    check("★★★ Y9 R06: the frozen UB lies 1 day beyond the last anchor ⇒ VERDICT UNAVAILABLE with a coverage reason (a missing tail/year is never silently a table), rc 3", rc == 3 and j["VERDICT"] == "UNAVAILABLE" and any("coverage" in u for u in j["UNAVAILABLE"]) and j["coverage"]["reaches_UB"] is False, (rc, j["UNAVAILABLE"][-1:]))
+    rc, out, j = run(d)
+    check("Y9b the same table with UB = last anchor ⇒ PASS, coverage recorded (reaches_UB True, years listed)", rc == 0 and j["VERDICT"] == "PASS" and j["coverage"]["reaches_UB"] is True and j["coverage"]["years"] == ["2022", "2023"], j.get("coverage"))
+with tempfile.TemporaryDirectory() as d:
+    arm(f"{d}/w10_ablation_series_V4_A0_dyn_s42.npz", lambda i: 1.0, "dyn", fseed="2027"); arm(f"{d}/w10_ablation_series_V4_A1_dyn_s42.npz", lambda i: 1.5, "dyn")
+    rc, out, j = run(d)
+    check("★★★ Y10 R08: file named s42 but cfg FSEED=2027 ⇒ that arm UNAVAILABLE naming FSEED (the label does not stand in for the record)", rc == 3 and "A0/dyn/s42" not in j["arms"] and any("FSEED" in json.dumps(u) for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
+with tempfile.TemporaryDirectory() as d:
+    arm(f"{d}/w10_ablation_series_V4_A0_dyn_s42.npz", lambda i: 1.0, "dyn"); arm(f"{d}/w10_ablation_series_V4_A1_dyn_s42.npz", lambda i: 1.5, "dyn", inf_row=1500)
+    rc, out, j = run(d)
+    check("★★★ Y11 R05: +Inf net/pnl on one A1 row (gross finite, identity holds) ⇒ A1 UNAVAILABLE 'g not finite on 1 rows' — never a BETTER through an infinite mean", rc == 3 and "A1/dyn/s42" not in j["arms"] and any("not finite on 1 rows" in json.dumps(u) for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
+with tempfile.TemporaryDirectory() as d:
+    syms = ["AUSDT", "BUSDT", "CUSDT"]; np.savez(f"{d}/rev.npz", ts=ts, symbols=np.array(syms[::-1]), mask=np.ones((len(ts), 3), bool), definition=np.array("reversed"))
+    arm(f"{d}/w10_ablation_series_V4_A0_dyn_s42.npz", lambda i: 1.0, "dyn", umask=f"{d}/rev.npz"); arm(f"{d}/w10_ablation_series_V4_A1_dyn_s42.npz", lambda i: 1.5, "dyn", umask=f"{d}/rev.npz")
+    rc, out, j = run(d, umask=f"{d}/rev.npz")
+    check("★★★ Y12 R08: umask with the symbol axis REVERSED (same set, same hash logic) ⇒ every arm UNAVAILABLE 'umask symbols axis != arm symbols axis'", rc == 3 and not j["arms"] and any("symbols axis" in json.dumps(u) for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
+with tempfile.TemporaryDirectory() as d:
+    syms = ["AUSDT", "BUSDT", "CUSDT"]; np.savez(f"{d}/short.npz", ts=ts[:1000], symbols=np.array(syms), mask=np.ones((1000, 3), bool), definition=np.array("short"))
+    arm(f"{d}/w10_ablation_series_V4_A0_dyn_s42.npz", lambda i: 1.0, "dyn", umask=f"{d}/short.npz"); arm(f"{d}/w10_ablation_series_V4_A1_dyn_s42.npz", lambda i: 1.5, "dyn", umask=f"{d}/short.npz")
+    rc, out, j = run(d, umask=f"{d}/short.npz")
+    check("★★★ Y13 R08: umask covering only 1000 of 2100 anchors ⇒ UNAVAILABLE 'umask has no row for 1100 of 2100 anchors'", rc == 3 and not j["arms"] and any("no row for 1100 of 2100" in json.dumps(u) for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
+
 print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
 if FAILS: print("FAILED:", *FAILS, sep="\n  "); sys.exit(1)
 print("ALL PASS")
