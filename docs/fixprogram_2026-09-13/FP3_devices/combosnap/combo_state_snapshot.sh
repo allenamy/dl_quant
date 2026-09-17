@@ -7,16 +7,21 @@
 # Runs as a launchd agent (com.hsy.combosnap) polling every 60 s; idempotent (a complete snapshot dir is never rewritten). Retention: 21 days.
 set -u
 WS="$HOME/wide_shadow"; SNAP="$WS/state/snap"; mkdir -p "$SNAP"
-A=$("$WS/venv/bin/python" -c "import json;print(json.load(open('$WS/state/combo_live_status.json')).get('anchor_ts') or 0)" 2>/dev/null || echo 0)
+A=$("$WS/venv/bin/python" -c "import json;print((lambda d: d.get('anchor') if d.get('step') == 'done' and d.get('ok') else 0)(json.load(open('$WS/state/combo_live_status.json'))) or 0)" 2>/dev/null || echo 0)
 [ "$A" -gt 0 ] || exit 0
 D="$SNAP/$A"; [ -f "$D/COMPLETE" ] && exit 0
 AA=$("$WS/venv/bin/python" -c "import json;print(json.load(open('$WS/state/aux.json'))['prev_rec']['anchor_ts'])" 2>/dev/null || echo 0)
 [ "$AA" = "$A" ] || exit 0                                   # rolling state is not (or no longer) the one combo read for A ⇒ do not snapshot a wrong state
 mkdir -p "$D.tmp" || exit 1
+PRE=$(cd "$WS/state" && shasum -a 256 aux.json rolling.npz leg_returns_live.json)                                    # source bytes BEFORE the copy
 for f in aux.json rolling.npz leg_returns_live.json combo_live_status.json; do cp "$WS/state/$f" "$D.tmp/$f" || exit 1; done
+POST=$(cd "$WS/state" && shasum -a 256 aux.json rolling.npz leg_returns_live.json)                                   # … and AFTER: a file being rewritten is never snapshotted
+[ "$PRE" = "$POST" ] || { rm -rf "$D.tmp"; exit 0; }
 ( cd "$D.tmp" && shasum -a 256 aux.json rolling.npz leg_returns_live.json combo_live_status.json > SHA256SUMS ) || exit 1
+( cd "$D.tmp" && echo "$PRE" | shasum -a 256 -c --quiet - ) || { rm -rf "$D.tmp"; exit 0; }                        # the copies are the source bytes
 AA2=$("$WS/venv/bin/python" -c "import json;print(json.load(open('$D.tmp/aux.json'))['prev_rec']['anchor_ts'])" 2>/dev/null || echo 0)
 [ "$AA2" = "$A" ] || { rm -rf "$D.tmp"; exit 0; }             # the writer moved on while we copied ⇒ discard (next anchor's snapshot will be its own)
+"$WS/venv/bin/python" -c "import numpy as np,sys; z=np.load('$D.tmp/rolling.npz',allow_pickle=True); ts=z['ts'].astype('int64'); sys.exit(0 if len(ts) and int(ts.max())>=$A else 1)" || { rm -rf "$D.tmp"; exit 0; }   # the panel loads and reaches A
 date -u +%FT%TZ > "$D.tmp/COMPLETE" && mv "$D.tmp" "$D" || exit 1
 find "$SNAP" -maxdepth 1 -mindepth 1 -type d -mtime +21 -exec rm -rf {} + 2>/dev/null
 echo "snap $A $(date -u +%FT%TZ)" >> "$SNAP/snap.log"
