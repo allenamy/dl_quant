@@ -73,3 +73,8 @@ STATE.md 顶部新条(运行树 6661ea3, 时刻, 链, 电池, 回滚命令) · F
 - 02:06:21Z §2.4 ✓ .env 在且 ignored, 未被 FF 触碰(mtime 2026-08-01T10:20)
 - 02:06:21Z §2.5 ✓ launchd 入口不变: /usr/bin/python3 /Users/haosiyu/dl_quant_live/scheduler/run_anchor.py (整点 00/04/08/12/16/20Z)
 - 02:08:29Z §2.2 补核: 那 1 个非 ' M state/' 条目 = ' D state/alarm_episodes/artifacts.json'(state 文件, D 状态码, 部署前即如此); 部署后脏文件 23 个全在 state/ ✓ 与部署前集合一致
+- 02:24:41Z §2.6 生产电池(真 .env/真 state, 02:07:06→02:23:16Z, head 6661ea3, /usr/bin/python3 3.9.6): **158 绿 / 3 红 / 0 UNAVAILABLE**; 相对叠加树终验 156/5/1: 转绿 tests_alarm_digest(实时 audit 可观测, 证实 ENVRED-2 定因)与 tests_env_loading(真 .env 加载), 新红 0; 余红 drift_gate/tests_drift_gate(§5 处理)· tests_entrypoint_wiring(nosleep 日志未读到, NOSLEEP-1 开放项, 守卫在)。收据 PROD_BATTERY_20260917T020706Z_6661ea3.log sha8=ada3fba8
+- 02:24:41Z §5 re-vendor 完成: 研究仓 multi_asset/engine/live/pilot_metrics.py = 执行器字节 cd508c3f6a2727cc (研究仓提交 2c86ba74)
+- 02:24:41Z §2.7 漂移门 ops/check_upstream_drift.py exit=0 (期望 0)
+- 02:24:42Z §2.7 drift_gate 单独复跑 exit=2 
+- 02:24:42Z §2.7 tests_drift_gate 单独复跑 exit=0 ALL PASS

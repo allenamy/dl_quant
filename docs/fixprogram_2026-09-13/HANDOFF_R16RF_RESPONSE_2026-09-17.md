@@ -110,4 +110,4 @@ cd ~/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chai
 - **代码收口 ≠ 部署条件满足**(复审明言, 接受): 真漂移(`drift_gate`/`tests_drift_gate`, pilot_metrics 研究副本 vs 上游, 按方向审后同步、不削弱门)、防休眠证据(`tests_entrypoint_wiring`, NOSLEEP-1 有界查询)、运行环境凭据加载(`tests_env_loading`, 生产 .env 在生产树验收, 不向研究员提供凭据)三项**仍需验收**, 之后由你按原协议决定合并与部署。零部署, 生产仍 ef60f85, 无新收益结论。
 
 ### 7.6 部署(2026-09-17 02:06Z, 用户裁定)
-运行树 `~/dl_quant_live`: ef60f85 → **6661ea3** = origin/main(push + pull --ff-only; runbook `docs/RUNBOOK_deploy_executor_6661ea3_2026-09-17.md`)。本文此前所有「零部署 / 生产仍 ef60f85」表述自此作废。首锚 04:00Z(04:24Z 交易)验收与生产电池收据随后回填。
+运行树 `~/dl_quant_live`: ef60f85 → **6661ea3** = origin/main(push + pull --ff-only; runbook `docs/RUNBOOK_deploy_executor_6661ea3_2026-09-17.md`)。本文此前所有「零部署 / 生产仍 ef60f85」表述自此作废。生产电池 158/3/0(`receipts/PROD_BATTERY_20260917T020706Z_6661ea3.log`; alarm_digest/env_loading 转绿, 新红 0); 漂移 re-vendor 完成, 漂移门 exit 0; 余红 nosleep(NOSLEEP-1)。首锚 04:00Z(04:24Z 交易)验收随后回填。
