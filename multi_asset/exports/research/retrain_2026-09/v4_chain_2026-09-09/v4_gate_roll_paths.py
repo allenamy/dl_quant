@@ -21,7 +21,7 @@ no TODO_ marker and which is therefore the easiest one to leave pointing at Sept
 This gate does NOT decide whether the roll produced correct data; that is the parity gate and the coverage gate. It decides
 whether the month is allowed to write where it is about to write.
 
-Receipt through v4_gate_common.finalize (gate ROLL_PATHS; inputs month_env / prev_month_env): rc 0 iff PASS, else 3.
+Receipt through v4_gate_common_v2.finalize3 (gate ROLL_PATHS; inputs month_env / prev_month_env): rc 0 iff VERDICT PASS; FAIL and UNAVAILABLE both rc 3, the receipt's VERDICT and the printed label say which (FP2-4).
 env (all REQUIRED, no defaults): V4_MONTH_ENV, ROLL_PREV_MONTH_ENV, ROLL_OUT.
 optional: ROLL_ALLOW_OUTSIDE_ROOT (comma list of ROLLED keys allowed outside $R, each named in the receipt),
           ROLL_PREV_SHA_JSON (a {path: sha256} record of the previous month's artifacts, for P4).
@@ -33,7 +33,8 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from v4_gate_common import finalize, sha256_file
+from v4_gate_common import sha256_file
+from v4_gate_common_v2 import finalize3 as finalize   # FP2-4: three-state successor (PASS / FAIL / UNAVAILABLE), frozen v1 untouched
 
 # The keys a month roll PRODUCES. RAW_PATCH is here although the October template gives it a real path: that is exactly why it
 # is the easiest one to leave pointing at September (AUDIT_TRAIN TRN-02 evidence line).

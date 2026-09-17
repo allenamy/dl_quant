@@ -10,6 +10,12 @@ per coin) at the settlement grid (ns) — load_funding ffills from there. Output
 Usage: PYTHONPATH=. python multi_asset/data/build_funding_hist.py
 """
 from __future__ import annotations
+# ★★ RETIRED 2026-09-17 (FP2-2, independent review R16-D1): this builder derives a per-symbol quantity from the WHOLE series
+#    (a full-span median of funding_interval_h) — a look-ahead. It is NOT on the v4 chain, the monthly driver, the runbook or
+#    pod2 (reference census 2026-09-17: only eda history tools). It stays importable for those tools and for the record, but its
+#    main() refuses to run unless ALLOW_RETIRED_LOOKAHEAD_BUILDER=1 is set explicitly. Do not build a successor: no live or
+#    retrain consumer exists; the live/king path is fund_ema v1 (build_fund_ema_fullhist.py) + fund_now.
+RETIRED_LOOKAHEAD = True
 import os, os.path as p
 import numpy as np, pandas as pd
 
@@ -22,6 +28,9 @@ PANEL = {"bnfbtc": "BTCUSDT", "bnfeth": "ETHUSDT", "bnfsol": "SOLUSDT", "bnfbnb"
 
 
 def main():
+    import os as _os
+    if _os.environ.get("ALLOW_RETIRED_LOOKAHEAD_BUILDER") != "1":
+        raise SystemExit("RETIRED builder (look-ahead full-span median, FP2-2 2026-09-17): set ALLOW_RETIRED_LOOKAHEAD_BUILDER=1 to run deliberately")
     os.makedirs(OUT, exist_ok=True)
     for bnf, SYM in PANEL.items():
         ff = p.join(HIST, f"{SYM}_funding.csv")

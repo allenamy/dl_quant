@@ -11,6 +11,12 @@ crowding-reversion premium hold across 2020 bull / 2021 mania / 2022 crash / 202
 Output: exports/eda/megacap_funding_replay.json + printed per-year table.
 """
 from __future__ import annotations
+# ★★ RETIRED 2026-09-17 (FP2-2, independent review R16-D1): this builder derives a per-symbol quantity from the WHOLE series
+#    (a full-span median of funding_interval_h) — a look-ahead. It is NOT on the v4 chain, the monthly driver, the runbook or
+#    pod2 (reference census 2026-09-17: only eda history tools). It stays importable for those tools and for the record, but its
+#    main() refuses to run unless ALLOW_RETIRED_LOOKAHEAD_BUILDER=1 is set explicitly. Do not build a successor: no live or
+#    retrain consumer exists; the live/king path is fund_ema v1 (build_fund_ema_fullhist.py) + fund_now.
+RETIRED_LOOKAHEAD = True
 import glob, json, os.path as p
 import numpy as np, pandas as pd
 from scipy.stats import rankdata
@@ -106,6 +112,9 @@ def yr_stats(grid, CLOSE, FUND, hbars):
 
 
 def main():
+    import os as _os
+    if _os.environ.get("ALLOW_RETIRED_LOOKAHEAD_BUILDER") != "1":
+        raise SystemExit("RETIRED builder (look-ahead full-span median, FP2-2 2026-09-17): set ALLOW_RETIRED_LOOKAHEAD_BUILDER=1 to run deliberately")
     grid, syms, CLOSE, FUND = build_panel()
     print(f"[replay] {len(syms)} mega-caps, T={len(grid)} hrs, "
           f"{pd.to_datetime(grid[0],unit='ms').date()}→{pd.to_datetime(grid[-1],unit='ms').date()}, "

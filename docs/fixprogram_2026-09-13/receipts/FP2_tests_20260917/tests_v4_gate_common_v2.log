@@ -1,0 +1,20 @@
+[A] three verdicts through a real gate script
+  OK   ★★★ PASS: exit 0, label 'T PASS', PASS True, VERDICT PASS, schema v2  — (0, 'T PASS -> /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/tmpw_9ssok0/r.json', 'PASS')
+  OK   ★★★ FAIL: exit 3, label 'T FAIL', PASS False, VERDICT FAIL  — (3, 'T FAIL -> /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/tmpnourci0h/r.json')
+  OK   ★★★ UNAVAILABLE: exit 3 (non-zero), label 'T UNAVAILABLE' (not FAIL), PASS False, VERDICT UNAVAILABLE  — (3, 'T UNAVAILABLE -> /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/tmp_46litcy/r.json')
+  OK   ★★ a result that says PASS=True but VERDICT=UNAVAILABLE is written as UNAVAILABLE with PASS False — VERDICT wins, PASS is derived  — (3, False)
+
+[B] the frozen module is untouched
+  OK   ★★★ v4_gate_common.py sha8 == 24e813f1 (frozen device not edited by the successor)  — 24e813f1
+
+[C] existing readers refuse an UNAVAILABLE receipt and accept a PASS receipt
+  OK   ★★★ preflight reader: UNAVAILABLE receipt ⇒ fails; PASS receipt ⇒ accepted
+  OK   ★★ chain_lib.sh receipt check reads the JSON PASS field with `is not True` (an UNAVAILABLE receipt cannot pass it)
+  OK   ★ compare_gate_receipts reads PASS from JSON
+  OK   ★★ no chain script parses finalize's printed 'GATE PASS -> path' label  — []
+
+[D] verdict_of
+  OK   ★★ verdict_of: PASS / FAIL(failed) / UNAVAILABLE(only unevaluated) / FAIL(both failed and unevaluated)
+
+10/10 checks passed
+ALL PASS

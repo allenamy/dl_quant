@@ -1,0 +1,16 @@
+[A] retired markers + refusal
+  OK   ★★ multi_asset/data/build_funding_hist.py carries RETIRED_LOOKAHEAD = True and the override name
+  OK   ★★★ running build_funding_hist.py without the override REFUSES (non-zero, names RETIRED)  — (1, 'RETIRED builder (look-ahead full-span median, FP2-2 2026-09-17): set ALLOW_RETIRED_LOOKAHEAD_BUILDER=1 to run deliberately\n')
+  OK   ★★ multi_asset/data/megacap_funding_replay.py carries RETIRED_LOOKAHEAD = True and the override name
+  OK   ★★★ running megacap_funding_replay.py without the override REFUSES (non-zero, names RETIRED)  — (1, 'RETIRED builder (look-ahead full-span median, FP2-2 2026-09-17): set ALLOW_RETIRED_LOOKAHEAD_BUILDER=1 to run deliberately\n')
+  OK   ★★ multi_asset/data/apply_funding_fix.py carries RETIRED_LOOKAHEAD = True and the override name
+  OK   ★★★ running apply_funding_fix.py without the override REFUSES (non-zero, names RETIRED)  — (1, 'RETIRED builder (look-ahead full-span median, FP2-2 2026-09-17): set ALLOW_RETIRED_LOOKAHEAD_BUILDER=1 to run deliberately\n')
+
+[B] census: none of them is referenced by the chain
+  OK   ★★★ no chain script / contract / runbook references a retired look-ahead builder  — []
+
+[C] the on-chain funding builders have no full-span median
+  OK   ★★ build_fund_ema_fullhist.py: no np.median over an interval series  — []
+
+8/8 checks passed
+ALL PASS
