@@ -39,7 +39,7 @@ Exit 0 only if C1 and C2 passed and the written file reloads.
 import os, sys, ast, csv, io, json, glob, gzip, time, zipfile, hashlib
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from fnd_hol_checks import c1_diff_mask, c2_now_iv_from_stream, c2_compare_columns, roundtrip_verify   # FP2-1
+from fnd_hol_checks import c2_compare_columns_sourced, c1_diff_mask, c2_now_iv_from_stream, c2_compare_columns, roundtrip_verify   # FP2-1
 
 ENV_WHITELIST = {"PATH", "HOME", "OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "PYTHONPATH"}
 EXTRA = sorted(k for k in os.environ if k not in ENV_WHITELIST and k not in ("PWD", "SHLVL", "_", "OLDPWD", "LC_CTYPE"))
@@ -216,11 +216,12 @@ def stream(s, mode):
 def build_funding(mode):
     out = {c: np.array(INC[c], copy=True) for c in FUND}
     for c in FUND: out[c][:nC] = CAN[c]
-    state = {}; agg = {}; ncont = [0]
+    state = {}; agg = {}; ncont = [0]; has_source = np.zeros(len(syms), bool)   # F05: which symbols were actually rebuilt from a stream
     for j, s in enumerate(syms):
         ft, fr, iv_full, tiers = stream(s, mode)
         for k, v in tiers.items(): agg[k] = agg.get(k, 0) + v
-        if ft is None: continue
+        if ft is None: continue          # no source ⇒ the incumbent copy stays; recorded below as COPIED_NO_SOURCE, never compared as "reproduced"
+        has_source[j] = True
         rate_nf = fr * (8.0 / iv_full)
         # v2 (FP2-1): f_fund_now / f_fund_iv are REBUILT from the stream with the incumbent rule — v1 kept INC's copy here and
         # then compared INC with itself for these two columns
@@ -234,13 +235,17 @@ def build_funding(mode):
         assert not missing, ("the verbatim block reads names this device does not supply", missing)
         exec(EMA_CODE, ns)
         ncont[0] += ns.get("n_cont", 0)
-    agg["_symbols_continued"] = ncont[0]
-    return out, agg
+    agg["_symbols_continued"] = ncont[0]; agg["_symbols_with_source"] = int(has_source.sum()); agg["_symbols_no_source"] = int((~has_source).sum())
+    agg["_no_source_names"] = [syms[j] for j in np.nonzero(~has_source)[0]][:200]
+    return out, agg, has_source
 
-FL, agg_l = build_funding("legacy"); log("legacy funding rebuilt", json.dumps(agg_l))
-c2 = c2_compare_columns({c: FL[c][nC:] for c in FUND}, {c: INC[c][nC:] for c in FUND}, FUND, rebuilt_from_stream=set(FUND))   # v2: all five recomputed
-rec["C2_fnd_legacy_reproduction"] = c2
-check("C2.legacy_rule_reproduces_the_incumbent_tail_bitwise_ALL_FIVE_COLUMNS_RECOMPUTED", all(v["verdict"] == "REPRODUCED" for v in c2.values()), {k: v["verdict"] for k, v in c2.items()})
+FL, agg_l, HAS_SRC = build_funding("legacy"); log("legacy funding rebuilt", json.dumps({k: v for k, v in agg_l.items() if k != "_no_source_names"}))
+# F05: compare ONLY the symbols rebuilt from a stream; names without a source are carried from the incumbent and reported as COPIED_NO_SOURCE
+c2, c2_ns = c2_compare_columns_sourced({c: FL[c][nC:] for c in FUND}, {c: INC[c][nC:] for c in FUND}, FUND, rebuilt_from_stream=set(FUND), has_source=HAS_SRC)
+c2_ns["no_source_names"] = agg_l["_no_source_names"]; rec["C2_fnd_legacy_reproduction"] = c2; rec["C2_no_source"] = c2_ns
+check("C2.legacy_rule_reproduces_the_incumbent_tail_bitwise_ALL_FIVE_COLUMNS_RECOMPUTED (sourced symbols only; %d/%d have a stream, %d COPIED_NO_SOURCE)" % (c2_ns["n_with_source"], c2_ns["n_symbols"], c2_ns["n_no_source"]),
+      c2_ns["n_with_source"] > 0 and all(v["verdict"] == "REPRODUCED" for v in c2.values()), {k: v["verdict"] for k, v in c2.items()})
+check("C2b.no_source_symbols_are_named_and_never_counted_as_reproduced", all(v["symbols_compared"] == c2_ns["n_with_source"] for v in c2.values()) and (c2_ns["n_no_source"] == 0 or c2_ns["verdict_no_source"] == "COPIED_NO_SOURCE"), {k: c2_ns[k] for k in ("n_with_source", "n_no_source", "verdict_no_source")})
 log("C2", {k: v["bitwise"] for k, v in c2.items()})
 
 if FAILS:

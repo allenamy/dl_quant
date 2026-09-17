@@ -82,3 +82,15 @@ def roundtrip_verify(loaded, expected):
         rep["per_key"][k] = r; ok = ok and r["ok"]
     rep["n_keys_bad"] = sum(1 for r in rep["per_key"].values() if not r["ok"])
     return ok, rep
+
+# ── F05 (independent review 2026-09-17): names WITHOUT a source stream are NOT rebuilt — they are carried from the incumbent and must never be
+#    counted as REPRODUCED. The caller passes the per-symbol source mask; the comparison runs on sourced symbols only and the receipt names the rest.
+def c2_compare_columns_sourced(rebuilt, incumbent, columns, rebuilt_from_stream, has_source):
+    """`has_source`: boolean per symbol column (axis 1). Returns (per-column verdicts over sourced symbols, no_source summary)."""
+    hs = np.asarray(has_source, bool)
+    sub_r = {c: np.asarray(rebuilt[c])[:, hs] for c in columns}; sub_i = {c: np.asarray(incumbent[c])[:, hs] for c in columns}
+    res = c2_compare_columns(sub_r, sub_i, columns, rebuilt_from_stream) if hs.any() else {c: {"recomputed": False, "bitwise": False, "verdict": "UNAVAILABLE_NO_SOURCED_SYMBOL", "maxabs": None, "nan_equal": None} for c in columns}
+    ns = {"n_symbols": int(hs.size), "n_with_source": int(hs.sum()), "n_no_source": int((~hs).sum()), "no_source_idx": np.nonzero(~hs)[0].tolist(),
+          "verdict_no_source": "COPIED_NO_SOURCE" if (~hs).any() else "NONE", "independent_rebuild_partial": bool((~hs).any())}
+    for c in columns: res[c]["symbols_compared"] = int(hs.sum()); res[c]["symbols_copied_no_source"] = int((~hs).sum())
+    return res, ns

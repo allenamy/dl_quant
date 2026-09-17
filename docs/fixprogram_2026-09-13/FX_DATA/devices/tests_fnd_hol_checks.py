@@ -3,7 +3,7 @@
 one column written wrong, sub-tolerance perturbation) and the positive control that a legitimate output is unchanged."""
 import os, sys, tempfile, numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
-from fnd_hol_checks import c1_diff_mask, c2_now_iv_from_stream, c2_compare_columns, roundtrip_verify
+from fnd_hol_checks import c1_diff_mask, c2_now_iv_from_stream, c2_compare_columns, c2_compare_columns_sourced, roundtrip_verify
 FAILS, N = [], [0]
 def check(name, ok, detail=None):
     N[0] += 1
@@ -45,6 +45,21 @@ bad3 = {k: v.copy() for k, v in out.items()}; bad3["X"] = bad3["X"].astype(np.fl
 ok, r = roundtrip_verify(np.load(p4, allow_pickle=False), out); check("★★ dtype drift (float32 written as float64) ⇒ FAILS", not ok and not r["per_key"]["X"]["dtype_equal"], r["per_key"]["X"])
 miss = {k: v for k, v in out.items() if k != "M"}; p5 = os.path.join(d, "miss.npz"); np.savez(p5, **miss)
 ok, r = roundtrip_verify(np.load(p5, allow_pickle=False), out); check("★★ a missing key ⇒ FAILS naming it", not ok and r["keys_missing"] == ["M"], r["keys_missing"])
+# ── F05 (independent review 2026-09-17): no-source symbols are COPIED_NO_SOURCE, never REPRODUCED, and cannot make a column pass ──
+from fnd_hol_checks import c2_compare_columns_sourced as _c2s
+_T, _N = 40, 6; _inc = {c: np.random.default_rng(5).normal(size=(_T, _N)) for c in ("a", "b")}; _hs = np.array([True, True, True, False, False, False])
+for _label, _reb in (("identical copies", {c: _inc[c].copy() for c in _inc}),
+                     ("altered finite values on no-source symbols", {c: np.where(np.arange(_N)[None, :] >= 3, _inc[c] + 1.0, _inc[c]) for c in _inc}),
+                     ("all-NaN on no-source symbols", {c: np.where(np.arange(_N)[None, :] >= 3, np.nan, _inc[c]) for c in _inc})):
+    _res, _ns = _c2s(_reb, _inc, ["a", "b"], rebuilt_from_stream={"a", "b"}, has_source=_hs)
+    check(f"★★★ F05 {_label}: sourced symbols REPRODUCED, 3 symbols reported COPIED_NO_SOURCE, partial flag set, comparison over 3 symbols only",
+          all(v["verdict"] == "REPRODUCED" and v["symbols_compared"] == 3 and v["symbols_copied_no_source"] == 3 for v in _res.values()) and _ns["verdict_no_source"] == "COPIED_NO_SOURCE" and _ns["independent_rebuild_partial"] is True and _ns["no_source_idx"] == [3, 4, 5], (_ns, {k: v["verdict"] for k, v in _res.items()}))
+_reb_bad = {c: _inc[c].copy() for c in _inc}; _reb_bad["a"][2, 1] += 1e-7
+_res, _ns = _c2s(_reb_bad, _inc, ["a", "b"], rebuilt_from_stream={"a", "b"}, has_source=_hs)
+check("★★★ F05 a sourced symbol that differs ⇒ DIFFERS (the no-source copies cannot mask it)", _res["a"]["verdict"] == "DIFFERS" and _res["b"]["verdict"] == "REPRODUCED", {k: v["verdict"] for k, v in _res.items()})
+_res, _ns = _c2s(_inc, _inc, ["a", "b"], rebuilt_from_stream={"a", "b"}, has_source=np.zeros(_N, bool))
+check("★★★ F05 NO symbol has a source ⇒ every column UNAVAILABLE_NO_SOURCED_SYMBOL (a full copy can never read as reproduced)", all(v["verdict"] == "UNAVAILABLE_NO_SOURCED_SYMBOL" for v in _res.values()) and _ns["n_with_source"] == 0, {k: v["verdict"] for k, v in _res.items()})
+
 print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
 if FAILS: print("FAILED:", *FAILS, sep="\n  "); sys.exit(1)
 print("ALL PASS")
