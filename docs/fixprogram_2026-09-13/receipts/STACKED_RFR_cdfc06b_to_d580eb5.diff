@@ -1,0 +1,227 @@
+diff --git a/live/tests_broker_nonfinite_positions.py b/live/tests_broker_nonfinite_positions.py
+index 868d875..d5eaf58 100644
+--- a/live/tests_broker_nonfinite_positions.py
++++ b/live/tests_broker_nonfinite_positions.py
+@@ -20,7 +20,7 @@ Three sources, pinned by commit and verified by shape:
+   current  both fixed                      → 0 POST, name listed in derisk_unknown, HIGH alarm; finite names cut as before
+ Missing pinned sources ⇒ UNAVAILABLE (exit 3), never faked.
+ """
+-import ast, importlib.util, math, os, subprocess, sys, tempfile, types
++import ast, importlib.util, json, math, os, subprocess, sys, tempfile, types
+ HERE = os.path.dirname(os.path.abspath(__file__)); REPO = os.path.dirname(HERE)
+ for d in ("live", "ops", "scheduler", "signal"): sys.path.insert(0, os.path.join(REPO, d))
+ from typing import Dict, Any, List, Optional  # noqa: E402
+@@ -145,6 +145,67 @@ check("★★★ A8 submit(quantity=NaN) LIVE: refused before the wire with an O
+       s1["n_post"] == 0 and s1["is_opening_halted_class"] and s1["refused_action"], s1)
+ check("★★ A9 submit(quantity=NaN) DRY_RUN: ALSO refused (the gate sits before the dry-run branch), no submit_dry_run action", s2["n_post"] == 0 and s2["is_opening_halted_class"] and not s2["dry_run_action"], s2)
+ 
++def sequence(bb_path, al_path, tag, accts, frac=0.5, roundtrip=False):
++    """Run the REAL _scale_to over consecutive anchors with ONE persisted state; the venue answer changes per anchor.
++    roundtrip=True serialises the state through JSON between anchors (a new process reading loop_state)."""
++    BB = load(bb_path, "bbs_" + tag); scale_to = lift_scale_to(al_path)
++    class Probe(BB.BinanceBroker):
++        def __init__(self, acct):
++            self.mode = "LIVE"; self.armed = True; self.open_orders_halted = False; self._consecutive_submit_failures = 0
++            self.actions = []; self._acct = acct; self.posts = []
++        def _request(self, method, path, params=None, signed=False, **k):
++            if method == "POST":
++                self.posts.append(dict(params or {})); return {"orderId": len(self.posts), "status": "NEW"}
++            return self._acct
++    def acct(q):   # None = absent from the venue's positions
++        return {"positions": ([] if q is None else [{"symbol": "NANUSDT", "positionAmt": q}])}
++    pb = Probe(acct(accts[0])); alarms = []
++    loop = types.SimpleNamespace(broker=pb, alarm=lambda sev, msg, *a, **k: alarms.append((sev, msg)))
++    state = {"positions": {}, "stale_ref_contracts": None, "stale_ref_positions": None}; steps = []
++    for q in accts:
++        pb._acct = acct(q); n0, a0 = len(pb.posts), len(alarms)
++        if roundtrip: state = json.loads(json.dumps(state))
++        out = scale_to(loop, state, frac)
++        steps.append({"q": q, "posts": [{k: p.get(k) for k in ("symbol", "side", "quantity", "reduceOnly")} for p in pb.posts[n0:]],
++                      "alarms_high": sum(1 for sv, _ in alarms[a0:] if sv == "HIGH"), "unknown": out.get("derisk_unknown"),
++                      "recovered": out.get("derisk_recovered"), "resolved_flat": out.get("derisk_resolved_flat"),
++                      "ref": {k: v for k, v in (state.get("stale_ref_contracts") or {}).items()},
++                      "ref_unknown": state.get("stale_ref_unknown"), "late": state.get("stale_ref_late")})
++    return steps
++
++print("\n[B] continuous DERISK anchors, one persisted state (RFR-RECOVERY, independent review round 4)")
++AL_CUR = os.path.join(REPO, "scheduler", "anchor_loop.py"); BB_CUR = os.path.join(HERE, "binance_broker.py")
++b1 = sequence(BB_CUR, AL_CUR, "b1", ["nan", "10", "5"])
++check("★★★ B1 unknown→finite: anchor 1 NaN ⇒ 0 POST, unknown listed, HIGH; anchor 2 reads 10 ⇒ LATE reference 10 adopted (recorded, reason unknown_at_snapshot), "
++      "HIGH alarm, ONE POST sell 5.0 reduceOnly, stale_ref_unknown emptied; anchor 3 reads 5 (at target) ⇒ nothing, silent, reference unchanged",
++      b1[0]["posts"] == [] and b1[0]["unknown"] == ["NANUSDT"] and b1[0]["alarms_high"] >= 1 and b1[0]["ref"] == {}
++      and b1[1]["recovered"] == ["NANUSDT"] and b1[1]["ref"] == {"NANUSDT": 10.0} and b1[1]["ref_unknown"] == [] and b1[1]["alarms_high"] >= 1
++      and len(b1[1]["posts"]) == 1 and b1[1]["posts"][0]["side"] == "SELL" and float(b1[1]["posts"][0]["quantity"]) == 5.0 and b1[1]["posts"][0]["reduceOnly"] == "true"
++      and (b1[1]["late"] or {}).get("NANUSDT", {}).get("reason") == "unknown_at_snapshot"
++      and b1[2]["posts"] == [] and b1[2]["recovered"] == [] and b1[2]["unknown"] == [] and b1[2]["ref"] == {"NANUSDT": 10.0}, b1)
++b1r = sequence(BB_CUR, AL_CUR, "b1r", ["nan", "12", "10"])
++check("★★ B1b the late reference is set ONCE and never lowered: reads 12 then 10 ⇒ reference stays 12 (cut toward 6: sell 6.0 then sell 4.0), no re-adoption",
++      b1r[1]["ref"] == {"NANUSDT": 12.0} and float(b1r[1]["posts"][0]["quantity"]) == 6.0 and b1r[2]["ref"] == {"NANUSDT": 12.0}
++      and b1r[2]["recovered"] == [] and len(b1r[2]["posts"]) == 1 and float(b1r[2]["posts"][0]["quantity"]) == 4.0, b1r)
++b2 = sequence(BB_CUR, AL_CUR, "b2", ["nan", None, None])
++check("★★★ B2 unknown→absent: anchor 2 reports no position ⇒ resolved FLAT (recorded), HIGH alarm, 0 POST, stale_ref_unknown emptied; anchor 3 silent",
++      b2[1]["resolved_flat"] == ["NANUSDT"] and b2[1]["posts"] == [] and b2[1]["alarms_high"] >= 1 and b2[1]["ref_unknown"] == []
++      and (b2[1]["late"] or {}).get("NANUSDT", {}).get("resolved") == "flat_on_recovery" and b2[2]["resolved_flat"] == [] and b2[2]["alarms_high"] == 0, b2)
++b3 = sequence(BB_CUR, AL_CUR, "b3", ["10", "nan", "10"])
++check("★★★ B3 known→unknown→recovered: anchor 1 sell 5.0 (reference 10); anchor 2 NaN ⇒ skipped by name, unknown listed, HIGH, reference untouched; "
++      "anchor 3 reads 10 again ⇒ cut resumes toward the ORIGINAL reference (sell 5.0), nothing re-adopted",
++      float(b3[0]["posts"][0]["quantity"]) == 5.0 and b3[1]["posts"] == [] and b3[1]["unknown"] == ["NANUSDT"] and b3[1]["alarms_high"] >= 1
++      and b3[1]["ref"] == {"NANUSDT": 10.0} and b3[2]["recovered"] == [] and len(b3[2]["posts"]) == 1 and float(b3[2]["posts"][0]["quantity"]) == 5.0, b3)
++b4 = sequence(BB_CUR, AL_CUR, "b4", ["nan", "10", "5"], roundtrip=True)
++check("★★★ B4 cross-process: the same sequence with the state round-tripped through JSON between anchors behaves identically (recovery is driven by persisted state)",
++      b4[1]["recovered"] == ["NANUSDT"] and len(b4[1]["posts"]) == 1 and float(b4[1]["posts"][0]["quantity"]) == 5.0 and b4[2]["posts"] == [], b4)
++b5 = sequence(BB_CUR, AL_CUR, "b5", ["10", "5", "5"])
++check("★★ B5 finite control unchanged: 10 ⇒ sell 5.0; 5 ⇒ at target, nothing; no unknown / recovered / resolved fields populated",
++      float(b5[0]["posts"][0]["quantity"]) == 5.0 and b5[1]["posts"] == [] and b5[2]["posts"] == [] and not any(x["unknown"] or x["recovered"] or x["resolved_flat"] for x in b5), b5)
++b6 = sequence(BB_CUR, AL_CUR, "b6", ["nan", "nan", "nan"])
++check("★★ B6 still unknown every anchor: listed and HIGH-alarmed on EVERY anchor, never adopted, never cut",
++      all(x["unknown"] == ["NANUSDT"] and x["alarms_high"] >= 1 and x["posts"] == [] and x["ref"] == {} for x in b6), b6)
++
+ print("\n[C] red capability: pinned pre-fix sources (verified by shape)")
+ def pinned(ref, path, must_lack):
+     c = subprocess.run(["git", "-C", REPO, "show", f"{ref}:{path}"], capture_output=True, text=True)
+@@ -156,6 +217,15 @@ if not all((bb0, wd0, al0, bb1, wd1, al1)):
+     print("  UNAVAIL C  a pinned pre-fix source (facdf24 / 183915f) is unreachable or does not carry the expected shape — control not run, not faked")
+     print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed; control UNAVAILABLE"); sys.exit(3 if not FAILS else 1)
+ c0 = arms(bb0, wd0, al0, "pre0"); c1 = arms(bb1, wd1, al1, "pre1")
++al2 = pinned("cdfc06b", "scheduler/anchor_loop.py", ["derisk_recovered"]); bb2 = pinned("cdfc06b", "live/binance_broker.py", [])
++if al2 and bb2:
++    s2 = sequence(bb2, al2, "pre2", ["nan", "10", "10"])
++    check("★★★ C7 (cdfc06b: RED, the round-4 finding) unknown→finite: anchor 2 and 3 read 10 yet 0 POST, unknown [], NO alarm, reference stays {} — "
++          "the recovered name is silently left out of the reference for the rest of the stage",
++          s2[1]["posts"] == [] and s2[1]["unknown"] == [] and s2[1]["alarms_high"] == 0 and s2[1]["ref"] == {} and s2[1]["recovered"] is None
++          and s2[2]["posts"] == [] and s2[2]["alarms_high"] == 0, s2)
++else:
++    print("  UNAVAIL C7  cdfc06b sources unreachable or not of the expected shape — control not run, not faked")
+ check("★★★ C1 (facdf24: RED, silent) positions() DROPS NaN; DERISK on the NaN account sees nothing: 0 POST, nothing listed — the unknown position is silently treated as absent",
+       not c0["nan_kept"] and c0["derisk_nan"]["n_post"] == 0 and not c0["derisk_nan"]["derisked"] and c0["derisk_nan"]["derisk_unknown"] is None, (c0["pos_keys"], c0["derisk_nan"]))
+ check("★★★ C2 (facdf24: RED) flatten_all(non-finite) POSTs 2 orders whose quantities are non-finite — counted at the wire, not inferred from an exception",
+diff --git a/live/tests_proportional_response.py b/live/tests_proportional_response.py
+index 79c3716..3c8faeb 100644
+--- a/live/tests_proportional_response.py
++++ b/live/tests_proportional_response.py
+@@ -747,7 +747,13 @@ for _hk in ("proportional_local", None):
+     _n_fa1 = len(acts(vb, "flatten_all"))                 # R16RF: the local response's OWN flatten call(s), before ev3
+     ev2 = WD.evaluate(r, venue_events=[], ops_stats=WI.derive_ops_stats(r))
+     _next_halted_anchor(r, vb, _hk)
+-    ev3 = WD.evaluate(r, venue_events=[], ops_stats=WI.derive_ops_stats(r))
++    # ★ R16RF-4 (independent review round 4, 2026-09-17): the next anchor is EXECUTED through the real run entry — same broker,
++    #   same persisted state_dir — not merely evaluated. `evaluate` takes no broker and executes nothing, so a flatten-count
++    #   assertion over it had no discriminating power (the reviewer's point); with `run`, the marked arm must leave the other
++    #   99 positions untouched and the unmarked control must flatten them.
++    _nz_before = sum(1 for _v in vb._contracts.values() if abs(float(_v)) > 0)
++    ev3, _b3, _st3 = WD.run(r, broker=vb, venue_events=[], ops_stats=WI.derive_ops_stats(r), verbose=False,
++                            state_dir=sd, rows_root=r)
+     _pb3 = ev3["conditions"]["cond5_venue_event"].get("5e_position_break") or {}
+     _chain[_hk] = {"ev1_local": [lr.get("names") for lr in ev1.get("local_responses") or []],
+                    "ev2_5b": ev2["conditions"]["cond5_venue_event"]["5b_liquidation_anomaly"]["state"],
+@@ -762,7 +768,9 @@ for _hk in ("proportional_local", None):
+                    "ev3_local": [lr.get("names") for lr in ev3.get("local_responses") or []],
+                    "ev3_local_kind": [lr.get("kind") for lr in ev3.get("local_responses") or []],
+                    "ev1_flatten_all_calls": _n_fa1, "ev3_flatten_all_calls": len(acts(vb, "flatten_all")),
+-                   "flattened_symbols": flattened_symbols(vb)}
++                   "flattened_symbols": flattened_symbols(vb),
++                   "ev3_nonzero_before": _nz_before,
++                   "ev3_nonzero_after": sum(1 for _v in vb._contracts.values() if abs(float(_v)) > 0)}
+     rm(r, sd)
+ _c = _chain.get("proportional_local") or {}
+ # ★★★ R16RF (independent review round 3, 2026-09-17) — B14 rewritten to the state↔action CONTRACT, from the failing cell's
+@@ -788,7 +796,9 @@ check("★★★ B14 after the local response the next evaluation reconciles S00
+       and _c.get("ev3_port_triggered") is False and _c.get("ev3_dev_frac") is not None and _c.get("ev3_limit_frac") is not None
+       and _c["ev3_dev_frac"] < _c["ev3_limit_frac"]
+       # the ONLY flatten call is the local response's own (ev1), scoped to the named name; ev3 adds none
+-      and _c.get("ev3_flatten_all_calls") == _c.get("ev1_flatten_all_calls") and _c.get("flattened_symbols") == ["S007USDT"], _c)
++      and _c.get("ev3_flatten_all_calls") == _c.get("ev1_flatten_all_calls") and _c.get("flattened_symbols") == ["S007USDT"]
++      # executed through the real run entry: the other 99 positions are still held after the next anchor
++      and _c.get("ev3_nonzero_before") == 99 and _c.get("ev3_nonzero_after") == 99, _c)
+ check("★★★ B14c (R16RF contract cell) the residual the fixture leaves on the other names IS measured — state BREAK via split_unauth "
+       "with a small named unauth fraction — and the response to a MEASURED, NAMED, proportional break is LOCAL, recorded in "
+       "local_responses, never a trip: state is a measurement label, the action is the proportional gate's",
+@@ -801,7 +811,10 @@ check("★★★ B14 neighbour — the SAME halted anchor WITHOUT the marker (ev
+       "is still judged against intent ZERO: the held book reads as a 99% break and trips the ladder. This is the failure "
+       "the marker exists for (measured before the fix: probe_third_anchor), and the 07-29 ghost-book rule it keeps",
+       _t.get("ev3_tripped") is True and _t.get("ev3_5e_kind") == "halted_intent_flat"
+-      and any("flat_intent_legacy" in x for x in _t.get("ev3_triggers") or []), _t)
++      and any("flat_intent_legacy" in x for x in _t.get("ev3_triggers") or [])
++      # executed through the real run entry: the ladder flattens the remaining 99 names (one new flatten call, 99 → 0 held)
++      and _t.get("ev3_flatten_all_calls") == _t.get("ev1_flatten_all_calls") + 1
++      and _t.get("ev3_nonzero_before") == 99 and _t.get("ev3_nonzero_after") == 0, _t)
+ _al_src = open(os.path.join(REPO, "scheduler", "anchor_loop.py")).read()
+ check("★★ B14 STATIC anchor_loop carries the halt's kind: 0b records state_kind/book_flattened, and the anchors row writes "
+       "halt_kind only for a proportional local state that did not flatten the book",
+diff --git a/scheduler/anchor_loop.py b/scheduler/anchor_loop.py
+index f79aea1..fbb416b 100644
+--- a/scheduler/anchor_loop.py
++++ b/scheduler/anchor_loop.py
+@@ -3191,7 +3191,27 @@ class AnchorLoop:
+         ★ UNITS: live orders are sized in CONTRACTS taken directly from the venue, cut
+         PROPORTIONALLY — price-free (a proportional cut needs no mid: target_contracts =
+         ref_contracts x frac). The notional dict is bookkeeping only. A prior draft submitted
+-        notional differences as contract quantities; DRY_RUN hid it because readback is empty."""
++        notional differences as contract quantities; DRY_RUN hid it because readback is empty.
++
++        ★ UNKNOWN QUANTITIES (R16RF-E1 / RFR-RECOVERY, independent review rounds 3–4, 2026-09-17).
++        A quantity that is not a finite number is UNKNOWN — never a reference, never a cut, never zero.
++        The pre-stale snapshot therefore records only KNOWN quantities and lists the unknown names in
++        `state["stale_ref_unknown"]`. RECOVERY RULE, stated in advance so a retry can never shrink a base:
++          * unknown at the snapshot → finite later: the FIRST finite reading observed during this stale
++            period becomes that name's LATE reference (recorded in `state["stale_ref_late"][sym]` with the
++            frac at adoption), set ONCE and never lowered by a later reading; it is NOT a claim about the
++            pre-stale size (which was never read) — a HIGH alarm says so, and the cut toward frac x late
++            reference applies from that anchor on. Leaving the name at full exposure for the rest of the
++            stage would defeat the ladder; a late reference can only be <= the true pre-stale size (opening
++            is halted), so it errs toward less risk, not more.
++          * unknown at the snapshot → absent later (the venue reports no position): resolved FLAT, alarmed,
++            nothing to cut.
++          * finite at the snapshot → unknown later → finite again: the ORIGINAL reference stands; the cut
++            resumes. While unknown, the name is skipped by name and alarmed every anchor.
++          * a finite name that was ABSENT at the snapshot and appears later is treated like the first case
++            (late reference, reason "absent_at_snapshot") — the same silent-ignore family.
++        Every anchor returns the still-unknown names (`derisk_unknown`), the names adopted this anchor
++        (`derisk_recovered`) and the names resolved flat (`derisk_resolved_flat`); nothing is dropped silently."""
+         cuts = []
+         if self.broker.mode != "DRY_RUN":
+             try:
+@@ -3217,6 +3237,28 @@ class AnchorLoop:
+                 state["stale_ref_unknown"] = list(_unknown_now)
+             ref_c = state["stale_ref_contracts"]
+             unknown = list(_unknown_now)
++            # ── RFR-RECOVERY: names with NO reference yet (unknown or absent at the snapshot) that are readable now ──
++            _ref_unknown = [k for k in (state.get("stale_ref_unknown") or []) if k not in ref_c]
++            _late = state.setdefault("stale_ref_late", {})
++            recovered, resolved_flat = [], []
++            for sym in sorted(set(_ref_unknown) | (set(cur_f) - set(ref_c))):
++                if sym in cur_f:                                  # readable and finite now: adopt the LATE reference, once
++                    ref_c[sym] = cur_f[sym]
++                    _late[sym] = {"value": cur_f[sym], "frac_at_adoption": frac,
++                                  "reason": "unknown_at_snapshot" if sym in _ref_unknown else "absent_at_snapshot",
++                                  "rule": "first finite reading during this stale period; set once, never lowered"}
++                    recovered.append(sym)
++                    self.alarm("HIGH", f"DERISK: {sym} quantity now reads {cur_f[sym]} but had NO reference "
++                                       f"({_late[sym]['reason']}) — LATE reference adopted = {cur_f[sym]} (not the pre-stale "
++                                       f"size, which was never read); cut toward {frac:.0%} applies from this anchor")
++                elif sym in _ref_unknown and sym not in cur_c:     # unknown at the snapshot, absent now: resolved FLAT
++                    _late[sym] = {"value": 0.0, "resolved": "flat_on_recovery", "frac_at_resolution": frac}
++                    resolved_flat.append(sym)
++                    self.alarm("HIGH", f"DERISK: {sym} was UNKNOWN at the pre-stale snapshot and now reads FLAT "
++                                       f"(absent from the venue's positions) — resolved, nothing to cut")
++                # still non-finite: stays in stale_ref_unknown and in `unknown` (alarmed above every anchor)
++            state["stale_ref_unknown"] = [k for k in (state.get("stale_ref_unknown") or [])
++                                          if k not in recovered and k not in resolved_flat]
+             for sym, ref_amt in ref_c.items():
+                 if sym in _unknown_now or not _fin(ref_amt):               # unknown now, or an unknown reference: skip by name
+                     if sym not in unknown:
+@@ -3237,9 +3279,12 @@ class AnchorLoop:
+                 ref_n = (state.get("stale_ref_positions") or {}).get(sym)
+                 if ref_n is not None:
+                     state["positions"][sym] = ref_n * frac
+-            return {"derisked": cuts, "derisk_unknown": sorted(unknown),
++            return {"derisked": cuts, "derisk_unknown": sorted(unknown), "derisk_recovered": recovered,
++                    "derisk_resolved_flat": resolved_flat,
+                     "note": f"gross scaled toward {frac:.0%} of pre-stale ref"
+-                            + (f"; {len(unknown)} name(s) UNKNOWN (non-finite) not cut" if unknown else "")}
++                            + (f"; {len(unknown)} name(s) UNKNOWN (non-finite) not cut" if unknown else "")
++                            + (f"; {len(recovered)} name(s) adopted a LATE reference this anchor" if recovered else "")
++                            + (f"; {len(resolved_flat)} name(s) resolved FLAT" if resolved_flat else "")}
+ 
+         # DRY_RUN: no venue, notional bookkeeping only (smoke path; live path above)
+         ref = state.get("stale_ref_positions") or {}

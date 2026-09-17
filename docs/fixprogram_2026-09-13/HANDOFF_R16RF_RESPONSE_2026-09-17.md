@@ -53,7 +53,7 @@ R16RF 的四条 P2 边界(E1 第二条减仓入口 / E2a ±inf / E2b 检查-写�
 tests_binance_broker / flatten_ladder / signal_and_loop / watchdog / offschedule_held_book / flatten_rows / reduce_only_clamp / imports / flatten_batch_identity / stale_order_sweep / topup_leg_fill / reject_topup / binance_executor 全绿; tests_ledger_notary ALL PASS; tests_proportional_response 60/60。日志 `receipts/R16RF_tests_20260917/`。
 ### 3.2 全量叠加电池(20Z 窗口内, 22:42:35Z→22:58:21Z, head cdfc06b, `/usr/bin/python3` 3.9.6)
 收据 `receipts/STACKED_BATTERY_20260916T224235Z.log`(sha8 cffdf2de)。**157 绿 / 3 红 / 1 UNAVAILABLE, RC=1(既有红仍在)。**
-相对 17:05Z 基线(155/5/1, head 183915f): **转绿 = `tests_ledger_notary`、`tests_proportional_response`**(正是本轮修的两套); **新红 = 0**; 共同 159 套里只有这两套退出码变化, 其余逐套件一致。
+相对 17:05Z 基线(155/5/1, head 183915f): **转绿 = `tests_ledger_notary`、`tests_proportional_response`**(正是本轮修的两套); **新红 = 0**; 共同 **161** 套里只有这两套退出码变化, 其余逐套件一致(初稿误写 159 —— 那是 facdf24 基线的规模, 独立研究员指出, 已更正)。
 剩余非零: `drift_gate` / `tests_drift_gate`(真漂移×2, pilot_metrics 研究副本与上游不一致, 应按方向审阅后同步, 不能改门求绿) · `tests_entrypoint_wiring`(本机 nosleep/电源, `log_verified=False` = 未取得睡眠日志, 不证明睡过) · `tests_env_loading` 3 = UNAVAILABLE(叠加树按规矩无 .env, 不折算 PASS)。
 ENVRED-2(开跑现算): env 缺失 · notify_audit 1986 行 · pilot_log 47 天 · watchdog_events 15 —— 与两次基线**逐项相同**(未重拷账本), 仅 audit 最新行年龄随钟 17.94h。按复审 §1 的读法: 这证明的是**已执行验收集合的退出状态无退化**, 不是穷尽输入的无回归 —— 本轮 DERISK 反例正是电池断言之外的回归, 它由 `tests_broker_nonfinite_positions` A5/C3 覆盖。
 
@@ -78,3 +78,26 @@ cd ~/Desktop/quant_research/docs/fixprogram_2026-09-13
 cd ~/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09
 /usr/bin/python3 tests_pipeline_gates.py
 ```
+
+---
+## 7. 补充(独立复审第四轮 7a05b4f4, 2026-09-17): RFR-RECOVERY + B14 真实 run + 两处文字收窄
+
+### 7.1 RFR-RECOVERY(P2, 执行器)—— 未知仓位恢复可读后被留在减仓参考之外
+- **核实**: 我在 cdfc06b 上按复审序列实跑 NaN→10→10→5: 锚 2 起 0 单、0 告警、`derisk_unknown=[]`、参考仍 `{}`、`stale_ref_unknown` 只写不读 —— 复审表格逐字复现。该静默在 facdf24 就存在(丢 NaN 后同样不在参考里), 第三轮修复没把恢复路径想完。
+- **恢复规则(事先写进 `_scale_to` docstring, 按复审边界: 不把缺参考当 0, 不臆造陈旧期起点数量, 采用时点/比例预先写清防重试缩基)**:
+  | 情形 | 规则 | 可见性 |
+  |---|---|---|
+  | 未知→有限 | 本次陈旧期内**第一次有限读数**作「迟到参考」, **只设一次、永不降低**; 从该锚起按 frac 减仓 | `derisk_recovered`, `state.stale_ref_late[sym]{value, frac_at_adoption, reason}`, HIGH 告警明说「不是陈旧期起点的真实数量」 |
+  | 未知→缺席(=0) | 解决为平, 不下单 | `derisk_resolved_flat`, HIGH 告警 |
+  | 已知→未知→恢复 | 沿用**原**参考, 减仓恢复 | 未知期间每锚具名 `derisk_unknown` + HIGH |
+  | 快照时缺席→之后出现 | 同迟到参考(reason `absent_at_snapshot`) | 同上 |
+  | 仍未知 | 不采用、不减、每锚持续具名告警 | `derisk_unknown` + HIGH |
+  为什么采用迟到参考而不是只告警不减: 陈旧期把一个名字留在全敞口直到阶段结束, 违背梯子的目的; 开仓已停, 迟到读数只可能 ≤ 真实陈旧期起点数量, 因此只会多减不会少减(偏向少风险)。**这是对既定 DERISK 政策「每个仓位按 frac×快照减」在快照不可读角落的实现, 不是新政策**; 若你裁定改为「只告警不减」, 是一处开关。
+- **证据** `tests_broker_nonfinite_positions.py` **23/23**: B1 未知→有限(锚 2 采用 10, 一单 sell 5.0, 锚 3 读 5 静默) · B1b 读 12 再读 10 参考仍 12(sell 6.0 / 4.0, 不重采用) · B2 未知→缺席 · B3 已知→未知→恢复(原参考) · B4 跨进程(state 经 JSON 往返) · B5 有限对照不变 · B6 持续未知每锚告警; **C7(cdfc06b 对照)**: 锚 2/3 读 10 却 0 单、无未知、无告警、参考空 —— 复审发现复现。
+### 7.2 B14 下一锚改为真实 run(复审 §3)
+`evaluate` 不带 broker、不执行, 旧「flatten 计数不变」断言无鉴别力 —— 复审对。ev3 改为 `WD.run(broker=vb, state_dir=sd)`: 有标记 ⇒ 无新增 flatten、**其余 99 仓保留**; 无标记正控 ⇒ 新增一次 flatten、**99→0**。`tests_proportional_response` **60/60**。生产者未动。
+### 7.3 文字更正
+- 本文 §3.2「共同 159 套」→ **161**(159 是 facdf24 基线规模; 复审指出)。
+- `HONEST_EXPECTATION` §3.6「只活在未跟踪文件/不可复现」→ 收窄为「尚未全部入库、未按 sha 逐条固化」(C6 已证可恢复, 且复审证据已归档独立分支); §5「从 126 格里挑出来的一格」→「126 格预注册网格中唯一交付的一格」(未完成不证明择优过程发生过)。原句划去保留。
+### 7.4 提交与电池
+叠加树 `cdfc06b → d580eb5`(`scheduler/anchor_loop.py` + 两份测试; 收据 `receipts/STACKED_RFR_cdfc06b_to_d580eb5.diff` 227 行 sha8 c1d98f62); 研究仓 `41ee91c3 → (本节)`。电池: 01:05Z 窗起跑, head `d580eb5`, **待回填**。零部署, 生产仍 ef60f85。
