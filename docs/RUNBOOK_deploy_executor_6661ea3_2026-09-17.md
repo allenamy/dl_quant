@@ -103,3 +103,12 @@ STATE.md 顶部新条(运行树 6661ea3, 时刻, 链, 电池, 回滚命令) · F
 | 04:44:49 | DELIVERED | HIGH | ★ per_name_stop 触发: ONEUSDT 深度 −39.2% 连续 2 终锚 ≤ −30% ⇒ flatten_only(reduce-only maker → 被拒转市价, 25 bps 点差门) |
 | 04:46:14 | RECORDED | INFO | funding span 表(执行器内部 DL 面板专用)已过期: 15 symbol 结算间隔与交易所不符 |
 逐名止损在新树上走的正是本次修复过的 flatten 路径(非有限量守卫 `flatten_skip_nonfinite`); 本锚该守卫零触发 = 读回量全部有限, 与预期一致。
+
+## §9 FP2-6 钉 king 模型身份部署(2026-09-17 09:16Z; 用户字 09:0xZ「钉住; universe 按建议不钉」)
+- 改动: 仅 `config/book.json external_book.booster_sha_pin: null → "8d79186b6380132cb67684acf1ebfcdb2c53261c850f46a4908b06bfa7a81282"`(= 在役 `~/wide_shadow/shadow_bundle/slow2026.txt` sha256 = 每锚 target_live.booster_sha)。补丁 `docs/fixprogram_2026-09-13/FP2_receipts/fp2-6_booster_pin_book_json.patch`。
+- 叠加树电池(ACCEPT_PY=/usr/bin/python3, 08:56→09:2xZ): NOT GREEN, 3 红全为树外状态(`tests_entrypoint_wiring` NOSLEEP-1 睡眠日志 / `tests_env_loading` 克隆无 .env ⇒ UNAVAILABLE / `tests_alarm_digest` notify_audit 静态快照 0 条可观测), 与 6661ea3 部署前叠加树同族; `safe_commit.sh` 要求全绿 ⇒ 按其自述例外(树外红)用显式 pathspec 手动提交 **6e177c4**(仅 config/book.json), message 记录电池。
+- §1 动作: 09:15:5xZ push 6e177c4→GitHub main(远端确认 6e177c40); 生产 `pull --ff-only` 6661ea3→6e177c4; 生产脏文件(非 state/rollback/staging/lock)= 0; 读回生产配置 pin=8d79186b…, on_unavailable=hold。
+- §2 生产电池(真 .env/真 state, 09:16:25→09:3xZ, head 6e177c4): **160 绿 / 1 红 / 0 UNAVAILABLE**, 唯一红 = tests_entrypoint_wiring(NOSLEEP-1, 与 6661ea3 部署后相同) ⇒ 无新红, 不回滚。
+- 首锚验收: 12:00Z 锚(读 12:24Z): anchors 行 `external_book.ok == true` 且 `booster_sha == 钉`; 若生产者文件 sha 变 ⇒ 预期 HOLD + HIGH `booster_pin`(那是钉在工作, 不是故障)。
+- 回滚: 与 §4 同法(tree swap 正向提交), 或直接把 pin 改回 null 走同一提交协议。
+- 记录: STATE 首行 09:16Z; 十月 runbook §0★ 修订 10; 记忆索引 运行树 = 6e177c4。

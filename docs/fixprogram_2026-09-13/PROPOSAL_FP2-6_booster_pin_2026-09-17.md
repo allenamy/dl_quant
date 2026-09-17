@@ -43,3 +43,11 @@
 **(a) 是否同意钉 booster(§2.1)?** 同意 ⇒ 我按 §2 落地(safe_commit + 电池 + 部署 runbook + STATE/记忆更新), 与 6661ea3 部署同一套流程; 首锚验收看 external_book.ok=true 与 booster_sha 一致。
 **(b) 是否同意 universe 不钉(§3.2)?**
 不回答 = 维持现状(钉空), 本件保持「待裁定」。
+
+## 5. 用户裁定(2026-09-17 09:0xZ)与执行
+- (a) **钉 king: 已部署** 执行器 6e177c4(09:16Z; 生产电池 160/1/0, 唯一红 NOSLEEP-1); 首锚 12:24Z 验。(b) **universe 不钉**: 确认。
+- (c) **DL 也钉 = FP2-6b**, 三步、各在锚间窗:
+  1. 执行器读者(叠加树已改, 套件 132/132 含 R2f0–R2f5): 配置 `external_book.f10_sha_pin`(缺省 null); 钉设时文件缺 `f10_sha` 或不等 ⇒ `f10_pin` 拒读 ⇒ HOLD; 每锚 anchors 行记录 `f10_sha`。部署时机: 12:24Z 锚(king 钉首锚)收尾后、16:00Z 前。
+  2. 生产者 `~/wide_shadow/fea171/combo_stage.py`(非 git; 补丁 `FP2_receipts/fp2-6b_combo_stage_f10_sha.patch`): 在 `_doc` 写 `f10_sha` = 所载 `f10_live_s42_np.npz` 的 sha256(现役 351ae26b…), 自验配置加 `f10_sha_pin: None`。先用 `COMBO_LIVE_DIR=…/target_live_REHEARSAL` 排练一锚(读者验收 ok 且文件含 f10_sha), 再生效; 生产者快照入研究仓。时机: 与步 1 同窗或下一窗。
+  3. 看到一锚 anchors 行含 `f10_sha == 351ae26b…` 后, 执行器配置 `f10_sha_pin` ← 该值, 同一部署协议。时机: 16:24Z 锚后、20:00Z 前。
+- 与换装的耦合: 以后换 F10 模型与改 `f10_sha_pin` 必须同窗(runbook §0★ 修订 10 同句扩到 DL)。

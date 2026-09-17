@@ -35,22 +35,30 @@ def mask_rows(mask_path, E_ts, symbols):
     mts = Mz["ts"].astype(np.int64); row = {int(t): i for i, t in enumerate(mts)}; miss = [int(t) for t in E_ts if int(t) not in row]
     if miss: return None, f"{len(miss)} anchors have no mask row (first {miss[:3]})"
     return np.asarray(Mz["mask"])[[row[int(t)] for t in E_ts]], None
-def members_subset_check(E_c, M_c, E_m, M_m, MASK_m):
-    """control (unmasked) vs masked build on the anchor axis: masked anchors ⊆ control anchors; per common anchor masked members ⊆ control members and
-    (control − masked) ⊆ {mask False}. MASK_m = mask rows aligned to E_m. Returns dict."""
+def members_subset_check(E_c, M_c, E_m, M_m, MASK_m, ntop=400):
+    """control (unmasked) vs masked build on the anchor axis (AMENDMENT 8, truncation-aware):
+      masked anchors ⊆ control anchors (a mask can drop an anchor below MIN_MEM, never add one);
+      per common anchor: REMOVED = control − masked must all be mask-False;
+      ADDED = masked − control is allowed ONLY when the control row was truncated (len(control) == ntop: names ranked ntop+1.. in the
+      unmasked pool enter the masked top-ntop once masked names leave) and every added name is mask-True; otherwise the row FAILs.
+    MASK_m = mask rows aligned to E_m. Returns dict."""
     rc = {int(t): i for i, t in enumerate(E_c)}; only_m = [int(t) for t in E_m if int(t) not in rc]; only_c = [int(t) for t in E_c if int(t) not in {int(x) for x in E_m}]
     out = {"n_control": int(len(E_c)), "n_masked": int(len(E_m)), "anchors_only_masked": len(only_m), "anchors_only_control(dropped_by_mask)": len(only_c), "dropped_first_utc": None,
-           "members_not_subset_rows": 0, "removed_not_masked_rows": 0, "rows_with_removals": 0, "cells_removed": 0}
+           "rows_with_removals": 0, "cells_removed": 0, "removed_not_masked_rows": 0, "rows_with_additions": 0, "cells_added": 0,
+           "additions_without_truncation_rows": 0, "additions_not_mask_true_rows": 0, "ntop": int(ntop)}
     if only_c:
         import time; out["dropped_first_utc"] = time.strftime("%F %H:%MZ", time.gmtime(min(only_c)))
     for j, t in enumerate(E_m):
         i = rc.get(int(t))
         if i is None: continue
         a = set(int(x) for x in np.asarray(M_c[i]).tolist()); b = set(int(x) for x in np.asarray(M_m[j]).tolist())
-        if not b <= a: out["members_not_subset_rows"] += 1; continue
-        rem = a - b
+        rem = a - b; add = b - a
         if rem:
             out["rows_with_removals"] += 1; out["cells_removed"] += len(rem)
             if any(bool(MASK_m[j, s]) for s in rem): out["removed_not_masked_rows"] += 1
-    out["PASS"] = out["anchors_only_masked"] == 0 and out["members_not_subset_rows"] == 0 and out["removed_not_masked_rows"] == 0
+        if add:
+            out["rows_with_additions"] += 1; out["cells_added"] += len(add)
+            if len(a) != ntop: out["additions_without_truncation_rows"] += 1
+            if any(not bool(MASK_m[j, s]) for s in add): out["additions_not_mask_true_rows"] += 1
+    out["PASS"] = (out["anchors_only_masked"] == 0 and out["removed_not_masked_rows"] == 0 and out["additions_without_truncation_rows"] == 0 and out["additions_not_mask_true_rows"] == 0)
     return out

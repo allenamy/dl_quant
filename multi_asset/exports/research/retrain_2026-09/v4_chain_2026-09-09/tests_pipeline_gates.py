@@ -1592,9 +1592,10 @@ def _contract_is_r1_plus_proposed3():
         cur["gates"][g]["approved_source_sha256"] = [x for x in cur["gates"][g]["approved_source_sha256"] if x not in {v["sha256"] for v in var.values()}]
     if not (isinstance(cur.get("status"), str) and "PROPOSED3" in cur["status"]): return False
     cur["status"] = cur["status"].split(" | PROPOSED3")[0]
-    pc = cur.get("proposed_changes_vs_frozen", [])
+    pc = list(cur.get("proposed_changes_vs_frozen", []))
     if not (pc and str(pc[-1]).startswith("PROPOSED3")): return False
-    cur["proposed_changes_vs_frozen"] = pc[:-1]
+    while pc and str(pc[-1]).startswith("PROPOSED3"): pc.pop()   # PROPOSED3 and its revisions (AMENDMENT 8) are all trailing entries
+    cur["proposed_changes_vs_frozen"] = pc
     return cur == r1
 check("★★★ [T] G0 the FOUR contract-frozen files are byte-identical after round 3 as well (STEP1 278fdce6, STEP2 db7ab356, the contract 1188267a, the v2 export gate d63f4ec3) — round 3 touched none of them",
       _sha(f"{HERE}/v4_gate_step1.py").startswith("278fdce6") and _sha(f"{HERE}/v4_gate_step2.py").startswith("db7ab356") and _contract_is_r1_plus_proposed3() and _sha(f"{HERE}/v4e_gate_export_v2.py").startswith("d63f4ec3"),   # FP2-8: contract = kept r1 (1188267a) + PROPOSED3 delta only

@@ -16,7 +16,8 @@ _E = {k: os.environ.get(k, "") for k in _KEYS}; _missing_env = [k for k in _KEYS
 def _p(k, rel=""): return (_E[k] + rel) if _E[k] else None
 INPUTS = {"dlw_v4raw_targets": _p("DLW_RAW", "/data/dlw_targets.npz"), "dlw_hf3_targets": _p("DLW_CLIP", "/data/dlw_targets.npz"), "fea82_hf3": _p("DLW_CLIP", "/data/dlw_fea82.npz"),
           "fea82_v4raw": _p("DLW_RAW", "/data/dlw_fea82.npz"), "fea89_f8v4": _p("F8", "/data/f8_fea89.npz"), "raw_patch": _p("RAW_PATCH"), "hole_cells": _p("HOLE_CELLS"), "cache": _p("CACHE"),
-          "member_mask": _p("MEMBER_MASK")}
+          "member_mask": _p("MEMBER_MASK"),
+          "fp2_gate_lib": os.path.join(os.path.dirname(os.path.abspath(__file__)), "fp2_gate_lib.py")}   # AMENDMENT 8: the shared library is a hashed input of the receipt (the contract pins only the gate file)
 _missing_files = {k: v for k, v in INPUTS.items() if v is None or not os.path.isfile(v)}; _refused = {}
 if _missing_env: _refused["missing_env"] = _missing_env
 if _missing_files: _refused["missing_files"] = _missing_files

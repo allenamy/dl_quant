@@ -85,8 +85,9 @@
 |---|---|---|
 | 合同 / 装置目录 / 根 | `v4_month_2026-09_fp2.env`(b7d0afa7)/ `$R/devices_v4chain` / `/workspace/fp2_2026-09` | preflight PASS 05:27:58Z(重跑 05:42Z 钉最终装置 sha) |
 | cache 门 | `$R/v4_gates/cache_coverage.json`, `RAW_PATCH_COVERAGE.json` | PASS / PASS(952/952, unaccounted 0) |
-| controls(v2 无掩码 vs 九月 v1 逐位) | `$R/controls/CONTROLS.json` | 在跑 |
-| data / gates / king / legs / mwf / refit / np_export / arms / a0rerun / judge / export | `$R/chain_fp2_stage_*.log`, `$R/v4_gates/*.json`, `$R/chain_fp2_run.log` | 运行器 `chain_fp2_run.sh` 在跑 |
+| controls(v2 无掩码 vs 九月 v1 逐位) | `$R/controls/CONTROLS.json` | **PASS**(verify_only 08:59Z; K2 共同 10,182 锚逐位; 30 额外锚) |
+| data / gates / king / legs / mwf / refit / np_export / arms / a0rerun / judge / export | `$R/chain_fp2_stage_*.log`, `$R/v4_gates/*.json`, `$R/chain_fp2_run.log` | data DONE 06:56Z; **gates PASS 09:38Z**(STEP1/STEP2 变体 9410a403/a4cda6db; AMENDMENT 8 截断感知); king 起 09:38Z; 运行器在跑 |
 | 逐年表 | `fp2_per_year_table.py` → `$R/v4_gates/PER_YEAR_TABLE.{json,md}`(判官同源臂记录, AMENDMENT 4) | 装置就绪; 干跑(九月 A0 副本, 原 umask)仅验 schema, **非结果** |
 | lifecycle 交叉核对 | AMENDMENT 4.3 | PENDING |
-| 独立复审 | `HANDOFF_FP2_REVIEW_2026-09-17.md` | 已交 |
+| 独立复审 | `HANDOFF_FP2_REVIEW_2026-09-17.md` + `REVIEW_REQUEST_FP2_2026-09-17.md` | 已交 |
+| FP2-6 钉 king(用户字 09:0xZ) | 执行器 **6e177c4**(config/book.json booster_sha_pin=8d79186b…; universe 不钉) | 生产电池 160/1/0(唯一红 NOSLEEP-1) | 已部署 09:16Z; 首锚 12:24Z 验 | DL 钉 = FP2-6b(生产者写 f10_sha 后) |

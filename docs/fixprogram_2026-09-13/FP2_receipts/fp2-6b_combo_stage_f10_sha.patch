@@ -1,0 +1,27 @@
+--- a/fea171/combo_stage.py
++++ b/fea171/combo_stage.py
+@@ -158,6 +158,7 @@
+ X171 = np.concatenate([F82["X"][rowm].astype(np.float32), F89["X"][rowm]], 1)
+ scol = ps2[rowm]
+ M = np.load(f"{HERE}/f10_live_s42_np.npz")
++_F10_SHA = hashlib.sha256(open(f"{HERE}/f10_live_s42_np.npz", "rb").read()).hexdigest()   # FP2-6b (2026-09-17, user word): identity of the DL leg this book was scored with; declared in target_live.f10_sha
+ from scipy.special import erf
+ def gelu(x): return 0.5*x*(1+erf(x/np.sqrt(2)))
+ # E-0826(NaN序修复): 训练是 标准化→clip→NaN置0(标准化空间), 服务端必须同序;
+@@ -353,6 +354,7 @@
+                 "gross_norm": float(sum(abs(v) for v in _weights.values())), "n_names": len(_weights),
+                 "universe": _uni, "universe_sha": kdoc["universe_sha"], "n_universe": len(_uni),
+                 "booster_sha": kdoc["booster_sha"], "weights_sha": _wsha,
++                "f10_sha": _F10_SHA,   # FP2-6b: the executor pins this (config f10_sha_pin) once the field is live for one anchor
+                 "written_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time())),
+                 "producer": "combo_stage_v1(kingLGBM 0.55 + V2MAIN 0.45, rev24 leg removed; base shadow_loop_v3)"}
+         _raw = json.dumps(_doc).encode()
+@@ -371,7 +373,7 @@
+         _vf = _EB.verify_file(_jp)
+         assert _vf.get("ok"), f"verify_file: {_vf.get('reason')}: {_vf.get('detail')}"
+         _cfgE = {"schema": "wide_target_v1", "require_anchor_match": True, "max_age_min": 10.0,
+-                 "universe_sha_pin": None, "booster_sha_pin": None}
++                 "universe_sha_pin": None, "booster_sha_pin": None, "f10_sha_pin": None}
+         _pt = _EB.parse_target(_vf["raw"], _cfgE, A, time.time() if not _rehearsal else
+                                time.mktime(time.strptime(_doc["written_utc"], "%Y-%m-%dT%H:%M:%SZ")) - time.timezone + 60)
+         assert _pt.get("ok"), f"parse_target: {_pt.get('reason')}: {_pt.get('detail')}"

@@ -17,7 +17,8 @@ if not _OUT: print("STEP2_REFUSED missing STEP2_OUT (no receipt path: nothing wr
 _KEYS = ("R", "D", "CACHE", "KING_FEA", "KING_META", "MEMBER_MASK", "BUILDER_KING_FEA")
 _E = {k: os.environ.get(k, "") for k in _KEYS}; _missing_env = [k for k in _KEYS if not _E[k]]
 INPUTS = {"wide_fea_v4": _E["KING_FEA"] or None, "wide_fea_v4_meta": _E["KING_META"] or None, "cache": _E["CACHE"] or None, "member_mask": _E["MEMBER_MASK"] or None,
-          "preflight": (os.path.join(_E["R"], "v4_gates", "preflight.json") if _E["R"] else None)}
+          "preflight": (os.path.join(_E["R"], "v4_gates", "preflight.json") if _E["R"] else None),
+          "fp2_gate_lib": os.path.join(os.path.dirname(os.path.abspath(__file__)), "fp2_gate_lib.py")}   # AMENDMENT 8: the shared library is a hashed input of the receipt (the contract pins only the gate file)
 _missing_files = {k: v for k, v in INPUTS.items() if v is None or not os.path.isfile(v)}; _refused = {}
 if _missing_env: _refused["missing_env"] = _missing_env
 if _missing_files: _refused["missing_files"] = _missing_files
@@ -52,7 +53,8 @@ else:
     vcols = np.nonzero(~isrank)[0]; bad_val = 0; bad_y = 0; checked = 0
     Y4, YC, Q4, QC = M4["y4"], MC["y4"], M4["qvk"], MC["qvk"]   # materialised ONCE (an NpzFile key access re-reads the whole array per iteration)
     for j, i in pairs:
-        m = np.asarray(M4m[j]); a = np.asarray(F4[j])[m][:, vcols]; c = np.asarray(FC[i])[m][:, vcols]
+        m = np.intersect1d(np.asarray(M4m[j]), np.asarray(MCm[i]))   # AMENDMENT 8: value columns compared on the INTERSECTION members (additions have no control cell)
+        a = np.asarray(F4[j])[m][:, vcols]; c = np.asarray(FC[i])[m][:, vcols]
         if not np.array_equal(a.view(np.uint16), c.view(np.uint16)): bad_val += 1
         if not (np.array_equal(Y4[j].view(np.uint32), YC[i].view(np.uint32)) and np.array_equal(Q4[j].view(np.uint32), QC[i].view(np.uint32))): bad_y += 1
         checked += 1

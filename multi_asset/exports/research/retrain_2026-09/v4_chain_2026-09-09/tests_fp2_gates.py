@@ -5,6 +5,7 @@
   G3  RED: a masked build made with a DIFFERENT mask than the contract's ⇒ STEP1/STEP2 FAIL (removed member not mask-False) — the gate sees the substitution
   G4  RED (last, in place): control output rewritten after the receipt ⇒ both gates UNAVAILABLE (controls binding refused), receipt PASS=false
   G7  RED: a controls receipt copied from another root ⇒ UNAVAILABLE (outputs outside this root)
+  G8  truncation-aware member rule (AMENDMENT 8): additions allowed only at truncated control rows and mask-True   G9 RED: addition at a non-truncated row ⇒ FAIL
   G5  RED: preflight pins a different builder sha ⇒ STEP2 UNAVAILABLE (builder identity)
   G6  RED (controls): 'September' king build with one FEA value altered ⇒ controls FAIL on K2 (nothing else)"""
 import hashlib, json, os, shutil, subprocess, sys, tempfile
@@ -99,6 +100,46 @@ rc1, o1, s1 = gate(1, R4); rc2, o2, s2 = gate(2, R4)
 check("★★★ G4 RED: control outputs changed after the receipt ⇒ STEP1/STEP2 UNAVAILABLE (controls binding refused: 'changed since the receipt'), receipts PASS=false",
       rc1 == 3 and rc2 == 3 and s1 and s2 and s1["VERDICT"] == "UNAVAILABLE" and s2["VERDICT"] == "UNAVAILABLE" and any("changed since the receipt" in w for w in s1["REFUSED"]["controls_binding"]) and any("changed since the receipt" in w for w in s2["REFUSED"]["controls_binding"]),
       (rc1, rc2, (s1 or {}).get("REFUSED"), (s2 or {}).get("REFUSED")))
+# G8/G9 (AMENDMENT 8): when more than NTOP=400 names are eligible, masking pushes names ranked 401+ into the masked top-400 (ADDITIONS)
+TMP8 = tempfile.mkdtemp(prefix="fp2g8_"); S8 = fp2_synth.make(TMP8, NW=430)   # default TT=8000: the DL alignment self-check needs > 120 anchors
+_z8 = dict(np.load(S8["CACHE"], allow_pickle=True)); _d8 = _z8["data"]; _d8[:4000, 380:430, :] = np.nan; np.savez(S8["CACHE"], **{k: (_d8 if k == "data" else v) for k, v in _z8.items()})   # member counts must VARY (390 eligible in the first half, 430→400 later): a uniform count would persist a 2-D object members array
+BASE8 = dict(BASE, PYTHONPATH=S8["shim"])
+def build8(script, out, mask=""):
+    os.makedirs(out, exist_ok=True); e = dict(BASE8, MEMBER_MASK_NPZ=mask)
+    if "fea_ext" in script: e.update(CACHE_IN=S8["CACHE"], PANEL_IN=S8["KPANEL"], FEA_OUT=f"{out}/wide_fea_v4.npy", META_OUT=f"{out}/wide_fea_v4_meta.npz")
+    else: e.update(DLWT_CACHE=S8["CACHE"], DLWT_PANEL=S8["DPANEL"], DLWT_OUT=out, DLWT_RET_CH="0", DLWT_RAW_PATCH="")
+    r = subprocess.run([PY, f"{HERE}/{script}"], env=e, cwd=TMP8, capture_output=True, text=True); assert r.returncode == 0, (script, r.stdout[-400:], r.stderr[-400:])
+build8("pod_fea_ext_clamp.py", f"{TMP8}/sept_king"); build8("pod_dlw_targets_raw.py", f"{TMP8}/sept_dl")
+R8 = f"{TMP8}/R8"; os.makedirs(R8)
+e8 = dict(BASE8, R=R8, D=HERE, PY=PY, CACHE=S8["CACHE"], PANEL_SPLICE=S8["DPANEL"], PANEL_KING=S8["KPANEL"], RAW_PATCH="", SEPT_KING_FEA=f"{TMP8}/sept_king/wide_fea_v4.npy", SEPT_KING_META=f"{TMP8}/sept_king/wide_fea_v4_meta.npz", SEPT_DL_TARGETS=f"{TMP8}/sept_dl/data/dlw_targets.npz", BUILDER_TARGETS="pod_dlw_targets_raw_v2.py", BUILDER_KING_FEA="pod_fea_ext_clamp_v2.py")
+_r8 = subprocess.run([PY, f"{HERE}/fp2_controls.py"], env=e8, cwd=TMP8, capture_output=True, text=True); assert _r8.returncode == 0, ("controls on the 430-symbol case", {k[:60]: (v["ok"], json.dumps(v["detail"], default=str)[:200]) for k, v in json.load(open(f"{R8}/controls/CONTROLS.json"))["checks"].items()} if os.path.isfile(f"{R8}/controls/CONTROLS.json") else (_r8.stdout + _r8.stderr)[-800:])
+mk8 = np.ones((S8["nP"], S8["NW"]), bool); mk8[:, :20] = False   # 20 names masked everywhere: with 430 eligible the control top-400 loses them and the masked top-400 ADDS others
+M8 = f"{TMP8}/mask8.npz"; np.savez(M8, ts=S8["grid"], symbols=np.array(S8["syms"]), mask=mk8, definition=np.array("m8"))
+build8("pod_dlw_targets_raw_v2.py", f"{R8}/dlw_v4raw", M8); build8("pod_dlw_targets_raw_v2.py", f"{R8}/dlw_hf3", M8); build8("pod_fea_ext_clamp_v2.py", f"{R8}/data", M8)
+for p in (f"{R8}/dlw_v4raw/data/dlw_fea82.npz", f"{R8}/dlw_hf3/data/dlw_fea82.npz"): open(p, "wb").write(b"fea82-identical")
+os.makedirs(f"{R8}/f8_v4/data", exist_ok=True); open(f"{R8}/f8_v4/data/f8_fea89.npz", "wb").write(b"fea89"); os.makedirs(f"{R8}/v4_gates", exist_ok=True)
+json.dump({"gate": "PREFLIGHT", "PASS": True, "device_sha256": {"pod_fea_ext_clamp_v2.py": sha(f"{HERE}/pod_fea_ext_clamp_v2.py"), "pod_dlw_targets_raw_v2.py": sha(f"{HERE}/pod_dlw_targets_raw_v2.py")}}, open(f"{R8}/v4_gates/preflight.json", "w"))
+def gate8(which, R, extra=None):
+    e = dict(BASE8, R=R, D=HERE, HOLE_CELLS=S8["HOLE"], DLW_RAW=f"{R}/dlw_v4raw", DLW_CLIP=f"{R}/dlw_hf3", RAW_PATCH=S8["RAWP"], CACHE=S8["CACHE"], F8=f"{R}/f8_v4", MEMBER_MASK=M8,
+             BUILDER_TARGETS="pod_dlw_targets_raw_v2.py", BUILDER_KING_FEA="pod_fea_ext_clamp_v2.py", KING_FEA=f"{R}/data/wide_fea_v4.npy", KING_META=f"{R}/data/wide_fea_v4_meta.npz")
+    e[f"STEP{which}_OUT"] = f"{R}/v4_gates/step{which}.json"; e.update(extra or {})
+    r = subprocess.run([PY, f"{HERE}/fp2_gate_step{which}.py"], env=e, cwd=TMP8, capture_output=True, text=True)
+    return r.returncode, r.stdout + r.stderr, (json.load(open(e[f"STEP{which}_OUT"])) if os.path.isfile(e[f"STEP{which}_OUT"]) else None)
+rc1, o1, s1 = gate8(1, R8); rc2, o2, s2 = gate8(2, R8)
+_c1 = (s1 or {}).get("C_masked_vs_control", {}); _c2 = (s2 or {}).get("C_masked_vs_control", {})
+check("★★★ G8 truncation (430 eligible > NTOP 400): masking 20 names ⇒ the masked top-400 ADDS names ranked 401+ (rows_with_additions > 0, all at truncated control rows, all mask-True) ⇒ STEP1/STEP2 PASS; value cols bitwise on the intersection",
+      rc1 == 0 and rc2 == 0 and _c1.get("rows_with_additions", 0) > 0 and _c1.get("additions_without_truncation_rows") == 0 and _c1.get("additions_not_mask_true_rows") == 0 and _c1.get("removed_not_masked_rows") == 0
+      and _c2.get("rows_with_additions", 0) > 0 and _c2.get("value_cols_not_bitwise_rows") == 0, (rc1, rc2, {k: _c1.get(k) for k in ("rows_with_removals","rows_with_additions","cells_added","additions_without_truncation_rows","additions_not_mask_true_rows")}, o2[-160:] if rc2 else ""))
+# G9 RED: an addition at a row whose CONTROL was not truncated (control < 400) ⇒ FAIL. Forge it: take the masked king meta and append a mask-True, non-member symbol at anchor 3 after shrinking the control row there.
+Mc = np.load(f"{R8}/controls/king_nomask/wide_fea_v4_meta.npz", allow_pickle=True); Mm = np.load(f"{R8}/data/wide_fea_v4_meta.npz", allow_pickle=True)
+_mm = np.array(Mm["members"], dtype=object); _mc = np.array(Mc["members"], dtype=object); j9 = 3
+_cm = np.asarray(_mc[j9])[:-5]; _mc[j9] = _cm                                                   # control row now 395 members (not truncated)
+_cand = [x for x in range(S8["NW"]) if x not in set(_cm.tolist()) and x not in set(np.asarray(_mm[j9]).tolist()) and mk8[j9, x]][:1]; _mm[j9] = np.append(np.asarray(_mm[j9]), np.int64(_cand[0]))
+np.savez(f"{R8}/controls/king_nomask/wide_fea_v4_meta.npz", **{k: (Mc[k] if k != "members" else _mc) for k in Mc.files}); np.savez(f"{R8}/data/wide_fea_v4_meta.npz", **{k: (Mm[k] if k != "members" else _mm) for k in Mm.files})
+_recp = json.load(open(f"{R8}/controls/CONTROLS.json")); _recp["outputs_sha256"]["control_king_meta"] = sha(f"{R8}/controls/king_nomask/wide_fea_v4_meta.npz"); json.dump(_recp, open(f"{R8}/controls/CONTROLS.json", "w"))   # rebind the (forged) control meta so the binding passes and the RULE is what fails
+rc2, o2, s2 = gate8(2, R8); _c2 = (s2 or {}).get("C_masked_vs_control", {})
+check("★★★ G9 RED: an added member at a row whose control was NOT truncated (395 < 400) ⇒ STEP2 FAIL with additions_without_truncation_rows == 1", rc2 == 3 and s2 and s2["VERDICT"] == "FAIL" and _c2.get("additions_without_truncation_rows") == 1, (rc2, {k: _c2.get(k) for k in ("rows_with_additions","additions_without_truncation_rows","additions_not_mask_true_rows")}))
+shutil.rmtree(TMP8, ignore_errors=True)
 shutil.rmtree(TMP, ignore_errors=True)
 print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
 if FAILS: print("FAILED:", *FAILS, sep="\n  "); sys.exit(1)

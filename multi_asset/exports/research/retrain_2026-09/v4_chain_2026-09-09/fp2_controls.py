@@ -84,8 +84,13 @@ def main():
     row = {int(t): i for i, t in enumerate(E2)}; common = [(i, row[int(t)]) for i, t in enumerate(E1) if int(t) in row]
     check("K1 every September anchor is present in v2", len(common) == len(E1), {"sept": int(len(E1)), "v2": int(len(E2))})
     m1 = M1["members"]; m2 = M2["members"]; y1 = M1["y4"]; y2 = M2["y4"]; q1 = M1["qvk"]; q2 = M2["qvk"]; bad = []   # materialised ONCE (an NpzFile key access re-reads the whole array)
+    def _idx(m):   # a member row as an int64 index; a non-integer-valued row is a builder defect and must surface, not be coerced silently
+        a = np.asarray(m); b = a.astype(np.int64)
+        if a.dtype == object and not np.array_equal(np.asarray(a.tolist(), dtype=np.float64), b): raise ValueError("member row not integer-valued")
+        return b
+    rec["members_persisted_ndim"] = {"sept": int(np.asarray(m1).ndim), "v2": int(np.asarray(m2).ndim)}   # 2 ⇒ every anchor had the same member count (np.array(list, dtype=object) became 2-D)
     for i, j in common:
-        if not (np.array_equal(m1[i], m2[j]) and np.array_equal(np.asarray(F1[i]).view(np.uint16), np.asarray(F2[j]).view(np.uint16))
+        if not (np.array_equal(_idx(m1[i]), _idx(m2[j])) and np.array_equal(np.asarray(F1[i]).view(np.uint16), np.asarray(F2[j]).view(np.uint16))
                 and np.array_equal(y1[i].view(np.uint32), y2[j].view(np.uint32)) and np.array_equal(q1[i].view(np.uint32), q2[j].view(np.uint32))):
             bad.append(int(E1[i]))
             if len(bad) > 20: break
@@ -96,8 +101,8 @@ def main():
     # finiteness is judged on the NON-funding columns: the builder leaves fund_ema/fund_now NaN for anchors before the king panel's first row
     # (September's own first anchors carry the same NaNs and passed K2 bitwise) — so fund columns are counted, not required finite.
     names2 = [str(x) for x in M2["names"]]; nonfund = np.array([n not in ("fund_ema", "fund_now") for n in names2])
-    fin = all(np.isfinite(np.asarray(F2[j])[m2[j]][:, nonfund].astype(np.float32)).all() for j in extra) if extra else False
-    fund_nan_rows = int(sum(1 for j in extra if not np.isfinite(np.asarray(F2[j])[m2[j]][:, ~nonfund].astype(np.float32)).all())) if extra else 0
+    fin = all(np.isfinite(np.asarray(F2[j])[_idx(m2[j])][:, nonfund].astype(np.float32)).all() for j in extra) if extra else False
+    fund_nan_rows = int(sum(1 for j in extra if not np.isfinite(np.asarray(F2[j])[_idx(m2[j])][:, ~nonfund].astype(np.float32)).all())) if extra else 0
     check("K3 anchors only in v2 are EXACTLY the pre-2016-bar anchors (E_row in [576, 2016)) and their member features are finite on the non-funding columns",
           okrow and fin and len(extra) == int(((cts % 14400 == 0) & (np.arange(len(cts)) >= 576) & (np.arange(len(cts)) < 2016)).sum()),
           {"n_extra": len(extra), "E_rows": [int(r) for r in erow[:6]], "expected_n": int(((cts % 14400 == 0) & (np.arange(len(cts)) >= 576) & (np.arange(len(cts)) < 2016)).sum()),
