@@ -159,6 +159,35 @@ check("★★★ G8 truncation (430 eligible > NTOP 400): masking 20 names ⇒ t
       rc1 == 0 and rc2 == 0 and _c1.get("rows_with_additions", 0) > 0 and _c1.get("additions_without_truncation_rows") == 0 and _c1.get("additions_not_mask_true_rows") == 0 and _c1.get("removed_not_masked_rows") == 0
       and _c2.get("rows_with_additions", 0) > 0 and _c2.get("value_cols_not_bitwise_rows") == 0, (rc1, rc2, {k: _c1.get(k) for k in ("rows_with_removals","rows_with_additions","cells_added","additions_without_truncation_rows","additions_not_mask_true_rows")}, o2[-160:] if rc2 else ""))
 # G9 RED: an addition at a row whose CONTROL was not truncated (control < 400) ⇒ FAIL. Forge it: take the masked king meta and append a mask-True, non-member symbol at anchor 3 after shrinking the control row there.
+# ── R09 (independent review round 2): the masked build must be EXACTLY the builders' rule — fp2_member_rule_check.py recomputes it from the cache ──
+def mrc(cache, mask, ck, mk, cd, md, out, extra=None):
+    e = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"], "CACHE": cache, "MEMBER_MASK": mask, "CONTROL_KING_META": ck, "MASKED_KING_META": mk, "CONTROL_DL_TARGETS": cd, "MASKED_DL_TARGETS": md, "OUT_JSON": out}; e.update(extra or {})
+    r = subprocess.run([PY, f"{HERE}/fp2_member_rule_check.py"], env=e, capture_output=True, text=True); j = json.load(open(out)) if os.path.isfile(out) else None
+    return r.returncode, r.stdout + r.stderr, j
+_ck8, _mk8, _cd8, _md8 = f"{R8}/controls/king_nomask/wide_fea_v4_meta.npz", f"{R8}/data/wide_fea_v4_meta.npz", f"{R8}/controls/dl_nomask/data/dlw_targets.npz", f"{R8}/dlw_v4raw/data/dlw_targets.npz"
+rc, o, j = mrc(S8["CACHE"], M8, _ck8, _mk8, _cd8, _md8, f"{TMP8}/mrc_ok.json")
+check("★★★ MR1 (R09) 430-symbol case: the replica reproduces BOTH control builds exactly and BOTH masked builds equal the expected rule ∧ mask → top-400 → ≥50 sets (truncated masked rows > 0) ⇒ PASS rc 0",
+      rc == 0 and j and j["VERDICT"] == "PASS" and j["king"]["summary"]["control_reproduced"] and j["king"]["summary"]["masked_exact"] and j["dl"]["summary"]["control_reproduced"] and j["dl"]["summary"]["masked_exact"] and j["king"]["summary"]["n_truncated_masked_rows"] > 0,
+      (rc, (j or {}).get("VERDICT"), (j or {}).get("king", {}).get("summary"), o[-300:] if not j else ""))
+rc, o, j1 = mrc(S["CACHE"], MASK, f"{R1}/controls/king_nomask/wide_fea_v4_meta.npz", f"{R1}/data/wide_fea_v4_meta.npz", f"{R1}/controls/dl_nomask/data/dlw_targets.npz", f"{R1}/dlw_v4raw/data/dlw_targets.npz", f"{TMP}/mrc_r1.json")
+check("★★ MR2 (R09) 80-symbol case (no truncation, mask drops names and anchors): PASS, expected_dropped_by_mask recorded", rc == 0 and j1 and j1["VERDICT"] == "PASS", (rc, (j1 or {}).get("VERDICT"), o[-300:] if not j1 else ""))
+def tamper_meta(src, dst, fn):
+    Z = np.load(src, allow_pickle=True); d = {k: Z[k] for k in Z.files}; d["E_ts"], d["members"] = fn(np.asarray(d["E_ts"]), np.array(list(d["members"]), dtype=object) if np.asarray(d["members"]).dtype == object else d["members"]); np.savez(dst, **d)
+_Mm = np.load(_mk8, allow_pickle=True); _tr = [i for i, m in enumerate(_Mm["members"]) if len(m) == 400]; _i = _tr[0]
+def _drop_one(E, M): M = M.copy(); M[_i] = np.asarray(M[_i])[:-1]; return E, M                                            # 399 at a truncated row
+def _wrong_one(E, M):
+    M = M.copy(); m = np.asarray(M[_i]); cand = [s for s in range(len(_Mm["members"][0]) + 1000) if s not in set(m.tolist()) and s < 430][0]; m2 = m.copy(); m2[-1] = cand; M[_i] = np.sort(m2); return E, M   # 400 but one wrong name
+def _extra_one(E, M):
+    M = M.copy(); m = np.asarray(M[_i]); cand = [s for s in range(430) if s not in set(m.tolist())][0]; M[_i] = np.sort(np.append(m, cand)); return E, M                    # 401
+def _drop_anchor(E, M): return np.delete(E, _i), np.delete(M, _i)                                                                                                        # a kept anchor deleted
+for name, fn, what in (("MR3 399 members at a truncated row (a replacement name missing)", _drop_one, "missing_in_build"), ("MR4 400 members but one wrong name (lower-ranked substitute)", _wrong_one, "extra_in_build"),
+                       ("MR5 401 members (one extra)", _extra_one, "extra_in_build"), ("MR6 a kept anchor deleted although its masked pool ≥ MIN_MEM", _drop_anchor, "anchors_only_expected")):
+    p = f"{TMP8}/mrc_{name[:3]}.npz"; tamper_meta(_mk8, p, fn); rc, o, jt = mrc(S8["CACHE"], M8, _ck8, p, _cd8, _md8, f"{TMP8}/mrc_{name[:3]}.json", extra={"SKIP_DL": "1"})
+    km = (jt or {}).get("king", {}).get("masked", {})
+    check(f"★★★ {name} ⇒ FAIL (the old subset/truncation rule would PASS this)", rc == 3 and jt and jt["VERDICT"] == "FAIL" and not km.get("PASS") and (km.get("rows_members_differ", 0) == 1 or km.get("n_anchors_only_expected", 0) == 1) and (what in json.dumps(km)),
+          (rc, (jt or {}).get("VERDICT"), {k: km.get(k) for k in ("rows_members_differ", "n_anchors_only_expected", "n_anchors_only_build")}, km.get("first_differences", [])[:1]))
+p = f"{TMP8}/mrc_MR7.npz"; tamper_meta(_ck8, p, _drop_one); rc, o, jt = mrc(S8["CACHE"], M8, p, _mk8, _cd8, _md8, f"{TMP8}/mrc_MR7.json", extra={"SKIP_DL": "1"})
+check("★★★ MR7 a CONTROL meta that is not what the builder produced ⇒ control_reproduced False ⇒ FAIL (the replica is bound to the real builder, not free-floating)", rc == 3 and jt and not jt["king"]["summary"]["control_reproduced"], (rc, (jt or {}).get("king", {}).get("summary")))
 Mc = np.load(f"{R8}/controls/king_nomask/wide_fea_v4_meta.npz", allow_pickle=True); Mm = np.load(f"{R8}/data/wide_fea_v4_meta.npz", allow_pickle=True)
 _mm = np.array(Mm["members"], dtype=object); _mc = np.array(Mc["members"], dtype=object); j9 = 3
 _cm = np.asarray(_mc[j9])[:-5]; _mc[j9] = _cm                                                   # control row now 395 members (not truncated)

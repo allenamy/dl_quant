@@ -1,0 +1,129 @@
+{
+ "gate": "FP2_MEMBER_RULE_CHECK",
+ "self_sha256": "396f6a518d6fddffdba3e8126f94cc5f8d49e40b24b2ac056b84d5ade91de49f",
+ "utc": "2026-09-17T11:39:32Z",
+ "constants": {
+  "NTOP": 400,
+  "MIN_MEM": 50,
+  "W": 576,
+  "FWD": 48,
+  "TRAIL": 2016,
+  "MIN_FIN": 46,
+  "COVR": 0.95,
+  "VOL": 0.0001
+ },
+ "inputs": {
+  "CACHE": {
+   "path": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+   "sha256": "1d7f459dee434ec49e7714a2a612807f2e38e97f35c6c39471a8a4aaa7452488"
+  },
+  "MEMBER_MASK": {
+   "path": "/workspace/fp2_2026-09/masks/member_mask_tradable_W24H_cachegrid.npz",
+   "sha256": "e0f67739faa10f191b5e6cdd50abd0455fbc30c5dad87d28d352d3018a3b3d7e"
+  },
+  "CONTROL_KING_META": {
+   "path": "/workspace/fp2_2026-09/controls/king_nomask/wide_fea_v4_meta.npz",
+   "sha256": "30d9c1f972be5c7560b88ae8694524c5fb9d2b2d8da783994f661b697361687a"
+  },
+  "MASKED_KING_META": {
+   "path": "/workspace/fp2_2026-09/data/wide_fea_v4_meta.npz",
+   "sha256": "61e54c8cfaa67f6786fc0d8b4eeb023f2f6df8aff68b967d77b19c80b4cd1176"
+  },
+  "CONTROL_DL_TARGETS": {
+   "path": "/workspace/fp2_2026-09/controls/dl_nomask/data/dlw_targets.npz",
+   "sha256": "d292e1364d95d6d63dcd3eb172eee570e6feaa668d399ddeb2be0d54b9536ca0"
+  },
+  "MASKED_DL_TARGETS": {
+   "path": "/workspace/fp2_2026-09/dlw_v4raw/data/dlw_targets.npz",
+   "sha256": "be4e1129e323a67282f561cb3022f3c009a1388df0fd9307e97bf36955619e5b"
+  },
+  "RAW_PATCH": {
+   "path": "/workspace/fp2_2026-09/raw_patch.npz",
+   "sha256": "adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b"
+  }
+ },
+ "UNAVAILABLE": [],
+ "king": {
+  "control": {
+   "n_expected": 10212,
+   "n_build": 10212,
+   "axis_equal": true,
+   "anchors_only_expected": [],
+   "anchors_only_build": [],
+   "rows_members_differ": 0,
+   "first_differences": [],
+   "n_truncated_rows": 2888,
+   "n_anchors_only_expected": 0,
+   "n_anchors_only_build": 0,
+   "PASS": true,
+   "label": "king: unmasked replica vs CONTROL build (binds the replica to the builder)"
+  },
+  "masked": {
+   "n_expected": 10212,
+   "n_build": 10212,
+   "axis_equal": true,
+   "anchors_only_expected": [],
+   "anchors_only_build": [],
+   "rows_members_differ": 0,
+   "first_differences": [],
+   "n_truncated_rows": 2887,
+   "n_anchors_only_expected": 0,
+   "n_anchors_only_build": 0,
+   "PASS": true,
+   "label": "king: masked replica (rule \u2227 mask \u2192 top-NTOP \u2192 \u2265 MIN_MEM) vs MASKED build"
+  },
+  "summary": {
+   "control_reproduced": true,
+   "masked_exact": true,
+   "n_grid": 10212,
+   "n_control": 10212,
+   "n_masked_expected": 10212,
+   "n_truncated_masked_rows": 2887,
+   "expected_dropped_by_mask": 0,
+   "min_masked_pool_over_kept": 135
+  }
+ },
+ "dl": {
+  "control": {
+   "n_expected": 10212,
+   "n_build": 10212,
+   "axis_equal": true,
+   "anchors_only_expected": [],
+   "anchors_only_build": [],
+   "rows_members_differ": 0,
+   "first_differences": [],
+   "n_truncated_rows": 2888,
+   "n_anchors_only_expected": 0,
+   "n_anchors_only_build": 0,
+   "PASS": true,
+   "label": "dl: unmasked replica vs CONTROL build (binds the replica to the builder)"
+  },
+  "masked": {
+   "n_expected": 10212,
+   "n_build": 10212,
+   "axis_equal": true,
+   "anchors_only_expected": [],
+   "anchors_only_build": [],
+   "rows_members_differ": 0,
+   "first_differences": [],
+   "n_truncated_rows": 2887,
+   "n_anchors_only_expected": 0,
+   "n_anchors_only_build": 0,
+   "PASS": true,
+   "label": "dl: masked replica (rule \u2227 mask \u2192 top-NTOP \u2192 \u2265 MIN_MEM) vs MASKED build"
+  },
+  "summary": {
+   "control_reproduced": true,
+   "masked_exact": true,
+   "n_grid": 10212,
+   "n_control": 10212,
+   "n_masked_expected": 10212,
+   "n_truncated_masked_rows": 2887,
+   "expected_dropped_by_mask": 0,
+   "min_masked_pool_over_kept": 135
+  }
+ },
+ "runtime_s": 422.8,
+ "VERDICT": "PASS",
+ "PASS": true
+}
