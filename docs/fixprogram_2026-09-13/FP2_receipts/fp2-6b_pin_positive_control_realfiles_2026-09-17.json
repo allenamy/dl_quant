@@ -1,0 +1,74 @@
+{
+ "utc": "2026-09-17T16:33:02Z",
+ "reader_sha256": "b4b18dc08d5d7f22fcfc76d4d591f35ba41b0a7f6e5a11cc3b9ce36c649357d6",
+ "reader_tree": "58256ed (worktree; identical file to production)",
+ "prod_reader_sha256": "b4b18dc08d5d7f22fcfc76d4d591f35ba41b0a7f6e5a11cc3b9ce36c649357d6",
+ "files": {
+  "16Z": "/Users/haosiyu/wide_shadow/state/target_live/1789660800.json",
+  "12Z": "/Users/haosiyu/wide_shadow/state/target_live/1789646400.json"
+ },
+ "cases": [
+  {
+   "case": "A 16Z archive, pin null (deployed config) \u21d2 accepted, f10_sha returned",
+   "pin": null,
+   "nominal_ts": 1789660800,
+   "now": 1789662177,
+   "ok": true,
+   "reason": null,
+   "detail": "",
+   "f10_sha": "351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4",
+   "json_sha": "a5bdc659bd6b141a4f564d20da5b4da82337af0b9d3611ff67fe869b66892e78",
+   "config_source": "external"
+  },
+  {
+   "case": "B 16Z archive, pin == 351ae26b\u2026 \u21d2 accepted",
+   "pin": "351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4",
+   "nominal_ts": 1789660800,
+   "now": 1789662177,
+   "ok": true,
+   "reason": null,
+   "detail": "",
+   "f10_sha": "351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4",
+   "json_sha": "a5bdc659bd6b141a4f564d20da5b4da82337af0b9d3611ff67fe869b66892e78",
+   "config_source": "external"
+  },
+  {
+   "case": "C 16Z archive, pin wrong \u21d2 REFUSED f10_pin",
+   "pin": "0000000000000000000000000000000000000000000000000000000000000000",
+   "nominal_ts": 1789660800,
+   "now": 1789662177,
+   "ok": false,
+   "reason": "f10_pin",
+   "detail": "f10_sha 351ae26bd6b4\u2026 != pin 000000000000\u2026",
+   "f10_sha": null,
+   "json_sha": "a5bdc659bd6b141a4f564d20da5b4da82337af0b9d3611ff67fe869b66892e78",
+   "config_source": "external"
+  },
+  {
+   "case": "D 12Z archive (written by the unpatched producer, no f10_sha), pin == 351ae26b\u2026 \u21d2 REFUSED (f10_sha missing)",
+   "pin": "351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4",
+   "nominal_ts": 1789646400,
+   "now": 1789647734,
+   "ok": false,
+   "reason": "f10_pin",
+   "detail": "f10_sha missing from the target while f10_sha_pin is set (producer predates FP2-6b)",
+   "f10_sha": null,
+   "json_sha": "d267e05087185ceee564b25261aabb80f0bae9f39646266315df20d74d508876",
+   "config_source": "external"
+  },
+  {
+   "case": "E 12Z archive, pin null \u21d2 accepted (the pre-pin regime)",
+   "pin": null,
+   "nominal_ts": 1789646400,
+   "now": 1789647734,
+   "ok": true,
+   "reason": null,
+   "detail": "",
+   "f10_sha": null,
+   "json_sha": "d267e05087185ceee564b25261aabb80f0bae9f39646266315df20d74d508876",
+   "config_source": "external"
+  }
+ ],
+ "VERDICT": "PASS",
+ "reads": "read-only calls of the deployed reader against the real archived targets with the deployed external_book config block and only the pin varied; `now` placed 90 s after each file's written_utc so age is inside max_age_min"
+}
