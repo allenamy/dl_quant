@@ -52,15 +52,25 @@ def check_scope(D, gate):
     if os.environ.get("V4_MONTH") != sc.get("V4_MONTH"): why.append(f"scope V4_MONTH {sc.get('V4_MONTH')!r} != running {os.environ.get('V4_MONTH')!r}")
     if os.path.realpath(os.environ.get("R", "")) != os.path.realpath(sc.get("R", "/nonexistent")): why.append(f"scope R {sc.get('R')!r} != running {os.environ.get('R')!r}")
     return why
-def bind_inputs_to_preflight(R, c_inputs_sha, keys=(("cache", "CACHE"), ("panel_splice", "PANEL_SPLICE"), ("panel_king", "PANEL_KING"), ("raw_patch", "RAW_PATCH"))):
-    """F07: the controls' recorded input identities must equal what THIS root's preflight hashed (external_sha256), else the controls ran on other inputs."""
-    p = os.path.join(R, "v4_gates", "preflight.json")
-    if not os.path.isfile(p): return ["preflight.json missing (cannot bind controls inputs)"]
-    ext = (json.load(open(p)).get("external_sha256") or {}); why = []
-    for ck, pk in keys:
-        a = (c_inputs_sha or {}).get(ck); b = ext.get(pk)
-        if a and b and a != b: why.append(f"controls input {ck} {a[:12]} != preflight {pk} {b[:12]}")
-        elif a and not b: why.append(f"preflight has no sha for {pk}")
+def bind_inputs_to_preflight(R, c_inputs_sha, c_inputs_path):
+    """F07: the controls ran on THIS root's declared inputs. The driver's preflight records each contract input as {path, bytes} (it does not hash
+    the 2 GB cache); so the binding is: same realpath as the preflight's input, same byte size now, and the bytes on disk NOW hash to what the
+    controls receipt recorded (so neither the controls nor the preflight saw a different file than the one the gates will read)."""
+    pf = os.path.join(R, "v4_gates", "preflight.json"); why = []
+    try: P = json.load(open(pf))
+    except Exception as e: return [f"preflight receipt unreadable: {e!r}"]   # noqa: BLE001
+    if P.get("PASS") is not True: why.append(f"preflight PASS={P.get('PASS')!r}")
+    pin = P.get("inputs") or {}
+    for k, K in (("cache", "CACHE"), ("panel_splice", "PANEL_SPLICE"), ("panel_king", "PANEL_KING"), ("raw_patch", "RAW_PATCH")):
+        cp = (c_inputs_path or {}).get(k) or ""; cs = (c_inputs_sha or {}).get(k)
+        if k == "raw_patch" and not cp and K not in pin: continue                       # optional-empty on both sides
+        e = pin.get(K)
+        if not e or not e.get("path"): why.append(f"preflight has no input {K}"); continue
+        if not cp: why.append(f"controls receipt has no path for {k}"); continue
+        if os.path.realpath(e["path"]) != os.path.realpath(cp): why.append(f"{K}: preflight {e['path']} != controls {cp}"); continue
+        if not os.path.isfile(cp): why.append(f"{K}: file missing now: {cp}"); continue
+        if e.get("bytes") is not None and os.path.getsize(cp) != e["bytes"]: why.append(f"{K}: size now {os.path.getsize(cp)} != preflight {e['bytes']}"); continue
+        if not cs or sha256_file(cp) != cs: why.append(f"{K}: bytes on disk != controls receipt sha {str(cs)[:12]}")
     return why
 def mask_rows(mask_path, E_ts, symbols):
     """the contract's MEMBER_MASK rows at the given anchors; refuses a missing anchor or a symbol-axis mismatch (returns (None, why))."""

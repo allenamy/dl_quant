@@ -26,7 +26,7 @@ _ctl, _why = ({}, ["env missing"]) if _missing_env else GL.bind_controls(_E["R"]
 if _why: _refused["controls_binding"] = _why
 _scope = [] if _missing_env else GL.check_scope(_E["D"], "STEP2")
 if _scope: _refused["scope_binding"] = _scope   # F07: variant approved for one (V4_MONTH, R) only
-_pfb = [] if (_missing_env or _why) else GL.bind_inputs_to_preflight(_E["R"], json.load(open(_ctl["receipt"])).get("inputs_sha256"))
+_cj = None if (_missing_env or _why) else json.load(open(_ctl["receipt"])); _pfb = [] if _cj is None else GL.bind_inputs_to_preflight(_E["R"], _cj.get("inputs_sha256"), _cj.get("inputs_path"))
 if _pfb: _refused["controls_inputs_vs_preflight"] = _pfb   # F07: controls ran on THIS root's inputs
 if not (_why or _pfb): INPUTS["control_king_fea"] = _ctl["control_king_fea"]; INPUTS["control_king_meta"] = _ctl["control_king_meta"]; INPUTS["controls_receipt"] = _ctl["receipt"]
 _ID = {}

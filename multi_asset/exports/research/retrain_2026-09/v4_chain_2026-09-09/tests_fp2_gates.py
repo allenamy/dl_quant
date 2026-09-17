@@ -38,11 +38,11 @@ def device_dir(R, month="2026-99"):
     json.dump(c, open(f"{D}/ELIGIBILITY_CONTRACT.json", "w"), indent=1); return D
 def preflight_for(R, D, cache=None, splice=None, king=None, patch=None):
     """the receipt the driver's preflight writes: device shas + external_sha256 of the contract inputs (F07 binds the controls' inputs to it)"""
-    ext = {}
+    inp = {}
     for k, p in (("CACHE", cache or S["CACHE"]), ("PANEL_SPLICE", splice or S["DPANEL"]), ("PANEL_KING", king or S["KPANEL"]), ("RAW_PATCH", patch)):
-        if p and os.path.isfile(p): ext[k] = sha(p)
+        if p and os.path.isfile(p): inp[k] = {"path": p, "bytes": os.path.getsize(p), "is_dir": False}          # the REAL preflight layout: path + bytes, no sha for inputs
     os.makedirs(f"{R}/v4_gates", exist_ok=True)
-    json.dump({"gate": "PREFLIGHT", "PASS": True, "device_sha256": {f: sha(f"{D}/{f}") for f in DEV_FILES_FOR_ROOT}, "external_sha256": ext}, open(f"{R}/v4_gates/preflight.json", "w"))
+    json.dump({"gate": "PREFLIGHT", "PASS": True, "device_sha256": {f: sha(f"{D}/{f}") for f in DEV_FILES_FOR_ROOT}, "inputs": inp, "external_sha256": {}}, open(f"{R}/v4_gates/preflight.json", "w"))
 def controls(R, sept_king=f"{TMP}/sept_king", sept_dl=f"{TMP}/sept_dl"):
     D = f"{R}/device"; (os.path.isdir(D) or device_dir(R))
     e = dict(BASE, R=R, D=D, PY=PY, CACHE=S["CACHE"], PANEL_SPLICE=S["DPANEL"], PANEL_KING=S["KPANEL"], RAW_PATCH="", SEPT_KING_FEA=f"{sept_king}/wide_fea_v4.npy",
@@ -112,6 +112,14 @@ rc1, o1, s1 = gate(1, R7); rc2, o2, s2 = gate(2, R7)
 check("★★★ G7 RED: controls receipt copied from another root ⇒ STEP1/STEP2 UNAVAILABLE ('control output outside this root') — a foreign receipt never certifies this root",
       rc1 == 3 and rc2 == 3 and s1 and s2 and s1["VERDICT"] == "UNAVAILABLE" and any("outside this root" in w for w in s1["REFUSED"]["controls_binding"]) and any("outside this root" in w for w in s2["REFUSED"]["controls_binding"]),
       (rc1, rc2, (s1 or {}).get("REFUSED"), None if s1 else o1[-600:]))
+# ── F07 (independent review 2026-09-17): the controls must have run on THIS root's preflighted inputs ──
+R10 = f"{TMP}/R10"; os.makedirs(R10); _rc10, _o10, _rec10 = controls(R10); masked_run(R10, MASK)          # its own PASS controls on THIS root (same inputs as G2)
+_alt_cache = f"{TMP}/cache_other.npz"; shutil.copy2(S["CACHE"], _alt_cache)
+preflight_for(R10, f"{R10}/device", cache=_alt_cache)                                          # then the preflight declares ANOTHER cache file than the controls hashed
+rc1, o1, s1 = gate(1, R10)
+check("★★★ G10 RED (F07): preflight declares a different CACHE path than the controls receipt ran on ⇒ STEP1 UNAVAILABLE 'controls_inputs_vs_preflight' naming CACHE",
+      rc1 == 3 and s1 and s1["VERDICT"] == "UNAVAILABLE" and any("CACHE" in w for w in s1["REFUSED"].get("controls_inputs_vs_preflight", [])), (rc1, (s1 or {}).get("REFUSED"), None if s1 else o1[-300:]))
+
 # G4 RED (LAST, in place on R1): control output rewritten after the receipt
 R4 = R1
 with open(f"{R4}/controls/king_nomask/wide_fea_v4.npy", "r+b") as f: f.seek(200); b = f.read(1); f.seek(200); f.write(bytes([b[0] ^ 1]))
@@ -180,6 +188,8 @@ _dx = GLm.members_subset_check(_E, _MC, _E[:2], [np.arange(50)] * 2, _M2[:2], nt
 check("★★ F06-3 the same drop with only 10 mask-True control members (< 50) is EXPLAINED ⇒ PASS", _dx["PASS"] and _dx["dropped_unexplained_rows"] == 0, _dx)
 _du = GLm.members_subset_check(_E, _MC, _E[:2], [np.arange(50)] * 2, _MASK[:2], ntop=400, MASK_c=None)
 check("★★ F06-4 without control-axis mask rows a dropped anchor is UNVERIFIED ⇒ FAIL (never assumed explained)", not _du["PASS"] and _du["dropped_unverified_rows"] == 1, _du)
+
+
 
 print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
 if FAILS: print("FAILED:", *FAILS, sep="\n  "); sys.exit(1)
