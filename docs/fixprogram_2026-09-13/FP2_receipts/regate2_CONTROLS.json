@@ -1,0 +1,222 @@
+{
+ "gate": "FP2_CONTROLS",
+ "self_sha256": "d5672fc29625c79d87809d836091541555fd92640e6d5c82341a10d2b0f3671a",
+ "utc_start": "2026-09-17T11:45:50Z",
+ "env": {
+  "R": "/workspace/fp2_2026-09",
+  "D": "/workspace/fp2_2026-09/devices_v4chain",
+  "PY": "/workspace/venv/bin/python",
+  "CACHE": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+  "PANEL_SPLICE": "/workspace/data/wide_panel_4h_v3splice.npz",
+  "PANEL_KING": "/workspace/data/wide_panel_4h_v2ext.npz",
+  "SEPT_KING_FEA": "/workspace/data/wide_fea_v4.npy",
+  "SEPT_KING_META": "/workspace/data/wide_fea_v4_meta.npz",
+  "SEPT_DL_TARGETS": "/workspace/dlw_v4raw/data/dlw_targets.npz",
+  "BUILDER_TARGETS": "pod_dlw_targets_raw_v2.py",
+  "BUILDER_KING_FEA": "pod_fea_ext_clamp_v2.py",
+  "RAW_PATCH": "/workspace/fp2_2026-09/raw_patch.npz"
+ },
+ "checks": {
+  "K1 every September anchor is present in v2": {
+   "ok": true,
+   "detail": {
+    "sept": 10182,
+    "v2": 10212
+   }
+  },
+  "K2 common anchors: FEA rows / members / y4 / qvk BITWISE equal": {
+   "ok": true,
+   "detail": {
+    "n_common": 10182,
+    "first_bad_E_ts": []
+   }
+  },
+  "K3 anchors only in v2 are EXACTLY the pre-2016-bar anchors (E_row in [576, 2016)) and their member features are finite on the non-funding columns": {
+   "ok": true,
+   "detail": {
+    "n_extra": 30,
+    "E_rows": [
+     576,
+     624,
+     672,
+     720,
+     768,
+     816
+    ],
+    "expected_n": 30,
+    "first_extra_utc": "2022-01-03 00:00Z",
+    "extra_rows_with_fund_nan": 30,
+    "nonfund_cols": 80
+   }
+  },
+  "K4 names / builder self-report": {
+   "ok": true,
+   "detail": {
+    "builder": "pod_fea_ext_clamp_v2.py",
+    "n_anchors_before_2016": 30
+   }
+  },
+  "D1 every array of dlw_targets.npz BITWISE equal to September (meta_json excluded)": {
+   "ok": true,
+   "detail": {
+    "keys": [
+     "E_ts",
+     "E_row",
+     "members",
+     "y4s",
+     "YR4s",
+     "YRZ",
+     "yrs",
+     "qvk",
+     "btcv",
+     "has_panel",
+     "symbols",
+     "y4old"
+    ],
+    "diff": []
+   }
+  },
+  "D2 builder self-report: v2 name, mask not applied": {
+   "ok": true,
+   "detail": {
+    "path": null,
+    "sha256": null,
+    "applied": false
+   }
+  }
+ },
+ "VERDICT": "PASS",
+ "PASS": true,
+ "mode": "verify_only",
+ "previous_receipt": {
+  "sha256": "5058f5f9813cc7ad3fc35a6ece417ffd42edc84a9f05166824ff6062cb319677",
+  "VERDICT": "PASS",
+  "self_sha256": "e89dcc7d8394b2387fd3ab5ac0aa206eee1e8aa5df9a4b72b0ec2031e2a2a7a7",
+  "runs": {
+   "king": {
+    "rc": 0,
+    "log": "/workspace/fp2_2026-09/controls/king_nomask/build.log",
+    "env": {
+     "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin",
+     "HOME": "/root",
+     "OMP_NUM_THREADS": "8",
+     "MEMBER_MASK_NPZ": "",
+     "CACHE_IN": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+     "PANEL_IN": "/workspace/data/wide_panel_4h_v2ext.npz",
+     "FEA_OUT": "/workspace/fp2_2026-09/controls/king_nomask/wide_fea_v4.npy",
+     "META_OUT": "/workspace/fp2_2026-09/controls/king_nomask/wide_fea_v4_meta.npz"
+    },
+    "tail": "FEA_EXT_DONE (10212, 829, 82)"
+   },
+   "dl": {
+    "rc": 0,
+    "log": "/workspace/fp2_2026-09/controls/dl_nomask/build.log",
+    "env": {
+     "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin",
+     "HOME": "/root",
+     "OMP_NUM_THREADS": "8",
+     "MEMBER_MASK_NPZ": "",
+     "DLWT_CACHE": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+     "DLWT_PANEL": "/workspace/data/wide_panel_4h_v3splice.npz",
+     "DLWT_OUT": "/workspace/fp2_2026-09/controls/dl_nomask",
+     "DLWT_RET_CH": "0",
+     "DLWT_RAW_PATCH": "/workspace/fp2_2026-09/raw_patch.npz"
+    },
+    "tail": "[   95.3s] TARGETS_DONE {\"n_anchors\": 10212, \"mean_members\": 269.6131022326675, \"n_res\": 10207, \"years\": {\"2022\": 2178, \"2023\": 2190, \"2024\": 2196, \"2025\": 2190, \"2026\": 1458}, \"target_vs_old\": {\"medi"
+   }
+  },
+  "inputs_sha256": {
+   "cache": "1d7f459dee434ec49e7714a2a612807f2e38e97f35c6c39471a8a4aaa7452488",
+   "panel_splice": "c5d10f6ae31fa3f97006a8678c78382479a5380ae9d7f7af8386d2284ae3e90d",
+   "panel_king": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116",
+   "raw_patch": "adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b",
+   "sept_king_fea": "268f6c9c247cdf1fffb6cea442437ab21b3f13993f9d821cfb09f417417cad7a",
+   "sept_king_meta": "12ea42c4557093f10f954f648db9239f4dd8283ea365ba299f31bd81e7e5ab51",
+   "sept_dl_targets": "d1976cf6246cdc25054d21b1a9fa7f8fd02ee43278720d81ce2a35686d63c6f8",
+   "builder_king": "7b8b843d493b591a6f107bbbe75c4823652383c3ebaee838fab9f3df659f832a",
+   "builder_targets": "9e9dfd94857d4c6dbbecedb752bb8b57bbc1f344ff0ef3d4ba5d01fccc127a42"
+  },
+  "outputs_sha256": {
+   "control_king_fea": "ed5b542d3d2abe55edbae6a0081a174d41b1957798cf7b74e2ad546aded4442c",
+   "control_king_meta": "30d9c1f972be5c7560b88ae8694524c5fb9d2b2d8da783994f661b697361687a",
+   "control_dl_targets": "d292e1364d95d6d63dcd3eb172eee570e6feaa668d399ddeb2be0d54b9536ca0",
+   "control_dl_report": "79b388a6b0652c476c8c94c05164569416e6be89f4eacd03b8b52c580a12bffe"
+  }
+ },
+ "inputs_sha256": {
+  "cache": "1d7f459dee434ec49e7714a2a612807f2e38e97f35c6c39471a8a4aaa7452488",
+  "panel_splice": "c5d10f6ae31fa3f97006a8678c78382479a5380ae9d7f7af8386d2284ae3e90d",
+  "panel_king": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116",
+  "raw_patch": "adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b",
+  "sept_king_fea": "268f6c9c247cdf1fffb6cea442437ab21b3f13993f9d821cfb09f417417cad7a",
+  "sept_king_meta": "12ea42c4557093f10f954f648db9239f4dd8283ea365ba299f31bd81e7e5ab51",
+  "sept_dl_targets": "d1976cf6246cdc25054d21b1a9fa7f8fd02ee43278720d81ce2a35686d63c6f8",
+  "builder_king": "7b8b843d493b591a6f107bbbe75c4823652383c3ebaee838fab9f3df659f832a",
+  "builder_targets": "9e9dfd94857d4c6dbbecedb752bb8b57bbc1f344ff0ef3d4ba5d01fccc127a42"
+ },
+ "inputs_path": {
+  "cache": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+  "panel_splice": "/workspace/data/wide_panel_4h_v3splice.npz",
+  "panel_king": "/workspace/data/wide_panel_4h_v2ext.npz",
+  "raw_patch": "/workspace/fp2_2026-09/raw_patch.npz",
+  "sept_king_fea": "/workspace/data/wide_fea_v4.npy",
+  "sept_king_meta": "/workspace/data/wide_fea_v4_meta.npz",
+  "sept_dl_targets": "/workspace/dlw_v4raw/data/dlw_targets.npz",
+  "builder_king": "/workspace/fp2_2026-09/devices_v4chain/pod_fea_ext_clamp_v2.py",
+  "builder_targets": "/workspace/fp2_2026-09/devices_v4chain/pod_dlw_targets_raw_v2.py"
+ },
+ "runs": {
+  "king": {
+   "rc": 0,
+   "log": "/workspace/fp2_2026-09/controls/king_nomask/build.log",
+   "env": {
+    "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin",
+    "HOME": "/root",
+    "OMP_NUM_THREADS": "8",
+    "MEMBER_MASK_NPZ": "",
+    "CACHE_IN": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+    "PANEL_IN": "/workspace/data/wide_panel_4h_v2ext.npz",
+    "FEA_OUT": "/workspace/fp2_2026-09/controls/king_nomask/wide_fea_v4.npy",
+    "META_OUT": "/workspace/fp2_2026-09/controls/king_nomask/wide_fea_v4_meta.npz"
+   },
+   "tail": "FEA_EXT_DONE (10212, 829, 82)"
+  },
+  "dl": {
+   "rc": 0,
+   "log": "/workspace/fp2_2026-09/controls/dl_nomask/build.log",
+   "env": {
+    "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin",
+    "HOME": "/root",
+    "OMP_NUM_THREADS": "8",
+    "MEMBER_MASK_NPZ": "",
+    "DLWT_CACHE": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+    "DLWT_PANEL": "/workspace/data/wide_panel_4h_v3splice.npz",
+    "DLWT_OUT": "/workspace/fp2_2026-09/controls/dl_nomask",
+    "DLWT_RET_CH": "0",
+    "DLWT_RAW_PATCH": "/workspace/fp2_2026-09/raw_patch.npz"
+   },
+   "tail": "[   95.3s] TARGETS_DONE {\"n_anchors\": 10212, \"mean_members\": 269.6131022326675, \"n_res\": 10207, \"years\": {\"2022\": 2178, \"2023\": 2190, \"2024\": 2196, \"2025\": 2190, \"2026\": 1458}, \"target_vs_old\": {\"medi"
+  }
+ },
+ "verify_only_binding": {
+  "inputs_changed": [],
+  "outputs_changed": []
+ },
+ "outputs_path": {
+  "control_king_fea": "/workspace/fp2_2026-09/controls/king_nomask/wide_fea_v4.npy",
+  "control_king_meta": "/workspace/fp2_2026-09/controls/king_nomask/wide_fea_v4_meta.npz",
+  "control_dl_targets": "/workspace/fp2_2026-09/controls/dl_nomask/data/dlw_targets.npz",
+  "control_dl_report": "/workspace/fp2_2026-09/controls/dl_nomask/results/dlw_targets_report.json"
+ },
+ "outputs_sha256": {
+  "control_king_fea": "ed5b542d3d2abe55edbae6a0081a174d41b1957798cf7b74e2ad546aded4442c",
+  "control_king_meta": "30d9c1f972be5c7560b88ae8694524c5fb9d2b2d8da783994f661b697361687a",
+  "control_dl_targets": "d292e1364d95d6d63dcd3eb172eee570e6feaa668d399ddeb2be0d54b9536ca0",
+  "control_dl_report": "79b388a6b0652c476c8c94c05164569416e6be89f4eacd03b8b52c580a12bffe"
+ },
+ "members_persisted_ndim": {
+  "sept": 1,
+  "v2": 1
+ },
+ "utc_end": "2026-09-17T11:46:08Z"
+}
