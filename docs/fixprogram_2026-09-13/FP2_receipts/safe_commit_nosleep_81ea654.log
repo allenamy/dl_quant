@@ -1,0 +1,33 @@
+── 1/5 拉取远端(显式检查, 不经管道)
+From https://github.com/allenamy/dl_quant_live
+ * branch            main       -> FETCH_HEAD
+  ✓ 已是最新
+── 2/5 检查显式路径存在(只对新文件 intent-to-add —— 见第 4 步为什么)
+ live/tests_nosleep.py   | 51 ++++++++++++++++++++++++++++
+ ops/check_nosleep.py    | 90 +++++++++++++++++++++++++++++++++++++++++++++----
+ scheduler/run_anchor.py |  3 +-
+ 3 files changed, 137 insertions(+), 7 deletions(-)
+── 3/5 验收 runner(全绿才提交)
+tests_external_book          0      /Users/haosiyu/dl_quant_live/state/acceptance/20260917T171500Z_tests_external_book.log
+----------------------------------------------------------------
+ACCEPTANCE: ALL GREEN (161/161 suites exit 0)
+── 4/5 提交(pathspec 形式 —— 只提交列出的路径)
+[main 81ea654] NOSLEEP-1 (FP3 K, 2026-09-17): 防休眠守卫两天恒红的根因与修复 —— 读日志的 pmset -g log 渲染整个电源日志存储(本机 185 MB / 82.5 万行 / 74 s, nsurlsessiond 断言刷屏), 超过读者 60 s 超时 ⇒ 09-14 起间歇、09-16 04:47Z 起每锚 sleep_log_verified=False、ok=False, 而机器从未休眠(存储保留 15 天内零条 Sleep 记录, pmset 自己的渲染亦零条); 修复 = 只读能覆盖窗口的按日 ASL 文件(syslog -f -F raw, 26 MB 约 1 s, 按最后写入时间选文件、最新文件恒读), 按 [Time] 与 Sleep 域/Entering Sleep 文本取事件; pmset 只作存储不可列举时的回退(超时 240 s); 判词与锚日志新增 sleep_log_source; UNREADABLE 仍为 None/UNKNOWN 不为 []; tests_nosleep 32/32(A1–A10 含本机真实读取 <20 s 与旧读者超时 ⇒ None 的红能力格); tests_entrypoint_wiring 在工作树复跑 log_verified=True src=asl:3 file(s)
+ Committer: haosiyu <haosiyu@haosiyudeMacBook-Pro.local>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly:
+
+    git config --global user.name "Your Name"
+    git config --global user.email you@example.com
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 3 files changed, 137 insertions(+), 7 deletions(-)
+── 5/5 推送
+To https://github.com/allenamy/dl_quant_live.git
+   58256ed..81ea654  main -> main
+✓ 完成: 81ea654 NOSLEEP-1 (FP3 K, 2026-09-17): 防休眠守卫两天恒红的根因与修复 —— 读日志的 pmset -g log 渲染整个电源日志存储(本机 185 MB / 82.5 万行 / 74 s, nsurlsessiond 断言刷屏), 超过读者 60 s 超时 ⇒ 09-14 起间歇、09-16 04:47Z 起每锚 sleep_log_verified=False、ok=False, 而机器从未休眠(存储保留 15 天内零条 Sleep 记录, pmset 自己的渲染亦零条); 修复 = 只读能覆盖窗口的按日 ASL 文件(syslog -f -F raw, 26 MB 约 1 s, 按最后写入时间选文件、最新文件恒读), 按 [Time] 与 Sleep 域/Entering Sleep 文本取事件; pmset 只作存储不可列举时的回退(超时 240 s); 判词与锚日志新增 sleep_log_source; UNREADABLE 仍为 None/UNKNOWN 不为 []; tests_nosleep 32/32(A1–A10 含本机真实读取 <20 s 与旧读者超时 ⇒ None 的红能力格); tests_entrypoint_wiring 在工作树复跑 log_verified=True src=asl:3 file(s)
+SAFE_COMMIT_NOSLEEP2_RC=0 2026-09-17T17:30:05Z

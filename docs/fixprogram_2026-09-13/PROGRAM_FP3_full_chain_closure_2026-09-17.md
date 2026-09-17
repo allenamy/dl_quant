@@ -63,3 +63,5 @@
 | K NOSLEEP-1 | 修复提交在工作树分支 48ea820; **首次 safe_commit 因检出空操作(E-0917-E)认证了旧代码而红**; 三方 sha 核对后第二次电池 17:15Z 起 | `ERROR_LEDGER` E-0917-E |
 | B FP2-6b 设钉 | 排在 K 的电池之后(≈17:30Z 起, 电池 ≈14 min), 20:00Z 前 | 待 |
 | H Q6 | 未开始; R2(position_break 改读 E_s = 风控接受域变更)与 R9(部署起点)需用户裁定 | — |
+| K NOSLEEP-1(更新 17:46Z) | **已部署** 81ea654(电池 161/161; 入口套件 nosleep 行 log_verified=True src=asl 1.6 s) | `FP2_receipts/battery_prod_81ea654_*`, `safe_commit_nosleep_81ea654.log` |
+| B FP2-6b(更新 17:46Z) | **设钉已部署** d858c36(电池 161/161; 仅 book.json +2 行); 三段收据 2/3 已成, 第三段 = 20Z 锚钉下验收(20:33Z 自动) | `FP2_receipts/battery_prod_d858c36_f10_pin_*`, `safe_commit_f10_pin_d858c36.log` |

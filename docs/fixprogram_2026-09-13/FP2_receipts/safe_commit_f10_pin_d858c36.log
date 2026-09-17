@@ -1,0 +1,31 @@
+── 1/5 拉取远端(显式检查, 不经管道)
+From https://github.com/allenamy/dl_quant_live
+ * branch            main       -> FETCH_HEAD
+  ✓ 已是最新
+── 2/5 检查显式路径存在(只对新文件 intent-to-add —— 见第 4 步为什么)
+ config/book.json | 2 ++
+ 1 file changed, 2 insertions(+)
+── 3/5 验收 runner(全绿才提交)
+tests_external_book          0      /Users/haosiyu/dl_quant_live/state/acceptance/20260917T173051Z_tests_external_book.log
+----------------------------------------------------------------
+ACCEPTANCE: ALL GREEN (161/161 suites exit 0)
+── 4/5 提交(pathspec 形式 —— 只提交列出的路径)
+[main d858c36] FP2-6b 第三段(用户字 2026-09-17): external_book.f10_sha_pin ← 351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4 = sha256(生产者 fea171/f10_live_s42_np.npz) = 16Z 锚 target_live.f10_sha(生产者 3520d363 16:21:27Z 写出; 读者 58256ed 16:25:02Z 验收 ok, 收据 fp2-6b_16Z_producer_evidence / _reader_acceptance); 真实文件正控(只读): 错钉 ⇒ REFUSED f10_pin, 无 f10_sha 的 12Z 文件在真钉下 ⇒ REFUSED(fp2-6b_pin_positive_control_realfiles); 自此 DL 腿换模型必须同步改钉, 否则本锚 HOLD
+ Committer: haosiyu <haosiyu@haosiyudeMacBook-Pro.local>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly:
+
+    git config --global user.name "Your Name"
+    git config --global user.email you@example.com
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 1 file changed, 2 insertions(+)
+── 5/5 推送
+To https://github.com/allenamy/dl_quant_live.git
+   81ea654..d858c36  main -> main
+✓ 完成: d858c36 FP2-6b 第三段(用户字 2026-09-17): external_book.f10_sha_pin ← 351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4 = sha256(生产者 fea171/f10_live_s42_np.npz) = 16Z 锚 target_live.f10_sha(生产者 3520d363 16:21:27Z 写出; 读者 58256ed 16:25:02Z 验收 ok, 收据 fp2-6b_16Z_producer_evidence / _reader_acceptance); 真实文件正控(只读): 错钉 ⇒ REFUSED f10_pin, 无 f10_sha 的 12Z 文件在真钉下 ⇒ REFUSED(fp2-6b_pin_positive_control_realfiles); 自此 DL 腿换模型必须同步改钉, 否则本锚 HOLD
+SAFE_COMMIT_PIN_RC=0 2026-09-17T17:45:50Z
