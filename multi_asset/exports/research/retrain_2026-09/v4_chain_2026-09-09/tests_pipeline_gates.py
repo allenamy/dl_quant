@@ -1592,9 +1592,13 @@ def _contract_is_r1_plus_proposed3():
         cur["gates"][g]["approved_source_sha256"] = [x for x in cur["gates"][g]["approved_source_sha256"] if x not in {v["sha256"] for v in var.values()}]
     if not (isinstance(cur.get("status"), str) and "PROPOSED3" in cur["status"]): return False
     cur["status"] = cur["status"].split(" | PROPOSED3")[0]
+    ab = cur["gates"]["BUNDLE_export"].get("approved_baseline") or {}
+    p4 = ab.pop("PROPOSED4", None)                                   # PROPOSED4 (FP2-8 regime pins, 2026-09-17): restore the two r1 values it superseded
+    if p4:
+        for k, v in (p4.get("superseded_r1_values") or {}).items(): ab[k] = v
     pc = list(cur.get("proposed_changes_vs_frozen", []))
-    if not (pc and str(pc[-1]).startswith("PROPOSED3")): return False
-    while pc and str(pc[-1]).startswith("PROPOSED3"): pc.pop()   # PROPOSED3 and its revisions (AMENDMENT 8) are all trailing entries
+    if not (pc and str(pc[-1]).startswith("PROPOSED")): return False
+    while pc and str(pc[-1]).startswith(("PROPOSED3", "PROPOSED4")): pc.pop()   # PROPOSED3 (and its AMENDMENT 8 revisions) and PROPOSED4 are all trailing entries
     cur["proposed_changes_vs_frozen"] = pc
     return cur == r1
 check("★★★ [T] G0 the FOUR contract-frozen files are byte-identical after round 3 as well (STEP1 278fdce6, STEP2 db7ab356, the contract 1188267a, the v2 export gate d63f4ec3) — round 3 touched none of them",

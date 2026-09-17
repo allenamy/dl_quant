@@ -1,0 +1,100 @@
+{
+ "gate": "FP2_OUTSIDE_MASK_PNL",
+ "utc": "2026-09-17T12:12:02Z",
+ "method": "per anchor t in window: sum_j W[t,j]*r4h[t,j] split by mask[t,j]; r4h = sum of 5m simple returns over cache rows [E, E+48) (a proxy of the book accounting, identical for both arms); share = outside/(inside+outside)",
+ "inputs": {
+  "umask": "/workspace/fx_data_2026-09-13/out/inject/umask_UPIT_CRYPTO_tradable_W24H.npz",
+  "umask_sha256": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c",
+  "cache": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz"
+ },
+ "books": {
+  "A0/dyn/s42": {
+   "path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz",
+   "sha256": "b0b9dff9253eb0d1b21f5b35ed1ecf974eb29efbc0ae9de5cc03f4fc95d964bb",
+   "W_ALPHA": {
+    "anchors": 9138,
+    "pnl_inside_per_anchor_1e4": 0.8384180500975692,
+    "pnl_outside_per_anchor_1e4": 0.004366989060355293,
+    "outside_share": 0.005181616731970712,
+    "outside_cells": 229808,
+    "outside_cells_with_nonzero_4h_return": 716,
+    "mean_abs_weight_outside_per_anchor": 0.04030127880142467
+   },
+   "KING_LIVE": {
+    "anchors": 5838,
+    "pnl_inside_per_anchor_1e4": 1.2259428885650785,
+    "pnl_outside_per_anchor_1e4": 0.0070286709002788505,
+    "outside_share": 0.00570059450789492,
+    "outside_cells": 208217,
+    "outside_cells_with_nonzero_4h_return": 683,
+    "mean_abs_weight_outside_per_anchor": 0.05453721864124961
+   }
+  },
+  "A0/dyn/s2027": {
+   "path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s2027.npz",
+   "sha256": "aed3c8f920c0b111842e435a6e4e18f68e4efddd1a2d8d25ab3b5201341d0e52",
+   "W_ALPHA": {
+    "anchors": 9138,
+    "pnl_inside_per_anchor_1e4": 0.8583077534260574,
+    "pnl_outside_per_anchor_1e4": 0.00432381902333412,
+    "outside_share": 0.005012358881158141,
+    "outside_cells": 229808,
+    "outside_cells_with_nonzero_4h_return": 716,
+    "mean_abs_weight_outside_per_anchor": 0.03920973853337074
+   },
+   "KING_LIVE": {
+    "anchors": 5838,
+    "pnl_inside_per_anchor_1e4": 1.2381987293700842,
+    "pnl_outside_per_anchor_1e4": 0.006961098478507785,
+    "outside_share": 0.005590526069681583,
+    "outside_cells": 208217,
+    "outside_cells_with_nonzero_4h_return": 683,
+    "mean_abs_weight_outside_per_anchor": 0.05282651525278522
+   }
+  },
+  "A1/dyn/s42": {
+   "path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A1_dyn_s42.npz",
+   "sha256": "43d9e07fc45e562fdbd313c469e1240b583a346b4e2bcf95583740d5814c5a73",
+   "W_ALPHA": {
+    "anchors": 9138,
+    "pnl_inside_per_anchor_1e4": 0.8746017407993247,
+    "pnl_outside_per_anchor_1e4": 0.0044837282823725275,
+    "outside_share": 0.0051004463616675195,
+    "outside_cells": 229808,
+    "outside_cells_with_nonzero_4h_return": 716,
+    "mean_abs_weight_outside_per_anchor": 0.039871807072689266
+   },
+   "KING_LIVE": {
+    "anchors": 5838,
+    "pnl_inside_per_anchor_1e4": 1.2825798473921812,
+    "pnl_outside_per_anchor_1e4": 0.007211398377290412,
+    "outside_share": 0.005591136085737806,
+    "outside_cells": 208217,
+    "outside_cells_with_nonzero_4h_return": 683,
+    "mean_abs_weight_outside_per_anchor": 0.05386498283152297
+   }
+  },
+  "A1/dyn/s2027": {
+   "path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A1_dyn_s2027.npz",
+   "sha256": "8af73fbd4ede56ff47da159d40b9653b14fffbab83260f543022cabf4a2df339",
+   "W_ALPHA": {
+    "anchors": 9138,
+    "pnl_inside_per_anchor_1e4": 0.8866747028209472,
+    "pnl_outside_per_anchor_1e4": 0.0044824430316802236,
+    "outside_share": 0.005029913133212417,
+    "outside_cells": 229808,
+    "outside_cells_with_nonzero_4h_return": 716,
+    "mean_abs_weight_outside_per_anchor": 0.03822958235331793
+   },
+   "KING_LIVE": {
+    "anchors": 5838,
+    "pnl_inside_per_anchor_1e4": 1.2826004394712327,
+    "pnl_outside_per_anchor_1e4": 0.0072093866231235275,
+    "outside_share": 0.005589495813467406,
+    "outside_cells": 208217,
+    "outside_cells_with_nonzero_4h_return": 683,
+    "mean_abs_weight_outside_per_anchor": 0.05129231395553915
+   }
+  }
+ }
+}

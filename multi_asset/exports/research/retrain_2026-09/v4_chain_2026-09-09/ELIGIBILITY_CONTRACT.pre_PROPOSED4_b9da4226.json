@@ -87,14 +87,14 @@
    "approved_baseline": {
     "device_sha256": "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d",
     "costb_json_sha256": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42",
-    "umask_npz_sha256": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c",
+    "umask_npz_sha256": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5",
     "live_pins_sha256": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece",
     "bundle_base_sha256": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d",
     "baseline_books_sha256": {
-     "dyn_s42": "b0b9dff9253eb0d1b21f5b35ed1ecf974eb29efbc0ae9de5cc03f4fc95d964bb",
-     "dyn_s2027": "aed3c8f920c0b111842e435a6e4e18f68e4efddd1a2d8d25ab3b5201341d0e52",
-     "fix_s42": "27b4ff4761c501e1130a67704d7ac939c7d382b406b3cf4a4f09eec6ec9b4955",
-     "fix_s2027": "661cc25bcaa543219554cb2e325ccb61203754a388c590f274d3be338f90f15a"
+     "dyn_s42": "88283c5f05b5d6b5213ca45f20577a3060a4831f72c6169c6efea8588cea1419",
+     "dyn_s2027": "6b40d13ddf6b676a775214711f8520225c01c54018bbdaf6ea82c9e75f2acabd",
+     "fix_s42": "a110c5b0f6881eb61a03c0bfcc6c672346057a70c17dcd3a23dda0d05fc245c4",
+     "fix_s2027": "bbba0d78875292f35c00d3810ada1fbf08be25b65127819edfba6059b8da3153"
     },
     "costb_tiers": [
      [
@@ -186,24 +186,6 @@
      "pod2_sha256sum_utc": "2026-09-12T04:5xZ (this session)",
      "re_verified_by": "v2 gate E0/E2b/E6/E9 on pod2 positive control (r20 receipts/BUNDLE_export_v2_A1.json)",
      "book_env_source": "w10_health.py sha 8684d9a9 _CFG keys; values read from config_json of the genuine A0/A1 books on pod2"
-    },
-    "PROPOSED4": {
-     "utc": "2026-09-17T12:05:35Z",
-     "scope": "FP2-8 evaluation regime (DESIGN_FP2-8 \u00a72.2 / AMENDMENT 1.2, pre-registered 2026-09-17 before any book number); applies to V4_MONTH=2026-09 root /workspace/fp2_2026-09 and to every later chain that evaluates under the tradable umask",
-     "what": "umask_npz_sha256 \u2192 tradable W24H umask (3badc4b6\u2026, /workspace/fx_data_2026-09-13/out/inject/umask_UPIT_CRYPTO_tradable_W24H.npz); baseline_books_sha256 \u2192 the in-service form (A0) RE-RUN under that umask (receipt A0_RERUN_TRADABLE_2026-09-17.json, PASS, every artifact written by that run with cfg UMASK_NPZ == the umask)",
-     "why": "the September pins (m1 umask 47d87b51, September A0 books) evaluate A0 on a universe with dead contracts (memory a0_reference_flattered_by_dead_contracts); FP2 evaluates BOTH arms on the tradable universe, so the export gate's E6 (umask sha) and E9 (baseline book shas) must pin the FP2 regime, else they refuse by construction (receipt BUNDLE_export_v2_A1_FAIL_E6E8E9_2026-09-17.json)",
-     "not_changed": "thresholds (incl. gross_max 1.000001), device/bundle/live pins, costb, signal gates \u2014 a threshold change after seeing book numbers is not allowed; the fix-seat K6 breach under the tradable umask is REPORTED, not waived",
-     "superseded_r1_values": {
-      "umask_npz_sha256": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5",
-      "baseline_books_sha256": {
-       "dyn_s42": "88283c5f05b5d6b5213ca45f20577a3060a4831f72c6169c6efea8588cea1419",
-       "dyn_s2027": "6b40d13ddf6b676a775214711f8520225c01c54018bbdaf6ea82c9e75f2acabd",
-       "fix_s42": "a110c5b0f6881eb61a03c0bfcc6c672346057a70c17dcd3a23dda0d05fc245c4",
-       "fix_s2027": "bbba0d78875292f35c00d3810ada1fbf08be25b65127819edfba6059b8da3153"
-      }
-     },
-     "a0_rerun_receipt_sha256": "a3feff928b5ed7a1ee1c61485914569f428629f704b55d94183d84a8d5161793",
-     "review": "independent researcher review requested (post-hoc, same protocol as PROPOSED3)"
     }
    },
    "note": "r20 gate closure 2026-09-12. Replaces the 2026-09-11 INFRA2 proposal (v4e_gate_export.py sha f814c728\u2026, WITHDRAWN: the independent reviewer showed it not falsifiable \u2014 wrong-gate PASS accepted, failing signal gate accepted, different cost/knobs accepted, zero W / non-finite pnl accepted, shipped bundle unbound). v2 keeps E1\u2013E4 verbatim and adds E0 contract block, E2b pin identity, E5 finite+baseline symbols, E6 all 27 knobs + cost/mask/king/FEMAT by file, E7 bound signal receipt with PASS re-derived, E8 exact device identities on the arrays, E9 gross band vs the approved A0 books; `require` mode re-verifies the full floor and re-runs the content gates. Approving this sha approves those checks, the approved_baseline shas and the thresholds AS the export standard."
@@ -251,7 +233,7 @@
   "file": "<JUDGE_HC>/dev_v4/probe_artifacts/w10_ablation_series_V4_<arm>_<seat>_s<seed>.npz",
   "rule": "the judge adds these four paths to the arm's declared inputs; require then demands the receipt hashed each of them and that the hash equals the file the judge loaded (a book replaced after the receipt, or a receipt written for another arm's books, is not this arm's permission)"
  },
- "status": "APPLIED 2026-09-12 (user word 09-12: \"10 \u6708 runbook \u4e3a\u4ec0\u4e48\u8fd8\u4e0d\u4fee, \u8981\u4fdd\u6301\u8001\u7684\u94fe\u8def\u548c\u51fa\u53e3\u95e8?\"); was PROPOSED2 01692565\u2026; frozen predecessor 3299dc97\u2026 kept at ELIGIBILITY_CONTRACT.r0_3299dc97.json | PROPOSED3 (FP2-8, 2026-09-17): gates.STEP1/STEP2 approved_source_sha256 += fp2_gate_step1.py / fp2_gate_step2.py (approved_variants records scope); applied by lead under the user's standing rule (fix known issues without waiting, independent review after); frozen predecessor kept at ELIGIBILITY_CONTRACT.r1_1188267a.json | PROPOSED3 rev (AMENDMENT 8, 2026-09-17 09:3xZ): variant shas replaced by the on-disk revisions; fp2_gate_lib.py sha recorded under approved_variants.requires | PROPOSED4 (FP2-8 regime pins, 2026-09-17): approved_baseline.umask_npz_sha256 \u2192 3badc4b6\u2026, baseline_books_sha256 \u2192 A0 re-run under the tradable umask; thresholds untouched",
+ "status": "APPLIED 2026-09-12 (user word 09-12: \"10 \u6708 runbook \u4e3a\u4ec0\u4e48\u8fd8\u4e0d\u4fee, \u8981\u4fdd\u6301\u8001\u7684\u94fe\u8def\u548c\u51fa\u53e3\u95e8?\"); was PROPOSED2 01692565\u2026; frozen predecessor 3299dc97\u2026 kept at ELIGIBILITY_CONTRACT.r0_3299dc97.json | PROPOSED3 (FP2-8, 2026-09-17): gates.STEP1/STEP2 approved_source_sha256 += fp2_gate_step1.py / fp2_gate_step2.py (approved_variants records scope); applied by lead under the user's standing rule (fix known issues without waiting, independent review after); frozen predecessor kept at ELIGIBILITY_CONTRACT.r1_1188267a.json | PROPOSED3 rev (AMENDMENT 8, 2026-09-17 09:3xZ): variant shas replaced by the on-disk revisions; fp2_gate_lib.py sha recorded under approved_variants.requires",
  "proposed_changes_vs_frozen": [
   "top-level status (new) \u2014 PROPOSED marker",
   "review_status appended",
@@ -261,8 +243,7 @@
   "book_binding: UNCHANGED",
   "companion (not part of this file): REQUIRED_INPUTS['BUNDLE_export'] in v4_gate_common.py still lists 11 names; the v2 gate's own require mode enforces the full floor; extending the v4_gate_common floor so judge_v4's require also demands the bundle closure is a separate proposed diff (v4chain_PROPOSED2/v4_gate_common.PROPOSED.diff)",
   "PROPOSED3: gates.STEP1.approved_source_sha256 += ae21f86f6867 (fp2_gate_step1.py); gates.STEP2.approved_source_sha256 += db5b44d15bd3 (fp2_gate_step2.py); gates.*.approved_variants (new, informational)",
-  "PROPOSED3 rev: STEP1/STEP2 variant shas replaced (AMENDMENT 8); approved_variants.requires.fp2_gate_lib.py = d3023421a484",
-  "PROPOSED4: gates.BUNDLE_export.approved_baseline.umask_npz_sha256 47d87b51\u2026 \u2192 3badc4b6\u2026 (tradable W24H); baseline_books_sha256 \u2192 A0 re-run books (dyn_s42 b0b9dff9\u2026, dyn_s2027 aed3c8f9\u2026, fix_s42 27b4ff47\u2026, fix_s2027 661cc25b\u2026); r1 values kept under approved_baseline.PROPOSED4.superseded_r1_values; thresholds untouched"
+  "PROPOSED3 rev: STEP1/STEP2 variant shas replaced (AMENDMENT 8); approved_variants.requires.fp2_gate_lib.py = d3023421a484"
  ],
  "proposed_utc": "2026-09-12T05:21:47Z",
  "applied_utc": "2026-09-12T09:04:39Z",

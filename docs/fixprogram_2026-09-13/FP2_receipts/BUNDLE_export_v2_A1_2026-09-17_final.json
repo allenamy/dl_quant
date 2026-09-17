@@ -1,0 +1,564 @@
+{
+ "arm": "A1",
+ "env": {
+  "EXPORT_ARM": "A1",
+  "BUNDLE_OUT": "/workspace/fp2_2026-09/shadow_bundle_v4_fp2",
+  "BUNDLE_FEA": "/workspace/fp2_2026-09/data/wide_fea_v4.npy",
+  "BUNDLE_META": "/workspace/fp2_2026-09/data/wide_fea_v4_meta.npz",
+  "BUNDLE_BASE": "/workspace/slow_scorer_v4base.json",
+  "EXPORT_PANEL": "/workspace/data/wide_panel_4h_v3splice.npz",
+  "BUNDLE_CACHE": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+  "FUND_AUG": "/workspace/fund_aug.json.gz",
+  "LIVE_PINS": "/workspace/fp2_2026-09/live_pins.json",
+  "JUDGE_HC": "/workspace/fp2_2026-09/health_check",
+  "V4CHAIN_DIR": "/workspace/fp2_2026-09/devices_v4chain",
+  "SIGNAL_RECEIPT": "/workspace/uplift_2026-09-11/infra2/GATE_signal_parity.json",
+  "EXPORT_GATE_OUT": "/workspace/fp2_2026-09/v4_gates/BUNDLE_export_v2_A1.json"
+ },
+ "contract_path": "/workspace/fp2_2026-09/devices_v4chain/ELIGIBILITY_CONTRACT.json",
+ "contract_sha256": "b996e1d74d43cbc491c1d13efe916541fc85d32e7ea90634e14bd5c863b4a607",
+ "contract_schema": "v4_eligibility_contract/1",
+ "approved_baseline_used": {
+  "device_sha256": "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d",
+  "costb_json_sha256": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42",
+  "umask_npz_sha256": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c",
+  "live_pins_sha256": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece",
+  "bundle_base_sha256": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d",
+  "baseline_arm": "A0"
+ },
+ "thresholds_used": {
+  "guard_band": [
+   2.27,
+   2.57
+  ],
+  "n_frozen": 3168,
+  "frozen_window_utc": [
+   "2025-03-01T00:00Z",
+   "2026-08-10T20:00Z"
+  ],
+  "ic_tol": {
+   "2024": 0.004,
+   "2025": 0.004,
+   "2026": 0.006
+  },
+  "sharpe_claim_tol": 0.005,
+  "identity_tol": 1e-09,
+  "w_gross_tol": 1e-06,
+  "turnover_tol": 1e-06,
+  "netlong_tol": 1e-06,
+  "gross_max": 1.000001,
+  "gross_ratio_band": [
+   0.6,
+   1.6
+  ],
+  "gross_ratio_median_band": [
+   0.8,
+   1.25
+  ],
+  "_evidence": "guard band / N_FROZEN / IC tolerances verbatim from the original gate (its hard-coded defaults). Identity tolerances: the four exact device identities hold on the genuine A0/A1/A3/XIBLAG50 books to <= 1.5e-8 (r20 RESULT \u00a73). Gross ratio bands: per-anchor gross_total ratio arm/A0 (same seat, same seed) over the frozen window for the 7 registered-form arms (A0p,A1,A1s,A1e,A2,A3 x 4 cells) lies in [0.766, 1.258] with medians in [0.9665, 1.021]; XIBLAG50/XIBOLD50 dyn reach 2.10 and would FAIL the per-anchor band (reported, not hidden)."
+ },
+ "checks": {
+  "E0_contract_baseline": {
+   "ok": true,
+   "why": [],
+   "contract_sha256": "b996e1d74d43cbc491c1d13efe916541fc85d32e7ea90634e14bd5c863b4a607"
+  },
+  "E1_manifest": {
+   "ok": true,
+   "n_files": 8,
+   "mismatched": {},
+   "unlisted_files": []
+  },
+  "E2_config": {
+   "ok": true,
+   "param_diffs": {},
+   "keep_names_equal": true,
+   "symbols_live_equal": true,
+   "n_live": 450
+  },
+  "E2b_pins_identity": {
+   "ok": true,
+   "live_pins_sha256": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece",
+   "approved": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece",
+   "bundle_base_sha256": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d",
+   "approved_base": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d"
+  },
+  "E3_ic_gates": {
+   "ok": true,
+   "recomputed_ic": {
+    "2024": 0.05661,
+    "2025": 0.06148,
+    "2026": 0.05756
+   },
+   "base_ic": {
+    "2024": 0.0548,
+    "2025": 0.063,
+    "2026": 0.0571
+   },
+   "delta": {
+    "2024": 0.00181,
+    "2025": -0.00152,
+    "2026": 0.00046
+   },
+   "tolerance": {
+    "2024": 0.004,
+    "2025": 0.004,
+    "2026": 0.006
+   },
+   "provenance_claimed": {
+    "fold_ic_2024": 0.0566,
+    "fold_ic_2025": 0.0615,
+    "pinned_ic2026": 0.0576
+   }
+  },
+  "E4_baseline_guard": {
+   "ok": true,
+   "recomputed_sharpe_2024on": 2.5182,
+   "band": [
+    2.27,
+    2.57
+   ],
+   "provenance_claimed": 2.52,
+   "n_anchors": 10207,
+   "mean_net_bps": 1.1105
+  },
+  "E5_books_shape": {
+   "ok": true,
+   "n_baseline_symbols": 829,
+   "book_dyn_s2027": {
+    "has_rec": true,
+    "cols_ok": true,
+    "symbols_present": true,
+    "symbols_match_baseline": true,
+    "rec_finite": true,
+    "W_shape_ok": true,
+    "W_finite": true,
+    "n_frozen": 3168,
+    "frozen_axis_ok": true,
+    "frozen_axis_shared": true,
+    "ts_grid_4h": true,
+    "ok": true
+   },
+   "book_dyn_s42": {
+    "has_rec": true,
+    "cols_ok": true,
+    "symbols_present": true,
+    "symbols_match_baseline": true,
+    "rec_finite": true,
+    "W_shape_ok": true,
+    "W_finite": true,
+    "n_frozen": 3168,
+    "frozen_axis_ok": true,
+    "frozen_axis_shared": true,
+    "ts_grid_4h": true,
+    "ok": true
+   },
+   "book_fix_s2027": {
+    "has_rec": true,
+    "cols_ok": true,
+    "symbols_present": true,
+    "symbols_match_baseline": true,
+    "rec_finite": true,
+    "W_shape_ok": true,
+    "W_finite": true,
+    "n_frozen": 3168,
+    "frozen_axis_ok": true,
+    "frozen_axis_shared": true,
+    "ts_grid_4h": true,
+    "ok": true
+   },
+   "book_fix_s42": {
+    "has_rec": true,
+    "cols_ok": true,
+    "symbols_present": true,
+    "symbols_match_baseline": true,
+    "rec_finite": true,
+    "W_shape_ok": true,
+    "W_finite": true,
+    "n_frozen": 3168,
+    "frozen_axis_ok": true,
+    "frozen_axis_shared": true,
+    "ts_grid_4h": true,
+    "ok": true
+   }
+  },
+  "E6_books_config": {
+   "ok": true,
+   "files": {
+    "COSTB_JSON": {
+     "one_value_for_all_cells": true,
+     "value": [
+      "/workspace/fp2_2026-09/health_check/calib/costb_fee_steady.json"
+     ],
+     "exists": true,
+     "sha256": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42",
+     "ok": true,
+     "approved": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42",
+     "resolves_to_approved_tiers": true
+    },
+    "UMASK_NPZ": {
+     "one_value_for_all_cells": true,
+     "value": [
+      "/workspace/fx_data_2026-09-13/out/inject/umask_UPIT_CRYPTO_tradable_W24H.npz"
+     ],
+     "exists": true,
+     "sha256": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c",
+     "ok": true,
+     "approved": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c"
+    },
+    "SLOW_NPY": {
+     "one_value_for_all_cells": true,
+     "value": [
+      "/workspace/fp2_2026-09/king_v4/SLOW_v4.npy"
+     ],
+     "exists": true,
+     "sha256": "c6c3f7aea17abf8e19217ba31ca547f36411c965bb1e6a2cd30876940a55c3b8",
+     "ok": true
+    },
+    "FEMAT_NPZ": {
+     "one_value_for_all_cells": true,
+     "value": [
+      "None"
+     ],
+     "exists": null,
+     "sha256": null,
+     "ok": true
+    }
+   },
+   "book_dyn_s2027": {
+    "key_set_exact": true,
+    "unknown_keys": [],
+    "missing_keys": [],
+    "cfg_diffs": {},
+    "seat_ok": true,
+    "seed_ok": true,
+    "device_sha_ok": true,
+    "cost_tiers_ok": true,
+    "FPRED": "f10_v4RAW_s2027.npy",
+    "ok": true
+   },
+   "book_dyn_s42": {
+    "key_set_exact": true,
+    "unknown_keys": [],
+    "missing_keys": [],
+    "cfg_diffs": {},
+    "seat_ok": true,
+    "seed_ok": true,
+    "device_sha_ok": true,
+    "cost_tiers_ok": true,
+    "FPRED": "f10_v4RAW_s42.npy",
+    "ok": true
+   },
+   "book_fix_s2027": {
+    "key_set_exact": true,
+    "unknown_keys": [],
+    "missing_keys": [],
+    "cfg_diffs": {},
+    "seat_ok": true,
+    "seed_ok": true,
+    "device_sha_ok": true,
+    "cost_tiers_ok": true,
+    "FPRED": "f10_v4RAW_s2027.npy",
+    "ok": true
+   },
+   "book_fix_s42": {
+    "key_set_exact": true,
+    "unknown_keys": [],
+    "missing_keys": [],
+    "cfg_diffs": {},
+    "seat_ok": true,
+    "seed_ok": true,
+    "device_sha_ok": true,
+    "cost_tiers_ok": true,
+    "FPRED": "f10_v4RAW_s42.npy",
+    "ok": true
+   }
+  },
+  "E7_signal_receipt": {
+   "ok": true,
+   "applicable": false,
+   "reason": "no FEMAT injection in any judged book; the king signal is bound by E3 (fold ICs re-derived from the shipped predictions)",
+   "signal_receipt_consulted": false
+  },
+  "E8_books_content": {
+   "ok": false,
+   "book_dyn_s2027": {
+    "K1_sum_absW_eq_gross_maxdev": 9.533464129241054e-09,
+    "K1_ok": true,
+    "K2_turnover_eq_sum_absdW_maxdev": 7.788632017113883e-09,
+    "K2_ok": true,
+    "K3_netlong_eq_sumW_over_gross_maxdev": 9.341914741778368e-09,
+    "K3_ok": true,
+    "K4_identity_net_maxdev": 0.0,
+    "K4_identity_net_ex_maxdev": 0.0,
+    "K4_ok": true,
+    "K6_gross_min_frozen": 0.3916357952473893,
+    "K6_gross_max_all": 0.987594503439623,
+    "K6_ok": true,
+    "K7_cost_pos_frozen": true,
+    "K7_cost_le_turnover_x_ratemax_violations": 0,
+    "K7_rate_max": 2.2021300000000004,
+    "K7_ok": true,
+    "ok": true
+   },
+   "book_dyn_s42": {
+    "K1_sum_absW_eq_gross_maxdev": 7.1027597137174325e-09,
+    "K1_ok": true,
+    "K2_turnover_eq_sum_absdW_maxdev": 8.323334715898412e-09,
+    "K2_ok": true,
+    "K3_netlong_eq_sumW_over_gross_maxdev": 9.341914741778368e-09,
+    "K3_ok": true,
+    "K4_identity_net_maxdev": 0.0,
+    "K4_identity_net_ex_maxdev": 0.0,
+    "K4_ok": true,
+    "K6_gross_min_frozen": 0.35363678030150464,
+    "K6_gross_max_all": 0.9871289764464161,
+    "K6_ok": true,
+    "K7_cost_pos_frozen": true,
+    "K7_cost_le_turnover_x_ratemax_violations": 0,
+    "K7_rate_max": 2.2021300000000004,
+    "K7_ok": true,
+    "ok": true
+   },
+   "book_fix_s2027": {
+    "K1_sum_absW_eq_gross_maxdev": 8.863824563221101e-09,
+    "K1_ok": true,
+    "K2_turnover_eq_sum_absdW_maxdev": 6.890165153705663e-09,
+    "K2_ok": true,
+    "K3_netlong_eq_sumW_over_gross_maxdev": 1.1982399870935634e-08,
+    "K3_ok": true,
+    "K4_identity_net_maxdev": 0.0,
+    "K4_identity_net_ex_maxdev": 0.0,
+    "K4_ok": true,
+    "K6_gross_min_frozen": 0.7731530284119157,
+    "K6_gross_max_all": 1.0316394735693355,
+    "K6_ok": false,
+    "K7_cost_pos_frozen": true,
+    "K7_cost_le_turnover_x_ratemax_violations": 0,
+    "K7_rate_max": 2.2021300000000004,
+    "K7_ok": true,
+    "ok": false
+   },
+   "book_fix_s42": {
+    "K1_sum_absW_eq_gross_maxdev": 7.1044685689969356e-09,
+    "K1_ok": true,
+    "K2_turnover_eq_sum_absdW_maxdev": 6.563887308685956e-09,
+    "K2_ok": true,
+    "K3_netlong_eq_sumW_over_gross_maxdev": 9.11312988917043e-09,
+    "K3_ok": true,
+    "K4_identity_net_maxdev": 0.0,
+    "K4_identity_net_ex_maxdev": 0.0,
+    "K4_ok": true,
+    "K6_gross_min_frozen": 0.7715255825522978,
+    "K6_gross_max_all": 1.0258174578011268,
+    "K6_ok": false,
+    "K7_cost_pos_frozen": true,
+    "K7_cost_le_turnover_x_ratemax_violations": 0,
+    "K7_rate_max": 2.2021300000000004,
+    "K7_ok": true,
+    "ok": false
+   }
+  },
+  "E9_gross_band_vs_baseline": {
+   "ok": true,
+   "band": [
+    0.6,
+    1.6
+   ],
+   "median_band": [
+    0.8,
+    1.25
+   ],
+   "baseline_arm": "A0",
+   "book_dyn_s42": {
+    "baseline_path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz",
+    "baseline_exists": true,
+    "baseline_sha256": "b0b9dff9253eb0d1b21f5b35ed1ecf974eb29efbc0ae9de5cc03f4fc95d964bb",
+    "baseline_sha_ok": true,
+    "n_frozen_compared": 3168,
+    "baseline_axis_covers_frozen": true,
+    "ratio_min": 0.826179072460891,
+    "ratio_median": 0.9995493384599563,
+    "ratio_max": 1.2041025229434668,
+    "n_anchors_outside_band": 0,
+    "band_ok": true,
+    "ok": true
+   },
+   "book_dyn_s2027": {
+    "baseline_path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s2027.npz",
+    "baseline_exists": true,
+    "baseline_sha256": "aed3c8f920c0b111842e435a6e4e18f68e4efddd1a2d8d25ab3b5201341d0e52",
+    "baseline_sha_ok": true,
+    "n_frozen_compared": 3168,
+    "baseline_axis_covers_frozen": true,
+    "ratio_min": 0.8449664707152831,
+    "ratio_median": 1.0025067325955268,
+    "ratio_max": 1.2910691877139664,
+    "n_anchors_outside_band": 0,
+    "band_ok": true,
+    "ok": true
+   },
+   "book_fix_s42": {
+    "baseline_path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_fix_s42.npz",
+    "baseline_exists": true,
+    "baseline_sha256": "27b4ff4761c501e1130a67704d7ac939c7d382b406b3cf4a4f09eec6ec9b4955",
+    "baseline_sha_ok": true,
+    "n_frozen_compared": 3168,
+    "baseline_axis_covers_frozen": true,
+    "ratio_min": 0.9832719898096834,
+    "ratio_median": 1.0011910696950443,
+    "ratio_max": 1.0191534132252795,
+    "n_anchors_outside_band": 0,
+    "band_ok": true,
+    "ok": true
+   },
+   "book_fix_s2027": {
+    "baseline_path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_fix_s2027.npz",
+    "baseline_exists": true,
+    "baseline_sha256": "661cc25bcaa543219554cb2e325ccb61203754a388c590f274d3be338f90f15a",
+    "baseline_sha_ok": true,
+    "n_frozen_compared": 3168,
+    "baseline_axis_covers_frozen": true,
+    "ratio_min": 0.9800343352747697,
+    "ratio_median": 1.0017494664485969,
+    "ratio_max": 1.0236299283761765,
+    "n_anchors_outside_band": 0,
+    "band_ok": true,
+    "ok": true
+   }
+  }
+ },
+ "PASS": false,
+ "failed_checks": [
+  "E8_books_content"
+ ],
+ "registered_inputs": [
+  "base_dyn_s2027",
+  "base_dyn_s42",
+  "base_fix_s2027",
+  "base_fix_s42",
+  "book_dyn_s2027",
+  "book_dyn_s42",
+  "book_fix_s2027",
+  "book_fix_s42",
+  "bundle/cache_tail_40d.npz",
+  "bundle/config.json",
+  "bundle/fund_ema_v1_state.json",
+  "bundle/funding_ledger_seed.json",
+  "bundle/leg_returns.npz",
+  "bundle/parity_signals_aug.json",
+  "bundle/slow2026.txt",
+  "bundle/slow_pred_pinned.npy",
+  "bundle_base",
+  "bundle_cache",
+  "bundle_manifest",
+  "costb_json",
+  "eligibility_contract",
+  "export_panel",
+  "fund_aug",
+  "live_pins",
+  "slow_npy",
+  "umask_npz",
+  "wide_fea_v4",
+  "wide_fea_v4_meta"
+ ],
+ "registered_floor_v4_gate_common": [
+  "wide_fea_v4",
+  "wide_fea_v4_meta",
+  "bundle_base",
+  "export_panel",
+  "bundle_cache",
+  "fund_aug",
+  "live_pins",
+  "book_dyn_s42",
+  "book_dyn_s2027",
+  "book_fix_s42",
+  "book_fix_s2027",
+  "base_dyn_s42",
+  "base_dyn_s2027",
+  "base_fix_s42",
+  "base_fix_s2027",
+  "bundle_manifest",
+  "bundle/slow_pred_pinned.npy",
+  "bundle/slow2026.txt",
+  "bundle/config.json",
+  "bundle/cache_tail_40d.npz",
+  "bundle/fund_ema_v1_state.json",
+  "bundle/funding_ledger_seed.json",
+  "bundle/leg_returns.npz",
+  "bundle/parity_signals_aug.json",
+  "costb_json",
+  "umask_npz",
+  "slow_npy",
+  "eligibility_contract"
+ ],
+ "built_utc": "2026-09-17T12:12:37Z",
+ "gate_version": "v2 (r20 gate closure 2026-09-12)",
+ "gate": "BUNDLE_export",
+ "inputs_sha256": {
+  "eligibility_contract": "b996e1d74d43cbc491c1d13efe916541fc85d32e7ea90634e14bd5c863b4a607",
+  "bundle_manifest": "9aa2555d603763cdbf53ab9d1bbd4a5b199129a9f0b3fceb85cb7ea14719f2c6",
+  "bundle/cache_tail_40d.npz": "ea5e42964938f38922bd1341587f7159ff8f77b9ba70b95b10a7ea71aaa045f2",
+  "bundle/config.json": "8e702c990c9af83a7d2d028ff5392740a2409c9ba4ccea38b47fc690e43e2612",
+  "bundle/fund_ema_v1_state.json": "c1dbb41f7c9120d5ff581f0523bebc7283f8dd3828a446c24083bb8239201990",
+  "bundle/funding_ledger_seed.json": "85f1a1dbb2629f0f1164eb96d5b7c7a9c2f2e4484213042ce28abff3caa96740",
+  "bundle/leg_returns.npz": "10fb2263a31c58df7439061a5643e36a70fc39b22dd8db74525145baaa4855b9",
+  "bundle/parity_signals_aug.json": "cbc87e63556c65836bbec4eda33462ca3832595e616c9e71dd9f7304adf64023",
+  "bundle/slow2026.txt": "c271a383adb32e98da1ec133dc33ba37264d77f9f93f3fa61b5a69be264751f9",
+  "bundle/slow_pred_pinned.npy": "c6c3f7aea17abf8e19217ba31ca547f36411c965bb1e6a2cd30876940a55c3b8",
+  "base_dyn_s2027": "aed3c8f920c0b111842e435a6e4e18f68e4efddd1a2d8d25ab3b5201341d0e52",
+  "base_dyn_s42": "b0b9dff9253eb0d1b21f5b35ed1ecf974eb29efbc0ae9de5cc03f4fc95d964bb",
+  "base_fix_s2027": "661cc25bcaa543219554cb2e325ccb61203754a388c590f274d3be338f90f15a",
+  "base_fix_s42": "27b4ff4761c501e1130a67704d7ac939c7d382b406b3cf4a4f09eec6ec9b4955",
+  "book_dyn_s2027": "8af73fbd4ede56ff47da159d40b9653b14fffbab83260f543022cabf4a2df339",
+  "book_dyn_s42": "43d9e07fc45e562fdbd313c469e1240b583a346b4e2bcf95583740d5814c5a73",
+  "book_fix_s2027": "d58c67b541ad4d4f051f15fdfe12f7bb6280a65dc9ad2b391bbc2e3e9280165e",
+  "book_fix_s42": "1d977e23ddbafe77ff52f8af48b782c52af94d79d997d988d14d366ab649837b",
+  "costb_json": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42",
+  "umask_npz": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c",
+  "slow_npy": "c6c3f7aea17abf8e19217ba31ca547f36411c965bb1e6a2cd30876940a55c3b8",
+  "wide_fea_v4": "ee4cce7f58f190448f42be681dba402d70b149392686b045fd01c9d812073c92",
+  "wide_fea_v4_meta": "61e54c8cfaa67f6786fc0d8b4eeb023f2f6df8aff68b967d77b19c80b4cd1176",
+  "bundle_base": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d",
+  "export_panel": "c5d10f6ae31fa3f97006a8678c78382479a5380ae9d7f7af8386d2284ae3e90d",
+  "bundle_cache": "1d7f459dee434ec49e7714a2a612807f2e38e97f35c6c39471a8a4aaa7452488",
+  "fund_aug": "8a9e771577602dd1875a87fb07f982bc2c255e740966f911469420a44a53a8c2",
+  "live_pins": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece"
+ },
+ "inputs_path": {
+  "eligibility_contract": "/workspace/fp2_2026-09/devices_v4chain/ELIGIBILITY_CONTRACT.json",
+  "bundle_manifest": "/workspace/fp2_2026-09/shadow_bundle_v4_fp2/MANIFEST.json",
+  "bundle/cache_tail_40d.npz": "/workspace/fp2_2026-09/shadow_bundle_v4_fp2/cache_tail_40d.npz",
+  "bundle/config.json": "/workspace/fp2_2026-09/shadow_bundle_v4_fp2/config.json",
+  "bundle/fund_ema_v1_state.json": "/workspace/fp2_2026-09/shadow_bundle_v4_fp2/fund_ema_v1_state.json",
+  "bundle/funding_ledger_seed.json": "/workspace/fp2_2026-09/shadow_bundle_v4_fp2/funding_ledger_seed.json",
+  "bundle/leg_returns.npz": "/workspace/fp2_2026-09/shadow_bundle_v4_fp2/leg_returns.npz",
+  "bundle/parity_signals_aug.json": "/workspace/fp2_2026-09/shadow_bundle_v4_fp2/parity_signals_aug.json",
+  "bundle/slow2026.txt": "/workspace/fp2_2026-09/shadow_bundle_v4_fp2/slow2026.txt",
+  "bundle/slow_pred_pinned.npy": "/workspace/fp2_2026-09/shadow_bundle_v4_fp2/slow_pred_pinned.npy",
+  "base_dyn_s2027": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s2027.npz",
+  "base_dyn_s42": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz",
+  "base_fix_s2027": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_fix_s2027.npz",
+  "base_fix_s42": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_fix_s42.npz",
+  "book_dyn_s2027": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A1_dyn_s2027.npz",
+  "book_dyn_s42": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A1_dyn_s42.npz",
+  "book_fix_s2027": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A1_fix_s2027.npz",
+  "book_fix_s42": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A1_fix_s42.npz",
+  "costb_json": "/workspace/fp2_2026-09/health_check/calib/costb_fee_steady.json",
+  "umask_npz": "/workspace/fx_data_2026-09-13/out/inject/umask_UPIT_CRYPTO_tradable_W24H.npz",
+  "slow_npy": "/workspace/fp2_2026-09/king_v4/SLOW_v4.npy",
+  "wide_fea_v4": "/workspace/fp2_2026-09/data/wide_fea_v4.npy",
+  "wide_fea_v4_meta": "/workspace/fp2_2026-09/data/wide_fea_v4_meta.npz",
+  "bundle_base": "/workspace/slow_scorer_v4base.json",
+  "export_panel": "/workspace/data/wide_panel_4h_v3splice.npz",
+  "bundle_cache": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+  "fund_aug": "/workspace/fund_aug.json.gz",
+  "live_pins": "/workspace/fp2_2026-09/live_pins.json"
+ },
+ "utc": "2026-09-17T12:12:42Z",
+ "argv": [
+  "/workspace/fp2_2026-09/devices_v4chain/v4e_gate_export_v2.py"
+ ],
+ "self_sha256": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+ "receipt_schema": "v4_gate_common/2 (gate, PASS, self_sha256, inputs_sha256 bound)"
+}

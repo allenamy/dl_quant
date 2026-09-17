@@ -1,0 +1,248 @@
+{
+ "gate": "FP2_DECISION",
+ "self_sha256": "474c7969b1f242b4a4b1465bcaebccd2692022be1735f14ada9667f396759678",
+ "utc": "2026-09-17T12:06:36Z",
+ "profile": "formal",
+ "rule": "DESIGN_FP2-8 AMENDMENT 7 (G1\u2032 non-inferiority, G2 per-year POINT-ESTIMATE rule, G3 bound export gate); identity closure R04; numbers R05; coverage R06; profile R08",
+ "params": {
+  "DELTA": "0.05",
+  "SEAT": "dyn",
+  "SEEDS": "42,2027",
+  "WINDOWS": "W_ALPHA,KING_LIVE",
+  "EXPORT_ARM": "A1",
+  "CURRENT_YEAR": "2026"
+ },
+ "inputs": {
+  "PER_YEAR_JSON": {
+   "path": "/workspace/fp2_2026-09/v4_gates/PER_YEAR_TABLE.json",
+   "sha256": "689d65d704612cf374a8fa56b6353c865bc81cd003be201d21d32b6a6e410272"
+  },
+  "EXPORT_RECEIPT": {
+   "path": "/workspace/fp2_2026-09/v4_gates/BUNDLE_export_v2_A1.json",
+   "sha256": "1cf4adf7633a970e98b1ed3388fce58f4c792f809bae68fb70499cd4d9c79ff5"
+  },
+  "MEMBER_RULE_JSON": {
+   "path": "/workspace/fp2_2026-09/v4_gates/MEMBER_RULE_CHECK.json",
+   "sha256": "2966478b16834898a81c9e593f1c4759360aa7e2cb783cc1e083bb7322511da6"
+  },
+  "STEP1_JSON": {
+   "path": "/workspace/fp2_2026-09/v4_gates/step1.json",
+   "sha256": "b107f783f52917d10b00d53ec606ccb586f1647de7feb42821ab7e6a59dd77be"
+  },
+  "EXPECTED_UMASK": {
+   "path": "/workspace/fx_data_2026-09-13/out/inject/umask_UPIT_CRYPTO_tradable_W24H.npz",
+   "sha256": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c"
+  },
+  "contract": {
+   "path": "/workspace/fp2_2026-09/devices_v4chain/ELIGIBILITY_CONTRACT.json",
+   "sha256": "b9da42269c9af4749df0b406c40e7bdfdc61ecb996d5374b5ad4d3e3f46e10f7"
+  }
+ },
+ "binding": {
+  "umask": {
+   "expected_sha256": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c",
+   "table_sha256": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c"
+  },
+  "arms": {
+   "A0/dyn/s42": {
+    "path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz",
+    "sha_then": "b0b9dff9253eb0d1b21f5b35ed1ecf974eb29efbc0ae9de5cc03f4fc95d964bb",
+    "sha_now": "b0b9dff9253eb0d1b21f5b35ed1ecf974eb29efbc0ae9de5cc03f4fc95d964bb"
+   },
+   "A0/dyn/s2027": {
+    "path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s2027.npz",
+    "sha_then": "aed3c8f920c0b111842e435a6e4e18f68e4efddd1a2d8d25ab3b5201341d0e52",
+    "sha_now": "aed3c8f920c0b111842e435a6e4e18f68e4efddd1a2d8d25ab3b5201341d0e52"
+   },
+   "A1/dyn/s42": {
+    "path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A1_dyn_s42.npz",
+    "sha_then": "43d9e07fc45e562fdbd313c469e1240b583a346b4e2bcf95583740d5814c5a73",
+    "sha_now": "43d9e07fc45e562fdbd313c469e1240b583a346b4e2bcf95583740d5814c5a73"
+   },
+   "A1/dyn/s2027": {
+    "path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A1_dyn_s2027.npz",
+    "sha_then": "8af73fbd4ede56ff47da159d40b9653b14fffbab83260f543022cabf4a2df339",
+    "sha_now": "8af73fbd4ede56ff47da159d40b9653b14fffbab83260f543022cabf4a2df339"
+   }
+  },
+  "export": {
+   "arm": "A1",
+   "PASS": false,
+   "failed_checks": [
+    "E6_books_config",
+    "E8_books_content",
+    "E9_gross_band_vs_baseline"
+   ],
+   "self_sha256": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+   "contract_sha256": "b9da42269c9af4749df0b406c40e7bdfdc61ecb996d5374b5ad4d3e3f46e10f7"
+  },
+  "same_books": {
+   "A0/dyn/s42": {
+    "export_key": "base_dyn_s42",
+    "export_path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz",
+    "export_sha": "b0b9dff9253eb0d1b21f5b35ed1ecf974eb29efbc0ae9de5cc03f4fc95d964bb",
+    "same_path": true,
+    "same_sha": true
+   },
+   "A0/dyn/s2027": {
+    "export_key": "base_dyn_s2027",
+    "export_path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s2027.npz",
+    "export_sha": "aed3c8f920c0b111842e435a6e4e18f68e4efddd1a2d8d25ab3b5201341d0e52",
+    "same_path": true,
+    "same_sha": true
+   },
+   "A1/dyn/s42": {
+    "export_key": "book_dyn_s42",
+    "export_path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A1_dyn_s42.npz",
+    "export_sha": "43d9e07fc45e562fdbd313c469e1240b583a346b4e2bcf95583740d5814c5a73",
+    "same_path": true,
+    "same_sha": true
+   },
+   "A1/dyn/s2027": {
+    "export_key": "book_dyn_s2027",
+    "export_path": "/workspace/fp2_2026-09/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A1_dyn_s2027.npz",
+    "export_sha": "8af73fbd4ede56ff47da159d40b9653b14fffbab83260f543022cabf4a2df339",
+    "same_path": true,
+    "same_sha": true
+   }
+  },
+  "member_rule": {
+   "VERDICT": "PASS",
+   "self_sha256": "396f6a518d6fddffdba3e8126f94cc5f8d49e40b24b2ac056b84d5ade91de49f",
+   "king_meta_bound_to_export_key": [
+    "wide_fea_v4_meta"
+   ],
+   "dl_targets_bound_to_step1": true
+  }
+ },
+ "UNAVAILABLE": [
+  "export receipt PASS=False failed=['E6_books_config', 'E8_books_content', 'E9_gross_band_vs_baseline']",
+  "G1 cell not a finite measurement: A1-A0/dyn/s42 W_ALPHA dg=0.05714401998457054 ci=[-0.04313164441960712, 0.15717593331266422] n=9138 n_days=None",
+  "G1 cell not a finite measurement: A1-A0/dyn/s42 KING_LIVE dg=0.08944536735508836 ci=[-0.061363346962513214, 0.25174011866758494] n=5838 n_days=None",
+  "G1 cell not a finite measurement: A1-A0/dyn/s2027 W_ALPHA dg=0.03323899174451082 ci=[-0.060369199273935074, 0.13105668962750983] n=9138 n_days=None",
+  "G1 cell not a finite measurement: A1-A0/dyn/s2027 KING_LIVE dg=0.052027733223936244 ci=[-0.09961008373710376, 0.21082536159099965] n=5838 n_days=None"
+ ],
+ "G1": {
+  "cells": {
+   "W_ALPHA/s42": null,
+   "KING_LIVE/s42": null,
+   "W_ALPHA/s2027": null,
+   "KING_LIVE/s2027": null
+  },
+  "verdict": null
+ },
+ "G2": {
+  "per_seed": {
+   "s42": {
+    "years": {
+     "2022": {
+      "dg": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 1110
+     },
+     "2023": {
+      "dg": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 2190
+     },
+     "2024": {
+      "dg": -0.006681662084419373,
+      "ci95": [
+       -0.28273331185890344,
+       0.2774011311183925
+      ],
+      "n": 2196
+     },
+     "2025": {
+      "dg": 0.20429678278333832,
+      "ci95": [
+       -0.07233712050014598,
+       0.5040204738326544
+      ],
+      "n": 2190
+     },
+     "2026": {
+      "dg": 0.061601260510247724,
+      "ci95": [
+       -0.09994059863988702,
+       0.22373205525146225
+      ],
+      "n": 1452
+     }
+    },
+    "years_worse_than_delta": [],
+    "ok": true
+   },
+   "s2027": {
+    "years": {
+     "2022": {
+      "dg": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 1110
+     },
+     "2023": {
+      "dg": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 2190
+     },
+     "2024": {
+      "dg": 0.0018640091182111974,
+      "ci95": [
+       -0.2611558382996027,
+       0.27150747293507344
+      ],
+      "n": 2196
+     },
+     "2025": {
+      "dg": 0.11721101121142248,
+      "ci95": [
+       -0.1626929859428693,
+       0.3962602531423162
+      ],
+      "n": 2190
+     },
+     "2026": {
+      "dg": 0.029581561972956392,
+      "ci95": [
+       -0.18806601292722697,
+       0.252561248614598
+      ],
+      "n": 1452
+     }
+    },
+    "years_worse_than_delta": [],
+    "ok": true
+   }
+  },
+  "ok": true,
+  "note": "point-estimate rule per year, not a statistical non-inferiority proof"
+ },
+ "G3": {
+  "ok": false,
+  "PASS": false,
+  "arm": "A1",
+  "expected_arm": "A1"
+ },
+ "judge_informational": null,
+ "RECOMMENDATION": "UNAVAILABLE",
+ "reasons": [
+  "export receipt PASS=False failed=['E6_books_config', 'E8_books_content', 'E9_gross_band_vs_baseline']",
+  "G1 cell not a finite measurement: A1-A0/dyn/s42 W_ALPHA dg=0.05714401998457054 ci=[-0.04313164441960712, 0.15717593331266422] n=9138 n_days=None",
+  "G1 cell not a finite measurement: A1-A0/dyn/s42 KING_LIVE dg=0.08944536735508836 ci=[-0.061363346962513214, 0.25174011866758494] n=5838 n_days=None",
+  "G1 cell not a finite measurement: A1-A0/dyn/s2027 W_ALPHA dg=0.03323899174451082 ci=[-0.060369199273935074, 0.13105668962750983] n=9138 n_days=None",
+  "G1 cell not a finite measurement: A1-A0/dyn/s2027 KING_LIVE dg=0.052027733223936244 ci=[-0.09961008373710376, 0.21082536159099965] n=5838 n_days=None"
+ ],
+ "PASS": false
+}
