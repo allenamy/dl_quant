@@ -224,3 +224,10 @@ w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025
 6. **F10** = 月折 FIX7(`BEST_EP_FIX=7`, EMBARGO=1, 20 折 202501..)+ refit `pod_f10_refit_v4.py` FIX7; V1 np≡torch; V3′ 条款② 参照 = 同配方上一代月折(AMENDMENT 6), 对年折差另报。
 7. **书层量化** = dev 树 meta y4 用原始收益(`meta_newprod_v4` 型), 判官先复现已发表数字(A0p 法: 同代输入逐位), 冻结窗主判 + 扩展窗次级, 双种子双席位, 逐年表负年显式。
 8. 已知易错: NpzFile[key] 不进循环; pgrep 用 `[c]hain` 括号法; 一切 sha 由复跑实测; 过程状态只读过程收据。
+
+### §0★ 修订 7(2026-09-17, FP2-3 / FP2-4; 独立研究员 PENDING_DECISIONS「月度重训启动时没有完整重新核验上个月的合同、记录和实际文件」「流程结束状态未区分通过/失败/无法验证」)
+1. **合同新增两个可选键**(`chain_lib.V4_MONTH_OPTIONAL_KEYS`, 解析器接受、不强制; 冻结的九月合同**不改**、不受影响): `PREV_MONTH_ENV` = 上月合同路径; `PREV_SHA_JSON` = 上月八个 ROLLED 工件的 `{path: sha256}` 记录, 由 `mk_prev_sha_record.py <上月合同> <out.json>` 在上月链收官后生成并冻结。十月模板已带占位。
+2. **preflight 对 2026-09 之后的月份**: 未声明这两键 ⇒ FAIL「previous contract not declared」; 声明了 ⇒ **现场重跑** `v4_gate_roll_paths.py`(收据 `v4_gates/ROLL_PATHS_preflight_live.json`, 日志 `roll_paths_preflight_live.log`), 三态 VERDICT 必须 PASS(FAIL / UNAVAILABLE 都停)。归档的 ROLL_PATHS 收据仍核, 但**不再单独足够**——它证明写它时为真, 不证明上月工件此刻仍是记录所说。
+3. **三态判词**: `v4_gate_common_v2.finalize3`(PASS 0 / FAIL 3 / UNAVAILABLE 3, 收据 `VERDICT` 字段, 打印真实标签); roll gate 已切; 冻结 `v4_gate_common`(24e813f1)不动; 所有读者读 JSON `PASS`, UNAVAILABLE 永远 PASS=False。
+4. dryrun 负控派生 env 按存在带入可选键; 负控仍以「preflight 诚实 FAIL 且零启动」为通过。
+收据: `docs/fixprogram_2026-09-13/receipts/FP2_tests_20260917/`; 测试 `tests_month_env_optional_keys.py` / `tests_v4_gate_common_v2.py` / `tests_pipeline_gates.py`。

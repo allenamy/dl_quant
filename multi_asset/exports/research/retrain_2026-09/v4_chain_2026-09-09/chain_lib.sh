@@ -22,6 +22,10 @@ say(){ echo "[$(date -u +%FT%TZ)] $*" >> "$L"; }
 die(){ say "FAIL_$1"; echo "FAIL_$1" >&2; exit "${2:-1}"; }
 # the month configuration contract: every key MUST be present and non-empty (schema documented in v4_month_2026-09.env and DESIGN_v4_monthly_chain_2026-09-12.md)
 V4_MONTH_KEYS="V4_MONTH R PY CACHE PANEL_SPLICE PANEL_KING RAW_PATCH HOLE_CELLS DLW_RAW DLW_CLIP F8 KING_FEA KING_META MONTHS_ALL SEEDS MWF_ROOT BUNDLE_OUT BUNDLE_TAR BUNDLE_GENERATION BUNDLE_BASE EXPORT_PANEL EMA_STATE_JSON LIVE_PINS FUND_AUG FUNDING_DIR LEGS_OLD LEGS_PANEL DLW_EXT F8_EXT HC KING_DIR EXPORT_ARM SIGNAL_RECEIPT BUILDER_FEA82 BUILDER_FEA89 BASE_TRAINER GATE_STEP1 GATE_STEP2 PREV_BUNDLE PREV_META REF_META PREV_DLW_CLIP PREV_F8 PREV_KING_FEA PREV_KING_FEA_UNCLAMPED PREV_CLAMP_BUILDER_SHA256"   # 46 keys (W7 2026-09-12: +4 reference keys of the month-generic data gates, PREREG_v4_gates_monthly_2026-09-12 §2; +1 builder identity pin, PREREG AMENDMENT 1 / researcher B-R4)
+# ★ FP2-3 (2026-09-17, PENDING_DECISIONS「月度重训启动重核上月合同」): OPTIONAL contract keys — registered (the parser accepts them) but NOT
+#   required (a contract without them still loads: the frozen September contract has no previous month). The monthly driver's preflight REQUIRES
+#   them for every month after 2026-09 and re-runs the roll gate live against them (see chain_v4_monthly.sh preflight).
+V4_MONTH_OPTIONAL_KEYS="PREV_MONTH_ENV PREV_SHA_JSON"
 load_month_env(){  # load_month_env <v4_month.env> — PARSES the contract as DATA (round 4: the file is never sourced) and exports exactly the parsed pairs; rc 4 on any defect
   # ★ ROUND 4 (2026-09-13, independent review REVIEW_round3_code_and_research_2026-09-13 §4 R3-D3; probes D3_bundle_continuation_A/B, D3_source_parse_error_ignored,
   #   D3_assignment_prefixed_command_marker_written, D3_parent_tilde_parent_A/B): rounds 2-3 checked PHYSICAL LINES with grep/awk and then let Bash source the file,
@@ -38,10 +42,11 @@ load_month_env(){  # load_month_env <v4_month.env> — PARSES the contract as DA
   #   _parser_failed_rc_<rc> / _parser_output. Interpreter = the pre-contract $PY (chain_lib default /workspace/venv/bin/python); the contract's PY takes over after.
   local f=$1 k v line out rc py=$PY got=" " first rest
   [ -n "$f" ] && [ -f "$f" ] || die "month_env_missing_${f:-<none>}" 4
-  out=$("$py" - "$f" "$V4_MONTH_KEYS" <<'PYEOF'
-import re, sys
+  out=$(V4_MONTH_OPTIONAL_KEYS="$V4_MONTH_OPTIONAL_KEYS" "$py" - "$f" "$V4_MONTH_KEYS" <<'PYEOF'
+import os, re, sys
 path, keys = sys.argv[1], sys.argv[2].split()
-REG = set(keys)
+optional = os.environ.get("V4_MONTH_OPTIONAL_KEYS", "").split()   # FP2-3: accepted if present, never required (passed by ENV so the argv shape is unchanged)
+REG = set(keys) | set(optional)
 LIT = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_./,:@%+=-")
 NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 ASSIGN = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=(.*)", re.S)
@@ -124,10 +129,10 @@ if absent:
     refuse("key_missing", absent[0], [f"key {k} is not a line of the file (an inherited environment value does not count)" for k in absent])
 if unbound:
     refuse("unbound_reference", "", ["unbound reference: " + u for u in unbound])
-empty = [k for k in keys if resolved[k] == ""]
+empty = [k for k in list(keys) + [o for o in optional if o in first_line] if resolved[k] == ""]
 if empty:
     refuse("key_missing", empty[0], [f"key {k} is present but EMPTY" for k in empty])
-for k in keys:
+for k in list(keys) + [o for o in optional if o in first_line]:   # FP2-3: optional keys are emitted (and exported) when present
     print(k + "=" + resolved[k])
 PYEOF
 ); rc=$?
@@ -150,7 +155,7 @@ PYEOF
     case $line in *=*) ;; *) echo "month env $f: parser output line has no '=' (not KEY=VALUE): ${line:0:80}" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
     k=${line%%=*}; v=${line#*=}
     case $k in ""|*[!ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_]*) echo "month env $f: parser output line is not KEY=VALUE: ${line:0:80}" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
-    case " $V4_MONTH_KEYS " in *" $k "*) ;; *) echo "month env $f: parser emitted an unregistered key $k" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
+    case " $V4_MONTH_KEYS $V4_MONTH_OPTIONAL_KEYS " in *" $k "*) ;; *) echo "month env $f: parser emitted an unregistered key $k" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
     case $got in *" $k "*) echo "month env $f: parser emitted $k twice" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
     case $v in ""|*[!ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_./,:@%+=-]*) echo "month env $f: parser emitted a value for $k outside the LITERAL grammar" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
     got="$got$k "

@@ -1,6 +1,6 @@
 # 全链逐环节验收表(v1, 2026-09-17 03:1xZ)—— 源码版本 · 实际输入 · 模型/产物 · 测试证据 · 是否部署 · 判定 · 缺口
 
-> **创建:** 2026-09-17 | **Session:** 0134cBjSFjjurUhAz95RNuWk | **状态:** v1(每格标 VERIFIED=本会话读到原件 / INFERRED=由原件推出 / UNVERIFIED=未核) | **作废条件:** 任一格的版本或收据变化; FP2 各项完成后升 v2
+> **创建:** 2026-09-17 | **Session:** 0134cBjSFjjurUhAz95RNuWk | **状态:** v1.1(FP2-1..5 已落地, 见 §8 ✅; FP2-6..9 开放)(每格标 VERIFIED=本会话读到原件 / INFERRED=由原件推出 / UNVERIFIED=未核) | **作废条件:** 任一格的版本或收据变化; FP2 各项完成后升 v2
 > **读法:** 本表只回答「现在能证明什么」。「有中间版本」≠「正式流程已修好」; 「训练跑完」≠「流程认证」。缺口一律映射到 §8 的 FP2 编号, 不在表内宣布关闭。
 
 ## 0. 两个总判(先说结论)
@@ -57,12 +57,12 @@
 ## 8. FP2 修复清单(按依赖序; 每项 = 修复 + 测试 + 提交 + 复审交接)
 | # | 项 | 环节 | 依赖 | 需裁定? |
 |---|---|---|---|---|
-| FP2-1 | 增量面板验证器三缺口: C1 分别核轴/有限支持/NaN-Inf/值; C2 从原始来源独立重建 now/iv/EMA(禁复制自比); 写出后重开核 payload; 负控 finite→Inf / 同值不同 mask / 误写一列 | 数据 | — | 否 |
-| FP2-2 | 资金费 v2 后视路径: 退役 `build_funding_hist.py` / `megacap_funding_replay.py` 的全段 median, `apply_funding_fix.py` span 改因果; **守卫测试 = v4 链构建器清单不含它们**(消费者普查入测试) | 数据 | — | 否 |
+| FP2-1 ✅(装置 v2 + 15 格负控; pod2 真实面板运行随 FP2-8) | 增量面板验证器三缺口: C1 分别核轴/有限支持/NaN-Inf/值; C2 从原始来源独立重建 now/iv/EMA(禁复制自比); 写出后重开核 payload; 负控 finite→Inf / 同值不同 mask / 误写一列 | 数据 | — | 否 |
+| FP2-2 ✅(退役+守卫+链普查 8/8) | 资金费 v2 后视路径: 退役 `build_funding_hist.py` / `megacap_funding_replay.py` 的全段 median, `apply_funding_fix.py` span 改因果; **守卫测试 = v4 链构建器清单不含它们**(消费者普查入测试) | 数据 | — | 否 |
 | FP2-2b | x0910 ivfix 面板接入 09 月延展行 | 数据 | — | 否(数据修正) |
-| FP2-3 | 月驱动 preflight 重核: 上月合同 + `ROLL_PREV_SHA_JSON` + 上月工件当前 sha, 三态 PASS 才起跑; 旧 PASS 票不再被接受 | 重训 | FP2-4 | 否 |
-| FP2-4 | `v4_gate_common_v2.finalize3`(PASS 0 / FAIL 3 / UNAVAILABLE 3, 各自留因); 读者普查(哪些读 printed 标签); 冻结 24e813f1 不动 | 重训 | — | **是**(冻结装置的后继需你一句) |
-| FP2-5 | CLOSE 终止瞬间归属: 在 lifecycle 引擎登记后继 —— 规则「旧代非零持仓 + 同 ms 结算 + CLOSE/OPEN 任意合法顺序只计一次; 未知拒绝认证该现金路径; 不越世代末端」+ 顺序枚举性质测试; 复跑 608 日核不变 | 回放 | — | 否 |
+| FP2-3 ✅(可选键 + 启动现场重跑 roll gate + 十月模板 + mk_prev_sha_record; 478/478, dryrun 双负控) | 月驱动 preflight 重核: 上月合同 + `ROLL_PREV_SHA_JSON` + 上月工件当前 sha, 三态 PASS 才起跑; 旧 PASS 票不再被接受 | 重训 | FP2-4 | 否 |
+| FP2-4 ✅(finalize3 + 读者普查 10/10; roll gate 已切) | `v4_gate_common_v2.finalize3`(PASS 0 / FAIL 3 / UNAVAILABLE 3, 各自留因); 读者普查(哪些读 printed 标签); 冻结 24e813f1 不动 | 重训 | — | **是**(冻结装置的后继需你一句) |
+| FP2-5 ✅(规则 R1–R7 成文 + 冻结他方引擎性质测试 12/12; 引擎无需改) | CLOSE 终止瞬间归属: 在 lifecycle 引擎登记后继 —— 规则「旧代非零持仓 + 同 ms 结算 + CLOSE/OPEN 任意合法顺序只计一次; 未知拒绝认证该现金路径; 不越世代末端」+ 顺序枚举性质测试; 复跑 608 日核不变 | 回放 | — | 否 |
 | FP2-6 | 执行器钉模型身份: `booster_sha_pin`/`universe_sha_pin` 填在役值 + 换装流程随之更新; 测试: 错 sha ⇒ hold | 执行/模型 | — | **是**(线上行为门) |
 | FP2-7 | 采纳 C1/C3/C5/C7 进正式 v4 数据链(逐文件、带其测试); C6 内容审(6ef59338 51 文件); A0 参照重基(死合约) | 数据/评估 | FP2-1/2 | 否 |
 | FP2-8 | 修复版全链重训(pod2): 数据门 → legs → F10 20 折 s42/s2027 → king 导出(轴修) → JUDGE A1 vs A0(同窗同政策) → 出口门; 再经 lifecycle 回放(含停机政策臂)出**逐年 v4 RAW 口径表** = 最可信回测 | 重训/评估 | FP2-1..7 | 否(跑) |

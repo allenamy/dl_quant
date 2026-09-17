@@ -57,7 +57,18 @@ if want preflight; then
   stage "preflight: device files, gate approval, inputs (roll_paths required: $V4_ROLL_REQUIRED)"
   DEV_FILES="chain_lib.sh chain_v4_monthly.sh v4_months.py v4_gate_common.py ELIGIBILITY_CONTRACT.json $GATE_STEP1 $GATE_STEP2 pod_dlw_targets_raw.py pod_fea_ext_clamp.py pod_export_bundle_v4.py pod_legs_v4b.py pod_f10_train_monthly_v4.py launch_mwf_v4b.sh merge_mwf_v4b.py pod_f10_refit_v4.py build_dev_v4.py run_v4_arms.sh judge_v4.py v4e_gate_export_v2.py gate_signal_parity_v2.py cache_coverage_gate_v2.py"
   PF_INPUTS="CACHE PANEL_SPLICE PANEL_KING RAW_PATCH HOLE_CELLS BUNDLE_BASE EXPORT_PANEL EMA_STATE_JSON LIVE_PINS FUND_AUG FUNDING_DIR LEGS_OLD LEGS_PANEL SIGNAL_RECEIPT BUILDER_FEA82 BUILDER_FEA89 BASE_TRAINER PREV_META REF_META"
-  V4_DEV_FILES="$DEV_FILES" V4_PF_INPUTS="$PF_INPUTS" V4_ROLL_REQUIRED="$V4_ROLL_REQUIRED" V4_ROLL_SRC="$V4_ROLL_SRC" V4_MONTH_ENV="$V4_MONTH_ENV" "$PY" - "$R/v4_gates/preflight.json" <<'PYEOF'; rc=$?
+  # ★ FP2-3 (2026-09-17): for a month that needs the roll gate, the previous contract and its sha record must be DECLARED in this
+  #   month's contract (optional keys PREV_MONTH_ENV / PREV_SHA_JSON), and the roll gate is RE-RUN HERE, live, against them — an
+  #   archived ROLL_PATHS receipt is no longer sufficient: "改旧 CACHE 后旧 PASS 仍被接受" (independent review 2026-09-17). The live
+  #   rerun's receipt is written beside the archived one and its VERDICT must be PASS (three-state; UNAVAILABLE is not PASS).
+  V4_ROLL_LIVE_RC=""; V4_ROLL_LIVE_OUT="$R/v4_gates/ROLL_PATHS_preflight_live.json"
+  if [ "$V4_ROLL_REQUIRED" = 1 ] && [ -n "${PREV_MONTH_ENV:-}" ] && [ -n "${PREV_SHA_JSON:-}" ] && [ -f "$D/v4_gate_roll_paths.py" ]; then
+    env -i PATH="$PATH" HOME="$HOME" V4_MONTH_ENV="$ENVF" ROLL_PREV_MONTH_ENV="$PREV_MONTH_ENV" ROLL_PREV_SHA_JSON="$PREV_SHA_JSON" \
+        ROLL_ALLOW_OUTSIDE_ROOT="${ROLL_ALLOW_OUTSIDE_ROOT:-}" ROLL_OUT="$V4_ROLL_LIVE_OUT" "$PY" "$D/v4_gate_roll_paths.py" > "$R/v4_gates/roll_paths_preflight_live.log" 2>&1
+    V4_ROLL_LIVE_RC=$?
+  fi
+  V4_DEV_FILES="$DEV_FILES" V4_PF_INPUTS="$PF_INPUTS" V4_ROLL_REQUIRED="$V4_ROLL_REQUIRED" V4_ROLL_SRC="$V4_ROLL_SRC" V4_MONTH_ENV="$V4_MONTH_ENV" \
+  V4_ROLL_LIVE_RC="$V4_ROLL_LIVE_RC" V4_ROLL_LIVE_OUT="$V4_ROLL_LIVE_OUT" V4_PREV_MONTH_ENV="${PREV_MONTH_ENV:-}" V4_PREV_SHA_JSON="${PREV_SHA_JSON:-}" "$PY" - "$R/v4_gates/preflight.json" <<'PYEOF'; rc=$?
 import hashlib, json, os, subprocess, sys, time
 out = sys.argv[1]; E = os.environ; D = E["D"]; R = E["R"]; fails = []; dev = {}; ext = {}; inputs = {}
 def sha(p):
@@ -97,6 +108,27 @@ if roll["required"]:
                 fails.append(f"roll receipt cannot be bound: V4_MONTH_ENV={me!r} is not a readable file")
             elif rec_env != sha(me):
                 fails.append(f"roll receipt was written for a contract with sha {str(rec_env)[:12]}, this run's contract is {sha(me)[:12]}")
+    # ★ FP2-3: the previous contract must be DECLARED and the roll gate RE-RUN live now — the archived receipt above proves what was true
+    #   when it was written, not that the previous month's artifacts are still what its record says.
+    roll["prev_month_env"] = E.get("V4_PREV_MONTH_ENV") or None; roll["prev_sha_json"] = E.get("V4_PREV_SHA_JSON") or None
+    if not roll["prev_month_env"] or not roll["prev_sha_json"]:
+        fails.append("previous contract not declared: this month's contract must carry PREV_MONTH_ENV and PREV_SHA_JSON (FP2-3) so the roll gate can be re-verified at startup")
+    else:
+        for k in ("prev_month_env", "prev_sha_json"):
+            if not os.path.isfile(roll[k]): fails.append(f"{k}={roll[k]} is not a readable file")
+        lrc = E.get("V4_ROLL_LIVE_RC"); lout = E.get("V4_ROLL_LIVE_OUT")
+        roll["live_rerun"] = {"rc": lrc, "receipt": lout}
+        lr = None
+        if os.path.isfile(lout or ""):
+            try: lr = json.load(open(lout))
+            except Exception as e:                                              # noqa: BLE001
+                fails.append(f"live roll rerun receipt unreadable: {type(e).__name__}: {e}")
+        if lr is None:
+            fails.append(f"live roll gate rerun produced no receipt (rc={lrc!r})")
+        else:
+            roll["live_rerun"].update({"VERDICT": lr.get("VERDICT"), "PASS": lr.get("PASS"), "failed_checks": lr.get("failed_checks"), "unevaluated_checks": lr.get("unevaluated_checks")})
+            if lrc != "0" or lr.get("VERDICT") != "PASS" or lr.get("PASS") is not True:
+                fails.append(f"live roll gate rerun is not PASS: rc={lrc} VERDICT={lr.get('VERDICT')!r} failed={lr.get('failed_checks')} unevaluated={lr.get('unevaluated_checks')}")
 for k in E["V4_PF_INPUTS"].split():
     p = E[k]
     if os.path.exists(p): inputs[k] = {"path": p, "bytes": os.path.getsize(p) if os.path.isfile(p) else None, "is_dir": os.path.isdir(p)}
@@ -129,6 +161,7 @@ seeds = E["SEEDS"].split(",")
 if not all(s in ("42", "2027") for s in seeds): fails.append(f"SEEDS not in the trainer whitelist {{42,2027}}: {seeds}")
 res = {"gate": "PREFLIGHT", "PASS": not fails, "month": E["V4_MONTH"], "month_env": E["V4_MONTH_ENV"], "month_env_sha256": sha(E["V4_MONTH_ENV"]), "device_dir": D, "root": R,
        "device_sha256": dev, "external_sha256": ext, "inputs": inputs, "gate_approval": approval, "months_all": E["MONTHS_ALL"], "seeds": seeds, "generation": E["BUNDLE_GENERATION"], "roll_paths": roll,
+       "roll": roll,                                   # FP2-3: what preflight verified about the roll gate (archived receipt + live rerun)
        "fails": fails, "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "dryrun": E.get("V4_DRYRUN", "0")}
 os.makedirs(os.path.dirname(out), exist_ok=True); json.dump(res, open(out, "w"), indent=1)
 print(f"PREFLIGHT {'PASS' if not fails else 'FAIL'} device_files={len(dev)} inputs={len(inputs)} approvals={sum(1 for a in approval.values() if a['ok'])}/3 fails={len(fails)}")

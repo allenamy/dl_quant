@@ -1014,7 +1014,19 @@ with tempfile.TemporaryDirectory() as d:
                   open(rp, "w"), indent=1)
         return rp
 
+    def _prev_contract(dd):
+        """FP2-3 (2026-09-17): the PREVIOUS month's contract, with its eight rolled artifacts as REAL files under its own root,
+        and the {path: sha256} record over them — what preflight now re-verifies live through v4_gate_roll_paths.py."""
+        proot = f"{dd}/prev_root"; os.makedirs(proot, exist_ok=True); rec = {}
+        kv = {"V4_MONTH": "2026-98", "R": proot}
+        for k in ("CACHE", "PANEL_SPLICE", "PANEL_KING", "RAW_PATCH", "HOLE_CELLS", "FUND_AUG", "EMA_STATE_JSON", "EXPORT_PANEL"):
+            pth = f"{proot}/{k.lower()}.bin"; open(pth, "wb").write(b"previous " + k.encode()); kv[k] = pth; rec[pth] = _sha(pth)
+        penv = f"{dd}/prev.env"; open(penv, "w").write("# synthetic previous contract (FP2-3 fixture)\n" + "".join(f"{k}={v}\n" for k, v in kv.items()))
+        psha = f"{dd}/prev_sha.json"; json.dump(rec, open(psha, "w"))
+        return penv, psha
+
     def _fake_root(dd):
+        _penv, _psha = _prev_contract(dd)
         root = f"{dd}/root"; os.makedirs(f"{root}/v4_gates", exist_ok=True); os.makedirs(f"{root}/funding", exist_ok=True)
         def touch(rel):
             p = f"{root}/{rel}"; os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "wb").write(b"x"); return p
@@ -1026,11 +1038,12 @@ with tempfile.TemporaryDirectory() as d:
                     LEGS_OLD=touch("legs_old.npz"), LEGS_PANEL=f"{root}/splice.npz", DLW_EXT=f"{root}/dlw_ext", F8_EXT=f"{root}/f8_ext", HC=f"{root}/hc", KING_DIR=f"{root}/king", EXPORT_ARM="A1", SIGNAL_RECEIPT=touch("sig.json"),
                     BUILDER_FEA82=touch("b82.py"), BUILDER_FEA89=touch("b89.py"), BASE_TRAINER=touch("base_trainer.py"), GATE_STEP1="v4_gate_step1.py", GATE_STEP2="v4_gate_step2.py",
                     PREV_BUNDLE=f"{root}/prev", PREV_META=touch("prev_meta.npz"), REF_META=touch("ref_meta.npz"),
+                    PREV_MONTH_ENV=_penv, PREV_SHA_JSON=_psha,   # FP2-3: declared previous contract + its sha record (optional keys, required by preflight after 2026-09)
                     PREV_DLW_CLIP=f"{root}/prev_clip", PREV_F8=f"{root}/prev_f8", PREV_KING_FEA=touch("prev_king_fea.npy"), PREV_KING_FEA_UNCLAMPED="NONE", PREV_CLAMP_BUILDER_SHA256=_sha(f"{HERE}/pod_fea_ext_clamp.py"))
         touch("dlw_ext/data/dlw_targets.npz"); touch("f8_ext/preds/f10_V2MAIN_s42.npy"); touch("prev/slow_pred_pinned.npy")
         for rel in ["masks/umask_UPIT_CRYPTO.npz", "calib/costb_fee_steady.json", "run_arm.sh"] + [f"dev_v4/probe_artifacts/w10_ablation_series_V4_A0_{seat}_s{s}.npz" for seat in ("dyn", "fix") for s in (42, 2027)]: touch(f"hc/{rel}")
         envf = f"{dd}/fake.env"; open(envf, "w").write("\n".join(f"{k}={v}" for k, v in keys.items()) + "\n")
-        _roll_receipt(root, envf)
+        _roll_receipt(root, envf)                       # the LIVE rerun receipt is written by the real gate (delegated by the mock too)
         return root, envf
     _root, _envf = _fake_root(d)
     rc, out = _bash(f"V4_DRYRUN=1 V4_STAGES=preflight,cache bash {HERE}/chain_v4_monthly.sh {_envf}")
@@ -1252,7 +1265,7 @@ check("★★★ [R] G0 after every run: the frozen gate sources still carry the
 #        every new-tail anchor must pass the pre-registered quality floor; R5 the five legacy chains are sealed behind V4_LEGACY_OK=1 ──
 print("\n[S] researcher B-R1 (stage prerequisites), B-R3 (contract isolation + clean data env), B-R4 (NONE builder identity + tail quality), R5 (legacy seal)")
 _LEGACY = ("chain_v4_data.sh", "chain_v4_gpu3.sh", "chain_v4s_gpu.sh", "chain_king_e.sh", "chain_v4_post_export.sh")
-_PRODUCER_SKIP = ("v4_gate_common.py", "-", "v4_months.py")
+_PRODUCER_SKIP = ("v4_gate_common.py", "-", "v4_months.py", "v4_gate_roll_paths.py")   # FP2-3: preflight now re-runs the roll GATE live; a gate is not a producer
 def _producers(calls): return [os.path.basename(c["argv"][0]) for c in calls if c["argv"] and os.path.basename(c["argv"][0]) not in _PRODUCER_SKIP and c["argv"][0] != "-c"]
 with tempfile.TemporaryDirectory() as d:
     # ── R5 ──
@@ -1282,7 +1295,7 @@ with tempfile.TemporaryDirectory() as d:
 import json, os, sys, subprocess
 LOG = {_MLOG!r}; a = sys.argv[1:]; n = os.path.basename(a[0]) if a else ""
 open(LOG, "a").write(json.dumps({{"argv": a, "env": {{k: os.environ.get(k) for k in ("F10_DLW", "F10_OUT", "BEST_EP_FIX", "SEED", "DLWT_RAW_PATCH", "DLWT_CACHE", "DLWT_OUT", "F171_OUT", "F8_OUT", "FEA_OUT", "W7_CANARY", "PATH")}}}}) + "\\n")
-if n in ("v4_gate_common.py", "-", "v4_months.py") or (a and a[0] == "-c"): sys.exit(subprocess.call([{PY!r}, "-B"] + a, stdin=sys.stdin))
+if n in ("v4_gate_common.py", "-", "v4_months.py", "v4_gate_roll_paths.py") or (a and a[0] == "-c"): sys.exit(subprocess.call([{PY!r}, "-B"] + a, stdin=sys.stdin))   # FP2-3: the roll gate is delegated (pure gate, real fixture files)
 def w(p, b=b"x"): os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "wb").write(b)
 if n == "cache_coverage_gate_v2.py": sys.exit(0)
 if n == "v4_gate_rawpatch.py":   # FX-TRAIN TRN-02: the mock cannot run the real gate on fake inputs, so it writes the receipt the
@@ -1677,8 +1690,11 @@ with tempfile.TemporaryDirectory() as d:
     _dp = {}
     for _cf in ("v4_month_2026-09.env", "v4_month_2026-10.env.template"):
         _dp[_cf] = (_udry(_R2_DRY, f"{HERE}/{_cf}", "so_" + _cf[9:16]), _udry(_NEW_DRY, f"{HERE}/{_cf}", "sn_" + _cf[9:16]))
+    _OPT = ("PREV_MONTH_ENV=", "PREV_SHA_JSON=")   # FP2-3 (2026-09-17): optional keys the FIXED derivation emits when the source declares them; the archived pre-fix script cannot
+    def _noopt(x): return None if x is None else "\n".join(l for l in x.splitlines() if not l.startswith(_OPT))   # the derived env is one <ROOT>-normalised string
     check("★★★ [U] D3 DRYRUN POSITIVE (both delivered contracts, bytes unchanged): the pre-fix and the fixed dryrun both PASS rc 0 (driver stopped at preflight, nothing launched) and derive the IDENTICAL env once each run's scratch root is replaced by <ROOT> — only HOW the source contract is read changed",
-          all(v[0][0] == 0 and v[1][0] == 0 and "DRYRUN_PASS" in v[0][1] and "DRYRUN_PASS" in v[1][1] and v[0][2] is not None and v[0][2] == v[1][2] for v in _dp.values()),
+          all(v[0][0] == 0 and v[1][0] == 0 and "DRYRUN_PASS" in v[0][1] and "DRYRUN_PASS" in v[1][1] and v[0][2] is not None and _noopt(v[0][2]) == _noopt(v[1][2]) for v in _dp.values())
+          and _dp["v4_month_2026-09.env"][0][2] == _dp["v4_month_2026-09.env"][1][2],      # September (no optional keys): byte-identical, no normalisation needed
           {k: (v[0][0], v[1][0], _only(v[0][2], v[1][2])) for k, v in _dp.items()})
     _DRYC = "\n".join(l for l in open(_NEW_DRY).read().splitlines() if not l.lstrip().startswith("#"))   # code lines only: comments may say what the dryrun used to do
     check("★★ [U] D3 DRYRUN static: the fixed dryrun no longer sources the source contract (no `. \"$SRC\"`, no `set -a`) and reads it through `load_month_env \"$SRC\"`",
@@ -1767,8 +1783,12 @@ with tempfile.TemporaryDirectory() as _vd:
     _res6 = {}
     for _cf in (_VSEP, _VOCT):
         _res6[os.path.basename(_cf)] = (_vload(_V3_LIB, _cf, "R", PY, f"o_real_{os.path.basename(_cf)}"), _vload(_VNEW_LIB, _cf, "R", PY, f"n_real_{os.path.basename(_cf)}"))
-    check("★★★ [V] TRN-19 POSITIVE real parser: the September contract and the October template load rc 0 under both sources with the IDENTICAL environment (the fix is invisible to the real parser)",
-          all(o[0] == 0 and n[0] == 0 and o[2] == n[2] and "MONTH_ENV_OK" in n[1] for o, n in _res6.values()), {k: (o[0], n[0], sorted(set(o[2] or []) ^ set(n[2] or []))[:2]) for k, (o, n) in _res6.items()})
+    _o9, _n9 = _res6["v4_month_2026-09.env"]; _oT, _nT = _res6["v4_month_2026-10.env.template"]
+    check("★★★ [V] TRN-19 POSITIVE real parser: the September contract loads rc 0 under both sources with the IDENTICAL environment (the fix is invisible to the real parser); "
+          "the October template loads rc 0 under the CURRENT source, and the archived r3 source REFUSES it rc 4 naming PREV_MONTH_ENV/PREV_SHA_JSON as unregistered — "
+          "the two optional keys FP2-3 (2026-09-17) added to the template, which the archived loader predates",
+          _o9[0] == 0 and _n9[0] == 0 and _o9[2] == _n9[2] and "MONTH_ENV_OK" in _n9[1]
+          and _nT[0] == 0 and "MONTH_ENV_OK" in _nT[1] and _oT[0] == 4 and "not a registered contract key" in _oT[1] and "PREV_" in _oT[1], {k: (o[0], n[0], sorted(set(o[2] or []) ^ set(n[2] or []))[:2]) for k, (o, n) in _res6.items()})
     # V7 — the inheritor: the dryrun derives its env through load_month_env, so the liar interpreter is refused there too (rc 2, no derived env, no driver run)
     _s = _vstub("bare_R_dry", _vrepl("R", "R")); os.makedirs(f"{_vd}/dry", exist_ok=True)
     _p = subprocess.run(["bash", f"{HERE}/chain_v4_monthly_dryrun.sh", _VSEP, f"{_vd}/dry"], capture_output=True, text=True, env={"PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "PY": _s}, cwd=_vd, timeout=120)

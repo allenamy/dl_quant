@@ -25,14 +25,15 @@ ROOT=$(mktemp -d "$PARENT/v4_dryrun_XXXXXX") || exit 2; mkdir -p "$ROOT/root" ||
 #   registered key arrived non-empty. Nothing else about the derived env changed.
 ( PY=$PYX; CHAIN_DEVICE_DIR=$D; L=/dev/null; R=$ROOT/root; . "$D/chain_lib.sh"
   load_month_env "$SRC" > "$ROOT/source_env_load.txt" || exit 4
-  "$PYX" - "$ROOT" "$V4_MONTH_KEYS" "$PYX" > "$ROOT/v4_month_dryrun.env" <<'PYEOF'
+  V4_MONTH_OPTIONAL_KEYS="${V4_MONTH_OPTIONAL_KEYS:-}" "$PYX" - "$ROOT" "$V4_MONTH_KEYS" "$PYX" > "$ROOT/v4_month_dryrun.env" <<'PYEOF'
 import os, sys
 root, keys, py = sys.argv[1], sys.argv[2].split(), sys.argv[3]
+optional = os.environ.get("V4_MONTH_OPTIONAL_KEYS", "").split()      # FP2-3: derived only when the source declares them (ENV, argv shape unchanged)
 absent = [k for k in keys if not os.environ.get(k)]
 if absent: print(f"DERIVATION_REFUSED registered key(s) absent or empty after load_month_env: {absent}", file=sys.stderr); sys.exit(3)
 COPY = {"V4_MONTH", "MONTHS_ALL", "SEEDS", "MWF_ROOT", "BUNDLE_GENERATION", "EXPORT_ARM", "GATE_STEP1", "GATE_STEP2"}
 print(f"# derived by chain_v4_monthly_dryrun.sh: every path under the EMPTY root {root}/root; labels copied from the source env")
-for k in keys:
+for k in keys + [o for o in optional if os.environ.get(o)]:
     v = os.environ.get(k, "")
     if k == "PY": v = py
     elif k == "R": v = f"{root}/root"
@@ -45,6 +46,7 @@ PYEOF
 #   paths outside the scratch root. Bash now re-checks every derived line WITHOUT the interpreter: KEY=VALUE, a registered key exactly once, all keys present,
 #   R == <scratch>/root, PY == the interpreter chosen above, every non-label key UNDER <scratch>/root/. Any violation: rc 2, the driver is not run.
 DKEYS=$(sed -n 's/^V4_MONTH_KEYS="\([^"]*\)".*/\1/p' "$D/chain_lib.sh"); [ -n "$DKEYS" ] || { echo "cannot read V4_MONTH_KEYS from $D/chain_lib.sh" >&2; exit 2; }
+DOPT=$(sed -n 's/^V4_MONTH_OPTIONAL_KEYS="\([^"]*\)".*/\1/p' "$D/chain_lib.sh"); DKEYS_REQ="$DKEYS"; DKEYS="$DKEYS $DOPT"   # FP2-3: optional keys are registered, not required
 dseen=" "; dbad=""
 while IFS= read -r line; do
   case $line in ""|"#"*) continue ;; *=*) ;; *) dbad="$dbad | not KEY=VALUE: ${line:0:60}"; continue ;; esac
@@ -66,7 +68,7 @@ while IFS= read -r line; do
     *) case $dv in "$ROOT/root/"*) ;; *) dbad="$dbad | $dk=$dv is not under $ROOT/root/" ;; esac ;;
   esac
 done < "$ROOT/v4_month_dryrun.env"
-for dk in $DKEYS; do case $dseen in *" $dk "*) ;; *) dbad="$dbad | key $dk missing" ;; esac; done
+for dk in $DKEYS_REQ; do case $dseen in *" $dk "*) ;; *) dbad="$dbad | key $dk missing" ;; esac; done   # FP2-3: presence is required only for the required set
 [ -z "$dbad" ] || { echo "dryrun derived env REFUSED (a negative control must only ever point at its empty root):${dbad:0:900}" >&2; exit 2; }
 T0=$(date -u +%FT%TZ)
 V4_DRYRUN=1 V4_STAGES=all PY=$PYX bash "$D/chain_v4_monthly.sh" "$ROOT/v4_month_dryrun.env" > "$ROOT/driver.out" 2>&1; rc=$?
