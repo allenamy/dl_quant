@@ -106,4 +106,8 @@ cd ~/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chai
 - 复审接受恢复修复与 B14 验收, 独立验证 27 条断言(恢复 / 重试 / 空头对称 / 状态保存恢复)通过, broker 23/23、proportional 60/60 复跑一致, 两次电池 161 套退出码完全一致(157/3/1)。**未发现新的阻断性执行器问题, 可以收口。**
 - 更正 1(已改 `_scale_to` docstring + 本文 §7.1): 「开仓已停 ⇒ 迟到读数必 ≤ 起点」不成立(旧单可迟到成交); 迟到参考是**恢复政策选择**, 保留固定规则, 写明可选替代。
 - 更正 2(已改测试): C7 的 cdfc06b 对照缺席时原脚本仍落到 ALL PASS —— 与 King 测试同一形态; 现改为 `CONTROL UNAVAILABLE` exit 3(对照缺席演练实测 rc=3)。本次对照在场, 23/23 有效。
+- 提交: 叠加树 `d580eb5 → 6661ea3`(docstring + 测试出口; 收据 `receipts/STACKED_RFR5_d580eb5_to_6661ea3.diff`), 研究仓 `c66c2146 → 47576786 → (回填)`; 电池 05:05Z 窗待回填。
 - **代码收口 ≠ 部署条件满足**(复审明言, 接受): 真漂移(`drift_gate`/`tests_drift_gate`, pilot_metrics 研究副本 vs 上游, 按方向审后同步、不削弱门)、防休眠证据(`tests_entrypoint_wiring`, NOSLEEP-1 有界查询)、运行环境凭据加载(`tests_env_loading`, 生产 .env 在生产树验收, 不向研究员提供凭据)三项**仍需验收**, 之后由你按原协议决定合并与部署。零部署, 生产仍 ef60f85, 无新收益结论。
+
+### 7.6 部署(2026-09-17 02:06Z, 用户裁定)
+运行树 `~/dl_quant_live`: ef60f85 → **6661ea3** = origin/main(push + pull --ff-only; runbook `docs/RUNBOOK_deploy_executor_6661ea3_2026-09-17.md`)。本文此前所有「零部署 / 生产仍 ef60f85」表述自此作废。首锚 04:00Z(04:24Z 交易)验收与生产电池收据随后回填。
