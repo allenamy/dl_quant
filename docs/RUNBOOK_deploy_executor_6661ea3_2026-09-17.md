@@ -79,3 +79,4 @@ STATE.md 顶部新条(运行树 6661ea3, 时刻, 链, 电池, 回滚命令) · F
 - 02:24:42Z §2.7 drift_gate 单独复跑 exit=2 
 - 02:24:42Z §2.7 tests_drift_gate 单独复跑 exit=0 ALL PASS
 - 02:25:11Z §2.7 更正: 上一行「drift_gate 单独复跑 exit=2」是我猜错了脚本路径(python3 找不到文件的退出码), 非门的判词; 按 run_acceptance.sh 的确切条目复跑 drift_gate: exit=0 — no drift across 5 vendored modules (declared A-set 5, all covered)
+- 02:42:19Z §2.6b re-vendor 后生产全量电池(02:25:36→02:41:27Z, head 6661ea3): **160 绿 / 1 红 / 0 UNAVAILABLE**; 相对 re-vendor 前 158/3/0: drift_gate 与 tests_drift_gate 转绿, 新红 0; 唯一余红 tests_entrypoint_wiring = NOSLEEP-1(睡眠日志未读到, 守卫 caffeinate 在、AC), 与本次部署无关。收据 PROD_BATTERY_20260917T022536Z_6661ea3_post_revendor.log sha8=5fe53996。**部署收据收口: 执行器侧无与代码相关的红。**
