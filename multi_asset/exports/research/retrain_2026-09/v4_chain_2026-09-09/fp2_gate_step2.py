@@ -24,7 +24,11 @@ if _missing_env: _refused["missing_env"] = _missing_env
 if _missing_files: _refused["missing_files"] = _missing_files
 _ctl, _why = ({}, ["env missing"]) if _missing_env else GL.bind_controls(_E["R"], _E["D"], "builder_king", _E["BUILDER_KING_FEA"])
 if _why: _refused["controls_binding"] = _why
-else: INPUTS["control_king_fea"] = _ctl["control_king_fea"]; INPUTS["control_king_meta"] = _ctl["control_king_meta"]; INPUTS["controls_receipt"] = _ctl["receipt"]
+_scope = [] if _missing_env else GL.check_scope(_E["D"], "STEP2")
+if _scope: _refused["scope_binding"] = _scope   # F07: variant approved for one (V4_MONTH, R) only
+_pfb = [] if (_missing_env or _why) else GL.bind_inputs_to_preflight(_E["R"], json.load(open(_ctl["receipt"])).get("inputs_sha256"))
+if _pfb: _refused["controls_inputs_vs_preflight"] = _pfb   # F07: controls ran on THIS root's inputs
+if not (_why or _pfb): INPUTS["control_king_fea"] = _ctl["control_king_fea"]; INPUTS["control_king_meta"] = _ctl["control_king_meta"]; INPUTS["controls_receipt"] = _ctl["receipt"]
 _ID = {}
 if not _refused:
     _dev = os.path.join(_E["D"], _E["BUILDER_KING_FEA"]); _dv = sha256_file(_dev)
@@ -48,7 +52,8 @@ RC = {}
 if MASK is None: RC = {"mask": _mw, "PASS": False}
 else:
     M4m = M4["members"]; MCm = MC["members"]
-    RC.update(GL.members_subset_check(EC, MCm, E4, M4m, MASK)); RC["mask_sha256"] = sha256_file(INPUTS["member_mask"])
+    MASKc, _mwc = GL.mask_rows(INPUTS["member_mask"], EC, syms); RC["mask_rows_control_axis"] = _mwc or "ok"   # F06: needed to explain DROPPED anchors
+    RC.update(GL.members_subset_check(EC, MCm, E4, M4m, MASK, MASK_c=MASKc)); RC["mask_sha256"] = sha256_file(INPUTS["member_mask"])
     rc_ = {int(t): i for i, t in enumerate(EC)}; pairs = [(j, rc_[int(t)]) for j, t in enumerate(E4) if int(t) in rc_]
     vcols = np.nonzero(~isrank)[0]; bad_val = 0; bad_y = 0; checked = 0
     Y4, YC, Q4, QC = M4["y4"], MC["y4"], M4["qvk"], MC["qvk"]   # materialised ONCE (an NpzFile key access re-reads the whole array per iteration)

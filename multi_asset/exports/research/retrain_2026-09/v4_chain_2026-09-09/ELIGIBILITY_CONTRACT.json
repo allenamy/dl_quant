@@ -1,8 +1,8 @@
 {
  "contract_schema": "v4_eligibility_contract/1",
  "created_utc": "2026-09-10T05:30:17Z",
- "created_by": "main researcher, round 5 (independent review cfaf1bbe §2-4: the standard an arm must meet is a FROZEN research definition, never the eligibility caller's choice)",
- "review_status": "written round 5; independent review pending. Changing any value here is a change of the reviewed research definition: it must go through review, and it is listed in receipts/v4_scripts_sha_full.json like a source file | PROPOSED2 (r20 gate closure, 2026-09-12): gates.BUNDLE_export filled for v4e_gate_export_v2.py with an approved_baseline block (identities + thresholds frozen here, never the caller's); arms UNCHANGED (XIBLAG50 stays unregistered — separate ruling). NOT APPLIED. | APPLIED 2026-09-12 by lead on user word; post-hoc review requested from the independent researcher (RESULT_r20 §8 lists what v2 still cannot catch)",
+ "created_by": "main researcher, round 5 (independent review cfaf1bbe \u00a72-4: the standard an arm must meet is a FROZEN research definition, never the eligibility caller's choice)",
+ "review_status": "written round 5; independent review pending. Changing any value here is a change of the reviewed research definition: it must go through review, and it is listed in receipts/v4_scripts_sha_full.json like a source file | PROPOSED2 (r20 gate closure, 2026-09-12): gates.BUNDLE_export filled for v4e_gate_export_v2.py with an approved_baseline block (identities + thresholds frozen here, never the caller's); arms UNCHANGED (XIBLAG50 stays unregistered \u2014 separate ruling). NOT APPLIED. | APPLIED 2026-09-12 by lead on user word; post-hoc review requested from the independent researcher (RESULT_r20 \u00a78 lists what v2 still cannot catch)",
  "rules": [
   "The judge (judge_v4.py) reads THIS file from its own directory; no environment variable can substitute another contract. JUDGE_ELIGIBILITY only LOCATES receipts ({arm: {receipt, inputs}}); a caller-supplied gate/self_sha/profile that disagrees with this file makes the arm ineligible.",
   "An arm is a CANDIDATE only if its receipt (a) names the arm's candidacy_gate, (b) was written by a gate source whose sha256 is in gates.<gate>.approved_source_sha256, (c) says PASS, (d) is bound to this arm (receipt.arm == arm), (e) hashes every registered input of the gate (v4_gate_common.REQUIRED_INPUTS) including the four judged book files of the arm (book_binding), each equal to the file the judge loaded.",
@@ -21,19 +21,24 @@
    "source": "v4_gate_step1.py",
    "approved_source_sha256": [
     "278fdce611e91571d24ec26c78ddc4620668bfd4598a01f577f1f6887dd62be4",
-    "9410a4031d583dc00a5f86ff1bb9d31f3e844f11d0cde9c7cfba2aa4b830aad2"
+    "9410a4031d583dc00a5f86ff1bb9d31f3e844f11d0cde9c7cfba2aa4b830aad2",
+    "4771723064cbd458dca756ec661672466ee37bdf7516ffed9f122f519d808cd7"
    ],
    "approved_variants": {
     "fp2_gate_step1.py": {
-     "sha256": "9410a4031d583dc00a5f86ff1bb9d31f3e844f11d0cde9c7cfba2aa4b830aad2",
-     "scope": "FP2-8 contract only (v4_month_2026-09_fp2.env): a from-scratch retrain whose masked build fails the previous-month increment comparison by construction; the variant binds to fp2_controls.py's receipt instead (DESIGN_FP2-8 AMENDMENT 1.3; tests_fp2_gates.py 8/8)",
+     "sha256": "4771723064cbd458dca756ec661672466ee37bdf7516ffed9f122f519d808cd7",
+     "scope": {
+      "V4_MONTH": "2026-09",
+      "R": "/workspace/fp2_2026-09",
+      "note": "F07: one-off full retrain in a fresh root; NOT inherited by 2026-10 increments"
+     },
      "proposed_utc": "2026-09-17T05:23:53Z",
      "review": "independent researcher review requested (post-hoc, same as PROPOSED2)",
      "requires": {
-      "fp2_gate_lib.py": "d3023421a4846cdd6be3fb70dd619463fc78dd6d6c18d200518e168161673c25"
+      "fp2_gate_lib.py": "d93e44d2cedd13a51a0171416dd162ad3469c86c771822545ba03549d169d10c"
      },
-     "revised_utc": "2026-09-17T09:27:54Z",
-     "revision": "AMENDMENT 8 (truncation-aware member rule; lib sha recorded as receipt input); previous variant sha ae21f86f6867"
+     "revised_utc": "2026-09-17T10:18:04Z",
+     "revision": "F06/F07 (independent review 2026-09-17): retained members mask-True + dropped anchors explained (MASK_c, MIN_MEM 50); controls receipt bound to device sha, every check, runs; variant scoped to (V4_MONTH, R); controls inputs vs preflight external shas; previous variant sha 9410a4031d58 (AMENDMENT 8), before that ae21f86f6867"
     }
    }
   },
@@ -41,19 +46,24 @@
    "source": "v4_gate_step2.py",
    "approved_source_sha256": [
     "db7ab3561f97423a8d5dd74251257adcedd743129d22a07d7cd186d102dd80d8",
-    "a4cda6dbdc8f290a7debd60e2ce45afd3a288c735ded21490e36e7c4175ea65c"
+    "a4cda6dbdc8f290a7debd60e2ce45afd3a288c735ded21490e36e7c4175ea65c",
+    "984053e82406e5b2e50dd494210983f1d8356620ce2e732bb97fa904070bbeb5"
    ],
    "approved_variants": {
     "fp2_gate_step2.py": {
-     "sha256": "a4cda6dbdc8f290a7debd60e2ce45afd3a288c735ded21490e36e7c4175ea65c",
-     "scope": "FP2-8 contract only (v4_month_2026-09_fp2.env): a from-scratch retrain whose masked build fails the previous-month increment comparison by construction; the variant binds to fp2_controls.py's receipt instead (DESIGN_FP2-8 AMENDMENT 1.3; tests_fp2_gates.py 8/8)",
+     "sha256": "984053e82406e5b2e50dd494210983f1d8356620ce2e732bb97fa904070bbeb5",
+     "scope": {
+      "V4_MONTH": "2026-09",
+      "R": "/workspace/fp2_2026-09",
+      "note": "F07: one-off full retrain in a fresh root; NOT inherited by 2026-10 increments"
+     },
      "proposed_utc": "2026-09-17T05:23:53Z",
      "review": "independent researcher review requested (post-hoc, same as PROPOSED2)",
      "requires": {
-      "fp2_gate_lib.py": "d3023421a4846cdd6be3fb70dd619463fc78dd6d6c18d200518e168161673c25"
+      "fp2_gate_lib.py": "d93e44d2cedd13a51a0171416dd162ad3469c86c771822545ba03549d169d10c"
      },
-     "revised_utc": "2026-09-17T09:27:54Z",
-     "revision": "AMENDMENT 8 (truncation-aware member rule; lib sha recorded as receipt input); previous variant sha db5b44d15bd3"
+     "revised_utc": "2026-09-17T10:18:04Z",
+     "revision": "F06/F07 (independent review 2026-09-17): retained members mask-True + dropped anchors explained (MASK_c, MIN_MEM 50); controls receipt bound to device sha, every check, runs; variant scoped to (V4_MONTH, R); controls inputs vs preflight external shas; previous variant sha a4cda6dbdc8f (AMENDMENT 8), before that ae21f86f6867"
     }
    }
   },
@@ -141,7 +151,7 @@
       0.8,
       1.25
      ],
-     "_evidence": "guard band / N_FROZEN / IC tolerances verbatim from the original gate (its hard-coded defaults). Identity tolerances: the four exact device identities hold on the genuine A0/A1/A3/XIBLAG50 books to <= 1.5e-8 (r20 RESULT §3). Gross ratio bands: per-anchor gross_total ratio arm/A0 (same seat, same seed) over the frozen window for the 7 registered-form arms (A0p,A1,A1s,A1e,A2,A3 x 4 cells) lies in [0.766, 1.258] with medians in [0.9665, 1.021]; XIBLAG50/XIBOLD50 dyn reach 2.10 and would FAIL the per-anchor band (reported, not hidden)."
+     "_evidence": "guard band / N_FROZEN / IC tolerances verbatim from the original gate (its hard-coded defaults). Identity tolerances: the four exact device identities hold on the genuine A0/A1/A3/XIBLAG50 books to <= 1.5e-8 (r20 RESULT \u00a73). Gross ratio bands: per-anchor gross_total ratio arm/A0 (same seat, same seed) over the frozen window for the 7 registered-form arms (A0p,A1,A1s,A1e,A2,A3 x 4 cells) lies in [0.766, 1.258] with medians in [0.9665, 1.021]; XIBLAG50/XIBOLD50 dyn reach 2.10 and would FAIL the per-anchor band (reported, not hidden)."
     },
     "signal_gates": {
      "S_BITWISE_signal": {
@@ -157,7 +167,7 @@
        "femat_symbols_aligned": true,
        "rows_min": 1
       },
-      "note": "gate_signal_parity.py (v1, sha 19b7419f…) writes no self_sha256/arm/inputs and cannot satisfy E7 of the v2 export gate; XIBLAG50 needs a v2 signal receipt (r20 pod2 run produces one, informational)"
+      "note": "gate_signal_parity.py (v1, sha 19b7419f\u2026) writes no self_sha256/arm/inputs and cannot satisfy E7 of the v2 export gate; XIBLAG50 needs a v2 signal receipt (r20 pod2 run produces one, informational)"
      }
     },
     "provenance": {
@@ -166,7 +176,7 @@
      "book_env_source": "w10_health.py sha 8684d9a9 _CFG keys; values read from config_json of the genuine A0/A1 books on pod2"
     }
    },
-   "note": "r20 gate closure 2026-09-12. Replaces the 2026-09-11 INFRA2 proposal (v4e_gate_export.py sha f814c728…, WITHDRAWN: the independent reviewer showed it not falsifiable — wrong-gate PASS accepted, failing signal gate accepted, different cost/knobs accepted, zero W / non-finite pnl accepted, shipped bundle unbound). v2 keeps E1–E4 verbatim and adds E0 contract block, E2b pin identity, E5 finite+baseline symbols, E6 all 27 knobs + cost/mask/king/FEMAT by file, E7 bound signal receipt with PASS re-derived, E8 exact device identities on the arrays, E9 gross band vs the approved A0 books; `require` mode re-verifies the full floor and re-runs the content gates. Approving this sha approves those checks, the approved_baseline shas and the thresholds AS the export standard."
+   "note": "r20 gate closure 2026-09-12. Replaces the 2026-09-11 INFRA2 proposal (v4e_gate_export.py sha f814c728\u2026, WITHDRAWN: the independent reviewer showed it not falsifiable \u2014 wrong-gate PASS accepted, failing signal gate accepted, different cost/knobs accepted, zero W / non-finite pnl accepted, shipped bundle unbound). v2 keeps E1\u2013E4 verbatim and adds E0 contract block, E2b pin identity, E5 finite+baseline symbols, E6 all 27 knobs + cost/mask/king/FEMAT by file, E7 bound signal receipt with PASS re-derived, E8 exact device identities on the arrays, E9 gross band vs the approved A0 books; `require` mode re-verifies the full floor and re-runs the content gates. Approving this sha approves those checks, the approved_baseline shas and the thresholds AS the export standard."
   }
  },
  "arms": {
@@ -211,11 +221,11 @@
   "file": "<JUDGE_HC>/dev_v4/probe_artifacts/w10_ablation_series_V4_<arm>_<seat>_s<seed>.npz",
   "rule": "the judge adds these four paths to the arm's declared inputs; require then demands the receipt hashed each of them and that the hash equals the file the judge loaded (a book replaced after the receipt, or a receipt written for another arm's books, is not this arm's permission)"
  },
- "status": "APPLIED 2026-09-12 (user word 09-12: \"10 月 runbook 为什么还不修, 要保持老的链路和出口门?\"); was PROPOSED2 01692565…; frozen predecessor 3299dc97… kept at ELIGIBILITY_CONTRACT.r0_3299dc97.json | PROPOSED3 (FP2-8, 2026-09-17): gates.STEP1/STEP2 approved_source_sha256 += fp2_gate_step1.py / fp2_gate_step2.py (approved_variants records scope); applied by lead under the user's standing rule (fix known issues without waiting, independent review after); frozen predecessor kept at ELIGIBILITY_CONTRACT.r1_1188267a.json | PROPOSED3 rev (AMENDMENT 8, 2026-09-17 09:3xZ): variant shas replaced by the on-disk revisions; fp2_gate_lib.py sha recorded under approved_variants.requires",
+ "status": "APPLIED 2026-09-12 (user word 09-12: \"10 \u6708 runbook \u4e3a\u4ec0\u4e48\u8fd8\u4e0d\u4fee, \u8981\u4fdd\u6301\u8001\u7684\u94fe\u8def\u548c\u51fa\u53e3\u95e8?\"); was PROPOSED2 01692565\u2026; frozen predecessor 3299dc97\u2026 kept at ELIGIBILITY_CONTRACT.r0_3299dc97.json | PROPOSED3 (FP2-8, 2026-09-17): gates.STEP1/STEP2 approved_source_sha256 += fp2_gate_step1.py / fp2_gate_step2.py (approved_variants records scope); applied by lead under the user's standing rule (fix known issues without waiting, independent review after); frozen predecessor kept at ELIGIBILITY_CONTRACT.r1_1188267a.json | PROPOSED3 rev (AMENDMENT 8, 2026-09-17 09:3xZ): variant shas replaced by the on-disk revisions; fp2_gate_lib.py sha recorded under approved_variants.requires",
  "proposed_changes_vs_frozen": [
-  "top-level status (new) — PROPOSED marker",
+  "top-level status (new) \u2014 PROPOSED marker",
   "review_status appended",
-  "rules[3] reworded (was: 'An empty approved_source_sha256 list means no program is approved for that gate:…')",
+  "rules[3] reworded (was: 'An empty approved_source_sha256 list means no program is approved for that gate:\u2026')",
   "gates.BUNDLE_export.source/approved_source_sha256/approved_baseline/note filled",
   "arms: UNCHANGED",
   "book_binding: UNCHANGED",
@@ -225,5 +235,5 @@
  ],
  "proposed_utc": "2026-09-12T05:21:47Z",
  "applied_utc": "2026-09-12T09:04:39Z",
- "applied_note": "2026-09-12: gates.BUNDLE_export filled (v4e_gate_export_v2.py d63f4ec3…) and the v2 gate + companion copied beside this chain. The companion v4_gate_common floor extension (11→27 static names, infra2/v4chain_PROPOSED2/v4_gate_common.PROPOSED.diff) is NOT applied: judge_v4 keeps the reviewed 11-name floor; the full 28-input floor is enforced by `v4e_gate_export_v2.py require`, which RUNBOOK_2026-10 §0★ step 7 makes mandatory before any swap. Extending the judge floor requires the chain self-test fixtures (bound_entry/test_contract) to register the extended inputs — pending."
+ "applied_note": "2026-09-12: gates.BUNDLE_export filled (v4e_gate_export_v2.py d63f4ec3\u2026) and the v2 gate + companion copied beside this chain. The companion v4_gate_common floor extension (11\u219227 static names, infra2/v4chain_PROPOSED2/v4_gate_common.PROPOSED.diff) is NOT applied: judge_v4 keeps the reviewed 11-name floor; the full 28-input floor is enforced by `v4e_gate_export_v2.py require`, which RUNBOOK_2026-10 \u00a70\u2605 step 7 makes mandatory before any swap. Extending the judge floor requires the chain self-test fixtures (bound_entry/test_contract) to register the extended inputs \u2014 pending."
 }

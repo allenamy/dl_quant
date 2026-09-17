@@ -42,8 +42,13 @@ def main():
     rec["mode"] = "verify_only" if VERIFY_ONLY else "build_and_verify"
     if VERIFY_ONLY:
         if os.path.isfile(REC):
-            prev = json.load(open(REC)); rec["previous_receipt"] = {"sha256": sha(REC), "VERDICT": prev.get("VERDICT"), "self_sha256": prev.get("self_sha256"), "runs": prev.get("runs")}
-            if not all(v.get("rc") == 0 for v in (prev.get("runs") or {}).values()): print("CONTROLS_REFUSED verify_only needs a previous receipt whose builds all had rc 0", flush=True); return 3
+            prev = json.load(open(REC)); rec["previous_receipt"] = {"sha256": sha(REC), "VERDICT": prev.get("VERDICT"), "self_sha256": prev.get("self_sha256"), "runs": prev.get("runs"),
+                                                                    "inputs_sha256": prev.get("inputs_sha256"), "outputs_sha256": prev.get("outputs_sha256")}
+            runs_prev = prev.get("runs") or {}
+            # F02 (independent review 2026-09-17): a verify-only pass re-issues a verdict for THE SAME BUILD ONLY. It must therefore prove (below, after
+            # hashing) that every input the build consumed and every output it wrote are byte-identical to what the previous receipt recorded; and the
+            # previous receipt must carry a NON-EMPTY run set with rc 0 (an empty set made `all()` vacuously true).
+            if set(runs_prev) != {"king", "dl"} or not all(v.get("rc") == 0 for v in runs_prev.values()): print("CONTROLS_REFUSED verify_only needs a previous receipt with BOTH builds (king, dl) at rc 0", flush=True); return 3
         else: print("CONTROLS_REFUSED verify_only without a previous receipt", flush=True); return 3
     else:
         for k in ("king_nomask", "dl_nomask"):
@@ -73,6 +78,12 @@ def main():
     rec["runs"] = runs if not VERIFY_ONLY else rec["previous_receipt"]["runs"]
     if not VERIFY_ONLY and (runs["king"]["rc"] != 0 or runs["dl"]["rc"] != 0): write("UNAVAILABLE"); return 3
     if VERIFY_ONLY and not (os.path.isfile(envk["FEA_OUT"]) and os.path.isfile(envk["META_OUT"]) and os.path.isfile(f"{dd}/data/dlw_targets.npz")): write("UNAVAILABLE"); return 3
+    if VERIFY_ONLY:   # F02: identity binding — inputs now == inputs then; outputs now == outputs then; else this is NOT the same build and no verdict is re-issued
+        pi = rec["previous_receipt"]["inputs_sha256"] or {}; po = rec["previous_receipt"]["outputs_sha256"] or {}
+        now_out = {"control_king_fea": sha(envk["FEA_OUT"]), "control_king_meta": sha(envk["META_OUT"]), "control_dl_targets": sha(f"{dd}/data/dlw_targets.npz")}
+        diff_in = sorted(k for k in set(pi) | set(rec["inputs_sha256"]) if pi.get(k) != rec["inputs_sha256"].get(k)); diff_out = sorted(k for k in now_out if po.get(k) != now_out[k])
+        rec["verify_only_binding"] = {"inputs_changed": diff_in, "outputs_changed": diff_out}
+        if diff_in or diff_out: log("CONTROLS_REFUSED verify_only: not the same build —", json.dumps(rec["verify_only_binding"])); write("UNAVAILABLE"); return 3
     rec["outputs_path"] = {"control_king_fea": envk["FEA_OUT"], "control_king_meta": envk["META_OUT"], "control_dl_targets": f"{dd}/data/dlw_targets.npz", "control_dl_report": f"{dd}/results/dlw_targets_report.json"}
     rec["outputs_sha256"] = {k: sha(v) for k, v in rec["outputs_path"].items()}
     # ---- K: king v2 (no mask) vs September v1 ----

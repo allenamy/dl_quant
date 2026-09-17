@@ -23,7 +23,11 @@ if _missing_env: _refused["missing_env"] = _missing_env
 if _missing_files: _refused["missing_files"] = _missing_files
 _ctl, _why = ({}, ["env missing"]) if _missing_env else GL.bind_controls(_E["R"], _E["D"], "builder_targets", _E["BUILDER_TARGETS"])
 if _why: _refused["controls_binding"] = _why
-else: INPUTS["control_dl_targets"] = _ctl["control_dl_targets"]; INPUTS["controls_receipt"] = _ctl["receipt"]
+_scope = [] if _missing_env else GL.check_scope(_E["D"], "STEP1")
+if _scope: _refused["scope_binding"] = _scope   # F07: variant approved for one (V4_MONTH, R) only
+_pfb = [] if (_missing_env or _why) else GL.bind_inputs_to_preflight(_E["R"], json.load(open(_ctl["receipt"])).get("inputs_sha256"))
+if _pfb: _refused["controls_inputs_vs_preflight"] = _pfb   # F07: controls ran on THIS root's inputs
+if not (_why or _pfb): INPUTS["control_dl_targets"] = _ctl["control_dl_targets"]; INPUTS["controls_receipt"] = _ctl["receipt"]
 if _refused: print("STEP1_REFUSED", json.dumps(_refused), flush=True); finalize3("STEP1", {"PASS": False, "VERDICT": "UNAVAILABLE", "REFUSED": _refused}, _OUT, INPUTS)
 H = np.load(INPUTS["hole_cells"], allow_pickle=True); NEIGH = H["neigh_rows"]; RUNS = H["fill_runs"]; CSYM = H["symbols"]
 def eq(a, b):
@@ -65,7 +69,8 @@ Em = A["E_ts"].astype(np.int64); Ec = C["E_ts"].astype(np.int64)
 MASK, _mw = GL.mask_rows(INPUTS["member_mask"], Em, A["symbols"])
 if MASK is None: RC["mask"] = _mw; RC["PASS"] = False
 else:
-    RC.update(GL.members_subset_check(Ec, C["members"], Em, A["members"], MASK)); RC["mask_sha256"] = sha256_file(INPUTS["member_mask"])
+    MASKc, _mwc = GL.mask_rows(INPUTS["member_mask"], Ec, A["symbols"]); RC["mask_rows_control_axis"] = _mwc or "ok"   # F06: needed to explain DROPPED anchors
+    RC.update(GL.members_subset_check(Ec, C["members"], Em, A["members"], MASK, MASK_c=MASKc)); RC["mask_sha256"] = sha256_file(INPUTS["member_mask"])
     rc_ = {int(t): i for i, t in enumerate(Ec)}; ic = np.array([rc_[int(t)] for t in Em if int(t) in rc_]); im = np.array([j for j, t in enumerate(Em) if int(t) in rc_])
     for k in ("y4s", "y4old", "qvk", "btcv", "yrs", "has_panel"):
         a = A[k][im]; c = C[k][ic]; RC[f"{k}_bitwise"] = bool(a.shape == c.shape and a.dtype == c.dtype and np.array_equal(a.view(np.uint8), c.view(np.uint8)))

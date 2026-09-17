@@ -27,10 +27,27 @@ def build(script, out, mask="", patch=""):
 def maskfile(name, mk): p = f"{TMP}/{name}.npz"; np.savez(p, ts=S["grid"], symbols=np.array(S["syms"]), mask=mk, definition=np.array(name)); return p
 # 'September' = v1 builds
 build("pod_fea_ext_clamp.py", f"{TMP}/sept_king"); build("pod_dlw_targets_raw.py", f"{TMP}/sept_dl")
+DEV_FILES_FOR_ROOT = ("fp2_gate_step1.py", "fp2_gate_step2.py", "fp2_gate_lib.py", "fp2_controls.py", "v4_gate_common.py", "v4_gate_common_v2.py", "pod_fea_ext_clamp_v2.py", "pod_dlw_targets_raw_v2.py")
+def device_dir(R, month="2026-99"):
+    """F07 harness: every root gets its OWN device dir with a contract whose FP2 variants are scoped to (month, this root)."""
+    D = f"{R}/device"; os.makedirs(D, exist_ok=True)
+    for f in DEV_FILES_FOR_ROOT: shutil.copy2(f"{HERE}/{f}", f"{D}/{f}")
+    c = json.load(open(f"{HERE}/ELIGIBILITY_CONTRACT.json"))
+    for g, f in (("STEP1", "fp2_gate_step1.py"), ("STEP2", "fp2_gate_step2.py")):
+        c["gates"][g]["approved_variants"][f]["scope"] = {"V4_MONTH": month, "R": R}
+    json.dump(c, open(f"{D}/ELIGIBILITY_CONTRACT.json", "w"), indent=1); return D
+def preflight_for(R, D, cache=None, splice=None, king=None, patch=None):
+    """the receipt the driver's preflight writes: device shas + external_sha256 of the contract inputs (F07 binds the controls' inputs to it)"""
+    ext = {}
+    for k, p in (("CACHE", cache or S["CACHE"]), ("PANEL_SPLICE", splice or S["DPANEL"]), ("PANEL_KING", king or S["KPANEL"]), ("RAW_PATCH", patch)):
+        if p and os.path.isfile(p): ext[k] = sha(p)
+    os.makedirs(f"{R}/v4_gates", exist_ok=True)
+    json.dump({"gate": "PREFLIGHT", "PASS": True, "device_sha256": {f: sha(f"{D}/{f}") for f in DEV_FILES_FOR_ROOT}, "external_sha256": ext}, open(f"{R}/v4_gates/preflight.json", "w"))
 def controls(R, sept_king=f"{TMP}/sept_king", sept_dl=f"{TMP}/sept_dl"):
-    e = dict(BASE, R=R, D=HERE, PY=PY, CACHE=S["CACHE"], PANEL_SPLICE=S["DPANEL"], PANEL_KING=S["KPANEL"], RAW_PATCH="", SEPT_KING_FEA=f"{sept_king}/wide_fea_v4.npy",
+    D = f"{R}/device"; (os.path.isdir(D) or device_dir(R))
+    e = dict(BASE, R=R, D=D, PY=PY, CACHE=S["CACHE"], PANEL_SPLICE=S["DPANEL"], PANEL_KING=S["KPANEL"], RAW_PATCH="", SEPT_KING_FEA=f"{sept_king}/wide_fea_v4.npy",
              SEPT_KING_META=f"{sept_king}/wide_fea_v4_meta.npz", SEPT_DL_TARGETS=f"{sept_dl}/data/dlw_targets.npz", BUILDER_TARGETS="pod_dlw_targets_raw_v2.py", BUILDER_KING_FEA="pod_fea_ext_clamp_v2.py")
-    r = subprocess.run([PY, f"{HERE}/fp2_controls.py"], env=e, cwd=TMP, capture_output=True, text=True)
+    r = subprocess.run([PY, f"{D}/fp2_controls.py"], env=e, cwd=TMP, capture_output=True, text=True)
     rec = json.load(open(f"{R}/controls/CONTROLS.json")) if os.path.isfile(f"{R}/controls/CONTROLS.json") else None
     return r.returncode, r.stdout + r.stderr, rec
 # the king panel starts AFTER the first anchors (as the real v2ext panel starts 2022-01-31 while the cache starts 2022-01-01): fund columns are NaN there
@@ -41,8 +58,8 @@ check("G1 controls PASS (rc 0, VERDICT PASS) with a king panel that starts after
       (rc, rec["VERDICT"] if rec else out[-300:], {k: v["ok"] for k, v in (rec or {}).get("checks", {}).items()}))
 _k3 = next((v for k, v in (rec or {}).get("checks", {}).items() if k.startswith("K3")), {}); check("G1b K3 detail records the early anchors' funding-NaN rows (> 0) — the criterion that FAILED the first real run", (_k3.get("detail") or {}).get("extra_rows_with_fund_nan", 0) > 0, _k3.get("detail"))
 _l0 = os.path.getmtime(f"{R1}/controls/king_nomask/build.log"); _e0 = dict(BASE, VERIFY_ONLY="1"); rcv, outv, recv = controls(R1) if False else (None, None, None)
-_ev = dict(BASE, R=R1, D=HERE, PY=PY, CACHE=S["CACHE"], PANEL_SPLICE=S["DPANEL"], PANEL_KING=S["KPANEL"], RAW_PATCH="", SEPT_KING_FEA=f"{TMP}/sept_king/wide_fea_v4.npy", SEPT_KING_META=f"{TMP}/sept_king/wide_fea_v4_meta.npz", SEPT_DL_TARGETS=f"{TMP}/sept_dl/data/dlw_targets.npz", BUILDER_TARGETS="pod_dlw_targets_raw_v2.py", BUILDER_KING_FEA="pod_fea_ext_clamp_v2.py", VERIFY_ONLY="1")
-_rv = subprocess.run([PY, f"{HERE}/fp2_controls.py"], env=_ev, cwd=TMP, capture_output=True, text=True); _recv = json.load(open(f"{R1}/controls/CONTROLS.json"))
+_ev = dict(BASE, R=R1, D=f"{R1}/device", PY=PY, CACHE=S["CACHE"], PANEL_SPLICE=S["DPANEL"], PANEL_KING=S["KPANEL"], RAW_PATCH="", SEPT_KING_FEA=f"{TMP}/sept_king/wide_fea_v4.npy", SEPT_KING_META=f"{TMP}/sept_king/wide_fea_v4_meta.npz", SEPT_DL_TARGETS=f"{TMP}/sept_dl/data/dlw_targets.npz", BUILDER_TARGETS="pod_dlw_targets_raw_v2.py", BUILDER_KING_FEA="pod_fea_ext_clamp_v2.py", VERIFY_ONLY="1")
+_rv = subprocess.run([PY, f"{R1}/device/fp2_controls.py"], env=_ev, cwd=TMP, capture_output=True, text=True); _recv = json.load(open(f"{R1}/controls/CONTROLS.json"))
 check("G1c VERIFY_ONLY=1 re-evaluates on the existing rc-0 outputs: PASS, mode verify_only, previous_receipt recorded, no rebuild (build.log untouched)",
       _rv.returncode == 0 and _recv["VERDICT"] == "PASS" and _recv["mode"] == "verify_only" and _recv["previous_receipt"]["VERDICT"] == "PASS" and os.path.getmtime(f"{R1}/controls/king_nomask/build.log") == _l0, (_rv.returncode, _recv.get("mode"), _rv.stdout[-200:]))
 # masked builds under the contract mask (symbol 7 False at 3 anchors; symbol 9 False everywhere)
@@ -52,13 +69,16 @@ def masked_run(root, mask):
     for p in (f"{root}/dlw_v4raw/data/dlw_fea82.npz", f"{root}/dlw_hf3/data/dlw_fea82.npz"): open(p, "wb").write(b"fea82-identical")
     os.makedirs(f"{root}/f8_v4/data", exist_ok=True); open(f"{root}/f8_v4/data/f8_fea89.npz", "wb").write(b"fea89")
     os.makedirs(f"{root}/v4_gates", exist_ok=True)
-    json.dump({"gate": "PREFLIGHT", "PASS": True, "device_sha256": {"pod_fea_ext_clamp_v2.py": sha(f"{HERE}/pod_fea_ext_clamp_v2.py"), "pod_dlw_targets_raw_v2.py": sha(f"{HERE}/pod_dlw_targets_raw_v2.py")}}, open(f"{root}/v4_gates/preflight.json", "w"))
+    D = f"{root}/device"; (os.path.isdir(D) or device_dir(root)); preflight_for(root, D)
 masked_run(R1, MASK)
-def gate(which, R, mask=MASK, extra=None):
-    e = dict(BASE, R=R, D=HERE, HOLE_CELLS=S["HOLE"], DLW_RAW=f"{R}/dlw_v4raw", DLW_CLIP=f"{R}/dlw_hf3", RAW_PATCH=S["RAWP"], CACHE=S["CACHE"], F8=f"{R}/f8_v4", MEMBER_MASK=mask,
+def gate(which, R, mask=MASK, extra=None, month="2026-99"):
+    D = f"{R}/device"
+    if not os.path.isdir(D): device_dir(R, month)
+    if not os.path.isfile(f"{R}/v4_gates/preflight.json"): preflight_for(R, D)
+    e = dict(BASE, R=R, D=D, V4_MONTH=month, HOLE_CELLS=S["HOLE"], DLW_RAW=f"{R}/dlw_v4raw", DLW_CLIP=f"{R}/dlw_hf3", RAW_PATCH=S["RAWP"], CACHE=S["CACHE"], F8=f"{R}/f8_v4", MEMBER_MASK=mask,
              BUILDER_TARGETS="pod_dlw_targets_raw_v2.py", BUILDER_KING_FEA="pod_fea_ext_clamp_v2.py", KING_FEA=f"{R}/data/wide_fea_v4.npy", KING_META=f"{R}/data/wide_fea_v4_meta.npz")
     e[f"STEP{which}_OUT"] = f"{R}/v4_gates/step{which}.json"; e.update(extra or {})
-    r = subprocess.run([PY, f"{HERE}/fp2_gate_step{which}.py"], env=e, cwd=TMP, capture_output=True, text=True)
+    r = subprocess.run([PY, f"{D}/fp2_gate_step{which}.py"], env=e, cwd=TMP, capture_output=True, text=True)
     rec = json.load(open(e[f"STEP{which}_OUT"])) if os.path.isfile(e[f"STEP{which}_OUT"]) else None
     return r.returncode, r.stdout + r.stderr, rec
 rc1, o1, s1 = gate(1, R1); rc2, o2, s2 = gate(2, R1)
@@ -91,7 +111,7 @@ R7 = f"{TMP}/R7"; os.makedirs(R7); shutil.copytree(f"{R1}/controls", f"{R7}/cont
 rc1, o1, s1 = gate(1, R7); rc2, o2, s2 = gate(2, R7)
 check("★★★ G7 RED: controls receipt copied from another root ⇒ STEP1/STEP2 UNAVAILABLE ('control output outside this root') — a foreign receipt never certifies this root",
       rc1 == 3 and rc2 == 3 and s1 and s2 and s1["VERDICT"] == "UNAVAILABLE" and any("outside this root" in w for w in s1["REFUSED"]["controls_binding"]) and any("outside this root" in w for w in s2["REFUSED"]["controls_binding"]),
-      (rc1, rc2, (s1 or {}).get("REFUSED")))
+      (rc1, rc2, (s1 or {}).get("REFUSED"), None if s1 else o1[-600:]))
 # G4 RED (LAST, in place on R1): control output rewritten after the receipt
 R4 = R1
 with open(f"{R4}/controls/king_nomask/wide_fea_v4.npy", "r+b") as f: f.seek(200); b = f.read(1); f.seek(200); f.write(bytes([b[0] ^ 1]))
@@ -111,19 +131,19 @@ def build8(script, out, mask=""):
     r = subprocess.run([PY, f"{HERE}/{script}"], env=e, cwd=TMP8, capture_output=True, text=True); assert r.returncode == 0, (script, r.stdout[-400:], r.stderr[-400:])
 build8("pod_fea_ext_clamp.py", f"{TMP8}/sept_king"); build8("pod_dlw_targets_raw.py", f"{TMP8}/sept_dl")
 R8 = f"{TMP8}/R8"; os.makedirs(R8)
-e8 = dict(BASE8, R=R8, D=HERE, PY=PY, CACHE=S8["CACHE"], PANEL_SPLICE=S8["DPANEL"], PANEL_KING=S8["KPANEL"], RAW_PATCH="", SEPT_KING_FEA=f"{TMP8}/sept_king/wide_fea_v4.npy", SEPT_KING_META=f"{TMP8}/sept_king/wide_fea_v4_meta.npz", SEPT_DL_TARGETS=f"{TMP8}/sept_dl/data/dlw_targets.npz", BUILDER_TARGETS="pod_dlw_targets_raw_v2.py", BUILDER_KING_FEA="pod_fea_ext_clamp_v2.py")
-_r8 = subprocess.run([PY, f"{HERE}/fp2_controls.py"], env=e8, cwd=TMP8, capture_output=True, text=True); assert _r8.returncode == 0, ("controls on the 430-symbol case", {k[:60]: (v["ok"], json.dumps(v["detail"], default=str)[:200]) for k, v in json.load(open(f"{R8}/controls/CONTROLS.json"))["checks"].items()} if os.path.isfile(f"{R8}/controls/CONTROLS.json") else (_r8.stdout + _r8.stderr)[-800:])
+device_dir(R8); e8 = dict(BASE8, R=R8, D=f"{R8}/device", PY=PY, CACHE=S8["CACHE"], PANEL_SPLICE=S8["DPANEL"], PANEL_KING=S8["KPANEL"], RAW_PATCH="", SEPT_KING_FEA=f"{TMP8}/sept_king/wide_fea_v4.npy", SEPT_KING_META=f"{TMP8}/sept_king/wide_fea_v4_meta.npz", SEPT_DL_TARGETS=f"{TMP8}/sept_dl/data/dlw_targets.npz", BUILDER_TARGETS="pod_dlw_targets_raw_v2.py", BUILDER_KING_FEA="pod_fea_ext_clamp_v2.py")
+_r8 = subprocess.run([PY, f"{R8}/device/fp2_controls.py"], env=e8, cwd=TMP8, capture_output=True, text=True); assert _r8.returncode == 0, ("controls on the 430-symbol case", {k[:60]: (v["ok"], json.dumps(v["detail"], default=str)[:200]) for k, v in json.load(open(f"{R8}/controls/CONTROLS.json"))["checks"].items()} if os.path.isfile(f"{R8}/controls/CONTROLS.json") else (_r8.stdout + _r8.stderr)[-800:])
 mk8 = np.ones((S8["nP"], S8["NW"]), bool); mk8[:, :20] = False   # 20 names masked everywhere: with 430 eligible the control top-400 loses them and the masked top-400 ADDS others
 M8 = f"{TMP8}/mask8.npz"; np.savez(M8, ts=S8["grid"], symbols=np.array(S8["syms"]), mask=mk8, definition=np.array("m8"))
 build8("pod_dlw_targets_raw_v2.py", f"{R8}/dlw_v4raw", M8); build8("pod_dlw_targets_raw_v2.py", f"{R8}/dlw_hf3", M8); build8("pod_fea_ext_clamp_v2.py", f"{R8}/data", M8)
 for p in (f"{R8}/dlw_v4raw/data/dlw_fea82.npz", f"{R8}/dlw_hf3/data/dlw_fea82.npz"): open(p, "wb").write(b"fea82-identical")
 os.makedirs(f"{R8}/f8_v4/data", exist_ok=True); open(f"{R8}/f8_v4/data/f8_fea89.npz", "wb").write(b"fea89"); os.makedirs(f"{R8}/v4_gates", exist_ok=True)
-json.dump({"gate": "PREFLIGHT", "PASS": True, "device_sha256": {"pod_fea_ext_clamp_v2.py": sha(f"{HERE}/pod_fea_ext_clamp_v2.py"), "pod_dlw_targets_raw_v2.py": sha(f"{HERE}/pod_dlw_targets_raw_v2.py")}}, open(f"{R8}/v4_gates/preflight.json", "w"))
+D8 = f"{R8}/device"; (os.path.isdir(D8) or device_dir(R8)); preflight_for(R8, D8, cache=S8["CACHE"], splice=S8["DPANEL"], king=S8["KPANEL"])
 def gate8(which, R, extra=None):
-    e = dict(BASE8, R=R, D=HERE, HOLE_CELLS=S8["HOLE"], DLW_RAW=f"{R}/dlw_v4raw", DLW_CLIP=f"{R}/dlw_hf3", RAW_PATCH=S8["RAWP"], CACHE=S8["CACHE"], F8=f"{R}/f8_v4", MEMBER_MASK=M8,
+    e = dict(BASE8, R=R, D=f"{R}/device", V4_MONTH="2026-99", HOLE_CELLS=S8["HOLE"], DLW_RAW=f"{R}/dlw_v4raw", DLW_CLIP=f"{R}/dlw_hf3", RAW_PATCH=S8["RAWP"], CACHE=S8["CACHE"], F8=f"{R}/f8_v4", MEMBER_MASK=M8,
              BUILDER_TARGETS="pod_dlw_targets_raw_v2.py", BUILDER_KING_FEA="pod_fea_ext_clamp_v2.py", KING_FEA=f"{R}/data/wide_fea_v4.npy", KING_META=f"{R}/data/wide_fea_v4_meta.npz")
     e[f"STEP{which}_OUT"] = f"{R}/v4_gates/step{which}.json"; e.update(extra or {})
-    r = subprocess.run([PY, f"{HERE}/fp2_gate_step{which}.py"], env=e, cwd=TMP8, capture_output=True, text=True)
+    r = subprocess.run([PY, f"{R}/device/fp2_gate_step{which}.py"], env=e, cwd=TMP8, capture_output=True, text=True)
     return r.returncode, r.stdout + r.stderr, (json.load(open(e[f"STEP{which}_OUT"])) if os.path.isfile(e[f"STEP{which}_OUT"]) else None)
 rc1, o1, s1 = gate8(1, R8); rc2, o2, s2 = gate8(2, R8)
 _c1 = (s1 or {}).get("C_masked_vs_control", {}); _c2 = (s2 or {}).get("C_masked_vs_control", {})
@@ -141,6 +161,26 @@ rc2, o2, s2 = gate8(2, R8); _c2 = (s2 or {}).get("C_masked_vs_control", {})
 check("★★★ G9 RED: an added member at a row whose control was NOT truncated (395 < 400) ⇒ STEP2 FAIL with additions_without_truncation_rows == 1", rc2 == 3 and s2 and s2["VERDICT"] == "FAIL" and _c2.get("additions_without_truncation_rows") == 1, (rc2, {k: _c2.get(k) for k in ("rows_with_additions","additions_without_truncation_rows","additions_not_mask_true_rows")}))
 shutil.rmtree(TMP8, ignore_errors=True)
 shutil.rmtree(TMP, ignore_errors=True)
+
+# ── F06 (independent review 2026-09-17): "mask not applied" products must not pass; dropped anchors must be explained ──
+import importlib.util as _ilu
+_gl = _ilu.spec_from_file_location("gl_f06", f"{HERE}/fp2_gate_lib.py"); GLm = _ilu.module_from_spec(_gl); _gl.loader.exec_module(GLm)
+_E = np.array([100, 200, 300], np.int64); _MC = [np.arange(60), np.arange(60), np.arange(60)]                   # control: 60 members at 3 anchors
+_MASK = np.ones((3, 60), bool); _MASK[:, 50:] = False                                                          # names 50..59 are mask-False everywhere
+_ok = GLm.members_subset_check(_E, _MC, _E, [np.arange(50)] * 3, _MASK, ntop=400, MASK_c=_MASK)
+check("★ F06-0 baseline green: masked build = control minus the mask-False names ⇒ PASS, retained_not_mask_true_rows 0", _ok["PASS"] and _ok["retained_not_mask_true_rows"] == 0, _ok)
+_ig = GLm.members_subset_check(_E, _MC, _E, _MC, _MASK, ntop=400, MASK_c=_MASK)
+check("★★★ F06-1 RED: a build that IGNORED the mask (members identical to the control, mask-False names retained) ⇒ FAIL with retained_not_mask_true_rows == 3 (was PASS before F06)",
+      not _ig["PASS"] and _ig["retained_not_mask_true_rows"] == 3 and _ig["retained_not_mask_true_cells"] == 30, _ig)
+_dr = GLm.members_subset_check(_E, _MC, _E[:2], [np.arange(50)] * 2, _MASK[:2], ntop=400, MASK_c=_MASK)
+check("★★★ F06-2 RED: anchor 300 dropped while its control row has 50 mask-True members (≥ MIN_MEM 50) ⇒ dropped_unexplained_rows 1 ⇒ FAIL",
+      not _dr["PASS"] and _dr["dropped_unexplained_rows"] == 1 and _dr["dropped_unexplained_first"][0]["ts"] == 300, _dr)
+_M2 = _MASK.copy(); _M2[2, :] = False; _M2[2, :10] = True                                                      # at anchor 300 only 10 names are mask-True
+_dx = GLm.members_subset_check(_E, _MC, _E[:2], [np.arange(50)] * 2, _M2[:2], ntop=400, MASK_c=_M2)
+check("★★ F06-3 the same drop with only 10 mask-True control members (< 50) is EXPLAINED ⇒ PASS", _dx["PASS"] and _dx["dropped_unexplained_rows"] == 0, _dx)
+_du = GLm.members_subset_check(_E, _MC, _E[:2], [np.arange(50)] * 2, _MASK[:2], ntop=400, MASK_c=None)
+check("★★ F06-4 without control-axis mask rows a dropped anchor is UNVERIFIED ⇒ FAIL (never assumed explained)", not _du["PASS"] and _du["dropped_unverified_rows"] == 1, _du)
+
 print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
 if FAILS: print("FAILED:", *FAILS, sep="\n  "); sys.exit(1)
 print("ALL PASS")
