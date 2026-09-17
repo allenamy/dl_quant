@@ -1,0 +1,253 @@
+# 叠加电池 20260917T010500Z
+# head=d580eb517167ec8e373be1d41a026f4f2b035227  branch=stacked
+# 叠加链(ef60f85..HEAD, 动态):
+#   6294534 E2 (FX-EXEC 2026-09-13): broker 直接 GET 补查读路采用与结算链同一请求级容量冲突合同
+#   c28c0a7 E3 (FX-EXEC 2026-09-13): 损坏事件日志 = 具名 NOT OBSERVABLE 失败关闭, 不再异常退出或静默跳过
+#   82fcc16 E3 follow-up (FX-EXEC 2026-09-13): R3-A2 承重格复用已算的逐批判决, 不再对被读者接受但联接键读不出的记录二次对账而抛出
+#   f0d4eac EXE-01 step 1/n: W6(c) proportional response ported VERBATIM onto ef60f85 (default OFF, as reviewed)
+#   3a641c3 E4 = EXE-02 (FX-EXEC 2026-09-13, 裁定 R2′): 已停名的 from_partial 残差不进任何追单路径; from_reject 转换保留; 残差留到下锚时告警
+#   c46fb83 LED-02 (FX-EXEC2): protective flatten costed as an EXIT against each leg's own mid_at_submit, fee from the fills ledger
+#   7ca52ac LED-07 (FX-EXEC2): pilot_log.anchor_series — the anchors table as a clean per-anchor traded series
+#   469c3f3 LED-08 (FX-EXEC2): per-anchor Telegram report reads fees/fills through cost_buckets; warnings judged on the book's own trailing distribution
+#   a21797d E9 = ALM-04 (FX-EXEC 2026-09-13): 产物断言对事件依赖列判 EVENT_NOT_YET、对无交易(停机)日判 MODE_EXPLAINED; 事件已发生仍为空 / 无写者列仍 NO_PRODUCER
+#   8354c5a STA-02 (FX-EXEC2): per-name-stop cooldown expiries are recorded for the daily summary, not pushed to the phone
+#   f99dc80 EXE-01 step 2/n: proportionality gate on every book-level response (R-14 read as A, switch ON) + closes W6(c) gaps G1-G13
+#   c2e9bdc ALM-01 (FX-EXEC2): funding_span alarm fingerprints its values, says what the table feeds, and pages by consequence
+#   b3c5fc2 EXE-01 step 3/n: the local response must survive the NEXT anchor; scan-battery regression fixed; ledger ruler split
+#   ec88424 LED-01 (FX-EXEC2) 1/3: fills write contract as code + (symbol, trade_id) collapse key; pilot_metrics re-frozen with identity proof
+#   933e7c5 ALM-02: §4-2 renders judged_on from the day it judged, and its trigger prints the number that tripped
+#   d3d16ea LED-01 (FX-EXEC2) 2/3: non-raising write-time guard for the fills contract; violating rows quarantined, one alarm per anchor
+#   0d27a52 LED-01 (FX-EXEC2) 3/3: one canonical fills reader (pilot_log.read_fills) + closed-world reader census
+#   3f85c0e M2-33: §4-2 judges the latest equity day; an unpriced latest day is BLIND, never a stale re-trip
+#   e05c45a LED-04 (FX-EXEC2): daily_nav realised split for pre-fix rows read from amendment records built from guard_twin's income ledger
+#   6523440 E10 = LED-06 (FX-EXEC 2026-09-13): 台账公证器 — 前缀验证代替整文件哈希; 列目录失败/git 每步 rc 失败必告警, 不再静默写 GENESIS; 分支显式、推送仅在配置时; 只公证 SCHEMA 表; 追加检查点与修订记录; verify 读链并点名 13 处 GENESIS 断点
+#   63e116c ALM-05 (FX-EXEC2): arm() A7 margin/tier-1 diagnostic scoped to the external book's traded names, not the internal DL panel
+#   2f66d77 STA-03 (FX-EXEC2, doc only): document the two internal-book state files with no reader in external mode
+#   df57077 LED-01 follow-up (FX-EXEC2): drift manifest pins the re-frozen pilot_metrics bytes; research-side re-vendor is a deploy step
+#   15c31a5 CFG-02 (FX-EXEC2, doc only): per_name_stop profiles.wide._basis states the live 5 USDT floor, not "沿用 20 (待裁)"
+#   4b81443 CFG-07 (FX-EXEC2, doc only): config _comment names the deployed EXTERNAL combo book and marks the internal-only keys
+#   e808697 DOC-01 (FX-EXEC2, doc only, executor side): README states today's deployment facts ahead of the 07-25 architecture
+#   39a0055 ALM-03 = W5 (FX-EXEC 2026-09-13): 步 9 改读 #55 本机评估账本(持仓排序监控输入健康, 不发衰减判决); 产物断言 #9 不再对退役报告的缺席空过
+#   a12a78a OPS-01b (FX-EXEC 2026-09-13): 移除已撤回的 σ_fund gross 阶梯读取端 — 任何新鲜可接受的 g=0.5 文件不再把目标 gross 减半
+#   b8581f5 E5 = EXE-07 (FX-EXEC 2026-09-13): origQty 矛盾串只在恰为一条比较时重推(逐理由解析), 行级条目须等于请求串的 [:120] 拷贝; 重判工具列出全部数对
+#   4058b85 E5 follow-up (FX-EXEC 2026-09-13): gate_coverage 两条 E5 句子前的重复句点
+#   2210596 E6 (FX-EXEC 2026-09-13): 告警/文档文字按代码实际行为改写 — 持仓撤名告警逐名写来源; 撤名残差分报生产者净与撤下名净(EXE-03); 逐名止损出场描述(docstring/触发事件/STOP_EXIT_POLICY/残差告警)与代码逐项对账
+#   719d8e7 E6 follow-up (FX-EXEC 2026-09-13): gate_coverage 的 tests_per_name_stop 条目补 E6 句(上一提交里该文件的编辑未生效, 未随提交)
+#   d4ed6b6 E7 (FX-EXEC 2026-09-13; W2 登记两项): daily_summary 窗口内无 nav 行 = 账户不可观测并点名窗外最新行(不再拿过期行充当窗口); first_anchor_review 无有限 target_w 的名 = INTENT net UNKNOWN, 计数并点名
+#   48e9938 E10 follow-up (FX-EXEC 2026-09-13): config/ledger_notary.json 登记为非模型输入(frozen_inputs 完整性普查)
+#   6d11ba3 NEW-02 (FX-EXEC 2026-09-16): fills 行的 attempt_idx = 该腿的尝试号, 不再由腿类型反推(平仓 7,312 行与订单行联接不上)
+#   7399b10 LED-08 补: 冻结参照窗漂移检查(滚动带 7 天吸收阶跃 ⇒ 加不自校准的第二比较; 判词归日报, 两处都印两水平)
+#   4a29646 gate_coverage 重复键 (FX-EXEC 2026-09-16): SUITE_SCOPE 的 tests_external_book 写了两遍, 解析器静默丢掉前一条; 加源码级唯一性断言并删掉陈旧那条
+#   a17ff63 EXE-04 / Q6 第一半 (FX-EXEC 2026-09-16): 跨窗未解释余额的【联合可行集】核心 + 研究员解集验收; 尚未接线, 尚未回放
+#   1483e41 W6C-B13: 最新持仓读回缺失 ⇒ 具名盲态 + 停开仓 + 页报, 绝不平书 (事实表 quant_research docs/fixprogram_2026-09-13/FX_W6C/FACT_TABLE_B13.md)
+#   5a04f64 W6C-I6: 非计划时刻的运行持有整本书 —— 不得按 intent ZERO 判 (事实表 quant_research docs/fixprogram_2026-09-13/FX_W6C/FACT_TABLE_I6.md)
+#   43bf9b1 LED-04 裁定 (a): §4-4 对修前转账日按修订记录定价, 记录不可用则用记录值并具名 unamended_prefix_day (事实表 quant_research docs/fixprogram_2026-09-13/FX_W6C/FACT_TABLE_LED04a.md)
+#   fa76ee7 NEW-01 / F-I5: 平仓批次与其读回共用一个锚键; submit_ts 是「我们何时发出」而非「何时写行」 (事实表 quant_research docs/fixprogram_2026-09-13/FX_W6C/FACT_TABLE_NEW01.md)
+#   168b080 NEW-01 收尾: 局部响应两格在 ef60f85(无 EXE-01 的 flatten_scope)上按原因变红而非崩溃 —— 套件必须到达汇总行, 且缺席不得变成空过
+#   fa7fc27 OPS-03 A+C(lead 裁定): 权重限速器改滑动 60 s 窗(同上限)+ 更正「速率风暴」归因与验收口径
+#   3daa978 TEST-01 (P1) + 复审两条措辞更正 (FX-EXEC 2026-09-16): 测试不得有能力封禁生产; 「no alpha is given up」与 E3 完整性的绝对句就地标假
+#   f8729a3 LED-03 BNB 换算口径落码: bnb_spot_1m_close_at_fill 纯模块 + 缺分钟具名不插补(28/28)
+#   fff0ea2 LED-08 漂移: 去掉一处行尾空格(git apply 白空格告警), 无行为改动
+#   eff327c KB-73 (FX-EXEC 2026-09-16): 绿电池此前认证的是「钉写在文件里」而不是「钉被用了」; 运行器记录解释器, 守卫改断言生效解释器
+#   9c75b60 W6C-B13 收尾 + 模块登记: 门的路径绑定到 0b 自己的状态路径(静态格); `ledger_amendments` 进 PRODUCTION_MODULES
+#   f7e8e3a EXE-05 边界 (FX-EXEC 2026-09-16): 「注入状态的格必须指明谁证明生产可达」立为具名边界; PROD-44 单槽活性检查同列
+#   4f9d439 ENVRED-1/2 (FX-EXEC 2026-09-16): 空转的变异控制改为可鉴别或报 UNAVAILABLE; 电池记录树外状态
+#   ee5019c Merge remote-tracking branch 'fx_exec/fix/known-issues-2026-09-13' into stacked
+#   1cff90a Merge remote-tracking branch 'fx_exec2/fix/ledger-alarms-2026-09-13' into stacked
+#   4f0419f D3 合并门: ops/daily_summary 的 amendment 读取器改为导入 live/ledger_amendments(等价性实测, 非引其声明)
+#   4e997fb R16-E1(P1, 独立复审 2026-09-16): 非有限持仓数量被读成「已平仓」—— 两处站点同族, 均已修
+#   facdf24 R16-E2 + R16-E3(P2, 独立复审 2026-09-16): 修订身份未绑定 + 两个读者验证深度不同 —— 一并修
+#   183915f R16R-E1(broker/stage1) + R16R-E3(入口目录) 修复 + 两条入口级回归测试(独立复审第二轮 2026-09-16)
+#   cdfc06b R16RF(独立复审第三轮 2026-09-17): E1 第二条减仓入口 + submit 有限性门; 公证套件红的真因是夹具; B14 改为状态-动作合同
+#   d580eb5 RFR-RECOVERY(独立复审第四轮 2026-09-17): 未知仓位恢复可读后重新进入减仓; B14 下一锚改为真实 run
+# --- ENVRED-2 树外状态(开跑时刻现算, 不是拷贝旧文件) ---
+{
+ "env_file_present": false,
+ "notify_audit_lines": 1986,
+ "notify_audit_newest_age_hours": 20.32,
+ "pilot_log_days": 47,
+ "watchdog_events_lines": 15,
+ "ledger_source": "rsync from ~/dl_quant_live/state/live at 2026-09-16T08:24:08Z",
+ "measured_at": "2026-09-17T01:05:00Z",
+ "previous_record": {
+  "notify_audit_lines": 1986,
+  "notify_audit_newest_age_hours": 17.94,
+  "pilot_log_days": 47,
+  "watchdog_events_lines": 15
+ },
+ "note": "ENVRED-2: counts comparable only under the same tree-external state; this block is measured when the battery starts"
+}
+# --- KB-73 解释器 ---
+  sys.executable= /Applications/Xcode.app/Contents/Developer/usr/bin/python3
+  version= 3.9.6
+# --- 开跑 2026-09-17T01:05:00Z ---
+INTERPRETER  resolved=/usr/bin/python3  sys.executable=/Applications/Xcode.app/Contents/Developer/usr/bin/python3  version=3.9.6  torch=2.2.2  ACCEPT_PY=SET:/usr/bin/python3
+TREE-STATE   .env=false  notify_audit_lines=1986  notify_audit_newest_age_hours=20.3
+             ^ a suite count is comparable ONLY with a count taken in the same tree state (ENVRED-2)
+SUITE                        EXIT   LOG
+----------------------------------------------------------------
+tests_imports                0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_imports.log
+drift_gate                   1      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_drift_gate.log
+tests_binance_broker         0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_binance_broker.log
+tests_arm_margin_scope       0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_arm_margin_scope.log
+tests_binance_executor       0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_binance_executor.log
+tests_binance_funding        0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_binance_funding.log
+tests_watchdog               0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_watchdog.log
+tests_pilot_log              0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_pilot_log.log
+tests_anchor_series          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_anchor_series.log
+tests_signal_and_loop        0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_signal_and_loop.log
+tests_entrypoint_wiring      1      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_entrypoint_wiring.log
+tests_telegram_notify        0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_telegram_notify.log
+tests_markout_pacing         0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_markout_pacing.log
+tests_markout_window         0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_markout_window.log
+tests_markout_import         0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_markout_import.log
+tests_ledger_notary          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_ledger_notary.log
+tests_rank_monitor_input     0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_rank_monitor_input.log
+tests_gross_ladder_retired   0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_gross_ladder_retired.log
+tests_reject_rate            0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_reject_rate.log
+tests_requote_experiment     0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_requote_experiment.log
+tests_sigma_ladder           0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_sigma_ladder.log
+tests_inference_parity       0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_inference_parity.log
+tests_panel_build            0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_panel_build.log
+tests_risk_budget            0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_risk_budget.log
+tests_harvest_ema            0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_harvest_ema.log
+tests_manifest_consistency   0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_manifest_consistency.log
+tests_channel_causality      0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_channel_causality.log
+tests_static_names           0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_static_names.log
+tests_factor_health          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_factor_health.log
+tests_state_root             0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_state_root.log
+tests_nosleep                0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_nosleep.log
+tests_venue_fills            0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_venue_fills.log
+tests_artifact_assertions    0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_artifact_assertions.log
+metrics_freeze               0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_metrics_freeze.log
+gate_coverage                0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_gate_coverage.log
+tests_trip_page              0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_trip_page.log
+tests_topup_leg_fill         0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_topup_leg_fill.log
+tests_flatten_ladder         0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_flatten_ladder.log
+tests_readback_universe      0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_readback_universe.log
+tests_market_maxqty          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_market_maxqty.log
+tests_flatten_rows           0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_flatten_rows.log
+tests_scoped_writes          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_scoped_writes.log
+tests_m4_rowtype             0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_m4_rowtype.log
+tests_ghost_rows             0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_ghost_rows.log
+tests_drift_gate             1      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_drift_gate.log
+tests_persistence_and_dust   0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_persistence_and_dust.log
+tests_read_failure_visibility 0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_read_failure_visibility.log
+tests_acceptance_entrypoints 0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_acceptance_entrypoints.log
+tests_score_anchor_selection 0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_score_anchor_selection.log
+tests_cond6_eligibility      0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_cond6_eligibility.log
+tests_venue_error_classification 0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_venue_error_classification.log
+tests_rehearsal_anchor       0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_rehearsal_anchor.log
+tests_reconcile_qty_caliber  0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_reconcile_qty_caliber.log
+tests_reconcile_carry        0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_reconcile_carry.log
+tests_flatten_record         0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_flatten_record.log
+tests_fill_collection_gap    0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_fill_collection_gap.log
+tests_fill_backfill          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_fill_backfill.log
+tests_universe_guard         0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_universe_guard.log
+tests_frozen_inputs          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_frozen_inputs.log
+tests_nav_staleness          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_nav_staleness.log
+tests_avgpx_backfill         0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_avgpx_backfill.log
+tests_guard_coverage         0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_guard_coverage.log
+tests_position_break_blindspot 0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_position_break_blindspot.log
+tests_numerator_honesty      0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_numerator_honesty.log
+tests_reconcile_severity     0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_reconcile_severity.log
+tests_fee_asset_detection    0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_fee_asset_detection.log
+tests_universe_tripwire      0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_universe_tripwire.log
+tests_orphan_position        0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_orphan_position.log
+tests_frontier_staleness     0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_frontier_staleness.log
+tests_head_liveness          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_head_liveness.log
+tests_sizing_policy          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_sizing_policy.log
+tests_notional_backfill      0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_notional_backfill.log
+tests_request_budget         0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_request_budget.log
+tests_halt_evidence          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_halt_evidence.log
+tests_threshold_roles        0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_threshold_roles.log
+tests_cond3_worst_selector   0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_cond3_worst_selector.log
+tests_halt_verdict_states    0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_halt_verdict_states.log
+tests_flatten_cancels_first  0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_flatten_cancels_first.log
+tests_stuck_position_ack     0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_stuck_position_ack.log
+tests_reprice_day            0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_reprice_day.log
+tests_alert_tiers_live       0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_alert_tiers_live.log
+tests_gap_observer           0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_gap_observer.log
+tests_live_install_ritual    0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_live_install_ritual.log
+tests_live_state_root        0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_live_state_root.log
+tests_setup_live_account     0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_setup_live_account.log
+tests_live_dry_pass          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_live_dry_pass.log
+tests_stale_order_sweep      0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_stale_order_sweep.log
+tests_transport_resilience   0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_transport_resilience.log
+tests_venue_cap_clamp        0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_venue_cap_clamp.log
+tests_income_twin_rows       0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_income_twin_rows.log
+tests_request_identity_unknown 0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_request_identity_unknown.log
+tests_reduce_only_clamp      0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_reduce_only_clamp.log
+tests_flatten_fee_backfill   0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_flatten_fee_backfill.log
+tests_proportional_response  0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_proportional_response.log
+tests_cond2_judged_text      0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_cond2_judged_text.log
+tests_cond2_stale_day        0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_cond2_stale_day.log
+tests_book_observability     0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_book_observability.log
+tests_offschedule_held_book  0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_offschedule_held_book.log
+tests_cond4_amended_transfer_day 0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_cond4_amended_transfer_day.log
+tests_flatten_batch_identity 0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_flatten_batch_identity.log
+tests_venue_rate_authority   0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_venue_rate_authority.log
+tests_filters_cache_per_mode 0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_filters_cache_per_mode.log
+tests_rate_backstop_window   0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_rate_backstop_window.log
+tests_alarm_redelivery       0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_alarm_redelivery.log
+tests_a2_withdrawal_gate     0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_a2_withdrawal_gate.log
+tests_readiness_filters_path 0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_readiness_filters_path.log
+tests_unseal_rehearsal_halt  0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_unseal_rehearsal_halt.log
+tests_cancel_ban_resilience  0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_cancel_ban_resilience.log
+tests_book_weights_effective 0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_book_weights_effective.log
+tests_request_accounting     0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_request_accounting.log
+tests_anchor_skip_visible    0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_anchor_skip_visible.log
+tests_env_loading            3      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_env_loading.log
+tests_review_anchor_scoping  0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_review_anchor_scoping.log
+tests_param_encoding         0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_param_encoding.log
+tests_sheet_subject          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_sheet_subject.log
+tests_fills_supersede        0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_fills_supersede.log
+tests_fills_contract         0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_fills_contract.log
+tests_fills_write_guard      0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_fills_write_guard.log
+tests_fills_reader_census    0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_fills_reader_census.log
+tests_neutrality_check       0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_neutrality_check.log
+tests_book_reshape           0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_book_reshape.log
+tests_reduce_only_reject     0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_reduce_only_reject.log
+tests_neutrality_price       0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_neutrality_price.log
+tests_exit_ledger            0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_exit_ledger.log
+tests_ops_flag_safety        0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_ops_flag_safety.log
+tests_reject_topup           0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_reject_topup.log
+tests_disposition_matrix     0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_disposition_matrix.log
+tests_alarm_digest           0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_alarm_digest.log
+tests_redelivery_settles     0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_redelivery_settles.log
+tests_daily_summary          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_daily_summary.log
+tests_daily_summary_entry    0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_daily_summary_entry.log
+tests_broker_nonfinite_positions 0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_broker_nonfinite_positions.log
+tests_realised_amendment     0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_realised_amendment.log
+tests_readers_three_bucket   0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_readers_three_bucket.log
+tests_flatten_exit_cost      0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_flatten_exit_cost.log
+tests_anchor_report_builder  0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_anchor_report_builder.log
+tests_cost_drift             0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_cost_drift.log
+tests_weight_shaper_sliding  0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_weight_shaper_sliding.log
+tests_bnb_conversion         0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_bnb_conversion.log
+income_callers               0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_income_callers.log
+guard_reach                  0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_guard_reach.log
+tests_guard_reach            0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_guard_reach.log
+tests_readout_gate           0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_readout_gate.log
+tests_break_decomposition    0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_break_decomposition.log
+tests_break_split_gate       0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_break_split_gate.log
+tests_break_split_wiring     0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_break_split_wiring.log
+tests_chase_release_check    0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_chase_release_check.log
+tests_residual_vector        0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_residual_vector.log
+tests_chase_policy           0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_chase_policy.log
+tests_chase_experiment_wiring 0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_chase_experiment_wiring.log
+tests_king_cadence           0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_king_cadence.log
+tests_k_window               0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_k_window.log
+tests_neutral_band           0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_neutral_band.log
+tests_ic_monitor             0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_ic_monitor.log
+tests_deadman_ping           0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_deadman_ping.log
+tests_per_name_stop          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_per_name_stop.log
+tests_pns_expiry_tier        0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_pns_expiry_tier.log
+tests_funding_span_alarm     0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_funding_span_alarm.log
+tests_placement_bandit       0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_placement_bandit.log
+tests_guard_calibers         0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_guard_calibers.log
+tests_external_book          0      /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/stack/state/acceptance/20260917T010505Z_tests_external_book.log
+----------------------------------------------------------------
+ACCEPTANCE: NOT GREEN — at least one suite failed (see table above)
+RC=1
+# 收工 2026-09-17T01:23:27Z
