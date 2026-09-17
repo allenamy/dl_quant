@@ -608,3 +608,10 @@ C5 授权证据的对照项: A5 案 — 授权一个改动前先问"它的对照
 
 
 **lead 处置**: 恢复(tar 提取先验 sha == MANIFEST f2365771, 被改写件留档, 8 文件逐一对清单)→ 恢复后 bundle 上只读重跑 v2 出口门 **PASS + REQUIRE_OK**(`receipts/monthly_chain_2026-09-12/e0912b/BUNDLE_export_v2_A1_restored2.json`, 15:01:44Z; 首次尝试因目录内多出留档文件 E1 FAIL, 移出后过 — E1 闭包在工作)→ 导出器无 `BUNDLE_OUT` 即拒(42555a37)→ 自检 `run_sandboxed()` + 静态格禁止裸调真写者。**教训**: 「本机上死得早」≠ 安全; 任何自检格调用真实写者必须沙箱; 研究 bundle 目录与产出收据的闭包(E1)本身抓住了改写, 这是正面证据。
+
+### E-0917-A · 按脚本名 pgrep+kill 在 pod2 上杀掉了在飞运行器的 mwf 阶段驱动(2026-09-17 10:26:35Z; 本方自伤, 本方在 3 分钟内从运行器日志 `FAIL_stage_mwf_rc_137` 发现)
+**事实链**:
+- 我为复门脚本 `f0x_regate.sh`(preflight → controls verify-only → gates)做两次失败尝试后, 在 pod2 上用 `pgrep -f "chain_v4_monthly|fp2_controls.py|fp2_gate_step|f0x_regate"` 扫「残留」并对命中者 `kill -KILL`。模式 `chain_v4_monthly` 命中了**在飞运行器 `chain_fp2_run.sh`(pid 935425)的 mwf 阶段子进程**(`env V4_STAGES=mwf bash chain_v4_monthly.sh`, pid 936409)。运行器记 `stage mwf rc=137` → `FAIL_stage_mwf_rc_137` 退出; GPU 归零。
+- 触发我去扫进程的「still running?!」本身是**假阳性**: `pgrep -f "[f]0x_regate.sh"` 命中的是远端 ssh shell 自己的命令行(命令文本含该脚本名), 与 E-0913 pgrep 家族同型。
+- **实际代价小(运气)**: `commands.txt` 记 RAW s42 四分片 `END rc=0` 于 10:24:36–10:26:37Z(每分片 5 折 + `MWF_TRAIN_DONE`), 即 kill 前后 2 秒内已全部完成; 未做的是 s42 merge 与 s2027 训练(≈40 min)。训练器 `pod_f10_train_monthly_v4.py` 按折断点续跑(models/.pt + preds_fold/.npz + _config.json 三件齐 ⇒ skip), 重启 mwf 阶段 ⇒ s42 秒级跳过 → merge → s2027。分片日志被启动器 `>` 覆盖 ⇒ 重启前复制为 `train_RAW_s42_shard*.log.run1_completed_before_kill_20260917T1026Z`(sha daf5b874/5dea648b/8f0b57f5/4775faa2), 阶段日志同样保留。
+- **规则(与记忆同步)**: (1) 后台任务一律 `setsid` 启动并记 PGID, 清理只 `kill -- -PGID`; (2) 禁止按 `chain_*`/`run_*` 等驱动名 pgrep 扫杀; (3) 清理前 `ps -o pid,ppid,pgid,args` 核对 PPID/PGID 属于自己的会话; (4) 「是否还在跑」用 `/proc/<记录的 pid>` 判, 不用名字。

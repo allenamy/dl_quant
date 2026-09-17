@@ -128,3 +128,14 @@
 - **机制**: 两个构建器的成员规则都是「合格候选 → 若 > NTOP=400 按 qvm 取前 400」。掩码把前 400 中的名去掉后, 无掩码池里排 401+ 的名进入掩码后的前 400 —— 这是**新增**, 只在控制行被截断(len == 400)时发生。交接件 Q7 已预见截断会影响成员, 但我把它写成了子集(只减)。
 - **修正后的规则**(`fp2_gate_lib.members_subset_check`): 减去的 ⊆ 掩码 False(不变); **新增只允许在控制行恰为 NTOP 的锚, 且新增者掩码为 True**; 其余新增 ⇒ FAIL。STEP2 值列逐位比较改在**交集成员**上(新增者在控制里没有格)。合成套件加 G8(430 名 > 400: 掩掉 20 名 ⇒ 新增出现且 PASS)与 G9(控制行 395 名时的新增 ⇒ FAIL)。
 - 这是判据在结构上错(与 AMENDMENT 6 同类: 合成夹具没覆盖真实布局), 不是看数改判; 修正只放宽「截断行的新增」一种情形, 且要求新增者本身可交易。A1 的成员集因此与 A0 控制的差 = 掩码剔除 + 截断补位, 两者都会记入门收据。
+
+## AMENDMENT 9(2026-09-17 10:4xZ, 独立研究员复审 a5a596fe F01–F10 的代码级修复; 全部先于任何书层数字, 判据只收紧不放宽)
+- **F01(P1)** `run_v4_arms.sh`: 行尾注释吞掉 K3/K4/K4E ⇒ A0 用了新 king(SLOW_NPY 为空回退)。修: 注释独立成行 + 缺 SLOW_NPY 显式 `ARMS_FAIL` rc3; 冻结缺陷副本 `run_v4_arms.r1_de4ed666.sh`; `tests_run_v4_arms.py` 5/5(W4 红能力: 旧版 A0 SLOW_NPY 为空)。**无工件受影响**: 修复早于本根 arms 阶段(arms 尚未跑)。
+- **F02/F07(P1)** 控制收据身份链: `VERIFY_ONLY` 绑定前次收据的输入/产物 sha(任一变 ⇒ UNAVAILABLE); `bind_controls` 校验盘上 `fp2_controls.py` sha == 收据 self_sha256、每项 check ok、runs=={king,dl} rc0; 门变体带 `scope{V4_MONTH,R}`(合同), 他根/他月拒跑; 控制输入 sha 对 preflight `external_sha256`。合同变体 sha 刷新(step1 47717230 / step2 984053e8, requires lib d93e44d2)。
+- **F03(P1)** 决策装置 `fp2_decision.py`: AMENDMENT 7 逐字实现(G1′/G2/G3; 判官只作信息; 缺格 UNAVAILABLE); 运行器新增 `per_year` `decision` 阶段。**G2 机器规则**(复审 Q9 要求写明): 对每个种子分别算「dg < −δ 的年」集合, 两种子都须满足「年数 ≤ 1 且不含 2026」。
+- **F05(P1, FP2-1)** 面板重建: 无源流的名 = `COPIED_NO_SOURCE`(计数+列名), 只在有源名上比较 REPRODUCED; 全无源 ⇒ UNAVAILABLE。
+- **F06(P2)** 成员规则再收紧: 保留成员全为掩码 True(忽略掩码的构建 ⇒ FAIL); 被删锚必须可解释(控制行掩码 True 成员 < MIN_MEM=50; 无控制轴掩码行 ⇒ UNVERIFIED FAIL)。`build_dev_v4` 自检复用同一实现(其原子集规则会把真实 109 个截断补位行判 FAIL)。
+- **F08(P2)** 代际 OPEN 边界暴露: 装置 `fp2_open_window_exposure.py`, 真实读数(收据 `FP2_receipts/OPEN_WINDOW_EXPOSURE_2026-09-17.json`): 13 事件, 48h 内成员锚 **0**, 7d 内 **40**, 30d 内 **1,771**(占 2,751,058 成员格 0.064%), 首次入成员 ≈161h(PUMPUSDT 104.5h); king 与 DL 成员集读数相同(同成员规则)。**经济影响 UNAVAILABLE**(未测; 不以合成反例代替)。§2.2「C6 无需进链」降级为「首根不跳价已证; 7d/30d 窗口暴露已量化; 影响未定价」。计划: 十月链成员掩码加 OPEN 后 30 天屏蔽(预注册, 另一次干预)。
+- **F09(P2)** 逐年表 maxDD 主口径 = 逐锚复利 NAV(日末采样为次口径; 1→1.1→1 日内案例真 −9.09%)。
+- **F10(P2)** 逐年表输入门: 两臂同 UMASK 路径与文件 sha(且 == 合同 umask sha)、gross_total 有限正、symbols 轴同、4h 无缝网格; W_ALPHA 起点钉 **2022-06-30 00Z**(不是「第 900 行」)。
+- 套件: gates 17/17, decision 14/14, per-year 11/11, fnd_hol 20/20, exposure 5/5, arms 5/5; pipeline 套件见提交。真实数据: 重跑 preflight → controls(verify-only, 新装置)→ gates(F06/F07 绑定)——结果见 `REVIEW_RESPONSE_FP2_2026-09-17.md`。
