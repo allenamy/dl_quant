@@ -3,7 +3,7 @@
 one column written wrong, sub-tolerance perturbation) and the positive control that a legitimate output is unchanged."""
 import os, sys, tempfile, numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
-from fnd_hol_checks import c1_diff_mask, c2_now_iv_from_stream, c2_compare_columns, c2_compare_columns_sourced, roundtrip_verify
+from fnd_hol_checks import c1_diff_mask, c2_now_iv_from_stream, c2_compare_columns, c2_compare_columns_sourced, roundtrip_verify, nan_sentinel, written_cells
 FAILS, N = [], [0]
 def check(name, ok, detail=None):
     N[0] += 1
@@ -59,6 +59,54 @@ _res, _ns = _c2s(_reb_bad, _inc, ["a", "b"], rebuilt_from_stream={"a", "b"}, has
 check("★★★ F05 a sourced symbol that differs ⇒ DIFFERS (the no-source copies cannot mask it)", _res["a"]["verdict"] == "DIFFERS" and _res["b"]["verdict"] == "REPRODUCED", {k: v["verdict"] for k, v in _res.items()})
 _res, _ns = _c2s(_inc, _inc, ["a", "b"], rebuilt_from_stream={"a", "b"}, has_source=np.zeros(_N, bool))
 check("★★★ F05 NO symbol has a source ⇒ every column UNAVAILABLE_NO_SOURCED_SYMBOL (a full copy can never read as reproduced)", all(v["verdict"] == "UNAVAILABLE_NO_SOURCED_SYMBOL" for v in _res.values()) and _ns["n_with_source"] == 0, {k: v["verdict"] for k, v in _res.items()})
+
+
+# ── R01 (independent review round 2, 2026-09-17): consumer census — every build_funding() call site must use the namedtuple, never a tuple unpack ──
+import ast as _ast
+_dev = open(os.path.join(HERE, "fx_fnd_hol_rebuild_v2.py")).read(); _tree = _ast.parse(_dev)
+_calls = [n for n in _ast.walk(_tree) if isinstance(n, _ast.Call) and isinstance(n.func, _ast.Name) and n.func.id == "build_funding"]
+_unpacked = [n.lineno for n in _ast.walk(_tree) if isinstance(n, _ast.Assign) and isinstance(n.value, _ast.Call) and isinstance(n.value.func, _ast.Name) and n.value.func.id == "build_funding"
+             and any(isinstance(tg, (_ast.Tuple, _ast.List)) for tg in n.targets)]
+_ret = [n for n in _ast.walk(_tree) if isinstance(n, _ast.Return) and isinstance(n.value, _ast.Call) and isinstance(n.value.func, _ast.Name) and n.value.func.id == "FundBuild"]
+check("★★★ R01 consumer census: exactly 2 build_funding() call sites, none tuple-unpacked (the p9 site raised ValueError on the 3-tuple), and the function returns FundBuild",
+      len(_calls) == 2 and not _unpacked and len(_ret) == 1, {"calls": [c.lineno for c in _calls], "unpacked_at": _unpacked, "returns_FundBuild": len(_ret)})
+# ── R02: sentinel instrumentation is observable in both float widths ──
+for _dt in (np.float32, np.float64):
+    _col = np.full(12, nan_sentinel(_dt), _dt); _col[3] = np.nan; _col[5] = _dt(0.25); _col[7] = _dt(np.float32(-1e-3))
+    _w = written_cells(_col)
+    check(f"★★ R02 sentinel {np.dtype(_dt).name}: survives assignment; a canonical NaN write, a finite write and a float32-cast write are all 'written'; untouched cells are not",
+          _w.tolist() == [i in (3, 5, 7) for i in range(12)] and np.isnan(_col[0]) and np.isnan(_col[3]), _w.tolist())
+# ── R02: the reviewer's counterexample — two names WITH a stream, one WITHOUT the canonical EMA seed ──
+_T, _N = 40, 2; _rng = np.random.default_rng(11); _EMA3 = ["f_fund_ema", "f_fund_ema_v1", "f_fund_ema_v2"]; _NOWIV = ["f_fund_now", "f_fund_iv"]; _FUND = _NOWIV + _EMA3
+_inc = {c: _rng.normal(size=(_T, _N)) for c in _FUND}; _src = np.array([True, True])
+for _alt in (0.001, 0.004):
+    _reb = {c: _inc[c].copy() for c in _FUND}                                   # the rebuild reproduces the incumbent where it wrote…
+    for c in _EMA3: _inc[c][-1, 1] = _alt                                        # …and the incumbent's EMA tail for name 1 is altered (0.001 / 0.004): the no-seed copy would DIFFER if compared
+    _masks = {c: np.ones((_T, _N), bool) for c in _NOWIV}; _masks.update({c: np.array([[True, False]] * _T) for c in _EMA3})   # name 1: EMA cells never written
+    _res, _ns = c2_compare_columns_sourced(_reb, _inc, _FUND, rebuilt_from_stream=set(_FUND), has_source=_masks, source_symbols=_src)
+    check(f"★★★ R02 no-seed name (INC EMA tail altered to {_alt}): the three EMA columns are REPRODUCED on name 0 ONLY, name 1 is named COPIED_NO_SEED under each EMA column, partial=True, now/iv still compared on both",
+          all(_res[c]["verdict"] == "REPRODUCED" and _res[c]["symbols_compared"] == 1 and _res[c]["symbols_copied_no_seed"] == 1 and _ns["copied_no_seed_idx"][c] == [1] for c in _EMA3)
+          and all(_res[c]["verdict"] == "REPRODUCED" and _res[c]["symbols_compared"] == 2 and _res[c]["symbols_copied_no_seed"] == 0 for c in _NOWIV)
+          and _ns["independent_rebuild_partial"] is True and _ns["n_with_source"] == 2 and _ns["n_no_source"] == 0,
+          ({c: (_res[c]["verdict"], _res[c]["symbols_compared"], _res[c]["symbols_copied_no_seed"]) for c in _FUND}, _ns["independent_rebuild_partial"]))
+    _res1, _ = c2_compare_columns_sourced(_reb, _inc, _FUND, rebuilt_from_stream=set(_FUND), has_source=_src)
+    check(f"★★ R02 control: the OLD per-name mask (both names 'sourced') would have compared the copied EMA cells ⇒ DIFFERS on the altered cell ({_alt}) — the per-column mask is what removes the false comparison",
+          all(_res1[c]["verdict"] == "DIFFERS" for c in _EMA3), {c: _res1[c]["verdict"] for c in _EMA3})
+    for c in _EMA3: _inc[c][-1, 1] = _reb[c][-1, 1]                              # restore
+# ── R02: missing v2 seed ⇒ rows before the first tail event are copies (per-cell partial) ──
+_masks = {c: np.ones((_T, _N), bool) for c in _FUND}; _masks["f_fund_ema_v2"][:10, 1] = False
+_res, _ns = c2_compare_columns_sourced({c: _inc[c].copy() for c in _FUND}, _inc, _FUND, rebuilt_from_stream=set(_FUND), has_source=_masks, source_symbols=_src)
+check("★★ R02 v2 seed missing: f_fund_ema_v2 compared on 70 of 80 cells, name 1 reported partially compared, partial=True; the other four columns fully compared",
+      _res["f_fund_ema_v2"]["cells_compared"] == 70 and _res["f_fund_ema_v2"]["symbols_partially_compared"] == 1 and _ns["partial_idx"]["f_fund_ema_v2"] == [1] and _ns["independent_rebuild_partial"] is True
+      and all(_res[c]["symbols_fully_compared"] == 2 for c in _FUND if c != "f_fund_ema_v2"), ({c: _res[c]["cells_compared"] for c in _FUND}, _ns["partial_idx"]))
+# ── R02 positive control: seeds present ⇒ all five columns compared on both names, no partial flag ──
+_res, _ns = c2_compare_columns_sourced({c: _inc[c].copy() for c in _FUND}, _inc, _FUND, rebuilt_from_stream=set(_FUND), has_source={c: np.ones((_T, _N), bool) for c in _FUND}, source_symbols=_src)
+check("★★ R02 positive control: seeds present ⇒ every column REPRODUCED on both names (cells 80/80), partial=False, no copied names",
+      all(_res[c]["verdict"] == "REPRODUCED" and _res[c]["cells_compared"] == 80 and _res[c]["symbols_copied_no_seed"] == 0 for c in _FUND) and _ns["independent_rebuild_partial"] is False and all(not v for v in _ns["copied_no_seed_idx"].values()),
+      _ns["independent_rebuild_partial"])
+_bad = {c: _inc[c].copy() for c in _FUND}; _bad["f_fund_ema"][20, 0] += 1e-7
+_res, _ = c2_compare_columns_sourced(_bad, _inc, _FUND, rebuilt_from_stream=set(_FUND), has_source={c: np.ones((_T, _N), bool) for c in _FUND}, source_symbols=_src)
+check("★ R02 a written cell that differs ⇒ DIFFERS with maxabs (the cell mask cannot hide a real difference)", _res["f_fund_ema"]["verdict"] == "DIFFERS" and _res["f_fund_ema"]["maxabs"] > 0, _res["f_fund_ema"]["maxabs"])
 
 print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
 if FAILS: print("FAILED:", *FAILS, sep="\n  "); sys.exit(1)

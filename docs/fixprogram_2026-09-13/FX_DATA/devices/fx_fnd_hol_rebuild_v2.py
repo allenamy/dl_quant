@@ -39,7 +39,9 @@ Exit 0 only if C1 and C2 passed and the written file reloads.
 import os, sys, ast, csv, io, json, glob, gzip, time, zipfile, hashlib
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from fnd_hol_checks import c2_compare_columns_sourced, c1_diff_mask, c2_now_iv_from_stream, c2_compare_columns, roundtrip_verify   # FP2-1
+from collections import namedtuple
+FundBuild = namedtuple("FundBuild", "out agg has_source rebuilt")   # R01: attribute access at every call site (a stale tuple-unpack raised ValueError at the p9 call)
+from fnd_hol_checks import nan_sentinel, written_cells, c2_compare_columns_sourced, c1_diff_mask, c2_now_iv_from_stream, c2_compare_columns, roundtrip_verify   # FP2-1
 
 ENV_WHITELIST = {"PATH", "HOME", "OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "PYTHONPATH"}
 EXTRA = sorted(k for k in os.environ if k not in ENV_WHITELIST and k not in ("PWD", "SHLVL", "_", "OLDPWD", "LC_CTYPE"))
@@ -213,10 +215,14 @@ def stream(s, mode):
     tiers["_fell_through_to_spacing_or_default"] = n_fell_through
     return ft, fr, iv_full, tiers
 
+EMA3 = ["f_fund_ema", "f_fund_ema_v1", "f_fund_ema_v2"]
 def build_funding(mode):
     out = {c: np.array(INC[c], copy=True) for c in FUND}
     for c in FUND: out[c][:nC] = CAN[c]
-    state = {}; agg = {}; ncont = [0]; has_source = np.zeros(len(syms), bool)   # F05: which symbols were actually rebuilt from a stream
+    nT = len(tail_ts)
+    state = {}; agg = {}; ncont = [0]; has_source = np.zeros(len(syms), bool)   # F05: which symbols have a stream at all
+    rebuilt = {c: np.zeros((nT, len(syms)), bool) for c in FUND}                # R02: which TAIL CELLS were actually written by the rebuild (never assumed)
+    no_seed = []
     for j, s in enumerate(syms):
         ft, fr, iv_full, tiers = stream(s, mode)
         for k, v in tiers.items(): agg[k] = agg.get(k, 0) + v
@@ -226,7 +232,11 @@ def build_funding(mode):
         # v2 (FP2-1): f_fund_now / f_fund_iv are REBUILT from the stream with the incumbent rule — v1 kept INC's copy here and
         # then compared INC with itself for these two columns
         fn_t, fi_t = c2_now_iv_from_stream(ft, fr, iv_full, tail_ts)
-        out["f_fund_now"][nC:, j] = fn_t; out["f_fund_iv"][nC:, j] = fi_t
+        out["f_fund_now"][nC:, j] = fn_t; out["f_fund_iv"][nC:, j] = fi_t; rebuilt["f_fund_now"][:, j] = True; rebuilt["f_fund_iv"][:, j] = True
+        # R02: the verbatim block `continue`s when the canonical v1 seed is missing (n_noseed) and writes f_fund_ema_v2 only once e2 exists;
+        # the cells it does NOT write keep the incumbent copy. Instrument with a sentinel so the written cells are OBSERVED, not inferred.
+        keep = {c: out[c][nC:, j].copy() for c in EMA3}
+        for c in EMA3: out[c][nC:, j] = nan_sentinel(out[c].dtype)
         ns = {"np": np, "CAN": CAN, "out": out, "j": j, "s": s, "ft": ft, "fr": fr, "iv_full": iv_full,
               "rate_nf": rate_nf, "cut": cut, "tail_ts": tail_ts, "nC": nC, "HL": HL, "state": state,
               "n_cont": 0, "n_noseed": 0, "n_tail_events": 0,
@@ -235,17 +245,33 @@ def build_funding(mode):
         assert not missing, ("the verbatim block reads names this device does not supply", missing)
         exec(EMA_CODE, ns)
         ncont[0] += ns.get("n_cont", 0)
+        for c in EMA3:
+            col = out[c][nC:, j]; w = written_cells(col); rebuilt[c][:, j] = w
+            col[~w] = keep[c][~w]                         # unwritten cells: restore the incumbent copy (what the incumbent rule also left there)
+        if ns.get("n_noseed", 0): no_seed.append(s); assert not any(rebuilt[c][:, j].any() for c in EMA3), ("no-seed name must have written no EMA cell", s)
+        else: assert rebuilt["f_fund_ema"][:, j].all() and rebuilt["f_fund_ema_v1"][:, j].all(), ("continued name must write v0/v1 on every tail row", s)
     agg["_symbols_continued"] = ncont[0]; agg["_symbols_with_source"] = int(has_source.sum()); agg["_symbols_no_source"] = int((~has_source).sum())
     agg["_no_source_names"] = [syms[j] for j in np.nonzero(~has_source)[0]][:200]
-    return out, agg, has_source
+    agg["_symbols_no_seed"] = len(no_seed); agg["_no_seed_names"] = no_seed[:200]
+    agg["_symbols_v2_partial"] = int((has_source & rebuilt["f_fund_ema_v2"].any(0) & ~rebuilt["f_fund_ema_v2"].all(0)).sum())
+    agg["_cells_rebuilt"] = {c: int(rebuilt[c].sum()) for c in FUND}; agg["_cells_tail_total"] = int(nT * len(syms))
+    return FundBuild(out=out, agg=agg, has_source=has_source, rebuilt=rebuilt)
 
-FL, agg_l, HAS_SRC = build_funding("legacy"); log("legacy funding rebuilt", json.dumps({k: v for k, v in agg_l.items() if k != "_no_source_names"}))
-# F05: compare ONLY the symbols rebuilt from a stream; names without a source are carried from the incumbent and reported as COPIED_NO_SOURCE
-c2, c2_ns = c2_compare_columns_sourced({c: FL[c][nC:] for c in FUND}, {c: INC[c][nC:] for c in FUND}, FUND, rebuilt_from_stream=set(FUND), has_source=HAS_SRC)
-c2_ns["no_source_names"] = agg_l["_no_source_names"]; rec["C2_fnd_legacy_reproduction"] = c2; rec["C2_no_source"] = c2_ns
+FBL = build_funding("legacy"); FL = FBL.out; agg_l = FBL.agg; HAS_SRC = FBL.has_source; REB_L = FBL.rebuilt
+log("legacy funding rebuilt", json.dumps({k: v for k, v in agg_l.items() if k not in ("_no_source_names", "_no_seed_names")}))
+# F05/R02: compare ONLY the cells the rebuild actually wrote — names without a stream are COPIED_NO_SOURCE, names with a stream but no canonical
+# EMA seed are COPIED_NO_SEED on the three EMA columns (and a missing v2 seed leaves the rows before the first tail event as copies)
+c2, c2_ns = c2_compare_columns_sourced({c: FL[c][nC:] for c in FUND}, {c: INC[c][nC:] for c in FUND}, FUND, rebuilt_from_stream=set(FUND), has_source=REB_L, source_symbols=HAS_SRC)
+c2_ns["no_source_names"] = agg_l["_no_source_names"]; c2_ns["no_seed_names"] = {c: [syms[i] for i in v][:200] for c, v in c2_ns["copied_no_seed_idx"].items()}
+c2_ns["partial_names"] = {c: [syms[i] for i in v][:200] for c, v in c2_ns["partial_idx"].items()}
+rec["C2_fnd_legacy_reproduction"] = c2; rec["C2_no_source"] = c2_ns
 check("C2.legacy_rule_reproduces_the_incumbent_tail_bitwise_ALL_FIVE_COLUMNS_RECOMPUTED (sourced symbols only; %d/%d have a stream, %d COPIED_NO_SOURCE)" % (c2_ns["n_with_source"], c2_ns["n_symbols"], c2_ns["n_no_source"]),
       c2_ns["n_with_source"] > 0 and all(v["verdict"] == "REPRODUCED" for v in c2.values()), {k: v["verdict"] for k, v in c2.items()})
-check("C2b.no_source_symbols_are_named_and_never_counted_as_reproduced", all(v["symbols_compared"] == c2_ns["n_with_source"] for v in c2.values()) and (c2_ns["n_no_source"] == 0 or c2_ns["verdict_no_source"] == "COPIED_NO_SOURCE"), {k: c2_ns[k] for k in ("n_with_source", "n_no_source", "verdict_no_source")})
+check("C2b.no_source_symbols_are_named_and_never_counted_as_reproduced", all(v["symbols_compared"] <= c2_ns["n_with_source"] for v in c2.values()) and (c2_ns["n_no_source"] == 0 or c2_ns["verdict_no_source"] == "COPIED_NO_SOURCE"), {k: c2_ns[k] for k in ("n_with_source", "n_no_source", "verdict_no_source")})
+check("C2c.EMA_cells_compared_are_exactly_the_cells_the_verbatim_block_wrote (no-seed names and pre-first-event v2 rows are COPIED, named, and flagged partial)",
+      all(c2[c]["cells_compared"] == int(REB_L[c].sum()) for c in FUND) and all(c2[c]["symbols_copied_no_seed"] == len(c2_ns["copied_no_seed_idx"][c]) for c in EMA3)
+      and (c2_ns["independent_rebuild_partial"] == bool(c2_ns["n_no_source"] or any(c2_ns["copied_no_seed_idx"][c] or c2_ns["partial_idx"][c] for c in FUND))),
+      {"no_seed": agg_l["_symbols_no_seed"], "v2_partial": agg_l["_symbols_v2_partial"], "cells_rebuilt": agg_l["_cells_rebuilt"], "partial": c2_ns["independent_rebuild_partial"]})
 log("C2", {k: v["bitwise"] for k, v in c2.items()})
 
 if FAILS:
@@ -254,7 +280,7 @@ if FAILS:
     json.dump(rec, open(OUT, "w"), indent=1, default=str)
     print("FX_FND_HOL_STOPPED_CONTROL", json.dumps(FAILS), flush=True); sys.exit(1)
 
-FP, agg_p = build_funding("p9"); log("p9 funding rebuilt", json.dumps(agg_p))
+FBP = build_funding("p9"); FP = FBP.out; agg_p = FBP.agg; log("p9 funding rebuilt", json.dumps({k: v for k, v in agg_p.items() if k not in ("_no_source_names", "_no_seed_names")}))
 rec["p9_tier_census"] = {"legacy": agg_l, "p9": agg_p}
 d = {}
 for c in FUND:
