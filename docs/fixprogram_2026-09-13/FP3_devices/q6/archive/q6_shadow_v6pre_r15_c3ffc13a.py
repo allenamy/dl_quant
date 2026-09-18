@@ -254,15 +254,9 @@ def attribute_fills(fills_by_symbol, REQ, notes):
     return UN
 
 
-def contradiction_check(REQ, unmeas, notes, symbols=None, note_key="request_contradiction", dedupe=False):
-    """PREREG §1d.4: a request whose HARD facts contradict each other makes the symbol UNMEASURABLE from its birth on; no fact is dropped.
-
-    ★ R15-Q1 (independent review round 15): after a checkpoint resume the merge can raise a carried request's floor (a fresh floor-ladder step, or
-    fresh fills attributed onto it) or supply an exact total, any of which pushes floor > cap or the exact total outside [floor, cap]. `fact_conflict`
-    only compares (cap, side) and two exact totals, so a contradiction CREATED BY THE MERGE read CLEAN. The resume path re-runs this over the merged
-    requests with `symbols` scoped to the resumed set, `note_key` counting the merge-created contradictions separately, and `dedupe` so a contradiction
-    already recorded (the pre-merge fresh scan, or a carried `unmeasurable_from`) is not appended or counted a second time."""
-    for s in (list(REQ) if symbols is None else [x for x in symbols if x in REQ]):
+def contradiction_check(REQ, unmeas, notes):
+    """PREREG §1d.4: a request whose HARD facts contradict each other makes the symbol UNMEASURABLE from its birth on; no fact is dropped"""
+    for s in REQ:
         for r in REQ[s].values():
             fsum = sum(l for (ft, l, ot, tid) in r["fills"]); floor = max(r["floor"], fsum); why = None
             cap = r["cap"]
@@ -270,9 +264,7 @@ def contradiction_check(REQ, unmeas, notes, symbols=None, note_key="request_cont
             elif cap is not None and floor > cap: why = f"evidence floor {floor} exceeds capacity {cap} lots"
             elif r["exact"] is not None and ((cap is not None and r["exact"] > cap) or r["exact"] < floor): why = f"credible total {r['exact']} outside [floor {floor}, cap {cap}] lots"
             if why:
-                entry = (r["birth"], f"{r['rid']}: {why}")
-                if dedupe and entry in (unmeas.get(s) or []): continue
-                unmeas[s].append(entry); notes[note_key] += 1
+                unmeas[s].append((r["birth"], f"{r['rid']}: {why}")); notes["request_contradiction"] += 1
 
 
 # ───────────────────────────── §1d.5 joint checkpoint / §1d.3 late-evidence rebuild ─────────────────────────────
@@ -291,17 +283,6 @@ def canon(obj):
         if isinstance(o, (list, tuple)): return [norm(x) for x in o]
         return o
     return json.dumps(norm(obj), sort_keys=True, separators=(",", ":"), default=str).encode()
-
-
-# ── §1d.5 material-state sha: the per-symbol fields the restart-parity claim is about (R14-Q5). The writer AND the load-time guard (R15-Q3) hash the
-#    state through this ONE function, so the loader reproduces exactly what the writer wrote — two divergent copies of the field list would be a hole. ──
-_SYM_FIELDS = ("hard", "observations", "admitted", "excluded", "unmeasurable_from_run", "records", "marks", "q0_lots", "step", "pending_requests")
-
-
-def state_sha256_of(symbols):
-    """sha256 of the canonical bytes of the per-symbol MATERIAL STATE (the _SYM_FIELDS of every symbol). `symbols` is the checkpoint's `symbols` map —
-    equally the in-memory `cps` the writer builds or the JSON-loaded dict the loader reads (canon() normalises tuples/lists/sets so the two agree)."""
-    return hashlib.sha256(canon({k: {kk: v.get(kk) for kk in _SYM_FIELDS} for k, v in symbols.items()})).hexdigest()
 
 
 def req_to_cp(r):
@@ -704,30 +685,12 @@ def main():
                           if cp.get("step") is not None and abs(float(cp["step"]) - float(step_of(s))) > 1e-12}
         assert not _step_mismatch, ("checkpoint lot-step mismatch — the carried lot values are in different units than this run's filters; "
                                     "refusing rather than mixing them (R14-Q3): " + json.dumps(_step_mismatch))
-        # ★ R15-Q3 (independent review round 15): the checkpoint WRITES state_sha256 / identity_sha256 but v6 recomputed neither on load — the hash was a
-        #   label, not a guard, so a checkpoint whose per-symbol state was edited resumed silently. Recompute the MATERIAL-STATE sha from the loaded
-        #   per-symbol state with the SAME function the writer used and REFUSE on any mismatch: the state sha is the object the §1d.5 restart-parity claim
-        #   is about, so it is reproducible on load bit for bit. identity_sha256 pins the PRODUCING run (its ledger-input shas and window) and by
-        #   construction cannot be reproduced from a resume that read a different window — so it is checked ONLY for INTERNAL consistency against its own
-        #   recorded `identity` block (which catches tampering with the provenance record) and explicitly NOT against this run's provenance.
-        _cp_state_sha = cpj.get("state_sha256")
-        assert _cp_state_sha is not None, ("checkpoint carries no state_sha256 — a " + CHECKPOINT_SCHEMA + " checkpoint always writes one; refusing to "
-                                           "resume state whose integrity cannot be verified (R15-Q3)")
-        _recomputed_state_sha = state_sha256_of(cpj["symbols"])
-        assert _recomputed_state_sha == _cp_state_sha, ("checkpoint state_sha256 mismatch — the per-symbol material state does not hash to the value stored "
-                                                        "with it, so the carried state was altered after it was written; refusing rather than resuming it "
-                                                        "(R15-Q3). recomputed " + _recomputed_state_sha + " != stored " + _cp_state_sha)
-        if cpj.get("identity") is not None and cpj.get("identity_sha256") is not None:
-            _recomputed_identity_sha = hashlib.sha256(canon(cpj["identity"])).hexdigest()
-            assert _recomputed_identity_sha == cpj["identity_sha256"], ("checkpoint identity_sha256 does not match its own recorded identity block — the "
-                                                                        "provenance record was altered (R15-Q3). NB: this is an internal-consistency check; "
-                                                                        "identity pins the producing run's inputs/window and is NOT reproducible from this resume")
-        _late_tau = {}; _t_last_by = {}; _fresh_evt = collections.defaultdict(list)
+        _late_tau = {}
         for s, cp in cpj["symbols"].items():
             cp_state[s] = cp
             carried = {r["rid"]: req_from_cp(r) for r in cp["hard"]["requests"]}
             fresh = REQ.get(s, {})
-            _t_last = (cp["observations"][-1]["t"] if cp.get("observations") else None); _t_last_by[s] = _t_last
+            _t_last = (cp["observations"][-1]["t"] if cp.get("observations") else None)
             for rid, r in fresh.items():                                    # a rid in both halves ⇒ ONE request (identity, §1c)
                 if rid in carried:
                     _why = fact_conflict(carried[rid], r)                   # ★ R14-Q1: the SAME predicate the fresh build uses
@@ -736,12 +699,11 @@ def main():
                         unmeas[s] = list(unmeas.get(s) or []) + [(r["birth"], f"{rid}: checkpoint and window carry contradictory facts ({_why})")]
                         notes["resume_identity_contradictory"] += 1
                         continue
-                    # ★ R14-Q2 / R15-Q2: fresh facts on a carried rid can be LATE; the comparison against the carried prefix is DEFERRED to one pass
-                    #   after all merging and attribution (below) so it equally covers brand-new rids and fills attributed post-merge.
-                    _fresh_evt[s] += hard_fact_times(r)
+                    _ft = hard_fact_times(r)                                # ★ R14-Q2: a hard fact whose event time precedes the carried prefix is LATE
                     _merge_facts(carried[rid], r, notes)
-                else:
-                    carried[rid] = r; _fresh_evt[s] += hard_fact_times(r)   # ★ R15-Q2 (a): a brand-new rid's facts are fresh too — v6 never checked them
+                    if _ft and _t_last is not None and min(_ft) <= _t_last + 1e-9:
+                        _late_tau[s] = min(_late_tau.get(s, min(_ft)), min(_ft)); notes["resume_late_hard_fact"] += 1
+                else: carried[rid] = r
             REQ[s] = carried
             seen = {str(f[3]) for r in carried.values() for f in r["fills"]} | {str(f[3]) for f in cp["hard"]["unattributed_fills"]}
             fills_by_symbol[s] = [f for f in fills_by_symbol.get(s, []) if str(f["trade_id"]) not in seen]   # a fill already carried is not counted twice
@@ -752,25 +714,11 @@ def main():
             if cp.get("marks"): markrows[s] = [tuple(m) for m in cp["marks"]] + markrows.get(s, []); markrows[s].sort()
         UN_new = attribute_fills({s: fills_by_symbol.get(s, []) for s in cp_state}, REQ, notes)              # attribute the NEW fills against the merged set
         for s, v in UN_new.items(): UN[s] = list(UN.get(s, [])) + list(v)
-        for s in cp_state:                                                  # ★ R15-Q2: the late-evidence τ over EVERY fresh hard fact of the symbol, computed
-            # AFTER all merging and attribution — carried-rid merges (already collected), brand-new rids (a), and fills attributed post-merge (b). v6 only
-            # saw carried-rid merges (its check sat inside `if rid in carried`, before attribution), so a new rid and a late fill both escaped and the
-            # carried prefix was never rebuilt. A fresh fill counts by its own event time whether attribution attached it to a request or left it unattributed.
-            _evt = list(_fresh_evt.get(s, [])) + [f["ts"] for f in fills_by_symbol.get(s, [])]
-            _tl = _t_last_by.get(s)
-            _late = [t for t in _evt if t is not None and _tl is not None and t <= _tl + 1e-9]
-            if _late: _late_tau[s] = min(_late); notes["resume_late_hard_fact"] += 1
         for s, cp in cp_state.items():                                      # observations: the carried prefix keeps its q0 (same cross-section, §1d)
             newo = [o for o in OBS.get(s, []) if o["t"] > (cp["observations"][-1]["t"] if cp["observations"] else -1) + 1e-9]
             for o in newo: o["rhs"] = o["q_lots"] - cp["q0_lots"]
             OBS[s] = [dict(o) for o in cp["observations"]] + newo
     if cp_state: symbols = sorted(set(symbols) | set(cp_state))                      # a symbol carried by the checkpoint is replayed even with no new activity
-    if CP_IN and cp_state:
-        # ★ R15-Q1: the resume merge (fresh floor-ladder steps and fills attributed onto carried requests) can push a request's floor above its cap or
-        #   its exact total outside [floor, cap]; `contradiction_check` ran only over the fresh build (line above the resume block), and `fact_conflict`
-        #   does not see that class, so a merge-created contradiction read CLEAN. Re-run the §1d.4 hard-fact check over the merged requests, scoped to
-        #   the resumed symbols and de-duplicated against what is already recorded, BEFORE any model is built.
-        contradiction_check(REQ, unmeas, notes, symbols=set(cp_state), note_key="request_contradiction_post_merge", dedupe=True)
     jobs = []
     for s in symbols:
         cp = cp_state.get(s)
@@ -897,7 +845,7 @@ def main():
         #   changing `records` (the original receipts) or `marks` (the price evidence the USD verdict rests on) left it unchanged — it proved the
         #   SELECTED object equal, not the state. It now covers every material per-symbol field AND the identity of what produced them: the device
         #   sha, the ledger input shas, the epoch/start declaration and the policy revision. The receipt says exactly which fields are covered.
-        #   _SYM_FIELDS and the state sha are the module-level state_sha256_of(), the SAME function the load-time guard reruns to verify (R15-Q3).
+        _SYM_FIELDS = ("hard", "observations", "admitted", "excluded", "unmeasurable_from_run", "records", "marks", "q0_lots", "step", "pending_requests")
         _identity = {"schema": CHECKPOINT_SCHEMA, "policy": POLICY, "device": DEVICE, "version": VERSION,
                      "device_sha256": sha(os.path.abspath(__file__)), "ledger_files_sha256": files, "window": [days[0], days[-1]] if days else None,
                      "epoch": EPOCH_DECLARATION, "lot_step_source": step_source}
@@ -905,7 +853,8 @@ def main():
         #   MATERIAL STATE (this is the object the §1d.5 restart-parity claim is about — a resumed run must reproduce it bit for bit), while
         #   `identity_sha256` pins WHAT PRODUCED IT (device, ledger inputs, window, epoch, policy) and by construction differs between a single
         #   pass over D1..D2 and a resume that only read D2. Reporting one number for both would either break parity or hide provenance.
-        cpj["state_sha256"] = state_sha256_of(cps)                          # R15-Q3: ONE hashing function, shared with the load-time verification guard
+        _state = {k: {kk: v.get(kk) for kk in _SYM_FIELDS} for k, v in cps.items()}
+        cpj["state_sha256"] = hashlib.sha256(canon(_state)).hexdigest()
         cpj["identity_sha256"] = hashlib.sha256(canon(_identity)).hexdigest()
         cpj["identity"] = _identity
         cpj["state_sha256_covers"] = {"per_symbol_fields": list(_SYM_FIELDS), "identity_fields": sorted(_identity),

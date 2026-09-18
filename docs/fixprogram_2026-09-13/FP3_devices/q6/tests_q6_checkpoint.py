@@ -132,6 +132,10 @@ run(r_j, D2, D2, "j2", cp_in=cp_j1, cp_out=cp_j2)
 check("[D1] resumed read 0 is REFUSED: monotonicity from the joint Σ = 1 forbids returning to 0 (distance 1, excluded)",
       dists(cp_j2)[-1] == 1 and excl_k(cp_j2) == [2], (dists(cp_j2), excl_k(cp_j2)))
 _marg = os.path.join(r_j, "cp1_marginal.json"); _m = json.load(open(cp_j1)); _m["symbols"]["AAA"]["admitted"] = []
+# R15-Q3: the load-time state-sha guard now refuses a checkpoint whose per-symbol state was edited without re-hashing. This control exercises the
+# marginal-vs-joint RESUME LOGIC, not that guard, so it produces a VALID checkpoint that genuinely carries no admitted equations — recompute the state
+# sha over the edited state with the writer's own function. (Tampering a hashed field WITHOUT re-hashing is refused; that is R15-Q3 in tests_q6_merge_r15.py.)
+_m["state_sha256"] = Q6.state_sha256_of(_m["symbols"])
 json.dump(_m, open(_marg, "w"))
 cp_j2m = os.path.join(r_j, "cp2m.json")
 run(r_j, D2, D2, "j2m", cp_in=_marg, cp_out=cp_j2m)
