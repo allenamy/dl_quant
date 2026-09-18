@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """FP3-R overlays (PREREG_FP3_R_fast_move_nonresponse_2026-09-18 §2): book-layer rules applied INSIDE the frozen replay engine to the blended book sm
 at anchor i, using only information available at that anchor (rows < i of the 4h-ahead return matrix y4, current funding, current members).
+R7C-R1 (2026-09-18): make(spec) must be called ONCE PER RUN (arm) — the quantile histories live in the closure; the engine instantiates per run.
 The legs' own EMA states are untouched; the overlaid book is what is traded and carried (HB) — a risk layer on top of the strategy.
-Spec string: "none" | "r1a:q=0.95,s=0.5" | "r1b:q=0.95,s=0.5" | "r2:c=1.0" | "r3:th=0.20" | "r3f" | "r4:win=360" | "r5:age=30,s=0.5" (exploratory) """
+Spec string: "none" | "r1a:q=0.95,s=0.5" | "r1b:q=0.95,s=0.5" | "r2:c=1.0" | "r3:th=0.20" | "r3f" | "r4:win=360" | "r5:age=30,s=0.5" (exploratory) | "r6:k=1,q=0.95,s=0.5" / "r6l:…" (short-basket rebound, PREREG R6) | "r6c:c=0.975" (control) """
 import numpy as np
 def _params(spec):
     name, _, ps = spec.partition(":"); d = {}
@@ -82,6 +83,7 @@ def make(spec):
             if bl > -bs: out[L] *= (-bs / bl)                                          # shrink the leg that carries more breadth beta
             else: out[S] *= (bl / -bs)
             return out
+        f.neutral = "beta"        # R7C-R2: R4's contract is Σwβ = 0 (notional net allowed); the engine's tail step must NOT re-impose notional neutrality
         return f
     if name == "r5":                                                                   # EXPLORATORY (added 2026-09-18 02:4xZ after the pre-registered grid was read; not gated by PREREG §3)
         age_d, s = P.get("age", 30.0), P.get("s", 0.5); st = {"first": None}
@@ -91,5 +93,23 @@ def make(spec):
                 fin = np.isfinite(y4); st["first"] = np.where(fin.any(0), fin.argmax(0), 10**9)          # first anchor with a finite 4h return = listing (causal: fixed once observed)
             age = i - st["first"]; young = (age >= 0) & (age < age_d * 6)
             return np.where(young, sm * s, sm)                                                            # scale (or zero) the weight of names younger than age_d days
+        return f
+    if name in ("r6", "r6l"):                                                          # PREREG_FP3_R6 (2026-09-18): short-basket collective rebound ⇒ cut the FINAL book budget
+        k, q, s = int(P.get("k", 1)), P.get("q", 0.95), P.get("s", 0.5); H = _Hist()
+        def f(sm, ctx):
+            i, y4, HR = ctx["i"], ctx["y4"], ctx["HR"]                                    # HR = the accounted book entering this anchor (previous anchor's final book)
+            if i < k or HR is None: return sm
+            seg = y4[i - k:i]; cum = np.exp(np.nansum(np.log1p(np.where(np.isfinite(seg), seg, 0.0)), axis=0)) - 1.0   # k-anchor cumulative 4h return per name, rows < i only
+            hr = np.nan_to_num(HR); sh = hr < 0; lo = hr > 0
+            if sh.sum() < 5 or lo.sum() < 5: b = np.nan
+            elif name == "r6": b = float(cum[sh].mean() - cum[lo].mean())                # SB_rel: short basket rebound relative to the long basket
+            else: b = float(-(hr[sh] * cum[sh]).sum() / max(np.abs(hr).sum(), 1e-9))     # SB_loss: short-edge loss per unit gross (positive = loss)
+            H.B.append(b); hist = np.array([x for x in H.B[:-1] if np.isfinite(x)])
+            if len(hist) < 200 or not np.isfinite(b) or b < np.quantile(hist, q): return sm
+            return sm * s                                                                # budget cut on the whole final book (neutrality kept; tail step scales down only)
+        return f
+    if name == "r6c":                                                                  # control arm: UNCONDITIONAL constant budget (same average leverage as the reference r6 arm)
+        c = P.get("c", 1.0)
+        def f(sm, ctx): return sm * c
         return f
     raise ValueError(spec)

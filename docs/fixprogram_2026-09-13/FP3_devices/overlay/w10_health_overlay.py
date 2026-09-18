@@ -11,16 +11,19 @@ nsel / 成员数 / 当锚触发数 / 三腿贡献(LEGC 同式) / w3 腿权; 权�
 复现收据: d30_n2_c42 的 net 必须与 pod_backup/nets_histv2_-30_2_42.npy 逐元素相等(maxabs<1e-6), S0 同 nets_histv2_0_0_0.npy。
 输出: probe_artifacts/w10_ablation_series.npz + w10_ablation_summary.json。只读数据, 不碰实盘仓。
 """
-import os as _os; OVERLAY_FN = None; OVERLAY_SPEC = _os.environ.get("OVERLAY", "none")
+import os as _os; OVERLAY_FN = None; OVERLAY_SPEC = _os.environ.get("OVERLAY", "none"); _OVL_MAKE = None
 def _neutral_scale_down(v):
-    """joint feasibility after an overlay: restore Σw = 0 by scaling DOWN the heavier side only (never scales up ⇒ no cap can be re-breached; gross may fall)"""
+    """joint feasibility after an overlay under the NOTIONAL-neutral contract: restore Σw = 0 by scaling DOWN the heavier side only (never scales up ⇒
+    no cap can be re-breached; gross may fall). R7C-R3: if exactly one side is empty the other side is zeroed too (an empty book at that anchor) —
+    a one-sided book is not neutral and scaling up is not allowed."""
     import numpy as _np
     fin = _np.isfinite(v); L = float(v[fin & (v > 0)].sum()); S = float(-v[fin & (v < 0)].sum())
+    if (L <= 1e-12) != (S <= 1e-12): return _np.where(fin, 0.0, v)
     if L > 1e-12 and S > 1e-12 and abs(L - S) > 1e-12:
         return _np.where(fin & (v > 0), v * (S / L), v) if L > S else _np.where(fin & (v < 0), v * (L / S), v)
     return v
 if OVERLAY_SPEC != "none":
-    import importlib.util as _iu; _sp = _iu.spec_from_file_location("w10_overlays", _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "w10_overlays.py")); _mo = _iu.module_from_spec(_sp); _sp.loader.exec_module(_mo); OVERLAY_FN = _mo.make(OVERLAY_SPEC)
+    import importlib.util as _iu; _sp = _iu.spec_from_file_location("w10_overlays", _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "w10_overlays.py")); _mo = _iu.module_from_spec(_sp); _sp.loader.exec_module(_mo); _OVL_MAKE = _mo.make   # R7C-R1: instantiated per run(), not once per process
 import json, time, sys, os
 LOOK = int(os.environ.get("LOOK", "900"))          # 腿权重回看窗(锚)
 WRULE = os.environ.get("WRULE", "msharpe")            # msharpe | eq | iv
@@ -199,6 +202,7 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
     HF = np.zeros(NW); HB = np.zeros(NW)      # F10 书自己的 EMA 态 / 上一锚的混合书
     cnt = np.zeros(NW, int); su = np.full(NW, -1)
     rec = []; WS = []; HRS = []
+    global OVERLAY_FN; OVERLAY_FN = _OVL_MAKE(OVERLAY_SPEC) if _OVL_MAKE is not None else None   # fresh overlay state for THIS arm: no history inherited from a previous run()
     for i in range(nA):
         j = pw_row.get(int(E_ts[i]))
         if j is None: continue
@@ -299,8 +303,8 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
             if _g1 > 1e-9:
                 smr *= _g0 / _g1
         if OVERLAY_FN is not None:                       # FP3-R hook, relocated (R7B-R1, 2026-09-18): the rule acts on the FINAL accounted book smr (after the
-            smr = OVERLAY_FN(smr, dict(i=i, j=j, m=m, y4=y4, FN=FN, IV=IV, HB=HB, FZ=FZ, sel=sel, capw=capw, NW=NW))   # executor-style demean + gross restore), and the
-            smr = _neutral_scale_down(smr)               # joint step only SCALES DOWN the heavier side (neutral restored, caps never re-breached, gross may drop)
+            smr = OVERLAY_FN(smr, dict(i=i, j=j, m=m, y4=y4, FN=FN, IV=IV, HB=HB, HR=HR, FZ=FZ, sel=sel, capw=capw, NW=NW))   # executor-style demean + gross restore); HR = previous accounted book
+            if getattr(OVERLAY_FN, "neutral", "notional") == "notional": smr = _neutral_scale_down(smr)   # per-rule contract: notional-neutral rules get the scale-down step; beta-neutral (R4) keeps its own Σwβ=0
         trr = smr - HR
         tr = tier_of(qv4h); tabs = np.abs(trade[m])
         cbps = sum(tabs[tr == tt].sum() * (fr * mk + (1 - fr) * tk) for tt, (mk, tk, fr) in enumerate(COST_B))

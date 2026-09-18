@@ -1,0 +1,13 @@
+PASS A0 RED baseline: a shared overlay instance run twice differs on the second pass (history inherited = the R7C-R1 defect) 
+PASS A1 fresh make() per run: second run == first run (arm order cannot matter) 
+PASS B  re-entrance: two fresh instances identical 
+PASS C  causality r1a:q=0.90,s=0.5: decisions at anchors ≤ 300 unchanged by perturbing rows > 300 
+PASS C  causality r2:c=0.5: decisions at anchors ≤ 300 unchanged by perturbing rows > 300 
+PASS C  causality r3:th=0.20: decisions at anchors ≤ 300 unchanged by perturbing rows > 300 
+PASS C  causality r4:win=60: decisions at anchors ≤ 300 unchanged by perturbing rows > 300 
+PASS D1 R4 output is beta-neutral 
+PASS D2 the tail step is SKIPPED for a beta-contract rule (attribute neutral='beta'), so Σwβ=0 survives; the old unconditional tail step would give β exposure −0.0667 
+PASS E  one-sided book ⇒ empty book under the notional contract (not |net|/gross = 1) 
+PASS F  tail step scales the heavier side DOWN only: caps hold, Σw = 0 
+RESULT 11/11 pass
+G0 v3 (per-run overlay instantiation, R4 beta contract, one-sided ⇒ empty): rec equal True | W equal True — 2026-09-18T05:18:30Z
