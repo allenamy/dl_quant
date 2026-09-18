@@ -1,0 +1,120 @@
+{
+ "seal": "legal-member model artefacts, SEALED - trained and materialised, NOT judged. No book-level evaluation was run.",
+ "why": "independent review round 14 section 5: keep the model artefacts sealed until the gates and the cash/replay closure are done.",
+ "utc": "2026-09-18T14:04:21Z",
+ "root": "/workspace/fp3_live_2026-09",
+ "member_rule": "MEMBER_LIVENESS = tradable W24H AND liveness; mask sha 9b59678b4529246c...",
+ "training": {
+  "mwf": "2 seeds x 4 disjoint month shards, 8/8 rc=0, 5 folds each, MWF_TRAIN_DONE, both merges MERGE_DONE",
+  "refit": "s42 best_va -6.861 alpha 0.092 / s2027 best_va -6.907 alpha 0.093, rule fix7, label cutoff 2025-12-16T20:00:00Z",
+  "king": "three-fold Spearman deltas +0.0027 / -0.0014 / +0.0002, inside the existing absolute tolerances .004/.006 = score-consistency guard passed; NOT a formal non-inferiority claim"
+ },
+ "artefacts": {
+  "cache": {
+   "path": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+   "sha256": "1d7f459dee434ec49e7714a2a612807f2e38e97f35c6c39471a8a4aaa7452488",
+   "bytes": 2087655898
+  },
+  "hole_cells": {
+   "path": "/workspace/review_scratch/holefix2_cells.npz",
+   "sha256": "6156f97a0709f073147e392d5b0cb542f6b6d463cc3be2500f8791a0d1a8dfda",
+   "bytes": 22815370
+  },
+  "mask_liveness": {
+   "path": "/workspace/fp2_2026-09/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+   "sha256": "9b59678b4529246cdf46fcc029f1cc36ea75e908aa1dcc63a4af9f8c67a2dfa7",
+   "bytes": 115943
+  },
+  "raw_patch": {
+   "path": "/workspace/fp2_2026-09/raw_patch.npz",
+   "sha256": "adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b",
+   "bytes": 11961
+  },
+  "dlw_raw_targets": {
+   "path": "/workspace/fp3_live_2026-09/dlw_v4raw/data/dlw_targets.npz",
+   "sha256": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+   "bytes": 192015259
+  },
+  "dlw_clip_targets": {
+   "path": "/workspace/fp3_live_2026-09/dlw_hf3/data/dlw_targets.npz",
+   "sha256": "9ecbfc70410c4f849d86a490b0f2c035ed75afec509d7452cba9d82ec50f09bf",
+   "bytes": 192015259
+  },
+  "fea82": {
+   "path": "/workspace/fp3_live_2026-09/dlw_v4raw/data/dlw_fea82.npz",
+   "sha256": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+   "bytes": 467531910
+  },
+  "fea89": {
+   "path": "/workspace/fp3_live_2026-09/f8_v4/data/f8_fea89.npz",
+   "sha256": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+   "bytes": 995557382
+  },
+  "king_fea": {
+   "path": "/workspace/fp3_live_2026-09/data/wide_fea_v4.npy",
+   "sha256": "fe59c9ccd4a5cfd7c4c4644ddd05780d5cdfe5b9a8967140b294bd977be9147c",
+   "bytes": 1388382800
+  },
+  "king_meta": {
+   "path": "/workspace/fp3_live_2026-09/data/wide_fea_v4_meta.npz",
+   "sha256": "61b7cdc72788d5dc6e5e4418e3ea8de168e22af4a38780f57a7043fa307550cc",
+   "bytes": 25518047
+  },
+  "king_slow_pred": {
+   "path": "/workspace/fp3_live_2026-09/shadow_bundle_L/slow_pred_pinned.npy",
+   "sha256": "d0dd1a4cb244b2feda4574288ea9fba3951df7cc35f565aeda0b60fb0b082a35",
+   "bytes": 33863120
+  },
+  "king_booster": {
+   "path": "/workspace/fp3_live_2026-09/shadow_bundle_L/slow2026.txt",
+   "sha256": "404d14e3433d07ca4f758bf68fa67f99ea74a8b4711d137ccd89236325e30265",
+   "bytes": 2390627
+  },
+  "legs": {
+   "path": "/workspace/fp3_live_2026-09/f8_v4/data/f10v2_legs.npz",
+   "sha256": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039",
+   "bytes": 67936424
+  },
+  "f10_live_s42": {
+   "path": "/workspace/fp3_live_2026-09/f8_v4/models/f10_live_s42.pt",
+   "sha256": "0eaaf6ae620db2dd4927d43f976cfa34a1cab0268b69c034aa8d14d8115960a5",
+   "bytes": 447572
+  },
+  "f10_live_s2027": {
+   "path": "/workspace/fp3_live_2026-09/f8_v4/models/f10_live_s2027.pt",
+   "sha256": "e336f06e09f5bff8728e23578453f5b884310e597769d221a0990ade11fe7051",
+   "bytes": 447602
+  },
+  "np_s42": {
+   "path": "/workspace/fp3_live_2026-09/np_export/f10_np_s42.npz",
+   "sha256": "1eea6219400100e0ef8b0d3d3d8252de5fa2ae068c39f19bfe504019ab1c1227",
+   "bytes": 450190
+  },
+  "np_s2027": {
+   "path": "/workspace/fp3_live_2026-09/np_export/f10_np_s2027.npz",
+   "sha256": "063b51ceaab87b40863b2a3899116c36e991a6c0ab3c3ecf0b99a36167f01439",
+   "bytes": 450198
+  }
+ },
+ "devices": {
+  "pod_f10_np_export_v4.py": "81537cae50cc18633dc20466ced222a2e19fb5f214e26f9404deaea5da8464e1",
+  "pod_dlw_targets_raw_v2.py": "9e9dfd94857d4c6dbbecedb752bb8b57bbc1f344ff0ef3d4ba5d01fccc127a42",
+  "pod_legs_v4b.py": "ff6dccad6646058a7cd6f68e2837600e3668ff24407937dc240d6548f25edf34",
+  "pod_export_bundle_v4.py": "42555a37c0cd3a7e128ac8823a8bec3e2f77a1230d205707b046aca20eed5118",
+  "pod_fea_ext_clamp_v2.py": "7b8b843d493b591a6f107bbbe75c4823652383c3ebaee838fab9f3df659f832a",
+  "pod_f10_train_monthly_v4.py": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+  "pod_f10_refit_v4.py": "6c0666f4eef2c664bf77aa436b3427e651c0cd79e58ae416c1edbd88294b3b86",
+  "pod_dlw_features_ext.py": "e86725cc2768bb6265dd8fb2b3580629706166da012298768b1c0788e8f5a624",
+  "pod_f8_build_ext.py": "f606bffa620004f69ace3704ca19d8f3643b764e918f5eea5a4575b40587f07e"
+ },
+ "mwf_preds_sample": {
+  "f8_v4/mwf_v4b/RAW_s2027/preds/f10_V2MAIN_RAW_mE1cX7_s2027.npy": "bda7af244bcf1abecebf7c369213955c48277f21f76f79f1ef0f625f6ff36eb0",
+  "f8_v4/mwf_v4b/RAW_s42/preds/f10_V2MAIN_RAW_mE1cX7_s42.npy": "7dd0947b631573a33d722771d0877e65acc53bf57288f33993e7e1ba9babb1cb"
+ },
+ "not_done": [
+  "out-of-sample whole-book evaluation",
+  "per-year / regime / 2x leverage return and maxDD",
+  "export bundle for this model",
+  "any swap recommendation"
+ ]
+}
