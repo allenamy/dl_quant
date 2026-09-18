@@ -5,7 +5,7 @@ after independent review round 11 (R11-LIVE / CHAIN C3): the measuring device fx
 seven tiny probes is reproduced here against the gate (and the mask builder where it applies), with the green baseline asserted first.
 Synthetic caches only: 289 five-minute rows (one 24 h window + the anchor row), one to three symbols, channel 3 = log_qv.
 Run: python3 tests_member_liveness.py   (exit 0 iff ALL PASS)"""
-import json, os, subprocess, sys, tempfile, hashlib
+import json, os, subprocess, sys, tempfile, time, hashlib
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__)); PY = sys.executable
@@ -108,55 +108,90 @@ d = fixture("dl_dead", syms=("XUSDT", "YUSDT"), edit=lambda a: a.__setitem__((-1
 check("king set clean (0 dead) but DL set has YUSDT dead ⇒ FAIL with the DL set named", rc == 3 and j["sets"]["wide_fea_v4_meta"]["dead_but_member"] == 0 and j["sets"]["dlw_v4raw_targets"]["dead_but_member"] == 1, j and {k: v["dead_but_member"] for k, v in j["sets"].items()})
 d = fixture("bad_index", edit=lambda a: a.__setitem__((-1, 0, 3), 0.0), members=[5]); rc, j, o = gate(d)
 check("member index outside [0, N) ⇒ refusal, never used as an index", rc == 3 and any("member index" in x for x in j["refusals"]), j and j["refusals"])
-d = fixture("export_end", syms=("XUSDT", "YUSDT"), edit=lambda a: a.__setitem__((-1, 0, 3), 0.0)); json.dump({"symbols_live": ["XUSDT", "YUSDT"]}, open(f"{d}/config.json", "w"))
+_PIN = BASE + 288 * 300                      # the 289-row fixtures' last row, on the 4h grid; the export end now judges a DECLARED moment
+d = fixture("export_end", syms=("XUSDT", "YUSDT"), edit=lambda a: a.__setitem__((-1, 0, 3), 0.0))
+json.dump({"symbols_live": ["XUSDT", "YUSDT"], "export_anchor_ts": _PIN}, open(f"{d}/config.json", "w"))
 rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
 check("export end: bundle config symbols_live with a dead name (YUSDT) ⇒ FAIL with the export set named", rc == 3 and j["sets"].get("bundle_symbols_live", {}).get("dead_at_last_anchor") == ["YUSDT"], j and j["sets"].get("bundle_symbols_live"))
-json.dump({"symbols_live": ["XUSDT"]}, open(f"{d}/config.json", "w")); rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
+json.dump({"symbols_live": ["XUSDT"], "export_anchor_ts": _PIN}, open(f"{d}/config.json", "w")); rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
 check("export end: only live names ⇒ PASS", rc == 0 and j["PASS"] is True, j and j["sets"].get("bundle_symbols_live"))
 
-print("\n[7b] export end: the anchor it judges at (the production cache's LAST 4h row is a hole-filled synthetic day)")
-# The real cache ends with holefix2's synthetic 2026-08-31: 288 rows, every cell hole-filled. Judging the shipped live list at the last 4h row
-# therefore called ALL 450 names dead while the training member sets — which end one anchor earlier — were clean. An all-dead universe is evidence
-# the anchor is wrong. Two 24 h windows here: rows 1..288 carry real bars, rows 289..576 are the synthetic day.
-def _degenerate(a):
-    a[1:289, 0, 3] = 0.0                      # XUSDT has real bars through the first window
-    a[1:289, 1, 3] = np.nan                   # YUSDT never does — it must still be caught at the correct anchor
-_HOLES = [(r, c) for r in range(289, 577) for c in (0, 1)]        # the synthetic day: every cell of both names hole-filled
-d = fixture("export_degenerate", syms=("XUSDT", "YUSDT"), rows=577, edit=_degenerate, holes=_HOLES, E=BASE + 288 * 300, members=[0])
+print("\n[7b] export end judges a DECLARED moment and never searches for one that passes (R14-C1)")
+# ROUND 13 I made the gate step BACKWARDS when the last 4h anchor's window was entirely hole-filled (the production cache ends with holefix2's
+# synthetic 2026-08-31). Round 14 showed that rule lets the gate hunt for a green moment: deleting ONE unrelated non-shipping name's final bar
+# moved the anchor back and turned the SAME dead shipping list from FAIL into PASS. The anchor is now declared, never searched.
+# Fixture: 865 rows = 72 h. DEADUSDT (shipped) has real bars only in rows 1..288; OTHERUSDT (not shipped) only at the very last row.
+# The member sets are pinned at row 288, where DEADUSDT is live, so the TRAINING ends stay clean and only the export end is under test.
+_ROWS, _LASTA = 865, BASE + 864 * 300
+def _ship_dead_other_live(a):
+    a[1:289, 0, 3] = 0.0          # DEADUSDT: real bars in the first window only
+    a[-1, 1, 3] = 0.0             # OTHERUSDT: a real bar at the very end
+def _ship_dead_other_gone(a):
+    a[1:289, 0, 3] = 0.0          # identical except that OTHERUSDT's final bar is removed
+
+_dA = fixture("anchor_other_live", syms=("DEADUSDT", "OTHERUSDT"), rows=_ROWS, edit=_ship_dead_other_live, E=BASE + 288 * 300, members=[0])
+_dB = fixture("anchor_other_gone", syms=("DEADUSDT", "OTHERUSDT"), rows=_ROWS, edit=_ship_dead_other_gone, E=BASE + 288 * 300, members=[0])
+_vers = {}
+for _tag, _dir in (("other_live", _dA), ("other_gone", _dB)):
+    json.dump({"symbols_live": ["DEADUSDT"], "export_anchor_ts": _LASTA}, open(f"{_dir}/config.json", "w"))
+    _rc, _j, _ = gate(_dir, {"BUNDLE_CONFIG": f"{_dir}/config.json"})
+    _vers[_tag] = (_rc, bool((_j or {}).get("PASS")), ((_j or {}).get("sets", {}).get("bundle_symbols_live", {}) or {}).get("checked_at_anchor"), (_j or {}).get("refusals", []))
+check("★★★ [R14-C1] deleting an UNRELATED name's final bar does not flip the shipped list's verdict: both stay non-PASS at the same declared anchor",
+      _vers["other_live"][1] is False and _vers["other_gone"][1] is False and _vers["other_live"][0] == 3 and _vers["other_gone"][0] == 3
+      and _vers["other_live"][2] == _LASTA and _vers["other_gone"][2] == _LASTA, _vers)
+check("★★ [R14-C1] and the two非-PASS verdicts say WHY they differ: a dead shipped name vs insufficient coverage at that moment",
+      any("insufficient_coverage_at_export_anchor" in x for x in _vers["other_gone"][3]) and not _vers["other_live"][3], _vers)
+for _tag, _dir in (("other_live", _dA), ("other_gone", _dB)):
+    json.dump({"symbols_live": ["DEADUSDT"]}, open(f"{_dir}/config.json", "w"))
+    _rc, _j, _ = gate(_dir, {"BUNDLE_CONFIG": f"{_dir}/config.json"})
+    _vers[_tag] = (_rc, bool((_j or {}).get("PASS")), (_j or {}).get("refusals", []))
+check("★★★ [R14-C1] with NO declared anchor the gate refuses by name in BOTH caches — it never picks a moment off the axis itself",
+      all(v[0] == 3 and v[1] is False and any("export_anchor_not_declared" in x for x in v[2]) for v in _vers.values()), _vers)
+
+json.dump({"symbols_live": ["DEADUSDT"], "provenance": {"king_train_end_utc": "2026-01-01T00:00:00Z"}}, open(f"{_dA}/config.json", "w"))
+rc, j, o = gate(_dA, {"BUNDLE_CONFIG": f"{_dA}/config.json"})
+check("★★ [R14-C1] a TRAINING cutoff is not an export time ⇒ refused by name, never used as the anchor",
+      rc == 3 and any("export_anchor_is_a_training_cutoff" in x for x in (j or {}).get("refusals", [])), (rc, (j or {}).get("refusals")))
+json.dump({"symbols_live": ["DEADUSDT"], "export_anchor_ts": BASE + 289 * 300}, open(f"{_dA}/config.json", "w"))
+rc, j, o = gate(_dA, {"BUNDLE_CONFIG": f"{_dA}/config.json"})
+check("★★ [R14-C1] a declared anchor on the cache axis but OFF the 4h grid ⇒ refused by name",
+      rc == 3 and any("export_anchor_off_4h_grid" in x for x in (j or {}).get("refusals", [])), (rc, (j or {}).get("refusals")))
+json.dump({"symbols_live": ["DEADUSDT"], "export_anchor_ts": BASE + 99999 * 300}, open(f"{_dA}/config.json", "w"))
+rc, j, o = gate(_dA, {"BUNDLE_CONFIG": f"{_dA}/config.json"})
+check("★★ a declared anchor NOT on this cache's axis ⇒ refusal (the bundle was built from a different cache), not a silent fallback",
+      rc == 3 and any("export_anchor_off_cache_axis" in x for x in (j or {}).get("refusals", [])), (rc, (j or {}).get("refusals")))
+
+_iso = lambda t: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(t)))
+d = fixture("export_prov_utc", syms=("XUSDT", "YUSDT"), edit=lambda a: a.__setitem__((-1, 0, 3), 0.0))
+json.dump({"symbols_live": ["XUSDT"], "provenance": {"data_axis_end_utc": _iso(_PIN), "king_train_end_utc": _iso(BASE)}}, open(f"{d}/config.json", "w"))
+rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
+_S = (j or {}).get("sets", {}).get("bundle_symbols_live", {})
+check("★★★ GREEN: the field the real exporter writes (provenance.data_axis_end_utc) is the export anchor, and the training cutoff beside it is ignored",
+      rc == 0 and _S.get("checked_at_anchor") == _PIN and "data_axis_end_utc" in str(_S.get("anchor_source")), (rc, _S))
+rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json", "EXPORT_ANCHOR_TS": str(_PIN)})
+_S = (j or {}).get("sets", {}).get("bundle_symbols_live", {})
+check("★★ EXPORT_ANCHOR_TS pinned by the caller wins and is recorded as such", rc == 0 and "pinned by the caller" in str(_S.get("anchor_source")), (rc, _S))
+
+print("\n[7c] the MANIFEST takes part in anchor selection, so it is a recorded dependency (R14-C2)")
+d = fixture("manifest_dep", syms=("XUSDT", "YUSDT"), edit=lambda a: a.__setitem__((-1, 0, 3), 0.0))
 json.dump({"symbols_live": ["XUSDT"]}, open(f"{d}/config.json", "w"))
+json.dump({"provenance": {"export_anchor_ts": _PIN}}, open(f"{d}/MANIFEST.json", "w"))
 rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
 _S = (j or {}).get("sets", {}).get("bundle_symbols_live", {})
-# live rows are 1..288, so a window (r-288, r] holds one iff r < 576: the latest such GRID anchor is row 528, and it must not be the last row 576.
-_WANT_A = BASE + 528 * 300
-check("★★★ the last 4h anchor's window is entirely hole-filled ⇒ the gate does NOT declare the live list dead: it steps back to the latest anchor with a live name and PASSes",
-      rc == 0 and j["PASS"] is True and _S.get("dead_at_last_anchor") == [] and _S.get("checked_at_anchor") == _WANT_A
-      and _S.get("checked_at_anchor") != BASE + 576 * 300 and "NON-DEGENERATE" in str(_S.get("anchor_source"))
-      and _S.get("n_live_in_universe_at_anchor") == 1, (rc, _S))
-json.dump({"symbols_live": ["XUSDT", "YUSDT"]}, open(f"{d}/config.json", "w"))
-rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
-_S = (j or {}).get("sets", {}).get("bundle_symbols_live", {})
-check("★★ CONTROL: a genuinely dead name (YUSDT, no real bar anywhere) is still caught at that corrected anchor",
-      rc == 3 and _S.get("dead_at_last_anchor") == ["YUSDT"] and _S.get("checked_at_anchor") == _WANT_A, (rc, _S))
-json.dump({"symbols_live": ["XUSDT"], "export_anchor_ts": BASE + 288 * 300}, open(f"{d}/config.json", "w"))
-rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
-_S = (j or {}).get("sets", {}).get("bundle_symbols_live", {})
-check("★★ the anchor the BUNDLE names is preferred and recorded as such", rc == 0 and _S.get("checked_at_anchor") == BASE + 288 * 300
-      and "bundle config export_anchor_ts" in str(_S.get("anchor_source")), (rc, _S))
-json.dump({"symbols_live": ["XUSDT"], "export_anchor_ts": BASE + 999 * 300}, open(f"{d}/config.json", "w"))
-rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
-check("★★ an anchor the bundle names that is NOT on this cache's axis ⇒ refusal (the bundle was built from a different cache), not a silent fallback",
-      rc == 3 and any("not on this cache" in x for x in (j or {}).get("refusals", [])), (rc, (j or {}).get("refusals")))
-_d2 = fixture("export_all_dead", syms=("XUSDT",), rows=577, holes=[(r, 0) for r in range(577)], E=BASE + 288 * 300, members=[0])
-json.dump({"symbols_live": ["XUSDT"]}, open(f"{_d2}/config.json", "w"))
-rc, j, o = gate(_d2, {"BUNDLE_CONFIG": f"{_d2}/config.json"})
-check("★★★ NO anchor has a live name anywhere ⇒ named refusal degenerate_anchor_no_live_names, never 'every shipped name is dead'",
-      rc == 3 and any("degenerate_anchor_no_live_names" in x for x in (j or {}).get("refusals", [])), (rc, (j or {}).get("refusals")))
-d = fixture("export_healthy_last", syms=("XUSDT", "YUSDT"), edit=lambda a: a.__setitem__((-1, 0, 3), 0.0))
-json.dump({"symbols_live": ["XUSDT"]}, open(f"{d}/config.json", "w"))
-rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
-_S = (j or {}).get("sets", {}).get("bundle_symbols_live", {})
-check("★★ GREEN CONTROL: a healthy last anchor is still used unchanged (the step-back only fires on a degenerate one)",
-      rc == 0 and "cache last 4h anchor" == _S.get("anchor_source"), (rc, _S))
+check("★★★ [R14-C2] the MANIFEST supplies the anchor AND is recorded in the receipt's inputs, so a later edit is re-hashable",
+      rc == 0 and "MANIFEST" in str(_S.get("anchor_source")) and "bundle_manifest" in (j or {}).get("inputs_sha256", {})
+      and (j or {}).get("inputs_sha256", {}).get("bundle_manifest"), (rc, _S, sorted((j or {}).get("inputs_sha256", {}))))
+_before = sha(f"{d}/MANIFEST.json")
+r = subprocess.run([PY, os.path.join(HERE, "v4_gate_common.py"), "require", f"{d}/gate.json", "gate=MEMBER_LIVENESS", "recorded_extras=1", f"self_sha={sha(GATE)}",
+                    f"cache={d}/cache.npz", f"hole_cells={d}/holes.npz", f"wide_fea_v4_meta={d}/meta.npz", f"dlw_v4raw_targets={d}/targets.npz"],
+                   capture_output=True, text=True)
+check("★★ [R14-C2] require accepts the receipt while the MANIFEST is unchanged (green baseline for the mutation below)", r.returncode == 0, (r.stdout + r.stderr).strip()[-160:])
+json.dump({"provenance": {"export_anchor_ts": BASE}}, open(f"{d}/MANIFEST.json", "w"))          # same shape, different anchor
+r = subprocess.run([PY, os.path.join(HERE, "v4_gate_common.py"), "require", f"{d}/gate.json", "gate=MEMBER_LIVENESS", "recorded_extras=1", f"self_sha={sha(GATE)}",
+                    f"cache={d}/cache.npz", f"hole_cells={d}/holes.npz", f"wide_fea_v4_meta={d}/meta.npz", f"dlw_v4raw_targets={d}/targets.npz"],
+                   capture_output=True, text=True)
+check("★★★ [R14-C2] editing the MANIFEST after the PASS ⇒ require REFUSES (round 13 accepted it, because a dependency never recorded cannot be re-hashed)",
+      r.returncode != 0 and sha(f"{d}/MANIFEST.json") != _before, (r.returncode, (r.stdout + r.stderr).strip()[-200:]))
 
 print("\n[8] mask builder: MASK_IN AND semantics, sha pin, compressed cache path")
 d = fixture("mask_and", syms=("XUSDT", "YUSDT"), edit=lambda a: (a.__setitem__((-1, 0, 3), 0.0), a.__setitem__((-1, 1, 3), 0.0)))
@@ -192,7 +227,7 @@ check("require: an input changed after the receipt ⇒ rc ≠ 0 (stale receipt r
 
 print("\n[10] ROUND 12 (R12-C4): the reviewer's eight probes — every one of them PASSed on the round-11 gate while measuring nothing")
 d = fixture("r12_good", syms=("XUSDT", "YUSDT"), edit=lambda a: (a.__setitem__((-1, 0, 3), 0.0), a.__setitem__((-1, 1, 3), 0.0)), members=[0, 1])
-json.dump({"symbols_live": ["XUSDT", "YUSDT"]}, open(f"{d}/config.json", "w"))
+json.dump({"symbols_live": ["XUSDT", "YUSDT"], "export_anchor_ts": _PIN}, open(f"{d}/config.json", "w"))   # R14-C1: the export end judges a DECLARED moment
 rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
 check("★ green baseline first: two live names, a real symbols_live ⇒ PASS rc 0, window 288 rows derived from the 300 s spacing",
       rc == 0 and j["PASS"] is True and j["window_rows"] == 288 and j["row_spacing_s"] == 300, (rc, j.get("window_rows"), j.get("row_spacing_s"), j.get("refusals")))
@@ -202,7 +237,7 @@ check("(1) bundle config {} ⇒ refusal naming keep_names as NOT a substitute (w
       rc == 3 and any("symbols_live" in x and "keep_names" in x for x in j["refusals"]), j.get("refusals"))
 json.dump({"symbols_live": []}, open(f"{d}/config.json", "w")); rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
 check("(2) symbols_live = [] ⇒ refusal 'measures nothing' (was: PASS)", rc == 3 and any("EMPTY" in x for x in j["refusals"]), j.get("refusals"))
-json.dump({"symbols_live": ["XUSDT"], "keep_names": ["fea_0", "fea_1"]}, open(f"{d}/config.json", "w")); rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
+json.dump({"symbols_live": ["XUSDT"], "keep_names": ["fea_0", "fea_1"], "export_anchor_ts": _PIN}, open(f"{d}/config.json", "w")); rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
 check("(2b) a real symbols_live beside keep_names is still read from symbols_live ⇒ PASS (the fallback is gone, not the key)",
       rc == 0 and j["PASS"] is True and j["sets"]["bundle_symbols_live"]["n_names"] == 1, (rc, j["sets"].get("bundle_symbols_live")))
 

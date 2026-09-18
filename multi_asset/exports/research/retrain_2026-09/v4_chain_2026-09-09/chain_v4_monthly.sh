@@ -567,6 +567,7 @@ if want export; then
   run_gate LIVENESS_EXPORT "$GL" "$R/gate_liveness_export.log" CACHE=$CACHE HOLE_CELLS=$HOLE_CELLS KING_META=$KING_META DLW_TARGETS=$DLW_RAW/data/dlw_targets.npz MEMBER_MASK=${MEMBER_MASK:-} BUNDLE_CONFIG=$BUNDLE_OUT/config.json OUT=$R/v4_gates/member_liveness_export.json; rcl=$?
   GL_SRC=$(gate_sha "$D/$GL") || die "gate_source_unreadable_$GL" 3
   require_gate "$R/v4_gates/member_liveness_export.json" recorded_extras=1 gate=MEMBER_LIVENESS self_sha=$GL_SRC cache=$CACHE hole_cells=$HOLE_CELLS wide_fea_v4_meta=$KING_META dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz bundle_config=$BUNDLE_OUT/config.json
+  [ -f "$BUNDLE_OUT/MANIFEST.json" ] || stage "export liveness: bundle has no MANIFEST.json (nothing to bind for R14-C2)"
   [ $rcl -eq 0 ] || die "export_liveness_rc_$rcl" 3
   GX="EXPORT_ARM=$EXPORT_ARM BUNDLE_OUT=$BUNDLE_OUT BUNDLE_FEA=$KING_FEA BUNDLE_META=$KING_META BUNDLE_BASE=$BUNDLE_BASE EXPORT_PANEL=$EXPORT_PANEL BUNDLE_CACHE=$CACHE FUND_AUG=$FUND_AUG LIVE_PINS=$LIVE_PINS JUDGE_HC=$HC V4CHAIN_DIR=$D SIGNAL_RECEIPT=$SIGNAL_RECEIPT"
   REC=$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM}.json
@@ -611,7 +612,11 @@ if want decision; then   # F03: the swap recommendation under AMENDMENT 7 (G1′
   prereq_receipt decision preflight "$R/v4_gates/preflight.json" PREFLIGHT
   prereq_receipt decision step1 "$R/v4_gates/step1.json" STEP1 v4
   prereq_receipt decision liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS "${LIVE_BIND[@]}"
-  prereq_receipt decision liveness_export "$R/v4_gates/member_liveness_export.json" MEMBER_LIVENESS "${LIVE_BIND[@]}" bundle_config=$BUNDLE_OUT/config.json
+  # ★ R14-C2: the MANIFEST takes part in the export end's anchor selection, so when it exists it is a RECORDED dependency of that receipt and
+  #   must be bound here too — `recorded_extras` can only re-hash what the gate wrote down.
+  LIVE_BIND_X=("${LIVE_BIND[@]}" "bundle_config=$BUNDLE_OUT/config.json")
+  [ -f "$BUNDLE_OUT/MANIFEST.json" ] && LIVE_BIND_X+=("bundle_manifest=$BUNDLE_OUT/MANIFEST.json")
+  prereq_receipt decision liveness_export "$R/v4_gates/member_liveness_export.json" MEMBER_LIVENESS "${LIVE_BIND_X[@]}"
   prereq_file decision per_year "$R/v4_gates/PER_YEAR_TABLE.json"; prereq_file decision member_rule "$R/v4_gates/MEMBER_RULE_CHECK.json"
   prereq_file decision export_receipt "$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM}.json"; prereq_marker decision judge_eligible "$R/judge_v4_eligible.log" JUDGE_V4_DONE
   [ -n "${UMASK_NPZ:-}" ] || die "decision_prereq_umask_npz_missing" 3

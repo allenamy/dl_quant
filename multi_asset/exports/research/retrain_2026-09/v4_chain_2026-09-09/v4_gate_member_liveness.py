@@ -31,7 +31,8 @@ here when BUNDLE_CONFIG is given (symbols_live at the cache's last 4h anchor).
 
 Receipt through v4_gate_common.finalize: gate MEMBER_LIVENESS; inputs cache / hole_cells / wide_fea_v4_meta / dlw_v4raw_targets
 (REQUIRED_INPUTS floor) + member_mask when declared (recorded, never used by the verdict). rc 0 iff PASS else 3.
-env: CACHE HOLE_CELLS KING_META DLW_TARGETS OUT (required); MEMBER_MASK (optional, recorded only)."""
+env: CACHE HOLE_CELLS KING_META DLW_TARGETS OUT (required); MEMBER_MASK (optional, recorded only); BUNDLE_CONFIG (optional, turns on the
+     export end); EXPORT_ANCHOR_TS (optional, pins the moment the export end judges — see R14-C1; without it the bundle must declare one)."""
 import collections, json, os, sys, time, zipfile
 import numpy as np
 
@@ -239,38 +240,91 @@ def main():
             def _n_live(row):                                                # how many names of the WHOLE universe have a real bar in this window
                 hi_, lo_ = row + 1, max(row + 1 - W, 0)
                 return int(((cs[hi_] - cs[lo_]) < (hi_ - lo_)).sum())
-            # (a) the anchor the bundle itself names, when it is on this cache's grid
-            want_a = None
-            for _k in ("export_anchor_ts", "anchor_ts", "king_train_end_ts", "train_end_ts", "generation_anchor_ts"):
-                _v = (cfg or {}).get(_k) if isinstance(cfg, dict) else None
-                if isinstance(_v, (int, float)) and float(_v).is_integer(): want_a = int(_v); S["anchor_source"] = f"bundle config {_k}"; break
-            if want_a is None:
-                _mp = os.path.join(os.path.dirname(os.path.abspath(E["BUNDLE_CONFIG"])), "MANIFEST.json")
-                if os.path.isfile(_mp):
+            # ★ R14-C1 (independent review round 14): the export end judges the candidate AT THE MOMENT IT IS BEING EVALUATED FOR and NEVER
+            #   searches for a moment where the answer is green. My round-13 rule ("an all-dead universe means the anchor is wrong, so step
+            #   back to the latest anchor that still has a live name") was too permissive: the reviewer deleted ONE unrelated non-shipping
+            #   name's final bar and the gate walked back 52 h, turning the same dead shipping list from FAIL into PASS while the shipped
+            #   name's last real bar was still 72 h before the data end. Selection is now a fixed, declared order and nothing else:
+            #     1. EXPORT_ANCHOR_TS — the caller pins the moment explicitly;
+            #     2. the bundle's own DATA-AXIS end: config.provenance.data_axis_end_utc (what pod_export_bundle_v4 L266 actually writes),
+            #        or a numeric top-level export_anchor_ts / anchor_ts / generation_anchor_ts;
+            #     3. the same fields under MANIFEST.provenance.
+            #   A TRAINING cutoff (king_train_end_* / train_end_*) is NOT an export time — pod_export_bundle_v4 L262-266 keeps the two apart
+            #   on purpose — so it is refused BY NAME instead of silently serving as the anchor. The chosen anchor must sit on the cache's ts
+            #   axis AND on the 4h grid. Insufficient coverage at that anchor is a named refusal, never a step backwards.
+            _TRAIN_KEYS = ("king_train_end_ts", "king_train_end_utc", "train_end_ts", "train_end_utc", "king_train_last_label_end_utc")
+            _EXPORT_NUM = ("export_anchor_ts", "anchor_ts", "generation_anchor_ts")
+            _EXPORT_UTC = ("data_axis_end_utc", "export_anchor_utc", "anchor_utc")
+
+            def _as_epoch(v):
+                """a declared anchor is either an integer epoch or an ISO 'YYYY-MM-DDTHH:MM:SSZ' string (the exporter writes the latter)"""
+                if isinstance(v, bool): return None
+                if isinstance(v, (int, float)) and float(v).is_integer(): return int(v)
+                if isinstance(v, str):
+                    _v = v.strip()
+                    if _v.lstrip("-").isdigit(): return int(_v)              # an env var is always a string: "1789689600" is an epoch, not an ISO stamp
+                    try: return int(time.mktime(time.strptime(_v[:19], "%Y-%m-%dT%H:%M:%S")) - time.timezone)
+                    except Exception: return None   # noqa: BLE001
+                return None
+
+            def _pick(d, where):
+                """(epoch, source) from one mapping, export keys only; a training cutoff found alone is reported, not used"""
+                if not isinstance(d, dict): return None, None, None
+                for _k in _EXPORT_NUM + _EXPORT_UTC:
+                    _e = _as_epoch(d.get(_k))
+                    if _e is not None: return _e, f"{where} {_k}", None
+                for _k in _TRAIN_KEYS:
+                    if d.get(_k) is not None: return None, None, f"{where} {_k}"
+                return None, None, None
+
+            want_a = None; _train_only = None
+            _env_a = _as_epoch(os.environ.get("EXPORT_ANCHOR_TS") or None)
+            if _env_a is not None: want_a, S["anchor_source"] = _env_a, "EXPORT_ANCHOR_TS (pinned by the caller)"
+            if want_a is None and isinstance(cfg, dict):
+                for _src, _where in ((cfg, "bundle config"), (cfg.get("provenance"), "bundle config provenance")):
+                    _e, _s, _t = _pick(_src, _where)
+                    if _e is not None: want_a, S["anchor_source"] = _e, _s; break
+                    _train_only = _train_only or _t
+            # ★ R14-C2: the MANIFEST takes part in anchor selection, so every read of it is a DEPENDENCY. It is recorded in `inputs` whenever
+            #   the file exists — the reviewer edited a MANIFEST after a genuine PASS and `require(recorded_extras=True)` still accepted the
+            #   receipt, because a dependency that was never recorded cannot be re-hashed.
+            _mp = os.path.join(os.path.dirname(os.path.abspath(E["BUNDLE_CONFIG"])), "MANIFEST.json")
+            if os.path.isfile(_mp):
+                inputs["bundle_manifest"] = _mp; S["manifest_read"] = _mp
+                if want_a is None:
                     try:
-                        _m = json.load(open(_mp)); _pv = (_m.get("provenance") or {}) if isinstance(_m, dict) else {}
-                        for _k in ("export_anchor_ts", "anchor_ts", "king_train_end_ts"):
-                            _v = _pv.get(_k) if isinstance(_pv, dict) else None
-                            if isinstance(_v, (int, float)) and float(_v).is_integer(): want_a = int(_v); S["anchor_source"] = f"bundle MANIFEST provenance {_k}"; break
-                    except Exception: pass   # noqa: BLE001 — an unreadable manifest is not evidence about the anchor
+                        _m = json.load(open(_mp))
+                        _e, _s, _t = _pick((_m.get("provenance") or {}) if isinstance(_m, dict) else {}, "bundle MANIFEST provenance")
+                        if _e is not None: want_a, S["anchor_source"] = _e, _s
+                        else: _train_only = _train_only or _t
+                    except Exception as _me:   # noqa: BLE001
+                        res["refusals"].append(f"bundle MANIFEST unreadable while it is an anchor-selection input: {_me!r}")
             row = None
-            if want_a is not None:
+            if want_a is None:
+                if _train_only:
+                    res["refusals"].append(f"export_anchor_is_a_training_cutoff: the only anchor the bundle declares is {_train_only}, which is the "
+                                           f"booster's gradient cutoff, not the moment this bundle is exported for; declare an export anchor "
+                                           f"(provenance.data_axis_end_utc) or pin EXPORT_ANCHOR_TS")
+                else:
+                    res["refusals"].append("export_anchor_not_declared: the bundle names no export anchor and none was pinned via EXPORT_ANCHOR_TS — "
+                                           "the export end judges a DECLARED moment and never searches the axis for one that passes")
+            else:
                 _r = row_of.get(int(want_a))
                 if _r is None:
-                    res["refusals"].append(f"the anchor the bundle names ({want_a}) is not on this cache's ts axis: the bundle was built from a different cache")
+                    res["refusals"].append(f"export_anchor_off_cache_axis: the declared anchor {want_a} ({S['anchor_source']}) is not on this cache's "
+                                           f"ts axis — the bundle was built from a different cache")
+                elif int(cts[_r]) % ANCHOR_SECONDS != 0:
+                    res["refusals"].append(f"export_anchor_off_4h_grid: the declared anchor {want_a} ({S['anchor_source']}) is on the cache axis but not "
+                                           f"on the {ANCHOR_SECONDS}s anchor grid")
                 else: row = _r
-            if row is None and want_a is None:
-                # (b) the latest 4h anchor whose window holds at least one real bar anywhere in the universe
-                for _r in reversed([int(x) for x in on_grid]):
-                    if _n_live(_r) > 0: row = _r; S["anchor_source"] = ("cache last 4h anchor" if _r == int(on_grid[-1])
-                                                                       else "latest NON-DEGENERATE 4h anchor (later anchors have no live name in the whole universe)"); break
-                if row is None: res["refusals"].append("degenerate_anchor_no_live_names: no 4h anchor in this cache has a live name anywhere in the universe")
             if row is not None:
                 nlive = _n_live(row); S["checked_at_anchor"] = int(cts[row]); S["n_live_in_universe_at_anchor"] = nlive
                 if nlive == 0:
-                    # (c) an anchor at which the WHOLE universe is dead is a wrong anchor, not a dead universe — refuse instead of failing every name
-                    res["refusals"].append(f"degenerate_anchor_no_live_names: at {int(cts[row])} no name in the universe has a real bar in the window "
-                                           f"(anchor source: {S['anchor_source']}); declaring every shipped name dead here would be an artefact of the anchor")
+                    # (c) R14-C1: the DECLARED moment has no real bar anywhere in the universe. That is insufficient coverage at the moment we
+                    #     must judge — report it as such. It is NOT a licence to judge at some earlier moment.
+                    res["refusals"].append(f"insufficient_coverage_at_export_anchor: at the declared anchor {int(cts[row])} ({S['anchor_source']}) no name "
+                                           f"in the universe has a real bar in the {W}-row window; the export end cannot be judged here and does not "
+                                           f"move to another anchor")
                 else:
                     hi = row + 1; lo = max(hi - W, 0); col = {s: i for i, s in enumerate(csym)}
                     for s in names:

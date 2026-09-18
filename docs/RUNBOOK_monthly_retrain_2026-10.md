@@ -316,3 +316,20 @@ w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025
 **电池**: `tests_chain_month_contract_r12c5.py` **24/24**(新) · `tests_member_liveness.py` 42/42 · `tests_chain_wiring_r12.py` 17/17 · `tests_pipeline_gates.py` **490/490**。合同 `8643c56f` → `14aa117d`(前身 `ELIGIBILITY_CONTRACT.r5_8643c56f.json` 保留)。
 
 **仍开(本节没做)**: 十月的掩码/参照件/pins/基线**实物尚不存在**, 所以它们的 sha 还没有批准 —— 每一样都要单独一次用户字; 十月自己的决策剖面未预注册; 十月本月负控(十月 env、`roll_paths required=1`)未跑; 一个**不是日历月**的 `V4_MONTH` 目前只记录不拒绝。
+
+### §0★ 修订 10(2026-09-18, FP3; 独立复审第十四轮 R14-C1/C2 两项**成立**, 改码)
+
+**为什么有这一节**: 修订 8 给判活门加的「出口端锚点」修法是我自己引入的缺陷, 不是继承来的。复审证明它会**回溯寻找一个能通过的时刻**: 删掉一个与出货名单无关的名字在轴末的一根 bar, 同一份已死出货名单就从 FAIL 变 PASS(锚点回退 52 小时), 而该出货名的末次真实 bar 仍距数据末端 72 小时。
+
+**① 出口锚改为「声明」而非「搜索」**(`multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/v4_gate_member_liveness.py`, 新 sha `6a7d5d8e6a1ff10c…`, 前身 `3fee622254fc20a1…` 留在合同 `superseded_source_sha256`):
+- 锚的来源按固定顺序, **没有第四条**: `EXPORT_ANCHOR_TS`(调用方钉死)→ bundle 自己的**数据轴末端** `config.provenance.data_axis_end_utc`(导出器 L266 实际写的字段)或数值型 `export_anchor_ts`/`anchor_ts`/`generation_anchor_ts` → `MANIFEST.provenance` 同名字段。
+- **训练截止不是出口时刻**: `king_train_end_*` / `train_end_*` 单独出现时**具名拒绝** `export_anchor_is_a_training_cutoff`(导出器 L262–266 本来就把两个时刻分开)。
+- 声明的锚必须**同时**落在缓存时间轴上与 4h 网格上, 否则 `export_anchor_off_cache_axis` / `export_anchor_off_4h_grid`。
+- 声明的锚上全宇宙无活名 ⇒ `insufficient_coverage_at_export_anchor`(**在该判的时刻数据不足**), 绝不换一个时刻判。
+- 完全没有声明 ⇒ `export_anchor_not_declared`。
+
+**② MANIFEST 参与选锚, 所以它是被记录的依赖**(R14-C2): 门只要读到 `MANIFEST.json` 就把它写进收据 `inputs`; 驱动在 decision 的前置里把 `bundle_manifest` 一并绑定。此前复审在真实 PASS 之后改写 MANIFEST 的选锚字段, `require(recorded_extras=True)` 仍然接受 —— **没被记录的依赖无法被重新哈希**。
+
+**电池**: `tests_member_liveness.py` **53/53**(48 → 53; 原来断言「回退后 PASS」的两格已按新合同重写, 并加入复审的两个探针: 删掉无关名字的末端 bar **不得**翻转判词; 事后改写 MANIFEST **必须**被 `require` 拒绝)· `tests_chain_binding_r13.py` 11/11 · `tests_chain_wiring_r12.py` 17/17 · `tests_chain_month_contract_r12c5.py` 24/24 · `tests_fp2_decision.py` · `tests_run_v4_arms.py` · `tests_pipeline_gates.py` **490/490**。合同 `9330e44c` → `624836f0`, 前身 `ELIGIBILITY_CONTRACT.r6_9330e44c.json` 保留。
+
+**③ 十月仍未注册(不在本节修复范围, 按复审要求明写)**: 合同里 2026-10 的 `approved_controls_refs` **仍为 null**, `fp2_decision.py` 的 `PROFILE_MONTH` **仍是 2026-09**。因此十月的正跑条件**仍不成立** —— 目前只做到「缺项时能正确拒跑」, 这不是「可以正跑」。十月还缺: 实际 masked builds、mask/umask 与 controls refs 的批准值、月专属出口基线与决策剖面、有效的 roll/依赖收据, 以及新根的端到端正跑。
