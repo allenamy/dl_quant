@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""FP3 P-C1 v11 (2026-09-18, after independent review round 12 R12-P1; v10 after round 11): replay the EXECUTOR's book layer for one anchor as a pure function and
+"""FP3 P-C1 v10 (2026-09-18, after independent review round 11 R11-PC1): replay the EXECUTOR's book layer for one anchor as a pure function and
 compare the replayed plan with the COMPLETE request population the executor recorded — every request identity, not the first row per name.
 
 What changed from v9 (each item is a reviewer counterexample that v9 passed and v10 must not):
@@ -14,18 +14,6 @@ What changed from v9 (each item is a reviewer counterexample that v9 passed and 
   · missing evidence is a labelled refusal (NO_PHASE_A / UNAVAILABLE_STOPSET / filters_assumed_current), never a default empty set;
   · executor code is imported from a `git archive` export of the tree that was DEPLOYED at the anchor's run time (production reflog timeline
     below, read-only), so historical anchors are replayed against their own version; the current tree is verified by rev-parse.
-What changed in v11 (independent review round 12, R12-P1 — each is a counterexample v10 passed):
-  · TWO CLOSED POPULATIONS with a balance identity: every plan in `plans_A` falls in exactly one class (SKIP_VERIFIED / SKIP_MISMATCH /
-    SKIP_NO_ROW / MEASURED_EQUAL / MEASURED_DIFFERENT / MISSING_REQUEST / UNMEASURABLE:<reason>), and every recorded `request_ledger` ENTRY
-    falls in exactly one class (EXPLAINED / UNEXPLAINED:<reason>). `population_identity` in the receipt reports both balances;
-  · `all_measurable_exact` now REQUIRES `n_quantity_comparisons > 0` — four real halted anchors (09-12 20Z, 09-13 00/04/08Z) carried 966 plans,
-    every row `blocked_by_halt` with an empty ledger, zero comparisons, and v10 called them "exact";
-  · EVERY ledger entry is compared, not `request_ledger[0]` — a second entry with a legal prefix but attempt 99 / qty 999999 used to be invisible;
-  · attempt tokens are restricted to what `client_id_for` can mint (1, 2, 3, 3c<n>); anything else is `UNEXPLAINED:attempt_index_not_mintable`;
-  · quantities are compared SIGNED (v10 used abs(), so a ledger whose sign opposed the side passed), and top-up chunks are checked for side
-    and reduce_only per chunk;
-  · the one-lot tolerance on the top-up total is removed (15 vs 16 at step 1 used to pass); equality is exact after step rounding;
-  · a residual ≥ 1e-9 with no top-up row at all is `MISSING_REQUEST` (the executor only omits the row when |residual| < 1e-9, L1826).
 Same code, imported: scheduler.anchor_loop.apply_withhold_and_reshape (POP → RESHAPE → CLAMP), live.binance_executor.RebalanceExecutor.plan,
 SymbolFilters.round_qty, external_book.below_min_notional, split_for_market (top-up chunking). Inputs = decision-time records only (DESIGN v3 §1).
 Read-only everywhere. usage: pc1_intent_replay.py <nominal_anchor_ts> <out.json>
@@ -99,8 +87,8 @@ if not tree_dir:
 
 
 def bail(status):
-    out = {"device": "pc1_intent_replay.py", "version": "v11", "utc": time.strftime("%FT%TZ", time.gmtime()), "anchor": A, "utc_anchor": U(A), "status": status, "refusals": refusals}
-    json.dump(out, open(OUT, "w"), indent=1, default=str); print("P-C1 v11", U(A), status, refusals); sys.exit(0)
+    out = {"device": "pc1_intent_replay.py", "version": "v10", "utc": time.strftime("%FT%TZ", time.gmtime()), "anchor": A, "utc_anchor": U(A), "status": status, "refusals": refusals}
+    json.dump(out, open(OUT, "w"), indent=1, default=str); print("P-C1 v10", U(A), status, refusals); sys.exit(0)
 
 
 if refusals: bail("REFUSED")
@@ -204,221 +192,108 @@ for k, v in rec_rs.items():
 reshape_cmp["all_recorded_keys_equal"] = (len(reshape_cmp["equal"]) == len(rec_rs) and len(rec_rs) > 0)
 reshape_cmp["all_recorded_keys_within_1e-9"] = (len(reshape_cmp["equal"]) + len(reshape_cmp["equal_within_1e-9"]) == len(rec_rs) and len(rec_rs) > 0)
 # ── request population: every row, joined by identity ──
-# ── request population (v11, independent review round 12 R12-P1) ───────────────────────────────────────────────────────────────────────────
-# v10 compared ONLY request_ledger[0] of the first order row per name, summed top-up chunks in ABSOLUTE value, allowed a full lot of
-# tolerance, and let "nothing was measured" read as `all_measurable_exact = True` (four real halted anchors: 966 plans, 0 comparisons).
-# v11 replaces the verdict list with TWO CLOSED POPULATIONS and an identity that must balance:
-#   · every PLAN in plans_A falls in exactly one class (skip verified / measured equal / measured different / missing request / unmeasurable);
-#   · every recorded LEDGER ENTRY falls in exactly one class (explained by an expected request / unexplained with a reason).
-# A quantity comparison is only counted when an actual ledger quantity existed, so a zero-measurement anchor can never be "exact".
-VALID_SEQ = re.compile(r"^(?:1|2|3|3c\d+)$")                     # the only attempt tokens binance_executor.client_id_for can mint
-
-
-def cid_parse(cid):
-    m = re.match(r"^(.+)-([A-Z0-9]+USDT)-([0-9A-Za-z]+)$", str(cid or ""))
+def cid_seq(cid):
+    m = re.match(r"^(.+?)-([A-Z0-9]+USDT)-(\d+|3c\d+)$", str(cid or ""))
     return (m.group(1), m.group(2), m.group(3)) if m else None
-
-
 chase = an.get("chase_experiment") if isinstance(an.get("chase_experiment"), dict) else {}
 chase_arms = chase.get("arm_assigned") if isinstance(chase.get("arm_assigned"), dict) else (chase.get("arm") if isinstance(chase.get("arm"), dict) else {})   # topup(): _arm = arm_assigned or arm
 chase_arms_recorded = bool(chase_arms)
-
-
-def _sside(q):
-    return "buy" if float(q) > 0 else "sell"
-
-
 cmp = []; cat = collections.Counter()
-PLAN_CLS = collections.Counter(); REQ_CLS = collections.Counter()
-n_ledger_entries = 0; n_qty_compared = 0; n_qty_equal = 0
 for s in sorted(set(by_sym) | set(plan_by)):
-    p = plan_by.get(s); rws = sorted(by_sym.get(s, []), key=lambda r: (int(r.get("attempt_idx") or 0), str(((r.get("request_ledger") or [{}])[0] or {}).get("client_id") or "")))
-    e = {"symbol": s, "plan": (p.get("skip") if p and p.get("skip") else ({"qty": float(p["qty"]), "side": p["side"], "reduce_only": bool(p.get("reduce_only"))} if p else None)), "rows": [], "requests": []}
-    # ── flatten every ledger entry of every row, parse and validate its identity ──
-    ents = []
-    for r in rws:
-        rl = r.get("request_ledger") or []
-        e["rows"].append({"attempt_idx": r.get("attempt_idx"), "order_type": r.get("order_type"), "terminal_reason": r.get("terminal_reason"), "side": r.get("side"),
-                          "reduce_only": r.get("reduce_only"), "n_ledger": len(rl), "client_ids": [x.get("client_id") for x in rl], "intended_notional": r.get("intended_notional"),
-                          "requote_arm": r.get("requote_arm"), "filled_known_notional": r.get("filled_known_notional"), "filled_notional": r.get("filled_notional")})
-        for i, le in enumerate(rl):
-            n_ledger_entries += 1
-            pr = cid_parse(le.get("client_id"))
-            bad = ("malformed_client_id" if pr is None else ("foreign_rebalance_id" if pr[0] != rid else ("foreign_symbol" if pr[1] != s else
-                   ("attempt_index_not_mintable" if not VALID_SEQ.match(pr[2]) else None))))
-            ents.append({"row": r, "idx": i, "le": le, "seq": (pr[2] if (pr and not bad) else None), "bad": bad,
-                         "qty": (float(le["qty"]) if le.get("qty") is not None else None), "cid": le.get("client_id")})
+    p = plan_by.get(s); rws = sorted(by_sym.get(s, []), key=lambda r: (int(r.get("attempt_idx") or 0), str((r.get("request_ledger") or [{}])[0].get("client_id") if r.get("request_ledger") else "")))
+    e = {"symbol": s, "plan": (p.get("skip") if p and p.get("skip") else ({"qty": abs(float(p["qty"])), "side": p["side"], "reduce_only": bool(p.get("reduce_only"))} if p else None)), "rows": []}
     if p is None:
-        for x in ents: REQ_CLS["UNEXPLAINED:no_plan_for_symbol"] += 1; e["requests"].append({"cid": x["cid"], "class": "UNEXPLAINED:no_plan_for_symbol"})
-        if not ents: REQ_CLS["UNEXPLAINED:order_row_without_plan"] += 1
-        e["plan_class"] = None; e["verdicts"] = ["unexplained_request:order_only"]; cat["unexplained_request:order_only"] += 1; cmp.append(e); continue
-    for x in ents:
-        if x["bad"]: REQ_CLS["UNEXPLAINED:" + x["bad"]] += 1; x["cls"] = "UNEXPLAINED:" + x["bad"]
-    e1 = [x for x in ents if x["seq"] == "1"]; e2 = [x for x in ents if x["seq"] == "2"]; e3 = [x for x in ents if x["seq"] and (x["seq"] == "3" or x["seq"].startswith("3c"))]
-    row1 = next((r for r in rws if r.get("order_type") == "maker" and int(r.get("attempt_idx") or 0) <= 1), None)
-    row2 = next((r for r in rws if r.get("order_type") == "maker" and r.get("requote_arm") not in (None, "")), None)
-    rows3 = [r for r in rws if r.get("order_type") == "topup_taker"]
-    verdicts = []; diffs = []; unmeas = []; missing = []
-    # ── skipped plan: the expectation is a row carrying the skip reason and NO request at all ──
+        e["verdict"] = "unexplained_request:order_only"; cat[e["verdict"]] += 1; cmp.append(e); continue
+    pq = None if p.get("skip") else abs(float(p["qty"])); pside = None if p.get("skip") else p["side"]
+    r1 = r2 = None; r3 = []; other = []
+    for r in rws:
+        rl = r.get("request_ledger") or []; cids = [x.get("client_id") for x in rl]; seqs = [cid_seq(c) for c in cids]
+        bad_id = [c for c, q in zip(cids, seqs) if q is None or q[0] != rid or q[1] != s]
+        typ = r.get("order_type")
+        rec = {"attempt_idx": r.get("attempt_idx"), "order_type": typ, "terminal_reason": r.get("terminal_reason"), "side": r.get("side"), "client_ids": cids,
+               "ledger_qty": [x.get("qty") for x in rl], "confirmed_qty": [x.get("confirmed_qty") for x in rl], "intended_notional": r.get("intended_notional"), "requote_arm": r.get("requote_arm"), "reduce_only": r.get("reduce_only")}
+        e["rows"].append(rec)
+        if bad_id: other.append(("foreign_identity", rec)); continue
+        sq = seqs[0][2] if seqs else None
+        if typ == "maker" and (sq == "1" or (not rl and r.get("requote_arm") in (None, "") )):
+            if r1 is None: r1 = (r, rec, rl)
+            else: other.append(("duplicate_first_leg", rec))
+        elif typ == "maker" and (sq == "2" or (not rl and r.get("requote_arm") not in (None, ""))):
+            if r2 is None: r2 = (r, rec, rl)
+            else: other.append(("duplicate_requote", rec))
+        elif typ == "topup_taker" and (sq is None or sq == "3" or sq.startswith("3c")): r3.append((r, rec, rl))
+        else: other.append(("unclassified", rec))
+    verdicts = []
     if p.get("skip"):
-        for x in e1 + e2 + e3:
-            if x.get("cls"): continue
-            REQ_CLS["UNEXPLAINED:request_for_skipped_plan"] += 1; x["cls"] = "UNEXPLAINED:request_for_skipped_plan"; diffs.append("request_for_skipped_plan")
-        if row1 is None and not rws:
-            e["plan_class"] = "SKIP_NO_ROW"; verdicts.append("skip_MISSING_ROW"); unmeas.append("no_row")
-        else:
-            tr = (row1 or rws[0]).get("terminal_reason")
-            ok = (tr == p["skip"])
-            e["plan_class"] = "SKIP_VERIFIED" if (ok and not diffs) else "SKIP_MISMATCH"
-            verdicts.append("skip_match" if ok else f"skip_MISMATCH:{tr}")
-            if not ok: diffs.append(f"skip_reason:{tr}")
+        if r1 is None and not r2 and not r3 and not other: verdicts.append("skip_MISSING_ROW")          # submit_maker writes a row for every plan skip: no row is a mismatch
+        if r1 is not None:
+            verdicts.append("skip_match" if r1[1]["terminal_reason"] == p["skip"] and not r1[2] else f"skip_MISMATCH:{r1[1]['terminal_reason']}")
+        if r2 or r3: verdicts.append("unexplained_request:legs_after_skip")
     else:
-        psq = float(p["qty"]); pside = p["side"]; pro = bool(p.get("reduce_only"))
-        # ---- R1: the first maker leg. Expected identity <rid>-<SYM>-1, signed qty == plan qty, side and reduce_only == plan ----
-        if row1 is None:
-            missing.append("no_maker_row"); verdicts.append("R1_MISSING")
+        if r1 is None: verdicts.append("R1_MISSING")
         else:
-            tr1 = row1.get("terminal_reason"); ro1 = row1.get("reduce_only")
-            if len(e1) > 1:
-                for x in e1[1:]: REQ_CLS["UNEXPLAINED:duplicate_first_leg_request"] += 1; x["cls"] = "UNEXPLAINED:duplicate_first_leg_request"; diffs.append("duplicate_first_leg_request")
-            if e1:
-                x = e1[0]; lq = x["qty"]
-                if lq is None:
-                    unmeas.append("first_leg_ledger_without_qty"); verdicts.append("R1_no_qty_evidence"); x["cls"] = "EXPLAINED"; REQ_CLS["EXPLAINED"] += 1
-                else:
-                    n_qty_compared += 1
-                    qok = abs(lq - psq) <= 1e-9
-                    sok = str(row1.get("side") or _sside(lq)).lower() == pside and _sside(lq) == pside            # v10 used abs(): a sign-flipped ledger passed
-                    rok = (ro1 is None) or (bool(ro1) == pro)
-                    tok = row1.get("order_type") == "maker"
-                    ok = qok and sok and rok and tok
-                    if ok: n_qty_equal += 1
-                    verdicts.append("R1_exact" if ok else "R1_MISMATCH")
-                    if not ok: diffs.append("R1:" + ",".join(k for k, v in (("qty", qok), ("side", sok), ("reduce_only", rok), ("type", tok)) if not v))
-                    x["cls"] = "EXPLAINED"; REQ_CLS["EXPLAINED"] += 1
-                    e["R1"] = {"plan_qty_signed": psq, "ledger_qty_signed": lq, "qty_ok": qok, "side_ok": sok, "reduce_only_ok": rok, "type_ok": tok}
-            elif tr1 == "venue_reject":
-                oi = row1.get("intended_notional"); pi = float(p["delta_notional"])
-                ic = (oi is not None and abs(float(oi) - pi) <= 1e-6 * max(1.0, abs(pi)) and str(row1.get("side")).lower() == pside)
-                unmeas.append("venue_reject_no_ledger"); verdicts.append("R1_reject_no_qty_evidence")
-                e["R1"] = {"plan_qty_signed": psq, "ledger_qty_signed": None, "intent_consistent": bool(ic), "intended_notional": oi, "plan_delta_notional": pi}
+            r, rec, rl = r1
+            side_ok = str(rec["side"]).lower() == pside; ro_ok = (rec["reduce_only"] is None) or (bool(rec["reduce_only"]) == bool(p.get("reduce_only")))
+            if rl:
+                q1 = abs(float(rl[0]["qty"])) if rl[0].get("qty") is not None else None
+                ok = q1 is not None and abs(q1 - pq) <= 1e-9 and side_ok and ro_ok and rec["order_type"] == "maker"
+                verdicts.append("R1_exact" if ok else "R1_MISMATCH"); e["R1"] = {"plan_qty": pq, "ledger_qty": q1, "side_ok": side_ok, "reduce_only_ok": ro_ok}
+            elif rec["terminal_reason"] == "venue_reject":
+                oi = r.get("intended_notional"); pi = float(p["delta_notional"])
+                ic = (oi is not None and abs(float(oi) - pi) <= 1e-6 * max(1.0, abs(pi)) and side_ok)
+                verdicts.append("R1_reject_no_qty_evidence"); e["R1"] = {"plan_qty": pq, "ledger_qty": None, "intent_consistent": bool(ic), "intended_notional": oi, "plan_delta_notional": pi}
             else:
-                unmeas.append(f"not_sent:{tr1}"); verdicts.append(f"R1_not_sent:{tr1}")
-        # ---- R2: the requote. Legal ONLY when the first leg was refused by the venue ----
-        if e2 or row2 is not None:
-            if row1 is None or row1.get("terminal_reason") != "venue_reject":
-                for x in e2:
-                    if not x.get("cls"): REQ_CLS["UNEXPLAINED:requote_without_reject"] += 1; x["cls"] = "UNEXPLAINED:requote_without_reject"
-                diffs.append("requote_without_reject"); verdicts.append("unexplained_request:requote_without_reject")
+                verdicts.append(f"R1_not_sent:{rec['terminal_reason']}")
+        if r2 is not None:
+            r, rec, rl = r2
+            if r1 is None or r1[1]["terminal_reason"] != "venue_reject": verdicts.append("unexplained_request:requote_without_reject")
             else:
-                if len(e2) > 1:
-                    for x in e2[1:]: REQ_CLS["UNEXPLAINED:duplicate_requote_request"] += 1; x["cls"] = "UNEXPLAINED:duplicate_requote_request"; diffs.append("duplicate_requote_request")
-                if e2:
-                    x = e2[0]; lq = x["qty"]
-                    if lq is None:
-                        unmeas.append("requote_ledger_without_qty"); verdicts.append(f"R2_no_qty_evidence:{(row2 or {}).get('terminal_reason')}"); x["cls"] = "EXPLAINED"; REQ_CLS["EXPLAINED"] += 1
-                    else:
-                        n_qty_compared += 1
-                        qok = abs(lq - psq) <= 1e-9; sok = _sside(lq) == pside
-                        rok = ((row2 or {}).get("reduce_only") is None) or (bool((row2 or {}).get("reduce_only")) == pro)
-                        ok = qok and sok and rok
-                        if ok: n_qty_equal += 1
-                        verdicts.append("R2_exact" if ok else "R2_MISMATCH")
-                        if not ok: diffs.append("R2:" + ",".join(k for k, v in (("qty", qok), ("side", sok), ("reduce_only", rok)) if not v))
-                        x["cls"] = "EXPLAINED"; REQ_CLS["EXPLAINED"] += 1
-                        e["R2"] = {"plan_qty_signed": psq, "ledger_qty_signed": lq, "qty_ok": qok, "side_ok": sok, "reduce_only_ok": rok}
-                else:
-                    unmeas.append("requote_row_without_ledger"); verdicts.append("R2_no_qty_evidence:no_ledger")
-        # ---- R3: the top-up. residual = delta_notional − known maker fill notional (binance_executor.topup 409ea16 L1744/1826/1867-1873);
-        #      |residual| < 1e-9 ⇒ the executor writes the maker row `filled` and NO top-up row; otherwise a top-up row MUST exist ----
-        got = 0.0
-        for r in (row1, row2):
-            if r is not None:
-                fn = r.get("filled_known_notional"); fn = r.get("filled_notional") if fn is None else fn
-                if fn is not None: got += float(fn)
-        residual = float(p["delta_notional"]) - got; mid = mids.get(s)
-        floor = float((sf.f.get(s) or {}).get("min_notional", 5.0) or 5.0)
-        exp_q = sf.round_qty(s, residual / max(mid, 1e-9)) if mid else None                      # SIGNED expected chunk total
-        rule_skip = (exp_q is None) or exp_q == 0 or abs(residual) < floor or abs(exp_q) * max(mid or 0.0, 1e-9) < floor
-        rule_no_row = abs(residual) < 1e-9
-        rec_int = [r.get("intended_notional") for r in rows3]
-        int_ok = all(v is not None and abs(float(v) - residual) <= 1e-6 * max(1.0, abs(residual)) for v in rec_int) if rows3 else True
-        sent3 = [x for x in e3 if not x.get("cls")]
-        e["R3"] = {"residual_rule": residual, "recorded_intended": rec_int, "intended_consistent": int_ok, "expected_qty_signed": (float(exp_q) if exp_q is not None else None),
-                   "rule_says_skip": rule_skip, "rule_says_no_row": rule_no_row, "n_topup_rows": len(rows3), "n_chunk_requests": len(sent3),
-                   "arm_drawn": chase_arms.get(s), "under_stop": s in force_flat}
-        if not rows3 and not rule_no_row and row1 is not None and row1.get("terminal_reason") not in (None, "venue_reject") and e1:
-            missing.append("no_topup_row_though_residual_nonzero"); verdicts.append("R3_MISSING_ROW")
-        if sent3:
-            tq = sum(x["qty"] for x in sent3 if x["qty"] is not None)
-            n_missing_q = sum(1 for x in sent3 if x["qty"] is None)
-            for x in sent3: x["cls"] = "EXPLAINED"; REQ_CLS["EXPLAINED"] += 1
-            if n_missing_q:
-                unmeas.append("topup_chunk_without_qty"); verdicts.append("R3_no_qty_evidence")
-            else:
-                n_qty_compared += 1
-                qok = (exp_q is not None) and abs(tq - float(exp_q)) <= 1e-9                     # v10 allowed one full lot AND compared |sum|
-                sok = all(_sside(x["qty"]) == (pside if exp_q is None else _sside(exp_q)) for x in sent3)
-                rok = all((x["row"].get("reduce_only") is None) or (bool(x["row"].get("reduce_only")) == pro) for x in sent3)
-                aok = (not rule_skip) and int_ok and chase_arms.get(s) != "no_chase" and s not in force_flat
-                ok = qok and sok and rok and aok
-                if ok: n_qty_equal += 1
+                q2 = abs(float(rl[0]["qty"])) if rl and rl[0].get("qty") is not None else None
+                if q2 is None: verdicts.append(f"R2_no_qty_evidence:{rec['terminal_reason']}")
+                else: verdicts.append("R2_exact" if abs(q2 - pq) <= 1e-9 and str(rec["side"]).lower() == pside else "R2_MISMATCH"); e["R2"] = {"plan_qty": pq, "ledger_qty": q2}
+        if r3:
+            # top-up rule (binance_executor.topup, 409ea16 L1744/1867-1873): residual = delta_notional − got (known maker fill notional);
+            # qty = round_qty(residual / mid_at_anchor); skipped_min_notional iff qty == 0 or |residual| < floor or |qty|·mid < floor;
+            # skipped_no_chase_arm iff the name DREW no_chase (anchors.chase_experiment.arm_assigned); skipped_stop_maker_only iff under the stop
+            got = 0.0
+            for x in (r1, r2):
+                if x:
+                    fn = x[0].get("filled_known_notional"); fn = x[0].get("filled_notional") if fn is None else fn
+                    if fn is not None: got += float(fn)
+            residual = float(p["delta_notional"]) - got; mid = mids.get(s)
+            floor = float((sf.f.get(s) or {}).get("min_notional", 5.0) or 5.0); step = float((sf.f.get(s) or {}).get("step") or 0.0)
+            exp_q = sf.round_qty(s, residual / max(mid, 1e-9)) if mid else None
+            rule_skip = (exp_q is None) or exp_q == 0 or abs(residual) < floor or abs(exp_q) * max(mid or 0.0, 1e-9) < floor
+            sent = [x for x in r3 if x[2]]; skipped = [x for x in r3 if not x[2]]
+            tq = sum(abs(float(le["qty"])) for x in sent for le in x[2] if le.get("qty") is not None)
+            rec_int = [x[0].get("intended_notional") for x in r3]
+            int_ok = all(v is not None and abs(float(v) - residual) <= 1e-6 * max(1.0, abs(residual)) for v in rec_int)
+            e["R3"] = {"residual_rule": residual, "recorded_intended": rec_int, "intended_consistent": int_ok, "expected_qty": (abs(float(exp_q)) if exp_q is not None else None),
+                       "rule_says_skip": rule_skip, "sent_total_qty": tq, "n_chunks_sent": len(sent), "arm_drawn": chase_arms.get(s), "under_stop": s in force_flat}
+            if sent:
+                ok = (not rule_skip) and exp_q is not None and abs(tq - abs(float(exp_q))) <= max(step, 1e-9) and int_ok and chase_arms.get(s) != "no_chase" and s not in force_flat
                 verdicts.append("R3_consistent" if ok else "R3_lifecycle_unexplained")
-                if not ok: diffs.append("R3:" + ",".join(k for k, v in (("qty", qok), ("side", sok), ("reduce_only", rok), ("rule", aok)) if not v))
-                e["R3"].update(sent_total_qty_signed=tq, qty_ok=qok, side_ok=sok, reduce_only_ok=rok, rule_ok=aok)
-        for r in rows3:
-            if r.get("request_ledger"): continue
-            tr = r.get("terminal_reason")
-            if tr == "skipped_min_notional": ok = rule_skip and int_ok
-            elif tr == "skipped_no_chase_arm": ok = chase_arms_recorded and chase_arms.get(s) == "no_chase" and int_ok
-            elif tr == "skipped_stop_maker_only": ok = s in force_flat
-            else: ok = None
-            if ok is True: verdicts.append("R3_skip_consistent")
-            elif ok is False: verdicts.append(f"R3_skip_unexplained:{tr}"); diffs.append(f"R3_skip:{tr}")
-            else: verdicts.append(f"R3_skip:{tr}"); unmeas.append(f"topup_skip_unverifiable:{tr}")
-        # ---- one class per plan ----
-        if missing: e["plan_class"] = "MISSING_REQUEST"
-        elif diffs: e["plan_class"] = "MEASURED_DIFFERENT"
-        elif e.get("R1", {}).get("ledger_qty_signed") is not None or e.get("R2") or ("sent_total_qty_signed" in e["R3"]): e["plan_class"] = "MEASURED_EQUAL"
-        elif unmeas: e["plan_class"] = "UNMEASURABLE:" + unmeas[0]
-        else: e["plan_class"] = "UNMEASURABLE:no_quantity_evidence"
-    for x in ents:
-        if not x.get("cls"): x["cls"] = "UNEXPLAINED:unclassified_request"; REQ_CLS["UNEXPLAINED:unclassified_request"] += 1
-        e["requests"].append({"cid": x["cid"], "seq": x["seq"], "qty": x["qty"], "class": x["cls"]})
-    PLAN_CLS[e["plan_class"]] += 1
-    e["diffs"] = diffs; e["unmeasurable"] = unmeas; e["missing"] = missing; e["verdicts"] = verdicts
+            for x in skipped:
+                tr = x[1]["terminal_reason"]
+                if tr == "skipped_min_notional": verdicts.append("R3_skip_consistent" if (rule_skip and int_ok) else "R3_skip_unexplained:min_notional")
+                elif tr == "skipped_no_chase_arm": verdicts.append("R3_skip_consistent" if (chase_arms_recorded and chase_arms.get(s) == "no_chase" and int_ok) else ("R3_skip_unexplained:no_chase_arm" if chase_arms_recorded else "R3_skip_unverifiable:no_arm_record"))
+                elif tr == "skipped_stop_maker_only": verdicts.append("R3_skip_consistent" if s in force_flat else "R3_skip_unexplained:stop")
+                else: verdicts.append(f"R3_skip:{tr}")
+    for why, rec in other: verdicts.append(f"unexplained_request:{why}")
+    e["verdicts"] = verdicts
     for v in verdicts: cat[v] += 1
     cmp.append(e)
-# ── the two population identities: nothing may fall outside a class ──
-n_plans = len(plans_A); n_plan_classified = sum(PLAN_CLS.values())
-n_sym_no_plan = sum(1 for e in cmp if e.get("plan_class") is None)
-n_req_classified = sum(REQ_CLS.values())
-ident_plan = (n_plan_classified + n_sym_no_plan >= n_plans) and all(e.get("plan_class") or e["plan"] is None for e in cmp)
-ident_req = (n_req_classified >= n_ledger_entries)
 n_plan_sent = sum(1 for p in plans_A if not p.get("skip"))
-n_measured_equal = PLAN_CLS["MEASURED_EQUAL"]; n_measured_diff = PLAN_CLS["MEASURED_DIFFERENT"]; n_missing_req = PLAN_CLS["MISSING_REQUEST"]
-n_unmeasurable = sum(v for k, v in PLAN_CLS.items() if k.startswith("UNMEASURABLE") or k == "SKIP_NO_ROW")
-n_skip_ok = PLAN_CLS["SKIP_VERIFIED"]; n_skip_bad = PLAN_CLS["SKIP_MISMATCH"]
-n_req_unexplained = sum(v for k, v in REQ_CLS.items() if k.startswith("UNEXPLAINED"))
-n_R1_exact = cat["R1_exact"]; n_R1_reject = cat["R1_reject_no_qty_evidence"]
-n_R1_mismatch = cat["R1_MISMATCH"] + cat["R1_MISSING"]
-n_unexpl = n_measured_diff + n_missing_req + n_skip_bad + n_req_unexplained
+n_R1_exact = cat["R1_exact"]; n_R1_reject = cat["R1_reject_no_qty_evidence"]; n_R1_mismatch = cat["R1_MISMATCH"] + cat["R1_MISSING"]
+n_unexpl = sum(v for k, v in cat.items() if k.startswith("unexplained_request") or k.startswith("R3_lifecycle_unexplained") or k.startswith("R3_skip_unexplained") or k.endswith("_MISMATCH") or k.startswith("skip_MISMATCH") or k == "skip_MISSING_ROW")
 n_rows = len(od)
 summary = {"n_symbols_compared": len(cmp), "n_order_rows": n_rows, "n_plan_sent": n_plan_sent, "n_plan_skipped": len(plans_A) - n_plan_sent,
-           "n_ledger_entries": n_ledger_entries, "n_quantity_comparisons": n_qty_compared, "n_quantity_equal": n_qty_equal,
-           "plan_population": dict(PLAN_CLS), "request_population": dict(REQ_CLS),
-           "population_identity": {"n_plans": n_plans, "n_plan_classified": n_plan_classified, "n_symbols_without_plan": n_sym_no_plan,
-                                   "n_ledger_entries": n_ledger_entries, "n_request_classified": n_req_classified,
-                                   "plans_balance": bool(ident_plan), "requests_balance": bool(ident_req)},
            "R1_exact": n_R1_exact, "R1_reject_no_qty_evidence": n_R1_reject, "R1_intent_consistent_among_rejects": sum(1 for e in cmp if (e.get("R1") or {}).get("intent_consistent")),
            "R1_mismatch_or_missing": n_R1_mismatch, "R2_exact": cat["R2_exact"], "R2_no_qty_evidence": sum(v for k, v in cat.items() if k.startswith("R2_no_qty")),
-           "R3_consistent": cat["R3_consistent"] + cat["R3_skip_consistent"], "n_unexplained_or_mismatch": n_unexpl, "n_unmeasurable": n_unmeasurable,
-           # ★ R12-P1: a zero-measurement anchor can NEVER be "exact". 966 plans with 0 comparisons used to read True.
-           "all_measurable_exact": bool(n_qty_compared > 0 and n_unexpl == 0 and n_R1_mismatch == 0 and ident_plan and ident_req),
-           "complete_parity": bool(n_qty_compared > 0 and n_unexpl == 0 and n_R1_mismatch == 0 and n_R1_reject == 0 and n_unmeasurable == 0
-                                   and ident_plan and ident_req and A_ok == A_n and reshape_cmp["all_recorded_keys_equal"]),
+           "R3_consistent": cat["R3_consistent"] + cat["R3_skip_consistent"], "n_unexplained_or_mismatch": n_unexpl,
+           "all_measurable_exact": (n_unexpl == 0 and n_R1_mismatch == 0), "complete_parity": (n_unexpl == 0 and n_R1_mismatch == 0 and n_R1_reject == 0 and A_ok == A_n and reshape_cmp["all_recorded_keys_equal"]),
            "categories": dict(cat)}
-out = {"device": "pc1_intent_replay.py", "version": "v11", "utc": time.strftime("%FT%TZ", time.gmtime()), "anchor": A, "utc_anchor": U(A), "rebalance_id": rid, "status": "OK",
+out = {"device": "pc1_intent_replay.py", "version": "v10", "utc": time.strftime("%FT%TZ", time.gmtime()), "anchor": A, "utc_anchor": U(A), "rebalance_id": rid, "status": "OK",
        "executor_tree": {"label": tree_label, "dir": tree_dir, "rule": "production reflog HEAD at phase_A run time (assumption: no uncommitted working-tree edits before commit time)",
                          "run_time_utc": time.strftime("%FT%TZ", time.gmtime(run_ts)) if run_ts else None, "current_head_rev_parse": tree_sha_check},
        "inputs": {"eq_pre_from_phase_A": eq_pre, "sizing_gross": G, "gross_norm": gross_norm, "target_gross_recorded": G_norm, "n_targets": len(tgt_file["weights"]), "n_held_prev_readback": len(held),
@@ -432,7 +307,7 @@ out = {"device": "pc1_intent_replay.py", "version": "v11", "utc": time.strftime(
                                                         "pre-trade notional = orders.prev_w × target_gross (executor's own decision-time valuation); contracts from the previous post_anchor readback",
                                                         "top-up legs are checked for remaining-quantity consistency only (chunking/skip rules), not replayed end-to-end"]}
 json.dump(out, open(OUT, "w"), indent=1, default=str)
-print("P-C1 v11", U(A), rid, "tree", tree_label, "| eq_pre", eq_pre, "gross", G, "| targets", len(tgt_file["weights"]), "held", len(held), "untradable", len(untr), "dust", len(dust["names"]), "force_flat", len(force_flat))
+print("P-C1 v10", U(A), rid, "tree", tree_label, "| eq_pre", eq_pre, "gross", G, "| targets", len(tgt_file["weights"]), "held", len(held), "untradable", len(untr), "dust", len(dust["names"]), "force_flat", len(force_flat))
 print("book layer exact %d / %d (max |Δ| %.6f USDT) | reshape keys equal %d / %d mismatch %s not_replayed %s" % (A_ok, A_n, A_max, len(reshape_cmp["equal"]), len(rec_rs), list(reshape_cmp["mismatch"])[:6], reshape_cmp["not_replayed"][:6]))
 print("requests:", {k: summary[k] for k in ("n_order_rows", "n_plan_sent", "R1_exact", "R1_reject_no_qty_evidence", "R1_intent_consistent_among_rejects", "R1_mismatch_or_missing", "R2_exact", "R3_consistent", "n_unexplained_or_mismatch", "all_measurable_exact", "complete_parity")})
 print("categories:", dict(cat))

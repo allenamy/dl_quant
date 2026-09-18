@@ -6,6 +6,11 @@
 > ⑤ 历史锚 import 当前生产树而 `executor_tree=409ea16` 是硬写, 缺上一锚 phase_C 时默认空止损集, 冷却交叉核读错时间带恒为 None。
 > **v1–v6 正文与 §2/§6 表格原字节保留, 只作历史**; 「09-06→09-12 16Z 的差由老执行器版本导致」保留为**假设**, v10 按锚检出对应版本后重跑(见 §7)。
 
+> ⚠ **第二道作废横幅(2026-09-18 10:2xZ, 独立复审第十二轮 R12-P1 后; v11 出数见 §8)**: §7 的「33 锚可测全对」**撤回**——
+> 其中 **09-12 20Z、09-13 00Z / 04Z / 08Z 四锚一次数量比较都没有做**: 那四锚是停机锚, 每一行 `terminal_reason=blocked_by_halt` 且 `request_ledger` 为空, 合计 **966 张计划零测量**, v10 仍报 `all_measurable_exact=True`。
+> 另六个反例在同一绿基线上都得 `complete_parity=True`: ① 同一条 maker 行的**第二个**账本条目(合法前缀、阶段 99、数量 999999)——v10 只读 `request_ledger[0]`; ② maker 账本数量符号与方向相反——v10 比的是 `abs()`; ③ 清空一张 maker 账本并设未知终态; ④ 删掉全部补单行; ⑤ 补单应 buy 15 却 sell −15 且 `reduce_only=True`——v10 从不核补单方向; ⑥ 补单 15 写成 16(step 1)——v10 留了整整一手容差。
+> §7 的表与判词**原字节保留, 只作历史**; v11 用两个封闭人口 + 平衡恒等式重写验收(见 §8)。
+
 # FP3 P-C1 结果: 执行器书层作为纯函数, 在三个状态完整的新锚上**逐名、逐请求精确重现** — 2026-09-18
 
 > **创建:** 2026-09-18 07:5xZ | **Session:** b9646a9e(主研究员) | **状态:** 出数(三锚精确; 历史锚未做; P-C2/P-C3 未做) | **作废条件:** 执行器记录格式或书层代码变更(树 409ea16)
@@ -76,3 +81,46 @@ P-C1 再跑 08Z(本日后续锚自动成为新样本); 历史回补从 09-13 起
 - 09-10 前的锚需要另一套验收对象(无请求账本), 未设计;
 - 过滤器用当前 `exchange_info_cache.json`(33 锚全部标 `filters_assumed_current`), 历史快照未归档;
 - 意图 → 成交(拒单/部分成交/追单的生命周期)仍属 D/I, 本件只到「下单意图」。
+
+
+---
+
+## 8. v11: 两个封闭人口 + 平衡恒等式(2026-09-18 10:2xZ, 复审第十二轮 R12-P1)
+
+**装置** `FP3_devices/pc/pc1_intent_replay.py` v11(sha256 `6986c3f9d705d9af…`; 前身 v10 存 `FP3_devices/pc/archive/pc1_intent_replay_v10.py`), 运行器 `pc1_history.py` v3, 测试 `FP3_devices/pc/tests_pc1_v11.py` **26/26 ALL PASS**。
+**红控**: 同一套测试以 `PC1_DEV=archive/pc1_intent_replay_v10.py` 跑在前身上, §[8] 的八格**全部转红**——这套测试是有鉴别力的, 不是为凑绿加的格。
+
+### 8.1 验收对象改成两个封闭人口
+| 人口 | 类 | 说明 |
+|---|---|---|
+| **计划**(`plans_A` 每一条) | `MEASURED_EQUAL` / `MEASURED_DIFFERENT` / `MISSING_REQUEST` / `UNMEASURABLE:<原因>` / `SKIP_VERIFIED` / `SKIP_MISMATCH` / `SKIP_NO_ROW` | 每条计划**恰好**落一类 |
+| **请求**(每一条 `request_ledger` 条目) | `EXPLAINED` / `UNEXPLAINED:<原因>` | 每个条目**恰好**落一类 |
+
+收据里的 `population_identity` 同时报两边的平衡(`plans_balance` / `requests_balance`); 任何东西落在类之外就不平衡。
+
+### 8.2 六处逐条改法
+1. **零测量不再等于精确**: `all_measurable_exact` 现在**要求 `n_quantity_comparisons > 0`**。
+2. **每一个账本条目都比**, 不只 `request_ledger[0]`; 按 `client_id` 联接。
+3. **阶段号只认执行器能铸的** 1 / 2 / 3 / 3c<n>(`client_id_for`), 其余是 `UNEXPLAINED:attempt_index_not_mintable`。
+4. **数量带号比较**(v10 用 `abs()`), 补单逐块核**方向**与 **reduce_only**。
+5. **取消一手容差**: 按 step 取整后必须相等(1e−9)。
+6. **残差 ≥ 1e−9 却没有补单行**是 `MISSING_REQUEST`——执行器只在 `|residual| < 1e-9` 时省略该行(`binance_executor.topup` L1826), 这条边界写进了规则。
+
+### 8.3 重跑历史(51 锚, 09-10 00Z → 09-18 08Z)
+| 类 | 锚数 |
+|---|---|
+| OK 且书层逐名精确、可测全对 | **30** |
+| **OK 但零数量测量**(09-12 20Z / 09-13 00Z / 04Z / 08Z) | **4** |
+| REFUSED `UNAVAILABLE_REQUEST_LEDGER_SCHEMA` | 14 |
+| REFUSED `TREE_LACKS_FORCE_FLAT_WITH_STOPS` | 3 |
+
+计划人口合计: `MEASURED_EQUAL` **6,334** · `SKIP_VERIFIED` **1,096** · `UNMEASURABLE:not_sent:blocked_by_halt` **966** · `MEASURED_DIFFERENT` **0** · `MISSING_REQUEST` **0**。
+数量比较 **6,599 次, 相等 6,599 次**; 两个人口恒等式在 **34/34** 个可运行锚上都平衡; 首单 4,525 条精确、**0 条不符**, 另 1,809 条 −5022 拒单只有名义意图证据。
+
+**那 966 张计划是什么**: 四个停机锚(执行器 918559f)上每一行都是 `blocked_by_halt`、账本为空——什么都没发出, 也就什么都没测。v11 把它们记成 `UNMEASURABLE:not_sent:blocked_by_halt`, 四锚的 `all_measurable_exact` 全部为 **False**。复审说的「这不是 966 笔真实成交, 也不证明 966 张全下达」成立。
+
+### 8.4 还没做
+- 09-10 前的 14 锚没有逐请求账本, 仍拒测; 3 锚老树缺 `force_flat` 参数, 仍拒测。
+- `complete_parity` 在全部 34 个可运行锚上仍是 **0**: 真实锚都带 −5022 拒单(按构造无数量证据), 且停机锚有不可测计划。这是记录的边界, 不是通过。
+- 补单**分块数**(`split_for_market`)只记录不判词; 历史 `exchange_info_cache` 快照未归档, 34 锚全部标 `filters_assumed_current`。
+- 部署时间线仍按生产 `git reflog HEAD` 推断(复审第十二轮第 3 问判「无法判定历史成立」), 未用 `safe_commit` 前后文件 sha 佐证。
