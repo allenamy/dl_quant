@@ -1,0 +1,228 @@
+{
+ "receipt": "INCOME_PAGING_R15I1_COMPARE",
+ "utc": "2026-09-18T14:47:27Z",
+ "claim": "the v1 paged fetcher advanced its cursor to max(time)+1, so a FULL page ending inside one millisecond skipped the remainder of that millisecond. This is the same-millisecond loss the independent review demonstrated with a fake network fixture in round 15. Re-pulling the same five windows with the fixed device shows the loss was NOT hypothetical: it happened on the real account, in the windows already used for the cash reconciliation.",
+ "device_v2": {
+  "path": "docs/fixprogram_2026-09-13/FP3_devices/fetch_income_paged.py",
+  "sha256": "c37a23165e002b1ea2bacc0a6b855a7643f8bf0de52cba55bc66777f1f5ddf4d"
+ },
+ "device_v1_sha256": "0a35e55a561a1bf11afd... (superseded; kept for the record)",
+ "windows": [
+  {
+   "label": "0821_gap",
+   "startTime": 1787329180000,
+   "endTime": 1787343450000,
+   "v1_rows": 1106,
+   "v2_rows": 1112,
+   "v1_rows_missing_from_v2": 0,
+   "rows_recovered": 6,
+   "trades_recovered": 3,
+   "recovered_at_timestamps": [
+    1787343404000
+   ],
+   "v1_page_starts": [
+    1787329180000,
+    1787343404001
+   ],
+   "v2_page_starts": [
+    1787329180000,
+    1787343404000
+   ],
+   "v2_completeness": "COMPLETE",
+   "v2_boundary_rows_subtracted": 52,
+   "REALIZED_PNL_v1": 62.704834,
+   "REALIZED_PNL_v2": 64.818694,
+   "REALIZED_PNL_delta": 2.11386,
+   "COMMISSION_v1": -0.021087,
+   "COMMISSION_v2": -0.021227,
+   "COMMISSION_delta": -0.00014,
+   "recovered_symbols": {
+    "IOUSDT": 6
+   },
+   "v1_sha256": "a604c87939d42285e4ebe8ab10f565f5251ff7715b266eef72cd5b75547bf864",
+   "v2_sha256": "f92ee81c6fae7ad6f97883072a0a2bbcbe3b60b85a24a17d2a5f9c6a3291667e"
+  },
+  {
+   "label": "0826_gap",
+   "startTime": 1787733563000,
+   "endTime": 1787748600000,
+   "v1_rows": 2465,
+   "v2_rows": 2495,
+   "v1_rows_missing_from_v2": 0,
+   "rows_recovered": 30,
+   "trades_recovered": 15,
+   "recovered_at_timestamps": [
+    1787748456000,
+    1787748526000
+   ],
+   "v1_page_starts": [
+    1787733563000,
+    1787748456001,
+    1787748526001
+   ],
+   "v2_page_starts": [
+    1787733563000,
+    1787748456000,
+    1787748523000
+   ],
+   "v2_completeness": "COMPLETE",
+   "v2_boundary_rows_subtracted": 50,
+   "REALIZED_PNL_v1": 180.921217,
+   "REALIZED_PNL_v2": 217.37806,
+   "REALIZED_PNL_delta": 36.456843,
+   "COMMISSION_v1": -0.021295,
+   "COMMISSION_v2": -0.021741,
+   "COMMISSION_delta": -0.000446,
+   "recovered_symbols": {
+    "1INCHUSDT": 4,
+    "TAGUSDT": 2,
+    "ESPORTSUSDT": 2,
+    "1000RATSUSDT": 10,
+    "ACEUSDT": 10,
+    "MOVRUSDT": 2
+   },
+   "v1_sha256": "5bc944c84de97bf271f943e02dc355889fbf5957ea23b45941c5689bf2f4cdd1",
+   "v2_sha256": "9d82b4681861ea5644cde696d1ae13331c1781875de5dacaec8623fd90ff1bae"
+  },
+  {
+   "label": "bucket_0821T2017",
+   "startTime": 1787342520000,
+   "endTime": 1787344020000,
+   "v1_rows": 1020,
+   "v2_rows": 1036,
+   "v1_rows_missing_from_v2": 0,
+   "rows_recovered": 16,
+   "trades_recovered": 8,
+   "recovered_at_timestamps": [
+    1787343408000
+   ],
+   "v1_page_starts": [
+    1787342520000,
+    1787343408001
+   ],
+   "v2_page_starts": [
+    1787342520000,
+    1787343408000
+   ],
+   "v2_completeness": "COMPLETE",
+   "v2_boundary_rows_subtracted": 26,
+   "REALIZED_PNL_v1": 53.903739,
+   "REALIZED_PNL_v2": 66.752436,
+   "REALIZED_PNL_delta": 12.848697,
+   "COMMISSION_v1": -0.019954,
+   "COMMISSION_v2": -0.020418,
+   "COMMISSION_delta": -0.000464,
+   "recovered_symbols": {
+    "ONEUSDT": 12,
+    "RENDERUSDT": 4
+   },
+   "v1_sha256": "c83c8b217c202eb5c8186ee6f0e2ee9a2ecf1ea430e1c39f422faee9906f927e",
+   "v2_sha256": "3613af9f5c3d2b7256fdf35bcf891b49bfc961ff89b9bdd9c8d440c02e4a2648"
+  },
+  {
+   "label": "bucket_0826T1249",
+   "startTime": 1787747640000,
+   "endTime": 1787749140000,
+   "v1_rows": 1927,
+   "v2_rows": 1969,
+   "v1_rows_missing_from_v2": 0,
+   "rows_recovered": 42,
+   "trades_recovered": 21,
+   "recovered_at_timestamps": [
+    1787748490000
+   ],
+   "v1_page_starts": [
+    1787747640000,
+    1787748490001
+   ],
+   "v2_page_starts": [
+    1787747640000,
+    1787748490000
+   ],
+   "v2_completeness": "COMPLETE",
+   "v2_boundary_rows_subtracted": 2,
+   "REALIZED_PNL_v1": 186.19976,
+   "REALIZED_PNL_v2": 220.30416,
+   "REALIZED_PNL_delta": 34.1044,
+   "COMMISSION_v1": -0.019563,
+   "COMMISSION_v2": -0.019926,
+   "COMMISSION_delta": -0.000363,
+   "recovered_symbols": {
+    "OPUSDT": 4,
+    "STABLEUSDT": 8,
+    "JCTUSDT": 18,
+    "ALLOUSDT": 12
+   },
+   "v1_sha256": "081840e9675a16b780c390b9c2de5125d313d1979da6ae82ead3ec9b81ef0848",
+   "v2_sha256": "a39e81ea5cd7c1edfbf72cc9a86af7eabe63aee3f59049f6efecff04a2f6e5ae"
+  },
+  {
+   "label": "bucket_0906T0849",
+   "startTime": 1788683640000,
+   "endTime": 1788685140000,
+   "v1_rows": 4870,
+   "v2_rows": 5053,
+   "v1_rows_missing_from_v2": 0,
+   "rows_recovered": 183,
+   "trades_recovered": 93,
+   "recovered_at_timestamps": [
+    1788684417000,
+    1788684455000,
+    1788684477000,
+    1788684500000
+   ],
+   "v1_page_starts": [
+    1788683640000,
+    1788684417001,
+    1788684455001,
+    1788684477001,
+    1788684500001
+   ],
+   "v2_page_starts": [
+    1788683640000,
+    1788684417000,
+    1788684454000,
+    1788684473000,
+    1788684497000,
+    1788684510000
+   ],
+   "v2_completeness": "COMPLETE",
+   "v2_boundary_rows_subtracted": 141,
+   "REALIZED_PNL_v1": -1690.734662,
+   "REALIZED_PNL_v2": -1948.278522,
+   "REALIZED_PNL_delta": -257.54386,
+   "COMMISSION_v1": -16.318578,
+   "COMMISSION_v2": -17.002017,
+   "COMMISSION_delta": -0.683439,
+   "recovered_symbols": {
+    "VELVETUSDT": 10,
+    "AXSUSDT": 16,
+    "CLOUSDT": 63,
+    "ZBTUSDT": 4,
+    "EDGEUSDT": 45,
+    "MOVEUSDT": 45
+   },
+   "v1_sha256": "8a6c3441e37e920aae3edf2457093a775dda307de246d08c3cac8031163bf4e1",
+   "v2_sha256": "0fe89d9b31c5ec9ae78965b636d39f2ffc51e75bdd83888e0c77cbb42e08beb2"
+  }
+ ],
+ "four_symbol_attribution_unaffected": {
+  "income_0821_gap_paged": {
+   "n_v1": 22,
+   "n_v2": 22,
+   "identical": true
+  },
+  "income_0826_gap_paged": {
+   "n_v1": 10,
+   "n_v2": 10,
+   "identical": true
+  }
+ },
+ "what_this_does_and_does_not_show": [
+  "SHOWS: 277 income rows covering 187 venue trades were absent from the submitted receipts, every one of them at a millisecond that was exactly a v1 page boundary. Zero previously-held rows are missing from the new pulls.",
+  "SHOWS: the direction is the loss-making one on the largest bucket - 09-06 08:49 realized moves from -1690.7347 to -1948.2785, a 257.54 USDT understatement of the loss, about 15 percent of that bucket.",
+  "DOES NOT SHOW: that all other income is now complete. Only these five windows were re-pulled. Windows whose v1 pull had no full page were never exposed to this defect and are unchanged.",
+  "DOES NOT SHOW: any change to the ATOM / SNX / SCRT / STORJ attribution. Those rows are byte-identical across the old and new pulls and no recovered row touches those four names.",
+  "DOES NOT SHOW: a trading defect. This is a measurement defect in a read-only pull device."
+ ]
+}
