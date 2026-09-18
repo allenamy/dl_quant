@@ -23,14 +23,14 @@ window end is CENSORED (counted with its notional), never priced as 0. Fees = fi
 is NOT included. Approximations are recorded per anchor: fills valued at their boundary price (intra_row_approx, fill_px_vs_path), intent contracts
 converted at mid_at_anchor (mid_vs_path_price). A day total is only ever the sum over anchors with status OK, and says how many of six that is.
 usage: pc2_layer_decomposition.py <YYYYMMDD> <out.json>     (env FP3_LIVE_REPO / FP3_WS override the ledger roots for tests)"""
-import sys, os, json, time, hashlib, collections
+import sys, os, json, time, hashlib, collections, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pnl_path as PP
 
 DAY, OUT = sys.argv[1], sys.argv[2]
 d0 = int(time.mktime(time.strptime(DAY, "%Y%m%d")) - time.timezone); anchors = [d0 + 14400 * k for k in range(6)]
 panel = PP.Panel(); L = PP.LedgerDay(DAY)
-out = {"device": "pc2_layer_decomposition.py", "version": "v6 measured-readback closure + unknown gap carry + full fill population (pnl_path.py)", "utc": time.strftime("%FT%TZ", time.gmtime()), "day": DAY,
+out = {"device": "pc2_layer_decomposition.py", "version": "v6 measured-readback closure + unknown gap carry + full fill population + R15-M1 finiteness + R15-M2 day-boundary contract (pnl_path.py)", "utc": time.strftime("%FT%TZ", time.gmtime()), "day": DAY,
        "self_sha256": hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest(), "engine_sha256": hashlib.sha256(open(PP.__file__, "rb").read()).hexdigest(),
        "panel": {"path": panel.path, "sha256": panel.sha, "t_first": panel.t_first, "t_last": panel.t_last, "n_symbols": len(panel.syms)},
        "ledger_roots": {"repo": PP.REPO, "ws": PP.WS}, "anchors": []}
@@ -86,20 +86,38 @@ _dup = sorted(set(_wk) & set(_gk)); _all = _wk + _gk
 #   corrected fills is now measured against the FULL population of fills that fall inside a priced window or gap.
 _iv = [(float(r["t_decision"]), float(r["t_end"]), "window") for r in out["anchors"] if r.get("status") == "OK"] + \
       [(float(g["t_from"]), float(g["t_to"]), "gap") for g in gap_ok]
-_pop = set(); _pop_out = 0
+# ── R15-M2: DAY-BOUNDARY CONTRACT. Day D owns the half-open-low, closed-high interval (d0, d0+86400] — the SAME convention as the priced
+#    intervals (each gap (A, t_d) excludes its left endpoint; the last window [t_d5, A5+4h] includes d0+86400). A fill at EXACTLY midnight t==d0
+#    is the PREVIOUS day's (that day's last window closes at d0); a fill at t==d0+86400 is this day's. Every fill in the loaded ledger is
+#    attributed to exactly one of {previous day, this day, next day}. v5 mixed conventions: it counted `d0 <= t < d0+86400` (a [00,24) window) as
+#    "this day" while the priced intervals were (00,24], so a midnight fill landed in `_pop_out` yet `_pop_out` fed NO closure condition — a known
+#    out-of-interval fill stayed a footnote. Now this-day fills outside every priced interval BLOCK closure; a midnight fill is bound to the prev day.
+DAY_LO, DAY_HI = d0, d0 + 86400
+_pop = set(); _owned = []; _pop_out = 0; _pop_out_keys = []; _adj_prev = 0; _adj_next = 0
 for _r in L.fills:
     _t = float(_r["fill_ts"]); _k = (_r["symbol"], _r.get("trade_id"))
-    if any((lo < _t < hi) or (kind == "window" and lo <= _t <= hi) for lo, hi, kind in _iv): _pop.add(_k)
-    elif d0 <= _t < d0 + 86400: _pop_out += 1
+    if _t <= DAY_LO:
+        _adj_prev += 1; continue                                       # belongs to the PREVIOUS day (its last window closes at d0)
+    if _t > DAY_HI:
+        _adj_next += 1; continue                                       # belongs to the NEXT day
+    _owned.append(_k)                                                  # this day owns it under (d0, d0+86400]
+    if any((lo < _t < hi) or (kind == "window" and lo <= _t <= hi) for lo, hi, kind in _iv):
+        _pop.add(_k)
+    else:
+        _pop_out += 1; _pop_out_keys.append(_k)                        # owned by this day but no priced interval covers it — must block closure
 _missing = sorted(_pop - set(_all))
 out["day_fill_partition"] = {"n_corrected_in_windows": len(_wk), "n_corrected_in_gaps": len(_gk), "n_total": len(_all), "n_distinct": len(set(_all)),
                              "n_double_counted": len(_dup), "double_counted": [list(k) for k in _dup[:10]],
                              "n_population_in_priced_intervals": len(_pop), "n_population_not_corrected": len(_missing),
                              "population_not_corrected": [list(k) for k in _missing[:10]],
+                             "day_owns": "(d0, d0+86400]  (00 < t <= 24; a fill exactly at midnight is the previous day's)",
+                             "n_owned_current_day": len(_owned), "n_adjacent_prev_day": int(_adj_prev), "n_adjacent_next_day": int(_adj_next),
                              "n_day_fills_outside_every_priced_interval": int(_pop_out),
+                             "day_fills_outside_priced_intervals": [list(k) for k in _pop_out_keys[:10]],
+                             "owned_fill_keys": [list(k) for k in sorted(_owned)],   # R15-M2: for the cross-day conservation test (attributed exactly once)
                              "covers_population": not _missing,
                              "disjoint": not _dup, "no_repeat_within_side": len(_all) == len(set(_all)),
-                             "rule": "gap (A, t_d) ∪ window [t_d, t_end] is a partition of the corrected fills — R13-P2 (2): v4 used A < t <= t_d and t_d <= t <= t_end, so a fill exactly at t_d was corrected twice"}
+                             "rule": "gap (A, t_d) ∪ window [t_d, t_end] is a partition of the corrected fills — R13-P2 (2); R15-M2: the day owns (d0, d0+86400] (00<t<=24), a midnight fill is the prev day's, and a this-day fill outside every priced interval blocks closure"}
 # ── R13-P2 (5): what "the whole day" is allowed to claim. v4's `complete` only asked for 6 windows + 6 gaps and ignored censored names, missing
 #    start prices, the readback residual and the price-chain joins. The claim is renamed and every sub-condition is published beside it. ──
 _ok_recs = [r for r in out["anchors"] if r.get("status") == "OK"]
@@ -110,12 +128,25 @@ _resid_over = sum(r["unexplained_qty_residual"]["n_over_1usdt"] for r in _ok_rec
 _resid_unmeasured = sum(1 for r in _ok_recs if (r.get("unexplained_qty_residual") or {}).get("status") != "CHECKED")
 _resid_states = dict(collections.Counter((r.get("unexplained_qty_residual") or {}).get("status") for r in _ok_recs))
 _join_over = sum((r.get("price_chain_joins") or {}).get("n_over_1pct", 0) for r in _ok_recs)
+# ★ R15-M1: FINITENESS at the closure end. The pnl_path device censors a non-finite INPUT (q0 / reference notional / fill / carried qty / next
+#   readback) upstream, so it surfaces here as a censored name (no_censored_names) or a non-finite next readback. This condition additionally guards
+#   the PER-SEGMENT results and the DAY TOTALS: a NaN comparison is always False, so without an explicit finiteness gate a NaN priced_period_pnl
+#   would report a zero residual, a zero over-tolerance count and closed=True. `all(math.isfinite(...))` is True on an empty iterable, which is
+#   harmless because day_actual_full_day is None when n_ok == 0.
+_finite_totals = all(math.isfinite(x) for x in list(tot.values()) + [gap_pnl_sum, fill_corr_windows, gap_corr])
+_finite_windows = all(math.isfinite(v["pnl_usdt"]) for r in _ok_recs for v in r["layers"].values())
+_finite_gaps = all(math.isfinite(g["pnl_usdt"]) for g in gap_ok)
+_pnl_finite = _finite_totals and _finite_windows and _finite_gaps
+_resid_next_nonfinite = sum((r.get("unexplained_qty_residual") or {}).get("n_nonfinite_next_readback", 0) for r in _ok_recs)   # R15-M1
 _conds = {"six_windows_priced": n_ok == 6, "six_gaps_priced": len(gap_ok) == 6, "no_censored_names": _cens_names == 0,
           "readback_residual_measured": _resid_unmeasured == 0,                                   # R14-M1: unmeasured ≠ zero
           "no_readback_residual_over_1usdt": _resid_over == 0, "no_price_chain_join_over_1pct": _join_over == 0,
           "fills_partitioned": bool(out["day_fill_partition"]["disjoint"]) and bool(out["day_fill_partition"]["no_repeat_within_side"]),   # R14-M3
           "fill_population_covered": bool(out["day_fill_partition"]["covers_population"]),         # R14-M3: the union vs the full population
           "no_unknown_start_qty_in_gaps": sum(g.get("n_unknown_start_qty", 0) for g in gap_ok) == 0,   # R14-M2
+          "all_priced_pnl_finite": _pnl_finite,                                                   # R15-M1: per-segment results and day totals are finite
+          "readback_next_finite": _resid_next_nonfinite == 0,                                     # R15-M1: a non-finite next readback is not a clean zero residual
+          "no_current_day_fill_outside_priced_intervals": out["day_fill_partition"].get("n_day_fills_outside_every_priced_interval", 0) == 0,   # R15-M2
           "coverage_full_day": int(win_cov + gap_cov) == 86400}
 out["day_actual_full_day"] = {"windows_pnl_usdt": tot.get("L3_actual_path", 0.0), "gaps_pnl_usdt": gap_pnl_sum,
                               "priced_period_pnl_usdt": tot.get("L3_actual_path", 0.0) + gap_pnl_sum,
@@ -124,6 +155,9 @@ out["day_actual_full_day"] = {"windows_pnl_usdt": tot.get("L3_actual_path", 0.0)
                               "n_censored_names": int(_cens_names), "n_readback_residual_over_1usdt": int(_resid_over), "n_price_chain_joins_over_1pct": int(_join_over),
                               "n_windows_readback_unmeasured": int(_resid_unmeasured), "readback_residual_states": _resid_states,
                               "n_unknown_start_qty_in_gaps": int(sum(g.get("n_unknown_start_qty", 0) for g in gap_ok)),
+                              "all_priced_pnl_finite": bool(_pnl_finite), "n_nonfinite_next_readback": int(_resid_next_nonfinite),   # R15-M1
+                              "n_day_fills_outside_every_priced_interval": int(_pop_out),                                            # R15-M2
+                              "n_adjacent_prev_day_fills": int(_adj_prev), "n_adjacent_next_day_fills": int(_adj_next),              # R15-M2
                               "closure_conditions": _conds, "closed": all(_conds.values()),
                               "label": "研究口径的价格估计, 覆盖【已定价的时段与成员】; 不是当日现金账 —— closure_conditions 逐条说明缺什么",
                               "note": "R13-P2 (5): v4 called this `complete` on 6 windows + 6 gaps alone. It is now `closed` only when every condition above holds; "

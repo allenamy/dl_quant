@@ -403,6 +403,7 @@ assert len(_conds_stmt) == 1, "the closure condition assignment moved"
 def _eval_conds(part, **kw):
     env = {"n_ok": 6, "gap_ok": [{}] * 6,   # the predecessor has no _resid_unmeasured; harmless there
             "_cens_names": 0, "_resid_over": 0, "_resid_unmeasured": 0, "_join_over": 0,
+            "_pnl_finite": True, "_resid_next_nonfinite": 0,   # R15-M1 (a v5 predecessor without these names ignores them)
            "win_cov": 77400, "gap_cov": 9000, "out": {"day_fill_partition": part}}
     env.update(kw)
     exec(compile(_ast.Module(body=[_conds_stmt[0]], type_ignores=[]), DEV, "exec"), env)
@@ -428,6 +429,143 @@ check("P4 the page no longer titles the figure 「全日实际价格损益」; i
 check("P4b the page prints the readback states, the price-chain joins and the unknown-carry count beside it — and still calls the returns SCENARIOS",
       "回读残差状态" in _src4 and "只有 CHECKED 才算测过" in _src4 and "只对账, 不加进损益" in _src4 and "持仓未知" in _src4 and "情景" in _src4,
       {"rb": "回读残差状态" in _src4, "join": "只对账, 不加进损益" in _src4, "unknown": "持仓未知" in _src4})
+
+# ───────────────────────── [Q] round 15 R15-M1 (finiteness) + R15-M2 (day-boundary contract) ─────────────────────────
+print("[Q] round 15 — a non-finite value is UNAVAILABLE not a clean zero; every fill is bound to ONE day-boundary contract, not left a closure footnote")
+import math as _math
+
+
+def _writel_q(p, rows):
+    os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "w").write("".join(json.dumps(r) + "\n" for r in rows))
+
+
+def build_full_day(name, *, nan_readback_k=None, mid_fill=None, extra_fills=(), run_days=(DAY,)):
+    """A synthetic full 24h day: 6 windows, 6 gaps, flat prices, a held AUSDT position at every anchor — it CLOSES. Mutations expose the round-15
+    defects. Runs the REAL device as a subprocess for each day in run_days (nothing mocked) and returns {day: parsed json}."""
+    root = os.path.join(SCR, name); shutil.rmtree(root, ignore_errors=True)
+    repo = f"{root}/dl_quant_live"; ws = f"{root}/wide_shadow"; nan = float("nan"); os.makedirs(f"{repo}/state", exist_ok=True)
+    log = []; anchors_by_day = {}
+    for k in range(-1, 6):                                # phase_A + anchors for the prev-day-last run (gap-0 carry) and the six day runs
+        Ak = A + 14400 * k; rid = f"R{k}"
+        pa = {"anchor_ts": Ak, "external_wait": {"nominal_anchor_ts": Ak}, "rebalance_id": rid, "sizing": {"gross": 1000.0, "nav": 500.0}}
+        log.append(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(Ak + 1500)) + " phase_A: " + json.dumps(pa))
+        anchors_by_day.setdefault(time.strftime("%Y%m%d", time.gmtime(Ak)), []).append({"rebalance_id": rid, "target_gross": 1000.0, "external_book": {"gross_norm": 1.0}})
+    open(f"{repo}/state/anchor_runs.log", "w").write("\n".join(log) + "\n")
+    rb_by_day = {}
+    for k in range(-2, 7):                                # AUSDT held 10 (mark 100) at every anchor ⇒ each window has a reference AND a next readback
+        Ak = A + 14400 * k; q = nan if k == nan_readback_k else 10.0; n = nan if k == nan_readback_k else 1000.0
+        rb_by_day.setdefault(time.strftime("%Y%m%d", time.gmtime(Ak)), []).append(
+            {"symbol": "AUSDT", "anchor_ts": Ak + 1441.0, "read_ts": Ak + 2700.0, "source": "fapi/v3/account@post_anchor", "held": True, "targeted": True,
+             "venue_position_qty": q, "venue_position_notional": n})
+    fills_by_day = {}; syms = ["AUSDT"]
+    if mid_fill is not None:                              # a name bought at mid_fill['t'] and held: readbacks 0 before, qty after ⇒ reconciles cleanly
+        msym = mid_fill["symbol"]; mt = mid_fill["t"]; syms.append(msym)
+        for k in range(-2, 7):
+            Ak = A + 14400 * k; held = mid_fill["qty"] if Ak >= mt else 0.0
+            rb_by_day.setdefault(time.strftime("%Y%m%d", time.gmtime(Ak)), []).append(
+                {"symbol": msym, "anchor_ts": Ak + 1441.0, "read_ts": Ak + 2700.0, "source": "fapi/v3/account@post_anchor", "held": bool(held), "targeted": True,
+                 "venue_position_qty": float(held), "venue_position_notional": float(held) * mid_fill["px"]})
+        fills_by_day.setdefault(time.strftime("%Y%m%d", time.gmtime(mt)), []).append(
+            {"anchor_ts": mt, "symbol": msym, "side": "buy", "order_type": "maker", "attempt_idx": 1, "fill_ts": mt, "fill_px": mid_fill["px"],
+             "fill_notional": mid_fill["px"] * mid_fill["qty"], "rebalance_id": "RX", "trade_id": mid_fill.get("trade_id", 777), "commission": 0.0, "commission_asset": "USDT"})
+    for f in extra_fills:                                 # fills used only for the day-boundary/conservation tests (classification is by timestamp)
+        if f["symbol"] not in syms: syms.append(f["symbol"])
+        fills_by_day.setdefault(time.strftime("%Y%m%d", time.gmtime(f["t"])), []).append(
+            {"anchor_ts": f["t"], "symbol": f["symbol"], "side": f.get("side", "buy"), "order_type": "maker", "attempt_idx": 1, "fill_ts": f["t"], "fill_px": f["px"],
+             "fill_notional": f["px"] * f["qty"], "rebalance_id": "RX", "trade_id": f["trade_id"], "commission": 0.0, "commission_asset": "USDT"})
+    for d in set(time.strftime("%Y%m%d", time.gmtime(A + 14400 * k)) for k in range(-8, 13)):
+        _writel_q(f"{repo}/state/live/pilot_log/{d}/anchors.jsonl", anchors_by_day.get(d, []))
+        _writel_q(f"{repo}/state/live/pilot_log/{d}/orders.jsonl", [])
+        _writel_q(f"{repo}/state/live/pilot_log/{d}/position_readback.jsonl", rb_by_day.get(d, []))
+        _writel_q(f"{repo}/state/live/pilot_log/{d}/fills.jsonl", fills_by_day.get(d, []))
+    os.makedirs(f"{ws}/state/target_live", exist_ok=True); os.makedirs(f"{ws}/fea171", exist_ok=True)
+    for k in range(0, 6):
+        json.dump({"anchor_ts": A + 14400 * k, "weights": {"AUSDT": 1.0}}, open(f"{ws}/state/target_live/{A + 14400 * k}.json", "w"))
+    np.savez(f"{ws}/fea171/xfer_syms.npz", symbols=np.array(syms))
+    ts = np.arange(A - 8 * 3600 - 28800, A + 86400 + 7200 + 300, 300, dtype=np.int64)
+    np.savez(f"{ws}/state/rolling.npz", ts=ts, data=np.zeros((len(ts), len(syms), 1), np.float64))
+    res = {}
+    for d in run_days:
+        out = f"{root}/out_{d}.json"
+        r = subprocess.run([sys.executable, DEV, d, out], capture_output=True, text=True, env={**os.environ, "FP3_LIVE_REPO": repo, "FP3_WS": ws})
+        open(f"{root}/run_{d}.log", "w").write(r.stdout + r.stderr); assert r.returncode == 0, (name, d, r.stderr[-800:])
+        res[d] = json.load(open(out))
+    return res
+
+
+# Q0 — positive control: the full day closes with closed=True and a FINITE priced-period P&L (the base every round-15 red control mutates ONE thing from)
+_q0 = build_full_day("q_fullday_baseline")[DAY]; _fa0 = _q0["day_actual_full_day"]
+check("Q0 positive control: a full 24h day (6 windows, 6 gaps, flat prices, a held position) closes with closed=True and finite P&L, incl. the round-15 conditions",
+      _fa0["closed"] is True and _fa0["priced_period_pnl_usdt"] == 0.0 and set(_fa0["closure_conditions"]) >=
+      {"all_priced_pnl_finite", "readback_next_finite", "no_current_day_fill_outside_priced_intervals"}, _fa0["closure_conditions"])
+
+# Q1 (R15-M1) — a NaN readback quantity used as a window's q0: v6 kept closed=True with a NaN day P&L; now the name is CENSORED and the day refuses, finitely.
+_q1 = build_full_day("q_nan_readback", nan_readback_k=2)[DAY]; _fa1 = _q1["day_actual_full_day"]
+check("Q1 a NaN carried quantity is CENSORED (nonfinite_start_qty), never a clean 0: closed=False AND the priced-period P&L is FINITE (v6: it was NaN with closed=True)",
+      _fa1["closed"] is False and _math.isfinite(_fa1["priced_period_pnl_usdt"]) and _fa1["closure_conditions"]["no_censored_names"] is False,
+      {"closed": _fa1["closed"], "pnl": _fa1["priced_period_pnl_usdt"], "n_censored": _fa1["n_censored_names"]})
+
+# Q2 (R15-M1) — a NaN readback used ONLY as a next-readback (the last one, never any window's q0): no name is censored and totals stay finite, yet closure must refuse.
+_q2 = build_full_day("q_nan_next", nan_readback_k=6)[DAY]; _fa2 = _q2["day_actual_full_day"]
+check("Q2 a NaN NEXT readback is not a clean zero residual: readback_next_finite is False and the day refuses even though no name is censored and every total is finite",
+      _fa2["closed"] is False and _fa2["closure_conditions"]["readback_next_finite"] is False
+      and _fa2["closure_conditions"]["no_censored_names"] is True and _fa2["closure_conditions"]["all_priced_pnl_finite"] is True, _fa2["closure_conditions"])
+
+# Q3 (R15-M1) — the gap carry the reviewer flagged (pnl_path.py lines 513-516), exercised directly: a NaN carried qty_end is DISTINCT from unknown_start_qty.
+class _MiniPanelN:
+    t_last = A + 14400
+    def index(self, s, ref, lo, hi): return {b: 1.0 for b in range(lo, hi + 1, 300)}
+class _MiniLedgerN:
+    fills = []
+    def flattens(self, *a): return []
+_prev_nan = {"status": "OK", "per_name_layers": {"L3_actual_path": {"NANC": {"qty_end": float("nan")}}}, "per_name": {"NANC": {"status": "OK", "px_b1": 100.0}}}
+_gN = PP.gap_pnl(_MiniLedgerN(), _MiniPanelN(), A, A + 1500, _prev_nan)
+check("Q3 a non-finite carried qty_end is censored `nonfinite_carried_qty` (its own reason, distinct from unknown_start_qty) and priced nothing (v6: the NaN entered the path with q_known True)",
+      _gN["censored"]["n"] == 1 and (_gN["censored"].get("why") or {}).get("nonfinite_carried_qty") == 1 and _gN["n_priced"] == 0
+      and _gN.get("n_unknown_start_qty", 0) == 0 and _gN.get("n_nonfinite_carried", 0) == 1, {k: _gN.get(k) for k in ("status", "n_priced", "censored", "n_nonfinite_carried")})
+
+# Q4 (R15-M1) — the closure expression itself (evaluated, not string-matched): a non-finite total or a non-finite next readback breaks closure; controls are green.
+_nan_tot = _eval_conds({"disjoint": True, "no_repeat_within_side": True, "covers_population": True}, _pnl_finite=False)
+check("Q4 a non-finite priced P&L breaks `all_priced_pnl_finite` — the per-segment results and day totals are guarded, not just the inputs", _nan_tot.get("all_priced_pnl_finite") is False, _nan_tot)
+_nan_next = _eval_conds({"disjoint": True, "no_repeat_within_side": True, "covers_population": True}, _resid_next_nonfinite=1)
+check("Q4b a non-finite next readback breaks `readback_next_finite`", _nan_next.get("readback_next_finite") is False, _nan_next)
+_fin_green = _eval_conds({"disjoint": True, "no_repeat_within_side": True, "covers_population": True})
+check("Q4c CONTROL: finite totals and finite next readbacks ⇒ both finiteness conditions True", _fin_green.get("all_priced_pnl_finite") is True and _fin_green.get("readback_next_finite") is True, _fin_green)
+
+# Q5 (R15-M2) — a fill exactly at midnight t==d0 is bound to the PREVIOUS day under the stated (00,24] contract, not left as a closure footnote.
+_q5 = build_full_day("q_midnight", mid_fill={"symbol": "MIDUSDT", "t": A, "px": 100.0, "qty": 5.0})[DAY]; _dfp5 = _q5["day_fill_partition"]
+check("Q5 a midnight fill (t==d0) is attributed to the PREVIOUS day: n_adjacent_prev_day 1, NOT owned by this day, n_day_fills_outside 0 (v6: it was a this-day out-of-interval footnote with closed untouched)",
+      _dfp5["n_adjacent_prev_day"] == 1 and _dfp5["n_owned_current_day"] == 0 and _dfp5["n_day_fills_outside_every_priced_interval"] == 0
+      and "d0, d0+86400" in _dfp5["day_owns"] and _q5["day_actual_full_day"]["closed"] is True, _dfp5)
+
+# Q6 (R15-M2) — a this-day fill outside every priced interval must BLOCK closure (v6: `_pop_out` fed no condition at all).
+_out_blocks = _eval_conds({"disjoint": True, "no_repeat_within_side": True, "covers_population": True, "n_day_fills_outside_every_priced_interval": 1})
+check("Q6 a this-day fill outside every priced interval breaks `no_current_day_fill_outside_priced_intervals` — a known out-of-interval fill is no longer a footnote",
+      _out_blocks.get("no_current_day_fill_outside_priced_intervals") is False, _out_blocks)
+_out_ok = _eval_conds({"disjoint": True, "no_repeat_within_side": True, "covers_population": True, "n_day_fills_outside_every_priced_interval": 0})
+check("Q6b CONTROL: zero this-day out-of-interval fills ⇒ the condition is True", _out_ok.get("no_current_day_fill_outside_priced_intervals") is True, _out_ok)
+
+# Q7 (R15-M2) — CONSERVATION across two ADJACENT days: every fill in the union is attributed to EXACTLY ONE day.
+_ef = [{"symbol": "AUSDT", "t": A - 43200, "px": 100.0, "qty": 1.0, "trade_id": 8001},   # prev-interior
+       {"symbol": "AUSDT", "t": A,         "px": 100.0, "qty": 1.0, "trade_id": 8002},    # midnight boundary (prev day owns it)
+       {"symbol": "AUSDT", "t": A + 43200, "px": 100.0, "qty": 1.0, "trade_id": 8003},    # this-interior
+       {"symbol": "AUSDT", "t": A + 86400, "px": 100.0, "qty": 1.0, "trade_id": 8004}]    # next midnight (this day owns it, closed-high)
+_cons = build_full_day("q_conservation", extra_fills=_ef, run_days=(PRV, DAY))
+_own_D = {tuple(k) for k in _cons[DAY]["day_fill_partition"]["owned_fill_keys"]}
+_own_P = {tuple(k) for k in _cons[PRV]["day_fill_partition"]["owned_fill_keys"]}
+_keys = {("AUSDT", 8001), ("AUSDT", 8002), ("AUSDT", 8003), ("AUSDT", 8004)}
+check("Q7 the two adjacent days own DISJOINT fill sets and together attribute every fill in the union EXACTLY ONCE",
+      (_own_D & _own_P) == set() and all(((k in _own_D) + (k in _own_P)) == 1 for k in _keys), {"prev": sorted(_own_P & _keys), "day": sorted(_own_D & _keys)})
+check("Q7b the midnight fill (t==d0) belongs to the PREVIOUS day, not this day ((00,24] convention)",
+      ("AUSDT", 8002) in _own_P and ("AUSDT", 8002) not in _own_D, {"in_prev": ("AUSDT", 8002) in _own_P, "in_day": ("AUSDT", 8002) in _own_D})
+check("Q7c next-midnight (t==d0+86400) and this-interior belong to THIS day; prev-interior to the PREVIOUS day",
+      ("AUSDT", 8004) in _own_D and ("AUSDT", 8003) in _own_D and ("AUSDT", 8001) in _own_P, {"day": sorted(_own_D & _keys), "prev": sorted(_own_P & _keys)})
+
+# Q8 — the device PUBLISHES the day-boundary contract and the adjacency populations it now binds attribution to (not just a bare footnote count).
+check("Q8 the device publishes the day-boundary contract, the owned/adjacent populations and the round-15 finiteness evidence",
+      set(_q5["day_fill_partition"]) >= {"day_owns", "n_owned_current_day", "n_adjacent_prev_day", "n_adjacent_next_day", "owned_fill_keys"}
+      and set(_fa0) >= {"all_priced_pnl_finite", "n_nonfinite_next_readback", "n_day_fills_outside_every_priced_interval", "n_adjacent_prev_day_fills"},
+      {"dfp": sorted(_q5["day_fill_partition"]), "fa": sorted(_fa0)})
 
 check("Z baseline was green before the red cases were read", baseline_green)
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")

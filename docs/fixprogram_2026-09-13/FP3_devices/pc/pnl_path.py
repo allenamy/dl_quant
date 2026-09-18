@@ -57,6 +57,20 @@ def ceil_b(t):
     return int(math.ceil(float(t) / ROW) * ROW)
 
 
+def _finite(*xs):
+    """R15-M1: True iff every argument is a finite real number. A non-finite quantity / price / notional must never enter the pricing state as a clean
+    value — NaN comparisons are always False, so a NaN would report a ZERO residual, a ZERO over-tolerance count and a NaN day P&L while closure stays
+    True. Used to CENSOR such a name with a named reason at BOTH the window (q0, reference notional, fill/flatten values, next-readback) and the gap
+    (carried end quantity, fill/flatten values) entry points, never priced as a clean 0."""
+    for x in xs:
+        try:
+            if not math.isfinite(float(x)):
+                return False
+        except (TypeError, ValueError):
+            return False
+    return True
+
+
 def rows(day, name):
     f = f"{P}/{day}/{name}.jsonl"
     return [json.loads(l) for l in open(f) if l.strip()] if os.path.exists(f) else []
@@ -318,12 +332,29 @@ def window_pnl(L, panel, A, window_end=None, px_chain=None):
             ev[r["symbol"]].append((ceil_b(float(r["read_ts"])), "set", float(r["venue_position_qty"] or 0.0), float(r["read_ts"]), None, None))
     syms = set(prev) | set(first) | set(L0n or {}) | set(ev)
     layers = {"L0_producer": {}, "L1_executor_target": {}, "L2_request_intent": {}, "L2_cut_at_flatten": {}, "L3_actual_path": {}}
-    per = {}; cens = {k: {"n": 0, "notional": 0.0} for k in layers}; mid_dev = []; resid = []; n_intra = 0; n_pre = n_in = n_post = 0; n_cut = 0
+    per = {}; cens = {k: {"n": 0, "notional": 0.0} for k in layers}; mid_dev = []; resid = []; n_intra = 0; n_pre = n_in = n_post = 0; n_cut = 0; n_nf_next = 0
     fill_corr_total = 0.0; n_fp_corr = 0; corr_keys = []
     chain = px_chain if px_chain is not None else {}                  # R13-P2 (1): the day's carried price reference, mutated in place
     joins = []; n_reset = collections.Counter()
     for s in sorted(syms):
         r0 = prev.get(s); q0 = float(r0["venue_position_qty"]) if r0 else 0.0
+        # ── R15-M1: LEDGER finiteness gate. A non-finite carried quantity, reference notional or fill/flatten value cannot enter the pricing state;
+        #    the name is CENSORED with a named reason (distinct from a missing panel row) rather than priced as a clean 0 whose NaN then poisons the
+        #    residual (a NaN reads as a zero difference), the over-tolerance count and the whole day total while closure stays True.
+        nonfin = None
+        if not _finite(q0):
+            nonfin = "nonfinite_start_qty"
+        elif r0 and q0 and not _finite(r0.get("venue_position_notional")):
+            nonfin = "nonfinite_reference_notional"
+        else:
+            for _e in ev.get(s, []):
+                if not _finite(_e[2]) or (_e[1] == "fill" and _e[4] is not None and not _finite(_e[4])):
+                    nonfin = "nonfinite_event_value"; break
+        if nonfin:
+            for k in layers:
+                cens[k]["n"] += 1                       # a non-finite input makes the notional untrustworthy: count the name, add no notional
+            per[s] = {"status": "CENSORED", "why": nonfin, "q0": (q0 if _finite(q0) else None)}
+            continue
         # reference price: previous readback mark at its boundary; else the first fill; else the orders row mid at b0
         ref = None
         if r0 and q0:
@@ -416,7 +447,9 @@ def window_pnl(L, panel, A, window_end=None, px_chain=None):
                 if t <= t_chk:
                     q_chk = q_chk + v if k == "fill" else v
             qn = float(rn["venue_position_qty"]) if rn is not None else 0.0; dq = q_chk - qn
-            if abs(dq) > 0:
+            if not _finite(dq):
+                n_nf_next += 1                                                      # R15-M1: a non-finite next readback cannot reconcile — flagged, never a clean zero difference
+            elif abs(dq) > 0:
                 resid.append((s, dq, dq * px_abs[b1]))
         for _j in joins:                                             # the join's POSITION VALUE difference, now that the starting quantity is known
             if _j["symbol"] == s and _j["qty_at_join"] is None:
@@ -444,7 +477,7 @@ def window_pnl(L, panel, A, window_end=None, px_chain=None):
                fill_px_vs_path={"n": len(fill_dev), "max_abs_rel": max((abs(x[1]) for x in fill_dev), default=None), "median_abs_rel": float(np.median([abs(x[1]) for x in fill_dev])) if fill_dev else None},
                reference_readback={"runs": [time.strftime("%m-%d %HZ", time.gmtime(a)) for a in prev_runs], "n_names": len(prev), "n_stale_over_4h40m": n_stale, "t_earliest_read": t_prev_read},
                next_readback={"available": bool(nxt), "n_names": len(nxt), "t_latest_read": (t_next_read if nxt else None)},
-               unexplained_qty_residual={"status": ("CHECKED" if nxt else "UNAVAILABLE_no_readback_after_window"), "n_names": len(resid), "n_over_1usdt": sum(1 for x in resid if abs(x[2]) > 1.0), "abs_notional_sum": float(sum(abs(x[2]) for x in resid)),
+               unexplained_qty_residual={"status": ("CHECKED" if nxt else "UNAVAILABLE_no_readback_after_window"), "n_names": len(resid), "n_over_1usdt": sum(1 for x in resid if abs(x[2]) > 1.0), "abs_notional_sum": float(sum(abs(x[2]) for x in resid)), "n_nonfinite_next_readback": int(n_nf_next),
                                          "top": sorted([(s, round(dq, 6), round(v, 2)) for s, dq, v in resid], key=lambda x: -abs(x[2]))[:10], "next_readback_names": len(nxt),
                                          "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"},
                price_chain_joins={"n_names_compared": len(joins), "n_over_1pct": sum(1 for j in joins if j["rel"] is not None and abs(j["rel"]) > 0.01),
@@ -511,20 +544,36 @@ def gap_pnl(L, panel, A, t_d, prev_rec, px_chain=None):
         #   UNKNOWN means the previous window KNEW about the name and could not give its end quantity: it censored the name, or priced it without
         #   `qty_end`. A name the previous window never saw at all is genuinely new and starts at zero — that is a fact, not a gap.
         _qe = (v or {}).get("qty_end")
+        # ★ R15-M1: a non-finite carried end quantity is UNKNOWN in a DISTINCT way from `unknown_start_qty` (an unseen name) — it is a CORRUPTED carry
+        #   and must not enter the pricing state as a clean value. It is censored `nonfinite_carried_qty`. This guards the exact carry the reviewer
+        #   flagged: `_qe` passing `is not None` while being NaN made q_known True and q_end NaN, so `q_end == 0.0` was False and every later
+        #   over-tolerance comparison was False — a NaN day P&L with closure still True.
+        _qe_bad = (_qe is not None) and (not _finite(_qe))
         _prev_knew = (v is not None) or (s_ in prev_cens)
-        q_known = (not _prev_knew) or ((v is not None) and (_qe is not None) and (s_ not in prev_cens))
-        q_end = float(_qe) if (v is not None and _qe is not None) else 0.0
-        px_ref = float((prev_names.get(s_) or {}).get("px_b1") or 0.0); ref_b = b_lo; ref_src = "prev_window_end"
+        q_known = (not _prev_knew) or ((v is not None) and (_qe is not None) and (not _qe_bad) and (s_ not in prev_cens))
+        q_end = float(_qe) if (v is not None and _qe is not None and not _qe_bad) else 0.0
+        _ev_bad = any((not _finite(e[2])) or (e[1] == "fill" and e[4] is not None and not _finite(e[4])) for e in ev.get(s_, []))
+        _pxb1 = (prev_names.get(s_) or {}).get("px_b1")
+        px_ref = float(_pxb1) if (_pxb1 is not None and _finite(_pxb1)) else 0.0; ref_b = b_lo; ref_src = "prev_window_end"
         if not px_ref:                                                     # no previous priced end: the day chain, else this gap's first fill price
             ch = chain.get(s_)
             if ch is not None and panel.index(s_, int(ch["b"]), min(int(ch["b"]), b_lo), b_hi) is not None:
                 px_ref = float(ch["px"]); ref_b = int(ch["b"]); ref_src = "day_chain"
             else:
-                f0 = sorted([e for e in ev.get(s_, []) if e[1] == "fill" and e[4]], key=lambda e: e[3])
+                f0 = sorted([e for e in ev.get(s_, []) if e[1] == "fill" and e[4] and _finite(e[4])], key=lambda e: e[3])
                 if f0: px_ref = float(f0[0][4]); ref_b = int(f0[0][0]); ref_src = "first_fill_px"
-        if q_end == 0.0 and not ev.get(s_) and s_ not in prev_cens and q_known:
+        if q_end == 0.0 and not ev.get(s_) and s_ not in prev_cens and q_known and not _qe_bad:
             continue                                                       # nothing carried and nothing happened: no gap exposure
         n_carried += 1
+        if _qe_bad:                                                        # R15-M1: corrupted carry — its OWN reason, distinct from unknown_start_qty
+            cens["n"] += 1; cens["why"]["nonfinite_carried_qty"] += 1
+            per[s_] = {"status": "CENSORED", "why": "nonfinite_carried_qty", "n_events": len(ev.get(s_, [])),
+                       "detail": "the previous window carried a non-finite end quantity; it cannot enter the gap pricing state"}
+            continue
+        if _ev_bad:                                                        # R15-M1: a non-finite gap fill/flatten value cannot price this name
+            cens["n"] += 1; cens["why"]["nonfinite_event_value"] += 1
+            per[s_] = {"status": "CENSORED", "why": "nonfinite_event_value", "n_events": len(ev.get(s_, []))}
+            continue
         if not q_known:                                                    # R14-M2: unknown carry — censor with its own reason, price nothing
             cens["n"] += 1; cens["notional"] += abs(q_end * px_ref); cens["why"]["unknown_start_qty"] += 1
             per[s_] = {"status": "CENSORED", "why": "unknown_start_qty", "n_events": len(ev.get(s_, [])),
@@ -546,8 +595,9 @@ def gap_pnl(L, panel, A, t_d, prev_rec, px_chain=None):
         chain[s_] = {"b": b_hi, "px": px_abs[b_hi], "source": "gap_end:" + time.strftime("%m-%d %H:%MZ", time.gmtime(A))}
         per[s_] = {"q_start": q_start, "q_end": q_out, "pnl": seg, "ref": ref_src}
     n_unknown = int(cens["why"].get("unknown_start_qty", 0))
+    n_nonfinite = int(cens["why"].get("nonfinite_carried_qty", 0)) + int(cens["why"].get("nonfinite_event_value", 0))   # R15-M1
     cens = {"n": cens["n"], "notional": cens["notional"], "why": dict(cens["why"])}
-    rec.update(status="GAP_OK", n_unknown_start_qty=n_unknown, pnl_usdt=float(pnl), pnl_long_usdt=float(pl), pnl_short_usdt=float(ps), fill_price_correction_usdt=float(corr),
+    rec.update(status="GAP_OK", n_unknown_start_qty=n_unknown, n_nonfinite_carried=n_nonfinite, pnl_usdt=float(pnl), pnl_long_usdt=float(pl), pnl_short_usdt=float(ps), fill_price_correction_usdt=float(corr),
                pnl_usdt_with_fill_prices=float(pnl + corr), n_names_carried=n_carried, n_priced=n_priced, censored=cens, n_fills_in_gap=n_fills,
                per_name={k: v for k, v in per.items() if v.get("status") == "CENSORED"},
                fill_partition={"owns": "(A, t_decision)", "n_fills_price_corrected": len(corr_keys), "keys": [list(k) if k else None for k in corr_keys],
