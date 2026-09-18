@@ -750,7 +750,7 @@ def main():
             assert _recomputed_identity_sha == cpj["identity_sha256"], ("checkpoint identity_sha256 does not match its own recorded identity block — the "
                                                                         "provenance record was altered (R15-Q3). NB: this is an internal-consistency check; "
                                                                         "identity pins the producing run's inputs/window and is NOT reproducible from this resume")
-        _late_tau = {}; _t_last_by = {}; _fresh_evt = collections.defaultdict(list); _fresh_fill_ts = collections.defaultdict(list); _carried_un_ts = {}; _carried_un_list = {}; _late_obs_by = collections.defaultdict(list)
+        _late_tau = {}; _t_last_by = {}; _fresh_evt = collections.defaultdict(list); _fresh_fill_ts = collections.defaultdict(list); _carried_un_ts = {}; _carried_un_list = {}
         for s, cp in cpj["symbols"].items():
             cp_state[s] = cp
             carried = {r["rid"]: req_from_cp(r) for r in cp["hard"]["requests"]}
@@ -793,28 +793,22 @@ def main():
         UN_new = attribute_fills({s: fills_by_symbol.get(s, []) for s in cp_state}, REQ, notes)                            # FRESH fills: full attribution (they carry rid/attempt)
         UN_carried = attribute_fills({s: _carried_un_list.get(s, []) for s in cp_state}, REQ, notes, trade_id_only=True)   # carried unattributed: DEFINITIVE trade-id path only
         for s in cp_state: UN[s] = list(UN.get(s, [])) + list(UN_new.get(s, [])) + list(UN_carried.get(s, []))
-        for s, cp in cp_state.items():                                      # observations: the carried prefix keeps its q0 (same cross-section, §1d)
-            _clast = cp["observations"][-1]["t"] if cp["observations"] else -1
-            for o in OBS.get(s, []): o["rhs"] = o["q_lots"] - cp["q0_lots"]  # every fresh observation is differenced against the carried baseline q0
-            # ★ R16b (dropped LATE OBSERVATION): a fresh readback whose event time is ≤ the carried prefix's last observation is a LATE OBSERVATION.
-            #   v6 kept only obs with t > carried_last (the old `newo` filter) and SILENTLY DROPPED an earlier-timed fresh readback that a full pass sorts
-            #   into the cross-section — the resumed run then omitted a reading the full pass judges. Insert every fresh obs SORTED, and feed a late one's
-            #   time to the τ below so the admission prefix rebuilds from it (a late observation reopens the admission sequence, like a late hard fact).
-            _late_obs_by[s] = [o["t"] for o in OBS.get(s, []) if o["t"] <= _clast + 1e-9]
-            OBS[s] = sorted([dict(o) for o in cp["observations"]] + [dict(o) for o in OBS.get(s, [])], key=lambda o: o["t"])
-        for s in cp_state:                                                  # ★ R15-Q2 / R16 / R16b: the late-evidence τ over EVERY fresh hard fact of the
-            # symbol, computed AFTER all merging and attribution. Contributors: carried-rid merges + brand-new rids (in _fresh_evt); every FRESH fill by its
-            # own event time (new evidence, attributed or not); a carried UNATTRIBUTED fill that MOVED onto a request this resume (R16); and a fresh LATE
-            # OBSERVATION at t ≤ carried_last (R16b), which reopens admission at its time. A carried unattributed fill that STAYED unattributed is unchanged
-            # (it was in U_k before and after), so it does NOT feed τ — else every resume with leftover fills would rebuild spuriously and break parity.
+        for s in cp_state:                                                  # ★ R15-Q2 / R16: the late-evidence τ over EVERY fresh hard fact of the symbol,
+            # computed AFTER all merging and attribution. Contributors: carried-rid merges + brand-new rids (in _fresh_evt); every FRESH fill by its own
+            # event time (new evidence, attributed or not); and — R16 — a carried UNATTRIBUTED fill that MOVED onto a request this resume (its answer
+            # arrived late), which changes the balance at its early event time. A carried unattributed fill that STAYED unattributed is unchanged (it was in
+            # U_k before and after), so it does NOT feed τ — else every resume with leftover fills would rebuild spuriously and break restart parity.
             _still_un = {str(x[3]) for x in UN.get(s, [])}
             _moved_un_ts = [ts for tid, ts in _carried_un_ts.get(s, {}).items() if tid not in _still_un]
             if _moved_un_ts: notes["resume_unattributed_fill_now_attributed"] += 1                    # R16: a previously-pending fill's answer arrived and it moved onto a request
-            if _late_obs_by.get(s): notes["resume_late_observation_inserted"] += 1                    # R16b: a fresh observation timed inside the carried prefix
-            _evt = list(_fresh_evt.get(s, [])) + list(_fresh_fill_ts.get(s, [])) + _moved_un_ts + list(_late_obs_by.get(s, []))
+            _evt = list(_fresh_evt.get(s, [])) + list(_fresh_fill_ts.get(s, [])) + _moved_un_ts
             _tl = _t_last_by.get(s)
             _late = [t for t in _evt if t is not None and _tl is not None and t <= _tl + 1e-9]
             if _late: _late_tau[s] = min(_late); notes["resume_late_hard_fact"] += 1
+        for s, cp in cp_state.items():                                      # observations: the carried prefix keeps its q0 (same cross-section, §1d)
+            newo = [o for o in OBS.get(s, []) if o["t"] > (cp["observations"][-1]["t"] if cp["observations"] else -1) + 1e-9]
+            for o in newo: o["rhs"] = o["q_lots"] - cp["q0_lots"]
+            OBS[s] = [dict(o) for o in cp["observations"]] + newo
     if cp_state: symbols = sorted(set(symbols) | set(cp_state))                      # a symbol carried by the checkpoint is replayed even with no new activity
     # ★ R15-Q1 (single verdict surface): the WHOLE-RECORD contradiction check (floor>cap, exact outside [floor,cap], negative capacity) runs HERE, once,
     #   over the FINAL request set of every symbol. Fresh build, duplicate-identity merge and checkpoint resume all assemble their requests before this
@@ -848,13 +842,6 @@ def main():
             #   the admitted list stays the CHECKPOINT's own when nothing was rebuilt (it is the carried joint object, not a re-derivation);
             #   only a τ-truncation re-derives it from the surviving prefix.
             _adm = cp["admitted"] if _tau is None else [[r["k"], r["rhs_lots"]] for r in _recs if r.get("admitted") and r["k"] > 0]
-            # ★ R16b RE-INDEXING INVARIANT (load-bearing, asserted not assumed): model.run replays the kept prefix BY POSITION against OBS[s], so the kept
-            #   records MUST be exactly the first len(_recs) entries of the merged, sorted cross-section. This holds only because OBS[s] is sorted by time
-            #   and NO fresh fact or observation is timed strictly before τ (τ is the earliest late event ≤ carried_last, so anything earlier would have
-            #   lowered it) — hence the merged prefix is the carried observations with t<τ, in order. A future edit that inserts an observation before τ,
-            #   or leaves OBS[s] unsorted, silently decides the wrong observation on replay; this assertion catches it rather than letting it pass.
-            assert [r["t"] for r in _recs] == [o["t"] for o in OBS[s][:len(_recs)]], \
-                ("resume prefix/observation re-indexing misaligned for %s (R16b): a kept record does not match the merged cross-section by position" % s)
             resume = {"records": _recs, "admitted": _adm, "unmeasurable_from_run": cp.get("unmeasurable_from_run")}
         jobs.append((s, list(REQ.get(s, {}).values()), UN.get(s, []), OBS[s], step_of(s), None, unmeas.get(s), resume))
     procs = int(os.environ.get("Q6_PROCS") or max(1, min(10, (os.cpu_count() or 2) - 2)))
