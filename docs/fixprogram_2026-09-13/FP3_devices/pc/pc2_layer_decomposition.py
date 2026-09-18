@@ -49,7 +49,7 @@ def all_finite_tree(o):
 DAY, OUT = sys.argv[1], sys.argv[2]
 d0 = int(time.mktime(time.strptime(DAY, "%Y%m%d")) - time.timezone); anchors = [d0 + 14400 * k for k in range(6)]
 panel = PP.Panel(); L = PP.LedgerDay(DAY)
-out = {"device": "pc2_layer_decomposition.py", "version": "v6 measured-readback closure + unknown gap carry + full fill population + R15-M1 finiteness + R15-M2 day-boundary contract (pnl_path.py)", "utc": time.strftime("%FT%TZ", time.gmtime()), "day": DAY,
+out = {"device": "pc2_layer_decomposition.py", "version": "v7 (round-15) = v6 core + R15-M1 finiteness as a source-agnostic published-figure checkpoint + R15-M2 day-boundary contract + coverage-hole attribution (pnl_path.py)", "utc": time.strftime("%FT%TZ", time.gmtime()), "day": DAY,
        "self_sha256": hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest(), "engine_sha256": hashlib.sha256(open(PP.__file__, "rb").read()).hexdigest(),
        "panel": {"path": panel.path, "sha256": panel.sha, "t_first": panel.t_first, "t_last": panel.t_last, "n_symbols": len(panel.syms)},
        "ledger_roots": {"repo": PP.REPO, "ws": PP.WS}, "anchors": []}
@@ -125,8 +125,17 @@ for _r in L.fills:
     else:
         _pop_out += 1; _pop_out_keys.append(_k)                        # owned by this day but no priced interval covers it — must block closure
 _missing = sorted(_pop - set(_all))
+# R15-M2 (attribution): when this-day fills land outside every priced interval, the coverage hole is DOWNSTREAM of specific missing upstream records —
+# a NO_PHASE_A window means the producer's phase_A record for that anchor is absent; the NO_PREV_WINDOW gap it causes has no priced predecessor to carry
+# from. Name them so whoever fixes those records knows this device is not the thing to fix (e.g. 09-09: window 12Z NO_PHASE_A + gap 16Z NO_PREV_WINDOW).
+_unpriced_records = [{"utc": r.get("utc"), "kind": "window", "status": r.get("status")} for r in out["anchors"] if r.get("status") != "OK"] + \
+                    [{"utc": g.get("utc"), "kind": "gap", "status": g.get("status")} for g in gaps if g.get("status") != "GAP_OK"]
 out["day_fill_partition"] = {"n_corrected_in_windows": len(_wk), "n_corrected_in_gaps": len(_gk), "n_total": len(_all), "n_distinct": len(set(_all)),
                              "n_double_counted": len(_dup), "double_counted": [list(k) for k in _dup[:10]],
+                             "unpriced_interval_attribution": ({"n_fills_affected": int(_pop_out), "missing_upstream_records": _unpriced_records,
+                                 "note": "these this-day fills fall in sub-intervals no priced window/gap covers; the hole is DOWNSTREAM of the missing_upstream_records "
+                                         "(a NO_PHASE_A window = a missing phase_A record; the NO_PREV_WINDOW gap it causes has no priced predecessor) — fix those records, not this device"}
+                                 if _pop_out else None),
                              "n_population_in_priced_intervals": len(_pop), "n_population_not_corrected": len(_missing),
                              "population_not_corrected": [list(k) for k in _missing[:10]],
                              "day_owns": "(d0, d0+86400]  (00 < t <= 24; a fill exactly at midnight is the previous day's)",

@@ -439,7 +439,7 @@ def _writel_q(p, rows):
     os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "w").write("".join(json.dumps(r) + "\n" for r in rows))
 
 
-def build_full_day(name, *, nan_readback_k=None, mid_fill=None, extra_fills=(), run_days=(DAY,), nan_weight=False):
+def build_full_day(name, *, nan_readback_k=None, mid_fill=None, extra_fills=(), run_days=(DAY,), nan_weight=False, drop_phase_a_k=None):
     """A synthetic full 24h day: 6 windows, 6 gaps, flat prices, a held AUSDT position at every anchor — it CLOSES. Mutations expose the round-15
     defects. Runs the REAL device as a subprocess for each day in run_days (nothing mocked) and returns {day: parsed json}."""
     root = os.path.join(SCR, name); shutil.rmtree(root, ignore_errors=True)
@@ -448,7 +448,8 @@ def build_full_day(name, *, nan_readback_k=None, mid_fill=None, extra_fills=(), 
     for k in range(-1, 6):                                # phase_A + anchors for the prev-day-last run (gap-0 carry) and the six day runs
         Ak = A + 14400 * k; rid = f"R{k}"
         pa = {"anchor_ts": Ak, "external_wait": {"nominal_anchor_ts": Ak}, "rebalance_id": rid, "sizing": {"gross": 1000.0, "nav": 500.0}}
-        log.append(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(Ak + 1500)) + " phase_A: " + json.dumps(pa))
+        if k != drop_phase_a_k:                          # drop_phase_a_k: omit this anchor's phase_A record ⇒ its window is NO_PHASE_A (the 09-09 shape)
+            log.append(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(Ak + 1500)) + " phase_A: " + json.dumps(pa))
         anchors_by_day.setdefault(time.strftime("%Y%m%d", time.gmtime(Ak)), []).append({"rebalance_id": rid, "target_gross": 1000.0, "external_book": {"gross_norm": 1.0}})
     open(f"{repo}/state/anchor_runs.log", "w").write("\n".join(log) + "\n")
     rb_by_day = {}
@@ -578,6 +579,19 @@ check("Q9 a NaN on an UNPATCHED path (a producer weight) refuses closure via no_
       {"closed": _fa9["closed"], "no_nonfinite_in_published_figures": _c9["no_nonfinite_in_published_figures"], "no_censored_names": _c9["no_censored_names"]})
 check("Q9b and the checkpoint is source-agnostic: the L0 producer day total is where this particular NaN surfaced (a different field would surface elsewhere and still refuse)",
       not _math.isfinite(_q9["day_totals_over_ok_anchors_usdt"]["L0_producer"]), _q9["day_totals_over_ok_anchors_usdt"])
+
+# Q10 (R15-M2 attribution) — the 09-09 shape, synthetic: a NO_PHASE_A window leaves an unpriced sub-interval; a this-day fill there is attributed to the
+# missing upstream records so a receipt reader knows the coverage hole is DOWNSTREAM of them (a missing phase_A record), not a fault of this device.
+_q10 = build_full_day("q_unpriced_attribution", drop_phase_a_k=2,
+                      extra_fills=[{"symbol": "AUSDT", "t": A + 36000, "px": 100.0, "qty": 1.0, "trade_id": 9001}])[DAY]
+_att = (_q10["day_fill_partition"] or {}).get("unpriced_interval_attribution")
+_recs = (_att or {}).get("missing_upstream_records") or []
+check("Q10 a this-day fill in a NO_PHASE_A window's unpriced sub-interval is attributed to the missing upstream records (the NO_PHASE_A window + the NO_PREV_WINDOW gap it causes), not left unexplained",
+      _att is not None and _att["n_fills_affected"] >= 1
+      and any(r["kind"] == "window" and r["status"] == "NO_PHASE_A" for r in _recs)
+      and any(r["kind"] == "gap" and r["status"] == "NO_PREV_WINDOW" for r in _recs), {"att": _att})
+check("Q10b CONTROL: a fully-covered day (no coverage hole, no outside fills) carries no attribution (None)",
+      _q0["day_fill_partition"].get("unpriced_interval_attribution") is None, _q0["day_fill_partition"].get("unpriced_interval_attribution"))
 
 check("Z baseline was green before the red cases were read", baseline_green)
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
