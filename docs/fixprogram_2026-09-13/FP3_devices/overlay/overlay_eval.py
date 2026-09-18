@@ -52,15 +52,18 @@ for p in sorted(glob.glob(f"{PD}/w10_ablation_series_{PREFIX}_OVL_*.npz")):
     dW = np.abs(np.nan_to_num(W1) - np.nan_to_num(W0)).sum(1); wired = {"anchors_changed": int((dW > 1e-9).sum()), "frac_changed": float((dW > 1e-9).mean()), "mean_L1_dW_over_gross": float(np.nanmean(dW / np.maximum(np.abs(np.nan_to_num(W0)).sum(1), 1e-9))),
              "accounted_over_target_gross": float(np.nanmean(np.abs(np.nan_to_num(W1)).sum(1) / np.maximum(np.abs(np.nan_to_num(T1)).sum(1), 1e-9))), "target_book_unchanged": bool(np.array_equal(np.nan_to_num(T1), np.nan_to_num(T0))),
              "max_abs_accounted_weight": float(np.nanmax(np.abs(W1))), "net_over_gross_max": float(np.nanmax(np.abs(np.nan_to_num(W1).sum(1)) / np.maximum(np.abs(np.nan_to_num(W1)).sum(1), 1e-9)))}
+    _net = np.abs(np.nan_to_num(W1).sum(1)) / np.maximum(np.abs(np.nan_to_num(W1)).sum(1), 1e-9); _on = np.abs(np.nan_to_num(W1) - np.nan_to_num(W0)).sum(1) > 1e-9
+    wired["G5_net_exposure"] = {"mean_on_changed_anchors": float(_net[_on].mean()) if _on.any() else 0.0, "max": float(_net.max()), "anchors_net_gt_0.01": int((_net > 0.01).sum())}   # PREREG R6 amendment 2/3 G5
     d = g - g0; dW, ciW = paired_ci(d, WA); dK, ciK = paired_ci(d, KL)
     bucket = (WA & top) if BUCKET == "breadth" else (WA & (dW > 1e-9)) if False else (WA & (np.abs(np.nan_to_num(W1) - np.nan_to_num(W0)).sum(1) > 1e-9))
     if BUCKET == "breadth": bucket = WA & top
     dT, ciT = paired_ci(d, bucket) if bucket.sum() > 10 else (float("nan"), [float("nan"), float("nan")])
     sW, sK = stats(g, WA), stats(g, KL); by = {y: stats(g, WA & (year == y)) for y in sorted(set(year[WA]))}; b0 = out["baseline"]
     worst_year_sharpe = min(v["sharpe_daily"] for v in by.values() if v["sharpe_daily"] is not None); worst_year_sharpe0 = min(v["sharpe_daily"] for v in b0["by_year"].values() if v["sharpe_daily"] is not None)
+    hard_tail = bool(sW["days_le_m2p68"] <= b0["W_ALPHA"]["days_le_m2p68"] and sW["days_le_m4"] <= b0["W_ALPHA"]["days_le_m4"])   # amendment-3 hard condition: neither stop-line count may increase
     G1 = ciW[0] > -DELTA; G2 = (worst_year_sharpe >= worst_year_sharpe0 - 1e-9) and ((sW["maxdd_L"] - b0["W_ALPHA"]["maxdd_L"] >= 0.05) or (sW["days_le_m4"] <= b0["W_ALPHA"]["days_le_m4"] // 2)) and (sW["days_le_m2p68"] <= b0["W_ALPHA"]["days_le_m2p68"]); G3 = bool(np.isfinite(ciT[0]) and ciT[0] > 0)
     out["variants"][tag] = {"spec": spec, "W_ALPHA": sW, "KING_LIVE": sK, "by_year": by, "top_decile_breadth": {"n": int((WA & top).sum()), "g": float(np.nan_to_num(g[WA & top]).mean())}, "bucket": {"mode": BUCKET, "n": int(bucket.sum()), "g_variant": float(np.nan_to_num(g[bucket]).mean()) if bucket.sum() else None, "g_baseline": float(np.nan_to_num(g0[bucket]).mean()) if bucket.sum() else None}, "turnover_ratio": float(np.nanmean(to[WA]) / np.nanmean(to0[WA])), "wired": wired,
-                            "delta": {"W_ALPHA": [dW, ciW], "KING_LIVE": [dK, ciK], "top_decile_breadth": [dT, ciT]}, "gates": {"G1_not_worse_delta": G1, "G2_maximin": G2, "G3_top_decile": G3, "ALL": bool(G1 and G2 and G3)}, "worst_year_sharpe": worst_year_sharpe}
+                            "delta": {"W_ALPHA": [dW, ciW], "KING_LIVE": [dK, ciK], "top_decile_breadth": [dT, ciT]}, "gates": {"G1_not_worse_delta": G1, "G2_maximin": G2, "G3_top_decile": G3, "hard_tail_not_worse": hard_tail, "ALL": bool(G1 and G2 and G3 and hard_tail)}, "worst_year_sharpe": worst_year_sharpe}
 out["baseline"]["worst_year_sharpe"] = worst_year_sharpe0
 def _g4(tag, v, ctag):
     c = out["variants"][ctag]["W_ALPHA"]; w = v["W_ALPHA"]

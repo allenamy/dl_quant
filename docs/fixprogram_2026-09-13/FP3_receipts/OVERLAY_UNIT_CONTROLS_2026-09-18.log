@@ -8,10 +8,12 @@ PASS C  causality r4:win=60: decisions at anchors ≤ 300 unchanged by perturbin
 PASS C  causality r6:k=1,q=0.95,s=0.5: decisions at anchors ≤ 300 unchanged by perturbing rows > 300 
 PASS C  causality r6l:k=1,q=0.95,s=0.5: decisions at anchors ≤ 300 unchanged by perturbing rows > 300 
 PASS C  causality r6b:k=1,q=0.95,s=0.5: decisions at anchors ≤ 300 unchanged by perturbing rows > 300 
-PASS G  r6b: basket from the TARGET book (HB) so the signal is defined every anchor; cuts occur (11 anchors) and last ≥ 1 anchor with hysteresis (max run 4) 
+PASS G1 hysteresis binds: with q_off=0.80 the cut turns on at i=201 and STAYS on through i=202..206 (signal between q_off and q) 
+PASS G2 RED control: with q_off=q (no hysteresis) the cut turns on at i=201 and switches OFF at i=202 (the very same sequence) 
+PASS G3 both switch off once the signal falls far below q_off (i ≥ 207) 
 PASS D1 R4 output is beta-neutral 
 PASS D2 the tail step is SKIPPED for a beta-contract rule (attribute neutral='beta'), so Σwβ=0 survives; the old unconditional tail step would give β exposure −0.0667 
 PASS E  one-sided book ⇒ empty book under the notional contract (not |net|/gross = 1) 
 PASS F  tail step scales the heavier side DOWN only: caps hold, Σw = 0 
-RESULT 15/15 pass
-run 2026-09-18T06:30:39Z overlays d1b68fd4 engine 0349c870
+RESULT 17/17 pass
+run 2026-09-18T07:02:55Z overlays d1b68fd4 engine 649aab30

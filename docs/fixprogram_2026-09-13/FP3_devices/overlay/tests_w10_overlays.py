@@ -32,12 +32,26 @@ k = 300; y_pert = y4.copy(); y_pert[k + 1:] += rng.normal(0, 0.5, (T - k - 1, N)
 for spec in ("r1a:q=0.90,s=0.5", "r2:c=0.5", "r3:th=0.20", "r4:win=60", "r6:k=1,q=0.95,s=0.5", "r6l:k=1,q=0.95,s=0.5", "r6b:k=1,q=0.95,s=0.5"):   # R6/R6l/R6b added to the formal battery (review round 8)
     a = decisions(ov.make(spec), k + 1, y4); b = decisions(ov.make(spec), k + 1, y_pert)
     check(f"C  causality {spec}: decisions at anchors ≤ {k} unchanged by perturbing rows > {k}", np.array_equal(a, b))
-# G: R6b hysteresis + always-defined basket (amendment 1): after a cut the basket (target book) is still defined, so the rule cannot restore purely because the basket vanished
-f6 = ov.make("r6b:k=1,q=0.95,s=0.5"); on_states = []
-for i in range(T):
-    sm = book(i); o = f6(sm, dict(i=i, j=i, m=m, y4=y4, FN=None, IV=None, HB=book(i - 1) if i else sm, HR=None, FZ=None, sel=None, capw=capw, NW=N)); on_states.append(float(np.abs(o).sum()) < float(np.abs(sm).sum()) - 1e-12)
-runs = [len(list(g)) for k_, g in __import__("itertools").groupby(on_states) if k_]
-check("G  r6b: basket from the TARGET book (HB) so the signal is defined every anchor; cuts occur (%d anchors) and last ≥ 1 anchor with hysteresis (max run %s)" % (sum(on_states), max(runs) if runs else 0), sum(on_states) > 0 and (max(runs) if runs else 0) >= 1)
+# G (v2, review round 9 §5 — the old G passed with hysteresis removed): a BINDING hysteresis test. Feed a controlled signal sequence through r6b: warm-up (200 noise
+# anchors), then one anchor above the on-quantile, then anchors whose signal sits BETWEEN q_off and q. With hysteresis the cut must persist through those anchors; with
+# q_off = q (no hysteresis) it must switch off. The signal is controlled through y4 rows: shorts (second half of names) get the return that sets SB_rel.
+def run_r6b(qoff):
+    f = ov.make(f"r6b:k=1,q=0.95,s=0.5,qoff={qoff}"); rng2 = np.random.default_rng(7); Tn = 260; yy = np.zeros((Tn, N)); half = N // 2
+    for t in range(Tn):
+        if t < 200: rel = rng2.normal(0, 0.01)                       # warm-up: SB_rel ~ N(0, 1%)
+        elif t == 200: rel = 0.10                                     # far above q95
+        elif 201 <= t <= 205: rel = 0.013                              # between q80 (~0.0084) and q95 (~0.0165) of the warm-up distribution
+        else: rel = -0.05                                             # far below q_off
+        yy[t, half:] = rel / 2; yy[t, :half] = -rel / 2               # shorts − longs = rel
+    ons = []
+    for i in range(1, Tn):
+        sm = np.where(np.arange(N) < half, 0.02, -0.02); o = f(sm, dict(i=i, j=i, m=m, y4=yy, FN=None, IV=None, HB=sm, HR=None, FZ=None, sel=None, capw=capw, NW=N)); ons.append(float(np.abs(o).sum()) < float(np.abs(sm).sum()) - 1e-12)
+    return ons
+on_h = run_r6b(0.80); on_n = run_r6b(0.95)
+# index: decision at anchor i uses rows < i; the row-200 spike is seen at i = 201, the between-band rows 201..205 at i = 202..206
+check("G1 hysteresis binds: with q_off=0.80 the cut turns on at i=201 and STAYS on through i=202..206 (signal between q_off and q)", on_h[200] and all(on_h[201:206]), on_h[199:208])
+check("G2 RED control: with q_off=q (no hysteresis) the cut turns on at i=201 and switches OFF at i=202 (the very same sequence)", on_n[200] and not any(on_n[201:206]), on_n[199:208])
+check("G3 both switch off once the signal falls far below q_off (i ≥ 207)", not any(on_h[206:210]) and not any(on_n[206:210]), (on_h[206:210], on_n[206:210]))
 # D: R4 beta contract
 f4 = ov.make("r4:win=360"); sm = np.array([.1, .1, -.1, -.1]); beta = np.array([2/3, 2/3, 4/3, 4/3])
 # emulate r4's inner allocation with a given beta (its own beta estimate needs history; the contract is what we test)

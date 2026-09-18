@@ -1,30 +1,34 @@
-# FP3 P-C 设计 v2: 执行器书层作为纯函数(决策前可见状态 → 逐名下单意图)— 2026-09-18
+# FP3 P-C 设计 v3: 执行器书层作为纯函数(决策前可见状态 → 逐请求下单意图)— 2026-09-18
 
-> **创建:** 2026-09-18 06:0xZ; **v2 06:4xZ**(按独立复审第八轮 38e77212 三处缺口重写; v1 原字节在 git 517b7a5d) | **Session:** b9646a9e(主研究员) | **状态:** 设计(生产步骤顺序已按原代码核实; 装置未写) | **作废条件:** 执行器书层代码路径变更; 复审否决 §3
-> **v1 的三处错误(复审指出, 已用生产原函数核实)**: ① 步骤顺序写反——生产是**先**扣留/止损集与小额过滤、**后**整形(v1 写成先整形后小额), 反例: 本应剔除的小多头经去均值变成可交易空头; ② 验收对象错——anchors 行没有逐名目标, 只有哈希与总额, 且「差一个最小名义」的容差会放过「该平 100 只平 95.1」; ③ 决策前状态缺证——daily_nav 是交易后快照; 止损冷却名单不在锚级记录里; 张数、估值、下单价必须分开。
+> **创建:** 2026-09-18 06:0xZ; v2 06:4xZ; **v3 07:1xZ**(按独立复审第九轮 b3f7130a 三处问题重写; v1/v2 原字节在 git 517b7a5d / 92663c06) | **Session:** b9646a9e(主研究员) | **状态:** 设计(全部输入来源已在生产记录里逐项核到; 装置未写) | **作废条件:** 执行器记录格式变更; 复审否决 §3
+> **v2 的三处错误(第九轮复审, 已用原函数核实)**: ① `target_gross ÷ gross_mult` 在限仓时还原不出交易前权益(反例: 权益 100、2×、限仓后目标毛额 149 ⇒ 反推 74.5); ② `known_gaps` 是下单**后**的缺口清单, 当交易前禁止名单会把结果喂回输入; ③ 持仓张数 × 下单中价 ≠ 生产用的账户估值, 「允许差一手」会放过不同订单——必须逐请求核数量、方向、阶段、身份。
 
-## 1. 生产代码里的书层顺序(执行器树 409ea16, `scheduler/anchor_loop.py`, 只读核实)
-| 步 | 位置 | 输入 | 输出 |
-|---|---|---|---|
-| 1 目标向量 | L1870 `EXT.target_vector(external, symbols)` | target_live/<A>.json | w(执行器符号表) |
-| 2 定规模 | L1978 `_size_book(target_leverage=gross_mult)` | **决策时权益** eq、gross_mult 2.0、sigma_ladder g(缺省 1.0) | 目标名义 = w/gross_norm × eq × gross_mult; anchors 行 `target_gross` = eq × gross_mult × g |
-| 3 扣留集 | L1832–1841 `PNS.active_sets(PNS.load_state(), now)` + `_universe_gate`(不可交易、场所元数据排除) | 逐名止损 stop/cooldown 集、不可交易集 | 撤名(pop)清单 |
-| 4 小额过滤 | L2028 `EXT.below_min_notional(target, floors, min_notional_mult)` | 场所 min_notional × 倍数 | `_ext_dust`(skipped_min_notional) |
-| 5 整形 | L2042 `apply_withhold_and_reshape` → L414 `LG.reshape_after_withhold(vec, sizing_gross, redemean, rescale, floors_usdt, strict=True)` | 撤名后的向量 + floors | 去均值 + 毛额恢复后的向量(报告 names_crossed_floor) |
-| 6 意图 | 订单构造(maker / chase 分臂) | 决策前持仓(张数 × 决策价) | 逐名 `intended_notional`(orders.jsonl 每单一行, 含 target_w / prev_w / mid_at_anchor / price_submit / terminal_reason) |
+## 1. 决策前状态的**真实记录点**(执行器树 409ea16; 04Z 锚逐项核过)
+| 量 | 来源(每锚一条, 决策时写) | 04Z 实测 |
+|---|---|---|
+| 交易前权益 eq_pre | `state/anchor_runs.log` 的 **phase_A 行** `sizing.nav`(= `_size_book` 用的 `_snap0.equity`, L1325/L1978) | 115,439.26(≠ target_gross/2 = 115,220; ≠ 交易后 NAV 行 115,606) |
+| 目标毛额 | phase_A `sizing.gross / gross_wanted / resized / target_leverage` | 230,878.51, resized True, 2.0 |
+| 目标权重 | target_live/<A>.json(P-B 可重现)→ `EXT.target_vector`, `gross_norm` 在 anchors 行 `external_book.gross_norm` | 242 名, 0.8145 |
+| 扣留集(决策时) | phase_A `untradable_names` + `untradable_reason` + `untradable_held`; anchors 行 `external_book.held_exit / meta_excluded / below_min_notional{names}`; `n_untradable_withheld` | 14 名: popped 6 / flatten_only 7 / add_blocked 1; held_exit 7; 小额 1(LTCUSDT) |
+| 止损集 | phase_A `untradable_reason` 里 source = per_name_stop 的名(即 `_untradable_sources["per_name_stop"]`); phase_C `per_name_stop{stopped, counters, cooldown_n}` | stopped 0, counters NEAR/ARB 1, cooldown 6 |
+| 场所过滤器 | phase_A `external_filters` + `universe.tradable`; floors/step/tick = `exchange_info_cache.json`(**当前**文件; 历史锚要当时快照, 无则标缺证) | tradable 列表; 658 名过滤器 |
+| 决策价 | orders 行 `mid_at_anchor`(逐名, 决策时; 与 `price_submit` 分开) | — |
+| 决策前持仓 | 上一锚 `position_readback`(张数)按期间 fills 推进; 推不出 ⇒ `UNAVAILABLE_STATE`; loop_state.positions 只作核对 | 243 行 |
+| 场所上限钳 | phase_A `venue_cap_clamp` | — |
+| **验收对象** | `orders.jsonl` 每单 `request_ledger[*]`: `client_id = <rid>-<SYMBOL>-<attempt>`, `qty`, `notional_est`, `state`, `confirmed_qty/notional`, `trade_qty/trade_quote`(逐 trade id) + 订单行 `side / attempt_idx / order_type / placement_arm / terminal_reason` | 504 单 |
+**不用**: `known_gaps`(下单后)、`daily_nav`(交易后)、`target_gross ÷ gross_mult`(限仓失真)、当前 `per_name_stop.json`(倒推历史)。
 
-## 2. 纯函数合同(v2)
-`intent(A, target_file, eq_decision, pos_qty_pre, mid_at_anchor, floors, stop_sets, withheld, cfg) → {intended_notional[name], skipped[name→reason], reshape_report, gross_target, gross_intent}`
-- **执行器自己记录的决策前量, 逐项来源**: `eq_decision` = anchors 行 `target_gross / (gross_mult × g)`(执行器定规模用的权益, **不是** daily_nav 的交易后快照); `mid_at_anchor` = orders 行逐名字段(决策价, 与 `price_submit` 分开); `pos_qty_pre` = 上一锚 `position_readback`(张数)在期间无 fills/保护平仓/人工更正时直接用, 有事件按 fills 推进张数, 推不出 ⇒ `UNAVAILABLE_STATE`(不猜); `prev_w` = orders 行字段(执行器自己算的决策前权重, 用作 pos_qty_pre × mid 的**核对**, 不作输入); `floors` = `exchange_info_cache.json`(min_notional / step / tick; 历史锚用当时快照, 无快照 ⇒ 标缺证); `stop_sets` = 决策时 stop/cooldown 名单——phase_C 只记 `cooldown_n` 与 counters, anchors 行的承载字段见 §4 待核, **无名单的锚标 `UNAVAILABLE_STOPSET`**, 不用当前 `per_name_stop.json` 倒推; `withheld` = anchors 行 `known_gaps.names` 与 external_book 的排除记录。
-- **顺序与生产一致**: 定规模 → 扣留/止损集撤名 → 小额过滤 → 整形(带 floors) → 张数取整(step)→ 意图名义。同码: `signal.legs.reshape_after_withhold`, `live.external_book.{target_vector,below_min_notional}`, `live.per_name_stop.active_sets` 直接 import; 编排复制自 anchor_loop 并附行号对照表。
-- **锚后回读只验输出**: 意图 vs 实际(fills / anchors realized_gross)之差归执行层, 不回灌。
+## 2. 纯函数合同(v3)
+`intent(A) → {requests: [{client_id, symbol, side, qty, notional_est, attempt_idx, reason}], skipped: {name → reason}, popped/flatten_only/add_blocked: sets, reshape_report, gross_intent}`
+- 输入全部来自 §1 的决策时记录; 顺序与生产一致(anchor_loop): `_size_book`(eq_pre × gross_mult, 死区/下限规则同码)→ `EXT.target_vector` → 扣留集(untradable ∪ held_exit ∪ per_name_stop)→ `EXT.below_min_notional`(小额)→ `apply_withhold_and_reshape(target, held, untradable, sizing_gross, floors, force_flat=stop)`(POP → RESHAPE → CLAMP, 同码 import)→ 张数按 step 取整 → 逐请求意图。
+- **验收 P-C1 = 逐请求精确匹配**: 对每个 `client_id`(rid-SYMBOL-attempt): 数量(step 取整后**相等**)、方向、阶段(attempt_idx)、订单类型; 多出/缺少的请求逐条归因(拒单重试、追单臂、场所上限钳、小额跳过)或标缺证。不设「一手」容差; 名义额只作对照, 不作判据。
+- 锚后回读、fills、known_gaps 只用于**验证输出**与执行层归因, 不进入输入。
 
-## 3. 判据(v2)
-- **P-C1 逐名意图重现**: 验收对象 = `orders.jsonl` 逐名 `intended_notional`(含 `skipped_min_notional` / `skipped_no_chase_arm` 等终态行); 容差 = **场所张数步长 × 决策价**(取整误差), 不是一个最小名义; 每个不等的名归因到 §1 的某一步或标缺证; 目标 0 不可归因差异。
-- **P-C2 层分解**: 09-06 / 09-09 / 09-12 止损日与 09-16/17: 生产者目标 → 意图 → 实际三列(毛额、净额、逐名), 止损/撤名/整形/小额各自贡献。
-- **P-C3 反事实(只读)**: 同一函数下, 逐名止损分母改「相对开仓价」、「两锚确认 → 一锚」的意图差与回放记账影响(完整组合对照)。研究, 部署走预注册 + 用户字。
-- **顺序**: 先在**状态完整的新锚**(09-18 04Z 起, 逐锚有 orders 逐名行 + readback + phase_C)上过 P-C1, 再向历史回补; 缺状态的历史锚只报缺证, 不为它无限重跑。
+## 3. 判据与顺序
+- **P-C1**: 先在**输入齐全的新锚**(09-18 04Z 起, phase_A/phase_C/orders/readback 齐)上 1–2 锚做到逐请求零不可归因差异; 达不到就逐条列差异, 不放宽。
+- **P-C2**: 三个止损日(09-06/09-09/09-12)与 09-16/17 的层分解(生产者目标 → 意图 → 实际), 缺状态的锚标缺证。
+- **P-C3**(只读反事实): 止损分母改「相对开仓价」、「两锚确认 → 一锚」; 完整组合对照; 部署另立提案 + 用户字。
+- 顺序与复审一致: **先修合同(本件)→ 新锚验证 → 再补历史**; 不再在本历史上追加规则规格。
 
-## 4. 待核与工作量
-- 待核: anchors 行承载止损集的字段名(L1839 注释「anchors 行的 per_name_stop 字段承载」, 首次读 04Z 行未见同名键; 可能在 `external_book` 子键或 `known_gaps`); sigma_ladder g 的逐锚记录位置。
-- 工作量: 对照表 + 纯函数 0.5 d; P-C1 新锚(4–6 锚)0.25 d; 历史回补 + P-C2 0.5 d; P-C3 0.5 d; 独立复审。
+## 4. 工作量
+纯函数 + 逐请求比较器 0.5 d(同码 import: `scheduler.anchor_loop.apply_withhold_and_reshape`, `live.external_book`, `live.per_name_stop`, `signal.legs`); 04Z/08Z 两锚 P-C1 0.25 d; 历史回补 + P-C2 0.5 d; P-C3 0.5 d; 独立复审。装置只读, 与生产树零接触(import 冻结副本 409ea16)。
