@@ -201,6 +201,12 @@ gate_env_keys(){  # gate_env_keys <device path> — the env vars the device DECL
 # ★ R15-C1: the GOVERNED environment is exactly what load_month_env produces — the contract keys it parses (V4_MONTH_KEYS + optionals) AND the V4_*
 #   names it DERIVES and exports just below. A device legitimately reads governed names from the environment (the merge reads V4_TRAINER / V4_DEV_PREDS);
 #   anything else it declares reading is an ambient leak. KEEP THIS IN SYNC with the `export V4_*` line in load_month_env.
+# ★ WHY A STRIP AND NOT A BLANK ENVIRONMENT (env -i): the data-stage BUILDERS run under `env -i <allowlist>` (B-R3, below) because they receive every
+#   input as an explicit KEY=val argument. The GATES do NOT: run_gate passes only the gate's OUT path, and the FP2 step gates (fp2_gate_step1/step2.py)
+#   read R / D / CACHE / DLW_RAW / HOLE_CELLS / MEMBER_MASK / BUILDER_* etc. from the CONTRACT-EXPORTED environment that load_month_env sets. Constructing
+#   a blank environment for run_gate would therefore starve exactly the step gates we must not regress. So a gate runs under the INHERITED environment with
+#   the ungoverned declared reads STRIPPED — the completeness assertion in tests_member_liveness.py (every literal os.environ read is in ENV_KEYS) is what
+#   makes this equivalent to a blank environment for the leak class, without breaking a gate that legitimately reads a governed name it was never passed.
 V4_GOVERNED_EXPORTS="V4_D V4_F8 V4_DLW_RAW V4_DLW_CLIP V4_BASE_TRAINER V4_HC V4_KING_DIR V4_R V4_TRAINER V4_DLW_EXT V4_F8_EXT V4_DEV_PREDS V4_PREV_BUNDLE V4_PREV_META V4_REF_META V4_UMASK_NPZ V4_MONTH_ENV"
 _ambient_strip(){  # _ambient_strip <device path> [names passed explicitly...] — echoes the declared env keys to UNSET: declared reads that are NEITHER passed
   # on this invocation NOR governed. ONE mechanism for EVERY launch path (run_gate + run_device_stripped), derived from the device's own --env-keys and
