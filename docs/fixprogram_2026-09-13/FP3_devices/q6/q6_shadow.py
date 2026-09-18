@@ -233,8 +233,16 @@ def build_requests(od, step_of, notes):
     return REQ, unmeas
 
 
-def attribute_fills(fills_by_symbol, REQ, notes):
-    """attach fills to requests (precedence: ledger trade ids → rid/attempt → unique alive same-side); the rest are unattributed increments"""
+def attribute_fills(fills_by_symbol, REQ, notes, trade_id_only=False):
+    """attach fills to requests (precedence: ledger trade ids → rid/attempt → unique alive same-side); the rest are unattributed increments.
+
+    ★ R16 `trade_id_only`: use ONLY the DEFINITIVE ledger-trade-id path. This is how carried UNATTRIBUTED fills are RE-OFFERED on resume. The checkpoint
+    does not persist a fill's rebalance_id/attempt_idx (UN tuples are (ts, signed lots, obs_time, trade_id)), so the rid-attempt and unique-alive-same-side
+    INFERENCES cannot be reproduced from it — and they must not be re-run on a lossy reconstruction: forcing rid/attempt=None made carried-un fills
+    eligible for unique-alive and over-attributed 87 of them on the real 41-day ledger (2496 spurious UNMEASURABLE, resume ≠ single pass). Neither
+    inference can legitimately re-fire for a carried-un fill anyway: an order row is submitted BEFORE its fill, so a fill's rid-attempt match was already
+    present in the window that left it unattributed; and unique-alive depends on the same-side alive candidate set at the fill's time, which the resumed
+    merge does not change (later requests are born later). Only a request whose trade_ids now DEFINITIVELY include the fill can re-claim it."""
     UN = collections.defaultdict(list)                                      # symbol → [(fill_ts, signed lots, obs_time, trade_id)]
     for s, fl in fills_by_symbol.items():
         reqs = REQ.get(s, {}); by_tid = {}; by_key = {}
@@ -244,9 +252,9 @@ def attribute_fills(fills_by_symbol, REQ, notes):
         for f in fl:
             cid = by_tid.get(str(f["trade_id"]))
             how = "ledger_trade_id" if cid else None
-            if cid is None and f.get("rebalance_id") is not None and f.get("attempt_idx") is not None:
+            if not trade_id_only and cid is None and f.get("rebalance_id") is not None and f.get("attempt_idx") is not None:
                 cid = by_key.get((f["rebalance_id"], int(f["attempt_idx"]))); how = "rid_attempt" if cid else None
-            if cid is None and f.get("rebalance_id") is None and f.get("attempt_idx") is None:
+            if not trade_id_only and cid is None and f.get("rebalance_id") is None and f.get("attempt_idx") is None:
                 cands = [c for c, r in reqs.items() if r["side"] == f["side"] and r["birth"] <= f["ts"] + 1e-9 and (r["terminal"] is None or f["ts"] <= r["terminal"] + 14400)]
                 if len(cands) == 1: cid = cands[0]; how = "unique_alive_same_side"
                 elif len(cands) > 1: notes["fill_attribution_ambiguous_left_unattributed"] += 1
@@ -742,7 +750,7 @@ def main():
             assert _recomputed_identity_sha == cpj["identity_sha256"], ("checkpoint identity_sha256 does not match its own recorded identity block — the "
                                                                         "provenance record was altered (R15-Q3). NB: this is an internal-consistency check; "
                                                                         "identity pins the producing run's inputs/window and is NOT reproducible from this resume")
-        _late_tau = {}; _t_last_by = {}; _fresh_evt = collections.defaultdict(list); _fresh_fill_ts = collections.defaultdict(list); _carried_un_ts = {}
+        _late_tau = {}; _t_last_by = {}; _fresh_evt = collections.defaultdict(list); _fresh_fill_ts = collections.defaultdict(list); _carried_un_ts = {}; _carried_un_list = {}
         for s, cp in cpj["symbols"].items():
             cp_state[s] = cp
             carried = {r["rid"]: req_from_cp(r) for r in cp["hard"]["requests"]}
@@ -764,26 +772,27 @@ def main():
                 else:
                     carried[rid] = r; _fresh_evt[s] += hard_fact_times(r)   # ★ R15-Q2 (a): a brand-new rid's facts are fresh too — v6 never checked them
             REQ[s] = carried
-            # ★ R16 (resume-path late ATTRIBUTION): a carried UNATTRIBUTED fill is evidence with a PENDING question. New evidence in this window — a request
-            #   that now claims it by trade id, or becomes the unique alive same-side candidate — can answer it. v6 dumped the carried unattributed set
-            #   straight into UN[s] and re-attributed only the FRESH fills, so such a fill never moved onto its request and never consumed that request's
-            #   capacity: a full recompute flagged the over-capacity, a resume read CLEAN. Fix: RE-OFFER the carried unattributed fills to attribution over the
-            #   MERGED request set, exactly as a fresh build does — `attribute_fills` is the SOLE producer of attribution state, on resume as in the fresh
-            #   build, and nothing is carried in a pre-reconciled form. rebalance_id/attempt_idx were not persisted with an unattributed fill (only ts,
-            #   signed lots, obs_time, trade id), so its side is recovered from the sign of the carried signed lots; the trade-id and unique-alive-same-side
-            #   paths apply, the rid/attempt path cannot (by construction of what the checkpoint stored).
+            # ★ R16 (resume-path late ATTRIBUTION): a carried UNATTRIBUTED fill is evidence with a PENDING question — a request whose trade_ids now
+            #   DEFINITIVELY include it can claim it. v6 dumped the carried unattributed set straight into UN[s] and re-attributed only the FRESH fills, so
+            #   such a fill never moved onto its request and never consumed that request's capacity: a full recompute flagged the over-capacity, a resume
+            #   read CLEAN. Fix: RE-OFFER carried unattributed fills to attribution over the MERGED request set — but ONLY by the DEFINITIVE trade-id path
+            #   (attribute_fills trade_id_only). The checkpoint did not persist a fill's rid/attempt, so the inference paths cannot be reproduced and must
+            #   NOT be re-run on the reconstruction (forcing rid/attempt=None over-attributed 87 fills via unique-alive on the real ledger; see the note in
+            #   attribute_fills for why neither inference can legitimately re-fire for a carried-un fill). Fresh fills keep the FULL attribution — they carry
+            #   their own rid/attempt. Side is recovered from the sign of the carried signed lots for the trade-id side-agreement check.
             _on_req = {str(f[3]) for r in carried.values() for f in r["fills"]}                       # trade ids DEFINITIVELY on a carried request are settled, not re-offered
-            _carried_un = [{"ts": u[0], "side": (1 if u[1] >= 0 else -1), "lots": abs(u[1]), "obs_time": u[2], "trade_id": str(u[3]), "rebalance_id": None, "attempt_idx": None}
-                           for u in cp["hard"]["unattributed_fills"] if str(u[3]) not in _on_req]
-            _carried_un_ts[s] = {f["trade_id"]: f["ts"] for f in _carried_un}                          # event times; feed τ only for those that MOVE (below)
+            _carried_un_list[s] = [{"ts": u[0], "side": (1 if u[1] >= 0 else -1), "lots": abs(u[1]), "obs_time": u[2], "trade_id": str(u[3])}
+                                   for u in cp["hard"]["unattributed_fills"] if str(u[3]) not in _on_req]
+            _carried_un_ts[s] = {f["trade_id"]: f["ts"] for f in _carried_un_list[s]}                  # event times; feed τ only for those that MOVE (below)
             _fresh = [f for f in fills_by_symbol.get(s, []) if str(f["trade_id"]) not in _on_req and str(f["trade_id"]) not in _carried_un_ts[s]]
             _fresh_fill_ts[s] = [f["ts"] for f in _fresh]                                              # fresh fills feed τ regardless of attribution (new evidence)
-            fills_by_symbol[s] = _carried_un + _fresh                                                  # carried-unattributed RE-OFFERED alongside fresh, deduped by trade id
+            fills_by_symbol[s] = _fresh                                                                # fresh fills attributed with the FULL paths (they carry rid/attempt)
             UN[s] = []                                                                                 # UN[s] is re-derived ONLY by attribute_fills below — no pre-reconciled dump
             if cp["hard"]["unmeasurable_from"]: unmeas[s] = [(t, w) for t, w in cp["hard"]["unmeasurable_from"]] + list(unmeas.get(s) or [])
             if cp.get("marks"): markrows[s] = [tuple(m) for m in cp["marks"]] + markrows.get(s, []); markrows[s].sort()
-        UN_new = attribute_fills({s: fills_by_symbol.get(s, []) for s in cp_state}, REQ, notes)              # attribute the NEW fills against the merged set
-        for s, v in UN_new.items(): UN[s] = list(UN.get(s, [])) + list(v)
+        UN_new = attribute_fills({s: fills_by_symbol.get(s, []) for s in cp_state}, REQ, notes)                            # FRESH fills: full attribution (they carry rid/attempt)
+        UN_carried = attribute_fills({s: _carried_un_list.get(s, []) for s in cp_state}, REQ, notes, trade_id_only=True)   # carried unattributed: DEFINITIVE trade-id path only
+        for s in cp_state: UN[s] = list(UN.get(s, [])) + list(UN_new.get(s, [])) + list(UN_carried.get(s, []))
         for s in cp_state:                                                  # ★ R15-Q2 / R16: the late-evidence τ over EVERY fresh hard fact of the symbol,
             # computed AFTER all merging and attribution. Contributors: carried-rid merges + brand-new rids (in _fresh_evt); every FRESH fill by its own
             # event time (new evidence, attributed or not); and — R16 — a carried UNATTRIBUTED fill that MOVED onto a request this resume (its answer
