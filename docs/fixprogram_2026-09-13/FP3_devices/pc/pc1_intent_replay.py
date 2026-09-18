@@ -1,14 +1,34 @@
 #!/usr/bin/env python3
-"""FP3 P-C1 v13 (2026-09-18, after independent review round 14 R14-P1/P2; v12 after round 13; v11 after round 12; v10 after round 11):
+"""FP3 P-C1 v14 (2026-09-18, after independent review round 15 R15-P1/P2; v13 after round 14; v12 after round 13; v11 after round 12; v10 after round 11):
 replay the EXECUTOR's book layer for one anchor as a pure function and compare the replayed plan with the COMPLETE request population the
 executor recorded — every request identity, not the first row per name.
+
+What changed in v14 (independent review round 15 — R15-P1/P2, two counterexamples v13 still passed with complete_parity / all_measurable_exact True):
+  · R15-P1 an UNREADABLE maker fill no longer becomes ZERO in the top-up residual. The residual is delta MINUS the TOTAL fill notional;
+    production takes it from the CLOSED ledger and REFUSES the top-up when the fills are unreadable (409ea16 binance_executor L1735
+    `skipped_unknown_fill`, unknown=("intended_notional","filled_notional"): "topping up from an assumed zero would double an existing
+    position"). v13's `_fn_of` preferred `filled_known_notional` — the KNOWN PART, non-None even when a further UNKNOWN part exists — so a
+    row with `filled_notional=None` contributed 0, the residual became the FULL delta, and the leg was judged against that fabricated number.
+    `_fn_total` now reads `filled_notional` (ledger_row_columns L266: `filled_notional = known_n if closed else None`) plus the unknown-part /
+    inconsistency markers; a present owning row whose total is not closed makes the residual UNMEASURABLE (`topup_residual_unmeasurable`), never
+    delta − 0. `closed`/`qty_closed` are NOT persisted by _order_row (L2280-2342), so readability is read off the columns that ARE.
+    ⇒ THIS IS A MEASUREMENT DEFECT OF THE REPLAY DEVICE (it could not reject a record inconsistent with the production rule). It is NOT evidence
+    the live book ever topped up from an assumed zero: production refuses, and the only two real `filled_amount_unknown` rows in range sit on a
+    REFUSED anchor (09-12 12Z), so the measured aggregate is unchanged;
+  · R15-P2 an unsent / missing-quantity sibling chunk no longer MASKS an already-known over-fill. v13 took `if n_not_sent or n_missing_q:` and
+    skipped the quantity comparison entirely, so a chunk SENT for 20 against an expected 15 read all_measurable_exact with an empty diff. The
+    KNOWN part is now compared for a contradiction no unsent chunk can undo: |known| > |expected| (same direction) or a wrong-direction known
+    chunk is a DIFF; |known| ≤ |expected| stays consistent-so-far (a sibling could complete it) and the remainder is reported unmeasurable;
+  · R15 wording: the `_sent` predicate's `unknown` state is "submitted with request content, venue outcome unknown" — it does NOT establish the
+    venue accepted it, and an absent order_id does not establish it was never submitted. The two populations are reported SEPARATELY in
+    `summary.request_state_population`, and the earlier "DID reach the venue" claim is corrected to what the record supports.
 
 What changed in v13 (independent review round 14 — two full false passes and two classification defects v12 still had):
   · R14-P1 a PRE-BUILT, NEVER-SENT ledger entry is INTENT, not a request. The executor writes one entry per planned chunk with
     `state="not_sent"` / `order_id=None` / no confirmed quantity before trying to send it (409ea16 binance_executor L1934-1944,
     "not_sent → confirmed | unknown | rejected"). v12 read `le["qty"]` blind to the state, so a top-up planned at 15 that never left —
-    `abandoned_max_attempts` — was measured as a real 15-lot request and the anchor read `complete_parity=True`. `unknown` DID reach the
-    venue and stays measurable; `not_sent` now yields `*_not_sent_ledger` and an unmeasurable leg;
+    `abandoned_max_attempts` — was measured as a real 15-lot request and the anchor read `complete_parity=True`. `unknown` was SUBMITTED
+    with request content (venue outcome unknown, NOT proven accepted) and stays measurable; `not_sent` now yields `*_not_sent_ledger` and an unmeasurable leg;
   · R14-P2 the TOP-UP RESIDUAL is taken from the rows that actually CARRY the R1/R2 entries. v12 validated fields on the owning row but
     still read `filled_*` off `row1`, so an owner row filled 10 beside a first row recording 25 gave residual 0, let the top-up be skipped
     and reported complete. When the owner and the other candidate row disagree on the fill, that contradiction is now a `diffs` entry —
@@ -127,8 +147,8 @@ if not tree_dir:
 
 
 def bail(status):
-    out = {"device": "pc1_intent_replay.py", "version": "v13", "utc": time.strftime("%FT%TZ", time.gmtime()), "anchor": A, "utc_anchor": U(A), "status": status, "refusals": refusals}
-    json.dump(out, open(OUT, "w"), indent=1, default=str); print("P-C1 v13", U(A), status, refusals); sys.exit(0)
+    out = {"device": "pc1_intent_replay.py", "version": "v14", "utc": time.strftime("%FT%TZ", time.gmtime()), "anchor": A, "utc_anchor": U(A), "status": status, "refusals": refusals}
+    json.dump(out, open(OUT, "w"), indent=1, default=str); print("P-C1 v14", U(A), status, refusals); sys.exit(0)
 
 
 if refusals: bail("REFUSED")
@@ -263,7 +283,10 @@ def _sent(le):
     looking at the state, so a top-up that was planned at 15 and never left — `state=not_sent`, `order_id=None`,
     `confirmed_qty=None`, `terminal=False`, reason `abandoned_max_attempts` — was measured as a real 15-lot request
     and the anchor read `complete_parity=True`. A not-sent entry is evidence of an INTENT; it can never close a
-    request lifecycle. `unknown` DID reach the venue (outcome unknown) and stays measurable."""
+    request lifecycle. ★ R15 wording: `unknown` = SUBMITTED with request content but the venue OUTCOME is unknown — it stays
+    measurable because it carries a request identity and quantity, NOT because the venue accepted it; and an absent order_id
+    does not by itself prove a request was never submitted. The state populations are reported SEPARATELY in
+    `summary.request_state_population`, so neither claim is overstated in the receipt."""
     st = str(le.get("state") or "").lower()
     if st == "not_sent": return False
     if st in ("confirmed", "unknown", "rejected"): return True
@@ -271,7 +294,7 @@ def _sent(le):
 
 
 cmp = []; cat = collections.Counter()
-PLAN_CLS = collections.Counter(); REQ_CLS = collections.Counter()
+PLAN_CLS = collections.Counter(); REQ_CLS = collections.Counter(); STATE_CLS = collections.Counter()   # R15: request-ledger states, reported separately
 n_ledger_entries = 0; n_qty_compared = 0; n_qty_equal = 0
 for s in sorted(set(by_sym) | set(plan_by)):
     p = plan_by.get(s); rws = sorted(by_sym.get(s, []), key=lambda r: (int(r.get("attempt_idx") or 0), str(((r.get("request_ledger") or [{}])[0] or {}).get("client_id") or "")))
@@ -282,9 +305,11 @@ for s in sorted(set(by_sym) | set(plan_by)):
         rl = r.get("request_ledger") or []
         e["rows"].append({"attempt_idx": r.get("attempt_idx"), "order_type": r.get("order_type"), "terminal_reason": r.get("terminal_reason"), "side": r.get("side"),
                           "reduce_only": r.get("reduce_only"), "n_ledger": len(rl), "client_ids": [x.get("client_id") for x in rl], "intended_notional": r.get("intended_notional"),
-                          "requote_arm": r.get("requote_arm"), "filled_known_notional": r.get("filled_known_notional"), "filled_notional": r.get("filled_notional")})
+                          "requote_arm": r.get("requote_arm"), "filled_known_notional": r.get("filled_known_notional"), "filled_notional": r.get("filled_notional"),
+                          "filled_unknown_qty": r.get("filled_unknown_qty"), "filled_unknown_residual": r.get("filled_unknown_residual"), "ledger_inconsistent": r.get("ledger_inconsistent")})
         for i, le in enumerate(rl):
             n_ledger_entries += 1
+            STATE_CLS[str(le.get("state") or "absent").lower()] += 1   # R15: separate submitted (confirmed/unknown/rejected) from not_sent/absent
             pr = cid_parse(le.get("client_id"))
             bad = ("malformed_client_id" if pr is None else ("foreign_rebalance_id" if pr[0] != rid else ("foreign_symbol" if pr[1] != s else
                    ("attempt_index_not_mintable" if not VALID_SEQ.match(pr[2]) else None))))
@@ -426,41 +451,59 @@ for s in sorted(set(by_sym) | set(plan_by)):
         #   maker row happens to be first. v12 validated the fields on the owning row but still read `filled_*` off row1,
         #   so a ledger moved onto a second maker row (owner filled 10) while row1 recorded 25 gave residual 0, let the
         #   top-up be skipped, and reported complete. Two rows may not be cherry-picked to prove one lifecycle.
-        def _fn_of(r):
-            if r is None: return None
-            fn = r.get("filled_known_notional")
-            return float(fn) if fn is not None else (float(r["filled_notional"]) if r.get("filled_notional") is not None else None)
+        # ★ R15-P1 (independent review round 15): the residual is delta MINUS the row's TOTAL fill notional. Production takes the total from
+        #   the CLOSED ledger (`got = filled.get(symbol, 0.0)`) and REFUSES the top-up when the fills are unreadable (409ea16 L1735
+        #   `skipped_unknown_fill`, unknown=("intended_notional","filled_notional"): "topping up from an assumed zero would double an existing
+        #   position. Both the intended size (delta MINUS an unreadable fill) and the filled amount are UNKNOWN on this row, not zero."). The
+        #   authoritative "total known" column is `filled_notional` (ledger_row_columns L266: `filled_notional = known_n if closed else None`);
+        #   `filled_known_notional` is ONLY the known PART and is non-None even when a further UNKNOWN part remains, so v13's `_fn_of` (which
+        #   preferred it) let an unreadable fill contribute 0, `residual` become the FULL delta, and the leg be judged against that fabricated
+        #   number. `closed`/`qty_closed` are NOT persisted by _order_row (L2280-2342), so readability is read off `filled_notional` plus the
+        #   unknown-portion / inconsistency markers that ARE persisted. ⇒ MEASUREMENT DEFECT OF THE REPLAY DEVICE (it could not reject a record
+        #   inconsistent with the production rule); NOT evidence the live book topped up from an assumed zero — production refuses, and the two
+        #   real `filled_amount_unknown` rows in range are on a REFUSED anchor (09-12 12Z), so the measured aggregate is unchanged.
+        def _fn_total(r):
+            if r is None: return 0.0                                                             # an ABSENT leg contributes nothing (not "unknown")
+            if r.get("filled_unknown_qty") is not None or r.get("filled_unknown_residual") is not None or r.get("ledger_inconsistent"):
+                return None                                                                       # a known PART beside an unknown part is not a total
+            fn = r.get("filled_notional")
+            return float(fn) if fn is not None else None                                          # filled_notional is None ⟺ ledger not closed ⟺ UNREADABLE
         own1 = e1[0]["row"] if e1 else row1
         own2 = e2[0]["row"] if e2 else row2
-        got = 0.0
-        for r in (own1, own2):
-            v = _fn_of(r)
-            if v is not None: got += v
-        for _lbl, _ownr, _alt in (("R1", own1, row1), ("R2", own2, row2)):                       # owner vs the other candidate row
+        _tot = {_lbl: _fn_total(r) for _lbl, r in (("R1", own1), ("R2", own2)) if r is not None}
+        _unreadable = sorted(_lbl for _lbl, v in _tot.items() if v is None)                       # a PRESENT owning row whose total fill is not closed
+        got = sum(v for v in _tot.values() if v is not None)
+        for _lbl, _ownr, _alt in (("R1", own1, row1), ("R2", own2, row2)):                        # owner vs the other candidate row
             if _ownr is not None and _alt is not None and _ownr is not _alt:
-                _vo, _va = _fn_of(_ownr), _fn_of(_alt)
+                _vo, _va = _fn_total(_ownr), _fn_total(_alt)
                 if _vo is not None and _va is not None and abs(_vo - _va) > 1e-9:
                     diffs.append(f"{_lbl}:owner_row_fill_contradicts_other_row")
                     verdicts.append(f"{_lbl}_owner_row_fill_contradiction")
                     e[_lbl + "_fill_contradiction"] = {"owner_row_attempt": _ownr.get("attempt_idx"), "owner_filled": _vo,
                                                        "other_row_attempt": _alt.get("attempt_idx"), "other_filled": _va}
-        residual = float(p["delta_notional"]) - got; mid = mids.get(s)
+        resid_unmeasurable = bool(_unreadable)
+        if resid_unmeasurable:                                                                    # ★ R15-P1: the top-up decision input is missing; NOT delta − 0
+            unmeas.append("topup_residual_unmeasurable:" + ",".join(_unreadable)); verdicts.append("R3_residual_unmeasurable")
+        mid = mids.get(s)
         floor = float((sf.f.get(s) or {}).get("min_notional", 5.0) or 5.0)
-        exp_q = sf.round_qty(s, residual / max(mid, 1e-9)) if mid else None                      # SIGNED expected chunk total
-        rule_skip = (exp_q is None) or exp_q == 0 or abs(residual) < floor or abs(exp_q) * max(mid or 0.0, 1e-9) < floor
-        rule_no_row = abs(residual) < 1e-9
+        residual = None if resid_unmeasurable else float(p["delta_notional"]) - got
+        exp_q = sf.round_qty(s, residual / max(mid, 1e-9)) if (mid and residual is not None) else None    # SIGNED expected chunk total
+        rule_skip = None if residual is None else ((exp_q is None) or exp_q == 0 or abs(residual) < floor or abs(exp_q) * max(mid or 0.0, 1e-9) < floor)
+        rule_no_row = None if residual is None else abs(residual) < 1e-9
         rec_int = [r.get("intended_notional") for r in rows3]
-        int_ok = all(v is not None and abs(float(v) - residual) <= 1e-6 * max(1.0, abs(residual)) for v in rec_int) if rows3 else True
+        int_ok = None if residual is None else (all(v is not None and abs(float(v) - residual) <= 1e-6 * max(1.0, abs(residual)) for v in rec_int) if rows3 else True)
         sent3 = [x for x in e3 if not x.get("cls")]
-        e["R3"] = {"residual_rule": residual, "recorded_intended": rec_int, "intended_consistent": int_ok, "expected_qty_signed": (float(exp_q) if exp_q is not None else None),
-                   "rule_says_skip": rule_skip, "rule_says_no_row": rule_no_row, "n_topup_rows": len(rows3), "n_chunk_requests": len(sent3),
-                   "arm_drawn": chase_arms.get(s), "under_stop": s in force_flat}
-        if not rows3 and not rule_no_row and row1 is not None and row1.get("terminal_reason") not in (None, "venue_reject") and e1:
+        e["R3"] = {"residual_rule": residual, "residual_unmeasurable": resid_unmeasurable, "unreadable_fill_legs": _unreadable,
+                   "owner_fills_readable": {k: v for k, v in _tot.items()}, "recorded_intended": rec_int, "intended_consistent": int_ok,
+                   "expected_qty_signed": (float(exp_q) if exp_q is not None else None), "rule_says_skip": rule_skip, "rule_says_no_row": rule_no_row,
+                   "n_topup_rows": len(rows3), "n_chunk_requests": len(sent3), "arm_drawn": chase_arms.get(s), "under_stop": s in force_flat}
+        if not rows3 and rule_no_row is False and row1 is not None and row1.get("terminal_reason") not in (None, "venue_reject") and e1:
             missing.append("no_topup_row_though_residual_nonzero"); verdicts.append("R3_MISSING_ROW")
         if sent3:
             n_not_sent = sum(1 for x in sent3 if not x["sent"])
             n_missing_q = sum(1 for x in sent3 if x["sent"] and x["qty"] is None)
-            tq = sum(x["qty"] for x in sent3 if x["sent"] and x["qty"] is not None)
+            n_known = sum(1 for x in sent3 if x["sent"] and x["qty"] is not None)
+            tq = sum(x["qty"] for x in sent3 if x["sent"] and x["qty"] is not None)              # the KNOWN sent total (sent chunks with a quantity)
             for x in sent3: x["cls"] = "EXPLAINED"; REQ_CLS["EXPLAINED"] += 1
             # ★ R14-P2 (3): the chunks' SIDE / reduce-only / type are judged whether or not a quantity is present.
             _cside = pside if exp_q is None else _sside(exp_q)
@@ -469,16 +512,35 @@ for s in sorted(set(by_sym) | set(plan_by)):
                 gg, bb = _own(x, _cside, pro, "topup_taker"); _g3 += gg; _bad3 += bb
             _bad3 = sorted(set(_bad3)); field_gaps += ["R3:" + z for z in sorted(set(_g3))]
             e["R3"]["chunk_states"] = [x["state"] for x in sent3]
-            if n_not_sent or n_missing_q:
+            _sibling_unmeasurable = bool(n_not_sent or n_missing_q or resid_unmeasurable)        # a chunk / the residual we cannot read
+            if n_not_sent:
+                unmeas.append("topup_chunk_not_sent"); verdicts.append("R3_not_sent_ledger")
+                e["R3"].update(n_chunks_not_sent=n_not_sent, planned_qty_not_sent=sum(x["qty"] for x in sent3 if not x["sent"] and x["qty"] is not None))
+            if n_missing_q:
+                unmeas.append("topup_chunk_without_qty"); verdicts.append("R3_no_qty_evidence")
+            if exp_q is None:
+                # ★ R15-P1: the expected total is unmeasurable (the maker fill was unreadable) ⇒ NO quantity comparison; a comparison here
+                #   would be against a fabricated delta − 0. The residual-unmeasurable class was already recorded above.
                 if _bad3: diffs.append("R3:" + ",".join(_bad3)); verdicts.append("R3_MISMATCH")
-                if n_not_sent:
-                    unmeas.append("topup_chunk_not_sent"); verdicts.append("R3_not_sent_ledger")
-                    e["R3"].update(n_chunks_not_sent=n_not_sent, planned_qty_not_sent=sum(x["qty"] for x in sent3 if not x["sent"] and x["qty"] is not None))
-                if n_missing_q:
-                    unmeas.append("topup_chunk_without_qty"); verdicts.append("R3_no_qty_evidence")
+                e["R3"].update(sent_total_qty_signed_known=tq, expected_qty_signed=None, quantity_comparable=False)
+            elif _sibling_unmeasurable:
+                # ★ R15-P2: a sibling chunk is unsent / missing-qty (or the residual is unmeasurable), so the top-up total is not fully
+                #   measured — but the KNOWN part is still compared for a contradiction NO unsent chunk can undo. A same-direction over-fill
+                #   (|known| > |expected|) or a wrong-direction known chunk is a DIFF; |known| ≤ |expected| is consistent-so-far (a sibling
+                #   could complete it) ⇒ measured-partial, unmeasurable. v13 took `if n_not_sent or n_missing_q:` and never compared, so a
+                #   sent 20 against an expected 15 read all_measurable_exact with an empty diff, the unsent sibling masking a known over-fill.
+                _same = (n_known > 0) and (_sside(tq) == _sside(float(exp_q)))
+                _overshoot = _same and abs(tq) > abs(float(exp_q)) + 1e-9
+                _wrong_dir = (n_known > 0) and (tq != 0.0) and (not _same)
+                _q3 = ["qty_overfill_known"] if _overshoot else (["qty_wrong_direction_known"] if _wrong_dir else [])
+                if _q3 or _bad3:
+                    diffs.append("R3:" + ",".join(_q3 + _bad3))
+                    verdicts.append("R3_known_overfill_despite_unmeasured_sibling" if _overshoot else ("R3_known_wrong_direction_despite_unmeasured_sibling" if _wrong_dir else "R3_MISMATCH"))
+                e["R3"].update(sent_total_qty_signed_known=tq, expected_qty_signed=float(exp_q), n_known_chunks=n_known,
+                               known_overshoot=bool(_overshoot), known_wrong_direction=bool(_wrong_dir), remainder_unmeasurable=True)
             else:
                 n_qty_compared += 1
-                qok = (exp_q is not None) and abs(tq - float(exp_q)) <= 1e-9                     # v10 allowed one full lot AND compared |sum|
+                qok = abs(tq - float(exp_q)) <= 1e-9                                             # v10 allowed one full lot AND compared |sum|
                 aok = (not rule_skip) and int_ok and chase_arms.get(s) != "no_chase" and s not in force_flat
                 ok = qok and not _bad3 and aok
                 if ok: n_qty_equal += 1
@@ -532,7 +594,7 @@ n_unexpl = n_measured_diff + n_missing_req + n_skip_bad + n_req_unexplained
 n_rows = len(od)
 summary = {"n_symbols_compared": len(cmp), "n_order_rows": n_rows, "n_plan_sent": n_plan_sent, "n_plan_skipped": len(plans_A) - n_plan_sent,
            "n_ledger_entries": n_ledger_entries, "n_quantity_comparisons": n_qty_compared, "n_quantity_equal": n_qty_equal,
-           "plan_population": dict(PLAN_CLS), "request_population": dict(REQ_CLS),
+           "plan_population": dict(PLAN_CLS), "request_population": dict(REQ_CLS), "request_state_population": dict(STATE_CLS),
            "population_identity": {"n_plans": n_plans, "n_plan_classified": n_plan_classified, "n_symbols_without_plan": n_sym_no_plan,
                                    "n_ledger_entries": n_ledger_entries, "n_request_classified": n_req_classified,
                                    "plans_balance": bool(ident_plan), "requests_balance": bool(ident_req)},
@@ -546,7 +608,7 @@ summary = {"n_symbols_compared": len(cmp), "n_order_rows": n_rows, "n_plan_sent"
            "complete_parity": bool(n_qty_compared > 0 and n_unexpl == 0 and n_R1_mismatch == 0 and n_R1_reject == 0 and n_unmeasurable == 0
                                    and n_field_gaps == 0 and ident_plan and ident_req and A_ok == A_n and reshape_cmp["all_recorded_keys_equal"]),
            "categories": dict(cat)}
-out = {"device": "pc1_intent_replay.py", "version": "v13", "utc": time.strftime("%FT%TZ", time.gmtime()), "anchor": A, "utc_anchor": U(A), "rebalance_id": rid, "status": "OK",
+out = {"device": "pc1_intent_replay.py", "version": "v14", "utc": time.strftime("%FT%TZ", time.gmtime()), "anchor": A, "utc_anchor": U(A), "rebalance_id": rid, "status": "OK",
        "executor_tree": {"label": tree_label, "dir": tree_dir, "rule": "production reflog HEAD at phase_A run time (assumption: no uncommitted working-tree edits before commit time)",
                          "run_time_utc": time.strftime("%FT%TZ", time.gmtime(run_ts)) if run_ts else None, "current_head_rev_parse": tree_sha_check},
        "inputs": {"eq_pre_from_phase_A": eq_pre, "sizing_gross": G, "gross_norm": gross_norm, "target_gross_recorded": G_norm, "n_targets": len(tgt_file["weights"]), "n_held_prev_readback": len(held),
@@ -560,7 +622,7 @@ out = {"device": "pc1_intent_replay.py", "version": "v13", "utc": time.strftime(
                                                         "pre-trade notional = orders.prev_w × target_gross (executor's own decision-time valuation); contracts from the previous post_anchor readback",
                                                         "top-up legs are checked for remaining-quantity consistency only (chunking/skip rules), not replayed end-to-end"]}
 json.dump(out, open(OUT, "w"), indent=1, default=str)
-print("P-C1 v13", U(A), rid, "tree", tree_label, "| eq_pre", eq_pre, "gross", G, "| targets", len(tgt_file["weights"]), "held", len(held), "untradable", len(untr), "dust", len(dust["names"]), "force_flat", len(force_flat))
+print("P-C1 v14", U(A), rid, "tree", tree_label, "| eq_pre", eq_pre, "gross", G, "| targets", len(tgt_file["weights"]), "held", len(held), "untradable", len(untr), "dust", len(dust["names"]), "force_flat", len(force_flat))
 print("book layer exact %d / %d (max |Δ| %.6f USDT) | reshape keys equal %d / %d mismatch %s not_replayed %s" % (A_ok, A_n, A_max, len(reshape_cmp["equal"]), len(rec_rs), list(reshape_cmp["mismatch"])[:6], reshape_cmp["not_replayed"][:6]))
 print("requests:", {k: summary[k] for k in ("n_order_rows", "n_plan_sent", "R1_exact", "R1_reject_no_qty_evidence", "R1_intent_consistent_among_rejects", "R1_mismatch_or_missing", "R2_exact", "R3_consistent", "n_unexplained_or_mismatch", "all_measurable_exact", "complete_parity")})
 print("categories:", dict(cat))

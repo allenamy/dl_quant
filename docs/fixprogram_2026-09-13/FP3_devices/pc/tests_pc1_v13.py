@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""Behavioural tests for pc1_intent_replay.py v13 (independent review rounds 11 R11-PC1, 12 R12-P1, 13 R13-P1, 14 R14-P1/P2).
+"""Behavioural tests for pc1_intent_replay.py v14 (independent review rounds 11 R11-PC1, 12 R12-P1, 13 R13-P1, 14 R14-P1/P2, 15 R15-P1/P2). [file kept as tests_pc1_v13.py]
 Section [10] is the round-14 block: every case there was a full false pass or a population defect on v12 and must be red on v13.
+Section [11] is the round-15 block: every RED case there was a false complete_parity / all_measurable_exact on v13 — an UNREADABLE maker fill read as delta−0, and an
+unsent sibling chunk masking an already-known over-fill — and must go green on v14. Run PC1_DEV=<pre-fix device> to see [11.1]-[11.4],[11.6] go red on the predecessor.
 Section [8] is the round-12 block: every case there PASSED on v10 with complete_parity=True and must be red on v11. Each red case is one of the reviewer's counterexamples that
 v9 passed; the green baseline is asserted FIRST so that a red verdict is a discriminating verdict and not a broken fixture.
 Fixtures are a synthetic executor state tree (anchor_runs.log, pilot_log day files, exchange_info_cache.json) and a synthetic producer target;
@@ -124,21 +126,25 @@ x = run("old_schema", d)
 check("orders rows without any request_ledger key (pre-09-12 executor) ⇒ REFUSED UNAVAILABLE_REQUEST_LEDGER_SCHEMA", x.get("status") == "REFUSED" and "UNAVAILABLE_REQUEST_LEDGER_SCHEMA" in x.get("refusals", []), x)
 
 print("\n[7] top-up rule is evaluated, not vacuous: a no_chase draw with a sent chunk is unexplained; a chase draw with skipped_no_chase_arm is unexplained")
+# ★ R15-P1 fixture correction: a maker that filled 10 sets BOTH filled_known_notional AND filled_notional to 10 (for a CLOSED ledger
+#   filled_notional == filled_known_notional; ledger_row_columns L266). v13 set only filled_known_notional and left filled_notional at the
+#   base 25 — a physically impossible row that never occurs in real data (verified: 0/46,363 rows diverge). It passed only because v13's
+#   `_fn_of` read the known part; under `_fn_total` (which reads the authoritative total) the intended residual 15 is now realised correctly.
 d = base_data(); d["an"]["chase_experiment"]["arm_assigned"]["AUSDT"] = "no_chase"
 for r in d["orders"]:
-    if r["symbol"] == "AUSDT" and r["order_type"] == "maker": r["filled_known_notional"] = 10.0; r["request_ledger"][0].update(confirmed_qty=10.0, terminal=True)
+    if r["symbol"] == "AUSDT" and r["order_type"] == "maker": r["filled_known_notional"] = 10.0; r["filled_notional"] = 10.0; r["request_ledger"][0].update(confirmed_qty=10.0, terminal=True)
     if r["symbol"] == "AUSDT" and r["order_type"] == "topup_taker": r["terminal_reason"] = "filled"; r["intended_notional"] = 15.0; r["request_ledger"] = [{"client_id": f"{RID}-AUSDT-3", "qty": 15.0, "confirmed_qty": 15.0, "state": "confirmed", "terminal": True, "confirmed_qty_final": True}]
 x = run("nochase_sent", d); cat = x["summary"]["categories"]
 check("no_chase draw yet a chunk was sent ⇒ R3_lifecycle_unexplained", cat.get("R3_lifecycle_unexplained", 0) == 1, cat)
 d = base_data()
 for r in d["orders"]:
-    if r["symbol"] == "AUSDT" and r["order_type"] == "maker": r["filled_known_notional"] = 10.0; r["request_ledger"][0].update(confirmed_qty=10.0)
+    if r["symbol"] == "AUSDT" and r["order_type"] == "maker": r["filled_known_notional"] = 10.0; r["filled_notional"] = 10.0; r["request_ledger"][0].update(confirmed_qty=10.0)
     if r["symbol"] == "AUSDT" and r["order_type"] == "topup_taker": r["terminal_reason"] = "skipped_no_chase_arm"; r["intended_notional"] = 15.0
 x = run("chase_skipped", d); cat = x["summary"]["categories"]
 check("chase draw yet skipped_no_chase_arm ⇒ R3_skip_unexplained:skipped_no_chase_arm", cat.get("R3_skip_unexplained:skipped_no_chase_arm", 0) == 1, cat)
 d = base_data()
 for r in d["orders"]:
-    if r["symbol"] == "AUSDT" and r["order_type"] == "maker": r["filled_known_notional"] = 10.0; r["request_ledger"][0].update(confirmed_qty=10.0)
+    if r["symbol"] == "AUSDT" and r["order_type"] == "maker": r["filled_known_notional"] = 10.0; r["filled_notional"] = 10.0; r["request_ledger"][0].update(confirmed_qty=10.0)
     if r["symbol"] == "AUSDT" and r["order_type"] == "topup_taker": r["terminal_reason"] = "filled"; r["intended_notional"] = 15.0; r["request_ledger"] = [{"client_id": f"{RID}-AUSDT-3", "qty": 15.0, "confirmed_qty": 15.0, "state": "confirmed", "terminal": True, "confirmed_qty_final": True}]
 x = run("chase_consistent", d); cat = x["summary"]["categories"]
 check("chase draw, residual 15 at mid 1 ⇒ chunk 15 is R3_consistent (positive control of the rule)", cat.get("R3_consistent", 0) == 1 and x["summary"]["all_measurable_exact"] is True, cat)
@@ -343,6 +349,74 @@ pid4 = G(s104, "population_identity", {})
 check("[10.4] a duplicated client_id is classified ONCE ⇒ n_request_classified == n_ledger_entries and requests_balance True, while complete_parity stays False (v12 counted it three times: 5 entries, 7 classifications)",
       pid4.get("n_request_classified") == pid4.get("n_ledger_entries") and pid4.get("requests_balance") is True
       and G(s104, "complete_parity", True) is False, (pid4, G(s104, "request_population")))
+
+# ───────────────────────── [11] round 15 (independent review R15-P1 / R15-P2) ─────────────────────────
+#   [11.1]-[11.4] and [11.6] are false passes on v13 (the pre-fix device) and must go GREEN on v14; [11.0] (green baseline) and [11.5]
+#   (no-false-positive) pass on BOTH so a red verdict is discriminating, not a broken fixture. All fixtures drive the REAL device via run().
+print("\n[11] round 15: an UNREADABLE maker fill must make the residual UNMEASURABLE (not delta−0), and an unsent sibling must not mask a known over-fill")
+
+
+def rows_by_sym(x): return {e["symbol"]: e for e in x.get("rows", [])}
+
+
+# [11.0] GREEN BASELINE (readable partial): a red [11.x] below is then a discriminating verdict.
+x = run("r15_green_partial", partial_data()); s110 = x["summary"]
+check("[11.0] GREEN BASELINE: maker 25 filled a READABLE 10 (filled_notional=10) + a legal 15 top-up ⇒ complete_parity True, residual_rule 15, n_unmeasurable 0",
+      G(s110, "complete_parity") is True and G(s110, "n_unmeasurable", -1) == 0
+      and abs(float((rows_by_sym(x).get("AUSDT", {}).get("R3") or {}).get("residual_rule", 0.0)) - 15.0) < 1e-6, s110)
+
+# [11.1] R15-P1 (a): the maker FILL is unreadable (filled_notional=None) and the top-up matches the FABRICATED full delta 25.
+d = partial_data()
+mk = next(r for r in d["orders"] if r["symbol"] == "AUSDT" and r["order_type"] == "maker")
+mk["terminal_reason"] = "filled_amount_unknown"; mk["filled_known_notional"] = None; mk["filled_notional"] = None      # FILL total not closed ⇒ UNREADABLE
+mk["request_ledger"] = [{"client_id": f"{RID}-AUSDT-1", "qty": 25.0, "confirmed_qty": 25.0, "state": "confirmed", "terminal": True, "confirmed_qty_final": True}]   # the ORDER reached the venue for 25 ⇒ R1 stays exact
+tr = topup_row(d); tr["terminal_reason"] = "filled"; tr["intended_notional"] = 25.0; tr["filled_known_notional"] = 25.0; tr["filled_notional"] = 25.0
+tr["request_ledger"] = [{"client_id": f"{RID}-AUSDT-3", "qty": 25.0, "confirmed_qty": 25.0, "state": "confirmed", "terminal": True, "confirmed_qty_final": True}]
+x = run("r15_unreadable_fill_full_delta", d); s111 = x["summary"]; r111 = (rows_by_sym(x).get("AUSDT", {}).get("R3") or {})
+check("[11.1] an UNREADABLE maker fill ⇒ residual UNMEASURABLE not delta−0: residual_unmeasurable True, residual_rule None, plan PARTIAL_UNMEASURABLE, complete_parity False (v13: residual 25, R3_consistent, complete_parity True)",
+      G(s111, "complete_parity", True) is False and G(s111, "n_unmeasurable", 0) >= 1 and r111.get("residual_unmeasurable") is True
+      and r111.get("residual_rule") is None and any("topup_residual_unmeasurable" in k for k in G(s111, "plan_population", {})),
+      (G(s111, "complete_parity"), r111.get("residual_rule"), G(s111, "plan_population")))
+
+# [11.2] R15-P1 (b): a KNOWN PART (filled_known_notional=5) is not the total ⇒ v13 fabricated residual = delta−5 = 20 and a 20 top-up matched.
+d = partial_data()
+mk = next(r for r in d["orders"] if r["symbol"] == "AUSDT" and r["order_type"] == "maker")
+mk["terminal_reason"] = "filled_amount_unknown"; mk["filled_known_notional"] = 5.0; mk["filled_notional"] = None       # 5 known, TOTAL not closed
+mk["request_ledger"] = [{"client_id": f"{RID}-AUSDT-1", "qty": 25.0, "confirmed_qty": 25.0, "state": "confirmed", "terminal": True, "confirmed_qty_final": True}]
+tr = topup_row(d); tr["terminal_reason"] = "filled"; tr["intended_notional"] = 20.0; tr["filled_known_notional"] = 20.0; tr["filled_notional"] = 20.0
+tr["request_ledger"] = [{"client_id": f"{RID}-AUSDT-3", "qty": 20.0, "confirmed_qty": 20.0, "state": "confirmed", "terminal": True, "confirmed_qty_final": True}]
+x = run("r15_known_part_not_total", d); s112 = x["summary"]; r112 = (rows_by_sym(x).get("AUSDT", {}).get("R3") or {})
+check("[11.2] a KNOWN part (5) is NOT the total ⇒ residual UNMEASURABLE, complete_parity False (v13 read filled_known_notional as the total, residual delta−5=20, the 20 top-up matched, complete_parity True)",
+      G(s112, "complete_parity", True) is False and r112.get("residual_unmeasurable") is True and r112.get("residual_rule") is None, (G(s112, "complete_parity"), r112))
+
+# [11.3] R15-P1 (c): a row LOOKS closed (filled_notional=25) but an unknown-part marker is set ⇒ readability is denied by the marker.
+d = base_data(); d["an"]["reshape"] = dict(g["reshape_replayed"])
+mk = next(r for r in d["orders"] if r["symbol"] == "AUSDT" and r["order_type"] == "maker"); mk["filled_unknown_qty"] = 500.0
+x = run("r15_unknown_marker_overrides_total", d); s113 = x["summary"]; r113 = (rows_by_sym(x).get("AUSDT", {}).get("R3") or {})
+check("[11.3] filled_unknown_qty set (a further unknown part) overrides a present filled_notional ⇒ residual UNMEASURABLE, complete_parity False (v13 trusted filled_known_notional=25, residual 0, complete_parity True)",
+      G(s113, "complete_parity", True) is False and r113.get("residual_unmeasurable") is True, (G(s113, "complete_parity"), r113))
+
+# [11.4] R15-P2 (RED): expected 15, a chunk SENT for 20 (a known over-fill) + a never-sent sibling of 5. The unsent sibling must not mask the over-fill.
+d = partial_data(); tr = topup_row(d); tr["terminal_reason"] = "filled"; tr["intended_notional"] = 15.0
+tr["request_ledger"] = [{"client_id": f"{RID}-AUSDT-3", "qty": 20.0, "confirmed_qty": 20.0, "state": "confirmed", "terminal": True, "confirmed_qty_final": True},
+                        {"client_id": f"{RID}-AUSDT-3c1", "qty": 5.0, "state": "not_sent", "confirmed_qty": None, "order_id": None, "terminal": False}]
+x = run("r15_overfill_masked_by_unsent_sibling", d); s114 = x["summary"]; r114 = rows_by_sym(x).get("AUSDT", {})
+check("[11.4] a SENT chunk 20 vs an expected 15 is a KNOWN over-fill no unsent chunk can undo ⇒ a qty DIFF is reported and all_measurable_exact False (v13: `if n_not_sent` skipped the comparison ⇒ empty diff, all_measurable_exact True)",
+      G(s114, "all_measurable_exact", True) is False and any("overfill" in z for z in (r114.get("diffs") or []))
+      and (r114.get("R3") or {}).get("known_overshoot") is True, (G(s114, "all_measurable_exact"), r114.get("diffs")))
+
+# [11.5] R15-P2 (no-false-positive, passes on BOTH): expected 15, a chunk SENT for 10 (UNDER) + a never-sent sibling of 5 — a sibling could complete it ⇒ NO over-fill diff.
+d = partial_data(); tr = topup_row(d); tr["terminal_reason"] = "filled"; tr["intended_notional"] = 15.0
+tr["request_ledger"] = [{"client_id": f"{RID}-AUSDT-3", "qty": 10.0, "confirmed_qty": 10.0, "state": "confirmed", "terminal": True, "confirmed_qty_final": True},
+                        {"client_id": f"{RID}-AUSDT-3c1", "qty": 5.0, "state": "not_sent", "confirmed_qty": None, "order_id": None, "terminal": False}]
+x = run("r15_underfill_with_unsent_sibling", d); s115 = x["summary"]; r115 = rows_by_sym(x).get("AUSDT", {})
+check("[11.5] NO-FALSE-POSITIVE: a SENT chunk 10 ≤ expected 15 with an unsent sibling is consistent-so-far ⇒ NO over-fill diff, but the remainder is unmeasurable (n_unmeasurable ≥ 1)",
+      not any(("overfill" in z) or (z == "R3:qty") for z in (r115.get("diffs") or [])) and G(s115, "n_unmeasurable", 0) >= 1, (r115.get("diffs"), G(s115, "n_unmeasurable")))
+
+# [11.6] R15 wording: the request states are reported SEPARATELY (an `unknown`/`not_sent` state is NOT asserted to have reached the venue).
+check("[11.6] summary.request_state_population reports states SEPARATELY: confirmed and not_sent both counted (the [11.4] fixture carried one confirmed chunk + one not_sent)",
+      isinstance(G(s114, "request_state_population"), dict) and G(s114, "request_state_population", {}).get("not_sent", 0) >= 1
+      and G(s114, "request_state_population", {}).get("confirmed", 0) >= 1, G(s114, "request_state_population"))
 
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)  device sha {hashlib.sha256(open(DEV,'rb').read()).hexdigest()[:16]}")
 sys.exit(0 if not FAILS else 1)

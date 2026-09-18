@@ -57,7 +57,7 @@ summ = {"n_anchors": len(res), "n_ok": len(ok), "classes": dict(cls), "n_complet
         "trees": dict(collections.Counter((r.get("tree") or "?")[:7] for r in res if r.get("tree"))),
         "R1_totals": {"exact": sum(r["R1_exact"] for r in ok), "reject_no_qty": sum(r["R1_reject_no_qty"] for r in ok), "mismatch": sum(r["R1_mismatch"] for r in ok)},
         "note": "complete_parity requires zero rejects-without-quantity-evidence; a −5022 post-only reject leaves no request ledger by construction, so anchors with rejects can be all_measurable_exact but never complete_parity"}
-json.dump({"device": "pc1_history.py", "version": "v4 (for pc1_intent_replay v12)", "utc": time.strftime("%FT%TZ", time.gmtime()), "from": U(F), "to": U(T), "summary": summ, "rows": res}, open(OUT, "w"), indent=1)
+json.dump({"device": "pc1_history.py", "version": "v5 (for pc1_intent_replay v14, R15-P1/P2)", "utc": time.strftime("%FT%TZ", time.gmtime()), "from": U(F), "to": U(T), "summary": summ, "rows": res}, open(OUT, "w"), indent=1)
 print("summary", json.dumps(summ, ensure_ascii=False)[:900])
 for r in res:
     if r.get("status") == "OK": print(f"  {r['utc']} {str(r.get('tree'))[:7]} book {r['book_exact']} (max {r['book_max_diff']:.4f}) reshape {r['reshape_bitwise']} within1e-9 {r['reshape_within_1e9']} R1 {r['R1_exact']}+{r['R1_reject_no_qty']}rej R2 {r['R2_exact']} R3 {r['R3_consistent']}/{r['n_plan_sent']} unexpl {r['unexplained']} {'' if not r['unexplained'] else r['unexplained_categories']}")
