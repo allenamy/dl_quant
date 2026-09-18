@@ -1,0 +1,3279 @@
+{
+ "device": "pc3_stop_counterfactual.py",
+ "version": "v2",
+ "self_sha256": "729f815765eec55082e2a8d4fdd979db6c67fc1fc1e3fefefec79ec1ea4f8662",
+ "evaluated_at_utc": "2026-09-18T08:20:34Z",
+ "label": "\u751f\u4ea7\u6301\u4ed3\u4e0a\u7684\u66ff\u4ee3\u89e6\u53d1 + \u9759\u6001\u6301\u6709\u4ef7\u683c\u8db3\u8ff9(\u8bca\u65ad); \u4e0d\u662f\u6b62\u635f\u6548\u679c; \u72ec\u7acb\u6301\u4ed3\u53cd\u4e8b\u5b9e\u672a\u505a",
+ "window": [
+  "20260808",
+  "20260918"
+ ],
+ "n_anchors": 245,
+ "conf_production": {
+  "depth_pct": -0.3,
+  "consecutive_anchors": 2,
+  "cooloff_days": 7,
+  "min_notional_usdt": 5.0,
+  "_profile": "wide"
+ },
+ "inputs": {
+  "pilot_log": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/pc3v2/pilot_log",
+  "anchor_runs": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/pc3v2/anchor_runs.log",
+  "per_name_stop_dir": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/pc3v2/tree/live",
+  "per_name_stop_sha256": "1eb374085be501cc684698053ae723c4862443629146f460987287268782bc02",
+  "rolling_sha256": "5022c5c7821ce78e3193f9c00ee292b2954d15b86fc5dc68f27a2001c1ff13f8",
+  "rolling_last_row_utc": "09-18 04:00Z",
+  "syms": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/pc3v2/ws/fea171/xfer_syms.npz"
+ },
+ "basis_walk": {
+  "reconcile_counts": {
+   "reseat": 108,
+   "ok": 48041,
+   "flat": 5027
+  },
+  "n_fills_deduped": 48323
+ },
+ "unknown_basis_names_per_anchor_mean": 10.926530612244898,
+ "replica_check": {
+  "n_anchors": 245,
+  "n_agree_bitwise": 245,
+  "first_disagreement": null,
+  "trusted_for_V1": true
+ },
+ "specs": {
+  "V0": {
+   "n_stops": 27,
+   "primary_0_72h": {
+    "n_priced": 23,
+    "censored": {
+     "CENSORED_IMMATURE": 4
+    },
+    "avoided_pnl_sum_usdt": 1816.3124811107189,
+    "avoided_pnl_median_usdt": -0.6969635654837971,
+    "n_helped": 11,
+    "frac_helped": 0.4782608695652174
+   },
+   "exit_aligned_4_76h": {
+    "n_priced": 23,
+    "avoided_pnl_sum_usdt": 1689.9100848792655,
+    "n_helped": 12,
+    "frac_helped": 0.5217391304347826
+   },
+   "by_side": {
+    "long": 16,
+    "short": 11
+   },
+   "events": [
+    {
+     "symbol": "TACUSDT",
+     "anchor": 1787443200,
+     "utc": "08-23 00:00Z",
+     "side": "long",
+     "depth": -0.31954910960918925,
+     "notional": 49.60491165,
+     "entry_notional": 65.456117,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-23 00:00Z",
+       "08-26 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.6024564857766539,
+      "avoided_pnl_usdt": -29.884800749920398
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-23 04:00Z",
+       "08-26 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.5249782463374739,
+      "avoided_pnl_usdt": -26.041499527742328
+     }
+    },
+    {
+     "symbol": "MAGMAUSDT",
+     "anchor": 1787472000,
+     "utc": "08-23 08:00Z",
+     "side": "long",
+     "depth": -0.32432307094033586,
+     "notional": 108.074988,
+     "entry_notional": 143.12619999999995,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-23 08:00Z",
+       "08-26 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.02149215168872498,
+      "avoided_pnl_usdt": -2.3227640358531323
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-23 12:00Z",
+       "08-26 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.04597628985678859,
+      "avoided_pnl_usdt": -4.968886974556948
+     }
+    },
+    {
+     "symbol": "VELVETUSDT",
+     "anchor": 1787601600,
+     "utc": "08-24 20:00Z",
+     "side": "long",
+     "depth": -1.0558542967047833,
+     "notional": 122.0304865,
+     "entry_notional": 250.8769,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-24 20:00Z",
+       "08-27 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.35715711919381177,
+      "avoided_pnl_usdt": 43.584057012159334
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-25 00:00Z",
+       "08-28 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.3101352138112331,
+      "avoided_pnl_usdt": 37.84595102216629
+     }
+    },
+    {
+     "symbol": "USUSDT",
+     "anchor": 1787659200,
+     "utc": "08-25 12:00Z",
+     "side": "long",
+     "depth": -0.3211103096529727,
+     "notional": 134.747455,
+     "entry_notional": 178.016252,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-25 12:00Z",
+       "08-28 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.1732734251441015,
+      "avoided_pnl_usdt": -23.348153057300685
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-25 16:00Z",
+       "08-28 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.21378701807118228,
+      "avoided_pnl_usdt": -28.80725659713082
+     }
+    },
+    {
+     "symbol": "PROMUSDT",
+     "anchor": 1787688000,
+     "utc": "08-25 20:00Z",
+     "side": "short",
+     "depth": -0.3169416215601459,
+     "notional": 168.2086028,
+     "entry_notional": 114.89629546820149,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-25 20:00Z",
+       "08-28 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.18670403119037715,
+      "avoided_pnl_usdt": 31.40522422366096
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-26 00:00Z",
+       "08-29 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.2308103277673279,
+      "avoided_pnl_usdt": 38.82428274555227
+     }
+    },
+    {
+     "symbol": "SKYAIUSDT",
+     "anchor": 1787688000,
+     "utc": "08-25 20:00Z",
+     "side": "long",
+     "depth": -0.4009636729436037,
+     "notional": 96.55558,
+     "entry_notional": 135.27085999999997,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-25 20:00Z",
+       "08-28 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.15268797056562788,
+      "avoided_pnl_usdt": -14.74287555698713
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-26 00:00Z",
+       "08-29 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.11345465326431925,
+      "avoided_pnl_usdt": -10.954679849635239
+     }
+    },
+    {
+     "symbol": "SKRUSDT",
+     "anchor": 1788105600,
+     "utc": "08-30 16:00Z",
+     "side": "short",
+     "depth": -0.40983984251347005,
+     "notional": 305.08226474,
+     "entry_notional": 180.04739740530562,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-30 16:00Z",
+       "09-02 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.5221841731371748,
+      "avoided_pnl_usdt": 159.30913015207358
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-30 20:00Z",
+       "09-02 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.1250443229079532,
+      "avoided_pnl_usdt": 38.14880522563823
+     }
+    },
+    {
+     "symbol": "MAGMAUSDT",
+     "anchor": 1788148800,
+     "utc": "08-31 04:00Z",
+     "side": "long",
+     "depth": -0.314518562284589,
+     "notional": 406.2,
+     "entry_notional": 533.95744,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-31 04:00Z",
+       "09-03 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.2621983012150424,
+      "avoided_pnl_usdt": -106.50494995355022
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-31 08:00Z",
+       "09-03 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.1566898995835435,
+      "avoided_pnl_usdt": -63.64743721083537
+     }
+    },
+    {
+     "symbol": "ZORAUSDT",
+     "anchor": 1788163200,
+     "utc": "08-31 08:00Z",
+     "side": "short",
+     "depth": -0.40343117494639996,
+     "notional": 301.170108,
+     "entry_notional": 179.66869747082586,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-31 08:00Z",
+       "09-03 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.21153393679933097,
+      "avoided_pnl_usdt": -63.70769859151969
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-31 12:00Z",
+       "09-03 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.18282377203420508,
+      "avoided_pnl_usdt": -55.06105516850893
+     }
+    },
+    {
+     "symbol": "BTRUSDT",
+     "anchor": 1788177600,
+     "utc": "08-31 12:00Z",
+     "side": "long",
+     "depth": -0.35328825083944815,
+     "notional": 453.34761858,
+     "entry_notional": 613.5100057703576,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-31 12:00Z",
+       "09-03 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.5099960398960675,
+      "avoided_pnl_usdt": 231.20549017211286
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-31 16:00Z",
+       "09-03 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.5185399536096207,
+      "avoided_pnl_usdt": 235.0788531075052
+     }
+    },
+    {
+     "symbol": "CYSUSDT",
+     "anchor": 1788249600,
+     "utc": "09-01 08:00Z",
+     "side": "long",
+     "depth": -0.4293660881148367,
+     "notional": 413.12717296,
+     "entry_notional": 590.5099711077767,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-01 08:00Z",
+       "09-04 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.46508190917044345,
+      "avoided_pnl_usdt": 192.1379743304248
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-01 12:00Z",
+       "09-04 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.43304112440861653,
+      "avoided_pnl_usdt": 178.9010555023514
+     }
+    },
+    {
+     "symbol": "TRIAUSDT",
+     "anchor": 1788264000,
+     "utc": "09-01 12:00Z",
+     "side": "long",
+     "depth": -0.393641271786504,
+     "notional": 293.484025,
+     "entry_notional": 409.0114498500221,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-01 12:00Z",
+       "09-04 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.22238333150728584,
+      "avoided_pnl_usdt": -65.26595522366756
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-01 16:00Z",
+       "09-04 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.33835754757001246,
+      "avoided_pnl_usdt": -99.30253494997622
+     }
+    },
+    {
+     "symbol": "RIVERUSDT",
+     "anchor": 1788336000,
+     "utc": "09-02 08:00Z",
+     "side": "long",
+     "depth": -0.30574502504025924,
+     "notional": 435.19413651,
+     "entry_notional": 568.2525786746239,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-02 08:00Z",
+       "09-05 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.0271157657432739,
+      "avoided_pnl_usdt": -11.800622258451524
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-02 12:00Z",
+       "09-05 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.06728339763747448,
+      "avoided_pnl_usdt": -29.281340136299683
+     }
+    },
+    {
+     "symbol": "EGLDUSDT",
+     "anchor": 1788408000,
+     "utc": "09-03 04:00Z",
+     "side": "short",
+     "depth": -0.3427705071647415,
+     "notional": 7.701,
+     "entry_notional": 5.061324324324325,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-03 04:00Z",
+       "09-06 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.09050299512839854,
+      "avoided_pnl_usdt": -0.6969635654837971
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-03 08:00Z",
+       "09-06 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.12321543879855112,
+      "avoided_pnl_usdt": -0.9488820941876421
+     }
+    },
+    {
+     "symbol": "ARBUSDT",
+     "anchor": 1788436800,
+     "utc": "09-03 12:00Z",
+     "side": "short",
+     "depth": -0.3223224980796783,
+     "notional": 173.544426,
+     "entry_notional": 117.60715308387614,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-03 12:00Z",
+       "09-06 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.42554222656712004,
+      "avoided_pnl_usdt": 73.8504814483528
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-03 16:00Z",
+       "09-06 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.41771517236760825,
+      "avoided_pnl_usdt": 72.49213982002763
+     }
+    },
+    {
+     "symbol": "USELESSUSDT",
+     "anchor": 1788523200,
+     "utc": "09-04 12:00Z",
+     "side": "short",
+     "depth": -0.36138077672371977,
+     "notional": 834.70816,
+     "entry_notional": 533.0606768015731,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-04 12:00Z",
+       "09-07 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.10433920802521623,
+      "avoided_pnl_usdt": -87.09278834658548
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-04 16:00Z",
+       "09-07 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.006130181515767497,
+      "avoided_pnl_usdt": 5.1169125334922985
+     }
+    },
+    {
+     "symbol": "DASHUSDT",
+     "anchor": 1788595200,
+     "utc": "09-05 08:00Z",
+     "side": "short",
+     "depth": -0.3181081581923099,
+     "notional": 489.16504201,
+     "entry_notional": 333.557651444135,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-05 08:00Z",
+       "09-08 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.05377242756729228,
+      "avoided_pnl_usdt": -26.30359178993421
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-05 12:00Z",
+       "09-08 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.07064175010627605,
+      "avoided_pnl_usdt": -34.55547465839644
+     }
+    },
+    {
+     "symbol": "HEMIUSDT",
+     "anchor": 1788652800,
+     "utc": "09-06 00:00Z",
+     "side": "long",
+     "depth": -0.3369322472438566,
+     "notional": 1424.02856762,
+     "entry_notional": 1903.829713047657,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-06 00:00Z",
+       "09-09 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.2866291885597574,
+      "avoided_pnl_usdt": 408.16815282283426
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-06 04:00Z",
+       "09-09 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.3586548527993787,
+      "avoided_pnl_usdt": 510.73475630186124
+     }
+    },
+    {
+     "symbol": "COLLECTUSDT",
+     "anchor": 1788681600,
+     "utc": "09-06 08:00Z",
+     "side": "long",
+     "depth": -0.512975885883509,
+     "notional": 1803.16137912,
+     "entry_notional": 2728.139684965012,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-06 08:00Z",
+       "09-09 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.46519398587243677,
+      "avoided_pnl_usdt": 838.8198291240728
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-06 12:00Z",
+       "09-09 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.46750154954136924,
+      "avoided_pnl_usdt": 842.9807388117524
+     }
+    },
+    {
+     "symbol": "FLOCKUSDT",
+     "anchor": 1788681600,
+     "utc": "09-06 08:00Z",
+     "side": "short",
+     "depth": -0.42332006814187956,
+     "notional": 1143.58965324,
+     "entry_notional": 659.4852033040947,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-06 08:00Z",
+       "09-09 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.13456630965882477,
+      "avoided_pnl_usdt": -153.88863940052187
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-06 12:00Z",
+       "09-09 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.2270885795196167,
+      "avoided_pnl_usdt": -259.6961499076026
+     }
+    },
+    {
+     "symbol": "XANUSDT",
+     "anchor": 1788868800,
+     "utc": "09-08 12:00Z",
+     "side": "long",
+     "depth": -0.3082234186800851,
+     "notional": 2292.427796,
+     "entry_notional": 2999.0077283603728,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-08 12:00Z",
+       "09-11 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.07246035596086764,
+      "avoided_pnl_usdt": 166.11013411274726
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-08 16:00Z",
+       "09-11 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.037326687757006316,
+      "avoided_pnl_usdt": 85.56873654677418
+     }
+    },
+    {
+     "symbol": "IOSTUSDT",
+     "anchor": 1789027200,
+     "utc": "09-10 08:00Z",
+     "side": "long",
+     "depth": -0.4092169007958664,
+     "notional": 894.3539724,
+     "entry_notional": 1260.3387332,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-10 08:00Z",
+       "09-13 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.2048748870260253,
+      "avoided_pnl_usdt": 183.23066905672695
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-10 12:00Z",
+       "09-13 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.2360999825570016,
+      "avoided_pnl_usdt": 211.15695728342507
+     }
+    },
+    {
+     "symbol": "LSKUSDT",
+     "anchor": 1789200000,
+     "utc": "09-12 08:00Z",
+     "side": "short",
+     "depth": -0.32257281122095416,
+     "notional": 81.03696,
+     "entry_notional": 54.89663999999999,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-12 08:00Z",
+       "09-15 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.9137946584537351,
+      "avoided_pnl_usdt": 74.05114118532899
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-12 12:00Z",
+       "09-15 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.5716662255542588,
+      "avoided_pnl_usdt": 46.32609305359145
+     }
+    },
+    {
+     "symbol": "AKEUSDT",
+     "anchor": 1789488000,
+     "utc": "09-15 16:00Z",
+     "side": "short",
+     "depth": -0.40654431820286685,
+     "notional": 1478.563146,
+     "entry_notional": 877.4616998895441,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-15 16:00Z",
+       "09-18 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 15,
+      "first_missing_window": 15,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 60.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-15 20:00Z",
+       "09-18 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 14,
+      "first_missing_window": 14,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 56.0,
+      "avoided_pnl_usdt": null
+     }
+    },
+    {
+     "symbol": "AINUSDT",
+     "anchor": 1789545600,
+     "utc": "09-16 08:00Z",
+     "side": "long",
+     "depth": -0.49502461487063343,
+     "notional": 590.14326,
+     "entry_notional": 882.2787000000002,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-16 08:00Z",
+       "09-19 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 11,
+      "first_missing_window": 11,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 44.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-16 12:00Z",
+       "09-19 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 10,
+      "first_missing_window": 10,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 40.0,
+      "avoided_pnl_usdt": null
+     }
+    },
+    {
+     "symbol": "UAIUSDT",
+     "anchor": 1789545600,
+     "utc": "09-16 08:00Z",
+     "side": "long",
+     "depth": -0.38297924253478804,
+     "notional": 2415.07923799,
+     "entry_notional": 3340.0044552169034,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-16 08:00Z",
+       "09-19 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 11,
+      "first_missing_window": 11,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 44.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-16 12:00Z",
+       "09-19 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 10,
+      "first_missing_window": 10,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 40.0,
+      "avoided_pnl_usdt": null
+     }
+    },
+    {
+     "symbol": "ONEUSDT",
+     "anchor": 1789617600,
+     "utc": "09-17 04:00Z",
+     "side": "short",
+     "depth": -0.3921274722389314,
+     "notional": 922.27640206,
+     "entry_notional": 560.6264878145957,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-17 04:00Z",
+       "09-20 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 6,
+      "first_missing_window": 6,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 24.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-17 08:00Z",
+       "09-20 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 5,
+      "first_missing_window": 5,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 20.0,
+      "avoided_pnl_usdt": null
+     }
+    }
+   ]
+  },
+  "V1": {
+   "n_stops": 26,
+   "primary_0_72h": {
+    "n_priced": 20,
+    "censored": {
+     "CENSORED_IMMATURE": 6
+    },
+    "avoided_pnl_sum_usdt": 1175.993475268498,
+    "avoided_pnl_median_usdt": 7.550282605458563,
+    "n_helped": 13,
+    "frac_helped": 0.65
+   },
+   "exit_aligned_4_76h": {
+    "n_priced": 20,
+    "avoided_pnl_sum_usdt": 1179.7073538900536,
+    "n_helped": 15,
+    "frac_helped": 0.75
+   },
+   "by_side": {
+    "short": 18,
+    "long": 8
+   },
+   "events": [
+    {
+     "symbol": "ENAUSDT",
+     "anchor": 1787299200,
+     "utc": "08-21 08:00Z",
+     "side": "short",
+     "depth": -0.48601382650366437,
+     "notional": 302.1286464,
+     "entry_notional": 203.31482857791227,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-21 08:00Z",
+       "08-24 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.23370858471250044,
+      "avoided_pnl_usdt": 70.61005835124749
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-21 12:00Z",
+       "08-24 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.15008556438157283,
+      "avoided_pnl_usdt": 45.34514841078465
+     }
+    },
+    {
+     "symbol": "PROMUSDT",
+     "anchor": 1787572800,
+     "utc": "08-24 12:00Z",
+     "side": "short",
+     "depth": -0.3445126424780239,
+     "notional": 158.78262733,
+     "entry_notional": 118.09679010332944,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-24 12:00Z",
+       "08-27 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.16741243617535018,
+      "avoided_pnl_usdt": 26.58218646363804
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-24 16:00Z",
+       "08-27 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.29846128076152656,
+      "avoided_pnl_usdt": 47.39046631559197
+     }
+    },
+    {
+     "symbol": "VELVETUSDT",
+     "anchor": 1787601600,
+     "utc": "08-24 20:00Z",
+     "side": "long",
+     "depth": -0.5135842060388981,
+     "notional": 122.0304865,
+     "entry_notional": 250.8769,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-24 20:00Z",
+       "08-27 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.35715711919381177,
+      "avoided_pnl_usdt": 43.584057012159334
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-25 00:00Z",
+       "08-28 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.3101352138112331,
+      "avoided_pnl_usdt": 37.84595102216629
+     }
+    },
+    {
+     "symbol": "ONGUSDT",
+     "anchor": 1787659200,
+     "utc": "08-25 12:00Z",
+     "side": "short",
+     "depth": -0.4210894338511948,
+     "notional": 148.1813047,
+     "entry_notional": 104.27303248496067,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-25 12:00Z",
+       "08-28 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.15559180619542623,
+      "avoided_pnl_usdt": 23.055796842667803
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-25 16:00Z",
+       "08-28 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.07443165975776922,
+      "avoided_pnl_usdt": 11.02938045389273
+     }
+    },
+    {
+     "symbol": "BMTUSDT",
+     "anchor": 1787702400,
+     "utc": "08-26 00:00Z",
+     "side": "short",
+     "depth": -0.4058072929890985,
+     "notional": 166.61442798,
+     "entry_notional": 118.51868233357645,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-26 00:00Z",
+       "08-29 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.04521105143212789,
+      "avoided_pnl_usdt": -7.532813472738348
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-26 04:00Z",
+       "08-29 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.01139401075795976,
+      "avoided_pnl_usdt": 1.8984065848354317
+     }
+    },
+    {
+     "symbol": "SKRUSDT",
+     "anchor": 1788105600,
+     "utc": "08-30 16:00Z",
+     "side": "short",
+     "depth": -0.694455288643955,
+     "notional": 305.08226474,
+     "entry_notional": 180.04739740530562,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-30 16:00Z",
+       "09-02 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.5221841731371748,
+      "avoided_pnl_usdt": 159.30913015207358
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-30 20:00Z",
+       "09-02 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.1250443229079532,
+      "avoided_pnl_usdt": 38.14880522563823
+     }
+    },
+    {
+     "symbol": "ZORAUSDT",
+     "anchor": 1788163200,
+     "utc": "08-31 08:00Z",
+     "side": "short",
+     "depth": -0.6762525261190991,
+     "notional": 301.170108,
+     "entry_notional": 179.66869747082586,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-31 08:00Z",
+       "09-03 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.21153393679933097,
+      "avoided_pnl_usdt": -63.70769859151969
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-31 12:00Z",
+       "09-03 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.18282377203420508,
+      "avoided_pnl_usdt": -55.06105516850893
+     }
+    },
+    {
+     "symbol": "CYSUSDT",
+     "anchor": 1788264000,
+     "utc": "09-01 12:00Z",
+     "side": "long",
+     "depth": -0.3480347177241257,
+     "notional": 11.804,
+     "entry_notional": 18.105258548115795,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-01 12:00Z",
+       "09-04 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.43304112440861653,
+      "avoided_pnl_usdt": 5.11161743251931
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-01 16:00Z",
+       "09-04 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.4663675327610016,
+      "avoided_pnl_usdt": 5.505002356710864
+     }
+    },
+    {
+     "symbol": "BTRUSDT",
+     "anchor": 1788278400,
+     "utc": "09-01 16:00Z",
+     "side": "long",
+     "depth": -0.3000676853985423,
+     "notional": 6.22739444,
+     "entry_notional": 8.897138066194138,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-01 16:00Z",
+       "09-04 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.5161008191250214,
+      "avoided_pnl_usdt": 3.213963371498604
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-01 20:00Z",
+       "09-04 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.43810771927956116,
+      "avoided_pnl_usdt": 2.7282695751626203
+     }
+    },
+    {
+     "symbol": "UNIUSDT",
+     "anchor": 1788336000,
+     "utc": "09-02 08:00Z",
+     "side": "short",
+     "depth": -0.42573496603260835,
+     "notional": 25.18418244,
+     "entry_notional": 17.664000000000005,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-02 08:00Z",
+       "09-05 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.015584490017641284,
+      "avoided_pnl_usdt": -0.3924826398386369
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-02 12:00Z",
+       "09-05 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.08932269713099927,
+      "avoided_pnl_usdt": 2.2495191005799504
+     }
+    },
+    {
+     "symbol": "TRIAUSDT",
+     "anchor": 1788350400,
+     "utc": "09-02 12:00Z",
+     "side": "long",
+     "depth": -0.322857117810378,
+     "notional": 13.53812,
+     "entry_notional": 19.993003479890213,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-02 12:00Z",
+       "09-05 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.4100756121234701,
+      "avoided_pnl_usdt": -5.551652846000993
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-02 16:00Z",
+       "09-05 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.374810619894169,
+      "avoided_pnl_usdt": -5.074231149401647
+     }
+    },
+    {
+     "symbol": "ARBUSDT",
+     "anchor": 1788379200,
+     "utc": "09-02 20:00Z",
+     "side": "short",
+     "depth": -0.3390323471088567,
+     "notional": 172.42186765,
+     "entry_notional": 128.7660212408468,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-02 20:00Z",
+       "09-05 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.2052697870232303,
+      "avoided_pnl_usdt": 35.3930000506631
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-03 00:00Z",
+       "09-06 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.4283036487653371,
+      "avoided_pnl_usdt": 73.84891504142904
+     }
+    },
+    {
+     "symbol": "EGLDUSDT",
+     "anchor": 1788379200,
+     "utc": "09-02 20:00Z",
+     "side": "short",
+     "depth": -0.41671306227734095,
+     "notional": 24.85754018,
+     "entry_notional": 17.54592432432433,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-02 20:00Z",
+       "09-05 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.029790316890772273,
+      "avoided_pnl_usdt": -0.7405139990873044
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-03 00:00Z",
+       "09-06 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.13705765904619516,
+      "avoided_pnl_usdt": -3.406916266717537
+     }
+    },
+    {
+     "symbol": "MAGMAUSDT",
+     "anchor": 1788494400,
+     "utc": "09-04 04:00Z",
+     "side": "long",
+     "depth": -0.4351629598044369,
+     "notional": 8.79663575,
+     "entry_notional": 15.573758666666668,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-04 04:00Z",
+       "09-07 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.07060765719031059,
+      "avoided_pnl_usdt": 0.6211098414640307
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-04 08:00Z",
+       "09-07 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.06328044570877889,
+      "avoided_pnl_usdt": 0.5566550309977785
+     }
+    },
+    {
+     "symbol": "USELESSUSDT",
+     "anchor": 1788508800,
+     "utc": "09-04 08:00Z",
+     "side": "short",
+     "depth": -0.5430777420225805,
+     "notional": 880.65831462,
+     "entry_notional": 570.7154543397678,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-04 08:00Z",
+       "09-07 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.19319652981783864,
+      "avoided_pnl_usdt": -170.14013033981036
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-04 12:00Z",
+       "09-07 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.10433920802521623,
+      "avoided_pnl_usdt": -91.88719108827252
+     }
+    },
+    {
+     "symbol": "FLOCKUSDT",
+     "anchor": 1788552000,
+     "utc": "09-04 20:00Z",
+     "side": "short",
+     "depth": -0.320963224886187,
+     "notional": 1091.88880192,
+     "entry_notional": 826.5853139205115,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-04 20:00Z",
+       "09-07 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.14626499948359184,
+      "avoided_pnl_usdt": 159.70511504896854
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-05 00:00Z",
+       "09-08 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.18262391929073352,
+      "avoided_pnl_usdt": 199.40501243629382
+     }
+    },
+    {
+     "symbol": "DASHUSDT",
+     "anchor": 1788580800,
+     "utc": "09-05 04:00Z",
+     "side": "short",
+     "depth": -0.47334102325668626,
+     "notional": 499.94431283,
+     "entry_notional": 339.32694803061855,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-05 04:00Z",
+       "09-08 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.051980160250453045,
+      "avoided_pnl_usdt": -25.987185497206028
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-05 08:00Z",
+       "09-08 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.05377242756729228,
+      "avoided_pnl_usdt": -26.883219349330886
+     }
+    },
+    {
+     "symbol": "COLLECTUSDT",
+     "anchor": 1788681600,
+     "utc": "09-06 08:00Z",
+     "side": "long",
+     "depth": -0.33905093311117407,
+     "notional": 1803.16137912,
+     "entry_notional": 2728.139684965012,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-06 08:00Z",
+       "09-09 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.46519398587243677,
+      "avoided_pnl_usdt": 838.8198291240728
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-06 12:00Z",
+       "09-09 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.46750154954136924,
+      "avoided_pnl_usdt": 842.9807388117524
+     }
+    },
+    {
+     "symbol": "IOSTUSDT",
+     "anchor": 1789084800,
+     "utc": "09-11 00:00Z",
+     "side": "long",
+     "depth": -0.33303769539342754,
+     "notional": 42.32343024,
+     "entry_notional": 63.457004912692526,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-11 00:00Z",
+       "09-14 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.23601460755317583,
+      "avoided_pnl_usdt": 9.988947778397815
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-11 04:00Z",
+       "09-14 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.15976029009263482,
+      "avoided_pnl_usdt": 6.761603492857793
+     }
+    },
+    {
+     "symbol": "LSKUSDT",
+     "anchor": 1789200000,
+     "utc": "09-12 08:00Z",
+     "side": "short",
+     "depth": -0.4761734051482935,
+     "notional": 81.03696,
+     "entry_notional": 54.89663999999999,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-12 08:00Z",
+       "09-15 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.9137946584537351,
+      "avoided_pnl_usdt": 74.05114118532899
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-12 12:00Z",
+       "09-15 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.5716662255542588,
+      "avoided_pnl_usdt": 46.32609305359145
+     }
+    },
+    {
+     "symbol": "AKEUSDT",
+     "anchor": 1789473600,
+     "utc": "09-15 12:00Z",
+     "side": "short",
+     "depth": -0.7625354134484531,
+     "notional": 1774.45422,
+     "entry_notional": 1006.7623075602365,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-15 12:00Z",
+       "09-18 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 16,
+      "first_missing_window": 16,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 64.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-15 16:00Z",
+       "09-18 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 15,
+      "first_missing_window": 15,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 60.0,
+      "avoided_pnl_usdt": null
+     }
+    },
+    {
+     "symbol": "AINUSDT",
+     "anchor": 1789545600,
+     "utc": "09-16 08:00Z",
+     "side": "long",
+     "depth": -0.3311146919901841,
+     "notional": 590.14326,
+     "entry_notional": 882.2787000000002,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-16 08:00Z",
+       "09-19 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 11,
+      "first_missing_window": 11,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 44.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-16 12:00Z",
+       "09-19 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 10,
+      "first_missing_window": 10,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 40.0,
+      "avoided_pnl_usdt": null
+     }
+    },
+    {
+     "symbol": "ONEUSDT",
+     "anchor": 1789617600,
+     "utc": "09-17 04:00Z",
+     "side": "short",
+     "depth": -0.6450817471275191,
+     "notional": 922.27640206,
+     "entry_notional": 560.6264878145957,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-17 04:00Z",
+       "09-20 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 6,
+      "first_missing_window": 6,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 24.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-17 08:00Z",
+       "09-20 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 5,
+      "first_missing_window": 5,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 20.0,
+      "avoided_pnl_usdt": null
+     }
+    },
+    {
+     "symbol": "COTIUSDT",
+     "anchor": 1789689600,
+     "utc": "09-18 00:00Z",
+     "side": "short",
+     "depth": -0.47389250070551997,
+     "notional": 1845.368564,
+     "entry_notional": 1252.0374200402423,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-18 00:00Z",
+       "09-21 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 1,
+      "first_missing_window": 1,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 4.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-18 04:00Z",
+       "09-21 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 0,
+      "first_missing_window": 0,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 0.0,
+      "avoided_pnl_usdt": null
+     }
+    },
+    {
+     "symbol": "CROSSUSDT",
+     "anchor": 1789689600,
+     "utc": "09-18 00:00Z",
+     "side": "short",
+     "depth": -0.3272018604167767,
+     "notional": 51.67243932,
+     "entry_notional": 38.9333686616243,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-18 00:00Z",
+       "09-21 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 1,
+      "first_missing_window": 1,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 4.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-18 04:00Z",
+       "09-21 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 0,
+      "first_missing_window": 0,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 0.0,
+      "avoided_pnl_usdt": null
+     }
+    },
+    {
+     "symbol": "NEARUSDT",
+     "anchor": 1789704000,
+     "utc": "09-18 04:00Z",
+     "side": "short",
+     "depth": -0.5013503374471073,
+     "notional": 1192.136,
+     "entry_notional": 794.0425164369732,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-18 04:00Z",
+       "09-21 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 0,
+      "first_missing_window": 0,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 0.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-18 08:00Z",
+       "09-21 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 0,
+      "first_missing_window": 0,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": -4.0,
+      "avoided_pnl_usdt": null
+     }
+    }
+   ]
+  },
+  "V2": {
+   "n_stops": 35,
+   "primary_0_72h": {
+    "n_priced": 27,
+    "censored": {
+     "CENSORED_IMMATURE": 8
+    },
+    "avoided_pnl_sum_usdt": 2683.14337570098,
+    "avoided_pnl_median_usdt": 9.299487104379978,
+    "n_helped": 15,
+    "frac_helped": 0.5555555555555556
+   },
+   "exit_aligned_4_76h": {
+    "n_priced": 27,
+    "avoided_pnl_sum_usdt": 2269.23203973465,
+    "n_helped": 14,
+    "frac_helped": 0.5185185185185185
+   },
+   "by_side": {
+    "short": 16,
+    "long": 19
+   },
+   "events": [
+    {
+     "symbol": "ENAUSDT",
+     "anchor": 1787299200,
+     "utc": "08-21 08:00Z",
+     "side": "short",
+     "depth": -0.32705875129518247,
+     "notional": 302.1286464,
+     "entry_notional": 203.31482857791227,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-21 08:00Z",
+       "08-24 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.23370858471250044,
+      "avoided_pnl_usdt": 70.61005835124749
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-21 12:00Z",
+       "08-24 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.15008556438157283,
+      "avoided_pnl_usdt": 45.34514841078465
+     }
+    },
+    {
+     "symbol": "TACUSDT",
+     "anchor": 1787428800,
+     "utc": "08-22 20:00Z",
+     "side": "long",
+     "depth": -0.5140458298235097,
+     "notional": 43.2325863,
+     "entry_notional": 65.456117,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-22 20:00Z",
+       "08-25 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.14569100664674983,
+      "avoided_pnl_usdt": -6.298599017989486
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-23 00:00Z",
+       "08-26 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.6024564857766539,
+      "avoided_pnl_usdt": -26.045752013333914
+     }
+    },
+    {
+     "symbol": "MAGMAUSDT",
+     "anchor": 1787457600,
+     "utc": "08-23 04:00Z",
+     "side": "long",
+     "depth": -0.33662242887422383,
+     "notional": 107.0805015,
+     "entry_notional": 143.12619999999995,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-23 04:00Z",
+       "08-26 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.0555584115181853,
+      "avoided_pnl_usdt": 5.949222567910659
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-23 08:00Z",
+       "08-26 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.02149215168872498,
+      "avoided_pnl_usdt": -2.3013903811427427
+     }
+    },
+    {
+     "symbol": "SQDUSDT",
+     "anchor": 1787457600,
+     "utc": "08-23 04:00Z",
+     "side": "long",
+     "depth": -0.309641616014699,
+     "notional": 62.64374085,
+     "entry_notional": 82.04085,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-23 04:00Z",
+       "08-26 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.12497595388399341,
+      "avoided_pnl_usdt": -7.828961267590434
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-23 08:00Z",
+       "08-26 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.11286976815812078,
+      "avoided_pnl_usdt": -7.0705845062969
+     }
+    },
+    {
+     "symbol": "USUSDT",
+     "anchor": 1787587200,
+     "utc": "08-24 16:00Z",
+     "side": "long",
+     "depth": -0.3149741723068764,
+     "notional": 111.05480022,
+     "entry_notional": 146.034194,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-24 16:00Z",
+       "08-27 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.12470375197359185,
+      "avoided_pnl_usdt": -13.848950262111673
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-24 20:00Z",
+       "08-27 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.08884008765493179,
+      "avoided_pnl_usdt": -9.866118186045739
+     }
+    },
+    {
+     "symbol": "VELVETUSDT",
+     "anchor": 1787587200,
+     "utc": "08-24 16:00Z",
+     "side": "long",
+     "depth": -0.9584218205398396,
+     "notional": 123.37,
+     "entry_notional": 241.6105,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-24 16:00Z",
+       "08-27 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.4054046967878123,
+      "avoided_pnl_usdt": 50.01477744271241
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-24 20:00Z",
+       "08-27 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.35715711919381177,
+      "avoided_pnl_usdt": 44.06247379494056
+     }
+    },
+    {
+     "symbol": "PROMUSDT",
+     "anchor": 1787630400,
+     "utc": "08-25 04:00Z",
+     "side": "short",
+     "depth": -0.43271541930318813,
+     "notional": 172.62305164,
+     "entry_notional": 97.92639546820149,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-25 04:00Z",
+       "08-28 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.053871641220743616,
+      "avoided_pnl_usdt": 9.299487104379978
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-25 08:00Z",
+       "08-28 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.16645149277838422,
+      "avoided_pnl_usdt": 28.733364633438107
+     }
+    },
+    {
+     "symbol": "SKYAIUSDT",
+     "anchor": 1787659200,
+     "utc": "08-25 12:00Z",
+     "side": "long",
+     "depth": -0.3324508877261566,
+     "notional": 101.52033463,
+     "entry_notional": 135.27085999999997,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-25 12:00Z",
+       "08-28 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.09903111948882892,
+      "avoided_pnl_usdt": -10.053672389289426
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-25 16:00Z",
+       "08-28 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.07534559147394182,
+      "avoided_pnl_usdt": -7.649109659329848
+     }
+    },
+    {
+     "symbol": "BMTUSDT",
+     "anchor": 1787731200,
+     "utc": "08-26 08:00Z",
+     "side": "short",
+     "depth": -0.3449224288019904,
+     "notional": 158.17548201,
+     "entry_notional": 103.61721057818525,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-26 08:00Z",
+       "08-29 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.055447378874978415,
+      "avoided_pnl_usdt": -8.770415879740803
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-26 12:00Z",
+       "08-29 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.04830944614269006,
+      "avoided_pnl_usdt": -7.641369929256135
+     }
+    },
+    {
+     "symbol": "SKRUSDT",
+     "anchor": 1788091200,
+     "utc": "08-30 12:00Z",
+     "side": "short",
+     "depth": -0.3961695257537379,
+     "notional": 368.4443274,
+     "entry_notional": 222.47791294728708,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-30 12:00Z",
+       "09-02 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.3850122759997787,
+      "avoided_pnl_usdt": 141.85558907148163
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-30 16:00Z",
+       "09-02 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.5221841731371748,
+      "avoided_pnl_usdt": 192.39579645045154
+     }
+    },
+    {
+     "symbol": "MAGMAUSDT",
+     "anchor": 1788134400,
+     "utc": "08-31 00:00Z",
+     "side": "long",
+     "depth": -0.31501562645581704,
+     "notional": 382.97000421,
+     "entry_notional": 503.61154000000005,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-31 00:00Z",
+       "09-03 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.1463607270119287,
+      "avoided_pnl_usdt": -56.051768239937
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-31 04:00Z",
+       "09-03 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.2621983012150424,
+      "avoided_pnl_usdt": -100.41408452017964
+     }
+    },
+    {
+     "symbol": "ZORAUSDT",
+     "anchor": 1788148800,
+     "utc": "08-31 04:00Z",
+     "side": "short",
+     "depth": -0.4020755032272093,
+     "notional": 287.363335,
+     "entry_notional": 171.82157747082587,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-31 04:00Z",
+       "09-03 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.20823441120977548,
+      "avoided_pnl_usdt": -59.83893486700247
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-31 08:00Z",
+       "09-03 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.21153393679933097,
+      "avoided_pnl_usdt": -60.787097544334976
+     }
+    },
+    {
+     "symbol": "BTRUSDT",
+     "anchor": 1788163200,
+     "utc": "08-31 08:00Z",
+     "side": "long",
+     "depth": -0.4266362797898643,
+     "notional": 445.17208668,
+     "entry_notional": 635.0986496074462,
+     "primary_0_72h": {
+      "window_utc": [
+       "08-31 08:00Z",
+       "09-03 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.5270196987167683,
+      "avoided_pnl_usdt": 234.6144589992087
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "08-31 12:00Z",
+       "09-03 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.5099960398960675,
+      "avoided_pnl_usdt": 227.03600127906887
+     }
+    },
+    {
+     "symbol": "CYSUSDT",
+     "anchor": 1788235200,
+     "utc": "09-01 04:00Z",
+     "side": "long",
+     "depth": -0.3604780677249413,
+     "notional": 427.1008,
+     "entry_notional": 581.0612711077766,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-01 04:00Z",
+       "09-04 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.49197382709492365,
+      "avoided_pnl_usdt": 210.12241513130357
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-01 08:00Z",
+       "09-04 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.46508190917044345,
+      "avoided_pnl_usdt": 198.63685547222374
+     }
+    },
+    {
+     "symbol": "TRIAUSDT",
+     "anchor": 1788249600,
+     "utc": "09-01 08:00Z",
+     "side": "long",
+     "depth": -0.34674771417610567,
+     "notional": 289.56886709,
+     "entry_notional": 389.9762098500221,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-01 08:00Z",
+       "09-04 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.2269332287500958,
+      "avoided_pnl_usdt": -65.71279795424107
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-01 12:00Z",
+       "09-04 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.22238333150728584,
+      "avoided_pnl_usdt": -64.39528936426467
+     }
+    },
+    {
+     "symbol": "RIVERUSDT",
+     "anchor": 1788321600,
+     "utc": "09-02 04:00Z",
+     "side": "long",
+     "depth": -0.3102818549321531,
+     "notional": 396.31181392,
+     "entry_notional": 519.2801786746239,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-02 04:00Z",
+       "09-05 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.023887083861256375,
+      "avoided_pnl_usdt": -9.466733534313672
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-02 08:00Z",
+       "09-05 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.0271157657432739,
+      "avoided_pnl_usdt": -10.746298307546677
+     }
+    },
+    {
+     "symbol": "EGLDUSDT",
+     "anchor": 1788393600,
+     "utc": "09-03 00:00Z",
+     "side": "short",
+     "depth": -0.32438204862292297,
+     "notional": 14.98280001,
+     "entry_notional": 10.12264864864865,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-03 00:00Z",
+       "09-06 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.13705765904619516,
+      "avoided_pnl_usdt": -2.0535074953279095
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-03 04:00Z",
+       "09-06 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.09050299512839854,
+      "avoided_pnl_usdt": -1.3559882763147997
+     }
+    },
+    {
+     "symbol": "ARBUSDT",
+     "anchor": 1788422400,
+     "utc": "09-03 08:00Z",
+     "side": "short",
+     "depth": -0.3272578346600099,
+     "notional": 174.81757372,
+     "entry_notional": 117.60715308387614,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-03 08:00Z",
+       "09-06 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.4689252978617844,
+      "avoided_pnl_usdt": 81.97638282812545
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-03 12:00Z",
+       "09-06 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.42554222656712004,
+      "avoided_pnl_usdt": 74.39225956387045
+     }
+    },
+    {
+     "symbol": "USELESSUSDT",
+     "anchor": 1788508800,
+     "utc": "09-04 08:00Z",
+     "side": "short",
+     "depth": -0.3519445114351429,
+     "notional": 880.65831462,
+     "entry_notional": 570.7154543397678,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-04 08:00Z",
+       "09-07 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.19319652981783864,
+      "avoided_pnl_usdt": -170.14013033981036
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-04 12:00Z",
+       "09-07 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.10433920802521623,
+      "avoided_pnl_usdt": -91.88719108827252
+     }
+    },
+    {
+     "symbol": "FLOCKUSDT",
+     "anchor": 1788537600,
+     "utc": "09-04 16:00Z",
+     "side": "short",
+     "depth": -0.3332549587313361,
+     "notional": 921.71007789,
+     "entry_notional": 614.5456239205115,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-04 16:00Z",
+       "09-07 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.2031740540120921,
+      "avoided_pnl_usdt": 187.26757314871247
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-04 20:00Z",
+       "09-07 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.14626499948359184,
+      "avoided_pnl_usdt": 134.81392406660225
+     }
+    },
+    {
+     "symbol": "DASHUSDT",
+     "anchor": 1788580800,
+     "utc": "09-05 04:00Z",
+     "side": "short",
+     "depth": -0.3212705108898746,
+     "notional": 499.94431283,
+     "entry_notional": 339.32694803061855,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-05 04:00Z",
+       "09-08 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.051980160250453045,
+      "avoided_pnl_usdt": -25.987185497206028
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-05 08:00Z",
+       "09-08 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.05377242756729228,
+      "avoided_pnl_usdt": -26.883219349330886
+     }
+    },
+    {
+     "symbol": "HEMIUSDT",
+     "anchor": 1788638400,
+     "utc": "09-05 20:00Z",
+     "side": "long",
+     "depth": -0.39096522716286136,
+     "notional": 1533.62245,
+     "entry_notional": 2133.215499546314,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-05 20:00Z",
+       "09-08 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.26072362677161554,
+      "avoided_pnl_usdt": 399.85160726237063
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-06 00:00Z",
+       "09-09 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.2866291885597574,
+      "avoided_pnl_usdt": 439.5809584005271
+     }
+    },
+    {
+     "symbol": "COLLECTUSDT",
+     "anchor": 1788667200,
+     "utc": "09-06 04:00Z",
+     "side": "long",
+     "depth": -0.48230306188326144,
+     "notional": 1699.62954928,
+     "entry_notional": 2519.366084965012,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-06 04:00Z",
+       "09-09 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.5873993273496753,
+      "avoided_pnl_usdt": 998.3612539907037
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-06 08:00Z",
+       "09-09 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.46519398587243677,
+      "avoided_pnl_usdt": 790.6574445361364
+     }
+    },
+    {
+     "symbol": "XANUSDT",
+     "anchor": 1788854400,
+     "utc": "09-08 08:00Z",
+     "side": "long",
+     "depth": -0.38754081938916823,
+     "notional": 1656.127131,
+     "entry_notional": 2297.9439963603722,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-08 08:00Z",
+       "09-11 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.1289485123360007,
+      "avoided_pnl_usdt": 213.5551297817389
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-08 12:00Z",
+       "09-11 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.07246035596086764,
+      "avoided_pnl_usdt": 120.00356142871047
+     }
+    },
+    {
+     "symbol": "STARUSDT",
+     "anchor": 1788969600,
+     "utc": "09-09 16:00Z",
+     "side": "long",
+     "depth": -0.3634881808759288,
+     "notional": 2472.33817092,
+     "entry_notional": 3371.003875177832,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-09 16:00Z",
+       "09-12 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.07550186892528643,
+      "avoided_pnl_usdt": 186.66615251978422
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-09 20:00Z",
+       "09-12 20:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.05535971989200972,
+      "avoided_pnl_usdt": 136.86794862045483
+     }
+    },
+    {
+     "symbol": "IOSTUSDT",
+     "anchor": 1789012800,
+     "utc": "09-10 04:00Z",
+     "side": "long",
+     "depth": -0.3472841455828891,
+     "notional": 895.2431856,
+     "entry_notional": 1206.1469504,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-10 04:00Z",
+       "09-13 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.3140233016276771,
+      "avoided_pnl_usdt": 281.1272209017913
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-10 08:00Z",
+       "09-13 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": -0.2048748870260253,
+      "avoided_pnl_usdt": 183.41284651061898
+     }
+    },
+    {
+     "symbol": "LSKUSDT",
+     "anchor": 1789185600,
+     "utc": "09-12 04:00Z",
+     "side": "short",
+     "depth": -0.3770388806998044,
+     "notional": 76.97238,
+     "entry_notional": 47.950799999999994,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-12 04:00Z",
+       "09-15 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.6226090884037749,
+      "avoided_pnl_usdt": 47.92370334406896
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-12 08:00Z",
+       "09-15 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 18,
+      "first_missing_window": null,
+      "status": "PRICED",
+      "path_return": 0.9137946584537351,
+      "avoided_pnl_usdt": 70.33694969247111
+     }
+    },
+    {
+     "symbol": "AKEUSDT",
+     "anchor": 1789473600,
+     "utc": "09-15 12:00Z",
+     "side": "short",
+     "depth": -0.43263551338042616,
+     "notional": 1774.45422,
+     "entry_notional": 1006.7623075602365,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-15 12:00Z",
+       "09-18 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 16,
+      "first_missing_window": 16,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 64.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-15 16:00Z",
+       "09-18 16:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 15,
+      "first_missing_window": 15,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 60.0,
+      "avoided_pnl_usdt": null
+     }
+    },
+    {
+     "symbol": "AINUSDT",
+     "anchor": 1789531200,
+     "utc": "09-16 04:00Z",
+     "side": "long",
+     "depth": -0.6869088277781159,
+     "notional": 428.37982,
+     "entry_notional": 722.6377000000002,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-16 04:00Z",
+       "09-19 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 12,
+      "first_missing_window": 12,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 48.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-16 08:00Z",
+       "09-19 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 11,
+      "first_missing_window": 11,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 44.0,
+      "avoided_pnl_usdt": null
+     }
+    },
+    {
+     "symbol": "UAIUSDT",
+     "anchor": 1789531200,
+     "utc": "09-16 04:00Z",
+     "side": "long",
+     "depth": -0.31625911064483153,
+     "notional": 2378.44997987,
+     "entry_notional": 3130.6564552169034,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-16 04:00Z",
+       "09-19 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 12,
+      "first_missing_window": 12,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 48.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-16 08:00Z",
+       "09-19 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 11,
+      "first_missing_window": 11,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 44.0,
+      "avoided_pnl_usdt": null
+     }
+    },
+    {
+     "symbol": "BRUSDT",
+     "anchor": 1789545600,
+     "utc": "09-16 08:00Z",
+     "side": "long",
+     "depth": -0.3444906543177927,
+     "notional": 2128.888686,
+     "entry_notional": 2862.2709424098857,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-16 08:00Z",
+       "09-19 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 11,
+      "first_missing_window": 11,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 44.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-16 12:00Z",
+       "09-19 12:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 10,
+      "first_missing_window": 10,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 40.0,
+      "avoided_pnl_usdt": null
+     }
+    },
+    {
+     "symbol": "ONEUSDT",
+     "anchor": 1789603200,
+     "utc": "09-17 00:00Z",
+     "side": "short",
+     "depth": -0.37168971035182896,
+     "notional": 944.6887362,
+     "entry_notional": 593.5576534691866,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-17 00:00Z",
+       "09-20 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 7,
+      "first_missing_window": 7,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 28.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-17 04:00Z",
+       "09-20 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 6,
+      "first_missing_window": 6,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 24.0,
+      "avoided_pnl_usdt": null
+     }
+    },
+    {
+     "symbol": "COTIUSDT",
+     "anchor": 1789689600,
+     "utc": "09-18 00:00Z",
+     "side": "short",
+     "depth": -0.32152446700059745,
+     "notional": 1845.368564,
+     "entry_notional": 1252.0374200402423,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-18 00:00Z",
+       "09-21 00:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 1,
+      "first_missing_window": 1,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 4.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-18 04:00Z",
+       "09-21 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 0,
+      "first_missing_window": 0,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 0.0,
+      "avoided_pnl_usdt": null
+     }
+    },
+    {
+     "symbol": "ARBUSDT",
+     "anchor": 1789704000,
+     "utc": "09-18 04:00Z",
+     "side": "short",
+     "depth": -0.3497189547669192,
+     "notional": 1065.96724,
+     "entry_notional": 693.1782910114223,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-18 04:00Z",
+       "09-21 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 0,
+      "first_missing_window": 0,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 0.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-18 08:00Z",
+       "09-21 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 0,
+      "first_missing_window": 0,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": -4.0,
+      "avoided_pnl_usdt": null
+     }
+    },
+    {
+     "symbol": "NEARUSDT",
+     "anchor": 1789704000,
+     "utc": "09-18 04:00Z",
+     "side": "short",
+     "depth": -0.33393294352576114,
+     "notional": 1192.136,
+     "entry_notional": 794.0425164369732,
+     "primary_0_72h": {
+      "window_utc": [
+       "09-18 04:00Z",
+       "09-21 04:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 0,
+      "first_missing_window": 0,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": 0.0,
+      "avoided_pnl_usdt": null
+     },
+     "exit_aligned_4_76h": {
+      "window_utc": [
+       "09-18 08:00Z",
+       "09-21 08:00Z"
+      ],
+      "n_windows": 18,
+      "n_windows_priced": 0,
+      "first_missing_window": 0,
+      "status": "CENSORED_IMMATURE",
+      "path_return": null,
+      "hours_available": -4.0,
+      "avoided_pnl_usdt": null
+     }
+    }
+   ]
+  }
+ },
+ "production_match": {
+  "join_key": "(symbol, floor(time/4h)) exact; \u00b11 bucket reported as near-miss, not matched",
+  "n_production": 29,
+  "n_device_V0": 27,
+  "n_matched": 27,
+  "recall": 0.9310344827586207,
+  "precision": 1.0,
+  "production_events": [
+   {
+    "symbol": "BOMEUSDT",
+    "phase_C_utc": "2026-08-20T12:16:36Z",
+    "bucket": 1787227200,
+    "bucket_utc": "08-20 12:00Z",
+    "status": "MISSED",
+    "reason": "unknown basis at bucket (venue re-seat / missing fills)"
+   },
+   {
+    "symbol": "ENAUSDT",
+    "phase_C_utc": "2026-08-21T08:16:44Z",
+    "bucket": 1787299200,
+    "bucket_utc": "08-21 08:00Z",
+    "status": "MISSED",
+    "device_depth_at_bucket": -0.32705875129518247,
+    "device_depth_prev_bucket": -0.28050263291540867,
+    "reason": "depth crossed at bucket (-0.327) but not at the previous bucket (-0.281): reconstructed basis shallower than the venue's"
+   },
+   {
+    "symbol": "TACUSDT",
+    "phase_C_utc": "2026-08-23T00:39:13Z",
+    "bucket": 1787443200,
+    "bucket_utc": "08-23 00:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "MAGMAUSDT",
+    "phase_C_utc": "2026-08-23T08:39:03Z",
+    "bucket": 1787472000,
+    "bucket_utc": "08-23 08:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "VELVETUSDT",
+    "phase_C_utc": "2026-08-24T20:39:18Z",
+    "bucket": 1787601600,
+    "bucket_utc": "08-24 20:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "USUSDT",
+    "phase_C_utc": "2026-08-25T12:39:19Z",
+    "bucket": 1787659200,
+    "bucket_utc": "08-25 12:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "PROMUSDT",
+    "phase_C_utc": "2026-08-25T20:46:59Z",
+    "bucket": 1787688000,
+    "bucket_utc": "08-25 20:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "SKYAIUSDT",
+    "phase_C_utc": "2026-08-25T20:46:59Z",
+    "bucket": 1787688000,
+    "bucket_utc": "08-25 20:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "SKRUSDT",
+    "phase_C_utc": "2026-08-30T16:43:12Z",
+    "bucket": 1788105600,
+    "bucket_utc": "08-30 16:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "MAGMAUSDT",
+    "phase_C_utc": "2026-08-31T04:41:59Z",
+    "bucket": 1788148800,
+    "bucket_utc": "08-31 04:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "ZORAUSDT",
+    "phase_C_utc": "2026-08-31T08:43:09Z",
+    "bucket": 1788163200,
+    "bucket_utc": "08-31 08:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "BTRUSDT",
+    "phase_C_utc": "2026-08-31T12:41:59Z",
+    "bucket": 1788177600,
+    "bucket_utc": "08-31 12:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "CYSUSDT",
+    "phase_C_utc": "2026-09-01T08:41:20Z",
+    "bucket": 1788249600,
+    "bucket_utc": "09-01 08:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "TRIAUSDT",
+    "phase_C_utc": "2026-09-01T12:41:34Z",
+    "bucket": 1788264000,
+    "bucket_utc": "09-01 12:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "RIVERUSDT",
+    "phase_C_utc": "2026-09-02T08:41:22Z",
+    "bucket": 1788336000,
+    "bucket_utc": "09-02 08:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "EGLDUSDT",
+    "phase_C_utc": "2026-09-03T04:41:52Z",
+    "bucket": 1788408000,
+    "bucket_utc": "09-03 04:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "ARBUSDT",
+    "phase_C_utc": "2026-09-03T12:41:36Z",
+    "bucket": 1788436800,
+    "bucket_utc": "09-03 12:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "USELESSUSDT",
+    "phase_C_utc": "2026-09-04T12:43:34Z",
+    "bucket": 1788523200,
+    "bucket_utc": "09-04 12:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "DASHUSDT",
+    "phase_C_utc": "2026-09-05T08:44:02Z",
+    "bucket": 1788595200,
+    "bucket_utc": "09-05 08:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "HEMIUSDT",
+    "phase_C_utc": "2026-09-06T00:44:10Z",
+    "bucket": 1788652800,
+    "bucket_utc": "09-06 00:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "COLLECTUSDT",
+    "phase_C_utc": "2026-09-06T08:44:28Z",
+    "bucket": 1788681600,
+    "bucket_utc": "09-06 08:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "FLOCKUSDT",
+    "phase_C_utc": "2026-09-06T08:44:28Z",
+    "bucket": 1788681600,
+    "bucket_utc": "09-06 08:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "XANUSDT",
+    "phase_C_utc": "2026-09-08T12:45:07Z",
+    "bucket": 1788868800,
+    "bucket_utc": "09-08 12:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "IOSTUSDT",
+    "phase_C_utc": "2026-09-10T08:43:43Z",
+    "bucket": 1789027200,
+    "bucket_utc": "09-10 08:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "LSKUSDT",
+    "phase_C_utc": "2026-09-12T08:45:18Z",
+    "bucket": 1789200000,
+    "bucket_utc": "09-12 08:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "AKEUSDT",
+    "phase_C_utc": "2026-09-15T16:45:07Z",
+    "bucket": 1789488000,
+    "bucket_utc": "09-15 16:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "AINUSDT",
+    "phase_C_utc": "2026-09-16T08:44:57Z",
+    "bucket": 1789545600,
+    "bucket_utc": "09-16 08:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "UAIUSDT",
+    "phase_C_utc": "2026-09-16T08:44:57Z",
+    "bucket": 1789545600,
+    "bucket_utc": "09-16 08:00Z",
+    "status": "MATCHED"
+   },
+   {
+    "symbol": "ONEUSDT",
+    "phase_C_utc": "2026-09-17T04:44:51Z",
+    "bucket": 1789617600,
+    "bucket_utc": "09-17 04:00Z",
+    "status": "MATCHED"
+   }
+  ],
+  "device_only_events": [],
+  "note": "V1's events and V0's matched events are different populations; nothing here calibrates V1/V2 against production"
+ }
+}

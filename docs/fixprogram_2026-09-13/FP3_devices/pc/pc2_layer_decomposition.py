@@ -1,75 +1,66 @@
 #!/usr/bin/env python3
-"""FP3 P-C2: layer decomposition of one UTC day from the executor's own records (no replay needed). Per anchor A:
- L0 producer target   = target_live weights / gross_norm × sizing.gross (phase_A)            — the strategy's intent
- L1 executor target   = orders target_w × anchors.target_gross                               — after withhold / stop / reshape / venue cap / dust
- L2 request intent    = L1 restricted to names with a placed request (skips removed)
- L3 actual book       = post-anchor readback notional (venue)                                 — after fills / rejects / partial expiry / protective flatten
-Marks: readback |notional|/|qty| per symbol per anchor ⇒ 4h return r(A→A+4h) for every held or targeted name that has marks at both ends (else excluded, counted).
-P&L of layer L over the anchor = Σ L_s × r_s (USDT, at the layer's own notional), so differences between layers are the P&L attributable to that layer.
-Protective flattens (readback source ladder_flatten@post_flatten) are listed with time; after a flatten L3 = 0 for the rest of the anchor (the actual book), while L0..L2
-keep earning/losing ⇒ the gap is the flatten's P&L footprint. usage: pc2_layer_decomposition.py <YYYYMMDD> <out.json>"""
-import sys, os, json, time, collections
-DAY, OUT = sys.argv[1], sys.argv[2]; REPO = os.path.expanduser("~/dl_quant_live"); WS = os.path.expanduser("~/wide_shadow"); P = f"{REPO}/state/live/pilot_log"
-U = lambda t: time.strftime("%m-%d %H:%MZ", time.gmtime(float(t))); d0 = int(time.mktime(time.strptime(DAY, "%Y%m%d")) - time.timezone); anchors = [d0 + 14400 * k for k in range(6)]
-def rows(day, name):
-    f = f"{P}/{day}/{name}.jsonl"; return [json.loads(l) for l in open(f) if l.strip()] if os.path.exists(f) else []
-nxt = time.strftime("%Y%m%d", time.gmtime(d0 + 86400)); prv = time.strftime("%Y%m%d", time.gmtime(d0 - 86400))
-rb = rows(prv, "position_readback") + rows(DAY, "position_readback") + rows(nxt, "position_readback"); od = rows(DAY, "orders") + rows(nxt, "orders"); an = rows(DAY, "anchors") + rows(nxt, "anchors")
-pa = {}
-for l in open(f"{REPO}/state/anchor_runs.log"):
-    if " phase_A: " in l:
-        try: d = json.loads(l.split(" phase_A: ", 1)[1]); a = (d.get("external_wait") or {}).get("nominal_anchor_ts") or d.get("anchor_ts"); pa[int(a)] = d
-        except Exception: pass
-def marks_at(A):                                         # post-anchor snapshot of anchor A (bucket [A, A+4h)), marks and notionals
-    snap = [r for r in rb if A <= float(r["anchor_ts"]) < A + 14400 and str(r.get("source", "")).endswith("@post_anchor")]
-    m = {}; n = {}
-    for r in snap:
-        q = float(r["venue_position_qty"]); v = float(r["venue_position_notional"])
-        if q: m[r["symbol"]] = abs(v) / abs(q)
-        n[r["symbol"]] = v
-    return m, n
-flats = sorted({(r["symbol"], int(float(r["read_ts"]) // 60 * 60)) for r in rb if "flatten" in str(r.get("source", ""))}); flat_times = sorted({t for _, t in flats if d0 <= t < d0 + 86400})
-# v2: 4h returns from the PRODUCER's own 5-minute panel (rolling.npz ret5 = 5m simple returns, 829 symbols, 40 days) so that names without a venue position (after a
-# flatten, or never held) are still priced; readback marks are the fallback. r(A→A+4h) = Π(1 + ret5) over the 48 bars in (A, A+4h] − 1.
-import numpy as np
-_R = np.load(f"{WS}/state/rolling.npz", allow_pickle=True); _rts = _R["ts"].astype(np.int64); _ret5 = np.asarray(_R["data"][:, :, 0], np.float64); _syms = [str(x) for x in np.load(f"{WS}/fea171/xfer_syms.npz", allow_pickle=True)["symbols"]]; _sidx = {s: i for i, s in enumerate(_syms)}
-def panel_ret(A):
-    lo, hi = A, A + 14400; m = (_rts > lo) & (_rts <= hi)
-    if m.sum() != 48: return {}
-    seg = _ret5[m]; ok = np.isfinite(seg).all(0); r = np.prod(1.0 + np.where(np.isfinite(seg), seg, 0.0), axis=0) - 1.0
-    return {s: float(r[_sidx[s]]) for s in _syms if ok[_sidx[s]]}
-out = {"device": "pc2_layer_decomposition.py", "utc": time.strftime("%FT%TZ", time.gmtime()), "day": DAY, "version": "v2 producer-panel returns", "protective_flattens_utc": [U(t) for t in flat_times], "anchors": []}
-tot = collections.defaultdict(float)
+"""FP3 P-C2 v3 (2026-09-18, after independent review round 11 R11-PC2): layer decomposition of one UTC day by EVENT-PATH pricing (engine: pnl_path.py).
+v1/v2 priced post-anchor positions with the return from the anchor start, did not cut the actual path at protective flattens, and deleted skipped names
+from L2 — the reviewer's three counterexamples (late fill sign reversal; intra-period flatten; zero-increment skip) all pass v2 and fail here by design.
+
+Per run labelled A (nominal 4h anchor), window [t_d, A+4h], t_d = earliest submit_ts of the rebalance (fallback A+24 min), boundaries ceil'd to 5 min:
+ L0 producer intent    = target_live weights / gross_norm × sizing.gross, in contracts at the executor's mid_at_anchor, held from t_d to A+4h
+ L1 executor target    = orders target_w × anchors.target_gross, in contracts at mid_at_anchor, held from t_d                 (names without an orders row: hold q0)
+ L2 request intent     = previous readback quantity q0 + intended_notional / mid_at_anchor for PLACED requests; skipped ⇒ q0   (a skip is not a flat)
+ L3 actual path        = q0, then every fill (signed, (symbol, trade_id)-deduplicated) and every flatten readback (→ 0) at the 5-minute boundary
+                         containing its event time; the next post_anchor readback is a CONSISTENCY CHECK (unexplained_qty_residual), never adopted
+All four layers are priced on the SAME price path (producer 5m panel ret5 anchored to the previous readback mark, else the first fill price, else
+mid_at_anchor) with the cash identity Σ q(segment start) × Δpx. A name whose panel rows are missing/non-finite anywhere between the reference and the
+window end is CENSORED (counted with its notional), never priced as 0. Fees = fills commission inside the window by asset (separate column); funding
+is NOT included. Approximations are recorded per anchor: fills valued at their boundary price (intra_row_approx, fill_px_vs_path), intent contracts
+converted at mid_at_anchor (mid_vs_path_price). A day total is only ever the sum over anchors with status OK, and says how many of six that is.
+usage: pc2_layer_decomposition.py <YYYYMMDD> <out.json>     (env FP3_LIVE_REPO / FP3_WS override the ledger roots for tests)"""
+import sys, os, json, time, hashlib
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pnl_path as PP
+
+DAY, OUT = sys.argv[1], sys.argv[2]
+d0 = int(time.mktime(time.strptime(DAY, "%Y%m%d")) - time.timezone); anchors = [d0 + 14400 * k for k in range(6)]
+panel = PP.Panel(); L = PP.LedgerDay(DAY)
+out = {"device": "pc2_layer_decomposition.py", "version": "v3 event-path pricing (pnl_path.py)", "utc": time.strftime("%FT%TZ", time.gmtime()), "day": DAY,
+       "self_sha256": hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest(), "engine_sha256": hashlib.sha256(open(PP.__file__, "rb").read()).hexdigest(),
+       "panel": {"path": panel.path, "sha256": panel.sha, "t_first": panel.t_first, "t_last": panel.t_last, "n_symbols": len(panel.syms)},
+       "ledger_roots": {"repo": PP.REPO, "ws": PP.WS}, "anchors": []}
+tot = {}; n_ok = 0; fees = {}; cens_tot = {}; by_class = {}
 for A in anchors:
-    d = pa.get(A); rec = {"anchor": A, "utc": U(A)}
-    if not d or not (d.get("sizing") or {}).get("gross"): rec["status"] = "NO_PHASE_A"; out["anchors"].append(rec); continue
-    G = float(d["sizing"]["gross"]); anr = [r for r in an if r.get("rebalance_id") == d["rebalance_id"]]
-    if not anr: rec["status"] = "NO_ANCHORS_ROW"; out["anchors"].append(rec); continue
-    anr = anr[-1]; gn = float(anr["external_book"]["gross_norm"]); Gt = float(anr["target_gross"])
-    tf = f"{WS}/state/target_live/{A}.json"
-    L0 = {s: float(w) / gn * G for s, w in json.load(open(tf))["weights"].items()} if os.path.exists(tf) else None
-    oa = [r for r in od if r.get("rebalance_id") == d["rebalance_id"]]; first = {}
-    for r in sorted(oa, key=lambda r: (r["symbol"], int(r.get("attempt_idx") or 0))): first.setdefault(r["symbol"], r)
-    L1 = {s: float(r["target_w"]) * Gt for s, r in first.items()}; L2 = {s: v for s, v in L1.items() if not str(first[s].get("terminal_reason", "")).startswith("skipped")}
-    m0, n_prev = marks_at(A - 14400); m1, n_post = marks_at(A); L3 = n_post
-    m_next, _ = marks_at(A + 14400)
-    ret_marks = {s: (m_next[s] / m1[s] - 1.0) for s in m1 if s in m_next and m1[s] > 0}
-    ret = panel_ret(A); ret_src = "producer_panel_ret5"
-    if not ret: ret = ret_marks; ret_src = "readback_marks_fallback"
-    rec["return_source"] = ret_src; rec["n_priced_panel"] = len(ret); rec["panel_vs_marks_max_abs_diff"] = (max((abs(ret[s] - ret_marks[s]) for s in ret_marks if s in ret), default=None) if ret_src == "producer_panel_ret5" else None)
-    def pnl(L): 
-        cov = [s for s in L if s in ret]; return float(sum(L[s] * ret[s] for s in cov)), len(cov), len(L)
-    layers = {"L0_producer": L0, "L1_executor_target": L1, "L2_request_intent": L2, "L3_actual_post_anchor": L3}
-    for k, L in layers.items():
-        if L is None: rec[k] = None; continue
-        p, cov, n = pnl(L); rec[k] = {"gross": float(sum(abs(v) for v in L.values())), "net": float(sum(L.values())), "n": n, "pnl_next4h_usdt": p, "n_priced": cov}
-        tot[k] += p
-    rec["flatten_in_anchor"] = [U(t) for t in flat_times if A <= t < A + 14400]
-    if L0 and L1:
-        popped = [s for s in L0 if s not in L1]; rec["L0_to_L1"] = {"n_popped_or_absent": len(popped), "mass_popped": float(sum(abs(L0[s]) for s in popped)), "n_L1_not_in_L0": len([s for s in L1 if s not in L0]), "gross_L0": rec["L0_producer"]["gross"], "gross_L1": rec["L1_executor_target"]["gross"]}
-    out["anchors"].append(rec)
-out["day_totals_pnl_next4h_usdt"] = dict(tot); json.dump(out, open(OUT, "w"), indent=1, default=str)
-print(DAY, "flattens:", out["protective_flattens_utc"]); print("day totals (next-4h P&L by layer, USDT):", {k: round(v, 0) for k, v in tot.items()})
+    rec = PP.window_pnl(L, panel, A)
+    if rec.get("status") == "OK":
+        n_ok += 1; rec["diffs"] = PP.layer_diffs(rec)
+        bc = by_class.setdefault(rec["window_class"], {"n_windows": 0, "L3_minus_L2": 0.0, "L3_minus_L2cut_execution": 0.0, "L2cut_minus_L2_flatten_footprint": 0.0, "L1_minus_L0": 0.0})
+        bc["n_windows"] += 1; bc["L3_minus_L2"] += rec["diffs"]["L3_minus_L2_timing_and_fills"]; bc["L3_minus_L2cut_execution"] += rec["diffs"]["L3_minus_L2cut_execution"]
+        bc["L2cut_minus_L2_flatten_footprint"] += rec["diffs"]["L2cut_minus_L2_flatten_footprint"]; bc["L1_minus_L0"] += rec["diffs"]["L1_minus_L0_book_layer"]
+        for k, v in rec["layers"].items():
+            tot[k] = tot.get(k, 0.0) + v["pnl_usdt"]; cens_tot[k] = cens_tot.get(k, 0.0) + v["censored"]["notional"]
+        for k, v in rec["fees_in_window"].items():
+            fees[k] = fees.get(k, 0.0) + v
+        slim = dict(rec); slim.pop("per_name_layers", None); slim["per_name"] = {s: v for s, v in rec["per_name"].items() if v.get("status") != "OK"}   # keep only censored names inline
+        slim["n_names_ok"] = sum(1 for v in rec["per_name"].values() if v.get("status") == "OK")
+        out["anchors"].append(slim)
+    else:
+        out["anchors"].append(rec)
+out["day"] = DAY; out["n_anchors_ok"] = n_ok; out["n_anchors_total"] = 6
+out["day_totals_over_ok_anchors_usdt"] = tot; out["day_censored_notional_by_layer"] = cens_tot; out["day_fees_in_windows"] = fees
+out["day_diffs_by_window_class"] = by_class
+out["day_diffs_over_ok_anchors"] = {"L3_minus_L2_timing_and_fills": tot.get("L3_actual_path", 0.0) - tot.get("L2_request_intent", 0.0),
+                                    "L3_minus_L2cut_execution": tot.get("L3_actual_path", 0.0) - tot.get("L2_cut_at_flatten", 0.0),
+                                    "L2cut_minus_L2_flatten_footprint": tot.get("L2_cut_at_flatten", 0.0) - tot.get("L2_request_intent", 0.0),
+                                    "L2_minus_L1_skips": tot.get("L2_request_intent", 0.0) - tot.get("L1_executor_target", 0.0),
+                                    "L1_minus_L0_book_layer": tot.get("L1_executor_target", 0.0) - tot.get("L0_producer", 0.0),
+                                    "L3_minus_L0_total": tot.get("L3_actual_path", 0.0) - tot.get("L0_producer", 0.0)} if n_ok else None
+out["boundary"] = ("price P&L only at 5-minute resolution; no funding; fees separate; fills valued at boundary price (intra_row_approx); intent contracts at mid_at_anchor; "
+                   "a day total covers only the anchors with status OK (n_anchors_ok/6) and only names that are not CENSORED (day_censored_notional_by_layer)")
+json.dump(out, open(OUT, "w"), indent=1, default=str)
+print(DAY, f"anchors OK {n_ok}/6", "| day totals over OK anchors (USDT):", {k: round(v, 1) for k, v in tot.items()}, "| diffs:", {k: round(v, 1) for k, v in (out["day_diffs_over_ok_anchors"] or {}).items()},
+      "| fees", {k: round(v, 4) for k, v in fees.items()}, "| censored notional", {k: round(v, 0) for k, v in cens_tot.items()})
 for r in out["anchors"]:
-    if r.get("status"): print("  ", r["utc"], r["status"]); continue
-    print("  ", r["utc"], {k[:2]: (round(r[k]["gross"] / 1000, 1), round(r[k]["pnl_next4h_usdt"], 0), f"{r[k]['n_priced']}/{r[k]['n']}") for k in ("L0_producer", "L1_executor_target", "L2_request_intent", "L3_actual_post_anchor") if r.get(k)}, "FLAT" if r["flatten_in_anchor"] else "", r.get("return_source", "")[:6], "|panel−marks| max", (round(r["panel_vs_marks_max_abs_diff"], 4) if r.get("panel_vs_marks_max_abs_diff") is not None else None))
+    if r.get("status") != "OK":
+        print("  ", r["utc"], r["status"]); continue
+    Ls = r["layers"]
+    print("  ", r["utc"], "t_d", time.strftime("%H:%M:%SZ", time.gmtime(r["t_decision"])), r["t_decision_source"], "rows", r["n_rows"],
+          r["window_class"], {k[:2] + ("c" if "cut" in k else ""): (round(v["gross_b0"] / 1000, 1), round(v["pnl_usdt"], 0), f"{v['n_priced']}/{v['n']}") for k, v in Ls.items()},
+          "fills", r["n_fills_in_window"], "flat", r["flattens_in_window"] or "", "resid>1$", r["unexplained_qty_residual"]["n_over_1usdt"], "cens", r["layers"]["L3_actual_path"]["censored"])
