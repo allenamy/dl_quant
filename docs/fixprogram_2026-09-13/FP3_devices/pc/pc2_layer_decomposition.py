@@ -29,7 +29,16 @@ def marks_at(A):                                         # post-anchor snapshot 
         n[r["symbol"]] = v
     return m, n
 flats = sorted({(r["symbol"], int(float(r["read_ts"]) // 60 * 60)) for r in rb if "flatten" in str(r.get("source", ""))}); flat_times = sorted({t for _, t in flats if d0 <= t < d0 + 86400})
-out = {"device": "pc2_layer_decomposition.py", "utc": time.strftime("%FT%TZ", time.gmtime()), "day": DAY, "protective_flattens_utc": [U(t) for t in flat_times], "anchors": []}
+# v2: 4h returns from the PRODUCER's own 5-minute panel (rolling.npz ret5 = 5m simple returns, 829 symbols, 40 days) so that names without a venue position (after a
+# flatten, or never held) are still priced; readback marks are the fallback. r(A→A+4h) = Π(1 + ret5) over the 48 bars in (A, A+4h] − 1.
+import numpy as np
+_R = np.load(f"{WS}/state/rolling.npz", allow_pickle=True); _rts = _R["ts"].astype(np.int64); _ret5 = np.asarray(_R["data"][:, :, 0], np.float64); _syms = [str(x) for x in np.load(f"{WS}/fea171/xfer_syms.npz", allow_pickle=True)["symbols"]]; _sidx = {s: i for i, s in enumerate(_syms)}
+def panel_ret(A):
+    lo, hi = A, A + 14400; m = (_rts > lo) & (_rts <= hi)
+    if m.sum() != 48: return {}
+    seg = _ret5[m]; ok = np.isfinite(seg).all(0); r = np.prod(1.0 + np.where(np.isfinite(seg), seg, 0.0), axis=0) - 1.0
+    return {s: float(r[_sidx[s]]) for s in _syms if ok[_sidx[s]]}
+out = {"device": "pc2_layer_decomposition.py", "utc": time.strftime("%FT%TZ", time.gmtime()), "day": DAY, "version": "v2 producer-panel returns", "protective_flattens_utc": [U(t) for t in flat_times], "anchors": []}
 tot = collections.defaultdict(float)
 for A in anchors:
     d = pa.get(A); rec = {"anchor": A, "utc": U(A)}
@@ -44,7 +53,10 @@ for A in anchors:
     L1 = {s: float(r["target_w"]) * Gt for s, r in first.items()}; L2 = {s: v for s, v in L1.items() if not str(first[s].get("terminal_reason", "")).startswith("skipped")}
     m0, n_prev = marks_at(A - 14400); m1, n_post = marks_at(A); L3 = n_post
     m_next, _ = marks_at(A + 14400)
-    ret = {s: (m_next[s] / m1[s] - 1.0) for s in m1 if s in m_next and m1[s] > 0}
+    ret_marks = {s: (m_next[s] / m1[s] - 1.0) for s in m1 if s in m_next and m1[s] > 0}
+    ret = panel_ret(A); ret_src = "producer_panel_ret5"
+    if not ret: ret = ret_marks; ret_src = "readback_marks_fallback"
+    rec["return_source"] = ret_src; rec["n_priced_panel"] = len(ret); rec["panel_vs_marks_max_abs_diff"] = (max((abs(ret[s] - ret_marks[s]) for s in ret_marks if s in ret), default=None) if ret_src == "producer_panel_ret5" else None)
     def pnl(L): 
         cov = [s for s in L if s in ret]; return float(sum(L[s] * ret[s] for s in cov)), len(cov), len(L)
     layers = {"L0_producer": L0, "L1_executor_target": L1, "L2_request_intent": L2, "L3_actual_post_anchor": L3}
@@ -60,4 +72,4 @@ out["day_totals_pnl_next4h_usdt"] = dict(tot); json.dump(out, open(OUT, "w"), in
 print(DAY, "flattens:", out["protective_flattens_utc"]); print("day totals (next-4h P&L by layer, USDT):", {k: round(v, 0) for k, v in tot.items()})
 for r in out["anchors"]:
     if r.get("status"): print("  ", r["utc"], r["status"]); continue
-    print("  ", r["utc"], {k[:2]: (round(r[k]["gross"] / 1000, 1), round(r[k]["pnl_next4h_usdt"], 0), f"{r[k]['n_priced']}/{r[k]['n']}") for k in ("L0_producer", "L1_executor_target", "L2_request_intent", "L3_actual_post_anchor") if r.get(k)}, "flat" if r["flatten_in_anchor"] else "", (r.get("L0_to_L1") or {}).get("mass_popped", ""))
+    print("  ", r["utc"], {k[:2]: (round(r[k]["gross"] / 1000, 1), round(r[k]["pnl_next4h_usdt"], 0), f"{r[k]['n_priced']}/{r[k]['n']}") for k in ("L0_producer", "L1_executor_target", "L2_request_intent", "L3_actual_post_anchor") if r.get(k)}, "FLAT" if r["flatten_in_anchor"] else "", r.get("return_source", "")[:6], "|panel−marks| max", (round(r["panel_vs_marks_max_abs_diff"], 4) if r.get("panel_vs_marks_max_abs_diff") is not None else None))
