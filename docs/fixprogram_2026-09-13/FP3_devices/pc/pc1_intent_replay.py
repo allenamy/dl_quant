@@ -27,12 +27,26 @@ for r in sorted(od, key=lambda r: (r["symbol"], int(r.get("attempt_idx") or 0)))
 mids = {s: float(r["mid_at_anchor"]) for s, r in first.items() if r.get("mid_at_anchor")}
 rb_prev = [r for r in rows(prev_day, "position_readback") + rows(day, "position_readback") if (A - 14400) <= float(r["anchor_ts"]) < A and r.get("source", "").endswith("@post_anchor")]
 held = {r["symbol"]: float(r["venue_position_notional"]) for r in rb_prev}; held_qty = {r["symbol"]: float(r["venue_position_qty"]) for r in rb_prev}
-untr = set(pa.get("untradable_names") or []) | set(eb.get("held_exit") or []) | set((eb.get("meta_excluded") or {}).keys() if isinstance(eb.get("meta_excluded"), dict) else (eb.get("meta_excluded") or [])); reasons = pa.get("untradable_reason") or {}
+_un = pa.get("untradable_names") or {}                                                   # phase_A: {"popped": [...], "flatten_only": [...], "add_blocked": [...], "reduced": [...]} (a dict, not a list)
+untr_rec = set().union(*[set(v) for v in _un.values()]) if isinstance(_un, dict) else set(_un or [])
+untr = untr_rec | set(eb.get("held_exit") or []) | set((eb.get("meta_excluded") or {}).keys() if isinstance(eb.get("meta_excluded"), dict) else (eb.get("meta_excluded") or [])); reasons = pa.get("untradable_reason") or {}
+# decision-time STOP set = the per-name-stop state the executor loaded at phase A = what the PREVIOUS run's phase_C wrote (stopped names)
+pc_prev = None
+for l in open(f"{REPO}/state/anchor_runs.log"):
+    if " phase_C: " in l:
+        try: tk = time.mktime(time.strptime(l[:19], "%Y-%m-%dT%H:%M:%S")) - time.timezone
+        except Exception: continue
+        if A - 14400 + 1200 <= tk < A + 1200:
+            try:
+                _pcv = json.loads(l.split(" phase_C: ", 1)[1]).get("per_name_stop")
+                if isinstance(_pcv, dict): pc_prev = _pcv                                         # some runs log a string here (e.g. "disabled"/note): not a state
+            except Exception: pass
 force_flat = set(s for s, why in (reasons.items() if isinstance(reasons, dict) else []) if "per_name_stop" in str(why) and "cooldown" not in str(why))
 pns_state = json.load(open(f"{REPO}/state/live/per_name_stop.json")) if os.path.exists(f"{REPO}/state/live/per_name_stop.json") else {}
 _cool_s = float((pns_state.get("cfg") or {}).get("cooloff_days") or 7) * 86400.0                        # cooloff length (per_name_stop.py: cooloff_days default 7)
 cooldown_active = set(s for s, until in (pns_state.get("cooldown") or {}).items() if (float(until) - _cool_s) <= A < float(until))   # active at A iff set (= until − cooloff) ≤ A < until: valid for past anchors as long as entries are not overwritten
-stopped_now = set((pns_state.get("stopped") or {}).keys()); untr |= cooldown_active; force_flat |= stopped_now
+stopped_prev = set((pc_prev or {}).get("stopped") or []); force_flat |= stopped_prev                      # stop clause: force_flat = names stopped as of the previous run's phase_C
+cooldown_xcheck = {"reconstructed_from_current_file": len(cooldown_active), "phase_C_prev_cooldown_n": (pc_prev or {}).get("cooldown_n"), "recorded_popped": sorted(_un.get("popped", [])) if isinstance(_un, dict) else None}   # cross-check only; the RECORD is the input
 # ── filters (offline, from the executor's own cache) ──
 sf = BX.SymbolFilters.__new__(BX.SymbolFilters); sf.f = json.load(open(f"{REPO}/state/live/exchange_info_cache.json")); sf.cache_path = None
 fl = {s: float((sf.f.get(s) or {}).get("min_notional", 0.0) or 0.0) for s in target}
@@ -95,7 +109,7 @@ for s in sorted(set(first) | set(plan_by)):
         cat[("qty_match" if ok else ("qty_MISMATCH" if oqf is not None else "qty_MISSING")) + (":" + oterm if not ok else "")] += 1
     cmp.append(e)
 n_req = sum(1 for e in cmp if e.get("case") == "request"); n_ok = sum(1 for e in cmp if e.get("case") == "request" and e.get("match")); stageA_off = [e for e in stageA if e["within_step"] is False]
-out = {"device": "pc1_intent_replay.py", "version": "v7", "utc": time.strftime("%FT%TZ", time.gmtime()), "anchor": A, "utc_anchor": U(A), "rebalance_id": rid, "executor_tree": "409ea16", "inputs": {"eq_pre_from_phase_A": eq_pre, "sizing_gross": G, "gross_norm": gross_norm, "n_target": len(tgt_file["weights"]), "n_held_prev_readback": len(held), "n_untradable_phaseA": len(pa.get("untradable_names") or []), "dust": dust, "force_flat": sorted(force_flat), "n_mids": len(mids), "reduce_only_n": len(reduce_only)},
+out = {"device": "pc1_intent_replay.py", "version": "v9", "utc": time.strftime("%FT%TZ", time.gmtime()), "anchor": A, "utc_anchor": U(A), "rebalance_id": rid, "executor_tree": "409ea16", "inputs": {"eq_pre_from_phase_A": eq_pre, "sizing_gross": G, "gross_norm": gross_norm, "n_target": len(tgt_file["weights"]), "n_held_prev_readback": len(held), "n_untradable_phaseA": len(untr_rec), "untradable_record": {k: sorted(v) for k, v in _un.items()} if isinstance(_un, dict) else _un, "stop_set_prev_phaseC": sorted(stopped_prev), "cooldown_xcheck": cooldown_xcheck, "dust": dust, "force_flat": sorted(force_flat), "n_mids": len(mids), "reduce_only_n": len(reduce_only)},
        "reshape_report": {k: v for k, v in (rs or {}).items() if k in ("net_before", "net_after", "gross_before", "gross_after", "names_crossed_floor", "n_pop", "max_name_delta_pp")}, "clamp_counts": {k: len(v) for k, v in clamp.items() if hasattr(v, "__len__")}, "venue_cap_applied_from_record": cap_applied,
        "recorded_reshape": an.get("reshape"), "stage_A_book_layer": {"n": A_n, "within_step": A_ok, "max_abs_diff_usdt": A_max, "rows": [e for e in stageA if e["within_step"] is False][:40]}, "prev_notional_check": {"my_readback_vs_recorded_prev_w": {"n": len(prev_cmp), "n_off_gt_1usdt": prev_n_off, "max_abs_diff_usdt": prev_maxdiff}}, "summary": {"n_symbols_compared": len(cmp), "n_requests": n_req, "n_requests_exact": n_ok, "categories": dict(cat)}, "rows": cmp}
 json.dump(out, open(OUT, "w"), indent=1, default=str)
