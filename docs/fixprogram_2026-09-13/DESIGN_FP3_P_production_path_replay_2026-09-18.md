@@ -27,3 +27,9 @@
 
 ## 4. 与其它项的关系
 D 的残差归因(成交价来源)、I 的取数、C 的两锚单步平价都不被本设计替代; L 最终表以 P-D 的生产路径书为准。
+
+## 5. 进度 2026-09-18 01:1xZ(追加)
+- **P-A 成立**: 生产者 5m 面板快照(09-17 12Z)与研究缓存在重叠 08-08 12:05Z…09-01 00Z 七通道有限格逐位相等(收据 `FP3_receipts/PA_PANEL_IDENTITY_2026-09-18.json`, 装置 `FP3_devices/preplay/pa_panel_identity.py`)。
+- **P-B 装置成型**(`FP3_devices/preplay/preplay_driver.py`, pod2 `/workspace/fp2_2026-09/preplay/`): 生产者 `shadow_loop_v3.py`(e9c98374)与 `combo_stage.py`(3520d363)原字节拷入沙箱 HOME, 唯一注入 = `HistFetcher`(5m klines 由缓存预填、fundingRate 由生产者自己的账本(bundle 种子 ∪ 快照 ledger_tail)回答、exchangeInfo 由「24h 内有结算」推 TRADING); 初始状态 = bundle 自带引导(08-30 20Z)+ 三处因果修正: 非在役名 NaN、资金费账本/EMA 按生产者公式截断重建到起点(bundle 种子含 09-01 的未来行)、腿收益 extras 用生产 pre-seed 备份截去起点之后 34 条; H 用归档 `weights/1788120000.npz`; combo 递推状态用归档 `state_H_*_1788120000.npz`。
+- **两锚冒烟(08-31 00Z/04Z, `PREPLAY_SMOKE_2anchors_2026-09-18.json`)**: 与生产 shadow_log 信号行**同值**: sel 242/242 与 244/244, fund_updates 457/457 与 360/360, members 400/400; 席位 w3 差 ≤ 0.006; king 目标 L1 0.64% / 1.04%, max|Δw| 0.0003 / 0.0006; combo rc 0, L1 3.5% / 6.8%。归因阶梯(同两锚): 引导 H(bundle 离线轨迹)→ 归档 H: king L1 18% → 1.7%; 再加三处因果修正 → 0.6%。剩余 king 差异候选 = 起点缺一条结算行(prev_rec None)与备份截断假设; combo 差异待全程曲线判断(收敛/漂移)。
+- **全程运行**(08-31 00Z → 09-18 00Z, 108 锚)01:1xZ 起在 pod2 后台, 逐锚记录 `sb_full/PREPLAY_anchors.jsonl`。
