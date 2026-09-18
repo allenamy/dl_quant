@@ -8,9 +8,9 @@ PD, META, OUT = sys.argv[1:4]; L = 2.0; WA0, UB, KL0 = 1656547200, 1788120000, 1
 def load(tag):
     z = np.load(f"{PD}/w10_ablation_series_V4_A0_dyn_s42_{tag}.npz", allow_pickle=True); C = [str(c) for c in z["cols"]]; rec = np.asarray(z["d30_n2_c42_rec"], float)
     ts = rec[:, C.index("ts")].astype(np.int64); g = rec[:, C.index("net_ex")] / np.where(rec[:, C.index("gross_total")] > 0, rec[:, C.index("gross_total")], np.nan); to = rec[:, C.index("turnover")]
-    return ts, g, to, json.loads(str(z["config_json"])).get("OVERLAY", "?")
+    return ts, g, to, json.loads(str(z["config_json"])).get("OVERLAY", "?"), np.asarray(z["d30_n2_c42_W"], np.float32)
 M = np.load(META, allow_pickle=True); E = M["E_ts"].astype(np.int64); y4 = np.asarray(M["y4"], float); MEM = M["members"]
-ts0, g0, to0, _ = load("OVLnone"); pos = {int(t): i for i, t in enumerate(E)}
+ts0, g0, to0, _, W0 = load("OVLnone"); pos = {int(t): i for i, t in enumerate(E)}
 # causal breadth per book anchor (rows i-6..i-1 of y4 over members), then top decile flag using the expanding history (as the overlay sees it)
 B = np.full(len(ts0), np.nan)
 for k, t in enumerate(ts0):
@@ -38,15 +38,16 @@ def paired_ci(d, mask, B_=2000, seed=0):
 WA = (ts0 >= WA0) & (ts0 <= UB); KL = (ts0 >= KL0) & (ts0 <= UB)
 out = {"device": "overlay_eval.py", "self_sha256": hashlib.sha256(open(__file__, "rb").read()).hexdigest(), "utc": time.strftime("%FT%TZ", time.gmtime()), "L": L, "delta": DELTA, "baseline": {"W_ALPHA": stats(g0, WA), "KING_LIVE": stats(g0, KL), "by_year": {y: stats(g0, WA & (year == y)) for y in sorted(set(year[WA]))}, "top_decile_breadth": {"n": int((WA & top).sum()), "g": float(np.nan_to_num(g0[WA & top]).mean())}, "turnover_mean": float(np.nanmean(to0[WA]))}, "variants": {}}
 for p in sorted(glob.glob(f"{PD}/w10_ablation_series_V4_A0_dyn_s42_OVL_*.npz")):
-    tag = os.path.basename(p).split("_OVL_")[1][:-4]; ts, g, to, spec = load("OVL_" + tag); assert np.array_equal(ts, ts0), tag
+    tag = os.path.basename(p).split("_OVL_")[1][:-4]; ts, g, to, spec, W1 = load("OVL_" + tag); assert np.array_equal(ts, ts0), tag
+    dW = np.abs(np.nan_to_num(W1) - np.nan_to_num(W0)).sum(1); wired = {"anchors_changed": int((dW > 1e-9).sum()), "frac_changed": float((dW > 1e-9).mean()), "mean_L1_dW_over_gross": float(np.nanmean(dW / np.maximum(np.abs(np.nan_to_num(W0)).sum(1), 1e-9)))}
     d = g - g0; dW, ciW = paired_ci(d, WA); dK, ciK = paired_ci(d, KL); dT, ciT = paired_ci(d, WA & top)
     sW, sK = stats(g, WA), stats(g, KL); by = {y: stats(g, WA & (year == y)) for y in sorted(set(year[WA]))}; b0 = out["baseline"]
     worst_year_sharpe = min(v["sharpe_daily"] for v in by.values() if v["sharpe_daily"] is not None); worst_year_sharpe0 = min(v["sharpe_daily"] for v in b0["by_year"].values() if v["sharpe_daily"] is not None)
     G1 = ciW[0] > -DELTA; G2 = (worst_year_sharpe >= worst_year_sharpe0 - 1e-9) and ((sW["maxdd_L"] - b0["W_ALPHA"]["maxdd_L"] >= 0.05) or (sW["days_le_m4"] <= b0["W_ALPHA"]["days_le_m4"] // 2)) and (sW["days_le_m2p68"] <= b0["W_ALPHA"]["days_le_m2p68"]); G3 = ciT[0] > 0
-    out["variants"][tag] = {"spec": spec, "W_ALPHA": sW, "KING_LIVE": sK, "by_year": by, "top_decile_breadth": {"n": int((WA & top).sum()), "g": float(np.nan_to_num(g[WA & top]).mean())}, "turnover_ratio": float(np.nanmean(to[WA]) / np.nanmean(to0[WA])),
+    out["variants"][tag] = {"spec": spec, "W_ALPHA": sW, "KING_LIVE": sK, "by_year": by, "top_decile_breadth": {"n": int((WA & top).sum()), "g": float(np.nan_to_num(g[WA & top]).mean())}, "turnover_ratio": float(np.nanmean(to[WA]) / np.nanmean(to0[WA])), "wired": wired,
                             "delta": {"W_ALPHA": [dW, ciW], "KING_LIVE": [dK, ciK], "top_decile_breadth": [dT, ciT]}, "gates": {"G1_not_worse_delta": G1, "G2_maximin": G2, "G3_top_decile": G3, "ALL": bool(G1 and G2 and G3)}, "worst_year_sharpe": worst_year_sharpe}
 out["baseline"]["worst_year_sharpe"] = worst_year_sharpe0
 json.dump(out, open(OUT, "w"), indent=1)
 b = out["baseline"]; print("baseline W_ALPHA", {k: (round(v, 4) if isinstance(v, float) else v) for k, v in b["W_ALPHA"].items()}, "| top-decile g", round(b["top_decile_breadth"]["g"], 3), "n", b["top_decile_breadth"]["n"], "| worst-year sharpe", round(worst_year_sharpe0, 2))
 for tag, v in out["variants"].items():
-    w = v["W_ALPHA"]; print(f"{tag:22s} g {w['g']:+.3f} (Δ {v['delta']['W_ALPHA'][0]:+.3f} [{v['delta']['W_ALPHA'][1][0]:+.3f},{v['delta']['W_ALPHA'][1][1]:+.3f}]) sh {w['sharpe_daily']:.2f} maxdd {w['maxdd_L']:.3f} worst {w['worst_day']:.4f} d≤-2.68% {w['days_le_m2p68']} d≤-4% {w['days_le_m4']} | top-dec Δ {v['delta']['top_decile_breadth'][0]:+.3f} [{v['delta']['top_decile_breadth'][1][0]:+.3f},{v['delta']['top_decile_breadth'][1][1]:+.3f}] | turn×{v['turnover_ratio']:.2f} | worst-yr sh {v['worst_year_sharpe']:.2f} | G1 {v['gates']['G1_not_worse_delta']} G2 {v['gates']['G2_maximin']} G3 {v['gates']['G3_top_decile']}")
+    w = v["W_ALPHA"]; print(f"{tag:22s} g {w['g']:+.3f} (Δ {v['delta']['W_ALPHA'][0]:+.3f} [{v['delta']['W_ALPHA'][1][0]:+.3f},{v['delta']['W_ALPHA'][1][1]:+.3f}]) sh {w['sharpe_daily']:.2f} maxdd {w['maxdd_L']:.3f} worst {w['worst_day']:.4f} d≤-2.68% {w['days_le_m2p68']} d≤-4% {w['days_le_m4']} | top-dec Δ {v['delta']['top_decile_breadth'][0]:+.3f} [{v['delta']['top_decile_breadth'][1][0]:+.3f},{v['delta']['top_decile_breadth'][1][1]:+.3f}] | turn×{v['turnover_ratio']:.2f} | changed {v['wired']['frac_changed']:.2%} L1 {v['wired']['mean_L1_dW_over_gross']:.3%} | worst-yr sh {v['worst_year_sharpe']:.2f} | G1 {v['gates']['G1_not_worse_delta']} G2 {v['gates']['G2_maximin']} G3 {v['gates']['G3_top_decile']}")

@@ -2,7 +2,7 @@
 """FP3-R overlays (PREREG_FP3_R_fast_move_nonresponse_2026-09-18 §2): book-layer rules applied INSIDE the frozen replay engine to the blended book sm
 at anchor i, using only information available at that anchor (rows < i of the 4h-ahead return matrix y4, current funding, current members).
 The legs' own EMA states are untouched; the overlaid book is what is traded and carried (HB) — a risk layer on top of the strategy.
-Spec string: "none" | "r1a:q=0.95,s=0.5" | "r1b:q=0.95,s=0.5" | "r2:c=1.0" | "r3:th=0.20" | "r3f" | "r4:win=360" """
+Spec string: "none" | "r1a:q=0.95,s=0.5" | "r1b:q=0.95,s=0.5" | "r2:c=1.0" | "r3:th=0.20" | "r3f" | "r4:win=360" | "r5:age=30,s=0.5" (exploratory) """
 import numpy as np
 def _params(spec):
     name, _, ps = spec.partition(":"); d = {}
@@ -68,5 +68,14 @@ def make(spec):
             if bl > -bs: out[L] *= (-bs / bl)                                          # shrink the leg that carries more breadth beta
             else: out[S] *= (bl / -bs)
             return out
+        return f
+    if name == "r5":                                                                   # EXPLORATORY (added 2026-09-18 02:4xZ after the pre-registered grid was read; not gated by PREREG §3)
+        age_d, s = P.get("age", 30.0), P.get("s", 0.5); st = {"first": None}
+        def f(sm, ctx):
+            i, y4 = ctx["i"], ctx["y4"]
+            if st["first"] is None:
+                fin = np.isfinite(y4); st["first"] = np.where(fin.any(0), fin.argmax(0), 10**9)          # first anchor with a finite 4h return = listing (causal: fixed once observed)
+            age = i - st["first"]; young = (age >= 0) & (age < age_d * 6)
+            return np.where(young, sm * s, sm)                                                            # scale (or zero) the weight of names younger than age_d days
         return f
     raise ValueError(spec)
