@@ -23,14 +23,14 @@ window end is CENSORED (counted with its notional), never priced as 0. Fees = fi
 is NOT included. Approximations are recorded per anchor: fills valued at their boundary price (intra_row_approx, fill_px_vs_path), intent contracts
 converted at mid_at_anchor (mid_vs_path_price). A day total is only ever the sum over anchors with status OK, and says how many of six that is.
 usage: pc2_layer_decomposition.py <YYYYMMDD> <out.json>     (env FP3_LIVE_REPO / FP3_WS override the ledger roots for tests)"""
-import sys, os, json, time, hashlib, collections
+import sys, os, json, time, hashlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import pnl_path as PP
+import pnl_path_v5 as PP
 
 DAY, OUT = sys.argv[1], sys.argv[2]
 d0 = int(time.mktime(time.strptime(DAY, "%Y%m%d")) - time.timezone); anchors = [d0 + 14400 * k for k in range(6)]
 panel = PP.Panel(); L = PP.LedgerDay(DAY)
-out = {"device": "pc2_layer_decomposition.py", "version": "v6 measured-readback closure + unknown gap carry + full fill population (pnl_path.py)", "utc": time.strftime("%FT%TZ", time.gmtime()), "day": DAY,
+out = {"device": "pc2_layer_decomposition.py", "version": "v5 one day price chain + fill partition + gap population + closure conditions (pnl_path.py)", "utc": time.strftime("%FT%TZ", time.gmtime()), "day": DAY,
        "self_sha256": hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest(), "engine_sha256": hashlib.sha256(open(PP.__file__, "rb").read()).hexdigest(),
        "panel": {"path": panel.path, "sha256": panel.sha, "t_first": panel.t_first, "t_last": panel.t_last, "n_symbols": len(panel.syms)},
        "ledger_roots": {"repo": PP.REPO, "ws": PP.WS}, "anchors": []}
@@ -81,23 +81,8 @@ out["day_coverage"] = {"windows_s": int(win_cov), "gaps_s": int(gap_cov), "total
 _wk = [tuple(k) for r in out["anchors"] if r.get("status") == "OK" for k in (r.get("fill_partition") or {}).get("keys", []) if k]
 _gk = [tuple(k) for g in gap_ok for k in (g.get("fill_partition") or {}).get("keys", []) if k]
 _dup = sorted(set(_wk) & set(_gk)); _all = _wk + _gk
-# ★ R14-M3 (independent review round 14): closure compared only the two sides' INTERSECTION, so the same fill key twice on ONE side left
-#   `no_repeat_within_side` False while `disjoint` stayed True and the day still closed. It also compared only the CONSUMED subset: the union of
-#   corrected fills is now measured against the FULL population of fills that fall inside a priced window or gap.
-_iv = [(float(r["t_decision"]), float(r["t_end"]), "window") for r in out["anchors"] if r.get("status") == "OK"] + \
-      [(float(g["t_from"]), float(g["t_to"]), "gap") for g in gap_ok]
-_pop = set(); _pop_out = 0
-for _r in L.fills:
-    _t = float(_r["fill_ts"]); _k = (_r["symbol"], _r.get("trade_id"))
-    if any((lo < _t < hi) or (kind == "window" and lo <= _t <= hi) for lo, hi, kind in _iv): _pop.add(_k)
-    elif d0 <= _t < d0 + 86400: _pop_out += 1
-_missing = sorted(_pop - set(_all))
 out["day_fill_partition"] = {"n_corrected_in_windows": len(_wk), "n_corrected_in_gaps": len(_gk), "n_total": len(_all), "n_distinct": len(set(_all)),
                              "n_double_counted": len(_dup), "double_counted": [list(k) for k in _dup[:10]],
-                             "n_population_in_priced_intervals": len(_pop), "n_population_not_corrected": len(_missing),
-                             "population_not_corrected": [list(k) for k in _missing[:10]],
-                             "n_day_fills_outside_every_priced_interval": int(_pop_out),
-                             "covers_population": not _missing,
                              "disjoint": not _dup, "no_repeat_within_side": len(_all) == len(set(_all)),
                              "rule": "gap (A, t_d) ∪ window [t_d, t_end] is a partition of the corrected fills — R13-P2 (2): v4 used A < t <= t_d and t_d <= t <= t_end, so a fill exactly at t_d was corrected twice"}
 # ── R13-P2 (5): what "the whole day" is allowed to claim. v4's `complete` only asked for 6 windows + 6 gaps and ignored censored names, missing
@@ -105,25 +90,15 @@ out["day_fill_partition"] = {"n_corrected_in_windows": len(_wk), "n_corrected_in
 _ok_recs = [r for r in out["anchors"] if r.get("status") == "OK"]
 _cens_names = sum(r["layers"]["L3_actual_path"]["censored"]["n"] for r in _ok_recs) + sum(g.get("censored", {}).get("n", 0) for g in gap_ok)
 _resid_over = sum(r["unexplained_qty_residual"]["n_over_1usdt"] for r in _ok_recs)
-# ★ R14-M1: `n_over_1usdt` is 0 both when every residual is small AND when there was no readback to measure against. On a real day entry every
-#   window reported `UNAVAILABLE_no_readback_after_window` and the day still closed. Closure now requires the residual to be MEASURED.
-_resid_unmeasured = sum(1 for r in _ok_recs if (r.get("unexplained_qty_residual") or {}).get("status") != "CHECKED")
-_resid_states = dict(collections.Counter((r.get("unexplained_qty_residual") or {}).get("status") for r in _ok_recs))
 _join_over = sum((r.get("price_chain_joins") or {}).get("n_over_1pct", 0) for r in _ok_recs)
 _conds = {"six_windows_priced": n_ok == 6, "six_gaps_priced": len(gap_ok) == 6, "no_censored_names": _cens_names == 0,
-          "readback_residual_measured": _resid_unmeasured == 0,                                   # R14-M1: unmeasured ≠ zero
           "no_readback_residual_over_1usdt": _resid_over == 0, "no_price_chain_join_over_1pct": _join_over == 0,
-          "fills_partitioned": bool(out["day_fill_partition"]["disjoint"]) and bool(out["day_fill_partition"]["no_repeat_within_side"]),   # R14-M3
-          "fill_population_covered": bool(out["day_fill_partition"]["covers_population"]),         # R14-M3: the union vs the full population
-          "no_unknown_start_qty_in_gaps": sum(g.get("n_unknown_start_qty", 0) for g in gap_ok) == 0,   # R14-M2
-          "coverage_full_day": int(win_cov + gap_cov) == 86400}
+          "fills_partitioned": bool(out["day_fill_partition"]["disjoint"]), "coverage_full_day": int(win_cov + gap_cov) == 86400}
 out["day_actual_full_day"] = {"windows_pnl_usdt": tot.get("L3_actual_path", 0.0), "gaps_pnl_usdt": gap_pnl_sum,
                               "priced_period_pnl_usdt": tot.get("L3_actual_path", 0.0) + gap_pnl_sum,
                               "priced_period_pnl_usdt_with_fill_prices": tot.get("L3_actual_path", 0.0) + gap_pnl_sum + fill_corr_windows + gap_corr,
                               "fill_price_correction_usdt": fill_corr_windows + gap_corr,
                               "n_censored_names": int(_cens_names), "n_readback_residual_over_1usdt": int(_resid_over), "n_price_chain_joins_over_1pct": int(_join_over),
-                              "n_windows_readback_unmeasured": int(_resid_unmeasured), "readback_residual_states": _resid_states,
-                              "n_unknown_start_qty_in_gaps": int(sum(g.get("n_unknown_start_qty", 0) for g in gap_ok)),
                               "closure_conditions": _conds, "closed": all(_conds.values()),
                               "label": "研究口径的价格估计, 覆盖【已定价的时段与成员】; 不是当日现金账 —— closure_conditions 逐条说明缺什么",
                               "note": "R13-P2 (5): v4 called this `complete` on 6 windows + 6 gaps alone. It is now `closed` only when every condition above holds; "

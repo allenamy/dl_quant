@@ -504,16 +504,7 @@ def gap_pnl(L, panel, A, t_d, prev_rec, px_chain=None):
     pop = sorted(set(prev_layer) | set(ev) | prev_cens)
     for s_ in pop:
         v = prev_layer.get(s_)
-        # ★ R14-M2 (independent review round 14): `(v or {}).get("qty_end") or 0.0` turned an UNKNOWN carried-in quantity into a ZERO one. When the
-        #   previous window censored the name (or priced it without an end quantity) we do not know what was carried in, and finding a price for THIS
-        #   gap does not recover it: a new buy of 5 with the price moving 100→110 gives +40 if the carry was 0 and +140 if it was 10, and the evidence
-        #   here cannot tell those apart. The unknown now propagates and the name is censored with `unknown_start_qty`.
-        #   UNKNOWN means the previous window KNEW about the name and could not give its end quantity: it censored the name, or priced it without
-        #   `qty_end`. A name the previous window never saw at all is genuinely new and starts at zero — that is a fact, not a gap.
-        _qe = (v or {}).get("qty_end")
-        _prev_knew = (v is not None) or (s_ in prev_cens)
-        q_known = (not _prev_knew) or ((v is not None) and (_qe is not None) and (s_ not in prev_cens))
-        q_end = float(_qe) if (v is not None and _qe is not None) else 0.0
+        q_end = float((v or {}).get("qty_end") or 0.0)
         px_ref = float((prev_names.get(s_) or {}).get("px_b1") or 0.0); ref_b = b_lo; ref_src = "prev_window_end"
         if not px_ref:                                                     # no previous priced end: the day chain, else this gap's first fill price
             ch = chain.get(s_)
@@ -522,14 +513,9 @@ def gap_pnl(L, panel, A, t_d, prev_rec, px_chain=None):
             else:
                 f0 = sorted([e for e in ev.get(s_, []) if e[1] == "fill" and e[4]], key=lambda e: e[3])
                 if f0: px_ref = float(f0[0][4]); ref_b = int(f0[0][0]); ref_src = "first_fill_px"
-        if q_end == 0.0 and not ev.get(s_) and s_ not in prev_cens and q_known:
+        if q_end == 0.0 and not ev.get(s_) and s_ not in prev_cens:
             continue                                                       # nothing carried and nothing happened: no gap exposure
         n_carried += 1
-        if not q_known:                                                    # R14-M2: unknown carry — censor with its own reason, price nothing
-            cens["n"] += 1; cens["notional"] += abs(q_end * px_ref); cens["why"]["unknown_start_qty"] += 1
-            per[s_] = {"status": "CENSORED", "why": "unknown_start_qty", "n_events": len(ev.get(s_, [])),
-                       "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"}
-            continue
         px = panel.index(s_, ref_b, min(ref_b, b_lo), b_hi) if px_ref else None
         if px is None:
             why = ("no_reference_price" if not px_ref else ("carried_from_censored_window" if s_ in prev_cens else "panel_rows_missing_or_nonfinite"))
@@ -545,9 +531,8 @@ def gap_pnl(L, panel, A, t_d, prev_rec, px_chain=None):
         pnl += seg; pl += sl; ps += ss; n_priced += 1
         chain[s_] = {"b": b_hi, "px": px_abs[b_hi], "source": "gap_end:" + time.strftime("%m-%d %H:%MZ", time.gmtime(A))}
         per[s_] = {"q_start": q_start, "q_end": q_out, "pnl": seg, "ref": ref_src}
-    n_unknown = int(cens["why"].get("unknown_start_qty", 0))
     cens = {"n": cens["n"], "notional": cens["notional"], "why": dict(cens["why"])}
-    rec.update(status="GAP_OK", n_unknown_start_qty=n_unknown, pnl_usdt=float(pnl), pnl_long_usdt=float(pl), pnl_short_usdt=float(ps), fill_price_correction_usdt=float(corr),
+    rec.update(status="GAP_OK", pnl_usdt=float(pnl), pnl_long_usdt=float(pl), pnl_short_usdt=float(ps), fill_price_correction_usdt=float(corr),
                pnl_usdt_with_fill_prices=float(pnl + corr), n_names_carried=n_carried, n_priced=n_priced, censored=cens, n_fills_in_gap=n_fills,
                per_name={k: v for k, v in per.items() if v.get("status") == "CENSORED"},
                fill_partition={"owns": "(A, t_decision)", "n_fills_price_corrected": len(corr_keys), "keys": [list(k) if k else None for k in corr_keys],

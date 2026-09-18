@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""FP3 observability page v5 (read-only; independent review e25d30fd §5-D; rounds 11 R11-PAGE, 12 R12-M1, 13 R13-M1, 14 title+evidence). One Markdown page per UTC day.
+"""FP3 observability page v4 (read-only; independent review e25d30fd §5-D; round 11 R11-PAGE, round 12 R12-M1, round 13 R13-M1). One Markdown page per UTC day.
 ROUND 13 (both reviewer counterexamples): (6) the two sub-period numbers for a segment containing a flow are SCENARIOS, not a range — the true
 time-weighted return can fall OUTSIDE them (100 → 200, deposit 100 → 300, → 220: true 46.67%, scenarios 10% / 20%), so the page no longer prints them
 as an interval and says in words that a point value needs a valuation at the flow instant; (7) net-zero is not no-flow — +100 then −100 in one segment
@@ -46,7 +46,7 @@ transfers_all = sum(flow_by_day.values())
 TODAY = time.strftime("%Y%m%d", time.gmtime()); IS_TODAY = (DAY == TODAY)
 gt = json.load(open(f"{GT}/latest.json")) if os.path.exists(f"{GT}/latest.json") else {}
 asof_note = "" if IS_TODAY else f" ⚠ **as-of {gt.get('utc')}(当前状态, 不是 {DAY} 当日状态)**"
-lines = [f"# 实盘一页 {DAY} v5(只读, 生成 {time.strftime('%FT%TZ', time.gmtime())}; 账本根 {REPO})", ""]
+lines = [f"# 实盘一页 {DAY} v4(只读, 生成 {time.strftime('%FT%TZ', time.gmtime())}; 账本根 {REPO})", ""]
 # ── §1 equity: flow-adjusted TWR by day (last LIVE NAV row of each day), capital-basis ratio labelled as such
 by_day = collections.OrderedDict()
 for r in nav: by_day[time.strftime("%Y%m%d", time.gmtime(float(r["nav_ts"])))] = r          # last row of each day
@@ -123,7 +123,6 @@ for i in range(len(ank) - 1):
         else: estS += pl
 panel = PP.Panel(); L = PP.LedgerDay(DAY); per_sym = collections.defaultdict(float); actL = actS = act_tot = 0.0; n_ok = 0; cens_n = 0
 fees = collections.defaultdict(float); statuses = []; fp_corr = 0.0; cov_w = cov_g = 0; gap_tot = gap_L = gap_S = 0.0; n_gap_ok = 0; gap_statuses = []
-rb_states = collections.defaultdict(int); resid_over = join_over = 0; join_abs = 0.0; gap_cens_n = gap_unknown_n = 0
 # R13-P2 (1): the page prices the day with the SAME chronological day price chain as P-C2 v5 — gap(A) precedes window(A), and one reference per symbol
 px_chain = {}
 prev_rec = PP.window_pnl(L, panel, d0 - 14400, px_chain=px_chain)                # carry state for the day's FIRST gap only
@@ -134,16 +133,8 @@ for A in [d0 + 14400 * k for k in range(6)]:
     gap_statuses.append((U(A), g.get("status")))
     if g.get("status") == "GAP_OK":
         n_gap_ok += 1; gap_tot += g["pnl_usdt"]; gap_L += g["pnl_long_usdt"]; gap_S += g["pnl_short_usdt"]; fp_corr += g["fill_price_correction_usdt"]; cov_g += g.get("coverage_s", 0)
-    if g.get("status") == "GAP_OK":
-        gap_cens_n += g.get("censored", {}).get("n", 0); gap_unknown_n += g.get("n_unknown_start_qty", 0)
     if rec.get("status") != "OK": continue
     n_ok += 1; cens_n += rec["layers"]["L3_actual_path"]["censored"]["n"]; cov_w += rec.get("coverage_s", 0); fp_corr += rec["fill_price_correction_usdt"]
-    # ★ R14 (independent review round 14): the day figure must carry the evidence states it depends on — the readback that would close it, the
-    #   price-chain joins that are only reconciled and not booked, and the gap names whose carried position is unknown.
-    _rr = rec.get("unexplained_qty_residual") or {}; rb_states[_rr.get("status") or "?"] += 1
-    resid_over += int(_rr.get("n_over_1usdt") or 0)
-    join_over += int((rec.get("price_chain_joins") or {}).get("n_value_over_1cent") or 0)
-    join_abs += float((rec.get("price_chain_joins") or {}).get("abs_value_diff_sum_usdt") or 0.0)
     for k, v in rec["fees_in_window"].items(): fees[k] += v
     # R12-M1 (2): the TOTAL is formed from every priced name first; the long/short split then comes from the engine's per-SEGMENT sign, so a name that
     # starts and ends flat (a round trip) keeps its P&L instead of disappearing from both legs.
@@ -153,16 +144,10 @@ for A in [d0 + 14400 * k for k in range(6)]:
 fu = sum(float(x.get("funding_paid") or 0.0) for x in rows(DAY, "funding"))
 lines += ["## 2. 当日损益分解(价格损益含未实现; 两种口径分开列)",
           f"- (a) **静态持仓价格暴露估计**(锚后回读快照 × 到下一锚的标记变化, **不吃期间成交**, 下一锚已平的名跳过): 多头 {estL:+,.0f} / 空头 {estS:+,.0f} USDT; 覆盖 {n_pairs} 个锚对、{priced} 名-锚",
-          f"- (b) **实际价格损益(事件路径, 引擎 pnl_path.py, 同 P-C2 v6)**: 决策窗合计 {act_tot:+,.0f}(多头 {actL:+,.0f} / 空头 {actS:+,.0f}) USDT; "
+          f"- (b) **实际价格损益(事件路径, 引擎 pnl_path.py, 同 P-C2 v4)**: 决策窗合计 {act_tot:+,.0f}(多头 {actL:+,.0f} / 空头 {actS:+,.0f}) USDT; "
           f"**逐名合计先成立, 再按逐段持仓符号拆多空**(复审 R12-M1: 旧页按期初/期末符号归名, 期初期末均为 0 的来回交易两条腿都漏掉)",
           f"- (b2) **锚与决策之间的携带缺口**: {n_gap_ok}/6 段已定价, 合计 {gap_tot:+,.0f}(多 {gap_L:+,.0f} / 空 {gap_S:+,.0f}) USDT — 六个决策窗只覆盖 21.5 h, 这 150 分钟此前完全没算(复审 R12-P3); 状态 {', '.join(f'{u} {st}' for u, st in gap_statuses)}",
-          # ★ R14 (复审第十四轮 §3): v4 的标题把这个数说成整个 UTC 日的实际价格损益, 却既不消费 closed, 也不报连接点失败与回读状态。
-          #   改为「已覆盖时段与成员的价格估计」, 并把它依赖的三类证据状态并列在同一块里。情景仍是情景, 不改回区间。
-          f"- (b3) **已覆盖时段与成员的价格估计(决策窗 + 缺口)= {act_tot + gap_tot:+,.0f} USDT**; 按**记录成交价**修正 {fp_corr:+,.0f} ⇒ {act_tot + gap_tot + fp_corr:+,.0f}"
-          f"(边界价与成交价两个口径并列, 互不替代)。**这不是当日现金账, 也未闭合** —— 依赖的证据状态见下一行",
-          f"- (b4) **闭合缺什么**: 回读残差状态 {dict(rb_states)}(**只有 CHECKED 才算测过; UNAVAILABLE 不等于残差为零**), 残差 > 1 USDT 的名 {resid_over}; "
-          f"价格链连接点差 > 1 分的 {join_over} 个、绝对值合计 {join_abs:,.0f} USDT(**只对账, 不加进损益**); "
-          f"缺口段删失名 {gap_cens_n}(其中**持仓未知** {gap_unknown_n}); 决策窗删失名 {cens_n}",
+          f"- (b3) **全日实际价格损益 = 决策窗 + 缺口 = {act_tot + gap_tot:+,.0f} USDT**; 按**记录成交价**修正 {fp_corr:+,.0f} ⇒ {act_tot + gap_tot + fp_corr:+,.0f}(边界价与成交价两个口径并列, 互不替代)",
           f"- 覆盖: 窗 {cov_w:,} s + 缺口 {cov_g:,} s = **{cov_w + cov_g:,} / 86,400 s({(cov_w + cov_g) / 86400:.1%})**; 窗状态 {', '.join(f'{u} {st}' + (f'/{wc}' if wc else '') for u, st, wc in statuses)}; 删失名 {cens_n}; 窗内手续费 {dict((k, round(v, 4)) for k, v in fees.items())}",
           f"- 资金费 {fu:+,.2f} USDT(结算行, 全日)"]
 if per_sym:
