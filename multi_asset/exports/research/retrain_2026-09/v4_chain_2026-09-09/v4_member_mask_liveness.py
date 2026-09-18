@@ -11,11 +11,13 @@ with an input mask (MASK_IN, e.g. the FP2-8 tradable-W24H mask on the same grid)
 (pod_fea_ext_clamp_v2.py / pod_dlw_targets_raw_v2.py) consume the output as MEMBER_MASK_NPZ = their own rule AND this mask.
 
 Boundary (independent review r7): a real bar with zero trades is LIVE — data liveness, not venue eligibility truth.
-Window convention: rows (r-288, r] include the bar whose open ts == A (as in the measuring device). Anchors with fewer than 288 rows of history
+Window convention: rows (r-W, r] include the bar whose open ts == A (as in the measuring device), W = 86400 / the cache's own uniform
+row spacing (R12-C4: a hard-coded 288 covers 48 h on a 600 s grid). Anchors with fewer than W rows of history
 use the rows available (the builders' own TRAIL=2016 rule drops those anchors anyway); their count is reported as n_short_window.
 
 Positive control BEFORE anything is written (three-state):
-  C0  cache ts strictly increasing and the 4h grid non-empty
+  C0  cache ts strictly increasing and the 4h grid non-empty (ts integrality checked before any cast)
+  C0b cache row spacing uniform and dividing the 24 h window
   C1  cache channel 3 is named log_qv
   C2  HOLE_CELLS symbols axis == cache symbols; every (row, col) inside the cache
   C3  (MASK_IN given) MASK_IN sha == MASK_IN_SHA; symbols == cache symbols; bool [T, N]; every grid anchor has a MASK_IN row
@@ -25,9 +27,26 @@ env: CACHE HOLE_CELLS OUT RECEIPT (required); MASK_IN MASK_IN_SHA (optional, bot
 import hashlib, json, os, sys, time, zipfile
 import numpy as np
 
-W = 288                      # 24 h of 5-minute rows
+WINDOW_SECONDS = 86400       # the rule's window is 24 HOURS; the row count is derived from the cache's own spacing (R12-C4)
 LOG_QV_CH = 3                # the cache channel the rule reads (checked by name in C1)
+ANCHOR_SECONDS = 14400
 DEVICE = "v4_member_mask_liveness.py"
+
+
+def int_axis(arr, name):
+    """(int64 values, error-or-None) — integrality checked BEFORE the cast; same helper as the gate (R12-C4)."""
+    a = np.asarray(arr)
+    if a.dtype.kind in "iu":
+        return a.astype(np.int64), None
+    if a.dtype.kind == "b":
+        return None, f"{name}: boolean dtype is not a timestamp axis"
+    if a.dtype.kind == "f":
+        if a.size and not np.all(np.isfinite(a)):
+            return None, f"{name}: float axis carries non-finite values"
+        if a.size and not np.all(a == np.rint(a)):
+            return None, f"{name}: float axis with non-integral values; casting would silently truncate"
+        return a.astype(np.int64), None
+    return None, f"{name}: dtype {a.dtype} is not an integer axis"
 
 
 def sha(p):
@@ -78,7 +97,7 @@ def load_channel(cache_path, ch_idx):
 def main():
     E = {k: os.environ.get(k, "") for k in ("CACHE", "HOLE_CELLS", "OUT", "RECEIPT", "MASK_IN", "MASK_IN_SHA")}
     rec = {"device": DEVICE, "self_sha256": sha(os.path.abspath(__file__)), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-           "env": dict(E), "rule": "MEMBER_LIVENESS", "window_rows": W, "checks": {}, "VERDICT": None}
+           "env": dict(E), "rule": "MEMBER_LIVENESS", "window_seconds": WINDOW_SECONDS, "window_rows": None, "row_spacing_s": None, "checks": {}, "VERDICT": None}
 
     def write_receipt():
         if E["RECEIPT"]:
@@ -99,25 +118,38 @@ def main():
         return unavailable("MASK_IN and MASK_IN_SHA must be given together (an unpinned input mask is not an input)")
     try:
         C = np.load(E["CACHE"], allow_pickle=True)
-        cts = C["ts"].astype(np.int64); csym = [str(s) for s in C["symbols"]]; ch = [str(x) for x in C["ch"]]
+        cts, _e = int_axis(C["ts"], "cache ts")
+        if _e: return unavailable(_e)
+        csym = [str(s) for s in C["symbols"]]; ch = [str(x) for x in C["ch"]]
         lq, dshape = load_channel(E["CACHE"], LOG_QV_CH)
         H = np.load(E["HOLE_CELLS"], allow_pickle=True)
-        hrow = np.asarray(H["row"]).astype(np.int64); hcol = np.asarray(H["col"]).astype(np.int64); hsym = [str(s) for s in H["symbols"]]
+        hrow, _e1 = int_axis(H["row"], "hole cells row"); hcol, _e2 = int_axis(H["col"], "hole cells col")
+        if _e1 or _e2: return unavailable(_e1 or _e2)
+        hsym = [str(s) for s in H["symbols"]]
         cache_sha = sha(E["CACHE"]); holes_sha = sha(E["HOLE_CELLS"])
         MI = mts = msym = MM = None; mi_sha = ""
         if E["MASK_IN"]:
             mi_sha = sha(E["MASK_IN"]); MI = np.load(E["MASK_IN"], allow_pickle=True)
-            mts = MI["ts"].astype(np.int64); msym = [str(s) for s in MI["symbols"]]; MM = np.asarray(MI["mask"])
+            mts, _e3 = int_axis(MI["ts"], "MASK_IN ts")
+            if _e3: return unavailable(_e3)
+            msym = [str(s) for s in MI["symbols"]]; MM = np.asarray(MI["mask"])
     except Exception as e:   # noqa: BLE001
         return unavailable(repr(e))
     nT, nS = lq.shape
     rec["inputs"] = {"cache": E["CACHE"], "cache_sha256": cache_sha, "hole_cells": E["HOLE_CELLS"], "hole_cells_sha256": holes_sha,
-                     "mask_in": E["MASK_IN"] or None, "mask_in_sha256": mi_sha or None, "cache_shape": list(dshape), "n_hole_cells": int(len(hrow))}
-    on_grid = (cts % 14400 == 0)
+                     "mask_in": E["MASK_IN"] or None, "mask_in_sha256": mi_sha or None, "cache_shape": list(dshape), "n_hole_cells": int(len(hrow)),
+                     "window_seconds": WINDOW_SECONDS}
+    on_grid = (cts % ANCHOR_SECONDS == 0)
     grid = cts[on_grid]; grid_rows = np.nonzero(on_grid)[0]
     check("C0 cache ts strictly increasing, 4h grid non-empty, ts axis == data rows",
           bool(len(cts) == nT and len(csym) == nS and len(grid) > 0 and np.all(np.diff(cts) > 0)),
           {"n_rows": int(nT), "n_symbols": int(nS), "n_grid": int(len(grid))})
+    # ★ R12-C4: W comes from the cache's own uniform spacing, not a hard-coded 288 (which is 24 h only on a 300 s grid)
+    W = None; _dts = np.unique(np.diff(cts)) if len(cts) > 1 else np.array([])
+    _uniform = len(_dts) == 1 and int(_dts[0]) > 0 and WINDOW_SECONDS % int(_dts[0]) == 0
+    if _uniform: W = WINDOW_SECONDS // int(_dts[0]); rec["window_rows"] = int(W); rec["row_spacing_s"] = int(_dts[0])
+    check("C0b cache row spacing is uniform and divides the 24 h window",
+          bool(_uniform), {"n_distinct_steps": int(len(_dts)), "step_s": (int(_dts[0]) if len(_dts) == 1 else None), "window_rows": (int(W) if W else None)})
     check("C1 cache channel 3 is log_qv", len(ch) > LOG_QV_CH and ch[LOG_QV_CH] == "log_qv", {"channels": ch})
     check("C2 hole cells: symbols axis == cache; every (row, col) inside the cache",
           hsym == csym and (len(hrow) == 0 or (int(hrow.min()) >= 0 and int(hrow.max()) < nT and int(hcol.min()) >= 0 and int(hcol.max()) < nS)),
@@ -152,11 +184,13 @@ def main():
         sel = years == y
         by_year[str(y)] = {"n_anchors": int(sel.sum()), "live_frac": round(float(live[sel].mean()), 6), "mask_frac": round(float(mask[sel].mean()), 6)}
     rec["result"] = {"n_grid": int(len(grid)), "grid_first": int(grid[0]), "grid_last": int(grid[-1]), "n_short_window": n_short,
+                     "window_rows": int(W), "row_spacing_s": int(_dts[0]),
                      "live_cells": int(live.sum()), "mask_cells": int(mask.sum()), "cells_removed_beyond_mask_in": removed_beyond_in, "by_year": by_year}
-    definition = ("MEMBER_LIVENESS: at least one REAL 5m bar (not hole-filled, log_qv finite) in the 288 cache rows ending at the anchor row (rows (r-288, r]); "
+    definition = (f"MEMBER_LIVENESS: at least one REAL bar (not hole-filled, log_qv finite) in the {WINDOW_SECONDS}s window ending at the anchor row (rows (r-{W}, r], spacing {int(_dts[0])}s); "
                   + ("AND MASK_IN " + mi_sha[:16] if MI is not None else "no input mask") + "; on the 5m cache 4h grid; training member mask")
     arrays = {"ts": grid.astype(np.int64), "symbols": np.array(csym), "mask": mask.astype(np.bool_), "definition": np.array(definition),
-              "rule": np.array("MEMBER_LIVENESS"), "window_rows": np.array(W, np.int64), "cache_sha256": np.array(cache_sha), "holes_sha256": np.array(holes_sha),
+              "rule": np.array("MEMBER_LIVENESS"), "window_rows": np.array(W, np.int64), "window_seconds": np.array(WINDOW_SECONDS, np.int64),
+              "row_spacing_s": np.array(int(_dts[0]), np.int64), "cache_sha256": np.array(cache_sha), "holes_sha256": np.array(holes_sha),
               "mask_in_sha256": np.array(mi_sha), "device_sha256": np.array(rec["self_sha256"])}
     os.makedirs(os.path.dirname(os.path.abspath(E["OUT"])), exist_ok=True)
     det_npz(E["OUT"], arrays)

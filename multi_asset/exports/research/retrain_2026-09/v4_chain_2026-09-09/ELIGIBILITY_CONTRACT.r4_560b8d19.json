@@ -270,14 +270,14 @@
   "MEMBER_LIVENESS": {
    "source": "v4_gate_member_liveness.py",
    "approved_source_sha256": [
-    "ae4403476967a3d4ae12401c474f1f1fc2c7b90fb31a432992594707ce130814"
+    "6c6b9791f0f1c458dc02ca509a6f086f09028bd14cd1ac91eaad4eed1ed87a7b"
    ],
    "rule": "a symbol is a member of anchor E only if at least one REAL 5-minute bar exists in the 288 cache rows ending at E's row (rows (E−24h, E]); real = NOT a hole-filled cell AND log_qv FINITE (not NaN and not ±inf). The gate RE-DERIVES liveness from CACHE + HOLE_CELLS and checks the member sets the builders PRODUCED (king meta + DL targets) plus, at the export stage, the shipped bundle's symbols_live. PASS iff dead-but-member cells == 0 everywhere and no refusal.",
    "boundary": "data liveness, not venue eligibility truth (a real bar with zero trades passes; a name halted less than 24 h ago still passes). It does not replace a venue tradability rule.",
    "refusals_are_not_skips": "an unreadable member set, an anchor absent from the cache ts axis, a member index outside [0, N), a symbols axis that is not the cache's, channel 3 not named log_qv, hole cells off the cache, a ts axis not strictly increasing ⇒ PASS=false with the reason named",
    "build_side": {
     "source": "v4_member_mask_liveness.py",
-    "sha256": "a369e1c0ec6e7ea125b24ac16879e2439b6781838621b14c2b5d545aab0dc8c3",
+    "sha256": "0704cde5132ade237d140dc69368a57f590449960672016644a48ae088602a31",
     "role": "produces the member mask (optionally ANDed with a tradable mask) the builders consume as MEMBER_MASK_NPZ; the gate does NOT trust it"
    },
    "wired": "chain_v4_monthly.sh gates stage (run + require, prerequisite of king/legs/mwf/refit/arms/member_rule/decision) and export stage (bundle live list); preflight checks its approval (approvals x/4)",
@@ -288,21 +288,9 @@
    "review": "independent researcher review requested (post-hoc); round 11 accepted NOT APPLIED and named the finite-rule / census-not-gate defects, which this source fixes",
    "predecessor": "proposed_gates.MEMBER_LIVENESS (PROPOSED6, source fx_member_liveness.py 57502e8b…), kept below as proposed_gates_history",
    "superseded_source_sha256": [
-    "65fbd039e0ef7874422c23e1252081e18660b590975d243af04aa6e9b3795a66",
-    "6c6b9791f0f1c458dc02ca509a6f086f09028bd14cd1ac91eaad4eed1ed87a7b"
+    "65fbd039e0ef7874422c23e1252081e18660b590975d243af04aa6e9b3795a66"
    ],
-   "superseded_note": "65fbd039… was the first write of this source on 2026-09-18; it called numpy's private np.lib.format._read_array_header, which does not exist in numpy ≥ 2 ⇒ every real cache read raised and the gate refused. Caught by the green baseline of tests_member_liveness.py before any use; no receipt was ever written by it. | 6c6b9791f0f1… (round 11 source) superseded 2026-09-18 by independent review round 12 R12-C4: it hard-coded a 288-row window (24 h only on a 300 s grid; 48 h on a 600 s grid), cast ts/E_ts and member arrays BEFORE validating them (a +0.5 s anchor was truncated onto the grid, members [0.9, 1.1] and [False, True] became the positions [0, 1]), PASSed on an empty member population and on an empty/absent bundle live list, and fell back to the exporter's FEATURE list `keep_names` as if it were a symbol list. All seven are named refusals now; the build side moved with it (window derived from the axis spacing, integrality first).",
-   "superseded_build_side_sha256": [
-    "0704cde5132ade237d140dc69368a57f590449960672016644a48ae088602a31",
-    "330e585bbf1ae2755789fa3e4739bd8dc34c5cca7a7485f2fa44feb36b4f2bf8"
-   ],
-   "round12_fixes": [
-    "window rows derived from the cache's uniform row spacing (86400 / dt); a non-uniform axis is refused",
-    "ts / E_ts integrality validated before the int64 cast",
-    "member arrays: bool and float dtypes refused, never cast to positions",
-    "empty member population (0 anchors) and 0 member cells are refusals",
-    "bundle symbols_live: absent / not-a-list / EMPTY are refusals; the keep_names fallback is gone"
-   ]
+   "superseded_note": "65fbd039… was the first write of this source on 2026-09-18; it called numpy's private np.lib.format._read_array_header, which does not exist in numpy ≥ 2 ⇒ every real cache read raised and the gate refused. Caught by the green baseline of tests_member_liveness.py before any use; no receipt was ever written by it."
   }
  },
  "arms": {
@@ -347,7 +335,7 @@
   "file": "<JUDGE_HC>/dev_v4/probe_artifacts/w10_ablation_series_V4_<arm>_<seat>_s<seed>.npz",
   "rule": "the judge adds these four paths to the arm's declared inputs; require then demands the receipt hashed each of them and that the hash equals the file the judge loaded (a book replaced after the receipt, or a receipt written for another arm's books, is not this arm's permission)"
  },
- "status": "APPLIED 2026-09-12 (user word 09-12: \"10 月 runbook 为什么还不修, 要保持老的链路和出口门?\"); was PROPOSED2 01692565…; frozen predecessor 3299dc97… kept at ELIGIBILITY_CONTRACT.r0_3299dc97.json | PROPOSED3 (FP2-8, 2026-09-17): gates.STEP1/STEP2 approved_source_sha256 += fp2_gate_step1.py / fp2_gate_step2.py (approved_variants records scope); applied by lead under the user's standing rule (fix known issues without waiting, independent review after); frozen predecessor kept at ELIGIBILITY_CONTRACT.r1_1188267a.json | PROPOSED3 rev (AMENDMENT 8, 2026-09-17 09:3xZ): variant shas replaced by the on-disk revisions; fp2_gate_lib.py sha recorded under approved_variants.requires | PROPOSED4 (FP2-8 regime pins, 2026-09-17): approved_baseline.umask_npz_sha256 → 3badc4b6…, baseline_books_sha256 → A0 re-run under the tradable umask; thresholds untouched | PROPOSED5 (fp2dyn export-gate variant, 2026-09-17): BUNDLE_export.approved_source_sha256 += 9a61420cdeb1 (approved_variants, scope 2026-09 @ /workspace/fp2_2026-09) | PROPOSED6 (FP3 F member liveness rule, 2026-09-18): rules += MEMBER_LIVENESS; proposed_gates.MEMBER_LIVENESS registered; NOT APPLIED — independent review + user word required (changes the reviewed research definition); frozen predecessor kept at ELIGIBILITY_CONTRACT.r2_753f9752.json | APPLIED 2026-09-18 (user word 「按最佳建议来」, five approvals in one edit): (1) gates.STEP1/STEP2 approved_source_sha256 += the month-generic data gates v4_gate_step1_m.py 79950786271e… / v4_gate_step2_m.py d99a910951e0… (RUNBOOK §0★ 修订 6 declaration block); (2) month_contract_rulings.TRN-15 export baseline becomes a per-month approval object (mechanism approved, October shas pending the month contract); (3) month_contract_rulings.TRN-16 October keeps the global fea89 builder with its two consequences (append-only roll; the 2026-08-31 holefix2 cells are not replaced); (4) month_contract_rulings.PREV_KING_FEA_UNCLAMPED_NONE approved, the gate enforces the builder identity; (5) PROPOSED6 → gates.MEMBER_LIVENESS APPLIED with an ENFORCING source (v4_gate_member_liveness.py 6c6b9791f0f1…, build side v4_member_mask_liveness.py b78386e507ef…), wired into the gates and export stages, floor registered in REQUIRED_INPUTS; frozen predecessor kept at ELIGIBILITY_CONTRACT.r3_c47dd088.json | ROUND 12 (2026-09-18, independent review R12-C4): gates.MEMBER_LIVENESS.approved_source_sha256 6c6b9791f0f1… → ae4403476967… and build_side 0704cde5132a… → a369e1c0ec6e… (seven boundary defects, listed under round12_fixes); frozen predecessor ELIGIBILITY_CONTRACT.r4_560b8d19.json",
+ "status": "APPLIED 2026-09-12 (user word 09-12: \"10 月 runbook 为什么还不修, 要保持老的链路和出口门?\"); was PROPOSED2 01692565…; frozen predecessor 3299dc97… kept at ELIGIBILITY_CONTRACT.r0_3299dc97.json | PROPOSED3 (FP2-8, 2026-09-17): gates.STEP1/STEP2 approved_source_sha256 += fp2_gate_step1.py / fp2_gate_step2.py (approved_variants records scope); applied by lead under the user's standing rule (fix known issues without waiting, independent review after); frozen predecessor kept at ELIGIBILITY_CONTRACT.r1_1188267a.json | PROPOSED3 rev (AMENDMENT 8, 2026-09-17 09:3xZ): variant shas replaced by the on-disk revisions; fp2_gate_lib.py sha recorded under approved_variants.requires | PROPOSED4 (FP2-8 regime pins, 2026-09-17): approved_baseline.umask_npz_sha256 → 3badc4b6…, baseline_books_sha256 → A0 re-run under the tradable umask; thresholds untouched | PROPOSED5 (fp2dyn export-gate variant, 2026-09-17): BUNDLE_export.approved_source_sha256 += 9a61420cdeb1 (approved_variants, scope 2026-09 @ /workspace/fp2_2026-09) | PROPOSED6 (FP3 F member liveness rule, 2026-09-18): rules += MEMBER_LIVENESS; proposed_gates.MEMBER_LIVENESS registered; NOT APPLIED — independent review + user word required (changes the reviewed research definition); frozen predecessor kept at ELIGIBILITY_CONTRACT.r2_753f9752.json | APPLIED 2026-09-18 (user word 「按最佳建议来」, five approvals in one edit): (1) gates.STEP1/STEP2 approved_source_sha256 += the month-generic data gates v4_gate_step1_m.py 79950786271e… / v4_gate_step2_m.py d99a910951e0… (RUNBOOK §0★ 修订 6 declaration block); (2) month_contract_rulings.TRN-15 export baseline becomes a per-month approval object (mechanism approved, October shas pending the month contract); (3) month_contract_rulings.TRN-16 October keeps the global fea89 builder with its two consequences (append-only roll; the 2026-08-31 holefix2 cells are not replaced); (4) month_contract_rulings.PREV_KING_FEA_UNCLAMPED_NONE approved, the gate enforces the builder identity; (5) PROPOSED6 → gates.MEMBER_LIVENESS APPLIED with an ENFORCING source (v4_gate_member_liveness.py 6c6b9791f0f1…, build side v4_member_mask_liveness.py b78386e507ef…), wired into the gates and export stages, floor registered in REQUIRED_INPUTS; frozen predecessor kept at ELIGIBILITY_CONTRACT.r3_c47dd088.json",
  "proposed_changes_vs_frozen": [
   "top-level status (new) — PROPOSED marker",
   "review_status appended",
@@ -364,8 +352,7 @@
   "PROPOSED5 rev3: fp2dyn variant sha e55875d08db1 → 16e9cc32369d (K6 split: only the ceiling informational; positivity hard); gate names are basenames only (path aliases refused by loader, driver and decision)",
   "APPLIED 2026-09-18 (1): gates.STEP1.approved_source_sha256 += 79950786271e…; gates.STEP2.approved_source_sha256 += d99a910951e0…; approved_variants entries with scope >=2026-10",
   "APPLIED 2026-09-18 (2)(3)(4): new top-level month_contract_rulings {TRN-15 export baseline per month, TRN-16 global fea89 builder + two consequences, PREV_KING_FEA_UNCLAMPED=NONE}",
-  "APPLIED 2026-09-18 (5): gates.MEMBER_LIVENESS (source v4_gate_member_liveness.py 65fbd039e0ef…) + rules[] rewritten from PROPOSED6 to APPLIED; proposed_gates → proposed_gates_history; companion v4_gate_common.REQUIRED_INPUTS['MEMBER_LIVENESS'] = 4 names",
-  "APPLIED 2026-09-18 (round 12, R12-C4): gates.MEMBER_LIVENESS source 6c6b9791f0f1… → ae4403476967…, build side 0704cde5132a… → 330e585bbf1a…"
+  "APPLIED 2026-09-18 (5): gates.MEMBER_LIVENESS (source v4_gate_member_liveness.py 65fbd039e0ef…) + rules[] rewritten from PROPOSED6 to APPLIED; proposed_gates → proposed_gates_history; companion v4_gate_common.REQUIRED_INPUTS['MEMBER_LIVENESS'] = 4 names"
  ],
  "proposed_utc": "2026-09-12T05:21:47Z",
  "applied_utc": "2026-09-12T09:04:39Z",

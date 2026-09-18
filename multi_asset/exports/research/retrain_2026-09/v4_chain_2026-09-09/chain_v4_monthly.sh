@@ -273,12 +273,40 @@ fi
 # ── R03 (independent review round 2, 2026-09-17): every `require` of a STEP1/STEP2 receipt passes recorded_extras=1 — the inputs the RECEIPT recorded
 #    beyond the caller's static declaration (controls receipt, member mask, gate helper, …) are re-hashed from the receipt's own inputs_path at every
 #    later stage. A controls receipt edited after the gates passed made `require` say REQUIRE_OK before this (reviewer's counterexample).
+# ── decision path (FP3 J, 2026-09-18; independent review round 11 C1): the single entry `chain_v4_monthly.sh <env>` used to END after export with
+#    CHAIN_V4_MONTHLY_DONE and no formal decision; the formal steps lived only in chain_fp2_run.sh. They are stages of THIS driver now, in order
+#    controls → a0rerun → member_rule → per_year → decision, each behind its prerequisites (a subset run cannot skip them), and `all` does not
+#    write MONTHLY_DONE.json before the decision receipt exists. Ported verbatim from chain_fp2_run.sh (R09/F03/F09/F10 semantics); the month
+#    contract supplies UMASK_NPZ (bound to the contract sha in preflight) and CONTROLS_REF_* (the reference builds the controls compare against).
+#    ★ OPEN (stated, not hidden): fp2_decision.py's FORMAL profile is frozen on the FP2 evaluation window (W_ALPHA … 2026-08-30 20Z); a later month
+#      needs its own pre-registered decision profile — until then the decision stage of a post-September month REFUSES (rc 3), by design.
+if want controls; then
+  prereq_receipt controls preflight "$R/v4_gates/preflight.json" PREFLIGHT
+  for T in RAW CLIP; do prereq_file controls f10_gate_$T "$F8/gates/F10_GATE_$T.json"; done
+  [ -n "${CONTROLS_REF_KING_FEA:-}" ] && [ -n "${CONTROLS_REF_KING_META:-}" ] && [ -n "${CONTROLS_REF_DL_TARGETS:-}" ] || die "controls_prereq_ref_keys_missing (month contract must set CONTROLS_REF_KING_FEA / CONTROLS_REF_KING_META / CONTROLS_REF_DL_TARGETS)" 3
+  for f in "$CONTROLS_REF_KING_FEA" "$CONTROLS_REF_KING_META" "$CONTROLS_REF_DL_TARGETS"; do [ -f "$f" ] || die "controls_prereq_ref_missing_$(basename "$f")" 3; done
+  guard controls; REC=$R/controls/CONTROLS.json
+  if [ -f "$REC" ] && [ "$("$PY" -c "import json,sys; print(json.load(open(sys.argv[1])).get('VERDICT'))" "$REC")" = PASS ]; then stage "controls: existing receipt PASS, reused ($(gate_sha "$REC" | cut -c1-8))"
+  else
+    [ -d "$R/controls" ] && { mv "$R/controls" "$R/controls_failed_$(date -u +%Y%m%dT%H%M%SZ)"; stage "controls: previous controls dir moved aside as a receipt"; }
+    stage "controls: fp2_controls.py (alone; king ≈50-58 GB vs cgroup 61 GB) refs $CONTROLS_REF_KING_META / $CONTROLS_REF_DL_TARGETS"
+    env -i PATH="$PATH" HOME="$HOME" OMP_NUM_THREADS=8 R=$R D=$D PY=$PY CACHE=$CACHE PANEL_SPLICE=$PANEL_SPLICE PANEL_KING=$PANEL_KING RAW_PATCH=$RAW_PATCH \
+        SEPT_KING_FEA=$CONTROLS_REF_KING_FEA SEPT_KING_META=$CONTROLS_REF_KING_META SEPT_DL_TARGETS=$CONTROLS_REF_DL_TARGETS \
+        BUILDER_TARGETS=$BT BUILDER_KING_FEA=$BK "$PY" -B "$D/fp2_controls.py" > "$R/fp2_controls.log" 2>&1 < /dev/null; rc=$?
+    v=$( [ -f "$REC" ] && "$PY" -c "import json,sys; print(json.load(open(sys.argv[1])).get('VERDICT'))" "$REC" ); stage "controls rc=$rc VERDICT=$v"
+    [ "$v" = PASS ] || die "controls_verdict_${v:-none}" 3
+  fi
+fi
+
 if want gates; then
   prereq_receipt gates preflight "$R/v4_gates/preflight.json" PREFLIGHT
   for T in RAW CLIP; do prereq_file gates f10_gate_$T "$F8/gates/F10_GATE_$T.json"; done   # the data stage finished in THIS root (identity receipts written last)
   prereq_json_eq gates f10_gate_raw_targets "$F8/gates/F10_GATE_RAW.json" targets_sha256 "$(gate_sha "$DLW_RAW/data/dlw_targets.npz")"
   prereq_json_eq gates f10_gate_clip_targets "$F8/gates/F10_GATE_CLIP.json" targets_sha256 "$(gate_sha "$DLW_CLIP/data/dlw_targets.npz")"
   prereq_json_eq gates f10_gate_fea89 "$F8/gates/F10_GATE_RAW.json" fea89_sha256 "$(gate_sha "$F8/data/f8_fea89.npz")"
+  # ★ R12-C1 (round 12): the FP2 data gates call fp2_gate_lib.bind_controls, which refuses a root without $R/controls/CONTROLS.json — the
+  #   controls stage used to run AFTER gates, so a fresh full run could never reach it. controls is a stage prerequisite of gates now.
+  case "${GATE_STEP1}${GATE_STEP2}" in *fp2_gate_step*) prereq_file gates controls "$R/controls/CONTROLS.json"; prereq_json_eq gates controls_verdict "$R/controls/CONTROLS.json" VERDICT PASS ;; esac
   guard gates; stage "gates: run $GATE_STEP1 and $GATE_STEP2, then require both"
   run_gate STEP1 "$GATE_STEP1" "$R/gate_step1.log" STEP1_OUT="$R/v4_gates/step1.json"; rc1=$?
   run_gate STEP2 "$GATE_STEP2" "$R/gate_step2.log" STEP2_OUT="$R/v4_gates/step2.json"; rc2=$?
@@ -416,72 +444,12 @@ if want arms; then
   stage "build_dev_v4 rc=$rc $(tail -1 "$R/build_dev_v4.log" | cut -c1-100)"; [ $rc -eq 0 ] || die "build_dev_v4_rc_$rc" 1; check_marker "$R/build_dev_v4.log" "DEV_V4_DONE"
   [ -f "$D/run_arm.sh" ] || die "arms_device_run_arm_missing_$D/run_arm.sh" 1   # FP3 J: the wrapper executes the device copy; the tree copy (if any) is dead
   N0=$(grep -a -c "^END\[V4_${EXPORT_ARM}_.*rc=0" "$HC/logs/commands.txt" 2>/dev/null || echo 0)
-  V4_PY="$PY" bash "$D/run_v4_arms.sh" "$EXPORT_ARM" "$SEED_LIST" > "$R/arms_${EXPORT_ARM}.log" 2>&1; rc=$?   # FP3 J: the interpreter reaches the device runner by name (inline, not via the loader export set)
+  # ★ R12-C3: the candidate arms get the SAME contract-bound, preflight-verified mask the baseline rerun gets — explicitly on the command line
+  [ -n "${UMASK_NPZ:-}" ] || die "arms_prereq_umask_npz_missing" 3
+  V4_PY="$PY" V4_UMASK_NPZ="$UMASK_NPZ" bash "$D/run_v4_arms.sh" "$EXPORT_ARM" "$SEED_LIST" > "$R/arms_${EXPORT_ARM}.log" 2>&1; rc=$?   # FP3 J: the interpreter reaches the device runner by name (inline, not via the loader export set)
   N1=$(grep -a -c "^END\[V4_${EXPORT_ARM}_.*rc=0" "$HC/logs/commands.txt" 2>/dev/null || echo 0); NEED=$(( 2 * $(echo $SEED_LIST | wc -w) ))
   stage "arms $EXPORT_ARM rc=$rc fresh END rc=0 lines $((N1 - N0))/$NEED"; [ $rc -eq 0 ] || die "arms_${EXPORT_ARM}_rc_$rc" 1
   check_marker "$R/arms_${EXPORT_ARM}.log" "ARMS_DONE"; [ $((N1 - N0)) -ge $NEED ] || die "arms_${EXPORT_ARM}_fresh_END_lines_$((N1 - N0))_lt_$NEED" 1
-fi
-
-# ── judge ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-if want judge; then
-  prereq_receipt judge preflight "$R/v4_gates/preflight.json" PREFLIGHT
-  prereq_marker judge build_dev "$R/build_dev_v4.log" DEV_V4_DONE; prereq_marker judge arms "$R/arms_${EXPORT_ARM}.log" ARMS_DONE ARMS_FAIL
-  prereq_count judge arms_end_rows "$HC/logs/commands.txt" "^END\[V4_${EXPORT_ARM}_.*rc=0" $(( 2 * $(echo $SEED_LIST | wc -w) ))
-  guard judge; stage "judge: JUDGE_HC=$HC -> $R/v4_gates/JUDGE_v4.json"
-  JUDGE_HC=$HC JUDGE_OUT=$R/v4_gates/JUDGE_v4.json "$PY" "$D/judge_v4.py" > "$R/judge_v4.log" 2>&1; rc=$?
-  stage "judge rc=$rc $(grep -a "JUDGE_V4_DONE\|JUDGE_REFUSED" "$R/judge_v4.log" | tail -1 | cut -c1-140)"; [ $rc -eq 0 ] || die "judge_rc_$rc" 1
-  check_marker "$R/judge_v4.log" "JUDGE_V4_DONE"
-fi
-
-# ── export gate v2: gate, require, then judge WITH the eligibility locator ──────────────────────────────────────────────────────────────────
-if want export; then
-  prereq_receipt export preflight "$R/v4_gates/preflight.json" PREFLIGHT
-  prereq_marker export judge "$R/judge_v4.log" JUDGE_V4_DONE; prereq_file export judge_json "$R/v4_gates/JUDGE_v4.json"
-  prereq_marker export arms "$R/arms_${EXPORT_ARM}.log" ARMS_DONE ARMS_FAIL; prereq_marker export bundle "$R/export_v4.log" BUNDLE_DONE BUNDLE_FAIL
-  GE=${GATE_EXPORT:-v4e_gate_export_v2.py}; case "$GE" in */*|.*) die "export_gate_not_a_basename_$GE" 3;; esac; [ -f "$D/$GE" ] || die "export_gate_missing_$GE" 3   # PROPOSED5: the month contract may select an approved variant, by BASENAME only (round 5 P2)
-  guard export; stage "export: $GE gate + require on arm $EXPORT_ARM (V4CHAIN_DIR=$D)"
-  # ★ FP3 F: third end of MEMBER_LIVENESS — every name in the shipped bundle's symbols_live must have a real bar in the cache's last 24 h
-  run_gate LIVENESS_EXPORT "$GL" "$R/gate_liveness_export.log" CACHE=$CACHE HOLE_CELLS=$HOLE_CELLS KING_META=$KING_META DLW_TARGETS=$DLW_RAW/data/dlw_targets.npz MEMBER_MASK=${MEMBER_MASK:-} BUNDLE_CONFIG=$BUNDLE_OUT/config.json OUT=$R/v4_gates/member_liveness_export.json; rcl=$?
-  GL_SRC=$(gate_sha "$D/$GL") || die "gate_source_unreadable_$GL" 3
-  require_gate "$R/v4_gates/member_liveness_export.json" recorded_extras=1 gate=MEMBER_LIVENESS self_sha=$GL_SRC cache=$CACHE hole_cells=$HOLE_CELLS wide_fea_v4_meta=$KING_META dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz bundle_config=$BUNDLE_OUT/config.json
-  [ $rcl -eq 0 ] || die "export_liveness_rc_$rcl" 3
-  GX="EXPORT_ARM=$EXPORT_ARM BUNDLE_OUT=$BUNDLE_OUT BUNDLE_FEA=$KING_FEA BUNDLE_META=$KING_META BUNDLE_BASE=$BUNDLE_BASE EXPORT_PANEL=$EXPORT_PANEL BUNDLE_CACHE=$CACHE FUND_AUG=$FUND_AUG LIVE_PINS=$LIVE_PINS JUDGE_HC=$HC V4CHAIN_DIR=$D SIGNAL_RECEIPT=$SIGNAL_RECEIPT"
-  REC=$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM}.json
-  env $GX EXPORT_GATE_OUT=$REC "$PY" "$D/$GE" > "$R/export_gate_v2.log" 2>&1; rc=$?
-  stage "export gate rc=$rc $(tail -1 "$R/export_gate_v2.log" | cut -c1-140)"; [ $rc -eq 0 ] || die "export_gate_v2_rc_$rc" 3
-  env $GX EXPORT_GATE_OUT=/dev/null REQUIRE_OUT=$R/v4_gates/REQUIRE_v2_${EXPORT_ARM}.json "$PY" "$D/$GE" require "$REC" > "$R/export_require_v2.log" 2>&1; rc=$?
-  stage "export require rc=$rc $(tail -1 "$R/export_require_v2.log" | cut -c1-140)"; [ $rc -eq 0 ] || die "export_require_v2_rc_$rc" 3
-  check_marker "$R/export_require_v2.log" "REQUIRE_OK"
-  "$PY" -c "import json,sys;r=json.load(open(sys.argv[1]));json.dump({sys.argv[2]:{'receipt':sys.argv[1],'inputs':r['inputs_path']}},open(sys.argv[3],'w'),indent=1);print('eligibility locator',sys.argv[3],len(r['inputs_path']),'inputs')" "$REC" "$EXPORT_ARM" "$R/v4_gates/JUDGE_ELIGIBILITY.json" >> "$STAGE_LOG" 2>&1 || die "eligibility_locator_write" 3
-  JUDGE_HC=$HC JUDGE_OUT=$R/v4_gates/JUDGE_v4_eligible.json JUDGE_ELIGIBILITY=$R/v4_gates/JUDGE_ELIGIBILITY.json "$PY" "$D/judge_v4.py" > "$R/judge_v4_eligible.log" 2>&1; rc=$?
-  stage "judge (with eligibility) rc=$rc $(grep -a "JUDGE_V4_DONE\|JUDGE_REFUSED" "$R/judge_v4_eligible.log" | tail -1 | cut -c1-140)"; [ $rc -eq 0 ] || die "judge_eligible_rc_$rc" 1
-  check_marker "$R/judge_v4_eligible.log" "JUDGE_V4_DONE"
-fi
-
-
-# ── decision path (FP3 J, 2026-09-18; independent review round 11 C1): the single entry `chain_v4_monthly.sh <env>` used to END after export with
-#    CHAIN_V4_MONTHLY_DONE and no formal decision; the formal steps lived only in chain_fp2_run.sh. They are stages of THIS driver now, in order
-#    controls → a0rerun → member_rule → per_year → decision, each behind its prerequisites (a subset run cannot skip them), and `all` does not
-#    write MONTHLY_DONE.json before the decision receipt exists. Ported verbatim from chain_fp2_run.sh (R09/F03/F09/F10 semantics); the month
-#    contract supplies UMASK_NPZ (bound to the contract sha in preflight) and CONTROLS_REF_* (the reference builds the controls compare against).
-#    ★ OPEN (stated, not hidden): fp2_decision.py's FORMAL profile is frozen on the FP2 evaluation window (W_ALPHA … 2026-08-30 20Z); a later month
-#      needs its own pre-registered decision profile — until then the decision stage of a post-September month REFUSES (rc 3), by design.
-if want controls; then
-  prereq_receipt controls preflight "$R/v4_gates/preflight.json" PREFLIGHT
-  for T in RAW CLIP; do prereq_file controls f10_gate_$T "$F8/gates/F10_GATE_$T.json"; done
-  [ -n "${CONTROLS_REF_KING_FEA:-}" ] && [ -n "${CONTROLS_REF_KING_META:-}" ] && [ -n "${CONTROLS_REF_DL_TARGETS:-}" ] || die "controls_prereq_ref_keys_missing (month contract must set CONTROLS_REF_KING_FEA / CONTROLS_REF_KING_META / CONTROLS_REF_DL_TARGETS)" 3
-  for f in "$CONTROLS_REF_KING_FEA" "$CONTROLS_REF_KING_META" "$CONTROLS_REF_DL_TARGETS"; do [ -f "$f" ] || die "controls_prereq_ref_missing_$(basename "$f")" 3; done
-  guard controls; REC=$R/controls/CONTROLS.json
-  if [ -f "$REC" ] && [ "$("$PY" -c "import json,sys; print(json.load(open(sys.argv[1])).get('VERDICT'))" "$REC")" = PASS ]; then stage "controls: existing receipt PASS, reused ($(gate_sha "$REC" | cut -c1-8))"
-  else
-    [ -d "$R/controls" ] && { mv "$R/controls" "$R/controls_failed_$(date -u +%Y%m%dT%H%M%SZ)"; stage "controls: previous controls dir moved aside as a receipt"; }
-    stage "controls: fp2_controls.py (alone; king ≈50-58 GB vs cgroup 61 GB) refs $CONTROLS_REF_KING_META / $CONTROLS_REF_DL_TARGETS"
-    env -i PATH="$PATH" HOME="$HOME" OMP_NUM_THREADS=8 R=$R D=$D PY=$PY CACHE=$CACHE PANEL_SPLICE=$PANEL_SPLICE PANEL_KING=$PANEL_KING RAW_PATCH=$RAW_PATCH \
-        SEPT_KING_FEA=$CONTROLS_REF_KING_FEA SEPT_KING_META=$CONTROLS_REF_KING_META SEPT_DL_TARGETS=$CONTROLS_REF_DL_TARGETS \
-        BUILDER_TARGETS=$BT BUILDER_KING_FEA=$BK "$PY" -B "$D/fp2_controls.py" > "$R/fp2_controls.log" 2>&1 < /dev/null; rc=$?
-    v=$( [ -f "$REC" ] && "$PY" -c "import json,sys; print(json.load(open(sys.argv[1])).get('VERDICT'))" "$REC" ); stage "controls rc=$rc VERDICT=$v"
-    [ "$v" = PASS ] || die "controls_verdict_${v:-none}" 3
-  fi
 fi
 
 if want a0rerun; then
@@ -498,7 +466,7 @@ print(json.dumps({f: hashlib.sha256(open(os.path.join(a, f), "rb").read()).hexdi
 PY
 )
   T_START=$(date +%s)
-  ( cd "$HC" && V4_HC=$HC V4_KING_DIR=$KING_DIR V4_UMASK_NPZ=$UM bash "$D/run_v4_arms.sh" A0 "$SEED_LIST" ) > "$R/arms_A0_tradable.log" 2>&1 < /dev/null; rc=$?
+  ( cd "$HC" && V4_HC=$HC V4_KING_DIR=$KING_DIR V4_PY="$PY" V4_UMASK_NPZ=$UM bash "$D/run_v4_arms.sh" A0 "$SEED_LIST" ) > "$R/arms_A0_tradable.log" 2>&1 < /dev/null; rc=$?
   grep -aq "ARMS_DONE" "$R/arms_A0_tradable.log" || rc=$((rc == 0 ? 1 : rc))
   AFTER=$("$PY" - "$ARTS" <<'PY'
 import hashlib, json, os, sys
@@ -523,6 +491,49 @@ json.dump(rec, open(out, "w"), indent=1); print("A0_RERUN", "PASS" if rec["PASS"
 PY
   stage "a0rerun rc=$rc receipt $REC"; [ $rc -eq 0 ] && "$PY" -c "import json,sys; sys.exit(0 if json.load(open(sys.argv[1]))['PASS'] else 1)" "$REC" || die "a0rerun" 1
 fi
+
+# ── judge ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+if want judge; then
+  prereq_receipt judge preflight "$R/v4_gates/preflight.json" PREFLIGHT
+  prereq_marker judge build_dev "$R/build_dev_v4.log" DEV_V4_DONE; prereq_marker judge arms "$R/arms_${EXPORT_ARM}.log" ARMS_DONE ARMS_FAIL
+  prereq_count judge arms_end_rows "$HC/logs/commands.txt" "^END\[V4_${EXPORT_ARM}_.*rc=0" $(( 2 * $(echo $SEED_LIST | wc -w) ))
+  # ★ R12-C1: the judge and the export gate compare against the A0 baseline books, so the baseline rerun must already have happened —
+  #   it used to run AFTER export, which left the export receipt's book identity stale as soon as A0's bytes changed.
+  prereq_receipt judge a0rerun "$R/v4_gates/A0_RERUN_TRADABLE.json" A0_RERUN_TRADABLE
+  guard judge; stage "judge: JUDGE_HC=$HC -> $R/v4_gates/JUDGE_v4.json"
+  JUDGE_HC=$HC JUDGE_OUT=$R/v4_gates/JUDGE_v4.json "$PY" "$D/judge_v4.py" > "$R/judge_v4.log" 2>&1; rc=$?
+  stage "judge rc=$rc $(grep -a "JUDGE_V4_DONE\|JUDGE_REFUSED" "$R/judge_v4.log" | tail -1 | cut -c1-140)"; [ $rc -eq 0 ] || die "judge_rc_$rc" 1
+  check_marker "$R/judge_v4.log" "JUDGE_V4_DONE"
+fi
+
+# ── export gate v2: gate, require, then judge WITH the eligibility locator ──────────────────────────────────────────────────────────────────
+if want export; then
+  prereq_receipt export preflight "$R/v4_gates/preflight.json" PREFLIGHT
+  prereq_marker export judge "$R/judge_v4.log" JUDGE_V4_DONE; prereq_file export judge_json "$R/v4_gates/JUDGE_v4.json"
+  prereq_marker export arms "$R/arms_${EXPORT_ARM}.log" ARMS_DONE ARMS_FAIL; prereq_marker export bundle "$R/export_v4.log" BUNDLE_DONE BUNDLE_FAIL
+  prereq_receipt export a0rerun "$R/v4_gates/A0_RERUN_TRADABLE.json" A0_RERUN_TRADABLE   # ★ R12-C1: the approved baseline books must be final BEFORE the export identity is taken
+  GE=${GATE_EXPORT:-v4e_gate_export_v2.py}; case "$GE" in */*|.*) die "export_gate_not_a_basename_$GE" 3;; esac; [ -f "$D/$GE" ] || die "export_gate_missing_$GE" 3   # PROPOSED5: the month contract may select an approved variant, by BASENAME only (round 5 P2)
+  guard export; stage "export: $GE gate + require on arm $EXPORT_ARM (V4CHAIN_DIR=$D)"
+  # ★ FP3 F: third end of MEMBER_LIVENESS — every name in the shipped bundle's symbols_live must have a real bar in the cache's last 24 h
+  run_gate LIVENESS_EXPORT "$GL" "$R/gate_liveness_export.log" CACHE=$CACHE HOLE_CELLS=$HOLE_CELLS KING_META=$KING_META DLW_TARGETS=$DLW_RAW/data/dlw_targets.npz MEMBER_MASK=${MEMBER_MASK:-} BUNDLE_CONFIG=$BUNDLE_OUT/config.json OUT=$R/v4_gates/member_liveness_export.json; rcl=$?
+  GL_SRC=$(gate_sha "$D/$GL") || die "gate_source_unreadable_$GL" 3
+  require_gate "$R/v4_gates/member_liveness_export.json" recorded_extras=1 gate=MEMBER_LIVENESS self_sha=$GL_SRC cache=$CACHE hole_cells=$HOLE_CELLS wide_fea_v4_meta=$KING_META dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz bundle_config=$BUNDLE_OUT/config.json
+  [ $rcl -eq 0 ] || die "export_liveness_rc_$rcl" 3
+  GX="EXPORT_ARM=$EXPORT_ARM BUNDLE_OUT=$BUNDLE_OUT BUNDLE_FEA=$KING_FEA BUNDLE_META=$KING_META BUNDLE_BASE=$BUNDLE_BASE EXPORT_PANEL=$EXPORT_PANEL BUNDLE_CACHE=$CACHE FUND_AUG=$FUND_AUG LIVE_PINS=$LIVE_PINS JUDGE_HC=$HC V4CHAIN_DIR=$D SIGNAL_RECEIPT=$SIGNAL_RECEIPT"
+  REC=$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM}.json
+  env $GX EXPORT_GATE_OUT=$REC "$PY" "$D/$GE" > "$R/export_gate_v2.log" 2>&1; rc=$?
+  stage "export gate rc=$rc $(tail -1 "$R/export_gate_v2.log" | cut -c1-140)"; [ $rc -eq 0 ] || die "export_gate_v2_rc_$rc" 3
+  env $GX EXPORT_GATE_OUT=/dev/null REQUIRE_OUT=$R/v4_gates/REQUIRE_v2_${EXPORT_ARM}.json "$PY" "$D/$GE" require "$REC" > "$R/export_require_v2.log" 2>&1; rc=$?
+  stage "export require rc=$rc $(tail -1 "$R/export_require_v2.log" | cut -c1-140)"; [ $rc -eq 0 ] || die "export_require_v2_rc_$rc" 3
+  check_marker "$R/export_require_v2.log" "REQUIRE_OK"
+  "$PY" -c "import json,sys;r=json.load(open(sys.argv[1]));json.dump({sys.argv[2]:{'receipt':sys.argv[1],'inputs':r['inputs_path']}},open(sys.argv[3],'w'),indent=1);print('eligibility locator',sys.argv[3],len(r['inputs_path']),'inputs')" "$REC" "$EXPORT_ARM" "$R/v4_gates/JUDGE_ELIGIBILITY.json" >> "$STAGE_LOG" 2>&1 || die "eligibility_locator_write" 3
+  JUDGE_HC=$HC JUDGE_OUT=$R/v4_gates/JUDGE_v4_eligible.json JUDGE_ELIGIBILITY=$R/v4_gates/JUDGE_ELIGIBILITY.json "$PY" "$D/judge_v4.py" > "$R/judge_v4_eligible.log" 2>&1; rc=$?
+  stage "judge (with eligibility) rc=$rc $(grep -a "JUDGE_V4_DONE\|JUDGE_REFUSED" "$R/judge_v4_eligible.log" | tail -1 | cut -c1-140)"; [ $rc -eq 0 ] || die "judge_eligible_rc_$rc" 1
+  check_marker "$R/judge_v4_eligible.log" "JUDGE_V4_DONE"
+fi
+
+
+
 
 if want member_rule; then   # R09: the masked builds must be EXACTLY the builders' rule (recomputed from the cache); receipt bound by the decision stage
   prereq_receipt member_rule preflight "$R/v4_gates/preflight.json" PREFLIGHT
@@ -549,7 +560,7 @@ fi
 
 if want decision; then   # F03: the swap recommendation under AMENDMENT 7 (G1′ non-inferiority × G2 per-year × G3 export gate); judge receipt informational only
   prereq_receipt decision preflight "$R/v4_gates/preflight.json" PREFLIGHT
-  prereq_receipt decision step1 "$R/v4_gates/step1.json" STEP1
+  prereq_receipt decision step1 "$R/v4_gates/step1.json" STEP1 v4
   prereq_receipt decision liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS
   prereq_receipt decision liveness_export "$R/v4_gates/member_liveness_export.json" MEMBER_LIVENESS
   prereq_file decision per_year "$R/v4_gates/PER_YEAR_TABLE.json"; prereq_file decision member_rule "$R/v4_gates/MEMBER_RULE_CHECK.json"
@@ -558,6 +569,7 @@ if want decision; then   # F03: the swap recommendation under AMENDMENT 7 (G1′
   guard decision; stage "decision: fp2_decision.py PROFILE=formal export gate ${GATE_EXPORT:-v4e_gate_export_v2.py}"
   env R=$R D=$D PROFILE=formal EXPORT_GATE=${GATE_EXPORT:-v4e_gate_export_v2.py} PER_YEAR_JSON=$R/v4_gates/PER_YEAR_TABLE.json EXPORT_RECEIPT=$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM}.json JUDGE_JSON=$R/v4_gates/JUDGE_v4_eligible.json \
     MEMBER_RULE_JSON=$R/v4_gates/MEMBER_RULE_CHECK.json STEP1_JSON=$R/v4_gates/step1.json EXPECTED_UMASK=$UMASK_NPZ \
+    LIVENESS_JSON=$R/v4_gates/member_liveness.json LIVENESS_EXPORT_JSON=$R/v4_gates/member_liveness_export.json \
     OUT_JSON=$R/v4_gates/DECISION_FP2.json OUT_MD=$R/v4_gates/DECISION_FP2.md "$PY" "$D/fp2_decision.py" > "$R/decision_fp2.log" 2>&1 < /dev/null; rc=$?
   stage "decision rc=$rc $(tail -1 "$R/decision_fp2.log" | cut -c1-160)"; [ $rc -eq 0 ] || die "stage_decision_rc_$rc" $rc
   [ -f "$R/v4_gates/DECISION_FP2.json" ] || die "decision_receipt_missing" 3

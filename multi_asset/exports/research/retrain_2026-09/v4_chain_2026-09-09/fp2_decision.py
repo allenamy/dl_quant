@@ -27,7 +27,7 @@ Numbers (R05): every cell's dg / CI bounds finite, lo ≤ hi, n == the frozen co
 Rule (verbatim AMENDMENT 7): G1′ any cell upper < −δ ⇒ WORSE; all lower > 0 ⇒ BETTER; all lower > −δ ⇒ NONINFERIOR; else UNDECIDED.
 G2 per seed: years with Δg point estimate < −δ number ≤ 1 and CURRENT_YEAR not among them (a point-estimate rule, NOT a per-year statistical
 non-inferiority proof). G3: the bound export gate PASS. recommendation = SWAP_RECOMMENDED iff G1′ ∈ {NONINFERIOR, BETTER} ∧ G2 ∧ G3.
-env: R D PER_YEAR_JSON EXPORT_RECEIPT MEMBER_RULE_JSON STEP1_JSON EXPECTED_UMASK OUT_JSON OUT_MD [JUDGE_JSON] [PROFILE] [exploratory overrides]"""
+env: R D PER_YEAR_JSON EXPORT_RECEIPT MEMBER_RULE_JSON STEP1_JSON EXPECTED_UMASK LIVENESS_JSON LIVENESS_EXPORT_JSON OUT_JSON OUT_MD [JUDGE_JSON] [PROFILE] [exploratory overrides]"""
 import calendar, hashlib, importlib.util, json, math, os, sys, time
 import numpy as np
 FORMAL = {"DELTA": "0.05", "SEAT": "dyn", "SEEDS": "42,2027", "WINDOWS": "W_ALPHA,KING_LIVE", "EXPORT_ARM": "A1", "CURRENT_YEAR": "2026",
@@ -39,7 +39,7 @@ def fin(x):
     except Exception: return False   # noqa: BLE001
 def utc(s): return calendar.timegm(time.strptime(s, "%Y-%m-%dT%H:%M:%SZ"))
 def main():
-    E = {k: os.environ.get(k, "") for k in ("R", "D", "PER_YEAR_JSON", "EXPORT_RECEIPT", "MEMBER_RULE_JSON", "STEP1_JSON", "EXPECTED_UMASK", "JUDGE_JSON", "OUT_JSON", "OUT_MD", "PROFILE", *FORMAL)}
+    E = {k: os.environ.get(k, "") for k in ("R", "D", "PER_YEAR_JSON", "EXPORT_RECEIPT", "MEMBER_RULE_JSON", "STEP1_JSON", "EXPECTED_UMASK", "JUDGE_JSON", "LIVENESS_JSON", "LIVENESS_EXPORT_JSON", "OUT_JSON", "OUT_MD", "PROFILE", *FORMAL)}
     profile = E["PROFILE"] or "formal"
     rec = {"gate": "FP2_DECISION", "self_sha256": sha(os.path.abspath(__file__)), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "profile": profile,
            "rule": "DESIGN_FP2-8 AMENDMENT 7 (G1′ non-inferiority, G2 per-year POINT-ESTIMATE rule, G3 bound export gate); closure F2 (require with recorded_extras on export + STEP1; member-rule inputs re-hashed and bound by semantic key); frozen window F3",
@@ -63,12 +63,12 @@ def main():
     # ── required files ──
     for k in ("R", "D"):
         if not E[k] or not os.path.isdir(E[k]): un.append(f"{k} missing or not a directory: {E[k]!r}")
-    for k in ("PER_YEAR_JSON", "EXPORT_RECEIPT", "MEMBER_RULE_JSON", "STEP1_JSON", "EXPECTED_UMASK"):
+    for k in ("PER_YEAR_JSON", "EXPORT_RECEIPT", "MEMBER_RULE_JSON", "STEP1_JSON", "EXPECTED_UMASK", "LIVENESS_JSON", "LIVENESS_EXPORT_JSON"):
         if not E[k] or not os.path.isfile(E[k]): un.append(f"{k} missing: {E[k]!r}")
         else: rec["inputs"][k] = {"path": E[k], "sha256": sha(E[k])}
     if un: return finish("UNAVAILABLE", list(un), 3)
     R, D = E["R"], E["D"]
-    for k in ("PER_YEAR_JSON", "EXPORT_RECEIPT", "MEMBER_RULE_JSON", "STEP1_JSON"):
+    for k in ("PER_YEAR_JSON", "EXPORT_RECEIPT", "MEMBER_RULE_JSON", "STEP1_JSON", "LIVENESS_JSON", "LIVENESS_EXPORT_JSON"):
         if not under(E[k], os.path.join(R, "v4_gates")): un.append(f"{k} is not under R/v4_gates: {E[k]}")
     try: contract = json.load(open(os.path.join(D, "ELIGIBILITY_CONTRACT.json"))); rec["inputs"]["contract"] = {"path": os.path.join(D, "ELIGIBILITY_CONTRACT.json"), "sha256": sha(os.path.join(D, "ELIGIBILITY_CONTRACT.json"))}
     except Exception as e: return finish("UNAVAILABLE", [f"contract unreadable in D: {e!r}"], 3)   # noqa: BLE001
@@ -156,6 +156,28 @@ def main():
             s_ = (cr_.get("outputs_sha256") or {}).get(k)
             if not p or not os.path.isfile(p): un.append(f"controls output {k} missing on disk: {p}")
             elif sha(p) != s_: un.append(f"controls output {k} changed since the controls receipt")
+    # ── ★ R12-C2 (independent review round 12): MEMBER_LIVENESS is a REQUIRED, RE-VERIFIED input of the decision ──
+    #    The gate was wired into the gates and export stages, but this device did not read it at all, so a recommendation could be produced
+    #    over a member set containing names with no real bar in 24 h. Both ends are required: the gates-stage receipt (king meta + DL targets)
+    #    and the export-stage receipt (the shipped bundle's symbols_live). Each goes through the SAME require the chain uses — source approved
+    #    in the frozen contract, registered floor declared, every recorded input re-hashed now — and the two must name the same gate source.
+    liveness_sha = set()
+    for key, label in (("LIVENESS_JSON", "liveness_gates"), ("LIVENESS_EXPORT_JSON", "liveness_export")):
+        try: lr = json.load(open(E[key]))
+        except Exception as e: un.append(f"{key} unreadable: {e!r}"); continue   # noqa: BLE001
+        B[label] = {"PASS": lr.get("PASS"), "self_sha256": lr.get("self_sha256"), "dead_but_member_total": lr.get("dead_but_member_total"),
+                    "window_rows": lr.get("window_rows"), "row_spacing_s": lr.get("row_spacing_s"), "sets": sorted((lr.get("sets") or {}))}
+        if lr.get("gate") != "MEMBER_LIVENESS": un.append(f"{key} is from gate {lr.get('gate')!r}, expected MEMBER_LIVENESS")
+        if lr.get("PASS") is not True: un.append(f"{key} says PASS={lr.get('PASS')!r} (refusals: {(lr.get('refusals') or [])[:2]})")
+        if lr.get("dead_but_member_total") not in (0,): un.append(f"{key} carries {lr.get('dead_but_member_total')!r} dead-but-member cells")
+        ss = lr.get("self_sha256"); liveness_sha.add(ss)
+        okl, whyl = GC.require(E[key], {k: v for k, v in (lr.get("inputs_path") or {}).items() if isinstance(v, str)},
+                               expected_gate="MEMBER_LIVENESS", expected_self_sha=ss, recorded_extras=True)
+        if not okl: un.append(f"{key} refused by require: {whyl}")
+        if label == "liveness_export" and "bundle_symbols_live" not in (lr.get("sets") or {}):
+            un.append("LIVENESS_EXPORT_JSON does not carry the bundle_symbols_live end: the shipped live list was never checked")
+    if len(liveness_sha) > 1: un.append(f"the two liveness receipts were written by different gate sources: {[str(x)[:12] for x in sorted(liveness_sha, key=str)]}")
+
     # ── member rule: device identity, PASS, every recorded input re-hashed, semantic bindings ──
     mr = json.load(open(E["MEMBER_RULE_JSON"])); min_ = mr.get("inputs") or {}
     mdev = os.path.join(D, "fp2_member_rule_check.py"); B["member_rule"] = {"VERDICT": mr.get("VERDICT"), "self_sha256": mr.get("self_sha256")}

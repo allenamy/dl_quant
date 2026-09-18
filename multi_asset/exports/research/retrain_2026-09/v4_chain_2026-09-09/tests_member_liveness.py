@@ -30,10 +30,14 @@ def fixture(name, syms=("XUSDT",), rows=289, edit=None, holes=(), E=None, member
     hr = np.array([h[0] for h in holes], dtype=np.int64); hc = np.array([h[1] for h in holes], dtype=np.int64)
     (np.savez_compressed if compressed else np.savez)(os.path.join(d, "cache.npz"), ts=ts, symbols=np.array(syms), ch=np.array(CH), data=data)
     np.savez(os.path.join(d, "holes.npz"), row=hr, col=hc, symbols=np.array(syms))
-    mem = np.empty(1, dtype=object); mem[0] = np.array(members if members is not None else [0], dtype=np.int64)
-    np.savez(os.path.join(d, "meta.npz"), E_ts=np.array([E], dtype=np.int64), members=mem)
-    dm = np.empty(1, dtype=object); dm[0] = np.array(dl_members if dl_members is not None else (members if members is not None else [0]), dtype=np.int64)
-    np.savez(os.path.join(d, "targets.npz"), E_ts=np.array([E], dtype=np.int64), members=dm, symbols=np.array(syms))
+    # ★ R12: `members` / `E` are stored with the dtype the caller gave (np.array(...) without a forced int64) — several round-12
+    #   cases ARE about dtype, and a fixture that coerces them would test nothing.
+    _mk = lambda v: v if isinstance(v, np.ndarray) else np.array(v)
+    mem = np.empty(1, dtype=object); mem[0] = _mk(members if members is not None else [0])
+    _ets = np.array([E])
+    np.savez(os.path.join(d, "meta.npz"), E_ts=_ets, members=mem)
+    dm = np.empty(1, dtype=object); dm[0] = _mk(dl_members if dl_members is not None else (members if members is not None else [0]))
+    np.savez(os.path.join(d, "targets.npz"), E_ts=_ets, members=dm, symbols=np.array(syms))
     return d
 
 
@@ -141,6 +145,76 @@ check("require: a PASS receipt with unchanged inputs and the approved self sha �
 np.savez(f"{d}/holes.npz", row=np.array([288], np.int64), col=np.array([0], np.int64), symbols=np.array(["XUSDT"]))
 r = subprocess.run([PY, os.path.join(HERE, "v4_gate_common.py"), "require", f"{d}/gate.json", "gate=MEMBER_LIVENESS", f"self_sha={sha(GATE)}", f"cache={d}/cache.npz", f"hole_cells={d}/holes.npz", f"wide_fea_v4_meta={d}/meta.npz", f"dlw_v4raw_targets={d}/targets.npz"], capture_output=True, text=True)
 check("require: an input changed after the receipt ⇒ rc ≠ 0 (stale receipt refused)", r.returncode != 0, (r.stdout + r.stderr).strip()[-160:])
+
+print("\n[10] ROUND 12 (R12-C4): the reviewer's eight probes — every one of them PASSed on the round-11 gate while measuring nothing")
+d = fixture("r12_good", syms=("XUSDT", "YUSDT"), edit=lambda a: (a.__setitem__((-1, 0, 3), 0.0), a.__setitem__((-1, 1, 3), 0.0)), members=[0, 1])
+json.dump({"symbols_live": ["XUSDT", "YUSDT"]}, open(f"{d}/config.json", "w"))
+rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
+check("★ green baseline first: two live names, a real symbols_live ⇒ PASS rc 0, window 288 rows derived from the 300 s spacing",
+      rc == 0 and j["PASS"] is True and j["window_rows"] == 288 and j["row_spacing_s"] == 300, (rc, j.get("window_rows"), j.get("row_spacing_s"), j.get("refusals")))
+
+json.dump({}, open(f"{d}/config.json", "w")); rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
+check("(1) bundle config {} ⇒ refusal naming keep_names as NOT a substitute (was: PASS with export n_names = 0)",
+      rc == 3 and any("symbols_live" in x and "keep_names" in x for x in j["refusals"]), j.get("refusals"))
+json.dump({"symbols_live": []}, open(f"{d}/config.json", "w")); rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
+check("(2) symbols_live = [] ⇒ refusal 'measures nothing' (was: PASS)", rc == 3 and any("EMPTY" in x for x in j["refusals"]), j.get("refusals"))
+json.dump({"symbols_live": ["XUSDT"], "keep_names": ["fea_0", "fea_1"]}, open(f"{d}/config.json", "w")); rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
+check("(2b) a real symbols_live beside keep_names is still read from symbols_live ⇒ PASS (the fallback is gone, not the key)",
+      rc == 0 and j["PASS"] is True and j["sets"]["bundle_symbols_live"]["n_names"] == 1, (rc, j["sets"].get("bundle_symbols_live")))
+
+d = fixture("r12_frac_member", syms=("XUSDT", "YUSDT"), edit=lambda a: (a.__setitem__((-1, 0, 3), 0.0), a.__setitem__((-1, 1, 3), 0.0)), members=[0.9, 1.1])
+rc, j, o = gate(d)
+check("(3) members [0.9, 1.1] ⇒ refusal (was: cast to the positions [0, 1] and PASS)",
+      rc == 3 and any("float member array" in x for x in j["refusals"]), j.get("refusals"))
+d = fixture("r12_bool_member", syms=("XUSDT", "YUSDT"), edit=lambda a: (a.__setitem__((-1, 0, 3), 0.0), a.__setitem__((-1, 1, 3), 0.0)), members=[False, True])
+rc, j, o = gate(d)
+check("(4) members [False, True] ⇒ refusal (was: cast to [0, 1], i.e. a bool MASK read as a position list)",
+      rc == 3 and any("boolean member array" in x for x in j["refusals"]), j.get("refusals"))
+
+d = fixture("r12_empty_pop", edit=lambda a: a.__setitem__((-1, 0, 3), 0.0), members=[0])
+import numpy as _np
+_e = _np.empty(0, dtype=object)
+_np.savez(f"{d}/meta.npz", E_ts=_np.array([], dtype=_np.int64), members=_e)
+_np.savez(f"{d}/targets.npz", E_ts=_np.array([], dtype=_np.int64), members=_e, symbols=_np.array(["XUSDT"]))
+rc, j, o = gate(d)
+check("(5) king and DL both with zero anchors ⇒ refusal 'nothing was measured' (was: PASS with n_member_cells 0 on both ends)",
+      rc == 3 and sum(1 for x in j["refusals"] if "empty member population" in x) == 2, j.get("refusals"))
+
+d = fixture("r12_frac_anchor", edit=lambda a: a.__setitem__((-1, 0, 3), 0.0), E=float(BASE + 288 * 300) + 0.5)
+rc, j, o = gate(d)
+check("(6) E_ts offset by +0.5 s ⇒ refusal (was: truncated back onto the grid by astype(int64) and PASS)",
+      rc == 3 and any("non-integral" in x for x in j["refusals"]), j.get("refusals"))
+
+def _grid600(ts):
+    ts[:] = BASE + np.arange(len(ts), dtype=np.int64) * 600
+d = fixture("r12_600s", edit=lambda a: a.__setitem__((1, 0, 3), 0.0), ts_edit=_grid600, E=BASE + 288 * 600)
+rc, j, o = gate(d)
+check("(7) a 600 s grid: the window is 144 rows (24 h), so the only real bar 47h50m back is DEAD ⇒ FAIL (was: 288 rows = 48 h ⇒ 'live')",
+      rc == 3 and j["window_rows"] == 144 and j["row_spacing_s"] == 600 and j["dead_but_member_total"] == 2, (rc, j.get("window_rows"), j.get("dead_but_member_total")))
+def _nonuniform(ts):
+    ts[5] = ts[5] + 7
+d = fixture("r12_nonuniform", edit=lambda a: a.__setitem__((-1, 0, 3), 0.0), ts_edit=_nonuniform)
+rc, j, o = gate(d)
+check("(8) a non-uniform ts axis ⇒ refusal: the 24 h window cannot be expressed in rows at all",
+      rc == 3 and any("not uniformly spaced" in x for x in j["refusals"]), j.get("refusals"))
+
+print("\n[11] ROUND 12 (R12-C2): a receipt that carries only name + PASS is no longer a prerequisite")
+import subprocess as _sp
+_pr = os.path.join(TMP, "prereq"); os.makedirs(_pr, exist_ok=True)
+open(f"{_pr}/minimal.json", "w").write(json.dumps({"gate": "MEMBER_LIVENESS", "PASS": True}))
+_env = dict(os.environ, PY=PY, R=_pr, L="/dev/stdout", CHAIN_DEVICE_DIR=HERE)
+_cmd = 'source "$1"; prereq_receipt decision liveness "$2" MEMBER_LIVENESS'
+r = _sp.run(["bash", "-c", _cmd, "probe", f"{HERE}/chain_lib.sh", f"{_pr}/minimal.json"], capture_output=True, text=True, env=_env)
+check("the reviewer's {\"gate\": \"MEMBER_LIVENESS\", \"PASS\": true} is refused (was: rc 0, opening every downstream stage)",
+      r.returncode != 0 and "FAIL_decision_prereq_liveness" in (r.stdout + r.stderr), (r.returncode, (r.stdout + r.stderr)[-150:]))
+d = fixture("r12_prereq_green", edit=lambda a: a.__setitem__((-1, 0, 3), 0.0)); rc, j, o = gate(d)
+r = _sp.run(["bash", "-c", _cmd, "probe", f"{HERE}/chain_lib.sh", f"{d}/gate.json"], capture_output=True, text=True, env=_env)
+check("green control: the REAL receipt passes the same helper, re-verified (source approved in the contract + recorded inputs re-hashed)",
+      r.returncode == 0 and "re-verified" in (r.stdout + r.stderr), (r.returncode, (r.stdout + r.stderr)[-170:]))
+np.savez(f"{d}/holes.npz", row=np.array([288], np.int64), col=np.array([0], np.int64), symbols=np.array(["XUSDT"]))
+r = _sp.run(["bash", "-c", _cmd, "probe", f"{HERE}/chain_lib.sh", f"{d}/gate.json"], capture_output=True, text=True, env=_env)
+check("red control: an input changed AFTER the receipt ⇒ the same helper refuses (a stale receipt is not a prerequisite)",
+      r.returncode != 0, (r.returncode, (r.stdout + r.stderr)[-150:]))
 
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)  gate sha {sha(GATE)[:16]}  mask sha {sha(MASK)[:16]}")
 sys.exit(0 if not FAILS else 1)

@@ -16,7 +16,13 @@ echo "RUN_ARM=$RA sha256=$(_sha256 "$RA") RUN_ARM_ROOT=$H RUN_ARM_PY=$PYX"
 # ★ F01 (independent review 2026-09-17, P1): the first version of this edit put the comment ON the assignment line and swallowed K3/K4/K4E, so SLOW_NPY
 #   was EMPTY for every arm and w10_health.py fell back to slow_pred_hist_oos.npy — which build_dev_v4 links to the CANDIDATE king. A0 would have used
 #   the new king. Assignments live on their own line now, SL is required non-empty AND an existing file, and tests_run_v4_arms.py drives this wrapper.
-UP=${V4_UMASK_NPZ:-$H/masks/umask_UPIT_CRYPTO.npz}; CB=$H/calib/costb_fee_steady.json
+# ★ R12-C3 (independent review round 12, P1): `UP=${V4_UMASK_NPZ:-$H/masks/…}` silently evaluated the CANDIDATE arms under the tree's own
+#   default mask when the driver passed nothing, and under whatever an ambient V4_UMASK_NPZ said when the parent environment carried one —
+#   both at rc 0, while preflight had bound a DIFFERENT approved mask to the contract. There is no default any more: the evaluation umask
+#   must arrive explicitly and exist, or no arm starts. The driver derives it from the contract (chain_lib load_month_env).
+[ -n "${V4_UMASK_NPZ:-}" ] || { echo "ARMS_FAIL V4_UMASK_NPZ not set: the evaluation umask must come from the month contract (R12-C3), there is no default"; exit 3; }
+[ -f "$V4_UMASK_NPZ" ] || { echo "ARMS_FAIL V4_UMASK_NPZ=$V4_UMASK_NPZ does not exist"; exit 3; }
+UP=$V4_UMASK_NPZ; CB=$H/calib/costb_fee_steady.json
 K3=$KD/SLOW_v3_on_v4axis.npy; K4=$KD/SLOW_v4.npy; K4E=$KD/SLOW_v4e.npy
 COMMON="LEGS=101 CAL=log WRULE=msharpe LOOK=900 MEMBERS_TOPN=829 FTRIM=zero PHI=0.45 UMASK_SCOPE=m1 UMASK_NPZ=$UP COSTB_JSON=$CB"
 pids=(); names=()

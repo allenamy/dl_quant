@@ -168,13 +168,20 @@ PYEOF
   done <<< "$out"
   for k in $V4_MONTH_KEYS; do case $got in *" $k "*) ;; *) echo "month env $f: parser output lacks key $k" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac; done
   # B-R3 (kept): nothing the caller exported survives — every contract key is UNSET, then EXACTLY the parsed pairs are exported
-  unset $V4_MONTH_KEYS V4_MONTH_ENV
+  # ★ R12-C3 (round 12): V4_UMASK_NPZ is NOT a contract key, so the unset list never touched it and an ambient value reached
+  #   run_v4_arms.sh unchanged (the reviewer's argv spy: clean env ⇒ the wrapper's own default mask, polluted env ⇒ a foreign mask,
+  #   both rc 0). It is cleared here and re-derived below from the contract-bound UMASK_NPZ, so one approved file reaches every consumer.
+  unset $V4_MONTH_KEYS V4_MONTH_ENV V4_UMASK_NPZ
   while IFS= read -r line; do export "${line%%=*}=${line#*=}" || die "month_env_export_${line%%=*}" 4; done <<< "$out"
   for k in $V4_MONTH_KEYS; do [ -n "${!k:-}" ] || die "month_env_key_missing_$k" 4; done
   V4_MONTH_ENV=$f; export V4_MONTH_ENV
   # the names the child programs read (trainer whitelist, launcher, merge, arms, build_dev): derived from the contract, never from their defaults
   export V4_D="$D" V4_F8="$F8" V4_DLW_RAW="$DLW_RAW" V4_DLW_CLIP="$DLW_CLIP" V4_BASE_TRAINER="$BASE_TRAINER" V4_HC="$HC" V4_KING_DIR="$KING_DIR" V4_R="$R" \
          V4_TRAINER="$D/pod_f10_train_monthly_v4.py" V4_DLW_EXT="$DLW_EXT" V4_F8_EXT="$F8_EXT" V4_DEV_PREDS="$HC/dev_v4/f8_2026-08-22/preds" V4_PREV_BUNDLE="$PREV_BUNDLE" V4_PREV_META="$PREV_META" V4_REF_META="$REF_META"
+  # ★ R12-C3: the evaluation umask the contract declares (and preflight binds to approved_baseline.umask_npz_sha256) is the ONLY one the
+  #   children may see. Declared ⇒ exported as V4_UMASK_NPZ for every consumer; not declared ⇒ stays unset and each consumer refuses,
+  #   instead of silently using its own default.
+  [ -z "${UMASK_NPZ:-}" ] || export V4_UMASK_NPZ="$UMASK_NPZ"
   L=$R/v4_commands.txt
   echo "MONTH_ENV_OK $f V4_MONTH=$V4_MONTH R=$R D=$D MONTHS_ALL=$MONTHS_ALL SEEDS=$SEEDS BUNDLE_GENERATION=$BUNDLE_GENERATION"
 }
@@ -227,11 +234,12 @@ set_shards_from_months_all(){  # set_shards_from_months_all — SH0..SH3 = round
 }
 # ── B-R1 (independent review 2026-09-12): a stage may DISPATCH only after its prerequisites are verified here, bound to THIS month's root/contract —
 #    the dependency graph is code, not file order. Every helper dies with FAIL_<stage>_prereq_<name> (rc 3) naming the missing/mismatching item.
-prereq_receipt(){  # prereq_receipt <stage> <name> <receipt.json> <gate> — receipt exists, names <gate>, PASS true; PREFLIGHT additionally bound to this contract (month_env_sha256) and root
-  local stage=$1 name=$2 rp=$3 gate=$4 out rc
-  out=$($PY - "$rp" "$gate" "${V4_MONTH_ENV:-}" "$R" 2>&1 <<'PYEOF'
+prereq_receipt(){  # prereq_receipt <stage> <name> <receipt.json> <gate> [<profile>] — receipt exists, names <gate>, PASS true; PREFLIGHT additionally bound to
+                   # this contract (month_env_sha256) and root; every GOVERNED gate is additionally re-verified through v4_gate_common.require
+  local stage=$1 name=$2 rp=$3 gate=$4 prof=${5:-} out rc
+  out=$($PY - "$rp" "$gate" "${V4_MONTH_ENV:-}" "$R" "$D" "$prof" 2>&1 <<'PYEOF'
 import hashlib, json, os, sys
-rp, gate, envf, root = sys.argv[1:5]
+rp, gate, envf, root, dev, prof = (sys.argv[1:7] + [""] * 6)[:6]
 if not os.path.isfile(rp): print(f"receipt missing: {rp}"); sys.exit(3)
 try: r = json.load(open(rp))
 except Exception as e: print(f"receipt unreadable: {e}"); sys.exit(3)
@@ -241,7 +249,29 @@ if gate == "PREFLIGHT":
     h = hashlib.sha256(open(envf, "rb").read()).hexdigest() if envf and os.path.isfile(envf) else None
     if r.get("month_env_sha256") != h: print(f"preflight receipt is bound to contract sha {str(r.get('month_env_sha256'))[:12]}, this run's contract is {str(h)[:12]}"); sys.exit(3)
     if os.path.realpath(str(r.get("root", ""))) != os.path.realpath(root): print(f"preflight receipt root {r.get('root')} != this root {root}"); sys.exit(3)
-print(f"ok {gate} {r.get('utc')}")
+    print(f"ok {gate} {r.get('utc')}"); sys.exit(0)
+# ★ R12-C2 (independent review round 12): a downstream/recovery stage used to accept a receipt on NAME + PASS alone, so the literal
+#   {"gate": "MEMBER_LIVENESS", "PASS": true} opened king/legs/mwf/refit/arms/member_rule/decision with no source, no contract approval
+#   and no inputs. Every GOVERNED gate is now re-verified through the SAME v4_gate_common.require the gates/export stages use: the
+#   receipt's own self_sha256 must be an APPROVED source of that gate in the frozen contract, the registered input floor must be
+#   declared, and EVERY input the receipt recorded is re-hashed on disk now (recorded_extras). An ungoverned gate keeps name+PASS and
+#   SAYS so, instead of pretending it was verified.
+sys.path.insert(0, dev)
+try: import v4_gate_common as GC
+except Exception as e: print(f"v4_gate_common unimportable from {dev}: {e}"); sys.exit(3)
+governed = gate in GC.REQUIRED_INPUTS or any(k.startswith(gate + "@") for k in GC.REQUIRED_INPUTS)
+if not governed:
+    print(f"ok {gate} {r.get('utc')} (ungoverned gate: name+PASS only, no registered input floor)"); sys.exit(0)
+ss = r.get("self_sha256")
+if not isinstance(ss, str) or len(ss) != 64:
+    print(f"receipt carries no usable self_sha256 ({ss!r}): an unidentified program's PASS is not a prerequisite"); sys.exit(3)
+ip = r.get("inputs_path")
+if not isinstance(ip, dict) or not ip:
+    print("receipt records no inputs_path: nothing can be re-hashed, so this PASS cannot be re-verified"); sys.exit(3)
+ok, why = GC.require(rp, {k: v for k, v in ip.items() if isinstance(v, str)}, expected_gate=gate,
+                     expected_self_sha=ss, profile=(prof or None), recorded_extras=True)
+if not ok: print(f"require refused this receipt: {why}"); sys.exit(3)
+print(f"ok {gate} {r.get('utc')} (re-verified: source {ss[:12]} approved in the contract, {len(ip)} recorded inputs re-hashed)")
 PYEOF
 ); rc=$?
   say "prereq $stage/$name: $out"; [ $rc -eq 0 ] || { echo "prereq $stage/$name: $out" >&2; die "${stage}_prereq_${name}" 3; }
