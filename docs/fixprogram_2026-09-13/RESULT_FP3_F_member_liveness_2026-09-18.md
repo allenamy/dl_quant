@@ -120,4 +120,9 @@
 - 判活掩码本身也印证: 它最后一个锚 True 数为 **0**, 前面几个锚是 669;
 - 训练成员集不受影响, 因为它们**止于 08-31 20Z**, 从不包含那个退化锚。
 
-**修法**(已入 `48d04134`): 出口端优先取 **bundle 自己声明的锚**(`config.json` → `MANIFEST.json` provenance), 否则取窗口内全宇宙至少有一根真实 bar 的最晚 4h 锚; 选中的锚上全宇宙零活名 ⇒ 具名拒绝 `degenerate_anchor_no_live_names`(**全员判死是锚点选错的证据, 不是宇宙死了**); bundle 声明的锚不在本缓存轴上 ⇒ 拒绝而非静默回退。缺陷期的原始收据保留在 `MEMBER_LIVENESS_GATE_3ends_PREFIX_ANCHOR_DEFECT.json`。
+~~**修法**(已入 `48d04134`): 出口端优先取 **bundle 自己声明的锚**(`config.json` → `MANIFEST.json` provenance), 否则取窗口内全宇宙至少有一根真实 bar 的最晚 4h 锚; 选中的锚上全宇宙零活名 ⇒ 具名拒绝 `degenerate_anchor_no_live_names`(**全员判死是锚点选错的证据, 不是宇宙死了**); bundle 声明的锚不在本缓存轴上 ⇒ 拒绝而非静默回退。缺陷期的原始收据保留在 `MEMBER_LIVENESS_GATE_3ends_PREFIX_ANCHOR_DEFECT.json`。~~
+
+> ⛔ **上面这条修法已在第十四轮 (R14-C1) 被我自己撤回, 此处标为历史作废 (2026-09-18, 复审第十五轮要求)。原字节保留在删除线内 —— 运行人员不得按它操作。**
+> **为什么撤回**: 「窗口内全宇宙至少有一根真实 bar 的最晚 4h 锚」给了门一个**向过去找绿锚**的自由度。复审的反例: 删掉一个**无关名**的末根 bar, 门就回溯 52 小时, 把**同一份出货名单**从 FAIL 翻成 PASS。我第十三轮写的那句「全员判死是锚点选错的证据, 不是宇宙死了」正是这个自由度的来源 —— **那是我的设计错误**。
+> **现行修法** (R14-C1, 装置 `v4_gate_member_liveness.py` sha `6a7d5d8e6a1ff10c`): 出口锚 = **固定的声明顺序** `EXPORT_ANCHOR_TS` → bundle `provenance.data_axis_end_utc`(导出器 L266 实际写的字段)或顶层数值锚 → `MANIFEST.provenance`, **没有第四个回退, 没有任何向后搜索**; 训练截止**具名拒绝**而不是充当出口锚; 锚必须同时落在缓存轴与 4h 格点上; 声明锚上零活名 ⇒ `insufficient_coverage_at_export_anchor`; 完全没声明 ⇒ `export_anchor_not_declared`。
+> **该修法本身又在第十五轮被发现有缺口** (R15-C1): 上述顺序的**第一项是一个未注册的环境变量** —— 它不在月合同键表里、`chain_lib.sh` 不清理它、`run_gate` 用 `env "$@"`(无 `-i`)把父环境整份传入、门的收据 env 清单里也没有它。父环境塞一个 `EXPORT_ANCHOR_TS` 就能让同一份输入在 72 小时前的时点上 PASS, 并一路走到 `SWAP_RECOMMENDED`。修复在飞; **在它落地并复审通过之前, 本门的 PASS 不得单独作为换装依据**。
