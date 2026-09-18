@@ -732,3 +732,13 @@ C5 授权证据的对照项: A5 案 — 授权一个改动前先问"它的对照
 **最刺眼的一格**: R12-C3 我发现一个环境变量泄漏, 修法是把它的名字加进 unset 列表; 两轮后我**亲手把 `EXPORT_ANCHOR_TS` 放到出口锚优先级最顶端**而没加进任何表。逐名列表在原理上关不掉这个类 —— 类是「任何门读了、但不是月合同键的环境变量」, 每往门里加一个 `os.environ.get` 它就长大一次。
 **同理 R15-Q1**: Q6 有**两个**矛盾判词, 成对的 `fact_conflict` 与整条记录的 `contradiction_check`。我共用了成对那个并在提交信息里写「两条记录现在都走这一个判词」—— 这句是对的, 也是**不相干的**, 因为合并制造的矛盾属于另一类。
 **规矩(本轮起统一抬高验收线)**: 验收不是「这个反例现在红了」, 而是「**明天在同一条路径上新加一个值 / 一个环境读取 / 一条路径, 缺陷会不会自动被抓住**」。逐名单、逐处补丁、逐调用点加检查, 一律视为未关闭。相关: [[declared_blind_spot_is_not_closed]]、[[guard_one_line_past_where_you_stopped]]、[[textual_instrument_for_a_behavioural_property]]。
+
+## E-0918-O 合并步把【草稿目录里的旧训练器】写进封存收据的出处, 且十月会被它的硬编码月份表挡住 — 2026-09-18
+**机制**(pod2 上逐行核过): `merge_mwf_v4b.py` L13 `TRAINER = os.environ.get("V4_TRAINER", "/workspace/review_scratch/pod_f10_train_monthly_v4.py")` —— **默认值指向一个草稿目录**; L40 把这个路径与 `sha(TRAINER)` 写进 merge 收据当作本次运行的出处。`V4_TRAINER` **不在 `V4_MONTH_KEYS`, 不在 `V4_MONTH_OPTIONAL_KEYS`, `chain_lib.sh` 不清理, `chain_v4_monthly.sh` L334 也从不传它** ⇒ 每次都走默认值。
+**后果**: 封存的模型运行里, 两个种子的 `merge.json` 都记 `trainer=/workspace/review_scratch/pod_f10_train_monthly_v4.py` sha `2147a7dd128b…`, 而**真正训练了 40 折的分片跑的是** `/workspace/fp2_2026-09/devices_v4chain/pod_f10_train_monthly_v4.py` sha `fd5707bd3acc…`(经 `shard_s42_0:self_sha256` 交叉核实)。该机器上**三个同名文件**: 批准目录与 `w3_monthly_chain_2026-09-12/device/` 逐字节相同, `review_scratch/` 那份不同。
+**两份差在哪**(已 diff, 27 行): 草稿那份是**被取代的「月度化之前」版本** —— 硬编码九月目录常量而不读月环境、硬编码 `_BASE`、env 白名单更短, 而且**硬编码 `ALL_MONTHS = [202501..202512] + [202601..202608]` 并 `assert all(m in ALL_MONTHS for m in MONTHS)`**, 现行版则经 `v4_months.py` 由 `MONTHS_ALL` 或标签轴导出并 `check_subset`。
+**模型没错, 出处错了 — 两件事必须分开说**: merge 只是把分片已经产出的逐折预测缝起来, `trainer_sha256` 是**出处标签不是计算**; 这一次 20 个月恰好与硬编码表相同, 数值没有分叉。但 ① 封存收据**指名了一个没有训练过这些折的装置**, 且它哈希的是**草稿目录里当时碰巧存在的那份文件** ⇒ 收据**不可复现**(草稿目录不在版本控制里); ② **十月是活的阻塞**: 窗口一旦需要硬编码表以外的月份(如 202609), 那句 `assert` 直接拒跑。
+**同形的还有**: 同文件 L14 的 `DEV_PREDS` / `HF2_PREDS` 默认值也落在 `review_scratch/health_check/…`, merge 收据的 `vs_hf2_fix7` 比较就来自它们。
+**这是 R15-C1 那一类的第三个实例**(前两个: R12-C3 `V4_UMASK_NPZ`, R15-C1 `EXPORT_ANCHOR_TS`), 也是三个里**唯一一个污染了封存工件出处**的。它证明逐名 unset 列表关不掉这个类: 只认前两个名字的机制会**整个漏掉** `V4_TRAINER`。已作为类修复的验收测试交给链修复线。
+**规矩**: ① 任何装置默认值**不得指向草稿/临时目录** —— 缺省要么是批准目录, 要么是**具名拒绝**; ② 收据里的出处字段必须是**当时真正执行的那个装置**, 不是调用方碰巧传进来的路径; ③ 同名不同内容的文件是 [[latest_copy_default_family]] 与「按文件名/目录名推断语义」(E-0825-H/G)的合流形态 — 部署前三方 sha 核对要覆盖**合并/缝合步**, 不只覆盖训练步。
+**发现路径**: 重写封存器(复审第十五轮要求逐折身份清单)时, 分支把「两个同名训练器不同 sha」作为 NOTE 报上来, 我再上 pod2 逐行追到默认值。**旧封存器永远发现不了它** — 它连一个日志都不读。
