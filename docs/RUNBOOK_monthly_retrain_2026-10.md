@@ -263,3 +263,30 @@ w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025
 **② 端到端负控的判据**: 不是「跑完」, 是「在正确的地方停」——preflight 全过证明装置/输入/批准三者绑定于本月合同; `FAIL_dryrun_guard_*` 证明任何会启动训练/导出的阶段在启动前受同一份合同约束。正跑前**必须**有当月的这份收据。
 
 **③ 干预台账**(`docs/PRODUCTION_INTERVENTION_LEDGER.md`): 每行 = {UTC 时刻, 对象(执行器树 / 生产者文件 / 状态文件 / 合同), 前后 sha, **首个受影响锚**(按「生产者在 A+20m 算锚 A」的语义), 受据}。P-B 的教训: 播种在 12:47Z 换入 ⇒ 首个受影响锚是 16Z 不是 12Z; M1 首见于标 09-04 04Z 的记录 ⇒ 04Z。
+
+
+### §0★ 修订 8(2026-09-18, FP3 J; 主研究员; 独立复审第十一轮 C1/C2 两项**成立**, 逐条改码而不是改措辞)
+
+**为什么有这一节**: 修订 7 把 `bash chain_v4_monthly.sh <月 env>` 写成正跑入口并承诺 `preflight → decision`, 而冻结的该脚本在导出门之后直接写 `CHAIN_V4_MONTHLY_DONE`——**没有 member_rule / per_year / decision 阶段**, 它们只在 `chain_fp2_run.sh` 里。修订 7 又把九月 FP2 env 当十月模板, 而那份 env 选的是九月 scope 的门。两处都不是措辞问题。
+
+**① 唯一入口现在真的能产出正式决策(改码, 不是改字)**: `chain_v4_monthly.sh` 新增五个阶段, 顺序 `controls → a0rerun → member_rule → per_year → decision`, 每个都带前置(`prereq_receipt` / `prereq_marker` / 月合同键), 子集运行**不能**跳过它们; `V4_STAGES=all` 在**没有 `v4_gates/DECISION_FP2.json` 时拒绝写 `MONTHLY_DONE.json`**(`FAIL_monthly_done_without_decision_receipt` rc 3)。五个阶段的代码逐字来自 `chain_fp2_run.sh`(R09/F03/F09/F10 语义不变), 差别只在: 参照件与评估掩码不再写死九月路径, 改由月合同的新键 `UMASK_NPZ` / `CONTROLS_REF_KING_FEA` / `CONTROLS_REF_KING_META` / `CONTROLS_REF_DL_TARGETS` 提供。
+- **`UMASK_NPZ` 在 preflight 被绑到合同**: 它的 sha 必须等于 `ELIGIBILITY_CONTRACT.json` 的 `gates.BUNDLE_export.approved_baseline.umask_npz_sha256`, 否则 preflight 点名失败——换一张掩码到不了 per_year/decision。
+- **仍开, 十月前必裁(明写不藏)**: `fp2_decision.py` 的 FORMAL 剖面冻结在 FP2 评估窗(W_ALPHA … 2026-08-30 20Z), 十月需要它自己的预注册决策剖面; 在此之前, 十月跑到 decision 阶段会 `REFUSED_PROFILE` rc 3。这是设计, 不是遗漏。
+- **模板矛盾消除**: 十月用 `v4_month_2026-10.env`(模板 `v4_month_2026-10.env.template`, 选 `_m.py` 月度门 + `PREV_MONTH_ENV`/`PREV_SHA_JSON`), **不**用九月 `v4_month_2026-09_fp2.env`(它选的 `fp2_gate_step1/2.py` 与 `v4e_gate_export_fp2dyn.py` 在合同里 scope 限定九月根)。修订 7 步 1 的「以九月 FP2 env 为模板」**作废**。
+
+**② 负控的说法收窄到它证明的东西**: 修订 7 写的「preflight 全过证明装置/输入/批准三者绑定于本月合同」「证明任何会启动训练/导出的阶段在启动前受同一份合同约束」**超出收据**。09-18 07:30Z 的那次负控用的是九月 env、`roll_paths required=0`, 在 cache 首个 guard 处 rc=9 停下, 后续阶段的前置一个都没到达。**准确说法**: 该日志支持「九月配置下 preflight 记录 PASS, 且 cache 启动保护按预期 rc=9 拦截」。
+- 同时改码补上真正的缺口: preflight 现在对**每个文件输入记内容 sha256**(此前只记 path/bytes/is_dir, 所谓「30 inputs」不是 30 个内容哈希), 批准位从 3 个门变 **4 个门**(加 MEMBER_LIVENESS), 归档要求改为**同时存 `preflight.json` 与 `deps_preflight_device.json` 两份 JSON**, 不再只存一段文本摘要。
+- 十月正跑前仍需一次**本月自己的**负控(月 env、`roll_paths required=1`), 09-18 那份不能冒充。
+
+**③ 判活门入链(用户字 2026-09-18「按最佳建议来」)**: `MEMBER_LIVENESS` 已从 `proposed_gates` 提升为 `gates.MEMBER_LIVENESS`(源 `v4_gate_member_liveness.py`), 在 gates 阶段跑在**产出的**成员集上、在 export 阶段跑在**出货 bundle 的 live 列表**上, 并且是 king/legs/mwf/refit/arms/member_rule/decision 的前置。构建侧 `v4_member_mask_liveness.py` 产出判活掩码(可与可交易掩码取交)。详见 `docs/fixprogram_2026-09-13/RESULT_FP3_F_member_liveness_2026-09-18.md`。
+
+**唯一执行清单(替换修订 7 的表; 行序 = 执行顺序)**
+| # | 事 | 入口 / 装置 | 门 / 收据 | 状态(09-18) |
+|---|---|---|---|---|
+| 1 | 月合同 `v4_month_2026-10.env` 立档(模板 `v4_month_2026-10.env.template`; 新键 UMASK_NPZ / CONTROLS_REF_* / GATE_LIVENESS) | 模板 | preflight `PREFLIGHT PASS device_files/inputs/approvals 4/4` | 待十月 |
+| 2 | 用户下字对象入合同 | `ELIGIBILITY_CONTRACT.json` | `v4_doc_approval_gate.py` | **已入(2026-09-18 用户字「按最佳建议来」)**: 两个月度门 sha、TRN-15 按月批准机制、TRN-16 维持全局构建器 + 两条后果、PREV_KING_FEA_UNCLAMPED=NONE、PROPOSED6→MEMBER_LIVENESS APPLIED。**十月 pins/基线 sha 待月合同立档后再批一次** |
+| 3 | 干预台账检查 | `docs/PRODUCTION_INTERVENTION_LEDGER.md` | 每条带首个受影响锚与受据 | 九月**部分**回填(时刻/次序已按 C4 更正; 09-01 换装等仍待取证) |
+| 4 | 本月负控 `V4_DRYRUN=1 bash chain_v4_monthly.sh <十月 env>` | 驱动 | `negctl.log` + `preflight.json` + `deps_preflight_device.json` | 待十月(09-18 那份是九月配置, 不通用) |
+| 5 | 正跑 `bash chain_v4_monthly.sh <十月 env>` | 驱动 | 各阶段收据链, **末端必须有 `v4_gates/DECISION_FP2.json`** | 待十月 |
+| 6 | 决策剖面 | `fp2_decision.py` | `DECISION_FP2.json` | **待预注册十月剖面**(现 FORMAL 剖面冻结在 FP2 窗 ⇒ 十月会 REFUSED_PROFILE) |
+| 7 | 换装(若过门) | `seat_seed_v3` / `launchctl kickstart` / combosnap | PARITY 收据 + 干预台账登记 | 待十月 |
