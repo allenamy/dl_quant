@@ -10,6 +10,12 @@ if int(RC) != 0: rec["why"].append(f"combo_stage rc {RC} in sandbox")
 if not os.path.isfile(REP): rec["why"].append("replay wrote no target (COMBO_LIVE abort or bail; see run.log)")
 else:
     a = json.load(open(ARCH)); b = json.load(open(REP)); rec["archived_sha"] = hashlib.sha256(open(ARCH, "rb").read()).hexdigest(); rec["replayed_sha"] = hashlib.sha256(open(REP, "rb").read()).hexdigest()
+    # ★ R08 (independent review 2026-09-18): bind BOTH documents to the REQUESTED anchor and schema — two files that agree with each other but
+    #   describe another anchor (e.g. both A−4h) are not parity for A
+    rec["anchor_identity"] = {"requested": A, "archived": a.get("anchor_ts"), "replayed": b.get("anchor_ts"), "schema_archived": a.get("schema"), "schema_replayed": b.get("schema")}
+    if a.get("anchor_ts") != A: rec["why"].append(f"archived doc anchor_ts {a.get('anchor_ts')} != requested {A}")
+    if b.get("anchor_ts") != A: rec["why"].append(f"replayed doc anchor_ts {b.get('anchor_ts')} != requested {A}")
+    if a.get("schema") != "wide_target_v1" or b.get("schema") != "wide_target_v1": rec["why"].append(f"schema not wide_target_v1: {a.get('schema')} / {b.get('schema')}")
     keys = sorted(set(a) | set(b)); diff_keys = []
     for k in keys:
         if k == "written_utc": continue

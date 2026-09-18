@@ -37,6 +37,7 @@ for j in nan_all:
         um_true = int(sum(1 for r in rows if ui is not None and int(ts[r]) in upos and um[upos[int(ts[r])], ui])) if ui is not None else None
         fin = np.where(~np.isnan(Z["f_fund_iv"][:, j]))[0]
         out["elig_but_no_settlement"].append({"name": s, "elig_tail_rows": int(len(rows)), "elig_from": time.strftime("%m-%d %HZ", time.gmtime(int(ts[rows[0]]))), "elig_to": time.strftime("%m-%d %HZ", time.gmtime(int(ts[rows[-1]]))), "last_settlement_in_panel": time.strftime("%m-%d %HZ", time.gmtime(int(ts[fin[-1]]))) if len(fin) else None, "eval_umask_true_on_those_rows": um_true, "Y4_finite_tail": int(np.isfinite(Z["Y4"][tail, j]).sum())})
-out["VERDICT"] = "LEGITIMATE_ALL" if all(v["must_fail_cells"] == 0 for v in out["columns"].values()) else "MUST_FAIL_PRESENT"
+out["VERDICT"] = "NO_RECORDED_EVENT_ALL" if all(v["must_fail_cells"] == 0 for v in out["columns"].values()) else "MUST_FAIL_PRESENT"   # R06 (review 2026-09-18): without an independent settlement-coverage proof this is "no recorded event", not "legitimate"
+out["coverage_proof"] = "ABSENT: P9 is a pull, not an independent event-completeness ticket; a NaN cell is NO_RECORDED_EVENT until settlement history is verified from a second source"
 json.dump(out, open(OUT, "w"), indent=1)
 print("VERDICT", out["VERDICT"], {c: (v["nan_cells_tail"], v["must_fail_cells"]) for c, v in out["columns"].items()}, "| all-NaN names", len(nan_all), "with p9 rows", out["n_names_all_nan_with_p9_rows"], "| elig-but-no-settlement:", [(r["name"], r["elig_tail_rows"], r["eval_umask_true_on_those_rows"]) for r in out["elig_but_no_settlement"]])

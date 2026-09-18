@@ -86,6 +86,15 @@ with tempfile.TemporaryDirectory() as t:
 with tempfile.TemporaryDirectory() as t:
     R, rc, out = real_runner(t, root=f"{t}/tree", py=f"{t}/no_such_python")
     check("★★ W10 J: unknown interpreter ⇒ rc 3 'missing interpreter', device not run", rc == 3 and "missing interpreter" in out and not os.path.exists(f"{R}/dev_v4/logs/PROBE.log"), (rc, out[-160:]))
+# ── J-01 (independent review 2026-09-18): a RELATIVE invocation from the device dir must still execute the device runner, never the tree copy ──
+with tempfile.TemporaryDirectory() as t:
+    H, KD = tree(t, tree_stub=True); dd = f"{t}/dev"; os.makedirs(dd); shutil.copy2(f"{HERE}/run_v4_arms.sh", f"{dd}/run_v4_arms.sh")
+    open(f"{dd}/run_arm.sh", "w").write(STUB.replace('echo "$TAG $*', 'echo "DEVICE_RUNNER $TAG $*')); os.chmod(f"{dd}/run_arm.sh", 0o755)
+    e = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"], "V4_HC": H, "V4_KING_DIR": KD}
+    r = subprocess.run(["bash", "run_v4_arms.sh", "A0", "42"], env=e, capture_output=True, text=True, cwd=dd)        # relative path, cwd = device dir
+    calls = open(f"{H}/logs/stub_calls.txt").read().splitlines() if os.path.exists(f"{H}/logs/stub_calls.txt") else []
+    check("★★★ W11 J-01: relative `bash run_v4_arms.sh` from the device dir runs the DEVICE runner (both calls tagged DEVICE_RUNNER), not the tree stub",
+          r.returncode == 0 and len(calls) == 2 and all(c.startswith("DEVICE_RUNNER ") for c in calls) and f"RUN_ARM={os.path.realpath(dd)}/run_arm.sh" in r.stdout, (r.returncode, calls[:2], r.stdout[:160]))
 print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
 if FAILS: print("FAILED:", *FAILS, sep="\n  "); sys.exit(1)
 print("ALL PASS")

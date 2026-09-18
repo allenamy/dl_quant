@@ -4,7 +4,7 @@
 # any producer or executor file. launchd agent com.hsy.comboparity, every 300 s; one anchor per run (≈10 s), serialized by a lock dir.
 set -u
 WS="$HOME/wide_shadow"; SNAP="$WS/state/snap"; DEV="$WS/fea171/combosnap"; LOCK="$SNAP/.parity.lock"
-mkdir -p "$LOCK" 2>/dev/null || exit 0
+mkdir "$LOCK" 2>/dev/null || exit 0                          # ★ R08: `mkdir` WITHOUT -p is the mutex (fails when the dir exists); -p succeeded on an existing dir and let two agents run the same anchor
 trap 'rmdir "$LOCK" 2>/dev/null' EXIT
 for d in $(ls -d "$SNAP"/1[0-9]* 2>/dev/null | sort); do
   A=$(basename "$d"); [ -f "$d/COMPLETE" ] || continue; [ -f "$d/PARITY.json" ] && continue
