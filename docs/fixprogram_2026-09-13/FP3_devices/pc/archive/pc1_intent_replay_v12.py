@@ -1,23 +1,6 @@
 #!/usr/bin/env python3
-"""FP3 P-C1 v13 (2026-09-18, after independent review round 14 R14-P1/P2; v12 after round 13; v11 after round 12; v10 after round 11):
-replay the EXECUTOR's book layer for one anchor as a pure function and compare the replayed plan with the COMPLETE request population the
-executor recorded — every request identity, not the first row per name.
-
-What changed in v13 (independent review round 14 — two full false passes and two classification defects v12 still had):
-  · R14-P1 a PRE-BUILT, NEVER-SENT ledger entry is INTENT, not a request. The executor writes one entry per planned chunk with
-    `state="not_sent"` / `order_id=None` / no confirmed quantity before trying to send it (409ea16 binance_executor L1934-1944,
-    "not_sent → confirmed | unknown | rejected"). v12 read `le["qty"]` blind to the state, so a top-up planned at 15 that never left —
-    `abandoned_max_attempts` — was measured as a real 15-lot request and the anchor read `complete_parity=True`. `unknown` DID reach the
-    venue and stays measurable; `not_sent` now yields `*_not_sent_ledger` and an unmeasurable leg;
-  · R14-P2 the TOP-UP RESIDUAL is taken from the rows that actually CARRY the R1/R2 entries. v12 validated fields on the owning row but
-    still read `filled_*` off `row1`, so an owner row filled 10 beside a first row recording 25 gave residual 0, let the top-up be skipped
-    and reported complete. When the owner and the other candidate row disagree on the fill, that contradiction is now a `diffs` entry —
-    two rows may not be cherry-picked to prove one lifecycle;
-  · R14-P2 a MISSING (or not-sent) quantity no longer hides an already-judgeable field: side / reduce-only / type are validated on the
-    owning row for R2 and R3 whether or not a quantity is present (v12 jumped to the unmeasurable branch and never looked);
-  · R14-P2 ONE class per ledger entry. An entry refused on identity (malformed / foreign / duplicate) keeps that class and is excluded from
-    the measurement sets — v12 counted a duplicate, then re-counted it as `duplicate_first_leg_request`, then again as `EXPLAINED`
-    (5 entries, 7 classifications). Every seq-1 entry being refused now yields `first_leg_requests_all_unexplained`.
+"""FP3 P-C1 v12 (2026-09-18, after independent review round 13 R13-P1; v11 after round 12; v10 after round 11): replay the EXECUTOR's book layer for one anchor as a pure function and
+compare the replayed plan with the COMPLETE request population the executor recorded — every request identity, not the first row per name.
 
 What changed from v9 (each item is a reviewer counterexample that v9 passed and v10 must not):
   · the ONLY upstream is `plans_A` = the production path replayed from decision-time records (v9 compared a plan rebuilt from the recorded
@@ -127,8 +110,8 @@ if not tree_dir:
 
 
 def bail(status):
-    out = {"device": "pc1_intent_replay.py", "version": "v13", "utc": time.strftime("%FT%TZ", time.gmtime()), "anchor": A, "utc_anchor": U(A), "status": status, "refusals": refusals}
-    json.dump(out, open(OUT, "w"), indent=1, default=str); print("P-C1 v13", U(A), status, refusals); sys.exit(0)
+    out = {"device": "pc1_intent_replay.py", "version": "v12", "utc": time.strftime("%FT%TZ", time.gmtime()), "anchor": A, "utc_anchor": U(A), "status": status, "refusals": refusals}
+    json.dump(out, open(OUT, "w"), indent=1, default=str); print("P-C1 v12", U(A), status, refusals); sys.exit(0)
 
 
 if refusals: bail("REFUSED")
@@ -256,20 +239,6 @@ def _sside(q):
     return "buy" if float(q) > 0 else "sell"
 
 
-def _sent(le):
-    """★ R14-P1 (1) (independent review round 14): the executor PRE-BUILDS one ledger entry per PLANNED chunk with
-    `state="not_sent"`, `order_id=None` and no confirmed quantity, then tries to send each one (409ea16
-    binance_executor L1934-1944: "States: not_sent → confirmed | unknown | rejected"). v12 read `le["qty"]` without
-    looking at the state, so a top-up that was planned at 15 and never left — `state=not_sent`, `order_id=None`,
-    `confirmed_qty=None`, `terminal=False`, reason `abandoned_max_attempts` — was measured as a real 15-lot request
-    and the anchor read `complete_parity=True`. A not-sent entry is evidence of an INTENT; it can never close a
-    request lifecycle. `unknown` DID reach the venue (outcome unknown) and stays measurable."""
-    st = str(le.get("state") or "").lower()
-    if st == "not_sent": return False
-    if st in ("confirmed", "unknown", "rejected"): return True
-    return bool(le.get("order_id") is not None or le.get("confirmed_qty") is not None or le.get("terminal"))
-
-
 cmp = []; cat = collections.Counter()
 PLAN_CLS = collections.Counter(); REQ_CLS = collections.Counter()
 n_ledger_entries = 0; n_qty_compared = 0; n_qty_equal = 0
@@ -289,9 +258,7 @@ for s in sorted(set(by_sym) | set(plan_by)):
             bad = ("malformed_client_id" if pr is None else ("foreign_rebalance_id" if pr[0] != rid else ("foreign_symbol" if pr[1] != s else
                    ("attempt_index_not_mintable" if not VALID_SEQ.match(pr[2]) else None))))
             ents.append({"row": r, "idx": i, "le": le, "seq": (pr[2] if (pr and not bad) else None), "bad": bad,
-                         "qty": (float(le["qty"]) if le.get("qty") is not None else None), "cid": le.get("client_id"),
-                         "state": le.get("state"), "order_id": le.get("order_id"), "confirmed_qty": le.get("confirmed_qty"),
-                         "terminal": le.get("terminal"), "sent": _sent(le)})
+                         "qty": (float(le["qty"]) if le.get("qty") is not None else None), "cid": le.get("client_id")})
     # ★ R13-P1 (1): a client_id is a REQUEST IDENTITY. Two ledger entries carrying the same id are one request recorded twice, never two
     #   independent requests — v11 merely summed their quantities, so a 7 + 8 pair passed as the expected 15.
     _cid_n = collections.Counter(x["cid"] for x in ents if x["cid"] is not None)
@@ -303,13 +270,7 @@ for s in sorted(set(by_sym) | set(plan_by)):
         e["plan_class"] = None; e["verdicts"] = ["unexplained_request:order_only"]; cat["unexplained_request:order_only"] += 1; cmp.append(e); continue
     for x in ents:
         if x["bad"]: REQ_CLS["UNEXPLAINED:" + x["bad"]] += 1; x["cls"] = "UNEXPLAINED:" + x["bad"]
-    # ★ R14-P1 (4): an entry already classified above (malformed / foreign / duplicate identity) keeps THAT class and is
-    #   never reconsidered for measurement. v12 left it in e1/e2/e3, so `duplicate_client_id` was counted, then the same
-    #   entry was re-counted as `duplicate_first_leg_request` and again as `EXPLAINED`: 5 ledger entries, 7 classifications.
-    e1 = [x for x in ents if x["seq"] == "1" and not x.get("cls")]
-    e2 = [x for x in ents if x["seq"] == "2" and not x.get("cls")]
-    e3 = [x for x in ents if x["seq"] and (x["seq"] == "3" or x["seq"].startswith("3c")) and not x.get("cls")]
-    n_seq1_unexplained = sum(1 for x in ents if x["seq"] == "1" and x.get("cls"))
+    e1 = [x for x in ents if x["seq"] == "1"]; e2 = [x for x in ents if x["seq"] == "2"]; e3 = [x for x in ents if x["seq"] and (x["seq"] == "3" or x["seq"].startswith("3c"))]
     row1 = next((r for r in rws if r.get("order_type") == "maker" and int(r.get("attempt_idx") or 0) <= 1), None)
     row2 = next((r for r in rws if r.get("order_type") == "maker" and r.get("requote_arm") not in (None, "")), None)
     rows3 = [r for r in rws if r.get("order_type") == "topup_taker"]
@@ -350,23 +311,12 @@ for s in sorted(set(by_sym) | set(plan_by)):
         else:
             tr1 = row1.get("terminal_reason"); ro1 = row1.get("reduce_only")
             if len(e1) > 1:
-                for x in e1[1:]:
-                    if x.get("cls"): continue
-                    REQ_CLS["UNEXPLAINED:duplicate_first_leg_request"] += 1; x["cls"] = "UNEXPLAINED:duplicate_first_leg_request"; diffs.append("duplicate_first_leg_request")
-                e1 = [e1[0]]
-            if n_seq1_unexplained and not e1:
-                unmeas.append("first_leg_requests_all_unexplained")                                # every seq-1 entry was refused on identity
+                for x in e1[1:]: REQ_CLS["UNEXPLAINED:duplicate_first_leg_request"] += 1; x["cls"] = "UNEXPLAINED:duplicate_first_leg_request"; diffs.append("duplicate_first_leg_request")
             if e1:
-                x = e1[0]; lq = x["qty"] if x["sent"] else None
+                x = e1[0]; lq = x["qty"]
                 _g, _bad = _own(x, pside, pro, "maker")
                 field_gaps += ["R1:" + z for z in _g]
-                if not x["sent"]:
-                    unmeas.append(f"first_leg_ledger_not_sent:{x['state']}"); verdicts.append("R1_not_sent_ledger")
-                    x["cls"] = "EXPLAINED"; REQ_CLS["EXPLAINED"] += 1
-                    if _bad: diffs.append("R1:" + ",".join(_bad)); verdicts.append("R1_MISMATCH")
-                    e["R1"] = {"plan_qty_signed": psq, "ledger_qty_signed": None, "ledger_state": x["state"], "planned_qty_not_sent": x["qty"],
-                               "owner_row_bad": _bad, "owner_row_evidence_gaps": _g}
-                elif lq is None:
+                if lq is None:
                     unmeas.append("first_leg_ledger_without_qty"); verdicts.append("R1_no_qty_evidence"); x["cls"] = "EXPLAINED"; REQ_CLS["EXPLAINED"] += 1
                     if _bad: diffs.append("R1:" + ",".join(_bad)); verdicts.append("R1_MISMATCH")
                 else:
@@ -394,22 +344,14 @@ for s in sorted(set(by_sym) | set(plan_by)):
                 diffs.append("requote_without_reject"); verdicts.append("unexplained_request:requote_without_reject")
             else:
                 if len(e2) > 1:
-                    for x in e2[1:]:
-                        if x.get("cls"): continue
-                        REQ_CLS["UNEXPLAINED:duplicate_requote_request"] += 1; x["cls"] = "UNEXPLAINED:duplicate_requote_request"; diffs.append("duplicate_requote_request")
-                    e2 = [e2[0]]
+                    for x in e2[1:]: REQ_CLS["UNEXPLAINED:duplicate_requote_request"] += 1; x["cls"] = "UNEXPLAINED:duplicate_requote_request"; diffs.append("duplicate_requote_request")
                 if e2:
-                    x = e2[0]; lq = x["qty"] if x["sent"] else None
-                    # ★ R14-P2 (3): a missing (or not-sent) quantity does not make the SIDE / reduce-only / type evidence
-                    #   unreadable. v12 jumped straight to the unmeasurable branch and never looked at the owning row.
-                    _g, _bad = _own(x, pside, pro, "maker"); field_gaps += ["R2:" + z for z in _g]
-                    if _bad and lq is None: diffs.append("R2:" + ",".join(_bad)); verdicts.append("R2_MISMATCH")
-                    if not x["sent"]:
-                        unmeas.append(f"requote_ledger_not_sent:{x['state']}"); verdicts.append("R2_not_sent_ledger"); x["cls"] = "EXPLAINED"; REQ_CLS["EXPLAINED"] += 1
-                    elif lq is None:
+                    x = e2[0]; lq = x["qty"]
+                    if lq is None:
                         unmeas.append("requote_ledger_without_qty"); verdicts.append(f"R2_no_qty_evidence:{(row2 or {}).get('terminal_reason')}"); x["cls"] = "EXPLAINED"; REQ_CLS["EXPLAINED"] += 1
                     else:
                         n_qty_compared += 1
+                        _g, _bad = _own(x, pside, pro, "maker"); field_gaps += ["R2:" + z for z in _g]
                         qok = abs(lq - psq) <= 1e-9
                         ok = qok and not _bad
                         if ok: n_qty_equal += 1
@@ -422,28 +364,11 @@ for s in sorted(set(by_sym) | set(plan_by)):
                     unmeas.append("requote_row_without_ledger"); verdicts.append("R2_no_qty_evidence:no_ledger")
         # ---- R3: the top-up. residual = delta_notional − known maker fill notional (binance_executor.topup 409ea16 L1744/1826/1867-1873);
         #      |residual| < 1e-9 ⇒ the executor writes the maker row `filled` and NO top-up row; otherwise a top-up row MUST exist ----
-        # ★ R14-P2 (2): the residual must come from the rows that ACTUALLY CARRY the R1/R2 requests, not from whichever
-        #   maker row happens to be first. v12 validated the fields on the owning row but still read `filled_*` off row1,
-        #   so a ledger moved onto a second maker row (owner filled 10) while row1 recorded 25 gave residual 0, let the
-        #   top-up be skipped, and reported complete. Two rows may not be cherry-picked to prove one lifecycle.
-        def _fn_of(r):
-            if r is None: return None
-            fn = r.get("filled_known_notional")
-            return float(fn) if fn is not None else (float(r["filled_notional"]) if r.get("filled_notional") is not None else None)
-        own1 = e1[0]["row"] if e1 else row1
-        own2 = e2[0]["row"] if e2 else row2
         got = 0.0
-        for r in (own1, own2):
-            v = _fn_of(r)
-            if v is not None: got += v
-        for _lbl, _ownr, _alt in (("R1", own1, row1), ("R2", own2, row2)):                       # owner vs the other candidate row
-            if _ownr is not None and _alt is not None and _ownr is not _alt:
-                _vo, _va = _fn_of(_ownr), _fn_of(_alt)
-                if _vo is not None and _va is not None and abs(_vo - _va) > 1e-9:
-                    diffs.append(f"{_lbl}:owner_row_fill_contradicts_other_row")
-                    verdicts.append(f"{_lbl}_owner_row_fill_contradiction")
-                    e[_lbl + "_fill_contradiction"] = {"owner_row_attempt": _ownr.get("attempt_idx"), "owner_filled": _vo,
-                                                       "other_row_attempt": _alt.get("attempt_idx"), "other_filled": _va}
+        for r in (row1, row2):
+            if r is not None:
+                fn = r.get("filled_known_notional"); fn = r.get("filled_notional") if fn is None else fn
+                if fn is not None: got += float(fn)
         residual = float(p["delta_notional"]) - got; mid = mids.get(s)
         floor = float((sf.f.get(s) or {}).get("min_notional", 5.0) or 5.0)
         exp_q = sf.round_qty(s, residual / max(mid, 1e-9)) if mid else None                      # SIGNED expected chunk total
@@ -458,33 +383,25 @@ for s in sorted(set(by_sym) | set(plan_by)):
         if not rows3 and not rule_no_row and row1 is not None and row1.get("terminal_reason") not in (None, "venue_reject") and e1:
             missing.append("no_topup_row_though_residual_nonzero"); verdicts.append("R3_MISSING_ROW")
         if sent3:
-            n_not_sent = sum(1 for x in sent3 if not x["sent"])
-            n_missing_q = sum(1 for x in sent3 if x["sent"] and x["qty"] is None)
-            tq = sum(x["qty"] for x in sent3 if x["sent"] and x["qty"] is not None)
+            tq = sum(x["qty"] for x in sent3 if x["qty"] is not None)
+            n_missing_q = sum(1 for x in sent3 if x["qty"] is None)
             for x in sent3: x["cls"] = "EXPLAINED"; REQ_CLS["EXPLAINED"] += 1
-            # ★ R14-P2 (3): the chunks' SIDE / reduce-only / type are judged whether or not a quantity is present.
-            _cside = pside if exp_q is None else _sside(exp_q)
-            _bad3 = []; _g3 = []
-            for x in sent3:                                                                      # ★ R13-P1 (2): each chunk against ITS OWN row
-                gg, bb = _own(x, _cside, pro, "topup_taker"); _g3 += gg; _bad3 += bb
-            _bad3 = sorted(set(_bad3)); field_gaps += ["R3:" + z for z in sorted(set(_g3))]
-            e["R3"]["chunk_states"] = [x["state"] for x in sent3]
-            if n_not_sent or n_missing_q:
-                if _bad3: diffs.append("R3:" + ",".join(_bad3)); verdicts.append("R3_MISMATCH")
-                if n_not_sent:
-                    unmeas.append("topup_chunk_not_sent"); verdicts.append("R3_not_sent_ledger")
-                    e["R3"].update(n_chunks_not_sent=n_not_sent, planned_qty_not_sent=sum(x["qty"] for x in sent3 if not x["sent"] and x["qty"] is not None))
-                if n_missing_q:
-                    unmeas.append("topup_chunk_without_qty"); verdicts.append("R3_no_qty_evidence")
+            if n_missing_q:
+                unmeas.append("topup_chunk_without_qty"); verdicts.append("R3_no_qty_evidence")
             else:
                 n_qty_compared += 1
+                _cside = pside if exp_q is None else _sside(exp_q)
+                _bad3 = []; _g3 = []
+                for x in sent3:                                                                  # ★ R13-P1 (2): each chunk against ITS OWN row
+                    gg, bb = _own(x, _cside, pro, "topup_taker"); _g3 += gg; _bad3 += bb
+                field_gaps += ["R3:" + z for z in sorted(set(_g3))]
                 qok = (exp_q is not None) and abs(tq - float(exp_q)) <= 1e-9                     # v10 allowed one full lot AND compared |sum|
                 aok = (not rule_skip) and int_ok and chase_arms.get(s) != "no_chase" and s not in force_flat
                 ok = qok and not _bad3 and aok
                 if ok: n_qty_equal += 1
                 verdicts.append("R3_consistent" if ok else "R3_lifecycle_unexplained")
-                if not ok: diffs.append("R3:" + ",".join((["qty"] if not qok else []) + _bad3 + ([] if aok else ["rule"])))
-                e["R3"].update(sent_total_qty_signed=tq, qty_ok=qok, chunk_row_bad=_bad3, chunk_row_evidence_gaps=sorted(set(_g3)), rule_ok=aok)
+                if not ok: diffs.append("R3:" + ",".join((["qty"] if not qok else []) + sorted(set(_bad3)) + ([] if aok else ["rule"])))
+                e["R3"].update(sent_total_qty_signed=tq, qty_ok=qok, chunk_row_bad=sorted(set(_bad3)), chunk_row_evidence_gaps=sorted(set(_g3)), rule_ok=aok)
         for r in rows3:
             if r.get("request_ledger"): continue
             tr = r.get("terminal_reason")
@@ -546,7 +463,7 @@ summary = {"n_symbols_compared": len(cmp), "n_order_rows": n_rows, "n_plan_sent"
            "complete_parity": bool(n_qty_compared > 0 and n_unexpl == 0 and n_R1_mismatch == 0 and n_R1_reject == 0 and n_unmeasurable == 0
                                    and n_field_gaps == 0 and ident_plan and ident_req and A_ok == A_n and reshape_cmp["all_recorded_keys_equal"]),
            "categories": dict(cat)}
-out = {"device": "pc1_intent_replay.py", "version": "v13", "utc": time.strftime("%FT%TZ", time.gmtime()), "anchor": A, "utc_anchor": U(A), "rebalance_id": rid, "status": "OK",
+out = {"device": "pc1_intent_replay.py", "version": "v12", "utc": time.strftime("%FT%TZ", time.gmtime()), "anchor": A, "utc_anchor": U(A), "rebalance_id": rid, "status": "OK",
        "executor_tree": {"label": tree_label, "dir": tree_dir, "rule": "production reflog HEAD at phase_A run time (assumption: no uncommitted working-tree edits before commit time)",
                          "run_time_utc": time.strftime("%FT%TZ", time.gmtime(run_ts)) if run_ts else None, "current_head_rev_parse": tree_sha_check},
        "inputs": {"eq_pre_from_phase_A": eq_pre, "sizing_gross": G, "gross_norm": gross_norm, "target_gross_recorded": G_norm, "n_targets": len(tgt_file["weights"]), "n_held_prev_readback": len(held),
@@ -560,7 +477,7 @@ out = {"device": "pc1_intent_replay.py", "version": "v13", "utc": time.strftime(
                                                         "pre-trade notional = orders.prev_w × target_gross (executor's own decision-time valuation); contracts from the previous post_anchor readback",
                                                         "top-up legs are checked for remaining-quantity consistency only (chunking/skip rules), not replayed end-to-end"]}
 json.dump(out, open(OUT, "w"), indent=1, default=str)
-print("P-C1 v13", U(A), rid, "tree", tree_label, "| eq_pre", eq_pre, "gross", G, "| targets", len(tgt_file["weights"]), "held", len(held), "untradable", len(untr), "dust", len(dust["names"]), "force_flat", len(force_flat))
+print("P-C1 v12", U(A), rid, "tree", tree_label, "| eq_pre", eq_pre, "gross", G, "| targets", len(tgt_file["weights"]), "held", len(held), "untradable", len(untr), "dust", len(dust["names"]), "force_flat", len(force_flat))
 print("book layer exact %d / %d (max |Δ| %.6f USDT) | reshape keys equal %d / %d mismatch %s not_replayed %s" % (A_ok, A_n, A_max, len(reshape_cmp["equal"]), len(rec_rs), list(reshape_cmp["mismatch"])[:6], reshape_cmp["not_replayed"][:6]))
 print("requests:", {k: summary[k] for k in ("n_order_rows", "n_plan_sent", "R1_exact", "R1_reject_no_qty_evidence", "R1_intent_consistent_among_rejects", "R1_mismatch_or_missing", "R2_exact", "R3_consistent", "n_unexplained_or_mismatch", "all_measurable_exact", "complete_parity")})
 print("categories:", dict(cat))
