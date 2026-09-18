@@ -1,0 +1,117 @@
+{
+ "device": "v4_member_mask_liveness.py",
+ "self_sha256": "0704cde5132ade237d140dc69368a57f590449960672016644a48ae088602a31",
+ "utc": "2026-09-18T08:52:07Z",
+ "env": {
+  "CACHE": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+  "HOLE_CELLS": "/workspace/review_scratch/holefix2_cells.npz",
+  "OUT": "/workspace/fp2_2026-09/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+  "RECEIPT": "/workspace/fp2_2026-09/masks/RECEIPT_member_mask_liveness.json",
+  "MASK_IN": "/workspace/fp2_2026-09/masks/member_mask_tradable_W24H_cachegrid.npz",
+  "MASK_IN_SHA": "e0f67739faa10f191b5e6cdd50abd0455fbc30c5dad87d28d352d3018a3b3d7e"
+ },
+ "rule": "MEMBER_LIVENESS",
+ "window_rows": 288,
+ "checks": {
+  "C0 cache ts strictly increasing, 4h grid non-empty, ts axis == data rows": {
+   "ok": true,
+   "detail": {
+    "n_rows": 490753,
+    "n_symbols": 829,
+    "n_grid": 10225
+   }
+  },
+  "C1 cache channel 3 is log_qv": {
+   "ok": true,
+   "detail": {
+    "channels": [
+     "ret5",
+     "range",
+     "cpos",
+     "log_qv",
+     "log_cnt",
+     "log_avgsz",
+     "tbf"
+    ]
+   }
+  },
+  "C2 hole cells: symbols axis == cache; every (row, col) inside the cache": {
+   "ok": true,
+   "detail": {
+    "n_cells": 1422720,
+    "symbols_equal": true
+   }
+  },
+  "C3 MASK_IN: sha == declared, symbols == cache, bool [T, N], every grid anchor has a row": {
+   "ok": true,
+   "detail": {
+    "sha_ok": true,
+    "symbols_equal": true,
+    "dtype": "bool",
+    "shape": [
+     10225,
+     829
+    ],
+    "n_missing_anchors": 0,
+    "definition": "TRADABLE(W24H) at the anchor (SPEC_TRADABILITY), on the 5m cache 4h grid; training member mask for FP2-8 arm A1"
+   }
+  },
+  "W1 re-read == written (mask, ts, symbols)": {
+   "ok": true,
+   "detail": null
+  }
+ },
+ "VERDICT": "PASS",
+ "inputs": {
+  "cache": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+  "cache_sha256": "1d7f459dee434ec49e7714a2a612807f2e38e97f35c6c39471a8a4aaa7452488",
+  "hole_cells": "/workspace/review_scratch/holefix2_cells.npz",
+  "hole_cells_sha256": "6156f97a0709f073147e392d5b0cb542f6b6d463cc3be2500f8791a0d1a8dfda",
+  "mask_in": "/workspace/fp2_2026-09/masks/member_mask_tradable_W24H_cachegrid.npz",
+  "mask_in_sha256": "e0f67739faa10f191b5e6cdd50abd0455fbc30c5dad87d28d352d3018a3b3d7e",
+  "cache_shape": [
+   490753,
+   829,
+   7
+  ],
+  "n_hole_cells": 1422720
+ },
+ "result": {
+  "n_grid": 10225,
+  "grid_first": 1640995200,
+  "grid_last": 1788220800,
+  "n_short_window": 6,
+  "live_cells": 3459431,
+  "mask_cells": 3153350,
+  "cells_removed_beyond_mask_in": 15430,
+  "by_year": {
+   "2022": {
+    "n_anchors": 2190,
+    "live_frac": 0.174592,
+    "mask_frac": 0.17074
+   },
+   "2023": {
+    "n_anchors": 2190,
+    "live_frac": 0.239575,
+    "mask_frac": 0.22911
+   },
+   "2024": {
+    "n_anchors": 2196,
+    "live_frac": 0.354803,
+    "mask_frac": 0.33373
+   },
+   "2025": {
+    "n_anchors": 2190,
+    "live_frac": 0.58907,
+    "mask_frac": 0.534954
+   },
+   "2026": {
+    "n_anchors": 1459,
+    "live_frac": 0.820274,
+    "mask_frac": 0.70165
+   }
+  }
+ },
+ "out": "/workspace/fp2_2026-09/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+ "out_sha256": "9b59678b4529246cdf46fcc029f1cc36ea75e908aa1dcc63a4af9f8c67a2dfa7"
+}

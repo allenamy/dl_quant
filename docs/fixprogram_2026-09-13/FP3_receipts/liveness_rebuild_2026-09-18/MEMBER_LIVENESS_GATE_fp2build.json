@@ -1,0 +1,581 @@
+{
+ "device": "v4_gate_member_liveness.py",
+ "rule": "MEMBER_LIVENESS",
+ "window_rows": 288,
+ "env": {
+  "CACHE": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+  "HOLE_CELLS": "/workspace/review_scratch/holefix2_cells.npz",
+  "KING_META": "/workspace/fp2_2026-09/data/wide_fea_v4_meta.npz",
+  "DLW_TARGETS": "/workspace/fp2_2026-09/dlw_v4raw/data/dlw_targets.npz",
+  "OUT": "/workspace/fp2_2026-09/v4_gates/MEMBER_LIVENESS_GATE_fp2build.json",
+  "MEMBER_MASK": "/workspace/fp2_2026-09/masks/member_mask_tradable_W24H_cachegrid.npz",
+  "BUNDLE_CONFIG": ""
+ },
+ "PASS": false,
+ "refusals": [],
+ "sets": {
+  "wide_fea_v4_meta": {
+   "path": "/workspace/fp2_2026-09/data/wide_fea_v4_meta.npz",
+   "n_anchors": 10212,
+   "n_member_cells": 2751058,
+   "dead_but_member": 5726,
+   "n_short_window": 0,
+   "by_year": {
+    "2022": {
+     "member_cells": 308190,
+     "dead_but_member": 967,
+     "pct": 0.314
+    },
+    "2023": {
+     "member_cells": 410250,
+     "dead_but_member": 0,
+     "pct": 0.0
+    },
+    "2024": {
+     "member_cells": 600192,
+     "dead_but_member": 0,
+     "pct": 0.0
+    },
+    "2025": {
+     "member_cells": 849226,
+     "dead_but_member": 0,
+     "pct": 0.0
+    },
+    "2026": {
+     "member_cells": 583200,
+     "dead_but_member": 4759,
+     "pct": 0.816
+    }
+   },
+   "top_names": [
+    [
+     "AAOIUSDT",
+     62
+    ],
+    [
+     "AAPLUSDT",
+     62
+    ],
+    [
+     "AMDUSDT",
+     62
+    ],
+    [
+     "AMZNUSDT",
+     62
+    ],
+    [
+     "ARMUSDT",
+     62
+    ],
+    [
+     "ARXUSDT",
+     62
+    ],
+    [
+     "AXTIUSDT",
+     62
+    ],
+    [
+     "BABAUSDT",
+     62
+    ],
+    [
+     "BEUSDT",
+     62
+    ],
+    [
+     "BTWUSDT",
+     62
+    ],
+    [
+     "BZUSDT",
+     62
+    ],
+    [
+     "CAPUSDT",
+     62
+    ],
+    [
+     "CBRSUSDT",
+     62
+    ],
+    [
+     "CLUSDT",
+     62
+    ],
+    [
+     "COHRUSDT",
+     62
+    ],
+    [
+     "COINUSDT",
+     62
+    ],
+    [
+     "COPPERUSDT",
+     62
+    ],
+    [
+     "CRCLUSDT",
+     62
+    ],
+    [
+     "CRWVUSDT",
+     62
+    ],
+    [
+     "DELLUSDT",
+     62
+    ],
+    [
+     "DRAMUSDT",
+     62
+    ],
+    [
+     "EWYUSDT",
+     62
+    ],
+    [
+     "GLWUSDT",
+     62
+    ],
+    [
+     "GOOGLUSDT",
+     62
+    ],
+    [
+     "GRAMUSDT",
+     62
+    ]
+   ],
+   "spans": {
+    "AAOIUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "AAPLUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "AMDUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "AMZNUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "ARMUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "ARXUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "AXTIUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "BABAUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "BEUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "BTWUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "BZUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "CAPUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "CBRSUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "CLUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "COHRUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "COINUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "COPPERUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "CRCLUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "CRWVUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "DELLUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "DRAMUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "EWYUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "GLWUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "GOOGLUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "GRAMUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ]
+   },
+   "symbols_axis": "assumed cache axis (file carries no symbols key; member indices checked < N)",
+   "n_dead_names": 135
+  },
+  "dlw_v4raw_targets": {
+   "path": "/workspace/fp2_2026-09/dlw_v4raw/data/dlw_targets.npz",
+   "n_anchors": 10212,
+   "n_member_cells": 2751058,
+   "dead_but_member": 5726,
+   "n_short_window": 0,
+   "by_year": {
+    "2022": {
+     "member_cells": 308190,
+     "dead_but_member": 967,
+     "pct": 0.314
+    },
+    "2023": {
+     "member_cells": 410250,
+     "dead_but_member": 0,
+     "pct": 0.0
+    },
+    "2024": {
+     "member_cells": 600192,
+     "dead_but_member": 0,
+     "pct": 0.0
+    },
+    "2025": {
+     "member_cells": 849226,
+     "dead_but_member": 0,
+     "pct": 0.0
+    },
+    "2026": {
+     "member_cells": 583200,
+     "dead_but_member": 4759,
+     "pct": 0.816
+    }
+   },
+   "top_names": [
+    [
+     "AAOIUSDT",
+     62
+    ],
+    [
+     "AAPLUSDT",
+     62
+    ],
+    [
+     "AMDUSDT",
+     62
+    ],
+    [
+     "AMZNUSDT",
+     62
+    ],
+    [
+     "ARMUSDT",
+     62
+    ],
+    [
+     "ARXUSDT",
+     62
+    ],
+    [
+     "AXTIUSDT",
+     62
+    ],
+    [
+     "BABAUSDT",
+     62
+    ],
+    [
+     "BEUSDT",
+     62
+    ],
+    [
+     "BTWUSDT",
+     62
+    ],
+    [
+     "BZUSDT",
+     62
+    ],
+    [
+     "CAPUSDT",
+     62
+    ],
+    [
+     "CBRSUSDT",
+     62
+    ],
+    [
+     "CLUSDT",
+     62
+    ],
+    [
+     "COHRUSDT",
+     62
+    ],
+    [
+     "COINUSDT",
+     62
+    ],
+    [
+     "COPPERUSDT",
+     62
+    ],
+    [
+     "CRCLUSDT",
+     62
+    ],
+    [
+     "CRWVUSDT",
+     62
+    ],
+    [
+     "DELLUSDT",
+     62
+    ],
+    [
+     "DRAMUSDT",
+     62
+    ],
+    [
+     "EWYUSDT",
+     62
+    ],
+    [
+     "GLWUSDT",
+     62
+    ],
+    [
+     "GOOGLUSDT",
+     62
+    ],
+    [
+     "GRAMUSDT",
+     62
+    ]
+   ],
+   "spans": {
+    "AAOIUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "AAPLUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "AMDUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "AMZNUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "ARMUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "ARXUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "AXTIUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "BABAUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "BEUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "BTWUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "BZUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "CAPUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "CBRSUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "CLUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "COHRUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "COINUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "COPPERUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "CRCLUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "CRWVUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "DELLUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "DRAMUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "EWYUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "GLWUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "GOOGLUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ],
+    "GRAMUSDT": [
+     "2026-08-14 00Z",
+     "2026-08-24 04Z",
+     62
+    ]
+   },
+   "symbols_axis": "file == cache",
+   "n_dead_names": 135
+  }
+ },
+ "cache": {
+  "shape": [
+   490753,
+   829,
+   7
+  ],
+  "n_hole_cells": 1422720,
+  "ts_first": 1640995200,
+  "ts_last": 1788220800
+ },
+ "dead_but_member_total": 11452,
+ "verdict_rule": "PASS iff no refusal and dead-but-member cells == 0 in both produced member sets",
+ "gate": "MEMBER_LIVENESS",
+ "inputs_sha256": {
+  "cache": "1d7f459dee434ec49e7714a2a612807f2e38e97f35c6c39471a8a4aaa7452488",
+  "hole_cells": "6156f97a0709f073147e392d5b0cb542f6b6d463cc3be2500f8791a0d1a8dfda",
+  "wide_fea_v4_meta": "61e54c8cfaa67f6786fc0d8b4eeb023f2f6df8aff68b967d77b19c80b4cd1176",
+  "dlw_v4raw_targets": "be4e1129e323a67282f561cb3022f3c009a1388df0fd9307e97bf36955619e5b",
+  "member_mask": "e0f67739faa10f191b5e6cdd50abd0455fbc30c5dad87d28d352d3018a3b3d7e"
+ },
+ "inputs_path": {
+  "cache": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+  "hole_cells": "/workspace/review_scratch/holefix2_cells.npz",
+  "wide_fea_v4_meta": "/workspace/fp2_2026-09/data/wide_fea_v4_meta.npz",
+  "dlw_v4raw_targets": "/workspace/fp2_2026-09/dlw_v4raw/data/dlw_targets.npz",
+  "member_mask": "/workspace/fp2_2026-09/masks/member_mask_tradable_W24H_cachegrid.npz"
+ },
+ "utc": "2026-09-18T08:51:50Z",
+ "argv": [
+  "/workspace/fp2_2026-09/devices_v4chain/v4_gate_member_liveness.py"
+ ],
+ "self_sha256": "6c6b9791f0f1c458dc02ca509a6f086f09028bd14cd1ac91eaad4eed1ed87a7b",
+ "receipt_schema": "v4_gate_common/2 (gate, PASS, self_sha256, inputs_sha256 bound)"
+}
