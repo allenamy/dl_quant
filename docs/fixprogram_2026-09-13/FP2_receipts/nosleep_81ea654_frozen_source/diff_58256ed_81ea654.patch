@@ -1,0 +1,133 @@
+diff --git a/ops/check_nosleep.py b/ops/check_nosleep.py
+index 0e6819a..26658a5 100644
+--- a/ops/check_nosleep.py
++++ b/ops/check_nosleep.py
+@@ -137,13 +137,89 @@ def stored_sleep_settings():
+     return res
+ 
+ 
++ASL_DIR = "/var/log/powermanagement"     # powerd's own store; `pmset -g log` renders exactly these files (its first output line names the store)
++SLEEP_DOMAIN = "[com.apple.iokit.domain Sleep]"
++
++
++def _asl_files(since_epoch: float, asl_dir: str = ASL_DIR):
++    """The per-day ASL files that can hold an event at or after `since_epoch`: a file whose last
++    write is older than `since` cannot, so it is skipped without being read; the newest file is
++    always read (it is the live one). None when the directory cannot be listed — UNKNOWN is a
++    distinct value from 'no files'."""
++    try:
++        names = sorted(n for n in os.listdir(asl_dir) if n.endswith(".asl"))
++    except Exception:
++        return None
++    paths = [os.path.join(asl_dir, n) for n in names]
++    out = []
++    for i, p in enumerate(paths):
++        try:
++            if i == len(paths) - 1 or os.path.getmtime(p) >= since_epoch:
++                out.append(p)
++        except Exception:
++            continue
++    return out
++
++
++def parse_asl_raw(text: str, since_epoch: float):
++    """Sleep entries from `syslog -F raw` lines: a record is a sleep entry when its powerd domain
++    is Sleep (`[com.apple.iokit.domain Sleep]`) or its message is the 'Entering Sleep state' text
++    pmset renders; its time is the `[Time <epoch>]` key (UTC seconds, no timezone parsing)."""
++    evs = []
++    for line in text.splitlines():
++        if SLEEP_DOMAIN not in line and "Entering Sleep state" not in line:
++            continue
++        m = re.search(r"\[Time (\d+)\]", line)
++        if not m:
++            continue
++        t = float(m.group(1))
++        if t < since_epoch:
++            continue
++        r = re.search(r"due to '([^']+)'", line)
++        evs.append({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t)),
++                    "epoch": t, "reason": r.group(1) if r else "?"})
++    evs.sort(key=lambda e: e["epoch"])
++    return evs
++
++
++def sleep_events_detail(since_epoch: float, asl_dir: str = ASL_DIR, per_file_timeout: float = 60.0):
++    """Actual sleep entries since `since_epoch`, plus a note naming the source that was read.
++
++    ★ NOSLEEP-1 (2026-09-17): `pmset -g log` renders the WHOLE store — 185 MB / 825k lines / 74 s
++    on this machine by 09-17 (assertion spam from nsurlsessiond) — against the 60 s timeout this
++    reader had, so from 09-14 the read timed out intermittently and from 09-16 04:47Z on every
++    anchor: sleep_log_verified=False, guard red, with the machine never having slept. The bounded
++    reader below opens only the per-day files that can hold the window (`syslog -f`, ~1 s per
++    26 MB file) and parses the raw keys; the pmset path is kept only as a fallback for a store
++    that cannot be listed, with a timeout wide enough to finish.
++
++    Returns (events, note). events is None (not []) when the log could not be read: an EMPTY LIST
++    MEANS 'IT DID NOT SLEEP' and must never be produced by a failure to look."""
++    files = _asl_files(since_epoch, asl_dir)
++    if files is None:
++        evs = sleep_events_pmset(since_epoch)
++        return evs, ("pmset (asl store unlistable)" if evs is not None else "UNREADABLE: asl store unlistable and pmset failed")
++    if not files:
++        return None, "UNREADABLE: asl store holds no .asl file"
++    t0 = time.time(); evs = []
++    for p in files:
++        rc, out, err = _run(["syslog", "-f", p, "-F", "raw"], timeout=per_file_timeout)
++        if rc != 0:
++            return None, f"UNREADABLE: syslog -f {os.path.basename(p)} rc={rc} {err.strip()[:80]}"
++        evs.extend(parse_asl_raw(out, since_epoch))
++    evs.sort(key=lambda e: e["epoch"])
++    return evs, f"asl:{len(files)} file(s) {os.path.basename(files[0])}..{os.path.basename(files[-1])} in {time.time() - t0:.1f}s"
++
++
+ def sleep_events(since_epoch: float):
+-    """Actual 'Entering Sleep state' entries since `since_epoch`. ~3s — not for the hot path.
++    """Compatibility wrapper: events or None (see sleep_events_detail)."""
++    return sleep_events_detail(since_epoch)[0]
+ 
+-    Returns None (not []) when the log cannot be read: an EMPTY LIST MEANS 'IT DID NOT SLEEP' and
+-    must never be produced by a failure to look. Absence of evidence is its own value here.
+-    """
+-    rc, out, err = _run(["pmset", "-g", "log"], timeout=60)
++
++def sleep_events_pmset(since_epoch: float, timeout: float = 240.0):
++    """The original reader: `pmset -g log` rendered lines. Whole-store dump, minutes on a large
++    store — fallback only. None when it fails or times out."""
++    rc, out, err = _run(["pmset", "-g", "log"], timeout=timeout)
+     if rc != 0:
+         return None
+     evs = []
+@@ -173,9 +249,10 @@ def collect(lookback_h: float = 24.0, read_log: bool = True) -> dict:
+     tested against synthetic observations — a suite that goes red because someone unplugged the
+     laptop is a suite people learn to ignore."""
+     now = time.time()
++    evs, src = (sleep_events_detail(now - lookback_h * 3600) if read_log else ("NOT_READ", "not read (--quick)"))
+     return {"now": now, "agent": agent_pid(), "assertion": assertion_state(),
+             "power_source": power_source(), "lookback_h": lookback_h,
+-            "sleep_events": (sleep_events(now - lookback_h * 3600) if read_log else "NOT_READ"),
++            "sleep_events": evs, "sleep_log_source": src,
+             "stored": stored_sleep_settings()}
+ 
+ 
+@@ -263,6 +340,7 @@ def verdict(obs: dict) -> dict:
+             # expensive one — the exact shape of "a reading, but not of the quantity you asked
+             # about". The start gate requires sleep_log_verified.
+             "sleep_log_verified": bool(read_log and evs is not None),
++            "sleep_log_source": obs.get("sleep_log_source"),      # NOSLEEP-1: which reader produced the verdict's evidence (asl files / pmset / UNREADABLE …)
+             "n_sleep_events": (None if evs in (None, "NOT_READ") else len(evs)),
+             "sleep_events": (evs if evs in (None, "NOT_READ") else evs[-5:]),
+             "stored_settings_INSUFFICIENT": obs.get("stored"),
+diff --git a/scheduler/run_anchor.py b/scheduler/run_anchor.py
+index 0f67ffa..ef00c8f 100644
+--- a/scheduler/run_anchor.py
++++ b/scheduler/run_anchor.py
+@@ -870,7 +870,8 @@ def main() -> int:
+             f"| interval={_lb:.1f}h log_verified={_ns['sleep_log_verified']} "
+             f"slept_since_guard={_ns['n_sleep_since_guard']} "
+             f"slept_before_guard={_ns['n_sleep_before_guard']}"
+-            f"{' reasons=' + str(_reasons) if _reasons else ''}")
++            f"{' reasons=' + str(_reasons) if _reasons else ''}"
++            f" src={_ns.get('sleep_log_source')}")
+         if not _ns["ok"] and clock_started:
+             notifier.alarm("HIGH", f"防休眠守卫本轮不合格: {'; '.join(_ns['blocking'])[:220]} — "
+                                    f"机器可能在下一个锚点前休眠, 那会直接打掉 §2.5 完成率。")

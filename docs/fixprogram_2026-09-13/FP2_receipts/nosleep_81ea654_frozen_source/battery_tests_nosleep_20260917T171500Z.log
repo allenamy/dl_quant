@@ -1,0 +1,45 @@
+[N] the healthy shape
+  OK    everything in place -> ok
+  OK    and it says the sleep log WAS read
+
+[N] each failure blocks, and says which one
+  OK    agent not installed  — ['the anti-sleep agent com.dlquant.live.nosleep is NOT loaded (install: bash ops/install_nosleep.sh)']
+  OK    loaded but not running (KeepAlive's job)  — ['com.dlquant.live.nosleep is loaded but has NO PID — it is not running, which is what KeepAlive exists to prevent. Check state/nosleep_err.log.']
+  OK    nothing holds the assertion  — ['PreventUserIdleSystemSleep is NOT held by anything']
+  OK    ★ assertion held by SOMEBODY ELSE's process  — ["PreventUserIdleSystemSleep is held, but by ['caffeinate'] (pids [999]), NOT by our agent (pid 4242). A borrowed assertion reads exactly like a working one and disappears without warning."]
+  OK    ★ our assertion is TIMED (caffeinate -t) — a countdown that reads like a guard  — ['our assertion is TIMED, not permanent (pid 4242) — it expires on its own and then nothing is holding anything. caffeinate must run without -t.']
+  OK    pmset unreadable -> UNKNOWN, not a pass  — ['could not read pmset assertions (boom) — UNKNOWN, which is not a pass']
+  OK    on battery  — ['power source is BATTERY: the stored setting is sleep=10min there, and caffeinate -s is documented to apply on AC only. Plug it in.']
+  OK    power source unknown -> UNKNOWN is not a pass (and does not claim 'battery')  — ['power source is UNKNOWN — we could not read it, so we cannot say the sleep guard applies. UNKNOWN is not a pass.']
+  OK    ★ it slept WHILE THE GUARD WAS HELD  — ['the machine SLEPT 1x WHILE THE GUARD WAS HELD (Maintenance Sleep; most recent fixture) — the guard does not cover this cause. If the lid was closed, it must stay OPEN.']
+  OK    ★ sleep log unreadable -> UNKNOWN, never 'it did not sleep'  — ['could not read the sleep log — cannot tell whether it slept; UNKNOWN']
+  OK    ★ zero sleeps in zero guarded hours is not evidence  — ['the guard has held for only 0.02h; 6h of guarded, sleep-free time is required before the window may start. (Zero sleeps in zero hours is not evidence.)']
+
+[N] ★ the split at the guard: old sleeps are context, new ones are failures
+  OK    sleeps from BEFORE the guard do not block (they are why it exists)
+  OK    but they are REPORTED, not dropped
+  OK    ★ one sleep inside the guarded window blocks even though the older one does not  — ['the machine SLEPT 1x WHILE THE GUARD WAS HELD (Maintenance Sleep; most recent fixture) — the guard does not cover this cause. If the lid was closed, it must stay OPEN.']
+  OK    the two halves are BOTH required: a young guard with no sleeps still fails
+
+[N] the cheap check must not be mistaken for the expensive one
+  OK    --quick can still be ok (nothing detectably wrong right now)
+  OK    ★ but it reports sleep_log_verified=False, so a gate cannot read it as 'it did not sleep'
+  OK    and the count is None rather than 0 (absence is not zero)
+
+[N] the notes state what this check CANNOT establish
+  OK    lid-close is called unproven rather than safe
+  OK    the LaunchAgent-after-reboot hole is stated
+
+[ASL] NOSLEEP-1 (2026-09-17): the sleep log is read from the per-day store files, bounded, and UNKNOWN stays distinct from 'did not sleep'
+  OK    A1 parse: sleep-domain and 'Entering Sleep state' records are events (3), the assertion record is not; reason from the message, time from [Time]  — [{'utc': '1970-01-01T00:33:20Z', 'epoch': 2000.0, 'reason': 'Maintenance Sleep'}, {'utc': '1970-01-01T00:50:00Z', 'epoch': 3000.0, 'reason': '?'}, {'utc': '1970-01-01T01:06:40Z', 'epoch': 4000.0, 'reason': 'Clamshell Sleep'}]
+  OK    A2 since filter is on the record time
+  OK    A3 file selection by last-write time: only files that can hold the window are read, the newest always; a 1-day window reads one file, a 5-day window two  — (['2026.09.11.asl'], ['2026.09.08.asl', '2026.09.11.asl'])
+  OK    A4 end to end on a store dir: only the newest file is read for a 1-day window, records before `since` dropped, note names the source and the file  — ([{'utc': '2026-09-17T16:44:40Z', 'epoch': 1789663480.0, 'reason': '?'}, {'utc': '2026-09-17T17:01:20Z', 'epoch': 1789664480.0, 'reason': 'Clamshell Sleep'}], 'asl:1 file(s) 2026.09.11.asl..2026.09.11.asl in 0.0s')
+  OK    ★ A5 a failed read is None + UNREADABLE, never [] (absence of evidence is its own value)  — (None, 'UNREADABLE: syslog -f 2026.09.11.asl rc=1 boom')
+  OK    A6 store unlistable ⇒ pmset fallback; pmset failing too ⇒ None + UNREADABLE  — (None, 'UNREADABLE: asl store unlistable and pmset failed')
+  OK    A7 an empty store dir is UNREADABLE (None), not 'no sleeps'  — (None, 'UNREADABLE: asl store holds no .asl file')
+  OK    A8 the verdict carries the source note and an unreadable log still blocks as UNKNOWN  — ['could not read the sleep log — cannot tell whether it slept; UNKNOWN']
+  OK    ★★★ A9 THIS MACHINE (the condition production reported red for two days): a 4.5 h window reads as a LIST from the store files in under 20 s  — ('list', 'asl:2 file(s) 2026.09.17.asl..2026.09.18.asl in 1.8s', 1.8)
+  OK    ★★ A10 RED CAPABILITY, the old reader's failure shape: `pmset -g log` under a timeout it cannot meet returns None (UNKNOWN) — the whole-store render is what timed out  — (None, 0.5)
+
+ALL PASS
