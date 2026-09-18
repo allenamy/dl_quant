@@ -1,0 +1,2181 @@
+{
+ "kind": "FP3 legal-member model per-fold identity manifest",
+ "self_sha256": "1838f592c7723cc605b73f765e0ad3563dcb26e9bada3975a90cbdddfcd33b8f",
+ "root": "/workspace/fp3_live_2026-09",
+ "ws": "/workspace",
+ "generated_utc": "2026-09-18T15:01:38Z",
+ "supersedes": "seal.py (defective fixed-string seal, retained as red control)",
+ "registered_artefacts": {
+  "cache": {
+   "path": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+   "exists": true,
+   "sha256": "1d7f459dee434ec49e7714a2a612807f2e38e97f35c6c39471a8a4aaa7452488",
+   "bytes": 2087655898,
+   "verified": false,
+   "ref_source": null,
+   "note": "present; no independent witness records a sha to cross-check \u2014 existence + snapshot hash only"
+  },
+  "hole_cells": {
+   "path": "/workspace/review_scratch/holefix2_cells.npz",
+   "exists": true,
+   "sha256": "6156f97a0709f073147e392d5b0cb542f6b6d463cc3be2500f8791a0d1a8dfda",
+   "bytes": 22815370,
+   "verified": false,
+   "ref_source": null,
+   "note": "present; no independent witness records a sha to cross-check \u2014 existence + snapshot hash only"
+  },
+  "mask_liveness": {
+   "path": "/workspace/fp2_2026-09/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+   "exists": true,
+   "sha256": "9b59678b4529246cdf46fcc029f1cc36ea75e908aa1dcc63a4af9f8c67a2dfa7",
+   "bytes": 115943,
+   "ref_sha": "9b59678b4529246cdf46fcc029f1cc36ea75e908aa1dcc63a4af9f8c67a2dfa7",
+   "ref_source": "king.log:member_mask.sha256",
+   "ref_mode": "full",
+   "verified": true
+  },
+  "raw_patch": {
+   "path": "/workspace/fp2_2026-09/raw_patch.npz",
+   "exists": true,
+   "sha256": "adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b",
+   "bytes": 11961,
+   "verified": false,
+   "ref_source": null,
+   "note": "present; no independent witness records a sha to cross-check \u2014 existence + snapshot hash only"
+  },
+  "dlw_raw_targets": {
+   "path": "/workspace/fp3_live_2026-09/dlw_v4raw/data/dlw_targets.npz",
+   "exists": true,
+   "sha256": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+   "bytes": 192015259,
+   "ref_sha": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+   "ref_source": "f10_live_s42.json:inputs_sha256.targets",
+   "ref_mode": "full",
+   "verified": true
+  },
+  "dlw_clip_targets": {
+   "path": "/workspace/fp3_live_2026-09/dlw_hf3/data/dlw_targets.npz",
+   "exists": true,
+   "sha256": "9ecbfc70410c4f849d86a490b0f2c035ed75afec509d7452cba9d82ec50f09bf",
+   "bytes": 192015259,
+   "verified": false,
+   "ref_source": null,
+   "note": "present; no independent witness records a sha to cross-check \u2014 existence + snapshot hash only"
+  },
+  "fea82": {
+   "path": "/workspace/fp3_live_2026-09/dlw_v4raw/data/dlw_fea82.npz",
+   "exists": true,
+   "sha256": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+   "bytes": 467531910,
+   "ref_sha": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+   "ref_source": "f10_live_s42.json:inputs_sha256.fea82",
+   "ref_mode": "full",
+   "verified": true
+  },
+  "fea89": {
+   "path": "/workspace/fp3_live_2026-09/f8_v4/data/f8_fea89.npz",
+   "exists": true,
+   "sha256": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+   "bytes": 995557382,
+   "ref_sha": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+   "ref_source": "f10_live_s42.json:inputs_sha256.fea89",
+   "ref_mode": "full",
+   "verified": true
+  },
+  "king_fea": {
+   "path": "/workspace/fp3_live_2026-09/data/wide_fea_v4.npy",
+   "exists": true,
+   "sha256": "fe59c9ccd4a5cfd7c4c4644ddd05780d5cdfe5b9a8967140b294bd977be9147c",
+   "bytes": 1388382800,
+   "verified": false,
+   "ref_source": null,
+   "note": "present; no independent witness records a sha to cross-check \u2014 existence + snapshot hash only"
+  },
+  "king_meta": {
+   "path": "/workspace/fp3_live_2026-09/data/wide_fea_v4_meta.npz",
+   "exists": true,
+   "sha256": "61b7cdc72788d5dc6e5e4418e3ea8de168e22af4a38780f57a7043fa307550cc",
+   "bytes": 25518047,
+   "verified": false,
+   "ref_source": null,
+   "note": "present; no independent witness records a sha to cross-check \u2014 existence + snapshot hash only"
+  },
+  "king_slow_pred": {
+   "path": "/workspace/fp3_live_2026-09/shadow_bundle_L/slow_pred_pinned.npy",
+   "exists": true,
+   "sha256": "d0dd1a4cb244b2feda4574288ea9fba3951df7cc35f565aeda0b60fb0b082a35",
+   "bytes": 33863120,
+   "ref_sha": "d0dd1a4cb244b2fe",
+   "ref_source": "model.log:MODEL_PREP_DONE king=",
+   "ref_mode": "prefix16",
+   "verified": true
+  },
+  "king_booster": {
+   "path": "/workspace/fp3_live_2026-09/shadow_bundle_L/slow2026.txt",
+   "exists": true,
+   "sha256": "404d14e3433d07ca4f758bf68fa67f99ea74a8b4711d137ccd89236325e30265",
+   "bytes": 2390627,
+   "verified": false,
+   "ref_source": null,
+   "note": "present; no independent witness records a sha to cross-check \u2014 existence + snapshot hash only"
+  },
+  "legs": {
+   "path": "/workspace/fp3_live_2026-09/f8_v4/data/f10v2_legs.npz",
+   "exists": true,
+   "sha256": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039",
+   "bytes": 67936424,
+   "ref_sha": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039",
+   "ref_source": "f10_live_s42.json:inputs_sha256.legs",
+   "ref_mode": "full",
+   "verified": true
+  },
+  "f10_live_s42": {
+   "path": "/workspace/fp3_live_2026-09/f8_v4/models/f10_live_s42.pt",
+   "exists": true,
+   "sha256": "0eaaf6ae620db2dd4927d43f976cfa34a1cab0268b69c034aa8d14d8115960a5",
+   "bytes": 447572,
+   "ref_sha": "0eaaf6ae620db2dd4927d43f976cfa34a1cab0268b69c034aa8d14d8115960a5",
+   "ref_source": "f10_live_s42.json:pt_sha256",
+   "ref_mode": "full",
+   "verified": true
+  },
+  "f10_live_s2027": {
+   "path": "/workspace/fp3_live_2026-09/f8_v4/models/f10_live_s2027.pt",
+   "exists": true,
+   "sha256": "e336f06e09f5bff8728e23578453f5b884310e597769d221a0990ade11fe7051",
+   "bytes": 447602,
+   "ref_sha": "e336f06e09f5bff8728e23578453f5b884310e597769d221a0990ade11fe7051",
+   "ref_source": "f10_live_s2027.json:pt_sha256",
+   "ref_mode": "full",
+   "verified": true
+  },
+  "np_s42": {
+   "path": "/workspace/fp3_live_2026-09/np_export/f10_np_s42.npz",
+   "exists": true,
+   "sha256": "1eea6219400100e0ef8b0d3d3d8252de5fa2ae068c39f19bfe504019ab1c1227",
+   "bytes": 450190,
+   "ref_sha": "1eea6219400100e0ef8b0d3d3d8252de5fa2ae068c39f19bfe504019ab1c1227",
+   "ref_source": "NP_EXPORT_s42.json:npz_sha256",
+   "ref_mode": "full",
+   "verified": true
+  },
+  "np_s2027": {
+   "path": "/workspace/fp3_live_2026-09/np_export/f10_np_s2027.npz",
+   "exists": true,
+   "sha256": "063b51ceaab87b40863b2a3899116c36e991a6c0ab3c3ecf0b99a36167f01439",
+   "bytes": 450198,
+   "ref_sha": "063b51ceaab87b40863b2a3899116c36e991a6c0ab3c3ecf0b99a36167f01439",
+   "ref_source": "NP_EXPORT_s2027.json:npz_sha256",
+   "ref_mode": "full",
+   "verified": true
+  }
+ },
+ "folds": [
+  {
+   "seed": 42,
+   "month": "202501",
+   "shard": "shard0",
+   "trained_on_month": "202501",
+   "label_cutoff": "2024-12-31 20:00",
+   "test_range": [
+    "2025-01-01 00:00",
+    "2025-01-31 20:00"
+   ],
+   "n_train": 6563,
+   "n_val": 985,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "44b154a441198484663f58f344b7799ce1fc5891c028cd24b87770ec0286fcff",
+   "recorded_preds_fold_sha256": "41946bf29378ca083f1328e046bdb66c7b5542fd7b39cbb0032a10c273b23505",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard0/models/mE1cX7_202501.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard0/preds_fold/mE1cX7_202501.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202502",
+   "shard": "shard1",
+   "trained_on_month": "202502",
+   "label_cutoff": "2025-01-31 20:00",
+   "test_range": [
+    "2025-02-01 00:00",
+    "2025-02-28 20:00"
+   ],
+   "n_train": 6749,
+   "n_val": 1013,
+   "n_test": 168,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "256977fc8011335d6b3940e0fba863b4d6ed4268d0272cac7105f0e67fd8c859",
+   "recorded_preds_fold_sha256": "8a7d180415de0972661b48ad9d8dfa46c0b2f8790f2b95fe242221af3a2ec438",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard1/models/mE1cX7_202502.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard1/preds_fold/mE1cX7_202502.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202503",
+   "shard": "shard2",
+   "trained_on_month": "202503",
+   "label_cutoff": "2025-02-28 20:00",
+   "test_range": [
+    "2025-03-01 00:00",
+    "2025-03-31 20:00"
+   ],
+   "n_train": 6917,
+   "n_val": 1038,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "a727b4604e6d4e6ed481fe15d680c4161a76b551a9d8b76903b05969d508f5ba",
+   "recorded_preds_fold_sha256": "a122c6b0ea05180994bd3d1150650f7488bae7669d6063acfa87bf6a4d340c9b",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard2/models/mE1cX7_202503.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard2/preds_fold/mE1cX7_202503.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202504",
+   "shard": "shard3",
+   "trained_on_month": "202504",
+   "label_cutoff": "2025-03-31 20:00",
+   "test_range": [
+    "2025-04-01 00:00",
+    "2025-04-30 20:00"
+   ],
+   "n_train": 7103,
+   "n_val": 1066,
+   "n_test": 180,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "43af30a58476c0d44cf3e4f947ecd308fa53bd98e6beb69eb9ec83a2b465c5c0",
+   "recorded_preds_fold_sha256": "edd497666aeaf1f81e5f6a9f7fd7d2ace43dbf4dd59e0ee9817d69085564690e",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard3/models/mE1cX7_202504.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard3/preds_fold/mE1cX7_202504.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202505",
+   "shard": "shard0",
+   "trained_on_month": "202505",
+   "label_cutoff": "2025-04-30 20:00",
+   "test_range": [
+    "2025-05-01 00:00",
+    "2025-05-31 20:00"
+   ],
+   "n_train": 7283,
+   "n_val": 1093,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "3abbb16a2a827c4f8259c80a6daf946df9adc6046d9146f824e9c6e0231ec9c3",
+   "recorded_preds_fold_sha256": "bf338f2da0a585cf171dc320d6d62217e6a735f4cc22d3576119f13a070ff774",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard0/models/mE1cX7_202505.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard0/preds_fold/mE1cX7_202505.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202506",
+   "shard": "shard1",
+   "trained_on_month": "202506",
+   "label_cutoff": "2025-05-31 20:00",
+   "test_range": [
+    "2025-06-01 00:00",
+    "2025-06-30 20:00"
+   ],
+   "n_train": 7469,
+   "n_val": 1121,
+   "n_test": 180,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "97beb2b2bcead0f9fa808495be7e5dc0978dfd5df411e47611c1792e3756f1ed",
+   "recorded_preds_fold_sha256": "1defd91fac705ff2d0261c54416536b708c3e852c1d3bbd99e285d1e8fdfbba0",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard1/models/mE1cX7_202506.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard1/preds_fold/mE1cX7_202506.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202507",
+   "shard": "shard2",
+   "trained_on_month": "202507",
+   "label_cutoff": "2025-06-30 20:00",
+   "test_range": [
+    "2025-07-01 00:00",
+    "2025-07-31 20:00"
+   ],
+   "n_train": 7649,
+   "n_val": 1148,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "ba791c39c5ad999de3f1d9922a5ead04949d1c28dc068e5bd2fa2dae7255e0b8",
+   "recorded_preds_fold_sha256": "e5d428c89a795a7715599981b8a664d7c9ed8e5e0bc90a43ebd6185ff177d371",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard2/models/mE1cX7_202507.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard2/preds_fold/mE1cX7_202507.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202508",
+   "shard": "shard3",
+   "trained_on_month": "202508",
+   "label_cutoff": "2025-07-31 20:00",
+   "test_range": [
+    "2025-08-01 00:00",
+    "2025-08-31 20:00"
+   ],
+   "n_train": 7835,
+   "n_val": 1176,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "fdec320e16a6bc46720d4d580865e9ae6847a3dc5373cc8e96a4f06a98f8c2ea",
+   "recorded_preds_fold_sha256": "5b179f1e30f6be6ea02222d62c6ea9b0cafda3b57c9d115d804977ee4d78dea6",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard3/models/mE1cX7_202508.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard3/preds_fold/mE1cX7_202508.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202509",
+   "shard": "shard0",
+   "trained_on_month": "202509",
+   "label_cutoff": "2025-08-31 20:00",
+   "test_range": [
+    "2025-09-01 00:00",
+    "2025-09-30 20:00"
+   ],
+   "n_train": 8021,
+   "n_val": 1204,
+   "n_test": 180,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "d7e1f971b8d0ae55186a97bba9532118c19923623cfce0107898fc482d7b4032",
+   "recorded_preds_fold_sha256": "a100c24d921167a0dbdb3fcb48e907aeb799bb7124bcc3811a1a5d8036055632",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard0/models/mE1cX7_202509.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard0/preds_fold/mE1cX7_202509.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202510",
+   "shard": "shard1",
+   "trained_on_month": "202510",
+   "label_cutoff": "2025-09-30 20:00",
+   "test_range": [
+    "2025-10-01 00:00",
+    "2025-10-31 20:00"
+   ],
+   "n_train": 8201,
+   "n_val": 1231,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "80ca11e3b62f5cbed03e6596647c6efaf8d3dfe796d1a2a9e6bad51bf7862e53",
+   "recorded_preds_fold_sha256": "e756c2ee9962dbf9773558842a8ab36035b879f210b56a55663d9e6057ab2122",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard1/models/mE1cX7_202510.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard1/preds_fold/mE1cX7_202510.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202511",
+   "shard": "shard2",
+   "trained_on_month": "202511",
+   "label_cutoff": "2025-10-31 20:00",
+   "test_range": [
+    "2025-11-01 00:00",
+    "2025-11-30 20:00"
+   ],
+   "n_train": 8387,
+   "n_val": 1259,
+   "n_test": 180,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "8e130c9c2e20c2a12f3ef9b4ccecb2a3776712df56cea7c85f2a4b3b10a0076e",
+   "recorded_preds_fold_sha256": "7642e55cf971c8c6ee1faf2878e031f84c009573f91b743f2f7c897f9737e136",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard2/models/mE1cX7_202511.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard2/preds_fold/mE1cX7_202511.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202512",
+   "shard": "shard3",
+   "trained_on_month": "202512",
+   "label_cutoff": "2025-11-30 20:00",
+   "test_range": [
+    "2025-12-01 00:00",
+    "2025-12-31 20:00"
+   ],
+   "n_train": 8567,
+   "n_val": 1286,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "cf99dc6e9605da35d552f82cbda2ec04852c40e10b91b1a84e190a95e7bdf6a6",
+   "recorded_preds_fold_sha256": "1e8e87c35f8f2b91e32dc06c69a167cb7302853e63debaf66e51e0d4ebb03581",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard3/models/mE1cX7_202512.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard3/preds_fold/mE1cX7_202512.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202601",
+   "shard": "shard0",
+   "trained_on_month": "202601",
+   "label_cutoff": "2025-12-31 20:00",
+   "test_range": [
+    "2026-01-01 00:00",
+    "2026-01-31 20:00"
+   ],
+   "n_train": 8753,
+   "n_val": 1313,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "01103482789e7d34200ef8707497b90a7e958597deaffc169254dc5ffd1f1184",
+   "recorded_preds_fold_sha256": "d530249470426a020b5d9faa25cde6822a68ccbbbc5440455dd817525ca29cbd",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard0/models/mE1cX7_202601.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard0/preds_fold/mE1cX7_202601.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202602",
+   "shard": "shard1",
+   "trained_on_month": "202602",
+   "label_cutoff": "2026-01-31 20:00",
+   "test_range": [
+    "2026-02-01 00:00",
+    "2026-02-28 20:00"
+   ],
+   "n_train": 8939,
+   "n_val": 1341,
+   "n_test": 168,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "104104bf481bf35dd77fe12ef5282ce5da787ca3d7e0baaf0eeb75cc14ca4d98",
+   "recorded_preds_fold_sha256": "e326e631197a3ade6c8a346dc100198385ce5de3ca64f52e1afaf16d5f5933a2",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard1/models/mE1cX7_202602.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard1/preds_fold/mE1cX7_202602.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202603",
+   "shard": "shard2",
+   "trained_on_month": "202603",
+   "label_cutoff": "2026-02-28 20:00",
+   "test_range": [
+    "2026-03-01 00:00",
+    "2026-03-31 20:00"
+   ],
+   "n_train": 9107,
+   "n_val": 1367,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "6878f46fd100db6c1a7c62f4b7c958460b141e7c297fad7d626a2cabe48af5ff",
+   "recorded_preds_fold_sha256": "91ffdac3c10d955997b61191470ea9b8e55f34d3518a562848f2c4fc597d1eb9",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard2/models/mE1cX7_202603.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard2/preds_fold/mE1cX7_202603.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202604",
+   "shard": "shard3",
+   "trained_on_month": "202604",
+   "label_cutoff": "2026-03-31 20:00",
+   "test_range": [
+    "2026-04-01 00:00",
+    "2026-04-30 20:00"
+   ],
+   "n_train": 9293,
+   "n_val": 1394,
+   "n_test": 180,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "dc4b73c704f452c33fc0c1aba8ee802fc508d90a9fa4e9df48cab909bd1c28e7",
+   "recorded_preds_fold_sha256": "ae829f8540fc91239533f2df28e70ccdabc2c3740d3d86f0c8b1e0e628b3745b",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard3/models/mE1cX7_202604.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard3/preds_fold/mE1cX7_202604.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202605",
+   "shard": "shard0",
+   "trained_on_month": "202605",
+   "label_cutoff": "2026-04-30 20:00",
+   "test_range": [
+    "2026-05-01 00:00",
+    "2026-05-31 20:00"
+   ],
+   "n_train": 9473,
+   "n_val": 1421,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "c3288b7e5a330864f2c6d732615a8c3e439e526c63abaaba410f7c812640653d",
+   "recorded_preds_fold_sha256": "fdd160f86b32054e54a02c91653e241a835747cc8b4602d2f5c2f4b15d2a6eb0",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard0/models/mE1cX7_202605.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard0/preds_fold/mE1cX7_202605.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202606",
+   "shard": "shard1",
+   "trained_on_month": "202606",
+   "label_cutoff": "2026-05-31 20:00",
+   "test_range": [
+    "2026-06-01 00:00",
+    "2026-06-30 20:00"
+   ],
+   "n_train": 9659,
+   "n_val": 1449,
+   "n_test": 180,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "b643937e7c89110ff887d52ab29b8992386cc02c23e7c49e82040b1e3a1e8f78",
+   "recorded_preds_fold_sha256": "4c9509754efae30023664b7d8909bab20dab5a1b2db4cf1407ed105f52ead6d9",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard1/models/mE1cX7_202606.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard1/preds_fold/mE1cX7_202606.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202607",
+   "shard": "shard2",
+   "trained_on_month": "202607",
+   "label_cutoff": "2026-06-30 20:00",
+   "test_range": [
+    "2026-07-01 00:00",
+    "2026-07-31 20:00"
+   ],
+   "n_train": 9839,
+   "n_val": 1476,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "6990a822d27a522b4d40f660e4930a36388542fa702fd76baecfe3b52e477c72",
+   "recorded_preds_fold_sha256": "5b423beee843793bb25b06de963ed96fc6709b3dd7c0094d5863e03d5f4d5ecf",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard2/models/mE1cX7_202607.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard2/preds_fold/mE1cX7_202607.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 42,
+   "month": "202608",
+   "shard": "shard3",
+   "trained_on_month": "202608",
+   "label_cutoff": "2026-07-31 20:00",
+   "test_range": [
+    "2026-08-01 00:00",
+    "2026-08-31 20:00"
+   ],
+   "n_train": 10025,
+   "n_val": 1504,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "5d553375532c672118d0ac10eb764a65d9f3c5adf8e6320c68916937b8bfeea0",
+   "recorded_preds_fold_sha256": "4fa88183f22ca9e85335004e83eff29b73a3fa9b1bfeb174f9836f26f23eb692",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard3/models/mE1cX7_202608.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s42/shard3/preds_fold/mE1cX7_202608.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202501",
+   "shard": "shard0",
+   "trained_on_month": "202501",
+   "label_cutoff": "2024-12-31 20:00",
+   "test_range": [
+    "2025-01-01 00:00",
+    "2025-01-31 20:00"
+   ],
+   "n_train": 6563,
+   "n_val": 985,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "cf715868c97bbe5a2ca89e051b91a2e13c006dc4989aaee22d339bbcd97ecbb8",
+   "recorded_preds_fold_sha256": "880bb5be8784955ce3cdc1e86253f472d6a795052df237af3a4ea9361843f4ef",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard0/models/mE1cX7_202501.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard0/preds_fold/mE1cX7_202501.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202502",
+   "shard": "shard1",
+   "trained_on_month": "202502",
+   "label_cutoff": "2025-01-31 20:00",
+   "test_range": [
+    "2025-02-01 00:00",
+    "2025-02-28 20:00"
+   ],
+   "n_train": 6749,
+   "n_val": 1013,
+   "n_test": 168,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "c92054e2f4444669cd6a5cf0b3a63b8aac5f62e0786f2c4c4af8a4228b165f5f",
+   "recorded_preds_fold_sha256": "bda129ad1baad1adf7ba2863281417b6efd20152c91cb9a096719b01e4a520ca",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard1/models/mE1cX7_202502.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard1/preds_fold/mE1cX7_202502.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202503",
+   "shard": "shard2",
+   "trained_on_month": "202503",
+   "label_cutoff": "2025-02-28 20:00",
+   "test_range": [
+    "2025-03-01 00:00",
+    "2025-03-31 20:00"
+   ],
+   "n_train": 6917,
+   "n_val": 1038,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "67805cbe68ea929186a28d29585ecbaa4be52646abdf1e72db255ed7d7e24c81",
+   "recorded_preds_fold_sha256": "905d2963bf56925e847b0addc77782017ea341c76a8bc7822b82973e134db1c7",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard2/models/mE1cX7_202503.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard2/preds_fold/mE1cX7_202503.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202504",
+   "shard": "shard3",
+   "trained_on_month": "202504",
+   "label_cutoff": "2025-03-31 20:00",
+   "test_range": [
+    "2025-04-01 00:00",
+    "2025-04-30 20:00"
+   ],
+   "n_train": 7103,
+   "n_val": 1066,
+   "n_test": 180,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "d6a3290efcac919368b5528da6387f311305bc60cc02bad03db2f078f4799e45",
+   "recorded_preds_fold_sha256": "30a8320f24798583cf73b75486cfd0bcc3c9b609805147ef9468482ebbc426d6",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard3/models/mE1cX7_202504.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard3/preds_fold/mE1cX7_202504.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202505",
+   "shard": "shard0",
+   "trained_on_month": "202505",
+   "label_cutoff": "2025-04-30 20:00",
+   "test_range": [
+    "2025-05-01 00:00",
+    "2025-05-31 20:00"
+   ],
+   "n_train": 7283,
+   "n_val": 1093,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "f1ab7f5055eb8cc3048b419ffb640e77596fa93ebeace25aeeebcd7c45238535",
+   "recorded_preds_fold_sha256": "3c31713be539ed3e7495a2d5a21fd3d89bde93c7f92675ef0d9fe518fc119e87",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard0/models/mE1cX7_202505.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard0/preds_fold/mE1cX7_202505.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202506",
+   "shard": "shard1",
+   "trained_on_month": "202506",
+   "label_cutoff": "2025-05-31 20:00",
+   "test_range": [
+    "2025-06-01 00:00",
+    "2025-06-30 20:00"
+   ],
+   "n_train": 7469,
+   "n_val": 1121,
+   "n_test": 180,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "86c3abf22f3ccf208db1489b674a6a10427b524da8ff8d552f969e45b57df1b1",
+   "recorded_preds_fold_sha256": "deeb7748c66164fb74e0686fd39853598736402cc0de10ac14acd8acc7787e12",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard1/models/mE1cX7_202506.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard1/preds_fold/mE1cX7_202506.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202507",
+   "shard": "shard2",
+   "trained_on_month": "202507",
+   "label_cutoff": "2025-06-30 20:00",
+   "test_range": [
+    "2025-07-01 00:00",
+    "2025-07-31 20:00"
+   ],
+   "n_train": 7649,
+   "n_val": 1148,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "85e23d6cc01faeec84d0b8e0d0ce62936a54dd8981b7a702e032d7fe42bcb869",
+   "recorded_preds_fold_sha256": "50f5470231521990c50396d438dc50e777f38f155a82a1a2e9cad78605a1f0b1",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard2/models/mE1cX7_202507.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard2/preds_fold/mE1cX7_202507.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202508",
+   "shard": "shard3",
+   "trained_on_month": "202508",
+   "label_cutoff": "2025-07-31 20:00",
+   "test_range": [
+    "2025-08-01 00:00",
+    "2025-08-31 20:00"
+   ],
+   "n_train": 7835,
+   "n_val": 1176,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "a37f82c7933a64e91cedbe9fabd4b5a25be9370b946b071e8d0043ece8d932fb",
+   "recorded_preds_fold_sha256": "7ac6d8618c6c8493462a500044274ccb2658b47f5e5cd8b56c2656dddae45a58",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard3/models/mE1cX7_202508.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard3/preds_fold/mE1cX7_202508.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202509",
+   "shard": "shard0",
+   "trained_on_month": "202509",
+   "label_cutoff": "2025-08-31 20:00",
+   "test_range": [
+    "2025-09-01 00:00",
+    "2025-09-30 20:00"
+   ],
+   "n_train": 8021,
+   "n_val": 1204,
+   "n_test": 180,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "a4fbbbfbde2d0eb1ec672441da3a8626f990de2b65e57581a030406ff0b590ca",
+   "recorded_preds_fold_sha256": "490024acffb0547d094aea5bf2125c65ba57f6b422846a5aca2d21cfe9e52325",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard0/models/mE1cX7_202509.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard0/preds_fold/mE1cX7_202509.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202510",
+   "shard": "shard1",
+   "trained_on_month": "202510",
+   "label_cutoff": "2025-09-30 20:00",
+   "test_range": [
+    "2025-10-01 00:00",
+    "2025-10-31 20:00"
+   ],
+   "n_train": 8201,
+   "n_val": 1231,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "cd15d959e959d9739f7aefbe16dea497380458993d1a8cd15d61fd7b16dfe1b4",
+   "recorded_preds_fold_sha256": "c9759ae754a50654164ad42e5a00e6f0c3a9260c36e350b3d1a2824a0bc76c91",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard1/models/mE1cX7_202510.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard1/preds_fold/mE1cX7_202510.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202511",
+   "shard": "shard2",
+   "trained_on_month": "202511",
+   "label_cutoff": "2025-10-31 20:00",
+   "test_range": [
+    "2025-11-01 00:00",
+    "2025-11-30 20:00"
+   ],
+   "n_train": 8387,
+   "n_val": 1259,
+   "n_test": 180,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "335499265e63f1e176a3725a17d2700f08be1b9bff9b243c6369069701a30220",
+   "recorded_preds_fold_sha256": "686a66fe85f41a0d6ac1398f567e652245b3f000a677151cefccb055fa6b29ed",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard2/models/mE1cX7_202511.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard2/preds_fold/mE1cX7_202511.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202512",
+   "shard": "shard3",
+   "trained_on_month": "202512",
+   "label_cutoff": "2025-11-30 20:00",
+   "test_range": [
+    "2025-12-01 00:00",
+    "2025-12-31 20:00"
+   ],
+   "n_train": 8567,
+   "n_val": 1286,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "4137ba589529a3090a52ff8ba51da2bf9efaeb1f3a83961813f960717b4ffc17",
+   "recorded_preds_fold_sha256": "6ccc8ab33f10a3c9483f2a1d8c83a3b745a99803f225566d9edadef1fecea800",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard3/models/mE1cX7_202512.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard3/preds_fold/mE1cX7_202512.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202601",
+   "shard": "shard0",
+   "trained_on_month": "202601",
+   "label_cutoff": "2025-12-31 20:00",
+   "test_range": [
+    "2026-01-01 00:00",
+    "2026-01-31 20:00"
+   ],
+   "n_train": 8753,
+   "n_val": 1313,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "c58bc7cfa433d74df2f46dca92931a6a9196287fc77d0f857e175f6a95b32ef8",
+   "recorded_preds_fold_sha256": "aaf5dfd2d542d256f87fb92fd83d77aaa0862e580c65246e4b4bda6b383d3d64",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard0/models/mE1cX7_202601.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard0/preds_fold/mE1cX7_202601.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202602",
+   "shard": "shard1",
+   "trained_on_month": "202602",
+   "label_cutoff": "2026-01-31 20:00",
+   "test_range": [
+    "2026-02-01 00:00",
+    "2026-02-28 20:00"
+   ],
+   "n_train": 8939,
+   "n_val": 1341,
+   "n_test": 168,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "c5a01265ebf51209b4564c66f9c3c12cc1ca985d8d153415adbeea0b580bcdfb",
+   "recorded_preds_fold_sha256": "981cda24f8a7d1fdbb1dcae8e82d382d2a281691163464edb9d075a59a815ab0",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard1/models/mE1cX7_202602.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard1/preds_fold/mE1cX7_202602.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202603",
+   "shard": "shard2",
+   "trained_on_month": "202603",
+   "label_cutoff": "2026-02-28 20:00",
+   "test_range": [
+    "2026-03-01 00:00",
+    "2026-03-31 20:00"
+   ],
+   "n_train": 9107,
+   "n_val": 1367,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "ceb5b39beb09aa197bd29a66021c7a177a4a42e40b191ccd51865f5b4628b8ba",
+   "recorded_preds_fold_sha256": "094dfa4552d7486404e7514097c50823b1adfeede2c87eba3223bc5efcb008bf",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard2/models/mE1cX7_202603.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard2/preds_fold/mE1cX7_202603.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202604",
+   "shard": "shard3",
+   "trained_on_month": "202604",
+   "label_cutoff": "2026-03-31 20:00",
+   "test_range": [
+    "2026-04-01 00:00",
+    "2026-04-30 20:00"
+   ],
+   "n_train": 9293,
+   "n_val": 1394,
+   "n_test": 180,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "2a17840db18eb6c6a9f69b53e102dc4beb77af1e1c982cbcd82ef5ccfcf5b7bc",
+   "recorded_preds_fold_sha256": "fe69b1eb6f2a7df5ee8accc315328c6f9fd4f91bab4732753c692d9d92c645a4",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard3/models/mE1cX7_202604.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard3/preds_fold/mE1cX7_202604.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202605",
+   "shard": "shard0",
+   "trained_on_month": "202605",
+   "label_cutoff": "2026-04-30 20:00",
+   "test_range": [
+    "2026-05-01 00:00",
+    "2026-05-31 20:00"
+   ],
+   "n_train": 9473,
+   "n_val": 1421,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "e654a18adb25cf376545e8040282996288bd97736a898ae2ddafe0d22a4df7d3",
+   "recorded_preds_fold_sha256": "a8e709e029db57d937a77f20c7e69221a57ae3e3c6e51f8804c96377b808d24b",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard0/models/mE1cX7_202605.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard0/preds_fold/mE1cX7_202605.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202606",
+   "shard": "shard1",
+   "trained_on_month": "202606",
+   "label_cutoff": "2026-05-31 20:00",
+   "test_range": [
+    "2026-06-01 00:00",
+    "2026-06-30 20:00"
+   ],
+   "n_train": 9659,
+   "n_val": 1449,
+   "n_test": 180,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "03fa70b53df8e0cb93106e55ec3401502f844e41488bdc689207eeb75ba48e2d",
+   "recorded_preds_fold_sha256": "c5e6206188e773fc85221c62b54ef2694840a518252ca0e34ed4a6a2f0e47aac",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard1/models/mE1cX7_202606.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard1/preds_fold/mE1cX7_202606.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202607",
+   "shard": "shard2",
+   "trained_on_month": "202607",
+   "label_cutoff": "2026-06-30 20:00",
+   "test_range": [
+    "2026-07-01 00:00",
+    "2026-07-31 20:00"
+   ],
+   "n_train": 9839,
+   "n_val": 1476,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "aed50046d6a73ee5e3fa365888b70cc1670d212779fb9ad5fa0364b75f9ede80",
+   "recorded_preds_fold_sha256": "de7276b318b8250f748a7a16eb245a90db9b79c5e64d38973e7b1adec279aa6f",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard2/models/mE1cX7_202607.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard2/preds_fold/mE1cX7_202607.npz",
+   "problems": [],
+   "proven": true
+  },
+  {
+   "seed": 2027,
+   "month": "202608",
+   "shard": "shard3",
+   "trained_on_month": "202608",
+   "label_cutoff": "2026-07-31 20:00",
+   "test_range": [
+    "2026-08-01 00:00",
+    "2026-08-31 20:00"
+   ],
+   "n_train": 10025,
+   "n_val": 1504,
+   "n_test": 186,
+   "best_epoch": 7,
+   "rule": "fix7",
+   "causality_ok": true,
+   "input_shas": {
+    "targets": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5",
+    "fea82": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243",
+    "fea89": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6",
+    "legs": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   },
+   "source_device_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "base_engine_sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598",
+   "recorded_pt_sha256": "4f7a18f10386e64ffaeea0ffdfd4d06d108215f828ce02da1965843ab35658d6",
+   "recorded_preds_fold_sha256": "337f7d882e959790b5292a9c06ba4ad4c2fd9664ced21fa7442181a31577cc3a",
+   "shard_process_rc": 0,
+   "pt_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard3/models/mE1cX7_202608.pt",
+   "preds_fold_path": "/workspace/fp3_live_2026-09/f8_v4/mwf_v4b/RAW_s2027/shard3/preds_fold/mE1cX7_202608.npz",
+   "problems": [],
+   "proven": true
+  }
+ ],
+ "n_folds_proven": 40,
+ "n_folds_expected": 40,
+ "label_cutoff": "2025-12-16T20:00:00Z",
+ "devices": {
+  "pod_dlw_targets_raw_v2.py": {
+   "found": true,
+   "path": "/workspace/fp2_2026-09/devices_v4chain/pod_dlw_targets_raw_v2.py",
+   "sha256": "9e9dfd94857d4c6dbbecedb752bb8b57bbc1f344ff0ef3d4ba5d01fccc127a42",
+   "cross_verified": null,
+   "witness": null
+  },
+  "pod_fea_ext_clamp_v2.py": {
+   "found": true,
+   "path": "/workspace/fp2_2026-09/devices_v4chain/pod_fea_ext_clamp_v2.py",
+   "sha256": "7b8b843d493b591a6f107bbbe75c4823652383c3ebaee838fab9f3df659f832a",
+   "cross_verified": null,
+   "witness": null
+  },
+  "pod_export_bundle_v4.py": {
+   "found": true,
+   "path": "/workspace/fp2_2026-09/devices_v4chain/pod_export_bundle_v4.py",
+   "sha256": "42555a37c0cd3a7e128ac8823a8bec3e2f77a1230d205707b046aca20eed5118",
+   "cross_verified": null,
+   "witness": null
+  },
+  "pod_legs_v4b.py": {
+   "found": true,
+   "path": "/workspace/fp2_2026-09/devices_v4chain/pod_legs_v4b.py",
+   "sha256": "ff6dccad6646058a7cd6f68e2837600e3668ff24407937dc240d6548f25edf34",
+   "cross_verified": null,
+   "witness": null
+  },
+  "pod_f10_train_monthly_v4.py": {
+   "found": true,
+   "path": "/workspace/fp2_2026-09/devices_v4chain/pod_f10_train_monthly_v4.py",
+   "sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+   "cross_verified": true,
+   "witness": "shard_s42_0:self_sha256",
+   "witness_sha": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21"
+  },
+  "pod_f10_refit_v4.py": {
+   "found": true,
+   "path": "/workspace/fp2_2026-09/devices_v4chain/pod_f10_refit_v4.py",
+   "sha256": "6c0666f4eef2c664bf77aa436b3427e651c0cd79e58ae416c1edbd88294b3b86",
+   "cross_verified": true,
+   "witness": "f10_live_s42.json:self_sha256",
+   "witness_sha": "6c0666f4eef2c664bf77aa436b3427e651c0cd79e58ae416c1edbd88294b3b86"
+  },
+  "pod_f10_np_export_v4.py": {
+   "found": true,
+   "path": "/workspace/fp2_2026-09/devices_v4chain/pod_f10_np_export_v4.py",
+   "sha256": "81537cae50cc18633dc20466ced222a2e19fb5f214e26f9404deaea5da8464e1",
+   "cross_verified": true,
+   "witness": "NP_EXPORT_s42.json:self_sha256",
+   "witness_sha": "81537cae50cc18633dc20466ced222a2e19fb5f214e26f9404deaea5da8464e1"
+  },
+  "pod_dlw_features_ext.py": {
+   "found": true,
+   "path": "/workspace/pod_dlw_features_ext.py",
+   "sha256": "e86725cc2768bb6265dd8fb2b3580629706166da012298768b1c0788e8f5a624",
+   "cross_verified": null,
+   "witness": null
+  },
+  "pod_f8_build_ext.py": {
+   "found": true,
+   "path": "/workspace/pod_f8_build_ext.py",
+   "sha256": "f606bffa620004f69ace3704ca19d8f3643b764e918f5eea5a4575b40587f07e",
+   "cross_verified": null,
+   "witness": null
+  }
+ },
+ "mwf_predictions": {
+  "rule": "ALL merged + per-shard + per-fold prediction files enumerated; NO truncation",
+  "stitched_count": 2,
+  "shard_preds_count": 8,
+  "fold_preds_count": 40,
+  "stitched_verified": {
+   "s42": true,
+   "s2027": true
+  }
+ },
+ "checks": [
+  {
+   "item": "artefact.cache",
+   "status": "NOTE",
+   "sentence": "cache exists (2087655898 B), sha256 1d7f459dee434ec4 recorded; PRESENT-ONLY (no witness sha to cross-check)",
+   "data": {
+    "sha256": "1d7f459dee434ec49e7714a2a612807f2e38e97f35c6c39471a8a4aaa7452488"
+   }
+  },
+  {
+   "item": "artefact.hole_cells",
+   "status": "NOTE",
+   "sentence": "hole_cells exists (22815370 B), sha256 6156f97a0709f073 recorded; PRESENT-ONLY (no witness sha to cross-check)",
+   "data": {
+    "sha256": "6156f97a0709f073147e392d5b0cb542f6b6d463cc3be2500f8791a0d1a8dfda"
+   }
+  },
+  {
+   "item": "artefact.mask_liveness",
+   "status": "PROVEN",
+   "sentence": "mask_liveness exists (115943 B) and re-hashes to the value recorded by king.log:member_mask.sha256 (sha256 9b59678b4529246c)",
+   "data": {
+    "sha256": "9b59678b4529246cdf46fcc029f1cc36ea75e908aa1dcc63a4af9f8c67a2dfa7"
+   }
+  },
+  {
+   "item": "artefact.raw_patch",
+   "status": "NOTE",
+   "sentence": "raw_patch exists (11961 B), sha256 adecf276bcfd89f4 recorded; PRESENT-ONLY (no witness sha to cross-check)",
+   "data": {
+    "sha256": "adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b"
+   }
+  },
+  {
+   "item": "artefact.dlw_raw_targets",
+   "status": "PROVEN",
+   "sentence": "dlw_raw_targets exists (192015259 B) and re-hashes to the value recorded by f10_live_s42.json:inputs_sha256.targets (sha256 6fcc61eedcbef88c)",
+   "data": {
+    "sha256": "6fcc61eedcbef88c02bafbdc3df445a840bf6c8ac47e06d448c55ad914d420a5"
+   }
+  },
+  {
+   "item": "artefact.dlw_clip_targets",
+   "status": "NOTE",
+   "sentence": "dlw_clip_targets exists (192015259 B), sha256 9ecbfc70410c4f84 recorded; PRESENT-ONLY (no witness sha to cross-check)",
+   "data": {
+    "sha256": "9ecbfc70410c4f849d86a490b0f2c035ed75afec509d7452cba9d82ec50f09bf"
+   }
+  },
+  {
+   "item": "artefact.fea82",
+   "status": "PROVEN",
+   "sentence": "fea82 exists (467531910 B) and re-hashes to the value recorded by f10_live_s42.json:inputs_sha256.fea82 (sha256 55e38d1bf9de95b6)",
+   "data": {
+    "sha256": "55e38d1bf9de95b6a5e4a4bc1b62605d272ac9f73c4b59b5bcb8c4f5552dd243"
+   }
+  },
+  {
+   "item": "artefact.fea89",
+   "status": "PROVEN",
+   "sentence": "fea89 exists (995557382 B) and re-hashes to the value recorded by f10_live_s42.json:inputs_sha256.fea89 (sha256 61e3234d17d8bbea)",
+   "data": {
+    "sha256": "61e3234d17d8bbeaaf8b60c04270527f51c1e6812413db31d5776b9a4a809dc6"
+   }
+  },
+  {
+   "item": "artefact.king_fea",
+   "status": "NOTE",
+   "sentence": "king_fea exists (1388382800 B), sha256 fe59c9ccd4a5cfd7 recorded; PRESENT-ONLY (no witness sha to cross-check)",
+   "data": {
+    "sha256": "fe59c9ccd4a5cfd7c4c4644ddd05780d5cdfe5b9a8967140b294bd977be9147c"
+   }
+  },
+  {
+   "item": "artefact.king_meta",
+   "status": "NOTE",
+   "sentence": "king_meta exists (25518047 B), sha256 61b7cdc72788d5dc recorded; PRESENT-ONLY (no witness sha to cross-check)",
+   "data": {
+    "sha256": "61b7cdc72788d5dc6e5e4418e3ea8de168e22af4a38780f57a7043fa307550cc"
+   }
+  },
+  {
+   "item": "artefact.king_slow_pred",
+   "status": "PROVEN",
+   "sentence": "king_slow_pred exists (33863120 B) and re-hashes to the value recorded by model.log:MODEL_PREP_DONE king= (64-bit prefix d0dd1a4cb244b2fe)",
+   "data": {
+    "sha256": "d0dd1a4cb244b2feda4574288ea9fba3951df7cc35f565aeda0b60fb0b082a35"
+   }
+  },
+  {
+   "item": "artefact.king_booster",
+   "status": "NOTE",
+   "sentence": "king_booster exists (2390627 B), sha256 404d14e3433d07ca recorded; PRESENT-ONLY (no witness sha to cross-check)",
+   "data": {
+    "sha256": "404d14e3433d07ca4f758bf68fa67f99ea74a8b4711d137ccd89236325e30265"
+   }
+  },
+  {
+   "item": "artefact.legs",
+   "status": "PROVEN",
+   "sentence": "legs exists (67936424 B) and re-hashes to the value recorded by f10_live_s42.json:inputs_sha256.legs (sha256 8c3c98ba22db4456)",
+   "data": {
+    "sha256": "8c3c98ba22db44564aa3a25971f7dab7931e06c50962622c17dec0fadf600039"
+   }
+  },
+  {
+   "item": "artefact.f10_live_s42",
+   "status": "PROVEN",
+   "sentence": "f10_live_s42 exists (447572 B) and re-hashes to the value recorded by f10_live_s42.json:pt_sha256 (sha256 0eaaf6ae620db2dd)",
+   "data": {
+    "sha256": "0eaaf6ae620db2dd4927d43f976cfa34a1cab0268b69c034aa8d14d8115960a5"
+   }
+  },
+  {
+   "item": "artefact.f10_live_s2027",
+   "status": "PROVEN",
+   "sentence": "f10_live_s2027 exists (447602 B) and re-hashes to the value recorded by f10_live_s2027.json:pt_sha256 (sha256 e336f06e09f5bff8)",
+   "data": {
+    "sha256": "e336f06e09f5bff8728e23578453f5b884310e597769d221a0990ade11fe7051"
+   }
+  },
+  {
+   "item": "artefact.np_s42",
+   "status": "PROVEN",
+   "sentence": "np_s42 exists (450190 B) and re-hashes to the value recorded by NP_EXPORT_s42.json:npz_sha256 (sha256 1eea6219400100e0)",
+   "data": {
+    "sha256": "1eea6219400100e0ef8b0d3d3d8252de5fa2ae068c39f19bfe504019ab1c1227"
+   }
+  },
+  {
+   "item": "artefact.np_s2027",
+   "status": "PROVEN",
+   "sentence": "np_s2027 exists (450198 B) and re-hashes to the value recorded by NP_EXPORT_s2027.json:npz_sha256 (sha256 063b51ceaab87b40)",
+   "data": {
+    "sha256": "063b51ceaab87b40863b2a3899116c36e991a6c0ab3c3ecf0b99a36167f01439"
+   }
+  },
+  {
+   "item": "fold.s42:202501",
+   "status": "PROVEN",
+   "sentence": "fold s42:202501 shard0: trained through 2024-12-31 20:00, test 2025-01-01 00:00..2025-01-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202502",
+   "status": "PROVEN",
+   "sentence": "fold s42:202502 shard1: trained through 2025-01-31 20:00, test 2025-02-01 00:00..2025-02-28 20:00 (n_test 168), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202503",
+   "status": "PROVEN",
+   "sentence": "fold s42:202503 shard2: trained through 2025-02-28 20:00, test 2025-03-01 00:00..2025-03-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202504",
+   "status": "PROVEN",
+   "sentence": "fold s42:202504 shard3: trained through 2025-03-31 20:00, test 2025-04-01 00:00..2025-04-30 20:00 (n_test 180), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202505",
+   "status": "PROVEN",
+   "sentence": "fold s42:202505 shard0: trained through 2025-04-30 20:00, test 2025-05-01 00:00..2025-05-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202506",
+   "status": "PROVEN",
+   "sentence": "fold s42:202506 shard1: trained through 2025-05-31 20:00, test 2025-06-01 00:00..2025-06-30 20:00 (n_test 180), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202507",
+   "status": "PROVEN",
+   "sentence": "fold s42:202507 shard2: trained through 2025-06-30 20:00, test 2025-07-01 00:00..2025-07-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202508",
+   "status": "PROVEN",
+   "sentence": "fold s42:202508 shard3: trained through 2025-07-31 20:00, test 2025-08-01 00:00..2025-08-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202509",
+   "status": "PROVEN",
+   "sentence": "fold s42:202509 shard0: trained through 2025-08-31 20:00, test 2025-09-01 00:00..2025-09-30 20:00 (n_test 180), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202510",
+   "status": "PROVEN",
+   "sentence": "fold s42:202510 shard1: trained through 2025-09-30 20:00, test 2025-10-01 00:00..2025-10-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202511",
+   "status": "PROVEN",
+   "sentence": "fold s42:202511 shard2: trained through 2025-10-31 20:00, test 2025-11-01 00:00..2025-11-30 20:00 (n_test 180), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202512",
+   "status": "PROVEN",
+   "sentence": "fold s42:202512 shard3: trained through 2025-11-30 20:00, test 2025-12-01 00:00..2025-12-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202601",
+   "status": "PROVEN",
+   "sentence": "fold s42:202601 shard0: trained through 2025-12-31 20:00, test 2026-01-01 00:00..2026-01-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202602",
+   "status": "PROVEN",
+   "sentence": "fold s42:202602 shard1: trained through 2026-01-31 20:00, test 2026-02-01 00:00..2026-02-28 20:00 (n_test 168), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202603",
+   "status": "PROVEN",
+   "sentence": "fold s42:202603 shard2: trained through 2026-02-28 20:00, test 2026-03-01 00:00..2026-03-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202604",
+   "status": "PROVEN",
+   "sentence": "fold s42:202604 shard3: trained through 2026-03-31 20:00, test 2026-04-01 00:00..2026-04-30 20:00 (n_test 180), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202605",
+   "status": "PROVEN",
+   "sentence": "fold s42:202605 shard0: trained through 2026-04-30 20:00, test 2026-05-01 00:00..2026-05-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202606",
+   "status": "PROVEN",
+   "sentence": "fold s42:202606 shard1: trained through 2026-05-31 20:00, test 2026-06-01 00:00..2026-06-30 20:00 (n_test 180), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202607",
+   "status": "PROVEN",
+   "sentence": "fold s42:202607 shard2: trained through 2026-06-30 20:00, test 2026-07-01 00:00..2026-07-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s42:202608",
+   "status": "PROVEN",
+   "sentence": "fold s42:202608 shard3: trained through 2026-07-31 20:00, test 2026-08-01 00:00..2026-08-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202501",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202501 shard0: trained through 2024-12-31 20:00, test 2025-01-01 00:00..2025-01-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202502",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202502 shard1: trained through 2025-01-31 20:00, test 2025-02-01 00:00..2025-02-28 20:00 (n_test 168), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202503",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202503 shard2: trained through 2025-02-28 20:00, test 2025-03-01 00:00..2025-03-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202504",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202504 shard3: trained through 2025-03-31 20:00, test 2025-04-01 00:00..2025-04-30 20:00 (n_test 180), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202505",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202505 shard0: trained through 2025-04-30 20:00, test 2025-05-01 00:00..2025-05-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202506",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202506 shard1: trained through 2025-05-31 20:00, test 2025-06-01 00:00..2025-06-30 20:00 (n_test 180), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202507",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202507 shard2: trained through 2025-06-30 20:00, test 2025-07-01 00:00..2025-07-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202508",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202508 shard3: trained through 2025-07-31 20:00, test 2025-08-01 00:00..2025-08-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202509",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202509 shard0: trained through 2025-08-31 20:00, test 2025-09-01 00:00..2025-09-30 20:00 (n_test 180), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202510",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202510 shard1: trained through 2025-09-30 20:00, test 2025-10-01 00:00..2025-10-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202511",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202511 shard2: trained through 2025-10-31 20:00, test 2025-11-01 00:00..2025-11-30 20:00 (n_test 180), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202512",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202512 shard3: trained through 2025-11-30 20:00, test 2025-12-01 00:00..2025-12-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202601",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202601 shard0: trained through 2025-12-31 20:00, test 2026-01-01 00:00..2026-01-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202602",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202602 shard1: trained through 2026-01-31 20:00, test 2026-02-01 00:00..2026-02-28 20:00 (n_test 168), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202603",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202603 shard2: trained through 2026-02-28 20:00, test 2026-03-01 00:00..2026-03-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202604",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202604 shard3: trained through 2026-03-31 20:00, test 2026-04-01 00:00..2026-04-30 20:00 (n_test 180), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202605",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202605 shard0: trained through 2026-04-30 20:00, test 2026-05-01 00:00..2026-05-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202606",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202606 shard1: trained through 2026-05-31 20:00, test 2026-06-01 00:00..2026-06-30 20:00 (n_test 180), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202607",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202607 shard2: trained through 2026-06-30 20:00, test 2026-07-01 00:00..2026-07-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "fold.s2027:202608",
+   "status": "PROVEN",
+   "sentence": "fold s2027:202608 shard3: trained through 2026-07-31 20:00, test 2026-08-01 00:00..2026-08-31 20:00 (n_test 186), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0"
+  },
+  {
+   "item": "partition.s42",
+   "status": "PROVEN",
+   "sentence": "seed 42: 4 shards x 5 months, pairwise disjoint (0 duplicates), union = 20 months = expected axis set, merged coverage keys == expected and every month full-coverage; test months are 20 distinct calendar months (overlap 0)",
+   "data": {
+    "shard_month_sets": {
+     "0": [
+      "202501",
+      "202505",
+      "202509",
+      "202601",
+      "202605"
+     ],
+     "1": [
+      "202502",
+      "202506",
+      "202510",
+      "202602",
+      "202606"
+     ],
+     "2": [
+      "202503",
+      "202507",
+      "202511",
+      "202603",
+      "202607"
+     ],
+     "3": [
+      "202504",
+      "202508",
+      "202512",
+      "202604",
+      "202608"
+     ]
+    },
+    "duplicates": [],
+    "sizes": {
+     "0": 5,
+     "1": 5,
+     "2": 5,
+     "3": 5
+    },
+    "union_n": 20,
+    "expected_source": "shard.months_all",
+    "coverage_keys_eq_expected": true,
+    "coverage_all_full": true
+   }
+  },
+  {
+   "item": "partition.s2027",
+   "status": "PROVEN",
+   "sentence": "seed 2027: 4 shards x 5 months, pairwise disjoint (0 duplicates), union = 20 months = expected axis set, merged coverage keys == expected and every month full-coverage; test months are 20 distinct calendar months (overlap 0)",
+   "data": {
+    "shard_month_sets": {
+     "0": [
+      "202501",
+      "202505",
+      "202509",
+      "202601",
+      "202605"
+     ],
+     "1": [
+      "202502",
+      "202506",
+      "202510",
+      "202602",
+      "202606"
+     ],
+     "2": [
+      "202503",
+      "202507",
+      "202511",
+      "202603",
+      "202607"
+     ],
+     "3": [
+      "202504",
+      "202508",
+      "202512",
+      "202604",
+      "202608"
+     ]
+    },
+    "duplicates": [],
+    "sizes": {
+     "0": 5,
+     "1": 5,
+     "2": 5,
+     "3": 5
+    },
+    "union_n": 20,
+    "expected_source": "shard.months_all",
+    "coverage_keys_eq_expected": true,
+    "coverage_all_full": true
+   }
+  },
+  {
+   "item": "partition.cross_seed",
+   "status": "PROVEN",
+   "sentence": "both seeds walk the same 20 test months 202501..202608"
+  },
+  {
+   "item": "label_cutoff",
+   "status": "PROVEN",
+   "sentence": "refit label cutoff = 2025-12-16T20:00:00Z \u2014 agreed across 4 independent artefact fields (refit_s42, refit_s2027, npnpz_s42, npnpz_s2027); pool/axis end 2026-08-31T20:00:00Z; distinct from the 40 per-fold MWF cutoffs recorded per fold above",
+   "data": {
+    "sources": {
+     "refit_s42": "2025-12-16T20:00:00Z",
+     "refit_s2027": "2025-12-16T20:00:00Z",
+     "npnpz_s42": "2025-12-16T20:00:00Z",
+     "npnpz_s2027": "2025-12-16T20:00:00Z"
+    },
+    "value": "2025-12-16T20:00:00Z"
+   }
+  },
+  {
+   "item": "np_export.s42",
+   "status": "PROVEN",
+   "sentence": "np_export seed 42 ACCEPTED by dependency: PASS + V1 spearman 1.0000000000 (<=1e-5 maxabs) + export pt_sha binds the refit model + npz re-hashes; produced by device self_sha 81537cae50cc at 2026-09-18T14:02:57Z",
+   "data": {
+    "self_sha256": "81537cae50cc18633dc20466ced222a2e19fb5f214e26f9404deaea5da8464e1"
+   }
+  },
+  {
+   "item": "np_export.s2027",
+   "status": "PROVEN",
+   "sentence": "np_export seed 2027 ACCEPTED by dependency: PASS + V1 spearman 1.0000000000 (<=1e-5 maxabs) + export pt_sha binds the refit model + npz re-hashes; produced by device self_sha 81537cae50cc at 2026-09-18T14:03:16Z",
+   "data": {
+    "self_sha256": "81537cae50cc18633dc20466ced222a2e19fb5f214e26f9404deaea5da8464e1"
+   }
+  },
+  {
+   "item": "incident.model_done_sealed",
+   "status": "NOTE",
+   "sentence": "DISAVOWED: run wrote MODEL_DONE_SEALED at 2026-09-18T14:02:09Z while np_export was rc=2 for seeds ['42', '2027'] (wrong script pod_np_export_v4.py); the correct export materialised 48s LATER (built_utc 2026-09-18T14:02:57Z). This seal ignores the marker and accepts np_export only via dependency (section 6); at 2026-09-18T14:02:09Z f10_np_s*.npz were absent so this seal would REFUSE.",
+   "data": {
+    "marker_rc2": [
+     [
+      "42",
+      "2"
+     ],
+     [
+      "2027",
+      "2"
+     ]
+    ],
+    "marker_utc": "2026-09-18T14:02:09Z",
+    "real_built_utc": {
+     "42": "2026-09-18T14:02:57Z",
+     "2027": "2026-09-18T14:03:16Z"
+    }
+   }
+  },
+  {
+   "item": "device.pod_dlw_targets_raw_v2.py",
+   "status": "NOTE",
+   "sentence": "pod_dlw_targets_raw_v2.py present at /workspace/fp2_2026-09/devices_v4chain/pod_dlw_targets_raw_v2.py, sha 9e9dfd94857d; PRESENT-ONLY (no artefact records this device's self-sha)"
+  },
+  {
+   "item": "device.pod_fea_ext_clamp_v2.py",
+   "status": "NOTE",
+   "sentence": "pod_fea_ext_clamp_v2.py present at /workspace/fp2_2026-09/devices_v4chain/pod_fea_ext_clamp_v2.py, sha 7b8b843d493b; PRESENT-ONLY (no artefact records this device's self-sha)"
+  },
+  {
+   "item": "device.pod_export_bundle_v4.py",
+   "status": "NOTE",
+   "sentence": "pod_export_bundle_v4.py present at /workspace/fp2_2026-09/devices_v4chain/pod_export_bundle_v4.py, sha 42555a37c0cd; PRESENT-ONLY (no artefact records this device's self-sha)"
+  },
+  {
+   "item": "device.pod_legs_v4b.py",
+   "status": "NOTE",
+   "sentence": "pod_legs_v4b.py present at /workspace/fp2_2026-09/devices_v4chain/pod_legs_v4b.py, sha ff6dccad6646; PRESENT-ONLY (no artefact records this device's self-sha)"
+  },
+  {
+   "item": "device.pod_f10_train_monthly_v4.py",
+   "status": "PROVEN",
+   "sentence": "pod_f10_train_monthly_v4.py present at /workspace/fp2_2026-09/devices_v4chain/pod_f10_train_monthly_v4.py, sha fd5707bd3acc CROSS-VERIFIED against shard_s42_0:self_sha256"
+  },
+  {
+   "item": "device.pod_f10_refit_v4.py",
+   "status": "PROVEN",
+   "sentence": "pod_f10_refit_v4.py present at /workspace/fp2_2026-09/devices_v4chain/pod_f10_refit_v4.py, sha 6c0666f4eef2 CROSS-VERIFIED against f10_live_s42.json:self_sha256"
+  },
+  {
+   "item": "device.pod_f10_np_export_v4.py",
+   "status": "PROVEN",
+   "sentence": "pod_f10_np_export_v4.py present at /workspace/fp2_2026-09/devices_v4chain/pod_f10_np_export_v4.py, sha 81537cae50cc CROSS-VERIFIED against NP_EXPORT_s42.json:self_sha256"
+  },
+  {
+   "item": "device.pod_dlw_features_ext.py",
+   "status": "NOTE",
+   "sentence": "pod_dlw_features_ext.py present at /workspace/pod_dlw_features_ext.py, sha e86725cc2768; PRESENT-ONLY (no artefact records this device's self-sha)"
+  },
+  {
+   "item": "device.pod_f8_build_ext.py",
+   "status": "NOTE",
+   "sentence": "pod_f8_build_ext.py present at /workspace/pod_f8_build_ext.py, sha f606bffa6200; PRESENT-ONLY (no artefact records this device's self-sha)"
+  },
+  {
+   "item": "provenance.trainer_split",
+   "status": "NOTE",
+   "sentence": "two files named pod_f10_train_monthly_v4.py: shard execution attributes self_sha fd5707bd3acc (devices_v4chain, cross-verified above); the MERGE step records 2147a7dd128b from a different path (/workspace/review_scratch/pod_f10_train_monthly_v4.py). The 40 fold artefacts were produced by the shard trainer; the merge-recorded copy is a stitch-time reference. Recorded, not reconciled \u2014 no artefact was produced by the merge-recorded copy.",
+   "data": {
+    "shard_self_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+    "merge_trainer_sha256": "2147a7dd128be180ac6c5b01cde6d066413ac0333700deb887cef542cc8d50bb",
+    "merge_trainer_path": "/workspace/review_scratch/pod_f10_train_monthly_v4.py"
+   }
+  },
+  {
+   "item": "device.base_engine",
+   "status": "PROVEN",
+   "sentence": "base engine pod_f10_train_ext.py sha 93cc2cdf925a == shard base_sha256 93cc2cdf925a"
+  },
+  {
+   "item": "exit.shards",
+   "status": "PROVEN",
+   "sentence": "commands.txt records all 8 shard processes rc=0 (2 seeds x 4 shards), folds done 40/40, MWF_TRAIN_DONE on every shard \u2014 the real per-shard exit trace the old seal never read",
+   "data": {
+    "end_rows": {
+     "s42_0": {
+      "pid": 1157711,
+      "rc": 0,
+      "folds_done": 5,
+      "mwf_train_done": 1
+     },
+     "s42_1": {
+      "pid": 1157707,
+      "rc": 0,
+      "folds_done": 5,
+      "mwf_train_done": 1
+     },
+     "s42_2": {
+      "pid": 1157713,
+      "rc": 0,
+      "folds_done": 5,
+      "mwf_train_done": 1
+     },
+     "s42_3": {
+      "pid": 1157709,
+      "rc": 0,
+      "folds_done": 5,
+      "mwf_train_done": 1
+     },
+     "s2027_0": {
+      "pid": 1159805,
+      "rc": 0,
+      "folds_done": 5,
+      "mwf_train_done": 1
+     },
+     "s2027_1": {
+      "pid": 1159807,
+      "rc": 0,
+      "folds_done": 5,
+      "mwf_train_done": 1
+     },
+     "s2027_2": {
+      "pid": 1159809,
+      "rc": 0,
+      "folds_done": 5,
+      "mwf_train_done": 1
+     },
+     "s2027_3": {
+      "pid": 1159811,
+      "rc": 0,
+      "folds_done": 5,
+      "mwf_train_done": 1
+     }
+    }
+   }
+  },
+  {
+   "item": "exit.driver",
+   "status": "PROVEN",
+   "sentence": "driver log: seed shard-batch rc=0 both seeds (wait-conjunction over the 4 shards, run_mwf.sh), MERGE_DONE both seeds, refit rc=0 both seeds, no FAIL_mwf marker",
+   "data": {
+    "seed_shard_rc": {
+     "42": "0",
+     "2027": "0"
+    },
+    "merge_done": [
+     "2027",
+     "42"
+    ],
+    "refit_rc": {
+     "42": "0",
+     "2027": "0"
+    }
+   }
+  },
+  {
+   "item": "exit.per_fold",
+   "status": "NOTE",
+   "sentence": "per-fold exit code is not a separate process value: the 5 folds of a shard run in-process, so the fold-level completion signal is the artefact materialisation + causality_ok verified per fold in section 3; the enclosing shard process rc is section 8."
+  },
+  {
+   "item": "mwf_predictions",
+   "status": "PROVEN",
+   "sentence": "prediction population enumerated in full: 2 stitched (both re-hash to merge stitched_sha256), 8 per-shard, 40 per-fold \u2014 stated counts, no [:6] sampling"
+  }
+ ],
+ "summary": {
+  "n_checks": 79,
+  "proven": 63,
+  "note": 16,
+  "refused": 0,
+  "unproven": 0
+ },
+ "verdict": "SEALED \u2014 every claim below is derived from a check that passed at run time"
+}
