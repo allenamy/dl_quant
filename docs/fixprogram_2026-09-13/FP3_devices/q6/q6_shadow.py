@@ -139,7 +139,16 @@ def hard_fact_times(r):
 
 def _merge_facts(p, r, notes):
     """merge a duplicate ledger record into the request already held: EVERY fact class separately, each keeping its earliest effective time
-    (R12-Q1b). `terminal` is a hard constraint, so a later row that only flips it must not be discarded."""
+    (R12-Q1b). `terminal` is a hard constraint, so a later row that only flips it must not be discarded.
+
+    ★ R14-Q1 / R15-Q1: the PAIRWISE compatibility test `fact_conflict` is performed HERE, first, so the merge is structurally impossible without it —
+    an incompatible pair returns the reason and merges NOTHING (the caller records the symbol UNMEASURABLE), a compatible pair merges and returns None.
+    This is one of Q6's TWO contradiction predicates and it now has ONE enforced home (every merge path calls this function); the other is the
+    WHOLE-RECORD `contradiction_check`, enforced at the single model-assembly choke point. They catch different failures — a pairwise identity conflict
+    here (differing cap/side, or two credible exact totals) vs a finalised request whose own floor/exact/cap are mutually inconsistent there — and
+    neither can be skipped by adding a new build path, because this one is inside the merge and that one is at the choke point every symbol passes."""
+    why = fact_conflict(p, r)
+    if why: return why                                                      # incompatible identities: merge NOTHING, hand the reason back to the caller
     p["trade_ids"] |= r["trade_ids"]
     for st in (r.get("floor_steps") or []): floor_ladder_add(p, st[1], st[0], st[2] if len(st) > 2 else None)   # R13-Q1: every step, never a replacement
     if p["exact"] is None and r["exact"] is not None: p["exact"], p["exact_ts"] = r["exact"], r.get("exact_ts")
@@ -147,6 +156,7 @@ def _merge_facts(p, r, notes):
         p["terminal"] = r["terminal"] if p["terminal"] is None else min(p["terminal"], r["terminal"])
         notes["duplicate_terminal_adopted"] += 1
     notes["duplicate_identity_merged"] += 1
+    return None
 
 
 def build_requests(od, step_of, notes):
@@ -190,13 +200,12 @@ def build_requests(od, step_of, notes):
                     p = REQ[s][cid]
                     # ★ R12-Q1b: numerically identical rows are NOT necessarily the same FACTS — a later row may add `terminal` (or a floor/exact
                     #   whose event time is earlier). Merging only trade ids silently dropped the terminal constraint, so a post-terminal position
-                    #   growth stayed CLEAN. Every fact class is merged with its own effective time. R14-Q1: the compatibility test is `fact_conflict`,
-                    #   shared with the checkpoint resume path so the two entries cannot disagree.
-                    _why = fact_conflict(p, r)
+                    #   growth stayed CLEAN. Every fact class is merged with its own effective time. R14-Q1/R15-Q1: the pairwise compatibility test now
+                    #   lives INSIDE `_merge_facts` (it returns the reason and merges nothing on conflict), so build and resume cannot disagree and no
+                    #   merge path can bypass it.
+                    _why = _merge_facts(p, r, notes)
                     if _why:
                         unmeas[s].append((birth, f"{cid}: duplicate identity with contradictory facts ({_why})")); notes["duplicate_identity_contradictory"] += 1
-                    else:
-                        _merge_facts(p, r, notes)
                 else:
                     REQ[s][cid] = r
             continue
@@ -487,6 +496,9 @@ class SymbolModel:
             _ets = r.get("exact_ts"); _exact_known = r["exact"] is not None and (_ets is None or _ets <= t_known + 1e-9)
             # ★ R13-Q2: an exact total that arrives AFTER the terminal pin still binds — the pin variable IS x_i for every later time, so the fact
             #   has a variable to land on whenever it arrives. v4 evaluated it at times[k] ≤ times[pin], so a late total had no variable and vanished.
+            # ★ R15-Q1 (structural): this line OVERWRITES lo with the exact total, DISCARDING the evidence floor set just above. So when floor > exact
+            #   the emptiness test `lo > hi` below can never fire (lo == hi == exact). The solver therefore CANNOT detect a floor-vs-exact contradiction
+            #   by construction — that class is the WHOLE-RECORD `contradiction_check`'s job at the assembly choke point, never the optimisation's.
             if _exact_known and pi is not None and k >= pi: lo = hi = r["exact"]
             elif _exact_known: hi = min(hi, r["exact"])                      # monotonicity: x(t_k) ≤ x(pin) = exact
             if lo > hi: return {"status": "unmeasurable", "why": f"{r['rid']}: hard bounds empty at k={k} (floor {lo} > cap/exact {hi})"}
@@ -686,7 +698,8 @@ def main():
         for o in OBS[s]: o["rhs"] = o["q_lots"] - q0
     REQ, unmeas = build_requests(od, step_of, notes)
     UN = attribute_fills(fills_by_symbol, REQ, notes)
-    contradiction_check(REQ, unmeas, notes)
+    # NB: the WHOLE-RECORD contradiction check does NOT run here. It runs once at the model-assembly choke point below (after any resume merge), so a
+    #   single site covers the fresh build AND the merged/resumed request set — see the comment there (R15-Q1).
     gaps_rec = {}
     for r in an:
         kg = r.get("known_gaps") or {}; gaps_rec[B(r["anchor_ts"])] = {"n_named": kg.get("n_named"), "gross_usdt": kg.get("gross_usdt"), "names": [x.get("symbol") for x in (kg.get("names") or [])]}
@@ -730,16 +743,17 @@ def main():
             _t_last = (cp["observations"][-1]["t"] if cp.get("observations") else None); _t_last_by[s] = _t_last
             for rid, r in fresh.items():                                    # a rid in both halves ⇒ ONE request (identity, §1c)
                 if rid in carried:
-                    _why = fact_conflict(carried[rid], r)                   # ★ R14-Q1: the SAME predicate the fresh build uses
+                    # ★ R14-Q1/R15-Q1: the pairwise compatibility test is INSIDE _merge_facts (returns the reason, merges nothing on conflict), so the
+                    #   resume merge goes through the SAME guard as the fresh build and cannot skip it.
+                    _why = _merge_facts(carried[rid], r, notes)
                     if _why:
                         unmeas.setdefault(s, []) if not isinstance(unmeas.get(s), list) else None
                         unmeas[s] = list(unmeas.get(s) or []) + [(r["birth"], f"{rid}: checkpoint and window carry contradictory facts ({_why})")]
                         notes["resume_identity_contradictory"] += 1
                         continue
-                    # ★ R14-Q2 / R15-Q2: fresh facts on a carried rid can be LATE; the comparison against the carried prefix is DEFERRED to one pass
-                    #   after all merging and attribution (below) so it equally covers brand-new rids and fills attributed post-merge.
+                    # ★ R14-Q2 / R15-Q2: a merged fresh fact can be LATE; the comparison against the carried prefix is DEFERRED to one pass after all
+                    #   merging and attribution (below) so it equally covers brand-new rids and fills attributed post-merge.
                     _fresh_evt[s] += hard_fact_times(r)
-                    _merge_facts(carried[rid], r, notes)
                 else:
                     carried[rid] = r; _fresh_evt[s] += hard_fact_times(r)   # ★ R15-Q2 (a): a brand-new rid's facts are fresh too — v6 never checked them
             REQ[s] = carried
@@ -765,11 +779,16 @@ def main():
             for o in newo: o["rhs"] = o["q_lots"] - cp["q0_lots"]
             OBS[s] = [dict(o) for o in cp["observations"]] + newo
     if cp_state: symbols = sorted(set(symbols) | set(cp_state))                      # a symbol carried by the checkpoint is replayed even with no new activity
-    if CP_IN and cp_state:
-        # ★ R15-Q1: the resume merge (fresh floor-ladder steps and fills attributed onto carried requests) can push a request's floor above its cap or
-        #   its exact total outside [floor, cap]; `contradiction_check` ran only over the fresh build (line above the resume block), and `fact_conflict`
-        #   does not see that class, so a merge-created contradiction read CLEAN. Re-run the §1d.4 hard-fact check over the merged requests, scoped to
-        #   the resumed symbols and de-duplicated against what is already recorded, BEFORE any model is built.
+    # ★ R15-Q1 (single verdict surface): the WHOLE-RECORD contradiction check (floor>cap, exact outside [floor,cap], negative capacity) runs HERE, once,
+    #   over the FINAL request set of every symbol. Fresh build, duplicate-identity merge and checkpoint resume all assemble their requests before this
+    #   point and a model after it, so this one site is the choke point every path passes — a new build path (present or future) cannot finalise
+    #   requests that skip it, which a second call bolted next to the first could not guarantee. It is deliberately NOT delegated to the solver: at the
+    #   terminal pin, solve() sets lo=hi=exact and DISCARDS the evidence floor, so a floor-vs-exact contradiction never reaches the optimisation — the
+    #   solver CANNOT be the detector for this class, by construction, and "the solver would catch an infeasible set" is false here. (The pairwise
+    #   identity guard `fact_conflict` is the other predicate; it is enforced inside `_merge_facts`.) Resumed symbols count under a distinct note key so a
+    #   contradiction the merge CREATED stays visible; dedupe keeps one already recorded (a carried `unmeasurable_from`) from being counted twice.
+    contradiction_check(REQ, unmeas, notes, symbols=set(symbols) - set(cp_state), note_key="request_contradiction", dedupe=True)
+    if cp_state:
         contradiction_check(REQ, unmeas, notes, symbols=set(cp_state), note_key="request_contradiction_post_merge", dedupe=True)
     jobs = []
     for s in symbols:
