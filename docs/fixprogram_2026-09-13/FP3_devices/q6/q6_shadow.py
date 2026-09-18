@@ -720,6 +720,14 @@ def main():
         kg = r.get("known_gaps") or {}; gaps_rec[B(r["anchor_ts"])] = {"n_named": kg.get("n_named"), "gross_usdt": kg.get("gross_usdt"), "names": [x.get("symbol") for x in (kg.get("names") or [])]}
     symbols = sorted(set(OBS) | set(REQ) | set(UN))                                  # extended with the checkpoint's symbols in the resume block below
     # ── §1d.5 resume: merge the checkpoint's carried state with this window's facts BEFORE any model is built ──
+    # ★ RESUME INVARIANT (the one rule this whole block must uphold, and the root every resume-path defect here has violated): the merged
+    #   (REQ, UN, unmeas) is produced ONLY by the three canonical reconcilers — pairwise fact merge (_merge_facts/fact_conflict), attribution
+    #   (attribute_fills), whole-record contradiction (contradiction_check) — over the UNION of carried and fresh facts, with nothing carried arriving
+    #   pre-reconciled. That single rule explains all of them at once: R15-Q1 bypassed the whole-record contradiction check on the merged set; R15-Q2's
+    #   τ did not cover every fact source; R16 dumped carried unattributed fills into UN already-decided (and re-running an inference over a lossy
+    #   reconstruction then over-attributed, so re-offer them only by the definitive trade-id path); R16b dropped a late observation the union contains.
+    #   A resumed model cannot be asserted equal to a freshly built one cheaply (that needs the fresh build the checkpoint exists to avoid); this
+    #   invariant is the achievable substitute, and a future edit that carries any request/fill/observation in a pre-reconciled form breaks it.
     CP_IN = os.environ.get("Q6_CHECKPOINT_IN"); cp_state = {}; late_rebuilds = {}; _late_tau = {}
     if CP_IN:
         cpj = json.load(open(CP_IN))
