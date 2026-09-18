@@ -10,7 +10,8 @@ usage: preplay_driver.py <sandbox_root> <anchor_start> <anchor_end> [--h-from-ar
 env WIDE_SHADOW_HOME/WIDE_SHADOW_BUNDLE are set here BEFORE importing the producer module; HOME is set for combo_stage."""
 import os, sys, json, time, shutil, subprocess, hashlib, collections
 import numpy as np
-SB = os.path.abspath(sys.argv[1]); A0 = int(sys.argv[2]); A1 = int(sys.argv[3]); H_ARCH = "--h-from-archive" in sys.argv
+SB = os.path.abspath(sys.argv[1]); A0 = int(sys.argv[2]); A1 = int(sys.argv[3]); H_ARCH = "--h-from-archive" in sys.argv; ONE_STEP = "--one-step" in sys.argv; EMA_BUNDLE = "--ema-from-bundle" in sys.argv
+SNAP_INIT = int(sys.argv[sys.argv.index("--init-from-snapshot") + 1]) if "--init-from-snapshot" in sys.argv else None   # exact production state (rolling/aux/leg_returns) of anchor A as the start
 PRE = "/workspace/fp2_2026-09/preplay"; PROD = f"{PRE}/producer"; ARCH = f"{PRE}/archive"; CACHE = "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz"; PY = "/workspace/venv/bin/python"
 WS = f"{SB}/wide_shadow"; os.makedirs(f"{WS}/state", exist_ok=True)
 os.environ["WIDE_SHADOW_HOME"] = WS; os.environ["WIDE_SHADOW_BUNDLE"] = f"{PROD}/shadow_bundle"; os.environ["HOME"] = SB
@@ -30,6 +31,12 @@ T0 = time.time(); log = lambda *a: print(f"[{time.time()-T0:7.0f}s]", *a, flush=
 sha = lambda p: hashlib.sha256(open(p, "rb").read()).hexdigest()
 # ── data sources ──
 Z = np.load(CACHE, allow_pickle=True); CTS = Z["ts"].astype(np.int64); CD = Z["data"]; CSYM = [str(s) for s in Z["symbols"]]; log("cache", CD.shape, "→", time.strftime("%FT%TZ", time.gmtime(int(CTS[-1]))))
+# the research cache ends 2026-09-01; the producer's own panel snapshots (bitwise-identical on the overlap, receipt PA_PANEL_IDENTITY) extend it to the present:
+# append the snapshot rows after the cache's last timestamp (live symbols only; the snapshot has NaN elsewhere, exactly as production)
+SNAP_P = os.environ.get("PREPLAY_SNAPSHOT", f"{PRE}/archive/rolling_snapshot_latest.npz")
+if os.path.exists(SNAP_P):
+    S_ = np.load(SNAP_P, allow_pickle=True); sts = S_["ts"].astype(np.int64); sd = S_["data"]; ext = sts > CTS[-1]
+    if ext.any(): CTS = np.concatenate([CTS, sts[ext]]); CD = np.concatenate([CD, sd[ext].astype(CD.dtype)]); log("cache extended with producer snapshot", os.path.basename(SNAP_P), "→", time.strftime("%FT%TZ", time.gmtime(int(CTS[-1]))), "rows added", int(ext.sum()))
 LED = collections.defaultdict(dict)
 for src in (f"{PROD}/shadow_bundle/funding_ledger_seed.json", f"{ARCH}/snap/1789646400/aux.json", f"{ARCH}/snap/1789689600/aux.json"):
     d = json.load(open(src)); tail = d.get("ledger_tail", d) if isinstance(d, dict) else d
@@ -66,16 +73,23 @@ def wdict(p):
 def cmp(a, b):
     names = set(a) | set(b); dif = {n: abs(a.get(n, 0.0) - b.get(n, 0.0)) for n in names}; s = sum(abs(v) for v in a.values())
     return {"n_arch": len(a), "n_rep": len(b), "only_arch": sum(1 for n in names if n in a and n not in b), "only_rep": sum(1 for n in names if n in b and n not in a), "max_abs_dw": max(dif.values()) if dif else 0.0, "l1_rel": (sum(dif.values()) / s) if s else None, "n_diff_gt_1e-6": sum(1 for v in dif.values() if v > 1e-6)}
+if SNAP_INIT:
+    sd_ = f"{PRE}/archive/snap/{SNAP_INIT}"
+    for f_ in ("rolling.npz", "aux.json", "leg_returns_live.json"): shutil.copy2(f"{sd_}/{f_}", f"{WS}/state/{f_}")
+    for k_ in ("kc", "fc", "f10"):
+        sp_ = f"{ARCH}/state_H/state_H_{k_}_{SNAP_INIT}.npz"
+        if os.path.exists(sp_): shutil.copy2(sp_, f"{WS}/fea171/state_H_{k_}_{SNAP_INIT}.npz")
+    print("init from production snapshot", SNAP_INIT, flush=True)
 cfg, booster, man = SL.load_bundle(); cfg["_booster_sha"] = man.get("slow2026.txt", "")               # as main() does
 # production's LIVE leg-return extras as of the start anchor: the pre-seed backup (written 09-05 12Z) minus the entries appended after the start anchor
 A_START = max(int(k) for k in json.load(open(f"{PROD}/shadow_bundle/parity_signals_aug.json")))
 bk = f"{ARCH}/leg_returns_live.json.pre_seatseed_v3_20260905"; BK_LAST = 1788609600
-if os.path.exists(bk) and not os.path.exists(f"{WS}/state/leg_returns_live.json"):
+if os.path.exists(bk) and not os.path.exists(f"{WS}/state/leg_returns_live.json") and not SNAP_INIT:
     ex = json.load(open(bk)); k = (BK_LAST - A_START) // 14400; ex = {leg: v[:-k] if k > 0 else v for leg, v in ex.items()}
     json.dump(ex, open(f"{WS}/state/leg_returns_live.json", "w")); log("leg_returns extras from production backup: dropped", k, "entries after", time.strftime("%FT%TZ", time.gmtime(A_START)), "kept", len(ex["king"]))
 st = SL.ShadowState(cfg); log("bootstrap: last_anchor", time.strftime("%FT%TZ", time.gmtime(st.last_anchor)), "H nz", int((np.abs(st.H) > 1e-9).sum()), "LR len", len(st.LR["king"]), "ledger names", len(st.ledger), "cache rows", len(st.cts), "→", time.strftime("%FT%TZ", time.gmtime(int(st.cts[-1]))))
 # (a) production never holds bars for symbols outside its live universe: NaN them out of the bootstrap tail (the tail came from the research cache with all 829 names)
-st.cd[:, ~st.live_mask, :] = np.nan
+if not SNAP_INIT: st.cd[:, ~st.live_mask, :] = np.nan
 # (b) CAUSAL funding state at the start anchor: the bundle seed reaches 09-01 02Z (after the start); rebuild ledger + EMA from settlements ≤ start with the producer's own formulas
 A0s = st.last_anchor; led_new = {}; ema_new = {}; ALLOWED = [1.0, 2.0, 4.0, 6.0, 8.0]
 for s_, rows in LEDS.items():
@@ -86,8 +100,9 @@ for s_, rows in LEDS.items():
         if est is None: est = {"acc": rn, "last_ts": ft}
         else: a = 1 - 0.5 ** (max(ft - est["last_ts"], 1) / (3 * 86400.0)); est = {"acc": est["acc"] + a * (rn - est["acc"]), "last_ts": ft}
     if led: led_new[s_] = led[-400:]; ema_new[s_] = est
-st.ledger = led_new; st.ema = ema_new; log("causal funding state at", time.strftime("%FT%TZ", time.gmtime(A0s)), "names", len(led_new), "latest settlement", time.strftime("%FT%TZ", time.gmtime(max(v[-1][0] for v in led_new.values()))))
-if H_ARCH and os.path.exists(f"{ARCH}/weights/{st.last_anchor}.npz"):
+if not SNAP_INIT: st.ledger = led_new; st.ema = (json.load(open(f"{PROD}/shadow_bundle/fund_ema_v1_state.json")) if EMA_BUNDLE else ema_new)
+if not SNAP_INIT: log("ema source", "bundle fund_ema_v1_state.json (production lineage, built 09-01)" if EMA_BUNDLE else "causal rebuild", "| causal funding state at", time.strftime("%FT%TZ", time.gmtime(A0s)), "names", len(led_new), "latest settlement", time.strftime("%FT%TZ", time.gmtime(max(v[-1][0] for v in led_new.values()))))
+if H_ARCH and not SNAP_INIT and os.path.exists(f"{ARCH}/weights/{st.last_anchor}.npz"):
     z = np.load(f"{ARCH}/weights/{st.last_anchor}.npz"); st.H = np.zeros(st.NW); st.H[z["idx"].astype(int)] = z["val"].astype(float); log("H overridden from archived weights", st.last_anchor, int((np.abs(st.H) > 1e-9).sum()))
 PROD_SIG = {}
 if os.path.exists(f"{ARCH}/shadow_log_prod.jsonl"):
@@ -100,12 +115,22 @@ def sig_row(A):
 fx = HistFetcher(); out = []; recs_p = f"{SB}/PREPLAY_anchors.jsonl"; open(recs_p, "w").close()
 for A in range(A0, A1 + 1, 14400):
     t1 = time.time(); fx.anchor = A; nfill = prefill(st, A); fx.calls.clear()
+    if ONE_STEP:                                                              # one-step mode: producer holdings AND combo recursive state re-seeded from the ARCHIVES every anchor (no compounding)
+        wp = f"{ARCH}/weights/{A - 14400}.npz"
+        if os.path.exists(wp): z = np.load(wp); st.H = np.zeros(st.NW); st.H[z["idx"].astype(int)] = z["val"].astype(float)
+        else: log("one-step: no archived weights for", A - 14400)
+        for k_ in ("kc", "fc", "f10"):
+            sp_ = f"{ARCH}/state_H/state_H_{k_}_{A - 14400}.npz"
+            if os.path.exists(sp_): shutil.copy2(sp_, f"{WS}/fea171/state_H_{k_}_{A - 14400}.npz")
     SL.run_anchor(st, fx, cfg, booster, A); tp = time.time() - t1
     rec = {"anchor_ts": A, "utc": time.strftime("%m-%d %HZ", time.gmtime(A)), "prefilled_cells": nfill, "producer_s": round(tp, 1), "fetch_calls": dict(fx.calls), "last_anchor_after": st.last_anchor}
     sr = sig_row(A); pr = PROD_SIG.get(A)
     if sr: rec["signal"] = {k: sr.get(k) for k in ("w3", "sel", "members", "base_n", "fund_base_n", "fund_updates", "turnover", "gross_pos", "forced_exit_n", "coverage")}
     if pr: rec["signal_prod"] = {k: pr.get(k) for k in ("w3", "sel", "members", "base_n", "fund_base_n", "fund_updates", "turnover", "gross_pos", "forced_exit_n", "coverage")}
     if sr and pr and sr.get("w3") and pr.get("w3"): rec["w3_max_abs_diff"] = max(abs(float(a) - float(b)) for a, b in zip(sr["w3"], pr["w3"]))
+    wa_ = f"{ARCH}/weights/{A}.npz"
+    if st.prev_rec and st.prev_rec.get("anchor_ts") == A and os.path.exists(wa_):
+        ma_ = set(np.load(wa_)["members"].astype(int).tolist()); mr_ = set(st.prev_rec["members"]); rec["members_symdiff_vs_archive"] = len(ma_ ^ mr_)
     kp = f"{WS}/state/target_live/{A}.json"
     if os.path.exists(kp):
         rk, dk = wdict(kp); rec["king_gross"] = dk["gross_norm"]; rec["king_n"] = dk["n_names"]
@@ -121,7 +146,7 @@ for A in range(A0, A1 + 1, 14400):
     else: rec["producer"] = "SKIPPED (no target written)"
     out.append(rec); open(recs_p, "a").write(json.dumps(rec) + "\n")
     log(rec["utc"], f"prod {tp:.0f}s combo {rec.get('combo_s')}s rc {rec.get('combo_rc')} | king L1 {(rec.get('king_vs_archive') or {}).get('l1_rel')} max {(rec.get('king_vs_archive') or {}).get('max_abs_dw')} | combo {str((rec.get('combo_vs_archive') or {}).get('l1_rel') if isinstance(rec.get('combo_vs_archive'), dict) else rec.get('combo_vs_archive'))[:60]} | w3 rep {(rec.get('signal') or {}).get('w3')} prod {(rec.get('signal_prod') or {}).get('w3')} | sel {(rec.get('signal') or {}).get('sel')}/{(rec.get('signal_prod') or {}).get('sel')} members {(rec.get('signal') or {}).get('members')}/{(rec.get('signal_prod') or {}).get('members')} base_n {(rec.get('signal') or {}).get('base_n')}/{(rec.get('signal_prod') or {}).get('base_n')} fund_updates {(rec.get('signal') or {}).get('fund_updates')}/{(rec.get('signal_prod') or {}).get('fund_updates')}")
-summary = {"device": "preplay_driver.py", "self_sha256": sha(os.path.abspath(__file__)), "utc": time.strftime("%FT%TZ", time.gmtime()), "sandbox": SB, "anchors": [A0, A1, len(out)], "h_from_archive": H_ARCH,
+summary = {"device": "preplay_driver.py", "self_sha256": sha(os.path.abspath(__file__)), "utc": time.strftime("%FT%TZ", time.gmtime()), "sandbox": SB, "anchors": [A0, A1, len(out)], "h_from_archive": H_ARCH, "one_step": ONE_STEP, "ema_from_bundle": EMA_BUNDLE, "init_from_snapshot": SNAP_INIT,
            "producer_sha256": {"shadow_loop_v3.py": sha(f"{PROD}/shadow_loop_v3.py"), "combo_stage.py": sha(f"{WS}/fea171/combo_stage.py"), "f10_live_s42_np.npz": sha(f"{WS}/fea171/f10_live_s42_np.npz"), "slow2026.txt": sha(f"{PROD}/shadow_bundle/slow2026.txt")}, "cache_sha256": sha(CACHE),
            "king_max_abs_dw": max((r.get("king_vs_archive") or {}).get("max_abs_dw", 0) for r in out), "combo_max_abs_dw": max(((r.get("combo_vs_archive") or {}) if isinstance(r.get("combo_vs_archive"), dict) else {}).get("max_abs_dw", 0) for r in out),
            "per_anchor": out}
