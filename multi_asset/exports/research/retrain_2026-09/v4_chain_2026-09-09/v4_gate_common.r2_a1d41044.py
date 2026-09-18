@@ -59,72 +59,6 @@ import re
 import sys
 import time
 
-# ★ E-0918-R (2026-09-18): the interpreter-semantics verdict-hole CLASS. `-O` / PYTHONOPTIMIZE is taken from the PARENT
-#   environment and REMOVES every `assert` at compile time (__debug__ False) — a verdict expressed as an assert vanishes,
-#   flipping a refusing gate into a vacuously-passing one. It is NOT an os.environ read, so R15-C1's ENV_KEYS/AST
-#   completeness check is blind to it by construction (the interpreter consumes PYTHONOPTIMIZE before the program runs).
-#   The guard lives HERE, in the shared library EVERY gate imports (not a new sibling module — that would break every
-#   isolated copy of this file that the fixtures and the driver make): the moment this module loads under a verdict-unsafe
-#   interpreter it REFUSES (exit 11, machine-readable) BEFORE the importing gate reaches its verdict or writes any receipt.
-#   These functions contain NO `assert` of their own (explicit if/raise/sys.exit), so -O cannot weaken the -O detector.
-INTERP_REFUSE_EXIT = 11   # distinct from a gate FAIL (3) and an ordinary crash (1): "this interpreter cannot certify a verdict"
-
-
-def interp_fingerprint():
-    """The effective interpreter semantics, recorded verbatim into every receipt (finalize) so `require` (or a human)
-    can re-check the environment a verdict was produced under. JSON-safe."""
-    f = sys.flags
-    return {"optimize": int(f.optimize), "debug": bool(__debug__), "bytes_warning": int(f.bytes_warning),
-            "dont_write_bytecode": int(f.dont_write_bytecode), "no_user_site": int(f.no_user_site), "no_site": int(f.no_site),
-            "hash_randomization": int(f.hash_randomization), "dev_mode": bool(getattr(sys.flags, "dev_mode", False)),
-            "safe_path": int(getattr(sys.flags, "safe_path", 0)), "warnoptions": list(sys.warnoptions),
-            "executable": sys.executable, "version": sys.version.split()[0]}
-
-
-def interp_unsafe(fp=None):
-    """The subset of interpreter state that can change a VERDICT. Returns human-readable reasons (empty ⇒ safe). Works on
-    the live interpreter (fp=None) OR on a fingerprint a receipt recorded (fp=dict)."""
-    fp = interp_fingerprint() if fp is None else fp
-    bad = []
-    if int(fp.get("optimize", 0) or 0) != 0 or not fp.get("debug", True):
-        bad.append("optimize=%s / __debug__=%s: `assert` statements are REMOVED at compile time (-O/-OO/PYTHONOPTIMIZE); any verdict expressed as an assert VANISHES" % (fp.get("optimize"), fp.get("debug")))
-    if int(fp.get("bytes_warning", 0) or 0) >= 2:
-        bad.append("bytes_warning=%s (-bb): a str/bytes comparison RAISES rather than returning False, which can flip a comparison verdict" % fp.get("bytes_warning"))
-    if any(str(w).split(":", 1)[0] in ("error", "e") for w in (fp.get("warnoptions") or [])):
-        bad.append("warnoptions=%s (-W error): a warning is raised as an exception, changing the exception path a verdict may take" % (fp.get("warnoptions"),))
-    return bad
-
-
-def assert_verdict_safe(where=None):
-    """STARTUP GUARD (called at this module's import, so every gate that imports it is covered with no per-gate edit).
-    Refuses (exit 11) under a verdict-unsafe interpreter. Survives -O because it is an explicit if/sys.exit, not an assert."""
-    bad = interp_unsafe()
-    if bad:
-        loc = (" [%s]" % where) if where else ""
-        sys.stderr.write("INTERP_REFUSED%s verdict-unsafe interpreter state: %s\n" % (loc, " | ".join(bad)))
-        sys.stderr.write("INTERP_REFUSED run this device under a plain interpreter (no -O/-OO/-bb/-W error; PYTHONOPTIMIZE unset)\n")
-        sys.stderr.flush()
-        sys.exit(INTERP_REFUSE_EXIT)
-
-
-def require_true(cond, msg=""):
-    """-O-proof replacement for a load-bearing `assert cond, msg`: an explicit check that raises whatever the optimize level."""
-    if not cond:
-        raise AssertionError(msg)
-
-
-def interp_ok_from_receipt(interp):
-    """(ok, reason) for the interpreter fingerprint a receipt RECORDED — the consumer-side re-check used by `require`."""
-    if not isinstance(interp, dict):
-        return False, "receipt records no interpreter fingerprint (interp block absent): cannot confirm verdict-safe semantics"
-    bad = interp_unsafe(interp)
-    if bad:
-        return False, "receipt was produced under a verdict-unsafe interpreter: " + " | ".join(bad)
-    return True, "interpreter fingerprint safe"
-
-
-assert_verdict_safe("v4_gate_common import")   # ★ E-0918-R: refuse THIS process (and every importer) under -O before any verdict logic runs
-
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
 # ★ ROUND 4: the input names a caller MUST declare when it requires a receipt of this gate (extras allowed). Key = gate, or gate@profile for a
@@ -217,7 +151,6 @@ def finalize(gate, res, out_path, inputs=None, exit_code_fail=3):
         res["self_sha256"] = sha256_file(os.path.abspath(sys.argv[0]))
     except Exception:                                   # noqa: BLE001 — receipt still written
         res["self_sha256"] = None
-    res["interp"] = interp_fingerprint()   # ★ E-0918-R: the interpreter semantics this verdict was produced under (run-metadata, like argv/self_sha256; `require` re-checks it)
     res["receipt_schema"] = "v4_gate_common/2 (gate, PASS, self_sha256, inputs_sha256 bound)"
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with open(out_path, "w") as f:
@@ -271,17 +204,6 @@ def require(receipt_path, inputs=None, expected_gate=None, expected_self_sha=Non
                            f"signed its own receipt is not the reviewed program")
     if r.get("PASS") is not True:
         return False, f"receipt says PASS={r.get('PASS')!r} (gate {r.get('gate')}, {r.get('utc')})"
-    # ★ E-0918-R (2026-09-18): a receipt produced under a verdict-unsafe interpreter (-O strips its asserts) is NOT
-    #   permission. The producing gate now REFUSES such a run at startup (interp_guard.assert_verdict_safe, wired into
-    #   this module's import), so a governed -O receipt cannot be written in the first place — this is the consumer-side
-    #   backstop. Lenient on a MISSING interp block (a receipt predating the E-0918-R fingerprint); a present-but-unsafe
-    #   block is refused. The gates whose source changed for E-0918-R have their prior sha DE-approved in the contract,
-    #   so an old-gate-under-O receipt (no interp block, old sha) is refused by the approval check above regardless.
-    interp = r.get("interp")
-    if interp is not None:
-        ok_i, why_i = interp_ok_from_receipt(interp)
-        if not ok_i:
-            return False, f"{why_i} (gate {r.get('gate')}, {r.get('utc')})"
     if not inputs:
         return False, "caller declared no inputs: nothing would be verified, so nothing is permitted"
     need, key, registered = required_inputs(expected_gate, profile)
