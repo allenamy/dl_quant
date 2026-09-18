@@ -377,6 +377,30 @@ else:
     unproven("incident.model_done_sealed", "could not locate MODEL_DONE_SEALED / built_utc to reconstruct the 14:02:09 incident")
 
 # --------------------------------------------------------------------------------------
+# 6b. KING booster IC deltas + guard band — the old seal's THIRD hardcoded sentence.
+#     Re-compute the deltas from export.log (IC - base), do not copy them.
+export_log, _ = read_text(f"{R}/logs/export.log")
+king_deltas = []
+for m in re.finditer(r"fold (\d+) IC ([+\-][\d.]+) \(base ([+\-][\d.]+) Δ([+\-][\d.]+)\)", export_log or ""):
+    yr, ic, base, stated = m.group(1), float(m.group(2)), float(m.group(3)), float(m.group(4))
+    king_deltas.append({"fold": f"fold{yr}", "recomputed": round(ic - base, 4), "stated": stated})
+mp = re.search(r"pinned booster (\d+) IC ([+\-][\d.]+) \(orig ([+\-][\d.]+)\)", export_log or "")
+if mp:
+    king_deltas.append({"fold": f"pinned{mp.group(1)}", "recomputed": round(float(mp.group(2)) - float(mp.group(3)), 4), "stated": None})
+gb = re.search(r"guard band \[([\d.]+), ([\d.]+)\] (PASS|FAIL)", export_log or "")
+king_ok = (len(king_deltas) == 3
+           and all(d["stated"] is None or abs(d["recomputed"] - d["stated"]) < 1e-4 for d in king_deltas)
+           and gb and gb.group(3) == "PASS")
+if king_ok:
+    proven("king.ic_deltas",
+           f"king booster three-part IC deltas re-computed from export.log (IC - base) = "
+           f"{', '.join(d['fold'] + ' ' + format(d['recomputed'], '+.4f') for d in king_deltas)}; each matches the value "
+           f"stated in the log; guard band [{gb.group(1)}, {gb.group(2)}] PASS — the old seal's hardcoded king sentence, now derived",
+           deltas=king_deltas)
+else:
+    unproven("king.ic_deltas", f"king IC deltas/guard not derivable from export.log: deltas={king_deltas} guard={gb.group(0) if gb else None}")
+
+# --------------------------------------------------------------------------------------
 # 7. DEVICE COMPLETENESS (`want`, not just intersection) + cross-verification.
 want = ["pod_dlw_targets_raw_v2.py", "pod_fea_ext_clamp_v2.py", "pod_export_bundle_v4.py", "pod_legs_v4b.py",
         "pod_f10_train_monthly_v4.py", "pod_f10_refit_v4.py", "pod_f10_np_export_v4.py",

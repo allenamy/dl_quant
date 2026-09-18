@@ -1,23 +1,22 @@
 RED CONTROL — seal.py (defective, retained) vs seal_manifest.py (replacement)
-Run 2026-09-18T15:02:36Z on darwin, hermetic fixture in scratchpad (no pod, no GPU).
+Run 2026-09-18T15:07:07Z on darwin, hermetic fixture in scratchpad (no pod, no GPU).
 Fixture: devices present as stubs; ALL 17 registered artefacts and ALL witnesses ABSENT.
-Purpose: the defect is 'with the 17 artefacts absent the OLD script still exits 0 and writes
-"trained and materialised"'. The NEW script must REFUSE (nonzero) on the same fixture.
+Defect: with the 17 artefacts absent the OLD script still exits 0 and writes 'trained and materialised'.
+The NEW script must REFUSE (nonzero) on the same fixture.
 ======================================================================================
 ### OLD seal.py (roots repointed at the empty fixture) — STDOUT:
 sealed 0 artefacts, 9 devices
 OLD seal.py EXIT = 0
-OLD seal.py wrote seal field:
-  'legal-member model artefacts, SEALED - trained and materialised, NOT judged. No book-level evaluation was run.'
+OLD wrote seal: 'legal-member model artefacts, SEALED - trained and materialised, NOT judged. No book-level evaluation was run.'
   artefacts with a sha: 0 / 17
   hardcoded training.mwf: '2 seeds x 4 disjoint month shards, 8/8 rc=0, 5 folds each, MWF_TRAIN_DONE, both merges MERGE_DONE'
 ======================================================================================
-### NEW seal_manifest.py (same empty fixture) — verdict + counts (full list omitted for length):
+### NEW seal_manifest.py (same empty fixture) — verdict + counts:
 ==========================================================================================
 NOT SEALED — named refusals/unproven items below; nonzero exit
-self_sha256 1838f592c7723cc605b73f765e0ad3563dcb26e9bada3975a90cbdddfcd33b8f
-folds proven 0/40 | checks PROVEN 0 NOTE 11 REFUSED 35 UNPROVEN 7
-  REFUSED lines: 35   UNPROVEN lines: 7
+self_sha256 861dc61b7590fac527af5bc0dfdc6e44da6505053c484b2f72a812735676a026
+folds proven 0/40 | checks PROVEN 0 NOTE 11 REFUSED 35 UNPROVEN 8
+  REFUSED lines: 35   UNPROVEN lines: 8
 NEW seal_manifest.py EXIT = 1
 ======================================================================================
 RESULT: OLD exits 0 (false green); NEW exits 1 (refuses). Red control PASS.
