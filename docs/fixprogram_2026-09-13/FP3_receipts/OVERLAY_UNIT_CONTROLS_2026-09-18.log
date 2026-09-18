@@ -5,9 +5,13 @@ PASS C  causality r1a:q=0.90,s=0.5: decisions at anchors ≤ 300 unchanged by pe
 PASS C  causality r2:c=0.5: decisions at anchors ≤ 300 unchanged by perturbing rows > 300 
 PASS C  causality r3:th=0.20: decisions at anchors ≤ 300 unchanged by perturbing rows > 300 
 PASS C  causality r4:win=60: decisions at anchors ≤ 300 unchanged by perturbing rows > 300 
+PASS C  causality r6:k=1,q=0.95,s=0.5: decisions at anchors ≤ 300 unchanged by perturbing rows > 300 
+PASS C  causality r6l:k=1,q=0.95,s=0.5: decisions at anchors ≤ 300 unchanged by perturbing rows > 300 
+PASS C  causality r6b:k=1,q=0.95,s=0.5: decisions at anchors ≤ 300 unchanged by perturbing rows > 300 
+PASS G  r6b: basket from the TARGET book (HB) so the signal is defined every anchor; cuts occur (11 anchors) and last ≥ 1 anchor with hysteresis (max run 4) 
 PASS D1 R4 output is beta-neutral 
 PASS D2 the tail step is SKIPPED for a beta-contract rule (attribute neutral='beta'), so Σwβ=0 survives; the old unconditional tail step would give β exposure −0.0667 
 PASS E  one-sided book ⇒ empty book under the notional contract (not |net|/gross = 1) 
 PASS F  tail step scales the heavier side DOWN only: caps hold, Σw = 0 
-RESULT 11/11 pass
-G0 v3 (per-run overlay instantiation, R4 beta contract, one-sided ⇒ empty): rec equal True | W equal True — 2026-09-18T05:18:30Z
+RESULT 15/15 pass
+run 2026-09-18T06:30:39Z overlays d1b68fd4 engine 0349c870

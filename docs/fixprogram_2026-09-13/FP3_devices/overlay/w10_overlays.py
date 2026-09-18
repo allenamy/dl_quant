@@ -138,6 +138,25 @@ def make(spec):
             return np.where(np.isfinite(sm) & (sm < 0), sm * s, sm) if H.on else sm         # short leg scaled; long leg untouched ⇒ net long while on
         f.neutral = "net_allowed"
         return f
+    if name == "r6n":                                                                  # PREREG R6 AMENDMENT 3 (EXPLORATORY, after amendment-2 receipts): short-leg cut + NET EXPOSURE CAP (scale the long leg down until |net|/gross ≤ ncap)
+        k, q, s, qoff, ncap = int(P.get("k", 1)), P.get("q", 0.95), P.get("s", 0.5), P.get("qoff", 0.80), P.get("ncap", 0.10)
+        H = _Hist(); H.on = False
+        def f(sm, ctx):
+            i, y4, HB = ctx["i"], ctx["y4"], ctx["HB"]
+            if i < k or HB is None: return sm
+            seg = y4[i - k:i]; cum = np.exp(np.nansum(np.log1p(np.where(np.isfinite(seg), seg, 0.0)), axis=0)) - 1.0
+            hb = np.nan_to_num(HB); sh = hb < 0; lo = hb > 0
+            b = float(cum[sh].mean() - cum[lo].mean()) if (sh.sum() >= 5 and lo.sum() >= 5) else np.nan
+            H.B.append(b); hist = np.array([x for x in H.B[:-1] if np.isfinite(x)])
+            if len(hist) < 200 or not np.isfinite(b): return sm
+            H.on = (b >= np.quantile(hist, qoff)) if H.on else (b >= np.quantile(hist, q))
+            if not H.on: return sm
+            out = np.where(np.isfinite(sm) & (sm < 0), sm * s, sm); fin = np.isfinite(out); L = float(out[fin & (out > 0)].sum()); S_ = float(-out[fin & (out < 0)].sum())
+            if L + S_ > 1e-12 and (L - S_) / (L + S_) > ncap:                         # net long above the cap ⇒ scale the LONG leg down (never up) to hit the cap exactly
+                Lt = S_ * (1 + ncap) / (1 - ncap); out = np.where(fin & (out > 0), out * (Lt / L), out)
+            return out
+        f.neutral = "net_allowed"
+        return f
     if name == "r6c":                                                                  # control arm: UNCONDITIONAL constant budget (same average leverage as the reference r6 arm)
         c = P.get("c", 1.0)
         def f(sm, ctx): return sm * c
