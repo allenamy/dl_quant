@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""FP3 observability page v3 (read-only; independent review e25d30fd §5-D; round 11 R11-PAGE, round 12 R12-M1). One Markdown page per UTC day.
+"""FP3 observability page v4 (read-only; independent review e25d30fd §5-D; round 11 R11-PAGE, round 12 R12-M1, round 13 R13-M1). One Markdown page per UTC day.
+ROUND 13 (both reviewer counterexamples): (6) the two sub-period numbers for a segment containing a flow are SCENARIOS, not a range — the true
+time-weighted return can fall OUTSIDE them (100 → 200, deposit 100 → 300, → 220: true 46.67%, scenarios 10% / 20%), so the page no longer prints them
+as an interval and says in words that a point value needs a valuation at the flow instant; (7) net-zero is not no-flow — +100 then −100 in one segment
+was labelled exact while the capital timing really changed (true 33.33% vs the page's "exact" 20%), so exactness is now decided by the GROSS flow.
 ROUND 12 (each a reviewer counterexample v2 passed): (1) `(NAV − net inflow)/prev − 1` was CALLED a TWR and is not — with a deposit at the start of
 the day it reports 20% where the true time-weighted return is 10%. The day return is now a chain of sub-period returns across every LIVE NAV row,
 exact for segments with no external flow and reported as an INTERVAL [flow-at-start, flow-at-end] for the segment that contains one; (2) the
@@ -42,35 +46,44 @@ transfers_all = sum(flow_by_day.values())
 TODAY = time.strftime("%Y%m%d", time.gmtime()); IS_TODAY = (DAY == TODAY)
 gt = json.load(open(f"{GT}/latest.json")) if os.path.exists(f"{GT}/latest.json") else {}
 asof_note = "" if IS_TODAY else f" ⚠ **as-of {gt.get('utc')}(当前状态, 不是 {DAY} 当日状态)**"
-lines = [f"# 实盘一页 {DAY} v3(只读, 生成 {time.strftime('%FT%TZ', time.gmtime())}; 账本根 {REPO})", ""]
+lines = [f"# 实盘一页 {DAY} v4(只读, 生成 {time.strftime('%FT%TZ', time.gmtime())}; 账本根 {REPO})", ""]
 # ── §1 equity: flow-adjusted TWR by day (last LIVE NAV row of each day), capital-basis ratio labelled as such
 by_day = collections.OrderedDict()
 for r in nav: by_day[time.strftime("%Y%m%d", time.gmtime(float(r["nav_ts"])))] = r          # last row of each day
 dk = list(by_day)
-# R12-M1: a real sub-period chain. Valuation points = EVERY LIVE NAV row; flows = the TRANSFER rows by timestamp. A segment with no flow has an exact
-# return; a segment that contains one is an INTERVAL between the two extreme assumptions (the flow at the segment's start, and at its end), because we
-# have no valuation AT the flow. Nothing is called a TWR unless the segment it came from was exact.
+# R12-M1: a real sub-period chain. Valuation points = EVERY LIVE NAV row; flows = the TRANSFER rows by timestamp. A segment with no flow activity has
+# an exact return.
+# ★ ROUND 13 R13-M1 — TWO CORRECTIONS.
+# (6) The two numbers for a segment that CONTAINS a flow are SCENARIOS, not bounds. Placing the flow at the segment's start and at its end gives two
+#     admissible answers, and the true time-weighted return need not lie between them: the reviewer's path 100 → 200, deposit 100 → 300, → 220 has a
+#     true TWR of 46.67% while the two scenarios are 10% and 20%. Without a valuation AT the flow instant the segment's return is UNKNOWN; the page
+#     now says so and never calls the pair a range or a bound.
+# (7) NET-ZERO IS NOT NO-FLOW. `abs(F) < 1e-9` called +100 then −100 inside one segment "exact"; the capital timing really changed (the reviewer's
+#     path gives a true 33.33% against the page's "exact" 20%). The exactness test is now the GROSS flow activity in the segment.
 flows_t = sorted((float(r["time"]) / 1000, float(r["income"])) for r in inc if r.get("type") == "TRANSFER" and r.get("asset") == "USDT")
 vps = [(float(r["nav_ts"]), float(r["nav"])) for r in nav]
-segs = []                                             # (day_of_end, r_lo, r_hi, flow, exact)
+segs = []                                             # (day_of_end, r_scen_lo, r_scen_hi, net_flow, exact, gross_flow, n_flows)
 for (t0, v0), (t1, v1) in zip(vps, vps[1:]):
-    F = sum(a for t, a in flows_t if t0 < t <= t1)
+    seg_f = [a for t, a in flows_t if t0 < t <= t1]
+    F = sum(seg_f); Fg = sum(abs(a) for a in seg_f)                    # R13-M1 (7): GROSS activity decides exactness, not the net
     d_ = time.strftime("%Y%m%d", time.gmtime(t1))
-    if abs(F) < 1e-9:
-        r_ = (v1 / v0 - 1.0) if v0 else 0.0; segs.append((d_, r_, r_, 0.0, True))
+    if Fg < 1e-9:
+        r_ = (v1 / v0 - 1.0) if v0 else 0.0; segs.append((d_, r_, r_, 0.0, True, 0.0, 0))
     else:
         cand = [(v1 / (v0 + F) - 1.0) if (v0 + F) else 0.0, ((v1 - F) / v0 - 1.0) if v0 else 0.0]
-        segs.append((d_, min(cand), max(cand), F, False))
-twr = []                                              # (day, r_lo, r_hi, flow, exact)
+        segs.append((d_, min(cand), max(cand), F, False, Fg, len(seg_f)))
+twr = []                                              # (day, r_scen_lo, r_scen_hi, net_flow, exact, gross_flow, n_flows)
 for d in dk:
     ss = [x for x in segs if x[0] == d]
     if not ss: continue
     lo = float(np.prod([1.0 + x[1] for x in ss]) - 1.0); hi = float(np.prod([1.0 + x[2] for x in ss]) - 1.0)
-    twr.append((d, min(lo, hi), max(lo, hi), sum(x[3] for x in ss), all(x[4] for x in ss)))
-cum_lo = float(np.prod([1.0 + x[1] for x in twr]) - 1.0) if twr else None
-cum_hi = float(np.prod([1.0 + x[2] for x in twr]) - 1.0) if twr else None
-cum_twr = cum_lo if (cum_lo is not None and cum_hi is not None and abs(cum_hi - cum_lo) < 1e-12) else None
+    twr.append((d, min(lo, hi), max(lo, hi), sum(x[3] for x in ss), all(x[4] for x in ss), sum(x[5] for x in ss), sum(x[6] for x in ss)))
+scen_lo = float(np.prod([1.0 + x[1] for x in twr]) - 1.0) if twr else None     # R13-M1 (6): SCENARIOS, not bounds — renamed so no reader can take them for a range
+scen_hi = float(np.prod([1.0 + x[2] for x in twr]) - 1.0) if twr else None
+cum_lo, cum_hi = scen_lo, scen_hi                                              # kept as aliases for downstream lines; the LABELS below say scenario
+cum_twr = scen_lo if (scen_lo is not None and scen_hi is not None and abs(scen_hi - scen_lo) < 1e-12) else None
 n_approx = sum(1 for x in twr if not x[4])
+n_flow_days = sum(1 for x in twr if x[6])
 idx = [1.0]
 for x in twr: idx.append(idx[-1] * (1.0 + x[1]))
 dd_twr = idx[-1] / max(idx) - 1.0 if idx else None
@@ -80,16 +93,21 @@ if latest:
     navs = [float(r["nav"]) for r in nav]; peak = max(navs); peak_ts = nav[int(np.argmax(navs))]["nav_ts"]
     td = [x for x in twr if x[0] == DAY]
     day_txt = ("无当日 NAV 环节" if not td else
-               (f"**{td[0][1]:+.2%}**(精确: 当日各子区间无外部流)" if td[0][4] else
-                f"**[{td[0][1]:+.2%}, {td[0][2]:+.2%}]**(区间: 当日有外部流 {td[0][3]:+,.0f} 而无该时点估值 ⇒ 两端假设 = 流在子区间起点 / 终点)"))
-    cum_txt = (f"**{cum_lo:+.2%}**(精确: 全部 {len(twr)} 个日环节都无外部流)" if n_approx == 0 else
-               f"**[{cum_lo:+.2%}, {cum_hi:+.2%}]**({len(twr)} 个日环节, 其中 {n_approx} 个含外部流 ⇒ 区间而非点值)")
+               (f"**{td[0][1]:+.2%}**(精确: 当日各子区间**无任何**外部流, 毛额也为 0)" if td[0][4] else
+                f"**情景 {td[0][1]:+.2%} / {td[0][2]:+.2%}**(当日有 {td[0][6]} 笔外部流, 净 {td[0][3]:+,.0f} / 毛 {td[0][5]:,.0f}, 而无该时点估值 ⇒ "
+                f"两个**情景**=流在子区间起点 / 终点; **真实时间加权收益不必落在两者之间**, 见下方口径说明)"))
+    cum_txt = (f"**{scen_lo:+.2%}**(精确: 全部 {len(twr)} 个日环节都无外部流)" if n_approx == 0 else
+               f"**情景 {scen_lo:+.2%} / {scen_hi:+.2%}**({len(twr)} 个日环节, 其中 {n_approx} 个含外部流 ⇒ **两个情景, 不是区间也不是上下界**)")
     lines += ["## 1. 权益(NAV 含未实现损益)",
-              f"- 最新 NAV {float(latest['nav']):,.0f}({U(latest['nav_ts'])}); 原始 NAV 高点 {peak:,.0f}({U(peak_ts)}), 相对原始高点 {float(latest['nav']) / peak - 1:+.2%}(**含资金流**, 不是回撤); 按日回报指数(取区间下界)的回撤 **{dd_twr:+.2%}**",
+              f"- 最新 NAV {float(latest['nav']):,.0f}({U(latest['nav_ts'])}); 原始 NAV 高点 {peak:,.0f}({U(peak_ts)}), 相对原始高点 {float(latest['nav']) / peak - 1:+.2%}(**含资金流**, 不是回撤); 按日回报指数(取较低的那个情景值)的回撤 **{dd_twr:+.2%}**",
               f"- 当日回报(**子区间链**, 逐 LIVE NAV 行分段, 流按时刻归段): {day_txt}"
               + (f"; daily_nav 自记当日外部流 {ext:+,.2f}" if ext is not None else "") + (f"; 未调整的 NAV 比值 {float(latest['nav']) / prev_close - 1:+.2%}" if prev_close else ""),
               f"- 累计(自首个 LIVE 日 {dk[0]} 起): {cum_txt}; twin 当日 {gt.get('day_pct_twin')} / 累计 {gt.get('cum_pct_twin')}(%){asof_note}",
-              f"- **口径说明(复审第十二轮 R12-M1)**: 旧页把 (NAV − 净转入)/前值 − 1 叫 TWR —— 那是「流在期末」的单一假设, 期初入金时会高估(100 起、期初入金 100、整体赚 10%、期末 220 ⇒ 旧式报 20%, 真 TWR 10%)。现在无流的子区间是精确值, 含流的子区间给区间, 两者相乘成日/累计区间。",
+              f"- **口径说明(复审第十二轮 R12-M1 + 第十三轮 R13-M1)**: ① 旧页把 (NAV − 净转入)/前值 − 1 叫 TWR —— 那是「流在期末」的单一假设, 期初入金时会高估"
+              f"(100 起、期初入金 100、整体赚 10%、期末 220 ⇒ 旧式报 20%, 真 TWR 10%)。② **上面两个数是情景, 不是上下界**: 没有流时点估值时, 真实时间加权收益"
+              f"**可以落在两者之外** —— 反例 100 涨到 200、入金 100 成 300、再跌到 220, 真 TWR **46.67%**, 而两情景是 10% / 20%。要得到点值必须有流发生时刻的估值。"
+              f"③ **净额为零不等于没有资金流**: 同一区间先入 100 后出 100 的净额是 0, 资本时点却真的变了(真 TWR 33.33%, 旧页按「精确」报 20%); 现在按**毛额活动**判精确, "
+              f"当日毛额 {(td[0][5] if td else 0):,.0f} / {(td[0][6] if td else 0)} 笔。",
               f"- 资本基准比: NAV / 净转入 {transfers_all:,.0f} − 1 = {float(latest['nav']) / transfers_all - 1:+.2%}(**不是收益率**: 分母是带号转账之和, 入金时点不同的钱不可比; guard_twin transfers_all {float(gt.get('transfers_all') or 0):,.0f})", ""]
 # ── §2 P&L: (a) static exposure estimate (old method, labelled), (b) actual event-path price P&L, (c) merged top losers, breadth
 rb = [r for r in rows(DAY, "position_readback") if str(r.get("source", "")).endswith("@post_anchor")]; snaps = collections.defaultdict(dict)
@@ -105,10 +123,13 @@ for i in range(len(ank) - 1):
         else: estS += pl
 panel = PP.Panel(); L = PP.LedgerDay(DAY); per_sym = collections.defaultdict(float); actL = actS = act_tot = 0.0; n_ok = 0; cens_n = 0
 fees = collections.defaultdict(float); statuses = []; fp_corr = 0.0; cov_w = cov_g = 0; gap_tot = gap_L = gap_S = 0.0; n_gap_ok = 0; gap_statuses = []
-prev_rec = PP.window_pnl(L, panel, d0 - 14400)                                   # carry state for the day's FIRST gap only
+# R13-P2 (1): the page prices the day with the SAME chronological day price chain as P-C2 v5 — gap(A) precedes window(A), and one reference per symbol
+px_chain = {}
+prev_rec = PP.window_pnl(L, panel, d0 - 14400, px_chain=px_chain)                # carry state for the day's FIRST gap only
 for A in [d0 + 14400 * k for k in range(6)]:
-    rec = PP.window_pnl(L, panel, A); statuses.append((U(A), rec.get("status"), rec.get("window_class")))
-    g = PP.gap_pnl(L, panel, A, rec.get("t_decision") if rec.get("status") == "OK" else A + 1440.0, prev_rec); prev_rec = rec
+    _td, _tds = PP.decision_time(L, A)
+    g = PP.gap_pnl(L, panel, A, _td, prev_rec, px_chain=px_chain)                # the gap precedes the window in time
+    rec = PP.window_pnl(L, panel, A, px_chain=px_chain); statuses.append((U(A), rec.get("status"), rec.get("window_class"))); prev_rec = rec
     gap_statuses.append((U(A), g.get("status")))
     if g.get("status") == "GAP_OK":
         n_gap_ok += 1; gap_tot += g["pnl_usdt"]; gap_L += g["pnl_long_usdt"]; gap_S += g["pnl_short_usdt"]; fp_corr += g["fill_price_correction_usdt"]; cov_g += g.get("coverage_s", 0)

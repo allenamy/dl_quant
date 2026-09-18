@@ -30,16 +30,21 @@ import pnl_path as PP
 DAY, OUT = sys.argv[1], sys.argv[2]
 d0 = int(time.mktime(time.strptime(DAY, "%Y%m%d")) - time.timezone); anchors = [d0 + 14400 * k for k in range(6)]
 panel = PP.Panel(); L = PP.LedgerDay(DAY)
-out = {"device": "pc2_layer_decomposition.py", "version": "v4 event-path pricing + recorded fill prices + carry gaps (pnl_path.py)", "utc": time.strftime("%FT%TZ", time.gmtime()), "day": DAY,
+out = {"device": "pc2_layer_decomposition.py", "version": "v5 one day price chain + fill partition + gap population + closure conditions (pnl_path.py)", "utc": time.strftime("%FT%TZ", time.gmtime()), "day": DAY,
        "self_sha256": hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest(), "engine_sha256": hashlib.sha256(open(PP.__file__, "rb").read()).hexdigest(),
        "panel": {"path": panel.path, "sha256": panel.sha, "t_first": panel.t_first, "t_last": panel.t_last, "n_symbols": len(panel.syms)},
        "ledger_roots": {"repo": PP.REPO, "ws": PP.WS}, "anchors": []}
 tot = {}; n_ok = 0; fees = {}; cens_tot = {}; by_class = {}; gaps = []; full = {}
-prev_rec = PP.window_pnl(L, panel, d0 - 14400)          # only as the carry state for the day's FIRST gap (its own P&L belongs to the previous day)
+# ★ R13-P2 (1): ONE price reference per symbol per day, carried CHRONOLOGICALLY: previous-day window → gap(A0) → window(A0) → gap(A1) → …
+#   v4 priced window(A) BEFORE gap(A) although the gap precedes it in time, and each window re-derived its own reference, so the two sides of a join
+#   could disagree with the difference booked nowhere. `decision_time` gives the gap its boundary without pricing the window first.
+px_chain = {}
+prev_rec = PP.window_pnl(L, panel, d0 - 14400, px_chain=px_chain)     # only as the carry state for the day's FIRST gap (its own P&L belongs to the previous day)
 fill_corr_windows = 0.0; ls_tot = {"pnl_long_usdt": 0.0, "pnl_short_usdt": 0.0}
 for A in anchors:
-    rec = PP.window_pnl(L, panel, A)
-    g = PP.gap_pnl(L, panel, A, rec.get("t_decision") if rec.get("status") == "OK" else A + 1440.0, prev_rec)
+    t_d, t_d_src = PP.decision_time(L, A)
+    g = PP.gap_pnl(L, panel, A, t_d, prev_rec, px_chain=px_chain)     # the gap comes FIRST in time
+    rec = PP.window_pnl(L, panel, A, px_chain=px_chain)
     gaps.append(g); prev_rec = rec
     if rec.get("status") == "OK":
         n_ok += 1; rec["diffs"] = PP.layer_diffs(rec)
@@ -72,11 +77,32 @@ out["day_gap_totals"] = {"n_gaps_priced": len(gap_ok), "n_gaps": len(gaps), "pnl
 out["day_coverage"] = {"windows_s": int(win_cov), "gaps_s": int(gap_cov), "total_s": int(win_cov + gap_cov), "day_s": 86400,
                        "covered_frac": round((win_cov + gap_cov) / 86400.0, 6),
                        "note": "the decision windows alone cover 21.5 h of 24 h (6 x ~25 min missing); the gaps close that for the ACTUAL layer only"}
+# ── R13-P2 (2): the fill partition over the day — the gap owns (A, t_d), the window owns [t_d, t_end]; every corrected fill belongs to exactly one ──
+_wk = [tuple(k) for r in out["anchors"] if r.get("status") == "OK" for k in (r.get("fill_partition") or {}).get("keys", []) if k]
+_gk = [tuple(k) for g in gap_ok for k in (g.get("fill_partition") or {}).get("keys", []) if k]
+_dup = sorted(set(_wk) & set(_gk)); _all = _wk + _gk
+out["day_fill_partition"] = {"n_corrected_in_windows": len(_wk), "n_corrected_in_gaps": len(_gk), "n_total": len(_all), "n_distinct": len(set(_all)),
+                             "n_double_counted": len(_dup), "double_counted": [list(k) for k in _dup[:10]],
+                             "disjoint": not _dup, "no_repeat_within_side": len(_all) == len(set(_all)),
+                             "rule": "gap (A, t_d) ∪ window [t_d, t_end] is a partition of the corrected fills — R13-P2 (2): v4 used A < t <= t_d and t_d <= t <= t_end, so a fill exactly at t_d was corrected twice"}
+# ── R13-P2 (5): what "the whole day" is allowed to claim. v4's `complete` only asked for 6 windows + 6 gaps and ignored censored names, missing
+#    start prices, the readback residual and the price-chain joins. The claim is renamed and every sub-condition is published beside it. ──
+_ok_recs = [r for r in out["anchors"] if r.get("status") == "OK"]
+_cens_names = sum(r["layers"]["L3_actual_path"]["censored"]["n"] for r in _ok_recs) + sum(g.get("censored", {}).get("n", 0) for g in gap_ok)
+_resid_over = sum(r["unexplained_qty_residual"]["n_over_1usdt"] for r in _ok_recs)
+_join_over = sum((r.get("price_chain_joins") or {}).get("n_over_1pct", 0) for r in _ok_recs)
+_conds = {"six_windows_priced": n_ok == 6, "six_gaps_priced": len(gap_ok) == 6, "no_censored_names": _cens_names == 0,
+          "no_readback_residual_over_1usdt": _resid_over == 0, "no_price_chain_join_over_1pct": _join_over == 0,
+          "fills_partitioned": bool(out["day_fill_partition"]["disjoint"]), "coverage_full_day": int(win_cov + gap_cov) == 86400}
 out["day_actual_full_day"] = {"windows_pnl_usdt": tot.get("L3_actual_path", 0.0), "gaps_pnl_usdt": gap_pnl_sum,
-                              "full_day_pnl_usdt": tot.get("L3_actual_path", 0.0) + gap_pnl_sum,
-                              "full_day_pnl_usdt_with_fill_prices": tot.get("L3_actual_path", 0.0) + gap_pnl_sum + fill_corr_windows + gap_corr,
+                              "priced_period_pnl_usdt": tot.get("L3_actual_path", 0.0) + gap_pnl_sum,
+                              "priced_period_pnl_usdt_with_fill_prices": tot.get("L3_actual_path", 0.0) + gap_pnl_sum + fill_corr_windows + gap_corr,
                               "fill_price_correction_usdt": fill_corr_windows + gap_corr,
-                              "complete": (n_ok == 6 and len(gap_ok) == 6)} if n_ok else None
+                              "n_censored_names": int(_cens_names), "n_readback_residual_over_1usdt": int(_resid_over), "n_price_chain_joins_over_1pct": int(_join_over),
+                              "closure_conditions": _conds, "closed": all(_conds.values()),
+                              "label": "研究口径的价格估计, 覆盖【已定价的时段与成员】; 不是当日现金账 —— closure_conditions 逐条说明缺什么",
+                              "note": "R13-P2 (5): v4 called this `complete` on 6 windows + 6 gaps alone. It is now `closed` only when every condition above holds; "
+                                      "the figure itself is a research price estimate over the priced periods and members, never a certified day P&L"} if n_ok else None
 out["day_long_short_windows"] = ls_tot
 out["day"] = DAY; out["n_anchors_ok"] = n_ok; out["n_anchors_total"] = 6
 out["day_totals_over_ok_anchors_usdt"] = tot; out["day_censored_notional_by_layer"] = cens_tot; out["day_fees_in_windows"] = fees

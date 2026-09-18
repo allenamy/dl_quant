@@ -105,7 +105,7 @@ class Panel:
 
 def ev_sorted(events):
     """THE event order, used by the pricing path, the cut path and the residual check alike: real event time, and only at an equal timestamp a
-    fill before a set (a flatten readback is written after the fills it reports). Accepts 4- or 5-tuples (b, kind, value, t[, fill_px])."""
+    fill before a set (a flatten readback is written after the fills it reports). Accepts 4-, 5- or 6-tuples (b, kind, value, t[, fill_px[, trade_key]])."""
     return sorted(events, key=lambda e: (float(e[3]), 0 if e[1] == "fill" else 1))
 
 
@@ -159,9 +159,19 @@ def qty_path(q0, events, t_d, b_lo, b_hi):
 
 def cut_path(q_intent, cuts, b_lo, b_hi):
     """The INTENT position scaled by what each in-window `set` actually left standing (round 12 R12-P2: v3 truncated the whole reference position at
-    the first set, so a partial flatten of 5 out of 10 was priced as a full exit). Returns (q_start_after_cuts_at_or_before_b_lo, {boundary: q})."""
+    the first set, so a partial flatten of 5 out of 10 was priced as a full exit).
+
+    ★ ROUND 13 R13-P2 (3): ONE ratio per BAR. Every `set` inside one 5-minute bar is measured against the SAME `q_bar_start` (the quantity entering
+    that bar), so applying each ratio in turn squares the cut: a readback sequence 10 → 8 → 5 in one bar recorded ratios 0.8 and 0.5 and v4 produced
+    0.8 × 0.5 = 0.4 ⇒ a reference position of 4 where the actual path leaves 5. The bar's composite ratio is the LAST set's outcome over the quantity
+    entering the bar; the cuts list is built in `ev_sorted` order, so the last entry for a boundary is the chronologically last set in it.
+    Returns (q_start_after_cuts_at_or_before_b_lo, {boundary: q})."""
+    last_of_bar = {}
+    for c in cuts:                                                     # built in event order ⇒ the final write per boundary is that bar's outcome
+        last_of_bar[int(c[0])] = c
     q = float(q_intent); q_start = float(q_intent); path = {}
-    for (b, ratio, qb, nq) in sorted(cuts, key=lambda c: c[0]):
+    for b in sorted(last_of_bar):
+        (bb, ratio, qb, nq) = last_of_bar[b]
         q *= (1.0 if ratio is None else float(ratio))
         if b <= b_lo:
             q_start = q
@@ -239,9 +249,32 @@ class LedgerDay:
         return [r for r in self.rb if "flatten" in str(r.get("source", "")) and t_lo < float(r["read_ts"]) <= t_hi]
 
 
-def window_pnl(L, panel, A, window_end=None):
+def decision_time(L, A):
+    """(t_d, source) for the run labelled A WITHOUT pricing anything — the day driver needs the gap [A, t_d) before it prices the window [t_d, A+4h],
+    and the two must use the same instant (R13-P2 (1)/(2): one chronological chain, one fill partition)."""
+    d = L.pa.get(A)
+    if not d:
+        return A + 1440.0, "A+24min_no_phase_A"
+    rid = d.get("rebalance_id")
+    subs = [float(r["submit_ts"]) for r in L.od if r.get("rebalance_id") == rid and r.get("submit_ts")]
+    return (min(subs), "min_submit_ts") if subs else (A + 1440.0, "A+24min_fallback")
+
+
+def window_pnl(L, panel, A, window_end=None, px_chain=None):
     """Event-path price P&L of the four layers for the run labelled A (nominal 4h anchor). Returns a dict (status ≠ OK when decision-time records are
-    missing). Window = [t_d, A+4h] with t_d = earliest submit_ts of the rebalance (fallback A + 24 min); boundaries b0 = ceil(t_d), b1 = ceil(A+4h)."""
+    missing). Window = [t_d, A+4h] with t_d = earliest submit_ts of the rebalance (fallback A + 24 min); boundaries b0 = ceil(t_d), b1 = ceil(A+4h).
+
+    ★ ROUND 13 R13-P2 (1) — ONE PRICE REFERENCE PER SYMBOL PER DAY. v4 re-derived a fresh reference in every window (that window's own readback mark,
+    else its first fill, else mid_at_anchor) while `gap_pnl` chained off the previous window's END price, so the two sides of a join could disagree and
+    the difference was booked nowhere: the reviewer's fixture ends a window at 120, starts the next at 132 holding 10, and 120 USDT of position value
+    falls outside every explanation while the gap reports 0. On the real five days 5,010 name-joins differ by more than one cent.
+      `px_chain` (dict symbol → {"b", "px", "source"}) is the day's carried reference, MUTATED IN PLACE by this function and by `gap_pnl`. When a symbol
+      is in the chain and the panel can index from the chain boundary, the chain reference is used; the symbol's own would-be reference is still derived
+      and the join difference is REPORTED (`price_chain_joins`) with a candidate cause — it is NEVER added to P&L, because a mark/close difference is not
+      a realised gain. A reset is recorded whenever the chain cannot be used (`reset_reason`).
+    ★ ROUND 13 R13-P2 (2) — HALF-OPEN FILL PARTITION. The gap owns (A, t_d) and the window owns [t_d, t_end]: a fill exactly at t_d used to be price-
+    corrected on BOTH sides (the reviewer's buy 5 at t_d added its 100 correction twice). Both functions record the `(symbol, trade_id)` keys they
+    corrected so the caller can assert the partition over the day's fill set."""
     d = L.pa.get(A); rec = {"anchor": A, "utc": time.strftime("%m-%d %H:%MZ", time.gmtime(A))}
     if not d or not (d.get("sizing") or {}).get("gross"):
         rec["status"] = "NO_PHASE_A"; return rec
@@ -276,17 +309,19 @@ def window_pnl(L, panel, A, window_end=None):
         if t <= t_ref_of(s) or t > max(t_end + 14400, t_next_read):
             continue
         q = float(r["fill_notional"]) / float(r["fill_px"]); q = q if str(r.get("side", "")).lower() == "buy" else -q
-        ev[s].append((ceil_b(t), "fill", q, t, float(r["fill_px"])))
-        if t_d <= t <= t_end:
+        ev[s].append((ceil_b(t), "fill", q, t, float(r["fill_px"]), (s, r.get("trade_id"))))
+        if t_d <= t <= t_end:                                          # R13-P2 (2): the window owns [t_d, t_end]; the gap owns (A, t_d) — half-open, no overlap
             n_fills += 1; fees[str(r.get("commission_asset"))] += float(r.get("commission") or 0.0)
     flats = L.flattens(t_prev_read, max(t_end, t_next_read))
     for r in flats:
         if float(r["read_ts"]) > t_ref_of(r["symbol"]):
-            ev[r["symbol"]].append((ceil_b(float(r["read_ts"])), "set", float(r["venue_position_qty"] or 0.0), float(r["read_ts"]), None))
+            ev[r["symbol"]].append((ceil_b(float(r["read_ts"])), "set", float(r["venue_position_qty"] or 0.0), float(r["read_ts"]), None, None))
     syms = set(prev) | set(first) | set(L0n or {}) | set(ev)
     layers = {"L0_producer": {}, "L1_executor_target": {}, "L2_request_intent": {}, "L2_cut_at_flatten": {}, "L3_actual_path": {}}
     per = {}; cens = {k: {"n": 0, "notional": 0.0} for k in layers}; mid_dev = []; resid = []; n_intra = 0; n_pre = n_in = n_post = 0; n_cut = 0
-    fill_corr_total = 0.0; n_fp_corr = 0
+    fill_corr_total = 0.0; n_fp_corr = 0; corr_keys = []
+    chain = px_chain if px_chain is not None else {}                  # R13-P2 (1): the day's carried price reference, mutated in place
+    joins = []; n_reset = collections.Counter()
     for s in sorted(syms):
         r0 = prev.get(s); q0 = float(r0["venue_position_qty"]) if r0 else 0.0
         # reference price: previous readback mark at its boundary; else the first fill; else the orders row mid at b0
@@ -298,6 +333,23 @@ def window_pnl(L, panel, A, window_end=None):
             if f: ref = (f[0][0], f[0][4], "first_fill_px")
         if ref is None and first.get(s) and first[s].get("mid_at_anchor"):
             ref = (b0, float(first[s]["mid_at_anchor"]), "mid_at_anchor")
+        own = ref                                                    # what this window would have chosen on its own (kept for the join report)
+        ch = chain.get(s)
+        if ch is not None and panel.index(s, int(ch["b"]), min(int(ch["b"]), b0), b1) is not None:
+            ref = (int(ch["b"]), float(ch["px"]), "day_chain:" + str(ch.get("source", "")))
+            if own is not None and own[0] != ref[0] or (own is not None and own[2] != ref[2]):
+                pj = panel.index(s, own[0], min(own[0], b0), b1)
+                if pj is not None:
+                    px_own_b0 = own[1] * pj[b0]
+                    pxi = panel.index(s, ref[0], min(ref[0], b0), b1)
+                    px_chain_b0 = ref[1] * pxi[b0]
+                    joins.append({"symbol": s, "px_chain_at_b0": px_chain_b0, "px_own_at_b0": px_own_b0, "own_source": own[2],
+                                  "rel": (px_own_b0 / px_chain_b0 - 1.0) if px_chain_b0 else None, "qty_at_join": None, "value_diff_usdt": None,
+                                  "cause": ("mark_vs_close" if own[2] == "readback_mark" else ("fill_px_vs_close" if own[2] == "first_fill_px" else "mid_vs_close"))})
+        elif ch is not None:
+            n_reset["chain_unusable_panel_gap"] += 1
+        elif ref is not None:
+            n_reset["new_symbol_in_day"] += 1
         px = panel.index(s, ref[0], min(ref[0], b0), b1) if ref else None
         if px is None:
             # censored for every layer; record the notional we could not price (intent notional / start notional)
@@ -316,7 +368,7 @@ def window_pnl(L, panel, A, window_end=None):
         conv = mid if mid else p0                                                  # intent notionals → contracts at the executor's own mid (its request quantity semantics); fallback: path price
         qL0 = ((L0n or {}).get(s, 0.0)) / conv if L0n is not None else None
         # L3: the event path (q_start = the quantity AT THE DECISION BOUNDARY, i.e. after every event before it — a pre-window flatten is a real 0)
-        evs = [(b, k, v, t) for (b, k, v, t, _p) in ev.get(s, [])]
+        evs = [(e[0], e[1], e[2], e[3]) for e in ev.get(s, [])]
         q_dec, q_start, path, a, b_, c, cuts = qty_path(q0, evs, t_d, b0, b1); n_pre += a; n_in += b_; n_post += c
         qL1 = (float(o["target_w"]) * Gt / conv) if o else q_dec                     # no orders row ⇒ the executor did not act on the name ⇒ hold what it had at decision time
         if o and o.get("side") and not str(o.get("terminal_reason", "")).startswith("skipped"):
@@ -324,14 +376,16 @@ def window_pnl(L, panel, A, window_end=None):
         else:
             qL2 = q_dec                                                             # skipped or absent request: the position stays what it was
         fp_corr = 0.0; n_fp = 0
-        for (b, k, v, t, fp) in ev.get(s, []):
+        for e in ev.get(s, []):
+            b, k, v, t, fp = e[0], e[1], e[2], e[3], e[4]; tk = e[5] if len(e) > 5 else None
             if k == "fill" and b0 < b <= b1:
                 n_intra += 1
                 if fp: fill_dev.append((s, fp / px_abs[b] - 1.0))
             # R12-P3: the correction that turns the boundary-priced path into one that transacts at the RECORDED fill price.
             # Buying v at fp when the boundary mark is px[b] is worth v x (px[b] - fp) more than the boundary approximation says.
+            # R13-P2 (2): the window owns [t_d, t_end] — half-open against the gap's (A, t_d), so a fill exactly at t_d is corrected ONCE.
             if k == "fill" and fp and t_d <= t <= t_end and b0 <= b <= b1:
-                fp_corr += float(v) * (px_abs[b] - float(fp)); n_fp += 1
+                fp_corr += float(v) * (px_abs[b] - float(fp)); n_fp += 1; corr_keys.append(tk)
         fill_corr_total += fp_corr; n_fp_corr += n_fp
         pnl3, q_end, pnl3_l, pnl3_s = segment_pnl(q_start, path, px_abs, b0, b1)
         held = {"L0_producer": qL0, "L1_executor_target": qL1, "L2_request_intent": qL2}
@@ -357,12 +411,17 @@ def window_pnl(L, panel, A, window_end=None):
         if nxt and (rn is not None or abs(q_end) > 0):
             t_chk = float(rn["read_ts"]) if rn is not None else t_next_read
             q_chk = q0
-            for (b, k, v, t, _p) in ev_sorted(ev.get(s, [])):                      # THE shared event order (R12-P2: the path used a different one)
+            for e in ev_sorted(ev.get(s, [])):                                     # THE shared event order (R12-P2: the path used a different one)
+                b, k, v, t = e[0], e[1], e[2], e[3]
                 if t <= t_chk:
                     q_chk = q_chk + v if k == "fill" else v
             qn = float(rn["venue_position_qty"]) if rn is not None else 0.0; dq = q_chk - qn
             if abs(dq) > 0:
                 resid.append((s, dq, dq * px_abs[b1]))
+        for _j in joins:                                             # the join's POSITION VALUE difference, now that the starting quantity is known
+            if _j["symbol"] == s and _j["qty_at_join"] is None:
+                _j["qty_at_join"] = q_start; _j["value_diff_usdt"] = q_start * (_j["px_own_at_b0"] - _j["px_chain_at_b0"])
+        chain[s] = {"b": b1, "px": px_abs[b1], "source": "window_end:" + time.strftime("%m-%d %H:%MZ", time.gmtime(A))}   # R13-P2 (1): carry this symbol's price forward
         per[s] = out_s
     summary = {}
     for k, Ls in layers.items():
@@ -388,11 +447,22 @@ def window_pnl(L, panel, A, window_end=None):
                unexplained_qty_residual={"status": ("CHECKED" if nxt else "UNAVAILABLE_no_readback_after_window"), "n_names": len(resid), "n_over_1usdt": sum(1 for x in resid if abs(x[2]) > 1.0), "abs_notional_sum": float(sum(abs(x[2]) for x in resid)),
                                          "top": sorted([(s, round(dq, 6), round(v, 2)) for s, dq, v in resid], key=lambda x: -abs(x[2]))[:10], "next_readback_names": len(nxt),
                                          "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"},
+               price_chain_joins={"n_names_compared": len(joins), "n_over_1pct": sum(1 for j in joins if j["rel"] is not None and abs(j["rel"]) > 0.01),
+                                  "n_value_over_1cent": sum(1 for j in joins if j["value_diff_usdt"] is not None and abs(j["value_diff_usdt"]) > 0.01),
+                                  "abs_value_diff_sum_usdt": float(sum(abs(j["value_diff_usdt"]) for j in joins if j["value_diff_usdt"] is not None)),
+                                  "max_abs_rel": max((abs(j["rel"]) for j in joins if j["rel"] is not None), default=None),
+                                  "causes": dict(collections.Counter(j["cause"] for j in joins)), "resets": dict(n_reset),
+                                  "top": sorted([{k: (round(v, 8) if isinstance(v, float) else v) for k, v in j.items()} for j in joins],
+                                                key=lambda j: -abs(j["value_diff_usdt"] or 0.0))[:10],
+                                  "rule": "the day chain's price at b0 vs the price this window would have derived on its own; REPORTED, never added to P&L "
+                                          "(a mark-vs-close difference is a valuation difference, not a realised gain)"},
+               fill_partition={"owns": "[t_decision, t_end]", "n_fills_price_corrected": int(n_fp_corr), "keys": [list(k) if k else None for k in corr_keys],
+                               "rule": "R13-P2 (2): the gap owns (A, t_d) and the window owns [t_d, t_end]; a fill exactly at t_d belongs to the window ONLY"},
                per_name=per, per_name_layers=layers)
     return rec
 
 
-def gap_pnl(L, panel, A, t_d, prev_rec):
+def gap_pnl(L, panel, A, t_d, prev_rec, px_chain=None):
     """R12-P3 (day coverage): price the CARRY gap [A, t_d] — the ~25 minutes between one window's end (the anchor instant) and the next window's
     decision boundary. Six such gaps a day are the 150 minutes the six decision windows do not cover (21.5 h of 24 h).
 
@@ -400,7 +470,13 @@ def gap_pnl(L, panel, A, t_d, prev_rec):
     they have no value before that decision exists — this function does not invent one. The carried state is the previous window's per-name ending
     quantity and ending price (`qty_end`, `px_b1`), so the two windows chain on the same price index without re-deriving a reference.
     Events inside the gap (fills, flatten readbacks) are applied in `ev_sorted` order, exactly as inside a window.
-    Returns a dict with status GAP_OK / NO_PREV_WINDOW / EMPTY / PANEL_NOT_YET_COVERING."""
+    Returns a dict with status GAP_OK / NO_PREV_WINDOW / EMPTY / PANEL_NOT_YET_COVERING.
+
+    ★ ROUND 13 R13-P2: (2) the gap owns the HALF-OPEN interval (A, t_d) — a fill exactly at t_d belongs to the following window only (v4 corrected it on
+    both sides, doubling the reviewer's 100 USDT correction to 200); (4) the gap no longer walks the previous window's priced layer alone — a name that
+    first appears here (its fill is counted in `n_fills_in_gap`) used to get n_priced 0, censored 0 and a clean GAP_OK, i.e. it vanished. The population
+    is now `previous priced layer ∪ names with gap events ∪ names the previous window CENSORED`, and anything that cannot be priced is censored with a
+    named reason; (1) the day price chain `px_chain` is used and updated here too, so the gap and the window it joins share one reference."""
     rec = {"gap_for_anchor": A, "utc": time.strftime("%m-%d %H:%MZ", time.gmtime(A)), "t_from": float(A), "t_to": float(t_d)}
     if not prev_rec or prev_rec.get("status") != "OK":
         rec["status"] = "NO_PREV_WINDOW"; rec["why"] = (prev_rec or {}).get("status"); return rec
@@ -412,36 +488,56 @@ def gap_pnl(L, panel, A, t_d, prev_rec):
         rec["status"] = "PANEL_NOT_YET_COVERING"; return rec
     prev_layer = (prev_rec.get("per_name_layers") or {}).get("L3_actual_path") or {}
     prev_names = prev_rec.get("per_name") or {}
-    ev = collections.defaultdict(list); n_fills = 0
+    ev = collections.defaultdict(list); n_fills = 0; corr_keys = []
     for r in L.fills:
         t = float(r["fill_ts"])
-        if A < t <= t_d:
+        if A < t < t_d:                                                # R13-P2 (2): HALF-OPEN — a fill exactly at t_d is the window's, not the gap's
             q = float(r["fill_notional"]) / float(r["fill_px"]); q = q if str(r.get("side", "")).lower() == "buy" else -q
-            ev[r["symbol"]].append((ceil_b(t), "fill", q, t, float(r["fill_px"]))); n_fills += 1
+            ev[r["symbol"]].append((ceil_b(t), "fill", q, t, float(r["fill_px"]), (r["symbol"], r.get("trade_id")))); n_fills += 1
     for r in L.flattens(A, t_d):
-        ev[r["symbol"]].append((ceil_b(float(r["read_ts"])), "set", float(r["venue_position_qty"] or 0.0), float(r["read_ts"]), None))
-    pnl = pl = ps = 0.0; corr = 0.0; n_priced = 0; cens = {"n": 0, "notional": 0.0}; n_carried = 0; per = {}
-    for s_, v in prev_layer.items():
-        if not v:
-            continue
-        q_end = float(v.get("qty_end") or 0.0); px_ref = float((prev_names.get(s_) or {}).get("px_b1") or 0.0)
-        if not px_ref or (q_end == 0.0 and not ev.get(s_)):
+        ev[r["symbol"]].append((ceil_b(float(r["read_ts"])), "set", float(r["venue_position_qty"] or 0.0), float(r["read_ts"]), None, None))
+    pnl = pl = ps = 0.0; corr = 0.0; n_priced = 0; cens = {"n": 0, "notional": 0.0, "why": collections.Counter()}; n_carried = 0; per = {}
+    chain = px_chain if px_chain is not None else {}
+    # R13-P2 (4): the population is the previous priced layer ∪ names with gap events ∪ names the previous window censored — a name whose first
+    # appearance is a fill inside this gap used to be counted in n_fills and then dropped without a trace.
+    prev_cens = {k for k, v in prev_names.items() if (v or {}).get("status") == "CENSORED"}
+    pop = sorted(set(prev_layer) | set(ev) | prev_cens)
+    for s_ in pop:
+        v = prev_layer.get(s_)
+        q_end = float((v or {}).get("qty_end") or 0.0)
+        px_ref = float((prev_names.get(s_) or {}).get("px_b1") or 0.0); ref_b = b_lo; ref_src = "prev_window_end"
+        if not px_ref:                                                     # no previous priced end: the day chain, else this gap's first fill price
+            ch = chain.get(s_)
+            if ch is not None and panel.index(s_, int(ch["b"]), min(int(ch["b"]), b_lo), b_hi) is not None:
+                px_ref = float(ch["px"]); ref_b = int(ch["b"]); ref_src = "day_chain"
+            else:
+                f0 = sorted([e for e in ev.get(s_, []) if e[1] == "fill" and e[4]], key=lambda e: e[3])
+                if f0: px_ref = float(f0[0][4]); ref_b = int(f0[0][0]); ref_src = "first_fill_px"
+        if q_end == 0.0 and not ev.get(s_) and s_ not in prev_cens:
             continue                                                       # nothing carried and nothing happened: no gap exposure
         n_carried += 1
-        px = panel.index(s_, b_lo, b_lo, b_hi)
+        px = panel.index(s_, ref_b, min(ref_b, b_lo), b_hi) if px_ref else None
         if px is None:
-            cens["n"] += 1; cens["notional"] += abs(q_end * px_ref); per[s_] = {"status": "CENSORED"}; continue
+            why = ("no_reference_price" if not px_ref else ("carried_from_censored_window" if s_ in prev_cens else "panel_rows_missing_or_nonfinite"))
+            cens["n"] += 1; cens["notional"] += abs(q_end * px_ref); cens["why"][why] += 1
+            per[s_] = {"status": "CENSORED", "why": why, "n_events": len(ev.get(s_, []))}; continue
         px_abs = {b: px_ref * x for b, x in px.items()}
         _qd, q_start, path, _a, _b, _c, _cuts = qty_path(q_end, [(e[0], e[1], e[2], e[3]) for e in ev.get(s_, [])], float(A), b_lo, b_hi)
         seg, q_out, sl, ss = segment_pnl(q_start, path, px_abs, b_lo, b_hi)
-        for (b, k, vv, t, fp) in ev.get(s_, []):
+        for e in ev.get(s_, []):
+            b, k, vv, t, fp = e[0], e[1], e[2], e[3], e[4]
             if k == "fill" and fp and b_lo <= b <= b_hi:
-                corr += float(vv) * (px_abs[b] - float(fp))
+                corr += float(vv) * (px_abs[b] - float(fp)); corr_keys.append(e[5] if len(e) > 5 else None)
         pnl += seg; pl += sl; ps += ss; n_priced += 1
-        per[s_] = {"q_start": q_start, "q_end": q_out, "pnl": seg}
+        chain[s_] = {"b": b_hi, "px": px_abs[b_hi], "source": "gap_end:" + time.strftime("%m-%d %H:%MZ", time.gmtime(A))}
+        per[s_] = {"q_start": q_start, "q_end": q_out, "pnl": seg, "ref": ref_src}
+    cens = {"n": cens["n"], "notional": cens["notional"], "why": dict(cens["why"])}
     rec.update(status="GAP_OK", pnl_usdt=float(pnl), pnl_long_usdt=float(pl), pnl_short_usdt=float(ps), fill_price_correction_usdt=float(corr),
                pnl_usdt_with_fill_prices=float(pnl + corr), n_names_carried=n_carried, n_priced=n_priced, censored=cens, n_fills_in_gap=n_fills,
                per_name={k: v for k, v in per.items() if v.get("status") == "CENSORED"},
+               fill_partition={"owns": "(A, t_decision)", "n_fills_price_corrected": len(corr_keys), "keys": [list(k) if k else None for k in corr_keys],
+                               "rule": "R13-P2 (2): half-open — a fill exactly at t_d belongs to the window, not to this gap"},
+               censored_reasons=dict(cens["why"]),
                note="carried ACTUAL position only; the intent layers are not defined before their own decision time")
     return rec
 
