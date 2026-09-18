@@ -1,9 +1,9 @@
 {
  "kind": "FP3 legal-member model per-fold identity manifest",
- "self_sha256": "861dc61b7590fac527af5bc0dfdc6e44da6505053c484b2f72a812735676a026",
+ "self_sha256": "1722c052cc70715ba37f7d6338c7100f858ded6f4725aa36c9f0fc9c6215e292",
  "root": "/workspace/fp3_live_2026-09",
  "ws": "/workspace",
- "generated_utc": "2026-09-18T15:06:17Z",
+ "generated_utc": "2026-09-18T15:13:13Z",
  "supersedes": "seal.py (defective fixed-string seal, retained as red control)",
  "registered_artefacts": {
   "cache": {
@@ -2095,11 +2095,15 @@
   {
    "item": "provenance.trainer_split",
    "status": "NOTE",
-   "sentence": "two files named pod_f10_train_monthly_v4.py: shard execution attributes self_sha fd5707bd3acc (devices_v4chain, cross-verified above); the MERGE step records 2147a7dd128b from a different path (/workspace/review_scratch/pod_f10_train_monthly_v4.py). The 40 fold artefacts were produced by the shard trainer; the merge-recorded copy is a stitch-time reference. Recorded, not reconciled \u2014 no artefact was produced by the merge-recorded copy.",
+   "sentence": "UNVERIFIED stitch-time reference (root cause derived): merge_mwf_v4b.py L13 reads V4_TRAINER with the DEFAULT /workspace/review_scratch/pod_f10_train_monthly_v4.py, and the receipt's trainer field == that default => V4_TRAINER was unset when the merge ran (the chain sets it for the shard launch but not the merge), so L40 hashed the default file as provenance (2147a7dd128b). That path is UNREGISTERED (not in the device set) and its sha did NOT train the 40 folds \u2014 the fold configs record fd5707bd3acc (the approved devices_v4chain copy, cross-verified above). This seal's fold proofs rely on the fold configs' sha, never on the merge trainer field. The same L14 env-default shape (V4_DEV_PREDS / V4_HF2_PREDS) feeds the receipt's splice/vs-hf2 comparison section.",
    "data": {
     "shard_self_sha256": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
     "merge_trainer_sha256": "2147a7dd128be180ac6c5b01cde6d066413ac0333700deb887cef542cc8d50bb",
-    "merge_trainer_path": "/workspace/review_scratch/pod_f10_train_monthly_v4.py"
+    "merge_trainer_path": "/workspace/review_scratch/pod_f10_train_monthly_v4.py",
+    "l13_default": "/workspace/review_scratch/pod_f10_train_monthly_v4.py",
+    "receipt_trainer_is_l13_default": true,
+    "merge_trainer_registered": false,
+    "merge_trainer_trained_folds": false
    }
   },
   {

@@ -1,6 +1,6 @@
 ==========================================================================================
 SEALED — every claim below is derived from a check that passed at run time
-self_sha256 861dc61b7590fac527af5bc0dfdc6e44da6505053c484b2f72a812735676a026
+self_sha256 1722c052cc70715ba37f7d6338c7100f858ded6f4725aa36c9f0fc9c6215e292
 folds proven 40/40 | checks PROVEN 64 NOTE 16 REFUSED 0 UNPROVEN 0
 ------------------------------------------------------------------------------------------
   [NOTE] artefact.cache: cache exists (2087655898 B), sha256 1d7f459dee434ec4 recorded; PRESENT-ONLY (no witness sha to cross-check)
@@ -77,7 +77,7 @@ folds proven 40/40 | checks PROVEN 64 NOTE 16 REFUSED 0 UNPROVEN 0
   [PROVEN] device.pod_f10_np_export_v4.py: pod_f10_np_export_v4.py present at /workspace/fp2_2026-09/devices_v4chain/pod_f10_np_export_v4.py, sha 81537cae50cc CROSS-VERIFIED against NP_EXPORT_s42.json:self_sha256
   [NOTE] device.pod_dlw_features_ext.py: pod_dlw_features_ext.py present at /workspace/pod_dlw_features_ext.py, sha e86725cc2768; PRESENT-ONLY (no artefact records this device's self-sha)
   [NOTE] device.pod_f8_build_ext.py: pod_f8_build_ext.py present at /workspace/pod_f8_build_ext.py, sha f606bffa6200; PRESENT-ONLY (no artefact records this device's self-sha)
-  [NOTE] provenance.trainer_split: two files named pod_f10_train_monthly_v4.py: shard execution attributes self_sha fd5707bd3acc (devices_v4chain, cross-verified above); the MERGE step records 2147a7dd128b from a different path (/workspace/review_scratch/pod_f10_train_monthly_v4.py). The 40 fold artefacts were produced by the shard trainer; the merge-recorded copy is a stitch-time reference. Recorded, not reconciled — no artefact was produced by the merge-recorded copy.
+  [NOTE] provenance.trainer_split: UNVERIFIED stitch-time reference (root cause derived): merge_mwf_v4b.py L13 reads V4_TRAINER with the DEFAULT /workspace/review_scratch/pod_f10_train_monthly_v4.py, and the receipt's trainer field == that default => V4_TRAINER was unset when the merge ran (the chain sets it for the shard launch but not the merge), so L40 hashed the default file as provenance (2147a7dd128b). That path is UNREGISTERED (not in the device set) and its sha did NOT train the 40 folds — the fold configs record fd5707bd3acc (the approved devices_v4chain copy, cross-verified above). This seal's fold proofs rely on the fold configs' sha, never on the merge trainer field. The same L14 env-default shape (V4_DEV_PREDS / V4_HF2_PREDS) feeds the receipt's splice/vs-hf2 comparison section.
   [PROVEN] device.base_engine: base engine pod_f10_train_ext.py sha 93cc2cdf925a == shard base_sha256 93cc2cdf925a
   [PROVEN] exit.shards: commands.txt records all 8 shard processes rc=0 (2 seeds x 4 shards), folds done 40/40, MWF_TRAIN_DONE on every shard — the real per-shard exit trace the old seal never read
   [PROVEN] exit.driver: driver log: seed shard-batch rc=0 both seeds (wait-conjunction over the 4 shards, run_mwf.sh), MERGE_DONE both seeds, refit rc=0 both seeds, no FAIL_mwf marker

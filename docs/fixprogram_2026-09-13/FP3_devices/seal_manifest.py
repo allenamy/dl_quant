@@ -434,21 +434,37 @@ for name in want:
     devices[name] = e
 manifest["devices"] = devices
 
-# trainer path-split provenance (same basename, two shas) — trainer_sha256 lives under merged.*,
-# not at the top level; reading the wrong path once silently skipped this whole disclosure.
-shard_trainer = wget(shards.get((42, 0)) or {}, "self_sha256")
-merge_trainer = wget(merge.get(42) or {}, "merged", "trainer_sha256")
+# trainer path-split provenance — ROOT-CAUSED at run time (trainer_sha256 lives under merged.*,
+# not top level; reading the wrong path once silently skipped this whole disclosure). The merge
+# receipt's trainer field is derived here from the merge source + the receipt itself, not asserted.
+shard_trainer = wget(shards.get((42, 0)) or {}, "self_sha256")            # fold-training sha (cross-verified above)
+merge_trainer = wget(merge.get(42) or {}, "merged", "trainer_sha256")      # sha the merge receipt records
 merge_trainer_path = wget(merge.get(42) or {}, "merged", "trainer")
-if shard_trainer and merge_trainer:
-    if shard_trainer != merge_trainer:
-        note("provenance.trainer_split",
-             f"two files named pod_f10_train_monthly_v4.py: shard execution attributes self_sha {shard_trainer[:12]} "
-             f"(devices_v4chain, cross-verified above); the MERGE step records {merge_trainer[:12]} from a different path "
-             f"({merge_trainer_path}). The 40 fold artefacts were produced by the shard trainer; the merge-recorded copy is a "
-             f"stitch-time reference. Recorded, not reconciled — no artefact was produced by the merge-recorded copy.",
-             shard_self_sha256=shard_trainer, merge_trainer_sha256=merge_trainer, merge_trainer_path=merge_trainer_path)
-    else:
-        note("provenance.trainer_split", f"shard and merge both attribute trainer sha {shard_trainer[:12]}")
+merge_src, _ = read_text(f"{WS}/fp2_2026-09/devices_v4chain/merge_mwf_v4b.py")
+mdef = re.search(r'V4_TRAINER"\s*,\s*"([^"]+)"', merge_src or "")
+default_path = mdef.group(1) if mdef else None
+registered = bool(default_path) and (default_path.startswith(f"{WS}/fp2_2026-09/devices_v4chain/")
+                                     or any(os.path.dirname(default_path) == d for d in search_dirs))
+if shard_trainer and merge_trainer and shard_trainer != merge_trainer and default_path:
+    from_default = (merge_trainer_path == default_path)   # receipt trainer == L13 default => V4_TRAINER unset at merge time
+    note("provenance.trainer_split",
+         f"UNVERIFIED stitch-time reference (root cause derived): merge_mwf_v4b.py L13 reads V4_TRAINER with the DEFAULT "
+         f"{default_path}, and the receipt's trainer field {'== that default' if from_default else '(differs from the default)'} "
+         f"=> V4_TRAINER was unset when the merge ran (the chain sets it for the shard launch but not the merge), so L40 hashed "
+         f"the default file as provenance ({merge_trainer[:12]}). That path is {'UNREGISTERED (not in the device set)' if not registered else 'registered'} "
+         f"and its sha did NOT train the 40 folds — the fold configs record {shard_trainer[:12]} (the approved devices_v4chain "
+         f"copy, cross-verified above). This seal's fold proofs rely on the fold configs' sha, never on the merge trainer field. "
+         f"The same L14 env-default shape (V4_DEV_PREDS / V4_HF2_PREDS) feeds the receipt's splice/vs-hf2 comparison section.",
+         shard_self_sha256=shard_trainer, merge_trainer_sha256=merge_trainer, merge_trainer_path=merge_trainer_path,
+         l13_default=default_path, receipt_trainer_is_l13_default=from_default,
+         merge_trainer_registered=registered, merge_trainer_trained_folds=False)
+elif shard_trainer and merge_trainer and shard_trainer != merge_trainer:
+    note("provenance.trainer_split",
+         f"the MERGE receipt records trainer sha {merge_trainer[:12]} ({merge_trainer_path}), different from the fold-training "
+         f"sha {shard_trainer[:12]} (cross-verified). Could not read merge_mwf_v4b.py to root-cause the split; recorded, not "
+         f"reconciled. This seal's fold proofs rely on the fold configs' sha, never on the merge trainer field.")
+elif shard_trainer and merge_trainer:
+    note("provenance.trainer_split", f"shard and merge both attribute trainer sha {shard_trainer[:12]}")
 else:
     note("provenance.trainer_split",
          f"trainer provenance not compared (a witness is absent — see the corresponding witness refusal): "
