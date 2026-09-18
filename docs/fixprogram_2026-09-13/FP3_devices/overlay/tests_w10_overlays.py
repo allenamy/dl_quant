@@ -29,9 +29,15 @@ check("A1 fresh make() per run: second run == first run (arm order cannot matter
 check("B  re-entrance: two fresh instances identical", np.array_equal(decisions(ov.make("r1b:q=0.95,s=0.5"), T, y4), decisions(ov.make("r1b:q=0.95,s=0.5"), T, y4)))
 # C: future perturbation
 k = 300; y_pert = y4.copy(); y_pert[k + 1:] += rng.normal(0, 0.5, (T - k - 1, N))
-for spec in ("r1a:q=0.90,s=0.5", "r2:c=0.5", "r3:th=0.20", "r4:win=60"):
+for spec in ("r1a:q=0.90,s=0.5", "r2:c=0.5", "r3:th=0.20", "r4:win=60", "r6:k=1,q=0.95,s=0.5", "r6l:k=1,q=0.95,s=0.5", "r6b:k=1,q=0.95,s=0.5"):   # R6/R6l/R6b added to the formal battery (review round 8)
     a = decisions(ov.make(spec), k + 1, y4); b = decisions(ov.make(spec), k + 1, y_pert)
     check(f"C  causality {spec}: decisions at anchors ≤ {k} unchanged by perturbing rows > {k}", np.array_equal(a, b))
+# G: R6b hysteresis + always-defined basket (amendment 1): after a cut the basket (target book) is still defined, so the rule cannot restore purely because the basket vanished
+f6 = ov.make("r6b:k=1,q=0.95,s=0.5"); on_states = []
+for i in range(T):
+    sm = book(i); o = f6(sm, dict(i=i, j=i, m=m, y4=y4, FN=None, IV=None, HB=book(i - 1) if i else sm, HR=None, FZ=None, sel=None, capw=capw, NW=N)); on_states.append(float(np.abs(o).sum()) < float(np.abs(sm).sum()) - 1e-12)
+runs = [len(list(g)) for k_, g in __import__("itertools").groupby(on_states) if k_]
+check("G  r6b: basket from the TARGET book (HB) so the signal is defined every anchor; cuts occur (%d anchors) and last ≥ 1 anchor with hysteresis (max run %s)" % (sum(on_states), max(runs) if runs else 0), sum(on_states) > 0 and (max(runs) if runs else 0) >= 1)
 # D: R4 beta contract
 f4 = ov.make("r4:win=360"); sm = np.array([.1, .1, -.1, -.1]); beta = np.array([2/3, 2/3, 4/3, 4/3])
 # emulate r4's inner allocation with a given beta (its own beta estimate needs history; the contract is what we test)

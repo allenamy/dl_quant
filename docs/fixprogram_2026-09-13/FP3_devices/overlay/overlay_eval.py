@@ -8,6 +8,7 @@ PD, META, OUT = sys.argv[1:4]; L = 2.0; WA0, UB, KL0 = 1656547200, 1788120000, 1
 PREFIX = os.environ.get("ARM_PREFIX", "V4_A0_dyn_s42")          # arm/seed under evaluation (R3 replication: V4_A1_dyn_s42, V4_A0_dyn_s2027)
 BUCKET = os.environ.get("BUCKET", "breadth")                    # "breadth" = causal trailing-24h breadth top decile (PREREG R); "changed" = anchors where the variant's accounted book differs from baseline (= its own trigger set; PREREG R6 G3)
 CONTROL = os.environ.get("CONTROL_TAG")                         # PREREG R6 G4: a variant tag whose numbers every other variant is compared against (unconditional same-average-leverage control)
+CONTROL_MAP = json.loads(os.environ["CONTROL_MAP"]) if os.environ.get("CONTROL_MAP") else None   # per-variant matched control {variant_tag: control_tag} (review 8ba6d6a5 §2: each arm needs its OWN average-budget control)
 ONLY = os.environ.get("ONLY_PREFIX")                            # evaluate only variant tags starting with this (e.g. "r6")
 def load(tag):
     z = np.load(f"{PD}/w10_ablation_series_{PREFIX}_{tag}.npz", allow_pickle=True); C = [str(c) for c in z["cols"]]; rec = np.asarray(z["d30_n2_c42_rec"], float)
@@ -61,14 +62,19 @@ for p in sorted(glob.glob(f"{PD}/w10_ablation_series_{PREFIX}_OVL_*.npz")):
     out["variants"][tag] = {"spec": spec, "W_ALPHA": sW, "KING_LIVE": sK, "by_year": by, "top_decile_breadth": {"n": int((WA & top).sum()), "g": float(np.nan_to_num(g[WA & top]).mean())}, "bucket": {"mode": BUCKET, "n": int(bucket.sum()), "g_variant": float(np.nan_to_num(g[bucket]).mean()) if bucket.sum() else None, "g_baseline": float(np.nan_to_num(g0[bucket]).mean()) if bucket.sum() else None}, "turnover_ratio": float(np.nanmean(to[WA]) / np.nanmean(to0[WA])), "wired": wired,
                             "delta": {"W_ALPHA": [dW, ciW], "KING_LIVE": [dK, ciK], "top_decile_breadth": [dT, ciT]}, "gates": {"G1_not_worse_delta": G1, "G2_maximin": G2, "G3_top_decile": G3, "ALL": bool(G1 and G2 and G3)}, "worst_year_sharpe": worst_year_sharpe}
 out["baseline"]["worst_year_sharpe"] = worst_year_sharpe0
-if CONTROL and CONTROL in out["variants"]:
-    c = out["variants"][CONTROL]["W_ALPHA"]; cg = out["variants"][CONTROL]["gates"]
+def _g4(tag, v, ctag):
+    c = out["variants"][ctag]["W_ALPHA"]; w = v["W_ALPHA"]
+    better = {"control": ctag, "maxdd": w["maxdd_L"] > c["maxdd_L"], "days_le_m4": w["days_le_m4"] < c["days_le_m4"], "days_le_m2p68": w["days_le_m2p68"] <= c["days_le_m2p68"], "delta_lower_bound": v["delta"]["W_ALPHA"][1][0] > out["variants"][ctag]["delta"]["W_ALPHA"][1][0], "worst_year_sharpe": v["worst_year_sharpe"] >= out["variants"][ctag]["worst_year_sharpe"], "control_delta": out["variants"][ctag]["delta"]["W_ALPHA"][0], "control_maxdd": c["maxdd_L"], "control_days_le_m4": c["days_le_m4"]}
+    v["gates"]["G4_vs_control"] = better; v["gates"]["G4"] = bool(better["maxdd"] and better["days_le_m4"]); v["gates"]["ALL"] = bool(v["gates"]["ALL"] and v["gates"]["G4"])
+if CONTROL_MAP:
+    for tag, ctag in CONTROL_MAP.items():
+        if tag in out["variants"] and ctag in out["variants"]: _g4(tag, out["variants"][tag], ctag)
+    out["control_map"] = CONTROL_MAP
+elif CONTROL and CONTROL in out["variants"]:
     for tag, v in out["variants"].items():
-        if tag == CONTROL: continue
-        w = v["W_ALPHA"]; better = {"maxdd": w["maxdd_L"] > c["maxdd_L"], "days_le_m4": w["days_le_m4"] < c["days_le_m4"], "days_le_m2p68": w["days_le_m2p68"] <= c["days_le_m2p68"], "delta_lower_bound": v["delta"]["W_ALPHA"][1][0] > out["variants"][CONTROL]["delta"]["W_ALPHA"][1][0], "worst_year_sharpe": v["worst_year_sharpe"] >= out["variants"][CONTROL]["worst_year_sharpe"]}
-        v["gates"]["G4_vs_control"] = better; v["gates"]["G4"] = bool(better["maxdd"] and better["days_le_m4"]); v["gates"]["ALL"] = bool(v["gates"]["ALL"] and v["gates"]["G4"])
+        if tag != CONTROL: _g4(tag, v, CONTROL)
     out["control_tag"] = CONTROL
 json.dump(out, open(OUT, "w"), indent=1)
 b = out["baseline"]; print("baseline W_ALPHA", {k: (round(v, 4) if isinstance(v, float) else v) for k, v in b["W_ALPHA"].items()}, "| top-decile g", round(b["top_decile_breadth"]["g"], 3), "n", b["top_decile_breadth"]["n"], "| worst-year sharpe", round(worst_year_sharpe0, 2))
 for tag, v in out["variants"].items():
-    w = v["W_ALPHA"]; print(f"{tag:22s} g {w['g']:+.3f} (Δ {v['delta']['W_ALPHA'][0]:+.3f} [{v['delta']['W_ALPHA'][1][0]:+.3f},{v['delta']['W_ALPHA'][1][1]:+.3f}]) sh {w['sharpe_daily']:.2f} maxdd {w['maxdd_L']:.3f} worst {w['worst_day']:.4f} d≤-2.68% {w['days_le_m2p68']} d≤-4% {w['days_le_m4']} | bucket({v['bucket']['mode']},n={v['bucket']['n']}) Δ {v['delta']['top_decile_breadth'][0]:+.3f} [{v['delta']['top_decile_breadth'][1][0]:+.3f},{v['delta']['top_decile_breadth'][1][1]:+.3f}] | turn×{v['turnover_ratio']:.2f} | changed {v['wired']['frac_changed']:.2%} L1 {v['wired']['mean_L1_dW_over_gross']:.3%} acc/tgt gross {v['wired']['accounted_over_target_gross']:.3f} max|w| {v['wired']['max_abs_accounted_weight']:.4f} |net|/gross≤{v['wired']['net_over_gross_max']:.1e} | worst-yr sh {v['worst_year_sharpe']:.2f} | G1 {v['gates']['G1_not_worse_delta']} G2 {v['gates']['G2_maximin']} G3 {v['gates']['G3_top_decile']} G4 {v['gates'].get('G4', '-')}")
+    w = v["W_ALPHA"]; print(f"{tag:22s} g {w['g']:+.3f} (Δ {v['delta']['W_ALPHA'][0]:+.3f} [{v['delta']['W_ALPHA'][1][0]:+.3f},{v['delta']['W_ALPHA'][1][1]:+.3f}]) sh {w['sharpe_daily']:.2f} maxdd {w['maxdd_L']:.3f} worst {w['worst_day']:.4f} d≤-2.68% {w['days_le_m2p68']} d≤-4% {w['days_le_m4']} | bucket({v['bucket']['mode']},n={v['bucket']['n']}) Δ {v['delta']['top_decile_breadth'][0]:+.3f} [{v['delta']['top_decile_breadth'][1][0]:+.3f},{v['delta']['top_decile_breadth'][1][1]:+.3f}] | turn×{v['turnover_ratio']:.2f} | changed {v['wired']['frac_changed']:.2%} L1 {v['wired']['mean_L1_dW_over_gross']:.3%} acc/tgt gross {v['wired']['accounted_over_target_gross']:.3f} max|w| {v['wired']['max_abs_accounted_weight']:.4f} |net|/gross≤{v['wired']['net_over_gross_max']:.1e} | worst-yr sh {v['worst_year_sharpe']:.2f} | G1 {v['gates']['G1_not_worse_delta']} G2 {v['gates']['G2_maximin']} G3 {v['gates']['G3_top_decile']} G4 {v['gates'].get('G4', '-')}{(' vs ' + v['gates']['G4_vs_control']['control'] + ' (ctrl Δ %+.3f maxdd %.3f d≤-4%% %d)' % (v['gates']['G4_vs_control']['control_delta'], v['gates']['G4_vs_control']['control_maxdd'], v['gates']['G4_vs_control']['control_days_le_m4'])) if 'G4_vs_control' in v['gates'] else ''}")
