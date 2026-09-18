@@ -49,7 +49,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "support"))
 import reconcile_carry_409ea16 as ORACLE                                   # pure functions; the frozen production module, never the live tree
 
-VERSION = "v4"; DEVICE = "q6_shadow.py"; FLAG_USDT = 1.0; PERSIST_N = 6; LOT_TOL = 1e-6
+VERSION = "v3"; DEVICE = "q6_shadow.py"; FLAG_USDT = 1.0; PERSIST_N = 6; LOT_TOL = 1e-6
 ORACLE_MAX_TRAJ = 200_000                                                  # cross-check budget for the enumeration oracle
 
 
@@ -93,19 +93,6 @@ def load_days(P, F, T):
     return days, rows, files
 
 
-def _merge_facts(p, r, notes):
-    """merge a duplicate ledger record into the request already held: EVERY fact class separately, each keeping its earliest effective time
-    (R12-Q1b). `terminal` is a hard constraint, so a later row that only flips it must not be discarded."""
-    p["trade_ids"] |= r["trade_ids"]
-    if r["floor"] > p["floor"] or (r["floor"] == p["floor"] and r.get("floor_ts") is not None and (p.get("floor_ts") is None or r["floor_ts"] < p["floor_ts"])):
-        if r["floor"] >= p["floor"]: p["floor"], p["floor_ts"] = r["floor"], r.get("floor_ts")
-    if p["exact"] is None and r["exact"] is not None: p["exact"], p["exact_ts"] = r["exact"], r.get("exact_ts")
-    if r["terminal"] is not None:
-        p["terminal"] = r["terminal"] if p["terminal"] is None else min(p["terminal"], r["terminal"])
-        notes["duplicate_terminal_adopted"] += 1
-    notes["duplicate_identity_merged"] += 1
-
-
 def build_requests(od, step_of, notes):
     """symbol → [request dict]; a request = one client_id (ledger) or one submitted order row (derived, pre-ledger)."""
     REQ = collections.defaultdict(dict)                                     # symbol → client_id → request
@@ -131,26 +118,19 @@ def build_requests(od, step_of, notes):
                     exact_l = floor_l if (terminal and bool(e.get("confirmed_qty_final")) and cq is not None) else None
                     ev = "ledger:" + ("final" if exact_l is not None else ("confirmed_floor" if floor_l else "cap_only")) + (" inconsistent_note" if e.get("inconsistent") else "")
                     if r1 > LOT_TOL: notes["off_lattice_request_qty"] += 1
-                # ★ R12-Q1a (independent review round 12): a cumulative snapshot (confirmed_qty) constrains x_i(t) ≥ C only from the moment that
-                #   snapshot was TAKEN (PREREG §1c.5), never from the request's birth: monotonicity gives x_i(t) ≤ x_i(τ) before τ, not ≥. The ledger
-                #   stores no read time for confirmed_qty; the defensible event time is the request's own settlement (max cancel_ts / last_fill_ts),
-                #   which is when the executor settled and wrote it. floor_ts = that time; before it only ATTRIBUTED FILLS (own event times) bound x_i.
                 r = {"rid": cid, "side": side if side is not None else 0, "cap": cap_l, "birth": birth, "terminal": (max(term_rec, birth) if terminal else None),
-                     "floor": floor_l, "floor_ts": (max(term_rec, birth) if term_rec else None), "exact": exact_l, "exact_ts": (max(term_rec, birth) if term_rec else None),
-                     "fills": [], "trade_ids": set(str(t) for t in (e.get("trade_qty") or {})), "source": "ledger", "evidence": ev,
+                     "floor": floor_l, "exact": exact_l, "fills": [], "trade_ids": set(str(t) for t in (e.get("trade_qty") or {})), "source": "ledger", "evidence": ev,
                      "bucket": B(o["anchor_ts"]), "rebalance_id": o.get("rebalance_id"), "attempt_idx": o.get("attempt_idx")}
                 if cid in REQ[s]:                                           # duplicate identity ⇒ ONE request; contradictory duplicates ⇒ unmeasurable
                     p = REQ[s][cid]
                     if (p["cap"], p["side"], p["exact"]) != (r["cap"], r["side"], r["exact"]) or p["floor"] != r["floor"]:
                         if (p["cap"], p["side"]) == (r["cap"], r["side"]) and (p["exact"] is None or r["exact"] is None or p["exact"] == r["exact"]):
-                            _merge_facts(p, r, notes)
+                            p["floor"] = max(p["floor"], r["floor"]); p["exact"] = p["exact"] if p["exact"] is not None else r["exact"]; p["trade_ids"] |= r["trade_ids"]
+                            p["terminal"] = p["terminal"] if p["terminal"] is not None else r["terminal"]; notes["duplicate_identity_merged"] += 1
                         else:
                             unmeas[s].append((birth, f"{cid}: duplicate identity with contradictory facts")); notes["duplicate_identity_contradictory"] += 1
                     else:
-                        # ★ R12-Q1b: numerically identical rows are NOT necessarily the same FACTS — a later row may add `terminal` (or a floor/exact
-                        #   whose event time is earlier). Merging only trade ids silently dropped the terminal constraint, so a post-terminal position
-                        #   growth stayed CLEAN. Every fact class is merged with its own effective time.
-                        _merge_facts(p, r, notes)
+                        p["trade_ids"] |= r["trade_ids"]; notes["duplicate_identity_merged"] += 1
                 else:
                     REQ[s][cid] = r
             continue
@@ -168,7 +148,6 @@ def build_requests(od, step_of, notes):
             cap_l, exact_l, floor_l, terminal, ev = None, None, 0, True, "derived:side+fills_only(capacity unknown)"
             notes["derived_requests_unbounded_capacity"] += 1
         REQ[s][cid] = {"rid": cid, "side": side, "cap": cap_l, "birth": birth, "terminal": max(term_rec, birth) if terminal else None, "floor": floor_l, "exact": exact_l,
-                       "floor_ts": (max(term_rec, birth) if term_rec else None), "exact_ts": (max(term_rec, birth) if term_rec else None),
                        "fills": [], "trade_ids": set(), "source": "order_row_derived", "evidence": ev, "bucket": B(o["anchor_ts"]), "terminal_reason": tr,
                        "rebalance_id": o.get("rebalance_id"), "attempt_idx": o.get("attempt_idx")}
     return REQ, unmeas
@@ -242,11 +221,10 @@ class SymbolModel:
             self.Uk.append(tot)
 
     def floor_at(self, i, k):
-        """evidence floor of request i at observation k: the ledger's cumulative snapshot ONLY from its own event time (R12-Q1a) and attributed
-        fills with event time ≤ t_k (online clock: also observation time ≤ t_k)"""
+        """evidence floor of request i at observation k: ledger confirmed_qty (offline clock only: the ledger stores no observation time) and
+        attributed fills with event time ≤ t_k (online clock: also observation time ≤ t_k)"""
         r = self.reqs[i]; t = self.times[k]
-        _fts = r.get("floor_ts")
-        base = r["floor"] if (self.ev is None and (_fts is None or _fts <= t + 1e-9)) else 0
+        base = r["floor"] if self.ev is None else 0
         fsum = sum(l for (ft, l, ot, tid) in r["fills"] if ft <= t + 1e-9 and (self.ev is None or (ot is not None and ot <= t + 1e-9)))
         return max(base, fsum)
 
@@ -278,9 +256,8 @@ class SymbolModel:
         for c, (i, k) in enumerate(layout):
             r = self.reqs[i]; bi, pi = self.meta[i]
             lo = self.floor_at(i, k); hi = np.inf if r["cap"] is None else r["cap"]
-            _ets = r.get("exact_ts"); _exact_known = r["exact"] is not None and (_ets is None or _ets <= self.times[k] + 1e-9)
-            if _exact_known and pi is not None and k >= pi: lo = hi = r["exact"]
-            if _exact_known: hi = min(hi, r["exact"])                        # R12-Q1a: an exact total does not cap the request before it was observed
+            if r["exact"] is not None and pi is not None and k >= pi: lo = hi = r["exact"]
+            if r["exact"] is not None: hi = min(hi, r["exact"])
             if lo > hi: return {"status": "unmeasurable", "why": f"{r['rid']}: hard bounds empty at k={k} (floor {lo} > cap/exact {hi})"}
             lb[c + 1], ub[c + 1] = lo, hi
         A = []; lo_c = []; hi_c = []
@@ -311,8 +288,7 @@ class SymbolModel:
         """chronological admission over all observations; returns per-observation records"""
         out = []; admitted = []; unmeasurable_from = None
         for n, o in enumerate(self.obs):
-            rec = {"k": n, "t": o["t"], "anchor": o["anchor"], "kind": o["kind"], "rhs_lots": o["rhs"],
-                   "lot_residual": float(o.get("lot_residual") or 0.0), "lot_residual_base": float(self.obs[0].get("lot_residual") or 0.0)}
+            rec = {"k": n, "t": o["t"], "anchor": o["anchor"], "kind": o["kind"], "rhs_lots": o["rhs"]}
             if n == 0:
                 rec.update(status="baseline", distance_lots=0, admitted=True); out.append(rec); continue
             if unmeasurable_from is not None:
@@ -327,28 +303,22 @@ class SymbolModel:
         return out
 
     def oracle_check(self):
-        """the production enumeration oracle on the same facts, when it can enumerate; None when it cannot (recorded in `oracle_skipped`)"""
-        self.oracle_skipped = None
-        if self.ev is not None: self.oracle_skipped = "online_clock"; return None
+        """the production enumeration oracle on the same facts, when it can enumerate; None when it cannot (or the model needs time-varying floors)"""
+        if self.ev is not None: return None
         if self.unmeas_from: return {"status": "unmeasurable", "why": "unmeasurable by construction (contradiction / missing side): " + min(self.unmeas_from)[1]}
-        if any(r["cap"] is None for r in self.reqs): self.oracle_skipped = "unbounded_capacity"; return None    # the enumeration oracle needs a finite lattice
+        if any(r["cap"] is None for r in self.reqs): return None                     # unbounded (pre-ledger derived) capacity: the enumeration oracle needs a finite lattice
         try:
             reqs = []
             for i, r in enumerate(self.reqs):
                 bi, pi = self.meta[i]
                 if bi is None: continue
-                # ★ R12-Q2: the production Request carries ONE static lower bound. Using the final fill sum at every time backdates evidence and
-                #   made the oracle disagree with the (correct) model. Only cross-check when this request's floor is the SAME at every observation.
-                _f = [self.floor_at(i, k) for k in range(len(self.times))]
-                if len(set(_f)) > 1:
-                    self.oracle_skipped = "time_varying_floor"; return None
-                lower = _f[-1] if _f else 0
+                lower = max([r["floor"]] + [sum(l for (ft, l, ot, tid) in r["fills"] if ft <= self.times[-1] + 1e-9)])
                 if r["side"] == 0: return {"status": "unmeasurable", "why": "side missing"}
                 reqs.append(ORACLE.Request(r["rid"], r["side"], float(r["cap"]), float(r["birth"]), None if r["terminal"] is None else float(r["terminal"]), float(lower), None if r["exact"] is None else float(r["exact"])))
             est = 1
             for rq in reqs:
                 est *= max(len(rq.domain(self.times[-1], 1.0)), 1) ** len(self.times)
-                if est > ORACLE_MAX_TRAJ: self.oracle_skipped = "domain_too_large"; return None
+                if est > ORACLE_MAX_TRAJ: return None
             obs = [float(o["rhs"] - self.Uk[k]) for k, o in enumerate(self.obs)]
             return ORACLE.feasible_exact(reqs, self.times, obs, step=1.0, max_trajectories=ORACLE_MAX_TRAJ)
         except Exception as e:   # noqa: BLE001
@@ -377,7 +347,7 @@ def symbol_job(args):
     else:
         online = {"status": "ok", "distance_lots": [r.get("distance_lots") for r in recs], "excluded_k": [r["k"] for r in recs if r.get("excluded")], "note": "no evidence at all: online == offline"}
     orc = model.oracle_check()
-    return sym, recs, online, orc, step, getattr(model, "oracle_skipped", None)
+    return sym, recs, online, orc, step
 
 
 def main():
@@ -417,11 +387,8 @@ def main():
         kind = "post_anchor" if src.endswith("@post_anchor") else ("flatten" if "flatten" in src else None)
         if kind is None: notes["readback_other_source_ignored"] += 1; continue
         ql, res = lots(q, step_of(s))
-        # ★ R12-Q3 (independent review round 12): rounding an off-lattice reading into the lattice turns a real balance change into an exact fact.
-        #   0.49 at step 1 became 0 and read CLEAN while 49 USDT of position went unmodelled. The residual is carried on the observation and any
-        #   reading whose rounding residual is worth more than the flag threshold is categorised OFF_LATTICE, never CLEAN.
         if res > LOT_TOL: notes["readback_off_lattice"] += 1
-        OBS[s].append({"t": t, "anchor": B(r["anchor_ts"]) if kind == "post_anchor" else B(t), "kind": kind, "q_lots": ql, "q": q, "lot_residual": res, "notional": abs(float(r.get("venue_position_notional") or 0.0))})
+        OBS[s].append({"t": t, "anchor": B(r["anchor_ts"]) if kind == "post_anchor" else B(t), "kind": kind, "q_lots": ql, "q": q, "notional": abs(float(r.get("venue_position_notional") or 0.0))})
         if q: markrows[s].append((t, abs(float(r.get("venue_position_notional") or 0.0)) / abs(q)))
     for s, fl in fills_by_symbol.items():
         for f in fl: markrows[s].append((f["ts"], f["px"]))
@@ -455,7 +422,7 @@ def main():
     cat_total = collections.Counter(); persist = collections.Counter(); solver = collections.Counter(); oracle_cmp = {"checked": 0, "agree": 0, "disagree": [], "not_enumerable": 0}
     symbol_summary = {}; online_avail = collections.Counter(); history_unresolved = 0; regime = collections.Counter(); detail = {}
     want_detail = bool(os.environ.get("Q6_DETAIL"))
-    for (s, recs, online, orc, step, orc_skip) in results:
+    for (s, recs, online, orc, step) in results:
         mk = markrows.get(s, []); flagged_here = 0; excluded_here = []; det = []
         online_avail[online["status"]] += 1
         for rec in recs:
@@ -470,11 +437,7 @@ def main():
                 unmeasurable.append({"symbol": s, "anchor": a, "utc": U(a), "kind": kind, "why": rec.get("why")})
             else:
                 d = rec["distance_lots"]; usd = (None if mark is None else abs(d) * step * mark)
-                _res = float(rec.get("lot_residual") or 0.0) + float(rec.get("lot_residual_base") or 0.0)      # R12-Q3: quantisation error of this reading (and of the baseline it is差分 against)
-                _res_usd = (None if mark is None else _res * step * mark)
-                if mark is not None and _res_usd is not None and _res_usd > FLAG_USDT and (d == 0 or usd is None or usd <= _res_usd):
-                    cat = "OFF_LATTICE"; notes["off_lattice_observation_not_clean"] += 1                        # the reading is not on the lattice the model is exact on
-                elif d == 0: cat = "CLEAN"
+                if d == 0: cat = "CLEAN"
                 elif mark is None: cat = "MISSING_PRICE"
                 elif usd > FLAG_USDT: cat = "FLAGGED"
                 else: cat = "CLEAN"; notes["distance_nonzero_but_le_1usdt"] += 1
@@ -484,15 +447,13 @@ def main():
             cat_total[cat] += 1; per_anchor[a][cat] += 1
             if cat == "FLAGGED": per_anchor_usd[a] += usd; flagged_here += 1 if kind == "post_anchor" else 0
             if want_detail: det.append({"k": k, "anchor": a, "kind": kind, "status": rec["status"], "distance_lots": d, "category": cat, "usdt": usd, "admitted": bool(rec.get("admitted")), "excluded": bool(rec.get("excluded")), "why": rec.get("why")})
-            if cat in ("FLAGGED", "MISSING_PRICE", "UNMEASURABLE", "OFF_LATTICE"):
+            if cat in ("FLAGGED", "MISSING_PRICE", "UNMEASURABLE"):
                 rows_out.append({"symbol": s, "anchor": a, "utc": U(a), "kind": kind, "category": cat, "distance_lots": d, "distance_contracts": (None if d is None else d * step), "unexplained_usdt": usd,
                                  "rhs_lots": rec["rhs_lots"], "excluded_observation": bool(rec.get("excluded")), "in_executor_known_gaps": s in (gaps_rec.get(a, {}).get("names") or []), "why": rec.get("why")})
         if flagged_here >= PERSIST_N: persist[s] = flagged_here
         if excluded_here: history_unresolved += 1
         solver["milp_lattice"] += 1
-        if orc is None:
-            oracle_cmp["not_enumerable"] += 1
-            oracle_cmp.setdefault("skipped_why", collections.Counter())[orc_skip or "unknown"] += 1
+        if orc is None: oracle_cmp["not_enumerable"] += 1
         elif orc.get("status") in ("ok", "unmeasurable"):
             oracle_cmp["checked"] += 1
             mine_excl = [r["k"] for r in recs if r.get("excluded")]; mine_last = next((r for r in reversed(recs) if r["k"] > 0), None)
@@ -504,7 +465,7 @@ def main():
             else: oracle_cmp["disagree"].append({"symbol": s, "oracle": {"status": orc["status"], "distance": orc.get("distance"), "excluded": [e["index"] for e in orc.get("excluded", [])]}, "device": {"excluded": mine_excl, "last_distance": (mine_last or {}).get("distance_lots")}})
         if want_detail: detail[s] = {"observations": det, "online": online, "oracle": orc}
         symbol_summary[s] = {"n_obs": len(recs) - 1, "n_flagged_post_anchor": flagged_here, "excluded_k": excluded_here, "online": online["status"], "step": step,
-                             "n_requests": len(REQ.get(s, {})), "n_unattributed_fills": len(UN.get(s, [])), "oracle": (None if orc is None else orc.get("status")), "oracle_skipped": (orc_skip if orc is None else None)}
+                             "n_requests": len(REQ.get(s, {})), "n_unattributed_fills": len(UN.get(s, [])), "oracle": (None if orc is None else orc.get("status"))}
     anchors = sorted(per_anchor)
     summary = [{"anchor": a, "utc": U(a), **{c: per_anchor[a].get(c, 0) for c in ("CLEAN", "FLAGGED", "MISSING_PRICE", "UNMEASURABLE")}, "flagged_usdt": round(per_anchor_usd.get(a, 0.0), 2),
                 "executor_known_gaps_n": gaps_rec.get(a, {}).get("n_named"), "executor_known_gaps_usdt": gaps_rec.get(a, {}).get("gross_usdt")} for a in anchors]

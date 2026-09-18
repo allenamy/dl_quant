@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Behavioural tests for q6_shadow.py v3 against the FROZEN Q6 contract (PREREG_reconcile_carry_forward_unexplained_2026-09-10 §1c/§1d).
+"""Behavioural tests for q6_shadow.py v4 against the FROZEN Q6 contract (PREREG_reconcile_carry_forward_unexplained_2026-09-10 §1c/§1d).
 
 The fixtures are the independent reviewer's 15 counterexamples of round 11 (codex 5eba83be, agents/q6/audit_q6.py: builders rb / order / fill and
 the case list are reproduced here verbatim in shape) plus two green controls. Each case runs the COMPLETE device as a subprocess on a synthetic
@@ -7,7 +7,7 @@ pilot_log root (env Q6_REPO; no lot-step file ⇒ step 1) and asserts the CONTRA
 excluded, unmeasurable), the fill-attribution / identity notes, the online-clock column, and that the production enumeration oracle
 (support/reconcile_carry_409ea16.py, sha pinned) reached the same verdict wherever it could enumerate. The green controls are asserted FIRST: a
 red case is only meaningful when the baseline is green.
-Run: python3 tests_q6_shadow_v3.py   (exit 0 iff ALL PASS). Requires scipy with milp (HiGHS)."""
+Run: python3 tests_q6_shadow_v4.py   (exit 0 iff ALL PASS). Requires scipy with milp (HiGHS)."""
 import hashlib, json, os, subprocess, sys, tempfile, time
 
 HERE = os.path.dirname(os.path.abspath(__file__)); DEV = os.path.join(HERE, "q6_shadow.py")
@@ -35,7 +35,7 @@ def fill(k, q, s="AAA", tid=1, side="buy", delay=10):
     return dict(fill_ts=BASE + k * 14400 + delay, symbol=s, side=side, fill_px=10, fill_notional=q * 10, trade_id=tid)
 
 
-ROOT = tempfile.mkdtemp(prefix="q6v3_tests_", dir=os.environ.get("TMPDIR") or None)
+ROOT = tempfile.mkdtemp(prefix="q6v4_tests_", dir=os.environ.get("TMPDIR") or None)
 
 
 def run(name, reads, orders=(), fills=()):
@@ -66,9 +66,15 @@ def excl(rec, s="AAA"):
     return [o["k"] for o in obs(rec, s) if o["excluded"]]
 
 
-def oracle_ok(rec, name):
+def oracle_ok(rec, name, skipped=None):
+    """the oracle must either agree, or REFUSE with a named reason (R12-Q2: a static Request cannot carry a time-varying floor, so flattening the
+    floor to the final fill sum made it disagree with the correct model; refusing is the honest outcome and is asserted by name)."""
     oc = rec["oracle_crosscheck"]
-    check(f"[{name}] oracle cross-check: enumerated and agrees", oc["checked"] >= 1 and not oc["disagree"], oc)
+    if skipped:
+        check(f"[{name}] oracle REFUSES with the named reason {skipped!r} (not a silent skip, not a false agreement)",
+              oc["checked"] == 0 and not oc["disagree"] and (oc.get("skipped_why") or {}).get(skipped) == 1, oc)
+    else:
+        check(f"[{name}] oracle cross-check: enumerated and agrees", oc["checked"] >= 1 and not oc["disagree"], oc)
 
 
 print("support oracle sha:", hashlib.sha256(open(os.path.join(HERE, "support", "reconcile_carry_409ea16.py"), "rb").read()).hexdigest()[:16])
@@ -84,7 +90,7 @@ print("\n[G] green controls (asserted before any red case)")
 r = run("control_open_buy2_grows", [rb(0, 0), rb(1, 1), rb(2, 2)], [order(1, 2)])
 check("[G1] open BUY2, reads 0→1→2: every observation admitted, distance 0, CLEAN", dist(r) == [0, 0] and cats(r) == ["CLEAN", "CLEAN"] and excl(r) == [], obs(r)); oracle_ok(r, "G1"); table.append(("G1 control_open_buy2_grows", dist(r), cats(r)))
 r = run("control_attributed_fill", [rb(0, 0), rb(1, 1)], [order(1, 1)], [fill(1, 1)])
-check("[G2] open BUY1 + one fill attributed to it (unique alive same side), read 1: distance 0, fill NOT double counted", dist(r) == [0] and r["notes"].get("fills_attributed_unique_alive_same_side") == 1 and not r["notes"].get("fills_unattributed"), (dist(r), r["notes"])); oracle_ok(r, "G2"); table.append(("G2 control_attributed_fill", dist(r), cats(r)))
+check("[G2] open BUY1 + one fill attributed to it (unique alive same side), read 1: distance 0, fill NOT double counted", dist(r) == [0] and r["notes"].get("fills_attributed_unique_alive_same_side") == 1 and not r["notes"].get("fills_unattributed"), (dist(r), r["notes"])); oracle_ok(r, "G2", skipped="time_varying_floor"); table.append(("G2 control_attributed_fill", dist(r), cats(r)))
 r = run("control_two_open_buy1_reads_1_2", [rb(0, 0), rb(1, 1), rb(2, 2)], [order(1, 1, rid="a"), order(1, 1, rid="b")])
 check("[G3] two open BUY1 (joint {(1,0),(0,1)} after read 1), read 2 next: admissible (distance 0)", dist(r) == [0, 0] and excl(r) == [], obs(r)); oracle_ok(r, "G3"); table.append(("G3 two_open_buy1_1_2", dist(r), cats(r)))
 
@@ -128,5 +134,54 @@ check("[O1] a symbol with an order-row request (no write time stored) ⇒ online
 
 print("\nper-case table (distance in lots per observation after the baseline; category)")
 for name, d, c in table: print(f"  {name:48s} {str(d):16s} {c}")
+
+# ───────────────────── round 12 (independent review 625e7f2d): the fact-TIME layer ─────────────────────
+print("\n[R12] the reviewer's four new counterexamples — each was CLEAN/agreeing on v3")
+
+# R12-Q1a: a cumulative snapshot (confirmed_qty) must bind from the moment it was TAKEN, not from the request's birth.
+r = run("r12_later_snapshot_backdated_to_birth",
+        [rb(0, 10), rb(1, 10), rb(2, 11)],
+        [dict(anchor_ts=BASE + 0 * 14400, symbol="AAA", side="buy", submit_ts=BASE + 0 * 14400 + 5, last_fill_ts=BASE + 2 * 14400 + 10,
+              request_ledger=[dict(client_id="r1", qty=1, confirmed_qty=1, terminal=True, confirmed_qty_final=True, state="confirmed")])],
+        [fill(2, 1)])
+check("[R12-1] snapshot taken at the settlement time does NOT bind at birth: reads 10→10→11 are all CLEAN (v3: first window distance 1, FLAGGED 100 USDT)",
+      dist(r) == [0, 0] and cats(r) == ["CLEAN", "CLEAN"], obs(r))
+table.append(("R12-1 later_snapshot_backdated_to_birth", dist(r), cats(r)))
+
+# R12-Q1b: a duplicate row that changes ONLY `terminal` was merged as trade ids and the terminal constraint was lost.
+_o1 = dict(anchor_ts=BASE + 0 * 14400, symbol="AAA", side="buy", submit_ts=BASE + 5,
+           request_ledger=[dict(client_id="r1", qty=2, confirmed_qty=1, terminal=False, confirmed_qty_final=False, state="confirmed")])
+_o2 = dict(anchor_ts=BASE + 0 * 14400, symbol="AAA", side="buy", submit_ts=BASE + 5, last_fill_ts=BASE + 6,
+           request_ledger=[dict(client_id="r1", qty=2, confirmed_qty=1, terminal=True, confirmed_qty_final=False, state="confirmed")])
+r = run("r12_duplicate_terminal_only_update_lost", [rb(0, 0), rb(1, 1), rb(2, 2)], [_o1, _o2], [fill(1, 1)])
+check("[R12-2] a duplicate that only flips `terminal` is adopted: after the terminal the position cannot grow ⇒ the last read is distance 1 (v3: 0, 0)",
+      dist(r)[-1] == 1 and r["notes"].get("duplicate_terminal_adopted", 0) >= 1, (dist(r), r["notes"].get("duplicate_terminal_adopted")))
+table.append(("R12-2 duplicate_terminal_only_update_lost", dist(r), cats(r)))
+
+# R12-Q2: the oracle cannot represent a time-varying floor ⇒ it must refuse, not flatten the floor onto every time.
+r = run("r12_oracle_time_varying_floor", [rb(0, 0), rb(1, 0), rb(2, 1)],
+        [dict(anchor_ts=BASE + 0 * 14400, symbol="AAA", side="buy", submit_ts=BASE + 5,
+              request_ledger=[dict(client_id="r1", qty=1, confirmed_qty=0, terminal=False, confirmed_qty_final=False, state="confirmed")])],
+        [fill(2, 1)])
+check("[R12-3] MILP is right (0, 0) on a floor that only exists from the fill onward", dist(r) == [0, 0], obs(r))
+oracle_ok(r, "R12-3", skipped="time_varying_floor")
+table.append(("R12-3 oracle_time_varying_floor", dist(r), cats(r)))
+
+# R12-Q3 (P2): an off-lattice readback must not be rounded into an exact lattice fact.
+r = run("r12_off_lattice_readback", [rb(0, 0), dict(anchor_ts=BASE + 14400, read_ts=BASE + 14400 + 20, symbol="AAA",
+                                                    venue_position_qty=0.49, venue_position_notional=49.0, source="exec@post_anchor")])
+check("[R12-4] a 0.49 reading at step 1 is OFF_LATTICE, not CLEAN (v3 rounded it to 0 and hid a 49 USDT change)",
+      cats(r) == ["OFF_LATTICE"] and r["notes"].get("off_lattice_observation_not_clean", 0) == 1, (cats(r), r["notes"].get("off_lattice_observation_not_clean")))
+table.append(("R12-4 off_lattice_readback", dist(r), cats(r)))
+
+# R12-Q3 (accepted semantics, pinned as a control): an unbounded derived request absorbs anything — CLEAN here means "compatible with an
+# UNKNOWN capacity", and the receipt must say so by counting the regime. This is the reviewer's `unbounded_derived_absorbs_million`.
+r = run("r12_unbounded_derived_absorbs_million", [rb(0, 0), rb(1, 1000000)],
+        [dict(anchor_ts=BASE + 1 * 14400, symbol="AAA", side="buy", submit_ts=BASE + 14400 + 5, last_fill_ts=BASE + 14400 + 10, terminal_reason="filled")],
+        [fill(1, 1)])
+check("[R12-5] CONTROL (accepted semantics): a pre-ledger derived request has UNKNOWN capacity, so even +1,000,000 stays CLEAN — and the receipt counts it as weak evidence",
+      cats(r) == ["CLEAN"] and r["notes"].get("derived_requests_unbounded_capacity", 0) >= 1, (cats(r), r["notes"].get("derived_requests_unbounded_capacity")))
+table.append(("R12-5 unbounded_derived_absorbs_million (control)", dist(r), cats(r)))
+
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)  fixtures under {ROOT}")
 sys.exit(0 if not FAILS else 1)
