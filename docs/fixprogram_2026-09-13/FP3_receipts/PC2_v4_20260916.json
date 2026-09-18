@@ -1,0 +1,1647 @@
+{
+ "device": "pc2_layer_decomposition.py",
+ "version": "v4 event-path pricing + recorded fill prices + carry gaps (pnl_path.py)",
+ "utc": "2026-09-18T10:23:53Z",
+ "day": "20260916",
+ "self_sha256": "dd9a791b6d1adb391d077f1221e9cb6acf74c49ec990ee47901d70d249a387b7",
+ "engine_sha256": "b48687745219644e47da4210a5b15ff45f612cb2e93b0e85d743c79b2a58c6f6",
+ "panel": {
+  "path": "/Users/haosiyu/wide_shadow/state/rolling.npz",
+  "sha256": "c509ed0574fe99db678ba76c6abc4ab05adab7746a98dfde5cc459344e80b8b1",
+  "t_first": 1786262700,
+  "t_last": 1789718400,
+  "n_symbols": 829
+ },
+ "ledger_roots": {
+  "repo": "/Users/haosiyu/dl_quant_live",
+  "ws": "/Users/haosiyu/wide_shadow"
+ },
+ "anchors": [
+  {
+   "anchor": 1789516800,
+   "utc": "09-16 00:00Z",
+   "status": "OK",
+   "rebalance_id": "A1789518239",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1789518242.942235,
+   "t_end": 1789531200.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": 0.42555798757538843,
+   "n_fills_price_corrected": 351,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1789518300,
+   "b1": 1789531200,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 251,
+     "n_priced": 251,
+     "gross_b0": 238026.31871397566,
+     "net_b0": -14687.22643435414,
+     "pnl_usdt": -1633.328271683131,
+     "pnl_long_usdt": -2182.044300104401,
+     "pnl_short_usdt": 548.7160284212688,
+     "censored": {
+      "n": 7,
+      "notional": 3009.4145162706905
+     }
+    },
+    "L1_executor_target": {
+     "n": 251,
+     "n_priced": 251,
+     "gross_b0": 240914.06580586126,
+     "net_b0": -120.78201683723944,
+     "pnl_usdt": -1848.3567090797071,
+     "pnl_long_usdt": -2381.133902103104,
+     "pnl_short_usdt": 532.777193023396,
+     "censored": {
+      "n": 7,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 251,
+     "n_priced": 251,
+     "gross_b0": 240812.5503875692,
+     "net_b0": 2.0789771469679863,
+     "pnl_usdt": -1848.813784064964,
+     "pnl_long_usdt": -2381.3253252235772,
+     "pnl_short_usdt": 532.5115411586144,
+     "censored": {
+      "n": 7,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 251,
+     "n_priced": 251,
+     "gross_b0": 240812.5503875692,
+     "net_b0": 2.0789771469679863,
+     "pnl_usdt": -1848.8137840649638,
+     "pnl_long_usdt": -2381.3253252235772,
+     "pnl_short_usdt": 532.5115411586141,
+     "censored": {
+      "n": 7,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 251,
+     "n_priced": 251,
+     "gross_b0": 240380.62178792694,
+     "net_b0": 1853.5326288242002,
+     "pnl_usdt": -1849.9619442921778,
+     "pnl_long_usdt": -2378.527584183466,
+     "pnl_short_usdt": 528.5656398912888,
+     "censored": {
+      "n": 7,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": 0.42555798757538843,
+     "pnl_usdt_with_fill_prices": -1849.5363863046025,
+     "n_fills_price_corrected": 351
+    }
+   },
+   "fees_in_window": {
+    "USDT": 2.19510992
+   },
+   "n_fills_in_window": 351,
+   "events": {
+    "pre_window": 0,
+    "in_window": 351,
+    "post_window_not_applied": 690
+   },
+   "intra_row_approx": 251,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 249,
+    "max_abs_rel": 0.007933335986660905,
+    "median_abs_rel": 0.0005423602401786187
+   },
+   "fill_px_vs_path": {
+    "n": 251,
+    "max_abs_rel": 0.010133180758570282,
+    "median_abs_rel": 0.0005444971636152651
+   },
+   "reference_readback": {
+    "runs": [
+     "09-15 16Z",
+     "09-15 20Z"
+    ],
+    "n_names": 250,
+    "n_stale_over_4h40m": 1,
+    "t_earliest_read": 1789490703.148551
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 251,
+    "t_latest_read": 1789548294.3924422
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 23,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 2.931325050755448e-12,
+    "top": [
+     [
+      "APTUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "BATUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "BERAUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "CRVUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "EGLDUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "EPICUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "EULUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "FARTCOINUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "GRASSUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "HBARUSDT",
+      -0.0,
+      -0.0
+     ]
+    ],
+    "next_readback_names": 251,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "per_name": {
+    "AKEUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ARKMUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "IOSTUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LSKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SIGNUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "XANUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "XPINUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": -1.1481602272137934,
+    "L3_minus_L2cut_execution": -1.1481602272140208,
+    "L2cut_minus_L2_flatten_footprint": 2.2737367544323206e-13,
+    "L2_minus_L1_skips": -0.45707498525689516,
+    "L1_minus_L0_book_layer": -215.028437396576,
+    "L3_minus_L0_total": -216.6336726090467,
+    "L3_minus_L2cut_execution_with_fill_prices": -0.722602239638718,
+    "fill_price_correction": 0.42555798757538843
+   },
+   "n_names_ok": 251
+  },
+  {
+   "anchor": 1789531200,
+   "utc": "09-16 04:00Z",
+   "status": "OK",
+   "rebalance_id": "A1789532640",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1789532643.9436328,
+   "t_end": 1789545600.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": 222.83514537762017,
+   "n_fills_price_corrected": 379,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1789532700,
+   "b1": 1789545600,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 251,
+     "n_priced": 251,
+     "gross_b0": 234173.78556524764,
+     "net_b0": -15900.785609764798,
+     "pnl_usdt": 548.6138954389429,
+     "pnl_long_usdt": -878.1850676256959,
+     "pnl_short_usdt": 1426.7989630646398,
+     "censored": {
+      "n": 6,
+      "notional": 2915.2290962409324
+     }
+    },
+    "L1_executor_target": {
+     "n": 251,
+     "n_priced": 251,
+     "gross_b0": 237084.11528097594,
+     "net_b0": 186.91710042347563,
+     "pnl_usdt": 405.4677576064357,
+     "pnl_long_usdt": -958.588732329629,
+     "pnl_short_usdt": 1364.056489936064,
+     "censored": {
+      "n": 6,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 251,
+     "n_priced": 251,
+     "gross_b0": 236938.4000166627,
+     "net_b0": 96.36933765301052,
+     "pnl_usdt": 405.9947218007301,
+     "pnl_long_usdt": -957.6586296784706,
+     "pnl_short_usdt": 1363.6533514791995,
+     "censored": {
+      "n": 6,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 251,
+     "n_priced": 251,
+     "gross_b0": 236938.4000166627,
+     "net_b0": 96.36933765301052,
+     "pnl_usdt": 405.99472180073025,
+     "pnl_long_usdt": -957.6586296784703,
+     "pnl_short_usdt": 1363.6533514791995,
+     "censored": {
+      "n": 6,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 251,
+     "n_priced": 251,
+     "gross_b0": 239460.5265929775,
+     "net_b0": -878.1052268406961,
+     "pnl_usdt": 397.481272990532,
+     "pnl_long_usdt": -968.0250738200991,
+     "pnl_short_usdt": 1365.506346810631,
+     "censored": {
+      "n": 6,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": 222.83514537762017,
+     "pnl_usdt_with_fill_prices": 620.3164183681522,
+     "n_fills_price_corrected": 379
+    }
+   },
+   "fees_in_window": {
+    "USDT": 4.00998693
+   },
+   "n_fills_in_window": 379,
+   "events": {
+    "pre_window": 0,
+    "in_window": 379,
+    "post_window_not_applied": 311
+   },
+   "intra_row_approx": 323,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 250,
+    "max_abs_rel": 0.33568196921501847,
+    "median_abs_rel": 0.0006657624503867421
+   },
+   "fill_px_vs_path": {
+    "n": 323,
+    "max_abs_rel": 0.3639444393370337,
+    "median_abs_rel": 0.0016535792597789367
+   },
+   "reference_readback": {
+    "runs": [
+     "09-15 20Z",
+     "09-16 00Z"
+    ],
+    "n_names": 252,
+    "n_stale_over_4h40m": 3,
+    "t_earliest_read": 1789505097.4294558
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 251,
+    "t_latest_read": 1789548294.3924422
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 25,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 3.785699896119798e-12,
+    "top": [
+     [
+      "1000SHIBUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "API3USDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "BERAUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "EGLDUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ENSOUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ETCUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ETHFIUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "EULUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "EVAAUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "FARTCOINUSDT",
+      0.0,
+      0.0
+     ]
+    ],
+    "next_readback_names": 251,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "per_name": {
+    "AKEUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ARKMUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "IOSTUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LSKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "XANUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "XPINUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": -8.5134488101981,
+    "L3_minus_L2cut_execution": -8.51344881019827,
+    "L2cut_minus_L2_flatten_footprint": 1.7053025658242404e-13,
+    "L2_minus_L1_skips": 0.5269641942943508,
+    "L1_minus_L0_book_layer": -143.14613783250718,
+    "L3_minus_L0_total": -151.13262244841093,
+    "L3_minus_L2cut_execution_with_fill_prices": 214.32169656742195,
+    "fill_price_correction": 222.83514537762017
+   },
+   "n_names_ok": 251
+  },
+  {
+   "anchor": 1789545600,
+   "utc": "09-16 08:00Z",
+   "status": "OK",
+   "rebalance_id": "A1789547039",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1789547043.709323,
+   "t_end": 1789560000.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": 5.880925253396721,
+   "n_fills_price_corrected": 311,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1789547100,
+   "b1": 1789560000,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 253,
+     "n_priced": 253,
+     "gross_b0": 234959.28215159924,
+     "net_b0": -15170.596167559464,
+     "pnl_usdt": 4501.7013609111,
+     "pnl_long_usdt": 5995.2086406104045,
+     "pnl_short_usdt": -1493.5072796993056,
+     "censored": {
+      "n": 4,
+      "notional": 2831.364973493659
+     }
+    },
+    "L1_executor_target": {
+     "n": 253,
+     "n_priced": 253,
+     "gross_b0": 237718.94712507253,
+     "net_b0": -93.63474358971695,
+     "pnl_usdt": 4953.292321107075,
+     "pnl_long_usdt": 6367.440155284477,
+     "pnl_short_usdt": -1414.1478341774036,
+     "censored": {
+      "n": 4,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 253,
+     "n_priced": 253,
+     "gross_b0": 237583.43928993578,
+     "net_b0": -81.93104857920878,
+     "pnl_usdt": 4949.068144669502,
+     "pnl_long_usdt": 6362.818011362446,
+     "pnl_short_usdt": -1413.7498666929516,
+     "censored": {
+      "n": 4,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 253,
+     "n_priced": 253,
+     "gross_b0": 237583.43928993578,
+     "net_b0": -81.93104857920878,
+     "pnl_usdt": 4949.0681446695025,
+     "pnl_long_usdt": 6362.818011362447,
+     "pnl_short_usdt": -1413.7498666929516,
+     "censored": {
+      "n": 4,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 253,
+     "n_priced": 253,
+     "gross_b0": 234845.70256717945,
+     "net_b0": 967.9733409925566,
+     "pnl_usdt": 4950.805762554022,
+     "pnl_long_usdt": 6366.836119085711,
+     "pnl_short_usdt": -1416.0303565316883,
+     "censored": {
+      "n": 4,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": 5.880925253396721,
+     "pnl_usdt_with_fill_prices": 4956.686687807419,
+     "n_fills_price_corrected": 311
+    }
+   },
+   "fees_in_window": {
+    "USDT": 2.9511755799999984
+   },
+   "n_fills_in_window": 311,
+   "events": {
+    "pre_window": 0,
+    "in_window": 311,
+    "post_window_not_applied": 772
+   },
+   "intra_row_approx": 228,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 251,
+    "max_abs_rel": 0.047563620243454174,
+    "median_abs_rel": 0.0006056833195107192
+   },
+   "fill_px_vs_path": {
+    "n": 228,
+    "max_abs_rel": 0.05310899568217997,
+    "median_abs_rel": 0.0011598898627358523
+   },
+   "reference_readback": {
+    "runs": [
+     "09-16 04Z"
+    ],
+    "n_names": 250,
+    "n_stale_over_4h40m": 0,
+    "t_earliest_read": 1789533869.3735209
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 249,
+    "t_latest_read": 1789577055.093842
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 27,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 2.8933570104926928e-12,
+    "top": [
+     [
+      "1000SHIBUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ALGOUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "API3USDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ATOMUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "BATUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "BERAUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "COMPUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "DASHUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "EIGENUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ENSOUSDT",
+      0.0,
+      0.0
+     ]
+    ],
+    "next_readback_names": 249,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "per_name": {
+    "AKEUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "IOSTUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LSKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "XANUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": 1.7376178845206596,
+    "L3_minus_L2cut_execution": 1.73761788451975,
+    "L2cut_minus_L2_flatten_footprint": 9.094947017729282e-13,
+    "L2_minus_L1_skips": -4.224176437573078,
+    "L1_minus_L0_book_layer": 451.59096019597473,
+    "L3_minus_L0_total": 449.1044016429223,
+    "L3_minus_L2cut_execution_with_fill_prices": 7.6185431379162765,
+    "fill_price_correction": 5.880925253396721
+   },
+   "n_names_ok": 253
+  },
+  {
+   "anchor": 1789560000,
+   "utc": "09-16 12:00Z",
+   "status": "OK",
+   "rebalance_id": "A1789561440",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1789561444.219641,
+   "t_end": 1789574400.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": -23.43150948988734,
+   "n_fills_price_corrected": 411,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1789561500,
+   "b1": 1789574400,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 251,
+     "n_priced": 251,
+     "gross_b0": 243742.06373123577,
+     "net_b0": -14866.368011111583,
+     "pnl_usdt": -378.51487508549,
+     "pnl_long_usdt": -1680.5005254636374,
+     "pnl_short_usdt": 1301.985650378147,
+     "censored": {
+      "n": 8,
+      "notional": 2817.9067567266734
+     }
+    },
+    "L1_executor_target": {
+     "n": 251,
+     "n_priced": 251,
+     "gross_b0": 246285.18927469238,
+     "net_b0": -334.43950799132244,
+     "pnl_usdt": -761.0071696371567,
+     "pnl_long_usdt": -1997.9700957799994,
+     "pnl_short_usdt": 1236.9629261428436,
+     "censored": {
+      "n": 8,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 251,
+     "n_priced": 251,
+     "gross_b0": 246234.28526702887,
+     "net_b0": -308.53172783517954,
+     "pnl_usdt": -761.6562469230419,
+     "pnl_long_usdt": -1998.2159211658877,
+     "pnl_short_usdt": 1236.5596742428456,
+     "censored": {
+      "n": 8,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 251,
+     "n_priced": 251,
+     "gross_b0": 246234.28526702887,
+     "net_b0": -308.53172783517954,
+     "pnl_usdt": -761.6562469230415,
+     "pnl_long_usdt": -1998.2159211658873,
+     "pnl_short_usdt": 1236.5596742428454,
+     "censored": {
+      "n": 8,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 251,
+     "n_priced": 251,
+     "gross_b0": 240969.20875774443,
+     "net_b0": 1781.9892230061798,
+     "pnl_usdt": -749.4095255972687,
+     "pnl_long_usdt": -1978.6068207473838,
+     "pnl_short_usdt": 1229.1972951501175,
+     "censored": {
+      "n": 8,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": -23.43150948988734,
+     "pnl_usdt_with_fill_prices": -772.8410350871561,
+     "n_fills_price_corrected": 411
+    }
+   },
+   "fees_in_window": {
+    "USDT": 5.149155140000002
+   },
+   "n_fills_in_window": 411,
+   "events": {
+    "pre_window": 0,
+    "in_window": 411,
+    "post_window_not_applied": 741
+   },
+   "intra_row_approx": 299,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 247,
+    "max_abs_rel": 0.030438797794392514,
+    "median_abs_rel": 0.0007160367726892769
+   },
+   "fill_px_vs_path": {
+    "n": 299,
+    "max_abs_rel": 0.051922800751798226,
+    "median_abs_rel": 0.0011492245839013204
+   },
+   "reference_readback": {
+    "runs": [
+     "09-16 08Z"
+    ],
+    "n_names": 251,
+    "n_stale_over_4h40m": 0,
+    "t_earliest_read": 1789548294.3924422
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 249,
+    "t_latest_read": 1789591465.278697
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 29,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 4.125861107543698e-12,
+    "top": [
+     [
+      "ARBUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ATOMUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "BATUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "DEXEUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "DOTUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "DYMUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "EIGENUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ENSUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "EPICUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "EVAAUSDT",
+      -0.0,
+      -0.0
+     ]
+    ],
+    "next_readback_names": 249,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "per_name": {
+    "AKEUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "IOSTUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LSKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ROSEUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SPKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "TURBOUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "XANUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": 12.246721325773137,
+    "L3_minus_L2cut_execution": 12.246721325772796,
+    "L2cut_minus_L2_flatten_footprint": 3.410605131648481e-13,
+    "L2_minus_L1_skips": -0.6490772858851415,
+    "L1_minus_L0_book_layer": -382.4922945516667,
+    "L3_minus_L0_total": -370.8946505117787,
+    "L3_minus_L2cut_execution_with_fill_prices": -11.184788164114593,
+    "fill_price_correction": -23.43150948988734
+   },
+   "n_names_ok": 251
+  },
+  {
+   "anchor": 1789574400,
+   "utc": "09-16 16:00Z",
+   "status": "OK",
+   "rebalance_id": "A1789575839",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1789575842.323915,
+   "t_end": 1789588800.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": 19.655403611873304,
+   "n_fills_price_corrected": 361,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1789575900,
+   "b1": 1789588800,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 250,
+     "n_priced": 250,
+     "gross_b0": 239398.92167844763,
+     "net_b0": -18435.535661460104,
+     "pnl_usdt": -469.5140505692986,
+     "pnl_long_usdt": 812.8049294978815,
+     "pnl_short_usdt": -1282.3189800671796,
+     "censored": {
+      "n": 9,
+      "notional": 5781.454032053523
+     }
+    },
+    "L1_executor_target": {
+     "n": 250,
+     "n_priced": 250,
+     "gross_b0": 244900.42029556015,
+     "net_b0": -139.718068542791,
+     "pnl_usdt": -292.44098241913986,
+     "pnl_long_usdt": 909.241015971743,
+     "pnl_short_usdt": -1201.6819983908824,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 250,
+     "n_priced": 250,
+     "gross_b0": 244853.45928150887,
+     "net_b0": -209.33655580443735,
+     "pnl_usdt": -292.5169685880527,
+     "pnl_long_usdt": 909.5656436400984,
+     "pnl_short_usdt": -1202.0826122281508,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 250,
+     "n_priced": 250,
+     "gross_b0": 244853.45928150887,
+     "net_b0": -209.33655580443735,
+     "pnl_usdt": -292.5169685880527,
+     "pnl_long_usdt": 909.5656436400984,
+     "pnl_short_usdt": -1202.082612228151,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 250,
+     "n_priced": 250,
+     "gross_b0": 243778.00156627307,
+     "net_b0": 2473.8234042032686,
+     "pnl_usdt": -287.88705505898906,
+     "pnl_long_usdt": 914.0900006313831,
+     "pnl_short_usdt": -1201.9770556903718,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": 19.655403611873304,
+     "pnl_usdt_with_fill_prices": -268.2316514471158,
+     "n_fills_price_corrected": 361
+    }
+   },
+   "fees_in_window": {
+    "USDT": 3.1893888500000025
+   },
+   "n_fills_in_window": 361,
+   "events": {
+    "pre_window": 0,
+    "in_window": 361,
+    "post_window_not_applied": 745
+   },
+   "intra_row_approx": 220,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 247,
+    "max_abs_rel": 0.07611803417075669,
+    "median_abs_rel": 0.0019254826795072066
+   },
+   "fill_px_vs_path": {
+    "n": 220,
+    "max_abs_rel": 0.015858354033428168,
+    "median_abs_rel": 0.001638834856620086
+   },
+   "reference_readback": {
+    "runs": [
+     "09-16 08Z",
+     "09-16 12Z"
+    ],
+    "n_names": 251,
+    "n_stale_over_4h40m": 4,
+    "t_earliest_read": 1789548294.3924422
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 249,
+    "t_latest_read": 1789605892.494263
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 25,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 2.4936886982267264e-12,
+    "top": [
+     [
+      "ACEUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ALGOUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "API3USDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ARBUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "BATUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "DOTUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "DYMUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "EGLDUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ENSUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ETCUSDT",
+      -0.0,
+      -0.0
+     ]
+    ],
+    "next_readback_names": 249,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "per_name": {
+    "AINUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "AKEUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "IOSTUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LSKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ROSEUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SPKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "TURBOUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "UAIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": 4.629913529063629,
+    "L3_minus_L2cut_execution": 4.629913529063629,
+    "L2cut_minus_L2_flatten_footprint": 0.0,
+    "L2_minus_L1_skips": -0.07598616891283427,
+    "L1_minus_L0_book_layer": 177.07306815015875,
+    "L3_minus_L0_total": 181.62699551030954,
+    "L3_minus_L2cut_execution_with_fill_prices": 24.28531714093691,
+    "fill_price_correction": 19.655403611873304
+   },
+   "n_names_ok": 250
+  },
+  {
+   "anchor": 1789588800,
+   "utc": "09-16 20:00Z",
+   "status": "OK",
+   "rebalance_id": "A1789590240",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1789590243.472217,
+   "t_end": 1789603200.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": -7.829437345839671,
+   "n_fills_price_corrected": 380,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1789590300,
+   "b1": 1789603200,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 250,
+     "n_priced": 250,
+     "gross_b0": 238365.60019487454,
+     "net_b0": -18170.62617623829,
+     "pnl_usdt": -1039.0085618604576,
+     "pnl_long_usdt": 1359.763390312867,
+     "pnl_short_usdt": -2398.7719521733225,
+     "censored": {
+      "n": 6,
+      "notional": 6009.046059876588
+     }
+    },
+    "L1_executor_target": {
+     "n": 250,
+     "n_priced": 250,
+     "gross_b0": 244054.5628927344,
+     "net_b0": -280.87488530392557,
+     "pnl_usdt": -782.3904842943332,
+     "pnl_long_usdt": 1504.0176416288016,
+     "pnl_short_usdt": -2286.408125923133,
+     "censored": {
+      "n": 6,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 250,
+     "n_priced": 250,
+     "gross_b0": 244106.38115222525,
+     "net_b0": -324.46454815830987,
+     "pnl_usdt": -783.6689308286034,
+     "pnl_long_usdt": 1504.0513965044918,
+     "pnl_short_usdt": -2287.720327333095,
+     "censored": {
+      "n": 6,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 250,
+     "n_priced": 250,
+     "gross_b0": 244106.38115222525,
+     "net_b0": -324.46454815830987,
+     "pnl_usdt": -783.6689308286032,
+     "pnl_long_usdt": 1504.051396504492,
+     "pnl_short_usdt": -2287.7203273330947,
+     "censored": {
+      "n": 6,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 250,
+     "n_priced": 250,
+     "gross_b0": 247486.22710528917,
+     "net_b0": 1370.6145425331438,
+     "pnl_usdt": -786.7734409305093,
+     "pnl_long_usdt": 1498.7893451606665,
+     "pnl_short_usdt": -2285.5627860911763,
+     "censored": {
+      "n": 6,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": -7.829437345839671,
+     "pnl_usdt_with_fill_prices": -794.602878276349,
+     "n_fills_price_corrected": 380
+    }
+   },
+   "fees_in_window": {
+    "USDT": 3.7258679700000026
+   },
+   "n_fills_in_window": 380,
+   "events": {
+    "pre_window": 0,
+    "in_window": 380,
+    "post_window_not_applied": 786
+   },
+   "intra_row_approx": 269,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 248,
+    "max_abs_rel": 0.012730367932444198,
+    "median_abs_rel": 0.0007423999778048973
+   },
+   "fill_px_vs_path": {
+    "n": 269,
+    "max_abs_rel": 0.017673414733010873,
+    "median_abs_rel": 0.0009431009714881977
+   },
+   "reference_readback": {
+    "runs": [
+     "09-16 12Z",
+     "09-16 16Z"
+    ],
+    "n_names": 249,
+    "n_stale_over_4h40m": 2,
+    "t_earliest_read": 1789562703.6554859
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 249,
+    "t_latest_read": 1789620289.1538088
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 28,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 3.3870795193920974e-12,
+    "top": [
+     [
+      "ACEUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ARUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "BNBUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "COMPUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "DOTUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "DYMUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "EGLDUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ETCUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ETHFIUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "GWEIUSDT",
+      0.0,
+      0.0
+     ]
+    ],
+    "next_readback_names": 249,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "per_name": {
+    "AINUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "AKEUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "AVNTUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "IOSTUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LSKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "UAIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": -3.1045101019059302,
+    "L3_minus_L2cut_execution": -3.1045101019061576,
+    "L2cut_minus_L2_flatten_footprint": 2.2737367544323206e-13,
+    "L2_minus_L1_skips": -1.2784465342701878,
+    "L1_minus_L0_book_layer": 256.6180775661244,
+    "L3_minus_L0_total": 252.23512092994827,
+    "L3_minus_L2cut_execution_with_fill_prices": -10.933947447745823,
+    "fill_price_correction": -7.829437345839671
+   },
+   "n_names_ok": 250
+  }
+ ],
+ "gaps": [
+  {
+   "gap_for_anchor": 1789516800,
+   "utc": "09-16 00:00Z",
+   "t_from": 1789516800.0,
+   "t_to": 1789518242.942235,
+   "b_lo": 1789516800,
+   "b_hi": 1789518300,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "pnl_usdt": -74.11389936884078,
+   "pnl_long_usdt": 282.2211403949169,
+   "pnl_short_usdt": -356.33503976375766,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": -74.11389936884078,
+   "n_names_carried": 246,
+   "n_priced": 246,
+   "censored": {
+    "n": 0,
+    "notional": 0.0
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {},
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  },
+  {
+   "gap_for_anchor": 1789531200,
+   "utc": "09-16 04:00Z",
+   "t_from": 1789531200.0,
+   "t_to": 1789532643.9436328,
+   "b_lo": 1789531200,
+   "b_hi": 1789532700,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "pnl_usdt": -238.6645499398195,
+   "pnl_long_usdt": 654.8009368069269,
+   "pnl_short_usdt": -893.4654867467464,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": -238.6645499398195,
+   "n_names_carried": 249,
+   "n_priced": 249,
+   "censored": {
+    "n": 0,
+    "notional": 0.0
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {},
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  },
+  {
+   "gap_for_anchor": 1789545600,
+   "utc": "09-16 08:00Z",
+   "t_from": 1789545600.0,
+   "t_to": 1789547043.709323,
+   "b_lo": 1789545600,
+   "b_hi": 1789547100,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "pnl_usdt": 124.75549540748585,
+   "pnl_long_usdt": -310.17556754456496,
+   "pnl_short_usdt": 434.9310629520509,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": 124.75549540748585,
+   "n_names_carried": 250,
+   "n_priced": 250,
+   "censored": {
+    "n": 0,
+    "notional": 0.0
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {},
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  },
+  {
+   "gap_for_anchor": 1789560000,
+   "utc": "09-16 12:00Z",
+   "t_from": 1789560000.0,
+   "t_to": 1789561444.219641,
+   "b_lo": 1789560000,
+   "b_hi": 1789561500,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "pnl_usdt": -464.41071217312475,
+   "pnl_long_usdt": -1059.2552066234114,
+   "pnl_short_usdt": 594.8444944502872,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": -464.41071217312475,
+   "n_names_carried": 248,
+   "n_priced": 248,
+   "censored": {
+    "n": 0,
+    "notional": 0.0
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {},
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  },
+  {
+   "gap_for_anchor": 1789574400,
+   "utc": "09-16 16:00Z",
+   "t_from": 1789574400.0,
+   "t_to": 1789575842.323915,
+   "b_lo": 1789574400,
+   "b_hi": 1789575900,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "pnl_usdt": 167.38749904086345,
+   "pnl_long_usdt": 590.4820560850428,
+   "pnl_short_usdt": -423.0945570441794,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": 167.38749904086345,
+   "n_names_carried": 246,
+   "n_priced": 246,
+   "censored": {
+    "n": 0,
+    "notional": 0.0
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {},
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  },
+  {
+   "gap_for_anchor": 1789588800,
+   "utc": "09-16 20:00Z",
+   "t_from": 1789588800.0,
+   "t_to": 1789590243.472217,
+   "b_lo": 1789588800,
+   "b_hi": 1789590300,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "pnl_usdt": -194.67534857209816,
+   "pnl_long_usdt": 617.7699464361411,
+   "pnl_short_usdt": -812.4452950082391,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": -194.67534857209816,
+   "n_names_carried": 246,
+   "n_priced": 246,
+   "censored": {
+    "n": 0,
+    "notional": 0.0
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {},
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  }
+ ],
+ "day_gap_totals": {
+  "n_gaps_priced": 6,
+  "n_gaps": 6,
+  "pnl_usdt": -679.7215156055339,
+  "fill_price_correction_usdt": 0.0,
+  "pnl_usdt_with_fill_prices": -679.7215156055339,
+  "pnl_long_usdt": 775.8433055550514,
+  "pnl_short_usdt": -1455.5648211605844,
+  "statuses": [
+   [
+    "09-16 00:00Z",
+    "GAP_OK"
+   ],
+   [
+    "09-16 04:00Z",
+    "GAP_OK"
+   ],
+   [
+    "09-16 08:00Z",
+    "GAP_OK"
+   ],
+   [
+    "09-16 12:00Z",
+    "GAP_OK"
+   ],
+   [
+    "09-16 16:00Z",
+    "GAP_OK"
+   ],
+   [
+    "09-16 20:00Z",
+    "GAP_OK"
+   ]
+  ],
+  "note": "ACTUAL layer only \u2014 the intent layers are defined from their own decision time and are not carried across the gap"
+ },
+ "day_coverage": {
+  "windows_s": 77400,
+  "gaps_s": 9000,
+  "total_s": 86400,
+  "day_s": 86400,
+  "covered_frac": 1.0,
+  "note": "the decision windows alone cover 21.5 h of 24 h (6 x ~25 min missing); the gaps close that for the ACTUAL layer only"
+ },
+ "day_actual_full_day": {
+  "windows_pnl_usdt": 1674.255069665609,
+  "gaps_pnl_usdt": -679.7215156055339,
+  "full_day_pnl_usdt": 994.5335540600751,
+  "full_day_pnl_usdt_with_fill_prices": 1212.0696394548136,
+  "fill_price_correction_usdt": 217.5360853947386,
+  "complete": true
+ },
+ "day_long_short_windows": {
+  "pnl_long_usdt": 3454.555986126812,
+  "pnl_short_usdt": -1780.3009164611992
+ },
+ "n_anchors_ok": 6,
+ "n_anchors_total": 6,
+ "day_totals_over_ok_anchors_usdt": {
+  "L0_producer": 1529.9494971516656,
+  "L1_executor_target": 1674.5647332831738,
+  "L2_request_intent": 1668.4069360655692,
+  "L2_cut_at_flatten": 1668.4069360655717,
+  "L3_actual_path": 1674.255069665609
+ },
+ "day_censored_notional_by_layer": {
+  "L0_producer": 23364.415434662063,
+  "L1_executor_target": 0.0,
+  "L2_request_intent": 0.0,
+  "L2_cut_at_flatten": 0.0,
+  "L3_actual_path": 0.0
+ },
+ "day_fees_in_windows": {
+  "USDT": 21.220684390000006
+ },
+ "day_diffs_by_window_class": {
+  "NORMAL": {
+   "n_windows": 6,
+   "L3_minus_L2": 5.848133600039603,
+   "L3_minus_L2cut_execution": 5.848133600037727,
+   "L2cut_minus_L2_flatten_footprint": 1.8758328224066645e-12,
+   "L1_minus_L0": 144.61523613150797,
+   "L3_minus_L2cut_execution_with_fill_prices": 223.384218994776,
+   "fill_price_correction": 217.5360853947386
+  }
+ },
+ "day_fill_price_correction_in_windows_usdt": 217.5360853947386,
+ "day_totals_with_fill_prices_usdt": {
+  "L3_actual_path": 1891.7911550603476
+ },
+ "day_diffs_over_ok_anchors": {
+  "L3_minus_L2_timing_and_fills": 5.848133600039773,
+  "L3_minus_L2cut_execution": 5.848133600037272,
+  "L2cut_minus_L2_flatten_footprint": 2.5011104298755527e-12,
+  "L2_minus_L1_skips": -6.157797217604639,
+  "L1_minus_L0_book_layer": 144.61523613150825,
+  "L3_minus_L0_total": 144.3055725139434,
+  "L3_minus_L2cut_execution_with_fill_prices": 223.3842189947759
+ },
+ "boundary": "price P&L only at 5-minute resolution; no funding; fees separate; the boundary figure values fills at their boundary mark and the *_with_fill_prices figure applies the RECORDED fill prices (both are printed, neither replaces the other); intent contracts at mid_at_anchor; a day total covers only the anchors with status OK (n_anchors_ok/6) and only names that are not CENSORED; the intent layers cover the DECISION WINDOWS only (21.5 h) while the actual layer additionally carries the six [anchor, decision] gaps \u2014 day_coverage says exactly how much of the 86,400 s is priced. THIS IS NOT A CERTIFIED EXECUTION-CONTRIBUTION FIGURE: unrecorded fills, endpoint marks, funding and treating a flatten READBACK as the event time all remain open"
+}

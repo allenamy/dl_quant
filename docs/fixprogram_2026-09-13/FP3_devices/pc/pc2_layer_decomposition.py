@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""FP3 P-C2 v3 (2026-09-18, after independent review round 11 R11-PC2): layer decomposition of one UTC day by EVENT-PATH pricing (engine: pnl_path.py).
+"""FP3 P-C2 v4 (2026-09-18, after independent review round 12 R12-P2/P3; v3 after round 11 R11-PC2): layer decomposition of one UTC day by EVENT-PATH
+pricing (engine: pnl_path.py).
+
+ROUND 12 (each a reviewer counterexample v3 passed): (i) ONE event order — the pricing path sorted by 5-minute boundary while the residual check
+walked real time, so a same-bar flatten erased a later reopen with a zero residual; (ii) the recorded FILL PRICES are applied as their own column
+(`*_with_fill_prices`) instead of valuing every fill at its boundary mark; (iii) a PARTIAL flatten now cuts the intent layer by what the set actually
+left standing, not to zero; (iv) the six decision windows cover 21.5 h — the six [anchor, decision] GAPS (150 min/day) are now priced for the ACTUAL
+layer via `pnl_path.gap_pnl`, so a full-day actual figure exists and is labelled apart from the decision-window figure. THIS IS STILL NOT A CERTIFIED
+EXECUTION-CONTRIBUTION NUMBER: unrecorded fills, endpoint marks, funding and the flatten-readback-as-event approximation remain open.
 v1/v2 priced post-anchor positions with the return from the anchor start, did not cut the actual path at protective flattens, and deleted skipped names
 from L2 — the reviewer's three counterexamples (late fill sign reversal; intra-period flatten; zero-increment skip) all pass v2 and fail here by design.
 
@@ -22,13 +30,17 @@ import pnl_path as PP
 DAY, OUT = sys.argv[1], sys.argv[2]
 d0 = int(time.mktime(time.strptime(DAY, "%Y%m%d")) - time.timezone); anchors = [d0 + 14400 * k for k in range(6)]
 panel = PP.Panel(); L = PP.LedgerDay(DAY)
-out = {"device": "pc2_layer_decomposition.py", "version": "v3 event-path pricing (pnl_path.py)", "utc": time.strftime("%FT%TZ", time.gmtime()), "day": DAY,
+out = {"device": "pc2_layer_decomposition.py", "version": "v4 event-path pricing + recorded fill prices + carry gaps (pnl_path.py)", "utc": time.strftime("%FT%TZ", time.gmtime()), "day": DAY,
        "self_sha256": hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest(), "engine_sha256": hashlib.sha256(open(PP.__file__, "rb").read()).hexdigest(),
        "panel": {"path": panel.path, "sha256": panel.sha, "t_first": panel.t_first, "t_last": panel.t_last, "n_symbols": len(panel.syms)},
        "ledger_roots": {"repo": PP.REPO, "ws": PP.WS}, "anchors": []}
-tot = {}; n_ok = 0; fees = {}; cens_tot = {}; by_class = {}
+tot = {}; n_ok = 0; fees = {}; cens_tot = {}; by_class = {}; gaps = []; full = {}
+prev_rec = PP.window_pnl(L, panel, d0 - 14400)          # only as the carry state for the day's FIRST gap (its own P&L belongs to the previous day)
+fill_corr_windows = 0.0; ls_tot = {"pnl_long_usdt": 0.0, "pnl_short_usdt": 0.0}
 for A in anchors:
     rec = PP.window_pnl(L, panel, A)
+    g = PP.gap_pnl(L, panel, A, rec.get("t_decision") if rec.get("status") == "OK" else A + 1440.0, prev_rec)
+    gaps.append(g); prev_rec = rec
     if rec.get("status") == "OK":
         n_ok += 1; rec["diffs"] = PP.layer_diffs(rec)
         bc = by_class.setdefault(rec["window_class"], {"n_windows": 0, "L3_minus_L2": 0.0, "L3_minus_L2cut_execution": 0.0, "L2cut_minus_L2_flatten_footprint": 0.0, "L1_minus_L0": 0.0})
@@ -36,6 +48,10 @@ for A in anchors:
         bc["L2cut_minus_L2_flatten_footprint"] += rec["diffs"]["L2cut_minus_L2_flatten_footprint"]; bc["L1_minus_L0"] += rec["diffs"]["L1_minus_L0_book_layer"]
         for k, v in rec["layers"].items():
             tot[k] = tot.get(k, 0.0) + v["pnl_usdt"]; cens_tot[k] = cens_tot.get(k, 0.0) + v["censored"]["notional"]
+        fill_corr_windows += rec["fill_price_correction_usdt"]
+        ls_tot["pnl_long_usdt"] += rec["layers"]["L3_actual_path"]["pnl_long_usdt"]; ls_tot["pnl_short_usdt"] += rec["layers"]["L3_actual_path"]["pnl_short_usdt"]
+        bc["L3_minus_L2cut_execution_with_fill_prices"] = bc.get("L3_minus_L2cut_execution_with_fill_prices", 0.0) + rec["diffs"]["L3_minus_L2cut_execution_with_fill_prices"]
+        bc["fill_price_correction"] = bc.get("fill_price_correction", 0.0) + rec["diffs"]["fill_price_correction"]
         for k, v in rec["fees_in_window"].items():
             fees[k] = fees.get(k, 0.0) + v
         slim = dict(rec); slim.pop("per_name_layers", None); slim["per_name"] = {s: v for s, v in rec["per_name"].items() if v.get("status") != "OK"}   # keep only censored names inline
@@ -43,19 +59,48 @@ for A in anchors:
         out["anchors"].append(slim)
     else:
         out["anchors"].append(rec)
+# ── carry gaps: the 6 x ~25 min between each anchor instant and its decision boundary (R12-P3: six windows are 21.5 h, not 24 h) ──
+gap_ok = [g for g in gaps if g.get("status") == "GAP_OK"]
+gap_pnl_sum = float(sum(g["pnl_usdt"] for g in gap_ok)); gap_corr = float(sum(g["fill_price_correction_usdt"] for g in gap_ok))
+win_cov = sum(r.get("coverage_s", 0) for r in out["anchors"] if r.get("status") == "OK"); gap_cov = sum(g.get("coverage_s", 0) for g in gap_ok)
+out["gaps"] = gaps
+out["day_gap_totals"] = {"n_gaps_priced": len(gap_ok), "n_gaps": len(gaps), "pnl_usdt": gap_pnl_sum, "fill_price_correction_usdt": gap_corr,
+                         "pnl_usdt_with_fill_prices": gap_pnl_sum + gap_corr,
+                         "pnl_long_usdt": float(sum(g["pnl_long_usdt"] for g in gap_ok)), "pnl_short_usdt": float(sum(g["pnl_short_usdt"] for g in gap_ok)),
+                         "statuses": [(g["utc"], g.get("status")) for g in gaps],
+                         "note": "ACTUAL layer only — the intent layers are defined from their own decision time and are not carried across the gap"}
+out["day_coverage"] = {"windows_s": int(win_cov), "gaps_s": int(gap_cov), "total_s": int(win_cov + gap_cov), "day_s": 86400,
+                       "covered_frac": round((win_cov + gap_cov) / 86400.0, 6),
+                       "note": "the decision windows alone cover 21.5 h of 24 h (6 x ~25 min missing); the gaps close that for the ACTUAL layer only"}
+out["day_actual_full_day"] = {"windows_pnl_usdt": tot.get("L3_actual_path", 0.0), "gaps_pnl_usdt": gap_pnl_sum,
+                              "full_day_pnl_usdt": tot.get("L3_actual_path", 0.0) + gap_pnl_sum,
+                              "full_day_pnl_usdt_with_fill_prices": tot.get("L3_actual_path", 0.0) + gap_pnl_sum + fill_corr_windows + gap_corr,
+                              "fill_price_correction_usdt": fill_corr_windows + gap_corr,
+                              "complete": (n_ok == 6 and len(gap_ok) == 6)} if n_ok else None
+out["day_long_short_windows"] = ls_tot
 out["day"] = DAY; out["n_anchors_ok"] = n_ok; out["n_anchors_total"] = 6
 out["day_totals_over_ok_anchors_usdt"] = tot; out["day_censored_notional_by_layer"] = cens_tot; out["day_fees_in_windows"] = fees
 out["day_diffs_by_window_class"] = by_class
+out["day_fill_price_correction_in_windows_usdt"] = fill_corr_windows
+out["day_totals_with_fill_prices_usdt"] = {"L3_actual_path": tot.get("L3_actual_path", 0.0) + fill_corr_windows} if n_ok else None
 out["day_diffs_over_ok_anchors"] = {"L3_minus_L2_timing_and_fills": tot.get("L3_actual_path", 0.0) - tot.get("L2_request_intent", 0.0),
                                     "L3_minus_L2cut_execution": tot.get("L3_actual_path", 0.0) - tot.get("L2_cut_at_flatten", 0.0),
                                     "L2cut_minus_L2_flatten_footprint": tot.get("L2_cut_at_flatten", 0.0) - tot.get("L2_request_intent", 0.0),
                                     "L2_minus_L1_skips": tot.get("L2_request_intent", 0.0) - tot.get("L1_executor_target", 0.0),
                                     "L1_minus_L0_book_layer": tot.get("L1_executor_target", 0.0) - tot.get("L0_producer", 0.0),
-                                    "L3_minus_L0_total": tot.get("L3_actual_path", 0.0) - tot.get("L0_producer", 0.0)} if n_ok else None
-out["boundary"] = ("price P&L only at 5-minute resolution; no funding; fees separate; fills valued at boundary price (intra_row_approx); intent contracts at mid_at_anchor; "
-                   "a day total covers only the anchors with status OK (n_anchors_ok/6) and only names that are not CENSORED (day_censored_notional_by_layer)")
+                                    "L3_minus_L0_total": tot.get("L3_actual_path", 0.0) - tot.get("L0_producer", 0.0),
+                                    "L3_minus_L2cut_execution_with_fill_prices": tot.get("L3_actual_path", 0.0) + fill_corr_windows - tot.get("L2_cut_at_flatten", 0.0)} if n_ok else None
+out["boundary"] = ("price P&L only at 5-minute resolution; no funding; fees separate; the boundary figure values fills at their boundary mark and the "
+                   "*_with_fill_prices figure applies the RECORDED fill prices (both are printed, neither replaces the other); intent contracts at "
+                   "mid_at_anchor; a day total covers only the anchors with status OK (n_anchors_ok/6) and only names that are not CENSORED; the intent "
+                   "layers cover the DECISION WINDOWS only (21.5 h) while the actual layer additionally carries the six [anchor, decision] gaps — "
+                   "day_coverage says exactly how much of the 86,400 s is priced. THIS IS NOT A CERTIFIED EXECUTION-CONTRIBUTION FIGURE: unrecorded "
+                   "fills, endpoint marks, funding and treating a flatten READBACK as the event time all remain open")
 json.dump(out, open(OUT, "w"), indent=1, default=str)
-print(DAY, f"anchors OK {n_ok}/6", "| day totals over OK anchors (USDT):", {k: round(v, 1) for k, v in tot.items()}, "| diffs:", {k: round(v, 1) for k, v in (out["day_diffs_over_ok_anchors"] or {}).items()},
+print(DAY, f"anchors OK {n_ok}/6", f"gaps priced {len(gap_ok)}/6", "| day totals over OK anchors (USDT):", {k: round(v, 1) for k, v in tot.items()},
+      "| fill-price correction", round(fill_corr_windows + gap_corr, 1), "| gaps", round(gap_pnl_sum, 1),
+      "| coverage", f"{out['day_coverage']['total_s']}/86400 s ({out['day_coverage']['covered_frac']:.1%})",
+      "| diffs:", {k: round(v, 1) for k, v in (out["day_diffs_over_ok_anchors"] or {}).items()},
       "| fees", {k: round(v, 4) for k, v in fees.items()}, "| censored notional", {k: round(v, 0) for k, v in cens_tot.items()})
 for r in out["anchors"]:
     if r.get("status") != "OK":
