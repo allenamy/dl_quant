@@ -159,3 +159,38 @@ chain_lib.sh:198  env "$@" "$PY" "$D/$script"        ← 没有 -i, 父环境整
 ## 8. 用户侧仍需一件
 
 只读密钥已轮换并改为 `=` 分隔, 本轮未再读取或打印任何凭据。仍缺的是**不含密钥值的逐项权限收据**(从 API 管理页导出/截图逐项权限开关)。已接受复审判词: 单凭 `−2015` **不能**认证所有权限都关着, 且 `POST /fapi/v1/order/test` 是 TRADE 校验端点, 所以那个脚本不能自称「只读」。
+
+---
+
+## 9. 我自己在本轮派工里犯的错(分支查出来的, 主动登记)
+
+修复线在执行我写的任务书时, 逐项测出**两条我给错的事实**。两条都接受, 并按 [[retraction_does_not_bind_the_retracted_document]] 在这里登记而不是只在对话里认。
+
+### 9.1 我让分支去读一个**从来不落盘**的字段
+
+我在 R15-P1 的任务书里写: 「用行自己的未知标记(`filled_unknown_qty`, `filled_unknown_residual`, `ledger_inconsistent`, **`closed`**)而不是推断」。
+
+`closed` 与 `qty_closed` 是 `ledger_row_columns`(执行器 L271)**计算**出来的, 但 `_order_row`(L2252)**不写它们**。分支在真实账本上核了: 我自己另核一遍 —— 最近 20 天 **51,457 行**, `closed` 出现 **0 行**, `qty_closed` **0 行**(对照: `filled_notional` 51,457 行, `filled_known_notional` 与 `filled_unknown_qty` 各 17,349 行, `ledger_inconsistent` 只在为真时写, 2 行)。
+
+**最刺眼的是**: 我在写这条任务书**之前一小时**, 刚刚为了 E-0918-P 把 `_order_row` 的 42 个键逐个列了出来 —— `closed` 不在其中。**证据在手上, 我还是说错了。** 这就是 [[declared_blind_spot_is_not_closed]] 用在我自己身上: 知道一件事和在下一句话里用上它是两回事。
+
+分支的修法比我的指令对: 按 `filled_notional is None` 判读(那正是生产自己的「未闭合」标记, L266 `filled_notional = known_n if closed else None`), 再用未知部分标记互证。
+
+### 9.2 我把复审的一句话原样转下去而没有先验
+
+我在 R15-P1 的任务书里转述复审: 「有一个锚 `filters_assumed_current` 改变, 所谓『相同』仅限汇总数字」。分支实测: 这次重跑 **51 个锚的 `filters_assumed_current` 全部稳定**; 逐锚字节漂移出现在**另一个字段** —— 7 个较近锚的 `reshape_bitwise`(如 16/17→17/17, 19/22→22/22, within-1e-9 仍 34/34)。
+
+分支没有假设, 而是**当场把修复前与修复后的两个装置都在 09-15 00Z 上跑了一遍**: 两者都给 17/17(旧收据是 16/17), reshape 集合相同, 测量指标逐位相同 ⇒ 漂移是**时间性的**(两次运行之间上游数据继续结算), 与这次 R3 范围的修改无关。
+
+**我错在**: 把一句我没有验过的来源判词当事实转成了任务书。这与 [[fact_table_must_cite_latest_receipt]] 同型 —— **转述也是断言**。
+
+### 9.3 分支主动登记的一条(不是我的错, 但值得留底)
+
+`tests_pc1_v13.py` 第 [7] 节有三个夹具设了 `filled_known_notional=10` 同时 `filled_notional=25` —— 对一个已闭合的账本**物理上不可能**(真实 46,363 行里 **0 行**这样), 它们此前为绿**正是因为 `_fn_of` 只读已知部分**。也就是说: **夹具把缺陷本身编码了进去**, 修掉缺陷时才会暴露。已按原意改为 `filled_notional=10`, 计数不变, 断言不变。
+
+这是 [[suite_certifies_a_state_production_cannot_construct]] 的一个新实例 —— 套件认证了一个生产永远构造不出的行形态。
+
+### 9.4 已接受的两条更正数字
+
+- **1,810 的拆分**(复审更正, 分支证实): **1,809 条 `venue_reject_no_ledger` + 1 条 `abandoned_spread_gt_25bps`**, `R1_totals.reject_no_qty = 1809` 佐证。**不能整体叫「拒单」。**
+- **封存器的两条诚实边界**(分支自报): 9 个装置里只有 **3 个**经产物记录的 self-sha 交叉核实, 其余 6 个是「在场但无回指」; 17 件产物里 **10 件**交叉核实, 7 件只有存在性与快照哈希。收据逐条标明是哪一种。**「在场」不等于「被独立见证」。**
