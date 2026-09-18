@@ -903,7 +903,18 @@ check("★★ [P] trainer env whitelist takes the admissible dirs from V4_DLW_RA
 _la = open(f"{HERE}/launch_mwf_v4b.sh").read()
 check("★★ [P] launcher: DLW/F8/device dir from the month env with September defaults; MONTHS_ALL forwarded to the trainer", "${V4_DLW_RAW:-/workspace/dlw_v4raw}" in _la and "${V4_DLW_CLIP:-/workspace/dlw_hf3}" in _la and "F8=${V4_F8:-/workspace/f8_v4}" in _la and "${MONTHS_ALL:+MONTHS_ALL=$MONTHS_ALL}" in _la)
 _mg = open(f"{HERE}/merge_mwf_v4b.py").read()
-check("★★ [P] merge: mwf root / gate json / trainer / splice sources / dev preds from V4_* env with September defaults; the HF2 comparison is skipped (never asserted) when the reference cannot align", 'os.environ.get("V4_F8", "/workspace/f8_v4")' in _mg and "hf_skip" in _mg and "assert HF.shape == PRED.shape" not in _mg)
+# ★ R15-C1 / E-0918-O (2026-09-18): this check USED to assert `os.environ.get("V4_F8", "/workspace/f8_v4")` — i.e. it
+#   REQUIRED the September-default form, which is the very shape that let `V4_TRAINER` default to
+#   `/workspace/review_scratch/pod_f10_train_monthly_v4.py` and write a SCRATCH path into the sealed model's merge
+#   receipt as provenance (that copy is the superseded pre-monthly trainer and did NOT train the folds). The fixture
+#   encoded the defect as the contract, exactly like the P-C1 section [7] fixtures did. Now the merge device REQUIRES
+#   its paths (`_req`) and declares every env read in ENV_KEYS, so the assertion is inverted to the real contract.
+check("★★★ [P] merge: every path comes from a REQUIRED V4_* env key — NO scratch-directory default survives anywhere in the source (R15-C1/E-0918-O: the old default wrote /workspace/review_scratch into the sealed merge receipt's provenance)",
+      "review_scratch" not in _mg and 'os.environ.get("V4_F8"' not in _mg and '_req("V4_F8")' in _mg and '_req("V4_TRAINER")' in _mg and '_req("V4_DEV_PREDS")' in _mg)
+check("★★★ [P] merge declares EVERY env var it reads in ONE ENV_KEYS constant and records what each resolved to, so the receipt's provenance can be re-checked (the class fix, not the instance)",
+      "ENV_KEYS = (" in _mg and '"V4_TRAINER"' in _mg and '"env_keys": list(ENV_KEYS)' in _mg and '"env_resolved"' in _mg)
+check("★★ [P] merge: the HF2 comparison is INFORMATIONAL — skipped (never asserted) when the reference cannot align, and its source is optional rather than a scratch default",
+      "hf_skip" in _mg and "assert HF.shape == PRED.shape" not in _mg and 'HF2_PREDS = os.environ.get("V4_HF2_PREDS")' in _mg)
 # refit: refuses without env, BEFORE importing torch (R1)
 _env_clear = {k: "" for k in ("F10_DLW", "F10_OUT", "SEED", "BEST_EP_FIX")}   # empty = "not set" for the refit's guard; run_sandboxed (defined below) supplies nonexistent inputs + temp outputs
 _rf = open(f"{HERE}/pod_f10_refit_v4.py").read()
