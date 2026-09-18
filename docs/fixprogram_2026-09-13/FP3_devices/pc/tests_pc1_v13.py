@@ -418,5 +418,30 @@ check("[11.6] summary.request_state_population reports states SEPARATELY: confir
       isinstance(G(s114, "request_state_population"), dict) and G(s114, "request_state_population", {}).get("not_sent", 0) >= 1
       and G(s114, "request_state_population", {}).get("confirmed", 0) >= 1, G(s114, "request_state_population"))
 
+# [11.7] R15-P1 STRUCTURAL — the unknown is on a leg the fix does not special-case: the R2 REQUOTE owner (R1 was a venue reject). One refusing
+#   accessor treats every owning leg the same, so the verdict still refuses — this is not an R1-specific guard.
+d = base_data(); d["an"]["reshape"] = dict(g["reshape_replayed"])
+mk = next(r for r in d["orders"] if r["symbol"] == "AUSDT" and r["order_type"] == "maker")
+mk["request_ledger"] = None; mk["terminal_reason"] = "venue_reject"; mk["filled_known_notional"] = None; mk["filled_notional"] = 0.0
+rq = json.loads(json.dumps(mk)); rq["requote_arm"] = "requote"; rq["terminal_reason"] = "filled_amount_unknown"
+rq["filled_known_notional"] = None; rq["filled_notional"] = None                                   # the REQUOTE fill total is unreadable
+rq["request_ledger"] = [{"client_id": f"{RID}-AUSDT-2", "qty": 25.0, "confirmed_qty": 25.0, "state": "confirmed", "terminal": True, "confirmed_qty_final": True}]
+d["orders"].append(rq)
+tr = next(r for r in d["orders"] if r["symbol"] == "AUSDT" and r["order_type"] == "topup_taker")
+tr["terminal_reason"] = "filled"; tr["intended_notional"] = 25.0; tr["filled_known_notional"] = 25.0; tr["filled_notional"] = 25.0
+tr["request_ledger"] = [{"client_id": f"{RID}-AUSDT-3", "qty": 25.0, "confirmed_qty": 25.0, "state": "confirmed", "terminal": True, "confirmed_qty_final": True}]
+x = run("r15_unknown_on_R2_requote_leg", d); s117 = x["summary"]; r117 = (rows_by_sym(x).get("AUSDT", {}).get("R3") or {})
+check("[11.7] STRUCTURAL: an unreadable fill on the R2 REQUOTE owner (not R1) still refuses ⇒ residual UNMEASURABLE naming R2, complete_parity False (v13: got=0, residual 25, the 25 top-up matched)",
+      G(s117, "complete_parity", True) is False and r117.get("residual_unmeasurable") is True and "R2" in (r117.get("unreadable_fill_legs") or []),
+      (G(s117, "complete_parity"), r117.get("residual_unmeasurable"), r117.get("unreadable_fill_legs")))
+
+# [11.8] R15-P1 STRUCTURAL — the unknown is signalled by a DIFFERENT marker: ledger_inconsistent=True while filled_notional is PRESENT (25).
+#   A present total the ledger flags inconsistent is still not trustworthy ⇒ refuses (not keyed to filled_notional=None specifically).
+d = base_data(); d["an"]["reshape"] = dict(g["reshape_replayed"])
+mk = next(r for r in d["orders"] if r["symbol"] == "AUSDT" and r["order_type"] == "maker"); mk["ledger_inconsistent"] = True
+x = run("r15_ledger_inconsistent_denies_total", d); s118 = x["summary"]; r118 = (rows_by_sym(x).get("AUSDT", {}).get("R3") or {})
+check("[11.8] STRUCTURAL: ledger_inconsistent=True with a PRESENT filled_notional still denies the total ⇒ residual UNMEASURABLE, complete_parity False (v13 read filled_known_notional=25, residual 0, complete_parity True)",
+      G(s118, "complete_parity", True) is False and r118.get("residual_unmeasurable") is True, (G(s118, "complete_parity"), r118))
+
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)  device sha {hashlib.sha256(open(DEV,'rb').read()).hexdigest()[:16]}")
 sys.exit(0 if not FAILS else 1)

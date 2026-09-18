@@ -11,7 +11,12 @@ What changed in v14 (independent review round 15 — R15-P1/P2, two counterexamp
     row with `filled_notional=None` contributed 0, the residual became the FULL delta, and the leg was judged against that fabricated number.
     `_fn_total` now reads `filled_notional` (ledger_row_columns L266: `filled_notional = known_n if closed else None`) plus the unknown-part /
     inconsistency markers; a present owning row whose total is not closed makes the residual UNMEASURABLE (`topup_residual_unmeasurable`), never
-    delta − 0. `closed`/`qty_closed` are NOT persisted by _order_row (L2280-2342), so readability is read off the columns that ARE.
+    delta − 0. `closed`/`qty_closed` are NOT persisted by _order_row (L2280-2342), so readability is read off the columns that ARE. STRUCTURAL
+    (round-15 follow-up): `got` is formed by ONE refusing accessor `_fills_total` (it returns UNKNOWN at the first unreadable row, NO subset-sum)
+    and residual = delta − got flows through an `UNKNOWN` sentinel that POISONS arithmetic and RAISES on a truth/ordering test — so an unknown
+    cannot enter a sum, a bound or a tolerance as a measured number, and a missing downstream guard fails LOUD, not silently. This closes the
+    recurring "unknown value as an identity element" class in place of a scattered `if v is not None` guard (R14-M1 readback→zero residual,
+    R14-M2 unknown qty→zero position, R15-M1 NaN→clean zero) that has re-appeared each time it was patched narrowly.
     ⇒ THIS IS A MEASUREMENT DEFECT OF THE REPLAY DEVICE (it could not reject a record inconsistent with the production rule). It is NOT evidence
     the live book ever topped up from an assumed zero: production refuses, and the only two real `filled_amount_unknown` rows in range sit on a
     REFUSED anchor (09-12 12Z), so the measured aggregate is unchanged;
@@ -276,6 +281,29 @@ def _sside(q):
     return "buy" if float(q) > 0 else "sell"
 
 
+class _UnknownMeasurement:
+    """★ R15-P1 structural (round-15 follow-up): a value whose measurement status is UNKNOWN. It is the STRUCTURAL fix
+    for the recurring "an unknown value entering arithmetic as an identity element" class — R14-M1 (an unmeasured
+    readback read as a zero residual), R14-M2 (an unknown carried quantity read as a zero position), R15-M1 (a NaN
+    passing as a clean zero difference in the P&L device) and R15-P1 here (an unreadable fill notional summed as 0 into
+    `got`). Each earlier instance was patched in place with a `if v is not None` guard, and the class came back, because
+    a guard that SKIPS the unknown is exactly the shape that lets the next caller skip it too. UNKNOWN instead POISONS
+    every operation (a sum, a bound, a tolerance, a ratio all yield UNKNOWN) and RAISES when used as a truth value or an
+    ordering, so it can never enter a comparison as a measured number and a missing downstream guard fails LOUD rather
+    than silently treating it as measured. Check it with `_is_unknown()`, never with a bare `if`."""
+    __slots__ = ()
+    def _poison(self, *a): return self
+    __add__ = __radd__ = __sub__ = __rsub__ = __mul__ = __rmul__ = __truediv__ = __rtruediv__ = __neg__ = __abs__ = __round__ = _poison
+    def __bool__(self): raise TypeError("UNKNOWN measurement used as a truth value — check _is_unknown() first")
+    def __lt__(self, o): raise TypeError("UNKNOWN measurement used in an ordering comparison")
+    __le__ = __gt__ = __ge__ = __lt__
+    def __repr__(self): return "UNKNOWN"
+
+
+UNKNOWN = _UnknownMeasurement()
+def _is_unknown(v): return v is UNKNOWN
+
+
 def _sent(le):
     """★ R14-P1 (1) (independent review round 14): the executor PRE-BUILDS one ledger entry per PLANNED chunk with
     `state="not_sent"`, `order_id=None` and no confirmed quantity, then tries to send each one (409ea16
@@ -463,16 +491,28 @@ for s in sorted(set(by_sym) | set(plan_by)):
         #   inconsistent with the production rule); NOT evidence the live book topped up from an assumed zero — production refuses, and the two
         #   real `filled_amount_unknown` rows in range are on a REFUSED anchor (09-12 12Z), so the measured aggregate is unchanged.
         def _fn_total(r):
-            if r is None: return 0.0                                                             # an ABSENT leg contributes nothing (not "unknown")
+            if r is None: return None                                                            # (never reached: _fills_total skips absent legs before calling)
             if r.get("filled_unknown_qty") is not None or r.get("filled_unknown_residual") is not None or r.get("ledger_inconsistent"):
                 return None                                                                       # a known PART beside an unknown part is not a total
             fn = r.get("filled_notional")
             return float(fn) if fn is not None else None                                          # filled_notional is None ⟺ ledger not closed ⟺ UNREADABLE
+        def _fills_total(owner_rows):
+            # ★ R15-P1 STRUCTURAL: the ONE accessor for `got`. It REFUSES (returns UNKNOWN) at the FIRST unreadable owning
+            #   row — there is NO subset-sum path that drops an unreadable row into the accumulator as a zero (the shape
+            #   `sum(v ... if v is not None)` that lets the next caller skip the unknown too). An absent leg contributes
+            #   nothing; a PRESENT leg whose total is not closed makes the whole total UNKNOWN, which then poisons the
+            #   residual so it can never enter a bound or a tolerance comparison as a measured number.
+            total = 0.0
+            for r in owner_rows:
+                if r is None: continue                                                            # ABSENT leg ⇒ nothing (not "unknown")
+                v = _fn_total(r)
+                if v is None: return UNKNOWN                                                       # UNREADABLE ⇒ refuse; never sum a subset
+                total += v
+            return total
         own1 = e1[0]["row"] if e1 else row1
         own2 = e2[0]["row"] if e2 else row2
-        _tot = {_lbl: _fn_total(r) for _lbl, r in (("R1", own1), ("R2", own2)) if r is not None}
-        _unreadable = sorted(_lbl for _lbl, v in _tot.items() if v is None)                       # a PRESENT owning row whose total fill is not closed
-        got = sum(v for v in _tot.values() if v is not None)
+        _unreadable = sorted(_lbl for _lbl, r in (("R1", own1), ("R2", own2)) if r is not None and _fn_total(r) is None)   # a PRESENT owning row whose total is not closed
+        got = _fills_total([own1, own2])                                                          # a float, or UNKNOWN (poisons every arithmetic below)
         for _lbl, _ownr, _alt in (("R1", own1, row1), ("R2", own2, row2)):                        # owner vs the other candidate row
             if _ownr is not None and _alt is not None and _ownr is not _alt:
                 _vo, _va = _fn_total(_ownr), _fn_total(_alt)
@@ -481,20 +521,20 @@ for s in sorted(set(by_sym) | set(plan_by)):
                     verdicts.append(f"{_lbl}_owner_row_fill_contradiction")
                     e[_lbl + "_fill_contradiction"] = {"owner_row_attempt": _ownr.get("attempt_idx"), "owner_filled": _vo,
                                                        "other_row_attempt": _alt.get("attempt_idx"), "other_filled": _va}
-        resid_unmeasurable = bool(_unreadable)
+        resid_unmeasurable = _is_unknown(got)
         if resid_unmeasurable:                                                                    # ★ R15-P1: the top-up decision input is missing; NOT delta − 0
             unmeas.append("topup_residual_unmeasurable:" + ",".join(_unreadable)); verdicts.append("R3_residual_unmeasurable")
         mid = mids.get(s)
         floor = float((sf.f.get(s) or {}).get("min_notional", 5.0) or 5.0)
-        residual = None if resid_unmeasurable else float(p["delta_notional"]) - got
-        exp_q = sf.round_qty(s, residual / max(mid, 1e-9)) if (mid and residual is not None) else None    # SIGNED expected chunk total
-        rule_skip = None if residual is None else ((exp_q is None) or exp_q == 0 or abs(residual) < floor or abs(exp_q) * max(mid or 0.0, 1e-9) < floor)
-        rule_no_row = None if residual is None else abs(residual) < 1e-9
+        residual = float(p["delta_notional"]) - got                                              # ★ if `got` is UNKNOWN this stays UNKNOWN (poison), never delta − 0
+        exp_q = sf.round_qty(s, residual / max(mid, 1e-9)) if (mid and not _is_unknown(residual)) else None    # SIGNED expected chunk total
+        rule_skip = None if _is_unknown(residual) else ((exp_q is None) or exp_q == 0 or abs(residual) < floor or abs(exp_q) * max(mid or 0.0, 1e-9) < floor)
+        rule_no_row = None if _is_unknown(residual) else abs(residual) < 1e-9
         rec_int = [r.get("intended_notional") for r in rows3]
-        int_ok = None if residual is None else (all(v is not None and abs(float(v) - residual) <= 1e-6 * max(1.0, abs(residual)) for v in rec_int) if rows3 else True)
+        int_ok = None if _is_unknown(residual) else (all(v is not None and abs(float(v) - residual) <= 1e-6 * max(1.0, abs(residual)) for v in rec_int) if rows3 else True)
         sent3 = [x for x in e3 if not x.get("cls")]
-        e["R3"] = {"residual_rule": residual, "residual_unmeasurable": resid_unmeasurable, "unreadable_fill_legs": _unreadable,
-                   "owner_fills_readable": {k: v for k, v in _tot.items()}, "recorded_intended": rec_int, "intended_consistent": int_ok,
+        e["R3"] = {"residual_rule": (None if _is_unknown(residual) else residual), "residual_unmeasurable": resid_unmeasurable, "unreadable_fill_legs": _unreadable,
+                   "owner_fills_readable": {_lbl: _fn_total(r) for _lbl, r in (("R1", own1), ("R2", own2)) if r is not None}, "recorded_intended": rec_int, "intended_consistent": int_ok,
                    "expected_qty_signed": (float(exp_q) if exp_q is not None else None), "rule_says_skip": rule_skip, "rule_says_no_row": rule_no_row,
                    "n_topup_rows": len(rows3), "n_chunk_requests": len(sent3), "arm_drawn": chase_arms.get(s), "under_stop": s in force_flat}
         if not rows3 and rule_no_row is False and row1 is not None and row1.get("terminal_reason") not in (None, "venue_reject") and e1:
