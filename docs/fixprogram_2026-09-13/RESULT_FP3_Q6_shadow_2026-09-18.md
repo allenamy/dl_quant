@@ -190,3 +190,47 @@ oracle 对照: 可枚举的 4 格**全部一致**(disagree 0), 其余 408 名域
 
 ### 9.4 本节没做的
 影子动作接线与发布验收、逐条新旧判门翻转、四条 FLAGGED 的逐笔归因(需场所 `userTrades`)、以及 `birth` 时间语义, 全部仍开。**本节不是部署批准。**
+
+---
+
+## 10. v6: 续跑必须是同一份事实合同(2026-09-18, 独立复审第十四轮 R14-Q1…Q5)
+
+**装置** `FP3_devices/q6/q6_shadow.py` v6(sha256 `0362223080b2ffbf…`; 前身 v5 存 `archive/q6_shadow_v5_1d5600da.py`), 新测试 `tests_q6_resume_r14.py` **25/25**, 旧测试 `tests_q6_shadow_v4.py` 43 · `tests_q6_facts_r13.py` 24 · `tests_q6_checkpoint.py` 23 全绿(合计 **115**)。收据 `FP3_receipts/Q6_SHADOW_v6_0808_0918.json` 与重做的 `Q6_CHECKPOINT_PARITY_0808_0918.json`。
+
+> 复审这一轮的四个反例**都是跑真实 CLI 得到的**, 不是调 helper 推断。我的新测试同样只驱动真实 CLI, 并且每一条都在归档的 v5 上验证是红的 —— 绿不是因为夹具没碰到规则。
+
+### 10.1 五处改法
+| 复审项 | v5 的错(真实 CLI 实测) | v6 |
+|---|---|---|
+| **R14-Q1 续跑跳过身份冲突检查** | 同一 client_id 第一段 BUY 3、第二段 SELL 3: 整窗两条 **UNMEASURABLE**, 分段恢复两条 **CLEAN** —— 合并保留了旧方向 | 冲突判据抽成 `fact_conflict`, **fresh 构建与 checkpoint 恢复共用同一个入口**; 冲突即按 §1d.4 判不可测。重启不得改变对同一事实的判词 |
+| **R14-Q2 没有新回读就不重建** | 已准入增量 80, 随后到达事件时间更早的终态总量 50 且**没有新回读**: 整窗距离 **30**, 恢复仍保留准入 80、距离 **0** | 恢复时逐请求算硬事实的生效时间; 早于已携带前缀的即为**迟到**, 按 §1d.3 从 τ 截断前缀并重判。原始收据在 `records_before_rebuild` 里**原样保留**, 不重写 |
+| **R14-Q3 单位未校验** | step 1 写出的 checkpoint 在 step 0.1 下恢复, 持仓没动却报 **9 lots** | 恢复时逐名比对 `step`, 不一致**具名拒绝**(`checkpoint lot-step mismatch`), 不静默混算。同 step 恢复的绿对照保留 |
+| **R14-Q4 终态后的非 final 下界不施加** | BUY3 终态、总量未知, 随后可信累计下界 2, 增量仍 1 ⇒ 仍 **CLEAN** | 终态后 x_i 是常量, 所以**落在 pin 之后的下界照样约束 pin 变量**: `floor_at_time(i, t_known)`。该例现在距离 **1** |
+| **R14-Q5 helper 与 CLI 不是同一入口** | 已有 floor 2@t2 时迟到的 1@t1 被当 `no_change`(拿标量比); 已有 exact 2 再来 exact 1 静默保留 2 | 迟到 floor 一律进**阶梯**并按阶梯判断是否变化; **两个可信 exact 总量是硬矛盾**(§1d.4), 具名 `hard_contradiction` 并令该名不可测 |
+
+### 10.2 状态 sha 拆成两个(R14-Q5)
+复审指出旧 sha 只覆盖 `hard/observations/admitted/excluded/q0_lots/step/pending_requests` —— 改 `records`(原始收据)或 `marks`(USD 判词所依赖的价格证据)都不动它。
+
+- **`state_sha256`** = 逐名的**全部实质状态**(上列七项 + `records` + `marks` + `unmeasurable_from_run`)。§1d.5 的「逐位相同」指的是**这个**数。
+- **`identity_sha256`** = **是什么产生了它**(装置 sha、账本输入 sha、窗口、epoch 声明、政策、lot step 来源)。它在分段与整窗之间**按构造就不同**(恢复那次只读了后半段), 所以不能进 parity 判词。
+- 收据里 `state_sha256_covers` 逐字段列出两者各覆盖什么。测试验证: 改 `records` 变、改 `marks` 变、改装置 sha 只变 identity 那个。
+- `CHECKPOINT_SCHEMA` 升到 `/2`; v5 会拒绝加载 v6 的 checkpoint(这也是为什么红对照要用 v5 自己写的 checkpoint 恢复)。
+
+### 10.3 重做的 41 天与重启验收
+| 量 | 值 |
+|---|---|
+| 窗口 / 锚 / 名 | 08-08 → 09-18 · 246 锚 · 412 名 |
+| CLEAN / FLAGGED | **53,247 / 4** |
+| 持续 ≥6 锚 | **0 名** |
+| oracle | 仍 **0/412**(408 名容量无上界, 4 名时变 floor) |
+
+四条 FLAGGED 与距离**一条没变**(ATOM 237.72 · SNX 806.5 · SCRT 10,954 · STORJ 4,036)。观测总数比 v5 那次多, 是因为账本在此期间又落了一个锚, 不是判词变化。
+
+**重启验收(本次装置, 不是前身)**: 08-08→09-02 与 09-03→09-18 两段跑, 交接携带 **10,259 张请求 / 29,516 条已准入等式 / 4 条被排除 / 0 张未决**; 结果 **`state_sha256` 逐位相同**(`a858a66225ad7d7c…`), **412/412 名全部一致**, 计数一致。`identity_sha256` 不同且已写明原因。
+旧那份 parity 收据自标 `version=v4`、由归档的 v4cp 产出, **不能**当 v5/v6 的恢复证据 —— 复审 R14-Q5 成立, 已整份重做。
+
+### 10.4 仍不成立(我方声明)
+- **R5–R9 不能整体标完成**: 真在线双时钟(412/412 仍 UNAVAILABLE, 订单行不存写入时刻)、用户签字的记账 epoch、影子动作接线与发布验收, 都没做。**Q6 不可上线。**
+- `birth` 仍读 `submit_ts`。E-0918-J 表明它可能是落盘时刻, 所以生效时间仍可能被推后; 复审明确**不接受**把 `min(submit, last_fill)` 当成真实提交时刻, 我方也不改 —— 这是执行器侧要补的「实际发出字段 + 可靠时间记录」。
+- 快照时间仍是**弱界** `max(cancel_ts, last_fill_ts)`(全窗恰好 1 张请求两个字段都缺, 标 `ABSENT`); 标注是披露, 不是消除假设。
+- 四条 FLAGGED 的**场所侧逐笔归因**见 `RESULT_FP3_I1_venue_attribution_2026-09-18.md`, 不在本件。

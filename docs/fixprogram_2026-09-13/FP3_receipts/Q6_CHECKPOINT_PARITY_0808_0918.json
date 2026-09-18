@@ -1,66 +1,93 @@
 {
  "device": "q6_shadow.py",
- "version": "v4",
- "self_sha256": "7351d9a57585c0bd67d3e11acde0b6d54dfc445717bcb53323de8027a8ce0aba",
- "policy": {
-  "name": "chronological_admission",
-  "revision": "PREREG_reconcile_carry_forward_unexplained_2026-09-10 \u00a71d rev 4"
- },
- "schema": "q6_joint_checkpoint/1",
- "utc": "2026-09-18T10:52:30Z",
- "claim": "PREREG \u00a71d.5: a run resumed from a joint checkpoint must reproduce the uninterrupted state BIT-IDENTICALLY under the same policy",
- "window": {
-  "single_pass": [
-   "20260808",
-   "20260918"
-  ],
-  "half_1": [
+ "version": "v6",
+ "device_sha256": "0362223080b2ffbf49700e5213bfd460f509e6d14bf67310053820a5b7e18b61",
+ "utc": "2026-09-18T13:38:56Z",
+ "what_this_shows": "PREREG \u00a71d.5 restart parity, measured on the CURRENT device. The previous receipt was produced by the archived v4cp source (self-declared version=v4) and could not serve as evidence for v5/v6 \u2014 independent review round 14, R14-Q5.",
+ "window": [
+  "20260808",
+  "20260918"
+ ],
+ "split_at": {
+  "first_half": [
    "20260808",
    "20260902"
   ],
-  "half_2_resumed": [
+  "second_half": [
    "20260903",
    "20260918"
   ]
  },
  "state_sha256": {
-  "single_pass": "7220b235ce181d0ffb75ca76f483c75f76f3b874d533d5c01f3b250d14bb6466",
-  "resumed": "7220b235ce181d0ffb75ca76f483c75f76f3b874d533d5c01f3b250d14bb6466",
-  "half_1_handover": "87a9d7b3f98578a4d86a9d308344d0b970e9aa8e2e23e719a49246c7692e67a7"
+  "single_pass": "a858a66225ad7d7c26ae3c40c4845e930ca354493bdba3223c3c57f9fa84f048",
+  "resumed": "a858a66225ad7d7c26ae3c40c4845e930ca354493bdba3223c3c57f9fa84f048",
+  "identical": true
  },
- "identical": true,
- "n_symbols": {
-  "single_pass": 412,
-  "resumed": 412,
-  "half_1_handover": 405,
-  "only_in_single": [],
-  "only_in_resumed": []
+ "identity_sha256": {
+  "single_pass": "fc0281f0e5f24ca5a772462c846f2ad906ba930e2fe09d29d8ad65b754c6afcf",
+  "resumed": "73e0341440ea8de6ee1e66c8e24fcbba2f9c25ce7e43a0670f4b4f2d58cf55ea",
+  "identical": false,
+  "why_they_differ": "by construction: the identity sha pins the WINDOW and the LEDGER INPUTS a run actually read, and the resumed run read only the second half. The parity claim is about state_sha256 alone."
+ },
+ "state_sha256_covers": {
+  "per_symbol_fields": [
+   "hard",
+   "observations",
+   "admitted",
+   "excluded",
+   "unmeasurable_from_run",
+   "records",
+   "marks",
+   "q0_lots",
+   "step",
+   "pending_requests"
+  ],
+  "identity_fields": [
+   "device",
+   "device_sha256",
+   "epoch",
+   "ledger_files_sha256",
+   "lot_step_source",
+   "policy",
+   "schema",
+   "version",
+   "window"
+  ],
+  "state_sha256": "the per-symbol material state ONLY \u2014 the restart-parity claim is about this number",
+  "identity_sha256": "device sha, ledger input shas, window, epoch declaration, policy, lot-step source \u2014 NOT comparable across a split window",
+  "note": "a change to ANY per-symbol field changes state_sha256; nothing outside the listed fields is covered by either"
  },
  "per_symbol": {
+  "n_single_pass": 412,
+  "n_resumed": 412,
   "n_compared": 412,
   "n_identical": 412,
   "n_different": 0,
-  "different": []
+  "differences": []
  },
- "receipt_counts": {
+ "handover": {
+  "carried_requests": 10259,
+  "carried_admitted_equations": 29516,
+  "carried_excluded": 4,
+  "carried_pending_requests": 0,
+  "half_state_sha256": "9a0112ca50e224b5b8b24842fd1cce7ceda62f2ca743b5cbf8a34aba480b4223"
+ },
+ "counts": {
   "single_pass": {
-   "CLEAN": 53002,
+   "CLEAN": 53247,
    "FLAGGED": 4
   },
   "resumed": {
-   "CLEAN": 53002,
+   "CLEAN": 53247,
    "FLAGGED": 4
   },
-  "single_pass_flagged_rows": 4,
-  "resumed_flagged_rows": 4,
-  "single_pass_excluded": 4,
-  "resumed_excluded": 4
+  "identical": true
  },
- "carried_across_the_split": {
-  "pending_requests_in_handover": 0,
-  "requests_in_handover": 10259,
-  "admitted_equations_in_handover": 29516,
-  "excluded_equations_in_handover": 4
- },
- "boundary": "read-only offline replay of a mirrored ledger; nothing is wired into production. The state compared is the JOINT constraint set, the observation list, the admitted/excluded equations, the baseline and the carried pending requests \u2014 the objects \u00a71d.5 names. Receipt-level category counts are shown beside it as a second, weaker check."
+ "late_evidence_rebuilds_on_resume": {},
+ "boundaries": [
+  "The parity claim covers the per-symbol material state listed in state_sha256_covers and nothing else.",
+  "The online column is UNAVAILABLE for every symbol (order rows store no write time), so `records` are the offline scan's own decisions, not true online receipts.",
+  "The epoch is the declared OFFLINE SCAN BASELINE, not a user-signed accounting epoch; carried history is audit state, not settled debt.",
+  "A restart across a lot-step change is REFUSED (R14-Q3), so this parity is only claimed within one unit system."
+ ]
 }

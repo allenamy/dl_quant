@@ -54,7 +54,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "support"))
 import reconcile_carry_409ea16 as ORACLE                                   # pure functions; the frozen production module, never the live tree
 
-VERSION = "v6"; DEVICE = "q6_shadow.py"; FLAG_USDT = 1.0; PERSIST_N = 6; LOT_TOL = 1e-6
+VERSION = "v5"; DEVICE = "q6_shadow.py"; FLAG_USDT = 1.0; PERSIST_N = 6; LOT_TOL = 1e-6
 ORACLE_MAX_TRAJ = 200_000                                                  # cross-check budget for the enumeration oracle
 
 
@@ -116,27 +116,6 @@ def floor_ladder_add(r, value, ts, source=None):
     r["floor_ts"] = keep[-1][0] if keep else None                           # … and the time it took effect (checkpoint / late-fact compatibility)
 
 
-def fact_conflict(p, r):
-    """★ R14-Q1 (independent review round 14): the hard-fact compatibility test for two records of the SAME request identity (§1d.4), returning a
-    reason or None. It used to live INLINE in build_requests, so the checkpoint resume path merged without it: the reviewer's real-CLI pair (day 1
-    the same client_id is BUY 3, day 2 it is SELL 3) gave two UNMEASURABLE in one pass and two CLEAN when resumed, because the merge kept the old
-    side. A restart may never change the verdict on identical facts, so both entries now go through this one predicate."""
-    if (p.get("cap"), p.get("side")) != (r.get("cap"), r.get("side")):
-        return f"cap/side {p.get('cap')}/{p.get('side')} vs {r.get('cap')}/{r.get('side')}"
-    if p.get("exact") is not None and r.get("exact") is not None and p["exact"] != r["exact"]:
-        return f"exact total {p['exact']} vs {r['exact']}"
-    return None
-
-
-def hard_fact_times(r):
-    """every event time at which one of this record's HARD facts takes effect (§1d.3): floor-ladder steps, the exact total, the terminal, fills."""
-    ts = [st[0] for st in (r.get("floor_steps") or []) if st[0] is not None]
-    if r.get("exact") is not None and r.get("exact_ts") is not None: ts.append(r["exact_ts"])
-    if r.get("terminal") is not None: ts.append(r["terminal"])
-    ts += [f[0] for f in (r.get("fills") or [])]
-    return [t for t in ts if t is not None]
-
-
 def _merge_facts(p, r, notes):
     """merge a duplicate ledger record into the request already held: EVERY fact class separately, each keeping its earliest effective time
     (R12-Q1b). `terminal` is a hard constraint, so a later row that only flips it must not be discarded."""
@@ -188,14 +167,15 @@ def build_requests(od, step_of, notes):
                 floor_ladder_add(r, floor_l, _snap_ts, _snap_src)
                 if cid in REQ[s]:                                           # duplicate identity ⇒ ONE request; contradictory duplicates ⇒ unmeasurable
                     p = REQ[s][cid]
-                    # ★ R12-Q1b: numerically identical rows are NOT necessarily the same FACTS — a later row may add `terminal` (or a floor/exact
-                    #   whose event time is earlier). Merging only trade ids silently dropped the terminal constraint, so a post-terminal position
-                    #   growth stayed CLEAN. Every fact class is merged with its own effective time. R14-Q1: the compatibility test is `fact_conflict`,
-                    #   shared with the checkpoint resume path so the two entries cannot disagree.
-                    _why = fact_conflict(p, r)
-                    if _why:
-                        unmeas[s].append((birth, f"{cid}: duplicate identity with contradictory facts ({_why})")); notes["duplicate_identity_contradictory"] += 1
+                    if (p["cap"], p["side"], p["exact"]) != (r["cap"], r["side"], r["exact"]) or p["floor"] != r["floor"]:
+                        if (p["cap"], p["side"]) == (r["cap"], r["side"]) and (p["exact"] is None or r["exact"] is None or p["exact"] == r["exact"]):
+                            _merge_facts(p, r, notes)
+                        else:
+                            unmeas[s].append((birth, f"{cid}: duplicate identity with contradictory facts")); notes["duplicate_identity_contradictory"] += 1
                     else:
+                        # ★ R12-Q1b: numerically identical rows are NOT necessarily the same FACTS — a later row may add `terminal` (or a floor/exact
+                        #   whose event time is earlier). Merging only trade ids silently dropped the terminal constraint, so a post-terminal position
+                        #   growth stayed CLEAN. Every fact class is merged with its own effective time.
                         _merge_facts(p, r, notes)
                 else:
                     REQ[s][cid] = r
@@ -268,9 +248,7 @@ def contradiction_check(REQ, unmeas, notes):
 
 
 # ───────────────────────────── §1d.5 joint checkpoint / §1d.3 late-evidence rebuild ─────────────────────────────
-CHECKPOINT_SCHEMA = "q6_joint_checkpoint/2"                                 # /2: the state sha covers records+marks and the code/input/epoch identity (R14-Q5)
-EPOCH_DECLARATION = ("OFFLINE SCAN BASELINE: one epoch per symbol from its first post_anchor readback inside the copy window. This is NOT a "
-                     "user-signed accounting epoch; no authorised clearing row exists, so carried history is audit state, not settled debt.")
+CHECKPOINT_SCHEMA = "q6_joint_checkpoint/1"
 POLICY = {"name": "chronological_admission", "revision": "PREREG_reconcile_carry_forward_unexplained_2026-09-10 §1d rev 4"}
 
 
@@ -307,21 +285,10 @@ def req_from_cp(d):
 def merge_late_fact(r, fact, notes=None):
     """PREREG §1d.3: a hard fact arriving late is inserted at ITS OWN event time; it may only tighten. Returns True when anything changed."""
     ch = False
-    # ★ R14-Q5: the guard used to be `fact["floor"] > r["floor"]`, comparing against the SCALAR (largest) bound — so a late SMALLER bound at an
-    #   EARLIER time was dropped as "no change" even though it constrains a window the large one does not. The ladder already keeps every
-    #   (value, time) step and prunes only steps that tighten nothing, so the fact goes straight to it and change is detected on the ladder.
-    if fact.get("floor") is not None:
-        _before = [list(x) for x in (r.get("floor_steps") or [])]
-        floor_ladder_add(r, fact["floor"], fact.get("floor_ts"), fact.get("snapshot_time_source") or "late_evidence")
-        if [list(x) for x in (r.get("floor_steps") or [])] != _before: ch = True
-    if fact.get("exact") is not None:
-        # ★ R14-Q5: two credible exact totals for one request identity is a HARD contradiction (§1d.4) — the arrival order may not pick a winner.
-        if r["exact"] is not None and r["exact"] != fact["exact"]:
-            r["hard_contradiction"] = f"{r['rid']}: two credible exact totals {r['exact']} vs {fact['exact']}"
-            if notes is not None: notes["late_fact_contradictory_exact"] += 1
-            return True
-        if r["exact"] is None:
-            r["exact"] = fact["exact"]; r["exact_ts"] = fact.get("exact_ts"); ch = True
+    if fact.get("floor") is not None and (fact["floor"] > (r.get("floor") or 0)):
+        floor_ladder_add(r, fact["floor"], fact.get("floor_ts"), fact.get("snapshot_time_source") or "late_evidence"); ch = True
+    if fact.get("exact") is not None and r["exact"] is None:
+        r["exact"] = fact["exact"]; r["exact_ts"] = fact.get("exact_ts"); ch = True
     if fact.get("terminal") is not None and (r["terminal"] is None or fact["terminal"] < r["terminal"]):
         r["terminal"] = fact["terminal"]; ch = True
     for f in (fact.get("fills") or []):
@@ -358,12 +325,6 @@ def late_evidence_rebuild(cp_sym, late_facts, notes=None):
                                      "exact": f.get("exact"), "exact_ts": f.get("exact_ts"), "fills": f.get("fills") or [], "trade_ids": [],
                                      "source": "late_evidence", "evidence": "late:" + str(f.get("evidence") or "hard fact")})
             taus.append(fact_event_time(f)); notes["late_facts_new_request"] += 1
-    _contra = next((r.get("hard_contradiction") for r in reqs.values() if r.get("hard_contradiction")), None)
-    if _contra:                                                             # §1d.4: hard facts contradicting each other ⇒ the symbol is UNMEASURABLE
-        notes["late_fact_hard_contradiction"] += 1
-        return {"records": before, "admitted": [list(a) for a in cp_sym["admitted"]], "excluded": list(cp_sym["excluded"]), "tau": None,
-                "newly_excluded": [], "records_before": before, "requests": list(reqs.values()), "no_change": False,
-                "hard_contradiction": _contra, "status": "unmeasurable"}
     taus = [t for t in taus if t is not None]
     if not taus: return {"records": before, "admitted": [list(a) for a in cp_sym["admitted"]], "excluded": list(cp_sym["excluded"]),
                          "tau": None, "newly_excluded": [], "records_before": before, "requests": list(reqs.values()), "no_change": True}
@@ -416,11 +377,7 @@ class SymbolModel:
     def floor_at(self, i, k):
         """evidence floor of request i at observation k: the LADDER of cumulative snapshots read as of t_k (R13-Q1 — every (value, event time)
         step is kept, a later larger bound never erases an earlier one) plus attributed fills with event time ≤ t_k (online clock: also obs time)"""
-        return self.floor_at_time(i, self.times[k])
-
-    def floor_at_time(self, i, t):
-        """the same evidence floor read as of an arbitrary time — the pin variable needs it at the LATEST known time (R14-Q4)."""
-        r = self.reqs[i]
+        r = self.reqs[i]; t = self.times[k]
         base = 0
         if self.ev is None:
             for st in (r.get("floor_steps") or []):
@@ -461,10 +418,6 @@ class SymbolModel:
         for c, (i, k) in enumerate(layout):
             r = self.reqs[i]; bi, pi = self.meta[i]
             lo = self.floor_at(i, k); hi = np.inf if r["cap"] is None else r["cap"]
-            # ★ R14-Q4: after the terminal pin x_i is CONSTANT, so a cumulative lower bound whose event time falls after the pin still constrains
-            #   the pin variable. v5 read the ladder at times[k] ≤ times[pin] only, so a post-terminal NON-final bound (the final one was already
-            #   fixed in R13-Q2) had nothing to land on and vanished: BUY3 terminal with unknown total, credible bound 2 later, increment 1 ⇒ CLEAN.
-            if pi is not None and k == pi: lo = max(lo, self.floor_at_time(i, t_known))
             _ets = r.get("exact_ts"); _exact_known = r["exact"] is not None and (_ets is None or _ets <= t_known + 1e-9)
             # ★ R13-Q2: an exact total that arrives AFTER the terminal pin still binds — the pin variable IS x_i for every later time, so the fact
             #   has a variable to land on whenever it arrives. v4 evaluated it at times[k] ≤ times[pin], so a late total had no variable and vanished.
@@ -673,36 +626,17 @@ def main():
         kg = r.get("known_gaps") or {}; gaps_rec[B(r["anchor_ts"])] = {"n_named": kg.get("n_named"), "gross_usdt": kg.get("gross_usdt"), "names": [x.get("symbol") for x in (kg.get("names") or [])]}
     symbols = sorted(set(OBS) | set(REQ) | set(UN))                                  # extended with the checkpoint's symbols in the resume block below
     # ── §1d.5 resume: merge the checkpoint's carried state with this window's facts BEFORE any model is built ──
-    CP_IN = os.environ.get("Q6_CHECKPOINT_IN"); cp_state = {}; late_rebuilds = {}; _late_tau = {}
+    CP_IN = os.environ.get("Q6_CHECKPOINT_IN"); cp_state = {}
     if CP_IN:
         cpj = json.load(open(CP_IN))
         assert cpj["schema"] == CHECKPOINT_SCHEMA, f"checkpoint schema {cpj['schema']!r} != {CHECKPOINT_SCHEMA!r}"
         assert cpj["policy"] == POLICY, "checkpoint policy identity differs: a checkpoint may only be replayed under the policy that wrote it"
-        # ★ R14-Q3: the checkpoint stores the lot STEP it was written in but never compared it. Restoring a step-1 checkpoint under step 0.1
-        #   reinterpreted every carried lot value and reported a 9-lot distance while the position had not moved. Units are part of the state:
-        #   a mismatch is refused, never silently mixed. (A deliberate migration must be a separate, recorded conversion.)
-        _step_mismatch = {s: (cp.get("step"), step_of(s)) for s, cp in cpj["symbols"].items()
-                          if cp.get("step") is not None and abs(float(cp["step"]) - float(step_of(s))) > 1e-12}
-        assert not _step_mismatch, ("checkpoint lot-step mismatch — the carried lot values are in different units than this run's filters; "
-                                    "refusing rather than mixing them (R14-Q3): " + json.dumps(_step_mismatch))
-        _late_tau = {}
         for s, cp in cpj["symbols"].items():
             cp_state[s] = cp
             carried = {r["rid"]: req_from_cp(r) for r in cp["hard"]["requests"]}
             fresh = REQ.get(s, {})
-            _t_last = (cp["observations"][-1]["t"] if cp.get("observations") else None)
             for rid, r in fresh.items():                                    # a rid in both halves ⇒ ONE request (identity, §1c)
-                if rid in carried:
-                    _why = fact_conflict(carried[rid], r)                   # ★ R14-Q1: the SAME predicate the fresh build uses
-                    if _why:
-                        unmeas.setdefault(s, []) if not isinstance(unmeas.get(s), list) else None
-                        unmeas[s] = list(unmeas.get(s) or []) + [(r["birth"], f"{rid}: checkpoint and window carry contradictory facts ({_why})")]
-                        notes["resume_identity_contradictory"] += 1
-                        continue
-                    _ft = hard_fact_times(r)                                # ★ R14-Q2: a hard fact whose event time precedes the carried prefix is LATE
-                    _merge_facts(carried[rid], r, notes)
-                    if _ft and _t_last is not None and min(_ft) <= _t_last + 1e-9:
-                        _late_tau[s] = min(_late_tau.get(s, min(_ft)), min(_ft)); notes["resume_late_hard_fact"] += 1
+                if rid in carried: _merge_facts(carried[rid], r, notes)
                 else: carried[rid] = r
             REQ[s] = carried
             seen = {str(f[3]) for r in carried.values() for f in r["fills"]} | {str(f[3]) for f in cp["hard"]["unattributed_fills"]}
@@ -726,21 +660,7 @@ def main():
             notes["symbols_without_two_observations"] += 1; continue
         resume = None
         if cp and cp["records"]:
-            _recs = cp["records"]
-            # ★ R14-Q2 (independent review round 14): a hard fact arriving with NO new readback must still rebuild the carried audit prefix from its
-            #   own event time (§1d.3). v5 only rebuilt when a NEW observation turned out infeasible, so a resumed run kept an admitted reading of 80
-            #   at distance 0 while its own hard facts already said the total was 50 (one pass gives 30). The prefix that pre-dates the late fact is
-            #   replayed verbatim; everything from τ on is re-decided against the facts known now. The carried receipts are preserved below.
-            _tau = _late_tau.get(s) if CP_IN else None
-            if _tau is not None:
-                _recs = [r for r in cp["records"] if r["k"] == 0 or r["t"] < _tau - 1e-9]
-                notes["resume_prefix_rebuilt_by_late_evidence"] += 1
-                late_rebuilds[s] = {"tau": _tau, "kept_prefix": len(_recs), "records_before": cp["records"],
-                                    "admitted_before": [list(a) for a in cp["admitted"]]}
-            #   the admitted list stays the CHECKPOINT's own when nothing was rebuilt (it is the carried joint object, not a re-derivation);
-            #   only a τ-truncation re-derives it from the surviving prefix.
-            _adm = cp["admitted"] if _tau is None else [[r["k"], r["rhs_lots"]] for r in _recs if r.get("admitted") and r["k"] > 0]
-            resume = {"records": _recs, "admitted": _adm, "unmeasurable_from_run": cp.get("unmeasurable_from_run")}
+            resume = {"records": cp["records"], "admitted": cp["admitted"], "unmeasurable_from_run": cp.get("unmeasurable_from_run")}
         jobs.append((s, list(REQ.get(s, {}).values()), UN.get(s, []), OBS[s], step_of(s), None, unmeas.get(s), resume))
     procs = int(os.environ.get("Q6_PROCS") or max(1, min(10, (os.cpu_count() or 2) - 2)))
     if procs > 1 and len(jobs) > 8:
@@ -841,33 +761,8 @@ def main():
                "resumed_from": os.environ.get("Q6_CHECKPOINT_IN"), "n_symbols": len(cps), "symbols": cps}
         os.makedirs(os.path.dirname(os.path.abspath(CP_OUT)), exist_ok=True)
         json.dump(cpj, open(CP_OUT, "w"), indent=1, default=str)
-        # ★ R14-Q5 (independent review round 14): the sha covered only hard/observations/admitted/excluded/q0_lots/step/pending_requests, so
-        #   changing `records` (the original receipts) or `marks` (the price evidence the USD verdict rests on) left it unchanged — it proved the
-        #   SELECTED object equal, not the state. It now covers every material per-symbol field AND the identity of what produced them: the device
-        #   sha, the ledger input shas, the epoch/start declaration and the policy revision. The receipt says exactly which fields are covered.
-        _SYM_FIELDS = ("hard", "observations", "admitted", "excluded", "unmeasurable_from_run", "records", "marks", "q0_lots", "step", "pending_requests")
-        _identity = {"schema": CHECKPOINT_SCHEMA, "policy": POLICY, "device": DEVICE, "version": VERSION,
-                     "device_sha256": sha(os.path.abspath(__file__)), "ledger_files_sha256": files, "window": [days[0], days[-1]] if days else None,
-                     "epoch": EPOCH_DECLARATION, "lot_step_source": step_source}
-        #   TWO shas, because they answer two questions and only one of them can be compared across a split window: `state_sha256` is the
-        #   MATERIAL STATE (this is the object the §1d.5 restart-parity claim is about — a resumed run must reproduce it bit for bit), while
-        #   `identity_sha256` pins WHAT PRODUCED IT (device, ledger inputs, window, epoch, policy) and by construction differs between a single
-        #   pass over D1..D2 and a resume that only read D2. Reporting one number for both would either break parity or hide provenance.
-        _state = {k: {kk: v.get(kk) for kk in _SYM_FIELDS} for k, v in cps.items()}
-        cpj["state_sha256"] = hashlib.sha256(canon(_state)).hexdigest()
-        cpj["identity_sha256"] = hashlib.sha256(canon(_identity)).hexdigest()
-        cpj["identity"] = _identity
-        cpj["state_sha256_covers"] = {"per_symbol_fields": list(_SYM_FIELDS), "identity_fields": sorted(_identity),
-                                      "state_sha256": "the per-symbol material state ONLY — the restart-parity claim is about this number",
-                                      "identity_sha256": "device sha, ledger input shas, window, epoch declaration, policy, lot-step source — NOT comparable across a split window",
-                                      "note": "a change to ANY per-symbol field changes state_sha256; nothing outside the listed fields is covered by either"}
-        json.dump(cpj, open(CP_OUT, "w"), indent=1, default=str)            # rewritten with the identity block and the sha it covers
-        out["checkpoint"] = {"path": CP_OUT, "n_symbols": len(cps), "state_sha256": cpj["state_sha256"], "identity_sha256": cpj["identity_sha256"],
-                             "state_sha256_covers": cpj["state_sha256_covers"], "identity": _identity,
-                             "late_evidence_rebuilds": {k: {kk: vv for kk, vv in v.items() if kk != "records_before"} for k, v in late_rebuilds.items()},
-                             "records_before_rebuild": {k: v["records_before"] for k, v in late_rebuilds.items()}}
-        print("checkpoint ->", CP_OUT, len(cps), "symbols | state sha", out["checkpoint"]["state_sha256"][:16],
-              "| late-evidence rebuilds", len(late_rebuilds))
+        out["checkpoint"] = {"path": CP_OUT, "n_symbols": len(cps), "state_sha256": hashlib.sha256(canon({k: {kk: v[kk] for kk in ("hard", "observations", "admitted", "excluded", "q0_lots", "step", "pending_requests")} for k, v in cps.items()})).hexdigest()}
+        print("checkpoint ->", CP_OUT, len(cps), "symbols | state sha", out["checkpoint"]["state_sha256"][:16])
     json.dump(out, open(OUT, "w"), indent=1, default=str)
     print("window", out["window"], "anchors", len(anchors), "symbols", len(results), "| counts", dict(cat_total), "| flagged rows", out["n_flagged_rows"], "| persistent ≥6:", dict(persist),
           "| excluded obs", len(exclusions), "history-unresolved symbols", history_unresolved, "| oracle", {k: (v if not isinstance(v, list) else len(v)) for k, v in oracle_cmp.items()}, "| %.0fs" % out["runtime_s"])
