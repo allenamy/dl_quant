@@ -9,7 +9,7 @@
   "v4_gate_common.require refuses a pinned gate source that is not in the approved list of a gate registered here (a locally edited gate that re-runs and writes a fresh receipt matches its own runtime sha but is NOT the reviewed program).",
   "An empty approved_source_sha256 list means no program is approved for that gate: no receipt can satisfy it and no arm can be a candidate through it. BUNDLE_export (PROPOSED2) is filled with v4e_gate_export_v2.py: its gates.BUNDLE_export.approved_baseline block FREEZES the approved baseline identity (device / cost json / mask / live_pins / bundle_base / A0 books by sha, every device knob by value) and every threshold; the gate refuses env overrides of them, registers the shipped bundle's full closure + cost/mask/king/FEMAT files + the bound signal receipt as inputs, and re-derives the book content identities from the shipped arrays.",
   "Gates not listed here and not registered in REQUIRED_INPUTS are ungoverned: they carry no input floor and no approved-source list, and they cannot confer candidacy because arms map only to gates listed here.",
-  "MEMBER_LIVENESS (APPLIED 2026-09-18 by the user's word 「按最佳建议来」; gates.MEMBER_LIVENESS, source v4_gate_member_liveness.py, REQUIRED_INPUTS floor registered): a symbol is a member of anchor E only if at least one REAL 5-minute bar (not a hole-filled cell, log_qv FINITE — not NaN and not ±inf) exists in (E−24h, E]; the rule binds the training/evaluation member set and the export bundle's live list alike. Measured on the frozen v4 axis: dead-but-member cells 2022 0.31% / 2023–25 0 / 2026 0.82% (4,759 cells, 62-anchor runs after delistings). Device: docs/fixprogram_2026-09-13/FX_DATA/devices/fx_member_liveness.py sha256 57502e8bfe1ea8f92523d4f4d057c219f31a0bb86283cb3557f1c2ccc87ca243; receipt FX_DATA/receipts/MEMBER_LIVENESS_2026-09-18.json. Boundary (independent review r7): a real bar with zero trades passes; this is a data-liveness rule, not venue eligibility truth. ENFORCEMENT (2026-09-18): the census device fx_member_liveness.py is NOT the gate (it used isnan, `continue`d on a missing anchor and wrote statistics with rc 0); the gate is v4_gate_member_liveness.py sha256 6c6b9791f0f1c458dc02ca509a6f086f09028bd14cd1ac91eaad4eed1ed87a7b, the build side is v4_member_mask_liveness.py sha256 0704cde5132ade237d140dc69368a57f590449960672016644a48ae088602a31."
+  "MEMBER_LIVENESS (PROPOSED6, FP3 F, 2026-09-18; NOT APPLIED — awaiting independent review + user word): a symbol is a member of anchor E only if at least one REAL 5-minute bar (not a hole-filled cell, log_qv finite) exists in (E−24h, E]; the rule binds the training/evaluation member set and the export bundle's live list alike. Measured on the frozen v4 axis: dead-but-member cells 2022 0.31% / 2023–25 0 / 2026 0.82% (4,759 cells, 62-anchor runs after delistings). Device: docs/fixprogram_2026-09-13/FX_DATA/devices/fx_member_liveness.py sha256 57502e8bfe1ea8f92523d4f4d057c219f31a0bb86283cb3557f1c2ccc87ca243; receipt FX_DATA/receipts/MEMBER_LIVENESS_2026-09-18.json. Boundary (independent review r7): a real bar with zero trades passes; this is a data-liveness rule, not venue eligibility truth."
  ],
  "gates": {
   "G2_closure": {
@@ -22,8 +22,7 @@
    "source": "v4_gate_step1.py",
    "approved_source_sha256": [
     "278fdce611e91571d24ec26c78ddc4620668bfd4598a01f577f1f6887dd62be4",
-    "3ad3a6c604dd5310ab59b9ea361e52c4700e261b84e7d7c116d108e6d26dfa69",
-    "79950786271e690a24c72bc189b20e65eab6271164c1e582dff72b799db00163"
+    "3ad3a6c604dd5310ab59b9ea361e52c4700e261b84e7d7c116d108e6d26dfa69"
    ],
    "approved_variants": {
     "fp2_gate_step1.py": {
@@ -47,19 +46,6 @@
      "requires_superseded": [
       "c7e6b76a2f883a7e88d3382e292fd876e53c69c9754e2fb5e99210602006fc9d"
      ]
-    },
-    "v4_gate_step1_m.py": {
-     "sha256": "79950786271e690a24c72bc189b20e65eab6271164c1e582dff72b799db00163",
-     "scope": {
-      "V4_MONTH": ">=2026-10",
-      "note": "month-generic (env-located reference = the previous month's build, PREV_* keys); the September frozen gates stay approved for September roots"
-     },
-     "approved_utc": "2026-09-18T08:5xZ",
-     "approval_object": "RUNBOOK_monthly_retrain_2026-10.md §0★ 修订 6 declaration block (APPROVAL_OBJECT line), verified by v4_doc_approval_gate.py",
-     "user_word": "2026-09-18 「按最佳建议来」 (the lead's recommendation: approve; the four-cell document check had already passed)",
-     "review": "independent researcher review requested (post-hoc, same protocol as PROPOSED3/4/5); round 11 accepted the objects as declared and NOT approved at that time",
-     "superseded_variant_sha256": [],
-     "superseded_note": "unchanged since 修订 4"
     }
    }
   },
@@ -67,8 +53,7 @@
    "source": "v4_gate_step2.py",
    "approved_source_sha256": [
     "db7ab3561f97423a8d5dd74251257adcedd743129d22a07d7cd186d102dd80d8",
-    "bd8e04c7b5a1e7b97fc24032f2243081aa33d8f533b76a0f7be0507b56e8640f",
-    "d99a910951e070f70ae3eede1533013e009a62fa617eda55dff546290864329d"
+    "bd8e04c7b5a1e7b97fc24032f2243081aa33d8f533b76a0f7be0507b56e8640f"
    ],
    "approved_variants": {
     "fp2_gate_step2.py": {
@@ -92,23 +77,6 @@
      "requires_superseded": [
       "c7e6b76a2f883a7e88d3382e292fd876e53c69c9754e2fb5e99210602006fc9d"
      ]
-    },
-    "v4_gate_step2_m.py": {
-     "sha256": "d99a910951e070f70ae3eede1533013e009a62fa617eda55dff546290864329d",
-     "scope": {
-      "V4_MONTH": ">=2026-10",
-      "note": "month-generic (env-located reference = the previous month's build, PREV_* keys); the September frozen gates stay approved for September roots"
-     },
-     "approved_utc": "2026-09-18T08:5xZ",
-     "approval_object": "RUNBOOK_monthly_retrain_2026-10.md §0★ 修订 6 declaration block (APPROVAL_OBJECT line), verified by v4_doc_approval_gate.py",
-     "user_word": "2026-09-18 「按最佳建议来」 (the lead's recommendation: approve; the four-cell document check had already passed)",
-     "review": "independent researcher review requested (post-hoc, same protocol as PROPOSED3/4/5); round 11 accepted the objects as declared and NOT approved at that time",
-     "superseded_variant_sha256": [
-      "455e3df4c1950000000000000000000000000000000000000000000000000000",
-      "0fe5ec5573f346969d9d3448c3e424f2ebc8b7c192cefe4313a05cdf84c09007",
-      "b2f9cfd40b9e356536184a63e202aa9d2a48228be5145bcd81665fb5f7df24e9"
-     ],
-     "superseded_note": "the first token is the修订 4 red control 455e3df4c195… quoted with no archived file in the device directory — recorded as an UNVERIFIABLE token, padded here only to keep the field shape; the two full shas are the archived red controls v4_gate_step2_m.r1_0fe5ec55.py / .r2_b2f9cfd4.py"
     }
    }
   },
@@ -266,31 +234,6 @@
      "limitation": "seat-level agreement of the replay dynamic seat with live (2026 mean 0.36–0.37 vs live 0.36–0.38) is NOT per-anchor production parity; the fix-seat control's former role (E-0902-D) is redefined, not certified away"
     }
    }
-  },
-  "MEMBER_LIVENESS": {
-   "source": "v4_gate_member_liveness.py",
-   "approved_source_sha256": [
-    "6c6b9791f0f1c458dc02ca509a6f086f09028bd14cd1ac91eaad4eed1ed87a7b"
-   ],
-   "rule": "a symbol is a member of anchor E only if at least one REAL 5-minute bar exists in the 288 cache rows ending at E's row (rows (E−24h, E]); real = NOT a hole-filled cell AND log_qv FINITE (not NaN and not ±inf). The gate RE-DERIVES liveness from CACHE + HOLE_CELLS and checks the member sets the builders PRODUCED (king meta + DL targets) plus, at the export stage, the shipped bundle's symbols_live. PASS iff dead-but-member cells == 0 everywhere and no refusal.",
-   "boundary": "data liveness, not venue eligibility truth (a real bar with zero trades passes; a name halted less than 24 h ago still passes). It does not replace a venue tradability rule.",
-   "refusals_are_not_skips": "an unreadable member set, an anchor absent from the cache ts axis, a member index outside [0, N), a symbols axis that is not the cache's, channel 3 not named log_qv, hole cells off the cache, a ts axis not strictly increasing ⇒ PASS=false with the reason named",
-   "build_side": {
-    "source": "v4_member_mask_liveness.py",
-    "sha256": "0704cde5132ade237d140dc69368a57f590449960672016644a48ae088602a31",
-    "role": "produces the member mask (optionally ANDed with a tradable mask) the builders consume as MEMBER_MASK_NPZ; the gate does NOT trust it"
-   },
-   "wired": "chain_v4_monthly.sh gates stage (run + require, prerequisite of king/legs/mwf/refit/arms/member_rule/decision) and export stage (bundle live list); preflight checks its approval (approvals x/4)",
-   "tests": "tests_member_liveness.py — the seven reviewer probes (all_nan, one_zero, one_inf, E−23h55, E−24h, unsorted future row, missing anchor) plus the three-end identity, the require/approval flow and the mask builder's controls",
-   "evidence_when_approved": "FX_DATA/receipts/MEMBER_LIVENESS_2026-09-18.json (census, device fx_member_liveness.py 57502e8b…): dead-but-member cells 2022 0.314% / 2023–25 0 / 2026 0.816% (4,759 cells, 135 names, 62-anchor runs after delistings). That census device is NOT this gate (it used isnan, continued on a missing anchor and returned rc 0 with empty statistics — independent review round 11 C3); it stays as the measurement that motivated the rule.",
-   "applied_utc": "2026-09-18T08:5xZ",
-   "user_word": "2026-09-18 「按最佳建议来」 (the lead's recommendation: approve — dead names carry only NaN and hole-fill values, so they pollute the rank base and flatter the A0 reference; effect < 1% of member cells)",
-   "review": "independent researcher review requested (post-hoc); round 11 accepted NOT APPLIED and named the finite-rule / census-not-gate defects, which this source fixes",
-   "predecessor": "proposed_gates.MEMBER_LIVENESS (PROPOSED6, source fx_member_liveness.py 57502e8b…), kept below as proposed_gates_history",
-   "superseded_source_sha256": [
-    "65fbd039e0ef7874422c23e1252081e18660b590975d243af04aa6e9b3795a66"
-   ],
-   "superseded_note": "65fbd039… was the first write of this source on 2026-09-18; it called numpy's private np.lib.format._read_array_header, which does not exist in numpy ≥ 2 ⇒ every real cache read raised and the gate refused. Caught by the green baseline of tests_member_liveness.py before any use; no receipt was ever written by it."
   }
  },
  "arms": {
@@ -335,7 +278,7 @@
   "file": "<JUDGE_HC>/dev_v4/probe_artifacts/w10_ablation_series_V4_<arm>_<seat>_s<seed>.npz",
   "rule": "the judge adds these four paths to the arm's declared inputs; require then demands the receipt hashed each of them and that the hash equals the file the judge loaded (a book replaced after the receipt, or a receipt written for another arm's books, is not this arm's permission)"
  },
- "status": "APPLIED 2026-09-12 (user word 09-12: \"10 月 runbook 为什么还不修, 要保持老的链路和出口门?\"); was PROPOSED2 01692565…; frozen predecessor 3299dc97… kept at ELIGIBILITY_CONTRACT.r0_3299dc97.json | PROPOSED3 (FP2-8, 2026-09-17): gates.STEP1/STEP2 approved_source_sha256 += fp2_gate_step1.py / fp2_gate_step2.py (approved_variants records scope); applied by lead under the user's standing rule (fix known issues without waiting, independent review after); frozen predecessor kept at ELIGIBILITY_CONTRACT.r1_1188267a.json | PROPOSED3 rev (AMENDMENT 8, 2026-09-17 09:3xZ): variant shas replaced by the on-disk revisions; fp2_gate_lib.py sha recorded under approved_variants.requires | PROPOSED4 (FP2-8 regime pins, 2026-09-17): approved_baseline.umask_npz_sha256 → 3badc4b6…, baseline_books_sha256 → A0 re-run under the tradable umask; thresholds untouched | PROPOSED5 (fp2dyn export-gate variant, 2026-09-17): BUNDLE_export.approved_source_sha256 += 9a61420cdeb1 (approved_variants, scope 2026-09 @ /workspace/fp2_2026-09) | PROPOSED6 (FP3 F member liveness rule, 2026-09-18): rules += MEMBER_LIVENESS; proposed_gates.MEMBER_LIVENESS registered; NOT APPLIED — independent review + user word required (changes the reviewed research definition); frozen predecessor kept at ELIGIBILITY_CONTRACT.r2_753f9752.json | APPLIED 2026-09-18 (user word 「按最佳建议来」, five approvals in one edit): (1) gates.STEP1/STEP2 approved_source_sha256 += the month-generic data gates v4_gate_step1_m.py 79950786271e… / v4_gate_step2_m.py d99a910951e0… (RUNBOOK §0★ 修订 6 declaration block); (2) month_contract_rulings.TRN-15 export baseline becomes a per-month approval object (mechanism approved, October shas pending the month contract); (3) month_contract_rulings.TRN-16 October keeps the global fea89 builder with its two consequences (append-only roll; the 2026-08-31 holefix2 cells are not replaced); (4) month_contract_rulings.PREV_KING_FEA_UNCLAMPED_NONE approved, the gate enforces the builder identity; (5) PROPOSED6 → gates.MEMBER_LIVENESS APPLIED with an ENFORCING source (v4_gate_member_liveness.py 6c6b9791f0f1…, build side v4_member_mask_liveness.py b78386e507ef…), wired into the gates and export stages, floor registered in REQUIRED_INPUTS; frozen predecessor kept at ELIGIBILITY_CONTRACT.r3_c47dd088.json",
+ "status": "APPLIED 2026-09-12 (user word 09-12: \"10 月 runbook 为什么还不修, 要保持老的链路和出口门?\"); was PROPOSED2 01692565…; frozen predecessor 3299dc97… kept at ELIGIBILITY_CONTRACT.r0_3299dc97.json | PROPOSED3 (FP2-8, 2026-09-17): gates.STEP1/STEP2 approved_source_sha256 += fp2_gate_step1.py / fp2_gate_step2.py (approved_variants records scope); applied by lead under the user's standing rule (fix known issues without waiting, independent review after); frozen predecessor kept at ELIGIBILITY_CONTRACT.r1_1188267a.json | PROPOSED3 rev (AMENDMENT 8, 2026-09-17 09:3xZ): variant shas replaced by the on-disk revisions; fp2_gate_lib.py sha recorded under approved_variants.requires | PROPOSED4 (FP2-8 regime pins, 2026-09-17): approved_baseline.umask_npz_sha256 → 3badc4b6…, baseline_books_sha256 → A0 re-run under the tradable umask; thresholds untouched | PROPOSED5 (fp2dyn export-gate variant, 2026-09-17): BUNDLE_export.approved_source_sha256 += 9a61420cdeb1 (approved_variants, scope 2026-09 @ /workspace/fp2_2026-09) | PROPOSED6 (FP3 F member liveness rule, 2026-09-18): rules += MEMBER_LIVENESS; proposed_gates.MEMBER_LIVENESS registered; NOT APPLIED — independent review + user word required (changes the reviewed research definition); frozen predecessor kept at ELIGIBILITY_CONTRACT.r2_753f9752.json",
  "proposed_changes_vs_frozen": [
   "top-level status (new) — PROPOSED marker",
   "review_status appended",
@@ -349,40 +292,13 @@
   "PROPOSED4: gates.BUNDLE_export.approved_baseline.umask_npz_sha256 47d87b51… → 3badc4b6… (tradable W24H); baseline_books_sha256 → A0 re-run books (dyn_s42 b0b9dff9…, dyn_s2027 aed3c8f9…, fix_s42 27b4ff47…, fix_s2027 661cc25b…); r1 values kept under approved_baseline.PROPOSED4.superseded_r1_values; thresholds untouched",
   "PROPOSED5: gates.BUNDLE_export.approved_source_sha256 += 9a61420cdeb1 (v4e_gate_export_fp2dyn.py; E8/E9 fold only the in-service seat); approved_variants entry with scope; thresholds untouched",
   "PROPOSED5 rev2: fp2dyn variant sha 9a61420cdeb1 → e55875d08db1 (only K6 and the E9 band informational for non-checked seats; identities and baseline identity fold); the policy is an acceptance-domain change, approved post-hoc for 2026-09 @ /workspace/fp2_2026-09 only",
-  "PROPOSED5 rev3: fp2dyn variant sha e55875d08db1 → 16e9cc32369d (K6 split: only the ceiling informational; positivity hard); gate names are basenames only (path aliases refused by loader, driver and decision)",
-  "APPLIED 2026-09-18 (1): gates.STEP1.approved_source_sha256 += 79950786271e…; gates.STEP2.approved_source_sha256 += d99a910951e0…; approved_variants entries with scope >=2026-10",
-  "APPLIED 2026-09-18 (2)(3)(4): new top-level month_contract_rulings {TRN-15 export baseline per month, TRN-16 global fea89 builder + two consequences, PREV_KING_FEA_UNCLAMPED=NONE}",
-  "APPLIED 2026-09-18 (5): gates.MEMBER_LIVENESS (source v4_gate_member_liveness.py 65fbd039e0ef…) + rules[] rewritten from PROPOSED6 to APPLIED; proposed_gates → proposed_gates_history; companion v4_gate_common.REQUIRED_INPUTS['MEMBER_LIVENESS'] = 4 names"
+  "PROPOSED5 rev3: fp2dyn variant sha e55875d08db1 → 16e9cc32369d (K6 split: only the ceiling informational; positivity hard); gate names are basenames only (path aliases refused by loader, driver and decision)"
  ],
  "proposed_utc": "2026-09-12T05:21:47Z",
  "applied_utc": "2026-09-12T09:04:39Z",
  "applied_note": "2026-09-12: gates.BUNDLE_export filled (v4e_gate_export_v2.py d63f4ec3…) and the v2 gate + companion copied beside this chain. The companion v4_gate_common floor extension (11→27 static names, infra2/v4chain_PROPOSED2/v4_gate_common.PROPOSED.diff) is NOT applied: judge_v4 keeps the reviewed 11-name floor; the full 28-input floor is enforced by `v4e_gate_export_v2.py require`, which RUNBOOK_2026-10 §0★ step 7 makes mandatory before any swap. Extending the judge floor requires the chain self-test fixtures (bound_entry/test_contract) to register the extended inputs — pending.",
- "month_contract_rulings": {
-  "approved_utc": "2026-09-18T08:5xZ",
-  "user_word": "2026-09-18 「按最佳建议来」",
-  "TRN-15_export_baseline_per_month": {
-   "ruling": "the export gate's approved_baseline (live_pins_sha256 / bundle_base_sha256 and the four baseline books) becomes a PER-MONTH approval object: every month the new pins and baseline json are立档 and their shas are approved into this contract before the export stage runs. The gate is NOT relaxed: it still demands a byte-identical match against an EXPLICITLY approved sha, never 'whatever is on disk'.",
-   "why": "E2b requires LIVE_PINS / BUNDLE_BASE to equal the contract's approved_baseline byte for byte, while RUNBOOK §0★ step 0 requires the pins to be re-copied and the baseline json re-established every month ⇒ October would fail E2b by construction. The September pins cannot be reused (universe Phase A M1 went live 2026-09-04).",
-   "mechanism_approved": true,
-   "october_shas": "NOT YET — the October pins/baseline do not exist; their shas are approved when the month contract is立档 (a separate, recorded approval under this key)",
-   "not_changed": "thresholds, identities, the 28-input floor, the gate source"
-  },
-  "TRN-16_fea89_trend_builder": {
-   "ruling": "October keeps the GLOBAL cumulative-sum builder pod_f8_build_ext.py (pod2 sha f606bffa620004f69ace3704ca19d8f3643b764e918f5eea5a4575b40587f07e). The stable local-trend builder pod_f8_build_stable.py (git 59a8127e…) is NOT used in October: it does not exist on pod2 and would need to be shipped and re-verified first; 2026-09-09 G3 closed it as a caliber correction with no book-level difference (A1s−A0 / A1s−A1 four cells (C) undetected).",
-   "two_consequences_accepted": [
-    "the monthly roll may only APPEND — a rebuild of an earlier month's cells would move the global cumulative sums",
-    "the 229,824 cells synthesised by holefix2 on 2026-08-31 must NOT be replaced by the now-available vendor archive — either replacement turns STEP1_m red outside the hole neighbourhood, for a reason unrelated to October data quality"
-   ],
-   "revisit": "the stable builder is a November candidate once it is on pod2 and re-verified (PREREG_fea89_stable_trend_and_closure)"
-  },
-  "PREV_KING_FEA_UNCLAMPED_NONE": {
-   "ruling": "approved: literal NONE for October ⇒ the STEP2 clamp statistics v4_vs_ext / clamp_vs_ext are NOT evaluated (receipt: clamp_checks=NOT_EVALUATED), because no unclamped build exists on a shared reference axis.",
-   "condition_enforced_by_the_gate": "AMENDMENT 1 / B-R4: the gate refuses NONE unless this month's v4_gates/deps_preflight_device.json pins pod_fea_ext_clamp.py at PREV_CLAMP_BUILDER_SHA256 = b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac AND the file beside the gate carries it (three-way equality, else REFUSED clamp_builder_identity)",
-   "boundary": "this is an unevaluated check, not a passed one; the receipt must say NOT_EVALUATED and the runbook must keep it visible"
-  }
- },
- "proposed_gates_history": {
-  "MEMBER_LIVENESS_PROPOSED6": {
+ "proposed_gates": {
+  "MEMBER_LIVENESS": {
    "source": "fx_member_liveness.py",
    "source_sha256": "57502e8bfe1ea8f92523d4f4d057c219f31a0bb86283cb3557f1c2ccc87ca243",
    "status": "PROPOSED6 — not in gates until reviewed and approved",

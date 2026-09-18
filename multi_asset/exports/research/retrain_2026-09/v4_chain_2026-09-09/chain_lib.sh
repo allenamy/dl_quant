@@ -27,7 +27,7 @@ V4_MONTH_KEYS="V4_MONTH R PY CACHE PANEL_SPLICE PANEL_KING RAW_PATCH HOLE_CELLS 
 #   them for every month after 2026-09 and re-runs the roll gate live against them (see chain_v4_monthly.sh preflight).
 # ★ FP2-8 (2026-09-17, DESIGN_FP2-8 AMENDMENT 1.3): BUILDER_TARGETS / BUILDER_KING_FEA select the data-stage builders BY BASENAME in D (default = the
 #   frozen v1 names); MEMBER_MASK is an optional training member mask (ts, symbols, mask) passed to both builders as MEMBER_MASK_NPZ (empty ⇒ v1 behaviour).
-V4_MONTH_OPTIONAL_KEYS="PREV_MONTH_ENV PREV_SHA_JSON BUILDER_TARGETS BUILDER_KING_FEA MEMBER_MASK GATE_EXPORT"   # GATE_EXPORT (PROPOSED5): export-gate variant basename in D, default v4e_gate_export_v2.py
+V4_MONTH_OPTIONAL_KEYS="PREV_MONTH_ENV PREV_SHA_JSON BUILDER_TARGETS BUILDER_KING_FEA MEMBER_MASK GATE_EXPORT GATE_LIVENESS UMASK_NPZ CONTROLS_REF_KING_FEA CONTROLS_REF_KING_META CONTROLS_REF_DL_TARGETS"   # FP3 F/J (2026-09-18): liveness-gate variant basename; evaluation umask (sha bound to the contract in preflight); reference builds for the controls stage   # GATE_EXPORT (PROPOSED5): export-gate variant basename in D, default v4e_gate_export_v2.py
 load_month_env(){  # load_month_env <v4_month.env> — PARSES the contract as DATA (round 4: the file is never sourced) and exports exactly the parsed pairs; rc 4 on any defect
   # ★ P2-2 (independent review round 4, 2026-09-17): an OPTIONAL key absent from the month file must be ABSENT after loading — never inherited from the
   #   parent environment (a leftover GATE_EXPORT / MEMBER_MASK in the caller's shell selected a gate / a mask the contract did not name).
@@ -161,7 +161,7 @@ PYEOF
     k=${line%%=*}; v=${line#*=}
     case $k in ""|*[!ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_]*) echo "month env $f: parser output line is not KEY=VALUE: ${line:0:80}" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
     case " $V4_MONTH_KEYS $V4_MONTH_OPTIONAL_KEYS " in *" $k "*) ;; *) echo "month env $f: parser emitted an unregistered key $k" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
-    case $k in GATE_EXPORT) case ${line#*=} in */*|.*|"") echo "month env $f: GATE_EXPORT must be a bare basename in D (got '${line#*=}'): a path alias skipped the variant scope binding (review round 5); BUILDER_* keys are checked by the driver, STEP gates check their own basename" >&2; die "month_env_not_a_basename_${k}_$(basename "$f")" 4 ;; esac ;; esac
+    case $k in GATE_EXPORT|GATE_LIVENESS) case ${line#*=} in */*|.*|"") echo "month env $f: $k must be a bare basename in D (got '${line#*=}'): a path alias skipped the variant scope binding (review round 5); BUILDER_* keys are checked by the driver, STEP gates check their own basename" >&2; die "month_env_not_a_basename_${k}_$(basename "$f")" 4 ;; esac ;; esac
     case $got in *" $k "*) echo "month env $f: parser emitted $k twice" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
     case $v in ""|*[!ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_./,:@%+=-]*) echo "month env $f: parser emitted a value for $k outside the LITERAL grammar" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
     got="$got$k "

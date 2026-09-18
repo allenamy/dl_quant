@@ -69,7 +69,6 @@ REQUIRED_INPUTS = {
     "STEP1@v4s": ["dlw_v4raw_targets", "fea82_v4raw"],                                    # chain_v4s_gpu.sh (RAW only; its fea89 is bound through G2_closure fea_A)
     "STEP1@v4": ["dlw_v4raw_targets", "dlw_hf3_targets", "fea82_v4raw", "fea89_f8v4"],    # chain_v4_gpu3.sh / chain_v4_post_export.sh (RAW + CLIP chains, fea89)
     "STEP2": ["wide_fea_v4", "wide_fea_v4_meta"],                                          # chain_v4_gpu3.sh king side
-    "MEMBER_LIVENESS": ["cache", "hole_cells", "wide_fea_v4_meta", "dlw_v4raw_targets"],  # FP3 F (2026-09-18, user word): both produced member sets + the cache/holes the rule is derived from (bundle_config is a conditional extra)
     "BUNDLE_export": ["wide_fea_v4", "wide_fea_v4_meta", "bundle_base", "export_panel", "bundle_cache", "fund_aug", "live_pins",
                       "book_dyn_s42", "book_dyn_s2027", "book_fix_s42", "book_fix_s2027",                        # round 5: the arm's four judged books (BOOK_INPUTS, [7:11])
                       "base_dyn_s42", "base_dyn_s2027", "base_fix_s42", "base_fix_s2027",                        # ROUND 6 (r20): the approved A0 baseline books (E9)

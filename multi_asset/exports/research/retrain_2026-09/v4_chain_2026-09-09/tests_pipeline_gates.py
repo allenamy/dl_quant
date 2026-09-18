@@ -741,8 +741,8 @@ with tempfile.TemporaryDirectory() as d:
     check("★★ [r6] the real receipt recorded the OLD 11-name floor it was judged against (registered_floor_v4_gate_common) — the gap this round closes; femat/signal_receipt are absent from it (E7 not applicable for A1), so they are rightly NOT in the static floor",
           _real["registered_floor_v4_gate_common"] == _FLOOR[:11] and _real["checks"]["E7_signal_receipt"]["applicable"] is False and "femat" not in _FLOOR and "signal_receipt" not in _FLOOR, _real.get("registered_floor_v4_gate_common"))
     check("★★ [r6] the fixture declares exactly the 24 non-book names (the judge adds the 4 books): ELIG_INPUTS ∪ BOOK_INPUTS == the floor", set(ELIG_INPUTS) | set(_BOOKS) == set(_FLOOR) and len(ELIG_INPUTS) == 24 and not (set(ELIG_INPUTS) & set(_BOOKS)), sorted(set(ELIG_INPUTS) ^ (set(_FLOOR) - set(_BOOKS))))
-    check("★ [r6] the other gates' floors are untouched by round 6 (G2 5, STEP1 2, STEP1@v4s 2, STEP1@v4 4, STEP2 2; no BUNDLE_export@profile)",
-          {k: len(v) for k, v in _gc.REQUIRED_INPUTS.items()} == {"G2_closure": 5, "STEP1": 2, "STEP1@v4s": 2, "STEP1@v4": 4, "STEP2": 2, "BUNDLE_export": 28}, {k: len(v) for k, v in _gc.REQUIRED_INPUTS.items()})
+    check("★ [r6] the other gates' floors are untouched by round 6 (G2 5, STEP1 2, STEP1@v4s 2, STEP1@v4 4, STEP2 2; no BUNDLE_export@profile; + MEMBER_LIVENESS 4 since FP3 F 2026-09-18)",
+          {k: len(v) for k, v in _gc.REQUIRED_INPUTS.items()} == {"G2_closure": 5, "STEP1": 2, "STEP1@v4s": 2, "STEP1@v4": 4, "STEP2": 2, "BUNDLE_export": 28, "MEMBER_LIVENESS": 4}, {k: len(v) for k, v in _gc.REQUIRED_INPUTS.items()})
     # unit level, through the ARCHIVED module + SHIPPED contract: a receipt signed by the approved v2 gate over the full 28 ⇒ ok; any single omission ⇒ refused
     q = f"{d}/unit"; os.makedirs(f"{q}/hc/dev_v4/probe_artifacts")
     for arm in ("A0", "A1e"):
@@ -1061,8 +1061,8 @@ with tempfile.TemporaryDirectory() as d:
     _root, _envf = _fake_root(d)
     rc, out = _bash(f"V4_DRYRUN=1 V4_STAGES=preflight,cache bash {HERE}/chain_v4_monthly.sh {_envf}")
     _pf = json.load(open(f"{_root}/v4_gates/preflight.json"))
-    check("★★★ [P] a root where every input EXISTS: preflight PASSES (26 device files pinned — 21 + the five FP2 devices since review round 4, 3/3 gate sources approved by the frozen contract) and, under V4_DRYRUN=1, the next stage dies at the guard (rc 9 FAIL_dryrun_guard_cache_would_launch) before running anything",
-          rc == 9 and _pf["PASS"] is True and len(_pf["device_sha256"]) == 27 and all(a["ok"] for a in _pf["gate_approval"].values()) and "FAIL_dryrun_guard_cache_would_launch" in out and not os.path.exists(f"{_root}/cache_coverage.log"), (rc, _pf["fails"][:2], out[-200:]))
+    check("★★★ [P] a root where every input EXISTS: preflight PASSES (26 device files pinned — 21 + the five FP2 devices since review round 4, 4/4 gate sources approved by the frozen contract since FP3 F added MEMBER_LIVENESS) and, under V4_DRYRUN=1, the next stage dies at the guard (rc 9 FAIL_dryrun_guard_cache_would_launch) before running anything",
+          rc == 9 and _pf["PASS"] is True and len(_pf["device_sha256"]) == 29 and len(_pf["gate_approval"]) == 4 and all(a["ok"] for a in _pf["gate_approval"].values()) and "FAIL_dryrun_guard_cache_would_launch" in out and not os.path.exists(f"{_root}/cache_coverage.log"), (rc, _pf["fails"][:2], out[-200:]))
     rc, out = _bash(f"V4_STAGES=preflight,cache bash {HERE}/chain_v4_monthly.sh {_envf}")
     check("★★ [P] MUTATION: the same root WITHOUT V4_DRYRUN ⇒ the cache stage really runs (cache_coverage.log written) and fails on the fake cache with FAIL_cache_coverage_rc_*, rc 3 — the guard is what stopped the dryrun",
           rc == 3 and "FAIL_cache_coverage_rc_" in out and os.path.exists(f"{_root}/cache_coverage.log") and json.load(open(f"{_root}/v4_gates/cache_coverage.json"))["PASS"] is False, (rc, out[-200:]))
@@ -1093,9 +1093,14 @@ import v4_gate_common as _GC
 check("★★ [R] G0 v4_gate_common: finalize(gate, res, out_path, inputs, exit_code_fail) and the STEP1@v4 / STEP2 registry names the new gates keep verbatim",
       list(_insp.signature(_GC.finalize).parameters) == ["gate", "res", "out_path", "inputs", "exit_code_fail"] and _GC.REQUIRED_INPUTS["STEP1@v4"] == ["dlw_v4raw_targets", "dlw_hf3_targets", "fea82_v4raw", "fea89_f8v4"] and _GC.REQUIRED_INPUTS["STEP2"] == ["wide_fea_v4", "wide_fea_v4_meta"])
 _CON = json.load(open(f"{HERE}/ELIGIBILITY_CONTRACT.json")); _CON_SHA = _sha(f"{HERE}/ELIGIBILITY_CONTRACT.json"); _COMMON_SHA = _sha(f"{HERE}/v4_gate_common.py"); _NEW_SHA = {g: _sha(f"{HERE}/{g}") for g in ("v4_gate_step1_m.py", "v4_gate_step2_m.py")}
-check("★★ [R] G0 contract approves the frozen gates (278fdce6 / db7ab356) and does NOT (yet) list the month-generic ones — approval is the user's word, not this task's",
+check("★★ [R] G0 contract approves the frozen gates (278fdce6 / db7ab356) AND, since the user's word 2026-09-18, the month-generic ones — each with an approved_variants entry scoped >=2026-10",
       _FROZEN_SHA["v4_gate_step1.py"] in _CON["gates"]["STEP1"]["approved_source_sha256"] and _FROZEN_SHA["v4_gate_step2.py"] in _CON["gates"]["STEP2"]["approved_source_sha256"]
-      and _NEW_SHA["v4_gate_step1_m.py"] not in _CON["gates"]["STEP1"]["approved_source_sha256"] and _NEW_SHA["v4_gate_step2_m.py"] not in _CON["gates"]["STEP2"]["approved_source_sha256"])
+      and _NEW_SHA["v4_gate_step1_m.py"] in _CON["gates"]["STEP1"]["approved_source_sha256"] and _NEW_SHA["v4_gate_step2_m.py"] in _CON["gates"]["STEP2"]["approved_source_sha256"]
+      and all(_CON["gates"][g]["approved_variants"][f]["sha256"] == _NEW_SHA[f] and _CON["gates"][g]["approved_variants"][f]["scope"]["V4_MONTH"] == ">=2026-10"
+              for g, f in (("STEP1", "v4_gate_step1_m.py"), ("STEP2", "v4_gate_step2_m.py"))),
+      {g: [x[:8] for x in _CON["gates"][g]["approved_source_sha256"]] for g in ("STEP1", "STEP2")})
+check("★★ [R] G0 a sha NOT in the contract is still refused by the same accessor — the approval check discriminates after the ruling too",
+      _sha(f"{HERE}/v4_gate_closure.py") not in _CON["gates"]["STEP1"]["approved_source_sha256"])
 _WL = {"v4_gate_step1.py": [9, 27, 32, 53, 56, 57, 78, 91, 92, 99, 104, 105, 106, 107, 108], "v4_gate_step2.py": [8, 14, 15, 22, 27, 28, 36, 48, 49, 50, 58, 64, 65, 66]}   # PREREG §1 tables
 _LIT = {"v4_gate_step1.py": ["1e-6", "t - 48", "t - 1", "200000", "8640"], "v4_gate_step2.py": ["< 8640", "== 138", "CH = 128", "% 2048"]}                              # PREREG §4 thresholds
 for _f, _wl in _WL.items():
@@ -1185,12 +1190,14 @@ with tempfile.TemporaryDirectory() as d:
           r and r["gate"] == "STEP1" and r["self_sha256"] == _NEW_SHA["v4_gate_step1_m.py"] and set(r["inputs_sha256"]) == set(_ARCH1["inputs_sha256"]) | {"cache"} and all(r["inputs_sha256"].values()) and len(r["inputs_sha256"]) == 11, r and sorted(r["inputs_sha256"]))
     _S1 = dict(zip(("dlw_v4raw_targets", "dlw_hf3_targets", "fea82_v4raw", "fea89_f8v4"), (f"{d}/X1/dlw_raw/data/dlw_targets.npz", f"{d}/X1/dlw_clip/data/dlw_targets.npz", f"{d}/X1/dlw_raw/data/dlw_fea82.npz", f"{d}/X1/f8/data/f8_fea89.npz")))
     rc, out = run(["v4_gate_common.py", "require", f"{d}/s1_tail.json", "gate=STEP1", "profile=v4", f"self_sha={_NEW_SHA['v4_gate_step1_m.py']}"] + [f"{k}={v}" for k, v in _S1.items()])
-    check("★★★ [R] G4 require under the REAL contract refuses the month-generic gate's PASS receipt: 'not an APPROVED source' (the contract, not the caller, decides; approval = user word)", rc == 3 and "not an APPROVED source" in out, out[-200:])
+    check("★★★ [R] G4 require under the REAL contract now ACCEPTS the month-generic gate's PASS receipt (user word 2026-09-18) ⇒ REQUIRE_OK with the STEP1@v4 floor (4 inputs verified)",
+          rc == 0 and "REQUIRE_OK" in out and "registered floor STEP1@v4=4" in out, out[-200:])
     os.makedirs(f"{d}/sim"); _shu.copyfile(f"{HERE}/v4_gate_common.py", f"{d}/sim/v4_gate_common.py"); _c2 = json.loads(json.dumps(_CON))
-    _c2["gates"]["STEP1"]["approved_source_sha256"].append(_NEW_SHA["v4_gate_step1_m.py"]); _c2["gates"]["STEP2"]["approved_source_sha256"].append(_NEW_SHA["v4_gate_step2_m.py"]); json.dump(_c2, open(f"{d}/sim/ELIGIBILITY_CONTRACT.json", "w"))
+    _c2["gates"]["STEP1"]["approved_source_sha256"] = [x for x in _c2["gates"]["STEP1"]["approved_source_sha256"] if x != _NEW_SHA["v4_gate_step1_m.py"]]
+    json.dump(_c2, open(f"{d}/sim/ELIGIBILITY_CONTRACT.json", "w"))
     rc, out = run([f"{d}/sim/v4_gate_common.py", "require", f"{d}/s1_tail.json", "gate=STEP1", "profile=v4", f"self_sha={_NEW_SHA['v4_gate_step1_m.py']}"] + [f"{k}={v}" for k, v in _S1.items()])
-    check("★★★ [R] G4 the SAME receipt under a SIMULATED contract copy (approved list + new sha; real contract untouched) ⇒ REQUIRE_OK with the STEP1@v4 floor (4 inputs verified) — nothing else has to change for the driver to accept the new gates once approved",
-          rc == 0 and "REQUIRE_OK" in out and "registered floor STEP1@v4=4" in out and _sha(f"{HERE}/ELIGIBILITY_CONTRACT.json") == _CON_SHA, out[-200:])
+    check("★★★ [R] G4 RED CONTROL: the SAME receipt under a SIMULATED contract copy WITHOUT that approval ⇒ refused 'not an APPROVED source', rc 3 (the contract, not the caller, decides; the real contract is untouched)",
+          rc == 3 and "not an APPROVED source" in out and _sha(f"{HERE}/ELIGIBILITY_CONTRACT.json") == _CON_SHA, out[-200:])
     rc, out, r2 = _g("v4_gate_step2_m.py", _env2(f"{d}/X1", f"{d}/X0", f"{d}/s2_tail.json"))
     check("★★★ [R] G3(h) STEP2 on the extension-month fixture ⇒ PASS rc 0; anchors_only_v4 = 30 (tail) exempt, n_first138 == 138, clamp checks evaluated (clamp_vs_ext.anchors 138, outside_138 0), in-neigh reference diffs counted",
           rc == 0 and r2 and r2["PASS"] is True and len(r2["anchors_only_v4"]) == 30 and r2["anchors_only_v4_outside_neigh"] == 0 and r2["anchors_only_v4_tail_exempt"] == 30 and "ref_axis_end_utc" in r2 and r2["n_first138"] == 138
@@ -1368,8 +1375,8 @@ print("MOCK_INTERCEPT_NO_BUSINESS_CODE " + n); sys.exit(77)
     _mkp = f"{d}/member_mask.npz"; open(_mkp, "wb").write(b"mask")
     _eF = f"{_eP}.fp2"; open(_eF, "w").write(open(_eP).read() + f"BUILDER_TARGETS=pod_dlw_targets_raw_v2.py\nBUILDER_KING_FEA=pod_fea_ext_clamp_v2.py\nMEMBER_MASK={_mkp}\n"); _roll_receipt(_rP, _eF)
     rc, out, calls = _drv("preflight", _eF); _pf2 = json.load(open(f"{_rP}/v4_gates/preflight.json"))
-    check("★★★ [FP2] preflight under a contract that selects the v2 builders + a member mask: PASS; both v2 builders sha-pinned in device_sha256 (28 files = 23 + the five FP2 devices); MEMBER_MASK is a hashed input",
-          rc == 0 and _pf2["PASS"] is True and len(_pf2["device_sha256"]) == 29 and _pf2["device_sha256"]["pod_fea_ext_clamp_v2.py"] == _sha(f"{HERE}/pod_fea_ext_clamp_v2.py")
+    check("★★★ [FP2] preflight under a contract that selects the v2 builders + a member mask: PASS; both v2 builders sha-pinned in device_sha256 (31 files = 23 + the five FP2 devices + the FP3 liveness pair + the mask builder); MEMBER_MASK is a hashed input",
+          rc == 0 and _pf2["PASS"] is True and len(_pf2["device_sha256"]) == 31 and _pf2["device_sha256"]["pod_fea_ext_clamp_v2.py"] == _sha(f"{HERE}/pod_fea_ext_clamp_v2.py")
           and _pf2["device_sha256"]["pod_dlw_targets_raw_v2.py"] == _sha(f"{HERE}/pod_dlw_targets_raw_v2.py") and "MEMBER_MASK" in _pf2["inputs"], (rc, len(_pf2.get("device_sha256", {})), _pf2.get("fails")))
     rc, out, calls = _drv("cache", _eF); rc, out, calls = _drv("data", _eF)
     _tg2 = [c for c in calls if c["argv"] and os.path.basename(c["argv"][0]) in ("pod_dlw_targets_raw.py", "pod_dlw_targets_raw_v2.py")]; _kg2 = [c for c in calls if c["argv"] and os.path.basename(c["argv"][0]) in ("pod_fea_ext_clamp.py", "pod_fea_ext_clamp_v2.py")]
@@ -1379,9 +1386,9 @@ print("MOCK_INTERCEPT_NO_BUSINESS_CODE " + n); sys.exit(77)
           (rc, [os.path.basename(c["argv"][0]) for c in _tg2 + _kg2], [c["env"].get("MEMBER_MASK_NPZ") for c in _tg2 + _kg2], out[-160:]))
     _roll_receipt(_rP, _eP); rc, out, calls = _drv("preflight", _eP); rc, out, calls = _drv("cache", _eP); rc, out, calls = _drv("data", _eP)   # the ROLL_PATHS receipt is per contract FILE: rebind to the default one
     _tg0 = [c for c in calls if c["argv"] and os.path.basename(c["argv"][0]) in ("pod_dlw_targets_raw.py", "pod_dlw_targets_raw_v2.py")]; _kg0 = [c for c in calls if c["argv"] and os.path.basename(c["argv"][0]) in ("pod_fea_ext_clamp.py", "pod_fea_ext_clamp_v2.py")]
-    check("★★★ [FP2] DEFAULT (no optional keys): the frozen v1 basenames are called and MEMBER_MASK_NPZ is EMPTY (v1 behaviour, 26 device files) — existing contracts are untouched",
+    check("★★★ [FP2] DEFAULT (no optional keys): the frozen v1 basenames are called and MEMBER_MASK_NPZ is EMPTY (v1 behaviour, 29 device files) — existing contracts are untouched",
           rc == 0 and [os.path.basename(c["argv"][0]) for c in _tg0] == ["pod_dlw_targets_raw.py"] * 2 and [os.path.basename(c["argv"][0]) for c in _kg0] == ["pod_fea_ext_clamp.py"]
-          and all(c["env"]["MEMBER_MASK_NPZ"] == "" for c in _tg0 + _kg0) and len(json.load(open(f"{_rP}/v4_gates/preflight.json"))["device_sha256"]) == 27, (rc, [c["env"].get("MEMBER_MASK_NPZ") for c in _tg0 + _kg0]))
+          and all(c["env"]["MEMBER_MASK_NPZ"] == "" for c in _tg0 + _kg0) and len(json.load(open(f"{_rP}/v4_gates/preflight.json"))["device_sha256"]) == 29, (rc, [c["env"].get("MEMBER_MASK_NPZ") for c in _tg0 + _kg0]))
     _eB = f"{_eP}.badbuilder"; open(_eB, "w").write(open(_eP).read() + "BUILDER_KING_FEA=no_such_builder.py\n"); _roll_receipt(_rP, _eB); rc, out, calls = _drv("preflight", _eB)
     _eC = f"{_eP}.pathbuilder"; open(_eC, "w").write(open(_eP).read() + "BUILDER_TARGETS=/tmp/pod_dlw_targets_raw_v2.py\n"); _roll_receipt(_rP, _eC); rc2, out2, calls2 = _drv("preflight", _eC)
     _eM = f"{_eP}.badmask"; open(_eM, "w").write(open(_eP).read() + f"MEMBER_MASK={d}/no_such_mask.npz\n"); _roll_receipt(_rP, _eM); rc3, out3, calls3 = _drv("preflight", _eM)
@@ -1598,6 +1605,20 @@ def _contract_is_r1_plus_proposed3():
         var = cur["gates"][g].pop("approved_variants", {})
         if not var: return False
         cur["gates"][g]["approved_source_sha256"] = [x for x in cur["gates"][g]["approved_source_sha256"] if x not in {v["sha256"] for v in var.values()}]
+    # ── 2026-09-18 (user word 「按最佳建议来」): five approvals in one edit. Each is stripped HERE by its own field, so this check keeps
+    #    proving that NOTHING ELSE moved; a change outside these fields still fails. The frozen predecessor of this edit is r3_93a37224.
+    if cur.get("month_contract_rulings"): cur.pop("month_contract_rulings")
+    else: return False
+    if "MEMBER_LIVENESS" not in cur["gates"]: return False
+    cur["gates"].pop("MEMBER_LIVENESS")
+    hist = cur.pop("proposed_gates_history", None)
+    if not (hist and "MEMBER_LIVENESS_PROPOSED6" in hist): return False
+    # PROPOSED6 (2026-09-18) post-dates r1 entirely: r1 has no proposed_gates key, so the history block is simply dropped here
+    rl = list(cur.get("rules", []))
+    for i, r in enumerate(rl):
+        if r.startswith("MEMBER_LIVENESS (APPLIED"):
+            rl[i] = None                                                                      # the rule text was rewritten from PROPOSED6 to APPLIED
+    cur["rules"] = [r for r in rl if r is not None]
     if not (isinstance(cur.get("status"), str) and "PROPOSED3" in cur["status"]): return False
     cur["status"] = cur["status"].split(" | PROPOSED3")[0]
     be = cur["gates"]["BUNDLE_export"]; v5 = be.pop("approved_variants", {})    # PROPOSED5 (2026-09-17): the fp2dyn variant is an ADDED approved source with its own entry
@@ -1607,11 +1628,13 @@ def _contract_is_r1_plus_proposed3():
     if p4:
         for k, v in (p4.get("superseded_r1_values") or {}).items(): ab[k] = v
     pc = list(cur.get("proposed_changes_vs_frozen", []))
-    if not (pc and str(pc[-1]).startswith("PROPOSED")): return False
-    while pc and str(pc[-1]).startswith(("PROPOSED3", "PROPOSED4", "PROPOSED5")): pc.pop()   # PROPOSED3 (and its AMENDMENT 8 revisions) and PROPOSED4 are all trailing entries
+    if not (pc and str(pc[-1]).startswith(("PROPOSED", "APPLIED 2026-09-18"))): return False
+    while pc and str(pc[-1]).startswith(("PROPOSED3", "PROPOSED4", "PROPOSED5", "APPLIED 2026-09-18")): pc.pop()   # PROPOSED3 (and its AMENDMENT 8 revisions), PROPOSED4/5 and the 2026-09-18 approvals are all trailing entries
     cur["proposed_changes_vs_frozen"] = pc
+    r1r = [r for r in r1.get("rules", []) if not r.startswith("MEMBER_LIVENESS (")]            # the PROPOSED6 rule line post-dates r1 entirely
+    r1 = dict(r1, rules=r1r); cur = dict(cur, rules=[r for r in cur["rules"] if not r.startswith("MEMBER_LIVENESS (")])
     return cur == r1
-check("★★★ [T] G0 the FOUR contract-frozen files are byte-identical after round 3 as well (STEP1 278fdce6, STEP2 db7ab356, the contract 1188267a, the v2 export gate d63f4ec3) — round 3 touched none of them",
+check("★★★ [T] G0 the FOUR contract-frozen files are byte-identical after round 3 as well (STEP1 278fdce6, STEP2 db7ab356, the contract still equals r1_1188267a apart from exactly the PROPOSED3/4/5 + 2026-09-18 approval fields, the v2 export gate d63f4ec3)",
       _sha(f"{HERE}/v4_gate_step1.py").startswith("278fdce6") and _sha(f"{HERE}/v4_gate_step2.py").startswith("db7ab356") and _contract_is_r1_plus_proposed3() and _sha(f"{HERE}/v4e_gate_export_v2.py").startswith("d63f4ec3"),   # FP2-8: contract = kept r1 (1188267a) + PROPOSED3 delta only
       [_sha(f"{HERE}/{f}")[:8] for f in ("v4_gate_step1.py", "v4_gate_step2.py", "ELIGIBILITY_CONTRACT.json", "v4e_gate_export_v2.py")])
 
@@ -1792,10 +1815,10 @@ with tempfile.TemporaryDirectory() as d:
     _rc_n, _r_n = _umemb(np.array([[0, 1], [2, 3]], dtype=np.int64), "u2n_ndim2", "v4_gate_step2_m.py")
     check("★★ [U] D2 the pre-existing structural rules still follow the dtype rule: an INTEGER but 2-D index ⇒ FAIL rc 3 'ndim 2 != 1' (dtype first, then 1-D / range / uniqueness)",
           _rc_n == 3 and _r_n["tail_quality"]["member_index_ok"] is False and "ndim 2" in _r_n["tail_quality"]["member_index_bad"][0]["why"][0], (_rc_n, _r_n and _r_n.get("tail_quality")))
-check("★★★ [U] G0 the contract-frozen and do-not-touch files are byte-identical after round 4: v4_gate_step1 278fdce6, v4_gate_step2 db7ab356, ELIGIBILITY_CONTRACT r1 predecessor 1188267a (current = r1 + PROPOSED3, FP2-8), v4e_gate_export_v2 d63f4ec3, v4_gate_common 24e813f1, judge_v4 c2a81c48, make_sha_manifest ba521004, tests_judge_dynamic_deps 4dfee3fd",
+check("★★★ [U] G0 the contract-frozen and do-not-touch files are byte-identical after round 4: v4_gate_step1 278fdce6, v4_gate_step2 db7ab356, ELIGIBILITY_CONTRACT r1 predecessor 1188267a (current = r1 + PROPOSED3, FP2-8), v4e_gate_export_v2 d63f4ec3, v4_gate_common a1d41044 (was 24e813f1, archived as v4_gate_common.r1_24e813f1.py and pinned here too; the ONLY change is REQUIRED_INPUTS['MEMBER_LIVENESS'], FP3 F 2026-09-18 user word), judge_v4 c2a81c48, make_sha_manifest ba521004, tests_judge_dynamic_deps 4dfee3fd",
       all(_sha(f"{HERE}/{f}") == s for f, s in (("v4_gate_step1.py", "278fdce611e91571d24ec26c78ddc4620668bfd4598a01f577f1f6887dd62be4"), ("v4_gate_step2.py", "db7ab3561f97423a8d5dd74251257adcedd743129d22a07d7cd186d102dd80d8"),
                                                 ("ELIGIBILITY_CONTRACT.r1_1188267a.json", "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732"), ("v4e_gate_export_v2.py", "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e"),
-                                                ("v4_gate_common.py", "24e813f145c35033552ee54ae166092a8204490ff52c011a87217a8e81a187a1"), ("judge_v4.py", "c2a81c48f037756067b23225b5a6bbee43ce6589898db3230437a17d398956ba"),
+                                                ("v4_gate_common.py", "a1d41044957d2cd878b3d5a36df088ee6cc71c1080e9999e0617f02b2af53158"), ("v4_gate_common.r1_24e813f1.py", "24e813f145c35033552ee54ae166092a8204490ff52c011a87217a8e81a187a1"), ("judge_v4.py", "c2a81c48f037756067b23225b5a6bbee43ce6589898db3230437a17d398956ba"),
                                                 ("make_sha_manifest.py", "ba521004daaa164e815d92a7ee28810f84e1d4dd526fd3ed06550720e50cd4b1"), ("tests_judge_dynamic_deps.py", "4dfee3fd016a708ee320c5d23585632071e4f79331209d6a88f06d9829aa5122"))) and _contract_is_r1_plus_proposed3(),
       [_sha(f"{HERE}/{f}")[:8] for f in ("v4_gate_step1.py", "v4_gate_step2.py", "ELIGIBILITY_CONTRACT.json", "v4e_gate_export_v2.py", "v4_gate_common.py", "judge_v4.py", "make_sha_manifest.py", "tests_judge_dynamic_deps.py")])
 
@@ -1909,13 +1932,24 @@ with tempfile.TemporaryDirectory() as _vd:
 #     below runs the gate on a SYNTHETIC document in a temp dir; the one real-artifact cell reads the shipped October template
 #     (read-only) and writes its receipt to a temp path. The gate itself writes nothing but its receipt.
 _WDG = f"{HERE}/v4_doc_approval_gate.py"
-_WCON = f"{HERE}/ELIGIBILITY_CONTRACT.json"
+# ★ 2026-09-18: the [W] block tests A2 = "a ruling document must name the object a ruling is NEEDED for", so it needs a contract in which the
+#   month-generic gates are still PENDING. The real contract approved them on the user's word, so the block runs against a COPY with those two
+#   approvals removed (written next to the fixtures, never over the real file); the real contract is checked separately, at the end of the block.
+_WCON_REAL = f"{HERE}/ELIGIBILITY_CONTRACT.json"
+_WCON = None   # set inside the block once the scratch dir exists
 _WS1, _WS2 = _sha(f"{HERE}/v4_gate_step1_m.py"), _sha(f"{HERE}/v4_gate_step2_m.py")
 _WR1 = _sha(f"{HERE}/v4_gate_step2_m.r1_0fe5ec55.py")
 _WDECL = (f"APPROVAL_OBJECT v4_gate_step1_m.py {_WS1}\n"
           f"APPROVAL_OBJECT v4_gate_step2_m.py {_WS2}\n"
           f"SUPERSEDED_OBJECT v4_gate_step2_m.py {_WR1}\n")
 with tempfile.TemporaryDirectory() as _wd:
+    _WCON = f"{_wd}/contract_pending_m_gates.json"
+    _wc = json.load(open(_WCON_REAL)); _wm = {g: _sha(f"{HERE}/{g}") for g in ("v4_gate_step1_m.py", "v4_gate_step2_m.py")}
+    for _g, _f in (("STEP1", "v4_gate_step1_m.py"), ("STEP2", "v4_gate_step2_m.py")):
+        _wc["gates"][_g]["approved_source_sha256"] = [x for x in _wc["gates"][_g]["approved_source_sha256"] if x != _wm[_f]]
+        _wc["gates"][_g].get("approved_variants", {}).pop(_f, None)
+    json.dump(_wc, open(_WCON, "w"))
+
     def _wgate(text, profile="ruling", tag="d", doc=None):
         """Run the gate on a synthetic (or given) document; returns (rc, stdout, receipt-or-None)."""
         _p = doc or f"{_wd}/{tag}.md"
@@ -2002,6 +2036,12 @@ with tempfile.TemporaryDirectory() as _wd:
     # W10 — refusals write a PASS=false receipt that names what is missing; no DOCGATE_OUT writes nothing at all
     rc, out, r = _wgate("", tag="w10", doc=f"{_wd}/does_not_exist.md")
     _miss = rc == 3 and r["PASS"] is False and r["REFUSED"]["missing_files"]["doc"].endswith("does_not_exist.md")
+    _rc, _o, _r = _wgate("# no declaration block at all\n", tag="wreal", doc=None)
+    _rr = f"{_wd}/wreal_receipt.json"
+    rc9, out9 = run(["v4_doc_approval_gate.py"], {"DOC": f"{_wd}/wreal.md", "DEVICE_DIR": HERE, "CONTRACT": _WCON_REAL, "DOCGATE_PROFILE": "ruling", "DOCGATE_OUT": f"{_wd}/wreal_real.json"})
+    _rj = json.load(open(f"{_wd}/wreal_real.json")); _a2r = _rj["checks"]["A2_pending_gates_declared"]
+    check("★★★ [W] against the REAL contract (after the 2026-09-18 approvals) A2 has NOTHING pending: a document needs no APPROVAL_OBJECT line for a gate that is already approved, so a bare document PASSES — while the SAME document against the pending-gates copy FAILS A2 (the discriminating pair)",
+          _a2r["ok"] is True and not _a2r.get("violations") and _rj["PASS"] is True and _r["checks"]["A2_pending_gates_declared"]["ok"] is False, (_a2r, _rj["failed_checks"], _r["checks"]["A2_pending_gates_declared"]["ok"]))
     rc2, out2 = run(["v4_doc_approval_gate.py"], {"DOC": f"{_wd}/w2.md", "DEVICE_DIR": HERE, "CONTRACT": _WCON, "DOCGATE_PROFILE": "ruling", "DOCGATE_OUT": ""})
     check("★★★ [W] TRN-27 W10: a missing DOC ⇒ rc 3 and a PASS=false receipt that NAMES it (not a crash, not a skip); a missing DOCGATE_OUT ⇒ rc 3 and nothing written, because a gate with no receipt path has no verdict to give",
           _miss and rc2 == 3 and "DOCGATE_REFUSED missing DOCGATE_OUT" in out2, (_miss, rc2, out2[-120:]))
