@@ -1,0 +1,66 @@
+{
+ "device": "q6_shadow.py",
+ "version": "v4",
+ "self_sha256": "7351d9a57585c0bd67d3e11acde0b6d54dfc445717bcb53323de8027a8ce0aba",
+ "policy": {
+  "name": "chronological_admission",
+  "revision": "PREREG_reconcile_carry_forward_unexplained_2026-09-10 \u00a71d rev 4"
+ },
+ "schema": "q6_joint_checkpoint/1",
+ "utc": "2026-09-18T10:52:30Z",
+ "claim": "PREREG \u00a71d.5: a run resumed from a joint checkpoint must reproduce the uninterrupted state BIT-IDENTICALLY under the same policy",
+ "window": {
+  "single_pass": [
+   "20260808",
+   "20260918"
+  ],
+  "half_1": [
+   "20260808",
+   "20260902"
+  ],
+  "half_2_resumed": [
+   "20260903",
+   "20260918"
+  ]
+ },
+ "state_sha256": {
+  "single_pass": "7220b235ce181d0ffb75ca76f483c75f76f3b874d533d5c01f3b250d14bb6466",
+  "resumed": "7220b235ce181d0ffb75ca76f483c75f76f3b874d533d5c01f3b250d14bb6466",
+  "half_1_handover": "87a9d7b3f98578a4d86a9d308344d0b970e9aa8e2e23e719a49246c7692e67a7"
+ },
+ "identical": true,
+ "n_symbols": {
+  "single_pass": 412,
+  "resumed": 412,
+  "half_1_handover": 405,
+  "only_in_single": [],
+  "only_in_resumed": []
+ },
+ "per_symbol": {
+  "n_compared": 412,
+  "n_identical": 412,
+  "n_different": 0,
+  "different": []
+ },
+ "receipt_counts": {
+  "single_pass": {
+   "CLEAN": 53002,
+   "FLAGGED": 4
+  },
+  "resumed": {
+   "CLEAN": 53002,
+   "FLAGGED": 4
+  },
+  "single_pass_flagged_rows": 4,
+  "resumed_flagged_rows": 4,
+  "single_pass_excluded": 4,
+  "resumed_excluded": 4
+ },
+ "carried_across_the_split": {
+  "pending_requests_in_handover": 0,
+  "requests_in_handover": 10259,
+  "admitted_equations_in_handover": 29516,
+  "excluded_equations_in_handover": 4
+ },
+ "boundary": "read-only offline replay of a mirrored ledger; nothing is wired into production. The state compared is the JOINT constraint set, the observation list, the admitted/excluded equations, the baseline and the carried pending requests \u2014 the objects \u00a71d.5 names. Receipt-level category counts are shown beside it as a second, weaker check."
+}

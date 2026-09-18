@@ -217,6 +217,105 @@ def contradiction_check(REQ, unmeas, notes):
                 unmeas[s].append((r["birth"], f"{r['rid']}: {why}")); notes["request_contradiction"] += 1
 
 
+# ───────────────────────────── §1d.5 joint checkpoint / §1d.3 late-evidence rebuild ─────────────────────────────
+CHECKPOINT_SCHEMA = "q6_joint_checkpoint/1"
+POLICY = {"name": "chronological_admission", "revision": "PREREG_reconcile_carry_forward_unexplained_2026-09-10 §1d rev 4"}
+
+
+def canon(obj):
+    """canonical bytes for a state: sorted keys, compact separators, sets as sorted lists. Two equal states MUST serialise equal —
+    the bit-identity claim of §1d.5 ("恢复时按同一政策重放, 结果必须逐位相同") is checked on the sha256 of this."""
+    def norm(o):
+        if isinstance(o, dict): return {str(k): norm(o[k]) for k in sorted(o, key=str)}
+        if isinstance(o, (set, frozenset)): return sorted(str(x) for x in o)
+        if isinstance(o, (list, tuple)): return [norm(x) for x in o]
+        return o
+    return json.dumps(norm(obj), sort_keys=True, separators=(",", ":"), default=str).encode()
+
+
+def req_to_cp(r):
+    """a request serialised as its HARD-CONSTRAINT GENERATORS. PREREG §1c.4 / D7-4: the checkpoint saves the objects that GENERATE the joint
+    feasible set (identity, side, capacity, birth, terminal, evidence floors with their event times, attributed fills) — never the per-request
+    marginal interval, which loses the correlation between requests."""
+    return {"rid": r["rid"], "side": r["side"], "cap": r["cap"], "birth": r["birth"], "terminal": r["terminal"],
+            "floor": r["floor"], "floor_ts": r.get("floor_ts"), "exact": r["exact"], "exact_ts": r.get("exact_ts"),
+            "fills": [[f[0], f[1], f[2], str(f[3])] for f in r["fills"]], "trade_ids": sorted(str(x) for x in (r.get("trade_ids") or [])),
+            "source": r["source"], "evidence": r.get("evidence"), "rebalance_id": r.get("rebalance_id"), "attempt_idx": r.get("attempt_idx"),
+            "terminal_reason": r.get("terminal_reason"), "bucket": r.get("bucket")}
+
+
+def req_from_cp(d):
+    r = dict(d); r["fills"] = [(f[0], f[1], f[2], f[3]) for f in (d.get("fills") or [])]; r["trade_ids"] = set(d.get("trade_ids") or []); return r
+
+
+def merge_late_fact(r, fact, notes=None):
+    """PREREG §1d.3: a hard fact arriving late is inserted at ITS OWN event time; it may only tighten. Returns True when anything changed."""
+    ch = False
+    if fact.get("floor") is not None and (fact["floor"] > r["floor"]):
+        r["floor"] = fact["floor"]; r["floor_ts"] = fact.get("floor_ts"); ch = True
+    if fact.get("exact") is not None and r["exact"] is None:
+        r["exact"] = fact["exact"]; r["exact_ts"] = fact.get("exact_ts"); ch = True
+    if fact.get("terminal") is not None and (r["terminal"] is None or fact["terminal"] < r["terminal"]):
+        r["terminal"] = fact["terminal"]; ch = True
+    for f in (fact.get("fills") or []):
+        if str(f[3]) not in {str(x[3]) for x in r["fills"]}:
+            r["fills"].append((f[0], f[1], f[2], f[3])); r["fills"].sort(key=lambda x: x[0]); ch = True
+    if ch and notes is not None: notes["late_facts_merged"] += 1
+    return ch
+
+
+def fact_event_time(fact):
+    """the event time a late fact takes effect at (§1d.3): the earliest of its own stamps"""
+    ts = [fact[k] for k in ("floor_ts", "exact_ts", "terminal") if fact.get(k) is not None] + [f[0] for f in (fact.get("fills") or [])]
+    return min(ts) if ts else None
+
+
+def late_evidence_rebuild(cp_sym, late_facts, notes=None):
+    """PREREG §1d.3: a HARD fact whose event time precedes already-admitted observations is inserted at its own event time, and the admission
+    prefix is REBUILT from that time (hard constraints first, then chronological admission). Equations admitted before and now infeasible are
+    downgraded to excluded observations tagged `late_evidence`. The ORIGINAL online receipts are returned untouched — §1d.3 forbids rewriting
+    them ("原始在线收据一律保留, 不重写"). Order independence: the same facts arriving early or late end at the same distance.
+
+    Returns {records, admitted, excluded, tau, newly_excluded, records_before (the preserved online receipts), requests}."""
+    notes = collections.Counter() if notes is None else notes
+    reqs = {r["rid"]: req_from_cp(r) for r in cp_sym["hard"]["requests"]}
+    before = [dict(r) for r in cp_sym["records"]]
+    taus = []
+    for f in late_facts:
+        rid = f["rid"]
+        if rid in reqs:
+            if merge_late_fact(reqs[rid], f, notes): taus.append(fact_event_time(f))
+        else:
+            reqs[rid] = req_from_cp({"rid": rid, "side": f["side"], "cap": f.get("cap"), "birth": f.get("birth", fact_event_time(f)),
+                                     "terminal": f.get("terminal"), "floor": f.get("floor") or 0, "floor_ts": f.get("floor_ts"),
+                                     "exact": f.get("exact"), "exact_ts": f.get("exact_ts"), "fills": f.get("fills") or [], "trade_ids": [],
+                                     "source": "late_evidence", "evidence": "late:" + str(f.get("evidence") or "hard fact")})
+            taus.append(fact_event_time(f)); notes["late_facts_new_request"] += 1
+    taus = [t for t in taus if t is not None]
+    if not taus: return {"records": before, "admitted": [list(a) for a in cp_sym["admitted"]], "excluded": list(cp_sym["excluded"]),
+                         "tau": None, "newly_excluded": [], "records_before": before, "requests": list(reqs.values()), "no_change": True}
+    tau = min(taus)
+    obs = [dict(o) for o in cp_sym["observations"]]
+    un = [(f[0], f[1], f[2], f[3]) for f in cp_sym["hard"]["unattributed_fills"]]
+    model = SymbolModel(cp_sym["symbol"], [r for r in reqs.values() if r["side"] != 0], un, obs, cp_sym["step"],
+                        unmeas_from=[(t, w) for t, w in cp_sym["hard"]["unmeasurable_from"]] or None)
+    keep = [r for r in before if r["k"] == 0 or r["t"] < tau - 1e-9]                      # the prefix that pre-dates the late fact is untouched
+    resume = {"records": keep, "admitted": [[r["k"], r["rhs_lots"]] for r in keep if r.get("admitted") and r["k"] > 0],
+              "unmeasurable_from_run": next((r.get("why") for r in keep if r.get("status") == "unmeasurable"), None)}
+    recs = model.run(resume=resume)
+    was_admitted = {r["k"] for r in before if r.get("admitted") and r["k"] > 0}
+    newly = []
+    for r in recs:
+        if r.get("excluded") and r["k"] in was_admitted:
+            r["excluded_because"] = "late_evidence"; newly.append({"k": r["k"], "rhs_lots": r["rhs_lots"], "distance_lots": r.get("distance_lots"),
+                                                                   "was_distance_lots": next((b.get("distance_lots") for b in before if b["k"] == r["k"]), None)})
+            notes["observations_excluded_by_late_evidence"] += 1
+    return {"records": recs, "admitted": [[r["k"], r["rhs_lots"]] for r in recs if r.get("admitted") and r["k"] > 0],
+            "excluded": [{"k": r["k"], "rhs_lots": r["rhs_lots"], "distance_lots": r.get("distance_lots"), "why": r.get("why"),
+                          "because": r.get("excluded_because", "chronological_admission")} for r in recs if r.get("excluded")],
+            "tau": tau, "newly_excluded": newly, "records_before": before, "requests": list(reqs.values()), "no_change": False}
+
+
 # ───────────────────────────── the joint feasible set on the lattice ─────────────────────────────
 class SymbolModel:
     """requests + observation times of ONE symbol; chronological admission with a lattice-exact MILP; oracle cross-check when enumerable."""
@@ -307,10 +406,19 @@ class SymbolModel:
         if not res.success: return {"status": "unmeasurable", "why": f"solver status {res.status}: {res.message}"}
         return {"status": "ok", "distance_lots": int(round(res.x[0])), "n_vars": m}
 
-    def run(self):
-        """chronological admission over all observations; returns per-observation records"""
-        out = []; admitted = []; unmeasurable_from = None
+    def run(self, resume=None):
+        """chronological admission over all observations; returns per-observation records.
+
+        `resume` (PREREG §1d.5) carries a checkpoint prefix: the records already decided, the equations already ADMITTED and the ones already
+        EXCLUDED. §1d.2 forbids re-deciding them ("已准入的等式不因后来的观测被撤销"), so the prefix is replayed verbatim and admission continues
+        chronologically from the first new observation. The joint object is regenerated from the admitted equations + hard constraints, which is
+        why the checkpoint stores those and not per-request marginals."""
+        out = []; admitted = []; unmeasurable_from = None; n_prefix = 0
+        if resume:
+            out = [dict(r) for r in resume["records"]]; admitted = [tuple(a) for a in resume["admitted"]]
+            n_prefix = len(out); unmeasurable_from = resume.get("unmeasurable_from_run")
         for n, o in enumerate(self.obs):
+            if n < n_prefix: continue
             rec = {"k": n, "t": o["t"], "anchor": o["anchor"], "kind": o["kind"], "rhs_lots": o["rhs"],
                    "lot_residual": float(o.get("lot_residual") or 0.0), "lot_residual_base": float(self.obs[0].get("lot_residual") or 0.0)}
             if n == 0:
@@ -357,10 +465,10 @@ class SymbolModel:
 
 # ───────────────────────────── per-symbol worker ─────────────────────────────
 def symbol_job(args):
-    sym, reqs, un, obs, step, marks_hint, unmeas_from = args
+    sym, reqs, un, obs, step, marks_hint, unmeas_from, resume = args
     reqs = [r for r in reqs if r["side"] != 0]
     model = SymbolModel(sym, reqs, un, obs, step, unmeas_from=unmeas_from)
-    recs = model.run()
+    recs = model.run(resume=resume)
     # unmeasurable-from (contradictions found while building) overrides from that time on
     if unmeas_from:
         t_u, why = min(unmeas_from)
@@ -377,7 +485,10 @@ def symbol_job(args):
     else:
         online = {"status": "ok", "distance_lots": [r.get("distance_lots") for r in recs], "excluded_k": [r["k"] for r in recs if r.get("excluded")], "note": "no evidence at all: online == offline"}
     orc = model.oracle_check()
-    return sym, recs, online, orc, step, getattr(model, "oracle_skipped", None)
+    pend = [{"rid": r["rid"], "side": r["side"], "cap": r["cap"], "birth": r["birth"], "floor_at_end": model.floor_at(i, len(obs) - 1),
+             "feasible_interval_lots": [model.floor_at(i, len(obs) - 1), (None if r["cap"] is None else r["cap"])]}
+            for i, r in enumerate(model.reqs) if r["terminal"] is None]        # §1c.3: an open request is CARRIED, never dropped
+    return sym, recs, online, orc, step, getattr(model, "oracle_skipped", None), pend
 
 
 def main():
@@ -438,12 +549,44 @@ def main():
     gaps_rec = {}
     for r in an:
         kg = r.get("known_gaps") or {}; gaps_rec[B(r["anchor_ts"])] = {"n_named": kg.get("n_named"), "gross_usdt": kg.get("gross_usdt"), "names": [x.get("symbol") for x in (kg.get("names") or [])]}
-    symbols = sorted(set(OBS) | set(REQ) | set(UN))
+    symbols = sorted(set(OBS) | set(REQ) | set(UN))                                  # extended with the checkpoint's symbols in the resume block below
+    # ── §1d.5 resume: merge the checkpoint's carried state with this window's facts BEFORE any model is built ──
+    CP_IN = os.environ.get("Q6_CHECKPOINT_IN"); cp_state = {}
+    if CP_IN:
+        cpj = json.load(open(CP_IN))
+        assert cpj["schema"] == CHECKPOINT_SCHEMA, f"checkpoint schema {cpj['schema']!r} != {CHECKPOINT_SCHEMA!r}"
+        assert cpj["policy"] == POLICY, "checkpoint policy identity differs: a checkpoint may only be replayed under the policy that wrote it"
+        for s, cp in cpj["symbols"].items():
+            cp_state[s] = cp
+            carried = {r["rid"]: req_from_cp(r) for r in cp["hard"]["requests"]}
+            fresh = REQ.get(s, {})
+            for rid, r in fresh.items():                                    # a rid in both halves ⇒ ONE request (identity, §1c)
+                if rid in carried: _merge_facts(carried[rid], r, notes)
+                else: carried[rid] = r
+            REQ[s] = carried
+            seen = {str(f[3]) for r in carried.values() for f in r["fills"]} | {str(f[3]) for f in cp["hard"]["unattributed_fills"]}
+            fills_by_symbol[s] = [f for f in fills_by_symbol.get(s, []) if str(f["trade_id"]) not in seen]   # a fill already carried is not counted twice
+            # the pre-merge attribution ran before the carried requests existed, so its leftovers are candidates again: DROP the stale
+            # unattributed list and re-derive it below over the merged request set — keeping both would count the same fill twice.
+            UN[s] = [(f[0], f[1], f[2], f[3]) for f in cp["hard"]["unattributed_fills"]]
+            if cp["hard"]["unmeasurable_from"]: unmeas[s] = [(t, w) for t, w in cp["hard"]["unmeasurable_from"]] + list(unmeas.get(s) or [])
+            if cp.get("marks"): markrows[s] = [tuple(m) for m in cp["marks"]] + markrows.get(s, []); markrows[s].sort()
+        UN_new = attribute_fills({s: fills_by_symbol.get(s, []) for s in cp_state}, REQ, notes)              # attribute the NEW fills against the merged set
+        for s, v in UN_new.items(): UN[s] = list(UN.get(s, [])) + list(v)
+        for s, cp in cp_state.items():                                      # observations: the carried prefix keeps its q0 (same cross-section, §1d)
+            newo = [o for o in OBS.get(s, []) if o["t"] > (cp["observations"][-1]["t"] if cp["observations"] else -1) + 1e-9]
+            for o in newo: o["rhs"] = o["q_lots"] - cp["q0_lots"]
+            OBS[s] = [dict(o) for o in cp["observations"]] + newo
+    if cp_state: symbols = sorted(set(symbols) | set(cp_state))                      # a symbol carried by the checkpoint is replayed even with no new activity
     jobs = []
     for s in symbols:
-        if len(OBS.get(s, [])) < 2:
+        cp = cp_state.get(s)
+        if len(OBS.get(s, [])) < 2 and not cp:
             notes["symbols_without_two_observations"] += 1; continue
-        jobs.append((s, list(REQ.get(s, {}).values()), UN.get(s, []), OBS[s], step_of(s), None, unmeas.get(s)))
+        resume = None
+        if cp and cp["records"]:
+            resume = {"records": cp["records"], "admitted": cp["admitted"], "unmeasurable_from_run": cp.get("unmeasurable_from_run")}
+        jobs.append((s, list(REQ.get(s, {}).values()), UN.get(s, []), OBS[s], step_of(s), None, unmeas.get(s), resume))
     procs = int(os.environ.get("Q6_PROCS") or max(1, min(10, (os.cpu_count() or 2) - 2)))
     if procs > 1 and len(jobs) > 8:
         import multiprocessing as mp
@@ -455,7 +598,7 @@ def main():
     cat_total = collections.Counter(); persist = collections.Counter(); solver = collections.Counter(); oracle_cmp = {"checked": 0, "agree": 0, "disagree": [], "not_enumerable": 0}
     symbol_summary = {}; online_avail = collections.Counter(); history_unresolved = 0; regime = collections.Counter(); detail = {}
     want_detail = bool(os.environ.get("Q6_DETAIL"))
-    for (s, recs, online, orc, step, orc_skip) in results:
+    for (s, recs, online, orc, step, orc_skip, pend) in results:
         mk = markrows.get(s, []); flagged_here = 0; excluded_here = []; det = []
         online_avail[online["status"]] += 1
         for rec in recs:
@@ -519,6 +662,28 @@ def main():
            "n_anchors": len(anchors), "n_symbols_modelled": len(results), "counts": dict(cat_total), "n_flagged_rows": sum(1 for r in rows_out if r["category"] == "FLAGGED"),
            "symbols_flagged_ge_6_anchors": dict(persist), "n_symbols_history_unresolved": history_unresolved, "n_excluded_observations": len(exclusions),
            "solver": dict(solver), "oracle_crosscheck": oracle_cmp, "notes": dict(notes), "per_anchor": summary, "rows": rows_out, "exclusions": exclusions, "unmeasurable": unmeasurable, "symbols": symbol_summary, **({"detail": detail} if want_detail else {})}
+    CP_OUT = os.environ.get("Q6_CHECKPOINT_OUT")
+    if CP_OUT:
+        cps = {}
+        for (s, recs, online, orc, step, orc_skip, pend) in results:
+            mk = markrows.get(s, [])
+            cps[s] = {"symbol": s, "step": step, "q0_lots": (OBS[s][0]["q_lots"] if OBS.get(s) else 0),
+                      "hard": {"requests": [req_to_cp(r) for r in sorted([x for x in REQ.get(s, {}).values() if x["side"] != 0], key=lambda r: (r["birth"], r["rid"]))],
+                               "unattributed_fills": [[f[0], f[1], f[2], str(f[3])] for f in UN.get(s, [])],
+                               "unmeasurable_from": [[t, w] for (t, w) in (unmeas.get(s) or [])]},
+                      "observations": [{k: o.get(k) for k in ("t", "anchor", "kind", "q_lots", "q", "lot_residual", "notional", "rhs")} for o in OBS.get(s, [])],
+                      "records": recs, "admitted": [[r["k"], r["rhs_lots"]] for r in recs if r.get("admitted") and r["k"] > 0],
+                      "excluded": [{"k": r["k"], "rhs_lots": r["rhs_lots"], "distance_lots": r.get("distance_lots"), "why": r.get("why"),
+                                    "because": r.get("excluded_because", "chronological_admission")} for r in recs if r.get("excluded")],
+                      "unmeasurable_from_run": next((r.get("why") for r in recs if r.get("status") == "unmeasurable"), None),
+                      "pending_requests": pend, "marks": [[t, v] for (t, v) in mk]}
+        cpj = {"schema": CHECKPOINT_SCHEMA, "policy": POLICY, "device": DEVICE, "version": VERSION, "self_sha256": sha(os.path.abspath(__file__)),
+               "utc": time.strftime("%FT%TZ", time.gmtime()), "window": [days[0], days[-1]] if days else None,
+               "resumed_from": os.environ.get("Q6_CHECKPOINT_IN"), "n_symbols": len(cps), "symbols": cps}
+        os.makedirs(os.path.dirname(os.path.abspath(CP_OUT)), exist_ok=True)
+        json.dump(cpj, open(CP_OUT, "w"), indent=1, default=str)
+        out["checkpoint"] = {"path": CP_OUT, "n_symbols": len(cps), "state_sha256": hashlib.sha256(canon({k: {kk: v[kk] for kk in ("hard", "observations", "admitted", "excluded", "q0_lots", "step", "pending_requests")} for k, v in cps.items()})).hexdigest()}
+        print("checkpoint ->", CP_OUT, len(cps), "symbols | state sha", out["checkpoint"]["state_sha256"][:16])
     json.dump(out, open(OUT, "w"), indent=1, default=str)
     print("window", out["window"], "anchors", len(anchors), "symbols", len(results), "| counts", dict(cat_total), "| flagged rows", out["n_flagged_rows"], "| persistent ≥6:", dict(persist),
           "| excluded obs", len(exclusions), "history-unresolved symbols", history_unresolved, "| oracle", {k: (v if not isinstance(v, list) else len(v)) for k, v in oracle_cmp.items()}, "| %.0fs" % out["runtime_s"])
