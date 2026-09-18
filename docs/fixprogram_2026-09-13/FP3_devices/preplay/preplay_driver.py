@@ -26,6 +26,19 @@ open(f"{SB}/dl_quant_live/live/telegram_notify.py", "w").write("# PREPLAY STUB: 
 open(f"{SB}/dl_quant_live/.env", "w").write('TELEGRAM_BOT_TOKEN="stub"\nTELEGRAM_CHAT_ID="0"\n')
 for f in ("state_H_kc_1788120000.npz", "state_H_fc_1788120000.npz", "state_H_f10_1788120000.npz"):   # combo's recursive state at the start anchor (archived production files)
     if os.path.exists(f"{ARCH}/{f}") and not os.path.exists(f"{WS}/fea171/{f}"): shutil.copy2(f"{ARCH}/{f}", f"{WS}/fea171/{f}")
+TIMELINE = "--timeline" in sys.argv     # pin producer code versions and state interventions to the anchors at which production had them
+# production version timeline (Mac backups, sha8 / mtime): shadow_loop_v3 db326162 (pre-M1) through 2026-09-04 00Z, e9c98374 (M1) from 09-04 04Z;
+# combo_stage ff5de5d8 (no FTRIM) through 09-02 08Z, b5c698f9 (FTRIM) 09-02 12Z … 09-17 12Z, 3520d363 from 09-17 16Z; seat seeding (leg_returns replaced) 09-05 12:20Z ⇒ from the 16Z anchor
+SHADOW_VERSIONS = [(1788566400, f"{PROD}/shadow_loop_v3.py.pre_m1_20260904_backup.py"), (10**12, f"{PROD}/shadow_loop_v3.py")]   # the loader needs a .py suffix: a byte-identical copy of the backup
+COMBO_VERSIONS = [(1788336000, f"{PROD}/combo_stage.py.pre_ftrim_20260902_backup"), (1789646400, f"{PROD}/combo_stage.py.pre_fp2-6b_20260917T1259Z_b5c698f9"), (10**12, f"{PROD}/fea171/combo_stage.py")]
+SEAT_SEED_ANCHOR = 1788624000
+def version_for(table, A): return next(path for until, path in table if A <= until)
+import importlib.util
+_mods = {}
+def shadow_module(path):
+    if path not in _mods:
+        spec = importlib.util.spec_from_file_location("shadow_" + hashlib.sha256(path.encode()).hexdigest()[:8], path); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m); _mods[path] = m
+    return _mods[path]
 sys.path.insert(0, PROD); import shadow_loop_v3 as SL
 T0 = time.time(); log = lambda *a: print(f"[{time.time()-T0:7.0f}s]", *a, flush=True)
 sha = lambda p: hashlib.sha256(open(p, "rb").read()).hexdigest()
@@ -114,6 +127,15 @@ def sig_row(A):
     rows = [r for r in rows if r.get("e") == "signal" and int(r.get("anchor_ts", 0)) == A]; return rows[-1] if rows else None
 fx = HistFetcher(); out = []; recs_p = f"{SB}/PREPLAY_anchors.jsonl"; open(recs_p, "w").close()
 for A in range(A0, A1 + 1, 14400):
+    SLA = SL
+    if TIMELINE:
+        sp_ = version_for(SHADOW_VERSIONS, A); SLA = shadow_module(sp_) if sp_ != f"{PROD}/shadow_loop_v3.py" else SL
+        cp_ = version_for(COMBO_VERSIONS, A); dst_ = f"{WS}/fea171/combo_stage.py"
+        if hashlib.sha256(open(cp_, "rb").read()).hexdigest() != hashlib.sha256(open(dst_, "rb").read()).hexdigest(): shutil.copy2(cp_, dst_); log("combo_stage version →", os.path.basename(cp_), "for", time.strftime("%m-%d %HZ", time.gmtime(A)))
+        if A == SEAT_SEED_ANCHOR and os.path.exists(f"{ARCH}/leg_returns_live.json"):
+            seeded = json.load(open(f"{ARCH}/leg_returns_live.json")); k = (1789689600 - 1788609600) // 14400; lr0 = np.load(f"{PROD}/shadow_bundle/leg_returns.npz")
+            for leg in ("king", "rev24", "fund"): st.LR[leg] = list(lr0[leg]) + list(map(float, seeded[leg][:-k] if k > 0 else seeded[leg]))
+            log("seat seeding applied (production 09-05 12:20Z): LR extras replaced by the seeded series (", len(seeded["king"]) - k, "entries)")
     t1 = time.time(); fx.anchor = A; nfill = prefill(st, A); fx.calls.clear()
     if ONE_STEP:                                                              # one-step mode: producer holdings AND combo recursive state re-seeded from the ARCHIVES every anchor (no compounding)
         wp = f"{ARCH}/weights/{A - 14400}.npz"
@@ -122,8 +144,8 @@ for A in range(A0, A1 + 1, 14400):
         for k_ in ("kc", "fc", "f10"):
             sp_ = f"{ARCH}/state_H/state_H_{k_}_{A - 14400}.npz"
             if os.path.exists(sp_): shutil.copy2(sp_, f"{WS}/fea171/state_H_{k_}_{A - 14400}.npz")
-    SL.run_anchor(st, fx, cfg, booster, A); tp = time.time() - t1
-    rec = {"anchor_ts": A, "utc": time.strftime("%m-%d %HZ", time.gmtime(A)), "prefilled_cells": nfill, "producer_s": round(tp, 1), "fetch_calls": dict(fx.calls), "last_anchor_after": st.last_anchor}
+    SLA.run_anchor(st, fx, cfg, booster, A); tp = time.time() - t1; rec_ver = {"shadow": os.path.basename(version_for(SHADOW_VERSIONS, A)) if TIMELINE else "current", "combo": os.path.basename(version_for(COMBO_VERSIONS, A)) if TIMELINE else "current"}
+    rec = {"anchor_ts": A, "utc": time.strftime("%m-%d %HZ", time.gmtime(A)), "prefilled_cells": nfill, "producer_s": round(tp, 1), "fetch_calls": dict(fx.calls), "last_anchor_after": st.last_anchor, "versions": rec_ver}
     sr = sig_row(A); pr = PROD_SIG.get(A)
     if sr: rec["signal"] = {k: sr.get(k) for k in ("w3", "sel", "members", "base_n", "fund_base_n", "fund_updates", "turnover", "gross_pos", "forced_exit_n", "coverage")}
     if pr: rec["signal_prod"] = {k: pr.get(k) for k in ("w3", "sel", "members", "base_n", "fund_base_n", "fund_updates", "turnover", "gross_pos", "forced_exit_n", "coverage")}
@@ -146,7 +168,7 @@ for A in range(A0, A1 + 1, 14400):
     else: rec["producer"] = "SKIPPED (no target written)"
     out.append(rec); open(recs_p, "a").write(json.dumps(rec) + "\n")
     log(rec["utc"], f"prod {tp:.0f}s combo {rec.get('combo_s')}s rc {rec.get('combo_rc')} | king L1 {(rec.get('king_vs_archive') or {}).get('l1_rel')} max {(rec.get('king_vs_archive') or {}).get('max_abs_dw')} | combo {str((rec.get('combo_vs_archive') or {}).get('l1_rel') if isinstance(rec.get('combo_vs_archive'), dict) else rec.get('combo_vs_archive'))[:60]} | w3 rep {(rec.get('signal') or {}).get('w3')} prod {(rec.get('signal_prod') or {}).get('w3')} | sel {(rec.get('signal') or {}).get('sel')}/{(rec.get('signal_prod') or {}).get('sel')} members {(rec.get('signal') or {}).get('members')}/{(rec.get('signal_prod') or {}).get('members')} base_n {(rec.get('signal') or {}).get('base_n')}/{(rec.get('signal_prod') or {}).get('base_n')} fund_updates {(rec.get('signal') or {}).get('fund_updates')}/{(rec.get('signal_prod') or {}).get('fund_updates')}")
-summary = {"device": "preplay_driver.py", "self_sha256": sha(os.path.abspath(__file__)), "utc": time.strftime("%FT%TZ", time.gmtime()), "sandbox": SB, "anchors": [A0, A1, len(out)], "h_from_archive": H_ARCH, "one_step": ONE_STEP, "ema_from_bundle": EMA_BUNDLE, "init_from_snapshot": SNAP_INIT,
+summary = {"device": "preplay_driver.py", "self_sha256": sha(os.path.abspath(__file__)), "utc": time.strftime("%FT%TZ", time.gmtime()), "sandbox": SB, "anchors": [A0, A1, len(out)], "h_from_archive": H_ARCH, "one_step": ONE_STEP, "ema_from_bundle": EMA_BUNDLE, "init_from_snapshot": SNAP_INIT, "timeline": TIMELINE,
            "producer_sha256": {"shadow_loop_v3.py": sha(f"{PROD}/shadow_loop_v3.py"), "combo_stage.py": sha(f"{WS}/fea171/combo_stage.py"), "f10_live_s42_np.npz": sha(f"{WS}/fea171/f10_live_s42_np.npz"), "slow2026.txt": sha(f"{PROD}/shadow_bundle/slow2026.txt")}, "cache_sha256": sha(CACHE),
            "king_max_abs_dw": max((r.get("king_vs_archive") or {}).get("max_abs_dw", 0) for r in out), "combo_max_abs_dw": max(((r.get("combo_vs_archive") or {}) if isinstance(r.get("combo_vs_archive"), dict) else {}).get("max_abs_dw", 0) for r in out),
            "per_anchor": out}
