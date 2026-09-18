@@ -742,7 +742,7 @@ def main():
             assert _recomputed_identity_sha == cpj["identity_sha256"], ("checkpoint identity_sha256 does not match its own recorded identity block — the "
                                                                         "provenance record was altered (R15-Q3). NB: this is an internal-consistency check; "
                                                                         "identity pins the producing run's inputs/window and is NOT reproducible from this resume")
-        _late_tau = {}; _t_last_by = {}; _fresh_evt = collections.defaultdict(list); _fresh_fill_ts = collections.defaultdict(list); _carried_un_ts = {}
+        _late_tau = {}; _t_last_by = {}; _fresh_evt = collections.defaultdict(list)
         for s, cp in cpj["symbols"].items():
             cp_state[s] = cp
             carried = {r["rid"]: req_from_cp(r) for r in cp["hard"]["requests"]}
@@ -764,35 +764,20 @@ def main():
                 else:
                     carried[rid] = r; _fresh_evt[s] += hard_fact_times(r)   # ★ R15-Q2 (a): a brand-new rid's facts are fresh too — v6 never checked them
             REQ[s] = carried
-            # ★ R16 (resume-path late ATTRIBUTION): a carried UNATTRIBUTED fill is evidence with a PENDING question. New evidence in this window — a request
-            #   that now claims it by trade id, or becomes the unique alive same-side candidate — can answer it. v6 dumped the carried unattributed set
-            #   straight into UN[s] and re-attributed only the FRESH fills, so such a fill never moved onto its request and never consumed that request's
-            #   capacity: a full recompute flagged the over-capacity, a resume read CLEAN. Fix: RE-OFFER the carried unattributed fills to attribution over the
-            #   MERGED request set, exactly as a fresh build does — `attribute_fills` is the SOLE producer of attribution state, on resume as in the fresh
-            #   build, and nothing is carried in a pre-reconciled form. rebalance_id/attempt_idx were not persisted with an unattributed fill (only ts,
-            #   signed lots, obs_time, trade id), so its side is recovered from the sign of the carried signed lots; the trade-id and unique-alive-same-side
-            #   paths apply, the rid/attempt path cannot (by construction of what the checkpoint stored).
-            _on_req = {str(f[3]) for r in carried.values() for f in r["fills"]}                       # trade ids DEFINITIVELY on a carried request are settled, not re-offered
-            _carried_un = [{"ts": u[0], "side": (1 if u[1] >= 0 else -1), "lots": abs(u[1]), "obs_time": u[2], "trade_id": str(u[3]), "rebalance_id": None, "attempt_idx": None}
-                           for u in cp["hard"]["unattributed_fills"] if str(u[3]) not in _on_req]
-            _carried_un_ts[s] = {f["trade_id"]: f["ts"] for f in _carried_un}                          # event times; feed τ only for those that MOVE (below)
-            _fresh = [f for f in fills_by_symbol.get(s, []) if str(f["trade_id"]) not in _on_req and str(f["trade_id"]) not in _carried_un_ts[s]]
-            _fresh_fill_ts[s] = [f["ts"] for f in _fresh]                                              # fresh fills feed τ regardless of attribution (new evidence)
-            fills_by_symbol[s] = _carried_un + _fresh                                                  # carried-unattributed RE-OFFERED alongside fresh, deduped by trade id
-            UN[s] = []                                                                                 # UN[s] is re-derived ONLY by attribute_fills below — no pre-reconciled dump
+            seen = {str(f[3]) for r in carried.values() for f in r["fills"]} | {str(f[3]) for f in cp["hard"]["unattributed_fills"]}
+            fills_by_symbol[s] = [f for f in fills_by_symbol.get(s, []) if str(f["trade_id"]) not in seen]   # a fill already carried is not counted twice
+            # the pre-merge attribution ran before the carried requests existed, so its leftovers are candidates again: DROP the stale
+            # unattributed list and re-derive it below over the merged request set — keeping both would count the same fill twice.
+            UN[s] = [(f[0], f[1], f[2], f[3]) for f in cp["hard"]["unattributed_fills"]]
             if cp["hard"]["unmeasurable_from"]: unmeas[s] = [(t, w) for t, w in cp["hard"]["unmeasurable_from"]] + list(unmeas.get(s) or [])
             if cp.get("marks"): markrows[s] = [tuple(m) for m in cp["marks"]] + markrows.get(s, []); markrows[s].sort()
         UN_new = attribute_fills({s: fills_by_symbol.get(s, []) for s in cp_state}, REQ, notes)              # attribute the NEW fills against the merged set
         for s, v in UN_new.items(): UN[s] = list(UN.get(s, [])) + list(v)
-        for s in cp_state:                                                  # ★ R15-Q2 / R16: the late-evidence τ over EVERY fresh hard fact of the symbol,
-            # computed AFTER all merging and attribution. Contributors: carried-rid merges + brand-new rids (in _fresh_evt); every FRESH fill by its own
-            # event time (new evidence, attributed or not); and — R16 — a carried UNATTRIBUTED fill that MOVED onto a request this resume (its answer
-            # arrived late), which changes the balance at its early event time. A carried unattributed fill that STAYED unattributed is unchanged (it was in
-            # U_k before and after), so it does NOT feed τ — else every resume with leftover fills would rebuild spuriously and break restart parity.
-            _still_un = {str(x[3]) for x in UN.get(s, [])}
-            _moved_un_ts = [ts for tid, ts in _carried_un_ts.get(s, {}).items() if tid not in _still_un]
-            if _moved_un_ts: notes["resume_unattributed_fill_now_attributed"] += 1                    # R16: a previously-pending fill's answer arrived and it moved onto a request
-            _evt = list(_fresh_evt.get(s, [])) + list(_fresh_fill_ts.get(s, [])) + _moved_un_ts
+        for s in cp_state:                                                  # ★ R15-Q2: the late-evidence τ over EVERY fresh hard fact of the symbol, computed
+            # AFTER all merging and attribution — carried-rid merges (already collected), brand-new rids (a), and fills attributed post-merge (b). v6 only
+            # saw carried-rid merges (its check sat inside `if rid in carried`, before attribution), so a new rid and a late fill both escaped and the
+            # carried prefix was never rebuilt. A fresh fill counts by its own event time whether attribution attached it to a request or left it unattributed.
+            _evt = list(_fresh_evt.get(s, [])) + [f["ts"] for f in fills_by_symbol.get(s, [])]
             _tl = _t_last_by.get(s)
             _late = [t for t in _evt if t is not None and _tl is not None and t <= _tl + 1e-9]
             if _late: _late_tau[s] = min(_late); notes["resume_late_hard_fact"] += 1
