@@ -403,7 +403,7 @@ assert len(_conds_stmt) == 1, "the closure condition assignment moved"
 def _eval_conds(part, **kw):
     env = {"n_ok": 6, "gap_ok": [{}] * 6,   # the predecessor has no _resid_unmeasured; harmless there
             "_cens_names": 0, "_resid_over": 0, "_resid_unmeasured": 0, "_join_over": 0,
-            "_pnl_finite": True, "_resid_next_nonfinite": 0,   # R15-M1 (a v5 predecessor without these names ignores them)
+            "_no_nonfinite_published": True, "_resid_next_nonfinite": 0,   # R15-M1 (a v5 predecessor without these names ignores them)
            "win_cov": 77400, "gap_cov": 9000, "out": {"day_fill_partition": part}}
     env.update(kw)
     exec(compile(_ast.Module(body=[_conds_stmt[0]], type_ignores=[]), DEV, "exec"), env)
@@ -439,7 +439,7 @@ def _writel_q(p, rows):
     os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "w").write("".join(json.dumps(r) + "\n" for r in rows))
 
 
-def build_full_day(name, *, nan_readback_k=None, mid_fill=None, extra_fills=(), run_days=(DAY,)):
+def build_full_day(name, *, nan_readback_k=None, mid_fill=None, extra_fills=(), run_days=(DAY,), nan_weight=False):
     """A synthetic full 24h day: 6 windows, 6 gaps, flat prices, a held AUSDT position at every anchor — it CLOSES. Mutations expose the round-15
     defects. Runs the REAL device as a subprocess for each day in run_days (nothing mocked) and returns {day: parsed json}."""
     root = os.path.join(SCR, name); shutil.rmtree(root, ignore_errors=True)
@@ -479,8 +479,8 @@ def build_full_day(name, *, nan_readback_k=None, mid_fill=None, extra_fills=(), 
         _writel_q(f"{repo}/state/live/pilot_log/{d}/position_readback.jsonl", rb_by_day.get(d, []))
         _writel_q(f"{repo}/state/live/pilot_log/{d}/fills.jsonl", fills_by_day.get(d, []))
     os.makedirs(f"{ws}/state/target_live", exist_ok=True); os.makedirs(f"{ws}/fea171", exist_ok=True)
-    for k in range(0, 6):
-        json.dump({"anchor_ts": A + 14400 * k, "weights": {"AUSDT": 1.0}}, open(f"{ws}/state/target_live/{A + 14400 * k}.json", "w"))
+    for k in range(0, 6):   # nan_weight: a PRODUCER weight (never routed through the per-name ledger gate) goes non-finite — an "unpatched" injection
+        json.dump({"anchor_ts": A + 14400 * k, "weights": {"AUSDT": (float("nan") if nan_weight else 1.0)}}, open(f"{ws}/state/target_live/{A + 14400 * k}.json", "w"))
     np.savez(f"{ws}/fea171/xfer_syms.npz", symbols=np.array(syms))
     ts = np.arange(A - 8 * 3600 - 28800, A + 86400 + 7200 + 300, 300, dtype=np.int64)
     np.savez(f"{ws}/state/rolling.npz", ts=ts, data=np.zeros((len(ts), len(syms), 1), np.float64))
@@ -497,7 +497,7 @@ def build_full_day(name, *, nan_readback_k=None, mid_fill=None, extra_fills=(), 
 _q0 = build_full_day("q_fullday_baseline")[DAY]; _fa0 = _q0["day_actual_full_day"]
 check("Q0 positive control: a full 24h day (6 windows, 6 gaps, flat prices, a held position) closes with closed=True and finite P&L, incl. the round-15 conditions",
       _fa0["closed"] is True and _fa0["priced_period_pnl_usdt"] == 0.0 and set(_fa0["closure_conditions"]) >=
-      {"all_priced_pnl_finite", "readback_next_finite", "no_current_day_fill_outside_priced_intervals"}, _fa0["closure_conditions"])
+      {"no_nonfinite_in_published_figures", "readback_next_finite", "no_current_day_fill_outside_priced_intervals"}, _fa0["closure_conditions"])
 
 # Q1 (R15-M1) — a NaN readback quantity used as a window's q0: v6 kept closed=True with a NaN day P&L; now the name is CENSORED and the day refuses, finitely.
 _q1 = build_full_day("q_nan_readback", nan_readback_k=2)[DAY]; _fa1 = _q1["day_actual_full_day"]
@@ -509,7 +509,7 @@ check("Q1 a NaN carried quantity is CENSORED (nonfinite_start_qty), never a clea
 _q2 = build_full_day("q_nan_next", nan_readback_k=6)[DAY]; _fa2 = _q2["day_actual_full_day"]
 check("Q2 a NaN NEXT readback is not a clean zero residual: readback_next_finite is False and the day refuses even though no name is censored and every total is finite",
       _fa2["closed"] is False and _fa2["closure_conditions"]["readback_next_finite"] is False
-      and _fa2["closure_conditions"]["no_censored_names"] is True and _fa2["closure_conditions"]["all_priced_pnl_finite"] is True, _fa2["closure_conditions"])
+      and _fa2["closure_conditions"]["no_censored_names"] is True and _fa2["closure_conditions"]["no_nonfinite_in_published_figures"] is True, _fa2["closure_conditions"])
 
 # Q3 (R15-M1) — the gap carry the reviewer flagged (pnl_path.py lines 513-516), exercised directly: a NaN carried qty_end is DISTINCT from unknown_start_qty.
 class _MiniPanelN:
@@ -525,12 +525,12 @@ check("Q3 a non-finite carried qty_end is censored `nonfinite_carried_qty` (its 
       and _gN.get("n_unknown_start_qty", 0) == 0 and _gN.get("n_nonfinite_carried", 0) == 1, {k: _gN.get(k) for k in ("status", "n_priced", "censored", "n_nonfinite_carried")})
 
 # Q4 (R15-M1) — the closure expression itself (evaluated, not string-matched): a non-finite total or a non-finite next readback breaks closure; controls are green.
-_nan_tot = _eval_conds({"disjoint": True, "no_repeat_within_side": True, "covers_population": True}, _pnl_finite=False)
-check("Q4 a non-finite priced P&L breaks `all_priced_pnl_finite` — the per-segment results and day totals are guarded, not just the inputs", _nan_tot.get("all_priced_pnl_finite") is False, _nan_tot)
+_nan_tot = _eval_conds({"disjoint": True, "no_repeat_within_side": True, "covers_population": True}, _no_nonfinite_published=False)
+check("Q4 a non-finite in ANY published figure breaks `no_nonfinite_in_published_figures` — the single source-agnostic checkpoint, not a per-source isfinite", _nan_tot.get("no_nonfinite_in_published_figures") is False, _nan_tot)
 _nan_next = _eval_conds({"disjoint": True, "no_repeat_within_side": True, "covers_population": True}, _resid_next_nonfinite=1)
-check("Q4b a non-finite next readback breaks `readback_next_finite`", _nan_next.get("readback_next_finite") is False, _nan_next)
+check("Q4b a non-finite next readback (dropped before any sum) breaks `readback_next_finite`", _nan_next.get("readback_next_finite") is False, _nan_next)
 _fin_green = _eval_conds({"disjoint": True, "no_repeat_within_side": True, "covers_population": True})
-check("Q4c CONTROL: finite totals and finite next readbacks ⇒ both finiteness conditions True", _fin_green.get("all_priced_pnl_finite") is True and _fin_green.get("readback_next_finite") is True, _fin_green)
+check("Q4c CONTROL: finite figures and finite next readbacks ⇒ both finiteness conditions True", _fin_green.get("no_nonfinite_in_published_figures") is True and _fin_green.get("readback_next_finite") is True, _fin_green)
 
 # Q5 (R15-M2) — a fill exactly at midnight t==d0 is bound to the PREVIOUS day under the stated (00,24] contract, not left as a closure footnote.
 _q5 = build_full_day("q_midnight", mid_fill={"symbol": "MIDUSDT", "t": A, "px": 100.0, "qty": 5.0})[DAY]; _dfp5 = _q5["day_fill_partition"]
@@ -564,8 +564,20 @@ check("Q7c next-midnight (t==d0+86400) and this-interior belong to THIS day; pre
 # Q8 — the device PUBLISHES the day-boundary contract and the adjacency populations it now binds attribution to (not just a bare footnote count).
 check("Q8 the device publishes the day-boundary contract, the owned/adjacent populations and the round-15 finiteness evidence",
       set(_q5["day_fill_partition"]) >= {"day_owns", "n_owned_current_day", "n_adjacent_prev_day", "n_adjacent_next_day", "owned_fill_keys"}
-      and set(_fa0) >= {"all_priced_pnl_finite", "n_nonfinite_next_readback", "n_day_fills_outside_every_priced_interval", "n_adjacent_prev_day_fills"},
+      and set(_fa0) >= {"no_nonfinite_in_published_figures", "n_nonfinite_next_readback", "n_day_fills_outside_every_priced_interval", "n_adjacent_prev_day_fills"},
       {"dfp": sorted(_q5["day_fill_partition"]), "fa": sorted(_fa0)})
+
+# Q9 (R15-M1 STRUCTURAL) — THE class-shaped proof the reviewer asked for: introduce a non-finite value on a path I did NOT explicitly patch, and show
+# closure still refuses. A PRODUCER weight (target_live) goes NaN; it is never read through any per-name ledger gate, so NO name is censored and no
+# per-source isfinite fires — the NaN flows into the L0 layer and the day totals, and the SINGLE source-agnostic checkpoint refuses closure. A fix that
+# only "added isfinite where NaN currently leaks" would sail past this (it never patched the producer-weight path); the structural checkpoint catches it.
+_q9 = build_full_day("q_nonfinite_unpatched", nan_weight=True)[DAY]; _fa9 = _q9["day_actual_full_day"]; _c9 = _fa9["closure_conditions"]
+check("Q9 a NaN on an UNPATCHED path (a producer weight) refuses closure via no_nonfinite_in_published_figures ALONE — no name censored, no per-source check fired",
+      _fa9["closed"] is False and _c9["no_nonfinite_in_published_figures"] is False and _c9["no_censored_names"] is True
+      and _c9["readback_next_finite"] is True and _c9["no_unknown_start_qty_in_gaps"] is True,
+      {"closed": _fa9["closed"], "no_nonfinite_in_published_figures": _c9["no_nonfinite_in_published_figures"], "no_censored_names": _c9["no_censored_names"]})
+check("Q9b and the checkpoint is source-agnostic: the L0 producer day total is where this particular NaN surfaced (a different field would surface elsewhere and still refuse)",
+      not _math.isfinite(_q9["day_totals_over_ok_anchors_usdt"]["L0_producer"]), _q9["day_totals_over_ok_anchors_usdt"])
 
 check("Z baseline was green before the red cases were read", baseline_green)
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")

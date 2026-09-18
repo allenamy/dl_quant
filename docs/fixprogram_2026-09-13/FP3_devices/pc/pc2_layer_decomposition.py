@@ -27,6 +27,25 @@ import sys, os, json, time, hashlib, collections, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pnl_path as PP
 
+
+def all_finite_tree(o):
+    """R15-M1 (STRUCTURAL): False iff ANY float anywhere in the nested structure is non-finite (NaN/inf). This is the SINGLE finiteness checkpoint that
+    every PUBLISHED number passes through on its way into the day figures, so a value whose measurement status is UNKNOWN cannot appear in any sum, bound
+    or per-name figure with closed=True — regardless of which field or code path introduced it, patched or not. Source-agnostic by construction: a NEW
+    value added to the path inherits the guard (its NaN surfaces in a published figure and refuses closure) instead of needing its own isfinite. pnl_path
+    already treats a non-finite PANEL row as first-class (np.isfinite at pnl_path.py L98); this extends the same first-class status to the quantity /
+    notional / price path and every figure the day publishes. Ints / bools / strings / None are not measurements-in-a-sum and are ignored; numpy floats
+    are `float` subclasses and are covered."""
+    if isinstance(o, bool):
+        return True
+    if isinstance(o, float):
+        return math.isfinite(o)
+    if isinstance(o, dict):
+        return all(all_finite_tree(v) for v in o.values())
+    if isinstance(o, (list, tuple)):
+        return all(all_finite_tree(v) for v in o)
+    return True
+
 DAY, OUT = sys.argv[1], sys.argv[2]
 d0 = int(time.mktime(time.strptime(DAY, "%Y%m%d")) - time.timezone); anchors = [d0 + 14400 * k for k in range(6)]
 panel = PP.Panel(); L = PP.LedgerDay(DAY)
@@ -128,15 +147,18 @@ _resid_over = sum(r["unexplained_qty_residual"]["n_over_1usdt"] for r in _ok_rec
 _resid_unmeasured = sum(1 for r in _ok_recs if (r.get("unexplained_qty_residual") or {}).get("status") != "CHECKED")
 _resid_states = dict(collections.Counter((r.get("unexplained_qty_residual") or {}).get("status") for r in _ok_recs))
 _join_over = sum((r.get("price_chain_joins") or {}).get("n_over_1pct", 0) for r in _ok_recs)
-# ★ R15-M1: FINITENESS at the closure end. The pnl_path device censors a non-finite INPUT (q0 / reference notional / fill / carried qty / next
-#   readback) upstream, so it surfaces here as a censored name (no_censored_names) or a non-finite next readback. This condition additionally guards
-#   the PER-SEGMENT results and the DAY TOTALS: a NaN comparison is always False, so without an explicit finiteness gate a NaN priced_period_pnl
-#   would report a zero residual, a zero over-tolerance count and closed=True. `all(math.isfinite(...))` is True on an empty iterable, which is
-#   harmless because day_actual_full_day is None when n_ok == 0.
-_finite_totals = all(math.isfinite(x) for x in list(tot.values()) + [gap_pnl_sum, fill_corr_windows, gap_corr])
-_finite_windows = all(math.isfinite(v["pnl_usdt"]) for r in _ok_recs for v in r["layers"].values())
-_finite_gaps = all(math.isfinite(g["pnl_usdt"]) for g in gap_ok)
-_pnl_finite = _finite_totals and _finite_windows and _finite_gaps
+# ★ R15-M1 (STRUCTURAL, review round 15): finiteness is a FIRST-CLASS closure condition — the class is "an UNKNOWN value entering arithmetic as an
+#   identity element" (R14-M1 unmeasured readback = 0 residual, R14-M2 unknown carry = 0 position, R15-M1 NaN = clean 0 difference), fixed instance by
+#   instance before and it reappeared each time. The structural fix is ONE source-agnostic checkpoint every PUBLISHED number passes through: no
+#   non-finite float may appear in ANY day figure — the OK-window layer summaries, the gaps, the residual/join sums, the censored notionals, the day
+#   totals — with closed=True, no matter which field or path introduced it. A new value added to the path inherits the guard automatically (its NaN
+#   surfaces in some published figure) instead of needing its own isfinite. The pnl_path per-name gates still CENSOR a non-finite INPUT cleanly with a
+#   named reason; this checkpoint is the backstop that catches anything they do not.
+_published_numeric = [tot, cens_tot, fees, {"gap_pnl_sum": gap_pnl_sum, "gap_corr": gap_corr, "fill_corr_windows": fill_corr_windows, "ls_tot": ls_tot},
+                      out.get("day_gap_totals"), out.get("day_coverage"), _ok_recs, gap_ok]
+_no_nonfinite_published = all(all_finite_tree(o) for o in _published_numeric)
+# The reconciliation COMPARISON is the one place an unknown is DROPPED before it can reach a published sum: a non-finite next readback makes dq NaN,
+# which `abs(dq) > tol` reads as False (a clean zero residual) and which pnl_path does not add to `resid`. It is guarded here, at the comparison.
 _resid_next_nonfinite = sum((r.get("unexplained_qty_residual") or {}).get("n_nonfinite_next_readback", 0) for r in _ok_recs)   # R15-M1
 _conds = {"six_windows_priced": n_ok == 6, "six_gaps_priced": len(gap_ok) == 6, "no_censored_names": _cens_names == 0,
           "readback_residual_measured": _resid_unmeasured == 0,                                   # R14-M1: unmeasured ≠ zero
@@ -144,8 +166,8 @@ _conds = {"six_windows_priced": n_ok == 6, "six_gaps_priced": len(gap_ok) == 6, 
           "fills_partitioned": bool(out["day_fill_partition"]["disjoint"]) and bool(out["day_fill_partition"]["no_repeat_within_side"]),   # R14-M3
           "fill_population_covered": bool(out["day_fill_partition"]["covers_population"]),         # R14-M3: the union vs the full population
           "no_unknown_start_qty_in_gaps": sum(g.get("n_unknown_start_qty", 0) for g in gap_ok) == 0,   # R14-M2
-          "all_priced_pnl_finite": _pnl_finite,                                                   # R15-M1: per-segment results and day totals are finite
-          "readback_next_finite": _resid_next_nonfinite == 0,                                     # R15-M1: a non-finite next readback is not a clean zero residual
+          "no_nonfinite_in_published_figures": _no_nonfinite_published,                          # R15-M1 STRUCTURAL: no unknown value is published in any sum/bound/figure as measured, from any source
+          "readback_next_finite": _resid_next_nonfinite == 0,                                     # R15-M1: a non-finite next readback (dropped before any sum) is guarded at the comparison
           "no_current_day_fill_outside_priced_intervals": out["day_fill_partition"].get("n_day_fills_outside_every_priced_interval", 0) == 0,   # R15-M2
           "coverage_full_day": int(win_cov + gap_cov) == 86400}
 out["day_actual_full_day"] = {"windows_pnl_usdt": tot.get("L3_actual_path", 0.0), "gaps_pnl_usdt": gap_pnl_sum,
@@ -155,7 +177,7 @@ out["day_actual_full_day"] = {"windows_pnl_usdt": tot.get("L3_actual_path", 0.0)
                               "n_censored_names": int(_cens_names), "n_readback_residual_over_1usdt": int(_resid_over), "n_price_chain_joins_over_1pct": int(_join_over),
                               "n_windows_readback_unmeasured": int(_resid_unmeasured), "readback_residual_states": _resid_states,
                               "n_unknown_start_qty_in_gaps": int(sum(g.get("n_unknown_start_qty", 0) for g in gap_ok)),
-                              "all_priced_pnl_finite": bool(_pnl_finite), "n_nonfinite_next_readback": int(_resid_next_nonfinite),   # R15-M1
+                              "no_nonfinite_in_published_figures": bool(_no_nonfinite_published), "n_nonfinite_next_readback": int(_resid_next_nonfinite),   # R15-M1
                               "n_day_fills_outside_every_priced_interval": int(_pop_out),                                            # R15-M2
                               "n_adjacent_prev_day_fills": int(_adj_prev), "n_adjacent_next_day_fills": int(_adj_next),              # R15-M2
                               "closure_conditions": _conds, "closed": all(_conds.values()),
