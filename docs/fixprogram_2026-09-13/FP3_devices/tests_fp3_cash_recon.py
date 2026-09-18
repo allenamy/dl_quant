@@ -43,4 +43,12 @@ check("★ R7-C2 (v3 PARTIAL/100): the same-call snapshot (mark 110) is used, no
 case = {"daily_nav": [n0], "position_readback": [r0q], "_extra_days": {"20260913": {"daily_nav": [dict(n1, nav=1100)], "position_readback": [later]}}}
 j = run("no_snapshot_at_nav", case); w = j["nav_identity"]["windows"][0]
 check("timing control: the only readback is 10 min after the NAV row ⇒ UNAVAILABLE_TIMING, not a residual", j["VERDICT"] == "UNAVAILABLE" and w.get("status", "").startswith("UNAVAILABLE_TIMING"), (j["VERDICT"], w))
+r0q = rb(20 * 3600 + 1800, 10, 100); r1q = rb(86400 + 20 * 3600 + 1800, 10, 110); late5 = rb(86400 + 20 * 3600 + 1805, 10, 100)
+case = {"daily_nav": [n0], "position_readback": [r0q], "_extra_days": {"20260913": {"daily_nav": [dict(n1, nav=1100)], "position_readback": [r1q, late5]}}}
+j = run("late_5s_readback", case); w = j["nav_identity"]["windows"][0]
+check("★ R7B-C1 (v4 used the +5 s row): a readback 5 s after the NAV-time snapshot is a DIFFERENT snapshot (different read_ts) and is never merged ⇒ residual 0, RECONCILED, 2 snapshots within tolerance recorded", j["VERDICT"] == "RECONCILED" and w["residual"] == 0 and w["snapshot_meta"][1]["n_snapshots_within_tol"] == 2 and w["snapshot_meta"][1]["n_rows"] == 1, (j["VERDICT"], w))
+dup = dict(r1q, venue_position_qty=10, venue_position_notional=1000)          # same read_ts, same symbol, different mark ⇒ conflict
+case = {"daily_nav": [n0], "position_readback": [r0q], "_extra_days": {"20260913": {"daily_nav": [dict(n1, nav=1100)], "position_readback": [r1q, dup]}}}
+j = run("snapshot_conflict", case); w = j["nav_identity"]["windows"][0]
+check("conflict control: a symbol repeated inside one snapshot with different values ⇒ UNAVAILABLE_CONFLICT, never a silent overwrite", j["VERDICT"] == "UNAVAILABLE" and w.get("status", "").startswith("UNAVAILABLE_CONFLICT"), (j["VERDICT"], w))
 print(f"RESULT {len(res) - len(fails)}/{len(res)} pass", "FAILS:" if fails else "", fails); sys.exit(1 if fails else 0)

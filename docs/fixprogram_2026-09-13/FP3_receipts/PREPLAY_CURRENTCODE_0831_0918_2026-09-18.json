@@ -1,7 +1,7 @@
 {
  "device": "pb_archive.py",
- "self_sha256": "33abb618cfa7aa967126686fe120387a3c508cd254f579ac33ea1abc1fb04b2d",
- "utc": "2026-09-18T03:06:48Z",
+ "self_sha256": "4077960f9c281404536920b7463f241a01bb5de8879e9311692fc68c472581a5",
+ "utc": "2026-09-18T04:09:33Z",
  "label": "currentcode_v3",
  "run_dir": "preplay/sb_full",
  "driver": {
@@ -11,8 +11,22 @@
  "n_anchors": 109,
  "first": "08-31 00Z",
  "last": "09-18 00Z",
- "members_symdiff_all_zero": true,
- "combo_rc_all_zero": true,
+ "members_symdiff": "UNAVAILABLE (109 anchors without the observation)",
+ "combo_rc": "ALL_ZERO",
+ "per_anchor_increases": {
+  "king_l1_up_steps": 61,
+  "combo_l1_up_steps": 57,
+  "n_steps": 108,
+  "note": "phase means decline; per-anchor L1 is NOT monotone"
+ },
+ "last_anchor": {
+  "utc": "09-18 00Z",
+  "king_l1_rel": 0.13962788267537887,
+  "combo_l1_rel": 0.11158220776576176,
+  "king_max_abs_dw": 0.001467068672446402,
+  "combo_max_abs_dw": 0.001598462311562065,
+  "king_n_diff_gt_1e-6": 241
+ },
  "phases": [
   {
    "from": "08-31 00Z",
@@ -2049,5 +2063,5 @@
    }
   }
  ],
- "reads": "same producer/combo bytes as production at each anchor (versions per row), HistFetcher = the only injection (klines from the research cache prefill, exchangeInfo inferred from 24h settlements, fundingRate from the producer's own ledger); bootstrap state from the bundle + causal corrections, NOT the true 08-30 production state \u21d2 the residual is initial-state lineage decaying; from the seeding anchor on the seat vector equals production's (w3 diff 0)"
+ "reads": "same producer/combo bytes as production at each anchor (versions per row), HistFetcher = the only injection (klines from the research cache prefill, exchangeInfo inferred from 24h settlements, fundingRate from the producer's own ledger); bootstrap state from the bundle + causal corrections, NOT the true 08-30 production state \u21d2 the residual has NOT been attributed (candidates: bootstrap-state lineage, member-list/fetch approximations, missing-support inputs); a seat vector equal to 4 decimals does not prove the leg-return histories are equal"
 }

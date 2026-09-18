@@ -13,7 +13,7 @@
  (6) every mismatch anchor is classified: flatten bucket / single-name / OTHER (named; R04: 2026-08-02 08Z).
 usage: fp3_cash_recon.py <out.json> [from_day] [to_day]"""
 import glob, hashlib, json, os, sys, time, collections
-VERSION = "v5-2026-09-18"
+VERSION = "v4-2026-09-18"
 LED = os.environ.get("FP3_LEDGER_ROOT") or os.path.expanduser("~/dl_quant_live/state/live/pilot_log"); OUT = sys.argv[1]   # env override exists only so the review fixtures run the exact module
 SNAP_TOL_S = float(os.environ.get("FP3_SNAP_TOL_S", "60"))   # a NAV row and its position snapshot must come from the same account call: |read_ts − nav_ts| ≤ 60 s (real ledgers: ≤ 5 s)
 BNB_P = os.path.join(os.path.dirname(os.path.abspath(OUT)), "BNBUSDT_daily_20260801_20260918.json")
@@ -45,7 +45,7 @@ for r in fills: r["_pop"] = "REGULAR" if r.get("order_type") in REGULAR else ("P
 qty_of = lambda r: float(r["fill_notional"]) / float(r["fill_px"]) if float(r["fill_px"]) else 0.0
 sgn = lambda r: 1.0 if str(r.get("side", "")).upper() == "BUY" else -1.0
 # ── readbacks / nav rows / funding ──
-readbacks = sorted((r for d in days for r in rows(d, "position_readback")), key=lambda r: float(r["read_ts"])); SNAP_META = {}
+readbacks = sorted((r for d in days for r in rows(d, "position_readback")), key=lambda r: float(r["read_ts"]))
 FLAT = sorted({(day_of(r["read_ts"]), int(round(float(r["read_ts"]) / 60) * 60)) for r in readbacks if "flatten" in str(r.get("source"))})
 rb_by_anchor = collections.defaultdict(dict)
 for r in readbacks: rb_by_anchor[int(float(r["anchor_ts"]) // 14400 * 14400)][r["symbol"]] = r
@@ -96,25 +96,17 @@ while fi < len(fills): apply_fill(fills[fi]); fi += 1
 nav_seq = sorted(nav_rows.values(), key=lambda r: float(r["nav_ts"])); windows = []; fill_i = 0
 fills_sorted = fills
 def marks_at(ts):
-    """v5 (R7B-C1): a SNAPSHOT is the set of readback rows sharing one exact `read_ts` (the executor stamps every row of one account call with the same
-    float; real ledgers: spread 0.0 within a call, no duplicate (read_ts, symbol)). Among snapshots within SNAP_TOL_S of nav_ts the nearest is used;
-    other snapshots inside the tolerance are counted, never merged. A symbol repeated inside the chosen snapshot with different qty/notional is a CONFLICT
-    ⇒ (None, "CONFLICT"). Nothing within tolerance ⇒ (None, None) ⇒ UNAVAILABLE_TIMING. Time proximity alone is never treated as identity."""
+    """R7-C2 fix: the marks for a NAV row are the readback SNAPSHOT taken by the same call — rows whose read_ts is within SNAP_TOL_S of nav_ts (the
+    snapshot with the smallest |Δ| wins; rows of that snapshot are grouped within 10 s of each other). A later readback in the same 4h bucket is never
+    used. No snapshot within tolerance ⇒ (None, None): the window is UNAVAILABLE_TIMING, not a residual."""
     ts = float(ts); cand = [r for r in readbacks if abs(float(r["read_ts"]) - ts) <= SNAP_TOL_S]
     if not cand: return None, None
-    groups = collections.defaultdict(list)
-    for r in cand: groups[float(r["read_ts"])].append(r)
-    st = min(groups, key=lambda k: (abs(k - ts), k)); snap = {}; conflict = False
-    for r in groups[st]:
-        s_ = r["symbol"]
-        if s_ in snap and (float(snap[s_]["venue_position_qty"]) != float(r["venue_position_qty"]) or float(snap[s_]["venue_position_notional"]) != float(r["venue_position_notional"])): conflict = True
-        snap[s_] = r
-    SNAP_META[ts] = {"chosen_read_ts": st, "n_rows": len(groups[st]), "n_snapshots_within_tol": len(groups), "conflict": conflict}
-    if conflict: return None, "CONFLICT"
+    best = min(cand, key=lambda r: abs(float(r["read_ts"]) - ts)); st = float(best["read_ts"]); snap = {}
+    for r in cand:
+        if abs(float(r["read_ts"]) - st) <= 10.0: snap[r["symbol"]] = r
     return {s: (float(r["venue_position_qty"]), (abs(float(r["venue_position_notional"])) / abs(float(r["venue_position_qty"]))) if float(r["venue_position_qty"]) else 0.0) for s, r in snap.items()}, st
 for i in range(1, len(nav_seq)):
     r0, r1 = nav_seq[i - 1], nav_seq[i]; t0, t1 = float(r0["nav_ts"]), float(r1["nav_ts"]); m0, rt0 = marks_at(t0); m1, rt1 = marks_at(t1)
-    if rt0 == "CONFLICT" or rt1 == "CONFLICT": windows.append({"from": U(t0), "to": U(t1), "status": "UNAVAILABLE_CONFLICT (a symbol repeated with different values inside the chosen snapshot)", "snapshot_meta": [SNAP_META.get(t0), SNAP_META.get(t1)]}); continue
     if m0 is None or m1 is None: windows.append({"from": U(t0), "to": U(t1), "status": "UNAVAILABLE_TIMING (no position snapshot within %ds of the NAV row)" % SNAP_TOL_S}); continue
     # all flows are bound to the NAV interval (t0, t1]; fills/funding falling between a snapshot and its NAV row are counted and, if any, void the window
     fw = [f for f in fills_sorted if t0 < float(f["fill_ts"]) <= t1]; cash = collections.defaultdict(float); q_rec = collections.defaultdict(float)
@@ -136,7 +128,7 @@ for i in range(1, len(nav_seq)):
     fees_v = -float(bt1["COMMISSION"]) if (std_window and bt1.get("COMMISSION") is not None and (r1.get("realised_by_type_asset") or {}).get("COMMISSION")) else None
     explained_v = (term + fund_v - (fees_v if fees_v is not None else fees)) if fund_v is not None else None; resid_v = (dnav - explained_v) if explained_v is not None else None
     tol = max(2.0, 0.5e-4 * float(r0["nav"]))
-    windows.append({"from": U(t0), "to": U(t1), "hours": round((t1 - t0) / 3600, 2), "snapshot_ts": [U(rt0), U(rt1)], "snapshot_minus_nav_s": [round(rt0 - t0, 1), round(rt1 - t1, 1)], "snapshot_meta": [SNAP_META.get(t0), SNAP_META.get(t1)], "dnav_ex_flow": round(dnav, 2), "mtm_positions_and_fills": round(term, 2), "funding": round(fund, 2), "fees": round(fees, 2), "explained": round(explained, 2), "residual": round(resid, 2),
+    windows.append({"from": U(t0), "to": U(t1), "hours": round((t1 - t0) / 3600, 2), "snapshot_ts": [U(rt0), U(rt1)], "snapshot_minus_nav_s": [round(rt0 - t0, 1), round(rt1 - t1, 1)], "dnav_ex_flow": round(dnav, 2), "mtm_positions_and_fills": round(term, 2), "funding": round(fund, 2), "fees": round(fees, 2), "explained": round(explained, 2), "residual": round(resid, 2),
                     "diag_calendar_substitute": {"funding_venue_calendar": None if fund_v is None else round(fund_v, 2), "fees_venue_calendar": None if fees_v is None else round(fees_v, 2), "residual_calendar_substitute": None if resid_v is None else round(resid_v, 2), "NOT_A_GATE": True},
                     "tol": round(tol, 2), "n_fills": len(fw), "position_gaps": gaps[:10], "n_gaps": len(gaps), "ok": abs(resid) <= tol and not gaps})
 n_ok = sum(1 for w in windows if w.get("ok")); n_un = sum(1 for w in windows if "status" in w); n_bad = len(windows) - n_ok - n_un

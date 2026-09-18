@@ -12,6 +12,13 @@ nsel / 成员数 / 当锚触发数 / 三腿贡献(LEGC 同式) / w3 腿权; 权�
 输出: probe_artifacts/w10_ablation_series.npz + w10_ablation_summary.json。只读数据, 不碰实盘仓。
 """
 import os as _os; OVERLAY_FN = None; OVERLAY_SPEC = _os.environ.get("OVERLAY", "none")
+def _neutral_scale_down(v):
+    """joint feasibility after an overlay: restore Σw = 0 by scaling DOWN the heavier side only (never scales up ⇒ no cap can be re-breached; gross may fall)"""
+    import numpy as _np
+    fin = _np.isfinite(v); L = float(v[fin & (v > 0)].sum()); S = float(-v[fin & (v < 0)].sum())
+    if L > 1e-12 and S > 1e-12 and abs(L - S) > 1e-12:
+        return _np.where(fin & (v > 0), v * (S / L), v) if L > S else _np.where(fin & (v < 0), v * (L / S), v)
+    return v
 if OVERLAY_SPEC != "none":
     import importlib.util as _iu; _sp = _iu.spec_from_file_location("w10_overlays", _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "w10_overlays.py")); _mo = _iu.module_from_spec(_sp); _sp.loader.exec_module(_mo); OVERLAY_FN = _mo.make(OVERLAY_SPEC)
 import json, time, sys, os
@@ -191,7 +198,7 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
     H = np.zeros(NW); HR = np.zeros(NW); Pi = np.ones(NW); sh = np.zeros(NW); cb = np.zeros(NW)
     HF = np.zeros(NW); HB = np.zeros(NW)      # F10 书自己的 EMA 态 / 上一锚的混合书
     cnt = np.zeros(NW, int); su = np.full(NW, -1)
-    rec = []; WS = []
+    rec = []; WS = []; HRS = []
     for i in range(nA):
         j = pw_row.get(int(E_ts[i]))
         if j is None: continue
@@ -283,7 +290,6 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
             smb = sm
         _smk = sm                     # ★ king 书自己的 sm 必须留住: 它的 EMA 态独立推进
         sm = smb                      # 此后一切记账(盈亏/成本/carry/深度)都在混合书上
-        if OVERLAY_FN is not None: sm = OVERLAY_FN(sm, dict(i=i, j=j, m=m, y4=y4, FN=FN, IV=IV, HB=HB, FZ=FZ, sel=sel, capw=capw, NW=NW))   # FP3-R overlay hook (book-layer rule on the traded book; leg EMA states untouched)
         trade = sm - HB
         nz = np.abs(sm) > 1e-12
         smr = sm.copy()
@@ -292,6 +298,9 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
             _g0 = np.abs(sm).sum(); _g1 = np.abs(smr).sum()
             if _g1 > 1e-9:
                 smr *= _g0 / _g1
+        if OVERLAY_FN is not None:                       # FP3-R hook, relocated (R7B-R1, 2026-09-18): the rule acts on the FINAL accounted book smr (after the
+            smr = OVERLAY_FN(smr, dict(i=i, j=j, m=m, y4=y4, FN=FN, IV=IV, HB=HB, FZ=FZ, sel=sel, capw=capw, NW=NW))   # executor-style demean + gross restore), and the
+            smr = _neutral_scale_down(smr)               # joint step only SCALES DOWN the heavier side (neutral restored, caps never re-breached, gross may drop)
         trr = smr - HR
         tr = tier_of(qv4h); tabs = np.abs(trade[m])
         cbps = sum(tabs[tr == tt].sum() * (fr * mk + (1 - fr) * tk) for tt, (mk, tk, fr) in enumerate(COST_B))
@@ -332,17 +341,17 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
         rec.append((int(E_ts[i]), float(pnl_raw - car - cbps), pnl_raw, float(car), float(cbps), gt, gm, gsel, int(sel.sum()), int(len(m)), fires_i,
                     legc[0], legc[1], legc[2], float(w3[0]), float(w3[1]), float(w3[2]), float(np.abs(trade).sum()),
                     float(pnl_r - car_r - cbps_r), pnl_r, car_r, float(cbps_r), netlong))
-        WS.append(sm.astype(np.float32))
+        WS.append(sm.astype(np.float32)); HRS.append(smr.astype(np.float32))
         H = _smk if PHI > 0 else sm      # king 书 EMA 态独立推进(φ=0 时二者同一)
         HB = sm; HR = smr; Pi = Pi * (1.0 + yfull)
         if i % 2000 == 0: print("run depth", depth, i, "/", nA, round(time.time() - t0, 1), "s", flush=True)
-    return np.array(rec), np.stack(WS)
+    return np.array(rec), np.stack(WS), np.stack(HRS)
 LRa, pos = legs(SLOW); print("legs done", round(time.time() - t0, 1), "s", flush=True)
 ARMS = [("S0", None, 0, 0, "nets_histv2_0_0_0.npy"), ("d30_n2_c42", -0.30, 2, 42, "nets_histv2_-30_2_42.npy")]
 COLS = ["ts", "net", "pnl", "carry", "cost", "gross_total", "gross_member", "gross_sel", "nsel", "nmember", "fires", "leg_king", "leg_rev24", "leg_fund", "w3_king", "w3_rev24", "w3_fund", "turnover", "net_ex", "pnl_ex", "carry_ex", "cost_ex", "netlong"]
 out = {}; save = {}
 for nm, d, n_, c, reff in ARMS:
-    R, WS = run(SLOW, LRa, pos, d, n_, c)
+    R, WS, HRS = run(SLOW, LRa, pos, d, n_, c)
     ref = np.load(f"{B}/{reff}")
     if REF_SKIP:   # combo_recheck: reference parity skipped on request (REF_SKIP=1)
         print(f"NOTE {nm}: REF_SKIP=1, reference parity vs pod_backup skipped", flush=True); ref = None
@@ -377,7 +386,7 @@ for nm, d, n_, c, reff in ARMS:
     print("RECEIPT", nm, json.dumps(out[nm]), flush=True)
     print("RECEIPT_EX", nm, json.dumps(outx), flush=True)
     save[f"{nm}_rec"] = R
-    save[f"{nm}_W"] = WS
+    save[f"{nm}_W"] = WS; save[f"{nm}_HR"] = HRS   # HR = the accounted (reshaped, overlaid) book per anchor; W = the target book (unchanged)
 _OT = os.environ.get("OUT_TAG", "")   # 并行道输出隔离(PREREG_universe_dyn): 未设时文件名与旧装置同
 _OT = f"_{_OT}" if _OT else ""
 json.dump(out, open(f"{PD}/w10_ablation_summary{_OT}.json", "w"), indent=1, ensure_ascii=False)
