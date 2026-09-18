@@ -88,6 +88,9 @@ print("\n[4] R12-C3: an ambient V4_UMASK_NPZ cannot survive the contract loader"
 env_file = os.path.join(TMP, "loader.env")
 base = open(f"{HERE}/v4_month_2026-09_fp2.env").read()
 base = re.sub(r'(?m)^R=.*$', f"R={TMP}", base); base = re.sub(r'(?m)^PY=.*$', f"PY={PY}", base)
+# R12-C5 (2026-09-18): the September contract now DECLARES UMASK_NPZ itself. These cases append their own, and load_month_env refuses a
+# duplicate key, so the declared line is removed first — the case still exercises exactly what it did before.
+base = re.sub(r'(?m)^UMASK_NPZ=.*\n', '', base)
 open(env_file, "w").write(base + f"UMASK_NPZ={os.path.join(wd, 'approved_mask.npz')}\n")
 cmd = 'source "$1"; load_month_env "$2" >/dev/null; printf "%s|%s" "${UMASK_NPZ:-<unset>}" "${V4_UMASK_NPZ:-<unset>}"'
 env = dict(os.environ, PY=PY, L="/dev/null", CHAIN_DEVICE_DIR=HERE, V4_UMASK_NPZ=os.path.join(wd, "foreign_mask.npz"))
@@ -106,6 +109,7 @@ fr = os.path.join(TMP, "freshroot"); root = os.path.join(fr, "root"); os.makedir
 os.makedirs(os.path.join(root, "masks"), exist_ok=True); open(os.path.join(root, "masks", "member_mask_tradable_W24H_cachegrid.npz"), "wb").write(b"stub")
 fenv = os.path.join(fr, "env.env")
 _b = re.sub(r'(?m)^R=.*$', f"R={root}", re.sub(r'(?m)^PY=.*$', f"PY={PY}", open(f"{HERE}/v4_month_2026-09_fp2.env").read()))
+_b = re.sub(r'(?m)^UMASK_NPZ=.*\n', '', _b)                                   # same reason as [4]: this case appends its own
 open(fenv, "w").write(_b + f"UMASK_NPZ={os.path.join(wd, 'approved_mask.npz')}\n")
 
 

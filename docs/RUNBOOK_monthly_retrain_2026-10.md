@@ -290,3 +290,29 @@ w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025
 | 5 | 正跑 `bash chain_v4_monthly.sh <十月 env>` | 驱动 | 各阶段收据链, **末端必须有 `v4_gates/DECISION_FP2.json`** | 待十月 |
 | 6 | 决策剖面 | `fp2_decision.py` | `DECISION_FP2.json` | **待预注册十月剖面**(现 FORMAL 剖面冻结在 FP2 窗 ⇒ 十月会 REFUSED_PROFILE) |
 | 7 | 换装(若过门) | `seat_seed_v3` / `launchctl kickstart` / combosnap | PARITY 收据 + 干预台账登记 | 待十月 |
+
+### §0★ 修订 9(2026-09-18, FP3 J; 主研究员; 独立复审第十二轮「十月特别说明」R12-C5 三项**全部成立**, 逐条改码)
+
+**为什么有这一节**: 修订 8 把唯一入口接到了 decision, 但复审指出十月这条路上还有三个洞, 每一个都让某个月在**没人批准过的输入**上跑完: ① 十月模板根本没声明新掩码与 v2 构建器 —— 默认 v1 不消费掩码, 于是判活门会红掉它本该治理的那个月; ② controls 阶段的**参照件**没有批准身份, 一个月可以把比较对象指向任何文件仍被判 PASS; ③ 正式判官的 FORMAL 剖面是**为一个月预注册**的, 而月份不是条件, 十月会更早以 UNAVAILABLE 失败, 理由还是错的。
+
+**① 十月模板补齐(改码 + 拒绝)**
+- 模板新增 `BUILDER_TARGETS=pod_dlw_targets_raw_v2.py` · `BUILDER_KING_FEA=pod_fea_ext_clamp_v2.py` · `MEMBER_MASK` · `GATE_LIVENESS` · `UMASK_NPZ` · `CONTROLS_REF_KING_FEA/KING_META/DL_TARGETS`; 十月尚不存在的件一律 `TODO_`, 模板仍然跑不起来。
+- **preflight 新拒绝**: 一个**日历月**且晚于 2026-09 的合同若不声明 `MEMBER_MASK` 或 `UMASK_NPZ`, 逐条点名失败。九月合同不受影响(按构造排除)。测试夹具用的 `2026-99` 之类**不是日历月**, 收据里记 `month_label_not_calendar`, 其余路径/滚动检查照常。
+- 顺带把 `v4_month_2026-09_fp2.env` 补齐(`UMASK_NPZ` + 三个 `CONTROLS_REF_*`): 重排后的驱动需要这些键, 值就是九月本来在用的那些 —— **规则没变, 只是让链把它已经在用的东西说出来**, 不再回退到默认。
+
+**② controls 参照件 = 按月批准对象**
+- 合同新增 `month_contract_rulings.CONTROLS_REF_identity.approved_controls_refs`: **逐月**一组 sha。2026-09 的三个值取自已提交的 FP2 controls 收据(`FP2_receipts/regate2_CONTROLS.json` 与 `regate_f0x_CONTROLS.json` 两份 PASS 收据逐位一致), **不是这次现场测的** —— 出处写在合同里; 将来现场实测若不一致, preflight 会点名, **那个不一致本身就是发现**。
+- 2026-10 **故意留空**: preflight 报「no approved CONTROLS_REF for month 2026-10」, 直到十月参照件建好并单独批准。
+- **同一处顺手修了一个更早的洞**: `UMASK_NPZ` 此前被绑到 `gates.BUNDLE_export.approved_baseline.umask_npz_sha256` —— 那是**九月**的评估掩码, 于是任何后续月要么被迫复用九月掩码, 要么以错误理由被拒。现在掩码也按月批准(九月的条目就是那个 baseline 值), 无条目的月份点名拒绝。
+
+**③ 十月 `REFUSED_PROFILE_MONTH` 真正实现**
+- `fp2_decision.py` 新增 `PROFILE_MONTH = "2026-09"`。月份从合同 `V4_MONTH` 取, 取不到就读 preflight 收据的 `month`, **在绑定任何件之前**判: 不是本剖面覆盖的月份 ⇒ `REFUSED_PROFILE_MONTH` rc 3, `PASS=false`, 收据写清**本剖面覆盖哪个月、这次跑的是哪个月、新月份需要什么**(它自己的预注册决策剖面: 窗口、锚数、δ、绑定的门身份, 批准入合同)。
+- 九月行为逐位不变; 两边月份不一致(env 与 preflight 收据)单列为具名 UNAVAILABLE 项。
+
+**④ 两处因上面而必须一并改正的既有行为(明写, 不藏)**
+- **负控**: `chain_v4_monthly_dryrun.sh` 把 `GATE_EXPORT` / `GATE_LIVENESS` / `BUILDER_*` 当路径改写到空根, 于是任何选了门变体的合同在负控里直接 `load_month_env` rc 4 —— 连 preflight 都到不了。它们是**装置目录里的基名**, 现在原样复制, 并在隔离守卫里与其它基名键同列。
+- **声明了但不存在的掩码**: 此前在顶层 `die`, 发生在**任何收据之前** —— 读起来与崩溃无异, 负控也就无据可查。现在由 preflight 以「input missing: MEMBER_MASK=…」具名记入它自己的收据; 消费掩码的每个阶段都在 `prereq_receipt <stage> preflight` 之后, 所以照样一个都跑不了(有测试对照)。
+
+**电池**: `tests_chain_month_contract_r12c5.py` **24/24**(新) · `tests_member_liveness.py` 42/42 · `tests_chain_wiring_r12.py` 17/17 · `tests_pipeline_gates.py` **490/490**。合同 `8643c56f` → `14aa117d`(前身 `ELIGIBILITY_CONTRACT.r5_8643c56f.json` 保留)。
+
+**仍开(本节没做)**: 十月的掩码/参照件/pins/基线**实物尚不存在**, 所以它们的 sha 还没有批准 —— 每一样都要单独一次用户字; 十月自己的决策剖面未预注册; 十月本月负控(十月 env、`roll_paths required=1`)未跑; 一个**不是日历月**的 `V4_MONTH` 目前只记录不拒绝。

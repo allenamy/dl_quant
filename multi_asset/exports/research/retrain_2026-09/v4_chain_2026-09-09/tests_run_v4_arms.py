@@ -45,15 +45,23 @@ with tempfile.TemporaryDirectory() as t:
     check("W1 A0 (current wrapper): both seats launched with SLOW_NPY = KD/SLOW_v3_on_v4axis.npy and UMASK_NPZ = V4_UMASK_NPZ override",
           rc == 0 and len(calls) == 2 and all(env_of(c, "SLOW_NPY") == f"{KD}/SLOW_v3_on_v4axis.npy" and env_of(c, "UMASK_NPZ") == um and env_of(c, "FPRED") == "f10_A0_s42.npy" for c in calls), (rc, calls, out[-200:]))
 with tempfile.TemporaryDirectory() as t:
-    H, KD = tree(t); rc, out, calls = run(devcopy(t), "A1", H, KD)
+    H, KD = tree(t); um2 = f"{t}/um2.npz"; open(um2, "wb").write(b"um2")
+    rc, out, calls = run(devcopy(t), "A1", H, KD, {"V4_UMASK_NPZ": um2})
     check("W2 A1: SLOW_NPY = KD/SLOW_v4.npy, FPRED f10_v4RAW_s42.npy", rc == 0 and len(calls) == 2 and all(env_of(c, "SLOW_NPY") == f"{KD}/SLOW_v4.npy" and env_of(c, "FPRED") == "f10_v4RAW_s42.npy" for c in calls), (rc, calls))
-    check("W3 no V4_UMASK_NPZ ⇒ default H/masks/umask_UPIT_CRYPTO.npz", all(env_of(c, "UMASK_NPZ") == f"{H}/masks/umask_UPIT_CRYPTO.npz" for c in calls), [env_of(c, "UMASK_NPZ") for c in calls])
+    check("W2b the approved mask reaches every arm (it is no longer defaulted)", len(calls) == 2 and all(env_of(c, "UMASK_NPZ") == um2 for c in calls), [env_of(c, "UMASK_NPZ") for c in calls])
+    # ★ R13 fixture pairing: R12-C3 REMOVED the H/masks default — an unset V4_UMASK_NPZ must now refuse, and nothing may launch. The old cell
+    #   asserted the default over `calls`, which an empty list satisfies vacuously, so it kept passing after the behaviour it named was deleted.
+    os.path.exists(f"{H}/logs/stub_calls.txt") and os.remove(f"{H}/logs/stub_calls.txt")   # W2 ran in this same tree: clear its calls so "nothing launched" means this run
+    rc3, out3, calls3 = run(devcopy(t), "A1", H, KD)
+    check("★★★ W3 no V4_UMASK_NPZ ⇒ ARMS_FAIL rc 3 naming the unset key, nothing launched (the H/masks default is gone; W2 above is the green control)",
+          rc3 == 3 and "V4_UMASK_NPZ not set" in out3 and calls3 == [], (rc3, out3[-160:], calls3))
 with tempfile.TemporaryDirectory() as t:
     H, KD = tree(t); rc, out, calls = run(f"{HERE}/run_v4_arms.r1_de4ed666.sh", "A0", H, KD, {"V4_UMASK_NPZ": f"{t}/x.npz"})
     check("★★★ W4 RED CAPABILITY (frozen broken revision r1_de4ed666): A0 launched with SLOW_NPY EMPTY and rc 0 — the F01 defect reproduced from the real bytes",
           rc == 0 and len(calls) == 2 and all(env_of(c, "SLOW_NPY") == "" for c in calls), (rc, calls[:1], out[-120:]))
 with tempfile.TemporaryDirectory() as t:
-    H, KD = tree(t, king_files=("SLOW_v4.npy",)); rc, out, calls = run(devcopy(t), "A0", H, KD)
+    H, KD = tree(t, king_files=("SLOW_v4.npy",)); um5 = f"{t}/um5.npz"; open(um5, "wb").write(b"um5")
+    rc, out, calls = run(devcopy(t), "A0", H, KD, {"V4_UMASK_NPZ": um5})   # R13: supply the mask so this cell tests the ABSENT king file, not the mask guard
     check("★★★ W5 current wrapper, A0 king file ABSENT ⇒ ARMS_FAIL rc 3, no arm launched (no silent fallback)", rc == 3 and "ARMS_FAIL missing SLOW_NPY" in out and calls == [], (rc, out[-160:], calls))
 # ── FP3 item J: the runner is the device copy beside the wrapper ──
 with tempfile.TemporaryDirectory() as t:
@@ -61,7 +69,8 @@ with tempfile.TemporaryDirectory() as t:
     check("★★★ W6 J: tree HAS a run_arm.sh but none beside the wrapper ⇒ ARMS_FAIL rc 3 before any launch (the tree copy is never a fallback)",
           rc == 3 and "ARMS_FAIL missing device run_arm.sh beside this wrapper" in out and calls == [] and not os.path.exists(f"{H}/logs/commands.txt"), (rc, out[-200:], calls))
 with tempfile.TemporaryDirectory() as t:
-    H, KD = tree(t, tree_stub=False); w = devcopy(t); rc, out, calls = run(w, "A1", H, KD, {"V4_PY": "/some/python"})
+    H, KD = tree(t, tree_stub=False); w = devcopy(t); um7 = f"{t}/um7.npz"; open(um7, "wb").write(b"um7")
+    rc, out, calls = run(w, "A1", H, KD, {"V4_PY": "/some/python", "V4_UMASK_NPZ": um7})   # R13: mask supplied; this cell is about RUN_ARM_ROOT / RUN_ARM_PY
     dsha = hashlib.sha256(open(f"{t}/dev/run_arm.sh", "rb").read()).hexdigest()
     check("★★ W7 J: the wrapper passes RUN_ARM_ROOT = the tree and RUN_ARM_PY = V4_PY to the device runner, and prints the runner's path + sha256",
           rc == 0 and len(calls) == 2 and all(env_of(c, "RUN_ARM_ROOT") == H and env_of(c, "RUN_ARM_PY") == "/some/python" for c in calls) and f"RUN_ARM={os.path.realpath(t)}/dev/run_arm.sh sha256={dsha}" in out, (rc, calls[:1], out[:200]))
@@ -90,7 +99,8 @@ with tempfile.TemporaryDirectory() as t:
 with tempfile.TemporaryDirectory() as t:
     H, KD = tree(t, tree_stub=True); dd = f"{t}/dev"; os.makedirs(dd); shutil.copy2(f"{HERE}/run_v4_arms.sh", f"{dd}/run_v4_arms.sh")
     open(f"{dd}/run_arm.sh", "w").write(STUB.replace('echo "$TAG $*', 'echo "DEVICE_RUNNER $TAG $*')); os.chmod(f"{dd}/run_arm.sh", 0o755)
-    e = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"], "V4_HC": H, "V4_KING_DIR": KD}
+    um11 = f"{t}/um11.npz"; open(um11, "wb").write(b"um11")
+    e = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"], "V4_HC": H, "V4_KING_DIR": KD, "V4_UMASK_NPZ": um11}   # R13: mask supplied; this cell is about WHICH runner runs
     r = subprocess.run(["bash", "run_v4_arms.sh", "A0", "42"], env=e, capture_output=True, text=True, cwd=dd)        # relative path, cwd = device dir
     calls = open(f"{H}/logs/stub_calls.txt").read().splitlines() if os.path.exists(f"{H}/logs/stub_calls.txt") else []
     check("★★★ W11 J-01: relative `bash run_v4_arms.sh` from the device dir runs the DEVICE runner (both calls tagged DEVICE_RUNNER), not the tree stub",

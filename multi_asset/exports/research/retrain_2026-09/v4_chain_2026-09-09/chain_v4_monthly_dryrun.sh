@@ -31,7 +31,11 @@ root, keys, py = sys.argv[1], sys.argv[2].split(), sys.argv[3]
 optional = os.environ.get("V4_MONTH_OPTIONAL_KEYS", "").split()      # FP2-3: derived only when the source declares them (ENV, argv shape unchanged)
 absent = [k for k in keys if not os.environ.get(k)]
 if absent: print(f"DERIVATION_REFUSED registered key(s) absent or empty after load_month_env: {absent}", file=sys.stderr); sys.exit(3)
-COPY = {"V4_MONTH", "MONTHS_ALL", "SEEDS", "MWF_ROOT", "BUNDLE_GENERATION", "EXPORT_ARM", "GATE_STEP1", "GATE_STEP2"}
+# ★ R12-C5 (2026-09-18): GATE_EXPORT / GATE_LIVENESS are BASENAMES of programs in D, not paths. Rewriting them under the empty root made
+#   load_month_env refuse the derived contract (rc 4, "must be a bare basename"), so the control could not even reach preflight for any
+#   contract that selects a gate variant. They are copied verbatim, like the other basename-valued keys.
+COPY = {"V4_MONTH", "MONTHS_ALL", "SEEDS", "MWF_ROOT", "BUNDLE_GENERATION", "EXPORT_ARM", "GATE_STEP1", "GATE_STEP2", "GATE_EXPORT", "GATE_LIVENESS",
+        "BUILDER_TARGETS", "BUILDER_KING_FEA"}
 print(f"# derived by chain_v4_monthly_dryrun.sh: every path under the EMPTY root {root}/root; labels copied from the source env")
 for k in keys + [o for o in optional if os.environ.get(o)]:
     v = os.environ.get(k, "")
@@ -62,7 +66,9 @@ while IFS= read -r line; do
     *) case "/$dv/" in *"/../"*) dbad="$dbad | $dk=$dv contains a '..' path component (lexical containment can be escaped)"; continue ;; esac ;;
   esac
   case $dk in
-    V4_MONTH|MONTHS_ALL|SEEDS|MWF_ROOT|BUNDLE_GENERATION|EXPORT_ARM|GATE_STEP1|GATE_STEP2) ;;
+    # ★ R12-C5: the BASENAME-valued keys (programs in the device dir, not paths). They are copied verbatim above, so the containment rule
+    #   below — which is about PATHS pointing outside the empty root — does not apply to them; a basename points nowhere by itself.
+    V4_MONTH|MONTHS_ALL|SEEDS|MWF_ROOT|BUNDLE_GENERATION|EXPORT_ARM|GATE_STEP1|GATE_STEP2|GATE_EXPORT|GATE_LIVENESS|BUILDER_TARGETS|BUILDER_KING_FEA) ;;
     PY) [ "$dv" = "$PYX" ] || dbad="$dbad | PY=$dv is not the interpreter $PYX" ;;
     R) [ "$dv" = "$ROOT/root" ] || dbad="$dbad | R=$dv is not $ROOT/root" ;;
     *) case $dv in "$ROOT/root/"*) ;; *) dbad="$dbad | $dk=$dv is not under $ROOT/root/" ;; esac ;;

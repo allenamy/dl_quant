@@ -114,6 +114,50 @@ check("export end: bundle config symbols_live with a dead name (YUSDT) ⇒ FAIL 
 json.dump({"symbols_live": ["XUSDT"]}, open(f"{d}/config.json", "w")); rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
 check("export end: only live names ⇒ PASS", rc == 0 and j["PASS"] is True, j and j["sets"].get("bundle_symbols_live"))
 
+print("\n[7b] export end: the anchor it judges at (the production cache's LAST 4h row is a hole-filled synthetic day)")
+# The real cache ends with holefix2's synthetic 2026-08-31: 288 rows, every cell hole-filled. Judging the shipped live list at the last 4h row
+# therefore called ALL 450 names dead while the training member sets — which end one anchor earlier — were clean. An all-dead universe is evidence
+# the anchor is wrong. Two 24 h windows here: rows 1..288 carry real bars, rows 289..576 are the synthetic day.
+def _degenerate(a):
+    a[1:289, 0, 3] = 0.0                      # XUSDT has real bars through the first window
+    a[1:289, 1, 3] = np.nan                   # YUSDT never does — it must still be caught at the correct anchor
+_HOLES = [(r, c) for r in range(289, 577) for c in (0, 1)]        # the synthetic day: every cell of both names hole-filled
+d = fixture("export_degenerate", syms=("XUSDT", "YUSDT"), rows=577, edit=_degenerate, holes=_HOLES, E=BASE + 288 * 300, members=[0])
+json.dump({"symbols_live": ["XUSDT"]}, open(f"{d}/config.json", "w"))
+rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
+_S = (j or {}).get("sets", {}).get("bundle_symbols_live", {})
+# live rows are 1..288, so a window (r-288, r] holds one iff r < 576: the latest such GRID anchor is row 528, and it must not be the last row 576.
+_WANT_A = BASE + 528 * 300
+check("★★★ the last 4h anchor's window is entirely hole-filled ⇒ the gate does NOT declare the live list dead: it steps back to the latest anchor with a live name and PASSes",
+      rc == 0 and j["PASS"] is True and _S.get("dead_at_last_anchor") == [] and _S.get("checked_at_anchor") == _WANT_A
+      and _S.get("checked_at_anchor") != BASE + 576 * 300 and "NON-DEGENERATE" in str(_S.get("anchor_source"))
+      and _S.get("n_live_in_universe_at_anchor") == 1, (rc, _S))
+json.dump({"symbols_live": ["XUSDT", "YUSDT"]}, open(f"{d}/config.json", "w"))
+rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
+_S = (j or {}).get("sets", {}).get("bundle_symbols_live", {})
+check("★★ CONTROL: a genuinely dead name (YUSDT, no real bar anywhere) is still caught at that corrected anchor",
+      rc == 3 and _S.get("dead_at_last_anchor") == ["YUSDT"] and _S.get("checked_at_anchor") == _WANT_A, (rc, _S))
+json.dump({"symbols_live": ["XUSDT"], "export_anchor_ts": BASE + 288 * 300}, open(f"{d}/config.json", "w"))
+rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
+_S = (j or {}).get("sets", {}).get("bundle_symbols_live", {})
+check("★★ the anchor the BUNDLE names is preferred and recorded as such", rc == 0 and _S.get("checked_at_anchor") == BASE + 288 * 300
+      and "bundle config export_anchor_ts" in str(_S.get("anchor_source")), (rc, _S))
+json.dump({"symbols_live": ["XUSDT"], "export_anchor_ts": BASE + 999 * 300}, open(f"{d}/config.json", "w"))
+rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
+check("★★ an anchor the bundle names that is NOT on this cache's axis ⇒ refusal (the bundle was built from a different cache), not a silent fallback",
+      rc == 3 and any("not on this cache" in x for x in (j or {}).get("refusals", [])), (rc, (j or {}).get("refusals")))
+_d2 = fixture("export_all_dead", syms=("XUSDT",), rows=577, holes=[(r, 0) for r in range(577)], E=BASE + 288 * 300, members=[0])
+json.dump({"symbols_live": ["XUSDT"]}, open(f"{_d2}/config.json", "w"))
+rc, j, o = gate(_d2, {"BUNDLE_CONFIG": f"{_d2}/config.json"})
+check("★★★ NO anchor has a live name anywhere ⇒ named refusal degenerate_anchor_no_live_names, never 'every shipped name is dead'",
+      rc == 3 and any("degenerate_anchor_no_live_names" in x for x in (j or {}).get("refusals", [])), (rc, (j or {}).get("refusals")))
+d = fixture("export_healthy_last", syms=("XUSDT", "YUSDT"), edit=lambda a: a.__setitem__((-1, 0, 3), 0.0))
+json.dump({"symbols_live": ["XUSDT"]}, open(f"{d}/config.json", "w"))
+rc, j, o = gate(d, {"BUNDLE_CONFIG": f"{d}/config.json"})
+_S = (j or {}).get("sets", {}).get("bundle_symbols_live", {})
+check("★★ GREEN CONTROL: a healthy last anchor is still used unchanged (the step-back only fires on a degenerate one)",
+      rc == 0 and "cache last 4h anchor" == _S.get("anchor_source"), (rc, _S))
+
 print("\n[8] mask builder: MASK_IN AND semantics, sha pin, compressed cache path")
 d = fixture("mask_and", syms=("XUSDT", "YUSDT"), edit=lambda a: (a.__setitem__((-1, 0, 3), 0.0), a.__setitem__((-1, 1, 3), 0.0)))
 rc, mj, mz, o = mask(d); grid = mz["ts"]

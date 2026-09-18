@@ -1373,6 +1373,9 @@ print("MOCK_INTERCEPT_NO_BUSINESS_CODE " + n); sys.exit(77)
     check("★★ [S] B-R3 the CLIP targets file was built WITHOUT a patch and the RAW one WITH (the mock wrote what it was told)", open(f"{_rP}/dlw_hf3/data/dlw_targets.npz", "rb").read() == b"clip" and open(f"{_rP}/dlw_v4raw/data/dlw_targets.npz", "rb").read() == b"raw")
     # ── FP2-8 (2026-09-17): contract-selected builders + member mask (DESIGN_FP2-8 AMENDMENT 1.3) ──
     _mkp = f"{d}/member_mask.npz"; open(_mkp, "wb").write(b"mask")
+    # R12-C5 (2026-09-18): this fixture's month is 2026-99, i.e. AFTER September, so the contract must now DECLARE the evaluation umask as well —
+    # a post-September month without MEMBER_MASK / UMASK_NPZ is refused by preflight, because the data stage would otherwise build members with the
+    # v1 defaults and no liveness mask. The umask is a stub here; what is under test remains the builder selection and the mask plumbing.
     _eF = f"{_eP}.fp2"; open(_eF, "w").write(open(_eP).read() + f"BUILDER_TARGETS=pod_dlw_targets_raw_v2.py\nBUILDER_KING_FEA=pod_fea_ext_clamp_v2.py\nMEMBER_MASK={_mkp}\n"); _roll_receipt(_rP, _eF)
     rc, out, calls = _drv("preflight", _eF); _pf2 = json.load(open(f"{_rP}/v4_gates/preflight.json"))
     check("★★★ [FP2] preflight under a contract that selects the v2 builders + a member mask: PASS; both v2 builders sha-pinned in device_sha256 (31 files = 23 + the five FP2 devices + the FP3 liveness pair + the mask builder); MEMBER_MASK is a hashed input",
@@ -1392,9 +1395,19 @@ print("MOCK_INTERCEPT_NO_BUSINESS_CODE " + n); sys.exit(77)
     _eB = f"{_eP}.badbuilder"; open(_eB, "w").write(open(_eP).read() + "BUILDER_KING_FEA=no_such_builder.py\n"); _roll_receipt(_rP, _eB); rc, out, calls = _drv("preflight", _eB)
     _eC = f"{_eP}.pathbuilder"; open(_eC, "w").write(open(_eP).read() + "BUILDER_TARGETS=/tmp/pod_dlw_targets_raw_v2.py\n"); _roll_receipt(_rP, _eC); rc2, out2, calls2 = _drv("preflight", _eC)
     _eM = f"{_eP}.badmask"; open(_eM, "w").write(open(_eP).read() + f"MEMBER_MASK={d}/no_such_mask.npz\n"); _roll_receipt(_rP, _eM); rc3, out3, calls3 = _drv("preflight", _eM)
-    check("★★★ [FP2] REFUSALS before preflight: a selected builder absent from D ⇒ FAIL_builder_missing_in_D (rc 3); a path instead of a basename ⇒ FAIL_builder_key_not_a_basename (rc 4); a declared mask that does not exist ⇒ FAIL_member_mask_missing (rc 3); no builder ever called",
-          rc == 3 and "FAIL_builder_missing_in_D_no_such_builder.py" in out and rc2 == 4 and "FAIL_builder_key_not_a_basename" in out2 and rc3 == 3 and "FAIL_member_mask_missing" in out3 and not _producers(calls) and not _producers(calls2) and not _producers(calls3),
-          (rc, out[-100:], rc2, out2[-100:], rc3, out3[-100:]))
+    check("★★★ [FP2] REFUSALS before preflight: a selected builder absent from D ⇒ FAIL_builder_missing_in_D (rc 3); a path instead of a basename ⇒ FAIL_builder_key_not_a_basename (rc 4); no producer runs in either case",
+          rc == 3 and "FAIL_builder_missing_in_D_no_such_builder.py" in out and rc2 == 4 and "FAIL_builder_key_not_a_basename" in out2 and not _producers(calls) and not _producers(calls2),
+          (rc, out[-100:], rc2, out2[-100:]))
+    # ★ R12-C5 (2026-09-18): a DECLARED-but-absent mask used to die at top level, BEFORE any receipt — which reads exactly like a crash and left the
+    #   negative control with nothing to inspect. It is now a NAMED failure inside preflight's own receipt (the same reasoning the roll gate carries),
+    #   and every stage that consumes the mask still cannot run, because each sits behind `prereq_receipt <stage> preflight`.
+    _pf3 = json.load(open(f"{_rP}/v4_gates/preflight.json"))
+    check("★★★ [FP2] a declared mask that does not exist is a NAMED preflight failure (PASS=false, rc 3) with a receipt, not a pre-receipt die; no producer runs",
+          rc3 == 3 and _pf3["PASS"] is False and any("input missing: MEMBER_MASK=" in f for f in _pf3["fails"]) and not _producers(calls3),
+          (rc3, _pf3.get("fails", [])[:3], out3[-100:]))
+    _rcD, _outD, _callsD = _drv("data", _eM)
+    check("★★★ [FP2] MUTATION: the data stage under that same contract still cannot run — it stops on the preflight prerequisite, so moving the check did not open a path",
+          _rcD == 3 and "FAIL_data_prereq_preflight" in _outD and not _producers(_callsD), (_rcD, _outD[-120:]))
     _roll_receipt(_rP, _eP); rc, out, calls = _drv("preflight", _eP); rc, out, calls = _drv("cache", _eP); rc, out, calls = _drv("data", _eP)   # restore the default root state for the cells below
     rc, out, calls = _drv("gates", _eP)
     check("★★★ [S] B-R1 positive control of the graph: after data, V4_STAGES=gates finds its prerequisites (F10_GATE receipts, identical targets/fea89) and DISPATCHES the gate programs (mock ⇒ rc 77, no receipt) ⇒ stops at FAIL_gate_require_step1, rc 3", rc == 3 and "v4_gate_step1.py" in _producers(calls) and "FAIL_gate_require_step1" in out and "_prereq_" not in out.split("gates ran")[-1], (rc, _producers(calls), out[-160:]))
@@ -1733,7 +1746,16 @@ with tempfile.TemporaryDirectory() as d:
         return _p.returncode, _ok, dict(l.split("=", 1) for l in _p.stdout.splitlines() if "=" in l and not l.startswith("MONTH_ENV_OK ")), _p.stderr
     for _cf in ("v4_month_2026-09.env", "v4_month_2026-10.env.template"):
         _o = _udump(_R2_LIB, f"{HERE}/{_cf}"); _n = _udump(_NEW_LIB, f"{HERE}/{_cf}"); _nr = sum(1 for l in open(f"{HERE}/{_cf}") if not l.startswith("#") and "$R" in l)
-        check(f"★★★ [U] D3 POSITIVE {_cf} (bytes unchanged, sha {_sha(f'{HERE}/{_cf}')[:8]}): the round-4 parser and the pre-round-4 source-based loader export the IDENTICAL environment (every variable, incl. all 46 keys, V4_MONTH_ENV, the derived V4_* names) and print the identical MONTH_ENV_OK line, under a polluted parent (R, SEEDS, UNLISTED_SEEDS, RBUNDLE_TAR, HOME); its {_nr} `$R/...` values resolve the same",
+        # ★ R12-C3/C5 (2026-09-18): the round-4 loader DERIVES one name the source-based one cannot — V4_UMASK_NPZ, re-derived from the contract's
+        #   UMASK_NPZ so one approved mask reaches every consumer (and an ambient value cannot survive). That is the only admitted difference, it is
+        #   asserted by name below, and the environments must be identical everywhere else.
+        _decl_umask = any(l.startswith("UMASK_NPZ=") for l in open(f"{HERE}/{_cf}"))
+        _diff = set(_o[2].items()) ^ set(_n[2].items())
+        check(f"★★★ [U] D3 {_cf}: the ONLY name the round-4 loader adds is the derived V4_UMASK_NPZ, and only when the contract declares UMASK_NPZ",
+              ({k for k, _ in _diff} == ({"V4_UMASK_NPZ"} if _decl_umask else set())) and (not _decl_umask or _n[2].get("V4_UMASK_NPZ") == _n[2].get("UMASK_NPZ")),
+              (sorted({k for k, _ in _diff}), _decl_umask, _n[2].get("V4_UMASK_NPZ")))
+        for _dd in (_o[2], _n[2]): _dd.pop("V4_UMASK_NPZ", None)
+        check(f"★★★ [U] D3 POSITIVE {_cf} (bytes unchanged, sha {_sha(f'{HERE}/{_cf}')[:8]}): the round-4 parser and the pre-round-4 source-based loader export the IDENTICAL environment APART from the derived V4_UMASK_NPZ checked just above (every variable, incl. all 46 keys, V4_MONTH_ENV, the derived V4_* names) and print the identical MONTH_ENV_OK line, under a polluted parent (R, SEEDS, UNLISTED_SEEDS, RBUNDLE_TAR, HOME); its {_nr} `$R/...` values resolve the same",
               _o[0] == 0 and _n[0] == 0 and _o[1] == _n[1] and len(_n[1]) == 1 and _o[2] == _n[2] and all(k in _n[2] for k in _KEYS) and _n[2]["SEEDS"] == "42,2027" and _n[2]["V4_MONTH_ENV"] == f"{HERE}/{_cf}" and _n[3] == "",
               (_o[0], _n[0], sorted(set(_o[2].items()) ^ set(_n[2].items()))[:4], _n[3][-200:]))
     _n = _uload(_NEW_LIB, f"{HERE}/v4_month_2026-09.env", "SEEDS", {"PY": f"{d}/no_such_python"})
@@ -1776,11 +1798,15 @@ with tempfile.TemporaryDirectory() as d:
     _dp = {}
     for _cf in ("v4_month_2026-09.env", "v4_month_2026-10.env.template"):
         _dp[_cf] = (_udry(_R2_DRY, f"{HERE}/{_cf}", "so_" + _cf[9:16]), _udry(_NEW_DRY, f"{HERE}/{_cf}", "sn_" + _cf[9:16]))
-    _OPT = ("PREV_MONTH_ENV=", "PREV_SHA_JSON=")   # FP2-3 (2026-09-17): optional keys the FIXED derivation emits when the source declares them; the archived pre-fix script cannot
+    # FP2-3 (2026-09-17) + R12-C3/C5 (2026-09-18): the FIXED derivation emits every OPTIONAL key the source declares, and derives V4_UMASK_NPZ from
+    # UMASK_NPZ; the archived pre-fix script knows none of them. The list is read from chain_lib.sh so it cannot go stale as keys are added.
+    _OPT = tuple(k + "=" for k in _re.search(r'(?m)^V4_MONTH_OPTIONAL_KEYS="([^"]*)"', open(f"{HERE}/chain_lib.sh").read()).group(1).split()) + ("V4_UMASK_NPZ=",)
     def _noopt(x): return None if x is None else "\n".join(l for l in x.splitlines() if not l.startswith(_OPT))   # the derived env is one <ROOT>-normalised string
     check("★★★ [U] D3 DRYRUN POSITIVE (both delivered contracts, bytes unchanged): the pre-fix and the fixed dryrun both PASS rc 0 (driver stopped at preflight, nothing launched) and derive the IDENTICAL env once each run's scratch root is replaced by <ROOT> — only HOW the source contract is read changed",
           all(v[0][0] == 0 and v[1][0] == 0 and "DRYRUN_PASS" in v[0][1] and "DRYRUN_PASS" in v[1][1] and v[0][2] is not None and _noopt(v[0][2]) == _noopt(v[1][2]) for v in _dp.values())
-          and _dp["v4_month_2026-09.env"][0][2] == _dp["v4_month_2026-09.env"][1][2],      # September (no optional keys): byte-identical, no normalisation needed
+          # September declared no optional keys until R12-C5 added UMASK_NPZ / CONTROLS_REF_* to it, so it is now normalised like October; what the
+          # normalisation removes is asserted to be EXACTLY the optional keys the contract declares, so the exemption cannot hide anything else.
+          and set(_only(_dp["v4_month_2026-09.env"][0][2], _dp["v4_month_2026-09.env"][1][2])) <= {l for l in (_dp["v4_month_2026-09.env"][1][2] or "").splitlines() if l.startswith(_OPT)},
           {k: (v[0][0], v[1][0], _only(v[0][2], v[1][2])) for k, v in _dp.items()})
     _DRYC = "\n".join(l for l in open(_NEW_DRY).read().splitlines() if not l.lstrip().startswith("#"))   # code lines only: comments may say what the dryrun used to do
     check("★★ [U] D3 DRYRUN static: the fixed dryrun no longer sources the source contract (no `. \"$SRC\"`, no `set -a`) and reads it through `load_month_env \"$SRC\"`",

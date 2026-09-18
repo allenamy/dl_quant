@@ -19,7 +19,8 @@ def write_book(p, ts=TS, shift=0.0):
 class Root:
     def __init__(self):
         self.T = tempfile.mkdtemp(prefix="fp2dec_"); self.R = f"{self.T}/R"; self.D = f"{self.T}/D"; os.makedirs(f"{self.R}/v4_gates"); os.makedirs(f"{self.R}/hc/probe_artifacts"); os.makedirs(f"{self.R}/controls"); os.makedirs(self.D)
-        self.DEV = ("fp2_per_year_table.py", "v4e_gate_export_v2.py", "fp2_member_rule_check.py", "fp2_gate_step1.py", "v4_gate_common.py", "fp2_gate_lib.py", "fp2_controls.py", "fp2_decision.py")
+        self.DEV = ("fp2_per_year_table.py", "v4e_gate_export_v2.py", "fp2_member_rule_check.py", "fp2_gate_step1.py", "v4_gate_common.py", "fp2_gate_lib.py", "fp2_controls.py", "fp2_decision.py",
+                    "v4_gate_member_liveness.py")   # R13-C1: the decision requires two MEMBER_LIVENESS receipts, so their source must be approvable here
         for f in self.DEV: shutil.copy2(f"{HERE}/{f}", f"{self.D}/{f}")
         self.month = "2026-09"; self.write_contract()
     def write_contract(self, helper_sha=None, scope=None):
@@ -28,6 +29,8 @@ class Root:
         c = json.load(open(f"{HERE}/ELIGIBILITY_CONTRACT.json"))
         c["gates"]["BUNDLE_export"]["approved_source_sha256"] = [sha(f"{self.D}/v4e_gate_export_v2.py")]; c["gates"]["BUNDLE_export"].pop("approved_variants", None)
         c["gates"]["STEP1"]["approved_source_sha256"] = [sha(f"{self.D}/fp2_gate_step1.py")]
+        c.setdefault("gates", {}).setdefault("MEMBER_LIVENESS", {})["source"] = "v4_gate_member_liveness.py"
+        c["gates"]["MEMBER_LIVENESS"]["approved_source_sha256"] = [sha(f"{self.D}/v4_gate_member_liveness.py")]
         c["gates"]["STEP1"]["approved_variants"] = {"fp2_gate_step1.py": {"sha256": sha(f"{self.D}/fp2_gate_step1.py"), "requires": {"fp2_gate_lib.py": helper_sha or sha(f"{self.D}/fp2_gate_lib.py")}, "scope": scope or {"V4_MONTH": self.month, "R": self.R}}}
         self.contract = c; json.dump(c, open(f"{self.D}/ELIGIBILITY_CONTRACT.json", "w")); self.preflight()
     def preflight(self, pins=None, month=None, PASS=True):
@@ -39,7 +42,7 @@ class Root:
                 for s in SEEDS:
                     p = f"{self.R}/hc/probe_artifacts/w10_ablation_series_V4_{a}_{seat}_s{s}.npz"; write_book(p); self.books[f"{a}/{seat}/s{s}"] = p
         self.f = {}
-        for name in ("umask", "kmeta", "kfea", "dlt", "dlt_hf3", "fea82", "fea89", "cache", "mmask", "rawp", "hole", "gatelib", "ckmeta", "cdlt", "bundle_slow2026", "other_meta"):
+        for name in ("umask", "kmeta", "kfea", "dlt", "dlt_hf3", "fea82", "fea89", "cache", "mmask", "rawp", "hole", "gatelib", "ckmeta", "cdlt", "bundle_slow2026", "other_meta", "bundle_config"):
             p = f"{self.R}/data/{name}.bin"; os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "wb").write(f"file {name}".encode()); self.f[name] = p
         self.f["gatelib"] = f"{self.D}/fp2_gate_lib.py"          # the helper STEP1 records is the one in D (its sha is the contract's `requires`)
         self.controls()
@@ -63,7 +66,8 @@ class Root:
             a, seat, s = k.split("/"); xin[f"{'book' if a == 'A1' else 'base'}_{seat}_{s}"] = p
         for name in EXPORT_FLOOR:
             if name in xin: continue
-            xin[name] = {"wide_fea_v4_meta": self.f["kmeta"], "wide_fea_v4": self.f["kfea"], "umask_npz": self.f["umask"], "eligibility_contract": f"{self.D}/ELIGIBILITY_CONTRACT.json", "bundle/slow2026.txt": self.f["bundle_slow2026"], "bundle_manifest": self.f["other_meta"]}.get(name) or self._dummy(name)
+            xin[name] = {"wide_fea_v4_meta": self.f["kmeta"], "wide_fea_v4": self.f["kfea"], "umask_npz": self.f["umask"], "eligibility_contract": f"{self.D}/ELIGIBILITY_CONTRACT.json", "bundle/slow2026.txt": self.f["bundle_slow2026"], "bundle_manifest": self.f["other_meta"],
+                         "bundle/config.json": self.f["bundle_config"]}.get(name) or self._dummy(name)
         if kmeta_key != "wide_fea_v4_meta": xin["wide_fea_v4_meta"], xin[kmeta_key] = self.f["other_meta"], self.f["kmeta"]   # semantic key swapped
         rec = {"gate": "BUNDLE_export", "PASS": PASS, "arm": arm, "failed_checks": failed or [], "self_sha256": self_sha or sha(f"{self.D}/v4e_gate_export_v2.py"), "contract_sha256": contract_sha or sha(f"{self.D}/ELIGIBILITY_CONTRACT.json"),
                "inputs_path": xin, "inputs_sha256": {k: sha(p) for k, p in xin.items()}}
@@ -80,8 +84,23 @@ class Root:
         ins = {"CACHE": cache or self.f["cache"], "MEMBER_MASK": self.f["mmask"], "RAW_PATCH": self.f["rawp"], "CONTROL_KING_META": self.f["ckmeta"], "CONTROL_DL_TARGETS": self.f["cdlt"], "MASKED_KING_META": kmeta or self.f["kmeta"], "MASKED_DL_TARGETS": dlt or self.f["dlt"]}
         rec = {"gate": "FP2_MEMBER_RULE_CHECK", "VERDICT": verdict, "self_sha256": sha(f"{self.D}/fp2_member_rule_check.py"), "inputs": {k: {"path": p, "sha256": sha(p)} for k, p in ins.items()}}
         p = f"{self.R}/v4_gates/MEMBER_RULE_CHECK.json"; json.dump(rec, open(p, "w")); return p
-    def run(self, py, xp, mr=None, s1=None, extra=None, umask=None):
+    def liveness(self, end="gates", PASS=True, self_sha=None, path=None, cache=None, kmeta=None, dlt=None, mmask=None, bundle_cfg=None, dead=0, sets=None):
+        """a MEMBER_LIVENESS receipt shaped like the real gate's: the registered floor + member_mask, and for the export end bundle_config.
+        R13-C1: its recorded inputs are the SAME files STEP1 / the export receipt name, so the decision's semantic bindings hold; a test breaks
+        one of them on purpose (that is the reviewer's transplant)."""
+        ins = {"cache": cache or self.f["cache"], "hole_cells": self.f["hole"], "wide_fea_v4_meta": kmeta or self.f["kmeta"],
+               "dlw_v4raw_targets": dlt or self.f["dlt"], "member_mask": mmask or self.f["mmask"]}
+        st = {"wide_fea_v4_meta": {"dead_but_member": 0}, "dlw_v4raw_targets": {"dead_but_member": 0}}
+        if end == "export":
+            ins["bundle_config"] = bundle_cfg or self.f["bundle_config"]; st["bundle_symbols_live"] = {"dead_at_last_anchor": []}
+        rec = {"gate": "MEMBER_LIVENESS", "PASS": PASS, "self_sha256": self_sha or sha(f"{self.D}/v4_gate_member_liveness.py"),
+               "dead_but_member_total": dead, "window_rows": 288, "row_spacing_s": 300, "refusals": [], "sets": sets if sets is not None else st,
+               "inputs_path": ins, "inputs_sha256": {k: sha(v) for k, v in ins.items()}}
+        p = path or f"{self.R}/v4_gates/member_liveness{'_export' if end == 'export' else ''}.json"; json.dump(rec, open(p, "w")); return p
+
+    def run(self, py, xp, mr=None, s1=None, extra=None, umask=None, lv=None, lvx=None):
         e = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"], "R": self.R, "D": self.D, "PER_YEAR_JSON": py, "EXPORT_RECEIPT": xp, "MEMBER_RULE_JSON": mr or self.member_rule(), "STEP1_JSON": s1 or self.step1(),
-             "EXPECTED_UMASK": umask or self.f["umask"], "OUT_JSON": f"{self.T}/D.json", "OUT_MD": f"{self.T}/D.md"}; e.update(extra or {})
+             "EXPECTED_UMASK": umask or self.f["umask"], "OUT_JSON": f"{self.T}/D.json", "OUT_MD": f"{self.T}/D.md",
+             "LIVENESS_JSON": lv or self.liveness("gates"), "LIVENESS_EXPORT_JSON": lvx or self.liveness("export")}; e.update(extra or {})
         r = subprocess.run([PY, f"{HERE}/fp2_decision.py"], env=e, capture_output=True, text=True); j = json.load(open(f"{self.T}/D.json"))
         return r.returncode, r.stdout + r.stderr, j

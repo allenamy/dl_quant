@@ -234,12 +234,24 @@ set_shards_from_months_all(){  # set_shards_from_months_all — SH0..SH3 = round
 }
 # ── B-R1 (independent review 2026-09-12): a stage may DISPATCH only after its prerequisites are verified here, bound to THIS month's root/contract —
 #    the dependency graph is code, not file order. Every helper dies with FAIL_<stage>_prereq_<name> (rc 3) naming the missing/mismatching item.
-prereq_receipt(){  # prereq_receipt <stage> <name> <receipt.json> <gate> [<profile>] — receipt exists, names <gate>, PASS true; PREFLIGHT additionally bound to
-                   # this contract (month_env_sha256) and root; every GOVERNED gate is additionally re-verified through v4_gate_common.require
-  local stage=$1 name=$2 rp=$3 gate=$4 prof=${5:-} out rc
-  out=$($PY - "$rp" "$gate" "${V4_MONTH_ENV:-}" "$R" "$D" "$prof" 2>&1 <<'PYEOF'
+prereq_receipt(){  # prereq_receipt <stage> <name> <receipt.json> <gate> [<profile>] [<key>=<path> ...] — receipt exists, names <gate>, PASS true; PREFLIGHT
+                   # additionally bound to this contract (month_env_sha256) and root; every GOVERNED gate is re-verified through v4_gate_common.require.
+                   # ★ R13-C1 (independent review round 13): every <key>=<path> the caller passes must be the artefact THIS run is using — the receipt's
+                   # recorded path for that key must be the same file (realpath) and its recorded sha must equal that file's bytes now. Without it a
+                   # GENUINE PASS produced from ANOTHER candidate's (healthy) data satisfies `require` — which only re-hashes what the receipt itself
+                   # points at — and opens this run's stages. The reviewer transplanted exactly such a ticket into a root whose own run FAILS the gate.
+  local stage=$1 name=$2 rp=$3 gate=$4 prof="" a; shift 4
+  local -a want=()
+  for a in "$@"; do case $a in *=*) want+=("$a") ;; *) [ -z "$prof" ] && prof=$a ;; esac; done
+  local out rc
+  out=$($PY - "$rp" "$gate" "${V4_MONTH_ENV:-}" "$R" "$D" "$prof" "${want[@]}" 2>&1 <<'PYEOF'
 import hashlib, json, os, sys
 rp, gate, envf, root, dev, prof = (sys.argv[1:7] + [""] * 6)[:6]
+want = {}                                                                    # R13-C1: key -> the path THIS run expects the receipt to have consumed
+for a in sys.argv[7:]:
+    if "=" in a:
+        k, v = a.split("=", 1)
+        if v: want[k] = v
 if not os.path.isfile(rp): print(f"receipt missing: {rp}"); sys.exit(3)
 try: r = json.load(open(rp))
 except Exception as e: print(f"receipt unreadable: {e}"); sys.exit(3)
@@ -271,7 +283,23 @@ if not isinstance(ip, dict) or not ip:
 ok, why = GC.require(rp, {k: v for k, v in ip.items() if isinstance(v, str)}, expected_gate=gate,
                      expected_self_sha=ss, profile=(prof or None), recorded_extras=True)
 if not ok: print(f"require refused this receipt: {why}"); sys.exit(3)
-print(f"ok {gate} {r.get('utc')} (re-verified: source {ss[:12]} approved in the contract, {len(ip)} recorded inputs re-hashed)")
+# ★ R13-C1: `require` proves the receipt is internally consistent with the files IT names. It does NOT prove those files are this run's
+#   candidate. A genuine PASS written from another root's healthy data passes everything above. Bind each expected key to the artefact
+#   this stage is about to consume: same file by realpath, and the sha the receipt recorded for it equal to that file's bytes now.
+ish = r.get("inputs_sha256") or {}
+for k, p in sorted(want.items()):
+    rp_ = ip.get(k)
+    if not isinstance(rp_, str) or not rp_:
+        print(f"receipt records no input {k!r}: it cannot be bound to this run's {p}"); sys.exit(3)
+    if os.path.realpath(rp_) != os.path.realpath(p):
+        print(f"receipt's {k} is {rp_}, this run uses {p}: the PASS was produced from another candidate's artefact"); sys.exit(3)
+    if not os.path.isfile(p):
+        print(f"this run's {k} is missing on disk: {p}"); sys.exit(3)
+    now = hashlib.sha256(open(p, "rb").read()).hexdigest()
+    if ish.get(k) != now:
+        print(f"receipt's {k} sha {str(ish.get(k))[:12]} != this run's file {now[:12]} ({p})"); sys.exit(3)
+print(f"ok {gate} {r.get('utc')} (re-verified: source {ss[:12]} approved in the contract, {len(ip)} recorded inputs re-hashed"
+      + (f", {len(want)} bound to this run's artefacts: {','.join(sorted(want))})" if want else ", no candidate binding requested)"))
 PYEOF
 ); rc=$?
   say "prereq $stage/$name: $out"; [ $rc -eq 0 ] || { echo "prereq $stage/$name: $out" >&2; die "${stage}_prereq_${name}" 3; }

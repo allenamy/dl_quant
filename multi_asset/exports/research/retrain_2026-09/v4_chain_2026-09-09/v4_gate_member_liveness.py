@@ -206,16 +206,21 @@ def main():
         S["spans"] = {s: [time.strftime("%Y-%m-%d %HZ", time.gmtime(min(v))), time.strftime("%Y-%m-%d %HZ", time.gmtime(max(v))), len(v)]
                       for s, v in sorted(runs.items(), key=lambda kv: -len(kv[1]))[:25]}
         total_dead += S["dead_but_member"]
-    # third end — the EXPORT bundle's live list (config.json symbols_live / keep_names), checked at the cache's LAST 4h anchor (the export anchor):
-    # a name shipped for serving must have a real bar in the last 24 h of the cache the bundle was built from. Optional input BUNDLE_CONFIG; when given
-    # it is recorded as an input and its dead names fail the gate.
+    # third end — the EXPORT bundle's live list (config.json symbols_live), checked at the bundle's OWN anchor: a name shipped for serving must have a
+    # real bar in the 24 h before the anchor the bundle was built for. Optional input BUNDLE_CONFIG; when given it is recorded and its dead names fail.
+    # ★ 2026-09-18 (first real-bundle run): the anchor used to be the cache's LAST 4h row unconditionally. On the production cache that row is
+    #   DEGENERATE — holefix2's synthetic 2026-08-31 is 288 entirely hole-filled rows (229,824 cells; the TRN-16 ruling protects them), so the only
+    #   window ending at 09-01 00Z holds no real bar for ANY symbol and the gate called all 450 shipped names dead. The training member sets were
+    #   unaffected because they end at 08-31 20Z. An all-dead universe is evidence the ANCHOR is wrong, so: prefer the anchor the bundle itself names,
+    #   else the latest anchor whose window has at least one live name anywhere in the universe, and REFUSE if the chosen anchor has none.
     if E["BUNDLE_CONFIG"]:
         inputs["bundle_config"] = E["BUNDLE_CONFIG"]
-        S = {"path": E["BUNDLE_CONFIG"], "checked_at_anchor": None, "n_names": 0, "dead_at_last_anchor": [], "unknown_names": []}
+        S = {"path": E["BUNDLE_CONFIG"], "checked_at_anchor": None, "anchor_source": None, "n_live_in_universe_at_anchor": None,
+             "n_names": 0, "dead_at_last_anchor": [], "unknown_names": []}
         res["sets"]["bundle_symbols_live"] = S
         # ★ R12-C4: no `keep_names` fallback — in pod_export_bundle_v4 `keep_names` are FEATURE names, not symbols, so the old
         #   fallback compared feature labels against the symbol axis. An absent or EMPTY symbols_live is a refusal, not 0 dead names.
-        names = []
+        names = []; cfg = None
         try:
             cfg = json.load(open(E["BUNDLE_CONFIG"]))
             if not isinstance(cfg, dict) or "symbols_live" not in cfg:
@@ -231,14 +236,50 @@ def main():
         on_grid = np.nonzero(cts % ANCHOR_SECONDS == 0)[0]
         if not len(on_grid): res["refusals"].append("cache has no 4h anchor for the export-end check")
         else:
-            r = int(on_grid[-1]); hi = r + 1; lo = max(hi - W, 0); S["checked_at_anchor"] = int(cts[r]); col = {s: i for i, s in enumerate(csym)}
-            for s in names:
-                j = col.get(str(s))
-                if j is None: S["unknown_names"].append(str(s)); continue
-                if int(cs[hi, j] - cs[lo, j]) >= (hi - lo): S["dead_at_last_anchor"].append(str(s))
-            S["n_names"] = len(names)
-            if S["unknown_names"]: res["refusals"].append(f"bundle live list names not on the cache axis: {S['unknown_names'][:5]}")
-            total_dead += len(S["dead_at_last_anchor"])
+            def _n_live(row):                                                # how many names of the WHOLE universe have a real bar in this window
+                hi_, lo_ = row + 1, max(row + 1 - W, 0)
+                return int(((cs[hi_] - cs[lo_]) < (hi_ - lo_)).sum())
+            # (a) the anchor the bundle itself names, when it is on this cache's grid
+            want_a = None
+            for _k in ("export_anchor_ts", "anchor_ts", "king_train_end_ts", "train_end_ts", "generation_anchor_ts"):
+                _v = (cfg or {}).get(_k) if isinstance(cfg, dict) else None
+                if isinstance(_v, (int, float)) and float(_v).is_integer(): want_a = int(_v); S["anchor_source"] = f"bundle config {_k}"; break
+            if want_a is None:
+                _mp = os.path.join(os.path.dirname(os.path.abspath(E["BUNDLE_CONFIG"])), "MANIFEST.json")
+                if os.path.isfile(_mp):
+                    try:
+                        _m = json.load(open(_mp)); _pv = (_m.get("provenance") or {}) if isinstance(_m, dict) else {}
+                        for _k in ("export_anchor_ts", "anchor_ts", "king_train_end_ts"):
+                            _v = _pv.get(_k) if isinstance(_pv, dict) else None
+                            if isinstance(_v, (int, float)) and float(_v).is_integer(): want_a = int(_v); S["anchor_source"] = f"bundle MANIFEST provenance {_k}"; break
+                    except Exception: pass   # noqa: BLE001 — an unreadable manifest is not evidence about the anchor
+            row = None
+            if want_a is not None:
+                _r = row_of.get(int(want_a))
+                if _r is None:
+                    res["refusals"].append(f"the anchor the bundle names ({want_a}) is not on this cache's ts axis: the bundle was built from a different cache")
+                else: row = _r
+            if row is None and want_a is None:
+                # (b) the latest 4h anchor whose window holds at least one real bar anywhere in the universe
+                for _r in reversed([int(x) for x in on_grid]):
+                    if _n_live(_r) > 0: row = _r; S["anchor_source"] = ("cache last 4h anchor" if _r == int(on_grid[-1])
+                                                                       else "latest NON-DEGENERATE 4h anchor (later anchors have no live name in the whole universe)"); break
+                if row is None: res["refusals"].append("degenerate_anchor_no_live_names: no 4h anchor in this cache has a live name anywhere in the universe")
+            if row is not None:
+                nlive = _n_live(row); S["checked_at_anchor"] = int(cts[row]); S["n_live_in_universe_at_anchor"] = nlive
+                if nlive == 0:
+                    # (c) an anchor at which the WHOLE universe is dead is a wrong anchor, not a dead universe — refuse instead of failing every name
+                    res["refusals"].append(f"degenerate_anchor_no_live_names: at {int(cts[row])} no name in the universe has a real bar in the window "
+                                           f"(anchor source: {S['anchor_source']}); declaring every shipped name dead here would be an artefact of the anchor")
+                else:
+                    hi = row + 1; lo = max(hi - W, 0); col = {s: i for i, s in enumerate(csym)}
+                    for s in names:
+                        j = col.get(str(s))
+                        if j is None: S["unknown_names"].append(str(s)); continue
+                        if int(cs[hi, j] - cs[lo, j]) >= (hi - lo): S["dead_at_last_anchor"].append(str(s))
+                    S["n_names"] = len(names)
+                    if S["unknown_names"]: res["refusals"].append(f"bundle live list names not on the cache axis: {S['unknown_names'][:5]}")
+                    total_dead += len(S["dead_at_last_anchor"])
     res["dead_but_member_total"] = total_dead
     res["PASS"] = (not res["refusals"]) and total_dead == 0
     res["verdict_rule"] = "PASS iff no refusal and dead-but-member cells == 0 in both produced member sets"

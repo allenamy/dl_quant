@@ -30,6 +30,11 @@ non-inferiority proof). G3: the bound export gate PASS. recommendation = SWAP_RE
 env: R D PER_YEAR_JSON EXPORT_RECEIPT MEMBER_RULE_JSON STEP1_JSON EXPECTED_UMASK LIVENESS_JSON LIVENESS_EXPORT_JSON OUT_JSON OUT_MD [JUDGE_JSON] [PROFILE] [exploratory overrides]"""
 import calendar, hashlib, importlib.util, json, math, os, sys, time
 import numpy as np
+# ★ R12-C5 (independent review round 12): the FORMAL profile is PRE-REGISTERED FOR ONE MONTH. Its frozen window (W_ALPHA … UB), its anchor counts
+#   and the gate identities it binds are September's; running it on another month is not "the same rule on new data", it is an unregistered rule.
+#   The month is therefore a first-class condition: a month this profile does not cover is REFUSED_PROFILE_MONTH (rc 3) with a receipt that says
+#   which month it covers and what the new month needs — instead of failing later, and for the wrong reason, on a missing September artefact.
+PROFILE_MONTH = "2026-09"
 FORMAL = {"DELTA": "0.05", "SEAT": "dyn", "SEEDS": "42,2027", "WINDOWS": "W_ALPHA,KING_LIVE", "EXPORT_ARM": "A1", "CURRENT_YEAR": "2026",
           "WA_START": "2022-06-30T00:00:00Z", "UB": "2026-08-30T20:00:00Z", "KL_START": "2024-01-01T00:00:00Z", "LEV": "2.0", "YEARS": "2022,2023,2024,2025,2026"}
 def sha(p): return hashlib.sha256(open(p, "rb").read()).hexdigest()
@@ -39,20 +44,38 @@ def fin(x):
     except Exception: return False   # noqa: BLE001
 def utc(s): return calendar.timegm(time.strptime(s, "%Y-%m-%dT%H:%M:%SZ"))
 def main():
-    E = {k: os.environ.get(k, "") for k in ("R", "D", "PER_YEAR_JSON", "EXPORT_RECEIPT", "MEMBER_RULE_JSON", "STEP1_JSON", "EXPECTED_UMASK", "JUDGE_JSON", "LIVENESS_JSON", "LIVENESS_EXPORT_JSON", "OUT_JSON", "OUT_MD", "PROFILE", *FORMAL)}
+    E = {k: os.environ.get(k, "") for k in ("V4_MONTH", "R", "D", "PER_YEAR_JSON", "EXPORT_RECEIPT", "MEMBER_RULE_JSON", "STEP1_JSON", "EXPECTED_UMASK", "JUDGE_JSON", "LIVENESS_JSON", "LIVENESS_EXPORT_JSON", "OUT_JSON", "OUT_MD", "PROFILE", *FORMAL)}
     profile = E["PROFILE"] or "formal"
     rec = {"gate": "FP2_DECISION", "self_sha256": sha(os.path.abspath(__file__)), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "profile": profile,
            "rule": "DESIGN_FP2-8 AMENDMENT 7 (G1′ non-inferiority, G2 per-year POINT-ESTIMATE rule, G3 bound export gate); closure F2 (require with recorded_extras on export + STEP1; member-rule inputs re-hashed and bound by semantic key); frozen window F3",
            "params": {}, "inputs": {}, "binding": {}, "UNAVAILABLE": [], "G1": {"cells": {}, "verdict": None}, "G2": {"per_seed": {}, "ok": None, "note": "point-estimate rule per year, not a statistical non-inferiority proof"}, "G3": {"ok": None}, "judge_informational": None}
     un = rec["UNAVAILABLE"]; B = rec["binding"]
     def finish(recommendation, reasons, rc):
-        rec["RECOMMENDATION"] = recommendation; rec["reasons"] = reasons; rec["PASS"] = recommendation in ("SWAP_RECOMMENDED", "NO_SWAP")
+        rec["RECOMMENDATION"] = recommendation; rec["reasons"] = reasons; rec["PASS"] = recommendation in ("SWAP_RECOMMENDED", "NO_SWAP")   # REFUSED_PROFILE_MONTH is not a PASS
         oj = E["OUT_JSON"] or "DECISION_FP2.json"; om = E["OUT_MD"] or "DECISION_FP2.md"; os.makedirs(os.path.dirname(os.path.abspath(oj)), exist_ok=True)
         json.dump(rec, open(oj, "w"), indent=1, default=str); open(om, "w").write(render(rec)); print(f"DECISION {recommendation} G1={rec['G1']['verdict']} G2={rec['G2']['ok']} G3={rec['G3'].get('ok')} unavailable={len(un)} profile={profile}", flush=True); return rc
     # ── profile ──
     if profile not in ("formal", "exploratory"): return finish("REFUSED_PROFILE", [f"unknown PROFILE {profile!r}"], 3)
     over = {k: E[k] for k in FORMAL if E[k] and E[k] != FORMAL[k]}
     if profile == "formal" and over: return finish("REFUSED_PROFILE", [f"formal profile does not accept overrides: {over}"], 3)
+    # ── R12-C5: the month this profile was pre-registered for. Checked BEFORE anything is bound, so the refusal names the real reason.
+    #    The month comes from the contract env the driver exports; the preflight receipt is read later and cross-checked against it.
+    _mon = str(E.get("V4_MONTH") or "").strip()
+    rec["profile_month"] = {"covers": PROFILE_MONTH, "run_month": _mon or None,
+                            "why": "the FORMAL profile's frozen window, anchor counts and bound gate identities are " + PROFILE_MONTH + "'s",
+                            "a_new_month_needs": "its own pre-registered decision profile (window, anchor counts, δ, the gate identities it binds), approved into "
+                                                 "ELIGIBILITY_CONTRACT.json before the decision stage can recommend anything"}
+    if not _mon:                                                     # no V4_MONTH in the environment: fall back to the preflight receipt's own month,
+        try:                                                         # read here (cheap, best-effort) so the month refusal precedes the input checks
+            _pf0 = json.load(open(os.path.join(E["R"], "v4_gates", "preflight.json")))
+            _mon = str(_pf0.get("month") or "").strip(); rec["profile_month"]["run_month"] = _mon or None
+            rec["profile_month"]["month_source"] = "preflight receipt"
+        except Exception: pass                                       # noqa: BLE001 — absent/unreadable receipt is handled by the binding below
+    else: rec["profile_month"]["month_source"] = "V4_MONTH (contract)"
+    if profile == "formal" and _mon and _mon != PROFILE_MONTH:
+        return finish("REFUSED_PROFILE_MONTH", [f"the FORMAL profile is pre-registered for {PROFILE_MONTH}, this run is month {_mon} "
+                                                f"(from {rec['profile_month'].get('month_source')}): a new month needs its own pre-registered "
+                                                f"decision profile, not this one re-pointed"], 3)
     P = dict(FORMAL); P.update({k: E[k] for k in FORMAL if E[k]}); rec["params"] = P
     try: delta = float(P["DELTA"]); assert math.isfinite(delta) and delta >= 0
     except Exception: return finish("REFUSED_PROFILE", [f"DELTA {P['DELTA']!r} is not a finite non-negative number"], 3)   # noqa: BLE001
@@ -77,6 +100,7 @@ def main():
     try:
         pf = json.load(open(pfp)); rec["inputs"]["preflight"] = {"path": pfp, "sha256": sha(pfp), "month": pf.get("month"), "PASS": pf.get("PASS")}; month = pf.get("month")
         if pf.get("PASS") is not True: un.append(f"preflight PASS={pf.get('PASS')!r}")
+        if _mon and month and str(month) != _mon: un.append(f"preflight month {month!r} != contract month {_mon!r} (R12-C5)")
         if os.path.realpath(pf.get("root") or "") != os.path.realpath(R): un.append(f"preflight root {pf.get('root')!r} != R")
         pdev = pf.get("device_sha256") or {}
         for fname in ("fp2_gate_step1.py", "fp2_gate_lib.py", "fp2_controls.py", "fp2_member_rule_check.py", "fp2_per_year_table.py", "fp2_decision.py"):
@@ -161,7 +185,7 @@ def main():
     #    over a member set containing names with no real bar in 24 h. Both ends are required: the gates-stage receipt (king meta + DL targets)
     #    and the export-stage receipt (the shipped bundle's symbols_live). Each goes through the SAME require the chain uses — source approved
     #    in the frozen contract, registered floor declared, every recorded input re-hashed now — and the two must name the same gate source.
-    liveness_sha = set()
+    liveness_sha = set(); LIV = {}
     for key, label in (("LIVENESS_JSON", "liveness_gates"), ("LIVENESS_EXPORT_JSON", "liveness_export")):
         try: lr = json.load(open(E[key]))
         except Exception as e: un.append(f"{key} unreadable: {e!r}"); continue   # noqa: BLE001
@@ -174,6 +198,7 @@ def main():
         okl, whyl = GC.require(E[key], {k: v for k, v in (lr.get("inputs_path") or {}).items() if isinstance(v, str)},
                                expected_gate="MEMBER_LIVENESS", expected_self_sha=ss, recorded_extras=True)
         if not okl: un.append(f"{key} refused by require: {whyl}")
+        LIV[label] = lr                                                   # R13-C1: bound to THIS candidate below, once `same` exists
         if label == "liveness_export" and "bundle_symbols_live" not in (lr.get("sets") or {}):
             un.append("LIVENESS_EXPORT_JSON does not carry the bundle_symbols_live end: the shipped live list was never checked")
     if len(liveness_sha) > 1: un.append(f"the two liveness receipts were written by different gate sources: {[str(x)[:12] for x in sorted(liveness_sha, key=str)]}")
@@ -196,6 +221,27 @@ def main():
     same("member.CACHE == step1.cache", (min_.get("CACHE") or {}).get("path"), (min_.get("CACHE") or {}).get("sha256"), s1in.get("cache"), s1sh.get("cache"))
     same("member.MEMBER_MASK == step1.member_mask", (min_.get("MEMBER_MASK") or {}).get("path"), (min_.get("MEMBER_MASK") or {}).get("sha256"), s1in.get("member_mask"), s1sh.get("member_mask"))
     if "RAW_PATCH" in min_ or s1in.get("raw_patch"): same("member.RAW_PATCH == step1.raw_patch", (min_.get("RAW_PATCH") or {}).get("path"), (min_.get("RAW_PATCH") or {}).get("sha256"), s1in.get("raw_patch"), s1sh.get("raw_patch"))
+    # ── ★ R13-C1 (independent review round 13): a liveness receipt must be produced FROM this candidate ──
+    #    `require` above re-hashes the files the receipt itself names, which proves the ticket is internally consistent and nothing more.
+    #    The reviewer took a GENUINE PASS written from another root's healthy data, dropped it into a candidate whose own run FAILS the
+    #    gate (king 2 / DL 2 / bundle 2 failing checks), and this device recommended SWAP. Bind each recorded input by SEMANTIC KEY to the
+    #    same artefact STEP1 and the export gate are bound to; the export end additionally to the shipped bundle's config.
+    for label, extra in (("liveness_gates", False), ("liveness_export", True)):
+        lr = LIV.get(label)
+        if lr is None: continue                                          # unreadable receipt already recorded in UNAVAILABLE above
+        lin = {k: v for k, v in (lr.get("inputs_path") or {}).items() if isinstance(v, str)}
+        lsh = lr.get("inputs_sha256") or {}
+        same(f"{label}.cache == step1.cache", lin.get("cache"), lsh.get("cache"), s1in.get("cache"), s1sh.get("cache"))
+        same(f"{label}.hole_cells == step1.hole_cells", lin.get("hole_cells"), lsh.get("hole_cells"), s1in.get("hole_cells"), s1sh.get("hole_cells"))
+        same(f"{label}.dlw_v4raw_targets == step1.dlw_v4raw_targets", lin.get("dlw_v4raw_targets"), lsh.get("dlw_v4raw_targets"),
+             s1in.get("dlw_v4raw_targets"), s1sh.get("dlw_v4raw_targets"))
+        same(f"{label}.wide_fea_v4_meta == export.wide_fea_v4_meta", lin.get("wide_fea_v4_meta"), lsh.get("wide_fea_v4_meta"),
+             xin.get("wide_fea_v4_meta"), xsh.get("wide_fea_v4_meta"))
+        if s1in.get("member_mask"):
+            same(f"{label}.member_mask == step1.member_mask", lin.get("member_mask"), lsh.get("member_mask"), s1in.get("member_mask"), s1sh.get("member_mask"))
+        if extra:                                                        # the export end is the one that checked the SHIPPED live list
+            same("liveness_export.bundle_config == export.bundle/config.json", lin.get("bundle_config"), lsh.get("bundle_config"),
+                 xin.get("bundle/config.json"), xsh.get("bundle/config.json"))
     cr = s1in.get("controls_receipt")
     if not cr or not os.path.isfile(cr): un.append("STEP1 records no locatable controls receipt")
     else:

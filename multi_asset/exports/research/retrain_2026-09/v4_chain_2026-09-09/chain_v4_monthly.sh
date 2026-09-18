@@ -46,13 +46,21 @@ SEED_LIST=${SEEDS//,/ }
 BT=${BUILDER_TARGETS:-pod_dlw_targets_raw.py}; BK=${BUILDER_KING_FEA:-pod_fea_ext_clamp.py}
 case "$BT$BK" in */*) die "builder_key_not_a_basename_${BT}_${BK}" 4 ;; esac
 [ -f "$D/$BT" ] || die "builder_missing_in_D_$BT" 3; [ -f "$D/$BK" ] || die "builder_missing_in_D_$BK" 3
-[ -z "${MEMBER_MASK:-}" ] || [ -f "$MEMBER_MASK" ] || die "member_mask_missing_$MEMBER_MASK" 3
+# ★ R12-C5 (2026-09-18): a DECLARED-but-absent mask is reported by PREFLIGHT ("input missing: MEMBER_MASK=…"), not by a top-level die. The same
+#   reasoning the roll gate carries: a prerequisite that stops before any receipt is written reads exactly like a crash, and the negative control's
+#   criterion is an HONEST preflight receipt. Every stage that consumes the mask sits behind `prereq_receipt <stage> preflight`, so a missing mask
+#   still blocks all of them — it just does so with a named failure in the receipt. (Same for UMASK_NPZ below.)
 # ★ FP3 F (2026-09-18, user word on PROPOSED6): the MEMBER_LIVENESS gate is contract-selected BY BASENAME (optional key GATE_LIVENESS, default the frozen name),
 #   must exist in D, is a DEV_FILE, its approval is checked in preflight (4th approval) and it RUNS in the gates stage on the produced member sets; the export
 #   stage re-runs it on the shipped bundle's live list. UMASK_NPZ (optional key) is the evaluation umask of the decision path; preflight binds its sha to the
 #   contract's approved_baseline.umask_npz_sha256 (a different mask cannot reach per_year/decision).
 GL=${GATE_LIVENESS:-v4_gate_member_liveness.py}; case "$GL" in */*|.*) die "gate_liveness_not_a_basename_$GL" 4 ;; esac; [ -f "$D/$GL" ] || die "gate_liveness_missing_in_D_$GL" 3
-[ -z "${UMASK_NPZ:-}" ] || [ -f "$UMASK_NPZ" ] || die "umask_npz_missing_$UMASK_NPZ" 3
+# ★ R13-C1 (independent review round 13): the artefacts a MEMBER_LIVENESS receipt must have been produced FROM, for this run. Passed to every
+#   consumer's prereq_receipt so a genuine PASS written from another candidate's data is refused (the reviewer transplanted exactly such a ticket
+#   into a root whose own run FAILS the gate, and both the prerequisite and the decision accepted it). The export end adds bundle_config.
+LIVE_BIND=("cache=$CACHE" "hole_cells=$HOLE_CELLS" "wide_fea_v4_meta=$KING_META" "dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz")
+[ -z "${MEMBER_MASK:-}" ] || LIVE_BIND+=("member_mask=$MEMBER_MASK")   # an ARRAY: a path with a space must not word-split into two bindings
+
 stage "chain_v4_monthly start month=$V4_MONTH env=$ENVF sha=$(gate_sha "$ENVF" || echo unreadable) device=$D root=$R stages=$V4_STAGES dryrun=$DRY"
 
 # ── preflight ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -72,6 +80,12 @@ if want preflight; then
   PF_INPUTS="CACHE PANEL_SPLICE PANEL_KING RAW_PATCH HOLE_CELLS BUNDLE_BASE EXPORT_PANEL EMA_STATE_JSON LIVE_PINS FUND_AUG FUNDING_DIR LEGS_OLD LEGS_PANEL SIGNAL_RECEIPT BUILDER_FEA82 BUILDER_FEA89 BASE_TRAINER PREV_META REF_META"
   [ -z "${MEMBER_MASK:-}" ] || PF_INPUTS="$PF_INPUTS MEMBER_MASK"   # FP2-8: a declared mask is a preflight-hashed input
   [ -z "${UMASK_NPZ:-}" ] || PF_INPUTS="$PF_INPUTS UMASK_NPZ"   # FP3 F: the evaluation umask is a preflight-hashed input, bound to the contract sha below
+  # ★ R12-C5 (independent review round 12): the controls stage's REFERENCE builds are the thing its verdict is measured against, so they are
+  #   preflight-hashed inputs AND bound to a per-month approval in the contract — the same shape as UMASK_NPZ. Without this a month could aim the
+  #   comparison at any file and still be told PASS.
+  for _k in CONTROLS_REF_KING_FEA CONTROLS_REF_KING_META CONTROLS_REF_DL_TARGETS; do
+    eval "_v=\${$_k:-}"; [ -z "$_v" ] || PF_INPUTS="$PF_INPUTS $_k"
+  done
   # ★ FP2-3 (2026-09-17): for a month that needs the roll gate, the previous contract and its sha record must be DECLARED in this
   #   month's contract (optional keys PREV_MONTH_ENV / PREV_SHA_JSON), and the roll gate is RE-RUN HERE, live, against them — an
   #   archived ROLL_PATHS receipt is no longer sufficient: "改旧 CACHE 后旧 PASS 仍被接受" (independent review 2026-09-17). The live
@@ -84,7 +98,7 @@ if want preflight; then
   fi
   V4_DEV_FILES="$DEV_FILES" V4_PF_INPUTS="$PF_INPUTS" V4_ROLL_REQUIRED="$V4_ROLL_REQUIRED" V4_ROLL_SRC="$V4_ROLL_SRC" V4_MONTH_ENV="$V4_MONTH_ENV" \
   V4_ROLL_LIVE_RC="$V4_ROLL_LIVE_RC" V4_ROLL_LIVE_OUT="$V4_ROLL_LIVE_OUT" V4_PREV_MONTH_ENV="${PREV_MONTH_ENV:-}" V4_PREV_SHA_JSON="${PREV_SHA_JSON:-}" "$PY" - "$R/v4_gates/preflight.json" <<'PYEOF'; rc=$?
-import hashlib, json, os, subprocess, sys, time
+import hashlib, json, os, re, subprocess, sys, time
 out = sys.argv[1]; E = os.environ; D = E["D"]; R = E["R"]; fails = []; dev = {}; ext = {}; inputs = {}
 def sha(p):
     h = hashlib.sha256()
@@ -162,11 +176,46 @@ for rel in ["masks/umask_UPIT_CRYPTO.npz", "calib/costb_fee_steady.json"] + [f"d
     if os.path.isfile(p): inputs[f"HC/{rel}"] = {"path": p, "bytes": os.path.getsize(p), "sha256": sha(p)}
     else: fails.append(f"dev tree file missing: HC/{rel}={p}")
 approval = {}
-if E.get("UMASK_NPZ"):   # FP3 F: the evaluation umask must be the contract's approved baseline umask (sha), not "whatever is on disk"
-    _c = json.load(open(os.path.join(D, "ELIGIBILITY_CONTRACT.json"))); _want = (((_c.get("gates") or {}).get("BUNDLE_export") or {}).get("approved_baseline") or {}).get("umask_npz_sha256")
+if E.get("UMASK_NPZ"):   # FP3 F: the evaluation umask must be an APPROVED file (sha), not "whatever is on disk"
+    _c = json.load(open(os.path.join(D, "ELIGIBILITY_CONTRACT.json")))
+    # ★ R12-C5 follow-on: this was bound to gates.BUNDLE_export.approved_baseline.umask_npz_sha256 for EVERY month — but that value is SEPTEMBER's
+    #   evaluation umask, so a later month had to reuse September's mask or be refused for the wrong reason. The approval is per month; the
+    #   baseline field is the 2026-09 entry. A month with no entry is refused BY NAME instead of being compared against another month's file.
+    _pm = ((((_c.get("month_contract_rulings") or {}).get("CONTROLS_REF_identity") or {}).get("approved_controls_refs") or {}).get(E["V4_MONTH"]) or {})
+    _want = ((_pm.get("UMASK_NPZ") or {}).get("sha256")) or None
     _got = inputs.get("UMASK_NPZ", {}).get("sha256")
     if "UMASK_NPZ" in inputs: inputs["UMASK_NPZ"]["contract_umask_npz_sha256"] = _want
-    if not _got or _got != _want: fails.append(f"UMASK_NPZ sha {str(_got)[:12]} != contract approved_baseline.umask_npz_sha256 {str(_want)[:12]}")
+    if not _want: fails.append(f"no approved UMASK_NPZ for month {E['V4_MONTH']} in the contract (month_contract_rulings.CONTROLS_REF_identity.approved_controls_refs): "
+                               f"the evaluation umask is a per-month approval object and this month has none (R12-C5)")
+    elif not _got or _got != _want: fails.append(f"UMASK_NPZ sha {str(_got)[:12]} != the sha approved for month {E['V4_MONTH']} {str(_want)[:12]} (R12-C5)")
+# ★ R12-C5 (a): a month AFTER September must DECLARE the member mask and the evaluation umask. With the v1 defaults the data stage builds members
+#   WITHOUT the liveness mask, and the MEMBER_LIVENESS gate would then fail the very month it governs — a silent wrong-input run, not a refusal.
+#   September is excluded by construction (its contract predates both keys and is the counter-example); string comparison is correct for YYYY-MM.
+# `V4_MONTH` must look like a CALENDAR month for this rule to apply: the test harness uses deliberately impossible labels (e.g. 2026-99) to
+#   exercise driver plumbing, and a synthetic month cannot satisfy a real approval. A real month cannot hide behind that: an impossible label is
+#   recorded in the receipt as `month_label_not_calendar`, and every path/roll check still applies to it.
+_cal = bool(re.fullmatch(r"20\d\d-(0[1-9]|1[0-2])", str(E["V4_MONTH"] or "")))
+if not _cal: inputs["_month_label"] = {"value": E["V4_MONTH"], "month_label_not_calendar": True}
+_post_sept = _cal and str(E["V4_MONTH"]) > "2026-09"
+if _post_sept:
+    for _k in ("MEMBER_MASK", "UMASK_NPZ"):
+        if not E.get(_k): fails.append(f"month {E['V4_MONTH']} is after 2026-09 and its contract does not declare {_k}: the data stage would build members without the liveness mask (R12-C5)")
+# ★ R12-C5 (b): every DECLARED controls reference must carry the sha approved for THIS month in the contract; a month with no approved entry
+#   cannot run the controls stage at all, and says so by name rather than comparing against whatever happens to be on disk.
+_refs = {k: E.get(k) for k in ("CONTROLS_REF_KING_FEA", "CONTROLS_REF_KING_META", "CONTROLS_REF_DL_TARGETS") if E.get(k)}
+if _refs:
+    _cc = json.load(open(os.path.join(D, "ELIGIBILITY_CONTRACT.json")))
+    _all = (((_cc.get("month_contract_rulings") or {}).get("CONTROLS_REF_identity") or {}).get("approved_controls_refs") or {})
+    _app = _all.get(E["V4_MONTH"])
+    if not _app:
+        fails.append(f"no approved CONTROLS_REF for month {E['V4_MONTH']} in the contract (month_contract_rulings.CONTROLS_REF_identity.approved_controls_refs): "
+                     f"the controls stage's reference builds are a per-month approval object and this month has none (R12-C5)")
+    else:
+        for _k, _v in _refs.items():
+            _want = (_app.get(_k) or {}).get("sha256"); _got = inputs.get(_k, {}).get("sha256")
+            if _k in inputs: inputs[_k]["contract_approved_sha256"] = _want
+            if not _want: fails.append(f"{_k} is declared but not approved for month {E['V4_MONTH']} in the contract (R12-C5)")
+            elif not _got or _got != _want: fails.append(f"{_k} sha {str(_got)[:12]} != approved {str(_want)[:12]} for month {E['V4_MONTH']} (R12-C5)")
 for gate, src in (("STEP1", E["GATE_STEP1"]), ("STEP2", E["GATE_STEP2"]), ("BUNDLE_export", E.get("GATE_EXPORT") or "v4e_gate_export_v2.py"), ("MEMBER_LIVENESS", E.get("GATE_LIVENESS") or "v4_gate_member_liveness.py")):
     p = os.path.join(D, src)
     if not os.path.isfile(p): approval[gate] = {"source": src, "ok": False, "why": "source missing"}; continue
@@ -328,7 +377,7 @@ fi
 if want king; then
   prereq_receipt king preflight "$R/v4_gates/preflight.json" PREFLIGHT
   prereq_receipt king step2 "$R/v4_gates/step2.json" STEP2
-  prereq_receipt king liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS
+  prereq_receipt king liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS "${LIVE_BIND[@]}"
   guard king; stage "king: export bundle generation=$BUNDLE_GENERATION -> $BUNDLE_OUT (requires the STEP2 receipt bound to $KING_FEA/$KING_META)"
   S2_SRC=$(gate_sha "$D/$GATE_STEP2") || die "gate_source_unreadable_$GATE_STEP2" 3
   require_gate "$R/v4_gates/step2.json" recorded_extras=1 gate=STEP2 self_sha=$S2_SRC wide_fea_v4=$KING_FEA wide_fea_v4_meta=$KING_META
@@ -344,7 +393,7 @@ fi
 if want legs; then
   prereq_receipt legs preflight "$R/v4_gates/preflight.json" PREFLIGHT
   prereq_receipt legs step1 "$R/v4_gates/step1.json" STEP1; S1_SRC=$(gate_sha "$D/$GATE_STEP1") || die "gate_source_unreadable_$GATE_STEP1" 3
-  prereq_receipt legs liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS
+  prereq_receipt legs liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS "${LIVE_BIND[@]}"
   require_gate "$R/v4_gates/step1.json" recorded_extras=1 gate=STEP1 profile=v4 self_sha=$S1_SRC dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz dlw_hf3_targets=$DLW_CLIP/data/dlw_targets.npz fea82_v4raw=$DLW_RAW/data/dlw_fea82.npz fea89_f8v4=$F8/data/f8_fea89.npz   # legs read THIS month's RAW targets: bound through STEP1
   guard legs; stage "legs: pod_legs_v4b.py LEGS_PRED=$BUNDLE_OUT/slow_pred_pinned.npy LEGS_OLD=$LEGS_OLD"
   [ -f "$BUNDLE_OUT/slow_pred_pinned.npy" ] || die "legs_king_pred_missing" 3
@@ -368,7 +417,7 @@ fi
 if want mwf; then
   prereq_receipt mwf preflight "$R/v4_gates/preflight.json" PREFLIGHT
   prereq_receipt mwf step1 "$R/v4_gates/step1.json" STEP1; prereq_marker mwf legs "$R/legs_v4.log" LEGS_V4B_DONE
-  prereq_receipt mwf liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS
+  prereq_receipt mwf liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS "${LIVE_BIND[@]}"
   guard mwf; stage "mwf: MONTHS_ALL=$MONTHS_ALL seeds=[$SEED_LIST] root=$F8/$MWF_ROOT"
   "$PY" "$D/v4_months.py" check "$DLW_RAW/data/dlw_targets.npz" "$MONTHS_ALL" >> "$STAGE_LOG" 2>&1 || die "months_all_not_admissible_for_axis" 3
   set_shards_from_months_all; export MWF_ROOT
@@ -389,7 +438,7 @@ fi
 if want refit; then
   prereq_receipt refit preflight "$R/v4_gates/preflight.json" PREFLIGHT
   prereq_receipt refit step1 "$R/v4_gates/step1.json" STEP1; S1_SRC=$(gate_sha "$D/$GATE_STEP1") || die "gate_source_unreadable_$GATE_STEP1" 3
-  prereq_receipt refit liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS
+  prereq_receipt refit liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS "${LIVE_BIND[@]}"
   require_gate "$R/v4_gates/step1.json" recorded_extras=1 gate=STEP1 profile=v4 self_sha=$S1_SRC dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz dlw_hf3_targets=$DLW_CLIP/data/dlw_targets.npz fea82_v4raw=$DLW_RAW/data/dlw_fea82.npz fea89_f8v4=$F8/data/f8_fea89.npz
   prereq_marker refit legs "$R/legs_v4.log" LEGS_V4B_DONE; prereq_file refit legs_file "$F8/data/f10v2_legs.npz"
   for SD in $SEED_LIST; do prereq_marker refit merge_s$SD "$F8/logs/merge_v4b_RAW_s$SD.log" MERGE_DONE; done
@@ -434,7 +483,7 @@ fi
 if want arms; then
   prereq_receipt arms preflight "$R/v4_gates/preflight.json" PREFLIGHT
   prereq_receipt arms step2 "$R/v4_gates/step2.json" STEP2; S2_SRC=$(gate_sha "$D/$GATE_STEP2") || die "gate_source_unreadable_$GATE_STEP2" 3
-  prereq_receipt arms liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS
+  prereq_receipt arms liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS "${LIVE_BIND[@]}"
   require_gate "$R/v4_gates/step2.json" recorded_extras=1 gate=STEP2 self_sha=$S2_SRC wide_fea_v4=$KING_FEA wide_fea_v4_meta=$KING_META   # build_dev reads KING_META
   prereq_marker arms bundle "$R/export_v4.log" BUNDLE_DONE BUNDLE_FAIL; prereq_file arms king_pred "$BUNDLE_OUT/slow_pred_pinned.npy"
   for SD in $SEED_LIST; do prereq_refit_sidecar arms refit_s$SD "$F8/models/f10_live_s$SD.json" "$DLW_RAW" "$F8" "$SD" "$D/pod_f10_refit_v4.py"; done   # round 3: expected SEED + complete key set + this month's expected paths + the ACTUAL sha of the .pt and all four inputs + which program wrote the sidecar
@@ -537,7 +586,7 @@ fi
 
 if want member_rule; then   # R09: the masked builds must be EXACTLY the builders' rule (recomputed from the cache); receipt bound by the decision stage
   prereq_receipt member_rule preflight "$R/v4_gates/preflight.json" PREFLIGHT
-  prereq_receipt member_rule liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS
+  prereq_receipt member_rule liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS "${LIVE_BIND[@]}"
   [ -n "${MEMBER_MASK:-}" ] || die "member_rule_prereq_member_mask_missing (the rule check needs the declared mask)" 3
   for f in "$R/controls/king_nomask/wide_fea_v4_meta.npz" "$R/controls/dl_nomask/data/dlw_targets.npz"; do [ -f "$f" ] || die "member_rule_prereq_controls_missing_$(basename "$f")" 3; done
   guard member_rule; stage "member_rule: fp2_member_rule_check.py"
@@ -561,13 +610,13 @@ fi
 if want decision; then   # F03: the swap recommendation under AMENDMENT 7 (G1′ non-inferiority × G2 per-year × G3 export gate); judge receipt informational only
   prereq_receipt decision preflight "$R/v4_gates/preflight.json" PREFLIGHT
   prereq_receipt decision step1 "$R/v4_gates/step1.json" STEP1 v4
-  prereq_receipt decision liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS
-  prereq_receipt decision liveness_export "$R/v4_gates/member_liveness_export.json" MEMBER_LIVENESS
+  prereq_receipt decision liveness "$R/v4_gates/member_liveness.json" MEMBER_LIVENESS "${LIVE_BIND[@]}"
+  prereq_receipt decision liveness_export "$R/v4_gates/member_liveness_export.json" MEMBER_LIVENESS "${LIVE_BIND[@]}" bundle_config=$BUNDLE_OUT/config.json
   prereq_file decision per_year "$R/v4_gates/PER_YEAR_TABLE.json"; prereq_file decision member_rule "$R/v4_gates/MEMBER_RULE_CHECK.json"
   prereq_file decision export_receipt "$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM}.json"; prereq_marker decision judge_eligible "$R/judge_v4_eligible.log" JUDGE_V4_DONE
   [ -n "${UMASK_NPZ:-}" ] || die "decision_prereq_umask_npz_missing" 3
   guard decision; stage "decision: fp2_decision.py PROFILE=formal export gate ${GATE_EXPORT:-v4e_gate_export_v2.py}"
-  env R=$R D=$D PROFILE=formal EXPORT_GATE=${GATE_EXPORT:-v4e_gate_export_v2.py} PER_YEAR_JSON=$R/v4_gates/PER_YEAR_TABLE.json EXPORT_RECEIPT=$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM}.json JUDGE_JSON=$R/v4_gates/JUDGE_v4_eligible.json \
+  env V4_MONTH=$V4_MONTH R=$R D=$D PROFILE=formal EXPORT_GATE=${GATE_EXPORT:-v4e_gate_export_v2.py} PER_YEAR_JSON=$R/v4_gates/PER_YEAR_TABLE.json EXPORT_RECEIPT=$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM}.json JUDGE_JSON=$R/v4_gates/JUDGE_v4_eligible.json \
     MEMBER_RULE_JSON=$R/v4_gates/MEMBER_RULE_CHECK.json STEP1_JSON=$R/v4_gates/step1.json EXPECTED_UMASK=$UMASK_NPZ \
     LIVENESS_JSON=$R/v4_gates/member_liveness.json LIVENESS_EXPORT_JSON=$R/v4_gates/member_liveness_export.json \
     OUT_JSON=$R/v4_gates/DECISION_FP2.json OUT_MD=$R/v4_gates/DECISION_FP2.md "$PY" "$D/fp2_decision.py" > "$R/decision_fp2.log" 2>&1 < /dev/null; rc=$?
