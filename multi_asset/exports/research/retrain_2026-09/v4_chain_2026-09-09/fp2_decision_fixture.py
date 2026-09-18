@@ -84,15 +84,19 @@ class Root:
         ins = {"CACHE": cache or self.f["cache"], "MEMBER_MASK": self.f["mmask"], "RAW_PATCH": self.f["rawp"], "CONTROL_KING_META": self.f["ckmeta"], "CONTROL_DL_TARGETS": self.f["cdlt"], "MASKED_KING_META": kmeta or self.f["kmeta"], "MASKED_DL_TARGETS": dlt or self.f["dlt"]}
         rec = {"gate": "FP2_MEMBER_RULE_CHECK", "VERDICT": verdict, "self_sha256": sha(f"{self.D}/fp2_member_rule_check.py"), "inputs": {k: {"path": p, "sha256": sha(p)} for k, p in ins.items()}}
         p = f"{self.R}/v4_gates/MEMBER_RULE_CHECK.json"; json.dump(rec, open(p, "w")); return p
-    def liveness(self, end="gates", PASS=True, self_sha=None, path=None, cache=None, kmeta=None, dlt=None, mmask=None, bundle_cfg=None, dead=0, sets=None):
+    def liveness(self, end="gates", PASS=True, self_sha=None, path=None, cache=None, kmeta=None, dlt=None, mmask=None, bundle_cfg=None, dead=0, sets=None,
+                 anchor=1789689600, anchor_source="bundle config provenance data_axis_end_utc"):
         """a MEMBER_LIVENESS receipt shaped like the real gate's: the registered floor + member_mask, and for the export end bundle_config.
         R13-C1: its recorded inputs are the SAME files STEP1 / the export receipt name, so the decision's semantic bindings hold; a test breaks
-        one of them on purpose (that is the reviewer's transplant)."""
+        one of them on purpose (that is the reviewer's transplant).
+        R15-C1: the export end records the anchor it judged at AND its source (the real gate writes bundle_symbols_live.checked_at_anchor /
+        anchor_source); the decision refuses a swap whose anchor came from EXPORT_ANCHOR_TS. `anchor` / `anchor_source` let a control forge that."""
         ins = {"cache": cache or self.f["cache"], "hole_cells": self.f["hole"], "wide_fea_v4_meta": kmeta or self.f["kmeta"],
                "dlw_v4raw_targets": dlt or self.f["dlt"], "member_mask": mmask or self.f["mmask"]}
         st = {"wide_fea_v4_meta": {"dead_but_member": 0}, "dlw_v4raw_targets": {"dead_but_member": 0}}
         if end == "export":
-            ins["bundle_config"] = bundle_cfg or self.f["bundle_config"]; st["bundle_symbols_live"] = {"dead_at_last_anchor": []}
+            ins["bundle_config"] = bundle_cfg or self.f["bundle_config"]
+            st["bundle_symbols_live"] = {"dead_at_last_anchor": [], "checked_at_anchor": anchor, "anchor_source": anchor_source, "n_names": 1}
         rec = {"gate": "MEMBER_LIVENESS", "PASS": PASS, "self_sha256": self_sha or sha(f"{self.D}/v4_gate_member_liveness.py"),
                "dead_but_member_total": dead, "window_rows": 288, "row_spacing_s": 300, "refusals": [], "sets": sets if sets is not None else st,
                "inputs_path": ins, "inputs_sha256": {k: sha(v) for k, v in ins.items()}}

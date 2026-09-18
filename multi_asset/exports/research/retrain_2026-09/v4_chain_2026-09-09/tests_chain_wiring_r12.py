@@ -145,5 +145,18 @@ check("both are re-verified through v4_gate_common.require with recorded_extras,
       'expected_gate="MEMBER_LIVENESS"' in dec and "recorded_extras=True" in dec and "bundle_symbols_live" in dec, None)
 check("the driver's decision stage passes both receipts", "LIVENESS_JSON=$R/v4_gates/member_liveness.json" in src and "LIVENESS_EXPORT_JSON=$R/v4_gates/member_liveness_export.json" in src, None)
 
+print("\n[6] R15-C1: the env-leak CLASS is closed in run_gate (the sibling of R12-C3, without adding a new name)")
+lib = open(f"{HERE}/chain_lib.sh").read()
+check("run_gate derives an ambient strip from the gate's OWN declaration (gate_env_keys → `--env-keys`), not a hand-maintained name list",
+      "gate_env_keys" in lib and "--env-keys" in lib and "ambient strip" in lib, None)
+check("a declared key is kept only if it is an explicit run_gate arg OR a governed contract key (V4_MONTH_KEYS ∪ optionals); anything else is unset before the gate runs",
+      re.search(r'case " \$V4_MONTH_KEYS \$V4_MONTH_OPTIONAL_KEYS " in \*" \$_k "\*\) continue', lib) is not None
+      and re.search(r'for _k in \$_strip; do unset "\$_k"; done', lib) is not None, None)
+gk = subprocess.run([PY, f"{HERE}/v4_gate_member_liveness.py", "--env-keys"], capture_output=True, text=True)
+declared = set(gk.stdout.split())
+governed = set(re.search(r'V4_MONTH_KEYS="([^"]*)"', lib).group(1).split()) | set(re.search(r'V4_MONTH_OPTIONAL_KEYS="([^"]*)"', lib).group(1).split())
+check("EXPORT_ANCHOR_TS is a DECLARED gate read but NOT a governed contract key ⇒ run_gate strips an ambient one (R12-C3 had to add the name V4_UMASK_NPZ by hand; this class needs no new name, and V4_UMASK_NPZ is not even a liveness-gate read)",
+      gk.returncode == 0 and "EXPORT_ANCHOR_TS" in declared and "EXPORT_ANCHOR_TS" not in governed and "V4_UMASK_NPZ" not in declared, (sorted(declared), "EXPORT_ANCHOR_TS" in governed))
+
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
 sys.exit(0 if not FAILS else 1)

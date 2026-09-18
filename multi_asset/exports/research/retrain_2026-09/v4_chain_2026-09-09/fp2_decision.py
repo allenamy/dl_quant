@@ -199,8 +199,23 @@ def main():
                                expected_gate="MEMBER_LIVENESS", expected_self_sha=ss, recorded_extras=True)
         if not okl: un.append(f"{key} refused by require: {whyl}")
         LIV[label] = lr                                                   # R13-C1: bound to THIS candidate below, once `same` exists
-        if label == "liveness_export" and "bundle_symbols_live" not in (lr.get("sets") or {}):
-            un.append("LIVENESS_EXPORT_JSON does not carry the bundle_symbols_live end: the shipped live list was never checked")
+        if label == "liveness_export":
+            bsl = (lr.get("sets") or {}).get("bundle_symbols_live")
+            if not bsl:
+                un.append("LIVENESS_EXPORT_JSON does not carry the bundle_symbols_live end: the shipped live list was never checked")
+            else:
+                # ★ R15-C1 (round 15): the export end judged the shipped list AT AN ANCHOR. A swap must rest on the anchor the BUNDLE ITSELF
+                #   declares — its provenance.data_axis_end_utc / MANIFEST, both hashed inputs `require` re-verifies above — never on
+                #   EXPORT_ANCHOR_TS, an environment/caller override that used to LEAK from the shell that launched the driver and move the
+                #   judged moment 72 h while require still accepted the receipt. "Which anchor was computed" is recorded; here we confirm it is
+                #   the APPROVED source: the anchor and its source must be stated, and the source must not be the override channel. Because the
+                #   bundle_config/MANIFEST the gate parsed are recorded inputs that `require` re-hashes, a provenance source pins checked_at_anchor
+                #   to what the bundle declares — the equality the reviewer asked for, without re-parsing the timestamp here.
+                _anc = bsl.get("checked_at_anchor"); _asrc = bsl.get("anchor_source")
+                if not isinstance(_anc, int) or not isinstance(_asrc, str) or not _asrc:
+                    un.append(f"LIVENESS_EXPORT_JSON bundle_symbols_live states no (checked_at_anchor, anchor_source): the moment the shipped list was judged is unverifiable ({_anc!r}, {_asrc!r})")
+                elif "EXPORT_ANCHOR_TS" in _asrc:
+                    un.append(f"LIVENESS_EXPORT_JSON export anchor came from EXPORT_ANCHOR_TS ({_asrc!r}) — an environment/caller override, not the bundle's own hashed provenance; a swap is not recommended on an anchor the environment chose")
     if len(liveness_sha) > 1: un.append(f"the two liveness receipts were written by different gate sources: {[str(x)[:12] for x in sorted(liveness_sha, key=str)]}")
 
     # ── member rule: device identity, PASS, every recorded input re-hashed, semantic bindings ──

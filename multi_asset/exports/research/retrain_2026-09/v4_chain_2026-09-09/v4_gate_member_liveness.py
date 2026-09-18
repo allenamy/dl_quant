@@ -33,7 +33,7 @@ Receipt through v4_gate_common.finalize: gate MEMBER_LIVENESS; inputs cache / ho
 (REQUIRED_INPUTS floor) + member_mask when declared (recorded, never used by the verdict). rc 0 iff PASS else 3.
 env: CACHE HOLE_CELLS KING_META DLW_TARGETS OUT (required); MEMBER_MASK (optional, recorded only); BUNDLE_CONFIG (optional, turns on the
      export end); EXPORT_ANCHOR_TS (optional, pins the moment the export end judges — see R14-C1; without it the bundle must declare one)."""
-import collections, json, os, sys, time, zipfile
+import calendar, collections, json, os, re, sys, time, zipfile
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -43,6 +43,16 @@ WINDOW_SECONDS = 86400            # the rule's window is 24 HOURS; the row count
 LOG_QV_CH = 3
 GATE = "MEMBER_LIVENESS"
 ANCHOR_SECONDS = 14400
+# ★ R15-C1 (round 15): the SINGLE declaration of every environment variable this gate reads. The receipt's env inventory (main, below) is
+#   built from it, and chain_lib.sh's run_gate reads the same list via `--env-keys` to STRIP any of these keys that the ambient shell supplies
+#   without them being a governed contract key or an explicit run_gate arg. One list drives BOTH the record and the clean, so a name-by-name
+#   unset list (R12-C3 added V4_UMASK_NPZ; R14-C1 then added EXPORT_ANCHOR_TS to none) cannot reopen the class: a new env read is covered the
+#   moment it is added here. tests_member_liveness.py asserts this tuple COVERS every os.environ read in this source (no undeclared read).
+ENV_KEYS = ("CACHE", "HOLE_CELLS", "KING_META", "DLW_TARGETS", "OUT", "MEMBER_MASK", "BUNDLE_CONFIG", "EXPORT_ANCHOR_TS")
+# ★ R15-C2: a declared export anchor as a string is EITHER a pure integer epoch OR the STRICT UTC ISO the exporter writes. The whole string
+#   must be 'YYYY-MM-DDTHH:MM:SSZ' (zero-padded, trailing Z required, nothing before or after) — the old `_v[:19]` truncation accepted
+#   '…:00.5Z' and '…:00Zgarbage' as a legal anchor.
+_ISO_UTC = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 
 
 def int_axis(arr, name):
@@ -104,10 +114,10 @@ def load_channel(cache_path, ch_idx):
 
 
 def main():
-    E = {k: os.environ.get(k, "") for k in ("CACHE", "HOLE_CELLS", "KING_META", "DLW_TARGETS", "OUT", "MEMBER_MASK", "BUNDLE_CONFIG")}
+    E = {k: os.environ.get(k, "") for k in ENV_KEYS}   # ★ R15-C1: EVERY env var this gate reads (incl. EXPORT_ANCHOR_TS) is recorded, from the single ENV_KEYS declaration
     out = E["OUT"] or os.path.join(os.getcwd(), "MEMBER_LIVENESS.json")
     res = {"device": "v4_gate_member_liveness.py", "rule": GATE, "window_seconds": WINDOW_SECONDS, "window_rows": None, "row_spacing_s": None,
-           "env": dict(E), "PASS": False, "refusals": [], "sets": {}}
+           "env": dict(E), "env_keys": list(ENV_KEYS), "PASS": False, "refusals": [], "sets": {}}
     inputs = {"cache": E["CACHE"], "hole_cells": E["HOLE_CELLS"], "wide_fea_v4_meta": E["KING_META"], "dlw_v4raw_targets": E["DLW_TARGETS"]}
     if E["MEMBER_MASK"]:
         inputs["member_mask"] = E["MEMBER_MASK"]
@@ -257,13 +267,26 @@ def main():
             _EXPORT_UTC = ("data_axis_end_utc", "export_anchor_utc", "anchor_utc")
 
             def _as_epoch(v):
-                """a declared anchor is either an integer epoch or an ISO 'YYYY-MM-DDTHH:MM:SSZ' string (the exporter writes the latter)"""
+                """(epoch or None). A declared anchor is EITHER an integer epoch OR a STRICT UTC ISO stamp 'YYYY-MM-DDTHH:MM:SSZ' (the
+                exporter writes the latter). R15-C2, two independent defects fixed here:
+                  (a) the timezone is UTC and NEVER the host's. The old code used time.mktime (which reads the struct as LOCAL time and
+                      infers DST via tm_isdst=-1) corrected by time.timezone (the NON-DST offset), so wherever DST was in effect the epoch
+                      was one hour early and then failed the 4h-grid check — a host-dependent verdict on identical bytes. calendar.timegm
+                      reads the struct as UTC with no host dependence.
+                  (b) the WHOLE string must match. `_v[:19]` truncation accepted '2026-09-16T00:00:00.5Z' and '…:00Zgarbage' as a legal
+                      anchor; the regex pins the exact zero-padded shape (trailing Z, nothing trailing) and strptime validates the field
+                      ranges. Integer inputs must be finite whole seconds (float('inf'/'nan').is_integer() is False, so non-finite ⇒ None)."""
                 if isinstance(v, bool): return None
-                if isinstance(v, (int, float)) and float(v).is_integer(): return int(v)
+                if isinstance(v, (int, float)):
+                    try: return int(v) if float(v).is_integer() else None    # finite integer seconds only (inf/nan ⇒ is_integer() False ⇒ None)
+                    except Exception: return None   # noqa: BLE001
                 if isinstance(v, str):
                     _v = v.strip()
-                    if _v.lstrip("-").isdigit(): return int(_v)              # an env var is always a string: "1789689600" is an epoch, not an ISO stamp
-                    try: return int(time.mktime(time.strptime(_v[:19], "%Y-%m-%dT%H:%M:%S")) - time.timezone)
+                    if _v and (_v[1:] if _v[:1] == "-" else _v).isdigit():   # an env var / numeric field is a string: "1789689600" is an epoch, not an ISO stamp
+                        try: return int(_v)
+                        except Exception: return None   # noqa: BLE001
+                    if not _ISO_UTC.match(_v): return None                   # STRICT whole-string UTC ISO; no truncation
+                    try: return calendar.timegm(time.strptime(_v, "%Y-%m-%dT%H:%M:%SZ"))   # UTC, host-timezone-independent
                     except Exception: return None   # noqa: BLE001
                 return None
 
@@ -278,7 +301,7 @@ def main():
                 return None, None, None
 
             want_a = None; _train_only = None
-            _env_a = _as_epoch(os.environ.get("EXPORT_ANCHOR_TS") or None)
+            _env_a = _as_epoch(E["EXPORT_ANCHOR_TS"] or None)   # ★ R15-C1: read from the recorded ENV_KEYS inventory, not a bare os.environ — one governed read site
             if _env_a is not None: want_a, S["anchor_source"] = _env_a, "EXPORT_ANCHOR_TS (pinned by the caller)"
             if want_a is None and isinstance(cfg, dict):
                 for _src, _where in ((cfg, "bundle config"), (cfg.get("provenance"), "bundle config provenance")):
@@ -341,4 +364,8 @@ def main():
 
 
 if __name__ == "__main__":
+    # ★ R15-C1: the machine-readable declaration chain_lib.sh's run_gate strips the ambient by. Printing ENV_KEYS is the ONE place both the
+    #   receipt's env inventory (main) and the driver's ambient-clean read from, so neither can drift from the other.
+    if len(sys.argv) == 2 and sys.argv[1] == "--env-keys":
+        print(" ".join(ENV_KEYS)); sys.exit(0)
     main()

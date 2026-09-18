@@ -92,6 +92,16 @@ rc, o, j = X.run(X.per_year(both(0.01, 0.10)), X.export(), extra={"PROFILE": "ex
 rc, o, j = X.run(X.per_year(both(0.01, 0.10)), X.export(PASS=False, failed=["E8"])); check("★★ T9 export PASS=false ⇒ UNAVAILABLE", rc == 3 and any("export" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
 rc, o, j = X.run(X.per_year(both(0.01, 0.10), verdict="PARTIAL"), X.export()); check("★★ T12 table PARTIAL ⇒ UNAVAILABLE", rc == 3 and any("VERDICT 'PARTIAL'" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
 py = X.per_year(both(0.01, 0.10)); d = json.load(open(py)); del d["delta"]["A1-A0/dyn/s2027"]; json.dump(d, open(py, "w")); rc, o, j = X.run(py, X.export()); check("★★ T6 seed 2027 cells missing ⇒ UNAVAILABLE", rc == 3 and any("cell missing" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
+# ── R15-C1 (round 15): the export-end anchor must be the bundle's OWN declared provenance, never an EXPORT_ANCHOR_TS override ──
+rc, o, j = X.run(X.per_year(both(0.01, 0.10)), X.export(), lvx=X.liveness("export", anchor_source="EXPORT_ANCHOR_TS (pinned by the caller)"))
+check("★★★ R15-C1 the export-end anchor came from EXPORT_ANCHOR_TS (an env/caller override, not the bundle's hashed provenance) ⇒ UNAVAILABLE, never SWAP",
+      rc == 3 and j["RECOMMENDATION"] != "SWAP_RECOMMENDED" and any("EXPORT_ANCHOR_TS" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
+rc, o, j = X.run(X.per_year(both(0.01, 0.10)), X.export(), lvx=X.liveness("export", anchor=None, anchor_source=None))
+check("★★ R15-C1 an export-end receipt that states no (checked_at_anchor, anchor_source) ⇒ UNAVAILABLE (the moment the shipped list was judged must be verifiable)",
+      rc == 3 and any("checked_at_anchor, anchor_source" in u for u in j["UNAVAILABLE"]), j["UNAVAILABLE"][:1])
+rc, o, j = X.run(X.per_year(both(0.01, 0.10)), X.export(), lvx=X.liveness("export"))
+check("★ R15-C1 green control: the export end anchored on the bundle's provenance (the default) still ⇒ SWAP_RECOMMENDED (the check discriminates)",
+      rc == 0 and j["RECOMMENDATION"] == "SWAP_RECOMMENDED", (j["RECOMMENDATION"], j["UNAVAILABLE"][:2]))
 print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
 if FAILS: print("FAILED:", *FAILS, sep="\n  "); sys.exit(1)
 print("ALL PASS")

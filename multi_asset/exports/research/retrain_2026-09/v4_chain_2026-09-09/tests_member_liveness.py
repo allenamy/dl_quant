@@ -295,5 +295,77 @@ r = _sp.run(["bash", "-c", _cmd, "probe", f"{HERE}/chain_lib.sh", f"{d}/gate.jso
 check("red control: an input changed AFTER the receipt ⇒ the same helper refuses (a stale receipt is not a prerequisite)",
       r.returncode != 0, (r.returncode, (r.stdout + r.stderr)[-150:]))
 
+print("\n[12] ROUND 15: the env-leak CLASS (R15-C1) and the DST/truncation parser (R15-C2)")
+import ast as _ast
+
+
+def _run_gate_via_lib(d, out, parent_extra=None, gate_args=()):
+    """Drive the REAL chain_lib.sh run_gate (the function the monthly driver uses), not a reimplementation. parent_extra pollutes the shell
+    that 'launches the driver'; gate_args are explicit run_gate NAME=val args."""
+    env = dict(os.environ, PY=PY, R=d, CHAIN_DEVICE_DIR=HERE, L=os.path.join(d, "cmds.txt")); env.update(parent_extra or {})
+    argv = ["run_gate", "LIVENESS_EXPORT", "v4_gate_member_liveness.py", os.path.join(d, "rg.log"),
+            f"CACHE={d}/cache.npz", f"HOLE_CELLS={d}/holes.npz", f"KING_META={d}/meta.npz", f"DLW_TARGETS={d}/targets.npz",
+            "MEMBER_MASK=", f"BUNDLE_CONFIG={d}/config.json", f"OUT={out}", *gate_args]
+    subprocess.run(["bash", "-c", 'source "$1"; shift; "$@"', "x", f"{HERE}/chain_lib.sh", *argv], capture_output=True, text=True, env=env)
+    return json.load(open(out)) if os.path.exists(out) else None
+
+
+def _bsl(j): return ((j or {}).get("sets", {}).get("bundle_symbols_live", {}) or {})
+
+
+# ---- R15-C1: the parent-shell EXPORT_ANCHOR_TS leak, driven through the REAL run_gate ----
+_R15_ROWS, _R15_LAST, _R15_A288 = 865, BASE + 864 * 300, BASE + 288 * 300   # DEADUSDT live only in rows 1..288; dead at the last anchor
+_dL = fixture("r15_leak", syms=("DEADUSDT",), rows=_R15_ROWS, edit=lambda a: a.__setitem__((slice(1, 289), 0, 3), 0.0), E=_R15_A288, members=[0])
+json.dump({"symbols_live": ["DEADUSDT"], "export_anchor_ts": _R15_LAST}, open(f"{_dL}/config.json", "w"))
+_jc = _run_gate_via_lib(_dL, f"{_dL}/g_clean.json")
+_jl = _run_gate_via_lib(_dL, f"{_dL}/g_leak.json", {"EXPORT_ANCHOR_TS": str(_R15_A288)})
+_je = _run_gate_via_lib(_dL, f"{_dL}/g_arg.json", gate_args=[f"EXPORT_ANCHOR_TS={_R15_A288}"])
+check("★★★ [R15-C1] a parent-shell EXPORT_ANCHOR_TS is STRIPPED by run_gate: the export end still judges the bundle's DECLARED anchor, so a dead shipped name stays FAIL (was: the leak moved the anchor 72 h and flipped FAIL→PASS on this very function)",
+      (_jc or {}).get("PASS") is False and (_jl or {}).get("PASS") is False and _bsl(_jc).get("checked_at_anchor") == _R15_LAST
+      and _bsl(_jl).get("checked_at_anchor") == _R15_LAST and "EXPORT_ANCHOR_TS" not in str(_bsl(_jl).get("anchor_source")),
+      ((_jc or {}).get("PASS"), _bsl(_jc).get("checked_at_anchor"), (_jl or {}).get("PASS"), _bsl(_jl).get("checked_at_anchor"), _bsl(_jl).get("anchor_source")))
+check("★★ [R15-C1] the strip is TARGETED, not a blanket removal: EXPORT_ANCHOR_TS passed as an EXPLICIT run_gate arg still reaches the gate (moves the anchor into the live window) — only the AMBIENT leak is removed",
+      _bsl(_je).get("checked_at_anchor") == _R15_A288 and "EXPORT_ANCHOR_TS" in str(_bsl(_je).get("anchor_source")), (_bsl(_je).get("checked_at_anchor"), _bsl(_je).get("anchor_source")))
+
+# ---- R15-C1: one declaration drives both the receipt inventory and the strip; it is complete ----
+_ek = subprocess.run([PY, GATE, "--env-keys"], capture_output=True, text=True); _declared = _ek.stdout.split()
+check("★★ [R15-C1] `--env-keys` prints the gate's ENV_KEYS (the ONE list run_gate strips by and the receipt records), incl. EXPORT_ANCHOR_TS",
+      _ek.returncode == 0 and "EXPORT_ANCHOR_TS" in _declared and "BUNDLE_CONFIG" in _declared, (_ek.returncode, _declared))
+_d0 = fixture("r15_record", edit=lambda a: a.__setitem__((-1, 0, 3), 0.0)); _rc, _j, _o = gate(_d0)
+check("★★ [R15-C1] EXPORT_ANCHOR_TS now appears in the receipt's env inventory and env_keys == the declaration (was: read but never recorded ⇒ require could not see it)",
+      "EXPORT_ANCHOR_TS" in (_j or {}).get("env", {}) and (_j or {}).get("env_keys") == _declared and set((_j or {}).get("env", {})) == set(_declared),
+      (sorted((_j or {}).get("env", {})), (_j or {}).get("env_keys")))
+_reads = set()
+for _n in _ast.walk(_ast.parse(open(GATE).read())):
+    if isinstance(_n, _ast.Call) and isinstance(_n.func, _ast.Attribute) and _n.func.attr == "get" and isinstance(_n.func.value, _ast.Attribute) \
+       and _n.func.value.attr == "environ" and _n.args and isinstance(_n.args[0], _ast.Constant) and isinstance(_n.args[0].value, str):
+        _reads.add(_n.args[0].value)                                   # os.environ.get("LITERAL")
+    if isinstance(_n, _ast.Subscript) and isinstance(_n.value, _ast.Attribute) and _n.value.attr == "environ":
+        _s = _n.slice.value if isinstance(getattr(_n, "slice", None), _ast.Constant) else None
+        if isinstance(_s, str): _reads.add(_s)                          # os.environ["LITERAL"]
+    if isinstance(_n, _ast.Call) and isinstance(_n.func, _ast.Attribute) and _n.func.attr == "getenv" and _n.args and isinstance(_n.args[0], _ast.Constant):
+        _reads.add(_n.args[0].value)                                    # os.getenv("LITERAL")
+check("★★★ [R15-C1] ENV_KEYS is COMPLETE: every string-literal os.environ/os.getenv read in the gate source is a declared key, so no read can escape the one list a future edit forgets",
+      _reads.issubset(set(_declared)), ("undeclared literal reads:", sorted(_reads - set(_declared)), "declared:", _declared))
+
+# ---- R15-C2(a): the UTC parser is host-timezone-independent (same bytes, same verdict under any TZ) ----
+_isoZ = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(_PIN)))
+_dT = fixture("r15_dst", syms=("XUSDT", "YUSDT"), edit=lambda a: a.__setitem__((-1, 0, 3), 0.0))
+json.dump({"symbols_live": ["XUSDT"], "provenance": {"data_axis_end_utc": _isoZ}}, open(f"{_dT}/config.json", "w"))
+_rcU, _jU, _ = gate(_dT, {"BUNDLE_CONFIG": f"{_dT}/config.json", "TZ": "UTC"})
+_rcN, _jN, _ = gate(_dT, {"BUNDLE_CONFIG": f"{_dT}/config.json", "TZ": "America/New_York"})
+check("★★★ [R15-C2a] identical ISO bytes give the SAME verdict under TZ=UTC and TZ=America/New_York, both anchored at the true UTC epoch (was: mktime−timezone read New_York local ⇒ one hour early ⇒ off-4h-grid refusal)",
+      _rcU == 0 and _rcN == 0 and _bsl(_jU).get("checked_at_anchor") == _PIN and _bsl(_jN).get("checked_at_anchor") == _PIN,
+      (_rcU, _bsl(_jU).get("checked_at_anchor"), _rcN, _bsl(_jN).get("checked_at_anchor"), (_jN or {}).get("refusals")))
+
+# ---- R15-C2(b): a malformed timestamp is refused, not silently truncated by _v[:19] ----
+_b19 = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(int(_PIN)))
+for _tag, _val in (("fractional '…:00.5Z'", _b19 + ".5Z"), ("trailing '…:00Zgarbage'", _b19 + "Zgarbage")):
+    json.dump({"symbols_live": ["XUSDT"], "provenance": {"data_axis_end_utc": _val}}, open(f"{_dT}/config.json", "w"))
+    _rc, _j, _ = gate(_dT, {"BUNDLE_CONFIG": f"{_dT}/config.json"})
+    check(f"★★ [R15-C2b] a malformed anchor {_tag} is NOT truncated to a legal one ⇒ refusal export_anchor_not_declared, never PASS (was: PASS at the truncated anchor)",
+          _rc == 3 and _bsl(_j).get("checked_at_anchor") is None and any("export_anchor_not_declared" in x for x in (_j or {}).get("refusals", [])),
+          (_rc, _bsl(_j).get("checked_at_anchor"), (_j or {}).get("refusals")))
+
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)  gate sha {sha(GATE)[:16]}  mask sha {sha(MASK)[:16]}")
 sys.exit(0 if not FAILS else 1)

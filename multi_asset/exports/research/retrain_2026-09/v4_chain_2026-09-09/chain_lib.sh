@@ -192,10 +192,33 @@ require_gate(){  # require_gate <receipt.json> gate=<expected> self_sha=<sha of 
   local out; out=$($PY "$D/v4_gate_common.py" require "$@" 2>&1); local rc=$?
   say "require $1: $out"; [ $rc -eq 0 ] || die "gate_require_$(basename "$1" .json)" 3
 }
+gate_env_keys(){  # gate_env_keys <gate script path> — the env vars the gate DECLARES it reads (its ENV_KEYS via `--env-keys`). Prints nothing (rc 1)
+  # for a gate that does not implement the flag or emits anything but a clean list of ENV-style identifiers — never guesses, never strips on a guess.
+  local o; o=$("$PY" "$1" --env-keys 2>/dev/null) || return 1
+  case "$o" in "" | *[!A-Za-z0-9_' 	']*) return 1 ;; esac   # only a whitespace-separated list of A-Z0-9_ names is a declaration
+  printf '%s' "$o"
+}
 run_gate(){  # run_gate <name> <gate script basename in D> <log> [ENV=val ...] — RUNS a gate program (it writes its own receipt through v4_gate_common.finalize); records rc; returns it (the caller decides: require_gate next, or die)
   local name=$1 script=$2 log=$3; shift 3
   [ -f "$D/$script" ] || die "gate_source_missing_${name}_$script" 3
-  env "$@" "$PY" "$D/$script" > "$log" 2>&1; local rc=$?
+  # ★ R15-C1 (round 15): CLOSE THE ENV-LEAK CLASS, not the instance. A gate must not read an environment variable that leaked from the shell
+  #   that launched this driver. R12-C3 fixed ONE name (V4_UMASK_NPZ) by adding it to load_month_env's unset line; R14-C1 then put
+  #   EXPORT_ANCHOR_TS at the TOP of the liveness gate's anchor order and it was in NO list, so it inherited straight through `env "$@"` and a
+  #   parent-shell value flipped a FAIL into a PASS. The fix is a SINGLE declaration that both the gate's receipt inventory and this strip read
+  #   from: the gate names every env var it reads (`--env-keys` == its ENV_KEYS constant), and every declared key that is NEITHER an explicit arg
+  #   of THIS call NOR a governed contract key (load_month_env owns V4_MONTH_KEYS + optionals and re-exports only the parsed pairs) is UNSET here
+  #   before the gate runs. So the ambient can reach a gate-read var only through a governed contract or an explicit arg — whatever new env var a
+  #   future gate reads is covered the moment it is added to ENV_KEYS, with no second list to forget. A gate that declares nothing is unchanged.
+  local _declared; _declared=$(gate_env_keys "$D/$script") || _declared=""
+  local _passed=" " _a _k _strip=""
+  for _a in "$@"; do _passed="$_passed${_a%%=*} "; done
+  for _k in $_declared; do
+    case "$_passed" in *" $_k "*) continue ;; esac                            # explicitly passed by this call
+    case " $V4_MONTH_KEYS $V4_MONTH_OPTIONAL_KEYS " in *" $_k "*) continue ;; esac  # a governed contract key (load_month_env owns it)
+    _strip="$_strip $_k"
+  done
+  [ -z "$_strip" ] || say "gate $name: ambient strip (ungoverned declared reads not passed as args):$_strip"
+  ( for _k in $_strip; do unset "$_k"; done; exec env "$@" "$PY" "$D/$script" ) > "$log" 2>&1; local rc=$?
   say "gate $name ($script rc=$rc) $(tail -1 "$log" | cut -c1-120)"; return $rc
 }
 pin_deps(){  # pin_deps <name> path... — provenance receipt of every consumed file; any missing file is fatal (exit 3)
