@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """FP3 I: read-only venue fetch. Raw responses land on disk untouched; nothing is written to any ledger.
 usage: fetch_trades.py trades <SYMBOL> <startMs> <endMs> <out.json>
-       fetch_trades.py income <startMs> <endMs> <out.json> [incomeType]"""
+BOUNDARY (independent review round 14): `trades` also sends ONE request with limit=1000 — a full page means the window may be TRUNCATED, so the
+receipt records `saturated` and the caller must narrow the window or page. The `income` mode is refused here; use fetch_income_paged.py.
+This is a one-round evidence tool, not a certified long-running ledger synchroniser: the 0.35 s single-process throttle says nothing about
+multi-process rate limits or 429 handling, and the writes are not atomic."""
 import hashlib, hmac, json, os, sys, time, urllib.parse, urllib.request
 
 kv = {}
@@ -41,15 +44,14 @@ if mode == "trades":
                "fetched_utc": time.strftime("%FT%TZ", time.gmtime()), "weight_used": hdr.get("X-MBX-USED-WEIGHT-1M"), "body": body},
               open(out, "w"), indent=1)
     n = len(body) if isinstance(body, list) else 0
-    print(f"{sym} rc {st} rows {n}" + ("" if st == 200 else f" | {json.dumps(body)[:160]}"))
+    sat = (n >= 1000)
+    d = json.load(open(out)); d["saturated"] = sat; d["completeness"] = ("UNPROVEN: the page is full, the window may be truncated" if sat else "page short of the limit ⇒ window complete")
+    json.dump(d, open(out, "w"), indent=1)
+    print(f"{sym} rc {st} rows {n}" + ("  ★SATURATED, completeness UNPROVEN" if sat else "") + ("" if st == 200 else f" | {json.dumps(body)[:160]}"))
 elif mode == "income":
-    s, e, out = int(sys.argv[2]), int(sys.argv[3]), sys.argv[4]
-    t = sys.argv[5] if len(sys.argv) > 5 else None
-    p = {"startTime": s, "endTime": e, "limit": 1000}
-    if t: p["incomeType"] = t
-    st, body, hdr = get("/fapi/v1/income", p)
-    json.dump({"endpoint": "/fapi/v1/income", "startTime": s, "endTime": e, "incomeType": t, "status": st,
-               "fetched_utc": time.strftime("%FT%TZ", time.gmtime()), "weight_used": hdr.get("X-MBX-USED-WEIGHT-1M"), "body": body},
-              open(out, "w"), indent=1)
-    n = len(body) if isinstance(body, list) else 0
-    print(f"income {t or 'ALL'} rc {st} rows {n}" + ("" if st == 200 else f" | {json.dumps(body)[:160]}"))
+    # ★ R14-I2 (independent review round 14): this mode used to send ONE request with limit=1000 and no pagination, so a full page was
+    #   indistinguishable from a complete window — two real pulls came back at exactly 1,000 rows. Use fetch_income_paged.py instead;
+    #   this entry point now refuses rather than producing a receipt whose completeness is unknown.
+    print("REFUSED: single-shot income is not complete-by-construction (a full 1000-row page cannot be told from a finished window).")
+    print("         Use fetch_income_paged.py <startMs> <endMs> <out.json> [label], which pages until a short page and records every page.")
+    sys.exit(2)

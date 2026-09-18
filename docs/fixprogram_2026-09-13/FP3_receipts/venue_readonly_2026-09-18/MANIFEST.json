@@ -1,6 +1,7 @@
 {
  "note": "read-only venue pulls; raw responses untouched; nothing written to any ledger",
- "credential": "~/.quant_readonly.env (rotated by the user 2026-09-18 21:05 local; controls re-run: GET account rc 200 / 244 positions, POST order/test refused -2015)",
+ "credential": "~/.quant_readonly.env \u2014 ROTATED by the account owner 2026-09-18 21:05 local after the leak; controls re-run on the new key (GET account rc 200 / 244 positions, POST order/test refused -2015). NOTE (independent review round 14): -2015 alone does NOT certify every permission is off; the owner should keep a no-secret permissions receipt from the API management page.",
+ "pagination": "income_0821_gap.json and income_0826_gap.json were fetched WITHOUT pagination and came back at exactly 1000 rows \u21d2 truncated. Superseded by income_*_gap_paged.json (1,106 and 2,465 rows). The four-symbol attribution is unaffected: every row for ATOM/SNX/SCRT/STORJ is identical in both, and the two DELIVERED_SETTELMENT rows are present in the full pull.",
  "files": {
   "income_0821_gap.json": {
    "sha256": "9ebd4f6cc2b47a41e1d068efbd570026cade6b1f40bedafe1a578cb25a53a120",
@@ -9,8 +10,20 @@
    "symbol": null,
    "status": 200,
    "rows": 1000,
+   "pages": null,
    "fetched_utc": "2026-09-18T12:33:03Z",
-   "pages": null
+   "completeness": "SATURATED at 1000 \u2014 completeness UNPROVEN, superseded by the *_paged.json beside it"
+  },
+  "income_0821_gap_paged.json": {
+   "sha256": "a604c87939d42285e4ebe8ab10f565f5251ff7715b266eef72cd5b75547bf864",
+   "endpoint": "/fapi/v1/income",
+   "label": "08-21 \u7f3a\u53e3\u7a97(\u5206\u9875)",
+   "symbol": null,
+   "status": null,
+   "rows": 1106,
+   "pages": 2,
+   "fetched_utc": "2026-09-18T13:26:46Z",
+   "completeness": "paged until a short page"
   },
   "income_0826_gap.json": {
    "sha256": "7abac1f658096e94c48bd74cff684edc79fc9c42df3a6eaf13dcb989e0e6a23d",
@@ -19,8 +32,20 @@
    "symbol": null,
    "status": 200,
    "rows": 1000,
+   "pages": null,
    "fetched_utc": "2026-09-18T12:33:04Z",
-   "pages": null
+   "completeness": "SATURATED at 1000 \u2014 completeness UNPROVEN, superseded by the *_paged.json beside it"
+  },
+  "income_0826_gap_paged.json": {
+   "sha256": "5bc944c84de97bf271f943e02dc355889fbf5957ea23b45941c5689bf2f4cdd1",
+   "endpoint": "/fapi/v1/income",
+   "label": "08-26 \u7f3a\u53e3\u7a97(\u5206\u9875)",
+   "symbol": null,
+   "status": null,
+   "rows": 2465,
+   "pages": 3,
+   "fetched_utc": "2026-09-18T13:26:46Z",
+   "completeness": "paged until a short page"
   },
   "income_bucket_0801T2019.json": {
    "sha256": "b659031ae2a91f9ba4ac8040951a2ec554ed9a81969d1cd01864a45d3db10d95",
@@ -29,8 +54,9 @@
    "symbol": null,
    "status": null,
    "rows": 394,
+   "pages": 1,
    "fetched_utc": "2026-09-18T13:07:04Z",
-   "pages": 1
+   "completeness": "paged until a short page"
   },
   "income_bucket_0802T0419.json": {
    "sha256": "da8001d6548acc4205f26c7acb4c35ffd821270825f1cf917afde96d01e5e92d",
@@ -39,8 +65,9 @@
    "symbol": null,
    "status": null,
    "rows": 301,
+   "pages": 1,
    "fetched_utc": "2026-09-18T13:07:05Z",
-   "pages": 1
+   "completeness": "paged until a short page"
   },
   "income_bucket_0805T0020.json": {
    "sha256": "b2b7f8b14e34e261b84706d82a42f200a16105a99683e5b35b4dc0a96dac9c5c",
@@ -49,8 +76,9 @@
    "symbol": null,
    "status": null,
    "rows": 483,
+   "pages": 1,
    "fetched_utc": "2026-09-18T13:07:06Z",
-   "pages": 1
+   "completeness": "paged until a short page"
   },
   "income_bucket_0805T1219.json": {
    "sha256": "c5784c2093369893b3acfd9857b456fae2f7dcf971d5c50e3ddf3d4c1fdd8342",
@@ -59,8 +87,9 @@
    "symbol": null,
    "status": null,
    "rows": 411,
+   "pages": 1,
    "fetched_utc": "2026-09-18T13:07:06Z",
-   "pages": 1
+   "completeness": "paged until a short page"
   },
   "income_bucket_0821T1217.json": {
    "sha256": "9f7b38b4071ec264db2670acde9040ab7f43415d5fcabebdfeb05b926e79fe71",
@@ -69,8 +98,9 @@
    "symbol": null,
    "status": null,
    "rows": 970,
+   "pages": 1,
    "fetched_utc": "2026-09-18T13:07:14Z",
-   "pages": 1
+   "completeness": "paged until a short page"
   },
   "income_bucket_0821T2017.json": {
    "sha256": "c83c8b217c202eb5c8186ee6f0e2ee9a2ecf1ea430e1c39f422faee9906f927e",
@@ -79,8 +109,9 @@
    "symbol": null,
    "status": null,
    "rows": 1020,
+   "pages": 2,
    "fetched_utc": "2026-09-18T13:07:14Z",
-   "pages": 2
+   "completeness": "paged until a short page"
   },
   "income_bucket_0826T1249.json": {
    "sha256": "081840e9675a16b780c390b9c2de5125d313d1979da6ae82ead3ec9b81ef0848",
@@ -89,8 +120,9 @@
    "symbol": null,
    "status": null,
    "rows": 1927,
+   "pages": 2,
    "fetched_utc": "2026-09-18T13:07:15Z",
-   "pages": 2
+   "completeness": "paged until a short page"
   },
   "income_bucket_0906T0849.json": {
    "sha256": "8a6c3441e37e920aae3edf2457093a775dda307de246d08c3cac8031163bf4e1",
@@ -99,8 +131,9 @@
    "symbol": null,
    "status": null,
    "rows": 4870,
+   "pages": 5,
    "fetched_utc": "2026-09-18T13:07:17Z",
-   "pages": 5
+   "completeness": "paged until a short page"
   },
   "trades_ATOMUSDT_0821.json": {
    "sha256": "048a81a5c1314b1f50aae409b7d10dfb0bbaeab7677b2988bbbd0b9c31599e2e",
@@ -109,8 +142,9 @@
    "symbol": "ATOMUSDT",
    "status": 200,
    "rows": 4,
+   "pages": null,
    "fetched_utc": "2026-09-18T12:32:03Z",
-   "pages": null
+   "completeness": "single page below the limit"
   },
   "trades_SCRTUSDT_0826.json": {
    "sha256": "8fa60a3697f8e4d002a99abf18857920545063f01a90770a9e5f27c907b3d5b9",
@@ -119,8 +153,9 @@
    "symbol": "SCRTUSDT",
    "status": 200,
    "rows": 1,
+   "pages": null,
    "fetched_utc": "2026-09-18T12:32:04Z",
-   "pages": null
+   "completeness": "single page below the limit"
   },
   "trades_SNXUSDT_0821.json": {
    "sha256": "0a8ffef1a98b679d1a2e2be39754fec76a24c5d3297935a52ea1a42bee2e9693",
@@ -129,8 +164,9 @@
    "symbol": "SNXUSDT",
    "status": 200,
    "rows": 8,
+   "pages": null,
    "fetched_utc": "2026-09-18T12:32:03Z",
-   "pages": null
+   "completeness": "single page below the limit"
   },
   "trades_STORJUSDT_0826.json": {
    "sha256": "3e1917d901fbd5a0ead1493350820d6d94002c072c6b5c6a09178cd4d815cafb",
@@ -139,8 +175,9 @@
    "symbol": "STORJUSDT",
    "status": 200,
    "rows": 1,
+   "pages": null,
    "fetched_utc": "2026-09-18T12:32:04Z",
-   "pages": null
+   "completeness": "single page below the limit"
   }
  }
 }
