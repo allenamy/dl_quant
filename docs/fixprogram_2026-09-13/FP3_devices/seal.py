@@ -1,3 +1,19 @@
+"""⛔ DEFECTIVE - SUPERSEDED BY seal_manifest.py - DO NOT RUN THIS TO SEAL ANYTHING.
+
+This file is RETAINED UNMODIFIED ON PURPOSE: it is the RED CONTROL for its own replacement. Under a hermetic fixture
+with all 17 registered artefacts absent it still EXITS 0 and writes "legal-member model artefacts, SEALED - trained and
+materialised" with 0/17 artefacts hashed. That is the defect, and the control needs the original bytes to demonstrate it.
+
+What is wrong with it (independent review round 15): the completion sentence at the bottom is a FIXED STRING; the
+training prose ("2 seeds x 4 disjoint month shards, 8/8 rc=0, 5 folds each", the refit best_va figures, the king
+Spearman deltas) is HARDCODED and reads no shard log, no return code, no month set and no cutoff; a missing artefact
+becomes sha256=None with no refusal and no nonzero exit; the prediction sample is silently truncated to six; and a
+wanted device missing from the glob is silently absent from the output. It certifies a SENTENCE, not a training run.
+
+Use seal_manifest.py instead. It derives every sentence from a check that ran, proves the 40 folds individually with
+their cutoffs, test ranges, artefact re-hashes and shard exit codes, separates CROSS-VERIFIED from PRESENT-ONLY, and
+REFUSES with a nonzero exit when the evidence is not there.
+"""
 import hashlib, json, os, time, glob
 R = "/workspace/fp3_live_2026-09"
 def sha(p):
