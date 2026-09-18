@@ -1,15 +1,14 @@
 {
  "contract_schema": "v4_eligibility_contract/1",
  "created_utc": "2026-09-10T05:30:17Z",
- "created_by": "main researcher, round 5 (independent review cfaf1bbe §2-4: the standard an arm must meet is a FROZEN research definition, never the eligibility caller's choice)",
- "review_status": "written round 5; independent review pending. Changing any value here is a change of the reviewed research definition: it must go through review, and it is listed in receipts/v4_scripts_sha_full.json like a source file | PROPOSED2 (r20 gate closure, 2026-09-12): gates.BUNDLE_export filled for v4e_gate_export_v2.py with an approved_baseline block (identities + thresholds frozen here, never the caller's); arms UNCHANGED (XIBLAG50 stays unregistered — separate ruling). NOT APPLIED. | APPLIED 2026-09-12 by lead on user word; post-hoc review requested from the independent researcher (RESULT_r20 §8 lists what v2 still cannot catch)",
+ "created_by": "main researcher, round 5 (independent review cfaf1bbe \u00a72-4: the standard an arm must meet is a FROZEN research definition, never the eligibility caller's choice)",
+ "review_status": "written round 5; independent review pending. Changing any value here is a change of the reviewed research definition: it must go through review, and it is listed in receipts/v4_scripts_sha_full.json like a source file | PROPOSED2 (r20 gate closure, 2026-09-12): gates.BUNDLE_export filled for v4e_gate_export_v2.py with an approved_baseline block (identities + thresholds frozen here, never the caller's); arms UNCHANGED (XIBLAG50 stays unregistered \u2014 separate ruling). NOT APPLIED. | APPLIED 2026-09-12 by lead on user word; post-hoc review requested from the independent researcher (RESULT_r20 \u00a78 lists what v2 still cannot catch)",
  "rules": [
   "The judge (judge_v4.py) reads THIS file from its own directory; no environment variable can substitute another contract. JUDGE_ELIGIBILITY only LOCATES receipts ({arm: {receipt, inputs}}); a caller-supplied gate/self_sha/profile that disagrees with this file makes the arm ineligible.",
   "An arm is a CANDIDATE only if its receipt (a) names the arm's candidacy_gate, (b) was written by a gate source whose sha256 is in gates.<gate>.approved_source_sha256, (c) says PASS, (d) is bound to this arm (receipt.arm == arm), (e) hashes every registered input of the gate (v4_gate_common.REQUIRED_INPUTS) including the four judged book files of the arm (book_binding), each equal to the file the judge loaded.",
   "v4_gate_common.require refuses a pinned gate source that is not in the approved list of a gate registered here (a locally edited gate that re-runs and writes a fresh receipt matches its own runtime sha but is NOT the reviewed program).",
   "An empty approved_source_sha256 list means no program is approved for that gate: no receipt can satisfy it and no arm can be a candidate through it. BUNDLE_export (PROPOSED2) is filled with v4e_gate_export_v2.py: its gates.BUNDLE_export.approved_baseline block FREEZES the approved baseline identity (device / cost json / mask / live_pins / bundle_base / A0 books by sha, every device knob by value) and every threshold; the gate refuses env overrides of them, registers the shipped bundle's full closure + cost/mask/king/FEMAT files + the bound signal receipt as inputs, and re-derives the book content identities from the shipped arrays.",
-  "Gates not listed here and not registered in REQUIRED_INPUTS are ungoverned: they carry no input floor and no approved-source list, and they cannot confer candidacy because arms map only to gates listed here.",
-  "MEMBER_LIVENESS (PROPOSED6, FP3 F, 2026-09-18; NOT APPLIED — awaiting independent review + user word): a symbol is a member of anchor E only if at least one REAL 5-minute bar (not a hole-filled cell, log_qv finite) exists in (E−24h, E]; the rule binds the training/evaluation member set and the export bundle's live list alike. Measured on the frozen v4 axis: dead-but-member cells 2022 0.31% / 2023–25 0 / 2026 0.82% (4,759 cells, 62-anchor runs after delistings). Device: docs/fixprogram_2026-09-13/FX_DATA/devices/fx_member_liveness.py sha256 57502e8bfe1ea8f92523d4f4d057c219f31a0bb86283cb3557f1c2ccc87ca243; receipt FX_DATA/receipts/MEMBER_LIVENESS_2026-09-18.json. Boundary (independent review r7): a real bar with zero trades passes; this is a data-liveness rule, not venue eligibility truth."
+  "Gates not listed here and not registered in REQUIRED_INPUTS are ungoverned: they carry no input floor and no approved-source list, and they cannot confer candidacy because arms map only to gates listed here."
  ],
  "gates": {
   "G2_closure": {
@@ -165,7 +164,7 @@
       0.8,
       1.25
      ],
-     "_evidence": "guard band / N_FROZEN / IC tolerances verbatim from the original gate (its hard-coded defaults). Identity tolerances: the four exact device identities hold on the genuine A0/A1/A3/XIBLAG50 books to <= 1.5e-8 (r20 RESULT §3). Gross ratio bands: per-anchor gross_total ratio arm/A0 (same seat, same seed) over the frozen window for the 7 registered-form arms (A0p,A1,A1s,A1e,A2,A3 x 4 cells) lies in [0.766, 1.258] with medians in [0.9665, 1.021]; XIBLAG50/XIBOLD50 dyn reach 2.10 and would FAIL the per-anchor band (reported, not hidden)."
+     "_evidence": "guard band / N_FROZEN / IC tolerances verbatim from the original gate (its hard-coded defaults). Identity tolerances: the four exact device identities hold on the genuine A0/A1/A3/XIBLAG50 books to <= 1.5e-8 (r20 RESULT \u00a73). Gross ratio bands: per-anchor gross_total ratio arm/A0 (same seat, same seed) over the frozen window for the 7 registered-form arms (A0p,A1,A1s,A1e,A2,A3 x 4 cells) lies in [0.766, 1.258] with medians in [0.9665, 1.021]; XIBLAG50/XIBOLD50 dyn reach 2.10 and would FAIL the per-anchor band (reported, not hidden)."
     },
     "signal_gates": {
      "S_BITWISE_signal": {
@@ -181,7 +180,7 @@
        "femat_symbols_aligned": true,
        "rows_min": 1
       },
-      "note": "gate_signal_parity.py (v1, sha 19b7419f…) writes no self_sha256/arm/inputs and cannot satisfy E7 of the v2 export gate; XIBLAG50 needs a v2 signal receipt (r20 pod2 run produces one, informational)"
+      "note": "gate_signal_parity.py (v1, sha 19b7419f\u2026) writes no self_sha256/arm/inputs and cannot satisfy E7 of the v2 export gate; XIBLAG50 needs a v2 signal receipt (r20 pod2 run produces one, informational)"
      }
     },
     "provenance": {
@@ -191,10 +190,10 @@
     },
     "PROPOSED4": {
      "utc": "2026-09-17T12:05:35Z",
-     "scope": "FP2-8 evaluation regime (DESIGN_FP2-8 §2.2 / AMENDMENT 1.2, pre-registered 2026-09-17 before any book number); applies to V4_MONTH=2026-09 root /workspace/fp2_2026-09 and to every later chain that evaluates under the tradable umask",
-     "what": "umask_npz_sha256 → tradable W24H umask (3badc4b6…, /workspace/fx_data_2026-09-13/out/inject/umask_UPIT_CRYPTO_tradable_W24H.npz); baseline_books_sha256 → the in-service form (A0) RE-RUN under that umask (receipt A0_RERUN_TRADABLE_2026-09-17.json, PASS, every artifact written by that run with cfg UMASK_NPZ == the umask)",
+     "scope": "FP2-8 evaluation regime (DESIGN_FP2-8 \u00a72.2 / AMENDMENT 1.2, pre-registered 2026-09-17 before any book number); applies to V4_MONTH=2026-09 root /workspace/fp2_2026-09 and to every later chain that evaluates under the tradable umask",
+     "what": "umask_npz_sha256 \u2192 tradable W24H umask (3badc4b6\u2026, /workspace/fx_data_2026-09-13/out/inject/umask_UPIT_CRYPTO_tradable_W24H.npz); baseline_books_sha256 \u2192 the in-service form (A0) RE-RUN under that umask (receipt A0_RERUN_TRADABLE_2026-09-17.json, PASS, every artifact written by that run with cfg UMASK_NPZ == the umask)",
      "why": "the September pins (m1 umask 47d87b51, September A0 books) evaluate A0 on a universe with dead contracts (memory a0_reference_flattered_by_dead_contracts); FP2 evaluates BOTH arms on the tradable universe, so the export gate's E6 (umask sha) and E9 (baseline book shas) must pin the FP2 regime, else they refuse by construction (receipt BUNDLE_export_v2_A1_FAIL_E6E8E9_2026-09-17.json)",
-     "not_changed": "thresholds (incl. gross_max 1.000001), device/bundle/live pins, costb, signal gates — a threshold change after seeing book numbers is not allowed; the fix-seat K6 breach under the tradable umask is REPORTED, not waived",
+     "not_changed": "thresholds (incl. gross_max 1.000001), device/bundle/live pins, costb, signal gates \u2014 a threshold change after seeing book numbers is not allowed; the fix-seat K6 breach under the tradable umask is REPORTED, not waived",
      "superseded_r1_values": {
       "umask_npz_sha256": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5",
       "baseline_books_sha256": {
@@ -208,7 +207,7 @@
      "review": "independent researcher review requested (post-hoc, same protocol as PROPOSED3)"
     }
    },
-   "note": "r20 gate closure 2026-09-12. Replaces the 2026-09-11 INFRA2 proposal (v4e_gate_export.py sha f814c728…, WITHDRAWN: the independent reviewer showed it not falsifiable — wrong-gate PASS accepted, failing signal gate accepted, different cost/knobs accepted, zero W / non-finite pnl accepted, shipped bundle unbound). v2 keeps E1–E4 verbatim and adds E0 contract block, E2b pin identity, E5 finite+baseline symbols, E6 all 27 knobs + cost/mask/king/FEMAT by file, E7 bound signal receipt with PASS re-derived, E8 exact device identities on the arrays, E9 gross band vs the approved A0 books; `require` mode re-verifies the full floor and re-runs the content gates. Approving this sha approves those checks, the approved_baseline shas and the thresholds AS the export standard.",
+   "note": "r20 gate closure 2026-09-12. Replaces the 2026-09-11 INFRA2 proposal (v4e_gate_export.py sha f814c728\u2026, WITHDRAWN: the independent reviewer showed it not falsifiable \u2014 wrong-gate PASS accepted, failing signal gate accepted, different cost/knobs accepted, zero W / non-finite pnl accepted, shipped bundle unbound). v2 keeps E1\u2013E4 verbatim and adds E0 contract block, E2b pin identity, E5 finite+baseline symbols, E6 all 27 knobs + cost/mask/king/FEMAT by file, E7 bound signal receipt with PASS re-derived, E8 exact device identities on the arrays, E9 gross band vs the approved A0 books; `require` mode re-verifies the full floor and re-runs the content gates. Approving this sha approves those checks, the approved_baseline shas and the thresholds AS the export standard.",
    "approved_variants": {
     "v4e_gate_export_fp2dyn.py": {
      "sha256": "16e9cc32369daf634b03d05a5e1294cbae4ab2a8dc3f91a3e761100c0f7b453c",
@@ -219,9 +218,9 @@
       "R": "/workspace/fp2_2026-09",
       "note": "PROPOSED5: FP2-8 only; later chains need their own approval"
      },
-     "what": "rev3 (independent review round 5): for a seat outside CHECK_SEATS={dyn} ONLY the K6 gross CEILING (gt ≤ gross_max) and the E9 gross-ratio band are informational; K6 positivity (frozen-window gross > 0, gross ≥ 0), K1–K4/K7 identities and the E9 baseline identity fold into the verdict; E5/E6/E7, the 28-name input floor and every hash unchanged",
-     "why": "user word 2026-09-17「线上的策略都是动态席位, 回测应该也是动态的」; the fix seat was a September control for E-0902-D (replay dynamic seat ≠ live); in the v4 chain the replay dynamic seat tracks live (AMENDMENT 11); under the tradable umask the fix-seat books carry stuck untradable weight and exceed gross 1 (A0 and A1 alike) — a regime property of a seat not in service",
-     "not_changed": "thresholds (gross_max 1.000001 etc.), pins, floors — no threshold moved; the fix-seat K6 breach is still recorded in every receipt",
+     "what": "rev3 (independent review round 5): for a seat outside CHECK_SEATS={dyn} ONLY the K6 gross CEILING (gt \u2264 gross_max) and the E9 gross-ratio band are informational; K6 positivity (frozen-window gross > 0, gross \u2265 0), K1\u2013K4/K7 identities and the E9 baseline identity fold into the verdict; E5/E6/E7, the 28-name input floor and every hash unchanged",
+     "why": "user word 2026-09-17\u300c\u7ebf\u4e0a\u7684\u7b56\u7565\u90fd\u662f\u52a8\u6001\u5e2d\u4f4d, \u56de\u6d4b\u5e94\u8be5\u4e5f\u662f\u52a8\u6001\u7684\u300d; the fix seat was a September control for E-0902-D (replay dynamic seat \u2260 live); in the v4 chain the replay dynamic seat tracks live (AMENDMENT 11); under the tradable umask the fix-seat books carry stuck untradable weight and exceed gross 1 (A0 and A1 alike) \u2014 a regime property of a seat not in service",
+     "not_changed": "thresholds (gross_max 1.000001 etc.), pins, floors \u2014 no threshold moved; the fix-seat K6 breach is still recorded in every receipt",
      "proposed_utc": "2026-09-17T13:13:31Z",
      "review": "independent researcher review requested (post-hoc, same protocol as PROPOSED3/4)",
      "real_data_smoke": "pod2 12:5xZ: PASS, seats_checked [dyn], E8 dyn ok / fix informational, E9 medians 0.9995/1.0025 (dyn), band outside 0",
@@ -230,8 +229,8 @@
       "9a61420cdeb193846c789ca2fda2a212dc4e85b0c2d127df812d9dd6b65f3c61"
      ],
      "revised_utc": "2026-09-17T14:38:54Z",
-     "nature": "AFTER-THE-FACT CHANGE OF THE GATE'S ACCEPTANCE DOMAIN (the same old books: v2 FAIL, variant PASS) — not a mere identity correction; the v2 FAIL receipts are kept (BUNDLE_export_v2_A1_FAIL_E6E8E9, _final); approval requested post-hoc",
-     "limitation": "seat-level agreement of the replay dynamic seat with live (2026 mean 0.36–0.37 vs live 0.36–0.38) is NOT per-anchor production parity; the fix-seat control's former role (E-0902-D) is redefined, not certified away"
+     "nature": "AFTER-THE-FACT CHANGE OF THE GATE'S ACCEPTANCE DOMAIN (the same old books: v2 FAIL, variant PASS) \u2014 not a mere identity correction; the v2 FAIL receipts are kept (BUNDLE_export_v2_A1_FAIL_E6E8E9, _final); approval requested post-hoc",
+     "limitation": "seat-level agreement of the replay dynamic seat with live (2026 mean 0.36\u20130.37 vs live 0.36\u20130.38) is NOT per-anchor production parity; the fix-seat control's former role (E-0902-D) is redefined, not certified away"
     }
    }
   }
@@ -278,31 +277,23 @@
   "file": "<JUDGE_HC>/dev_v4/probe_artifacts/w10_ablation_series_V4_<arm>_<seat>_s<seed>.npz",
   "rule": "the judge adds these four paths to the arm's declared inputs; require then demands the receipt hashed each of them and that the hash equals the file the judge loaded (a book replaced after the receipt, or a receipt written for another arm's books, is not this arm's permission)"
  },
- "status": "APPLIED 2026-09-12 (user word 09-12: \"10 月 runbook 为什么还不修, 要保持老的链路和出口门?\"); was PROPOSED2 01692565…; frozen predecessor 3299dc97… kept at ELIGIBILITY_CONTRACT.r0_3299dc97.json | PROPOSED3 (FP2-8, 2026-09-17): gates.STEP1/STEP2 approved_source_sha256 += fp2_gate_step1.py / fp2_gate_step2.py (approved_variants records scope); applied by lead under the user's standing rule (fix known issues without waiting, independent review after); frozen predecessor kept at ELIGIBILITY_CONTRACT.r1_1188267a.json | PROPOSED3 rev (AMENDMENT 8, 2026-09-17 09:3xZ): variant shas replaced by the on-disk revisions; fp2_gate_lib.py sha recorded under approved_variants.requires | PROPOSED4 (FP2-8 regime pins, 2026-09-17): approved_baseline.umask_npz_sha256 → 3badc4b6…, baseline_books_sha256 → A0 re-run under the tradable umask; thresholds untouched | PROPOSED5 (fp2dyn export-gate variant, 2026-09-17): BUNDLE_export.approved_source_sha256 += 9a61420cdeb1 (approved_variants, scope 2026-09 @ /workspace/fp2_2026-09) | PROPOSED6 (FP3 F member liveness rule, 2026-09-18): rules += MEMBER_LIVENESS; proposed_gates.MEMBER_LIVENESS registered; NOT APPLIED — independent review + user word required (changes the reviewed research definition); frozen predecessor kept at ELIGIBILITY_CONTRACT.r2_753f9752.json",
+ "status": "APPLIED 2026-09-12 (user word 09-12: \"10 \u6708 runbook \u4e3a\u4ec0\u4e48\u8fd8\u4e0d\u4fee, \u8981\u4fdd\u6301\u8001\u7684\u94fe\u8def\u548c\u51fa\u53e3\u95e8?\"); was PROPOSED2 01692565\u2026; frozen predecessor 3299dc97\u2026 kept at ELIGIBILITY_CONTRACT.r0_3299dc97.json | PROPOSED3 (FP2-8, 2026-09-17): gates.STEP1/STEP2 approved_source_sha256 += fp2_gate_step1.py / fp2_gate_step2.py (approved_variants records scope); applied by lead under the user's standing rule (fix known issues without waiting, independent review after); frozen predecessor kept at ELIGIBILITY_CONTRACT.r1_1188267a.json | PROPOSED3 rev (AMENDMENT 8, 2026-09-17 09:3xZ): variant shas replaced by the on-disk revisions; fp2_gate_lib.py sha recorded under approved_variants.requires | PROPOSED4 (FP2-8 regime pins, 2026-09-17): approved_baseline.umask_npz_sha256 \u2192 3badc4b6\u2026, baseline_books_sha256 \u2192 A0 re-run under the tradable umask; thresholds untouched | PROPOSED5 (fp2dyn export-gate variant, 2026-09-17): BUNDLE_export.approved_source_sha256 += 9a61420cdeb1 (approved_variants, scope 2026-09 @ /workspace/fp2_2026-09)",
  "proposed_changes_vs_frozen": [
-  "top-level status (new) — PROPOSED marker",
+  "top-level status (new) \u2014 PROPOSED marker",
   "review_status appended",
-  "rules[3] reworded (was: 'An empty approved_source_sha256 list means no program is approved for that gate:…')",
+  "rules[3] reworded (was: 'An empty approved_source_sha256 list means no program is approved for that gate:\u2026')",
   "gates.BUNDLE_export.source/approved_source_sha256/approved_baseline/note filled",
   "arms: UNCHANGED",
   "book_binding: UNCHANGED",
   "companion (not part of this file): REQUIRED_INPUTS['BUNDLE_export'] in v4_gate_common.py still lists 11 names; the v2 gate's own require mode enforces the full floor; extending the v4_gate_common floor so judge_v4's require also demands the bundle closure is a separate proposed diff (v4chain_PROPOSED2/v4_gate_common.PROPOSED.diff)",
   "PROPOSED3: gates.STEP1.approved_source_sha256 += ae21f86f6867 (fp2_gate_step1.py); gates.STEP2.approved_source_sha256 += db5b44d15bd3 (fp2_gate_step2.py); gates.*.approved_variants (new, informational)",
   "PROPOSED3 rev: STEP1/STEP2 variant shas replaced (AMENDMENT 8); approved_variants.requires.fp2_gate_lib.py = d3023421a484",
-  "PROPOSED4: gates.BUNDLE_export.approved_baseline.umask_npz_sha256 47d87b51… → 3badc4b6… (tradable W24H); baseline_books_sha256 → A0 re-run books (dyn_s42 b0b9dff9…, dyn_s2027 aed3c8f9…, fix_s42 27b4ff47…, fix_s2027 661cc25b…); r1 values kept under approved_baseline.PROPOSED4.superseded_r1_values; thresholds untouched",
+  "PROPOSED4: gates.BUNDLE_export.approved_baseline.umask_npz_sha256 47d87b51\u2026 \u2192 3badc4b6\u2026 (tradable W24H); baseline_books_sha256 \u2192 A0 re-run books (dyn_s42 b0b9dff9\u2026, dyn_s2027 aed3c8f9\u2026, fix_s42 27b4ff47\u2026, fix_s2027 661cc25b\u2026); r1 values kept under approved_baseline.PROPOSED4.superseded_r1_values; thresholds untouched",
   "PROPOSED5: gates.BUNDLE_export.approved_source_sha256 += 9a61420cdeb1 (v4e_gate_export_fp2dyn.py; E8/E9 fold only the in-service seat); approved_variants entry with scope; thresholds untouched",
-  "PROPOSED5 rev2: fp2dyn variant sha 9a61420cdeb1 → e55875d08db1 (only K6 and the E9 band informational for non-checked seats; identities and baseline identity fold); the policy is an acceptance-domain change, approved post-hoc for 2026-09 @ /workspace/fp2_2026-09 only",
-  "PROPOSED5 rev3: fp2dyn variant sha e55875d08db1 → 16e9cc32369d (K6 split: only the ceiling informational; positivity hard); gate names are basenames only (path aliases refused by loader, driver and decision)"
+  "PROPOSED5 rev2: fp2dyn variant sha 9a61420cdeb1 \u2192 e55875d08db1 (only K6 and the E9 band informational for non-checked seats; identities and baseline identity fold); the policy is an acceptance-domain change, approved post-hoc for 2026-09 @ /workspace/fp2_2026-09 only",
+  "PROPOSED5 rev3: fp2dyn variant sha e55875d08db1 \u2192 16e9cc32369d (K6 split: only the ceiling informational; positivity hard); gate names are basenames only (path aliases refused by loader, driver and decision)"
  ],
  "proposed_utc": "2026-09-12T05:21:47Z",
  "applied_utc": "2026-09-12T09:04:39Z",
- "applied_note": "2026-09-12: gates.BUNDLE_export filled (v4e_gate_export_v2.py d63f4ec3…) and the v2 gate + companion copied beside this chain. The companion v4_gate_common floor extension (11→27 static names, infra2/v4chain_PROPOSED2/v4_gate_common.PROPOSED.diff) is NOT applied: judge_v4 keeps the reviewed 11-name floor; the full 28-input floor is enforced by `v4e_gate_export_v2.py require`, which RUNBOOK_2026-10 §0★ step 7 makes mandatory before any swap. Extending the judge floor requires the chain self-test fixtures (bound_entry/test_contract) to register the extended inputs — pending.",
- "proposed_gates": {
-  "MEMBER_LIVENESS": {
-   "source": "fx_member_liveness.py",
-   "source_sha256": "57502e8bfe1ea8f92523d4f4d057c219f31a0bb86283cb3557f1c2ccc87ca243",
-   "status": "PROPOSED6 — not in gates until reviewed and approved",
-   "proposed_utc": "2026-09-18T07:30:15Z"
-  }
- }
+ "applied_note": "2026-09-12: gates.BUNDLE_export filled (v4e_gate_export_v2.py d63f4ec3\u2026) and the v2 gate + companion copied beside this chain. The companion v4_gate_common floor extension (11\u219227 static names, infra2/v4chain_PROPOSED2/v4_gate_common.PROPOSED.diff) is NOT applied: judge_v4 keeps the reviewed 11-name floor; the full 28-input floor is enforced by `v4e_gate_export_v2.py require`, which RUNBOOK_2026-10 \u00a70\u2605 step 7 makes mandatory before any swap. Extending the judge floor requires the chain self-test fixtures (bound_entry/test_contract) to register the extended inputs \u2014 pending."
 }

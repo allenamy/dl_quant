@@ -244,3 +244,22 @@ w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025
 > ⚠ **修订 11(2026-09-17 复审二轮 R10)**: FP2 运行器 `chain_fp2_run.sh` 默认阶段串现在以 `member_rule per_year decision` 结尾(此前止于 export ⇒ 默认一键跑不出数); 换装建议只读 `$R/v4_gates/DECISION_FP2.{json,md}`(formal profile, 身份闭包见 AMENDMENT 10), 判官 JUDGE_v4.json 只作信息。
 - 步 8 换装新增硬条件: **换 bundle 与改 `~/dl_quant_live/config/book.json external_book.booster_sha_pin`(← 新 bundle 的 slow2026.txt sha256 = MANIFEST 项)必须在同一个锚间静默窗内完成**(顺序无关, 但都要赶在下一锚 N+24:00 前), 执行器提交仍走 safe_commit/电池 + push + `pull --ff-only`; 忘改钉 ⇒ 下锚起 HOLD + HIGH 直到改对(不交易、不平仓)。回滚 bundle 时同步把钉改回旧 sha。
 - `universe_sha_pin` 保持 null(用户字: 宇宙月度滚动)。DL 腿身份钉(FP2-6b)待生产者 combo_stage 写 `f10_sha` 字段后另行部署。
+
+### §0★ 修订 7(2026-09-18, FP3 J; 主研究员; 复审待做)—— 唯一执行清单的收口: 版本绑定的端到端负控已实测 + 干预台账 + 待用户下字对象一处列全
+
+**为什么有这一节**: 修订 1–6 把步骤、门、批准对象分散在六段修订与三份设计里; 本节只做三件事: ① 把「十月执行前必须发生的事」列成一张表(每行带装置与实测 sha 的取法, 不再抄 sha); ② 把「版本绑定的端到端验收」定义为可重复的负控实跑并给出本次收据; ③ 立「生产干预台账」为十月链的前置(P-B 为钉住 FTRIM/M1/播种三次干预的锚位, 靠人工反推且错过两次; 台账避免再走这条路)。
+
+**① 唯一执行清单(执行顺序 = 行序; 每行的 sha 用 `sha256sum <装置目录>/<件>` 现场实测, 与 `SHA256SUMS*` 对照)**
+| # | 事 | 装置 / 入口 | 门 / 收据 | 状态(09-18) |
+|---|---|---|---|---|
+| 1 | 月合同 `v4_month_2026-10.env` 立档(MONTHS_ALL、LIVE_PINS、BUNDLE_BASE 按月参数化) | `devices_v4chain/v4_month_2026-09_fp2.env` 为模板 | preflight `PREFLIGHT PASS device_files/inputs/approvals` | 待十月 |
+| 2 | 用户下字对象入合同(修订 6 声明块两行 APPROVAL_OBJECT; TRN-15 出口基线按月批准; TRN-16 fea89 构建器取舍; PREV_KING_FEA_UNCLAMPED=NONE) | `ELIGIBILITY_CONTRACT.json` | `v4_doc_approval_gate.py` DOC_APPROVAL_IDENTITY | **待用户字**(与 PROPOSED6 判活规则一并) |
+| 3 | 干预台账检查: 上月所有生产干预(版本切换、状态换入、播种、掩码/参数)已按锚语义登记 | `docs/PRODUCTION_INTERVENTION_LEDGER.md`(本修订新立, 追加式) | 台账每条带「首个受影响锚」与受据 | **新立, 需回填 09 月**(FTRIM 09-02 12Z / M1 09-04 04Z / 播种 09-05 16Z / f10_sha 09-17 16Z / NOSLEEP 09-18 04Z) |
+| 4 | 负控实跑(版本绑定的端到端验收): `V4_DRYRUN=1 bash chain_v4_monthly.sh <月 env>` 必须 preflight PASS 且在首个会启动的阶段前以 `FAIL_dryrun_guard_*` rc=9 停下 | 驱动 `chain_v4_monthly.sh` | 收据 `negctl.log` | **本次已过**: 09-18 07:30Z, 月 env sha cc9d9748…, PREFLIGHT PASS device_files=30 inputs=30 approvals=3/3, 随后 `FAIL_dryrun_guard_cache_would_launch` rc=9(`docs/fixprogram_2026-09-13/FP3_receipts/chain_negctl_2026-09-18/negctl.log`) |
+| 5 | 正跑 `bash chain_v4_monthly.sh <月 env>`(每阶段 prereq 绑定合同与输入; 任一阶段 FAIL_* 即停) | 同上 | 各阶段完成标记 + `preflight → decision` 收据链 | 待十月 |
+| 6 | 决策 = `fp2_gate_*` 三门 + AMENDMENT 7 δ 规则; NO_SWAP 也要出完整收据 | `DECISION_FP2_*` 装置 | 30 件 sha 与冻结源相符 | 待十月 |
+| 7 | 换装(若过门): 席位播种同法(`seat_seed_v3` 装置)、`launchctl kickstart` 动词、干预台账登记、combosnap 首锚 PARITY | 见 `seat_seed_v3_deployed` 受据 | PARITY 收据 | 待十月 |
+
+**② 端到端负控的判据**: 不是「跑完」, 是「在正确的地方停」——preflight 全过证明装置/输入/批准三者绑定于本月合同; `FAIL_dryrun_guard_*` 证明任何会启动训练/导出的阶段在启动前受同一份合同约束。正跑前**必须**有当月的这份收据。
+
+**③ 干预台账**(`docs/PRODUCTION_INTERVENTION_LEDGER.md`): 每行 = {UTC 时刻, 对象(执行器树 / 生产者文件 / 状态文件 / 合同), 前后 sha, **首个受影响锚**(按「生产者在 A+20m 算锚 A」的语义), 受据}。P-B 的教训: 播种在 12:47Z 换入 ⇒ 首个受影响锚是 16Z 不是 12Z; M1 首见于标 09-04 04Z 的记录 ⇒ 04Z。

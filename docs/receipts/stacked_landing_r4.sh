@@ -7,7 +7,7 @@ Q=/Users/haosiyu/Desktop/quant_research; TS=$(date -u +%Y%m%dT%H%M%SZ); C=/Users
 LOG=$Q/docs/receipts/stacked_landing_r4_driver_$TS.log
 h() { shasum -a 256 "$1" | cut -c1-16; }
 hm=$(date -u +%H%M); if [ "$hm" -ge 2000 ] 2>/dev/null; then :; fi
-MIN=$(date -u +%M); if [ "$MIN" -ge 20 ] && [ "$MIN" -le 45 ]; then echo "REFUSE: inside anchor window HH:20-45 (now $(date -u +%H:%M)Z)" | tee $LOG; exit 3; fi
+HH=$((10#$(date -u +%H))); MIN=$((10#$(date -u +%M))); if [ $((HH % 4)) -eq 0 ] && [ "$MIN" -ge 15 ] && [ "$MIN" -le 50 ]; then echo "REFUSE: inside 4h anchor window HH:15-50 on anchor hours (now $(date -u +%H:%M)Z)" | tee $LOG; exit 3; fi
 {
 echo "START $(date -u +%H:%M:%SZ) w6ab=$(h $W6) w2=$(h $W2) w1=$(h $W1)"
 git clone -q --no-hardlinks /Users/haosiyu/dl_quant_live $C && git -C $C checkout -q 918559f && echo "clone at $(git -C $C rev-parse --short HEAD)" || { echo "CLONE FAILED"; exit 4; }
