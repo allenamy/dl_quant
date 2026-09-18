@@ -1,3 +1,4 @@
+> ⚠ **第三次更正(2026-09-18, 复审第十三轮 R13-P1)**: §8 的「34 锚两个人口闭合」收窄 —— 那两个恒等式只按**计数**平衡, 不按身份、字段与逐腿证据; 六个反例仍报 `complete_parity=True`。v12 修完后真实数据上**1,810 张计划从「已量测相等」挪进「部分不可测」**(−5022 拒单的已量测重挂腿此前盖住了无量测的首单腿), 且 30/30 个锚出现字段证据缺口(实盘每行 `reduce_only` 都是 `None`)。见 §9。
 > ⚠ **作废横幅(2026-09-18 09:1xZ, 独立复审第十一轮 R11-PC1 后; v10 出数见 §7)**: 本件 v7/v9 的「三新锚逐名逐请求精确 / 历史 72/73 精确」**撤回为局部诊断**——
 > ① 验收对象不是生产路径: v9 算出了 `plans_A`(从决策时记录复现的生产路径)却用它对**记录的 `orders.target_w`** 重建的 `plans_B` 去核请求, 验的是「给定已记录目标时计划器算术一致」;
 > ② 只取每名首行、只看 `request_ledger[0]`: 复审把四张请求的 client_id 全改成 FOREIGN、类型全改错, v9 仍报 4/4 精确; 追加一张 qty=999999 的补单, 仍 4/4; 同毛额下把 A 25→26、B 25→24, 书层「一步之内」4/4 且请求 4/4(生产路径真值是 25);
@@ -124,3 +125,38 @@ P-C1 再跑 08Z(本日后续锚自动成为新样本); 历史回补从 09-13 起
 - `complete_parity` 在全部 34 个可运行锚上仍是 **0**: 真实锚都带 −5022 拒单(按构造无数量证据), 且停机锚有不可测计划。这是记录的边界, 不是通过。
 - 补单**分块数**(`split_for_market`)只记录不判词; 历史 `exchange_info_cache` 快照未归档, 34 锚全部标 `filters_assumed_current`。
 - 部署时间线仍按生产 `git reflog HEAD` 推断(复审第十二轮第 3 问判「无法判定历史成立」), 未用 `safe_commit` 前后文件 sha 佐证。
+
+---
+
+## 9. v12: 身份、归属行、证据缺口与最差态(2026-09-18, 独立复审第十三轮 R13-P1 后)
+
+**装置** `FP3_devices/pc/pc1_intent_replay.py` v12(sha256 `9dea0b0a19d85322…`; 前身 v11 存 `archive/pc1_intent_replay_v11.py`), 测试 `tests_pc1_v12.py`(sha256 `65074b25e5759bd4…`)**35/35 ALL PASS**, 收据 `FP3_receipts/PC1_HISTORY_v12_0910_0918.json`。
+**红对照**: `PC1_DEV=archive/pc1_intent_replay_v11.py python3 tests_pc1_v12.py` ⇒ 第 [9] 节八格**全红**(NaN 负控除外, 它本来就不是漏洞)。
+
+### 9.1 v11 的两个人口只按**计数**平衡, 不按身份、字段与逐腿证据 —— 六格逐条修
+| # | 复审反例 | v11 | v12 |
+|---|---|---|---|
+| 1 | 同一补单 `client_id` 出现两次, 7 + 8 = 期望的 15 | 只求和 ⇒ 通过 | `client_id` 是**身份**: 重复条目 ⇒ `UNEXPLAINED:duplicate_client_id` |
+| 2 | 补单行 `side=sell` 而带号 `qty` 是 +15 | 只看账本符号 ⇒ 通过 | 逐条核**归属行**的 side 与账本符号是否自洽 |
+| 3 | 补单 `qty=None` / `UNKNOWN_SKIP` 被已量测的 R1 盖住 | 先判"有量测"再判"不可测" ⇒ `MEASURED_EQUAL`, `n_unmeasurable=0` | 类别取**每条必需腿的最差态**; 新类 `PARTIAL_UNMEASURABLE:<原因>` —— 量测与缺证并存 |
+| 4 | R1 账本挪到另一 maker 行(attempt 2, side sell, RO True) | 量取自条目、字段取自 `row1` ⇒ 通过 | 每条账本条目对**承载它的那一行**验 side / reduce_only / order_type |
+| 5 | `reduce_only=None` | 当成通过 | **字段证据缺口**: 记入 `n_plans_with_field_evidence_gaps` / `field_evidence_gap_kinds`, 并阻断 `complete_parity` |
+| 6 | 人口旗标用 `>=` | 孤儿行仍报 balanced | 两个恒等式改为**等式**, 并写明全集定义 |
+
+### 9.2 真实数据上的重分类(34 个可跑锚, 09-10 00Z → 09-18 08Z)
+| 计划类别 | v11 | v12 |
+|---|---:|---:|
+| `MEASURED_EQUAL` | 6,334 | **4,524** |
+| `PARTIAL_UNMEASURABLE:venue_reject_no_ledger` | — | **1,809** |
+| `PARTIAL_UNMEASURABLE:topup_skip_unverifiable:abandoned_spread_gt_25bps` | — | 1 |
+| `SKIP_VERIFIED` | 1,096 | 1,096 |
+| `UNMEASURABLE:not_sent:blocked_by_halt` | 966 | 966 |
+
+**1,810 张计划从"已量测相等"挪进"部分不可测"** —— 复审的第 3 条缺陷在真实账本上**确实咬到了**: 这些是 −5022 post-only 拒单的名, 它们的**重挂腿(R2)有量测**, 而**首单腿(R1)按构造没有数量证据**; v11 让已量测的 R2 盖住了未量测的 R1。数量比较本身不变(6,599 次全部相等), R1 计数不变(精确 4,525 / 拒单无量 1,809 / 不符 0)。
+
+**字段证据缺口: 30/30 个有量测的锚全部命中**, 共 6,599 处(`R1:row_reduce_only_absent` 4,525 · `R3:` 1,356 · `R2:` 718)。原因是实盘账本里**每一行的 `reduce_only` 都是 `None`**(09-18 实测 1,438/1,438 行、644/644 条账本条目)。这不是错单, 是**记录里没有这项证据**; 按复审的口径, "未知"不能构成完整平价, 所以它现在显式阻断 `complete_parity` 并被计数, 而不是被当成通过。
+
+两个恒等式(现为等式)**34/34 平衡**; `complete_parity` 仍 **0/34**; `all_measurable_exact` 仍 30(字段缺口不是"量测了却不符", 所以不影响这一项)。
+
+### 9.3 还没做
+`side=None` 只出现在 109 条无账本的小额跳过行上(09-18 实测), 因此归属行 side 校验在真实数据上没有被触发, 属未练到的路径; 补单分块数与 `split_for_market` 的对照仍只记录不判决; 历史 `exchange_info_cache` 快照仍未归档(34 锚全部 `filters_assumed_current`); 部署时间线仍取自生产 `git reflog HEAD`, 不是 `safe_commit` 的文件 sha 证据。
