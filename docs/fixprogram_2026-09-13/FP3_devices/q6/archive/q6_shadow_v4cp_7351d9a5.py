@@ -31,11 +31,6 @@ Fill attribution precedence: (1) the fill's (symbol, trade_id) appears in a ledg
 attempt_idx) names client_id rid-SYMBOL-attempt; (3) fixture fallback (rows without those keys): the UNIQUE request of the same symbol and side alive at
 fill_ts; else UNATTRIBUTED (signed known increment with identity (symbol, trade_id)). Fills are de-duplicated by (symbol, trade_id) (the ledger writes an
 original and a backfilled copy; cores identical, the backfilled copy is kept for its observation time).
-Snapshot time (R13, accepted): `max(cancel_ts, last_fill_ts)` is a SOURCED WEAK BOUND on when a request's `confirmed_qty` snapshot was taken —
-NOT that moment. `cancel_ts` is the local time of the cancel response; `confirmed_qty` can be raised later by the child-fill set; and several
-requests share one order row's aggregate clock. Each request records `snapshot_time_source`, and a row carrying neither field says so
-("ABSENT:…", counted as `requests_without_snapshot_time`) instead of silently falling back. Cumulative snapshots are kept as a LADDER of
-(value, event time) steps, never as one scalar.
 Two clocks: the primary column is the OFFLINE reconstruction (all evidence by event time). An ONLINE column (evidence admitted only when its observation
 time ≤ read_ts) is computed only when EVERY piece of evidence of that symbol carries an observation time (fills: backfilled_utc); order rows store no
 write time ⇒ on the real ledger the online column is UNAVAILABLE and says so.
@@ -54,7 +49,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "support"))
 import reconcile_carry_409ea16 as ORACLE                                   # pure functions; the frozen production module, never the live tree
 
-VERSION = "v5"; DEVICE = "q6_shadow.py"; FLAG_USDT = 1.0; PERSIST_N = 6; LOT_TOL = 1e-6
+VERSION = "v4"; DEVICE = "q6_shadow.py"; FLAG_USDT = 1.0; PERSIST_N = 6; LOT_TOL = 1e-6
 ORACLE_MAX_TRAJ = 200_000                                                  # cross-check budget for the enumeration oracle
 
 
@@ -98,29 +93,12 @@ def load_days(P, F, T):
     return days, rows, files
 
 
-def floor_ladder_add(r, value, ts, source=None):
-    """★ R13-Q1 (independent review round 13): a cumulative snapshot is a (value, event time) FACT, not a scalar. Replacing an older, smaller
-    floor with a newer, larger one erased the earlier constraint and with it the earlier anomaly (BUY2 known ≥1 at t1 and ≥2 at t2, observed
-    increment 0 then 2, read CLEAN twice while the contract gives distance 1 at t1). Every step is kept; `floor_at` reads the ladder AS OF t_k.
-    The ladder is stored monotone non-decreasing in value and sorted by time; a step with no time applies from the request's birth (and says so)."""
-    if value is None or value <= 0: return
-    steps = r.setdefault("floor_steps", [])
-    if any(st[0] == ts and st[1] == value for st in steps): return
-    steps.append([ts, int(value), source])
-    steps.sort(key=lambda st: (st[0] is not None, st[0] if st[0] is not None else 0.0))
-    best = 0; keep = []
-    for st in steps:                                                        # a later step may only TIGHTEN: drop any step that does not raise the bound
-        if st[1] > best: best = st[1]; keep.append(st)
-    r["floor_steps"] = keep
-    r["floor"] = keep[-1][1] if keep else 0                                 # scalar kept in sync: the final (largest) bound …
-    r["floor_ts"] = keep[-1][0] if keep else None                           # … and the time it took effect (checkpoint / late-fact compatibility)
-
-
 def _merge_facts(p, r, notes):
     """merge a duplicate ledger record into the request already held: EVERY fact class separately, each keeping its earliest effective time
     (R12-Q1b). `terminal` is a hard constraint, so a later row that only flips it must not be discarded."""
     p["trade_ids"] |= r["trade_ids"]
-    for st in (r.get("floor_steps") or []): floor_ladder_add(p, st[1], st[0], st[2] if len(st) > 2 else None)   # R13-Q1: every step, never a replacement
+    if r["floor"] > p["floor"] or (r["floor"] == p["floor"] and r.get("floor_ts") is not None and (p.get("floor_ts") is None or r["floor_ts"] < p["floor_ts"])):
+        if r["floor"] >= p["floor"]: p["floor"], p["floor_ts"] = r["floor"], r.get("floor_ts")
     if p["exact"] is None and r["exact"] is not None: p["exact"], p["exact_ts"] = r["exact"], r.get("exact_ts")
     if r["terminal"] is not None:
         p["terminal"] = r["terminal"] if p["terminal"] is None else min(p["terminal"], r["terminal"])
@@ -157,14 +135,10 @@ def build_requests(od, step_of, notes):
                 #   snapshot was TAKEN (PREREG §1c.5), never from the request's birth: monotonicity gives x_i(t) ≤ x_i(τ) before τ, not ≥. The ledger
                 #   stores no read time for confirmed_qty; the defensible event time is the request's own settlement (max cancel_ts / last_fill_ts),
                 #   which is when the executor settled and wrote it. floor_ts = that time; before it only ATTRIBUTED FILLS (own event times) bound x_i.
-                _snap_ts = (max(term_rec, birth) if term_rec else None)
-                _snap_src = "weak_bound:max(cancel_ts,last_fill_ts)" if term_rec else "ABSENT:no cancel_ts / last_fill_ts on the row ⇒ the floor applies from birth"
-                if not term_rec: notes["requests_without_snapshot_time"] += 1
                 r = {"rid": cid, "side": side if side is not None else 0, "cap": cap_l, "birth": birth, "terminal": (max(term_rec, birth) if terminal else None),
-                     "floor": 0, "floor_ts": None, "floor_steps": [], "snapshot_time_source": _snap_src, "exact": exact_l, "exact_ts": _snap_ts,
+                     "floor": floor_l, "floor_ts": (max(term_rec, birth) if term_rec else None), "exact": exact_l, "exact_ts": (max(term_rec, birth) if term_rec else None),
                      "fills": [], "trade_ids": set(str(t) for t in (e.get("trade_qty") or {})), "source": "ledger", "evidence": ev,
                      "bucket": B(o["anchor_ts"]), "rebalance_id": o.get("rebalance_id"), "attempt_idx": o.get("attempt_idx")}
-                floor_ladder_add(r, floor_l, _snap_ts, _snap_src)
                 if cid in REQ[s]:                                           # duplicate identity ⇒ ONE request; contradictory duplicates ⇒ unmeasurable
                     p = REQ[s][cid]
                     if (p["cap"], p["side"], p["exact"]) != (r["cap"], r["side"], r["exact"]) or p["floor"] != r["floor"]:
@@ -193,14 +167,10 @@ def build_requests(od, step_of, notes):
             # executor's own quantity exceeded it on real rows): capacity is UNBOUNDED; the facts are the side, the terminal window and the fills
             cap_l, exact_l, floor_l, terminal, ev = None, None, 0, True, "derived:side+fills_only(capacity unknown)"
             notes["derived_requests_unbounded_capacity"] += 1
-        _snap_ts = (max(term_rec, birth) if term_rec else None)
-        _snap_src = "weak_bound:max(cancel_ts,last_fill_ts)" if term_rec else "ABSENT:no cancel_ts / last_fill_ts on the row ⇒ the floor applies from birth"
-        if not term_rec: notes["requests_without_snapshot_time"] += 1
-        REQ[s][cid] = {"rid": cid, "side": side, "cap": cap_l, "birth": birth, "terminal": max(term_rec, birth) if terminal else None, "floor": 0, "exact": exact_l,
-                       "floor_ts": None, "floor_steps": [], "snapshot_time_source": _snap_src, "exact_ts": _snap_ts,
+        REQ[s][cid] = {"rid": cid, "side": side, "cap": cap_l, "birth": birth, "terminal": max(term_rec, birth) if terminal else None, "floor": floor_l, "exact": exact_l,
+                       "floor_ts": (max(term_rec, birth) if term_rec else None), "exact_ts": (max(term_rec, birth) if term_rec else None),
                        "fills": [], "trade_ids": set(), "source": "order_row_derived", "evidence": ev, "bucket": B(o["anchor_ts"]), "terminal_reason": tr,
                        "rebalance_id": o.get("rebalance_id"), "attempt_idx": o.get("attempt_idx")}
-        floor_ladder_add(REQ[s][cid], floor_l, _snap_ts, _snap_src)
     return REQ, unmeas
 
 
@@ -268,25 +238,21 @@ def req_to_cp(r):
     feasible set (identity, side, capacity, birth, terminal, evidence floors with their event times, attributed fills) — never the per-request
     marginal interval, which loses the correlation between requests."""
     return {"rid": r["rid"], "side": r["side"], "cap": r["cap"], "birth": r["birth"], "terminal": r["terminal"],
-            "floor": r["floor"], "floor_ts": r.get("floor_ts"), "floor_steps": [list(st) for st in (r.get("floor_steps") or [])],
-            "snapshot_time_source": r.get("snapshot_time_source"), "exact": r["exact"], "exact_ts": r.get("exact_ts"),
+            "floor": r["floor"], "floor_ts": r.get("floor_ts"), "exact": r["exact"], "exact_ts": r.get("exact_ts"),
             "fills": [[f[0], f[1], f[2], str(f[3])] for f in r["fills"]], "trade_ids": sorted(str(x) for x in (r.get("trade_ids") or [])),
             "source": r["source"], "evidence": r.get("evidence"), "rebalance_id": r.get("rebalance_id"), "attempt_idx": r.get("attempt_idx"),
             "terminal_reason": r.get("terminal_reason"), "bucket": r.get("bucket")}
 
 
 def req_from_cp(d):
-    r = dict(d); r["fills"] = [(f[0], f[1], f[2], f[3]) for f in (d.get("fills") or [])]; r["trade_ids"] = set(d.get("trade_ids") or [])
-    r["floor_steps"] = [list(st) for st in (d.get("floor_steps") or [])]
-    if not r["floor_steps"] and (d.get("floor") or 0) > 0: floor_ladder_add(r, d["floor"], d.get("floor_ts"), d.get("snapshot_time_source"))   # older checkpoints
-    return r
+    r = dict(d); r["fills"] = [(f[0], f[1], f[2], f[3]) for f in (d.get("fills") or [])]; r["trade_ids"] = set(d.get("trade_ids") or []); return r
 
 
 def merge_late_fact(r, fact, notes=None):
     """PREREG §1d.3: a hard fact arriving late is inserted at ITS OWN event time; it may only tighten. Returns True when anything changed."""
     ch = False
-    if fact.get("floor") is not None and (fact["floor"] > (r.get("floor") or 0)):
-        floor_ladder_add(r, fact["floor"], fact.get("floor_ts"), fact.get("snapshot_time_source") or "late_evidence"); ch = True
+    if fact.get("floor") is not None and (fact["floor"] > r["floor"]):
+        r["floor"] = fact["floor"]; r["floor_ts"] = fact.get("floor_ts"); ch = True
     if fact.get("exact") is not None and r["exact"] is None:
         r["exact"] = fact["exact"]; r["exact_ts"] = fact.get("exact_ts"); ch = True
     if fact.get("terminal") is not None and (r["terminal"] is None or fact["terminal"] < r["terminal"]):
@@ -375,13 +341,11 @@ class SymbolModel:
             self.Uk.append(tot)
 
     def floor_at(self, i, k):
-        """evidence floor of request i at observation k: the LADDER of cumulative snapshots read as of t_k (R13-Q1 — every (value, event time)
-        step is kept, a later larger bound never erases an earlier one) plus attributed fills with event time ≤ t_k (online clock: also obs time)"""
+        """evidence floor of request i at observation k: the ledger's cumulative snapshot ONLY from its own event time (R12-Q1a) and attributed
+        fills with event time ≤ t_k (online clock: also observation time ≤ t_k)"""
         r = self.reqs[i]; t = self.times[k]
-        base = 0
-        if self.ev is None:
-            for st in (r.get("floor_steps") or []):
-                if st[0] is None or st[0] <= t + 1e-9: base = max(base, st[1])
+        _fts = r.get("floor_ts")
+        base = r["floor"] if (self.ev is None and (_fts is None or _fts <= t + 1e-9)) else 0
         fsum = sum(l for (ft, l, ot, tid) in r["fills"] if ft <= t + 1e-9 and (self.ev is None or (ot is not None and ot <= t + 1e-9)))
         return max(base, fsum)
 
@@ -406,23 +370,16 @@ class SymbolModel:
         if pi is not None and k > pi: return index[(i, pi)], None
         return index[(i, k)], None
 
-    def solve(self, n, admitted, rhs, known_at=None):
-        """distance at observation n given admitted equations (k < n); returns dict(status, distance_lots, lhs_range).
-
-        `known_at` (R13-Q3) is the observation index whose time decides which HARD facts are in force. It defaults to n; the prefix rebuild
-        re-decides earlier observations against the facts known NOW, which is what §1d.3 means by rebuilding from the late fact's event time."""
-        ka = n if known_at is None else known_at
-        t_known = self.times[min(ka, len(self.times) - 1)]
+    def solve(self, n, admitted, rhs):
+        """distance at observation n given admitted equations (k < n); returns dict(status, distance_lots, lhs_range)"""
         layout, index = self._vars(n); m = len(layout)
         lb = np.zeros(m + 1); ub = np.full(m + 1, np.inf); lb[0] = 0.0                # column 0 = d ≥ 0
         for c, (i, k) in enumerate(layout):
             r = self.reqs[i]; bi, pi = self.meta[i]
             lo = self.floor_at(i, k); hi = np.inf if r["cap"] is None else r["cap"]
-            _ets = r.get("exact_ts"); _exact_known = r["exact"] is not None and (_ets is None or _ets <= t_known + 1e-9)
-            # ★ R13-Q2: an exact total that arrives AFTER the terminal pin still binds — the pin variable IS x_i for every later time, so the fact
-            #   has a variable to land on whenever it arrives. v4 evaluated it at times[k] ≤ times[pin], so a late total had no variable and vanished.
+            _ets = r.get("exact_ts"); _exact_known = r["exact"] is not None and (_ets is None or _ets <= self.times[k] + 1e-9)
             if _exact_known and pi is not None and k >= pi: lo = hi = r["exact"]
-            elif _exact_known: hi = min(hi, r["exact"])                      # monotonicity: x(t_k) ≤ x(pin) = exact
+            if _exact_known: hi = min(hi, r["exact"])                        # R12-Q1a: an exact total does not cap the request before it was observed
             if lo > hi: return {"status": "unmeasurable", "why": f"{r['rid']}: hard bounds empty at k={k} (floor {lo} > cap/exact {hi})"}
             lb[c + 1], ub[c + 1] = lo, hi
         A = []; lo_c = []; hi_c = []
@@ -469,45 +426,13 @@ class SymbolModel:
             if unmeasurable_from is not None:
                 rec.update(status="unmeasurable", why=unmeasurable_from); out.append(rec); continue
             r = self.solve(n, admitted, o["rhs"])
-            if r["status"] != "ok" and str(r.get("why", "")).startswith("hard constraints + admitted history infeasible"):
-                # ★ R13-Q3: the hard facts are satisfiable on their own — what is infeasible is the ADMITTED HISTORY against them. §1d.3 calls for a
-                #   PREFIX REBUILD (hard constraints first, then chronological admission), not a permanent UNMEASURABLE. v4 conflated "hard facts
-                #   contradict each other" (⇒ unmeasurable, the `hard bounds empty` branch below) with "a hard fact excludes a prior observation".
-                admitted, rebuilt = self._rebuild_prefix(n, out)
-                r = self.solve(n, admitted, o["rhs"])
-                rec["prefix_rebuilt"] = True; rec["rebuilt_excluded_k"] = rebuilt
             if r["status"] != "ok":
                 unmeasurable_from = r["why"]; rec.update(status="unmeasurable", why=r["why"]); out.append(rec); continue
             d = r["distance_lots"]; rec.update(status="ok", distance_lots=d, n_vars=r["n_vars"])
-            # ★ R13-Q3 (P2): an OFF-LATTICE reading must never be ADMITTED as an exact equation — v4 changed the label but still wrote the rounded
-            #   x into the hard constraints, and the next observation was then judged against a quantity the venue never reported.
-            if float(o.get("lot_residual") or 0.0) > LOT_TOL or float(self.obs[0].get("lot_residual") or 0.0) > LOT_TOL:
-                rec["admitted"] = False; rec["off_lattice_not_admitted"] = True
-            elif d == 0: admitted.append((n, o["rhs"])); rec["admitted"] = True
+            if d == 0: admitted.append((n, o["rhs"])); rec["admitted"] = True
             else: rec["admitted"] = False; rec["excluded"] = True
             out.append(rec)
         return out
-
-    def _rebuild_prefix(self, n, out):
-        """§1d.3 prefix rebuild: re-decide observations 1…n−1 chronologically against the facts in force NOW (`known_at=n`). An equation that was
-        admitted and no longer fits is downgraded to an EXCLUDED observation tagged `late_evidence`; its original record keeps the distance it was
-        decided with (`distance_lots_before_rebuild`) — §1d.3 forbids rewriting the receipt that was issued at the time."""
-        admitted = []; newly = []
-        for j in range(1, n):
-            recj = next((x for x in out if x["k"] == j), None)
-            if recj is None or recj.get("status") == "baseline": continue
-            rj = self.solve(j, admitted, self.obs[j]["rhs"], known_at=n)
-            if rj["status"] == "ok" and rj["distance_lots"] == 0 and not recj.get("off_lattice_not_admitted"):
-                admitted.append((j, self.obs[j]["rhs"]))
-                if not recj.get("admitted"): recj["admitted"] = True; recj.pop("excluded", None)
-            else:
-                if recj.get("admitted"):
-                    recj["excluded_because"] = "late_evidence"; newly.append(j)
-                recj["admitted"] = False; recj["excluded"] = True
-                # §1d.3: "原始在线收据一律保留, 不重写" — `distance_lots` stays the value this observation was DECIDED with; the value under the
-                # facts known later is a separate field, so the receipt issued at the time and the current audit are both readable.
-                if rj["status"] == "ok": recj["distance_lots_after_rebuild"] = rj["distance_lots"]
-        return admitted, newly
 
     def oracle_check(self):
         """the production enumeration oracle on the same facts, when it can enumerate; None when it cannot (recorded in `oracle_skipped`)"""
@@ -701,10 +626,7 @@ def main():
             regime["ledger_era" if a >= 1789257600 else "pre_ledger_era"] += 1              # 2026-09-13 00Z: first full day with request_ledger
             cat_total[cat] += 1; per_anchor[a][cat] += 1
             if cat == "FLAGGED": per_anchor_usd[a] += usd; flagged_here += 1 if kind == "post_anchor" else 0
-            if want_detail: det.append({"k": k, "anchor": a, "kind": kind, "status": rec["status"], "distance_lots": d, "category": cat, "usdt": usd, "admitted": bool(rec.get("admitted")),
-                                        "excluded": bool(rec.get("excluded")), "why": rec.get("why"), "excluded_because": rec.get("excluded_because"),
-                                        "distance_lots_after_rebuild": rec.get("distance_lots_after_rebuild"), "prefix_rebuilt": bool(rec.get("prefix_rebuilt")),
-                                        "rebuilt_excluded_k": rec.get("rebuilt_excluded_k"), "off_lattice_not_admitted": bool(rec.get("off_lattice_not_admitted"))})
+            if want_detail: det.append({"k": k, "anchor": a, "kind": kind, "status": rec["status"], "distance_lots": d, "category": cat, "usdt": usd, "admitted": bool(rec.get("admitted")), "excluded": bool(rec.get("excluded")), "why": rec.get("why")})
             if cat in ("FLAGGED", "MISSING_PRICE", "UNMEASURABLE", "OFF_LATTICE"):
                 rows_out.append({"symbol": s, "anchor": a, "utc": U(a), "kind": kind, "category": cat, "distance_lots": d, "distance_contracts": (None if d is None else d * step), "unexplained_usdt": usd,
                                  "rhs_lots": rec["rhs_lots"], "excluded_observation": bool(rec.get("excluded")), "in_executor_known_gaps": s in (gaps_rec.get(a, {}).get("names") or []), "why": rec.get("why")})
@@ -727,13 +649,12 @@ def main():
         symbol_summary[s] = {"n_obs": len(recs) - 1, "n_flagged_post_anchor": flagged_here, "excluded_k": excluded_here, "online": online["status"], "step": step,
                              "n_requests": len(REQ.get(s, {})), "n_unattributed_fills": len(UN.get(s, [])), "oracle": (None if orc is None else orc.get("status")), "oracle_skipped": (orc_skip if orc is None else None)}
     anchors = sorted(per_anchor)
-    summary = [{"anchor": a, "utc": U(a), **{c: per_anchor[a].get(c, 0) for c in ("CLEAN", "FLAGGED", "MISSING_PRICE", "UNMEASURABLE", "OFF_LATTICE")}, "flagged_usdt": round(per_anchor_usd.get(a, 0.0), 2),
+    summary = [{"anchor": a, "utc": U(a), **{c: per_anchor[a].get(c, 0) for c in ("CLEAN", "FLAGGED", "MISSING_PRICE", "UNMEASURABLE")}, "flagged_usdt": round(per_anchor_usd.get(a, 0.0), 2),
                 "executor_known_gaps_n": gaps_rec.get(a, {}).get("n_named"), "executor_known_gaps_usdt": gaps_rec.get(a, {}).get("gross_usdt")} for a in anchors]
     out = {"device": DEVICE, "version": VERSION, "self_sha256": sha(os.path.abspath(__file__)), "oracle": {"file": "support/reconcile_carry_409ea16.py", "sha256": sha(os.path.join(HERE, "support", "reconcile_carry_409ea16.py")), "origin": "git show 409ea16:live/reconcile_carry.py"},
            "utc": time.strftime("%FT%TZ", time.gmtime()), "runtime_s": round(time.time() - t_start, 1), "interpreter": sys.version.split()[0], "scipy": __import__("scipy").__version__, "procs": procs,
            "window": [days[0], days[-1]] if days else None, "repo": REPO, "ledger_files_sha256": files, "lot_step_source": step_source,
            "epoch": "single epoch per symbol from its first post_anchor readback inside the window (OFFLINE SCAN BASELINE, not a user-signed accounting row); no split at flattens",
-           "snapshot_time_source": "weak_bound:max(cancel_ts,last_fill_ts) — NOT the moment confirmed_qty was read (cancel_ts is the local cancel-response time, confirmed_qty can be raised later by the child-fill set, and several requests share one order row's aggregate clock). Cumulative snapshots are a LADDER of (value, event time) steps; a row with neither field is named per request (snapshot_time_source ABSENT) and counted as requests_without_snapshot_time",
            "evidence_regimes": {"ledger_era": "anchors ≥ 2026-09-13 00Z: request_ledger (client_id, confirmed_qty[_final], trade_qty) ⇒ precise requests",
                                 "pre_ledger_era": "anchors < 2026-09-13: requests DERIVED from order rows (known side, terminal inside the run, capacity UNKNOWN/unbounded, floor = attributed fills; venue_reject ⇒ exact 0) — weaker evidence, fewer balances can be flagged", "observations_by_regime": dict(regime)},
            "online_clock": {"status_by_symbol": dict(online_avail), "note": "online column computed only when every piece of evidence carries an observation time; on the real ledger order rows store no write time ⇒ UNAVAILABLE"},
