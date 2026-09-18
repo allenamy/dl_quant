@@ -685,13 +685,15 @@ def main():
         #   0.49 at step 1 became 0 and read CLEAN while 49 USDT of position went unmodelled. The residual is carried on the observation and any
         #   reading whose rounding residual is worth more than the flag threshold is categorised OFF_LATTICE, never CLEAN.
         if res > LOT_TOL: notes["readback_off_lattice"] += 1
-        # ★ R16 (fifth 'unknown-value-as-identity-element' instance): a MISSING or non-positive venue_position_notional must NOT coerce to 0.0. A zero
-        #   price mark makes usd = |distance|*step*0 = 0, which fails `usd > FLAG_USDT` and silently categorises a real non-zero distance CLEAN instead of
-        #   MISSING_PRICE. So an absent/non-positive notional is UNKNOWN (None ⇒ NO mark fabricated), and the observation falls through to MISSING_PRICE.
-        _pn = r.get("venue_position_notional"); _pn = abs(float(_pn)) if _pn is not None else None
+        # ★ R16 (fifth 'unknown-value-as-identity-element' instance): the old `venue_position_notional or 0.0` coerced a MISSING notional to 0.0 ⇒ a zero
+        #   price mark ⇒ usd = |distance|*step*0 = 0 ⇒ the `usd > FLAG_USDT` test failed ⇒ a real non-zero distance read CLEAN instead of MISSING_PRICE.
+        #   The price basis is the notional's MAGNITUDE — the abs() below. A NEGATIVE notional is a SHORT's NORMAL reading and MUST be used as its |value|:
+        #   27,080 of the window's 48,635 non-zero-qty readbacks are shorts, so the abs() is LOAD-BEARING — deleting it would censor every short position.
+        #   ONLY an ABSENT notional (None), or one whose MAGNITUDE is zero, is UNKNOWN ⇒ NO mark fabricated ⇒ the observation falls through to MISSING_PRICE.
+        _pn = r.get("venue_position_notional"); _pn = abs(float(_pn)) if _pn is not None else None    # MAGNITUDE = price basis; abs() keeps shorts (negative notional) usable — do NOT remove
         OBS[s].append({"t": t, "anchor": B(r["anchor_ts"]) if kind == "post_anchor" else B(t), "kind": kind, "q_lots": ql, "q": q, "lot_residual": res, "notional": _pn})
-        if q and _pn is not None and _pn > 0: markrows[s].append((t, _pn / abs(q)))
-        elif q: notes["readback_qty_without_usable_notional"] += 1        # a position with no usable price fabricates no mark ⇒ MISSING_PRICE, never a silent CLEAN
+        if q and _pn is not None and _pn > 0: markrows[s].append((t, _pn / abs(q)))                   # present AND non-zero magnitude ⇒ a usable price mark
+        elif q: notes["readback_qty_without_usable_notional"] += 1        # ABSENT or zero-magnitude ⇒ no mark fabricated ⇒ MISSING_PRICE, never a silent CLEAN
     for s, fl in fills_by_symbol.items():
         for f in fl: markrows[s].append((f["ts"], f["px"]))
     for s in markrows: markrows[s].sort()
