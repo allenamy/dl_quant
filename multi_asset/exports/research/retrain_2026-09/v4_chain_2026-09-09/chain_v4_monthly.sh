@@ -428,7 +428,7 @@ if want mwf; then
   for SD in $SEED_LIST; do
     stage "F10 chain RAW s$SD start (monthly, legs v4b, FIX7, shards from MONTHS_ALL)"
     run_shards launch_mwf_v4b.sh RAW "$SD" || die "shards_RAW_s${SD}_rc_[$RCS]" 1
-    "$PY" "$D/merge_mwf_v4b.py" RAW "$SD" > "$F8/logs/merge_v4b_RAW_s${SD}.log" 2>&1; rc=$?; stage "merge RAW s$SD rc=$rc $(tail -1 "$F8/logs/merge_v4b_RAW_s${SD}.log" | cut -c1-80)"
+    run_device_stripped "$D/merge_mwf_v4b.py" "$F8/logs/merge_v4b_RAW_s${SD}.log" RAW "$SD"; rc=$?; stage "merge RAW s$SD rc=$rc $(tail -1 "$F8/logs/merge_v4b_RAW_s${SD}.log" | cut -c1-80)"   # ★ R15-C1: same ambient strip as run_gate — an ungoverned V4_HF2_PREDS from the launching shell cannot reach the merge; V4_TRAINER etc. arrive governed or the device refuses
     [ $rc -eq 0 ] || die "merge_RAW_s${SD}_rc_$rc" 1; check_marker "$F8/logs/merge_v4b_RAW_s${SD}.log" "MERGE_DONE"
   done
   stage "CHAIN_V4_MONTHLY_MWF_DONE (shards rc=0, merges rc=0 + MERGE_DONE; deps in v4_gates/deps_v4_monthly_mwf.json)"

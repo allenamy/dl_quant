@@ -149,14 +149,69 @@ print("\n[6] R15-C1: the env-leak CLASS is closed in run_gate (the sibling of R1
 lib = open(f"{HERE}/chain_lib.sh").read()
 check("run_gate derives an ambient strip from the gate's OWN declaration (gate_env_keys → `--env-keys`), not a hand-maintained name list",
       "gate_env_keys" in lib and "--env-keys" in lib and "ambient strip" in lib, None)
-check("a declared key is kept only if it is an explicit run_gate arg OR a governed contract key (V4_MONTH_KEYS ∪ optionals); anything else is unset before the gate runs",
-      re.search(r'case " \$V4_MONTH_KEYS \$V4_MONTH_OPTIONAL_KEYS " in \*" \$_k "\*\) continue', lib) is not None
-      and re.search(r'for _k in \$_strip; do unset "\$_k"; done', lib) is not None, None)
+check("ONE helper _ambient_strip keeps a declared key only if it is passed explicitly OR governed (V4_MONTH_KEYS ∪ optionals ∪ the V4_* exports load_month_env owns); everything else is unset, for run_gate AND run_device_stripped",
+      "_ambient_strip()" in lib and re.search(r'case " \$V4_MONTH_KEYS \$V4_MONTH_OPTIONAL_KEYS \$V4_GOVERNED_EXPORTS " in \*" \$k "\*\) continue', lib) is not None
+      and re.search(r'for _k in \$_strip; do unset "\$_k"; done', lib) is not None
+      and "run_device_stripped" in lib, None)
 gk = subprocess.run([PY, f"{HERE}/v4_gate_member_liveness.py", "--env-keys"], capture_output=True, text=True)
 declared = set(gk.stdout.split())
 governed = set(re.search(r'V4_MONTH_KEYS="([^"]*)"', lib).group(1).split()) | set(re.search(r'V4_MONTH_OPTIONAL_KEYS="([^"]*)"', lib).group(1).split())
 check("EXPORT_ANCHOR_TS is a DECLARED gate read but NOT a governed contract key ⇒ run_gate strips an ambient one (R12-C3 had to add the name V4_UMASK_NPZ by hand; this class needs no new name, and V4_UMASK_NPZ is not even a liveness-gate read)",
       gk.returncode == 0 and "EXPORT_ANCHOR_TS" in declared and "EXPORT_ANCHOR_TS" not in governed and "V4_UMASK_NPZ" not in declared, (sorted(declared), "EXPORT_ANCHOR_TS" in governed))
+
+print("\n[7] R15-C1: ONE source-derived mechanism catches ALL THREE instances (gate EXPORT_ANCHOR_TS, arms V4_UMASK_NPZ, merge V4_TRAINER) + a fresh one, no list")
+import ast as _ast
+
+
+def env_hygiene(dev_path, governed):
+    """Scan a device's SOURCE for the R15-C1 leak class, derived from the source itself (never a per-name list):
+       (A) an ungoverned literal env read that is neither declared in the device's own ENV_KEYS nor governed
+           (V4_HF2_PREDS / EXPORT_ANCHOR_TS before they were declared); returns it in `ungov`.
+       (B) a GOVERNED read carrying a hardcoded string default (V4_TRAINER's /workspace scratch path) — a governed input
+           arriving unset must fail loud, not silently default; returns it in `dang`."""
+    tree = _ast.parse(open(dev_path).read()); declared = set()
+    for n in _ast.walk(tree):
+        if isinstance(n, _ast.Assign) and any(isinstance(t, _ast.Name) and t.id == "ENV_KEYS" for t in n.targets) and isinstance(n.value, (_ast.Tuple, _ast.List)):
+            declared = {e.value for e in n.value.elts if isinstance(e, _ast.Constant) and isinstance(e.value, str)}
+    ungov, dang = set(), set()
+    for n in _ast.walk(tree):
+        key = None; str_default = False
+        if isinstance(n, _ast.Call) and isinstance(n.func, _ast.Attribute) and n.func.attr in ("get", "getenv"):
+            b = n.func.value
+            if ((isinstance(b, _ast.Attribute) and b.attr == "environ") or (isinstance(b, _ast.Name) and b.id == "os" and n.func.attr == "getenv")) and n.args and isinstance(n.args[0], _ast.Constant) and isinstance(n.args[0].value, str):
+                key = n.args[0].value; str_default = len(n.args) > 1 and isinstance(n.args[1], _ast.Constant) and isinstance(n.args[1].value, str) and n.args[1].value != ""
+        elif isinstance(n, _ast.Subscript) and isinstance(n.value, _ast.Attribute) and n.value.attr == "environ" and isinstance(getattr(n, "slice", None), _ast.Constant) and isinstance(n.slice.value, str):
+            key = n.slice.value
+        if key is None: continue
+        if key in governed and str_default: dang.add(key)
+        if key not in governed and key not in declared: ungov.add(key)
+    return ungov, dang
+
+
+libtxt = open(f"{HERE}/chain_lib.sh").read()
+GOV = set()
+for m in re.finditer(r'V4_(?:MONTH_KEYS|MONTH_OPTIONAL_KEYS|GOVERNED_EXPORTS)="([^"]*)"', libtxt): GOV |= set(m.group(1).split())
+mu, md = env_hygiene(f"{HERE}/merge_mwf_v4b.py", GOV)
+check("★★★ R15-C1 the merge device is clean under the audit: no ungoverned undeclared read, no governed read with a /workspace scratch default (V4_TRAINER and V4_HF2_PREDS closed)",
+      not mu and not md, ("ungoverned", sorted(mu), "dangerous_default", sorted(md)))
+gu, gd = env_hygiene(f"{HERE}/v4_gate_member_liveness.py", GOV)
+check("★★ R15-C1 the liveness gate is clean under the SAME audit (EXPORT_ANCHOR_TS is declared and read via ENV_KEYS, no literal os.environ leak)",
+      not gu and not gd, ("ungoverned", sorted(gu), "dangerous_default", sorted(gd)))
+_thr = os.path.join(TMP, "throwaway_dev.py")
+open(_thr, "w").write("import os\nX = os.environ.get('BRAND_NEW_LEAK_VAR')\nY = os.environ.get('V4_TRAINER', '/workspace/scratch/trainer.py')\n")
+tu, td = env_hygiene(_thr, GOV)
+check("★★★ R15-C1 ACCEPTANCE: on a throwaway device NOBODY listed, the audit flags the fresh ungoverned read AND the governed scratch default — one mechanism catches a NEW instance with no edit to any list (it is exactly how it catches EXPORT_ANCHOR_TS, V4_UMASK_NPZ and V4_TRAINER)",
+      tu == {"BRAND_NEW_LEAK_VAR"} and td == {"V4_TRAINER"}, ("ungoverned", sorted(tu), "dangerous_default", sorted(td)))
+_fk = os.path.join(TMP, "fakedev_r15.py")
+open(_fk, "w").write("import os, sys\nEK=('V4_TRAINER','V4_HF2_PREDS','FRESH_UNLISTED')\n"
+                     "if len(sys.argv)==2 and sys.argv[1]=='--env-keys':\n    print(' '.join(EK)); sys.exit(0)\n"
+                     "for k in EK:\n    print(k+'='+(os.environ.get(k) or 'STRIP'))\n")
+_out = os.path.join(TMP, "fakedev_r15.log")
+_env = dict(os.environ, V4_TRAINER="/gov/t.py", V4_HF2_PREDS="/ambient/leak", FRESH_UNLISTED="/ambient/fresh", L="/dev/null", CHAIN_DEVICE_DIR=HERE, R=TMP)
+subprocess.run(["bash", "-c", 'source "$1"; PY="$2"; run_device_stripped "$3" "$4" >/dev/null 2>&1; cat "$4"', "x", f"{HERE}/chain_lib.sh", PY, _fk, _out], capture_output=True, text=True, env=_env)
+_txt = open(_out).read() if os.path.exists(_out) else ""
+check("★★★ R15-C1 run_device_stripped (the merge's DIRECT launch path, not run_gate) keeps the GOVERNED V4_TRAINER and strips the ungoverned V4_HF2_PREDS AND a fresh never-listed FRESH_UNLISTED",
+      "V4_TRAINER=/gov/t.py" in _txt and "V4_HF2_PREDS=STRIP" in _txt and "FRESH_UNLISTED=STRIP" in _txt, _txt.replace("\n", " | "))
 
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
 sys.exit(0 if not FAILS else 1)

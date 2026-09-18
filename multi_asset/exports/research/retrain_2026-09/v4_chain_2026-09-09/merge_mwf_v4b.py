@@ -3,16 +3,36 @@ into one stitched file on the v4 DL axis (dlw_v4raw == dlw_hf3 axis, 10212 ancho
 in-service yearly OOS (f8_ext/preds/f10_V2MAIN_s<SD>.npy, axis 10206, aligned by E_ts) -> health_check/dev_v4/f8_2026-08-22/preds/f10_v4<T>_s<SD>.npy.
 Asserts (as merge_mwf3.py): every month exactly once; seed == SD; embargo 1; causality_ok; input shas == F10_GATE_<T>.json; rule fix7 => best_epoch == 7.
 usage: merge_mwf_v4.py <T: RAW|CLIP> <SEED: 42|2027>"""
-import os, sys, json, time, hashlib, calendar, glob
+import os, sys
+# ★ R15-C1 (round 15): the SINGLE declaration of every environment variable this merge device reads. `--env-keys` prints it (chain_lib.sh's
+#   ambient strip removes an ungoverned one), and the merge receipt records what each key resolved to. A GOVERNED locator arriving UNSET is a bug,
+#   not a fallback: this device no longer carries a /workspace scratch default that silently mislabels provenance — the sealed run recorded a scratch
+#   pod_f10_train_monthly_v4.py under V4_TRAINER because the default fired when the merge ran OUTSIDE load_month_env (R15-C1, third instance).
+ENV_KEYS = ("V4_F8", "V4_DLW_RAW", "V4_DLW_CLIP", "V4_TRAINER", "V4_DLW_EXT", "V4_F8_EXT", "V4_DEV_PREDS", "V4_HF2_PREDS", "MWF_ROOT", "MONTHS_ALL")
+if len(sys.argv) == 2 and sys.argv[1] == "--env-keys":
+    print(" ".join(ENV_KEYS)); sys.exit(0)
+import json, time, hashlib, calendar, glob
 import numpy as np
 from scipy.stats import spearmanr
+
+
+def _req(k):
+    """a GOVERNED locator (V4_* / MWF_ROOT) that chain_lib.sh load_month_env sets from the frozen contract. Unset ⇒ fail loud, NEVER a scratch
+    default: a governed input arriving empty means the merge is running outside the governed environment, and a silent /workspace default mislabels
+    the receipt's provenance (that is exactly how the sealed run's trainer_sha256 came to hash a scratch file the shards never used)."""
+    v = os.environ.get(k)
+    if not v:
+        sys.stderr.write(f"MERGE_REFUSED missing required governed env {k}: no scratch default (run via chain_lib.sh load_month_env; R15-C1)\n"); sys.exit(3)
+    return v
+
+
 T, SEED = sys.argv[1], int(sys.argv[2]); assert T in ("RAW", "CLIP") and SEED in (42, 2027)
-# monthly (2026-09-12, RUNBOOK_2026-10 §0★ 修订 2 (a)/(c)): every locator from the month env (V4_*), defaults = the September constants; the fold-month
-# set from MONTHS_ALL (env) or derived from the targets axis (v4_months.py) — no hand-written 202501..202608 any more.
-F8 = os.environ.get("V4_F8", "/workspace/f8_v4"); DLW_RAW = os.environ.get("V4_DLW_RAW", "/workspace/dlw_v4raw"); DLW_CLIP = os.environ.get("V4_DLW_CLIP", "/workspace/dlw_hf3")
-TRAINER = os.environ.get("V4_TRAINER", "/workspace/review_scratch/pod_f10_train_monthly_v4.py"); DLW_EXT = os.environ.get("V4_DLW_EXT", "/workspace/dlw_ext"); F8_EXT = os.environ.get("V4_F8_EXT", "/workspace/f8_ext")
-DEV_PREDS = os.environ.get("V4_DEV_PREDS", "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds"); HF2_PREDS = os.environ.get("V4_HF2_PREDS", "/workspace/review_scratch/health_check/dev_hf2/f8_2026-08-22/preds")
-TAG = "mE1cX7"; RULE = "fix7"; M = f"{F8}/{os.environ.get('MWF_ROOT', 'mwf')}/{T}_s{SEED}"; DLW = {"RAW": DLW_RAW, "CLIP": DLW_CLIP}[T]
+# monthly (2026-09-12, RUNBOOK_2026-10 §0★ 修订 2 (a)/(c)): every locator from the month env (V4_*) is REQUIRED (no scratch default — R15-C1); the
+# fold-month set from MONTHS_ALL (env, optional) or derived from the targets axis (v4_months.py) — no hand-written 202501..202608 any more.
+F8 = _req("V4_F8"); DLW_RAW = _req("V4_DLW_RAW"); DLW_CLIP = _req("V4_DLW_CLIP")
+TRAINER = _req("V4_TRAINER"); DLW_EXT = _req("V4_DLW_EXT"); F8_EXT = _req("V4_F8_EXT")
+DEV_PREDS = _req("V4_DEV_PREDS"); HF2_PREDS = os.environ.get("V4_HF2_PREDS")   # optional: feeds the INFORMATIONAL vs-HF2 block only; unset ⇒ that block is skipped, never a scratch default
+TAG = "mE1cX7"; RULE = "fix7"; M = f"{F8}/{_req('MWF_ROOT')}/{T}_s{SEED}"; DLW = {"RAW": DLW_RAW, "CLIP": DLW_CLIP}[T]
 A = np.load(f"{DLW}/data/dlw_targets.npz", allow_pickle=True); Ea = A["E_ts"].astype(np.int64); nA = len(Ea)
 T25 = calendar.timegm((2025, 1, 1, 0, 0, 0)); i25 = int(np.searchsorted(Ea, T25)); assert Ea[i25] == T25
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from v4_months import months_all as _months_all
@@ -54,8 +74,10 @@ assert np.array_equal(spl[i25:], PRED[i25:], equal_nan=True)
 d = DEV_PREDS; os.makedirs(d, exist_ok=True); p = f"{d}/f10_v4{T}_s{SEED}.npy"; np.save(p, spl.astype(np.float32))
 # information: score-level similarity vs the holefix FIX7 arm on the same axis (HF2), 2025+ anchors, members. INFORMATIONAL ONLY: on a month whose axis
 # is longer than the HF2 reference (October+) the reference cannot align and the block is SKIPPED with the reason recorded (it was never a gate).
-MEM = A["members"]; hf = HF2_PREDS + "/" + ("f10_gate_mE1cX7_R0_spl42_hf2.npy" if SEED == 42 else "f10_gate_mE1cX7s27_R0_spl27_hf2.npy"); rc = []; hf_skip = None
-if not os.path.exists(hf): hf_skip = f"reference missing: {hf}"
+MEM = A["members"]; rc = []; hf_skip = None
+hf = (HF2_PREDS + "/" + ("f10_gate_mE1cX7_R0_spl42_hf2.npy" if SEED == 42 else "f10_gate_mE1cX7s27_R0_spl27_hf2.npy")) if HF2_PREDS else None
+if not HF2_PREDS: hf_skip = "V4_HF2_PREDS not set (optional informational block skipped; never a scratch default — R15-C1)"
+elif not os.path.exists(hf): hf_skip = f"reference missing: {hf}"
 else:
     HF = np.load(hf)
     if HF.shape != PRED.shape: hf_skip = f"reference shape {HF.shape} != stitched {PRED.shape} (axis differs; informational block skipped)"
@@ -69,5 +91,7 @@ else:
     print(f"splice {p}: pre-2025 rows from yearly s{SEED}: {nsp}/{i25}; vs HF2 FIX7 (same axis) per-anchor rank corr mean {np.mean(rc):+.3f} median {np.median(rc):+.3f} p10 {np.percentile(rc, 10):+.3f} (n={len(rc)})")
     vs_hf2 = {"file": hf, "rank_corr_mean": float(np.mean(rc)), "rank_corr_median": float(np.median(rc)), "rank_corr_p10": float(np.percentile(rc, 10)), "n": len(rc)}
 json.dump({"merged": rep, "coverage_by_month": cov, "splice": {"path": p, "sha256": sha(p), "pre2025_rows_from_yearly": nsp, "yearly_src": f"{F8_EXT}/preds/f10_V2MAIN_s{SEED}.npy"},
-           "vs_hf2_fix7": vs_hf2}, open(f"{M}/results/merge.json", "w"), indent=1)
+           "vs_hf2_fix7": vs_hf2,
+           "env_keys": list(ENV_KEYS), "env_resolved": {k: (os.environ.get(k) or None) for k in ENV_KEYS}},   # ★ R15-C1: the receipt records what each declared env key resolved to — provenance now says which environment produced these paths
+          open(f"{M}/results/merge.json", "w"), indent=1)
 print("coverage", cov); print("MERGE_DONE", T, SEED, flush=True)
