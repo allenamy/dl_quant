@@ -67,3 +67,4 @@
 | B FP2-6b(更新 17:46Z) | **设钉已部署** d858c36(电池 161/161; 仅 book.json +2 行); 三段收据 2/3 已成, 第三段 = 20Z 锚钉下验收(20:33Z 自动) | `FP2_receipts/battery_prod_d858c36_f10_pin_*`, `safe_commit_f10_pin_d858c36.log` |
 
 | 2026-09-18 02:1xZ | **R 出数**: 十条预注册变体三门**全部不过**(R1 反证据 CI<0; R2 c=.5 唯一过 G2 但净额 −36%; R3 th=.20 UNDECIDED; R4 只过 G1) → `RESULT_FP3_R_overlays_2026-09-18.md`; 损失解剖 + 根因分析 → `ANALYSIS_FP3_Q5_fast_move_nonresponse_2026-09-18.md`(簇挤空 / 事前无信息 / alpha 与尾部同名 / 实盘比回放更尾未分层); 09-17 归因件「新上市」措辞更正(BR/BULLA 2025 年上市); P-B 驱动两缺陷修正 v4 重跑中 | 主研究员 |
+| 2026-09-18 02:4xZ | **复审 r7(a5bda8bf)修复批**: 现金引擎 v4(C1/C2, 8/8 夹具含复审 7 例, 真实 PARTIAL 11/48, 快照 Δ=0) → `RESULT_FP3_D_…v4`; I 计划 v2; NOSLEEP R7-K1 **已部署 409ea16**(161/161); overlay R2 守帽分配修正重跑(−47%); L/换手读法更正; P-A v2 符号轴按序 + NaN 支持集; 平价复验暴露沙箱 mini 缓存复用 ⇒ 修 `combo_parity_replay.sh` 后四锚 PARITY 0 差(`PARITY_SUMMARY_v2`); 驱动 v3/v4/v5 入库; 回应件 `REVIEW_RESPONSE_FP3_round7b_2026-09-18.md`; tl3 运行中(播种后席位差 0.0000) | 主研究员 |

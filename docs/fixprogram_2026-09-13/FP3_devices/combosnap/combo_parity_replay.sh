@@ -1,6 +1,6 @@
 #!/bin/bash
 # FP3 item C part 2 (2026-09-17): production whole-book PARITY for one anchor. Rebuilds the producer's world for anchor A in a sandbox HOME from
-# (i) the current producer tree (code, xfer files, mini, shadow_bundle, per-anchor state files state/weights/<A-4h>.npz + fea171/state_H_*_<A-4h>.npz),
+# (i) the current producer tree (code, xfer files, shadow_bundle; NOT the live mini cache — combo_stage skips the full-tail 171 pipeline when mini/data targets already reach A, so a replay of an older anchor would reuse features built in a later 40-day window (found 2026-09-18 re-verification: 1e-4 drift on 12Z/16Z/20Z, exact only on the newest anchor); excluded ⇒ rebuilt from the snapshot rolling.npz, per-anchor state files state/weights/<A-4h>.npz + fea171/state_H_*_<A-4h>.npz),
 # (ii) the rolling-state snapshot state/snap/<A>/ (aux.json, rolling.npz, leg_returns_live.json — the files combo_stage read for A), and
 # (iii) the archived pre-combo king file target_live_king/<A>.json (what combo_stage read, validated and backed up before rewriting);
 # runs combo_stage.py exactly as the daemon does (COMBO_LIVE=1) but with COMBO_LIVE_DIR pointing into the sandbox (rehearsal branch: the production
@@ -14,7 +14,7 @@ A=${1:?anchor_ts}; OUT=${2:?receipt}; SBR=${3:-"$HOME/cc_tmp/parity"}; WS="$HOME
 ( cd "$SNAP" && shasum -a 256 -c SHA256SUMS --quiet ) || { echo "CANNOT_REPLAY snapshot sha mismatch"; exit 3; }
 SB="$SBR/$A"; rm -rf "$SB"; mkdir -p "$SB/wide_shadow/state" "$SB/dl_quant_live/live" || exit 3
 rsync -a --exclude venv --exclude 'state/snap' --exclude '__pycache__' --exclude 'shadow_bundle.aug*' --exclude 'shadow_bundle*.tar.gz' --exclude 'shadow_bundle_ref' \
-      --exclude 'loop.out*' --exclude 'shadow_log.jsonl' --exclude 'state/target_live_REHEARSAL' --exclude 'state/target_live/*' --exclude 'state/target_live_king/*' \
+      --exclude 'fea171/mini/cache.npz' --exclude 'fea171/mini/data/*' --exclude 'fea171/mini/preds/*' --exclude 'fea171/mini/results/*' --exclude 'loop.out*' --exclude 'shadow_log.jsonl' --exclude 'state/target_live_REHEARSAL' --exclude 'state/target_live/*' --exclude 'state/target_live_king/*' \
       --exclude 'state/target_blend*/*' --exclude 'state/target_combo/*' --exclude 'state/weights_combo/*' --exclude 'fea171/combo_live.log' "$WS/" "$SB/wide_shadow/" || exit 3
 ln -s "$WS/venv" "$SB/wide_shadow/venv" || exit 3
 cp "$SNAP/aux.json" "$SNAP/rolling.npz" "$SNAP/leg_returns_live.json" "$SB/wide_shadow/state/" || exit 3

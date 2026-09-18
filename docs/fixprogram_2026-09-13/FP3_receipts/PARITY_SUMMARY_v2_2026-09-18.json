@@ -1,0 +1,81 @@
+{
+ "device": "parity_summary.py",
+ "parity_file": "PARITY_v2.json",
+ "utc": "2026-09-18T02:41:59Z",
+ "n_snapshots": 4,
+ "first": "09-17 12Z",
+ "last": "09-18 00Z",
+ "n_parity": 4,
+ "n_mismatch": 0,
+ "n_no_receipt": 0,
+ "missing_4h_slots": [],
+ "rows": [
+  {
+   "anchor_ts": 1789646400,
+   "utc": "09-17 12Z",
+   "snapshot_complete": true,
+   "VERDICT": "PARITY",
+   "weights": {
+    "n_archived": 242,
+    "n_replay": 242,
+    "n_differing": 0,
+    "max_abs_dw": 0.0
+   },
+   "version_delta": [
+    "f10_sha added by the FP2-6b producer patch after this archive was written"
+   ],
+   "why": [],
+   "anchor_identity_ok": true,
+   "receipt_sha16": "cd1a5978af44d85c"
+  },
+  {
+   "anchor_ts": 1789660800,
+   "utc": "09-17 16Z",
+   "snapshot_complete": true,
+   "VERDICT": "PARITY",
+   "weights": {
+    "n_archived": 241,
+    "n_replay": 241,
+    "n_differing": 0,
+    "max_abs_dw": 0.0
+   },
+   "version_delta": null,
+   "why": [],
+   "anchor_identity_ok": true,
+   "receipt_sha16": "00464401cb143428"
+  },
+  {
+   "anchor_ts": 1789675200,
+   "utc": "09-17 20Z",
+   "snapshot_complete": true,
+   "VERDICT": "PARITY",
+   "weights": {
+    "n_archived": 240,
+    "n_replay": 240,
+    "n_differing": 0,
+    "max_abs_dw": 0.0
+   },
+   "version_delta": null,
+   "why": [],
+   "anchor_identity_ok": true,
+   "receipt_sha16": "46d3595b0f401ed4"
+  },
+  {
+   "anchor_ts": 1789689600,
+   "utc": "09-18 00Z",
+   "snapshot_complete": true,
+   "VERDICT": "PARITY",
+   "weights": {
+    "n_archived": 242,
+    "n_replay": 242,
+    "n_differing": 0,
+    "max_abs_dw": 0.0
+   },
+   "version_delta": null,
+   "why": [],
+   "anchor_identity_ok": true,
+   "receipt_sha16": "f6025d0de80dc282"
+  }
+ ],
+ "reads": "single-step combo parity per anchor (archived king input + snapshotted rolling state \u2192 combo_stage in a sandbox); NOT the continuous production-path replay"
+}
