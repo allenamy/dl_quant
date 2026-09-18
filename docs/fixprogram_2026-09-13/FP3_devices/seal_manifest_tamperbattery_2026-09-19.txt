@@ -1,9 +1,16 @@
-==============================================================================
-TAMPER RED-BATTERY for seal_manifest.py
-BASELINE green (untampered scratch SEALS): True
-==============================================================================
+HERMETIC TAMPER RED-BATTERY — re-runnable from a clean checkout with: python3 tamper_battery.py
+Run 2026-09-18T17:38:12Z on darwin (NO pod, NO prior state, NO numpy). Fixture self-built in a
+temp dir the battery owns and removes; it exercises the committed seal, not the real artefacts.
+seal_manifest.py self_sha256 = 7d7b0266d9398b1c20bca34f163093a9e98bc461b0bd519302119251aea72d50
+tamper_battery.py self_sha256 = f2946efba3b1edd49a287dae62f09e52f60bd857240924d1e01332becf8e2a43
 
-### BASELINE (untampered scratch)
+================================================================================
+HERMETIC TAMPER RED-BATTERY for seal_manifest.py
+fixture: self-built in a temp dir (now removed); seal = /Users/haosiyu/Desktop/quant_research/docs/fixprogram_2026-09-13/FP3_devices/seal_manifest.py
+BASELINE green (untampered synthetic fixture SEALS): True
+================================================================================
+
+### BASELINE (untampered synthetic fixture)
     exit=0  verdict=SEALED — every claim below is deri  => GREEN
 
 ### A  delete fold s42:202503 registration (was: 39/40 SEALED)
@@ -14,22 +21,22 @@ BASELINE green (untampered scratch SEALS): True
     exit=1  verdict=NOT SEALED — named refusals/unprov  => REFUSED as required
     [REFUSED] fold.s42:202501: fold s42:202501 NOT proven: pt_sha256 MISSING from merge record — cannot verify (a missing witness is not a pass)
 
-### C  delete artefact witness refit.inputs_sha256.targets (was: downgrade to present-only)
+### C  delete artefact witness refit.inputs_sha256.targets (was: present-only downgrade)
     exit=1  verdict=NOT SEALED — named refusals/unprov  => REFUSED as required
-    [REFUSED] artefact.dlw_raw_targets: dlw_raw_targets exists (192015259 B) but its expected witness sha is ABSENT — a missing witness is not a pass; this artefact must be cross-verified, refusing rather than downgrading to present-only
+    [REFUSED] artefact.dlw_raw_targets: dlw_raw_targets exists (12 B) but its expected witness sha is ABSENT — a missing witness is not a pass; this artefact must be cross-verified, refusing rather than downgrading to present-only
 
-### D  delete device witness refit.self_sha256 (was: downgrade to present-only)
+### D  delete device witness refit.self_sha256 (was: present-only downgrade)
     exit=1  verdict=NOT SEALED — named refusals/unprov  => REFUSED as required
-    [REFUSED] device.pod_f10_refit_v4.py: pod_f10_refit_v4.py present at /workspace/fp2_2026-09/devices_v4chain/pod_f10_refit_v4.py but its expected witness sha (f10_live_s42.json:self_sha256) is ABSENT — a missing witness is not a pass; this device must be cross-verified, not downgraded to present-only
+    [REFUSED] device.pod_f10_refit_v4.py: pod_f10_refit_v4.py present at /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/seal_tamper_ng4y79m_/ws/fp2_2026-09/devices_v4chain/pod_f10_refit_v4.py but its expected witness sha (f10_live_s42.json:self_sha256) is ABSENT — a missing witness is not a pass; this device must be cross-verified, not downgraded to present-only
 
 ### E  delete NP_EXPORT_s42.pt_sha256 (was: None==None bind passes)
     exit=1  verdict=NOT SEALED — named refusals/unprov  => REFUSED as required
-    [REFUSED] np_export.s42: np_export seed 42 not accepted: pt_sha256 MISSING (export=None refit=0eaaf6ae620d) — cannot bind export to refit model
+    [REFUSED] np_export.s42: np_export seed 42 not accepted: pt_sha256 MISSING (export=None refit=f0567f9fe9c3) — cannot bind export to refit model
 
 ### F  delete NP_EXPORT_s42.V1.criterion_rho (was: None comparison / skip)
     exit=1  verdict=NOT SEALED — named refusals/unprov  => REFUSED as required
-    [REFUSED] np_export.s42: np_export seed 42 not accepted: V1 spearman/criterion MISSING (rho=0.9999999999852222 crit=None)
+    [REFUSED] np_export.s42: np_export seed 42 not accepted: V1 spearman/criterion MISSING (rho=1.0 crit=None)
 
-==============================================================================
+================================================================================
 RESULT: PASS — baseline green=True, 6/6 tamper cases refused
-==============================================================================
+================================================================================
