@@ -37,9 +37,23 @@ def make(spec):
             if i < 42: return sm
             seg = y4[i - 42:i][:, m]; sig = np.nanstd(np.where(np.isfinite(seg), seg, np.nan), axis=0); med = np.nanmedian(sig)
             if not np.isfinite(med) or med <= 0: return sm
-            cap = np.full(sm.shape, np.inf); cap[m] = np.where(np.isfinite(sig) & (sig > 0), np.minimum(capw, c * med / sig * capw), capw)
-            g0 = np.abs(sm).sum(); out = np.clip(sm, -cap, cap); g1 = np.abs(out).sum()
-            return out * (g0 / g1) if g1 > 1e-12 else out                              # keep the book's gross: excess flows pro rata to the rest
+            cap = np.full(sm.shape, capw); cap[m] = np.where(np.isfinite(sig) & (sig > 0), np.minimum(capw, c * med / sig * capw), capw)   # default = the book's own cap (names carried outside the member set keep it); never inf
+            mem = np.zeros(sm.shape, bool); mem[m] = True
+            # constrained allocation (R7-R1 fix 2026-09-18): clip, then push the clipped excess pro rata into same-side names that still have headroom,
+            # never above their own cap; iterate until the excess is absorbed or no headroom is left (then gross drops: capacity shortfall is accepted, not re-breached)
+            out = np.clip(sm, -cap, cap)
+            for side in (1.0, -1.0):
+                tgt = np.abs(sm[np.sign(sm) == side]).sum(); sel_ = np.sign(sm) == side
+                for _ in range(50):
+                    cur = np.abs(out[sel_]).sum(); exc = tgt - cur
+                    if exc <= 1e-12: break
+                    head = np.where(sel_ & mem & np.isfinite(out) & (np.abs(out) < cap - 1e-15), cap - np.abs(out), 0.0); H = head.sum()   # excess goes to same-side MEMBERS with headroom only
+                    if H <= 1e-15: break
+                    add = np.minimum(head, head / H * exc) if H > exc else head            # pro rata to headroom, capped by headroom
+                    out = out + side * add
+            fin = np.isfinite(out); assert np.all(np.abs(out[fin]) <= cap[fin] + 1e-12), float(np.nanmax(np.abs(out[fin]) - cap[fin]))   # invariant on finite entries (NaN = not in the book)
+            assert np.isfinite(out).sum() == np.isfinite(sm).sum(), "allocation introduced NaN"
+            return out
         return f
     if name == "r3":
         th = P.get("th", 0.20)

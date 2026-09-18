@@ -66,4 +66,4 @@
 | K NOSLEEP-1(更新 17:46Z) | **已部署** 81ea654(电池 161/161; 入口套件 nosleep 行 log_verified=True src=asl 1.6 s) | `FP2_receipts/battery_prod_81ea654_*`, `safe_commit_nosleep_81ea654.log` |
 | B FP2-6b(更新 17:46Z) | **设钉已部署** d858c36(电池 161/161; 仅 book.json +2 行); 三段收据 2/3 已成, 第三段 = 20Z 锚钉下验收(20:33Z 自动) | `FP2_receipts/battery_prod_d858c36_f10_pin_*`, `safe_commit_f10_pin_d858c36.log` |
 
-| 2026-09-18 03:2xZ | **R 出数**: 十条预注册变体三门**全部不过**(R1 反证据 CI<0; R2 c=.5 唯一过 G2 但净额 −36%; R3 th=.20 UNDECIDED; R4 只过 G1) → `RESULT_FP3_R_overlays_2026-09-18.md`; 损失解剖 + 根因分析 → `ANALYSIS_FP3_Q5_fast_move_nonresponse_2026-09-18.md`(簇挤空 / 事前无信息 / alpha 与尾部同名 / 实盘比回放更尾未分层); 09-17 归因件「新上市」措辞更正(BR/BULLA 2025 年上市); P-B 驱动两缺陷修正 v4 重跑中 | 主研究员 |
+| 2026-09-18 02:1xZ | **R 出数**: 十条预注册变体三门**全部不过**(R1 反证据 CI<0; R2 c=.5 唯一过 G2 但净额 −36%; R3 th=.20 UNDECIDED; R4 只过 G1) → `RESULT_FP3_R_overlays_2026-09-18.md`; 损失解剖 + 根因分析 → `ANALYSIS_FP3_Q5_fast_move_nonresponse_2026-09-18.md`(簇挤空 / 事前无信息 / alpha 与尾部同名 / 实盘比回放更尾未分层); 09-17 归因件「新上市」措辞更正(BR/BULLA 2025 年上市); P-B 驱动两缺陷修正 v4 重跑中 | 主研究员 |
