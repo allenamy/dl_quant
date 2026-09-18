@@ -1,22 +1,21 @@
-RED CONTROL — seal.py (defective, retained) vs seal_manifest.py (replacement)
-Run 2026-09-18T15:14:51Z on darwin, hermetic fixture in scratchpad (no pod, no GPU).
+HERMETIC RED CONTROL — seal.py (defective, retained) vs seal_manifest.py (replacement)
+Run 2026-09-18T17:29:49Z on darwin, hermetic fixture in scratchpad (no pod, no GPU).
+seal_manifest.py self_sha256 = 7d7b0266d9398b1c20bca34f163093a9e98bc461b0bd519302119251aea72d50  (content-addressed; cite this, not a moving HEAD)
 Fixture: devices present as stubs; ALL 17 registered artefacts and ALL witnesses ABSENT.
 Defect: with the 17 artefacts absent the OLD script still exits 0 and writes 'trained and materialised'.
-The NEW script must REFUSE (nonzero) on the same fixture.
 ======================================================================================
-### OLD seal.py (roots repointed at the empty fixture) — STDOUT:
+### OLD seal.py (roots repointed at the empty fixture):
 sealed 0 artefacts, 9 devices
 OLD seal.py EXIT = 0
 OLD wrote seal: 'legal-member model artefacts, SEALED - trained and materialised, NOT judged. No book-level evaluation was run.'
   artefacts with a sha: 0 / 17
-  hardcoded training.mwf: '2 seeds x 4 disjoint month shards, 8/8 rc=0, 5 folds each, MWF_TRAIN_DONE, both merges MERGE_DONE'
 ======================================================================================
-### NEW seal_manifest.py (same empty fixture) — verdict + counts:
+### NEW seal_manifest.py (same empty fixture):
 ==========================================================================================
 NOT SEALED — named refusals/unproven items below; nonzero exit
-self_sha256 1722c052cc70715ba37f7d6338c7100f858ded6f4725aa36c9f0fc9c6215e292
-folds proven 0/40 | checks PROVEN 0 NOTE 11 REFUSED 35 UNPROVEN 8
-  REFUSED lines: 35   UNPROVEN lines: 8
+self_sha256 7d7b0266d9398b1c20bca34f163093a9e98bc461b0bd519302119251aea72d50
+folds proven 0/40 | checks PROVEN 0 NOTE 10 REFUSED 81 UNPROVEN 6
+  REFUSED lines: 81   UNPROVEN lines: 6
 NEW seal_manifest.py EXIT = 1
 ======================================================================================
-RESULT: OLD exits 0 (false green); NEW exits 1 (refuses). Red control PASS.
+RESULT: OLD exits 0 (false green); NEW exits 1 (refuses). Hermetic red control PASS.

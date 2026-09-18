@@ -7,21 +7,25 @@ no refusal, hardcodes the mwf/refit/king prose, and samples sorted(glob)[:6] pre
 Under an isolated fake filesystem with all 17 artefacts absent, seal.py still exits 0.
 
 This script instead DERIVES every sentence from a check performed at run time:
-  * a per-fold manifest over 40 folds (2 seeds x 20 months), each fold carrying the month it
-    trained on, its label cutoff, its test range, the sha of its training inputs / source
-    device / output artefacts, and a process exit code — all read from the artefacts, then
-    re-verified by re-hashing the files on disk;
+  * a per-fold manifest over the FULL expected fold set (2 seeds x the authoritative month set),
+    where completeness is a CONDITION and not a reported count — a missing fold is a named
+    refusal (39/40 proves nothing about the 40th), and every field a fold needs (its recorded
+    pt/preds_fold sha, cutoff, test range, training-input and source-device shas, shard exit
+    code) must be PRESENT to pass; the .pt and preds_fold are then re-hashed against the values
+    the merge receipt records;
   * per seed, month-set disjointness + completeness + test-overlap=0 + merged==expected;
-  * every registered artefact must EXIST and (where a witness records a value) re-hash to it,
-    else NAMED REFUSAL + nonzero exit — never a null field beside a success sentence;
+  * every registered artefact must EXIST and (for the must-cross-check set) re-hash to a witness
+    value, else NAMED REFUSAL + nonzero exit — never a null field beside a success sentence, and
+    an artefact whose expected witness is gone refuses rather than downgrading to present-only;
   * completeness of the device set `want`, not just the intersection;
   * the mwf prediction population enumerated in full with a stated sampling rule (no [:6]);
-  * np_export completion decided by real dependency acceptance (PASS + pt-sha bind + correct
-    device sha), NOT by the MODEL_DONE_SEALED marker — which the run wrote while np_export was
-    rc=2 (the accepted 14:02:09 incident); this seal would refuse at that instant.
+  * np_export completion decided by real dependency acceptance (PASS + both-present pt-sha bind +
+    correct device sha), NOT by the MODEL_DONE_SEALED marker — which the run wrote while np_export
+    was rc=2 (the accepted 14:02:09 incident); this seal would refuse at that instant.
 
-If a check's evidence does not exist on the pod, the item is UNPROVEN and the seal exits
-nonzero — the gap is named, never omitted.
+Discipline (round 16): "I could not check this" is NEVER "this is fine". Wherever a field or
+witness a check needs is absent, the item routes to the REFUSAL/UNPROVEN path and the seal exits
+nonzero — it never falls through to acceptance, and never leaves a null beside a success sentence.
 
 Roots come from the environment so the script is hermetically testable:
   FP3_ROOT (default /workspace/fp3_live_2026-09), FP3_WS (default /workspace).
@@ -160,6 +164,11 @@ items = [("cache", f"{WS}/data/dlnative_5m_wide829_f16_holefix2.npz"),
          ("np_s42", f"{R}/np_export/f10_np_s42.npz"),
          ("np_s2027", f"{R}/np_export/f10_np_s2027.npz")]
 
+# artefacts that MUST be cross-verified against a witness sha: if such an artefact exists but its
+# expected witness field is gone, that is a REFUSAL, not a silent downgrade to present-only.
+MUST_CROSSCHECK = {"mask_liveness", "dlw_raw_targets", "fea82", "fea89", "king_slow_pred",
+                   "legs", "f10_live_s42", "f10_live_s2027", "np_s42", "np_s2027"}
+
 arte = {}
 for lab, p in items:
     if not os.path.exists(p):
@@ -177,6 +186,10 @@ for lab, p in items:
                                       f"({'64-bit prefix' if mode=='prefix16' else 'sha256'} {exp[:16]})", sha256=h)
         else:
             refuse(f"artefact.{lab}", f"{lab} MISMATCH: on-disk {h[:16]} != {src} {exp[:16]}")
+    elif lab in MUST_CROSSCHECK:
+        entry.update({"verified": False, "ref_source": None})
+        refuse(f"artefact.{lab}", f"{lab} exists ({b} B) but its expected witness sha is ABSENT — a missing witness is not a "
+                                   f"pass; this artefact must be cross-verified, refusing rather than downgrading to present-only")
     else:
         entry.update({"verified": False, "ref_source": None,
                       "note": "present; no independent witness records a sha to cross-check — existence + snapshot hash only"})
@@ -185,10 +198,12 @@ for lab, p in items:
 manifest["registered_artefacts"] = arte
 
 # --------------------------------------------------------------------------------------
-# 3. PER-FOLD MANIFEST (40): month, cutoff, test range, input/device/output shas, exit code.
+# 3. PER-FOLD MANIFEST: completeness is a CONDITION (2 seeds x the authoritative month set),
+#    NOT a reported count; and every field a fold needs must be PRESENT — a missing witness is
+#    a refusal, never a skipped check. Forty of forty is required; 39/40 proves nothing about
+#    the 40th, and a fold whose recorded hash is gone is UNPROVEN, not accepted by default.
 folds_out = []
 n_fold_ok = 0
-# device (source) shas that produced the folds, from the shard witnesses
 def shard_of(sd, month):
     for k in range(4):
         s = shards.get((sd, k)) or {}
@@ -203,13 +218,45 @@ for m in re.finditer(r"END\[RAW s(\d+) shard(\d+)\]\s+python\s+(\d+)\s+rc=(\d+).
     sd, k, pid, rc, nf, done = (int(m.group(i)) for i in range(1, 7))
     end_rows[(sd, k)] = {"pid": pid, "rc": rc, "folds_done": nf, "mwf_train_done": done}
 
+# authoritative expected month set = months_all recorded by a shard witness (derived from the
+# targets axis); cross-checked against the builtin axis. If the witness set is absent the builtin
+# (same 20 months) is the floor and that is NOTED; a witness that DISAGREES with the builtin refuses.
+AUTH_MONTHS = None
+for sd in SEEDS:
+    for k in range(4):
+        s = shards.get((sd, k)) or {}
+        if wget(s, "months_all"):
+            AUTH_MONTHS = sorted(str(x) for x in s["months_all"]); break
+    if AUTH_MONTHS:
+        break
+if AUTH_MONTHS is None:
+    note("folds.expected_source", f"no shard witness records months_all; expected fold set falls back to the builtin {len(EXPECTED_MONTHS)}-month axis")
+    EXPECTED = list(EXPECTED_MONTHS)
+elif sorted(AUTH_MONTHS) != sorted(EXPECTED_MONTHS):
+    refuse("folds.expected_source", f"authoritative months_all {AUTH_MONTHS} != builtin axis {EXPECTED_MONTHS}")
+    EXPECTED = sorted(set(AUTH_MONTHS) | set(EXPECTED_MONTHS))
+else:
+    proven("folds.expected_source", f"expected fold month set {AUTH_MONTHS[0]}..{AUTH_MONTHS[-1]} ({len(AUTH_MONTHS)} months) derived from the shard witness months_all and matching the builtin axis")
+    EXPECTED = list(AUTH_MONTHS)
+manifest["n_folds_expected"] = len(SEEDS) * len(EXPECTED)
+
 for sd in SEEDS:
     mg = merge.get(sd) or {}
     fdict = wget(mg, "merged", "folds")
+    present = set(fdict.keys()) if isinstance(fdict, dict) else set()
     if not isinstance(fdict, dict):
-        unproven(f"folds.s{sd}", f"merge.json for seed {sd} has no merged.folds — cannot build the fold manifest")
-        continue
-    for month in sorted(fdict):
+        refuse(f"folds.s{sd}", f"merge.json for seed {sd} has no merged.folds — 0 of {len(EXPECTED)} folds present")
+    # completeness CONDITION: every expected month MUST be registered (missing => named refusal)
+    for month in EXPECTED:
+        if month not in present:
+            refuse(f"fold.s{sd}:{month}", f"fold registration MISSING for seed {sd} month {month} — a manifest that proves "
+                                          f"fewer than all {len(EXPECTED)} folds has proven nothing about this one")
+    for month in sorted(present - set(EXPECTED)):
+        refuse(f"fold.s{sd}:{month}", f"UNEXPECTED fold {month} for seed {sd}, not in the authoritative month set {EXPECTED[0]}..{EXPECTED[-1]}")
+    # verify each expected-and-present fold with STRICT field presence
+    for month in EXPECTED:
+        if month not in present:
+            continue
         f = fdict[month]
         k, srec = shard_of(sd, month)
         pt_path  = f"{R}/f8_v4/mwf_v4b/RAW_s{sd}/shard{k}/models/{TAG}_{month}.pt" if k is not None else None
@@ -217,38 +264,47 @@ for sd in SEEDS:
         cfg_path = f"{R}/f8_v4/mwf_v4b/RAW_s{sd}/shard{k}/models/{TAG}_{month}_config.json" if k is not None else None
         cfg, _ = load_json(cfg_path) if cfg_path else (None, None)
         rowid = f"s{sd}:{month}"
-        row = {"seed": sd, "month": month, "shard": f.get("shard"),
-               "trained_on_month": month,
-               "label_cutoff": f.get("cutoff"),
-               "test_range": [wget(cfg, "first_test"), wget(cfg, "last_test")] if cfg else None,
+        inputs = {kk: wget(srec or {}, f"{kk}_sha256") for kk in ("targets", "fea82", "fea89", "legs")}
+        tr = [wget(cfg, "first_test"), wget(cfg, "last_test")] if cfg else [None, None]
+        row = {"seed": sd, "month": month, "shard": f.get("shard"), "trained_on_month": month,
+               "label_cutoff": f.get("cutoff"), "test_range": tr,
                "n_train": f.get("n_train"), "n_val": f.get("n_val"), "n_test": f.get("n_test"),
                "best_epoch": f.get("best_epoch"), "rule": f.get("best_epoch_rule"),
-               "causality_ok": f.get("causality_ok"),
-               "input_shas": {kk: wget(srec or {}, f"{kk}_sha256") for kk in ("targets", "fea82", "fea89", "legs")},
+               "causality_ok": f.get("causality_ok"), "input_shas": inputs,
                "source_device_sha256": wget(srec or {}, "self_sha256"),
                "base_engine_sha256": wget(srec or {}, "base_sha256"),
-               "recorded_pt_sha256": f.get("pt_sha256"),
-               "recorded_preds_fold_sha256": f.get("preds_fold_sha256"),
+               "recorded_pt_sha256": f.get("pt_sha256"), "recorded_preds_fold_sha256": f.get("preds_fold_sha256"),
                "shard_process_rc": (end_rows.get((sd, k)) or {}).get("rc") if k is not None else None,
                "pt_path": pt_path, "preds_fold_path": pf_path}
         problems = []
         if k is None:
             problems.append("no shard owns this month")
         else:
+            # output .pt: must EXIST and the recorded sha must be PRESENT and MATCH (absent sha => cannot verify => problem)
             if not (pt_path and os.path.exists(pt_path)):
                 problems.append("pt absent")
-            elif f.get("pt_sha256") and sha(pt_path) != f["pt_sha256"]:
+            elif not f.get("pt_sha256"):
+                problems.append("pt_sha256 MISSING from merge record — cannot verify (a missing witness is not a pass)")
+            elif sha(pt_path) != f["pt_sha256"]:
                 problems.append(f"pt sha mismatch (disk {sha(pt_path)[:12]} vs merge {f['pt_sha256'][:12]})")
+            # output preds_fold: same discipline
             if not (pf_path and os.path.exists(pf_path)):
                 problems.append("preds_fold absent")
-            elif f.get("preds_fold_sha256") and sha(pf_path) != f["preds_fold_sha256"]:
+            elif not f.get("preds_fold_sha256"):
+                problems.append("preds_fold_sha256 MISSING from merge record — cannot verify (a missing witness is not a pass)")
+            elif sha(pf_path) != f["preds_fold_sha256"]:
                 problems.append("preds_fold sha mismatch")
             if f.get("causality_ok") is not True:
                 problems.append(f"causality_ok={f.get('causality_ok')}")
             if not f.get("cutoff"):
-                problems.append("no label cutoff recorded")
-            if row["test_range"] in (None, [None, None]):
-                problems.append("no test range in config")
+                problems.append("label cutoff MISSING")
+            if (tr[0] is None) or (tr[1] is None):
+                problems.append("test range MISSING/incomplete in config")
+            miss_in = [kk for kk, v in inputs.items() if not v]
+            if miss_in:
+                problems.append(f"training-input sha(s) MISSING: {miss_in}")
+            if not row["source_device_sha256"]:
+                problems.append("source-device sha (shard self_sha256) MISSING")
             er = end_rows.get((sd, k))
             if er is None:
                 problems.append("no shard END-row exit code in commands.txt")
@@ -261,11 +317,16 @@ for sd in SEEDS:
             refuse(f"fold.{rowid}", f"fold {rowid} NOT proven: {'; '.join(problems)}")
         else:
             n_fold_ok += 1
-            proven(f"fold.{rowid}", f"fold {rowid} shard{k}: trained through {f['cutoff']}, test {row['test_range'][0]}..{row['test_range'][1]} "
-                                    f"(n_test {f.get('n_test')}), pt+preds_fold re-hash to merge values, causality_ok, shard rc=0")
+            proven(f"fold.{rowid}", f"fold {rowid} shard{k}: trained through {f['cutoff']}, test {tr[0]}..{tr[1]} "
+                                    f"(n_test {f.get('n_test')}), input shas present, pt+preds_fold re-hash to merge values, causality_ok, shard rc=0")
 manifest["folds"] = folds_out
 manifest["n_folds_proven"] = n_fold_ok
-manifest["n_folds_expected"] = len(SEEDS) * len(EXPECTED_MONTHS)
+# completeness as an explicit CONDITION, not a reported number
+expected_total = len(SEEDS) * len(EXPECTED)
+if n_fold_ok == expected_total:
+    proven("folds.completeness", f"all {expected_total} expected folds (2 seeds x {len(EXPECTED)} months) present and individually verified")
+else:
+    refuse("folds.completeness", f"{n_fold_ok} of {expected_total} folds proven — completeness is a condition, not a count; the unproven folds are named above")
 
 # --------------------------------------------------------------------------------------
 # 4. MONTH PARTITION per seed: 4 shards x 5 months, disjoint, complete, test-overlap 0,
@@ -288,9 +349,10 @@ for sd in SEEDS:
     sizes = {k: len(shard_months[k]) for k in range(4)}
     cov = wget(merge.get(sd) or {}, "coverage_by_month")
     cov_keys = sorted(cov.keys()) if isinstance(cov, dict) else []
-    cov_full = isinstance(cov, dict) and all((lambda ab: ab[0] == ab[1])(v.split("/")) for v in cov.values())
-    exp = months_all or EXPECTED_MONTHS
-    ok = (not dup) and (len(union) == 20) and all(sizes[k] == 5 for k in range(4)) \
+    # guard the vacuous all([]) trap: an empty coverage dict must not read as "all full"
+    cov_full = isinstance(cov, dict) and len(cov) > 0 and all((lambda ab: len(ab) == 2 and ab[0] == ab[1])(v.split("/")) for v in cov.values())
+    exp = months_all or EXPECTED
+    ok = (not dup) and (len(union) == len(EXPECTED)) and all(sizes[k] == 5 for k in range(4)) \
          and union == exp and cov_keys == exp and cov_full
     data = {"shard_month_sets": shard_months, "duplicates": dup, "sizes": sizes,
             "union_n": len(union), "expected_source": "shard.months_all" if months_all else "builtin",
@@ -325,15 +387,20 @@ for sd in SEEDS:
             cutoffs[f"npnpz_s{sd}"] = str(d["trained_through_label_utc"]) if "trained_through_label_utc" in d else None
         except Exception as e:
             cutoffs[f"npnpz_s{sd}"] = f"__unreadable__:{type(e).__name__}"
+# the two refit configs are MANDATORY witnesses; a deleted field is UNPROVEN, not a subset pass
+mandatory = {f"refit_s{sd}": cutoffs.get(f"refit_s{sd}") for sd in SEEDS}
+missing_mand = [k for k, v in mandatory.items() if not v]
 vals = [v for v in cutoffs.values() if v and not str(v).startswith("__")]
-if vals and len(set(vals)) == 1:
+if missing_mand:
+    unproven("label_cutoff", f"mandatory refit cutoff field(s) ABSENT: {missing_mand} — a missing witness is not a pass; sources={cutoffs}")
+elif vals and len(set(vals)) == 1:
     proven("label_cutoff", f"refit label cutoff = {vals[0]} — agreed across {len(vals)} independent artefact fields "
                            f"({', '.join(k for k,v in cutoffs.items() if v and not str(v).startswith('__'))}); "
                            f"pool/axis end 2026-08-31T20:00:00Z; distinct from the 40 per-fold MWF cutoffs recorded per fold above",
            sources=cutoffs, value=vals[0])
     manifest["label_cutoff"] = vals[0]
 else:
-    unproven("label_cutoff", f"label cutoff not consistently derivable from artefacts: {cutoffs}")
+    unproven("label_cutoff", f"label cutoff sources disagree or are unreadable: {cutoffs}")
 
 # --------------------------------------------------------------------------------------
 # 6. np_export dependency acceptance + the 14:02:09 incident (marker disavowed).
@@ -345,11 +412,16 @@ for sd in SEEDS:
     if d.get("PASS") is not True: probs.append("PASS!=true")
     if d.get("wrote_npz") is not True: probs.append("wrote_npz!=true")
     if wget(d, "V1", "ok") is not True: probs.append("V1.ok!=true")
-    rho = wget(d, "V1", "spearman"); mx = wget(d, "V1", "maxabs")
-    if not (isinstance(rho, (int, float)) and rho >= wget(d, "V1", "criterion_rho")): probs.append(f"spearman {rho} below criterion")
-    if not (isinstance(mx, (int, float)) and mx <= wget(d, "V1", "criterion_maxabs")): probs.append(f"maxabs {mx} above criterion")
-    if d.get("pt_sha256") != refit_pt: probs.append(f"export pt_sha {str(d.get('pt_sha256'))[:12]} != refit pt {str(refit_pt)[:12]}")
-    if not npz.get("verified"): probs.append("npz did not re-hash to recorded npz_sha256")
+    rho = wget(d, "V1", "spearman"); crit_rho = wget(d, "V1", "criterion_rho")
+    mx = wget(d, "V1", "maxabs");    crit_mx  = wget(d, "V1", "criterion_maxabs")
+    if not all(isinstance(x, (int, float)) for x in (rho, crit_rho)): probs.append(f"V1 spearman/criterion MISSING (rho={rho} crit={crit_rho})")
+    elif rho < crit_rho: probs.append(f"spearman {rho} below criterion {crit_rho}")
+    if not all(isinstance(x, (int, float)) for x in (mx, crit_mx)): probs.append(f"V1 maxabs/criterion MISSING (maxabs={mx} crit={crit_mx})")
+    elif mx > crit_mx: probs.append(f"maxabs {mx} above criterion {crit_mx}")
+    exp_pt = d.get("pt_sha256")   # both hashes must be PRESENT before binding — None==None must not pass
+    if not exp_pt or not refit_pt: probs.append(f"pt_sha256 MISSING (export={str(exp_pt)[:12]} refit={str(refit_pt)[:12]}) — cannot bind export to refit model")
+    elif exp_pt != refit_pt: probs.append(f"export pt_sha {exp_pt[:12]} != refit pt {refit_pt[:12]}")
+    if not npz.get("verified"): probs.append("npz did not re-hash to recorded npz_sha256 (or its witness sha is absent)")
     if probs:
         refuse(f"np_export.s{sd}", f"np_export seed {sd} not accepted: {'; '.join(probs)}")
     else:
@@ -422,7 +494,11 @@ for name in want:
     h = sha(path)
     e = {"found": True, "path": path, "sha256": h}
     w = dev_witness.get(name)
-    if w and w[0]:
+    if name in dev_witness and not (w and w[0]):
+        e.update({"cross_verified": False, "witness": w[1] if w else None})
+        refuse(f"device.{name}", f"{name} present at {path} but its expected witness sha ({w[1] if w else '?'}) is ABSENT — "
+                                 f"a missing witness is not a pass; this device must be cross-verified, not downgraded to present-only")
+    elif w and w[0]:
         e.update({"cross_verified": h == w[0], "witness": w[1], "witness_sha": w[0]})
         if h == w[0]:
             proven(f"device.{name}", f"{name} present at {path}, sha {h[:12]} CROSS-VERIFIED against {w[1]}")
@@ -470,25 +546,29 @@ else:
          f"trainer provenance not compared (a witness is absent — see the corresponding witness refusal): "
          f"shard self_sha={shard_trainer} merge trainer_sha={merge_trainer}")
 
-# base engine (not in want) — record + verify
+# base engine (not in want) — record + verify; never silently skip on absence
 base_path = f"{WS}/pod_f10_train_ext.py"; base_w = wget(shards.get((42, 0)) or {}, "base_sha256")
-if os.path.exists(base_path) and base_w:
+if base_w and os.path.exists(base_path):
     bh = sha(base_path)
     (proven if bh == base_w else refuse)("device.base_engine",
         f"base engine pod_f10_train_ext.py sha {bh[:12]} {'==' if bh==base_w else '!='} shard base_sha256 {base_w[:12]}")
+elif not base_w:
+    note("device.base_engine", "shard results record no base_sha256 — base engine identity not cross-checkable (informational; not a want device)")
+else:
+    note("device.base_engine", f"shard records base_sha256 {base_w[:12]} but {base_path} is absent locally — cannot re-hash (informational; not a want device)")
 
 # --------------------------------------------------------------------------------------
 # 8. EXIT CODES: per-shard (commands.txt), per-seed conjunction (driver log), refit.
-n_end = len(end_rows)
-all_rc0 = n_end == 8 and all(v["rc"] == 0 for v in end_rows.values())
+n_end = len(end_rows); n_exp_shards = len(SEEDS) * 4
+all_rc0 = n_end == n_exp_shards and all(v["rc"] == 0 for v in end_rows.values())
 folds_done = sum(v["folds_done"] for v in end_rows.values())
-mwf_done = all(v["mwf_train_done"] == 1 for v in end_rows.values())
-if all_rc0 and folds_done == 40 and mwf_done:
-    proven("exit.shards", f"commands.txt records all 8 shard processes rc=0 (2 seeds x 4 shards), folds done "
-                          f"{folds_done}/40, MWF_TRAIN_DONE on every shard — the real per-shard exit trace the old seal never read",
+mwf_done = n_end == n_exp_shards and all(v["mwf_train_done"] == 1 for v in end_rows.values())   # guard vacuous all([])
+if all_rc0 and folds_done == expected_total and mwf_done:
+    proven("exit.shards", f"commands.txt records all {n_exp_shards} shard processes rc=0 (2 seeds x 4 shards), folds done "
+                          f"{folds_done}/{expected_total}, MWF_TRAIN_DONE on every shard — the real per-shard exit trace the old seal never read",
            end_rows={f"s{sd}_{k}": v for (sd, k), v in end_rows.items()})
 else:
-    unproven("exit.shards", f"per-shard exit trace incomplete: {n_end}/8 END rows, all_rc0={all_rc0}, folds_done={folds_done}, mwf_done={mwf_done}")
+    unproven("exit.shards", f"per-shard exit trace incomplete: {n_end}/{n_exp_shards} END rows, all_rc0={all_rc0}, folds_done={folds_done}/{expected_total}, mwf_done={mwf_done}")
 
 seed_rc = dict(re.findall(r"seed (\d+) shards rc=(\d+)", model_log or ""))
 merge_done = set(re.findall(r"MERGE_DONE RAW (\d+)", model_log or ""))
@@ -523,9 +603,10 @@ manifest["mwf_predictions"] = {"rule": "ALL merged + per-shard + per-fold predic
                                "stitched_count": len(stitched), "shard_preds_count": len(shard_preds),
                                "fold_preds_count": len(fold_preds),
                                "stitched_verified": {f"s{sd}": ok for sd, ok in stitched_ok}}
-if len(stitched) == 2 and len(shard_preds) == 8 and len(fold_preds) == 40 and all(ok for _, ok in stitched_ok) and len(stitched_ok) == 2:
-    proven("mwf_predictions", "prediction population enumerated in full: 2 stitched (both re-hash to merge stitched_sha256), "
-                              "8 per-shard, 40 per-fold — stated counts, no [:6] sampling")
+if (len(stitched) == len(SEEDS) and len(shard_preds) == n_exp_shards and len(fold_preds) == expected_total
+        and len(stitched_ok) == len(SEEDS) and all(ok for _, ok in stitched_ok)):
+    proven("mwf_predictions", f"prediction population enumerated in full: {len(stitched)} stitched (each re-hashes to merge "
+                              f"stitched_sha256), {len(shard_preds)} per-shard, {len(fold_preds)} per-fold — stated counts, no [:6] sampling")
 else:
     unproven("mwf_predictions", f"prediction population unexpected: stitched={len(stitched)} shard={len(shard_preds)} "
                                 f"fold={len(fold_preds)} stitched_ok={stitched_ok}")
