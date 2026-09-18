@@ -105,5 +105,35 @@
  "total_realized_v2": -2275.3091,
  "total_delta": -210.5908,
  "published_table_total": -2064.72,
- "boundary": "the +/-120s window is an ATTRIBUTION CHOICE, not a venue-supplied event grouping; regular non-flatten trades in the same window are included. Unchanged from the original table - this receipt changes the COMPLETENESS of the input, not the attribution rule."
+ "boundary": "the +/-120s window is an ATTRIBUTION CHOICE, not a venue-supplied event grouping; regular non-flatten trades in the same window are included. Unchanged from the original table - this receipt changes the COMPLETENESS of the input, not the attribution rule.",
+ "correction_2026_09_19_round16": {
+  "what_was_wrong": "the headline called -2275.31 USDT 'the realized cost of the eight protective flattens'. The NUMBER is reproducible; the CAUSAL NAME is not supported. It is realized P&L inside eight +/-120s WINDOWS, and a window is an attribution choice, not a venue-supplied event grouping.",
+  "quantified_contamination_channel": {
+   "test": "a symbol whose in-window gross exceeds |signed notional| has hedged-away opposite volume, i.e. normal trading mixed in",
+   "A_windows_with_two_sided_same_name_trading": {
+    "windows": [
+     "08-01 20:19",
+     "08-02 04:19",
+     "08-05 00:17:41",
+     "08-05 12:19"
+    ],
+    "realized_usdt": -30.1406,
+    "share_of_total": "1.3%",
+    "two_sided_symbol_share": "11.4% to 20.6% of symbols, 23.3% to 38.5% of that window's gross"
+   },
+   "B_windows_with_zero_two_sided": {
+    "windows": [
+     "08-21 12:17",
+     "08-21 20:17",
+     "08-26 12:49:29",
+     "09-06 08:48:33"
+    ],
+    "realized_usdt": -2245.1684,
+    "share_of_total": "98.7%",
+    "two_sided_symbol_share": "0"
+   }
+  },
+  "what_this_does_NOT_establish": "zero two-sided trading does NOT make group B pure protective exit. It only rules out HEDGED normal trading. A normal fill in the SAME direction as the exit still lands in the window and is indistinguishable by this test. Separating normal trading from protective exit requires per-fill attribution by ORDER IDENTITY (clientOrderId prefix / order_type), which has NOT been done.",
+  "status": "until that is done, this figure is 'realized P&L inside eight windows', never 'the cost of flattening'."
+ }
 }

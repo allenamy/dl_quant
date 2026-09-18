@@ -219,10 +219,11 @@
   }
  },
  "what_this_does_and_does_not_show": [
-  "SHOWS: 277 income rows covering 187 venue trades were absent from the submitted receipts, every one of them at a millisecond that was exactly a v1 page boundary. Zero previously-held rows are missing from the new pulls.",
+  "SHOWS: 277 income rows covering 140 venue trades were absent from the submitted receipts, every one of them at a millisecond that was exactly a v1 page boundary. Zero previously-held rows are missing from the new pulls.",
   "SHOWS: the direction is the loss-making one on the largest bucket - 09-06 08:49 realized moves from -1690.7347 to -1948.2785, a 257.54 USDT understatement of the loss, about 15 percent of that bucket.",
   "DOES NOT SHOW: that all other income is now complete. Only these five windows were re-pulled. Windows whose v1 pull had no full page were never exposed to this defect and are unchanged.",
   "DOES NOT SHOW: any change to the ATOM / SNX / SCRT / STORJ attribution. Those rows are byte-identical across the old and new pulls and no recovered row touches those four names.",
   "DOES NOT SHOW: a trading defect. This is a measurement defect in a read-only pull device."
- ]
+ ],
+ "correction_2026_09_19": "round 16: the prose figure '187 venue trades' was WRONG; the correct count is 140. Per-window distinct tranIds are 3/15/8/21/93 = 140, and de-duplicating across all recovered rows also gives 140. The 277 ROW count was correct; only the trade count was mis-summed by hand. The per-window trades_recovered fields in this receipt were always right - the error was in adding them up in prose."
 }
