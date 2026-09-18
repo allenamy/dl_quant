@@ -1,0 +1,109 @@
+{
+ "receipt": "FLATTEN_BUCKET_COST_v2",
+ "utc": "2026-09-18T15:02:32Z",
+ "rule": "event = the local flatten readback instant; the bucket is venue income in [event-120s, event+120s]. The event instants were re-derived by solving for the offset at which the v1 COMMISSION count and REALIZED_PNL sum reproduce the published table exactly, so the window is identical to the one the original table used.",
+ "why": "R15-I1: three of the eight buckets were computed from income pulls that the v1 paged fetcher had truncated at a full-page boundary millisecond. Only those three could move; the other five had no full page and are unchanged.",
+ "buckets": [
+  {
+   "bucket": "0801T2019",
+   "event_utc": "08-01 20:19:00Z",
+   "n_comm_v1": 193,
+   "n_comm_v2": 193,
+   "realized_v1": -1.7138,
+   "realized_v2": -1.7138,
+   "delta": 0.0,
+   "comm_usdt_v2": -2.3245,
+   "comm_bnb_v2": 0,
+   "recomputed_from_v2": false
+  },
+  {
+   "bucket": "0802T0419",
+   "event_utc": "08-02 04:19:00Z",
+   "n_comm_v1": 153,
+   "n_comm_v2": 153,
+   "realized_v1": -4.8919,
+   "realized_v2": -4.8919,
+   "delta": 0.0,
+   "comm_usdt_v2": -1.9247,
+   "comm_bnb_v2": 0,
+   "recomputed_from_v2": false
+  },
+  {
+   "bucket": "0805T0020",
+   "event_utc": "08-05 00:17:41Z",
+   "n_comm_v1": 247,
+   "n_comm_v2": 247,
+   "realized_v1": -24.8962,
+   "realized_v2": -24.8962,
+   "delta": 0.0,
+   "comm_usdt_v2": -2.687,
+   "comm_bnb_v2": 0,
+   "recomputed_from_v2": false
+  },
+  {
+   "bucket": "0805T1219",
+   "event_utc": "08-05 12:19:00Z",
+   "n_comm_v1": 221,
+   "n_comm_v2": 221,
+   "realized_v1": 1.3613,
+   "realized_v2": 1.3613,
+   "delta": 0.0,
+   "comm_usdt_v2": 0,
+   "comm_bnb_v2": -0.003949,
+   "recomputed_from_v2": false
+  },
+  {
+   "bucket": "0821T1217",
+   "event_utc": "08-21 12:17:00Z",
+   "n_comm_v1": 469,
+   "n_comm_v2": 469,
+   "realized_v1": -588.5849,
+   "realized_v2": -588.5849,
+   "delta": 0.0,
+   "comm_usdt_v2": 0,
+   "comm_bnb_v2": -0.020945,
+   "recomputed_from_v2": false
+  },
+  {
+   "bucket": "0821T2017",
+   "event_utc": "08-21 20:17:00Z",
+   "n_comm_v1": 517,
+   "n_comm_v2": 525,
+   "realized_v1": 53.9037,
+   "realized_v2": 66.7524,
+   "delta": 12.8487,
+   "comm_usdt_v2": 0,
+   "comm_bnb_v2": -0.020418,
+   "recomputed_from_v2": true
+  },
+  {
+   "bucket": "0826T1249",
+   "event_utc": "08-26 12:49:29Z",
+   "n_comm_v1": 760,
+   "n_comm_v2": 781,
+   "realized_v1": 137.5548,
+   "realized_v2": 171.6592,
+   "delta": 34.1044,
+   "comm_usdt_v2": 0,
+   "comm_bnb_v2": -0.016002,
+   "recomputed_from_v2": true
+  },
+  {
+   "bucket": "0906T0849",
+   "event_utc": "09-06 08:48:33Z",
+   "n_comm_v1": 2125,
+   "n_comm_v2": 2218,
+   "realized_v1": -1637.4512,
+   "realized_v2": -1894.9951,
+   "delta": -257.5439,
+   "comm_usdt_v2": -16.9242,
+   "comm_bnb_v2": -0.067891,
+   "recomputed_from_v2": true
+  }
+ ],
+ "total_realized_v1": -2064.7183,
+ "total_realized_v2": -2275.3091,
+ "total_delta": -210.5908,
+ "published_table_total": -2064.72,
+ "boundary": "the +/-120s window is an ATTRIBUTION CHOICE, not a venue-supplied event grouping; regular non-flatten trades in the same window are included. Unchanged from the original table - this receipt changes the COMPLETENESS of the input, not the attribution rule."
+}
