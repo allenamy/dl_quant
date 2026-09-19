@@ -12,7 +12,9 @@ Plan (every heavy step is admitted by check(); every check and action is appende
   scale-down: if the cgroup's free unreclaimable memory drops below 20 GiB while a P2 stage runs, that stage (V4 first, then A0) is stopped by
   its own recorded PGID and relaunched with half the workers (resumable). Stops only process groups started by this scheduler.
 usage: env -i PATH=/usr/bin:/bin HOME=/root LC_CTYPE=C.UTF-8 [ADOPT_A0_PGID=<pgid> V4_WORKERS=<n>] /workspace/venv/bin/python -B run_sched.py
-  fast (15:3xZ, after FAST-GATE PASS): ADOPT_A0_PGID=1295510 RELAUNCH_A0=1 FAST=1 W_GB=<measured> A0_WORKERS=13 V4_WORKERS=11
+  fast (16:0xZ, after FAST-GATE v2 PASS): ADOPT_A0_PGID=1326867 RELAUNCH_A0=1 FAST=1 W_GB=1.7 A0_WORKERS=13 OWN_CAP_GB=32 CPU_CAP=13
+    (v4 workers = min(12, (OWN_CAP - unreclaimable - 6.2) / W_GB, CPU_CAP - cores in use), launched first; then A0_ext P1; A0_ext P2 as soon as
+     its P1 is done and memory / CPU allow)
   restart (13:4xZ): V4_WORKERS=11 — V4 P2 (11) + A0 P3 (1) + A0_ext P1 (1) = 13 cores within the 13.6 quota; projected ~32.7 GB, free >= 20 GiB."""
 import os, sys, json, time, signal, subprocess, re
 
@@ -41,10 +43,15 @@ def unrec():
     return s.get("anon", 0.0) + s.get("shmem", 0.0)
 
 
+OWN_CAP = float(os.environ.get("OWN_CAP_GB", "32")); CPU_CAP = int(os.environ.get("CPU_CAP", "13"))
+
+
 def check(step, need_gb):
-    u = unrec(); proj = u + need_gb; ok = CAP - proj >= FREE_MIN
+    """both rules: the container's unreclaimable memory leaves >= 20 GiB free at the projected peak, and the projected total (counted as
+    this task's own, conservatively) stays within OWN_CAP (lead: about 30 GB)."""
+    u = unrec(); proj = u + need_gb; ok = (CAP - proj >= FREE_MIN) and (proj <= OWN_CAP)
     log(ev="mem_check", step=step, unreclaimable_now_GiB=round(u, 2), own_need_GiB=round(need_gb, 2), projected_GiB=round(proj, 2),
-        cap_GiB=round(CAP, 2), free_at_projected_GiB=round(CAP - proj, 2), ok=ok)
+        cap_GiB=round(CAP, 2), free_at_projected_GiB=round(CAP - proj, 2), own_cap_GB=OWN_CAP, ok=ok)
     return ok
 
 
@@ -136,16 +143,28 @@ def main():
             if p is not None and nm not in done and p.poll() is not None and p.returncode != 0:
                 log(ev="FAILED", name=nm, rc=p.returncode, log=lf); done.add(nm)
         a0_p2 = has(A0LOG, r"^P2 \{"); v4_p2 = has(V4LOG, r"^P2 \{")
-        # s1
-        if a0_p2 and e1 is None and check("A0_ext P1", PARENT_GB):
+        e1_done = e1 is not None and e1.poll() == 0; e2_p2 = has(E2LOG, r"^P2 \{")
+        run_ = lambda p: p is not None and p.poll() is None
+
+        def cores():   # scorer workers count one core each; P1 / P3 chains one core
+            c = (st["a0_w"] if not a0_p2 else 1) if run_(a0) else 0
+            c += (st["v4_w"] if not v4_p2 else 1) if run_(v4) else 0
+            c += 1 if run_(e1) else 0
+            c += (4 if not e2_p2 else 1) if run_(e2) else 0
+            return c
+        # s1 (priority: v4 scoring first, as many workers as memory and CPU allow; then the extension's P1)
+        if a0_p2 and v4 is None:
+            u = unrec(); n = min(int(os.environ.get("V4_MAX", "12")), int((OWN_CAP - u - PARENT_GB) // W_GB), CPU_CAP - cores())
+            if n >= 4 and check(f"V4_main P2 {n} workers", PARENT_GB + n * W_GB):
+                st["v4_w"] = n
+                v4 = launch(f"V4_main P2,P3 {n}w", ["b_launch.py", "--tag", "V4_main", *AX, "--workers", str(n), "--stages", "P2,P3", "--p1-from", "A0_main"],
+                            {"OBJB_ARM": "V4", **FAST}, V4LOG)
+        if a0_p2 and v4 is not None and e1 is None and cores() + 1 <= CPU_CAP and check("A0_ext P1", PARENT_GB):
             e1 = launch("A0_ext P1", ["b_launch.py", "--tag", "A0_ext", *AXE, "--workers", "4", "--stages", "P1"], {"OBJB_DATA": "x0918r", **FAST}, E1LOG, "w")
-        if a0_p2 and e1 is not None and v4 is None and check(f"V4_main P2 {st['v4_w']} workers", PARENT_GB + st["v4_w"] * W_GB):
-            v4 = launch(f"V4_main P2,P3 {st['v4_w']}w", ["b_launch.py", "--tag", "V4_main", *AX, "--workers", str(st["v4_w"]), "--stages", "P2,P3", "--p1-from", "A0_main"],
-                        {"OBJB_ARM": "V4", **FAST}, V4LOG)
-        # s2
-        if e1 is not None and e1.poll() == 0 and "cp_ext_p1" not in done:
+        # s2 (per-tag sandboxes: the extension's P2 no longer waits for the v4 arm's P2)
+        if e1_done and "cp_ext_p1" not in done:
             subprocess.run(["cp", "-p", f"{R}/receipts/RUN_CONFIG_A0_ext.json", f"{R}/receipts/RUN_CONFIG_A0_ext_P1.json"]); done.add("cp_ext_p1")
-        if "cp_ext_p1" in done and v4_p2 and e2 is None and check("A0_ext P2,P3 4 workers", PARENT_GB + 4 * W_GB):
+        if "cp_ext_p1" in done and e2 is None and cores() + 4 <= CPU_CAP and check("A0_ext P2,P3 4 workers", PARENT_GB + 4 * W_GB):
             e2 = launch("A0_ext P2,P3 4w", ["b_launch.py", "--tag", "A0_ext", *AXE, "--workers", "4", "--stages", "P2,P3", "--reuse-p2", "A0_main"], {"OBJB_DATA": "x0918r", **FAST}, E2LOG, "w")
         # s3
         if a0.poll() == 0 and "t_A0" not in done:
@@ -168,7 +187,7 @@ def main():
                 stop("A0_main P2", a0); st["a0_w"] //= 2
                 a0 = launch(f"A0_main P2,P3 {st['a0_w']}w (scaled down)", ["b_launch.py", "--tag", "A0_main", *AX, "--workers", str(st["a0_w"]), "--stages", "P2,P3"], {**FAST}, A0LOG)
         running = any(p is not None and p.poll() is None for p in (a0, v4, e1, e2))
-        pending = (a0_p2 and (e1 is None or v4 is None)) or ("cp_ext_p1" in done and v4_p2 and e2 is None)
+        pending = (a0_p2 and (e1 is None or v4 is None)) or ("cp_ext_p1" in done and e2 is None)
         if not running and not pending:
             log(ev="END", done=sorted(done)); break
 
