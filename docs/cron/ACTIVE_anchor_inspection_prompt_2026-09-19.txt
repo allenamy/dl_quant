@@ -1,0 +1,52 @@
+每锚深查(锚收尾后固定触发, 全深度模板不缩水; 实盘书零接触, 只读排查): 当前锚 = 本地时刻整点减53分对应的 UTC 4h 锚(北京-8h)。按序 —— ① date -u + 三守护 PID 按内容验(shadow_loop_v3 run/sidecar_daemon.sh/combo_live_daemon.sh 进程在 + shadow.lock 与 fea171/combo_live_daemon.pid 句柄一致; E-0829-B 后 PID 会变, 以句柄文件为准)。② 信号六项: 生产者 shadow_log 行(fund_updates 稳态: 4h整点~353 / 8h结算整点00·08·16Z~453; forced_exit_n; sel/coverage; w3 三腿)+ combo_live_status(anchor 匹配+ok+读者验收)+ target_combo(w3_masked 掩码算术=w3[0]/(w3[0]+w3[2]); kc/fc 状态=own; f10 打分 400)+ 反事实改写幅度(target_live_king vs target_live; 09-03 08Z 起新台阶 19-20%, 判据=level 再升一档或连续3锚增量>+0.2pp 才升级)。③ 执行漏斗: orders.jsonl / fills.jsonl 按 **anchor_ts 归属**(不要按 rebalance_id, 日文件按 UTC 日切会漏)+ 终态分布, fills maker 占比(≥90%), 换手(稳态2-5.5%), 费用 bps(maker 1.80-2.3 带), chase_arm_assigned 分臂计数, placement behind 占比≈0.50。④ 记账: venue_gross≈NAV×2.0, net/gross 带内(±1%), 实收 FUNDING_FEE(00/08/16Z 结算锚), phase_C anchors_row+readback+per_name_stop, `~/dl_quant_live/state/anchor_runs.log` 末行 anchor done rc=0(注意路径是 state/ 不是 state/live/), guard_twin AGREE。⑤ 执行质量: 尺寸梯度三桶非负; markout 回填累计; chase 单名连抽标注。⑥ 异常处置: 回滚缺省=king形态; 生产者重启动词 = `launchctl kickstart -k gui/$(id -u)/com.hsy.shadowloop`(E-0904-A, 禁 nohup 裸 env); 整体回滚=kill combo_live_daemon.pid 内 PID。⑦ 全深度详表发用户(已验证/待验证/推断分栏); 同锚重复触发只报增量; 重大异常同时 PushNotification。
+
+★ lead 更正附注(与上面用户模板冲突时以附注为准; 附注只更正事实与补盲态, 不改用户判据。本 prompt = 单一脱敏活动模板 docs/cron/ACTIVE_anchor_inspection_prompt_2026-09-19.txt, 不引用任何含实验分项结果的旧段):
+
+—— lead 更正附注(2026-09-13 / 2026-09-16 受据; 深查只读, 实盘书零接触)——
+
+**〇 盲态条(最高优先, 逐字取自 CFG-06 冻结版 AMENDMENT 1 与 CFG-04 AMENDMENT 1)**: 到 CFG-06 §3 读数产出前, 分臂**只报臂平衡**(各臂计数 / behind 占比 / 必要时逐臂**残差名义**作成本上界), **不报任何逐臂结果量**(拒单率 / 成交率 / markout / 成本 / 价差 / H 或 X 的任何形式)。用户模板 ③ 原文要求的「`chase_arm_assigned` 分臂计数, placement behind 占比≈0.50」**就是**臂平衡, 照做; **不得**在其上自行追加逐臂拆读。maker 份额、费 bps、−5022 首拒率**一律只报书级合计**。安全线 SL1/SL3 照评, 但只输出布尔与触发日, 不附逐臂数值。
+
+**① 守护进程的权威是 launchd, 不是 PID 句柄**(同 ⑥ 的 08-30 KeepAlive 事实): 用 `launchctl print gui/$(id -u)/com.hsy.{shadowloop,combolive,sidecar}` 读 state / pid / runs / last exit code —— **runs 较上锚增长 = 被重启过**, 报; 句柄文件(shadow.lock、fea171/combo_live_daemon.pid)降为交叉核对。另核 `launchctl print-disabled gui/$(id -u)` 中 `com.hsy.sigma_ladder` 仍 disabled(OPS-01 退役, 6cc95943)、`com.hsy.execprobe2` 仍 disabled(OPS-02 退役, b63a0144)。
+
+**② 反事实改写幅度的基线数字更正**: 模板写「09-03 08Z 起新台阶 19–20%」已陈旧 —— 该幅度随 king 席位滚动, **现水平 ≈25–27%**(09-13 16Z 实测 **27.90%**; 归因 = V2MAIN 链离开 king 书, AUDIT_PROD PROD-26 11/11 值)。**判据不变, 仍用用户原文**: level 再升一档, 或连续 3 锚增量 > +0.2pp 才升级。越界时把归因写清(席位 / FTRIM 名数 / rho_kc_fc 三者之一)。
+
+**③ maker 份额与费用带的基线数字更正**: 模板写「maker ≥90% / 费 1.80–2.3 bps」已陈旧 —— 现**书级**水平 maker ≈74–78%, 费 ≈2.4–2.7 bps; 低于该区间才算异常。**只报书级合计**(见〇)。换手稳态 2–5.5% 不变。执行成本的分解与归因细项属盲态内容, 本模板不引用; 「执行成本侧没有隐藏缺陷」一句已作废(FXR-DOC-2)。
+
+**④ guard_twin 判词读对文件**: 模板的「guard_twin AGREE」不在它读的那个文件里 —— 判词读 `~/guard_twin/state/latest.json` 的 `status` / `comparable` / `disagreements`, 明细读 `~/guard_twin/state/compare.jsonl`, 告警读 `~/guard_twin/state/alerts.log`; **只有 `comparable=true` 且 `disagreements` 为空才记 AGREE**。
+
+**⑤ 实收资金费按名的当前结算间隔核**: 模板的「实收 FUNDING_FEE(00/08/16Z 结算锚)」会漏掉大多数结算 —— 书内多数名现为 4h / 1h 间隔, 每锚(或锚内)结算, 只有 8h 名落在 00/08/16Z。逐锚按名的当前 `fundingInfo` 间隔核, 并把间隔一并记录(P9: 间隔切换行会把 rn 放大 2–4×)。
+
+**⑥ net/gross 必须点名是哪个量**: 模板的「net/gross 带内(±1%)」没说是哪一个。分两列报, **不得互换**: (i) **补单前 `book_net`** = 执行器 1.5% 中性带的判据量; (ii) **readback 后 net/gross** = 观察带 ±1%。
+
+**⑦ 回滚动词(P0, 与 STATE §1 同, b63a0144 已更正)**: 回滚缺省 = king 形态; 生产者重启动词 = `launchctl kickstart -k gui/$(id -u)/com.hsy.shadowloop`(E-0904-A, 禁 nohup 裸 env); **整体回滚(临时)= `launchctl bootout gui/$(id -u)/com.hsy.combolive`** —— 08-30 起 combo 守护由 launchd KeepAlive 管理, **`kill $(cat …/combo_live_daemon.pid)` 会在 1 s 内被拉起, 不构成回滚**(同形哑任务演练收据 `docs/fixprogram_2026-09-13/receipts/OPS_rollback_verb_drill2_20260913T144746Z.log`; 第 1 次 3 s 演练读「未重生」是错的, 收据保留标错)。持久回滚(跨重登)再加 `launchctl disable gui/$(id -u)/com.hsy.combolive`; 恢复 = `launchctl enable …` + `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.hsy.combolive.plist`; 执行后核 `launchctl print gui/$(id -u)/com.hsy.combolive` 与下一锚 target_live 的 producer 字段。
+
+**⑧ 已知实盘假阳性(见到即按仪器处理, 不得触发全书级动作)**: E9 `NO_PRODUCER` 产物断言误报 · EXE-03 / PROD-25 reshape 去均值把小空头翻多(109 个 combo 锚中 99 个)后「撤名残差」告警归错因 · E-0912-A reduce-only 截量 × 身份核对 1e-6 假阳性 · E-0909-G 账本缺口触发的逐名门。**用户规则**: 仪器疑问不得触发全书级响应(`feedback_no_book_level_response_to_instrument_doubt`); 在役看门狗**任何触发仍整书平仓**(EXE-01, 比例响应在克隆未部署)。
+
+—— 2026-09-19 修订(取代 ⑨ 与 ⑩)——
+
+**⓪ 第一条命令(先于 ①)**: `python3 /Users/haosiyu/Desktop/quant_research/multi_asset/exports/live/pilot_journal/tools/inspect_anchor.py <anchor_ts>`(只读)。它已内置成交按 (symbol, trade_id) 坍缩(LED-01)、分臂计数每名一行、**告警段**; 现写脚本只补它没覆盖的项, 补之前先查它是否已算过。其告警段必须原样摘入报告(条数 + HIGH 条数), 不得报「无告警」而不看它。**深查器默认盲态**(09-19 起): 只印臂分配计数与书级合计, 提到实验臂的告警只印严重级别与 sha; 两个实验停止点之前**不得使用 `--unblind`**。
+
+**⑨′ 部署状态(每次深查都要说; 取代 ⑨)**: 执行器运行树 = **`409ea16`**(2026-09-18 02:46Z, NOSLEEP R7-K1); 生产者 combo_stage = `3520d363`(自 09-17 16Z)。第五轮复审后在执行器克隆里做的改动(重建锚全部追单 —— **部署推迟到 CFG-04 与 CFG-06 两个实验都到停止点之后**; 看门狗划转盲区)**均未部署**。核 `git -C ~/dl_quant_live rev-parse --short HEAD` 并报, 与 409ea16 或 origin/main 不一致时**照报不动作**。深查只读, 发现问题只报不修。
+
+**⑩′ 增查(裁定 #8 已采纳, 全部只读, 本 cron 执行; (a) 仍只是提案不执行)**:
+
+- (b) per_name_stop: 本锚已停名在锚后 readback 是否归零; 未归零的名单与名义。
+
+- (c) 本锚 rid 在 `orders.jsonl` 的行数 > 0(E-0909-G); 为 0 且非停机锚 ⇒ 报。
+
+- (d) `request_ledger` 四类不一致计数与 capacity_conflict / reduce-only 截量 UNKNOWN 事件数(E-0912-A 前兆); 找不到文件 ⇒ 报「未测」并写明找过的路径, 不得报 0。
+
+- (e) `apiTradingStatus` 与 −4400 / −2027 计数 —— **只从执行器自己已写的日志读; 深查不得调用任何交易所 API**(只读密钥规则: 不得用带交易权限的生产密钥, GET 也不行); 日志里没有 ⇒ 「未测」。
+
+- (f) 当日 `daily_nav` 的 external_flow ≠ 0 时, 标注「日损守卫盲区(划转当日)」。
+
+- (g) 读 `~/regime_dash/regime_dash.jsonl`(追加式, 按 `anchor_utc` 取本锚行)的席位 w3_masked / FTRIM 名单 / 旗标; `REGIME_DASH.md` 每锚整份重写, 只作展示, 不作收据(DEV-14)。
+
+- (h) 外部请求权重(E-0919-V): 读本锚 anchor_runs.log 的 `venue_rate:` 行, 报 `HEADROOM used/published` 百分比与 `gap_vs_this_process`(同一出口 IP 上别的进程用掉的权重)。gap > 300 或 HEADROOM > 70% ⇒ 报, 并查同一时段是否有研究侧对 fapi 的请求。基线: 各锚峰值 600–990(25–41%); 09-19 04Z 2010(83.8%, 研究拉取)、08Z 1316(54.8%, 克隆电池)。
+- 整书平仓后的停机锚(open_orders_halted)单列: 本锚是否整锚被拦、距上次平仓多少小时。
+
+- 新增读数一律沿用 ⓪ 的成交去重与完整人口; 不得把新增面板当主链修复(复审 §6-8)。
+
+**盲态补充(AMENDMENT 2, 2026-09-19)**: lead 在两实验停止点之前**不计算任何逐臂结果量**; 深查报告里出现的分臂量只能是臂平衡(计数 / behind 占比 / 残差名义上界)。
+
+- ④′ guard_twin: 锚后首读 DISAGREE 若 anchor_age < 0.5h 且随后转 AGREE, 是收入行到达滞后, 非异常(09-13 附注保留)。

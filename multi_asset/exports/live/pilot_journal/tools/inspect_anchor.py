@@ -3,6 +3,11 @@
 import json, sys, os, glob, collections, re
 from datetime import datetime, timezone
 A = int(sys.argv[1]); W = "/Users/haosiyu/wide_shadow"; L = "/Users/haosiyu/dl_quant_live"
+# ★ 2026-09-19 盲态默认(复审 R5B-08 同族; AMENDMENT 2): CFG-04 / CFG-06 停止点之前, 本工具默认只打印臂平衡(分配计数)与书级合计,
+#   不打印任何逐臂结果量(重挂腿落单 / 二次拒、分臂成交 / 滑点等)。停止点之后才可 `--unblind "<理由>"`, 理由会印在输出首行。
+UNBLIND = sys.argv[sys.argv.index("--unblind") + 1] if "--unblind" in sys.argv[2:] and len(sys.argv) > sys.argv.index("--unblind") + 1 else None
+BLIND = UNBLIND is None
+ARM_TOK = re.compile(r"chase|forced|join|behind|requote|direct|臂|重报价|重挂|二次拒", re.I)
 def utc(t): return datetime.fromtimestamp(t, tz=timezone.utc).strftime("%m-%d %H:%M:%SZ")
 def jl(path):
     out = []
@@ -11,7 +16,7 @@ def jl(path):
         try: out.append(json.loads(l))
         except Exception: pass
     return out
-print(f"### anchor {A} = {utc(A)}")
+print(f"### anchor {A} = {utc(A)}" + ("  [BLIND: per-arm outcomes withheld until the CFG-04/CFG-06 stop points]" if BLIND else f"  [UNBLINDED: {UNBLIND}]"))
 # ② producer
 rows = jl(f"{W}/shadow_log.jsonl")
 anc = [r for r in rows if r.get("anchor_ts") == A and r.get("e") in ("anchor", "signal", "target")]
@@ -71,9 +76,30 @@ for r in orders:
 lo = open(f"{L}/state/launchd_out.log", errors="ignore").read()
 if rid:
     m = re.findall(r'"rebalance_id": "%s".*?"requote": (\{[^}]*\})' % rid, lo)
-    print("requote report:", m[-1] if m else "NOT FOUND")
-    m2 = re.findall(r'\[%s\] (拒单率 post-only[^\n]{0,260})' % rid, lo); print("reject-rate log line:", (m2[-1][:260] if m2 else "NOT FOUND"))
-    m3 = re.findall(r'"post_only_refusals": (\{[^}]*\})', lo); print("post_only_refusals (last):", m3[-1][:300] if m3 else "NOT FOUND")
+    if not BLIND:
+        print("requote report:", m[-1] if m else "NOT FOUND")
+    elif m:
+        try:
+            rq = json.loads(m[-1]); keep = ("n_candidates", "n_requoted", "n_direct", "n_exempt", "p_requote", "error")
+            print("requote report (blind: assignment/balance fields only):", {k: rq.get(k) for k in keep if k in rq})
+        except Exception:
+            print("requote report: [blind: unparsable, withheld]")
+    else:
+        print("requote report: NOT FOUND")
+    m2 = re.findall(r'\[%s\] (拒单率 post-only[^\n]{0,260})' % rid, lo)
+    if m2 and BLIND:
+        print("reject-rate log line (blind: book-level first attempt only):", re.split(r"[;；]\s*重报价", m2[-1])[0][:200])
+    else:
+        print("reject-rate log line:", (m2[-1][:260] if m2 else "NOT FOUND"))
+    m3 = re.findall(r'"post_only_refusals": (\{[^}]*\})', lo)
+    if m3 and BLIND:
+        try:
+            pr0 = json.loads(m3[-1] if m3[-1].endswith("}") else m3[-1] + "}")
+            print("post_only_refusals (last, blind: first-attempt book-level keys only):", {k: v for k, v in pr0.items() if k == "n_reached" or k.endswith("_1")})
+        except Exception:
+            print("post_only_refusals: [blind: unparsable, withheld]")
+    else:
+        print("post_only_refusals (last):", m3[-1][:300] if m3 else "NOT FOUND")
 # ④ accounting
 pr = [r for d in days for r in jl(f"{L}/state/live/pilot_log/{d}/position_readback.jsonl") if A <= (r.get("anchor_ts") or 0) < A + 14400]
 if pr:
@@ -88,7 +114,13 @@ dn = jl(f"{L}/state/live/pilot_log/{days[-1]}/daily_nav.jsonl");
 for r in dn[-1:]: print("daily_nav:", {k: r.get(k) for k in list(r)[:10]})
 ar = open(f"{L}/state/anchor_runs.log", errors="ignore").read().splitlines(); print("anchor_runs tail:", [l[:120] for l in ar[-3:]])
 na = jl(f"{L}/state/notify_audit.jsonl"); recent = [r for r in na if (r.get("ts") or r.get("time") or 0) and float(r.get("ts") or r.get("time") or 0) >= A]
-for r in recent[-12:]: print("alarm:", (r.get("severity") or r.get("sev")), str(r.get("msg") or r.get("text") or r)[:200])
+import hashlib as _hl
+for r in recent[-12:]:
+    _t = str(r.get("msg") or r.get("message") or r.get("text") or r)
+    if BLIND and ARM_TOK.search(_t):
+        print("alarm:", (r.get("severity") or r.get("sev")), f"[blind: alarm text mentions an experiment arm — withheld; sha256 {_hl.sha256(_t.encode()).hexdigest()[:16]}]")
+    else:
+        print("alarm:", (r.get("severity") or r.get("sev")), _t[:200])
 pns = f"{L}/state/live/per_name_stop.json"
 if os.path.exists(pns):
     d = json.load(open(pns)); print("per_name_stop:", {k: (v if not isinstance(v, (list, dict)) else len(v)) for k, v in d.items() if k in ("stopped", "cooldown", "counts", "n_stopped", "n_cooldown")} or list(d)[:8])
