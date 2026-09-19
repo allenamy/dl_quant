@@ -276,3 +276,25 @@
 - 以存档 target_live 记录的 `universe_sha` 在 `~/wide_shadow` 只读查找与之 sha 相符的宇宙文件; 取回则按 sha 钉住使用。
 - 取不回 ⇒ 该段对象 B 标 UNAVAILABLE 并具名。
 - 该段数据版本按 x0918r(差分证明落地后), 估值等原始价格代理的延长收据。
+
+## AMENDMENT 5(2026-09-19; 第二个对象 B 臂「v4 重训配方」的定义; 写于该臂任何模型、目标与数字之前; 依据 lead 指令与 `PREREG_baseline_tables_certified_2026-09-19.md` 67769510b §1「v4 族(king v4 + 修正口径下重训的 DL), 同样走对象 B 的认证路径、各腿自身因果折外, 种子 s42」)
+
+**A5.0 比较类型:** (1) 历史配方比较。两腿各用自己的因果折外; 同一认证路径(门 F 已在 AMENDMENT 4 下通过); 缓存 R0、基名单、宇宙、COMBO_LIVE 两读、缺失 / 停机规则与 A0 臂完全相同。**只换两腿的模型。**
+
+**A5.1 king v4:**
+- 配方 = v4 导出器(仓库 `pod_export_bundle_v4.py` 42555a37)的拟合段, 与 v3 导出器同一 LightGBM 参数; 数据 `wide_fea_v4.npy` 268f6c9c / `wide_fea_v4_meta.npz` 12ea42c4。
+- fold 2023 / 2024 / 2025 重训并存盘。fold 2026 = `shadow_bundle_v4/slow2026.txt` f2365771(按构造即 year < 2026 那一折)。
+- **K-REPRO-v4** 规则与 K-REPRO 相同: 重训 2024 / 2025 / 2026 的 float32 预测对 `shadow_bundle_v4/slow_pred_pinned.npy`(dde19142 = S2 的 SLOW_v4)逐位 ⇒ PASS / REPRO_NUMERIC / NEW_DRAW。三者都带标签可用。
+- 服务规则: 30 天(label_end < A − 30 d), label_end 由 v4 meta 实算。
+
+**A5.2 DL(修正口径)= 月度 FIX7 配方:**
+- 训练器 `pod_f10_train_monthly_v4.py` 2147a7dd, 环境逐字取自 `launch_mwf_v4b.sh`: ARM=V2MAIN V2=1 SEED=42 EMBARGO=1 MWF_TAG=mE1cX7 BEST_EP_FIX=7, F10_DLW=/workspace/dlw_v4raw, F10_OUT=/workspace/f8_v4, F10_GATE_JSON=F10_GATE_RAW 3ef36c93。
+- 数据: targets d1976cf6 / fea82 40608701 / fea89 f7363889 / legs c535decd。
+- **2025-01 → 2026-08**: 已存的 20 个月折 checkpoint(merge 收据 c534316e 逐折 sha)+ B-REPRO 重建的 mu / sd(PASS 20/20, 1,433,011 格 0.0)。
+- **2023-01 → 2024-12**: 这 24 个月折此前不存在, 由派生训练器新训。派生只有一处断言过的文本改动: `ALL_MONTHS` 扩为 202301..202608; 写入只在自己的 MWF_OUT。
+- **M-REPRO**: 用派生训练器重跑 fold 202501, 其 state_dict 必须与已存 checkpoint(a6dd82e4)逐位相等 ⇒ PASS; 否则新折标 NEW_DRAW 仍可用。
+- 新折的 mu / sd 按 B-REPRO 同一规则重建, 并对该折训练器自己输出的 preds_fold 复核 max|Δ| ≤ 1e-6, 不过则该折 UNAVAILABLE。
+- 服务规则: 锚 E 用 label_end(= 折配置 `max_train_label_end` 所在锚 + 4h, 即上月末)< E 所在月首的最新月折; 2022 年无折。
+- GPU: 只在 `nvidia-smi` 空闲时启动; 4 分片并行(与原运行同); PGID 记录; 他人使用即不再启动新分片。
+
+**A5.3 输出与收据:** 同 A0 臂(目标 + 收据, 不出收益)。RUN_CONFIG 逐腿写明折表与训练标签末。king 腿与 DL 腿的最早可送入锚、席位暖机完成锚都由链记录按预注册规则算出。
