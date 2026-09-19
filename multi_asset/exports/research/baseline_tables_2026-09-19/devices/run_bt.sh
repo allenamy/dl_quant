@@ -53,3 +53,11 @@ env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt
 env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_objb_adapter_test.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_bt_2026-09-19.json $R/work/objb_fixture $R/receipts/BT_OBJB_ADAPTER_TEST_v3b.json > $R/logs/bt_objb_adapter_test_v3b.log 2>&1
 env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_battery.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_bt_2026-09-19.json $R/runs_smoke/battery_d7/S2_A0pred_s42_CMB_rule_raw_UAFE $R/receipts/BT_BATTERY_v3b_smoke.json > $R/logs/bt_battery_v3b_smoke.log 2>&1
 # main tables: RUN_CONFIG_main_TEMPLATE_2026-09-19.json is refused by the driver until the lead's go fills the PENDING fields (object-B A0 / v4 targets, full-recipe start)
+# ---- A0 part (lead 2026-09-19): when object-B A0 targets land — PLANNED commands (tags as object B writes them) ----
+# a. pre-run checks + frozen A0 config (stop and report if any check fails):
+#    G=$(git -C <repo> show d3596aced:multi_asset/exports/research/object_b_2026-09-19/receipts/GATE_F.json | sha256sum | cut -c1-64)
+#    env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B bt_objb_prerun.py PATH,HOME,LC_CTYPE full $R/receipts/BT_OBJB_PRERUN_A0.json $R/RUN_CONFIG_main_TEMPLATE_2026-09-19.json $R/RUN_CONFIG_main_A0_2026-09-19.json $G A0_main[,A0_ext]
+# b. runs (max 4 workers): env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_launch.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_main_A0_2026-09-19.json
+# c. battery on the main-reading run dir; run summary; tables:
+#    bt_tables.py main_a0 $R/RUN_CONFIG_main_A0_2026-09-19.json $R/runs $R/g0x/g0_labels_x0918.npz $R/runs/S2_A0pred_s42_CMB_rule_raw_UAFE $R/receipts/BT_RECON_steps12_P2CMB.json $R/receipts/BT_MAIN_A0.json
+# (the universe part of (a) already ran: receipts/BT_OBJB_PRERUN_universe.json PASS)

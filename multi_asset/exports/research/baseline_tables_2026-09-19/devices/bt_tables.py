@@ -39,8 +39,13 @@ Definitions (prereg §4; written here before any number from this device):
   §3.6 reconciliation  fixed order ①→②→③; step k's Δ = metric(after step k) − metric(before step k) on the same window; interactions fall into the
                        later step by construction (Σ steps = total, telescoping, asserted). Point Δ on the mean paths; CI for ΔCAGR / ΔSharpe / Δg from
                        the paired bootstrap above; ΔmaxDD: point + per-fill-path 5 / 50 / 95 % (paired by seed when both sides have paths).
-usage (CLI, steps ① and ② only):
+usage (CLI): steps ① and ②:
   python bt_tables.py recon <v2_s42.npz> <v2_s2027.npz> <run_dir_old_s42> <run_dir_old_s2027> <run_dir_raw_s42> <run_dir_raw_s2027> <out.json>
+A0 part of the main tables (object B; pairing with the v4 refit follows in a later run):
+  python bt_tables.py main_a0 <frozen_config.json> <runs_root> <g0_labels.npz> <p2cmb_raw_s42_run_dir> <BT_RECON_steps12.json> <out.json>
+  per period (§3.1 with the full-recipe split; FULL_RECIPE and PARTIAL_RECIPE windows reported separately, never merged) for both readings;
+  §3.3 inside each period (mean path + per-path median / 5 % / 95 %); §3.2 on the FULL_RECIPE window, main reading, EXCL (INCL sensitivity);
+  §3.4 cost cells vs the base main reading, same fill seeds; §3.6 step ③ on stream R's W_ALPHA window for model seed s42.
 """
 import json, math, os, sys, time, hashlib
 
@@ -333,6 +338,102 @@ def telescoping_ok(steps, first_before, last_after, keys=("cagr", "sharpe_daily"
     return {k: abs(tot[k] - s[k]) for k in keys}
 
 
+# ───────────────────────── A0 part of the main tables (object B) ─────────────────────────
+def restrict(s, a0, a1):
+    """the sub-series of windows with a0 <= A <= a1 (and the 5-minute path over [a0, a1 + 4h], re-based to 1 at a0)"""
+    m = (s["A"] >= a0) & (s["A"] <= a1)
+    o = {k: (v[m] if isinstance(v, np.ndarray) and len(v) == len(s["A"]) else v) for k, v in s.items() if k not in ("t5", "nav5")}
+    if s.get("nav5") is not None:
+        i0 = int((a0 - s["t5"][0]) // 300); i1 = int((a1 + H4 - s["t5"][0]) // 300)
+        assert s["t5"][i0] == a0 and s["t5"][i1] == a1 + H4, "restriction off the 5-minute grid"
+        o["t5"] = s["t5"][i0:i1 + 1]; o["nav5"] = s["nav5"][i0:i1 + 1] / s["nav5"][i0]
+    else:
+        o["t5"] = None; o["nav5"] = None
+    return o
+
+
+def periods_a0(A, frs, coverage_end):
+    """§3.1 periods for object B (year_cells with the full-recipe split) + the two windows of object-B prereg §4 that are NOT merged with each
+    other: FULL_RECIPE = [frs, end], PARTIAL_RECIPE = [first, frs) (describe only, labelled). The 2026-07-01 period ends at coverage_end."""
+    P = {k.replace("2026-07-01→end", "2026-07-01→" + coverage_end): v for k, v in year_cells(A, frs).items()}
+    P["FULL_RECIPE window"] = {"mask": A >= int(frs), "partial_recipe": False, "describe_only": False}
+    P["PARTIAL_RECIPE window (not the production strategy)"] = {"mask": A < int(frs), "partial_recipe": True, "describe_only": True}
+    return P
+
+
+def metrics_block(mean, paths, mask):
+    return {"mean_path": cell_metrics(mean, mask), "path_distribution": path_distribution(paths, mask)}
+
+
+def main_a0(args):
+    """usage: bt_tables.py main_a0 <frozen_config.json> <runs_root> <g0_labels.npz> <p2cmb_raw_s42_run_dir> <BT_RECON_steps12.json> <out.json>"""
+    cfg_p, root, lab_p, p2_dir, rec12_p, outp = args
+    import calendar
+    CFG = json.load(open(cfg_p)); frs_iso = CFG["window"]["full_recipe_start"]; frs = calendar.timegm(time.strptime(frs_iso, "%Y-%m-%dT%H:%M:%SZ"))
+    runs = {r["tag"]: r for r in CFG["runs"]}
+    out = {"device": "bt_tables.py main_a0", "self_sha256": _sha(os.path.abspath(__file__)), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+           "config": {"path": cfg_p, "sha256": _sha(cfg_p), "status": CFG["status"]}, "object": CFG["object"], "part": "A0 part; pairing with the v4 refit follows",
+           "full_recipe_start": frs_iso, "window": [CFG["window"]["first_anchor"], CFG["window"]["last_anchor"]], "coverage": CFG["window"].get("coverage"),
+           "inputs": {}, "tables": {}}
+    S = {}
+    for tag, r in runs.items():
+        d = os.path.join(root, tag.replace("|", "_")); paths, files = load_run_dir(d, int(CFG["paths_R"]))
+        S[tag] = {"paths": paths, "mean": series_mean(paths)}; out["inputs"][tag] = {"dir": d, "files": files, "max_g_identity_err": max(g_identity_err(p) for p in paths)}
+    A = next(iter(S.values()))["mean"]["A"]
+    for tag in S: assert np.array_equal(S[tag]["mean"]["A"], A), tag
+    cov_end = CFG["window"]["last_anchor"][:10]
+    P = periods_a0(A, frs, cov_end)
+    main_tag = next(t for t, r in runs.items() if r["book"] == "scaled" and not r.get("cost_cell")); lit_tag = next(t for t, r in runs.items() if r["book"] == "lit")
+    # §3.1 + §3.3: per period, both readings
+    for label, tag in (("scaled (main)", main_tag), ("lit (reported)", lit_tag)):
+        out["tables"][f"per_period {label}"] = {nm: dict(metrics_block(S[tag]["mean"], S[tag]["paths"], v["mask"]), partial_recipe=v["partial_recipe"], describe_only=v["describe_only"])
+                                                  for nm, v in P.items() if v["mask"].any()}
+    # §3.2: 21 regime cells on the FULL_RECIPE window only (partial recipe never merged), EXCL primary, INCL sensitivity; main reading
+    GL = np.load(lab_p, allow_pickle=True); vars_ = [str(v) for v in GL["vars"]]; assert tuple(vars_) == PROGRAM_VARS, vars_
+    full = restrict(S[main_tag]["mean"], frs, int(A[-1]))
+    out["inputs"]["g0_labels"] = {"path": lab_p, "sha256": _sha(lab_p)}
+    for var in ("EXCL", "INCL"):
+        cells = regime_cells(full["A"], GL["ts"], GL["LAB_" + var], vars_)
+        out["tables"][f"regime_21_cells {var} (FULL_RECIPE window, main reading)"] = regime_table(full, cells)
+    # §3.4: cost cells vs the base (main reading), paired by fill seed; FULL_RECIPE window, PARTIAL window and each period
+    base = S[main_tag]; cc = {}
+    for tag, r in runs.items():
+        if not r.get("cost_cell"): continue
+        c = {}
+        for nm, v in P.items():
+            if not v["mask"].any(): continue
+            mb = cell_metrics(base["mean"], v["mask"]); mc = cell_metrics(S[tag]["mean"], v["mask"])
+            pb = [cell_metrics(p, v["mask"]) for p in base["paths"]]; pc_ = [cell_metrics(p, v["mask"]) for p in S[tag]["paths"]]
+            c[nm] = {"d_cagr": mc["cagr"] - mb["cagr"], "d_sharpe": (mc["sharpe_daily"] - mb["sharpe_daily"]) if (mc["sharpe_daily"] is not None and mb["sharpe_daily"] is not None) else None,
+                     "d_g": mc["g"] - mb["g"], "base": {k: mb[k] for k in ("cagr", "sharpe_daily", "g", "fee")}, "cell": {k: mc[k] for k in ("cagr", "sharpe_daily", "g", "fee")},
+                     "per_fill_path_d_cagr": {"p05": pct([x["cagr"] - y["cagr"] for x, y in zip(pc_, pb)], 5), "median": pct([x["cagr"] - y["cagr"] for x, y in zip(pc_, pb)], 50),
+                                              "p95": pct([x["cagr"] - y["cagr"] for x, y in zip(pc_, pb)], 95)}}
+        cc[r["cost_cell"]] = c
+    out["tables"]["cost_sensitivity (main reading, Δ = cell − base, same fill seeds)"] = cc
+    # §3.6 step ③ on the reconciliation window (stream R W_ALPHA), model seed s42: P2-CMB (v3.1 × restored prices, the step-② 'after') → object B A0
+    R12 = json.load(open(rec12_p)); wa0 = int(R12["steps"]["s42"]["v2_full"]["first_anchor"]); wa1 = int(R12["steps"]["s42"]["v2_full"]["last_anchor"])
+    p2_paths, p2_files = load_run_dir(p2_dir, int(CFG["paths_R"])); p2_mean = series_mean(p2_paths)
+    out["inputs"]["p2cmb_raw_s42"] = {"dir": p2_dir, "files": p2_files}; out["inputs"]["recon_steps12"] = {"path": rec12_p, "sha256": _sha(rec12_p)}
+    st3 = {}
+    for label, tag in (("③ P2-CMB → certified object B A0 (B-scaled, main)", main_tag), ("③′ P2-CMB → certified object B A0 (B-lit, reported)", lit_tag)):
+        ob_mean = restrict(S[tag]["mean"], wa0, wa1); ob_paths = [restrict(p, wa0, wa1) for p in S[tag]["paths"]]
+        assert np.array_equal(ob_mean["A"], p2_mean["A"]), "step ③ needs the same window axis"
+        st3[label] = recon_step(label, p2_mean, ob_mean, p2_paths, ob_paths)
+    before1 = R12["steps"]["s42"]["step1"]["before"]; st_main = st3["③ P2-CMB → certified object B A0 (B-scaled, main)"]
+    chain = {"v2_published": before1, "after_1": R12["steps"]["s42"]["step1"]["after"], "after_2": R12["steps"]["s42"]["step2"]["after"], "after_3": st_main["after"],
+             "delta_1": R12["steps"]["s42"]["step1"]["delta_point"], "delta_2": R12["steps"]["s42"]["step2"]["delta_point"], "delta_3": st_main["delta_point"]}
+    chain["telescoping_abs_err"] = {k: abs((chain["after_3"][k] - before1[k]) - (chain["delta_1"][k] + chain["delta_2"][k] + chain["delta_3"][k]))
+                                    for k in ("cagr", "sharpe_daily", "maxdd_4h", "g")}
+    chain["step2_after_equals_step3_before"] = {k: abs(R12["steps"]["s42"]["step2"]["after"][k] - st_main["before"][k]) for k in ("cagr", "sharpe_daily", "maxdd_4h", "g")}
+    out["tables"]["reconciliation (s42, W_ALPHA window " + iso_d(wa0) + " → " + iso_d(wa1) + ")"] = {"steps_3": st3, "chain_1_2_3": chain,
+        "note": "order fixed ①→②→③, interactions in the later step; ③ exists for model seed s42 only (object B is s42); s2027 has steps ① ② only"}
+    json.dump(out, open(outp + ".tmp", "w"), indent=1, default=float); os.replace(outp + ".tmp", outp)
+    print("BT_TABLES main_a0 written", outp, _sha(outp))
+
+
+def iso_d(t): return time.strftime("%Y-%m-%dT%HZ", time.gmtime(int(t)))
+
+
 # ───────────────────────── CLI: steps ① and ② only ─────────────────────────
 def load_run_dir(d, R=32):
     files = sorted(f for f in os.listdir(d) if f.startswith("PATH_") and f.endswith(".npz"))
@@ -375,5 +476,7 @@ def main_recon(argv):
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "recon":
         main_recon(sys.argv[2:])
+    elif len(sys.argv) > 1 and sys.argv[1] == "main_a0":
+        main_a0(sys.argv[2:])
     else:
         print(__doc__)

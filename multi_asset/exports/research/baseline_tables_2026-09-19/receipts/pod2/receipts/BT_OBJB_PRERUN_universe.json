@@ -1,0 +1,76 @@
+{
+ "device": "bt_objb_prerun.py",
+ "self_sha256": "739fcb35ef5b07ea9de02a9fef350d708214f2f2fda0e6be234f93f3d7db09a3",
+ "adapter_sha256": "05cc5dc25df99459d93b34c9b10477f08002dd301b9b45ec6aa47bd77fc95373",
+ "argv": [
+  "bt_objb_prerun.py",
+  "PATH,HOME,LC_CTYPE",
+  "universe",
+  "/workspace/baseline_tables_2026-09-19/receipts/BT_OBJB_PRERUN_universe.json"
+ ],
+ "utc": "2026-09-19T13:29:49Z",
+ "checks": [
+  {
+   "check": "U.input_sha.universe_ext",
+   "ok": true,
+   "detail": {
+    "got": "3ee838cfc4ee4b90",
+    "want": "3ee838cfc4ee4b90"
+   }
+  },
+  {
+   "check": "U.input_sha.universe_p2",
+   "ok": true,
+   "detail": {
+    "got": "6322b57366078ed0",
+    "want": "6322b57366078ed0"
+   }
+  },
+  {
+   "check": "U.symbols_equal",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "U.first_10039_rows_bitwise_equal_P2_universe",
+   "ok": true,
+   "detail": {
+    "n_p2_rows": 10039,
+    "keys": {
+     "ts": {
+      "equal": true,
+      "cells_differ": 0
+     },
+     "pit": {
+      "equal": true,
+      "cells_differ": 0
+     },
+     "trading24": {
+      "equal": true,
+      "cells_differ": 0
+     }
+    }
+   }
+  },
+  {
+   "check": "U.extension_contiguous_to_2026-09-18T20Z",
+   "ok": true,
+   "detail": {
+    "rows_total": 10152,
+    "rows_after_p2": 113,
+    "first_ext": "2026-08-31T04:00:00Z",
+    "last": "2026-09-18T20:00:00Z",
+    "contiguous_4h": true
+   }
+  }
+ ],
+ "universe_extension": {
+  "rows_total": 10152,
+  "rows_after_p2": 113,
+  "first_ext": "2026-08-31T04:00:00Z",
+  "last": "2026-09-18T20:00:00Z",
+  "contiguous_4h": true
+ },
+ "failed": [],
+ "VERDICT": "PASS"
+}
