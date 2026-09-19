@@ -1,0 +1,16 @@
+device = archive/cash_identity_usd_v2_17b52980.py  sha256 = 17b529806188ff29506baae455d81578fdfa5ac700c7fcffb443a25e5717df2e  driver = V2Driver
+PASS C01 baseline_green: headline_ok=True point=0.0 conditional=(available=True, residual=0.0, within_tol=True)
+PASS C02 bnb_baseline_green_and_conditional_unavailable: headline_ok=True point=0.0 conditional_available=False
+FAIL C03 missing_100_withdrawal_caught_by_headline_INDEPENDENT: headline_ok=True point=-100.0 (expect INCONSISTENT, ≈ −100)
+PASS C04 missing_100_withdrawal_NOT_caught_by_CONDITIONAL_EXACT_RATE_(known_blind_spot): conditional=(available=True, residual=0.0, within_tol=True) — documented blind spot
+FAIL C05 nan_venue_quantity_refused_at_input_layer: NOT refused: headline_ok=True point=0.0
+FAIL C06 inf_ledger_price_refused_at_input_layer: NOT refused: headline_ok=False point=0.0
+FAIL C07 nan_injected_into_trade_table_refused_in_window: NOT refused: headline_ok=True point=0.0
+FAIL C08 nan_nav_refused: NOT refused: headline_ok=False point=nan
+FAIL C09 nan_income_refused: NOT refused: headline_ok=False point=nan
+FAIL C10 nan_readback_quantity_refused: NOT refused: headline_ok=False point=nan
+FAIL C11 residual_inside_valuation_band_is_CONSISTENT: headline_ok=False point=10.005 (point outside tol, inside band ⇒ expect CONSISTENT)
+PASS C12 residual_outside_valuation_band_is_INCONSISTENT: headline_ok=False point=40.02 (expect INCONSISTENT)
+FAIL C13 tolerance_in_same_unit_as_residual_USDT_eq: headline_ok=False point=-4.7 (USDT-eq tol 5.0; USD tol would be 4.4996)
+RESULT 4/13 PASS, 9 FAIL — device sha256 17b529806188ff29
+exit=1
