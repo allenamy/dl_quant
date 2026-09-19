@@ -134,7 +134,7 @@ stale = sorted(f for f in DECISIONS if f not in readers)
 #   为什么不直接要求 0: 存量里绝大多数是**已归档的历史装置**, 其结论属 ① 类(分子分母都来自
 #   成交表的比率, 实测均值比 0.9998), 重跑它们买不到任何东西。红在存量上 = 永久噪声, 会被无视;
 #   红在**增量**上 = 一条真的会被看见的线。
-BASELINE_UNDECLARED = 46
+BASELINE_UNDECLARED = 45
 check(f"[S2a] 未申报的聚合读者数不超过基线 {BASELINE_UNDECLARED}(棘轮: 只许下降)",
       len(undeclared) <= BASELINE_UNDECLARED,
       f"现在 {len(undeclared)} 个" + (" ← 有人新写了朴素读者" if len(undeclared) > BASELINE_UNDECLARED else ""))
