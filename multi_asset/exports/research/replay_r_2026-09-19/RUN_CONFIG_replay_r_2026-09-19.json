@@ -1,0 +1,257 @@
+{
+ "config": "RUN_CONFIG_replay_r_2026-09-19",
+ "created_utc": "2026-09-19",
+ "status": "FROZEN before any full-history number (commit precedes the full launch; smoke runs on short windows only checked that the code runs)",
+ "program": "docs/PROGRAM_credible_replay_regime_optimization_2026-09-19.md §2 stream R, §4 regime definitions",
+ "question": "the CURRENT production strategy (producer code path S2 + executor layer 409ea16 + live-calibrated fills/fees) applied to history, 2.0x gross, NAV path from 100,000 USDT",
+ "window": {
+  "first_anchor": "2022-06-30T00:00:00Z",
+  "last_anchor": "2026-08-30T20:00:00Z",
+  "n_anchors": 9138,
+  "why": "S2 W_ALPHA (A0 axis rows >= 900 and ts <= 2026-08-30 20Z; the first 900 anchors are the seat warm-up, excluded as in S2)"
+ },
+ "nav0_usdt": 100000.0,
+ "runs": [
+  {
+   "tag": "S2_A0pred_s42|CMB|rule",
+   "arm": "S2_A0pred_s42",
+   "book": "CMB",
+   "events": "rule",
+   "role": "main"
+  },
+  {
+   "tag": "S2_A0pred_s42|LIT|rule",
+   "arm": "S2_A0pred_s42",
+   "book": "LIT",
+   "events": "rule",
+   "role": "main (P2-LIT: report only, D10-confounded)"
+  },
+  {
+   "tag": "S2_A0pred_s2027|CMB|rule",
+   "arm": "S2_A0pred_s2027",
+   "book": "CMB",
+   "events": "rule",
+   "role": "main"
+  },
+  {
+   "tag": "S2_A0pred_s2027|LIT|rule",
+   "arm": "S2_A0pred_s2027",
+   "book": "LIT",
+   "events": "rule",
+   "role": "main (P2-LIT: report only, D10-confounded)"
+  },
+  {
+   "tag": "S2_v4_s42|CMB|rule",
+   "arm": "S2_v4_s42",
+   "book": "CMB",
+   "events": "rule",
+   "role": "main"
+  },
+  {
+   "tag": "S2_v4_s42|LIT|rule",
+   "arm": "S2_v4_s42",
+   "book": "LIT",
+   "events": "rule",
+   "role": "main (P2-LIT: report only, D10-confounded)"
+  },
+  {
+   "tag": "S2_v4_s2027|CMB|rule",
+   "arm": "S2_v4_s2027",
+   "book": "CMB",
+   "events": "rule",
+   "role": "main"
+  },
+  {
+   "tag": "S2_v4_s2027|LIT|rule",
+   "arm": "S2_v4_s2027",
+   "book": "LIT",
+   "events": "rule",
+   "role": "main (P2-LIT: report only, D10-confounded)"
+  },
+  {
+   "tag": "S2_A0pred_s42|CMB|none",
+   "arm": "S2_A0pred_s42",
+   "book": "CMB",
+   "events": "none",
+   "role": "sensitivity: no §4-2 day stop (isolates the day-stop layer; pre-declared, no verdict)"
+  },
+  {
+   "tag": "S2_A0pred_s2027|CMB|none",
+   "arm": "S2_A0pred_s2027",
+   "book": "CMB",
+   "events": "none",
+   "role": "sensitivity: no §4-2 day stop (isolates the day-stop layer; pre-declared, no verdict)"
+  },
+  {
+   "tag": "S2_v4_s42|CMB|none",
+   "arm": "S2_v4_s42",
+   "book": "CMB",
+   "events": "none",
+   "role": "sensitivity: no §4-2 day stop (isolates the day-stop layer; pre-declared, no verdict)"
+  },
+  {
+   "tag": "S2_v4_s2027|CMB|none",
+   "arm": "S2_v4_s2027",
+   "book": "CMB",
+   "events": "none",
+   "role": "sensitivity: no §4-2 day stop (isolates the day-stop layer; pre-declared, no verdict)"
+  }
+ ],
+ "targets": {
+  "source": "S2 per-anchor sparse vectors king/kc/fc (RUN_S2_<arm>.vec.npz) + records (RUN_S2_<arm>.json) through p2_s2_lib.books (S2 AMENDMENT 6 A6.2, the same function S2's tables used)",
+  "P2-CMB": "W_t = c 1[|c|>1e-9], c = 0.55 kc_t + 0.45 fc_t (combo_stage b5c698f9 L319/L339 = the COMBO_LIVE writer weights; production combo_stage 3520d363 differs only by the f10_sha field); FRESH iff the chain wrote combo states at t (has_states); otherwise the executor finds no target file => on_unavailable=hold (S2: 'hold')",
+  "P2-LIT": "the literally traded file: traded_file == combo => P2-CMB weights; == king => king H_t (king-form, COMBO_LIVE preflight failed); producer_skip => no file => hold. Report only, D10-confounded (S2 D11)",
+  "target_live_file": "schema wide_target_v1; weights = the book's non-zero entries; universe = S2 PIT row at A (universe.npz 'pit'); written_utc = A+20min; parsed by the executor's own external_book.parse_target (pins null as in stream E)"
+ },
+ "current_production_config": {
+  "gross_mult": 2.0,
+  "chase_weights": {
+   "chase": 0.5,
+   "no_chase": 0.5
+  },
+  "requote_timeline": {
+   "from_anchor": 0,
+   "p": 0.5,
+   "mode": "executor_hash",
+   "why": "stream R: the current requote experiment (12aa2a1, p_requote 0.5) applied to every anchor"
+  },
+  "E4_from_anchor": 0,
+  "fee_era": "USDT_era maker/taker rates of CALIBRATION_FROZEN bf487711 for every trade (the fee coin switched to USDT on 2026-09-07; current)",
+  "per_name_stop": "409ea16 config/book.json active_profile wide: depth -0.30, 2 consecutive N+40 evaluations, 7-day cooldown, min 5 USDT",
+  "min_notional_mult": 2.0,
+  "on_unavailable": "hold",
+  "timing": "decide N+24:00, fills at the N+25 5-minute boundary, per-name stop evaluation N+40, §4-2 flatten N+46 (next boundary N+50)",
+  "venue_tradable": "tradability_v1 state_W24H == 2 (TRADABLE: >= 1 traded 5m bar in (A-24h, A]) at A; names outside are withheld (popped if unheld, clamped if held)",
+  "meta_exclusions": "none (the PIT_CRYPTO universe already excludes non-COIN underlyings)",
+  "exchange_filters": "exchange_info_cache.json of the stream-E mirror (current Sep 2026 values; delisted names have none => no lot rounding, 5 USDT floor)",
+  "rebalance_id": "A{A+1439}"
+ },
+ "events": {
+  "rule": "only §4-2: at every N+40 the UTC-day equity change vs the previous UTC day's last N+40 equity < -4% => flatten at N+46, HALT until the next UTC day's first anchor 00Z (stream-E approximation: live resumes one anchor later)",
+  "none": "no book-level event (sensitivity only)"
+ },
+ "simulator": {
+  "exec_sim.py": "2638316be35e54cd479f29283e87e891f818d023265f0b47add55e6c04c7601d (v2, unchanged)",
+  "simlib.py": "55246fe98da2d57a33bbbe0f22fc67e6581da539c353b026d8ef41673dfec2f1",
+  "calibration": "bf487711f8c5a542bfd57006556078dcf6716764c2fb393f7136e33db20358ff (unchanged; no recalibration)",
+  "executor_tree": "409ea162746d0ba459db33c3f5c07865c24a7514 (INPUT_MANIFEST 59875e5a)"
+ },
+ "pins": {
+  "p2_s2_lib": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/devices/p2_s2_lib.py",
+   "sha256": "c53f5c495036727fcd7115bad6838229923c91f6b76bed955ebdb0f25d57c831"
+  },
+  "price_logtable": {
+   "path": "/workspace/replay_r_2026-09-19/work/price_logtable.npy",
+   "sha256": "3b588cb058920d57621b3e269a9a4a0f640f4f23ea44fd413bf7abeefd774211"
+  },
+  "price_meta": {
+   "path": "/workspace/replay_r_2026-09-19/work/price_meta.npz",
+   "sha256": "fc6a381a76e311e69ad3d7d1c79c834c8f2417c5d46c792d06101cfd376a6455"
+  },
+  "ledger_full": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+   "sha256": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
+  },
+  "tradability": {
+   "path": "/workspace/fx_data_2026-09-13/out/trd/tradability_v1.npz",
+   "sha256": "54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302"
+  },
+  "universe": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/work/universe.npz",
+   "sha256": "6322b57366078ed0022fd8a8156ee36f527bf309e0d66bfa5f6ec17d7a09efa7"
+  },
+  "exec_sim_copy": {
+   "path": "/workspace/replay_r_2026-09-19/devices/replay_exec_copy/exec_sim.py",
+   "sha256": "2638316be35e54cd479f29283e87e891f818d023265f0b47add55e6c04c7601d"
+  },
+  "simlib_copy": {
+   "path": "/workspace/replay_r_2026-09-19/devices/replay_exec_copy/simlib.py",
+   "sha256": "55246fe98da2d57a33bbbe0f22fc67e6581da539c353b026d8ef41673dfec2f1"
+  },
+  "calibration_copy": {
+   "path": "/workspace/replay_r_2026-09-19/devices/replay_exec_copy/CALIBRATION_FROZEN_2026-09-19.json",
+   "sha256": "bf487711f8c5a542bfd57006556078dcf6716764c2fb393f7136e33db20358ff"
+  },
+  "input_manifest_copy": {
+   "path": "/workspace/replay_r_2026-09-19/devices/replay_exec_copy/INPUT_MANIFEST.json",
+   "sha256": "59875e5a69db415f5ce20b35b888f2d49a31427fdde8b7b847a9645ee135a5ae"
+  },
+  "g0_labels": {
+   "path": "/workspace/regime_g0_2026-09-19/out/g0_labels.npz",
+   "sha256": "04cb06f47c15a4102a97d18a8a1061098507a6a422ed4a93cee221b695a414bb"
+  },
+  "realcost_table": {
+   "path": "/workspace/fp2_2026-09/realcost/PER_YEAR_TABLE_REALCOST.json",
+   "sha256": "dc06ec3695dc4c4fe9ff7af72ac405696c85c3d13abbaf65ef46cfe17662fa28"
+  },
+  "judge": {
+   "path": "/workspace/fp2_2026-09/devices_v4chain/fp2_per_year_table.py",
+   "sha256": "230e3c793cd92ddf78abf76198e39c8cdb3657696920f0290324ff4a9e7a882f"
+  },
+  "realcost_A0_s42": {
+   "path": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A0_dyn_s42.npz",
+   "sha256": "634f7c55ba730520371aab64b64b3b2b5c211422af6ab7b8bacb78e4d706060b"
+  },
+  "realcost_A0_s2027": {
+   "path": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A0_dyn_s2027.npz",
+   "sha256": "c1f92ec24bb45c990427840831033e6cc136cc7ba02a86b00375a6dcf1f74081"
+  },
+  "realcost_A1_s42": {
+   "path": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A1_dyn_s42.npz",
+   "sha256": "a077ed6b8f7136edb637770d3d886190046475a0b50cbd8eacf1c0edd33bdae7"
+  },
+  "realcost_A1_s2027": {
+   "path": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A1_dyn_s2027.npz",
+   "sha256": "d9f69a059a2f6a612c93ece19b922714f5204378bae059bd2aeca85de69852df"
+  },
+  "S2_series": {
+   "path": "/workspace/replay_r_2026-09-19/work/S2_series.npz",
+   "sha256": "641b20cb68e5ef6103326930a98d0a042a443ca6bf18ce4e8f38457776f30669"
+  }
+ },
+ "s2_runs": {
+  "S2_A0pred_s42": {
+   "json_sha256": "d01063c0ee68a48799229aef60736e7a1a8e46dbbdc9d5d72f3f227f95affbbe",
+   "vec_sha256": "8c7c886376c484ea243efc2e94bac529f6cc9dfee5ceba3104dd6d89201c9770"
+  },
+  "S2_v4_s42": {
+   "json_sha256": "4c5612f613ddad105d7c8997dcdc5a37bda8ccb8892b80cf18b370d325232bc6",
+   "vec_sha256": "902c8d905a63b3a0a03a5ae485707eb21288d122816d32b4d1c81429f6a28a91"
+  },
+  "S2_A0pred_s2027": {
+   "json_sha256": "c63b59a72438a1a0f789e548ac10e5ed48e54a9e23bcfbdcd532c497b3850133",
+   "vec_sha256": "17b78784c6846cfc198a10e1531cc9befd82a6b382323a304eda34e1aca0b8c4"
+  },
+  "S2_v4_s2027": {
+   "json_sha256": "5aba956d75faec46e63147baf84f37b5ed2af58a91061438ce94329aa3a71741",
+   "vec_sha256": "1aeef37b0ad36676bda586958b958acc20f2ed99fdcda58f0dd4b1358200801b"
+  }
+ },
+ "gates_before_launch": {
+  "R0_REPRO": "receipts/R0_REPRO.json VERDICT PASS (sha ba8d85e7…): 112/112 published S2 cells reproduced, max |Δg| 0.0",
+  "R_PRICES": "receipts/R_PRICES.json VERDICT PASS (sha a0ea0ee3…): 590 clipped cells RAW-restored, 0 unexplained, max |4h compound − meta RAW y4| 7.84e-8 over 3,476,240 cells"
+ },
+ "tables": {
+  "g_exec": "per 4h window [A, A+4h): g = 1e4 × (NAV_end − NAV_start) / (gross_mult × NAV_start) bps per anchor per unit TARGET gross (NAV return = 2.0 × g × 1e-4 exactly); price = 1e4 × price_and_trading / (gm × NAV_start); carry = −1e4 × funding / (gm × NAV_start) (positive = paid); cost = 1e4 × fee / (gm × NAV_start); g = price − carry − cost (identity asserted); τ = turnover_usdt / (gm × NAV_start)",
+  "statistics": "judge fp2_per_year_table.py (230e3c79) imported, not re-implemented: level() = mean g, CI95 UTC-day block bootstrap NB 2000 draws rng([20260905,k]), sharpe_anchor mean/sd×√2190, sharpe_daily (UTC-day compounded at L=1, ×√365), maxdd_L per anchor at L=2.0 (for g_exec = the simulated NAV path's drawdown exactly)",
+  "periods": "W_ALPHA, KING_LIVE (>= 2024-01-01), every UTC year / quarter / month",
+  "nav_level": "per year: NAV return Π(NAV_end/NAV_start) − 1, NAV daily Sharpe, NAV maxDD (per window boundary) at 2.0×, count of §4-2 day-stop flattens, per-name stop triggers, HALT and HOLD anchors",
+  "regime": "program §4 21 cells: labels = G0 g0_labels.npz LAB_EXCL (primary; LAB_INCL sensitivity), W_ALPHA anchors with a label; per cell n, g, CI95, Bonferroni K=21 interval (percentiles 0.119/99.881 of the same draws), Δ vs the other labelled anchors of the same variable with CI95 and Bonferroni interval, daily Sharpe, price/carry/cost, two 'leg' contributions of the CMB target (0.55·kc and 0.45·fc parts: 1e4 × Σ part·y4RAW / Σ|CMB|, S2 accounting, E-close) and seat means (record signal.w3 king/rev24/fund; masked king share = w3_king/(w3_king+w3_fund)); every cell reported, † = CI95 excludes 0, †† = Bonferroni interval excludes 0",
+  "decomposition": "same anchors, same seed: research real-cost book (PER_YEAR_TABLE_REALCOST arms: A0 ↔ S2_A0pred, A1 ↔ S2_v4) → S2 production-path target CMB NOSTOP (S2 accounting: E-close fills, costb_PWR_G230k) → S2 CMB STOP (S2's D18 overlay; for A0pred computed here with S2's own Overlay, not published by S2) → executor layer (this simulation). Δ per step with paired UTC-day block bootstrap CI95 (judge boot), per year and W_ALPHA; components price/carry/cost and τ per step",
+  "two_seeds": "every table for s42 and s2027 (program V4)",
+  "LIT": "P2-LIT runs reported with the D10 label, compared with S2 LIT NOSTOP",
+  "sensitivity_none": "Δ(rule − none) per year = the §4-2 day-stop layer inside the executor simulation; no verdict"
+ },
+ "launch": {
+  "max_parallel": 12,
+  "nice": 10,
+  "threads_per_run": 1
+ },
+ "paths": {
+  "pod_root": "/workspace/replay_r_2026-09-19",
+  "mac_root": "multi_asset/exports/research/replay_r_2026-09-19",
+  "doc": "docs/RESULT_replay_r_fullhistory_2026-09-19.md"
+ },
+ "blind_protocol": "CFG-06 AMENDMENT 1: the live execution experiments (chase / placement / requote arms) are blind; outputs carry per-arm COUNTS only (arm balance); the calibration is used internally; no per-arm outcome quantity is computed, printed or reported"
+}
