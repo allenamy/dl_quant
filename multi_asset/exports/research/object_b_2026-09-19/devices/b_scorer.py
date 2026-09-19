@@ -55,11 +55,14 @@ def save_shard(path, res):
 
 
 def load_shard(path):
+    """every array read ONCE (an NpzFile re-reads the whole array on each z[key]; the earlier per-anchor z[key][a:b] kept one full array alive
+    per anchor through its view: 8,029 anchors => the A0 launcher grew to 52 GB at 17:2xZ). Same values, one base array per key."""
     if not os.path.exists(path): return []
-    z = np.load(path); out = []
-    for k in range(len(z["anchor"])):
-        a, b = z["pm_off"][k], z["pm_off"][k + 1]
-        out.append((int(z["anchor"][k]), int(z["fold"][k]), z["pm"][a:b].astype(np.int64), z["f10"][a:b], str(z["model_sha"][k]), float(z["s"][k]), int(z["okf"][k])))
+    with np.load(path) as z: d = {k: z[k] for k in z.files}
+    out = []
+    for k in range(len(d["anchor"])):
+        a, b = int(d["pm_off"][k]), int(d["pm_off"][k + 1])
+        out.append((int(d["anchor"][k]), int(d["fold"][k]), d["pm"][a:b].astype(np.int64), d["f10"][a:b], str(d["model_sha"][k]), float(d["s"][k]), int(d["okf"][k])))
     return out
 
 

@@ -133,8 +133,10 @@ def main():
         for w in range(12):   # sandboxes of the earlier (untagged) P2 code, all of them this task's
             subprocess.run(["rm", "-rf", f"/dev/shm/object_b_p2/w{w}"])
         st["a0_w"] = int(os.environ.get("A0_WORKERS", "13"))
-        while st["a0_w"] > 2 and not check(f"A0_main P2 {st['a0_w']} workers", PARENT_GB + st["a0_w"] * W_GB): st["a0_w"] -= 2
-        a0 = launch(f"A0_main P2,P3 {st['a0_w']}w", ["b_launch.py", "--tag", "A0_main", *AX, "--workers", str(st["a0_w"]), "--stages", "P2,P3"], {**FAST}, A0LOG)
+        need0 = (lambda w: PARENT_GB + w * W_GB) if os.environ.get("A0_STAGES", "P2,P3") != "P3" else (lambda w: PARENT_GB)
+        while st["a0_w"] > 2 and not check(f"A0_main {os.environ.get('A0_STAGES', 'P2,P3')} {st['a0_w']} workers", need0(st["a0_w"])): st["a0_w"] -= 2
+        a0_stages = os.environ.get("A0_STAGES", "P2,P3")   # "P3" once P2_SCORES.npz exists (17:3xZ restart after the load_shard memory fix)
+        a0 = launch(f"A0_main {a0_stages} {st['a0_w']}w", ["b_launch.py", "--tag", "A0_main", *AX, "--workers", str(st["a0_w"]), "--stages", a0_stages], {**FAST}, A0LOG)
     v4 = e1 = e2 = None; done = set()
     while True:
         time.sleep(60)
