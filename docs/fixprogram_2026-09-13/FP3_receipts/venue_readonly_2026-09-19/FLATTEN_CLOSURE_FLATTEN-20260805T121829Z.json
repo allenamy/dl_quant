@@ -1,0 +1,137 @@
+{
+ "receipt": "FLATTEN_WINDOW_CLOSURE",
+ "device": "flatten_window_closure.py v2-2026-09-19",
+ "self_sha256": "c76614fcae2a6420bfcc98d26e5b84a9ecdfb42b3fbfbd4edef54f86c124aeb8",
+ "utc": "2026-09-19T04:33:27Z",
+ "argv": [
+  "1785932306.207547",
+  "1785946762.351441",
+  "../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_FLATTEN-20260805T121829Z.json"
+ ],
+ "inputs_sha16": {
+  "20260804/fills": "2c3cf9e22f322450",
+  "20260804/orders": "12fcb7be3006b612",
+  "20260804/funding": "3845e5e6489c7c19",
+  "20260804/position_readback": "7602311e10496327",
+  "20260804/daily_nav": "774769f0f27ccebe",
+  "20260805/fills": "d852c979bd9e4f61",
+  "20260805/orders": "73bfe05b15681263",
+  "20260805/funding": "675ea1c1383ea4f4",
+  "20260805/position_readback": "cebd857c2b6f332d",
+  "20260805/daily_nav": "998c176d199c4e31",
+  "20260806/fills": "ac5c4888cedda01e",
+  "20260806/orders": "d6b32a733933cd4b",
+  "20260806/funding": "f9f4d7ba12b8ba7a",
+  "20260806/position_readback": "330699487cecb207",
+  "20260806/daily_nav": "6a6ffc84a91d86c1"
+ },
+ "raw_trades_file": "FLATTEN_CLOSURE_FLATTEN-20260805T121829Z_venue_trades.json",
+ "raw_trades_sha256": "41e893bbf4bdea32dbbf287cf80f9e2506694697a08adb07e19e7efd12f93365",
+ "A_local_identity": {
+  "t0": "08-05 12:18:26Z",
+  "t1": "08-05 16:19:22Z",
+  "snapshot_minus_nav_s": [
+   0.0,
+   0.0
+  ],
+  "n_pos_t0": 102,
+  "n_pos_t1": 98,
+  "dnav_ex_flow": 195.7301,
+  "mtm_positions_and_fills": 102.1845,
+  "funding_local": 0,
+  "fees_ledger": 1.2163,
+  "residual": 94.7619,
+  "tol": 2.0,
+  "n_ledger_fills": 160,
+  "n_position_gaps_gt_1usd": 102
+ },
+ "C_closure": {
+  "n_venue_trades": 337,
+  "n_symbols_queried": 108,
+  "n_income_only_symbols": 0,
+  "n_ledger_only_trades": 0,
+  "ledger_only_sample": [],
+  "ledger_vs_venue_same_trade": {
+   "n": 160,
+   "max_abs_notional_diff": 0.0,
+   "max_abs_commission_diff": 0.0,
+   "n_commission_asset_mismatch": 0
+  },
+  "n_missing_trades": 177,
+  "n_missing_symbols": 102,
+  "missing_time_span": [
+   "08-05 12:18:30Z",
+   "08-05 12:19:11Z"
+  ],
+  "missing_maker_share": 0.0,
+  "missing_gross_usdt": 4266.0713,
+  "missing_signed_cash_usdt": 104.0422,
+  "missing_fee_native": {
+   "BNB": 0.00320538
+  },
+  "missing_fee_usdt_eq": 1.9045,
+  "missing_realized_pnl_venue": 1.3613,
+  "quantity_closure_failures": [],
+  "n_quantity_closure_failures": 0,
+  "predicted_residual": -105.9467,
+  "measured_residual": 94.7619,
+  "closure_gap": 200.7086,
+  "tol": 2.0,
+  "cross_endpoint": {
+   "commission_by_asset_userTrades": {
+    "BNB": 0.00525252
+   },
+   "commission_by_asset_income": {
+    "BNB": 0.00525252
+   },
+   "realized_pnl_userTrades": 1.361267,
+   "realized_pnl_income": 1.361267,
+   "funding_income": 0,
+   "funding_local": 0,
+   "income_types": [
+    "COMMISSION",
+    "REALIZED_PNL"
+   ]
+  },
+  "cross_endpoint_ok": true,
+  "flatten_orders": {
+   "rebalance_ids": [
+    "FLATTEN-20260805T121829Z"
+   ],
+   "n_executor_flatten_orders": 102,
+   "n_matched_one_to_one": 102,
+   "n_no_venue_order": 0,
+   "no_venue_order": [],
+   "n_ambiguous": 0,
+   "ambiguous": [],
+   "max_abs_signed_notional_diff_executor_vs_venue": 0.0,
+   "n_trades": 177,
+   "n_trades_already_in_ledger": 0,
+   "time_span": [
+    "08-05 12:18:30Z",
+    "08-05 12:19:11Z"
+   ],
+   "gross_usdt": 4266.0713,
+   "realized_pnl_venue": 1.3613,
+   "fee_native": {
+    "BNB": 0.00320538
+   },
+   "fee_usdt_eq": 1.9045,
+   "realized_after_fee": -0.5432,
+   "reads": "realized P&L of the flatten ORDERS (identity-joined), measured against each name's average cost basis — a cash identity, NOT the counterfactual cost of flattening"
+  },
+  "other_missing": {
+   "n_trades": 0,
+   "n_orders": 0,
+   "orders": [],
+   "reads": "venue trades in the window that are absent from the ledger AND do not belong to an identity-matched flatten order"
+  },
+  "executor_order_types_in_window": {
+   "protective_flatten": 102,
+   "maker": 81,
+   "topup_taker": 42
+  },
+  "identity_boundary": "flatten orders carry no clientOrderId of ours and (before the broker fix) no recorded venue orderId; the join is (symbol, side, first-fill ms, last-fill ms) with measured one-to-one uniqueness and an amount check, not an id join",
+  "VERDICT": "OPEN"
+ }
+}

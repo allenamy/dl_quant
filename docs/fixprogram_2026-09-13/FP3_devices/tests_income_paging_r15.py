@@ -152,5 +152,21 @@ check("an incomplete pull exits nonzero", 'sys.exit(0 if status == "COMPLETE" el
 check("the receipt declares its completeness and its de-duplication rule",
       '"completeness"' in src and '"dedupe_rule"' in src and '"cursor_rule"' in src)
 
+# ── 9. (2026-09-19) the optional income_type filter rides on EVERY request, including the saturated-millisecond pages;
+#       the default sends no incomeType at all (the v2 request stream is unchanged) ──
+def run_it(mod, ledger, s, e, it):
+    g, calls = fixture(ledger)
+    mod.get = g
+    out = mod.run(s, e, "T", income_type=it)
+    return out, calls
+(_, r_it, st_it, _, _), calls_it = run_it(M, onems, 0, 9_999_999_999_999, "TRANSFER")
+check("income_type is carried on every request, saturated-millisecond pages included",
+      len(calls_it) >= 2 and all(c.get("incomeType") == "TRANSFER" for c in calls_it)
+      and any("page" in c for c in calls_it), [c.get("incomeType") for c in calls_it][:5])
+_, _, _, _, _, calls_def = run(M, onems, 0, 9_999_999_999_999)
+check("the default pull sends no incomeType (request stream identical to v2)",
+      len(calls_def) >= 2 and not any("incomeType" in c for c in calls_def), [sorted(c) for c in calls_def][:2])
+check("the filtered pull is still complete on the saturated fixture", st_it == "COMPLETE" and len(r_it) == len(onems), (st_it, len(r_it)))
+
 print(f"\n{OK[0]} pass, {len(BAD)} fail" + ("" if not BAD else "\n  " + "\n  ".join(BAD)))
 sys.exit(1 if BAD else 0)

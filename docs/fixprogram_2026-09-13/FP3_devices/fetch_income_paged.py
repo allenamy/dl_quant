@@ -74,8 +74,12 @@ def row_identity(r):
     return json.dumps(r, sort_keys=True, separators=(",", ":"))
 
 
-def run(s, e, label):
+def run(s, e, label, income_type=None):
+    """income_type (2026-09-19, additive): when given, every request of this pull carries `incomeType`, so a long
+    history of ONE type (e.g. TRANSFER) is pulled without paging through every trade's COMMISSION/REALIZED_PNL rows.
+    The default (None) sends exactly the requests v2 sent."""
     pages, rows, cur = [], [], s
+    _it = {} if income_type is None else {"incomeType": income_type}
     boundary = collections.Counter()      # identities already recorded AT `cur` — the only rows a re-request may repeat
     n_subtracted = 0
     status = "COMPLETE"; why = None
@@ -94,7 +98,7 @@ def run(s, e, label):
         return kept
 
     while True:
-        st, body, hdr = get({"startTime": cur, "endTime": e, "limit": LIMIT})
+        st, body, hdr = get({"startTime": cur, "endTime": e, "limit": LIMIT, **_it})
         pages.append({"startTime": cur, "status": st, "n": len(body) if isinstance(body, list) else 0,
                       "weight": hdr.get("X-MBX-USED-WEIGHT-1M"), "mode": "window"})
         if st != 200 or not isinstance(body, list):
@@ -114,7 +118,7 @@ def run(s, e, label):
         #    the rest of that instant, so we enumerate it through the endpoint's own page parameter instead. ──
         pg = 2; ms_rows = list(kept)
         while True:
-            st2, body2, hdr2 = get({"startTime": mx, "endTime": mx, "limit": LIMIT, "page": pg})
+            st2, body2, hdr2 = get({"startTime": mx, "endTime": mx, "limit": LIMIT, "page": pg, **_it})
             pages.append({"startTime": mx, "endTime": mx, "page": pg, "status": st2,
                           "n": len(body2) if isinstance(body2, list) else 0,
                           "weight": hdr2.get("X-MBX-USED-WEIGHT-1M"), "mode": "saturated_millisecond"})
