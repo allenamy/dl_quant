@@ -86,6 +86,19 @@ NAV 层(USDT 计, 去入金与 USD 重估): 25 天 **−0.96%**, 日夏普 −0.
 
 按时间 +0.011 vs 按美元 −1.003: 早期小资金(NAV 15–21k)的几周是赚的, 入金后(NAV 118k)的几周是亏的。**这不是策略缺陷, 但决定了账户上的美元结果。**
 
+### 4.5 锚到成交的约 24 分钟延迟: 提前成交【不】是可证的收益来源
+
+`latency_gap_value.py`(138 锚, 缺口中位 1,443 秒): 若在缺口段就持有新书(生产者意图 L0), 相对实际持有的旧书:
+
+| 假设 | 差(新 − 旧, USDT) | bps/锚/gross | 95% CI(UTC 日块自举) |
+|---|---|---|---|
+| 上界(目标在锚时刻就存在 —— 实际不可能) | −1,970.26 | −0.935 | [−2.00, +0.12] |
+| **Phase 2 时点(锚后 3 分钟)** | **−2,009.01** | **−0.953** | **[−1.95, +0.12]** |
+
+新书在缺口段自己亏 −3,271.82, 旧书 −1,301.56。**这 25 天里, 新目标出炉后的最初二十多分钟是逆向的** —— 提前成交会多亏, 不是少亏。CI 刚刚含 0, 所以是「不可判, 点估计为负」。
+交叉校验: 本装置的旧书与 P-C2 缺口段 L3 逐锚差的绝对值和 638 / 14,217(4.5%), 最大 229; 两者的价格参考链不同(P-C2 用日内共享链且有 13 类未知起始量名), 差异量级可接受但不是逐位一致。
+⇒ **exec_n6 Phase 2(把成交提前到锚后约 3 分钟)不应作为收益优化推进**; 它的价值只在工程稳健性(写入余量), 不在收益。
+
 ## §5 前瞻预期(正确口径)
 
 ### 5.1 长期(无条件)
@@ -144,4 +157,5 @@ NAV 层(USDT 计, 去入金与 USD 重估): 25 天 **−0.96%**, 日夏普 −0.
   复跑: `/usr/bin/python3 multi_asset/exports/research/live_expectation_2026-09-19/live_g_decomposition.py docs/fixprogram_2026-09-13/FP3_receipts/CASH_IDENTITY_USD_20260801_20260919.json multi_asset/exports/research/live_expectation_2026-09-19/LIVE_G_DECOMPOSITION_combo_20260826_20260919.json`
 - `backtest_window_stats.py`(sha `aa074820…`, 在 pod2 读臂文件, 臂 sha 记在产物里)→ `BACKTEST_WINDOW_STATS.json`。复现校验: W_ALPHA g 0.5628 / 0.6002 与 `PER_YEAR_TABLE_REALCOST` 逐位相同。
   复跑: `scp backtest_window_stats.py pod2:/tmp/ && ssh pod2 "/workspace/venv/bin/python /tmp/backtest_window_stats.py 0.011 -1.0025 1.5416 -0.009576" > BACKTEST_WINDOW_STATS.json`
+- `latency_gap_value.py`(sha 见收据)→ `LATENCY_GAP_VALUE_20260826_20260918.json`; 复跑 `cd multi_asset/exports/research/live_expectation_2026-09-19 && /usr/bin/python3 latency_gap_value.py pc2 LATENCY_GAP_VALUE_20260826_20260918.json`
 - `pc2/PC2_v6_<日>.json`(24 天; 装置 `docs/fixprogram_2026-09-13/FP3_devices/pc/pc2_layer_decomposition.py` v7 sha `33ed990a…`)+ `pc2_aggregate.py` → `PC2_AGGREGATE_20260826_20260918.json`。
