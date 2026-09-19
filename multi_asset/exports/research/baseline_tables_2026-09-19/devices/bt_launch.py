@@ -18,10 +18,21 @@ UNRECLAIMABLE memory — memory.max − anon − shmem (v1 also treated ACTIVE p
 anon was 18.8 of 61 GB); threshold unchanged (launch.min_available_gib = 22 ≥ the 20 GiB rule); (2) --resume: a (run, seed) whose PATH npz + json
 exist and whose json's npz_sha256 equals the file is not re-run (paths are deterministic: battery D2, and bt_reproduce_path.py reproduced a
 full-window path bitwise); the receipt lists every seed with resumed_existing true / false. Path content does not depend on this file.
+v3 (2026-09-19 ~21:55Z, lead's go for the A0 part: "keep your own total ≤ 6 GB and check memory PSI; if avg10 > 20 % for more than a
+minute, halve your workers"): a GOVERNOR in the parent. The scheduling loop polls every 5 s (os.waitpid WNOHANG) instead of blocking in
+os.wait. (1) PSI: /proc/pressure/memory 'some' avg10 > PSI_LIMIT_PCT continuously for > PSI_HOLD_S ⇒ max_parallel := max(1, max_parallel // 2);
+the youngest running children above the new limit are stopped by their OWN recorded PID (SIGTERM; each is a child this parent forked) and
+re-queued at the front (paths are deterministic: battery D2 / bt_reproduce_path.py; a stopped child writes nothing because save_path writes
+last, and a re-run overwrites nothing that exists). (2) OWN TOTAL: Σ Pss (smaps_rollup) over this process group (the shared price table is
+counted once, split by Pss) must stay ≤ OWN_CAP_GIB: a new child starts only if own_total + CHILD_RESERVE_GIB ≤ OWN_CAP_GIB; if own_total
+exceeds OWN_CAP_GIB while running, max_parallel := max(1, running − 1) and the youngest child is stopped and re-queued. The memory probe
+before this change (receipts BT_LAUNCH_smoke_memprobe.json, logs/memprobe_samples.log): one full-window A0 path, parent + child Σ Pss
+3.11 GiB peak of which the child's Private_Dirty 59 MiB. Every governor action is logged and recorded in the receipt (rec["governor"]).
+Path content does not depend on this file (the governor only schedules).
 usage: env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_launch.py PATH,HOME,LC_CTYPE <config.json>
-         [--smoke START_ISO N_ANCHORS SEEDS(comma) RUNS(comma) LABEL] [--resume LABEL]
+         [--smoke START_ISO N_ANCHORS SEEDS(comma) RUNS(comma) LABEL [--gov PSI_LIMIT_PCT,PSI_HOLD_S,OWN_CAP_GIB]] [--resume LABEL]
 """
-import os, sys, json, time, collections
+import os, sys, json, time, collections, signal
 WL = set(sys.argv[1].split(",")) if len(sys.argv) > 1 else set()
 assert WL, "env whitelist (argv[1]) must be non-empty"
 extra = sorted(set(os.environ) - WL); assert not extra, f"env outside whitelist: {extra}"
@@ -138,23 +149,80 @@ if RESUME:
         elif done[r["tag"]] == len(SEEDS):
             rec["runs"][r["tag"]]["aggregate"] = json.load(open(run_dir(r["tag"]) + f"/AGG_{r['tag'].replace('|', '_')}.json"))
 MAXP = int(CFG["launch"]["max_parallel"]); MINFREE = float(CFG["launch"]["min_available_gib"])
-kids = {}; rec["mem_waits"] = 0; rec["mem_gate"] = "memory.max - anon - shmem >= launch.min_available_gib (v2)"
+PSI_LIMIT_PCT, PSI_HOLD_S, OWN_CAP_GIB, CHILD_RESERVE_GIB, POLL_S = 20.0, 60.0, 6.0, 0.5, 5.0     # v3 governor (lead, 2026-09-19 ~21:45Z)
+GOV_TEST = None
+if "--gov" in sys.argv:                          # TEST ONLY (smoke runs): --gov PSI_LIMIT_PCT,PSI_HOLD_S,OWN_CAP_GIB exercises the governor's actions
+    assert SMOKE, "--gov is a test override and is refused outside --smoke"
+    PSI_LIMIT_PCT, PSI_HOLD_S, OWN_CAP_GIB = [float(x) for x in sys.argv[sys.argv.index("--gov") + 1].split(",")]; GOV_TEST = [PSI_LIMIT_PCT, PSI_HOLD_S, OWN_CAP_GIB]
+kids = {}; started_at = {}; rec["mem_waits"] = 0; rec["mem_gate"] = "memory.max - anon - shmem >= launch.min_available_gib (v2)"
+rec["governor"] = dict(psi_limit_pct=PSI_LIMIT_PCT, psi_hold_s=PSI_HOLD_S, own_cap_gib=OWN_CAP_GIB, child_reserve_gib=CHILD_RESERVE_GIB, poll_s=POLL_S,
+                       max_parallel_start=MAXP, events=[], own_total_gib_max=0.0, psi_avg10_max=0.0, samples=0, test_override=GOV_TEST)
+
+
+def psi_avg10():
+    try:
+        return float(open("/proc/pressure/memory").readline().split()[1].split("=")[1])
+    except Exception:
+        return 0.0
+
+
+def own_total_gib():
+    """Σ Pss over the parent and its running children (kB → GiB)"""
+    tot = 0
+    for p in [os.getpid()] + list(kids):
+        try:
+            for l in open(f"/proc/{p}/smaps_rollup"):
+                if l.startswith("Pss:"): tot += int(l.split()[1]); break
+        except Exception:
+            pass
+    return tot / 2 ** 20
+
+
+def stop_youngest(n, why):
+    for pid in sorted(kids, key=lambda p: started_at[p], reverse=True)[:n]:
+        r, s = kids[pid]
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        os.waitpid(pid, 0); kids.pop(pid); JOBS.insert(0, (r, s))
+        rec["governor"]["events"].append(dict(t_s=round(time.time() - T0, 1), action="stopped_and_requeued", pid=pid, run=r["tag"], seed=s, why=why))
+        log("governor: stopped", r["tag"], "seed", s, "pid", pid, "and re-queued —", why)
+
+
+psi_since = None
 while JOBS or kids:
+    ps, own = psi_avg10(), own_total_gib(); G = rec["governor"]; G["samples"] += 1
+    G["own_total_gib_max"] = max(G["own_total_gib_max"], own); G["psi_avg10_max"] = max(G["psi_avg10_max"], ps)
+    psi_since = (psi_since or time.time()) if ps > PSI_LIMIT_PCT else None
+    if psi_since is not None and time.time() - psi_since > PSI_HOLD_S and MAXP > 1:
+        MAXP = max(1, MAXP // 2); psi_since = None
+        G["events"].append(dict(t_s=round(time.time() - T0, 1), action="halve_max_parallel", psi_avg10=ps, max_parallel=MAXP)); log("governor: PSI avg10 %.1f%% > %.0f%% for > %.0f s — max_parallel -> %d" % (ps, PSI_LIMIT_PCT, PSI_HOLD_S, MAXP))
+        if len(kids) > MAXP: stop_youngest(len(kids) - MAXP, "psi")
+    if own > OWN_CAP_GIB and kids and (max(1, len(kids) - 1) < MAXP or len(kids) > 1):
+        MAXP = max(1, len(kids) - 1)
+        G["events"].append(dict(t_s=round(time.time() - T0, 1), action="own_total_over_cap", own_total_gib=own, max_parallel=MAXP)); log("governor: own total %.2f GiB > %.1f — max_parallel -> %d" % (own, OWN_CAP_GIB, MAXP))
+        if len(kids) > MAXP: stop_youngest(len(kids) - MAXP, "own_total")
     while JOBS and len(kids) < MAXP:
         if avail_gib() < MINFREE:
             rec["mem_waits"] += 1
-            if kids:
-                log("memory: available %.1f GiB < %.1f — waiting for a running path before the next start" % (avail_gib(), MINFREE)); break
+            if kids: break
             log("memory: available %.1f GiB < %.1f and nothing running — polling every 60 s" % (avail_gib(), MINFREE)); time.sleep(60); continue
+        if kids and own_total_gib() + CHILD_RESERVE_GIB > OWN_CAP_GIB:
+            rec["mem_waits"] += 1; break
         r, s = JOBS.pop(0); pid = os.fork()
         if pid == 0:
             try:
                 child(r, s); os._exit(0)
             except BaseException:
                 import traceback; traceback.print_exc(); sys.stdout.flush(); sys.stderr.flush(); os._exit(1)
-        kids[pid] = (r, s); rec["pids"].append(pid); log("started", r["tag"], "seed", s, "pid", pid, "avail_GiB %.1f" % avail_gib())
+        kids[pid] = (r, s); started_at[pid] = time.time(); rec["pids"].append(pid)
+        log("started", r["tag"], "seed", s, "pid", pid, "avail_GiB %.1f own_GiB %.2f psi %.1f" % (avail_gib(), own_total_gib(), psi_avg10()))
     if not kids: continue
-    pid, status = os.wait(); r, s = kids.pop(pid); rc = os.waitstatus_to_exitcode(status)
+    pid, status = os.waitpid(-1, os.WNOHANG)
+    if pid == 0:
+        time.sleep(POLL_S); continue
+    r, s = kids.pop(pid); rc = os.waitstatus_to_exitcode(status)
     rr = rec["runs"].setdefault(r["tag"], {"seeds": {}}); rr["seeds"][s] = dict(rc=rc, resumed_existing=False)
     if rc == 0:
         o = json.load(open(stem_of(r["tag"], s) + ".json"))
@@ -162,7 +230,7 @@ while JOBS or kids:
         done[r["tag"]] += 1
         if done[r["tag"]] == len(SEEDS):
             rr["aggregate"] = aggregate(r); log("aggregated", r["tag"])
-    log("finished", r["tag"], "seed", s, "rc", rc, "avail_GiB %.1f" % avail_gib())
+    log("finished", r["tag"], "seed", s, "rc", rc, "avail_GiB %.1f own_GiB %.2f psi %.1f" % (avail_gib(), own_total_gib(), psi_avg10()))
 ok_all = all(v2["rc"] == 0 for v in rec["runs"].values() for v2 in v["seeds"].values()) and sum(len(v["seeds"]) for v in rec["runs"].values()) == len(RUNS) * len(SEEDS)
 check("runs.all_rc0", ok_all, {t: {s: v2["rc"] for s, v2 in v["seeds"].items()} for t, v in rec["runs"].items()})
 check("runs.audits_clean", all(DL.audits_clean(v2["audits"]) for v in rec["runs"].values() for v2 in v["seeds"].values() if v2["rc"] == 0))

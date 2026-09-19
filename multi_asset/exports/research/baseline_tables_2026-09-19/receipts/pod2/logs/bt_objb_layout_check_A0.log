@@ -1,0 +1,25 @@
+[     0s] PASS L0.one_source_list_across_runs 1
+[     0s] PASS L0.single_main_source ["/workspace/object_b_2026-09-19/work/A0_main/TARGETS_A0_main.npz"]
+[     0s] PASS L0.real_npz_sha_equals_pin "b9f0dc9f2011f9de"
+[     0s] PASS L0.real_receipt_sha_equals_pin "5ebac7205afc2cd0"
+[     1s] PASS L1.key_set_equal {"only_real": [], "only_fixture": []}
+[     1s] PASS L1.dtype_and_ndim_equal_per_key {"anchor": {"real": ["int64", 1], "fixture": ["int64", 1]}, "lit_idx": {"real": ["int16", 1], "fixture": ["int16", 1]}, "lit_kind": {"real": ["int8", 1], "fixture": ["int8", 1]}, "lit_off": {"real": ["int64", 1], "fixture": ["int64", 1]}, "lit_val": {"real": [
+[     1s] PASS L1.csr_relations_real {"scaled": true, "lit": true, "scaled_l333_only": true}
+[     1s] PASS L1.csr_relations_fixture {"scaled": true, "lit": true, "scaled_l333_only": true}
+[     1s] PASS L1.receipt_fields_the_adapter_reads {"targets_npz_sha256": true, "arm": true, "B_CORE_start": true, "PRE_window": true, "tag": true, "data": true, "axis": true}
+[     1s] PASS L2.fixture_schema_equals_real {"anchor": ["int64", 1], "scaled_kind": ["int8", 1], "scaled_off": ["int64", 1], "scaled_idx": ["int16", 1], "scaled_val": ["float64", 1], "lit_kind": ["int8", 1], "lit_off": ["int64", 1], "lit_idx": ["int16", 1], "lit_val": ["float64", 1], "scaled_l333_only_k
+[     2s] PASS L2.adapter_on_real_layout_fixture_equals_independent_decode.scaled {"W": true, "fresh": true, "kind": true, "counts": {"window_anchors": 300, "combo": 300, "king": 0, "hold": 0, "written_rows_without_weights": 0}}
+[     2s] PASS L2.adapter_on_real_layout_fixture_equals_independent_decode.lit {"W": true, "fresh": true, "kind": true, "counts": {"window_anchors": 300, "combo": 0, "king": 300, "hold": 0, "written_rows_without_weights": 0}}
+[     2s] PASS L2.adapter_on_real_layout_fixture_equals_independent_decode.scaled_l333_only {"W": true, "fresh": true, "kind": true, "counts": {"window_anchors": 300, "combo": 300, "king": 0, "hold": 0, "written_rows_without_weights": 0}}
+[     2s] PASS L2.fixture_exercises_king_and_combo_rows [1, 2]
+[     2s] PASS L3.adapter_on_full_real_file_equals_independent_decode.scaled {"W": true, "fresh": true, "kind": true, "counts": {"window_anchors": 9139, "combo": 6702, "king": 2437, "hold": 0, "written_rows_without_weights": 0}}
+[     2s] PASS L3.counts_equal_prerun_receipt.scaled {"got": {"window_anchors": 9139, "combo": 6702, "king": 2437, "hold": 0, "written_rows_without_weights": 0}, "prerun": {"window_anchors": 9139, "combo": 6702, "king": 2437, "hold": 0, "written_rows_without_weights": 0}}
+[     3s] PASS L3.adapter_on_full_real_file_equals_independent_decode.lit {"W": true, "fresh": true, "kind": true, "counts": {"window_anchors": 9139, "combo": 2356, "king": 6783, "hold": 0, "written_rows_without_weights": 0}}
+[     3s] PASS L3.counts_equal_prerun_receipt.lit {"got": {"window_anchors": 9139, "combo": 2356, "king": 6783, "hold": 0, "written_rows_without_weights": 0}, "prerun": {"window_anchors": 9139, "combo": 2356, "king": 6783, "hold": 0, "written_rows_without_weights": 0}}
+[     3s] PASS L3.adapter_on_full_real_file_equals_independent_decode.scaled_l333_only {"W": true, "fresh": true, "kind": true, "counts": {"window_anchors": 9139, "combo": 6227, "king": 2912, "hold": 0, "written_rows_without_weights": 0}}
+[     3s] PASS L3.counts_equal_prerun_receipt.scaled_l333_only {"got": {"window_anchors": 9139, "combo": 6227, "king": 2912, "hold": 0, "written_rows_without_weights": 0}, "prerun": {"window_anchors": 9139, "combo": 6227, "king": 2912, "hold": 0, "written_rows_without_weights": 0}}
+[     3s] PASS [mutation red] fixture without scaled_off refused (missing_keys) "missing_keys {\"missing\": [\"scaled_off\"]}"
+[     4s] PASS [mutation red] fixture with kind 3 refused (kind_out_of_range) "kind_out_of_range {\"values\": [3]}"
+[     4s] PASS [mutation red] pinned sha differs from the fixture → refused (npz_sha_mismatch_vs_pin) "npz_sha_mismatch_vs_pin {\"got\": \"d13d31705159e064\", \"want\": \"0000000000000000\"}"
+[     4s] PASS [mutation red] independent reference with one weight changed (×(1+1e-12)) → equality red {"cell": [0, 8]}
+BT_OBJB_LAYOUT_CHECK VERDICT: ALL PASS 24/24 checks (real layout == adapter-test fixture layout; adapter == independent decode; every mutation red)
