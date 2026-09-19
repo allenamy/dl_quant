@@ -1,0 +1,116 @@
+{
+ "device": "/workspace/object_b_2026-09-19/devices/king_v4_folds.py",
+ "self_sha256": "a3d286c56245adf2ea62fa7ea65e7c8490bf16bbb7a84038960a07357bb5bdd8",
+ "comparison_type": "(3) packaging/prediction parity \u2014 not a return",
+ "inputs_sha256": {
+  "exporter": "42555a37c0cd3a7e128ac8823a8bec3e2f77a1230d205707b046aca20eed5118",
+  "fea": "268f6c9c247cdf1fffb6cea442437ab21b3f13993f9d821cfb09f417417cad7a",
+  "meta": "12ea42c4557093f10f954f648db9239f4dd8283ea365ba299f31bd81e7e5ab51",
+  "pins": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece",
+  "pinned": "dde19142d017c37dd9bae564ab4a32a4b9b068f6aef8acc91e7ea329f4f1c8a6",
+  "slow2026": "f23657710f3a6d0068bca8a95082965d694de805195ef143be64951c0f2f203a"
+ },
+ "env": {
+  "PATH": "/usr/bin:/bin",
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "KMP_DUPLICATE_LIB_OK": "True",
+  "KMP_INIT_AT_FORK": "FALSE"
+ },
+ "python": "3.11.10",
+ "numpy": "2.4.6",
+ "lightgbm": "4.7.0",
+ "folds": {
+  "2023": {
+   "train_rows": 304434,
+   "train_anchors": 2148,
+   "last_train_anchor": "2022-12-31T20:00:00Z",
+   "label_end": "2023-01-01T00:00:00Z",
+   "label_end_ts": 1672531200,
+   "test_rows": 410358,
+   "fit_s": 45.5,
+   "model_file": "/workspace/object_b_2026-09-19/models/king_v4_fold2023.txt",
+   "model_sha256": "74204f4bb5039454d62a82846e858170bcb6c1370b6bdd145698c7a51b34ed1a",
+   "served_in_object_B": true
+  },
+  "2024": {
+   "train_rows": 714792,
+   "train_anchors": 4338,
+   "last_train_anchor": "2023-12-31T20:00:00Z",
+   "label_end": "2024-01-01T00:00:00Z",
+   "label_end_ts": 1704067200,
+   "test_rows": 601406,
+   "fit_s": 54.1,
+   "model_file": "/workspace/object_b_2026-09-19/models/king_v4_fold2024.txt",
+   "model_sha256": "753465b005c36f2e832355033058bd12c57c6a9520a169ce6d83d732d2ba9e16",
+   "served_in_object_B": true
+  },
+  "2025": {
+   "train_rows": 1316198,
+   "train_anchors": 6534,
+   "last_train_anchor": "2024-12-31T20:00:00Z",
+   "label_end": "2025-01-01T00:00:00Z",
+   "label_end_ts": 1735689600,
+   "test_rows": 849811,
+   "fit_s": 65.4,
+   "model_file": "/workspace/object_b_2026-09-19/models/king_v4_fold2025.txt",
+   "model_sha256": "83de81e66148544a57302af3cdfdfd87ef4a223835f91d83ad2515e9aa6a791e",
+   "served_in_object_B": true
+  },
+  "2026": {
+   "train_rows": 2166009,
+   "train_anchors": 8724,
+   "last_train_anchor": "2025-12-31T20:00:00Z",
+   "label_end": "2026-01-01T00:00:00Z",
+   "label_end_ts": 1767225600,
+   "test_rows": 583200,
+   "fit_s": 78.9,
+   "model_file": "/workspace/object_b_2026-09-19/work/king_v4_fold2026_REPRO_ONLY.txt",
+   "model_sha256": "4577c307040e590e69a42c754f12a9d0a29a35804fffc840d4c07e00c1e76f78",
+   "served_in_object_B": false
+  }
+ },
+ "K_REPRO": {
+  "2024": {
+   "n_cells": 601406,
+   "same_support": true,
+   "bitwise": true,
+   "max_abs": 0.0,
+   "ranks_equal": true,
+   "verdict": "PASS"
+  },
+  "2025": {
+   "n_cells": 849811,
+   "same_support": true,
+   "bitwise": true,
+   "max_abs": 0.0,
+   "ranks_equal": true,
+   "verdict": "PASS"
+  },
+  "2026": {
+   "n_cells": 583200,
+   "same_support": true,
+   "bitwise": true,
+   "max_abs": 0.0,
+   "ranks_equal": true,
+   "verdict": "PASS"
+  },
+  "2026_model_text_sha_equal_inservice": false
+ },
+ "K_REPRO_VERDICT": "REPRO_NUMERIC",
+ "negative_control": {
+  "rule": "pinned 2024 rows vs fold-2025 model on 2024 rows must be NEW_DRAW",
+  "result": {
+   "n_cells": 601406,
+   "same_support": true,
+   "bitwise": false,
+   "max_abs": 0.4179234728217125,
+   "ranks_equal": false,
+   "verdict": "NEW_DRAW"
+  },
+  "ok": true
+ },
+ "gate_ok_to_use": true,
+ "utc": "2026-09-19T11:34:51Z",
+ "runtime_s": 262.0
+}
