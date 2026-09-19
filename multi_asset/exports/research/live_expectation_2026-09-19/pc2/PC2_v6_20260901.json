@@ -1,0 +1,8472 @@
+{
+ "device": "pc2_layer_decomposition.py",
+ "version": "v7 (round-15) = v6 core + R15-M1 finiteness as a source-agnostic published-figure checkpoint + R15-M2 day-boundary contract + coverage-hole attribution (pnl_path.py)",
+ "utc": "2026-09-19T05:32:18Z",
+ "day": "20260901",
+ "self_sha256": "33ed990ac7a03ef4e584bcb32d4d76a209c21898b53429eed7b3d16b18329063",
+ "engine_sha256": "f34c7b676d1bf3785e56a85ad15cdbfc552b322d312454ec08eea0440fe484db",
+ "panel": {
+  "path": "/Users/haosiyu/wide_shadow/state/rolling.npz",
+  "sha256": "4149c8926f408a61ab1d49a6b3cf861761ee6184f030c85f004d203a7a7fa604",
+  "t_first": 1786334700,
+  "t_last": 1789790400,
+  "n_symbols": 829
+ },
+ "ledger_roots": {
+  "repo": "/Users/haosiyu/dl_quant_live",
+  "ws": "/Users/haosiyu/wide_shadow"
+ },
+ "anchors": [
+  {
+   "anchor": 1788220800,
+   "utc": "09-01 00:00Z",
+   "status": "OK",
+   "rebalance_id": "A1788222240",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1788222243.9836621,
+   "t_end": 1788235200.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": 0.6544386039808956,
+   "n_fills_price_corrected": 131,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1788222300,
+   "b1": 1788235200,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 255,
+     "n_priced": 255,
+     "gross_b0": 39762.1011431712,
+     "net_b0": -1925.5801743353081,
+     "pnl_usdt": -62.989607559045204,
+     "pnl_long_usdt": 24.437666306554146,
+     "pnl_short_usdt": -87.42727386559935,
+     "censored": {
+      "n": 12,
+      "notional": 1380.6715297651365
+     }
+    },
+    "L1_executor_target": {
+     "n": 255,
+     "n_priced": 255,
+     "gross_b0": 40671.08901447797,
+     "net_b0": 184.74909939652605,
+     "pnl_usdt": -180.74508636585074,
+     "pnl_long_usdt": -96.59878525084997,
+     "pnl_short_usdt": -84.14630111500101,
+     "censored": {
+      "n": 12,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 255,
+     "n_priced": 255,
+     "gross_b0": 40761.8674446827,
+     "net_b0": 178.23461742927373,
+     "pnl_usdt": -181.37756292919647,
+     "pnl_long_usdt": -97.04207901191516,
+     "pnl_short_usdt": -84.33548391728125,
+     "censored": {
+      "n": 12,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 255,
+     "n_priced": 255,
+     "gross_b0": 40761.8674446827,
+     "net_b0": 178.23461742927373,
+     "pnl_usdt": -181.37756292919647,
+     "pnl_long_usdt": -97.04207901191516,
+     "pnl_short_usdt": -84.33548391728122,
+     "censored": {
+      "n": 12,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 255,
+     "n_priced": 255,
+     "gross_b0": 40973.4504975534,
+     "net_b0": 377.73414341962257,
+     "pnl_usdt": -182.73766066669347,
+     "pnl_long_usdt": -97.40416098480921,
+     "pnl_short_usdt": -85.33349968188419,
+     "censored": {
+      "n": 12,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": 0.6544386039808956,
+     "pnl_usdt_with_fill_prices": -182.08322206271257,
+     "n_fills_price_corrected": 131
+    }
+   },
+   "fees_in_window": {
+    "BNB": 0.00041949000000000006
+   },
+   "n_fills_in_window": 131,
+   "events": {
+    "pre_window": 0,
+    "in_window": 131,
+    "post_window_not_applied": 230
+   },
+   "intra_row_approx": 74,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 247,
+    "max_abs_rel": 0.0228633196797019,
+    "median_abs_rel": 0.0017462939801977662
+   },
+   "fill_px_vs_path": {
+    "n": 74,
+    "max_abs_rel": 0.01824411882413679,
+    "median_abs_rel": 0.0021350264190929114
+   },
+   "reference_readback": {
+    "runs": [
+     "08-31 16Z",
+     "08-31 20Z"
+    ],
+    "n_names": 254,
+    "n_stale_over_4h40m": 3,
+    "t_earliest_read": 1788194579.069248
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 252,
+    "t_latest_read": 1788252078.866702
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 12,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 2.897303429063939e-13,
+    "n_nonfinite_next_readback": 0,
+    "top": [
+     [
+      "AEROUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ARBUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "AUCTIONUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "DODOXUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "EULUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "FORMUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "HEIUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ONTUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "STRKUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "TNSRUSDT",
+      -0.0,
+      -0.0
+     ]
+    ],
+    "next_readback_names": 252,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "price_chain_joins": {
+    "n_names_compared": 251,
+    "n_over_1pct": 2,
+    "n_value_over_1cent": 202,
+    "abs_value_diff_sum_usdt": 77.23665295237812,
+    "max_abs_rel": 0.018552600328591184,
+    "causes": {
+     "mark_vs_close": 246,
+     "fill_px_vs_close": 5
+    },
+    "resets": {
+     "new_symbol_in_day": 1
+    },
+    "top": [
+     {
+      "symbol": "HEMIUSDT",
+      "px_chain_at_b0": 0.01620528,
+      "px_own_at_b0": 0.01606524,
+      "own_source": "readback_mark",
+      "rel": -0.00864144,
+      "qty_at_join": 22802.0,
+      "value_diff_usdt": -3.19312347,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "ESPORTSUSDT",
+      "px_chain_at_b0": 0.01682766,
+      "px_own_at_b0": 0.01693249,
+      "own_source": "readback_mark",
+      "rel": 0.00622963,
+      "qty_at_join": 24782.0,
+      "value_diff_usdt": 2.59789857,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "ACEUSDT",
+      "px_chain_at_b0": 0.16860453,
+      "px_own_at_b0": 0.16719021,
+      "own_source": "readback_mark",
+      "rel": -0.0083884,
+      "qty_at_join": -1746.94,
+      "value_diff_usdt": 2.47073499,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "CYSUSDT",
+      "px_chain_at_b0": 0.60785519,
+      "px_own_at_b0": 0.61108808,
+      "own_source": "readback_mark",
+      "rel": 0.00531852,
+      "qty_at_join": 734.0,
+      "value_diff_usdt": 2.37294117,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "LAUSDT",
+      "px_chain_at_b0": 0.06159715,
+      "px_own_at_b0": 0.06116103,
+      "own_source": "readback_mark",
+      "rel": -0.00708011,
+      "qty_at_join": -3719.4,
+      "value_diff_usdt": 1.62208523,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "0GUSDT",
+      "px_chain_at_b0": 0.22974301,
+      "px_own_at_b0": 0.23160175,
+      "own_source": "readback_mark",
+      "rel": 0.00809052,
+      "qty_at_join": -773.0,
+      "value_diff_usdt": -1.43680619,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "ONGUSDT",
+      "px_chain_at_b0": 0.08628351,
+      "px_own_at_b0": 0.08663678,
+      "own_source": "readback_mark",
+      "rel": 0.00409427,
+      "qty_at_join": -4032.0,
+      "value_diff_usdt": -1.42437586,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "ARBUSDT",
+      "px_chain_at_b0": 0.11121167,
+      "px_own_at_b0": 0.11047552,
+      "own_source": "readback_mark",
+      "rel": -0.00661937,
+      "qty_at_join": -1861.3,
+      "value_diff_usdt": 1.37019773,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "BLESSUSDT",
+      "px_chain_at_b0": 0.01044871,
+      "px_own_at_b0": 0.01041,
+      "own_source": "readback_mark",
+      "rel": -0.00370497,
+      "qty_at_join": 34988.0,
+      "value_diff_usdt": -1.35446238,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "4USDT",
+      "px_chain_at_b0": 0.01398777,
+      "px_own_at_b0": 0.01394683,
+      "own_source": "readback_mark",
+      "rel": -0.0029271,
+      "qty_at_join": 32690.0,
+      "value_diff_usdt": -1.33844626,
+      "cause": "mark_vs_close"
+     }
+    ],
+    "rule": "the day chain's price at b0 vs the price this window would have derived on its own; REPORTED, never added to P&L (a mark-vs-close difference is a valuation difference, not a realised gain)"
+   },
+   "fill_partition": {
+    "owns": "[t_decision, t_end]",
+    "n_fills_price_corrected": 131,
+    "keys": [
+     [
+      "0GUSDT",
+      217706845
+     ],
+     [
+      "1000BONKUSDT",
+      950187311
+     ],
+     [
+      "1000LUNCUSDT",
+      469740844
+     ],
+     [
+      "1000PEPEUSDT",
+      2758394029
+     ],
+     [
+      "4USDT",
+      146358243
+     ],
+     [
+      "4USDT",
+      146358244
+     ],
+     [
+      "4USDT",
+      146358245
+     ],
+     [
+      "4USDT",
+      146358246
+     ],
+     [
+      "ACEUSDT",
+      343419671
+     ],
+     [
+      "ADAUSDT",
+      1914781874
+     ],
+     [
+      "AKEUSDT",
+      291816189
+     ],
+     [
+      "ALLOUSDT",
+      307585104
+     ],
+     [
+      "ARBUSDT",
+      635942220
+     ],
+     [
+      "ARIAUSDT",
+      173210394
+     ],
+     [
+      "ARIAUSDT",
+      173210395
+     ],
+     [
+      "BANKUSDT",
+      348519934
+     ],
+     [
+      "BASUSDT",
+      179256097
+     ],
+     [
+      "BASUSDT",
+      179256098
+     ],
+     [
+      "BICOUSDT",
+      156056820
+     ],
+     [
+      "BMTUSDT",
+      97242644
+     ],
+     [
+      "BROCCOLI714USDT",
+      82029428
+     ],
+     [
+      "BTRUSDT",
+      155423796
+     ],
+     [
+      "CAKEUSDT",
+      318064336
+     ],
+     [
+      "CFGUSDT",
+      22741183
+     ],
+     [
+      "CHILLGUYUSDT",
+      117427314
+     ],
+     [
+      "CLOUSDT",
+      184237273
+     ],
+     [
+      "COTIUSDT",
+      423089605
+     ],
+     [
+      "COTIUSDT",
+      423089611
+     ],
+     [
+      "CRVUSDT",
+      571741736
+     ],
+     [
+      "CVXUSDT",
+      20672859
+     ],
+     [
+      "CYSUSDT",
+      161876731
+     ],
+     [
+      "DODOXUSDT",
+      117519027
+     ],
+     [
+      "DUSKUSDT",
+      348677560
+     ],
+     [
+      "DYDXUSDT",
+      582687391
+     ],
+     [
+      "EDENUSDT",
+      166778812
+     ],
+     [
+      "EDGEUSDT",
+      80988831
+     ],
+     [
+      "EIGENUSDT",
+      362426208
+     ],
+     [
+      "EPICUSDT",
+      158636610
+     ],
+     [
+      "ERAUSDT",
+      85422549
+     ],
+     [
+      "ESPUSDT",
+      89548548
+     ],
+     [
+      "EULUSDT",
+      88450484
+     ],
+     [
+      "FETUSDT",
+      689883464
+     ],
+     [
+      "FFUSDT",
+      160356189
+     ],
+     [
+      "FFUSDT",
+      160356208
+     ],
+     [
+      "FILUSDT",
+      989683606
+     ],
+     [
+      "FORMUSDT",
+      149389847
+     ],
+     [
+      "FORMUSDT",
+      149389849
+     ],
+     [
+      "GRASSUSDT",
+      175768868
+     ],
+     [
+      "GWEIUSDT",
+      81048710
+     ],
+     [
+      "HEIUSDT",
+      194841403
+     ],
+     [
+      "HEMIUSDT",
+      196212444
+     ],
+     [
+      "HEMIUSDT",
+      196212445
+     ],
+     [
+      "HOLOUSDT",
+      96887084
+     ],
+     [
+      "HOLOUSDT",
+      96887085
+     ],
+     [
+      "HOMEUSDT",
+      183427159
+     ],
+     [
+      "INJUSDT",
+      774194285
+     ],
+     [
+      "JASMYUSDT",
+      534359072
+     ],
+     [
+      "JCTUSDT",
+      77855534
+     ],
+     [
+      "JTOUSDT",
+      537183164
+     ],
+     [
+      "KAITOUSDT",
+      409705924
+     ],
+     [
+      "KAITOUSDT",
+      409705926
+     ],
+     [
+      "KASUSDT",
+      175902194
+     ],
+     [
+      "KMNOUSDT",
+      66688568
+     ],
+     [
+      "KOMAUSDT",
+      108701691
+     ],
+     [
+      "LSKUSDT",
+      111314084
+     ],
+     [
+      "MERLUSDT",
+      173150923
+     ],
+     [
+      "MINAUSDT",
+      231544685
+     ],
+     [
+      "MIRAUSDT",
+      109804794
+     ],
+     [
+      "MMTUSDT",
+      158319892
+     ],
+     [
+      "MONUSDT",
+      83295076
+     ],
+     [
+      "MONUSDT",
+      83295087
+     ],
+     [
+      "MOODENGUSDT",
+      460401133
+     ],
+     [
+      "MOVEUSDT",
+      206046404
+     ],
+     [
+      "MOVRUSDT",
+      153125365
+     ],
+     [
+      "MUBARAKUSDT",
+      137883645
+     ],
+     [
+      "NEARUSDT",
+      1042895373
+     ],
+     [
+      "NILUSDT",
+      118633420
+     ],
+     [
+      "NOTUSDT",
+      472219988
+     ],
+     [
+      "NOTUSDT",
+      472219989
+     ],
+     [
+      "ONEUSDT",
+      331299257
+     ],
+     [
+      "ONGUSDT",
+      209257298
+     ],
+     [
+      "ONTUSDT",
+      311813548
+     ],
+     [
+      "ONUSDT",
+      100987752
+     ],
+     [
+      "OPGUSDT",
+      44053998
+     ],
+     [
+      "OPUSDT",
+      954623360
+     ],
+     [
+      "PIEVERSEUSDT",
+      208782881
+     ],
+     [
+      "PIEVERSEUSDT",
+      208782882
+     ],
+     [
+      "PLUMEUSDT",
+      74764436
+     ],
+     [
+      "POLUSDT",
+      219766130
+     ],
+     [
+      "PORTALUSDT",
+      163639958
+     ],
+     [
+      "PTBUSDT",
+      124455107
+     ],
+     [
+      "PUMPUSDT",
+      279207222
+     ],
+     [
+      "RAVEUSDT",
+      497336980
+     ],
+     [
+      "RAVEUSDT",
+      497336981
+     ],
+     [
+      "RIFUSDT",
+      165221358
+     ],
+     [
+      "RUNEUSDT",
+      566239170
+     ],
+     [
+      "SAHARAUSDT",
+      147240333
+     ],
+     [
+      "SANDUSDT",
+      996719831
+     ],
+     [
+      "SANDUSDT",
+      996719833
+     ],
+     [
+      "SANDUSDT",
+      996719834
+     ],
+     [
+      "SEIUSDT",
+      460476319
+     ],
+     [
+      "SPKUSDT",
+      157526415
+     ],
+     [
+      "SPXUSDT",
+      218074261
+     ],
+     [
+      "STARUSDT",
+      15585962
+     ],
+     [
+      "STARUSDT",
+      15585963
+     ],
+     [
+      "STARUSDT",
+      15586024
+     ],
+     [
+      "SUSDT",
+      125029713
+     ],
+     [
+      "SYRUPUSDT",
+      198635253
+     ],
+     [
+      "TACUSDT",
+      114900634
+     ],
+     [
+      "TACUSDT",
+      114900638
+     ],
+     [
+      "TAOUSDT",
+      772830840
+     ],
+     [
+      "TIAUSDT",
+      842476455
+     ],
+     [
+      "TLMUSDT",
+      145276166
+     ],
+     [
+      "TLMUSDT",
+      145276167
+     ],
+     [
+      "TRIAUSDT",
+      59093929
+     ],
+     [
+      "TRUMPUSDT",
+      722717161
+     ],
+     [
+      "TRXUSDT",
+      704707245
+     ],
+     [
+      "TUTUSDT",
+      247002007
+     ],
+     [
+      "TWTUSDT",
+      114045538
+     ],
+     [
+      "UAIUSDT",
+      133947719
+     ],
+     [
+      "UAIUSDT",
+      133947720
+     ],
+     [
+      "USELESSUSDT",
+      101266704
+     ],
+     [
+      "WALUSDT",
+      70205739
+     ],
+     [
+      "WLFIUSDT",
+      190227397
+     ],
+     [
+      "WUSDT",
+      248557996
+     ],
+     [
+      "WUSDT",
+      248557997
+     ],
+     [
+      "WUSDT",
+      248558005
+     ],
+     [
+      "XANUSDT",
+      89208118
+     ],
+     [
+      "ZBTUSDT",
+      144690194
+     ],
+     [
+      "ZKCUSDT",
+      110627254
+     ],
+     [
+      "ZKPUSDT",
+      99015371
+     ]
+    ],
+    "rule": "R13-P2 (2): the gap owns (A, t_d) and the window owns [t_d, t_end]; a fill exactly at t_d belongs to the window ONLY"
+   },
+   "per_name": {
+    "AIXBTUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ATHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "DASHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "VELODROMEUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ZORAUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": -1.360097737497,
+    "L3_minus_L2cut_execution": -1.360097737497,
+    "L2cut_minus_L2_flatten_footprint": 0.0,
+    "L2_minus_L1_skips": -0.6324765633457332,
+    "L1_minus_L0_book_layer": -117.75547880680554,
+    "L3_minus_L0_total": -119.74805310764827,
+    "L3_minus_L2cut_execution_with_fill_prices": -0.7056591335160931,
+    "fill_price_correction": 0.6544386039808956
+   },
+   "n_names_ok": 255
+  },
+  {
+   "anchor": 1788235200,
+   "utc": "09-01 04:00Z",
+   "status": "OK",
+   "rebalance_id": "A1788236640",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1788236642.442556,
+   "t_end": 1788249600.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": 0.1841377796842762,
+   "n_fills_price_corrected": 138,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1788236700,
+   "b1": 1788249600,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 256,
+     "n_priced": 256,
+     "gross_b0": 39433.33808517667,
+     "net_b0": -1657.7493982986523,
+     "pnl_usdt": 48.50271821102527,
+     "pnl_long_usdt": 121.95012279857373,
+     "pnl_short_usdt": -73.4474045875484,
+     "censored": {
+      "n": 9,
+      "notional": 1368.7550576056415
+     }
+    },
+    "L1_executor_target": {
+     "n": 256,
+     "n_priced": 256,
+     "gross_b0": 40371.99578443765,
+     "net_b0": 195.91874369979183,
+     "pnl_usdt": -51.355006197430484,
+     "pnl_long_usdt": 17.79315620882346,
+     "pnl_short_usdt": -69.14816240625392,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 256,
+     "n_priced": 256,
+     "gross_b0": 40442.480861269534,
+     "net_b0": 185.83181761195303,
+     "pnl_usdt": -50.592940647452764,
+     "pnl_long_usdt": 18.242053194630298,
+     "pnl_short_usdt": -68.83499384208311,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 256,
+     "n_priced": 256,
+     "gross_b0": 40442.480861269534,
+     "net_b0": 185.83181761195303,
+     "pnl_usdt": -50.59294064745278,
+     "pnl_long_usdt": 18.242053194630298,
+     "pnl_short_usdt": -68.8349938420831,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 256,
+     "n_priced": 256,
+     "gross_b0": 40601.1409979237,
+     "net_b0": -226.85080110418318,
+     "pnl_usdt": -54.82278450078241,
+     "pnl_long_usdt": 18.331297127480696,
+     "pnl_short_usdt": -73.15408162826301,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": 0.1841377796842762,
+     "pnl_usdt_with_fill_prices": -54.638646721098134,
+     "n_fills_price_corrected": 138
+    }
+   },
+   "fees_in_window": {
+    "BNB": 0.0005287299999999999
+   },
+   "n_fills_in_window": 138,
+   "events": {
+    "pre_window": 0,
+    "in_window": 138,
+    "post_window_not_applied": 203
+   },
+   "intra_row_approx": 69,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 251,
+    "max_abs_rel": 0.02168534075197237,
+    "median_abs_rel": 0.0017835290038321627
+   },
+   "fill_px_vs_path": {
+    "n": 69,
+    "max_abs_rel": 0.020177113749344833,
+    "median_abs_rel": 0.0021959955518413565
+   },
+   "reference_readback": {
+    "runs": [
+     "08-31 20Z",
+     "09-01 00Z"
+    ],
+    "n_names": 251,
+    "n_stale_over_4h40m": 4,
+    "t_earliest_read": 1788208906.984153
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 253,
+    "t_latest_read": 1788266493.556138
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 11,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 2.2027726816062408e-13,
+    "n_nonfinite_next_readback": 0,
+    "top": [
+     [
+      "AEROUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ARBUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "DODOXUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "EULUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "FORMUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "LITUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "RENDERUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "STRKUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "TNSRUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "WUSDT",
+      -0.0,
+      -0.0
+     ]
+    ],
+    "next_readback_names": 253,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "price_chain_joins": {
+    "n_names_compared": 252,
+    "n_over_1pct": 4,
+    "n_value_over_1cent": 211,
+    "abs_value_diff_sum_usdt": 111.17074239476173,
+    "max_abs_rel": 0.023602993454645782,
+    "causes": {
+     "mark_vs_close": 247,
+     "fill_px_vs_close": 5
+    },
+    "resets": {
+     "new_symbol_in_day": 1
+    },
+    "top": [
+     {
+      "symbol": "AKEUSDT",
+      "px_chain_at_b0": 0.00860712,
+      "px_own_at_b0": 0.00849554,
+      "own_source": "readback_mark",
+      "rel": -0.01296445,
+      "qty_at_join": 45375.0,
+      "value_diff_usdt": -5.06324198,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "LAUSDT",
+      "px_chain_at_b0": 0.06040169,
+      "px_own_at_b0": 0.05934378,
+      "own_source": "readback_mark",
+      "rel": -0.01751461,
+      "qty_at_join": -3719.4,
+      "value_diff_usdt": 3.93479782,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "ONGUSDT",
+      "px_chain_at_b0": 0.09057907,
+      "px_own_at_b0": 0.09142834,
+      "own_source": "readback_mark",
+      "rel": 0.00937604,
+      "qty_at_join": -4248.0,
+      "value_diff_usdt": -3.60771048,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "ESPORTSUSDT",
+      "px_chain_at_b0": 0.01604124,
+      "px_own_at_b0": 0.01616768,
+      "own_source": "readback_mark",
+      "rel": 0.007882,
+      "qty_at_join": 25482.0,
+      "value_diff_usdt": 3.22186857,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "ZKPUSDT",
+      "px_chain_at_b0": 0.04505326,
+      "px_own_at_b0": 0.04548769,
+      "own_source": "readback_mark",
+      "rel": 0.0096425,
+      "qty_at_join": -6659.0,
+      "value_diff_usdt": -2.8928445,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "BLESSUSDT",
+      "px_chain_at_b0": 0.00949048,
+      "px_own_at_b0": 0.00941188,
+      "own_source": "readback_mark",
+      "rel": -0.00828275,
+      "qty_at_join": 34988.0,
+      "value_diff_usdt": -2.75031263,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "CYSUSDT",
+      "px_chain_at_b0": 0.52278833,
+      "px_own_at_b0": 0.5196058,
+      "own_source": "readback_mark",
+      "rel": -0.0060876,
+      "qty_at_join": 829.0,
+      "value_diff_usdt": -2.63831411,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "TACUSDT",
+      "px_chain_at_b0": 0.00226664,
+      "px_own_at_b0": 0.00228116,
+      "own_source": "readback_mark",
+      "rel": 0.00640636,
+      "qty_at_join": 155427.0,
+      "value_diff_usdt": 2.2569438,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "OPUSDT",
+      "px_chain_at_b0": 0.09655203,
+      "px_own_at_b0": 0.09774132,
+      "own_source": "readback_mark",
+      "rel": 0.01231761,
+      "qty_at_join": -1867.2,
+      "value_diff_usdt": -2.2206428,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "COLLECTUSDT",
+      "px_chain_at_b0": 0.07634664,
+      "px_own_at_b0": 0.07677161,
+      "own_source": "readback_mark",
+      "rel": 0.00556625,
+      "qty_at_join": 5163.0,
+      "value_diff_usdt": 2.19408996,
+      "cause": "mark_vs_close"
+     }
+    ],
+    "rule": "the day chain's price at b0 vs the price this window would have derived on its own; REPORTED, never added to P&L (a mark-vs-close difference is a valuation difference, not a realised gain)"
+   },
+   "fill_partition": {
+    "owns": "[t_decision, t_end]",
+    "n_fills_price_corrected": 138,
+    "keys": [
+     [
+      "0GUSDT",
+      218252696
+     ],
+     [
+      "1000BONKUSDT",
+      950231790
+     ],
+     [
+      "1000PEPEUSDT",
+      2758550244
+     ],
+     [
+      "1000RATSUSDT",
+      370899198
+     ],
+     [
+      "4USDT",
+      146424908
+     ],
+     [
+      "ACEUSDT",
+      343494449
+     ],
+     [
+      "ACUUSDT",
+      59104278
+     ],
+     [
+      "AEROUSDT",
+      117075734
+     ],
+     [
+      "AIOUSDT",
+      86788534
+     ],
+     [
+      "AKEUSDT",
+      291963235
+     ],
+     [
+      "APRUSDT",
+      164230228
+     ],
+     [
+      "APRUSDT",
+      164230231
+     ],
+     [
+      "ATOMUSDT",
+      872430307
+     ],
+     [
+      "AUCTIONUSDT",
+      320275449
+     ],
+     [
+      "BANKUSDT",
+      348537478
+     ],
+     [
+      "BASEDUSDT",
+      111470802
+     ],
+     [
+      "BASUSDT",
+      179261239
+     ],
+     [
+      "BASUSDT",
+      179261240
+     ],
+     [
+      "BASUSDT",
+      179261241
+     ],
+     [
+      "BBUSDT",
+      236243567
+     ],
+     [
+      "BEATUSDT",
+      619454987
+     ],
+     [
+      "BICOUSDT",
+      156101315
+     ],
+     [
+      "BIOUSDT",
+      291759181
+     ],
+     [
+      "BLESSUSDT",
+      307823498
+     ],
+     [
+      "BMTUSDT",
+      97259287
+     ],
+     [
+      "BRUSDT",
+      123527666
+     ],
+     [
+      "BRUSDT",
+      123527683
+     ],
+     [
+      "BSBUSDT",
+      364378918
+     ],
+     [
+      "BTRUSDT",
+      156849976
+     ],
+     [
+      "CCUSDT",
+      67704171
+     ],
+     [
+      "CFGUSDT",
+      22750240
+     ],
+     [
+      "CFXUSDT",
+      482173862
+     ],
+     [
+      "CHILLGUYUSDT",
+      117435440
+     ],
+     [
+      "CHZUSDT",
+      731101568
+     ],
+     [
+      "CHZUSDT",
+      731101569
+     ],
+     [
+      "COMPUSDT",
+      457745860
+     ],
+     [
+      "COTIUSDT",
+      423127233
+     ],
+     [
+      "CRVUSDT",
+      571907958
+     ],
+     [
+      "CVXUSDT",
+      20687292
+     ],
+     [
+      "CYSUSDT",
+      162385143
+     ],
+     [
+      "DODOXUSDT",
+      117524788
+     ],
+     [
+      "DOTUSDT",
+      1175440964
+     ],
+     [
+      "DYDXUSDT",
+      582693394
+     ],
+     [
+      "EDGEUSDT",
+      80996428
+     ],
+     [
+      "EDGEUSDT",
+      80996429
+     ],
+     [
+      "ERAUSDT",
+      85443382
+     ],
+     [
+      "ESPORTSUSDT",
+      223762944
+     ],
+     [
+      "EULUSDT",
+      88466873
+     ],
+     [
+      "EULUSDT",
+      88467335
+     ],
+     [
+      "FLOCKUSDT",
+      33523072
+     ],
+     [
+      "FLOCKUSDT",
+      33523074
+     ],
+     [
+      "FLOCKUSDT",
+      33523256
+     ],
+     [
+      "FORMUSDT",
+      149402868
+     ],
+     [
+      "GPSUSDT",
+      140901992
+     ],
+     [
+      "GRASSUSDT",
+      175782119
+     ],
+     [
+      "GWEIUSDT",
+      81060500
+     ],
+     [
+      "HBARUSDT",
+      785575946
+     ],
+     [
+      "HEMIUSDT",
+      196413554
+     ],
+     [
+      "HOLOUSDT",
+      96893202
+     ],
+     [
+      "HOLOUSDT",
+      96893335
+     ],
+     [
+      "HOMEUSDT",
+      183440219
+     ],
+     [
+      "HYPEUSDT",
+      721132630
+     ],
+     [
+      "JCTUSDT",
+      77860290
+     ],
+     [
+      "JSTUSDT",
+      35283163
+     ],
+     [
+      "JTOUSDT",
+      537215271
+     ],
+     [
+      "KITEUSDT",
+      217733175
+     ],
+     [
+      "KITEUSDT",
+      217733187
+     ],
+     [
+      "KOMAUSDT",
+      108709405
+     ],
+     [
+      "LABUSDT",
+      691090338
+     ],
+     [
+      "LAUSDT",
+      105759064
+     ],
+     [
+      "LIGHTUSDT",
+      245006581
+     ],
+     [
+      "LITUSDT",
+      148179385
+     ],
+     [
+      "MANAUSDT",
+      620240514
+     ],
+     [
+      "MEGAUSDT",
+      41828012
+     ],
+     [
+      "MEGAUSDT",
+      41828013
+     ],
+     [
+      "MIRAUSDT",
+      109842826
+     ],
+     [
+      "MMTUSDT",
+      158328622
+     ],
+     [
+      "MONUSDT",
+      83310670
+     ],
+     [
+      "MOODENGUSDT",
+      460409589
+     ],
+     [
+      "MOVEUSDT",
+      206075476
+     ],
+     [
+      "MOVRUSDT",
+      153146255
+     ],
+     [
+      "NEARUSDT",
+      1042978980
+     ],
+     [
+      "NEIROUSDT",
+      603491188
+     ],
+     [
+      "NILUSDT",
+      118650917
+     ],
+     [
+      "NOTUSDT",
+      472296038
+     ],
+     [
+      "NOTUSDT",
+      472296041
+     ],
+     [
+      "ONEUSDT",
+      331308795
+     ],
+     [
+      "ONTUSDT",
+      311833212
+     ],
+     [
+      "OPGUSDT",
+      44060930
+     ],
+     [
+      "OPUSDT",
+      954867122
+     ],
+     [
+      "PIEVERSEUSDT",
+      208803677
+     ],
+     [
+      "PIEVERSEUSDT",
+      208803678
+     ],
+     [
+      "PNUTUSDT",
+      660499505
+     ],
+     [
+      "PORTALUSDT",
+      163650845
+     ],
+     [
+      "PTBUSDT",
+      124460139
+     ],
+     [
+      "PYTHUSDT",
+      324049657
+     ],
+     [
+      "RAVEUSDT",
+      497344587
+     ],
+     [
+      "RAVEUSDT",
+      497344588
+     ],
+     [
+      "SAHARAUSDT",
+      147253651
+     ],
+     [
+      "SIRENUSDT",
+      554118850
+     ],
+     [
+      "SKYUSDT",
+      48084039
+     ],
+     [
+      "SKYUSDT",
+      48084042
+     ],
+     [
+      "SKYUSDT",
+      48084045
+     ],
+     [
+      "SPXUSDT",
+      218100029
+     ],
+     [
+      "SPXUSDT",
+      218100030
+     ],
+     [
+      "STABLEUSDT",
+      103206937
+     ],
+     [
+      "STARUSDT",
+      15591337
+     ],
+     [
+      "STRKUSDT",
+      239302263
+     ],
+     [
+      "STXUSDT",
+      476447271
+     ],
+     [
+      "SXTUSDT",
+      73814768
+     ],
+     [
+      "SYNUSDT",
+      175581852
+     ],
+     [
+      "TLMUSDT",
+      145280765
+     ],
+     [
+      "TRBUSDT",
+      1021089833
+     ],
+     [
+      "TRIAUSDT",
+      59115491
+     ],
+     [
+      "TSTUSDT",
+      148258773
+     ],
+     [
+      "UAIUSDT",
+      133997136
+     ],
+     [
+      "USELESSUSDT",
+      101664969
+     ],
+     [
+      "VELVETUSDT",
+      276808853
+     ],
+     [
+      "VELVETUSDT",
+      276808857
+     ],
+     [
+      "VELVETUSDT",
+      276808897
+     ],
+     [
+      "VELVETUSDT",
+      276808898
+     ],
+     [
+      "VELVETUSDT",
+      276808899
+     ],
+     [
+      "VELVETUSDT",
+      276808900
+     ],
+     [
+      "VETUSDT",
+      568933864
+     ],
+     [
+      "VIRTUALUSDT",
+      452695500
+     ],
+     [
+      "VVVUSDT",
+      227305312
+     ],
+     [
+      "WIFUSDT",
+      1246113375
+     ],
+     [
+      "WLFIUSDT",
+      190255740
+     ],
+     [
+      "WUSDT",
+      248568857
+     ],
+     [
+      "XMRUSDT",
+      545274057
+     ],
+     [
+      "ZAMAUSDT",
+      55409996
+     ],
+     [
+      "ZBTUSDT",
+      144703115
+     ],
+     [
+      "ZKCUSDT",
+      110839354
+     ],
+     [
+      "ZKCUSDT",
+      110839355
+     ],
+     [
+      "ZKCUSDT",
+      110839356
+     ],
+     [
+      "ZKCUSDT",
+      110839357
+     ],
+     [
+      "ZKCUSDT",
+      110839358
+     ],
+     [
+      "ZKPUSDT",
+      99077845
+     ]
+    ],
+    "rule": "R13-P2 (2): the gap owns (A, t_d) and the window owns [t_d, t_end]; a fill exactly at t_d belongs to the window ONLY"
+   },
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "DASHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ZORAUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": -4.229843853329648,
+    "L3_minus_L2cut_execution": -4.229843853329633,
+    "L2cut_minus_L2_flatten_footprint": -1.4210854715202004e-14,
+    "L2_minus_L1_skips": 0.76206554997772,
+    "L1_minus_L0_book_layer": -99.85772440845575,
+    "L3_minus_L0_total": -103.32550271180767,
+    "L3_minus_L2cut_execution_with_fill_prices": -4.045706073645356,
+    "fill_price_correction": 0.1841377796842762
+   },
+   "n_names_ok": 256
+  },
+  {
+   "anchor": 1788249600,
+   "utc": "09-01 08:00Z",
+   "status": "OK",
+   "rebalance_id": "A1788251039",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1788251041.866218,
+   "t_end": 1788264000.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": -1.6753178421314026,
+   "n_fills_price_corrected": 92,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1788251100,
+   "b1": 1788264000,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 254,
+     "n_priced": 254,
+     "gross_b0": 39350.94215060743,
+     "net_b0": -1477.0617680004257,
+     "pnl_usdt": -288.878166635871,
+     "pnl_long_usdt": -155.34548530056722,
+     "pnl_short_usdt": -133.53268133530375,
+     "censored": {
+      "n": 9,
+      "notional": 1355.4864531099577
+     }
+    },
+    "L1_executor_target": {
+     "n": 254,
+     "n_priced": 254,
+     "gross_b0": 40287.803575680904,
+     "net_b0": 212.5515293551658,
+     "pnl_usdt": -126.90143669155236,
+     "pnl_long_usdt": 4.788085468330253,
+     "pnl_short_usdt": -131.68952215988253,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 254,
+     "n_priced": 254,
+     "gross_b0": 40328.73400843042,
+     "net_b0": 235.6090339499624,
+     "pnl_usdt": -126.64771869156544,
+     "pnl_long_usdt": 4.908958299754616,
+     "pnl_short_usdt": -131.55667699132005,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 254,
+     "n_priced": 254,
+     "gross_b0": 40328.73400843042,
+     "net_b0": 235.6090339499624,
+     "pnl_usdt": -126.6477186915653,
+     "pnl_long_usdt": 4.908958299754627,
+     "pnl_short_usdt": -131.55667699132005,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 254,
+     "n_priced": 254,
+     "gross_b0": 40335.60637823248,
+     "net_b0": 371.2338767779158,
+     "pnl_usdt": -125.74801691716006,
+     "pnl_long_usdt": 5.43609111137568,
+     "pnl_short_usdt": -131.184108028536,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": -1.6753178421314026,
+     "pnl_usdt_with_fill_prices": -127.42333475929146,
+     "n_fills_price_corrected": 92
+    }
+   },
+   "fees_in_window": {
+    "BNB": 0.00041237
+   },
+   "n_fills_in_window": 92,
+   "events": {
+    "pre_window": 0,
+    "in_window": 92,
+    "post_window_not_applied": 111
+   },
+   "intra_row_approx": 32,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 252,
+    "max_abs_rel": 0.0421972824214496,
+    "median_abs_rel": 0.0023731744736188443
+   },
+   "fill_px_vs_path": {
+    "n": 32,
+    "max_abs_rel": 0.01280194845473881,
+    "median_abs_rel": 0.0033842484378761584
+   },
+   "reference_readback": {
+    "runs": [
+     "09-01 04Z"
+    ],
+    "n_names": 251,
+    "n_stale_over_4h40m": 0,
+    "t_earliest_read": 1788237763.194946
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 251,
+    "t_latest_read": 1788266493.556138
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 11,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 2.0112241644792426e-13,
+    "n_nonfinite_next_readback": 0,
+    "top": [
+     [
+      "ARBUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "CYSUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "GRTUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "INJUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "KAITOUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "LITUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ONTUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "RENDERUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "TNSRUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "WUSDT",
+      0.0,
+      0.0
+     ]
+    ],
+    "next_readback_names": 251,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "price_chain_joins": {
+    "n_names_compared": 253,
+    "n_over_1pct": 7,
+    "n_value_over_1cent": 209,
+    "abs_value_diff_sum_usdt": 88.88065541852836,
+    "max_abs_rel": 0.02286820897425268,
+    "causes": {
+     "mark_vs_close": 250,
+     "fill_px_vs_close": 3
+    },
+    "resets": {},
+    "top": [
+     {
+      "symbol": "BLESSUSDT",
+      "px_chain_at_b0": 0.00912946,
+      "px_own_at_b0": 0.00901776,
+      "own_source": "readback_mark",
+      "rel": -0.012235,
+      "qty_at_join": 36974.0,
+      "value_diff_usdt": -4.12995433,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "4USDT",
+      "px_chain_at_b0": 0.01373946,
+      "px_own_at_b0": 0.01364407,
+      "own_source": "readback_mark",
+      "rel": -0.00694325,
+      "qty_at_join": 32484.0,
+      "value_diff_usdt": -3.09886181,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "ZKCUSDT",
+      "px_chain_at_b0": 0.05141125,
+      "px_own_at_b0": 0.05198759,
+      "own_source": "readback_mark",
+      "rel": 0.01121055,
+      "qty_at_join": -4608.0,
+      "value_diff_usdt": -2.65581336,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "TACUSDT",
+      "px_chain_at_b0": 0.00222973,
+      "px_own_at_b0": 0.00224391,
+      "own_source": "readback_mark",
+      "rel": 0.00636046,
+      "qty_at_join": 155427.0,
+      "value_diff_usdt": 2.20428085,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "ACEUSDT",
+      "px_chain_at_b0": 0.1659917,
+      "px_own_at_b0": 0.16482852,
+      "own_source": "readback_mark",
+      "rel": -0.0070075,
+      "qty_at_join": -1784.75,
+      "value_diff_usdt": 2.07599634,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "BICOUSDT",
+      "px_chain_at_b0": 0.02194215,
+      "px_own_at_b0": 0.02209778,
+      "own_source": "readback_mark",
+      "rel": 0.00709311,
+      "qty_at_join": -13202.0,
+      "value_diff_usdt": -2.05473329,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "ONGUSDT",
+      "px_chain_at_b0": 0.10427957,
+      "px_own_at_b0": 0.10476288,
+      "own_source": "readback_mark",
+      "rel": 0.00463479,
+      "qty_at_join": -4248.0,
+      "value_diff_usdt": -2.05311531,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "UAIUSDT",
+      "px_chain_at_b0": 0.43088019,
+      "px_own_at_b0": 0.42888199,
+      "own_source": "readback_mark",
+      "rel": -0.00463749,
+      "qty_at_join": 983.0,
+      "value_diff_usdt": -1.96423328,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "STARUSDT",
+      "px_chain_at_b0": 0.1272038,
+      "px_own_at_b0": 0.12670126,
+      "own_source": "readback_mark",
+      "rel": -0.00395065,
+      "qty_at_join": 3617.0,
+      "value_diff_usdt": -1.81767701,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "0GUSDT",
+      "px_chain_at_b0": 0.23443462,
+      "px_own_at_b0": 0.23638356,
+      "own_source": "readback_mark",
+      "rel": 0.00831337,
+      "qty_at_join": -926.0,
+      "value_diff_usdt": -1.80472086,
+      "cause": "mark_vs_close"
+     }
+    ],
+    "rule": "the day chain's price at b0 vs the price this window would have derived on its own; REPORTED, never added to P&L (a mark-vs-close difference is a valuation difference, not a realised gain)"
+   },
+   "fill_partition": {
+    "owns": "[t_decision, t_end]",
+    "n_fills_price_corrected": 92,
+    "keys": [
+     [
+      "0GUSDT",
+      218572119
+     ],
+     [
+      "1000PEPEUSDT",
+      2758747115
+     ],
+     [
+      "1000RATSUSDT",
+      370903048
+     ],
+     [
+      "1000SHIBUSDT",
+      1579622793
+     ],
+     [
+      "ACEUSDT",
+      343582125
+     ],
+     [
+      "AIOUSDT",
+      86826417
+     ],
+     [
+      "AKEUSDT",
+      292103709
+     ],
+     [
+      "ARBUSDT",
+      637333048
+     ],
+     [
+      "ARIAUSDT",
+      173223199
+     ],
+     [
+      "AUCTIONUSDT",
+      320299958
+     ],
+     [
+      "BASEDUSDT",
+      111476520
+     ],
+     [
+      "BASUSDT",
+      179266184
+     ],
+     [
+      "BRUSDT",
+      123537361
+     ],
+     [
+      "CFGUSDT",
+      22758804
+     ],
+     [
+      "CFXUSDT",
+      482187839
+     ],
+     [
+      "CLOUSDT",
+      184391847
+     ],
+     [
+      "COMPUSDT",
+      457756517
+     ],
+     [
+      "CYSUSDT",
+      162701612
+     ],
+     [
+      "DOTUSDT",
+      1175522370
+     ],
+     [
+      "ENSOUSDT",
+      209726522
+     ],
+     [
+      "ESPORTSUSDT",
+      223774360
+     ],
+     [
+      "EULUSDT",
+      88484736
+     ],
+     [
+      "FARTCOINUSDT",
+      677684210
+     ],
+     [
+      "FLOCKUSDT",
+      33579070
+     ],
+     [
+      "FLOCKUSDT",
+      33579071
+     ],
+     [
+      "GPSUSDT",
+      140919439
+     ],
+     [
+      "GPSUSDT",
+      140919440
+     ],
+     [
+      "GRASSUSDT",
+      175792820
+     ],
+     [
+      "GWEIUSDT",
+      81079199
+     ],
+     [
+      "HEIUSDT",
+      194895588
+     ],
+     [
+      "HEMIUSDT",
+      196658602
+     ],
+     [
+      "HOLOUSDT",
+      96904741
+     ],
+     [
+      "HUSDT",
+      538137087
+     ],
+     [
+      "ICPUSDT",
+      416804131
+     ],
+     [
+      "IDUSDT",
+      303771333
+     ],
+     [
+      "IDUSDT",
+      303771334
+     ],
+     [
+      "IOTAUSDT",
+      296202287
+     ],
+     [
+      "JSTUSDT",
+      35299294
+     ],
+     [
+      "KASUSDT",
+      175916854
+     ],
+     [
+      "KMNOUSDT",
+      66698412
+     ],
+     [
+      "KOMAUSDT",
+      108717705
+     ],
+     [
+      "LABUSDT",
+      691127897
+     ],
+     [
+      "LITUSDT",
+      148322059
+     ],
+     [
+      "LITUSDT",
+      148322060
+     ],
+     [
+      "MANTRAUSDT",
+      20787646
+     ],
+     [
+      "MEGAUSDT",
+      41834849
+     ],
+     [
+      "MINAUSDT",
+      231568808
+     ],
+     [
+      "MINAUSDT",
+      231568809
+     ],
+     [
+      "MINAUSDT",
+      231568810
+     ],
+     [
+      "MIRAUSDT",
+      109862802
+     ],
+     [
+      "MIRAUSDT",
+      109862803
+     ],
+     [
+      "MMTUSDT",
+      158336151
+     ],
+     [
+      "MOODENGUSDT",
+      460418125
+     ],
+     [
+      "MOVRUSDT",
+      153170727
+     ],
+     [
+      "NEIROUSDT",
+      603522289
+     ],
+     [
+      "NOTUSDT",
+      472414780
+     ],
+     [
+      "ONEUSDT",
+      331317795
+     ],
+     [
+      "ONGUSDT",
+      210255154
+     ],
+     [
+      "ONGUSDT",
+      210255155
+     ],
+     [
+      "ONGUSDT",
+      210255156
+     ],
+     [
+      "ONGUSDT",
+      210255157
+     ],
+     [
+      "ONGUSDT",
+      210255158
+     ],
+     [
+      "ONGUSDT",
+      210255159
+     ],
+     [
+      "ONGUSDT",
+      210255160
+     ],
+     [
+      "ONGUSDT",
+      210255161
+     ],
+     [
+      "ONTUSDT",
+      311885055
+     ],
+     [
+      "OPGUSDT",
+      44068340
+     ],
+     [
+      "PIEVERSEUSDT",
+      208821075
+     ],
+     [
+      "PNUTUSDT",
+      660509028
+     ],
+     [
+      "POPCATUSDT",
+      277836187
+     ],
+     [
+      "PTBUSDT",
+      124467843
+     ],
+     [
+      "PTBUSDT",
+      124467844
+     ],
+     [
+      "RENDERUSDT",
+      183399447
+     ],
+     [
+      "ROBOUSDT",
+      49260088
+     ],
+     [
+      "SAGAUSDT",
+      310626994
+     ],
+     [
+      "SANDUSDT",
+      996780928
+     ],
+     [
+      "SIRENUSDT",
+      554127485
+     ],
+     [
+      "SIRENUSDT",
+      554127486
+     ],
+     [
+      "STABLEUSDT",
+      103228696
+     ],
+     [
+      "STARUSDT",
+      15655472
+     ],
+     [
+      "STRKUSDT",
+      239323330
+     ],
+     [
+      "TNSRUSDT",
+      275625729
+     ],
+     [
+      "TRBUSDT",
+      1021101119
+     ],
+     [
+      "TRIAUSDT",
+      59211000
+     ],
+     [
+      "UAIUSDT",
+      134086233
+     ],
+     [
+      "UBUSDT",
+      303396422
+     ],
+     [
+      "USELESSUSDT",
+      102134497
+     ],
+     [
+      "WALUSDT",
+      70236242
+     ],
+     [
+      "WLFIUSDT",
+      190291305
+     ],
+     [
+      "WUSDT",
+      248584278
+     ],
+     [
+      "XMRUSDT",
+      545406806
+     ],
+     [
+      "ZBTUSDT",
+      144718854
+     ]
+    ],
+    "rule": "R13-P2 (2): the gap owns (A, t_d) and the window owns [t_d, t_end]; a fill exactly at t_d belongs to the window ONLY"
+   },
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "DASHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ZORAUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": 0.8997017744053863,
+    "L3_minus_L2cut_execution": 0.8997017744052442,
+    "L2cut_minus_L2_flatten_footprint": 1.4210854715202004e-13,
+    "L2_minus_L1_skips": 0.25371799998691813,
+    "L1_minus_L0_book_layer": 161.97672994431866,
+    "L3_minus_L0_total": 163.13014971871098,
+    "L3_minus_L2cut_execution_with_fill_prices": -0.7756160677261619,
+    "fill_price_correction": -1.6753178421314026
+   },
+   "n_names_ok": 254
+  },
+  {
+   "anchor": 1788264000,
+   "utc": "09-01 12:00Z",
+   "status": "OK",
+   "rebalance_id": "A1788265440",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1788265443.1921542,
+   "t_end": 1788278400.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": -1.2948529075895423,
+   "n_fills_price_corrected": 111,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1788265500,
+   "b1": 1788278400,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 254,
+     "n_priced": 254,
+     "gross_b0": 39085.05841318872,
+     "net_b0": -1403.185606776608,
+     "pnl_usdt": 180.27314780187095,
+     "pnl_long_usdt": 213.82460633963188,
+     "pnl_short_usdt": -33.55145853776082,
+     "censored": {
+      "n": 9,
+      "notional": 1357.7195376928296
+     }
+    },
+    "L1_executor_target": {
+     "n": 254,
+     "n_priced": 254,
+     "gross_b0": 39993.002052459065,
+     "net_b0": 210.54031244562202,
+     "pnl_usdt": 108.84638186693775,
+     "pnl_long_usdt": 142.2629725489061,
+     "pnl_short_usdt": -33.416590681968316,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 254,
+     "n_priced": 254,
+     "gross_b0": 40156.36226336473,
+     "net_b0": 134.17446736114445,
+     "pnl_usdt": 109.57655670082644,
+     "pnl_long_usdt": 143.1645583850466,
+     "pnl_short_usdt": -33.58800168422016,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 254,
+     "n_priced": 254,
+     "gross_b0": 40156.36226336473,
+     "net_b0": 134.17446736114445,
+     "pnl_usdt": 109.57655670082644,
+     "pnl_long_usdt": 143.1645583850466,
+     "pnl_short_usdt": -33.58800168422016,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 254,
+     "n_priced": 254,
+     "gross_b0": 39927.83065983841,
+     "net_b0": 218.0748164030278,
+     "pnl_usdt": 109.9657903208195,
+     "pnl_long_usdt": 143.57588533736038,
+     "pnl_short_usdt": -33.610095016540875,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": -1.2948529075895423,
+     "pnl_usdt_with_fill_prices": 108.67093741322995,
+     "n_fills_price_corrected": 111
+    }
+   },
+   "fees_in_window": {
+    "BNB": 0.0004395499999999999
+   },
+   "n_fills_in_window": 111,
+   "events": {
+    "pre_window": 0,
+    "in_window": 111,
+    "post_window_not_applied": 106
+   },
+   "intra_row_approx": 42,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 251,
+    "max_abs_rel": 0.022657890122545377,
+    "median_abs_rel": 0.00203698254598339
+   },
+   "fill_px_vs_path": {
+    "n": 42,
+    "max_abs_rel": 0.02119813296932338,
+    "median_abs_rel": 0.002499368527882573
+   },
+   "reference_readback": {
+    "runs": [
+     "09-01 08Z"
+    ],
+    "n_names": 252,
+    "n_stale_over_4h40m": 0,
+    "t_earliest_read": 1788252078.866702
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 251,
+    "t_latest_read": 1788280898.502228
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 7,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 1.5262576019680548e-13,
+    "n_nonfinite_next_readback": 0,
+    "top": [
+     [
+      "CYSUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "DEXEUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ENSUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "GRTUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "TRUMPUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "VVVUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ZECUSDT",
+      -0.0,
+      -0.0
+     ]
+    ],
+    "next_readback_names": 251,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "price_chain_joins": {
+    "n_names_compared": 251,
+    "n_over_1pct": 8,
+    "n_value_over_1cent": 210,
+    "abs_value_diff_sum_usdt": 109.5333917931747,
+    "max_abs_rel": 0.04586540446593046,
+    "causes": {
+     "mark_vs_close": 250,
+     "fill_px_vs_close": 1
+    },
+    "resets": {},
+    "top": [
+     {
+      "symbol": "TACUSDT",
+      "px_chain_at_b0": 0.00216191,
+      "px_own_at_b0": 0.00213654,
+      "own_source": "readback_mark",
+      "rel": -0.01173561,
+      "qty_at_join": 160008.0,
+      "value_diff_usdt": -4.059615,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "ONGUSDT",
+      "px_chain_at_b0": 0.11335233,
+      "px_own_at_b0": 0.11452544,
+      "own_source": "readback_mark",
+      "rel": 0.01034919,
+      "qty_at_join": -3083.0,
+      "value_diff_usdt": -3.61668139,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "GWEIUSDT",
+      "px_chain_at_b0": 0.02516036,
+      "px_own_at_b0": 0.02485897,
+      "own_source": "readback_mark",
+      "rel": -0.01197888,
+      "qty_at_join": -11477.0,
+      "value_diff_usdt": 3.45908763,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "ACEUSDT",
+      "px_chain_at_b0": 0.19276094,
+      "px_own_at_b0": 0.190655,
+      "own_source": "readback_mark",
+      "rel": -0.01092512,
+      "qty_at_join": -1549.98,
+      "value_diff_usdt": 3.26415983,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "STARUSDT",
+      "px_chain_at_b0": 0.14131815,
+      "px_own_at_b0": 0.14227902,
+      "own_source": "readback_mark",
+      "rel": 0.00679936,
+      "qty_at_join": 3314.0,
+      "value_diff_usdt": 3.18433162,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "CLOUSDT",
+      "px_chain_at_b0": 0.13922007,
+      "px_own_at_b0": 0.13821409,
+      "own_source": "readback_mark",
+      "rel": -0.00722584,
+      "qty_at_join": 2894.0,
+      "value_diff_usdt": -2.91131123,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "XANUSDT",
+      "px_chain_at_b0": 0.01330606,
+      "px_own_at_b0": 0.0131868,
+      "own_source": "readback_mark",
+      "rel": -0.00896312,
+      "qty_at_join": 22527.0,
+      "value_diff_usdt": -2.68665733,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "4USDT",
+      "px_chain_at_b0": 0.01408695,
+      "px_own_at_b0": 0.01400539,
+      "own_source": "readback_mark",
+      "rel": -0.00578991,
+      "qty_at_join": 32484.0,
+      "value_diff_usdt": -2.64946706,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "UAIUSDT",
+      "px_chain_at_b0": 0.42386236,
+      "px_own_at_b0": 0.42091786,
+      "own_source": "readback_mark",
+      "rel": -0.00694682,
+      "qty_at_join": 866.0,
+      "value_diff_usdt": -2.5499322,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "NILUSDT",
+      "px_chain_at_b0": 0.0502358,
+      "px_own_at_b0": 0.0497817,
+      "own_source": "readback_mark",
+      "rel": -0.00903926,
+      "qty_at_join": -5068.9,
+      "value_diff_usdt": 2.30176007,
+      "cause": "mark_vs_close"
+     }
+    ],
+    "rule": "the day chain's price at b0 vs the price this window would have derived on its own; REPORTED, never added to P&L (a mark-vs-close difference is a valuation difference, not a realised gain)"
+   },
+   "fill_partition": {
+    "owns": "[t_decision, t_end]",
+    "n_fills_price_corrected": 111,
+    "keys": [
+     [
+      "0GUSDT",
+      218908307
+     ],
+     [
+      "ACEUSDT",
+      343785623
+     ],
+     [
+      "ADAUSDT",
+      1914950584
+     ],
+     [
+      "AEROUSDT",
+      117118104
+     ],
+     [
+      "AKEUSDT",
+      292379233
+     ],
+     [
+      "ALGOUSDT",
+      516783771
+     ],
+     [
+      "APTUSDT",
+      984499886
+     ],
+     [
+      "ARBUSDT",
+      637923011
+     ],
+     [
+      "ARIAUSDT",
+      173242227
+     ],
+     [
+      "ATOMUSDT",
+      872457179
+     ],
+     [
+      "AUCTIONUSDT",
+      320317243
+     ],
+     [
+      "AXSUSDT",
+      697484914
+     ],
+     [
+      "BANKUSDT",
+      348582909
+     ],
+     [
+      "BASUSDT",
+      179273334
+     ],
+     [
+      "BEATUSDT",
+      619509903
+     ],
+     [
+      "BICOUSDT",
+      156177926
+     ],
+     [
+      "BROCCOLI714USDT",
+      82048188
+     ],
+     [
+      "CAKEUSDT",
+      318169383
+     ],
+     [
+      "CFGUSDT",
+      22768907
+     ],
+     [
+      "CHILLGUYUSDT",
+      117450668
+     ],
+     [
+      "CLOUSDT",
+      184447936
+     ],
+     [
+      "COLLECTUSDT",
+      62817854
+     ],
+     [
+      "COTIUSDT",
+      423194290
+     ],
+     [
+      "CRVUSDT",
+      572303687
+     ],
+     [
+      "CYSUSDT",
+      163004739
+     ],
+     [
+      "CYSUSDT",
+      163004740
+     ],
+     [
+      "CYSUSDT",
+      163004790
+     ],
+     [
+      "CYSUSDT",
+      163004791
+     ],
+     [
+      "EDGEUSDT",
+      81013128
+     ],
+     [
+      "EGLDUSDT",
+      386828152
+     ],
+     [
+      "EPICUSDT",
+      158659812
+     ],
+     [
+      "ESPORTSUSDT",
+      223793067
+     ],
+     [
+      "ESPUSDT",
+      89602011
+     ],
+     [
+      "FARTCOINUSDT",
+      677716232
+     ],
+     [
+      "FETUSDT",
+      689956386
+     ],
+     [
+      "FLOCKUSDT",
+      33644564
+     ],
+     [
+      "FORMUSDT",
+      149423859
+     ],
+     [
+      "GALAUSDT",
+      889485251
+     ],
+     [
+      "GRASSUSDT",
+      175800733
+     ],
+     [
+      "GRTUSDT",
+      568328440
+     ],
+     [
+      "GWEIUSDT",
+      81108531
+     ],
+     [
+      "HEIUSDT",
+      194945180
+     ],
+     [
+      "HEMIUSDT",
+      197043953
+     ],
+     [
+      "HOLOUSDT",
+      96917965
+     ],
+     [
+      "INJUSDT",
+      774408611
+     ],
+     [
+      "KAITOUSDT",
+      409766618
+     ],
+     [
+      "KAITOUSDT",
+      409766619
+     ],
+     [
+      "KASUSDT",
+      175923253
+     ],
+     [
+      "KMNOUSDT",
+      66703948
+     ],
+     [
+      "LAUSDT",
+      105833440
+     ],
+     [
+      "METUSDT",
+      59794752
+     ],
+     [
+      "MIRAUSDT",
+      109883535
+     ],
+     [
+      "MIRAUSDT",
+      109883536
+     ],
+     [
+      "MMTUSDT",
+      158346730
+     ],
+     [
+      "MORPHOUSDT",
+      163955367
+     ],
+     [
+      "MOVEUSDT",
+      206118434
+     ],
+     [
+      "MOVEUSDT",
+      206118435
+     ],
+     [
+      "MUBARAKUSDT",
+      137914430
+     ],
+     [
+      "NEARUSDT",
+      1043126053
+     ],
+     [
+      "NILUSDT",
+      118699119
+     ],
+     [
+      "ONDOUSDT",
+      550212484
+     ],
+     [
+      "ONEUSDT",
+      331328469
+     ],
+     [
+      "ONEUSDT",
+      331328470
+     ],
+     [
+      "ONGUSDT",
+      211187301
+     ],
+     [
+      "ONTUSDT",
+      311943873
+     ],
+     [
+      "ONUSDT",
+      101009320
+     ],
+     [
+      "OPGUSDT",
+      44075174
+     ],
+     [
+      "PEOPLEUSDT",
+      731681131
+     ],
+     [
+      "PIEVERSEUSDT",
+      208834831
+     ],
+     [
+      "PIPPINUSDT",
+      763723708
+     ],
+     [
+      "PLUMEUSDT",
+      74807767
+     ],
+     [
+      "POPCATUSDT",
+      277848990
+     ],
+     [
+      "PTBUSDT",
+      124482507
+     ],
+     [
+      "RAVEUSDT",
+      497355043
+     ],
+     [
+      "RUNEUSDT",
+      566282768
+     ],
+     [
+      "SEIUSDT",
+      460538149
+     ],
+     [
+      "SIRENUSDT",
+      554136350
+     ],
+     [
+      "SIRENUSDT",
+      554136352
+     ],
+     [
+      "SKYUSDT",
+      48161451
+     ],
+     [
+      "SPKUSDT",
+      157563692
+     ],
+     [
+      "STABLEUSDT",
+      103242858
+     ],
+     [
+      "STARUSDT",
+      15779915
+     ],
+     [
+      "STRKUSDT",
+      239350300
+     ],
+     [
+      "STXUSDT",
+      476507477
+     ],
+     [
+      "SUSDT",
+      125054166
+     ],
+     [
+      "SXTUSDT",
+      73832450
+     ],
+     [
+      "SYNUSDT",
+      175600263
+     ],
+     [
+      "TACUSDT",
+      114969943
+     ],
+     [
+      "TACUSDT",
+      114969944
+     ],
+     [
+      "TACUSDT",
+      114969945
+     ],
+     [
+      "TACUSDT",
+      114969946
+     ],
+     [
+      "TLMUSDT",
+      145294069
+     ],
+     [
+      "TNSRUSDT",
+      275644430
+     ],
+     [
+      "TRBUSDT",
+      1021117145
+     ],
+     [
+      "TREEUSDT",
+      80737168
+     ],
+     [
+      "TRIAUSDT",
+      59336389
+     ],
+     [
+      "TRXUSDT",
+      704879718
+     ],
+     [
+      "TRXUSDT",
+      704879719
+     ],
+     [
+      "TSTUSDT",
+      148273958
+     ],
+     [
+      "TUTUSDT",
+      247544762
+     ],
+     [
+      "USELESSUSDT",
+      102941698
+     ],
+     [
+      "VIRTUALUSDT",
+      452810689
+     ],
+     [
+      "WUSDT",
+      248596577
+     ],
+     [
+      "XLMUSDT",
+      1013085085
+     ],
+     [
+      "XMRUSDT",
+      545574699
+     ],
+     [
+      "ZBTUSDT",
+      144729571
+     ],
+     [
+      "ZBTUSDT",
+      144729804
+     ],
+     [
+      "ZBTUSDT",
+      144729805
+     ],
+     [
+      "ZECUSDT",
+      1418893106
+     ],
+     [
+      "ZKCUSDT",
+      111013005
+     ],
+     [
+      "ZKPUSDT",
+      99151531
+     ]
+    ],
+    "rule": "R13-P2 (2): the gap owns (A, t_d) and the window owns [t_d, t_end]; a fill exactly at t_d belongs to the window ONLY"
+   },
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "DASHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ZORAUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": 0.38923361999304973,
+    "L3_minus_L2cut_execution": 0.38923361999304973,
+    "L2cut_minus_L2_flatten_footprint": 0.0,
+    "L2_minus_L1_skips": 0.7301748338886966,
+    "L1_minus_L0_book_layer": -71.4267659349332,
+    "L3_minus_L0_total": -70.30735748105145,
+    "L3_minus_L2cut_execution_with_fill_prices": -0.9056192875964939,
+    "fill_price_correction": -1.2948529075895423
+   },
+   "n_names_ok": 254
+  },
+  {
+   "anchor": 1788278400,
+   "utc": "09-01 16:00Z",
+   "status": "OK",
+   "rebalance_id": "A1788279840",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1788279842.211013,
+   "t_end": 1788292800.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": -3.489913888932201,
+   "n_fills_price_corrected": 106,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1788279900,
+   "b1": 1788292800,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 254,
+     "n_priced": 254,
+     "gross_b0": 39312.71741732929,
+     "net_b0": -1480.238188436462,
+     "pnl_usdt": -2.0081480571267436,
+     "pnl_long_usdt": 8.237225078961995,
+     "pnl_short_usdt": -10.245373136088698,
+     "censored": {
+      "n": 9,
+      "notional": 1373.7499575814863
+     }
+    },
+    "L1_executor_target": {
+     "n": 254,
+     "n_priced": 254,
+     "gross_b0": 40178.96125810436,
+     "net_b0": 191.51192640533876,
+     "pnl_usdt": -113.34994079251167,
+     "pnl_long_usdt": -95.81578241180533,
+     "pnl_short_usdt": -17.53415838070641,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 254,
+     "n_priced": 254,
+     "gross_b0": 40202.58684456842,
+     "net_b0": 67.25180620864361,
+     "pnl_usdt": -112.3280016890966,
+     "pnl_long_usdt": -94.93837405594687,
+     "pnl_short_usdt": -17.3896276331498,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 254,
+     "n_priced": 254,
+     "gross_b0": 40202.58684456842,
+     "net_b0": 67.25180620864361,
+     "pnl_usdt": -112.32800168909654,
+     "pnl_long_usdt": -94.93837405594687,
+     "pnl_short_usdt": -17.389627633149814,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 254,
+     "n_priced": 254,
+     "gross_b0": 40135.89018527211,
+     "net_b0": 416.2045557198836,
+     "pnl_usdt": -110.73030045407985,
+     "pnl_long_usdt": -94.22797099961315,
+     "pnl_short_usdt": -16.502329454466757,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": -3.489913888932201,
+     "pnl_usdt_with_fill_prices": -114.22021434301206,
+     "n_fills_price_corrected": 106
+    }
+   },
+   "fees_in_window": {
+    "BNB": 0.00048362
+   },
+   "n_fills_in_window": 106,
+   "events": {
+    "pre_window": 0,
+    "in_window": 106,
+    "post_window_not_applied": 111
+   },
+   "intra_row_approx": 45,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 251,
+    "max_abs_rel": 0.02464995556751859,
+    "median_abs_rel": 0.002210646017036577
+   },
+   "fill_px_vs_path": {
+    "n": 45,
+    "max_abs_rel": 0.012486909781985744,
+    "median_abs_rel": 0.0023482669098462416
+   },
+   "reference_readback": {
+    "runs": [
+     "09-01 08Z",
+     "09-01 12Z"
+    ],
+    "n_names": 253,
+    "n_stale_over_4h40m": 2,
+    "t_earliest_read": 1788252078.866702
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 251,
+    "t_latest_read": 1788295270.4567811
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 11,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 1.9443483597401808e-13,
+    "n_nonfinite_next_readback": 0,
+    "top": [
+     [
+      "APEUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "AUCTIONUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ENSUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "FORMUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "INJUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ORDIUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "TREEUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "TRUMPUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "VVVUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "WUSDT",
+      -0.0,
+      -0.0
+     ]
+    ],
+    "next_readback_names": 251,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "price_chain_joins": {
+    "n_names_compared": 251,
+    "n_over_1pct": 11,
+    "n_value_over_1cent": 201,
+    "abs_value_diff_sum_usdt": 128.23268712187524,
+    "max_abs_rel": 0.02000620758589533,
+    "causes": {
+     "mark_vs_close": 251
+    },
+    "resets": {},
+    "top": [
+     {
+      "symbol": "STARUSDT",
+      "px_chain_at_b0": 0.14551317,
+      "px_own_at_b0": 0.14291207,
+      "own_source": "readback_mark",
+      "rel": -0.01787533,
+      "qty_at_join": 3314.0,
+      "value_diff_usdt": -8.62003236,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "4USDT",
+      "px_chain_at_b0": 0.01435741,
+      "px_own_at_b0": 0.01415953,
+      "own_source": "readback_mark",
+      "rel": -0.01378262,
+      "qty_at_join": 32975.0,
+      "value_diff_usdt": -6.52518378,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "HEMIUSDT",
+      "px_chain_at_b0": 0.01639823,
+      "px_own_at_b0": 0.01616475,
+      "own_source": "readback_mark",
+      "rel": -0.01423835,
+      "qty_at_join": 23808.0,
+      "value_diff_usdt": -5.55877957,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "ACEUSDT",
+      "px_chain_at_b0": 0.18770693,
+      "px_own_at_b0": 0.19080834,
+      "own_source": "readback_mark",
+      "rel": 0.01652264,
+      "qty_at_join": -1549.98,
+      "value_diff_usdt": -4.80712917,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "CLOUSDT",
+      "px_chain_at_b0": 0.14010333,
+      "px_own_at_b0": 0.14135975,
+      "own_source": "readback_mark",
+      "rel": 0.00896781,
+      "qty_at_join": 2894.0,
+      "value_diff_usdt": 3.63607916,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "MANTRAUSDT",
+      "px_chain_at_b0": 0.00438174,
+      "px_own_at_b0": 0.00433207,
+      "own_source": "readback_mark",
+      "rel": -0.01133564,
+      "qty_at_join": -71823.0,
+      "value_diff_usdt": 3.56743598,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "LAUSDT",
+      "px_chain_at_b0": 0.0582106,
+      "px_own_at_b0": 0.05753284,
+      "own_source": "readback_mark",
+      "rel": -0.01164329,
+      "qty_at_join": -4579.0,
+      "value_diff_usdt": 3.10347664,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "TUTUSDT",
+      "px_chain_at_b0": 0.03103618,
+      "px_own_at_b0": 0.03133916,
+      "own_source": "readback_mark",
+      "rel": 0.00976195,
+      "qty_at_join": -9629.0,
+      "value_diff_usdt": -2.91733207,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "COTIUSDT",
+      "px_chain_at_b0": 0.01312222,
+      "px_own_at_b0": 0.01302344,
+      "own_source": "readback_mark",
+      "rel": -0.00752837,
+      "qty_at_join": -29038.0,
+      "value_diff_usdt": 2.86863254,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "HOLOUSDT",
+      "px_chain_at_b0": 0.06276148,
+      "px_own_at_b0": 0.06205212,
+      "own_source": "readback_mark",
+      "rel": -0.0113025,
+      "qty_at_join": -3904.0,
+      "value_diff_usdt": 2.7693474,
+      "cause": "mark_vs_close"
+     }
+    ],
+    "rule": "the day chain's price at b0 vs the price this window would have derived on its own; REPORTED, never added to P&L (a mark-vs-close difference is a valuation difference, not a realised gain)"
+   },
+   "fill_partition": {
+    "owns": "[t_decision, t_end]",
+    "n_fills_price_corrected": 106,
+    "keys": [
+     [
+      "0GUSDT",
+      219045526
+     ],
+     [
+      "1000FLOKIUSDT",
+      590010176
+     ],
+     [
+      "1000RATSUSDT",
+      370915977
+     ],
+     [
+      "4USDT",
+      146677987
+     ],
+     [
+      "AIOUSDT",
+      86857426
+     ],
+     [
+      "ALLOUSDT",
+      307669987
+     ],
+     [
+      "APRUSDT",
+      164278080
+     ],
+     [
+      "APTUSDT",
+      984595138
+     ],
+     [
+      "ARBUSDT",
+      638482924
+     ],
+     [
+      "ARIAUSDT",
+      173250469
+     ],
+     [
+      "ASTERUSDT",
+      406382897
+     ],
+     [
+      "AUCTIONUSDT",
+      320334601
+     ],
+     [
+      "AXSUSDT",
+      697551315
+     ],
+     [
+      "BANKUSDT",
+      348602047
+     ],
+     [
+      "BASEDUSDT",
+      111493936
+     ],
+     [
+      "BICOUSDT",
+      156215722
+     ],
+     [
+      "BLESSUSDT",
+      308011732
+     ],
+     [
+      "BMTUSDT",
+      97329702
+     ],
+     [
+      "BRUSDT",
+      123553726
+     ],
+     [
+      "BSBUSDT",
+      364430310
+     ],
+     [
+      "CCUSDT",
+      67747063
+     ],
+     [
+      "CFGUSDT",
+      22782670
+     ],
+     [
+      "CFXUSDT",
+      482215912
+     ],
+     [
+      "CHILLGUYUSDT",
+      117454924
+     ],
+     [
+      "CHIPUSDT",
+      104833336
+     ],
+     [
+      "CLOUSDT",
+      184468678
+     ],
+     [
+      "CLOUSDT",
+      184468679
+     ],
+     [
+      "COLLECTUSDT",
+      62836113
+     ],
+     [
+      "COLLECTUSDT",
+      62836116
+     ],
+     [
+      "CVXUSDT",
+      20727362
+     ],
+     [
+      "DEXEUSDT",
+      230033432
+     ],
+     [
+      "EDGEUSDT",
+      81019850
+     ],
+     [
+      "ENSUSDT",
+      616811394
+     ],
+     [
+      "ENSUSDT",
+      616811395
+     ],
+     [
+      "ERAUSDT",
+      85488385
+     ],
+     [
+      "ESPORTSUSDT",
+      223809039
+     ],
+     [
+      "FARTCOINUSDT",
+      677761076
+     ],
+     [
+      "FFUSDT",
+      160918302
+     ],
+     [
+      "FFUSDT",
+      160918303
+     ],
+     [
+      "FFUSDT",
+      160918304
+     ],
+     [
+      "FFUSDT",
+      160918305
+     ],
+     [
+      "FFUSDT",
+      160918306
+     ],
+     [
+      "FFUSDT",
+      160918307
+     ],
+     [
+      "FILUSDT",
+      990035169
+     ],
+     [
+      "FLOCKUSDT",
+      33688343
+     ],
+     [
+      "GWEIUSDT",
+      81133222
+     ],
+     [
+      "HEIUSDT",
+      194992186
+     ],
+     [
+      "HOLOUSDT",
+      96928635
+     ],
+     [
+      "HOLOUSDT",
+      96929075
+     ],
+     [
+      "HUSDT",
+      538167635
+     ],
+     [
+      "INJUSDT",
+      774471784
+     ],
+     [
+      "JASMYUSDT",
+      534523420
+     ],
+     [
+      "JCTUSDT",
+      77876927
+     ],
+     [
+      "KAITOUSDT",
+      409789972
+     ],
+     [
+      "KAITOUSDT",
+      409789973
+     ],
+     [
+      "KASUSDT",
+      175933704
+     ],
+     [
+      "KMNOUSDT",
+      66716815
+     ],
+     [
+      "MANTRAUSDT",
+      20824954
+     ],
+     [
+      "MEGAUSDT",
+      41850783
+     ],
+     [
+      "MINAUSDT",
+      231630813
+     ],
+     [
+      "MIRAUSDT",
+      109898955
+     ],
+     [
+      "MONUSDT",
+      83358894
+     ],
+     [
+      "MONUSDT",
+      83358895
+     ],
+     [
+      "NEIROUSDT",
+      603563871
+     ],
+     [
+      "ONGUSDT",
+      211755459
+     ],
+     [
+      "ONTUSDT",
+      311977460
+     ],
+     [
+      "ONUSDT",
+      101020543
+     ],
+     [
+      "PENGUUSDT",
+      596159841
+     ],
+     [
+      "PIEVERSEUSDT",
+      208845109
+     ],
+     [
+      "PIEVERSEUSDT",
+      208845110
+     ],
+     [
+      "PIPPINUSDT",
+      763739941
+     ],
+     [
+      "PLUMEUSDT",
+      74819561
+     ],
+     [
+      "RAVEUSDT",
+      497362030
+     ],
+     [
+      "RAVEUSDT",
+      497362033
+     ],
+     [
+      "RUNEUSDT",
+      566295466
+     ],
+     [
+      "SAGAUSDT",
+      310637684
+     ],
+     [
+      "SAGAUSDT",
+      310637685
+     ],
+     [
+      "SAHARAUSDT",
+      147290604
+     ],
+     [
+      "SAHARAUSDT",
+      147290605
+     ],
+     [
+      "SIRENUSDT",
+      554144786
+     ],
+     [
+      "SIRENUSDT",
+      554144790
+     ],
+     [
+      "SPKUSDT",
+      157588748
+     ],
+     [
+      "SPXUSDT",
+      218236526
+     ],
+     [
+      "SPXUSDT",
+      218236527
+     ],
+     [
+      "SUIUSDT",
+      1552224601
+     ],
+     [
+      "SUSHIUSDT",
+      595015940
+     ],
+     [
+      "SXTUSDT",
+      73841966
+     ],
+     [
+      "TIAUSDT",
+      842650156
+     ],
+     [
+      "TNSRUSDT",
+      275659525
+     ],
+     [
+      "TNSRUSDT",
+      275659541
+     ],
+     [
+      "TREEUSDT",
+      80746290
+     ],
+     [
+      "TRIAUSDT",
+      59387929
+     ],
+     [
+      "TRUMPUSDT",
+      723157954
+     ],
+     [
+      "UAIUSDT",
+      134308010
+     ],
+     [
+      "UNIUSDT",
+      872130162
+     ],
+     [
+      "USELESSUSDT",
+      103949263
+     ],
+     [
+      "VETUSDT",
+      568996187
+     ],
+     [
+      "VVVUSDT",
+      227420059
+     ],
+     [
+      "WUSDT",
+      248613432
+     ],
+     [
+      "XANUSDT",
+      89258477
+     ],
+     [
+      "XMRUSDT",
+      545776748
+     ],
+     [
+      "ZAMAUSDT",
+      55477968
+     ],
+     [
+      "ZBTUSDT",
+      144746551
+     ],
+     [
+      "ZECUSDT",
+      1420028088
+     ],
+     [
+      "ZKCUSDT",
+      111077284
+     ],
+     [
+      "ZKUSDT",
+      217252469
+     ]
+    ],
+    "rule": "R13-P2 (2): the gap owns (A, t_d) and the window owns [t_d, t_end]; a fill exactly at t_d belongs to the window ONLY"
+   },
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "DASHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ZORAUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": 1.5977012350167428,
+    "L3_minus_L2cut_execution": 1.597701235016686,
+    "L2cut_minus_L2_flatten_footprint": 5.684341886080802e-14,
+    "L2_minus_L1_skips": 1.0219391034150789,
+    "L1_minus_L0_book_layer": -111.34179273538493,
+    "L3_minus_L0_total": -108.7221523969531,
+    "L3_minus_L2cut_execution_with_fill_prices": -1.8922126539155215,
+    "fill_price_correction": -3.489913888932201
+   },
+   "n_names_ok": 254
+  },
+  {
+   "anchor": 1788292800,
+   "utc": "09-01 20:00Z",
+   "status": "OK",
+   "rebalance_id": "A1788294240",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1788294241.526433,
+   "t_end": 1788307200.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": 0.08718068213138423,
+   "n_fills_price_corrected": 111,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1788294300,
+   "b1": 1788307200,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 256,
+     "n_priced": 256,
+     "gross_b0": 40162.41717537997,
+     "net_b0": -1316.5520223987442,
+     "pnl_usdt": 134.59674207659552,
+     "pnl_long_usdt": 78.7996283900832,
+     "pnl_short_usdt": 55.79711368651236,
+     "censored": {
+      "n": 6,
+      "notional": 392.4799800956429
+     }
+    },
+    "L1_executor_target": {
+     "n": 256,
+     "n_priced": 256,
+     "gross_b0": 40039.24064128906,
+     "net_b0": 166.5005211818239,
+     "pnl_usdt": 157.82706658556876,
+     "pnl_long_usdt": 131.4225626867085,
+     "pnl_short_usdt": 26.40450389886028,
+     "censored": {
+      "n": 6,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 256,
+     "n_priced": 256,
+     "gross_b0": 40199.58829808416,
+     "net_b0": 63.93812488540118,
+     "pnl_usdt": 157.68800562313805,
+     "pnl_long_usdt": 131.68532306677994,
+     "pnl_short_usdt": 26.002682556358128,
+     "censored": {
+      "n": 6,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 256,
+     "n_priced": 256,
+     "gross_b0": 40199.58829808416,
+     "net_b0": 63.93812488540118,
+     "pnl_usdt": 157.6880056231381,
+     "pnl_long_usdt": 131.68532306677992,
+     "pnl_short_usdt": 26.002682556358145,
+     "censored": {
+      "n": 6,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 256,
+     "n_priced": 256,
+     "gross_b0": 40160.22388615851,
+     "net_b0": 23.49752297498526,
+     "pnl_usdt": 156.25023953805953,
+     "pnl_long_usdt": 130.31170700563982,
+     "pnl_short_usdt": 25.93853253241978,
+     "censored": {
+      "n": 6,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": 0.08718068213138423,
+     "pnl_usdt_with_fill_prices": 156.33742022019092,
+     "n_fills_price_corrected": 111
+    }
+   },
+   "fees_in_window": {
+    "BNB": 0.00033758000000000003
+   },
+   "n_fills_in_window": 111,
+   "events": {
+    "pre_window": 0,
+    "in_window": 111,
+    "post_window_not_applied": 162
+   },
+   "intra_row_approx": 65,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 251,
+    "max_abs_rel": 0.021505633469264485,
+    "median_abs_rel": 0.001584137960694454
+   },
+   "fill_px_vs_path": {
+    "n": 65,
+    "max_abs_rel": 0.00538134829153869,
+    "median_abs_rel": 0.0015492555634547545
+   },
+   "reference_readback": {
+    "runs": [
+     "09-01 16Z"
+    ],
+    "n_names": 251,
+    "n_stale_over_4h40m": 0,
+    "t_earliest_read": 1788280898.502228
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 255,
+    "t_latest_read": 1788324154.508359
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 18,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 3.766297674631571e-13,
+    "n_nonfinite_next_readback": 0,
+    "top": [
+     [
+      "APEUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "AUCTIONUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "BERAUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "DEXEUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "DOTUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "FORMUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "KAITOUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "NILUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ONTUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ORDIUSDT",
+      0.0,
+      0.0
+     ]
+    ],
+    "next_readback_names": 255,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "price_chain_joins": {
+    "n_names_compared": 252,
+    "n_over_1pct": 12,
+    "n_value_over_1cent": 219,
+    "abs_value_diff_sum_usdt": 152.5299419007401,
+    "max_abs_rel": 0.026049304695204167,
+    "causes": {
+     "mark_vs_close": 249,
+     "fill_px_vs_close": 3
+    },
+    "resets": {
+     "new_symbol_in_day": 3
+    },
+    "top": [
+     {
+      "symbol": "JCTUSDT",
+      "px_chain_at_b0": 0.00176613,
+      "px_own_at_b0": 0.00178679,
+      "own_source": "readback_mark",
+      "rel": 0.01170035,
+      "qty_at_join": 180089.0,
+      "value_diff_usdt": 3.72141318,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "TUTUSDT",
+      "px_chain_at_b0": 0.03131476,
+      "px_own_at_b0": 0.03162527,
+      "own_source": "readback_mark",
+      "rel": 0.00991574,
+      "qty_at_join": -9315.0,
+      "value_diff_usdt": -2.89238991,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "COLLECTUSDT",
+      "px_chain_at_b0": 0.08282683,
+      "px_own_at_b0": 0.08337666,
+      "own_source": "readback_mark",
+      "rel": 0.00663831,
+      "qty_at_join": 5045.0,
+      "value_diff_usdt": 2.77389262,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "ARBUSDT",
+      "px_chain_at_b0": 0.10665738,
+      "px_own_at_b0": 0.10839961,
+      "own_source": "readback_mark",
+      "rel": 0.0163348,
+      "qty_at_join": -1577.2,
+      "value_diff_usdt": -2.74783983,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "TACUSDT",
+      "px_chain_at_b0": 0.00225469,
+      "px_own_at_b0": 0.00227137,
+      "own_source": "readback_mark",
+      "rel": 0.00740152,
+      "qty_at_join": 160008.0,
+      "value_diff_usdt": 2.67023044,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "SPXUSDT",
+      "px_chain_at_b0": 0.56825265,
+      "px_own_at_b0": 0.574918,
+      "own_source": "readback_mark",
+      "rel": 0.01172954,
+      "qty_at_join": 394.0,
+      "value_diff_usdt": 2.62614513,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "CLOUSDT",
+      "px_chain_at_b0": 0.13852896,
+      "px_own_at_b0": 0.13779409,
+      "own_source": "readback_mark",
+      "rel": -0.00530482,
+      "qty_at_join": 3023.0,
+      "value_diff_usdt": -2.2215164,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "ESPORTSUSDT",
+      "px_chain_at_b0": 0.015205,
+      "px_own_at_b0": 0.01528,
+      "own_source": "readback_mark",
+      "rel": 0.00493232,
+      "qty_at_join": 27680.0,
+      "value_diff_usdt": 2.07588722,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "FARTCOINUSDT",
+      "px_chain_at_b0": 0.1695955,
+      "px_own_at_b0": 0.17073982,
+      "own_source": "readback_mark",
+      "rel": 0.00674737,
+      "qty_at_join": 1793.4,
+      "value_diff_usdt": 2.05223064,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "1000BONKUSDT",
+      "px_chain_at_b0": 0.00301612,
+      "px_own_at_b0": 0.0030448,
+      "own_source": "readback_mark",
+      "rel": 0.00950785,
+      "qty_at_join": -70886.0,
+      "value_diff_usdt": -2.03278597,
+      "cause": "mark_vs_close"
+     }
+    ],
+    "rule": "the day chain's price at b0 vs the price this window would have derived on its own; REPORTED, never added to P&L (a mark-vs-close difference is a valuation difference, not a realised gain)"
+   },
+   "fill_partition": {
+    "owns": "[t_decision, t_end]",
+    "n_fills_price_corrected": 111,
+    "keys": [
+     [
+      "0GUSDT",
+      219144613
+     ],
+     [
+      "1000RATSUSDT",
+      370921949
+     ],
+     [
+      "1000SHIBUSDT",
+      1579771459
+     ],
+     [
+      "4USDT",
+      146777626
+     ],
+     [
+      "ACEUSDT",
+      345150121
+     ],
+     [
+      "ACEUSDT",
+      345150122
+     ],
+     [
+      "APEUSDT",
+      771177749
+     ],
+     [
+      "APTUSDT",
+      984700638
+     ],
+     [
+      "ARIAUSDT",
+      173257223
+     ],
+     [
+      "AUCTIONUSDT",
+      320355233
+     ],
+     [
+      "AVAXUSDT",
+      1421438660
+     ],
+     [
+      "BASUSDT",
+      179288256
+     ],
+     [
+      "BEATUSDT",
+      619612158
+     ],
+     [
+      "BICOUSDT",
+      156251567
+     ],
+     [
+      "BROCCOLI714USDT",
+      82060910
+     ],
+     [
+      "BSBUSDT",
+      364444806
+     ],
+     [
+      "CHILLGUYUSDT",
+      117461095
+     ],
+     [
+      "CLOUSDT",
+      184496419
+     ],
+     [
+      "COMPUSDT",
+      457785819
+     ],
+     [
+      "COTIUSDT",
+      423258916
+     ],
+     [
+      "CRVUSDT",
+      572768437
+     ],
+     [
+      "CRVUSDT",
+      572768438
+     ],
+     [
+      "DEXEUSDT",
+      230068454
+     ],
+     [
+      "DEXEUSDT",
+      230068455
+     ],
+     [
+      "ENSOUSDT",
+      209820262
+     ],
+     [
+      "EPICUSDT",
+      158680793
+     ],
+     [
+      "ERAUSDT",
+      85501424
+     ],
+     [
+      "EULUSDT",
+      88531766
+     ],
+     [
+      "FETUSDT",
+      690011201
+     ],
+     [
+      "FFUSDT",
+      161040620
+     ],
+     [
+      "FLOCKUSDT",
+      33713746
+     ],
+     [
+      "FORMUSDT",
+      149454914
+     ],
+     [
+      "GRTUSDT",
+      568347687
+     ],
+     [
+      "GRTUSDT",
+      568347688
+     ],
+     [
+      "GWEIUSDT",
+      81147534
+     ],
+     [
+      "GWEIUSDT",
+      81147535
+     ],
+     [
+      "HBARUSDT",
+      785707818
+     ],
+     [
+      "HEMIUSDT",
+      197506181
+     ],
+     [
+      "HEMIUSDT",
+      197506182
+     ],
+     [
+      "HEMIUSDT",
+      197506183
+     ],
+     [
+      "HUSDT",
+      538188234
+     ],
+     [
+      "ICPUSDT",
+      416912830
+     ],
+     [
+      "JSTUSDT",
+      35384489
+     ],
+     [
+      "JTOUSDT",
+      537352656
+     ],
+     [
+      "JTOUSDT",
+      537352663
+     ],
+     [
+      "JTOUSDT",
+      537352665
+     ],
+     [
+      "KMNOUSDT",
+      66723213
+     ],
+     [
+      "LIGHTUSDT",
+      245060983
+     ],
+     [
+      "LITUSDT",
+      149199179
+     ],
+     [
+      "LITUSDT",
+      149199180
+     ],
+     [
+      "LSKUSDT",
+      111345293
+     ],
+     [
+      "MANAUSDT",
+      620292448
+     ],
+     [
+      "MEGAUSDT",
+      41858514
+     ],
+     [
+      "MERLUSDT",
+      173175405
+     ],
+     [
+      "MERLUSDT",
+      173175406
+     ],
+     [
+      "MERLUSDT",
+      173175407
+     ],
+     [
+      "METUSDT",
+      59812614
+     ],
+     [
+      "METUSDT",
+      59812615
+     ],
+     [
+      "METUSDT",
+      59812617
+     ],
+     [
+      "MIRAUSDT",
+      109913135
+     ],
+     [
+      "MOODENGUSDT",
+      460448001
+     ],
+     [
+      "MOVEUSDT",
+      206163028
+     ],
+     [
+      "MUBARAKUSDT",
+      137938317
+     ],
+     [
+      "NEARUSDT",
+      1043394784
+     ],
+     [
+      "NOTUSDT",
+      472539446
+     ],
+     [
+      "ONGUSDT",
+      212161332
+     ],
+     [
+      "ONGUSDT",
+      212161335
+     ],
+     [
+      "ONTUSDT",
+      311996474
+     ],
+     [
+      "ONTUSDT",
+      311996475
+     ],
+     [
+      "ONUSDT",
+      101031111
+     ],
+     [
+      "ONUSDT",
+      101031117
+     ],
+     [
+      "OPGUSDT",
+      44086802
+     ],
+     [
+      "ORDIUSDT",
+      1018939143
+     ],
+     [
+      "PENGUUSDT",
+      596263498
+     ],
+     [
+      "PIEVERSEUSDT",
+      208855802
+     ],
+     [
+      "PIEVERSEUSDT",
+      208855803
+     ],
+     [
+      "PIPPINUSDT",
+      763752648
+     ],
+     [
+      "POPCATUSDT",
+      277869022
+     ],
+     [
+      "PUMPUSDT",
+      279890429
+     ],
+     [
+      "RUNEUSDT",
+      566313733
+     ],
+     [
+      "SAGAUSDT",
+      310645059
+     ],
+     [
+      "SIRENUSDT",
+      554153568
+     ],
+     [
+      "SIRENUSDT",
+      554153572
+     ],
+     [
+      "SOLUSDT",
+      3499510021
+     ],
+     [
+      "STABLEUSDT",
+      103258040
+     ],
+     [
+      "STABLEUSDT",
+      103258041
+     ],
+     [
+      "STARUSDT",
+      16084048
+     ],
+     [
+      "STXUSDT",
+      476578606
+     ],
+     [
+      "SXTUSDT",
+      73849854
+     ],
+     [
+      "TIAUSDT",
+      842707596
+     ],
+     [
+      "TIAUSDT",
+      842707597
+     ],
+     [
+      "TNSRUSDT",
+      275679612
+     ],
+     [
+      "TREEUSDT",
+      80754543
+     ],
+     [
+      "TRUMPUSDT",
+      723294675
+     ],
+     [
+      "TRXUSDT",
+      705083467
+     ],
+     [
+      "TSTUSDT",
+      148288921
+     ],
+     [
+      "TSTUSDT",
+      148288922
+     ],
+     [
+      "TSTUSDT",
+      148288923
+     ],
+     [
+      "TURBOUSDT",
+      521961095
+     ],
+     [
+      "TUTUSDT",
+      247787327
+     ],
+     [
+      "UAIUSDT",
+      134573849
+     ],
+     [
+      "USELESSUSDT",
+      105081286
+     ],
+     [
+      "WALUSDT",
+      70281376
+     ],
+     [
+      "WALUSDT",
+      70281377
+     ],
+     [
+      "WUSDT",
+      248630940
+     ],
+     [
+      "WUSDT",
+      248630941
+     ],
+     [
+      "WUSDT",
+      248630942
+     ],
+     [
+      "XANUSDT",
+      89268416
+     ],
+     [
+      "XAUTUSDT",
+      20133475
+     ],
+     [
+      "XMRUSDT",
+      545990567
+     ],
+     [
+      "ZKPUSDT",
+      99214881
+     ]
+    ],
+    "rule": "R13-P2 (2): the gap owns (A, t_d) and the window owns [t_d, t_end]; a fill exactly at t_d belongs to the window ONLY"
+   },
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "DASHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ZORAUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": -1.4377660850785219,
+    "L3_minus_L2cut_execution": -1.4377660850785787,
+    "L2cut_minus_L2_flatten_footprint": 5.684341886080802e-14,
+    "L2_minus_L1_skips": -0.13906096243070465,
+    "L1_minus_L0_book_layer": 23.23032450897324,
+    "L3_minus_L0_total": 21.653497461464013,
+    "L3_minus_L2cut_execution_with_fill_prices": -1.350585402947189,
+    "fill_price_correction": 0.08718068213138423
+   },
+   "n_names_ok": 256
+  }
+ ],
+ "gaps": [
+  {
+   "gap_for_anchor": 1788220800,
+   "utc": "09-01 00:00Z",
+   "t_from": 1788220800.0,
+   "t_to": 1788222243.9836621,
+   "b_lo": 1788220800,
+   "b_hi": 1788222300,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "n_unknown_start_qty": 14,
+   "n_nonfinite_carried": 0,
+   "pnl_usdt": -11.818808539590318,
+   "pnl_long_usdt": 69.99540493159837,
+   "pnl_short_usdt": -81.81421347118872,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": -11.818808539590318,
+   "n_names_carried": 263,
+   "n_priced": 249,
+   "censored": {
+    "n": 14,
+    "notional": 0.0,
+    "why": {
+     "unknown_start_qty": 14
+    }
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {
+    "AIXBTUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ATHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "DASHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "KAIAUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "VELODROMEUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "XPINUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ZORAUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    }
+   },
+   "fill_partition": {
+    "owns": "(A, t_decision)",
+    "n_fills_price_corrected": 0,
+    "keys": [],
+    "rule": "R13-P2 (2): half-open \u2014 a fill exactly at t_d belongs to the window, not to this gap"
+   },
+   "censored_reasons": {
+    "unknown_start_qty": 14
+   },
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  },
+  {
+   "gap_for_anchor": 1788235200,
+   "utc": "09-01 04:00Z",
+   "t_from": 1788235200.0,
+   "t_to": 1788236642.442556,
+   "b_lo": 1788235200,
+   "b_hi": 1788236700,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "n_unknown_start_qty": 12,
+   "n_nonfinite_carried": 0,
+   "pnl_usdt": 8.746532198943193,
+   "pnl_long_usdt": -2.1117741110227906,
+   "pnl_short_usdt": 10.858306309966023,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": 8.746532198943193,
+   "n_names_carried": 259,
+   "n_priced": 247,
+   "censored": {
+    "n": 12,
+    "notional": 0.0,
+    "why": {
+     "unknown_start_qty": 12
+    }
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {
+    "AIXBTUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ATHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "DASHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "VELODROMEUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ZORAUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    }
+   },
+   "fill_partition": {
+    "owns": "(A, t_decision)",
+    "n_fills_price_corrected": 0,
+    "keys": [],
+    "rule": "R13-P2 (2): half-open \u2014 a fill exactly at t_d belongs to the window, not to this gap"
+   },
+   "censored_reasons": {
+    "unknown_start_qty": 12
+   },
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  },
+  {
+   "gap_for_anchor": 1788249600,
+   "utc": "09-01 08:00Z",
+   "t_from": 1788249600.0,
+   "t_to": 1788251041.866218,
+   "b_lo": 1788249600,
+   "b_hi": 1788251100,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "n_unknown_start_qty": 9,
+   "n_nonfinite_carried": 0,
+   "pnl_usdt": 43.801554957357716,
+   "pnl_long_usdt": -130.64578384390572,
+   "pnl_short_usdt": 174.44733880126344,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": 43.801554957357716,
+   "n_names_carried": 259,
+   "n_priced": 250,
+   "censored": {
+    "n": 9,
+    "notional": 0.0,
+    "why": {
+     "unknown_start_qty": 9
+    }
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "DASHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ZORAUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    }
+   },
+   "fill_partition": {
+    "owns": "(A, t_decision)",
+    "n_fills_price_corrected": 0,
+    "keys": [],
+    "rule": "R13-P2 (2): half-open \u2014 a fill exactly at t_d belongs to the window, not to this gap"
+   },
+   "censored_reasons": {
+    "unknown_start_qty": 9
+   },
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  },
+  {
+   "gap_for_anchor": 1788264000,
+   "utc": "09-01 12:00Z",
+   "t_from": 1788264000.0,
+   "t_to": 1788265443.1921542,
+   "b_lo": 1788264000,
+   "b_hi": 1788265500,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "n_unknown_start_qty": 9,
+   "n_nonfinite_carried": 0,
+   "pnl_usdt": -17.600615030663906,
+   "pnl_long_usdt": -45.14825057739945,
+   "pnl_short_usdt": 27.547635546735524,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": -17.600615030663906,
+   "n_names_carried": 259,
+   "n_priced": 250,
+   "censored": {
+    "n": 9,
+    "notional": 0.0,
+    "why": {
+     "unknown_start_qty": 9
+    }
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "DASHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ZORAUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    }
+   },
+   "fill_partition": {
+    "owns": "(A, t_decision)",
+    "n_fills_price_corrected": 0,
+    "keys": [],
+    "rule": "R13-P2 (2): half-open \u2014 a fill exactly at t_d belongs to the window, not to this gap"
+   },
+   "censored_reasons": {
+    "unknown_start_qty": 9
+   },
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  },
+  {
+   "gap_for_anchor": 1788278400,
+   "utc": "09-01 16:00Z",
+   "t_from": 1788278400.0,
+   "t_to": 1788279842.211013,
+   "b_lo": 1788278400,
+   "b_hi": 1788279900,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "n_unknown_start_qty": 9,
+   "n_nonfinite_carried": 0,
+   "pnl_usdt": 49.23222544476146,
+   "pnl_long_usdt": -53.578924660583816,
+   "pnl_short_usdt": 102.81115010534525,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": 49.23222544476146,
+   "n_names_carried": 260,
+   "n_priced": 251,
+   "censored": {
+    "n": 9,
+    "notional": 0.0,
+    "why": {
+     "unknown_start_qty": 9
+    }
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "DASHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ZORAUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    }
+   },
+   "fill_partition": {
+    "owns": "(A, t_decision)",
+    "n_fills_price_corrected": 0,
+    "keys": [],
+    "rule": "R13-P2 (2): half-open \u2014 a fill exactly at t_d belongs to the window, not to this gap"
+   },
+   "censored_reasons": {
+    "unknown_start_qty": 9
+   },
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  },
+  {
+   "gap_for_anchor": 1788292800,
+   "utc": "09-01 20:00Z",
+   "t_from": 1788292800.0,
+   "t_to": 1788294241.526433,
+   "b_lo": 1788292800,
+   "b_hi": 1788294300,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "n_unknown_start_qty": 9,
+   "n_nonfinite_carried": 0,
+   "pnl_usdt": 23.605669575007944,
+   "pnl_long_usdt": 9.542025406924427,
+   "pnl_short_usdt": 14.063644168083531,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": 23.605669575007944,
+   "n_names_carried": 258,
+   "n_priced": 249,
+   "censored": {
+    "n": 9,
+    "notional": 0.0,
+    "why": {
+     "unknown_start_qty": 9
+    }
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "DASHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ZORAUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    }
+   },
+   "fill_partition": {
+    "owns": "(A, t_decision)",
+    "n_fills_price_corrected": 0,
+    "keys": [],
+    "rule": "R13-P2 (2): half-open \u2014 a fill exactly at t_d belongs to the window, not to this gap"
+   },
+   "censored_reasons": {
+    "unknown_start_qty": 9
+   },
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  }
+ ],
+ "day_gap_totals": {
+  "n_gaps_priced": 6,
+  "n_gaps": 6,
+  "pnl_usdt": 95.96655860581609,
+  "fill_price_correction_usdt": 0.0,
+  "pnl_usdt_with_fill_prices": 95.96655860581609,
+  "pnl_long_usdt": -151.94730285438897,
+  "pnl_short_usdt": 247.91386146020503,
+  "statuses": [
+   [
+    "09-01 00:00Z",
+    "GAP_OK"
+   ],
+   [
+    "09-01 04:00Z",
+    "GAP_OK"
+   ],
+   [
+    "09-01 08:00Z",
+    "GAP_OK"
+   ],
+   [
+    "09-01 12:00Z",
+    "GAP_OK"
+   ],
+   [
+    "09-01 16:00Z",
+    "GAP_OK"
+   ],
+   [
+    "09-01 20:00Z",
+    "GAP_OK"
+   ]
+  ],
+  "note": "ACTUAL layer only \u2014 the intent layers are defined from their own decision time and are not carried across the gap"
+ },
+ "day_coverage": {
+  "windows_s": 77400,
+  "gaps_s": 9000,
+  "total_s": 86400,
+  "day_s": 86400,
+  "covered_frac": 1.0,
+  "note": "the decision windows alone cover 21.5 h of 24 h (6 x ~25 min missing); the gaps close that for the ACTUAL layer only"
+ },
+ "day_fill_partition": {
+  "n_corrected_in_windows": 689,
+  "n_corrected_in_gaps": 0,
+  "n_total": 689,
+  "n_distinct": 689,
+  "n_double_counted": 0,
+  "double_counted": [],
+  "unpriced_interval_attribution": null,
+  "n_population_in_priced_intervals": 689,
+  "n_population_not_corrected": 0,
+  "population_not_corrected": [],
+  "day_owns": "(d0, d0+86400]  (00 < t <= 24; a fill exactly at midnight is the previous day's)",
+  "n_owned_current_day": 689,
+  "n_adjacent_prev_day": 778,
+  "n_adjacent_next_day": 604,
+  "n_day_fills_outside_every_priced_interval": 0,
+  "day_fills_outside_priced_intervals": [],
+  "owned_fill_keys": [
+   [
+    "0GUSDT",
+    217706845
+   ],
+   [
+    "0GUSDT",
+    218252696
+   ],
+   [
+    "0GUSDT",
+    218572119
+   ],
+   [
+    "0GUSDT",
+    218908307
+   ],
+   [
+    "0GUSDT",
+    219045526
+   ],
+   [
+    "0GUSDT",
+    219144613
+   ],
+   [
+    "1000BONKUSDT",
+    950187311
+   ],
+   [
+    "1000BONKUSDT",
+    950231790
+   ],
+   [
+    "1000FLOKIUSDT",
+    590010176
+   ],
+   [
+    "1000LUNCUSDT",
+    469740844
+   ],
+   [
+    "1000PEPEUSDT",
+    2758394029
+   ],
+   [
+    "1000PEPEUSDT",
+    2758550244
+   ],
+   [
+    "1000PEPEUSDT",
+    2758747115
+   ],
+   [
+    "1000RATSUSDT",
+    370899198
+   ],
+   [
+    "1000RATSUSDT",
+    370903048
+   ],
+   [
+    "1000RATSUSDT",
+    370915977
+   ],
+   [
+    "1000RATSUSDT",
+    370921949
+   ],
+   [
+    "1000SHIBUSDT",
+    1579622793
+   ],
+   [
+    "1000SHIBUSDT",
+    1579771459
+   ],
+   [
+    "4USDT",
+    146358243
+   ],
+   [
+    "4USDT",
+    146358244
+   ],
+   [
+    "4USDT",
+    146358245
+   ],
+   [
+    "4USDT",
+    146358246
+   ],
+   [
+    "4USDT",
+    146424908
+   ],
+   [
+    "4USDT",
+    146677987
+   ],
+   [
+    "4USDT",
+    146777626
+   ],
+   [
+    "ACEUSDT",
+    343419671
+   ],
+   [
+    "ACEUSDT",
+    343494449
+   ],
+   [
+    "ACEUSDT",
+    343582125
+   ],
+   [
+    "ACEUSDT",
+    343785623
+   ],
+   [
+    "ACEUSDT",
+    345150121
+   ],
+   [
+    "ACEUSDT",
+    345150122
+   ],
+   [
+    "ACUUSDT",
+    59104278
+   ],
+   [
+    "ADAUSDT",
+    1914781874
+   ],
+   [
+    "ADAUSDT",
+    1914950584
+   ],
+   [
+    "AEROUSDT",
+    117075734
+   ],
+   [
+    "AEROUSDT",
+    117118104
+   ],
+   [
+    "AIOUSDT",
+    86788534
+   ],
+   [
+    "AIOUSDT",
+    86826417
+   ],
+   [
+    "AIOUSDT",
+    86857426
+   ],
+   [
+    "AKEUSDT",
+    291816189
+   ],
+   [
+    "AKEUSDT",
+    291963235
+   ],
+   [
+    "AKEUSDT",
+    292103709
+   ],
+   [
+    "AKEUSDT",
+    292379233
+   ],
+   [
+    "ALGOUSDT",
+    516783771
+   ],
+   [
+    "ALLOUSDT",
+    307585104
+   ],
+   [
+    "ALLOUSDT",
+    307669987
+   ],
+   [
+    "APEUSDT",
+    771177749
+   ],
+   [
+    "APRUSDT",
+    164230228
+   ],
+   [
+    "APRUSDT",
+    164230231
+   ],
+   [
+    "APRUSDT",
+    164278080
+   ],
+   [
+    "APTUSDT",
+    984499886
+   ],
+   [
+    "APTUSDT",
+    984595138
+   ],
+   [
+    "APTUSDT",
+    984700638
+   ],
+   [
+    "ARBUSDT",
+    635942220
+   ],
+   [
+    "ARBUSDT",
+    637333048
+   ],
+   [
+    "ARBUSDT",
+    637923011
+   ],
+   [
+    "ARBUSDT",
+    638482924
+   ],
+   [
+    "ARIAUSDT",
+    173210394
+   ],
+   [
+    "ARIAUSDT",
+    173210395
+   ],
+   [
+    "ARIAUSDT",
+    173223199
+   ],
+   [
+    "ARIAUSDT",
+    173242227
+   ],
+   [
+    "ARIAUSDT",
+    173250469
+   ],
+   [
+    "ARIAUSDT",
+    173257223
+   ],
+   [
+    "ASTERUSDT",
+    406382897
+   ],
+   [
+    "ATOMUSDT",
+    872430307
+   ],
+   [
+    "ATOMUSDT",
+    872457179
+   ],
+   [
+    "AUCTIONUSDT",
+    320275449
+   ],
+   [
+    "AUCTIONUSDT",
+    320299958
+   ],
+   [
+    "AUCTIONUSDT",
+    320317243
+   ],
+   [
+    "AUCTIONUSDT",
+    320334601
+   ],
+   [
+    "AUCTIONUSDT",
+    320355233
+   ],
+   [
+    "AVAXUSDT",
+    1421438660
+   ],
+   [
+    "AXSUSDT",
+    697484914
+   ],
+   [
+    "AXSUSDT",
+    697551315
+   ],
+   [
+    "BANKUSDT",
+    348519934
+   ],
+   [
+    "BANKUSDT",
+    348537478
+   ],
+   [
+    "BANKUSDT",
+    348582909
+   ],
+   [
+    "BANKUSDT",
+    348602047
+   ],
+   [
+    "BASEDUSDT",
+    111470802
+   ],
+   [
+    "BASEDUSDT",
+    111476520
+   ],
+   [
+    "BASEDUSDT",
+    111493936
+   ],
+   [
+    "BASUSDT",
+    179256097
+   ],
+   [
+    "BASUSDT",
+    179256098
+   ],
+   [
+    "BASUSDT",
+    179261239
+   ],
+   [
+    "BASUSDT",
+    179261240
+   ],
+   [
+    "BASUSDT",
+    179261241
+   ],
+   [
+    "BASUSDT",
+    179266184
+   ],
+   [
+    "BASUSDT",
+    179273334
+   ],
+   [
+    "BASUSDT",
+    179288256
+   ],
+   [
+    "BBUSDT",
+    236243567
+   ],
+   [
+    "BEATUSDT",
+    619454987
+   ],
+   [
+    "BEATUSDT",
+    619509903
+   ],
+   [
+    "BEATUSDT",
+    619612158
+   ],
+   [
+    "BICOUSDT",
+    156056820
+   ],
+   [
+    "BICOUSDT",
+    156101315
+   ],
+   [
+    "BICOUSDT",
+    156177926
+   ],
+   [
+    "BICOUSDT",
+    156215722
+   ],
+   [
+    "BICOUSDT",
+    156251567
+   ],
+   [
+    "BIOUSDT",
+    291759181
+   ],
+   [
+    "BLESSUSDT",
+    307823498
+   ],
+   [
+    "BLESSUSDT",
+    308011732
+   ],
+   [
+    "BMTUSDT",
+    97242644
+   ],
+   [
+    "BMTUSDT",
+    97259287
+   ],
+   [
+    "BMTUSDT",
+    97329702
+   ],
+   [
+    "BROCCOLI714USDT",
+    82029428
+   ],
+   [
+    "BROCCOLI714USDT",
+    82048188
+   ],
+   [
+    "BROCCOLI714USDT",
+    82060910
+   ],
+   [
+    "BRUSDT",
+    123527666
+   ],
+   [
+    "BRUSDT",
+    123527683
+   ],
+   [
+    "BRUSDT",
+    123537361
+   ],
+   [
+    "BRUSDT",
+    123553726
+   ],
+   [
+    "BSBUSDT",
+    364378918
+   ],
+   [
+    "BSBUSDT",
+    364430310
+   ],
+   [
+    "BSBUSDT",
+    364444806
+   ],
+   [
+    "BTRUSDT",
+    155423796
+   ],
+   [
+    "BTRUSDT",
+    156849976
+   ],
+   [
+    "CAKEUSDT",
+    318064336
+   ],
+   [
+    "CAKEUSDT",
+    318169383
+   ],
+   [
+    "CCUSDT",
+    67704171
+   ],
+   [
+    "CCUSDT",
+    67747063
+   ],
+   [
+    "CFGUSDT",
+    22741183
+   ],
+   [
+    "CFGUSDT",
+    22750240
+   ],
+   [
+    "CFGUSDT",
+    22758804
+   ],
+   [
+    "CFGUSDT",
+    22768907
+   ],
+   [
+    "CFGUSDT",
+    22782670
+   ],
+   [
+    "CFXUSDT",
+    482173862
+   ],
+   [
+    "CFXUSDT",
+    482187839
+   ],
+   [
+    "CFXUSDT",
+    482215912
+   ],
+   [
+    "CHILLGUYUSDT",
+    117427314
+   ],
+   [
+    "CHILLGUYUSDT",
+    117435440
+   ],
+   [
+    "CHILLGUYUSDT",
+    117450668
+   ],
+   [
+    "CHILLGUYUSDT",
+    117454924
+   ],
+   [
+    "CHILLGUYUSDT",
+    117461095
+   ],
+   [
+    "CHIPUSDT",
+    104833336
+   ],
+   [
+    "CHZUSDT",
+    731101568
+   ],
+   [
+    "CHZUSDT",
+    731101569
+   ],
+   [
+    "CLOUSDT",
+    184237273
+   ],
+   [
+    "CLOUSDT",
+    184391847
+   ],
+   [
+    "CLOUSDT",
+    184447936
+   ],
+   [
+    "CLOUSDT",
+    184468678
+   ],
+   [
+    "CLOUSDT",
+    184468679
+   ],
+   [
+    "CLOUSDT",
+    184496419
+   ],
+   [
+    "COLLECTUSDT",
+    62817854
+   ],
+   [
+    "COLLECTUSDT",
+    62836113
+   ],
+   [
+    "COLLECTUSDT",
+    62836116
+   ],
+   [
+    "COMPUSDT",
+    457745860
+   ],
+   [
+    "COMPUSDT",
+    457756517
+   ],
+   [
+    "COMPUSDT",
+    457785819
+   ],
+   [
+    "COTIUSDT",
+    423089605
+   ],
+   [
+    "COTIUSDT",
+    423089611
+   ],
+   [
+    "COTIUSDT",
+    423127233
+   ],
+   [
+    "COTIUSDT",
+    423194290
+   ],
+   [
+    "COTIUSDT",
+    423258916
+   ],
+   [
+    "CRVUSDT",
+    571741736
+   ],
+   [
+    "CRVUSDT",
+    571907958
+   ],
+   [
+    "CRVUSDT",
+    572303687
+   ],
+   [
+    "CRVUSDT",
+    572768437
+   ],
+   [
+    "CRVUSDT",
+    572768438
+   ],
+   [
+    "CVXUSDT",
+    20672859
+   ],
+   [
+    "CVXUSDT",
+    20687292
+   ],
+   [
+    "CVXUSDT",
+    20727362
+   ],
+   [
+    "CYSUSDT",
+    161876731
+   ],
+   [
+    "CYSUSDT",
+    162385143
+   ],
+   [
+    "CYSUSDT",
+    162701612
+   ],
+   [
+    "CYSUSDT",
+    163004739
+   ],
+   [
+    "CYSUSDT",
+    163004740
+   ],
+   [
+    "CYSUSDT",
+    163004790
+   ],
+   [
+    "CYSUSDT",
+    163004791
+   ],
+   [
+    "DEXEUSDT",
+    230033432
+   ],
+   [
+    "DEXEUSDT",
+    230068454
+   ],
+   [
+    "DEXEUSDT",
+    230068455
+   ],
+   [
+    "DODOXUSDT",
+    117519027
+   ],
+   [
+    "DODOXUSDT",
+    117524788
+   ],
+   [
+    "DOTUSDT",
+    1175440964
+   ],
+   [
+    "DOTUSDT",
+    1175522370
+   ],
+   [
+    "DUSKUSDT",
+    348677560
+   ],
+   [
+    "DYDXUSDT",
+    582687391
+   ],
+   [
+    "DYDXUSDT",
+    582693394
+   ],
+   [
+    "EDENUSDT",
+    166778812
+   ],
+   [
+    "EDGEUSDT",
+    80988831
+   ],
+   [
+    "EDGEUSDT",
+    80996428
+   ],
+   [
+    "EDGEUSDT",
+    80996429
+   ],
+   [
+    "EDGEUSDT",
+    81013128
+   ],
+   [
+    "EDGEUSDT",
+    81019850
+   ],
+   [
+    "EGLDUSDT",
+    386828152
+   ],
+   [
+    "EIGENUSDT",
+    362426208
+   ],
+   [
+    "ENSOUSDT",
+    209726522
+   ],
+   [
+    "ENSOUSDT",
+    209820262
+   ],
+   [
+    "ENSUSDT",
+    616811394
+   ],
+   [
+    "ENSUSDT",
+    616811395
+   ],
+   [
+    "EPICUSDT",
+    158636610
+   ],
+   [
+    "EPICUSDT",
+    158659812
+   ],
+   [
+    "EPICUSDT",
+    158680793
+   ],
+   [
+    "ERAUSDT",
+    85422549
+   ],
+   [
+    "ERAUSDT",
+    85443382
+   ],
+   [
+    "ERAUSDT",
+    85488385
+   ],
+   [
+    "ERAUSDT",
+    85501424
+   ],
+   [
+    "ESPORTSUSDT",
+    223762944
+   ],
+   [
+    "ESPORTSUSDT",
+    223774360
+   ],
+   [
+    "ESPORTSUSDT",
+    223793067
+   ],
+   [
+    "ESPORTSUSDT",
+    223809039
+   ],
+   [
+    "ESPUSDT",
+    89548548
+   ],
+   [
+    "ESPUSDT",
+    89602011
+   ],
+   [
+    "EULUSDT",
+    88450484
+   ],
+   [
+    "EULUSDT",
+    88466873
+   ],
+   [
+    "EULUSDT",
+    88467335
+   ],
+   [
+    "EULUSDT",
+    88484736
+   ],
+   [
+    "EULUSDT",
+    88531766
+   ],
+   [
+    "FARTCOINUSDT",
+    677684210
+   ],
+   [
+    "FARTCOINUSDT",
+    677716232
+   ],
+   [
+    "FARTCOINUSDT",
+    677761076
+   ],
+   [
+    "FETUSDT",
+    689883464
+   ],
+   [
+    "FETUSDT",
+    689956386
+   ],
+   [
+    "FETUSDT",
+    690011201
+   ],
+   [
+    "FFUSDT",
+    160356189
+   ],
+   [
+    "FFUSDT",
+    160356208
+   ],
+   [
+    "FFUSDT",
+    160918302
+   ],
+   [
+    "FFUSDT",
+    160918303
+   ],
+   [
+    "FFUSDT",
+    160918304
+   ],
+   [
+    "FFUSDT",
+    160918305
+   ],
+   [
+    "FFUSDT",
+    160918306
+   ],
+   [
+    "FFUSDT",
+    160918307
+   ],
+   [
+    "FFUSDT",
+    161040620
+   ],
+   [
+    "FILUSDT",
+    989683606
+   ],
+   [
+    "FILUSDT",
+    990035169
+   ],
+   [
+    "FLOCKUSDT",
+    33523072
+   ],
+   [
+    "FLOCKUSDT",
+    33523074
+   ],
+   [
+    "FLOCKUSDT",
+    33523256
+   ],
+   [
+    "FLOCKUSDT",
+    33579070
+   ],
+   [
+    "FLOCKUSDT",
+    33579071
+   ],
+   [
+    "FLOCKUSDT",
+    33644564
+   ],
+   [
+    "FLOCKUSDT",
+    33688343
+   ],
+   [
+    "FLOCKUSDT",
+    33713746
+   ],
+   [
+    "FORMUSDT",
+    149389847
+   ],
+   [
+    "FORMUSDT",
+    149389849
+   ],
+   [
+    "FORMUSDT",
+    149402868
+   ],
+   [
+    "FORMUSDT",
+    149423859
+   ],
+   [
+    "FORMUSDT",
+    149454914
+   ],
+   [
+    "GALAUSDT",
+    889485251
+   ],
+   [
+    "GPSUSDT",
+    140901992
+   ],
+   [
+    "GPSUSDT",
+    140919439
+   ],
+   [
+    "GPSUSDT",
+    140919440
+   ],
+   [
+    "GRASSUSDT",
+    175768868
+   ],
+   [
+    "GRASSUSDT",
+    175782119
+   ],
+   [
+    "GRASSUSDT",
+    175792820
+   ],
+   [
+    "GRASSUSDT",
+    175800733
+   ],
+   [
+    "GRTUSDT",
+    568328440
+   ],
+   [
+    "GRTUSDT",
+    568347687
+   ],
+   [
+    "GRTUSDT",
+    568347688
+   ],
+   [
+    "GWEIUSDT",
+    81048710
+   ],
+   [
+    "GWEIUSDT",
+    81060500
+   ],
+   [
+    "GWEIUSDT",
+    81079199
+   ],
+   [
+    "GWEIUSDT",
+    81108531
+   ],
+   [
+    "GWEIUSDT",
+    81133222
+   ],
+   [
+    "GWEIUSDT",
+    81147534
+   ],
+   [
+    "GWEIUSDT",
+    81147535
+   ],
+   [
+    "HBARUSDT",
+    785575946
+   ],
+   [
+    "HBARUSDT",
+    785707818
+   ],
+   [
+    "HEIUSDT",
+    194841403
+   ],
+   [
+    "HEIUSDT",
+    194895588
+   ],
+   [
+    "HEIUSDT",
+    194945180
+   ],
+   [
+    "HEIUSDT",
+    194992186
+   ],
+   [
+    "HEMIUSDT",
+    196212444
+   ],
+   [
+    "HEMIUSDT",
+    196212445
+   ],
+   [
+    "HEMIUSDT",
+    196413554
+   ],
+   [
+    "HEMIUSDT",
+    196658602
+   ],
+   [
+    "HEMIUSDT",
+    197043953
+   ],
+   [
+    "HEMIUSDT",
+    197506181
+   ],
+   [
+    "HEMIUSDT",
+    197506182
+   ],
+   [
+    "HEMIUSDT",
+    197506183
+   ],
+   [
+    "HOLOUSDT",
+    96887084
+   ],
+   [
+    "HOLOUSDT",
+    96887085
+   ],
+   [
+    "HOLOUSDT",
+    96893202
+   ],
+   [
+    "HOLOUSDT",
+    96893335
+   ],
+   [
+    "HOLOUSDT",
+    96904741
+   ],
+   [
+    "HOLOUSDT",
+    96917965
+   ],
+   [
+    "HOLOUSDT",
+    96928635
+   ],
+   [
+    "HOLOUSDT",
+    96929075
+   ],
+   [
+    "HOMEUSDT",
+    183427159
+   ],
+   [
+    "HOMEUSDT",
+    183440219
+   ],
+   [
+    "HUSDT",
+    538137087
+   ],
+   [
+    "HUSDT",
+    538167635
+   ],
+   [
+    "HUSDT",
+    538188234
+   ],
+   [
+    "HYPEUSDT",
+    721132630
+   ],
+   [
+    "ICPUSDT",
+    416804131
+   ],
+   [
+    "ICPUSDT",
+    416912830
+   ],
+   [
+    "IDUSDT",
+    303771333
+   ],
+   [
+    "IDUSDT",
+    303771334
+   ],
+   [
+    "INJUSDT",
+    774194285
+   ],
+   [
+    "INJUSDT",
+    774408611
+   ],
+   [
+    "INJUSDT",
+    774471784
+   ],
+   [
+    "IOTAUSDT",
+    296202287
+   ],
+   [
+    "JASMYUSDT",
+    534359072
+   ],
+   [
+    "JASMYUSDT",
+    534523420
+   ],
+   [
+    "JCTUSDT",
+    77855534
+   ],
+   [
+    "JCTUSDT",
+    77860290
+   ],
+   [
+    "JCTUSDT",
+    77876927
+   ],
+   [
+    "JSTUSDT",
+    35283163
+   ],
+   [
+    "JSTUSDT",
+    35299294
+   ],
+   [
+    "JSTUSDT",
+    35384489
+   ],
+   [
+    "JTOUSDT",
+    537183164
+   ],
+   [
+    "JTOUSDT",
+    537215271
+   ],
+   [
+    "JTOUSDT",
+    537352656
+   ],
+   [
+    "JTOUSDT",
+    537352663
+   ],
+   [
+    "JTOUSDT",
+    537352665
+   ],
+   [
+    "KAITOUSDT",
+    409705924
+   ],
+   [
+    "KAITOUSDT",
+    409705926
+   ],
+   [
+    "KAITOUSDT",
+    409766618
+   ],
+   [
+    "KAITOUSDT",
+    409766619
+   ],
+   [
+    "KAITOUSDT",
+    409789972
+   ],
+   [
+    "KAITOUSDT",
+    409789973
+   ],
+   [
+    "KASUSDT",
+    175902194
+   ],
+   [
+    "KASUSDT",
+    175916854
+   ],
+   [
+    "KASUSDT",
+    175923253
+   ],
+   [
+    "KASUSDT",
+    175933704
+   ],
+   [
+    "KITEUSDT",
+    217733175
+   ],
+   [
+    "KITEUSDT",
+    217733187
+   ],
+   [
+    "KMNOUSDT",
+    66688568
+   ],
+   [
+    "KMNOUSDT",
+    66698412
+   ],
+   [
+    "KMNOUSDT",
+    66703948
+   ],
+   [
+    "KMNOUSDT",
+    66716815
+   ],
+   [
+    "KMNOUSDT",
+    66723213
+   ],
+   [
+    "KOMAUSDT",
+    108701691
+   ],
+   [
+    "KOMAUSDT",
+    108709405
+   ],
+   [
+    "KOMAUSDT",
+    108717705
+   ],
+   [
+    "LABUSDT",
+    691090338
+   ],
+   [
+    "LABUSDT",
+    691127897
+   ],
+   [
+    "LAUSDT",
+    105759064
+   ],
+   [
+    "LAUSDT",
+    105833440
+   ],
+   [
+    "LIGHTUSDT",
+    245006581
+   ],
+   [
+    "LIGHTUSDT",
+    245060983
+   ],
+   [
+    "LITUSDT",
+    148179385
+   ],
+   [
+    "LITUSDT",
+    148322059
+   ],
+   [
+    "LITUSDT",
+    148322060
+   ],
+   [
+    "LITUSDT",
+    149199179
+   ],
+   [
+    "LITUSDT",
+    149199180
+   ],
+   [
+    "LSKUSDT",
+    111314084
+   ],
+   [
+    "LSKUSDT",
+    111345293
+   ],
+   [
+    "MANAUSDT",
+    620240514
+   ],
+   [
+    "MANAUSDT",
+    620292448
+   ],
+   [
+    "MANTRAUSDT",
+    20787646
+   ],
+   [
+    "MANTRAUSDT",
+    20824954
+   ],
+   [
+    "MEGAUSDT",
+    41828012
+   ],
+   [
+    "MEGAUSDT",
+    41828013
+   ],
+   [
+    "MEGAUSDT",
+    41834849
+   ],
+   [
+    "MEGAUSDT",
+    41850783
+   ],
+   [
+    "MEGAUSDT",
+    41858514
+   ],
+   [
+    "MERLUSDT",
+    173150923
+   ],
+   [
+    "MERLUSDT",
+    173175405
+   ],
+   [
+    "MERLUSDT",
+    173175406
+   ],
+   [
+    "MERLUSDT",
+    173175407
+   ],
+   [
+    "METUSDT",
+    59794752
+   ],
+   [
+    "METUSDT",
+    59812614
+   ],
+   [
+    "METUSDT",
+    59812615
+   ],
+   [
+    "METUSDT",
+    59812617
+   ],
+   [
+    "MINAUSDT",
+    231544685
+   ],
+   [
+    "MINAUSDT",
+    231568808
+   ],
+   [
+    "MINAUSDT",
+    231568809
+   ],
+   [
+    "MINAUSDT",
+    231568810
+   ],
+   [
+    "MINAUSDT",
+    231630813
+   ],
+   [
+    "MIRAUSDT",
+    109804794
+   ],
+   [
+    "MIRAUSDT",
+    109842826
+   ],
+   [
+    "MIRAUSDT",
+    109862802
+   ],
+   [
+    "MIRAUSDT",
+    109862803
+   ],
+   [
+    "MIRAUSDT",
+    109883535
+   ],
+   [
+    "MIRAUSDT",
+    109883536
+   ],
+   [
+    "MIRAUSDT",
+    109898955
+   ],
+   [
+    "MIRAUSDT",
+    109913135
+   ],
+   [
+    "MMTUSDT",
+    158319892
+   ],
+   [
+    "MMTUSDT",
+    158328622
+   ],
+   [
+    "MMTUSDT",
+    158336151
+   ],
+   [
+    "MMTUSDT",
+    158346730
+   ],
+   [
+    "MONUSDT",
+    83295076
+   ],
+   [
+    "MONUSDT",
+    83295087
+   ],
+   [
+    "MONUSDT",
+    83310670
+   ],
+   [
+    "MONUSDT",
+    83358894
+   ],
+   [
+    "MONUSDT",
+    83358895
+   ],
+   [
+    "MOODENGUSDT",
+    460401133
+   ],
+   [
+    "MOODENGUSDT",
+    460409589
+   ],
+   [
+    "MOODENGUSDT",
+    460418125
+   ],
+   [
+    "MOODENGUSDT",
+    460448001
+   ],
+   [
+    "MORPHOUSDT",
+    163955367
+   ],
+   [
+    "MOVEUSDT",
+    206046404
+   ],
+   [
+    "MOVEUSDT",
+    206075476
+   ],
+   [
+    "MOVEUSDT",
+    206118434
+   ],
+   [
+    "MOVEUSDT",
+    206118435
+   ],
+   [
+    "MOVEUSDT",
+    206163028
+   ],
+   [
+    "MOVRUSDT",
+    153125365
+   ],
+   [
+    "MOVRUSDT",
+    153146255
+   ],
+   [
+    "MOVRUSDT",
+    153170727
+   ],
+   [
+    "MUBARAKUSDT",
+    137883645
+   ],
+   [
+    "MUBARAKUSDT",
+    137914430
+   ],
+   [
+    "MUBARAKUSDT",
+    137938317
+   ],
+   [
+    "NEARUSDT",
+    1042895373
+   ],
+   [
+    "NEARUSDT",
+    1042978980
+   ],
+   [
+    "NEARUSDT",
+    1043126053
+   ],
+   [
+    "NEARUSDT",
+    1043394784
+   ],
+   [
+    "NEIROUSDT",
+    603491188
+   ],
+   [
+    "NEIROUSDT",
+    603522289
+   ],
+   [
+    "NEIROUSDT",
+    603563871
+   ],
+   [
+    "NILUSDT",
+    118633420
+   ],
+   [
+    "NILUSDT",
+    118650917
+   ],
+   [
+    "NILUSDT",
+    118699119
+   ],
+   [
+    "NOTUSDT",
+    472219988
+   ],
+   [
+    "NOTUSDT",
+    472219989
+   ],
+   [
+    "NOTUSDT",
+    472296038
+   ],
+   [
+    "NOTUSDT",
+    472296041
+   ],
+   [
+    "NOTUSDT",
+    472414780
+   ],
+   [
+    "NOTUSDT",
+    472539446
+   ],
+   [
+    "ONDOUSDT",
+    550212484
+   ],
+   [
+    "ONEUSDT",
+    331299257
+   ],
+   [
+    "ONEUSDT",
+    331308795
+   ],
+   [
+    "ONEUSDT",
+    331317795
+   ],
+   [
+    "ONEUSDT",
+    331328469
+   ],
+   [
+    "ONEUSDT",
+    331328470
+   ],
+   [
+    "ONGUSDT",
+    209257298
+   ],
+   [
+    "ONGUSDT",
+    210255154
+   ],
+   [
+    "ONGUSDT",
+    210255155
+   ],
+   [
+    "ONGUSDT",
+    210255156
+   ],
+   [
+    "ONGUSDT",
+    210255157
+   ],
+   [
+    "ONGUSDT",
+    210255158
+   ],
+   [
+    "ONGUSDT",
+    210255159
+   ],
+   [
+    "ONGUSDT",
+    210255160
+   ],
+   [
+    "ONGUSDT",
+    210255161
+   ],
+   [
+    "ONGUSDT",
+    211187301
+   ],
+   [
+    "ONGUSDT",
+    211755459
+   ],
+   [
+    "ONGUSDT",
+    212161332
+   ],
+   [
+    "ONGUSDT",
+    212161335
+   ],
+   [
+    "ONTUSDT",
+    311813548
+   ],
+   [
+    "ONTUSDT",
+    311833212
+   ],
+   [
+    "ONTUSDT",
+    311885055
+   ],
+   [
+    "ONTUSDT",
+    311943873
+   ],
+   [
+    "ONTUSDT",
+    311977460
+   ],
+   [
+    "ONTUSDT",
+    311996474
+   ],
+   [
+    "ONTUSDT",
+    311996475
+   ],
+   [
+    "ONUSDT",
+    100987752
+   ],
+   [
+    "ONUSDT",
+    101009320
+   ],
+   [
+    "ONUSDT",
+    101020543
+   ],
+   [
+    "ONUSDT",
+    101031111
+   ],
+   [
+    "ONUSDT",
+    101031117
+   ],
+   [
+    "OPGUSDT",
+    44053998
+   ],
+   [
+    "OPGUSDT",
+    44060930
+   ],
+   [
+    "OPGUSDT",
+    44068340
+   ],
+   [
+    "OPGUSDT",
+    44075174
+   ],
+   [
+    "OPGUSDT",
+    44086802
+   ],
+   [
+    "OPUSDT",
+    954623360
+   ],
+   [
+    "OPUSDT",
+    954867122
+   ],
+   [
+    "ORDIUSDT",
+    1018939143
+   ],
+   [
+    "PENGUUSDT",
+    596159841
+   ],
+   [
+    "PENGUUSDT",
+    596263498
+   ],
+   [
+    "PEOPLEUSDT",
+    731681131
+   ],
+   [
+    "PIEVERSEUSDT",
+    208782881
+   ],
+   [
+    "PIEVERSEUSDT",
+    208782882
+   ],
+   [
+    "PIEVERSEUSDT",
+    208803677
+   ],
+   [
+    "PIEVERSEUSDT",
+    208803678
+   ],
+   [
+    "PIEVERSEUSDT",
+    208821075
+   ],
+   [
+    "PIEVERSEUSDT",
+    208834831
+   ],
+   [
+    "PIEVERSEUSDT",
+    208845109
+   ],
+   [
+    "PIEVERSEUSDT",
+    208845110
+   ],
+   [
+    "PIEVERSEUSDT",
+    208855802
+   ],
+   [
+    "PIEVERSEUSDT",
+    208855803
+   ],
+   [
+    "PIPPINUSDT",
+    763723708
+   ],
+   [
+    "PIPPINUSDT",
+    763739941
+   ],
+   [
+    "PIPPINUSDT",
+    763752648
+   ],
+   [
+    "PLUMEUSDT",
+    74764436
+   ],
+   [
+    "PLUMEUSDT",
+    74807767
+   ],
+   [
+    "PLUMEUSDT",
+    74819561
+   ],
+   [
+    "PNUTUSDT",
+    660499505
+   ],
+   [
+    "PNUTUSDT",
+    660509028
+   ],
+   [
+    "POLUSDT",
+    219766130
+   ],
+   [
+    "POPCATUSDT",
+    277836187
+   ],
+   [
+    "POPCATUSDT",
+    277848990
+   ],
+   [
+    "POPCATUSDT",
+    277869022
+   ],
+   [
+    "PORTALUSDT",
+    163639958
+   ],
+   [
+    "PORTALUSDT",
+    163650845
+   ],
+   [
+    "PTBUSDT",
+    124455107
+   ],
+   [
+    "PTBUSDT",
+    124460139
+   ],
+   [
+    "PTBUSDT",
+    124467843
+   ],
+   [
+    "PTBUSDT",
+    124467844
+   ],
+   [
+    "PTBUSDT",
+    124482507
+   ],
+   [
+    "PUMPUSDT",
+    279207222
+   ],
+   [
+    "PUMPUSDT",
+    279890429
+   ],
+   [
+    "PYTHUSDT",
+    324049657
+   ],
+   [
+    "RAVEUSDT",
+    497336980
+   ],
+   [
+    "RAVEUSDT",
+    497336981
+   ],
+   [
+    "RAVEUSDT",
+    497344587
+   ],
+   [
+    "RAVEUSDT",
+    497344588
+   ],
+   [
+    "RAVEUSDT",
+    497355043
+   ],
+   [
+    "RAVEUSDT",
+    497362030
+   ],
+   [
+    "RAVEUSDT",
+    497362033
+   ],
+   [
+    "RENDERUSDT",
+    183399447
+   ],
+   [
+    "RIFUSDT",
+    165221358
+   ],
+   [
+    "ROBOUSDT",
+    49260088
+   ],
+   [
+    "RUNEUSDT",
+    566239170
+   ],
+   [
+    "RUNEUSDT",
+    566282768
+   ],
+   [
+    "RUNEUSDT",
+    566295466
+   ],
+   [
+    "RUNEUSDT",
+    566313733
+   ],
+   [
+    "SAGAUSDT",
+    310626994
+   ],
+   [
+    "SAGAUSDT",
+    310637684
+   ],
+   [
+    "SAGAUSDT",
+    310637685
+   ],
+   [
+    "SAGAUSDT",
+    310645059
+   ],
+   [
+    "SAHARAUSDT",
+    147240333
+   ],
+   [
+    "SAHARAUSDT",
+    147253651
+   ],
+   [
+    "SAHARAUSDT",
+    147290604
+   ],
+   [
+    "SAHARAUSDT",
+    147290605
+   ],
+   [
+    "SANDUSDT",
+    996719831
+   ],
+   [
+    "SANDUSDT",
+    996719833
+   ],
+   [
+    "SANDUSDT",
+    996719834
+   ],
+   [
+    "SANDUSDT",
+    996780928
+   ],
+   [
+    "SEIUSDT",
+    460476319
+   ],
+   [
+    "SEIUSDT",
+    460538149
+   ],
+   [
+    "SIRENUSDT",
+    554118850
+   ],
+   [
+    "SIRENUSDT",
+    554127485
+   ],
+   [
+    "SIRENUSDT",
+    554127486
+   ],
+   [
+    "SIRENUSDT",
+    554136350
+   ],
+   [
+    "SIRENUSDT",
+    554136352
+   ],
+   [
+    "SIRENUSDT",
+    554144786
+   ],
+   [
+    "SIRENUSDT",
+    554144790
+   ],
+   [
+    "SIRENUSDT",
+    554153568
+   ],
+   [
+    "SIRENUSDT",
+    554153572
+   ],
+   [
+    "SKYUSDT",
+    48084039
+   ],
+   [
+    "SKYUSDT",
+    48084042
+   ],
+   [
+    "SKYUSDT",
+    48084045
+   ],
+   [
+    "SKYUSDT",
+    48161451
+   ],
+   [
+    "SOLUSDT",
+    3499510021
+   ],
+   [
+    "SPKUSDT",
+    157526415
+   ],
+   [
+    "SPKUSDT",
+    157563692
+   ],
+   [
+    "SPKUSDT",
+    157588748
+   ],
+   [
+    "SPXUSDT",
+    218074261
+   ],
+   [
+    "SPXUSDT",
+    218100029
+   ],
+   [
+    "SPXUSDT",
+    218100030
+   ],
+   [
+    "SPXUSDT",
+    218236526
+   ],
+   [
+    "SPXUSDT",
+    218236527
+   ],
+   [
+    "STABLEUSDT",
+    103206937
+   ],
+   [
+    "STABLEUSDT",
+    103228696
+   ],
+   [
+    "STABLEUSDT",
+    103242858
+   ],
+   [
+    "STABLEUSDT",
+    103258040
+   ],
+   [
+    "STABLEUSDT",
+    103258041
+   ],
+   [
+    "STARUSDT",
+    15585962
+   ],
+   [
+    "STARUSDT",
+    15585963
+   ],
+   [
+    "STARUSDT",
+    15586024
+   ],
+   [
+    "STARUSDT",
+    15591337
+   ],
+   [
+    "STARUSDT",
+    15655472
+   ],
+   [
+    "STARUSDT",
+    15779915
+   ],
+   [
+    "STARUSDT",
+    16084048
+   ],
+   [
+    "STRKUSDT",
+    239302263
+   ],
+   [
+    "STRKUSDT",
+    239323330
+   ],
+   [
+    "STRKUSDT",
+    239350300
+   ],
+   [
+    "STXUSDT",
+    476447271
+   ],
+   [
+    "STXUSDT",
+    476507477
+   ],
+   [
+    "STXUSDT",
+    476578606
+   ],
+   [
+    "SUIUSDT",
+    1552224601
+   ],
+   [
+    "SUSDT",
+    125029713
+   ],
+   [
+    "SUSDT",
+    125054166
+   ],
+   [
+    "SUSHIUSDT",
+    595015940
+   ],
+   [
+    "SXTUSDT",
+    73814768
+   ],
+   [
+    "SXTUSDT",
+    73832450
+   ],
+   [
+    "SXTUSDT",
+    73841966
+   ],
+   [
+    "SXTUSDT",
+    73849854
+   ],
+   [
+    "SYNUSDT",
+    175581852
+   ],
+   [
+    "SYNUSDT",
+    175600263
+   ],
+   [
+    "SYRUPUSDT",
+    198635253
+   ],
+   [
+    "TACUSDT",
+    114900634
+   ],
+   [
+    "TACUSDT",
+    114900638
+   ],
+   [
+    "TACUSDT",
+    114969943
+   ],
+   [
+    "TACUSDT",
+    114969944
+   ],
+   [
+    "TACUSDT",
+    114969945
+   ],
+   [
+    "TACUSDT",
+    114969946
+   ],
+   [
+    "TAOUSDT",
+    772830840
+   ],
+   [
+    "TIAUSDT",
+    842476455
+   ],
+   [
+    "TIAUSDT",
+    842650156
+   ],
+   [
+    "TIAUSDT",
+    842707596
+   ],
+   [
+    "TIAUSDT",
+    842707597
+   ],
+   [
+    "TLMUSDT",
+    145276166
+   ],
+   [
+    "TLMUSDT",
+    145276167
+   ],
+   [
+    "TLMUSDT",
+    145280765
+   ],
+   [
+    "TLMUSDT",
+    145294069
+   ],
+   [
+    "TNSRUSDT",
+    275625729
+   ],
+   [
+    "TNSRUSDT",
+    275644430
+   ],
+   [
+    "TNSRUSDT",
+    275659525
+   ],
+   [
+    "TNSRUSDT",
+    275659541
+   ],
+   [
+    "TNSRUSDT",
+    275679612
+   ],
+   [
+    "TRBUSDT",
+    1021089833
+   ],
+   [
+    "TRBUSDT",
+    1021101119
+   ],
+   [
+    "TRBUSDT",
+    1021117145
+   ],
+   [
+    "TREEUSDT",
+    80737168
+   ],
+   [
+    "TREEUSDT",
+    80746290
+   ],
+   [
+    "TREEUSDT",
+    80754543
+   ],
+   [
+    "TRIAUSDT",
+    59093929
+   ],
+   [
+    "TRIAUSDT",
+    59115491
+   ],
+   [
+    "TRIAUSDT",
+    59211000
+   ],
+   [
+    "TRIAUSDT",
+    59336389
+   ],
+   [
+    "TRIAUSDT",
+    59387929
+   ],
+   [
+    "TRUMPUSDT",
+    722717161
+   ],
+   [
+    "TRUMPUSDT",
+    723157954
+   ],
+   [
+    "TRUMPUSDT",
+    723294675
+   ],
+   [
+    "TRXUSDT",
+    704707245
+   ],
+   [
+    "TRXUSDT",
+    704879718
+   ],
+   [
+    "TRXUSDT",
+    704879719
+   ],
+   [
+    "TRXUSDT",
+    705083467
+   ],
+   [
+    "TSTUSDT",
+    148258773
+   ],
+   [
+    "TSTUSDT",
+    148273958
+   ],
+   [
+    "TSTUSDT",
+    148288921
+   ],
+   [
+    "TSTUSDT",
+    148288922
+   ],
+   [
+    "TSTUSDT",
+    148288923
+   ],
+   [
+    "TURBOUSDT",
+    521961095
+   ],
+   [
+    "TUTUSDT",
+    247002007
+   ],
+   [
+    "TUTUSDT",
+    247544762
+   ],
+   [
+    "TUTUSDT",
+    247787327
+   ],
+   [
+    "TWTUSDT",
+    114045538
+   ],
+   [
+    "UAIUSDT",
+    133947719
+   ],
+   [
+    "UAIUSDT",
+    133947720
+   ],
+   [
+    "UAIUSDT",
+    133997136
+   ],
+   [
+    "UAIUSDT",
+    134086233
+   ],
+   [
+    "UAIUSDT",
+    134308010
+   ],
+   [
+    "UAIUSDT",
+    134573849
+   ],
+   [
+    "UBUSDT",
+    303396422
+   ],
+   [
+    "UNIUSDT",
+    872130162
+   ],
+   [
+    "USELESSUSDT",
+    101266704
+   ],
+   [
+    "USELESSUSDT",
+    101664969
+   ],
+   [
+    "USELESSUSDT",
+    102134497
+   ],
+   [
+    "USELESSUSDT",
+    102941698
+   ],
+   [
+    "USELESSUSDT",
+    103949263
+   ],
+   [
+    "USELESSUSDT",
+    105081286
+   ],
+   [
+    "VELVETUSDT",
+    276808853
+   ],
+   [
+    "VELVETUSDT",
+    276808857
+   ],
+   [
+    "VELVETUSDT",
+    276808897
+   ],
+   [
+    "VELVETUSDT",
+    276808898
+   ],
+   [
+    "VELVETUSDT",
+    276808899
+   ],
+   [
+    "VELVETUSDT",
+    276808900
+   ],
+   [
+    "VETUSDT",
+    568933864
+   ],
+   [
+    "VETUSDT",
+    568996187
+   ],
+   [
+    "VIRTUALUSDT",
+    452695500
+   ],
+   [
+    "VIRTUALUSDT",
+    452810689
+   ],
+   [
+    "VVVUSDT",
+    227305312
+   ],
+   [
+    "VVVUSDT",
+    227420059
+   ],
+   [
+    "WALUSDT",
+    70205739
+   ],
+   [
+    "WALUSDT",
+    70236242
+   ],
+   [
+    "WALUSDT",
+    70281376
+   ],
+   [
+    "WALUSDT",
+    70281377
+   ],
+   [
+    "WIFUSDT",
+    1246113375
+   ],
+   [
+    "WLFIUSDT",
+    190227397
+   ],
+   [
+    "WLFIUSDT",
+    190255740
+   ],
+   [
+    "WLFIUSDT",
+    190291305
+   ],
+   [
+    "WUSDT",
+    248557996
+   ],
+   [
+    "WUSDT",
+    248557997
+   ],
+   [
+    "WUSDT",
+    248558005
+   ],
+   [
+    "WUSDT",
+    248568857
+   ],
+   [
+    "WUSDT",
+    248584278
+   ],
+   [
+    "WUSDT",
+    248596577
+   ],
+   [
+    "WUSDT",
+    248613432
+   ],
+   [
+    "WUSDT",
+    248630940
+   ],
+   [
+    "WUSDT",
+    248630941
+   ],
+   [
+    "WUSDT",
+    248630942
+   ],
+   [
+    "XANUSDT",
+    89208118
+   ],
+   [
+    "XANUSDT",
+    89258477
+   ],
+   [
+    "XANUSDT",
+    89268416
+   ],
+   [
+    "XAUTUSDT",
+    20133475
+   ],
+   [
+    "XLMUSDT",
+    1013085085
+   ],
+   [
+    "XMRUSDT",
+    545274057
+   ],
+   [
+    "XMRUSDT",
+    545406806
+   ],
+   [
+    "XMRUSDT",
+    545574699
+   ],
+   [
+    "XMRUSDT",
+    545776748
+   ],
+   [
+    "XMRUSDT",
+    545990567
+   ],
+   [
+    "ZAMAUSDT",
+    55409996
+   ],
+   [
+    "ZAMAUSDT",
+    55477968
+   ],
+   [
+    "ZBTUSDT",
+    144690194
+   ],
+   [
+    "ZBTUSDT",
+    144703115
+   ],
+   [
+    "ZBTUSDT",
+    144718854
+   ],
+   [
+    "ZBTUSDT",
+    144729571
+   ],
+   [
+    "ZBTUSDT",
+    144729804
+   ],
+   [
+    "ZBTUSDT",
+    144729805
+   ],
+   [
+    "ZBTUSDT",
+    144746551
+   ],
+   [
+    "ZECUSDT",
+    1418893106
+   ],
+   [
+    "ZECUSDT",
+    1420028088
+   ],
+   [
+    "ZKCUSDT",
+    110627254
+   ],
+   [
+    "ZKCUSDT",
+    110839354
+   ],
+   [
+    "ZKCUSDT",
+    110839355
+   ],
+   [
+    "ZKCUSDT",
+    110839356
+   ],
+   [
+    "ZKCUSDT",
+    110839357
+   ],
+   [
+    "ZKCUSDT",
+    110839358
+   ],
+   [
+    "ZKCUSDT",
+    111013005
+   ],
+   [
+    "ZKCUSDT",
+    111077284
+   ],
+   [
+    "ZKPUSDT",
+    99015371
+   ],
+   [
+    "ZKPUSDT",
+    99077845
+   ],
+   [
+    "ZKPUSDT",
+    99151531
+   ],
+   [
+    "ZKPUSDT",
+    99214881
+   ],
+   [
+    "ZKUSDT",
+    217252469
+   ]
+  ],
+  "covers_population": true,
+  "disjoint": true,
+  "no_repeat_within_side": true,
+  "rule": "gap (A, t_d) \u222a window [t_d, t_end] is a partition of the corrected fills \u2014 R13-P2 (2); R15-M2: the day owns (d0, d0+86400] (00<t<=24), a midnight fill is the prev day's, and a this-day fill outside every priced interval blocks closure"
+ },
+ "day_actual_full_day": {
+  "windows_pnl_usdt": -207.82273267983675,
+  "gaps_pnl_usdt": 95.96655860581609,
+  "priced_period_pnl_usdt": -111.85617407402066,
+  "priced_period_pnl_usdt_with_fill_prices": -117.39050164687725,
+  "fill_price_correction_usdt": -5.53432757285659,
+  "n_censored_names": 116,
+  "n_readback_residual_over_1usdt": 0,
+  "n_price_chain_joins_over_1pct": 44,
+  "n_windows_readback_unmeasured": 0,
+  "readback_residual_states": {
+   "CHECKED": 6
+  },
+  "n_unknown_start_qty_in_gaps": 62,
+  "no_nonfinite_in_published_figures": true,
+  "n_nonfinite_next_readback": 0,
+  "n_day_fills_outside_every_priced_interval": 0,
+  "n_adjacent_prev_day_fills": 778,
+  "n_adjacent_next_day_fills": 604,
+  "closure_conditions": {
+   "six_windows_priced": true,
+   "six_gaps_priced": true,
+   "no_censored_names": false,
+   "readback_residual_measured": true,
+   "no_readback_residual_over_1usdt": true,
+   "no_price_chain_join_over_1pct": false,
+   "fills_partitioned": true,
+   "fill_population_covered": true,
+   "no_unknown_start_qty_in_gaps": false,
+   "no_nonfinite_in_published_figures": true,
+   "readback_next_finite": true,
+   "no_current_day_fill_outside_priced_intervals": true,
+   "coverage_full_day": true
+  },
+  "closed": false,
+  "label": "\u7814\u7a76\u53e3\u5f84\u7684\u4ef7\u683c\u4f30\u8ba1, \u8986\u76d6\u3010\u5df2\u5b9a\u4ef7\u7684\u65f6\u6bb5\u4e0e\u6210\u5458\u3011; \u4e0d\u662f\u5f53\u65e5\u73b0\u91d1\u8d26 \u2014\u2014 closure_conditions \u9010\u6761\u8bf4\u660e\u7f3a\u4ec0\u4e48",
+  "note": "R13-P2 (5): v4 called this `complete` on 6 windows + 6 gaps alone. It is now `closed` only when every condition above holds; the figure itself is a research price estimate over the priced periods and members, never a certified day P&L"
+ },
+ "day_long_short_windows": {
+  "pnl_long_usdt": 106.0228485974342,
+  "pnl_short_usdt": -313.84558127727104
+ },
+ "n_anchors_ok": 6,
+ "n_anchors_total": 6,
+ "day_totals_over_ok_anchors_usdt": {
+  "L0_producer": 9.496685837448766,
+  "L1_executor_target": -205.67802159483878,
+  "L2_request_intent": -203.68166163334678,
+  "L2_cut_at_flatten": -203.6816616333466,
+  "L3_actual_path": -207.82273267983675
+ },
+ "day_censored_notional_by_layer": {
+  "L0_producer": 7228.862515850694,
+  "L1_executor_target": 0.0,
+  "L2_request_intent": 0.0,
+  "L2_cut_at_flatten": 0.0,
+  "L3_actual_path": 0.0
+ },
+ "day_fees_in_windows": {
+  "BNB": 0.00262134
+ },
+ "day_diffs_by_window_class": {
+  "NORMAL": {
+   "n_windows": 6,
+   "L3_minus_L2": -4.141071046489991,
+   "L3_minus_L2cut_execution": -4.141071046490232,
+   "L2cut_minus_L2_flatten_footprint": 2.4158453015843406e-13,
+   "L1_minus_L0": -215.17470743228753,
+   "L3_minus_L2cut_execution_with_fill_prices": -9.675398619346815,
+   "fill_price_correction": -5.53432757285659
+  }
+ },
+ "day_fill_price_correction_in_windows_usdt": -5.53432757285659,
+ "day_totals_with_fill_prices_usdt": {
+  "L3_actual_path": -213.35706025269334
+ },
+ "day_diffs_over_ok_anchors": {
+  "L3_minus_L2_timing_and_fills": -4.141071046489969,
+  "L3_minus_L2cut_execution": -4.14107104649014,
+  "L2cut_minus_L2_flatten_footprint": 1.7053025658242404e-13,
+  "L2_minus_L1_skips": 1.9963599614920042,
+  "L1_minus_L0_book_layer": -215.17470743228756,
+  "L3_minus_L0_total": -217.3194185172855,
+  "L3_minus_L2cut_execution_with_fill_prices": -9.675398619346737
+ },
+ "boundary": "price P&L only at 5-minute resolution; no funding; fees separate; the boundary figure values fills at their boundary mark and the *_with_fill_prices figure applies the RECORDED fill prices (both are printed, neither replaces the other); intent contracts at mid_at_anchor; a day total covers only the anchors with status OK (n_anchors_ok/6) and only names that are not CENSORED; the intent layers cover the DECISION WINDOWS only (21.5 h) while the actual layer additionally carries the six [anchor, decision] gaps \u2014 day_coverage says exactly how much of the 86,400 s is priced. THIS IS NOT A CERTIFIED EXECUTION-CONTRIBUTION FIGURE: unrecorded fills, endpoint marks, funding and treating a flatten READBACK as the event time all remain open"
+}

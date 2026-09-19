@@ -1,0 +1,11014 @@
+{
+ "device": "pc2_layer_decomposition.py",
+ "version": "v7 (round-15) = v6 core + R15-M1 finiteness as a source-agnostic published-figure checkpoint + R15-M2 day-boundary contract + coverage-hole attribution (pnl_path.py)",
+ "utc": "2026-09-19T05:32:13Z",
+ "day": "20260830",
+ "self_sha256": "33ed990ac7a03ef4e584bcb32d4d76a209c21898b53429eed7b3d16b18329063",
+ "engine_sha256": "f34c7b676d1bf3785e56a85ad15cdbfc552b322d312454ec08eea0440fe484db",
+ "panel": {
+  "path": "/Users/haosiyu/wide_shadow/state/rolling.npz",
+  "sha256": "4149c8926f408a61ab1d49a6b3cf861761ee6184f030c85f004d203a7a7fa604",
+  "t_first": 1786334700,
+  "t_last": 1789790400,
+  "n_symbols": 829
+ },
+ "ledger_roots": {
+  "repo": "/Users/haosiyu/dl_quant_live",
+  "ws": "/Users/haosiyu/wide_shadow"
+ },
+ "anchors": [
+  {
+   "anchor": 1788048000,
+   "utc": "08-30 00:00Z",
+   "status": "OK",
+   "rebalance_id": "A1788049440",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1788049473.718165,
+   "t_end": 1788062400.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": -0.5291706951900076,
+   "n_fills_price_corrected": 277,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1788049500,
+   "b1": 1788062400,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 263,
+     "n_priced": 263,
+     "gross_b0": 41079.3275807702,
+     "net_b0": -4029.111602272182,
+     "pnl_usdt": -68.86676892603242,
+     "pnl_long_usdt": -133.84225082254395,
+     "pnl_short_usdt": 64.97548189651157,
+     "censored": {
+      "n": 11,
+      "notional": 1328.743735272691
+     }
+    },
+    "L1_executor_target": {
+     "n": 263,
+     "n_priced": 263,
+     "gross_b0": 42279.17370124306,
+     "net_b0": -137.95230212676663,
+     "pnl_usdt": -72.45007655874115,
+     "pnl_long_usdt": -137.2176388912594,
+     "pnl_short_usdt": 64.76756233251814,
+     "censored": {
+      "n": 11,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 263,
+     "n_priced": 263,
+     "gross_b0": 42308.31270232531,
+     "net_b0": -143.51550236227297,
+     "pnl_usdt": -71.8983434414165,
+     "pnl_long_usdt": -137.29561394082253,
+     "pnl_short_usdt": 65.39727049940608,
+     "censored": {
+      "n": 11,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 263,
+     "n_priced": 263,
+     "gross_b0": 42308.31270232531,
+     "net_b0": -143.51550236227297,
+     "pnl_usdt": -71.89834344141654,
+     "pnl_long_usdt": -137.29561394082253,
+     "pnl_short_usdt": 65.3972704994061,
+     "censored": {
+      "n": 11,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 263,
+     "n_priced": 263,
+     "gross_b0": 42477.45876377855,
+     "net_b0": -280.5003461227865,
+     "pnl_usdt": -70.50463135296047,
+     "pnl_long_usdt": -134.52155900389525,
+     "pnl_short_usdt": 64.01692765093485,
+     "censored": {
+      "n": 11,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": -0.5291706951900076,
+     "pnl_usdt_with_fill_prices": -71.03380204815048,
+     "n_fills_price_corrected": 277
+    }
+   },
+   "fees_in_window": {
+    "BNB": 0.001785589999999999
+   },
+   "n_fills_in_window": 277,
+   "events": {
+    "pre_window": 0,
+    "in_window": 277,
+    "post_window_not_applied": 314
+   },
+   "intra_row_approx": 240,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 259,
+    "max_abs_rel": 0.006168940921012611,
+    "median_abs_rel": 0.0004195248505263205
+   },
+   "fill_px_vs_path": {
+    "n": 240,
+    "max_abs_rel": 0.019499764401387787,
+    "median_abs_rel": 0.0005812353799958814
+   },
+   "reference_readback": {
+    "runs": [
+     "08-29 16Z",
+     "08-29 20Z"
+    ],
+    "n_names": 258,
+    "n_stale_over_4h40m": 2,
+    "t_earliest_read": 1788021713.740269
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 258,
+    "t_latest_read": 1788079381.720483
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 32,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 5.605947239979901e-13,
+    "n_nonfinite_next_readback": 0,
+    "top": [
+     [
+      "AAVEUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ACEUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "APTUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ATOMUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "BCHUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "CVXUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "DOTUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "DYDXUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "EVAAUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "FORMUSDT",
+      0.0,
+      0.0
+     ]
+    ],
+    "next_readback_names": 258,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "price_chain_joins": {
+    "n_names_compared": 0,
+    "n_over_1pct": 0,
+    "n_value_over_1cent": 0,
+    "abs_value_diff_sum_usdt": 0.0,
+    "max_abs_rel": null,
+    "causes": {},
+    "resets": {
+     "new_symbol_in_day": 263
+    },
+    "top": [],
+    "rule": "the day chain's price at b0 vs the price this window would have derived on its own; REPORTED, never added to P&L (a mark-vs-close difference is a valuation difference, not a realised gain)"
+   },
+   "fill_partition": {
+    "owns": "[t_decision, t_end]",
+    "n_fills_price_corrected": 277,
+    "keys": [
+     [
+      "1000FLOKIUSDT",
+      589843571
+     ],
+     [
+      "1000FLOKIUSDT",
+      589843572
+     ],
+     [
+      "1000LUNCUSDT",
+      469615917
+     ],
+     [
+      "1000PEPEUSDT",
+      2755398532
+     ],
+     [
+      "1000RATSUSDT",
+      370806930
+     ],
+     [
+      "1000SHIBUSDT",
+      1579140849
+     ],
+     [
+      "1000SHIBUSDT",
+      1579140852
+     ],
+     [
+      "1000SHIBUSDT",
+      1579140853
+     ],
+     [
+      "1000SHIBUSDT",
+      1579140885
+     ],
+     [
+      "4USDT",
+      141974364
+     ],
+     [
+      "AAVEUSDT",
+      966779286
+     ],
+     [
+      "AAVEUSDT",
+      966779287
+     ],
+     [
+      "ACEUSDT",
+      342690811
+     ],
+     [
+      "ADAUSDT",
+      1913998038
+     ],
+     [
+      "AIOUSDT",
+      86384899
+     ],
+     [
+      "AKEUSDT",
+      290557013
+     ],
+     [
+      "ALGOUSDT",
+      516423371
+     ],
+     [
+      "ALICEUSDT",
+      389690567
+     ],
+     [
+      "ALLOUSDT",
+      307295119
+     ],
+     [
+      "APRUSDT",
+      164007119
+     ],
+     [
+      "APTUSDT",
+      983864161
+     ],
+     [
+      "APTUSDT",
+      983864162
+     ],
+     [
+      "ARIAUSDT",
+      173101078
+     ],
+     [
+      "ARUSDT",
+      443652648
+     ],
+     [
+      "ASTERUSDT",
+      405605897
+     ],
+     [
+      "ATHUSDT",
+      58469515
+     ],
+     [
+      "ATOMUSDT",
+      872265506
+     ],
+     [
+      "AVNTUSDT",
+      297437604
+     ],
+     [
+      "AXSUSDT",
+      697177283
+     ],
+     [
+      "BABYUSDT",
+      119142430
+     ],
+     [
+      "BANKUSDT",
+      348133320
+     ],
+     [
+      "BASEDUSDT",
+      111350037
+     ],
+     [
+      "BCHUSDT",
+      1317365626
+     ],
+     [
+      "BEATUSDT",
+      618695650
+     ],
+     [
+      "BERAUSDT",
+      216103174
+     ],
+     [
+      "BERAUSDT",
+      216103175
+     ],
+     [
+      "BICOUSDT",
+      155213937
+     ],
+     [
+      "BIGTIMEUSDT",
+      346840011
+     ],
+     [
+      "BILLUSDT",
+      120353427
+     ],
+     [
+      "BILLUSDT",
+      120353428
+     ],
+     [
+      "BLESSUSDT",
+      306973241
+     ],
+     [
+      "BLUAIUSDT",
+      89608552
+     ],
+     [
+      "BOMEUSDT",
+      491831101
+     ],
+     [
+      "BOMEUSDT",
+      491831102
+     ],
+     [
+      "BRUSDT",
+      123376360
+     ],
+     [
+      "BSBUSDT",
+      364146180
+     ],
+     [
+      "BSBUSDT",
+      364146192
+     ],
+     [
+      "BTRUSDT",
+      147752366
+     ],
+     [
+      "CAKEUSDT",
+      317483905
+     ],
+     [
+      "CCUSDT",
+      67525762
+     ],
+     [
+      "CFGUSDT",
+      22620759
+     ],
+     [
+      "CFXUSDT",
+      482055693
+     ],
+     [
+      "CHIPUSDT",
+      104074320
+     ],
+     [
+      "CHZUSDT",
+      731000241
+     ],
+     [
+      "CLOUSDT",
+      183664910
+     ],
+     [
+      "CLOUSDT",
+      183664911
+     ],
+     [
+      "CLOUSDT",
+      183664914
+     ],
+     [
+      "COLLECTUSDT",
+      61743769
+     ],
+     [
+      "COMPUSDT",
+      457610383
+     ],
+     [
+      "COTIUSDT",
+      422452801
+     ],
+     [
+      "CRVUSDT",
+      571158019
+     ],
+     [
+      "CRVUSDT",
+      571158020
+     ],
+     [
+      "CVXUSDT",
+      20594490
+     ],
+     [
+      "CYSUSDT",
+      158841203
+     ],
+     [
+      "DEXEUSDT",
+      229341209
+     ],
+     [
+      "DOGEUSDT",
+      3447567647
+     ],
+     [
+      "DOTUSDT",
+      1174696802
+     ],
+     [
+      "DYDXUSDT",
+      582603382
+     ],
+     [
+      "EDENUSDT",
+      166341631
+     ],
+     [
+      "EDGEUSDT",
+      80873693
+     ],
+     [
+      "EDGEUSDT",
+      80873694
+     ],
+     [
+      "EIGENUSDT",
+      362171995
+     ],
+     [
+      "ENAUSDT",
+      855980509
+     ],
+     [
+      "ENJUSDT",
+      444601701
+     ],
+     [
+      "ENJUSDT",
+      444601702
+     ],
+     [
+      "ENJUSDT",
+      444601703
+     ],
+     [
+      "ENJUSDT",
+      444601704
+     ],
+     [
+      "ENJUSDT",
+      444601705
+     ],
+     [
+      "ENJUSDT",
+      444601708
+     ],
+     [
+      "ENJUSDT",
+      444601709
+     ],
+     [
+      "ENSUSDT",
+      616434047
+     ],
+     [
+      "ENSUSDT",
+      616434048
+     ],
+     [
+      "EPICUSDT",
+      158497248
+     ],
+     [
+      "ESPORTSUSDT",
+      223344951
+     ],
+     [
+      "ESPUSDT",
+      89296142
+     ],
+     [
+      "ESPUSDT",
+      89296143
+     ],
+     [
+      "ETCUSDT",
+      1207072636
+     ],
+     [
+      "ETHFIUSDT",
+      472135520
+     ],
+     [
+      "EULUSDT",
+      88263300
+     ],
+     [
+      "EVAAUSDT",
+      252190400
+     ],
+     [
+      "EVAAUSDT",
+      252190401
+     ],
+     [
+      "EVAAUSDT",
+      252190407
+     ],
+     [
+      "EVAAUSDT",
+      252190408
+     ],
+     [
+      "FARTCOINUSDT",
+      677163335
+     ],
+     [
+      "FETUSDT",
+      689563916
+     ],
+     [
+      "FFUSDT",
+      160094612
+     ],
+     [
+      "FILUSDT",
+      989072098
+     ],
+     [
+      "GIGGLEUSDT",
+      278212767
+     ],
+     [
+      "GMTUSDT",
+      901391020
+     ],
+     [
+      "GMTUSDT",
+      901391021
+     ],
+     [
+      "GMTUSDT",
+      901391053
+     ],
+     [
+      "GRASSUSDT",
+      175616773
+     ],
+     [
+      "GWEIUSDT",
+      80889087
+     ],
+     [
+      "HBARUSDT",
+      785179230
+     ],
+     [
+      "HEIUSDT",
+      194466932
+     ],
+     [
+      "HEIUSDT",
+      194466933
+     ],
+     [
+      "HEMIUSDT",
+      191882570
+     ],
+     [
+      "HEMIUSDT",
+      191882571
+     ],
+     [
+      "HOMEUSDT",
+      183115827
+     ],
+     [
+      "HUMAUSDT",
+      213614889
+     ],
+     [
+      "HUSDT",
+      537977966
+     ],
+     [
+      "HUSDT",
+      537977967
+     ],
+     [
+      "HYPEUSDT",
+      716778085
+     ],
+     [
+      "IDUSDT",
+      303654299
+     ],
+     [
+      "IMXUSDT",
+      370039999
+     ],
+     [
+      "INXUSDT",
+      40227574
+     ],
+     [
+      "INXUSDT",
+      40227617
+     ],
+     [
+      "INXUSDT",
+      40227618
+     ],
+     [
+      "IOTAUSDT",
+      296049868
+     ],
+     [
+      "JASMYUSDT",
+      534078871
+     ],
+     [
+      "JTOUSDT",
+      536812952
+     ],
+     [
+      "KAIAUSDT",
+      53364865
+     ],
+     [
+      "KAIAUSDT",
+      53364866
+     ],
+     [
+      "KASUSDT",
+      175799830
+     ],
+     [
+      "KITEUSDT",
+      217416119
+     ],
+     [
+      "KMNOUSDT",
+      66622357
+     ],
+     [
+      "KMNOUSDT",
+      66622358
+     ],
+     [
+      "KMNOUSDT",
+      66622359
+     ],
+     [
+      "KMNOUSDT",
+      66622362
+     ],
+     [
+      "KMNOUSDT",
+      66622363
+     ],
+     [
+      "KOMAUSDT",
+      108487047
+     ],
+     [
+      "LABUSDT",
+      690013854
+     ],
+     [
+      "LABUSDT",
+      690013855
+     ],
+     [
+      "LAUSDT",
+      105104953
+     ],
+     [
+      "LAUSDT",
+      105104954
+     ],
+     [
+      "LDOUSDT",
+      663995484
+     ],
+     [
+      "LIGHTUSDT",
+      244786517
+     ],
+     [
+      "LSKUSDT",
+      111237219
+     ],
+     [
+      "MANAUSDT",
+      620014036
+     ],
+     [
+      "MANTRAUSDT",
+      20525803
+     ],
+     [
+      "MEGAUSDT",
+      41729270
+     ],
+     [
+      "MEGAUSDT",
+      41729271
+     ],
+     [
+      "MEGAUSDT",
+      41729272
+     ],
+     [
+      "MEMEUSDT",
+      375798342
+     ],
+     [
+      "MEMEUSDT",
+      375798343
+     ],
+     [
+      "MERLUSDT",
+      173089982
+     ],
+     [
+      "MERLUSDT",
+      173089983
+     ],
+     [
+      "MERLUSDT",
+      173089987
+     ],
+     [
+      "MERLUSDT",
+      173089988
+     ],
+     [
+      "MERLUSDT",
+      173089989
+     ],
+     [
+      "MERLUSDT",
+      173089990
+     ],
+     [
+      "MERLUSDT",
+      173090006
+     ],
+     [
+      "METUSDT",
+      59670870
+     ],
+     [
+      "MEUSDT",
+      101626893
+     ],
+     [
+      "MEUSDT",
+      101626894
+     ],
+     [
+      "MINAUSDT",
+      231360669
+     ],
+     [
+      "MINAUSDT",
+      231360670
+     ],
+     [
+      "MINAUSDT",
+      231360671
+     ],
+     [
+      "MINAUSDT",
+      231360672
+     ],
+     [
+      "MMTUSDT",
+      158201992
+     ],
+     [
+      "MONUSDT",
+      83053704
+     ],
+     [
+      "MOODENGUSDT",
+      460296965
+     ],
+     [
+      "MOVEUSDT",
+      205861270
+     ],
+     [
+      "MOVRUSDT",
+      152108529
+     ],
+     [
+      "MUBARAKUSDT",
+      137721489
+     ],
+     [
+      "NEARUSDT",
+      1042127840
+     ],
+     [
+      "NEOUSDT",
+      466730103
+     ],
+     [
+      "NEOUSDT",
+      466730105
+     ],
+     [
+      "NEOUSDT",
+      466730211
+     ],
+     [
+      "NILUSDT",
+      117696873
+     ],
+     [
+      "ONDOUSDT",
+      549543013
+     ],
+     [
+      "ONEUSDT",
+      331158976
+     ],
+     [
+      "ONGUSDT",
+      207098598
+     ],
+     [
+      "ONTUSDT",
+      311551452
+     ],
+     [
+      "ONUSDT",
+      100863248
+     ],
+     [
+      "OPUSDT",
+      953919040
+     ],
+     [
+      "ORCAUSDT",
+      114133956
+     ],
+     [
+      "PARTIUSDT",
+      158754334
+     ],
+     [
+      "PENGUUSDT",
+      595059520
+     ],
+     [
+      "PEOPLEUSDT",
+      731374569
+     ],
+     [
+      "PIEVERSEUSDT",
+      208599992
+     ],
+     [
+      "PIPPINUSDT",
+      763632034
+     ],
+     [
+      "PLUMEUSDT",
+      74622069
+     ],
+     [
+      "PNUTUSDT",
+      660365273
+     ],
+     [
+      "POPCATUSDT",
+      277716019
+     ],
+     [
+      "PORTALUSDT",
+      163494012
+     ],
+     [
+      "PTBUSDT",
+      124319562
+     ],
+     [
+      "PUMPUSDT",
+      277193929
+     ],
+     [
+      "PYTHUSDT",
+      323702447
+     ],
+     [
+      "QNTUSDT",
+      159787200
+     ],
+     [
+      "RAVEUSDT",
+      497254614
+     ],
+     [
+      "RENDERUSDT",
+      183224544
+     ],
+     [
+      "RIFUSDT",
+      165049727
+     ],
+     [
+      "RIVERUSDT",
+      783247534
+     ],
+     [
+      "RUNEUSDT",
+      566065831
+     ],
+     [
+      "RUNEUSDT",
+      566065832
+     ],
+     [
+      "RVNUSDT",
+      246606216
+     ],
+     [
+      "RVNUSDT",
+      246606224
+     ],
+     [
+      "RVNUSDT",
+      246606248
+     ],
+     [
+      "RVNUSDT",
+      246606256
+     ],
+     [
+      "RVNUSDT",
+      246606273
+     ],
+     [
+      "RVNUSDT",
+      246606304
+     ],
+     [
+      "RVNUSDT",
+      246606481
+     ],
+     [
+      "SAGAUSDT",
+      310504250
+     ],
+     [
+      "SAHARAUSDT",
+      147111792
+     ],
+     [
+      "SANDUSDT",
+      996414933
+     ],
+     [
+      "SEIUSDT",
+      460261205
+     ],
+     [
+      "SKRUSDT",
+      57326198
+     ],
+     [
+      "SNXUSDT",
+      394643478
+     ],
+     [
+      "SOLUSDT",
+      3493622981
+     ],
+     [
+      "SPKUSDT",
+      157393387
+     ],
+     [
+      "SPXUSDT",
+      217782188
+     ],
+     [
+      "STABLEUSDT",
+      103096462
+     ],
+     [
+      "STARUSDT",
+      15492296
+     ],
+     [
+      "STGUSDT",
+      232771570
+     ],
+     [
+      "STXUSDT",
+      476052862
+     ],
+     [
+      "SUIUSDT",
+      1550084834
+     ],
+     [
+      "SUSDT",
+      124881591
+     ],
+     [
+      "SUSDT",
+      124881592
+     ],
+     [
+      "SUSDT",
+      124881593
+     ],
+     [
+      "SUSDT",
+      124881599
+     ],
+     [
+      "SUSHIUSDT",
+      594810425
+     ],
+     [
+      "SXTUSDT",
+      73655717
+     ],
+     [
+      "SYNUSDT",
+      175436422
+     ],
+     [
+      "SYNUSDT",
+      175436424
+     ],
+     [
+      "SYNUSDT",
+      175436425
+     ],
+     [
+      "SYRUPUSDT",
+      198515741
+     ],
+     [
+      "SYRUPUSDT",
+      198515743
+     ],
+     [
+      "SYRUPUSDT",
+      198515744
+     ],
+     [
+      "TAOUSDT",
+      771392372
+     ],
+     [
+      "TIAUSDT",
+      842149661
+     ],
+     [
+      "TLMUSDT",
+      145198256
+     ],
+     [
+      "TRBUSDT",
+      1020944767
+     ],
+     [
+      "TRIAUSDT",
+      58802915
+     ],
+     [
+      "TRIAUSDT",
+      58802916
+     ],
+     [
+      "TRIAUSDT",
+      58802917
+     ],
+     [
+      "TRIAUSDT",
+      58802918
+     ],
+     [
+      "TRIAUSDT",
+      58802919
+     ],
+     [
+      "TRIAUSDT",
+      58802920
+     ],
+     [
+      "TSTUSDT",
+      148116627
+     ],
+     [
+      "TSTUSDT",
+      148116628
+     ],
+     [
+      "TURBOUSDT",
+      521593812
+     ],
+     [
+      "TUTUSDT",
+      245323401
+     ],
+     [
+      "TWTUSDT",
+      113825498
+     ],
+     [
+      "UAIUSDT",
+      132681085
+     ],
+     [
+      "UBUSDT",
+      303098858
+     ],
+     [
+      "VETUSDT",
+      568560858
+     ],
+     [
+      "VETUSDT",
+      568560859
+     ],
+     [
+      "VETUSDT",
+      568560860
+     ],
+     [
+      "VVVUSDT",
+      226810257
+     ],
+     [
+      "WALUSDT",
+      70113868
+     ],
+     [
+      "WIFUSDT",
+      1245748764
+     ],
+     [
+      "WIFUSDT",
+      1245748769
+     ],
+     [
+      "WIFUSDT",
+      1245748770
+     ],
+     [
+      "WUSDT",
+      248441396
+     ],
+     [
+      "XANUSDT",
+      88987125
+     ],
+     [
+      "XAUTUSDT",
+      19789944
+     ],
+     [
+      "XLMUSDT",
+      1012238259
+     ],
+     [
+      "XPINUSDT",
+      125959624
+     ],
+     [
+      "XTZUSDT",
+      355081435
+     ],
+     [
+      "XTZUSDT",
+      355081436
+     ],
+     [
+      "XTZUSDT",
+      355081437
+     ],
+     [
+      "ZBTUSDT",
+      144374729
+     ],
+     [
+      "ZBTUSDT",
+      144374730
+     ],
+     [
+      "ZECUSDT",
+      1406981377
+     ],
+     [
+      "ZILUSDT",
+      407208274
+     ],
+     [
+      "ZILUSDT",
+      407208275
+     ],
+     [
+      "ZILUSDT",
+      407208276
+     ],
+     [
+      "ZILUSDT",
+      407208277
+     ],
+     [
+      "ZILUSDT",
+      407208279
+     ],
+     [
+      "ZILUSDT",
+      407208280
+     ],
+     [
+      "ZILUSDT",
+      407208281
+     ],
+     [
+      "ZKPUSDT",
+      96544705
+     ],
+     [
+      "ZKUSDT",
+      215867606
+     ],
+     [
+      "ZORAUSDT",
+      139383994
+     ],
+     [
+      "ZORAUSDT",
+      139383995
+     ],
+     [
+      "ZROUSDT",
+      404988785
+     ]
+    ],
+    "rule": "R13-P2 (2): the gap owns (A, t_d) and the window owns [t_d, t_end]; a fill exactly at t_d belongs to the window ONLY"
+   },
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "MAGMAUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ROSEUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "VELVETUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "WLFIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": 1.3937120884560272,
+    "L3_minus_L2cut_execution": 1.3937120884560699,
+    "L2cut_minus_L2_flatten_footprint": -4.263256414560601e-14,
+    "L2_minus_L1_skips": 0.5517331173246447,
+    "L1_minus_L0_book_layer": -3.583307632708724,
+    "L3_minus_L0_total": -1.6378624269280522,
+    "L3_minus_L2cut_execution_with_fill_prices": 0.8645413932660659,
+    "fill_price_correction": -0.5291706951900076
+   },
+   "n_names_ok": 263
+  },
+  {
+   "anchor": 1788062400,
+   "utc": "08-30 04:00Z",
+   "status": "OK",
+   "rebalance_id": "A1788063840",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1788063842.0927842,
+   "t_end": 1788076800.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": 0.20938236310087704,
+   "n_fills_price_corrected": 177,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1788063900,
+   "b1": 1788076800,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 263,
+     "n_priced": 263,
+     "gross_b0": 40955.79134660316,
+     "net_b0": -3399.56622299186,
+     "pnl_usdt": 55.42125121761672,
+     "pnl_long_usdt": 47.80345025200814,
+     "pnl_short_usdt": 7.617800965608581,
+     "censored": {
+      "n": 10,
+      "notional": 1320.6699280131422
+     }
+    },
+    "L1_executor_target": {
+     "n": 263,
+     "n_priced": 263,
+     "gross_b0": 42158.48480325897,
+     "net_b0": -108.61351436480331,
+     "pnl_usdt": 67.2883627849196,
+     "pnl_long_usdt": 59.72685263158021,
+     "pnl_short_usdt": 7.561510153339374,
+     "censored": {
+      "n": 10,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 263,
+     "n_priced": 263,
+     "gross_b0": 42186.38699389101,
+     "net_b0": -106.15662424532843,
+     "pnl_usdt": 66.9724563651851,
+     "pnl_long_usdt": 59.47871678972316,
+     "pnl_short_usdt": 7.493739575461914,
+     "censored": {
+      "n": 10,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 263,
+     "n_priced": 263,
+     "gross_b0": 42186.38699389101,
+     "net_b0": -106.15662424532843,
+     "pnl_usdt": 66.97245636518507,
+     "pnl_long_usdt": 59.47871678972315,
+     "pnl_short_usdt": 7.4937395754619205,
+     "censored": {
+      "n": 10,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 263,
+     "n_priced": 263,
+     "gross_b0": 41988.36667540782,
+     "net_b0": 309.99379668940713,
+     "pnl_usdt": 69.72312365839741,
+     "pnl_long_usdt": 61.55362022474866,
+     "pnl_short_usdt": 8.169503433648757,
+     "censored": {
+      "n": 10,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": 0.20938236310087704,
+     "pnl_usdt_with_fill_prices": 69.93250602149828,
+     "n_fills_price_corrected": 177
+    }
+   },
+   "fees_in_window": {
+    "BNB": 0.0007262500000000002
+   },
+   "n_fills_in_window": 177,
+   "events": {
+    "pre_window": 0,
+    "in_window": 177,
+    "post_window_not_applied": 283
+   },
+   "intra_row_approx": 94,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 256,
+    "max_abs_rel": 0.006180900496279618,
+    "median_abs_rel": 0.0004890641828830811
+   },
+   "fill_px_vs_path": {
+    "n": 94,
+    "max_abs_rel": 0.006414769824537259,
+    "median_abs_rel": 0.0007250554899450035
+   },
+   "reference_readback": {
+    "runs": [
+     "08-30 00Z"
+    ],
+    "n_names": 259,
+    "n_stale_over_4h40m": 0,
+    "t_earliest_read": 1788050714.863552
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 258,
+    "t_latest_read": 1788093804.836877
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 18,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 3.8712926390584673e-13,
+    "n_nonfinite_next_readback": 0,
+    "top": [
+     [
+      "ALGOUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "BLUAIUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "CRVUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "DOTUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "EULUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "EVAAUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "FARTCOINUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "FILUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "FORMUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "OPUSDT",
+      -0.0,
+      -0.0
+     ]
+    ],
+    "next_readback_names": 258,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "price_chain_joins": {
+    "n_names_compared": 260,
+    "n_over_1pct": 5,
+    "n_value_over_1cent": 210,
+    "abs_value_diff_sum_usdt": 90.05664784470196,
+    "max_abs_rel": 0.018903358995461694,
+    "causes": {
+     "mark_vs_close": 253,
+     "fill_px_vs_close": 6,
+     "mid_vs_close": 1
+    },
+    "resets": {},
+    "top": [
+     {
+      "symbol": "CLOUSDT",
+      "px_chain_at_b0": 0.12123957,
+      "px_own_at_b0": 0.12353141,
+      "own_source": "readback_mark",
+      "rel": 0.01890336,
+      "qty_at_join": 2964.0,
+      "value_diff_usdt": 6.79299934,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "EDENUSDT",
+      "px_chain_at_b0": 0.06286201,
+      "px_own_at_b0": 0.06367897,
+      "own_source": "readback_mark",
+      "rel": 0.012996,
+      "qty_at_join": -5537.0,
+      "value_diff_usdt": -4.52347779,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "COLLECTUSDT",
+      "px_chain_at_b0": 0.06898578,
+      "px_own_at_b0": 0.06983256,
+      "own_source": "readback_mark",
+      "rel": 0.01227475,
+      "qty_at_join": 4769.0,
+      "value_diff_usdt": 4.03830987,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "KOMAUSDT",
+      "px_chain_at_b0": 0.01390746,
+      "px_own_at_b0": 0.01403248,
+      "own_source": "readback_mark",
+      "rel": 0.0089893,
+      "qty_at_join": 24168.0,
+      "value_diff_usdt": 3.02144287,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "MOVEUSDT",
+      "px_chain_at_b0": 0.0086539,
+      "px_own_at_b0": 0.0085821,
+      "own_source": "readback_mark",
+      "rel": -0.00829678,
+      "qty_at_join": -42005.0,
+      "value_diff_usdt": 3.01593669,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "BTRUSDT",
+      "px_chain_at_b0": 0.17541708,
+      "px_own_at_b0": 0.17714334,
+      "own_source": "readback_mark",
+      "rel": 0.00984089,
+      "qty_at_join": 1667.0,
+      "value_diff_usdt": 2.87767469,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "UAIUSDT",
+      "px_chain_at_b0": 0.29958309,
+      "px_own_at_b0": 0.30183445,
+      "own_source": "readback_mark",
+      "rel": 0.00751496,
+      "qty_at_join": 1154.0,
+      "value_diff_usdt": 2.59806194,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "BEATUSDT",
+      "px_chain_at_b0": 0.14389346,
+      "px_own_at_b0": 0.14466072,
+      "own_source": "readback_mark",
+      "rel": 0.00533217,
+      "qty_at_join": 2721.0,
+      "value_diff_usdt": 2.08772543,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "4USDT",
+      "px_chain_at_b0": 0.01902927,
+      "px_own_at_b0": 0.01912196,
+      "own_source": "readback_mark",
+      "rel": 0.0048708,
+      "qty_at_join": 22065.0,
+      "value_diff_usdt": 2.04515707,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "PIEVERSEUSDT",
+      "px_chain_at_b0": 1.06704801,
+      "px_own_at_b0": 1.06048755,
+      "own_source": "readback_mark",
+      "rel": -0.00614824,
+      "qty_at_join": 286.0,
+      "value_diff_usdt": -1.87629331,
+      "cause": "mark_vs_close"
+     }
+    ],
+    "rule": "the day chain's price at b0 vs the price this window would have derived on its own; REPORTED, never added to P&L (a mark-vs-close difference is a valuation difference, not a realised gain)"
+   },
+   "fill_partition": {
+    "owns": "[t_decision, t_end]",
+    "n_fills_price_corrected": 177,
+    "keys": [
+     [
+      "1000BONKUSDT",
+      949816275
+     ],
+     [
+      "1000FLOKIUSDT",
+      589847510
+     ],
+     [
+      "1000LUNCUSDT",
+      469620944
+     ],
+     [
+      "1000RATSUSDT",
+      370817055
+     ],
+     [
+      "1000RATSUSDT",
+      370817068
+     ],
+     [
+      "1000SHIBUSDT",
+      1579159725
+     ],
+     [
+      "1000SHIBUSDT",
+      1579159726
+     ],
+     [
+      "4USDT",
+      142655778
+     ],
+     [
+      "ACUUSDT",
+      58977839
+     ],
+     [
+      "ADAUSDT",
+      1914031842
+     ],
+     [
+      "AEROUSDT",
+      116842027
+     ],
+     [
+      "AIOUSDT",
+      86398516
+     ],
+     [
+      "AKEUSDT",
+      290700572
+     ],
+     [
+      "ALGOUSDT",
+      516434724
+     ],
+     [
+      "ALICEUSDT",
+      389702580
+     ],
+     [
+      "ALLOUSDT",
+      307324509
+     ],
+     [
+      "APEUSDT",
+      771015264
+     ],
+     [
+      "APRUSDT",
+      164020297
+     ],
+     [
+      "APTUSDT",
+      983885696
+     ],
+     [
+      "APTUSDT",
+      983885697
+     ],
+     [
+      "ARIAUSDT",
+      173107931
+     ],
+     [
+      "ASTERUSDT",
+      405641989
+     ],
+     [
+      "ATOMUSDT",
+      872274022
+     ],
+     [
+      "AVAAIUSDT",
+      105757844
+     ],
+     [
+      "AVAXUSDT",
+      1420563692
+     ],
+     [
+      "AVNTUSDT",
+      297444516
+     ],
+     [
+      "AXSUSDT",
+      697188773
+     ],
+     [
+      "BANKUSDT",
+      348159257
+     ],
+     [
+      "BASEDUSDT",
+      111355456
+     ],
+     [
+      "BEATUSDT",
+      618787026
+     ],
+     [
+      "BICOUSDT",
+      155345074
+     ],
+     [
+      "BICOUSDT",
+      155345075
+     ],
+     [
+      "BIGTIMEUSDT",
+      346851972
+     ],
+     [
+      "BIOUSDT",
+      291628663
+     ],
+     [
+      "BIOUSDT",
+      291628664
+     ],
+     [
+      "BMTUSDT",
+      96922996
+     ],
+     [
+      "BSBUSDT",
+      364155128
+     ],
+     [
+      "BTRUSDT",
+      148872098
+     ],
+     [
+      "CAKEUSDT",
+      317495021
+     ],
+     [
+      "CFXUSDT",
+      482060213
+     ],
+     [
+      "CHIPUSDT",
+      104128133
+     ],
+     [
+      "CLOUSDT",
+      183711222
+     ],
+     [
+      "COLLECTUSDT",
+      61866553
+     ],
+     [
+      "COMPUSDT",
+      457615070
+     ],
+     [
+      "COTIUSDT",
+      422525803
+     ],
+     [
+      "CRVUSDT",
+      571188702
+     ],
+     [
+      "CVXUSDT",
+      20598600
+     ],
+     [
+      "CYSUSDT",
+      158982708
+     ],
+     [
+      "DEXEUSDT",
+      229416219
+     ],
+     [
+      "DODOXUSDT",
+      117419882
+     ],
+     [
+      "DOGEUSDT",
+      3447649950
+     ],
+     [
+      "DOTUSDT",
+      1174729362
+     ],
+     [
+      "DUSKUSDT",
+      348555188
+     ],
+     [
+      "DYDXUSDT",
+      582609005
+     ],
+     [
+      "EDENUSDT",
+      166383971
+     ],
+     [
+      "EDGEUSDT",
+      80880934
+     ],
+     [
+      "EIGENUSDT",
+      362180222
+     ],
+     [
+      "EIGENUSDT",
+      362180223
+     ],
+     [
+      "ENSUSDT",
+      616442105
+     ],
+     [
+      "EPICUSDT",
+      158508914
+     ],
+     [
+      "ERAUSDT",
+      84718490
+     ],
+     [
+      "ESPORTSUSDT",
+      223406277
+     ],
+     [
+      "ESPUSDT",
+      89310845
+     ],
+     [
+      "ETHFIUSDT",
+      472162182
+     ],
+     [
+      "EULUSDT",
+      88279239
+     ],
+     [
+      "FARTCOINUSDT",
+      677191814
+     ],
+     [
+      "FFUSDT",
+      160103422
+     ],
+     [
+      "FILUSDT",
+      989102557
+     ],
+     [
+      "FORMUSDT",
+      149199935
+     ],
+     [
+      "GALAUSDT",
+      889200871
+     ],
+     [
+      "GMTUSDT",
+      901396621
+     ],
+     [
+      "GRTUSDT",
+      568227861
+     ],
+     [
+      "HEMIUSDT",
+      191956556
+     ],
+     [
+      "HOLOUSDT",
+      96761144
+     ],
+     [
+      "HUMAUSDT",
+      213682903
+     ],
+     [
+      "HUSDT",
+      537986986
+     ],
+     [
+      "HUSDT",
+      537986988
+     ],
+     [
+      "HYPEUSDT",
+      716941658
+     ],
+     [
+      "ICPUSDT",
+      416514623
+     ],
+     [
+      "JASMYUSDT",
+      534085875
+     ],
+     [
+      "JASMYUSDT",
+      534085876
+     ],
+     [
+      "JSTUSDT",
+      35070565
+     ],
+     [
+      "JTOUSDT",
+      536831663
+     ],
+     [
+      "JUPUSDT",
+      352691881
+     ],
+     [
+      "KAIAUSDT",
+      53371404
+     ],
+     [
+      "KITEUSDT",
+      217436949
+     ],
+     [
+      "KITEUSDT",
+      217436950
+     ],
+     [
+      "KMNOUSDT",
+      66627091
+     ],
+     [
+      "LAUSDT",
+      105115437
+     ],
+     [
+      "LDOUSDT",
+      664015883
+     ],
+     [
+      "LIGHTUSDT",
+      244806217
+     ],
+     [
+      "LITUSDT",
+      146047721
+     ],
+     [
+      "LITUSDT",
+      146047722
+     ],
+     [
+      "LITUSDT",
+      146047723
+     ],
+     [
+      "MANTRAUSDT",
+      20541794
+     ],
+     [
+      "MEMEUSDT",
+      375803229
+     ],
+     [
+      "MEMEUSDT",
+      375803230
+     ],
+     [
+      "METUSDT",
+      59676817
+     ],
+     [
+      "MINAUSDT",
+      231374721
+     ],
+     [
+      "MMTUSDT",
+      158212113
+     ],
+     [
+      "MMTUSDT",
+      158212114
+     ],
+     [
+      "MOODENGUSDT",
+      460301939
+     ],
+     [
+      "MOVEUSDT",
+      205881756
+     ],
+     [
+      "MOVRUSDT",
+      152264747
+     ],
+     [
+      "MUBARAKUSDT",
+      137734850
+     ],
+     [
+      "NEARUSDT",
+      1042171327
+     ],
+     [
+      "NEOUSDT",
+      466735984
+     ],
+     [
+      "ONDOUSDT",
+      549572248
+     ],
+     [
+      "ONEUSDT",
+      331168816
+     ],
+     [
+      "ONEUSDT",
+      331168852
+     ],
+     [
+      "ONGUSDT",
+      207352751
+     ],
+     [
+      "ONTUSDT",
+      311571850
+     ],
+     [
+      "ONUSDT",
+      100872185
+     ],
+     [
+      "ONUSDT",
+      100872194
+     ],
+     [
+      "ONUSDT",
+      100872195
+     ],
+     [
+      "OPGUSDT",
+      43950225
+     ],
+     [
+      "OPUSDT",
+      953949106
+     ],
+     [
+      "ORDIUSDT",
+      1018600643
+     ],
+     [
+      "PEOPLEUSDT",
+      731392677
+     ],
+     [
+      "PIEVERSEUSDT",
+      208619805
+     ],
+     [
+      "PIPPINUSDT",
+      763637339
+     ],
+     [
+      "PLUMEUSDT",
+      74627364
+     ],
+     [
+      "POLUSDT",
+      218790853
+     ],
+     [
+      "POPCATUSDT",
+      277721632
+     ],
+     [
+      "PORTALUSDT",
+      163501578
+     ],
+     [
+      "PORTALUSDT",
+      163501717
+     ],
+     [
+      "PUMPUSDT",
+      277393126
+     ],
+     [
+      "RAVEUSDT",
+      497259778
+     ],
+     [
+      "RIFUSDT",
+      165064718
+     ],
+     [
+      "RIFUSDT",
+      165064719
+     ],
+     [
+      "RIVERUSDT",
+      783277834
+     ],
+     [
+      "SAHARAUSDT",
+      147118178
+     ],
+     [
+      "SEIUSDT",
+      460271503
+     ],
+     [
+      "SIRENUSDT",
+      553993552
+     ],
+     [
+      "SKRUSDT",
+      57571309
+     ],
+     [
+      "SKYUSDT",
+      47958161
+     ],
+     [
+      "SKYUSDT",
+      47958162
+     ],
+     [
+      "SNXUSDT",
+      394647706
+     ],
+     [
+      "SOLUSDT",
+      3493785804
+     ],
+     [
+      "SPKUSDT",
+      157400467
+     ],
+     [
+      "SQDUSDT",
+      101065236
+     ],
+     [
+      "STABLEUSDT",
+      103106781
+     ],
+     [
+      "STGUSDT",
+      232777322
+     ],
+     [
+      "SUSDT",
+      124887566
+     ],
+     [
+      "SUSHIUSDT",
+      594819049
+     ],
+     [
+      "SYNUSDT",
+      175444934
+     ],
+     [
+      "SYRUPUSDT",
+      198521961
+     ],
+     [
+      "TIAUSDT",
+      842165268
+     ],
+     [
+      "TLMUSDT",
+      145203393
+     ],
+     [
+      "TRBUSDT",
+      1020951473
+     ],
+     [
+      "TRUMPUSDT",
+      720956634
+     ],
+     [
+      "TRXUSDT",
+      704289243
+     ],
+     [
+      "TSTUSDT",
+      148129626
+     ],
+     [
+      "TURBOUSDT",
+      521615642
+     ],
+     [
+      "TUTUSDT",
+      245469098
+     ],
+     [
+      "TWTUSDT",
+      113838840
+     ],
+     [
+      "TWTUSDT",
+      113838845
+     ],
+     [
+      "UAIUSDT",
+      132703680
+     ],
+     [
+      "UBUSDT",
+      303125807
+     ],
+     [
+      "USELESSUSDT",
+      99592320
+     ],
+     [
+      "VIRTUALUSDT",
+      452258658
+     ],
+     [
+      "WLDUSDT",
+      1337810096
+     ],
+     [
+      "WUSDT",
+      248447288
+     ],
+     [
+      "XANUSDT",
+      89016792
+     ],
+     [
+      "XAUTUSDT",
+      19796543
+     ],
+     [
+      "XMRUSDT",
+      543033798
+     ],
+     [
+      "XPINUSDT",
+      125962431
+     ],
+     [
+      "XPLUSDT",
+      299757293
+     ],
+     [
+      "ZAMAUSDT",
+      55170942
+     ],
+     [
+      "ZAMAUSDT",
+      55170943
+     ],
+     [
+      "ZAMAUSDT",
+      55170944
+     ],
+     [
+      "ZAMAUSDT",
+      55170945
+     ],
+     [
+      "ZENUSDT",
+      505423937
+     ],
+     [
+      "ZKPUSDT",
+      97079036
+     ],
+     [
+      "ZORAUSDT",
+      139398073
+     ],
+     [
+      "ZORAUSDT",
+      139398074
+     ],
+     [
+      "ZROUSDT",
+      405038415
+     ]
+    ],
+    "rule": "R13-P2 (2): the gap owns (A, t_d) and the window owns [t_d, t_end]; a fill exactly at t_d belongs to the window ONLY"
+   },
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "MAGMAUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "VELVETUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "WLFIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": 2.7506672932123166,
+    "L3_minus_L2cut_execution": 2.750667293212345,
+    "L2cut_minus_L2_flatten_footprint": -2.842170943040401e-14,
+    "L2_minus_L1_skips": -0.3159064197345032,
+    "L1_minus_L0_book_layer": 11.867111567302878,
+    "L3_minus_L0_total": 14.301872440780691,
+    "L3_minus_L2cut_execution_with_fill_prices": 2.960049656313217,
+    "fill_price_correction": 0.20938236310087704
+   },
+   "n_names_ok": 263
+  },
+  {
+   "anchor": 1788076800,
+   "utc": "08-30 08:00Z",
+   "status": "OK",
+   "rebalance_id": "A1788078240",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1788078243.7079759,
+   "t_end": 1788091200.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": -1.463940869680896,
+   "n_fills_price_corrected": 137,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1788078300,
+   "b1": 1788091200,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 265,
+     "n_priced": 265,
+     "gross_b0": 41290.757071901724,
+     "net_b0": -3185.019463597894,
+     "pnl_usdt": -24.38978379026517,
+     "pnl_long_usdt": 71.75464234509431,
+     "pnl_short_usdt": -96.14442613535947,
+     "censored": {
+      "n": 9,
+      "notional": 1090.625975912685
+     }
+    },
+    "L1_executor_target": {
+     "n": 265,
+     "n_priced": 265,
+     "gross_b0": 42281.5315922169,
+     "net_b0": -87.13185244976455,
+     "pnl_usdt": -5.119960991672625,
+     "pnl_long_usdt": 85.05420175159965,
+     "pnl_short_usdt": -90.17416274327226,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 265,
+     "n_priced": 265,
+     "gross_b0": 42391.456154803825,
+     "net_b0": -107.095344470156,
+     "pnl_usdt": -5.235321085410627,
+     "pnl_long_usdt": 85.83032626941721,
+     "pnl_short_usdt": -91.06564735482786,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 265,
+     "n_priced": 265,
+     "gross_b0": 42391.456154803825,
+     "net_b0": -107.095344470156,
+     "pnl_usdt": -5.235321085410614,
+     "pnl_long_usdt": 85.83032626941723,
+     "pnl_short_usdt": -91.06564735482786,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 265,
+     "n_priced": 265,
+     "gross_b0": 42585.41883976485,
+     "net_b0": 247.09775805550672,
+     "pnl_usdt": -0.5337832744147404,
+     "pnl_long_usdt": 89.38590737694344,
+     "pnl_short_usdt": -89.91969065135821,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": -1.463940869680896,
+     "pnl_usdt_with_fill_prices": -1.9977241440956364,
+     "n_fills_price_corrected": 137
+    }
+   },
+   "fees_in_window": {
+    "BNB": 0.0005990800000000001
+   },
+   "n_fills_in_window": 137,
+   "events": {
+    "pre_window": 0,
+    "in_window": 137,
+    "post_window_not_applied": 296
+   },
+   "intra_row_approx": 87,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 256,
+    "max_abs_rel": 0.016173807506573934,
+    "median_abs_rel": 0.0004932758036348961
+   },
+   "fill_px_vs_path": {
+    "n": 87,
+    "max_abs_rel": 0.01395380174655958,
+    "median_abs_rel": 0.0007834063945095782
+   },
+   "reference_readback": {
+    "runs": [
+     "08-30 00Z",
+     "08-30 04Z"
+    ],
+    "n_names": 261,
+    "n_stale_over_4h40m": 5,
+    "t_earliest_read": 1788050714.863552
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 259,
+    "t_latest_read": 1788108189.7903628
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 15,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 3.0322775704696174e-13,
+    "n_nonfinite_next_readback": 0,
+    "top": [
+     [
+      "ALGOUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ATOMUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "DYDXUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "EIGENUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ENSUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ETHFIUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "EVAAUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "FARTCOINUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "FILUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "GIGGLEUSDT",
+      -0.0,
+      -0.0
+     ]
+    ],
+    "next_readback_names": 259,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "price_chain_joins": {
+    "n_names_compared": 258,
+    "n_over_1pct": 1,
+    "n_value_over_1cent": 220,
+    "abs_value_diff_sum_usdt": 62.050937919793064,
+    "max_abs_rel": 0.01054202312438357,
+    "causes": {
+     "mark_vs_close": 253,
+     "fill_px_vs_close": 5
+    },
+    "resets": {
+     "new_symbol_in_day": 2
+    },
+    "top": [
+     {
+      "symbol": "BMTUSDT",
+      "px_chain_at_b0": 0.02220002,
+      "px_own_at_b0": 0.02243405,
+      "own_source": "readback_mark",
+      "rel": 0.01054202,
+      "qty_at_join": -15926.0,
+      "value_diff_usdt": -3.72721129,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "CYSUSDT",
+      "px_chain_at_b0": 0.80018644,
+      "px_own_at_b0": 0.79407974,
+      "own_source": "readback_mark",
+      "rel": -0.00763159,
+      "qty_at_join": 483.0,
+      "value_diff_usdt": -2.94953544,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "UAIUSDT",
+      "px_chain_at_b0": 0.33907044,
+      "px_own_at_b0": 0.34183825,
+      "own_source": "readback_mark",
+      "rel": 0.00816292,
+      "qty_at_join": 1055.0,
+      "value_diff_usdt": 2.92003503,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "COLLECTUSDT",
+      "px_chain_at_b0": 0.0678554,
+      "px_own_at_b0": 0.06736249,
+      "own_source": "readback_mark",
+      "rel": -0.00726408,
+      "qty_at_join": 4769.0,
+      "value_diff_usdt": -2.35067391,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "4USDT",
+      "px_chain_at_b0": 0.01947817,
+      "px_own_at_b0": 0.01955335,
+      "own_source": "readback_mark",
+      "rel": 0.00385946,
+      "qty_at_join": 21308.0,
+      "value_diff_usdt": 1.60183404,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "BTRUSDT",
+      "px_chain_at_b0": 0.18187004,
+      "px_own_at_b0": 0.18258996,
+      "own_source": "readback_mark",
+      "rel": 0.00395846,
+      "qty_at_join": 2084.0,
+      "value_diff_usdt": 1.50032402,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "CLOUSDT",
+      "px_chain_at_b0": 0.12306072,
+      "px_own_at_b0": 0.12263414,
+      "own_source": "readback_mark",
+      "rel": -0.00346643,
+      "qty_at_join": 2964.0,
+      "value_diff_usdt": -1.26438877,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "EDGEUSDT",
+      "px_chain_at_b0": 0.36471375,
+      "px_own_at_b0": 0.36599665,
+      "own_source": "readback_mark",
+      "rel": 0.00351755,
+      "qty_at_join": 925.0,
+      "value_diff_usdt": 1.18668068,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "SIRENUSDT",
+      "px_chain_at_b0": 0.03047854,
+      "px_own_at_b0": 0.03057009,
+      "own_source": "readback_mark",
+      "rel": 0.00300384,
+      "qty_at_join": 12527.0,
+      "value_diff_usdt": 1.14688083,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "EDENUSDT",
+      "px_chain_at_b0": 0.06425201,
+      "px_own_at_b0": 0.06445851,
+      "own_source": "readback_mark",
+      "rel": 0.00321387,
+      "qty_at_join": -5457.0,
+      "value_diff_usdt": -1.12685774,
+      "cause": "mark_vs_close"
+     }
+    ],
+    "rule": "the day chain's price at b0 vs the price this window would have derived on its own; REPORTED, never added to P&L (a mark-vs-close difference is a valuation difference, not a realised gain)"
+   },
+   "fill_partition": {
+    "owns": "[t_decision, t_end]",
+    "n_fills_price_corrected": 137,
+    "keys": [
+     [
+      "4USDT",
+      143760867
+     ],
+     [
+      "ACEUSDT",
+      342759417
+     ],
+     [
+      "ACUUSDT",
+      58991360
+     ],
+     [
+      "ADAUSDT",
+      1914066835
+     ],
+     [
+      "AEROUSDT",
+      116850744
+     ],
+     [
+      "AIOUSDT",
+      86439071
+     ],
+     [
+      "ALGOUSDT",
+      516445633
+     ],
+     [
+      "ALLOUSDT",
+      307349283
+     ],
+     [
+      "APRUSDT",
+      164031937
+     ],
+     [
+      "APTUSDT",
+      983910988
+     ],
+     [
+      "ARIAUSDT",
+      173114773
+     ],
+     [
+      "ARIAUSDT",
+      173114777
+     ],
+     [
+      "ATHUSDT",
+      58483531
+     ],
+     [
+      "ATHUSDT",
+      58483532
+     ],
+     [
+      "ATOMUSDT",
+      872281933
+     ],
+     [
+      "AXSUSDT",
+      697199195
+     ],
+     [
+      "BANKUSDT",
+      348186895
+     ],
+     [
+      "BEATUSDT",
+      618945519
+     ],
+     [
+      "BICOUSDT",
+      155510996
+     ],
+     [
+      "BICOUSDT",
+      155511002
+     ],
+     [
+      "BILLUSDT",
+      120360660
+     ],
+     [
+      "BLESSUSDT",
+      307046922
+     ],
+     [
+      "BLUAIUSDT",
+      89642588
+     ],
+     [
+      "BMTUSDT",
+      96955057
+     ],
+     [
+      "BNBUSDT",
+      2243963578
+     ],
+     [
+      "BOMEUSDT",
+      491874568
+     ],
+     [
+      "BOMEUSDT",
+      491874569
+     ],
+     [
+      "BROCCOLI714USDT",
+      81919914
+     ],
+     [
+      "BRUSDT",
+      123397020
+     ],
+     [
+      "BSBUSDT",
+      364169034
+     ],
+     [
+      "CAKEUSDT",
+      317519905
+     ],
+     [
+      "CCUSDT",
+      67550901
+     ],
+     [
+      "CHILLGUYUSDT",
+      117295239
+     ],
+     [
+      "CHILLGUYUSDT",
+      117295240
+     ],
+     [
+      "CHILLGUYUSDT",
+      117295241
+     ],
+     [
+      "COLLECTUSDT",
+      61980951
+     ],
+     [
+      "COMPUSDT",
+      457619092
+     ],
+     [
+      "COTIUSDT",
+      422579062
+     ],
+     [
+      "CRVUSDT",
+      571205752
+     ],
+     [
+      "CYSUSDT",
+      159264758
+     ],
+     [
+      "DOTUSDT",
+      1174763530
+     ],
+     [
+      "DYDXUSDT",
+      582613264
+     ],
+     [
+      "DYDXUSDT",
+      582613265
+     ],
+     [
+      "EGLDUSDT",
+      386533454
+     ],
+     [
+      "EIGENUSDT",
+      362187395
+     ],
+     [
+      "ENJUSDT",
+      444608490
+     ],
+     [
+      "ERAUSDT",
+      84735324
+     ],
+     [
+      "EULUSDT",
+      88286695
+     ],
+     [
+      "EVAAUSDT",
+      252203887
+     ],
+     [
+      "FARTCOINUSDT",
+      677213662
+     ],
+     [
+      "FETUSDT",
+      689607343
+     ],
+     [
+      "FFUSDT",
+      160110629
+     ],
+     [
+      "FILUSDT",
+      989136857
+     ],
+     [
+      "GALAUSDT",
+      889213413
+     ],
+     [
+      "GASUSDT",
+      254318535
+     ],
+     [
+      "GASUSDT",
+      254318536
+     ],
+     [
+      "GASUSDT",
+      254318544
+     ],
+     [
+      "GASUSDT",
+      254318546
+     ],
+     [
+      "GMTUSDT",
+      901403482
+     ],
+     [
+      "GPSUSDT",
+      140530815
+     ],
+     [
+      "GPSUSDT",
+      140530819
+     ],
+     [
+      "HBARUSDT",
+      785225932
+     ],
+     [
+      "HEMIUSDT",
+      192071623
+     ],
+     [
+      "IDUSDT",
+      303666842
+     ],
+     [
+      "IMXUSDT",
+      370050751
+     ],
+     [
+      "JASMYUSDT",
+      534101150
+     ],
+     [
+      "JSTUSDT",
+      35087074
+     ],
+     [
+      "KAITOUSDT",
+      409430499
+     ],
+     [
+      "KASUSDT",
+      175808330
+     ],
+     [
+      "KITEUSDT",
+      217469247
+     ],
+     [
+      "KMNOUSDT",
+      66633028
+     ],
+     [
+      "KOMAUSDT",
+      108542881
+     ],
+     [
+      "LAUSDT",
+      105132177
+     ],
+     [
+      "LSKUSDT",
+      111247775
+     ],
+     [
+      "LSKUSDT",
+      111247790
+     ],
+     [
+      "METUSDT",
+      59682560
+     ],
+     [
+      "MEUSDT",
+      101637357
+     ],
+     [
+      "MMTUSDT",
+      158220764
+     ],
+     [
+      "MMTUSDT",
+      158220766
+     ],
+     [
+      "MOODENGUSDT",
+      460308260
+     ],
+     [
+      "MORPHOUSDT",
+      163373592
+     ],
+     [
+      "MOVEUSDT",
+      205891704
+     ],
+     [
+      "NEARUSDT",
+      1042217862
+     ],
+     [
+      "NILUSDT",
+      117912669
+     ],
+     [
+      "ONGUSDT",
+      207481943
+     ],
+     [
+      "ONTUSDT",
+      311589661
+     ],
+     [
+      "ONTUSDT",
+      311589676
+     ],
+     [
+      "ONUSDT",
+      100878962
+     ],
+     [
+      "ONUSDT",
+      100878963
+     ],
+     [
+      "OPUSDT",
+      953975034
+     ],
+     [
+      "PARTIUSDT",
+      158762757
+     ],
+     [
+      "PAXGUSDT",
+      129561737
+     ],
+     [
+      "PEOPLEUSDT",
+      731405369
+     ],
+     [
+      "PIEVERSEUSDT",
+      208632932
+     ],
+     [
+      "PIPPINUSDT",
+      763641107
+     ],
+     [
+      "PLUMEUSDT",
+      74635513
+     ],
+     [
+      "POLUSDT",
+      218822241
+     ],
+     [
+      "PUMPUSDT",
+      277518425
+     ],
+     [
+      "PYTHUSDT",
+      323726541
+     ],
+     [
+      "ROBOUSDT",
+      48935858
+     ],
+     [
+      "RUNEUSDT",
+      566086357
+     ],
+     [
+      "SANDUSDT",
+      996445758
+     ],
+     [
+      "SEIUSDT",
+      460280275
+     ],
+     [
+      "SIRENUSDT",
+      554001528
+     ],
+     [
+      "SKRUSDT",
+      58049963
+     ],
+     [
+      "SKYUSDT",
+      47963925
+     ],
+     [
+      "SNXUSDT",
+      394652282
+     ],
+     [
+      "SNXUSDT",
+      394652283
+     ],
+     [
+      "SOLUSDT",
+      3493929719
+     ],
+     [
+      "STABLEUSDT",
+      103110499
+     ],
+     [
+      "STGUSDT",
+      232781799
+     ],
+     [
+      "STXUSDT",
+      476107718
+     ],
+     [
+      "SUSHIUSDT",
+      594830563
+     ],
+     [
+      "SYNUSDT",
+      175451606
+     ],
+     [
+      "SYRUPUSDT",
+      198526040
+     ],
+     [
+      "TACUSDT",
+      114557431
+     ],
+     [
+      "TACUSDT",
+      114557440
+     ],
+     [
+      "TACUSDT",
+      114557443
+     ],
+     [
+      "TIAUSDT",
+      842182211
+     ],
+     [
+      "TLMUSDT",
+      145207434
+     ],
+     [
+      "TRBUSDT",
+      1020960062
+     ],
+     [
+      "TRUMPUSDT",
+      721072514
+     ],
+     [
+      "TRXUSDT",
+      704312757
+     ],
+     [
+      "TRXUSDT",
+      704312762
+     ],
+     [
+      "TUTUSDT",
+      245654061
+     ],
+     [
+      "UAIUSDT",
+      132874515
+     ],
+     [
+      "USELESSUSDT",
+      99606423
+     ],
+     [
+      "VIRTUALUSDT",
+      452276446
+     ],
+     [
+      "WALUSDT",
+      70124806
+     ],
+     [
+      "WIFUSDT",
+      1245779865
+     ],
+     [
+      "WUSDT",
+      248452889
+     ],
+     [
+      "XANUSDT",
+      89042940
+     ],
+     [
+      "XPINUSDT",
+      125965715
+     ],
+     [
+      "XRPUSDT",
+      3262588882
+     ],
+     [
+      "YBUSDT",
+      64833660
+     ],
+     [
+      "ZAMAUSDT",
+      55182009
+     ],
+     [
+      "ZECUSDT",
+      1407815844
+     ]
+    ],
+    "rule": "R13-P2 (2): the gap owns (A, t_d) and the window owns [t_d, t_end]; a fill exactly at t_d belongs to the window ONLY"
+   },
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "VELVETUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "WLFIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": 4.7015378109958865,
+    "L3_minus_L2cut_execution": 4.701537810995873,
+    "L2cut_minus_L2_flatten_footprint": 1.3322676295501878e-14,
+    "L2_minus_L1_skips": -0.11536009373800216,
+    "L1_minus_L0_book_layer": 19.269822798592546,
+    "L3_minus_L0_total": 23.85600051585043,
+    "L3_minus_L2cut_execution_with_fill_prices": 3.237596941314977,
+    "fill_price_correction": -1.463940869680896
+   },
+   "n_names_ok": 265
+  },
+  {
+   "anchor": 1788091200,
+   "utc": "08-30 12:00Z",
+   "status": "OK",
+   "rebalance_id": "A1788092640",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1788092642.9307258,
+   "t_end": 1788105600.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": -0.7593030135587733,
+   "n_fills_price_corrected": 146,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1788092700,
+   "b1": 1788105600,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 262,
+     "n_priced": 262,
+     "gross_b0": 41272.355489662004,
+     "net_b0": -2712.805659511856,
+     "pnl_usdt": -19.717392487988135,
+     "pnl_long_usdt": -73.08407302453729,
+     "pnl_short_usdt": 53.36668053654914,
+     "censored": {
+      "n": 9,
+      "notional": 1105.1787557541875
+     }
+    },
+    "L1_executor_target": {
+     "n": 262,
+     "n_priced": 262,
+     "gross_b0": 42282.23337321635,
+     "net_b0": -91.24877776021287,
+     "pnl_usdt": -5.697649363576045,
+     "pnl_long_usdt": -59.39251589738819,
+     "pnl_short_usdt": 53.6948665338122,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 262,
+     "n_priced": 262,
+     "gross_b0": 42354.01410958745,
+     "net_b0": -101.72315098087999,
+     "pnl_usdt": -5.391832992998619,
+     "pnl_long_usdt": -59.30748961978979,
+     "pnl_short_usdt": 53.915656626791225,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 262,
+     "n_priced": 262,
+     "gross_b0": 42354.01410958745,
+     "net_b0": -101.72315098087999,
+     "pnl_usdt": -5.3918329929986175,
+     "pnl_long_usdt": -59.30748961978982,
+     "pnl_short_usdt": 53.91565662679122,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 262,
+     "n_priced": 262,
+     "gross_b0": 42757.366623514485,
+     "net_b0": 5.364929316577459,
+     "pnl_usdt": -6.7222248199457075,
+     "pnl_long_usdt": -57.39265490009914,
+     "pnl_short_usdt": 50.670430080153466,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": -0.7593030135587733,
+     "pnl_usdt_with_fill_prices": -7.481527833504481,
+     "n_fills_price_corrected": 146
+    }
+   },
+   "fees_in_window": {
+    "BNB": 0.0005536399999999998
+   },
+   "n_fills_in_window": 146,
+   "events": {
+    "pre_window": 0,
+    "in_window": 146,
+    "post_window_not_applied": 150
+   },
+   "intra_row_approx": 90,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 257,
+    "max_abs_rel": 0.007996743729418054,
+    "median_abs_rel": 0.0006193968755950907
+   },
+   "fill_px_vs_path": {
+    "n": 90,
+    "max_abs_rel": 0.015545108885039793,
+    "median_abs_rel": 0.001289260990290697
+   },
+   "reference_readback": {
+    "runs": [
+     "08-30 04Z",
+     "08-30 08Z"
+    ],
+    "n_names": 258,
+    "n_stale_over_4h40m": 2,
+    "t_earliest_read": 1788065032.115573
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 257,
+    "t_latest_read": 1788108189.7903628
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 19,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 3.4249763852390647e-13,
+    "n_nonfinite_next_readback": 0,
+    "top": [
+     [
+      "ATOMUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "BLUAIUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "CRVUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "EIGENUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ENSUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "ETHFIUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "EULUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "FARTCOINUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "FILUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "GASUSDT",
+      -0.0,
+      -0.0
+     ]
+    ],
+    "next_readback_names": 257,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "price_chain_joins": {
+    "n_names_compared": 259,
+    "n_over_1pct": 1,
+    "n_value_over_1cent": 203,
+    "abs_value_diff_sum_usdt": 60.26798800156451,
+    "max_abs_rel": 0.013103810545042949,
+    "causes": {
+     "mark_vs_close": 255,
+     "fill_px_vs_close": 4
+    },
+    "resets": {},
+    "top": [
+     {
+      "symbol": "NILUSDT",
+      "px_chain_at_b0": 0.05655014,
+      "px_own_at_b0": 0.05729117,
+      "own_source": "readback_mark",
+      "rel": 0.01310381,
+      "qty_at_join": -4767.7,
+      "value_diff_usdt": -3.53297229,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "PORTALUSDT",
+      "px_chain_at_b0": 0.01538989,
+      "px_own_at_b0": 0.01527534,
+      "own_source": "readback_mark",
+      "rel": -0.00744318,
+      "qty_at_join": -21288.7,
+      "value_diff_usdt": 2.43861467,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "TRIAUSDT",
+      "px_chain_at_b0": 0.00537495,
+      "px_own_at_b0": 0.00541277,
+      "own_source": "readback_mark",
+      "rel": 0.00703596,
+      "qty_at_join": 53499.0,
+      "value_diff_usdt": 2.02322154,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "BMTUSDT",
+      "px_chain_at_b0": 0.02181046,
+      "px_own_at_b0": 0.02192865,
+      "own_source": "readback_mark",
+      "rel": 0.00541873,
+      "qty_at_join": -16311.0,
+      "value_diff_usdt": -1.92771732,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "APRUSDT",
+      "px_chain_at_b0": 0.18837519,
+      "px_own_at_b0": 0.18708092,
+      "own_source": "readback_mark",
+      "rel": -0.00687072,
+      "qty_at_join": 1425.0,
+      "value_diff_usdt": -1.84433922,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "EDGEUSDT",
+      "px_chain_at_b0": 0.37090869,
+      "px_own_at_b0": 0.36907064,
+      "own_source": "readback_mark",
+      "rel": -0.00495553,
+      "qty_at_join": 925.0,
+      "value_diff_usdt": -1.70019648,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "HUSDT",
+      "px_chain_at_b0": 0.07548957,
+      "px_own_at_b0": 0.0758167,
+      "own_source": "readback_mark",
+      "rel": 0.00433343,
+      "qty_at_join": 4906.0,
+      "value_diff_usdt": 1.60489213,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "SKRUSDT",
+      "px_chain_at_b0": 0.01494221,
+      "px_own_at_b0": 0.01487149,
+      "own_source": "readback_mark",
+      "rel": -0.00473308,
+      "qty_at_join": -21870.0,
+      "value_diff_usdt": 1.54670375,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "SIRENUSDT",
+      "px_chain_at_b0": 0.03051843,
+      "px_own_at_b0": 0.03062488,
+      "own_source": "readback_mark",
+      "rel": 0.00348794,
+      "qty_at_join": 12527.0,
+      "value_diff_usdt": 1.33345407,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "KOMAUSDT",
+      "px_chain_at_b0": 0.01346106,
+      "px_own_at_b0": 0.01350901,
+      "own_source": "readback_mark",
+      "rel": 0.00356199,
+      "qty_at_join": 26692.0,
+      "value_diff_usdt": 1.27983436,
+      "cause": "mark_vs_close"
+     }
+    ],
+    "rule": "the day chain's price at b0 vs the price this window would have derived on its own; REPORTED, never added to P&L (a mark-vs-close difference is a valuation difference, not a realised gain)"
+   },
+   "fill_partition": {
+    "owns": "[t_decision, t_end]",
+    "n_fills_price_corrected": 146,
+    "keys": [
+     [
+      "1000FLOKIUSDT",
+      589856386
+     ],
+     [
+      "1000LUNCUSDT",
+      469635069
+     ],
+     [
+      "1000PEPEUSDT",
+      2755680998
+     ],
+     [
+      "4USDT",
+      144397500
+     ],
+     [
+      "4USDT",
+      144397501
+     ],
+     [
+      "ACUUSDT",
+      58997731
+     ],
+     [
+      "ADAUSDT",
+      1914106160
+     ],
+     [
+      "AEROUSDT",
+      116861197
+     ],
+     [
+      "ALGOUSDT",
+      516457392
+     ],
+     [
+      "ALGOUSDT",
+      516457393
+     ],
+     [
+      "ALLOUSDT",
+      307375161
+     ],
+     [
+      "APTUSDT",
+      983935963
+     ],
+     [
+      "ARBUSDT",
+      634468092
+     ],
+     [
+      "ARUSDT",
+      443664957
+     ],
+     [
+      "ASTERUSDT",
+      405720574
+     ],
+     [
+      "AVAAIUSDT",
+      105769563
+     ],
+     [
+      "AVAAIUSDT",
+      105769564
+     ],
+     [
+      "AVNTUSDT",
+      297465301
+     ],
+     [
+      "AXSUSDT",
+      697215785
+     ],
+     [
+      "BASEDUSDT",
+      111369068
+     ],
+     [
+      "BASEDUSDT",
+      111369069
+     ],
+     [
+      "BASEDUSDT",
+      111369070
+     ],
+     [
+      "BBUSDT",
+      236122516
+     ],
+     [
+      "BIOUSDT",
+      291645572
+     ],
+     [
+      "BLUAIUSDT",
+      89660100
+     ],
+     [
+      "BROCCOLI714USDT",
+      81935980
+     ],
+     [
+      "BTRUSDT",
+      150206479
+     ],
+     [
+      "CAKEUSDT",
+      317556216
+     ],
+     [
+      "CFXUSDT",
+      482073090
+     ],
+     [
+      "CHILLGUYUSDT",
+      117314921
+     ],
+     [
+      "CHZUSDT",
+      731015316
+     ],
+     [
+      "CLOUSDT",
+      183779661
+     ],
+     [
+      "COLLECTUSDT",
+      62031847
+     ],
+     [
+      "COMPUSDT",
+      457624540
+     ],
+     [
+      "COTIUSDT",
+      422634539
+     ],
+     [
+      "CRVUSDT",
+      571226145
+     ],
+     [
+      "DEXEUSDT",
+      229530511
+     ],
+     [
+      "DODOXUSDT",
+      117441198
+     ],
+     [
+      "DOGEUSDT",
+      3447836080
+     ],
+     [
+      "DOTUSDT",
+      1174804367
+     ],
+     [
+      "DOTUSDT",
+      1174804368
+     ],
+     [
+      "DYDXUSDT",
+      582622363
+     ],
+     [
+      "EGLDUSDT",
+      386602633
+     ],
+     [
+      "EIGENUSDT",
+      362200615
+     ],
+     [
+      "ENJUSDT",
+      444612102
+     ],
+     [
+      "ENJUSDT",
+      444612104
+     ],
+     [
+      "ENJUSDT",
+      444612106
+     ],
+     [
+      "ENJUSDT",
+      444612109
+     ],
+     [
+      "ENSUSDT",
+      616457625
+     ],
+     [
+      "ESPUSDT",
+      89350243
+     ],
+     [
+      "ESPUSDT",
+      89350254
+     ],
+     [
+      "ETHFIUSDT",
+      472207873
+     ],
+     [
+      "EULUSDT",
+      88297773
+     ],
+     [
+      "FETUSDT",
+      689636986
+     ],
+     [
+      "FILUSDT",
+      989169181
+     ],
+     [
+      "GALAUSDT",
+      889228176
+     ],
+     [
+      "GIGGLEUSDT",
+      278540865
+     ],
+     [
+      "GWEIUSDT",
+      80918406
+     ],
+     [
+      "GWEIUSDT",
+      80918407
+     ],
+     [
+      "HEMIUSDT",
+      192174230
+     ],
+     [
+      "HUMAUSDT",
+      213840586
+     ],
+     [
+      "IDUSDT",
+      303683992
+     ],
+     [
+      "JTOUSDT",
+      536866164
+     ],
+     [
+      "JUPUSDT",
+      352729944
+     ],
+     [
+      "KAITOUSDT",
+      409453090
+     ],
+     [
+      "KASUSDT",
+      175812883
+     ],
+     [
+      "KITEUSDT",
+      217492097
+     ],
+     [
+      "KMNOUSDT",
+      66638774
+     ],
+     [
+      "KMNOUSDT",
+      66638920
+     ],
+     [
+      "KOMAUSDT",
+      108563165
+     ],
+     [
+      "LABUSDT",
+      690229134
+     ],
+     [
+      "LDOUSDT",
+      664057656
+     ],
+     [
+      "LITUSDT",
+      146170030
+     ],
+     [
+      "MEGAUSDT",
+      41744757
+     ],
+     [
+      "MEMEUSDT",
+      375813188
+     ],
+     [
+      "MEMEUSDT",
+      375813189
+     ],
+     [
+      "MERLUSDT",
+      173103093
+     ],
+     [
+      "MERLUSDT",
+      173103094
+     ],
+     [
+      "MEUSDT",
+      101646061
+     ],
+     [
+      "MINAUSDT",
+      231409783
+     ],
+     [
+      "MMTUSDT",
+      158228777
+     ],
+     [
+      "MORPHOUSDT",
+      163396357
+     ],
+     [
+      "MOVEUSDT",
+      205904835
+     ],
+     [
+      "MOVEUSDT",
+      205904836
+     ],
+     [
+      "MOVRUSDT",
+      152748260
+     ],
+     [
+      "MUBARAKUSDT",
+      137759688
+     ],
+     [
+      "MUBARAKUSDT",
+      137759754
+     ],
+     [
+      "MUBARAKUSDT",
+      137759760
+     ],
+     [
+      "MUBARAKUSDT",
+      137759761
+     ],
+     [
+      "NEARUSDT",
+      1042261579
+     ],
+     [
+      "NILUSDT",
+      118092897
+     ],
+     [
+      "NILUSDT",
+      118092898
+     ],
+     [
+      "ONDOUSDT",
+      549635053
+     ],
+     [
+      "ONEUSDT",
+      331194935
+     ],
+     [
+      "ONGUSDT",
+      207648798
+     ],
+     [
+      "OPGUSDT",
+      43980116
+     ],
+     [
+      "OPUSDT",
+      954010271
+     ],
+     [
+      "ORDIUSDT",
+      1018625402
+     ],
+     [
+      "PARTIUSDT",
+      158768117
+     ],
+     [
+      "POLUSDT",
+      218880075
+     ],
+     [
+      "POPCATUSDT",
+      277735059
+     ],
+     [
+      "PUMPUSDT",
+      277611020
+     ],
+     [
+      "RIFUSDT",
+      165089995
+     ],
+     [
+      "RIVERUSDT",
+      783324134
+     ],
+     [
+      "ROBOUSDT",
+      48965481
+     ],
+     [
+      "RUNEUSDT",
+      566097868
+     ],
+     [
+      "SAGAUSDT",
+      310536124
+     ],
+     [
+      "SANDUSDT",
+      996468365
+     ],
+     [
+      "SIRENUSDT",
+      554012679
+     ],
+     [
+      "SOLUSDT",
+      3494127615
+     ],
+     [
+      "SPKUSDT",
+      157413081
+     ],
+     [
+      "SQDUSDT",
+      101075916
+     ],
+     [
+      "STABLEUSDT",
+      103112986
+     ],
+     [
+      "STXUSDT",
+      476134143
+     ],
+     [
+      "SUSDT",
+      124900849
+     ],
+     [
+      "SUSHIUSDT",
+      594853148
+     ],
+     [
+      "SXTUSDT",
+      73688756
+     ],
+     [
+      "SYRUPUSDT",
+      198532035
+     ],
+     [
+      "TACUSDT",
+      114631261
+     ],
+     [
+      "TIAUSDT",
+      842207129
+     ],
+     [
+      "TRBUSDT",
+      1020969884
+     ],
+     [
+      "TRIAUSDT",
+      58882204
+     ],
+     [
+      "TRUMPUSDT",
+      721257881
+     ],
+     [
+      "TRXUSDT",
+      704336532
+     ],
+     [
+      "TSTUSDT",
+      148160933
+     ],
+     [
+      "TWTUSDT",
+      113858770
+     ],
+     [
+      "UAIUSDT",
+      132980299
+     ],
+     [
+      "UNIUSDT",
+      868931445
+     ],
+     [
+      "USELESSUSDT",
+      99617878
+     ],
+     [
+      "VVVUSDT",
+      226895177
+     ],
+     [
+      "VVVUSDT",
+      226895178
+     ],
+     [
+      "WALUSDT",
+      70130097
+     ],
+     [
+      "WIFUSDT",
+      1245797880
+     ],
+     [
+      "WUSDT",
+      248463202
+     ],
+     [
+      "XANUSDT",
+      89082724
+     ],
+     [
+      "XLMUSDT",
+      1012365062
+     ],
+     [
+      "XMRUSDT",
+      543195478
+     ],
+     [
+      "XPINUSDT",
+      125970724
+     ],
+     [
+      "XPLUSDT",
+      299878307
+     ],
+     [
+      "ZAMAUSDT",
+      55195688
+     ],
+     [
+      "ZAMAUSDT",
+      55195689
+     ],
+     [
+      "ZBTUSDT",
+      144470516
+     ],
+     [
+      "ZKPUSDT",
+      97778241
+     ],
+     [
+      "ZKUSDT",
+      216221822
+     ],
+     [
+      "ZORAUSDT",
+      139558247
+     ],
+     [
+      "ZROUSDT",
+      405104305
+     ]
+    ],
+    "rule": "R13-P2 (2): the gap owns (A, t_d) and the window owns [t_d, t_end]; a fill exactly at t_d belongs to the window ONLY"
+   },
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "VELVETUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "WLFIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": -1.3303918269470882,
+    "L3_minus_L2cut_execution": -1.33039182694709,
+    "L2cut_minus_L2_flatten_footprint": 1.7763568394002505e-15,
+    "L2_minus_L1_skips": 0.3058163705774257,
+    "L1_minus_L0_book_layer": 14.019743124412091,
+    "L3_minus_L0_total": 12.995167668042427,
+    "L3_minus_L2cut_execution_with_fill_prices": -2.0896948405058637,
+    "fill_price_correction": -0.7593030135587733
+   },
+   "n_names_ok": 262
+  },
+  {
+   "anchor": 1788105600,
+   "utc": "08-30 16:00Z",
+   "status": "OK",
+   "rebalance_id": "A1788107039",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1788107041.362648,
+   "t_end": 1788120000.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": -0.34712401148609795,
+   "n_fills_price_corrected": 150,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1788107100,
+   "b1": 1788120000,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 260,
+     "n_priced": 260,
+     "gross_b0": 41117.21996101885,
+     "net_b0": -3108.7888770532077,
+     "pnl_usdt": -155.38870805848256,
+     "pnl_long_usdt": -237.89640809199312,
+     "pnl_short_usdt": 82.5077000335107,
+     "censored": {
+      "n": 9,
+      "notional": 1150.1260451633816
+     }
+    },
+    "L1_executor_target": {
+     "n": 260,
+     "n_priced": 260,
+     "gross_b0": 42165.44327466052,
+     "net_b0": -92.3404277781647,
+     "pnl_usdt": -179.79108253205382,
+     "pnl_long_usdt": -258.6111760062958,
+     "pnl_short_usdt": 78.820093474242,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 260,
+     "n_priced": 260,
+     "gross_b0": 42215.23585518125,
+     "net_b0": -84.65568596620903,
+     "pnl_usdt": -179.66617555506332,
+     "pnl_long_usdt": -258.7033034378792,
+     "pnl_short_usdt": 79.03712788281595,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 260,
+     "n_priced": 260,
+     "gross_b0": 42215.23585518125,
+     "net_b0": -84.65568596620903,
+     "pnl_usdt": -179.66617555506335,
+     "pnl_long_usdt": -258.7033034378793,
+     "pnl_short_usdt": 79.03712788281595,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 260,
+     "n_priced": 260,
+     "gross_b0": 42704.45481111553,
+     "net_b0": -108.48198013415859,
+     "pnl_usdt": -178.0702153211632,
+     "pnl_long_usdt": -257.68925253901585,
+     "pnl_short_usdt": 79.61903721785258,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": -0.34712401148609795,
+     "pnl_usdt_with_fill_prices": -178.4173393326493,
+     "n_fills_price_corrected": 150
+    }
+   },
+   "fees_in_window": {
+    "BNB": 0.0008578200000000001
+   },
+   "n_fills_in_window": 150,
+   "events": {
+    "pre_window": 0,
+    "in_window": 150,
+    "post_window_not_applied": 143
+   },
+   "intra_row_approx": 78,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 257,
+    "max_abs_rel": 0.008014746242074766,
+    "median_abs_rel": 0.0010419424972197833
+   },
+   "fill_px_vs_path": {
+    "n": 78,
+    "max_abs_rel": 0.009141060270106971,
+    "median_abs_rel": 0.0010736277722142584
+   },
+   "reference_readback": {
+    "runs": [
+     "08-30 08Z",
+     "08-30 12Z"
+    ],
+    "n_names": 258,
+    "n_stale_over_4h40m": 1,
+    "t_earliest_read": 1788079381.720483
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 254,
+    "t_latest_read": 1788122573.362923
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 19,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 3.509130644412688e-13,
+    "n_nonfinite_next_readback": 0,
+    "top": [
+     [
+      "ATOMUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "BLUAIUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "DEXEUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "EGLDUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ETHFIUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "FARTCOINUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "GASUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "LAUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "MEMEUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "MERLUSDT",
+      0.0,
+      0.0
+     ]
+    ],
+    "next_readback_names": 254,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "price_chain_joins": {
+    "n_names_compared": 257,
+    "n_over_1pct": 1,
+    "n_value_over_1cent": 206,
+    "abs_value_diff_sum_usdt": 54.75892585176772,
+    "max_abs_rel": 0.012221023559898625,
+    "causes": {
+     "mark_vs_close": 255,
+     "fill_px_vs_close": 2
+    },
+    "resets": {},
+    "top": [
+     {
+      "symbol": "TRIAUSDT",
+      "px_chain_at_b0": 0.00546495,
+      "px_own_at_b0": 0.00539816,
+      "own_source": "readback_mark",
+      "rel": -0.01222102,
+      "qty_at_join": 55957.0,
+      "value_diff_usdt": -3.73721648,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "TACUSDT",
+      "px_chain_at_b0": 0.00237696,
+      "px_own_at_b0": 0.00239187,
+      "own_source": "readback_mark",
+      "rel": 0.00627404,
+      "qty_at_join": 144544.0,
+      "value_diff_usdt": 2.15559953,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "KOMAUSDT",
+      "px_chain_at_b0": 0.01337232,
+      "px_own_at_b0": 0.01344528,
+      "own_source": "readback_mark",
+      "rel": 0.00545606,
+      "qty_at_join": 28028.0,
+      "value_diff_usdt": 2.04492923,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "SIRENUSDT",
+      "px_chain_at_b0": 0.03012948,
+      "px_own_at_b0": 0.03023964,
+      "own_source": "readback_mark",
+      "rel": 0.00365637,
+      "qty_at_join": 13091.0,
+      "value_diff_usdt": 1.44216376,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "STARUSDT",
+      "px_chain_at_b0": 0.12842107,
+      "px_own_at_b0": 0.12805742,
+      "own_source": "readback_mark",
+      "rel": -0.00283167,
+      "qty_at_join": 3600.0,
+      "value_diff_usdt": -1.30912468,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "PTBUSDT",
+      "px_chain_at_b0": 0.00079,
+      "px_own_at_b0": 0.00078694,
+      "own_source": "readback_mark",
+      "rel": -0.00387176,
+      "qty_at_join": 413727.0,
+      "value_diff_usdt": -1.26545749,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "RIVERUSDT",
+      "px_chain_at_b0": 1.66104082,
+      "px_own_at_b0": 1.66599457,
+      "own_source": "readback_mark",
+      "rel": 0.00298232,
+      "qty_at_join": 247.7,
+      "value_diff_usdt": 1.22704406,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "4USDT",
+      "px_chain_at_b0": 0.01859789,
+      "px_own_at_b0": 0.01854641,
+      "own_source": "readback_mark",
+      "rel": -0.0027681,
+      "qty_at_join": 22857.0,
+      "value_diff_usdt": -1.17669813,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "AIOUSDT",
+      "px_chain_at_b0": 0.05183088,
+      "px_own_at_b0": 0.05205968,
+      "own_source": "readback_mark",
+      "rel": 0.00441442,
+      "qty_at_join": 5037.0,
+      "value_diff_usdt": 1.15248224,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "MINAUSDT",
+      "px_chain_at_b0": 0.06521046,
+      "px_own_at_b0": 0.06500297,
+      "own_source": "readback_mark",
+      "rel": -0.00318182,
+      "qty_at_join": -5138.0,
+      "value_diff_usdt": 1.06607393,
+      "cause": "mark_vs_close"
+     }
+    ],
+    "rule": "the day chain's price at b0 vs the price this window would have derived on its own; REPORTED, never added to P&L (a mark-vs-close difference is a valuation difference, not a realised gain)"
+   },
+   "fill_partition": {
+    "owns": "[t_decision, t_end]",
+    "n_fills_price_corrected": 150,
+    "keys": [
+     [
+      "0GUSDT",
+      215790870
+     ],
+     [
+      "1000BONKUSDT",
+      949866597
+     ],
+     [
+      "1000FLOKIUSDT",
+      589873887
+     ],
+     [
+      "1000LUNCUSDT",
+      469641874
+     ],
+     [
+      "1000PEPEUSDT",
+      2755906496
+     ],
+     [
+      "1000SHIBUSDT",
+      1579237886
+     ],
+     [
+      "4USDT",
+      144693800
+     ],
+     [
+      "ACUUSDT",
+      59021876
+     ],
+     [
+      "AIOUSDT",
+      86636644
+     ],
+     [
+      "AIXBTUSDT",
+      313819736
+     ],
+     [
+      "ALICEUSDT",
+      389724210
+     ],
+     [
+      "ALLOUSDT",
+      307395506
+     ],
+     [
+      "APRUSDT",
+      164064498
+     ],
+     [
+      "APTUSDT",
+      983966907
+     ],
+     [
+      "ARIAUSDT",
+      173136366
+     ],
+     [
+      "ASTERUSDT",
+      405794763
+     ],
+     [
+      "ASTERUSDT",
+      405794764
+     ],
+     [
+      "ATHUSDT",
+      58502286
+     ],
+     [
+      "ATOMUSDT",
+      872304139
+     ],
+     [
+      "BABYUSDT",
+      119161139
+     ],
+     [
+      "BEATUSDT",
+      619081932
+     ],
+     [
+      "BIOUSDT",
+      291655566
+     ],
+     [
+      "BLESSUSDT",
+      307113875
+     ],
+     [
+      "BLUAIUSDT",
+      89668654
+     ],
+     [
+      "BLUAIUSDT",
+      89668655
+     ],
+     [
+      "BLUAIUSDT",
+      89668656
+     ],
+     [
+      "BMTUSDT",
+      97004294
+     ],
+     [
+      "BOMEUSDT",
+      491949988
+     ],
+     [
+      "BROCCOLI714USDT",
+      81945499
+     ],
+     [
+      "BRUSDT",
+      123420187
+     ],
+     [
+      "BSBUSDT",
+      364204784
+     ],
+     [
+      "BTRUSDT",
+      150846485
+     ],
+     [
+      "CAKEUSDT",
+      317697674
+     ],
+     [
+      "CCUSDT",
+      67565821
+     ],
+     [
+      "COLLECTUSDT",
+      62116438
+     ],
+     [
+      "COTIUSDT",
+      422689938
+     ],
+     [
+      "CRVUSDT",
+      571259480
+     ],
+     [
+      "CYSUSDT",
+      159574713
+     ],
+     [
+      "CYSUSDT",
+      159574714
+     ],
+     [
+      "DASHUSDT",
+      477309763
+     ],
+     [
+      "DEXEUSDT",
+      229589074
+     ],
+     [
+      "DUSKUSDT",
+      348574932
+     ],
+     [
+      "EDENUSDT",
+      166505400
+     ],
+     [
+      "EDGEUSDT",
+      80905217
+     ],
+     [
+      "ERAUSDT",
+      84931413
+     ],
+     [
+      "ERAUSDT",
+      84931414
+     ],
+     [
+      "ESPORTSUSDT",
+      223496626
+     ],
+     [
+      "ESPUSDT",
+      89384104
+     ],
+     [
+      "EULUSDT",
+      88307673
+     ],
+     [
+      "EVAAUSDT",
+      252213612
+     ],
+     [
+      "EVAAUSDT",
+      252213632
+     ],
+     [
+      "FARTCOINUSDT",
+      677282943
+     ],
+     [
+      "FFUSDT",
+      160159691
+     ],
+     [
+      "FORMUSDT",
+      149273167
+     ],
+     [
+      "GALAUSDT",
+      889244001
+     ],
+     [
+      "GASUSDT",
+      254327431
+     ],
+     [
+      "GRASSUSDT",
+      175660355
+     ],
+     [
+      "GWEIUSDT",
+      80931903
+     ],
+     [
+      "HEIUSDT",
+      194596787
+     ],
+     [
+      "HEMIUSDT",
+      192317864
+     ],
+     [
+      "HOMEUSDT",
+      183247816
+     ],
+     [
+      "HYPEUSDT",
+      717627632
+     ],
+     [
+      "IDUSDT",
+      303690401
+     ],
+     [
+      "IMXUSDT",
+      370057423
+     ],
+     [
+      "IMXUSDT",
+      370057424
+     ],
+     [
+      "IOTAUSDT",
+      296086560
+     ],
+     [
+      "JASMYUSDT",
+      534123765
+     ],
+     [
+      "JSTUSDT",
+      35110740
+     ],
+     [
+      "JTOUSDT",
+      536888386
+     ],
+     [
+      "KAIAUSDT",
+      53382333
+     ],
+     [
+      "KAITOUSDT",
+      409479765
+     ],
+     [
+      "KASUSDT",
+      175834774
+     ],
+     [
+      "KITEUSDT",
+      217514950
+     ],
+     [
+      "KMNOUSDT",
+      66642951
+     ],
+     [
+      "KOMAUSDT",
+      108604453
+     ],
+     [
+      "LABUSDT",
+      690563956
+     ],
+     [
+      "LAUSDT",
+      105202924
+     ],
+     [
+      "LITUSDT",
+      146292207
+     ],
+     [
+      "LSKUSDT",
+      111260843
+     ],
+     [
+      "MAGMAUSDT",
+      124205183
+     ],
+     [
+      "MAGMAUSDT",
+      124205189
+     ],
+     [
+      "MANTRAUSDT",
+      20585072
+     ],
+     [
+      "MEMEUSDT",
+      375818787
+     ],
+     [
+      "MEMEUSDT",
+      375818788
+     ],
+     [
+      "MEMEUSDT",
+      375818789
+     ],
+     [
+      "MEMEUSDT",
+      375818790
+     ],
+     [
+      "MERLUSDT",
+      173107467
+     ],
+     [
+      "MERLUSDT",
+      173107468
+     ],
+     [
+      "METUSDT",
+      59696325
+     ],
+     [
+      "MEUSDT",
+      101658540
+     ],
+     [
+      "MINAUSDT",
+      231425272
+     ],
+     [
+      "MOODENGUSDT",
+      460321453
+     ],
+     [
+      "MORPHOUSDT",
+      163426437
+     ],
+     [
+      "MORPHOUSDT",
+      163426438
+     ],
+     [
+      "MUBARAKUSDT",
+      137770784
+     ],
+     [
+      "NEARUSDT",
+      1042309796
+     ],
+     [
+      "NEOUSDT",
+      466753992
+     ],
+     [
+      "ONEUSDT",
+      331203089
+     ],
+     [
+      "ONEUSDT",
+      331203090
+     ],
+     [
+      "ONUSDT",
+      100896357
+     ],
+     [
+      "OPGUSDT",
+      43988965
+     ],
+     [
+      "ORDIUSDT",
+      1018644277
+     ],
+     [
+      "PAXGUSDT",
+      129580480
+     ],
+     [
+      "PENGUUSDT",
+      595282035
+     ],
+     [
+      "PIEVERSEUSDT",
+      208685043
+     ],
+     [
+      "PIEVERSEUSDT",
+      208685044
+     ],
+     [
+      "PLUMEUSDT",
+      74665642
+     ],
+     [
+      "POLUSDT",
+      218967041
+     ],
+     [
+      "POPCATUSDT",
+      277747645
+     ],
+     [
+      "PTBUSDT",
+      124349491
+     ],
+     [
+      "RENDERUSDT",
+      183261218
+     ],
+     [
+      "SAGAUSDT",
+      310548401
+     ],
+     [
+      "SAHARAUSDT",
+      147144513
+     ],
+     [
+      "SAHARAUSDT",
+      147144514
+     ],
+     [
+      "SANDUSDT",
+      996483748
+     ],
+     [
+      "SIRENUSDT",
+      554022291
+     ],
+     [
+      "SKRUSDT",
+      59813606
+     ],
+     [
+      "STABLEUSDT",
+      103117663
+     ],
+     [
+      "STARUSDT",
+      15527918
+     ],
+     [
+      "STXUSDT",
+      476168245
+     ],
+     [
+      "SUIUSDT",
+      1550453366
+     ],
+     [
+      "SXTUSDT",
+      73712413
+     ],
+     [
+      "SYNUSDT",
+      175477780
+     ],
+     [
+      "SYRUPUSDT",
+      198544579
+     ],
+     [
+      "TACUSDT",
+      114679841
+     ],
+     [
+      "TIAUSDT",
+      842230386
+     ],
+     [
+      "TLMUSDT",
+      145216405
+     ],
+     [
+      "TRBUSDT",
+      1020982649
+     ],
+     [
+      "TRXUSDT",
+      704360957
+     ],
+     [
+      "TUTUSDT",
+      245974623
+     ],
+     [
+      "UAIUSDT",
+      133167902
+     ],
+     [
+      "UAIUSDT",
+      133167903
+     ],
+     [
+      "UAIUSDT",
+      133167904
+     ],
+     [
+      "VETUSDT",
+      568709808
+     ],
+     [
+      "VVVUSDT",
+      226928963
+     ],
+     [
+      "XANUSDT",
+      89109204
+     ],
+     [
+      "XANUSDT",
+      89109229
+     ],
+     [
+      "XANUSDT",
+      89109230
+     ],
+     [
+      "XANUSDT",
+      89109231
+     ],
+     [
+      "XMRUSDT",
+      543587484
+     ],
+     [
+      "XPINUSDT",
+      125976146
+     ],
+     [
+      "XPINUSDT",
+      125976147
+     ],
+     [
+      "YBUSDT",
+      64845738
+     ],
+     [
+      "YBUSDT",
+      64845739
+     ],
+     [
+      "ZAMAUSDT",
+      55225763
+     ],
+     [
+      "ZBTUSDT",
+      144511700
+     ],
+     [
+      "ZENUSDT",
+      505482511
+     ],
+     [
+      "ZKPUSDT",
+      97972681
+     ],
+     [
+      "ZKUSDT",
+      216319051
+     ],
+     [
+      "ZORAUSDT",
+      139630265
+     ]
+    ],
+    "rule": "R13-P2 (2): the gap owns (A, t_d) and the window owns [t_d, t_end]; a fill exactly at t_d belongs to the window ONLY"
+   },
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "VELVETUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "WLFIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": 1.595960233900115,
+    "L3_minus_L2cut_execution": 1.5959602339001435,
+    "L2cut_minus_L2_flatten_footprint": -2.842170943040401e-14,
+    "L2_minus_L1_skips": 0.12490697699050202,
+    "L1_minus_L0_book_layer": -24.402374473571257,
+    "L3_minus_L0_total": -22.68150726268064,
+    "L3_minus_L2cut_execution_with_fill_prices": 1.2488362224140417,
+    "fill_price_correction": -0.34712401148609795
+   },
+   "n_names_ok": 260
+  },
+  {
+   "anchor": 1788120000,
+   "utc": "08-30 20:00Z",
+   "status": "OK",
+   "rebalance_id": "A1788121440",
+   "window_class": "NORMAL",
+   "n_names_cut_at_flatten": 0,
+   "t_decision": 1788121441.843333,
+   "t_end": 1788134400.0,
+   "coverage_s": 12900,
+   "coverage_note": "the DECISION window [t_d, A+4h]; the [A, t_d] gap before it is priced separately by gap_pnl (R12-P3)",
+   "fill_price_correction_usdt": -0.71772774174114,
+   "n_fills_price_corrected": 143,
+   "t_decision_source": "min_submit_ts",
+   "b0": 1788121500,
+   "b1": 1788134400,
+   "n_rows": 43,
+   "layers": {
+    "L0_producer": {
+     "n": 262,
+     "n_priced": 262,
+     "gross_b0": 40655.407962298435,
+     "net_b0": -2736.5644572862752,
+     "pnl_usdt": 46.98266007093174,
+     "pnl_long_usdt": -705.0092061637207,
+     "pnl_short_usdt": 751.9918662346522,
+     "censored": {
+      "n": 9,
+      "notional": 1161.9169451347666
+     }
+    },
+    "L1_executor_target": {
+     "n": 262,
+     "n_priced": 262,
+     "gross_b0": 41694.56988090191,
+     "net_b0": -93.03111170597754,
+     "pnl_usdt": 3.3063340503637013,
+     "pnl_long_usdt": -774.3295286305722,
+     "pnl_short_usdt": 777.6358626809358,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_request_intent": {
+     "n": 262,
+     "n_priced": 262,
+     "gross_b0": 41691.78223650314,
+     "net_b0": -28.54317112959326,
+     "pnl_usdt": 0.9695282184926715,
+     "pnl_long_usdt": -774.7299219181116,
+     "pnl_short_usdt": 775.699450136604,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L2_cut_at_flatten": {
+     "n": 262,
+     "n_priced": 262,
+     "gross_b0": 41691.78223650314,
+     "net_b0": -28.54317112959326,
+     "pnl_usdt": 0.9695282184927292,
+     "pnl_long_usdt": -774.7299219181116,
+     "pnl_short_usdt": 775.699450136604,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     }
+    },
+    "L3_actual_path": {
+     "n": 262,
+     "n_priced": 262,
+     "gross_b0": 41997.25357295989,
+     "net_b0": -519.0859690411431,
+     "pnl_usdt": -5.91847376787407,
+     "pnl_long_usdt": -779.2792910919435,
+     "pnl_short_usdt": 773.3608173240691,
+     "censored": {
+      "n": 9,
+      "notional": 0.0
+     },
+     "fill_price_correction_usdt": -0.71772774174114,
+     "pnl_usdt_with_fill_prices": -6.636201509615209,
+     "n_fills_price_corrected": 143
+    }
+   },
+   "fees_in_window": {
+    "BNB": 0.0005694999999999998
+   },
+   "n_fills_in_window": 143,
+   "events": {
+    "pre_window": 0,
+    "in_window": 143,
+    "post_window_not_applied": 240
+   },
+   "intra_row_approx": 72,
+   "flattens_in_window": [],
+   "n_flatten_rows_in_window": 0,
+   "mid_vs_path_price": {
+    "n": 254,
+    "max_abs_rel": 0.012613107282790526,
+    "median_abs_rel": 0.000550780580483079
+   },
+   "fill_px_vs_path": {
+    "n": 72,
+    "max_abs_rel": 0.02419880646140049,
+    "median_abs_rel": 0.002374467236599842
+   },
+   "reference_readback": {
+    "runs": [
+     "08-30 12Z",
+     "08-30 16Z"
+    ],
+    "n_names": 259,
+    "n_stale_over_4h40m": 2,
+    "t_earliest_read": 1788093804.836877
+   },
+   "next_readback": {
+    "available": true,
+    "n_names": 256,
+    "t_latest_read": 1788151315.211468
+   },
+   "unexplained_qty_residual": {
+    "status": "CHECKED",
+    "n_names": 15,
+    "n_over_1usdt": 0,
+    "abs_notional_sum": 2.6894399269296854e-13,
+    "n_nonfinite_next_readback": 0,
+    "top": [
+     [
+      "APTUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "COMPUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "CVXUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "DEXEUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "EGLDUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "ETHFIUSDT",
+      0.0,
+      0.0
+     ],
+     [
+      "FILUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "MORPHOUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "OPUSDT",
+      -0.0,
+      -0.0
+     ],
+     [
+      "PORTALUSDT",
+      -0.0,
+      -0.0
+     ]
+    ],
+    "next_readback_names": 256,
+    "rule": "path from the previous readback through every fill/flatten with event time <= the next readback's read_ts, minus that readback; priced at the window-end path price"
+   },
+   "price_chain_joins": {
+    "n_names_compared": 254,
+    "n_over_1pct": 2,
+    "n_value_over_1cent": 203,
+    "abs_value_diff_sum_usdt": 71.6638401687096,
+    "max_abs_rel": 0.016802800580411392,
+    "causes": {
+     "mark_vs_close": 254
+    },
+    "resets": {
+     "new_symbol_in_day": 3
+    },
+    "top": [
+     {
+      "symbol": "BLESSUSDT",
+      "px_chain_at_b0": 0.01199193,
+      "px_own_at_b0": 0.01180106,
+      "own_source": "readback_mark",
+      "rel": -0.01591717,
+      "qty_at_join": 27626.0,
+      "value_diff_usdt": -5.27318563,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "HEMIUSDT",
+      "px_chain_at_b0": 0.01266417,
+      "px_own_at_b0": 0.01245138,
+      "own_source": "readback_mark",
+      "rel": -0.0168028,
+      "qty_at_join": 22916.0,
+      "value_diff_usdt": -4.87637588,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "MAGMAUSDT",
+      "px_chain_at_b0": 0.37175615,
+      "px_own_at_b0": 0.3754546,
+      "own_source": "readback_mark",
+      "rel": 0.00994858,
+      "qty_at_join": 1000.0,
+      "value_diff_usdt": 3.69844429,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "COLLECTUSDT",
+      "px_chain_at_b0": 0.0852604,
+      "px_own_at_b0": 0.08450965,
+      "own_source": "readback_mark",
+      "rel": -0.00880531,
+      "qty_at_join": 4072.0,
+      "value_diff_usdt": -3.05703149,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "SKRUSDT",
+      "px_chain_at_b0": 0.02094975,
+      "px_own_at_b0": 0.02110105,
+      "own_source": "readback_mark",
+      "rel": 0.00722206,
+      "qty_at_join": -17699.0,
+      "value_diff_usdt": -2.67786404,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "UAIUSDT",
+      "px_chain_at_b0": 0.37965033,
+      "px_own_at_b0": 0.38210386,
+      "own_source": "readback_mark",
+      "rel": 0.00646261,
+      "qty_at_join": 946.0,
+      "value_diff_usdt": 2.3210425,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "CYSUSDT",
+      "px_chain_at_b0": 0.82439145,
+      "px_own_at_b0": 0.82013441,
+      "own_source": "readback_mark",
+      "rel": -0.00516386,
+      "qty_at_join": 496.0,
+      "value_diff_usdt": -2.11149417,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "BTRUSDT",
+      "px_chain_at_b0": 0.16137038,
+      "px_own_at_b0": 0.16200691,
+      "own_source": "readback_mark",
+      "rel": 0.00394453,
+      "qty_at_join": 2540.0,
+      "value_diff_usdt": 1.61678874,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "FORMUSDT",
+      "px_chain_at_b0": 0.26583123,
+      "px_own_at_b0": 0.26846794,
+      "own_source": "readback_mark",
+      "rel": 0.00991874,
+      "qty_at_join": 602.5,
+      "value_diff_usdt": 1.58861826,
+      "cause": "mark_vs_close"
+     },
+     {
+      "symbol": "LIGHTUSDT",
+      "px_chain_at_b0": 0.18800675,
+      "px_own_at_b0": 0.18727195,
+      "own_source": "readback_mark",
+      "rel": -0.00390832,
+      "qty_at_join": 1833.0,
+      "value_diff_usdt": -1.34687189,
+      "cause": "mark_vs_close"
+     }
+    ],
+    "rule": "the day chain's price at b0 vs the price this window would have derived on its own; REPORTED, never added to P&L (a mark-vs-close difference is a valuation difference, not a realised gain)"
+   },
+   "fill_partition": {
+    "owns": "[t_decision, t_end]",
+    "n_fills_price_corrected": 143,
+    "keys": [
+     [
+      "1000PEPEUSDT",
+      2756265881
+     ],
+     [
+      "1000RATSUSDT",
+      370841478
+     ],
+     [
+      "1000SHIBUSDT",
+      1579272798
+     ],
+     [
+      "4USDT",
+      144962932
+     ],
+     [
+      "ADAUSDT",
+      1914234407
+     ],
+     [
+      "AEROUSDT",
+      116896693
+     ],
+     [
+      "AIOUSDT",
+      86678018
+     ],
+     [
+      "AIOUSDT",
+      86678033
+     ],
+     [
+      "ALGOUSDT",
+      516494255
+     ],
+     [
+      "ALICEUSDT",
+      389729648
+     ],
+     [
+      "ALLOUSDT",
+      307413691
+     ],
+     [
+      "ARBUSDT",
+      634588592
+     ],
+     [
+      "ARIAUSDT",
+      173146264
+     ],
+     [
+      "ARIAUSDT",
+      173146265
+     ],
+     [
+      "ARUSDT",
+      443680004
+     ],
+     [
+      "ASTERUSDT",
+      405841129
+     ],
+     [
+      "ATHUSDT",
+      58507482
+     ],
+     [
+      "ATOMUSDT",
+      872313532
+     ],
+     [
+      "ATOMUSDT",
+      872313536
+     ],
+     [
+      "AVNTUSDT",
+      297485814
+     ],
+     [
+      "AXSUSDT",
+      697247241
+     ],
+     [
+      "BASEDUSDT",
+      111380928
+     ],
+     [
+      "BASEDUSDT",
+      111380930
+     ],
+     [
+      "BBUSDT",
+      236138008
+     ],
+     [
+      "BEATUSDT",
+      619121694
+     ],
+     [
+      "BIOUSDT",
+      291663156
+     ],
+     [
+      "BIOUSDT",
+      291663157
+     ],
+     [
+      "BLESSUSDT",
+      307194958
+     ],
+     [
+      "BRUSDT",
+      123429422
+     ],
+     [
+      "BTRUSDT",
+      151179439
+     ],
+     [
+      "CHILLGUYUSDT",
+      117347539
+     ],
+     [
+      "CLOUSDT",
+      183813088
+     ],
+     [
+      "COLLECTUSDT",
+      62209353
+     ],
+     [
+      "CRVUSDT",
+      571296871
+     ],
+     [
+      "CVXUSDT",
+      20619386
+     ],
+     [
+      "CYSUSDT",
+      159642101
+     ],
+     [
+      "DEXEUSDT",
+      229617028
+     ],
+     [
+      "DOGEUSDT",
+      3448150992
+     ],
+     [
+      "DUSKUSDT",
+      348587497
+     ],
+     [
+      "EDENUSDT",
+      166539419
+     ],
+     [
+      "EDENUSDT",
+      166539420
+     ],
+     [
+      "EGLDUSDT",
+      386673327
+     ],
+     [
+      "ENAUSDT",
+      857675785
+     ],
+     [
+      "ENJUSDT",
+      444621939
+     ],
+     [
+      "EPICUSDT",
+      158545690
+     ],
+     [
+      "ERAUSDT",
+      85051409
+     ],
+     [
+      "ESPORTSUSDT",
+      223506851
+     ],
+     [
+      "ESPUSDT",
+      89400352
+     ],
+     [
+      "ESPUSDT",
+      89400353
+     ],
+     [
+      "ESPUSDT",
+      89400355
+     ],
+     [
+      "ETHFIUSDT",
+      472282651
+     ],
+     [
+      "EULUSDT",
+      88316312
+     ],
+     [
+      "FARTCOINUSDT",
+      677350863
+     ],
+     [
+      "FFUSDT",
+      160211141
+     ],
+     [
+      "GALAUSDT",
+      889261629
+     ],
+     [
+      "HBARUSDT",
+      785299058
+     ],
+     [
+      "HEIUSDT",
+      194627527
+     ],
+     [
+      "HEMIUSDT",
+      192588017
+     ],
+     [
+      "HEMIUSDT",
+      192588018
+     ],
+     [
+      "HOLOUSDT",
+      96797303
+     ],
+     [
+      "HUMAUSDT",
+      213923064
+     ],
+     [
+      "HUSDT",
+      538036111
+     ],
+     [
+      "IDUSDT",
+      303695248
+     ],
+     [
+      "IMXUSDT",
+      370060727
+     ],
+     [
+      "INJUSDT",
+      773779543
+     ],
+     [
+      "JSTUSDT",
+      35123752
+     ],
+     [
+      "JTOUSDT",
+      536912233
+     ],
+     [
+      "KAITOUSDT",
+      409507937
+     ],
+     [
+      "KASUSDT",
+      175841139
+     ],
+     [
+      "KITEUSDT",
+      217552774
+     ],
+     [
+      "KMNOUSDT",
+      66648177
+     ],
+     [
+      "KMNOUSDT",
+      66648178
+     ],
+     [
+      "KOMAUSDT",
+      108620090
+     ],
+     [
+      "LABUSDT",
+      690689484
+     ],
+     [
+      "LIGHTUSDT",
+      244888145
+     ],
+     [
+      "LITUSDT",
+      146580839
+     ],
+     [
+      "LITUSDT",
+      146580840
+     ],
+     [
+      "MAGMAUSDT",
+      125373670
+     ],
+     [
+      "MAGMAUSDT",
+      125373675
+     ],
+     [
+      "MANTRAUSDT",
+      20593772
+     ],
+     [
+      "MERLUSDT",
+      173110457
+     ],
+     [
+      "METUSDT",
+      59705726
+     ],
+     [
+      "MINAUSDT",
+      231432574
+     ],
+     [
+      "MOODENGUSDT",
+      460328547
+     ],
+     [
+      "MORPHOUSDT",
+      163449503
+     ],
+     [
+      "MORPHOUSDT",
+      163449504
+     ],
+     [
+      "MOVEUSDT",
+      205929268
+     ],
+     [
+      "MOVRUSDT",
+      152876590
+     ],
+     [
+      "NILUSDT",
+      118266865
+     ],
+     [
+      "ONDOUSDT",
+      549728013
+     ],
+     [
+      "ONEUSDT",
+      331211710
+     ],
+     [
+      "ONUSDT",
+      100904157
+     ],
+     [
+      "ONUSDT",
+      100904158
+     ],
+     [
+      "OPGUSDT",
+      43994675
+     ],
+     [
+      "OPUSDT",
+      954089022
+     ],
+     [
+      "PARTIUSDT",
+      158780057
+     ],
+     [
+      "PEOPLEUSDT",
+      731465471
+     ],
+     [
+      "PNUTUSDT",
+      660400209
+     ],
+     [
+      "PORTALUSDT",
+      163552920
+     ],
+     [
+      "PTBUSDT",
+      124395936
+     ],
+     [
+      "PUMPUSDT",
+      277953098
+     ],
+     [
+      "PYTHUSDT",
+      323820388
+     ],
+     [
+      "RIVERUSDT",
+      783363124
+     ],
+     [
+      "RIVERUSDT",
+      783363125
+     ],
+     [
+      "RUNEUSDT",
+      566122608
+     ],
+     [
+      "SAHARAUSDT",
+      147150719
+     ],
+     [
+      "SANDUSDT",
+      996499980
+     ],
+     [
+      "SEIUSDT",
+      460333659
+     ],
+     [
+      "SKRUSDT",
+      61176617
+     ],
+     [
+      "SOLUSDT",
+      3494945169
+     ],
+     [
+      "SPXUSDT",
+      217897886
+     ],
+     [
+      "STXUSDT",
+      476190969
+     ],
+     [
+      "SUIUSDT",
+      1550623860
+     ],
+     [
+      "SUIUSDT",
+      1550623861
+     ],
+     [
+      "SYRUPUSDT",
+      198552292
+     ],
+     [
+      "TACUSDT",
+      114705397
+     ],
+     [
+      "TIAUSDT",
+      842253866
+     ],
+     [
+      "TIAUSDT",
+      842253867
+     ],
+     [
+      "TIAUSDT",
+      842253868
+     ],
+     [
+      "TRBUSDT",
+      1020992432
+     ],
+     [
+      "TRUMPUSDT",
+      721549377
+     ],
+     [
+      "TSTUSDT",
+      148182675
+     ],
+     [
+      "TURBOUSDT",
+      521696581
+     ],
+     [
+      "TUTUSDT",
+      246074631
+     ],
+     [
+      "TUTUSDT",
+      246074632
+     ],
+     [
+      "VVVUSDT",
+      226991251
+     ],
+     [
+      "VVVUSDT",
+      226991252
+     ],
+     [
+      "VVVUSDT",
+      226991253
+     ],
+     [
+      "VVVUSDT",
+      226991254
+     ],
+     [
+      "WALUSDT",
+      70141101
+     ],
+     [
+      "WIFUSDT",
+      1245864217
+     ],
+     [
+      "WUSDT",
+      248484444
+     ],
+     [
+      "XANUSDT",
+      89121042
+     ],
+     [
+      "XAUTUSDT",
+      19840619
+     ],
+     [
+      "XMRUSDT",
+      543759699
+     ],
+     [
+      "XPINUSDT",
+      125988303
+     ],
+     [
+      "ZBTUSDT",
+      144526479
+     ],
+     [
+      "ZENUSDT",
+      505536861
+     ],
+     [
+      "ZKPUSDT",
+      98067671
+     ],
+     [
+      "ZKUSDT",
+      216402081
+     ],
+     [
+      "ZORAUSDT",
+      139687275
+     ],
+     [
+      "ZROUSDT",
+      405228477
+     ],
+     [
+      "ZROUSDT",
+      405228478
+     ]
+    ],
+    "rule": "R13-P2 (2): the gap owns (A, t_d) and the window owns [t_d, t_end]; a fill exactly at t_d belongs to the window ONLY"
+   },
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "VELVETUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    },
+    "WLFIUSDT": {
+     "status": "CENSORED",
+     "why": "no_reference_price",
+     "q0": 0.0
+    }
+   },
+   "diffs": {
+    "L3_minus_L2_timing_and_fills": -6.888001986366741,
+    "L3_minus_L2cut_execution": -6.888001986366799,
+    "L2cut_minus_L2_flatten_footprint": 5.773159728050814e-14,
+    "L2_minus_L1_skips": -2.33680583187103,
+    "L1_minus_L0_book_layer": -43.67632602056804,
+    "L3_minus_L0_total": -52.90113383880581,
+    "L3_minus_L2cut_execution_with_fill_prices": -7.605729728107939,
+    "fill_price_correction": -0.71772774174114
+   },
+   "n_names_ok": 262
+  }
+ ],
+ "gaps": [
+  {
+   "gap_for_anchor": 1788048000,
+   "utc": "08-30 00:00Z",
+   "t_from": 1788048000.0,
+   "t_to": 1788049473.718165,
+   "status": "NO_PREV_WINDOW",
+   "why": "NO_PHASE_A"
+  },
+  {
+   "gap_for_anchor": 1788062400,
+   "utc": "08-30 04:00Z",
+   "t_from": 1788062400.0,
+   "t_to": 1788063842.0927842,
+   "b_lo": 1788062400,
+   "b_hi": 1788063900,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "n_unknown_start_qty": 11,
+   "n_nonfinite_carried": 0,
+   "pnl_usdt": 19.61914462305097,
+   "pnl_long_usdt": 20.781015149533765,
+   "pnl_short_usdt": -1.1618705264828044,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": 19.61914462305097,
+   "n_names_carried": 264,
+   "n_priced": 253,
+   "censored": {
+    "n": 11,
+    "notional": 0.0,
+    "why": {
+     "unknown_start_qty": 11
+    }
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "MAGMAUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ROSEUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "VELVETUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "WLFIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    }
+   },
+   "fill_partition": {
+    "owns": "(A, t_decision)",
+    "n_fills_price_corrected": 0,
+    "keys": [],
+    "rule": "R13-P2 (2): half-open \u2014 a fill exactly at t_d belongs to the window, not to this gap"
+   },
+   "censored_reasons": {
+    "unknown_start_qty": 11
+   },
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  },
+  {
+   "gap_for_anchor": 1788076800,
+   "utc": "08-30 08:00Z",
+   "t_from": 1788076800.0,
+   "t_to": 1788078243.7079759,
+   "b_lo": 1788076800,
+   "b_hi": 1788078300,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "n_unknown_start_qty": 10,
+   "n_nonfinite_carried": 0,
+   "pnl_usdt": -4.08892268206348,
+   "pnl_long_usdt": 18.754198543586522,
+   "pnl_short_usdt": -22.843121225650002,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": -4.08892268206348,
+   "n_names_carried": 263,
+   "n_priced": 253,
+   "censored": {
+    "n": 10,
+    "notional": 0.0,
+    "why": {
+     "unknown_start_qty": 10
+    }
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "MAGMAUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "VELVETUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "WLFIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    }
+   },
+   "fill_partition": {
+    "owns": "(A, t_decision)",
+    "n_fills_price_corrected": 0,
+    "keys": [],
+    "rule": "R13-P2 (2): half-open \u2014 a fill exactly at t_d belongs to the window, not to this gap"
+   },
+   "censored_reasons": {
+    "unknown_start_qty": 10
+   },
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  },
+  {
+   "gap_for_anchor": 1788091200,
+   "utc": "08-30 12:00Z",
+   "t_from": 1788091200.0,
+   "t_to": 1788092642.9307258,
+   "b_lo": 1788091200,
+   "b_hi": 1788092700,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "n_unknown_start_qty": 9,
+   "n_nonfinite_carried": 0,
+   "pnl_usdt": 7.675640649704879,
+   "pnl_long_usdt": 52.62835732467594,
+   "pnl_short_usdt": -44.95271667497107,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": 7.675640649704879,
+   "n_names_carried": 264,
+   "n_priced": 255,
+   "censored": {
+    "n": 9,
+    "notional": 0.0,
+    "why": {
+     "unknown_start_qty": 9
+    }
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "VELVETUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "WLFIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    }
+   },
+   "fill_partition": {
+    "owns": "(A, t_decision)",
+    "n_fills_price_corrected": 0,
+    "keys": [],
+    "rule": "R13-P2 (2): half-open \u2014 a fill exactly at t_d belongs to the window, not to this gap"
+   },
+   "censored_reasons": {
+    "unknown_start_qty": 9
+   },
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  },
+  {
+   "gap_for_anchor": 1788105600,
+   "utc": "08-30 16:00Z",
+   "t_from": 1788105600.0,
+   "t_to": 1788107041.362648,
+   "b_lo": 1788105600,
+   "b_hi": 1788107100,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "n_unknown_start_qty": 9,
+   "n_nonfinite_carried": 0,
+   "pnl_usdt": -38.013070232296116,
+   "pnl_long_usdt": 96.0680884839764,
+   "pnl_short_usdt": -134.08115871627257,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": -38.013070232296116,
+   "n_names_carried": 265,
+   "n_priced": 256,
+   "censored": {
+    "n": 9,
+    "notional": 0.0,
+    "why": {
+     "unknown_start_qty": 9
+    }
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "VELVETUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "WLFIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    }
+   },
+   "fill_partition": {
+    "owns": "(A, t_decision)",
+    "n_fills_price_corrected": 0,
+    "keys": [],
+    "rule": "R13-P2 (2): half-open \u2014 a fill exactly at t_d belongs to the window, not to this gap"
+   },
+   "censored_reasons": {
+    "unknown_start_qty": 9
+   },
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  },
+  {
+   "gap_for_anchor": 1788120000,
+   "utc": "08-30 20:00Z",
+   "t_from": 1788120000.0,
+   "t_to": 1788121441.843333,
+   "b_lo": 1788120000,
+   "b_hi": 1788121500,
+   "coverage_s": 1500,
+   "status": "GAP_OK",
+   "n_unknown_start_qty": 9,
+   "n_nonfinite_carried": 0,
+   "pnl_usdt": -32.42793412240639,
+   "pnl_long_usdt": -6.331790928893038,
+   "pnl_short_usdt": -26.096143193513353,
+   "fill_price_correction_usdt": 0.0,
+   "pnl_usdt_with_fill_prices": -32.42793412240639,
+   "n_names_carried": 265,
+   "n_priced": 256,
+   "censored": {
+    "n": 9,
+    "notional": 0.0,
+    "why": {
+     "unknown_start_qty": 9
+    }
+   },
+   "n_fills_in_gap": 0,
+   "per_name": {
+    "BTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "ETHUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LINKUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "LTCUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "PROMUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "SKYAIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "USUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "VELVETUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    },
+    "WLFIUSDT": {
+     "status": "CENSORED",
+     "why": "unknown_start_qty",
+     "n_events": 0,
+     "detail": "the previous window censored this name or priced it without an end quantity; a price reference for this gap does not recover the carried position"
+    }
+   },
+   "fill_partition": {
+    "owns": "(A, t_decision)",
+    "n_fills_price_corrected": 0,
+    "keys": [],
+    "rule": "R13-P2 (2): half-open \u2014 a fill exactly at t_d belongs to the window, not to this gap"
+   },
+   "censored_reasons": {
+    "unknown_start_qty": 9
+   },
+   "note": "carried ACTUAL position only; the intent layers are not defined before their own decision time"
+  }
+ ],
+ "day_gap_totals": {
+  "n_gaps_priced": 5,
+  "n_gaps": 6,
+  "pnl_usdt": -47.23514176401014,
+  "fill_price_correction_usdt": 0.0,
+  "pnl_usdt_with_fill_prices": -47.23514176401014,
+  "pnl_long_usdt": 181.89986857287957,
+  "pnl_short_usdt": -229.1350103368898,
+  "statuses": [
+   [
+    "08-30 00:00Z",
+    "NO_PREV_WINDOW"
+   ],
+   [
+    "08-30 04:00Z",
+    "GAP_OK"
+   ],
+   [
+    "08-30 08:00Z",
+    "GAP_OK"
+   ],
+   [
+    "08-30 12:00Z",
+    "GAP_OK"
+   ],
+   [
+    "08-30 16:00Z",
+    "GAP_OK"
+   ],
+   [
+    "08-30 20:00Z",
+    "GAP_OK"
+   ]
+  ],
+  "note": "ACTUAL layer only \u2014 the intent layers are defined from their own decision time and are not carried across the gap"
+ },
+ "day_coverage": {
+  "windows_s": 77400,
+  "gaps_s": 7500,
+  "total_s": 84900,
+  "day_s": 86400,
+  "covered_frac": 0.982639,
+  "note": "the decision windows alone cover 21.5 h of 24 h (6 x ~25 min missing); the gaps close that for the ACTUAL layer only"
+ },
+ "day_fill_partition": {
+  "n_corrected_in_windows": 1030,
+  "n_corrected_in_gaps": 0,
+  "n_total": 1030,
+  "n_distinct": 1030,
+  "n_double_counted": 0,
+  "double_counted": [],
+  "unpriced_interval_attribution": null,
+  "n_population_in_priced_intervals": 1030,
+  "n_population_not_corrected": 0,
+  "population_not_corrected": [],
+  "day_owns": "(d0, d0+86400]  (00 < t <= 24; a fill exactly at midnight is the previous day's)",
+  "n_owned_current_day": 1030,
+  "n_adjacent_prev_day": 709,
+  "n_adjacent_next_day": 778,
+  "n_day_fills_outside_every_priced_interval": 0,
+  "day_fills_outside_priced_intervals": [],
+  "owned_fill_keys": [
+   [
+    "0GUSDT",
+    215790870
+   ],
+   [
+    "1000BONKUSDT",
+    949816275
+   ],
+   [
+    "1000BONKUSDT",
+    949866597
+   ],
+   [
+    "1000FLOKIUSDT",
+    589843571
+   ],
+   [
+    "1000FLOKIUSDT",
+    589843572
+   ],
+   [
+    "1000FLOKIUSDT",
+    589847510
+   ],
+   [
+    "1000FLOKIUSDT",
+    589856386
+   ],
+   [
+    "1000FLOKIUSDT",
+    589873887
+   ],
+   [
+    "1000LUNCUSDT",
+    469615917
+   ],
+   [
+    "1000LUNCUSDT",
+    469620944
+   ],
+   [
+    "1000LUNCUSDT",
+    469635069
+   ],
+   [
+    "1000LUNCUSDT",
+    469641874
+   ],
+   [
+    "1000PEPEUSDT",
+    2755398532
+   ],
+   [
+    "1000PEPEUSDT",
+    2755680998
+   ],
+   [
+    "1000PEPEUSDT",
+    2755906496
+   ],
+   [
+    "1000PEPEUSDT",
+    2756265881
+   ],
+   [
+    "1000RATSUSDT",
+    370806930
+   ],
+   [
+    "1000RATSUSDT",
+    370817055
+   ],
+   [
+    "1000RATSUSDT",
+    370817068
+   ],
+   [
+    "1000RATSUSDT",
+    370841478
+   ],
+   [
+    "1000SHIBUSDT",
+    1579140849
+   ],
+   [
+    "1000SHIBUSDT",
+    1579140852
+   ],
+   [
+    "1000SHIBUSDT",
+    1579140853
+   ],
+   [
+    "1000SHIBUSDT",
+    1579140885
+   ],
+   [
+    "1000SHIBUSDT",
+    1579159725
+   ],
+   [
+    "1000SHIBUSDT",
+    1579159726
+   ],
+   [
+    "1000SHIBUSDT",
+    1579237886
+   ],
+   [
+    "1000SHIBUSDT",
+    1579272798
+   ],
+   [
+    "4USDT",
+    141974364
+   ],
+   [
+    "4USDT",
+    142655778
+   ],
+   [
+    "4USDT",
+    143760867
+   ],
+   [
+    "4USDT",
+    144397500
+   ],
+   [
+    "4USDT",
+    144397501
+   ],
+   [
+    "4USDT",
+    144693800
+   ],
+   [
+    "4USDT",
+    144962932
+   ],
+   [
+    "AAVEUSDT",
+    966779286
+   ],
+   [
+    "AAVEUSDT",
+    966779287
+   ],
+   [
+    "ACEUSDT",
+    342690811
+   ],
+   [
+    "ACEUSDT",
+    342759417
+   ],
+   [
+    "ACUUSDT",
+    58977839
+   ],
+   [
+    "ACUUSDT",
+    58991360
+   ],
+   [
+    "ACUUSDT",
+    58997731
+   ],
+   [
+    "ACUUSDT",
+    59021876
+   ],
+   [
+    "ADAUSDT",
+    1913998038
+   ],
+   [
+    "ADAUSDT",
+    1914031842
+   ],
+   [
+    "ADAUSDT",
+    1914066835
+   ],
+   [
+    "ADAUSDT",
+    1914106160
+   ],
+   [
+    "ADAUSDT",
+    1914234407
+   ],
+   [
+    "AEROUSDT",
+    116842027
+   ],
+   [
+    "AEROUSDT",
+    116850744
+   ],
+   [
+    "AEROUSDT",
+    116861197
+   ],
+   [
+    "AEROUSDT",
+    116896693
+   ],
+   [
+    "AIOUSDT",
+    86384899
+   ],
+   [
+    "AIOUSDT",
+    86398516
+   ],
+   [
+    "AIOUSDT",
+    86439071
+   ],
+   [
+    "AIOUSDT",
+    86636644
+   ],
+   [
+    "AIOUSDT",
+    86678018
+   ],
+   [
+    "AIOUSDT",
+    86678033
+   ],
+   [
+    "AIXBTUSDT",
+    313819736
+   ],
+   [
+    "AKEUSDT",
+    290557013
+   ],
+   [
+    "AKEUSDT",
+    290700572
+   ],
+   [
+    "ALGOUSDT",
+    516423371
+   ],
+   [
+    "ALGOUSDT",
+    516434724
+   ],
+   [
+    "ALGOUSDT",
+    516445633
+   ],
+   [
+    "ALGOUSDT",
+    516457392
+   ],
+   [
+    "ALGOUSDT",
+    516457393
+   ],
+   [
+    "ALGOUSDT",
+    516494255
+   ],
+   [
+    "ALICEUSDT",
+    389690567
+   ],
+   [
+    "ALICEUSDT",
+    389702580
+   ],
+   [
+    "ALICEUSDT",
+    389724210
+   ],
+   [
+    "ALICEUSDT",
+    389729648
+   ],
+   [
+    "ALLOUSDT",
+    307295119
+   ],
+   [
+    "ALLOUSDT",
+    307324509
+   ],
+   [
+    "ALLOUSDT",
+    307349283
+   ],
+   [
+    "ALLOUSDT",
+    307375161
+   ],
+   [
+    "ALLOUSDT",
+    307395506
+   ],
+   [
+    "ALLOUSDT",
+    307413691
+   ],
+   [
+    "APEUSDT",
+    771015264
+   ],
+   [
+    "APRUSDT",
+    164007119
+   ],
+   [
+    "APRUSDT",
+    164020297
+   ],
+   [
+    "APRUSDT",
+    164031937
+   ],
+   [
+    "APRUSDT",
+    164064498
+   ],
+   [
+    "APTUSDT",
+    983864161
+   ],
+   [
+    "APTUSDT",
+    983864162
+   ],
+   [
+    "APTUSDT",
+    983885696
+   ],
+   [
+    "APTUSDT",
+    983885697
+   ],
+   [
+    "APTUSDT",
+    983910988
+   ],
+   [
+    "APTUSDT",
+    983935963
+   ],
+   [
+    "APTUSDT",
+    983966907
+   ],
+   [
+    "ARBUSDT",
+    634468092
+   ],
+   [
+    "ARBUSDT",
+    634588592
+   ],
+   [
+    "ARIAUSDT",
+    173101078
+   ],
+   [
+    "ARIAUSDT",
+    173107931
+   ],
+   [
+    "ARIAUSDT",
+    173114773
+   ],
+   [
+    "ARIAUSDT",
+    173114777
+   ],
+   [
+    "ARIAUSDT",
+    173136366
+   ],
+   [
+    "ARIAUSDT",
+    173146264
+   ],
+   [
+    "ARIAUSDT",
+    173146265
+   ],
+   [
+    "ARUSDT",
+    443652648
+   ],
+   [
+    "ARUSDT",
+    443664957
+   ],
+   [
+    "ARUSDT",
+    443680004
+   ],
+   [
+    "ASTERUSDT",
+    405605897
+   ],
+   [
+    "ASTERUSDT",
+    405641989
+   ],
+   [
+    "ASTERUSDT",
+    405720574
+   ],
+   [
+    "ASTERUSDT",
+    405794763
+   ],
+   [
+    "ASTERUSDT",
+    405794764
+   ],
+   [
+    "ASTERUSDT",
+    405841129
+   ],
+   [
+    "ATHUSDT",
+    58469515
+   ],
+   [
+    "ATHUSDT",
+    58483531
+   ],
+   [
+    "ATHUSDT",
+    58483532
+   ],
+   [
+    "ATHUSDT",
+    58502286
+   ],
+   [
+    "ATHUSDT",
+    58507482
+   ],
+   [
+    "ATOMUSDT",
+    872265506
+   ],
+   [
+    "ATOMUSDT",
+    872274022
+   ],
+   [
+    "ATOMUSDT",
+    872281933
+   ],
+   [
+    "ATOMUSDT",
+    872304139
+   ],
+   [
+    "ATOMUSDT",
+    872313532
+   ],
+   [
+    "ATOMUSDT",
+    872313536
+   ],
+   [
+    "AVAAIUSDT",
+    105757844
+   ],
+   [
+    "AVAAIUSDT",
+    105769563
+   ],
+   [
+    "AVAAIUSDT",
+    105769564
+   ],
+   [
+    "AVAXUSDT",
+    1420563692
+   ],
+   [
+    "AVNTUSDT",
+    297437604
+   ],
+   [
+    "AVNTUSDT",
+    297444516
+   ],
+   [
+    "AVNTUSDT",
+    297465301
+   ],
+   [
+    "AVNTUSDT",
+    297485814
+   ],
+   [
+    "AXSUSDT",
+    697177283
+   ],
+   [
+    "AXSUSDT",
+    697188773
+   ],
+   [
+    "AXSUSDT",
+    697199195
+   ],
+   [
+    "AXSUSDT",
+    697215785
+   ],
+   [
+    "AXSUSDT",
+    697247241
+   ],
+   [
+    "BABYUSDT",
+    119142430
+   ],
+   [
+    "BABYUSDT",
+    119161139
+   ],
+   [
+    "BANKUSDT",
+    348133320
+   ],
+   [
+    "BANKUSDT",
+    348159257
+   ],
+   [
+    "BANKUSDT",
+    348186895
+   ],
+   [
+    "BASEDUSDT",
+    111350037
+   ],
+   [
+    "BASEDUSDT",
+    111355456
+   ],
+   [
+    "BASEDUSDT",
+    111369068
+   ],
+   [
+    "BASEDUSDT",
+    111369069
+   ],
+   [
+    "BASEDUSDT",
+    111369070
+   ],
+   [
+    "BASEDUSDT",
+    111380928
+   ],
+   [
+    "BASEDUSDT",
+    111380930
+   ],
+   [
+    "BBUSDT",
+    236122516
+   ],
+   [
+    "BBUSDT",
+    236138008
+   ],
+   [
+    "BCHUSDT",
+    1317365626
+   ],
+   [
+    "BEATUSDT",
+    618695650
+   ],
+   [
+    "BEATUSDT",
+    618787026
+   ],
+   [
+    "BEATUSDT",
+    618945519
+   ],
+   [
+    "BEATUSDT",
+    619081932
+   ],
+   [
+    "BEATUSDT",
+    619121694
+   ],
+   [
+    "BERAUSDT",
+    216103174
+   ],
+   [
+    "BERAUSDT",
+    216103175
+   ],
+   [
+    "BICOUSDT",
+    155213937
+   ],
+   [
+    "BICOUSDT",
+    155345074
+   ],
+   [
+    "BICOUSDT",
+    155345075
+   ],
+   [
+    "BICOUSDT",
+    155510996
+   ],
+   [
+    "BICOUSDT",
+    155511002
+   ],
+   [
+    "BIGTIMEUSDT",
+    346840011
+   ],
+   [
+    "BIGTIMEUSDT",
+    346851972
+   ],
+   [
+    "BILLUSDT",
+    120353427
+   ],
+   [
+    "BILLUSDT",
+    120353428
+   ],
+   [
+    "BILLUSDT",
+    120360660
+   ],
+   [
+    "BIOUSDT",
+    291628663
+   ],
+   [
+    "BIOUSDT",
+    291628664
+   ],
+   [
+    "BIOUSDT",
+    291645572
+   ],
+   [
+    "BIOUSDT",
+    291655566
+   ],
+   [
+    "BIOUSDT",
+    291663156
+   ],
+   [
+    "BIOUSDT",
+    291663157
+   ],
+   [
+    "BLESSUSDT",
+    306973241
+   ],
+   [
+    "BLESSUSDT",
+    307046922
+   ],
+   [
+    "BLESSUSDT",
+    307113875
+   ],
+   [
+    "BLESSUSDT",
+    307194958
+   ],
+   [
+    "BLUAIUSDT",
+    89608552
+   ],
+   [
+    "BLUAIUSDT",
+    89642588
+   ],
+   [
+    "BLUAIUSDT",
+    89660100
+   ],
+   [
+    "BLUAIUSDT",
+    89668654
+   ],
+   [
+    "BLUAIUSDT",
+    89668655
+   ],
+   [
+    "BLUAIUSDT",
+    89668656
+   ],
+   [
+    "BMTUSDT",
+    96922996
+   ],
+   [
+    "BMTUSDT",
+    96955057
+   ],
+   [
+    "BMTUSDT",
+    97004294
+   ],
+   [
+    "BNBUSDT",
+    2243963578
+   ],
+   [
+    "BOMEUSDT",
+    491831101
+   ],
+   [
+    "BOMEUSDT",
+    491831102
+   ],
+   [
+    "BOMEUSDT",
+    491874568
+   ],
+   [
+    "BOMEUSDT",
+    491874569
+   ],
+   [
+    "BOMEUSDT",
+    491949988
+   ],
+   [
+    "BROCCOLI714USDT",
+    81919914
+   ],
+   [
+    "BROCCOLI714USDT",
+    81935980
+   ],
+   [
+    "BROCCOLI714USDT",
+    81945499
+   ],
+   [
+    "BRUSDT",
+    123376360
+   ],
+   [
+    "BRUSDT",
+    123397020
+   ],
+   [
+    "BRUSDT",
+    123420187
+   ],
+   [
+    "BRUSDT",
+    123429422
+   ],
+   [
+    "BSBUSDT",
+    364146180
+   ],
+   [
+    "BSBUSDT",
+    364146192
+   ],
+   [
+    "BSBUSDT",
+    364155128
+   ],
+   [
+    "BSBUSDT",
+    364169034
+   ],
+   [
+    "BSBUSDT",
+    364204784
+   ],
+   [
+    "BTRUSDT",
+    147752366
+   ],
+   [
+    "BTRUSDT",
+    148872098
+   ],
+   [
+    "BTRUSDT",
+    150206479
+   ],
+   [
+    "BTRUSDT",
+    150846485
+   ],
+   [
+    "BTRUSDT",
+    151179439
+   ],
+   [
+    "CAKEUSDT",
+    317483905
+   ],
+   [
+    "CAKEUSDT",
+    317495021
+   ],
+   [
+    "CAKEUSDT",
+    317519905
+   ],
+   [
+    "CAKEUSDT",
+    317556216
+   ],
+   [
+    "CAKEUSDT",
+    317697674
+   ],
+   [
+    "CCUSDT",
+    67525762
+   ],
+   [
+    "CCUSDT",
+    67550901
+   ],
+   [
+    "CCUSDT",
+    67565821
+   ],
+   [
+    "CFGUSDT",
+    22620759
+   ],
+   [
+    "CFXUSDT",
+    482055693
+   ],
+   [
+    "CFXUSDT",
+    482060213
+   ],
+   [
+    "CFXUSDT",
+    482073090
+   ],
+   [
+    "CHILLGUYUSDT",
+    117295239
+   ],
+   [
+    "CHILLGUYUSDT",
+    117295240
+   ],
+   [
+    "CHILLGUYUSDT",
+    117295241
+   ],
+   [
+    "CHILLGUYUSDT",
+    117314921
+   ],
+   [
+    "CHILLGUYUSDT",
+    117347539
+   ],
+   [
+    "CHIPUSDT",
+    104074320
+   ],
+   [
+    "CHIPUSDT",
+    104128133
+   ],
+   [
+    "CHZUSDT",
+    731000241
+   ],
+   [
+    "CHZUSDT",
+    731015316
+   ],
+   [
+    "CLOUSDT",
+    183664910
+   ],
+   [
+    "CLOUSDT",
+    183664911
+   ],
+   [
+    "CLOUSDT",
+    183664914
+   ],
+   [
+    "CLOUSDT",
+    183711222
+   ],
+   [
+    "CLOUSDT",
+    183779661
+   ],
+   [
+    "CLOUSDT",
+    183813088
+   ],
+   [
+    "COLLECTUSDT",
+    61743769
+   ],
+   [
+    "COLLECTUSDT",
+    61866553
+   ],
+   [
+    "COLLECTUSDT",
+    61980951
+   ],
+   [
+    "COLLECTUSDT",
+    62031847
+   ],
+   [
+    "COLLECTUSDT",
+    62116438
+   ],
+   [
+    "COLLECTUSDT",
+    62209353
+   ],
+   [
+    "COMPUSDT",
+    457610383
+   ],
+   [
+    "COMPUSDT",
+    457615070
+   ],
+   [
+    "COMPUSDT",
+    457619092
+   ],
+   [
+    "COMPUSDT",
+    457624540
+   ],
+   [
+    "COTIUSDT",
+    422452801
+   ],
+   [
+    "COTIUSDT",
+    422525803
+   ],
+   [
+    "COTIUSDT",
+    422579062
+   ],
+   [
+    "COTIUSDT",
+    422634539
+   ],
+   [
+    "COTIUSDT",
+    422689938
+   ],
+   [
+    "CRVUSDT",
+    571158019
+   ],
+   [
+    "CRVUSDT",
+    571158020
+   ],
+   [
+    "CRVUSDT",
+    571188702
+   ],
+   [
+    "CRVUSDT",
+    571205752
+   ],
+   [
+    "CRVUSDT",
+    571226145
+   ],
+   [
+    "CRVUSDT",
+    571259480
+   ],
+   [
+    "CRVUSDT",
+    571296871
+   ],
+   [
+    "CVXUSDT",
+    20594490
+   ],
+   [
+    "CVXUSDT",
+    20598600
+   ],
+   [
+    "CVXUSDT",
+    20619386
+   ],
+   [
+    "CYSUSDT",
+    158841203
+   ],
+   [
+    "CYSUSDT",
+    158982708
+   ],
+   [
+    "CYSUSDT",
+    159264758
+   ],
+   [
+    "CYSUSDT",
+    159574713
+   ],
+   [
+    "CYSUSDT",
+    159574714
+   ],
+   [
+    "CYSUSDT",
+    159642101
+   ],
+   [
+    "DASHUSDT",
+    477309763
+   ],
+   [
+    "DEXEUSDT",
+    229341209
+   ],
+   [
+    "DEXEUSDT",
+    229416219
+   ],
+   [
+    "DEXEUSDT",
+    229530511
+   ],
+   [
+    "DEXEUSDT",
+    229589074
+   ],
+   [
+    "DEXEUSDT",
+    229617028
+   ],
+   [
+    "DODOXUSDT",
+    117419882
+   ],
+   [
+    "DODOXUSDT",
+    117441198
+   ],
+   [
+    "DOGEUSDT",
+    3447567647
+   ],
+   [
+    "DOGEUSDT",
+    3447649950
+   ],
+   [
+    "DOGEUSDT",
+    3447836080
+   ],
+   [
+    "DOGEUSDT",
+    3448150992
+   ],
+   [
+    "DOTUSDT",
+    1174696802
+   ],
+   [
+    "DOTUSDT",
+    1174729362
+   ],
+   [
+    "DOTUSDT",
+    1174763530
+   ],
+   [
+    "DOTUSDT",
+    1174804367
+   ],
+   [
+    "DOTUSDT",
+    1174804368
+   ],
+   [
+    "DUSKUSDT",
+    348555188
+   ],
+   [
+    "DUSKUSDT",
+    348574932
+   ],
+   [
+    "DUSKUSDT",
+    348587497
+   ],
+   [
+    "DYDXUSDT",
+    582603382
+   ],
+   [
+    "DYDXUSDT",
+    582609005
+   ],
+   [
+    "DYDXUSDT",
+    582613264
+   ],
+   [
+    "DYDXUSDT",
+    582613265
+   ],
+   [
+    "DYDXUSDT",
+    582622363
+   ],
+   [
+    "EDENUSDT",
+    166341631
+   ],
+   [
+    "EDENUSDT",
+    166383971
+   ],
+   [
+    "EDENUSDT",
+    166505400
+   ],
+   [
+    "EDENUSDT",
+    166539419
+   ],
+   [
+    "EDENUSDT",
+    166539420
+   ],
+   [
+    "EDGEUSDT",
+    80873693
+   ],
+   [
+    "EDGEUSDT",
+    80873694
+   ],
+   [
+    "EDGEUSDT",
+    80880934
+   ],
+   [
+    "EDGEUSDT",
+    80905217
+   ],
+   [
+    "EGLDUSDT",
+    386533454
+   ],
+   [
+    "EGLDUSDT",
+    386602633
+   ],
+   [
+    "EGLDUSDT",
+    386673327
+   ],
+   [
+    "EIGENUSDT",
+    362171995
+   ],
+   [
+    "EIGENUSDT",
+    362180222
+   ],
+   [
+    "EIGENUSDT",
+    362180223
+   ],
+   [
+    "EIGENUSDT",
+    362187395
+   ],
+   [
+    "EIGENUSDT",
+    362200615
+   ],
+   [
+    "ENAUSDT",
+    855980509
+   ],
+   [
+    "ENAUSDT",
+    857675785
+   ],
+   [
+    "ENJUSDT",
+    444601701
+   ],
+   [
+    "ENJUSDT",
+    444601702
+   ],
+   [
+    "ENJUSDT",
+    444601703
+   ],
+   [
+    "ENJUSDT",
+    444601704
+   ],
+   [
+    "ENJUSDT",
+    444601705
+   ],
+   [
+    "ENJUSDT",
+    444601708
+   ],
+   [
+    "ENJUSDT",
+    444601709
+   ],
+   [
+    "ENJUSDT",
+    444608490
+   ],
+   [
+    "ENJUSDT",
+    444612102
+   ],
+   [
+    "ENJUSDT",
+    444612104
+   ],
+   [
+    "ENJUSDT",
+    444612106
+   ],
+   [
+    "ENJUSDT",
+    444612109
+   ],
+   [
+    "ENJUSDT",
+    444621939
+   ],
+   [
+    "ENSUSDT",
+    616434047
+   ],
+   [
+    "ENSUSDT",
+    616434048
+   ],
+   [
+    "ENSUSDT",
+    616442105
+   ],
+   [
+    "ENSUSDT",
+    616457625
+   ],
+   [
+    "EPICUSDT",
+    158497248
+   ],
+   [
+    "EPICUSDT",
+    158508914
+   ],
+   [
+    "EPICUSDT",
+    158545690
+   ],
+   [
+    "ERAUSDT",
+    84718490
+   ],
+   [
+    "ERAUSDT",
+    84735324
+   ],
+   [
+    "ERAUSDT",
+    84931413
+   ],
+   [
+    "ERAUSDT",
+    84931414
+   ],
+   [
+    "ERAUSDT",
+    85051409
+   ],
+   [
+    "ESPORTSUSDT",
+    223344951
+   ],
+   [
+    "ESPORTSUSDT",
+    223406277
+   ],
+   [
+    "ESPORTSUSDT",
+    223496626
+   ],
+   [
+    "ESPORTSUSDT",
+    223506851
+   ],
+   [
+    "ESPUSDT",
+    89296142
+   ],
+   [
+    "ESPUSDT",
+    89296143
+   ],
+   [
+    "ESPUSDT",
+    89310845
+   ],
+   [
+    "ESPUSDT",
+    89350243
+   ],
+   [
+    "ESPUSDT",
+    89350254
+   ],
+   [
+    "ESPUSDT",
+    89384104
+   ],
+   [
+    "ESPUSDT",
+    89400352
+   ],
+   [
+    "ESPUSDT",
+    89400353
+   ],
+   [
+    "ESPUSDT",
+    89400355
+   ],
+   [
+    "ETCUSDT",
+    1207072636
+   ],
+   [
+    "ETHFIUSDT",
+    472135520
+   ],
+   [
+    "ETHFIUSDT",
+    472162182
+   ],
+   [
+    "ETHFIUSDT",
+    472207873
+   ],
+   [
+    "ETHFIUSDT",
+    472282651
+   ],
+   [
+    "EULUSDT",
+    88263300
+   ],
+   [
+    "EULUSDT",
+    88279239
+   ],
+   [
+    "EULUSDT",
+    88286695
+   ],
+   [
+    "EULUSDT",
+    88297773
+   ],
+   [
+    "EULUSDT",
+    88307673
+   ],
+   [
+    "EULUSDT",
+    88316312
+   ],
+   [
+    "EVAAUSDT",
+    252190400
+   ],
+   [
+    "EVAAUSDT",
+    252190401
+   ],
+   [
+    "EVAAUSDT",
+    252190407
+   ],
+   [
+    "EVAAUSDT",
+    252190408
+   ],
+   [
+    "EVAAUSDT",
+    252203887
+   ],
+   [
+    "EVAAUSDT",
+    252213612
+   ],
+   [
+    "EVAAUSDT",
+    252213632
+   ],
+   [
+    "FARTCOINUSDT",
+    677163335
+   ],
+   [
+    "FARTCOINUSDT",
+    677191814
+   ],
+   [
+    "FARTCOINUSDT",
+    677213662
+   ],
+   [
+    "FARTCOINUSDT",
+    677282943
+   ],
+   [
+    "FARTCOINUSDT",
+    677350863
+   ],
+   [
+    "FETUSDT",
+    689563916
+   ],
+   [
+    "FETUSDT",
+    689607343
+   ],
+   [
+    "FETUSDT",
+    689636986
+   ],
+   [
+    "FFUSDT",
+    160094612
+   ],
+   [
+    "FFUSDT",
+    160103422
+   ],
+   [
+    "FFUSDT",
+    160110629
+   ],
+   [
+    "FFUSDT",
+    160159691
+   ],
+   [
+    "FFUSDT",
+    160211141
+   ],
+   [
+    "FILUSDT",
+    989072098
+   ],
+   [
+    "FILUSDT",
+    989102557
+   ],
+   [
+    "FILUSDT",
+    989136857
+   ],
+   [
+    "FILUSDT",
+    989169181
+   ],
+   [
+    "FORMUSDT",
+    149199935
+   ],
+   [
+    "FORMUSDT",
+    149273167
+   ],
+   [
+    "GALAUSDT",
+    889200871
+   ],
+   [
+    "GALAUSDT",
+    889213413
+   ],
+   [
+    "GALAUSDT",
+    889228176
+   ],
+   [
+    "GALAUSDT",
+    889244001
+   ],
+   [
+    "GALAUSDT",
+    889261629
+   ],
+   [
+    "GASUSDT",
+    254318535
+   ],
+   [
+    "GASUSDT",
+    254318536
+   ],
+   [
+    "GASUSDT",
+    254318544
+   ],
+   [
+    "GASUSDT",
+    254318546
+   ],
+   [
+    "GASUSDT",
+    254327431
+   ],
+   [
+    "GIGGLEUSDT",
+    278212767
+   ],
+   [
+    "GIGGLEUSDT",
+    278540865
+   ],
+   [
+    "GMTUSDT",
+    901391020
+   ],
+   [
+    "GMTUSDT",
+    901391021
+   ],
+   [
+    "GMTUSDT",
+    901391053
+   ],
+   [
+    "GMTUSDT",
+    901396621
+   ],
+   [
+    "GMTUSDT",
+    901403482
+   ],
+   [
+    "GPSUSDT",
+    140530815
+   ],
+   [
+    "GPSUSDT",
+    140530819
+   ],
+   [
+    "GRASSUSDT",
+    175616773
+   ],
+   [
+    "GRASSUSDT",
+    175660355
+   ],
+   [
+    "GRTUSDT",
+    568227861
+   ],
+   [
+    "GWEIUSDT",
+    80889087
+   ],
+   [
+    "GWEIUSDT",
+    80918406
+   ],
+   [
+    "GWEIUSDT",
+    80918407
+   ],
+   [
+    "GWEIUSDT",
+    80931903
+   ],
+   [
+    "HBARUSDT",
+    785179230
+   ],
+   [
+    "HBARUSDT",
+    785225932
+   ],
+   [
+    "HBARUSDT",
+    785299058
+   ],
+   [
+    "HEIUSDT",
+    194466932
+   ],
+   [
+    "HEIUSDT",
+    194466933
+   ],
+   [
+    "HEIUSDT",
+    194596787
+   ],
+   [
+    "HEIUSDT",
+    194627527
+   ],
+   [
+    "HEMIUSDT",
+    191882570
+   ],
+   [
+    "HEMIUSDT",
+    191882571
+   ],
+   [
+    "HEMIUSDT",
+    191956556
+   ],
+   [
+    "HEMIUSDT",
+    192071623
+   ],
+   [
+    "HEMIUSDT",
+    192174230
+   ],
+   [
+    "HEMIUSDT",
+    192317864
+   ],
+   [
+    "HEMIUSDT",
+    192588017
+   ],
+   [
+    "HEMIUSDT",
+    192588018
+   ],
+   [
+    "HOLOUSDT",
+    96761144
+   ],
+   [
+    "HOLOUSDT",
+    96797303
+   ],
+   [
+    "HOMEUSDT",
+    183115827
+   ],
+   [
+    "HOMEUSDT",
+    183247816
+   ],
+   [
+    "HUMAUSDT",
+    213614889
+   ],
+   [
+    "HUMAUSDT",
+    213682903
+   ],
+   [
+    "HUMAUSDT",
+    213840586
+   ],
+   [
+    "HUMAUSDT",
+    213923064
+   ],
+   [
+    "HUSDT",
+    537977966
+   ],
+   [
+    "HUSDT",
+    537977967
+   ],
+   [
+    "HUSDT",
+    537986986
+   ],
+   [
+    "HUSDT",
+    537986988
+   ],
+   [
+    "HUSDT",
+    538036111
+   ],
+   [
+    "HYPEUSDT",
+    716778085
+   ],
+   [
+    "HYPEUSDT",
+    716941658
+   ],
+   [
+    "HYPEUSDT",
+    717627632
+   ],
+   [
+    "ICPUSDT",
+    416514623
+   ],
+   [
+    "IDUSDT",
+    303654299
+   ],
+   [
+    "IDUSDT",
+    303666842
+   ],
+   [
+    "IDUSDT",
+    303683992
+   ],
+   [
+    "IDUSDT",
+    303690401
+   ],
+   [
+    "IDUSDT",
+    303695248
+   ],
+   [
+    "IMXUSDT",
+    370039999
+   ],
+   [
+    "IMXUSDT",
+    370050751
+   ],
+   [
+    "IMXUSDT",
+    370057423
+   ],
+   [
+    "IMXUSDT",
+    370057424
+   ],
+   [
+    "IMXUSDT",
+    370060727
+   ],
+   [
+    "INJUSDT",
+    773779543
+   ],
+   [
+    "INXUSDT",
+    40227574
+   ],
+   [
+    "INXUSDT",
+    40227617
+   ],
+   [
+    "INXUSDT",
+    40227618
+   ],
+   [
+    "IOTAUSDT",
+    296049868
+   ],
+   [
+    "IOTAUSDT",
+    296086560
+   ],
+   [
+    "JASMYUSDT",
+    534078871
+   ],
+   [
+    "JASMYUSDT",
+    534085875
+   ],
+   [
+    "JASMYUSDT",
+    534085876
+   ],
+   [
+    "JASMYUSDT",
+    534101150
+   ],
+   [
+    "JASMYUSDT",
+    534123765
+   ],
+   [
+    "JSTUSDT",
+    35070565
+   ],
+   [
+    "JSTUSDT",
+    35087074
+   ],
+   [
+    "JSTUSDT",
+    35110740
+   ],
+   [
+    "JSTUSDT",
+    35123752
+   ],
+   [
+    "JTOUSDT",
+    536812952
+   ],
+   [
+    "JTOUSDT",
+    536831663
+   ],
+   [
+    "JTOUSDT",
+    536866164
+   ],
+   [
+    "JTOUSDT",
+    536888386
+   ],
+   [
+    "JTOUSDT",
+    536912233
+   ],
+   [
+    "JUPUSDT",
+    352691881
+   ],
+   [
+    "JUPUSDT",
+    352729944
+   ],
+   [
+    "KAIAUSDT",
+    53364865
+   ],
+   [
+    "KAIAUSDT",
+    53364866
+   ],
+   [
+    "KAIAUSDT",
+    53371404
+   ],
+   [
+    "KAIAUSDT",
+    53382333
+   ],
+   [
+    "KAITOUSDT",
+    409430499
+   ],
+   [
+    "KAITOUSDT",
+    409453090
+   ],
+   [
+    "KAITOUSDT",
+    409479765
+   ],
+   [
+    "KAITOUSDT",
+    409507937
+   ],
+   [
+    "KASUSDT",
+    175799830
+   ],
+   [
+    "KASUSDT",
+    175808330
+   ],
+   [
+    "KASUSDT",
+    175812883
+   ],
+   [
+    "KASUSDT",
+    175834774
+   ],
+   [
+    "KASUSDT",
+    175841139
+   ],
+   [
+    "KITEUSDT",
+    217416119
+   ],
+   [
+    "KITEUSDT",
+    217436949
+   ],
+   [
+    "KITEUSDT",
+    217436950
+   ],
+   [
+    "KITEUSDT",
+    217469247
+   ],
+   [
+    "KITEUSDT",
+    217492097
+   ],
+   [
+    "KITEUSDT",
+    217514950
+   ],
+   [
+    "KITEUSDT",
+    217552774
+   ],
+   [
+    "KMNOUSDT",
+    66622357
+   ],
+   [
+    "KMNOUSDT",
+    66622358
+   ],
+   [
+    "KMNOUSDT",
+    66622359
+   ],
+   [
+    "KMNOUSDT",
+    66622362
+   ],
+   [
+    "KMNOUSDT",
+    66622363
+   ],
+   [
+    "KMNOUSDT",
+    66627091
+   ],
+   [
+    "KMNOUSDT",
+    66633028
+   ],
+   [
+    "KMNOUSDT",
+    66638774
+   ],
+   [
+    "KMNOUSDT",
+    66638920
+   ],
+   [
+    "KMNOUSDT",
+    66642951
+   ],
+   [
+    "KMNOUSDT",
+    66648177
+   ],
+   [
+    "KMNOUSDT",
+    66648178
+   ],
+   [
+    "KOMAUSDT",
+    108487047
+   ],
+   [
+    "KOMAUSDT",
+    108542881
+   ],
+   [
+    "KOMAUSDT",
+    108563165
+   ],
+   [
+    "KOMAUSDT",
+    108604453
+   ],
+   [
+    "KOMAUSDT",
+    108620090
+   ],
+   [
+    "LABUSDT",
+    690013854
+   ],
+   [
+    "LABUSDT",
+    690013855
+   ],
+   [
+    "LABUSDT",
+    690229134
+   ],
+   [
+    "LABUSDT",
+    690563956
+   ],
+   [
+    "LABUSDT",
+    690689484
+   ],
+   [
+    "LAUSDT",
+    105104953
+   ],
+   [
+    "LAUSDT",
+    105104954
+   ],
+   [
+    "LAUSDT",
+    105115437
+   ],
+   [
+    "LAUSDT",
+    105132177
+   ],
+   [
+    "LAUSDT",
+    105202924
+   ],
+   [
+    "LDOUSDT",
+    663995484
+   ],
+   [
+    "LDOUSDT",
+    664015883
+   ],
+   [
+    "LDOUSDT",
+    664057656
+   ],
+   [
+    "LIGHTUSDT",
+    244786517
+   ],
+   [
+    "LIGHTUSDT",
+    244806217
+   ],
+   [
+    "LIGHTUSDT",
+    244888145
+   ],
+   [
+    "LITUSDT",
+    146047721
+   ],
+   [
+    "LITUSDT",
+    146047722
+   ],
+   [
+    "LITUSDT",
+    146047723
+   ],
+   [
+    "LITUSDT",
+    146170030
+   ],
+   [
+    "LITUSDT",
+    146292207
+   ],
+   [
+    "LITUSDT",
+    146580839
+   ],
+   [
+    "LITUSDT",
+    146580840
+   ],
+   [
+    "LSKUSDT",
+    111237219
+   ],
+   [
+    "LSKUSDT",
+    111247775
+   ],
+   [
+    "LSKUSDT",
+    111247790
+   ],
+   [
+    "LSKUSDT",
+    111260843
+   ],
+   [
+    "MAGMAUSDT",
+    124205183
+   ],
+   [
+    "MAGMAUSDT",
+    124205189
+   ],
+   [
+    "MAGMAUSDT",
+    125373670
+   ],
+   [
+    "MAGMAUSDT",
+    125373675
+   ],
+   [
+    "MANAUSDT",
+    620014036
+   ],
+   [
+    "MANTRAUSDT",
+    20525803
+   ],
+   [
+    "MANTRAUSDT",
+    20541794
+   ],
+   [
+    "MANTRAUSDT",
+    20585072
+   ],
+   [
+    "MANTRAUSDT",
+    20593772
+   ],
+   [
+    "MEGAUSDT",
+    41729270
+   ],
+   [
+    "MEGAUSDT",
+    41729271
+   ],
+   [
+    "MEGAUSDT",
+    41729272
+   ],
+   [
+    "MEGAUSDT",
+    41744757
+   ],
+   [
+    "MEMEUSDT",
+    375798342
+   ],
+   [
+    "MEMEUSDT",
+    375798343
+   ],
+   [
+    "MEMEUSDT",
+    375803229
+   ],
+   [
+    "MEMEUSDT",
+    375803230
+   ],
+   [
+    "MEMEUSDT",
+    375813188
+   ],
+   [
+    "MEMEUSDT",
+    375813189
+   ],
+   [
+    "MEMEUSDT",
+    375818787
+   ],
+   [
+    "MEMEUSDT",
+    375818788
+   ],
+   [
+    "MEMEUSDT",
+    375818789
+   ],
+   [
+    "MEMEUSDT",
+    375818790
+   ],
+   [
+    "MERLUSDT",
+    173089982
+   ],
+   [
+    "MERLUSDT",
+    173089983
+   ],
+   [
+    "MERLUSDT",
+    173089987
+   ],
+   [
+    "MERLUSDT",
+    173089988
+   ],
+   [
+    "MERLUSDT",
+    173089989
+   ],
+   [
+    "MERLUSDT",
+    173089990
+   ],
+   [
+    "MERLUSDT",
+    173090006
+   ],
+   [
+    "MERLUSDT",
+    173103093
+   ],
+   [
+    "MERLUSDT",
+    173103094
+   ],
+   [
+    "MERLUSDT",
+    173107467
+   ],
+   [
+    "MERLUSDT",
+    173107468
+   ],
+   [
+    "MERLUSDT",
+    173110457
+   ],
+   [
+    "METUSDT",
+    59670870
+   ],
+   [
+    "METUSDT",
+    59676817
+   ],
+   [
+    "METUSDT",
+    59682560
+   ],
+   [
+    "METUSDT",
+    59696325
+   ],
+   [
+    "METUSDT",
+    59705726
+   ],
+   [
+    "MEUSDT",
+    101626893
+   ],
+   [
+    "MEUSDT",
+    101626894
+   ],
+   [
+    "MEUSDT",
+    101637357
+   ],
+   [
+    "MEUSDT",
+    101646061
+   ],
+   [
+    "MEUSDT",
+    101658540
+   ],
+   [
+    "MINAUSDT",
+    231360669
+   ],
+   [
+    "MINAUSDT",
+    231360670
+   ],
+   [
+    "MINAUSDT",
+    231360671
+   ],
+   [
+    "MINAUSDT",
+    231360672
+   ],
+   [
+    "MINAUSDT",
+    231374721
+   ],
+   [
+    "MINAUSDT",
+    231409783
+   ],
+   [
+    "MINAUSDT",
+    231425272
+   ],
+   [
+    "MINAUSDT",
+    231432574
+   ],
+   [
+    "MMTUSDT",
+    158201992
+   ],
+   [
+    "MMTUSDT",
+    158212113
+   ],
+   [
+    "MMTUSDT",
+    158212114
+   ],
+   [
+    "MMTUSDT",
+    158220764
+   ],
+   [
+    "MMTUSDT",
+    158220766
+   ],
+   [
+    "MMTUSDT",
+    158228777
+   ],
+   [
+    "MONUSDT",
+    83053704
+   ],
+   [
+    "MOODENGUSDT",
+    460296965
+   ],
+   [
+    "MOODENGUSDT",
+    460301939
+   ],
+   [
+    "MOODENGUSDT",
+    460308260
+   ],
+   [
+    "MOODENGUSDT",
+    460321453
+   ],
+   [
+    "MOODENGUSDT",
+    460328547
+   ],
+   [
+    "MORPHOUSDT",
+    163373592
+   ],
+   [
+    "MORPHOUSDT",
+    163396357
+   ],
+   [
+    "MORPHOUSDT",
+    163426437
+   ],
+   [
+    "MORPHOUSDT",
+    163426438
+   ],
+   [
+    "MORPHOUSDT",
+    163449503
+   ],
+   [
+    "MORPHOUSDT",
+    163449504
+   ],
+   [
+    "MOVEUSDT",
+    205861270
+   ],
+   [
+    "MOVEUSDT",
+    205881756
+   ],
+   [
+    "MOVEUSDT",
+    205891704
+   ],
+   [
+    "MOVEUSDT",
+    205904835
+   ],
+   [
+    "MOVEUSDT",
+    205904836
+   ],
+   [
+    "MOVEUSDT",
+    205929268
+   ],
+   [
+    "MOVRUSDT",
+    152108529
+   ],
+   [
+    "MOVRUSDT",
+    152264747
+   ],
+   [
+    "MOVRUSDT",
+    152748260
+   ],
+   [
+    "MOVRUSDT",
+    152876590
+   ],
+   [
+    "MUBARAKUSDT",
+    137721489
+   ],
+   [
+    "MUBARAKUSDT",
+    137734850
+   ],
+   [
+    "MUBARAKUSDT",
+    137759688
+   ],
+   [
+    "MUBARAKUSDT",
+    137759754
+   ],
+   [
+    "MUBARAKUSDT",
+    137759760
+   ],
+   [
+    "MUBARAKUSDT",
+    137759761
+   ],
+   [
+    "MUBARAKUSDT",
+    137770784
+   ],
+   [
+    "NEARUSDT",
+    1042127840
+   ],
+   [
+    "NEARUSDT",
+    1042171327
+   ],
+   [
+    "NEARUSDT",
+    1042217862
+   ],
+   [
+    "NEARUSDT",
+    1042261579
+   ],
+   [
+    "NEARUSDT",
+    1042309796
+   ],
+   [
+    "NEOUSDT",
+    466730103
+   ],
+   [
+    "NEOUSDT",
+    466730105
+   ],
+   [
+    "NEOUSDT",
+    466730211
+   ],
+   [
+    "NEOUSDT",
+    466735984
+   ],
+   [
+    "NEOUSDT",
+    466753992
+   ],
+   [
+    "NILUSDT",
+    117696873
+   ],
+   [
+    "NILUSDT",
+    117912669
+   ],
+   [
+    "NILUSDT",
+    118092897
+   ],
+   [
+    "NILUSDT",
+    118092898
+   ],
+   [
+    "NILUSDT",
+    118266865
+   ],
+   [
+    "ONDOUSDT",
+    549543013
+   ],
+   [
+    "ONDOUSDT",
+    549572248
+   ],
+   [
+    "ONDOUSDT",
+    549635053
+   ],
+   [
+    "ONDOUSDT",
+    549728013
+   ],
+   [
+    "ONEUSDT",
+    331158976
+   ],
+   [
+    "ONEUSDT",
+    331168816
+   ],
+   [
+    "ONEUSDT",
+    331168852
+   ],
+   [
+    "ONEUSDT",
+    331194935
+   ],
+   [
+    "ONEUSDT",
+    331203089
+   ],
+   [
+    "ONEUSDT",
+    331203090
+   ],
+   [
+    "ONEUSDT",
+    331211710
+   ],
+   [
+    "ONGUSDT",
+    207098598
+   ],
+   [
+    "ONGUSDT",
+    207352751
+   ],
+   [
+    "ONGUSDT",
+    207481943
+   ],
+   [
+    "ONGUSDT",
+    207648798
+   ],
+   [
+    "ONTUSDT",
+    311551452
+   ],
+   [
+    "ONTUSDT",
+    311571850
+   ],
+   [
+    "ONTUSDT",
+    311589661
+   ],
+   [
+    "ONTUSDT",
+    311589676
+   ],
+   [
+    "ONUSDT",
+    100863248
+   ],
+   [
+    "ONUSDT",
+    100872185
+   ],
+   [
+    "ONUSDT",
+    100872194
+   ],
+   [
+    "ONUSDT",
+    100872195
+   ],
+   [
+    "ONUSDT",
+    100878962
+   ],
+   [
+    "ONUSDT",
+    100878963
+   ],
+   [
+    "ONUSDT",
+    100896357
+   ],
+   [
+    "ONUSDT",
+    100904157
+   ],
+   [
+    "ONUSDT",
+    100904158
+   ],
+   [
+    "OPGUSDT",
+    43950225
+   ],
+   [
+    "OPGUSDT",
+    43980116
+   ],
+   [
+    "OPGUSDT",
+    43988965
+   ],
+   [
+    "OPGUSDT",
+    43994675
+   ],
+   [
+    "OPUSDT",
+    953919040
+   ],
+   [
+    "OPUSDT",
+    953949106
+   ],
+   [
+    "OPUSDT",
+    953975034
+   ],
+   [
+    "OPUSDT",
+    954010271
+   ],
+   [
+    "OPUSDT",
+    954089022
+   ],
+   [
+    "ORCAUSDT",
+    114133956
+   ],
+   [
+    "ORDIUSDT",
+    1018600643
+   ],
+   [
+    "ORDIUSDT",
+    1018625402
+   ],
+   [
+    "ORDIUSDT",
+    1018644277
+   ],
+   [
+    "PARTIUSDT",
+    158754334
+   ],
+   [
+    "PARTIUSDT",
+    158762757
+   ],
+   [
+    "PARTIUSDT",
+    158768117
+   ],
+   [
+    "PARTIUSDT",
+    158780057
+   ],
+   [
+    "PAXGUSDT",
+    129561737
+   ],
+   [
+    "PAXGUSDT",
+    129580480
+   ],
+   [
+    "PENGUUSDT",
+    595059520
+   ],
+   [
+    "PENGUUSDT",
+    595282035
+   ],
+   [
+    "PEOPLEUSDT",
+    731374569
+   ],
+   [
+    "PEOPLEUSDT",
+    731392677
+   ],
+   [
+    "PEOPLEUSDT",
+    731405369
+   ],
+   [
+    "PEOPLEUSDT",
+    731465471
+   ],
+   [
+    "PIEVERSEUSDT",
+    208599992
+   ],
+   [
+    "PIEVERSEUSDT",
+    208619805
+   ],
+   [
+    "PIEVERSEUSDT",
+    208632932
+   ],
+   [
+    "PIEVERSEUSDT",
+    208685043
+   ],
+   [
+    "PIEVERSEUSDT",
+    208685044
+   ],
+   [
+    "PIPPINUSDT",
+    763632034
+   ],
+   [
+    "PIPPINUSDT",
+    763637339
+   ],
+   [
+    "PIPPINUSDT",
+    763641107
+   ],
+   [
+    "PLUMEUSDT",
+    74622069
+   ],
+   [
+    "PLUMEUSDT",
+    74627364
+   ],
+   [
+    "PLUMEUSDT",
+    74635513
+   ],
+   [
+    "PLUMEUSDT",
+    74665642
+   ],
+   [
+    "PNUTUSDT",
+    660365273
+   ],
+   [
+    "PNUTUSDT",
+    660400209
+   ],
+   [
+    "POLUSDT",
+    218790853
+   ],
+   [
+    "POLUSDT",
+    218822241
+   ],
+   [
+    "POLUSDT",
+    218880075
+   ],
+   [
+    "POLUSDT",
+    218967041
+   ],
+   [
+    "POPCATUSDT",
+    277716019
+   ],
+   [
+    "POPCATUSDT",
+    277721632
+   ],
+   [
+    "POPCATUSDT",
+    277735059
+   ],
+   [
+    "POPCATUSDT",
+    277747645
+   ],
+   [
+    "PORTALUSDT",
+    163494012
+   ],
+   [
+    "PORTALUSDT",
+    163501578
+   ],
+   [
+    "PORTALUSDT",
+    163501717
+   ],
+   [
+    "PORTALUSDT",
+    163552920
+   ],
+   [
+    "PTBUSDT",
+    124319562
+   ],
+   [
+    "PTBUSDT",
+    124349491
+   ],
+   [
+    "PTBUSDT",
+    124395936
+   ],
+   [
+    "PUMPUSDT",
+    277193929
+   ],
+   [
+    "PUMPUSDT",
+    277393126
+   ],
+   [
+    "PUMPUSDT",
+    277518425
+   ],
+   [
+    "PUMPUSDT",
+    277611020
+   ],
+   [
+    "PUMPUSDT",
+    277953098
+   ],
+   [
+    "PYTHUSDT",
+    323702447
+   ],
+   [
+    "PYTHUSDT",
+    323726541
+   ],
+   [
+    "PYTHUSDT",
+    323820388
+   ],
+   [
+    "QNTUSDT",
+    159787200
+   ],
+   [
+    "RAVEUSDT",
+    497254614
+   ],
+   [
+    "RAVEUSDT",
+    497259778
+   ],
+   [
+    "RENDERUSDT",
+    183224544
+   ],
+   [
+    "RENDERUSDT",
+    183261218
+   ],
+   [
+    "RIFUSDT",
+    165049727
+   ],
+   [
+    "RIFUSDT",
+    165064718
+   ],
+   [
+    "RIFUSDT",
+    165064719
+   ],
+   [
+    "RIFUSDT",
+    165089995
+   ],
+   [
+    "RIVERUSDT",
+    783247534
+   ],
+   [
+    "RIVERUSDT",
+    783277834
+   ],
+   [
+    "RIVERUSDT",
+    783324134
+   ],
+   [
+    "RIVERUSDT",
+    783363124
+   ],
+   [
+    "RIVERUSDT",
+    783363125
+   ],
+   [
+    "ROBOUSDT",
+    48935858
+   ],
+   [
+    "ROBOUSDT",
+    48965481
+   ],
+   [
+    "RUNEUSDT",
+    566065831
+   ],
+   [
+    "RUNEUSDT",
+    566065832
+   ],
+   [
+    "RUNEUSDT",
+    566086357
+   ],
+   [
+    "RUNEUSDT",
+    566097868
+   ],
+   [
+    "RUNEUSDT",
+    566122608
+   ],
+   [
+    "RVNUSDT",
+    246606216
+   ],
+   [
+    "RVNUSDT",
+    246606224
+   ],
+   [
+    "RVNUSDT",
+    246606248
+   ],
+   [
+    "RVNUSDT",
+    246606256
+   ],
+   [
+    "RVNUSDT",
+    246606273
+   ],
+   [
+    "RVNUSDT",
+    246606304
+   ],
+   [
+    "RVNUSDT",
+    246606481
+   ],
+   [
+    "SAGAUSDT",
+    310504250
+   ],
+   [
+    "SAGAUSDT",
+    310536124
+   ],
+   [
+    "SAGAUSDT",
+    310548401
+   ],
+   [
+    "SAHARAUSDT",
+    147111792
+   ],
+   [
+    "SAHARAUSDT",
+    147118178
+   ],
+   [
+    "SAHARAUSDT",
+    147144513
+   ],
+   [
+    "SAHARAUSDT",
+    147144514
+   ],
+   [
+    "SAHARAUSDT",
+    147150719
+   ],
+   [
+    "SANDUSDT",
+    996414933
+   ],
+   [
+    "SANDUSDT",
+    996445758
+   ],
+   [
+    "SANDUSDT",
+    996468365
+   ],
+   [
+    "SANDUSDT",
+    996483748
+   ],
+   [
+    "SANDUSDT",
+    996499980
+   ],
+   [
+    "SEIUSDT",
+    460261205
+   ],
+   [
+    "SEIUSDT",
+    460271503
+   ],
+   [
+    "SEIUSDT",
+    460280275
+   ],
+   [
+    "SEIUSDT",
+    460333659
+   ],
+   [
+    "SIRENUSDT",
+    553993552
+   ],
+   [
+    "SIRENUSDT",
+    554001528
+   ],
+   [
+    "SIRENUSDT",
+    554012679
+   ],
+   [
+    "SIRENUSDT",
+    554022291
+   ],
+   [
+    "SKRUSDT",
+    57326198
+   ],
+   [
+    "SKRUSDT",
+    57571309
+   ],
+   [
+    "SKRUSDT",
+    58049963
+   ],
+   [
+    "SKRUSDT",
+    59813606
+   ],
+   [
+    "SKRUSDT",
+    61176617
+   ],
+   [
+    "SKYUSDT",
+    47958161
+   ],
+   [
+    "SKYUSDT",
+    47958162
+   ],
+   [
+    "SKYUSDT",
+    47963925
+   ],
+   [
+    "SNXUSDT",
+    394643478
+   ],
+   [
+    "SNXUSDT",
+    394647706
+   ],
+   [
+    "SNXUSDT",
+    394652282
+   ],
+   [
+    "SNXUSDT",
+    394652283
+   ],
+   [
+    "SOLUSDT",
+    3493622981
+   ],
+   [
+    "SOLUSDT",
+    3493785804
+   ],
+   [
+    "SOLUSDT",
+    3493929719
+   ],
+   [
+    "SOLUSDT",
+    3494127615
+   ],
+   [
+    "SOLUSDT",
+    3494945169
+   ],
+   [
+    "SPKUSDT",
+    157393387
+   ],
+   [
+    "SPKUSDT",
+    157400467
+   ],
+   [
+    "SPKUSDT",
+    157413081
+   ],
+   [
+    "SPXUSDT",
+    217782188
+   ],
+   [
+    "SPXUSDT",
+    217897886
+   ],
+   [
+    "SQDUSDT",
+    101065236
+   ],
+   [
+    "SQDUSDT",
+    101075916
+   ],
+   [
+    "STABLEUSDT",
+    103096462
+   ],
+   [
+    "STABLEUSDT",
+    103106781
+   ],
+   [
+    "STABLEUSDT",
+    103110499
+   ],
+   [
+    "STABLEUSDT",
+    103112986
+   ],
+   [
+    "STABLEUSDT",
+    103117663
+   ],
+   [
+    "STARUSDT",
+    15492296
+   ],
+   [
+    "STARUSDT",
+    15527918
+   ],
+   [
+    "STGUSDT",
+    232771570
+   ],
+   [
+    "STGUSDT",
+    232777322
+   ],
+   [
+    "STGUSDT",
+    232781799
+   ],
+   [
+    "STXUSDT",
+    476052862
+   ],
+   [
+    "STXUSDT",
+    476107718
+   ],
+   [
+    "STXUSDT",
+    476134143
+   ],
+   [
+    "STXUSDT",
+    476168245
+   ],
+   [
+    "STXUSDT",
+    476190969
+   ],
+   [
+    "SUIUSDT",
+    1550084834
+   ],
+   [
+    "SUIUSDT",
+    1550453366
+   ],
+   [
+    "SUIUSDT",
+    1550623860
+   ],
+   [
+    "SUIUSDT",
+    1550623861
+   ],
+   [
+    "SUSDT",
+    124881591
+   ],
+   [
+    "SUSDT",
+    124881592
+   ],
+   [
+    "SUSDT",
+    124881593
+   ],
+   [
+    "SUSDT",
+    124881599
+   ],
+   [
+    "SUSDT",
+    124887566
+   ],
+   [
+    "SUSDT",
+    124900849
+   ],
+   [
+    "SUSHIUSDT",
+    594810425
+   ],
+   [
+    "SUSHIUSDT",
+    594819049
+   ],
+   [
+    "SUSHIUSDT",
+    594830563
+   ],
+   [
+    "SUSHIUSDT",
+    594853148
+   ],
+   [
+    "SXTUSDT",
+    73655717
+   ],
+   [
+    "SXTUSDT",
+    73688756
+   ],
+   [
+    "SXTUSDT",
+    73712413
+   ],
+   [
+    "SYNUSDT",
+    175436422
+   ],
+   [
+    "SYNUSDT",
+    175436424
+   ],
+   [
+    "SYNUSDT",
+    175436425
+   ],
+   [
+    "SYNUSDT",
+    175444934
+   ],
+   [
+    "SYNUSDT",
+    175451606
+   ],
+   [
+    "SYNUSDT",
+    175477780
+   ],
+   [
+    "SYRUPUSDT",
+    198515741
+   ],
+   [
+    "SYRUPUSDT",
+    198515743
+   ],
+   [
+    "SYRUPUSDT",
+    198515744
+   ],
+   [
+    "SYRUPUSDT",
+    198521961
+   ],
+   [
+    "SYRUPUSDT",
+    198526040
+   ],
+   [
+    "SYRUPUSDT",
+    198532035
+   ],
+   [
+    "SYRUPUSDT",
+    198544579
+   ],
+   [
+    "SYRUPUSDT",
+    198552292
+   ],
+   [
+    "TACUSDT",
+    114557431
+   ],
+   [
+    "TACUSDT",
+    114557440
+   ],
+   [
+    "TACUSDT",
+    114557443
+   ],
+   [
+    "TACUSDT",
+    114631261
+   ],
+   [
+    "TACUSDT",
+    114679841
+   ],
+   [
+    "TACUSDT",
+    114705397
+   ],
+   [
+    "TAOUSDT",
+    771392372
+   ],
+   [
+    "TIAUSDT",
+    842149661
+   ],
+   [
+    "TIAUSDT",
+    842165268
+   ],
+   [
+    "TIAUSDT",
+    842182211
+   ],
+   [
+    "TIAUSDT",
+    842207129
+   ],
+   [
+    "TIAUSDT",
+    842230386
+   ],
+   [
+    "TIAUSDT",
+    842253866
+   ],
+   [
+    "TIAUSDT",
+    842253867
+   ],
+   [
+    "TIAUSDT",
+    842253868
+   ],
+   [
+    "TLMUSDT",
+    145198256
+   ],
+   [
+    "TLMUSDT",
+    145203393
+   ],
+   [
+    "TLMUSDT",
+    145207434
+   ],
+   [
+    "TLMUSDT",
+    145216405
+   ],
+   [
+    "TRBUSDT",
+    1020944767
+   ],
+   [
+    "TRBUSDT",
+    1020951473
+   ],
+   [
+    "TRBUSDT",
+    1020960062
+   ],
+   [
+    "TRBUSDT",
+    1020969884
+   ],
+   [
+    "TRBUSDT",
+    1020982649
+   ],
+   [
+    "TRBUSDT",
+    1020992432
+   ],
+   [
+    "TRIAUSDT",
+    58802915
+   ],
+   [
+    "TRIAUSDT",
+    58802916
+   ],
+   [
+    "TRIAUSDT",
+    58802917
+   ],
+   [
+    "TRIAUSDT",
+    58802918
+   ],
+   [
+    "TRIAUSDT",
+    58802919
+   ],
+   [
+    "TRIAUSDT",
+    58802920
+   ],
+   [
+    "TRIAUSDT",
+    58882204
+   ],
+   [
+    "TRUMPUSDT",
+    720956634
+   ],
+   [
+    "TRUMPUSDT",
+    721072514
+   ],
+   [
+    "TRUMPUSDT",
+    721257881
+   ],
+   [
+    "TRUMPUSDT",
+    721549377
+   ],
+   [
+    "TRXUSDT",
+    704289243
+   ],
+   [
+    "TRXUSDT",
+    704312757
+   ],
+   [
+    "TRXUSDT",
+    704312762
+   ],
+   [
+    "TRXUSDT",
+    704336532
+   ],
+   [
+    "TRXUSDT",
+    704360957
+   ],
+   [
+    "TSTUSDT",
+    148116627
+   ],
+   [
+    "TSTUSDT",
+    148116628
+   ],
+   [
+    "TSTUSDT",
+    148129626
+   ],
+   [
+    "TSTUSDT",
+    148160933
+   ],
+   [
+    "TSTUSDT",
+    148182675
+   ],
+   [
+    "TURBOUSDT",
+    521593812
+   ],
+   [
+    "TURBOUSDT",
+    521615642
+   ],
+   [
+    "TURBOUSDT",
+    521696581
+   ],
+   [
+    "TUTUSDT",
+    245323401
+   ],
+   [
+    "TUTUSDT",
+    245469098
+   ],
+   [
+    "TUTUSDT",
+    245654061
+   ],
+   [
+    "TUTUSDT",
+    245974623
+   ],
+   [
+    "TUTUSDT",
+    246074631
+   ],
+   [
+    "TUTUSDT",
+    246074632
+   ],
+   [
+    "TWTUSDT",
+    113825498
+   ],
+   [
+    "TWTUSDT",
+    113838840
+   ],
+   [
+    "TWTUSDT",
+    113838845
+   ],
+   [
+    "TWTUSDT",
+    113858770
+   ],
+   [
+    "UAIUSDT",
+    132681085
+   ],
+   [
+    "UAIUSDT",
+    132703680
+   ],
+   [
+    "UAIUSDT",
+    132874515
+   ],
+   [
+    "UAIUSDT",
+    132980299
+   ],
+   [
+    "UAIUSDT",
+    133167902
+   ],
+   [
+    "UAIUSDT",
+    133167903
+   ],
+   [
+    "UAIUSDT",
+    133167904
+   ],
+   [
+    "UBUSDT",
+    303098858
+   ],
+   [
+    "UBUSDT",
+    303125807
+   ],
+   [
+    "UNIUSDT",
+    868931445
+   ],
+   [
+    "USELESSUSDT",
+    99592320
+   ],
+   [
+    "USELESSUSDT",
+    99606423
+   ],
+   [
+    "USELESSUSDT",
+    99617878
+   ],
+   [
+    "VETUSDT",
+    568560858
+   ],
+   [
+    "VETUSDT",
+    568560859
+   ],
+   [
+    "VETUSDT",
+    568560860
+   ],
+   [
+    "VETUSDT",
+    568709808
+   ],
+   [
+    "VIRTUALUSDT",
+    452258658
+   ],
+   [
+    "VIRTUALUSDT",
+    452276446
+   ],
+   [
+    "VVVUSDT",
+    226810257
+   ],
+   [
+    "VVVUSDT",
+    226895177
+   ],
+   [
+    "VVVUSDT",
+    226895178
+   ],
+   [
+    "VVVUSDT",
+    226928963
+   ],
+   [
+    "VVVUSDT",
+    226991251
+   ],
+   [
+    "VVVUSDT",
+    226991252
+   ],
+   [
+    "VVVUSDT",
+    226991253
+   ],
+   [
+    "VVVUSDT",
+    226991254
+   ],
+   [
+    "WALUSDT",
+    70113868
+   ],
+   [
+    "WALUSDT",
+    70124806
+   ],
+   [
+    "WALUSDT",
+    70130097
+   ],
+   [
+    "WALUSDT",
+    70141101
+   ],
+   [
+    "WIFUSDT",
+    1245748764
+   ],
+   [
+    "WIFUSDT",
+    1245748769
+   ],
+   [
+    "WIFUSDT",
+    1245748770
+   ],
+   [
+    "WIFUSDT",
+    1245779865
+   ],
+   [
+    "WIFUSDT",
+    1245797880
+   ],
+   [
+    "WIFUSDT",
+    1245864217
+   ],
+   [
+    "WLDUSDT",
+    1337810096
+   ],
+   [
+    "WUSDT",
+    248441396
+   ],
+   [
+    "WUSDT",
+    248447288
+   ],
+   [
+    "WUSDT",
+    248452889
+   ],
+   [
+    "WUSDT",
+    248463202
+   ],
+   [
+    "WUSDT",
+    248484444
+   ],
+   [
+    "XANUSDT",
+    88987125
+   ],
+   [
+    "XANUSDT",
+    89016792
+   ],
+   [
+    "XANUSDT",
+    89042940
+   ],
+   [
+    "XANUSDT",
+    89082724
+   ],
+   [
+    "XANUSDT",
+    89109204
+   ],
+   [
+    "XANUSDT",
+    89109229
+   ],
+   [
+    "XANUSDT",
+    89109230
+   ],
+   [
+    "XANUSDT",
+    89109231
+   ],
+   [
+    "XANUSDT",
+    89121042
+   ],
+   [
+    "XAUTUSDT",
+    19789944
+   ],
+   [
+    "XAUTUSDT",
+    19796543
+   ],
+   [
+    "XAUTUSDT",
+    19840619
+   ],
+   [
+    "XLMUSDT",
+    1012238259
+   ],
+   [
+    "XLMUSDT",
+    1012365062
+   ],
+   [
+    "XMRUSDT",
+    543033798
+   ],
+   [
+    "XMRUSDT",
+    543195478
+   ],
+   [
+    "XMRUSDT",
+    543587484
+   ],
+   [
+    "XMRUSDT",
+    543759699
+   ],
+   [
+    "XPINUSDT",
+    125959624
+   ],
+   [
+    "XPINUSDT",
+    125962431
+   ],
+   [
+    "XPINUSDT",
+    125965715
+   ],
+   [
+    "XPINUSDT",
+    125970724
+   ],
+   [
+    "XPINUSDT",
+    125976146
+   ],
+   [
+    "XPINUSDT",
+    125976147
+   ],
+   [
+    "XPINUSDT",
+    125988303
+   ],
+   [
+    "XPLUSDT",
+    299757293
+   ],
+   [
+    "XPLUSDT",
+    299878307
+   ],
+   [
+    "XRPUSDT",
+    3262588882
+   ],
+   [
+    "XTZUSDT",
+    355081435
+   ],
+   [
+    "XTZUSDT",
+    355081436
+   ],
+   [
+    "XTZUSDT",
+    355081437
+   ],
+   [
+    "YBUSDT",
+    64833660
+   ],
+   [
+    "YBUSDT",
+    64845738
+   ],
+   [
+    "YBUSDT",
+    64845739
+   ],
+   [
+    "ZAMAUSDT",
+    55170942
+   ],
+   [
+    "ZAMAUSDT",
+    55170943
+   ],
+   [
+    "ZAMAUSDT",
+    55170944
+   ],
+   [
+    "ZAMAUSDT",
+    55170945
+   ],
+   [
+    "ZAMAUSDT",
+    55182009
+   ],
+   [
+    "ZAMAUSDT",
+    55195688
+   ],
+   [
+    "ZAMAUSDT",
+    55195689
+   ],
+   [
+    "ZAMAUSDT",
+    55225763
+   ],
+   [
+    "ZBTUSDT",
+    144374729
+   ],
+   [
+    "ZBTUSDT",
+    144374730
+   ],
+   [
+    "ZBTUSDT",
+    144470516
+   ],
+   [
+    "ZBTUSDT",
+    144511700
+   ],
+   [
+    "ZBTUSDT",
+    144526479
+   ],
+   [
+    "ZECUSDT",
+    1406981377
+   ],
+   [
+    "ZECUSDT",
+    1407815844
+   ],
+   [
+    "ZENUSDT",
+    505423937
+   ],
+   [
+    "ZENUSDT",
+    505482511
+   ],
+   [
+    "ZENUSDT",
+    505536861
+   ],
+   [
+    "ZILUSDT",
+    407208274
+   ],
+   [
+    "ZILUSDT",
+    407208275
+   ],
+   [
+    "ZILUSDT",
+    407208276
+   ],
+   [
+    "ZILUSDT",
+    407208277
+   ],
+   [
+    "ZILUSDT",
+    407208279
+   ],
+   [
+    "ZILUSDT",
+    407208280
+   ],
+   [
+    "ZILUSDT",
+    407208281
+   ],
+   [
+    "ZKPUSDT",
+    96544705
+   ],
+   [
+    "ZKPUSDT",
+    97079036
+   ],
+   [
+    "ZKPUSDT",
+    97778241
+   ],
+   [
+    "ZKPUSDT",
+    97972681
+   ],
+   [
+    "ZKPUSDT",
+    98067671
+   ],
+   [
+    "ZKUSDT",
+    215867606
+   ],
+   [
+    "ZKUSDT",
+    216221822
+   ],
+   [
+    "ZKUSDT",
+    216319051
+   ],
+   [
+    "ZKUSDT",
+    216402081
+   ],
+   [
+    "ZORAUSDT",
+    139383994
+   ],
+   [
+    "ZORAUSDT",
+    139383995
+   ],
+   [
+    "ZORAUSDT",
+    139398073
+   ],
+   [
+    "ZORAUSDT",
+    139398074
+   ],
+   [
+    "ZORAUSDT",
+    139558247
+   ],
+   [
+    "ZORAUSDT",
+    139630265
+   ],
+   [
+    "ZORAUSDT",
+    139687275
+   ],
+   [
+    "ZROUSDT",
+    404988785
+   ],
+   [
+    "ZROUSDT",
+    405038415
+   ],
+   [
+    "ZROUSDT",
+    405104305
+   ],
+   [
+    "ZROUSDT",
+    405228477
+   ],
+   [
+    "ZROUSDT",
+    405228478
+   ]
+  ],
+  "covers_population": true,
+  "disjoint": true,
+  "no_repeat_within_side": true,
+  "rule": "gap (A, t_d) \u222a window [t_d, t_end] is a partition of the corrected fills \u2014 R13-P2 (2); R15-M2: the day owns (d0, d0+86400] (00<t<=24), a midnight fill is the prev day's, and a this-day fill outside every priced interval blocks closure"
+ },
+ "day_actual_full_day": {
+  "windows_pnl_usdt": -192.0262048779608,
+  "gaps_pnl_usdt": -47.23514176401014,
+  "priced_period_pnl_usdt": -239.26134664197093,
+  "priced_period_pnl_usdt_with_fill_prices": -242.86923061052696,
+  "fill_price_correction_usdt": -3.6078839685560378,
+  "n_censored_names": 105,
+  "n_readback_residual_over_1usdt": 0,
+  "n_price_chain_joins_over_1pct": 10,
+  "n_windows_readback_unmeasured": 0,
+  "readback_residual_states": {
+   "CHECKED": 6
+  },
+  "n_unknown_start_qty_in_gaps": 48,
+  "no_nonfinite_in_published_figures": true,
+  "n_nonfinite_next_readback": 0,
+  "n_day_fills_outside_every_priced_interval": 0,
+  "n_adjacent_prev_day_fills": 709,
+  "n_adjacent_next_day_fills": 778,
+  "closure_conditions": {
+   "six_windows_priced": true,
+   "six_gaps_priced": false,
+   "no_censored_names": false,
+   "readback_residual_measured": true,
+   "no_readback_residual_over_1usdt": true,
+   "no_price_chain_join_over_1pct": false,
+   "fills_partitioned": true,
+   "fill_population_covered": true,
+   "no_unknown_start_qty_in_gaps": false,
+   "no_nonfinite_in_published_figures": true,
+   "readback_next_finite": true,
+   "no_current_day_fill_outside_priced_intervals": true,
+   "coverage_full_day": false
+  },
+  "closed": false,
+  "label": "\u7814\u7a76\u53e3\u5f84\u7684\u4ef7\u683c\u4f30\u8ba1, \u8986\u76d6\u3010\u5df2\u5b9a\u4ef7\u7684\u65f6\u6bb5\u4e0e\u6210\u5458\u3011; \u4e0d\u662f\u5f53\u65e5\u73b0\u91d1\u8d26 \u2014\u2014 closure_conditions \u9010\u6761\u8bf4\u660e\u7f3a\u4ec0\u4e48",
+  "note": "R13-P2 (5): v4 called this `complete` on 6 windows + 6 gaps alone. It is now `closed` only when every condition above holds; the figure itself is a research price estimate over the priced periods and members, never a certified day P&L"
+ },
+ "day_long_short_windows": {
+  "pnl_long_usdt": -1077.9432299332616,
+  "pnl_short_usdt": 885.9170250553005
+ },
+ "n_anchors_ok": 6,
+ "n_anchors_total": 6,
+ "day_totals_over_ok_anchors_usdt": {
+  "L0_producer": -165.95874197421983,
+  "L1_executor_target": -192.46407261076035,
+  "L2_request_intent": -194.2496884912113,
+  "L2_cut_at_flatten": -194.24968849121132,
+  "L3_actual_path": -192.0262048779608
+ },
+ "day_censored_notional_by_layer": {
+  "L0_producer": 7157.261385250855,
+  "L1_executor_target": 0.0,
+  "L2_request_intent": 0.0,
+  "L2_cut_at_flatten": 0.0,
+  "L3_actual_path": 0.0
+ },
+ "day_fees_in_windows": {
+  "BNB": 0.005091879999999999
+ },
+ "day_diffs_by_window_class": {
+  "NORMAL": {
+   "n_windows": 6,
+   "L3_minus_L2": 2.223483613250516,
+   "L3_minus_L2cut_execution": 2.2234836132505436,
+   "L2cut_minus_L2_flatten_footprint": -2.6645352591003757e-14,
+   "L1_minus_L0": -26.505330636540506,
+   "L3_minus_L2cut_execution_with_fill_prices": -1.3844003553055009,
+   "fill_price_correction": -3.6078839685560378
+  }
+ },
+ "day_fill_price_correction_in_windows_usdt": -3.6078839685560378,
+ "day_totals_with_fill_prices_usdt": {
+  "L3_actual_path": -195.63408884651682
+ },
+ "day_diffs_over_ok_anchors": {
+  "L3_minus_L2_timing_and_fills": 2.223483613250494,
+  "L3_minus_L2cut_execution": 2.2234836132505222,
+  "L2cut_minus_L2_flatten_footprint": -2.842170943040401e-14,
+  "L2_minus_L1_skips": -1.7856158804509334,
+  "L1_minus_L0_book_layer": -26.50533063654052,
+  "L3_minus_L0_total": -26.06746290374096,
+  "L3_minus_L2cut_execution_with_fill_prices": -1.3844003553055018
+ },
+ "boundary": "price P&L only at 5-minute resolution; no funding; fees separate; the boundary figure values fills at their boundary mark and the *_with_fill_prices figure applies the RECORDED fill prices (both are printed, neither replaces the other); intent contracts at mid_at_anchor; a day total covers only the anchors with status OK (n_anchors_ok/6) and only names that are not CENSORED; the intent layers cover the DECISION WINDOWS only (21.5 h) while the actual layer additionally carries the six [anchor, decision] gaps \u2014 day_coverage says exactly how much of the 86,400 s is priced. THIS IS NOT A CERTIFIED EXECUTION-CONTRIBUTION FIGURE: unrecorded fills, endpoint marks, funding and treating a flatten READBACK as the event time all remain open"
+}
