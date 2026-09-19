@@ -20,18 +20,7 @@ usage: fetch_trades.py trades <SYMBOL> <startMs> <endMs> <out.json>
 
 The `income` mode is refused here; use fetch_income_paged.py.
 This is a one-round evidence tool, not a certified long-running ledger synchroniser: the 0.35 s single-process throttle
-says nothing about multi-process rate limits or 429 handling.
-
-★ v3 (2026-09-19, independent review round 5 R5-08): PER-ROW PAGE EVIDENCE. v2's page receipt carried only a count `n`,
-  so a reader could not tell "the page returned 2 rows and both were outside the window" from "the page returned 2 rows
-  and they vanished before the body was written" — the validator accepted a receipt claiming 2 rows over an empty body.
-  Every page record now also carries
-     returned    [id, time] of EVERY row the venue returned, in response order (kept or dropped)
-     n_kept      how many rows this page added to the body
-     past_window whether a row of this page lay beyond the window's right edge (the fetcher's stop signal)
-  so the page -> body mapping can be REPLAYED under this fetcher's own rules (window filter, id de-duplication, fromId
-  cursor = max(id)+1, stop on a short / empty / past-window page) instead of trusted. This is bookkeeping only: the
-  requests sent, their order and the stop rules are byte-for-byte those of v2 (archive/fetch_trades_v2_7ad96418.py)."""
+says nothing about multi-process rate limits or 429 handling."""
 import hashlib, hmac, json, os, sys, time, urllib.parse, urllib.request
 
 LIMIT = 1000
@@ -73,21 +62,14 @@ def get(path, params):
         return e.code, b, dict(e.headers)
 
 
-def page_evidence(body, n_kept, past):
-    """★ v3 (R5-08): the per-row evidence of ONE page — [id, time] of every row the venue returned, in response order,
-    kept or not — plus what this page added and whether it ran past the window. Raw values, no conversion, so recording
-    the evidence can never raise where v2 did not."""
-    return {"returned": [[r.get("id"), r.get("time")] for r in body], "n_kept": n_kept, "past_window": past}
-
-
 def fetch_trades(sym, s, e):
     """every userTrade with s <= time <= e, paged by trade id. Returns (pages, rows, completeness, reason)."""
     pages, rows, seen_ids = [], [], set()
     status, why = "COMPLETE", None
 
     def take(body):
-        """keep the in-window rows; report whether this page ran past the window's right edge, and how many it kept"""
-        past = False; n0 = len(rows)
+        """keep the in-window rows; report whether this page ran past the window's right edge"""
+        past = False
         for r in body:
             tid = r.get("id")
             t = int(r["time"])
@@ -95,15 +77,14 @@ def fetch_trades(sym, s, e):
             if t < s: continue
             if tid in seen_ids: continue                   # ids are unique: a repeat is a re-request, never a twin row
             seen_ids.add(tid); rows.append(r)
-        return past, len(rows) - n0
+        return past
 
     st, body, hdr = get("/fapi/v1/userTrades", {"symbol": sym, "startTime": s, "endTime": e, "limit": LIMIT})
     pages.append({"mode": "window", "startTime": s, "endTime": e, "status": st,
                   "n": len(body) if isinstance(body, list) else 0, "weight": hdr.get("X-MBX-USED-WEIGHT-1M")})
     if st != 200 or not isinstance(body, list):
         return pages, rows, "INCOMPLETE", f"page_error_rc_{st}: {json.dumps(body)[:140]}"
-    past0, k0 = take(body)
-    pages[-1].update(page_evidence(body, k0, past0))
+    take(body)
     if len(body) < LIMIT:
         return pages, rows, status, why                    # short page: the venue says this window is exhausted
 
@@ -117,10 +98,8 @@ def fetch_trades(sym, s, e):
         if st2 != 200 or not isinstance(body2, list):
             return pages, rows, "INCOMPLETE", f"fromId_page_error_rc_{st2}_at_{cur}"
         if not body2:
-            pages[-1].update(page_evidence(body2, 0, False))
             return pages, rows, status, why                # no trades at or beyond this id: exhausted
-        past, k = take(body2)
-        pages[-1].update(page_evidence(body2, k, past))
+        past = take(body2)
         nxt = max(int(r["id"]) for r in body2) + 1
         if past or len(body2) < LIMIT:
             return pages, rows, status, why                # ran past the window, or the account has no more trades
@@ -135,7 +114,7 @@ if __name__ == "__main__":
     if mode == "trades":
         sym, s, e, out = sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
         pages, rows, status, why = fetch_trades(sym, s, e)
-        doc = {"endpoint": "/fapi/v1/userTrades", "device": "fetch_trades.py v3 (R15-I1 follow-through + R5-08 per-row page evidence)",
+        doc = {"endpoint": "/fapi/v1/userTrades", "device": "fetch_trades.py v2 (R15-I1 follow-through)",
                "symbol": sym, "startTime": s, "endTime": e,
                "fetched_utc": time.strftime("%FT%TZ", time.gmtime()),
                "pages": pages, "n_pages": len(pages), "n_rows": len(rows),
@@ -143,8 +122,6 @@ if __name__ == "__main__":
                "cursor_rule": "time-bounded first request, then paged by fromId (trade ids are unique and strictly "
                               "increasing, so the cursor can neither skip nor repeat a row); each page re-filtered to "
                               "the window because the venue refuses fromId together with startTime/endTime",
-               "page_evidence_rule": "each page carries returned=[id, time] of every row the venue returned (response order), "
-                                     "n_kept and past_window, so the page -> body mapping can be replayed, not trusted (R5-08)",
                "body": rows}
         tmp = out + ".part"
         with open(tmp, "w") as fh: json.dump(doc, fh, indent=1)

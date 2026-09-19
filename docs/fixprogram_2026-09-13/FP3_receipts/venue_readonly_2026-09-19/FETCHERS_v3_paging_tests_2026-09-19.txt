@@ -1,0 +1,66 @@
+# fetch_trades.py sha256 3fcb5b3ff762038cba5244f6b7fc2854586f93b4c0f26fa9bcfe036b9a71ae8e | fetch_income_paged.py sha256 02114e99946c70ac1a2b730a0afb9459048bf12efe891d1b44189f8c82b53132 | interpreter /usr/bin/python3 3.9.6
+## /usr/bin/python3 -B tests_trades_paging_r15.py
+── R15-I1 follow-through: userTrades pagination ──
+  PASS importing the device does not read a credential (lazy `credentials()`)
+  PASS baseline: a 400-trade window comes back whole
+  PASS baseline: completeness COMPLETE
+  PASS baseline: a short first page needs exactly ONE request
+  PASS baseline: v1 is also whole here (so the red below is the defect, not the fixture)
+  PASS RED on v1: 2,350 in-window trades, one request keeps only 1,000
+  PASS RED on v1: it declares saturation but still exits 0 with a partial file
+  PASS GREEN on v2: all 2,350 trades are recovered
+  PASS GREEN on v2: completeness COMPLETE
+  PASS GREEN on v2: no trade id is duplicated
+  PASS GREEN on v2: continuation used fromId, never a time cursor
+  PASS GREEN on v2: fromId is never sent together with a time bound (the venue refuses that)
+  PASS 1,001 trades in ONE millisecond: all recovered (an id cursor has no millisecond hazard)
+  PASS 1,001 trades in ONE millisecond: COMPLETE
+  PASS the client-side window filter reproduces the exact in-window set
+  PASS no out-of-window trade leaks in
+  PASS the pull is COMPLETE
+  PASS an error on a continuation page marks the pull INCOMPLETE
+  PASS the refusal names the failing page
+  PASS a venue refusing fromId is INCOMPLETE, not silently truncated
+  PASS the refusal is named
+  PASS the writer is atomic (temp file then os.replace)
+  PASS an incomplete pull exits nonzero
+  PASS the receipt declares its completeness and its cursor rule
+  PASS the income mode still refuses and points at the paged fetcher
+  PASS an unknown mode refuses instead of falling through silently
+
+26 pass, 0 fail
+exit=0
+## /usr/bin/python3 -B tests_income_paging_r15.py
+── R15-I1: same-millisecond pagination ──
+  PASS importing the device does not read a credential (lazy `credentials()`)
+  PASS baseline: 2,500 rows across distinct milliseconds come back whole
+  PASS baseline: completeness COMPLETE
+  PASS baseline: no row was subtracted at a boundary that held nothing new
+  PASS baseline: the OLD algorithm is also whole here (so the red below is the defect, not the fixture)
+  PASS RED on v1: 1,001 rows in one millisecond, the old cursor saves only 1,000
+  PASS GREEN on v2: all 1,001 rows are recovered
+  PASS GREEN on v2: completeness COMPLETE
+  PASS GREEN on v2: no row is duplicated
+  PASS GREEN on v2: the saturated millisecond was enumerated with the `page` parameter
+  PASS twin rows: both halves of every trade survive (1,200 rows, not 600)
+  PASS twin rows: COMMISSION and REALIZED_PNL are both present for every tranId
+  PASS twin rows: completeness COMPLETE
+  PASS a genuinely repeated row is kept, not collapsed
+  PASS a boundary millisecond crossed by a page edge is neither lost nor doubled
+  PASS the boundary subtraction actually fired and was published
+T PAGE FAIL rc 500 {"code": -1001, "msg": "Internal error"}
+  PASS an error page marks the pull INCOMPLETE
+  PASS the refusal names the page error
+  PASS v1 by contrast would have kept its partial result with no status at all
+T SATURATED-MS: venue ignored `page` at 1700000000000
+  PASS a venue ignoring `page` inside a saturated millisecond is INCOMPLETE, not silently short
+  PASS the refusal names the page cap
+  PASS the writer is atomic (temp file then os.replace)
+  PASS an incomplete pull exits nonzero
+  PASS the receipt declares its completeness and its de-duplication rule
+  PASS income_type is carried on every request, saturated-millisecond pages included
+  PASS the default pull sends no incomeType (request stream identical to v2)
+  PASS the filtered pull is still complete on the saturated fixture
+
+27 pass, 0 fail
+exit=0

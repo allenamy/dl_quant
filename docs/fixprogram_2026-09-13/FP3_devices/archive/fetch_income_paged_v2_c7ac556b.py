@@ -24,18 +24,6 @@
   EXITS NONZERO. v1 printed "PAGE FAIL" and still exited 0 with a partial file, which is how a truncated pull becomes
   a cash receipt.
 
-★ v3 (2026-09-19, independent review round 5 R5-08): PER-ROW PAGE EVIDENCE. v2 published only each page's count `n` and ONE
-  total of boundary subtractions for the whole pull. A reader could check `sum(n) - subtracted == rows` and nothing else:
-  not which page a subtraction came from, not that a subtracted row really was a re-requested boundary row (the E-0909-H
-  failure is exactly a genuine row being "de-duplicated" away — it keeps that identity true), not that each continuation
-  started where this fetcher's cursor rule says. Every page record now also carries
-     returned      [sha256(row_identity(r)), time] of EVERY row the venue returned, in response order
-     n_kept        rows this page appended to the body
-     n_subtracted  rows this page removed as re-requested boundary / same-millisecond repeats
-  so the whole pull can be REPLAYED under this fetcher's own rules (full-row identity, boundary multiset subtraction,
-  cursor = max(time), saturated-millisecond `page` enumeration, stop on a short page) instead of trusted. Bookkeeping
-  only: the requests, their order and every stop rule are those of v2 (archive/fetch_income_paged_v2_c7ac556b.py).
-
 usage: fetch_income_paged.py <startMs> <endMs> <out.json> [label]"""
 import collections, hashlib, hmac, json, os, sys, time, urllib.parse, urllib.request
 
@@ -86,18 +74,6 @@ def row_identity(r):
     return json.dumps(r, sort_keys=True, separators=(",", ":"))
 
 
-def row_digest(r):
-    """★ v3 (R5-08): sha256 of row_identity(r) — what a page's `returned` evidence stores per row. A reader recomputes it
-    from the saved row, so the evidence is checkable without storing every row twice."""
-    return hashlib.sha256(row_identity(r).encode()).hexdigest()
-
-
-def page_evidence(body, n_kept, n_sub):
-    """★ v3 (R5-08): the per-row evidence of ONE page. Raw `time` values, no conversion, so recording the evidence can
-    never raise where v2 did not."""
-    return {"returned": [[row_digest(r), r.get("time")] for r in body], "n_kept": n_kept, "n_subtracted": n_sub}
-
-
 def run(s, e, label, income_type=None):
     """income_type (2026-09-19, additive): when given, every request of this pull carries `incomeType`, so a long
     history of ONE type (e.g. TRANSFER) is pulled without paging through every trade's COMMISSION/REALIZED_PNL rows.
@@ -128,9 +104,7 @@ def run(s, e, label, income_type=None):
         if st != 200 or not isinstance(body, list):
             status, why = "INCOMPLETE", f"page_error_rc_{st}: {json.dumps(body)[:140]}"
             print(f"{label} PAGE FAIL rc {st} {json.dumps(body)[:140]}"); break
-        sub0 = n_subtracted
         kept = record(body, cur if boundary else None)
-        pages[-1].update(page_evidence(body, len(kept), n_subtracted - sub0))
         if len(body) < LIMIT:
             break                                              # short page: this window is exhausted, by the venue's own answer
         times = [int(r["time"]) for r in body]
@@ -153,13 +127,12 @@ def run(s, e, label, income_type=None):
                 print(f"{label} SATURATED-MS PAGE FAIL rc {st2} at {mx} page {pg}"); break
             # page 1 of this millisecond is the page we already hold; pages >= 2 are new rows of the same instant
             ms_seen = collections.Counter(row_identity(r) for r in ms_rows)
-            fresh = []; sub0 = n_subtracted
+            fresh = []
             for r in body2:
                 i = row_identity(r)
                 if ms_seen[i] > 0: ms_seen[i] -= 1; n_subtracted += 1; continue
                 fresh.append(r)
             rows.extend(fresh); ms_rows.extend(fresh)
-            pages[-1].update(page_evidence(body2, len(fresh), n_subtracted - sub0))
             if len(body2) < LIMIT: break                       # the instant is exhausted
             if not fresh:
                 # ★ a FULL page beyond page 1 that carries nothing we do not already hold means the venue is not
@@ -182,7 +155,7 @@ if __name__ == "__main__":
     s, e, out = int(sys.argv[1]), int(sys.argv[2]), sys.argv[3]
     label = sys.argv[4] if len(sys.argv) > 4 else ""
     pages, rows, status, why, n_sub = run(s, e, label)
-    doc = {"endpoint": "/fapi/v1/income", "device": "fetch_income_paged.py v3 (R15-I1 + R5-08 per-row page evidence)", "label": label,
+    doc = {"endpoint": "/fapi/v1/income", "device": "fetch_income_paged.py v2 (R15-I1)", "label": label,
            "startTime": s, "endTime": e, "fetched_utc": time.strftime("%FT%TZ", time.gmtime()),
            "pages": pages, "n_pages": len(pages), "n_rows": len(rows),
            "completeness": status, "incomplete_reason": why,
@@ -191,8 +164,6 @@ if __name__ == "__main__":
                           "not a row identity; a global de-duplication set silently drops genuinely duplicated rows)",
            "cursor_rule": "advance to max(time), never max(time)+1; a full page inside one millisecond is enumerated "
                           "through the endpoint's `page` parameter, and an exhausted page cap is a refusal",
-           "page_evidence_rule": "each page carries returned=[sha256(row_identity), time] of every row the venue returned "
-                                 "(response order), n_kept and n_subtracted, so the pull can be replayed, not trusted (R5-08)",
            "body": rows}
     tmp = out + ".part"
     with open(tmp, "w") as fh: json.dump(doc, fh, indent=1)

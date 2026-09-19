@@ -340,3 +340,145 @@ FLATTEN-20260912T124737Z 1789217147.803424 1789231143.365168
 ```
 /usr/bin/python3 -B compare_flatten_raw_old_vs_fresh.py ../FP3_receipts/venue_readonly_2026-09-19 ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v4fresh_vs_old_raw_diff_2026-09-19.json
 ```
+
+## 10. 增补(2026-09-19 09:25Z,同日第三轮):R5-08 —— 逐页凭据从「计数自洽」改成「按取数器自己的规则重放」
+
+> 本节只追加,§0–§9 原字节不改。§9.7-1 的「逐页凭据证明……分页按取数器规则终止」对 v4.1 装置不成立(独立复审第五轮 R5-08),以本节为准。§9.4「十窗 10/10 CLOSED」是 v4.1 的判词,v4.2 下改为 4 窗 CLOSED + 6 窗 CLOSED_POPULATION_UNPROVEN(§10.4)。
+> 本节全部离线:零网络调用,零实盘写入;实盘账本 `~/dl_quant_live` 只读。
+
+### 10.1 复审发现了什么
+来源:`REVIEW_round5_stage1_codex_2026-09-19.md` R5-08,证据 `multi_asset/review_artifacts/r5_ff3bd08bd/agents/priorfix/`(`FINDINGS.md`、`probe_raw.py`、`fresh_raw_identity_and_page_probes.json`)。
+
+v4.1 的 `page_receipt_problems` 只核【计数】自洽(body 行数不超过各页 n 之和;income 的 Σn − 扣除数 = 行数)。复审在真实 09-06 新拉取原始件上改了四处,v4.1 全部返回「无问题」:
+- QUSDT 单页凭据改说返回 2 行,body 仍 0 行;
+- income 末页改成满页 1000 行,扣除数配平到 1121;
+- income 全部续页的 startTime 倒退到窗口起点之前;
+- income 只剩一页 n=0,扣除数 −4879。
+
+复审同时核过:十个真实窗口的新旧原始件逐行相同。所以这是**门的缺陷**,不是「真实窗口丢了数」。
+
+### 10.2 改了什么
+**装置 v4.2**:`FP3_devices/flatten_window_closure.py`,sha `31c709d350afbf5d2502d01442efecb74de4a79eecbf4c8dfe2ac57c6371391c`。v4.1 已归档为 `archive/flatten_window_closure_v41_fefa19af.py`。
+
+**取数器 v3**(只多记账,请求不变):
+- `fetch_trades.py`,sha `3fcb5b3ff762038cba5244f6b7fc2854586f93b4c0f26fa9bcfe036b9a71ae8e`;v2 归档为 `archive/fetch_trades_v2_7ad96418.py`。
+- `fetch_income_paged.py`,sha `02114e99946c70ac1a2b730a0afb9459048bf12efe891d1b44189f8c82b53132`;v2 归档为 `archive/fetch_income_paged_v2_c7ac556b.py`。
+- 每页多记三样:
+  - `returned`:场所返回的**每一行**,按响应顺序。userTrades 记 `[id, time]`;income 记 `[sha256(row_identity), time]`,身份规则就是取数器自己的全字段规范 JSON。
+  - `n_kept`:这一页加进 body 的行数。
+  - userTrades 多记 `past_window`,income 多记 `n_subtracted`。
+- 发出的请求、顺序、停止规则与 v2 逐字相同。电池 F1 / F2 证明了这一点:v3 与归档 v2 在同一假场所上,请求序列、返回行、判词逐一相同,页记录只多出上面这几个键。取数器自带的两套测试照旧全绿:26/26、27/27,exit 0,收据 `FETCHERS_v3_paging_tests_2026-09-19.txt`。
+
+**人口门改成重放**(`page_receipt_findings`)。把取数器自己的规则(按窗口过滤、按 id 去重、边界多重集扣除、满毫秒 `page` 枚举、停止条件)在落盘凭据上再跑一遍,三条性质各自要证:
+1. **行身份**:各页返回、按规则保留下来的行,必须与原始件保存的行逐一相同。userTrades 按 (symbol, id) 比;income 按全字段行的多重集比。每页声明的 n 必须等于它逐行列出的返回行数;逐页 n_kept / n_subtracted 与总扣除数都必须等于重放值。
+2. **终止**:userTrades 每个品种的末页必须是短页、空页或越过窗口的页。income 末页必须是短页,满页 = 没拉完;满毫秒枚举必须以短页结束。
+3. **游标**:fromId = 上一页 max(id)+1,且严格递增。income 的每个下一请求,必须是取数器按上一页算出的那一个:max(time) 不加 1,满毫秒时 page+1,枚举结束后该毫秒 +1。
+
+**结论两类,都不是 PASS,都逐条具名落收据:**
+- 凭据与取数器规则**矛盾** ⇒ `REFUSED_POPULATION`(rc 2)。
+- 凭据**不足以证明** ⇒ 人口档 `POPULATION_UNPROVEN_PAGE_EVIDENCE`;其余门全过时判 `CLOSED_POPULATION_UNPROVEN`(rc 5)。
+
+**v2 凭据(只有逐页 n)怎么判**:只有当计数把「每页贡献了哪几行」唯一确定时才算证明(证据级别 `DEDUCED_EXACT`),具体是:
+- userTrades:Σn = 保存行数。取数器只从返回行里保留,两数相等 ⇒ 每一条返回行都在 body 里。
+- income:扣除数 = 0。
+- 其余情况具名 UNPROVEN:
+  - userTrades 返回行多于保存行 ⇒ `TRADES_RETURNED_ROWS_NOT_IN_BODY_NO_ROW_EVIDENCE`:证不了被丢的行在窗外。
+  - income 多页且有扣除 ⇒ `INCOME_PER_PAGE_SPLIT_NOT_RECORDED`:没记每页扣了几行,页贡献与行身份都不可核。
+
+**另外三条:**
+- 重放只对登记过的取数器源码成立。装置内 `FETCHER_REGISTRY` 登记了 v2 / v3 各两个 sha;原始件自报的 `fetch_devices_sha256` 未登记 ⇒ UNPROVEN(`FETCHER_NOT_REGISTERED`)。
+- 页上限取取数器常量 1000。原始件自报的 `page_limit` 只被核对,不能当尺:v4.1 用自报值,自报 5000 就能把一个满页的截断拉取说成短页(单元 U15)。
+- 新拉取路径(不带 `--reuse-raw`)经 v3 取数器写原始件,以后的拉取可以达到 `ROW_IDENTITY` 级别的 PASS。
+
+**与协调者指令的一处差异(如实写明):** 指令写「任何违例 ⇒ POPULATION_UNPROVEN」。装置把**矛盾**判成 `REFUSED_POPULATION`(rc 2),只把**证据不足**判成 UNPROVEN(rc 5)。理由有两条:
+- v4.1 已把「计数不合 / 非 200 / INCOMPLETE」定为 REFUSED。
+- 若矛盾只给 rc 5,「页里有 2 行、body 里没有」就会得到 `CLOSED_POPULATION_UNPROVEN`,比一张 429 页(REFUSED)还宽。
+
+两类都永不 PASS、都具名。若要统一成 rc 5,只改 `_main` 里 violations 那一个分支。
+
+### 10.3 电池(`tests_flatten_window_closure.py`,sha `1fff3caa05fbfb403a2b94767a327c41a0860cd64c858823658e3b0e465defc5`,55 项)
+判词行逐字如下。收据:`FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v42_battery_2026-09-19.txt` 与 `…_v42_battery_vs_v41_fefa19af_2026-09-19.txt`。
+
+```
+BATTERY VERDICT: ALL PASS — 55/55 checks passed | device=flatten_window_closure.py sha256=31c709d350afbf5d
+exit=0
+BATTERY VERDICT: FAIL — 31/55 checks passed, 24 failed ['G5', 'R1', 'R2', 'R3', 'R4', 'R1n', 'R1m', 'R2n', 'R3n', 'U1', 'U2', 'U3', 'U4', 'U5', 'U6', 'U7', 'U8', 'U9', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15'] | device=flatten_window_closure_v41_fefa19af.py sha256=fefa19af3ef7d2b5
+exit=1
+```
+
+**新增的检查:**
+- **FX**:夹具改由真实取数器 v3 在沙箱里生成(审计钩子禁网络、禁子进程、禁临时目录外写;取数器的 credentials 换成抛错)。假场所只服务旧件保存的行,并先断言拉回的行与旧件多重集相同。B3 / G3 / M8 / M9 / M14–M17 改用这份夹具。
+- **B5 / G4**:08-01 真实新拉取 ⇒ 裸 CLOSED,rc 0(`DEDUCED_EXACT`)。
+- **B6 / G5**:09-06 真实新拉取 ⇒ CLOSED_POPULATION_UNPROVEN,rc 5,具名 `INCOME_PER_PAGE_SPLIT_NOT_RECORDED`。
+- **R1–R4**:复审的四处变异,逐字照 `probe_raw.py`,做在真实新拉取原始件上。R1 为 rc 5 且具名,R2–R4 为 REFUSED_POPULATION。
+- **R1n / R1m / R2n / R3n**:同类变异做在 v3 新格式夹具上,全部 REFUSED。
+- **F1 / F2**:取数器 v3 与 v2 行为相同。
+- **UB + U1–U15**:合成场所单元段。覆盖 3 页 userTrades(末页越窗)、恰好 1000 行接空页、跨页的边界毫秒、从页中间开始的满毫秒与 page 枚举、逐字节相同的两行。基线先绿,再逐条变异:
+  - 游标倒退、满末页、行丢失、等数调包、计数型凭据;
+  - 满毫秒枚举截断、过度扣除(E-0909-H 类:真实重复行被去重、扣除数配平)、income 调包、游标差 1 ms;
+  - 取数器未登记、n 与逐行凭据不符、拉取停在满页、自报页上限改尺。
+
+**对 v4.1 为红的 24 条**:G5 / R1 / R2 / R3 / R4 / R1n / R1m / R2n / R3n / U1–U15。每一条都是**行为红**:整装置行里 v4.1「人口门PASS=是」,单元行里 v4.1「判 PASS=是」。也就是说,v4.1 **接受了**这些输入,不是只因名字对不上。v4.1 的基线(B1 / B2 / B3 / B5 / B6 / UB)全绿。
+
+### 10.4 十个真实窗口离线复跑(v4.2,`--reuse-raw` 复用 v4fresh 原始件)
+收据:`FLATTEN_CLOSURE_v42reuse_<事件>.json` / `.log`。
+
+| 事件 | 判词 / rc | userTrades 证据 | income 页数 / 扣除 / 级别 |
+|---|---|---|---|
+| FLATTEN-20260801T201827Z | CLOSED / 0 | 111 名 DEDUCED_EXACT | 1 / 0 / DEDUCED_EXACT |
+| FLATTEN-20260802T041821Z | CLOSED / 0 | 109 名 DEDUCED_EXACT | 1 / 0 / DEDUCED_EXACT |
+| FLATTEN-20260805T001853Z | CLOSED / 0 | 109 名 DEDUCED_EXACT | 1 / 0 / DEDUCED_EXACT |
+| FLATTEN-20260805T121829Z | CLOSED / 0 | 108 名 DEDUCED_EXACT | 1 / 0 / DEDUCED_EXACT |
+| FLATTEN-20260821T121630Z | CLOSED_POPULATION_UNPROVEN / 5 | 113 名 DEDUCED_EXACT | 2 / 5 / UNPROVEN |
+| FLATTEN-20260821T201600Z | CLOSED_POPULATION_UNPROVEN / 5 | 105 名 DEDUCED_EXACT | 2 / 26 / UNPROVEN |
+| FLATTEN-20260826T124702Z | CLOSED_POPULATION_UNPROVEN / 5 | 337 名 DEDUCED_EXACT | 2 / 16 / UNPROVEN |
+| FLATTEN-20260906T084608Z | CLOSED_POPULATION_UNPROVEN / 5 | 269 名 DEDUCED_EXACT | 6 / 315 / UNPROVEN |
+| FLATTEN-20260909T164536Z | CLOSED_POPULATION_UNPROVEN / 5 | 245 名 DEDUCED_EXACT | 7 / 413 / UNPROVEN |
+| FLATTEN-20260912T124737Z | CLOSED_POPULATION_UNPROVEN / 5 | 259 名 DEDUCED_EXACT | 8 / 156 / UNPROVEN |
+
+**另记:**
+- 十窗的 INPUT_FINITE / ATTRIBUTION / ENDPOINT / CASH 四门全部 PASS。
+- 与 v4fresh 收据相比:A_local_identity 相同,C_closure 除 population / gates / 判词外逐字段相同,raw sha 相同。只有人口档变了。
+- 十窗的 userTrades 全是单页短页,且 n = 保存行数,所以 userTrades 在十窗都可证。
+- 六窗未证,原因全是同一条:income 多页且有边界扣除,而取数器 v2 没记每页扣了几行。
+
+**一致性对照**(不是完整性证明):`FP3_devices/legacy_page_receipt_consistency.py`(sha `0b5ac30a9d080fa83b9893ec106f71abf148add3e3f2d1951c75a986851def28`),收据 `FLATTEN_CLOSURE_v42_legacy_page_receipt_consistency_2026-09-19.json`。
+- 做法:在沙箱里用真实取数器 v3,对一个只服务各窗保存行的假场所重拉一次。
+- 结果 **10/10 一致**:每窗记录的请求序列、逐页 n、总扣除数与重拉逐一相同;每个品种的 userTrades 页记录相同;拉回的行多重集相同。
+- 由此重建出的逐页扣除分别是:
+  - 08-21 12Z:[0, 5]
+  - 08-21 20Z:[0, 26]
+  - 08-26:[0, 16]
+  - 09-06:[0, 8, 73, 43, 36, 155]
+  - 09-09:[0, 136, 104, 36, 6, 100, 31]
+  - 09-12:[0, 16, 26, 4, 70, 12, 22, 6]
+- 读法:记录下来的 v2 凭据恰好是取数器面对「窗口内容 = 保存行」时会写下的那一份,凭据与保存行之间**没有矛盾**。但从没被任何请求返回过的行不在任何凭据里,这个对照看不见它们,所以它**不把六窗升级为 PASS**。
+
+要让这六窗达到裸 CLOSED,需要用 v3 取数器重新联网拉取。本轮未获联网授权,没有做。
+
+### 10.5 仍未证 / 边界(追加)
+1. 逐页凭据证明的仍是**请求层**(§9.7-1 的其余部分照旧):场所的自答仍被信任。
+2. 十窗前四窗的 PASS 是 `DEDUCED_EXACT`。它依赖登记过的 v2 取数器源码的构造(保留行 ⊆ 返回行),不是逐行证据。
+3. 复审的 `probe_raw.py` 断言十个未变异窗口 `not p`。在 v4.2 下,09-06 等六窗的清单含 `UNPROVEN …` 条目,那条断言会按设计失败,因为 v4.2 不再给这六窗 PASS。
+4. 登记表与取数器源码耦合:以后改任何一个取数器,都必须在装置里登记新 sha,否则人口档为 UNPROVEN。这是失败即关。电池的 G3(要求 PASS)与 UB(要求清单为空)会因此变红,把耦合暴露出来;B3 只要求判词接受,仍为绿。
+5. 本轮只跑了 v4.2 与 v4.1 两个版本的电池,没有对 v4.0 / v3 归档重跑。
+
+### 10.6 复跑命令(逐字;在 `docs/fixprogram_2026-09-13/FP3_devices/` 下执行)
+电池 × 2(不联网;本次另带 `--tmp-root <scratchpad>`,只改临时目录位置):
+```
+/usr/bin/python3 -B tests_flatten_window_closure.py > ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v42_battery_2026-09-19.txt 2>&1; echo "exit=$?" >> ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v42_battery_2026-09-19.txt
+/usr/bin/python3 -B tests_flatten_window_closure.py --device archive/flatten_window_closure_v41_fefa19af.py > ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v42_battery_vs_v41_fefa19af_2026-09-19.txt 2>&1; echo "exit=$?" >> ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v42_battery_vs_v41_fefa19af_2026-09-19.txt
+```
+取数器自带测试(不联网,假网络):
+```
+/usr/bin/python3 -B tests_trades_paging_r15.py; echo "exit=$?"
+/usr/bin/python3 -B tests_income_paging_r15.py; echo "exit=$?"
+```
+十窗离线复跑(不联网,实盘账本只读)。`<事件> <t0> <t1>` 同 §9.8 的清单:
+```
+/usr/bin/python3 -B flatten_window_closure.py <t0> <t1> ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v42reuse_<事件>.json --reuse-raw ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v4fresh_<事件>_venue_trades.json --bnb-rows ../FP3_receipts/venue_readonly_2026-09-19/INCOME_ALL_20260731_now.json --event <事件> > ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v42reuse_<事件>.log 2>&1; echo "rc=$?" >> ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v42reuse_<事件>.log
+```
+一致性对照(不联网;`--tmp` 是沙箱唯一可写目录):
+```
+/usr/bin/python3 -B legacy_page_receipt_consistency.py --tmp <任意临时目录> ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v4fresh_FLATTEN-*_venue_trades.json > ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v42_legacy_page_receipt_consistency_2026-09-19.json
+```

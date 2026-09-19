@@ -71,20 +71,6 @@
       POPULATION_UNPROVEN_COUNT_ONLY        旧原始件, 只有个数
     逐页凭据里有非 200 页 / 声明 INCOMPLETE 的品种 / 缺凭据的查询品种 / 计数不合 ⇒ REFUSED_POPULATION。
     指数价【永远】只读缓存(offline=True, 缺分钟 ⇒ UNAVAILABLE), 装置不再有任何取数器以外的联网。
-★ v4.2(2026-09-19, 同日; 独立复审第五轮 R5-08): v4.1 的逐页凭据只【计数】自洽, 复审在真实 09-06 新拉取上造出三类被判 PASS 的不完整证据:
-    页凭据说返回 2 行而 body 0 行 / income 末页满页(扣除数配平)/ income 续页游标倒退到窗口之前(另: 负的扣除数)。计数自洽不是完整性证明。
-    v4.2 把人口门改成【按取数器自己的规则重放】(page_receipt_findings), 三条性质各自要证:
-      (1) 行身份  各页返回、按取数器规则保留的行 == 原始件保存的行(userTrades 按 (symbol, id); income 按全字段行多重集 + 边界多重集扣除);
-                  每页声明的 n == 它逐行列出的返回行数; 逐页 n_kept / n_subtracted(若有)== 重放值; 扣除总数 == 重放值。
-      (2) 终止    userTrades 每个品种末页 = 短页 / 空页 / 越过窗口; income 末页必须是短页(满页 = 未完成拉取); 满毫秒枚举以短页结束。
-      (3) 游标    fromId = 上一页 max(id)+1 且严格递增; income 下一请求 = 取数器按上一页算出的那一个(max(time) 不 +1 / page+1 / 毫秒+1)。
-    两类结论, 都不是 PASS:
-      凭据与取数器规则【矛盾】 ⇒ REFUSED_POPULATION(rc 2), 与 v4.1「计数不合 ⇒ REFUSED」同一档; 具名原因逐条落收据。
-      凭据【不足以证明】      ⇒ POPULATION_UNPROVEN_PAGE_EVIDENCE, 其余全过时判 CLOSED_POPULATION_UNPROVEN(rc 5); 具名原因逐条落收据。
-    证据来源: 取数器 v3(fetch_trades / fetch_income_paged)在每页多记逐行证据 returned([id, time] / [sha256(row_identity), time])、
-      n_kept、past_window / n_subtracted —— 请求与停止规则与 v2 逐字相同, 只多记账。v2 凭据(只有逐页 n)仍可读: 只有当计数把
-      「每页贡献了哪几行」唯一确定时(每页返回行全被保留: userTrades Σn == 保存行数, income 扣除数 == 0)才算证明; 否则具名 UNPROVEN。
-    重放只对 FETCHER_REGISTRY 登记过的取数器源码成立(原始件自报 fetch_devices_sha256); 未登记 ⇒ UNPROVEN。页上限取取数器常量, 原始件自报只被核。
 usage: flatten_window_closure.py <t0_nav_ts> <t1_nav_ts> <out.json> [raw_trades_out.json] --bnb-rows <INCOME_BNB_ROWS.json> --event <rebalance_id>
                                  [--reuse-raw <raw.json>] [--ledger-root <root containing state/live/pilot_log>]"""
 import collections, hashlib, json, math, os, sys, time, traceback
@@ -95,29 +81,15 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "multi_asset", "exports", "live", "pilot_journal", "tools"))
 import fills_reader as FR                                   # 规范成交读者: (symbol, trade_id) 坍缩, 金额取一次
 import usd_valuation as UV
-VERSION = "v4.2-2026-09-19"   # v4: 判词拆门; v4.1: 新拉取落逐页凭据, 人口可达 PASS; v4.2: 逐页凭据按取数器规则重放(行身份/终止/游标), 计数自洽不再够
+VERSION = "v4.1-2026-09-19"   # v4: 判词拆门(INPUT_FINITE / POPULATION / ATTRIBUTION / ENDPOINT / CASH); v4.1: 新拉取落逐页凭据, 人口可达 PASS
 CLI_FLAGS = ("--bnb-rows", "--reuse-raw", "--event", "--ledger-root")
 DEFAULT_LEDGER_ROOT = os.path.expanduser("~/dl_quant_live")
 LED = os.path.join(DEFAULT_LEDGER_ROOT, FR.PILOT_LOG)       # == v3 的 ~/dl_quant_live/state/live/pilot_log; --ledger-root 改写
 SNAP_TOL_S = 60.0
 BNB_P = os.path.join(HERE, "..", "FP3_receipts", "BNBUSDT_daily_20260801_20260918.json")
 TIER_PASS, TIER_LIST, TIER_COUNT = "POPULATION_PASS", "POPULATION_UNPROVEN_NO_PAGE_RECEIPTS", "POPULATION_UNPROVEN_COUNT_ONLY"
-TIER_PAGES = "POPULATION_UNPROVEN_PAGE_EVIDENCE"            # v4.2: 有逐页凭据、不矛盾, 但不足以证明(见 page_receipt_findings)
-RAW_FORMAT_FRESH = ("flatten_window_closure v4.2 fresh raw (symbols_queried + per-symbol userTrades page receipts + income page receipts; "
-                    "pages carry per-row evidence from fetch_trades v3 / fetch_income_paged v3)")
-FETCH_LIMIT = 1000                                           # 两个登记取数器的页上限(LIMIT 常量); 原始件自报的 page_limit 只被核, 不当尺
-# v4.2: 重放 = 把取数器自己的规则再写一遍, 只对规则被逐行复现的取数器成立。键 = 写原始件那一刻取数器源码的 sha256(原始件 fetch_devices_sha256 自报)。
-#   新取数器版本必须在这里登记后才能 PASS; 未登记 ⇒ POPULATION_UNPROVEN_PAGE_EVIDENCE(FETCHER_NOT_REGISTERED), 永不 PASS。
-FETCHER_REGISTRY = {
-    "7ad9641848861a9b6e08b735c251d0bca072f5c5651d4b54f82aa26535a6f898":
-        ("fetch_trades.py", "v2 R15-I1 (archive/fetch_trades_v2_7ad96418.py): window page then fromId; page receipts carry counts only"),
-    "3fcb5b3ff762038cba5244f6b7fc2854586f93b4c0f26fa9bcfe036b9a71ae8e":
-        ("fetch_trades.py", "v3 R5-08: v2 requests and stop rules unchanged + per-row [id, time] page evidence"),
-    "c7ac556b8fac9cfb487e4a60974b01429eed6172bb08664fc4ab0ce84016161c":
-        ("fetch_income_paged.py", "v2 R15-I1 + income_type (archive/fetch_income_paged_v2_c7ac556b.py): page receipts carry counts only"),
-    "02114e99946c70ac1a2b730a0afb9459048bf12efe891d1b44189f8c82b53132":
-        ("fetch_income_paged.py", "v3 R5-08: v2 requests and stop rules unchanged + per-row [sha256(row_identity), time] page evidence"),
-}
+RAW_FORMAT_FRESH = "flatten_window_closure v4.1 fresh raw (symbols_queried + per-symbol userTrades page receipts + income page receipts)"
+PAGE_LIMIT = 1000                                            # 两个取数器的页上限(原始件自带 page_limit 时以它为准)
 RC = {"CLOSED": 0, "REFUSED": 2, "UNAVAILABLE": 3, "OPEN": 4, "CLOSED_POPULATION_UNPROVEN": 5}
 ENDPOINT_TOL = Decimal("1e-8")
 U = lambda t: time.strftime("%m-%d %H:%M:%SZ", time.gmtime(float(t)))
@@ -155,324 +127,49 @@ def check_num(bad, src, key, field, x, allow_none=False, positive=False):
         bad.append({"src": src, "key": str(key)[:80], "field": field, "value": repr(x)[:40], "why": why})
 
 
-def _isint(x):
-    return isinstance(x, int) and not isinstance(x, bool)
-
-
-def _as_int(x):
-    """页凭据里的整数(id / time / fromId / startTime): int 或纯十进制数字串才算; 其它一律 None(调用处记成 MALFORMED 矛盾, 不猜)。"""
-    if _isint(x): return x
-    if isinstance(x, str) and x.strip().lstrip("-").isdigit(): return int(x.strip())
-    return None
-
-
-def income_row_digest(r):
-    """fetch_income_paged.row_identity 的同一条规则(全字段、sort_keys、(',', ':') 分隔的规范 JSON)再取 sha256 ——
-    v3 取数器页凭据 returned 里逐行存的就是它。行身份 = 行, 不是 tranId(E-0909-H)。"""
-    return hashlib.sha256(json.dumps(r, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-
-
-def _trades_symbol(sym, e_, rs, s_ms, e_ms, lim, V, U):
-    """一个被查询品种的 userTrades 逐页凭据。返回证据级别: ROW_IDENTITY / DEDUCED_EXACT / UNPROVEN / VIOLATION。
-    V 追加「与取数器自己的规则矛盾」, U 追加「凭据不足以证明」。取数器规则(fetch_trades v2/v3 同一套):
-      首页 = 本窗口(startTime/endTime); 行按 [s, e] 过滤、按 id 去重(id 唯一, 重复只可能是重复请求);
-      首页满页才续取; 续页 fromId = 上一页【全部返回行】max(id)+1, 严格递增; 续页在 空页 / 短页 / 有行越过窗口右端 时停。"""
-    nV = len(V)
-    e_ = e_ if isinstance(e_, dict) else {}
-    pg = e_.get("pages") if isinstance(e_.get("pages"), list) else []
-    if e_.get("completeness") != "COMPLETE": V.append(f"INCOMPLETE_SYMBOL: {sym} ({e_.get('incomplete_reason')})")
-    if not pg: V.append(f"NO_PAGES: {sym}"); return "VIOLATION"
-    if not all(isinstance(p, dict) for p in pg): V.append(f"PAGE_MALFORMED: {sym}"); return "VIOLATION"
-    for i, p in enumerate(pg):
-        if p.get("status") != 200: V.append(f"PAGE_STATUS_NOT_200: {sym} page {i} status {p.get('status')}")
-        if not _isint(p.get("n")) or p["n"] < 0: V.append(f"PAGE_N_INVALID: {sym} page {i} n {p.get('n')!r}")
-    if len(V) > nV: return "VIOLATION"
-    ns = [p["n"] for p in pg]; last = len(pg) - 1
-    f0 = pg[0]
-    if f0.get("mode") != "window" or f0.get("startTime") != s_ms or f0.get("endTime") != e_ms:
-        V.append(f"FIRST_PAGE_NOT_THIS_WINDOW: {sym}")
-    if any(p.get("mode") != "fromId" for p in pg[1:]): V.append(f"CONTINUATION_NOT_BY_FROMID: {sym}")
-    fids = [_as_int(p.get("fromId")) for p in pg[1:]]
-    if any(f is None for f in fids): V.append(f"TRADES_FROMID_MALFORMED: {sym} {[p.get('fromId') for p in pg[1:]][:6]}")
-    elif any(b <= a for a, b in zip(fids, fids[1:])): V.append(f"TRADES_FROMID_NOT_INCREASING: {sym} fromId {fids[:6]}")
-    if e_.get("n_rows") != len(rs): V.append(f"ROWCOUNT_MISMATCH: {sym} receipt {e_.get('n_rows')} vs body {len(rs)}")
-    bid = [_as_int(t.get("id")) for t in rs]; btm = [_as_int(t.get("time")) for t in rs]
-    if any(x is None for x in bid + btm): V.append(f"TRADES_BODY_ID_OR_TIME_MALFORMED: {sym}")
-    elif len(set(bid)) != len(bid): V.append(f"TRADES_BODY_DUPLICATE_ID: {sym} {len(bid) - len(set(bid))}")
-    if len(V) > nV: return "VIOLATION"
-
-    if all(isinstance(p.get("returned"), list) for p in pg):
-        # ── 行级凭据(fetch_trades v3): 按取数器自己的规则逐页重放, 不信任何计数 ──
-        seen, kept, prev = set(), {}, None
-        for i, p in enumerate(pg):
-            pr = []
-            for x in p["returned"]:
-                a, t = (_as_int(x[0]), _as_int(x[1])) if isinstance(x, (list, tuple)) and len(x) == 2 else (None, None)
-                if a is None or t is None:
-                    V.append(f"TRADES_PAGE_EVIDENCE_MALFORMED: {sym} page {i} entry {str(x)[:40]}"); return "VIOLATION"
-                pr.append((a, t))
-            if p["n"] != len(pr):
-                V.append(f"PAGE_N_NOT_EQUAL_RETURNED: {sym} page {i} declares n {p['n']} but its evidence lists {len(pr)} returned row(s)")
-            if i >= 1:
-                exp = max(a for a, _ in prev) + 1 if prev else None
-                if fids[i - 1] != exp:
-                    V.append(f"TRADES_FROMID_NOT_FETCHER_CURSOR: {sym} page {i} fromId {fids[i - 1]} vs fetcher cursor max(id of page {i - 1})+1 = {exp}")
-                if any(a < fids[i - 1] for a, _ in pr):
-                    V.append(f"TRADES_FROMID_PAGE_ID_BELOW_CURSOR: {sym} page {i} returned an id below its fromId {fids[i - 1]}")
-            past, k = False, 0
-            for a, t in pr:                                    # fetch_trades.take(), 逐条同义
-                if t > e_ms: past = True; continue
-                if t < s_ms: continue
-                if a in seen: continue
-                seen.add(a); kept[a] = t; k += 1
-            if "n_kept" in p and p["n_kept"] != k:
-                V.append(f"TRADES_PAGE_N_KEPT_DISAGREES_WITH_REPLAY: {sym} page {i} declares {p['n_kept']}, replay keeps {k}")
-            if "past_window" in p and p["past_window"] != past:
-                V.append(f"TRADES_PAGE_PAST_WINDOW_DISAGREES_WITH_REPLAY: {sym} page {i}")
-            stop = (len(pr) < lim) if i == 0 else (len(pr) == 0 or past or len(pr) < lim)
-            if stop and i < last:
-                V.append(f"TRADES_PAGES_AFTER_STOP: {sym} page {i} is a stopping page under the fetcher's rule, yet {last - i} page(s) follow")
-            if not stop and i == last:
-                V.append(f"TRADES_FINAL_PAGE_NOT_TERMINAL: {sym} last page {i} holds {len(pr)} row(s), none past the window — "
-                         f"the fetcher stops only on a short page, an empty page or a page that ran past the window")
-            prev = pr
-        body = dict(zip(bid, btm))
-        miss = sorted(a for a in kept if a not in body); extra = sorted(a for a in body if a not in kept)
-        tdis = sorted(a for a in kept if a in body and body[a] != kept[a])
-        if miss: V.append(f"TRADES_RETURNED_ROW_MISSING_FROM_BODY: {sym} {len(miss)} in-window row(s) the pages returned are not in the saved body, ids {miss[:3]}")
-        if extra: V.append(f"TRADES_BODY_ROW_NOT_IN_ANY_PAGE: {sym} {len(extra)} saved row(s) no page returned, ids {extra[:3]}")
-        if tdis: V.append(f"TRADES_PAGE_TIME_DISAGREES_WITH_BODY: {sym} {len(tdis)} id(s) {tdis[:3]}")
-        return "ROW_IDENTITY" if len(V) == nV else "VIOLATION"
-
-    # ── 只有页计数(fetch_trades v2 的凭据): 只在拆分被计数【唯一确定】时才能证明 ──
-    if ns[0] < lim and len(pg) > 1: V.append(f"TRADES_PAGES_AFTER_STOP: {sym} page 0 is short ({ns[0]}) yet {last} page(s) follow")
-    if ns[0] >= lim and len(pg) == 1: V.append(f"FULL_WINDOW_PAGE_NOT_CONTINUED: {sym}")
-    for i in range(1, last):
-        if ns[i] < lim: V.append(f"TRADES_PAGES_AFTER_STOP: {sym} page {i} is short/empty ({ns[i]}) yet page(s) follow")
-    tot, cnt = sum(ns), len(rs)
-    if cnt > tot:
-        V.append(f"MORE_ROWS_THAN_PAGES: {sym} body {cnt} > pages returned {tot}")
-    elif cnt == tot and len(V) == nV:
-        # 取数器只从返回行里保留(kept ⊆ returned, 逐页), 行数相等 ⇒ 每页返回的每一行都在 body 里, 且第 i 页恰好贡献 n_i 行(追加顺序)
-        segs, off = [], 0
-        for n in ns: segs.append(bid[off:off + n]); off += n
-        for i in range(1, len(pg)):
-            exp = max(segs[i - 1]) + 1 if segs[i - 1] else None
-            if fids[i - 1] != exp:
-                V.append(f"TRADES_FROMID_NOT_FETCHER_CURSOR: {sym} page {i} fromId {fids[i - 1]} vs max(id of page {i - 1})+1 = {exp}")
-        if last >= 1 and ns[last] >= lim:
-            V.append(f"TRADES_FINAL_PAGE_NOT_TERMINAL: {sym} last fromId page is full and every returned row was kept (so none ran "
-                     f"past the window) — the fetcher would have continued")
-        return "DEDUCED_EXACT" if len(V) == nV else "VIOLATION"
-    elif len(V) == nV:
-        U.append(f"TRADES_RETURNED_ROWS_NOT_IN_BODY_NO_ROW_EVIDENCE: {sym} pages returned {tot} row(s), body keeps {cnt}; the fetcher "
-                 f"drops only out-of-window rows and repeated ids, but these v2 page receipts carry no per-row evidence to show the "
-                 f"{tot - cnt} dropped row(s) were such (a v3 re-pull records [id, time] per returned row)")
-        return "UNPROVEN"
-    return "VIOLATION"
-
-
-def _income(ip, irows, S, s_ms, e_ms, lim, V, U):
-    """income 逐页凭据。返回证据级别(同上)。取数器规则(fetch_income_paged v2/v3 同一套):
-      首页 window@s; 页内【边界多重集扣除】: 只在续取的 window 页上、只对 time == 本页 startTime 且与已持有的该毫秒行【全字段同一】的行扣除;
-      window 满页: max(time) > min(time) ⇒ 下一请求 window@max(time)(不 +1); 否则整页在同一毫秒 ⇒ 用 page=2,3,… 枚举该毫秒
-      (每页扣除该毫秒已持有的同一行), 枚举在短页结束 ⇒ 下一请求 window@该毫秒+1(> e 则结束); 满页却无新行 = 取数器判 INCOMPLETE;
-      window 短页 ⇒ 结束。所以一次完整拉取的最后一页必是短页。"""
-    nV = len(V)
-    if not isinstance(ip, list) or not ip: V.append("NO_INCOME_PAGE_RECEIPTS"); return "VIOLATION"
-    if not all(isinstance(p, dict) for p in ip): V.append("INCOME_PAGE_MALFORMED"); return "VIOLATION"
-    for i, p in enumerate(ip):
-        if p.get("status") != 200: V.append(f"INCOME_PAGE_STATUS_NOT_200: page {i} status {p.get('status')}")
-        if not _isint(p.get("n")) or p["n"] < 0: V.append(f"INCOME_PAGE_N_INVALID: page {i} n {p.get('n')!r}")
-    if not _isint(S) or S < 0:
-        V.append(f"INCOME_SUBTRACTED_INVALID: income_n_boundary_rows_subtracted {S!r} (a count of removed rows: a non-negative integer)")
-    if len(V) > nV: return "VIOLATION"
-    ns = [p["n"] for p in ip]; last = len(ip) - 1
-    mode = lambda p: p.get("mode", "window")
-    if sum(ns) - S != len(irows):
-        V.append(f"INCOME_ROWCOUNT_IDENTITY: sum(n) {sum(ns)} - subtracted {S} != rows {len(irows)}")
-    if mode(ip[0]) != "window" or ip[0].get("startTime") != s_ms: V.append("INCOME_FIRST_PAGE_NOT_THIS_WINDOW")
-    if ns[last] >= lim:
-        V.append(f"INCOME_FINAL_PAGE_FULL: the last page ({last}) holds {ns[last]} rows = the page limit; the fetcher ends only on a "
-                 f"short page, so a full final page is an unfinished pull")
-    if len(ip) == 1 and S != 0: V.append(f"INCOME_SUBTRACTED_WITHOUT_CONTINUATION: one page, yet {S} row(s) declared subtracted")
-    itm = [_as_int(r.get("time")) if isinstance(r, dict) else None for r in irows]
-    if any(t is None for t in itm): V.append("INCOME_BODY_TIME_MALFORMED"); return "VIOLATION"
-
-    if all(isinstance(p.get("returned"), list) for p in ip):
-        # ── 行级凭据(fetch_income_paged v3): 整次拉取按取数器自己的规则重放 ──
-        held, S_r, boundary, ms_rows = [], 0, collections.Counter(), []
-        state, done, broke = ("window", s_ms), False, False
-        for i, p in enumerate(ip):
-            if done:
-                V.append(f"INCOME_PAGES_AFTER_TERMINATION: page {i} follows the page on which the fetcher stops"); broke = True; break
-            pr = []
-            for x in p["returned"]:
-                d, t = (x[0], _as_int(x[1])) if isinstance(x, (list, tuple)) and len(x) == 2 else (None, None)
-                if not (isinstance(d, str) and len(d) == 64) or t is None:
-                    V.append(f"INCOME_PAGE_EVIDENCE_MALFORMED: page {i} entry {str(x)[:40]}"); return "VIOLATION"
-                pr.append((d, t))
-            if p["n"] != len(pr):
-                V.append(f"INCOME_PAGE_N_NOT_EQUAL_RETURNED: page {i} declares n {p['n']} but its evidence lists {len(pr)} returned row(s)")
-            st = _as_int(p.get("startTime"))
-            if state[0] == "window":
-                cur = state[1]
-                if mode(p) != "window" or st != cur:
-                    V.append(f"INCOME_CURSOR_NOT_FETCHER_RULE: page {i} is {mode(p)}@{p.get('startTime')}, the fetcher's next request is window@{cur}")
-                    broke = True; break
-                if any(t < cur or t > e_ms for _, t in pr):
-                    V.append(f"INCOME_PAGE_ROW_OUTSIDE_REQUEST: page {i} returned a row outside [{cur}, {e_ms}]")
-                at = cur if boundary else None                # fetch_income_paged: record(body, cur if boundary else None)
-                kept, sub = [], 0
-                for d, t in pr:
-                    if at is not None and t == at and boundary[d] > 0:
-                        boundary[d] -= 1; sub += 1; continue
-                    kept.append((d, t))
-            else:
-                mx, pgn = state[1], state[2]
-                if mode(p) != "saturated_millisecond" or st != mx or _as_int(p.get("endTime")) != mx or p.get("page") != pgn:
-                    V.append(f"INCOME_SATURATED_ENUMERATION_BROKEN: page {i} is {mode(p)}@{p.get('startTime')} page {p.get('page')}, "
-                             f"the fetcher's next request is saturated_millisecond@{mx} page {pgn}")
-                    broke = True; break
-                if any(t != mx for _, t in pr):
-                    V.append(f"INCOME_SATURATED_PAGE_ROW_OUTSIDE_MS: page {i} returned a row outside millisecond {mx}")
-                seen = collections.Counter(ms_rows); kept, sub = [], 0
-                for d, t in pr:
-                    if seen[d] > 0: seen[d] -= 1; sub += 1; continue
-                    kept.append((d, t))
-                ms_rows += [d for d, _ in kept]
-            held += kept; S_r += sub
-            if "n_kept" in p and p["n_kept"] != len(kept):
-                V.append(f"INCOME_PAGE_N_KEPT_DISAGREES_WITH_REPLAY: page {i} declares {p['n_kept']}, replay keeps {len(kept)}")
-            if "n_subtracted" in p and p["n_subtracted"] != sub:
-                V.append(f"INCOME_PAGE_N_SUBTRACTED_DISAGREES_WITH_REPLAY: page {i} declares {p['n_subtracted']}, replay subtracts {sub}")
-            if state[0] == "window":
-                if len(pr) < lim: done = True; continue
-                mx, mn = max(t for _, t in pr), min(t for _, t in pr)
-                if mx > mn:
-                    boundary = collections.Counter(d for d, t in held if t == mx); state = ("window", mx)
-                else:
-                    ms_rows = [d for d, _ in kept]; state = ("sat", mx, 2)
-            else:
-                if len(pr) < lim:
-                    if state[1] + 1 > e_ms: done = True
-                    else: boundary = collections.Counter(); state = ("window", state[1] + 1)
-                elif not kept:
-                    V.append(f"INCOME_SATURATED_PAGE_REPEATED: page {i} is full but adds no new row (the fetcher declares INCOMPLETE here)")
-                    broke = True; break
-                else:
-                    state = ("sat", state[1], state[2] + 1)
-        if not done and not broke:
-            nxt = f"window@{state[1]}" if state[0] == "window" else f"saturated_millisecond@{state[1]} page {state[2]}"
-            V.append(f"INCOME_NOT_TERMINATED: the last page is not a stopping page under the fetcher's rules (its next request would be {nxt})")
-        if S_r != S: V.append(f"INCOME_SUBTRACTED_DISAGREES_WITH_REPLAY: receipt {S}, replay {S_r}")
-        bd = collections.Counter(income_row_digest(r) for r in irows); hd = collections.Counter(d for d, _ in held)
-        miss, extra = hd - bd, bd - hd
-        if miss: V.append(f"INCOME_RETURNED_ROW_MISSING_FROM_BODY: {sum(miss.values())} row(s) the pages returned and the fetcher's rule keeps are not in the saved body")
-        if extra: V.append(f"INCOME_BODY_ROW_NOT_IN_ANY_PAGE: {sum(extra.values())} saved row(s) that no page returned (or that a page returned and the rule subtracted)")
-        dt = {income_row_digest(r): t for r, t in zip(irows, itm)}
-        if any(d in dt and dt[d] != t for d, t in held): V.append("INCOME_PAGE_TIME_DISAGREES_WITH_ROW")
-        return "ROW_IDENTITY" if len(V) == nV else "VIOLATION"
-
-    # ── 只有页计数(fetch_income_paged v2 的凭据): 请求序列的文法照查; 行身份只在 扣除 = 0 时由计数唯一确定 ──
-    for i in range(1, len(ip)):
-        q, p = ip[i - 1], ip[i]; qst, st = _as_int(q.get("startTime")), _as_int(p.get("startTime"))
-        if qst is None or st is None: V.append(f"INCOME_CURSOR_MALFORMED: page {i}"); break
-        if mode(q) == "window":
-            if q["n"] < lim:
-                V.append(f"INCOME_PAGES_AFTER_TERMINATION: page {i - 1} is a short window page (the fetcher stops there) yet page {i} follows"); break
-            if mode(p) == "window":
-                if not qst < st <= e_ms:
-                    V.append(f"INCOME_CURSOR_NOT_ADVANCING: page {i} startTime {st} after a full window page at {qst}; the fetcher's cursor is "
-                             f"that page's max(time), which lies in ({qst}, {e_ms}]"); break
-            elif mode(p) == "saturated_millisecond":
-                if not (st == _as_int(p.get("endTime")) and qst <= st <= e_ms and p.get("page") == 2):
-                    V.append(f"INCOME_SATURATED_ENUMERATION_BROKEN: page {i} does not open a saturated-millisecond enumeration at page 2"); break
-            else:
-                V.append(f"INCOME_PAGE_MODE_UNKNOWN: page {i} {mode(p)!r}"); break
-        elif mode(q) == "saturated_millisecond":
-            if q["n"] >= lim:
-                if not (mode(p) == "saturated_millisecond" and st == qst and _as_int(p.get("endTime")) == qst and p.get("page") == q.get("page", 0) + 1):
-                    V.append(f"INCOME_SATURATED_ENUMERATION_BROKEN: page {i} after a full saturated page at {qst} is not its next page"); break
-            elif not (mode(p) == "window" and st == qst + 1 and st <= e_ms):
-                V.append(f"INCOME_CURSOR_NOT_FETCHER_RULE: page {i} after the short saturated page at {qst}; the fetcher resumes at window@{qst + 1}"); break
-        else:
-            V.append(f"INCOME_PAGE_MODE_UNKNOWN: page {i - 1} {mode(q)!r}"); break
-    if mode(ip[last]) == "saturated_millisecond" and ns[last] < lim and _as_int(ip[last].get("startTime")) is not None \
-            and _as_int(ip[last].get("startTime")) + 1 <= e_ms:
-        V.append(f"INCOME_NOT_TERMINATED: the pull ends on a short saturated page at {ip[last].get('startTime')}, but the fetcher resumes at +1 ms inside the window")
-    if len(V) > nV: return "VIOLATION"
-    if S == 0:
-        # 没有任何扣除 ⇒ 每页返回的每一行都被追加(kept ⊆ returned 且 Σn = 行数), 第 i 页恰是 body 的第 i 段 ⇒ 逐页核时间与游标
-        off = 0
-        for i, p in enumerate(ip):
-            seg = itm[off:off + p["n"]]; off += p["n"]; st = _as_int(p["startTime"])
-            if mode(p) == "window" and any(t < st or t > e_ms for t in seg):
-                V.append(f"INCOME_PAGE_ROW_OUTSIDE_REQUEST: page {i}"); break
-            if mode(p) == "saturated_millisecond" and any(t != st for t in seg):
-                V.append(f"INCOME_SATURATED_PAGE_ROW_OUTSIDE_MS: page {i}"); break
-            if i < last and mode(p) == "window" and seg:
-                nx = ip[i + 1]; mx, mn = max(seg), min(seg)
-                ok = ((mode(nx) == "window" and _as_int(nx["startTime"]) == mx) if mx > mn else
-                      (mode(nx) == "saturated_millisecond" and _as_int(nx["startTime"]) == mx))
-                if not ok:
-                    V.append(f"INCOME_CURSOR_NOT_FETCHER_RULE: page {i + 1} startTime {nx.get('startTime')} vs the fetcher's cursor "
-                             f"from page {i} (max time {mx}, min time {mn})"); break
-        return "DEDUCED_EXACT" if len(V) == nV else "VIOLATION"
-    U.append(f"INCOME_PER_PAGE_SPLIT_NOT_RECORDED: {len(ip)} pages, {S} boundary row(s) subtracted in total; these v2 page receipts "
-             f"do not record which page each subtraction came from, so no page's contribution — and no row identity between pages and "
-             f"body — can be checked; only the aggregate sum(n) - subtracted = rows holds (a v3 re-pull records [digest, time] per returned row)")
-    return "UNPROVEN"
-
-
-def page_receipt_findings(rd, q_list, trades, irows, s_ms, e_ms):
-    """v4.2(R5-08): 逐页凭据【证明】取数完整, 而不是【计数】自洽。只看落盘的凭据与行, 不联网。返回
-      violations  凭据与取数器自己的规则矛盾(状态 / 计数 / 行身份 / 终止 / 游标)       ⇒ REFUSED_POPULATION
-      unproven    凭据不矛盾, 但不足以证明(取数器未登记 / v2 凭据无逐行证据且拆分不唯一) ⇒ POPULATION_UNPROVEN_PAGE_EVIDENCE
-      evidence    每个品种与 income 的证据级别(ROW_IDENTITY / DEDUCED_EXACT / UNPROVEN / VIOLATION)
-    两者皆空才是 POPULATION_PASS。三条要证的性质:
-      (1) 行身份: 按取数器自己的身份规则(userTrades = (symbol, id); income = 全字段行的多重集 + 边界扣除)把各页【重放】出来的保留行
-          必须与原始件保存的行【逐一相同】; 每页声明的 n 必须等于它逐行列出的返回行数。
-      (2) 终止: userTrades 每个品种末页是短页 / 空页 / 越过窗口; income 末页必须是短页(满页 = 未完成), 满毫秒枚举必须以短页结束。
-      (3) 游标: fromId 严格递增且 = 上一页 max(id)+1; income 的下一请求 = 取数器按上一页算出的那一个(max(time) 不 +1 / 满毫秒 page+1 /
-          枚举结束后该毫秒 +1), 因而 startTime 单调不减。
-    v2 取数器的凭据只有逐页 n(没有逐行证据): 只有当计数把「每页贡献了哪几行」唯一确定时(每页返回行全被保留)才算证明, 否则 unproven。
-    重放只对【登记过】的取数器有效(FETCHER_REGISTRY: 源码 sha256 → 规则); 未登记 ⇒ unproven。"""
-    V, U = [], []
-    ev = {"fetchers": {}, "trades": collections.Counter(), "income": None}
-    fsha = rd.get("fetch_devices_sha256") if isinstance(rd.get("fetch_devices_sha256"), dict) else {}
-    for tool in ("fetch_trades.py", "fetch_income_paged.py"):
-        h = fsha.get(tool); reg = FETCHER_REGISTRY.get(h) if isinstance(h, str) else None
-        ok = bool(reg) and reg[0] == tool
-        ev["fetchers"][tool] = {"sha256": h, "registered_rules": reg[1] if ok else None}
-        if not ok: U.append(f"FETCHER_NOT_REGISTERED: {tool} sha256 {str(h)[:16]} — the replay reproduces only registered fetchers' rules")
-    for key in ("page_limit", "income_page_limit"):
-        if key in rd and rd[key] != FETCH_LIMIT:
-            V.append(f"PAGE_LIMIT_NOT_FETCHER_LIMIT: {key}={rd[key]!r}, the registered fetchers' LIMIT is {FETCH_LIMIT}")
-    lim = FETCH_LIMIT                                           # 取数器的常量, 不取原始件自报(自报只能被核, 不能改尺)
-    per = rd.get("trades_pages_by_symbol")
-    if not isinstance(per, dict):
-        V.append("NO_TRADES_PAGE_RECEIPTS: 没有逐品种 userTrades 页凭据")
-    else:
-        missing = sorted(set(q_list) - set(per)); extra = sorted(set(per) - set(q_list))
-        if missing: V.append(f"QUERIED_SYMBOL_WITHOUT_PAGE_RECEIPT: {len(missing)} {missing[:5]}")
-        if extra: V.append(f"PAGE_RECEIPT_FOR_UNQUERIED_SYMBOL: {len(extra)} {extra[:5]}")
-        by = collections.defaultdict(list)
-        for t in trades: by[t.get("symbol") if isinstance(t, dict) else None].append(t)
-        for s in sorted(set(per) & set(q_list)):
-            ev["trades"][_trades_symbol(s, per[s], by.get(s, []), s_ms, e_ms, lim, V, U)] += 1
-    ev["income"] = {"level": _income(rd.get("income_pages"), irows, rd.get("income_n_boundary_rows_subtracted"), s_ms, e_ms, lim, V, U),
-                    "n_pages": len(rd.get("income_pages") or []), "subtracted": rd.get("income_n_boundary_rows_subtracted"),
-                    "n_rows": len(irows)}
-    ev["trades"] = dict(ev["trades"])
-    return {"violations": V, "unproven": U, "evidence": ev}
-
-
 def page_receipt_problems(rd, q_list, trades, irows, s_ms, e_ms):
-    """v4.1 的接口保留: 返回清单, 空 ⇔ POPULATION_PASS。v4.2 起清单含两类, 前缀区分: 「VIOLATION …」(⇒ REFUSED_POPULATION)与
-    「UNPROVEN …」(⇒ POPULATION_UNPROVEN_PAGE_EVIDENCE)。"""
-    f = page_receipt_findings(rd, q_list, trades, irows, s_ms, e_ms)
-    return [f"VIOLATION {x}" for x in f["violations"]] + [f"UNPROVEN {x}" for x in f["unproven"]]
+    """v4.1: 逐页凭据的自洽性。返回问题清单(空 = 过)。只看落盘的凭据与行, 不联网。
+    userTrades(每个被查询品种): 有凭据且声明 COMPLETE; 每页 status 200、n 为非负整数; 首页 = 本窗口(mode window, startTime/endTime 逐毫秒相同);
+      只有一页时它必须是短页(n < 页上限, 取数器只在短页上结束首页); 续页一律 mode fromId; 除最后一页外每页都是满页
+      (取数器只在满页后续取); 该品种落盘行数 = 凭据 n_rows, 且不超过各页 n 之和。
+    income: 有凭据; 每页 status 200; 首页 startTime = 本窗口起点; Σn − 边界扣除数 = 落盘行数(取数器的边界多重集扣除恒等式)。"""
+    P = []
+    per = rd.get("trades_pages_by_symbol"); ip = rd.get("income_pages")
+    lim = rd.get("page_limit", PAGE_LIMIT)
+    isint = lambda x: isinstance(x, int) and not isinstance(x, bool)
+    if not isinstance(per, dict): return ["NO_TRADES_PAGE_RECEIPTS: 没有逐品种 userTrades 页凭据"]
+    missing = sorted(set(q_list) - set(per)); extra = sorted(set(per) - set(q_list))
+    if missing: P.append(f"QUERIED_SYMBOL_WITHOUT_PAGE_RECEIPT: {len(missing)} {missing[:5]}")
+    if extra: P.append(f"PAGE_RECEIPT_FOR_UNQUERIED_SYMBOL: {len(extra)} {extra[:5]}")
+    cnt = collections.Counter(t["symbol"] for t in trades)
+    for s in sorted(set(per) & set(q_list)):
+        e_ = per[s] if isinstance(per[s], dict) else {}; pg = e_.get("pages") or []
+        if e_.get("completeness") != "COMPLETE": P.append(f"INCOMPLETE_SYMBOL: {s} ({e_.get('incomplete_reason')})")
+        if not pg: P.append(f"NO_PAGES: {s}"); continue
+        for i, p in enumerate(pg):
+            if p.get("status") != 200: P.append(f"PAGE_STATUS_NOT_200: {s} page {i} status {p.get('status')}")
+            if not isint(p.get("n")) or p["n"] < 0: P.append(f"PAGE_N_INVALID: {s} page {i} n {p.get('n')!r}")
+        ns = [p["n"] if isint(p.get("n")) else -1 for p in pg]
+        f0 = pg[0]
+        if f0.get("mode") != "window" or f0.get("startTime") != s_ms or f0.get("endTime") != e_ms:
+            P.append(f"FIRST_PAGE_NOT_THIS_WINDOW: {s}")
+        if len(pg) == 1 and ns[0] >= lim: P.append(f"FULL_WINDOW_PAGE_NOT_CONTINUED: {s}")
+        if any(p.get("mode") != "fromId" for p in pg[1:]): P.append(f"CONTINUATION_NOT_BY_FROMID: {s}")
+        if any(n != lim for n in ns[:-1]): P.append(f"SHORT_PAGE_BEFORE_LAST: {s}")
+        if e_.get("n_rows") != cnt.get(s, 0): P.append(f"ROWCOUNT_MISMATCH: {s} receipt {e_.get('n_rows')} vs body {cnt.get(s, 0)}")
+        if cnt.get(s, 0) > sum(max(n, 0) for n in ns): P.append(f"MORE_ROWS_THAN_PAGES: {s}")
+    if not isinstance(ip, list) or not ip:
+        P.append("NO_INCOME_PAGE_RECEIPTS")
+    else:
+        for i, p in enumerate(ip):
+            if p.get("status") != 200: P.append(f"INCOME_PAGE_STATUS_NOT_200: page {i} status {p.get('status')}")
+            if not isint(p.get("n")) or p["n"] < 0: P.append(f"INCOME_PAGE_N_INVALID: page {i} n {p.get('n')!r}")
+        if ip[0].get("startTime") != s_ms: P.append("INCOME_FIRST_PAGE_NOT_THIS_WINDOW")
+        sub = rd.get("income_n_boundary_rows_subtracted")
+        tot = sum(p["n"] for p in ip if isint(p.get("n")))
+        if not isint(sub) or tot - sub != len(irows):
+            P.append(f"INCOME_ROWCOUNT_IDENTITY: sum(n) {tot} - subtracted {sub} != rows {len(irows)}")
+    return P
 
 
 def write_doc(out, doc):
@@ -715,17 +412,11 @@ def _main():
             return refusal("POPULATION", "原始件当初查询的品种【集合】与本次应查的集合不同(个数相同也拒)", pop)
         queried = set(q_list)
         if has_pages:
-            fnd = page_receipt_findings(rd, q_list, trades, irows, s_ms, e_ms)
-            pop["page_evidence"] = fnd["evidence"]
-            if fnd["violations"]:                             # 凭据与取数器自己的规则矛盾 ⇒ 拒(与 v4.1「计数不合 ⇒ REFUSED」同一档)
-                pop.update(n_page_receipt_problems=len(fnd["violations"]), page_receipt_problems=fnd["violations"][:20],
-                           n_page_evidence_unproven=len(fnd["unproven"]), page_evidence_unproven=fnd["unproven"][:20])
-                return refusal("POPULATION", "逐页凭据与取数器自己的规则矛盾(状态 / 计数 / 行身份 / 终止 / 游标 / INCOMPLETE / 缺凭据)", pop)
-            if fnd["unproven"]:                               # 不矛盾但证不了 ⇒ 具名未证, 永不 PASS
-                tier = TIER_PAGES
-                pop.update(n_page_evidence_unproven=len(fnd["unproven"]), page_evidence_unproven=fnd["unproven"][:40])
-            else:
-                tier = TIER_PASS
+            prob = page_receipt_problems(rd, q_list, trades, irows, s_ms, e_ms)
+            if prob:
+                pop.update(n_page_receipt_problems=len(prob), page_receipt_problems=prob[:20])
+                return refusal("POPULATION", "逐页凭据显示不完整或不自洽的页(INCOMPLETE 页 / 非 200 / 缺凭据 / 计数不合)", pop)
+            tier = TIER_PASS
         else:
             tier = TIER_LIST                                  # 有查询清单、无逐页凭据: 集合相等, 但每个品种是否取全仍只是自述
     else:
@@ -746,18 +437,12 @@ def _main():
         return refusal("POPULATION", "userTrades 含未被查询的品种", pop)
     pop.update(tier=tier, required_symbols=names,
                required_symbols_sha256=hashlib.sha256(json.dumps(names).encode()).hexdigest(),
-               reads=("POPULATION_PASS (v4.2): the saved query list equals the required set AND, replaying each registered fetcher's own "
-                      "rules over the page receipts, (1) the rows the pages returned and the rule keeps are exactly the saved rows "
-                      "(userTrades by (symbol, id); income as a full-row multiset after boundary subtraction) and every page's n equals the "
-                      "rows it lists, (2) every userTrades symbol ends on a short / empty / past-window page and the income pull ends on a short "
-                      "page (saturated milliseconds enumerated to a short page), (3) every cursor is the one the fetcher computes (fromId = "
-                      "max(id)+1 strictly increasing; income startTime = previous max(time), page+1, or ms+1). Count-only (v2) receipts pass "
-                      "only where the counts force the page split (every returned row kept). POPULATION_UNPROVEN_PAGE_EVIDENCE: receipts "
-                      "consistent but insufficient (named reasons). POPULATION_UNPROVEN_NO_PAGE_RECEIPTS: query list equal but no page receipts. "
-                      "POPULATION_UNPROVEN_COUNT_ONLY: legacy raw without a query list; only the count could be compared."))
+               reads=("POPULATION_PASS: the saved query list equals the required set AND every queried symbol has page receipts "
+                      "(all 200, first page = this window, non-last pages full, row counts consistent) AND the income pages are all 200 "
+                      "with sum(n) - boundary_subtracted = rows. POPULATION_UNPROVEN_NO_PAGE_RECEIPTS: query list equal but no page "
+                      "receipts. POPULATION_UNPROVEN_COUNT_ONLY: legacy raw without a query list; only the count could be compared."))
     gates["INPUT_FINITE"] = "PASS"                             # 余下的输入(BNB 路径行、指数价)在 D 段载入时再查, 不过即拒
-    gates["POPULATION"] = {TIER_PASS: "PASS", TIER_PAGES: "UNPROVEN_PAGE_EVIDENCE", TIER_LIST: "UNPROVEN_NO_PAGE_RECEIPTS",
-                           TIER_COUNT: "UNPROVEN_COUNT_ONLY"}[tier]
+    gates["POPULATION"] = {TIER_PASS: "PASS", TIER_LIST: "UNPROVEN_NO_PAGE_RECEIPTS", TIER_COUNT: "UNPROVEN_COUNT_ONLY"}[tier]
 
     # ── C. 闭合 ──
     led_ids = {(f["symbol"], str(f["trade_id"])) for f in fills}
