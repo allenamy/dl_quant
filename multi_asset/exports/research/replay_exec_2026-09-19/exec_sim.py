@@ -1,60 +1,71 @@
 #!/usr/bin/env python3
-"""replay_exec 2026-09-19 · EXECUTOR-LAYER SIMULATOR: producer target books → executed positions, turnover, fees, funding and
-price P&L, with self-evolving state (positions, entry prices, per-name stop counters / stop set / cooldown, day-loss halt).
+"""replay_exec 2026-09-19 · EXECUTOR-LAYER SIMULATOR v3 (causal clocks): producer target books → executed positions, turnover, fees,
+funding and price P&L, with self-evolving state (positions, entry prices, per-name stop counters / stop set / cooldown, day-loss
+halt). v2 (sha 2638316b, archive/exec_sim_v2_2638316b.py) was rejected by review round 5 (R5-01, R5-06, R5-13); v3 fixes the CLASS:
 
-Design contract (DESIGN_FP3_P §2 P-C and §8): the book layer is a pure function of DECISION-TIME-VISIBLE state only — the
-sim's own positions / entry prices / stop state / equity, the archived target_live/<A>.json, the venue's tradable set and
-meta exclusions as the executor recorded them BEFORE trading (phase_A universe gate, anchors.external_book.meta_excluded),
-the config timeline (gross_mult, chase weights) as recorded, and market prices. Post-anchor readbacks, fills and NAV rows are
-NEVER inputs to a decision; they are only the validation target (v1_gate.py).
+  R5-01  DECISION CLOCK vs FILL CLOCK. The decision of anchor A happens at t_dec(A) = the executor's recorded read instant (the rid
+         timestamp: N+23:00 before 08-27 08Z, N+24:00 after; N+24:00 where no rid was recorded) and reads ONLY what exists then:
+         the inventory held at t_dec, the simulated equity at t_dec, and prices of the LAST COMPLETE 5-minute bar at or before
+         t_dec (P(floor_b(t_dec)) = the bar ending N+20:00). Quantities are fixed at the decision (the executor's own plan rounds
+         to lot steps). Every fill is an EVENT at its own simulated time: t_dec + the calibrated pooled offsets (first leg / later
+         legs, notional-weighted 10/30/50/70/90% quantiles, 1/5 of the leg's quantity at each), priced at the decision-visible
+         reference × (1 + side × pooled slippage vs the executor's own recorded mid). Inventory changes only when a fill event
+         is processed; funding at settlement t_s charges the inventory held at t_s (fills at t < t_s). Flattens: quantity = the
+         inventory at the flatten start, fills at start + pooled flatten offsets; pending rebalance fills after the start are
+         cancelled (the executor cancels open orders first). A future-perturbation test (battery) changes every price after
+         t_dec and requires the plan of A to be byte-identical.
+         Frame rule (pre-declared in v1b_gate.py before any v3 number): when the live window frame gives anchor A's own post-run
+         readback instant t_rb(A) (= that window's t0), fills of A are booked before it (live: 0.0% of fill notional after it);
+         the per-name stop / §4-2 evaluation of A is at t_rb(A) (the executor judges on that readback), else at N+45.
+  R5-06  NO GUARANTEED FILLS. Outcomes are per-REQUEST draws (hash of seed, rid, symbol, leg — no RNG state, independent of
+         prices), so every path is a feasible execution history: a leg fills fully / not at all / partially, a residual is
+         completed or not. v2's exit completion is gone: a sub-floor remainder stays as DUST unless the executor's own logic
+         would send an order for it (a full exit is sized by the held quantity and skipped below the venue floor). Dust exposure
+         is reported per window. Expectations are the MEAN over R seeded paths (seeds 0..R-1, all reported).
+  R5-13  The initial state (positions from the executor's own readback at t0, NAV, rebuilt entries, stop state) is SEALED — a
+         canonical JSON and its sha256 — BEFORE the run; main() writes it to disk before the first event and re-verifies after.
 
-Same code, imported from the COPY of the running executor tree 409ea16 exported into the mirror (snapshot_inputs.py):
-  scheduler.anchor_loop.apply_withhold_and_reshape (POP → RESHAPE → CLAMP, force_flat = per-name stop set)
-  live.binance_executor.RebalanceExecutor.plan (deltas → min-notional → lot rounding; full exits sized by held quantity)
-  live.external_book.parse_target / target_vector / held_not_in_target / below_min_notional (2 × minNotional dust)
-  signal.legs.to_notional · live.per_name_stop.evaluate / active_sets (−30% × 2 anchors, 7-day cooldown, wide profile)
-  live.chase_policy.plan_experiment (C neutral_only frame + randomised arms, the anchor's recorded weights)
-  live.requote_experiment.assign (deterministic requote / direct arm)
-Not imported (stated approximations, see the result doc): the venue-cap clamp (maxNotionalValue per leverage bracket, ~1 name),
-the dead zone (never active live: every anchor process starts with gross 0 ⇒ resize, 272/272 anchors), the placement bandit
-(pooled into the maker outcome shares), rate limits / transport failures / −4400 venue lock (pooled into the top-up fill rate).
+POOLED outcome parameters only (blind protocol for CFG-04 / CFG-06): first-leg refusal / full / zero / partial shares; one
+completion probability π and maker share μ for every eligible residual (refused or rested, every arm); one slippage per leg class.
+The executor's deterministic ARM ASSIGNMENT functions still run (chase_policy.plan_experiment, requote_experiment.assign) and only
+their assignment COUNTS are reported — no outcome is conditioned on an arm.
 
-Fill model (CALIBRATION_FROZEN_*.json "params", EXPECTED VALUE — no random draws): per plan with rounded quantity q at mid m,
-d = q·m. First maker leg: P(−5022 reject) p_rej; rested legs fill fully / not at all / partially (mean fraction f̄) with the
-calibrated shares. Rejected legs go to requote (from the experiment's first anchor: arm = requote_experiment.assign(rid, sym, 0.5);
-before it: the measured requote share as an expected-value mix; reduce-only exempt ⇒ requote) whose own outcome shares are
-calibrated, or directly to the from_reject taker. Each residual CATEGORY (zero-fill: d,
-partial: (1−f̄)·d) is checked against the symbol's floor after lot rounding (the executor's own rule), then chased only if
-the name's chase arm is chase / chase_forced (chase_policy on the expected residuals, recorded weights, E4 exclusion of stop
-names from 09-13 12Z), times the calibrated top-up fill rate of that arm (chase_forced is abandoned far more often). All legs of anchor A execute at the decision boundary
-b_d = A+25min at P(b_d)·(1 + side·s_leg), s_leg = calibrated notional-weighted slippage vs mid_at_anchor per leg type
-(the taker legs' 15-minute drift is inside s_leg, which is why they are placed at b_d and not at their fill time).
-Fees = |notional| × calibrated rate (maker / taker × fee era, data-derived switch). Funding = −q·P(t_s)·rate at every
-settlement (symbol's own fundingTime ⇒ interval-correct), rates = producer ledger (aux.json) with the executor's funding rows
-as fallback. Prices = ONE chain per symbol on the producer's 5-minute panel (simlib.Panel).
-
-Events: --events live  = the actual protective timeline injected (flatten instants from the protective-flatten fills; anchors
-                          the executor did not trade: HALT = every row blocked_by_halt, HOLD = no rows and no fills, MAKER_ONLY =
-                          maker fills without order rows — the 09-09 12Z run that died before its top-up leg).
-        --events rule  = only §4-2 fires: at each N+40 the day's equity change vs the previous UTC day's last N+40 value (net of
-                          transfers) < −4% ⇒ flatten at N+46 and halt until the next UTC day's FIRST anchor (00Z). Live resumes on
-                          the first anchor AFTER a new-day NAV row exists (09-06 trip → 09-07 04Z), i.e. this approximation
-                          resumes one anchor earlier; stated, not hidden. HOLD only where the target file is missing (the
-                          executor's own on_unavailable=hold rule).
-Knobs for the battery (all default OFF; every run records them): --no-stop, --no-min-notional, --zero-fees, --fee-asset-wrong,
---funding-sign-flip, --funding-double, --no-exit-completion (= the v1 behaviour).
-VERSION v2 (2026-09-19, after V1): adds EXIT COMPLETION (see on_anchor). v1 (sha fbcaa25e, archive/exec_sim_v1_fbcaa25e.py) is the
-device the V1 verdict of record was computed with; v2 changes no calibration parameter.
-usage: exec_sim.py --events {live,rule} --out <out.json> [--calib CAL.json] [--mirror DIR] [knobs]
+Same executor code as v2, imported from the COPY of tree 409ea16 in the mirror: apply_withhold_and_reshape, RebalanceExecutor.plan,
+SymbolFilters.round_qty, external_book.parse_target / target_vector / held_not_in_target / below_min_notional, legs.to_notional,
+per_name_stop.evaluate / active_sets, chase_policy.plan_experiment, requote_experiment.assign.
+Not modelled (stated): venue-cap clamp, placement bandit, rate limits / transport, in-flight orders at the run start, correlation
+between fill probability and the subsequent price path, the producer panel's ±0.30-clipped bars (see the result doc).
+Knobs (battery; all default OFF, recorded in every receipt): --no-stop, --no-min-notional, --zero-fees, --fee-asset-wrong,
+--funding-sign-flip, --funding-double, and MUTATIONS that re-introduce the reviewed defects: --legacy-decision-lookahead (decision
+reads the bar closing after t_dec), --legacy-book-at-decision (every fill booked at t_dec), --legacy-exit-completion (v2's
+guaranteed sub-floor exit fill), --legacy-unsealed-initial (receipt counts the initial population after the run).
+usage: exec_sim.py --events live --period {CAL,HOLDOUT} --out <out.json> [--last-anchor A] [--paths R] [--calib CAL.json] [--mirror DIR] [knobs]
 """
-import argparse, collections, copy, json, os, sys, time, types
+import argparse, collections, copy, hashlib, heapq, json, math, os, sys, time, types
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import simlib as L
+import v1b_gate as G
 
+VERSION = "v3"
+H4 = 14400
 E4_FROM_ANCHOR = 1789300800           # 09-13 12Z: ef60f85 (E4: a stopped name's from_partial residual is never chased)
+RQ_FIRST_ANCHOR = 1788609600          # 09-05 12Z: first anchor whose order rows carry requote_p (12aa2a1 deployed 11:48:11Z)
 TRADE, HALT, HOLD, MAKER_ONLY = "TRADE", "HALT", "HOLD", "MAKER_ONLY"
+KNOBS = ("no_stop", "no_min_notional", "zero_fees", "fee_asset_wrong", "funding_sign_flip", "funding_double",
+         "legacy_decision_lookahead", "legacy_book_at_decision", "legacy_exit_completion", "legacy_unsealed_initial")
+PRI = {"xfer": 1, "funding": 2, "fill": 3, "flatten": 4, "anchor": 5, "eval": 6, "win": 9}
+
+
+def u01(seed, *key):
+    """per-request uniform in [0, 1): a hash of (seed, rid, symbol, leg) — no RNG state, independent of prices and of order"""
+    h = hashlib.blake2b("|".join(str(x) for x in (seed,) + key).encode(), digest_size=8).digest()
+    return int.from_bytes(h, "big") / 2.0 ** 64
+
+
+def canon_sha(obj):
+    return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":"), default=str).encode()).hexdigest()
 
 
 class ExecutorCode:
@@ -74,7 +85,7 @@ class ExecutorCode:
         self.book_cfg = json.load(open(os.path.join(t, "config", "book.json")))
         ext = self.EXT.config(self.book_cfg)
         assert ext["source"] == "external", ext.get("error")
-        self.ext_cfg = dict(ext, universe_sha_pin=None, booster_sha_pin=None, f10_sha_pin=None)   # pins only refuse; every archived book the executor traded was accepted (weights_sha checked below)
+        self.ext_cfg = dict(ext, universe_sha_pin=None, booster_sha_pin=None, f10_sha_pin=None)   # pins only refuse; every archived book the executor traded was accepted
         self.pns_conf = self.PNS.cfg(os.path.join(t, "config", "book.json"))
         assert self.pns_conf.get("_profile") == "wide" and abs(float(self.pns_conf["depth_pct"]) + 0.30) < 1e-12, self.pns_conf
         self.filters = self.BX.SymbolFilters.__new__(self.BX.SymbolFilters)
@@ -85,9 +96,8 @@ class ExecutorCode:
 
 # ───────────────────────────── decision-time timeline from the executor's own records ─────────────────────────────
 def config_timeline(M, anchors):
-    """gross_mult, chase weights, venue-tradable set, meta exclusions and rebalance_id per nominal anchor, as recorded at
-    DECISION time (phase_A = before orders; anchors row fields written from the same run's decision state). Carried forward
-    over anchors without a record. Returns {A: {...}} and a provenance count."""
+    """gross_mult, chase weights, venue-tradable set, meta exclusions, rebalance_id and the DECISION INSTANT per nominal anchor, as
+    recorded at decision time (phase_A = before orders). Carried forward over anchors without a record."""
     an = M.anchor_rows()
     out, prov = {}, collections.Counter()
     last = {"gm": None, "weights": None, "tradable": None, "meta": set()}
@@ -119,16 +129,19 @@ def config_timeline(M, anchors):
         else:
             me = last["meta"]; prov["meta_carried"] += 1
         rid = (pa or {}).get("rebalance_id") or f"A{A + 1440}"
-        out[A] = {"gm": gm, "weights": w, "tradable": tr, "meta": me, "rid": rid, "rid_recorded": bool(pa)}
+        t_dec = float(rid[1:])
+        assert A + 1200 < t_dec < A + 1800, (L.UA(A), rid)
+        prov["t_dec_recorded" if pa else "t_dec_default_N+24"] += 1
+        out[A] = {"gm": gm, "weights": w, "tradable": tr, "meta": me, "rid": rid, "rid_recorded": bool(pa), "t_dec": t_dec}
         last = {"gm": gm, "weights": w, "tradable": tr, "meta": me}
     return out, dict(prov)
 
 
 def live_event_timeline(M, anchors):
-    """--events live: the ACTUAL protective timeline (exogenous): flatten instants + per-anchor TRADE / HALT / HOLD / MAKER_ONLY"""
+    """--events live: the ACTUAL protective timeline (exogenous): flatten start instants + per-anchor TRADE / HALT / HOLD / MAKER_ONLY"""
     onom = M.orders_by_nominal()
     fl_t = collections.defaultdict(list)
-    t_lo, t_hi = anchors[0], anchors[-1] + 14400 + 3600
+    t_lo, t_hi = anchors[0], anchors[-1] + H4 + 3600
     for x in L.all_trades(M, t_lo, t_hi):
         if x["order_type"] == "protective_flatten":
             fl_t[int(x["ts"]) // 3600].append(x["ts"])
@@ -146,7 +159,7 @@ def live_event_timeline(M, anchors):
         od = onom.get(A, [])
         sent = [r for r in od if r["terminal_reason"] not in ("blocked_by_halt", "skipped_min_notional")]
         if od and any(r["terminal_reason"] == "blocked_by_halt" for r in od) and not sent:
-            kind[A] = HALT                  # every row is blocked_by_halt except min-notional skips (which never reach the halt gate)
+            kind[A] = HALT
         elif not od and fills_by_rid.get((A, "maker")) and not fills_by_rid.get((A, "topup_taker")):
             kind[A] = MAKER_ONLY
         elif not od:
@@ -157,8 +170,7 @@ def live_event_timeline(M, anchors):
 
 
 def initial_stop_state(M, t0, conf):
-    """the per-name stop state at t0 rebuilt from the executor's own phase_C records (stopped lists + the time a stopped name
-    left the list = the cooldown start; cooldown = start + cooloff_days). Asserted against the recorded cooldown_n."""
+    """per-name stop state at t0 rebuilt from the executor's own phase_C records; asserted against the recorded cooldown_n"""
     _, pc = M.phase_records()
     stopped, cool, last_rec = set(), {}, None
     cd = float(conf.get("cooloff_days", 7)) * 86400.0
@@ -181,12 +193,20 @@ def initial_stop_state(M, t0, conf):
         {"phase_c_utc": L.U(last_rec[0]), "cooldown": {s: L.U(v) for s, v in sorted(cool.items())}, "stopped": sorted(stopped)}
 
 
-def initial_entries(M, t0, q0, panel):
-    """average entry price per held name at t0, rebuilt from every trade since the book was last flat (the 08-21 20:16Z
-    protective flatten) with the venue's rule (adds re-average, reductions keep the entry, a sign flip restarts at the fill
-    price). Names whose rebuilt quantity disagrees with the t0 readback by > 1% (or were never traded in that span) start at
-    the panel price at t0 (named)."""
-    t_flat = 1787343360.0 + 900          # FLATTEN-20260821T201600Z + 15 min
+def last_flatten_before(t0):
+    """the last protective flatten (FLATTEN_CLOSURE raw file names) that started before t0, + 15 min — the book was flat then"""
+    ts = []
+    for p in L.FLATTEN_RAW:
+        k = os.path.basename(p).split("FLATTEN-")[1][:15]
+        ts.append(time.mktime(time.strptime(k, "%Y%m%dT%H%M%S")) - time.timezone)
+    prev = [t for t in ts if t < t0]
+    return max(prev) + 900.0
+
+
+def initial_entries(M, t0, q0, panel, t_flat):
+    """average entry per held name at t0, rebuilt from every trade since the book was last flat (venue rule: adds re-average,
+    reductions keep the entry, a sign flip restarts at the fill price). Names whose rebuilt quantity disagrees with the t0 readback by
+    > 1% start at the panel price at t0 (named)."""
     q, e = collections.defaultdict(float), {}
     for x in L.all_trades(M, t_flat, t0):
         s, dq, px = x["symbol"], x["sq"], x["px"]
@@ -204,50 +224,69 @@ def initial_entries(M, t0, q0, panel):
         if abs(q[s] - qq) <= 0.01 * abs(qq) and s in e:
             out[s] = e[s]
         else:
-            p = panel.px(s, b0)
-            out[s] = p
+            out[s] = panel.px(s, b0)
             named[s] = {"rebuilt_qty": q[s], "readback_qty": qq, "entry": "panel price at t0"}
     return out, named
 
 
 # ───────────────────────────────────────────── the simulator ─────────────────────────────────────────────
 class Sim:
-    def __init__(self, M, cal, mode, knobs, X=None, panel=None, fund=None):
-        self.M, self.cal, self.mode, self.k = M, cal, mode, knobs
+    def __init__(self, M, cal, mode, knobs, X=None, panel=None, fund=None, seed=0, run_start_anchor=L.A_V1_FIRST,
+                 last_anchor=L.A_V1_LAST):
+        self.M, self.cal, self.mode, self.k, self.seed = M, cal, mode, dict(knobs), int(seed)
         self.p = cal["params"]
         self.X = X or ExecutorCode(M)
         self.P = panel
         if self.P is None:
             self.P = L.Panel(M); L.build_references(M, self.P)
         self.F = fund or L.FundingBook(M)
-        self.W, _ = L.live_windows()
-        self.W = [w for w in self.W if L.A_V1_FIRST <= L.nominal(w["t0"]) <= L.A_V1_LAST]
-        self.t_start, self.t_end = self.W[0]["t0"], self.W[-1]["t1"]
-        self.anchors = [A for A in range(L.A_V1_FIRST + 14400, L.nominal(self.t_end) + 1, 14400)]   # first decision after t0 = 08-26 04Z; last = the one inside the last window (09-19 00Z)
-        self.cfg, self.cfg_prov = config_timeline(M, list(range(L.A_V1_FIRST, self.anchors[-1] + 1, 14400)))
+        Wall, _ = L.live_windows()
+        self.frame = {L.nominal(w["t0"]): float(w["t0"]) for w in Wall}      # executor's own post-run readback per anchor
+        self.W = [w for w in Wall if run_start_anchor <= L.nominal(w["t0"]) <= last_anchor]
+        assert self.W and L.nominal(self.W[0]["t0"]) == run_start_anchor, "run must start at a live window's t0 readback"
+        self.run_start_anchor, self.last_anchor = run_start_anchor, last_anchor
+        self.t_start, self.t_end = float(self.W[0]["t0"]), float(self.W[-1]["t1"])
+        self.anchors = list(range(run_start_anchor + H4, L.nominal(self.t_end) + 1, H4))
+        self.cfg, self.cfg_prov = config_timeline(M, list(range(L.A_V1_FIRST, self.anchors[-1] + 1, H4)))
         self.flat_times, self.kind = live_event_timeline(M, self.anchors)
         self.xfers = [(t, a) for t, a in L.transfers() if self.t_start < t <= self.t_end]
         self.fee_switch = float(self.p["fee_rate"]["switch_ts"])
-        # initial state = the executor's own post-trade readback at t0 (same call as the NAV row) and the NAV at t0
-        rb = [r for d in ("20260826",) for r in M.rows(d, "position_readback") if abs(float(r["read_ts"]) - self.t_start) < 1.0]
+        tm = self.p["timing_offsets_after_decision_s"]
+        self.tau1, self.tau2, self.tw = [float(x) for x in tm["first_leg"]], [float(x) for x in tm["later_leg"]], [float(x) for x in tm["weights"]]
+        self.tauf = [float(x) for x in self.p["timing_offsets_after_flatten_start_s"]["flatten"]]
+        assert abs(sum(self.tw) - 1.0) < 1e-12 and min(self.tau1 + self.tau2) > 0 and min(self.tauf) >= 0
+        # ── initial state = the executor's own readback at t0 (same call as the NAV row) + NAV at t0; SEALED before any event ──
+        day = time.strftime("%Y%m%d", time.gmtime(self.t_start))
+        rb = [r for r in M.rows(day, "position_readback") if abs(float(r["read_ts"]) - self.t_start) < 1.0]
         assert rb, "no readback at t0"
         self.q = {r["symbol"]: float(r["venue_position_qty"]) for r in rb if float(r["venue_position_qty"]) != 0.0}
         self.nav0 = float(self.W[0]["nav0_usdt"])
-        self.entry, self.entry_named = initial_entries(M, self.t_start, self.q, self.P)
+        t_flat = last_flatten_before(self.t_start)
+        self.entry, self.entry_named = initial_entries(M, self.t_start, self.q, self.P, t_flat)
         self.pns, self.pns_init = initial_stop_state(M, self.t_start, self.X.pns_conf)
         b0 = L.floor_b(self.t_start)
         miss = [s for s in self.q if self.P.px(s, b0) is None]
         assert not miss, f"held names without a price chain at t0: {miss}"
         self.K = self.nav0 - sum(q * self.P.px(s, b0) for s, q in self.q.items())
-        self.acc = collections.Counter()           # cumulative: tradecash, fee, fund, turn, xfer, n_trades
+        self.sealed = {"utc": L.U(self.t_start), "t0": self.t_start, "readback_day": day, "n_readback_rows": len(rb),
+                       "n_positions": len(self.q), "positions_qty": dict(sorted(self.q.items())), "nav0_usdt": self.nav0,
+                       "cash_K0": self.K, "entries": dict(sorted(self.entry.items())), "entries_not_rebuilt": self.entry_named,
+                       "entries_rebuilt_since_flat_utc": L.U(t_flat), "stop_state": {"counters": self.pns["counters"],
+                       "stopped": sorted(self.pns["stopped"]), "cooldown_until": dict(sorted(self.pns["cooldown"].items()))},
+                       "stop_state_provenance": self.pns_init, "run_start_anchor_utc": L.UA(run_start_anchor)}
+        self.sealed = json.loads(json.dumps(self.sealed, sort_keys=True, default=str))     # a deep, canonical COPY: nothing the run mutates is shared
+        self.sealed_sha = canon_sha(self.sealed)
+        self.acc = collections.Counter()
         self.halt_until = None
         self.log_anchor, self.events_fired, self.diag = [], [], collections.Counter()
-        # in-memory audit logs for the battery (not written to the receipt): every trade leg, every funding charge, every depth read
         self.trade_log, self.fund_log, self.depth_log, self.plan_log, self.exit_log = [], [], [], [], []
-        self.day_ref = {}                           # UTC day -> (t, equity) of the previous day's last N+40 evaluation (§4-2 reference)
-        self.last_eval = None
+        self.decisions = {}                      # A -> the decision record (what the future-perturbation test compares)
+        self.last_target = {}
+        self.day_ref, self.last_eval = {}, None
+        self.ev, self.seq, self.rebal_gen = [], 0, 0
+        self.clamp_stats = collections.Counter()
 
-    # ── prices / equity ──
+    # ── prices / equity (every read names the bar it uses) ──
     def px(self, s, b):
         v = self.P.px(s, b)
         if v is None:
@@ -255,18 +294,16 @@ class Sim:
         return v
 
     def mv(self, b):
-        tot = 0.0
-        for s, q in self.q.items():
-            p = self.px(s, b)
-            if p is not None:
-                tot += q * p
-        return tot
+        return sum(q * p for s, q in self.q.items() for p in [self.px(s, b)] if p is not None)
 
     def equity(self, b):
         return self.K + self.mv(b)
 
     def gross(self, b):
         return sum(abs(q * (self.px(s, b) or 0.0)) for s, q in self.q.items())
+
+    def floor_of(self, s):
+        return 0.0 if self.k.get("no_min_notional") else float((self.X.filters.f.get(s) or {}).get("min_notional", 5.0) or 5.0)
 
     def fee_rate(self, t, maker):
         era = "BNB_era" if t < self.fee_switch else "USDT_era"
@@ -276,15 +313,16 @@ class Sim:
             return 0.0
         return float(self.p["fee_rate"][era]["maker" if maker else "taker"])
 
-    # ── one trade ──
-    def trade(self, t, s, notional_mid, b, slip, maker, kind):
-        """execute `notional_mid` (signed, valued at P(b)) at P(b)·(1 + side·slip); update qty, entry, cash, fees, turnover"""
-        if notional_mid == 0.0:
+    # ── event queue ──
+    def push(self, t, kind, arg):
+        heapq.heappush(self.ev, (float(t), PRI[kind], self.seq, kind, arg)); self.seq += 1
+
+    # ── one fill (a quantity fixed earlier, booked now) ──
+    def book(self, t, s, dq, ref_px, slip, maker, kind, A):
+        if dq == 0.0:
             return 0.0
-        P = self.px(s, b)
-        side = 1.0 if notional_mid > 0 else -1.0
-        dq = notional_mid / P
-        px = P * (1.0 + side * slip)
+        side = 1.0 if dq > 0 else -1.0
+        px = ref_px * (1.0 + side * slip)
         cash = dq * px
         fee = abs(cash) * self.fee_rate(t, maker)
         qo = self.q.get(s, 0.0); qn = qo + dq
@@ -292,17 +330,40 @@ class Sim:
             self.entry[s] = px if abs(qo) < 1e-15 else (qo * self.entry.get(s, px) + dq * px) / qn
         elif qo * qn < 0:
             self.entry[s] = px
-        if abs(qn) < 1e-12 * max(1.0, abs(qo)):
+        if abs(qn) < 1e-9 * max(1.0, abs(qo)):
             qn = 0.0
         if qn == 0.0:
             self.q.pop(s, None); self.entry.pop(s, None)
         else:
             self.q[s] = qn
         self.K -= cash + fee
-        self.trade_log.append((t, s, cash, maker, fee, kind))
+        self.trade_log.append((t, s, dq, px, cash, maker, fee, kind, A))
         self.acc["tradecash"] += cash; self.acc["fee"] += fee; self.acc["turn"] += abs(cash); self.acc["n_trades"] += 1
         self.acc[f"turn_{kind}"] += abs(cash)
         return abs(cash)
+
+    def fill_time(self, A, t_dec, tau):
+        if self.k.get("legacy_book_at_decision"):
+            return t_dec
+        t = t_dec + tau
+        rb = self.frame.get(A)
+        if rb is not None and rb > t_dec + 2.0 and t >= rb:
+            self.clamp_stats["n_atoms_clamped"] += 1
+            return rb - 1.0
+        return t
+
+    def schedule(self, A, t_dec, taus, s, Q, ref_px, slip, maker, kind):
+        """split the fixed quantity Q over the timing atoms (last atom takes the exact remainder) and queue the fill events"""
+        done = 0.0
+        for i, (tau, w) in enumerate(zip(taus, self.tw)):
+            dq = (Q - done) if i == len(taus) - 1 else Q * w
+            done += dq
+            t = self.fill_time(A, t_dec, tau)
+            if t != t_dec + tau:
+                self.clamp_stats["notional_clamped"] += abs(dq * ref_px)
+            self.clamp_stats["notional_scheduled"] += abs(dq * ref_px)
+            self.push(t, "fill", {"src": "rebal", "gen": self.rebal_gen, "s": s, "dq": dq, "ref": ref_px, "slip": slip,
+                                  "maker": maker, "kind": kind, "A": A})
 
     # ── events ──
     def on_funding(self, t):
@@ -322,18 +383,36 @@ class Sim:
     def on_transfer(self, t, amt):
         self.K += amt; self.acc["xfer"] += amt
 
-    def flatten(self, t, why):
-        b = L.ceil_b(t)
+    def flatten_start(self, t, why):
+        """cancel pending rebalance fills, then close the inventory held NOW over the pooled flatten timing (taker)"""
+        self.rebal_gen += 1
+        b = L.floor_b(t)
         n = 0
         for s, q in sorted(self.q.items()):
             P = self.px(s, b)
             if P is None:
                 continue
             n += 1
-            self.trade(t, s, -q * P, b, float(self.p["slippage_flatten_vs_mid_at_submit"]), False, "flatten")
+            done = 0.0
+            for i, (tau, w) in enumerate(zip(self.tauf, self.tw)):
+                dq = (-q - done) if i == len(self.tauf) - 1 else -q * w
+                done += dq
+                self.push(t + tau, "fill", {"src": "flatten", "gen": None, "s": s, "dq": dq, "ref": P,
+                                            "slip": float(self.p["slippage_vs_executor_mid"]["flatten"]), "maker": False, "kind": "flatten", "A": None})
         self.events_fired.append({"type": "FLATTEN", "utc": L.U(t), "why": why, "n_names": n})
 
-    def on_stop_eval(self, A, t):
+    def on_fill(self, t, f):
+        if f["src"] == "rebal" and f["gen"] != self.rebal_gen:
+            self.diag["rebal_fills_cancelled_by_flatten"] += 1; self.diag["rebal_notional_cancelled_usdt"] += abs(f["dq"] * f["ref"])
+            return
+        self.book(t, f["s"], f["dq"], f["ref"], f["slip"], f["maker"], f["kind"], f["A"])
+
+    def eval_time(self, A):
+        rb = self.frame.get(A)
+        t_dec = self.cfg[A]["t_dec"] if A in self.cfg else A + 1440
+        return rb if (rb is not None and rb > t_dec) else A + float(self.p["eval_offset_without_frame_s"])
+
+    def on_eval(self, A, t):
         b = L.floor_b(t)
         pn = {s: q * self.px(s, b) for s, q in self.q.items() if self.px(s, b) is not None}
         pu = {s: q * (self.px(s, b) - self.entry.get(s, self.px(s, b))) for s, q in self.q.items() if self.px(s, b) is not None}
@@ -351,12 +430,11 @@ class Sim:
                 self.day_ref[day] = self.last_eval if self.last_eval is not None else (self.t_start, self.nav0)
             ref_t, ref_E = self.day_ref[day]
             xf = [a for tt, a in self.xfers if ref_t < tt <= t]
-            # B32 (watchdog cond2): a day whose equity window contains an external transfer is UNKNOWN — not judged
             loss = None if xf else ((E - ref_E) / ref_E if ref_E else None)
             if loss is not None and loss < -0.04 and (self.halt_until is None or t >= self.halt_until) and self.gross(b) > 0:
-                tf = A + float(self.p["rule_flatten_offset_s"])
-                self.pending_flatten = (tf, f"§4-2 day loss {loss:+.2%} at {L.U(t)} (ref {ref_E:,.0f} @ {L.U(ref_t)}, E {E:,.0f})")
-                self.halt_until = (int(t) // 86400 + 1) * 86400          # next UTC day's first anchor (00Z)
+                tf = max(A + float(self.p["rule_flatten_offset_s"]), t + 1.0)
+                self.push(tf, "flatten", f"§4-2 day loss {loss:+.2%} at {L.U(t)} (ref {ref_E:,.0f} @ {L.U(ref_t)}, E {E:,.0f})")
+                self.halt_until = (int(t) // 86400 + 1) * 86400
         self.last_eval = (t, E)
 
     def status(self, A):
@@ -375,18 +453,20 @@ class Sim:
         if not os.path.exists(tpath):
             rec["status"] = HOLD; rec["why"] = "target_live missing (executor on_unavailable=hold)"; self.log_anchor.append(rec); return
         X, c = self.X, self.cfg[A]
-        t_dec = A + 1440; b = A + int(self.p["decision_boundary_offset_s"])
+        t_dec = c["t_dec"]
+        # ★ R5-01: the decision reads the LAST COMPLETE 5-minute bar at or before t_dec (the mutation reads the one closing after it)
+        b_dec = L.ceil_b(t_dec) if self.k.get("legacy_decision_lookahead") else L.floor_b(t_dec)
         ext = X.EXT.parse_target(open(tpath, "rb").read(), X.ext_cfg, A, t_dec)
         if not ext.get("ok"):
             rec["status"] = HOLD; rec["why"] = f"target invalid: {ext.get('reason')}"; self.log_anchor.append(rec); return
         an = self.M.anchor_rows().get(A)
         if an is not None:
             try:
-                ws = json.loads(an["factor_version"]).get("weights_sha")
-                rec["weights_sha_matches_executor_read"] = (ws == ext["weights_sha"])
+                rec["weights_sha_matches_executor_read"] = (json.loads(an["factor_version"]).get("weights_sha") == ext["weights_sha"])
             except Exception:
                 pass
-        pos = {s: q * self.px(s, b) for s, q in self.q.items() if self.px(s, b) is not None}
+        held_now = dict(self.q)                              # inventory at t_dec: every fill with t < t_dec has been booked
+        pos = {s: q * self.px(s, b_dec) for s, q in held_now.items() if self.px(s, b_dec) is not None}
         held_exit = X.EXT.held_not_in_target(pos, ext["symbols"])
         symbols = sorted(set(ext["symbols"]) | set(held_exit))
         act = X.PNS.active_sets(self.pns, t_dec)
@@ -396,17 +476,15 @@ class Sim:
         if c["tradable"] is not None:
             untr |= set(symbols) - c["tradable"]
         untr |= (c["meta"] & set(symbols)) | act["stop"] | act["cooldown"] | set(held_exit)
-        E = self.equity(b)
-        G = E * float(c["gm"])
-        target = X.LG.to_notional(X.EXT.target_vector(ext, symbols), symbols, G)
-        floors = {s: float((X.filters.f.get(s) or {}).get("min_notional", 0.0) or 0.0) for s in target}
-        if self.k.get("no_min_notional"):
-            floors = {s: 0.0 for s in floors}
+        E = self.equity(b_dec)
+        Gs = E * float(c["gm"])
+        target = X.LG.to_notional(X.EXT.target_vector(ext, symbols), symbols, Gs)
+        floors = {s: self.floor_of(s) for s in target}
         dust = X.EXT.below_min_notional(target, floors, X.ext_cfg["min_notional_mult"])
         untr |= set(dust["names"])
-        clamp, rs = X.AL.apply_withhold_and_reshape(target, pos, untr, G, floors_usdt=floors, floors_source="executor.filters.f[*].min_notional",
+        clamp, rs = X.AL.apply_withhold_and_reshape(target, pos, untr, Gs, floors_usdt=floors, floors_source="executor.filters.f[*].min_notional",
                                                      force_flat=act["stop"])
-        mids = {s: self.px(s, b) for s in target if self.px(s, b) is not None}
+        mids = {s: self.px(s, b_dec) for s in target if self.px(s, b_dec) is not None}
         ro = set(clamp["reduced"]) | set(clamp["flatten_only"])
         if self.k.get("no_min_notional"):
             saved = copy.deepcopy(X.filters.f)
@@ -414,193 +492,290 @@ class Sim:
                 if isinstance(v, dict) and "min_notional" in v:
                     v["min_notional"] = 0.0
         try:
-            plans = X.BX.RebalanceExecutor.plan(X.stub, target, pos, mids, reduce_only_syms=ro, held_qty=dict(self.q))
+            plans = X.BX.RebalanceExecutor.plan(X.stub, target, pos, mids, reduce_only_syms=ro, held_qty=dict(held_now))
         finally:
             if self.k.get("no_min_notional"):
                 X.filters.f.clear(); X.filters.f.update(saved)
-        # ── expected-value fill model ──
-        pf, prq = self.p["maker_first"], self.p["maker_requote"]
-        rq = [x for x in self.p["requote_p_timeline"] if A >= x["from_anchor"]][-1]
-        rq_p, rq_mode = float(rq["p"]), rq.get("mode", "executor_hash")
-        tf = self.p["taker_fill_rate"]
-        tf_rej = float(tf["from_reject"])
-        sl = self.p["slippage_vs_mid_at_anchor"]
-        legs = {}
-        prev_sum = fill_sum = others = 0.0; gross_now = 0.0
-        pop = []
+        self.decisions[A] = {"t_dec": t_dec, "decision_bar": b_dec, "equity": E, "sizing_gross": Gs,
+                             "target": {s: float(v) for s, v in sorted(target.items())},
+                             "plans": [(p["symbol"], p.get("qty"), p.get("skip")) for p in sorted(plans, key=lambda p: p["symbol"])]}
+        for s, v in target.items():
+            self.last_target[s] = float(v)
+        # ── per-request outcomes (pooled parameters; quantities fixed here, booked at their own times) ──
+        pf, pc = self.p["first_leg"], self.p["completion"]
+        sl = self.p["slippage_vs_executor_mid"]
+        maker_only = (st == MAKER_ONLY)
+        rid = c["rid"]
         n_plan = n_skip_min = n_skip_nomid = 0; plan_turn = 0.0
+        sched = collections.defaultdict(float)
+        cnt = collections.Counter()
+        pop, prev_sum, first_sum, refused_sum, gross_now = [], 0.0, 0.0, 0.0, 0.0
+        refused_names = []
         for p in plans:
             s = p["symbol"]
             if p.get("skip") or "qty" not in p:
                 n_skip_min += int(p.get("skip") == "skipped_min_notional")
                 n_skip_nomid += int(p.get("skip") == "skipped_no_mid")
-                if s in act["stop"]:
-                    self.plan_log.append((A, s, 0.0, None, float(target.get(s, 0.0)), float(p["prev_notional"]), True))
+                self.plan_log.append((A, s, 0.0, None, float(target.get(s, 0.0)), float(p["prev_notional"]), s in act["stop"], 0.0, 0.0, p.get("skip")))
                 prev_sum += float(p["prev_notional"]); gross_now += abs(float(p["prev_notional"]))
                 continue
             n_plan += 1
-            m = mids[s]; d = float(p["qty"]) * m; plan_turn += abs(d)
-            fl = float((X.filters.f.get(s) or {}).get("min_notional", 5.0) or 5.0)
-            self.plan_log.append((A, s, d, fl, float(target.get(s, 0.0)), float(p["prev_notional"]), s in act["stop"]))
-            rest = 1.0 - pf["p_rej"]
-            M1 = rest * (pf["p_full"] + pf["p_part"] * pf["fbar_part"]) * d
-            cats = [(rest * pf["p_zero"], d), (rest * pf["p_part"], (1.0 - pf["fbar_part"]) * d)]
-            if s in ro:
-                w_rq = 1.0                                      # reduce-only is exempt: always requoted
-            elif rq_mode == "executor_hash":
-                w_rq = 1.0 if X.RQ.assign(c["rid"], s, rq_p) == "requote" else 0.0
+            Q = float(p["qty"]); m = mids[s]; d = Q * m; plan_turn += abs(d); fl = self.floor_of(s)
+            u1 = u01(self.seed, rid, s, "first")
+            refused = u1 < pf["p_rej"]
+            if refused:
+                q1 = 0.0; cnt["first_refused"] += 1
             else:
-                w_rq = rq_p                                     # pre-experiment: measured requote share as an expected-value mix
-            r2 = pf["p_rej"] * w_rq * (1.0 - prq["p_rej"])
-            M2 = r2 * (prq["p_full"] + prq["p_part"] * prq["fbar_part"]) * d
-            cats += [(r2 * prq["p_zero"], d), (r2 * prq["p_part"], (1.0 - prq["fbar_part"]) * d)]
-            w_rej = pf["p_rej"] * (w_rq * prq["p_rej"] + (1.0 - w_rq))
-            R_p = sum(w * r for w, r in cats)
-            legs[s] = {"d": d, "M1": M1, "M2": M2, "cats": cats, "w_rej": w_rej, "floor": fl, "mid": m}
-            prev_sum += float(p["prev_notional"]); fill_sum += M1 + M2; others += w_rej * d
-            gross_now += abs(float(p["prev_notional"]) + M1 + M2)
-            if R_p != 0.0:
-                pop.append((s, R_p))
-        excl = {s: "stopped (E4)" for s in act["stop"]} if A >= E4_FROM_ANCHOR else {}
-        ce = X.CP.plan_experiment(pop, c["rid"], book_net_usdt=prev_sum + fill_sum + others, book_gross_usdt=gross_now,
-                                  net_basis="sim: expected maker fills + expected from_reject residuals", weights=c["weights"], exclude=excl)
-        arms = ce.get("arm_assigned") or {}
-        maker_only = (st == MAKER_ONLY)
-        tot = collections.Counter()
-
-        def passes(s, x):
-            lg = legs[s]
-            qq = X.filters.round_qty(s, x / lg["mid"])
-            return qq != 0 and abs(qq) * lg["mid"] >= lg["floor"] - 1e-12
-        for s, lg in sorted(legs.items()):
-            tot["maker"] += self.trade(t_dec, s, lg["M1"], b, float(sl["maker_first"]), True, "maker")
-            tot["maker"] += self.trade(t_dec, s, lg["M2"], b, float(sl["maker_requote"]), True, "maker")
-            if maker_only:
-                continue
-            arm = arms.get(s)
-            tf_ch = float(tf["from_partial_chase_forced"]) if arm == "chase_forced" else (float(tf["from_partial_chase"]) if arm == "chase" else 0.0)
-            Tp = sum(w * r for w, r in lg["cats"] if w > 0 and passes(s, r)) * tf_ch
-            Tr = lg["w_rej"] * lg["d"] * tf_rej if passes(s, lg["d"]) else 0.0
-            tot["taker"] += self.trade(t_dec, s, Tp, b, float(sl["taker_from_partial"]), False, "taker")
-            tot["taker"] += self.trade(t_dec, s, Tr, b, float(sl["taker_from_reject"]), False, "taker")
-        # ── v2 EXIT COMPLETION: an exit (executor target exactly 0) whose EXPECTED remainder is below the symbol's floor is closed now.
-        #    The expected-value fill leaves 1 − E[fill] of every exited position; in reality that mass is "the whole position, not yet
-        #    exited" (≥ floor, exited again next anchor) or 0 — never a sub-floor sliver. Without this, v1 accumulated up to ~150 dust
-        #    positions whose cooldown / held-untradable clamp (add_blocked) pinned 2–5% of the sizing gross (found in the mode-(b)
-        #    diagnosis after V1; not a calibration parameter).
+                v = (u1 - pf["p_rej"]) / (1.0 - pf["p_rej"])
+                if v < pf["p_full"]:
+                    q1 = Q; cnt["first_full"] += 1
+                elif v < pf["p_full"] + pf["p_zero"]:
+                    q1 = 0.0; cnt["first_zero"] += 1
+                else:
+                    q1 = X.filters.round_qty(s, Q * float(pf["fbar_part"])); cnt["first_partial"] += 1
+            if q1 != 0.0:
+                self.schedule(A, t_dec, self.tau1, s, q1, m, float(sl["first_leg"]), True, "first")
+            R = Q - q1
+            qr = X.filters.round_qty(s, R) if abs(R) > 0 else 0.0
+            eligible = qr != 0.0 and abs(qr) * m >= fl - 1e-12
+            e4_block = (A >= E4_FROM_ANCHOR and s in act["stop"] and not refused)
+            q2 = 0.0
+            if eligible and not maker_only and not e4_block:
+                if u01(self.seed, rid, s, "completion") < float(pc["pi_fill"]):
+                    q2 = qr
+                    mk = u01(self.seed, rid, s, "completion_type") < float(pc["maker_share"])
+                    self.schedule(A, t_dec, self.tau2, s, q2, m, float(sl["later_leg"]), mk, "later")
+                    cnt["completed_maker" if mk else "completed_taker"] += 1
+                else:
+                    cnt["residual_not_completed"] += 1
+            elif qr != 0.0 and not eligible:
+                cnt["residual_below_floor"] += 1
+            elif e4_block and eligible:
+                cnt["residual_e4_not_chased"] += 1
+            elif maker_only and eligible:
+                cnt["residual_maker_only_anchor"] += 1
+            sched[s] += q1 + q2
+            self.plan_log.append((A, s, Q, m, float(target.get(s, 0.0)), float(p["prev_notional"]), s in act["stop"], q1, q2, None))
+            prev_sum += float(p["prev_notional"]); first_sum += q1 * m; gross_now += abs(float(p["prev_notional"]) + q1 * m)
+            if refused:
+                refused_sum += R * m; refused_names.append(s)
+            elif R != 0.0:
+                pop.append((s, R * m))
+        # ── R5-06 mutation only: v2's guaranteed exit completion (a zero-target sub-floor remainder filled as maker) ──
         n_ec = 0
-        if not self.k.get("no_exit_completion"):
+        if self.k.get("legacy_exit_completion"):
             for s, tv in sorted(target.items()):
-                q = self.q.get(s, 0.0)
-                if tv != 0.0 or q == 0.0 or self.px(s, b) is None:
+                q_after = held_now.get(s, 0.0) + sched.get(s, 0.0)
+                if tv != 0.0 or q_after == 0.0 or s not in mids:
                     continue
-                v = q * self.px(s, b)
-                fl = float((X.filters.f.get(s) or {}).get("min_notional", 5.0) or 5.0)
-                if abs(v) < fl:
-                    tot["maker"] += self.trade(t_dec, s, -v, b, float(sl["maker_first"]), True, "exit_completion"); n_ec += 1
-        for s, tv in target.items():            # audit (battery claim 9): every exited name's remainder after this decision
-            if tv == 0.0 and s in pos and self.px(s, b) is not None:
-                self.exit_log.append((A, s, self.q.get(s, 0.0) * self.px(s, b), float((X.filters.f.get(s) or {}).get("min_notional", 5.0) or 5.0)))
-        rec.update({"status": st, "rid": c["rid"], "gm": c["gm"], "equity_at_decision": E, "sizing_gross": G, "n_symbols": len(symbols),
-                    "n_untradable": len(untr), "n_stop": len(act["stop"]), "n_cooldown": len(act["cooldown"]), "n_held_exit": len(held_exit),
-                    "n_dust": dust["n"], "n_plans_sent": n_plan, "n_skip_min_notional": n_skip_min, "n_skip_no_price_chain": n_skip_nomid,
-                    "n_exit_completion": n_ec,
-                    "plan_turnover": plan_turn,
-                    "exec_maker": tot["maker"], "exec_taker": tot["taker"],
-                    "exec_over_plan": ((tot["maker"] + tot["taker"]) / plan_turn if plan_turn else None),
-                    "arm_counts": ce.get("arm_counts"), "chase_weights": c["weights"], "clamp_counts": {k: len(v) for k, v in clamp.items()}})
+                if abs(q_after * mids[s]) < self.floor_of(s):
+                    self.schedule(A, t_dec, self.tau1, s, -q_after, mids[s], float(sl["first_leg"]), True, "exit_completion"); n_ec += 1
+        for s, tv in target.items():            # audit: every zero-target held name's planned remainder after this decision
+            if tv == 0.0 and s in held_now and s in mids:
+                self.exit_log.append((A, s, (held_now[s] + sched.get(s, 0.0)) * mids[s], self.floor_of(s), held_now[s] * mids[s]))
+        # ── arm ASSIGNMENT only (the executor's own deterministic functions); counts reported, no outcome conditioned on them ──
+        excl = {s: "stopped (E4)" for s in act["stop"]} if A >= E4_FROM_ANCHOR else {}
+        ce = X.CP.plan_experiment(pop, rid, book_net_usdt=prev_sum + first_sum + refused_sum, book_gross_usdt=gross_now,
+                                  net_basis="sim path: first-leg fills + refused residuals", weights=c["weights"], exclude=excl)
+        rq_counts = collections.Counter()
+        if A >= RQ_FIRST_ANCHOR:
+            for s in refused_names:
+                rq_counts[X.RQ.assign(rid, s, 0.5)] += 1
+        rec.update({"status": st, "rid": rid, "t_dec_utc": L.U(t_dec), "decision_bar_utc": L.U(b_dec), "gm": c["gm"], "equity_at_decision": E,
+                    "sizing_gross": Gs, "n_symbols": len(symbols), "n_untradable": len(untr), "n_stop": len(act["stop"]),
+                    "n_cooldown": len(act["cooldown"]), "n_held_exit": len(held_exit), "n_dust_target": dust["n"],
+                    "n_plans_sent": n_plan, "n_skip_min_notional": n_skip_min, "n_skip_no_price_chain": n_skip_nomid,
+                    "plan_turnover": plan_turn, "outcomes": dict(cnt), "n_legacy_exit_completion": n_ec,
+                    "chase_assignment_counts": ce.get("arm_counts"), "requote_assignment_counts": dict(rq_counts),
+                    "chase_weights": c["weights"], "clamp_counts": {k: len(v) for k, v in clamp.items()}})
         self.log_anchor.append(rec)
 
-    # ── the run ──
-    def run(self):
-        ev = []
+    def dust_now(self, b):
+        """held names below their venue floor (dust) at bar b: count, Σ|notional|, and the subset whose latest target was exactly 0"""
+        n = n0 = 0; v = v0 = 0.0
+        for s, q in self.q.items():
+            P = self.px(s, b)
+            if P is None:
+                continue
+            x = abs(q * P)
+            if 0.0 < x < float((self.X.filters.f.get(s) or {}).get("min_notional", 5.0) or 5.0):
+                n += 1; v += x
+                if self.last_target.get(s) == 0.0:
+                    n0 += 1; v0 += x
+        return {"n_dust": n, "dust_usdt": v, "n_exit_dust": n0, "exit_dust_usdt": v0}
+
+    # ── the event loop (also driven directly by the battery's synthetic books) ──
+    def dispatch(self, t, kind, arg):
+        if kind == "win":
+            b = L.floor_b(t)
+            self.snaps[arg] = {"mv": self.mv(b), "gross": self.gross(b), "equity": self.equity(b), "dust": self.dust_now(b),
+                               **{k: self.acc[k] for k in ("tradecash", "fee", "fund", "turn", "xfer", "n_trades", "turn_first", "turn_later",
+                                                           "turn_flatten", "turn_exit_completion")}}
+        elif kind == "anchor":
+            self.on_anchor(arg)
+        elif kind == "eval":
+            self.on_eval(arg, t)
+        elif kind == "flatten":
+            self.flatten_start(t, arg)
+        elif kind == "fill":
+            self.on_fill(t, arg)
+        elif kind == "xfer":
+            self.on_transfer(t, arg)
+        elif kind == "funding":
+            self.on_funding(t)
+
+    def step_until(self, t_until=None):
+        """process queued events in (time, priority, insertion) order up to and including t_until (None = all)"""
+        while self.ev:
+            if t_until is not None and self.ev[0][0] > t_until:
+                break
+            t, pri, _, kind, arg = heapq.heappop(self.ev)
+            self.dispatch(t, kind, arg)
+
+    # ── the run: one time-ordered event queue ──
+    def run(self, stop_at=None):
         for w in self.W:
-            ev.append((w["t0"], 9, "win0", w["idx"])); ev.append((w["t1"], 9, "win1", w["idx"]))
+            self.push(w["t0"], "win", ("win0", w["idx"])); self.push(w["t1"], "win", ("win1", w["idx"]))
         for A in self.anchors:
-            ev.append((A + int(self.p["decision_boundary_offset_s"]) - 60, 5, "anchor", A))     # decides at N+24:00, executes at the N+25 boundary
-            ev.append((A + int(self.p["stop_eval_offset_s"]), 6, "stop_eval", A))
+            self.push(self.cfg[A]["t_dec"], "anchor", A)
+            self.push(self.eval_time(A), "eval", A)
         if self.mode == "live":
             for t in self.flat_times:
                 if self.t_start < t <= self.t_end:
-                    ev.append((t, 4, "flatten", "live protective flatten (exogenous)"))
+                    self.push(t, "flatten", "live protective flatten (exogenous)")
         for t, a in self.xfers:
-            ev.append((t, 1, "xfer", a))
-        fts = sorted({t for (s, t) in self.F.rate if self.t_start < t <= self.t_end})
-        for t in fts:
-            ev.append((float(t), 2, "funding", None))
-        ev.sort(key=lambda e: (e[0], e[1]))
-        self.pending_flatten = None
-        snaps = {}
-        i = 0
-        while i < len(ev):
-            t, pri, kind, arg = ev[i]; i += 1
-            if self.pending_flatten is not None and self.pending_flatten[0] <= t:
-                tf, why = self.pending_flatten; self.pending_flatten = None
-                self.flatten(tf, why)
-            if kind == "win0" or kind == "win1":
-                b = L.floor_b(t)
-                snaps[(kind, arg)] = {"mv": self.mv(b), "gross": self.gross(b), "equity": self.equity(b), **{k: self.acc[k] for k in
-                                      ("tradecash", "fee", "fund", "turn", "xfer", "n_trades", "turn_maker", "turn_taker", "turn_flatten")}}
-            elif kind == "anchor":
-                self.on_anchor(arg)
-            elif kind == "stop_eval":
-                self.on_stop_eval(arg, t)
-            elif kind == "flatten":
-                self.flatten(t, arg)
-            elif kind == "xfer":
-                self.on_transfer(t, arg)
-            elif kind == "funding":
-                self.on_funding(t)
+            self.push(t, "xfer", a)
+        for t in sorted({t for (s, t) in self.F.rate if self.t_start < t <= self.t_end}):
+            self.push(float(t), "funding", None)
+        self.snaps = {}
+        self.step_until(stop_at)
+        snaps = self.snaps
         out = []
         for w in self.W:
+            if ("win0", w["idx"]) not in snaps or ("win1", w["idx"]) not in snaps:
+                continue
             a, z = snaps[("win0", w["idx"])], snaps[("win1", w["idx"])]
-            d = {k: z[k] - a[k] for k in ("tradecash", "fee", "fund", "turn", "xfer", "n_trades", "turn_maker", "turn_taker", "turn_flatten")}
+            d = {k: z[k] - a[k] for k in ("tradecash", "fee", "fund", "turn", "xfer", "n_trades", "turn_first", "turn_later", "turn_flatten",
+                                           "turn_exit_completion")}
             out.append({"idx": w["idx"], "from": w["from"], "to": w["to"], "t0": w["t0"], "t1": w["t1"], "gross0": a["gross"], "nav0": a["equity"],
                         "price_trade": (z["mv"] - a["mv"]) - d["tradecash"], "funding": d["fund"], "fee": d["fee"], "turnover": d["turn"],
-                        "turnover_maker": d["turn_maker"], "turnover_taker": d["turn_taker"], "turnover_flatten": d["turn_flatten"],
-                        "transfer": d["xfer"], "n_trades": d["n_trades"], "equity1": z["equity"]})
+                        "turnover_first": d["turn_first"], "turnover_later": d["turn_later"], "turnover_flatten": d["turn_flatten"],
+                        "turnover_exit_completion": d["turn_exit_completion"], "transfer": d["xfer"], "n_trades": d["n_trades"],
+                        "equity1": z["equity"], "gross1": z["gross"], **{"end_" + k: v for k, v in z["dust"].items()}})
         return out
+
+
+def initial_block(S, knobs):
+    """the receipt's initial-state block. Sealed before the run (R5-13); the legacy mutation reproduces v2 (len(q) AFTER the run)."""
+    if knobs.get("legacy_unsealed_initial"):
+        return {"utc": L.U(S.t_start), "nav0": S.nav0, "n_positions": len(S.q), "sealed_before_run": False}
+    return {"sealed_before_run": True, "sha256": S.sealed_sha, "n_positions": S.sealed["n_positions"], "nav0": S.nav0,
+            "utc": S.sealed["utc"], "state": S.sealed}
+
+
+NUM = ("gross0", "nav0", "price_trade", "funding", "fee", "turnover", "turnover_first", "turnover_later", "turnover_flatten",
+       "turnover_exit_completion", "transfer", "n_trades", "equity1", "gross1", "end_n_dust", "end_dust_usdt", "end_n_exit_dust",
+       "end_exit_dust_usdt")
+
+
+def aggregate(paths):
+    """per-window MEAN over paths (the V1b sim side) and the 5% / 95% path quantiles"""
+    import numpy as np
+    base = paths[0]
+    mean, lo, hi = [], [], []
+    for i, w in enumerate(base):
+        assert all(p[i]["idx"] == w["idx"] and p[i]["t0"] == w["t0"] and p[i]["t1"] == w["t1"] for p in paths)
+        keys = {k: w[k] for k in ("idx", "from", "to", "t0", "t1")}
+        arr = {k: np.array([float(p[i][k]) for p in paths]) for k in NUM}
+        mean.append(dict(keys, **{k: float(v.mean()) for k, v in arr.items()}))
+        lo.append(dict(keys, **{k: float(np.percentile(v, 5)) for k, v in arr.items()}))
+        hi.append(dict(keys, **{k: float(np.percentile(v, 95)) for k, v in arr.items()}))
+    return mean, lo, hi
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--events", choices=("live", "rule"), required=True)
+    ap.add_argument("--period", choices=("CAL", "HOLDOUT"), required=True, help="run start as declared in v1b_gate.PERIODS")
+    ap.add_argument("--last-anchor", type=int, default=L.A_V1_LAST)
+    ap.add_argument("--paths", type=int, default=G.R_MIN)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--calib", default=os.path.join(HERE, "CALIBRATION_FROZEN_2026-09-19.json"))
+    ap.add_argument("--calib", default=os.path.join(HERE, "CALIBRATION_v3_POOLED_20260826_20260910.json"))
     ap.add_argument("--mirror", default=L.MIRROR_DEFAULT)
-    for k in ("no-stop", "no-min-notional", "zero-fees", "fee-asset-wrong", "funding-sign-flip", "funding-double", "no-exit-completion"):
-        ap.add_argument("--" + k, action="store_true")
+    for k in KNOBS:
+        ap.add_argument("--" + k.replace("_", "-"), action="store_true")
     a = ap.parse_args()
-    knobs = {k.replace("-", "_"): getattr(a, k.replace("-", "_")) for k in ("no-stop", "no-min-notional", "zero-fees", "fee-asset-wrong",
-                                                                           "funding-sign-flip", "funding-double", "no-exit-completion")}
+    knobs = {k: bool(getattr(a, k)) for k in KNOBS}
     M = L.Mirror(a.mirror)
     L.install_readonly_guard()
     bad = M.verify_manifest()
     assert not bad, f"mirror differs from INPUT_MANIFEST: {bad[:5]}"
     cal = json.load(open(a.calib))
-    assert cal.get("frozen_before_v1") is True
+    assert cal.get("frozen_before_holdout") is True and cal.get("kind") == "v3_pooled", "v3 needs a frozen v3 pooled calibration"
+    rs = G.PERIODS[a.period]["run_start_anchor"]
     t0 = time.time()
-    S = Sim(M, cal, a.events, knobs)
-    W = S.run()
-    doc = {"device": "exec_sim.py", "version": "v2", "device_sha256": L.sha_file(os.path.abspath(__file__)), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-           "rerun": "/usr/bin/python3 " + " ".join([os.path.relpath(os.path.abspath(__file__), L.REPO)] + [x if not os.path.isabs(x) else x for x in sys.argv[1:]]),
+    X = ExecutorCode(M); P = L.Panel(M); L.build_references(M, P); F = L.FundingBook(M)
+    seeds = list(range(a.paths))
+    paths, summaries, sealed_sha, S0 = [], [], None, None
+    seal_path = os.path.splitext(a.out)[0] + "_INITIAL_STATE.json"
+    for sd in seeds:
+        S = Sim(M, cal, a.events, knobs, X=X, panel=P, fund=F, seed=sd, run_start_anchor=rs, last_anchor=a.last_anchor)
+        if sd == 0:
+            # ★ R5-13: the initial state is written to disk and its sha fixed BEFORE the first event is processed
+            with open(seal_path + ".part", "w") as fh:
+                json.dump({"sha256": S.sealed_sha, "state": S.sealed}, fh, indent=1, sort_keys=True, default=str)
+            os.replace(seal_path + ".part", seal_path)
+            sealed_sha = S.sealed_sha
+        assert S.sealed_sha == sealed_sha, "initial state differs between paths"
+        W = S.run()
+        paths.append(W)
+        summaries.append({"seed": sd, "n_trade_legs": len(S.trade_log), "net_pnl": sum(w["price_trade"] + w["funding"] - w["fee"] for w in W),
+                          "price_trade": sum(w["price_trade"] for w in W), "funding": sum(w["funding"] for w in W), "fee": sum(w["fee"] for w in W),
+                          "turnover": sum(w["turnover"] for w in W), "final_equity": W[-1]["equity1"], "n_positions_final": len(S.q),
+                          "events": dict(collections.Counter(e["type"] for e in S.events_fired)), "diag": dict(S.diag),
+                          "clamp": dict(S.clamp_stats),
+                          "outcomes": dict(sum((collections.Counter(r.get("outcomes") or {}) for r in S.log_anchor), collections.Counter())),
+                          "chase_assignment": dict(sum((collections.Counter(r.get("chase_assignment_counts") or {}) for r in S.log_anchor), collections.Counter())),
+                          "requote_assignment": dict(sum((collections.Counter(r.get("requote_assignment_counts") or {}) for r in S.log_anchor), collections.Counter()))})
+        if sd == 0:
+            S0 = S
+        print(f"  path seed {sd}: net {summaries[-1]['net_pnl']:+,.2f}  legs {len(S.trade_log)}  ({time.time() - t0:.0f} s)", flush=True)
+    chk = json.load(open(seal_path))
+    assert chk["sha256"] == sealed_sha == canon_sha(chk["state"]), "sealed initial state changed on disk during the run"
+    mean, lo, hi = aggregate(paths)
+    import numpy as np
+    dust = {"per_window_mean_n_dust": {"mean": float(np.mean([w["end_n_dust"] for w in mean])), "max": float(max(w["end_n_dust"] for w in mean))},
+            "per_window_mean_dust_usdt": {"mean": float(np.mean([w["end_dust_usdt"] for w in mean])), "max": float(max(w["end_dust_usdt"] for w in mean))},
+            "per_window_mean_exit_dust_usdt": {"mean": float(np.mean([w["end_exit_dust_usdt"] for w in mean])), "max": float(max(w["end_exit_dust_usdt"] for w in mean))},
+            "dust_over_gross_bps": {"mean": float(np.mean([w["end_dust_usdt"] / w["gross1"] * 1e4 for w in mean if w["gross1"] > 0])),
+                                    "max": float(max(w["end_dust_usdt"] / w["gross1"] * 1e4 for w in mean if w["gross1"] > 0))}}
+    doc = {"device": "exec_sim.py", "version": VERSION, "device_sha256": L.sha_file(os.path.abspath(__file__)),
+           "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+           "rerun": "cd " + os.path.relpath(HERE, L.REPO) + " && /usr/bin/python3 exec_sim.py " + " ".join(sys.argv[1:]),
            "argv": sys.argv[1:], "mode": a.events, "knobs": knobs, "runtime_s": round(time.time() - t0, 1),
+           "period": {"label": a.period, "run_start_anchor": rs, "run_start_utc": L.UA(rs), "last_anchor": a.last_anchor,
+                      "last_anchor_utc": L.UA(a.last_anchor), "declared": G.PERIODS[a.period]},
+           "paths": {"seeds": seeds, "n": len(seeds), "draws": "per-request blake2b(seed|rid|symbol|leg) uniforms"},
            "calibration": {"path": os.path.relpath(os.path.abspath(a.calib), L.REPO), "sha256": L.sha_file(a.calib)},
-           "inputs_sha256": L.input_shas(M, extra=[a.calib]), "executor_code_files_sha256": S.X.files,
-           "config_timeline_provenance": S.cfg_prov, "initial_state": {"utc": L.U(S.t_start), "nav0": S.nav0, "n_positions": len(S.q),
-                                                                        "stop_state": S.pns_init, "entry_prices_not_rebuilt": S.entry_named},
-           "event_timeline": {"mode": a.events, "live_flatten_utc": [L.U(t) for t in S.flat_times],
-                              "anchor_kind_counts": dict(collections.Counter(S.kind.values())),
-                              "non_trade_anchors_live": {L.UA(A): k for A, k in S.kind.items() if k != TRADE}},
-           "events_fired": S.events_fired, "diag": dict(S.diag), "funding_xcheck": S.F.xcheck, "funding_source": dict(S.F.src),
-           "panel": {"n_refs": len(S.P.ref), "span": f"{L.U(S.P.t_first)}..{L.U(S.P.t_last)}"},
-           "anchors": S.log_anchor, "windows": W}
+           "inputs_sha256": L.input_shas(M, extra=[a.calib, os.path.join(HERE, "v1b_gate.py")]), "executor_code_files_sha256": X.files,
+           "config_timeline_provenance": S0.cfg_prov,
+           "initial_state_sealed": dict(initial_block(S0, knobs), sealed_file=os.path.relpath(seal_path, L.REPO)),
+           "timing_model": {"first_leg_offsets_s": S0.tau1, "later_leg_offsets_s": S0.tau2, "flatten_offsets_s": S0.tauf, "weights": S0.tw,
+                            "frame_rule": "fills of anchor A booked before A's own post-run readback (live window t0) when it exists; evaluation at that readback, else N+45"},
+           "event_timeline": {"mode": a.events, "live_flatten_utc": [L.U(t) for t in S0.flat_times],
+                              "anchor_kind_counts": dict(collections.Counter(S0.kind.values())),
+                              "non_trade_anchors_live": {L.UA(A): k for A, k in S0.kind.items() if k != TRADE}},
+           "path_summaries": summaries, "dust_exposure": dust,
+           "funding_xcheck": F.xcheck, "funding_source": dict(F.src),
+           "panel": {"n_refs": len(P.ref), "span": f"{L.U(P.t_first)}..{L.U(P.t_last)}"},
+           "anchors_seed0": S0.log_anchor, "events_fired_seed0": S0.events_fired,
+           "windows": mean, "windows_path_p05": lo, "windows_path_p95": hi,
+           "path_band_coverage_note": "windows_path_p05 / _p95 = 5% / 95% quantiles over the R paths per window (diagnostic)"}
     with open(a.out + ".part", "w") as fh:
         json.dump(doc, fh, indent=1, default=lambda o: sorted(o) if isinstance(o, set) else str(o))
     os.replace(a.out + ".part", a.out)
-    n_st = collections.Counter(r["status"] for r in S.log_anchor)
-    print(f"exec_sim {a.events}: {len(W)} windows, anchors {dict(n_st)}, events {collections.Counter(e['type'] for e in S.events_fired)}, "
-          f"runtime {doc['runtime_s']} s -> {a.out}")
+    n_st = collections.Counter(r["status"] for r in S0.log_anchor)
+    print(f"exec_sim v3 {a.events} {a.period}: {len(mean)} windows × {len(seeds)} paths, anchors {dict(n_st)}, runtime {doc['runtime_s']} s -> {a.out}")
 
 
 if __name__ == "__main__":
