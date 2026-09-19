@@ -1,0 +1,14 @@
+{
+ "receipt": "MIRROR_DURABLE_COPIES",
+ "created_utc": "2026-09-19T10:3xZ",
+ "by": "lead (session_01KW6frfphbFmFzx7wUtGhLb)",
+ "why": "docs/PREREG_executor_sim_forward_validation_2026-09-19.md §4-4: the original calibration mirror (INPUT_MANIFEST 59875e5a) must still be readable at the forward readout; it lived only in this session's scratchpad, which is not durable",
+ "manifest": {"file": "INPUT_MANIFEST.json", "sha256_prefix": "59875e5a", "entries_verified_on_local_copy": "505/505 sha256 match, 0 bad, 0 missing"},
+ "tree_hash_rule": "sha256 over `find . -type f -print0 | sort -z | xargs -0 sha256sum` run inside the mirror root",
+ "copies": [
+  {"where": "session scratchpad (original, non-durable)", "path": "<scratchpad>/replay_exec_mirror", "files": 837, "tree_hash_prefix": "c96f7774de22c472"},
+  {"where": "Mac, outside the session scratchpad", "path": "/Users/haosiyu/quant_mirrors/replay_exec_mirror_59875e5a", "files": 837, "tree_hash_prefix": "c96f7774de22c472"},
+  {"where": "pod2", "path": "/workspace/replay_exec_mirror_59875e5a", "files": 837, "tree_hash_prefix": "c96f7774de22c472"}
+ ],
+ "use_at_readout": "pass either durable copy as --calib-mirror; the gate re-verifies the manifest itself"
+}
