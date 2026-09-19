@@ -1,0 +1,27 @@
+BT_TABLES main_a0 written /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/main_a0_fx/out.json eced72ea46331a48126b418f71a0bd4b1b8f2a47929c9032d7d989b58f8bcc48
+A1 periods
+  PASS A1.year_periods_partition_the_window  ["2022H2", "2023 (PARTIAL_RECIPE)", "2024 (PARTIAL_RECIPE, before full-recipe start)", "2024 (full recipe)", "2025", "2026H1", "2026-07-01\u21922024-02-10"]
+  PASS A1.pre_start_years_PARTIAL_and_2024_split
+  PASS A1.full_and_partial_windows_partition_never_merged
+A2 regime
+  PASS A2.21_cells
+  PASS A2.cells_on_FULL_RECIPE_anchors_only  {"full_anchors": 192}
+  PASS A2.cell_index_and_rng_amendment1
+A3 cost cells
+  PASS A3.fee_cell_dg_is_minus_0.05_in_every_period  [-0.050000000000005485, -0.049999999999996936, -0.05000000000000826]
+  PASS A3.larger_shift_larger_cost
+A4 step ③
+  PASS A4.telescoping_1_2_3  {"cagr": 0.0, "sharpe_daily": 0.0, "maxdd_4h": 0.0, "g": 0.0}
+  PASS A4.step2_after_equals_step3_before
+  PASS A4.restricted_axis_and_5m_path_consistent_per_path  4.8183679268731794e-14
+  PASS A4.step3_after_is_object_B_on_the_reconciliation_window
+A5 distributions
+  PASS A5.path_distribution_32_paths_both_samplings
+mutations
+  PASS [mutation red] M1.start_moved_one_anchor_changes_FULL_RECIPE
+  PASS [mutation red] M2.restriction_off_the_5m_grid_refused
+BT_TABLES main_a0 written /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/main_a0_fx/out_m3.json 208ff32791b705b2805f3f5d4dcfbea829a8741f6d8ea1111370a5a64ec14644
+  PASS [mutation red] M3.wrong_P2_dir_breaks_step2_after_equals_step3_before
+  PASS [mutation red] M4.shuffled_label_variables_refused
+BT_MAIN_A0_TEST VERDICT: ALL PASS 17/17 checks (baselines green, every mutation red)
+exit code: 0 · /usr/bin/python3 3.9.6 numpy 1.26.4

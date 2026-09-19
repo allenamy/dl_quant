@@ -282,7 +282,7 @@ def regime_cell_index(var, level):
 def regime_cells(A, lab_ts, LAB, vars_):
     """21 masks from the G0 frozen labels (−1 = unlabelled): {var: {level: mask}}"""
     pos = {int(t): i for i, t in enumerate(np.asarray(lab_ts, np.int64))}
-    ix = np.array([pos.get(int(a), -1) for a in A]); assert (ix >= 0).all(), "every window anchor needs a label row"
+    ix = np.array([pos.get(int(a), -1) for a in A], dtype=np.int64); assert len(ix) > 0, "no anchors to label"; assert (ix >= 0).all(), "every window anchor needs a label row"
     L = np.asarray(LAB)[ix]
     return {v: {LEVELS[l]: L[:, j] == l for l in range(3)} for j, v in enumerate(vars_)}
 
@@ -391,6 +391,7 @@ def main_a0(args):
     # §3.2: 21 regime cells on the FULL_RECIPE window only (partial recipe never merged), EXCL primary, INCL sensitivity; main reading
     GL = np.load(lab_p, allow_pickle=True); vars_ = [str(v) for v in GL["vars"]]; assert tuple(vars_) == PROGRAM_VARS, vars_
     full = restrict(S[main_tag]["mean"], frs, int(A[-1]))
+    assert len(full["A"]) > 0, f"empty FULL_RECIPE window: full-recipe start {frs_iso} is after the last anchor"
     out["inputs"]["g0_labels"] = {"path": lab_p, "sha256": _sha(lab_p)}
     for var in ("EXCL", "INCL"):
         cells = regime_cells(full["A"], GL["ts"], GL["LAB_" + var], vars_)
