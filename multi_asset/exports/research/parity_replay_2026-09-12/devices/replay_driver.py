@@ -61,30 +61,46 @@ def roundtrip_check(anchor, ema_before, ema_now, ledger_full):
             worst = max(worst, abs(e["acc"] - float(ema_now[s]["acc"]))); n += 1
     return worst, n
 
-def build_state(anchor, cfg, snap):
-    """snap: dict with aux, lr_extra(list per leg), rolling path, weights dir, shadow_log rows."""
+def build_state(anchor, cfg, snap, snapdir=None):
+    """snap: dict with aux, lr_extra(list per leg), rolling path, weights dir, shadow_log rows.
+
+    `snapdir`: 归档快照目录。**只有它能提供年份正确的 `prev_close`** —— 见下方注释。
+    """
     st = dev.ShadowState.__new__(dev.ShadowState)
     st.syms = cfg["symbols_panel"]; st.live = cfg["symbols_live"]; st.NW = len(st.syms)
     st.sym_idx = {s: j for j, s in enumerate(st.syms)}
     st.live_mask = np.zeros(st.NW, bool); st.live_mask[[st.sym_idx[s] for s in st.live if s in st.sym_idx]] = True
     z = np.load(snap["rolling"], allow_pickle=True); st.cts = z["ts"].astype(np.int64); st.cd = z["data"].astype(np.float16)
     aux = snap["aux"]
-    # ★★ 2026-09-19 修复(G-P2 残差的机制): 上一版写 `st.prev_close = {}` —— **把快照里带着的
-    #   prev_close(450 个名)直接丢掉**。其它每一个跨锚状态(H / ledger / ema / LR / base)都从
-    #   快照重建了, 唯独这一个被静默置空。
+    # ★★ 2026-09-19 (G-P2 残差的机制): 原第 72 行写 `st.prev_close = {}` —— **把状态直接置空**。
+    #   其它每个跨锚状态(H / ledger / ema / LR / base)都重建了, 唯独这一个被静默丢弃。
+    #   后果: 生产者 L283 `pc = st.prev_close.get(s)` -> L292
+    #   `ret5 = (c/pc - 1) if (pc and pc > 0) else np.nan` ⇒ 每名每锚窗口**首根 bar 的 ret5 变 NaN**
+    #   (4h 间隔 gap_bars≈48 全是新行, ~450 个 live 名 ⇒ ≈450 格/锚)。`ret5` 是 5m 通道 0,
+    #   **只进 DL 横截面特征(fea82/fea89), 不进 king** —— 与「残差只在 DL 腿、kc 41 锚 L∞ 0.0、
+    #   越近的锚越一致、快照起步 3/3 精确」四条签名逐条吻合。
     #
-    #   后果与观察到的残差签名逐条吻合:
-    #     · prev_close 填的是 5m 通道的 ret5(生产者 L251 注释原文「ret5 由 prev_close 补」,
-    #       消费点 L283 `pc = st.prev_close.get(s)`)⇒ 置空后每个新取窗口的首根 bar ret5 = NaN;
-    #     · ret5 只进 DL 横截面特征(fea82/fea89 用全部 live 名), **不进 king**(成员窗口)
-    #       ⇒ 解释「残差只在 DL 腿, kc 状态 41 锚 L∞ 0.0」;
-    #     · 链式模式下 prev_close 随链推进逐步填满 ⇒ 解释「越近的锚越一致, 最新锚精确」;
-    #     · 快照起步模式下窗口短、影响小 ⇒ 解释「快照起步 3/3 精确 0.0」。
-    #
-    #   原先 RESULT §3 记的「唯一未闭合假说 = 缓存 5m 行的事后回填」**已被证伪**:
-    #   backfill_probe 三对快照各 11,472 行, cells_filled_later / cells_lost /
-    #   cells_changed_finite **全为 0**(收据 receipts/BACKFILL_probe_*.json)。
-    st.prev_close = {k: float(v) for k, v in (aux.get("prev_close") or {}).items()}
+    # ★★★ 但【年份】必须对: `snap["aux"]` 是【当前】的 state/aux.json(最新锚的状态),
+    #   对一条从过去某锚起步的链来说, 它的 prev_close 是**错年份的值** —— 那比置空更危险,
+    #   因为它看起来合理。所以只接受两种情形:
+    #     (a) 给了归档快照目录 ⇒ 用该快照的 prev_close(年份正确);
+    #     (b) 链起点恰好就是当前 aux 的 last_anchor+4h ⇒ 当前 aux 的 prev_close 正是所需;
+    #   两者都不满足 ⇒ **置空并在 diag 里标 UNAVAILABLE**, 让「查不了」显式可见, 不当成通过。
+    _pc_src = "UNAVAILABLE(no vintage-correct source; ret5 first-bar NaN per symbol per anchor)"
+    if snapdir and os.path.exists(f"{snapdir}/aux.json"):
+        _snap_aux = json.load(open(f"{snapdir}/aux.json"))
+        if int(_snap_aux.get("last_anchor", -1)) == anchor - 14400:
+            st.prev_close = {k: float(v) for k, v in (_snap_aux.get("prev_close") or {}).items()}
+            _pc_src = f"snapshot:{os.path.basename(snapdir.rstrip('/'))}"
+        else:
+            st.prev_close = {}
+            _pc_src = (f"UNAVAILABLE(snapshot last_anchor {_snap_aux.get('last_anchor')} "
+                       f"!= anchor-4h {anchor - 14400})")
+    elif int(aux.get("last_anchor", -1)) == anchor - 14400:
+        st.prev_close = {k: float(v) for k, v in (aux.get("prev_close") or {}).items()}
+        _pc_src = "current_aux(last_anchor matches)"
+    else:
+        st.prev_close = {}
     # H = holdings after the previous anchor = the producer's own weights file
     st.H = np.zeros(st.NW); wf = f"{WS}/state/weights/{anchor-14400}.npz"
     assert os.path.exists(wf), f"missing weights file {wf}"
@@ -106,7 +122,7 @@ def build_state(anchor, cfg, snap):
     # for anchor-14400, so keep entries whose score row anchor_ts <= anchor-14400 and drop those appended by later anchors.
     n_after = sum(1 for r in snap["log"] if r.get("e") == "score" and int(r.get("anchor_ts", 0)) >= anchor)
     st.LR = {leg: list(lr[leg]) + list(extra[leg][: len(extra[leg]) - n_after]) for leg in ("king", "rev24", "fund")}
-    diag = {"prev_close_restored": len(st.prev_close), "ema_inverted": len(ema_b), "ema_mismatch_fallback": mism, "ema_roundtrip_worst_abs": worst, "ema_roundtrip_n": n,
+    diag = {"prev_close_n": len(st.prev_close), "prev_close_source": _pc_src, "ema_inverted": len(ema_b), "ema_mismatch_fallback": mism, "ema_roundtrip_worst_abs": worst, "ema_roundtrip_n": n,
             "lr_dropped_entries": n_after, "lr_len_before_anchor": len(st.LR["king"]), "base_n": len(st.base),
             "cache_rows": int(len(st.cts)), "cache_last": int(st.cts[-1])}
     return st, ledger_full, diag
@@ -216,10 +232,10 @@ def main_snapshot(snapdir, anchors, cfg, booster, snap, receipts):
         receipts["anchors"].append(cmp); cb = cmp.get("combo") or {}
         print(json.dumps({"anchor": A, "king_Linf": cmp["weights_npz_Linf"], "content_sha_equal": cmp["content_sha_equal"], "ulp_names": cmp["n_names_differing_any"], "combo_rc": cb.get("rc"), "target_combo_Linf": cb.get("target_combo_Linf"), "target_live_Linf": cb.get("target_live_Linf"), "err": cb.get("err") or cb.get("compare_error")}), flush=True)
 
-def main_chain(anchors, cfg, booster, snap, receipts):
+def main_chain(anchors, cfg, booster, snap, receipts, snapdir=None):
     """CHAIN mode: rebuild state once (first anchor) and carry the float64 state forward; step 6 (score/LR append) runs
     from the replay's own prev_rec, so the appended LR entries are compared with the live leg_returns_live entries."""
-    A0 = anchors[0]; st, ledger_full, diag0 = build_state(A0, cfg, snap); fx = dev.ReplayFetcher(st.base, ledger_full)
+    A0 = anchors[0]; st, ledger_full, diag0 = build_state(A0, cfg, snap, snapdir); fx = dev.ReplayFetcher(st.base, ledger_full)
     live_extra = snap["lr_extra"]; n_after0 = sum(1 for r in snap["log"] if r.get("e") == "score" and int(r.get("anchor_ts", 0)) >= A0)
     receipts["chain_start_diag"] = diag0
     for k, A in enumerate(anchors):
@@ -260,12 +276,12 @@ def main():
     receipts = {"device_sha256": sha_file(os.path.join(HERE, "shadow_loop_v3_replay.py")), "production_sha256": dev.REPLAY_META["production_sha256"],
                 "bundle_manifest_sha256": sha_file(f"{WS}/shadow_bundle/MANIFEST.json"), "rolling_sha256": sha_file(snap["rolling"]),
                 "aux_sha256": sha_file(f"{WS}/state/aux.json"), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "anchors": []}
-    if snapdir:
+    if snapdir and not chain:
         main_snapshot(snapdir, anchors, cfg, booster, snap, receipts)
         tag = os.environ.get("REPLAY_RECEIPT_TAG", "GP3_snapshot")
         json.dump(receipts, open(os.path.join(os.path.dirname(HERE), "receipts", f"PARITY_{tag}_{anchors[0]}_{anchors[-1]}.json"), "w"), indent=1); return
     if chain:
-        main_chain(anchors, cfg, booster, snap, receipts)
+        main_chain(anchors, cfg, booster, snap, receipts, snapdir)
         tag = os.environ.get("REPLAY_RECEIPT_TAG", "phase1_chain")
         json.dump(receipts, open(os.path.join(os.path.dirname(HERE), "receipts", f"PARITY_{tag}_{anchors[0]}_{anchors[-1]}.json"), "w"), indent=1); return
     for A in anchors:
