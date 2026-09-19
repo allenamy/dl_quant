@@ -282,7 +282,6 @@ check("[S2c] 每个 COLLAPSES 申报都【真的在坍缩】(按 AST 判真调�
 KNOWN_TID_ALONE = {
  "docs/fixprogram_2026-09-13/FP3_devices/archive/fp3_cash_recon_v3_ae4bc7ea.py",
  "docs/fixprogram_2026-09-13/FP3_devices/archive/fp3_cash_recon_v4_d311211f.py",
- "docs/fixprogram_2026-09-13/FP3_devices/fp3_cash_recon.py",
  "docs/fixprogram_2026-09-13/FP3_devices/q6/archive/q6_shadow_v2_a513ea46.py",
  "multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-21/turnover_cost_reaudit.py",
  "multi_asset/exports/research/retrain_2026-09/health_check_2026-09-05/calib/commission_collision_test.py",
@@ -310,8 +309,8 @@ new_tid = sorted(set(tid_alone) - KNOWN_TID_ALONE)
 gone = sorted(KNOWN_TID_ALONE - set(tid_alone))
 check("[S4a] 没有【新增的】trade_id 单独做键的文件(跨品种合并族; 棘轮)", not new_tid, new_tid)
 check("[S4b] 已知名单是紧的(名单里的都还在犯, 否则应删除该条)", not gone, gone)
-check("[S4c] 已知名单规模", len(tid_alone) == 16,
-      f"{len(tid_alone)} 个 —— 复审 FIC-07 找到 5 个; 我补一步式 AST 后 6 个; 再补【两步式】后 16 个")
+check("[S4c] 已知名单规模", len(tid_alone) == 15,
+      f"{len(tid_alone)} 个 —— 复审 FIC-07 找到 5 个; 一步式 AST 后 6 个; 补【两步式】后 16 个; 2026-09-19 修好 fp3_cash_recon.py 后 15 个(棘轮由 [S4b] 抓到该条已陈旧)")
 
 # [S3] 变异: 合成一个朴素读者, 必须被同一个扫描器抓住
 with tempfile.TemporaryDirectory() as td:
