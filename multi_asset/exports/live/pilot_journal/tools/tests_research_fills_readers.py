@@ -99,6 +99,37 @@ def names_the_file(src):
     return False
 
 
+def keys_on_symbol_and_trade_id(src):
+    """★ 2026-09-19 第三个检测问题(这次是【误报】方向): 有装置**手卷了正确的坍缩**——
+    按 `(r["symbol"], r["trade_id"])` 做键、保留一条、遇到带 mark 的升级 —— 但没有用
+    COLLAPSE_NAMES 里的任何函数名, 于是被我判成「不坍缩」。
+    实例: `r11_income/r11_income_arith.py` L91-98, 语义与规范访问器等价。
+
+    判别: 存在一个二元 Tuple, 其两个元素分别以常量 'symbol' 与 'trade_id' 取下标。
+    """
+    try:
+        tree = ast.parse(src)
+    except (SyntaxError, ValueError):
+        return False
+    def key_of(n):
+        if isinstance(n, ast.Subscript):
+            k = n.slice
+            if isinstance(k, ast.Index):
+                k = k.value
+            if isinstance(k, ast.Constant):
+                return k.value
+        if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "get" \
+                and n.args and isinstance(n.args[0], ast.Constant):
+            return n.args[0].value
+        return None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Tuple) and len(node.elts) == 2:
+            ks = {key_of(e) for e in node.elts}
+            if ks == {"symbol", "trade_id"}:
+                return True
+    return False
+
+
 def keys_on_trade_id_alone(src):
     """★ 复审 FIC-07 (2026-09-19): 找 `X[ r["trade_id"] ]` 这一整类 —— 用 trade_id 【单独】做
     下标键。Binance 的 trade id 是**逐品种**序列, 两个币可以共用同一个 id, 这样去重会把两笔
@@ -134,8 +165,10 @@ def classify(path):
         return None
     if not names_the_file(src):
         return None
+    hand = keys_on_symbol_and_trade_id(src)
     return {"aggregates": any(k in src for k in AGG_FIELDS),
-            "collapses": any(k in src for k in COLLAPSE_NAMES),
+            "collapses": any(k in src for k in COLLAPSE_NAMES) or hand,
+            "hand_rolled": hand,
             "tid_alone": keys_on_trade_id_alone(src),
             "src": src}
 
@@ -163,7 +196,7 @@ stale = sorted(f for f in DECISIONS if f not in readers)
 #   为什么不直接要求 0: 存量里绝大多数是**已归档的历史装置**, 其结论属 ① 类(分子分母都来自
 #   成交表的比率, 实测均值比 0.9998), 重跑它们买不到任何东西。红在存量上 = 永久噪声, 会被无视;
 #   红在**增量**上 = 一条真的会被看见的线。
-BASELINE_UNDECLARED = 45
+BASELINE_UNDECLARED = 22
 check(f"[S2a] 未申报的聚合读者数不超过基线 {BASELINE_UNDECLARED}(棘轮: 只许下降)",
       len(undeclared) <= BASELINE_UNDECLARED,
       f"现在 {len(undeclared)} 个" + (" ← 有人新写了朴素读者" if len(undeclared) > BASELINE_UNDECLARED else ""))
@@ -219,11 +252,16 @@ with tempfile.TemporaryDirectory() as td:
           not names_the_file(open(prose).read()))
     check("[S3c] 变异: `byid[r[\"trade_id\"]]` 被 S4 判别式抓住(上一版正则漏了这一整类)",
           keys_on_trade_id_alone('byid = {}\nfor r in rows: byid[r["trade_id"]] = r\n'))
+    check("[S3e] 变异: 手卷 (symbol, trade_id) 坍缩被认成【已坍缩】(否则会误报成待修)",
+          keys_on_symbol_and_trade_id('F={}\nfor r in rows: F[(r["symbol"], r["trade_id"])] = r\n'))
+    check("[S3f] 变异: 只用 trade_id 的【不】被认成已坍缩",
+          not keys_on_symbol_and_trade_id('F={}\nfor r in rows: F[r["trade_id"]] = r\n'))
     check("[S3d] 变异: 正确的 (symbol, trade_id) 元组键【不】被误判",
           not keys_on_trade_id_alone('d = {}\nfor r in rows: d[(r["symbol"], r["trade_id"])] = r\n'))
 
 print(f"\n人口: 读者 {len(readers)} · 其中聚合 {sum(1 for c in readers.values() if c['aggregates'])} "
-      f"· 已坍缩 {sum(1 for c in readers.values() if c['collapses'])} · 已申报 {len(DECISIONS)}")
+      f"· 已坍缩 {sum(1 for c in readers.values() if c['collapses'])} "
+      f"(其中**手卷正确键** {sum(1 for c in readers.values() if c.get('hand_rolled'))}) · 已申报 {len(DECISIONS)}")
 if undeclared:
     print(f"\n★ 未申报的聚合读者 {len(undeclared)} 个(这就是剩余待办, 数字只许下降):")
     for f in undeclared:
