@@ -1,0 +1,201 @@
+{
+ "device": "judge_streamT.py",
+ "self_sha256": "0b0f290d4e0023ddfdcccc262718eca0f2ab22dbff5f005d95ce2f170cbe3788",
+ "utc": "2026-09-19T06:27:17Z",
+ "env": {
+  "ARMS_DIR": "/workspace/retrain_reeval_2026-09-19/arms",
+  "PUB_DIR": "/workspace/fp2_2026-09/realcost/arms",
+  "PUB_JSON": "/workspace/fp2_2026-09/realcost/PER_YEAR_TABLE_REALCOST.json",
+  "TABLE_DEV": "/workspace/fp2_2026-09/devices_v4chain/fp2_per_year_table.py",
+  "OUT_JSON": "/workspace/retrain_reeval_2026-09-19/receipts/JUDGE_prearm_refusal.json",
+  "OUT_MD": "/dev/null",
+  "ARMS": "",
+  "SEEDS": "",
+  "EXPECT_JSON": "/workspace/retrain_reeval_2026-09-19/device/expect_arms.json"
+ },
+ "table_device": "/workspace/fp2_2026-09/devices_v4chain/fp2_per_year_table.py",
+ "table_device_sha256": "230e3c793cd92ddf78abf76198e39c8cdb3657696920f0290324ff4a9e7a882f",
+ "prereg": "docs/PREREG_retrain_reeval_corrected_pipeline_2026-09-19.md sha256 9b403aad\u2026",
+ "reading": {
+  "A": "both seeds CI95 lower > 0 (W_T)",
+  "B": "both seeds CI95 upper < 0 (W_T)",
+  "C": "otherwise",
+  "EQUIVALENT": "both seeds CI95 within [-0.05, +0.05]",
+  "K": 3
+ },
+ "windows": {
+  "W_T": "2025-01-01T00:00:00Z .. 2026-08-30T20:00:00Z inclusive",
+  "2025": "W_T & UTC year 2025",
+  "2026": "W_T & UTC year 2026"
+ },
+ "repro": {
+  "s42": {
+   "published_file": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A1_dyn_s42.npz",
+   "published_sha256": "a077ed6b8f7136edb637770d3d886190046475a0b50cbd8eacf1c0edd33bdae7",
+   "reproduced_file": "/workspace/retrain_reeval_2026-09-19/arms/w10_ablation_series_V4_A1R_dyn_s42.npz",
+   "reproduced_sha256": "a077ed6b8f7136edb637770d3d886190046475a0b50cbd8eacf1c0edd33bdae7",
+   "rec_bitwise_equal": true,
+   "W_bitwise_equal": true,
+   "g_W_ALPHA_published": 0.6166582123601877,
+   "g_W_ALPHA_reproduced": 0.6166582123601877,
+   "abs_diff": 0.0,
+   "PASS": true,
+   "cfg": {
+    "UMASK_NPZ": "/workspace/fx_data_2026-09-13/out/inject/umask_UPIT_CRYPTO_tradable_W24H.npz",
+    "COSTB_JSON": "/workspace/fp2_2026-09/realcost/costb_fee_real_0907.json",
+    "SLOW_NPY": "/workspace/fp2_2026-09/king_v4/SLOW_v4.npy",
+    "FPRED": "f10_v4RAW_s42.npy",
+    "FSEED": "42",
+    "W3FIX": null,
+    "FEMAT_NPZ": null
+   }
+  },
+  "s2027": {
+   "published_file": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A1_dyn_s2027.npz",
+   "published_sha256": "d9f69a059a2f6a612c93ece19b922714f5204378bae059bd2aeca85de69852df",
+   "reproduced_file": "/workspace/retrain_reeval_2026-09-19/arms/w10_ablation_series_V4_A1R_dyn_s2027.npz",
+   "reproduced_sha256": "d9f69a059a2f6a612c93ece19b922714f5204378bae059bd2aeca85de69852df",
+   "rec_bitwise_equal": true,
+   "W_bitwise_equal": true,
+   "g_W_ALPHA_published": 0.6313477750219423,
+   "g_W_ALPHA_reproduced": 0.6313477750219423,
+   "abs_diff": 0.0,
+   "PASS": true,
+   "cfg": {
+    "UMASK_NPZ": "/workspace/fx_data_2026-09-13/out/inject/umask_UPIT_CRYPTO_tradable_W24H.npz",
+    "COSTB_JSON": "/workspace/fp2_2026-09/realcost/costb_fee_real_0907.json",
+    "SLOW_NPY": "/workspace/fp2_2026-09/king_v4/SLOW_v4.npy",
+    "FPRED": "f10_v4RAW_s2027.npy",
+    "FSEED": "2027",
+    "W3FIX": null,
+    "FEMAT_NPZ": null
+   }
+  }
+ },
+ "arms": {
+  "T1": {}
+ },
+ "verdict": {},
+ "window_counts": {
+  "W_T": 3642,
+  "2025": 2190,
+  "2026": 1452
+ },
+ "window_bounds": {
+  "W_T": [
+   "2025-01-01T00:00:00Z",
+   "2026-08-30T20:00:00Z"
+  ],
+  "2025": [
+   "2025-01-01T00:00:00Z",
+   "2025-12-31T20:00:00Z"
+  ],
+  "2026": [
+   "2026-01-01T00:00:00Z",
+   "2026-08-30T20:00:00Z"
+  ]
+ },
+ "baseline_A1": {
+  "s42": {
+   "W_T": {
+    "g": 1.6425343406394113,
+    "g_ci95": [
+     0.8246363723387985,
+     2.508396129611456
+    ],
+    "sharpe_daily": 2.9386212476562603,
+    "maxdd_2x_anchor": -0.15575033857484655,
+    "maxdd_2x_dayend": -0.1493081949986973,
+    "turnover_tau_raw": 0.0325843498649527,
+    "gross_total": 0.6877178890173301,
+    "pnl": 2.48956798658818,
+    "carry": 0.6611397131563514,
+    "cost": 0.18589393279241753,
+    "n": 3642
+   },
+   "2025": {
+    "g": 0.8399223166968153,
+    "g_ci95": [
+     -0.16198779962182247,
+     1.8174504347415708
+    ],
+    "sharpe_daily": 1.657420535611361,
+    "maxdd_2x_anchor": -0.13913147657521563,
+    "maxdd_2x_dayend": -0.1369432027038967,
+    "turnover_tau_raw": 0.034980911538227945,
+    "gross_total": 0.5653540832007573,
+    "pnl": 1.5270688004567379,
+    "carry": 0.4541851753278219,
+    "cost": 0.23296130843210058,
+    "n": 2190
+   },
+   "2026": {
+    "g": 2.853085533775971,
+    "g_ci95": [
+     1.290283524461084,
+     4.341790053334423
+    ],
+    "sharpe_daily": 4.56071548354183,
+    "maxdd_2x_anchor": -0.15575033857484644,
+    "maxdd_2x_dayend": -0.14930819499869719,
+    "turnover_tau_raw": 0.028969701060219375,
+    "gross_total": 0.8722748688646403,
+    "pnl": 3.9412713045137022,
+    "carry": 0.9732818879803733,
+    "cost": 0.11490388275735841,
+    "n": 1452
+   }
+  },
+  "s2027": {
+   "W_T": {
+    "g": 1.6506316762464532,
+    "g_ci95": [
+     0.8488799829637754,
+     2.5163667729733645
+    ],
+    "sharpe_daily": 2.957608233438084,
+    "maxdd_2x_anchor": -0.15350700289735086,
+    "maxdd_2x_dayend": -0.14692987517279266,
+    "turnover_tau_raw": 0.0326810675321183,
+    "gross_total": 0.6916542664151154,
+    "pnl": 2.4914803917155295,
+    "carry": 0.6576458222227572,
+    "cost": 0.18320289324631914,
+    "n": 3642
+   },
+   "2025": {
+    "g": 0.8529215828846295,
+    "g_ci95": [
+     -0.14464985812799158,
+     1.829654485495339
+    ],
+    "sharpe_daily": 1.6744031224531557,
+    "maxdd_2x_anchor": -0.1338663594803513,
+    "maxdd_2x_dayend": -0.13060159965355023,
+    "turnover_tau_raw": 0.03513679878336154,
+    "gross_total": 0.574681101565532,
+    "pnl": 1.5304664919509476,
+    "carry": 0.4495488870546644,
+    "cost": 0.2279960220116537,
+    "n": 2190
+   },
+   "2026": {
+    "g": 2.853789461688873,
+    "g_ci95": [
+     1.2997315679828652,
+     4.3375279371948015
+    ],
+    "sharpe_daily": 4.59916938597221,
+    "maxdd_2x_anchor": -0.1535070028973503,
+    "maxdd_2x_dayend": -0.14692987517279243,
+    "turnover_tau_raw": 0.028977175355656387,
+    "gross_total": 0.8680807340601483,
+    "pnl": 3.9409435049968202,
+    "carry": 0.971511034356451,
+    "cost": 0.11564300895149639,
+    "n": 1452
+   }
+  }
+ },
+ "REFUSED": "missing arm artifact /workspace/retrain_reeval_2026-09-19/arms/w10_ablation_series_V4_T1_dyn_s42.npz \u2014 the judge does not read a partial arm set"
+}
