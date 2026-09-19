@@ -35,12 +35,21 @@ def fee_usdt(r):
     raise ValueError(f"commission asset {a}")
 inputs = {f"{d}/{n}": hashlib.sha256(open(f"{LED}/{d}/{n}.jsonl", "rb").read()).hexdigest()[:16] for d in days for n in ("fills", "orders", "funding", "position_readback", "daily_nav", "anchors") if os.path.isfile(f"{LED}/{d}/{n}.jsonl")}
 # ── (1) fills ──
-by_tid = {}; n_raw = 0
+# ★ 2026-09-19 (独立复审 FIC-07 家族, 主研究员自查): 键从 `trade_id` 改为 **(symbol, trade_id)**。
+#   Binance 的 trade id 是【逐品种】序列, 单独用它做键会把两个币的两笔不同执行静默合并成一笔;
+#   而且这里的键还跨全部 50 天, 碰撞面更大。真实账本上实测 **0 次碰撞**(53,844 个 trade_id
+#   各只被 1 个品种使用), 所以【本次的数字不受影响】—— 但契约是错的, 不能留着等它哪天真撞上。
+#   同时记下碰撞计数 n_key_collisions_if_tid_only, 让「没撞上」这件事是【被测量的】而不是被假设的。
+by_tid = {}; n_raw = 0; _tid_syms = {}
 for d in days:
     for r in rows(d, "fills"):
-        n_raw += 1; t = r.get("trade_id"); k = (r.get("backfilled_utc") or "", d)
-        if t not in by_tid or k >= by_tid[t][0]: by_tid[t] = (k, r)
-fills = sorted((r for _, r in by_tid.values()), key=lambda r: (float(r["fill_ts"]), str(r.get("trade_id"))))
+        n_raw += 1
+        t = r.get("trade_id"); sym = r.get("symbol")
+        _tid_syms.setdefault(t, set()).add(sym)
+        key = (sym, t); k = (r.get("backfilled_utc") or "", d)
+        if key not in by_tid or k >= by_tid[key][0]: by_tid[key] = (k, r)
+n_tid_collisions = sum(1 for v in _tid_syms.values() if len(v) > 1)
+fills = sorted((r for _, r in by_tid.values()), key=lambda r: (float(r["fill_ts"]), str(r.get("symbol")), str(r.get("trade_id"))))
 for r in fills: r["_pop"] = "REGULAR" if r.get("order_type") in REGULAR else ("PROTECTIVE" if r.get("order_type") in PROTECTIVE else "OTHER")
 qty_of = lambda r: float(r["fill_notional"]) / float(r["fill_px"]) if float(r["fill_px"]) else 0.0
 sgn = lambda r: 1.0 if str(r.get("side", "")).upper() == "BUY" else -1.0
@@ -194,6 +203,6 @@ day_sum = {"days": len(daily), "d_realized_known_abs_sum": round(sum(abs(x["d_re
 out = {"device": "fp3_cash_recon.py", "version": VERSION, "self_sha256": hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest(), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "days": [days[0], days[-1], len(days)], "inputs_sha16": inputs,
        "VERDICT": VERDICT, "nav_identity": {"windows": windows, "n_windows": len(windows), "n_ok": n_ok, "n_bad": n_bad, "n_unavailable": n_un, "tolerance": "max(2 USDT, 0.5 bp × NAV)", "residual_abs_sum": round(sum(abs(w["residual"]) for w in windows if "residual" in w), 2), "residual_venue_funding_abs_sum": round(sum(abs(w["residual_venue_funding"]) for w in windows if w.get("residual_venue_funding") is not None), 2), "n_ok_local_funding": sum(1 for w in windows if w.get("ok")), "n_ok_venue_funding": sum(1 for w in windows if w.get("ok_venue_funding")),
                         "windows_bad": [(w["from"], w["to"], w["residual"], w["diag_calendar_substitute"]["residual_calendar_substitute"], w["n_gaps"]) for w in windows if "residual" in w and not w["ok"]], "reads": "a window reconciles if EITHER the local-funding or the venue-funding identity is within tolerance and no position gap exists; residual_venue_funding uses the venue FUNDING_FEE of the end row (and venue COMMISSION where the by-asset breakdown exists)"},
-       "fills": {"raw_rows": n_raw, "distinct_trade_ids": len(by_tid), "notional_total": round(fills_notional, 2)}, "positions_vs_readback": pos_sum, "positions_per_anchor": pos_checks, "daily": daily, "daily_summary": day_sum, "cost_per_anchor": cost, "cost_summary": cost_sum}
+       "fills": {"raw_rows": n_raw, "distinct_executions": len(by_tid), "key": "(symbol, trade_id)", "n_trade_ids_used_by_multiple_symbols": n_tid_collisions, "notional_total": round(fills_notional, 2)}, "positions_vs_readback": pos_sum, "positions_per_anchor": pos_checks, "daily": daily, "daily_summary": day_sum, "cost_per_anchor": cost, "cost_summary": cost_sum}
 json.dump(out, open(OUT, "w"), indent=1)
 print("VERDICT", VERDICT, {k: out["nav_identity"][k] for k in ("n_windows", "n_ok", "n_bad", "n_unavailable", "residual_abs_sum")}); print("bad windows:", out["nav_identity"]["windows_bad"][:12]); print("positions:", {k: v for k, v in pos_sum.items() if k != "flatten_events"}); print("cost:", json.dumps(cost_sum)[:900]); print("daily:", day_sum)
