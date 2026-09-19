@@ -1,0 +1,35 @@
+[     0s] CHECK input_sha.ARM_A0_S42 OK {"expected": "634f7c55ba73", "got": "634f7c55ba73"}
+[     0s] CHECK input_sha.ARM_A0_S2027 OK {"expected": "c1f92ec24bb4", "got": "c1f92ec24bb4"}
+[     0s] CHECK input_sha.META_V4 OK {"expected": "e1cf515eca46", "got": "e1cf515eca46"}
+[     1s] CHECK input_sha.PANEL_ARM OK {"expected": "5e67c0559daa", "got": "5e67c0559daa"}
+[     1s] CHECK input_sha.UMASK_ARM OK {"expected": "3badc4b6a4fc", "got": "3badc4b6a4fc"}
+[     1s] CHECK input_sha.W10_DEVICE OK {"expected": "8684d9a9f43a", "got": "8684d9a9f43a"}
+[     1s] CHECK input_sha.COSTB_JSON OK {"expected": "e5ac58d57f23", "got": "e5ac58d57f23"}
+[     1s] CHECK input_sha.JUDGE OK {"expected": "230e3c793cd9", "got": "230e3c793cd9"}
+[     3s] CHECK input_sha.CACHE_HOLEFIX2 OK {"expected": "1d7f459dee43", "got": "1d7f459dee43"}
+[     3s] CHECK input_sha.HOLE_CELLS OK {"expected": "6156f97a0709", "got": "6156f97a0709"}
+[     4s] CHECK umask.symbols_equal_panel OK 
+[     4s] CHECK arm_s42.config_is_the_in_role_A0_realcost_arm OK {"mismatch": {}}
+[     4s] CHECK arm_s42.shapes OK {"rec": [10039, 23], "W": [10039, 829], "W_dtype": "float32"}
+[     4s] CHECK arm_s2027.config_is_the_in_role_A0_realcost_arm OK {"mismatch": {}}
+[     4s] CHECK arm_s2027.shapes OK {"rec": [10039, 23], "W": [10039, 829], "W_dtype": "float32"}
+[     4s] CHECK arms.same_anchor_axis OK 
+[     4s] CHECK axis.anchors OK {"n": 3642, "first": "2025-01-01T00:00Z", "last": "2026-08-30T20:00Z"}
+[     4s] CHECK cache.channels OK ["ret5", "range", "cpos", "log_qv", "log_cnt", "log_avgsz", "tbf"]
+[     4s] CHECK cache.grid OK {"first": "2022-01-01T00:00Z", "last": "2026-09-01T00:00Z", "rows": 490753}
+[     4s] CHECK cache.window_rows_available OK 
+[    33s] CHECK cache.tbf_nan_on_every_log_cnt_zero_row OK {"log_cnt_zero_cells": 15468607, "of_which_tbf_finite": 0}
+[    33s] cache streamed (175392, 829, 3)
+[    33s] CHECK holes.symbols_and_ts OK 
+[    33s] holefix cells in window {'cells': 1353024, 'names': 798, 'tbf_finite_share': 0.6301115131734544, 'traded_share': 0.6301115131734544}
+[    35s] CHECK meta.contiguous_4h OK 
+[    35s] anchor 0 / 3642 2025-01-01T00:00Z
+[    37s] anchor 500 / 3642 2025-03-25T08:00Z
+[    39s] anchor 1000 / 3642 2025-06-16T16:00Z
+[    41s] anchor 1500 / 3642 2025-09-08T00:00Z
+[    43s] anchor 2000 / 3642 2025-11-30T08:00Z
+[    45s] anchor 2500 / 3642 2026-02-21T16:00Z
+[    47s] anchor 3000 / 3642 2026-05-16T00:00Z
+[    49s] anchor 3500 / 3642 2026-08-07T08:00Z
+[    50s] panel crosscheck {'TBF_vs_f_tbf_24h': {'n': 1481227, 'pearson': 0.8548527386627813, 'max_abs_diff': 0.5765647888183594}, 'MOM7_vs_f_mom_7d': {'n': 1481118, 'pearson': 0.7388328501450758, 'max_abs_diff': 53.584503173828125}, 'MOM30_vs_f_mom_30d': {'n': 1479952, 'pearson': 0.7293344635773711, 'max_abs_diff': 96.28073120117188}}
+[    56s] VERDICT PASS failed []
