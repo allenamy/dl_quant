@@ -93,7 +93,7 @@
 
 - 五个运行 × 32 条成交路径 = 160 条路径, 窗口 2022-06-30T00:00:00Z → 2026-08-31T00:00:00Z(9,139 锚), 每条路径单线程。
 - 启动: `bt_launch.py` v3(393a8dc8), 冻结配置 `RUN_CONFIG_main_A0_2026-09-19.json` 7b6dca2c, 最多 4 个子进程, PGID 1405597(自己记录; 未按名字扫杀任何进程)。
-- 调速器(lead 规则): 自身 Σ Pss 上限 6 GB, 内存 PSI avg10 > 20% 持续 60 s 则并行减半。实测峰值自身 Σ Pss 3.76(启动器自测; 独立采样器 3.68) GiB, 内存 PSI avg10 全程 0.00(909 个 5 秒采样点); 调速事件 0(没有触发减半, 也没有一次因自身总量被拦)。容器不可回收内存(anon + shmem)在运行期间 17.8–23.6 GB(anon)+ ≤1.9 GB(shmem), 与 lead 的「总量 30 GB 以下」一致。
+- 调速器(lead 规则): 自身 Σ Pss 上限 6 GB, 内存 PSI avg10 > 20% 持续 60 s 则并行减半。实测峰值自身 Σ Pss **3.76 GiB**(启动器自己的度量; 独立采样器 memsample.sh 给 3.68 GiB), 内存 PSI avg10 全程 0.00(909 个 5 秒采样点); 调速事件 0(没有触发减半, 也没有一次因自身总量被拦)。容器不可回收内存(anon + shmem)在运行期间 17.8–23.6 GB(anon)+ ≤1.9 GB(shmem), 与 lead 的「总量 30 GB 以下」一致。
 - 墙钟 4,712 s(78.5 分钟, 22:00Z → 23:17Z); 路径单线程合计 18,280 s = 5.08 核时。
 
 ## §6 收据与复跑
@@ -104,13 +104,13 @@
 | AMENDMENT 1 | `docs/AMENDMENT_1_baseline_tables_certified_2026-09-19.md` | 766bc367743d8542(f6a2a909e) |
 | 冻结运行配置 | `multi_asset/exports/research/baseline_tables_2026-09-19/RUN_CONFIG_main_A0_2026-09-19.json` | 7b6dca2c48feda29(c74265730) |
 | 开跑前检查 | `receipts/pod2/receipts/BT_OBJB_PRERUN_A0.json` | cc3dfb2d81518127(c74265730) |
-| 真实布局核对 | `receipts/pod2/receipts/BT_OBJB_LAYOUT_CHECK_A0.json` | (9a507b30b) |
-| 调速器测试 | `receipts/pod2/receipts/BT_LAUNCH_GOVERNOR_TEST.json` | (2af24f3e9) |
-| 启动收据 | `receipts/pod2/receipts/BT_LAUNCH_full_a0.json` | 515eaae829fd88f7 |
+| 真实布局核对 | `receipts/pod2/receipts/BT_OBJB_LAYOUT_CHECK_A0.json` | ef9cd279322ef7a5(9a507b30b) |
+| 调速器测试 | `receipts/pod2/receipts/BT_LAUNCH_GOVERNOR_TEST.json` | 6f0fd1be86cd9be9(2af24f3e9) |
+| 启动收据 | `receipts/pod2/receipts/BT_LAUNCH_full_a0.json` | 515eaae829fd88f7(fbb7335ee) |
 | 电池(5 个运行目录) | `receipts/pod2/receipts/BT_BATTERY_post_OBJB_A0_*.json` | 五份, 判词见 §3 |
 | 运行汇总 | `receipts/pod2/receipts/BT_RUN_SUMMARY_A0.json` | 5a038fafe2a3f021 |
 | A0 表 | `receipts/pod2/receipts/BT_MAIN_A0.json` | fa3c2ce7c20e6b99 |
 | 渲染 | `receipts/A0_TABLES_rendered.md` | 90822be35db13d27 |
-| 逐字复跑命令 | `devices/run_bt.sh` 第 a–f 步 | 见提交 |
+| 逐字复跑命令 | `devices/run_bt.sh` 第 a–f 步 | 355e715522db0e43(fbb7335ee) |
 
 对象 B 的输入(只读, 未改动): 目标 `targets/TARGETS_A0_main.npz` b9f0dc9f(7547ff55d), 收据 `receipts/TARGETS_A0_main.json` 5ebac720, 门 F `receipts/GATE_F.json` 916b109f(= d3596aced 的同名 blob), 宇宙 `work/ext_inputs/universe_ext.npz` 3ee838cf。
