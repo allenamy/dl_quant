@@ -1,0 +1,218 @@
+{
+ "device": "c0_supp.py",
+ "self_sha256": "6b9d81479581e8b301e093166c0563f29d4886cc8e91bf863ca53913e03dc1a5",
+ "lib_sha256": "a445ac87700bbf50113ba1ed8ebe249f7c8acf615efc82081a65714f5d3602de",
+ "numpy": "2.4.6",
+ "argv": [
+  "devices/c0_supp.py",
+  "out",
+  "out/c0_chars.npz"
+ ],
+ "env": {
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "MKL_NUM_THREADS": "4",
+  "OMP_NUM_THREADS": "4",
+  "OPENBLAS_NUM_THREADS": "4",
+  "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ },
+ "utc_start": "2026-09-19T07:18Z",
+ "inputs": {
+  "ARM_A0_S42": {
+   "path": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A0_dyn_s42.npz",
+   "sha256": "634f7c55ba730520371aab64b64b3b2b5c211422af6ab7b8bacb78e4d706060b"
+  },
+  "ARM_A0_S2027": {
+   "path": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A0_dyn_s2027.npz",
+   "sha256": "c1f92ec24bb45c990427840831033e6cc136cc7ba02a86b00375a6dcf1f74081"
+  },
+  "META_V4": {
+   "path": "/workspace/fp2_2026-09/refute_C6_2/altrun/meta_newprod_v4.npz",
+   "sha256": "e1cf515eca46b0a1a7afe2bd6e89039cb68f4eea1a0428353e2f3aac989890a7"
+  },
+  "PANEL_ARM": {
+   "path": "/workspace/data/wide_panel_4h_v2ext.npz",
+   "sha256": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116"
+  },
+  "UMASK_ARM": {
+   "path": "/workspace/fx_data_2026-09-13/out/inject/umask_UPIT_CRYPTO_tradable_W24H.npz",
+   "sha256": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c"
+  },
+  "W10_DEVICE": {
+   "path": "/workspace/fp2_2026-09/health_check/w10_health.py",
+   "sha256": "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d"
+  },
+  "COSTB_JSON": {
+   "path": "/workspace/fp2_2026-09/realcost/costb_fee_real_0907.json",
+   "sha256": "e5ac58d57f230be73b9af31830ec48fb87229997576da52da15bd46991d434b7"
+  },
+  "JUDGE": {
+   "path": "/workspace/fp2_2026-09/devices_v4chain/fp2_per_year_table.py",
+   "sha256": "230e3c793cd92ddf78abf76198e39c8cdb3657696920f0290324ff4a9e7a882f"
+  },
+  "CHARS": {
+   "path": "out/c0_chars.npz",
+   "sha256": "403957a21ff7d4be7f06c1c1a038a2b841bb14a567fade1181b3faa29d89c5be"
+  }
+ },
+ "attrib_device_sha256": "ec8de310837fa2d53da1d4973cda0d67a5355a1b06320c12114d418a7ac50cbc",
+ "outputs": {
+  "C0_SUPP.json": {
+   "path": "out/C0_SUPP.json",
+   "sha256": "9da1252dea120d58cc09d81ebef1ad7f3cd6691d60ad146afaa2f082d8106f18"
+  },
+  "C0_SUPP_TABLES.md": {
+   "path": "out/C0_SUPP_TABLES.md",
+   "sha256": "0b6ac9ebfeeacdf7fca056742cebbf0aca71e8b6e760a913f0e3298e00ffbc7a"
+  }
+ },
+ "checks": [
+  {
+   "check": "input_sha.ARM_A0_S42",
+   "ok": true,
+   "detail": {
+    "expected": "634f7c55ba73",
+    "got": "634f7c55ba73"
+   }
+  },
+  {
+   "check": "input_sha.ARM_A0_S2027",
+   "ok": true,
+   "detail": {
+    "expected": "c1f92ec24bb4",
+    "got": "c1f92ec24bb4"
+   }
+  },
+  {
+   "check": "input_sha.META_V4",
+   "ok": true,
+   "detail": {
+    "expected": "e1cf515eca46",
+    "got": "e1cf515eca46"
+   }
+  },
+  {
+   "check": "input_sha.PANEL_ARM",
+   "ok": true,
+   "detail": {
+    "expected": "5e67c0559daa",
+    "got": "5e67c0559daa"
+   }
+  },
+  {
+   "check": "input_sha.UMASK_ARM",
+   "ok": true,
+   "detail": {
+    "expected": "3badc4b6a4fc",
+    "got": "3badc4b6a4fc"
+   }
+  },
+  {
+   "check": "input_sha.W10_DEVICE",
+   "ok": true,
+   "detail": {
+    "expected": "8684d9a9f43a",
+    "got": "8684d9a9f43a"
+   }
+  },
+  {
+   "check": "input_sha.COSTB_JSON",
+   "ok": true,
+   "detail": {
+    "expected": "e5ac58d57f23",
+    "got": "e5ac58d57f23"
+   }
+  },
+  {
+   "check": "input_sha.JUDGE",
+   "ok": true,
+   "detail": {
+    "expected": "230e3c793cd9",
+    "got": "230e3c793cd9"
+   }
+  },
+  {
+   "check": "input_sha.CHARS",
+   "ok": true
+  },
+  {
+   "check": "attrib_device_is_the_frozen_ec8de310",
+   "ok": true
+  },
+  {
+   "check": "umask.symbols_equal_panel",
+   "ok": true
+  },
+  {
+   "check": "arm_s42.config_is_the_in_role_A0_realcost_arm",
+   "ok": true,
+   "detail": {
+    "mismatch": {}
+   }
+  },
+  {
+   "check": "arm_s42.shapes",
+   "ok": true,
+   "detail": {
+    "rec": [
+     10039,
+     23
+    ],
+    "W": [
+     10039,
+     829
+    ],
+    "W_dtype": "float32"
+   }
+  },
+  {
+   "check": "s42.axis",
+   "ok": true
+  },
+  {
+   "check": "s42.identity_price_eq_market_plus_selection",
+   "ok": true,
+   "detail": {
+    "max_abs": 1.4210854715202004e-14
+   }
+  },
+  {
+   "check": "arm_s2027.config_is_the_in_role_A0_realcost_arm",
+   "ok": true,
+   "detail": {
+    "mismatch": {}
+   }
+  },
+  {
+   "check": "arm_s2027.shapes",
+   "ok": true,
+   "detail": {
+    "rec": [
+     10039,
+     23
+    ],
+    "W": [
+     10039,
+     829
+    ],
+    "W_dtype": "float32"
+   }
+  },
+  {
+   "check": "s2027.axis",
+   "ok": true
+  },
+  {
+   "check": "s2027.identity_price_eq_market_plus_selection",
+   "ok": true,
+   "detail": {
+    "max_abs": 1.4210854715202004e-14
+   }
+  }
+ ],
+ "n_checks": 19,
+ "failed": [],
+ "VERDICT": "PASS",
+ "runtime_s": 17.6,
+ "utc_end": "2026-09-19T07:19Z"
+}
