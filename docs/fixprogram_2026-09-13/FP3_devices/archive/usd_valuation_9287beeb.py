@@ -21,7 +21,7 @@
   下面的 index_at / p_usdt / b_bnb / save / CACHE 与 v1(archive/usd_valuation_v1_e892221f.py)逐字节同义, 不改 —— 其它装置
   (flatten_window_closure.py)与 v2 恒等式收据依赖它们; OHLC 用另一个缓存文件, 旧缓存不被改写。
   OhlcCache 在输入层拒绝非有限/非正/不自洽(low ≤ open,close ≤ high)的 K 线, 抛 InputRefused。"""
-import bisect, hashlib, json, math, os, sys, time, urllib.request
+import bisect, hashlib, json, math, os, time, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 USDT_BID_BUFFER = 0.0001
@@ -45,15 +45,6 @@ def save():
     with open(tmp, "w") as fh: json.dump(_cache, fh, sort_keys=True)
     os.replace(tmp, CACHE)
 
-def _quiet_window_guard():
-    """E-0919-V: 本机出口 IP 与实盘执行器共用场所每 IP 权重。缓存未命中时的真实请求只在静默窗内发出(窗关就等)。
-    离线复跑(offline=True / 缓存命中)不经过这里。守卫: multi_asset/exports/research/common/venue_quiet_window.py。"""
-    d = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../multi_asset/exports/research/common"))
-    if d not in sys.path: sys.path.insert(0, d)
-    import venue_quiet_window as QW
-    QW.wait_for_quiet_window(min_remaining_min=3)
-
-
 
 def index_at(pair, ts, offline=False):
     """pair ∈ {USDTUSD, BNBUSD}; ts = unix seconds. offline=True refuses to fetch (a rerun must reproduce from the cache)."""
@@ -62,7 +53,6 @@ def index_at(pair, ts, offline=False):
     if k not in c:
         if offline: raise KeyError(f"{pair} minute {m} not in cache (offline)")
         url = f"https://fapi.binance.com/fapi/v1/indexPriceKlines?pair={pair}&interval=1m&startTime={m}&limit=1"
-        _quiet_window_guard()
         body = json.loads(urllib.request.urlopen(url, timeout=20).read()); time.sleep(0.12)
         if not body or int(body[0][0]) != m: raise RuntimeError(f"{pair} kline for minute {m} missing: {str(body)[:120]}")
         c[k] = [float(body[0][1]), float(body[0][4])]
@@ -156,7 +146,6 @@ class OhlcCache:
 
     def _default_fetch(self, pair, m):
         url = f"{PUBLIC_KLINE_URL}?pair={pair}&interval=1m&startTime={m - 60000}&limit=3"
-        _quiet_window_guard()
         body = json.loads(urllib.request.urlopen(url, timeout=20).read())
         time.sleep(MIN_SLEEP_S)
         return body

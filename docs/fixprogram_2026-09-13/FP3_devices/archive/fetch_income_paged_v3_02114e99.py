@@ -61,24 +61,8 @@ def credentials():
         _cred.append((kv["QUANT_RO_API_KEY"], kv["QUANT_RO_API_SECRET"]))
     return _cred[0]
 
-def _quiet_window_guard():
-    """E-0919-V(v3.1): 本机出口 IP 与实盘执行器共用场所每 IP 权重。真实请求只在静默窗内发出 —— 窗关就等到下一次开放,
-    不越窗。只在真实 get() 里调用; 测试把 get 整个换掉, 所以这里不影响任何夹具。守卫源码:
-    multi_asset/exports/research/common/venue_quiet_window.py(读不到锚日志 ⇒ 关闭, 未知不是开放)。"""
-    d = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../multi_asset/exports/research/common"))
-    if d not in sys.path: sys.path.insert(0, d)
-    import venue_quiet_window as QW
-    st = QW.quiet_window_status()
-    if not st["open"] or st["remaining_min"] < 3:
-        print(f"[quiet-window] waiting: {st['reason']} · now {st['now_utc']}", file=sys.stderr, flush=True)
-    st = QW.wait_for_quiet_window(min_remaining_min=3)
-    if st.get("waited_s"):
-        print(f"[quiet-window] resumed after {st['waited_s']:.0f} s", file=sys.stderr, flush=True)
-
-
 
 def get(params):
-    _quiet_window_guard()
     K, SEC = credentials()
     dt = time.time() - _last[0]
     if dt < 0.35: time.sleep(0.35 - dt)

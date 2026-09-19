@@ -117,10 +117,6 @@ FETCHER_REGISTRY = {
         ("fetch_income_paged.py", "v2 R15-I1 + income_type (archive/fetch_income_paged_v2_c7ac556b.py): page receipts carry counts only"),
     "02114e99946c70ac1a2b730a0afb9459048bf12efe891d1b44189f8c82b53132":
         ("fetch_income_paged.py", "v3 R5-08: v2 requests and stop rules unchanged + per-row [sha256(row_identity), time] page evidence"),
-    "2518ee0ba6fc0283d0f8a600156c79c4887dc875807455347ae9501eb9ee33d8":
-        ("fetch_trades.py", "v3.1 E-0919-V: v3 requests, stop rules and page evidence unchanged + quiet-window guard before each real request (archive/fetch_trades_v3_3fcb5b3f.py)"),
-    "16f8c694ff6cfd1629e8b6c6f9733e3965b4d309e6ea27bfaae7820360b15c7c":
-        ("fetch_income_paged.py", "v3.1 E-0919-V: v3 requests, stop rules and page evidence unchanged + quiet-window guard before each real request (archive/fetch_income_paged_v3_02114e99.py)"),
 }
 RC = {"CLOSED": 0, "REFUSED": 2, "UNAVAILABLE": 3, "OPEN": 4, "CLOSED_POPULATION_UNPROVEN": 5}
 ENDPOINT_TOL = Decimal("1e-8")
