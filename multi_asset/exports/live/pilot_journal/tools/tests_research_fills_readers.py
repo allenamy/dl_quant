@@ -99,6 +99,34 @@ def names_the_file(src):
     return False
 
 
+def keys_on_trade_id_alone(src):
+    """★ 复审 FIC-07 (2026-09-19): 找 `X[ r["trade_id"] ]` 这一整类 —— 用 trade_id 【单独】做
+    下标键。Binance 的 trade id 是**逐品种**序列, 两个币可以共用同一个 id, 这样去重会把两笔
+    不同的执行静默合并成一笔。
+
+    我上一版用正则扫, 变量名只认 seen|dedup|by|d|m|idx, 于是把 `byid[...]` 与 `seen_last[...]`
+    整类漏掉了 —— 复审找出 5 个。改用 AST: 任何下标表达式, 其**下标本身**又是一个以常量
+    'trade_id' 取值的下标, 即命中。
+    """
+    try:
+        tree = ast.parse(src)
+    except (SyntaxError, ValueError):
+        return False
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Subscript):
+            continue
+        inner = node.slice
+        if isinstance(inner, ast.Index):                    # py<3.9 兼容
+            inner = inner.value
+        if isinstance(inner, ast.Subscript):
+            k = inner.slice
+            if isinstance(k, ast.Index):
+                k = k.value
+            if isinstance(k, ast.Constant) and k.value == "trade_id":
+                return True
+    return False
+
+
 def classify(path):
     try:
         src = open(os.path.join(REPO, path), encoding="utf-8", errors="replace").read()
@@ -108,6 +136,7 @@ def classify(path):
         return None
     return {"aggregates": any(k in src for k in AGG_FIELDS),
             "collapses": any(k in src for k in COLLAPSE_NAMES),
+            "tid_alone": keys_on_trade_id_alone(src),
             "src": src}
 
 
@@ -148,6 +177,33 @@ bad = [f for f, (kind, fn, _) in DECISIONS.items()
        if kind == "COLLAPSES" and f in readers and fn and fn not in readers[f]["src"]]
 check("[S2c] 每个 COLLAPSES 申报命名的函数都真的出现在该文件里", not bad, bad)
 
+# [S4] ★ 复审 FIC-07: 用 trade_id 单独做键 = 跨品种合并缺陷族(潜伏, 本次真实数据未发生)
+#   ★★ 本门扫【全部 tracked .py】, 不只扫「普查可见的读者」——
+#      6 个命中里有 2 个(commission_collision_test / markout_diag)**全文没有 fills.jsonl 字样**,
+#      路径来自别处, 只扫读者会整类漏掉。这是我这一版补上的**第二个检测洞**。
+KNOWN_TID_ALONE = {
+ "multi_asset/exports/research/retrain_2026-09/health_check_2026-09-05/calib/commission_collision_test.py",
+ "multi_asset/exports/research/retrain_2026-09/health_check_2026-09-05/calib/finalize_and_render.py",
+ "multi_asset/exports/research/retrain_2026-09/health_check_2026-09-05/calib/markout_diag.py",
+ "multi_asset/exports/research/uplift_r2_2026-09-13/T3/devices/t3_gate_repro.py",
+ "multi_asset/exports/research/uplift_r2_2026-09-13/T3/devices/t3_markout_desc.py",
+ "multi_asset/exports/research/uplift_r2_2026-09-13/T3/devices/t3_passive_rev.py",
+}
+tid_alone = []
+for f in tracked_py():
+    try:
+        src_f = open(os.path.join(REPO, f), encoding="utf-8", errors="replace").read()
+    except Exception:
+        continue
+    if keys_on_trade_id_alone(src_f):
+        tid_alone.append(f)
+tid_alone = sorted(tid_alone)
+new_tid = sorted(set(tid_alone) - KNOWN_TID_ALONE)
+gone = sorted(KNOWN_TID_ALONE - set(tid_alone))
+check("[S4a] 没有【新增的】trade_id 单独做键的文件(跨品种合并族; 棘轮)", not new_tid, new_tid)
+check("[S4b] 已知名单是紧的(名单里的都还在犯, 否则应删除该条)", not gone, gone)
+check("[S4c] 已知名单规模", len(tid_alone) == 6, f"{len(tid_alone)} 个(复审 FIC-07 找到 5 个; AST 判别式多找到 t3_gate_repro.py)")
+
 # [S3] 变异: 合成一个朴素读者, 必须被同一个扫描器抓住
 with tempfile.TemporaryDirectory() as td:
     naive = os.path.join(td, "naive_reader.py")
@@ -161,6 +217,10 @@ with tempfile.TemporaryDirectory() as td:
     open(prose, "w").write('"""这个模块讨论 fills.jsonl 的形状, 但不读它。"""\nx = 1\n')
     check("[S3b] 变异: 只在 docstring 里提到 fills.jsonl 的模块【不】被判为读者",
           not names_the_file(open(prose).read()))
+    check("[S3c] 变异: `byid[r[\"trade_id\"]]` 被 S4 判别式抓住(上一版正则漏了这一整类)",
+          keys_on_trade_id_alone('byid = {}\nfor r in rows: byid[r["trade_id"]] = r\n'))
+    check("[S3d] 变异: 正确的 (symbol, trade_id) 元组键【不】被误判",
+          not keys_on_trade_id_alone('d = {}\nfor r in rows: d[(r["symbol"], r["trade_id"])] = r\n'))
 
 print(f"\n人口: 读者 {len(readers)} · 其中聚合 {sum(1 for c in readers.values() if c['aggregates'])} "
       f"· 已坍缩 {sum(1 for c in readers.values() if c['collapses'])} · 已申报 {len(DECISIONS)}")
