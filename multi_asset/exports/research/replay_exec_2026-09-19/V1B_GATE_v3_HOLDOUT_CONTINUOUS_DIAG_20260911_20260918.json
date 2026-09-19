@@ -1,0 +1,1206 @@
+{
+ "device": "v1b_gate.py",
+ "device_sha256": "31650235baf479a4b35430b147422f98d8c89bab26193dff5f3b4915dd54d96c",
+ "utc": "2026-09-19T09:17:22Z",
+ "rerun": "/usr/bin/python3 multi_asset/exports/research/replay_exec_2026-09-19/v1b_gate.py SIM_v3_live_CAL_continuous_20260826_20260918.json HOLDOUT_CONTINUOUS_DIAG V1B_GATE_v3_HOLDOUT_CONTINUOUS_DIAG_20260911_20260918.json",
+ "label": "HOLDOUT_CONTINUOUS_DIAG",
+ "period": {
+  "first_anchor": 1789084800,
+  "last_anchor": 1789761600,
+  "run_start_anchor": 1787702400,
+  "role": "diagnostic: hold-out windows of the continuous run (not the verdict of record)"
+ },
+ "bounds": {
+  "price_and_trading": {
+   "rtol": 0.25,
+   "k_atol": 0.25,
+   "m_max": 0.35,
+   "t_max": 3.0
+  },
+  "funding": {
+   "rtol": 0.25,
+   "k_atol": 0.1,
+   "m_max": 0.25,
+   "t_max": 3.0
+  },
+  "fee": {
+   "rtol": 0.25,
+   "k_atol": 0.1,
+   "m_max": 0.25,
+   "t_max": 3.0
+  },
+  "turnover": {
+   "rtol": 0.25,
+   "k_atol": 0.1,
+   "m_max": 0.25,
+   "t_max": 3.0
+  }
+ },
+ "inputs_sha256": {
+  "multi_asset/exports/research/live_expectation_2026-09-19/LIVE_G_DECOMPOSITION_combo_20260826_20260919.json": "ddb4e09225e33336a52cea3e6928ff04aeb3102547d3a3f5d8f7573f5a9f4360",
+  "docs/fixprogram_2026-09-13/FP3_receipts/venue_readonly_2026-09-19/MISSING_TRADES_20260801_20260919.json": "6faee16057e9def54947c11ca1ca20ee3ff2075d8a680f9fcd45ef4713827629",
+  "docs/fixprogram_2026-09-13/FP3_receipts/venue_readonly_2026-09-19/INCOME_TRANSFER_20260725_now.json": "9a85c9140c1831e96d7dec5aafe6d959a1c8a11ace01028ef5e9f686e3efb352",
+  "docs/fixprogram_2026-09-13/FP3_receipts/venue_readonly_2026-09-19/INDEX_KLINES_1m_OHLC_cache.json": "c7e2c147e434a82045ae479ca414335b45b8b5b4a5ed02838e938bb151cd2149",
+  "multi_asset/exports/live/pilot_journal/tools/fills_reader.py": "4a906fba23dbeb3f147af4b2e7713c139fd379464b91f22fbede5301c2e7ff48",
+  "multi_asset/exports/research/replay_exec_2026-09-19/simlib.py": "55246fe98da2d57a33bbbe0f22fc67e6581da539c353b026d8ef41673dfec2f1",
+  "multi_asset/exports/research/replay_exec_2026-09-19/INPUT_MANIFEST.json": "59875e5a69db415f5ce20b35b888f2d49a31427fdde8b7b847a9645ee135a5ae",
+  "docs/fixprogram_2026-09-13/FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_FLATTEN-20260821T201600Z_venue_trades.json": "7ef07956f9f1112c095c3721dcaf0d7f5b310a724cff7d11a20620f8884b6156",
+  "docs/fixprogram_2026-09-13/FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_FLATTEN-20260826T124702Z_venue_trades.json": "ebda127010c3708f5b4f9c9ca71a6f292ed5a4deb744a2bc1163b794e52f8941",
+  "docs/fixprogram_2026-09-13/FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_FLATTEN-20260906T084608Z_venue_trades.json": "88b86525b1cd3ececbb6b035fed5ec3d5a24effb2ca703003cca813472ec1da8",
+  "docs/fixprogram_2026-09-13/FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_FLATTEN-20260909T164536Z_venue_trades.json": "3a218bc856ab86709366b65b4180ea76021a9e63dab973684cbd36cf66c3dc3f",
+  "docs/fixprogram_2026-09-13/FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_FLATTEN-20260912T124737Z_venue_trades.json": "4b25e0f2bd7c327bc7ab1f5f75865d58a29003518d334fc3d0e82018967febcd",
+  "multi_asset/exports/research/replay_exec_2026-09-19/SIM_v3_live_CAL_continuous_20260826_20260918.json": "364b78204937d708de5ffde3269588aa0dcbf484f1ddc01f21715e790274a0ce"
+ },
+ "sim_device_sha256": "fea90ee91413c33812876a3399ab038fc6cad616f737ff9362f499da484395a9",
+ "calibration": {
+  "path": "multi_asset/exports/research/replay_exec_2026-09-19/CALIBRATION_v3_POOLED_20260826_20260910.json",
+  "sha256": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6"
+ },
+ "n_live_trades_in_population": 20241,
+ "verdict_lines": [
+  "V1b[HOLDOUT_CONTINUOUS_DIAG] E1 population        sim 48 windows, live 48  contiguous True  declared True  in-period True  PASS",
+  "V1b[HOLDOUT_CONTINUOUS_DIAG] E2 t0 alignment      max |\u0394t0| 0.000 s \u2264 1 s  PASS",
+  "V1b[HOLDOUT_CONTINUOUS_DIAG] E3 t1 alignment      max |\u0394t1| 0.000 s \u2264 1 s  PASS",
+  "V1b[HOLDOUT_CONTINUOUS_DIAG] W price_and_trading  s=mean|live| 711.78  |e| mean 92.87 (0.130\u00b7s \u2264 0.35)  p90 208.10  max 338.10  e/tol p90 0.675 \u2264 1  max 1.668 \u2264 3.0  (3 outside)  PASS",
+  "V1b[HOLDOUT_CONTINUOUS_DIAG] W funding            s=mean|live| 14.79  |e| mean 1.16 (0.079\u00b7s \u2264 0.25)  p90 1.93  max 16.48  e/tol p90 0.370 \u2264 1  max 2.669 \u2264 3.0  (1 outside)  PASS",
+  "V1b[HOLDOUT_CONTINUOUS_DIAG] W fee                s=mean|live| 6.92  |e| mean 0.78 (0.113\u00b7s \u2264 0.25)  p90 0.97  max 18.08  e/tol p90 0.548 \u2264 1  max 1.035 \u2264 3.0  (1 outside)  PASS",
+  "V1b[HOLDOUT_CONTINUOUS_DIAG] W turnover           s=mean|live| 21,332.17  |e| mean 1,805.67 (0.085\u00b7s \u2264 0.25)  p90 2,645.78  max 31,707.84  e/tol p90 0.467 \u2264 1  max 1.321 \u2264 3.0  (1 outside)  PASS",
+  "V1b[HOLDOUT_CONTINUOUS_DIAG] T fee                sim       306.7047  live       332.1617  ratio 0.9234  band [0.8, 1.25]  PASS",
+  "V1b[HOLDOUT_CONTINUOUS_DIAG] T turnover_over_gross sim         0.0969  live         0.1007  ratio 0.9622  band [0.8, 1.25]  PASS",
+  "V1b[HOLDOUT_CONTINUOUS_DIAG] T funding            sim      -699.1604  live      -710.0716  ratio 0.9846  band [0.8, 1.25]  PASS",
+  "V1b[HOLDOUT_CONTINUOUS_DIAG] T price_and_trading  sim 2,333.75  live 1,530.28  total diff +803.48  tol 1,530.28  daily-diff mean +100.43 CI95 [-107.89, +321.96] (n_days 8)  PASS",
+  "V1b[HOLDOUT_CONTINUOUS_DIAG] VERDICT: PASS (11/11 items)"
+ ],
+ "all_pass": true,
+ "items": {
+  "E1_population": {
+   "n_sim": 48,
+   "n_live": 48,
+   "live_contiguous": true,
+   "declared_population": true,
+   "live_in_period": true,
+   "pass": true
+  },
+  "E2_t0": {
+   "max_abs_dt0_s": 0.0,
+   "tol_s": 1.0,
+   "pass": true
+  },
+  "E3_t1": {
+   "max_abs_dt1_s": 0.0,
+   "tol_s": 1.0,
+   "pass": true
+  },
+  "W_price_and_trading": {
+   "scale_mean_abs_live": 711.7813562499999,
+   "mean_abs_err": 92.86541491995263,
+   "p90_abs_err": 208.10347937032554,
+   "max_abs_err": 338.0994496619278,
+   "mean_abs_err_over_scale": 0.13046901847670112,
+   "p90_err_over_tol": 0.6752066797264952,
+   "max_err_over_tol": 1.6682472997129048,
+   "n_windows_outside_tol": 3,
+   "argmax_window": 3,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.25,
+    "m_max": 0.35,
+    "t_max": 3.0
+   },
+   "pass": true
+  },
+  "W_funding": {
+   "scale_mean_abs_live": 14.793158903750003,
+   "mean_abs_err": 1.1637170744096188,
+   "p90_abs_err": 1.927994970421428,
+   "max_abs_err": 16.479002890306884,
+   "mean_abs_err_over_scale": 0.07866589428135065,
+   "p90_err_over_tol": 0.37035729835216297,
+   "max_err_over_tol": 2.6692121805482856,
+   "n_windows_outside_tol": 1,
+   "argmax_window": 26,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.1,
+    "m_max": 0.25,
+    "t_max": 3.0
+   },
+   "pass": true
+  },
+  "W_fee": {
+   "scale_mean_abs_live": 6.920034873125,
+   "mean_abs_err": 0.7833277582098069,
+   "p90_abs_err": 0.9695317295076549,
+   "max_abs_err": 18.07517980947938,
+   "mean_abs_err_over_scale": 0.1131970824673122,
+   "p90_err_over_tol": 0.5477470283312944,
+   "max_err_over_tol": 1.035302752076917,
+   "n_windows_outside_tol": 1,
+   "argmax_window": 14,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.1,
+    "m_max": 0.25,
+    "t_max": 3.0
+   },
+   "pass": true
+  },
+  "W_turnover": {
+   "scale_mean_abs_live": 21332.16618502374,
+   "mean_abs_err": 1805.6655883493684,
+   "p90_abs_err": 2645.779845719086,
+   "max_abs_err": 31707.84114059384,
+   "mean_abs_err_over_scale": 0.08464520539958277,
+   "p90_err_over_tol": 0.4674192790997354,
+   "max_err_over_tol": 1.320893151839382,
+   "n_windows_outside_tol": 1,
+   "argmax_window": 16,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.1,
+    "m_max": 0.25,
+    "t_max": 3.0
+   },
+   "pass": true
+  },
+  "T_fee": {
+   "sim": 306.7047388947277,
+   "live": 332.1616739100001,
+   "ratio": 0.9233598063388553,
+   "band": [
+    0.8,
+    1.25
+   ],
+   "pass": true
+  },
+  "T_turnover_over_gross": {
+   "sim": 0.09689889461636902,
+   "live": 0.10070350491948502,
+   "sim_turnover": 992454.153729988,
+   "live_turnover": 1023943.9768811392,
+   "sim_sum_gross0": 10242161.76726472,
+   "live_sum_gross0": 10167908.035572428,
+   "ratio": 0.9622196833550345,
+   "band": [
+    0.8,
+    1.25
+   ],
+   "pass": true
+  },
+  "T_funding": {
+   "sim": -699.1604146284695,
+   "live": -710.0716273800001,
+   "ratio": 0.9846336449298919,
+   "band": [
+    0.8,
+    1.25
+   ],
+   "pass": true
+  },
+  "T_price_and_trading": {
+   "sim": 2333.7506087280117,
+   "live": 1530.2751000000023,
+   "total_diff": 803.4755087280093,
+   "tolerance": 1530.2751000000023,
+   "tolerance_terms": {
+    "abs_live_total_price": 1530.2751000000023,
+    "half_bps_x_sum_live_gross0": 508.3954017786214
+   },
+   "n_days": 8,
+   "daily_diff_mean": 100.43443859100174,
+   "daily_diff_ci95": [
+    -107.89243404944018,
+    321.95871684222936
+   ],
+   "bootstrap": {
+    "B": 20000,
+    "seed": 20260919
+   },
+   "ci_contains_0": true,
+   "total_within_tol": true,
+   "per_day_diff": {
+    "2026-09-11": 612.5688200789468,
+    "2026-09-12": -54.10272294901638,
+    "2026-09-13": 526.0123637078552,
+    "2026-09-14": 192.2938984330861,
+    "2026-09-15": -66.60458443238991,
+    "2026-09-16": 95.17024078708295,
+    "2026-09-17": -342.6271092694091,
+    "2026-09-18": -159.23539762814167
+   },
+   "pass": true
+  }
+ },
+ "diagnostics": {
+  "per_window": [
+   {
+    "from": "09-11 00:44:41Z",
+    "to": "09-11 04:44:24Z",
+    "price_and_trading": {
+     "sim": -572.9993859186129,
+     "live": -697.4649
+    },
+    "funding": {
+     "sim": -11.400254900655248,
+     "live": -12.35830567
+    },
+    "fee": {
+     "sim": 2.7352538667128368,
+     "live": 2.71709459
+    },
+    "turnover": {
+     "sim": 10968.988139950554,
+     "live": 10998.4856199
+    }
+   },
+   {
+    "from": "09-11 04:44:24Z",
+    "to": "09-11 08:44:56Z",
+    "price_and_trading": {
+     "sim": 611.8749716053661,
+     "live": 530.4392
+    },
+    "funding": {
+     "sim": -13.014078386055921,
+     "live": -13.58196149
+    },
+    "fee": {
+     "sim": 2.907981525556096,
+     "live": 1.89170388
+    },
+    "turnover": {
+     "sim": 11808.036759172828,
+     "live": 9458.522640430003
+    }
+   },
+   {
+    "from": "09-11 08:44:56Z",
+    "to": "09-11 12:44:50Z",
+    "price_and_trading": {
+     "sim": 893.3275145447068,
+     "live": 781.1632
+    },
+    "funding": {
+     "sim": -12.76177616411616,
+     "live": -13.42174252
+    },
+    "fee": {
+     "sim": 2.587066814513106,
+     "live": 3.53656458
+    },
+    "turnover": {
+     "sim": 10321.726455024618,
+     "live": 13850.16327812999
+    }
+   },
+   {
+    "from": "09-11 12:44:50Z",
+    "to": "09-11 16:44:49Z",
+    "price_and_trading": {
+     "sim": 436.9879496619278,
+     "live": 98.8885
+    },
+    "funding": {
+     "sim": -14.796219472242868,
+     "live": -15.37682085
+    },
+    "fee": {
+     "sim": 3.20382909042781,
+     "live": 4.11950072
+    },
+    "turnover": {
+     "sim": 12902.74787765029,
+     "live": 13705.307175029997
+    }
+   },
+   {
+    "from": "09-11 16:44:49Z",
+    "to": "09-11 20:45:10Z",
+    "price_and_trading": {
+     "sim": 1277.0247287707523,
+     "live": 1209.9075
+    },
+    "funding": {
+     "sim": -13.021653643203575,
+     "live": -13.81303094
+    },
+    "fee": {
+     "sim": 3.0269122626082154,
+     "live": 3.15986201
+    },
+    "turnover": {
+     "sim": 11973.510806081067,
+     "live": 13467.603700940002
+    }
+   },
+   {
+    "from": "09-11 20:45:10Z",
+    "to": "09-12 00:43:22Z",
+    "price_and_trading": {
+     "sim": 508.4778414148068,
+     "live": 619.1913
+    },
+    "funding": {
+     "sim": -13.323460698331012,
+     "live": -14.69461985
+    },
+    "fee": {
+     "sim": 2.468111259014954,
+     "live": 2.35005367
+    },
+    "turnover": {
+     "sim": 9966.361168805779,
+     "live": 8773.299262200006
+    }
+   },
+   {
+    "from": "09-12 00:43:22Z",
+    "to": "09-12 04:46:05Z",
+    "price_and_trading": {
+     "sim": -589.4089968895598,
+     "live": -657.6407
+    },
+    "funding": {
+     "sim": -8.406485146958715,
+     "live": -9.31236432
+    },
+    "fee": {
+     "sim": 2.451804286885233,
+     "live": 2.51526602
+    },
+    "turnover": {
+     "sim": 9798.676113552247,
+     "live": 9268.43587836
+    }
+   },
+   {
+    "from": "09-12 04:46:05Z",
+    "to": "09-12 08:45:16Z",
+    "price_and_trading": {
+     "sim": 779.2518224657251,
+     "live": 808.0417
+    },
+    "funding": {
+     "sim": -7.632126674789884,
+     "live": -8.08141366
+    },
+    "fee": {
+     "sim": 2.4435467164914115,
+     "live": 3.19343128
+    },
+    "turnover": {
+     "sim": 9798.441775138053,
+     "live": 11883.468045479995
+    }
+   },
+   {
+    "from": "09-12 08:45:16Z",
+    "to": "09-12 12:45:47Z",
+    "price_and_trading": {
+     "sim": -329.56367485369634,
+     "live": -257.5097
+    },
+    "funding": {
+     "sim": -8.081340942611867,
+     "live": -9.14302219
+    },
+    "fee": {
+     "sim": 3.071385013824317,
+     "live": 3.09637322
+    },
+    "turnover": {
+     "sim": 12217.076983480976,
+     "live": 12831.972783480005
+    }
+   },
+   {
+    "from": "09-12 12:45:47Z",
+    "to": "09-12 16:39:03Z",
+    "price_and_trading": {
+     "sim": -101.8506736714854,
+     "live": -80.3601
+    },
+    "funding": {
+     "sim": 0.0,
+     "live": 0.0
+    },
+    "fee": {
+     "sim": 118.79918488195291,
+     "live": 117.69126836
+    },
+    "turnover": {
+     "sim": 237598.39036311547,
+     "live": 235382.55349712932
+    }
+   },
+   {
+    "from": "09-12 16:39:03Z",
+    "to": "09-12 20:39:02Z",
+    "price_and_trading": {
+     "sim": 0.0,
+     "live": 0.0
+    },
+    "funding": {
+     "sim": 0.0,
+     "live": 0.0
+    },
+    "fee": {
+     "sim": 0.0,
+     "live": -0.0
+    },
+    "turnover": {
+     "sim": 0.0,
+     "live": 0.0
+    }
+   },
+   {
+    "from": "09-12 20:39:02Z",
+    "to": "09-13 00:39:03Z",
+    "price_and_trading": {
+     "sim": 0.0,
+     "live": 0.0
+    },
+    "funding": {
+     "sim": 0.0,
+     "live": 0.0
+    },
+    "fee": {
+     "sim": 0.0,
+     "live": -0.0
+    },
+    "turnover": {
+     "sim": 0.0,
+     "live": 0.0
+    }
+   },
+   {
+    "from": "09-13 00:39:03Z",
+    "to": "09-13 04:39:02Z",
+    "price_and_trading": {
+     "sim": 0.0,
+     "live": 0.0
+    },
+    "funding": {
+     "sim": 0.0,
+     "live": 0.0
+    },
+    "fee": {
+     "sim": 0.0,
+     "live": -0.0
+    },
+    "turnover": {
+     "sim": 0.0,
+     "live": 0.0
+    }
+   },
+   {
+    "from": "09-13 04:39:02Z",
+    "to": "09-13 08:39:04Z",
+    "price_and_trading": {
+     "sim": 0.0,
+     "live": 0.0
+    },
+    "funding": {
+     "sim": 0.0,
+     "live": 0.0
+    },
+    "fee": {
+     "sim": 0.0,
+     "live": -0.0
+    },
+    "turnover": {
+     "sim": 0.0,
+     "live": 0.0
+    }
+   },
+   {
+    "from": "09-13 08:39:04Z",
+    "to": "09-13 12:45:49Z",
+    "price_and_trading": {
+     "sim": 120.47420373263265,
+     "live": -135.908
+    },
+    "funding": {
+     "sim": 0.0,
+     "live": 0.0
+    },
+    "fee": {
+     "sim": 48.99214580052062,
+     "live": 67.06732561
+    },
+    "turnover": {
+     "sim": 196373.09792126625,
+     "live": 228080.9390618601
+    }
+   },
+   {
+    "from": "09-13 12:45:49Z",
+    "to": "09-13 16:45:59Z",
+    "price_and_trading": {
+     "sim": -71.51413045461732,
+     "live": -306.8285
+    },
+    "funding": {
+     "sim": -7.4263469189313405,
+     "live": -9.06145884
+    },
+    "fee": {
+     "sim": 11.09565363326437,
+     "live": 9.32681899
+    },
+    "turnover": {
+     "sim": 44618.69389145093,
+     "live": 35557.62232488
+    }
+   },
+   {
+    "from": "09-13 16:45:59Z",
+    "to": "09-13 20:45:08Z",
+    "price_and_trading": {
+     "sim": 502.9872670146269,
+     "live": 521.8501
+    },
+    "funding": {
+     "sim": -9.384368543475283,
+     "live": -10.00840109
+    },
+    "fee": {
+     "sim": 3.87232086119349,
+     "live": 2.61785236
+    },
+    "turnover": {
+     "sim": 15293.510335675237,
+     "live": 9378.695460999992
+    }
+   },
+   {
+    "from": "09-13 20:45:08Z",
+    "to": "09-14 00:45:19Z",
+    "price_and_trading": {
+     "sim": 821.224523415213,
+     "live": 768.0459
+    },
+    "funding": {
+     "sim": -12.669924257325484,
+     "live": -13.71108893
+    },
+    "fee": {
+     "sim": 3.1800086581649545,
+     "live": 3.53553115
+    },
+    "turnover": {
+     "sim": 12967.67042139468,
+     "live": 13139.691316359991
+    }
+   },
+   {
+    "from": "09-14 00:45:19Z",
+    "to": "09-14 04:45:13Z",
+    "price_and_trading": {
+     "sim": 824.1667742076991,
+     "live": 852.5072
+    },
+    "funding": {
+     "sim": -11.548056872238671,
+     "live": -12.56938613
+    },
+    "fee": {
+     "sim": 3.5796589067896356,
+     "live": 4.09949853
+    },
+    "turnover": {
+     "sim": 14517.01004318722,
+     "live": 14683.746443530012
+    }
+   },
+   {
+    "from": "09-14 04:45:13Z",
+    "to": "09-14 08:44:59Z",
+    "price_and_trading": {
+     "sim": 370.5766736040397,
+     "live": 276.0573
+    },
+    "funding": {
+     "sim": -16.685471607182865,
+     "live": -16.7510382
+    },
+    "fee": {
+     "sim": 3.36471057133247,
+     "live": 4.03400667
+    },
+    "turnover": {
+     "sim": 13357.007501347507,
+     "live": 14722.991407920008
+    }
+   },
+   {
+    "from": "09-14 08:44:59Z",
+    "to": "09-14 12:44:11Z",
+    "price_and_trading": {
+     "sim": 1038.6469370559898,
+     "live": 1095.3683
+    },
+    "funding": {
+     "sim": -63.68158466355142,
+     "live": -61.57490901
+    },
+    "fee": {
+     "sim": 2.6718261231224005,
+     "live": 2.85342667
+    },
+    "turnover": {
+     "sim": 10780.939260610066,
+     "live": 10548.949604409998
+    }
+   },
+   {
+    "from": "09-14 12:44:11Z",
+    "to": "09-14 16:44:01Z",
+    "price_and_trading": {
+     "sim": -230.32585606825393,
+     "live": -268.1277
+    },
+    "funding": {
+     "sim": -36.565587554864194,
+     "live": -35.29936302
+    },
+    "fee": {
+     "sim": 3.590574383742826,
+     "live": 3.5026065
+    },
+    "turnover": {
+     "sim": 14307.44727021447,
+     "live": 13372.636275509996
+    }
+   },
+   {
+    "from": "09-14 16:44:01Z",
+    "to": "09-14 20:44:23Z",
+    "price_and_trading": {
+     "sim": -430.2613094444256,
+     "live": -398.6251
+    },
+    "funding": {
+     "sim": -16.148768900862496,
+     "live": -16.42092839
+    },
+    "fee": {
+     "sim": 3.1081487254103024,
+     "live": 3.52467997
+    },
+    "turnover": {
+     "sim": 12320.794616735031,
+     "live": 14129.98112386
+    }
+   },
+   {
+    "from": "09-14 20:44:23Z",
+    "to": "09-15 00:44:33Z",
+    "price_and_trading": {
+     "sim": 649.5853790780371,
+     "live": 472.9147
+    },
+    "funding": {
+     "sim": -26.80268931692023,
+     "live": -26.66449578
+    },
+    "fee": {
+     "sim": 2.8905795181628946,
+     "live": 3.05039887
+    },
+    "turnover": {
+     "sim": 11730.627358282058,
+     "live": 11712.366099910001
+    }
+   },
+   {
+    "from": "09-15 00:44:33Z",
+    "to": "09-15 04:44:38Z",
+    "price_and_trading": {
+     "sim": -564.9630243293285,
+     "live": -282.145
+    },
+    "funding": {
+     "sim": -45.620756124356,
+     "live": -44.53324203
+    },
+    "fee": {
+     "sim": 3.234686712678002,
+     "live": 3.76755082
+    },
+    "turnover": {
+     "sim": 12882.35982133064,
+     "live": 14050.253485710018
+    }
+   },
+   {
+    "from": "09-15 04:44:38Z",
+    "to": "09-15 08:43:45Z",
+    "price_and_trading": {
+     "sim": -251.9620489030047,
+     "live": -360.1563
+    },
+    "funding": {
+     "sim": -30.265011202841727,
+     "live": -29.91174847
+    },
+    "fee": {
+     "sim": 2.753000697235617,
+     "live": 2.86044025
+    },
+    "turnover": {
+     "sim": 11026.171328734184,
+     "live": 10908.78102970999
+    }
+   },
+   {
+    "from": "09-15 08:43:45Z",
+    "to": "09-15 12:44:56Z",
+    "price_and_trading": {
+     "sim": -1485.7289771389983,
+     "live": -1623.7833
+    },
+    "funding": {
+     "sim": -35.25667068030688,
+     "live": -18.77766779
+    },
+    "fee": {
+     "sim": 3.054105457397931,
+     "live": 3.54603228
+    },
+    "turnover": {
+     "sim": 12316.800341986163,
+     "live": 13139.244643360005
+    }
+   },
+   {
+    "from": "09-15 12:44:56Z",
+    "to": "09-15 16:45:03Z",
+    "price_and_trading": {
+     "sim": 862.1243577183762,
+     "live": 986.0566
+    },
+    "funding": {
+     "sim": -15.354658453749863,
+     "live": -15.33274806
+    },
+    "fee": {
+     "sim": 2.9439538087852313,
+     "live": 3.09331983
+    },
+    "turnover": {
+     "sim": 11917.624779780803,
+     "live": 11875.727405049996
+    }
+   },
+   {
+    "from": "09-15 16:45:03Z",
+    "to": "09-15 20:44:57Z",
+    "price_and_trading": {
+     "sim": 1068.4943841558386,
+     "live": 972.7965
+    },
+    "funding": {
+     "sim": -13.778137620869742,
+     "live": -13.76972752
+    },
+    "fee": {
+     "sim": 3.8041681364765445,
+     "live": 4.59470796
+    },
+    "turnover": {
+     "sim": 15361.4241367043,
+     "live": 17937.96780937998
+    }
+   },
+   {
+    "from": "09-15 20:44:57Z",
+    "to": "09-16 00:44:05Z",
+    "price_and_trading": {
+     "sim": 710.5141240647267,
+     "live": 712.3149
+    },
+    "funding": {
+     "sim": -19.208839563006237,
+     "live": -19.31094257
+    },
+    "fee": {
+     "sim": 2.500001921561843,
+     "live": 2.19510992
+    },
+    "turnover": {
+     "sim": 9996.337500968875,
+     "live": 8951.283341660008
+    }
+   },
+   {
+    "from": "09-16 00:44:05Z",
+    "to": "09-16 04:44:29Z",
+    "price_and_trading": {
+     "sim": -1983.017291666165,
+     "live": -1907.7771
+    },
+    "funding": {
+     "sim": -10.817599634956359,
+     "live": -10.9480182
+    },
+    "fee": {
+     "sim": 3.230426089333154,
+     "live": 4.00998693
+    },
+    "turnover": {
+     "sim": 13192.656369558099,
+     "live": 13838.477563420009
+    }
+   },
+   {
+    "from": "09-16 04:44:29Z",
+    "to": "09-16 08:44:54Z",
+    "price_and_trading": {
+     "sim": 1077.1097329488757,
+     "live": 1113.7496
+    },
+    "funding": {
+     "sim": -13.07971460661556,
+     "live": -14.970746
+    },
+    "fee": {
+     "sim": 2.7786091665811696,
+     "live": 2.95117558
+    },
+    "turnover": {
+     "sim": 11056.530356848089,
+     "live": 11646.181510539991
+    }
+   },
+   {
+    "from": "09-16 08:44:54Z",
+    "to": "09-16 12:45:03Z",
+    "price_and_trading": {
+     "sim": 3646.5697580291926,
+     "live": 3652.8136
+    },
+    "funding": {
+     "sim": -23.093817707089265,
+     "live": -23.73061037
+    },
+    "fee": {
+     "sim": 4.892730332446966,
+     "live": 5.14915514
+    },
+    "turnover": {
+     "sim": 19787.531215059425,
+     "live": 21489.68363377
+    }
+   },
+   {
+    "from": "09-16 12:45:03Z",
+    "to": "09-16 16:44:15Z",
+    "price_and_trading": {
+     "sim": -286.18590698329183,
+     "live": -394.6697
+    },
+    "funding": {
+     "sim": -18.610446566595066,
+     "live": -19.24498804
+    },
+    "fee": {
+     "sim": 3.3058648598884233,
+     "live": 3.18938885
+    },
+    "turnover": {
+     "sim": 13319.280454680556,
+     "live": 12605.20690206999
+    }
+   },
+   {
+    "from": "09-16 16:44:15Z",
+    "to": "09-16 20:44:25Z",
+    "price_and_trading": {
+     "sim": -644.7215794051745,
+     "live": -566.6298
+    },
+    "funding": {
+     "sim": -13.790273009194514,
+     "live": -14.2080593
+    },
+    "fee": {
+     "sim": 3.1163724776581603,
+     "live": 3.72586797
+    },
+    "turnover": {
+     "sim": 12351.62810841517,
+     "live": 12974.646963979994
+    }
+   },
+   {
+    "from": "09-16 20:44:25Z",
+    "to": "09-17 00:44:52Z",
+    "price_and_trading": {
+     "sim": -815.2303721363542,
+     "live": -998.1325
+    },
+    "funding": {
+     "sim": -12.418774787148259,
+     "live": -13.17481479
+    },
+    "fee": {
+     "sim": 3.292967836560905,
+     "live": 3.85577599
+    },
+    "turnover": {
+     "sim": 13332.074829635458,
+     "live": 15224.234421099989
+    }
+   },
+   {
+    "from": "09-17 00:44:52Z",
+    "to": "09-17 04:44:49Z",
+    "price_and_trading": {
+     "sim": 121.8674728136395,
+     "live": 290.4859
+    },
+    "funding": {
+     "sim": -14.216433358773017,
+     "live": -15.84720899
+    },
+    "fee": {
+     "sim": 4.421986204091226,
+     "live": 4.81523334
+    },
+    "turnover": {
+     "sim": 18053.091922318563,
+     "live": 17958.065660840006
+    }
+   },
+   {
+    "from": "09-17 04:44:49Z",
+    "to": "09-17 08:44:23Z",
+    "price_and_trading": {
+     "sim": -631.0524733653234,
+     "live": -754.5007
+    },
+    "funding": {
+     "sim": -12.980250474238112,
+     "live": -13.04017184
+    },
+    "fee": {
+     "sim": 4.055569380189414,
+     "live": 4.4431273
+    },
+    "turnover": {
+     "sim": 16217.893038748225,
+     "live": 15438.631933880006
+    }
+   },
+   {
+    "from": "09-17 08:44:23Z",
+    "to": "09-17 12:44:05Z",
+    "price_and_trading": {
+     "sim": -745.5843382634303,
+     "live": -533.7034
+    },
+    "funding": {
+     "sim": -13.237020734821826,
+     "live": -14.00348991
+    },
+    "fee": {
+     "sim": 3.5025575756333716,
+     "live": 4.02074718
+    },
+    "turnover": {
+     "sim": 13958.394915156314,
+     "live": 16765.725831310006
+    }
+   },
+   {
+    "from": "09-17 12:44:05Z",
+    "to": "09-17 16:44:50Z",
+    "price_and_trading": {
+     "sim": -2352.2021211601395,
+     "live": -2378.9544
+    },
+    "funding": {
+     "sim": -14.310677022605603,
+     "live": -13.29826755
+    },
+    "fee": {
+     "sim": 3.4175211570912687,
+     "live": 3.77047339
+    },
+    "turnover": {
+     "sim": 13765.781869401835,
+     "live": 13267.504527739984
+    }
+   },
+   {
+    "from": "09-17 16:44:50Z",
+    "to": "09-17 20:43:48Z",
+    "price_and_trading": {
+     "sim": 202.34798047371208,
+     "live": 266.6794
+    },
+    "funding": {
+     "sim": -16.799442275194593,
+     "live": -17.77214853
+    },
+    "fee": {
+     "sim": 2.7211504504443873,
+     "live": 2.72847865
+    },
+    "turnover": {
+     "sim": 10915.809070092364,
+     "live": 10851.9443416
+    }
+   },
+   {
+    "from": "09-17 20:43:48Z",
+    "to": "09-18 00:43:55Z",
+    "price_and_trading": {
+     "sim": -448.2824297678676,
+     "live": -400.2856
+    },
+    "funding": {
+     "sim": -12.750741333158935,
+     "live": -14.76498465
+    },
+    "fee": {
+     "sim": 2.237219478610566,
+     "live": 2.12016674
+    },
+    "turnover": {
+     "sim": 8846.197584049587,
+     "live": 8742.2894451
+    }
+   },
+   {
+    "from": "09-18 00:43:55Z",
+    "to": "09-18 04:45:29Z",
+    "price_and_trading": {
+     "sim": -1985.2657453501463,
+     "live": -2052.2447
+    },
+    "funding": {
+     "sim": -9.1699621521919,
+     "live": -12.49176361
+    },
+    "fee": {
+     "sim": 3.4785370941221494,
+     "live": 4.3864897
+    },
+    "turnover": {
+     "sim": 14185.213512136907,
+     "live": 14987.423612490004
+    }
+   },
+   {
+    "from": "09-18 04:45:29Z",
+    "to": "09-18 08:44:39Z",
+    "price_and_trading": {
+     "sim": -340.5847658085227,
+     "live": -385.3157
+    },
+    "funding": {
+     "sim": -7.882022233316945,
+     "live": -10.19208662
+    },
+    "fee": {
+     "sim": 2.67753234696146,
+     "live": 2.93876218
+    },
+    "turnover": {
+     "sim": 10783.832333567916,
+     "live": 10587.612747630003
+    }
+   },
+   {
+    "from": "09-18 08:44:39Z",
+    "to": "09-18 12:44:56Z",
+    "price_and_trading": {
+     "sim": -1009.9909684161378,
+     "live": -803.5064
+    },
+    "funding": {
+     "sim": -6.888484198736791,
+     "live": -8.12294971
+    },
+    "fee": {
+     "sim": 2.5339062945215396,
+     "live": 2.89761558
+    },
+    "turnover": {
+     "sim": 10408.251169825817,
+     "live": 10952.10445878999
+    }
+   },
+   {
+    "from": "09-18 12:44:56Z",
+    "to": "09-18 16:45:24Z",
+    "price_and_trading": {
+     "sim": 1515.6152178954844,
+     "live": 1669.9598
+    },
+    "funding": {
+     "sim": -12.589196511423651,
+     "live": -14.28106738
+    },
+    "fee": {
+     "sim": 3.4162233644769735,
+     "live": 3.66467571
+    },
+    "turnover": {
+     "sim": 13693.33905819687,
+     "live": 13861.834217750004
+    }
+   },
+   {
+    "from": "09-18 16:45:24Z",
+    "to": "09-18 20:45:08Z",
+    "price_and_trading": {
+     "sim": -50.744876681935125,
+     "live": -73.3457
+    },
+    "funding": {
+     "sim": -11.013241883956113,
+     "live": -12.37293307
+    },
+    "fee": {
+     "sim": 2.684079257900951,
+     "live": 2.52278338
+    },
+    "turnover": {
+     "sim": 10786.398945456749,
+     "live": 9299.910424759999
+    }
+   },
+   {
+    "from": "09-18 20:45:08Z",
+    "to": "09-19 00:44:59Z",
+    "price_and_trading": {
+     "sim": 215.94194073311573,
+     "live": 148.6589
+    },
+    "funding": {
+     "sim": -12.678047829005429,
+     "live": -14.1268915
+    },
+    "fee": {
+     "sim": 2.6108658943896934,
+     "live": 3.03134559
+    },
+    "turnover": {
+     "sim": 10678.776005200343,
+     "live": 11641.809969180005
+    }
+   }
+  ],
+  "window_price_corr": 0.9925701118663287,
+  "path_band_coverage": "windows_path_p05 / _p95 = 5% / 95% quantiles over the R paths per window (diagnostic)",
+  "share_of_windows_live_inside_sim_path_p05_p95": {
+   "price_and_trading": 0.4791666666666667,
+   "funding": 0.875,
+   "fee": 0.7916666666666666,
+   "turnover": 0.8541666666666666
+  }
+ }
+}
