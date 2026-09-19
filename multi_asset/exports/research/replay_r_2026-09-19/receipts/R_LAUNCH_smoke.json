@@ -1,0 +1,334 @@
+{
+ "device": "r_launch.py",
+ "self_sha256": "d9019a3e943219dd8cc5fcc3b606376c46fa8bf2f82e4f9b385517f35709b871",
+ "argv": [
+  "r_launch.py",
+  "PATH,HOME,LC_CTYPE",
+  "/workspace/replay_r_2026-09-19/RUN_CONFIG_replay_r_2026-09-19.json",
+  "--smoke",
+  "2025-01-01T00:00:00Z",
+  "60",
+  "S2_v4_s42|CMB|rule"
+ ],
+ "env": {
+  "PATH": "/usr/bin:/bin",
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "MKL_NUM_THREADS": "1"
+ },
+ "numpy": "2.4.6",
+ "python": "3.11.10",
+ "utc_start": "2026-09-19T07:27:27Z",
+ "config": {
+  "path": "/workspace/replay_r_2026-09-19/RUN_CONFIG_replay_r_2026-09-19.json",
+  "sha256": "d6ad8d2eaeddf1c7eac564cd04ade1fcd8bda5b4209cc1eacc7e9ff14be65df1"
+ },
+ "smoke": {
+  "start": 1735689600,
+  "n": 60,
+  "tags": [
+   "S2_v4_s42|CMB|rule"
+  ]
+ },
+ "checks": [
+  {
+   "check": "gate.R0_REPRO_PASS",
+   "ok": true,
+   "detail": {
+    "sha256": "ba8d85e7eadba32248a61fc09e1efc9d636ef1e69d65a5d7e8ba1e29372b96bd"
+   }
+  },
+  {
+   "check": "gate.R_PRICES_PASS",
+   "ok": true,
+   "detail": {
+    "sha256": "a0ea0ee311dff5f4d1414e99006724e976843a5fae9701097157446705ece912"
+   }
+  },
+  {
+   "check": "pin.p2_s2_lib",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/uplift_r2_2026-09-13/P2/devices/p2_s2_lib.py",
+    "got": "c53f5c495036727f",
+    "want": "c53f5c495036727f"
+   }
+  },
+  {
+   "check": "pin.price_logtable",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/replay_r_2026-09-19/work/price_logtable.npy",
+    "got": "3b588cb058920d57",
+    "want": "3b588cb058920d57"
+   }
+  },
+  {
+   "check": "pin.price_meta",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/replay_r_2026-09-19/work/price_meta.npz",
+    "got": "fc6a381a76e311e6",
+    "want": "fc6a381a76e311e6"
+   }
+  },
+  {
+   "check": "pin.ledger_full",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+    "got": "bea6f5752772d54e",
+    "want": "bea6f5752772d54e"
+   }
+  },
+  {
+   "check": "pin.tradability",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/fx_data_2026-09-13/out/trd/tradability_v1.npz",
+    "got": "54d409d0ddf695f4",
+    "want": "54d409d0ddf695f4"
+   }
+  },
+  {
+   "check": "pin.universe",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/uplift_r2_2026-09-13/P2/work/universe.npz",
+    "got": "6322b57366078ed0",
+    "want": "6322b57366078ed0"
+   }
+  },
+  {
+   "check": "pin.exec_sim_copy",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/replay_r_2026-09-19/devices/replay_exec_copy/exec_sim.py",
+    "got": "2638316be35e54cd",
+    "want": "2638316be35e54cd"
+   }
+  },
+  {
+   "check": "pin.simlib_copy",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/replay_r_2026-09-19/devices/replay_exec_copy/simlib.py",
+    "got": "55246fe98da2d57a",
+    "want": "55246fe98da2d57a"
+   }
+  },
+  {
+   "check": "pin.calibration_copy",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/replay_r_2026-09-19/devices/replay_exec_copy/CALIBRATION_FROZEN_2026-09-19.json",
+    "got": "bf487711f8c5a542",
+    "want": "bf487711f8c5a542"
+   }
+  },
+  {
+   "check": "pin.input_manifest_copy",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/replay_r_2026-09-19/devices/replay_exec_copy/INPUT_MANIFEST.json",
+    "got": "59875e5a69db415f",
+    "want": "59875e5a69db415f"
+   }
+  },
+  {
+   "check": "pin.g0_labels",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/regime_g0_2026-09-19/out/g0_labels.npz",
+    "got": "04cb06f47c15a410",
+    "want": "04cb06f47c15a410"
+   }
+  },
+  {
+   "check": "pin.realcost_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/fp2_2026-09/realcost/PER_YEAR_TABLE_REALCOST.json",
+    "got": "dc06ec3695dc4c4f",
+    "want": "dc06ec3695dc4c4f"
+   }
+  },
+  {
+   "check": "pin.judge",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/fp2_2026-09/devices_v4chain/fp2_per_year_table.py",
+    "got": "230e3c793cd92ddf",
+    "want": "230e3c793cd92ddf"
+   }
+  },
+  {
+   "check": "pin.realcost_A0_s42",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A0_dyn_s42.npz",
+    "got": "634f7c55ba730520",
+    "want": "634f7c55ba730520"
+   }
+  },
+  {
+   "check": "pin.realcost_A0_s2027",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A0_dyn_s2027.npz",
+    "got": "c1f92ec24bb45c99",
+    "want": "c1f92ec24bb45c99"
+   }
+  },
+  {
+   "check": "pin.realcost_A1_s42",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A1_dyn_s42.npz",
+    "got": "a077ed6b8f7136ed",
+    "want": "a077ed6b8f7136ed"
+   }
+  },
+  {
+   "check": "pin.realcost_A1_s2027",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A1_dyn_s2027.npz",
+    "got": "d9f69a059a2f6a61",
+    "want": "d9f69a059a2f6a61"
+   }
+  },
+  {
+   "check": "pin.S2_series",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/replay_r_2026-09-19/work/S2_series.npz",
+    "got": "641b20cb68e5ef61",
+    "want": "641b20cb68e5ef61"
+   }
+  },
+  {
+   "check": "pin.price_table_is_the_gated_one",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "pin.executor_tree_409ea16_vs_manifest",
+   "ok": true,
+   "detail": {
+    "n": 332,
+    "bad": []
+   }
+  },
+  {
+   "check": "window.n_anchors",
+   "ok": true,
+   "detail": 9138
+  },
+  {
+   "check": "window.equals_S2_W_ALPHA",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "axis.symbols",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "axis.tradability_symbols",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "tradability.covers_window",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "axis.universe",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "executor.pns_wide",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "executor.gross_mult_config",
+   "ok": true,
+   "detail": {
+    "gm": 2.0,
+    "onu": "hold"
+   }
+  },
+  {
+   "check": "s2run.S2_v4_s42.shas",
+   "ok": true,
+   "detail": {
+    "json": "4c5612f613ddad10",
+    "vec": "902c8d905a63b3a0"
+   }
+  },
+  {
+   "check": "runs.all_rc0",
+   "ok": true,
+   "detail": {
+    "S2_v4_s42|CMB|rule": 0
+   }
+  }
+ ],
+ "runs": {
+  "S2_v4_s42|CMB|rule": {
+   "rc": 0,
+   "json": {
+    "path": "/workspace/replay_r_2026-09-19/work/smoke/S2_v4_s42_CMB_rule/SIM_S2_v4_s42_CMB_rule.json",
+    "sha256": "1ef1b8466d6230e436e7893e04fae6bd8ee22ad465017e1da061aaaa38b41ff2"
+   },
+   "runtime_s": 0.1,
+   "nav_last": 100000.0,
+   "status_counts": {
+    "HOLD": 60
+   },
+   "events": {},
+   "audits": {
+    "trades": 0,
+    "max_fee_err": 0.0,
+    "trades_by_kind": {},
+    "notional_maker": 0,
+    "notional_taker": 0,
+    "funding_charges": 0,
+    "funding_max_err": 0.0,
+    "funding_dup": 0,
+    "exits": 0,
+    "exit_subfloor_tails": 0,
+    "window_identity_max_abs_err": 0.0
+   },
+   "npz_sha256": "7cb390cbd516be1cae2ebb8e43c39fd03e0649d21c1e7eb58e947f0e85a06814"
+  }
+ },
+ "targets": {
+  "S2_v4_s42|CMB": {
+   "n": 60,
+   "n_fresh": 0,
+   "first_fresh": null,
+   "share_gross_no_current_filters_mean": 0.011032270863405861,
+   "share_gross_untradable_W24H_mean": 0.00044225834112502786,
+   "share_gross_outside_PIT_universe_mean": 0.0
+  },
+  "S2_v4_s42|LIT": {
+   "n": 60,
+   "n_fresh": 60,
+   "first_fresh": "2025-01-01T00Z",
+   "share_gross_no_current_filters_mean": 0.011687070493978298,
+   "share_gross_untradable_W24H_mean": 0.00035930758294929957,
+   "share_gross_outside_PIT_universe_mean": 0.0
+  }
+ },
+ "VERDICT": "PASS",
+ "failed": [],
+ "runtime_s": 8.7
+}
