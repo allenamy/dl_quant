@@ -1,5 +1,8 @@
 > **创建:** 2026-09-19 | **Session:** session_01KW6frfphbFmFzx7wUtGhLb | **状态:** RESULT · 流 G0(纲领 `PROGRAM_credible_replay_regime_optimization_2026-09-19.md` §4 冻结定义)· 描述性诊断, 不含策略或实盘主张 · 待独立复审 | **作废条件:** §4 定义被具名修订; 或输入臂(realcost `634f7c55` / `c1f92ec2` / `a077ed6b` / `d9f69a05`)被判有缺陷; 或状态量装置 `g0_state_build.py` 72f38514 / 表装置 `g0_regime_tables.py` 6f448750 被证伪
 
+> ⚠ **口径注(lead, 2026-09-19; 下文原字节保留)**: 本文所有「腿 king / fund」「三腿收益」列取自回放 rec 的 `leg_king / leg_rev24 / leg_fund`, 这些是**席位加权贡献** `w3[leg] × 腿收益`(`w10_health` L320), **不是腿本身的收益**。所以 2024-12 → 2025-05 fund 列恒为 0 是因为动态 msharpe 席位把 fund 腿权重压到 0(fund 腿 2024 年回撤后), 不是数据缺失(同期面板资金费有限格 43–55%); 2026-08 的 +0.42 对应席位 0.685 ⇒ 腿本身约 +0.6。原始腿收益的重建见 `docs/RESULT_c0_attribution_2026-09-19.md`(在做)。
+
+
 # RESULT · G0 regime 诊断: 21 格、时段表、持续性、当前定位与根因读数
 
 装置与收据: `multi_asset/exports/research/regime_g0_2026-09-19/`(`devices/` 两个装置 + 两个逐字运行脚本; `receipts/` 全部产物, 索引 `RECEIPT_G0_INDEX.json`; 全量表 `receipts/G0_TABLES.md`, 机读 `receipts/G0_TABLES.json`)。pod2 只写 `/workspace/regime_g0_2026-09-19/`, 只用 CPU, 未调用交易所, 实盘零接触。
