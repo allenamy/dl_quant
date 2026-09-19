@@ -1,0 +1,8 @@
+keys present: True True | key length 64 | secret length 64
+
+[POSITIVE] GET /fapi/v3/account
+  rc 200 OK | totalWalletBalance present: True | n positions: 246 | canTrade flag: None | canDeposit: None | canWithdraw: None
+
+[NEGATIVE] POST /fapi/v1/order/test  (validates only, never sends)
+  rc 401 | venue code -2015 | Invalid API-key, IP, or permissions for action
+  OK: refused with -2015 (invalid API-key, IP, or permissions) — consistent with a read-only key

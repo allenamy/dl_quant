@@ -482,3 +482,13 @@ exit=1
 ```
 /usr/bin/python3 -B legacy_page_receipt_consistency.py --tmp <任意临时目录> ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v4fresh_FLATTEN-*_venue_trades.json > ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v42_legacy_page_receipt_consistency_2026-09-19.json
 ```
+
+## §11 六个「人口未证」窗的新拉取(lead, 2026-09-19 09:14–09:24Z; 取数器 v3.1 + 门 v4.3; 原字节保留)
+
+- **为什么重拉**: §10 的 v4.2 把 08-21 12Z / 08-21 20Z / 08-26 / 09-06 / 09-09 / 09-12 六窗判为 CLOSED_POPULATION_UNPROVEN(旧页凭据只有计数, 收入扣除分不到页)。只有带逐行页凭据的新拉取能把它们证成。
+- **装置**: 取数器 v3.1(`fetch_trades.py` `2518ee0b` / `fetch_income_paged.py` `16f8c694`; 请求序列、停止规则、页凭据与 v3 相同, 只多了每次真实请求前的静默窗守卫, 错题 E-0919-V)· 门 `flatten_window_closure.py` v4.3(`45be0c3d`; 只在 FETCHER_REGISTRY 登记 v3.1, 电池 55/55 exit 0)。
+- **时间与共享 IP**: 拉取在静默窗内(08Z 锚 `anchor done` 08:55:09Z 之后, 开始时剩余 145.7 分钟), 守卫收据在 `FLATTEN_CLOSURE_v43fresh_RUN_2026-09-19.log` 首行。
+- **只读密钥控制**: `FLATTEN_CLOSURE_v43fresh_ro_controls_2026-09-19.txt`: 正对照 GET /fapi/v3/account 200; 负对照 POST /fapi/v1/order/test 被拒 −2015(与只读密钥一致; −2015 同时涵盖密钥 / IP / 权限三种解释, 不认证全部权限)。
+- **结果**: 六窗全部 **CLOSED rc 0, POPULATION_PASS**(五道门全 PASS)。与同窗上一轮拉取(v4fresh 原始件经 v4.2 复用)的闭合数字逐字段比较: 每窗 81–85 个数值字段 **0 处不同**, 场所成交笔数 769 / 525 / 940 / 2,442 / 3,095 / 3,656 相同。
+- **R5-08 在十个真实窗上的状态**: 08-01 / 08-02 / 08-05 00Z / 08-05 12Z 由旧收据计数唯一确定(§10); 其余六窗由本节新拉取的逐行凭据证成。门本身的反例闭合见 §10。
+- 复跑: `zsh FLATTEN_CLOSURE_v43fresh_RUN_2026-09-19.sh`(需联网 + 只读密钥 + 静默窗); 离线复核用 `--reuse-raw FLATTEN_CLOSURE_v43fresh_<事件>_venue_trades.json`。
