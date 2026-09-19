@@ -1,0 +1,325 @@
+{
+ "device": "v1b_gate.py",
+ "gate_version": "v2",
+ "device_sha256": "4a725921a470f4c11f47cda5a8e210979215079cea16b496c709c7cc62fb5410",
+ "utc": "2026-09-19T09:55:10Z",
+ "rerun": "/usr/bin/python3 multi_asset/exports/research/replay_exec_2026-09-19/v1b_gate.py SIM_v31_live_CAL_continuous_20260826_20260918.json HIST_DIAG_CONTINUOUS V1B2_GATE_v31_HIST_DIAG_CONTINUOUS_20260911_20260918.json",
+ "label": "HIST_DIAG_CONTINUOUS",
+ "role": "diagnostic: the history-diagnostic windows taken from the continuous CAL run",
+ "forward_first_anchor": null,
+ "bounds": {
+  "price_and_trading": {
+   "rtol": 0.25,
+   "k_atol": 0.25,
+   "m_max": 0.35,
+   "t_max": 3.0
+  },
+  "funding": {
+   "rtol": 0.25,
+   "k_atol": 0.1,
+   "m_max": 0.25,
+   "t_max": 3.0
+  },
+  "fee": {
+   "rtol": 0.25,
+   "k_atol": 0.1,
+   "m_max": 0.25,
+   "t_max": 3.0
+  },
+  "turnover": {
+   "rtol": 0.25,
+   "k_atol": 0.1,
+   "m_max": 0.25,
+   "t_max": 3.0
+  }
+ },
+ "approved_table": {
+  "exec_sim.py": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24",
+  "simlib.py": "55246fe98da2d57a33bbbe0f22fc67e6581da539c353b026d8ef41673dfec2f1",
+  "calib_v3.py": "14357bbadd6076fed5f31b9d9fe5095c41c5f3b37a40c7624501f88102d05e96",
+  "calibration": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6",
+  "v1_gate.py": "c97d9b3d49212b49ea2cde883d7a06fe749f43ed23f3aef7de6345a4d8075d0d",
+  "fills_reader.py": "4a906fba23dbeb3f147af4b2e7713c139fd379464b91f22fbede5301c2e7ff48",
+  "MISSING_TRADES": "6faee16057e9def54947c11ca1ca20ee3ff2075d8a680f9fcd45ef4713827629",
+  "BNB_INDEX": "c7e2c147e434a82045ae479ca414335b45b8b5b4a5ed02838e938bb151cd2149",
+  "FLATTEN-20260821T201600Z": "7ef07956f9f1112c095c3721dcaf0d7f5b310a724cff7d11a20620f8884b6156",
+  "FLATTEN-20260826T124702Z": "ebda127010c3708f5b4f9c9ca71a6f292ed5a4deb744a2bc1163b794e52f8941",
+  "FLATTEN-20260906T084608Z": "88b86525b1cd3ececbb6b035fed5ec3d5a24effb2ca703003cca813472ec1da8",
+  "FLATTEN-20260909T164536Z": "3a218bc856ab86709366b65b4180ea76021a9e63dab973684cbd36cf66c3dc3f",
+  "FLATTEN-20260912T124737Z": "4b25e0f2bd7c327bc7ab1f5f75865d58a29003518d334fc3d0e82018967febcd"
+ },
+ "inputs": {
+  "manifest": {
+   "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/replay_exec_2026-09-19/INPUT_MANIFEST.json",
+   "sha256": "59875e5a69db415f5ce20b35b888f2d49a31427fdde8b7b847a9645ee135a5ae"
+  },
+  "live_g": {
+   "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/live_expectation_2026-09-19/LIVE_G_DECOMPOSITION_combo_20260826_20260919.json",
+   "sha256": "ddb4e09225e33336a52cea3e6928ff04aeb3102547d3a3f5d8f7573f5a9f4360"
+  },
+  "transfers": {
+   "path": "/Users/haosiyu/Desktop/quant_research/docs/fixprogram_2026-09-13/FP3_receipts/venue_readonly_2026-09-19/INCOME_TRANSFER_20260725_now.json",
+   "sha256": "9a85c9140c1831e96d7dec5aafe6d959a1c8a11ace01028ef5e9f686e3efb352"
+  }
+ },
+ "sim_receipt": {
+  "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/replay_exec_2026-09-19/SIM_v31_live_CAL_continuous_20260826_20260918.json",
+  "sha256": "22baa21d327fd34bc48cf75a76d56cb4efa56144e7231549096987820ce17d85",
+  "version": "v3.1",
+  "device_sha256": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24"
+ },
+ "verdict": "PASS",
+ "provenance_violations": [],
+ "verdict_lines": [
+  "V1b[HIST_DIAG_CONTINUOUS] E0 input validity    0 violations  PASS",
+  "V1b[HIST_DIAG_CONTINUOUS] E1 population        sim 48 windows, live 48  contiguous True  declared True  in-period True  PASS",
+  "V1b[HIST_DIAG_CONTINUOUS] E2 t0 alignment      max |\u0394t0| 0.000 s \u2264 1 s  PASS",
+  "V1b[HIST_DIAG_CONTINUOUS] E3 t1 alignment      max |\u0394t1| 0.000 s \u2264 1 s  PASS",
+  "V1b[HIST_DIAG_CONTINUOUS] W price_and_trading  s=mean|live| 711.78  |e| mean 92.72 (0.130\u00b7s \u2264 0.35)  p90 208.49  max 340.85  e/tol p90 0.675 \u2264 1  max 1.682 \u2264 3.0  (3 outside)  PASS",
+  "V1b[HIST_DIAG_CONTINUOUS] W funding            s=mean|live| 14.79  |e| mean 1.16 (0.079\u00b7s \u2264 0.25)  p90 1.92  max 16.49  e/tol p90 0.369 \u2264 1  max 2.672 \u2264 3.0  (1 outside)  PASS",
+  "V1b[HIST_DIAG_CONTINUOUS] W fee                s=mean|live| 6.92  |e| mean 0.79 (0.114\u00b7s \u2264 0.25)  p90 0.98  max 18.05  e/tol p90 0.552 \u2264 1  max 1.034 \u2264 3.0  (1 outside)  PASS",
+  "V1b[HIST_DIAG_CONTINUOUS] W turnover           s=mean|live| 21,332.17  |e| mean 1,792.13 (0.084\u00b7s \u2264 0.25)  p90 2,639.94  max 31,623.46  e/tol p90 0.468 \u2264 1  max 1.322 \u2264 3.0  (1 outside)  PASS",
+  "V1b[HIST_DIAG_CONTINUOUS] T fee                sim       306.7874  live       332.1617  ratio 0.9236  band [0.8, 1.25]  PASS",
+  "V1b[HIST_DIAG_CONTINUOUS] T turnover_over_gross sim         0.0969  live         0.1007  ratio 0.9620  band [0.8, 1.25]  PASS",
+  "V1b[HIST_DIAG_CONTINUOUS] T funding            sim      -699.5058  live      -710.0716  ratio 0.9851  band [0.8, 1.25]  PASS",
+  "V1b[HIST_DIAG_CONTINUOUS] T price_and_trading  sim 2,326.07  live 1,530.28  total diff +795.79  tol 1,530.28  daily-diff mean +99.47 CI95 [-108.84, +322.40] (n_days 8)  PASS",
+  "V1b[HIST_DIAG_CONTINUOUS] VERDICT: PASS (12/12 items)",
+  "V1b[HIST_DIAG_CONTINUOUS] diag MC s.e. price_and_trading  per-window mean 10.375  max 51.062  max s.e./tol 0.185  s.e. of total 109.26  (R 32)",
+  "V1b[HIST_DIAG_CONTINUOUS] diag MC s.e. funding            per-window mean 0.228  max 0.580  max s.e./tol 0.118  s.e. of total 8.62  (R 32)",
+  "V1b[HIST_DIAG_CONTINUOUS] diag MC s.e. fee                per-window mean 0.076  max 0.456  max s.e./tol 0.106  s.e. of total 0.50  (R 32)",
+  "V1b[HIST_DIAG_CONTINUOUS] diag MC s.e. turnover           per-window mean 252.164  max 1,421.515  max s.e./tol 0.121  s.e. of total 1,062.54  (R 32)",
+  "V1b[HIST_DIAG_CONTINUOUS] diag paths: net total mean +1,319.78 sd 598.27 [p05 +198.91, p95 +2,143.95] vs live +488.04; maxDD mean -0.0735 [min -0.0795] vs live -0.0723; stops mean 8.8; flattens mean 1.0 \u2014 NOT a verdict item: V1b does not validate path risk"
+ ],
+ "items": {
+  "E0_input_validity": {
+   "violations": [],
+   "n_violations": 0,
+   "pass": true
+  },
+  "E1_population": {
+   "n_sim": 48,
+   "n_live": 48,
+   "live_contiguous": true,
+   "declared_population": true,
+   "live_in_period": true,
+   "pass": true
+  },
+  "E2_t0": {
+   "max_abs_dt0_s": 0.0,
+   "tol_s": 1.0,
+   "pass": true
+  },
+  "E3_t1": {
+   "max_abs_dt1_s": 0.0,
+   "tol_s": 1.0,
+   "pass": true
+  },
+  "W_price_and_trading": {
+   "scale_mean_abs_live": 711.7813562499999,
+   "mean_abs_err": 92.72089410785172,
+   "p90_abs_err": 208.49403079506683,
+   "max_abs_err": 340.85492085338717,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.25,
+    "m_max": 0.35,
+    "t_max": 3.0
+   },
+   "mean_abs_err_over_scale": 0.13026597745738824,
+   "p90_err_over_tol": 0.6753507015618327,
+   "max_err_over_tol": 1.6818433211769601,
+   "n_windows_outside_tol": 3,
+   "argmax_window": 3,
+   "pass": true
+  },
+  "W_funding": {
+   "scale_mean_abs_live": 14.793158903750003,
+   "mean_abs_err": 1.1616944684909465,
+   "p90_abs_err": 1.9223194338203333,
+   "max_abs_err": 16.493962312113165,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.1,
+    "m_max": 0.25,
+    "t_max": 3.0
+   },
+   "mean_abs_err_over_scale": 0.07852916851967714,
+   "p90_err_over_tol": 0.36926682774881336,
+   "max_err_over_tol": 2.6716352562140333,
+   "n_windows_outside_tol": 1,
+   "argmax_window": 26,
+   "pass": true
+  },
+  "W_fee": {
+   "scale_mean_abs_live": 6.920034873125,
+   "mean_abs_err": 0.7871022124039837,
+   "p90_abs_err": 0.9756022536182064,
+   "max_abs_err": 18.052926391874706,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.1,
+    "m_max": 0.25,
+    "t_max": 3.0
+   },
+   "mean_abs_err_over_scale": 0.11374252107613127,
+   "p90_err_over_tol": 0.5523912359861308,
+   "max_err_over_tol": 1.0340281299303007,
+   "n_windows_outside_tol": 1,
+   "argmax_window": 14,
+   "pass": true
+  },
+  "W_turnover": {
+   "scale_mean_abs_live": 21332.16618502374,
+   "mean_abs_err": 1792.1316039494861,
+   "p90_abs_err": 2639.9395893072565,
+   "max_abs_err": 31623.45888586997,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.1,
+    "m_max": 0.25,
+    "t_max": 3.0
+   },
+   "mean_abs_err_over_scale": 0.0840107651705645,
+   "p90_err_over_tol": 0.46759976684316323,
+   "max_err_over_tol": 1.3217638758720516,
+   "n_windows_outside_tol": 1,
+   "argmax_window": 16,
+   "pass": true
+  },
+  "T_fee": {
+   "sim": 306.7873526701268,
+   "live": 332.1616739100001,
+   "ratio": 0.9236085218948272,
+   "band": [
+    0.8,
+    1.25
+   ],
+   "pass": true
+  },
+  "T_turnover_over_gross": {
+   "sim": 0.09687409893893492,
+   "live": 0.10070350491948502,
+   "ratio": 0.9619734587826729,
+   "band": [
+    0.8,
+    1.25
+   ],
+   "pass": true,
+   "sim_turnover": 992655.1615925211,
+   "live_turnover": 1023943.9768811392,
+   "sim_sum_gross0": 10246858.267226271,
+   "live_sum_gross0": 10167908.035572428
+  },
+  "T_funding": {
+   "sim": -699.5058148027673,
+   "live": -710.0716273800001,
+   "ratio": 0.9851200749757906,
+   "band": [
+    0.8,
+    1.25
+   ],
+   "pass": true
+  },
+  "T_price_and_trading": {
+   "sim": 2326.069359401232,
+   "live": 1530.2751000000023,
+   "total_diff": 795.7942594012295,
+   "tolerance": 1530.2751000000023,
+   "n_days": 8,
+   "daily_diff_mean": 99.47428242515397,
+   "daily_diff_ci95": [
+    -108.83839412132095,
+    322.4037599347216
+   ],
+   "ci_contains_0": true,
+   "total_within_tol": true,
+   "per_day_diff": {
+    "2026-09-11": 613.0604329817579,
+    "2026-09-12": -61.92191234732108,
+    "2026-09-13": 526.6208332590464,
+    "2026-09-14": 193.15916888751678,
+    "2026-09-15": -66.43293731473074,
+    "2026-09-16": 95.47925820632105,
+    "2026-09-17": -342.2392068771839,
+    "2026-09-18": -161.93137739417466
+   },
+   "pass": true
+  }
+ },
+ "diagnostics": {
+  "statement": "V1b validates the conditional MEAN of each window item only; it does not validate path risk (variance, halt / stop incidence, tails, maxDD). R >= 32 is a minimum amount of computation, not a precision guarantee.",
+  "R": 32,
+  "mc_standard_error": {
+   "price_and_trading": {
+    "per_window_mean": 10.375114402707036,
+    "per_window_max": 51.06151945675953,
+    "max_se_over_window_tol": 0.18459567341303998,
+    "se_of_population_total": 109.2623052246476
+   },
+   "funding": {
+    "per_window_mean": 0.22833612320601446,
+    "per_window_max": 0.5803123391566692,
+    "max_se_over_window_tol": 0.11837872665597031,
+    "se_of_population_total": 8.617811723303387
+   },
+   "fee": {
+    "per_window_mean": 0.07628518992735757,
+    "per_window_max": 0.45604876048201143,
+    "max_se_over_window_tol": 0.10644220572038758,
+    "se_of_population_total": 0.5033071249643826
+   },
+   "turnover": {
+    "per_window_mean": 252.1635132746969,
+    "per_window_max": 1421.5152357639645,
+    "max_se_over_window_tol": 0.12138274050221157,
+    "se_of_population_total": 1062.5415290293731
+   }
+  },
+  "live_inside_path_p05_p95_share": {
+   "price_and_trading": 0.4791666666666667,
+   "funding": 0.875,
+   "fee": 0.7916666666666666,
+   "turnover": 0.8333333333333334
+  },
+  "path_distribution": {
+   "net_total_usdt": {
+    "mean": 1319.7761919283366,
+    "sd": 598.271107199144,
+    "p05": 198.9145782416154,
+    "p50": 1340.1075050707166,
+    "p95": 2143.9459400397745,
+    "min": 59.823626961006994,
+    "max": 2870.835217692983
+   },
+   "maxdd_of_transfer_free_return_index": {
+    "mean": -0.07348644428832285,
+    "sd": 0.003024439499291685,
+    "p05": -0.07924639357533496,
+    "p50": -0.07274619386360492,
+    "p95": -0.06986702651763876,
+    "min": -0.07949214045958708,
+    "max": -0.06963314202175797
+   },
+   "stops_in_population": {
+    "mean": 8.84375,
+    "sd": 0.9540871333712221,
+    "p05": 7.55,
+    "p50": 9.0,
+    "p95": 10.0,
+    "min": 7.0,
+    "max": 11.0
+   },
+   "flattens_in_population": {
+    "mean": 1.0,
+    "sd": 0.0,
+    "p05": 1.0,
+    "p50": 1.0,
+    "p95": 1.0,
+    "min": 1.0,
+    "max": 1.0
+   },
+   "live_net_total_usdt": 488.0417987100004,
+   "live_maxdd_same_index": -0.07226522107240729
+  }
+ }
+}

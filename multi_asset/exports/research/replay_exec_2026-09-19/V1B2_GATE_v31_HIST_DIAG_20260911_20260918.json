@@ -1,0 +1,325 @@
+{
+ "device": "v1b_gate.py",
+ "gate_version": "v2",
+ "device_sha256": "4a725921a470f4c11f47cda5a8e210979215079cea16b496c709c7cc62fb5410",
+ "utc": "2026-09-19T09:54:06Z",
+ "rerun": "/usr/bin/python3 multi_asset/exports/research/replay_exec_2026-09-19/v1b_gate.py SIM_v31_live_HIST_DIAG_20260911_20260918.json HIST_DIAG V1B2_GATE_v31_HIST_DIAG_20260911_20260918.json",
+ "label": "HIST_DIAG",
+ "role": "history diagnostic after time-truncated refit (not independent validation: the week was seen during v1/v2 calibration and diagnosis)",
+ "forward_first_anchor": null,
+ "bounds": {
+  "price_and_trading": {
+   "rtol": 0.25,
+   "k_atol": 0.25,
+   "m_max": 0.35,
+   "t_max": 3.0
+  },
+  "funding": {
+   "rtol": 0.25,
+   "k_atol": 0.1,
+   "m_max": 0.25,
+   "t_max": 3.0
+  },
+  "fee": {
+   "rtol": 0.25,
+   "k_atol": 0.1,
+   "m_max": 0.25,
+   "t_max": 3.0
+  },
+  "turnover": {
+   "rtol": 0.25,
+   "k_atol": 0.1,
+   "m_max": 0.25,
+   "t_max": 3.0
+  }
+ },
+ "approved_table": {
+  "exec_sim.py": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24",
+  "simlib.py": "55246fe98da2d57a33bbbe0f22fc67e6581da539c353b026d8ef41673dfec2f1",
+  "calib_v3.py": "14357bbadd6076fed5f31b9d9fe5095c41c5f3b37a40c7624501f88102d05e96",
+  "calibration": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6",
+  "v1_gate.py": "c97d9b3d49212b49ea2cde883d7a06fe749f43ed23f3aef7de6345a4d8075d0d",
+  "fills_reader.py": "4a906fba23dbeb3f147af4b2e7713c139fd379464b91f22fbede5301c2e7ff48",
+  "MISSING_TRADES": "6faee16057e9def54947c11ca1ca20ee3ff2075d8a680f9fcd45ef4713827629",
+  "BNB_INDEX": "c7e2c147e434a82045ae479ca414335b45b8b5b4a5ed02838e938bb151cd2149",
+  "FLATTEN-20260821T201600Z": "7ef07956f9f1112c095c3721dcaf0d7f5b310a724cff7d11a20620f8884b6156",
+  "FLATTEN-20260826T124702Z": "ebda127010c3708f5b4f9c9ca71a6f292ed5a4deb744a2bc1163b794e52f8941",
+  "FLATTEN-20260906T084608Z": "88b86525b1cd3ececbb6b035fed5ec3d5a24effb2ca703003cca813472ec1da8",
+  "FLATTEN-20260909T164536Z": "3a218bc856ab86709366b65b4180ea76021a9e63dab973684cbd36cf66c3dc3f",
+  "FLATTEN-20260912T124737Z": "4b25e0f2bd7c327bc7ab1f5f75865d58a29003518d334fc3d0e82018967febcd"
+ },
+ "inputs": {
+  "manifest": {
+   "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/replay_exec_2026-09-19/INPUT_MANIFEST.json",
+   "sha256": "59875e5a69db415f5ce20b35b888f2d49a31427fdde8b7b847a9645ee135a5ae"
+  },
+  "live_g": {
+   "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/live_expectation_2026-09-19/LIVE_G_DECOMPOSITION_combo_20260826_20260919.json",
+   "sha256": "ddb4e09225e33336a52cea3e6928ff04aeb3102547d3a3f5d8f7573f5a9f4360"
+  },
+  "transfers": {
+   "path": "/Users/haosiyu/Desktop/quant_research/docs/fixprogram_2026-09-13/FP3_receipts/venue_readonly_2026-09-19/INCOME_TRANSFER_20260725_now.json",
+   "sha256": "9a85c9140c1831e96d7dec5aafe6d959a1c8a11ace01028ef5e9f686e3efb352"
+  }
+ },
+ "sim_receipt": {
+  "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/replay_exec_2026-09-19/SIM_v31_live_HIST_DIAG_20260911_20260918.json",
+  "sha256": "bb24133c2f7325cd960ae4b887fca85e38b5e19a31c8ba8d334d1c3ffa101441",
+  "version": "v3.1",
+  "device_sha256": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24"
+ },
+ "verdict": "PASS",
+ "provenance_violations": [],
+ "verdict_lines": [
+  "V1b[HIST_DIAG] E0 input validity    0 violations  PASS",
+  "V1b[HIST_DIAG] E1 population        sim 48 windows, live 48  contiguous True  declared True  in-period True  PASS",
+  "V1b[HIST_DIAG] E2 t0 alignment      max |\u0394t0| 0.000 s \u2264 1 s  PASS",
+  "V1b[HIST_DIAG] E3 t1 alignment      max |\u0394t1| 0.000 s \u2264 1 s  PASS",
+  "V1b[HIST_DIAG] W price_and_trading  s=mean|live| 711.78  |e| mean 81.19 (0.114\u00b7s \u2264 0.35)  p90 178.11  max 274.78  e/tol p90 0.601 \u2264 1  max 1.106 \u2264 3.0  (2 outside)  PASS",
+  "V1b[HIST_DIAG] W funding            s=mean|live| 14.79  |e| mean 0.84 (0.057\u00b7s \u2264 0.25)  p90 1.56  max 16.60  e/tol p90 0.302 \u2264 1  max 2.689 \u2264 3.0  (1 outside)  PASS",
+  "V1b[HIST_DIAG] W fee                s=mean|live| 6.92  |e| mean 0.84 (0.121\u00b7s \u2264 0.25)  p90 0.98  max 18.03  e/tol p90 0.585 \u2264 1  max 1.271 \u2264 3.0  (3 outside)  PASS",
+  "V1b[HIST_DIAG] W turnover           s=mean|live| 21,332.17  |e| mean 1,974.67 (0.093\u00b7s \u2264 0.25)  p90 2,737.66  max 31,943.60  e/tol p90 0.477 \u2264 1  max 1.629 \u2264 3.0  (2 outside)  PASS",
+  "V1b[HIST_DIAG] T fee                sim       308.3610  live       332.1617  ratio 0.9283  band [0.8, 1.25]  PASS",
+  "V1b[HIST_DIAG] T turnover_over_gross sim         0.0980  live         0.1007  ratio 0.9728  band [0.8, 1.25]  PASS",
+  "V1b[HIST_DIAG] T funding            sim      -732.7169  live      -710.0716  ratio 1.0319  band [0.8, 1.25]  PASS",
+  "V1b[HIST_DIAG] T price_and_trading  sim 1,825.14  live 1,530.28  total diff +294.87  tol 1,530.28  daily-diff mean +36.86 CI95 [-100.19, +160.42] (n_days 8)  PASS",
+  "V1b[HIST_DIAG] VERDICT: PASS (12/12 items)",
+  "V1b[HIST_DIAG] diag MC s.e. price_and_trading  per-window mean 9.498  max 50.817  max s.e./tol 0.187  s.e. of total 104.95  (R 32)",
+  "V1b[HIST_DIAG] diag MC s.e. funding            per-window mean 0.108  max 0.556  max s.e./tol 0.116  s.e. of total 2.39  (R 32)",
+  "V1b[HIST_DIAG] diag MC s.e. fee                per-window mean 0.073  max 0.433  max s.e./tol 0.122  s.e. of total 0.41  (R 32)",
+  "V1b[HIST_DIAG] diag MC s.e. turnover           per-window mean 239.113  max 1,398.365  max s.e./tol 0.135  s.e. of total 592.89  (R 32)",
+  "V1b[HIST_DIAG] diag paths: net total mean +784.07 sd 586.09 [p05 -310.84, p95 +1,657.16] vs live +488.04; maxDD mean -0.0735 [min -0.0793] vs live -0.0723; stops mean 8.9; flattens mean 1.0 \u2014 NOT a verdict item: V1b does not validate path risk"
+ ],
+ "items": {
+  "E0_input_validity": {
+   "violations": [],
+   "n_violations": 0,
+   "pass": true
+  },
+  "E1_population": {
+   "n_sim": 48,
+   "n_live": 48,
+   "live_contiguous": true,
+   "declared_population": true,
+   "live_in_period": true,
+   "pass": true
+  },
+  "E2_t0": {
+   "max_abs_dt0_s": 0.0,
+   "tol_s": 1.0,
+   "pass": true
+  },
+  "E3_t1": {
+   "max_abs_dt1_s": 0.0,
+   "tol_s": 1.0,
+   "pass": true
+  },
+  "W_price_and_trading": {
+   "scale_mean_abs_live": 711.7813562499999,
+   "mean_abs_err": 81.19030572127343,
+   "p90_abs_err": 178.11409386270998,
+   "max_abs_err": 274.7751449285197,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.25,
+    "m_max": 0.35,
+    "t_max": 3.0
+   },
+   "mean_abs_err_over_scale": 0.11406635620385208,
+   "p90_err_over_tol": 0.601235902633933,
+   "max_err_over_tol": 1.105816917725064,
+   "n_windows_outside_tol": 2,
+   "argmax_window": 24,
+   "pass": true
+  },
+  "W_funding": {
+   "scale_mean_abs_live": 14.793158903750003,
+   "mean_abs_err": 0.8365977398506489,
+   "p90_abs_err": 1.5630732234152707,
+   "max_abs_err": 16.599820718819483,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.1,
+    "m_max": 0.25,
+    "t_max": 3.0
+   },
+   "mean_abs_err_over_scale": 0.05655301516693469,
+   "p90_err_over_tol": 0.3024965516523998,
+   "max_err_over_tol": 2.6887818366518665,
+   "n_windows_outside_tol": 1,
+   "argmax_window": 26,
+   "pass": true
+  },
+  "W_fee": {
+   "scale_mean_abs_live": 6.920034873125,
+   "mean_abs_err": 0.8352204987359574,
+   "p90_abs_err": 0.9788916732963242,
+   "max_abs_err": 18.026844859991208,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.1,
+    "m_max": 0.25,
+    "t_max": 3.0
+   },
+   "mean_abs_err_over_scale": 0.12069599561985768,
+   "p90_err_over_tol": 0.5849576262513136,
+   "max_err_over_tol": 1.271013794401335,
+   "n_windows_outside_tol": 3,
+   "argmax_window": 15,
+   "pass": true
+  },
+  "W_turnover": {
+   "scale_mean_abs_live": 21332.16618502374,
+   "mean_abs_err": 1974.6740757373254,
+   "p90_abs_err": 2737.6580096202224,
+   "max_abs_err": 31943.599231630273,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.1,
+    "m_max": 0.25,
+    "t_max": 3.0
+   },
+   "mean_abs_err_over_scale": 0.09256791169776497,
+   "p90_err_over_tol": 0.47695613719416485,
+   "max_err_over_tol": 1.6292888131496692,
+   "n_windows_outside_tol": 2,
+   "argmax_window": 16,
+   "pass": true
+  },
+  "T_fee": {
+   "sim": 308.36095131050394,
+   "live": 332.1616739100001,
+   "ratio": 0.9283459698425501,
+   "band": [
+    0.8,
+    1.25
+   ],
+   "pass": true
+  },
+  "T_turnover_over_gross": {
+   "sim": 0.09796399487198715,
+   "live": 0.10070350491948502,
+   "ratio": 0.9727962790402561,
+   "band": [
+    0.8,
+    1.25
+   ],
+   "pass": true,
+   "sim_turnover": 999548.8341628907,
+   "live_turnover": 1023943.9768811392,
+   "sim_sum_gross0": 10203226.557563672,
+   "live_sum_gross0": 10167908.035572428
+  },
+  "T_funding": {
+   "sim": -732.7169112578509,
+   "live": -710.0716273800001,
+   "ratio": 1.0318915486898226,
+   "band": [
+    0.8,
+    1.25
+   ],
+   "pass": true
+  },
+  "T_price_and_trading": {
+   "sim": 1825.1443596429294,
+   "live": 1530.2751000000023,
+   "total_diff": 294.8692596429271,
+   "tolerance": 1530.2751000000023,
+   "n_days": 8,
+   "daily_diff_mean": 36.858657455366306,
+   "daily_diff_ci95": [
+    -100.18600430069074,
+    160.4233686637487
+   ],
+   "ci_contains_0": true,
+   "total_within_tol": true,
+   "per_day_diff": {
+    "2026-09-11": 261.3697742490481,
+    "2026-09-12": 51.52707812107526,
+    "2026-09-13": 240.9847219522403,
+    "2026-09-14": 193.25559041816734,
+    "2026-09-15": -60.61566337253254,
+    "2026-09-16": 70.86744637478364,
+    "2026-09-17": -298.32566804658626,
+    "2026-09-18": -164.19402005326546
+   },
+   "pass": true
+  }
+ },
+ "diagnostics": {
+  "statement": "V1b validates the conditional MEAN of each window item only; it does not validate path risk (variance, halt / stop incidence, tails, maxDD). R >= 32 is a minimum amount of computation, not a precision guarantee.",
+  "R": 32,
+  "mc_standard_error": {
+   "price_and_trading": {
+    "per_window_mean": 9.498382454664265,
+    "per_window_max": 50.8166719394057,
+    "max_se_over_window_tol": 0.1866323372554636,
+    "se_of_population_total": 104.95255703414344
+   },
+   "funding": {
+    "per_window_mean": 0.10803980765715106,
+    "per_window_max": 0.5557463418526584,
+    "max_se_over_window_tol": 0.11568690735174286,
+    "se_of_population_total": 2.3949920047723294
+   },
+   "fee": {
+    "per_window_mean": 0.07275241208148371,
+    "per_window_max": 0.43301562053446746,
+    "max_se_over_window_tol": 0.12181921097895385,
+    "se_of_population_total": 0.414227309038908
+   },
+   "turnover": {
+    "per_window_mean": 239.11281627033324,
+    "per_window_max": 1398.365296315126,
+    "max_se_over_window_tol": 0.13539842970167149,
+    "se_of_population_total": 592.88974710859
+   }
+  },
+  "live_inside_path_p05_p95_share": {
+   "price_and_trading": 0.375,
+   "funding": 0.75,
+   "fee": 0.6875,
+   "turnover": 0.7708333333333334
+  },
+  "path_distribution": {
+   "net_total_usdt": {
+    "mean": 784.0664970745754,
+    "sd": 586.0943957006623,
+    "p05": -310.83693928208027,
+    "p50": 784.4970777864746,
+    "p95": 1657.1649395316724,
+    "min": -554.9115978212926,
+    "max": 2215.9491783630647
+   },
+   "maxdd_of_transfer_free_return_index": {
+    "mean": -0.07346755176457655,
+    "sd": 0.002963720002083237,
+    "p05": -0.07907793742700711,
+    "p50": -0.07283149645858056,
+    "p95": -0.07002274024825636,
+    "min": -0.07925042994409692,
+    "max": -0.06981572058419316
+   },
+   "stops_in_population": {
+    "mean": 8.875,
+    "sd": 0.9069623173877128,
+    "p05": 8.0,
+    "p50": 9.0,
+    "p95": 10.0,
+    "min": 7.0,
+    "max": 11.0
+   },
+   "flattens_in_population": {
+    "mean": 1.0,
+    "sd": 0.0,
+    "p05": 1.0,
+    "p50": 1.0,
+    "p95": 1.0,
+    "min": 1.0,
+    "max": 1.0
+   },
+   "live_net_total_usdt": 488.0417987100004,
+   "live_maxdd_same_index": -0.07226522107240729
+  }
+ }
+}

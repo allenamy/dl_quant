@@ -1,0 +1,333 @@
+{
+ "device": "v1b_gate.py",
+ "gate_version": "v2",
+ "device_sha256": "4a725921a470f4c11f47cda5a8e210979215079cea16b496c709c7cc62fb5410",
+ "utc": "2026-09-19T09:54:56Z",
+ "rerun": "/usr/bin/python3 multi_asset/exports/research/replay_exec_2026-09-19/v1b_gate.py SIM_v31_live_CAL_continuous_20260826_20260918.json CAL V1B2_GATE_v31_CAL_20260826_20260910.json",
+ "label": "CAL",
+ "role": "calibration period, IN-SAMPLE for the pooled v3 parameters",
+ "forward_first_anchor": null,
+ "bounds": {
+  "price_and_trading": {
+   "rtol": 0.25,
+   "k_atol": 0.25,
+   "m_max": 0.35,
+   "t_max": 3.0
+  },
+  "funding": {
+   "rtol": 0.25,
+   "k_atol": 0.1,
+   "m_max": 0.25,
+   "t_max": 3.0
+  },
+  "fee": {
+   "rtol": 0.25,
+   "k_atol": 0.1,
+   "m_max": 0.25,
+   "t_max": 3.0
+  },
+  "turnover": {
+   "rtol": 0.25,
+   "k_atol": 0.1,
+   "m_max": 0.25,
+   "t_max": 3.0
+  }
+ },
+ "approved_table": {
+  "exec_sim.py": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24",
+  "simlib.py": "55246fe98da2d57a33bbbe0f22fc67e6581da539c353b026d8ef41673dfec2f1",
+  "calib_v3.py": "14357bbadd6076fed5f31b9d9fe5095c41c5f3b37a40c7624501f88102d05e96",
+  "calibration": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6",
+  "v1_gate.py": "c97d9b3d49212b49ea2cde883d7a06fe749f43ed23f3aef7de6345a4d8075d0d",
+  "fills_reader.py": "4a906fba23dbeb3f147af4b2e7713c139fd379464b91f22fbede5301c2e7ff48",
+  "MISSING_TRADES": "6faee16057e9def54947c11ca1ca20ee3ff2075d8a680f9fcd45ef4713827629",
+  "BNB_INDEX": "c7e2c147e434a82045ae479ca414335b45b8b5b4a5ed02838e938bb151cd2149",
+  "FLATTEN-20260821T201600Z": "7ef07956f9f1112c095c3721dcaf0d7f5b310a724cff7d11a20620f8884b6156",
+  "FLATTEN-20260826T124702Z": "ebda127010c3708f5b4f9c9ca71a6f292ed5a4deb744a2bc1163b794e52f8941",
+  "FLATTEN-20260906T084608Z": "88b86525b1cd3ececbb6b035fed5ec3d5a24effb2ca703003cca813472ec1da8",
+  "FLATTEN-20260909T164536Z": "3a218bc856ab86709366b65b4180ea76021a9e63dab973684cbd36cf66c3dc3f",
+  "FLATTEN-20260912T124737Z": "4b25e0f2bd7c327bc7ab1f5f75865d58a29003518d334fc3d0e82018967febcd"
+ },
+ "inputs": {
+  "manifest": {
+   "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/replay_exec_2026-09-19/INPUT_MANIFEST.json",
+   "sha256": "59875e5a69db415f5ce20b35b888f2d49a31427fdde8b7b847a9645ee135a5ae"
+  },
+  "live_g": {
+   "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/live_expectation_2026-09-19/LIVE_G_DECOMPOSITION_combo_20260826_20260919.json",
+   "sha256": "ddb4e09225e33336a52cea3e6928ff04aeb3102547d3a3f5d8f7573f5a9f4360"
+  },
+  "transfers": {
+   "path": "/Users/haosiyu/Desktop/quant_research/docs/fixprogram_2026-09-13/FP3_receipts/venue_readonly_2026-09-19/INCOME_TRANSFER_20260725_now.json",
+   "sha256": "9a85c9140c1831e96d7dec5aafe6d959a1c8a11ace01028ef5e9f686e3efb352"
+  }
+ },
+ "sim_receipt": {
+  "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/replay_exec_2026-09-19/SIM_v31_live_CAL_continuous_20260826_20260918.json",
+  "sha256": "22baa21d327fd34bc48cf75a76d56cb4efa56144e7231549096987820ce17d85",
+  "version": "v3.1",
+  "device_sha256": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24"
+ },
+ "verdict": "FAIL",
+ "provenance_violations": [],
+ "verdict_lines": [
+  "V1b[CAL] E0 input validity    0 violations  PASS",
+  "V1b[CAL] E1 population        sim 93 windows, live 93  contiguous True  declared True  in-period True  PASS",
+  "V1b[CAL] E2 t0 alignment      max |\u0394t0| 0.000 s \u2264 1 s  PASS",
+  "V1b[CAL] E3 t1 alignment      max |\u0394t1| 0.000 s \u2264 1 s  PASS",
+  "V1b[CAL] W price_and_trading  s=mean|live| 268.24  |e| mean 57.29 (0.214\u00b7s \u2264 0.35)  p90 151.02  max 437.87  e/tol p90 1.005 \u2264 1  max 2.273 \u2264 3.0  (11 outside)  FAIL",
+  "V1b[CAL] W funding            s=mean|live| 9.65  |e| mean 0.63 (0.065\u00b7s \u2264 0.25)  p90 1.15  max 12.77  e/tol p90 0.296 \u2264 1  max 2.793 \u2264 3.0  (3 outside)  PASS",
+  "V1b[CAL] W fee                s=mean|live| 4.77  |e| mean 0.92 (0.193\u00b7s \u2264 0.25)  p90 0.91  max 16.92  e/tol p90 0.755 \u2264 1  max 2.447 \u2264 3.0  (8 outside)  PASS",
+  "V1b[CAL] W turnover           s=mean|live| 15,307.19  |e| mean 2,586.28 (0.169\u00b7s \u2264 0.25)  p90 3,244.08  max 38,770.64  e/tol p90 0.526 \u2264 1  max 2.444 \u2264 3.0  (6 outside)  PASS",
+  "V1b[CAL] T fee                sim       442.3645  live       443.9990  ratio 0.9963  band [0.8, 1.25]  PASS",
+  "V1b[CAL] T turnover_over_gross sim         0.1577  live         0.1601  ratio 0.9853  band [0.8, 1.25]  PASS",
+  "V1b[CAL] T funding            sim      -787.2367  live      -757.4224  ratio 1.0394  band [0.8, 1.25]  PASS",
+  "V1b[CAL] T price_and_trading  sim -1,612.29  live -1,633.19  total diff +20.90  tol 1,633.19  daily-diff mean +1.31 CI95 [-81.66, +80.47] (n_days 16)  PASS",
+  "V1b[CAL] VERDICT: FAIL (11/12 items)",
+  "V1b[CAL] diag MC s.e. price_and_trading  per-window mean 6.451  max 50.118  max s.e./tol 0.599  s.e. of total 109.51  (R 32)",
+  "V1b[CAL] diag MC s.e. funding            per-window mean 0.123  max 2.812  max s.e./tol 0.471  s.e. of total 2.48  (R 32)",
+  "V1b[CAL] diag MC s.e. fee                per-window mean 0.044  max 0.422  max s.e./tol 0.126  s.e. of total 0.58  (R 32)",
+  "V1b[CAL] diag MC s.e. turnover           per-window mean 146.076  max 1,012.405  max s.e./tol 0.138  s.e. of total 1,158.73  (R 32)",
+  "V1b[CAL] diag paths: net total mean -2,841.89 sd 620.41 [p05 -3,800.21, p95 -1,899.12] vs live -2,834.62; maxDD mean -0.0645 [min -0.0737] vs live -0.0678; stops mean 16.9; flattens mean 3.0 \u2014 NOT a verdict item: V1b does not validate path risk"
+ ],
+ "items": {
+  "E0_input_validity": {
+   "violations": [],
+   "n_violations": 0,
+   "pass": true
+  },
+  "E1_population": {
+   "n_sim": 93,
+   "n_live": 93,
+   "live_contiguous": true,
+   "declared_population": true,
+   "live_in_period": true,
+   "pass": true
+  },
+  "E2_t0": {
+   "max_abs_dt0_s": 0.0,
+   "tol_s": 1.0,
+   "pass": true
+  },
+  "E3_t1": {
+   "max_abs_dt1_s": 0.0,
+   "tol_s": 1.0,
+   "pass": true
+  },
+  "W_price_and_trading": {
+   "scale_mean_abs_live": 268.24350645161286,
+   "mean_abs_err": 57.29493961910911,
+   "p90_abs_err": 151.02020909680056,
+   "max_abs_err": 437.8656312741764,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.25,
+    "m_max": 0.35,
+    "t_max": 3.0
+   },
+   "mean_abs_err_over_scale": 0.2135930162001676,
+   "p90_err_over_tol": 1.0047621228431642,
+   "max_err_over_tol": 2.2733865916736384,
+   "n_windows_outside_tol": 11,
+   "argmax_window": 70,
+   "pass": false
+  },
+  "W_funding": {
+   "scale_mean_abs_live": 9.64914323688172,
+   "mean_abs_err": 0.6289498139246099,
+   "p90_abs_err": 1.1455642464509566,
+   "max_abs_err": 12.774477179426217,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.1,
+    "m_max": 0.25,
+    "t_max": 3.0
+   },
+   "mean_abs_err_over_scale": 0.06518193361671615,
+   "p90_err_over_tol": 0.2964599791182825,
+   "max_err_over_tol": 2.7932400300938425,
+   "n_windows_outside_tol": 3,
+   "argmax_window": 76,
+   "pass": true
+  },
+  "W_fee": {
+   "scale_mean_abs_live": 4.774183250588003,
+   "mean_abs_err": 0.9212048251609664,
+   "p90_abs_err": 0.9101078937064037,
+   "max_abs_err": 16.917639265233362,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.1,
+    "m_max": 0.25,
+    "t_max": 3.0
+   },
+   "mean_abs_err_over_scale": 0.19295548092912185,
+   "p90_err_over_tol": 0.7549308723953151,
+   "max_err_over_tol": 2.4474011485071996,
+   "n_windows_outside_tol": 8,
+   "argmax_window": 70,
+   "pass": true
+  },
+  "W_turnover": {
+   "scale_mean_abs_live": 15307.192973957424,
+   "mean_abs_err": 2586.284274295229,
+   "p90_abs_err": 3244.0756607477015,
+   "max_abs_err": 38770.642651755195,
+   "bounds": {
+    "rtol": 0.25,
+    "k_atol": 0.1,
+    "m_max": 0.25,
+    "t_max": 3.0
+   },
+   "mean_abs_err_over_scale": 0.16895875544885008,
+   "p90_err_over_tol": 0.525508766484371,
+   "max_err_over_tol": 2.4443776247117937,
+   "n_windows_outside_tol": 6,
+   "argmax_window": 50,
+   "pass": true
+  },
+  "T_fee": {
+   "sim": 442.3645435572605,
+   "live": 443.9990423046843,
+   "ratio": 0.9963186885743277,
+   "band": [
+    0.8,
+    1.25
+   ],
+   "pass": true
+  },
+  "T_turnover_over_gross": {
+   "sim": 0.1577093141495454,
+   "live": 0.16005473085235716,
+   "ratio": 0.9853461582152464,
+   "band": [
+    0.8,
+    1.25
+   ],
+   "pass": true,
+   "sim_turnover": 1418952.6576072415,
+   "live_turnover": 1423568.9465780407,
+   "sim_sum_gross0": 8997266.047722088,
+   "live_sum_gross0": 8894263.474731121
+  },
+  "T_funding": {
+   "sim": -787.2367310711184,
+   "live": -757.4223695699999,
+   "ratio": 1.039362927078645,
+   "band": [
+    0.8,
+    1.25
+   ],
+   "pass": true
+  },
+  "T_price_and_trading": {
+   "sim": -1612.2921185146733,
+   "live": -1633.1945000000014,
+   "total_diff": 20.90238148532808,
+   "tolerance": 1633.1945000000014,
+   "n_days": 16,
+   "daily_diff_mean": 1.306398842832916,
+   "daily_diff_ci95": [
+    -81.65921504230414,
+    80.474711641875
+   ],
+   "ci_contains_0": true,
+   "total_within_tol": true,
+   "per_day_diff": {
+    "2026-08-26": 81.22269808157594,
+    "2026-08-27": 29.90821714378535,
+    "2026-08-28": 14.047947286994622,
+    "2026-08-29": -1.828726225221999,
+    "2026-08-30": 15.995119772267397,
+    "2026-08-31": -10.853649306059118,
+    "2026-09-01": 53.250962713681155,
+    "2026-09-02": -24.08299045004039,
+    "2026-09-03": -213.40528011596973,
+    "2026-09-04": 187.56838478816465,
+    "2026-09-05": -366.8028196608479,
+    "2026-09-06": 95.17926002127382,
+    "2026-09-07": 97.44353314213782,
+    "2026-09-08": -10.808828714046015,
+    "2026-09-09": 340.73691386294917,
+    "2026-09-10": -266.6683608553181
+   },
+   "pass": true
+  }
+ },
+ "diagnostics": {
+  "statement": "V1b validates the conditional MEAN of each window item only; it does not validate path risk (variance, halt / stop incidence, tails, maxDD). R >= 32 is a minimum amount of computation, not a precision guarantee.",
+  "R": 32,
+  "mc_standard_error": {
+   "price_and_trading": {
+    "per_window_mean": 6.451443168066698,
+    "per_window_max": 50.11819880214931,
+    "max_se_over_window_tol": 0.599305701567162,
+    "se_of_population_total": 109.5064248577936
+   },
+   "funding": {
+    "per_window_mean": 0.12331304681019489,
+    "per_window_max": 2.8117910902370498,
+    "max_se_over_window_tol": 0.4705732427008027,
+    "se_of_population_total": 2.4753527070824037
+   },
+   "fee": {
+    "per_window_mean": 0.043551068776137104,
+    "per_window_max": 0.42159632662534285,
+    "max_se_over_window_tol": 0.12596912367273863,
+    "se_of_population_total": 0.5756604884819414
+   },
+   "turnover": {
+    "per_window_mean": 146.076215389631,
+    "per_window_max": 1012.404504291942,
+    "max_se_over_window_tol": 0.1379940015762251,
+    "se_of_population_total": 1158.7330284040197
+   }
+  },
+  "live_inside_path_p05_p95_share": {
+   "price_and_trading": 0.46236559139784944,
+   "funding": 0.6881720430107527,
+   "fee": 0.5698924731182796,
+   "turnover": 0.6774193548387096
+  },
+  "path_distribution": {
+   "net_total_usdt": {
+    "mean": -2841.893393143052,
+    "sd": 620.4069125474728,
+    "p05": -3800.2064498922973,
+    "p50": -2768.175773107677,
+    "p95": -1899.1155064797308,
+    "min": -4348.281631035723,
+    "max": -1625.3361462599064
+   },
+   "maxdd_of_transfer_free_return_index": {
+    "mean": -0.06453698905892662,
+    "sd": 0.003661900013259751,
+    "p05": -0.07161427032263407,
+    "p50": -0.06457691634220436,
+    "p95": -0.05950913483394949,
+    "min": -0.07368322785240133,
+    "max": -0.0570047831087116
+   },
+   "stops_in_population": {
+    "mean": 16.90625,
+    "sd": 0.9625026183458311,
+    "p05": 15.55,
+    "p50": 17.0,
+    "p95": 18.45,
+    "min": 15.0,
+    "max": 19.0
+   },
+   "flattens_in_population": {
+    "mean": 3.0,
+    "sd": 0.0,
+    "p05": 3.0,
+    "p50": 3.0,
+    "p95": 3.0,
+    "min": 3.0,
+    "max": 3.0
+   },
+   "live_net_total_usdt": -2834.6159118746855,
+   "live_maxdd_same_index": -0.06778172320822473
+  }
+ }
+}
