@@ -201,3 +201,43 @@
 - **F-2 追加**(本次新增, 只加严): 重跑生产者写出的 king 文件, 在 weights / n_names / universe / universe_sha / booster_sha / weights_sha 上与归档 king 备份相等, `gross_norm` 按 (g) 判。
 - 每锚同时报告「字面全键相等」列(原比较器的读法), 不删除。
 - 其余(正控、NC1、NC2、锚集合、停止条款)不变。
+
+## AMENDMENT 3(2026-09-19; **写于第一次门 F 运行之后**, 已知哪 5 个锚的 NC1 未变红; 写于任何门 F 重跑与任何对象 B 历史之前; 原文与第一次判词原样保留)
+
+**A3.0 lead 裁定原文(照录, 用户委托「修复不用等我裁定 / 按最佳建议」):**
+
+> 1. **Parity gate negative control.** AMENDMENT 3 is approved, with one strengthening. It must be committed BEFORE re-running the 12 anchors.
+>    - **NC1′:** swap the F10 scores of the top- and bottom-scored members among members that are inside `sel` and not FTRIM-zeroed at that anchor.
+>    - **Add NC1r:** at each anchor, 3 swaps between pairs of eligible members (inside `sel`, not FTRIM-zeroed) drawn with `numpy.random.default_rng([20260919, anchor_epoch])`.
+>    - **Pass rule:** every NC1′ and NC1r variant must change the target on every anchor (12/12 and 36/36). NC2 stays as is. The exact-parity criterion (max|Δw| = 0, weights_sha equal) is unchanged.
+>    - **Disclosure:** The original NC1 verdict (FAIL, 5/12 unchanged; explanation holds on 12/12) stays in the receipts verbatim, and the gate history shows both verdicts. State that the amendment was written after seeing which anchors failed. State that the amendment makes the control stricter and does not touch the parity criterion.
+> 2. **Live-equivalent cache.** Adopt **R0**: the holefix2 cache as-is, i.e. what production actually fetched. It is proven cell-for-cell equal to production on the overlap window. The LE-A′ keep-gate FAIL stays recorded. Delisted and dead contracts are handled only through the membership and tradability masks production itself uses. Report the dead-name exposure (the % of gross in names after their last trade, per year) as a named limitation in the object-B results. Do not blank cache cells.
+> 3. **Data version.** Use the stream-D corrected variant `x0918r` (official 08-31 archives) if its difference proof passes. That agent is building it now; its addendum lands in `docs/RESULT_data_axis_0919_2026-09-19.md`. Otherwise use x0918 with the 08-31 hole-fill named as a limitation. Pin the choice in your run config before running. The price table for 08-31 → 09-18 will be extended by the raw-price agent after x0918r exists; object A's paper return waits for that.
+> 4. **Order after the gate passes:** object-B A0 targets over the full history; then the v4 refit arm (the baseline-tables prereg needs it); then report. A separate baseline-runner agent (folder `multi_asset/exports/research/baseline_tables_2026-09-19/`) will consume your targets once your gate receipt says PASS. Don't run tables yourself.
+> 5. **The S2 f10_v4RAW_s42 overwrite:** noted. Lead is investigating it; don't touch those files.
+
+**A3.1 披露**:
+- 本修订写于第一次门 F 运行之后。那时已知 NC1 在 5/12 锚(09-17 20Z、09-18 08Z、09-18 12Z、09-19 00Z、09-19 04Z)未改变目标, 且「被换两名的 F10 分被生产逻辑整体丢弃」这一解释在 12/12 锚上成立。
+- 第一次运行的判词(FAIL)与逐锚收据原样保留, 另存为 `receipts/gate_f/run1_NC1orig/`; 门的历史两次判词并列。
+- 本修订**只把负控改严**(对照必须在「F10 分确实进入书」的成员上起作用), **不触及平价判据**: max|Δw| = 0、weights_sha 相等、AMENDMENT 2 A2.1 其余各款一字不变。
+
+**A3.2 负控(替换 §3 S5 的 NC1, 原 NC1 照跑照报但不进判词)**:
+- **合格成员(每锚)** = 生产者成员 pm 中同时满足三条的名:
+  - 在 combo 的 `sel` 内: 按 combo_stage L38–42 在该锚缓存上重算, qv4h ≥ params.qv4h_min;
+  - 不在基线注入运行(未交换)的 `target_combo.ftrim.names_fc` 中;
+  - F10 分有限。
+- **NC1′**: 交换合格成员中 F10 分最高与最低的两名。
+- **NC1r**: `rng = numpy.random.default_rng([20260919, A])`, 依次抽 3 对 `rng.choice(合格成员, 2, replace=False)`, 每对单独交换、单独运行。
+- **判定**: 每锚 NC1′ 与 3 个 NC1r 都必须改变目标(判别 = 平价比较器判不等)。须 12/12 与 36/36; NC2 不变; 其余不变。
+
+**A3.3 缓存与基名单(R0)**:
+- 历史链的 5m 缓存 = holefix2 原样(不施加 §1 / §3 S4 的实时等价规则)。LE-A′ FAIL 保留在案(`receipts/LIVE_EQUIV.json`)。
+- 死合约只经生产者自己的成员规则与宇宙掩码处理。死名暴露(各年目标 gross 落在「末成交之后」名上的比例)作具名局限报告。
+- **基名单**: §1 的「已上市且未死」判据用的正是被 LE-A′ 否决的末成交规则, 故一并撤回。基名单改回 S2 D3 的代理(`P2/work/universe.npz` 的 trading24 = (A−24h, A] 有结算)∩ 非 非COIN, 再 ∪ symbols_live(A), 锚前预置。
+  - 依据: 仍在列、只是无成交的合约(如 SCRT / STORJ)照常结算资金费, 这与生产者 exchangeInfo 名单一致。
+  - 已知局限: 真正下市后仍有资金费记录的名会留在基名单里(AUDIT_DATA TRD-01 / TRD-02)。
+
+**A3.4 数据版本**:
+- 若流 D 的 x0918r 差分证明通过, 用 x0918r; 否则用 x0918 并把 08-31 补洞列为局限。选择与 sha 钉在 RUN_CONFIG 里, 先于运行。
+- 锚 ≤ 2026-08-31 00Z 的 40 日尾窗不含 08-31 的 bar, 所以这段在 holefix2 / x0918 / x0918r 上逐位相同(流 D 前缀证明: 对 holefix2 差 0)。
+- 延长段(2026-08-31 04Z → 09-18 20Z)还需要延长的宇宙、资金费与可交易输入; 缺哪一项就在 RUN_CONFIG 里具名, 不自建。
