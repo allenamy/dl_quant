@@ -1,0 +1,14 @@
+[PASS] V1b judge(live, live) on the CAL population passes every item: 11/11 items, 93 windows
+[PASS] HOLDOUT population is well formed (structure only; no hold-out magnitude is printed): 48 windows, contiguous True
+[PASS] reviewer counterexample PASSES the old V1 (the defect R5-07 names is real): {'fee': True, 'turnover_over_gross': True, 'funding': True, 'price_and_trading': True}
+[PASS] reviewer counterexample (anti-correlated, t1 +2 h) FAILS V1b: {'E1_population': True, 'E2_t0': True, 'E3_t1': False, 'W_price_and_trading': False, 'W_funding': True, 'W_fee': True, 'W_turnover': True, 'T_fee': False, 'T_turnover_over_gross': False, 'T_funding': False, 'T_price_and_trading': False}
+[PASS] anti-correlated path alone (t1 correct) FAILS the W price item: mean|e|/s 2.00, e/tol max 4.00
+[PASS] t1 shift alone (prices identical) FAILS E3: max |Δt1| 7200 s
+[PASS] dropping one window FAILS E1: {'n_sim': 92, 'n_live': 93, 'live_contiguous': True, 'declared_population': True, 'live_in_period': True, 'pass': False}
+[PASS] handing in a trimmed live list FAILS E1 (population identity): {'n_sim': 92, 'n_live': 92, 'live_contiguous': True, 'declared_population': False, 'live_in_period': True, 'pass': False}
+[PASS] fee ×1.4 in every window FAILS W_fee: mean|e|/s 0.400
+[PASS] funding ×1.4 in every window FAILS W_funding: mean|e|/s 0.400
+[PASS] turnover ×1.4 in every window FAILS W_turnover: mean|e|/s 0.400
+[PASS] ±2·s alternating price error on the real CAL windows (largely cancels within each UTC day) FAILS W price: mean|e|/s 2.00; T price True
+V1b SELFTEST: ALL PASS 12/12 checks
+exit code: 0
