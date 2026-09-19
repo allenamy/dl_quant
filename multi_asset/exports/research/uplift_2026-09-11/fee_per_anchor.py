@@ -31,21 +31,40 @@ for d in sorted(glob.glob(f"{PL}/2026*")):
         else: a["usdt"]+=c
         a["notional"]+=abs(float(r.get("fill_notional") or 0.0)); a["n"]+=1
         a["maker_n"]+= 1 if r.get("venue_maker_flag") else 0
+# ★ 独立复审 R2-5(2026-09-19): 上一版 gross 分母取自 live_anchor_table.json, 而该表
+#   【有 gross 的锚止于 09-11 00Z】, 于是筛选后只剩 87 锚, 静默排除最近 8 天。
+#   改为优先用实盘 anchors.jsonl 自己的 realized_gross(覆盖全锚), 表只作回退,
+#   并把每个锚的 gross 来源写进产物 —— 口径来源必须可核, 不能靠记忆。
 LIVE={r["grid_anchor"]:r for r in json.load(open(f"{OUT}/live_anchor_table.json"))}
+GROSS_LIVE={}
+for d in sorted(glob.glob(f"{PL}/2026*")):
+    ap=f"{d}/anchors.jsonl"
+    if not os.path.exists(ap): continue
+    for l in open(ap, errors="ignore"):
+        if not l.strip(): continue
+        try: rr=json.loads(l)
+        except Exception: continue
+        g=rr.get("realized_gross")
+        if g: GROSS_LIVE[int(float(rr["anchor_ts"])//14400*14400)]=float(g)
+def gross_of(A):
+    if A in GROSS_LIVE: return GROSS_LIVE[A], "anchors.jsonl:realized_gross"
+    t=LIVE.get(A,{}).get("gross")
+    return (t, "live_anchor_table.json(回退)") if t else (None, "UNAVAILABLE")
 rows=[]
 for A,a in sorted(agg.items()):
     px=bnb_px(A+1400) or 0.0
     fee=a["usdt"]+a["bnb"]*px
-    g=LIVE.get(A,{}).get("gross")
+    g,gsrc=gross_of(A)
     rows.append({"A":A,"fee_usdt_total":fee,"fee_usdt_leg":a["usdt"],"fee_bnb_leg_usdt":a["bnb"]*px,
                  "bnb_px":px,"traded_notional":a["notional"],"n_fills":a["n"],"maker_frac":a["maker_n"]/max(a["n"],1),
-                 "gross":g,"fee_bps_of_gross": fee/g*1e4 if g else None,
+                 "gross":g,"gross_source":gsrc,"fee_bps_of_gross": fee/g*1e4 if g else None,
                  "fee_bps_of_traded": fee/a["notional"]*1e4 if a["notional"] else None,
                  "turnover_frac": a["notional"]/g if g else None})
 json.dump(rows,open(f"{OUT}/fee_table.json","w"),indent=1)
 C=[r for r in rows if r["A"]>=1787716800 and r["gross"]]
 def a_(k,s=C): return np.array([x[k] for x in s if x[k] is not None],float)
-print("combo era anchors with fees:",len(C))
+import collections as _c
+print("combo era anchors with fees:",len(C), "| gross 来源:", dict(_c.Counter(x.get("gross_source") for x in C)))
 for k in ("fee_bps_of_gross","fee_bps_of_traded","turnover_frac","maker_frac"):
     v=a_(k); print(f"  {k:20s} mean {v.mean():8.4f} sd {v.std(ddof=1):7.4f} n {len(v)}")
 print(f"  combo era total fees USD: {sum(x['fee_usdt_total'] for x in C):.1f} (usdt-leg {sum(x['fee_usdt_leg'] for x in C):.1f}, bnb-leg {sum(x['fee_bnb_leg_usdt'] for x in C):.1f})")

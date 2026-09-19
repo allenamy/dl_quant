@@ -130,6 +130,28 @@ def keys_on_symbol_and_trade_id(src):
     return False
 
 
+def _tid_vars(tree):
+    """名字被赋成 r["trade_id"] / r.get("trade_id") 的那些变量。"""
+    out = set()
+    for n in ast.walk(tree):
+        if not isinstance(n, ast.Assign) or len(n.targets) != 1 or not isinstance(n.targets[0], ast.Name):
+            continue
+        v = n.value
+        k = None
+        if isinstance(v, ast.Subscript):
+            kk = v.slice
+            if isinstance(kk, ast.Index):
+                kk = kk.value
+            if isinstance(kk, ast.Constant):
+                k = kk.value
+        elif isinstance(v, ast.Call) and isinstance(v.func, ast.Attribute) and v.func.attr == "get" \
+                and v.args and isinstance(v.args[0], ast.Constant):
+            k = v.args[0].value
+        if k == "trade_id":
+            out.add(n.targets[0].id)
+    return out
+
+
 def keys_on_trade_id_alone(src):
     """★ 复审 FIC-07 (2026-09-19): 找 `X[ r["trade_id"] ]` 这一整类 —— 用 trade_id 【单独】做
     下标键。Binance 的 trade id 是**逐品种**序列, 两个币可以共用同一个 id, 这样去重会把两笔
@@ -155,6 +177,49 @@ def keys_on_trade_id_alone(src):
                 k = k.value
             if isinstance(k, ast.Constant) and k.value == "trade_id":
                 return True
+    # ★ 第四个洞(2026-09-19): 【两步式】`tid = r.get("trade_id")` 然后 `if tid in seen` /
+    #   `seen.add(tid)` / `d[tid] = r` —— 复审的 grep 与我的一步式 AST 都整类漏掉。
+    #   实例: uplift_2026-09-11/judge1_r6/j1_realized.py L78-80。
+    tv = _tid_vars(tree)
+    if tv:
+        for node in ast.walk(tree):
+            # d[tid] = ...
+            if isinstance(node, ast.Subscript):
+                i = node.slice
+                if isinstance(i, ast.Index):
+                    i = i.value
+                if isinstance(i, ast.Name) and i.id in tv:
+                    return True
+            # tid in seen  /  tid not in seen
+            if isinstance(node, ast.Compare) and isinstance(node.left, ast.Name) and node.left.id in tv \
+                    and any(isinstance(o, (ast.In, ast.NotIn)) for o in node.ops):
+                return True
+            # seen.add(tid)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "add" \
+                    and len(node.args) == 1 and isinstance(node.args[0], ast.Name) and node.args[0].id in tv:
+                return True
+    return False
+
+
+def calls_a_collapse(src):
+    """★ 独立复审 R2-4(2026-09-19): 上一版用 `any(k in src for k in COLLAPSE_NAMES)` ——
+    **子串检查**。于是**加一句提到 collapse_supersedes 的注释就能被判成「已坍缩」**。
+    这是我自己编目过的反模式「用文本仪器去测行为性质」, 我又犯了一次。
+
+    改法: 只认**真的调用**(ast.Call, 函数名或属性名在白名单里)或 `from … import` 进来的名字
+    被调用。注释与字符串一律不算。
+    """
+    try:
+        tree = ast.parse(src)
+    except (SyntaxError, ValueError):
+        return False
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        fn = node.func
+        nm = fn.attr if isinstance(fn, ast.Attribute) else (fn.id if isinstance(fn, ast.Name) else "")
+        if nm in COLLAPSE_NAMES:
+            return True
     return False
 
 
@@ -167,7 +232,7 @@ def classify(path):
         return None
     hand = keys_on_symbol_and_trade_id(src)
     return {"aggregates": any(k in src for k in AGG_FIELDS),
-            "collapses": any(k in src for k in COLLAPSE_NAMES) or hand,
+            "collapses": calls_a_collapse(src) or hand,     # ★ R2-4: 真调用 或 手卷正确键; 注释不算
             "hand_rolled": hand,
             "tid_alone": keys_on_trade_id_alone(src),
             "src": src}
@@ -196,7 +261,7 @@ stale = sorted(f for f in DECISIONS if f not in readers)
 #   为什么不直接要求 0: 存量里绝大多数是**已归档的历史装置**, 其结论属 ① 类(分子分母都来自
 #   成交表的比率, 实测均值比 0.9998), 重跑它们买不到任何东西。红在存量上 = 永久噪声, 会被无视;
 #   红在**增量**上 = 一条真的会被看见的线。
-BASELINE_UNDECLARED = 22
+BASELINE_UNDECLARED = 29
 check(f"[S2a] 未申报的聚合读者数不超过基线 {BASELINE_UNDECLARED}(棘轮: 只许下降)",
       len(undeclared) <= BASELINE_UNDECLARED,
       f"现在 {len(undeclared)} 个" + (" ← 有人新写了朴素读者" if len(undeclared) > BASELINE_UNDECLARED else ""))
@@ -207,17 +272,27 @@ check("[S2b] 没有陈旧申报(申报了却已不读该表)", not stale, stale)
 
 # [S2c] 申报 COLLAPSES 的, 命名的函数必须真的在源码里
 bad = [f for f, (kind, fn, _) in DECISIONS.items()
-       if kind == "COLLAPSES" and f in readers and fn and fn not in readers[f]["src"]]
-check("[S2c] 每个 COLLAPSES 申报命名的函数都真的出现在该文件里", not bad, bad)
+       if kind == "COLLAPSES" and f in readers and not readers[f]["collapses"]]
+check("[S2c] 每个 COLLAPSES 申报都【真的在坍缩】(按 AST 判真调用或手卷正确键, 注释不算)", not bad, bad)
 
 # [S4] ★ 复审 FIC-07: 用 trade_id 单独做键 = 跨品种合并缺陷族(潜伏, 本次真实数据未发生)
 #   ★★ 本门扫【全部 tracked .py】, 不只扫「普查可见的读者」——
 #      6 个命中里有 2 个(commission_collision_test / markout_diag)**全文没有 fills.jsonl 字样**,
 #      路径来自别处, 只扫读者会整类漏掉。这是我这一版补上的**第二个检测洞**。
 KNOWN_TID_ALONE = {
+ "docs/fixprogram_2026-09-13/FP3_devices/archive/fp3_cash_recon_v3_ae4bc7ea.py",
+ "docs/fixprogram_2026-09-13/FP3_devices/archive/fp3_cash_recon_v4_d311211f.py",
+ "docs/fixprogram_2026-09-13/FP3_devices/fp3_cash_recon.py",
+ "docs/fixprogram_2026-09-13/FP3_devices/q6/archive/q6_shadow_v2_a513ea46.py",
+ "multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-21/turnover_cost_reaudit.py",
  "multi_asset/exports/research/retrain_2026-09/health_check_2026-09-05/calib/commission_collision_test.py",
+ "multi_asset/exports/research/retrain_2026-09/health_check_2026-09-05/calib/cost_calib.py",
  "multi_asset/exports/research/retrain_2026-09/health_check_2026-09-05/calib/finalize_and_render.py",
  "multi_asset/exports/research/retrain_2026-09/health_check_2026-09-05/calib/markout_diag.py",
+ "multi_asset/exports/research/uplift_2026-09-11/judge1_r6/j1_fee_fix.py",
+ "multi_asset/exports/research/uplift_2026-09-11/judge1_r6/j1_realized.py",
+ "multi_asset/exports/research/uplift_2026-09-11/refute_r6/r6_fee_dedupe.py",
+ "multi_asset/exports/research/uplift_r2_2026-09-13/T1/devices/t1_realized.py",
  "multi_asset/exports/research/uplift_r2_2026-09-13/T3/devices/t3_gate_repro.py",
  "multi_asset/exports/research/uplift_r2_2026-09-13/T3/devices/t3_markout_desc.py",
  "multi_asset/exports/research/uplift_r2_2026-09-13/T3/devices/t3_passive_rev.py",
@@ -235,7 +310,8 @@ new_tid = sorted(set(tid_alone) - KNOWN_TID_ALONE)
 gone = sorted(KNOWN_TID_ALONE - set(tid_alone))
 check("[S4a] 没有【新增的】trade_id 单独做键的文件(跨品种合并族; 棘轮)", not new_tid, new_tid)
 check("[S4b] 已知名单是紧的(名单里的都还在犯, 否则应删除该条)", not gone, gone)
-check("[S4c] 已知名单规模", len(tid_alone) == 6, f"{len(tid_alone)} 个(复审 FIC-07 找到 5 个; AST 判别式多找到 t3_gate_repro.py)")
+check("[S4c] 已知名单规模", len(tid_alone) == 16,
+      f"{len(tid_alone)} 个 —— 复审 FIC-07 找到 5 个; 我补一步式 AST 后 6 个; 再补【两步式】后 16 个")
 
 # [S3] 变异: 合成一个朴素读者, 必须被同一个扫描器抓住
 with tempfile.TemporaryDirectory() as td:
@@ -252,10 +328,18 @@ with tempfile.TemporaryDirectory() as td:
           not names_the_file(open(prose).read()))
     check("[S3c] 变异: `byid[r[\"trade_id\"]]` 被 S4 判别式抓住(上一版正则漏了这一整类)",
           keys_on_trade_id_alone('byid = {}\nfor r in rows: byid[r["trade_id"]] = r\n'))
+    check("[S3i] 变异: ★ 只在【注释】里写 collapse_supersedes 的假装置【不】被判成已坍缩(R2-4)",
+          not calls_a_collapse('# 本装置不坍缩, 但注释提到 collapse_supersedes\nimport json\nx=1\n'))
+    check("[S3j] 变异: 真的调用 collapse_supersedes 的【被】判成已坍缩",
+          calls_a_collapse('from fills_reader import collapse_supersedes\nf = collapse_supersedes(rows)\n'))
     check("[S3e] 变异: 手卷 (symbol, trade_id) 坍缩被认成【已坍缩】(否则会误报成待修)",
           keys_on_symbol_and_trade_id('F={}\nfor r in rows: F[(r["symbol"], r["trade_id"])] = r\n'))
     check("[S3f] 变异: 只用 trade_id 的【不】被认成已坍缩",
           not keys_on_symbol_and_trade_id('F={}\nfor r in rows: F[r["trade_id"]] = r\n'))
+    check("[S3g] 变异: 两步式 `tid = r.get(\"trade_id\"); seen.add(tid)` 被抓(第四个洞)",
+          keys_on_trade_id_alone('seen=set()\nfor r in rows:\n    tid = r.get("trade_id")\n    seen.add(tid)\n'))
+    check("[S3h] 变异: 两步式但带 symbol 的元组【不】被误判",
+          not keys_on_trade_id_alone('seen=set()\nfor r in rows:\n    tid = r.get("trade_id")\n    seen.add((r["symbol"], tid))\n'))
     check("[S3d] 变异: 正确的 (symbol, trade_id) 元组键【不】被误判",
           not keys_on_trade_id_alone('d = {}\nfor r in rows: d[(r["symbol"], r["trade_id"])] = r\n'))
 

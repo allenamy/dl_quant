@@ -39,6 +39,7 @@ SUPERSEDE(声明 `supersedes_trade_id == trade_id`), **且与 ORIGINAL 只在 ma
 自检: `python3 fills_reader.py [ROOT]` —— 跑契约自检 + 对执行器实现的漂移守卫。
 """
 import json
+import math
 import os
 import sys
 from datetime import datetime, timezone
@@ -154,18 +155,55 @@ def read_anchor(root=LIVE_ROOT, anchor_ts=None, raw=False):
     return rows if raw else collapse_supersedes(rows)
 
 
+def _amounts(rows, field):
+    """求和, 并把【缺测】与【非有限】分开计数 —— 两者都不许当成零。
+
+    ★ 独立复审 R2-1(2026-09-19): 上一版写 `float(r.get(field) or 0.0)`, 于是
+      (a) 缺测金额被当成 0; (b) 金额是 NaN 时求和为 NaN, 而 `abs(nan) > tol` **恒为 False**,
+      对账门**假通过**。NaN 比较恒假是这一族假绿最常见的入口。
+    """
+    tot, missing, nonfinite = 0.0, 0, 0
+    for r in rows:
+        v = r.get(field)
+        if v is None:
+            missing += 1
+            continue
+        try:
+            x = float(v)
+        except (TypeError, ValueError):
+            nonfinite += 1
+            continue
+        if not math.isfinite(x):
+            nonfinite += 1
+            continue
+        tot += abs(x)
+    return tot, missing, nonfinite
+
+
 def reconcile(root=LIVE_ROOT, day=None):
-    """坍缩成交额 vs orders.filled_notional 合计。免费、逐分、当场判真假。"""
-    f = sum(abs(float(r.get("fill_notional") or 0.0)) for r in read_day(root, day))
-    o = sum(abs(float(r.get("filled_notional") or 0.0)) for r in read_orders(root, day))
-    return {"day": day, "fills_collapsed": f, "orders_filled_notional": o, "diff": f - o}
+    """坍缩成交额 vs orders.filled_notional 合计。免费、逐分、当场判真假。
+
+    返回里**显式带上缺测与非有限计数** —— 调用者不看它就等于没对账。
+    """
+    fr, fm, fn = _amounts(read_day(root, day), "fill_notional")
+    orows = read_orders(root, day)
+    # orders 的 filled_notional 为 None 表示「这一行没成交」, 是合法的, 不算缺测
+    orows = [r for r in orows if r.get("filled_notional") is not None]
+    orr, om, on = _amounts(orows, "filled_notional")
+    return {"day": day, "fills_collapsed": fr, "orders_filled_notional": orr, "diff": fr - orr,
+            "fills_missing_amount": fm, "fills_nonfinite_amount": fn,
+            "orders_missing_amount": om, "orders_nonfinite_amount": on}
 
 
 def assert_reconciles(root=LIVE_ROOT, day=None, tol=0.01):
+    """对账。★ 先拒绝「查不了」, 再判「符不符」—— 缺失的见证必须路由到拒绝, 不是路由出检查。"""
     r = reconcile(root, day)
-    if abs(r["diff"]) > tol:
+    bad = {k: v for k, v in r.items() if k.endswith(("_missing_amount", "_nonfinite_amount")) and v}
+    if bad:
+        raise AssertionError(f"{day} 对账【不可判】: 存在缺测/非有限金额 {bad} —— 不当成零, 拒绝")
+    if not (math.isfinite(r["diff"]) and abs(r["diff"]) <= tol):
         raise AssertionError(f"{day} 坍缩成交额 {r['fills_collapsed']:.2f} 与 orders "
-                             f"{r['orders_filled_notional']:.2f} 不符, 差 {r['diff']:+.2f}")
+                             f"{r['orders_filled_notional']:.2f} 不符, 差 {r['diff']}")
     return r
 
 
@@ -248,5 +286,10 @@ if __name__ == "__main__":
     root = sys.argv[1] if len(sys.argv) > 1 else LIVE_ROOT
     print(f"fills_reader 自检 (root={root})")
     fails, drift = _selftest(root)
-    print(f"\n{'ALL PASS' if not fails else 'FAILURES: ' + str(fails)}   漂移守卫={drift}")
-    sys.exit(1 if fails else 0)
+    # ★ 独立复审 R2-2(2026-09-19): 上一版在 drift == "UNAVAILABLE" 时仍打印 ALL PASS 且 rc=0,
+    #   于是上层普查器把「查不了」读成「通过」。这正是我自己写在规矩里的那条被我自己违反:
+    #   **缺失的见证必须路由到拒绝, 不是路由出检查。** UNAVAILABLE 现在单独用 rc=2。
+    verdict = ("FAILURES: " + str(fails)) if fails else ("UNAVAILABLE(漂移守卫未能运行 ⇒ 不算通过)"
+                                                         if drift != "CHECKED" else "ALL PASS")
+    print(f"\n{verdict}   漂移守卫={drift}")
+    sys.exit(1 if fails else (2 if drift != "CHECKED" else 0))
