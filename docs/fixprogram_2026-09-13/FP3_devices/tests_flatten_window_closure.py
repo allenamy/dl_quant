@@ -15,6 +15,10 @@
   v3 没有 --ledger-root / --event: 对它, 子进程改写模块常量 LED / BNB_P、把 FR.read_range 的根指到副本、指数价强制离线并把缓存指到副本
   (「旧装置适配」, 输出行会标出); v4 走自己的命令行参数, 不打补丁。两者都在审计钩子下运行: 禁网络/子进程, 禁向临时目录以外写。
 
+v4.1 追加(同日): G2 = 只有查询清单、无逐页凭据 ⇒ 仍是 CLOSED_POPULATION_UNPROVEN(rc 5); G3 = 新拉取格式(清单 + 逐品种页凭据 + income 页凭据)
+  的夹具(由旧原始件改形, 不联网)⇒ POPULATION_PASS ⇒ 裸 CLOSED rc 0; M14–M17 = 页凭据显示非 200 页 / 声明 INCOMPLETE / 缺凭据 / income 非 200 页 ⇒ 拒。
+  M8/M9 改在 G3 夹具上做(基线是裸 CLOSED, 拒绝才有判别力)。
+
 用法: /usr/bin/python3 tests_flatten_window_closure.py [--device PATH] [--tmp-root DIR] [--keep]"""
 import argparse, contextlib, copy, hashlib, importlib.util, json, os, shutil, subprocess, sys, tempfile, time
 
@@ -30,7 +34,7 @@ LEDGER_FILES = ("fills", "orders", "funding", "position_readback", "daily_nav")
 PY = sys.executable or "/usr/bin/python3"
 EV06, EV09 = "FLATTEN-20260906T084608Z", "FLATTEN-20260909T164536Z"
 ACCEPT = ("CLOSED", "CLOSED_POPULATION_UNPROVEN")
-TIER_SET, TIER_COUNT = "POPULATION_SET_EQUAL", "POPULATION_UNPROVEN_COUNT_ONLY"
+TIER_PASS, TIER_LIST, TIER_COUNT = "POPULATION_PASS", "POPULATION_UNPROVEN_NO_PAGE_RECEIPTS", "POPULATION_UNPROVEN_COUNT_ONLY"
 FAKE_SYM = "AUDITNEVERQUERIEDUSDT"
 DAY = lambda t: time.strftime("%Y%m%d", time.gmtime(float(t)))
 
@@ -80,13 +84,14 @@ def run_one(spec_path):
     sp = importlib.util.spec_from_file_location("fwc_device_under_test", spec["device"])
     mod = importlib.util.module_from_spec(sp); sp.loader.exec_module(mod)
     legacy = "--ledger-root" not in getattr(mod, "CLI_FLAGS", ())
+    if os.path.realpath(str(getattr(mod, "BNB_P", ""))) != os.path.realpath(BNB_DAILY):
+        mod.BNB_P = BNB_DAILY; res["relocated_bnb_p"] = True   # 归档副本按自身目录找 BNB 日收盘会落空: 只改这个路径, 不改计算
     argv = [spec["t0"], spec["t1"], spec["out"], "--reuse-raw", spec["raw"], "--bnb-rows", BNB_ROWS]
     if legacy:                                                # 旧装置适配(只改读根与缓存位置, 不改它的计算)
         root = spec["ledger_root"]
         mod.LED = os.path.join(root, PILOT)
         orig = FR.read_range
         FR.read_range = lambda root_=None, day_list=None, raw=False: orig(root, day_list=day_list, raw=raw)
-        mod.BNB_P = BNB_DAILY
         UV.CACHE = spec["legacy_cache_copy"]; UV._cache = None
         oi = UV.index_at
         UV.index_at = lambda pair, ts, offline=False: oi(pair, ts, offline=True)
@@ -119,6 +124,28 @@ def edit_ledger(root, name, fn):
     for d in sorted(os.listdir(os.path.join(root, PILOT))):
         p = os.path.join(root, PILOT, d, f"{name}.jsonl")
         if os.path.isfile(p): write_jsonl(p, fn(read_jsonl(p), d))
+
+
+def fresh_format(rd, names, lim=1000):
+    """夹具(不联网): 把旧原始件补成 v4.1 新拉取格式 —— 查询清单 = 应查集合, 每个品种一页短页(n = 该品种行数),
+    income 按 1000 行一页切、边界扣除 0。装置不许信 raw_format 标签, 只核凭据本身, 所以标签如实写 FIXTURE。"""
+    import collections as _c
+    s, e = rd["window_ms"]; cnt = _c.Counter(t["symbol"] for t in rd["body"])
+    per = {}
+    for sym in names:
+        c = cnt.get(sym, 0); assert c < lim, (sym, c)
+        per[sym] = {"pages": [{"mode": "window", "startTime": s, "endTime": e, "status": 200, "n": c, "weight": None}],
+                    "completeness": "COMPLETE", "incomplete_reason": None, "n_rows": c}
+    inc = rd["income_rows"]; ip = []; k = 0
+    while True:
+        take = min(lim, len(inc) - k)
+        ip.append({"startTime": s if not ip else int(inc[k - 1]["time"]), "status": 200, "n": take, "weight": None, "mode": "window"})
+        k += take
+        if take < lim: break
+    rd.update(raw_format="FIXTURE: legacy raw re-shaped to the v4.1 fresh format by tests_flatten_window_closure.py (no network)",
+              symbols_queried=list(names), n_symbols_queried=len(names), page_limit=lim, income_page_limit=lim,
+              trades_pages_by_symbol=per, income_pages=ip, income_n_boundary_rows_subtracted=0)
+    return rd
 
 
 class Battery:
@@ -169,6 +196,7 @@ class Battery:
             s = f"rc={res.get('rc')} VERDICT={res.get('verdict')} gates={json.dumps(res.get('gates'), ensure_ascii=False)}"
             if res.get("exception"): s += f" EXC={res['exception'][:160]}"
             if res.get("legacy_harness"): s += " [旧装置适配]"
+            if res.get("relocated_bnb_p"): s += " [BNB_P 路径重定位]"
         self.checks.append((cid, bool(ok)))
         print(f"{'PASS' if ok else 'FAIL'}  {cid:<4} {desc} | {s}{(' | ' + note) if note else ''}", flush=True)
 
@@ -217,18 +245,29 @@ def main():
           and at.get("n_executor_flatten_orders_in_window") == 268 and at.get("n_venue_orders_consumed") == 268)
     B.check("G1", "旧原始件(无 symbols_queried)不许写成裸 CLOSED: 判词 CLOSED_POPULATION_UNPROVEN、rc 5、四门 PASS、268↔268", ok, b06)
     names = (C06.get("population") or {}).get("required_symbols")
-    listed = None
+    listed = fresh = None; g06l = g06f = False
+    tier_of = lambda r: (((r.get("doc") or {}).get("C_closure", {}).get("population")) or {}).get("tier")
     if names:
         rd = json.load(open(w06["raw"])); rd["symbols_queried"] = list(names)
         listed = os.path.join(B.tmp, "fixture_0906_listed_raw.json")
         with open(listed, "w") as fh: json.dump(rd, fh)
         gl = B.run("baseline_0906_listed_raw", w06, raw_base=listed)
         eq2, why2 = same_numbers(gl["doc"], w06["v3"])
-        g06l = gl.get("rc") == 0 and gl.get("verdict") == "CLOSED" and ((gl["doc"] or {}).get("C_closure", {}).get("population") or {}).get("tier") == TIER_SET and eq2
-        B.check("G2", "带查询清单(= 应查集合)的原始件: 裸 CLOSED、rc 0、POPULATION_SET_EQUAL、各数不变", g06l, gl, why2)
+        g06l = gl.get("rc") == 5 and gl.get("verdict") == "CLOSED_POPULATION_UNPROVEN" and tier_of(gl) == TIER_LIST and eq2
+        B.check("G2", "只有查询清单、没有逐页凭据的原始件: 集合相等但未证 ⇒ CLOSED_POPULATION_UNPROVEN、rc 5、各数不变", g06l, gl, why2)
+        fresh = os.path.join(B.tmp, "fixture_0906_fresh_format_raw.json")
+        with open(fresh, "w") as fh: json.dump(fresh_format(json.load(open(w06["raw"])), names), fh)
+        gf = B.run("baseline_0906_fresh_format", w06, raw_base=fresh)
+        eq3, why3 = same_numbers(gf["doc"], w06["v3"])
+        g06f = gf.get("exception") is None and gf.get("rc") in (0, 5) and gf.get("verdict") in ACCEPT and eq3
+        B.check("B3", "基线: 新格式原始件夹具(查询清单 + 逐品种页凭据 + income 页凭据, 不联网)为绿: 判词接受 ∧ 各数 = 冻结 v3 收据",
+                g06f, gf, why3)
+        ok3 = gf.get("rc") == 0 and gf.get("verdict") == "CLOSED" and tier_of(gf) == TIER_PASS and gf["gates"].get("POPULATION") == "PASS"
+        B.check("G3", "新格式原始件: 人口门到达 POPULATION_PASS ⇒ 裸 CLOSED、rc 0", ok3, gf, f"tier={tier_of(gf)}")
     else:
-        g06l = False
-        B.check("G2", "带查询清单的原始件基线", False, None, "夹具不可建: 被测装置的收据不导出 required_symbols")
+        B.check("G2", "只有查询清单的原始件基线", False, None, "夹具不可建: 被测装置的收据不导出 required_symbols")
+        B.check("B3", "新格式原始件基线", False, None, "夹具不可建: 被测装置的收据不导出 required_symbols")
+        B.check("G3", "新格式原始件到达 POPULATION_PASS", False, None, "夹具不可建")
     b09 = B.run("baseline_0909_legacy_raw", w09)
     eq9, why9 = same_numbers(b09["doc"], w09["v3"])
     g09 = b09.get("exception") is None and b09.get("rc") in (0, 5) and b09.get("verdict") in ACCEPT and eq9
@@ -292,7 +331,7 @@ def main():
     def swap_list(rd):
         q = rd["symbols_queried"]; j = q.index("QUSDT") if "QUSDT" in q else len(q) - 1
         q[j] = FAKE_SYM                                       # 个数不变, 集合变了
-    mcase("M8", "带清单原始件: symbols_queried 同个数换掉一个品种", g06l, "POPULATION", "集合", raw_mut=swap_list, raw_base=listed)
+    mcase("M8", "新格式原始件: symbols_queried 同个数换掉一个品种", g06f, "POPULATION", "集合", raw_mut=swap_list, raw_base=fresh)
 
     def swap_ledger(root):
         def fn(rows, d):
@@ -300,7 +339,25 @@ def main():
                 if r.get("symbol") == "QUSDT": r["symbol"] = FAKE_SYM
             return rows
         edit_ledger(root, "position_readback", fn)
-    mcase("M9", "带清单原始件: 账本侧 QUSDT 换成从未查询的名(复审原反例)", g06l, "POPULATION", "集合", led_mut=swap_ledger, raw_base=listed)
+    mcase("M9", "新格式原始件: 账本侧 QUSDT 换成从未查询的名(复审原反例)", g06f, "POPULATION", "集合", led_mut=swap_ledger, raw_base=fresh)
+
+    # ── v4.1: 逐页凭据显示不完整 / 不自洽 ⇒ 拒(都在 G3 的新格式夹具上变异, 其余字节不动) ──
+    def first_sym(rd):
+        return sorted(rd["trades_pages_by_symbol"])[0]
+    def page_429(rd):
+        rd["trades_pages_by_symbol"][first_sym(rd)]["pages"][0]["status"] = 429
+    mcase("M14", "新格式原始件: 一个品种的页 status = 429(完整性声明仍写 COMPLETE)", g06f, "POPULATION", "PAGE_STATUS_NOT_200",
+          raw_mut=page_429, raw_base=fresh)
+    def sym_incomplete(rd):
+        e = rd["trades_pages_by_symbol"][first_sym(rd)]; e["completeness"] = "INCOMPLETE"; e["incomplete_reason"] = "fixture: page cap"
+    mcase("M15", "新格式原始件: 一个品种的页凭据声明 INCOMPLETE", g06f, "POPULATION", "INCOMPLETE_SYMBOL", raw_mut=sym_incomplete, raw_base=fresh)
+    def drop_receipt(rd):
+        del rd["trades_pages_by_symbol"][first_sym(rd)]
+    mcase("M16", "新格式原始件: 一个被查询品种没有页凭据", g06f, "POPULATION", "QUERIED_SYMBOL_WITHOUT_PAGE_RECEIPT",
+          raw_mut=drop_receipt, raw_base=fresh)
+    def income_503(rd):
+        rd["income_pages"][-1]["status"] = 503
+    mcase("M17", "新格式原始件: income 的一页 status = 503", g06f, "POPULATION", "INCOME_PAGE_STATUS_NOT_200", raw_mut=income_503, raw_base=fresh)
     if g06:
         r = B.run("M10_legacy_swap", w06, led_mut=swap_ledger)
         pt = ((r.get("doc") or {}).get("C_closure", {}).get("population") or {}).get("tier")

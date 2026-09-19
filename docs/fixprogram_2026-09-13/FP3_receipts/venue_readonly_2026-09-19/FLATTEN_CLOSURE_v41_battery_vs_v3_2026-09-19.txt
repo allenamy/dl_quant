@@ -1,0 +1,27 @@
+# 电池 tests_flatten_window_closure.py | 被测 /Users/haosiyu/Desktop/quant_research/docs/fixprogram_2026-09-13/FP3_devices/archive/flatten_window_closure_v3_02418fdd.py sha256=02418fddb5a466bcf2c9e5fcb04b6ec3ff1f839b5628d2a5bbd86df9d06442a9 | 解释器 /Applications/Xcode.app/Contents/Developer/usr/bin/python3 3.9.6 | 临时目录 /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/fwc_battery_d2auzcp5
+PASS  B1   基线 09-06(真实旧原始件, 未变异)为绿: 判词接受 ∧ 各数 = 冻结 v3 收据 | rc=0 VERDICT=CLOSED gates={} [旧装置适配] [BNB_P 路径重定位] | A/C 与冻结 v3 收据逐字段相同
+FAIL  G1   旧原始件(无 symbols_queried)不许写成裸 CLOSED: 判词 CLOSED_POPULATION_UNPROVEN、rc 5、四门 PASS、268↔268 | rc=0 VERDICT=CLOSED gates={} [旧装置适配] [BNB_P 路径重定位]
+FAIL  G2   只有查询清单的原始件基线 |  | 夹具不可建: 被测装置的收据不导出 required_symbols
+FAIL  B3   新格式原始件基线 |  | 夹具不可建: 被测装置的收据不导出 required_symbols
+FAIL  G3   新格式原始件到达 POPULATION_PASS |  | 夹具不可建
+PASS  B2   基线 09-09(真实旧原始件, 未变异)为绿: 判词接受 ∧ 各数 = 冻结 v3 收据 | rc=0 VERDICT=CLOSED gates={} [旧装置适配] [BNB_P 路径重定位] | A/C 与冻结 v3 收据逐字段相同
+FAIL  M1   删光全部 protective_flatten 执行器订单 → 应拒(ATTRIBUTION) | rc=0 VERDICT=CLOSED gates={} [旧装置适配] [BNB_P 路径重定位] | 预期 ATTRIBUTION FAIL 且原因含「EMPTY_EXECUTOR_FLATTEN_SET」: 否
+FAIL  M2   268 单成交额各 +1,000,000(全不匹配) → 应拒(ATTRIBUTION) | rc=0 VERDICT=CLOSED gates={} [旧装置适配] [BNB_P 路径重定位] | 预期 ATTRIBUTION FAIL 且原因含「UNMATCHED」: 否
+FAIL  M3   268 单全部复制一遍 → 应拒(ATTRIBUTION) | rc=0 VERDICT=CLOSED gates={} [旧装置适配] [BNB_P 路径重定位] | 预期 ATTRIBUTION FAIL 且原因含「VENUE_ORDER_CONSUMED_MORE_THAN_ONCE」: 否
+FAIL  M4   一张场所订单被两张执行器单认领(第二张 submit_ts+0.5s, 非逐字重复) → 应拒(ATTRIBUTION) | rc=0 VERDICT=CLOSED gates={} [旧装置适配] [BNB_P 路径重定位] | 预期 ATTRIBUTION FAIL 且原因含「VENUE_ORDER_CONSUMED_MORE_THAN_ONCE」: 否
+FAIL  M5   income 的 tradeId 全换成不存在的值 → 应拒(ENDPOINT) | rc=0 VERDICT=CLOSED gates={} [旧装置适配] [BNB_P 路径重定位] | 预期 ENDPOINT FAIL 且原因含「NONZERO_ORPHAN」: 否
+FAIL  M6   两条 REALIZED_PNL 各 +100/−100(总额不变) → 应拒(ENDPOINT) | rc=0 VERDICT=CLOSED gates={} [旧装置适配] [BNB_P 路径重定位] | 预期 ENDPOINT FAIL 且原因含「REALIZED_PNL_PER_TRADE_MISMATCH」: 否
+FAIL  M7   userTrades 同一 (symbol,id) 出现两次 → 应拒(ENDPOINT) | rc=4 VERDICT=OPEN gates={} [旧装置适配] [BNB_P 路径重定位] | 预期 ENDPOINT FAIL 且原因含「DUPLICATE_TRADE_IDENTITY」: 否
+FAIL  M8   新格式原始件: symbols_queried 同个数换掉一个品种 |  | 依赖的基线为红 ⇒ 本条不可判(真空), 判 FAIL
+FAIL  M9   新格式原始件: 账本侧 QUSDT 换成从未查询的名(复审原反例) |  | 依赖的基线为红 ⇒ 本条不可判(真空), 判 FAIL
+FAIL  M14  新格式原始件: 一个品种的页 status = 429(完整性声明仍写 COMPLETE) |  | 依赖的基线为红 ⇒ 本条不可判(真空), 判 FAIL
+FAIL  M15  新格式原始件: 一个品种的页凭据声明 INCOMPLETE |  | 依赖的基线为红 ⇒ 本条不可判(真空), 判 FAIL
+FAIL  M16  新格式原始件: 一个被查询品种没有页凭据 |  | 依赖的基线为红 ⇒ 本条不可判(真空), 判 FAIL
+FAIL  M17  新格式原始件: income 的一页 status = 503 |  | 依赖的基线为红 ⇒ 本条不可判(真空), 判 FAIL
+FAIL  M10  旧原始件 + 同个数换名(离线不可判): 必须标 CLOSED_POPULATION_UNPROVEN / rc 5, 不许裸 CLOSED | rc=0 VERDICT=CLOSED gates={} [旧装置适配] [BNB_P 路径重定位] | tier=None
+FAIL  M11  一笔 userTrades 的 qty = NaN → 应拒(INPUT_FINITE) | rc=0 VERDICT=CLOSED gates={} [旧装置适配] [BNB_P 路径重定位] | 预期 INPUT_FINITE FAIL 且原因含「nonfinite」: 否
+FAIL  M12  09-09 窗内一笔账本成交 fill_px = inf(该笔全部行) → 应拒(INPUT_FINITE) | rc=4 VERDICT=OPEN gates={} [旧装置适配] [BNB_P 路径重定位] | 预期 INPUT_FINITE FAIL 且原因含「nonfinite」: 否
+FAIL  M13  输入层扫描整个关掉(模拟清单漏列新字段) + qty = NaN: 计算路径守卫仍须具名拒绝 → 应拒(INPUT_FINITE) | rc=0 VERDICT=CLOSED gates={} [旧装置适配] [BNB_P 路径重定位] | 预期 INPUT_FINITE FAIL 且原因含「计算路径」: 否
+PASS  S1   真实输入 37 个文件 sha256 开跑前后逐一相同(变异只发生在副本) |  | changed=[]
+BATTERY VERDICT: FAIL — 3/24 checks passed, 21 failed ['G1', 'G2', 'B3', 'G3', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M14', 'M15', 'M16', 'M17', 'M10', 'M11', 'M12', 'M13'] | device=flatten_window_closure_v3_02418fdd.py sha256=02418fddb5a466bc
+exit=1

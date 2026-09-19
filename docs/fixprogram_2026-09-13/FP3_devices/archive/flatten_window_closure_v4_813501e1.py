@@ -43,7 +43,7 @@
                   值字段对【被用到的行】查; 场所原始件的 userTrades 与 income 行全查; BNB 余额路径行、BNB 日收盘、四个指数价也查。
                   失败 ⇒ REFUSED_INPUT_FINITE(rc 2), 收据里逐条列出 (来源, 键, 字段, 值)。
     POPULATION    应查品种集合与当初【实际查询】的品种集合必须【集合相等】(不是个数相等)。
-                  原始件带 symbols_queried ⇒ 集合比较; 不等 ⇒ REFUSED_POPULATION。(v4.1 起过 = 还要逐页凭据, 见 ★ v4.1)
+                  原始件带 symbols_queried ⇒ 集合比较, 过 = POPULATION_SET_EQUAL; 不等 ⇒ REFUSED_POPULATION。
                   旧原始件(v2/v3 拉取)没有这张清单, 只有个数 ⇒ 个数不等照旧拒绝; 个数相等只能给 POPULATION_UNPROVEN_COUNT_ONLY,
                   【不冒充已证】: 这一层的 CLOSED 写成 CLOSED_POPULATION_UNPROVEN(rc 5, 不是 0)。
                   另: userTrades 里出现未被查询的品种 ⇒ REFUSED_POPULATION。
@@ -55,22 +55,12 @@
                   两侧都不许有非零孤儿; 无重复身份((symbol,id) / (incomeType,tranId) / 每键每类至多一行);
                   无跨品种 orderId 碰撞; 两端点的行都落在声明的窗口毫秒内。v3 的窗口总额比较保留在 CASH 里, 不删。
     CASH          v3 的闭合条件原样(数量闭合、账本=场所同笔、总额交叉、BNB 路径、USD 恒等式残差 ≤ 容差)。
-  VERDICT = CLOSED(rc 0)仅当 INPUT_FINITE ∧ POPULATION_PASS(v4.1) ∧ ATTRIBUTION ∧ ENDPOINT ∧ CASH;
+  VERDICT = CLOSED(rc 0)仅当 INPUT_FINITE ∧ POPULATION_SET_EQUAL ∧ ATTRIBUTION ∧ ENDPOINT ∧ CASH;
             CLOSED_POPULATION_UNPROVEN(rc 5)= 其余全过但取数人口只能按个数核;
             OPEN(rc 4)= 任一门 FAIL(failed_gates 逐个列名); REFUSED_<门>(rc 2); UNAVAILABLE(rc 3)。
   其余计算与 v3 逐行同义(A/C/D 各数不变; 复跑十窗逐字段核对见 RESULT_flatten_closure_gates_2026-09-19.md)。
-  另: 指数价只读缓存(offline=True, 缺分钟 ⇒ UNAVAILABLE), 且不回写缓存 —— v3 在复用路径上仍可能联网补缺并改写缓存文件(v4.1 起新拉取也如此);
+  另: --reuse-raw(离线复用)时指数价只读缓存(offline=True, 缺分钟 ⇒ UNAVAILABLE), 且不回写缓存 —— v3 在这条路径上仍可能联网补缺并改写缓存文件;
       --ledger-root 让同一装置读隔离副本(电池用), 缺省 = 实盘账本 ~/dl_quant_live(只读); 收据记 ledger_root 与依赖文件 sha256。
-★ v4.1(2026-09-19, 同日; 协调者第二轮): 新拉取路径把【证据】落盘, 人口门才可能真的过。
-    新拉取原始件(raw_format = RAW_FORMAT_FRESH)写: symbols_queried(实际查询清单)、trades_pages_by_symbol(每个品种 fetch_trades 返回的
-    逐页凭据 mode/startTime/endTime/fromId/status/n/weight + completeness + n_rows)、income_pages + income_n_boundary_rows_subtracted、
-    两个取数器的 sha256、拉取起止时刻。目标文件已存在 ⇒ 拒绝(拉取收据只追加, 不覆盖旧拉取); 不完整的拉取也落盘但标 INCOMPLETE, 永不可复用。
-    复用与新拉取走【同一条】人口校验: 个数 → 集合 → 逐页凭据(page_receipt_problems)。三档:
-      POPULATION_PASS                       清单 = 应查集合 且 逐页凭据自洽(全 200、首页 = 本窗口、非末页全满、行数对得上、income Σn − 扣除 = 行数)
-      POPULATION_UNPROVEN_NO_PAGE_RECEIPTS  清单相等但没有逐页凭据(每个品种是否取全仍是自述)
-      POPULATION_UNPROVEN_COUNT_ONLY        旧原始件, 只有个数
-    逐页凭据里有非 200 页 / 声明 INCOMPLETE 的品种 / 缺凭据的查询品种 / 计数不合 ⇒ REFUSED_POPULATION。
-    指数价【永远】只读缓存(offline=True, 缺分钟 ⇒ UNAVAILABLE), 装置不再有任何取数器以外的联网。
 usage: flatten_window_closure.py <t0_nav_ts> <t1_nav_ts> <out.json> [raw_trades_out.json] --bnb-rows <INCOME_BNB_ROWS.json> --event <rebalance_id>
                                  [--reuse-raw <raw.json>] [--ledger-root <root containing state/live/pilot_log>]"""
 import collections, hashlib, json, math, os, sys, time, traceback
@@ -81,15 +71,13 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "multi_asset", "exports", "live", "pilot_journal", "tools"))
 import fills_reader as FR                                   # 规范成交读者: (symbol, trade_id) 坍缩, 金额取一次
 import usd_valuation as UV
-VERSION = "v4.1-2026-09-19"   # v4: 判词拆门(INPUT_FINITE / POPULATION / ATTRIBUTION / ENDPOINT / CASH); v4.1: 新拉取落逐页凭据, 人口可达 PASS
+VERSION = "v4-2026-09-19"   # v4: 判词拆门(INPUT_FINITE / POPULATION / ATTRIBUTION / ENDPOINT / CASH), 见 docstring ★ v4
 CLI_FLAGS = ("--bnb-rows", "--reuse-raw", "--event", "--ledger-root")
 DEFAULT_LEDGER_ROOT = os.path.expanduser("~/dl_quant_live")
 LED = os.path.join(DEFAULT_LEDGER_ROOT, FR.PILOT_LOG)       # == v3 的 ~/dl_quant_live/state/live/pilot_log; --ledger-root 改写
 SNAP_TOL_S = 60.0
 BNB_P = os.path.join(HERE, "..", "FP3_receipts", "BNBUSDT_daily_20260801_20260918.json")
-TIER_PASS, TIER_LIST, TIER_COUNT = "POPULATION_PASS", "POPULATION_UNPROVEN_NO_PAGE_RECEIPTS", "POPULATION_UNPROVEN_COUNT_ONLY"
-RAW_FORMAT_FRESH = "flatten_window_closure v4.1 fresh raw (symbols_queried + per-symbol userTrades page receipts + income page receipts)"
-PAGE_LIMIT = 1000                                            # 两个取数器的页上限(原始件自带 page_limit 时以它为准)
+TIER_SET, TIER_COUNT = "POPULATION_SET_EQUAL", "POPULATION_UNPROVEN_COUNT_ONLY"
 RC = {"CLOSED": 0, "REFUSED": 2, "UNAVAILABLE": 3, "OPEN": 4, "CLOSED_POPULATION_UNPROVEN": 5}
 ENDPOINT_TOL = Decimal("1e-8")
 U = lambda t: time.strftime("%m-%d %H:%M:%SZ", time.gmtime(float(t)))
@@ -125,51 +113,6 @@ def check_num(bad, src, key, field, x, allow_none=False, positive=False):
             why = "nonnumeric"
     if why:
         bad.append({"src": src, "key": str(key)[:80], "field": field, "value": repr(x)[:40], "why": why})
-
-
-def page_receipt_problems(rd, q_list, trades, irows, s_ms, e_ms):
-    """v4.1: 逐页凭据的自洽性。返回问题清单(空 = 过)。只看落盘的凭据与行, 不联网。
-    userTrades(每个被查询品种): 有凭据且声明 COMPLETE; 每页 status 200、n 为非负整数; 首页 = 本窗口(mode window, startTime/endTime 逐毫秒相同);
-      只有一页时它必须是短页(n < 页上限, 取数器只在短页上结束首页); 续页一律 mode fromId; 除最后一页外每页都是满页
-      (取数器只在满页后续取); 该品种落盘行数 = 凭据 n_rows, 且不超过各页 n 之和。
-    income: 有凭据; 每页 status 200; 首页 startTime = 本窗口起点; Σn − 边界扣除数 = 落盘行数(取数器的边界多重集扣除恒等式)。"""
-    P = []
-    per = rd.get("trades_pages_by_symbol"); ip = rd.get("income_pages")
-    lim = rd.get("page_limit", PAGE_LIMIT)
-    isint = lambda x: isinstance(x, int) and not isinstance(x, bool)
-    if not isinstance(per, dict): return ["NO_TRADES_PAGE_RECEIPTS: 没有逐品种 userTrades 页凭据"]
-    missing = sorted(set(q_list) - set(per)); extra = sorted(set(per) - set(q_list))
-    if missing: P.append(f"QUERIED_SYMBOL_WITHOUT_PAGE_RECEIPT: {len(missing)} {missing[:5]}")
-    if extra: P.append(f"PAGE_RECEIPT_FOR_UNQUERIED_SYMBOL: {len(extra)} {extra[:5]}")
-    cnt = collections.Counter(t["symbol"] for t in trades)
-    for s in sorted(set(per) & set(q_list)):
-        e_ = per[s] if isinstance(per[s], dict) else {}; pg = e_.get("pages") or []
-        if e_.get("completeness") != "COMPLETE": P.append(f"INCOMPLETE_SYMBOL: {s} ({e_.get('incomplete_reason')})")
-        if not pg: P.append(f"NO_PAGES: {s}"); continue
-        for i, p in enumerate(pg):
-            if p.get("status") != 200: P.append(f"PAGE_STATUS_NOT_200: {s} page {i} status {p.get('status')}")
-            if not isint(p.get("n")) or p["n"] < 0: P.append(f"PAGE_N_INVALID: {s} page {i} n {p.get('n')!r}")
-        ns = [p["n"] if isint(p.get("n")) else -1 for p in pg]
-        f0 = pg[0]
-        if f0.get("mode") != "window" or f0.get("startTime") != s_ms or f0.get("endTime") != e_ms:
-            P.append(f"FIRST_PAGE_NOT_THIS_WINDOW: {s}")
-        if len(pg) == 1 and ns[0] >= lim: P.append(f"FULL_WINDOW_PAGE_NOT_CONTINUED: {s}")
-        if any(p.get("mode") != "fromId" for p in pg[1:]): P.append(f"CONTINUATION_NOT_BY_FROMID: {s}")
-        if any(n != lim for n in ns[:-1]): P.append(f"SHORT_PAGE_BEFORE_LAST: {s}")
-        if e_.get("n_rows") != cnt.get(s, 0): P.append(f"ROWCOUNT_MISMATCH: {s} receipt {e_.get('n_rows')} vs body {cnt.get(s, 0)}")
-        if cnt.get(s, 0) > sum(max(n, 0) for n in ns): P.append(f"MORE_ROWS_THAN_PAGES: {s}")
-    if not isinstance(ip, list) or not ip:
-        P.append("NO_INCOME_PAGE_RECEIPTS")
-    else:
-        for i, p in enumerate(ip):
-            if p.get("status") != 200: P.append(f"INCOME_PAGE_STATUS_NOT_200: page {i} status {p.get('status')}")
-            if not isint(p.get("n")) or p["n"] < 0: P.append(f"INCOME_PAGE_N_INVALID: page {i} n {p.get('n')!r}")
-        if ip[0].get("startTime") != s_ms: P.append("INCOME_FIRST_PAGE_NOT_THIS_WINDOW")
-        sub = rd.get("income_n_boundary_rows_subtracted")
-        tot = sum(p["n"] for p in ip if isint(p.get("n")))
-        if not isint(sub) or tot - sub != len(irows):
-            P.append(f"INCOME_ROWCOUNT_IDENTITY: sum(n) {tot} - subtracted {sub} != rows {len(irows)}")
-    return P
 
 
 def write_doc(out, doc):
@@ -226,7 +169,7 @@ def _main():
     event = flags["--event"]
     ledger_root = os.path.abspath(os.path.expanduser(flags.get("--ledger-root", DEFAULT_LEDGER_ROOT)))
     LED = os.path.join(ledger_root, FR.PILOT_LOG)
-    offline = True                                            # v4.1: 指数价【永远】只读缓存、不回写 —— 本装置唯一的联网是两个只读取数器
+    offline = "--reuse-raw" in flags                          # 离线复用: 指数价只读缓存、不回写
     t0, t1, out = fnum(av[0]), fnum(av[1]), av[2]
     raw_out = av[3] if len(av) > 3 else out.replace(".json", "_venue_trades.json")
     assert t1 > t0
@@ -353,76 +296,51 @@ def _main():
     # ── B. 场所(只读密钥): income 全品种 + 逐名 userTrades ──
     s_ms, e_ms = int(t0 * 1000) + 1, int(t1 * 1000)          # (t0, t1] 的毫秒闭区间近似; 端点各差 <1 ms, 快照与 NAV 同刻(Δ 0.0 s)
     if "--reuse-raw" in flags:
-        # 复用一次【已完整】的拉取 —— 复用不是降低标准: 与新拉取走【同一条】人口校验(下方), 不另开宽松分支。
+        # 复用一次【已完整】的拉取: 窗口逐毫秒相同、两个完整性声明都是 COMPLETE, 否则拒绝 —— 复用不是降低标准。
+        # v4: 品种人口按【集合】核。原始件带 symbols_queried ⇒ 集合必须相等; 没带(v2/v3 原始件)⇒ 个数相等只给「未证」一档, 不冒充已证。
         rd = json.load(open(flags["--reuse-raw"]))
+        if rd.get("window_ms") != [s_ms, e_ms] or rd.get("completeness") != "COMPLETE" or rd.get("income_completeness") != "COMPLETE":
+            print("REFUSED: --reuse-raw 的窗口/完整性不符", rd.get("window_ms"), [s_ms, e_ms], rd.get("completeness"), rd.get("income_completeness")); return 2
+        irows, trades = rd["income_rows"], rd["body"]
+        inc_syms = {r["symbol"] for r in irows if r.get("symbol") and r["incomeType"] in ("COMMISSION", "REALIZED_PNL")}
+        names = sorted(names_local | inc_syms)
+        q_list = rd.get("symbols_queried")
+        pop = {"n_required": len(names), "n_symbols_queried_declared": rd.get("n_symbols_queried"),
+               "queried_list_present": q_list is not None}
+        if rd.get("n_symbols_queried") != len(names):
+            return refusal("POPULATION", "--reuse-raw 当初查询的品种个数与本次应查的个数不同", pop)
+        if q_list is not None:
+            if len(q_list) != len(set(q_list)) or set(q_list) != set(names) or len(q_list) != rd.get("n_symbols_queried"):
+                pop.update(only_in_queried=sorted(set(q_list) - set(names))[:20], only_in_required=sorted(set(names) - set(q_list))[:20],
+                           n_duplicate_in_queried=len(q_list) - len(set(q_list)))
+                return refusal("POPULATION", "--reuse-raw 当初查询的品种【集合】与本次应查的集合不同(个数相同也拒)", pop)
+            tier, queried = TIER_SET, set(q_list)
+        else:
+            tier, queried = TIER_COUNT, set(names)            # 旧原始件: 查询集合无记录, 只能以应查集合代入 —— 未证
         raw_out = flags["--reuse-raw"]
     else:
-        # v4.1 新拉取: 只经两个只读取数器(fetch_income_paged.run / fetch_trades.fetch_trades, 签名 GET, 硬编码只读密钥文件)。
-        # 原始件是只追加的收据: 目标已存在 ⇒ 拒绝, 永不覆盖旧拉取。每个被查询品种的逐页凭据、income 的逐页凭据、实际查询清单全部落盘;
-        # 不完整的拉取也落盘(completeness=INCOMPLETE, 供诊断), 但下方的完整性检查使它永远不能被复用成收据。
-        if os.path.exists(raw_out) or os.path.exists(raw_out + ".part"):
-            print("REFUSED: 原始件目标已存在(拉取收据只追加, 不覆盖):", raw_out); return 2
         import fetch_trades as FT, fetch_income_paged as FI
-        f_start = time.strftime("%FT%TZ", time.gmtime())
-        ipages, irows_f, istatus, iwhy, isub = FI.run(s_ms, e_ms, "closure")
-        inc_syms_f = {r["symbol"] for r in irows_f if r.get("symbol") and r["incomeType"] in ("COMMISSION", "REALIZED_PNL")}
-        names_f = sorted(names_local | inc_syms_f)
-        trades_f, per_sym, bad = [], {}, []
-        if istatus == "COMPLETE":
-            for i, s in enumerate(names_f, 1):
-                pages, rs, st, why = FT.fetch_trades(s, s_ms, e_ms)
-                per_sym[s] = {"pages": pages, "completeness": st, "incomplete_reason": why, "n_rows": len(rs)}
-                trades_f += rs
-                if st != "COMPLETE": bad.append((s, why))
-                if i % 40 == 0: print(f"    trades {i}/{len(names_f)}", flush=True)
-        complete = istatus == "COMPLETE" and not bad and len(per_sym) == len(names_f)
-        rd = {"device": f"flatten_window_closure.py {VERSION}", "raw_format": RAW_FORMAT_FRESH,
-              "endpoint": "/fapi/v1/userTrades (per symbol) + /fapi/v1/income (all types)", "window_ms": [s_ms, e_ms],
-              "fetched_utc": [f_start, time.strftime("%FT%TZ", time.gmtime())],
-              "fetch_devices_sha256": {"fetch_trades.py": sha256_file(FT.__file__), "fetch_income_paged.py": sha256_file(FI.__file__)},
-              "page_limit": FT.LIMIT, "income_page_limit": FI.LIMIT,
-              "symbols_required_at_fetch": names_f, "symbols_queried": list(per_sym), "n_symbols_queried": len(per_sym),
-              "n_rows": len(trades_f), "completeness": "COMPLETE" if complete else "INCOMPLETE",
-              "incomplete_symbols": [[s, w] for s, w in bad],
-              "trades_pages_by_symbol": per_sym,
-              "income_pages": ipages, "income_completeness": istatus, "income_incomplete_reason": iwhy,
-              "income_n_boundary_rows_subtracted": isub,
-              "body": trades_f, "income_rows": irows_f}
+        ipages, irows, istatus, iwhy, isub = FI.run(s_ms, e_ms, "closure")
+        if istatus != "COMPLETE":
+            print("UNAVAILABLE: income 拉取不完整:", iwhy); return 3
+        inc_syms = {r["symbol"] for r in irows if r.get("symbol") and r["incomeType"] in ("COMMISSION", "REALIZED_PNL")}
+        names = sorted(names_local | inc_syms)
+        bad, trades = [], []
+        for i, s in enumerate(names, 1):
+            pages, rs, st, why = FT.fetch_trades(s, s_ms, e_ms)
+            if st != "COMPLETE": bad.append((s, why)); continue
+            trades += rs
+            if i % 40 == 0: print(f"    trades {i}/{len(names)}", flush=True)
+        if bad:
+            print("UNAVAILABLE: 以下品种 userTrades 不完整:", bad[:10]); return 3
+        raw_doc = {"device": f"flatten_window_closure.py {VERSION}", "endpoint": "/fapi/v1/userTrades", "window_ms": [s_ms, e_ms],
+                   "n_symbols_queried": len(names), "symbols_queried": names, "n_rows": len(trades), "completeness": "COMPLETE",
+                   "body": trades, "income_rows": irows, "income_completeness": istatus}
         tmp = raw_out + ".part"
-        with open(tmp, "w") as fh: json.dump(rd, fh)
+        with open(tmp, "w") as fh: json.dump(raw_doc, fh)
         os.replace(tmp, raw_out)                              # 原子写: 读者永远看不到半份拉取
-        if not complete:
-            print("UNAVAILABLE: 拉取不完整(原始件已落盘并标 INCOMPLETE, 不可复用):", iwhy, bad[:10]); return 3
-    # 人口校验(v4.1, 复用与新拉取同一条路): 窗口与完整性声明 → 个数 → 集合 → 逐页凭据
-    if rd.get("window_ms") != [s_ms, e_ms] or rd.get("completeness") != "COMPLETE" or rd.get("income_completeness") != "COMPLETE":
-        print("REFUSED: 原始件的窗口/完整性不符", rd.get("window_ms"), [s_ms, e_ms], rd.get("completeness"), rd.get("income_completeness")); return 2
-    irows, trades = rd["income_rows"], rd["body"]
-    inc_syms = {r["symbol"] for r in irows if r.get("symbol") and r["incomeType"] in ("COMMISSION", "REALIZED_PNL")}
-    names = sorted(names_local | inc_syms)
-    q_list = rd.get("symbols_queried")
-    has_pages = "trades_pages_by_symbol" in rd or "income_pages" in rd
-    pop = {"n_required": len(names), "n_symbols_queried_declared": rd.get("n_symbols_queried"),
-           "queried_list_present": q_list is not None, "page_receipts_present": has_pages, "raw_format": rd.get("raw_format")}
-    if rd.get("n_symbols_queried") != len(names):
-        return refusal("POPULATION", "原始件当初查询的品种个数与本次应查的个数不同", pop)
-    if q_list is not None:
-        if len(q_list) != len(set(q_list)) or set(q_list) != set(names) or len(q_list) != rd.get("n_symbols_queried"):
-            pop.update(only_in_queried=sorted(set(q_list) - set(names))[:20], only_in_required=sorted(set(names) - set(q_list))[:20],
-                       n_duplicate_in_queried=len(q_list) - len(set(q_list)))
-            return refusal("POPULATION", "原始件当初查询的品种【集合】与本次应查的集合不同(个数相同也拒)", pop)
-        queried = set(q_list)
-        if has_pages:
-            prob = page_receipt_problems(rd, q_list, trades, irows, s_ms, e_ms)
-            if prob:
-                pop.update(n_page_receipt_problems=len(prob), page_receipt_problems=prob[:20])
-                return refusal("POPULATION", "逐页凭据显示不完整或不自洽的页(INCOMPLETE 页 / 非 200 / 缺凭据 / 计数不合)", pop)
-            tier = TIER_PASS
-        else:
-            tier = TIER_LIST                                  # 有查询清单、无逐页凭据: 集合相等, 但每个品种是否取全仍只是自述
-    else:
-        if has_pages:
-            return refusal("POPULATION", "有逐页凭据却没有查询清单 —— 凭据无法对应到查询人口", pop)
-        tier, queried = TIER_COUNT, set(names)                # 旧原始件: 查询集合无记录, 只能以应查集合代入 —— 未证
+        pop = {"n_required": len(names), "n_symbols_queried_declared": len(names), "queried_list_present": True}
+        tier, queried = TIER_SET, set(names)
     # 原始件数值字段(v4 输入层): userTrades 与 income 行全查
     for t in trades:
         for fld in ("time", "qty", "quoteQty", "commission", "realizedPnl", "price"):
@@ -437,12 +355,11 @@ def _main():
         return refusal("POPULATION", "userTrades 含未被查询的品种", pop)
     pop.update(tier=tier, required_symbols=names,
                required_symbols_sha256=hashlib.sha256(json.dumps(names).encode()).hexdigest(),
-               reads=("POPULATION_PASS: the saved query list equals the required set AND every queried symbol has page receipts "
-                      "(all 200, first page = this window, non-last pages full, row counts consistent) AND the income pages are all 200 "
-                      "with sum(n) - boundary_subtracted = rows. POPULATION_UNPROVEN_NO_PAGE_RECEIPTS: query list equal but no page "
-                      "receipts. POPULATION_UNPROVEN_COUNT_ONLY: legacy raw without a query list; only the count could be compared."))
+               reads=("POPULATION_SET_EQUAL: the saved query list equals the required set (page completeness is still the fetcher's COMPLETE "
+                      "assertion). POPULATION_UNPROVEN_COUNT_ONLY: legacy raw without a query list; only the count could be compared, "
+                      "so a same-size different symbol set cannot be excluded offline."))
     gates["INPUT_FINITE"] = "PASS"                             # 余下的输入(BNB 路径行、指数价)在 D 段载入时再查, 不过即拒
-    gates["POPULATION"] = {TIER_PASS: "PASS", TIER_LIST: "UNPROVEN_NO_PAGE_RECEIPTS", TIER_COUNT: "UNPROVEN_COUNT_ONLY"}[tier]
+    gates["POPULATION"] = "PASS" if tier == TIER_SET else "UNPROVEN_COUNT_ONLY"
 
     # ── C. 闭合 ──
     led_ids = {(f["symbol"], str(f["trade_id"])) for f in fills}
@@ -632,6 +549,7 @@ def _main():
     for nm, v in (("p_usdt_t0", p0), ("p_usdt_t1", p1), ("b_bnb_t0", b0), ("b_bnb_t1", b1)):
         check_num(NF, "index_price", nm, "value", v, positive=True)
     if NF: return refusal("INPUT_FINITE", "指数价非有限/非正", nf_detail(NF))
+    if not offline: UV.save()                                  # 离线复用不回写缓存(v4)
     B0, B1_path = path.at(t0), path.at(t1)
     N0, N1 = fnum(r0["nav"]), fnum(r1["nav"])
     W0 = (N0 - b0 * B0) / p0
@@ -666,7 +584,7 @@ def _main():
     # ── E. 判词(v4): 现金闭合不能代替身份归属; 取数人口未证时不许写成裸 CLOSED ──
     core = gates["INPUT_FINITE"] == "PASS" and gates["ATTRIBUTION"] == "PASS" and gates["ENDPOINT"] == "PASS"
     failed = [g for g in ("INPUT_FINITE", "ATTRIBUTION", "ENDPOINT", "CASH") if gates[g] != "PASS"]
-    accept = lambda cash_ok: ("OPEN" if not (core and cash_ok) else ("CLOSED" if tier == TIER_PASS else "CLOSED_POPULATION_UNPROVEN"))
+    accept = lambda cash_ok: ("OPEN" if not (core and cash_ok) else ("CLOSED" if tier == TIER_SET else "CLOSED_POPULATION_UNPROVEN"))
     verdict = accept(closed_v3)
     C = {"n_venue_trades": len(trades), "n_symbols_queried": len(names), "n_income_only_symbols": len(inc_syms - names_local),
          "n_ledger_only_trades": len(ledger_only), "ledger_only_sample": ledger_only[:10],
@@ -694,8 +612,6 @@ def _main():
     deps = {"fills_reader.py": sha256_file(FR.__file__), "usd_valuation.py": sha256_file(UV.__file__),
             "BNBUSDT_daily": sha256_file(BNB_P), "bnb_rows": sha256_file(flags["--bnb-rows"])}
     if os.path.isfile(UV.CACHE): deps["index_klines_cache"] = sha256_file(UV.CACHE)
-    for fn in ("fetch_trades.py", "fetch_income_paged.py"):
-        if os.path.isfile(os.path.join(HERE, fn)): deps[fn] = sha256_file(os.path.join(HERE, fn))
     doc = {"receipt": "FLATTEN_WINDOW_CLOSURE", "device": f"flatten_window_closure.py {VERSION}", "self_sha256": self_sha,
            "utc": time.strftime("%FT%TZ", time.gmtime()), "argv": sys.argv[1:], "event": event, "ledger_root": ledger_root,
            "inputs_sha16": inputs, "deps_sha256": deps, "index_prices_offline": offline,

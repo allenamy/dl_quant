@@ -165,3 +165,178 @@ shasum -a 256 archive/flatten_window_closure_v3_02418fdd.py flatten_window_closu
 - 上一版结论:`docs/RESULT_cash_closure_per_trade_2026-09-19.md`(v3;本文不改它,判词降档与 1,708 更正由负责人整合)。
 - 复审:`.claude/worktrees/codex-independent-20260907/docs/REVIEW_cash_closure_and_blend_round4_codex_2026-09-19.md` §2 / §3;反例:同树 `…/round4_cash_blend_20260919/agents/flatten/`。
 - 收据:`docs/fixprogram_2026-09-13/FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v4_*.json|.log`、`FLATTEN_CLOSURE_v4_battery_2026-09-19.txt`、`FLATTEN_CLOSURE_v4_battery_vs_v3_2026-09-19.txt`。
+
+## 9. 增补(2026-09-19 06:3xZ,同日第二轮):v4.1 新拉取落逐页凭据 / 十窗真实重拉 / 08-21 12Z 非平仓成交查明
+
+> 本节只追加,§0–§8 原字节不改。§0「十窗判词降为 CLOSED_POPULATION_UNPROVEN」对**旧原始件**仍然成立。十个窗口用本节的**新拉取原始件**判为裸 `CLOSED`(rc 0)。
+> 联网许可来自协调者本轮的明确授权:只经 `fetch_trades.fetch_trades` 与 `fetch_income_paged.run`(签名 GET,硬编码只读密钥文件)。实盘系统零写入。
+
+### 9.1 改了什么(装置 v4.1,sha `fefa19af3ef7d2b51f60edcfc6a947d445854b59e09cd0279784f954f5b27afb`)
+
+上一版 v4.0 已归档为 `FP3_devices/archive/flatten_window_closure_v4_813501e1.py`,§2–§4 的收据出自它,不重跑、不改写。
+
+- **新拉取把证据落盘。** 原始件新增以下字段:
+  - `symbols_queried`:实际查询过的品种清单。
+  - `trades_pages_by_symbol`:每个品种 `fetch_trades` 返回的逐页凭据(mode / startTime / endTime / fromId / status / n / weight),外加 completeness / incomplete_reason / n_rows。
+  - `income_pages` 与 `income_n_boundary_rows_subtracted`。
+  - 两个取数器的 sha256、拉取起止时刻、页上限。
+
+  另外两条规则:目标文件已存在 ⇒ 拒绝(拉取收据只追加,永不覆盖旧件);拉取不完整时也落盘,但标 `INCOMPLETE`,永远不能被复用。
+- **复用与新拉取走同一条人口校验**:先比个数,再比集合,最后查逐页凭据(`page_receipt_problems`)。人口分三档:
+  - `POPULATION_PASS`:清单 = 应查集合,且逐页凭据自洽。自洽指:全部页 200;首页 = 本窗口(毫秒级相同);非末页全满;单页必为短页;逐品种行数 = 凭据 n_rows;income 的 Σn − 边界扣除 = 行数。
+  - `POPULATION_UNPROVEN_NO_PAGE_RECEIPTS`:有清单、无页凭据。
+  - `POPULATION_UNPROVEN_COUNT_ONLY`:旧件,只有个数。
+
+  出现非 200 页、声明 INCOMPLETE 的品种、查询品种缺凭据、计数不合,都判 `REFUSED_POPULATION`。
+- **裸 `CLOSED`(rc 0)现在只在 `POPULATION_PASS` 时给出。** 与 v4.0 的行为差:v4.0 对「有清单、无页凭据」的原始件给 `CLOSED` rc 0,v4.1 给 `CLOSED_POPULATION_UNPROVEN` rc 5。
+- **指数价永远只读缓存**(新拉取也一样)。装置里除两个只读取数器外不再有任何联网。
+- 新增对照装置 `FP3_devices/compare_flatten_raw_old_vs_fresh.py`:只读,不联网。
+
+### 9.2 电池(`tests_flatten_window_closure.py`,sha `96be35d6768fac9b0e8c629b36d877c59fb69224a627fda678d59cb6655fbfd5`,24 项)
+
+新增和改动的检查:
+- G2:只有清单 ⇒ `CLOSED_POPULATION_UNPROVEN` rc 5。
+- B3:新格式夹具的基线,判词接受且各数与 v3 相同。这是 M8 / M9 / M14–M17 的前置条件,与装置版本无关。
+- G3:新格式夹具到达 `POPULATION_PASS`,判裸 `CLOSED` rc 0。夹具由旧原始件改形,不联网,`raw_format` 如实写 FIXTURE;装置不信标签,只核凭据本身。
+- M8 / M9 改在 G3 夹具上做。
+- M14:某品种一页 status = 429,但声明仍写 COMPLETE。
+- M15:某品种声明 INCOMPLETE。
+- M16:某查询品种缺页凭据。
+- M17:income 一页 status = 503。
+
+M14–M17 都必须以 `REFUSED_POPULATION` 被拒,并点名具体原因。电池子进程对归档副本重定位 `BNB_P` 路径(归档件按自身目录找文件会落空),只改路径,不改计算,输出行标「BNB_P 路径重定位」;对在位的 v4.1 不触发。
+
+判词行(逐字,收据 `FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v41_battery*_2026-09-19.txt`):
+
+```
+BATTERY VERDICT: ALL PASS — 24/24 checks passed | device=flatten_window_closure.py sha256=fefa19af3ef7d2b5
+exit=0
+BATTERY VERDICT: FAIL — 18/24 checks passed, 6 failed ['G2', 'G3', 'M14', 'M15', 'M16', 'M17'] | device=flatten_window_closure_v4_813501e1.py sha256=813501e1617216b0
+exit=1
+BATTERY VERDICT: FAIL — 3/24 checks passed, 21 failed ['G1', 'G2', 'B3', 'G3', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M14', 'M15', 'M16', 'M17', 'M10', 'M11', 'M12', 'M13'] | device=flatten_window_closure_v3_02418fdd.py sha256=02418fddb5a466bc
+exit=1
+```
+
+对上一版 v4.0,恰好 6 条新检查变红。它的 B3 基线为绿,所以 M14–M17 的红是行为性的:页凭据显示 429、INCOMPLETE、缺凭据或 income 503 时,v4.0 仍判 `CLOSED` rc 0。这证明新增检查能变红。
+
+### 9.3 联网前控制(`ro_controls.py`,输出逐字存 `FLATTEN_CLOSURE_v4fresh_ro_controls_2026-09-19.txt`)
+
+```
+[POSITIVE] GET /fapi/v3/account
+  rc 200 OK | totalWalletBalance present: True | n positions: 245 | canTrade flag: None | canDeposit: None | canWithdraw: None
+[NEGATIVE] POST /fapi/v1/order/test  (validates only, never sends)
+  rc 401 | venue code -2015 | Invalid API-key, IP, or permissions for action
+  OK: refused with -2015 (invalid API-key, IP, or permissions) — consistent with a read-only key
+```
+
+两点说明:
+- 负对照本身就是一次只校验不下单的签名 POST(`/fapi/v1/order/test`)。它是协调者指定的前置控制,本轮除它之外没有任何 POST / PUT / DELETE。
+- 复审第四轮 §9 已指出,−2015 同时涵盖密钥、IP、权限三种解释,只能说明「与只读密钥一致」,不能认证全部权限。
+
+### 9.4 十窗新拉取判词(v4.1;拉取 2026-09-19 06:12:50Z–06:30:05Z,逐窗顺序执行)
+
+| 事件 | 判词 / rc | 人口档(实际查询品种数) | 平仓单 ↔ 被消费场所订单 | 逐笔端点 | 残差 v3(USDT) / 容差 | 与 v3 收据 |
+|---|---|---|---|---|---|---|
+| FLATTEN-20260801T201827Z | CLOSED / 0 | POPULATION_PASS(111) | 105 ↔ 105 | PASS | −0.0214 / 2.0 | A、C 逐字段相同 |
+| FLATTEN-20260802T041821Z | CLOSED / 0 | POPULATION_PASS(109) | 83 ↔ 83 | PASS | −0.0146 / 2.0 | 相同 |
+| FLATTEN-20260805T001853Z | CLOSED / 0 | POPULATION_PASS(109) | 108 ↔ 108 | PASS | −0.0286 / 2.0 | 相同 |
+| FLATTEN-20260805T121829Z | CLOSED / 0 | POPULATION_PASS(108) | 102 ↔ 102 | PASS | +0.1505 / 2.0 | 相同 |
+| FLATTEN-20260821T121630Z | CLOSED / 0 | POPULATION_PASS(113) | 108 ↔ 108 | PASS | −0.5677 / 2.0 | 相同 |
+| FLATTEN-20260821T201600Z | CLOSED / 0 | POPULATION_PASS(105) | 102 ↔ 102 | PASS | +0.1427 / 2.0 | 相同 |
+| FLATTEN-20260826T124702Z | CLOSED / 0 | POPULATION_PASS(337) | 334 ↔ 334 | PASS | −0.2858 / 2.0 | 相同 |
+| FLATTEN-20260906T084608Z | CLOSED / 0 | POPULATION_PASS(269) | 268 ↔ 268 | PASS | +2.2945 / 4.1186 | 相同 |
+| FLATTEN-20260909T164536Z | CLOSED / 0 | POPULATION_PASS(245) | 243 ↔ 243 | PASS | −1.5362 / 5.814 | 相同 |
+| FLATTEN-20260912T124737Z | CLOSED / 0 | POPULATION_PASS(259) | 255 ↔ 255 | PASS | +0.6584 / 5.8988 | 相同 |
+| **合计** | 10/10 CLOSED | | **1,708 ↔ 1,708** | | | |
+
+另记:
+- 十份新收据的 `raw_trades_sha256` 与盘上原始件逐一相同。
+- 离线复用新原始件(`--reuse-raw`,不联网)复跑 09-06,C_closure 与新收据逐字段相同,rc 0。
+- 指数缓存 sha 在全程前后都是 `6a0fff31…`。
+- `VERDICT_v2_usdt_caliber`(USDT 口径,仅作对照)与 v3 相同:五窗 CLOSED,五窗 OPEN。
+
+### 9.5 旧原始件 vs 新拉取原始件(收据 `FLATTEN_CLOSURE_v4fresh_vs_old_raw_diff_2026-09-19.json`)
+
+| | 旧件 | 新件 | 只在旧 | 只在新 | 同键字段 / 金额不同 |
+|---|---:|---:|---:|---:|---:|
+| userTrades,键 (symbol, id) | 12,263 | 12,263 | 0 | 0 | 0 |
+| income 行,全字段多重集 | 24,032 | 24,032 | 0 | 0 | 0(按 (incomeType, tranId, asset) 键比金额) |
+
+十窗逐窗全是 0 / 0 / 0。旧件声明的查询个数与新件实际查询清单的长度逐窗相同(111 / 109 / 109 / 108 / 113 / 105 / 337 / 269 / 245 / 259)。
+
+含义:一次**独立的重拉**(存了查询清单和逐页凭据,并通过 `POPULATION_PASS`)在同一窗口、同一应查集合上,返回了与旧件**完全相同**的行集和金额。所以 §5-1 所说「旧件取数人口未证」,对这十个窗口现在由新拉取原始件兑现。旧件本身不改写,仍标 COUNT_ONLY;需要引用「已证」时,引用 `FLATTEN_CLOSURE_v4fresh_*`。
+
+### 9.6 08-21 12Z 的 20 笔(15 个场所订单,5 个名,12:20–12:23Z):类别 (c),另一个交易进程在同一账户
+
+证据(全部只读):
+1. 执行器 `~/dl_quant_live/state/live/pilot_log/20260821/orders.jsonl` 与 `fills.jsonl` 里,DEXE / JASMY / PARTI / RARE / TAG 五个名当天为 **0 行**。12Z 锚(rebalance_id `A1787313646`)的价格向量里也没有这五个名;它们第一次出现在执行器锚日志 `state/anchor_runs.log`,是 08-22 08:25Z 宽宇宙切换之后。所以不是 (a)(该锚的常规订单)。
+2. 15 个 orderId **全部**出现在 `~/exec_probe/events.jsonl`。那是薄币执行探针 v1 的事件日志(源码快照 `multi_asset/exports/eda/kcurve_2026-08-15/devices_2026-08-21/exec_probe_with_halt_guard.py`:「独立进程,不 import 在役代码;每 4h 锚 +20min 一轮;5 币各挂 post-only 买卖对 $15–25/单,180 s 窗;未成交撤单,残留仓 reduce-only 市价平」)。事件依次为:
+   - 12:20:02–06Z,`place` 两臂:`base` 约 15 USDT,`xl` 约 75 USDT;
+   - 12:23:06–11Z,`status` / `cancel`;
+   - 12:23:15Z,`flatten`,即 5 张市价平仓单(orderId 8820960107 / 2303297004 / 755943040 / 4034295524 / 1933406910)。
+3. `docs/INCIDENT_daily_loss_trip_2026-08-21.md` L29 自述:「停机窗内仅 12:20Z 一轮(守卫前)实际下单」。执行器 12:16Z 平仓并进入 reduce-only 之后,探针照常在锚 +20 min 下了这一轮。同日 20:16Z 的第二次整书平仓,根因正是这个探针(同文 L40–L44;错题 E-0821-C「账户里只有书引擎」)。探针 v1 于 08-21 20:19Z KILL;`~/exec_probe/KILL` 至今仍在。
+
+结论:
+- 这 20 笔**不是执行器账本的缺口**(b)。执行器从未下过这些单,它的账本按设计只记自己的单。
+- 它们是**同一账户里另一个交易进程**(执行探针)的成交,属于 (c)。
+- 现金足迹:成交额 899.2034 USDT,已实现 −0.7894 USDT,手续费 0.00041984 BNB,maker 占比 0.5。已在 v3 / v4 / v4.1 的现金闭合里,以 `other_missing`(20 笔 / 15 单)计入,窗口闭合。
+- 对 ATTRIBUTION 门,这恰好是 §5-3 声明的边界:「平仓集合」由执行器侧定义。账户里另一个进程的单不会被当成平仓单,也不会让归属门失败,只在 `other_missing` 里具名出现。
+
+### 9.7 仍未证 / 边界(追加)
+
+1. **逐页凭据证明的是请求层。** 它证明每个请求都返回 200,且分页按取数器规则终止;不证明交易所返回了全部成交(交易所自答仍被信任)。
+2. **应查集合的边界。** 应查集合 = 两端快照名 ∪ 账本成交名 ∪ income 里 COMMISSION / REALIZED_PNL 的名。有一类成交无法从这里发现:发生在这个集合之外,零手续费、零已实现盈亏,且两端都无持仓。
+3. **取数器的 weight 字段全为 None。** 取数器用大写键 `X-MBX-USED-WEIGHT-1M` 读响应头,取不到值;大小写不匹配是推测,原因未查实。本轮的速率只能从耗时估:约 2.6 次/秒,userTrades 权重 5 ⇒ 约 780/分钟,低于 IP 上限 2,400/分钟。拉取时段 06:12:50–06:30:05Z,避开执行器锚窗(下一次读取在 08:24Z)。改取数器不在本件范围。
+4. **09-09 窗的落盘延迟。** 原始件写盘比取数完成晚约 1.5 分钟,收据又晚约 2 分钟,原因未查实(研究仓在 iCloud 桌面,I/O 是候选)。与正确性无关:收据记的 raw sha 与盘上文件相同。
+5. **新件与旧件的依赖不同。** v4.1 的新收据 `deps_sha256` 记的 `usd_valuation.py` 为当时的工作副本。十窗 D 段各数与 v3 收据逐字段相同。
+
+### 9.8 复跑命令(逐字;在 `docs/fixprogram_2026-09-13/FP3_devices/` 下执行,除非另注)
+
+联网前控制(在仓库根执行):
+
+```
+/usr/bin/python3 docs/fixprogram_2026-09-13/FP3_devices/ro_controls.py
+```
+
+电池 × 3(不联网):
+
+```
+/usr/bin/python3 -B tests_flatten_window_closure.py > ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v41_battery_2026-09-19.txt 2>&1; echo "exit=$?" >> ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v41_battery_2026-09-19.txt
+/usr/bin/python3 -B tests_flatten_window_closure.py --device archive/flatten_window_closure_v4_813501e1.py > ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v41_battery_vs_v4_813501e1_2026-09-19.txt 2>&1; echo "exit=$?" >> ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v41_battery_vs_v4_813501e1_2026-09-19.txt
+/usr/bin/python3 -B tests_flatten_window_closure.py --device archive/flatten_window_closure_v3_02418fdd.py > ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v41_battery_vs_v3_2026-09-19.txt 2>&1; echo "exit=$?" >> ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v41_battery_vs_v3_2026-09-19.txt
+```
+
+本次运行另带 `--tmp-root <scratchpad>`,只改临时目录位置。
+
+十窗新拉取(联网,只读)。**目标文件已存在时装置会拒绝**,所以重跑须换新文件名;要复核不联网,改用下面的离线复用:
+
+```
+/usr/bin/python3 -B flatten_window_closure.py <t0> <t1> ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v4fresh_<事件>.json ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v4fresh_<事件>_venue_trades.json --bnb-rows ../FP3_receipts/venue_readonly_2026-09-19/INCOME_ALL_20260731_now.json --event <事件> > ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v4fresh_<事件>.log 2>&1
+```
+
+十窗的 `<事件> <t0> <t1>` 与 §7 相同(逐字取自 v3 收据的 `argv[:2]`):
+
+```
+FLATTEN-20260801T201827Z 1785615495.327172 1785629783.8997319
+FLATTEN-20260802T041821Z 1785644299.48212 1785649625.6190689
+FLATTEN-20260805T001853Z 1785889104.446205 1785903346.010344
+FLATTEN-20260805T121829Z 1785932306.207547 1785946762.351441
+FLATTEN-20260821T121630Z 1787314570.9543638 1787329180.200428
+FLATTEN-20260821T201600Z 1787343345.308213 1787357763.6213398
+FLATTEN-20260826T124702Z 1787748333.642869 1787762283.433176
+FLATTEN-20260906T084608Z 1788684263.67789 1788698342.895093
+FLATTEN-20260909T164536Z 1788972245.856354 1788986342.424868
+FLATTEN-20260912T124737Z 1789217147.803424 1789231143.365168
+```
+
+离线复核某窗的新拉取(不联网;预期 `VERDICT CLOSED`、rc 0、`POPULATION_PASS`):
+
+```
+/usr/bin/python3 -B flatten_window_closure.py 1788684263.67789 1788698342.895093 <任意临时目录>/reuse_fresh_0906.json --reuse-raw ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v4fresh_FLATTEN-20260906T084608Z_venue_trades.json --bnb-rows ../FP3_receipts/venue_readonly_2026-09-19/INCOME_ALL_20260731_now.json --event FLATTEN-20260906T084608Z; echo rc=$?
+```
+
+旧件 vs 新件对照(不联网):
+
+```
+/usr/bin/python3 -B compare_flatten_raw_old_vs_fresh.py ../FP3_receipts/venue_readonly_2026-09-19 ../FP3_receipts/venue_readonly_2026-09-19/FLATTEN_CLOSURE_v4fresh_vs_old_raw_diff_2026-09-19.json
+```
