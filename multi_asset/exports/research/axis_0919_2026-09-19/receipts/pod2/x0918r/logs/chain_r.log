@@ -1,0 +1,31 @@
+[2026-09-19T10:40:14Z] AX_CHAIN_R start stages=r2,r3,r4,r5 chain_sha=06469425ec002779de28e241f76815c9d7259db821c7effbc679a50d9794d3c4 cache=08bb295745e6df84 holes=d524f81928038469
+[2026-09-19T10:40:14Z] r2 coverage gate v2 on x0918r (unmodified)
+  single/double-symbol short gaps (venue halts etc., listed not gated): 4 runs, e.g. [('2022-08-11', '2022-08-12', ['BNXUSDT']), ('2022-09-02', '2022-09-26', ['ICPUSDT']), ('2023-02-02', '2023-02-21', ['BNXUSDT']), ('2023-03-02', '2023-03-29', ['TLMUSDT'])]
+  last day 2026-09-19: full 0, any-bar 798 (boundary, not gated)
+COVERAGE_GATE_V2 PASS (hole symbol-days 0 in multi-symbol runs; wide-gap days 0)
+[2026-09-19T10:40:55Z] r3 raw patch: x0918 patch rows (959, byte copy) + manifest bound to the x0918r cache + coverage gate
+RAWPATCH_MANIFEST_DONE {"candidates": 960, "patch_rows": 959, "kept": 959, "kept_rederived_bitwise": 959, "not_clipped": 1, "clipped_missing": 0, "unresolved": 0, "patch_rows_not_candidates": 0} -> /workspace/axis_0919/x0918r/data/raw_patch.manifest.json
+RAW_PATCH_COVERAGE PASS {"TT": 495937, "NW": 829, "n_candidates": 960, "n_patch": 959, "n_not_clipped": 1, "n_unaccounted": 0}
+[2026-09-19T10:42:10Z] r4 tradability (ax06 5c37ef49) on x0918r
+FX_TRD_BUILD_DONE {"sha256": "bebf69ab9ddb3b05b49552e66dccf9b8cde3caee0593b14e1b3fe1a4c93c9db8", "T7_agreement": 1.0, "dead_syms": 156}
+[2026-09-19T10:44:24Z] r5 masks: tradable W24H (fp2_member_mask_build a2d5493a) + liveness AND with the x0918r hole list (v4_member_mask_liveness a369e1c0)
+PASS {"anchors": 10333, "symbols": 829, "tradable_cells": 3241032, "cells": 8566057, "tradable_share": 0.3783575103457752, "by_year_tradable_share": {"2022": 0.17127253499016806, "2023": 0.22911027755
+PASS mask /workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz sha f752d8ae3bf92f00 grid 10333 live_cells 3546413 mask_cells 3226271 removed_beyond_mask_in 14761 short_window 6
+[2026-09-19T10:44:49Z] AX_CHAIN_R_END stages=r2,r3,r4,r5
+[2026-09-19T10:45:21Z] AX_CHAIN_R start stages=r6,r7,r8,r9,r10 chain_sha=06469425ec002779de28e241f76815c9d7259db821c7effbc679a50d9794d3c4 cache=08bb295745e6df84 holes=d524f81928038469
+[2026-09-19T10:45:21Z] r6 panel builder on x0918r (pod_panel_ext.py db7f0474) — proof input for reusing the x0918 panels
+[2026-09-19T10:53:04Z] r6 rc=3 = the known X3 amihud reading, identical lines to x0918 s8
+[2026-09-19T10:53:04Z] r7 DL targets RAW + CLIP (pod_dlw_targets_raw_v2.py 9e9dfd94) with the x0918r member mask
+[  120.6s] anchors 10320 平均成员 271 (≥360: 3455) 年份 {np.int64(2022): np.int64(2178), np.int64(2023): np.int64(2190), np.int64(2024): np.int64(2196), np.int64(2025): np.int64(2190), np.int64(2026): np.int64(1566)}
+[  127.8s] TARGETS_DONE {"n_anchors": 10320, "mean_members": 270.66773255813956, "n_res": 10315, "years": {"2022": 2178, "2023": 2190, "2024": 2196, "2025": 2190, "2026": 1566}, "target_vs_old": {"median_abs_diff_bps": 15.537775993347168, "mean_diff_
+[   87.5s] anchors 10320 平均成员 271 (≥360: 3455) 年份 {np.int64(2022): np.int64(2178), np.int64(2023): np.int64(2190), np.int64(2024): np.int64(2196), np.int64(2025): np.int64(2190), np.int64(2026): np.int64(1566)}
+[   94.8s] TARGETS_DONE {"n_anchors": 10320, "mean_members": 270.66773255813956, "n_res": 10315, "years": {"2022": 2178, "2023": 2190, "2024": 2196, "2025": 2190, "2026": 1566}, "target_vs_old": {"median_abs_diff_bps": 15.537775993347168, "mean_diff_
+[2026-09-19T10:56:59Z] r8 fea82 (e86725cc) + byte-verified copy; fea89 (f606bffa)
+[  135.5s] FEATURES_DONE (2793291, 82) no-panel anchors 5
+[  536.2s] BUILD_DONE (2793291, 89) max_off {'A': 0, 'B': 0, 'C': 0, 'D': 0, 'E': 0, 'F': 0, 'G': 0, 'H': 0, 'I': 0, 'J': 0}
+[2026-09-19T11:08:24Z] r9 king v4 features (pod_fea_ext_clamp_v2.py 7b8b843d) — memguard: ALONE (peak 50 GiB in a 56.8 GiB cgroup)
+[2026-09-19T11:16:07Z] CHAIN_R_FAIL r9_king
+[2026-09-19T11:18:36Z] AX_CHAIN_R start stages=r9,r10 chain_sha=0ea4279b83283b7cd684a45016832f07141415378c54abccd3c321fd03288ab9 cache=08bb295745e6df84 holes=d524f81928038469
+[2026-09-19T11:18:36Z] r9 king v4 features (pod_fea_ext_clamp_v2.py 7b8b843d) — memguard v2: ALONE + 5-check quiet period + yield watchdog; up to 8 attempts
+[2026-09-19T11:48:33Z] AX_CHAIN_R start stages=r9,r10,r11 chain_sha=46f23676504614bb4d847eebb1f679e1826af796206ad18a63538bc347ee0913 cache=08bb295745e6df84 holes=d524f81928038469
+[2026-09-19T11:48:33Z] r9 king v4 features (pod_fea_ext_clamp_v2.py 7b8b843d) — memguard v2: ALONE + 5-check quiet period + yield watchdog; up to 8 attempts

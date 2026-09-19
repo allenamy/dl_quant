@@ -1,0 +1,85 @@
+{
+ "self_sha256": "9e9dfd94857d4c6dbbecedb752bb8b57bbc1f344ff0ef3d4ba5d01fccc127a42",
+ "const": {
+  "W": 576,
+  "FWD": 48,
+  "TRAIL": 2016,
+  "NTOP": 400,
+  "MIN_MEM": 50,
+  "MIN_FIN": 46,
+  "F6_KEYS": [
+   "f_rev_4h",
+   "f_rev_24h",
+   "f_vol_7d",
+   "f_range_24h",
+   "f_mom_7d",
+   "f_fund_ema"
+  ],
+  "LAM": 0.001,
+  "MIN_RES": 60,
+  "target_row_window": "[E+1, E+48]",
+  "member_stat_window": "[max(E-2016,0), E)",
+  "prereg_sha": "33f066c9460587864866e4f31afb72c24ae93c98183fc779c12aa0af70764577",
+  "prereg_commit": "7acda02"
+ },
+ "input_sha256": {
+  "cache": "08bb295745e6df84cb42574ef073dc54817a19ad7754bf6319cfcb30bd9baa75",
+  "panel": "293a14cf65f422bfbd849993b6b37b27c8dee7fd03b2ab37cc562ce636751ce0"
+ },
+ "member_mask": {
+  "path": "/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+  "sha256": "f752d8ae3bf92f001fcb5d6f83a7e4ae286d9f11f7548c2e965305615aa9ae51",
+  "applied": true,
+  "n_anchor_rows": 10320,
+  "false_cells": 5331174,
+  "definition": "MEMBER_LIVENESS: at least one REAL bar (not hole-filled, log_qv finite) in the 86400s window ending at the anchor row (rows (r-288, r], spacing 300s); AND MASK_IN 9793722e325fc716; on the 5m cache 4h grid; training member mask"
+ },
+ "target_vs_old": {
+  "median_abs_diff_bps": 15.537775993347168,
+  "mean_diff_bps": -0.41996848583221436,
+  "spearman_same_row_median": 0.9720193090863147,
+  "spearman_prev_row": -0.0040235471261987395,
+  "spearman_next_row": -0.024678495076980403
+ },
+ "W": 576,
+ "FWD": 48,
+ "TRAIL": 2016,
+ "NTOP": 400,
+ "MIN_MEM": 50,
+ "MIN_FIN": 46,
+ "F6_KEYS": [
+  "f_rev_4h",
+  "f_rev_24h",
+  "f_vol_7d",
+  "f_range_24h",
+  "f_mom_7d",
+  "f_fund_ema"
+ ],
+ "LAM": 0.001,
+ "MIN_RES": 60,
+ "target_row_window": "[E+1, E+48]",
+ "member_stat_window": "[max(E-2016,0), E)",
+ "prereg_sha": "33f066c9460587864866e4f31afb72c24ae93c98183fc779c12aa0af70764577",
+ "prereg_commit": "7acda02",
+ "n_anchors": 10320,
+ "mean_members": 270.66773255813956,
+ "n_has_panel": 10315,
+ "n_res": 10315,
+ "years": {
+  "2022": 2178,
+  "2023": 2190,
+  "2024": 2196,
+  "2025": 2190,
+  "2026": 1566
+ },
+ "cache": "/workspace/axis_0919/x0918r/data/dlnative_5m_wide829_f16_holefix2_x0918r.npz",
+ "panel": "/workspace/axis_0919/panels/wide_panel_4h_v3splice_x0918.npz",
+ "builder": "pod_dlw_targets_raw_v2.py",
+ "targets_sha256": "309562c02a4f6a7ae18f1eb1da2f71125ae6e95189263d8bdcf1ba156e20770d",
+ "assert": {
+  "min_target_row_offset": 1,
+  "max_target_row_offset": 48,
+  "ts_step_300": true,
+  "align_check_pass": true
+ }
+}

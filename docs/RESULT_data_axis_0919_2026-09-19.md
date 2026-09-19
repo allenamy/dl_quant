@@ -167,3 +167,129 @@ AXR=/workspace/axis_0919 AX_X4_FROM=1788148800 AX_RECEIPT=.../receipts/INVENTORY
 - 前缀参照选的是**同构建器同规则**的最近构建(FP3-live / FP2 / 正典面板 / 已认证可交易性); 与无掩码 v1 构建(九月 dlw_v4raw、r6 x0910)只比标签 y4s 和记账元 y4(成员规则不同, 成员集本就不该相同)。
 - 09-11..09-18 的新行只经 T7(1h 成交数, 362 名)第三方对照, 没有与实盘成交或另一家数据源逐 bar 对账。
 - 面板 `f_fund_ema_v2` 的整尾 span(§0-4)是既有算法的性质, 本轮未改; 下游若把它当因果特征用, 会有前视。
+
+
+---
+
+## 11. 附录(2026-09-19 lead 裁定, 追加; 上文字节不动): 08-31 官方日档修正变体 `x0918r`
+
+**裁定原文要点**(lead, 用户授权「修复不用等我裁定 / 按最佳建议」): 修 09-01T00Z 缺锚, 但不破坏既有文件的仅追加; 在 x0918 旁建**新文件**变体 `x0918r`: 08-31 补洞行换成 data.binance.vision 官方日档(校验和核过、同构建器约定), 下游重建; x0918 字节不动; 这是具名、有文档的偏差。
+
+### 11.1 08-31 为什么被补洞(溯源, 读源码与日志)
+
+1. `pod_merge_cache_ext.py` 在 2026-09-01 01:52Z 构建 `_ext` 缓存时, 08-31 的日档还没发布(`wide_multisrc/klines5m_daily/<SYM>/2026-08-31.zip.404` 标记至今还在) ⇒ `_ext` 里 08-31 整天为 NaN。
+2. `review_scratch/holefix_build.py`(Task A, 09-08)用官方 **2026-08 月档** 5m 按「只填 NaN」补了整个八月; 日志 `holefix_build.log`: `2026-08-31(D2) 1478732` 个通道格。
+3. `v4_hole_cells.py` 把「holefix2 有限且 `_ext` 全 NaN」的每个 (行, 名) 记为补洞格 ⇒ 08-31 成为第 4 个补洞段 `[490465, 490752]`(229,824 格 / 798 名), 邻域 `[490417, 499392]` = [段首−48, 段尾+8640]。
+4. MEMBER_LIVENESS 把补洞格一律视为「非真实 bar」⇒ 锚 09-01T00Z 的 24h 窗恰好就是 08-31 的 288 行 ⇒ 无活名 ⇒ 成员 < 50 ⇒ 构建器丢锚。
+
+也就是说, 那一天的数其实来自官方月档, 只是被登记成补洞。
+
+### 11.2 替换了什么(逐格)
+
+装置 `devices/ax13_d31_replace.py`(收据 `receipts/pod2/x0918r/receipts/D31_REPLACE.json`):
+- **校验和**: 读到的 1,596 个日档(08-30 连续性 798 个 + 08-31 798 个)逐个与场所 `.CHECKSUM` 相符(`KLINES5M_check_d0830_shared.json` / `KLINES5M_check_d0831_r6.json`: 798 OK / 31 个 404 / 0 失败; 08-31 的 31 个无档名 = 09-11..09-18 每天相同的 31 个)。
+- **范围**: 行 490465..490752 = 2026-08-31 00:05Z .. 09-01 00:00Z 收盘(即 08-31 开盘的 288 根 bar), 829 名 × 7 通道 = 1,671,264 个通道格。
+- **数值**: 用与 merge / holefix 逐字相同的 7 行通道公式从日档重建; 与 x0918 比: 7 个通道的**有限格全部逐位相同**(ret5 / range / log_qv / log_cnt 各 229,824, cpos 186,275, log_avgsz / tbf 各 189,138), **NaN 图样完全相同**, max|Δ| 0.0。(= r6 X2-B 的结论在新文件上重做一次。)
+- **唯一的位级差**: 84,235 个 NaN 格的符号位(cpos 43,549 + tbf 40,686): x0918 里是 +NaN(0x7e00), 官方重建是 −NaN(0xfe00)。原因: holefix 只写「新值有限」的格, 0/0 得到的 NaN 格从未被写, 保留了 `_ext` 的初始 +NaN; 而所有正常按日档构建的行(08-30、09-01、09-15 实测)里 0/0 的 NaN 都是 −NaN, 只有 31 个缺档名 × 288 = 8,928 格是 +NaN。**x0918r 让 08-31 与其余各天的编码一致**; 所有构建器都经 `isfinite` 读缓存, 这个位差不会传到任何下游数值(C5 实测)。
+- **补洞格**: 229,824 个 (行, 名) 全部有官方 bar(798 名 × 288 根, 每名满 288)⇒ **全部移出补洞表, 0 格因无官方数据而保留**。31 个无档名在 08-31 本来就没被补(整天 NaN), 在 x0918r 里仍是 NaN, 不在补洞表里。
+- **写出方式**: 因为 NaN 位不同, x0918r 缓存是新 npz(`08bb2957…`), 不是 x0918 的字节拷贝。
+
+补洞表 `x0918r/inputs/holefix2r_cells_x0918r.npz`(`d524f819…`): 1,422,720 → **1,192,896** 格; 第 4 段及其邻域 `[490417, 499392]` 删除; 其余 3 段与邻域不变(第 3 段 08-13..08-24 的邻域 `[484945, 497136]` 本来就覆盖到 09-23, 所以 08-31 之后的锚在月门的邻域豁免上不变)。新增字段 `removed_row/removed_col/provenance/source_holes_sha256`。
+
+### 11.3 下游重建与逐项差异证明
+
+驱动 `devices/ax_chain_r.sh`(r2–r8 跑的是 `ax_chain_r.r1_06469425.sh`; r9 第 2 次尝试是 `ax_chain_r.r2_0ea4279b.sh`; 在飞的 r9–r11 是现版 `46f23676`, 只改了 r9 的重试编号、24 h 等待上限并加了 r11 最终证明); 构建器与 x0918 链逐 sha 相同。差异证明 `devices/ax14_variant_diff.py`(收据 `…/x0918r/receipts/VARIANT_DIFF.json`):
+
+部分证明收据 `VARIANT_DIFF_partial_preking.json`(king / 记账元未出, 标 PENDING); 全量证明由在飞的 r11 写 `VARIANT_DIFF.json`。
+
+| 项 | x0918r vs x0918 | 结果 |
+|---|---|---|
+| C1 缓存 | 替换区间外 2,876,251,147 个通道格按 uint16 比(含 NaN 位) | **差 0** |
+| C1 缓存 | 区间内 1,671,264 格 | 有限格位差 0, NaN 图样差 0; 只有 NaN 符号位 84,235 格(cpos 43,549 / tbf 40,686), 见 §11.2 |
+| C2 补洞表 | 1,422,720 → 1,192,896 | 移除 229,824 格全在区间内, 新增 0, 区间内余 0 |
+| C3 可交易性 / 可交易掩码 | 构建器在 x0918r 上重跑 | **字节相同**(`bebf69ab…` / `9793722e…`) |
+| C4 判活掩码 | 10,333 锚 × 829 | 只有 **09-01T00Z 一行**变: 0 → 669 个真(false→true 669, true→false 0)。另外 10 个窗口碰到 08-31 的锚(08-31T04Z..20Z、09-01T04Z..20Z)一格不变: 那些名在窗口里 08-31 之外本来就有真实 bar |
+| C5 原始面板 | 面板构建器在 x0918r 上重跑 | **字节相同**(`fe4c77c1…`)⇒ x0918 的 v2ext / v3splice 面板就是 x0918r 的面板, 不重建 |
+| DL 目标 RAW / CLIP | 10,319 个共同锚 × 9 键 | **全部 0 差**(成员、y4s、y4old、qvk、btcv、YR4s、YRZ、has_panel、yrs); 唯一变化 = 新增锚 09-01T00Z(成员 400, y4s 与 YR4s 在 400 个成员上全有限, has_panel 真) |
+| fea82 | 10,319 个共同锚 | **0 差**; 只多了 09-01T00Z |
+| fea89 | 10,319 个共同锚 | 成员 0 差; 变化只在按锚**序号**取窗的两族(全部解释, 0 未解释): **J `drank_m7_1d / drank_v7_1d / drank_r24_1d`**(各约 2,345 格, 6 个锚 09-01T04Z..09-02T00Z: 「i−6 锚」现在恰好是 24h 前, 原先因缺 09-01T00Z 而错位)和 **H 族 10 列**(`disp_z, btcv_z` 及其与 r4/r24/m7/v7 秩的乘积, 各 42,800 格, 09-01T04Z..09-18T20Z 全部 107 锚: `causal_z` 是按位置的 180 锚滚动窗, 插入一锚后之后每个窗都移了一位)。两者都是更正, 不是新误差 |
+| king 特征 + 元 / 记账元 | — | **PENDING**(r9 king 等内存, 见 §11.5) |
+
+**lead 预期的「08-31 之后约 24h 的特征窗会变」没有发生**: 缓存数值没有变, 所以所有按缓存行取窗的特征(含 30 天窗)逐位不变; 变化只经判活掩码进入(新锚)以及 fea89 两族按锚序号取窗的量。
+
+### 11.4 轴
+
+- DL 目标 RAW / CLIP、fea82、fea89: **10,320 锚, 2022-01-03T00:00Z → 2026-09-18T20:00Z, 格点 10,320, 缺 0**(含 09-01T00Z)。
+- 判活规则**不再**丢 09-01T00Z: 该锚窗口 = 08-31 的 288 行, 这些格已不在补洞表 ⇒ 669 个名可交易且判活 ⇒ 按 qv 取前 400 名 ⇒ 成员 400。
+- king 特征 / 记账元: PENDING(预期同为 10,320, 因为同一掩码、同一成员规则; **未实测前不写成结果**)。
+
+### 11.5 内存检查(lead 规则: 共享 pod, 峰值后可用 ≥ 20 GiB, 不杀别人, 不按名杀)
+
+守卫 `devices/ax_memguard.py`: 每个重构建器启动前同时查 **主机**(`free -g` 的 available = /proc/meminfo MemAvailable)和**容器 cgroup**(memory.max 61 GB = 56.8 GiB, 用 anon+shmem)。两者都要求「峰值后仍 ≥ 20 GiB」; king 的 50 GiB 峰值在 56.8 GiB 的 cgroup 里即使空载也只剩 6.6 GiB, 按字面规则永远不能启动, 所以对它规则退化为「单独运行」(他人用量 ≤ 2 GiB)。每次检查写入 `logs/mem_*.json`。
+
+| 阶段 | 声明峰值 GiB | 实测峰值 GiB | 准入时 cgroup 他人用量 GiB | 主机可用 GiB | 等待 | oom_kill 前→后 |
+|---|---|---|---|---|---|---|
+| r6 面板构建器 | 32 | **39.48** | 0.13 | 137.9 | 0 | 3→3 |
+| r7 目标 RAW | 28 | 27.44 | 0.13 | — | 0 | 3→3 |
+| r7 目标 CLIP | 28 | 27.28 | 4.81 | — | 0 | 3→3 |
+| r8 fea82 | 19 | 18.12 | 5.82 | — | 0 | 3→3 |
+| r8 fea89 | 27 | 25.58 | 0.94 | — | 0 | 3→3 |
+| r9 king 第 1 次(v1) | 51 | 50.24 | 0.13 | 206.6 | 0 | **3→4(本进程被杀)** |
+| r9 king 第 2 次(v2, try1) | 51 | — | 6.6–17.4(60 s 一查, 11:18–11:47Z 共 30 次, 一次也没满足 ≤ 2 GiB) | — | 被我按自己的进程组停下以延长等待上限 | — |
+| r9 king 第 3 次起(v2, try2…) | 51 | PENDING | 在飞: 11:48Z 起等待, 每次最长 24 h | — | — | — |
+
+每次检查的完整记录在 `x0918r/logs/mem_*.json`(时间、主机可用、cgroup 用量、当时 >256 MiB 的进程)。**调度**(coordinator 11:4xZ): pod2 优先级 1 = object-B A0 链(PGID 1269476, 预计 18–19Z)及其 v4 臂, 2 = baseline runner(PGID 1265729), 3 = x0918r; 不请别人让路。king / 记账元 / 最终证明因此在后台排队, 由 r9→r10→r11 自动完成; 进度与复跑命令在 `x0918r/receipts/PROGRESS.json`。
+
+两处需要如实说明:
+1. **面板构建器 r6 我声明的峰值(32 GiB)低于实测(39.48 GiB)**: 我手上只有演练时 `ps` 的 31 GB 观测。准入时 cgroup 他人用量 0.13 GiB, 实际峰值时 cgroup 余量约 17 GiB(不是 20), 主机余量约 98 GiB; 无 OOM。之后的声明峰值都改用 getrusage 实测值。
+2. **king 第 1 次(11:08Z, 守卫 v1)在 11:16Z 被 OOM 杀掉**(rc −9, cgroup oom_kill 3→4; 牺牲者就是我的 king 进程, 另一代理的进程都还在跑)。原因: 另一代理的 object_b 批(PGID 1263453, 含 /dev/shm 里的 venv 副本)在 11:12:03 启动, 我的 king 正爬向 50 GiB。v1 只在启动时检查。**v2** 加了 ① 启动前连续 5 次(60 s 间隔)都满足的安静期; ② 运行中每 2 s 的让路看门狗: 他人用量 + 我的声明峰值一旦超过上限, 就按**我自己记录的进程组**把 king 杀掉并记为 YIELDED(退出码 76), 然后 5 分钟后重试, 最多 8 次。这样别人的新批次不会成为我的 OOM 牺牲者, 也不会拖着我一起被杀。第 1 次的收据和日志保留为 `*.attempt1_oom.*`。
+
+### 11.6 已知隐患: `f_fund_ema_v2` 前视(文档化, 未改)
+
+- **定义**: 结算空间 EMA, adjust=False, `span = max(2, round(24 / median(区间)))`。这个中位数取在**整段**上:
+  - `pod_panel_ext.py` L145: `np.median(iv_full)` = 该名**全部历史**结算区间的中位数(构建时刻为止)⇒ 正典面板前缀里每一格 v2 都用到了之后的区间结构;
+  - `pod_panel_splice.py` L87 / `r6_panel_splice.py` L108 / 本轮 `ax05`: `np.median(ivv[sel])` = 拼接**整个尾部**的中位数 ⇒ 数据延长会改变更早尾部锚的 v2(§3: 相对 T5d 的 581 格 / 10 名, `V2SPAN_ATTRIBUTION.json` 逐格证明)。
+  - 区间在样本中变过的名(代币化股票永续、改过结算频率的名)v2 不是因果特征; 区间从未变过的名 span 恒定, 不受影响。v0(`f_fund_ema`)与 v1(`f_fund_ema_v1`)用墙钟半衰期, 无此问题。
+- **谁在用(按 grep, 不是推测)**: 在 git 仓库全部 `.py/.sh` 与 pod 的 `/workspace/*.py`、`port_w10/*.py`、`review_scratch/*.py`、链装置目录里查 `fund_ema_v2`:
+  - **生产列的**: `pod_panel_ext.py`、`pod_panel_splice.py`、`r6_panel_splice.py`、`ax05_panel_splice_ivledger.py`(本轮)、`t5d_ivfix_panel.py`、`fx_fnd_hol_rebuild(_v2).py`(FX_DATA 面板重建, 复算这列)。
+  - **读的(全部是研究装置)**: `retrain_2026-09/pod_femat_build.py` → `femat_A1_v2cal.npz`(PREREG_fundleg_engineering_2026-09-01 的 A1_v2cal 资金费腿臂, `jp_fundleg_*`); `uplift_2026-09-11/trackD_v4/drive_sleeves.py`; `uplift_2026-09-11/r2_horizon/devices/drive_ABCD.py`; `r10_screen/SLOW_CLOCK/devices/{reprice,offspec}.py`; `runpod_scripts/workspace_mirror/pod_extweek.py`; `T5d/devices/t5d_posthoc.py`; `eda/kcurve_2026-08-21/devices_2026-08-22/{f7_multiangle_prescreen,funding_factor_deepdive}.py`; 审计 `ad_panel_holes.py`、`fx_k3_nan_legitimacy.py`、`fx_hol01_provenance.py`、`tests_fnd_hol_checks.py`。
+  - **king / DL 链不读 v2**: king 特征 `pod_fea_ext_clamp(_v2).py` 读 `f_fund_ema`(v0)+`f_fund_now`; DL 目标 `pod_dlw_targets_raw(_v2).py` 的 F6 用 `f_fund_ema`(v0); fea82 `pod_dlw_features_ext.py` 读 `f_fund_ema`+`f_fund_now`; fea89 `pod_f8_build_ext.py` 不读面板资金费; F10 训练 `pod_f10_train_ext.py`、`pod_f10_train_monthly_v4.py`、`pod_f10_refit_v4.py` 不读面板资金费列; 腿 / 出货 / 门 / 回放(`pod_legs_v4b.py`、`pod_export_bundle_v4.py`、`v4e_gate_export_v2.py`、`guard_*`、`port_w10/w10_universe.py`)读 `f_fund_ema_v1`; 生产者 `~/wide_shadow/*.py` 与执行器 `~/dl_quant_live/**/*.py` 里没有 `fund_ema_v2`。
+  - 结论: 这个前视只影响上面列出的研究臂(以 A1_v2cal 为主), 不进在役书与 v4 链的 king/DL 特征。
+
+### 11.7 变体文件清单(pod `/workspace/axis_0919/x0918r/`)
+
+| 组件 | 路径 | sha256 | 状态 |
+|---|---|---|---|
+| 5m 缓存 | `data/dlnative_5m_wide829_f16_holefix2_x0918r.npz` | `08bb295745e6df84cb42574ef073dc54817a19ad7754bf6319cfcb30bd9baa75` | 完成 |
+| 补洞表 | `inputs/holefix2r_cells_x0918r.npz` | `d524f819280384694cff6a36d684569d98ce18fa3ff04ceee562a54022afa612` | 完成 |
+| RAW 补丁 / manifest | `data/raw_patch.npz` / `data/raw_patch.manifest.json` | `0a4cfb59…`(= x0918)/ `e5ac25fe…`(绑定新缓存 sha; 覆盖门 PASS 960 = 959 + 1) | 完成 |
+| 可交易性 | `trd/tradability_v1.npz` | `bebf69ab…`(= x0918) | 完成 |
+| 可交易掩码 | `masks/member_mask_tradable_W24H_cachegrid.npz` | `9793722e…`(= x0918) | 完成 |
+| 可交易 ∧ 判活掩码 | `masks/member_mask_tradable_AND_live_W24H_cachegrid.npz` | `f752d8ae3bf92f001fcb5d6f83a7e4ae286d9f11f7548c2e965305615aa9ae51` | 完成 |
+| 原始面板(证明用) | `panels/wide_panel_4h_rawbuild_x0918r.npz` | `fe4c77c1…`(= x0918) | 完成 |
+| DL 目标 RAW | `dlw_v4raw/data/dlw_targets.npz` | `eda429829420e2529b1d7fa438e8044d8ea25ceeeef66448cea1f0854f1b96b5` | 完成, 10,320 锚 |
+| DL 目标 CLIP | `dlw_hf3/data/dlw_targets.npz` | `309562c02a4f6a7ae18f1eb1da2f71125ae6e95189263d8bdcf1ba156e20770d` | 完成, 10,320 锚 |
+| fea82(两处逐字节相同) | `dlw_hf3/data/dlw_fea82.npz` | `f6078393b6364684655798a82120bc1253a80a8076fa159f4485083684e7b9f7` | 完成, X (2,793,291, 82) |
+| fea89 | `f8_v4/data/f8_fea89.npz` | `7b02c01ec731782c32aa704445624a463e750830743d0d8b94c93ed354235afa` | 完成, X (2,793,291, 89) |
+| king 特征 + 元 | `data/wide_fea_v4.npy` / `_meta.npz` | — | **PENDING** |
+| 记账元 | `meta/meta_newprod_v4_x0918r.npz` | — | **PENDING** |
+| 面板 v2ext / v3splice、资金费账本 | x0918 原文件(`e5fcb419…` / `293a14cf…` / `74b69e63…`) | 同 x0918 | 复用(C5) |
+
+### 11.8 x0918 未被改动
+
+`devices/ax15_x0918_integrity.py` 对 `receipts/INVENTORY.json`(10:2xZ, 变体工作开始之前写)里的 22 个 x0918 文件重算 sha256: **22 / 22 相等**(`X0918_INTEGRITY_preking.json`, 11:4xZ)。r11 结束时再查一次(`X0918_INTEGRITY.json`)。
+
+### 11.9 复跑命令
+
+```
+# 校验和(只取 .CHECKSUM, 与本地 zip 比)
+AX_ROOT=/workspace/axis_0919 AX_TAG=check_d0830_shared AX_CHECK_ONLY_DAYS=2026-08-30 AX_CHECK_ONLY_DIR=/workspace/wide_multisrc/klines5m_daily AX_RPS=5 python devices/ax01_fetch_klines5m.py
+AX_ROOT=/workspace/axis_0919 AX_TAG=check_d0831_r6 AX_CHECK_ONLY_DAYS=2026-08-31 AX_CHECK_ONLY_DIR=/workspace/uplift_2026-09-11/r6/dl/klines AX_RPS=5 python devices/ax01_fetch_klines5m.py
+# 08-31 替换 + 补洞表
+AX_CACHE=/workspace/axis_0919/data/dlnative_5m_wide829_f16_holefix2_x0918.npz AX_OUT_CACHE=/workspace/axis_0919/x0918r/data/dlnative_5m_wide829_f16_holefix2_x0918r.npz AX_HOLES=/workspace/axis_0919/inputs/holefix2_cells.npz AX_OUT_HOLES=/workspace/axis_0919/x0918r/inputs/holefix2r_cells_x0918r.npz AX_DAY=2026-08-31 AX_PREV_DAY=2026-08-30 AX_DAY_DIR=/workspace/uplift_2026-09-11/r6/dl/klines AX_PREV_DIR=/workspace/wide_multisrc/klines5m_daily AX_LO=490465 AX_HI=490752 AX_CHECKSUM_RECEIPTS=<两份校验收据> AX_RECEIPT=/workspace/axis_0919/x0918r/receipts/D31_REPLACE.json python devices/ax13_d31_replace.py
+# 下游
+STAGES=r2,r3,r4,r5 bash devices/ax_chain_r.sh ; STAGES=r6,r7,r8 bash devices/ax_chain_r.sh ; STAGES=r9,r10,r11 AX_R9_TRY0=<下一个未用的尝试号> bash devices/ax_chain_r.sh
+# 证明
+AX_X=/workspace/axis_0919 AX_R=/workspace/axis_0919/x0918r AX_LO=490465 AX_HI=490752 AX_RECEIPT=/workspace/axis_0919/x0918r/receipts/VARIANT_DIFF.json python devices/ax14_variant_diff.py
+AX_INVENTORY=/workspace/axis_0919/receipts/INVENTORY.json AX_RECEIPT=/workspace/axis_0919/x0918r/receipts/X0918_INTEGRITY.json python devices/ax15_x0918_integrity.py
+```

@@ -1,0 +1,94 @@
+{
+ "device": "progress receipt (written by hand-run python, axis_0919 stream D)",
+ "written_utc": "2026-09-19T11:48:25Z",
+ "state": "IN_PROGRESS",
+ "reused_from_x0918_unchanged": {
+  "panel_v2ext": "/workspace/axis_0919/panels/wide_panel_4h_v2ext_x0918.npz",
+  "panel_v3splice": "/workspace/axis_0919/panels/wide_panel_4h_v3splice_x0918.npz",
+  "funding_ledger": "/workspace/axis_0919/funding/funding_ledger.npz",
+  "why": "stage r6: the panel builder output on x0918r is byte-identical (sha fe4c77c1...) to x0918 rawbuild; the splice reads only rawbuild + base panel + ledger"
+ },
+ "done": {
+  "cache": {
+   "path": "/workspace/axis_0919/x0918r/data/dlnative_5m_wide829_f16_holefix2_x0918r.npz",
+   "sha256": "08bb295745e6df84cb42574ef073dc54817a19ad7754bf6319cfcb30bd9baa75"
+  },
+  "hole_cells": {
+   "path": "/workspace/axis_0919/x0918r/inputs/holefix2r_cells_x0918r.npz",
+   "sha256": "d524f819280384694cff6a36d684569d98ce18fa3ff04ceee562a54022afa612"
+  },
+  "raw_patch": {
+   "path": "/workspace/axis_0919/x0918r/data/raw_patch.npz",
+   "sha256": "0a4cfb5988ae8679a93c45a3649942f49ad2b7fd749792bb22b266c2989b0183"
+  },
+  "raw_patch_manifest": {
+   "path": "/workspace/axis_0919/x0918r/data/raw_patch.manifest.json",
+   "sha256": "e5ac25fed21f3930c2ca2f8ba10a37f9a749ad429f1d5c114bfda2cac81fbab7"
+  },
+  "tradability": {
+   "path": "/workspace/axis_0919/x0918r/trd/tradability_v1.npz",
+   "sha256": "bebf69ab9ddb3b05b49552e66dccf9b8cde3caee0593b14e1b3fe1a4c93c9db8"
+  },
+  "mask_tradable_W24H": {
+   "path": "/workspace/axis_0919/x0918r/masks/member_mask_tradable_W24H_cachegrid.npz",
+   "sha256": "9793722e325fc71650ed497ebbf9587a326247c8066ea93f5b9c20b4550ef628"
+  },
+  "mask_tradable_AND_live_W24H": {
+   "path": "/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+   "sha256": "f752d8ae3bf92f001fcb5d6f83a7e4ae286d9f11f7548c2e965305615aa9ae51"
+  },
+  "rawbuild_panel_proof": {
+   "path": "/workspace/axis_0919/x0918r/panels/wide_panel_4h_rawbuild_x0918r.npz",
+   "sha256": "fe4c77c19a59757771149aa26ae1c1feb3d89284f7d0b61c298e99fa83270f67"
+  },
+  "dl_targets_RAW": {
+   "path": "/workspace/axis_0919/x0918r/dlw_v4raw/data/dlw_targets.npz",
+   "sha256": "eda429829420e2529b1d7fa438e8044d8ea25ceeeef66448cea1f0854f1b96b5"
+  },
+  "dl_targets_CLIP": {
+   "path": "/workspace/axis_0919/x0918r/dlw_hf3/data/dlw_targets.npz",
+   "sha256": "309562c02a4f6a7ae18f1eb1da2f71125ae6e95189263d8bdcf1ba156e20770d"
+  },
+  "fea82": {
+   "path": "/workspace/axis_0919/x0918r/dlw_hf3/data/dlw_fea82.npz",
+   "sha256": "f6078393b6364684655798a82120bc1253a80a8076fa159f4485083684e7b9f7"
+  },
+  "fea82_copy_in_raw": {
+   "path": "/workspace/axis_0919/x0918r/dlw_v4raw/data/dlw_fea82.npz",
+   "sha256": "f6078393b6364684655798a82120bc1253a80a8076fa159f4485083684e7b9f7"
+  },
+  "fea89": {
+   "path": "/workspace/axis_0919/x0918r/f8_v4/data/f8_fea89.npz",
+   "sha256": "7b02c01ec731782c32aa704445624a463e750830743d0d8b94c93ed354235afa"
+  }
+ },
+ "done_receipts": [
+  "receipts/D31_REPLACE.json",
+  "receipts/RAW_PATCH_COVERAGE.json",
+  "trd/RECEIPT_fx_trd_build.json",
+  "masks/RECEIPT_member_mask_build.json",
+  "masks/RECEIPT_member_mask_liveness.json",
+  "receipts/VARIANT_DIFF_partial_preking.json",
+  "receipts/X0918_INTEGRITY_preking.json",
+  "logs/mem_r6_panel.json",
+  "logs/mem_r7_targets_raw.json",
+  "logs/mem_r7_targets_clip.json",
+  "logs/mem_r8_fea82.json",
+  "logs/mem_r8_fea89.json",
+  "logs/mem_r9_king.attempt1_oom.json (attempt 1, OOM-killed 11:16Z)",
+  "logs/mem_r9_king.try1.json (attempt 2 guard, WAITING 11:18:37Z..11:47:37Z, stopped by me to extend the wait limit)"
+ ],
+ "pending": [
+  "r9 king v4 features (pod_fea_ext_clamp_v2.py 7b8b843d; memguard v2: alone + 5-check quiet + yield; 24 h wait per attempt)",
+  "r10 accounting meta (ax09) + member rule (ax09b)",
+  "r11 ax14 full diff (king + meta) + ax15 x0918 integrity; sets this file to COMPLETE"
+ ],
+ "scheduling": "coordinator 2026-09-19 ~11:4xZ: pod2 priority 1 object-B A0 chain (pgid 1269476, ~18-19Z) then its v4 arm, 2 baseline runner (pgid 1265729), 3 x0918r; do not ask others to yield",
+ "running_now": "STAGES=r9,r10,r11 AX_R9_TRY0=2 bash devices/ax_chain_r.sh (launched right after this file; its pgid is appended to /workspace/axis_0919/logs/pgids.txt)",
+ "resume_command_if_interrupted": "cd /workspace/axis_0919 && STAGES=r9,r10,r11 AX_R9_TRY0=<next unused try number: ls x0918r/logs/mem_r9_king.try*.json> setsid nohup bash devices/ax_chain_r.sh > x0918r/logs/chain_r_resume_1148.out 2>&1 < /dev/null &",
+ "resume_notes": [
+  "r9 deletes only x0918r/data/wide_fea_v4.npy and wide_fea_v4_meta.npz (its own partial outputs) before each attempt",
+  "r10/r11 write new receipt paths; if META_NEWPROD.json / META_MEMBER_RULE.json / VARIANT_DIFF.json / X0918_INTEGRITY.json already exist from a partial run, rename them (they refuse to overwrite)",
+  "after COMPLETE: copy x0918r/receipts, x0918r/logs, masks/trd receipts into git multi_asset/exports/research/axis_0919_2026-09-19/receipts/pod2/x0918r/ and fill docs/RESULT_data_axis_0919_2026-09-19.md section 11 placeholders marked PENDING"
+ ]
+}

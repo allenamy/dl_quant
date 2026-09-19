@@ -1,0 +1,130 @@
+{
+ "device": "v4_member_mask_liveness.py",
+ "self_sha256": "a369e1c0ec6e7ea125b24ac16879e2439b6781838621b14c2b5d545aab0dc8c3",
+ "utc": "2026-09-19T10:44:26Z",
+ "env": {
+  "CACHE": "/workspace/axis_0919/x0918r/data/dlnative_5m_wide829_f16_holefix2_x0918r.npz",
+  "HOLE_CELLS": "/workspace/axis_0919/x0918r/inputs/holefix2r_cells_x0918r.npz",
+  "OUT": "/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+  "RECEIPT": "/workspace/axis_0919/x0918r/masks/RECEIPT_member_mask_liveness.json",
+  "MASK_IN": "/workspace/axis_0919/x0918r/masks/member_mask_tradable_W24H_cachegrid.npz",
+  "MASK_IN_SHA": "9793722e325fc71650ed497ebbf9587a326247c8066ea93f5b9c20b4550ef628"
+ },
+ "rule": "MEMBER_LIVENESS",
+ "window_seconds": 86400,
+ "window_rows": 288,
+ "row_spacing_s": 300,
+ "checks": {
+  "C0 cache ts strictly increasing, 4h grid non-empty, ts axis == data rows": {
+   "ok": true,
+   "detail": {
+    "n_rows": 495937,
+    "n_symbols": 829,
+    "n_grid": 10333
+   }
+  },
+  "C0b cache row spacing is uniform and divides the 24 h window": {
+   "ok": true,
+   "detail": {
+    "n_distinct_steps": 1,
+    "step_s": 300,
+    "window_rows": 288
+   }
+  },
+  "C1 cache channel 3 is log_qv": {
+   "ok": true,
+   "detail": {
+    "channels": [
+     "ret5",
+     "range",
+     "cpos",
+     "log_qv",
+     "log_cnt",
+     "log_avgsz",
+     "tbf"
+    ]
+   }
+  },
+  "C2 hole cells: symbols axis == cache; every (row, col) inside the cache": {
+   "ok": true,
+   "detail": {
+    "n_cells": 1192896,
+    "symbols_equal": true
+   }
+  },
+  "C3 MASK_IN: sha == declared, symbols == cache, bool [T, N], every grid anchor has a row": {
+   "ok": true,
+   "detail": {
+    "sha_ok": true,
+    "symbols_equal": true,
+    "dtype": "bool",
+    "shape": [
+     10333,
+     829
+    ],
+    "n_missing_anchors": 0,
+    "definition": "TRADABLE(W24H) at the anchor (SPEC_TRADABILITY), on the 5m cache 4h grid; training member mask for FP2-8 arm A1"
+   }
+  },
+  "W1 re-read == written (mask, ts, symbols)": {
+   "ok": true,
+   "detail": null
+  }
+ },
+ "VERDICT": "PASS",
+ "inputs": {
+  "cache": "/workspace/axis_0919/x0918r/data/dlnative_5m_wide829_f16_holefix2_x0918r.npz",
+  "cache_sha256": "08bb295745e6df84cb42574ef073dc54817a19ad7754bf6319cfcb30bd9baa75",
+  "hole_cells": "/workspace/axis_0919/x0918r/inputs/holefix2r_cells_x0918r.npz",
+  "hole_cells_sha256": "d524f819280384694cff6a36d684569d98ce18fa3ff04ceee562a54022afa612",
+  "mask_in": "/workspace/axis_0919/x0918r/masks/member_mask_tradable_W24H_cachegrid.npz",
+  "mask_in_sha256": "9793722e325fc71650ed497ebbf9587a326247c8066ea93f5b9c20b4550ef628",
+  "cache_shape": [
+   495937,
+   829,
+   7
+  ],
+  "n_hole_cells": 1192896,
+  "window_seconds": 86400
+ },
+ "result": {
+  "n_grid": 10333,
+  "grid_first": 1640995200,
+  "grid_last": 1789776000,
+  "n_short_window": 6,
+  "window_rows": 288,
+  "row_spacing_s": 300,
+  "live_cells": 3546413,
+  "mask_cells": 3226271,
+  "cells_removed_beyond_mask_in": 14761,
+  "by_year": {
+   "2022": {
+    "n_anchors": 2190,
+    "live_frac": 0.174592,
+    "mask_frac": 0.17074
+   },
+   "2023": {
+    "n_anchors": 2190,
+    "live_frac": 0.239575,
+    "mask_frac": 0.22911
+   },
+   "2024": {
+    "n_anchors": 2196,
+    "live_frac": 0.354803,
+    "mask_frac": 0.33373
+   },
+   "2025": {
+    "n_anchors": 2190,
+    "live_frac": 0.58907,
+    "mask_frac": 0.534954
+   },
+   "2026": {
+    "n_anchors": 1567,
+    "live_frac": 0.830698,
+    "mask_frac": 0.709425
+   }
+  }
+ },
+ "out": "/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+ "out_sha256": "f752d8ae3bf92f001fcb5d6f83a7e4ae286d9f11f7548c2e965305615aa9ae51"
+}

@@ -1,0 +1,7 @@
+  OK   C0 cache ts strictly increasing, 4h grid non-empty, ts axis == data rows  — {"n_rows": 495937, "n_symbols": 829, "n_grid": 10333}
+  OK   C0b cache row spacing is uniform and divides the 24 h window  — {"n_distinct_steps": 1, "step_s": 300, "window_rows": 288}
+  OK   C1 cache channel 3 is log_qv  — {"channels": ["ret5", "range", "cpos", "log_qv", "log_cnt", "log_avgsz", "tbf"]}
+  OK   C2 hole cells: symbols axis == cache; every (row, col) inside the cache  — {"n_cells": 1192896, "symbols_equal": true}
+  OK   C3 MASK_IN: sha == declared, symbols == cache, bool [T, N], every grid anchor has a row  — {"sha_ok": true, "symbols_equal": true, "dtype": "bool", "shape": [10333, 829], "n_missing_anchors": 0, "definition": "TRADABLE(W24H) at the anchor (SPEC_TRADABILITY), on the 5m cache 4h grid; training member mask for FP
+  OK   W1 re-read == written (mask, ts, symbols)
+PASS mask /workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz sha f752d8ae3bf92f00 grid 10333 live_cells 3546413 mask_cells 3226271 removed_beyond_mask_in 14761 short_window 6

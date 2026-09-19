@@ -1,0 +1,14 @@
+[2026-09-19T10:40:14Z] AX_CHAIN_R start stages=r2,r3,r4,r5 chain_sha=06469425ec002779de28e241f76815c9d7259db821c7effbc679a50d9794d3c4 cache=08bb295745e6df84 holes=d524f81928038469
+[2026-09-19T10:40:14Z] r2 coverage gate v2 on x0918r (unmodified)
+  single/double-symbol short gaps (venue halts etc., listed not gated): 4 runs, e.g. [('2022-08-11', '2022-08-12', ['BNXUSDT']), ('2022-09-02', '2022-09-26', ['ICPUSDT']), ('2023-02-02', '2023-02-21', ['BNXUSDT']), ('2023-03-02', '2023-03-29', ['TLMUSDT'])]
+  last day 2026-09-19: full 0, any-bar 798 (boundary, not gated)
+COVERAGE_GATE_V2 PASS (hole symbol-days 0 in multi-symbol runs; wide-gap days 0)
+[2026-09-19T10:40:55Z] r3 raw patch: x0918 patch rows (959, byte copy) + manifest bound to the x0918r cache + coverage gate
+RAWPATCH_MANIFEST_DONE {"candidates": 960, "patch_rows": 959, "kept": 959, "kept_rederived_bitwise": 959, "not_clipped": 1, "clipped_missing": 0, "unresolved": 0, "patch_rows_not_candidates": 0} -> /workspace/axis_0919/x0918r/data/raw_patch.manifest.json
+RAW_PATCH_COVERAGE PASS {"TT": 495937, "NW": 829, "n_candidates": 960, "n_patch": 959, "n_not_clipped": 1, "n_unaccounted": 0}
+[2026-09-19T10:42:10Z] r4 tradability (ax06 5c37ef49) on x0918r
+FX_TRD_BUILD_DONE {"sha256": "bebf69ab9ddb3b05b49552e66dccf9b8cde3caee0593b14e1b3fe1a4c93c9db8", "T7_agreement": 1.0, "dead_syms": 156}
+[2026-09-19T10:44:24Z] r5 masks: tradable W24H (fp2_member_mask_build a2d5493a) + liveness AND with the x0918r hole list (v4_member_mask_liveness a369e1c0)
+PASS {"anchors": 10333, "symbols": 829, "tradable_cells": 3241032, "cells": 8566057, "tradable_share": 0.3783575103457752, "by_year_tradable_share": {"2022": 0.17127253499016806, "2023": 0.22911027755
+PASS mask /workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz sha f752d8ae3bf92f00 grid 10333 live_cells 3546413 mask_cells 3226271 removed_beyond_mask_in 14761 short_window 6
+[2026-09-19T10:44:49Z] AX_CHAIN_R_END stages=r2,r3,r4,r5
