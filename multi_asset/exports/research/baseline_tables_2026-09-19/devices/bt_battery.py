@@ -26,6 +26,9 @@ production functions (bt_driver_lib.load_context / make_sim / run_one / aggregat
       the files read back in seed order = AGG npz bitwise. Mutations: one path file tampered (red); one seed missing (red).
   D8  RULE MODE: an injected −12 % shock to every name ⇒ §4-2 flatten and HALT until the next UTC day. Mutation: mode 'live' (no rule) (red).
   D9  5-MINUTE NAV = the simulator's own equity at that bar (stop the same run at random bars). Mutation: the next bar's equity (red).
+  D10 §3.4 COST CELLS (bt_driver_lib.cal_for): each cell changes exactly its named calibration parameters and nothing else; fill × 0.9 scales the
+      implied partial share by 0.9 and leaves refusals; fee × 1.25 on the first anchor from flat gives exactly 1.25 × the fees on the same fills;
+      the cell is recorded in the path record. Mutation: an unknown cell name is refused (red).
 usage: env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_battery.py PATH,HOME,LC_CTYPE <config.json> <agg_run_dir> <out.json>
 """
 import os, sys, json, time, copy, collections, math, shutil
@@ -50,6 +53,13 @@ def ok(name, cond, detail=None):
 
 
 def mut(name, red, detail=None): ok("[mutation red] " + name, red, detail)
+
+
+def _refuses(fn):
+    try:
+        fn(); return False
+    except (ValueError, KeyError):
+        return True
 
 
 def quiet(*a, **k): pass
@@ -291,6 +301,29 @@ for i in picks:
     e = S9.equity(b); worst = max(worst, abs(e / nav5[i] - 1.0)); worst_shift = max(worst_shift, abs(e / nav5[i + 1] - 1.0))
 ok("D9.nav5_equals_simulator_equity_at_random_bars", worst <= 1e-12, {"bars": picks, "max_rel_err": worst})
 mut("D9.next_bar_comparison_detected", worst_shift > 1e-9, {"max_rel_err_shifted": worst_shift})
+
+# ---------------- D10 §3.4 cost cells: only the named calibration parameters change; behaviour on the first anchor from flat ----------------
+def flat_params(d, pre=""):
+    out = {}
+    for k, v in d.items():
+        if isinstance(v, dict): out.update(flat_params(v, pre + k + "."))
+        else: out[pre + k] = v
+    return out
+base_p = flat_params(C1.CAL["params"])
+want = {"fee_x1.25": {f"fee_rate.{e}.{k}" for e in ("BNB_era", "USDT_era") for k in ("maker", "taker")},
+        "slip_x1.5": {f"slippage_vs_executor_mid.{k}" for k in ("first_leg", "later_leg", "flatten")},
+        "fill_x0.9": {"first_leg.p_full", "first_leg.p_part", "first_leg.p_zero", "completion.pi_fill"}}
+for cell in DL.COST_CELLS:
+    cp = flat_params(DL.cal_for(C1.CAL, cell)["params"]); changed = {k for k in base_p if cp[k] != base_p[k]}
+    ok(f"D10.{cell}.changes_exactly_the_named_parameters", changed == want[cell] and set(cp) == set(base_p), sorted(changed))
+fp = DL.cal_for(C1.CAL, "fill_x0.9")["params"]["first_leg"]; bp = C1.CAL["params"]["first_leg"]
+ok("D10.fill_x0.9.implied_partial_share_scaled", abs((1 - fp["p_full"] - fp["p_zero"]) - 0.9 * (1 - bp["p_full"] - bp["p_zero"])) < 1e-15 and fp["p_rej"] == bp["p_rej"])
+C10 = ctx(slice(int(np.searchsorted(AX0, DL.ts("2025-03-01T00:00:00Z"))), int(np.searchsorted(AX0, DL.ts("2025-03-01T00:00:00Z"))) + 1), [R_RAW], {"raw": P1["raw"]})
+a10, _, _ = DL.run_one(C10, R_RAW, 0); a10f, o10f, _ = DL.run_one(C10, dict(R_RAW, cost_cell="fee_x1.25"), 0)
+ok("D10.fee_x1.25.first_anchor_fees_exactly_scaled_same_fills", abs(a10f["fee"][0] - 1.25 * a10["fee"][0]) <= 1e-12 * a10["fee"][0] and a10f["turnover"][0] == a10["turnover"][0],
+   [float(a10["fee"][0]), float(a10f["fee"][0])])
+ok("D10.cost_cell_recorded_in_the_path_record", o10f.get("cost_cell") == "fee_x1.25" and abs(o10f["calibration_params_used"]["fee_rate"]["USDT_era"]["taker"] - 1.25 * C1.CAL["params"]["fee_rate"]["USDT_era"]["taker"]) < 1e-18)
+mut("D10.unknown_cost_cell_refused", _refuses(lambda: DL.cal_for(C1.CAL, "fee_x2")))
 
 n_pass = sum(1 for r in RES if r["ok"]); n = len(RES)
 line = ("BT_BATTERY VERDICT: ALL PASS %d/%d checks (baselines green first, every mutation red)" % (n_pass, n)) if n_pass == n else \

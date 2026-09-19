@@ -116,11 +116,38 @@ def load_context(CFG, ES, BH, L2, anchors_sel, runs, check, log, prices=None):
     return c
 
 
+COST_CELLS = ("fee_x1.25", "slip_x1.5", "fill_x0.9")
+
+
+def cal_for(CAL, cell):
+    """prereg §3.4 cost cells, one at a time (bt_tables.COST_CELLS): a deep copy of the pooled calibration with ONLY the named parameters changed.
+      fee_x1.25  every maker / taker fee rate × 1.25;
+      slip_x1.5  the pooled SIGNED slippage of each leg class × 1.5, as written (the maker legs' negative values become more negative);
+      fill_x0.9  every fill probability × 0.9: first-leg full and partial shares × 0.9, the removed mass moved to 'zero' (the refusal share is
+                 not a fill and is unchanged; exec_sim reads partial as 1 − full − zero), completion probability π × 0.9."""
+    if not cell: return CAL
+    C = json.loads(json.dumps(CAL)); p = C["params"]
+    if cell == "fee_x1.25":
+        for era in ("BNB_era", "USDT_era"):
+            for k in ("maker", "taker"): p["fee_rate"][era][k] = p["fee_rate"][era][k] * 1.25
+    elif cell == "slip_x1.5":
+        for k in ("first_leg", "later_leg", "flatten"): p["slippage_vs_executor_mid"][k] = p["slippage_vs_executor_mid"][k] * 1.5
+    elif cell == "fill_x0.9":
+        f = p["first_leg"]; moved = 0.1 * (f["p_full"] + f["p_part"])
+        f["p_full"] = f["p_full"] * 0.9; f["p_part"] = f["p_part"] * 0.9; f["p_zero"] = f["p_zero"] + moved
+        p["completion"]["pi_fill"] = p["completion"]["pi_fill"] * 0.9
+    else:
+        raise ValueError(f"unknown cost cell {cell!r}")
+    C["cost_cell"] = cell
+    return C
+
+
 def make_sim(c, r, seed, tdir, knobs=None, panel=None, fund=None, book=None, decisions_mode="none", keep=(), stop_at=None, policy=None, ua_set=None):
     W, fr = book if book is not None else c.BOOKS[(r["arm"], r["book"])]
     M = c.BH.HistMirror(c.MIR, tdir)
-    return c.HistSim31(M, c.CAL, r["events"], dict(knobs or {}), c.X, panel or c.PANELS[r["price"]], fund or c.fund, c.anchors, c.cfgmap, W, fr, c.PIT, c.SY,
-                       r["tag"], c.NAV0, seed, policy or r["policy"], c.UA_SETS[ua_set or r["ua_set"]], decisions_mode=decisions_mode, keep_decisions=keep, stop_at=stop_at)
+    return c.HistSim31(M, cal_for(c.CAL, r.get("cost_cell")), r["events"], dict(knobs or {}), c.X, panel or c.PANELS[r["price"]], fund or c.fund, c.anchors,
+                       c.cfgmap, W, fr, c.PIT, c.SY, r["tag"], c.NAV0, seed, policy or r["policy"], c.UA_SETS[ua_set or r["ua_set"]], decisions_mode=decisions_mode,
+                       keep_decisions=keep, stop_at=stop_at)
 
 
 def path_arrays(c, S, Wn):
@@ -143,7 +170,7 @@ def path_summary(c, S, arr, r, seed, rt):
     ident = np.abs((arr["nav1"] - arr["nav0"]) - (arr["price_trade"] + arr["funding"] - arr["fee"] + arr["transfer"]))
     rm = arr["navm1"] / arr["navm0"] - 1.0; rs = (arr["nav1"] - arr["nav0"] - arr["unk_excluded"] * (arr["unk_price"] + arr["unk_funding"])) / arr["nav0"]
     kk = ((arr["A"] - S.nav_grid0) // 300).astype(np.int64)
-    return dict(tag=r["tag"], seed=seed, run=r, runtime_s=round(rt, 1), n_windows=len(arr["A"]), n_anchors=len(c.anchors), nav_first=float(arr["nav0"][0]),
+    return dict(tag=r["tag"], seed=seed, run=r, cost_cell=r.get("cost_cell"), calibration_params_used=S.p, runtime_s=round(rt, 1), n_windows=len(arr["A"]), n_anchors=len(c.anchors), nav_first=float(arr["nav0"][0]),
                 nav_last=float(arr["nav1"][-1]), navm_last=float(arr["navm1"][-1]), sealed_initial_sha256=S.sealed_sha, policy=S.policy, price=r["price"], ua_set=r["ua_set"],
                 status_counts=dict(collections.Counter(la[int(a)]["status"] for a in arr["A"])), events_fired_counts=dict(collections.Counter(e["type"] for e in S.events_fired)),
                 flatten_log=[[time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t_)), w_] for t_, w_ in S.flat_log],

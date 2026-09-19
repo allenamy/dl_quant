@@ -9,12 +9,17 @@ The price source and the UNAVAILABLE policy are PINNED INPUTS of each run (confi
 bt_hist_sim31.POLICIES; `runs[*].ua_set` ∈ {UNAVAILABLE_3084, OLD_ZERO_PRICED_INLIFE_NAN}); every output records them.
 All loading / path / aggregation code lives in bt_driver_lib.py (the battery calls the same functions).
 One parent loads the shared inputs once and forks one child per (run, seed) (single-threaded, nice inherited, read-only guard installed);
-a new child starts only while cgroup memory.max − memory.current + inactive_file ≥ launch.min_available_gib.
+a new child starts only while the memory gate passes (v1: memory.max − memory.current + inactive_file; v2 below: memory.max − anon − shmem) ≥ launch.min_available_gib.
 Outputs (pod2, <root>/runs/<run>/): PATH_<run>_seed_NN.npz (+ .json with audits / events / counters / shas); after all seeds of a run,
 AGG_<run>.npz = the per-window MEAN over the path files read back in seed order + AGG_<run>.json listing every path file and its sha256.
 Receipt receipts/BT_LAUNCH_<label>.json (records the parent PGID and every child PID).
+v2 (2026-09-19 11:5xZ, after the first full launch paused on its memory gate with 87/128 paths written): (1) the gate counts only
+UNRECLAIMABLE memory — memory.max − anon − shmem (v1 also treated ACTIVE page cache, all of it another agent's, as used, and read 15 GiB while
+anon was 18.8 of 61 GB); threshold unchanged (launch.min_available_gib = 22 ≥ the 20 GiB rule); (2) --resume: a (run, seed) whose PATH npz + json
+exist and whose json's npz_sha256 equals the file is not re-run (paths are deterministic: battery D2, and bt_reproduce_path.py reproduced a
+full-window path bitwise); the receipt lists every seed with resumed_existing true / false. Path content does not depend on this file.
 usage: env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_launch.py PATH,HOME,LC_CTYPE <config.json>
-         [--smoke START_ISO N_ANCHORS SEEDS(comma) RUNS(comma) LABEL]
+         [--smoke START_ISO N_ANCHORS SEEDS(comma) RUNS(comma) LABEL] [--resume LABEL]
 """
 import os, sys, json, time, collections
 WL = set(sys.argv[1].split(",")) if len(sys.argv) > 1 else set()
@@ -27,10 +32,12 @@ T0 = time.time()
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 import bt_driver_lib as DL
 CFG_P = os.path.abspath(sys.argv[2]); CFG = json.load(open(CFG_P))
-SMOKE = None
+SMOKE = None; RESUME = None
 if len(sys.argv) > 3 and sys.argv[3] == "--smoke":
     SMOKE = dict(start=DL.ts(sys.argv[4]), n=int(sys.argv[5]), seeds=[int(x) for x in sys.argv[6].split(",")], runs=sys.argv[7].split(","), label=sys.argv[8])
-ROOT = CFG["paths"]["pod_root"]; LABEL = ("smoke_" + SMOKE["label"]) if SMOKE else "full"
+if len(sys.argv) > 3 and sys.argv[3] == "--resume":
+    RESUME = sys.argv[4]
+ROOT = CFG["paths"]["pod_root"]; LABEL = ("smoke_" + SMOKE["label"]) if SMOKE else ("full_" + RESUME if RESUME else "full")
 
 
 def log(*a): print("[%6.0fs]" % (time.time() - T0), *a, flush=True)
@@ -96,18 +103,42 @@ def aggregate(r):
 
 
 def avail_gib():
-    """cgroup memory.max − memory.current + inactive_file (reclaimable page cache counts as available; anon / active cache do not)"""
+    """v2: cgroup memory.max − anon − shmem (unreclaimable use only; page cache, active or inactive, is reclaimable)"""
     try:
-        mx = int(open("/sys/fs/cgroup/memory.max").read().strip()); cur = int(open("/sys/fs/cgroup/memory.current").read().strip())
+        mx = int(open("/sys/fs/cgroup/memory.max").read().strip())
         st = dict(l.split() for l in open("/sys/fs/cgroup/memory.stat"))
-        return (mx - cur + int(st.get("inactive_file", 0))) / 2 ** 30
+        return (mx - int(st.get("anon", 0)) - int(st.get("shmem", 0))) / 2 ** 30
     except Exception:
         return float("inf")
 
 
+def existing(r, s):
+    st = stem_of(r["tag"], s)
+    if not (os.path.exists(st + ".npz") and os.path.exists(st + ".json")): return None
+    o = json.load(open(st + ".json"))
+    return o if o.get("npz_sha256") == DL.sha(st + ".npz") else None
+
+
 JOBS = [(r, s) for r in RUNS for s in SEEDS]
+done = collections.defaultdict(int)
+if RESUME:
+    keep = []
+    for r, s in JOBS:
+        o = existing(r, s)
+        if o is None: keep.append((r, s)); continue
+        rec["runs"].setdefault(r["tag"], {"seeds": {}})["seeds"][s] = dict(rc=0, resumed_existing=True, runtime_s=o["runtime_s"], npz_sha256=o["npz_sha256"], audits=o["audits"],
+                                                                           events=o["events_fired_counts"], ua=o["ua_counters"], device_sha256=o.get("device_sha256"))
+        done[r["tag"]] += 1
+    rec["resume"] = {"label": RESUME, "existing": len(JOBS) - len(keep), "to_run": len(keep)}
+    JOBS = keep
+    log("resume: existing", rec["resume"]["existing"], "to run", len(JOBS))
+    for r in RUNS:
+        if done[r["tag"]] == len(SEEDS) and not os.path.exists(run_dir(r["tag"]) + f"/AGG_{r['tag'].replace('|', '_')}.json"):
+            rec["runs"][r["tag"]]["aggregate"] = aggregate(r); log("aggregated", r["tag"])
+        elif done[r["tag"]] == len(SEEDS):
+            rec["runs"][r["tag"]]["aggregate"] = json.load(open(run_dir(r["tag"]) + f"/AGG_{r['tag'].replace('|', '_')}.json"))
 MAXP = int(CFG["launch"]["max_parallel"]); MINFREE = float(CFG["launch"]["min_available_gib"])
-kids = {}; done = collections.defaultdict(int); rec["mem_waits"] = 0
+kids = {}; rec["mem_waits"] = 0; rec["mem_gate"] = "memory.max - anon - shmem >= launch.min_available_gib (v2)"
 while JOBS or kids:
     while JOBS and len(kids) < MAXP:
         if avail_gib() < MINFREE:
@@ -124,7 +155,7 @@ while JOBS or kids:
         kids[pid] = (r, s); rec["pids"].append(pid); log("started", r["tag"], "seed", s, "pid", pid, "avail_GiB %.1f" % avail_gib())
     if not kids: continue
     pid, status = os.wait(); r, s = kids.pop(pid); rc = os.waitstatus_to_exitcode(status)
-    rr = rec["runs"].setdefault(r["tag"], {"seeds": {}}); rr["seeds"][s] = dict(rc=rc)
+    rr = rec["runs"].setdefault(r["tag"], {"seeds": {}}); rr["seeds"][s] = dict(rc=rc, resumed_existing=False)
     if rc == 0:
         o = json.load(open(stem_of(r["tag"], s) + ".json"))
         rr["seeds"][s].update(runtime_s=o["runtime_s"], npz_sha256=o["npz_sha256"], audits=o["audits"], events=o["events_fired_counts"], ua=o["ua_counters"])
