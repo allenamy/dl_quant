@@ -24,10 +24,15 @@ Definitions (prereg §4; written here before any number from this device):
   §3.2 cells           G0 frozen labels (bt_g0_extend.py output; LAB_EXCL primary): 7 variables × {low, mid, high} = 21 cells; per cell the §3.1
                        metrics + anchors + days + mean-g CI (5 / 1 / 10-day blocks) + Bonferroni K = 21 interval (percentiles 0.119 / 99.881 of the
                        5-day draws, same draws); a cell with < 2 days is 'describe only' (no CI, no mark).
+                       AMENDMENT 1 item 3 (f6a2a909e, sha 766bc367): each cell draws its OWN blocks, B = 10,000, rng = default_rng([20260919, 1000 + k]),
+                       k = 3·(variable position in PROGRAM §4: TREND, BREADTH, DISP, FLEVEL, FDISP, VOL, ALT) + (low 0, mid 1, high 2), k = 0..20;
+                       the 1- and 10-day sensitivity blocks use the same per-cell seed.
   §3.4 cost cells      fee × 1.25 (USDT maker / taker rates); slippage × 1.5 (the pooled signed slippage values, as written); fill rate × 0.9 (every
                        fill probability: first-leg full and partial shares × 0.9 with the removed mass moved to 'zero', and the completion probability
                        π × 0.9). Applied one at a time by COST_CELLS → calibration override (bt_driver consumes it); Δ vs the base cell.
-  §3.5 pairing         ΔSR = SR(a) − SR(b), ΔR = CAGR(a) − CAGR(b) on the aligned daily returns of the two mean paths; Δg = linear mean of per-anchor
+  §3.5 pairing         (AMENDMENT 1 item 4: main reading ΔSharpe, ΔCAGR and Δg reported alongside; the labels are DESCRIPTIVE ONLY — no multiplicity
+                       control, no switch decision.)
+                       ΔSR = SR(a) − SR(b), ΔR = CAGR(a) − CAGR(b) on the aligned daily returns of the two mean paths; Δg = linear mean of per-anchor
                        paired differences; CI95 = 2.5 / 97.5 percentiles of the draws; one-sided centred p: p_up = (1 + #{Δ* − Δ̂ ≥ Δ̂})/(B + 1),
                        p_down = (1 + #{Δ* − Δ̂ ≤ Δ̂})/(B + 1); label (A) better iff p_up < 0.05, (B) worse iff p_down < 0.05, else (C) — reading only,
                        'CI contains 0' is never written as equivalent or non-inferior; zero-variance draws counted, > 1 % ⇒ UNAVAILABLE.
@@ -247,7 +252,8 @@ def paired(sa, sb, block=BLOCK_MAIN, B=B_DEFAULT, seed=RNG_SEED, mask=None):
         return np.where(bad, -1.0, np.abs(fin) ** (365.0 / n) - 1.0)
     dsr = sra - srb; dcg = cg(RA) - cg(RB)
     sg, cg_ = day_sums(A, sa["g"][m] - sb["g"][m], da); dgb = sg[idx].sum(1) / cg_[idx].sum(1)
-    out = {"n_days": n, "block_days": block, "B": B, "rng": list(seed), "undefined_sharpe_draws": za + zb}
+    out = {"n_days": n, "block_days": block, "B": B, "rng": list(seed), "undefined_sharpe_draws": za + zb, "main_reading": "d_sharpe",
+           "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision"}
     for k, draws in (("d_sharpe", dsr), ("d_cagr", dcg), ("d_g", dgb)):
         x = draws[np.isfinite(draws)]; e = est[k]
         pu = (1 + int(np.sum(x - e >= e))) / (len(x) + 1); pd = (1 + int(np.sum(x - e <= e))) / (len(x) + 1)
@@ -260,6 +266,12 @@ def paired(sa, sb, block=BLOCK_MAIN, B=B_DEFAULT, seed=RNG_SEED, mask=None):
 
 # ───────────────────────── §3.2 regimes ─────────────────────────
 LEVELS = ("low", "mid", "high")
+PROGRAM_VARS = ("RG-TREND", "RG-BREADTH", "RG-DISP", "RG-FLEVEL", "RG-FDISP", "RG-VOL", "RG-ALT")   # PROGRAM §4 frozen order
+REGIME_SEED0 = 1000
+
+
+def regime_cell_index(var, level):
+    return 3 * PROGRAM_VARS.index(var) + LEVELS.index(level)
 
 
 def regime_cells(A, lab_ts, LAB, vars_):
@@ -270,19 +282,20 @@ def regime_cells(A, lab_ts, LAB, vars_):
     return {v: {LEVELS[l]: L[:, j] == l for l in range(3)} for j, v in enumerate(vars_)}
 
 
-def regime_table(s, cells, B=B_DEFAULT, seed=RNG_SEED):
+def regime_table(s, cells, B=B_DEFAULT):
+    """AMENDMENT 1 item 3: per-cell draws, rng [20260919, 1000 + k] with k = regime_cell_index(var, level) (PROGRAM §4 order)"""
     A = s["A"]; days = np.unique((A // DAY) * DAY); out = {}
-    idx = {b: mbb_indices(len(days), b, B, seed) for b in (BLOCK_MAIN,) + BLOCK_SENS}
     for v, lv in cells.items():
         out[v] = {}
         for nm, m in lv.items():
-            o = cell_metrics(s, m)
+            k = regime_cell_index(v, nm); seed_k = (RNG_SEED[0], REGIME_SEED0 + k)
+            o = cell_metrics(s, m); o["cell_index"] = k; o["rng"] = list(seed_k)
             if o["n_anchors"] == 0: out[v][nm] = o; continue
             if o["n_days"] < 2:
                 o["ci"] = "single-day cell: describe only"; out[v][nm] = o; continue
             ci = {}
             for b in (BLOCK_MAIN,) + BLOCK_SENS:
-                c, _ = mean_ci(A, s["g"], m, days, block=b, idx=idx[b]); ci[f"block_{b}d"] = c
+                c, _ = mean_ci(A, s["g"], m, days, block=b, idx=mbb_indices(len(days), b, B, seed_k)); ci[f"block_{b}d"] = c
             o["g_ci"] = ci
             main = ci[f"block_{BLOCK_MAIN}d"]
             o["mark"] = "††" if (main["ci_bonf"][0] > 0 or main["ci_bonf"][1] < 0) else ("†" if (main["ci95"][0] > 0 or main["ci95"][1] < 0) else "")

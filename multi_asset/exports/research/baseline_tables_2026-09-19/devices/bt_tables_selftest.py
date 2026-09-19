@@ -14,7 +14,8 @@ baseline is green and every mutation red.
   T4  paired estimator: identical series ⇒ Δ = 0, CI [0, 0], label (C); a series with +1 bp/day added ⇒ ΔCAGR > 0 with p_up < 0.05 ⇒ (A);
       the reverse ⇒ (B). Mutation: independent draws for the two arms ⇒ identical series get a non-zero CI (red).
   T5  §3.2 cells: 21 masks partition every labelled anchor of each variable exactly once; Bonferroni interval ⊇ CI95; a single-day cell is
-      describe-only. Mutation: an off-by-one label row mapping is detected.
+      describe-only; AMENDMENT 1 item 3: cell index k = 0..20 in PROGRAM §4 order, the cell's CI equals the draws of rng [20260919, 1000 + k].
+      Mutations: an off-by-one label row mapping; the old shared seed [20260919, 99] (both detected).
   T6  §3.1 periods: partial-recipe years labelled; 2024 split at the full-recipe start; every anchor in exactly one period.
   T7  §3.6 telescoping: Σ step deltas = total delta (interactions in the later step). Mutation: a step computed against the ORIGINAL
       baseline instead of the previous step breaks it.
@@ -127,6 +128,7 @@ ok("T4.better_series_label_A", P1["d_cagr"]["estimate"] > 0 and P1["d_cagr"]["p_
    {"d_cagr": P1["d_cagr"]["estimate"], "p_up": P1["d_cagr"]["p_up"]})
 P2 = BT.paired(mk(r4), mk(up), B=2000)
 ok("T4.worse_series_label_B", P2["d_cagr"]["label"].startswith("(B)"), P2["d_cagr"]["label"])
+ok("T4.labels_marked_descriptive_main_reading_sharpe", P2["main_reading"] == "d_sharpe" and "no switch decision" in P2["labels"])
 ud4, ra = BT.daily(A4, r4); Ia = BT.mbb_indices(len(ud4), 5, 2000); Ib = BT.mbb_indices(len(ud4), 5, 2000, seed=(1, 2))
 d_ind = np.array([BT.cagr(ra[i]) for i in Ia[:300]]) - np.array([BT.cagr(ra[j]) for j in Ib[:300]])
 mut("T4.independent_draws_give_nonzero_CI_on_identical_series", float(np.percentile(d_ind, 97.5) - np.percentile(d_ind, 2.5)) > 1e-3)
@@ -134,20 +136,28 @@ mut("T4.independent_draws_give_nonzero_CI_on_identical_series", float(np.percent
 # ---------------- T5 regime cells ----------------
 print("T5 regime cells")
 lab_ts = A4.copy(); LAB = rng.integers(-1, 3, size=(len(A4), 7)).astype(np.int8)
-cells = BT.regime_cells(A4, lab_ts, LAB, [f"V{j}" for j in range(7)])
-part = all(int(sum(m.sum() for m in cells[f"V{j}"].values())) == int((LAB[:, j] >= 0).sum()) and
-           int(sum(m.astype(int) for m in cells[f"V{j}"].values()).max()) <= 1 for j in range(7))
+VN = list(BT.PROGRAM_VARS)
+cells = BT.regime_cells(A4, lab_ts, LAB, VN)
+part = all(int(sum(m.sum() for m in cells[VN[j]].values())) == int((LAB[:, j] >= 0).sum()) and
+           int(sum(m.astype(int) for m in cells[VN[j]].values()).max()) <= 1 for j in range(7))
 ok("T5.21_cells_partition_labelled_anchors", part and sum(len(v) for v in cells.values()) == 21)
 s5 = dict(A=A4, r=r4, g=1e4 * r4 / 2, pnl=1e4 * r4 / 2, car=np.zeros(len(A4)), cst=np.zeros(len(A4)), unk=np.zeros(len(A4)), tau=np.zeros(len(A4)),
           dstop=np.zeros(len(A4)), nstop=np.zeros(len(A4)), halt=np.zeros(len(A4)), hold=np.zeros(len(A4)), dust=np.zeros(len(A4)), unk_notional=np.zeros(len(A4)), t5=None, nav5=None)
-RT5 = BT.regime_table(s5, {"V0": cells["V0"]}, B=1000)
-c0 = RT5["V0"]["low"]["g_ci"]["block_5d"]
+RT5 = BT.regime_table(s5, {"RG-TREND": cells["RG-TREND"], "RG-DISP": cells["RG-DISP"]}, B=1000)
+c0 = RT5["RG-TREND"]["low"]["g_ci"]["block_5d"]
 ok("T5.bonferroni_contains_ci95", c0["ci_bonf"][0] <= c0["ci95"][0] and c0["ci_bonf"][1] >= c0["ci95"][1], c0)
+ok("T5.cell_index_and_rng_follow_AMENDMENT1_item3", [BT.regime_cell_index(v, l) for v in VN for l in BT.LEVELS] == list(range(21))
+   and RT5["RG-DISP"]["high"]["cell_index"] == 8 and RT5["RG-DISP"]["high"]["rng"] == [20260919, 1008] and RT5["RG-TREND"]["low"]["rng"] == [20260919, 1000])
+days5 = np.unique((A4 // 86400) * 86400)
+ref, _ = BT.mean_ci(A4, s5["g"], cells["RG-DISP"]["high"], days5, block=5, idx=BT.mbb_indices(len(days5), 5, 1000, (20260919, 1008)))
+ok("T5.cell_CI_equals_its_own_seed_draws", ref["ci95"] == RT5["RG-DISP"]["high"]["g_ci"]["block_5d"]["ci95"], ref["ci95"])
+shared, _ = BT.mean_ci(A4, s5["g"], cells["RG-DISP"]["high"], days5, block=5, idx=BT.mbb_indices(len(days5), 5, 1000, (20260919, 99)))
+mut("T5.shared_seed_99_would_give_another_CI", shared["ci95"] != RT5["RG-DISP"]["high"]["g_ci"]["block_5d"]["ci95"])
 one = np.zeros(len(A4), bool); one[:3] = True
-RT6 = BT.regime_table(s5, {"X": {"low": one}}, B=200)
-ok("T5.single_day_cell_describe_only", RT6["X"]["low"].get("ci") == "single-day cell: describe only")
-cells_shift = BT.regime_cells(A4, lab_ts, np.roll(LAB, 1, axis=0), [f"V{j}" for j in range(7)])
-mut("T5.off_by_one_label_row_detected", not np.array_equal(cells_shift["V0"]["low"], cells["V0"]["low"]))
+RT6 = BT.regime_table(s5, {"RG-VOL": {"low": one}}, B=200)
+ok("T5.single_day_cell_describe_only", RT6["RG-VOL"]["low"].get("ci") == "single-day cell: describe only")
+cells_shift = BT.regime_cells(A4, lab_ts, np.roll(LAB, 1, axis=0), VN)
+mut("T5.off_by_one_label_row_detected", not np.array_equal(cells_shift["RG-TREND"]["low"], cells["RG-TREND"]["low"]))
 
 # ---------------- T6 periods ----------------
 print("T6 periods")

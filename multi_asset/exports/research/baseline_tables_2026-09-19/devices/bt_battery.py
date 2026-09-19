@@ -28,7 +28,10 @@ production functions (bt_driver_lib.load_context / make_sim / run_one / aggregat
   D9  5-MINUTE NAV = the simulator's own equity at that bar (stop the same run at random bars). Mutation: the next bar's equity (red).
   D10 §3.4 COST CELLS (bt_driver_lib.cal_for): each cell changes exactly its named calibration parameters and nothing else; fill × 0.9 scales the
       implied partial share by 0.9 and leaves refusals; fee × 1.25 on the first anchor from flat gives exactly 1.25 × the fees on the same fills;
-      the cell is recorded in the path record. Mutation: an unknown cell name is refused (red).
+      the cell is recorded in the path record. AMENDMENT 1 (f6a2a909e): slip cell s' = s + 0.5·|s| on every leg (each worse than s), same
+      fills and a lower first-anchor price-and-trading P&L; fill cell: fewer or equal full / partial first-leg fills, refusals unchanged.
+      Mutations: an unknown cell name is refused; the literal signed ×1.5 would make the maker legs cheaper (documented, red).
+  D11 a TEMPLATE config or one holding "PENDING" anywhere is refused by verify_pins (two mutations, both red).
 usage: env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_battery.py PATH,HOME,LC_CTYPE <config.json> <agg_run_dir> <out.json>
 """
 import os, sys, json, time, copy, collections, math, shutil
@@ -323,7 +326,24 @@ a10, _, _ = DL.run_one(C10, R_RAW, 0); a10f, o10f, _ = DL.run_one(C10, dict(R_RA
 ok("D10.fee_x1.25.first_anchor_fees_exactly_scaled_same_fills", abs(a10f["fee"][0] - 1.25 * a10["fee"][0]) <= 1e-12 * a10["fee"][0] and a10f["turnover"][0] == a10["turnover"][0],
    [float(a10["fee"][0]), float(a10f["fee"][0])])
 ok("D10.cost_cell_recorded_in_the_path_record", o10f.get("cost_cell") == "fee_x1.25" and abs(o10f["calibration_params_used"]["fee_rate"]["USDT_era"]["taker"] - 1.25 * C1.CAL["params"]["fee_rate"]["USDT_era"]["taker"]) < 1e-18)
+sp0 = C1.CAL["params"]["slippage_vs_executor_mid"]; sp1 = DL.cal_for(C1.CAL, "slip_x1.5")["params"]["slippage_vs_executor_mid"]
+ok("D10.slip_x1.5.is_AMENDMENT1_adverse_half_magnitude", all(sp1[k] == sp0[k] + 0.5 * abs(sp0[k]) and sp1[k] > sp0[k] for k in ("first_leg", "later_leg", "flatten")),
+   {k: [sp0[k], sp1[k]] for k in ("first_leg", "later_leg", "flatten")})
+a10s, _, _ = DL.run_one(C10, dict(R_RAW, cost_cell="slip_x1.5"), 0)
+same_q = np.array_equal(a10s["n_trades"], a10["n_trades"]) and np.array_equal(a10s["out_first_full"], a10["out_first_full"])
+ok("D10.slip_x1.5.same_fills_worse_prices_on_first_anchor", same_q and a10s["price_trade"][0] < a10["price_trade"][0], [float(a10["price_trade"][0]), float(a10s["price_trade"][0])])
+mut("D10.literal_signed_x1.5_would_make_maker_legs_cheaper", sp0["first_leg"] * 1.5 < sp0["first_leg"] and sp0["first_leg"] < 0)
+a10p, _, _ = DL.run_one(C10, dict(R_RAW, cost_cell="fill_x0.9"), 0)
+ok("D10.fill_x0.9.fewer_or_equal_fills_on_first_anchor", a10p["out_first_full"][0] <= a10["out_first_full"][0] and a10p["out_first_partial"][0] <= a10["out_first_partial"][0]
+   and a10p["out_first_full"][0] + a10p["out_first_partial"][0] < a10["out_first_full"][0] + a10["out_first_partial"][0] and a10p["out_first_refused"][0] == a10["out_first_refused"][0],
+   {"full": [float(a10["out_first_full"][0]), float(a10p["out_first_full"][0])], "partial": [float(a10["out_first_partial"][0]), float(a10p["out_first_partial"][0])]})
 mut("D10.unknown_cost_cell_refused", _refuses(lambda: DL.cal_for(C1.CAL, "fee_x2")))
+tmpl = dict(CFG, status="TEMPLATE — test"); pend_fail = []
+DL.verify_pins(tmpl, lambda n, c, d=None: pend_fail.append(n) if not c else None)
+mut("D11.template_config_refused", "config.not_a_template_and_nothing_pending" in pend_fail)
+pend = json.loads(json.dumps(CFG)); pend["window"]["last_anchor"] = "PENDING"; pend_fail2 = []
+DL.verify_pins(pend, lambda n, c, d=None: pend_fail2.append(n) if not c else None)
+mut("D11.pending_field_refused", "config.not_a_template_and_nothing_pending" in pend_fail2)
 
 n_pass = sum(1 for r in RES if r["ok"]); n = len(RES)
 line = ("BT_BATTERY VERDICT: ALL PASS %d/%d checks (baselines green first, every mutation red)" % (n_pass, n)) if n_pass == n else \

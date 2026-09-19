@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""bt_run_summary.py — per run: the UNAVAILABLE-policy counters (UA-FREEZE-EXCLUDE: frozen anchors / plans dropped / fills cancelled /
+"""bt_run_summary.py — per run (AMENDMENT 1 item 5: trigger counts and notional per run): the UNAVAILABLE-policy counters (UA-FREEZE-EXCLUDE: frozen anchors / plans dropped / fills cancelled /
 UNKNOWN cells held, their notional and the excluded P&L; LEGACY-ZERO-RETURN: the same exposure REPORTED — priced through, not excluded), event
 counts, audits, and the compute used (wall time from the launch receipt; core-seconds = Σ single-threaded path runtimes). Reads only the launch
 receipt and the path files it lists (sha-checked). Blind protocol: arm assignment COUNTS only.
@@ -37,6 +37,11 @@ for tag, rr in LR["runs"].items():
         unk["unknown_price_pnl_usdt"].append(float(Z["unk_price"].sum())); unk["unknown_funding_usdt"].append(float(Z["unk_funding"].sum()))
         unk["excluded_from_main"].append(int(Z["unk_excluded"].max()))
         unk["frozen_anchors"].append(int((Z["rec_n_frozen"] > 0).sum()))
+        unk["frozen_name_anchors"].append(float(np.nansum(Z["rec_n_frozen"])))
+        unk["frozen_held_notional_usdt_sum"].append(float(np.nansum(Z["rec_frozen_held_notional"])))
+        unk["frozen_plan_notional_dropped_usdt_sum"].append(float(np.nansum(Z["rec_frozen_plan_notional"])))
+        unk["fills_cancelled_in_ua_bars"].append(float(J["ua_counters"].get("fills_cancelled_ua_bar", 0.0)))
+        unk["fill_notional_cancelled_usdt"].append(float(J["ua_counters"].get("fill_notional_cancelled_ua_bar", 0.0)))
     core_s += sum(rt)
     o["path_runtime_s"] = {"sum": round(sum(rt), 1), "median": float(np.median(rt)), "max": float(max(rt))}
     o["policy"] = rr["seeds"][next(iter(rr["seeds"]))].get("ua") is not None and json.load(open(os.path.join(d, f"PATH_{tag.replace('|', '_')}_seed_00.json")))["policy"]
