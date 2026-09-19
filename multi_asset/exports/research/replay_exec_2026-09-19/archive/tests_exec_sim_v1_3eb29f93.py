@@ -17,7 +17,6 @@ Claims
                      window totals but not booked to equity (in-process subclass)
   [6] calibration    two runs on the same inputs give identical windows; the output depends on the frozen calibration     mut: p_zero + 0.05
   [7] read-only      the guard refuses an open() under ~/dl_quant_live (fresh interpreter)                        mut: same interpreter without the guard
-  [9] exit completion (v2) no name whose executor target was exactly 0 is left below its floor after the decision  mut: --no-exit-completion
   [8] V1 judge       judge(live, live) passes all four items                                                    mut: fee ×1.3, funding ×0.7, turnover ×1.3,
                                                                                                                      price shifted by 1.5 × tol
 usage: tests_exec_sim.py [mirror]   → prints one line per check and a final verdict line; exit code 0 iff every check passed.
@@ -49,8 +48,7 @@ def t7_guard():
 
 def run(M, cal, X, P, F, mode="live", **knobs):
     import exec_sim as ES
-    kn = {k: False for k in ("no_stop", "no_min_notional", "zero_fees", "fee_asset_wrong", "funding_sign_flip", "funding_double",
-                             "no_exit_completion")}
+    kn = {k: False for k in ("no_stop", "no_min_notional", "zero_fees", "fee_asset_wrong", "funding_sign_flip", "funding_double")}
     kn.update(knobs)
     S = ES.Sim(M, cal, mode, kn, X=X, panel=P, fund=F)
     W = S.run()
@@ -114,13 +112,6 @@ def c4_funding(S):
     return len(S.fund_log), worst, dup, rate_mis, n_live_keys
 
 
-def c9_exit_dust(S):
-    """after every traded decision: no name whose executor target was exactly 0 is left holding a position below its venue floor
-    (recomputed here from the sim's post-decision exit log: remainder is 0 or ≥ floor)"""
-    viol = [(A, s, round(v, 4), fl) for (A, s, v, fl) in S.exit_log if 0.0 < abs(v) < fl - 1e-12]
-    return viol, len(S.exit_log)
-
-
 def c5_accounting(W):
     return max(abs((w["equity1"] - w["nav0"]) - (w["price_trade"] + w["funding"] - w["fee"] + w["transfer"])) for w in W)
 
@@ -134,8 +125,6 @@ def main():
     import exec_sim as ES
     cal = json.load(open(os.path.join(HERE, "CALIBRATION_FROZEN_2026-09-19.json")))
     X = ES.ExecutorCode(M); P = L.Panel(M); L.build_references(M, P); F = L.FundingBook(M)
-    print("      devices: " + ", ".join(f"{n} {L.sha_file(os.path.join(HERE, n))[:12]}" for n in
-                                         ("exec_sim.py", "simlib.py", "v1_gate.py", "tests_exec_sim.py", "CALIBRATION_FROZEN_2026-09-19.json")), flush=True)
     t0 = time.time()
     S0, W0 = run(M, cal, X, P, F)
     print(f"      baseline run {time.time() - t0:.1f} s: {len(W0)} windows, {len(S0.trade_log)} trade legs, {len(S0.fund_log)} funding charges", flush=True)
@@ -172,13 +161,6 @@ def main():
         Sf, _ = run(M, cal, X, P, F, **{kn: True})
         n2, worst2, dup2, mis2, nk2 = c4_funding(Sf)
         check(f"4 funding mutation --{kn.replace('_', '-')} turns it RED", worst2 > 1e-6, f"max rel err {worst2:.3f}")
-    # [9] exit completion (v2)
-    v9, n9 = c9_exit_dust(S0)
-    check("9 exit completion baseline (no exited name left below its floor)", n9 > 0 and not v9, f"{n9} exit decisions checked, {len(v9)} sub-floor remainders")
-    Se, _ = run(M, cal, X, P, F, no_exit_completion=True)
-    v9m, n9m = c9_exit_dust(Se)
-    check("9 exit completion mutation --no-exit-completion (the v1 behaviour) turns it RED", len(v9m) > 0,
-          f"{len(v9m)} sub-floor remainders after exits (of {n9m}), e.g. {v9m[:2]}")
     # [5]
     e = c5_accounting(W0)
     check("5 accounting identity baseline", e <= 1e-6, f"max |Δequity − (price + funding − fee + transfer)| = {e:.2e} USDT")
@@ -189,8 +171,7 @@ def main():
             out = super().trade(t, s, notional_mid, b, slip, maker, kind)
             self.K += self.acc["fee"] - fee0          # mutation: the fee is reported but never leaves equity
             return out
-    kn = {k: False for k in ("no_stop", "no_min_notional", "zero_fees", "fee_asset_wrong", "funding_sign_flip", "funding_double",
-                             "no_exit_completion")}
+    kn = {k: False for k in ("no_stop", "no_min_notional", "zero_fees", "fee_asset_wrong", "funding_sign_flip", "funding_double")}
     SL = LeakSim(M, cal, "live", kn, X=X, panel=P, fund=F); WL = SL.run()
     e2 = c5_accounting(WL)
     check("5 accounting mutation (fee not booked to equity) turns it RED", e2 > 1e-3, f"max identity error {e2:,.4f} USDT")

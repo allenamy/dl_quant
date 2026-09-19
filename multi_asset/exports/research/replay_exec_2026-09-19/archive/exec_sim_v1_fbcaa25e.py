@@ -42,9 +42,7 @@ Events: --events live  = the actual protective timeline injected (flatten instan
                           resumes one anchor earlier; stated, not hidden. HOLD only where the target file is missing (the
                           executor's own on_unavailable=hold rule).
 Knobs for the battery (all default OFF; every run records them): --no-stop, --no-min-notional, --zero-fees, --fee-asset-wrong,
---funding-sign-flip, --funding-double, --no-exit-completion (= the v1 behaviour).
-VERSION v2 (2026-09-19, after V1): adds EXIT COMPLETION (see on_anchor). v1 (sha fbcaa25e, archive/exec_sim_v1_fbcaa25e.py) is the
-device the V1 verdict of record was computed with; v2 changes no calibration parameter.
+--funding-sign-flip, --funding-double.
 usage: exec_sim.py --events {live,rule} --out <out.json> [--calib CAL.json] [--mirror DIR] [knobs]
 """
 import argparse, collections, copy, json, os, sys, time, types
@@ -243,7 +241,7 @@ class Sim:
         self.halt_until = None
         self.log_anchor, self.events_fired, self.diag = [], [], collections.Counter()
         # in-memory audit logs for the battery (not written to the receipt): every trade leg, every funding charge, every depth read
-        self.trade_log, self.fund_log, self.depth_log, self.plan_log, self.exit_log = [], [], [], [], []
+        self.trade_log, self.fund_log, self.depth_log, self.plan_log = [], [], [], []
         self.day_ref = {}                           # UTC day -> (t, equity) of the previous day's last N+40 evaluation (§4-2 reference)
         self.last_eval = None
 
@@ -483,28 +481,9 @@ class Sim:
             Tr = lg["w_rej"] * lg["d"] * tf_rej if passes(s, lg["d"]) else 0.0
             tot["taker"] += self.trade(t_dec, s, Tp, b, float(sl["taker_from_partial"]), False, "taker")
             tot["taker"] += self.trade(t_dec, s, Tr, b, float(sl["taker_from_reject"]), False, "taker")
-        # ── v2 EXIT COMPLETION: an exit (executor target exactly 0) whose EXPECTED remainder is below the symbol's floor is closed now.
-        #    The expected-value fill leaves 1 − E[fill] of every exited position; in reality that mass is "the whole position, not yet
-        #    exited" (≥ floor, exited again next anchor) or 0 — never a sub-floor sliver. Without this, v1 accumulated up to ~150 dust
-        #    positions whose cooldown / held-untradable clamp (add_blocked) pinned 2–5% of the sizing gross (found in the mode-(b)
-        #    diagnosis after V1; not a calibration parameter).
-        n_ec = 0
-        if not self.k.get("no_exit_completion"):
-            for s, tv in sorted(target.items()):
-                q = self.q.get(s, 0.0)
-                if tv != 0.0 or q == 0.0 or self.px(s, b) is None:
-                    continue
-                v = q * self.px(s, b)
-                fl = float((X.filters.f.get(s) or {}).get("min_notional", 5.0) or 5.0)
-                if abs(v) < fl:
-                    tot["maker"] += self.trade(t_dec, s, -v, b, float(sl["maker_first"]), True, "exit_completion"); n_ec += 1
-        for s, tv in target.items():            # audit (battery claim 9): every exited name's remainder after this decision
-            if tv == 0.0 and s in pos and self.px(s, b) is not None:
-                self.exit_log.append((A, s, self.q.get(s, 0.0) * self.px(s, b), float((X.filters.f.get(s) or {}).get("min_notional", 5.0) or 5.0)))
         rec.update({"status": st, "rid": c["rid"], "gm": c["gm"], "equity_at_decision": E, "sizing_gross": G, "n_symbols": len(symbols),
                     "n_untradable": len(untr), "n_stop": len(act["stop"]), "n_cooldown": len(act["cooldown"]), "n_held_exit": len(held_exit),
                     "n_dust": dust["n"], "n_plans_sent": n_plan, "n_skip_min_notional": n_skip_min, "n_skip_no_price_chain": n_skip_nomid,
-                    "n_exit_completion": n_ec,
                     "plan_turnover": plan_turn,
                     "exec_maker": tot["maker"], "exec_taker": tot["taker"],
                     "exec_over_plan": ((tot["maker"] + tot["taker"]) / plan_turn if plan_turn else None),
@@ -568,11 +547,11 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--calib", default=os.path.join(HERE, "CALIBRATION_FROZEN_2026-09-19.json"))
     ap.add_argument("--mirror", default=L.MIRROR_DEFAULT)
-    for k in ("no-stop", "no-min-notional", "zero-fees", "fee-asset-wrong", "funding-sign-flip", "funding-double", "no-exit-completion"):
+    for k in ("no-stop", "no-min-notional", "zero-fees", "fee-asset-wrong", "funding-sign-flip", "funding-double"):
         ap.add_argument("--" + k, action="store_true")
     a = ap.parse_args()
     knobs = {k.replace("-", "_"): getattr(a, k.replace("-", "_")) for k in ("no-stop", "no-min-notional", "zero-fees", "fee-asset-wrong",
-                                                                           "funding-sign-flip", "funding-double", "no-exit-completion")}
+                                                                           "funding-sign-flip", "funding-double")}
     M = L.Mirror(a.mirror)
     L.install_readonly_guard()
     bad = M.verify_manifest()
@@ -582,7 +561,7 @@ def main():
     t0 = time.time()
     S = Sim(M, cal, a.events, knobs)
     W = S.run()
-    doc = {"device": "exec_sim.py", "version": "v2", "device_sha256": L.sha_file(os.path.abspath(__file__)), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    doc = {"device": "exec_sim.py", "device_sha256": L.sha_file(os.path.abspath(__file__)), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "rerun": "/usr/bin/python3 " + " ".join([os.path.relpath(os.path.abspath(__file__), L.REPO)] + [x if not os.path.isabs(x) else x for x in sys.argv[1:]]),
            "argv": sys.argv[1:], "mode": a.events, "knobs": knobs, "runtime_s": round(time.time() - t0, 1),
            "calibration": {"path": os.path.relpath(os.path.abspath(a.calib), L.REPO), "sha256": L.sha_file(a.calib)},
