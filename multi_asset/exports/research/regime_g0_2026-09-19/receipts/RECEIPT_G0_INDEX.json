@@ -1,0 +1,290 @@
+{
+ "stream": "G0 regime diagnostics — docs/PROGRAM_credible_replay_regime_optimization_2026-09-19.md §4 (FROZEN)",
+ "created_utc": "2026-09-19",
+ "session": "https://claude.ai/code/session_01KW6frfphbFmFzx7wUtGhLb",
+ "research_repo_HEAD_at_start": "d7a6cd87e828bdd9d05c1bdf4b8b0662e9fbcf4d",
+ "pod_root": "/workspace/regime_g0_2026-09-19 (pod2; only directory written on the pod)",
+ "interpreter": "/workspace/venv/bin/python (numpy 2.4.6)",
+ "devices": {
+  "g0_regime_tables.py": {
+   "sha256": "6f4487509df13e74f963b46fa0daba2c8382b52996474d860d641802053e9e00"
+  },
+  "g0_state_build.py": {
+   "sha256": "72f385147e80633f9fffb6ca202ee2f3d18e505b696b7ee2d0c946b602c4b5a0"
+  },
+  "run_g0_state.sh": {
+   "sha256": "909dc91bf56d974c1157621e08d8aad9e69ef6eb8641b1c4d5c220ade85dffa2"
+  },
+  "run_g0_tables.sh": {
+   "sha256": "a211a6c95781586986220f23adbab41ab5a7f0088eda6765eddc880779fe30eb"
+  }
+ },
+ "device_self_sha_in_receipts": {
+  "g0_state_build.py": "72f385147e80633f9fffb6ca202ee2f3d18e505b696b7ee2d0c946b602c4b5a0",
+  "g0_regime_tables.py": "6f4487509df13e74f963b46fa0daba2c8382b52996474d860d641802053e9e00"
+ },
+ "verbatim_rerun": [
+  "# on pod2, after copying devices/ to /workspace/regime_g0_2026-09-19/devices/ (the run scripts ARE the transcription; env -i whitelist inside)",
+  "sh /workspace/regime_g0_2026-09-19/devices/run_g0_state.sh    # -> out/g0_state_vars.npz + out/RECEIPT_g0_state_build.json (rc 0 = every check PASS)",
+  "sh /workspace/regime_g0_2026-09-19/devices/run_g0_tables.sh   # -> out/G0_TABLES.{json,md} + out/g0_labels.npz + out/RECEIPT_g0_regime_tables.json (refuses unless the published W_ALPHA numbers reproduce exactly)",
+  "# literal inner command lines (from the run scripts):",
+  "env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin HOME=/root OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 MKL_NUM_THREADS=4 nice -n 19 /workspace/venv/bin/python -B devices/g0_state_build.py out",
+  "env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin HOME=/root OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 MKL_NUM_THREADS=4 nice -n 19 /workspace/venv/bin/python -B devices/g0_regime_tables.py out out"
+ ],
+ "run_log": [
+  "START g0_state_build 2026-09-19T06:24:48Z: sh devices/run_g0_state.sh",
+  "g0_state_build rc=0 2026-09-19T06:26:17Z",
+  "START g0_regime_tables 2026-09-19T06:30:06Z: sh devices/run_g0_tables.sh",
+  "g0_regime_tables rc=0 2026-09-19T06:30:27Z",
+  "START g0_regime_tables v2 2026-09-19T06:33:19Z: sh devices/run_g0_tables.sh",
+  "g0_regime_tables rc=0 2026-09-19T06:33:50Z"
+ ],
+ "run_history_note": "g0_regime_tables.py ran twice: v1 ad2f1ba5 (06:30Z) and v2 6f448750 (of record). v2 only ADDS §6b (kNN realized check) and §8 (cell × year), decided after reading v1 because the kNN neighbours and the DISP/FDISP cells were time-clustered; the v1 and v2 G0_TABLES.md are byte-identical on every shared section (diff on sections 0-7 empty apart from the inserted §6b).",
+ "inputs": {
+  "state_build": {
+   "CACHE_X0910": {
+    "path": "/workspace/data/dlnative_5m_wide829_f16_holefix2_x0910.npz",
+    "sha256": "8115299410cd5e8df46ecc5ac7baf312d9f593d94f3b4c3dc46471bd37e00336"
+   },
+   "CACHE_HOLEFIX2": {
+    "path": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+    "sha256": "1d7f459dee434ec49e7714a2a612807f2e38e97f35c6c39471a8a4aaa7452488"
+   },
+   "HOLE_CELLS": {
+    "path": "/workspace/fp2_2026-09/holefix2_cells.npz",
+    "sha256": "6156f97a0709f073147e392d5b0cb542f6b6d463cc3be2500f8791a0d1a8dfda"
+   },
+   "TRADABILITY": {
+    "path": "/workspace/fx_data_2026-09-13/out/trd/tradability_v1.npz",
+    "sha256": "54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302"
+   },
+   "UMASK_ARM": {
+    "path": "/workspace/fx_data_2026-09-13/out/inject/umask_UPIT_CRYPTO_tradable_W24H.npz",
+    "sha256": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c"
+   },
+   "UPIT_CRYPTO_SEP": {
+    "path": "/workspace/fx_data_2026-09-13/out/uni03/umask_UPIT_CRYPTO_x0910_sep.npz",
+    "sha256": "de7c34d79d7047e34f577abd2ef825554e064193fda757f6857e352596e0e77b"
+   },
+   "PANEL_IVFIX": {
+    "path": "/workspace/uplift_r2_2026-09-13/T5d/panel/wide_panel_4h_v2ext_x0910_ivfix.npz",
+    "sha256": "a5d7fb9731b259e875d1d5229e23005c524635452d95c142e2c0d3aab2881f4e"
+   },
+   "PANEL_ARM": {
+    "path": "/workspace/data/wide_panel_4h_v2ext.npz",
+    "sha256": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116"
+   },
+   "META_V4": {
+    "path": "/workspace/fp2_2026-09/refute_C6_2/altrun/meta_newprod_v4.npz",
+    "sha256": "e1cf515eca46b0a1a7afe2bd6e89039cb68f4eea1a0428353e2f3aac989890a7"
+   },
+   "ARM_A0_S42": {
+    "path": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A0_dyn_s42.npz",
+    "sha256": "634f7c55ba730520371aab64b64b3b2b5c211422af6ab7b8bacb78e4d706060b"
+   }
+  },
+  "regime_tables": {
+   "JUDGE": {
+    "path": "/workspace/fp2_2026-09/devices_v4chain/fp2_per_year_table.py",
+    "sha256": "230e3c793cd92ddf78abf76198e39c8cdb3657696920f0290324ff4a9e7a882f"
+   },
+   "PUBLISHED": {
+    "path": "/workspace/fp2_2026-09/realcost/PER_YEAR_TABLE_REALCOST.json",
+    "sha256": "dc06ec3695dc4c4fe9ff7af72ac405696c85c3d13abbaf65ef46cfe17662fa28"
+   },
+   "ARM_A0/s42": {
+    "path": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A0_dyn_s42.npz",
+    "sha256": "634f7c55ba730520371aab64b64b3b2b5c211422af6ab7b8bacb78e4d706060b"
+   },
+   "ARM_A0/s2027": {
+    "path": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A0_dyn_s2027.npz",
+    "sha256": "c1f92ec24bb45c990427840831033e6cc136cc7ba02a86b00375a6dcf1f74081"
+   },
+   "ARM_A1/s42": {
+    "path": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A1_dyn_s42.npz",
+    "sha256": "a077ed6b8f7136edb637770d3d886190046475a0b50cbd8eacf1c0edd33bdae7"
+   },
+   "ARM_A1/s2027": {
+    "path": "/workspace/fp2_2026-09/realcost/arms/w10_ablation_series_V4_A1_dyn_s2027.npz",
+    "sha256": "d9f69a059a2f6a612c93ece19b922714f5204378bae059bd2aeca85de69852df"
+   },
+   "STATE_RECEIPT": {
+    "path": "out/RECEIPT_g0_state_build.json",
+    "sha256": "83e921e89cefb1b63b67ab0ac5d35e65abcf6ca28dd85a62abc6f1e6f455e42c",
+    "state_device_sha256": "72f385147e80633f9fffb6ca202ee2f3d18e505b696b7ee2d0c946b602c4b5a0"
+   },
+   "STATE_NPZ": {
+    "path": "out/g0_state_vars.npz",
+    "sha256": "52a9e89eb6de6d83b5d79cb9b8b6a7ab768bd31b89644a5590ae7fb8b7fb2fa0"
+   }
+  }
+ },
+ "reproduction_check": {
+  "A0/s42": {
+   "g": 0.5628432213053973,
+   "ci95": [
+    0.13635990778168033,
+    1.022268853219835
+   ],
+   "n": 9138,
+   "published_g": 0.5628432213053973,
+   "published_ci95": [
+    0.13635990778168033,
+    1.022268853219835
+   ],
+   "exact": true
+  },
+  "A0/s2027": {
+   "g": 0.6001866611774284,
+   "ci95": [
+    0.15840731101176422,
+    1.0529740408489965
+   ],
+   "n": 9138,
+   "published_g": 0.6001866611774284,
+   "published_ci95": [
+    0.15840731101176422,
+    1.0529740408489965
+   ],
+   "exact": true
+  },
+  "A1/s42": {
+   "g": 0.6166582123601877,
+   "ci95": [
+    0.1771146518212867,
+    1.0618431025415358
+   ],
+   "n": 9138,
+   "published_g": 0.6166582123601877,
+   "published_ci95": [
+    0.1771146518212867,
+    1.0618431025415358
+   ],
+   "exact": true
+  },
+  "A1/s2027": {
+   "g": 0.6313477750219423,
+   "ci95": [
+    0.18913015328858698,
+    1.0831393059590955
+   ],
+   "n": 9138,
+   "published_g": 0.6313477750219423,
+   "published_ci95": [
+    0.18913015328858698,
+    1.0831393059590955
+   ],
+   "exact": true
+  }
+ },
+ "checks": {
+  "state_build": {
+   "n": 28,
+   "failed": [],
+   "verdict": "PASS"
+  },
+  "regime_tables": {
+   "n": 22,
+   "failed": [],
+   "verdict": "PASS"
+  }
+ },
+ "outputs": {
+  "G0_TABLES.json": {
+   "sha256": "8969a42e37d1273112bdb484375d11a822f6664b6452a87b4b3352c12971230a",
+   "pod_copy_sha256_equal": true
+  },
+  "G0_TABLES.md": {
+   "sha256": "e0cfb48de0f1b61e3900fc79dde7c46f5e212a6c7c7ff17aa6d99a6c7a04418c",
+   "pod_copy_sha256_equal": true
+  },
+  "G0_TABLES_v1_ad2f1ba5.md": {
+   "sha256": "81c853b635f7176f7a20cac4605f1238f6a9551e7fdcd31913c34e2135651156",
+   "pod_copy_sha256_equal": null,
+   "note": "v1 G0_TABLES.md copied locally before the v2 run overwrote the pod file; kept so the 'shared sections identical' claim can be checked"
+  },
+  "RECEIPT_g0_regime_tables.json": {
+   "sha256": "892dc78aad0ec0d6c2b78017362e39b36704b83904df3d35d8ad8e1b626ae81f",
+   "pod_copy_sha256_equal": true
+  },
+  "RECEIPT_g0_state_build.json": {
+   "sha256": "83e921e89cefb1b63b67ab0ac5d35e65abcf6ca28dd85a62abc6f1e6f455e42c",
+   "pod_copy_sha256_equal": true
+  },
+  "g0_labels.npz": {
+   "sha256": "04cb06f47c15a4102a97d18a8a1061098507a6a422ed4a93cee221b695a414bb",
+   "pod_copy_sha256_equal": true
+  },
+  "g0_regime_tables.log": {
+   "sha256": "e68ed0b088e1fd6eb9c21e9e5ac1292a5db444dedb7d7dfef4484f20a456aa95",
+   "pod_copy_sha256_equal": true
+  },
+  "g0_state_build.log": {
+   "sha256": "72b49c623385f3c9f40118a48e2d65dfdff30065aa955c1c637f312331273058",
+   "pod_copy_sha256_equal": true
+  },
+  "g0_state_vars.npz": {
+   "sha256": "52a9e89eb6de6d83b5d79cb9b8b6a7ab768bd31b89644a5590ae7fb8b7fb2fa0",
+   "pod_copy_sha256_equal": true
+  },
+  "pod_commands.txt": {
+   "sha256": "f047fde6f5c07f70cffe2bca50edac037a1db44fee0d1d4edc4fb655b3ad2fc4",
+   "pod_copy_sha256_equal": true
+  }
+ },
+ "axis": {
+  "anchors": 10099,
+  "first": "2022-01-31T00:00Z",
+  "last": "2026-09-10T00:00Z",
+  "arm_anchors": 10039,
+  "arm_last": "2026-08-31T00:00Z"
+ },
+ "clip": {
+  "replaced_by_meta_y4_cells": 595,
+  "clip_cells_without_meta_set_nan": 3,
+  "examples_without_meta": [
+   [
+    "2026-09-03T00:00Z",
+    "AKEUSDT"
+   ],
+   [
+    "2026-09-05T04:00Z",
+    "BULLAUSDT"
+   ],
+   [
+    "2026-09-06T04:00Z",
+    "WOOUSDT"
+   ]
+  ]
+ },
+ "census_7d_window": {
+  "EXCL": {
+   "member_name_anchors": 2749866,
+   "r7_ineligible": 24280
+  },
+  "INCL": {
+   "member_name_anchors": 2749866,
+   "r7_ineligible": 496
+  }
+ },
+ "undefined_after_arm": {
+  "EXCL": {
+   "RG-TREND": 60,
+   "RG-BREADTH": 47,
+   "RG-DISP": 11,
+   "RG-FLEVEL": 0,
+   "RG-FDISP": 0,
+   "RG-VOL": 0,
+   "RG-ALT": 60
+  },
+  "INCL": {
+   "RG-TREND": 0,
+   "RG-BREADTH": 0,
+   "RG-DISP": 0,
+   "RG-FLEVEL": 0,
+   "RG-FDISP": 0,
+   "RG-VOL": 0,
+   "RG-ALT": 0
+  }
+ }
+}

@@ -1,0 +1,40 @@
+[     5s] CHECK input_sha.CACHE_X0910 OK {"expected": "8115299410cd", "got": "8115299410cd"}
+[     9s] CHECK input_sha.CACHE_HOLEFIX2 OK {"expected": "1d7f459dee43", "got": "1d7f459dee43"}
+[     9s] CHECK input_sha.HOLE_CELLS OK {"expected": "6156f97a0709", "got": "6156f97a0709"}
+[     9s] CHECK input_sha.TRADABILITY OK {"expected": "54d409d0ddf6", "got": "54d409d0ddf6"}
+[     9s] CHECK input_sha.UMASK_ARM OK {"expected": "3badc4b6a4fc", "got": "3badc4b6a4fc"}
+[     9s] CHECK input_sha.UPIT_CRYPTO_SEP OK {"expected": "de7c34d79d70", "got": "de7c34d79d70"}
+[     9s] CHECK input_sha.PANEL_IVFIX OK {"expected": "a5d7fb9731b2", "got": "a5d7fb9731b2"}
+[     9s] CHECK input_sha.PANEL_ARM OK {"expected": "5e67c0559daa", "got": "5e67c0559daa"}
+[    10s] CHECK input_sha.META_V4 OK {"expected": "e1cf515eca46", "got": "e1cf515eca46"}
+[    10s] CHECK input_sha.ARM_A0_S42 OK {"expected": "634f7c55ba73", "got": "634f7c55ba73"}
+[    10s] input shas verified
+[    10s] CHECK cache.channels OK ["ret5", "range", "cpos", "log_qv", "log_cnt", "log_avgsz", "tbf"]
+[    10s] CHECK cache.grid OK {"first": "2022-01-01T00:00Z", "last": "2026-09-11T00:00Z", "rows": 493633}
+[    39s] x0910 channels loaded (493633, 829, 2)
+[    39s] CHECK cache.holefix2_symbols_and_ts_prefix OK {"holefix2_rows": 490753, "last": "2026-09-01T00:00Z"}
+[    65s] holefix2 channels loaded (490753, 829, 2)
+[    82s] CHECK cache.x0910_prefix_equals_holefix2_ret5_logcnt OK {"rows": 490753}
+[    82s] CHECK cache.btc_never_at_clip_bound OK {"btc_max_abs_ret5": 0.1002197265625}
+[    82s] CHECK holes.symbols OK 
+[    82s] CHECK holes.ts_match_cache_rows OK {"cells": 1422720}
+[    82s] CHECK holes.row0_not_filled OK 
+[    85s] 4h intervals built 10284
+[    85s] CHECK meta.every_row_maps_to_an_interval OK {"meta_rows": 10212, "unmapped": 0}
+[    85s] CHECK meta.cache_intervals_equal_accounting_y4_off_clip OK {"cells_compared": 3479704, "max_abs_diff": 7.839753424221385e-08, "n_gt_1e-7": 0, "finite_cache_nan_meta": 0, "nan_cache_finite_meta": 62, "clip_cells_in_meta_span": 590, "clip_anchors_in_meta_span": 196, "max_abs_clip_vs_unclipped": 1.605778630448206}
+[    85s] clip handling 595 replaced, 3 NaN
+[    85s] CHECK trd.grid_equals_interval_ends OK 
+[    85s] CHECK axis.upit_symbols OK 
+[    85s] CHECK axis.every_anchor_on_interval_grid OK {"anchors": 10099, "first": "2022-01-31T00:00Z", "last": "2026-09-10T00:00Z"}
+[    85s] CHECK members.rebuild_equals_arm_umask_bitwise OK {"arm_anchors": 10039, "cells_differ": 0}
+[    85s] CHECK members.umask_subset_of_finite_qvk OK {"cells_member_without_qvk": 0}
+[    85s] CHECK members.arm_nmember_equals_member_count OK {"anchors": 10039}
+[    85s] CHECK fund.ivfix_axis OK 
+[    86s] CHECK fund.ivfix_prefix_equals_arm_panel OK {"rows": 10039}
+[    86s] anchor 0 / 10099 2022-01-31T00:00Z
+[    86s] anchor 2000 / 10099 2022-12-30T08:00Z
+[    87s] anchor 4000 / 10099 2023-11-28T16:00Z
+[    87s] anchor 6000 / 10099 2024-10-27T00:00Z
+[    87s] anchor 8000 / 10099 2025-09-25T08:00Z
+[    88s] anchor 10000 / 10099 2026-08-24T16:00Z
+[    88s] VERDICT PASS failed []
