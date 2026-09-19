@@ -94,7 +94,9 @@ def main():
         rcs = []
         for pid in pids:
             _, st = os.waitpid(pid, 0); rcs.append(os.waitstatus_to_exitcode(st))
-        m = BS.merge([f"{W}/p2/shard_w{w}.npz" for w in range(a.workers)] + shards_extra, f"{W}/P2_SCORES.npz", jobs)
+        import glob as _glob   # every shard of this run (also those of an earlier worker count, and the reuse shard)
+        allsh = sorted(p_ for p_ in _glob.glob(f"{W}/p2/shard_*.npz") if not p_.endswith(".tmp.npz"))
+        m = BS.merge(allsh, f"{W}/P2_SCORES.npz", jobs)
         m["worker_rc"] = rcs; m["reuse"] = reuse_doc; json.dump(m, open(f"{W}/P2_MERGE.json", "w"), indent=1); print("P2", json.dumps(m), flush=True)
         assert all(r == 0 for r in rcs) and m["n_missing"] == 0
     if "P3" in stages:

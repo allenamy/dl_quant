@@ -4,7 +4,7 @@ the scorer device f10_scorer_3520d363.py = production combo_stage.py lines 1..17
 sandbox per anchor (mini/ emptied ⇒ need=True). Inputs per anchor are exactly what the scorer reads from aux.json (prev_rec; ema acc; last
 funding rate) — recorded by pass P1 — plus the 40-day live-equivalent cache tail and the F10 fold chosen by the F10 rule (b_lib.f10_fold_for).
 Workers are forked from the launcher (cache shared copy-on-write); each keeps a resumable shard.  Same scorer code as GATE F."""
-import os, sys, json, time, shutil
+import os, sys, json, time, shutil, glob
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
@@ -65,9 +65,14 @@ def load_shard(path):
 
 def worker(w, jobs, G, P, shard_path, log_path):
     fea_src, reader_src, man = BD.stage_sources()
-    root = f"/dev/shm/object_b_p2/w{w}"; shutil.rmtree(root, ignore_errors=True)
+    # sandbox per run tag (runs of different tags may score at the same time; the path is not an input of the score — gate F sandboxes differ too)
+    tag = os.path.basename(os.path.dirname(os.path.dirname(os.path.abspath(shard_path))))
+    root = f"/dev/shm/object_b_p2/{tag}/w{w}"; shutil.rmtree(root, ignore_errors=True)
     ws = BL.make_sandbox(root, fea_src, BD.SRC["bundle_config"][0], BD.VENV_PY)
+    # resumable across a change of worker count: skip every anchor already scored in ANY shard of this run (own results kept in own shard)
     res = load_shard(shard_path); done = {r[0] for r in res}; cur_model = None
+    for p_ in glob.glob(os.path.join(os.path.dirname(os.path.abspath(shard_path)), "shard_*.npz")):
+        if os.path.abspath(p_) != os.path.abspath(shard_path) and not p_.endswith(".tmp.npz"): done |= {r[0] for r in load_shard(p_)}
     lf = open(log_path, "a"); t_start = time.time(); n_new = 0
     for (A, i, Y) in jobs:
         if A in done: continue
@@ -101,13 +106,18 @@ def worker(w, jobs, G, P, shard_path, log_path):
 
 
 def merge(shards, out_path, jobs):
-    allr = {}
+    allr = {}; n_dup = 0; dup_unequal = []
     for p in shards:
-        for r in load_shard(p): allr[r[0]] = r
+        for r in load_shard(p):
+            if r[0] in allr:   # the same anchor scored twice (worker-count change): the two scores must be identical
+                n_dup += 1; q = allr[r[0]]
+                if not (q[1] == r[1] and q[4] == r[4] and np.array_equal(q[2], r[2]) and np.array_equal(q[3], r[3], equal_nan=True)): dup_unequal.append(BL.iso(r[0]))
+            allr[r[0]] = r
+    assert not dup_unequal, ("an anchor scored twice with different results", dup_unequal[:5])
     want = {j[0] for j in jobs}; missing = sorted(want - set(allr))
     res = [allr[a] for a in sorted(allr)]
     save_shard(out_path, res)
-    return {"n_scored_anchors": len(res), "n_jobs": len(want), "missing": [BL.iso(a) for a in missing[:20]], "n_missing": len(missing),
+    return {"n_scored_anchors": len(res), "n_jobs": len(want), "n_shards": len(shards), "n_anchor_scored_twice_identical": n_dup, "missing": [BL.iso(a) for a in missing[:20]], "n_missing": len(missing),
             "okf_min_median_max": [int(min(r[6] for r in res)), float(np.median([r[6] for r in res])), int(max(r[6] for r in res))] if res else None,
             "seconds_per_anchor_median": float(np.median([r[5] for r in res])) if res else None}
 
