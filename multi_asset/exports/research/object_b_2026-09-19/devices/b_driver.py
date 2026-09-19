@@ -30,8 +30,26 @@ SRC = {"cache": ("/workspace/data/dlnative_5m_wide829_f16_holefix2.npz", "1d7f45
        "bundle_config": ("/workspace/shadow_bundle_v3/config.json", "3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e"),
        "bundle_leg_returns": ("/workspace/shadow_bundle_v3/leg_returns.npz", "6061af108e45fee5ea0257b37f35e9efd0783d494934cad398e003fd47de7c13"),
        "king_meta_v2ext": ("/workspace/data/wide_fea_v2ext_meta.npz", "4b1b6047107d25573244a84df69d45bc987ada89b6731e826c867a230e247082")}
-KING_FOLD_FILES = {2023: f"{R}/models/king_v3_fold2023.txt", 2024: f"{R}/models/king_v3_fold2024.txt", 2025: f"{R}/models/king_v3_fold2025.txt",
-                   2026: "/workspace/shadow_bundle_v3/slow2026.txt"}
+ARM = os.environ.get("OBJB_ARM", "A0")    # AMENDMENT 5: "A0" = in-service recipe (default, unchanged); "V4" = v4 refit recipe
+assert ARM in ("A0", "V4"), ARM
+SRC["king_meta_v4"] = ("/workspace/data/wide_fea_v4_meta.npz", "12ea42c4557093f10f954f648db9239f4dd8283ea365ba299f31bd81e7e5ab51")
+if ARM == "A0":
+    KING_FOLD_FILES = {2023: f"{R}/models/king_v3_fold2023.txt", 2024: f"{R}/models/king_v3_fold2024.txt", 2025: f"{R}/models/king_v3_fold2025.txt",
+                       2026: "/workspace/shadow_bundle_v3/slow2026.txt"}
+    KING_META_KEY = "king_meta_v2ext"
+else:
+    KING_FOLD_FILES = {2023: f"{R}/models/king_v4_fold2023.txt", 2024: f"{R}/models/king_v4_fold2024.txt", 2025: f"{R}/models/king_v4_fold2025.txt",
+                       2026: "/workspace/shadow_bundle_v4/slow2026.txt"}
+    KING_META_KEY = "king_meta_v4"
+DATA = os.environ.get("OBJB_DATA", "holefix2")   # AMENDMENT 4 A4.4 extension segment: "x0918r" = cache x0918r + ledger/universe extended (mk_ext_inputs.py)
+assert DATA in ("holefix2", "x0918r"), DATA
+if DATA == "x0918r":
+    # the only x0918r components read: the cache (variant-diff C1 PASS: 2,876,251,147 cells outside the replaced 08-31 rows bit-identical to x0918,
+    # which is bit-identical to holefix2 on its 490,753 rows) and tradability (bebf69ab, identical in x0918 and x0918r, C3)
+    SRC["cache"] = ("/workspace/axis_0919/x0918r/data/dlnative_5m_wide829_f16_holefix2_x0918r.npz", "08bb295745e6df84cb42574ef073dc54817a19ad7754bf6319cfcb30bd9baa75")
+    SRC["ledger"] = (f"{R}/work/ext_inputs/ledger_ext.npz", "155ce179652323a7567723b5f680fbfb938cbfd8ea7ecc277e7945a9c0027724")
+    SRC["universe"] = (f"{R}/work/ext_inputs/universe_ext.npz", "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f")
+    SRC["tradability"] = ("/workspace/axis_0919/x0918r/trd/tradability_v1.npz", "bebf69ab9ddb3b05b49552e66dccf9b8cde3caee0593b14e1b3fe1a4c93c9db8")
 KING_LIVE_FILE = "/workspace/shadow_bundle_v3/slow2026.txt"; KING_LIVE_SHA = "8d79186b6380132cb67684acf1ebfcdb2c53261c850f46a4908b06bfa7a81282"
 F10_FOLD_FILES = {Y: f"{R}/models/f10_ins_fold{Y}_s42_np.npz" for Y in (2023, 2024, 2025, 2026)}
 STAGE = f"{R}/gate_inputs"          # sha-verified copies of the production fea171 pipeline, xfer files, reader modules (manifest in STAGE_MANIFEST.json)
@@ -55,7 +73,17 @@ def stage_sources():
 
 def f10_folds_registry():
     reg = {}
-    for Y, p in F10_FOLD_FILES.items():
+    if ARM == "A0":
+        files = F10_FOLD_FILES
+    else:   # AMENDMENT 5 A5.2: monthly FIX7 folds whose reproduction receipt PASSes (B_REPRO for 2025–2026, M_REPRO_V4 new folds for 2023–2024)
+        files = {}
+        b = json.load(open(f"{R}/receipts/B_REPRO.json")); assert b["B_REPRO_VERDICT"] == "PASS"
+        for ym, f in b["folds"].items():
+            if f["PASS"]: files[int(ym)] = f["np_export"]
+        m = json.load(open(f"{R}/receipts/M_REPRO_V4.json"))
+        for ym, f in m["new_folds"].items():
+            if f.get("PASS"): files[int(ym)] = f["np_export"]
+    for Y, p in files.items():
         if not os.path.exists(p): continue
         z = np.load(p); tt = int(z["trained_through"])
         reg[Y] = {"np": p, "sha256": BL.sha(p), "trained_through": tt, "label_end": tt + BL.H4}
@@ -85,7 +113,13 @@ class Globals:
         self.L_off = L["off"]; self.L_ft = L["ft"]; self.L_rate = L["rate"]
         U = np.load(SRC["universe"][0], allow_pickle=True); assert [str(s) for s in U["symbols"]] == self.SYMS
         self.U_ts = U["ts"].astype(np.int64); self.U_row = {int(t): i for i, t in enumerate(self.U_ts)}; self.U_pit = U["pit"]; self.U_tr24 = U["trading24"]
-        self.king_label_end = BL.king_label_ends(SRC["king_meta_v2ext"][0])
+        self.king_label_end = BL.king_label_ends(SRC[KING_META_KEY][0]); self.arm = ARM
+        if ARM == "V4":   # AMENDMENT 5: king files = the K-REPRO-v4 receipt's folds (2023–2025) + the in-service v4 bundle slow2026 (its input pin)
+            kr = json.load(open(f"{R}/receipts/K_REPRO_v4.json")); assert kr["gate_ok_to_use"] is True
+            want = {int(y): kr["folds"][str(y)]["model_sha256"] for y in (2023, 2024, 2025)}; want[2026] = kr["inputs_sha256"]["slow2026"]
+            for y, f in KING_FOLD_FILES.items():
+                assert BL.sha(f) == want[y], ("V4 king fold sha", y)
+                assert self.king_label_end[y] == int(kr["folds"][str(y)]["label_end_ts"]), ("V4 king label_end", y)
         self.f10 = f10_folds_registry()
         self.load_s = round(time.time() - t0, 1)
 
@@ -261,7 +295,7 @@ def run_chain(mode, G, anchors, rh, out_prefix, scores=None, log_every=100, chec
     if mode == "P3":
         for n, p in fea_src.items(): shutil.copy2(p, f"{rh}/fea171/{n}")
         idsha = BL.write_identity_model(f"{rh}/fea171/f10_live_s42_np.npz")
-    cfg = copy.deepcopy(G.cfg_raw); cfg["_booster_sha"] = "OBJECT_B:king_v3_folds"
+    cfg = copy.deepcopy(G.cfg_raw); cfg["_booster_sha"] = "OBJECT_B:king_v3_folds" if ARM == "A0" else "OBJECT_B:king_v4_folds"
     booster = BL.FoldBooster("folds", KING_FOLD_FILES, G.king_label_end)
     st = cold_state(dev, cfg, anchors[0]); fx = dev.ReplayFetcher([], {})
     recs = []; P1 = {"anchor": [], "pm": [], "legz": [], "sm": [], "sm_idx": [], "fe": [], "fn": []}
@@ -360,7 +394,7 @@ def pack(lst):
 
 def dump(mode, out_prefix, G, recs, P1, VEC, fatal=None, partial=False):
     tag = ".partial" if partial else ""
-    doc = {"mode": mode, "comparison_type": "(1) historical recipe — object B", "inputs_sha256": G.shas, "devices": PIN_DEV,
+    doc = {"mode": mode, "arm": ARM, "data": DATA, "comparison_type": "(1) historical recipe — object B", "inputs_sha256": G.shas, "devices": PIN_DEV,
            "king_folds": {str(k): {"file": v, "sha256": BL.sha(v), "label_end": BL.iso(G.king_label_end[k])} for k, v in KING_FOLD_FILES.items()},
            "f10_folds": {str(k): {kk: (BL.iso(vv) if kk in ("label_end", "trained_through") else vv) for kk, vv in v.items()} for k, v in G.f10.items()},
            "live_equiv_changed_cells_by_year": G.le_changed, "python": sys.version.split()[0], "numpy": np.__version__,

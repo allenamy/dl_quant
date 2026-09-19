@@ -19,6 +19,7 @@ import b_driver as BD
 tag = sys.argv[1]; W = f"{BD.R}/work/{tag}"
 D = json.load(open(f"{W}/P3.json")); recs = D["records"]; Z = np.load(f"{W}/P3.vec.npz"); V = {k: Z[k] for k in Z.files}
 assert len(recs) == len(V["anchor"]) and all(int(r["anchor"]) == int(a) for r, a in zip(recs, V["anchor"]))
+assert D.get("arm", "A0") == BD.ARM and D.get("data", "holefix2") == BD.DATA, ("run the targets with the run's OBJB_ARM / OBJB_DATA", D.get("arm"), D.get("data"))
 G = BD.Globals(load_cache=False); LE = G.LE
 yr = lambda A: str(time.gmtime(int(A)).tm_year)
 
@@ -74,7 +75,7 @@ doc = {"tag": tag, "comparison_type": "(1) historical recipe — object B (targe
        "f10_first_served": BL.iso(f10_first) if f10_first else None, "B_CORE_start": BL.iso(bcore) if bcore else None,
        "B_CORE_rule": "first anchor whose last 900 king LR entries all come from king-served anchors (PREREG §4)",
        "PRE_window": ["2022-06-30T00:00:00Z", BL.iso(bcore - BL.H4) if bcore else None, "PARTIAL_RECIPE — seat warm-up / missing legs; not the production strategy"],
-       "tradability_sha256": G.shas["tradability"], "self_sha256": BL.sha(os.path.abspath(__file__)), "utc": BL.iso(time.time())}
+       "arm": BD.ARM, "data": BD.DATA, "tradability_sha256": G.shas["tradability"], "self_sha256": BL.sha(os.path.abspath(__file__)), "driver_sha256": BL.sha(f"{HERE}/b_driver.py"), "lib_sha256": BL.sha(f"{HERE}/b_lib.py"), "utc": BL.iso(time.time())}
 np.savez_compressed(f"{W}/TARGETS_{tag}.npz", **out)
 doc["targets_npz_sha256"] = BL.sha(f"{W}/TARGETS_{tag}.npz")
 json.dump(doc, open(f"{BD.R}/receipts/TARGETS_{tag}.json", "w"), indent=1)

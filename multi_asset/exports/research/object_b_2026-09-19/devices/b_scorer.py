@@ -29,6 +29,14 @@ def p1_inputs(P, i, syms, A):
     return pm, {"prev_close": {}, "H": {}, "last_anchor": int(A), "ema": ema, "ledger_tail": led, "base_syms": [], "prev_rec": prev_rec}
 
 
+def same_inputs(P, i, Q, k):
+    """every scorer input recorded by P1 for P's anchor i equals Q's anchor k bitwise (members, leg z, seat vector, fund ema acc, last rate)."""
+    for key in ("pm", "legz", "sm", "sm_idx"):
+        a = P[key][P[key + "_off"][i]:P[key + "_off"][i + 1]]; b = Q[key][Q[key + "_off"][k]:Q[key + "_off"][k + 1]]
+        if a.dtype != b.dtype or not np.array_equal(a, b): return False
+    return bool(np.array_equal(P["fe"][i], Q["fe"][k], equal_nan=True) and np.array_equal(P["fn"][i], Q["fn"][k], equal_nan=True))
+
+
 def jobs_from_p1(G, P):
     jobs = []
     for i, A in enumerate(P["anchor"]):

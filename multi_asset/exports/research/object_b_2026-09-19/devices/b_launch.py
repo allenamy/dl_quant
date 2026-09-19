@@ -20,14 +20,18 @@ def ts(s): return calendar.timegm(time.strptime(s, "%Y-%m-%dT%H:%M:%SZ"))
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--tag", required=True); ap.add_argument("--start", default="2022-01-31T00:00:00Z")
-    ap.add_argument("--end", default="2026-08-31T00:00:00Z"); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--stages", default="P1,P2,P3")
+    ap.add_argument("--end", default="2026-08-31T00:00:00Z"); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--stages", default="P1,P2,P3"); ap.add_argument("--p1-from", dest="p1_from", default=None); ap.add_argument("--reuse-p2", dest="reuse_p2", default=None)
     a = ap.parse_args(); R = BD.R; W = f"{R}/work/{a.tag}"; os.makedirs(f"{W}/p2", exist_ok=True)
     gate = json.load(open(f"{R}/receipts/GATE_F.json")); assert gate["VERDICT"] == "PASS", "GATE F has not passed: no history run"
     krep = json.load(open(f"{R}/receipts/K_REPRO.json")); frep = json.load(open(f"{R}/receipts/F_REPRO.json"))
     t0 = time.time(); G = BD.Globals(load_cache=True)
-    assert set(G.f10) == {2023, 2024, 2025, 2026}, ("F10 fold models missing", sorted(G.f10))
+    if BD.ARM == "A0":
+        assert set(G.f10) == {2023, 2024, 2025, 2026}, ("F10 fold models missing", sorted(G.f10))
+    else:
+        want = {y * 100 + m for y in (2023, 2024, 2025) for m in range(1, 13)} | {202600 + m for m in range(1, 9)}
+        assert set(G.f10) == want, ("V4 monthly F10 folds missing", sorted(want - set(G.f10)))
     anchors = [int(x) for x in G.U_ts if ts(a.start) <= int(x) <= ts(a.end)]
-    cfg = {"tag": a.tag, "comparison_type": "(1) historical recipe — object B", "prereg": "docs/PREREG_object_B_recipe_oof_and_object_A_paper_2026-09-19.md (3f9d7cc50 + AMENDMENT 1 f4ad35ce2 + AMENDMENT 2 c2a4891be + AMENDMENT 3 874cfd112 + AMENDMENT 4 d5edc2188)",
+    cfg = {"tag": a.tag, "arm": BD.ARM, "comparison_type": "(1) historical recipe — object B", "prereg": "docs/PREREG_object_B_recipe_oof_and_object_A_paper_2026-09-19.md (3f9d7cc50 + AMENDMENT 1 f4ad35ce2 + AMENDMENT 2 c2a4891be + AMENDMENT 3 874cfd112 + AMENDMENT 4 d5edc2188" + (" + AMENDMENT 5 9e0ff3bc0 (v4 arm)" if BD.ARM == "V4" else "") + ")",
            "argv": sys.argv, "anchors": [BL.iso(anchors[0]), BL.iso(anchors[-1]), len(anchors)], "workers": a.workers, "stages": a.stages,
            "inputs_sha256": G.shas, "devices": BD.PIN_DEV, "lib_sha256": BL.sha(f"{HERE}/b_lib.py"), "driver_sha256": BL.sha(f"{HERE}/b_driver.py"),
            "scorer_sha256": BL.sha(f"{HERE}/b_scorer.py"), "launcher_sha256": BL.sha(os.path.abspath(__file__)),
@@ -40,7 +44,13 @@ def main():
            "data_version": ("holefix2 1d7f459d; anchors <= 2026-08-31 00Z read rows <= 2026-08-31 00:00Z only, where holefix2 == x0918 (stream D prefix proof, "
                             "0a2e00895) and == x0918r (which replaces only the 08-31 00:05Z -> 09-01 00:00Z hole-filled rows); the 08-31 04Z -> 09-18 20Z segment is a "
                             "separate run on x0918r (AMENDMENT 4 A4.4)"),
-           "gate_f_verdict": gate["VERDICT"], "gate_f_disclosure": gate.get("disclosure")}
+           "gate_f_verdict": gate["VERDICT"], "gate_f_disclosure": gate.get("disclosure"), "data": BD.DATA}
+    if BD.DATA == "x0918r":
+        cfg["data_version"] = ("x0918r cache 08bb2957 (variant-diff C1 PASS: bit-identical to x0918 outside the replaced 2026-08-31 00:05Z -> 09-01 00:00Z rows; "
+                               "x0918 bit-identical to holefix2 on its rows) + ledger_ext 155ce179 (ledger_full rows <= 2026-08-31 00Z, stream-D 74b69e63 after) + "
+                               "universe_ext 3ee838cf (PIT to 08-31 00Z; config symbols_live 93ad1d25 after) + tradability bebf69ab; anchors <= 2026-08-31 00Z read "
+                               "exactly the A0 inputs (asserted through P1 input equality before any P2 score is reused, and P3 target equality after)")
+        cfg["ext_inputs_receipt_sha256"] = BL.sha(f"{R}/receipts/EXT_INPUTS.json")
     json.dump(cfg, open(f"{R}/receipts/RUN_CONFIG_{a.tag}.json", "w"), indent=1)
     print("RUN_CONFIG", json.dumps(cfg["anchors"]), "load", round(time.time() - t0, 1), "s", flush=True)
     stages = a.stages.split(",")
@@ -60,14 +70,32 @@ def main():
         pid = fork_run(BD.run_chain, "P1", G, anchors, f"{W}/rh_p1", f"{W}/P1")
         _, st = os.waitpid(pid, 0); rc = os.waitstatus_to_exitcode(st); print("P1 rc", rc, flush=True); assert rc == 0
     if "P2" in stages:
-        P = BS.load_p1(f"{W}/P1"); jobs = BS.jobs_from_p1(G, P)
-        parts = [jobs[w::a.workers] for w in range(a.workers)]
+        p1 = f"{W}/P1"
+        if a.p1_from:   # AMENDMENT 5: members / fund state do not depend on the king model; P3 re-asserts member equality with the scores at every anchor
+            p1 = f"{BD.R}/work/{a.p1_from}/P1"; cfg["p1_reused_from"] = {"tag": a.p1_from, "vec_sha256": BL.sha(p1 + ".vec.npz")}
+            json.dump(cfg, open(f"{R}/receipts/RUN_CONFIG_{a.tag}.json", "w"), indent=1)
+        P = BS.load_p1(p1); jobs = BS.jobs_from_p1(G, P); run_jobs = jobs; shards_extra = []; reuse_doc = None
+        if a.reuse_p2:   # extension run: an earlier run's score is reused only where every scorer input of that anchor is bitwise equal
+            Po = BS.load_p1(f"{R}/work/{a.reuse_p2}/P1"); oi = {int(x): i for i, x in enumerate(Po["anchor"])}
+            osc = {r[0]: r for r in BS.load_shard(f"{R}/work/{a.reuse_p2}/P2_SCORES.npz")}
+            reuse, run_jobs, differ = [], [], []
+            for (A_, i_, Y_) in jobs:
+                io_ = oi.get(A_); r_ = osc.get(A_)
+                if io_ is not None and r_ is not None and r_[1] == Y_ and r_[4] == G.f10[Y_]["sha256"] and BS.same_inputs(P, i_, Po, io_): reuse.append(r_)
+                else:
+                    run_jobs.append((A_, i_, Y_))
+                    if io_ is not None and r_ is not None: differ.append(BL.iso(A_))
+            BS.save_shard(f"{W}/p2/shard_reuse.npz", reuse); shards_extra = [f"{W}/p2/shard_reuse.npz"]
+            reuse_doc = {"tag": a.reuse_p2, "p2_scores_sha256": BL.sha(f"{R}/work/{a.reuse_p2}/P2_SCORES.npz"), "p1_vec_sha256": BL.sha(f"{R}/work/{a.reuse_p2}/P1.vec.npz"),
+                         "n_reused": len(reuse), "n_scored_here": len(run_jobs), "n_prior_anchor_inputs_differ": len(differ), "prior_anchor_inputs_differ": differ[:50]}
+            cfg["p2_reuse"] = reuse_doc; json.dump(cfg, open(f"{R}/receipts/RUN_CONFIG_{a.tag}.json", "w"), indent=1); print("P2 reuse", json.dumps(reuse_doc), flush=True)
+        parts = [run_jobs[w::a.workers] for w in range(a.workers)]
         pids = [fork_run(BS.worker, w, parts[w], G, P, f"{W}/p2/shard_w{w}.npz", f"{W}/p2/worker_w{w}.log") for w in range(a.workers)]
         rcs = []
         for pid in pids:
             _, st = os.waitpid(pid, 0); rcs.append(os.waitstatus_to_exitcode(st))
-        m = BS.merge([f"{W}/p2/shard_w{w}.npz" for w in range(a.workers)], f"{W}/P2_SCORES.npz", jobs)
-        m["worker_rc"] = rcs; json.dump(m, open(f"{W}/P2_MERGE.json", "w"), indent=1); print("P2", json.dumps(m), flush=True)
+        m = BS.merge([f"{W}/p2/shard_w{w}.npz" for w in range(a.workers)] + shards_extra, f"{W}/P2_SCORES.npz", jobs)
+        m["worker_rc"] = rcs; m["reuse"] = reuse_doc; json.dump(m, open(f"{W}/P2_MERGE.json", "w"), indent=1); print("P2", json.dumps(m), flush=True)
         assert all(r == 0 for r in rcs) and m["n_missing"] == 0
     if "P3" in stages:
         scores = BS.as_dict(f"{W}/P2_SCORES.npz")
