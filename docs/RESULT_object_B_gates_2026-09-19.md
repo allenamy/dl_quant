@@ -1,4 +1,4 @@
-> **创建:** 2026-09-19 | **Session:** https://claude.ai/code/session_01KW6frfphbFmFzx7wUtGhLb(R5-05 实施子代理) | **状态:** 门 F(平价门)按预注册判据 = **FAIL**(负控 NC1 在 5/12 锚未变红); 实时等价缓存保持门 LE-A′ = **FAIL**(§5); 门 F 第二次(AMENDMENT 3)= **FAIL**, NC1r 34/36, 机制为中性带吸收(§6) ⇒ **按指令停止, 未跑任何对象 B 历史**; 三个复现门 K-REPRO / F-REPRO / B-REPRO 已出; 模型产物已存盘; 待 lead 对负控修订裁定 | **作废条件:** 预注册 `docs/PREREG_object_B_recipe_oof_and_object_A_paper_2026-09-19.md`(3f9d7cc50 / AMENDMENT 1 f4ad35ce2 / AMENDMENT 2 c2a4891be)被撤回; 快照或存档 tar 33910c01 被改写; 本文列出的任一装置或模型 sha 与入库文件不符
+> **创建:** 2026-09-19 | **Session:** https://claude.ai/code/session_01KW6frfphbFmFzx7wUtGhLb(R5-05 实施子代理) | **状态:** 门 F(平价门)按预注册判据 = **FAIL**(负控 NC1 在 5/12 锚未变红); 实时等价缓存保持门 LE-A′ = **FAIL**(§5); 门 F 第二次(AMENDMENT 3)= **FAIL**, NC1r 34/36, 机制为中性带吸收(§6); **门 F 第三次(AMENDMENT 4)= PASS**(§7; 同一门在修订控制后的第三次运行, 平价判据从未改变, 修订写于看到失败之后) ⇒ **按指令停止, 未跑任何对象 B 历史**; 三个复现门 K-REPRO / F-REPRO / B-REPRO 已出; 模型产物已存盘; 待 lead 对负控修订裁定 | **作废条件:** 预注册 `docs/PREREG_object_B_recipe_oof_and_object_A_paper_2026-09-19.md`(3f9d7cc50 / AMENDMENT 1 f4ad35ce2 / AMENDMENT 2 c2a4891be)被撤回; 快照或存档 tar 33910c01 被改写; 本文列出的任一装置或模型 sha 与入库文件不符
 
 # 结果: 对象 B 的平价门与三个复现门(无任何收益数字)
 
@@ -134,3 +134,33 @@
   - 基名单 = trading24 ∩ COIN ∪ live;
   - 未运行。
 - **数据版本**: 链轴 ≤ 2026-08-31 00Z 只读到 08-31 00:00 及以前的行, 那里 holefix2 = x0918 = x0918r。延长段 08-31 04Z → 09-18 20Z 缺 PIT 宇宙掩码的延长: 流 D 文档写明 UPIT_CRYPTO 止于 08-31T00Z, 延长是宇宙政策问题, 本文不自建。
+
+## §7 门 F 第三次运行(AMENDMENT 4, d5edc2188)= **PASS**
+
+> **third run of the same gate after control revisions; the parity criterion was never changed; revisions were written after seeing the failures**
+> (权重层平价判据三次运行从未改变; AMENDMENT 2 在第一次运行的第 1 锚后澄清了两个元数据键, 已在该修订内披露。第一、二次 FAIL 的判词与收据原样保留在 `receipts/gate_f/run1_NC1orig/`(GATE_F.json sha e7e526dd)与 `receipts/gate_f/run2_amend3/`(2d3ecb54); 本次 `receipts/GATE_F.json` sha 916b109f, `gate_history` 三次并列。是否接受这一处置由独立研究员裁决。)
+
+**本次各项:**
+
+| 项 | 结果 |
+|---|---|
+| F-1 最终目标 | max\|Δw\| = 0.0(12/12) |
+| 正控 | 0.0(12/12) |
+| F-2 | 0.0(11/11); king 权重、prev_rec、LR 尾部逐位 |
+| weights_sha | 全等 |
+| **带后 fc 状态对存档** | F-1 **12/12** 逐位, F-2 **11/11** 逐位(存档在 12 个锚上都有) |
+| 带前 fc 状态对存档 | **0/12 有存档**: 生产从不存, 逐锚具名见 `anchors_without_archived_preband_state`, 不作证据 |
+| 插桩中立性 | 12/12(插桩基线的目标与三个状态文件 == 同锚 F-1 输出) |
+| **NC1r(带前 fc 状态改变)** | **36/36** |
+| NC1′(最终目标) | 12/12 |
+| NC2 | 11/11 |
+
+**只报(不进判词):**
+- kc 与 f10 状态对存档: 12/12 逐位。
+- 注入路径的带前 fc / kc 状态 vs 插桩真管线(在役模型): 12/12 逐位。
+- NC1r 的最终目标在 34/36 抽上改变: 两抽被中性带吸收, 同第二次运行。
+- 原 NC1 7/12。
+
+**⇒ 按 lead 裁定依序进行**: A0 全史(主链到 2026-08-31 00Z, R0 缓存, 基名单 trading24 ∩ COIN ∪ live, 每年死名暴露)→ v4 重训臂 → 报告。
+
+**09-01 → 09-18 段的宇宙(A4.4)**: 存档 143 个 target_live(08-26 00Z → 09-18 20Z)的 `universe_sha` 只有一个值 93ad1d25…(450 名), 文件内嵌名单的哈希与之相符。`~/wide_shadow/shadow_bundle/config.json`(3a8422f3, 即已钉的 bundle 配置)的 symbols_live 哈希 = 93ad1d25 ⇒ 按 sha 取回, 该段可出数, 不是 UNAVAILABLE。该段还等 x0918r 差分证明、延长的资金费与 trading24 输入; 估值等原始价格延长收据。

@@ -25,6 +25,28 @@ LIVE_F10_SHA = "351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4
 FP26_PATCH_UTC = "2026-09-17T16:00:00Z"
 COL = {s: j for j, s in enumerate(json.load(open(BD.SRC["bundle_config"][0]))["symbols_panel"])}
 COLN = {j: s for s, j in COL.items()}
+PREBAND_DEV_SHA = "f4ebf253a3a8c392d2b617d506db1ad993b78aee8a7e66c5a61ec9c4039ad755"
+DISCLOSURE = "third run of the same gate after control revisions; the parity criterion was never changed; revisions were written after seeing the failures"
+
+
+def state_compare(ws, A):
+    """AMENDMENT 4 A4.3: replayed state_H_<leg>_<A>.npz vs the archived production file (post-band states; production never stores pre-band)."""
+    out = {}
+    for leg in ("fc", "kc", "f10"):
+        ap = f"{STAGE}/archive/fea171/state_H_{leg}_{A}.npz"; rp = f"{ws}/fea171/state_H_{leg}_{A}.npz"
+        if not os.path.exists(ap): out[leg] = {"archived": False}; continue
+        if not os.path.exists(rp): out[leg] = {"archived": True, "replayed": False, "bitwise": False}; continue
+        a = np.load(ap); b = np.load(rp)
+        same_idx = np.array_equal(a["idx"], b["idx"]); bit = bool(same_idx and np.array_equal(a["val"], b["val"]) and int(a["anchor"]) == int(b["anchor"]) == A)
+        out[leg] = {"archived": True, "replayed": True, "idx_equal": bool(same_idx), "bitwise": bit,
+                    "max_abs": float(np.abs(a["val"] - b["val"]).max()) if same_idx and len(a["val"]) else (0.0 if same_idx else None)}
+    return out
+
+
+def keep_outputs(ws, A, dst):
+    os.makedirs(dst, exist_ok=True)
+    for f in (f"{ws}/state/target_live_combo/{A}.json", f"{ws}/fea171/state_H_fc_{A}.npz", f"{ws}/fea171/state_H_kc_{A}.npz", f"{ws}/fea171/state_H_f10_{A}.npz"):
+        if os.path.exists(f): shutil.copy2(f, dst)
 
 
 def child_maxrss_mb(): return round(resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss / 1024.0, 1)
@@ -52,8 +74,9 @@ def run_scorer(root, ws, A, model_path):
     return {"pm": z["pm"].astype(np.int64), "f10": z["f10_pm"].astype(np.float64), "okf": int(z["okf"].sum()), "model_sha": str(z["model_sha"]), "s": dt}
 
 
-def run_combo(root, ws, A, mode, scores=None, model_path=None):
-    """mode 'pipeline' (need=True, real model) or 'inject' (identity model + rank injection)."""
+def run_combo(root, ws, A, mode, scores=None, model_path=None, preband_out=None):
+    """mode 'pipeline' (need=True, real model) or 'inject' (identity model + rank injection). preband_out => the AMENDMENT 4 instrumented copy
+    (record-only insertions) writes the pre-band chain() states there."""
     BD.clear_combo_outputs(ws, A); BL.clear_mini(f"{ws}/fea171")
     for f in os.listdir(f"{ws}/fea171"):
         if f.startswith("state_H_") and f.endswith(f"_{A}.npz"): os.remove(f"{ws}/fea171/{f}")
@@ -61,7 +84,12 @@ def run_combo(root, ws, A, mode, scores=None, model_path=None):
     else:
         BL.write_identity_model(f"{ws}/fea171/f10_live_s42_np.npz"); BL.write_f10_injection(f"{ws}/fea171", A, scores["pm"], scores["f10"])
     env = dict(BD.combo_env(ws, root)); env["_PY"] = BD.VENV_PY
-    rc, lines, dt = BL.run_device(f"{HERE}/combo_stage_replay_3520d363.py", f"{ws}/fea171", env, f"{root}/combo_{mode}_{A}.log")
+    dev_file = "combo_stage_replay_3520d363.py"
+    if preband_out:
+        env["PREBAND_OUT"] = preband_out; dev_file = "combo_stage_replay_3520d363_preband.py"
+        assert BL.sha(f"{HERE}/{dev_file}") == PREBAND_DEV_SHA
+        if os.path.exists(preband_out): os.remove(preband_out)
+    rc, lines, dt = BL.run_device(f"{HERE}/{dev_file}", f"{ws}/fea171", env, f"{root}/combo_{mode}_{A}.log")
     tl = f"{ws}/state/target_live_combo/{A}.json"
     st = json.load(open(f"{ws}/state/combo_live_status.json")) if os.path.exists(f"{ws}/state/combo_live_status.json") else None
     tc = json.load(open(f"{ws}/state/target_combo/{A}.json")) if os.path.exists(f"{ws}/state/target_combo/{A}.json") else {}
@@ -130,9 +158,11 @@ def gate_anchor(A):
     sc = run_scorer(r1, ws1, A, live_model); res["scorer"] = {"okf": sc["okf"], "n_pm": int(len(sc["pm"])), "model_sha": sc["model_sha"], "s": sc["s"], "child_maxrss_mb": child_maxrss_mb()}
     res["F1"] = run_combo(r1, ws1, A, "inject", scores=sc)
     res["F1"]["n_f10_scored_equal_archive"] = res["F1"].get("n_f10_scored") == arch_tc.get("n_f10_scored")
+    res["F1_states"] = state_compare(ws1, A); keep_outputs(ws1, A, f"{root0}/f1_out")
     # ── PC ──
     rp = f"{root0}/pc"; wsp = BL.make_sandbox(rp, fea_src, BD.SRC["bundle_config"][0], BD.VENV_PY, reader_src); stage_state(wsp, A, snap)
     res["PC"] = run_combo(rp, wsp, A, "pipeline", model_path=live_model); res["PC"]["child_maxrss_mb"] = child_maxrss_mb()
+    res["PC_states_reported"] = state_compare(wsp, A)
     # ── NC1: swap the top and bottom finite scores ──
     sw = dict(sc); f = sc["f10"].copy(); ok = np.where(np.isfinite(f))[0]; i_hi = ok[np.argmax(f[ok])]; i_lo = ok[np.argmin(f[ok])]
     f[i_hi], f[i_lo] = f[i_lo], f[i_hi]; sw["f10"] = f
@@ -149,9 +179,33 @@ def gate_anchor(A):
         r_["swapped"] = [{"name": names[i], "f10": float(sc["f10"][i])}, {"name": names[j], "f10": float(sc["f10"][j])}]
         r_["must_differ_ok"] = not r_["PARITY"]; r_["tag"] = tag; return r_
     fe = sc["f10"][elig]; res["NC1p"] = swap_run(int(elig[np.argmax(fe)]), int(elig[np.argmin(fe)]), "NC1prime")
+    # AMENDMENT 4: instrumented baseline (original scores) — neutrality against F-1, then NC1r judged on the pre-band fc state
+    pb0p = f"{root0}/preband_base.npz"
+    base_i = run_combo(rn, wsn, A, "inject", scores=sc, preband_out=pb0p)
+    f1t = BL.target_weights(f"{root0}/f1_out/{A}.json")[1]; bt = BL.target_weights(f"{wsn}/state/target_live_combo/{A}.json")[1]
+    st_eq = {}
+    for leg in ("fc", "kc", "f10"):
+        x = np.load(f"{root0}/f1_out/state_H_{leg}_{A}.npz"); y = np.load(f"{wsn}/fea171/state_H_{leg}_{A}.npz")
+        st_eq[leg] = bool(np.array_equal(x["idx"], y["idx"]) and np.array_equal(x["val"], y["val"]))
+    res["preband_neutrality"] = {"target_equal_F1": f1t == bt, "states_equal_F1": st_eq, "baseline_parity": base_i["PARITY"],
+                                 "OK": bool(f1t == bt and all(st_eq.values()) and base_i["PARITY"])}
+    pb0 = np.load(pb0p)
     rng = np.random.default_rng([20260919, A]); res["NC1r"] = []
     for k in range(3):
-        i, j = (int(x) for x in rng.choice(elig, 2, replace=False)); res["NC1r"].append(swap_run(i, j, f"NC1r_{k}"))
+        i, j = (int(x) for x in rng.choice(elig, 2, replace=False))
+        f2 = sc["f10"].copy(); f2[i], f2[j] = f2[j], f2[i]; pbk = f"{root0}/preband_nc1r_{k}.npz"
+        r_ = run_combo(rn, wsn, A, "inject", scores={"pm": sc["pm"], "f10": f2}, preband_out=pbk); pb = np.load(pbk)
+        r_["swapped"] = [{"name": names[i], "f10": float(sc["f10"][i])}, {"name": names[j], "f10": float(sc["f10"][j])}]
+        r_["preband_fc_changed"] = not np.array_equal(pb0["fc"], pb["fc"], equal_nan=True)
+        r_["preband_fc_max_abs_diff"] = float(np.nanmax(np.abs(pb0["fc"] - pb["fc"])))
+        r_["final_target_changed_reported"] = not r_["PARITY"]; r_["must_differ_ok"] = r_["preband_fc_changed"]; r_["tag"] = f"NC1r_{k}"
+        res["NC1r"].append(r_)
+    # reported only: pre-band fc of the injection path vs the instrumented REAL pipeline (live model, need=True)
+    rpp = f"{root0}/pcpb"; wspp = BL.make_sandbox(rpp, fea_src, BD.SRC["bundle_config"][0], BD.VENV_PY, reader_src); stage_state(wspp, A, snap)
+    pbpc = f"{root0}/preband_pc.npz"; pcpb = run_combo(rpp, wspp, A, "pipeline", model_path=live_model, preband_out=pbpc)
+    res["preband_inject_vs_pipeline_reported"] = {"fc_bitwise": bool(np.array_equal(pb0["fc"], np.load(pbpc)["fc"], equal_nan=True)),
+                                                  "kc_bitwise": bool(np.array_equal(pb0["kc"], np.load(pbpc)["kc"], equal_nan=True)), "pc_parity": pcpb["PARITY"]}
+    res["preband_vs_archive"] = "NOT HELD: production never stores the pre-band state (only the post-band state_H_fc_<A>.npz, checked under F1_states / F2_states)"
     # ── F-2 + NC2 ──
     if os.path.isdir(snap_prev):
         rh = f"{root0}/king"; os.makedirs(f"{rh}/state/weights", exist_ok=True); os.makedirs(f"{rh}/state/target_live", exist_ok=True)
@@ -181,7 +235,7 @@ def gate_anchor(A):
         for leg in ("f10", "kc", "fc"): shutil.copy2(f"{STAGE}/archive/fea171/state_H_{leg}_{Ap}.npz", f"{ws2}/fea171/state_H_{leg}_{Ap}.npz")
         sc2 = run_scorer(r2, ws2, A, live_model)
         res["F2_scores_equal_F1"] = bool(np.array_equal(sc2["pm"], sc["pm"]) and np.array_equal(sc2["f10"], sc["f10"], equal_nan=True))
-        res["F2"] = run_combo(r2, ws2, A, "inject", scores=sc2)
+        res["F2"] = run_combo(r2, ws2, A, "inject", scores=sc2); res["F2_states"] = state_compare(ws2, A)
         # king file written by the rebuilt producer vs the archived king backup (weights/universe/booster; written_utc/offset excluded)
         res["F2_king_file"] = BL.compare_targets_a2(f"{STAGE}/archive/target_live_king/{A}.json", f"{rh}/state/target_live/{A}.json", COL, "kingfile")
         st2, wrote2, _ = one(BL.FoldBooster("live", {"live": f"{R}/models/king_v3_fold2025.txt"}))
@@ -189,15 +243,17 @@ def gate_anchor(A):
     else:
         res["F2_king"] = res["F2"] = None; res["NC2"] = None; res["F2_skipped"] = "no snapshot for A−4h"
     res["t_s"] = round(time.time() - t0, 1); res["child_maxrss_mb"] = child_maxrss_mb()
-    ok_f1 = bool(res["F1"]["PARITY"] and res["F1"]["n_f10_scored_equal_archive"])
-    ok_f2 = True if res.get("F2_king") is None else bool(res["F2_king"]["PARITY"] and res["F2"]["PARITY"] and res["F2_king_file"]["PARITY"])
+    fc_ok = lambda d: bool(d["fc"].get("bitwise")) if d["fc"].get("archived") else True   # A4.3: required wherever the archive holds it
+    ok_f1 = bool(res["F1"]["PARITY"] and res["F1"]["n_f10_scored_equal_archive"] and fc_ok(res["F1_states"]))
+    ok_f2 = True if res.get("F2_king") is None else bool(res["F2_king"]["PARITY"] and res["F2"]["PARITY"] and res["F2_king_file"]["PARITY"] and fc_ok(res["F2_states"]))
+    res["fc_state_archived"] = bool(res["F1_states"]["fc"].get("archived"))
     res["F1_scorer_model_is_live"] = res["scorer"]["model_sha"] == LIVE_F10_SHA
     ok_f1 = bool(ok_f1 and res["F1_scorer_model_is_live"])
     ok_ctrl = bool(res["PC"]["PARITY"] and res["NC1p"]["must_differ_ok"] and all(r_["must_differ_ok"] for r_ in res["NC1r"])
-                   and (res["NC2"] is None or res["NC2"]["must_differ_ok"]))   # AMENDMENT 3 A3.2; original NC1 reported only
+                   and (res["NC2"] is None or res["NC2"]["must_differ_ok"]) and res["preband_neutrality"]["OK"])   # AMENDMENT 4 A4.3; original NC1 reported only
     res["ANCHOR_PASS"] = bool(ok_f1 and ok_f2 and ok_ctrl); res["ok_f1"] = ok_f1; res["ok_f2"] = ok_f2; res["ok_controls"] = ok_ctrl
     os.makedirs(OUTD, exist_ok=True); json.dump(res, open(f"{OUTD}/GATE_F_{A}.json", "w"), indent=1, default=str)
-    print(json.dumps({"anchor": BL.iso(A), "PASS": res["ANCHOR_PASS"], "NC1p": res["NC1p"]["must_differ_ok"], "NC1r": [x["must_differ_ok"] for x in res["NC1r"]],
+    print(json.dumps({"anchor": BL.iso(A), "PASS": res["ANCHOR_PASS"], "NC1p": res["NC1p"]["must_differ_ok"], "NC1r_preband": [x["must_differ_ok"] for x in res["NC1r"]], "fc_state": res["F1_states"]["fc"].get("bitwise"), "neutral": res["preband_neutrality"]["OK"],
                       "F1": res["F1"]["compare"].get("max_abs_dw"), "PC": res["PC"]["compare"].get("max_abs_dw"),
                       "F2_king": (res.get("F2_king") or {}).get("PARITY"), "F2": ((res.get("F2") or {}).get("compare") or {}).get("max_abs_dw"),
                       "NC1_ok": res["NC1"]["must_differ_ok"], "NC2_ok": (res["NC2"] or {}).get("must_differ_ok"), "t_s": res["t_s"]}), flush=True)
@@ -213,25 +269,38 @@ def summarize():
             "F1_max_abs_dw": r["F1"]["compare"].get("max_abs_dw"), "F1_n_names": r["F1"]["compare"].get("n_archived"),
             "F2_max_abs_dw": ((r.get("F2") or {}).get("compare") or {}).get("max_abs_dw"), "F2_king_weights_bitwise": ((r.get("F2_king") or {}).get("weights") or {}).get("val_bitwise"),
             "PC_max_abs_dw": r["PC"]["compare"].get("max_abs_dw"), "NC1_orig_differs_reported_only": r["NC1"]["must_differ_ok"],
-            "NC1prime_differs": r["NC1p"]["must_differ_ok"], "NC1r_differs": [x["must_differ_ok"] for x in r["NC1r"]], "NC_eligible": r["NC_eligible"],
+            "NC1prime_differs": r["NC1p"]["must_differ_ok"], "NC1r_preband_fc_changed": [x["must_differ_ok"] for x in r["NC1r"]],
+            "NC1r_final_target_changed_reported": [x["final_target_changed_reported"] for x in r["NC1r"]], "NC_eligible": r["NC_eligible"],
+            "F1_fc_state_bitwise": r["F1_states"]["fc"].get("bitwise"), "F1_fc_state_archived": r["F1_states"]["fc"].get("archived"),
+            "F2_fc_state_bitwise": ((r.get("F2_states") or {}).get("fc") or {}).get("bitwise"),
+            "kc_f10_states_F1_reported": {k: r["F1_states"][k].get("bitwise") for k in ("kc", "f10")},
+            "preband_neutrality_OK": r["preband_neutrality"]["OK"], "preband_inject_vs_pipeline_reported": r["preband_inject_vs_pipeline_reported"],
+            "preband_vs_archive": "NOT HELD",
             "NC2_differs": (r.get("NC2") or {}).get("must_differ_ok"),
             "F1_literal_all_keys_equal": r["F1"]["compare"].get("literal_all_keys_equal"), "F1_literal_differing_keys": r["F1"]["compare"].get("literal_differing_keys"),
             "F1_gross_norm_rule": r["F1"]["compare"]["gross_norm"]["rule"], "PC_literal_all_keys_equal": r["PC"]["compare"].get("literal_all_keys_equal"),
             "F2_king_file_gross_norm_rule": ((r.get("F2_king_file") or {}).get("gross_norm") or {}).get("rule"),
             "scorer_model_is_live": r.get("F1_scorer_model_is_live"), "scorer_s": r["scorer"]["s"], "child_maxrss_mb": r.get("child_maxrss_mb")} for r in rows]
     verdict = "PASS" if rows and all(p["PASS"] for p in per) else "FAIL"
-    n1p = sum(1 for p in per if p["NC1prime_differs"]); n1r = sum(sum(p["NC1r_differs"]) for p in per); n1r_all = sum(len(p["NC1r_differs"]) for p in per)
+    n1p = sum(1 for p in per if p["NC1prime_differs"]); n1r = sum(sum(p["NC1r_preband_fc_changed"]) for p in per); n1r_all = sum(len(p["NC1r_preband_fc_changed"]) for p in per)
+    h2 = f"{R}/receipts/gate_f/run2_amend3/GATE_F.json"
     h1 = f"{R}/receipts/gate_f/run1_NC1orig/GATE_F.json"
     history = [{"run": 1, "criteria": "PREREG §3 S5 + AMENDMENT 2 (original NC1)", "VERDICT": json.load(open(h1))["VERDICT"] if os.path.exists(h1) else None,
                 "note": "original NC1 FAIL, 5/12 unchanged (09-17 20Z, 09-18 08Z, 09-18 12Z, 09-19 00Z, 09-19 04Z); explanation (swapped names' F10 scores discarded by sel / FTRIM) holds on 12/12; receipts kept verbatim in receipts/gate_f/run1_NC1orig/",
                 "receipts_sha256": BL.sha(h1) if os.path.exists(h1) else None},
-               {"run": 2, "criteria": "PREREG §3 S5 + AMENDMENT 2 + AMENDMENT 3 (NC1′ 12/12, NC1r 36/36; parity criterion unchanged)", "VERDICT": verdict,
-                "NC1prime_changed": f"{n1p}/{len(per)}", "NC1r_changed": f"{n1r}/{n1r_all}",
-                "NC1_orig_changed_reported_only": f"{sum(1 for p in per if p['NC1_orig_differs_reported_only'])}/{len(per)}"}]
-    doc = {"gate": "GATE F (PREREG §3 S5, criteria per AMENDMENT 2 A2.1 and AMENDMENT 3 A3.2)", "comparison_type": "(3) packaging/prediction parity — not a return", "tar_sha256": TAR_SHA,
+               {"run": 2, "criteria": "PREREG §3 S5 + AMENDMENT 2 + AMENDMENT 3 (NC1′ 12/12, NC1r final target 36/36)",
+                "VERDICT": json.load(open(h2))["VERDICT"] if os.path.exists(h2) else None, "note": "NC1′ 12/12; NC1r 34/36 (neutral band absorbed 2 draws; band=0 diagnostic moved exactly the swapped names by 1.7e-4 / 1.6e-4); receipts kept verbatim in receipts/gate_f/run2_amend3/",
+                "receipts_sha256": BL.sha(h2) if os.path.exists(h2) else None},
+               {"run": 3, "criteria": "PREREG §3 S5 + AMENDMENT 2 + AMENDMENT 3 + AMENDMENT 4 (NC1r pre-band fc 36/36, NC1′ 12/12, NC2 11/11, post-band fc state vs archive, instrument neutrality)",
+                "VERDICT": verdict, "NC1prime_changed": f"{n1p}/{len(per)}", "NC1r_preband_fc_changed": f"{n1r}/{n1r_all}",
+                "NC1_orig_changed_reported_only": f"{sum(1 for p in per if p['NC1_orig_differs_reported_only'])}/{len(per)}",
+                "fc_state_bitwise_where_archived": f"{sum(1 for p in per if p['F1_fc_state_bitwise'])}/{sum(1 for p in per if p['F1_fc_state_archived'])}",
+                "preband_state_archived": "0/12 — production never stores it (named, not counted as evidence)"}]
+    doc = {"gate": "GATE F (PREREG §3 S5, criteria per AMENDMENT 2 A2.1, AMENDMENT 3 A3.2 and AMENDMENT 4 A4.3)", "comparison_type": "(3) packaging/prediction parity — not a return", "tar_sha256": TAR_SHA,
            "n_anchors_tested": len(per), "n_object_A_anchors": 144, "n_object_A_untestable_no_archived_inputs": 144 - sum(1 for p in per if p["in_tar_33910c01"]),
            "per_anchor": per, "VERDICT": verdict, "gate_history": history,
-           "amendment_3_disclosure": "written after seeing which anchors failed run 1's NC1; makes the negative control stricter; does not touch the parity criterion (max|dw| = 0, weights_sha equal)", "utc": BL.iso(time.time()), "device_sha256": BL.sha(os.path.abspath(__file__)),
+           "amendment_3_disclosure": "written after seeing which anchors failed run 1's NC1; makes the negative control stricter; does not touch the parity criterion (max|dw| = 0, weights_sha equal)",
+           "disclosure": DISCLOSURE, "anchors_without_archived_preband_state": [p["utc"] for p in per], "utc": BL.iso(time.time()), "device_sha256": BL.sha(os.path.abspath(__file__)),
            "lib_sha256": BL.sha(f"{HERE}/b_lib.py"), "driver_sha256": BL.sha(f"{HERE}/b_driver.py")}
     json.dump(doc, open(f"{R}/receipts/GATE_F.json", "w"), indent=1)
     print(f"GATE_F VERDICT {verdict} anchors {len(per)}", flush=True)
