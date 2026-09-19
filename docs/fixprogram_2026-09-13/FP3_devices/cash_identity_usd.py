@@ -178,6 +178,9 @@ def judge_independent(ctx, core, t0, t1, bnb_buf, span, tol):
     if not (lo <= tol and hi >= -tol): reasons.append("residual_interval_outside_tol")
     return {"verdict": "CONSISTENT" if not reasons else "INCONSISTENT", "reasons": reasons,
             "residual_interval_usdt_eq": [round(lo, 4), round(hi, 4)], "residual_point_usdt_eq": round(pt, 4),
+            # 检出力(只报告, 不影响判词): 一笔漏记的钱包流量 δ(漏记出金 δ > 0)使残差整体平移 −δ;
+            #   δ ∈ [lo − tol, hi + tol] 时本窗仍判 CONSISTENT —— 即本轨在该窗看不见的漏记流量范围
+            "undetectable_missing_flow_range_usdt_eq": [round(lo - tol, 4), round(hi + tol, 4)],
             "point_within_tol": abs(pt) <= tol, "point_inside_interval": lo - 1e-9 <= pt <= hi + 1e-9,
             "p_point": [round(p0, 9), round(p1, 9)], "p_band": [[round(L0 * (1 - ubx), 9), round(H0 * (1 - ubx), 9)],
                                                               [round(L1 * (1 - ubx), 9), round(H1 * (1 - ubx), 9)]],
@@ -341,6 +344,17 @@ def strict_rows(stage, day, name):
 
 
 # ───────────────────────────── 主流程 ─────────────────────────────
+def _power(J):
+    """只报告: 每窗本轨看不见的最大漏记流量 max(|lo − tol|, |hi + tol|) 的分布, 以及 ±100 USDT 漏记在多少窗会被判 INCONSISTENT。"""
+    if not J: return None
+    xs = sorted((max(abs(w["_ind"]["_lo"] - w["_tol"]), abs(w["_ind"]["_hi"] + w["_tol"])), w["from"], w["to"]) for w in J)
+    q = lambda f: round(xs[min(len(xs) - 1, int(f * len(xs)))][0], 2)
+    c100 = sum(1 for w in J if w["_ind"]["_hi"] + w["_tol"] < 100.0 and w["_ind"]["_lo"] - w["_tol"] > -100.0)
+    return {"rule": "a missing wallet flow d shifts the residual by −d; the window stays CONSISTENT iff d ∈ [lo − tol, hi + tol]",
+            "max_abs_undetectable_usdt_eq": {"median": q(0.5), "p90": q(0.9), "max": round(xs[-1][0], 2), "argmax": xs[-1][1:]},
+            "n_windows_where_pm100_usdt_missing_flow_is_caught": c100, "n": len(J)}
+
+
 def summarize(W):
     J = [w for w in W if "INDEPENDENT" in w]
     bad = [w for w in J if w["INDEPENDENT"]["verdict"] != "CONSISTENT"]
@@ -356,6 +370,11 @@ def summarize(W):
                          "inconsistent": [{"from": w["from"], "to": w["to"], "interval": w["INDEPENDENT"]["residual_interval_usdt_eq"],
                                            "point": w["INDEPENDENT"]["residual_point_usdt_eq"], "tol": w["tol_usdt_eq"],
                                            "reasons": w["INDEPENDENT"]["reasons"], "B": w["terms"]["B"]} for w in bad],
+                         "consistent_only_by_band": [{"from": w["from"], "to": w["to"], "point": w["INDEPENDENT"]["residual_point_usdt_eq"],
+                                                      "interval": w["INDEPENDENT"]["residual_interval_usdt_eq"], "tol": w["tol_usdt_eq"],
+                                                      "B": w["terms"]["B"], "conditional_exact_rate_residual": w["CONDITIONAL_EXACT_RATE"]["residual_usdt_eq"]}
+                                                     for w in J if w["INDEPENDENT"]["verdict"] == "CONSISTENT" and not w["INDEPENDENT"]["point_within_tol"]],
+                         "detection_power": _power(J),
                          "worst_point": sorted(((w["from"], w["to"], w["INDEPENDENT"]["residual_point_usdt_eq"],
                                                  w["INDEPENDENT"]["residual_interval_usdt_eq"], w["tol_usdt_eq"]) for w in J),
                                                key=lambda x: -abs(x[2]))[:12]},
@@ -541,12 +560,14 @@ def _main(out, flags, stages):
         for span in (BAND_SPAN_PRIMARY, BAND_SPAN_SENSITIVITY):
             lo, hi = (x * (1 - UV.USDT_BID_BUFFER) for x in val.band("USDTUSD", t, span))
             e[f"inside_span{span}"] = lo <= pe <= hi
-            e[f"excursion_ppm_span{span}"] = round((pe - min(max(pe, lo), hi)) / pe * 1e6, 2)
+            e[f"excursion_ppm_span{span}"] = round((pe - min(max(pe, lo), hi)) / pe * 1e6, 4)
         e["point_minus_exact_ppm"] = round((val.point("USDTUSD", t) * (1 - UV.USDT_BID_BUFFER) - pe) / pe * 1e6, 2)
         cov.append(e)
     coverage = {"label": "DIAGNOSTIC ONLY (not a verdict): the exact rate is itself conditional on income-flow completeness",
                 "n": len(cov), **{f"n_inside_span{s}": sum(e[f"inside_span{s}"] for e in cov) for s in (BAND_SPAN_PRIMARY, BAND_SPAN_SENSITIVITY)},
                 "outside_span0": [e for e in cov if not e[f"inside_span{BAND_SPAN_PRIMARY}"]],
+                "max_abs_excursion_ppm_span0": max((abs(e[f"excursion_ppm_span{BAND_SPAN_PRIMARY}"]) for e in cov), default=None),
+                "precision_note": "index klines are printed to 8 decimals (≈0.005–0.01 ppm at USDTUSD ≈ 1); inside/outside flags are strict (no rounding allowance)",
                 "abs_point_minus_exact_ppm_max": max((abs(e["point_minus_exact_ppm"]) for e in cov), default=None)}
     if not offline: cache.save()
     # ── 与 v1 缓存(只存 open/close)逐位对账 ──
@@ -621,6 +642,7 @@ def _main(out, flags, stages):
               f"(point within tol {I_['n_point_within_tol']}) | CONDITIONAL_EXACT_RATE within tol {C_['n_within_tol']}/{C_['n_available']} available "
               f"| legacy mixed {s['legacy_v2_mixed_rule_reconciliation_only']['n_within_tol']}")
         for x in I_["inconsistent"]: print("   INCONSISTENT", x)
+        print("   detection_power:", {k: v for k, v in I_["detection_power"].items() if k != "rule"}, "| consistent only by band:", len(I_["consistent_only_by_band"]))
         for k, e in s["sensitivity"].items(): print(f"   sens {k}: consistent {e['INDEPENDENT_n_consistent']}/{e['n']}",
                                                     {kk: vv for kk, vv in e.items() if kk not in ('n', 'INDEPENDENT_n_consistent', 'INDEPENDENT_inconsistent')})
     print("coverage:", {k: v for k, v in coverage.items() if k not in ("outside_span0", "label")})

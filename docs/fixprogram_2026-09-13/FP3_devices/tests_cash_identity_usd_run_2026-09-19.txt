@@ -1,4 +1,4 @@
-device = cash_identity_usd.py  sha256 = 9ac18bacd8fb98db3d186350fe492965d1046462761a22edcecd54f111e05f1c  driver = V3Driver
+device = cash_identity_usd.py  sha256 = 35cba5ce4d07f5c3141df08c27be7dd2fccef332f987c798c6273f700a26e9ee  driver = V3Driver
 PASS C01 baseline_green: headline_ok=True point=0.0 conditional=(available=True, residual=0.0, within_tol=True)
 PASS C02 bnb_baseline_green_and_conditional_unavailable: headline_ok=True point=0.0 conditional_available=False
 PASS C03 missing_100_withdrawal_caught_by_headline_INDEPENDENT: headline_ok=False point=-100.0 (expect INCONSISTENT, ≈ −100)
@@ -12,5 +12,5 @@ PASS C10 nan_readback_quantity_refused: refused REFUSED_NONFINITE
 PASS C11 residual_inside_valuation_band_is_CONSISTENT: headline_ok=True point=10.005 (point outside tol, inside band ⇒ expect CONSISTENT)
 PASS C12 residual_outside_valuation_band_is_INCONSISTENT: headline_ok=False point=40.02 (expect INCONSISTENT)
 PASS C13 tolerance_in_same_unit_as_residual_USDT_eq: headline_ok=True point=-4.7 (USDT-eq tol 5.0; USD tol would be 4.4996)
-RESULT 13/13 PASS, 0 FAIL — device sha256 9ac18bacd8fb98db
+RESULT 13/13 PASS, 0 FAIL — device sha256 35cba5ce4d07f5c3
 exit=0
