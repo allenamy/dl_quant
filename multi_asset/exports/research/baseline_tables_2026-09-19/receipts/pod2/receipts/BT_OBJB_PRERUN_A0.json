@@ -1,0 +1,237 @@
+{
+ "device": "bt_objb_prerun.py",
+ "self_sha256": "739fcb35ef5b07ea9de02a9fef350d708214f2f2fda0e6be234f93f3d7db09a3",
+ "adapter_sha256": "05cc5dc25df99459d93b34c9b10477f08002dd301b9b45ec6aa47bd77fc95373",
+ "argv": [
+  "bt_objb_prerun.py",
+  "PATH,HOME,LC_CTYPE",
+  "full",
+  "/workspace/baseline_tables_2026-09-19/receipts/BT_OBJB_PRERUN_A0.json",
+  "/workspace/baseline_tables_2026-09-19/RUN_CONFIG_main_TEMPLATE_2026-09-19.json",
+  "/workspace/baseline_tables_2026-09-19/RUN_CONFIG_main_A0_2026-09-19.json",
+  "916b109f181103191efff915923d1647e35e7a7dbdfc6caffa42077e7fc65b9c",
+  "A0_main"
+ ],
+ "utc": "2026-09-19T21:41:28Z",
+ "checks": [
+  {
+   "check": "U.input_sha.universe_ext",
+   "ok": true,
+   "detail": {
+    "got": "3ee838cfc4ee4b90",
+    "want": "3ee838cfc4ee4b90"
+   }
+  },
+  {
+   "check": "U.input_sha.universe_p2",
+   "ok": true,
+   "detail": {
+    "got": "6322b57366078ed0",
+    "want": "6322b57366078ed0"
+   }
+  },
+  {
+   "check": "U.symbols_equal",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "U.first_10039_rows_bitwise_equal_P2_universe",
+   "ok": true,
+   "detail": {
+    "n_p2_rows": 10039,
+    "keys": {
+     "ts": {
+      "equal": true,
+      "cells_differ": 0
+     },
+     "pit": {
+      "equal": true,
+      "cells_differ": 0
+     },
+     "trading24": {
+      "equal": true,
+      "cells_differ": 0
+     }
+    }
+   }
+  },
+  {
+   "check": "U.extension_contiguous_to_2026-09-18T20Z",
+   "ok": true,
+   "detail": {
+    "rows_total": 10152,
+    "rows_after_p2": 113,
+    "first_ext": "2026-08-31T04:00:00Z",
+    "last": "2026-09-18T20:00:00Z",
+    "contiguous_4h": true
+   }
+  },
+  {
+   "check": "G.gate_f_file_equals_the_d3596aced_blob",
+   "ok": true,
+   "detail": {
+    "pod": "916b109f18110319",
+    "git_d3596aced": "916b109f18110319"
+   }
+  },
+  {
+   "check": "G.gate_f_verdict_PASS",
+   "ok": true,
+   "detail": "PASS"
+  },
+  {
+   "check": "G.A0_main.files_present",
+   "ok": true,
+   "detail": {
+    "targets_json": true,
+    "targets_npz": true,
+    "p3_json": true,
+    "run_config": true
+   }
+  },
+  {
+   "check": "G.A0_main.p3_sha_matches_targets_receipt",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "G.A0_main.run_config_gate_f_PASS_same_file",
+   "ok": true,
+   "detail": {
+    "verdict": "PASS",
+    "sha": "916b109f18110319"
+   }
+  },
+  {
+   "check": "G.A0_main.arm_A0",
+   "ok": true,
+   "detail": {
+    "targets": "A0",
+    "run_config": "A0"
+   }
+  },
+  {
+   "check": "T.A0_main.npz_sha_matches_receipt",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "T.load_and_validate.scaled",
+   "ok": true,
+   "detail": {
+    "axis": [
+     "2022-01-31T00:00:00Z",
+     "2026-08-31T00:00:00Z"
+    ],
+    "n": 10039
+   }
+  },
+  {
+   "check": "T.load_and_validate.lit",
+   "ok": true,
+   "detail": {
+    "axis": [
+     "2022-01-31T00:00:00Z",
+     "2026-08-31T00:00:00Z"
+    ],
+    "n": 10039
+   }
+  },
+  {
+   "check": "T.load_and_validate.scaled_l333_only",
+   "ok": true,
+   "detail": {
+    "axis": [
+     "2022-01-31T00:00:00Z",
+     "2026-08-31T00:00:00Z"
+    ],
+    "n": 10039
+   }
+  },
+  {
+   "check": "T.window_on_targets_axis",
+   "ok": true,
+   "detail": {
+    "window": [
+     "2022-06-30T00:00:00Z",
+     "2026-08-31T00:00:00Z"
+    ],
+    "targets_axis": [
+     "2022-01-31T00:00:00Z",
+     "2026-08-31T00:00:00Z"
+    ]
+   }
+  },
+  {
+   "check": "D.full_recipe_start_from_main_receipt",
+   "ok": true,
+   "detail": {
+    "B_CORE_start": "2023-06-30T04:00:00Z",
+    "tag": "A0_main"
+   }
+  }
+ ],
+ "universe_extension": {
+  "rows_total": 10152,
+  "rows_after_p2": 113,
+  "first_ext": "2026-08-31T04:00:00Z",
+  "last": "2026-09-18T20:00:00Z",
+  "contiguous_4h": true
+ },
+ "sources": {
+  "A0_main": {
+   "axis": [
+    "2022-01-31T00:00:00Z",
+    "2026-08-31T00:00:00Z"
+   ],
+   "data": "holefix2",
+   "B_CORE_start": "2023-06-30T04:00:00Z",
+   "king_first_served": "2023-01-31T04:00:00Z",
+   "f10_first_served": "2023-01-01T00:00:00Z",
+   "run_config_sha256": "0b4b06da2f204832be3eeb124dcdd2ab72399f2dba21936f29c185f80d86f799",
+   "gate_f_disclosure": "third run of the same gate after control revisions; the parity criterion was never changed; revisions were written after seeing the failures"
+  }
+ },
+ "window_counts": {
+  "scaled": {
+   "window_anchors": 9139,
+   "combo": 6702,
+   "king": 2437,
+   "hold": 0,
+   "written_rows_without_weights": 0
+  },
+  "lit": {
+   "window_anchors": 9139,
+   "combo": 2356,
+   "king": 6783,
+   "hold": 0,
+   "written_rows_without_weights": 0
+  },
+  "scaled_l333_only": {
+   "window_anchors": 9139,
+   "combo": 6227,
+   "king": 2912,
+   "hold": 0,
+   "written_rows_without_weights": 0
+  }
+ },
+ "frozen_config": {
+  "path": "/workspace/baseline_tables_2026-09-19/RUN_CONFIG_main_A0_2026-09-19.json",
+  "sha256": "7b6dca2c48feda294676ab5ce46b748c71ab87103cc64ead5be7957fe5bbfe93",
+  "runs": [
+   "OBJB_A0|scaled|rule|raw|UAFE",
+   "OBJB_A0|lit|rule|raw|UAFE",
+   "OBJB_A0|scaled|rule|raw|UAFE|fee_x1.25",
+   "OBJB_A0|scaled|rule|raw|UAFE|slip_x1.5",
+   "OBJB_A0|scaled|rule|raw|UAFE|fill_x0.9"
+  ],
+  "window": [
+   "2022-06-30T00:00:00Z",
+   "2026-08-31T00:00:00Z"
+  ],
+  "full_recipe_start": "2023-06-30T04:00:00Z"
+ },
+ "failed": [],
+ "VERDICT": "PASS"
+}
