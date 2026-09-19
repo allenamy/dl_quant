@@ -1,0 +1,642 @@
+diff --git a/live/binance_executor.py b/live/binance_executor.py
+index 0c4ab06..e21b101 100644
+--- a/live/binance_executor.py
++++ b/live/binance_executor.py
+@@ -1626,9 +1626,18 @@ class RebalanceExecutor:
+             + sum(float(v) for v in (filled or {}).values())
+         gross_now = sum(abs(float(q.get("prev_notional") or 0.0)
+                             + float(filled.get(q["symbol"], 0.0))) for q in _plans)
++        # ★ REBUILD (ruling 2026-09-19 #2): X-A3's rho_pre over THIS rebalance's plan rows — their `prev_w` is the value each
++        #   attempt-1 maker row carries, fixed by plan() from the phase-A readback before any order. NOT `_plans` above (that
++        #   falls back to `live`, a subset, which would read flatter than the book) and NOT the post-maker book (pos_now /
++        #   gross_now): nothing this anchor produced enters it. A failure here is recorded and decides nothing (rho None).
++        try:
++            _rho = CP.rho_pre_from_plans(getattr(self, "_last_plans", None))
++        except Exception as _e:                                    # noqa: BLE001 — the top-up must still run
++            _rho = {"rho_pre": None, "state": f"ERROR — {type(_e).__name__}: {str(_e)[:120]}"}
+         return CP.plan_experiment(
+             pop, rebalance_id,
+             book_net_usdt=(pos_now + others), book_gross_usdt=gross_now,
++            rho_pre=_rho.get("rho_pre"), rho_pre_detail=_rho,
+             # ★ E4 (ruling R2′): a stopped name's from_partial residual is not sent by ANY chase path, so it is not in the
+             #   experiment's population and not in `others` (nothing is about to fill it); its position is already in the book
+             exclude={s_: STOP_EXIT_POLICY for s_ in (stop_names or ())},
+diff --git a/live/chase_policy.py b/live/chase_policy.py
+index 40914b9..e8e7ff6 100644
+--- a/live/chase_policy.py
++++ b/live/chase_policy.py
+@@ -93,6 +93,7 @@ who does not trust this file.
+ from __future__ import annotations
+ 
+ import hashlib
++import math
+ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+ 
+ ARM_CHASE = "chase"                # randomised CONTROL, inside C's skip set
+@@ -162,6 +163,33 @@ MIN_ELIGIBLE = 2
+ #   recorded as excluded. It is a pre-treatment quantity, known before anything is sent.
+ ARM_TILT_ABORT_FRAC = 0.03
+ 
++# ★★ REBUILD — THE FOURTH `excluded_because` REASON (user ruling 2026-09-19 "按最佳建议",
++#   docs/RULINGS_best_recommendation_2026-09-19.md #2 = CFG-04 AMENDMENT 1 §C option (a); AMENDMENT 2 §3).
++#   On a flat-to-full rebuild anchor the experiment does not randomise: every from_partial name is
++#   chased, exactly as on any other excluded anchor (C's fill set stays chase_forced; per-name-stop
++#   names stay outside the population, E4/R2′). The anchors themselves are outside the ANALYSIS
++#   (AMENDMENT 1 X-A3), and randomising them left no_chase GROSS unbuilt (09-13 12Z: 6,979 USDT =
++#   3.0% of gross, which the NET abort above does not see). It is an explicit rebuild policy, not an
++#   arm choice made on known returns (independent review 9f6384fb §8-1).
++#   ★★★ NOT NEUTRAL FOR A RUNNING EXPERIMENT. Chasing on a rebuild anchor changes what the NEXT
++#     anchors hold, per-name-stop state/cooldowns, turnover, and which names (and residual sizes)
++#     enter later randomised populations — cross-anchor paths into CFG-04's estimator and CFG-06's
++#     population. Deploy only after BOTH stopping points (CFG-04: 10-01 16Z or 100 pairable anchors;
++#     CFG-06: ≈10-14); the deploy receipt names the effective anchor/time and the executor version.
++#   ★ THE CRITERION IS X-A3 VERBATIM, not a look-alike: rho_pre < 0.50, rho_pre = sum over distinct
++#     symbols of |prev_w| of the first attempt-1 maker row — see `rho_pre_from_plans`. Strictly less
++#     than: 0.50 itself is NOT a rebuild. The threshold is not tunable here; S-ρ25/S-ρ75 are
++#     readout sensitivities (AMENDMENT 1 §4), not execution settings.
++#   ★ IT IS AN OVERRIDE APPLIED AFTER THE THREE OLDER REASONS, never instead of them: they are
++#     computed on exactly the inputs and in exactly the order they always were, so on every anchor
++#     they fire (or not) as before, and REBUILD is appended last.
++#   ★ `REBUILD_RULE` is written on EVERY record (with rho_pre, rebuild true/false): the presence of
++#     the key marks an anchor decided under this rule, which is how a readout separates pre- and
++#     post-change anchors without trusting a deploy note. Bump the version if the rule changes.
++REBUILD_RHO_THRESHOLD = 0.50
++REBUILD_RULE = ("rebuild_v1: rho_pre < 0.50 (CFG-04 AMENDMENT 1 X-A3; ruling 2026-09-19 #2) -> "
++                "anchor excluded, every from_partial name chased (C's fill set stays chase_forced)")
++
+ # bumping this re-randomises every historical assignment, so it is versioned and recorded.
+ ASSIGN_RULE = "sha256('{seed}|chase_arm_v2|{symbol}') -> first 16 hex / 2**64 -> cumulative weights over sorted(arm)"
+ ASSIGN_SALT = "chase_arm_v2"  # v2: 2026-09-01 重启全量重随机
+@@ -279,6 +307,77 @@ def neutral_only_decision(residuals: Sequence[Tuple[str, float]],
+     }
+ 
+ 
++def emits_attempt1_maker_row(plan_row: Dict[str, Any]) -> bool:
++    """Does this plan row leave an attempt-1 `maker` row in orders.jsonl? — X-A3's population.
++
++    ★ A COPY OF ONE PREDICATE, pinned to its original by behaviour, not by text. The original is the
++      head of `binance_executor.submit_maker`'s loop: `skip is not None or "qty" not in p` →
++      a row only `if p.get("skip")`; every other row is sent or refused and gets its attempt-1 row
++      there or in `topup` (filled / partial_expired / unknown). The only plan row with NO maker row is
++      the executor's dormant `band_bps` row (skip None, no qty). `tests_chase_experiment_wiring` [H]
++      drives the real submit_maker + topup and asserts this set equals the symbols that got the row.
++    """
++    skip = plan_row.get("skip")
++    return bool(skip) or (skip is None and "qty" in plan_row)
++
++
++def rho_pre_from_plans(plans: Optional[Sequence[Dict[str, Any]]]) -> Dict[str, Any]:
++    """rho_pre of CFG-04 AMENDMENT 1 X-A3, computed at DECISION time from the plan rows.
++
++    X-A3 (frozen): rho_pre(a) = sum over distinct symbols of |prev_w| taken from the FIRST
++    orders.jsonl row with rebalance_id == a, order_type == "maker", attempt_idx == 1.
++
++    ★ SAME QUANTITY, NOT A LOOK-ALIKE. Every such row is written from one plan row, and its
++      `prev_w` IS `p["prev_w"]` (`_order_row`: "prev_w": p.get("prev_w")). So summing `prev_w` over
++      the plan rows that emit that row (`emits_attempt1_maker_row`) is X-A3's sum, value for value.
++      Not re-derived from prev_notional / target_notional: equal in production, but a re-derivation
++      is a second definition that can drift from the one the readout will use.
++    ★ DECISION-TIME ONLY. `prev_w` = pre-trade venue notional / sum|target_notional|, written by
++      `plan()` from the phase-A readback BEFORE any order of this rebalance. Nothing produced by this
++      anchor — maker fills, top-ups, the post-anchor readback, rows already written — is read here,
++      and the function is not given any of it. (`tests_chase_experiment_wiring` [I] holds a mutant
++      that reads the post-maker book and shows the assertion goes red.)
++    ★ UNKNOWN IS NOT ZERO. A missing plan set, or any emitting row whose prev_w is not a finite
++      number, gives rho_pre = None and names the rows — never a partial sum (a lower bound would read
++      as "flatter than it is"). None means the REBUILD criterion is NOT established, so the anchor is
++      decided exactly as before this rule existed; the record says why. Unreachable in production:
++      `plan()` writes a float prev_w on every row and anchor_loop always sets `_last_plans`.
++    ★ math.fsum: exact, so the value does not depend on row order (the ledger's order is not the
++      plan order).
++    """
++    if not plans:
++        return {"rho_pre": None, "n_rows": 0, "n_without_maker_row": 0, "unreadable_prev_w": [],
++                "state": "UNOBSERVABLE — no plan rows for this rebalance, so X-A3's sum is not defined here"}
++    seen: set = set()
++    vals: List[float] = []
++    unreadable: List[str] = []
++    n_band = 0
++    for p in plans:
++        if not emits_attempt1_maker_row(p):
++            n_band += 1                                   # X-A3 never sees this name
++            continue
++        sym = p.get("symbol")
++        if sym in seen:
++            continue                                      # "first row" per distinct symbol
++        seen.add(sym)
++        w = p.get("prev_w")
++        try:
++            wf = float(w) if not isinstance(w, bool) else float("nan")
++        except (TypeError, ValueError):
++            wf = float("nan")
++        if not math.isfinite(wf):
++            unreadable.append(str(sym))
++            continue
++        vals.append(abs(wf))
++    if unreadable:
++        return {"rho_pre": None, "n_rows": len(seen), "n_without_maker_row": n_band,
++                "unreadable_prev_w": sorted(unreadable),
++                "state": (f"UNKNOWN — {len(unreadable)} of {len(seen)} maker rows carry no finite prev_w; "
++                          f"a partial sum would be a lower bound, so rho_pre is not computed")}
++    return {"rho_pre": math.fsum(vals), "n_rows": len(seen), "n_without_maker_row": n_band,
++            "unreadable_prev_w": [], "state": "OK"}
++
++
+ def plan_experiment(residuals: Sequence[Tuple[str, float]],
+                     seed: str,
+                     book_net_usdt: Optional[float],
+@@ -288,12 +387,21 @@ def plan_experiment(residuals: Sequence[Tuple[str, float]],
+                     band: float = NEUTRAL_BAND,
+                     min_eligible: int = MIN_ELIGIBLE,
+                     abort_frac: float = ARM_TILT_ABORT_FRAC,
+-                    exclude: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
++                    exclude: Optional[Dict[str, str]] = None,
++                    rho_pre: Optional[float] = None,
++                    rho_pre_detail: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+     """The whole per-anchor decision, as one record. `residuals` is `from_partial` ONLY.
+ 
+     Returns a dict with `arm` (symbol -> arm, what the executor obeys), the shadow
+     `neutral_only` decision over ALL names, and every reason an anchor was excluded.
+ 
++    ★ REBUILD (ruling 2026-09-19 #2): `rho_pre` = X-A3's rho_pre for this rebalance
++      (`rho_pre_from_plans`, decision-time plan rows only). rho_pre < REBUILD_RHO_THRESHOLD ⇒ the
++      anchor is excluded with a `REBUILD: …` reason and every randomised name goes to `chase`, AFTER
++      the three older reasons have been evaluated exactly as before (they keep their place in
++      `excluded_because`; REBUILD is appended last). rho_pre None (not supplied / unknown) ⇒ the
++      criterion is not established and nothing changes. `rho_pre_detail` is recorded verbatim.
++
+     ★ E4 (FX-EXEC 2026-09-13; ruling R2′): `exclude` = {symbol: reason} for names that are NOT in this experiment's
+       population at all — today the names under the per-name stop clause (cf40ea21: a stopped name exits maker-only, policy
+       A, never chased). They leave BEFORE C decides and before any coin is drawn, so they can be neither `chase_forced`, nor
+@@ -347,6 +455,22 @@ def plan_experiment(residuals: Sequence[Tuple[str, float]],
+         arm = {s: (ARM_FORCED if a == ARM_FORCED else ARM_CHASE) for s, a in arm.items()}
+         nc_net = 0.0
+ 
++    # ── 4. REBUILD: the fourth reason, an override AFTER the three above (see REBUILD_RULE). ─────
++    #   Same treatment as the abort's override: C's fill set stays chase_forced, every other name
++    #   is chased. `no_chase_arm_tilt_frac` keeps the coin's would-be tilt, as it does on an abort.
++    #   Only a real finite number establishes the criterion: None, NaN, inf, a bool or a string (a
++    #   malformed input, not a measurement) leave the anchor decided exactly as before.
++    _rho: Optional[float] = None
++    if isinstance(rho_pre, (int, float)) and not isinstance(rho_pre, bool) and math.isfinite(rho_pre):
++        _rho = float(rho_pre)
++    rebuild = _rho is not None and _rho < REBUILD_RHO_THRESHOLD
++    if rebuild:
++        excluded.append(f"REBUILD: rho_pre {_rho!r} < {REBUILD_RHO_THRESHOLD!r} (X-A3: sum of "
++                        f"|prev_w| over this rebalance's attempt-1 maker rows) — flat-to-full "
++                        f"rebuild anchor: explicit rebuild policy, every name is chased")
++        arm = {s: (ARM_FORCED if a == ARM_FORCED else ARM_CHASE) for s, a in arm.items()}
++        nc_net = 0.0
++
+     counts: Dict[str, int] = {}
+     for a in arm.values():
+         counts[a] = counts.get(a, 0) + 1
+@@ -399,6 +523,13 @@ def plan_experiment(residuals: Sequence[Tuple[str, float]],
+         # ★ E4: names removed from the POPULATION before C and before the coin (not an anchor-level exclusion) — the
+         #   population change is on the record, so a reader never has to ask why a stopped name has no arm
+         "excluded_before_assignment": dict(sorted(_excluded.items())),
++        # ★ REBUILD (ruling 2026-09-19 #2): on EVERY record, rebuild or not — `rebuild_rule`'s presence
++        #   marks an anchor decided under the rule; rho_pre None = not established (see `rho_pre_detail`).
++        "rebuild_rule": REBUILD_RULE,
++        "rebuild_rho_threshold": REBUILD_RHO_THRESHOLD,
++        "rho_pre": _rho,
++        "rebuild": rebuild,
++        "rho_pre_detail": (dict(rho_pre_detail) if rho_pre_detail is not None else None),
+         # ★ WHICH BOOK. The tilt used by the shadow decision is not a venue readback — the position
+         #   snapshot happens AFTER the top-up leg — it is reconstructed, and the reconstruction is
+         #   named here so a reader never has to guess which quantity was thresholded.
+diff --git a/live/tests_chase_experiment_wiring.py b/live/tests_chase_experiment_wiring.py
+index 5bc8c46..f6f42a4 100644
+--- a/live/tests_chase_experiment_wiring.py
++++ b/live/tests_chase_experiment_wiring.py
+@@ -58,6 +58,18 @@ def plan(sym, delta, prev=0.0, src="from_partial"):
+             "target_w": 0.01, "prev_w": 0.0, "reduce_only": False, "_topup_source": src}
+ 
+ 
++def weighted(plans):
++    """`prev_w` as `plan()` writes it: prev_notional / sum|target_notional| over the plan set.
++
++    ★ REBUILD (ruling 2026-09-19 #2) made `prev_w` a DECISION input: rho_pre = sum|prev_w| (X-A3). The
++      fixtures here used to carry the placeholder `prev_w: 0.0` beside a held book of 3,700 USDT —
++      unread before, but under the rule that placeholder is the claim "this book is flat", i.e. a
++      rebuild anchor, which is not the state these cells are about. So the fixtures now carry the
++      value production would write (rho_pre 1.0176 for PLANS), and [G] holds the flat book explicitly."""
++    g = sum(abs(float(p["target_notional"])) for p in plans) or 1.0
++    return [dict(p, prev_w=float(p["prev_notional"]) / g) for p in plans]
++
++
+ def executor(plans):
+     ex = BE.RebalanceExecutor.__new__(BE.RebalanceExecutor)
+     ex.rows_orders, ex.reduce_only_rejects, ex._pending_exit_rows = [], [], []
+@@ -79,9 +91,9 @@ def executor(plans):
+ # a one-sided residual set on a book tilted the other way: C keeps the big ones, and the tail is
+ # the randomised population. Position sizes are set so the book gross is large enough that the
+ # tilt abort stays out of it.
+-PLANS = [plan("AAAUSDT", -70.0, prev=900.0), plan("BBBUSDT", -40.0, prev=800.0),
+-         plan("CCCUSDT", -25.0, prev=-700.0), plan("DDDUSDT", -20.0, prev=-600.0),
+-         plan("EEEUSDT", -10.0, prev=-500.0), plan("FFFUSDT", -9.0, prev=200.0)]
++PLANS = weighted([plan("AAAUSDT", -70.0, prev=900.0), plan("BBBUSDT", -40.0, prev=800.0),
++                  plan("CCCUSDT", -25.0, prev=-700.0), plan("DDDUSDT", -20.0, prev=-600.0),
++                  plan("EEEUSDT", -10.0, prev=-500.0), plan("FFFUSDT", -9.0, prev=200.0)])
+ 
+ print("[A] topup() actually consults the policy, and does so BEFORE it sends anything")
+ ex, sent = executor(PLANS)
+@@ -143,9 +155,9 @@ check("...and C's fill set WAS sent: neutrality is never traded for statistical
+       f"fill={rec['neutral_only']['fill']}, sent={sorted(_sent_syms)}")
+ 
+ print("\n[D] ★★ the gate is LAST — dust is never recorded as an experimental withholding")
+-_p = [plan("AAAUSDT", -70.0, prev=900.0), plan("BBBUSDT", -40.0, prev=800.0),
+-      plan("CCCUSDT", -25.0, prev=-700.0), plan("DDDUSDT", -0.02, prev=-600.0),
+-      plan("EEEUSDT", -0.01, prev=-500.0), plan("FFFUSDT", -9.0, prev=200.0)]
++_p = weighted([plan("AAAUSDT", -70.0, prev=900.0), plan("BBBUSDT", -40.0, prev=800.0),
++               plan("CCCUSDT", -25.0, prev=-700.0), plan("DDDUSDT", -0.02, prev=-600.0),
++               plan("EEEUSDT", -0.01, prev=-500.0), plan("FFFUSDT", -9.0, prev=200.0)])
+ ex2, sent2 = executor(_p)
+ ex2.filters.f = {s["symbol"]: {"min_notional": 5.0} for s in _p}
+ ex2.topup([dict(q) for q in _p], {}, 1.0, "A1785600000")
+@@ -162,11 +174,11 @@ print(f"  NOTE  those two names still drew arms ({_arm2.get('DDDUSDT')}/{_arm2.g
+       f"gate's position in the sequence is the assertion and not the assignment.")
+ 
+ print("\n[E] ★★ from_reject is the OTHER candidate's population and is never withheld")
+-_p3 = [plan("AAAUSDT", -70.0, prev=900.0, src="from_reject"),
+-       plan("BBBUSDT", -40.0, prev=800.0, src="from_reject"),
+-       plan("CCCUSDT", -25.0, prev=-700.0, src="from_reject"),
+-       plan("DDDUSDT", -20.0, prev=-600.0, src="from_reject"),
+-       plan("EEEUSDT", -10.0, prev=-500.0, src="from_reject")]
++_p3 = weighted([plan("AAAUSDT", -70.0, prev=900.0, src="from_reject"),
++                plan("BBBUSDT", -40.0, prev=800.0, src="from_reject"),
++                plan("CCCUSDT", -25.0, prev=-700.0, src="from_reject"),
++                plan("DDDUSDT", -20.0, prev=-600.0, src="from_reject"),
++                plan("EEEUSDT", -10.0, prev=-500.0, src="from_reject")])
+ ex3, sent3 = executor(_p3)
+ ex3.topup([dict(q) for q in _p3], {}, 1.0, "A1785600000")
+ _rec3 = ex3._chase_experiment
+@@ -193,5 +205,145 @@ check("...and its row is still the unknown-fill row, not an experimental one",
+           for r in ex4.rows_orders))
+ 
+ 
++# ═══ REBUILD (ruling 2026-09-19 #2; CFG-04 AMENDMENT 1 §C option (a)) — through the REAL executor ═══
++# Every cell runs on the unmodified executor too (no crash): the REBUILD cells go red there.
++import math as _math                  # noqa: E402
++
++# A STEP_UP anchor like 09-03 16Z (deposit, rho_pre 0.257): each name held at 25% of its target, the
++# makers filled 80% of the delta. 20 names, alternating sides, so C finds the book inside its band and
++# the whole residual set is the randomised population — the population REBUILD exists to stop withholding.
++_TGT = [(f"R{i:02d}USDT", (400.0 + 10.0 * i) * (1 if i % 2 == 0 else -1)) for i in range(20)]
++
++
++def _stepup(frac_held=0.25):
++    ps = [plan(s, t * (1.0 - frac_held), prev=t * frac_held) for s, t in _TGT]
++    return weighted(ps)
++
++
++def _run(plans, fill_frac, rid="A1788452640"):
++    e, snt = executor(plans)
++    filled = {p["symbol"]: float(p["delta_notional"]) * fill_frac for p in plans}
++    e.topup([dict(p) for p in plans], filled, 1.0, rid)
++    return e, snt
++
++
++_SU = _stepup()
++_rho_before = _math.fsum(abs(p["prev_w"]) for p in _SU)       # X-A3's sum, taken BEFORE the anchor runs
++_eG, _sG = _run(_SU, 0.8)
++_cG = _eG._chase_experiment or {}
++# the paired control: the SAME residuals, net, gross and seed — only prev_w says the book was already there (rho 1.0)
++_SUc = [dict(p, prev_w=p["prev_w"] * 4.0) for p in _SU]
++_eGc, _sGc = _run(_SUc, 0.8)
++_cGc = _eGc._chase_experiment or {}
++_tuG = {r["symbol"]: r for r in _eG.rows_orders if r["order_type"] == "topup_taker"}
++_tuGc = {r["symbol"]: r for r in _eGc.rows_orders if r["order_type"] == "topup_taker"}
++print("\n[G] ★★ a rebuild anchor through the real topup(): nobody is withheld")
++check("G-0 control validity: with prev_w saying the book was already built (rho_pre 1.0) the SAME anchor is in sample "
++      "and really withholds names (skipped_no_chase_arm rows) — otherwise G-1 would pass on an anchor that never withheld",
++      _cGc.get("in_sample") and any(r["terminal_reason"] == "skipped_no_chase_arm" for r in _tuGc.values()),
++      (_cGc.get("arm_counts"), _cGc.get("excluded_because")))
++check("★★★ G-1 rho_pre 0.25 < 0.50: the executor's own record is OUT of sample with reason REBUILD, rebuild=true, and "
++      "rho_pre equals X-A3's sum over the plan rows taken before the anchor ran (old code: randomised, RED)",
++      (not _cG.get("in_sample")) and [e for e in (_cG.get("excluded_because") or []) if e.startswith("REBUILD")]
++      and _cG.get("rebuild") is True and _cG.get("rho_pre") == _rho_before and abs(_rho_before - 0.25) < 1e-12,
++      (_cG.get("in_sample"), _cG.get("excluded_because"), _cG.get("rho_pre"), _rho_before))
++_popG = [s for s, a in (_cG.get("arm_assigned") or {}).items()]
++check("★★★ G-2 every name of the from_partial population is CHASED: no skipped_no_chase_arm row, every one of them was "
++      "sent, and its row carries arm chase / chase_forced",
++      _popG and not any(r["terminal_reason"] == "skipped_no_chase_arm" for r in _tuG.values())
++      and set(_popG) <= {o["symbol"] for o in _sG}
++      and all(_tuG[s].get("chase_arm") in (CP.ARM_CHASE, CP.ARM_FORCED) for s in _popG if s in _tuG),
++      {"withheld": sorted(s for s, r in _tuG.items() if r["terminal_reason"] == "skipped_no_chase_arm"),
++       "not_sent": sorted(set(_popG) - {o["symbol"] for o in _sG})})
++check("G-3 the same population and the same C as the control — REBUILD changes who is withheld, nothing else",
++      sorted(_cG.get("randomised_over") or []) == sorted(_cGc.get("randomised_over") or [])
++      and (_cG.get("neutral_only") or {}).get("fill") == (_cGc.get("neutral_only") or {}).get("fill")
++      and _cG.get("book_net_usdt") == _cGc.get("book_net_usdt") and _cG.get("book_gross_usdt") == _cGc.get("book_gross_usdt"),
++      (len(_cG.get("randomised_over") or []), len(_cGc.get("randomised_over") or [])))
++check("G-4 the anchor artefact's recompute check accepts it (excluded anchor: every randomised name on control)",
++      CP.recompute_check(_cG)["ok"], CP.recompute_check(_cG))
++
++# ── [H] X-A3 recomputed LITERALLY from the rows the executor itself writes ─────────────────────
++print("\n[H] ★★ X-A3 over the executor's own orders rows == the rho_pre it decided with")
++_eH, _sH = executor([])
++_eH.band_bps = 1.0                     # dormant in production (0.0); ON here so a band row (no maker row) exists
++_eH.filters.f = {"MINUSDT": {"min_notional": 5.0}}
++_tH = {s: t * 0.9 for s, t in _TGT[:10]}
++_tH.update({"MINUSDT": 3.0, "BANDUSDT": 1000.0, "NOMIDUSDT": 300.0})
++_cH = {s: t * 0.3 for s, t in _TGT[:10]}
++_cH.update({"BANDUSDT": 1000.05, "HELDEXITUSDT": 0.0})
++_mH = {s: 10.0 for s in _tH}
++_mH.pop("NOMIDUSDT")
++_plH = _eH.plan(_tH, _cH, _mH)                    # the REAL producer of prev_w
++_eH._last_plans = _plH
++_liveH = _eH.submit_maker(_plH, 1.0, "A1788452640")
++_eH.topup(_liveH, {p["symbol"]: float(p["delta_notional"]) * 0.5 for p in _liveH}, 1.0, "A1788452640")
++_first = {}
++for r in _eH.rows_orders:
++    if r.get("rebalance_id") == "A1788452640" and r.get("order_type") == "maker" and r.get("attempt_idx") == 1:
++        _first.setdefault(r["symbol"], r.get("prev_w"))
++_xa3 = _math.fsum(abs(w) for w in _first.values())
++_cHrec = _eH._chase_experiment or {}
++_emit = getattr(CP, "emits_attempt1_maker_row", None)
++check("H-0 fixture validity: the plan set holds all three row kinds — sent makers, a labelled skip "
++      "(skipped_min_notional / skipped_no_mid) and a band row with no maker row",
++      any("qty" in p for p in _plH) and any(p.get("skip") for p in _plH)
++      and any(p.get("skip") is None and "qty" not in p for p in _plH),
++      sorted((p["symbol"], p.get("skip"), "qty" in p) for p in _plH))
++check("★★ H-1 the set of names that got an attempt-1 maker row == the plan rows `emits_attempt1_maker_row` selects — the "
++      "copied predicate agrees with submit_maker/topup by BEHAVIOUR, band row excluded",
++      _emit is not None and set(_first) == {p["symbol"] for p in _plH if _emit(p)} and "BANDUSDT" not in _first,
++      (sorted(_first), sorted(p["symbol"] for p in _plH if _emit and _emit(p))))
++check("★★★ H-2 X-A3 computed per the amendment's text over the executor's OWN rows (first attempt-1 maker row per "
++      "symbol, sum |prev_w|) equals the rho_pre the executor recorded at decision time, to the bit",
++      _cHrec.get("rho_pre") == _xa3 and _xa3 < 0.5 and _cHrec.get("rebuild") is True,
++      (_cHrec.get("rho_pre"), _xa3))
++
++# ── [I] decision-time only: the maker fills of this anchor cannot move rho_pre ──────────────────
++print("\n[I] ★★ rho_pre is fixed before the anchor trades — and a mutant that reads the post-maker book is caught")
++
++
++def _decision_time_ok(rho_fn=None):
++    """Run the STEP_UP anchor with 20% and with 95% maker fills; the decision must not move."""
++    saved = getattr(CP, "rho_pre_from_plans", None)
++    out = []
++    try:
++        for ff in (0.2, 0.95):
++            if rho_fn is not None:
++                CP.rho_pre_from_plans = (lambda plans, _ff=ff: rho_fn(plans, _ff))
++            e, _s = _run(_SU, ff)
++            out.append(e._chase_experiment or {})
++    finally:
++        if saved is not None:
++            CP.rho_pre_from_plans = saved
++    return (all(c.get("rho_pre") == _rho_before and c.get("rebuild") is True for c in out),
++            [(c.get("rho_pre"), c.get("rebuild")) for c in out])
++
++
++def _mutant_post_maker_book(plans, fill_frac):
++    """The natural wrong implementation: rho from the book AFTER the maker leg (prev + this anchor's fills)."""
++    g = sum(abs(float(p["target_notional"])) for p in plans) or 1.0
++    return {"rho_pre": _math.fsum(abs(float(p["prev_notional"]) + fill_frac * float(p["delta_notional"]))
++                                  for p in plans) / g, "state": "MUTANT"}
++
++
++_okI, _seenI = _decision_time_ok()
++check("★★★ I-1 with 20% and with 95% of the deltas filled by the makers, rho_pre is the same pre-anchor sum both times "
++      "(0.25) and the anchor is a rebuild both times", _okI, _seenI)
++_okM, _seenM = _decision_time_ok(_mutant_post_maker_book)
++check("★★ I-2 MUTATION CONTROL: a rho_pre read from the post-maker book (prev + fills) FAILS the same predicate — "
++      "0.40 at 20% fill, 0.96 at 95%, and the 95% anchor is no longer a rebuild (a check never seen red is unverified)",
++      (not _okM) and _seenM[1][1] is False, _seenM)
++_eJ, _sJ = executor(_SU)
++del _eJ._last_plans
++_eJ.topup([dict(p) for p in _SU], {p["symbol"]: float(p["delta_notional"]) * 0.8 for p in _SU}, 1.0, "A1788452640")
++_cJ = _eJ._chase_experiment or {}
++check("I-3 no plan set on the executor (`_last_plans` absent) ⇒ rho_pre None and NOT a rebuild: the top-up's `live` "
++      "is a subset of the book (it would read flatter than it is), so it is never used as a stand-in",
++      "rebuild_rule" in _cJ and _cJ.get("rho_pre") is None and _cJ.get("rebuild") is False
++      and "UNOBSERVABLE" in str((_cJ.get("rho_pre_detail") or {}).get("state")),
++      (_cJ.get("rho_pre"), _cJ.get("rebuild"), (_cJ.get("rho_pre_detail") or {}).get("state")))
++
++
+ print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + ', '.join(FAILS)}   ({N[0]} checks)")
+ sys.exit(1 if FAILS else 0)
+diff --git a/live/tests_chase_policy.py b/live/tests_chase_policy.py
+index d32fe34..0ffe68e 100644
+--- a/live/tests_chase_policy.py
++++ b/live/tests_chase_policy.py
+@@ -270,5 +270,199 @@ check("★ a name PARKED on chase_forced to escape the coin is caught — the fo
+       (not _pchk["ok"]) and _victim in _pchk["mismatch"], _pchk)
+ 
+ 
++# ═══ 12. ★★ REBUILD — the fourth `excluded_because` reason (ruling 2026-09-19 #2) ═════════════
++# CFG-04 AMENDMENT 1 §C option (a): on an anchor with rho_pre < 0.50 (X-A3, verbatim) nobody is
++# withheld. Every cell below is written to run on the UNMODIFIED code too (no crash, a FAIL line):
++# the REBUILD cells must go red there, the identity cells must stay green there.
++print("\n§12  REBUILD: rho_pre < 0.50 excludes the anchor; everything else bit-for-bit as before")
++import copy as _copy          # noqa: E402
++import hashlib as _hl         # noqa: E402
++import inspect as _insp       # noqa: E402
++import json as _json          # noqa: E402
++import math as _math          # noqa: E402
++
++_HAS_RHO = "rho_pre" in _insp.signature(CP.plan_experiment).parameters
++_RHO_FN = getattr(CP, "rho_pre_from_plans", None)
++_NEW_KEYS = {"rebuild_rule", "rebuild_rho_threshold", "rho_pre", "rebuild", "rho_pre_detail"}
++
++
++def _pe(rho, kw):
++    return CP.plan_experiment(**kw, rho_pre=rho) if _HAS_RHO else CP.plan_experiment(**kw)
++
++
++def _old_view(rec):
++    return {k: v for k, v in rec.items() if k not in _NEW_KEYS}
++
++
++def _digest(rec):
++    return _hl.sha256(_json.dumps(rec, sort_keys=True, separators=(",", ":"),
++                                  ensure_ascii=True).encode()).hexdigest()
++
++
++# ── REBUILD golden cases (verbatim copy of rebuild_chase/golden_cases.py; digests computed by the
++#    UNMODIFIED chase_policy at executor 409ea16, blob 6d4f6e83…, /usr/bin/python3 3.9.6) ──────
++_GW = {"chase": 1.0, "no_chase": 1.0}
++_GW2 = {"chase": 0.5, "no_chase": 0.5}
++GOLDEN_CASES = [
++    ("in_sample_6",   dict(residuals=[("AAAUSDT", -60.0), ("BBBUSDT", -50.0), ("CCCUSDT", -40.0), ("DDDUSDT", -30.0),
++                                      ("EEEUSDT", -20.0), ("FFFUSDT", -15.0)],
++                           seed="A1785600000", book_net_usdt=180.0, book_gross_usdt=4300.0, net_basis="g", weights=_GW)),
++    ("two_sided_14",  dict(residuals=[(f"M{i:02d}USDT", (-1) ** i * (7.0 + 3.1 * i)) for i in range(14)],
++                           seed="A1789215839", book_net_usdt=-55.5, book_gross_usdt=9800.0, net_basis="g", weights=_GW2)),
++    ("tilted_fill",   dict(residuals=[(f"T{i}USDT", -(90.0 - 7.0 * i)) for i in range(10)],
++                           seed="A1788452640", book_net_usdt=420.0, book_gross_usdt=12000.0, net_basis="g", weights=_GW2)),
++    ("stop_excluded", dict(residuals=[("AAAUSDT", -60.0), ("BBBUSDT", -50.0), ("LSKUSDT", 85.77), ("DDDUSDT", -30.0),
++                                      ("EEEUSDT", -20.0), ("FFFUSDT", -15.0)],
++                           seed="A1789302239", book_net_usdt=100.0, book_gross_usdt=5000.0, net_basis="g", weights=_GW,
++                           exclude={"LSKUSDT": "per_name_stop"})),
++    ("min_eligible",  dict(residuals=[("AAAUSDT", -100.0)], seed="A1785600000", book_net_usdt=100.0,
++                           book_gross_usdt=4300.0, net_basis="g", weights=_GW)),
++    ("no_book_net",   dict(residuals=[(f"S{i}USDT", -10.0) for i in range(6)], seed="A1785600000", book_net_usdt=None,
++                           book_gross_usdt=4300.0, net_basis="UNAVAILABLE", weights=_GW)),
++    ("tilt_abort",    dict(residuals=[(f"B{i}USDT", -400.0) for i in range(6)], seed="A1785600000", book_net_usdt=0.0,
++                           book_gross_usdt=4300.0, net_basis="g", weights=_GW)),
++]
++_GOLDEN_409EA16 = {
++    "in_sample_6":   "e89f6bff7b2bd4292e389f981bbe1a61dbab2166d68b777370973d7d08e947ff",
++    "two_sided_14":  "5003fcdcf4f2468a770422a8319d1537696ace7f764955413c30268d57ed504f",
++    "tilted_fill":   "b201b4ec3d4bb98f96c79453fee9cebdb71a111907abb7d7efca3e438b5e2023",
++    "stop_excluded": "6b4b44624ccdb0135667020ead187af25b76837338d4f3049edfc94b2733d732",
++    "min_eligible":  "141e36f1708b8627056816fadb98741abca8932bc3201defb462c795da22617a",
++    "no_book_net":   "880294c185d9e00ee9984c5c31b47158c65e0d5d2fcf32c065d5fd7098bd6aa3",
++    "tilt_abort":    "37e54091ef44eb9fe6bd021c10f55d79c1c990e938ab0f06756276c9d81087b9",
++}
++_CASES = dict(GOLDEN_CASES)
++_IN_SAMPLE = ("in_sample_6", "two_sided_14", "tilted_fill", "stop_excluded")
++_OLD_REASONS = ("min_eligible", "no_book_net", "tilt_abort")
++
++# ── 12a. (1) a rebuild anchor is excluded with reason REBUILD and every population name chases ──
++_base = {c: _pe(None, _CASES[c]) for c in _CASES}
++check("12a-0 fixture validity: each in-sample golden case, with no rho_pre, is in sample AND withholds at least one "
++      "name — otherwise the REBUILD cells below would pass on an anchor that never had a no_chase name to remove",
++      all(_base[c]["in_sample"] and CP.ARM_NO_CHASE in set(_base[c]["arm"].values()) for c in _IN_SAMPLE),
++      {c: _base[c]["arm_counts"] for c in _IN_SAMPLE})
++for _rho in (0.257, 0.0):                         # 09-03 16Z STEP_UP 0.257; RESUME anchors 0
++    _bad = {}
++    for c in _IN_SAMPLE:
++        r, b = _pe(_rho, _CASES[c]), _base[c]
++        _reb = [e for e in r["excluded_because"] if e.startswith("REBUILD")]
++        ok = (not r["in_sample"] and len(_reb) == 1 and r["excluded_because"] == _reb
++              and r.get("rebuild") is True and r.get("rho_pre") == _rho
++              and CP.ARM_NO_CHASE not in set(r["arm"].values())
++              and all(a == CP.ARM_CHASE for s, a in r["arm"].items() if b["arm"][s] != CP.ARM_FORCED)
++              and {s for s, a in r["arm"].items() if a == CP.ARM_FORCED} == set(b["neutral_only"]["fill"])
++              and sorted(r["arm"]) == sorted(b["arm"]) and r["randomised_over"] == b["randomised_over"]
++              and r["arm_assigned"] == r["arm"] and r["no_chase_arm_net_usdt"] == 0.0
++              and r["excluded_before_assignment"] == b["excluded_before_assignment"]
++              and CP.recompute_check(r)["ok"])
++        if not ok:
++            _bad[c] = (r["in_sample"], r["excluded_because"], r["arm_counts"], r.get("rho_pre"))
++    check(f"★★★ 12a-1 rho_pre={_rho}: every in-sample golden anchor becomes OUT of sample with exactly one reason, "
++          f"'REBUILD: …'; NO name is withheld — every randomised name is on `chase`, C's fill set stays chase_forced, "
++          f"the population, the stop exclusion and recompute_check are unchanged (old code: rho_pre ignored, RED)",
++          not _bad, _bad)
++_r12 = _pe(0.257, _CASES["stop_excluded"])
++check("12a-2 the per-name-stop name stays OUTSIDE the population on a rebuild anchor — 'everyone chases' means every "
++      "from_partial name in the population, never a stopped name (E4/R2′ unchanged)",
++      "LSKUSDT" not in _r12["arm"] and _r12["excluded_before_assignment"] == {"LSKUSDT": "per_name_stop"},
++      (_r12["arm"].get("LSKUSDT"), _r12["excluded_before_assignment"]))
++check("12a-3 the reason carries rho_pre and the threshold, and the record carries rho_pre, the rule version and the "
++      "boolean — a readout finds post-change anchors by `rebuild_rule`, not by a deploy note",
++      _HAS_RHO and "0.257" in _r12["excluded_because"][-1] and "0.5" in _r12["excluded_because"][-1]
++      and str(_r12.get("rebuild_rule", "")).startswith("rebuild_v1") and _r12.get("rebuild_rho_threshold") == 0.5,
++      (_r12["excluded_because"], _r12.get("rebuild_rule")))
++
++# ── 12b. (2) a normal anchor (rho_pre >= 0.50) is randomised EXACTLY as before ────────────────
++_diffs = []
++for c, kw in GOLDEN_CASES:
++    for _rho in (None, 0.5, 0.5000000001, 0.62, 1.0, 1.0044, 7.3):
++        r = _pe(_rho, kw)
++        if _digest(_old_view(r)) != _GOLDEN_409EA16[c]:
++            _diffs.append((c, _rho, "digest"))
++        if _HAS_RHO and (set(r) - set(_base[c]) or set(r) != set(_old_view(r)) | _NEW_KEYS
++                         or r.get("rebuild") is not False or r.get("rho_pre") != _rho):
++            _diffs.append((c, _rho, "new keys"))
++check("★★★ 12b-1 BIT-FOR-BIT: for all 7 golden cases × rho_pre ∈ {None, 0.5, 0.5000000001, 0.62, 1.0, 1.0044, 7.3} the "
++      "record minus the five new keys has the SAME sha256 as the unmodified code's record (409ea16) — arms, C, "
++      "reasons, notional, tilt, every field; the only additions are the five named keys, rebuild=false",
++      not _diffs, _diffs[:6])
++check("12b-2 and the added keys are exactly the five named ones (a sixth key, or a changed old key, would not be "
++      "'the same plan')", (not _HAS_RHO) or set(_pe(1.0, _CASES["in_sample_6"])) - set(_old_view(_pe(1.0, _CASES["in_sample_6"]))) == _NEW_KEYS,
++      sorted(set(_pe(1.0, _CASES["in_sample_6"])) - set(_old_view(_pe(1.0, _CASES["in_sample_6"])))))
++
++# ── 12c. (3) the boundary is X-A3's: strictly less than 0.50 ────────────────────────────────
++_at = _pe(0.5, _CASES["in_sample_6"])
++_below = _pe(_math.nextafter(0.5, 0.0), _CASES["in_sample_6"])
++check("★★ 12c-1 rho_pre == 0.50 EXACTLY is NOT a rebuild (X-A3 is 'ρ_pre < 0.50'): in sample, randomised, "
++      "identical to the old record", _at["in_sample"] and _at.get("rebuild") is not True
++      and _digest(_old_view(_at)) == _GOLDEN_409EA16["in_sample_6"], (_at["in_sample"], _at["excluded_because"]))
++check("★★ 12c-2 the next float below 0.50 IS a rebuild (a '<=' or a rounded compare fails one of these two cells)",
++      (not _below["in_sample"]) and _below.get("rebuild") is True and CP.ARM_NO_CHASE not in set(_below["arm"].values()),
++      (_below["in_sample"], _below["arm_counts"], _below.get("rho_pre")))
++check("12c-3 the threshold is X-A3's 0.50 and is not a parameter of plan_experiment (S-ρ25/S-ρ75 are readout "
++      "sensitivities, not execution settings)",
++      getattr(CP, "REBUILD_RHO_THRESHOLD", None) == 0.5
++      and not ({"threshold", "rebuild_threshold", "rho_threshold"} & set(_insp.signature(CP.plan_experiment).parameters)),
++      getattr(CP, "REBUILD_RHO_THRESHOLD", None))
++_nan = [_pe(v, _CASES["in_sample_6"]) for v in (float("nan"), float("inf"), "0.1", True)]
++check("12c-4 a rho_pre that is not a finite float (NaN, inf, a string, a bool) establishes nothing: the anchor is "
++      "decided exactly as before and the record says rho_pre is None — never read as 0 (= a rebuild)",
++      all(_digest(_old_view(r)) == _GOLDEN_409EA16["in_sample_6"] and r.get("rho_pre") is None for r in _nan)
++      if _HAS_RHO else False, [(r["in_sample"], r.get("rho_pre")) for r in _nan])
++
++# ── 12d. (4) the three older reasons still fire, first and unchanged ─────────────────────────
++_bad4 = {}
++for c in _OLD_REASONS:
++    b, r = _base[c], _pe(0.1, _CASES[c])
++    if not (b["excluded_because"] and r["excluded_because"][:-1] == b["excluded_because"]
++            and r["excluded_because"][-1].startswith("REBUILD") and r["arm"] == b["arm"]
++            and r["no_chase_arm_tilt_frac"] == b["no_chase_arm_tilt_frac"] and not r["in_sample"]):
++        _bad4[c] = (b["excluded_before_assignment"], r["excluded_because"])
++check("★★ 12d-1 no-book-net / min_eligible / tilt-abort: on a rebuild anchor each older reason still fires with the "
++      "SAME text in the SAME place, REBUILD is appended AFTER it, and the arms are the old excluded-anchor arms",
++      not _bad4, _bad4)
++check("12d-2 in particular the tilt abort is still evaluated on the coin's assignment when REBUILD also applies — "
++      "REBUILD never pre-empts an older reason",
++      any("abort" in e for e in _pe(0.1, _CASES["tilt_abort"])["excluded_because"][:-1]),
++      _pe(0.1, _CASES["tilt_abort"])["excluded_because"])
++# (their non-rebuild behaviour is 12b's digest cells for min_eligible / no_book_net / tilt_abort)
++
++# ── 12e. (5) rho_pre is X-A3's sum over DECISION-TIME plan rows ─────────────────────────────
++def _row(sym, prev_w, **kw):
++    d = {"symbol": sym, "prev_w": prev_w, "prev_notional": prev_w * 1000.0, "target_w": 0.0}
++    d.update(kw)
++    return d
++
++
++_steady = [_row("AUSDT", 0.31, qty=1.0), _row("BUSDT", -0.27, qty=-2.0), _row("CUSDT", 0.22, skip="skipped_min_notional"),
++           _row("DUSDT", -0.19, skip="skipped_no_mid"), _row("EUSDT", 0.40, skip=None),        # band row: no maker row
++           _row("AUSDT", 9.99, qty=1.0)]                                                        # duplicate symbol
++_h = _RHO_FN(_steady) if _RHO_FN else {}
++check("★★ 12e-1 rho_pre = fsum |prev_w| over the rows that write an attempt-1 maker row: qty rows and labelled skips "
++      "count, the band row (skip None, no qty — no maker row) does not, a repeated symbol counts once (first row)",
++      _h.get("rho_pre") == _math.fsum([0.31, 0.27, 0.22, 0.19]) and _h.get("n_rows") == 4 and _h.get("n_without_maker_row") == 1,
++      _h)
++check("12e-2 order does not matter (fsum): the ledger's row order is not the plan order",
++      _RHO_FN is not None and _RHO_FN(list(reversed(_steady[:5])))["rho_pre"] == _h.get("rho_pre"))
++_unk = [_row("AUSDT", 0.31, qty=1.0), {"symbol": "BUSDT", "qty": 1.0}, _row("CUSDT", float("nan"), qty=1.0),
++        _row("DUSDT", 0.2, qty=1.0)]
++_hu = _RHO_FN(_unk) if _RHO_FN else {}
++check("★★ 12e-3 UNKNOWN IS NOT ZERO: an emitting row with no finite prev_w makes rho_pre None and NAMES the rows — a "
++      "partial sum (0.51 here) is a lower bound, and a lower bound can fake a rebuild",
++      _hu.get("rho_pre") is None and _hu.get("unreadable_prev_w") == ["BUSDT", "CUSDT"], _hu)
++check("12e-4 ...but a missing prev_w on a row X-A3 never sees (band row) does not poison the sum",
++      _RHO_FN is not None and _RHO_FN([_row("AUSDT", 0.6, qty=1.0), {"symbol": "EUSDT", "skip": None}])["rho_pre"] == 0.6)
++check("12e-5 no plan rows at all (None / []) is UNOBSERVABLE, not an empty sum of 0.0",
++      _RHO_FN is not None and _RHO_FN(None)["rho_pre"] is None and _RHO_FN([])["rho_pre"] is None)
++_post = _copy.deepcopy(_steady)
++for q in _post:                                    # everything the maker leg / top-up / readback later writes on a plan
++    q.update(filled_notional=q["prev_notional"] * 3.0 + 77.0, venue_executed_qty=5.0, submitted=True, submit_ts=1.0,
++             avg_fill_px=10.0, first_fill_ts=2.0, request_ledger=[{"qty": 1.0}], terminal_reason="filled",
++             position_after=123.0, _topup_source="from_partial")
++check("★★ 12e-6 DECISION-TIME ONLY: stamping every post-anchor field (fills, venue qty, submit, ledger, readback) on the "
++      "plan rows leaves rho_pre bit-identical — the function has no input through which this anchor's outcome can enter",
++      _RHO_FN is not None and _RHO_FN(_post) == _h, (_RHO_FN(_post) if _RHO_FN else None, _h))
++
++
+ print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + ', '.join(FAILS)}   ({N[0]} checks)")
+ sys.exit(1 if FAILS else 0)
+diff --git a/live/tests_per_name_stop.py b/live/tests_per_name_stop.py
+index c69d561..2d4767b 100644
+--- a/live/tests_per_name_stop.py
++++ b/live/tests_per_name_stop.py
+@@ -455,7 +455,13 @@ def _e4_topup(e, live, ats, rid, stop):
+ 
+ 
+ _N12, _G12 = float(_CE12["book_net_usdt"]), float(_CE12["book_gross_usdt"])
+-_BOOK12 = [{"symbol": "BOOK+", "prev_notional": (_G12 + _N12) / 2.0}, {"symbol": "BOOK-", "prev_notional": -(_G12 - _N12) / 2.0}]
++# ★ REBUILD (ruling 2026-09-19 #2) reads `prev_w` of the plan rows that write an attempt-1 maker row (X-A3's rho_pre). The 192
++#   from_partial rows keep `prev_w: 0.0` (their `prev_notional` is 0.0 here: the held book lives in BOOK±), so BOOK± carry the book's
++#   weight as `plan()` writes it for held names with no trade (prev_notional / gross, a `skipped_min_notional` row) — rho_pre 1.0,
++#   the real anchor's own 1.0044 (ledger, A1789215839). Without it the fixture reads as a FLAT book, i.e. a rebuild anchor, which the
++#   real 09-12 12Z was not, and E4-3a/E4-4 would compare two everyone-chases runs.
++_BOOK12 = [{"symbol": "BOOK+", "prev_notional": (_G12 + _N12) / 2.0, "prev_w": ((_G12 + _N12) / 2.0) / _G12, "skip": "skipped_min_notional"},
++           {"symbol": "BOOK-", "prev_notional": -(_G12 - _N12) / 2.0, "prev_w": (-(_G12 - _N12) / 2.0) / _G12, "skip": "skipped_min_notional"}]
+ 
+ 
+ def _live12():

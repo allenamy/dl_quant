@@ -1,0 +1,13 @@
+baseline: exit=1 2026-09-19T08:40:57Z  start 2026-09-19T08:27:57Z
+after:    exit=1 2026-09-19T09:02:08Z  start 2026-09-19T08:48:44Z
+after diff sha256 (git diff -- live/ at launch): ffd936381fa71c656ea33d1f4bbd1df9548c4ef13b84d649aeb6f63dfa5d7e9a  -
+
+suites baseline=161 after=161 exit0 baseline=154 after=155
+SAME-RED tests_alarm_digest: exit 1; 1 FAIL lines, identical set
+SAME-RED tests_break_split_wiring: exit 1; 2 FAIL lines, identical set
+SAME-RED tests_disposition_matrix: exit 1; 10 FAIL lines, identical set
+DIFF tests_entrypoint_wiring: exit 1 -> 0; FAIL-set equal=False
+   only baseline: FAIL  ★ off-schedule => ZERO OPENING orders went live (planned > 0, live_opening == 0; reduce-only 路径放行)
+SAME-RED tests_env_loading: exit 3; 0 FAIL lines, identical set
+SAME-RED tests_reject_topup: exit 1; 2 FAIL lines, identical set
+SAME-RED tests_unseal_rehearsal_halt: exit 1; 1 FAIL lines, identical set
