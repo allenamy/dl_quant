@@ -15,6 +15,8 @@ Definitions (all per nominal anchor N, bps of realized_gross_N unless stated):
 """
 import os, json, glob, time, hashlib
 import numpy as np
+import sys as _sys; _sys.path.insert(0, "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/live/pilot_journal/tools")
+from fills_reader import collapse_supersedes as _collapse  # ★ LED-01: fills.jsonl 是追加式日志, 回填把同一笔再写一遍(全史 2.269 倍)。不坍缩 ⇒ 成交额/费用/笔数虚高 ~2.1 倍, 跨源比率(换手/费率对 gross)虚高 ~2.3 倍。
 HERE = os.path.dirname(os.path.abspath(__file__))
 WS = "/Users/haosiyu/wide_shadow"; PL = "/Users/haosiyu/dl_quant_live/state/live/pilot_log"; RD = "/Users/haosiyu/regime_dash"
 def sha(p): return hashlib.sha256(open(p, "rb").read()).hexdigest()
@@ -67,7 +69,7 @@ for d in days:
             RB_other.append((at, src, float(r.get("read_ts") or at)))
     FUND += [(float(r["settlement_ts"]), r["symbol"], float(r["funding_paid"])) for r in jl(d, "funding.jsonl")]
     NAV += jl(d, "daily_nav.jsonl")
-    for r in jl(d, "fills.jsonl"):
+    for r in _collapse(jl(d, "fills.jsonl")):
         FILLS.setdefault(float(r["anchor_ts"]), []).append((float(r["fill_ts"]), r["symbol"], r["side"], r.get("order_type"), float(r["fill_px"]), float(r.get("fill_notional") or 0.0)))
 FUND.sort(); NAV.sort(key=lambda n: float(n["nav_ts"]))
 flat_events = sorted(set((at, src) for at, src, rt in RB_other))

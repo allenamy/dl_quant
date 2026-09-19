@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import json, glob, os, collections
 import numpy as np
+import sys as _sys; _sys.path.insert(0, "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/live/pilot_journal/tools")
+from fills_reader import collapse_supersedes as _collapse  # ★ LED-01: fills.jsonl 是追加式日志, 回填把同一笔再写一遍(全史 2.269 倍)。不坍缩 ⇒ 成交额/费用/笔数虚高 ~2.1 倍, 跨源比率(换手/费率对 gross)虚高 ~2.3 倍。
 PL="/Users/haosiyu/dl_quant_live/state/live/pilot_log"
 OUT="/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11"
 # BNB mid per anchor from anchors.jsonl
@@ -22,8 +24,8 @@ agg=collections.defaultdict(lambda: {"usdt":0.0,"bnb":0.0,"notional":0.0,"maker_
 for d in sorted(glob.glob(f"{PL}/2026*")):
     p=f"{d}/fills.jsonl"
     if not os.path.exists(p): continue
-    for l in open(p):
-        r=json.loads(l); t=float(r.get("anchor_ts") or 0); A=int(t//14400*14400)
+    for r in _collapse([json.loads(l) for l in open(p) if l.strip()]):
+        t=float(r.get("anchor_ts") or 0); A=int(t//14400*14400)
         a=agg[A]; c=float(r.get("commission") or 0.0)
         if r.get("commission_asset")=="BNB": a["bnb"]+=c
         else: a["usdt"]+=c

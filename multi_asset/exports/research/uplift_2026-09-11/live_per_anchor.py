@@ -49,15 +49,19 @@ for d in sorted(glob.glob(f"{PL}/2026*")):
 fund.sort()
 print("funding rows (deduped):", len(fund), "total paid:", round(sum(f[1] for f in fund), 2))
 from collections import Counter
+import sys as _sys; _sys.path.insert(0, "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/live/pilot_journal/tools")
+from fills_reader import collapse_supersedes as _collapse  # ★ LED-01: fills.jsonl 是追加式日志, 回填把同一笔再写一遍(全史 2.269 倍)。不坍缩 ⇒ 成交额/费用/笔数虚高 ~2.1 倍, 跨源比率(换手/费率对 gross)虚高 ~2.3 倍。
 print("funding_interval_h histogram:", Counter(f[2] for f in fund))
 
 comm = []
 for d in sorted(glob.glob(f"{PL}/2026*")):
     p = f"{d}/fills.jsonl"
     if not os.path.exists(p): continue
+    _rows = []
     for l in open(p):
-        try: r = json.loads(l)
+        try: _rows.append(json.loads(l))
         except Exception: continue
+    for r in _collapse(_rows):
         comm.append((float(r.get("anchor_ts") or 0), float(r.get("commission") or 0.0),
                      float(r.get("fill_notional") or 0.0), bool(r.get("venue_maker_flag"))))
 

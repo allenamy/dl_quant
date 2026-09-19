@@ -10,16 +10,10 @@ A = 1789777442.671038
 O = [r for r in (json.loads(l) for l in open(f"{L}/orders.jsonl") if l.strip()) if r["anchor_ts"] == A]
 Fraw = [r for r in (json.loads(l) for l in open(f"{L}/fills.jsonl") if l.strip()) if r["anchor_ts"] == A]
 
-# --- collapse (the sanctioned semantics, reimplemented and then reconciled against orders) ---
-by = collections.OrderedDict()
-for f in Fraw:
-    k = (f["symbol"], f["trade_id"])
-    if k not in by: by[k] = dict(f)
-    else:
-        cur = by[k]
-        for fld in ("mid_at_fill_plus_60s","mark_source","mark_ts_actual","mark_lag_s","mark_window_s","backfilled_utc"):
-            if f.get(fld) is not None: cur[fld] = f[fld]
-F = list(by.values())
+# --- collapse: 走规范访问器(单一实现, 带对执行器的漂移守卫) ---
+import sys as _sys; _sys.path.insert(0, "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/live/pilot_journal/tools")
+from fills_reader import collapse_supersedes
+F = collapse_supersedes(Fraw)
 gf = sum(abs(f["fill_notional"]) for f in F); go = sum(abs(r.get("filled_notional") or 0) for r in O)
 print(f"坍缩对账: 原始行 {len(Fraw)} -> 唯一成交 {len(F)}; 名义 {gf:,.2f} vs orders.filled_notional {go:,.2f}; 差 {gf-go:+.2f}")
 assert abs(gf-go) < 0.01, "坍缩后与订单账不符, 不出数"

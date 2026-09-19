@@ -6,6 +6,8 @@
 """
 import json, glob, sys
 from collections import Counter, defaultdict
+import sys as _sys; _sys.path.insert(0, "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/live/pilot_journal/tools")
+from fills_reader import collapse_supersedes as _collapse  # ★ LED-01: fills.jsonl 是追加式日志, 回填把同一笔再写一遍(全史 2.269 倍)。不坍缩 ⇒ 成交额/费用/笔数虚高 ~2.1 倍, 跨源比率(换手/费率对 gross)虚高 ~2.3 倍。
 
 ROOT = sys.argv[1] if len(sys.argv) > 1 else '/Users/haosiyu/dl_quant_live/state/live/pilot_log'
 
@@ -37,11 +39,13 @@ for f in sorted(glob.glob(ROOT + '/2026*/orders.jsonl')):
 
 fills_total = 0.0
 for f in sorted(glob.glob(ROOT + '/2026*/fills.jsonl')):
+    _rows = []
     for line in open(f):
         try:
-            r = json.loads(line)
+            _rows.append(json.loads(line))
         except Exception:
             continue
+    for r in _collapse(_rows):
         fills_total += abs(float(r.get('fill_notional') or 0))
 
 int_n = Counter(); int_fill = Counter(); int_vw_n = defaultdict(float); int_vw_d = defaultdict(float)
