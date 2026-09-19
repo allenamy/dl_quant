@@ -24,6 +24,10 @@ def main():
     a = ap.parse_args(); R = BD.R; W = f"{R}/work/{a.tag}"; os.makedirs(f"{W}/p2", exist_ok=True)
     gate = json.load(open(f"{R}/receipts/GATE_F.json")); assert gate["VERDICT"] == "PASS", "GATE F has not passed: no history run"
     krep = json.load(open(f"{R}/receipts/K_REPRO.json")); frep = json.load(open(f"{R}/receipts/F_REPRO.json"))
+    fast = os.environ.get("OBJB_FAST") == "1"
+    if fast:   # warm-executor scorer path only after its bitwise gate
+        fg = json.load(open(f"{R}/receipts/FAST_GATE_v2.json")); assert fg["VERDICT"] == "PASS", "FAST-GATE v2 has not passed"
+        assert fg["devices_sha256"]["fast_exec.py"] == BL.sha(f"{HERE}/fast_exec.py"), "fast_exec.py differs from the gated one"
     t0 = time.time(); G = BD.Globals(load_cache=True)
     if BD.ARM == "A0":
         assert set(G.f10) == {2023, 2024, 2025, 2026}, ("F10 fold models missing", sorted(G.f10))
@@ -44,7 +48,8 @@ def main():
            "data_version": ("holefix2 1d7f459d; anchors <= 2026-08-31 00Z read rows <= 2026-08-31 00:00Z only, where holefix2 == x0918 (stream D prefix proof, "
                             "0a2e00895) and == x0918r (which replaces only the 08-31 00:05Z -> 09-01 00:00Z hole-filled rows); the 08-31 04Z -> 09-18 20Z segment is a "
                             "separate run on x0918r (AMENDMENT 4 A4.4)"),
-           "gate_f_verdict": gate["VERDICT"], "gate_f_disclosure": gate.get("disclosure"), "data": BD.DATA}
+           "gate_f_verdict": gate["VERDICT"], "gate_f_disclosure": gate.get("disclosure"), "data": BD.DATA,
+           "scorer_path": ("fast_exec.py v2 warm executor (FAST-GATE v1 PASS 52/52 + v2 receipts/FAST_GATE_v2.json sha " + BL.sha(f"{R}/receipts/FAST_GATE_v2.json")[:16] + ")") if fast else "standard (one interpreter per anchor)"}
     if BD.DATA == "x0918r":
         cfg["data_version"] = ("x0918r cache 08bb2957 (variant-diff C1 PASS: bit-identical to x0918 outside the replaced 2026-08-31 00:05Z -> 09-01 00:00Z rows; "
                                "x0918 bit-identical to holefix2 on its rows) + ledger_ext 155ce179 (ledger_full rows <= 2026-08-31 00Z, stream-D 74b69e63 after) + "

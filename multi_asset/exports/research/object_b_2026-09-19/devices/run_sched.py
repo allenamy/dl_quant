@@ -12,13 +12,15 @@ Plan (every heavy step is admitted by check(); every check and action is appende
   scale-down: if the cgroup's free unreclaimable memory drops below 20 GiB while a P2 stage runs, that stage (V4 first, then A0) is stopped by
   its own recorded PGID and relaunched with half the workers (resumable). Stops only process groups started by this scheduler.
 usage: env -i PATH=/usr/bin:/bin HOME=/root LC_CTYPE=C.UTF-8 [ADOPT_A0_PGID=<pgid> V4_WORKERS=<n>] /workspace/venv/bin/python -B run_sched.py
+  fast (15:3xZ, after FAST-GATE PASS): ADOPT_A0_PGID=1295510 RELAUNCH_A0=1 FAST=1 W_GB=<measured> A0_WORKERS=13 V4_WORKERS=11
   restart (13:4xZ): V4_WORKERS=11 — V4 P2 (11) + A0 P3 (1) + A0_ext P1 (1) = 13 cores within the 13.6 quota; projected ~32.7 GB, free >= 20 GiB."""
 import os, sys, json, time, signal, subprocess, re
 
 R = "/workspace/object_b_2026-09-19"; D = f"{R}/devices"; LG = f"{R}/logs"; PY = "/workspace/venv/bin/python"
 SLOG = f"{R}/receipts/SCHED_LOG.jsonl"
 CAP = int(open("/sys/fs/cgroup/memory.max").read()) / 2 ** 30; FREE_MIN = 20.0
-W_GB, PARENT_GB = 1.3, 6.2          # probe receipts/memprobe_samples.txt; 12-worker P2 peaked at 21.85 GB (= 6.2 + 12 x 1.3)
+W_GB, PARENT_GB = float(os.environ.get("W_GB", "1.3")), 6.2   # probe receipts/memprobe_samples.txt; 12-worker P2 peaked at 21.85 GB (= 6.2 + 12 x 1.3)
+FAST = {"OBJB_FAST": "1"} if os.environ.get("FAST") == "1" else {}   # warm-executor scorer path (FAST-GATE PASS; b_launch re-asserts it)
 AX = ["--start", "2022-01-31T00:00:00Z", "--end", "2026-08-31T00:00:00Z"]; AXE = ["--start", "2022-01-31T00:00:00Z", "--end", "2026-09-18T20:00:00Z"]
 
 
@@ -104,10 +106,18 @@ def main():
     # s0: A0 P2,P3 with 13 workers (the 9-worker run PGID 1293032 is this scheduler's predecessor, recorded in the A0 log)
     st = {"a0_w": 13, "v4_w": int(os.environ.get("V4_WORKERS", "9"))}
     old = 1293032; adopt = int(os.environ.get("ADOPT_A0_PGID", "0"))
-    if adopt:   # restart of the scheduler: the A0 run it launched keeps running untouched
+    relaunch_a0 = os.environ.get("RELAUNCH_A0") == "1"
+    if adopt and relaunch_a0:   # hand A0's remaining un-scored anchors to fast workers: stop the adopted run by its PGID, relaunch (resumable)
+        assert alive(adopt), adopt
+        log(ev="stop", name="A0_main P2 (standard path) for the fast path", pgid=adopt); os.killpg(adopt, signal.SIGTERM)
+        for _ in range(90):
+            if not alive(adopt): break
+            time.sleep(1)
+        adopt = 0
+    elif adopt:   # restart of the scheduler: the A0 run it launched keeps running untouched
         assert alive(adopt), adopt
         a0 = Adopted(adopt, A0LOG); log(ev="adopt", name="A0_main P2,P3 13w", pgid=adopt, v4_workers=st["v4_w"])
-    elif alive(old):
+    elif alive(old) and not relaunch_a0:
         log(ev="stop", name="A0_main P2 (9 workers)", pgid=old); os.killpg(old, signal.SIGTERM)
         for _ in range(60):
             if not alive(old): break
@@ -115,8 +125,9 @@ def main():
     if not adopt:
         for w in range(12):   # sandboxes of the earlier (untagged) P2 code, all of them this task's
             subprocess.run(["rm", "-rf", f"/dev/shm/object_b_p2/w{w}"])
-        if not check("A0_main P2 13 workers", PARENT_GB + st["a0_w"] * W_GB): st["a0_w"] = 9
-        a0 = launch(f"A0_main P2,P3 {st['a0_w']}w", ["b_launch.py", "--tag", "A0_main", *AX, "--workers", str(st["a0_w"]), "--stages", "P2,P3"], {}, A0LOG)
+        st["a0_w"] = int(os.environ.get("A0_WORKERS", "13"))
+        while st["a0_w"] > 2 and not check(f"A0_main P2 {st['a0_w']} workers", PARENT_GB + st["a0_w"] * W_GB): st["a0_w"] -= 2
+        a0 = launch(f"A0_main P2,P3 {st['a0_w']}w", ["b_launch.py", "--tag", "A0_main", *AX, "--workers", str(st["a0_w"]), "--stages", "P2,P3"], {**FAST}, A0LOG)
     v4 = e1 = e2 = None; done = set()
     while True:
         time.sleep(60)
@@ -127,15 +138,15 @@ def main():
         a0_p2 = has(A0LOG, r"^P2 \{"); v4_p2 = has(V4LOG, r"^P2 \{")
         # s1
         if a0_p2 and e1 is None and check("A0_ext P1", PARENT_GB):
-            e1 = launch("A0_ext P1", ["b_launch.py", "--tag", "A0_ext", *AXE, "--workers", "4", "--stages", "P1"], {"OBJB_DATA": "x0918r"}, E1LOG, "w")
+            e1 = launch("A0_ext P1", ["b_launch.py", "--tag", "A0_ext", *AXE, "--workers", "4", "--stages", "P1"], {"OBJB_DATA": "x0918r", **FAST}, E1LOG, "w")
         if a0_p2 and e1 is not None and v4 is None and check(f"V4_main P2 {st['v4_w']} workers", PARENT_GB + st["v4_w"] * W_GB):
             v4 = launch(f"V4_main P2,P3 {st['v4_w']}w", ["b_launch.py", "--tag", "V4_main", *AX, "--workers", str(st["v4_w"]), "--stages", "P2,P3", "--p1-from", "A0_main"],
-                        {"OBJB_ARM": "V4"}, V4LOG)
+                        {"OBJB_ARM": "V4", **FAST}, V4LOG)
         # s2
         if e1 is not None and e1.poll() == 0 and "cp_ext_p1" not in done:
             subprocess.run(["cp", "-p", f"{R}/receipts/RUN_CONFIG_A0_ext.json", f"{R}/receipts/RUN_CONFIG_A0_ext_P1.json"]); done.add("cp_ext_p1")
         if "cp_ext_p1" in done and v4_p2 and e2 is None and check("A0_ext P2,P3 4 workers", PARENT_GB + 4 * W_GB):
-            e2 = launch("A0_ext P2,P3 4w", ["b_launch.py", "--tag", "A0_ext", *AXE, "--workers", "4", "--stages", "P2,P3", "--reuse-p2", "A0_main"], {"OBJB_DATA": "x0918r"}, E2LOG, "w")
+            e2 = launch("A0_ext P2,P3 4w", ["b_launch.py", "--tag", "A0_ext", *AXE, "--workers", "4", "--stages", "P2,P3", "--reuse-p2", "A0_main"], {"OBJB_DATA": "x0918r", **FAST}, E2LOG, "w")
         # s3
         if a0.poll() == 0 and "t_A0" not in done:
             run_small("targets A0_main", ["b_targets.py", "A0_main"], {}, f"{LG}/targets_A0_main.log"); done.add("t_A0")
@@ -152,10 +163,10 @@ def main():
             if v4 is not None and v4.poll() is None and not v4_p2 and st["v4_w"] > 2:
                 stop("V4_main P2", v4); st["v4_w"] //= 2
                 v4 = launch(f"V4_main P2,P3 {st['v4_w']}w (scaled down)", ["b_launch.py", "--tag", "V4_main", *AX, "--workers", str(st["v4_w"]), "--stages", "P2,P3", "--p1-from", "A0_main"],
-                            {"OBJB_ARM": "V4"}, V4LOG)
+                            {"OBJB_ARM": "V4", **FAST}, V4LOG)
             elif a0.poll() is None and not a0_p2 and st["a0_w"] > 2:
                 stop("A0_main P2", a0); st["a0_w"] //= 2
-                a0 = launch(f"A0_main P2,P3 {st['a0_w']}w (scaled down)", ["b_launch.py", "--tag", "A0_main", *AX, "--workers", str(st["a0_w"]), "--stages", "P2,P3"], {}, A0LOG)
+                a0 = launch(f"A0_main P2,P3 {st['a0_w']}w (scaled down)", ["b_launch.py", "--tag", "A0_main", *AX, "--workers", str(st["a0_w"]), "--stages", "P2,P3"], {**FAST}, A0LOG)
         running = any(p is not None and p.poll() is None for p in (a0, v4, e1, e2))
         pending = (a0_p2 and (e1 is None or v4 is None)) or ("cp_ext_p1" in done and v4_p2 and e2 is None)
         if not running and not pending:

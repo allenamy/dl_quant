@@ -74,6 +74,12 @@ def worker(w, jobs, G, P, shard_path, log_path):
     for p_ in glob.glob(os.path.join(os.path.dirname(os.path.abspath(shard_path)), "shard_*.npz")):
         if os.path.abspath(p_) != os.path.abspath(shard_path) and not p_.endswith(".tmp.npz"): done |= {r[0] for r in load_shard(p_)}
     lf = open(log_path, "a"); t_start = time.time(); n_new = 0
+    ex = None
+    if os.environ.get("OBJB_FAST") == "1":   # FAST-GATE PASS required (b_launch asserts it): one warm executor per worker, same device text
+        import subprocess as _sp
+        ex = _sp.Popen([BD.VENV_PY, "-B", f"{HERE}/fast_exec.py"], stdin=_sp.PIPE, stdout=_sp.PIPE, text=True, bufsize=1,
+                       env={"PATH": "/usr/bin:/bin", "HOME": root, "LC_CTYPE": "C.UTF-8", "OMP_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"})
+        assert json.loads(ex.stdout.readline())["ready"]
     for (A, i, Y) in jobs:
         if A in done: continue
         BL.clear_mini(f"{ws}/fea171")
@@ -89,7 +95,11 @@ def worker(w, jobs, G, P, shard_path, log_path):
         if os.path.exists(out): os.remove(out)
         env = {"PATH": "/usr/bin:/bin", "HOME": root, "LC_CTYPE": "C.UTF-8", "WIDE_SHADOW_HOME": ws, "F10_SCORE_OUT": out,
                "OMP_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1", "_PY": BD.VENV_PY}
-        rc, lines, dt = BL.run_device(f"{HERE}/f10_scorer_3520d363.py", f"{ws}/fea171", env, f"{root}/scorer.log")
+        if ex is None:
+            rc, lines, dt = BL.run_device(f"{HERE}/f10_scorer_3520d363.py", f"{ws}/fea171", env, f"{root}/scorer.log")
+        else:
+            ex.stdin.write(json.dumps({"cwd": f"{ws}/fea171", "env": {k: v for k, v in env.items() if not k.startswith("_")}}) + "\n"); ex.stdin.flush()
+            rr = json.loads(ex.stdout.readline()); rc, lines, dt = rr["rc"], rr["log"], rr["dt"]
         if rc != 0:
             lf.write(json.dumps({"anchor": A, "rc": rc, "tail": lines[-6:]}) + "\n"); lf.flush()
             save_shard(shard_path, res); raise RuntimeError(f"scorer rc={rc} at {BL.iso(A)}: {lines[-4:]}")
@@ -101,7 +111,8 @@ def worker(w, jobs, G, P, shard_path, log_path):
         if n_new % 20 == 0:
             save_shard(shard_path, res)
             lf.write(json.dumps({"w": w, "done": len(res), "of": len(jobs), "last": BL.iso(A), "s_last": dt, "elapsed_s": round(time.time() - t_start, 1)}) + "\n"); lf.flush()
-    save_shard(shard_path, res); lf.write(json.dumps({"w": w, "DONE": len(res), "elapsed_s": round(time.time() - t_start, 1)}) + "\n"); lf.close()
+    if ex is not None: ex.stdin.close(); ex.wait()
+    save_shard(shard_path, res); lf.write(json.dumps({"w": w, "DONE": len(res), "elapsed_s": round(time.time() - t_start, 1), "fast": ex is not None}) + "\n"); lf.close()
     shutil.rmtree(root, ignore_errors=True)
 
 
