@@ -1,0 +1,41 @@
+[2026-09-19T08:58:22Z] AX_CHAIN start root=/workspace/axis_0919 stages=s1,s2,s3,s4,s5,s6,s7,s8,s9 new_days=2026-09-11,2026-09-12,2026-09-13,2026-09-14,2026-09-15,2026-09-16,2026-09-17,2026-09-18 idx_end=2026-09-19 00:00 hi_s=1789776000 chain_sha=a5b25b8b47989452fa8222773b0249c19ba70d785e378e1415fdd177fff89294
+[2026-09-19T08:58:22Z] s1 merge cache (ax03)
+PAR {"cells_total": 11693045, "cells_both_finite": 10351733, "bitwise_eq_cells_both_finite": 10351733, "nan_pattern_mismatch_cells": 0, "maxabs_diff_both_finite": 0.0, "n_rows": 2015, "window": "2026-09-04 00:10Z .. 2026-09-11 00:00Z", "PASS": true}
+AX03_MERGE_DONE n=495937 end=2026-09-19 00:00Z new_rows=2304 sha=1db49ce6f5ca3431
+[2026-09-19T09:00:55Z] s2 BW append-only gate vs holefix2 and x0910 (ax03b)
+AX03B_BW PASS
+[2026-09-19T09:03:44Z] s3 coverage gate v2 (cache_coverage_gate_v2.py 23584a0c, unmodified)
+cache dlnative_5m_wide829_f16_holefix2_x0918.npz : 1723 days x 829 symbols ; symbols with a life 826
+  single/double-symbol short gaps (venue halts etc., listed not gated): 4 runs, e.g. [('2022-08-11', '2022-08-12', ['BNXUSDT']), ('2022-09-02', '2022-09-26', ['ICPUSDT']), ('2023-02-02', '2023-02-21', ['BNXUSDT']), ('2023-03-02', '2023-03-29', ['TLMUSDT'])]
+  last day 2026-09-19: full 0, any-bar 798 (boundary, not gated)
+COVERAGE_GATE_V2 PASS (hole symbol-days 0 in multi-symbol runs; wide-gap days 0)
+[2026-09-19T09:04:30Z] s4 raw patch extension (ax07) + manifest (v4_rawpatch_manifest.py) + gate (v4_gate_rawpatch.py)
+AX07_DONE {"old_n": 952, "new_candidates": 7, "new_kept": 7, "out_n": 959} not_clipped 0 unresolved 0 r6 {"r6_rows_beyond_old": 3, "reproduced_bitwise": 3, "r6_rows_missing_here": [], "PASS": true}
+RAWPATCH_MANIFEST_DONE {"candidates": 960, "patch_rows": 959, "kept": 959, "kept_rederived_bitwise": 959, "not_clipped": 1, "clipped_missing": 0, "unresolved": 0, "patch_rows_not_candidates": 0} -> /workspace/axis_0919/data/raw_patch.manifest.json
+RAW_PATCH_COVERAGE PASS {"TT": 495937, "NW": 829, "n_candidates": 960, "n_patch": 959, "n_not_clipped": 1, "n_unaccounted": 0}
+RAW_PATCH_COVERAGE PASS -> /workspace/axis_0919/receipts/RAW_PATCH_COVERAGE.json
+[2026-09-19T09:06:06Z] s5 tradability (ax06 = fx_trd_build.py 066c3d74, path-patched) with T7 control extended to 09-18T23Z open
+FX_TRD_BUILD_DONE {"sha256": "bebf69ab9ddb3b05b49552e66dccf9b8cde3caee0593b14e1b3fe1a4c93c9db8", "T7_agreement": 1.0, "dead_syms": 156}
+[2026-09-19T09:08:22Z] s6 tradable W24H member mask (fp2_member_mask_build.py a2d5493a) + liveness AND (v4_member_mask_liveness.py a369e1c0)
+PASS {"anchors": 10333, "symbols": 829, "tradable_cells": 3241032, "cells": 8566057, "tradable_share": 0.3783575103457752, "by_year_tradable_share": {"2022": 0.17127253499016806, "2023": 0.22911027755286392, "2024": 0.33372993116116373, "2025": 0.5349543654400141, "2026": 0.720043909247038}} 9793722
+PASS mask /workspace/axis_0919/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz sha 04aeefbb10feb19a grid 10333 live_cells 3545615 mask_cells 3225602 removed_beyond_mask_in 15430 short_window 6
+[2026-09-19T09:08:48Z] s7 funding ledger + 4h accounting table (ax04)
+AX04_DONE {"n_rows": 98087, "n_symbols_with_rows": 679, "first_ts": "2026-08-21 00:00Z", "last_ts": "2026-09-19 00:00Z", "counts": {"rate_mismatch_rest_zip": 0, "rate_mismatch_rest_aug": 0, "rate_mismatch_zip_aug": 0, "rest_maxabs_vs_aug": 0.0, "iv_src": {"zip_col": 0, "gap": 98066, "prod": 0, "next_gap": 0, "default8": 21}, "prod_checked": 82728, "prod_iv_mismatch": 0, "prod_rate_mismatch": 0, "t5d_checked": 46311, "t5d_iv_mismatch": 0, "aug_fetchtime_iv_ne_final": 0, "infotime_iv_ne_last": 0, "rest_rows_after_hi_dropped": 452, "events_only_in_aug_window_overlap": 0, "events_only_in_rest_wind
+[2026-09-19T09:12:46Z] s8 raw panel build (pod_panel_ext.py db7f0474, unmodified; v1-parity self-check inside)
+parity f_rev_24h corr 0.999594 n 8242747
+parity f_mom_7d corr 0.999770 n 8242747
+parity f_vol_7d corr 0.999994 n 8242747
+parity f_amihud_24h corr 0.054600 n 3073654
+parity f_range_24h corr 0.999705 n 8242747
+parity f_fund_ema corr 1.000000 n 2168927
+parity f_fund_now corr 1.000000 n 2168927
+PANEL_EXT_PARITY_FAIL [('f_amihud_24h', 0.0546)]
+[2026-09-19T09:20:49Z] s8 rc=3 = the KNOWN X3 amihud v1-parity reading, line-for-line identical to r6 s4_panel.log (gate reading recorded, not changed)
+[2026-09-19T09:20:49Z] s9 panel splices v2ext / v3splice with ledger intervals (ax05)
+P2 {"events_ledger_iv": 67328, "events_iv_changed_vs_r6_rule": 0, "symbols_iv_changed": 0, "events_missing_in_ledger": 0, "rate_mismatch_vs_ledger": 0}
+R6_PANEL_SPLICE_DONE n=10147 end=2026-09-18 00:00Z cont=676 noseed=153 sha=e5fcb4198ddebb52
+X4 tail frac min/median: 0.8154 0.8154
+P2 {"events_ledger_iv": 67328, "events_iv_changed_vs_r6_rule": 0, "symbols_iv_changed": 0, "events_missing_in_ledger": 0, "rate_mismatch_vs_ledger": 0}
+R6_PANEL_SPLICE_DONE n=14533 end=2026-09-18 00:00Z cont=678 noseed=151 sha=293a14cf65f422bf
+X4 tail frac min/median: 0.8179 0.8179
+[2026-09-19T09:43:35Z] AX_CHAIN_END stages=s1,s2,s3,s4,s5,s6,s7,s8,s9

@@ -1,0 +1,25 @@
+[2026-09-19T07:03:04Z] AX_CHAIN start root=/workspace/axis_0919/rehearsal_0917b stages=s1,s2,s3,s4,s5,s6,s7,s8,s9 new_days=2026-09-11,2026-09-12,2026-09-13,2026-09-14,2026-09-15,2026-09-16,2026-09-17 idx_end=2026-09-18 00:00 hi_s=1789689600 chain_sha=e3ffd2f41382d96f06f09ae8a34236c0f6e5b0b40e98b86bd9efb1a4beb63510
+[2026-09-19T07:03:04Z] s1 merge cache (ax03)
+PAR {"cells_total": 11693045, "cells_both_finite": 10351733, "bitwise_eq_cells_both_finite": 10351733, "nan_pattern_mismatch_cells": 0, "maxabs_diff_both_finite": 0.0, "n_rows": 2015, "window": "2026-09-04 00:10Z .. 2026-09-11 00:00Z", "PASS": true}
+AX03_MERGE_DONE n=495649 end=2026-09-18 00:00Z new_rows=2016 sha=693f983fde4426e7
+[2026-09-19T07:06:23Z] s2 BW append-only gate vs holefix2 and x0910 (ax03b)
+AX03B_BW PASS
+[2026-09-19T07:09:18Z] s3 coverage gate v2 (cache_coverage_gate_v2.py 23584a0c, unmodified)
+cache dlnative_5m_wide829_f16_holefix2_x0918.npz : 1722 days x 829 symbols ; symbols with a life 826
+  single/double-symbol short gaps (venue halts etc., listed not gated): 4 runs, e.g. [('2022-08-11', '2022-08-12', ['BNXUSDT']), ('2022-09-02', '2022-09-26', ['ICPUSDT']), ('2023-02-02', '2023-02-21', ['BNXUSDT']), ('2023-03-02', '2023-03-29', ['TLMUSDT'])]
+  last day 2026-09-18: full 0, any-bar 798 (boundary, not gated)
+COVERAGE_GATE_V2 PASS (hole symbol-days 0 in multi-symbol runs; wide-gap days 0)
+[2026-09-19T07:10:24Z] s4 raw patch extension (ax07) + manifest (v4_rawpatch_manifest.py) + gate (v4_gate_rawpatch.py)
+AX07_DONE {"old_n": 952, "new_candidates": 7, "new_kept": 7, "out_n": 959} not_clipped 0 unresolved 0 r6 {"r6_rows_beyond_old": 3, "reproduced_bitwise": 3, "r6_rows_missing_here": [], "PASS": true}
+RAWPATCH_MANIFEST_DONE {"candidates": 960, "patch_rows": 959, "kept": 959, "kept_rederived_bitwise": 959, "not_clipped": 1, "clipped_missing": 0, "unresolved": 0, "patch_rows_not_candidates": 0} -> /workspace/axis_0919/rehearsal_0917b/data/raw_patch.manifest.json
+RAW_PATCH_COVERAGE PASS {"TT": 495649, "NW": 829, "n_candidates": 960, "n_patch": 959, "n_not_clipped": 1, "n_unaccounted": 0}
+RAW_PATCH_COVERAGE PASS -> /workspace/axis_0919/rehearsal_0917b/receipts/RAW_PATCH_COVERAGE.json
+[2026-09-19T07:12:23Z] s5 tradability (ax06 = fx_trd_build.py 066c3d74, path-patched) with T7 control extended to 09-18T23Z open
+FX_TRD_BUILD_DONE {"sha256": "b01284b0cfc6351a9148ee4d8757ecd725af73896316a8e2d3410594b306ef58", "T7_agreement": 1.0, "dead_syms": 156}
+[2026-09-19T07:14:54Z] s6 tradable W24H member mask (fp2_member_mask_build.py a2d5493a) + liveness AND (v4_member_mask_liveness.py a369e1c0)
+PASS {"anchors": 10327, "symbols": 829, "tradable_cells": 3237018, "cells": 8561083, "tradable_share": 0.3781084706222332, "by_year_tradable_share": {"2022": 0.17127253499016806, "2023": 0.22911027755286392, "2024": 0.33372993116116373, "2025": 0.5349543654400141, "2026": 0.719709690905199}} 8c4b003
+PASS mask /workspace/axis_0919/rehearsal_0917b/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz sha 1493feeb58c4410a grid 10327 live_cells 3540827 mask_cells 3221588 removed_beyond_mask_in 15430 short_window 6
+[2026-09-19T07:15:31Z] s7 funding ledger + 4h accounting table (ax04)
+AX04_DONE {"n_rows": 94690, "n_symbols_with_rows": 679, "first_ts": "2026-08-21 00:00Z", "last_ts": "2026-09-18 00:00Z", "counts": {"rate_mismatch_rest_zip": 0, "rate_mismatch_rest_aug": 0, "rate_mismatch_zip_aug": 0, "rest_maxabs_vs_aug": 0.0, "iv_src": {"zip_col": 0, "gap": 94670, "prod": 0, "next_gap": 20, "default8": 0}, "prod_checked": 79857, "prod_iv_mismatch": 0, "prod_rate_mismatch": 0, "t5d_checked": 46311, "t5d_iv_mismatch": 0, "aug_fetchtime_iv_ne_final": 0, "infotime_iv_ne_last": 2, "rest_rows_after_hi_dropped": 3849, "events_only_in_aug_window_overlap": 0, "events_only_in_rest_win
+[2026-09-19T07:19:14Z] s8 raw panel build (pod_panel_ext.py db7f0474, unmodified; v1-parity self-check inside)
+[2026-09-19T07:36:06Z] CHAIN_FAIL s8_panel

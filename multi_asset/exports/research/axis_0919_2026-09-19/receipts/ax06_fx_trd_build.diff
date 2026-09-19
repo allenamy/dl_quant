@@ -1,0 +1,17 @@
+2c2,5
+< """fx_trd_build.py — FX-DATA TRD-01 step B1 (pod2, CPU, read-only on every input). Builds the canonical tradability artifact of
+---
+> """AX06 PATCHED COPY (axis_0919, 2026-09-19) of fx_trd_build.py sha 066c3d74 (the builder of the certified tradability_v1.npz 54d409d0):
+> ONLY the extension-cache path and its expected sha16 come from env (AX_CACHE_X / AX_CACHE_X_SHA16, whitelisted); every rule, the T7 control and the
+> writer are unchanged; OUT_DIR / T7 dir / T7 receipt remain argv. Diff recorded in receipts/ax06_fx_trd_build.diff.
+> fx_trd_build.py — FX-DATA TRD-01 step B1 (pod2, CPU, read-only on every input). Builds the canonical tradability artifact of
+21c24
+< ENV_WHITELIST = {"PATH", "HOME", "OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "PYTHONPATH"}
+---
+> ENV_WHITELIST = {"PATH", "HOME", "OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "PYTHONPATH", "AX_CACHE_X", "AX_CACHE_X_SHA16"}   # AX06 patch: +2 path keys
+30,31c33,34
+< CACHE = "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz"; CACHE_X = "/workspace/data/dlnative_5m_wide829_f16_holefix2_x0910.npz"
+< EXPECT = {CACHE: "1d7f459dee434ec4", CACHE_X: "8115299410cd5e8d"}
+---
+> CACHE = "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz"; CACHE_X = os.environ["AX_CACHE_X"]   # AX06 patch: the extension cache from env (was x0910)
+> EXPECT = {CACHE: "1d7f459dee434ec4", CACHE_X: os.environ["AX_CACHE_X_SHA16"]}   # AX06 patch: expected sha16 of the extension from env

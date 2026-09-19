@@ -1,0 +1,745 @@
+{
+ "self_sha256": "6d1f29725fd563363879f7412dcc65f3dbd2ccf1ec9409c8043932141df05fe9",
+ "env_effective": {
+  "R6_BASE_PANEL": "/workspace/data/wide_panel_4h_v2ext.npz",
+  "R6_RAWBUILD": "/workspace/axis_0919/rehearsal_0917b/panels/wide_panel_4h_rawbuild_x0918.npz",
+  "R6_PANEL_OUT": "/workspace/axis_0919/rehearsal_0917b/panels/wide_panel_4h_v2ext_x0918.npz",
+  "AX_REST": "/workspace/axis_0919/dl/funding/fund_rest_20260820_20260919T00.json.gz",
+  "AX_LEDGER": "/workspace/axis_0919/rehearsal_0917b/funding/funding_ledger.npz",
+  "AX_HI_S": "1789689600",
+  "EMA_STATE_JSON": "/workspace/axis_0919/rehearsal_0917b/panels/fund_state_canoncont_v2ext_x0918.json",
+  "EXPORT_PANEL": null
+ },
+ "base_panel": "/workspace/data/wide_panel_4h_v2ext.npz",
+ "base_sha256": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116",
+ "base_n": 10039,
+ "base_end": "2026-08-31 00:00Z",
+ "rawbuild": "/workspace/axis_0919/rehearsal_0917b/panels/wide_panel_4h_rawbuild_x0918.npz",
+ "rawbuild_sha256": "e8878d1aefac406d83c1f51b2a75207f0efb3face6f1c5cfdbdb687c6255ae67",
+ "rawbuild_n": 10141,
+ "fund_sep": "/workspace/axis_0919/dl/funding/fund_rest_20260820_20260919T00.json.gz",
+ "fund_sep_sha256": "803c17e6f5badb3119bbb795b3d2b886cfba40a00bb2cfb66ae40d24a1840fb0",
+ "fund_sep_meta": {
+  "abort": null,
+  "end_ms": 1789862459999,
+  "fetched_end_utc": "2026-09-19T06:34:41Z",
+  "fetched_start_utc": "2026-09-19T06:24:40Z",
+  "max_utc": "2026-09-19 06:00:00Z",
+  "min_utc": "2026-08-21 00:00:00Z",
+  "n_rows": 98539,
+  "n_symbols_requested": 829,
+  "rate_cap_rps": 1.4,
+  "source": "https://fapi.binance.com/fapi/v1/fundingRate + /fapi/v1/fundingInfo (public, no credentials)",
+  "start_ms": 1787270400000,
+  "status_counts": {
+   "EMPTY": 150,
+   "OK": 679
+  }
+ },
+ "ledger": "/workspace/axis_0919/rehearsal_0917b/funding/funding_ledger.npz",
+ "ledger_sha256": "3cf3e2fab5e4253cd3eada2a0ca04c40e793a79c8c3fe61473d5a59dddbca47c",
+ "hi_s": 1789689600,
+ "P2_P3": {
+  "events_ledger_iv": 63931,
+  "events_iv_changed_vs_r6_rule": 2,
+  "symbols_iv_changed": {
+   "n": 2,
+   "first": [
+    "GLWUSDT",
+    "STRCUSDT"
+   ]
+  },
+  "events_missing_in_ledger": {
+   "n": 0,
+   "first": []
+  },
+  "rate_mismatch_vs_ledger": {
+   "n": 0,
+   "first": []
+  }
+ },
+ "out": "/workspace/axis_0919/rehearsal_0917b/panels/wide_panel_4h_v2ext_x0918.npz",
+ "out_sha256": "cd4447c3e71c2e39663c1a22a542d31d603f6fe956d710dbb301a0760ca98d05",
+ "out_n": 10141,
+ "out_end": "2026-09-17 00:00Z",
+ "tail_anchors": 102,
+ "tail_first": "2026-08-31 04:00Z",
+ "tail_last": "2026-09-17 00:00Z",
+ "keys_tail_extended": [
+  "Y24",
+  "Y4",
+  "elig",
+  "f_amihud_24h",
+  "f_asz_24h",
+  "f_cpos_24h",
+  "f_fund_ema",
+  "f_fund_ema_v1",
+  "f_fund_ema_v2",
+  "f_fund_iv",
+  "f_fund_now",
+  "f_mom_30d",
+  "f_mom_7d",
+  "f_mom_7d_x24",
+  "f_range_24h",
+  "f_rev_24h",
+  "f_rev_3d",
+  "f_rev_4h",
+  "f_tbf_24h",
+  "f_vol_7d",
+  "f_volq_ratio"
+ ],
+ "keys_prefix_only": [],
+ "ema_continued_symbols": 676,
+ "ema_unseeded_symbols": 153,
+ "tail_funding_events": 60581,
+ "checks": {
+  "cut_row_f_fund_ema_equal": true,
+  "cut_row_f_fund_ema_v1_equal": true,
+  "cut_row_f_fund_ema_v2_equal": true,
+  "tail_f_rev_24h_equals_rawbuild": true,
+  "tail_f_mom_7d_equals_rawbuild": true,
+  "tail_f_vol_7d_equals_rawbuild": true,
+  "BW2_prefix_all_keys_bitwise_equal": true,
+  "BW2_per_key": {
+   "Y24": true,
+   "Y4": true,
+   "elig": true,
+   "f_amihud_24h": true,
+   "f_asz_24h": true,
+   "f_cpos_24h": true,
+   "f_fund_ema": true,
+   "f_fund_ema_v1": true,
+   "f_fund_ema_v2": true,
+   "f_fund_iv": true,
+   "f_fund_now": true,
+   "f_mom_30d": true,
+   "f_mom_7d": true,
+   "f_mom_7d_x24": true,
+   "f_range_24h": true,
+   "f_rev_24h": true,
+   "f_rev_3d": true,
+   "f_rev_4h": true,
+   "f_tbf_24h": true,
+   "f_vol_7d": true,
+   "f_volq_ratio": true,
+   "ts": true
+  },
+  "BW2_prefix_rows": 10039
+ },
+ "X4_tail": [
+  {
+   "anchor": "2026-08-31 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-08-31 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-08-31 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-08-31 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-08-31 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-01 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-01 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-01 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-01 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-01 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-01 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-02 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-02 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-02 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-02 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-02 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-02 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-03 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-03 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-03 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-03 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-03 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-03 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-04 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-04 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-04 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-04 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-04 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-04 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-05 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-05 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-05 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-05 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-05 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-05 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-06 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-06 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-06 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-06 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-06 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-06 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-07 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-07 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-07 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-07 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-07 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-07 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-08 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-08 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-08 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-08 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-08 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-08 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-09 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-09 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-09 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-09 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-09 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-09 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-10 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-10 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-10 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-10 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-10 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-10 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-11 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-11 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-11 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-11 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-11 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-11 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-12 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-12 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-12 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-12 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-12 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-12 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-13 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-13 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-13 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-13 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-13 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-13 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-14 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-14 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-14 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-14 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-14 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-14 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-15 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-15 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-15 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-15 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-15 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-15 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-16 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-16 04:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-16 08:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-16 12:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-16 16:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-16 20:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  },
+  {
+   "anchor": "2026-09-17 00:00Z",
+   "live_names": 829,
+   "fund_ema_finite": 676,
+   "frac": 0.8154
+  }
+ ],
+ "ema_state_json": "/workspace/axis_0919/rehearsal_0917b/panels/fund_state_canoncont_v2ext_x0918.json",
+ "finished_utc": "2026-09-19T07:47:52Z"
+}

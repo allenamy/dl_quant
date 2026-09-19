@@ -1,0 +1,14 @@
+[2026-09-19T08:00:03Z] AX_CHAIN start root=/workspace/axis_0919/rehearsal_0917b stages=s10,s11,s12 new_days=2026-09-11,2026-09-12,2026-09-13,2026-09-14,2026-09-15,2026-09-16,2026-09-17 idx_end=2026-09-18 00:00 hi_s=1789689600 chain_sha=a5b25b8b47989452fa8222773b0249c19ba70d785e378e1415fdd177fff89294
+[2026-09-19T08:00:03Z] s10 DL targets RAW + CLIP (pod_dlw_targets_raw_v2.py 9e9dfd94, member mask tradable AND live)
+[   53.2s] raw patch coverage PASS {"TT": 495649, "NW": 829, "n_candidates": 960, "n_patch": 959, "n_not_clipped": 1, "n_unaccounted": 0}
+[  331.0s] raw patch applied: 959 bars from /workspace/axis_0919/rehearsal_0917b/data/raw_patch.npz
+[  477.4s] anchors 10313 平均成员 271 (≥360: 3448) 年份 {np.int64(2022): np.int64(2178), np.int64(2023): np.int64(2190), np.int64(2024): np.int64(2196), np.int64(2025): np.int64(2190), np.int64(2026): np.int64(1559)}
+[  483.7s] 对齐自检(y4s vs 面板旧 Y4): @0 +0.972 @-1 -0.004 @+1 -0.025 (n=200)
+[  485.2s] TARGETS_DONE {"n_anchors": 10313, "mean_members": 270.57994763890235, "n_res": 10308, "years": {"2022": 2178, "2023": 2190, "2024": 2196, "2025": 2190, "2026": 1559}, "target_vs_old": {"median_abs_diff_bps": 15.545899391174316, "mean_diff_bps": -0.6047114133834839, "spearman_same_row_medi
+[  595.0s] anchors 10313 平均成员 271 (≥360: 3448) 年份 {np.int64(2022): np.int64(2178), np.int64(2023): np.int64(2190), np.int64(2024): np.int64(2196), np.int64(2025): np.int64(2190), np.int64(2026): np.int64(1559)}
+[  602.8s] TARGETS_DONE {"n_anchors": 10313, "mean_members": 270.57994763890235, "n_res": 10308, "years": {"2022": 2178, "2023": 2190, "2024": 2196, "2025": 2190, "2026": 1559}, "target_vs_old": {"median_abs_diff_bps": 15.545865058898926, "mean_diff_bps": -0.42297905683517456, "spearman_same_row_med
+[2026-09-19T08:18:22Z] s11 fea82 (pod_dlw_features_ext.py e86725cc) into dlw_hf3, byte-verified copy into dlw_v4raw
+[  181.2s] FEATURES_DONE (2790491, 82) no-panel anchors 5
+[2026-09-19T08:21:31Z] s12 fea89 (pod_f8_build_ext.py f606bffa build) from dlw_hf3
+[ 1969.9s] BUILD_DONE (2790491, 89) max_off {'A': 0, 'B': 0, 'C': 0, 'D': 0, 'E': 0, 'F': 0, 'G': 0, 'H': 0, 'I': 0, 'J': 0}
+[2026-09-19T08:54:29Z] AX_CHAIN_END stages=s10,s11,s12

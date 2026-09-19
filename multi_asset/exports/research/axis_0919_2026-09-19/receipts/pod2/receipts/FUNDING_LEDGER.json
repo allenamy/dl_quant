@@ -1,0 +1,305 @@
+{
+ "device": "ax04_funding_ledger.py",
+ "self_sha256": "f6417720ffdffac203dd32de88b589720c4de30c9162bb82bb0c0c8a566692e2",
+ "env": {
+  "AX_REST": "/workspace/axis_0919/dl/funding/fund_rest_20260820_20260919T00.json.gz",
+  "AX_FUND_AUG": "/workspace/fund_aug.json.gz",
+  "AX_FDIR": "/workspace/wide_multisrc/funding",
+  "AX_PROD_LEDGER": "/workspace/axis_0919/inputs/producer_ledger_tail_20260919.json",
+  "AX_T5D_SRC": "/workspace/uplift_r2_2026-09-13/T5d/inputs/t5d_interval_sources.json",
+  "AX_CACHE": "/workspace/axis_0919/data/dlnative_5m_wide829_f16_holefix2_x0918.npz",
+  "AX_LO_S": "1787270400",
+  "AX_HI_S": "1789776000",
+  "AX_OUT_NPZ": "/workspace/axis_0919/funding/funding_ledger.npz",
+  "AX_OUT_ACC": "/workspace/axis_0919/funding/funding_4h_accounting.npz",
+  "AX_RECEIPT": "/workspace/axis_0919/receipts/FUNDING_LEDGER.json"
+ },
+ "inputs_sha256": {
+  "AX_REST": "803c17e6f5badb3119bbb795b3d2b886cfba40a00bb2cfb66ae40d24a1840fb0",
+  "AX_FUND_AUG": "8a9e771577602dd1875a87fb07f982bc2c255e740966f911469420a44a53a8c2",
+  "AX_PROD_LEDGER": "e9dd86a0ed54f3098d5a3a81446fd151c4c0c71129f9fcadde29ff57c35949c2",
+  "AX_T5D_SRC": "0006e2afffa2c618a033fd1b362680d60444997cc1a696c33f1709eddf9127fd",
+  "AX_CACHE": "1db49ce6f5ca3431e99ce5abb630b296d2effbb130dfe17974d2b5319f926d2e"
+ },
+ "window": [
+  "2026-08-21 00:00Z",
+  "2026-09-19 00:00Z"
+ ],
+ "n_rows": 98087,
+ "n_symbols_with_rows": 679,
+ "first_ts": "2026-08-21 00:00Z",
+ "last_ts": "2026-09-19 00:00Z",
+ "aug_end": "2026-09-01 02:00Z",
+ "rest_lo": "2026-08-21 00:00Z",
+ "counts": {
+  "rate_mismatch_rest_zip": 0,
+  "rate_mismatch_rest_aug": 0,
+  "rate_mismatch_zip_aug": 0,
+  "rest_maxabs_vs_aug": 0.0,
+  "iv_src": {
+   "zip_col": 0,
+   "gap": 98066,
+   "prod": 0,
+   "next_gap": 0,
+   "default8": 21
+  },
+  "prod_checked": 82728,
+  "prod_iv_mismatch": 0,
+  "prod_rate_mismatch": 0,
+  "t5d_checked": 46311,
+  "t5d_iv_mismatch": 0,
+  "aug_fetchtime_iv_ne_final": 0,
+  "infotime_iv_ne_last": 0,
+  "rest_rows_after_hi_dropped": 452,
+  "events_only_in_aug_window_overlap": 0,
+  "events_only_in_rest_window_overlap": 0,
+  "after_last_trade_rows": 790
+ },
+ "iv_hist": {
+  "1.0": 1938,
+  "2.0": 8,
+  "4.0": 74080,
+  "6.0": 2,
+  "8.0": 22059
+ },
+ "examples": {
+  "prod_iv_mismatch": [],
+  "prod_rate_mismatch": [],
+  "t5d_iv_mismatch": [],
+  "rate_mismatch": [],
+  "aug_fetchtime_iv_ne_final": [],
+  "fallback": [
+   [
+    "CRMUSDT",
+    "2026-09-17 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "EBAYUSDT",
+    "2026-08-28 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "GLWUSDT",
+    "2026-08-31 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    1.0
+   ],
+   [
+    "GOOGLUSDT",
+    "2026-09-04 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "GSUSDT",
+    "2026-09-01 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "HDUSDT",
+    "2026-09-03 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "HPEUSDT",
+    "2026-09-17 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "HYUNDAIUSDT",
+    "2026-08-27 23:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    1.0
+   ],
+   [
+    "NVDAUSDT",
+    "2026-09-10 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "PYPLUSDT",
+    "2026-09-04 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "QCOMUSDT",
+    "2026-09-03 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "SKHYNIXUSDT",
+    "2026-08-27 23:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    1.0
+   ],
+   [
+    "SPYUSDT",
+    "2026-09-18 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "STRCUSDT",
+    "2026-08-31 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    1.0
+   ],
+   [
+    "STRCUSDT",
+    "2026-09-15 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "TERUSDT",
+    "2026-09-04 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "TSMUSDT",
+    "2026-09-16 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "VRTUSDT",
+    "2026-09-14 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "WDCUSDT",
+    "2026-09-08 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "WENUSDT",
+    "2026-09-01 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ],
+   [
+    "WMTUSDT",
+    "2026-08-21 00:00Z",
+    "default8",
+    8.0,
+    "prev_gap_s",
+    1,
+    "next_gap_h",
+    8.0
+   ]
+  ],
+  "coverage": []
+ },
+ "n_examples": {
+  "prod_iv_mismatch": 0,
+  "prod_rate_mismatch": 0,
+  "t5d_iv_mismatch": 0,
+  "rate_mismatch": 0,
+  "aug_fetchtime_iv_ne_final": 0,
+  "fallback": 21,
+  "coverage": 0
+ },
+ "out_npz": "/workspace/axis_0919/funding/funding_ledger.npz",
+ "out_npz_sha256": "74b69e635efbf3556fe706520fda9d5a1b5cda86dda9d04a844ba5d617a3a09d",
+ "out_acc": "/workspace/axis_0919/funding/funding_4h_accounting.npz",
+ "out_acc_sha256": "2838e5f6cf42fff5619460f64708d952cd56e23e6621195d8e3d8bd5466aca72",
+ "acc_grid": [
+  "2026-08-21 00:00Z",
+  "2026-09-19 00:00Z",
+  175
+ ],
+ "wall_s": 235.8,
+ "finished_utc": "2026-09-19T09:12:45Z"
+}

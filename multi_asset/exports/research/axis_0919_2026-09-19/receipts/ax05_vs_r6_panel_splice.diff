@@ -1,0 +1,59 @@
+1c1,9
+< """R6 EXTEND step 4a: extend a v4 4h panel forward by 60 anchors, using the ESTABLISHED v4 mechanism
+---
+> """AX05 (axis_0919, stream D) = r6_panel_splice.py (sha cccc5b6b) with THREE patches, everything else byte-identical (diff recorded in receipts):
+>   P1 paths: the September REST pull (R6_FUND_SEP) is replaced by this round's pull AX_REST (rows with settlement second <= AX_HI_S only); receipt/state
+>      paths follow R6_PANEL_OUT / EMA_STATE_JSON (new root). No default points at an existing output.
+>   P2 interval defect (memory x0910_fund_iv_interval_mismatch): REST rows enter the event stream with iv = NaN (never the fetch-time fundingInfo value),
+>      and for every event with ft > cut - 24h the interval is the AX04 LEDGER interval at that settlement (T5d rule: producer ledger == snapped gap);
+>      an event in that range that the ledger does not hold => hard FAIL. Events <= cut - 24h keep r6's iv_full (no tail cell uses them; T5d).
+>   P3 the event rate must equal the ledger rate for every event in the ledger window (reported; FAIL if any differs).
+> Original docstring follows.
+> R6 EXTEND step 4a: extend a v4 4h panel forward by 60 anchors, using the ESTABLISHED v4 mechanism
+18c26
+< ENV_WL = ["R6_BASE_PANEL", "R6_RAWBUILD", "R6_PANEL_OUT", "R6_FUND_SEP", "EMA_STATE_JSON", "EXPORT_PANEL"]
+---
+> ENV_WL = ["R6_BASE_PANEL", "R6_RAWBUILD", "R6_PANEL_OUT", "AX_REST", "AX_LEDGER", "AX_HI_S", "EMA_STATE_JSON", "EXPORT_PANEL"]
+23,24c31,35
+< FSEP  = os.environ.get("R6_FUND_SEP", "/workspace/uplift_2026-09-11/r6/dl/r6_fund_sep.json.gz")
+< STATE = os.environ.get("EMA_STATE_JSON", OUTP.replace(".npz", "_fund_state_canoncont.json"))
+---
+> FSEP  = os.environ["AX_REST"]                # P1: this round's REST pull (ax02), no default
+> LEDP  = os.environ["AX_LEDGER"]              # P2: per-settlement ledger (ax04)
+> HI_S  = int(os.environ["AX_HI_S"])           # P1: last settlement second admitted
+> STATE = os.environ["EMA_STATE_JSON"]
+> for _p in (OUTP, STATE, OUTP.replace(".npz", "_RECEIPT.json")): assert not os.path.exists(_p), f"refuse to overwrite {_p}"
+59,60c70,80
+< SEP = json.loads(gzip.open(FSEP, "rt").read()); SEP_IV = {k: float(v) for k, v in (SEP.get("intervals") or {}).items() if v}
+< print(f"fund_aug syms {len(AUG.get('rates') or {})} | r6_sep syms {len(SEP.get('rates') or {})} meta {SEP.get('meta',{}).get('max_utc')}", flush=True)
+---
+> _REST = json.loads(gzip.open(FSEP, "rt").read())                       # P1: ax02 format -> r6 shape {"rates": {sym: [[t_ms, rate]]}}
+> SEP = {"rates": {s: [[int(r["fundingTime"]), float(r["fundingRate"])] for r in (v or []) if int(r["fundingTime"]) // 1000 <= HI_S]
+>                  for s, v in _REST["rates_raw"].items()}, "meta": _REST["meta"]}
+> SEP_IV = {}                                                              # P2: NO fetch-time interval enters the stream
+> _L = np.load(LEDP, allow_pickle=True); _Lsym = [str(x) for x in _L["symbols"]]; assert _Lsym == syms, "ledger symbol axis"
+> LED = {}
+> for _j, _t, _r, _iv in zip(_L["sym"].astype(int), _L["ts"].astype(np.int64), _L["rate"], _L["iv"]):
+>     LED.setdefault(_j, {})[int(_t)] = (float(_r), float(_iv))
+> LED_LO = int(_L["window"][0])
+> P2 = {"events_ledger_iv": 0, "events_iv_changed_vs_r6_rule": 0, "symbols_iv_changed": [], "events_missing_in_ledger": [], "rate_mismatch_vs_ledger": []}
+> print(f"fund_aug syms {len(AUG.get('rates') or {})} | ax02 REST syms {len(SEP.get('rates') or {})} meta {SEP.get('meta',{}).get('max_utc')} | ledger rows {len(_L['ts'])}", flush=True)
+91a112,122
+>     # ---- P2/P3: ledger interval (and rate check) for every event with ft > cut - 24h
+>     _led = LED.get(j, {}); _r6iv = iv_full.copy(); _chg = 0
+>     for _i in np.nonzero(ft > cut - 24 * 3600)[0]:
+>         _t = int(ft[_i])
+>         if _t < LED_LO: continue
+>         _e = _led.get(_t)
+>         if _e is None: P2["events_missing_in_ledger"].append((s, U(_t))); continue
+>         if _e[0] != float(fr[_i]): P2["rate_mismatch_vs_ledger"].append((s, U(_t), float(fr[_i]), _e[0]))
+>         iv_full[_i] = _e[1]; P2["events_ledger_iv"] += 1
+>         if _e[1] != _r6iv[_i]: _chg += 1
+>     if _chg: P2["events_iv_changed_vs_r6_rule"] += _chg; P2["symbols_iv_changed"].append(s)
+121a153,156
+> # ---- P2/P3 hard gates ----
+> print("P2", json.dumps({k: (len(v) if isinstance(v, list) else v) for k, v in P2.items()}), flush=True)
+> assert not P2["events_missing_in_ledger"], ("P2 FAIL: tail events absent from the ledger", P2["events_missing_in_ledger"][:10])
+> assert not P2["rate_mismatch_vs_ledger"], ("P3 FAIL: event rate != ledger rate", P2["rate_mismatch_vs_ledger"][:10])
+154a190
+>        "ledger": LEDP, "ledger_sha256": sha(LEDP), "hi_s": HI_S, "P2_P3": {k: (v if not isinstance(v, list) else {"n": len(v), "first": v[:40]}) for k, v in P2.items()},

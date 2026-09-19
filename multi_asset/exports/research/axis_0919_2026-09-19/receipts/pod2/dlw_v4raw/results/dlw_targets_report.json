@@ -1,0 +1,102 @@
+{
+ "self_sha256": "9e9dfd94857d4c6dbbecedb752bb8b57bbc1f344ff0ef3d4ba5d01fccc127a42",
+ "const": {
+  "W": 576,
+  "FWD": 48,
+  "TRAIL": 2016,
+  "NTOP": 400,
+  "MIN_MEM": 50,
+  "MIN_FIN": 46,
+  "F6_KEYS": [
+   "f_rev_4h",
+   "f_rev_24h",
+   "f_vol_7d",
+   "f_range_24h",
+   "f_mom_7d",
+   "f_fund_ema"
+  ],
+  "LAM": 0.001,
+  "MIN_RES": 60,
+  "target_row_window": "[E+1, E+48]",
+  "member_stat_window": "[max(E-2016,0), E)",
+  "prereg_sha": "33f066c9460587864866e4f31afb72c24ae93c98183fc779c12aa0af70764577",
+  "prereg_commit": "7acda02"
+ },
+ "input_sha256": {
+  "cache": "1db49ce6f5ca3431e99ce5abb630b296d2effbb130dfe17974d2b5319f926d2e",
+  "panel": "293a14cf65f422bfbd849993b6b37b27c8dee7fd03b2ab37cc562ce636751ce0"
+ },
+ "raw_patch_coverage": {
+  "PASS": true,
+  "fails": [],
+  "summary": {
+   "TT": 495937,
+   "NW": 829,
+   "n_candidates": 960,
+   "n_patch": 959,
+   "n_not_clipped": 1,
+   "n_unaccounted": 0
+  },
+  "raw_patch": "/workspace/axis_0919/data/raw_patch.npz",
+  "raw_patch_sha256": "0a4cfb5988ae8679a93c45a3649942f49ad2b7fd749792bb22b266c2989b0183",
+  "manifest": "/workspace/axis_0919/data/raw_patch.manifest.json",
+  "manifest_sha256": "9b1cec6d385394d7a72365e73e0c076000eb08773611b2660e916dc0d638b71b",
+  "lib_sha256": "aef0bfd668c3e42e92385780ad1880bcbbdd7d380957fce3e4f6979e5ad2f646"
+ },
+ "member_mask": {
+  "path": "/workspace/axis_0919/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+  "sha256": "04aeefbb10feb19a48970c262d921aa6d1799fb66aa918164744d3131fb81a2f",
+  "applied": true,
+  "n_anchor_rows": 10320,
+  "false_cells": 5331843,
+  "definition": "MEMBER_LIVENESS: at least one REAL bar (not hole-filled, log_qv finite) in the 86400s window ending at the anchor row (rows (r-288, r], spacing 300s); AND MASK_IN 9793722e325fc716; on the 5m cache 4h grid; training member mask"
+ },
+ "target_vs_old": {
+  "median_abs_diff_bps": 15.540176391601562,
+  "mean_diff_bps": -0.6011859178543091,
+  "spearman_same_row_median": 0.9720193090863147,
+  "spearman_prev_row": -0.0040235471261987395,
+  "spearman_next_row": -0.024678495076980403
+ },
+ "W": 576,
+ "FWD": 48,
+ "TRAIL": 2016,
+ "NTOP": 400,
+ "MIN_MEM": 50,
+ "MIN_FIN": 46,
+ "F6_KEYS": [
+  "f_rev_4h",
+  "f_rev_24h",
+  "f_vol_7d",
+  "f_range_24h",
+  "f_mom_7d",
+  "f_fund_ema"
+ ],
+ "LAM": 0.001,
+ "MIN_RES": 60,
+ "target_row_window": "[E+1, E+48]",
+ "member_stat_window": "[max(E-2016,0), E)",
+ "prereg_sha": "33f066c9460587864866e4f31afb72c24ae93c98183fc779c12aa0af70764577",
+ "prereg_commit": "7acda02",
+ "n_anchors": 10319,
+ "mean_members": 270.6551991472042,
+ "n_has_panel": 10314,
+ "n_res": 10314,
+ "years": {
+  "2022": 2178,
+  "2023": 2190,
+  "2024": 2196,
+  "2025": 2190,
+  "2026": 1565
+ },
+ "cache": "/workspace/axis_0919/data/dlnative_5m_wide829_f16_holefix2_x0918.npz",
+ "panel": "/workspace/axis_0919/panels/wide_panel_4h_v3splice_x0918.npz",
+ "builder": "pod_dlw_targets_raw_v2.py",
+ "targets_sha256": "8df390b6ee7748a284df81723188221eff82cb9202c982b35b4c38716c3f2391",
+ "assert": {
+  "min_target_row_offset": 1,
+  "max_target_row_offset": 48,
+  "ts_step_300": true,
+  "align_check_pass": true
+ }
+}

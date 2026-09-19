@@ -1,0 +1,95 @@
+{
+ "device": "fp2_member_mask_build.py",
+ "self_sha256": "a2d5493a996214f3a55646ba54bffe497be51578f43524fff0b95189ed4641f9",
+ "utc": "2026-09-19T09:08:23Z",
+ "env": {
+  "CACHE": "/workspace/axis_0919/data/dlnative_5m_wide829_f16_holefix2_x0918.npz",
+  "TRD_NPZ": "/workspace/axis_0919/trd/tradability_v1.npz",
+  "TRD_SHA": "bebf69ab9ddb3b05b49552e66dccf9b8cde3caee0593b14e1b3fe1a4c93c9db8",
+  "UMASK_NPZ": "/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+  "INJECT_NPZ": "/workspace/fx_data_2026-09-13/out/inject/umask_UPIT_CRYPTO_tradable_W24H.npz",
+  "INJECT_SHA": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c",
+  "OUT": "/workspace/axis_0919/masks/member_mask_tradable_W24H_cachegrid.npz",
+  "RECEIPT": "/workspace/axis_0919/masks/RECEIPT_member_mask_build.json"
+ },
+ "numpy": "2.4.6",
+ "checks": {
+  "P0 inject artifact sha == declared (FX_DATA TRD-D3 N2)": {
+   "ok": true,
+   "detail": {
+    "got": "3badc4b6a4fcbc59",
+    "declared": "3badc4b6a4fcbc59"
+   }
+  },
+  "P3 symbols axis: cache == tradability": {
+   "ok": true,
+   "detail": {
+    "n_cache": 829,
+    "n_trd": 829
+   }
+  },
+  "P1 every cache 4h anchor has a tradability row": {
+   "ok": true,
+   "detail": {
+    "anchors": 10333,
+    "first": 1640995200,
+    "last": 1789776000,
+    "n_missing": 0,
+    "missing_first": []
+   }
+  },
+  "P3b symbols axis: umask == cache": {
+   "ok": true,
+   "detail": null
+  },
+  "P2a every umask anchor is on the cache 4h grid": {
+   "ok": true,
+   "detail": {
+    "n_umask": 10039,
+    "n_missing": 0
+   }
+  },
+  "P2 (mask AND umask) on the A0 axis == certified injection artifact BITWISE": {
+   "ok": true,
+   "detail": {
+    "same_axis": true,
+    "cells": 8322331,
+    "diff_cells": 0,
+    "umask_true": 2761057,
+    "umask_and_tradable_true": 2727671,
+    "dropped": 33386
+   }
+  },
+  "W1 re-read == written (mask, ts, symbols)": {
+   "ok": true,
+   "detail": null
+  }
+ },
+ "VERDICT": "PASS",
+ "inputs": {
+  "cache": "/workspace/axis_0919/data/dlnative_5m_wide829_f16_holefix2_x0918.npz",
+  "tradability_sha256": "bebf69ab9ddb3b05b49552e66dccf9b8cde3caee0593b14e1b3fe1a4c93c9db8",
+  "umask_sha256": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5",
+  "inject_sha256": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c",
+  "spec_sha256": "99ae35e01ec3dd06ba7bf69ea62de8f36cfd2695492ccf53757d985b8a0946b2"
+ },
+ "stats": {
+  "anchors": 10333,
+  "symbols": 829,
+  "tradable_cells": 3241032,
+  "cells": 8566057,
+  "tradable_share": 0.3783575103457752,
+  "by_year_tradable_share": {
+   "2022": 0.17127253499016806,
+   "2023": 0.22911027755286392,
+   "2024": 0.33372993116116373,
+   "2025": 0.5349543654400141,
+   "2026": 0.720043909247038
+  }
+ },
+ "output": {
+  "path": "/workspace/axis_0919/masks/member_mask_tradable_W24H_cachegrid.npz",
+  "sha256": "9793722e325fc71650ed497ebbf9587a326247c8066ea93f5b9c20b4550ef628",
+  "bytes": 116059
+ }
+}
