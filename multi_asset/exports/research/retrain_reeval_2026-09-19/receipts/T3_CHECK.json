@@ -1,0 +1,31 @@
+{
+ "device": "king_monthly_T3.py",
+ "self_sha256": "27f0571373808016259a65dd154afea1c83be037c7c306cc386f2335563f2f1f",
+ "mode": "check",
+ "lightgbm": "4.7.0",
+ "numpy": "2.4.6",
+ "inputs": {
+  "KING_FEA": "/workspace/fp2_2026-09/data/wide_fea_v4.npy",
+  "KING_FEA_sha256": "ee4cce7f58f190448f42be681dba402d70b149392686b045fd01c9d812073c92",
+  "KING_META": "/workspace/fp2_2026-09/data/wide_fea_v4_meta.npz",
+  "KING_META_sha256": "61e54c8cfaa67f6786fc0d8b4eeb023f2f6df8aff68b967d77b19c80b4cd1176",
+  "SLOW_BASE": "/workspace/fp2_2026-09/king_v4/SLOW_v4.npy",
+  "SLOW_BASE_sha256": "c6c3f7aea17abf8e19217ba31ca547f36411c965bb1e6a2cd30876940a55c3b8",
+  "LIVE_PINS": "/workspace/fp2_2026-09/live_pins.json",
+  "LIVE_PINS_sha256": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece"
+ },
+ "recipe": "pod_export_bundle_v4.py (42555a37) L40-61 rows, L75-76 estimator verbatim; fold rule = PREREG \u00a72 T3 (label_end = E+4h < month start)",
+ "n_rows": 2751058,
+ "n_anchors_with_rows": 10212,
+ "folds": {},
+ "check_2025_yearly": {
+  "rule": "YRA < 2025 (exporter's own yearly rule)",
+  "finite_pattern_equal": true,
+  "maxabs": 0.0,
+  "bitwise": true,
+  "rank_corr_mean": 1.0,
+  "rank_corr_min": 0.9999999999999999,
+  "n_train_rows": 1318632,
+  "n_test_rows": 849226
+ }
+}
