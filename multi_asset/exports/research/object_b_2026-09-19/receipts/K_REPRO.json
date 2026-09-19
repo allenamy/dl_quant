@@ -1,0 +1,116 @@
+{
+ "device": "/workspace/object_b_2026-09-19/devices/king_v3_folds.py",
+ "self_sha256": "5c9920dcb8c701820af3b2472fdbb089f369db81ea95221fa13c14615022a053",
+ "comparison_type": "(3) packaging/prediction parity \u2014 not a return",
+ "inputs_sha256": {
+  "exporter": "c210bac649071e30530147e4b808f662d87e07ad521eaadb307b3453c348dc6a",
+  "fea": "f88b07205bf19870aefd1ea6f8eaf6f14e78f3587c973f36514b43ea691d4097",
+  "meta": "4b1b6047107d25573244a84df69d45bc987ada89b6731e826c867a230e247082",
+  "pins": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece",
+  "pinned": "158cd4ac8f8f30f7f41a5a6cba0bd19a450ce756727e4aeae3d4e4b0b67d0054",
+  "slow2026": "8d79186b6380132cb67684acf1ebfcdb2c53261c850f46a4908b06bfa7a81282"
+ },
+ "env": {
+  "PATH": "/usr/bin:/bin",
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "KMP_DUPLICATE_LIB_OK": "True",
+  "KMP_INIT_AT_FORK": "FALSE"
+ },
+ "python": "3.11.10",
+ "numpy": "2.4.6",
+ "lightgbm": "4.7.0",
+ "folds": {
+  "2023": {
+   "train_rows": 299102,
+   "train_anchors": 2148,
+   "last_train_anchor": "2022-12-31T20:00:00Z",
+   "label_end": "2023-01-01T00:00:00Z",
+   "label_end_ts": 1672531200,
+   "test_rows": 410358,
+   "fit_s": 31.1,
+   "model_file": "/workspace/object_b_2026-09-19/models/king_v3_fold2023.txt",
+   "model_sha256": "0cc2a6b3135eada9f78813909970818a86555119d4df4f690670de0669b385ce",
+   "served_in_object_B": true
+  },
+  "2024": {
+   "train_rows": 709460,
+   "train_anchors": 4338,
+   "last_train_anchor": "2023-12-31T20:00:00Z",
+   "label_end": "2024-01-01T00:00:00Z",
+   "label_end_ts": 1704067200,
+   "test_rows": 601406,
+   "fit_s": 35.7,
+   "model_file": "/workspace/object_b_2026-09-19/models/king_v3_fold2024.txt",
+   "model_sha256": "a8f61bc657a8bf1d95888c99fbd6417900df2b50018f78d56d505c08fb2df6f2",
+   "served_in_object_B": true
+  },
+  "2025": {
+   "train_rows": 1310866,
+   "train_anchors": 6534,
+   "last_train_anchor": "2024-12-31T20:00:00Z",
+   "label_end": "2025-01-01T00:00:00Z",
+   "label_end_ts": 1735689600,
+   "test_rows": 849811,
+   "fit_s": 42.3,
+   "model_file": "/workspace/object_b_2026-09-19/models/king_v3_fold2025.txt",
+   "model_sha256": "3cee34d1d00999374c60d834317211d8eef9e3d1bea331ff151e8317d8332026",
+   "served_in_object_B": true
+  },
+  "2026": {
+   "train_rows": 2160677,
+   "train_anchors": 8724,
+   "last_train_anchor": "2025-12-31T20:00:00Z",
+   "label_end": "2026-01-01T00:00:00Z",
+   "label_end_ts": 1767225600,
+   "test_rows": 580800,
+   "fit_s": 74.9,
+   "model_file": "/workspace/object_b_2026-09-19/work/king_v3_fold2026_REPRO_ONLY.txt",
+   "model_sha256": "275632316c00b63b0644ca8700af5ef25ef3b3fd91233fb2f619db02ae0bc86e",
+   "served_in_object_B": false
+  }
+ },
+ "K_REPRO": {
+  "2024": {
+   "n_cells": 601406,
+   "same_support": true,
+   "bitwise": true,
+   "max_abs": 0.0,
+   "ranks_equal": true,
+   "verdict": "PASS"
+  },
+  "2025": {
+   "n_cells": 849811,
+   "same_support": true,
+   "bitwise": true,
+   "max_abs": 0.0,
+   "ranks_equal": true,
+   "verdict": "PASS"
+  },
+  "2026": {
+   "n_cells": 580800,
+   "same_support": true,
+   "bitwise": true,
+   "max_abs": 0.0,
+   "ranks_equal": true,
+   "verdict": "PASS"
+  },
+  "2026_model_text_sha_equal_inservice": false
+ },
+ "K_REPRO_VERDICT": "REPRO_NUMERIC",
+ "negative_control": {
+  "rule": "pinned 2024 rows vs fold-2025 model on 2024 rows must be NEW_DRAW",
+  "result": {
+   "n_cells": 601406,
+   "same_support": true,
+   "bitwise": false,
+   "max_abs": 0.4093654751777649,
+   "ranks_equal": false,
+   "verdict": "NEW_DRAW"
+  },
+  "ok": true
+ },
+ "gate_ok_to_use": true,
+ "utc": "2026-09-19T09:42:52Z",
+ "runtime_s": 209.1
+}

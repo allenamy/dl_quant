@@ -1,0 +1,18 @@
+start 2026-09-19T09:36:04Z pgid 1238914
+run repro_full cutoff=none start 2026-09-19T09:36:04Z
+run repro_full rc=0 end 2026-09-19T09:44:21Z
+F_REPRO rc=0 F_REPRO_COMPARE VERDICT PASS bitwise=True sample=None
+F_REPRO_NEGCTRL rc=0 F_REPRO_COMPARE NEGCTRL VERDICT NEW_DRAW bitwise=False sample={'n_rows': 30000, 'spearman': 0.7991525850974572, 'max_abs': 0.24788235872983932, 'rows_rule': 'default_rng(0).choice(dlw_fea82 rows, 30000) = pod_f10_np_export gate V1 sample'}
+run fold2023_s42 cutoff=1672531200 start 2026-09-19T09:45:00Z
+run fold2023_s42 rc=0 end 2026-09-19T09:46:51Z
+export fold2023_s42 rc=0 2026-09-19T09:47:55Z V1_PASS s42 -> f10_live_s42_np.npz trained_through 1672502400
+run fold2024_s42 cutoff=1704067200 start 2026-09-19T09:47:55Z
+run fold2024_s42 rc=0 end 2026-09-19T09:51:44Z
+export fold2024_s42 rc=0 2026-09-19T09:52:56Z V1_PASS s42 -> f10_live_s42_np.npz trained_through 1704038400
+run fold2025_s42 cutoff=1735689600 start 2026-09-19T09:52:56Z
+run fold2025_s42 rc=0 end 2026-09-19T09:58:09Z
+export fold2025_s42 rc=0 2026-09-19T09:58:58Z V1_PASS s42 -> f10_live_s42_np.npz trained_through 1735660800
+run fold2026_s42 cutoff=1767225600 start 2026-09-19T09:58:58Z
+run fold2026_s42 rc=0 end 2026-09-19T10:05:26Z
+export fold2026_s42 rc=0 2026-09-19T10:06:09Z V1_PASS s42 -> f10_live_s42_np.npz trained_through 1767196800
+DONE 2026-09-19T10:06:09Z
