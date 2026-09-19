@@ -1,0 +1,26 @@
+[PASS] 7 read-only guard baseline (guard installed ⇒ open of a live path refused): child says 'REFUSED'
+[PASS] 7 read-only guard mutation (no guard ⇒ the same open succeeds, i.e. the refusal came from the guard): child says 'OPENED'
+[PASS] 0 mirror bytes equal INPUT_MANIFEST: 0 mismatching files
+      baseline run 9.5 s: 142 windows, 71795 trade legs, 32959 funding charges
+[PASS] 1 min-notional baseline: 23086 executed plans, 0 below the venue floor
+[PASS] 1 min-notional mutation --no-min-notional turns it RED: 161 executed plans below the floor (of 23354)
+[PASS] 2 per-name stop baseline: 25 independent −30%×2 triggers, 0 violations
+[PASS] 2 per-name stop mutation --no-stop turns it RED: 133 triggers, 133 violations e.g. [(1788120000, 'SKRUSDT', 'target -294.45 stop_flag False'), (1788134400, 'SKRUSDT', 'target -303.65 stop_flag False')]
+[PASS] 3 fees baseline: 71795 legs, fee 748.18 USDT, max |fee − recomputed| 0.00e+00
+[PASS] 3 fees mutation --zero-fees turns it RED: fee 0.00 USDT, max |fee − recomputed| 1.2309
+[PASS] 3 fees mutation --fee-asset-wrong turns it RED: fee 717.01 USDT, max |fee − recomputed| 0.1069
+[PASS] 4 funding sign convention on the REAL ledger (paid = −notional × rate): 100.0000% of 28578 live rows agree in sign
+[PASS] 4 funding baseline: 32959 charges, max rel err 0.0e+00, 0 duplicate (symbol, time), 0/28384 rate mismatches vs the executor's rows
+[PASS] 4 funding mutation --funding-sign-flip turns it RED: max rel err 2.000
+[PASS] 4 funding mutation --funding-double turns it RED: max rel err 1.000
+[PASS] 5 accounting identity baseline: max |Δequity − (price + funding − fee + transfer)| = 4.02e-10 USDT
+[PASS] 5 accounting mutation (fee not booked to equity) turns it RED: max identity error 118.0220 USDT
+[PASS] 6 determinism baseline (two runs, identical windows): 142 windows compared
+[PASS] 6 calibration binding mutation (p_zero + 0.05) changes the output: Σ|Δ turnover| 28,293.56 USDT
+[PASS] 8 V1 judge baseline judge(live, live): {'fee': True, 'turnover_over_gross': True, 'funding': True, 'price_and_trading': True}
+[PASS] 8 V1 judge mutation fee ×1.3 ⇒ item fee FAIL: ratio 1.300
+[PASS] 8 V1 judge mutation funding ×0.7 ⇒ item funding FAIL: ratio 0.700
+[PASS] 8 V1 judge mutation turnover ×1.3 ⇒ item turnover_over_gross FAIL: ratio 1.300
+[PASS] 8 V1 judge mutation price + 1.5·tol ⇒ price FAIL: total diff +1,431.3 vs tol 954.2; CI [58.3780747114774, 60.47800545649458]
+BATTERY VERDICT: ALL PASS 23/23 checks (baselines green first, every mutation red)
+exit code: 0
