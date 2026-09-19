@@ -1,3 +1,14 @@
+# ============================================================================================
+# ★ 更正横幅 2026-09-19 (原字节全部保留于横幅之下, 一行未改)
+#   下方表头第 4 行写「exact 2x on sums」。【这句是错的, 且偏乐观。】
+#   实测(50 天全史): (symbol,trade_id) 出现 1 次 92 笔 / 2 次 39,184 笔 / 3 次 14,568 笔(27%);
+#   原始行 122,164 -> 唯一 53,844 = 2.269 倍, 单锚最坏 ~3.00 倍。出现 3 次 = 原始行 + 两次回填写入。
+#   ⇒ 任何按「除以 2 修正旧数字」处理过的地方都要重做。
+#   后果量化见 LED01_consequence_quantified_2026-09-19.md / .json:
+#     分子分母都来自成交表的比率(fee_bps_of_traded / maker_frac) 不受影响(均值比 0.9998);
+#     水平量(成交额/费用/笔数) 2.07-2.29 倍; 跨源比率(turnover_frac / fee_bps_of_gross) 2.31-2.38 倍。
+#   本清单的【文件列表与形状标注本身未被推翻】, 只有这句后果描述被更正。
+# ============================================================================================
 # Research-repo .py files naming fills.jsonl (git grep at HEAD, 2026-09-13 16:0xZ; FX-EXEC2 LED-01 req. 5)
 # columns: path | uses a canonical collapse (collapse_supersedes/dedupe_fills/read_fills) | mentions trade_id | note
 # NOT FIXED except multi_asset/exports/live/pilot_journal/tools/inspect_anchor.py (lead: list the others, do not fix).
