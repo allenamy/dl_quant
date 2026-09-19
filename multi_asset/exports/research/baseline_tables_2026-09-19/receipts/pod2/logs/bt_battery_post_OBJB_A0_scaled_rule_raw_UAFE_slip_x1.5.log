@@ -1,0 +1,55 @@
+[     6s] PASS D0.pins_price_receipt_executor_tree []
+[     8s] PASS D1.audits_clean.old.seed0 {"trades": 78405, "max_fee_err": 0.0, "trades_by_kind": {"first": 54745, "later": 23660}, "notional_maker": 1405672.7743186995, "notional_taker": 277361.00690331904, "funding_charges": 16099, "funding_max_err": 0.0, "funding_dup": 0, "exits": 84, "exit_subfloo
+[     8s] PASS D1.effective_fee_rates_are_USDT_era.old.seed0 [419.8147691129535, 419.8147691129484]
+[     9s] PASS D1.audits_clean.old.seed1 {"trades": 78090, "max_fee_err": 0.0, "trades_by_kind": {"first": 54540, "later": 23550}, "notional_maker": 1402661.800614613, "notional_taker": 269111.5715114173, "funding_charges": 16085, "funding_max_err": 0.0, "funding_dup": 0, "exits": 86, "exit_subfloor_
+[     9s] PASS D1.effective_fee_rates_are_USDT_era.old.seed1 [415.08785762750097, 415.0878576275056]
+[    10s] PASS D1.audits_clean.raw.seed0 {"trades": 78405, "max_fee_err": 0.0, "trades_by_kind": {"first": 54745, "later": 23660}, "notional_maker": 1405672.7137953734, "notional_taker": 277361.0068641487, "funding_charges": 16099, "funding_max_err": 0.0, "funding_dup": 0, "exits": 84, "exit_subfloor
+[    10s] PASS D1.effective_fee_rates_are_USDT_era.raw.seed0 [419.81475698870383, 419.81475698871003]
+[    11s] PASS D1.audits_clean.raw.seed1 {"trades": 78090, "max_fee_err": 0.0, "trades_by_kind": {"first": 54540, "later": 23550}, "notional_maker": 1402661.8906583788, "notional_taker": 269111.6277718602, "funding_charges": 16085, "funding_max_err": 0.0, "funding_dup": 0, "exits": 86, "exit_subfloor
+[    11s] PASS D1.effective_fee_rates_are_USDT_era.raw.seed1 [415.0879037664651, 415.08790376646004]
+[    12s] PASS [mutation red] D1.funding_double_breaks_the_funding_audit 20.931587080605492
+[    13s] PASS [mutation red] D1.fee_asset_wrong_breaks_the_fee_rate_check [379.69887947870086, 419.8961492558285]
+[    14s] PASS D2.same_seed_bitwise_identical []
+[    14s] PASS D2.other_seed_differs 
+[    15s] PASS D3.v2_decision_record_reproduced_first_anchor_with_v2_decision_bar {"equity_at_decision": [100000.0, 100000.0], "sizing_gross": [200000.0, 200000.0], "n_symbols": [137.0, 137.0], "n_untradable": [0.0, 0.0], "n_plans_sent": [137.0, 137.0], "n_skip_min_notional": [0.0, 0.0], "plan_turnover": [199931.83474176106, 199931.83474176
+[    15s] PASS [mutation red] D3.v31_own_decision_bar_changes_planned_turnover [199937.55401065265, 199931.83474176106]
+[    18s] PASS D4.decisions_up_to_A_k_invariant_to_future_prices {"anchors_compared": 31}
+[    19s] PASS D4.positive_control_A_k+1_sees_the_perturbation 
+[    20s] PASS [mutation red] D4.lookahead_decision_changes_A_k 
+[    21s] PASS D5.positive_control_AERGO_held_into_the_gap {"max_unknown_held_names": 1.0, "aergo_trades": 60}
+[    21s] PASS D5.no_AERGO_fill_booked_inside_a_UA_bar {"inside": []}
+[    21s] PASS D5.frozen_anchors_present_and_no_AERGO_trade_from_a_frozen_decision {"frozen_anchors": 3, "trades_from_frozen": [], "ua": {"anchors_with_frozen_names": 3, "frozen_name_anchors": 3, "frozen_held_name_anchors": 3, "frozen_plans_dropped": 3, "frozen_plan_notional_dropped": 123.0464734625275}}
+[    21s] PASS D5.unknown_cells_excluded_only_where_they_exist {"windows_with_unknown_pnl": 3, "max_abs_dr_elsewhere": 2.220446049250313e-16, "unk_sum": 77.2853197104265}
+[    22s] PASS D5.bitwise_invariant_to_garbage_at_UA_bars {"diff": [], "garbage_cells": 133, "held_cells": 133}
+[    22s] PASS D5.legacy_panel_still_carries_the_garbage 
+[    23s] PASS [mutation red] D5.LEGACY_reads_the_garbage 
+[    23s] PASS [mutation red] D5.empty_UA_index_trades_or_prices_through_the_gap {"frozen": 0, "inside": 15}
+[    27s] PASS D5b.fills_inside_a_UA_stretch_are_cancelled {"name": "MAVUSDT", "booked": 0, "cancelled": 3}
+[    28s] PASS [mutation red] D5b.LEGACY_books_them {"booked": 3}
+[    31s] PASS D6.switch_to_identical_content_is_bitwise_identical []
+[    31s] PASS D6.config_runs_differ_only_in_price_policy_labels 
+[    33s] PASS [mutation red] D6.switch_that_also_swaps_cref 
+[    34s] PASS [mutation red] D6.switch_that_also_drops_funding 
+[    35s] PASS D7.path_file_shas_match_the_AGG_listing {"n_paths": 32}
+[    36s] PASS D7.mean_recomputed_from_files_equals_AGG_bitwise {"keys": 21, "n_paths": 32}
+[    37s] PASS [mutation red] D7.tampered_path_file_changes_the_mean 
+[    37s] PASS [mutation red] D7.missing_seed_changes_the_mean 
+[    39s] PASS D8.rule_flatten_at_first_eval_after_shock_and_halt_until_next_day {"flattens": 1, "halt_anchors": 2, "flatten_log": [["2025-03-03T12:46:00Z", "\u00a74-2 day loss -23.43% at 03-03 12:45:00Z (ref 100,000 @ 03-03 00:00:00Z, E 76,570)"]]}
+[    39s] PASS [mutation red] D8.no_rule_no_flatten 
+[    42s] PASS D9.nav5_equals_simulator_equity_at_random_bars {"bars": [194, 824, 1441, 1506, 1508, 1596], "max_rel_err": 1.1102230246251565e-16}
+[    42s] PASS [mutation red] D9.next_bar_comparison_detected {"max_rel_err_shifted": 0.0015510465524767314}
+[    42s] PASS D10.fee_x1.25.changes_exactly_the_named_parameters ["fee_rate.BNB_era.maker", "fee_rate.BNB_era.taker", "fee_rate.USDT_era.maker", "fee_rate.USDT_era.taker"]
+[    42s] PASS D10.slip_x1.5.changes_exactly_the_named_parameters ["slippage_vs_executor_mid.first_leg", "slippage_vs_executor_mid.flatten", "slippage_vs_executor_mid.later_leg"]
+[    42s] PASS D10.fill_x0.9.changes_exactly_the_named_parameters ["completion.pi_fill", "first_leg.p_full", "first_leg.p_part", "first_leg.p_zero"]
+[    42s] PASS D10.fill_x0.9.implied_partial_share_scaled 
+[    42s] PASS D10.fee_x1.25.first_anchor_fees_exactly_scaled_same_fills [39.84698372967661, 49.80872966209576]
+[    42s] PASS D10.cost_cell_recorded_in_the_path_record 
+[    42s] PASS D10.slip_x1.5.is_AMENDMENT1_adverse_half_magnitude {"first_leg": [-0.0002659700385302392, -0.0001329850192651196], "later_leg": [-8.691237012976664e-05, -4.345618506488332e-05], "flatten": [0.000428667274030964, 0.0006430009110464461]}
+[    43s] PASS D10.slip_x1.5.same_fills_worse_prices_on_first_anchor [440.09581984579836, 422.5406066335727]
+[    43s] PASS [mutation red] D10.literal_signed_x1.5_would_make_maker_legs_cheaper 
+[    43s] PASS D10.fill_x0.9.fewer_or_equal_fills_on_first_anchor {"full": [193.0, 172.0], "partial": [13.0, 13.0]}
+[    43s] PASS [mutation red] D10.unknown_cost_cell_refused 
+[    48s] PASS [mutation red] D11.template_config_refused 
+[    48s] PASS [mutation red] D11.pending_field_refused 
+BT_BATTERY VERDICT: ALL PASS 53/53 checks (baselines green first, every mutation red)
+EXIT 0 OBJB_A0_scaled_rule_raw_UAFE_slip_x1.5

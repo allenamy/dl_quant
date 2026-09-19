@@ -10,6 +10,7 @@ M = json.load(open(sys.argv[1])); S = json.load(open(sys.argv[2])); OUT = sys.ar
 def pc(x, d=1): return "—" if x is None else f"{100 * x:+.{d}f}%"
 def pp(x, d=2): return "—" if x is None else f"{100 * x:+.{d}f} pp"
 def f2(x, d=2): return "—" if x is None else f"{x:+.{d}f}"
+def md_cell(s): return s.replace("|", "\\|")          # a run tag contains | and would otherwise split the markdown row
 def dist(q, fn=pc): return "—" if not q or q.get("median") is None else f"{fn(q['median'])} [{fn(q['p05'])}, {fn(q['p95'])}]"
 
 
@@ -71,7 +72,7 @@ L.append("|---|---|---|---|---|---|---|---|---|")
 for tag, o in S["runs"].items():
     u = o["unknown_cells_per_path"]; c = o["ua_counters_sum_over_paths"]
     g = lambda k, f="median": u.get(k, {}).get(f, 0.0)
-    L.append(f"| {tag} | {g('frozen_anchors', 'min'):.0f}–{g('frozen_anchors', 'max'):.0f} | {g('frozen_name_anchors', 'min'):.0f}–{g('frozen_name_anchors', 'max'):.0f} | {g('frozen_held_notional_usdt_sum'):,.0f} | "
+    L.append(f"| {md_cell(tag)} | {g('frozen_anchors', 'min'):.0f}–{g('frozen_anchors', 'max'):.0f} | {g('frozen_name_anchors', 'min'):.0f}–{g('frozen_name_anchors', 'max'):.0f} | {g('frozen_held_notional_usdt_sum'):,.0f} | "
              f"{g('frozen_plan_notional_dropped_usdt_sum'):,.0f} | {c.get('fills_cancelled_ua_bar', 0):.0f} / {c.get('fill_notional_cancelled_ua_bar', 0):,.0f} | "
              f"{g('windows_with_held_unknown_names', 'min'):.0f}–{g('windows_with_held_unknown_names', 'max'):.0f} | {g('notional_at_risk_usdt_sum'):,.0f} | {g('unknown_price_pnl_usdt'):+,.2f} / {g('unknown_funding_usdt'):+,.2f} |")
 L.append(f"\n计算: 启动墙钟 {S['launch_wall_s']:,.0f} s; 路径单线程合计 {S['core_seconds_paths']:,.0f} s = {S['core_hours_paths']:.2f} 核时。")
