@@ -1,0 +1,69 @@
+{
+ "cmd": [
+  "/workspace/venv/bin/python",
+  "-B",
+  "rpx_census.py",
+  "PATH,HOME,LC_CTYPE"
+ ],
+ "peak_GiB_declared": 4.0,
+ "margin_GiB": 20.0,
+ "alone_GiB": 2.0,
+ "yield_GiB": 0.5,
+ "quiet_n": 1,
+ "device": "ax_memguard.py v2",
+ "checks": [
+  {
+   "utc": "2026-09-19T11:58:57Z",
+   "host_available_GiB": 200.29,
+   "host_after_peak_GiB": 196.29,
+   "cgroup_max_GiB": 56.81,
+   "cgroup_used_anon_shmem_GiB": 12.06,
+   "cgroup_after_peak_GiB": 40.75,
+   "margin_c_GiB": 20.0,
+   "oom_kill_count": 4,
+   "ok": true,
+   "quiet_streak": 1,
+   "top_processes_over_256MiB": [
+    "1269574 1269476 6315528     31:22 /workspace/venv/bin/python -B b_launch.py --tag A0_main --start 2022-01-31T00:00:00Z --end 2026-08-31T00:00:00Z --workers 12",
+    "1269476 1269476 5731076     31:44 /workspace/venv/bin/python -B b_launch.py --tag A0_main --start 2022-01-31T00:00:00Z --end 2026-08-31T00:00:00Z --workers 12",
+    "1273016 1270586 1934144     17:50 /workspace/venv/bin/python -B /workspace/object_b_2026-09-19/devices/pod_f10_train_monthly_ext.py",
+    "1272466 1270586 1621544     19:50 /workspace/venv/bin/python -B /workspace/object_b_2026-09-19/devices/pod_f10_train_monthly_ext.py",
+    "1272276 1270586 1621024     20:50 /workspace/venv/bin/python -B /workspace/object_b_2026-09-19/devices/pod_f10_train_monthly_ext.py",
+    "1272815 1270586 1619464     18:50 /workspace/venv/bin/python -B /workspace/object_b_2026-09-19/devices/pod_f10_train_monthly_ext.py"
+   ]
+  }
+ ],
+ "state": "DONE",
+ "child_pid": 1276930,
+ "child_pgid": 1276930,
+ "start_utc": "2026-09-19T11:58:57Z",
+ "samples": [
+  {
+   "utc": "11:58:57Z",
+   "used_GiB": 12.06,
+   "mine_GiB": 0.01,
+   "others_GiB": 12.05
+  },
+  {
+   "utc": "11:59:27Z",
+   "used_GiB": 12.69,
+   "mine_GiB": 0.83,
+   "others_GiB": 11.86
+  },
+  {
+   "utc": "11:59:57Z",
+   "used_GiB": 13.92,
+   "mine_GiB": 1.78,
+   "others_GiB": 12.14
+  }
+ ],
+ "rc": 0,
+ "yielded": null,
+ "wall_s": 72.3,
+ "waited_s": 0.0,
+ "peak_rss_GiB": 4.33,
+ "sampled_pgid_rss_max_GiB": 4.17,
+ "oom_kill_before": 4,
+ "oom_kill_after": 4,
+ "end_utc": "2026-09-19T12:00:09Z"
+}

@@ -1,0 +1,27 @@
+[     0s] CHECK old_census.PASS OK 
+[     5s] CHECK input_sha.cache_x0918r OK {"expected": "08bb295745e6df84", "got": "08bb295745e6df84"}
+[     9s] CHECK input_sha.cache_holefix2 OK {"expected": "1d7f459dee434ec4", "got": "1d7f459dee434ec4"}
+[     9s] CHECK input_sha.old_price_meta OK {"expected": "fc6a381a76e311e6", "got": "fc6a381a76e311e6"}
+[     9s] CHECK input_sha.old_census OK {"expected": "16de8fa0efbd1bbe", "got": "16de8fa0efbd1bbe"}
+[     9s] CHECK input_sha.ledger_p2 OK {"expected": "bea6f5752772d54e", "got": "bea6f5752772d54e"}
+[     9s] CHECK input_sha.ledger_axis OK {"expected": "74b69e635efbf355", "got": "74b69e635efbf355"}
+[     9s] CHECK input_sha.meta_x0918 OK {"expected": "22e990f86babd64a", "got": "22e990f86babd64a"}
+[    10s] CHECK input_sha.targets_raw_x0918r OK {"expected": "eda429829420e252", "got": "eda429829420e252"}
+[    36s] x0918r ret5 (495937, 829)
+[    36s] CHECK cache.symbols_axis OK 
+[    36s] CHECK cache.ts_strict_5m OK {"n": 495937, "last": "2026-09-19T00:00Z"}
+[    62s] holefix2 ret5 (490753, 829)
+[    62s] CHECK P0.ts_prefix_equal OK 
+[    62s] CHECK P0.ret5_prefix_bitwise_equal_or_listed OK {"bit_differences": 0}
+[    62s] CHECK ledger_axis.symbols OK 
+[    63s] CHECK S.old_rule_reproduces_old_bounds OK {"n": 63975}
+[    63s] CHECK S.old_bounds_subset_of_new OK {"missing": 0}
+[    63s] samples {"n_old": 63975, "n_new": 64769, "added": 794, "added_at_or_before_old_last": 3, "added_by_axis_ledger_only": 0, "first": "2022-06-29T20:00Z", "old_last": "2026-08-31T04:00Z", "new_last": "2026-09-19T00:00Z"}
+[    66s] CHECK B.no_value_beyond_bound OK 
+[    66s] CHECK B.old_rows_equal_old_census OK {"x0918r_old_rows": 953, "old_census": 953}
+[    66s] CHECK B.no_bound_bar_between_old_rows_end_and_span OK {"old_rows_in_new_span": 0, "new_rows_outside_span": 0}
+[    67s] CHECK targets.symbols OK 
+[    67s] bound new span {'bars': 7, 'pos': 5, 'neg': 2, 'cells': 5, 'anchors': 5, 'symbols': 5, 'cells_by_bound_count': {'1': 4, '3': 1}, 'bars_with_meta_x0918_y4': 7, 'bars_with_x0918r_target_y4': 7, 'T2': 'not defined: the S2 replay books end at 2026-08-31T00Z (no book for the new span)'}
+[    70s] nan runs {'SAME': 15} selected 0 prefix-affecting 0
+RPX_CENSUS VERDICT=PASS prefix_bitdiff=0 bound_new_span=7 cells=5 nan_runs_selected=0 prefix_affecting=0 fetch=241 receipt_sha256=5cad48c76ec5bee8616625d38ab4ee4700cc7075151c7cab99d35e47526aa3d5
+rc=0

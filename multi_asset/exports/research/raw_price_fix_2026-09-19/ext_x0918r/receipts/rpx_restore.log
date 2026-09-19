@@ -1,0 +1,36 @@
+[     0s] CHECK rp_lib.sha OK {"got": "f802036f1a2e9e9f"}
+[     0s] CHECK census.PASS OK {"sha256": "5cad48c76ec5bee8616625d38ab4ee4700cc7075151c7cab99d35e47526aa3d5"}
+[     0s] CHECK fetch.PASS OK {"sha256": "70efe921bf46eaa09310d67c7e72e1d7560e99797ca427307ce3ae99138a87b6"}
+[     0s] CHECK census.npz_sha OK 
+[     0s] CHECK manifest_sha OK 
+[     3s] CHECK input_sha.cache_x0918r OK {"expected": "08bb295745e6df84", "got": "08bb295745e6df84"}
+[     4s] CHECK input_sha.meta_x0918 OK {"expected": "22e990f86babd64a", "got": "22e990f86babd64a"}
+[     4s] CHECK input_sha.targets_raw_x0918r OK {"expected": "eda429829420e252", "got": "eda429829420e252"}
+[     4s] CHECK input_sha.raw_patch_x0918r OK {"expected": "0a4cfb5988ae8679", "got": "0a4cfb5988ae8679"}
+[     4s] CHECK input_sha.base_patch OK {"expected": "984c289238385017", "got": "984c289238385017"}
+[     6s] CHECK archives.all_rehashed_ok OK {"n": 241}
+[     6s] CHECK archives.no_duplicate_conflict OK {"dups": 0}
+[     6s] CHECK archives.bars_are_5m OK 
+[     6s] CHECK census.symbols OK 
+[    32s] ret5 streamed (495937, 829)
+[    33s] CHECK b.unclipped_bitwise_equal OK {"compared": 69317, "mismatch": 0, "cache_finite_official_missing": 0, "cache_nan_official_has": 0}
+[    33s] CHECK b.every_control_day_measured OK {"2026-08-31": 3452, "2026-09-01": 3452, "2026-09-02": 3738, "2026-09-03": 3452, "2026-09-04": 3739, "2026-09-05": 4026, "2026-09-06": 3739, "2026-09-07": 3452, "2026-09-08": 3452, "2026-09-09": 3452, "2026-09-10": 3452, "2026-09-11": 3452, "2026-09-12": 3739, "2026-09-13": 3739, "2026-09-14": 3453, "2026-09-15": 3739, "2026-09-16": 3737, "2026-09-17": 3452, "2026-09-18": 2304}
+[    33s] CHECK b.new_span_measured_and_equal OK {"compared": 66449, "equal": 66449}
+[    33s] CHECK b.negative_control_shift_fails OK {"rate": 0.15764158710441553}
+[    33s] CHECK bound.population_equals_census OK {"n": 7}
+[    33s] CHECK bound.no_conflict OK {"RESTORED": 7, "NOT_CLIPPED": 0, "UNAVAILABLE": 0, "CONFLICT": 0}
+[    33s] bound bars {'RESTORED': 7, 'NOT_CLIPPED': 0, 'UNAVAILABLE': 0, 'CONFLICT': 0}
+[    33s] CHECK c.raw_patch_rows_on_this_axis OK 
+[    33s] CHECK c.float32_equals_x0918r_raw_patch OK {"raw_patch_new_rows": 7, "restored_here": 7, "float32_equal": 7, "only_here": 0, "only_raw_patch": 0}
+[    33s] CHECK c.no_overlap_with_base_patch OK 
+[    33s] CHECK cells.no_infeasible_or_unavailable OK {"status": {"1": 5, "3": 0, "4": 0}}
+[    33s] CHECK a1.meta_recipe_within_1ulp OK {"n": 5, "ulps": [0, 0, 0, 0, 0]}
+[    33s] CHECK a2.fixed_endpoint_within_float32_bound OK {"max_abs": 9.276563872617771e-08}
+[    33s] CHECK a3.official_endpoint_within_explained_bound OK {"n": 5, "max_abs": 0.0001514137165661289}
+[    33s] CHECK a4.remaining_cells_measured OK {"population": 0, "measured": 0}
+[    33s] CHECK a5.meta_y4_equals_x0918r_target_y4s OK {"n": 5}
+[    33s] CHECK d.population OK {"n": 240}
+[    33s] CHECK d.fixed_path_within_float16_budget OK 
+[    33s] CHECK nan_runs.census_selected_none OK {"selected": 0, "kinds": {"SAME": 15}}
+RPX_RESTORE VERDICT=PASS bars={"RESTORED": 7, "NOT_CLIPPED": 0, "UNAVAILABLE": 0, "CONFLICT": 0} cells=5 b_compared=69317 b_new_span=66449 mismatch=0 patch_sha256=01d234c7e8e28ea986ec9be6b322ee1ec64b98bb3e76aaf0e547587ee3cd93d2 receipt_sha256=03a8075f4d7be254235b5894eba37fd775d830fe8456d39d16b4785fea12da49
+rc=0

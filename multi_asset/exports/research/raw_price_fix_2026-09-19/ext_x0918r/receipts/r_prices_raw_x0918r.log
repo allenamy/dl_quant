@@ -1,0 +1,46 @@
+[     0s] CHECK rp_lib.sha OK 
+[     0s] CHECK R0_PASS OK 
+[     0s] CHECK base_table_receipt_PASS OK 
+[     0s] CHECK base_meta_sha_prefix OK 
+[     1s] CHECK input_sha.cache_x0918r OK {"expected": "08bb295745e6df84", "got": "08bb295745e6df84"}
+[     2s] CHECK input_sha.meta_x0918 OK {"expected": "22e990f86babd64a", "got": "22e990f86babd64a"}
+[     2s] CHECK input_sha.meta_september OK {"expected": "0e3c09ac86c727ac", "got": "0e3c09ac86c727ac"}
+[     2s] CHECK input_sha.ledger_p2 OK {"expected": "bea6f5752772d54e", "got": "bea6f5752772d54e"}
+[     2s] CHECK input_sha.ledger_axis OK {"expected": "74b69e635efbf355", "got": "74b69e635efbf355"}
+[     3s] CHECK input_sha.base_logtable OK {"expected": "0b134159a61aa77e", "got": "0b134159a61aa77e"}
+[     3s] CHECK input_sha.base_price_meta OK {"expected": "c27fdb11af42f374", "got": "c27fdb11af42f374"}
+[     3s] CHECK input_sha.base_patch OK {"expected": "984c289238385017", "got": "984c289238385017"}
+[     3s] CHECK base_restore_PASS_and_patch_sha OK 
+[     3s] CHECK ext_restore_PASS_and_patch_sha OK {"ext_patch": "01d234c7e8e28ea9"}
+[     3s] CHECK ext_census_PASS OK 
+[     3s] CHECK cache.symbols_axis OK 
+[     3s] CHECK cache.ret5_is_channel0 OK ["ret5", "range", "cpos", "log_qv", "log_cnt", "log_avgsz", "tbf"]
+[     3s] CHECK cache.ts_strict_5m OK {"first": "2022-01-01T00:00Z", "last": "2026-09-19T00:00Z", "n": 495937}
+[     3s] CHECK cache.data_header OK {"shape": [495937, 829, 7]}
+[    28s] ret5 streamed (495937, 829)
+[    31s] CHECK align.ts_is_bar_close OK {"max_err_ts_close": 9.001678848985506e-07, "max_err_ts_open": 0.004880004983482289}
+[    31s] CHECK samples.equal_census OK {"n": 64769}
+[    31s] CHECK samples.old_subset OK {"n_old": 63975}
+[    31s] CHECK meta_x0918.cells_inside_cache OK {"n": 10319, "first": "2022-01-03T00:00Z", "last": "2026-09-18T20:00Z"}
+[    31s] CHECK meta_september.cells_inside_cache OK {"n": 10182}
+[    31s] CHECK patch.symbols OK 
+[    31s] CHECK ext_patch.base_sha_bound OK 
+[    31s] CHECK patch.rows_on_axis OK 
+[    31s] CHECK patch.covers_every_bound_bar_once OK {"patch": 960, "cache": 960, "base": 953, "ext": 7}
+[    31s] CHECK P3.no_unavailable_bound_bar_in_range OK {"n": 0}
+[    31s] CHECK patch.gap_entries_on_nan_bars OK {"n": 21313}
+[    32s] block 0 applied 69
+[    36s] block 192 applied 288
+[    41s] block 384 applied 487
+[    45s] block 576 applied 713
+[    49s] block 768 applied 946
+[    49s] CHECK P1.x0918_meta_max_abs_diff_le_1e-6 OK {"cells_checked": 3565740, "cells_excluded_gapfilled": 1, "max_abs_diff": 1.8022966852271338e-07, "n_over_tol": 0, "over_tol": []}
+[    49s] CHECK P1b.september_meta_max_abs_diff_le_1e-6 OK {"cells_checked": 3476239, "cells_excluded_gapfilled": 1, "max_abs_diff": 1.8022966852271338e-07, "n_over_tol": 0, "over_tol": []}
+[    49s] CHECK P3.apply_patch_contract OK {"applied": 959}
+[    49s] CHECK P5.prefix_bitwise_equal_to_base_table OK {"cells": 53035275, "bit_differences": 0}
+[    49s] CHECK P5.reference_arrays_equal_for_old_symbols OK {"first_fin": true, "cref": true, "ref_px": true, "ref_b": true, "has_kline": true}
+[    72s] CHECK base_unchanged_after.base_logtable OK 
+[    72s] CHECK base_unchanged_after.base_price_meta OK 
+[    72s] CHECK base_unchanged_after.base_patch OK 
+R_PRICES_RAW_X0918R VERDICT=PASS rows=64769 prefix_bitdiff=0 P1_x0918=1.802e-07 P1b_sept=1.802e-07 replaced=959 kline0918_median=2.59e-05 receipt_sha256=6b19a690c6b7438ceb046a3561126dcfd34f45105a741681e6161fa0f752789b
+rc=0
