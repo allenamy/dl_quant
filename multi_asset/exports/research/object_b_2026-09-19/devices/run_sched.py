@@ -11,7 +11,8 @@ Plan (every heavy step is admitted by check(); every check and action is appende
   s3  targets per run when it ends; EXT-REPRO (A0_ext vs A0_main); negative control (V4_main vs A0_main must FAIL)
   scale-down: if the cgroup's free unreclaimable memory drops below 20 GiB while a P2 stage runs, that stage (V4 first, then A0) is stopped by
   its own recorded PGID and relaunched with half the workers (resumable). Stops only process groups started by this scheduler.
-usage: env -i PATH=/usr/bin:/bin HOME=/root LC_CTYPE=C.UTF-8 /workspace/venv/bin/python -B run_sched.py"""
+usage: env -i PATH=/usr/bin:/bin HOME=/root LC_CTYPE=C.UTF-8 [ADOPT_A0_PGID=<pgid> V4_WORKERS=<n>] /workspace/venv/bin/python -B run_sched.py
+  restart (13:4xZ): V4_WORKERS=11 — V4 P2 (11) + A0 P3 (1) + A0_ext P1 (1) = 13 cores within the 13.6 quota; projected ~32.7 GB, free >= 20 GiB."""
 import os, sys, json, time, signal, subprocess, re
 
 R = "/workspace/object_b_2026-09-19"; D = f"{R}/devices"; LG = f"{R}/logs"; PY = "/workspace/venv/bin/python"
@@ -70,6 +71,22 @@ def stop(name, p):
     p.wait()
 
 
+class Adopted:
+    """a launcher started by an earlier instance of this scheduler (restart without touching the running stage): liveness by its PGID,
+    outcome from its log section after the last launch marker (LAUNCH_DONE => 0)."""
+    def __init__(self, pgid, logfile): self.pid = pgid; self.logfile = logfile; self.returncode = None
+
+    def poll(self):
+        if self.returncode is None and not alive(self.pid):
+            last = open(self.logfile, errors="replace").read().rsplit("=== ", 1)[-1]
+            self.returncode = 0 if re.search(r"^LAUNCH_DONE", last, re.M) else 1
+        return self.returncode
+
+    def wait(self):
+        while self.poll() is None: time.sleep(1)
+        return self.returncode
+
+
 def has(path, pat):
     try: return re.search(pat, open(path, errors="replace").read(), re.M) is not None
     except FileNotFoundError: return False
@@ -85,17 +102,21 @@ def main():
     log(ev="start", pid=os.getpid(), pgid=os.getpgid(0), cap_GiB=round(CAP, 2), rule="free unreclaimable >= 20 GiB at projected peak; own peak ~30 GB")
     A0LOG, V4LOG, E1LOG, E2LOG = f"{LG}/launch_A0_main.log", f"{LG}/launch_V4_main.log", f"{LG}/launch_A0_ext_P1.log", f"{LG}/launch_A0_ext_P23.log"
     # s0: A0 P2,P3 with 13 workers (the 9-worker run PGID 1293032 is this scheduler's predecessor, recorded in the A0 log)
-    st = {"a0_w": 13, "v4_w": 9}
-    old = 1293032
-    if alive(old):
+    st = {"a0_w": 13, "v4_w": int(os.environ.get("V4_WORKERS", "9"))}
+    old = 1293032; adopt = int(os.environ.get("ADOPT_A0_PGID", "0"))
+    if adopt:   # restart of the scheduler: the A0 run it launched keeps running untouched
+        assert alive(adopt), adopt
+        a0 = Adopted(adopt, A0LOG); log(ev="adopt", name="A0_main P2,P3 13w", pgid=adopt, v4_workers=st["v4_w"])
+    elif alive(old):
         log(ev="stop", name="A0_main P2 (9 workers)", pgid=old); os.killpg(old, signal.SIGTERM)
         for _ in range(60):
             if not alive(old): break
             time.sleep(1)
-    for w in range(12):   # sandboxes of the earlier (untagged) P2 code, all of them this task's
-        subprocess.run(["rm", "-rf", f"/dev/shm/object_b_p2/w{w}"])
-    if not check("A0_main P2 13 workers", PARENT_GB + st["a0_w"] * W_GB): st["a0_w"] = 9
-    a0 = launch(f"A0_main P2,P3 {st['a0_w']}w", ["b_launch.py", "--tag", "A0_main", *AX, "--workers", str(st["a0_w"]), "--stages", "P2,P3"], {}, A0LOG)
+    if not adopt:
+        for w in range(12):   # sandboxes of the earlier (untagged) P2 code, all of them this task's
+            subprocess.run(["rm", "-rf", f"/dev/shm/object_b_p2/w{w}"])
+        if not check("A0_main P2 13 workers", PARENT_GB + st["a0_w"] * W_GB): st["a0_w"] = 9
+        a0 = launch(f"A0_main P2,P3 {st['a0_w']}w", ["b_launch.py", "--tag", "A0_main", *AX, "--workers", str(st["a0_w"]), "--stages", "P2,P3"], {}, A0LOG)
     v4 = e1 = e2 = None; done = set()
     while True:
         time.sleep(60)
