@@ -1,0 +1,221 @@
+{
+ "device": "bt_objb_adapter_test.py",
+ "self_sha256": "1f1d2d534d2a35790fd0a3ebd56a364a2995961eac1333352f7fce350136b5ef",
+ "adapter_sha256": "05cc5dc25df99459d93b34c9b10477f08002dd301b9b45ec6aa47bd77fc95373",
+ "driver_lib_sha256": "b17c1272f3b898292008165757541e7fcb3b0f27c5166bb3600916ae06b0f2fa",
+ "python": "3.11.10",
+ "numpy": "2.4.6",
+ "argv": [
+  "bt_objb_adapter_test.py",
+  "PATH,HOME,LC_CTYPE",
+  "/workspace/baseline_tables_2026-09-19/RUN_CONFIG_bt_2026-09-19.json",
+  "/workspace/baseline_tables_2026-09-19/work/objb_fixture",
+  "/workspace/baseline_tables_2026-09-19/receipts/BT_OBJB_ADAPTER_TEST.json"
+ ],
+ "config_sha256": "355641c4cfe9426f1586e7f3fc0ee77021b7a466aeda1d03c9d8d86bb3b514b4",
+ "fixture_dir": "/workspace/baseline_tables_2026-09-19/work/objb_fixture",
+ "fixture_source": "stream R S2 books via p2_s2_lib.books; no object-B output read",
+ "results": [
+  {
+   "check": "F0.pins",
+   "ok": true,
+   "detail": []
+  },
+  {
+   "check": "F0.fixture_loads_three_readings_and_all_kinds",
+   "ok": false,
+   "detail": {
+    "n": 186,
+    "scaled_kinds": [
+     114,
+     0,
+     72
+    ],
+    "lit_kinds": [
+     0,
+     186,
+     0
+    ]
+   }
+  },
+  {
+   "check": "F1.window_exercises_kinds",
+   "ok": true,
+   "detail": {
+    "window_anchors": 72,
+    "combo": 24,
+    "king": 0,
+    "hold": 48,
+    "written_rows_without_weights": 0
+   }
+  },
+  {
+   "check": "F1.scaled.seed0.objb_path_equals_S2_path_bitwise",
+   "ok": true,
+   "detail": {
+    "diff": [],
+    "tstats": {
+     "written": 24,
+     "no_fresh_target": 48
+    }
+   }
+  },
+  {
+   "check": "F1.scaled.seed1.objb_path_equals_S2_path_bitwise",
+   "ok": true,
+   "detail": {
+    "diff": [],
+    "tstats": {
+     "written": 24,
+     "no_fresh_target": 48
+    }
+   }
+  },
+  {
+   "check": "[mutation red] F1.kind0_read_as_written_file_breaks_equivalence",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "[mutation red] F1.one_weight_changed_breaks_equivalence",
+   "ok": false,
+   "detail": null
+  },
+  {
+   "check": "F2.window_exercises_kinds",
+   "ok": false,
+   "detail": {
+    "window_anchors": 72,
+    "combo": 0,
+    "king": 72,
+    "hold": 0,
+    "written_rows_without_weights": 0
+   }
+  },
+  {
+   "check": "F2.lit.seed0.objb_path_equals_S2_path_bitwise",
+   "ok": true,
+   "detail": {
+    "diff": [],
+    "tstats": {
+     "written": 72
+    }
+   }
+  },
+  {
+   "check": "F2.lit.seed1.objb_path_equals_S2_path_bitwise",
+   "ok": true,
+   "detail": {
+    "diff": [],
+    "tstats": {
+     "written": 72
+    }
+   }
+  },
+  {
+   "check": "F2.king_rows_written_as_target_files",
+   "ok": true,
+   "detail": {
+    "written": 72,
+    "kind>0": 72
+   }
+  },
+  {
+   "check": "F3.scaled.two_sources_equal_one",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "F3.lit.two_sources_equal_one",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "F4.universe_rows_equal_S2_PIT",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "[mutation red] format.npz_sha_mismatch_vs_pin",
+   "ok": true,
+   "detail": "npz_sha_mismatch_vs_pin {\"got\": \"efede9733df7a3cf\", \"want\": \"0000000000000000\"}"
+  },
+  {
+   "check": "[mutation red] format.receipt_sha_mismatch_vs_pin",
+   "ok": true,
+   "detail": "receipt_sha_mismatch_vs_pin {\"got\": \"a01cc63fd3143fd3\", \"want\": \"0000000000000000\"}"
+  },
+  {
+   "check": "[mutation red] format.csr_offsets",
+   "ok": true,
+   "detail": "csr_offsets {\"len_off\": 187, \"n\": 186, \"off0\": 0, \"last\": 21103, \"n_idx\": 21103, \"n_val\": 21103}"
+  },
+  {
+   "check": "[mutation red] format.idx_out_of_range",
+   "ok": true,
+   "detail": "idx_out_of_range {\"lo\": 3, \"hi\": 829, \"n_sym\": 829}"
+  },
+  {
+   "check": "[mutation red] format.duplicate_column_in_row",
+   "ok": true,
+   "detail": "duplicate_column_in_row {\"anchor\": 1734652800}"
+  },
+  {
+   "check": "[mutation red] format.non_finite_weight",
+   "ok": true,
+   "detail": "non_finite_weight {\"n\": 1}"
+  },
+  {
+   "check": "[mutation red] format.kind_out_of_range",
+   "ok": true,
+   "detail": "kind_out_of_range {\"values\": [3]}"
+  },
+  {
+   "check": "[mutation red] format.hold_row_with_weights",
+   "ok": false,
+   "detail": "kind_out_of_range {\"values\": [3]}"
+  },
+  {
+   "check": "[mutation red] format.axis_not_contiguous_4h",
+   "ok": true,
+   "detail": "axis_not_contiguous_4h {\"n_gaps\": 1}"
+  },
+  {
+   "check": "[mutation red] format.sources_not_contiguous_or_overlapping",
+   "ok": true,
+   "detail": "sources_not_contiguous_or_overlapping {\"end\": 1737316800, \"next_start\": 1735992000}"
+  },
+  {
+   "check": "[mutation red] format.window_anchor_not_in_targets_axis",
+   "ok": true,
+   "detail": "window_anchor_not_in_targets_axis {\"n_missing\": 93, \"first_missing\": 1735992000}"
+  },
+  {
+   "check": "[mutation red] format.unknown_reading",
+   "ok": true,
+   "detail": "unknown_reading {\"reading\": \"combo\"}"
+  },
+  {
+   "check": "[mutation red] format.arm_mismatch",
+   "ok": true,
+   "detail": "arm_mismatch {\"receipt\": \"A0\", \"want\": \"V4\"}"
+  },
+  {
+   "check": "[mutation red] format.missing_keys",
+   "ok": true,
+   "detail": "missing_keys {\"missing\": [\"scaled_off\"]}"
+  },
+  {
+   "check": "[mutation red] format.universe_sha_mismatch",
+   "ok": true,
+   "detail": "universe_sha_mismatch {\"got\": \"6322b57366078ed0\", \"want\": \"0000000000000000\"}"
+  },
+  {
+   "check": "[mutation red] format.npz_sha_mismatch_vs_receipt",
+   "ok": true,
+   "detail": "npz_sha_mismatch_vs_receipt {\"receipt\": \"ffffffffffffffff\", \"got\": \"efede9733df7a3cf\"}"
+  }
+ ],
+ "verdict": "BT_OBJB_ADAPTER_TEST VERDICT: FAIL 26/30 checks; failed: ['F0.fixture_loads_three_readings_and_all_kinds', '[mutation red] F1.one_weight_changed_breaks_equivalence', 'F2.window_exercises_kinds', '[mutation red] format.hold_row_with_weights']",
+ "runtime_s": 26.5
+}

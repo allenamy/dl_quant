@@ -1,0 +1,213 @@
+{
+ "device": "bt_funding_overlap.py",
+ "self_sha256": "184670af1d38b3fc3102ef99f247eb03b6d1264d282bf1a7cda0737bfb0d98e8",
+ "argv": [
+  "bt_funding_overlap.py",
+  "PATH,HOME,LC_CTYPE",
+  "/workspace/baseline_tables_2026-09-19/funding"
+ ],
+ "numpy": "2.4.6",
+ "python": "3.11.10",
+ "utc_start": "2026-09-19T12:21:25Z",
+ "inputs": {
+  "p2_ledger": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+   "sha256": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
+  },
+  "stream_d_ledger": {
+   "path": "/workspace/axis_0919/funding/funding_ledger.npz",
+   "sha256": "74b69e635efbf3556fe706520fda9d5a1b5cda86dda9d04a844ba5d617a3a09d"
+  }
+ },
+ "checks": [
+  {
+   "check": "input_sha.p2_ledger",
+   "ok": true,
+   "gate": true,
+   "detail": null
+  },
+  {
+   "check": "input_sha.stream_d_ledger",
+   "ok": true,
+   "gate": true,
+   "detail": null
+  },
+  {
+   "check": "symbols.same_829_axis",
+   "ok": true,
+   "gate": true,
+   "detail": null
+  },
+  {
+   "check": "ts_is_floor_of_ts_ms",
+   "ok": true,
+   "gate": true,
+   "detail": null
+  },
+  {
+   "check": "O1.settlement_keys_identical",
+   "ok": true,
+   "gate": true,
+   "detail": {
+    "p2": 37511,
+    "stream_d": 37511,
+    "common": 37511,
+    "only_p2": 0,
+    "only_stream_d": 0,
+    "dup_p2": 0,
+    "dup_stream_d": 0,
+    "only_p2_by_symbol": {},
+    "only_stream_d_by_symbol": {},
+    "only_p2_first": [],
+    "only_stream_d_first": []
+   }
+  },
+  {
+   "check": "O2.rates_bitwise_equal",
+   "ok": true,
+   "gate": true,
+   "detail": {
+    "compared": 37511,
+    "differ": 0,
+    "max_abs": 0.0,
+    "first": []
+   }
+  },
+  {
+   "check": "O3.intervals_vs_P2_archive_column",
+   "ok": true,
+   "gate": false,
+   "detail": {
+    "compared": 0,
+    "differ": 0,
+    "first": []
+   }
+  },
+  {
+   "check": "O3.intervals_vs_P2_gap_to_previous_settlement",
+   "ok": false,
+   "gate": false,
+   "detail": {
+    "compared": 37511,
+    "differ": 17,
+    "by_stream_d_iv_source": {
+     "default8": 8,
+     "gap": 9
+    },
+    "first": [
+     [
+      "EBAYUSDT",
+      "2026-08-28T00:00:01Z",
+      0.0002777777777777778,
+      8.0,
+      "default8"
+     ],
+     [
+      "EBAYUSDT",
+      "2026-08-28T08:00:00Z",
+      7.999722222222222,
+      8.0,
+      "gap"
+     ],
+     [
+      "GLWUSDT",
+      "2026-08-31T00:00:01Z",
+      0.0002777777777777778,
+      8.0,
+      "default8"
+     ],
+     [
+      "GLWUSDT",
+      "2026-08-31T01:00:00Z",
+      0.9997222222222222,
+      1.0,
+      "gap"
+     ],
+     [
+      "GSUSDT",
+      "2026-09-01T00:00:01Z",
+      0.0002777777777777778,
+      8.0,
+      "default8"
+     ],
+     [
+      "HYUNDAIUSDT",
+      "2026-08-27T19:00:00Z",
+      3.0,
+      2.0,
+      "gap"
+     ],
+     [
+      "HYUNDAIUSDT",
+      "2026-08-27T23:00:01Z",
+      0.0002777777777777778,
+      8.0,
+      "default8"
+     ],
+     [
+      "HYUNDAIUSDT",
+      "2026-08-28T00:00:00Z",
+      0.9997222222222222,
+      1.0,
+      "gap"
+     ],
+     [
+      "ONGUSDT",
+      "2026-08-25T08:00:00Z",
+      3.0,
+      2.0,
+      "gap"
+     ],
+     [
+      "SKHYNIXUSDT",
+      "2026-08-27T19:00:00Z",
+      3.0,
+      2.0,
+      "gap"
+     ],
+     [
+      "SKHYNIXUSDT",
+      "2026-08-27T23:00:01Z",
+      0.0002777777777777778,
+      8.0,
+      "default8"
+     ],
+     [
+      "SKHYNIXUSDT",
+      "2026-08-28T00:00:00Z",
+      0.9997222222222222,
+      1.0,
+      "gap"
+     ]
+    ]
+   }
+  },
+  {
+   "check": "splice.p2_part_bitwise_equal_to_p2_up_to_cut",
+   "ok": true,
+   "gate": true,
+   "detail": null
+  }
+ ],
+ "overlap": {
+  "start": "2026-08-21T00:00:00Z",
+  "end": "2026-09-01T02:00:00Z",
+  "rule": "settlement time in [stream D window start, P2 last settlement]"
+ },
+ "after_last_trade_in_overlap": {
+  "stream_d_rows": 304,
+  "of_which_in_p2": 304
+ },
+ "proof": "EXACT (settlements, rates); intervals differ as listed (not read by the simulator)",
+ "splice": {
+  "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+  "sha256": "073088e503c026d6071c76764426503616d53570e5f3763807df27ea7cc80362",
+  "cut": "2026-09-01T02:00:00Z",
+  "rows_from_p2": 2633090,
+  "rows_from_stream_d": 60576,
+  "last_settlement": "2026-09-19T00:00:00Z",
+  "rule": "P2 rows with time <= CUT, stream D rows with time > CUT; src 4 = stream D"
+ },
+ "VERDICT": "PASS",
+ "runtime_s": 67.6
+}

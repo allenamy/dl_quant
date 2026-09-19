@@ -40,3 +40,16 @@ env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt
 # (Mac) /usr/bin/python3 devices/bt_recon_render.py receipts/pod2/receipts/BT_RECON_steps12_P2CMB.json receipts/pod2/receipts/BT_RUN_SUMMARY.json receipts/RECON_TABLES_rendered.md
 # table-device self-test (Mac): /usr/bin/python3 multi_asset/exports/research/baseline_tables_2026-09-19/devices/bt_tables_selftest.py multi_asset/exports/research/replay_r_2026-09-19/receipts
 # table-device self-test (pod2): bt_tables_selftest.py $R/work/rtab  (rtab = symlinks to stream R's R_TABLES.json and the two SIM_*_CMB_rule.npz)
+# ---- after AMENDMENT 1 (f6a2a909e): adapter for object-B targets (fixtures only), extended prices, funding splice; run from $R/devices_v3 ----
+cd $R/devices_v3
+# 9. adapter test on fixtures built from the S2 books (try1 receipt kept: three test-code errors), then again on driver-lib v3b
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_objb_adapter_test.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_bt_2026-09-19.json $R/work/objb_fixture $R/receipts/BT_OBJB_ADAPTER_TEST.json > $R/logs/bt_objb_adapter_test.log 2>&1
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_battery.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_bt_2026-09-19.json $R/runs_smoke/battery_d7/S2_A0pred_s42_CMB_rule_raw_UAFE $R/receipts/BT_BATTERY_v3_smoke.json > $R/logs/bt_battery_v3_smoke.log 2>&1
+# 10. funding: overlap proof P2 ledger vs stream D ledger, then the explicit splice (P2 <= 2026-09-01T02:00Z, stream D after)
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_funding_overlap.py PATH,HOME,LC_CTYPE $R/funding > $R/logs/bt_funding_overlap.log 2>&1
+# 11. extended restored prices (1a1e221b4) on the full 5-minute grid to 2026-09-19T00:00Z
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_prices_full_x0918r.py PATH,HOME,LC_CTYPE > $R/logs/bt_prices_full_x0918r.log 2>&1
+# 12. driver-lib v3b: adapter test + battery again
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_objb_adapter_test.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_bt_2026-09-19.json $R/work/objb_fixture $R/receipts/BT_OBJB_ADAPTER_TEST_v3b.json > $R/logs/bt_objb_adapter_test_v3b.log 2>&1
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_battery.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_bt_2026-09-19.json $R/runs_smoke/battery_d7/S2_A0pred_s42_CMB_rule_raw_UAFE $R/receipts/BT_BATTERY_v3b_smoke.json > $R/logs/bt_battery_v3b_smoke.log 2>&1
+# main tables: RUN_CONFIG_main_TEMPLATE_2026-09-19.json is refused by the driver until the lead's go fills the PENDING fields (object-B A0 / v4 targets, full-recipe start)

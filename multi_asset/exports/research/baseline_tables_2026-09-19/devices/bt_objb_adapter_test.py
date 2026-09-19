@@ -4,7 +4,10 @@ FIXTURES ONLY. No object-B output is read: the fixture TARGETS files are written
 from stream R's S2 books (p2_s2_lib.books — the same books the P2-CMB runs use), so the adapter path and the S2 path must give identical paths.
 Every baseline must be green and every mutation red; exit 0 only then.
 
-  F0  fixture layout: the three readings, kind 2 / 1 / 0 all present in the tested windows, receipt with the npz sha; the adapter loads it
+  F0  fixture layout: the three readings, kinds 2 / 0 (scaled) and 1 (lit) present in the tested window, receipt with the npz sha; loads
+      (try1 of this test, receipt BT_OBJB_ADAPTER_TEST_try1.json, had three test-code errors: the fixture writer aliased the shared kind array,
+      so the kind-3 mutation leaked into the next case; the weight mutation hit a row before the window; F0 / F2 expected hold and combo rows
+      in the S2 LIT book, which is king-form at every anchor of this span)
   F1  EQUIVALENCE (reading 'scaled' ← S2 CMB): the driver with run["targets"]["source"] = "objb" (production load_context → make_sim) gives
       bitwise the same path arrays as the S2-sourced run, 2 seeds, a window crossing the 2025-01 HOLD month (hold semantics exercised)
   F2  EQUIVALENCE (reading 'lit' ← S2 LIT, king-form rows = kind 1): the same, and the king rows are written as target files
@@ -98,9 +101,9 @@ kind_l = np.where(sk, 0, np.where(hs & np.all(lit == cmb, axis=1), 2, 1)).astype
 
 
 def write_fixture(name, A, parts, arm="A0", data="holefix2", tamper=None):
-    arrs = {"anchor": A}
+    arrs = {"anchor": np.array(A, np.int64, copy=True)}
     for R_, (kind, rows) in parts.items():
-        off, idx, val = csr(rows, kind); arrs[f"{R_}_kind"] = kind; arrs[f"{R_}_off"] = off; arrs[f"{R_}_idx"] = idx; arrs[f"{R_}_val"] = val
+        off, idx, val = csr(rows, kind); arrs[f"{R_}_kind"] = np.array(kind, np.int8, copy=True); arrs[f"{R_}_off"] = off; arrs[f"{R_}_idx"] = idx; arrs[f"{R_}_val"] = val
     if tamper: tamper(arrs)
     npz = f"{FX}/TARGETS_{name}.npz"; np.savez_compressed(npz, **arrs)
     rec = {"tag": name, "fixture": "built from stream R S2 books (p2_s2_lib.books), NOT an object-B output", "arm": arm, "data": data,
@@ -112,7 +115,8 @@ def write_fixture(name, A, parts, arm="A0", data="holefix2", tamper=None):
 PARTS = {"scaled": (kind_s, cmb), "lit": (kind_l, lit), "scaled_l333_only": (kind_s, cmb)}
 SRC = write_fixture("FIX_full", FA, PARTS)
 T = OT.load_targets([SRC], "scaled")
-ok("F0.fixture_loads_three_readings_and_all_kinds", len(T["anchor"]) == len(FA) and set(np.unique(kind_l).tolist()) == {0, 1, 2} and set(np.unique(kind_s).tolist()) == {0, 2},
+# in this span the S2 LIT book is king-form at every anchor (S2 D11), so combo and hold are exercised by 'scaled', king by 'lit'
+ok("F0.fixture_loads_three_readings_and_all_kinds_across_readings", len(T["anchor"]) == len(FA) and set(np.unique(kind_s).tolist()) == {0, 2} and 1 in set(np.unique(kind_l).tolist()),
    {"n": len(FA), "scaled_kinds": np.bincount(kind_s, minlength=3).tolist(), "lit_kinds": np.bincount(kind_l, minlength=3).tolist()})
 
 
@@ -132,7 +136,7 @@ for reading, R_s2, label in (("scaled", R_CMB, "F1"), ("lit", R_LIT, "F2")):
     R_ob = objb_run(R_s2, reading, [SRC])
     C_ob = ctx(SEL, [R_ob])
     Wk, frk, kk, cnt = OT.book_for_window(OT.load_targets([SRC], reading), C_ob.anchors)
-    ok(f"{label}.window_exercises_kinds", cnt["hold"] > 0 and (cnt["king"] > 0 if reading == "lit" else cnt["combo"] > 0), cnt)
+    ok(f"{label}.window_exercises_kinds", (cnt["king"] > 0) if reading == "lit" else (cnt["hold"] > 0 and cnt["combo"] > 0), cnt)
     for sd in (0, 1):
         a_s2, o_s2, S_s2 = DL.run_one(C_s2, R_s2, sd); a_ob, o_ob, S_ob = DL.run_one(C_ob, R_ob, sd)
         eq, diff = arrays_equal(a_s2, a_ob)
@@ -147,8 +151,9 @@ for reading, R_s2, label in (("scaled", R_CMB, "F1"), ("lit", R_LIT, "F2")):
         C_bad.BOOKS[(R_ob["arm"], R_ob["book"])] = (W_hold, fr_all)
         a_bad, _, _ = DL.run_one(C_bad, R_ob, 0)
         mut("F1.kind0_read_as_written_file_breaks_equivalence", not arrays_equal(a_s2 if False else DL.run_one(C_s2, R_s2, 0)[0], a_bad)[0])
-        def tw(arrs):
-            k = int(np.nonzero(arrs["scaled_kind"] == 2)[0][len(np.nonzero(arrs["scaled_kind"] == 2)[0]) // 2]); a = arrs["scaled_off"][k]; arrs["scaled_val"][a] *= 1.5
+        k_in = int(np.nonzero(kind_s == 2)[0][np.searchsorted(FA[kind_s == 2], int(C_s2.anchors[0]))])   # the first written row INSIDE the window
+        def tw(arrs, k_in=k_in):
+            a = arrs["scaled_off"][k_in]; arrs["scaled_val"][a] *= 1.5
         SRC_w = write_fixture("FIX_weight_changed", FA, PARTS, tamper=tw)
         C_w = ctx(SEL, [objb_run(R_s2, "scaled", [SRC_w], "_w")])
         a_w, _, _ = DL.run_one(C_w, objb_run(R_s2, "scaled", [SRC_w], "_w"), 0)

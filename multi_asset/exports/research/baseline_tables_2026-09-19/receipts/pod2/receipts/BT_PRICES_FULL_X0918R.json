@@ -1,0 +1,275 @@
+{
+ "device": "bt_prices_full_x0918r.py",
+ "self_sha256": "3c18db59c49243da8813e43bfdb053972d1ff4514e097730eee487170b508a28",
+ "argv": [
+  "bt_prices_full_x0918r.py",
+  "PATH,HOME,LC_CTYPE"
+ ],
+ "env": {
+  "PATH": "/usr/bin:/bin",
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "MKL_NUM_THREADS": "1"
+ },
+ "numpy": "2.4.6",
+ "python": "3.11.10",
+ "utc_start": "2026-09-19T12:24:28Z",
+ "inputs": {
+  "cache_x0918r": {
+   "path": "/workspace/axis_0919/x0918r/data/dlnative_5m_wide829_f16_holefix2_x0918r.npz",
+   "sha256": "08bb295745e6df84cb42574ef073dc54817a19ad7754bf6319cfcb30bd9baa75"
+  },
+  "base_patch": {
+   "path": "/workspace/raw_price_fix_2026-09-19/r_prices_raw_patch.npz",
+   "sha256": "984c28923838501758fe52d1ea7d0cd92fc7fc26c4869058b112bb43670343b2"
+  },
+  "ext_patch": {
+   "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/r_prices_raw_patch_x0918r_ext.npz",
+   "sha256": "01d234c7e8e28ea986ec9be6b322ee1ec64b98bb3e76aaf0e547587ee3cd93d2"
+  },
+  "rp_lib": {
+   "path": "/workspace/raw_price_fix_2026-09-19/devices/rp_lib.py",
+   "sha256": "f802036f1a2e9e9f13f7347c49ecda68b54a38b9b2c6f3167f6ba40295c61488"
+  },
+  "ext_device": {
+   "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/devices/r_prices_raw_x0918r.py",
+   "sha256": "217425a1be249d01d209d15af5864bd54271b83843c6dd4d41440b11c2af6d5e"
+  },
+  "ext_lp": {
+   "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/work/price_logtable_raw_x0918r.npy",
+   "sha256": "9249b0da4a4c578900cbafd29e1cec28de57f4437f037f1280040b2a84196608"
+  },
+  "ext_meta": {
+   "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/work/price_meta_raw_x0918r.npz",
+   "sha256": "da136830cee7e1a219e56e69ce9d50de2eead6864df7d205cdb7559151162df3"
+  },
+  "ledger_p2": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+   "sha256": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
+  },
+  "ledger_axis": {
+   "path": "/workspace/axis_0919/funding/funding_ledger.npz",
+   "sha256": "74b69e635efbf3556fe706520fda9d5a1b5cda86dda9d04a844ba5d617a3a09d"
+  },
+  "my_full_raw": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw.npy",
+   "sha256": "b935ea28e386ba3c82145fe4527ebce2258c0a29208109dc4a07d1b6d13b6cac"
+  },
+  "my_full_meta": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_meta.npz",
+   "sha256": "f2f5382889f8c926ab2b47a81def234b1d5b7ee9cc15a86cdcfaba69416ff7b4"
+  }
+ },
+ "checks": [
+  {
+   "check": "input_sha.cache_x0918r",
+   "ok": true,
+   "detail": {
+    "expected": "08bb295745e6df84",
+    "got": "08bb295745e6df84"
+   }
+  },
+  {
+   "check": "input_sha.base_patch",
+   "ok": true,
+   "detail": {
+    "expected": "984c289238385017",
+    "got": "984c289238385017"
+   }
+  },
+  {
+   "check": "input_sha.ext_patch",
+   "ok": true,
+   "detail": {
+    "expected": "01d234c7e8e28ea9",
+    "got": "01d234c7e8e28ea9"
+   }
+  },
+  {
+   "check": "input_sha.rp_lib",
+   "ok": true,
+   "detail": {
+    "expected": "f802036f1a2e9e9f",
+    "got": "f802036f1a2e9e9f"
+   }
+  },
+  {
+   "check": "input_sha.ext_device",
+   "ok": true,
+   "detail": {
+    "expected": "217425a1be249d01",
+    "got": "217425a1be249d01"
+   }
+  },
+  {
+   "check": "input_sha.ext_lp",
+   "ok": true,
+   "detail": {
+    "expected": "9249b0da4a4c5789",
+    "got": "9249b0da4a4c5789"
+   }
+  },
+  {
+   "check": "input_sha.ext_meta",
+   "ok": true,
+   "detail": {
+    "expected": "da136830cee7e1a2",
+    "got": "da136830cee7e1a2"
+   }
+  },
+  {
+   "check": "input_sha.ledger_p2",
+   "ok": true,
+   "detail": {
+    "expected": "bea6f5752772d54e",
+    "got": "bea6f5752772d54e"
+   }
+  },
+  {
+   "check": "input_sha.ledger_axis",
+   "ok": true,
+   "detail": {
+    "expected": "74b69e635efbf355",
+    "got": "74b69e635efbf355"
+   }
+  },
+  {
+   "check": "input_sha.my_full_raw",
+   "ok": true,
+   "detail": {
+    "expected": "b935ea28e386ba3c",
+    "got": "b935ea28e386ba3c"
+   }
+  },
+  {
+   "check": "input_sha.my_full_meta",
+   "ok": true,
+   "detail": {
+    "expected": "f2f5382889f8c926",
+    "got": "f2f5382889f8c926"
+   }
+  },
+  {
+   "check": "cache.symbols_axis",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "cache.ret5_channel0_strict_5m",
+   "ok": true,
+   "detail": {
+    "first": "2022-01-01T00:00Z",
+    "last": "2026-09-19T00:00Z"
+   }
+  },
+  {
+   "check": "cache.data_header",
+   "ok": true,
+   "detail": {
+    "shape": [
+     495937,
+     829,
+     7
+    ]
+   }
+  },
+  {
+   "check": "G1.sample_set_equals_pinned_meta_bounds",
+   "ok": true,
+   "detail": {
+    "n": 64769
+   }
+  },
+  {
+   "check": "patch.symbols",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "patch.no_unavailable_bound_bar_in_range",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "G5.unavailable_count_3084_ext_adds_none",
+   "ok": true,
+   "detail": {
+    "n": 3084
+   }
+  },
+  {
+   "check": "G5.unavailable_are_nan_cache_bars",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "G3.old_grid_is_a_prefix",
+   "ok": true,
+   "detail": {
+    "old_rows": 438721,
+    "new_rows": 444145
+   }
+  },
+  {
+   "check": "G2.full_grid_equals_pinned_extended_table_at_every_sample_bitwise",
+   "ok": true,
+   "detail": {
+    "cells": 53693501,
+    "mismatch": 0
+   }
+  },
+  {
+   "check": "G3.full_grid_equals_my_old_full_raw_grid_on_the_old_span_bitwise",
+   "ok": true,
+   "detail": {
+    "cells": 363699709,
+    "mismatch": 0
+   }
+  },
+  {
+   "check": "G4.cref_first_fin_ref_equal_pinned_meta",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "patch.applied_952_plus_ext",
+   "ok": true,
+   "detail": {
+    "applied": 959
+   }
+  },
+  {
+   "check": "grid.finite",
+   "ok": true,
+   "detail": null
+  }
+ ],
+ "grid": {
+  "H0": "2022-06-29T20:00Z",
+  "end": "2026-09-19T00:00Z",
+  "n_rows": 444145
+ },
+ "unavailable": {
+  "n_on_grid": 3084,
+  "n_gapfilled_on_grid": 21313
+ },
+ "outputs": {
+  "raw": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r.npy",
+   "sha256": "23af32bd97c267d126c2109641815b92082b8688e35bcfbaaa1e88c2dc5bb5d8"
+  },
+  "meta": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r_meta.npz",
+   "sha256": "d1e49cc9f0a7ddc4104feb52a42da3024ba1e66ad5891a26c96f00cff7ce5d90"
+  },
+  "shape": [
+   444145,
+   829
+  ]
+ },
+ "VERDICT": "PASS",
+ "failed": [],
+ "runtime_s": 56.3
+}

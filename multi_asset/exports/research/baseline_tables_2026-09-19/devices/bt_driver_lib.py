@@ -7,6 +7,8 @@ the magnitude, s' = s + 0.5·|s| (positive = against the book, exec_sim's conven
 (every fill probability × 0.9, removed mass → unfilled, fbar unchanged); (ii) target source per run: `run["targets"]["source"] == "objb"`
 reads object-B TARGETS files through bt_objb_targets.py (universe rows from the pinned universe npz); runs without `targets` use the S2 books
 exactly as before; (iii) a config whose status starts with TEMPLATE, or that holds the value "PENDING" anywhere, is refused.
+v3b: the price-receipt check covers whichever price_full_{old,raw} pins the config has (the extended x0918r grid has only raw); the UNAVAILABLE-set
+count check covers only the sets the runs use.
 """
 import os, sys, json, time, hashlib, importlib.util, collections, calendar, shutil
 
@@ -50,8 +52,9 @@ def verify_pins(CFG, check):
     for k, v in CFG["pins"].items():
         got = sha(v["path"]); check(f"pin.{k}", got == v["sha256"], dict(path=v["path"], got=got[:16], want=v["sha256"][:16]))
     PRR = json.load(open(CFG["pins"]["price_receipt"]["path"]))
-    check("price_receipt.PASS_and_outputs", PRR.get("VERDICT") == "PASS" and PRR["outputs"]["old"]["sha256"] == CFG["pins"]["price_full_old"]["sha256"]
-          and PRR["outputs"]["raw"]["sha256"] == CFG["pins"]["price_full_raw"]["sha256"] and PRR["outputs"]["meta"]["sha256"] == CFG["pins"]["price_full_meta"]["sha256"])
+    kinds = [k for k in ("old", "raw") if f"price_full_{k}" in CFG["pins"]]
+    check("price_receipt.PASS_and_outputs", PRR.get("VERDICT") == "PASS" and bool(kinds) and all(PRR["outputs"][k]["sha256"] == CFG["pins"][f"price_full_{k}"]["sha256"] for k in kinds)
+          and PRR["outputs"]["meta"]["sha256"] == CFG["pins"]["price_full_meta"]["sha256"], {"price_kinds": kinds})
     MIR = CFG["paths"]["exec_mirror"]; man = json.load(open(CFG["pins"]["input_manifest"]["path"]))
     bad = [rel for rel, s in man["executor_tree"]["files_sha256"].items() if sha(os.path.join(MIR, rel)) != s]
     bad += [rel for rel in ("state/exchange_info_cache.json",) if sha(os.path.join(MIR, rel)) != man["files"][rel]["sha256"]]
@@ -94,8 +97,9 @@ def load_context(CFG, ES, BH, L2, anchors_sel, runs, check, log, prices=None):
     check("prices.grid_covers_window", c.GRID0 <= int(c.anchors[0]) and c.GRID0 + 300 * (c.NG - 1) >= int(c.anchors[-1]) + 14400, dict(grid0=c.GRID0, n=c.NG))
     c.UA_SETS = {"UNAVAILABLE_3084": BH.UAIndex(c.GRID0, c.NG, PM["unavail_grid_row"], PM["unavail_col"], len(SY)),
                  "OLD_ZERO_PRICED_INLIFE_NAN": BH.UAIndex(c.GRID0, c.NG, PM["inlife_nan_grid_row"], PM["inlife_nan_col"], len(SY))}
-    check("ua_sets.counts", len(c.UA_SETS["UNAVAILABLE_3084"].cells) == 3084 and len(c.UA_SETS["OLD_ZERO_PRICED_INLIFE_NAN"].cells) == 24397,
-          {k: len(v.cells) for k, v in c.UA_SETS.items()})
+    want_n = {"UNAVAILABLE_3084": 3084, "OLD_ZERO_PRICED_INLIFE_NAN": 24397}
+    used = sorted({r["ua_set"] for r in runs})
+    check("ua_sets.counts_of_the_sets_the_runs_use", all(len(c.UA_SETS[u].cells) == want_n[u] for u in used), {u: len(c.UA_SETS[u].cells) for u in used})
     c.PANELS = {}
     for pr in sorted({r["price"] for r in runs}):
         if prices and pr in prices:

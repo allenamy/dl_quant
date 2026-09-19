@@ -1,0 +1,31 @@
+[     6s] PASS F0.pins []
+[     7s] PASS F0.fixture_loads_three_readings_and_all_kinds_across_readings {"n": 186, "scaled_kinds": [114, 0, 72], "lit_kinds": [0, 186, 0]}
+[     8s] PASS F1.window_exercises_kinds {"window_anchors": 72, "combo": 24, "king": 0, "hold": 48, "written_rows_without_weights": 0}
+[     9s] PASS F1.scaled.seed0.objb_path_equals_S2_path_bitwise {"diff": [], "tstats": {"written": 24, "no_fresh_target": 48}}
+[    10s] PASS F1.scaled.seed1.objb_path_equals_S2_path_bitwise {"diff": [], "tstats": {"written": 24, "no_fresh_target": 48}}
+[    12s] PASS [mutation red] F1.kind0_read_as_written_file_breaks_equivalence 
+[    13s] PASS [mutation red] F1.one_weight_changed_breaks_equivalence 
+[    13s] PASS F2.window_exercises_kinds {"window_anchors": 72, "combo": 0, "king": 72, "hold": 0, "written_rows_without_weights": 0}
+[    15s] PASS F2.lit.seed0.objb_path_equals_S2_path_bitwise {"diff": [], "tstats": {"written": 72}}
+[    17s] PASS F2.lit.seed1.objb_path_equals_S2_path_bitwise {"diff": [], "tstats": {"written": 72}}
+[    17s] PASS F2.king_rows_written_as_target_files {"written": 72, "kind>0": 72}
+[    17s] PASS F3.scaled.two_sources_equal_one 
+[    17s] PASS F3.lit.two_sources_equal_one 
+[    17s] PASS F4.universe_rows_equal_S2_PIT 
+[    17s] PASS [mutation red] format.npz_sha_mismatch_vs_pin "npz_sha_mismatch_vs_pin {\"got\": \"efede9733df7a3cf\", \"want\": \"0000000000000000\"}"
+[    17s] PASS [mutation red] format.receipt_sha_mismatch_vs_pin "receipt_sha_mismatch_vs_pin {\"got\": \"a01cc63fd3143fd3\", \"want\": \"0000000000000000\"}"
+[    18s] PASS [mutation red] format.csr_offsets "csr_offsets {\"len_off\": 187, \"n\": 186, \"off0\": 0, \"last\": 21103, \"n_idx\": 21103, \"n_val\": 21103}"
+[    18s] PASS [mutation red] format.idx_out_of_range "idx_out_of_range {\"lo\": 3, \"hi\": 829, \"n_sym\": 829}"
+[    18s] PASS [mutation red] format.duplicate_column_in_row "duplicate_column_in_row {\"anchor\": 1734652800}"
+[    18s] PASS [mutation red] format.non_finite_weight "non_finite_weight {\"n\": 1}"
+[    18s] PASS [mutation red] format.kind_out_of_range "kind_out_of_range {\"values\": [3]}"
+[    18s] PASS [mutation red] format.hold_row_with_weights "hold_row_with_weights {\"n\": 1}"
+[    18s] PASS [mutation red] format.axis_not_contiguous_4h "axis_not_contiguous_4h {\"n_gaps\": 1}"
+[    18s] PASS [mutation red] format.sources_not_contiguous_or_overlapping "sources_not_contiguous_or_overlapping {\"end\": 1737316800, \"next_start\": 1735992000}"
+[    18s] PASS [mutation red] format.window_anchor_not_in_targets_axis "window_anchor_not_in_targets_axis {\"n_missing\": 93, \"first_missing\": 1735992000}"
+[    18s] PASS [mutation red] format.unknown_reading "unknown_reading {\"reading\": \"combo\"}"
+[    18s] PASS [mutation red] format.arm_mismatch "arm_mismatch {\"receipt\": \"A0\", \"want\": \"V4\"}"
+[    18s] PASS [mutation red] format.missing_keys "missing_keys {\"missing\": [\"scaled_off\"]}"
+[    19s] PASS [mutation red] format.universe_sha_mismatch "universe_sha_mismatch {\"got\": \"6322b57366078ed0\", \"want\": \"0000000000000000\"}"
+[    19s] PASS [mutation red] format.npz_sha_mismatch_vs_receipt "npz_sha_mismatch_vs_receipt {\"receipt\": \"ffffffffffffffff\", \"got\": \"efede9733df7a3cf\"}"
+BT_OBJB_ADAPTER_TEST VERDICT: ALL PASS 30/30 checks (baselines green first, every mutation red)
