@@ -24,6 +24,7 @@ R = BD.R; STAGE = BD.STAGE; OUTD = f"{R}/receipts/gate_f"; TAR_SHA = "33910c01c7
 LIVE_F10_SHA = "351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4"
 FP26_PATCH_UTC = "2026-09-17T16:00:00Z"
 COL = {s: j for j, s in enumerate(json.load(open(BD.SRC["bundle_config"][0]))["symbols_panel"])}
+COLN = {j: s for s, j in COL.items()}
 
 
 def child_maxrss_mb(): return round(resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss / 1024.0, 1)
@@ -64,7 +65,8 @@ def run_combo(root, ws, A, mode, scores=None, model_path=None):
     tl = f"{ws}/state/target_live_combo/{A}.json"
     st = json.load(open(f"{ws}/state/combo_live_status.json")) if os.path.exists(f"{ws}/state/combo_live_status.json") else None
     tc = json.load(open(f"{ws}/state/target_combo/{A}.json")) if os.path.exists(f"{ws}/state/target_combo/{A}.json") else {}
-    r = {"rc": rc, "s": dt, "status_ok": bool(st and st.get("ok")), "why": (st or {}).get("why"), "n_f10_scored": tc.get("n_f10_scored")}
+    r = {"rc": rc, "s": dt, "status_ok": bool(st and st.get("ok")), "why": (st or {}).get("why"), "n_f10_scored": tc.get("n_f10_scored"),
+         "ftrim_names_fc": sorted((tc.get("ftrim") or {}).get("names_fc", {}).keys())}
     if os.path.exists(tl):
         r["compare"] = BL.compare_targets_a2(f"{STAGE}/archive/target_live/{A}.json", tl, COL, "pipeline" if mode == "pipeline" else "inject",
                                              allow_missing_f10_sha_before=FP26_PATCH_UTC)
@@ -74,6 +76,17 @@ def run_combo(root, ws, A, mode, scores=None, model_path=None):
         r["compare"] = {"PARITY": False, "why": ["no replayed target_live_combo (combo abort)"], "max_abs_dw": None}
     r["PARITY"] = bool(r["compare"]["PARITY"] and r.get("weights_npz_sha_equal"))
     return r
+
+
+def sel_mask(snap_dir, A, pm):
+    """combo_stage L18–21 + REPLAY_TRUNCATE_CACHE + L38–42: qv4h over the last 2016 rows ending at A, sel = qv4h >= params.qv4h_min."""
+    P = json.load(open(BD.SRC["bundle_config"][0]))["params"]
+    R_ = np.load(f"{snap_dir}/rolling.npz", allow_pickle=True); rts = R_["ts"].astype(np.int64); RD = R_["data"]
+    ai = int(np.searchsorted(rts, A, side="right")) - 1; assert rts[ai] <= A < rts[ai] + 300
+    RD = RD[:ai + 1]; CDf = RD.astype(np.float32)
+    qseg = CDf[max(ai + 1 - 2016, 0):ai + 1, :, 3]; finq = np.isfinite(qseg)
+    qvm = np.where(finq, qseg, 0).sum(0) / np.maximum(finq.sum(0), 1)
+    return np.expm1(np.clip(qvm[np.asarray(pm, np.int64)], 0, 30)) * 48 >= P["qv4h_min"]
 
 
 def rebuild_producer_state(dev, cfg, snap_prev, snap_cur):
@@ -125,6 +138,20 @@ def gate_anchor(A):
     f[i_hi], f[i_lo] = f[i_lo], f[i_hi]; sw["f10"] = f
     rn = f"{root0}/nc1"; wsn = BL.make_sandbox(rn, fea_src, BD.SRC["bundle_config"][0], BD.VENV_PY, reader_src); stage_state(wsn, A, snap)
     res["NC1"] = run_combo(rn, wsn, A, "inject", scores=sw); res["NC1"]["must_differ_ok"] = not res["NC1"]["PARITY"]
+    res["NC1"]["status"] = "ORIGINAL NC1 — reported only, superseded in the verdict by AMENDMENT 3 (NC1′ + NC1r)"
+    # ── AMENDMENT 3: NC1′ and NC1r among eligible members (inside sel, not FTRIM-zeroed in the baseline fc run, finite score) ──
+    names = [COLN[int(j)] for j in sc["pm"]]; sel = sel_mask(snap, A, sc["pm"]); ftr = set(res["F1"]["ftrim_names_fc"])
+    elig = np.array([i for i in range(len(names)) if sel[i] and names[i] not in ftr and np.isfinite(sc["f10"][i])], np.int64)
+    res["NC_eligible"] = {"n_members": int(len(names)), "n_sel": int(sel.sum()), "n_ftrim_fc": len(ftr), "n_eligible": int(len(elig))}
+    def swap_run(i, j, tag):
+        f2 = sc["f10"].copy(); f2[i], f2[j] = f2[j], f2[i]
+        r_ = run_combo(rn, wsn, A, "inject", scores={"pm": sc["pm"], "f10": f2})
+        r_["swapped"] = [{"name": names[i], "f10": float(sc["f10"][i])}, {"name": names[j], "f10": float(sc["f10"][j])}]
+        r_["must_differ_ok"] = not r_["PARITY"]; r_["tag"] = tag; return r_
+    fe = sc["f10"][elig]; res["NC1p"] = swap_run(int(elig[np.argmax(fe)]), int(elig[np.argmin(fe)]), "NC1prime")
+    rng = np.random.default_rng([20260919, A]); res["NC1r"] = []
+    for k in range(3):
+        i, j = (int(x) for x in rng.choice(elig, 2, replace=False)); res["NC1r"].append(swap_run(i, j, f"NC1r_{k}"))
     # ── F-2 + NC2 ──
     if os.path.isdir(snap_prev):
         rh = f"{root0}/king"; os.makedirs(f"{rh}/state/weights", exist_ok=True); os.makedirs(f"{rh}/state/target_live", exist_ok=True)
@@ -166,10 +193,12 @@ def gate_anchor(A):
     ok_f2 = True if res.get("F2_king") is None else bool(res["F2_king"]["PARITY"] and res["F2"]["PARITY"] and res["F2_king_file"]["PARITY"])
     res["F1_scorer_model_is_live"] = res["scorer"]["model_sha"] == LIVE_F10_SHA
     ok_f1 = bool(ok_f1 and res["F1_scorer_model_is_live"])
-    ok_ctrl = bool(res["PC"]["PARITY"] and res["NC1"]["must_differ_ok"] and (res["NC2"] is None or res["NC2"]["must_differ_ok"]))
+    ok_ctrl = bool(res["PC"]["PARITY"] and res["NC1p"]["must_differ_ok"] and all(r_["must_differ_ok"] for r_ in res["NC1r"])
+                   and (res["NC2"] is None or res["NC2"]["must_differ_ok"]))   # AMENDMENT 3 A3.2; original NC1 reported only
     res["ANCHOR_PASS"] = bool(ok_f1 and ok_f2 and ok_ctrl); res["ok_f1"] = ok_f1; res["ok_f2"] = ok_f2; res["ok_controls"] = ok_ctrl
     os.makedirs(OUTD, exist_ok=True); json.dump(res, open(f"{OUTD}/GATE_F_{A}.json", "w"), indent=1, default=str)
-    print(json.dumps({"anchor": BL.iso(A), "PASS": res["ANCHOR_PASS"], "F1": res["F1"]["compare"].get("max_abs_dw"), "PC": res["PC"]["compare"].get("max_abs_dw"),
+    print(json.dumps({"anchor": BL.iso(A), "PASS": res["ANCHOR_PASS"], "NC1p": res["NC1p"]["must_differ_ok"], "NC1r": [x["must_differ_ok"] for x in res["NC1r"]],
+                      "F1": res["F1"]["compare"].get("max_abs_dw"), "PC": res["PC"]["compare"].get("max_abs_dw"),
                       "F2_king": (res.get("F2_king") or {}).get("PARITY"), "F2": ((res.get("F2") or {}).get("compare") or {}).get("max_abs_dw"),
                       "NC1_ok": res["NC1"]["must_differ_ok"], "NC2_ok": (res["NC2"] or {}).get("must_differ_ok"), "t_s": res["t_s"]}), flush=True)
     shutil.rmtree(root0, ignore_errors=True)
@@ -183,15 +212,26 @@ def summarize():
     per = [{"anchor": r["anchor"], "utc": r["utc"], "in_tar_33910c01": r["anchor"] <= 1789768800, "PASS": r["ANCHOR_PASS"],
             "F1_max_abs_dw": r["F1"]["compare"].get("max_abs_dw"), "F1_n_names": r["F1"]["compare"].get("n_archived"),
             "F2_max_abs_dw": ((r.get("F2") or {}).get("compare") or {}).get("max_abs_dw"), "F2_king_weights_bitwise": ((r.get("F2_king") or {}).get("weights") or {}).get("val_bitwise"),
-            "PC_max_abs_dw": r["PC"]["compare"].get("max_abs_dw"), "NC1_differs": r["NC1"]["must_differ_ok"], "NC2_differs": (r.get("NC2") or {}).get("must_differ_ok"),
+            "PC_max_abs_dw": r["PC"]["compare"].get("max_abs_dw"), "NC1_orig_differs_reported_only": r["NC1"]["must_differ_ok"],
+            "NC1prime_differs": r["NC1p"]["must_differ_ok"], "NC1r_differs": [x["must_differ_ok"] for x in r["NC1r"]], "NC_eligible": r["NC_eligible"],
+            "NC2_differs": (r.get("NC2") or {}).get("must_differ_ok"),
             "F1_literal_all_keys_equal": r["F1"]["compare"].get("literal_all_keys_equal"), "F1_literal_differing_keys": r["F1"]["compare"].get("literal_differing_keys"),
             "F1_gross_norm_rule": r["F1"]["compare"]["gross_norm"]["rule"], "PC_literal_all_keys_equal": r["PC"]["compare"].get("literal_all_keys_equal"),
             "F2_king_file_gross_norm_rule": ((r.get("F2_king_file") or {}).get("gross_norm") or {}).get("rule"),
             "scorer_model_is_live": r.get("F1_scorer_model_is_live"), "scorer_s": r["scorer"]["s"], "child_maxrss_mb": r.get("child_maxrss_mb")} for r in rows]
     verdict = "PASS" if rows and all(p["PASS"] for p in per) else "FAIL"
-    doc = {"gate": "GATE F (PREREG §3 S5, criteria per AMENDMENT 2 A2.1)", "comparison_type": "(3) packaging/prediction parity — not a return", "tar_sha256": TAR_SHA,
+    n1p = sum(1 for p in per if p["NC1prime_differs"]); n1r = sum(sum(p["NC1r_differs"]) for p in per); n1r_all = sum(len(p["NC1r_differs"]) for p in per)
+    h1 = f"{R}/receipts/gate_f/run1_NC1orig/GATE_F.json"
+    history = [{"run": 1, "criteria": "PREREG §3 S5 + AMENDMENT 2 (original NC1)", "VERDICT": json.load(open(h1))["VERDICT"] if os.path.exists(h1) else None,
+                "note": "original NC1 FAIL, 5/12 unchanged (09-17 20Z, 09-18 08Z, 09-18 12Z, 09-19 00Z, 09-19 04Z); explanation (swapped names' F10 scores discarded by sel / FTRIM) holds on 12/12; receipts kept verbatim in receipts/gate_f/run1_NC1orig/",
+                "receipts_sha256": BL.sha(h1) if os.path.exists(h1) else None},
+               {"run": 2, "criteria": "PREREG §3 S5 + AMENDMENT 2 + AMENDMENT 3 (NC1′ 12/12, NC1r 36/36; parity criterion unchanged)", "VERDICT": verdict,
+                "NC1prime_changed": f"{n1p}/{len(per)}", "NC1r_changed": f"{n1r}/{n1r_all}",
+                "NC1_orig_changed_reported_only": f"{sum(1 for p in per if p['NC1_orig_differs_reported_only'])}/{len(per)}"}]
+    doc = {"gate": "GATE F (PREREG §3 S5, criteria per AMENDMENT 2 A2.1 and AMENDMENT 3 A3.2)", "comparison_type": "(3) packaging/prediction parity — not a return", "tar_sha256": TAR_SHA,
            "n_anchors_tested": len(per), "n_object_A_anchors": 144, "n_object_A_untestable_no_archived_inputs": 144 - sum(1 for p in per if p["in_tar_33910c01"]),
-           "per_anchor": per, "VERDICT": verdict, "utc": BL.iso(time.time()), "device_sha256": BL.sha(os.path.abspath(__file__)),
+           "per_anchor": per, "VERDICT": verdict, "gate_history": history,
+           "amendment_3_disclosure": "written after seeing which anchors failed run 1's NC1; makes the negative control stricter; does not touch the parity criterion (max|dw| = 0, weights_sha equal)", "utc": BL.iso(time.time()), "device_sha256": BL.sha(os.path.abspath(__file__)),
            "lib_sha256": BL.sha(f"{HERE}/b_lib.py"), "driver_sha256": BL.sha(f"{HERE}/b_driver.py")}
     json.dump(doc, open(f"{R}/receipts/GATE_F.json", "w"), indent=1)
     print(f"GATE_F VERDICT {verdict} anchors {len(per)}", flush=True)

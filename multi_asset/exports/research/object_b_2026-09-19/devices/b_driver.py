@@ -5,8 +5,8 @@ combo_stage_replay_3520d363.py (from 3520d363). Every object-B change is an INPU
   king       FoldBooster('folds') as the `booster` argument (latest v3 fold with label_end < A − 30 d; predict on the producer's own X)
   F10        pass P2 (b_scorer.py) scores every producer member with the production 171 pipeline + the in-service-recipe yearly fold selected by
              the F10 rule; pass P3 injects those scores (rank/128 + identity model: zf bitwise = production zf of the same scores, G2-C′)
-  cache      holefix2 with the live-equivalent rule (b_lib.LiveEquiv) applied in memory, then names outside symbols_live(A) NaN (S2 I3)
-  base       exchangeInfo stand-in = alive COIN names at A (b_lib.LiveEquiv.base), pre-seeded into st.base (S2 D3 practice)
+  cache      holefix2 AS-IS (R0, AMENDMENT 3 A3.3), then names outside symbols_live(A) NaN (S2 I3)
+  base       exchangeInfo stand-in = trading24 ∩ COIN (G.base_names) ∪ symbols_live, pre-seeded into st.base (S2 D3 practice, AMENDMENT 3)
   universe   PIT (P2 universe.npz), funding rows = ledger_full (S2 I6), cold start 2022-01-31 00Z (S2 I7)
 Passes: P1 producer only, records the scorer inputs per anchor (members, prev_rec, ema acc, last funding rate); P3 producer + combo with the
 P2 scores injected, records member names, both COMBO_LIVE readings (B-scaled main, B-lit as coded) and the traded target per reading.
@@ -74,19 +74,26 @@ class Globals:
         assert hashlib.sha256("\n".join(self.SYMS).encode()).hexdigest() == "381b7f01eedcf31b6d6a94116a32855b545bf584b26f3000aa9545c81068c19a"
         self.col = {s: j for j, s in enumerate(self.SYMS)}
         self.LE = BL.LiveEquiv(SRC["tradability"][0], SRC["upit"][0], SRC["upit_crypto"][0], self.SYMS)
-        self.le_changed = None
+        # AMENDMENT 3 A3.3 (R0): the cache is used AS-IS (what production fetched); the live-equivalent rule is NOT applied (LE-A′ FAIL on record).
+        # LiveEquiv is kept only for the non-COIN flag (base list) and the last-traded times (dead-name exposure reporting, never for blanking).
+        self.le_changed = "R0: live-equivalent rule not applied (AMENDMENT 3 A3.3)"
         if load_cache:
             Z = np.load(SRC["cache"][0], allow_pickle=True); assert [str(s) for s in Z["symbols"]] == self.SYMS
             self.TS = Z["ts"].astype(np.int64); self.DATA = Z["data"]; del Z
-            self.le_changed = self.LE.apply_inplace(self.DATA, self.TS)
             self.row_of_ts = {int(t): i for i, t in enumerate(self.TS)}
         L = np.load(SRC["ledger"][0], allow_pickle=True); assert [str(s) for s in L["symbols"]] == self.SYMS
         self.L_off = L["off"]; self.L_ft = L["ft"]; self.L_rate = L["rate"]
         U = np.load(SRC["universe"][0], allow_pickle=True); assert [str(s) for s in U["symbols"]] == self.SYMS
-        self.U_ts = U["ts"].astype(np.int64); self.U_row = {int(t): i for i, t in enumerate(self.U_ts)}; self.U_pit = U["pit"]
+        self.U_ts = U["ts"].astype(np.int64); self.U_row = {int(t): i for i, t in enumerate(self.U_ts)}; self.U_pit = U["pit"]; self.U_tr24 = U["trading24"]
         self.king_label_end = BL.king_label_ends(SRC["king_meta_v2ext"][0])
         self.f10 = f10_folds_registry()
         self.load_s = round(time.time() - t0, 1)
+
+    def base_names(self, A):
+        """AMENDMENT 3 A3.3: exchangeInfo stand-in = S2 D3 proxy trading24 ((A−24h, A] has a settlement) minus non-COIN names; the caller adds
+        symbols_live(A). Listed-but-untraded contracts keep settling funding, as production's exchangeInfo keeps them TRADING."""
+        r = self.U_row[int(A)]; m = np.asarray(self.U_tr24[r], bool) & ~self.LE.noncoin
+        return [self.SYMS[j] for j in np.where(m)[0]]
 
     def live_names(self, A):
         r = self.U_row[int(A)]; return [self.SYMS[j] for j in np.where(self.U_pit[r])[0]]
@@ -264,7 +271,7 @@ def run_chain(mode, G, anchors, rh, out_prefix, scores=None, log_every=100, chec
         A = int(A); t0 = time.time()
         live = G.live_names(A); lmask = np.zeros(829, bool); lmask[[G.col[s] for s in live]] = True
         st.live = live; st.live_mask = lmask; cfg["symbols_live"] = live
-        base = G.LE.base(A); st.base = sorted(set(base) | set(live)); fx.base = base
+        base = G.base_names(A); st.base = sorted(set(base) | set(live)); fx.base = base
         fx.ledger = {s: G.ledger_rows(s, (st.ledger[s][-1][0] if st.ledger.get(s) else A - 40 * BL.DAY), A) for s in st.base}
         st.cts, st.cd = G.cache_tail(A, lmask)
         wrote, sig, skip = producer_step(dev, st, fx, cfg, booster, A, rh)

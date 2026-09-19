@@ -1,4 +1,4 @@
-> **创建:** 2026-09-19 | **Session:** https://claude.ai/code/session_01KW6frfphbFmFzx7wUtGhLb(R5-05 实施子代理) | **状态:** 门 F(平价门)按预注册判据 = **FAIL**(负控 NC1 在 5/12 锚未变红); 实时等价缓存保持门 LE-A′ = **FAIL**(§5) ⇒ **按指令停止, 未跑任何对象 B 历史**; 三个复现门 K-REPRO / F-REPRO / B-REPRO 已出; 模型产物已存盘; 待 lead 对负控修订裁定 | **作废条件:** 预注册 `docs/PREREG_object_B_recipe_oof_and_object_A_paper_2026-09-19.md`(3f9d7cc50 / AMENDMENT 1 f4ad35ce2 / AMENDMENT 2 c2a4891be)被撤回; 快照或存档 tar 33910c01 被改写; 本文列出的任一装置或模型 sha 与入库文件不符
+> **创建:** 2026-09-19 | **Session:** https://claude.ai/code/session_01KW6frfphbFmFzx7wUtGhLb(R5-05 实施子代理) | **状态:** 门 F(平价门)按预注册判据 = **FAIL**(负控 NC1 在 5/12 锚未变红); 实时等价缓存保持门 LE-A′ = **FAIL**(§5); 门 F 第二次(AMENDMENT 3)= **FAIL**, NC1r 34/36, 机制为中性带吸收(§6) ⇒ **按指令停止, 未跑任何对象 B 历史**; 三个复现门 K-REPRO / F-REPRO / B-REPRO 已出; 模型产物已存盘; 待 lead 对负控修订裁定 | **作废条件:** 预注册 `docs/PREREG_object_B_recipe_oof_and_object_A_paper_2026-09-19.md`(3f9d7cc50 / AMENDMENT 1 f4ad35ce2 / AMENDMENT 2 c2a4891be)被撤回; 快照或存档 tar 33910c01 被改写; 本文列出的任一装置或模型 sha 与入库文件不符
 
 # 结果: 对象 B 的平价门与三个复现门(无任何收益数字)
 
@@ -105,3 +105,32 @@
   - R0 = 不做实时等价改写, holefix2 原样(= S2 的做法; G2-A′ 已证 live450 在重叠窗逐格相等)。代价: 死合约冻结行仍在, 与判活 / D21 同一问题, 需在记账层按 UNAVAILABLE 规则处理。
   - R2 = 只对「有场所证据的下市时刻之后」置 NaN。数据不可得 ⇒ UNAVAILABLE。
 - 该规则在全缓存上改动的格数(规则本身的规模, 不是结果): 2022 年 245,651 / 2023 年 790,519 / 2024 年 1,526,115 / 2025 年 4,403,393 / 2026 年 7,277,793; 死合约 156 名, 非 COIN 名 76。
+
+## §6 门 F 第二次运行(AMENDMENT 3, 874cfd112)= **FAIL**(NC1r 34/36)⇒ 再次停止, 仍未跑任何对象 B 历史
+
+- **判据**: 平价判据不变(max|Δw| = 0、weights_sha 相等、AMENDMENT 2 A2.1)。负控改为 NC1′(12/12)+ NC1r(36/36)。原 NC1 照跑照报, 不进判词。AMENDMENT 3 写于看到第一次失败锚之后, 已在该修订里披露。
+- **平价**: 与第一次运行相同。
+  - F-1 与正控 max|Δw| = 0.0, 12/12;
+  - F-2 为 0.0, 11/11, king 逐位;
+  - NC2 11/11 变红。
+- **负控**:
+  - **NC1′ 12/12 改变目标**;
+  - **NC1r 34/36**: 09-17 12Z 的第 1 抽(PHAUSDT ↔ BANKUSDT)与 09-18 20Z 的第 1 抽(IOUSDT ↔ PAXGUSDT)目标未变。
+  - 原 NC1(只报)7/12。
+  - 合格成员每锚 234–245 名。
+- **机制(诊断, 只读; `receipts/gate_f/DIAG_NC1r_band_<A>.json`)**: 是中性带吸收。
+  - 生产 band = 2.5e-4 下, 交换前后 fc 状态逐位相同(差 0.0)。
+  - 把沙箱配置里的 band 改为 0(其余不变)后, 恰好被换的 2 名改变, fc 状态差 1.73e-4 / 1.60e-4, 都小于 band。
+  - ⇒ 这两抽交换引起的 EMA 步长落在生产者自己的中性带内, 生产逻辑本来就不会动书。仍是负控对「生产会有反应」的假设不成立, 而非路径的检测盲区。
+- **门的历史**(`receipts/GATE_F.json` 的 `gate_history`):
+  - 第一次 FAIL(原 NC1 5/12 未变), 原收据原样在 `receipts/gate_f/run1_NC1orig/`(GATE_F.json sha e7e526dd);
+  - 第二次 FAIL(NC1r 34/36), GATE_F.json sha 2d3ecb54。
+- **按预先写死的判据, 本文不改判、不再自行修订**。可供 lead 选择的负控形式, 都只加严、不碰平价判据:
+  - (a) NC1r 的合格成员再加一条「交换后预测的 EMA 步长越过 band」, 在交换前用生产公式算出, 不看结果;
+  - (b) NC1r 改为在合格成员中交换秩差 ≥ 某阈值的对;
+  - (c) NC1r 的判定改为比较 fc 状态(未过 band 的目标)是否改变, 而非最终目标。
+- **R0 已在历史驱动里实施**(`b_driver.py`):
+  - 缓存不改写;
+  - 基名单 = trading24 ∩ COIN ∪ live;
+  - 未运行。
+- **数据版本**: 链轴 ≤ 2026-08-31 00Z 只读到 08-31 00:00 及以前的行, 那里 holefix2 = x0918 = x0918r。延长段 08-31 04Z → 09-18 20Z 缺 PIT 宇宙掩码的延长: 流 D 文档写明 UPIT_CRYPTO 止于 08-31T00Z, 延长是宇宙政策问题, 本文不自建。
