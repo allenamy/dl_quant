@@ -1,0 +1,9 @@
+# Full-battery runs in the isolated clone (coordinator rule 2026-09-19: quiet window = after an anchor's `anchor done`
+# line and before N+3:40Z, >= 20 min remaining; at most one baseline + one after-state run).
+baseline  tree=409ea162746d0ba459db33c3f5c07865c24a7514  runner_stamp=20260919T090014Z  start_utc=2026-09-19T09:00:14Z  end_utc~=2026-09-19T09:13:36Z (last suite log mtime; verdict line printed immediately after)
+          anchor_runs.log line relied on: "2026-09-19T08:55:09Z anchor done rc=0" (08Z anchor; window closes 11:40Z)
+          NOTE: this line was read at 09:05:57Z, i.e. AFTER the baseline had started (the rule arrived mid-run); the log shows it
+          preceded the 09:00:14Z start, so the run was inside the quiet window, but the pre-start check itself was not made.
+after     tree=1c888279e00949ff8af3c8b5438d9688e44b5953  runner_stamp=20260919T092557Z  start_utc=2026-09-19T09:25:52Z  end_utc=2026-09-19T09:39:26Z
+          pre-start check at 2026-09-19T09:25:47Z: tail -1 anchor_runs.log = "2026-09-19T08:55:09Z anchor done rc=0"; clone tree clean (0 status lines)
+both runs: interpreter /usr/bin/python3 (ACCEPT_PY unset) -> sys.executable /Applications/Xcode.app/Contents/Developer/usr/bin/python3, 3.9.6, torch 2.2.2; .env absent; notify_audit 1047 lines, newest 582.6 h / 583.0 h old

@@ -1,0 +1,1422 @@
+From 1c888279e00949ff8af3c8b5438d9688e44b5953 Mon Sep 17 00:00:00 2001
+From: haosiyu <haosiyu@haosiyudeMacBook-Pro.local>
+Date: Sat, 19 Sep 2026 17:25:39 +0800
+Subject: [PATCH] =?UTF-8?q?=E8=A3=81=E5=AE=9A=20#5(=E7=94=A8=E6=88=B7=2020?=
+ =?UTF-8?q?26-09-19=E3=80=8C=E6=8C=89=E6=9C=80=E4=BD=B3=E5=BB=BA=E8=AE=AE?=
+ =?UTF-8?q?=E3=80=8D):=20=E7=9C=8B=E9=97=A8=E7=8B=97=20=C2=A74-2=20/=20?=
+ =?UTF-8?q?=C2=A74-4=20=E7=9A=84=E5=A4=96=E9=83=A8=E8=B5=84=E9=87=91?=
+ =?UTF-8?q?=E6=B5=81=E6=8C=89=E4=BA=8B=E4=BB=B6=E6=97=B6=E9=97=B4=E3=80=81?=
+ =?UTF-8?q?=E6=8C=89=E8=B5=84=E4=BA=A7=E3=80=81=E4=BB=A5=20NAV=20=E8=87=AA?=
+ =?UTF-8?q?=E8=BA=AB=E5=8D=95=E4=BD=8D=E5=BD=92=E7=AA=97;=20=E4=B8=8D?=
+ =?UTF-8?q?=E5=8F=AF=E8=AF=81=20=E2=87=92=20=E5=85=B7=E5=90=8D=20UNKNOWN?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+缺陷(研究 RESULT_cash_closure_per_trade_2026-09-19 §4; 409ea16 watchdog L1367 §4-2 / L1883 §4-4 都读
+daily_nav.external_flow_usdt = income_since(00:00Z)["external_flow"] = by_type["TRANSFER"]):
+  1 单位: 跨资产按数量相加(08-05 −200 USDT + 0.33275025 BNB 记成 −199.667); multiAssetsMargin 下 nav 是 USD, USDT 脱锚读成亏损
+  2 事件时间: 自然日累计, 不是被比较两行 NAV 之间的流量
+  3 缺口: 前一日最后一行(~20:4xZ)到 00:00Z 的划转不在任何一天的累计里 ⇒ 次日出金读成亏损(§4-4 同样)
+
+合同(live/flow_window.py, 写者与两个读者共用一处声明):
+  窗口 (t0, t1] 按两行的 nav_ts; 人口 = 非 P&L 类型的每条收入行(自带 time / asset / tranId); FLOW={TRANSFER} 相减,
+  其它未分类类型 ⇒ UNKNOWN; 覆盖 = 窗内各行完整拉取的并集必须盖住 (t0, t1] 每一毫秒(写者新增
+  [前一日最后一行 nav_ts, 00:00Z) 缺口段, 与原 00:00Z 起的日段并列); 身份 = (tranId, type, symbol, asset) 去重, 日段
+  TRANSFER 数量和须等于本行旧载体; 单位 = V(row) = nav / USDTUSD bidRate(多资产) 或 nav(单资产), 流量按收盘行的场所
+  bidRate 逐资产计价; 指标 (V1 − F − V0)/V0; 开盘行无计价率 ⇒ 按行自身单位且仅当收盘 USDTUSD 指数偏离 ≤ ±50 bps, 否则
+  UNKNOWN; 任何缺失/不完整/无计价/未知保证金模式 ⇒ UNKNOWN 并写明原因(§4-2: 沿用既有 blind 动作 —— 页报、恢复门拒绝;
+  §4-4: 无法证明无划转 ⇒ 视作可能划转日, 走既有划转日规则, 流量金额仍不进入)。无记录的旧行: 旧口径逐字节不变。
+
+改动: live/flow_window.py(新) · watchdog §4-2 / §4-4 读新合同 · anchor_loop daily_nav 写 flow_window 记录
+(collect: 缺口拉取 + nav_valuation) · binance_broker: income_since 追加返回 rows(加性), 新 nav_valuation()
+(/fapi/v1/multiAssetsMargin 权重 30 + /fapi/v1/assetIndex 权重 10, 从不抛出), 权重表 · API_SEMANTICS / tests_imports /
+income_callers / gate_coverage 普查同步 · run_acceptance 注册 tests_flow_window。阈值、杠杆、动作一律未改。
+
+测试 tests_flow_window 34/34(本克隆, 解释器 /usr/bin/python3 3.9.6): 控制格 4 + 缺陷格 16 + 变异 13 + 源码不变 1;
+同一套件在 409ea16(仅加入 flow_window.py 以构造夹具)上 6/22, 15 个缺陷格 + 变异段红。未部署。
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01KW6frfphbFmFzx7wUtGhLb
+---
+ docs/API_SEMANTICS.md     |   4 +-
+ live/binance_broker.py    |  57 +++-
+ live/flow_window.py       | 394 ++++++++++++++++++++++++
+ live/tests_flow_window.py | 610 ++++++++++++++++++++++++++++++++++++++
+ live/tests_imports.py     |   3 +
+ live/watchdog.py          |  70 ++++-
+ ops/gate_coverage.py      |   3 +-
+ ops/income_callers.py     |   5 +-
+ run_acceptance.sh         |   2 +
+ scheduler/anchor_loop.py  |  18 +-
+ 10 files changed, 1157 insertions(+), 9 deletions(-)
+ create mode 100644 live/flow_window.py
+ create mode 100644 live/tests_flow_window.py
+
+diff --git a/docs/API_SEMANTICS.md b/docs/API_SEMANTICS.md
+index 7e6054e..e0985ff 100644
+--- a/docs/API_SEMANTICS.md
++++ b/docs/API_SEMANTICS.md
+@@ -32,6 +32,7 @@
+ | `/fapi/v1/aggTrades` | 20 | `ops/backfill_markout` | **M2 的 +60s 标记** —— 取"成交后 60 秒那一刻之后的第一笔成交价"。★ 选它而不选便宜十倍的 klines 是**实测决定**, 见下 |
+ | `/fapi/v1/fundingRate` | 1 | `binance_funding`, `fapi_source` | 历史结算费率。**★ 绝不由 `funding_paid / position` 反推 —— 那会让 §3f 接线检查变恒真** |
+ | `/fapi/v1/fundingInfo` | 1 | `binance_funding`, `fapi_source` | **逐 symbol 结算间隔**(1h/4h/8h) |
++| `/fapi/v1/assetIndex` | 10(不带 symbol) | `BinanceBroker.nav_valuation`(anchor_loop daily_nav 行, 经 `flow_window.collect`) | 多资产保证金模式的**抵押计价率**: 每资产 `index` / `bidRate` = index × (1 − bidBuffer) / `time`。**这就是 NAV 自己用的计价**(USDT ×(1−1e-4)、BNB ×0.95, 2026-09-19 只读实测)。只取 `*USD` 行, 落在 daily_nav `flow_window.valuation.rates`; 读不到 ⇒ 具名缺失, 读者判 UNKNOWN, 从不默认(裁定 #5, 2026-09-19) |
+ 
+ ### 1b. 签名(账户)
+ 
+@@ -44,7 +45,8 @@
+ | `/fapi/v1/order` | 1 (+订单配额) | `submit` / `cancel_order` / `last_fill_details` / `venue_fills.settle_ambiguous_legs`(按 `origClientOrderId` 查歧义 maker 的终态; -2013 = 未下达; 第九轮: DELETE 回包的 executedQty / cumQuote / avgPrice / status / side / origQty / orderId 作为同请求的一条记录进入 `merge_order_records`, 与 allOrders 行 / 查单记录按事实合并; 第十三轮: POST 回包(newOrderRespType=RESULT)三分开写 —— **官方承诺**: 官方 New Order 页面(研究员 2026-09-11 复开)的响应示例**未列** cumQuote / avgPrice(列出 clientOrderId / symbol / side / origQty / executedQty / status 等), 示例不是正式必填集合, 未取得正式 required 字段清单; cumQuote/avgPrice 曾出现于历史版本示例的说法来源仅为本仓代码注释, 不作官方承诺引用; **我方兼容政策**: 带字段才比对, 缺键/None 按发送 id 记, 空串/不可解析/非有限 = 畸形 ⇒ 矛盾; **实际观测**: testnet 2026-07-26 RESULT 回包带 executedQty 而缺 cumQuote/avgPrice(`last_fill_notional` 文档), 其余字段本仓未单独记录观测) | 下单、撤单、单笔回读 |
+ | `/fapi/v1/allOrders` | 5 | `venue_fills.fill_details_for` | **一次请求同时给 `clientOrderId` + `cumQuote` + `avgPrice` + `executedQty`**; limit=1000(场所最大); 满页 = 不完整证据, 未见到的请求不判 0 |
+ | `/fapi/v1/userTrades` | 5 | `venue_fills.user_trades_for` | **佣金唯一的来源**, 且是 `fills` 表逐子成交行的唯一输入 |
+-| `/fapi/v1/income` | 30 | `income_since`, `binance_funding` | REALIZED_PNL / COMMISSION / FUNDING_FEE / TRANSFER。**只保留 90 天** |
++| `/fapi/v1/income` | 30 | `income_since`, `binance_funding` | REALIZED_PNL / COMMISSION / FUNDING_FEE / TRANSFER。**只保留 90 天**。裁定 #5(2026-09-19): `income_since` 另返回去重后的原始行 `rows`, 由 `flow_window` 按**每行自己的事件时间与资产**归窗; `flow_window.collect` 另拉一次 [前一日最后一行 NAV, 00:00Z) 的缺口段(同一函数, 同一分页/去重/截断语义) |
++| `/fapi/v1/multiAssetsMargin` | 30 | `BinanceBroker.nav_valuation`(同上) | **`daily_nav.nav` 的单位**: true ⇒ 账户总额是 USD(LIVE 2026-09-19 实测 true), false ⇒ USDT(testnet 实测 false)。每行记录; 读不到 ⇒ 具名缺失 ⇒ 读者 UNKNOWN |
+ | `/fapi/v1/openOrders` | 40 | `ops/testnet_anchor` | 挂单快照(**权重 40, 生产路径刻意不用**) |
+ | `/fapi/v1/allOpenOrders` | 1 | `ops/testnet_*` | 批量撤单(运维工具, 非锚点路径) |
+ | `/fapi/v1/apiTradingStatus` | 1 | `BinanceBroker.api_trading_status`(仅 anchor_loop 的 -4400 熔断页调用) | **量化规则指标**(ACCOUNT 级 TMV/UFR/IFER/GCR/DR 等 `isLocked`/`plannedRecoverTime`)。签名只读; 只在本相已见 -4400 时读一次, **只供页面, 不参与任何决策**(E-0910-A, 2026-09-10) |
+diff --git a/live/binance_broker.py b/live/binance_broker.py
+index 2d5ecb8..cd7325d 100644
+--- a/live/binance_broker.py
++++ b/live/binance_broker.py
+@@ -863,7 +863,10 @@ class BinanceBroker:
+                 "/fapi/v1/time": 1, "/fapi/v1/ping": 1,
+                 # [A7] the maintenance-margin brackets. Documented in API_SEMANTICS as weight 1
+                 # for the all-symbols form; charged at that.
+-                "/fapi/v1/leverageBracket": 1}
++                "/fapi/v1/leverageBracket": 1,
++                # ruling #5 (2026-09-19, flow window): the NAV row's unit and the venue's collateral rates.
++                # assetIndex without `symbol` is weight 10 (1 with); multiAssetsMargin is USER_DATA weight 30.
++                "/fapi/v1/assetIndex": 10, "/fapi/v1/multiAssetsMargin": 30}
+ 
+     # ── transport-failure wrapper (E-0909-D) ────────────────────────────────────────────────
+     _transport_sleep = staticmethod(time.sleep)      # injectable: tests must not sleep for real
+@@ -2196,6 +2199,10 @@ class BinanceBroker:
+         realised = sum(by_type.get(k, 0.0)
+                        for k in ("REALIZED_PNL", "COMMISSION", "FUNDING_FEE"))
+         return {"by_type": by_type, "by_type_asset": by_type_asset,
++                # ★ ruling #5 (2026-09-19): the de-duplicated raw rows, so a flow can be attributed by its OWN event
++                #   time and asset (live/flow_window.py) instead of by this call's calendar window and a cross-asset
++                #   quantity sum. Additive: every existing consumer reads named keys only (census in the fix record).
++                "rows": rows,
+                 "non_usdt_assets": sorted({a for d in by_type_asset.values() for a in d
+                                            if a != "USDT"}),
+                 "same_ms_saturated": _same_ms_saturated,
+@@ -2212,6 +2219,54 @@ class BinanceBroker:
+                 # is a LOWER BOUND and must not be read as the day's P&L.
+                 "truncated": _truncated}
+ 
++    def nav_valuation(self) -> Optional[Dict[str, Any]]:
++        """The UNIT of `daily_nav.nav` and the venue's own collateral rates, read beside the equity snapshot
++        (user ruling #5, 2026-09-19; consumer: live/flow_window.py).
++
++        ★ WHY. With multiAssetsMargin on (the LIVE account, measured 2026-09-19), /fapi/v3/account's totals — and so
++          `nav` — are in USD: USDT counted at the USDTUSD index x (1 - bidBuffer 1e-4), BNB at BNBUSD x (1 - 0.05).
++          Without the margin mode and these rates a USDT de-peg reads as a loss and a BNB transfer cannot be valued
++          in the unit the NAV itself uses. Both come from the venue at the row's own moment: this is the SAME
++          valuation the NAV applies (`bidRate`), not a price we chose.
++        ★ NEVER RAISES, and each half fails on its own: the NAV row must still be written, and a missing rate must be
++          a NAMED absence (the reader then says UNKNOWN), never a default.
++        Returns None in DRY_RUN — there is no account to value."""
++        if self.mode == "DRY_RUN":
++            return None
++        out: Dict[str, Any] = {"read_ts": time.time(), "multi_assets_margin": None,
++                               "multi_assets_margin_error": None, "rates": {}, "rates_error": None}
++        try:
++            r = self._request("GET", "/fapi/v1/multiAssetsMargin", signed=True)
++            v = r.get("multiAssetsMargin") if isinstance(r, dict) else None
++            if isinstance(v, bool):
++                out["multi_assets_margin"] = v
++            else:
++                out["multi_assets_margin_error"] = f"unexpected body: {str(r)[:120]}"
++        except Exception as e:                                          # noqa: BLE001 — recorded, never swallowed
++            out["multi_assets_margin_error"] = f"{type(e).__name__}: {str(e)[:160]}"
++        try:
++            rows = self._request("GET", "/fapi/v1/assetIndex")
++            rows = [rows] if isinstance(rows, dict) else (rows if isinstance(rows, list) else [])
++            for x in rows:
++                sym = str((x or {}).get("symbol") or "")
++                if not sym.endswith("USD") or len(sym) <= 3:
++                    continue
++
++                def _f(k, _x=x):
++                    try:
++                        v = float(_x.get(k))
++                    except (TypeError, ValueError):
++                        return None
++                    return v if (v == v and abs(v) != float("inf")) else None
++                _t = _f("time")
++                out["rates"][sym[:-3]] = {"index": _f("index"), "bid_rate": _f("bidRate"),
++                                          "time_ms": (int(_t) if _t is not None else None)}
++            if not out["rates"]:
++                out["rates_error"] = f"no *USD rows in the assetIndex answer ({str(rows)[:120]})"
++        except Exception as e:                                          # noqa: BLE001
++            out["rates_error"] = f"{type(e).__name__}: {str(e)[:160]}"
++        return out
++
+     def classify(self, err: "VenueError") -> str:
+         if isinstance(err, VenueTransportError):
+             return "transport"             # E-0909-D: no answer at all — neither a refusal nor an outage verdict
+diff --git a/live/flow_window.py b/live/flow_window.py
+new file mode 100644
+index 0000000..d67b17f
+--- /dev/null
++++ b/live/flow_window.py
+@@ -0,0 +1,394 @@
++"""FLOW WINDOW — the ONE contract for "how much money entered or left the account between two NAV rows".
++Pure except `collect()` (which only calls the broker it is handed). No file, no clock of its own.
++
++★★★ WHY THIS EXISTS (user ruling #5, 2026-09-19, "按最佳建议"; research RESULT_cash_closure_per_trade_2026-09-19 §4;
++    independent review round 5 §6-5: "units, event time, identity and unknown behaviour under ONE contract").
++    `daily_nav.external_flow_usdt` (= `binance_broker.income_since(00:00Z)["external_flow"]` = by_type["TRANSFER"]) was
++    the only flow carrier the §4 stop-losses had, and it carries three defects:
++      1. UNITS — it adds DIFFERENT ASSETS BY QUANTITY: 2026-08-05 07:23 −200 USDT and 07:24 +0.33275025 BNB were recorded
++         as −199.667 (real USD flow ≈ −10). And the account runs multiAssetsMargin, so `daily_nav.nav`
++         (totalWalletBalance + totalUnrealizedProfit) is in USD: USDT at the USDTUSD index × (1 − 1e-4), BNB at
++         BNBUSD × 0.95 — a USDT de-peg moves NAV with no P&L at all.
++      2. EVENT TIME — it is a since-00:00Z CALENDAR-DAY cumulative, not the flow between the two NAV rows a metric compares.
++      3. THE GAP — §4-2 compares the day's last NAV row with the previous day's last row (~20:4xZ). A transfer between
++         that row and 00:00Z is in NEITHER day's cumulative, so the next day read a withdrawal as a LOSS (a deposit as a
++         gain). Never triggered in 11 real transfers; §4-4 had the same blind spot.
++
++★★ THE CONTRACT (one declaration, used by the writer AND by both readers):
++    WINDOW     (t0, t1] — t0 / t1 = `nav_ts` of the two NAV rows a metric compares (event time of the equity snapshot,
++               not of the income pull, not the calendar day). Half-open, so consecutive windows partition time and every
++               event lands in exactly one of them.
++    POPULATION every income row whose type is NOT a declared P&L type is recorded with its OWN event time (`time`), asset,
++               amount and venue identity. A declared FLOW type is subtracted; ANY OTHER TYPE is UNKNOWN (named) — a new
++               venue income type is caught the day it appears, never folded into P&L.
++    COVERAGE   the window is priced only if the union of COMPLETE income pulls recorded on the rows in the window covers
++               every millisecond of (t0, t1]. The writer pulls [previous day's last NAV row, 00:00Z) ("gap") beside the
++               existing [00:00Z, now] pull ("day"), so the 20:4xZ→00:00Z gap is covered by construction.
++    IDENTITY   an event is keyed (tranId, type, symbol, asset) — the income ledger's own identity (binance_broker, E-0909-H);
++               overlapping pulls on several rows are unioned, never summed twice. The 'day' segment's TRANSFER quantities must
++               re-add to the row's own legacy carrier `external_flow_usdt` (same pull) — a record that disagrees is UNKNOWN.
++    UNITS      V(row) = NAV in USDT-equivalent: nav / (USDTUSD bidRate at that row) when the row's account is multi-assets
++               (NAV in USD), nav itself when single-asset (NAV in USDT). Flows are valued per asset at the CLOSING row's venue
++               bidRate (the rate the NAV itself uses) and divided by the closing USDT rate; USDT at face. No cross-asset
++               quantity sum exists anywhere in this module.
++    METRIC     r = (V(t1) − F − V(t0)) / V(t0). A de-peg is separated exactly when both rows carry their rate.
++               When the OPENING row carries no rate (written before this build, or its read failed) the unit cannot be
++               separated: the window is judged in the rows' own unit ONLY if the closing USDTUSD index is within
++               ±DEPEG_TOL of 1 (declared bound, named basis); beyond it — UNKNOWN.
++    UNKNOWN    never "loss", never "ok": missing/incomplete pull, coverage hole, unclassified income type, a flow asset with
++               no rate, a stale or non-positive rate, unknown margin mode, a malformed record. Every reason is NAMED and the
++               caller routes it to the watchdog's existing UNKNOWN action (§4-2 blind: paged, resume gate refuses; §4-4: the
++               existing transfer-day rule — flow amount never enters — and its own blind rule).
++    LEGACY     a closing row with no record (written before this build) is NOT judged here: the caller keeps its old
++               caliber byte-for-byte, so history and every pre-existing fixture read exactly as before.
++
++★ DECLARED, NOT PROVEN HERE (falsifiable; stated so they cannot pass as coverage):
++    · a flow is valued at the closing row's rate, not at its own event time — the move of a transferred non-USDT asset
++      between the transfer and the closing snapshot is attributed to the flow, not to P&L (0.33 BNB ≈ 200 USD: a 5% BNB
++      move is ≈ 10 USD ≈ 0.01% of a 100k NAV);
++    · income POSTING latency: a transfer seconds before a snapshot that the venue has not yet posted when the pull runs is
++      invisible to that anchor's reading (409ea16 has the same exposure); every later row of the day re-pulls the whole
++      day and the gap, so the day's final reading sees it;
++    · the positive-balance convention (bidRate) is used for every asset; a NEGATIVE collateral balance (askRate) is not
++      modelled;
++    · DEPEG_TOL = 50 bps: the observed USDTUSD index over 876 sampled minutes 2026-08-01..09-19 stayed within
++      [0.99840, 1.00022] (worst 16 bps; research INDEX_KLINES_1m_OHLC_cache.json). The fallback it guards applies only to
++      windows whose opening row has no recorded rate.
++"""
++from __future__ import annotations
++
++import json
++import math
++from typing import Any, Dict, Iterable, List, Optional, Tuple
++
++RECORD_KEY = "flow_window"            # the daily_nav field this module owns
++RECORD_VERSION = 1
++
++# ★ THE CLASSIFICATION, DECLARED ONCE. Types observed on the LIVE account 2026-07-31..09-19 (134,755 income rows, research
++#   INCOME_ALL_20260731_now.json): FUNDING_FEE, COMMISSION, REALIZED_PNL, DELIVERED_SETTELMENT (P&L, already inside NAV) and
++#   TRANSFER (external money). Anything else is UNKNOWN until someone classifies it HERE — never by default.
++PNL_INCOME_TYPES = frozenset({"REALIZED_PNL", "COMMISSION", "FUNDING_FEE", "DELIVERED_SETTELMENT"})
++FLOW_INCOME_TYPES = frozenset({"TRANSFER"})
++
++UNIT_ASSET = "USDT"                    # the caliber every return is expressed in
++VALUATION_MAX_SKEW_S = 600.0           # a rate more than 10 min from the NAV snapshot it values is not that snapshot's rate
++DEPEG_TOL = 0.005                      # |USDTUSD index − 1| bound for the non-separable fallback only (see docstring)
++
++CALIBER = ("flow-window v1: r = (V(t1) − F − V(t0)) / V(t0) over (t0, t1] = (previous day's last NAV row, this day's "
++           "last NAV row] by nav_ts (the 20:4xZ→00:00Z gap included); V = NAV in USDT-equivalent (nav / USDTUSD bidRate "
++           "at that row for a multi-assets account, nav for single-asset); F = Σ declared-flow events with event time in "
++           "the window, per asset at the closing row's venue bidRate (USDT at face); coverage proven from COMPLETE income "
++           "pulls; unclassified income type / coverage hole / missing rate / unknown margin mode ⇒ UNKNOWN (named). "
++           f"Opening row without a rate: rows' own unit, only if the closing USDTUSD index is within ±{DEPEG_TOL:.3%} "
++           "of 1, else UNKNOWN. A closing row without a record is judged by the legacy caliber.")
++
++
++# ── small, total helpers ────────────────────────────────────────────────────────────────────────────────────────────
++def _fin(x) -> Optional[float]:
++    try:
++        v = float(x)
++    except (TypeError, ValueError):
++        return None
++    return v if (v == v and not math.isinf(v)) else None
++
++
++def _int(x) -> Optional[int]:
++    v = _fin(x)
++    return int(v) if v is not None and float(int(v)) == v else None
++
++
++def row_nav_ts(row) -> Optional[float]:
++    return _fin(row.get("nav_ts")) if isinstance(row, dict) else None
++
++
++def has_record(row) -> bool:
++    return isinstance(row, dict) and isinstance(row.get(RECORD_KEY), dict)
++
++
++def _event_key(e: Dict[str, Any]) -> Tuple:
++    if e.get("id") not in (None, ""):
++        return ("id", str(e.get("id")), str(e.get("type")), str(e.get("symbol") or ""), str(e.get("asset") or ""))
++    return ("row", json.dumps(e, sort_keys=True, default=str))
++
++
++# ── WRITER side ─────────────────────────────────────────────────────────────────────────────────────────────────────
++def _segment(name: str, start_ms: int, end_ms: int, pull, error, asked_end_ms: Optional[int]) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
++    """One income pull → (segment, events). A segment is COMPLETE only if the pull returned, was not truncated, carried
++    its raw rows, and answered exactly the window it was asked for. Anything else is incomplete WITH its reason."""
++    why = None
++    rows = pull.get("rows") if isinstance(pull, dict) else None
++    if error:
++        why = f"pull raised: {str(error)[:160]}"
++    elif not isinstance(pull, dict):
++        why = "no pull result (DRY_RUN / no account)"
++    elif not isinstance(rows, list):
++        why = "pull result carries no raw rows (pre-flow-window broker)"
++    elif pull.get("truncated") is not False:
++        why = f"pull truncated={pull.get('truncated')!r} (a lower bound cannot prove the absence of a flow)"
++    elif _int(pull.get("start_ms")) != int(start_ms):
++        why = f"pull answered start_ms={pull.get('start_ms')!r}, asked {start_ms}"
++    elif (pull.get("end_ms") is None) != (asked_end_ms is None) or (
++            asked_end_ms is not None and _int(pull.get("end_ms")) != int(asked_end_ms)):
++        why = f"pull answered end_ms={pull.get('end_ms')!r}, asked {asked_end_ms}"
++    seg = {"name": name, "start_ms": int(start_ms), "end_ms": int(end_ms), "complete": why is None,
++           "why_incomplete": why, "n_rows": (len(rows) if isinstance(rows, list) else None)}
++    events = []
++    for r in (rows if isinstance(rows, list) else []):
++        ty = str(r.get("incomeType") or "")
++        if ty in PNL_INCOME_TYPES:
++            continue
++        events.append({"time_ms": _int(r.get("time")), "type": ty, "asset": str(r.get("asset") or ""),
++                       "amount": _fin(r.get("income")), "amount_raw": r.get("income"),
++                       "symbol": str(r.get("symbol") or ""), "id": r.get("tranId"), "seg": name})
++    return seg, events
++
++
++def build_record(*, day_start_ms: int, day_pull, day_pull_error, day_requested_ms: int,
++                 gap_start_ms: Optional[int], gap_pull, gap_pull_error,
++                 valuation, valuation_error) -> Dict[str, Any]:
++    """The daily_nav `flow_window` field. `day_pull` is the row's EXISTING since-00:00Z income pull (the same object its
++    `external_flow_usdt` came from); `gap_pull` is [gap_start_ms, day_start_ms − 1], gap_start = floor(previous day's
++    last row nav_ts); `day_requested_ms` = the clock read just BEFORE the day pull (its coverage end, conservatively)."""
++    segments, events = [], []
++    if gap_start_ms is not None and int(gap_start_ms) < int(day_start_ms):
++        s, ev = _segment("gap", int(gap_start_ms), int(day_start_ms) - 1, gap_pull, gap_pull_error,
++                         asked_end_ms=int(day_start_ms) - 1)
++        segments.append(s)
++        events.extend(ev)
++    s, ev = _segment("day", int(day_start_ms), int(day_requested_ms), day_pull, day_pull_error, asked_end_ms=None)
++    segments.append(s)
++    events.extend(ev)
++    return {"v": RECORD_VERSION, "segments": segments, "events": events,
++            "valuation": valuation if isinstance(valuation, dict) else None,
++            "valuation_error": (None if isinstance(valuation, dict) else
++                                (str(valuation_error)[:200] if valuation_error else "no valuation (DRY_RUN / no account)")),
++            "pnl_types": sorted(PNL_INCOME_TYPES), "flow_types": sorted(FLOW_INCOME_TYPES)}
++
++
++def collect(broker, *, day_start_ms: int, prev_row, day_pull, day_pull_error, day_requested_ms: int) -> Dict[str, Any]:
++    """Writer entry point (scheduler/anchor_loop.py daily_nav block). Adds the gap pull and the valuation read beside the
++    row's existing day pull. NEVER raises: every failure is recorded in the segment / valuation it belongs to, because the
++    NAV row itself must still be written (a lost NAV row blinds more than a lost flow record)."""
++    t0 = row_nav_ts(prev_row)
++    gap_start = int(math.floor(t0 * 1000.0)) if t0 is not None else None
++    gap_pull = gap_err = None
++    if gap_start is not None and gap_start < int(day_start_ms):
++        try:
++            gap_pull = broker.income_since(gap_start, int(day_start_ms) - 1)
++        except Exception as e:                                          # noqa: BLE001 — recorded, never swallowed
++            gap_err = f"{type(e).__name__}: {str(e)[:160]}"
++    val = val_err = None
++    try:
++        val = broker.nav_valuation()
++    except Exception as e:                                              # noqa: BLE001
++        val_err = f"{type(e).__name__}: {str(e)[:160]}"
++    return build_record(day_start_ms=day_start_ms, day_pull=day_pull, day_pull_error=day_pull_error,
++                        day_requested_ms=day_requested_ms, gap_start_ms=gap_start, gap_pull=gap_pull,
++                        gap_pull_error=gap_err, valuation=val, valuation_error=val_err)
++
++
++# ── READER side ─────────────────────────────────────────────────────────────────────────────────────────────────────
++def _covers(segs: Iterable[Dict[str, Any]], lo: int, hi: int) -> Tuple[bool, Optional[int]]:
++    """Do the inclusive [start_ms, end_ms] segments cover every integer ms in [lo, hi]? → (ok, first uncovered ms)."""
++    if lo > hi:
++        return True, None
++    cur = lo
++    for s in sorted(segs, key=lambda x: x["start_ms"]):
++        if s["start_ms"] > cur:
++            break
++        cur = max(cur, s["end_ms"] + 1)
++        if cur > hi:
++            return True, None
++    return (cur > hi), (None if cur > hi else cur)
++
++
++def _rate(row, asset: str) -> Tuple[Optional[Dict[str, float]], Optional[str]]:
++    """The venue's collateral rate for `asset` recorded on `row`, checked for sign, finiteness and event time."""
++    rec = row.get(RECORD_KEY) if isinstance(row, dict) else None
++    val = rec.get("valuation") if isinstance(rec, dict) else None
++    if not isinstance(val, dict):
++        return None, (f"no valuation on the row ({(rec or {}).get('valuation_error')})" if isinstance(rec, dict)
++                      else "row predates the flow-window record (no rate recorded)")
++    x = (val.get("rates") or {}).get(asset) if isinstance(val.get("rates"), dict) else None
++    if not isinstance(x, dict):
++        return None, f"no {asset} rate on the row (rates_error={val.get('rates_error')!r})"
++    bid, idx, tms = _fin(x.get("bid_rate")), _fin(x.get("index")), _int(x.get("time_ms"))
++    if bid is None or bid <= 0 or idx is None or idx <= 0:
++        return None, f"{asset} rate not a positive number (bid_rate={x.get('bid_rate')!r}, index={x.get('index')!r})"
++    nts = row_nav_ts(row)
++    if tms is None or nts is None or abs(tms / 1000.0 - nts) > VALUATION_MAX_SKEW_S:
++        return None, (f"{asset} rate time {tms} is not within {VALUATION_MAX_SKEW_S:.0f}s of the NAV snapshot {nts}")
++    return {"bid_rate": bid, "index": idx, "time_ms": tms}, None
++
++
++def _unit(row) -> Tuple[Optional[str], Optional[str]]:
++    """'USD' (multi-assets: NAV in USD) / 'USDT' (single-asset) / None + why."""
++    rec = row.get(RECORD_KEY) if isinstance(row, dict) else None
++    val = rec.get("valuation") if isinstance(rec, dict) else None
++    if not isinstance(val, dict):
++        return None, (f"no valuation on the row ({(rec or {}).get('valuation_error')})" if isinstance(rec, dict)
++                      else "row predates the flow-window record (margin mode not recorded)")
++    m = val.get("multi_assets_margin")
++    if m is True:
++        return "USD", None
++    if m is False:
++        return "USDT", None
++    return None, f"margin mode unknown ({val.get('multi_assets_margin_error')!r})"
++
++
++def _value(row) -> Tuple[Optional[float], Optional[str], Dict[str, Any]]:
++    """NAV of `row` in USDT-equivalent → (value, why_not, facts)."""
++    nav = _fin(row.get("nav")) if isinstance(row, dict) else None
++    if nav is None or nav <= 0:
++        return None, f"nav {row.get('nav') if isinstance(row, dict) else None!r} is not a positive number", {}
++    unit, why = _unit(row)
++    if unit is None:
++        return None, why, {"nav": nav}
++    if unit == "USDT":
++        return nav, None, {"nav": nav, "unit": "USDT"}
++    r, why = _rate(row, UNIT_ASSET)
++    if r is None:
++        return None, why, {"nav": nav, "unit": "USD"}
++    return nav / r["bid_rate"], None, {"nav": nav, "unit": "USD", "usdt_bid_rate": r["bid_rate"],
++                                       "usdt_index": r["index"]}
++
++
++def window(opening_row, closing_row, rows) -> Dict[str, Any]:
++    """Verdict for the window (nav_ts(opening_row), nav_ts(closing_row)].
++
++    `rows` = the daily_nav rows the records may come from (any superset; they are filtered by nav_ts here).
++    Returns `applies` False when the closing row carries no record — the caller then uses its legacy caliber. Otherwise:
++      state          'PRICED' | 'UNKNOWN' (never absent), `reasons` names every UNKNOWN cause
++      pct            the flow-adjusted return in % (PRICED only)
++      flow_possible  §4-4's question — True if a flow / unclassified event is in the window OR its absence is unproven
++    """
++    out: Dict[str, Any] = {"applies": has_record(closing_row), "state": None, "reasons": [], "pct": None,
++                           "basis": None, "flow_possible": None, "coverage_proven": False, "flow_usdt_eq": None,
++                           "n_flow_events": 0, "flow_events": [], "unclassified_events": [],
++                           "t0": row_nav_ts(opening_row), "t1": row_nav_ts(closing_row)}
++    if not out["applies"]:
++        return out
++    reasons: List[str] = out["reasons"]
++    t0, t1 = out["t0"], out["t1"]
++    if t1 is None:
++        reasons.append("closing row has no finite nav_ts")
++    if opening_row is None or t0 is None:
++        reasons.append("no opening row with a finite nav_ts")
++    if reasons or t0 > t1:
++        if not reasons:
++            reasons.append(f"opening nav_ts {t0} is after closing nav_ts {t1}")
++        out.update(state="UNKNOWN", flow_possible=True)
++        return out
++    t0_ms, t1_ms = t0 * 1000.0, t1 * 1000.0
++    lo, hi = int(math.floor(t0_ms)) + 1, int(math.floor(t1_ms))
++    # ★ the records on every row IN the window, the closing row's always among them
++    win_rows = [r for r in (rows or []) if has_record(r) and row_nav_ts(r) is not None and t0 < row_nav_ts(r) <= t1]
++    if not any(r is closing_row for r in win_rows):
++        win_rows.append(closing_row)
++    segs, seen, malformed = [], {}, []
++    for r in win_rows:
++        rec = r.get(RECORD_KEY)
++        try:
++            if rec.get("v") != RECORD_VERSION:
++                raise ValueError(f"record version {rec.get('v')!r} != {RECORD_VERSION}")
++            for s in rec.get("segments") or []:
++                if s.get("complete") is True and _int(s.get("start_ms")) is not None and _int(s.get("end_ms")) is not None:
++                    segs.append({"start_ms": _int(s["start_ms"]), "end_ms": _int(s["end_ms"])})
++            for e in rec.get("events") or []:
++                seen.setdefault(_event_key(e), e)
++            # ★ IDENTITY: the 'day' segment's TRANSFER quantities re-add to the row's own legacy carrier (same pull). A
++            #   repriced row's carrier was re-fetched over another window (ops/reprice_day.py) — not comparable, named.
++            _day = [s for s in (rec.get("segments") or []) if s.get("name") == "day"]
++            _carrier = _fin(r.get("external_flow_usdt"))
++            if _day and _day[0].get("complete") is True and _carrier is not None and not r.get("repriced_at"):
++                _q = [e.get("amount") for e in (rec.get("events") or [])
++                      if e.get("seg") == "day" and e.get("type") == "TRANSFER"]
++                if any(_fin(q) is None for q in _q) or abs(sum(float(q) for q in _q) - _carrier) > 1e-6 * max(1.0, abs(_carrier)):
++                    reasons.append(f"record identity: row nav_ts={row_nav_ts(r)} day-segment TRANSFER sum "
++                                   f"{sum(_fin(q) or 0.0 for q in _q)!r} != its external_flow_usdt {_carrier!r}")
++        except Exception as e:                                          # noqa: BLE001 — a malformed record is UNKNOWN
++            malformed.append(f"row nav_ts={row_nav_ts(r)}: {type(e).__name__}: {str(e)[:80]}")
++    if malformed:
++        reasons.append("malformed flow record(s): " + "; ".join(malformed))
++    ok, gap_at = _covers(segs, lo, hi)
++    out["coverage_proven"] = bool(ok)
++    if not ok:
++        _inc = [f"{s.get('name')}[{s.get('start_ms')},{s.get('end_ms')}]: {s.get('why_incomplete')}"
++                for r in win_rows for s in ((r.get(RECORD_KEY) or {}).get("segments") or []) if s.get("complete") is not True]
++        reasons.append(f"coverage: no complete income pull covers ms {gap_at} of ({lo - 1}, {hi}]"
++                       + (f" — incomplete: {_inc}" if _inc else ""))
++    ev_in = sorted((e for e in seen.values() if _int(e.get("time_ms")) is not None and t0_ms < e["time_ms"] <= t1_ms),
++                   key=lambda e: e["time_ms"])
++    bad_time = [e for e in seen.values() if _int(e.get("time_ms")) is None]
++    if bad_time:
++        reasons.append(f"{len(bad_time)} recorded event(s) without a usable event time")
++    flows = [e for e in ev_in if e.get("type") in FLOW_INCOME_TYPES]
++    uncls = [e for e in ev_in if e.get("type") not in FLOW_INCOME_TYPES and e.get("type") not in PNL_INCOME_TYPES]
++    out.update(n_flow_events=len(flows), flow_events=[{k: e.get(k) for k in ("time_ms", "type", "asset", "amount", "id")}
++                                                      for e in flows],
++               unclassified_events=[{k: e.get(k) for k in ("time_ms", "type", "asset", "amount", "id")} for e in uncls])
++    if uncls:
++        reasons.append("unclassified income type(s) in the window: "
++                       + ", ".join(sorted({str(e.get('type')) for e in uncls}))
++                       + " — classify in flow_window.PNL_INCOME_TYPES / FLOW_INCOME_TYPES")
++    out["flow_possible"] = bool(flows or uncls or bad_time or not ok or malformed
++                                or any(x.startswith("record identity") for x in reasons))
++    # ── units: flows at the closing row's rate, in USDT-equivalent ─────────────────────────────────────────────────────
++    F, fparts = 0.0, []
++    u1, _u1why = _rate(closing_row, UNIT_ASSET)
++    unit1, _unit1why = _unit(closing_row)
++    for e in flows:
++        q = _fin(e.get("amount"))
++        a = str(e.get("asset") or "")
++        if q is None:
++            reasons.append(f"flow {e.get('id')} amount {e.get('amount_raw')!r} is not a number")
++            continue
++        if a == UNIT_ASSET:
++            F += q
++            fparts.append({"id": e.get("id"), "asset": a, "qty": q, "usdt_eq": q})
++            continue
++        if unit1 != "USD":
++            reasons.append(f"flow {e.get('id')} is {q} {a}: its value in NAV is undeclared when the closing row's margin "
++                           f"mode is {unit1 or 'unknown'} ({_unit1why or 'single-asset'})")
++            continue
++        ra, why = _rate(closing_row, a)
++        if ra is None or u1 is None:
++            reasons.append(f"flow {e.get('id')} is {q} {a}: no valuation — {why or _u1why}")
++            continue
++        v = q * ra["bid_rate"] / u1["bid_rate"]
++        F += v
++        fparts.append({"id": e.get("id"), "asset": a, "qty": q, "bid_rate": ra["bid_rate"], "usdt_eq": v})
++    out["flow_parts"] = fparts
++    # ── endpoints ─────────────────────────────────────────────────────────────────────────────────────────────────────
++    V1, why1, f1 = _value(closing_row)
++    V0, why0, f0 = _value(opening_row)
++    out["closing"], out["opening"] = f1, f0
++    if V1 is None:
++        reasons.append(f"closing row: {why1}")
++    if reasons:
++        out["state"] = "UNKNOWN"
++        return out
++    out["flow_usdt_eq"] = F
++    if V0 is not None:
++        out.update(state="PRICED", basis="USDT_EQ", pct=(V1 - F - V0) / V0 * 100.0)
++        return out
++    # ── the opening row carries no rate: the unit cannot be separated ─────────────────────────────────────────────────
++    nav0, nav1 = _fin(opening_row.get("nav")), _fin(closing_row.get("nav"))
++    if nav0 is None or nav0 <= 0:
++        reasons.append(f"opening row: {why0}")
++        out["state"] = "UNKNOWN"
++        return out
++    if unit1 == "USD":
++        dev = abs(u1["index"] - 1.0)
++        out["closing_usdt_index_dev"] = dev
++        if dev > DEPEG_TOL:
++            reasons.append(f"unit not separable (opening row: {why0}) and the closing USDTUSD index {u1['index']} is "
++                           f"{dev:.4%} off peg > ±{DEPEG_TOL:.2%}")
++            out["state"] = "UNKNOWN"
++            return out
++        F_row = F * u1["bid_rate"]
++    else:
++        F_row = F
++    out.update(state="PRICED", basis=f"ROW_UNIT (opening row: {why0}; peg within ±{DEPEG_TOL:.2%} at the closing row)",
++               pct=(nav1 - F_row - nav0) / nav0 * 100.0)
++    return out
+diff --git a/live/tests_flow_window.py b/live/tests_flow_window.py
+new file mode 100644
+index 0000000..b1c40ad
+--- /dev/null
++++ b/live/tests_flow_window.py
+@@ -0,0 +1,610 @@
++"""RULING #5 (user, 2026-09-19, "按最佳建议"): §4-2 / §4-4 read external money by EVENT TIME, PER ASSET, in the NAV's own
++unit — and say UNKNOWN, with the reason named, whenever any of it cannot be proven.
++
++*** MOCK ONLY: pilot_log trees in tmp, `watchdog.evaluate`, `flow_window`, and one run of the REAL anchor_loop daily_nav
++    writer against an in-process fake venue (the broker's `_request` is replaced: no socket is opened, no key exists).
++    Mutants are in-memory only; [Z] asserts the on-disk sources are byte-identical before and after. ***
++
++THE DEFECTS (research docs/RESULT_cash_closure_per_trade_2026-09-19.md §4; 409ea16 live/watchdog.py L1367 §4-2 and
++L1883 §4-4, both reading `daily_nav.external_flow_usdt` = income_since(00:00Z)["external_flow"] = by_type["TRANSFER"]):
++  D1 UNITS       assets added by QUANTITY (08-05: −200 USDT + 0.33275025 BNB recorded as −199.667); and `nav` is USD on a
++                 multiAssetsMargin account, so a USDT de-peg reads as P&L.
++  D2 EVENT TIME  a since-00:00Z calendar cumulative, not the flow between the two NAV rows compared.
++  D3 THE GAP     a transfer between the previous day's last row (~20:4xZ) and 00:00Z is in neither day's carrier: the next
++                 day reads a withdrawal as a LOSS. §4-4 has the same blind spot.
++
++CELLS. ★RED0 = the cell's assertion FAILS on 409ea16 (the new suite run against the pre-fix watchdog / writer / broker,
++with only live/flow_window.py added so the fixtures can be built — receipt in the fix record). Unmarked cells are
++controls that must hold on BOTH trees, or capability cells whose 409ea16 state is the same blind (named as such).
++  [0]  controls: legacy rows (no flow record) read exactly as the B32 caliber — −0.5% quiet, −4.5% trips, transfer day
++       blind; new rows, no flow, flat peg: −0.5% quiet, −4.5% TRIPS (the fix does not weaken the trip).
++  [1]  ★RED0 (i)  −10,000 USDT withdrawn at D1 22:00Z (in the gap): 409ea16 reads D2 at −10.30% and trips §4-2;
++       now −0.30%, the one event counted once though two D2 rows carry it; §4-4 prices D2 by the transfer-day rule.
++  [1b] ★RED0 (i)  −30,000 in the gap: 409ea16 trips §4-2 AND §4-4 (−30.3% < −25%); now neither.
++  [2a] ★RED0 (ii) the real 08-05 shape (−200 USDT and +0.33275025 BNB in one window): 409ea16 blind; now priced
++       −0.50% with each asset valued at the closing row's venue rate — the flow is NOT −199.667.
++  [2b] ★RED0 (ii) −10 BNB and +10 USDT in one window: the quantity sum is 0, so 409ea16 reads a −5.7% LOSS and trips;
++       now −0.20%.
++  [3a] ★RED0 (iii) a −6,000 transfer 1 s AFTER D1's last snapshot and 1 s BEFORE that row's income pull: 409ea16 marks
++       D1 a transfer day and reads D2 at −6.10% (trips); now the event lands in D2's window by its own time — D1 priced
++       0.00%, D2 −0.10%.
++  [3b] ★RED0 (iii) first day, transfers before the day's first row (the 08-01 shape): 409ea16 blind; now priced.
++  [4a] ★RED0 (iv) a BNB withdrawal in the gap and no BNB rate at the closing row: 409ea16 trips (−5.7%); now UNKNOWN,
++       reason names BNB, cond2 blind, not tripped.
++  [4b] ★RED0 (iv) the closing row's valuation read failed (HTTP 503) + a USDT gap withdrawal: now UNKNOWN named.
++  [4c] ★RED0 (iv) the gap pull raised + a USDT gap withdrawal: now UNKNOWN "coverage"; §4-4 counts the window as a
++       possible transfer (transfer-day rule), 409ea16 reads −10.3% there.
++  [4d] ★RED0 (iv) an income type nobody classified (INTERNAL_TRANSFER) in the gap: now UNKNOWN naming the type.
++  [4e] ★RED0 (iv) margin mode unreadable: 409ea16 prices the day; now UNKNOWN named.
++  [5a] ★RED0 (v)  USDT index 0.9998 → 0.9598 with −0.5% of real P&L, both rows valued: 409ea16 reads −4.48% and trips;
++       now −0.50% (basis USDT_EQ).
++  [5b] ★RED0 (v)  the same de-peg with an opening row written before this build (no rate): unit not separable and the
++       closing index is 4.0% off peg > ±0.50% ⇒ UNKNOWN; 409ea16 trips.
++  [5c]  (v) control: opening row without a rate, peg normal ⇒ priced in the rows' own unit — the SAME number 409ea16
++       gives (both trees).
++  [6]  identity: a record whose 'day' TRANSFER sum disagrees with the row's own carrier ⇒ UNKNOWN "record identity"
++       (409ea16: the same blind, as a "transfer day" — capability cell, not RED0).
++  [7]  ★RED0 end-to-end: the REAL anchor_loop.finalize_anchor writes four rows against a fake venue holding a gap
++       withdrawal; the gap pull is requested as [floor(D1 last nav_ts), D2 00:00Z − 1]; evaluate: not tripped, −0.30%.
++  [M]  (vi) mutants of live/flow_window.py, each REQUIRED to turn its cell red after the cell was seen green:
++       gap events dropped · every asset at face (quantity sum) · upper bound dropped (attribute by the pull that saw it) ·
++       unvalued flow skipped · coverage unchecked · unclassified type folded into P&L · no unit separation ·
++       de-peg tolerance disabled · unknown margin mode read as USD · identity check removed · dedupe removed ·
++       writer's gap pull removed.
++  [Z]  on-disk sources byte-identical before/after.
++
++Exit 0 = all pass.
++"""
++import sys
++sys.dont_write_bytecode = True          # ★ before the first import: this suite writes nothing into the repo
++import calendar                          # noqa: E402
++import contextlib                        # noqa: E402
++import hashlib                           # noqa: E402
++import math                              # noqa: E402
++import os                                # noqa: E402
++import shutil                            # noqa: E402
++import tempfile                          # noqa: E402
++import time                              # noqa: E402
++import types                             # noqa: E402
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++REPO = os.path.dirname(HERE)
++for _d in ("live", "signal", "scheduler"):
++    sys.path.insert(0, os.path.join(REPO, _d))
++
++_TMP = tempfile.mkdtemp(prefix="flow_window_suite_")
++# ★ every state path the loop could touch goes to tmp BEFORE anchor_loop is imported (tests_signal_and_loop's lesson)
++for _k, _f in (("LIVE_LOOP_STATE", "loop_state.json"), ("LIVE_PREDS_PATH", "preds.json"),
++               ("LIVE_KILL_SWITCH", "KILL_SWITCH.json"), ("LIVE_HARVEST_STATE", "harvest_ema.json"),
++               ("LIVE_FEE_BASELINE", "fee_asset_baseline.json")):
++    os.environ[_k] = os.path.join(_TMP, _f)
++os.environ["LIVE_STATE_ROOT"] = os.path.join(_TMP, "state")
++os.environ.pop("LIVE_MODE", None)
++
++import pilot_log as PL                   # noqa: E402
++import flow_window as FW                 # noqa: E402
++import watchdog as WD                    # noqa: E402
++import binance_broker as BB              # noqa: E402
++
++_SRC = {p: hashlib.sha256(open(os.path.join(REPO, p), "rb").read()).hexdigest()
++        for p in ("live/flow_window.py", "live/watchdog.py", "scheduler/anchor_loop.py", "live/binance_broker.py")}
++
++FAILS, N = [], [0]
++
++
++def check(name, cond, detail=""):
++    N[0] += 1
++    print(f"  {'OK  ' if cond else 'FAIL'}  {name}{('  — ' + str(detail)[:500]) if detail != '' else ''}", flush=True)
++    if not cond:
++        FAILS.append(name)
++
++
++# ── fixtures: account truth → rows the NEW writer would write ────────────────────────────────────────────────────────
++D0, D1, D2 = "20260910", "20260911", "20260912"
++U0 = 0.9998                    # USDTUSD index (bidBuffer 1e-4)
++BNBI = 580.0                   # BNBUSD index (bidBuffer 0.05)
++
++
++def T(day, hh, mm, ss=0.0):
++    return calendar.timegm(time.strptime(day, "%Y%m%d")) + hh * 3600 + mm * 60 + ss
++
++
++def MS(t):
++    return int(math.floor(t * 1000.0))
++
++
++def DS(day):
++    return MS(T(day, 0, 0))
++
++
++def UB(idx=U0):
++    return idx * (1 - 1e-4)
++
++
++def BB_(idx=BNBI):
++    return idx * (1 - 0.05)
++
++
++def VAL(t, u_idx=U0, bnb_idx=BNBI, mam=True, drop=(), mam_error=None):
++    rates = {"USDT": {"index": u_idx, "bid_rate": UB(u_idx), "time_ms": MS(t + 7)},
++             "BNB": {"index": bnb_idx, "bid_rate": BB_(bnb_idx), "time_ms": MS(t + 7)}}
++    for a in drop:
++        rates.pop(a, None)
++    return {"read_ts": t + 7, "multi_assets_margin": mam, "multi_assets_margin_error": mam_error,
++            "rates": rates, "rates_error": None}
++
++
++def INC(t, ty, asset, amount, tid, symbol=""):
++    return {"time": MS(t), "incomeType": ty, "asset": asset, "income": f"{amount:.8f}", "symbol": symbol,
++            "tranId": tid, "info": ty}
++
++
++def ROW(day, t, W, B=0.0, *, prev_t=None, ledger=(), u_idx=U0, bnb_idx=BNBI, val="auto", gap_error=None,
++        realised=0.0, record=True, day_req=None, carrier=None):
++    """A daily_nav row as the new writer writes it at snapshot time t for a wallet of W USDT + B BNB: nav in USD; the day
++    pull sees every ledger row in [00:00Z, day_req] (default t + 2 s — AFTER the snapshot, as in production); the gap
++    pull sees [floor(prev_t), 00:00Z − 1]. `carrier` overrides the legacy quantity sum (identity tamper only)."""
++    day_req = t + 2.0 if day_req is None else day_req
++    ds = DS(day)
++    day_rows = [r for r in ledger if ds <= r["time"] <= MS(day_req)]
++    legacy = sum(float(r["income"]) for r in day_rows if r["incomeType"] == "TRANSFER")   # the 409ea16 carrier
++    nav = W * UB(u_idx) + B * BB_(bnb_idx)
++    row = dict(day=int(day), target_gross=2.0 * nav, nav=nav, sizing_policy="constant_leverage_2.00",
++               realised_pnl=realised, unrealised_pnl=0.0, realised_truncated=False,
++               external_flow_usdt=(legacy if carrier is None else carrier), nav_ts=t)
++    if record:
++        gs = MS(prev_t) if prev_t is not None else None
++        gap_rows = [r for r in ledger if gs is not None and gs <= r["time"] <= ds - 1]
++        v = VAL(t, u_idx, bnb_idx) if val == "auto" else val
++        row[FW.RECORD_KEY] = FW.build_record(
++            day_start_ms=ds, day_pull={"rows": day_rows, "truncated": False, "start_ms": ds, "end_ms": None},
++            day_pull_error=None, day_requested_ms=MS(day_req), gap_start_ms=gs,
++            gap_pull=(None if gap_error else {"rows": gap_rows, "truncated": False, "start_ms": gs, "end_ms": ds - 1}),
++            gap_pull_error=gap_error, valuation=v,
++            valuation_error=(None if v else "HTTPError: HTTP 503 from /fapi/v1/assetIndex"))
++    return row
++
++
++def TREE(days_rows):
++    root = tempfile.mkdtemp(prefix="fw_tree_", dir=_TMP)
++    for day in sorted(days_rows):
++        ats = T(day, 0, 20)
++        lg = PL.PilotLogger(root, day)
++        lg.anchor(anchor_ts=ats, target_vector_hash="h", realized_gross=0.0, target_gross=20000.0, n_names_skipped=0,
++                  regime_at_anchor="calm", mid_at_anchor_vector={"AAAUSDT": 1.0}, factor_version="f", panel_hash="p")
++        lg.order(anchor_ts=ats, symbol="AAAUSDT", side="buy", target_w=0.0, prev_w=0.0, intended_notional=0.0,
++                 order_type="maker", submit_ts=None, price_submit=None, mid_at_submit=1.0, mid_at_anchor=1.0,
++                 filled_notional=None, avg_fill_px=None, first_fill_ts=None, last_fill_ts=None, cancel_ts=None,
++                 fee_paid=None, rebalance_id=f"A{int(ats)}", attempt_idx=1, terminal_reason="skipped_min_notional",
++                 notional_currency="USDT")
++        lg.position_readback(anchor_ts=ats, symbol="AAAUSDT", venue_position_notional=0.0, venue_position_qty=0.0,
++                             source="mock", read_ts=ats + 10)
++        for r in days_rows[day]:
++            lg.daily_nav(**r)
++        lg.close()
++    return root
++
++
++def EV(days_rows):
++    r = TREE(days_rows)
++    try:
++        ev = WD.evaluate(r, venue_events=[], ops_stats=[])
++    finally:
++        shutil.rmtree(r, ignore_errors=True)
++    c2, c4 = ev["conditions"]["cond2_day_loss"], ev["conditions"]["cond4_drawdown"]
++    return ev, c2, c4
++
++
++def fwday(c2, day):
++    return next((x for x in (c2.get("flow_window_days") or []) if x.get("day") == day), {})
++
++
++def trig(ev, prefix):
++    return any(str(t).startswith(prefix) for t in ev.get("triggers") or [])
++
++
++def near(a, b, tol=1e-9):
++    return a is not None and b is not None and abs(float(a) - float(b)) <= tol
++
++
++def _show(ev, c2, c4, day=None):
++    return {"tripped": ev.get("tripped"), "triggers": ev.get("triggers"), "recent_day": c2.get("recent_day"),
++            "recent_pct": c2.get("recent_day_pct"), "blind": c2.get("blind"),
++            "unpriced_why": str(c2.get("latest_equity_day_unpriced_reason"))[:220],
++            "fw": {k: fwday(c2, day).get(k) for k in ("state", "basis", "pct", "flow_usdt_eq")} if day else None,
++            "cond4_cum": c4.get("cum_return_from_start_pct")}
++
++
++# ── the cells, as functions: the mutant section re-runs them ─────────────────────────────────────────────────────────
++def two_day(W1, W2_first, W2_last, *, ledger=(), B1=0.0, B2_first=0.0, B2_last=0.0, realised2=0.0, v2="auto",
++            gap_error=None, u2=U0, d1_record=True):
++    t1 = T(D1, 20, 45)
++    return {D1: [ROW(D1, T(D1, 0, 45), W1, B1, ledger=ledger, record=d1_record),
++                 ROW(D1, t1, W1, B1, ledger=ledger, record=d1_record)],
++            D2: [ROW(D2, T(D2, 0, 45), W2_first, B2_first, prev_t=t1, ledger=ledger, val=v2, gap_error=gap_error,
++                     u_idx=u2),
++                 ROW(D2, T(D2, 20, 45), W2_last, B2_last, prev_t=t1, ledger=ledger, val=v2, gap_error=gap_error,
++                     realised=realised2, u_idx=u2)]}
++
++
++GAP10 = [INC(T(D1, 22, 0), "TRANSFER", "USDT", -10000.0, "g1")]
++
++
++def cell_1():
++    ev, c2, c4 = EV(two_day(100_000.0, 90_000.0, 89_700.0, ledger=GAP10, realised2=-300.0))
++    f = fwday(c2, D2)
++    ok = (ev["tripped"] is False and not trig(ev, "§4-2") and c2.get("recent_day") == D2
++          and near(c2.get("recent_day_pct"), -0.3) and c2.get("blind") is False
++          and f.get("basis") == "USDT_EQ" and [e.get("id") for e in (f.get("flow_events") or [])] == ["g1"]
++          and near(f.get("flow_usdt_eq"), -10_000.0)
++          and near(c4.get("cum_return_from_start_pct"), round(-300.0 / (100_000.0 * UB()) * 100.0, 4), 1e-6))
++    return ok, _show(ev, c2, c4, D2)
++
++
++def cell_1b():
++    led = [INC(T(D1, 22, 0), "TRANSFER", "USDT", -30000.0, "g3")]
++    ev, c2, c4 = EV(two_day(100_000.0, 70_000.0, 69_700.0, ledger=led, realised2=-300.0))
++    ok = (ev["tripped"] is False and not trig(ev, "§4-2") and not trig(ev, "§4-4")
++          and near(c2.get("recent_day_pct"), -0.3))
++    return ok, _show(ev, c2, c4, D2)
++
++
++LED_0805 = [INC(T(D2, 7, 23, 34), "TRANSFER", "USDT", -200.0, "397472948322"),
++            INC(T(D2, 7, 24, 51), "TRANSFER", "BNB", 0.33275025, "397472944540")]
++
++
++def cell_2a():
++    ev, c2, c4 = EV(two_day(100_000.0, 100_000.0, 99_300.0, ledger=LED_0805, B2_last=0.33275025, realised2=-500.0))
++    f = fwday(c2, D2)
++    want_F = -200.0 + 0.33275025 * BB_() / UB()
++    ok = (c2.get("recent_day") == D2 and near(c2.get("recent_day_pct"), -0.5) and c2.get("blind") is False
++          and near(f.get("flow_usdt_eq"), want_F) and not near(f.get("flow_usdt_eq"), -199.66724975, 1e-3))
++    return ok, dict(_show(ev, c2, c4, D2), want_F=want_F)
++
++
++def cell_2b():
++    led = [INC(T(D2, 2, 0), "TRANSFER", "BNB", -10.0, "x1"), INC(T(D2, 2, 1), "TRANSFER", "USDT", 10.0, "x2")]
++    ev, c2, c4 = EV(two_day(94_000.0, 94_000.0, 93_810.0, ledger=led, B1=10.0, B2_first=10.0, B2_last=0.0,
++                            realised2=-200.0))
++    V0 = 94_000.0 + 10.0 * BB_() / UB()
++    ok = (ev["tripped"] is False and not trig(ev, "§4-2") and near(c2.get("recent_day_pct"), -200.0 / V0 * 100.0))
++    return ok, dict(_show(ev, c2, c4, D2), want=-200.0 / V0 * 100.0)
++
++
++def cell_3a():
++    tb = T(D1, 20, 45, 0.0)
++    led = [INC(T(D1, 20, 45, 1.0), "TRANSFER", "USDT", -6000.0, "b1")]
++    t0 = T(D0, 20, 45)
++    rows = {D0: [ROW(D0, T(D0, 0, 45), 100_000.0), ROW(D0, t0, 100_000.0)],
++            D1: [ROW(D1, T(D1, 0, 45), 100_000.0, prev_t=t0, ledger=led),
++                 ROW(D1, tb, 100_000.0, prev_t=t0, ledger=led, day_req=T(D1, 20, 45, 2.0))],
++            D2: [ROW(D2, T(D2, 0, 45), 94_000.0, prev_t=tb, ledger=led),
++                 ROW(D2, T(D2, 20, 45), 93_900.0, prev_t=tb, ledger=led, realised=-100.0)]}
++    ev, c2, c4 = EV(rows)
++    f1, f2 = fwday(c2, D1), fwday(c2, D2)
++    ok = (ev["tripped"] is False and not trig(ev, "§4-2")
++          and f1.get("state") == "PRICED" and near(f1.get("pct"), 0.0) and not f1.get("flow_events")
++          and f2.get("state") == "PRICED" and near(f2.get("pct"), -0.1)
++          and [e.get("id") for e in (f2.get("flow_events") or [])] == ["b1"]
++          and rows[D1][-1]["external_flow_usdt"] == -6000.0)          # the calendar carrier DID count it on D1
++    return ok, dict(_show(ev, c2, c4, D2), d1=f1)
++
++
++def cell_3b():
++    led = [INC(T(D1, 6, 20, 43), "TRANSFER", "USDT", 1929.72689369, "a1"),
++           INC(T(D1, 6, 28, 50), "TRANSFER", "USDT", 192.97647652, "a2")]
++    rows = {D1: [ROW(D1, T(D1, 6, 44, 59), 2137.18, ledger=led),
++                 ROW(D1, T(D1, 20, 18, 15), 2145.00, ledger=led, realised=7.82)]}
++    ev, c2, c4 = EV(rows)
++    ok = (c2.get("recent_day") == D1 and c2.get("blind") is False
++          and near(c2.get("recent_day_pct"), (2145.00 - 2137.18) / 2137.18 * 100.0))
++    return ok, _show(ev, c2, c4, D1)
++
++
++def cell_4a():
++    led = [INC(T(D1, 22, 0), "TRANSFER", "BNB", -10.0, "n1")]
++    v = {}
++    rows = two_day(94_000.0, 94_000.0, 93_800.0, ledger=led, B1=10.0, realised2=-200.0)
++    for r in rows[D2]:                                    # the closing day's rows carry no BNB rate
++        v = r[FW.RECORD_KEY]["valuation"]
++        v["rates"].pop("BNB", None)
++    ev, c2, c4 = EV(rows)
++    why = str(c2.get("latest_equity_day_unpriced_reason"))
++    ok = (ev["tripped"] is False and not trig(ev, "§4-2") and c2.get("blind") is True
++          and "flow window UNKNOWN" in why and "BNB" in why and "no valuation" in why
++          and "cond2_day_loss" in ev.get("conditions_blind", []))
++    return ok, _show(ev, c2, c4, D2)
++
++
++def cell_4b():
++    ev, c2, c4 = EV(two_day(100_000.0, 90_000.0, 89_700.0, ledger=GAP10, realised2=-300.0, v2=None))
++    why = str(c2.get("latest_equity_day_unpriced_reason"))
++    ok = (ev["tripped"] is False and c2.get("blind") is True and "closing row" in why and "503" in why)
++    return ok, _show(ev, c2, c4, D2)
++
++
++def cell_4c():
++    ev, c2, c4 = EV(two_day(100_000.0, 90_000.0, 89_700.0, ledger=GAP10, realised2=-300.0,
++                            gap_error="URLError: <urlopen error timed out>"))
++    why = str(c2.get("latest_equity_day_unpriced_reason"))
++    ok = (ev["tripped"] is False and c2.get("blind") is True and "coverage" in why and "pull raised" in why
++          and near(c4.get("cum_return_from_start_pct"), round(-300.0 / (100_000.0 * UB()) * 100.0, 4), 1e-6))
++    return ok, _show(ev, c2, c4, D2)
++
++
++def cell_4d():
++    led = [INC(T(D1, 22, 0), "INTERNAL_TRANSFER", "USDT", -10000.0, "i1")]
++    ev, c2, c4 = EV(two_day(100_000.0, 90_000.0, 89_700.0, ledger=led, realised2=-300.0))
++    why = str(c2.get("latest_equity_day_unpriced_reason"))
++    ok = (ev["tripped"] is False and c2.get("blind") is True and "unclassified" in why
++          and "INTERNAL_TRANSFER" in why)
++    return ok, _show(ev, c2, c4, D2)
++
++
++def cell_4e():
++    rows = two_day(100_000.0, 100_000.0, 99_500.0, realised2=-500.0)
++    for r in rows[D2]:
++        r[FW.RECORD_KEY]["valuation"].update(multi_assets_margin=None, multi_assets_margin_error="HTTPError 500")
++    ev, c2, c4 = EV(rows)
++    why = str(c2.get("latest_equity_day_unpriced_reason"))
++    ok = c2.get("blind") is True and "margin mode unknown" in why and ev["tripped"] is False
++    return ok, _show(ev, c2, c4, D2)
++
++
++def cell_5a():
++    ev, c2, c4 = EV(two_day(100_000.0, 99_800.0, 99_500.0, realised2=-500.0, u2=0.9598))
++    f = fwday(c2, D2)
++    ok = (ev["tripped"] is False and not trig(ev, "§4-2") and near(c2.get("recent_day_pct"), -0.5)
++          and f.get("basis") == "USDT_EQ")
++    return ok, dict(_show(ev, c2, c4, D2), legacy_reading=(99_500.0 * UB(0.9598) / (100_000.0 * UB()) - 1) * 100)
++
++
++def cell_5b():
++    ev, c2, c4 = EV(two_day(100_000.0, 99_800.0, 99_500.0, realised2=-500.0, u2=0.9598, d1_record=False))
++    why = str(c2.get("latest_equity_day_unpriced_reason"))
++    ok = (ev["tripped"] is False and c2.get("blind") is True and "off peg" in why and "not separable" in why)
++    return ok, _show(ev, c2, c4, D2)
++
++
++def cell_5c():
++    ev, c2, c4 = EV(two_day(100_000.0, 99_800.0, 99_500.0, realised2=-500.0, u2=0.9997, d1_record=False))
++    legacy = (99_500.0 * UB(0.9997) - 100_000.0 * UB()) / (100_000.0 * UB()) * 100.0
++    ok = ev["tripped"] is False and c2.get("blind") is False and near(c2.get("recent_day_pct"), legacy, 1e-9)
++    return ok, dict(_show(ev, c2, c4, D2), legacy=legacy)
++
++
++def cell_6():
++    rows = two_day(100_000.0, 100_000.0, 99_500.0, realised2=-500.0)
++    rows[D2][-1]["external_flow_usdt"] = -5000.0         # the carrier says a transfer; the record's own pull has none
++    ev, c2, c4 = EV(rows)
++    why = str(c2.get("latest_equity_day_unpriced_reason"))
++    ok = c2.get("blind") is True and ev["tripped"] is False and "record identity" in why
++    return ok, _show(ev, c2, c4, D2)
++
++
++# ── [7] the REAL writer, end to end ──────────────────────────────────────────────────────────────────────────────────
++class _Venue(BB.BinanceBroker):
++    """A broker whose venue is a list in memory. `_request` is replaced, so nothing leaves the process; the mode is
++    switched after construction so `income_since` / `nav_valuation` run their REAL venue branches over it."""
++    def __init__(self, ledger, state):
++        super().__init__()                     # DRY_RUN construction: no credentials exist or are read
++        self.mode = "TESTNET"
++        self.ledger, self.state, self.calls = ledger, state, []
++
++    def _request(self, method, path, params=None, signed=False, host=None):
++        st, p = self.state, dict(params or {})
++        self.calls.append((method, path, p, signed))
++        if path == "/fapi/v1/income":
++            s0 = int(p["startTime"])
++            e0 = min(int(p.get("endTime", MS(st["now"]))), MS(st["now"]))
++            rows = sorted((r for r in self.ledger if s0 <= r["time"] <= e0), key=lambda r: r["time"])
++            return [dict(r) for r in rows][: int(p.get("limit", 1000))]
++        if path == "/fapi/v1/multiAssetsMargin":
++            return {"multiAssetsMargin": True}
++        if path == "/fapi/v1/assetIndex":
++            tm = MS(st["now"] + 1)
++            return [{"symbol": "USDTUSD", "time": tm, "index": f"{U0:.8f}", "bidRate": f"{UB():.8f}"},
++                    {"symbol": "BNBUSD", "time": tm, "index": f"{BNBI:.8f}", "bidRate": f"{BB_():.8f}"},
++                    {"symbol": "BTCUSDT", "time": tm, "index": "1", "bidRate": "1"}]
++        raise AssertionError(f"unexpected venue call in the fake: {method} {path}")
++
++    def account_snapshot(self):
++        st = self.state
++        nav = st["W"] * UB()
++        return {"total_wallet_balance": nav, "total_unrealized_profit": 0.0, "total_margin_balance": nav,
++                "available_balance": nav, "equity": nav, "positions_notional": {}, "positions_contracts": {},
++                "positions_unrealized": {}, "read_ts": st["now"]}
++
++
++def cell_7(detail_out=None):
++    import importlib
++    import anchor_loop as AL
++    import binance_executor as EX
++    importlib.reload(AL)
++    root = tempfile.mkdtemp(prefix="fw_writer_", dir=_TMP)
++    led = list(GAP10) + [INC(T(D2, 12, 0), "REALIZED_PNL", "USDT", -300.0, "p1", "BTCUSDT")]
++    st = {"now": None, "W": None}
++    br = _Venue(led, st)
++    alarms = []
++    for day, hh, mm, W in ((D1, 0, 45, 100_000.0), (D1, 20, 45, 100_000.0), (D2, 0, 45, 90_000.0),
++                           (D2, 20, 45, 89_700.0)):
++        st.update(now=T(day, hh, mm), W=W)
++        lg = PL.PilotLogger(root, day)
++        lp = AL.AnchorLoop(br, EX.RebalanceExecutor(br), gross_usdt=200_000, log=lg,
++                           alarm=lambda s, m: alarms.append((s, m)))
++        lp.finalize_anchor({"action": "HOLD"}, None, now=T(day, hh, mm))
++        lg.close()
++    navs = {d: PL.read_day(root, d)["daily_nav"] for d in (D1, D2)}
++    gap_calls = [c for c in br.calls if c[1] == "/fapi/v1/income" and "endTime" in c[2]]
++    try:
++        ev = WD.evaluate(root, venue_events=[], ops_stats=[])
++    finally:
++        shutil.rmtree(root, ignore_errors=True)
++    c2, c4 = ev["conditions"]["cond2_day_loss"], ev["conditions"]["cond4_drawdown"]
++    rec = navs[D2][-1].get(FW.RECORD_KEY) or {}
++    ok = (len(navs[D1]) == 2 and len(navs[D2]) == 2
++          and all(FW.RECORD_KEY in r for d in navs for r in navs[d])
++          and any(int(c[2]["startTime"]) == MS(T(D1, 20, 45)) and int(c[2]["endTime"]) == DS(D2) - 1
++                  for c in gap_calls)
++          and (rec.get("valuation") or {}).get("multi_assets_margin") is True
++          and not trig(ev, "§4-2") and not trig(ev, "§4-4")
++          and c2.get("recent_day") == D2 and near(c2.get("recent_day_pct"), -0.3))
++    return ok, dict(_show(ev, c2, c4, D2), gap_calls=[(c[2].get("startTime"), c[2].get("endTime")) for c in gap_calls],
++                    alarms=alarms[:3])
++
++
++CELLS = [
++    ("[1] ★RED0 (i) −10,000 USDT withdrawn in the D1 20:45Z→00:00Z gap is NOT a loss: D2 reads −0.30% (not −10.30%), "
++     "not tripped, the one event counted once though two D2 rows carry it; §4-4 prices D2 by the transfer-day rule", cell_1),
++    ("[1b] ★RED0 (i) a −30,000 gap withdrawal trips neither §4-2 nor §4-4 (409ea16: both, −30.3%)", cell_1b),
++    ("[2a] ★RED0 (ii) the 08-05 shape (−200 USDT, +0.33275025 BNB) is priced −0.50% with each asset at the closing "
++     "row's venue rate — the flow is −200 + 0.33275025×BNB bidRate/USDT bidRate, NOT the quantity sum −199.667", cell_2a),
++    ("[2b] ★RED0 (ii) −10 BNB and +10 USDT in one window (quantity sum 0): −0.20%, not a −5.7% loss, not tripped", cell_2b),
++    ("[3a] ★RED0 (iii) a transfer 1 s after D1's last snapshot (and 1 s before its pull) lands in D2's window by its "
++     "own time: D1 priced 0.00% with no flow, D2 −0.10% (409ea16: D1 'transfer day', D2 −6.10% trips)", cell_3a),
++    ("[3b] ★RED0 (iii) first day, transfers before the day's first row: the intraday window (first row, last row] "
++     "has no flow ⇒ priced, not blind", cell_3b),
++    ("[4a] ★RED0 (iv) a BNB withdrawal in the gap with no BNB rate at the closing row ⇒ UNKNOWN naming BNB, cond2 "
++     "blind (in conditions_blind), not tripped", cell_4a),
++    ("[4b] ★RED0 (iv) the closing row's valuation read failed ⇒ UNKNOWN naming the closing row and the 503", cell_4b),
++    ("[4c] ★RED0 (iv) the gap pull raised ⇒ cond2 UNKNOWN 'coverage … pull raised'; §4-4 treats the unproven window "
++     "as a possible transfer (transfer-day rule: −0.30%, not −10.3%)", cell_4c),
++    ("[4d] ★RED0 (iv) an unclassified income type (INTERNAL_TRANSFER) in the window ⇒ UNKNOWN naming the type", cell_4d),
++    ("[4e] ★RED0 (iv) margin mode unreadable ⇒ UNKNOWN 'margin mode unknown' (409ea16 priced the day)", cell_4e),
++    ("[5a] ★RED0 (v) USDT index 0.9998→0.9598 with −0.5% real P&L, both rows valued ⇒ −0.50% (USDT_EQ), not the "
++     "−4.48% USD reading that trips", cell_5a),
++    ("[5b] ★RED0 (v) the same de-peg from an opening row with no recorded rate ⇒ unit not separable, closing index "
++     "4.0% off peg > ±0.50% ⇒ UNKNOWN, not tripped", cell_5b),
++    ("[5c] (v) control (both trees): opening row with no rate, peg normal ⇒ priced in the rows' own unit, the SAME "
++     "number the legacy caliber gives", cell_5c),
++    ("[6] identity: the record's 'day' TRANSFER sum disagreeing with the row's own carrier ⇒ UNKNOWN 'record identity' "
++     "(capability; 409ea16 is also blind here, as a 'transfer day')", cell_6),
++    ("[7] ★RED0 end-to-end through the REAL anchor_loop.finalize_anchor: every row carries a flow record, the gap pull "
++     "is requested as [floor(D1 last nav_ts), D2 00:00Z − 1], the valuation came from the venue fake, and the gap "
++     "withdrawal reads −0.30% — no §4-2/§4-4 trigger", cell_7),
++]
++
++# ── [0] controls — both trees ────────────────────────────────────────────────────────────────────────────────────────
++print("[0] controls (must hold on 409ea16 AND after): the legacy caliber is untouched; the trip is not weakened")
++_leg = two_day(10_000.0, 10_000.0, 9_950.0, realised2=-50.0, d1_record=False)
++for r in _leg[D2]:
++    r.pop(FW.RECORD_KEY, None)
++ev, c2, c4 = EV(_leg)
++check("★ 0a legacy rows (no record): −0.50% judged, quiet, not blind — the B32 caliber, byte-for-byte",
++      c2["recent_day"] == D2 and near(c2["recent_day_pct"], -0.5) and ev["tripped"] is False and c2["blind"] is False,
++      _show(ev, c2, c4))
++_legt = two_day(10_000.0, 15_000.0, 14_950.0, realised2=-50.0, d1_record=False,
++                ledger=[INC(T(D2, 10, 0), "TRANSFER", "USDT", 5000.0, "L5")])
++for r in _legt[D2]:
++    r.pop(FW.RECORD_KEY, None)
++ev, c2, c4 = EV(_legt)
++check("★ 0b legacy transfer day stays BLIND and named in flow_days (the B32 rule for rows written before this build)",
++      c2["blind"] is True and c2.get("flow_days") == [D2] and ev["tripped"] is False, _show(ev, c2, c4))
++ev, c2, c4 = EV(two_day(100_000.0, 99_800.0, 99_500.0, realised2=-500.0))
++check("★ 0c new rows, no flow, flat peg: −0.50% judged, quiet", near(c2["recent_day_pct"], -0.5)
++      and ev["tripped"] is False and c2["blind"] is False, _show(ev, c2, c4))
++ev, c2, c4 = EV(two_day(100_000.0, 97_000.0, 95_500.0, realised2=-4500.0))
++check("★★ 0d new rows, an ordinary −4.50% day STILL TRIPS §4-2 — the fix does not weaken the trip",
++      near(c2["recent_day_pct"], -4.5) and c2["triggered"] is True and trig(ev, "§4-2"), _show(ev, c2, c4))
++
++# ── the RED0 / capability cells ──────────────────────────────────────────────────────────────────────────────────────
++print("\n[1]–[7] the defects, each as the account would really show it")
++GREEN = {}
++for name, fn in CELLS:
++    try:
++        ok, det = fn()
++    except Exception as e:                                                  # noqa: BLE001 — a crash is a FAIL, named
++        ok, det = False, f"{type(e).__name__}: {e}"
++    GREEN[fn.__name__] = ok
++    check(name, ok, det)
++
++# ── [M] mutants: every new cell must be able to fail ─────────────────────────────────────────────────────────────────
++print("\n[M] (vi) mutants of live/flow_window.py — each must turn its cell RED after that cell was seen GREEN")
++_FW_PATH = os.path.join(REPO, "live", "flow_window.py")
++_FW_SRC = open(_FW_PATH).read()
++
++
++def _mutant(anchor, repl):
++    n = _FW_SRC.count(anchor)
++    if n != 1:
++        return None, f"STALE MUTANT: anchor occurs {n}x in live/flow_window.py"
++    m = types.ModuleType("flow_window")
++    m.__file__ = _FW_PATH
++    exec(compile(_FW_SRC.replace(anchor, repl), _FW_PATH + " <mutant>", "exec"), m.__dict__)
++    return m, None
++
++
++@contextlib.contextmanager
++def _installed(m):
++    _old_wd, _old_mod = getattr(WD, "FW", None), sys.modules.get("flow_window")
++    WD.FW = m
++    sys.modules["flow_window"] = m
++    try:
++        yield
++    finally:
++        WD.FW = _old_wd
++        sys.modules["flow_window"] = _old_mod
++
++
++MUTANTS = [
++    ("gap events dropped (a calendar-day reader)", cell_1,
++     '            for e in rec.get("events") or []:\n                seen.setdefault(_event_key(e), e)',
++     '            for e in [x for x in (rec.get("events") or []) if x.get("seg") != "gap"]:\n'
++     '                seen.setdefault(_event_key(e), e)'),
++    ("every asset at face value (the cross-asset quantity sum)", cell_2a,
++     "        if a == UNIT_ASSET:\n            F += q", "        if True:\n            F += q"),
++    ("every asset at face value — the cancelling pair", cell_2b,
++     "        if a == UNIT_ASSET:\n            F += q", "        if True:\n            F += q"),
++    ("upper bound dropped (an event is attributed to the row whose pull saw it)", cell_3a,
++     't0_ms < e["time_ms"] <= t1_ms', 't0_ms < e["time_ms"]'),
++    ("an unvalued flow is silently skipped (unknown folded into zero)", cell_4a,
++     '            reasons.append(f"flow {e.get(\'id\')} is {q} {a}: no valuation — {why or _u1why}")',
++     '            pass'),
++    ("coverage not checked", cell_4c, "    ok, gap_at = _covers(segs, lo, hi)", "    ok, gap_at = True, None"),
++    ("an unclassified type folded into P&L", cell_4d,
++     'uncls = [e for e in ev_in if e.get("type") not in FLOW_INCOME_TYPES and e.get("type") not in PNL_INCOME_TYPES]',
++     "uncls = []"),
++    ("no unit separation (USD NAV read as USDT)", cell_5a,
++     '    return nav / r["bid_rate"], None, {"nav": nav, "unit": "USD"', '    return nav, None, {"nav": nav, "unit": "USD"'),
++    ("de-peg tolerance disabled", cell_5b, "DEPEG_TOL = 0.005 ", "DEPEG_TOL = 1.000 "),
++    ("unknown margin mode read as USD", cell_4e,
++     "    return None, f\"margin mode unknown ({val.get('multi_assets_margin_error')!r})\"",
++     '    return "USD", None'),
++    ("identity check removed", cell_6,
++     "if any(_fin(q) is None for q in _q) or abs(sum(float(q) for q in _q) - _carrier) > 1e-6 * max(1.0, abs(_carrier)):",
++     "if False:"),
++    ("dedupe removed (one event summed once per row that carries it)", cell_1,
++     "                seen.setdefault(_event_key(e), e)", "                seen[len(seen)] = e"),
++    ("the writer's gap pull removed", cell_7,
++     "            gap_pull = broker.income_since(gap_start, int(day_start_ms) - 1)", "            gap_pull = None"),
++]
++if not hasattr(WD, "FW"):
++    check("★ mutants run against the watchdog's flow-window wiring", False,
++          "watchdog does not import flow_window — this is the pre-fix tree; the mutant section cannot run")
++else:
++    for mname, fn, anchor, repl in MUTANTS:
++        m, err = _mutant(anchor, repl)
++        if m is None:
++            check(f"M {mname}", False, err)
++            continue
++        base = GREEN.get(fn.__name__)
++        with _installed(m):
++            try:
++                mok, mdet = fn()
++            except Exception as e:                                          # noqa: BLE001
++                mok, mdet = False, f"raised {type(e).__name__}: {e}"
++        check(f"M {mname} ⇒ {fn.__name__} goes RED (baseline green: {base})", base is True and mok is False,
++              {"mutant_result": mdet})
++
++# ── [Z] ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
++print("\n[Z] the suite changed nothing on disk")
++_after = {p: hashlib.sha256(open(os.path.join(REPO, p), "rb").read()).hexdigest() for p in _SRC}
++check("★ sources byte-identical before and after (mutants were in memory only)", _after == _SRC,
++      {p: (_SRC[p][:12], _after[p][:12]) for p in _SRC if _SRC[p] != _after[p]})
++shutil.rmtree(_TMP, ignore_errors=True)
++
++print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
++if FAILS:
++    print("FAILED:", *FAILS, sep="\n  ")
++    sys.exit(1)
++print("ALL PASS")
+diff --git a/live/tests_imports.py b/live/tests_imports.py
+index 61d1041..d901e7e 100644
+--- a/live/tests_imports.py
++++ b/live/tests_imports.py
+@@ -96,6 +96,9 @@ PRODUCTION_MODULES = [
+     #   what a TRANSFER day is priced with. (This suite's drift check caught the addition on the
+     #   run after it was written — which is exactly what it is for.)
+     "ledger_amendments",
++    # ★ ruling #5 (2026-09-19): the flow-window contract. watchdog imports it at module level (§4-2/§4-4 read it) and
++    #   anchor_loop's daily_nav writer imports it; a failure to import would take the watchdog down with it.
++    "flow_window",
+     # §4-5e producer: the direct position-break measurement, wired BESIDE §4-5b (never instead
+     # of it). A module that failed to import would disarm a halt-level gate silently.
+     "position_break",
+diff --git a/live/watchdog.py b/live/watchdog.py
+index 6c5cb5e..89a1cf3 100644
+--- a/live/watchdog.py
++++ b/live/watchdog.py
+@@ -68,6 +68,7 @@ MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ sys.path.insert(0, MA + "/engine/live")
+ import pilot_log as PL
+ import pilot_metrics as PM
++import flow_window as FW      # ruling #5 (2026-09-19): the ONE flow contract §4-2 and §4-4 read (units/event time/identity/UNKNOWN)
+ 
+ OUT = MA + "/exports/live/watchdog"
+ C_LIMIT_BPS, C_PERSIST_DAYS = 9.0, 5          # §4-1 (persist days per §11.5 ruling: 5, all stages)
+@@ -1253,6 +1254,14 @@ def evaluate(root: str, venue_events=None, ops_stats=None, *, book_observation=N
+     _loss_truncated_days = []     # [numerator] days whose realised P&L is a LOWER BOUND
+     _prev_day_nav = None          # [B32] cond2 caliber = EQUITY DAY CHANGE: last nav of day vs last nav of previous day
+     _loss_flow_days = []          # [B32] transfer days: nav delta ≠ P&L ⇒ UNKNOWN, named
++    # ★★ FLOW WINDOW (user ruling #5, 2026-09-19; live/flow_window.py). A day whose LAST row carries a flow record is judged
++    #    on the flow-adjusted equity change over (previous day's last row, this day's last row] by nav_ts — the
++    #    20:4xZ→00:00Z gap included, each asset valued at the venue's own rate, in USDT-equivalent — and anything unprovable
++    #    is UNKNOWN with its reason named (the same blind action as every other unpriced day). A day whose last row has NO
++    #    record (written before this build) keeps the B32 caliber below byte-for-byte.
++    _prev_day_row = None          # the ROW behind `_prev_day_nav`: its nav_ts opens the next window
++    _loss_flow_unknown_days = []  # [{day, reasons}] new-caliber days that could not be priced — named, never skipped
++    _flow_window_days = []        # per new-caliber day: what was judged (basis, pct, flows)
+     per_day_equity_state = []     # [M2-33] per day: None = no equity rows; "priced"; or why the equity day is unpriced
+     per_day_loss_gross = []       # deprecated companion, one round only
+     per_day_wcorr_n = []          # the DENOMINATOR: how many comparisons each day had
+@@ -1367,10 +1376,30 @@ def evaluate(root: str, venue_events=None, ops_stats=None, *, book_observation=N
+                 _flow_day = any(abs(float(_r.get("external_flow_usdt") or 0.0)) > 1e-9 for _r in nav)
+             except Exception:
+                 _flow_day = False
++            _fw = None
++            if FW.has_record(n0):
++                # the opening row is chosen exactly as the B32 branches below choose theirs: the previous day's last
++                # row, or — with no usable previous close — the day's first row (intraday)
++                _r0 = (_prev_day_row if _prev_day_nav not in (None, 0, 0.0) else
++                       (nav[0] if nav[0].get("nav") else None))
++                _fw = _safe(f"cond2_flow_window[{d}]", lambda: FW.window(_r0, n0, nav), None) or {
++                    "applies": True, "state": "UNKNOWN", "pct": None,
++                    "reasons": ["flow-window evaluation raised (see metric_errors)"]}
+             if _trunc:
+                 # numerator honesty kept: a day whose ledger is a LOWER BOUND stays UNKNOWN even
+                 # though the equity caliber would not need the ledger — over-blind by choice, named.
+                 per_day_loss.append(None)
++            elif _fw is not None:
++                # ★ ruling #5: priced only when every input is proven; otherwise UNKNOWN with the reasons
++                if _fw.get("state") == "PRICED":
++                    per_day_loss.append(_fw.get("pct"))
++                else:
++                    per_day_loss.append(None)
++                    _loss_flow_unknown_days.append({"day": d, "reasons": list(_fw.get("reasons") or [])})
++                _flow_window_days.append({"day": d, "state": _fw.get("state"), "basis": _fw.get("basis"),
++                                          "pct": _fw.get("pct"), "flow_usdt_eq": _fw.get("flow_usdt_eq"),
++                                          "flow_events": _fw.get("flow_events"), "t0": _fw.get("t0"),
++                                          "t1": _fw.get("t1"), "reasons": _fw.get("reasons")})
+             elif _flow_day:
+                 per_day_loss.append(None)
+                 _loss_flow_days.append(d)
+@@ -1387,10 +1416,15 @@ def evaluate(root: str, venue_events=None, ops_stats=None, *, book_observation=N
+                 per_day_loss.append((float(_navv) - _n0v) / _n0v * 100.0 if _n0v else None)
+             else:
+                 per_day_loss.append(None)
+-            per_day_equity_state.append("truncated income ledger" if _trunc else "transfer day" if _flow_day else
+-                                        "priced" if per_day_loss[-1] is not None else "equity terms missing")
++            per_day_equity_state.append(
++                "truncated income ledger" if _trunc else
++                ("flow window UNKNOWN: " + "; ".join(str(x) for x in (_fw.get("reasons") or []))[:400])
++                if (_fw is not None and _fw.get("state") != "PRICED") else
++                "transfer day" if (_fw is None and _flow_day) else
++                "priced" if per_day_loss[-1] is not None else "equity terms missing")
+             if _navv is not None:
+                 _prev_day_nav = float(_navv)
++                _prev_day_row = n0
+             # deprecated gross companion (old caliber, one round): only when both terms exist
+             if (not _trunc) and unreal is not None and real is not None and g:
+                 per_day_loss_gross.append((float(real) + float(unreal)) / g * 100.0)
+@@ -1610,9 +1644,16 @@ def evaluate(root: str, venue_events=None, ops_stats=None, *, book_observation=N
+                                 "truncated_days": _loss_truncated_days,
+                                 "caliber": ("[B32] EQUITY DAY CHANGE: (last nav of day - last nav of "
+                                             "previous day)/previous; transfer days UNKNOWN (named); "
+-                                            "first day of window UNKNOWN"),
++                                            "first day of window UNKNOWN — for days whose last row carries "
++                                            "NO flow record; a day whose last row carries one is judged by "
++                                            "`flow_window_caliber` (ruling #5, 2026-09-19)"),
+                                 "n_days_flow_excluded": len(_loss_flow_days),
+                                 "flow_days": _loss_flow_days,
++                                # ★ ruling #5: rows carrying a flow record are judged by THIS caliber instead
++                                "flow_window_caliber": FW.CALIBER,
++                                "n_days_flow_window_unknown": len(_loss_flow_unknown_days),
++                                "flow_window_unknown_days": _loss_flow_unknown_days,
++                                "flow_window_days": _flow_window_days,
+                                 "degraded": bool(_loss_truncated_days),
+                                 "truncation_caliber": (
+                                     "a day whose income ledger hit the page cap yields a LOWER "
+@@ -1869,6 +1910,7 @@ def evaluate(root: str, venue_events=None, ops_stats=None, *, book_observation=N
+     #   repo cb1723c, sha ed24c6d3...).
+     _dd_eq = None; _cum_eq = None; _peak_dd_eq = None; _n_used = 0
+     _chain_broken = False; _unpriced_flow_days = []
++    _prev_c4 = None; _c4_flow_window = []     # ruling #5: the previous day-collapsed row, and what each window said
+     try:
+         _cum, _pk, _md = 1.0, 1.0, 0.0
+         _prev = None               # (nav, unrealised) of the last PRICED day
+@@ -1884,6 +1926,20 @@ def evaluate(root: str, venue_events=None, ops_stats=None, *, book_observation=N
+             except Exception:
+                 _flow = 0.0
+             _is_flow = abs(_flow) > 1e-9
++            # ★★ FLOW WINDOW (ruling #5): a row with a flow record decides "was there a transfer" from income events with
++            #    their OWN event time in (previous day's last row, this row] — the 20:4xZ→00:00Z gap included, no
++            #    cross-asset quantity sum — and a window whose absence of flow cannot be PROVEN counts as a possible
++            #    transfer, i.e. goes to the transfer-day rule below (flow amount never enters) or, where that rule cannot
++            #    price, to its existing blind rule. A row without a record keeps the carrier test above.
++            _open4, _prev_c4 = _prev_c4, _r3
++            if FW.has_record(_r3) and _open4 is not None:
++                _fw4 = _safe(f"cond4_flow_window[{_r3.get('day')}]",
++                             lambda: FW.window(_open4, _r3, all_logs["daily_nav"]), None)
++                _is_flow = True if not isinstance(_fw4, dict) else bool(_fw4.get("flow_possible"))
++                _c4_flow_window.append({"day": _r3.get("day"), "transfer_possible": _is_flow,
++                                        "n_flow_events": (_fw4 or {}).get("n_flow_events"),
++                                        "coverage_proven": (_fw4 or {}).get("coverage_proven"),
++                                        "reasons": (_fw4 or {}).get("reasons")})
+             _is_trunc = str(_r3.get("day")) not in _use_days
+             if not _navv or _is_trunc:
+                 # unpriceable day (no equity snapshot / lower-bound ledger): the nav chain will
+@@ -1959,12 +2015,18 @@ def evaluate(root: str, venue_events=None, ops_stats=None, *, book_observation=N
+                                     "in the hole (then BLIND, named). Not peak-relative: under "
+                                     "constant leverage a peak line re-bases upward after a good run "
+                                     "and enlarges the absolute loss tolerated; peak DD is reported "
+-                                    "beside it, informational."),
++                                    "beside it, informational. Transfer DETECTION (ruling #5, "
++                                    "2026-09-19): a row carrying a flow record is a transfer day iff "
++                                    "flow_window finds a flow in (previous day's last row, this row] "
++                                    "by event time — the 20:4xZ→00:00Z gap included — or cannot "
++                                    "prove there was none; other rows keep the carrier test."),
+                                 "limit_pct": DRAWDOWN_LIMIT_PCT, "max_drawdown_pct": dd,
+                                 "cum_return_from_start_pct": _cum_eq,
+                                 "max_drawdown_from_peak_pct_INFO": _peak_dd_eq,
+                                 "chain_broken": _chain_broken,
+                                 "unpriced_flow_days": _unpriced_flow_days,
++                                # ★ ruling #5: which days' transfer test came from the flow window, and what it said
++                                "flow_window_days": _c4_flow_window,
+                                 # ★★ LED-04 ruling (a): WHICH realised figure priced each transfer
+                                 # day, and for the ones the record could not cover, WHY. `never
+                                 # blind, never silent` means exactly this: the day is still priced,
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index ff38b72..9bc6c30 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -267,8 +267,9 @@ SUITE_SCOPE = {
+         " clamp on a top-up narrows its band to Qv (the top-up ledger still carries no qty_venue: fail-wide), nor that the direct gate"
+         " is as strict as the settlement `_valid` on ABSENT fields (it compares present fields; `_valid` requires orderId, side, origQty). E5 (FX-EXEC 2026-09-13): the runtime re-derives a clamp only from exactly ONE origQty comparison parsed per reason (several — agreeing, conflicting, either order, glued — stand; the old first-pair reader was fail-closed for the writer's '; ' joiner only because the regex swallowed ';' into the number), a row-level entry is dropped only when it equals the request's str(inconsistent)[:120] copy (no kind test on the truncated copy), and the rejudge receipt lists every pair; it cannot prove the writer never emits a multi-comparison string, only that none is re-derived",
+     "tests_flatten_fee_backfill": "that the venue's allOrders still lists the flatten's orders when the runner is invoked (limit 500 / startTime — an unreached symbol is named, not fabricated), or that the LIVE run was ever performed (`LIVE_MODE=LIVE python3 ops/backfill_fills.py --day 20260912 --apply` is the operator's step, with credentials; this suite drives the runner over an in-process fake). It proves, on the REAL 2026-09-12 day, that the flatten batch is detected as the one gap with its 255 own client ids and 255 fee-unmeasured order rows, and on a synthetic population that the legs are rebuilt by EXACT client id (never by the rebalance-id prefix a flatten does not carry), that --apply writes one fills row per child fill with order_type protective_flatten and the venue's commission, that a second apply writes nothing (idempotent by trade id), that a foreign trade is counted unattributed and never written, that a batch the venue does not list fails closed, and that the classic rebalance path and its maker/topup_taker buckets are untouched. The ORDER rows' fee_paid stays None by the ledger's append-only rule — the measurement lands on the fills rows, and a consumer that sums fees from order rows alone still under-reads the flatten.",
+-    "tests_cond2_stale_day": "that BLIND on a transfer day is the right operating trade-off (the resume gate now refuses on such a day and run_anchor pages the blind condition), and anything about pricing a transfer day (the B32 caliber, UNKNOWN, is unchanged; pricing it is a caliber decision left open). It proves, on pilot_log trees built in tmp, that after a -4.20% day a latest equity day that carries a transfer, or a truncated income ledger, leaves cond2 BLIND and not triggered with the older day reported as last_priced_day and not judged (ef60f85 tripped on it), that STA-01's window (positive fallback day) is blind instead of quietly judging yesterday, and that ordinary latest days (-0.5%, -4.5%) and a newer day with no equity rows behave exactly as before.",
++    "tests_cond2_stale_day": "that BLIND on a transfer day is the right operating trade-off (the resume gate now refuses on such a day and run_anchor pages the blind condition), and anything about pricing a transfer day (the B32 caliber, UNKNOWN, is unchanged for rows WITHOUT a flow record; rows written since ruling #5 carry one and are priced flow-adjusted — that caliber is tests_flow_window's, not this suite's). It proves, on pilot_log trees built in tmp, that after a -4.20% day a latest equity day that carries a transfer, or a truncated income ledger, leaves cond2 BLIND and not triggered with the older day reported as last_priced_day and not judged (ef60f85 tripped on it), that STA-01's window (positive fallback day) is blind instead of quietly judging yesterday, and that ordinary latest days (-0.5%, -4.5%) and a newer day with no equity rows behave exactly as before.",
+     "tests_flatten_batch_identity": "that the venue's own submit time is what `time.time()` reads just before submit() (it is OUR clock and the row names it `venue_submit_call`, not the venue's), that historical rows can be repaired (they cannot: the ledger is append-only and the lead's constraint is that they stay as written — a reader needing true times for history must derive them from fills and venue records and name that source), that the real 2026-09-12 batch is in this tree (it is not; the clone's committed state holds 2026-08-01 only, and the 09-12 measurement is devices/new01_flatten_identity_real_batches.py: 255 rows, 0 sharing a key with their readback, judged=False / NO_READBACK, 255/255 rows with submit_ts 0.135-141.950 s after their own fill), or anything about fills recovery or attempt_idx (NEW-02, FX-EXEC's item). It proves, on the REAL committed 2026-08-01 batch read-only and on batches written into tmp, that the historical batch carries one anchor_ts and one submit_ts, does not share a key with its readback, reports an execution preceding its own submission on every filled row, and is recorded by §4-5e as NO_READBACK — and that a batch written by the fixed writer shares ONE key with its readback (derived from the batch's own name, equal by construction rather than by a caller passing the same value), is JUDGED by §4-5e for the first time, carries the broker's real submit moment with `submit_ts_source=venue_submit_call`, names the row-write fallback instead of hiding it, keeps `submit_ts is None` meaning exactly one thing with no source column, keeps `read_ts` as the real read moment distinct from the batch key, leaves a caller that passes no key on the previous behaviour, and does NOT drag in EXE-01's LOCAL response (whose batch holds the rest of the book on purpose and whose readback is the whole remaining account — judging it against intent ZERO would trip the whole-book ladder one evaluation later). Both production call sites and the real broker are pinned statically, and the committed ledger file is sha-checked before and after to prove not one historical byte moved.",
++    "tests_flow_window": "that the venue's income endpoint POSTS a transfer before the snapshot it precedes is taken (posting latency is not measurable offline: a transfer seconds before a snapshot that is not yet posted when that row's pull runs is invisible to that anchor, exactly as on 409ea16; every later row of the day re-pulls the whole day and the gap), that /fapi/v1/assetIndex's `bidRate` is the rate the account applied to THIS snapshot (it is read seconds later; the research measured the account's own rate against the 1m index at median 0.1 ppm / sd 23.7 ppm, and DEPEG_TOL = 50 bps is a declared bound over an observed worst of 16 bps), that a NEGATIVE collateral balance (askRate) or a mode switch between two rows is modelled (neither is), that the classification PNL = {REALIZED_PNL, COMMISSION, FUNDING_FEE, DELIVERED_SETTELMENT} / FLOW = {TRANSFER} is complete (it is the set observed on the LIVE account 07-31..09-19; anything else is UNKNOWN by construction, i.e. a new type blinds §4-2 until classified — a deliberate cost), that §4-4 is unit-separated (it is not: it still compounds the USD nav ratio, so a USDT de-peg moves it — out of scope, its limit is -25%), or anything on a real ledger (every cell is a synthetic tree or an in-process fake venue). It proves, with the account truth written out per cell, that on rows carrying a flow record §4-2 judges (V(t1) - F - V(t0))/V(t0) over (previous day's last row, this day's last row] by nav_ts: a gap withdrawal (-10,000 / -30,000) is not a loss and trips neither §4-2 nor §4-4 (409ea16: -10.30% / -30.3% trips), the real 08-05 USDT+BNB pair is valued per asset at the closing row's venue rate (not the -199.667 quantity sum), a cancelling -10 BNB/+10 USDT pair is not a -5.7% loss, a transfer 1 s after a snapshot lands in the NEXT window by its own event time, a first day's pre-first-row transfers no longer blind it, a USDT de-peg with both rows valued reads the real -0.50% (409ea16: -4.48% trips); that a flow asset with no rate, a failed valuation read, a failed gap pull, an unclassified income type, an unknown margin mode, a record disagreeing with its own row's carrier, and a de-peg beyond ±50 bps from an opening row without a rate are each UNKNOWN with the reason NAMED (cond2 blind, in conditions_blind, not tripped) and §4-4 treats an unproven window as a possible transfer; that legacy rows keep the B32 caliber byte-for-byte and an ordinary -4.50% day still trips; that the REAL anchor_loop.finalize_anchor writes the record and requests the gap as [floor(previous day's last nav_ts), 00:00Z - 1]; and that each of 13 in-memory mutant checks on live/flow_window.py (12 mutants — gap dropped, quantity sum [run on two cells], calendar attribution, unvalued flow skipped, coverage unchecked, unclassified folded, no unit separation, tolerance disabled, unknown mode as USD, identity removed, dedupe removed, writer gap pull removed) turns its cell red after the cell was seen green. On 409ea16 (only flow_window.py added, so fixtures can be built) the suite fails 16 of 22 checks: 15 cells and the mutant section (receipt in the research repo).",
+     "tests_cond4_amended_transfer_day": "that the amendment records are themselves correct (FX-EXEC2 owns the builder and its positive control: the 8 post-fix rows' own per-asset split equals the recomputation 8/8; this side verified their sha integrity — 250/250 row_sha256 reproduce from the live daily_nav lines — and nothing about their arithmetic), that the live tree HAS the records (it does not: FIXPROGRAM §10 deferred every write-back, so every pre-fix transfer day will name itself until the apply step runs, which is the ruling's own prescription), or whether a POST-FIX transfer day should be priced from its USDT-only slice instead of the carrier sum (no such day exists yet; the slice is reported as `row_usdt_slice` and deliberately NOT used, because that is a second change to a trigger and needs its own ruling). It proves, on pilot_log trees built in tmp with one mode root each, that a pre-fix TRANSFER day with a valid record is priced from `amended.realised_pnl_usdt` and named in `days_amended` with the record's income sha and per-day USDT delta; that all five ways a record fails to cover a row — absent file, row_sha256 mismatch against the ledger line, an unparsable line, a duplicate key with different content (dropped, never resolved by position), and a non-finite amended total — leave the RECORDED value in place and name the day `unamended_prefix_day` with a reason; that none of the five sets `blind` or breaks the drawdown chain; that a post-fix row and an ordinary (non-transfer) day are priced exactly as before and an ordinary day never consults a record at all; and that exactly ONE definition of the amendment loader exists in live/ ops/ scheduler/ — a MERGE GATE that goes red when FX-EXEC2's branch is stacked without replacing its own copy with an import. The real-data reproduction is a device, not a cell: devices/led04_cond4_watchdog_reproduction.py shows the fixed watchdog reproducing the live last_eval value bit for bit with no records (1.1704) and moving it by 0.2617-0.2680 pp with the real 250 records, against FX-EXEC2's independently measured 0.2613 pp.",
+     "tests_offschedule_held_book": "whether an off-schedule run should be able to happen at all (that is gate 0c's ruling and is unchanged), that 1% of gross is the right flat-intent limit (policy, unchanged), or anything about the venue. It proves, on the REAL 2026-08-01 06:29Z off-schedule LIVE anchor's own rows — its `anchors` row, its 109 never-submitted order rows — re-keyed to sit an hour after that day's 20:00Z anchor and holding that anchor's real book, that WITHOUT a halt_kind the anchor is judged against intent ZERO: `halted_intent_flat`, gate `flat_intent_legacy`, a 96.39% deviation against the 1% limit, §4-5e triggered, no name scope, and the ladder flattens all 105 names with reduce-only — which is what every off-schedule run would do on ef60f85 with a book on; and that WITH `halt_kind=off_schedule` the same rows are judged as a held book against the target vector and nothing trips. Reachability is measured, not assumed: devices/probe_i6_offschedule.py over the live anchor_runs.log (999 runs) finds 570 DRY_RUN, 2 TESTNET and 3 LIVE off-schedule runs, and both LIVE ones that reached phase_C were CLEAN only because their book was empty (readback gross 0.00, dev_frac 0.0). It also proves the writer: finalize_anchor marks the row on an off-schedule halt and NOT when the run's action is FLATTEN (the staleness ladder is emptying the book on purpose, where intent ZERO is correct), a trip halt's row still carries no marker, an ordinary anchor's row is unchanged, and the three held-book kinds live in one list in the judge.",
+     "tests_book_observability": "that an anchor which died before writing anything is detectable (it leaves no row of any kind — the 2026-09-09 12Z anchor is absent from the record entirely; \"did an anchor run at all\" is the off-box healthchecks deadman ping's question, and a second implementation of it belongs nowhere near the watchdog), that a TRUNCATED readback should or should not halt opening (it does not: it is named PARTIAL and paged, and whether a short write deserves a halt is a ruling nobody has taken), that 5b's comparison domain covers the names a truncated write dropped (it does not; only 5e counts them, through coverage), or anything about the venue. It proves, on the REAL committed day state/live/pilot_log/20260801 re-shaped in tmp and on a MockBroker holding that day's real book, that deleting the newest scheduled anchor's position_readback rows — which on ef60f85 silently turns that day's genuine §4-5e BREAK into CLEAN judged on the previous anchor — now leaves §4-5b, §4-5e and §4-7 each naming UNOBSERVED and blind, in conditions_blind (so run_anchor pages and resume_from_trip refuses), with NOT ONE order sent: no trip, no local response, no reduce-only key; that the ladder's own protective-flatten batch (an anchor key with orders and no readback, 10 of 10 on the live record, its readback 0.116-0.290 s later under a separate key) does NOT make anything blind, because the reference is the newest `anchors` ROW as rebalance_id.py requires; that the real 2026-08-29 HOLD-anchor shape and a tree that never observes the book (DRY_RUN) are both un-halted and distinguished from a lost book; that a real §4-5a outage on the very tree that is blind still trips and still flattens; that finalize_anchor names WHICH of the four causes wrote no rows (READ_FAILED / NO_ACCOUNT / OBSERVED_EMPTY / WRITE_TRUNCATED), which the log alone cannot distinguish, and that run_anchor hands that verdict to the watchdog; and that anchor_loop.book_unobserved_halt halts opening on UNOBSERVED, fails closed on an unreadable or cross-mode last_eval, stays silent on an absent one and on an evaluation written before this build, and contains no flatten, no reduce-only key, no trip state and no position read at all.",
+diff --git a/ops/income_callers.py b/ops/income_callers.py
+index 12db813..54f1f4b 100644
+--- a/ops/income_callers.py
++++ b/ops/income_callers.py
+@@ -40,7 +40,10 @@ DECLARED = {
+         "income_since(): the realised-P&L aggregator. Deliberately UNFILTERED by incomeType — it "
+         "buckets REALIZED_PNL / COMMISSION / FUNDING_FEE / TRANSFER and needs all four, so the "
+         "filter that protects a single-type caller would break this one. Pages 40x1000 advancing "
+-        "startTime, dedupes on tranId, and reports `truncated` when it stops at the page cap."),
++        "startTime, dedupes on tranId, and reports `truncated` when it stops at the page cap. Since ruling #5 "
++        "(2026-09-19) it also returns the de-duplicated raw `rows`, and live/flow_window.collect calls it a second "
++        "time for the [previous day's last NAV row, 00:00Z) gap — the same function, so the same paging, dedupe and "
++        "truncation flag (flow_window turns a truncated or failed pull into a NAMED UNKNOWN)."),
+     "live/binance_funding.py": (
+         "FundingLedger: explicitly incomeType=FUNDING_FEE. Pages on startTime, dedupes on tranId, "
+         "and — the part that matters most — RAISES rather than advancing when a single "
+diff --git a/run_acceptance.sh b/run_acceptance.sh
+index 6e614c5..ce39f30 100644
+--- a/run_acceptance.sh
++++ b/run_acceptance.sh
+@@ -360,6 +360,8 @@ SUITES=(
+   # ★ 外部书适配器 (DESIGN_wide_live_deployment_2026-08-22 §1/§3.2): 宽书签名目标文件 → 目标向量;
+   #   读取/校验/换算/过滤/告警 + internal 逐位不变 + per_name_stop profile 切换; 每条有会红变异体。
+   "tests_external_book:$_SELF/live/tests_external_book.py"
++  # ruling #5 (2026-09-19): §4-2/§4-4 read external money by event time, per asset, in the NAV's unit; UNKNOWN named.
++  "tests_flow_window:$_SELF/live/tests_flow_window.py"
+ )
+ 
+ # ★ registration guard: every live/tests_*.py must appear above. Catches the omission that this
+diff --git a/scheduler/anchor_loop.py b/scheduler/anchor_loop.py
+index ed5a65c..7e83b5e 100644
+--- a/scheduler/anchor_loop.py
++++ b/scheduler/anchor_loop.py
+@@ -3109,6 +3109,8 @@ class AnchorLoop:
+                 # here must leave None rather than 0.0 — a zero would un-blind the stop-loss
+                 # with a fabricated number, which is strictly worse than being blind.
+                 inc, inc_err = None, None
++                # ★ flow window (ruling #5): the clock BEFORE the day pull is the conservative end of what it covers
++                _fw_day_req_ms = int(time.time() * 1000)
+                 try:
+                     _day_start = _dt_day_start_ms(day)
+                     inc = self.broker.income_since(_day_start)
+@@ -3117,6 +3119,19 @@ class AnchorLoop:
+                     self.alarm("HIGH", f"income ledger unreadable ({inc_err}) — realised P&L "
+                                        f"stays UNKNOWN for {day} and the daily-loss stop-loss "
+                                        f"is blind for that day")
++                # ★★ FLOW WINDOW (user ruling #5, 2026-09-19; live/flow_window.py is the contract). `external_flow_usdt`
++                #   below stays exactly what it was (a since-00:00Z TRANSFER quantity sum — ops/daily_summary reads it);
++                #   §4-2/§4-4 read THIS record instead: every non-P&L income event with its own time and asset, from the
++                #   day pull above plus a pull of [previous day's last NAV row, 00:00Z) — the gap no calendar carrier
++                #   covers — and the venue's margin mode + collateral rates at this row. Never raises: a failure is
++                #   recorded inside the record and the reader turns it into a NAMED UNKNOWN; the NAV row is still written.
++                try:
++                    import flow_window as _FW
++                    _fw_rec = _FW.collect(self.broker, day_start_ms=_dt_day_start_ms(day), prev_row=prev,
++                                          day_pull=inc, day_pull_error=inc_err, day_requested_ms=_fw_day_req_ms)
++                    _fw_key = _FW.RECORD_KEY
++                except Exception as e:
++                    _fw_rec, _fw_key = {"v": None, "error": f"{type(e).__name__}: {str(e)[:160]}"}, "flow_window"
+                 self.log.daily_nav(
+                     # ★★ THE ROW RECORDS THE POLICY IT WAS WRITTEN UNDER. Without this, rows from
+                     # the constant-GROSS era (gross pinned at 25,000, leverage drifting up to
+@@ -3161,7 +3176,8 @@ class AnchorLoop:
+                         "UNAVAILABLE — equity_delta_since_prev is P&L ONLY IF no "
+                         "deposit/withdrawal occurred, and we cannot say" if inc is None else
+                         "/fapi/v1/income incomeType=TRANSFER since 00:00Z"),
+-                    mode=self.broker.mode)
++                    mode=self.broker.mode,
++                    **{_fw_key: _fw_rec})
+                 out["daily_nav_row"] = True
+             except Exception as e:
+                 self.alarm("HIGH", f"daily_nav row failed ({e}) — the stop-losses that read NAV "
+-- 
+2.50.1 (Apple Git-155)
+
