@@ -1,0 +1,74 @@
+{
+ "device": "rp_fetch.py",
+ "self_sha256": "e6ef1b81c83f0c315f35db5383bf0c14b3e09e66d96f3750cc54f4327f95f66c",
+ "argv": [
+  "rp_fetch.py",
+  "PATH,HOME,LC_CTYPE"
+ ],
+ "env": {
+  "PATH": "/usr/bin:/bin",
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8"
+ },
+ "utc_start": "2026-09-19T09:01:24Z",
+ "checks": [
+  {
+   "check": "census.PASS",
+   "ok": true,
+   "detail": {
+    "census_receipt_sha256": "ed537e779f4cfefe7c9113d85204052d2494cd936680e48f30619f243171b627"
+   }
+  },
+  {
+   "check": "fetch_list.sha",
+   "ok": true,
+   "detail": {
+    "sha256": "23692999643d9adf"
+   }
+  },
+  {
+   "check": "disk.probe_512MB",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "fetch.no_checksum_fail",
+   "ok": true,
+   "detail": {
+    "n": 0
+   }
+  },
+  {
+   "check": "fetch.no_net_fail",
+   "ok": true,
+   "detail": null
+  }
+ ],
+ "disk": {
+  "probe_512MB_fsync_ok": true,
+  "statvfs_avail_GB": 598061.4,
+  "note": "MooseFS statvfs is cluster-wide; the probe is the quota test"
+ },
+ "counts": {
+  "daily": {
+   "OK": 703,
+   "MISSING": 5
+  },
+  "monthly": {
+   "OK": 1
+  },
+  "symbol_days": 708,
+  "symbol_days_covered": 708,
+  "bytes": 7720177
+ },
+ "not_covered": [],
+ "outputs": {
+  "manifest": {
+   "path": "/workspace/raw_price_fix_2026-09-19/work/fetch_manifest.json",
+   "sha256": "829339ad36581d0a976040a4028108ab8de6b297929384de2ce5a9a8bd71a8d6"
+  }
+ },
+ "VERDICT": "PASS",
+ "failed": [],
+ "runtime_s": 1007.6
+}

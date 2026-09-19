@@ -1,0 +1,39 @@
+[     0s] CHECK census.PASS OK {"sha256": "ed537e779f4cfefe7c9113d85204052d2494cd936680e48f30619f243171b627"}
+[     0s] CHECK fetch.PASS OK {"sha256": "9ea9d7b2ed5c1ac0ce88315360d60c35dbbfa1cc75d0dacd61c4535ead36ba52"}
+[     0s] CHECK census.npz_sha OK 
+[     0s] CHECK manifest_sha OK 
+[     1s] CHECK input_sha.cache OK {"expected": "1d7f459dee434ec4", "got": "1d7f459dee434ec4"}
+[     1s] CHECK input_sha.meta OK {"expected": "0e3c09ac86c727ac", "got": "0e3c09ac86c727ac"}
+[     2s] CHECK input_sha.old_price_meta OK {"expected": "fc6a381a76e311e6", "got": "fc6a381a76e311e6"}
+[     2s] CHECK input_sha.old_price_logtable OK {"expected": "3b588cb058920d57", "got": "3b588cb058920d57"}
+[     8s] CHECK archives.all_rehashed_ok OK 
+[     8s] CHECK archives.no_duplicate_conflict OK {"dups": 258, "conflicts": 0}
+[     8s] CHECK archives.bars_are_5m OK {"n_bad": 0}
+[     8s] archives {'n': 704, 'n_daily': 703, 'n_monthly': 1, 'kline_rows': 200595, 'duplicate_bars_daily_vs_monthly': 258, 'duplicate_conflicts': 0, 'close_time_not_open_plus_299999': 0}
+[     8s] CHECK census.symbols OK 
+[    33s] ret5 streamed
+[    35s] CHECK b.unclipped_bitwise_equal OK {"compared": 176029, "equal": 176029, "mismatch": 0, "cache_finite_official_missing": 0}
+[    35s] CHECK b.negative_control_shift_fails OK {"rate": 0.03006310173230501}
+[    35s] CHECK bound.no_conflict OK {"RESTORED": 952, "NOT_CLIPPED": 1, "UNAVAILABLE": 0, "CONFLICT": 0}
+[    35s] bound bars {'RESTORED': 952, 'NOT_CLIPPED': 1, 'UNAVAILABLE': 0, 'CONFLICT': 0}
+[    35s] CHECK c.raw_patch_rows_on_this_axis OK 
+[    35s] CHECK c.float32_equals_meta_raw_patch OK {"equal": 952, "n_raw_patch": 952, "differ": 0}
+[    35s] cell 0 / 595
+[    35s] cell 100 / 595
+[    35s] cell 200 / 595
+[    35s] cell 300 / 595
+[    35s] cell 400 / 595
+[    35s] cell 500 / 595
+[    35s] CHECK cells.no_infeasible OK {"n": 0}
+[    35s] CHECK a1.meta_recipe_within_1ulp OK {"max_ulp": 0}
+[    35s] CHECK a2.fixed_path_endpoint_within_float32_explained_bound OK {"n": 590, "max_ratio": 0.9989638105320278, "max_abs": 1.8022967029907022e-07}
+[    35s] CHECK a3.all_official_within_explained_bound OK {"n": 589}
+[    35s] CHECK a4.cells_not_in_a3_measured_and_within_float16_bound OK {"population": 6, "measured": 6, "max_dev": 0.00018090688652057862}
+[    35s] CHECK d.old_rule_reimplementation_matches_old_table OK {"max_abs_log": 2.55351295663786e-15, "n": 4088, "expected_n_sample_boundaries_in_bound_cells": 4088}
+[    35s] CHECK d.no_T1_cell_skipped OK {"skipped": []}
+[    35s] CHECK d.fixed_path_within_float16_precision OK {"fixed_max_rel": 0.0004896438187784399}
+[    35s] CHECK nan_runs.all_fetched OK 
+[    35s] CHECK nan_runs.no_unavailable_bar_in_exposed_cell OK {"n": 0}
+[    35s] nan runs {'VENUE_GAP': 9, 'CACHE_HOLE': 3, 'PARTIAL': 3} restorable T1 21313 unavailable T1 3084
+RP_RESTORE VERDICT=PASS bars={"RESTORED": 952, "NOT_CLIPPED": 1, "UNAVAILABLE": 0, "CONFLICT": 0} cells={"EXACT": 595, "UNAVAILABLE": 0, "CONFLICT": 0} a2_max_rel=7.33e-07 b_compared=176029 b_mismatch=0 patch_sha256=984c28923838501758fe52d1ea7d0cd92fc7fc26c4869058b112bb43670343b2 receipt_sha256=79b16fdefd27e955c5bd6b1aaa70a212478eaad0674ff493bc761c71177dfd48
+rc=0

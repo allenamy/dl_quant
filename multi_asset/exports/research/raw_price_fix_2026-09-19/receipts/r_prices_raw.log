@@ -1,0 +1,45 @@
+[     0s] CHECK R0_PASS OK {"R0_sha256": "ba8d85e7eadba32248a61fc09e1efc9d636ef1e69d65a5d7e8ba1e29372b96bd"}
+[     1s] CHECK input_sha.cache OK {"expected": "1d7f459dee434ec4", "got": "1d7f459dee434ec4"}
+[     1s] CHECK input_sha.meta OK {"expected": "0e3c09ac86c727ac", "got": "0e3c09ac86c727ac"}
+[     2s] CHECK input_sha.ledger OK {"expected": "bea6f5752772d54e", "got": "bea6f5752772d54e"}
+[     2s] CHECK input_sha.old_price_meta OK {"expected": "fc6a381a76e311e6", "got": "fc6a381a76e311e6"}
+[     2s] CHECK input_sha.old_price_logtable OK {"expected": "3b588cb058920d57", "got": "3b588cb058920d57"}
+[     2s] CHECK P2.restore_receipt_PASS OK 
+[     2s] CHECK P2.patch_sha_matches_restore_receipt OK {"patch": "984c289238385017", "receipt": "984c289238385017"}
+[     2s] CHECK cache.symbols_axis OK 
+[     2s] CHECK cache.ret5_is_channel0 OK ["ret5", "range", "cpos", "log_qv", "log_cnt", "log_avgsz", "tbf"]
+[     2s] CHECK cache.ts_strict_5m OK {"first": 1640995200, "last": 1788220800, "n": 490753}
+[     2s] CHECK cache.data_header OK {"shape": [490753, 829, 7], "dtype": "float16"}
+[    27s] ret5 streamed (490753, 829)
+[    29s] CHECK align.ts_is_bar_close OK {"max_err_ts_close": 9.001678848985506e-07, "max_err_ts_open": 0.004880004983482289}
+[    29s] CHECK meta.strict_4h OK 
+[    29s] CHECK meta.cells_inside_cache OK {"cells_rows": 10182}
+[    29s] CHECK samples.equal_old_table OK {"n": 63975}
+[    29s] CHECK patch.symbols OK 
+[    29s] CHECK patch.rows_on_axis OK 
+[    29s] CHECK patch.covers_every_bound_bar OK {"patch": 953, "cache": 953}
+[    29s] CHECK patch.gap_entries_on_nan_bars OK {"n": 21313}
+[    31s] block 0 applied 65 bad 0
+[    32s] block 48 applied 127 bad 0
+[    33s] block 96 applied 184 bad 0
+[    34s] block 144 applied 236 bad 0
+[    35s] block 192 applied 283 bad 0
+[    36s] block 240 applied 334 bad 0
+[    38s] block 288 applied 371 bad 0
+[    39s] block 336 applied 428 bad 0
+[    40s] block 384 applied 482 bad 0
+[    41s] block 432 applied 543 bad 0
+[    42s] block 480 applied 606 bad 0
+[    43s] block 528 applied 657 bad 0
+[    45s] block 576 applied 707 bad 0
+[    46s] block 624 applied 756 bad 0
+[    47s] block 672 applied 815 bad 0
+[    49s] block 720 applied 885 bad 0
+[    50s] block 768 applied 939 bad 0
+[    50s] block 816 applied 952 bad 0
+[    50s] CHECK P1.max_abs_diff_le_1e-6 OK {"max_abs_diff_after": 1.8022966852271338e-07, "n_over": 0, "cells_checked": 3476239}
+[    50s] CHECK P3.apply_patch_contract OK {"applied": 952}
+[    50s] CHECK diff.same_reference_prices OK 
+[    51s] CHECK P4.path_changes_only_inside_patched_cells OK {"n_outside": 0, "examples": []}
+R_PRICES_RAW VERDICT=PASS scenario=exact replaced=952 max_abs_diff_after=1.802e-07 cells_path_changed=102 kline_median_dev=1.61e-05 receipt_sha256=69772e8c62e9897520ee862abcd0bdca8c722a0d3b3a9e6da4761a4b5dbd9136
+rc=0

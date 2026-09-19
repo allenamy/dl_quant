@@ -1,0 +1,37 @@
+[     0s] CHECK census.PASS OK {"sha256": "ed537e779f4cfefe7c9113d85204052d2494cd936680e48f30619f243171b627"}
+[     0s] CHECK fetch.PASS OK {"sha256": "9ea9d7b2ed5c1ac0ce88315360d60c35dbbfa1cc75d0dacd61c4535ead36ba52"}
+[     0s] CHECK census.npz_sha OK 
+[     0s] CHECK manifest_sha OK 
+[     4s] CHECK input_sha.cache OK {"expected": "1d7f459dee434ec4", "got": "1d7f459dee434ec4"}
+[     4s] CHECK input_sha.meta OK {"expected": "0e3c09ac86c727ac", "got": "0e3c09ac86c727ac"}
+[     4s] CHECK input_sha.old_price_meta OK {"expected": "fc6a381a76e311e6", "got": "fc6a381a76e311e6"}
+[     5s] CHECK input_sha.old_price_logtable OK {"expected": "3b588cb058920d57", "got": "3b588cb058920d57"}
+[    13s] CHECK archives.all_rehashed_ok OK 
+[    13s] CHECK archives.no_duplicate_conflict OK {"dups": 258, "conflicts": 0}
+[    13s] CHECK archives.bars_are_5m OK {"n_bad": 0}
+[    13s] archives {'n': 704, 'n_daily': 703, 'n_monthly': 1, 'kline_rows': 200595, 'duplicate_bars_daily_vs_monthly': 258, 'duplicate_conflicts': 0, 'close_time_not_open_plus_299999': 0}
+[    13s] CHECK census.symbols OK 
+[    39s] ret5 streamed
+[    41s] CHECK b.unclipped_bitwise_equal OK {"compared": 176029, "equal": 176029, "mismatch": 0, "cache_finite_official_missing": 0}
+[    41s] CHECK b.negative_control_shift_fails OK {"rate": 0.03006310173230501}
+[    41s] CHECK bound.no_conflict OK {"RESTORED": 952, "NOT_CLIPPED": 1, "UNAVAILABLE": 0, "CONFLICT": 0}
+[    41s] bound bars {'RESTORED': 952, 'NOT_CLIPPED': 1, 'UNAVAILABLE': 0, 'CONFLICT': 0}
+[    41s] CHECK c.raw_patch_rows_on_this_axis OK 
+[    41s] CHECK c.float32_equals_meta_raw_patch OK {"equal": 952, "n_raw_patch": 952, "differ": 0}
+[    41s] cell 0 / 595
+[    41s] cell 100 / 595
+[    41s] cell 200 / 595
+[    41s] cell 300 / 595
+[    41s] cell 400 / 595
+[    41s] cell 500 / 595
+[    41s] CHECK cells.no_infeasible OK {"n": 0}
+[    41s] CHECK a1.meta_recipe_within_1ulp OK {"max_ulp": 0}
+[    41s] CHECK a2.fixed_path_endpoint_rel_le_2.5e-7 FAIL {"max": 7.327647837176006e-07}
+[    41s] CHECK a3.all_official_within_explained_bound OK {"n": 589}
+[    41s] CHECK d.old_rule_reimplementation_matches_old_table OK {"max_abs_log": 2.55351295663786e-15}
+[    41s] CHECK d.fixed_path_within_float16_precision OK {"fixed_max_rel": 0.0004896438187784399}
+[    41s] nan runs {'VENUE_GAP': 9, 'CACHE_HOLE': 3, 'PARTIAL': 3}
+/workspace/raw_price_fix_2026-09-19/devices/rp_restore.py:339: RuntimeWarning: All-NaN slice encountered
+  e_old = np.nanmax(np.abs(np.expm1(c_old - offp)), axis=1); e_old[~np.isfinite(e_old)] = -1
+RP_RESTORE VERDICT=RED bars={"RESTORED": 952, "NOT_CLIPPED": 1, "UNAVAILABLE": 0, "CONFLICT": 0} cells={"EXACT": 595, "UNAVAILABLE": 0, "CONFLICT": 0} a2_max_rel=7.33e-07 b_compared=176029 b_mismatch=0 patch_sha256=3a2930479b2a1932595d73d010f5ff4708099f953924c5ddf0fb28d96fa99c6a receipt_sha256=c3b2dea58ba52152cb5301caaa1c78829f78065de7b29e896b4f1ebc3b9eafeb
+rc=3
