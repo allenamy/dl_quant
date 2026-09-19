@@ -69,7 +69,22 @@ def build_state(anchor, cfg, snap):
     st.live_mask = np.zeros(st.NW, bool); st.live_mask[[st.sym_idx[s] for s in st.live if s in st.sym_idx]] = True
     z = np.load(snap["rolling"], allow_pickle=True); st.cts = z["ts"].astype(np.int64); st.cd = z["data"].astype(np.float16)
     aux = snap["aux"]
-    st.prev_close = {}
+    # ★★ 2026-09-19 修复(G-P2 残差的机制): 上一版写 `st.prev_close = {}` —— **把快照里带着的
+    #   prev_close(450 个名)直接丢掉**。其它每一个跨锚状态(H / ledger / ema / LR / base)都从
+    #   快照重建了, 唯独这一个被静默置空。
+    #
+    #   后果与观察到的残差签名逐条吻合:
+    #     · prev_close 填的是 5m 通道的 ret5(生产者 L251 注释原文「ret5 由 prev_close 补」,
+    #       消费点 L283 `pc = st.prev_close.get(s)`)⇒ 置空后每个新取窗口的首根 bar ret5 = NaN;
+    #     · ret5 只进 DL 横截面特征(fea82/fea89 用全部 live 名), **不进 king**(成员窗口)
+    #       ⇒ 解释「残差只在 DL 腿, kc 状态 41 锚 L∞ 0.0」;
+    #     · 链式模式下 prev_close 随链推进逐步填满 ⇒ 解释「越近的锚越一致, 最新锚精确」;
+    #     · 快照起步模式下窗口短、影响小 ⇒ 解释「快照起步 3/3 精确 0.0」。
+    #
+    #   原先 RESULT §3 记的「唯一未闭合假说 = 缓存 5m 行的事后回填」**已被证伪**:
+    #   backfill_probe 三对快照各 11,472 行, cells_filled_later / cells_lost /
+    #   cells_changed_finite **全为 0**(收据 receipts/BACKFILL_probe_*.json)。
+    st.prev_close = {k: float(v) for k, v in (aux.get("prev_close") or {}).items()}
     # H = holdings after the previous anchor = the producer's own weights file
     st.H = np.zeros(st.NW); wf = f"{WS}/state/weights/{anchor-14400}.npz"
     assert os.path.exists(wf), f"missing weights file {wf}"
@@ -91,7 +106,7 @@ def build_state(anchor, cfg, snap):
     # for anchor-14400, so keep entries whose score row anchor_ts <= anchor-14400 and drop those appended by later anchors.
     n_after = sum(1 for r in snap["log"] if r.get("e") == "score" and int(r.get("anchor_ts", 0)) >= anchor)
     st.LR = {leg: list(lr[leg]) + list(extra[leg][: len(extra[leg]) - n_after]) for leg in ("king", "rev24", "fund")}
-    diag = {"ema_inverted": len(ema_b), "ema_mismatch_fallback": mism, "ema_roundtrip_worst_abs": worst, "ema_roundtrip_n": n,
+    diag = {"prev_close_restored": len(st.prev_close), "ema_inverted": len(ema_b), "ema_mismatch_fallback": mism, "ema_roundtrip_worst_abs": worst, "ema_roundtrip_n": n,
             "lr_dropped_entries": n_after, "lr_len_before_anchor": len(st.LR["king"]), "base_n": len(st.base),
             "cache_rows": int(len(st.cts)), "cache_last": int(st.cts[-1])}
     return st, ledger_full, diag
