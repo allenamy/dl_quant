@@ -1,0 +1,84 @@
+[PASS] 7 read-only guard baseline (guard installed ⇒ open of a live path refused): child says 'REFUSED'
+[PASS] 7 read-only guard mutation (no guard ⇒ the same open succeeds, i.e. the refusal came from the guard): child says 'OPENED'
+      fixture runs (subprocesses, before the guard) 54 s: return codes {'fx': 0, 'det': 0}; scratch /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/battery_v31_7we_iwud
+[PASS] 0 mirror bytes equal INPUT_MANIFEST: 0 mismatching files
+      devices: exec_sim.py 29679672e68d, simlib.py 55246fe98da2, v1b_gate.py 4a725921a470, v1_gate.py c97d9b3d4921, calib_v3.py 14357bbadd60, tests_exec_sim.py 9458558e1bcc, CALIBRATION_v3_POOLED_20260826_20260910.json fda342431d39, archive/exec_sim_v2_2638316b.py 2638316be35e, archive/v1b_gate_31650235.py 31650235baf4
+[PASS] A1 R5-01 future price (A+25: 100 → 200) — v3 decision unchanged (baseline GREEN): v3 equity at decision 200.0 / 200.0, final qty 1.9999999999999998 / 1.9999999999999998
+[PASS] A1 R5-01 future price — archived v2 is RED (decision moves with the future price): v2 equity at decision 200.0 → 300.0, final qty 2.0 → 1.5
+[PASS] A2 R5-01 settlement at A+24:05 charges the pre-execution inventory (−1) — v3 GREEN: v3 charges [-1.0, -1.0]; first fill booked at 1470.0 s
+[PASS] A2 R5-01 same settlement — archived v2 is RED (charges inventory that does not exist yet): v2 charges (-2.0, -1.5)
+[PASS] A3 R5-06 20 USD exit, 80% full / 20% zero, no completion — v3 E[executed] ≈ 16, each path 0 or 20, no completion leg (GREEN): mean over 2,000 seeds 16.15 (MC s.e. 0.18), feasible paths True, leg kinds {'first': 8075}
+[PASS] A3 R5-06 same exit — archived v2 is RED (guaranteed completion executes 20): v2 executed 20.00, completion legs 1
+[PASS] A4 R5-06 4 USD dust, zero fill probability, plan skipped — v3 executes nothing, the dust stays (GREEN): v3 executed 0, remaining qty 0.04
+[PASS] A4 R5-06 same dust — archived v2 is RED (fills 4 USD as maker): v2 executed 4.00, remaining qty 0
+[PASS] A5 R5-07 reviewer's anti-correlated path, t1 +2 h — V1b FAILS it (GREEN): {'E3_t1': False, 'W_price_and_trading': False, 'T_fee': False, 'T_turnover_over_gross': False, 'T_funding': False, 'T_price_and_trading': False}
+[PASS] A5 R5-07 same path — the old V1 PASSES it (RED for V1: the defect is real): {'fee': True, 'turnover_over_gross': True, 'funding': True, 'price_and_trading': True}
+      baseline run (seed 0, CAL period) 6.8 s: 94 windows, 61840 fill events, 18584 funding charges, sealed initial sha a657fea52606
+[PASS] 1 min-notional baseline: 13523 sent plans, 0 below the venue floor
+[PASS] 1 min-notional mutation --no-min-notional turns it RED: 91 sent plans below the floor (of 13709)
+[PASS] 2 per-name stop baseline: 16 independent −30%×2 triggers, 0 violations
+[PASS] 2 per-name stop mutation --no-stop turns it RED: 96 triggers, 96 violations e.g. [(1788120000, 'SKRUSDT', 'target -293.87 stop_flag False'), (1788134400, 'SKRUSDT', 'target -302.80 stop_flag False')]
+[PASS] 3 fees baseline: 61840 fill events, fee 444.39 USDT, max |fee − recomputed| 0.00e+00
+[PASS] 3 fees mutation --zero-fees turns it RED: fee 0.00 USDT, max |fee − recomputed| 0.2564
+[PASS] 3 fees mutation --fee-asset-wrong turns it RED: fee 436.04 USDT, max |fee − recomputed| 0.0223
+[PASS] 4 funding sign convention on the REAL ledger (paid = −notional × rate): 100.0000% of 20434 live rows agree in sign
+[PASS] 4 funding baseline: 18584 charges, max rel err 0.0e+00, 0 duplicate (symbol, time), 0/17659 rate mismatches vs the executor's rows
+[PASS] 4 funding mutation --funding-sign-flip turns it RED: max rel err 2.000
+[PASS] 4 funding mutation --funding-double turns it RED: max rel err 1.000
+[PASS] 4b R5-01 fill-time inventory baseline (every charge = sealed + fills strictly before it; at t_dec+5 s = pre-decision inventory): 20865 charges (2876 synthetic keys on 6 anchors), 937 charges at decision+5 s, 0 + 0 mismatches
+[PASS] 4b R5-01 mutation --legacy-book-at-decision turns it RED (settlement 5 s after the decision sees that decision's fills): 994 of 1341 decision+5 s charges on inventory that did not exist yet, e.g. [('08-26 20:23:05Z', '1000BONKUSDT', -37563.0, -1.4551915228366852e-11), ('08-26 20:23:05Z', '1000FLOKIUSDT', -3426.0, 0.0)]
+[PASS] 5 accounting identity baseline: max |Δequity − (price + funding − fee + transfer)| = 6.29e-10 USDT
+[PASS] 5 accounting mutation (fee not booked to equity) turns it RED: max identity error 117.7180 USDT
+[PASS] 6 determinism baseline (same seed ⇒ identical windows; seed 1 ⇒ a different path): 94 windows identical; seed 1 Σ|Δ turnover| 79,630 USDT
+[PASS] 6 calibration binding mutation (π + 0.10) changes the output: Σ|Δ turnover| 59,493.87 USDT
+[PASS] 8 V1b judge baseline judge(live, live) on the real CAL windows: PASS 12/12 items
+[PASS] 8 V1b mutation t1 + 7200 s ⇒ item E3_t1 FAIL: FAIL, E3_t1 pass=False
+[PASS] 8 V1b mutation one window dropped ⇒ item E1_population FAIL: FAIL, E1_population pass=False
+[PASS] 8 V1b mutation price sign-flipped (−live) ⇒ item W_price_and_trading FAIL: FAIL, W_price_and_trading pass=False
+[PASS] 8 V1b mutation fee ×1.4 ⇒ item W_fee FAIL: FAIL, W_fee pass=False
+[PASS] 9 R5-06 no guaranteed fills baseline: 11374 filled plans, leg kinds {'first': 40755, 'later': 17075, 'flatten': 4010}, 0 overfilled, 0 fills without a sent plan, 0 of 226 skipped sub-floor exits filled
+[PASS] 9 R5-06 mutation --legacy-exit-completion turns it RED: 860 guaranteed completion legs, 59 overfilled plans, 295 fills without a sent plan
+      dust exposure (seed 0, CAL): mean 4.3 names / 8.04 USDT per window end, max 60 names / 33.35 USDT
+[PASS] 10 R5-01 future-price invariance baseline (prices after t_dec(A) × [0.7, 1.3] per symbol ⇒ every decision up to A identical): 4 cut anchors, 200 decisions compared, 0 differ
+[PASS] 10 R5-01 mutation --legacy-decision-lookahead turns it RED: 4 of 200 decisions moved with future prices, e.g. [('08-26 20Z', '08-26 20Z'), ('09-02 20Z', '09-02 20Z'), ('09-07 04Z', '09-07 04Z')]
+[PASS] 11 R5-01 / R5B-03 fill clock baseline (every rebalance fill exactly at t_dec + calibrated offset; never moved): 57830 rebalance fill events, 0 off-clock; notional booked after its own anchor's readback (belongs to the next window) 26,015 of 992,523 USDT
+[PASS] 11 R5-01 mutation --legacy-book-at-decision turns it RED: 58060 of 58060 fills booked at the decision instant
+[PASS] 11 R5B-03 mutation --legacy-readback-clamp (v3's withdrawn rule) turns it RED: 3911 of 58060 fills moved to 1 s before their anchor's readback (26,045 USDT)
+[PASS] 12 R5-13 initial population baseline (receipt = independently counted t0 readback, sealed before the run, sha reproducible): t0 readback 328 nonzero, receipt 328, sealed True, sha ok True, positions after run 249
+[PASS] 12 R5-13 mutation --legacy-unsealed-initial turns it RED: receipt would say 249 vs readback 328
+[PASS] 12 R5-13 the committed v2 receipt fails the same check (reviewer: 328 vs 241): v2 receipt 'initial' 241 vs readback 328
+[PASS] 13 blind protocol baseline (v3 calibration: no arm / experiment key anywhere): 0 violations
+[PASS] 13 blind protocol mutation (injected per-arm key) is caught: ['/params/completion/fill_rate_chase_arm']
+[PASS] 14 R5B-03 window snapshots are presentation-only (hourly cash, positions, funding, stop state identical with snapshots off): 384 hourly states compared, 0 differ
+[PASS] 14 mutation: a window snapshot that touches cash turns it RED: 384 of 384 hourly states differ
+[PASS] 15 R5B-03 the withdrawn v3 readback clamp is NOT presentation-only (hourly state changes) — hence removed, not kept: 260 of 384 hourly states differ (first 08-26 09:00:00Z); clamp moved 26,045 of 993,094 USDT
+[PASS] 6b cross-process byte determinism (PYTHONHASHSEED 1 vs 987: path artifacts seeds 0, 1 and the sealed state byte-identical): return codes {'fx': 0, 'det': 0}
+[PASS] C1 R5B-01 label-only receipt — gate 31650235 accepts it (RED on the old gate): old gate verdict PASS
+[PASS] C1 R5B-01 the same label-only receipt (even with every identity claim correct) — gate v2: UNAVAILABLE (GREEN): UNAVAILABLE: 39 violations, e.g. ['sealed initial-state artifact missing', 'path artifact missing for seed 0']
+[PASS] C2 R5B-02 NaN t1 in window 6 — gate 31650235 accepts it (RED on the old gate): old gate verdict PASS
+[PASS] C2 R5B-02 the same input — gate v2: INVALID_INPUT (GREEN): ['sim[5].t1 not finite: nan']
+[PASS] C2 R5B-02 first / middle / last × NaN / +Inf / −Inf on t1, price and turnover, repeated t0, zero-length window, NaN on the LIVE side — all INVALID_INPUT, no crash: 29 sim-side variants, 0 not INVALID_INPUT []; live-side NaN ⇒ INVALID_INPUT
+[PASS] C3 R5B-02 a permitted 0.5 s t0 offset — gate 31650235 crashes (RED on the old gate): old gate outcome AssertionError
+[PASS] C3 R5B-02 gate v2: 0.5 s ⇒ named verdict with E2 PASS and the T items computed; 1.5 s ⇒ FAIL naming E2 (GREEN): 0.5 s ⇒ PASS (E2 0.5), 1.5 s ⇒ FAIL
+[PASS] C4 R5B-02 exact zero/zero component — gate 31650235 FAILS it with an Infinity ratio (RED on the old gate): old mean|e|/s inf
+[PASS] C4 R5B-02 gate v2: zero/zero ⇒ PASS, zero live / nonzero sim ⇒ FAIL, the same for the T ratios (GREEN): W zero/zero exact zero/zero / zero live scale, nonzero sim; T exact zero/zero / zero live, nonzero sim
+[PASS] C5 R5B-03 equal path means, different path risk — the verdict is the same (it judges conditional means only) and gate v2 REPORTS the difference: net-total sd across paths 0.0 vs 9753.6; maxDD min +0.000 vs -0.389
+[PASS] C5 R5B-03 gate 31650235 accepts 32 seed LABELS with no path artifact at all — it has no path input and cannot see path risk (RED on the old gate): old receipt-check violations for a receipt with zero path files: []
+[PASS] C6 gate v2's T items reproduce v1_gate.judge exactly on real windows (same formulas; only the time contract and zero cases changed): {'fee': (0.992214, 0.992214), 'turnover_over_gross': (0.966222, 0.966222), 'funding': (1.041922, 1.041922), 'price_and_trading': (-786.965131, -786.965131)}
+[PASS] D0 R5B-01 provenance baseline on the real fixture (approved files, identity claims, mirror bytes, calibration re-derived by the pinned calibrator, sealed state = executor readback, 32 path artifacts, means recomputed): 0 violations []; 32 paths
+[PASS] D0 the full gate on the fixture returns a NAMED verdict (FAIL: the fixture covers 17 of the 93 CAL windows — E1): verdict FAIL, E1 {'n_sim': 17, 'n_live': 93, 'live_contiguous': True, 'declared_population': True, 'live_in_period': True, 'pass': False}
+[PASS] D R5B-01 forgery: executor code file claim ⇒ UNAVAILABLE: 1 violations, e.g. ['executor code file claim not in the manifest: exec_tree_409ea16/live/binance_executor.py']
+[PASS] D R5B-01 forgery: tampered path artifact ⇒ UNAVAILABLE: 1 violations, e.g. ['path artifact of seed 3 does not re-hash']
+[PASS] D R5B-01 forgery: tampered path artifact, receipt re-signed ⇒ UNAVAILABLE: 1 violations, e.g. ['receipt window means differ from the means recomputed from the path artifacts']
+[PASS] D R5B-01 forgery: missing seed artifact ⇒ UNAVAILABLE: 1 violations, e.g. ['path artifact missing for seed 5']
+[PASS] D R5B-01 forgery: consistently forged initial state ⇒ UNAVAILABLE: 1 violations, e.g. ["sealed positions differ from the executor's readback at t0 (328 names)"]
+[PASS] D R5B-01 forgery: wrong simulator sha ⇒ UNAVAILABLE: 1 violations, e.g. ["receipt's simulator sha is not the approved simulator"]
+[PASS] D R5B-01 forgery: missing knob ⇒ UNAVAILABLE: 1 violations, e.g. ["knobs missing or unknown: ['fee_asset_wrong']"]
+[PASS] D R5B-01 forgery: another calibration ⇒ UNAVAILABLE: 1 violations, e.g. ["receipt's calibration is not the approved calibration file"]
+[PASS] D R5B-01 forgery: a pinned calibration whose params were edited is not reproduced by the pinned calibrator ⇒ UNAVAILABLE: ['calibration not reproduced by the pinned calibrator: field params']
+[PASS] D live side must be a closed cash identity: real HIST_DIAG population 0 violations; one window with cash_ok False ⇒ UNAVAILABLE: ["live cash identity not closed (cash_ok) on 1 windows, e.g. ['09-12 16:39:03Z']"]
+[PASS] D R5B-01 the committed v3 receipt (fea90ee9, no path artifacts) ⇒ UNAVAILABLE under gate v2: 46 violations, e.g. ["simulator version 'v3' != approved 'v3.1'", "receipt's simulator sha is not the approved simulator", "knobs missing or unknown: ['legacy_readback_clamp']"]
+[PASS] C2/D R5B-02 a NaN carried consistently through a real path artifact, its sha and the receipt ⇒ INVALID_INPUT (no crash, not PASS): verdict INVALID_INPUT
+BATTERY VERDICT: ALL PASS 77/77 checks (baselines green first, every mutation red; reviewer cases red on v2)
+exit code: 0
+interpreter: /usr/bin/python3 (Python 3.9.6); command (cwd = multi_asset/exports/research/replay_exec_2026-09-19): /usr/bin/python3 tests_exec_sim.py

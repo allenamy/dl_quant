@@ -14,12 +14,9 @@ halt). v2 (sha 2638316b, archive/exec_sim_v2_2638316b.py) was rejected by review
          inventory at the flatten start, fills at start + pooled flatten offsets; pending rebalance fills after the start are
          cancelled (the executor cancels open orders first). A future-perturbation test (battery) changes every price after
          t_dec and requires the plan of A to be byte-identical.
-         EVENT CLOCK (v3.1, review 5b R5B-03): every fill is booked at ITS OWN simulated time t_dec + offset, also when that is
-         after anchor A's own live readback t_rb(A) (= that window's t0) — such a fill then belongs to the NEXT window, where it
-         happens. The per-name stop / §4-2 evaluation of A is an event at t_rb(A) (the executor judges on that readback), else at
-         N+45. v3 (fea90ee9, archive/exec_sim_v3_fea90ee9.py) instead moved those fills to 1 s before t_rb(A) (1.57% / 0.32% of the
-         scheduled notional); that rule is WITHDRAWN: it moved inventory earlier by minutes, so it was not presentation-only.
-         It survives only as the mutation knob --legacy-readback-clamp.
+         Frame rule (pre-declared in v1b_gate.py before any v3 number): when the live window frame gives anchor A's own post-run
+         readback instant t_rb(A) (= that window's t0), fills of A are booked before it (live: 0.0% of fill notional after it);
+         the per-name stop / §4-2 evaluation of A is at t_rb(A) (the executor judges on that readback), else at N+45.
   R5-06  NO GUARANTEED FILLS. Outcomes are per-REQUEST draws (hash of seed, rid, symbol, leg — no RNG state, independent of
          prices), so every path is a feasible execution history: a leg fills fully / not at all / partially, a residual is
          completed or not. v2's exit completion is gone: a sub-floor remainder stays as DUST unless the executor's own logic
@@ -27,10 +24,6 @@ halt). v2 (sha 2638316b, archive/exec_sim_v2_2638316b.py) was rejected by review
          is reported per window. Expectations are the MEAN over R seeded paths (seeds 0..R-1, all reported).
   R5-13  The initial state (positions from the executor's own readback at t0, NAV, rebuilt entries, stop state) is SEALED — a
          canonical JSON and its sha256 — BEFORE the run; main() writes it to disk before the first event and re-verifies after.
-  R5B-01 (v3.1) every seed's path is written as its OWN artifact (<out stem>_PATHS/seed_NN.json: windows, events, stops, halts,
-         the sealed-state sha it started from, the simulator / calibration sha it ran with); the receipt lists each file with its
-         sha256, plus the sha of every dependency (simlib, the period source v1b_gate, calibration, fills reader, input manifest,
-         live-window file, transfer file). v1b_gate v2 recomputes everything it judges from those artifacts.
 
 POOLED outcome parameters only (blind protocol for CFG-04 / CFG-06): first-leg refusal / full / zero / partial shares; one
 completion probability π and maker share μ for every eligible residual (refused or rested, every arm); one slippage per leg class.
@@ -45,14 +38,8 @@ between fill probability and the subsequent price path, the producer panel's ±0
 Knobs (battery; all default OFF, recorded in every receipt): --no-stop, --no-min-notional, --zero-fees, --fee-asset-wrong,
 --funding-sign-flip, --funding-double, and MUTATIONS that re-introduce the reviewed defects: --legacy-decision-lookahead (decision
 reads the bar closing after t_dec), --legacy-book-at-decision (every fill booked at t_dec), --legacy-exit-completion (v2's
-guaranteed sub-floor exit fill), --legacy-unsealed-initial (receipt counts the initial population after the run),
---legacy-readback-clamp (v3's withdrawn rule: fills moved before the anchor's own readback).
-Periods (v1b_gate.PERIODS): CAL = in-sample, continuous from 08-26 00Z through --last-anchor (default 09-18 20Z); HIST_DIAG = the
-history diagnostic after time-truncated refit (09-11..09-18, restarted from the 09-10 20Z readback; NOT independent validation — the
-week was seen during v1/v2 calibration and diagnosis); FORWARD = the pre-registered forward validation (--forward-first-anchor, 42
-windows, inputs from a NEW mirror / manifest / live-window file / transfer file passed on the command line; the code is not changed).
-usage: exec_sim.py --events live --period {CAL,HIST_DIAG,FORWARD} --out <out.json> [--last-anchor A] [--forward-first-anchor A]
-       [--paths R] [--calib CAL.json] [--mirror DIR] [--manifest M.json] [--live-g LIVE_G.json] [--transfers INCOME.json] [knobs]
+guaranteed sub-floor exit fill), --legacy-unsealed-initial (receipt counts the initial population after the run).
+usage: exec_sim.py --events live --period {CAL,HOLDOUT} --out <out.json> [--last-anchor A] [--paths R] [--calib CAL.json] [--mirror DIR] [knobs]
 """
 import argparse, collections, copy, hashlib, heapq, json, math, os, sys, time, types
 
@@ -61,14 +48,13 @@ sys.path.insert(0, HERE)
 import simlib as L
 import v1b_gate as G
 
-VERSION = "v3.1"
+VERSION = "v3"
 H4 = 14400
 E4_FROM_ANCHOR = 1789300800           # 09-13 12Z: ef60f85 (E4: a stopped name's from_partial residual is never chased)
 RQ_FIRST_ANCHOR = 1788609600          # 09-05 12Z: first anchor whose order rows carry requote_p (12aa2a1 deployed 11:48:11Z)
 TRADE, HALT, HOLD, MAKER_ONLY = "TRADE", "HALT", "HOLD", "MAKER_ONLY"
 KNOBS = ("no_stop", "no_min_notional", "zero_fees", "fee_asset_wrong", "funding_sign_flip", "funding_double",
-         "legacy_decision_lookahead", "legacy_book_at_decision", "legacy_exit_completion", "legacy_unsealed_initial",
-         "legacy_readback_clamp")
+         "legacy_decision_lookahead", "legacy_book_at_decision", "legacy_exit_completion", "legacy_unsealed_initial")
 PRI = {"xfer": 1, "funding": 2, "fill": 3, "flatten": 4, "anchor": 5, "eval": 6, "win": 9}
 
 
@@ -80,40 +66,6 @@ def u01(seed, *key):
 
 def canon_sha(obj):
     return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":"), default=str).encode()).hexdigest()
-
-
-def live_windows_from(path):
-    """LIVE_G windows from an explicit file (same rule as simlib.live_windows: t1 = next window's t0 when contiguous, else parsed)"""
-    W = json.load(open(path))["windows"]
-    out = []
-    for i, w in enumerate(W):
-        if i + 1 < len(W) and W[i + 1]["from"] == w["to"]:
-            t1 = float(W[i + 1]["t0"])
-        else:
-            t1 = time.mktime(time.strptime("2026-" + w["to"], "%Y-%m-%d %H:%M:%SZ")) - time.timezone
-        out.append(dict(w, t1=t1, idx=i))
-    return out
-
-
-def transfers_from(path):
-    """external USDT transfers (time, signed amount) from a venue income file (same rule as simlib.transfers)"""
-    d = json.load(open(path))
-    body = d.get("body") if isinstance(d, dict) else d
-    return sorted((int(r["time"]) / 1000.0, float(r["income"])) for r in (body or []) if r.get("incomeType") == "TRANSFER" and r.get("asset") == "USDT")
-
-
-class WideMirror(L.Mirror):
-    """simlib.Mirror whose day range defaults to EVERY day present in the mirror (simlib's defaults stop at 20260919, which would
-    silently drop a forward period's rows) and whose collapsed fills ledger is read once per instance. On the historical mirror
-    (days 20260821..20260919) this is the same row population as simlib.Mirror (battery [16])."""
-    def range_rows(self, table, d0="20260821", d1=None):
-        return super().range_rows(table, d0, d1 or max(self.days))
-
-    def fills(self, d0="20260821", d1=None):
-        key = ("fills_wide", d0, d1 or max(self.days))
-        if key not in self._cache:
-            self._cache[key] = super().fills(d0, d1 or max(self.days))
-        return self._cache[key]
 
 
 class ExecutorCode:
@@ -280,7 +232,7 @@ def initial_entries(M, t0, q0, panel, t_flat):
 # ───────────────────────────────────────────── the simulator ─────────────────────────────────────────────
 class Sim:
     def __init__(self, M, cal, mode, knobs, X=None, panel=None, fund=None, seed=0, run_start_anchor=L.A_V1_FIRST,
-                 last_anchor=L.A_V1_LAST, windows=None, transfers=None):
+                 last_anchor=L.A_V1_LAST):
         self.M, self.cal, self.mode, self.k, self.seed = M, cal, mode, dict(knobs), int(seed)
         self.p = cal["params"]
         self.X = X or ExecutorCode(M)
@@ -288,7 +240,7 @@ class Sim:
         if self.P is None:
             self.P = L.Panel(M); L.build_references(M, self.P)
         self.F = fund or L.FundingBook(M)
-        Wall = windows if windows is not None else L.live_windows()[0]
+        Wall, _ = L.live_windows()
         self.frame = {L.nominal(w["t0"]): float(w["t0"]) for w in Wall}      # executor's own post-run readback per anchor
         self.W = [w for w in Wall if run_start_anchor <= L.nominal(w["t0"]) <= last_anchor]
         assert self.W and L.nominal(self.W[0]["t0"]) == run_start_anchor, "run must start at a live window's t0 readback"
@@ -297,7 +249,7 @@ class Sim:
         self.anchors = list(range(run_start_anchor + H4, L.nominal(self.t_end) + 1, H4))
         self.cfg, self.cfg_prov = config_timeline(M, list(range(L.A_V1_FIRST, self.anchors[-1] + 1, H4)))
         self.flat_times, self.kind = live_event_timeline(M, self.anchors)
-        self.xfers = [(t, a) for t, a in (transfers if transfers is not None else L.transfers()) if self.t_start < t <= self.t_end]
+        self.xfers = [(t, a) for t, a in L.transfers() if self.t_start < t <= self.t_end]
         self.fee_switch = float(self.p["fee_rate"]["switch_ts"])
         tm = self.p["timing_offsets_after_decision_s"]
         self.tau1, self.tau2, self.tw = [float(x) for x in tm["first_leg"]], [float(x) for x in tm["later_leg"]], [float(x) for x in tm["weights"]]
@@ -391,12 +343,11 @@ class Sim:
         return abs(cash)
 
     def fill_time(self, A, t_dec, tau):
-        """the fill's own simulated time. v3.1: never moved; the v3 readback clamp exists only as a mutation knob"""
         if self.k.get("legacy_book_at_decision"):
             return t_dec
         t = t_dec + tau
         rb = self.frame.get(A)
-        if self.k.get("legacy_readback_clamp") and rb is not None and rb > t_dec + 2.0 and t >= rb:
+        if rb is not None and rb > t_dec + 2.0 and t >= rb:
             self.clamp_stats["n_atoms_clamped"] += 1
             return rb - 1.0
         return t
@@ -410,9 +361,6 @@ class Sim:
             t = self.fill_time(A, t_dec, tau)
             if t != t_dec + tau:
                 self.clamp_stats["notional_clamped"] += abs(dq * ref_px)
-            rb = self.frame.get(A)
-            if rb is not None and rb > t_dec and t >= rb:
-                self.clamp_stats["notional_booked_after_own_readback"] += abs(dq * ref_px)   # belongs to the next window
             self.clamp_stats["notional_scheduled"] += abs(dq * ref_px)
             self.push(t, "fill", {"src": "rebal", "gen": self.rebal_gen, "s": s, "dq": dq, "ref": ref_px, "slip": slip,
                                   "maker": maker, "kind": kind, "A": A})
@@ -563,9 +511,7 @@ class Sim:
         cnt = collections.Counter()
         pop, prev_sum, first_sum, refused_sum, gross_now = [], 0.0, 0.0, 0.0, 0.0
         refused_names = []
-        # symbol order: the executor's reshape can iterate sets (hash-seed dependent), and same-instant fills are processed in scheduling
-        # order, so an unsorted loop makes float sums differ across processes at ~1e-14 (found by the cross-process check, battery [6])
-        for p in sorted(plans, key=lambda p_: p_["symbol"]):
+        for p in plans:
             s = p["symbol"]
             if p.get("skip") or "qty" not in p:
                 n_skip_min += int(p.get("skip") == "skipped_min_notional")
@@ -747,69 +693,33 @@ def aggregate(paths):
     return mean, lo, hi
 
 
-def rel_to(path, base_dir):
-    return os.path.relpath(os.path.abspath(path), os.path.abspath(base_dir))
-
-
-def path_record(S, W, seed, device_sha, calib_sha):
-    """one seed's path artifact: everything V1b v2 recomputes (windows) plus the path's own risk / event facts"""
-    status = collections.Counter(r["status"] for r in S.log_anchor)
-    return {"seed": seed, "exec_sim_sha256": device_sha, "calibration_sha256": calib_sha, "initial_state_sha256": S.sealed_sha,
-            "run_start_anchor": S.run_start_anchor, "last_anchor": S.last_anchor, "n_fill_events": len(S.trade_log),
-            "n_funding_charges": len(S.fund_log), "stops": [e for e in S.events_fired if e["type"] == "STOP"],
-            "flattens": [e for e in S.events_fired if e["type"] == "FLATTEN"], "anchor_status_counts": dict(status),
-            "halt_anchors": [r["utc"] for r in S.log_anchor if r["status"] == HALT], "diag": dict(S.diag), "clock": dict(S.clamp_stats),
-            "outcome_counts": dict(sum((collections.Counter(r.get("outcomes") or {}) for r in S.log_anchor), collections.Counter())),
-            "chase_assignment_counts": dict(sum((collections.Counter(r.get("chase_assignment_counts") or {}) for r in S.log_anchor), collections.Counter())),
-            "requote_assignment_counts": dict(sum((collections.Counter(r.get("requote_assignment_counts") or {}) for r in S.log_anchor), collections.Counter())),
-            "windows": W}
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--events", choices=("live", "rule"), required=True)
-    ap.add_argument("--period", choices=("CAL", "HIST_DIAG", "FORWARD"), required=True, help="run start as declared in v1b_gate.PERIODS")
-    ap.add_argument("--last-anchor", type=int, default=None)
-    ap.add_argument("--forward-first-anchor", type=int, default=None)
+    ap.add_argument("--period", choices=("CAL", "HOLDOUT"), required=True, help="run start as declared in v1b_gate.PERIODS")
+    ap.add_argument("--last-anchor", type=int, default=L.A_V1_LAST)
     ap.add_argument("--paths", type=int, default=G.R_MIN)
     ap.add_argument("--out", required=True)
     ap.add_argument("--calib", default=os.path.join(HERE, "CALIBRATION_v3_POOLED_20260826_20260910.json"))
     ap.add_argument("--mirror", default=L.MIRROR_DEFAULT)
-    ap.add_argument("--manifest", default=os.path.join(HERE, "INPUT_MANIFEST.json"))
-    ap.add_argument("--live-g", default=L.LIVE_G)
-    ap.add_argument("--transfers", default=L.INCOME_TRANSFER)
     for k in KNOBS:
         ap.add_argument("--" + k.replace("_", "-"), action="store_true")
     a = ap.parse_args()
     knobs = {k: bool(getattr(a, k)) for k in KNOBS}
-    M = WideMirror(a.mirror)
-    M.manifest = json.load(open(a.manifest))
+    M = L.Mirror(a.mirror)
     L.install_readonly_guard()
     bad = M.verify_manifest()
-    assert not bad, f"mirror differs from {a.manifest}: {bad[:5]}"
+    assert not bad, f"mirror differs from INPUT_MANIFEST: {bad[:5]}"
     cal = json.load(open(a.calib))
     assert cal.get("frozen_before_holdout") is True and cal.get("kind") == "v3_pooled", "v3 needs a frozen v3 pooled calibration"
-    Wall = live_windows_from(a.live_g)
-    xf = transfers_from(a.transfers)
-    if a.period == "FORWARD":
-        assert a.forward_first_anchor is not None, "FORWARD needs --forward-first-anchor (from the pre-registration)"
-        pop = G.forward_population(Wall, a.forward_first_anchor)
-        assert pop is not None, f"FORWARD: fewer than {G.FORWARD_N_WINDOWS} complete live windows from {L.UA(a.forward_first_anchor)} — no readout yet"
-        rs, last = a.forward_first_anchor - H4, L.nominal(pop[-1]["t0"])
-    else:
-        rs = G.PERIODS[a.period]["run_start_anchor"]
-        last = a.last_anchor if a.last_anchor is not None else (L.A_V1_LAST if a.period == "CAL" else G.PERIODS[a.period]["last_anchor"])
-    out_dir = os.path.dirname(os.path.abspath(a.out))
-    stem = os.path.splitext(os.path.abspath(a.out))[0]
-    seal_path, paths_dir = stem + "_INITIAL_STATE.json", stem + "_PATHS"
-    os.makedirs(paths_dir, exist_ok=True)
-    device_sha, calib_sha = L.sha_file(os.path.abspath(__file__)), L.sha_file(a.calib)
+    rs = G.PERIODS[a.period]["run_start_anchor"]
     t0 = time.time()
     X = ExecutorCode(M); P = L.Panel(M); L.build_references(M, P); F = L.FundingBook(M)
     seeds = list(range(a.paths))
-    paths, files, summaries, sealed_sha, S0 = [], [], [], None, None
+    paths, summaries, sealed_sha, S0 = [], [], None, None
+    seal_path = os.path.splitext(a.out)[0] + "_INITIAL_STATE.json"
     for sd in seeds:
-        S = Sim(M, cal, a.events, knobs, X=X, panel=P, fund=F, seed=sd, run_start_anchor=rs, last_anchor=last, windows=Wall, transfers=xf)
+        S = Sim(M, cal, a.events, knobs, X=X, panel=P, fund=F, seed=sd, run_start_anchor=rs, last_anchor=a.last_anchor)
         if sd == 0:
             # ★ R5-13: the initial state is written to disk and its sha fixed BEFORE the first event is processed
             with open(seal_path + ".part", "w") as fh:
@@ -819,54 +729,53 @@ def main():
         assert S.sealed_sha == sealed_sha, "initial state differs between paths"
         W = S.run()
         paths.append(W)
-        rec = path_record(S, W, sd, device_sha, calib_sha)
-        fp = os.path.join(paths_dir, f"seed_{sd:02d}.json")
-        with open(fp + ".part", "w") as fh:
-            json.dump(rec, fh, indent=0, sort_keys=True, default=lambda o: sorted(o) if isinstance(o, set) else str(o))
-        os.replace(fp + ".part", fp)
-        files.append({"seed": sd, "file": rel_to(fp, out_dir), "sha256": L.sha_file(fp)})
-        summaries.append({"seed": sd, "net_pnl": sum(w["price_trade"] + w["funding"] - w["fee"] for w in W), "n_fill_events": len(S.trade_log),
-                          "events": dict(collections.Counter(e["type"] for e in S.events_fired))})
+        summaries.append({"seed": sd, "n_trade_legs": len(S.trade_log), "net_pnl": sum(w["price_trade"] + w["funding"] - w["fee"] for w in W),
+                          "price_trade": sum(w["price_trade"] for w in W), "funding": sum(w["funding"] for w in W), "fee": sum(w["fee"] for w in W),
+                          "turnover": sum(w["turnover"] for w in W), "final_equity": W[-1]["equity1"], "n_positions_final": len(S.q),
+                          "events": dict(collections.Counter(e["type"] for e in S.events_fired)), "diag": dict(S.diag),
+                          "clamp": dict(S.clamp_stats),
+                          "outcomes": dict(sum((collections.Counter(r.get("outcomes") or {}) for r in S.log_anchor), collections.Counter())),
+                          "chase_assignment": dict(sum((collections.Counter(r.get("chase_assignment_counts") or {}) for r in S.log_anchor), collections.Counter())),
+                          "requote_assignment": dict(sum((collections.Counter(r.get("requote_assignment_counts") or {}) for r in S.log_anchor), collections.Counter()))})
         if sd == 0:
             S0 = S
-        print(f"  path seed {sd}: net {summaries[-1]['net_pnl']:+,.2f}  fill events {len(S.trade_log)}  ({time.time() - t0:.0f} s)", flush=True)
+        print(f"  path seed {sd}: net {summaries[-1]['net_pnl']:+,.2f}  legs {len(S.trade_log)}  ({time.time() - t0:.0f} s)", flush=True)
     chk = json.load(open(seal_path))
     assert chk["sha256"] == sealed_sha == canon_sha(chk["state"]), "sealed initial state changed on disk during the run"
     mean, lo, hi = aggregate(paths)
-    deps = {"exec_sim.py": device_sha, "simlib.py": L.sha_file(os.path.join(HERE, "simlib.py")),
-            "v1b_gate.py (period source)": L.sha_file(os.path.join(HERE, "v1b_gate.py")), "calibration": calib_sha,
-            "fills_reader.py": L.sha_file(os.path.join(L.TOOLS, "fills_reader.py")), "manifest": L.sha_file(a.manifest),
-            "live_g": L.sha_file(a.live_g), "transfers": L.sha_file(a.transfers)}
-    label_note = {"CAL": "calibration period, IN-SAMPLE for the pooled parameters",
-                  "HIST_DIAG": "history diagnostic after time-truncated refit (not independent validation: the week was seen during v1/v2 calibration and diagnosis)",
-                  "FORWARD": "pre-registered forward validation (live anchors after the freeze commit)"}[a.period]
-    doc = {"device": "exec_sim.py", "version": VERSION, "device_sha256": device_sha,
+    import numpy as np
+    dust = {"per_window_mean_n_dust": {"mean": float(np.mean([w["end_n_dust"] for w in mean])), "max": float(max(w["end_n_dust"] for w in mean))},
+            "per_window_mean_dust_usdt": {"mean": float(np.mean([w["end_dust_usdt"] for w in mean])), "max": float(max(w["end_dust_usdt"] for w in mean))},
+            "per_window_mean_exit_dust_usdt": {"mean": float(np.mean([w["end_exit_dust_usdt"] for w in mean])), "max": float(max(w["end_exit_dust_usdt"] for w in mean))},
+            "dust_over_gross_bps": {"mean": float(np.mean([w["end_dust_usdt"] / w["gross1"] * 1e4 for w in mean if w["gross1"] > 0])),
+                                    "max": float(max(w["end_dust_usdt"] / w["gross1"] * 1e4 for w in mean if w["gross1"] > 0))}}
+    doc = {"device": "exec_sim.py", "version": VERSION, "device_sha256": L.sha_file(os.path.abspath(__file__)),
            "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "rerun": "cd " + os.path.relpath(HERE, L.REPO) + " && /usr/bin/python3 exec_sim.py " + " ".join(sys.argv[1:]),
            "argv": sys.argv[1:], "mode": a.events, "knobs": knobs, "runtime_s": round(time.time() - t0, 1),
-           "period": {"label": a.period, "label_note": label_note, "run_start_anchor": rs, "run_start_utc": L.UA(rs), "last_anchor": last,
-                      "last_anchor_utc": L.UA(last), "forward_first_anchor": a.forward_first_anchor},
-           "paths": {"seeds": seeds, "n": len(seeds), "files": files, "draws": "per-request blake2b(seed|rid|symbol|leg) uniforms"},
-           "calibration": {"path": os.path.relpath(os.path.abspath(a.calib), L.REPO), "sha256": calib_sha},
-           "dependencies_sha256": deps, "inputs": {"mirror": a.mirror, "manifest": os.path.abspath(a.manifest), "live_g": os.path.abspath(a.live_g),
-                                                   "transfers": os.path.abspath(a.transfers)},
+           "period": {"label": a.period, "run_start_anchor": rs, "run_start_utc": L.UA(rs), "last_anchor": a.last_anchor,
+                      "last_anchor_utc": L.UA(a.last_anchor), "declared": G.PERIODS[a.period]},
+           "paths": {"seeds": seeds, "n": len(seeds), "draws": "per-request blake2b(seed|rid|symbol|leg) uniforms"},
+           "calibration": {"path": os.path.relpath(os.path.abspath(a.calib), L.REPO), "sha256": L.sha_file(a.calib)},
            "inputs_sha256": L.input_shas(M, extra=[a.calib, os.path.join(HERE, "v1b_gate.py")]), "executor_code_files_sha256": X.files,
            "config_timeline_provenance": S0.cfg_prov,
-           "initial_state_sealed": dict(initial_block(S0, knobs), sealed_file=rel_to(seal_path, out_dir)),
+           "initial_state_sealed": dict(initial_block(S0, knobs), sealed_file=os.path.relpath(seal_path, L.REPO)),
            "timing_model": {"first_leg_offsets_s": S0.tau1, "later_leg_offsets_s": S0.tau2, "flatten_offsets_s": S0.tauf, "weights": S0.tw,
-                            "event_clock": "every fill at its own simulated time t_dec + offset (never moved); a fill after the anchor's own readback belongs to the next window; stop / §4-2 evaluated at the anchor's readback (else N+45)"},
+                            "frame_rule": "fills of anchor A booked before A's own post-run readback (live window t0) when it exists; evaluation at that readback, else N+45"},
            "event_timeline": {"mode": a.events, "live_flatten_utc": [L.U(t) for t in S0.flat_times],
                               "anchor_kind_counts": dict(collections.Counter(S0.kind.values())),
                               "non_trade_anchors_live": {L.UA(A): k for A, k in S0.kind.items() if k != TRADE}},
-           "path_summaries": summaries, "funding_xcheck": F.xcheck, "funding_source": dict(F.src),
+           "path_summaries": summaries, "dust_exposure": dust,
+           "funding_xcheck": F.xcheck, "funding_source": dict(F.src),
            "panel": {"n_refs": len(P.ref), "span": f"{L.U(P.t_first)}..{L.U(P.t_last)}"},
-           "anchors_seed0": S0.log_anchor, "windows": mean, "windows_path_p05": lo, "windows_path_p95": hi,
-           "note": "windows = per-window mean over the R path artifacts (the gate recomputes it from the files); p05/p95 are diagnostics"}
+           "anchors_seed0": S0.log_anchor, "events_fired_seed0": S0.events_fired,
+           "windows": mean, "windows_path_p05": lo, "windows_path_p95": hi,
+           "path_band_coverage_note": "windows_path_p05 / _p95 = 5% / 95% quantiles over the R paths per window (diagnostic)"}
     with open(a.out + ".part", "w") as fh:
         json.dump(doc, fh, indent=1, default=lambda o: sorted(o) if isinstance(o, set) else str(o))
     os.replace(a.out + ".part", a.out)
     n_st = collections.Counter(r["status"] for r in S0.log_anchor)
-    print(f"exec_sim {VERSION} {a.events} {a.period}: {len(mean)} windows × {len(seeds)} paths, anchors {dict(n_st)}, runtime {doc['runtime_s']} s -> {a.out}")
+    print(f"exec_sim v3 {a.events} {a.period}: {len(mean)} windows × {len(seeds)} paths, anchors {dict(n_st)}, runtime {doc['runtime_s']} s -> {a.out}")
 
 
 if __name__ == "__main__":

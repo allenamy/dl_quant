@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""replay_exec 2026-09-19 · battery v3.1 for exec_sim.py (v3.1) / v1b_gate.py (gate v2). v3 battery: archive/tests_exec_sim_v3_29f851e7.py. Every claim: the GREEN baseline is asserted FIRST (non-vacuous:
+"""replay_exec 2026-09-19 · battery v3 for exec_sim.py (v3) / v1b_gate.py. Every claim: the GREEN baseline is asserted FIRST (non-vacuous:
 a measured population > 0), then each mutation must turn the SAME check RED. A mutation that stays green is a battery failure.
 v2 battery: archive/tests_exec_sim_v2_0265ed2c.py. Real-data claims run ONE path (seed 0) over the CALIBRATION period only (anchors
 08-26 00Z .. 09-10 20Z; the hold-out is not touched by the battery).
@@ -32,35 +32,15 @@ Part B — real data (v3, seed 0, CAL period):
   [12] R5-13 initial population: the receipt block equals the independently counted t0 readback (sealed, sha reproducible);
        the committed v2 receipt fails it          mut: --legacy-unsealed-initial
   [13] blind protocol: the v3 calibration carries no arm / experiment key; the checker catches one   mut: an injected per-arm key
-  [14] event clock: window snapshots are presentation-only — hourly cash, positions, funding and stop state are identical with window
-       snapshots on or off                        mut: a snapshot that touches cash
-  [15] the WITHDRAWN v3 readback clamp (--legacy-readback-clamp) is measured: moved notional and whether hourly state changes
-  [6b] cross-process byte determinism: two runs under different PYTHONHASHSEED write byte-identical path artifacts
-Part C — review 5b counterexamples (R5B-01 / R5B-02 / R5B-03 §MC), RED on the archived gate 31650235 and GREEN on gate v2:
-  C1 label-only receipt ("not-a-hash", no state file, no path files, no source identity)    old: PASS 11/11     v2: UNAVAILABLE
-  C2 NaN window end (middle)                                                                old: PASS 11/11     v2: INVALID_INPUT
-     (+ first / middle / last × NaN / +Inf / −Inf on t1 and on price, repeated t0, zero-length window, and a NaN carried consistently
-      through a real path artifact, receipt and sha — all INVALID_INPUT)
-  C3 a permitted 0.5 s t0 offset                                                            old: AssertionError v2: named verdict, E2 PASS
-  C4 zero / zero component                                                                  old: FAIL (Infinity) v2: PASS; 0 / x FAIL
-  C5 equal path means, different path risk                                                  old: no path input  v2: diagnostics differ
-  C6 the v2 totals equal v1_gate.judge's on real windows (same formulas, one time contract)
-Part D — provenance on a REAL fixture run (CAL slice 08-26 → 08-28 20Z, 32 paths, written in a subprocess before the guard): baseline
-  0 violations; each forgery ⇒ UNAVAILABLE: tampered path file, tampered path + re-signed receipt, missing seed file, consistently
-  forged initial state, wrong simulator sha, missing knob, another calibration, a forged pinned calibration (re-derivation), and the
-  committed v3 receipts (no artifacts, unapproved simulator).
 usage: tests_exec_sim.py [mirror]   → one line per check and a final verdict line; exit code 0 iff every check passed.
 """
-import collections, contextlib, copy, importlib.util, io, json, math, os, subprocess, sys, time, types
-
-import numpy as np
+import collections, copy, importlib.util, json, math, os, subprocess, sys, time, types
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import simlib as L
 
 RESULTS = []
-TMP = None                      # battery scratch directory (tempfile), created in main
 CAL_FILE = os.path.join(HERE, "CALIBRATION_v3_POOLED_20260826_20260910.json")
 V2_FILE = os.path.join(HERE, "archive", "exec_sim_v2_2638316b.py")
 SYN_TARGET = os.path.join(HERE, "battery_synthetic_target.json")     # {} — the synthetic books' parse_target stub ignores its bytes
@@ -80,23 +60,6 @@ def t7_guard():
     check("7 read-only guard baseline (guard installed ⇒ open of a live path refused)", g == "REFUSED", f"child says {g!r}")
     m = subprocess.run([sys.executable, "-c", code.format("pass")], capture_output=True, text=True).stdout.strip()
     check("7 read-only guard mutation (no guard ⇒ the same open succeeds, i.e. the refusal came from the guard)", m == "OPENED", f"child says {m!r}")
-
-
-FIX_LAST = 1787947200          # fixture slice: CAL run start 08-26 00Z .. anchor 08-28 20Z (in-sample)
-
-
-def fixture_runs(mirror):
-    """subprocess runs BEFORE this process installs its guard: the 32-path fixture (PYTHONHASHSEED 1) and a 2-path rerun under
-    PYTHONHASHSEED 987 for the cross-process byte-determinism check"""
-    out = {}
-    for tag, seed, n in (("fx", "1", 32), ("det", "987", 2)):
-        env = dict(os.environ, PYTHONHASHSEED=seed)
-        r = subprocess.run([sys.executable, os.path.join(HERE, "exec_sim.py"), "--events", "live", "--period", "CAL", "--last-anchor", str(FIX_LAST),
-                            "--paths", str(n), "--mirror", mirror, "--out", os.path.join(TMP, tag + ".json")], capture_output=True, text=True, env=env)
-        out[tag] = r.returncode
-        if r.returncode:
-            print(r.stderr[-2000:], flush=True)
-    return out
 
 
 def load_v2():
@@ -216,46 +179,21 @@ def part_a(ES):
           f"v2 executed {s5.acc['turn']:.2f}, remaining qty {s5.q.get('S', 0)}")
     # A5 gate
     sim, live, turn = G.reviewer_counterexample()
-    old = V1.judge(sim, live, turn); nv, new = G.judge_v1b(sim, live, turn)
-    check("A5 R5-07 reviewer's anti-correlated path, t1 +2 h — V1b FAILS it (GREEN)", nv == "FAIL",
+    old = V1.judge(sim, live, turn); new = G.judge_v1b(sim, live, turn)
+    check("A5 R5-07 reviewer's anti-correlated path, t1 +2 h — V1b FAILS it (GREEN)", not all(x["pass"] for x in new.values()),
           {k: v["pass"] for k, v in new.items() if not v["pass"]})
     check("A5 R5-07 same path — the old V1 PASSES it (RED for V1: the defect is real)", all(x["pass"] for x in old.values()),
           {k: v["pass"] for k, v in old.items()})
 
 
 # ───────────────────────────── Part B: real data ─────────────────────────────
-def run(ES, M, cal, X, P, F, seed=0, stop_at=None, cls=None, **knobs):
+def run(ES, M, cal, X, P, F, seed=0, stop_at=None, **knobs):
     import v1b_gate as G
     kn = {k: False for k in ES.KNOBS}; kn.update(knobs)
-    S = (cls or ES.Sim)(M, cal, "live", kn, X=X, panel=P, fund=F, seed=seed, run_start_anchor=G.PERIODS["CAL"]["run_start_anchor"],
-                        last_anchor=G.PERIODS["CAL"]["last_anchor"])
+    S = ES.Sim(M, cal, "live", kn, X=X, panel=P, fund=F, seed=seed, run_start_anchor=G.PERIODS["CAL"]["run_start_anchor"],
+               last_anchor=G.PERIODS["CAL"]["last_anchor"])
     W = S.run(stop_at=stop_at)
     return S, W
-
-
-def probe_class(ES, windows_off=False, touch_cash=False):
-    """a Sim that records hourly (cash, positions, funding, stop state) and optionally ignores / abuses its window snapshots"""
-    class Probe(ES.Sim):
-        def run(self, stop_at=None):
-            self.probes = []
-            h = (int(self.t_start) // 3600 + 1) * 3600
-            while h <= self.t_end:
-                self.push(h, "win", ("probe", h)); h += 3600
-            return super().run(stop_at)
-
-        def dispatch(self, t, kind, arg):
-            if kind == "win" and arg[0] == "probe":
-                self.probes.append((t, self.K, tuple(sorted(self.q.items())), self.acc["fund"], tuple(sorted(self.pns["stopped"])),
-                                    tuple(sorted(self.pns["cooldown"])), tuple(sorted((self.pns.get("counters") or {}).items()))))
-                return
-            if kind == "win" and windows_off:
-                self.snaps[arg] = {"mv": 0.0, "gross": 0.0, "equity": 0.0, "dust": {}, **{k: 0.0 for k in ("tradecash", "fee", "fund", "turn", "xfer",
-                                   "n_trades", "turn_first", "turn_later", "turn_flatten", "turn_exit_completion")}}
-                return
-            if kind == "win" and touch_cash:
-                self.K += 1.0                        # mutation: a "snapshot" that changes cash
-            return super().dispatch(t, kind, arg)
-    return Probe
 
 
 def real_floor(X, s):
@@ -404,8 +342,8 @@ def c11_fill_clock(S):
         if kind in ("flatten",) or A is None:
             continue
         n += 1
-        t_dec = S.cfg[A]["t_dec"]
-        ok = t > t_dec and any(abs(t - (t_dec + o)) < 1e-6 for o in offs)          # v3.1: never moved (no readback clamp)
+        t_dec = S.cfg[A]["t_dec"]; rb = S.frame.get(A)
+        ok = t > t_dec and (any(abs(t - (t_dec + o)) < 1e-6 for o in offs) or (rb is not None and abs(t - (rb - 1.0)) < 1e-6))
         if not ok:
             bad.append((L.UA(A), s, t - t_dec))
     return n, bad
@@ -417,285 +355,18 @@ def c12_initial(M, S, block):
     return n_rb, block.get("n_positions"), block.get("sealed_before_run"), (block.get("sha256") == S.canon_sha_of_sealed if block.get("sha256") else None)
 
 
-def load_old_gate():
-    spec = importlib.util.spec_from_file_location("v1b_gate_31650235", os.path.join(HERE, "archive", "v1b_gate_31650235.py"))
-    mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
-    return mod
-
-
-def part_b2(ES, M, cal, X, P, F, rc):
-    # [14] window snapshots are presentation-only
-    Sa, _ = run(ES, M, cal, X, P, F, cls=probe_class(ES))
-    Sb_, _ = run(ES, M, cal, X, P, F, cls=probe_class(ES, windows_off=True))
-    check("14 R5B-03 window snapshots are presentation-only (hourly cash, positions, funding, stop state identical with snapshots off)",
-          len(Sa.probes) > 0 and Sa.probes == Sb_.probes, f"{len(Sa.probes)} hourly states compared, {sum(a != b for a, b in zip(Sa.probes, Sb_.probes))} differ")
-    Sc, _ = run(ES, M, cal, X, P, F, cls=probe_class(ES, touch_cash=True))
-    nd = sum(a != b for a, b in zip(Sa.probes, Sc.probes))
-    check("14 mutation: a window snapshot that touches cash turns it RED", nd > 0, f"{nd} of {len(Sa.probes)} hourly states differ")
-    # [15] the withdrawn v3 readback clamp, measured
-    Sd, _ = run(ES, M, cal, X, P, F, cls=probe_class(ES), legacy_readback_clamp=True)
-    diff = [a[0] for a, b in zip(Sa.probes, Sd.probes) if a != b]
-    check("15 R5B-03 the withdrawn v3 readback clamp is NOT presentation-only (hourly state changes) — hence removed, not kept",
-          len(diff) > 0, f"{len(diff)} of {len(Sa.probes)} hourly states differ (first {L.U(diff[0]) if diff else None}); "
-                         f"clamp moved {Sd.clamp_stats.get('notional_clamped', 0.0):,.0f} of {Sd.clamp_stats.get('notional_scheduled', 0.0):,.0f} USDT")
-    # [6b] cross-process byte determinism
-    same = rc.get("fx") == 0 and rc.get("det") == 0 and all(
-        open(os.path.join(TMP, "fx_PATHS", f"seed_{k:02d}.json"), "rb").read() == open(os.path.join(TMP, "det_PATHS", f"seed_{k:02d}.json"), "rb").read()
-        for k in (0, 1)) and open(os.path.join(TMP, "fx_INITIAL_STATE.json"), "rb").read() == open(os.path.join(TMP, "det_INITIAL_STATE.json"), "rb").read()
-    check("6b cross-process byte determinism (PYTHONHASHSEED 1 vs 987: path artifacts seeds 0, 1 and the sealed state byte-identical)", same,
-          f"return codes {rc}")
-
-
-def part_c(ES, M):
-    import v1_gate as V1, v1b_gate as G2
-    G1 = load_old_gate()
-    live_w = G2.population("HIST_DIAG"); lt, _ = V1.live_turnover(M, live_w)
-    base_w = [dict(w, turnover=t) for w, t in zip(live_w, lt)]
-    cal_rel, cal_sha = os.path.relpath(CAL_FILE, L.REPO), L.sha_file(CAL_FILE)
-
-    def old_doc(windows):
-        return {"version": "v3", "mode": "live", "paths": {"seeds": list(range(32))}, "period": {"run_start_anchor": 1789070400},
-                "calibration": {"path": cal_rel, "sha256": cal_sha}, "initial_state_sealed": {"sealed_before_run": True, "sha256": "not-a-hash"},
-                "windows": windows}
-
-    def run_old(doc, name):
-        p = os.path.join(TMP, name + ".json")
-        with open(p, "w") as fh:
-            json.dump(doc, fh)
-        try:
-            with contextlib.redirect_stdout(io.StringIO()):
-                ok = G1.main_gate(p, "HOLDOUT", p + ".verdict.json", M.root)
-            return "PASS" if ok else "FAIL"
-        except Exception as e:
-            return type(e).__name__
-    # C1 label-only receipt
-    o1 = run_old(old_doc(copy.deepcopy(base_w)), "c1_old")
-    check("C1 R5B-01 label-only receipt — gate 31650235 accepts it (RED on the old gate)", o1 == "PASS", f"old gate verdict {o1}")
-    nd = dict(old_doc(copy.deepcopy(base_w)), version="v3.1", device_sha256=G2.APPROVED["exec_sim.py"][1], knobs={k: False for k in ES.KNOBS},
-              period={"label": "HIST_DIAG", "run_start_anchor": 1789070400},
-              dependencies_sha256={k: L.sha_file(p_) for k, (p_, _) in G2.APPROVED.items() if k in ("exec_sim.py", "simlib.py", "calibration", "fills_reader.py")})
-    pn = os.path.join(TMP, "c1_new.json")
-    with open(pn, "w") as fh:
-        json.dump(nd, fh)
-    with contextlib.redirect_stdout(io.StringIO()):
-        v1n = G2.run_gate(pn, "HIST_DIAG", pn + ".verdict.json", M.root)
-    rs = json.load(open(pn + ".verdict.json"))["provenance_violations"]
-    check("C1 R5B-01 the same label-only receipt (even with every identity claim correct) — gate v2: UNAVAILABLE (GREEN)", v1n == "UNAVAILABLE",
-          f"{v1n}: {len(rs)} violations, e.g. {[r for r in rs if 'missing' in r][:2]}")
-    # C2 NaN window end
-    w2 = copy.deepcopy(base_w); w2[5]["t1"] = float("nan")
-    o2 = run_old(old_doc(w2), "c2_old")
-    check("C2 R5B-02 NaN t1 in window 6 — gate 31650235 accepts it (RED on the old gate)", o2 == "PASS", f"old gate verdict {o2}")
-    v2n, it2 = G2.judge_v1b(w2, live_w, lt, label="HIST_DIAG", declared=G2.population("HIST_DIAG"))
-    check("C2 R5B-02 the same input — gate v2: INVALID_INPUT (GREEN)", v2n == "INVALID_INPUT", it2["E0_input_validity"]["violations"][:2])
-    variants = []
-    n = len(base_w)
-    for pos in (0, n // 2, n - 1):
-        for val in (float("nan"), float("inf"), float("-inf")):
-            for fld in ("t1", "price_trade", "turnover"):
-                w = copy.deepcopy(base_w); w[pos][fld] = val; variants.append((f"{fld}[{pos}]={val}", w))
-    w = copy.deepcopy(base_w); w[7]["t0"] = w[6]["t0"]; variants.append(("repeated t0", w))
-    w = copy.deepcopy(base_w); w[9]["t1"] = w[9]["t0"]; variants.append(("zero-length window", w))
-    res = [(nm, G2.judge_v1b(w, live_w, lt, label="HIST_DIAG", declared=G2.population("HIST_DIAG"))[0]) for nm, w in variants]
-    badv = [r for r in res if r[1] != "INVALID_INPUT"]
-    lw = copy.deepcopy(live_w); lw[n // 2]["funding"] = float("nan")
-    vl, _ = G2.judge_v1b(base_w, lw, lt, label="HIST_DIAG")
-    check("C2 R5B-02 first / middle / last × NaN / +Inf / −Inf on t1, price and turnover, repeated t0, zero-length window, NaN on the LIVE side — all INVALID_INPUT, no crash",
-          not badv and vl == "INVALID_INPUT", f"{len(res)} sim-side variants, {len(badv)} not INVALID_INPUT {badv[:3]}; live-side NaN ⇒ {vl}")
-    # C3 permitted half second
-    w3 = copy.deepcopy(base_w); w3[5]["t0"] += 0.5
-    o3 = run_old(old_doc(w3), "c3_old")
-    check("C3 R5B-02 a permitted 0.5 s t0 offset — gate 31650235 crashes (RED on the old gate)", o3 == "AssertionError", f"old gate outcome {o3}")
-    try:
-        v3n, it3 = G2.judge_v1b(w3, live_w, lt, label="HIST_DIAG", declared=G2.population("HIST_DIAG")); e3 = None
-    except Exception as e:
-        v3n, it3, e3 = None, {}, type(e).__name__
-    w4 = copy.deepcopy(base_w); w4[5]["t0"] += 1.5
-    v4n, it4 = G2.judge_v1b(w4, live_w, lt, label="HIST_DIAG", declared=G2.population("HIST_DIAG"))
-    check("C3 R5B-02 gate v2: 0.5 s ⇒ named verdict with E2 PASS and the T items computed; 1.5 s ⇒ FAIL naming E2 (GREEN)",
-          e3 is None and v3n == "PASS" and it3["E2_t0"]["pass"] and "ratio" in it3["T_fee"] and v4n == "FAIL" and not it4["E2_t0"]["pass"],
-          f"0.5 s ⇒ {v3n} (E2 {it3.get('E2_t0', {}).get('max_abs_dt0_s')}), 1.5 s ⇒ {v4n}")
-    # C4 zero components
-    z = [0.0] * 48
-    o4 = G1.window_item("funding", z, z)
-    check("C4 R5B-02 exact zero/zero component — gate 31650235 FAILS it with an Infinity ratio (RED on the old gate)", not o4["pass"],
-          f"old mean|e|/s {o4['mean_abs_err_over_scale']}")
-    n4 = G2.window_item("funding", z, z); n5 = G2.window_item("funding", [0.0] * 47 + [1.0], z)
-    zt = G2.totals([dict(w, fee=0.0) for w in base_w], [dict(w, fee=0.0) for w in live_w], lt)
-    zt2 = G2.totals(base_w, [dict(w, fee=0.0) for w in live_w], lt)
-    check("C4 R5B-02 gate v2: zero/zero ⇒ PASS, zero live / nonzero sim ⇒ FAIL, the same for the T ratios (GREEN)",
-          n4["pass"] and not n5["pass"] and zt["fee"]["pass"] and not zt2["fee"]["pass"],
-          f"W zero/zero {n4['zero_case']} / {n5['zero_case']}; T {zt['fee'].get('zero_case')} / {zt2['fee'].get('zero_case')}")
-    # C5 equal means, different path risk
-    lw5 = [{"t0": 1e9 + k * 14400, "t1": 1e9 + (k + 1) * 14400, "price_trade": 100.0, "fee": 1.0, "funding": -1.0, "gross0": 1000.0, "nav0_usdt": 10000.0}
-           for k in range(48)]
-
-    def mk(vals):
-        return [{"stops": [], "flattens": [], "windows": [{"idx": k, "price_trade": vals[k % len(vals)] if isinstance(vals, list) else vals, "fee": 1.0,
-                                                            "funding": -1.0, "turnover": 100.0, "gross0": 1000.0, "nav0": 10000.0} for k in range(48)]}]
-    flat = [mk(100.0)[0] for _ in range(32)]
-    split = [mk(-100.0)[0] for _ in range(16)] + [mk(300.0)[0] for _ in range(16)]
-    means = lambda ps: [dict(lw5[k], price_trade=float(np.mean([p["windows"][k]["price_trade"] for p in ps])), turnover=100.0) for k in range(48)]
-    va, _ = G2.judge_v1b(means(flat), lw5, [100.0] * 48); vb, _ = G2.judge_v1b(means(split), lw5, [100.0] * 48)
-    da = G2.mc_and_path_diagnostics(flat, set(range(48)), lw5, [100.0] * 48, {}); db = G2.mc_and_path_diagnostics(split, set(range(48)), lw5, [100.0] * 48, {})
-    check("C5 R5B-03 equal path means, different path risk — the verdict is the same (it judges conditional means only) and gate v2 REPORTS the difference",
-          va == vb == "PASS" and da["path_distribution"]["net_total_usdt"]["sd"] == 0.0 and db["path_distribution"]["net_total_usdt"]["sd"] > 0
-          and "does not validate path risk" in da["statement"],
-          f"net-total sd across paths {da['path_distribution']['net_total_usdt']['sd']:.1f} vs {db['path_distribution']['net_total_usdt']['sd']:.1f}; "
-          f"maxDD min {da['path_distribution']['maxdd_of_transfer_free_return_index']['min']:+.3f} vs {db['path_distribution']['maxdd_of_transfer_free_return_index']['min']:+.3f}")
-    oa = G1.check_sim_receipt(dict(old_doc(base_w)), "HOLDOUT")
-    check("C5 R5B-03 gate 31650235 accepts 32 seed LABELS with no path artifact at all — it has no path input and cannot see path risk (RED on the old gate)",
-          oa == [], f"old receipt-check violations for a receipt with zero path files: {oa}")
-    # C6 the v2 totals keep V1's formulas
-    v2doc = json.load(open(os.path.join(HERE, "SIM_v2_live_20260826_20260918.json")))
-    lc = G2.population("CAL"); ltc, _ = V1.live_turnover(M, lc)
-    sc = [w for w in v2doc["windows"] if G2.PERIODS["CAL"]["first_anchor"] <= L.nominal(w["t0"]) <= G2.PERIODS["CAL"]["last_anchor"]]
-    a_, b_ = V1.judge(sc, lc, ltc), G2.totals(sc, lc, ltc)
-    eq = all(abs(a_[k]["ratio"] - b_[k]["ratio"]) < 1e-12 for k in ("fee", "funding", "turnover_over_gross")) and \
-        abs(a_["price_and_trading"]["total_diff"] - b_["price_and_trading"]["total_diff"]) < 1e-9 and \
-        a_["price_and_trading"]["daily_diff_ci95"] == b_["price_and_trading"]["daily_diff_ci95"] and \
-        all(a_[k]["pass"] == b_[k]["pass"] for k in a_)
-    check("C6 gate v2's T items reproduce v1_gate.judge exactly on real windows (same formulas; only the time contract and zero cases changed)", eq,
-          {k: (round(a_[k].get("ratio", a_[k].get("total_diff", 0)), 6), round(b_[k].get("ratio", b_[k].get("total_diff", 0)), 6)) for k in a_})
-
-
-def inspect_src(mod, fn):
-    import inspect
-    return inspect.getsource(getattr(mod, fn))
-
-
-def _copy_fixture(name):
-    import shutil
-    d = os.path.join(TMP, name); os.makedirs(d, exist_ok=True)
-    for f in ("fx.json", "fx_INITIAL_STATE.json"):
-        shutil.copy(os.path.join(TMP, f), os.path.join(d, f))
-    shutil.copytree(os.path.join(TMP, "fx_PATHS"), os.path.join(d, "fx_PATHS"))
-    return d
-
-
-def _resign(d, doc, seed):
-    f = [x for x in doc["paths"]["files"] if x["seed"] == seed][0]
-    f["sha256"] = L.sha_file(os.path.join(d, f["file"]))
-
-
-def part_d(ES, M, rc):
-    import v1b_gate as G2
-    inputs = {k: G2.APPROVED_HISTORICAL[k][0] for k in ("manifest", "live_g", "transfers")}
-    fx = os.path.join(TMP, "fx.json")
-    doc0 = json.load(open(fx))
-    v0, rec0 = G2.check_provenance(doc0, "CAL", fx, M, inputs)
-    check("D0 R5B-01 provenance baseline on the real fixture (approved files, identity claims, mirror bytes, calibration re-derived by the pinned "
-          "calibrator, sealed state = executor readback, 32 path artifacts, means recomputed)",
-          rc.get("fx") == 0 and not v0 and rec0["mean"] is not None and len(rec0["paths"]) == 32, f"{len(v0)} violations {v0[:3]}; {len(rec0['paths'])} paths")
-    with contextlib.redirect_stdout(io.StringIO()):
-        vg = G2.run_gate(fx, "CAL", os.path.join(TMP, "fx.verdict.json"), M.root)
-    items = json.load(open(os.path.join(TMP, "fx.verdict.json")))["items"]
-    check("D0 the full gate on the fixture returns a NAMED verdict (FAIL: the fixture covers 17 of the 93 CAL windows — E1)",
-          vg == "FAIL" and not (items.get("E1_population") or {}).get("pass", True), f"verdict {vg}, E1 {items.get('E1_population')}")
-
-    def forge(name, mutate):
-        d = _copy_fixture(name); p = os.path.join(d, "fx.json"); doc = json.load(open(p))
-        mutate(d, doc)
-        with open(p, "w") as fh:
-            json.dump(doc, fh)
-        v, _ = G2.check_provenance(json.load(open(p)), "CAL", p, M, inputs)
-        return v
-
-    def edit_path(d, seed, fn):
-        fp = os.path.join(d, "fx_PATHS", f"seed_{seed:02d}.json"); r = json.load(open(fp)); fn(r)
-        with open(fp, "w") as fh:
-            json.dump(r, fh, indent=0, sort_keys=True)
-
-    def m1(d, doc):
-        edit_path(d, 3, lambda r: r["windows"][2].__setitem__("price_trade", r["windows"][2]["price_trade"] + 1.0))
-
-    def m2(d, doc):
-        m1(d, doc); _resign(d, doc, 3)
-
-    def m3(d, doc):
-        os.remove(os.path.join(d, "fx_PATHS", "seed_05.json"))
-
-    def m4(d, doc):
-        sp = os.path.join(d, "fx_INITIAL_STATE.json"); sf = json.load(open(sp)); st = sf["state"]
-        k = sorted(st["positions_qty"])[0]; st["positions_qty"][k] *= 2.0
-        sha = ES.canon_sha(st); sf["sha256"] = sha
-        with open(sp, "w") as fh:
-            json.dump(sf, fh, indent=1, sort_keys=True)
-        doc["initial_state_sealed"]["sha256"] = sha
-        for s_ in range(32):
-            edit_path(d, s_, lambda r: r.__setitem__("initial_state_sha256", sha)); _resign(d, doc, s_)
-
-    def m5(d, doc):
-        doc["device_sha256"] = "0" * 64
-
-    def m6(d, doc):
-        doc["knobs"].pop(sorted(doc["knobs"])[0])
-
-    def m7(d, doc):
-        c = json.load(open(CAL_FILE)); c["params"]["completion"]["pi_fill"] += 0.01
-        cp = os.path.join(d, "other_calibration.json")
-        with open(cp, "w") as fh:
-            json.dump(c, fh)
-        doc["calibration"] = {"path": cp, "sha256": L.sha_file(cp)}
-    def m8(d, doc):
-        k = sorted(doc["executor_code_files_sha256"])[0]; doc["executor_code_files_sha256"][k] = "0" * 64
-    cases = {"executor code file claim": (m8, "executor code file"), "tampered path artifact": (m1, "does not re-hash"), "tampered path artifact, receipt re-signed": (m2, "means differ"),
-             "missing seed artifact": (m3, "missing"), "consistently forged initial state": (m4, "readback"),
-             "wrong simulator sha": (m5, "simulator sha"), "missing knob": (m6, "knobs"), "another calibration": (m7, "calibration")}
-    for nm, (fn, key) in cases.items():
-        v = forge(nm.replace(" ", "_").replace(",", ""), fn)
-        check(f"D R5B-01 forgery: {nm} ⇒ UNAVAILABLE", any(key in x for x in v), f"{len(v)} violations, e.g. {[x for x in v if key in x][:1]}")
-    # a forged PINNED calibration is caught by the re-derivation (the approved table is monkey-patched only inside this check)
-    c = json.load(open(CAL_FILE)); c["params"]["first_leg"]["p_rej"] += 0.01
-    fp = os.path.join(TMP, "forged_pinned_calibration.json")
-    with open(fp, "w") as fh:
-        json.dump(c, fh)
-    saved = G2.APPROVED["calibration"]; G2.APPROVED["calibration"] = (fp, L.sha_file(fp)); G2._CALIB_CACHE.clear()
-    try:
-        vr = G2._calibration_rederived(M.root)
-    finally:
-        G2.APPROVED["calibration"] = saved; G2._CALIB_CACHE.clear()
-    check("D R5B-01 forgery: a pinned calibration whose params were edited is not reproduced by the pinned calibrator ⇒ UNAVAILABLE",
-          any("not reproduced" in x and "params" in x for x in vr), vr[:2])
-    lw = G2.population("HIST_DIAG"); lw2 = copy.deepcopy(lw); lw2[10]["cash_ok"] = False
-    check("D live side must be a closed cash identity: real HIST_DIAG population 0 violations; one window with cash_ok False ⇒ UNAVAILABLE",
-          G2.live_side_violations(lw) == [] and len(G2.live_side_violations(lw2)) == 1, G2.live_side_violations(lw2))
-    # the committed v3 receipts (judged under 31650235) cannot pass v2 provenance
-    old = os.path.join(HERE, "SIM_v3_live_HOLDOUT_20260911_20260918.json")
-    vo, _ = G2.check_provenance(json.load(open(old)), "HIST_DIAG", old, M, inputs, check_calibration=False)
-    check("D R5B-01 the committed v3 receipt (fea90ee9, no path artifacts) ⇒ UNAVAILABLE under gate v2", len(vo) > 0 and any("path artifact" in x for x in vo),
-          f"{len(vo)} violations, e.g. {vo[:3]}")
-    # a NaN carried consistently through a real path artifact, its sha and the receipt mean ⇒ INVALID_INPUT end-to-end
-    d = _copy_fixture("nan_consistent"); p = os.path.join(d, "fx.json"); doc = json.load(open(p))
-    edit_path(d, 0, lambda r: r["windows"][4].__setitem__("price_trade", float("nan"))); _resign(d, doc, 0)
-    doc["windows"][4]["price_trade"] = float("nan")
-    with open(p, "w") as fh:
-        json.dump(doc, fh)
-    with contextlib.redirect_stdout(io.StringIO()):
-        vn = G2.run_gate(p, "CAL", p + ".verdict.json", M.root)
-    check("C2/D R5B-02 a NaN carried consistently through a real path artifact, its sha and the receipt ⇒ INVALID_INPUT (no crash, not PASS)",
-          vn == "INVALID_INPUT", f"verdict {vn}")
-
-
 def main():
-    global TMP
-    import tempfile
-    TMP = tempfile.mkdtemp(prefix="battery_v31_")
-    mirror = sys.argv[1] if len(sys.argv) > 1 else L.MIRROR_DEFAULT
     t7_guard()
-    t_fx = time.time()
-    rc = fixture_runs(mirror)
-    print(f"      fixture runs (subprocesses, before the guard) {time.time() - t_fx:.0f} s: return codes {rc}; scratch {TMP}", flush=True)
-    import exec_sim as ES
-    M = ES.WideMirror(mirror)
+    M = L.Mirror(sys.argv[1] if len(sys.argv) > 1 else L.MIRROR_DEFAULT)
     L.install_readonly_guard()
     bad = M.verify_manifest()
     check("0 mirror bytes equal INPUT_MANIFEST", not bad, f"{len(bad)} mismatching files")
+    import exec_sim as ES
     import v1_gate as V1, v1b_gate as G, calib_v3 as C
     cal = json.load(open(CAL_FILE))
     print("      devices: " + ", ".join(f"{n} {L.sha_file(os.path.join(HERE, n))[:12]}" for n in
                                          ("exec_sim.py", "simlib.py", "v1b_gate.py", "v1_gate.py", "calib_v3.py", "tests_exec_sim.py",
-                                          "CALIBRATION_v3_POOLED_20260826_20260910.json", "archive/exec_sim_v2_2638316b.py", "archive/v1b_gate_31650235.py")), flush=True)
+                                          "CALIBRATION_v3_POOLED_20260826_20260910.json", "archive/exec_sim_v2_2638316b.py")), flush=True)
     part_a(ES)
     X = ES.ExecutorCode(M); P = L.Panel(M); L.build_references(M, P); F = L.FundingBook(M)
     t0 = time.time()
@@ -781,15 +452,15 @@ def main():
     # [8] V1b on the real CAL windows
     live_w = G.population("CAL"); lt, _ = V1.live_turnover(M, live_w)
     same_w = [dict(w, turnover=t) for w, t in zip(live_w, lt)]
-    v8, it = G.judge_v1b(same_w, live_w, lt, label="CAL", declared=G.population("CAL"))
-    check("8 V1b judge baseline judge(live, live) on the real CAL windows", v8 == "PASS", f"{v8} {sum(x['pass'] for x in it.values())}/{len(it)} items")
+    it = G.judge_v1b(same_w, live_w, lt, label="CAL", declared=G.population("CAL"))
+    check("8 V1b judge baseline judge(live, live) on the real CAL windows", all(x["pass"] for x in it.values()), f"{sum(x['pass'] for x in it.values())}/{len(it)} items")
     muts = {"t1 + 7200 s": ([dict(w, t1=w["t1"] + 7200) for w in same_w], "E3_t1"),
             "one window dropped": (same_w[:-1], "E1_population"),
             "price sign-flipped (−live)": ([dict(w, price_trade=-w["price_trade"]) for w in same_w], "W_price_and_trading"),
             "fee ×1.4": ([dict(w, fee=w["fee"] * 1.4) for w in same_w], "W_fee")}
     for name, (mw, item) in muts.items():
-        v2_, it2 = G.judge_v1b(mw, live_w, lt, label="CAL", declared=G.population("CAL"))
-        check(f"8 V1b mutation {name} ⇒ item {item} FAIL", not it2[item]["pass"] and v2_ == "FAIL", f"{v2_}, {item} pass={it2[item]['pass']}")
+        it2 = G.judge_v1b(mw, live_w, lt, label="CAL", declared=G.population("CAL"))
+        check(f"8 V1b mutation {name} ⇒ item {item} FAIL", not it2[item]["pass"], f"{item} pass={it2[item]['pass']}")
     # [9]
     kinds, over, orphan, sef, n_es, n_pl = c9_no_guarantee(S0)
     check("9 R5-06 no guaranteed fills baseline", n_pl > 0 and kinds.get("exit_completion", 0) == 0 and not over and not orphan and not sef,
@@ -811,15 +482,10 @@ def main():
     check("10 R5-01 mutation --legacy-decision-lookahead turns it RED", len(d10m) > 0, f"{len(d10m)} of {n10m} decisions moved with future prices, e.g. {d10m[:3]}")
     # [11]
     n11, b11 = c11_fill_clock(S0)
-    check("11 R5-01 / R5B-03 fill clock baseline (every rebalance fill exactly at t_dec + calibrated offset; never moved)", n11 > 0 and not b11,
-          f"{n11} rebalance fill events, {len(b11)} off-clock; notional booked after its own anchor's readback (belongs to the next window) "
-          f"{S0.clamp_stats.get('notional_booked_after_own_readback', 0.0):,.0f} of {S0.clamp_stats.get('notional_scheduled', 0.0):,.0f} USDT")
+    check("11 R5-01 fill clock baseline (every rebalance fill at t_dec + calibrated offset, or 1 s before its own readback)", n11 > 0 and not b11,
+          f"{n11} rebalance fill events, {len(b11)} off-clock; atoms clamped {S0.clamp_stats.get('n_atoms_clamped', 0)}")
     n11m, b11m = c11_fill_clock(Sbm)
     check("11 R5-01 mutation --legacy-book-at-decision turns it RED", len(b11m) > 0, f"{len(b11m)} of {n11m} fills booked at the decision instant")
-    Scl, _ = run(ES, M, cal, X, P, F, legacy_readback_clamp=True)
-    n11c, b11c = c11_fill_clock(Scl)
-    check("11 R5B-03 mutation --legacy-readback-clamp (v3's withdrawn rule) turns it RED", len(b11c) > 0,
-          f"{len(b11c)} of {n11c} fills moved to 1 s before their anchor's readback ({Scl.clamp_stats.get('notional_clamped', 0.0):,.0f} USDT)")
     # [12]
     blk = ES.initial_block(S0, {})
     n_rb, n_blk, sealed, sha_ok = c12_initial(M, S0, blk)
@@ -834,9 +500,6 @@ def main():
     check("13 blind protocol baseline (v3 calibration: no arm / experiment key anywhere)", not viol and "params" in cal, f"{len(viol)} violations")
     cal3 = copy.deepcopy(cal); cal3["params"]["completion"]["fill_rate_chase_arm"] = 0.5
     check("13 blind protocol mutation (injected per-arm key) is caught", len(C.blind_violations(cal3)) > 0, C.blind_violations(cal3))
-    part_b2(ES, M, cal, X, P, F, rc)
-    part_c(ES, M)
-    part_d(ES, M, rc)
 
     n_ok = sum(1 for _, ok, _ in RESULTS if ok)
     if n_ok == len(RESULTS):
