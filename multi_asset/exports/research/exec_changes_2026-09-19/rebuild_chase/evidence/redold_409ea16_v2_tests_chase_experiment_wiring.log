@@ -1,0 +1,53 @@
+[A] topup() actually consults the policy, and does so BEFORE it sends anything
+  OK    ★★★ the executor produced an experiment record at all (the wiring exists)  — dict
+  OK    the record covers every from_partial name in the population  — ['AAAUSDT', 'BBBUSDT', 'CCCUSDT', 'DDDUSDT', 'EEEUSDT', 'FFFUSDT']
+  OK    it names the basis of the tilt it decided against, and that basis says it is NOT a venue snapshot — the readback happens after this leg  — prev_notional readback over the planned universe + this anch
+  OK    the record re-derives from its own seed  — {'ok': True, 'n': 6, 'mismatch': [], 'note': "recomputed from the record's own seed and weights; chase_forced checked against C's recorded fill set"}
+
+[B] ★★★ a withheld name LEAVES A ROW, and that row is in the gap ledger
+  OK    the fixture actually exercised the treatment (otherwise everything below is vacuous)  — no_chase = ['CCCUSDT', 'DDDUSDT', 'EEEUSDT', 'FFFUSDT']
+  OK    ★★★ every withheld name has a top-up row — the residual is written down, not evaporated. This is the exact shape that liquidated the book twice on 08-02
+  OK    ...with the terminal state that says WHY, not one borrowed from a constraint that did not apply  — {'CCCUSDT': 'skipped_no_chase_arm', 'DDDUSDT': 'skipped_no_chase_arm', 'EEEUSDT': 'skipped_no_chase_arm', 'FFFUSDT': 'skipped_no_chase_arm'}
+  OK    ...and it carries the residual as `intended_notional`, so the gap has a size
+  OK    ...and `submitted` is false, so no fee or fill is implied
+  OK    ★★ the new terminal state is declared in the schema — an undeclared one raises SchemaError at the writer and the withheld rows would never reach disk
+  OK    ★★ ...and has a disposition cell, so `unknown_reasons()` stays green for the right reason
+  OK    ★★★ a DELIBERATE gap is still a gap — the withheld names appear in the known-gap ledger. Filing an intended gap as COMPLETE is how a withheld position becomes indistinguishable from a satisfied one, and §4-5e reads that difference
+
+[C] the arm reaches the row, and no other leg is touched
+  OK    every top-up row carries its arm, so a per-name analysis need not re-derive the coin
+  OK    ★ the maker rows carry NO arm — the experiment acts on the top-up leg only, and a field on the maker row would invite averaging across legs
+  OK    ★★★ nothing was sent for a withheld name — the row is not a fiction over a real order
+  OK    ...and C's fill set WAS sent: neutrality is never traded for statistical power  — fill=['AAAUSDT'], sent=['AAAUSDT', 'BBBUSDT']
+
+[D] ★★ the gate is LAST — dust is never recorded as an experimental withholding
+  OK    ★★★ a sub-floor residual is `skipped_min_notional` whatever arm it drew — it was never sendable by ANY policy, so filing it as a withholding would put a guaranteed-zero opportunity cost into the treatment average  — {'DDDUSDT': 'skipped_min_notional', 'EEEUSDT': 'skipped_min_notional'}
+  NOTE  those two names still drew arms (no_chase/no_chase); the assignment is recorded and the ROW is what decides the population, which is why the gate's position in the sequence is the assertion and not the assignment.
+
+[E] ★★ from_reject is the OTHER candidate's population and is never withheld
+  OK    ★★★ no from_reject name is ever assigned an arm — mixing the populations would make each candidate the other's confound, and from_reject is measured at -6.74bps against from_partial's +48.84
+  OK    ...and every one of them was sent  — ['AAAUSDT', 'BBBUSDT', 'CCCUSDT', 'DDDUSDT', 'EEEUSDT']
+  OK    the record still says which population it governs, so an empty arm map cannot be read as 'the experiment covered everything and chose nothing'
+
+[F] an unreadable maker fill keeps the name out of the experiment entirely
+  OK    ★ a name whose maker fill we could not read has no residual to reason about, so it draws no arm — sizing an experiment from an assumed zero is the input that produced the 2.00x doubling  — ['BBBUSDT', 'CCCUSDT', 'DDDUSDT', 'EEEUSDT', 'FFFUSDT']
+  OK    ...and its row is still the unknown-fill row, not an experimental one
+
+[G] ★★ a rebuild anchor through the real topup(): nobody is withheld
+  OK    G-0 control validity: with prev_w saying the book was already built (rho_pre 1.0) the SAME anchor is in sample and really withholds names (skipped_no_chase_arm rows) — otherwise G-1 would pass on an anchor that never withheld  — ({'no_chase': 9, 'chase': 11}, [])
+  FAIL  ★★★ G-1 rho_pre 0.25 < 0.50: the executor's own record is OUT of sample with reason REBUILD, rebuild=true, and rho_pre equals X-A3's sum over the plan rows taken before the anchor ran (old code: randomised, RED)  — (True, [], None, 0.25)
+  FAIL  ★★★ G-2 every name of the from_partial population is CHASED: no skipped_no_chase_arm row, every one of them was sent, and its row carries arm chase / chase_forced  — {'withheld': ['R00USDT', 'R04USDT', 'R05USDT', 'R08USDT', 'R09USDT', 'R10USDT', 'R11USDT', 'R13USDT', 'R15USDT'], 'not_sent': ['R00USDT', 'R04USDT', 'R05USDT', 'R08USDT', 'R09USDT', 'R10USDT', 'R11USDT', 'R13USDT', 'R15USDT']}
+  OK    G-3 the same population and the same C as the control — REBUILD changes who is withheld, nothing else  — (20, 20)
+  OK    G-4 the anchor artefact's recompute check accepts it (excluded anchor: every randomised name on control)  — {'ok': True, 'n': 20, 'mismatch': [], 'note': "recomputed from the record's own seed and weights; chase_forced checked against C's recorded fill set"}
+
+[H] ★★ X-A3 over the executor's own orders rows == the rho_pre it decided with
+  OK    H-0 fixture validity: the plan set holds all three row kinds — sent makers, a labelled skip (skipped_min_notional / skipped_no_mid) and a band row with no maker row  — [('BANDUSDT', None, False), ('MINUSDT', 'skipped_min_notional', False), ('NOMIDUSDT', 'skipped_no_mid', False), ('R00USDT', None, True), ('R01USDT', None, True), ('R02USDT', None, True), ('R03USDT', None, True), ('R04USDT', None, True), ('R05USDT', None, True), ('R06USDT', None, True), ('R07USDT', None, True), ('R08USDT', None, True), ('R09USDT', None, True)]
+  FAIL  ★★ H-1 the set of names that got an attempt-1 maker row == the plan rows `emits_attempt1_maker_row` selects — the copied predicate agrees with submit_maker/topup by BEHAVIOUR, band row excluded  — (['MINUSDT', 'NOMIDUSDT', 'R00USDT', 'R01USDT', 'R02USDT', 'R03USDT', 'R04USDT', 'R05USDT', 'R06USDT', 'R07USDT', 'R08USDT', 'R09USDT'], [])
+  FAIL  ★★★ H-2 X-A3 computed per the amendment's text over the executor's OWN rows (first attempt-1 maker row per symbol, sum |prev_w|) equals the rho_pre the executor recorded at decision time, to the bit  — (None, 0.25150715900527504)
+
+[I] ★★ rho_pre is fixed before the anchor trades — and a mutant that reads the post-maker book is caught
+  FAIL  ★★★ I-1 with 20% and with 95% of the deltas filled by the makers, rho_pre is the same pre-anchor sum both times (0.25) and the anchor is a rebuild both times  — [(None, None), (None, None)]
+  FAIL  ★★ I-2 MUTATION CONTROL: a rho_pre read from the post-maker book (prev + fills) FAILS the same predicate — 0.40 at 20% fill, 0.96 at 95%, and the 95% anchor is no longer a rebuild (a check never seen red is unverified)  — [(None, None), (None, None)]
+  FAIL  I-3 no plan set on the executor (`_last_plans` absent) ⇒ rho_pre None and NOT a rebuild: the top-up's `live` is a subset of the book (it would read flatter than it is), so it is never used as a stand-in  — (None, None, None)
+
+FAILURES: ★★★ G-1 rho_pre 0.25 < 0.50: the executor's own record is OUT of sample with reason REBUILD, rebuild=true, and rho_pre equals X-A3's sum over the plan rows taken before the anchor ran (old code: randomised, RED), ★★★ G-2 every name of the from_partial population is CHASED: no skipped_no_chase_arm row, every one of them was sent, and its row carries arm chase / chase_forced, ★★ H-1 the set of names that got an attempt-1 maker row == the plan rows `emits_attempt1_maker_row` selects — the copied predicate agrees with submit_maker/topup by BEHAVIOUR, band row excluded, ★★★ H-2 X-A3 computed per the amendment's text over the executor's OWN rows (first attempt-1 maker row per symbol, sum |prev_w|) equals the rho_pre the executor recorded at decision time, to the bit, ★★★ I-1 with 20% and with 95% of the deltas filled by the makers, rho_pre is the same pre-anchor sum both times (0.25) and the anchor is a rebuild both times, ★★ I-2 MUTATION CONTROL: a rho_pre read from the post-maker book (prev + fills) FAILS the same predicate — 0.40 at 20% fill, 0.96 at 95%, and the 95% anchor is no longer a rebuild (a check never seen red is unverified), I-3 no plan set on the executor (`_last_plans` absent) ⇒ rho_pre None and NOT a rebuild: the top-up's `live` is a subset of the book (it would read flatter than it is), so it is never used as a stand-in   (33 checks)

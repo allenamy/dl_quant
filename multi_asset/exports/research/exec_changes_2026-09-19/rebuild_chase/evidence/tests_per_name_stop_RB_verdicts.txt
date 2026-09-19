@@ -1,0 +1,17 @@
+# tests_per_name_stop — [RB] cells + verdict only (full log withheld: an existing E4 check name quotes a realised per-name chase cost inside the CFG-04 window; blind protocol)
+## NEW code, clean commit e77bd7763fdd (exit 0)
+PASS RB-0 链跑通且为非重建锚: action TRADE, ρ_pre 已知(持仓 60% 目标; 分母是重整后的目标 gross, 故 ≠ 0.6)且等于计划行 Σ|prev_w| 的独立复算、≥ 0.50, 记录带 rebuild_unknown_reason = None, 无 REBUILD_RHO_UNKNOWN 告警(旧码: 无此字段, 红)
+PASS ★★★ RB-1 (OLD CODE: RED) 计划行 prev_w 读不出 ⇒ ρ_pre None, 记录 rebuild_unknown_reason 以『UNKNOWN —』开头, 且 HIGH 告警恰一条、以 REBUILD_RHO_UNKNOWN 为名、带原因与 rebalance_id —— 决定照旧, 不再静默
+PASS ★★★ RB-2 (OLD CODE: RED) 阶段 B 丢了 _last_plans(A/B 分进程形态) ⇒ ρ_pre None『UNOBSERVABLE —』, 仍告警 —— 计划数取自阶段 A 自己的 _pending 记录, 不取自丢掉的计划行
+PASS RB-3 停机锚(broker.open_orders_halted, 所有停机都走 halt_opening_orders)同样 ρ_pre 未知 ⇒ 不告警(停机自己会报)
+PASS ★★ RB-4 MUTATION CONTROL: 把告警文字函数换成恒 None(= 删掉告警)后, RB-1 的同一判据变红 —— 这条断言能抓到『告警被删』
+PASS ★★ RB-5 (OLD CODE: RED) 告警在分层表里有自己的名字: 两种未知与『检查本身失败』都判 A_DECIDE / 'chase rebuild rule unevaluated' ⇒ PUSH(不落 UNRECOGNISED)
+ALL PASS
+## OLD code 409ea16 + these tests (exit 1)
+FAIL RB-0 链跑通且为非重建锚: action TRADE, ρ_pre 已知(持仓 60% 目标; 分母是重整后的目标 gross, 故 ≠ 0.6)且等于计划行 Σ|prev_w| 的独立复算、≥ 0.50, 记录带 rebuild_unknown_reason = None, 无 REBUILD_RHO_UNKNOWN 告警(旧码: 无此字段, 红)
+FAIL ★★★ RB-1 (OLD CODE: RED) 计划行 prev_w 读不出 ⇒ ρ_pre None, 记录 rebuild_unknown_reason 以『UNKNOWN —』开头, 且 HIGH 告警恰一条、以 REBUILD_RHO_UNKNOWN 为名、带原因与 rebalance_id —— 决定照旧, 不再静默
+FAIL ★★★ RB-2 (OLD CODE: RED) 阶段 B 丢了 _last_plans(A/B 分进程形态) ⇒ ρ_pre None『UNOBSERVABLE —』, 仍告警 —— 计划数取自阶段 A 自己的 _pending 记录, 不取自丢掉的计划行
+PASS RB-3 停机锚(broker.open_orders_halted, 所有停机都走 halt_opening_orders)同样 ρ_pre 未知 ⇒ 不告警(停机自己会报)
+FAIL ★★ RB-4 MUTATION CONTROL: 把告警文字函数换成恒 None(= 删掉告警)后, RB-1 的同一判据变红 —— 这条断言能抓到『告警被删』
+FAIL ★★ RB-5 (OLD CODE: RED) 告警在分层表里有自己的名字: 两种未知与『检查本身失败』都判 A_DECIDE / 'chase rebuild rule unevaluated' ⇒ PUSH(不落 UNRECOGNISED)
+FAILURES: RB-0 链跑通且为非重建锚: action TRADE, ρ_pre 已知(持仓 60% 目标; 

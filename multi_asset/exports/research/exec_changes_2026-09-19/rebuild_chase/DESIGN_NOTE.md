@@ -4,7 +4,7 @@
 
 Ruling: `docs/RULINGS_best_recommendation_2026-09-19.md` #2 = CFG-04 `docs/AMENDMENT_1_chase_restart_population_2026-09-16.md` §C option (a); `docs/AMENDMENT_2_blind_breach_CFG04_CFG06_2026-09-19.md` §3 and §4-3.
 Criterion: X-A3 of the adopted draft `docs/fixprogram_2026-09-13/X_COST/DRAFT_AMENDMENT_chase_restart_population_2026-09-13.md` §1, word for word.
-Code base: executor `~/dl_quant_live` HEAD **409ea16** (read-only), changed only in the clone `scratchpad/exec_clone_rebuild` (working tree, **uncommitted** — the diff in this folder is the whole change).
+Code base: executor `~/dl_quant_live` HEAD **409ea16** (read-only), changed only in the clone `scratchpad/exec_clone_rebuild` (working tree, **uncommitted** — the diff in this folder is the whole change). **[Superseded by ADDENDUM 1: now committed on branch `exec/rebuild-chase-2026-09-19`, final commit e77bd776.]**
 
 ## 0. Deployment status (read this first)
 - **Not deployed, and not to be deployed before both stopping points**: CFG-04 (100 pairable anchors or 2026-10-01 16Z, whichever first) **and** CFG-06 (W1 ≈ 2026-10-14). With that, both experiments run their whole window under one chase policy (AMENDMENT 2 §4-3).
@@ -22,7 +22,7 @@ Code base: executor `~/dl_quant_live` HEAD **409ea16** (read-only), changed only
 | tests | `tests_chase_policy.py` §12 (+19 checks: 37 → 56), `tests_chase_experiment_wiring.py` [G][H][I] (+11 checks: 22 → 33) | new behavioural tests |
 | tests (fixtures) | `tests_chase_experiment_wiring.py` `weighted()`, `tests_per_name_stop.py` `_BOOK12` | fixture `prev_w` corrected to what `plan()` writes (§6) |
 
-**Not changed:** `ARM_WEIGHTS`, the salt/`ASSIGN_RULE`, `assign_arms`, `neutral_only_decision`, the three older reasons (their text, order and inputs), the tilt-abort, the E4 stop exclusion, `recompute_check`, `anchor_loop`, `ops/check_chase_first_anchor.py`, `ops/chase_readout.py`, the estimator.
+**Not changed:** `ARM_WEIGHTS`, the salt/`ASSIGN_RULE`, `assign_arms`, `neutral_only_decision`, the three older reasons (their text, order and inputs), the tilt-abort, the E4 stop exclusion, `recompute_check`, `anchor_loop`, `ops/check_chase_first_anchor.py`, `ops/chase_readout.py`, the estimator. **[Superseded by ADDENDUM 1: `recompute_check`, `anchor_loop.complete_anchor` and `alarm_policy.RULES` are now changed (A1.1–A1.2); the rest of this list still holds.]**
 
 ## 2. How ρ_pre is computed and why it is X-A3's quantity
 X-A3: ρ_pre(a) = Σ over distinct symbols of |`prev_w`|, each taken from the **first** `orders.jsonl` row with `rebalance_id == a`, `order_type == "maker"`, `attempt_idx == 1`.
@@ -89,8 +89,75 @@ Suite by suite (`battery_compare.txt`, FAIL-line sets compared per suite):
 
 ## 9. What worried me / open items for the lead
 1. **The battery makes public venue requests, and my after-run landed in production's busiest minute.** The DRY_RUN entry-point cell runs a real anchor against public `fapi.binance.com` endpoints (klines / fundingRate / exchangeInfo / bookTicker). It made 568 GETs (weight 863) at 08:29:00–08:30:01Z in the baseline and 566 GETs (weight 858) at 08:49:29–08:50:34Z in the after-run. None was order-flagged, and no keys were available (the clone has no `.env`). This shares the production IP's weight budget. The baseline burst fell in production's 900 s k-window, when it sends nothing. **The after-run burst did not avoid production:** its 08:00Z anchor ran post-anchor steps until 08:55:09Z. Its telemetry shows the anchor's peak venue-reported IP weight, **1316/2400 (54.8%), in minute 08:49Z**, while its own spend that minute was 600. The logged `gap_vs_this_process=716` is consistent with my burst. There were no waits and no ban (the backstop waits at 80%). If anyone investigates that gap line, it is this clone battery. **A deploy-time or review battery should run only when no anchor process is running** (roughly N+0:24 → N+0:55 today, where N is the 4-hourly anchor), i.e. between about N+1:00 and N+4:15. Check that the previous anchor has logged `anchor done` before starting.
-2. **Unknown ρ keeps randomising.** I chose "criterion not established ⇒ old behaviour" (named in the record, no alarm) over "unknown ⇒ everyone chases". This is unreachable in production today. If phase A and phase B are ever split across processes, `_last_plans` would be absent, ρ would be None, and REBUILD would silently stop applying. A page on `rho_pre is None` with a non-empty population would close that gap. I did not add it (it would be an alarm-policy change).
+2. **[CLOSED by ADDENDUM 1 A1.1 — now paged as `REBUILD_RHO_UNKNOWN`; the decision rule is unchanged]** **Unknown ρ keeps randomising.** I chose "criterion not established ⇒ old behaviour" (named in the record, no alarm) over "unknown ⇒ everyone chases". This is unreachable in production today. If phase A and phase B are ever split across processes, `_last_plans` would be absent, ρ would be None, and REBUILD would silently stop applying. A page on `rho_pre is None` with a non-empty population would close that gap. I did not add it (it would be an alarm-policy change).
 3. **The copied predicate** `emits_attempt1_maker_row` must stay in step with `submit_maker`. H-1 checks it by behaviour on three row kinds, but a new row-emission path in `submit_maker`/`topup` would need a new H-1 case.
-4. **`recompute_check` is not extended** to assert "ρ_pre < 0.5 ⇒ out of sample". I left it unchanged to keep the change minimal. It is an optional follow-up.
+4. **[CLOSED by ADDENDUM 1 A1.2]** **`recompute_check` is not extended** to assert "ρ_pre < 0.5 ⇒ out of sample". I left it unchanged to keep the change minimal. It is an optional follow-up.
 5. **AMENDMENT 2 §3's first bullet** still says the main estimator is not affected (「所以主估计量不受影响」). §4-3 adds the deferral, but the §3 sentence itself is not annotated where it stands. The lead may want an in-place marker there, per the rule that a retraction must reach every copy of the claim.
 6. **The readout must compute X-A3 the same way.** Use fsum, or at least state the summation. At 0.50 exactly, float summation order could matter in principle. Historically the nearest anchor is 0.62, so it does not matter in practice.
+
+---
+
+## ADDENDUM 1 (2026-09-19 09:3xZ) — lead review closure: unknown ρ paged, artefact self-check, committed state
+Lead review accepted the design and asked for three open items (§9-2, §9-4, and committing) to be closed before it counts as finished. **Still clone-only, still NOT deployed. Deployment still waits for BOTH the CFG-04 and CFG-06 stopping points.** The deploy receipt must name the effective anchor/time and the executor commit.
+
+**Committed state (no longer a dirty tree).** Clone `scratchpad/exec_clone_rebuild`, branch `exec/rebuild-chase-2026-09-19`. It holds two commits on 409ea16, made with explicit pathspecs and without `-a` or amend. They are not pushed and not on `main`:
+- `b7409300e2e2799c6c6018e90d39ebc3626a18b6`: the change and its tests (7 files).
+- **`e77bd7763fddc71292b4d8c70446a9b61833071c`**: the T7 filter fix (A1.5). This is the final commit.
+
+Diff: `rebuild_chase_409ea16_to_e77bd776.diff` (8 files, +837/−14). It applies to a pristine 409ea16 and reproduces every committed file byte for byte. It supersedes `rebuild_chase_409ea16.diff` (the uncommitted first pass, kept for history).
+
+### A1.1 Unknown ρ is paged, and nothing else changes (closes §9-2)
+- `plan_experiment` now also records **`rebuild_unknown_reason`**. It is `None` when ρ_pre is known. Otherwise it names the cause: the detail's own state (`UNKNOWN — k of n maker rows carry no finite prev_w…`, `UNOBSERVABLE — no plan rows…`, `ERROR — …`), `rho_pre was not supplied to plan_experiment`, or `rho_pre <v> is not a finite number`. The decision is unchanged: the anchor is decided exactly as before the rule (13a-2: digest equal to 409ea16).
+- New pure `chase_policy.rebuild_unknown_alarm_text(record, n_planned, halted, rebalance_id)`. It pages when the anchor planned orders and was not halted, and the rule could not be evaluated. There are three ways that happens: ρ_pre None, **no chase record at all**, or **a record without `rebuild_rule`**. I made it cover all three, not only the ρ None case. The text starts `REBUILD_RHO_UNKNOWN:` and carries the reason and the `[rebalance_id]`.
+- **Wiring** (`scheduler/anchor_loop.py` `complete_anchor`, right after the top-up and the existing stop-exit page, same `self.alarm("HIGH", …)` path, which is `notifier.alarm` in production):
+  - `n_planned` = the larger of the plan-row count and phase A's own `_pending` record (live ∪ benign-rejected). So a phase B that lost `_last_plans` still knows the anchor traded.
+  - `halted` = `broker.open_orders_halted`, which is the flag every halt sets via `halt_opening_orders`.
+  - If the check itself raises, it pages `REBUILD_RHO_UNKNOWN: 重建锚规则检查本身失败 …`, so a failure can never be silent.
+- **Tiering:** `alarm_policy.RULES` gains a named DECIDE rule, `"chase rebuild rule unevaluated"` (pattern `REBUILD_RHO_UNKNOWN`), so the alarm is PUSHed under its own name and does not fall through to UNRECOGNISED.
+
+### A1.2 `recompute_check` asserts REBUILD consistency from the recorded fields (closes §9-4)
+- New `rebuild_consistency_problems(record)` is called inside `recompute_check` **before** the empty-arm early return. That placement matters: a rebuild anchor with no population still owes its reason.
+- **ρ_pre finite:** ρ_pre < `rebuild_rho_threshold` ⇔ exactly one `REBUILD…` reason, recorded last and naming ρ_pre's exact value ⇔ `rebuild is True` ⇔ out of sample with every non-forced name on `chase`. Also, `rebuild_unknown_reason` must be `None`.
+- **ρ_pre None:** there is no REBUILD reason, `rebuild is False`, and `rebuild_unknown_reason` is a non-empty string.
+- **A record without `rebuild_rule`** (decided before the rule) is judged exactly as before. But a record that has **some** of the rule's fields, or a REBUILD reason, without `rebuild_rule` is reported as a contradiction, never skipped: an absent key does not give permission.
+- A contradiction makes `recompute.ok` False. `anchor_loop` already pages HIGH on that when it writes the anchor artefact.
+
+### A1.3 Tests (red on 409ea16, green on b7409300)
+| suite | new cells | on 409ea16 | on b7409300 |
+|---|---|---|---|
+| `tests_chase_policy` §13 | 13a-1/2 (unknown reason recorded; decision unchanged), 13b-0…4 (14 single-field tampers condemned incl. "rebuild record's ρ moved to 0.6", which the old excluded-anchor branch passed; pre-rule records judged as before; a stray REBUILD reason without the rule is condemned), 13c-1/2 (page fires on the 3 unevaluated shapes; quiet on known ρ / halted / nothing planned) | 6 FAIL (13a-1, 13b-1, 13b-2, 13b-4, 13c-1, 13c-2); 13a-2, 13b-0, 13b-3 green | `ALL PASS   (65 checks)` exit 0 |
+| `tests_per_name_stop` [RB] (DRY_RUN `run_anchor → complete_anchor`, every network call raises) | RB-0 non-rebuild control (ρ known = an independent Σ\|prev_w\| from the plan rows, no page); RB-1 prev_w unreadable ⇒ exactly one HIGH `REBUILD_RHO_UNKNOWN` page with reason and rid; RB-2 phase B lost `_last_plans` ⇒ page (`UNOBSERVABLE —`); RB-3 halted ⇒ no page; **RB-4 mutation: the alarm builder replaced by `None` ⇒ the RB-1 predicate goes red**; RB-5 the page tiers as A_DECIDE / `chase rebuild rule unevaluated` ⇒ PUSH | RB-0/1/2/4/5 FAIL, RB-3 PASS (negative control) | `ALL PASS` exit 0 |
+| `tests_chase_policy` §12 and wiring [G][H][I] | unchanged except `_NEW_KEYS` now has 6 keys | 14 / 7 FAIL as before | (counts include §13) `ALL PASS   (65 checks)` / `ALL PASS   (33 checks)` |
+
+On the unmodified code, `recompute_check` has no REBUILD check at all, so 13b-1's tampers are the mutation "drop the consistency check", and they go red there. Logs: `evidence/redold_409ea16_v2_*.log`, `evidence/on_commit_e77bd776_*.log`, `evidence/tests_per_name_stop_RB_verdicts.txt` (the full per_name_stop log is withheld, see §7).
+
+**Touched suites rerun on the clean final commit e77bd776** (`evidence/suites_on_commit_e77bd776_META.txt`; `git status --porcelain` empty before and after; `/usr/bin/python3` 3.9.6; 09:34:42–09:35:53Z; none of these suites makes a network call: `tests_reduce_only_clamp` seals `urlopen` with FakeNet, and `tests_per_name_stop`'s broker raises on any request):
+- `tests_chase_policy` exit 0 `ALL PASS   (65 checks)`
+- `tests_chase_experiment_wiring` exit 0 `ALL PASS   (33 checks)`
+- `tests_per_name_stop` exit 0 `ALL PASS`
+- `tests_reduce_only_clamp` exit 0 `ALL PASS`
+- `tests_static_names` exit 0 `ALL PASS`
+- `tests_alarm_digest` exit 1 `FAILURES: ['★★★ last-24h push discipline']  (32 checks)`. This is the same single FAIL as the 409ea16 baseline (the clone's alarm log is 24 days stale). Its rules-table cells, which now include the new rule, pass.
+
+### A1.4 Full battery (window rule)
+Rule: run only after the current anchor's `anchor done` line in `~/dl_quant_live/state/anchor_runs.log` and before N+3:40 UTC, with at least 20 min left. I checked the log and the clock immediately before each start (`battery_*_META.txt`). Both runs fell in the N = 08:00Z window: after `2026-09-19T08:55:09Z anchor done rc=0`, before 11:40Z. That same line was still the log's last line when each run ended, so no anchor ran during either battery.
+- Interpreter: `/usr/bin/python3` 3.9.6 (sys.executable `/Applications/Xcode.app/Contents/Developer/usr/bin/python3`), torch 2.2.2, `ACCEPT_PY` unset.
+- Tree state: `.env=false`, notify_audit 1047 lines, newest about 583 h old. This is the same tree state as the 409ea16 baseline. `state/` was restored to HEAD before each run and `git status --porcelain` was empty.
+- Exit codes are read from the runner, never through a pipe.
+
+| commit | start → end (UTC) | verdict line (verbatim) | exit | suites exit 0 | vs 409ea16 baseline |
+|---|---|---|---|---|---|
+| 409ea16 (baseline, 1st pass) | 08:28:02 → 08:40:57 | `ACCEPTANCE: NOT GREEN — at least one suite failed (see table above)` | 1 | 154/161 | — |
+| b7409300 | 09:18:39 → 09:32:46 | `ACCEPTANCE: NOT GREEN — at least one suite failed (see table above)` | 1 | 154/161 | same 6 reds (identical FAIL sets) + **`tests_reduce_only_clamp` 0→1 (T7, caused by this change, see A1.5)**; `tests_entrypoint_wiring` 1→0 (wall-clock branch) |
+| **e77bd776 (final)** | **09:36:04 → 09:49:51** | **`ACCEPTANCE: NOT GREEN — at least one suite failed (see table above)`** | **1** | **155/161** | same 6 reds with identical FAIL sets (`tests_env_loading`, `tests_alarm_digest`, `tests_reject_topup`, `tests_disposition_matrix`, `tests_break_split_wiring`, `tests_unseal_rehearsal_halt` — all clone tree-state); `tests_entrypoint_wiring` 1→0 (wall-clock HOLD branch, not this change); **no other difference** |
+
+Touched suites inside the final battery: `tests_chase_policy` `ALL PASS   (65 checks)`, `tests_chase_experiment_wiring` `ALL PASS   (33 checks)`, `tests_per_name_stop` `ALL PASS`, `tests_reduce_only_clamp` `ALL PASS`, `tests_static_names` `ALL PASS`, all exit 0. Receipts: `battery_{b7409300,e77bd776}.log`, `_META.txt`, `_compare_vs_baseline.txt`.
+Both runs' DRY_RUN entry cell made public GETs (no keys, no orders) while production was idle between anchors, as the rule intends.
+
+### A1.5 What the first full battery on b7409300 found, and the fix (e77bd776)
+The full battery on b7409300 turned up one new red that the change caused: `tests_reduce_only_clamp` T7, "no HIGH/CRITICAL alarm about unreadable fills / UNKNOWN names on this chain".
+- Its harness `_ex()` stubs the chase experiment off (`_plan_chase_experiment = lambda *a, **k: None`). So the chain has **no chase record**, and `complete_anchor` now pages `REBUILD_RHO_UNKNOWN: … no chase_experiment record` — by design.
+- T7's filter matches the substring `UNKNOWN`. It was written for fills and names, not for the chase rule, and my page contains that substring.
+- **Fix (test only; no production code changed):** exclude the page from that filter **by its exact name**, and add a cell pinning that the only REBUILD page on this chain is the stub's own. A REBUILD page for any other reason there now goes red (`evidence/tests_reduce_only_clamp_T7_verdicts.txt`).
+- **Where else the page fired in that battery** (by log text only): my own suites (by design) and `tests_reduce_only_clamp` T7/T7-ctl. Three other harnesses stub the experiment the same way (`tests_binance_executor`, `tests_transport_resilience`, `tests_request_identity_unknown`). They stayed green: none of them asserts on this alarm text.
+- **Lesson (the class, not this instance):** alarm filters that match a bare substring like `UNKNOWN` will collect any new named alarm that contains the word. A named alarm should be excluded or counted by its name, never by a word it happens to contain.
