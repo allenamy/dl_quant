@@ -1,0 +1,200 @@
+#!/usr/bin/env python3
+"""bt_driver_lib.py — the shared code path of the v3.1 history driver: input loading + pin checks, one path (run, seed) → arrays, the
+path-file writer and the per-window MEAN over path files. bt_launch.py (production) and bt_battery.py (tests) both call these functions,
+so the battery exercises the production path, not a re-implementation. Library only (no I/O at import).
+"""
+import os, sys, json, time, hashlib, importlib.util, collections, calendar, shutil
+
+import numpy as np
+
+ST = {"TRADE": 0, "HALT": 1, "HOLD": 2, "MAKER_ONLY": 3}
+OUTC = ("first_full", "first_zero", "first_partial", "first_refused", "completed_maker", "completed_taker", "residual_not_completed",
+        "residual_below_floor", "residual_e4_not_chased", "residual_maker_only_anchor")
+WF = ("nav0", "nav1", "navm0", "navm1", "gross0", "price_trade", "funding", "fee", "turnover", "turnover_first", "turnover_later", "turnover_flatten",
+      "transfer", "n_trades", "n_pos0", "n_stop_events", "n_flatten_events", "unk_price", "unk_funding", "unk_names", "unk_held", "unk_notional",
+      "unk_excluded", "end_n_dust", "end_dust_usdt", "end_n_exit_dust", "end_exit_dust_usdt")
+RF = ("equity_at_decision", "sizing_gross", "n_symbols", "n_untradable", "n_stop", "n_cooldown", "n_held_exit", "n_dust_target", "n_plans_sent",
+      "n_skip_min_notional", "n_skip_no_price_chain", "plan_turnover", "n_frozen", "frozen_held_notional", "frozen_plan_notional")
+
+
+def sha(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for b in iter(lambda: f.read(1 << 22), b""): h.update(b)
+    return h.hexdigest()
+
+
+def ts(iso): return calendar.timegm(time.strptime(iso, "%Y-%m-%dT%H:%M:%SZ"))
+
+
+def verify_pins(CFG, check):
+    for k, v in CFG["pins"].items():
+        got = sha(v["path"]); check(f"pin.{k}", got == v["sha256"], dict(path=v["path"], got=got[:16], want=v["sha256"][:16]))
+    PRR = json.load(open(CFG["pins"]["price_receipt"]["path"]))
+    check("price_receipt.PASS_and_outputs", PRR.get("VERDICT") == "PASS" and PRR["outputs"]["old"]["sha256"] == CFG["pins"]["price_full_old"]["sha256"]
+          and PRR["outputs"]["raw"]["sha256"] == CFG["pins"]["price_full_raw"]["sha256"] and PRR["outputs"]["meta"]["sha256"] == CFG["pins"]["price_full_meta"]["sha256"])
+    MIR = CFG["paths"]["exec_mirror"]; man = json.load(open(CFG["pins"]["input_manifest"]["path"]))
+    bad = [rel for rel, s in man["executor_tree"]["files_sha256"].items() if sha(os.path.join(MIR, rel)) != s]
+    bad += [rel for rel in ("state/exchange_info_cache.json",) if sha(os.path.join(MIR, rel)) != man["files"][rel]["sha256"]]
+    check("pin.executor_tree_409ea16_vs_manifest", not bad and len(man["executor_tree"]["files_sha256"]) > 300, dict(n=len(man["executor_tree"]["files_sha256"]), bad=bad[:5]))
+
+
+def import_modules(CFG, here):
+    EC = os.path.dirname(CFG["pins"]["exec_sim"]["path"])
+    for p in (EC, here):
+        if p not in sys.path: sys.path.insert(0, p)
+    import exec_sim as ES
+    import simlib as SL
+    import bt_hist_sim31 as BH
+    spec = importlib.util.spec_from_file_location("p2_s2_lib", CFG["pins"]["p2_s2_lib"]["path"]); L2 = importlib.util.module_from_spec(spec); spec.loader.exec_module(L2)
+    return ES, SL, BH, L2
+
+
+class Ctx:
+    """everything a path needs, loaded once in the parent (children share it copy-on-write)"""
+    pass
+
+
+def load_context(CFG, ES, BH, L2, anchors_sel, runs, check, log, prices=None):
+    """anchors_sel: slice into the W_ALPHA axis; runs: config run dicts; prices: {name: (LP, grid0, cref)} override (battery sub-grids)"""
+    c = Ctx(); c.CFG = CFG; c.ES = ES; c.BH = BH; c.L2 = L2
+    anchors_all = np.arange(ts(CFG["window"]["first_anchor"]), ts(CFG["window"]["last_anchor"]) + 1, 14400, dtype=np.int64)
+    check("window.n_anchors", len(anchors_all) == CFG["window"]["n_anchors"], len(anchors_all))
+    AX = L2.AXIS; ax_row = {int(t): i for i, t in enumerate(AX)}; rows_all = np.array([ax_row[int(a)] for a in anchors_all])
+    check("window.equals_S2_W_ALPHA", bool(np.array_equal(rows_all, np.nonzero(L2.windows(AX)["W_ALPHA"])[0])))
+    c.anchors = anchors_all[anchors_sel]; c.rows = rows_all[anchors_sel]
+    PM = np.load(CFG["pins"]["price_full_meta"]["path"], allow_pickle=True); c.SY = SY = [str(s) for s in PM["symbols"]]
+    check("axis.symbols", hashlib.sha256("\n".join(SY).encode()).hexdigest() == L2.SYMS_SHA)
+    c.GRID0 = int(PM["grid"][0]); c.NG = len(PM["grid"]); c.PM = PM
+    check("prices.grid_covers_window", c.GRID0 <= int(c.anchors[0]) and c.GRID0 + 300 * (c.NG - 1) >= int(c.anchors[-1]) + 14400, dict(grid0=c.GRID0, n=c.NG))
+    c.UA_SETS = {"UNAVAILABLE_3084": BH.UAIndex(c.GRID0, c.NG, PM["unavail_grid_row"], PM["unavail_col"], len(SY)),
+                 "OLD_ZERO_PRICED_INLIFE_NAN": BH.UAIndex(c.GRID0, c.NG, PM["inlife_nan_grid_row"], PM["inlife_nan_col"], len(SY))}
+    check("ua_sets.counts", len(c.UA_SETS["UNAVAILABLE_3084"].cells) == 3084 and len(c.UA_SETS["OLD_ZERO_PRICED_INLIFE_NAN"].cells) == 24397,
+          {k: len(v.cells) for k, v in c.UA_SETS.items()})
+    c.PANELS = {}
+    for pr in sorted({r["price"] for r in runs}):
+        if prices and pr in prices:
+            LP, g0, cref = prices[pr]
+        else:
+            LP = np.load(CFG["pins"][f"price_full_{pr}"]["path"]); g0 = c.GRID0; cref = PM[f"cref_{pr}"]
+        c.PANELS[pr] = BH.FullPanel(LP, g0, SY, PM["first_fin"], cref, PM["ref_px"]); log("prices", pr, LP.shape)
+    for r in runs:
+        check(f"run.{r['tag']}.policy_named", r["policy"] in BH.POLICIES and r["ua_set"] in c.UA_SETS and r["price"] in c.PANELS and r["events"] == "rule")
+        if r["policy"] == "UA-FREEZE-EXCLUDE":            # (V): valuation at a UA bar = the last available bar; on a table with 0 returns there, a no-op
+            n = c.PANELS[r["price"]].ua_hold(c.UA_SETS[r["ua_set"]], dry=True)
+            check(f"run.{r['tag']}.ua_cells_already_at_last_available_price", n == 0 or bool(prices), {"cells_that_would_change": n})
+            if len({(r2["policy"]) for r2 in runs if r2["price"] == r["price"]}) > 1 and n: check(f"run.{r['tag']}.ua_hold_would_alter_a_shared_panel", False)
+            c.PANELS[r["price"]].ua_hold(c.UA_SETS[r["ua_set"]], dry=False)
+    c.fund = BH.HistFunding(CFG["pins"]["ledger_full"]["path"], SY, int(c.anchors[0]), int(c.anchors[-1]) + 14400); log("funding rows", c.fund.n_rows)
+    TRZ = np.load(CFG["pins"]["tradability"]["path"], allow_pickle=True); check("axis.tradability_symbols", [str(s) for s in TRZ["symbols"]] == SY)
+    c.TRS = np.asarray(TRZ["state_W24H"]); c.tr_row = {int(t): i for i, t in enumerate(TRZ["anchor_ts"].astype(np.int64))}
+    check("tradability.covers_window", all(int(a) in c.tr_row for a in c.anchors))
+    UZ = np.load(CFG["pins"]["universe"]["path"], allow_pickle=True); check("axis.universe", [str(s) for s in UZ["symbols"]] == SY and np.array_equal(UZ["ts"].astype(np.int64), AX))
+    c.PIT = np.asarray(UZ["pit"])[c.rows]
+    CP = CFG["current_production_config"]
+    c.CAL = json.load(open(CFG["pins"]["calibration"]["path"]))
+    check("calibration.v3_pooled_frozen", c.CAL.get("frozen_before_holdout") is True and c.CAL.get("kind") == "v3_pooled")
+    DEC_OFF = int(c.CAL["params"]["decision_offset_default_s"]); check("calibration.decision_offset_N+24", DEC_OFF == 1440, DEC_OFF)
+    c.cfgmap = BH.CfgMap31(c.TRS, c.tr_row, SY, float(CP["gross_mult"]), CP["chase_weights"], DEC_OFF)
+    ES.E4_FROM_ANCHOR = int(CP["E4_from_anchor"]); ES.RQ_FIRST_ANCHOR = int(CP["requote_assignment_from_anchor"])
+    c.MIR = CFG["paths"]["exec_mirror"]
+    M0 = BH.HistMirror(c.MIR, "/dev/shm/bt_ctx_%d" % os.getpid()); c.X = ES.ExecutorCode(M0); shutil.rmtree(M0.tdir, ignore_errors=True)
+    check("executor.pns_wide", c.X.pns_conf.get("_profile") == "wide" and abs(float(c.X.pns_conf["depth_pct"]) + 0.30) < 1e-12)
+    check("executor.gross_mult_config", abs(float(c.X.ext_cfg["gross_mult"]) - float(CP["gross_mult"])) < 1e-12 and c.X.ext_cfg["on_unavailable"] == "hold",
+          dict(gm=c.X.ext_cfg["gross_mult"], onu=c.X.ext_cfg["on_unavailable"]))
+    c.BOOKS = {}; c.target_info = {}
+    for arm in sorted({r["arm"] for r in runs}):
+        d, Vz, rsha, vsha = L2.load_run(arm); V = {k: Vz[k] for k in Vz.files}
+        check(f"s2run.{arm}.shas", rsha == CFG["s2_runs"][arm]["json_sha256"] and vsha == CFG["s2_runs"][arm]["vec_sha256"], dict(json=rsha[:16], vec=vsha[:16]))
+        Aax, B, fl = L2.books(d, V); assert np.array_equal(Aax, AX)
+        for bk in sorted({r["book"] for r in runs if r["arm"] == arm}):
+            fresh = (fl["has_states"] if bk == "CMB" else ~fl["skip"])[c.rows].copy(); W = np.ascontiguousarray(B[bk][c.rows])
+            c.BOOKS[(arm, bk)] = (W, fresh)
+            c.target_info[f"{arm}|{bk}"] = dict(n=len(fresh), n_fresh=int(fresh.sum()), sha_rows=hashlib.sha256(W.tobytes()).hexdigest())
+        del B
+    c.HistSim31 = BH.make_sim_class(ES); c.NAV0 = float(CFG["nav0_usdt"]); c.GM = float(CP["gross_mult"])
+    return c
+
+
+def make_sim(c, r, seed, tdir, knobs=None, panel=None, fund=None, book=None, decisions_mode="none", keep=(), stop_at=None, policy=None, ua_set=None):
+    W, fr = book if book is not None else c.BOOKS[(r["arm"], r["book"])]
+    M = c.BH.HistMirror(c.MIR, tdir)
+    return c.HistSim31(M, c.CAL, r["events"], dict(knobs or {}), c.X, panel or c.PANELS[r["price"]], fund or c.fund, c.anchors, c.cfgmap, W, fr, c.PIT, c.SY,
+                       r["tag"], c.NAV0, seed, policy or r["policy"], c.UA_SETS[ua_set or r["ua_set"]], decisions_mode=decisions_mode, keep_decisions=keep, stop_at=stop_at)
+
+
+def path_arrays(c, S, Wn):
+    la = {a["anchor"]: a for a in S.log_anchor}
+    arr = dict(A=np.array([w["A"] for w in Wn], np.int64))
+    for k in WF: arr[k] = np.array([w[k] for w in Wn], float)
+    arr["status"] = np.array([ST[la[int(a)]["status"]] for a in arr["A"]], np.int8)
+    for k in RF: arr["rec_" + k] = np.array([float(la[int(a)].get(k)) if la[int(a)].get(k) is not None else np.nan for a in arr["A"]], float)
+    for k in OUTC: arr["out_" + k] = np.array([float((la[int(a)].get("outcomes") or {}).get(k, 0)) for a in arr["A"]], float)
+    for k in ("chase", "no_chase", "chase_forced"):
+        arr["armcount_" + k] = np.array([float((la[int(a)].get("chase_assignment_counts") or {}).get(k, 0)) for a in arr["A"]], float)
+    arr["hold_why_missing"] = np.array([int(str(la[int(a)].get("why", "")).startswith("target_live missing")) for a in arr["A"]], np.int8)
+    arr["hold_why_invalid"] = np.array([int(str(la[int(a)].get("why", "")).startswith("target invalid")) for a in arr["A"]], np.int8)
+    arr["nav5_t0"] = np.array(S.nav_grid0, np.int64); arr["nav5_sim"] = S.nav5_sim; arr["nav5_main"] = S.nav5_main
+    return arr
+
+
+def path_summary(c, S, arr, r, seed, rt):
+    la = {a["anchor"]: a for a in S.log_anchor}
+    ident = np.abs((arr["nav1"] - arr["nav0"]) - (arr["price_trade"] + arr["funding"] - arr["fee"] + arr["transfer"]))
+    rm = arr["navm1"] / arr["navm0"] - 1.0; rs = (arr["nav1"] - arr["nav0"] - arr["unk_excluded"] * (arr["unk_price"] + arr["unk_funding"])) / arr["nav0"]
+    kk = ((arr["A"] - S.nav_grid0) // 300).astype(np.int64)
+    return dict(tag=r["tag"], seed=seed, run=r, runtime_s=round(rt, 1), n_windows=len(arr["A"]), n_anchors=len(c.anchors), nav_first=float(arr["nav0"][0]),
+                nav_last=float(arr["nav1"][-1]), navm_last=float(arr["navm1"][-1]), sealed_initial_sha256=S.sealed_sha, policy=S.policy, price=r["price"], ua_set=r["ua_set"],
+                status_counts=dict(collections.Counter(la[int(a)]["status"] for a in arr["A"])), events_fired_counts=dict(collections.Counter(e["type"] for e in S.events_fired)),
+                flatten_log=[[time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t_)), w_] for t_, w_ in S.flat_log],
+                stop_events_by_year=dict(collections.Counter(time.strftime("%Y", time.gmtime(a)) for a, _ in S.stop_log)),
+                target_stats=dict(S.tstats), diag={k: float(v) for k, v in S.diag.items()}, clock={k: float(v) for k, v in S.clamp_stats.items()},
+                ua_counters={k: float(v) for k, v in S.ua.items()}, ua_panel_cells_held=getattr(S.P, "ua_held_cells", None),
+                audits=dict(trades=S.trade_log.n, max_fee_err=S.trade_log.max_fee_err, trades_by_kind=dict(S.trade_log.kind), notional_maker=S.trade_log.notional["maker"],
+                            notional_taker=S.trade_log.notional["taker"], funding_charges=S.fund_log.n, funding_max_err=S.fund_log.max_err, funding_dup=S.fund_log.dup,
+                            exits=S.exit_log.n, exit_subfloor_remainders=S.exit_log.subfloor, window_identity_max_abs_err=float(ident.max()),
+                            main_return_identity_max_abs_err=float(np.abs(rm - rs).max()),
+                            nav5_vs_window_start_max_rel_err=float(np.nanmax(np.abs(S.nav5_sim[kk] / arr["nav0"] - 1.0))),
+                            nav5main_vs_window_start_max_rel_err=float(np.nanmax(np.abs(S.nav5_main[kk] / arr["navm0"] - 1.0))),
+                            nav5_nan=int(np.isnan(S.nav5_sim).sum()), nav5_main_nan=int(np.isnan(S.nav5_main).sum())))
+
+
+def audits_clean(a):
+    return (a["max_fee_err"] == 0.0 and a["funding_max_err"] <= 1e-9 and a["funding_dup"] == 0 and a["window_identity_max_abs_err"] <= 1e-6
+            and a["main_return_identity_max_abs_err"] <= 1e-9 and a["nav5_vs_window_start_max_rel_err"] <= 1e-9
+            and a["nav5main_vs_window_start_max_rel_err"] <= 1e-9 and a["nav5_nan"] == 0 and a["nav5_main_nan"] == 0)
+
+
+def run_one(c, r, seed, **kw):
+    tdir = "/dev/shm/bt_%s_s%02d_%d" % (r["tag"].replace("|", "_"), seed, os.getpid())
+    S = make_sim(c, r, seed, tdir, **kw)
+    t0 = time.time(); Wn = S.run(); rt = time.time() - t0
+    shutil.rmtree(tdir, ignore_errors=True)
+    arr = path_arrays(c, S, Wn)
+    return arr, path_summary(c, S, arr, r, seed, rt), S
+
+
+def save_path(stem, arr, out, extra_sha):
+    np.savez(stem + ".tmp.npz", **arr); os.replace(stem + ".tmp.npz", stem + ".npz")
+    out = dict(out, **extra_sha, npz_sha256=sha(stem + ".npz"))
+    json.dump(out, open(stem + ".json.tmp", "w"), indent=1, default=lambda o: sorted(o) if isinstance(o, set) else str(o)); os.replace(stem + ".json.tmp", stem + ".json")
+    return out
+
+
+AGG_COMP = ("price_trade", "funding", "fee", "turnover", "unk_price", "unk_funding", "unk_notional", "gross0", "end_n_dust", "end_dust_usdt")
+AGG_CNT = ("n_stop_events", "n_flatten_events", "unk_held", "rec_n_frozen")
+
+
+def aggregate_arrays(P, gm):
+    """the per-window MEAN over path arrays (list in seed order): the definition the battery recomputes"""
+    A = P[0]["A"]
+    for p in P: assert np.array_equal(p["A"], A)
+    agg = dict(A=A)
+    agg["r_main_mean"] = np.stack([p["navm1"] / p["navm0"] - 1.0 for p in P]).mean(0)
+    agg["r_sim_mean"] = np.stack([p["nav1"] / p["nav0"] - 1.0 for p in P]).mean(0)
+    for k in AGG_COMP: agg[k + "_over_gmnav0_mean"] = np.stack([p[k] / (gm * p["nav0"]) for p in P]).mean(0)
+    for k in AGG_CNT: agg[k + "_mean"] = np.stack([p[k] for p in P]).mean(0)
+    agg["halt_mean"] = np.stack([(p["status"] == 1).astype(float) for p in P]).mean(0)
+    agg["hold_mean"] = np.stack([(p["status"] == 2).astype(float) for p in P]).mean(0)
+    agg["r5_main_mean"] = np.stack([p["nav5_main"][1:] / p["nav5_main"][:-1] - 1.0 for p in P]).mean(0); agg["nav5_t0"] = P[0]["nav5_t0"]
+    return agg

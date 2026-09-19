@@ -1,0 +1,41 @@
+[    12s] PASS D0.pins_price_receipt_executor_tree []
+[    20s] PASS D1.audits_clean.old.seed0 {"trades": 78405, "max_fee_err": 0.0, "trades_by_kind": {"first": 54745, "later": 23660}, "notional_maker": 1405672.7743186995, "notional_taker": 277361.00690331904, "funding_charges": 16099, "funding_max_err": 0.0, "funding_dup": 0, "exits": 84, "exit_subfloo
+[    20s] PASS D1.effective_fee_rates_are_USDT_era.old.seed0 [419.8147691129535, 419.8147691129484]
+[    21s] PASS D1.audits_clean.old.seed1 {"trades": 78090, "max_fee_err": 0.0, "trades_by_kind": {"first": 54540, "later": 23550}, "notional_maker": 1402661.800614613, "notional_taker": 269111.5715114173, "funding_charges": 16085, "funding_max_err": 0.0, "funding_dup": 0, "exits": 86, "exit_subfloor_
+[    21s] PASS D1.effective_fee_rates_are_USDT_era.old.seed1 [415.08785762750097, 415.0878576275056]
+[    22s] PASS D1.audits_clean.raw.seed0 {"trades": 78405, "max_fee_err": 0.0, "trades_by_kind": {"first": 54745, "later": 23660}, "notional_maker": 1405672.7137953734, "notional_taker": 277361.0068641487, "funding_charges": 16099, "funding_max_err": 0.0, "funding_dup": 0, "exits": 84, "exit_subfloor
+[    22s] PASS D1.effective_fee_rates_are_USDT_era.raw.seed0 [419.81475698870383, 419.81475698871003]
+[    23s] PASS D1.audits_clean.raw.seed1 {"trades": 78090, "max_fee_err": 0.0, "trades_by_kind": {"first": 54540, "later": 23550}, "notional_maker": 1402661.8906583788, "notional_taker": 269111.6277718602, "funding_charges": 16085, "funding_max_err": 0.0, "funding_dup": 0, "exits": 86, "exit_subfloor
+[    23s] PASS D1.effective_fee_rates_are_USDT_era.raw.seed1 [415.0879037664651, 415.08790376646004]
+[    24s] PASS [mutation red] D1.funding_double_breaks_the_funding_audit 20.931587080605492
+[    24s] PASS [mutation red] D1.fee_asset_wrong_breaks_the_fee_rate_check [379.69887947870086, 419.8961492558285]
+[    25s] PASS D2.same_seed_bitwise_identical []
+[    25s] PASS D2.other_seed_differs 
+[    26s] PASS D3.v2_decision_record_reproduced_first_anchor_with_v2_decision_bar {"equity_at_decision": [100000.0, 100000.0], "sizing_gross": [200000.0, 200000.0], "n_symbols": [137.0, 137.0], "n_untradable": [0.0, 0.0], "n_plans_sent": [137.0, 137.0], "n_skip_min_notional": [0.0, 0.0], "plan_turnover": [199931.83474176106, 199931.83474176
+[    26s] PASS [mutation red] D3.v31_own_decision_bar_changes_planned_turnover [199937.55401065265, 199931.83474176106]
+[    34s] PASS D4.decisions_up_to_A_k_invariant_to_future_prices {"anchors_compared": 31}
+[    35s] PASS D4.positive_control_A_k+1_sees_the_perturbation 
+[    36s] PASS [mutation red] D4.lookahead_decision_changes_A_k 
+[    38s] PASS D5.positive_control_AERGO_held_into_the_gap {"max_unknown_held_names": 1.0, "aergo_trades": 60}
+[    38s] PASS D5.no_AERGO_fill_booked_inside_a_UA_bar {"inside": []}
+[    38s] PASS D5.frozen_anchors_present_and_no_AERGO_trade_from_a_frozen_decision {"frozen_anchors": 3, "trades_from_frozen": [], "ua": {"anchors_with_frozen_names": 3, "frozen_name_anchors": 3, "frozen_held_name_anchors": 3, "frozen_plans_dropped": 3, "frozen_plan_notional_dropped": 123.0464734625275}}
+[    38s] PASS D5.unknown_cells_excluded_only_where_they_exist {"windows_with_unknown_pnl": 3, "max_abs_dr_elsewhere": 2.220446049250313e-16, "unk_sum": 77.2853197104265}
+[    39s] PASS D5.bitwise_invariant_to_garbage_at_UA_bars {"diff": [], "garbage_cells": 133, "held_cells": 133}
+[    39s] PASS D5.legacy_panel_still_carries_the_garbage 
+[    40s] PASS [mutation red] D5.LEGACY_reads_the_garbage 
+[    40s] PASS [mutation red] D5.empty_UA_index_trades_or_prices_through_the_gap {"frozen": 0, "inside": 15}
+[    43s] PASS D5b.fills_inside_a_UA_stretch_are_cancelled {"name": "MAVUSDT", "booked": 0, "cancelled": 3}
+[    44s] PASS [mutation red] D5b.LEGACY_books_them {"booked": 3}
+[    50s] PASS D6.switch_to_identical_content_is_bitwise_identical []
+[    50s] PASS D6.config_runs_differ_only_in_price_policy_labels 
+[    55s] PASS [mutation red] D6.switch_that_also_swaps_cref 
+[    56s] PASS [mutation red] D6.switch_that_also_drops_funding 
+[    56s] PASS D7.path_file_shas_match_the_AGG_listing {"n_paths": 3}
+[    56s] PASS D7.mean_recomputed_from_files_equals_AGG_bitwise {"keys": 21, "n_paths": 3}
+[    56s] PASS [mutation red] D7.tampered_path_file_changes_the_mean 
+[    56s] PASS [mutation red] D7.missing_seed_changes_the_mean 
+[    59s] PASS D8.rule_flatten_at_first_eval_after_shock_and_halt_until_next_day {"flattens": 1, "halt_anchors": 2, "flatten_log": [["2025-03-03T12:46:00Z", "\u00a74-2 day loss -23.43% at 03-03 12:45:00Z (ref 100,000 @ 03-03 00:00:00Z, E 76,570)"]]}
+[    59s] PASS [mutation red] D8.no_rule_no_flatten 
+[    62s] PASS D9.nav5_equals_simulator_equity_at_random_bars {"bars": [194, 824, 1441, 1506, 1508, 1596], "max_rel_err": 1.1102230246251565e-16}
+[    62s] PASS [mutation red] D9.next_bar_comparison_detected {"max_rel_err_shifted": 0.0015510465524767314}
+BT_BATTERY VERDICT: ALL PASS 40/40 checks (baselines green first, every mutation red)

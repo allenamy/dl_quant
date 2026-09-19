@@ -1,0 +1,71 @@
+[     5s] CHECK input_sha.CACHE_X0918 OK {"expected": "1db49ce6f5ca", "got": "1db49ce6f5ca"}
+[     9s] CHECK input_sha.CACHE_X0910 OK {"expected": "8115299410cd", "got": "8115299410cd"}
+[     9s] CHECK input_sha.HOLE_CELLS OK {"expected": "6156f97a0709", "got": "6156f97a0709"}
+[     9s] CHECK input_sha.TRADABILITY_PUB OK {"expected": "54d409d0ddf6", "got": "54d409d0ddf6"}
+[     9s] CHECK input_sha.TRADABILITY_X0918 OK {"expected": "bebf69ab9ddb", "got": "bebf69ab9ddb"}
+[     9s] CHECK input_sha.UMASK_ARM OK {"expected": "3badc4b6a4fc", "got": "3badc4b6a4fc"}
+[     9s] CHECK input_sha.UPIT_CRYPTO_SEP OK {"expected": "de7c34d79d70", "got": "de7c34d79d70"}
+[     9s] CHECK input_sha.PANEL_IVFIX OK {"expected": "a5d7fb9731b2", "got": "a5d7fb9731b2"}
+[    10s] CHECK input_sha.PANEL_ARM OK {"expected": "5e67c0559daa", "got": "5e67c0559daa"}
+[    11s] CHECK input_sha.PANEL_X0918 OK {"expected": "e5fcb4198dde", "got": "e5fcb4198dde"}
+[    11s] CHECK input_sha.FUND4H_X0918 OK {"expected": "2838e5f6cf42", "got": "2838e5f6cf42"}
+[    11s] CHECK input_sha.META_V4 OK {"expected": "e1cf515eca46", "got": "e1cf515eca46"}
+[    11s] CHECK input_sha.META_X0918 OK {"expected": "22e990f86bab", "got": "22e990f86bab"}
+[    11s] CHECK input_sha.ARM_A0_S42 OK {"expected": "634f7c55ba73", "got": "634f7c55ba73"}
+[    11s] CHECK input_sha.PUB_STATE OK {"expected": "52a9e89eb6de", "got": "52a9e89eb6de"}
+[    11s] CHECK input_sha.PUB_LABELS OK {"expected": "04cb06f47c15", "got": "04cb06f47c15"}
+[    11s] CHECK input_sha.PUB_STATE_DEVICE OK {"expected": "72f385147e80", "got": "72f385147e80"}
+[    11s] CHECK input_sha.PUB_TABLES_DEVICE OK {"expected": "6f4487509df1", "got": "6f4487509df1"}
+[    11s] CHECK cache.channels OK ["ret5", "range", "cpos", "log_qv", "log_cnt", "log_avgsz", "tbf"]
+[    11s] CHECK cache.grid OK {"first": "2022-01-01T00:00Z", "last": "2026-09-19T00:00Z", "rows": 495937}
+[    44s] x0918 channels loaded (495937, 829, 2)
+[    44s] CHECK cache.x0910_symbols_and_ts_prefix OK {"x0910_rows": 493633}
+[    84s] CHECK cache.x0918_prefix_equals_x0910_ret5_logcnt_bitwise OK {"rows": 493633}
+[    84s] CHECK cache.btc_never_at_clip_bound OK 
+[    84s] CHECK holes.symbols OK 
+[    84s] CHECK holes.ts_match_cache_rows OK {"cells": 1422720}
+[    84s] CHECK holes.row0_not_filled OK 
+[    87s] 4h intervals built 10332
+[    87s] CHECK meta.pub.cache_intervals_equal_accounting_y4_off_clip OK {"meta": "e1cf515e (published)", "rows_in_window": 10212, "cells_compared": 3479704, "max_abs_diff": 7.839753424221385e-08, "clip_cells_with_meta": 590}
+[    87s] CHECK meta.x0918.cache_intervals_equal_accounting_y4_off_clip_after_E_pub OK {"meta": "22e990f8 (stream D, after E_pub)", "rows_in_window": 54, "cells_compared": 43090, "max_abs_diff": 5.6167146933461254e-08, "clip_cells_with_meta": 2}
+[    87s] clip {'replaced_published_meta': 595, 'replaced_x0918_meta': 2, 'clip_cells_without_meta_set_nan': 3, 'without_meta': [('2026-09-03T00:00Z', 'AKEUSDT'), ('2026-09-05T04:00Z', 'BULLAUSDT'), ('2026-09-06T04:00Z', 'WOOUSDT')]}
+[    88s] CHECK trd.grid_equals_interval_ends OK 
+[    88s] CHECK trd.published_state_W24H_is_a_bitwise_prefix OK {"published_anchors": 10285, "x0918_anchors": 10333}
+[    88s] CHECK axis.upit_symbols OK 
+[    88s] CHECK axis.published_axis_ends_at_E_pub OK "2026-09-10T00:00Z"
+[    88s] CHECK members.september_rows_identical_monthly_rule OK {"september_rows": 55}
+[    88s] CHECK axis.extension_all_in_september OK {"n": 53}
+[    88s] CHECK axis.every_anchor_on_interval_grid OK {"anchors": 10152, "last": "2026-09-18T20:00Z"}
+[    88s] CHECK members.rebuild_equals_arm_umask_bitwise OK 
+[    88s] CHECK members.arm_nmember_equals_member_count OK 
+[    88s] CHECK fund.ivfix_axis_is_published_axis OK 
+[    88s] CHECK fund.ivfix_prefix_equals_arm_panel OK 
+[    88s] CHECK fund.x0918_panel_symbols OK 
+[    89s] CHECK fund.x0918_panel_equals_ivfix_on_overlap_bitwise OK {"overlap_anchors": 10099}
+[    89s] CHECK fund.4h_table_symbols OK 
+[    89s] CHECK fund.4h_table_equals_x0918_panel_on_overlap_bitwise OK {"overlap_anchors": 169, "first": "2026-08-21T00:00Z"}
+[    89s] CHECK fund.every_extension_anchor_has_a_source OK {"x0918_panel": 48, "x0918_4h_accounting": 5, "ivfix": 10099}
+[    89s] anchor 0 / 10152 2022-01-31T00:00Z
+[    89s] anchor 2500 / 10152 2023-03-23T16:00Z
+[    90s] anchor 5000 / 10152 2024-05-13T08:00Z
+[    90s] anchor 7500 / 10152 2025-07-04T00:00Z
+[    90s] anchor 10000 / 10152 2026-08-24T16:00Z
+[   101s] primary state + labels
+[   101s] CHECK prefix.axis OK 
+[   101s] CHECK prefix.EXCL_bitwise_equal_published OK {"cells": 70693, "equal_bitwise": true, "n_differ": 0}
+[   101s] CHECK prefix.INCL_bitwise_equal_published OK {"cells": 70693, "equal_bitwise": true, "n_differ": 0}
+[   101s] CHECK prefix.N_EXCL_bitwise_equal_published OK {"cells": 70693, "equal_bitwise": true, "n_differ": 0}
+[   101s] CHECK prefix.N_INCL_bitwise_equal_published OK {"cells": 70693, "equal_bitwise": true, "n_differ": 0}
+[   101s] CHECK prefix.LAB_EXCL_bitwise_equal_published OK {"cells": 70693, "equal_bitwise": true, "n_differ": 0}
+[   101s] CHECK prefix.LAB_INCL_bitwise_equal_published OK {"cells": 70693, "equal_bitwise": true, "n_differ": 0}
+[   101s] CHECK prefix.Q_EXCL_bitwise_equal_published OK {"cells": 141386, "equal_bitwise": true, "n_differ": 0}
+[   101s] CHECK prefix.Q_INCL_bitwise_equal_published OK {"cells": 141386, "equal_bitwise": true, "n_differ": 0}
+[   101s] CHECK prefix.PR_EXCL_bitwise_equal_published OK {"cells": 70693, "equal_bitwise": true, "n_differ": 0}
+[   101s] CHECK prefix.PR_INCL_bitwise_equal_published OK {"cells": 70693, "equal_bitwise": true, "n_differ": 0}
+[   101s] anchor 0 / 10152 2022-01-31T00:00Z
+[   102s] anchor 2500 / 10152 2023-03-23T16:00Z
+[   102s] anchor 5000 / 10152 2024-05-13T08:00Z
+[   103s] anchor 7500 / 10152 2025-07-04T00:00Z
+[   103s] anchor 10000 / 10152 2026-08-24T16:00Z
+[   114s] sensitivity {'EXCL': {'state_values_differ_prefix': 26, 'labels_differ_prefix': 0, 'labels_differ_extension': 0, 'labels_differ_prefix_by_var': {'RG-TREND': 0, 'RG-BREADTH': 0, 'RG-DISP': 0, 'RG-FLEVEL': 0, 'RG-FDISP': 0, 'RG-VOL': 0, 'RG-ALT': 0}}, 'INCL': {'state_values_differ_prefix': 99, 'labels_differ_prefix': 0, 'labels_differ_extension': 2, 'labels_differ_prefix_by_var': {'RG-TREND': 0, 'RG-BREADTH': 0, 'RG-DISP': 0, 'RG-FLEVEL': 0, 'RG-FDISP': 0, 'RG-VOL': 0, 'RG-ALT': 0}}}
+BT_G0_EXTEND VERDICT=PASS anchors=10152 (published 10099 + extension 53) prefix_bitwise=10/10 receipt_sha256=8afd680472ef21be2731bf4b7e55cea018dc80ac44c370ef8321f9cb02fc82de

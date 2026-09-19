@@ -1,0 +1,29 @@
+[     5s] PASS D0.pins_price_receipt_executor_tree []
+[    10s] PASS D1.audits_clean.old.seed0 {"trades": 78405, "max_fee_err": 0.0, "trades_by_kind": {"first": 54745, "later": 23660}, "notional_maker": 1405672.7743186995, "notional_taker": 277361.00690331904, "funding_charges": 16099, "funding_max_err": 0.0, "funding_dup": 0, "exits": 84, "exit_subfloo
+[    10s] PASS D1.effective_fee_rates_are_USDT_era.old.seed0 [419.8147691129535, 419.8147691129484]
+[    11s] PASS D1.audits_clean.old.seed1 {"trades": 78090, "max_fee_err": 0.0, "trades_by_kind": {"first": 54540, "later": 23550}, "notional_maker": 1402661.800614613, "notional_taker": 269111.5715114173, "funding_charges": 16085, "funding_max_err": 0.0, "funding_dup": 0, "exits": 86, "exit_subfloor_
+[    11s] PASS D1.effective_fee_rates_are_USDT_era.old.seed1 [415.08785762750097, 415.0878576275056]
+[    12s] PASS D1.audits_clean.raw.seed0 {"trades": 78405, "max_fee_err": 0.0, "trades_by_kind": {"first": 54745, "later": 23660}, "notional_maker": 1405672.7137953734, "notional_taker": 277361.0068641487, "funding_charges": 16099, "funding_max_err": 0.0, "funding_dup": 0, "exits": 84, "exit_subfloor
+[    12s] PASS D1.effective_fee_rates_are_USDT_era.raw.seed0 [419.81475698870383, 419.81475698871003]
+[    13s] PASS D1.audits_clean.raw.seed1 {"trades": 78090, "max_fee_err": 0.0, "trades_by_kind": {"first": 54540, "later": 23550}, "notional_maker": 1402661.8906583788, "notional_taker": 269111.6277718602, "funding_charges": 16085, "funding_max_err": 0.0, "funding_dup": 0, "exits": 86, "exit_subfloor
+[    13s] PASS D1.effective_fee_rates_are_USDT_era.raw.seed1 [415.0879037664651, 415.08790376646004]
+[    14s] PASS [mutation red] D1.funding_double_breaks_the_funding_audit 20.931587080605492
+[    15s] PASS [mutation red] D1.fee_asset_wrong_breaks_the_fee_rate_check [379.69887947870086, 419.8961492558285]
+[    16s] PASS D2.same_seed_bitwise_identical []
+[    16s] PASS D2.other_seed_differs 
+Traceback (most recent call last):
+  File "/workspace/baseline_tables_2026-09-19/devices/bt_battery.py", line 120, in <module>
+    a3, o3, _ = DL.run_one(C3, R_OLD, 0, knobs={"legacy_decision_lookahead": True})
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/baseline_tables_2026-09-19/devices/bt_driver_lib.py", line 171, in run_one
+    t0 = time.time(); Wn = S.run(); rt = time.time() - t0
+                           ^^^^^^^
+  File "/workspace/baseline_tables_2026-09-19/devices/bt_hist_sim31.py", line 456, in run
+    self._flush_nav(t)
+  File "/workspace/baseline_tables_2026-09-19/devices/bt_hist_sim31.py", line 380, in _flush_nav
+    r0 = self.P.row(self.nav_grid0 + self._nb * ROW); r1 = r0 + (b_hi - self._nb)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/baseline_tables_2026-09-19/devices/bt_hist_sim31.py", line 128, in row
+    assert (int(b) - self.g0) % ROW == 0 and 0 <= r < self.n, f"boundary {b} off the price grid"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: boundary 1656547200 off the price grid

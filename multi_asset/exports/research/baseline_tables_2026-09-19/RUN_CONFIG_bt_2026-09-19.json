@@ -1,0 +1,177 @@
+{
+ "config": "RUN_CONFIG_bt_2026-09-19",
+ "created_utc": "2026-09-19",
+ "status": "FROZEN before any full-history number of this device (smoke runs on short windows measure speed only)",
+ "prereg": "docs/PREREG_baseline_tables_certified_2026-09-19.md (67769510b) §2 (base), §3.6 (reconciliation ①→②→③); this config covers steps ① and ② on the OLD stream-R object P2-CMB ONLY — not the certified object B",
+ "object": "P2-CMB (stream R's S2 production-path target book 0.55·kc + 0.45·fc, S2_A0pred = the in-service recipe arm), NOT the certified production path (object B)",
+ "window": {
+  "first_anchor": "2022-06-30T00:00:00Z",
+  "last_anchor": "2026-08-30T20:00:00Z",
+  "n_anchors": 9138,
+  "why": "stream R W_ALPHA (the published v2 numbers' window)"
+ },
+ "nav0_usdt": 100000.0,
+ "paths_R": 32,
+ "seeds": "0..31 (per-request blake2b draws of exec_sim v3.1)",
+ "runs": [
+  {
+   "tag": "S2_A0pred_s42|CMB|rule|old|LEGACY",
+   "arm": "S2_A0pred_s42",
+   "book": "CMB",
+   "events": "rule",
+   "price": "old",
+   "policy": "LEGACY-ZERO-RETURN",
+   "ua_set": "OLD_ZERO_PRICED_INLIFE_NAN",
+   "role": "reconciliation step ① new side: simulator v3.1 × OLD stream-R price table (full-grid re-emission, bitwise at every pinned sample) × P2-CMB; UNAVAILABLE handling as stream R v2 (zero return through cache-NaN bars), reported"
+  },
+  {
+   "tag": "S2_A0pred_s42|CMB|rule|raw|UAFE",
+   "arm": "S2_A0pred_s42",
+   "book": "CMB",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "role": "reconciliation step ② new side: simulator v3.1 × RESTORED raw price table × P2-CMB; UNAVAILABLE rule UA-FREEZE-EXCLUDE (object-B prereg AMENDMENT 1 §A1.2, E2 mapping in bt_hist_sim31.py)"
+  },
+  {
+   "tag": "S2_A0pred_s2027|CMB|rule|old|LEGACY",
+   "arm": "S2_A0pred_s2027",
+   "book": "CMB",
+   "events": "rule",
+   "price": "old",
+   "policy": "LEGACY-ZERO-RETURN",
+   "ua_set": "OLD_ZERO_PRICED_INLIFE_NAN",
+   "role": "reconciliation step ① new side: simulator v3.1 × OLD stream-R price table (full-grid re-emission, bitwise at every pinned sample) × P2-CMB; UNAVAILABLE handling as stream R v2 (zero return through cache-NaN bars), reported"
+  },
+  {
+   "tag": "S2_A0pred_s2027|CMB|rule|raw|UAFE",
+   "arm": "S2_A0pred_s2027",
+   "book": "CMB",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "role": "reconciliation step ② new side: simulator v3.1 × RESTORED raw price table × P2-CMB; UNAVAILABLE rule UA-FREEZE-EXCLUDE (object-B prereg AMENDMENT 1 §A1.2, E2 mapping in bt_hist_sim31.py)"
+  }
+ ],
+ "current_production_config": {
+  "gross_mult": 2.0,
+  "chase_weights": {
+   "chase": 0.5,
+   "no_chase": 0.5
+  },
+  "E4_from_anchor": 0,
+  "requote_assignment_from_anchor": 0,
+  "fee_era": "USDT_era maker/taker of the pooled calibration for every trade",
+  "decision": "t_dec = A + decision_offset_default_s (1440 = N+24:00), rid = A{t_dec}; decision bar = floor_5m(t_dec) = N+20",
+  "stop_eval": "A + eval_offset_without_frame_s (2700 = N+45; no live readback frames in history)",
+  "rule_flatten": "max(A + rule_flatten_offset_s (2760 = N+46), t_eval + 1 s)",
+  "per_name_stop": "409ea16 config/book.json active_profile wide (−0.30 × 2 consecutive, 7-day cooldown, 5 USDT)",
+  "on_unavailable": "hold",
+  "venue_tradable": "tradability_v1 state_W24H == 2 at A",
+  "meta_exclusions": "none",
+  "exchange_filters": "stream-E mirror exchange_info_cache.json (current values)"
+ },
+ "events": {
+  "rule": "only §4-2 (−4 % vs the previous UTC day's last evaluation equity ⇒ flatten at N+46, HALT until next UTC day 00Z); per-name stops by the executor's own state machine"
+ },
+ "unavailable_policies": {
+  "LEGACY-ZERO-RETURN": "table value used (0 return through cache-NaN bars, stream R v2 behaviour); exposure counted per window (never silent)",
+  "UA-FREEZE-EXCLUDE": "object-B prereg AMENDMENT 1 §A1.2; E2 mapping: (A) UNKNOWN cells = (name, window) with any UA bar closing in [A, A+4h] ⇒ price-and-trading and funding P&L removed from the main NAV numerator, reported separately with notional at risk (bounds UNBOUNDED); (B) no trading at A if the bar closing at A or the decision bar is UA; (B') no fill booked inside a UA bar"
+ },
+ "simulator": {
+  "exec_sim.py": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24 (v3.1, unchanged)",
+  "calibration": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6 (pooled; per-arm fields of CALIBRATION_FROZEN never read)",
+  "gate": "v1b_gate v2 4a725921 (period definitions only; imported by exec_sim)",
+  "executor_tree": "409ea16 (INPUT_MANIFEST 59875e5a)"
+ },
+ "pins": {
+  "exec_sim": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/exec_sim.py",
+   "sha256": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24"
+  },
+  "simlib": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/simlib.py",
+   "sha256": "55246fe98da2d57a33bbbe0f22fc67e6581da539c353b026d8ef41673dfec2f1"
+  },
+  "v1b_gate": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/v1b_gate.py",
+   "sha256": "4a725921a470f4c11f47cda5a8e210979215079cea16b496c709c7cc62fb5410"
+  },
+  "v1_gate": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/v1_gate.py",
+   "sha256": "c97d9b3d49212b49ea2cde883d7a06fe749f43ed23f3aef7de6345a4d8075d0d"
+  },
+  "calibration": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/CALIBRATION_v3_POOLED_20260826_20260910.json",
+   "sha256": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6"
+  },
+  "input_manifest": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/INPUT_MANIFEST.json",
+   "sha256": "59875e5a69db415f5ce20b35b888f2d49a31427fdde8b7b847a9645ee135a5ae"
+  },
+  "price_full_old": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_old.npy",
+   "sha256": "0d23e3bf43138714f67d0b69870f76f0c882008ad190d357649578968c8a8aaf"
+  },
+  "price_full_raw": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw.npy",
+   "sha256": "b935ea28e386ba3c82145fe4527ebce2258c0a29208109dc4a07d1b6d13b6cac"
+  },
+  "price_full_meta": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_meta.npz",
+   "sha256": "f2f5382889f8c926ab2b47a81def234b1d5b7ee9cc15a86cdcfaba69416ff7b4"
+  },
+  "price_receipt": {
+   "path": "/workspace/baseline_tables_2026-09-19/receipts/BT_PRICES_FULL.json",
+   "sha256": "9f6d8a55e8eb033bc9aa73a7714816d97027d626e5c839180407d985ca977ef1"
+  },
+  "p2_s2_lib": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/devices/p2_s2_lib.py",
+   "sha256": "c53f5c495036727fcd7115bad6838229923c91f6b76bed955ebdb0f25d57c831"
+  },
+  "ledger_full": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+   "sha256": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
+  },
+  "tradability": {
+   "path": "/workspace/fx_data_2026-09-13/out/trd/tradability_v1.npz",
+   "sha256": "54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302"
+  },
+  "universe": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/work/universe.npz",
+   "sha256": "6322b57366078ed0022fd8a8156ee36f527bf309e0d66bfa5f6ec17d7a09efa7"
+  }
+ },
+ "s2_runs": {
+  "S2_A0pred_s42": {
+   "json_sha256": "d01063c0ee68a48799229aef60736e7a1a8e46dbbdc9d5d72f3f227f95affbbe",
+   "vec_sha256": "8c7c886376c484ea243efc2e94bac529f6cc9dfee5ceba3104dd6d89201c9770"
+  },
+  "S2_A0pred_s2027": {
+   "json_sha256": "c63b59a72438a1a0f789e548ac10e5ed48e54a9e23bcfbdcd532c497b3850133",
+   "vec_sha256": "17b78784c6846cfc198a10e1531cc9befd82a6b382323a304eda34e1aca0b8c4"
+  }
+ },
+ "paths": {
+  "pod_root": "/workspace/baseline_tables_2026-09-19",
+  "exec_mirror": "/workspace/replay_r_2026-09-19/work/exec_mirror",
+  "mac_root": "multi_asset/exports/research/baseline_tables_2026-09-19"
+ },
+ "launch": {
+  "max_parallel": 8,
+  "min_available_gib": 22,
+  "nice": 10,
+  "threads_per_run": 1
+ },
+ "baseline_v2": {
+  "what": "stream R published P2-CMB × simulator v2 × old prices (233efec27)",
+  "runs": {
+   "S2_A0pred_s42": "/workspace/replay_r_2026-09-19/work/runs/S2_A0pred_s42_CMB_rule/SIM_S2_A0pred_s42_CMB_rule.npz",
+   "S2_A0pred_s2027": "/workspace/replay_r_2026-09-19/work/runs/S2_A0pred_s2027_CMB_rule/SIM_S2_A0pred_s2027_CMB_rule.npz"
+  },
+  "receipt": "/workspace/replay_r_2026-09-19/receipts/R_LAUNCH.json"
+ },
+ "blind_protocol": "CFG-06 AMENDMENT 1: pooled outcome parameters only; outputs carry per-arm assignment COUNTS only; no per-arm outcome quantity is computed, printed or stored"
+}

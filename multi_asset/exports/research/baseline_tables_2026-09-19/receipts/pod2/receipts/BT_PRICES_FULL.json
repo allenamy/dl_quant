@@ -1,0 +1,358 @@
+{
+ "device": "bt_prices_full.py",
+ "self_sha256": "161cf90aef712540ba89ff4d5818edcaa449fb345729a869da177f9fefdaff4e",
+ "argv": [
+  "bt_prices_full.py",
+  "PATH,HOME,LC_CTYPE"
+ ],
+ "env": {
+  "PATH": "/usr/bin:/bin",
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "MKL_NUM_THREADS": "1"
+ },
+ "numpy": "2.4.6",
+ "python": "3.11.10",
+ "utc_start": "2026-09-19T10:40:13Z",
+ "inputs": {
+  "cache": {
+   "path": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+   "sha256": "1d7f459dee434ec49e7714a2a612807f2e38e97f35c6c39471a8a4aaa7452488"
+  },
+  "meta_y4": {
+   "path": "/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz",
+   "sha256": "0e3c09ac86c727ac1a7893889918e3b367463fd059a154f5e320eed47f5725c3"
+  },
+  "ledger": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+   "sha256": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
+  },
+  "old_lp": {
+   "path": "/workspace/replay_r_2026-09-19/work/price_logtable.npy",
+   "sha256": "3b588cb058920d57621b3e269a9a4a0f640f4f23ea44fd413bf7abeefd774211"
+  },
+  "old_meta": {
+   "path": "/workspace/replay_r_2026-09-19/work/price_meta.npz",
+   "sha256": "fc6a381a76e311e69ad3d7d1c79c834c8f2417c5d46c792d06101cfd376a6455"
+  },
+  "raw_lp": {
+   "path": "/workspace/raw_price_fix_2026-09-19/work/price_logtable_raw.npy",
+   "sha256": "0b134159a61aa77e33b02696f3702c35e7360862b30ed9b356731017fcad0157"
+  },
+  "raw_meta": {
+   "path": "/workspace/raw_price_fix_2026-09-19/work/price_meta_raw.npz",
+   "sha256": "c27fdb11af42f374bc1aeabd66641637b1c651010de922983473a2002c2c7f55"
+  },
+  "raw_patch": {
+   "path": "/workspace/raw_price_fix_2026-09-19/r_prices_raw_patch.npz",
+   "sha256": "984c28923838501758fe52d1ea7d0cd92fc7fc26c4869058b112bb43670343b2"
+  },
+  "rp_lib": {
+   "path": "/workspace/raw_price_fix_2026-09-19/devices/rp_lib.py",
+   "sha256": "f802036f1a2e9e9f13f7347c49ecda68b54a38b9b2c6f3167f6ba40295c61488"
+  },
+  "r_prices_py": {
+   "path": "/workspace/replay_r_2026-09-19/devices/r_prices.py",
+   "sha256": "3614558d6eb58200f1d15f51c3fb72ca7aa18da3a73b04fc4544c8edbfc899dc"
+  },
+  "r_prices_raw_py": {
+   "path": "/workspace/raw_price_fix_2026-09-19/devices/r_prices_raw.py",
+   "sha256": "07a3deaf2659b4c10ac3bad973b2acd499543ec21a4b8bcedb8550d44cde7ed4"
+  }
+ },
+ "checks": [
+  {
+   "check": "input_sha.cache",
+   "ok": true,
+   "detail": {
+    "expected": "1d7f459dee434ec4",
+    "got": "1d7f459dee434ec4"
+   }
+  },
+  {
+   "check": "input_sha.meta_y4",
+   "ok": true,
+   "detail": {
+    "expected": "0e3c09ac86c727ac",
+    "got": "0e3c09ac86c727ac"
+   }
+  },
+  {
+   "check": "input_sha.ledger",
+   "ok": true,
+   "detail": {
+    "expected": "bea6f5752772d54e",
+    "got": "bea6f5752772d54e"
+   }
+  },
+  {
+   "check": "input_sha.old_lp",
+   "ok": true,
+   "detail": {
+    "expected": "3b588cb058920d57",
+    "got": "3b588cb058920d57"
+   }
+  },
+  {
+   "check": "input_sha.old_meta",
+   "ok": true,
+   "detail": {
+    "expected": "fc6a381a76e311e6",
+    "got": "fc6a381a76e311e6"
+   }
+  },
+  {
+   "check": "input_sha.raw_lp",
+   "ok": true,
+   "detail": {
+    "expected": "0b134159a61aa77e",
+    "got": "0b134159a61aa77e"
+   }
+  },
+  {
+   "check": "input_sha.raw_meta",
+   "ok": true,
+   "detail": {
+    "expected": "c27fdb11af42f374",
+    "got": "c27fdb11af42f374"
+   }
+  },
+  {
+   "check": "input_sha.raw_patch",
+   "ok": true,
+   "detail": {
+    "expected": "984c289238385017",
+    "got": "984c289238385017"
+   }
+  },
+  {
+   "check": "input_sha.rp_lib",
+   "ok": true,
+   "detail": {
+    "expected": "f802036f1a2e9e9f",
+    "got": "f802036f1a2e9e9f"
+   }
+  },
+  {
+   "check": "input_sha.r_prices_py",
+   "ok": true,
+   "detail": {
+    "expected": "3614558d6eb58200",
+    "got": "3614558d6eb58200"
+   }
+  },
+  {
+   "check": "input_sha.r_prices_raw_py",
+   "ok": true,
+   "detail": {
+    "expected": "07a3deaf2659b4c1",
+    "got": "07a3deaf2659b4c1"
+   }
+  },
+  {
+   "check": "cache.symbols_axis",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "cache.ret5_is_channel0",
+   "ok": true,
+   "detail": [
+    "ret5",
+    "range",
+    "cpos",
+    "log_qv",
+    "log_cnt",
+    "log_avgsz",
+    "tbf"
+   ]
+  },
+  {
+   "check": "cache.ts_strict_5m",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "cache.data_header",
+   "ok": true,
+   "detail": {
+    "shape": [
+     490753,
+     829,
+     7
+    ]
+   }
+  },
+  {
+   "check": "samples.equal_old_meta_bounds",
+   "ok": true,
+   "detail": {
+    "n": 63975
+   }
+  },
+  {
+   "check": "samples.equal_raw_meta_bounds",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "samples.inside_grid",
+   "ok": true,
+   "detail": {
+    "first": 1656532800,
+    "last": 1788148800
+   }
+  },
+  {
+   "check": "grid.contiguous_cache_rows",
+   "ok": true,
+   "detail": {
+    "n_grid": 438721,
+    "first_cache_row": 51792
+   }
+  },
+  {
+   "check": "patch.symbols",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "patch.no_unavailable_bound_bar_in_range",
+   "ok": true,
+   "detail": {
+    "n": 0
+   }
+  },
+  {
+   "check": "unavail.count_3084",
+   "ok": true,
+   "detail": {
+    "n": 3084
+   }
+  },
+  {
+   "check": "unavail.are_nan_cache_bars",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "gate.old_full_grid_equals_pinned_at_every_sample_bitwise",
+   "ok": true,
+   "detail": {
+    "cells": 53035275,
+    "mismatch": 0,
+    "max_abs": 0.0
+   }
+  },
+  {
+   "check": "gate.raw_full_grid_equals_pinned_at_every_sample_bitwise",
+   "ok": true,
+   "detail": {
+    "cells": 53035275,
+    "mismatch": 0,
+    "max_abs": 0.0
+   }
+  },
+  {
+   "check": "gate.old_patch_cells_590",
+   "ok": true,
+   "detail": {
+    "n": 590
+   }
+  },
+  {
+   "check": "gate.raw_bars_replaced_952",
+   "ok": true,
+   "detail": {
+    "n": 952
+   }
+  },
+  {
+   "check": "meta.old.cref_bitwise",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "meta.old.first_last_fin",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "meta.raw.cref_bitwise",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "meta.raw.first_last_fin",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "meta.ref_px_ref_b_equal_old_raw",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "grid.finite",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "unavail.subset_of_inlife_nan_or_outside_life",
+   "ok": true,
+   "detail": null
+  }
+ ],
+ "grid": {
+  "H0": 1656532800,
+  "H1": 1788148800,
+  "step": 300,
+  "H0_utc": "2022-06-29T20:00Z",
+  "H1_utc": "2026-08-31T04:00Z",
+  "n_rows": 438721
+ },
+ "unavailable": {
+  "n_patch": 3084,
+  "n_on_grid": 3084,
+  "n_names": 12,
+  "names": [
+   "AERGOUSDT",
+   "AIAUSDT",
+   "BNXUSDT",
+   "CTKUSDT",
+   "CVCUSDT",
+   "CVXUSDT",
+   "ICPUSDT",
+   "LITUSDT",
+   "MAVIAUSDT",
+   "PUMPUSDT",
+   "SLPUSDT",
+   "TLMUSDT"
+  ],
+  "n_gapfilled_on_grid": 21313,
+  "n_inlife_cache_nan_on_grid": 24397
+ },
+ "outputs": {
+  "old": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_old.npy",
+   "sha256": "0d23e3bf43138714f67d0b69870f76f0c882008ad190d357649578968c8a8aaf"
+  },
+  "raw": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw.npy",
+   "sha256": "b935ea28e386ba3c82145fe4527ebce2258c0a29208109dc4a07d1b6d13b6cac"
+  },
+  "meta": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_meta.npz",
+   "sha256": "f2f5382889f8c926ab2b47a81def234b1d5b7ee9cc15a86cdcfaba69416ff7b4"
+  },
+  "shape": [
+   438721,
+   829
+  ]
+ },
+ "VERDICT": "PASS",
+ "failed": [],
+ "runtime_s": 73.3
+}

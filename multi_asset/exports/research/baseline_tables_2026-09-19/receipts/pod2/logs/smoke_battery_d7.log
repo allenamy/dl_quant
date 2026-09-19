@@ -1,0 +1,45 @@
+[     0s] CHECK pin.exec_sim OK {"path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/exec_sim.py", "got": "29679672e68d4842", "want": "29679672e68d4842"}
+[     0s] CHECK pin.simlib OK {"path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/simlib.py", "got": "55246fe98da2d57a", "want": "55246fe98da2d57a"}
+[     0s] CHECK pin.v1b_gate OK {"path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/v1b_gate.py", "got": "4a725921a470f4c1", "want": "4a725921a470f4c1"}
+[     0s] CHECK pin.v1_gate OK {"path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/v1_gate.py", "got": "c97d9b3d49212b49", "want": "c97d9b3d49212b49"}
+[     0s] CHECK pin.calibration OK {"path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/CALIBRATION_v3_POOLED_20260826_20260910.json", "got": "fda342431d39703e", "want": "fda342431d39703e"}
+[     0s] CHECK pin.input_manifest OK {"path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/INPUT_MANIFEST.json", "got": "59875e5a69db415f", "want": "59875e5a69db415f"}
+[     7s] CHECK pin.price_full_old OK {"path": "/workspace/baseline_tables_2026-09-19/work/price_full_old.npy", "got": "0d23e3bf43138714", "want": "0d23e3bf43138714"}
+[    13s] CHECK pin.price_full_raw OK {"path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw.npy", "got": "b935ea28e386ba3c", "want": "b935ea28e386ba3c"}
+[    13s] CHECK pin.price_full_meta OK {"path": "/workspace/baseline_tables_2026-09-19/work/price_full_meta.npz", "got": "f2f5382889f8c926", "want": "f2f5382889f8c926"}
+[    13s] CHECK pin.price_receipt OK {"path": "/workspace/baseline_tables_2026-09-19/receipts/BT_PRICES_FULL.json", "got": "9f6d8a55e8eb033b", "want": "9f6d8a55e8eb033b"}
+[    13s] CHECK pin.p2_s2_lib OK {"path": "/workspace/uplift_r2_2026-09-13/P2/devices/p2_s2_lib.py", "got": "c53f5c495036727f", "want": "c53f5c495036727f"}
+[    13s] CHECK pin.ledger_full OK {"path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz", "got": "bea6f5752772d54e", "want": "bea6f5752772d54e"}
+[    13s] CHECK pin.tradability OK {"path": "/workspace/fx_data_2026-09-13/out/trd/tradability_v1.npz", "got": "54d409d0ddf695f4", "want": "54d409d0ddf695f4"}
+[    13s] CHECK pin.universe OK {"path": "/workspace/uplift_r2_2026-09-13/P2/work/universe.npz", "got": "6322b57366078ed0", "want": "6322b57366078ed0"}
+[    13s] CHECK price_receipt.PASS_and_outputs OK 
+[    15s] CHECK pin.executor_tree_409ea16_vs_manifest OK {"n": 332, "bad": []}
+[    15s] CHECK exec_sim.version_v3.1 OK "v3.1"
+[    15s] CHECK runs.selected OK {"runs": ["S2_A0pred_s42|CMB|rule|raw|UAFE"], "seeds": [0, 1, 2]}
+[    15s] CHECK window.n_anchors OK 9138
+[    15s] CHECK window.equals_S2_W_ALPHA OK 
+[    15s] CHECK axis.symbols OK 
+[    15s] CHECK prices.grid_covers_window OK {"grid0": 1656532800, "n": 438721}
+[    15s] CHECK ua_sets.counts OK {"UNAVAILABLE_3084": 3084, "OLD_ZERO_PRICED_INLIFE_NAN": 24397}
+[    32s] prices raw (438721, 829)
+[    32s] CHECK run.S2_A0pred_s42|CMB|rule|raw|UAFE.policy_named OK 
+[    32s] CHECK run.S2_A0pred_s42|CMB|rule|raw|UAFE.ua_cells_already_at_last_available_price OK {"cells_that_would_change": 0}
+[    33s] funding rows 18687
+[    33s] CHECK axis.tradability_symbols OK 
+[    33s] CHECK tradability.covers_window OK 
+[    33s] CHECK axis.universe OK 
+[    33s] CHECK calibration.v3_pooled_frozen OK 
+[    33s] CHECK calibration.decision_offset_N+24 OK 1440
+[    33s] CHECK executor.pns_wide OK 
+[    33s] CHECK executor.gross_mult_config OK {"gm": 2.0, "onu": "hold"}
+[    35s] CHECK s2run.S2_A0pred_s42.shas OK {"json": "d01063c0ee68a487", "vec": "8c7c886376c484ea"}
+[    37s] started S2_A0pred_s42|CMB|rule|raw|UAFE seed 0 pid 1263096 avail_GiB 25.9
+[    37s] started S2_A0pred_s42|CMB|rule|raw|UAFE seed 1 pid 1263097 avail_GiB 25.9
+[    37s] started S2_A0pred_s42|CMB|rule|raw|UAFE seed 2 pid 1263098 avail_GiB 25.9
+[    38s] finished S2_A0pred_s42|CMB|rule|raw|UAFE seed 0 rc 0 avail_GiB 25.8
+[    39s] finished S2_A0pred_s42|CMB|rule|raw|UAFE seed 1 rc 0 avail_GiB 25.8
+[    39s] aggregated S2_A0pred_s42|CMB|rule|raw|UAFE
+[    39s] finished S2_A0pred_s42|CMB|rule|raw|UAFE seed 2 rc 0 avail_GiB 25.8
+[    39s] CHECK runs.all_rc0 OK {"S2_A0pred_s42|CMB|rule|raw|UAFE": {"0": 0, "1": 0, "2": 0}}
+[    39s] CHECK runs.audits_clean OK 
+BT_LAUNCH VERDICT=PASS label=smoke_battery_d7 runs=1 seeds=3 receipt_sha256=c2b54264e60706b8391b7e1121bbedb422e3e6ca89b0b8159eac0d2eb5505f99
