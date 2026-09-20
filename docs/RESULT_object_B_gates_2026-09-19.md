@@ -1,4 +1,4 @@
-> **创建:** 2026-09-19 | **Session:** https://claude.ai/code/session_01KW6frfphbFmFzx7wUtGhLb(R5-05 实施子代理) | **状态:** 门 F 第三次(AMENDMENT 4)= **PASS**(§7); **A0 全史目标已出**(§8.1, 2026-09-19 21:40:59Z, TARGETS_A0_main.npz b9f0dc9f, 提交 7547ff55d); v4 重训臂目标已出(§8.2, TARGETS_V4_main.npz a937a481, 负控 FAIL 应然); 延长段目标已出且正控 EXT-REPRO PASS(§8.3, TARGETS_A0_ext.npz 085d8858); 对象 A 目标已出(§8.4); §0–§6 为门 F 前两次 FAIL 与复现门的原始记录, 原文保留 | **作废条件:** 预注册 `docs/PREREG_object_B_recipe_oof_and_object_A_paper_2026-09-19.md`(3f9d7cc50 + AMENDMENT 1–6)被撤回; 快照或存档 tar 33910c01 被改写; 本文列出的任一装置、模型或目标 sha 与入库文件不符
+> **创建:** 2026-09-19 | **Session:** https://claude.ai/code/session_01KW6frfphbFmFzx7wUtGhLb(R5-05 实施子代理) | **状态:** 门 F 第三次(AMENDMENT 4)= **PASS**(§7); **A0 全史目标已出**(§8.1, 2026-09-19 21:40:59Z, TARGETS_A0_main.npz b9f0dc9f, 提交 7547ff55d); v4 重训臂目标已出(§8.2, TARGETS_V4_main.npz a937a481, 负控 FAIL 应然); 延长段目标已出且正控 EXT-REPRO PASS(§8.3, TARGETS_A0_ext.npz 085d8858); 对象 A 目标已出(§8.4); §0–§6 为门 F 前两次 FAIL 与复现门的原始记录, 原文保留 (2026-09-20 04:2xZ 追加更正: 原始价格延长表 9249b0da / da136830 已落地于 1a1e221b4, 估值不再缺价格) | **作废条件:** 预注册 `docs/PREREG_object_B_recipe_oof_and_object_A_paper_2026-09-19.md`(3f9d7cc50 + AMENDMENT 1–6)被撤回; 快照或存档 tar 33910c01 被改写; 本文列出的任一装置、模型或目标 sha 与入库文件不符
 
 # 结果: 对象 B 的平价门与三个复现门(无任何收益数字)
 
@@ -211,6 +211,7 @@
 
 - `targets/TARGETS_A_production_overlap.npz` 44b782fb(提交 503a1a787), 收据 `receipts/TARGETS_A.json`: 144 锚 = 139 锚交易 combo 文件、2 锚交易 king 文件、3 锚持有(08-29 20Z 缺文件 HOLD、09-02 00Z 执行器读目标前中止、09-09 12Z 过期 HOLD); universe_sha 唯一 93ad1d25; 每个 TRADE 文件 sha = 普查 A1 的 tl_sha256 = 边车。
 - 纸面收益(S7)仍阻断: 恢复价格表只到 09-01(AMENDMENT 1), 09-01 之后等原始价格代理的延长收据。
+  > ⚠ **更正(2026-09-20 04:2xZ, lead 转达; 原句字节保留, 不改写):** 价格延长已落地 —— 提交 **1a1e221b4** 的 `price_logtable_raw_x0918r.npy`(sha256 **9249b0da4a4c5789…**)与 `price_meta_raw_x0918r.npz`(**da136830…**)覆盖到 2026-09-19T00:00Z 的 bar, 在旧区间与旧表逐位相同, lead 自行复跑其测试 29/29 退出码 0。**对象 A 纸面收益与本段估值不再缺价格**, 只是记账与出表由基线表代理做(A0 的延长表已发布, v4 在跑)。
 
 ### §8.5 P2 打分提速(lead 14:4xZ 的零行为改动要求)
 
@@ -241,5 +242,6 @@
 ### §8.8 仍被阻断 / 未做
 
 - 估值(E1 / E2 表): 基线表代理负责; 对象 B 的 2026-09-01 之后与对象 A 的纸面收益还等原始价格延长收据。
+  > ⚠ **更正(2026-09-20 04:2xZ, lead 转达; 原句字节保留, 不改写):** 价格已不是阻断项: 延长表 `price_logtable_raw_x0918r.npy` 9249b0da… / `price_meta_raw_x0918r.npz` da136830…(提交 1a1e221b4)到 2026-09-19T00:00Z, 旧区间逐位等于 0b134159 的旧表, 其测试 29/29 通过。**估值就是基线表代理的活**(A0 延长表已发布, v4 进行中); 本文与 §7 末句里「估值等原始价格延长收据」的说法自本条起作废。
 - v4 臂的延长段: 不建(AMENDMENT 6 A6.5, 缺 202609 月折)。
 - x0918r 总判词: king 特征步仍在等内存窗口; 本链只读其缓存(C1 PASS)与可交易性(与 x0918 相同)。
