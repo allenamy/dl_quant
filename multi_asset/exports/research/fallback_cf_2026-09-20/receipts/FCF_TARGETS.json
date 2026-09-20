@@ -1,0 +1,282 @@
+{
+ "device": "fcf_targets.py",
+ "self_sha256": "a25a2435e3b9ff1711412e0212afe1b7c281faa00c7b42a0e28a358ea7117aca",
+ "prereg": "docs/PREREG_fallback_counterfactual_2026-09-20.md (a964c2f9a) \u00a72",
+ "inputs": {
+  "P3_json": {
+   "path": "/workspace/object_b_2026-09-19/work/A0_main/P3.json",
+   "sha256": "cff3e160f4a4961e97043cdcdb93a105c24694f83931509dc5539bac72826bcd"
+  },
+  "P3_vec": {
+   "path": "/workspace/object_b_2026-09-19/work/A0_main/P3.vec.npz",
+   "sha256": "dae0107140673c98f346073733a99b48aea33b002a51ea6c660bb75aac554d92"
+  },
+  "TARGETS_arch": {
+   "path": "/workspace/object_b_2026-09-19/work/A0_main/TARGETS_A0_main.npz",
+   "sha256": "b9f0dc9f2011f9defaac80b116415de3f4d75ffb497cbb9533cd995879036c41"
+  },
+  "TARGETS_receipt": {
+   "path": "/workspace/object_b_2026-09-19/receipts/TARGETS_A0_main.json",
+   "sha256": "5ebac7205afc2cd0b5a0c85bd3daf2e2210e56dad9b0461fd015025cb4518385"
+  }
+ },
+ "population": {
+  "n_anchors": 10039,
+  "axis": [
+   "2022-01-31T00:00:00Z",
+   "2026-08-31T00:00:00Z"
+  ],
+  "reading": "scaled (B-scaled main)"
+ },
+ "judge_window": {
+  "first_anchor": "2022-06-30T00:00:00Z",
+  "last_anchor": "2026-09-04T00:00:00Z"
+ },
+ "python": "3.11.10",
+ "numpy": "2.4.6",
+ "utc": "2026-09-20T10:49:23Z",
+ "checks": [
+  {
+   "check": "population.closed",
+   "ok": true,
+   "detail": {
+    "n": 10039,
+    "king": 3337,
+    "combo": 6702,
+    "hold": 0
+   }
+  },
+  {
+   "check": "population.matches_traded_scaled_records",
+   "ok": true,
+   "detail": {
+    "n_king": 3337,
+    "n_mismatch": 0,
+    "first": []
+   }
+  },
+  {
+   "check": "F0.structural_assertion_full_population",
+   "ok": true,
+   "detail": {
+    "n": 10039,
+    "unchanged": 6702,
+    "rule": 3337,
+    "not_applicable": 0
+   }
+  },
+  {
+   "check": "F0.not_applicable_named_and_outside_judge_window",
+   "ok": true,
+   "detail": {
+    "anchors": [],
+    "n": 0
+   }
+  },
+  {
+   "check": "F1.structural_assertion_full_population",
+   "ok": true,
+   "detail": {
+    "n": 10039,
+    "unchanged": 6702,
+    "rule": 3336,
+    "not_applicable": 1
+   }
+  },
+  {
+   "check": "F1.not_applicable_named_and_outside_judge_window",
+   "ok": true,
+   "detail": {
+    "anchors": [
+     "2022-01-31T00:00:00Z"
+    ],
+    "n": 1
+   }
+  },
+  {
+   "check": "F2.structural_assertion_full_population",
+   "ok": true,
+   "detail": {
+    "n": 10039,
+    "unchanged": 6702,
+    "rule": 3337,
+    "not_applicable": 0
+   }
+  },
+  {
+   "check": "F2.not_applicable_named_and_outside_judge_window",
+   "ok": true,
+   "detail": {
+    "anchors": [],
+    "n": 0
+   }
+  },
+  {
+   "check": "F4a.structural_assertion_full_population",
+   "ok": true,
+   "detail": {
+    "n": 10039,
+    "unchanged": 6702,
+    "rule": 3336,
+    "not_applicable": 1
+   }
+  },
+  {
+   "check": "F4a.not_applicable_named_and_outside_judge_window",
+   "ok": true,
+   "detail": {
+    "anchors": [
+     "2022-01-31T00:00:00Z"
+    ],
+    "n": 1
+   }
+  },
+  {
+   "check": "A1.F0_reproduces_the_archived_production_target_bitwise",
+   "ok": true,
+   "detail": {
+    "arrays_equal": true,
+    "dtypes_equal": true,
+    "detail": {
+     "scaled_kind": [
+      "int8",
+      "int8"
+     ],
+     "scaled_off": [
+      "int64",
+      "int64"
+     ],
+     "scaled_idx": [
+      "int16",
+      "int16"
+     ],
+     "scaled_val": [
+      "float64",
+      "float64"
+     ]
+    }
+   }
+  },
+  {
+   "check": "A2.F0.differs_from_F0_only_on_failing_preflight_anchors",
+   "ok": true,
+   "detail": {
+    "n_rows_changed": 0,
+    "n_failing": 3337,
+    "all_inside_failing_set": true
+   }
+  },
+  {
+   "check": "A3.F0.failing_preflight_population_unchanged",
+   "ok": true,
+   "detail": 3337
+  },
+  {
+   "check": "A2.F1.differs_from_F0_only_on_failing_preflight_anchors",
+   "ok": true,
+   "detail": {
+    "n_rows_changed": 3336,
+    "n_failing": 3337,
+    "all_inside_failing_set": true
+   }
+  },
+  {
+   "check": "A3.F1.failing_preflight_population_unchanged",
+   "ok": true,
+   "detail": 3337
+  },
+  {
+   "check": "A2.F2.differs_from_F0_only_on_failing_preflight_anchors",
+   "ok": true,
+   "detail": {
+    "n_rows_changed": 3337,
+    "n_failing": 3337,
+    "all_inside_failing_set": true
+   }
+  },
+  {
+   "check": "A3.F2.failing_preflight_population_unchanged",
+   "ok": true,
+   "detail": 3337
+  },
+  {
+   "check": "A2.F4a.differs_from_F0_only_on_failing_preflight_anchors",
+   "ok": true,
+   "detail": {
+    "n_rows_changed": 3336,
+    "n_failing": 3337,
+    "all_inside_failing_set": true
+   }
+  },
+  {
+   "check": "A3.F4a.failing_preflight_population_unchanged",
+   "ok": true,
+   "detail": 3337
+  }
+ ],
+ "arms": {
+  "F0": {
+   "npz": "/workspace/fallback_cf_2026-09-20/work/TARGETS_F0_A0_main.npz",
+   "npz_sha256": "5a4236df86e2a7eb466b85b51c017753199f4ac70008d7a450a0016a4df7323b",
+   "receipt": "/workspace/fallback_cf_2026-09-20/receipts/TARGETS_F0_A0_main.json",
+   "receipt_sha256": "8ab07facffb7164a8e11467dac1da8a2d3ad8bb996c8b3a80a519abfaf3592c1",
+   "counts": {
+    "combo": 6702,
+    "king": 3337,
+    "hold": 0
+   },
+   "n_rule_applied": 3337,
+   "not_applicable": [],
+   "rule": "as-is: preflight failed -> the producer's own 3-leg king file (rev24 included). Baseline; reproduces the archive bitwise."
+  },
+  "F1": {
+   "npz": "/workspace/fallback_cf_2026-09-20/work/TARGETS_F1_A0_main.npz",
+   "npz_sha256": "102c4a27dbdc3d339e52d07ea6180556e7a661f72331d04d2898375e606001e9",
+   "receipt": "/workspace/fallback_cf_2026-09-20/receipts/TARGETS_F1_A0_main.json",
+   "receipt_sha256": "0ca36beaf6723781c9c8948ce300a89e0b081784dd87a7aa48db4db2aba52f59",
+   "counts": {
+    "combo": 10038,
+    "king": 1,
+    "hold": 0
+   },
+   "n_rule_applied": 3336,
+   "not_applicable": [
+    1643587200
+   ],
+   "rule": "preflight failed -> that anchor's combo book is written anyway."
+  },
+  "F2": {
+   "npz": "/workspace/fallback_cf_2026-09-20/work/TARGETS_F2_A0_main.npz",
+   "npz_sha256": "604eb8bfe354936038acb1b9edd27f1737d59e789576decfcfd30a33d3f8df77",
+   "receipt": "/workspace/fallback_cf_2026-09-20/receipts/TARGETS_F2_A0_main.json",
+   "receipt_sha256": "8ce27e96f6f15f073122222167f891df5dc4e9e0b3aa447615d207189804e3a6",
+   "counts": {
+    "combo": 6702,
+    "king": 0,
+    "hold": 3337
+   },
+   "n_rule_applied": 3337,
+   "not_applicable": [],
+   "rule": "preflight failed -> no file is written; the executor's on_unavailable = hold carries the previous book."
+  },
+  "F4a": {
+   "npz": "/workspace/fallback_cf_2026-09-20/work/TARGETS_F4a_A0_main.npz",
+   "npz_sha256": "da92d0b156fb51cb51dda733efe3572578432d3523f2936fd47036a9b774e908",
+   "receipt": "/workspace/fallback_cf_2026-09-20/receipts/TARGETS_F4a_A0_main.json",
+   "receipt_sha256": "1591635891efe162865c63a633795f0e7914533c1b83b06b6c2dac500e15e2ce",
+   "counts": {
+    "combo": 6702,
+    "king": 3337,
+    "hold": 0
+   },
+   "n_rule_applied": 3336,
+   "not_applicable": [
+    1643587200
+   ],
+   "rule": "preflight failed -> the rev24-free king component kc (NAMED CONFOUND: kc also carries FTRIM)."
+  }
+ },
+ "VERDICT": "PASS",
+ "failed": [],
+ "runtime_s": 4.1
+}

@@ -1,0 +1,985 @@
+{
+ "device": "bt_launch.py",
+ "self_sha256": "393a8dc8d43193f6cac37ec39700a0263b5d459f5571065528448745d50281cb",
+ "argv": [
+  "devices/bt_launch.py",
+  "PATH,HOME,LC_CTYPE",
+  "RUN_CONFIG_fallback_cf_F_2026-09-20.json",
+  "--smoke",
+  "2025-03-15T08:00:00Z",
+  "200",
+  "0",
+  "OBJB_F0|scaled|rule|raw|UAFE,OBJB_F1|scaled|rule|raw|UAFE,OBJB_F2|scaled|rule|raw|UAFE,OBJB_F4a|scaled|rule|raw|UAFE",
+  "fsmoke2"
+ ],
+ "env": {
+  "PATH": "/usr/bin:/bin",
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "MKL_NUM_THREADS": "1"
+ },
+ "numpy": "2.4.6",
+ "python": "3.11.10",
+ "utc_start": "2026-09-20T10:52:33Z",
+ "config": {
+  "path": "/workspace/fallback_cf_2026-09-20/RUN_CONFIG_fallback_cf_F_2026-09-20.json",
+  "sha256": "7a8b548d573f129c24022c8abbdb00da56b38f5b5da42cd9147b0c4d2934bbaf"
+ },
+ "smoke": {
+  "start": 1742025600,
+  "n": 200,
+  "seeds": [
+   0
+  ],
+  "runs": [
+   "OBJB_F0|scaled|rule|raw|UAFE",
+   "OBJB_F1|scaled|rule|raw|UAFE",
+   "OBJB_F2|scaled|rule|raw|UAFE",
+   "OBJB_F4a|scaled|rule|raw|UAFE"
+  ],
+  "label": "fsmoke2"
+ },
+ "checks": [
+  {
+   "check": "config.not_a_template_and_nothing_pending",
+   "ok": true,
+   "detail": {
+    "status": "FROZEN before any F-family number exists (targets built and structurally asserted first: receipts/FCF_TARGETS.json)",
+    "pending": []
+   }
+  },
+  {
+   "check": "pin.prereg",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/pins/PREREG_baseline_tables_certified_2026-09-19.md",
+    "got": "d9fe45e3191f56e5",
+    "want": "d9fe45e3191f56e5"
+   }
+  },
+  {
+   "check": "pin.prereg_amendment_1",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/pins/AMENDMENT_1_baseline_tables_certified_2026-09-19.md",
+    "got": "766bc367743d8542",
+    "want": "766bc367743d8542"
+   }
+  },
+  {
+   "check": "pin.exec_sim",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/exec_sim.py",
+    "got": "29679672e68d4842",
+    "want": "29679672e68d4842"
+   }
+  },
+  {
+   "check": "pin.simlib",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/simlib.py",
+    "got": "55246fe98da2d57a",
+    "want": "55246fe98da2d57a"
+   }
+  },
+  {
+   "check": "pin.v1b_gate",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/v1b_gate.py",
+    "got": "4a725921a470f4c1",
+    "want": "4a725921a470f4c1"
+   }
+  },
+  {
+   "check": "pin.v1_gate",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/v1_gate.py",
+    "got": "c97d9b3d49212b49",
+    "want": "c97d9b3d49212b49"
+   }
+  },
+  {
+   "check": "pin.calibration",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/CALIBRATION_v3_POOLED_20260826_20260910.json",
+    "got": "fda342431d39703e",
+    "want": "fda342431d39703e"
+   }
+  },
+  {
+   "check": "pin.input_manifest",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/INPUT_MANIFEST.json",
+    "got": "59875e5a69db415f",
+    "want": "59875e5a69db415f"
+   }
+  },
+  {
+   "check": "pin.p2_s2_lib",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/uplift_r2_2026-09-13/P2/devices/p2_s2_lib.py",
+    "got": "c53f5c495036727f",
+    "want": "c53f5c495036727f"
+   }
+  },
+  {
+   "check": "pin.price_full_raw",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r.npy",
+    "got": "23af32bd97c267d1",
+    "want": "23af32bd97c267d1"
+   }
+  },
+  {
+   "check": "pin.price_full_meta",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r_meta.npz",
+    "got": "d1e49cc9f0a7ddc4",
+    "want": "d1e49cc9f0a7ddc4"
+   }
+  },
+  {
+   "check": "pin.price_receipt",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/receipts/BT_PRICES_FULL_X0918R.json",
+    "got": "130592b122831e03",
+    "want": "130592b122831e03"
+   }
+  },
+  {
+   "check": "pin.price_source_table_x0918r",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/work/price_logtable_raw_x0918r.npy",
+    "got": "9249b0da4a4c5789",
+    "want": "9249b0da4a4c5789"
+   }
+  },
+  {
+   "check": "pin.price_source_meta_x0918r",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/work/price_meta_raw_x0918r.npz",
+    "got": "da136830cee7e1a2",
+    "want": "da136830cee7e1a2"
+   }
+  },
+  {
+   "check": "pin.ledger_full",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+    "got": "073088e503c026d6",
+    "want": "073088e503c026d6"
+   }
+  },
+  {
+   "check": "pin.funding_overlap_proof",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/funding/BT_FUNDING_OVERLAP.json",
+    "got": "0ee6d99bfa2acfb9",
+    "want": "0ee6d99bfa2acfb9"
+   }
+  },
+  {
+   "check": "pin.funding_source_p2",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+    "got": "bea6f5752772d54e",
+    "want": "bea6f5752772d54e"
+   }
+  },
+  {
+   "check": "pin.funding_source_stream_d",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/axis_0919/funding/funding_ledger.npz",
+    "got": "74b69e635efbf355",
+    "want": "74b69e635efbf355"
+   }
+  },
+  {
+   "check": "pin.funding_4h_accounting_stream_d",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/axis_0919/funding/funding_4h_accounting.npz",
+    "got": "2838e5f6cf42fff5",
+    "want": "2838e5f6cf42fff5"
+   }
+  },
+  {
+   "check": "pin.tradability",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/axis_0919/x0918r/trd/tradability_v1.npz",
+    "got": "bebf69ab9ddb3b05",
+    "want": "bebf69ab9ddb3b05"
+   }
+  },
+  {
+   "check": "pin.universe",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/uplift_r2_2026-09-13/P2/work/universe.npz",
+    "got": "6322b57366078ed0",
+    "want": "6322b57366078ed0"
+   }
+  },
+  {
+   "check": "pin.g0_labels",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/g0x/g0_labels_x0918.npz",
+    "got": "c3832939e1b01333",
+    "want": "c3832939e1b01333"
+   }
+  },
+  {
+   "check": "pin.g0_receipt",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/g0x/RECEIPT_bt_g0_extend.json",
+    "got": "8afd680472ef21be",
+    "want": "8afd680472ef21be"
+   }
+  },
+  {
+   "check": "price_receipt.PASS_and_outputs",
+   "ok": true,
+   "detail": {
+    "price_kinds": [
+     "raw"
+    ]
+   }
+  },
+  {
+   "check": "pin.executor_tree_409ea16_vs_manifest",
+   "ok": true,
+   "detail": {
+    "n": 332,
+    "bad": []
+   }
+  },
+  {
+   "check": "exec_sim.version_v3.1",
+   "ok": true,
+   "detail": "v3.1"
+  },
+  {
+   "check": "runs.selected",
+   "ok": true,
+   "detail": {
+    "runs": [
+     "OBJB_F0|scaled|rule|raw|UAFE",
+     "OBJB_F1|scaled|rule|raw|UAFE",
+     "OBJB_F2|scaled|rule|raw|UAFE",
+     "OBJB_F4a|scaled|rule|raw|UAFE"
+    ],
+    "seeds": [
+     0
+    ]
+   }
+  },
+  {
+   "check": "window.n_anchors",
+   "ok": true,
+   "detail": 9139
+  },
+  {
+   "check": "axis.symbols",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "prices.grid_covers_window",
+   "ok": true,
+   "detail": {
+    "grid0": 1656532800,
+    "n": 444145
+   }
+  },
+  {
+   "check": "ua_sets.counts_of_the_sets_the_runs_use",
+   "ok": true,
+   "detail": {
+    "UNAVAILABLE_3084": 3084
+   }
+  },
+  {
+   "check": "run.OBJB_F0|scaled|rule|raw|UAFE.policy_named",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "run.OBJB_F0|scaled|rule|raw|UAFE.ua_cells_already_at_last_available_price",
+   "ok": true,
+   "detail": {
+    "cells_that_would_change": 0
+   }
+  },
+  {
+   "check": "run.OBJB_F1|scaled|rule|raw|UAFE.policy_named",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "run.OBJB_F1|scaled|rule|raw|UAFE.ua_cells_already_at_last_available_price",
+   "ok": true,
+   "detail": {
+    "cells_that_would_change": 0
+   }
+  },
+  {
+   "check": "run.OBJB_F2|scaled|rule|raw|UAFE.policy_named",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "run.OBJB_F2|scaled|rule|raw|UAFE.ua_cells_already_at_last_available_price",
+   "ok": true,
+   "detail": {
+    "cells_that_would_change": 0
+   }
+  },
+  {
+   "check": "run.OBJB_F4a|scaled|rule|raw|UAFE.policy_named",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "run.OBJB_F4a|scaled|rule|raw|UAFE.ua_cells_already_at_last_available_price",
+   "ok": true,
+   "detail": {
+    "cells_that_would_change": 0
+   }
+  },
+  {
+   "check": "axis.tradability_symbols",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "tradability.covers_window",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "calibration.v3_pooled_frozen",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "calibration.decision_offset_N+24",
+   "ok": true,
+   "detail": 1440
+  },
+  {
+   "check": "executor.pns_wide",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "executor.gross_mult_config",
+   "ok": true,
+   "detail": {
+    "gm": 2.0,
+    "onu": "hold"
+   }
+  },
+  {
+   "check": "objb_targets.OBJB_F0|scaled|rule|raw|UAFE.loaded",
+   "ok": true,
+   "detail": {
+    "window_anchors": 200,
+    "combo": 31,
+    "king": 169,
+    "hold": 0,
+    "written_rows_without_weights": 0
+   }
+  },
+  {
+   "check": "objb_targets.OBJB_F1|scaled|rule|raw|UAFE.loaded",
+   "ok": true,
+   "detail": {
+    "window_anchors": 200,
+    "combo": 200,
+    "king": 0,
+    "hold": 0,
+    "written_rows_without_weights": 0
+   }
+  },
+  {
+   "check": "objb_targets.OBJB_F2|scaled|rule|raw|UAFE.loaded",
+   "ok": true,
+   "detail": {
+    "window_anchors": 200,
+    "combo": 31,
+    "king": 0,
+    "hold": 169,
+    "written_rows_without_weights": 0
+   }
+  },
+  {
+   "check": "objb_targets.OBJB_F4a|scaled|rule|raw|UAFE.loaded",
+   "ok": true,
+   "detail": {
+    "window_anchors": 200,
+    "combo": 31,
+    "king": 169,
+    "hold": 0,
+    "written_rows_without_weights": 0
+   }
+  },
+  {
+   "check": "runs.all_rc0",
+   "ok": true,
+   "detail": {
+    "OBJB_F0|scaled|rule|raw|UAFE": {
+     "0": 0
+    },
+    "OBJB_F1|scaled|rule|raw|UAFE": {
+     "0": 0
+    },
+    "OBJB_F2|scaled|rule|raw|UAFE": {
+     "0": 0
+    },
+    "OBJB_F4a|scaled|rule|raw|UAFE": {
+     "0": 0
+    }
+   }
+  },
+  {
+   "check": "runs.audits_clean",
+   "ok": true,
+   "detail": null
+  }
+ ],
+ "runs": {
+  "OBJB_F0|scaled|rule|raw|UAFE": {
+   "seeds": {
+    "0": {
+     "rc": 0,
+     "resumed_existing": false,
+     "runtime_s": 2.7,
+     "npz_sha256": "005555fc1c732c011992cd7f3da9c862e048f40a3796b4ae1e04265da49f29f3",
+     "audits": {
+      "trades": 223535,
+      "max_fee_err": 0.0,
+      "trades_by_kind": {
+       "first": 156270,
+       "later": 67265
+      },
+      "notional_maker": 4064225.151077229,
+      "notional_taker": 754012.4722228129,
+      "funding_charges": 50862,
+      "funding_max_err": 0.0,
+      "funding_dup": 0,
+      "exits": 422,
+      "exit_subfloor_remainders": 335,
+      "window_identity_max_abs_err": 8.786287253315095e-10,
+      "main_return_identity_max_abs_err": 1.1102230246251565e-16,
+      "nav5_vs_window_start_max_rel_err": 3.3306690738754696e-16,
+      "nav5main_vs_window_start_max_rel_err": 3.3306690738754696e-16,
+      "nav5_nan": 0,
+      "nav5_main_nan": 0
+     },
+     "events": {
+      "STOP": 31
+     },
+     "ua": {
+      "anchors_with_frozen_names": 8.0,
+      "frozen_name_anchors": 8.0
+     }
+    }
+   },
+   "aggregate": {
+    "tag": "OBJB_F0|scaled|rule|raw|UAFE",
+    "run": {
+     "arm": "OBJB_F0",
+     "events": "rule",
+     "price": "raw",
+     "policy": "UA-FREEZE-EXCLUDE",
+     "ua_set": "UNAVAILABLE_3084",
+     "tag": "OBJB_F0|scaled|rule|raw|UAFE",
+     "book": "scaled",
+     "targets": {
+      "source": "objb",
+      "reading": "scaled",
+      "arm": "A0",
+      "sources": [
+       {
+        "npz": "/workspace/fallback_cf_2026-09-20/work/TARGETS_F0_A0_main.npz",
+        "npz_sha256": "5a4236df86e2a7eb466b85b51c017753199f4ac70008d7a450a0016a4df7323b",
+        "receipt": "/workspace/fallback_cf_2026-09-20/receipts/TARGETS_F0_A0_main.json",
+        "receipt_sha256": "8ab07facffb7164a8e11467dac1da8a2d3ad8bb996c8b3a80a519abfaf3592c1"
+       }
+      ],
+      "universe": {
+       "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+       "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+       "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+      }
+     },
+     "role": "PREREG F-family \u00a72 F0 \u00b7 baseline = in-service behaviour: preflight fails -> the producer's 3-leg king file (rev24). ALSO THE CONTROL: its targets reproduce the archived production target bitwise, so its 32 paths must reproduce the certified run OBJB_A0|scaled|rule|raw|UAFE bitwise."
+    },
+    "seeds": [
+     0
+    ],
+    "path_files": [
+     {
+      "seed": 0,
+      "npz": "PATH_OBJB_F0_scaled_rule_raw_UAFE_seed_00.npz",
+      "sha256": "005555fc1c732c011992cd7f3da9c862e048f40a3796b4ae1e04265da49f29f3",
+      "json_sha256": "eab036a963a180f9dece9348f29654a8263856dae2326d6c6ac122435d845824"
+     }
+    ],
+    "agg_npz_sha256": "a6777be1efb615ec7e87331993c350a413823daa5e24e145ac6ed04e1822a91c",
+    "rule": "bt_driver_lib.aggregate_arrays over the path files in seed order",
+    "config_sha256": "7a8b548d573f129c24022c8abbdb00da56b38f5b5da42cd9147b0c4d2934bbaf",
+    "label": "smoke_fsmoke2"
+   }
+  },
+  "OBJB_F1|scaled|rule|raw|UAFE": {
+   "seeds": {
+    "0": {
+     "rc": 0,
+     "resumed_existing": false,
+     "runtime_s": 2.9,
+     "npz_sha256": "f151fe5bdf3fa192d9071b14e2a78e6d48683d42ee502565193edec9e5cf7a3b",
+     "audits": {
+      "trades": 243355,
+      "max_fee_err": 0.0,
+      "trades_by_kind": {
+       "first": 169765,
+       "later": 73590
+      },
+      "notional_maker": 3821105.1458436525,
+      "notional_taker": 733643.2248059382,
+      "funding_charges": 50927,
+      "funding_max_err": 0.0,
+      "funding_dup": 0,
+      "exits": 391,
+      "exit_subfloor_remainders": 300,
+      "window_identity_max_abs_err": 9.366232234242489e-10,
+      "main_return_identity_max_abs_err": 1.1037178115902435e-16,
+      "nav5_vs_window_start_max_rel_err": 2.220446049250313e-16,
+      "nav5main_vs_window_start_max_rel_err": 2.220446049250313e-16,
+      "nav5_nan": 0,
+      "nav5_main_nan": 0
+     },
+     "events": {
+      "STOP": 28
+     },
+     "ua": {
+      "anchors_with_frozen_names": 8.0,
+      "frozen_name_anchors": 8.0
+     }
+    }
+   },
+   "aggregate": {
+    "tag": "OBJB_F1|scaled|rule|raw|UAFE",
+    "run": {
+     "arm": "OBJB_F1",
+     "events": "rule",
+     "price": "raw",
+     "policy": "UA-FREEZE-EXCLUDE",
+     "ua_set": "UNAVAILABLE_3084",
+     "tag": "OBJB_F1|scaled|rule|raw|UAFE",
+     "book": "scaled",
+     "targets": {
+      "source": "objb",
+      "reading": "scaled",
+      "arm": "A0",
+      "sources": [
+       {
+        "npz": "/workspace/fallback_cf_2026-09-20/work/TARGETS_F1_A0_main.npz",
+        "npz_sha256": "102c4a27dbdc3d339e52d07ea6180556e7a661f72331d04d2898375e606001e9",
+        "receipt": "/workspace/fallback_cf_2026-09-20/receipts/TARGETS_F1_A0_main.json",
+        "receipt_sha256": "0ca36beaf6723781c9c8948ce300a89e0b081784dd87a7aa48db4db2aba52f59"
+       }
+      ],
+      "universe": {
+       "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+       "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+       "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+      }
+     },
+     "role": "PREREG F-family \u00a72 F1 \u00b7 preflight fails -> the combo book is written anyway."
+    },
+    "seeds": [
+     0
+    ],
+    "path_files": [
+     {
+      "seed": 0,
+      "npz": "PATH_OBJB_F1_scaled_rule_raw_UAFE_seed_00.npz",
+      "sha256": "f151fe5bdf3fa192d9071b14e2a78e6d48683d42ee502565193edec9e5cf7a3b",
+      "json_sha256": "4cc3374d9f890ce447b55cf16ed023e37a1193941d1daca2f896bea2a414609b"
+     }
+    ],
+    "agg_npz_sha256": "3434d17da6c583f09356160ceda089582732b6d23d16046b1e864d740268ad13",
+    "rule": "bt_driver_lib.aggregate_arrays over the path files in seed order",
+    "config_sha256": "7a8b548d573f129c24022c8abbdb00da56b38f5b5da42cd9147b0c4d2934bbaf",
+    "label": "smoke_fsmoke2"
+   }
+  },
+  "OBJB_F2|scaled|rule|raw|UAFE": {
+   "seeds": {
+    "0": {
+     "rc": 0,
+     "resumed_existing": false,
+     "runtime_s": 0.9,
+     "npz_sha256": "3487f343497d0246b2f545404fba51d55fdbc32c7a9796e2d324b8f6d72ae41c",
+     "audits": {
+      "trades": 36515,
+      "max_fee_err": 0.0,
+      "trades_by_kind": {
+       "first": 25535,
+       "later": 10980
+      },
+      "notional_maker": 963059.9325774851,
+      "notional_taker": 175783.2357003446,
+      "funding_charges": 47714,
+      "funding_max_err": 0.0,
+      "funding_dup": 0,
+      "exits": 120,
+      "exit_subfloor_remainders": 63,
+      "window_identity_max_abs_err": 1.1158363122376613e-09,
+      "main_return_identity_max_abs_err": 1.1015494072452725e-16,
+      "nav5_vs_window_start_max_rel_err": 3.3306690738754696e-16,
+      "nav5main_vs_window_start_max_rel_err": 3.3306690738754696e-16,
+      "nav5_nan": 0,
+      "nav5_main_nan": 0
+     },
+     "events": {
+      "STOP": 54
+     },
+     "ua": {
+      "anchors_with_frozen_names": 8.0,
+      "frozen_name_anchors": 8.0
+     }
+    }
+   },
+   "aggregate": {
+    "tag": "OBJB_F2|scaled|rule|raw|UAFE",
+    "run": {
+     "arm": "OBJB_F2",
+     "events": "rule",
+     "price": "raw",
+     "policy": "UA-FREEZE-EXCLUDE",
+     "ua_set": "UNAVAILABLE_3084",
+     "tag": "OBJB_F2|scaled|rule|raw|UAFE",
+     "book": "scaled",
+     "targets": {
+      "source": "objb",
+      "reading": "scaled",
+      "arm": "A0",
+      "sources": [
+       {
+        "npz": "/workspace/fallback_cf_2026-09-20/work/TARGETS_F2_A0_main.npz",
+        "npz_sha256": "604eb8bfe354936038acb1b9edd27f1737d59e789576decfcfd30a33d3f8df77",
+        "receipt": "/workspace/fallback_cf_2026-09-20/receipts/TARGETS_F2_A0_main.json",
+        "receipt_sha256": "8ce27e96f6f15f073122222167f891df5dc4e9e0b3aa447615d207189804e3a6"
+       }
+      ],
+      "universe": {
+       "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+       "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+       "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+      }
+     },
+     "role": "PREREG F-family \u00a72 F2 \u00b7 preflight fails -> no file; the executor's own on_unavailable = hold carries the previous book."
+    },
+    "seeds": [
+     0
+    ],
+    "path_files": [
+     {
+      "seed": 0,
+      "npz": "PATH_OBJB_F2_scaled_rule_raw_UAFE_seed_00.npz",
+      "sha256": "3487f343497d0246b2f545404fba51d55fdbc32c7a9796e2d324b8f6d72ae41c",
+      "json_sha256": "ebefe376b82b467174aea7acd7b570046cb6b921aa296efeb83caf90cc337387"
+     }
+    ],
+    "agg_npz_sha256": "92be8817ce8d173fb1893c554a2a0fffae021aebe53986cd3863f229f36ba348",
+    "rule": "bt_driver_lib.aggregate_arrays over the path files in seed order",
+    "config_sha256": "7a8b548d573f129c24022c8abbdb00da56b38f5b5da42cd9147b0c4d2934bbaf",
+    "label": "smoke_fsmoke2"
+   }
+  },
+  "OBJB_F4a|scaled|rule|raw|UAFE": {
+   "seeds": {
+    "0": {
+     "rc": 0,
+     "resumed_existing": false,
+     "runtime_s": 2.7,
+     "npz_sha256": "07002e172aff537729d2323bfd49a97cd73d430cf4271dbd22b5e4ccff099d86",
+     "audits": {
+      "trades": 222600,
+      "max_fee_err": 0.0,
+      "trades_by_kind": {
+       "first": 155525,
+       "later": 67075
+      },
+      "notional_maker": 3709386.085615076,
+      "notional_taker": 697030.6144695597,
+      "funding_charges": 50726,
+      "funding_max_err": 0.0,
+      "funding_dup": 0,
+      "exits": 329,
+      "exit_subfloor_remainders": 254,
+      "window_identity_max_abs_err": 1.3877752280677669e-09,
+      "main_return_identity_max_abs_err": 1.0885389811754465e-16,
+      "nav5_vs_window_start_max_rel_err": 3.3306690738754696e-16,
+      "nav5main_vs_window_start_max_rel_err": 3.3306690738754696e-16,
+      "nav5_nan": 0,
+      "nav5_main_nan": 0
+     },
+     "events": {
+      "STOP": 28
+     },
+     "ua": {
+      "anchors_with_frozen_names": 8.0,
+      "frozen_name_anchors": 8.0
+     }
+    }
+   },
+   "aggregate": {
+    "tag": "OBJB_F4a|scaled|rule|raw|UAFE",
+    "run": {
+     "arm": "OBJB_F4a",
+     "events": "rule",
+     "price": "raw",
+     "policy": "UA-FREEZE-EXCLUDE",
+     "ua_set": "UNAVAILABLE_3084",
+     "tag": "OBJB_F4a|scaled|rule|raw|UAFE",
+     "book": "scaled",
+     "targets": {
+      "source": "objb",
+      "reading": "scaled",
+      "arm": "A0",
+      "sources": [
+       {
+        "npz": "/workspace/fallback_cf_2026-09-20/work/TARGETS_F4a_A0_main.npz",
+        "npz_sha256": "da92d0b156fb51cb51dda733efe3572578432d3523f2936fd47036a9b774e908",
+        "receipt": "/workspace/fallback_cf_2026-09-20/receipts/TARGETS_F4a_A0_main.json",
+        "receipt_sha256": "1591635891efe162865c63a633795f0e7914533c1b83b06b6c2dac500e15e2ce"
+       }
+      ],
+      "universe": {
+       "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+       "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+       "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+      }
+     },
+     "role": "PREREG F-family \u00a72 F4 (reading a) \u00b7 preflight fails -> the rev24-free king component kc. NAMED CONFOUND: kc also carries FTRIM."
+    },
+    "seeds": [
+     0
+    ],
+    "path_files": [
+     {
+      "seed": 0,
+      "npz": "PATH_OBJB_F4a_scaled_rule_raw_UAFE_seed_00.npz",
+      "sha256": "07002e172aff537729d2323bfd49a97cd73d430cf4271dbd22b5e4ccff099d86",
+      "json_sha256": "373fcd9e0e6bbc8012a335bc965bdb981ef4dc3fe5cae0ae4599d3a3e0d268a1"
+     }
+    ],
+    "agg_npz_sha256": "861951adc76a6c87e0a9b67de38b706e7ad914a9f94af6fa4d3e743becee1cd3",
+    "rule": "bt_driver_lib.aggregate_arrays over the path files in seed order",
+    "config_sha256": "7a8b548d573f129c24022c8abbdb00da56b38f5b5da42cd9147b0c4d2934bbaf",
+    "label": "smoke_fsmoke2"
+   }
+  }
+ },
+ "pgid": 1607304,
+ "parent_pid": 1607305,
+ "pids": [
+  1607326,
+  1607327,
+  1607328,
+  1607329
+ ],
+ "targets": {
+  "OBJB_F0|scaled": {
+   "source": "objb",
+   "reading": "scaled",
+   "arm": "A0",
+   "counts": {
+    "window_anchors": 200,
+    "combo": 31,
+    "king": 169,
+    "hold": 0,
+    "written_rows_without_weights": 0
+   },
+   "sources": [
+    {
+     "npz": "/workspace/fallback_cf_2026-09-20/work/TARGETS_F0_A0_main.npz",
+     "npz_sha256": "5a4236df86e2a7eb466b85b51c017753199f4ac70008d7a450a0016a4df7323b",
+     "receipt": "/workspace/fallback_cf_2026-09-20/receipts/TARGETS_F0_A0_main.json",
+     "receipt_sha256": "8ab07facffb7164a8e11467dac1da8a2d3ad8bb996c8b3a80a519abfaf3592c1",
+     "tag": "F0_A0_main",
+     "arm": "A0",
+     "data": "holefix2",
+     "axis": [
+      1643587200,
+      1788134400
+     ],
+     "n": 10039,
+     "B_CORE_start": "2023-06-30T04:00:00Z",
+     "PRE_window": [
+      "2022-06-30T00:00:00Z",
+      "2023-06-30T00:00:00Z",
+      "PARTIAL_RECIPE \u2014 seat warm-up / missing legs; not the production strategy"
+     ],
+     "written_rows_without_weights": 0,
+     "zero_weights": 0
+    }
+   ],
+   "sha_rows": "23073cff591aab7423411ef9865a82afc445612f824c932df49bf4f1b02330cd"
+  },
+  "OBJB_F1|scaled": {
+   "source": "objb",
+   "reading": "scaled",
+   "arm": "A0",
+   "counts": {
+    "window_anchors": 200,
+    "combo": 200,
+    "king": 0,
+    "hold": 0,
+    "written_rows_without_weights": 0
+   },
+   "sources": [
+    {
+     "npz": "/workspace/fallback_cf_2026-09-20/work/TARGETS_F1_A0_main.npz",
+     "npz_sha256": "102c4a27dbdc3d339e52d07ea6180556e7a661f72331d04d2898375e606001e9",
+     "receipt": "/workspace/fallback_cf_2026-09-20/receipts/TARGETS_F1_A0_main.json",
+     "receipt_sha256": "0ca36beaf6723781c9c8948ce300a89e0b081784dd87a7aa48db4db2aba52f59",
+     "tag": "F1_A0_main",
+     "arm": "A0",
+     "data": "holefix2",
+     "axis": [
+      1643587200,
+      1788134400
+     ],
+     "n": 10039,
+     "B_CORE_start": "2023-06-30T04:00:00Z",
+     "PRE_window": [
+      "2022-06-30T00:00:00Z",
+      "2023-06-30T00:00:00Z",
+      "PARTIAL_RECIPE \u2014 seat warm-up / missing legs; not the production strategy"
+     ],
+     "written_rows_without_weights": 0,
+     "zero_weights": 0
+    }
+   ],
+   "sha_rows": "e9ff996847640569702ec971e2abd26ae8071b7de835dba2c2daf957c7c9baec"
+  },
+  "OBJB_F2|scaled": {
+   "source": "objb",
+   "reading": "scaled",
+   "arm": "A0",
+   "counts": {
+    "window_anchors": 200,
+    "combo": 31,
+    "king": 0,
+    "hold": 169,
+    "written_rows_without_weights": 0
+   },
+   "sources": [
+    {
+     "npz": "/workspace/fallback_cf_2026-09-20/work/TARGETS_F2_A0_main.npz",
+     "npz_sha256": "604eb8bfe354936038acb1b9edd27f1737d59e789576decfcfd30a33d3f8df77",
+     "receipt": "/workspace/fallback_cf_2026-09-20/receipts/TARGETS_F2_A0_main.json",
+     "receipt_sha256": "8ce27e96f6f15f073122222167f891df5dc4e9e0b3aa447615d207189804e3a6",
+     "tag": "F2_A0_main",
+     "arm": "A0",
+     "data": "holefix2",
+     "axis": [
+      1643587200,
+      1788134400
+     ],
+     "n": 10039,
+     "B_CORE_start": "2023-06-30T04:00:00Z",
+     "PRE_window": [
+      "2022-06-30T00:00:00Z",
+      "2023-06-30T00:00:00Z",
+      "PARTIAL_RECIPE \u2014 seat warm-up / missing legs; not the production strategy"
+     ],
+     "written_rows_without_weights": 0,
+     "zero_weights": 0
+    }
+   ],
+   "sha_rows": "c645838c5b009765a04d6fea6d83c1180dbc19f4d255f143f7cff367b3c177b6"
+  },
+  "OBJB_F4a|scaled": {
+   "source": "objb",
+   "reading": "scaled",
+   "arm": "A0",
+   "counts": {
+    "window_anchors": 200,
+    "combo": 31,
+    "king": 169,
+    "hold": 0,
+    "written_rows_without_weights": 0
+   },
+   "sources": [
+    {
+     "npz": "/workspace/fallback_cf_2026-09-20/work/TARGETS_F4a_A0_main.npz",
+     "npz_sha256": "da92d0b156fb51cb51dda733efe3572578432d3523f2936fd47036a9b774e908",
+     "receipt": "/workspace/fallback_cf_2026-09-20/receipts/TARGETS_F4a_A0_main.json",
+     "receipt_sha256": "1591635891efe162865c63a633795f0e7914533c1b83b06b6c2dac500e15e2ce",
+     "tag": "F4a_A0_main",
+     "arm": "A0",
+     "data": "holefix2",
+     "axis": [
+      1643587200,
+      1788134400
+     ],
+     "n": 10039,
+     "B_CORE_start": "2023-06-30T04:00:00Z",
+     "PRE_window": [
+      "2022-06-30T00:00:00Z",
+      "2023-06-30T00:00:00Z",
+      "PARTIAL_RECIPE \u2014 seat warm-up / missing legs; not the production strategy"
+     ],
+     "written_rows_without_weights": 0,
+     "zero_weights": 0
+    }
+   ],
+   "sha_rows": "0d2ff93fe48ea5ba93dcccbfc9425866552f9392edc95b090b7cfe32491909b4"
+  }
+ },
+ "mem_waits": 0,
+ "mem_gate": "memory.max - anon - shmem >= launch.min_available_gib (v2)",
+ "governor": {
+  "psi_limit_pct": 20.0,
+  "psi_hold_s": 60.0,
+  "own_cap_gib": 6.0,
+  "child_reserve_gib": 0.5,
+  "poll_s": 5.0,
+  "max_parallel_start": 4,
+  "events": [],
+  "own_total_gib_max": 2.8220720291137695,
+  "psi_avg10_max": 0.0,
+  "samples": 5,
+  "test_override": null
+ },
+ "VERDICT": "PASS",
+ "failed": [],
+ "runtime_s": 11.3
+}

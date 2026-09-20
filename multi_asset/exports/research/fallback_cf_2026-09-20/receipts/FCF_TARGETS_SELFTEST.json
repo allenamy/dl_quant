@@ -1,0 +1,43 @@
+{
+ "device": "fcf_targets.py --selftest",
+ "self_sha256": "a25a2435e3b9ff1711412e0212afe1b7c281faa00c7b42a0e28a358ea7117aca",
+ "rule": "a mutation check is only evidence when the unmutated baseline is green (2026-09-16)",
+ "mutated_anchor": "2022-06-30T00:00:00Z",
+ "results": [
+  {
+   "case": "baseline (no mutation) must be GREEN",
+   "green": true,
+   "first_failures": []
+  },
+  {
+   "case": "M1 one written weight moved by 1 ulp must be RED",
+   "green": false,
+   "first_failures": [
+    "F1.row@2022-06-30T00:00:00Z"
+   ]
+  },
+  {
+   "case": "M2 one written kind flipped must be RED",
+   "green": false,
+   "first_failures": [
+    "F1.kind@2022-06-30T00:00:00Z"
+   ]
+  },
+  {
+   "case": "M3 one written column index changed must be RED",
+   "green": false,
+   "first_failures": [
+    "F1.row@2022-06-30T00:00:00Z"
+   ]
+  },
+  {
+   "case": "M4 one fallback anchor silently left at its F0 value must be RED (E-0920-C shape)",
+   "green": false,
+   "first_failures": [
+    "F1.kind@2022-06-30T00:00:00Z"
+   ]
+  }
+ ],
+ "VERDICT": "PASS",
+ "utc": "2026-09-20T10:49:15Z"
+}

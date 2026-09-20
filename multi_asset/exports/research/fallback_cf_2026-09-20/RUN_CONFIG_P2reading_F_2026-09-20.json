@@ -1,0 +1,121 @@
+{
+ "config": "RUN_CONFIG_P2reading_F_2026-09-20",
+ "status": "FROZEN before any reading-P2 number of the F family; post-processing only. The p_reading / p2_reading block is inherited BYTE-FOR-BYTE from the certified A0 config below.",
+ "created_utc": "2026-09-20T11:53:51Z",
+ "object": "reading P2 for the F-family fallback counterfactual arms (F0, F1, F2, F4a)",
+ "paths_R": 32,
+ "pins": {
+  "prereg_amendment_2": {
+   "doc": "docs/AMENDMENT_2_baseline_tables_certified_2026-09-20.md",
+   "commit": "9bbd850ac",
+   "sha256": "52ae1969522d86208c46005251f4b67146f5cf677b85b893380e8ebf18a2f31d"
+  },
+  "prereg": {
+   "doc": "docs/PREREG_baseline_tables_certified_2026-09-19.md",
+   "sha256": "d9fe45e3191f56e5"
+  },
+  "prereg_amendment_1": {
+   "doc": "docs/AMENDMENT_1_baseline_tables_certified_2026-09-19.md",
+   "sha256": "766bc367743d8542"
+  },
+  "run_config_of_the_runs_read": {
+   "path": "/workspace/fallback_cf_2026-09-20/RUN_CONFIG_fallback_cf_F_2026-09-20.json",
+   "sha256": "7a8b548d573f129c24022c8abbdb00da56b38f5b5da42cd9147b0c4d2934bbaf"
+  },
+  "live_watchdog_source_read_only": {
+   "path": "~/dl_quant_live/live/watchdog.py",
+   "sha256_16": "ec744c6654cd6baa",
+   "line": 131,
+   "text": "DRAWDOWN_LIMIT_PCT = -25.0                    # \u00a74-4, % of STARTING equity (policy, unscaled)",
+   "live_trigger_expression": "watchdog.py L1862 / L1940: cum = prod(1 + r_d) - 1 ; hit = cum < DRAWDOWN_LIMIT_PCT (daily returns, strictly below)",
+   "note": "read-only confirmation of the constant and its caliber; no live process was touched"
+  },
+  "prereg_amendment_3": {
+   "doc": "docs/AMENDMENT_3_baseline_tables_reading_P2_2026-09-20.md",
+   "commit": "f5d58b0a7",
+   "sha256": "4ea9b1c5bbf35b71d6c5365eb57c33fb89d7c0e3671ca592745575349a5853d9"
+  }
+ },
+ "p_reading": {
+  "threshold_cum_return": -0.25,
+  "caliber": "cumulative return from STARTING equity of the base anchor (not peak-relative); main-reading NAV series navm; window ends = anchor ends (AMENDMENT 2 \u00a71)",
+  "halt_semantics": "at the first window end strictly below the threshold the path stops trading and its NAV is held flat; no manual resume is modelled",
+  "breach_by": "2026-08-31T00:00:00Z",
+  "starts": [
+   "2022-07-01T00:00:00Z",
+   "2022-10-01T00:00:00Z",
+   "2023-01-01T00:00:00Z",
+   "2023-04-01T00:00:00Z",
+   "2023-07-01T00:00:00Z",
+   "2023-10-01T00:00:00Z",
+   "2024-01-01T00:00:00Z",
+   "2024-04-01T00:00:00Z",
+   "2024-07-01T00:00:00Z",
+   "2024-10-01T00:00:00Z",
+   "2025-01-01T00:00:00Z",
+   "2025-04-01T00:00:00Z",
+   "2025-07-01T00:00:00Z",
+   "2025-10-01T00:00:00Z",
+   "2026-01-01T00:00:00Z",
+   "2026-04-01T00:00:00Z",
+   "2026-07-01T00:00:00Z"
+  ],
+  "bases": [
+   {
+    "label": "run window start",
+    "anchor": "2022-06-30T00:00:00Z"
+   },
+   {
+    "label": "FULL_RECIPE window start",
+    "anchor": "2023-06-30T04:00:00Z"
+   }
+  ],
+  "granularity": [
+   "anchor_end (main, AMENDMENT 2)",
+   "utc_day_ends_only (sensitivity, the live watchdog's daily cadence)"
+  ]
+ },
+ "runs": [
+  {
+   "label": "OBJB_F0|scaled (F-family arm F0)",
+   "dir": "/workspace/fallback_cf_2026-09-20/runs/OBJB_F0_scaled_rule_raw_UAFE"
+  },
+  {
+   "label": "OBJB_F1|scaled (F-family arm F1)",
+   "dir": "/workspace/fallback_cf_2026-09-20/runs/OBJB_F1_scaled_rule_raw_UAFE"
+  },
+  {
+   "label": "OBJB_F2|scaled (F-family arm F2)",
+   "dir": "/workspace/fallback_cf_2026-09-20/runs/OBJB_F2_scaled_rule_raw_UAFE"
+  },
+  {
+   "label": "OBJB_F4a|scaled (F-family arm F4a)",
+   "dir": "/workspace/fallback_cf_2026-09-20/runs/OBJB_F4a_scaled_rule_raw_UAFE"
+  }
+ ],
+ "p2_reading": {
+  "resume_hours_main": 12,
+  "resume_hours_sensitivity": [
+   8,
+   20
+  ],
+  "include_sim_rule": true,
+  "include_never": true,
+  "rule": "AMENDMENT 3: after every day-stop flatten the path is withheld until the first anchor >= t + H; withheld anchors earn exactly 0; H = 12 h main, 8/20 h sensitivity, 'sim' = the simulator's next-00Z rule (= published reading P), 'never' = the strict lower bound; \u00a74-4 (cumulative -25 %, no resume) runs at the same time, whichever fires first stops the path",
+  "assumptions_named_in_the_amendment": [
+   "a withheld anchor earns exactly 0 (a flat book): residual dust and its funding are ignored",
+   "the book is rebuilt from the target at the resume anchor, which is what the simulator does after any flatten; a different resume time would meet different fills, which is NOT modelled",
+   "the flatten cost is the one the simulator actually paid at that flatten and does not vary with H"
+  ]
+ },
+ "derived_from": {
+  "p_config": "RUN_CONFIG_Preading_A0_2026-09-20.json",
+  "sha256": "54219e60d7f8f5cc8cd3908e6419a0c8c2669a5bf0d5c967b68bc6d3861c23fb",
+  "rule": "the p_reading block is the one frozen before any P number; P2 only adds the p2_reading block pre-declared in AMENDMENT 3"
+ },
+ "inherited_from": {
+  "path": "/workspace/baseline_tables_2026-09-19/RUN_CONFIG_P2reading_A0_2026-09-20.json",
+  "sha256": "d88d094723e5f6cad58b169382ef3228575f2167dd4c7417cc95c5938363fa84",
+  "rule": "every reading parameter (threshold, caliber, halt semantics, starts, bases, granularity, resume hours, include flags) is inherited unchanged; only `runs` differs"
+ }
+}

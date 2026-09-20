@@ -1,0 +1,2626 @@
+{
+ "device": "fcf_risk_weights.py",
+ "self_sha256": "a7c8eb54eb404e72c9ff26380b3138210b375968bd3d9669e3666cdad51d74d2",
+ "prereg": "docs/PREREG_fallback_counterfactual_2026-09-20.md \u00a74 concentration columns",
+ "run_config": {
+  "path": "/workspace/fallback_cf_2026-09-20/RUN_CONFIG_fallback_cf_F_2026-09-20.json",
+  "sha256": "7a8b548d573f129c24022c8abbdb00da56b38f5b5da42cd9147b0c4d2934bbaf"
+ },
+ "gross_mult": 2.0,
+ "window": {
+  "first_anchor": "2022-06-30T00:00:00Z",
+  "last_anchor": "2026-08-31T00:00:00Z",
+  "n_anchors": 9139,
+  "full_recipe_start": "2023-06-30T04:00:00Z"
+ },
+ "fallback_subsample": {
+  "definition": "anchors where the ARCHIVED (F0) reading wrote the king file = the preflight failed",
+  "n": 2437,
+  "n_in_full_recipe_window": 1323
+ },
+ "utc": "2026-09-20T11:18:47Z",
+ "arms": {
+  "F0": {
+   "tag": "OBJB_F0|scaled|rule|raw|UAFE",
+   "counts_in_window": {
+    "window_anchors": 9139,
+    "combo": 6702,
+    "king": 2437,
+    "hold": 0,
+    "written_rows_without_weights": 0
+   },
+   "cells": {
+    "whole_window": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.010514696380158773,
+       "p95": 0.021868386330673933,
+       "mean": 0.012184565939979925,
+       "min": 0.004927896692394797,
+       "max": 0.03358653812413803,
+       "coverage": 1.0,
+       "population": "whole_window/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 177.08170904809432,
+       "p95": 267.3026067442122,
+       "mean": 174.51941024655915,
+       "min": 79.76797981483666,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "whole_window/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 3.1190892874765552,
+       "p95": 4.812601914329246,
+       "mean": 3.2596969209194624,
+       "min": 2.0488707813678744,
+       "max": 6.020426698876603,
+       "coverage": 1.0,
+       "population": "whole_window/written"
+      },
+      "gross_in": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.6412128078635624,
+       "p95": 0.8966233014638062,
+       "mean": 0.6593756031351242,
+       "min": 0.3322023670470392,
+       "max": 0.9761474555583017,
+       "coverage": 1.0,
+       "population": "whole_window/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00010236196428479082,
+       "min": 0.0,
+       "max": 0.024191101424498488,
+       "coverage": 1.0,
+       "population": "whole_window/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.010514696380158773,
+       "p95": 0.021868386330673933,
+       "mean": 0.012184565939979925,
+       "min": 0.004927896692394797,
+       "max": 0.03358653812413803,
+       "coverage": 1.0,
+       "population": "whole_window/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 177.08170904809432,
+       "p95": 267.3026067442122,
+       "mean": 174.51941024655915,
+       "min": 79.76797981483666,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "whole_window/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 3.1190892874765552,
+       "p95": 4.812601914329246,
+       "mean": 3.2596969209194624,
+       "min": 2.0488707813678744,
+       "max": 6.020426698876603,
+       "coverage": 1.0,
+       "population": "whole_window/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00010236196428479082,
+       "min": 0.0,
+       "max": 0.024191101424498488,
+       "coverage": 1.0,
+       "population": "whole_window/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "whole_window/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    },
+    "full_recipe_window": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.009222565396412148,
+       "p95": 0.01627052476131164,
+       "mean": 0.01002772677657366,
+       "min": 0.004927896692394797,
+       "max": 0.02119862252352642,
+       "coverage": 1.0,
+       "population": "full_recipe_window/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 190.3157907145847,
+       "p95": 271.07474513920914,
+       "mean": 196.8984738746112,
+       "min": 109.84473796149912,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "full_recipe_window/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 3.1300089838729965,
+       "p95": 4.848849614281364,
+       "mean": 3.2732890108913915,
+       "min": 2.149126579615691,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "full_recipe_window/written"
+      },
+      "gross_in": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.6389758017874292,
+       "p95": 0.8883111743673199,
+       "mean": 0.6575200480439877,
+       "min": 0.4000706869545783,
+       "max": 0.9306106112919799,
+       "coverage": 1.0,
+       "population": "full_recipe_window/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 9.099481891033953e-05,
+       "min": 0.0,
+       "max": 0.01163246874815633,
+       "coverage": 1.0,
+       "population": "full_recipe_window/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.009222565396412148,
+       "p95": 0.01627052476131164,
+       "mean": 0.01002772677657366,
+       "min": 0.004927896692394797,
+       "max": 0.02119862252352642,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 190.3157907145847,
+       "p95": 271.07474513920914,
+       "mean": 196.8984738746112,
+       "min": 109.84473796149912,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 3.1300089838729965,
+       "p95": 4.848849614281364,
+       "mean": 3.2732890108913915,
+       "min": 2.149126579615691,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 9.099481891033953e-05,
+       "min": 0.0,
+       "max": 0.01163246874815633,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    },
+    "fallback_subsample": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.016208530839181372,
+       "p95": 0.02564406591924403,
+       "mean": 0.015056687115528915,
+       "min": 0.006180560519285516,
+       "max": 0.03358653812413803,
+       "coverage": 1.0,
+       "population": "fallback_subsample/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 123.77821671392125,
+       "p95": 256.71535428174064,
+       "mean": 157.9890444928812,
+       "min": 79.76797981483666,
+       "max": 291.0862255892942,
+       "coverage": 1.0,
+       "population": "fallback_subsample/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 3.35021685920456,
+       "p95": 4.381115273197213,
+       "mean": 3.323557864375114,
+       "min": 2.2138102679613563,
+       "max": 6.020426698876603,
+       "coverage": 1.0,
+       "population": "fallback_subsample/written"
+      },
+      "gross_in": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.5969762806563091,
+       "p95": 0.8641980320073375,
+       "mean": 0.6210083400756367,
+       "min": 0.3322023670470392,
+       "max": 0.903419786665707,
+       "coverage": 1.0,
+       "population": "fallback_subsample/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00019560191342289635,
+       "min": 0.0,
+       "max": 0.024191101424498488,
+       "coverage": 1.0,
+       "population": "fallback_subsample/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.016208530839181372,
+       "p95": 0.02564406591924403,
+       "mean": 0.015056687115528915,
+       "min": 0.006180560519285516,
+       "max": 0.03358653812413803,
+       "coverage": 1.0,
+       "population": "fallback_subsample/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 123.77821671392125,
+       "p95": 256.71535428174064,
+       "mean": 157.9890444928812,
+       "min": 79.76797981483666,
+       "max": 291.0862255892942,
+       "coverage": 1.0,
+       "population": "fallback_subsample/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 3.35021685920456,
+       "p95": 4.381115273197213,
+       "mean": 3.323557864375114,
+       "min": 2.2138102679613563,
+       "max": 6.020426698876603,
+       "coverage": 1.0,
+       "population": "fallback_subsample/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00019560191342289635,
+       "min": 0.0,
+       "max": 0.024191101424498488,
+       "coverage": 1.0,
+       "population": "fallback_subsample/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "fallback_subsample/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    },
+    "fallback_subsample_full_recipe": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.008537857303157408,
+       "p95": 0.01713526030755028,
+       "mean": 0.009862119284570717,
+       "min": 0.006180560519285516,
+       "max": 0.02119862252352642,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 224.46539051535422,
+       "p95": 272.5526828013724,
+       "mean": 210.08501472600244,
+       "min": 111.8678344512898,
+       "max": 291.0862255892942,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 3.347767951188076,
+       "p95": 3.7856379917925134,
+       "mean": 3.3467251368132644,
+       "min": 2.712209538628591,
+       "max": 4.259126911193723,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/written"
+      },
+      "gross_in": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.5974129716159772,
+       "p95": 0.6766770547198577,
+       "mean": 0.600887638171563,
+       "min": 0.46957980865600735,
+       "max": 0.7374061522589016,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0001932222797599175,
+       "min": 0.0,
+       "max": 0.01163246874815633,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.008537857303157408,
+       "p95": 0.01713526030755028,
+       "mean": 0.009862119284570717,
+       "min": 0.006180560519285516,
+       "max": 0.02119862252352642,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 224.46539051535422,
+       "p95": 272.5526828013724,
+       "mean": 210.08501472600244,
+       "min": 111.8678344512898,
+       "max": 291.0862255892942,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 3.347767951188076,
+       "p95": 3.7856379917925134,
+       "mean": 3.3467251368132644,
+       "min": 2.712209538628591,
+       "max": 4.259126911193723,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0001932222797599175,
+       "min": 0.0,
+       "max": 0.01163246874815633,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    },
+    "non_fallback_anchors": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.010084020312456133,
+       "p95": 0.01823763279824168,
+       "mean": 0.011140197198587368,
+       "min": 0.004927896692394797,
+       "max": 0.023108853400385525,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 180.24252159919482,
+       "p95": 268.62863804625493,
+       "mean": 180.53022811312331,
+       "min": 93.60020064376226,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 2.746484801155564,
+       "p95": 4.861705039250552,
+       "mean": 3.2364756259028367,
+       "min": 2.0488707813678744,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "gross_in": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.7282035568972344,
+       "p95": 0.902787963432853,
+       "mean": 0.6733268147250929,
+       "min": 0.4000706869545783,
+       "max": 0.9761474555583017,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 6.845779298524393e-05,
+       "min": 0.0,
+       "max": 0.014269690797933708,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.010084020312456133,
+       "p95": 0.01823763279824168,
+       "mean": 0.011140197198587368,
+       "min": 0.004927896692394797,
+       "max": 0.023108853400385525,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 180.24252159919482,
+       "p95": 268.62863804625493,
+       "mean": 180.53022811312331,
+       "min": 93.60020064376226,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 2.746484801155564,
+       "p95": 4.861705039250552,
+       "mean": 3.2364756259028367,
+       "min": 2.0488707813678744,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 6.845779298524393e-05,
+       "min": 0.0,
+       "max": 0.014269690797933708,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    }
+   },
+   "consecutive_hold_runs": {
+    "whole_window": {
+     "n_runs": 0,
+     "longest_anchors": 0,
+     "longest_hours": 0,
+     "longest_days": 0,
+     "median_anchors": null,
+     "p95_anchors": null,
+     "total_hold_anchors": 0
+    },
+    "full_recipe_window": {
+     "n_runs": 0,
+     "longest_anchors": 0,
+     "longest_hours": 0,
+     "longest_days": 0,
+     "median_anchors": null,
+     "p95_anchors": null,
+     "total_hold_anchors": 0
+    },
+    "note": "a run = consecutive anchors at which this arm writes no usable target, so the executor carries the previous book unchanged; 0 runs means the arm rebalances at every anchor. A run is attributed to the cell of its START anchor and reported at its true unbroken length, never truncated at the cell edge."
+   },
+   "named_no_measurement": {
+    "no_written_target": {
+     "n": 0,
+     "first": [],
+     "last": [],
+     "reason": "no file is written at this anchor (hold), or the written row has no in-universe weight; there is NO concentration measurement \u2014 not 0, not 1 (E-0920-C)"
+    },
+    "no_effective_book": {
+     "n": 0,
+     "anchors": [],
+     "reason": "before this arm's first written target of the window there is no book to measure"
+    }
+   }
+  },
+  "F1": {
+   "tag": "OBJB_F1|scaled|rule|raw|UAFE",
+   "counts_in_window": {
+    "window_anchors": 9139,
+    "combo": 9139,
+    "king": 0,
+    "hold": 0,
+    "written_rows_without_weights": 0
+   },
+   "cells": {
+    "whole_window": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.01082087131502145,
+       "p95": 0.01817077715632019,
+       "mean": 0.01170212922835452,
+       "min": 0.004927896692394797,
+       "max": 0.023595352474995234,
+       "coverage": 1.0,
+       "population": "whole_window/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 176.43951127450634,
+       "p95": 263.81809360911353,
+       "mean": 174.3736913016611,
+       "min": 93.60020064376226,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "whole_window/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 2.8373907394946674,
+       "p95": 5.413780219119024,
+       "mean": 3.41499550603618,
+       "min": 2.0488707813678744,
+       "max": 6.739203160493934,
+       "coverage": 1.0,
+       "population": "whole_window/written"
+      },
+      "gross_in": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.7048729567490571,
+       "p95": 0.9328090475898644,
+       "mean": 0.660178216175254,
+       "min": 0.29677099092727377,
+       "max": 0.9761474555583017,
+       "coverage": 1.0,
+       "population": "whole_window/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00010999831109255853,
+       "min": 0.0,
+       "max": 0.027771647068813462,
+       "coverage": 1.0,
+       "population": "whole_window/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.01082087131502145,
+       "p95": 0.01817077715632019,
+       "mean": 0.01170212922835452,
+       "min": 0.004927896692394797,
+       "max": 0.023595352474995234,
+       "coverage": 1.0,
+       "population": "whole_window/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 176.43951127450634,
+       "p95": 263.81809360911353,
+       "mean": 174.3736913016611,
+       "min": 93.60020064376226,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "whole_window/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 2.8373907394946674,
+       "p95": 5.413780219119024,
+       "mean": 3.41499550603618,
+       "min": 2.0488707813678744,
+       "max": 6.739203160493934,
+       "coverage": 1.0,
+       "population": "whole_window/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00010999831109255853,
+       "min": 0.0,
+       "max": 0.027771647068813462,
+       "coverage": 1.0,
+       "population": "whole_window/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "whole_window/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    },
+    "full_recipe_window": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.009663474004666564,
+       "p95": 0.016927568548923303,
+       "mean": 0.01032491835625801,
+       "min": 0.004927896692394797,
+       "max": 0.022159331506314574,
+       "coverage": 1.0,
+       "population": "full_recipe_window/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 189.96451888302204,
+       "p95": 268.6219627799333,
+       "mean": 194.98404067215284,
+       "min": 109.84473796149912,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "full_recipe_window/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 3.4941412150269704,
+       "p95": 5.486950043018503,
+       "mean": 3.656715003197582,
+       "min": 2.149126579615691,
+       "max": 6.739203160493934,
+       "coverage": 1.0,
+       "population": "full_recipe_window/written"
+      },
+      "gross_in": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.5723867116373884,
+       "p95": 0.8883111743673199,
+       "mean": 0.6143355747438418,
+       "min": 0.29677099092727377,
+       "max": 0.9306106112919799,
+       "coverage": 1.0,
+       "population": "full_recipe_window/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00010134467263598627,
+       "min": 0.0,
+       "max": 0.019440319271522476,
+       "coverage": 1.0,
+       "population": "full_recipe_window/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.009663474004666564,
+       "p95": 0.016927568548923303,
+       "mean": 0.01032491835625801,
+       "min": 0.004927896692394797,
+       "max": 0.022159331506314574,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 189.96451888302204,
+       "p95": 268.6219627799333,
+       "mean": 194.98404067215284,
+       "min": 109.84473796149912,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 3.4941412150269704,
+       "p95": 5.486950043018503,
+       "mean": 3.656715003197582,
+       "min": 2.149126579615691,
+       "max": 6.739203160493934,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00010134467263598627,
+       "min": 0.0,
+       "max": 0.019440319271522476,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    },
+    "fallback_subsample": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.014517235878560695,
+       "p95": 0.01790538961932028,
+       "mean": 0.013247499956093318,
+       "min": 0.007133127569107905,
+       "max": 0.023595352474995234,
+       "coverage": 1.0,
+       "population": "fallback_subsample/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 121.5839619690017,
+       "p95": 243.45940997085475,
+       "mean": 157.44258350091434,
+       "min": 101.01038982875899,
+       "max": 280.72714137643726,
+       "coverage": 1.0,
+       "population": "fallback_subsample/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 5.044653597049904,
+       "p95": 5.7505586913943745,
+       "mean": 3.9059434898907837,
+       "min": 2.088205017886373,
+       "max": 6.739203160493934,
+       "coverage": 1.0,
+       "population": "fallback_subsample/written"
+      },
+      "gross_in": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.3964593329400443,
+       "p95": 0.9421596349068214,
+       "mean": 0.6240182213122991,
+       "min": 0.29677099092727377,
+       "max": 0.9577603649398123,
+       "coverage": 1.0,
+       "population": "fallback_subsample/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00022423899732777497,
+       "min": 0.0,
+       "max": 0.027771647068813462,
+       "coverage": 1.0,
+       "population": "fallback_subsample/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.014517235878560695,
+       "p95": 0.01790538961932028,
+       "mean": 0.013247499956093318,
+       "min": 0.007133127569107905,
+       "max": 0.023595352474995234,
+       "coverage": 1.0,
+       "population": "fallback_subsample/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 121.5839619690017,
+       "p95": 243.45940997085475,
+       "mean": 157.44258350091434,
+       "min": 101.01038982875899,
+       "max": 280.72714137643726,
+       "coverage": 1.0,
+       "population": "fallback_subsample/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 5.044653597049904,
+       "p95": 5.7505586913943745,
+       "mean": 3.9059434898907837,
+       "min": 2.088205017886373,
+       "max": 6.739203160493934,
+       "coverage": 1.0,
+       "population": "fallback_subsample/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00022423899732777497,
+       "min": 0.0,
+       "max": 0.027771647068813462,
+       "coverage": 1.0,
+       "population": "fallback_subsample/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "fallback_subsample/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    },
+    "fallback_subsample_full_recipe": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.01030247860115476,
+       "p95": 0.018793420724599805,
+       "mean": 0.011422880505770165,
+       "min": 0.007133127569107905,
+       "max": 0.022159331506314574,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 211.43546794434863,
+       "p95": 253.66638405564956,
+       "mean": 200.0309845743163,
+       "min": 112.24619948871711,
+       "max": 280.72714137643726,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 5.302734644723555,
+       "p95": 5.950827268865276,
+       "mean": 5.360363681441693,
+       "min": 5.000006073825395,
+       "max": 6.739203160493934,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/written"
+      },
+      "gross_in": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.3771638850512885,
+       "p95": 0.3975818843586682,
+       "mean": 0.3740957103639937,
+       "min": 0.29677099092727377,
+       "max": 0.3999995140945587,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0002475766136116133,
+       "min": 0.0,
+       "max": 0.019440319271522476,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.01030247860115476,
+       "p95": 0.018793420724599805,
+       "mean": 0.011422880505770165,
+       "min": 0.007133127569107905,
+       "max": 0.022159331506314574,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 211.43546794434863,
+       "p95": 253.66638405564956,
+       "mean": 200.0309845743163,
+       "min": 112.24619948871711,
+       "max": 280.72714137643726,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 5.302734644723555,
+       "p95": 5.950827268865276,
+       "mean": 5.360363681441693,
+       "min": 5.000006073825395,
+       "max": 6.739203160493934,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0002475766136116133,
+       "min": 0.0,
+       "max": 0.019440319271522476,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    },
+    "non_fallback_anchors": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.010084020312456133,
+       "p95": 0.01823763279824168,
+       "mean": 0.011140197198587368,
+       "min": 0.004927896692394797,
+       "max": 0.023108853400385525,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 180.24252159919482,
+       "p95": 268.62863804625493,
+       "mean": 180.53022811312331,
+       "min": 93.60020064376226,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 2.746484801155564,
+       "p95": 4.861705039250552,
+       "mean": 3.2364756259028367,
+       "min": 2.0488707813678744,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "gross_in": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.7282035568972344,
+       "p95": 0.902787963432853,
+       "mean": 0.6733268147250929,
+       "min": 0.4000706869545783,
+       "max": 0.9761474555583017,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 6.845779298524393e-05,
+       "min": 0.0,
+       "max": 0.014269690797933708,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.010084020312456133,
+       "p95": 0.01823763279824168,
+       "mean": 0.011140197198587368,
+       "min": 0.004927896692394797,
+       "max": 0.023108853400385525,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 180.24252159919482,
+       "p95": 268.62863804625493,
+       "mean": 180.53022811312331,
+       "min": 93.60020064376226,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 2.746484801155564,
+       "p95": 4.861705039250552,
+       "mean": 3.2364756259028367,
+       "min": 2.0488707813678744,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 6.845779298524393e-05,
+       "min": 0.0,
+       "max": 0.014269690797933708,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    }
+   },
+   "consecutive_hold_runs": {
+    "whole_window": {
+     "n_runs": 0,
+     "longest_anchors": 0,
+     "longest_hours": 0,
+     "longest_days": 0,
+     "median_anchors": null,
+     "p95_anchors": null,
+     "total_hold_anchors": 0
+    },
+    "full_recipe_window": {
+     "n_runs": 0,
+     "longest_anchors": 0,
+     "longest_hours": 0,
+     "longest_days": 0,
+     "median_anchors": null,
+     "p95_anchors": null,
+     "total_hold_anchors": 0
+    },
+    "note": "a run = consecutive anchors at which this arm writes no usable target, so the executor carries the previous book unchanged; 0 runs means the arm rebalances at every anchor. A run is attributed to the cell of its START anchor and reported at its true unbroken length, never truncated at the cell edge."
+   },
+   "named_no_measurement": {
+    "no_written_target": {
+     "n": 0,
+     "first": [],
+     "last": [],
+     "reason": "no file is written at this anchor (hold), or the written row has no in-universe weight; there is NO concentration measurement \u2014 not 0, not 1 (E-0920-C)"
+    },
+    "no_effective_book": {
+     "n": 0,
+     "anchors": [],
+     "reason": "before this arm's first written target of the window there is no book to measure"
+    }
+   }
+  },
+  "F2": {
+   "tag": "OBJB_F2|scaled|rule|raw|UAFE",
+   "counts_in_window": {
+    "window_anchors": 9139,
+    "combo": 6702,
+    "king": 0,
+    "hold": 2437,
+    "written_rows_without_weights": 0
+   },
+   "cells": {
+    "whole_window": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 9139,
+       "n_measured": 6702,
+       "median": 0.010084020312456133,
+       "p95": 0.01823763279824168,
+       "mean": 0.011140197198587368,
+       "min": 0.004927896692394797,
+       "max": 0.023108853400385525,
+       "coverage": 0.7333406280774701,
+       "population": "whole_window/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 9139,
+       "n_measured": 6702,
+       "median": 180.24252159919482,
+       "p95": 268.62863804625493,
+       "mean": 180.53022811312331,
+       "min": 93.60020064376226,
+       "max": 301.98717001001035,
+       "coverage": 0.7333406280774701,
+       "population": "whole_window/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 9139,
+       "n_measured": 6702,
+       "median": 2.746484801155564,
+       "p95": 4.861705039250552,
+       "mean": 3.2364756259028367,
+       "min": 2.0488707813678744,
+       "max": 4.999116569185356,
+       "coverage": 0.7333406280774701,
+       "population": "whole_window/written"
+      },
+      "gross_in": {
+       "n_population": 9139,
+       "n_measured": 6702,
+       "median": 0.7282035568972344,
+       "p95": 0.902787963432853,
+       "mean": 0.6733268147250929,
+       "min": 0.4000706869545783,
+       "max": 0.9761474555583017,
+       "coverage": 0.7333406280774701,
+       "population": "whole_window/written"
+      },
+      "n_no_written_target": 2437,
+      "untradable_weight_share": {
+       "n_population": 9139,
+       "n_measured": 6702,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 6.845779298524393e-05,
+       "min": 0.0,
+       "max": 0.014269690797933708,
+       "coverage": 0.7333406280774701,
+       "population": "whole_window/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 9139,
+       "n_measured": 8029,
+       "median": 0.009941203190125376,
+       "p95": 0.01817736764816239,
+       "mean": 0.01111622946797906,
+       "min": 0.004927896692394797,
+       "max": 0.023108853400385525,
+       "coverage": 0.8785425101214575,
+       "population": "whole_window/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 9139,
+       "n_measured": 8029,
+       "median": 183.68314184819218,
+       "p95": 267.4715140893985,
+       "mean": 184.09837620465072,
+       "min": 93.60020064376226,
+       "max": 301.98717001001035,
+       "coverage": 0.8785425101214575,
+       "population": "whole_window/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 9139,
+       "n_measured": 8029,
+       "median": 3.3555557850671733,
+       "p95": 4.975662519032072,
+       "mean": 3.5172582993412425,
+       "min": 2.0488707813678744,
+       "max": 4.999116569185356,
+       "coverage": 0.8785425101214575,
+       "population": "whole_window/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 9139,
+       "n_measured": 8029,
+       "median": 0.0,
+       "p95": 0.0015304448670726922,
+       "mean": 0.0003838438039136322,
+       "min": 0.0,
+       "max": 0.019977626934679676,
+       "coverage": 0.8785425101214575,
+       "population": "whole_window/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 9139,
+       "n_measured": 8029,
+       "median": 0.0,
+       "p95": 39.0,
+       "mean": 5.247976086685764,
+       "min": 0.0,
+       "max": 130.0,
+       "coverage": 0.8785425101214575,
+       "population": "whole_window/effective"
+      },
+      "n_no_effective_book": 1110
+     }
+    },
+    "full_recipe_window": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 6948,
+       "n_measured": 5625,
+       "median": 0.009408018588412592,
+       "p95": 0.01579327371996757,
+       "mean": 0.010066677658692751,
+       "min": 0.004927896692394797,
+       "max": 0.02108554309473346,
+       "coverage": 0.8095854922279793,
+       "population": "full_recipe_window/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6948,
+       "n_measured": 5625,
+       "median": 185.3565913072578,
+       "p95": 270.69594646175415,
+       "mean": 193.796999466364,
+       "min": 109.84473796149912,
+       "max": 301.98717001001035,
+       "coverage": 0.8095854922279793,
+       "population": "full_recipe_window/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6948,
+       "n_measured": 5625,
+       "median": 2.661497895547662,
+       "p95": 4.882662916645258,
+       "mean": 3.2560168340745674,
+       "min": 2.149126579615691,
+       "max": 4.999116569185356,
+       "coverage": 0.8095854922279793,
+       "population": "full_recipe_window/written"
+      },
+      "gross_in": {
+       "n_population": 6948,
+       "n_measured": 5625,
+       "median": 0.7514565400730688,
+       "p95": 0.8938394399087034,
+       "mean": 0.670839990845982,
+       "min": 0.4000706869545783,
+       "max": 0.9306106112919799,
+       "coverage": 0.8095854922279793,
+       "population": "full_recipe_window/written"
+      },
+      "n_no_written_target": 1323,
+      "untradable_weight_share": {
+       "n_population": 6948,
+       "n_measured": 5625,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 6.695092011851879e-05,
+       "min": 0.0,
+       "max": 0.011430190967162655,
+       "coverage": 0.8095854922279793,
+       "population": "full_recipe_window/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.0094329984147247,
+       "p95": 0.016766610750808566,
+       "mean": 0.010237287497051282,
+       "min": 0.004927896692394797,
+       "max": 0.02108554309473346,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 190.3618667550645,
+       "p95": 269.5882581258234,
+       "mean": 195.43333431523894,
+       "min": 109.84473796149912,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 3.4941412150269704,
+       "p95": 4.980071118485803,
+       "mean": 3.5757866942195204,
+       "min": 2.149126579615691,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.0,
+       "p95": 0.0017320095951441478,
+       "mean": 0.0004317323976255205,
+       "min": 0.0,
+       "max": 0.019977626934679676,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.0,
+       "p95": 45.0,
+       "mean": 6.063615428900403,
+       "min": 0.0,
+       "max": 130.0,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    },
+    "fallback_subsample": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 2437,
+       "n_measured": 0,
+       "median": null,
+       "p95": null,
+       "mean": null,
+       "min": null,
+       "max": null,
+       "coverage": 0.0,
+       "population": "fallback_subsample/written",
+       "note": "no measurement in this cell \u2014 NOT encoded as a value"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 2437,
+       "n_measured": 0,
+       "median": null,
+       "p95": null,
+       "mean": null,
+       "min": null,
+       "max": null,
+       "coverage": 0.0,
+       "population": "fallback_subsample/written",
+       "note": "no measurement in this cell \u2014 NOT encoded as a value"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 2437,
+       "n_measured": 0,
+       "median": null,
+       "p95": null,
+       "mean": null,
+       "min": null,
+       "max": null,
+       "coverage": 0.0,
+       "population": "fallback_subsample/written",
+       "note": "no measurement in this cell \u2014 NOT encoded as a value"
+      },
+      "gross_in": {
+       "n_population": 2437,
+       "n_measured": 0,
+       "median": null,
+       "p95": null,
+       "mean": null,
+       "min": null,
+       "max": null,
+       "coverage": 0.0,
+       "population": "fallback_subsample/written",
+       "note": "no measurement in this cell \u2014 NOT encoded as a value"
+      },
+      "n_no_written_target": 2437,
+      "untradable_weight_share": {
+       "n_population": 2437,
+       "n_measured": 0,
+       "median": null,
+       "p95": null,
+       "mean": null,
+       "min": null,
+       "max": null,
+       "coverage": 0.0,
+       "population": "fallback_subsample/written",
+       "note": "no measurement in this cell \u2014 NOT encoded as a value"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 2437,
+       "n_measured": 1327,
+       "median": 0.009738555012070228,
+       "p95": 0.01716296732580681,
+       "mean": 0.010995180688373265,
+       "min": 0.00708792495946794,
+       "max": 0.023108853400385525,
+       "coverage": 0.5445219532211736,
+       "population": "fallback_subsample/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 2437,
+       "n_measured": 1327,
+       "median": 212.03460465301055,
+       "p95": 251.39904488905816,
+       "mean": 202.1192718409859,
+       "min": 109.84473796149912,
+       "max": 270.3368605261778,
+       "coverage": 0.5445219532211736,
+       "population": "fallback_subsample/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 2437,
+       "n_measured": 1327,
+       "median": 4.925166544733461,
+       "p95": 4.989282269279434,
+       "mean": 4.935348335049003,
+       "min": 4.693942527025787,
+       "max": 4.999116569185356,
+       "coverage": 0.5445219532211736,
+       "population": "fallback_subsample/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 2437,
+       "n_measured": 1327,
+       "median": 0.0,
+       "p95": 0.012531075135229762,
+       "mean": 0.001976697643583608,
+       "min": 0.0,
+       "max": 0.019977626934679676,
+       "coverage": 0.5445219532211736,
+       "population": "fallback_subsample/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 2437,
+       "n_measured": 1327,
+       "median": 22.0,
+       "p95": 98.0,
+       "mean": 31.75282592313489,
+       "min": 1.0,
+       "max": 130.0,
+       "coverage": 0.5445219532211736,
+       "population": "fallback_subsample/effective"
+      },
+      "n_no_effective_book": 1110
+     }
+    },
+    "fallback_subsample_full_recipe": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 1323,
+       "n_measured": 0,
+       "median": null,
+       "p95": null,
+       "mean": null,
+       "min": null,
+       "max": null,
+       "coverage": 0.0,
+       "population": "fallback_subsample_full_recipe/written",
+       "note": "no measurement in this cell \u2014 NOT encoded as a value"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 1323,
+       "n_measured": 0,
+       "median": null,
+       "p95": null,
+       "mean": null,
+       "min": null,
+       "max": null,
+       "coverage": 0.0,
+       "population": "fallback_subsample_full_recipe/written",
+       "note": "no measurement in this cell \u2014 NOT encoded as a value"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 1323,
+       "n_measured": 0,
+       "median": null,
+       "p95": null,
+       "mean": null,
+       "min": null,
+       "max": null,
+       "coverage": 0.0,
+       "population": "fallback_subsample_full_recipe/written",
+       "note": "no measurement in this cell \u2014 NOT encoded as a value"
+      },
+      "gross_in": {
+       "n_population": 1323,
+       "n_measured": 0,
+       "median": null,
+       "p95": null,
+       "mean": null,
+       "min": null,
+       "max": null,
+       "coverage": 0.0,
+       "population": "fallback_subsample_full_recipe/written",
+       "note": "no measurement in this cell \u2014 NOT encoded as a value"
+      },
+      "n_no_written_target": 1323,
+      "untradable_weight_share": {
+       "n_population": 1323,
+       "n_measured": 0,
+       "median": null,
+       "p95": null,
+       "mean": null,
+       "min": null,
+       "max": null,
+       "coverage": 0.0,
+       "population": "fallback_subsample_full_recipe/written",
+       "note": "no measurement in this cell \u2014 NOT encoded as a value"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.009738555012070228,
+       "p95": 0.01716296732580681,
+       "mean": 0.010962669462861365,
+       "min": 0.00708792495946794,
+       "max": 0.021069694190837696,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 212.03460465301055,
+       "p95": 251.39904488905816,
+       "mean": 202.39054030535357,
+       "min": 109.84473796149912,
+       "max": 270.3368605261778,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 4.925166544733461,
+       "p95": 4.989282269279434,
+       "mean": 4.935352426128335,
+       "min": 4.693942527025787,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.0,
+       "p95": 0.012531075135229762,
+       "mean": 0.0019826740536927046,
+       "min": 0.0,
+       "max": 0.019977626934679676,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 22.0,
+       "p95": 98.0,
+       "mean": 31.8442932728647,
+       "min": 1.0,
+       "max": 130.0,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    },
+    "non_fallback_anchors": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.010084020312456133,
+       "p95": 0.01823763279824168,
+       "mean": 0.011140197198587368,
+       "min": 0.004927896692394797,
+       "max": 0.023108853400385525,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 180.24252159919482,
+       "p95": 268.62863804625493,
+       "mean": 180.53022811312331,
+       "min": 93.60020064376226,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 2.746484801155564,
+       "p95": 4.861705039250552,
+       "mean": 3.2364756259028367,
+       "min": 2.0488707813678744,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "gross_in": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.7282035568972344,
+       "p95": 0.902787963432853,
+       "mean": 0.6733268147250929,
+       "min": 0.4000706869545783,
+       "max": 0.9761474555583017,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 6.845779298524393e-05,
+       "min": 0.0,
+       "max": 0.014269690797933708,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.010084020312456133,
+       "p95": 0.01823763279824168,
+       "mean": 0.011140197198587368,
+       "min": 0.004927896692394797,
+       "max": 0.023108853400385525,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 180.24252159919482,
+       "p95": 268.62863804625493,
+       "mean": 180.53022811312331,
+       "min": 93.60020064376226,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 2.746484801155564,
+       "p95": 4.861705039250552,
+       "mean": 3.2364756259028367,
+       "min": 2.0488707813678744,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 6.845779298524393e-05,
+       "min": 0.0,
+       "max": 0.014269690797933708,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    }
+   },
+   "consecutive_hold_runs": {
+    "whole_window": {
+     "n_runs": 76,
+     "longest_anchors": 1110,
+     "longest_hours": 4440,
+     "longest_days": 185.0,
+     "median_anchors": 4.0,
+     "p95_anchors": 105.25,
+     "total_hold_anchors": 2437
+    },
+    "full_recipe_window": {
+     "n_runs": 73,
+     "longest_anchors": 130,
+     "longest_hours": 520,
+     "longest_days": 21.7,
+     "median_anchors": 4.0,
+     "p95_anchors": 79.19999999999963,
+     "total_hold_anchors": 1323
+    },
+    "note": "a run = consecutive anchors at which this arm writes no usable target, so the executor carries the previous book unchanged; 0 runs means the arm rebalances at every anchor. A run is attributed to the cell of its START anchor and reported at its true unbroken length, never truncated at the cell edge."
+   },
+   "named_no_measurement": {
+    "no_written_target": {
+     "n": 2437,
+     "first": [
+      "2022-06-30T00:00:00Z",
+      "2022-06-30T04:00:00Z",
+      "2022-06-30T08:00:00Z"
+     ],
+     "last": [
+      "2025-08-31T00:00:00Z",
+      "2025-08-31T20:00:00Z",
+      "2025-09-01T00:00:00Z"
+     ],
+     "reason": "no file is written at this anchor (hold), or the written row has no in-universe weight; there is NO concentration measurement \u2014 not 0, not 1 (E-0920-C)"
+    },
+    "no_effective_book": {
+     "n": 1110,
+     "anchors": [
+      "2022-06-30T00:00:00Z",
+      "2022-06-30T04:00:00Z",
+      "2022-06-30T08:00:00Z",
+      "2022-06-30T12:00:00Z",
+      "2022-06-30T16:00:00Z"
+     ],
+     "reason": "before this arm's first written target of the window there is no book to measure"
+    }
+   }
+  },
+  "F4a": {
+   "tag": "OBJB_F4a|scaled|rule|raw|UAFE",
+   "counts_in_window": {
+    "window_anchors": 9139,
+    "combo": 6702,
+    "king": 2437,
+    "hold": 0,
+    "written_rows_without_weights": 0
+   },
+   "cells": {
+    "whole_window": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.010423603112023543,
+       "p95": 0.017850797657465705,
+       "mean": 0.011318882021666957,
+       "min": 0.004927896692394797,
+       "max": 0.023108853400385525,
+       "coverage": 1.0,
+       "population": "whole_window/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 177.08282957958832,
+       "p95": 268.4426493608629,
+       "mean": 176.74560619742434,
+       "min": 93.60020064376226,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "whole_window/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 2.8185454392621603,
+       "p95": 4.807625484611965,
+       "mean": 3.1314067376614054,
+       "min": 2.0488707813678744,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "whole_window/written"
+      },
+      "gross_in": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.7095858637367083,
+       "p95": 0.9328090475898644,
+       "mean": 0.6916095589586544,
+       "min": 0.4000706869545783,
+       "max": 0.9761474555583017,
+       "coverage": 1.0,
+       "population": "whole_window/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00010528578341737236,
+       "min": 0.0,
+       "max": 0.02777164706881347,
+       "coverage": 1.0,
+       "population": "whole_window/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.010423603112023543,
+       "p95": 0.017850797657465705,
+       "mean": 0.011318882021666957,
+       "min": 0.004927896692394797,
+       "max": 0.023108853400385525,
+       "coverage": 1.0,
+       "population": "whole_window/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 177.08282957958832,
+       "p95": 268.4426493608629,
+       "mean": 176.74560619742434,
+       "min": 93.60020064376226,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "whole_window/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 2.8185454392621603,
+       "p95": 4.807625484611965,
+       "mean": 3.1314067376614054,
+       "min": 2.0488707813678744,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "whole_window/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00010528578341737236,
+       "min": 0.0,
+       "max": 0.02777164706881347,
+       "coverage": 1.0,
+       "population": "whole_window/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 9139,
+       "n_measured": 9139,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "whole_window/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    },
+    "full_recipe_window": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.009108964673372272,
+       "p95": 0.015838632940219702,
+       "mean": 0.009821762635296006,
+       "min": 0.004927896692394797,
+       "max": 0.02108554309473346,
+       "coverage": 1.0,
+       "population": "full_recipe_window/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 190.37654577177128,
+       "p95": 272.69634097083724,
+       "mean": 198.10224102622539,
+       "min": 109.84473796149912,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "full_recipe_window/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 3.1792769987867544,
+       "p95": 4.848849614281364,
+       "mean": 3.284417765941507,
+       "min": 2.149126579615691,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "full_recipe_window/written"
+      },
+      "gross_in": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.6290738523009787,
+       "p95": 0.8883111743673199,
+       "mean": 0.6556046176325718,
+       "min": 0.4000706869545783,
+       "max": 0.9306106112919799,
+       "coverage": 1.0,
+       "population": "full_recipe_window/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 9.514608449212808e-05,
+       "min": 0.0,
+       "max": 0.01245592379505036,
+       "coverage": 1.0,
+       "population": "full_recipe_window/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.009108964673372272,
+       "p95": 0.015838632940219702,
+       "mean": 0.009821762635296006,
+       "min": 0.004927896692394797,
+       "max": 0.02108554309473346,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 190.37654577177128,
+       "p95": 272.69634097083724,
+       "mean": 198.10224102622539,
+       "min": 109.84473796149912,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 3.1792769987867544,
+       "p95": 4.848849614281364,
+       "mean": 3.284417765941507,
+       "min": 2.149126579615691,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 9.514608449212808e-05,
+       "min": 0.0,
+       "max": 0.01245592379505036,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 6948,
+       "n_measured": 6948,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "full_recipe_window/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    },
+    "fallback_subsample": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.014131014385423317,
+       "p95": 0.01626717040538263,
+       "mean": 0.01181028361554443,
+       "min": 0.005507190513163339,
+       "max": 0.020736882215850985,
+       "coverage": 1.0,
+       "population": "fallback_subsample/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 125.92322014932093,
+       "p95": 265.35741692895243,
+       "mean": 166.3375076832615,
+       "min": 101.01038982875913,
+       "max": 297.7365683819381,
+       "coverage": 1.0,
+       "population": "fallback_subsample/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 3.042324132181518,
+       "p95": 3.753502188668124,
+       "mean": 2.8424565164902633,
+       "min": 2.088205017886378,
+       "max": 4.472778845126257,
+       "coverage": 1.0,
+       "population": "fallback_subsample/written"
+      },
+      "gross_in": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.6573921492598775,
+       "p95": 0.9421596349068206,
+       "mean": 0.741888981138929,
+       "min": 0.44714931572780325,
+       "max": 0.9577603649398101,
+       "coverage": 1.0,
+       "population": "fallback_subsample/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00020656653511048876,
+       "min": 0.0,
+       "max": 0.02777164706881347,
+       "coverage": 1.0,
+       "population": "fallback_subsample/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.014131014385423317,
+       "p95": 0.01626717040538263,
+       "mean": 0.01181028361554443,
+       "min": 0.005507190513163339,
+       "max": 0.020736882215850985,
+       "coverage": 1.0,
+       "population": "fallback_subsample/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 125.92322014932093,
+       "p95": 265.35741692895243,
+       "mean": 166.3375076832615,
+       "min": 101.01038982875913,
+       "max": 297.7365683819381,
+       "coverage": 1.0,
+       "population": "fallback_subsample/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 3.042324132181518,
+       "p95": 3.753502188668124,
+       "mean": 2.8424565164902633,
+       "min": 2.088205017886378,
+       "max": 4.472778845126257,
+       "coverage": 1.0,
+       "population": "fallback_subsample/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00020656653511048876,
+       "min": 0.0,
+       "max": 0.02777164706881347,
+       "coverage": 1.0,
+       "population": "fallback_subsample/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 2437,
+       "n_measured": 2437,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "fallback_subsample/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    },
+    "fallback_subsample_full_recipe": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.007336471182481912,
+       "p95": 0.015904098761993384,
+       "mean": 0.008780457263711215,
+       "min": 0.005507190513163339,
+       "max": 0.018740674668227326,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 233.4168662846534,
+       "p95": 277.87950741666515,
+       "mean": 216.40683949502372,
+       "min": 111.76321207703573,
+       "max": 297.7365683819381,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 3.4053406017537355,
+       "p95": 3.8562621474433727,
+       "mean": 3.405170027280536,
+       "min": 2.757622019003377,
+       "max": 4.472778845126257,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/written"
+      },
+      "gross_in": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.5873127636542461,
+       "p95": 0.6717427624315963,
+       "mean": 0.5908283709769168,
+       "min": 0.44714931572780325,
+       "max": 0.7252625581814919,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00021502348403978672,
+       "min": 0.0,
+       "max": 0.01245592379505036,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.007336471182481912,
+       "p95": 0.015904098761993384,
+       "mean": 0.008780457263711215,
+       "min": 0.005507190513163339,
+       "max": 0.018740674668227326,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 233.4168662846534,
+       "p95": 277.87950741666515,
+       "mean": 216.40683949502372,
+       "min": 111.76321207703573,
+       "max": 297.7365683819381,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 3.4053406017537355,
+       "p95": 3.8562621474433727,
+       "mean": 3.405170027280536,
+       "min": 2.757622019003377,
+       "max": 4.472778845126257,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.00021502348403978672,
+       "min": 0.0,
+       "max": 0.01245592379505036,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 1323,
+       "n_measured": 1323,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "fallback_subsample_full_recipe/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    },
+    "non_fallback_anchors": {
+     "written": {
+      "single_name_max_weight": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.010084020312456133,
+       "p95": 0.01823763279824168,
+       "mean": 0.011140197198587368,
+       "min": 0.004927896692394797,
+       "max": 0.023108853400385525,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 180.24252159919482,
+       "p95": 268.62863804625493,
+       "mean": 180.53022811312331,
+       "min": 93.60020064376226,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 2.746484801155564,
+       "p95": 4.861705039250552,
+       "mean": 3.2364756259028367,
+       "min": 2.0488707813678744,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "gross_in": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.7282035568972344,
+       "p95": 0.902787963432853,
+       "mean": 0.6733268147250929,
+       "min": 0.4000706869545783,
+       "max": 0.9761474555583017,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      },
+      "n_no_written_target": 0,
+      "untradable_weight_share": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 6.845779298524393e-05,
+       "min": 0.0,
+       "max": 0.014269690797933708,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/written"
+      }
+     },
+     "effective_book_held": {
+      "single_name_max_weight": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.010084020312456133,
+       "p95": 0.01823763279824168,
+       "mean": 0.011140197198587368,
+       "min": 0.004927896692394797,
+       "max": 0.023108853400385525,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "effective_names_1_over_sumw2": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 180.24252159919482,
+       "p95": 268.62863804625493,
+       "mean": 180.53022811312331,
+       "min": 93.60020064376226,
+       "max": 301.98717001001035,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "amplification_gross_mult_over_gross_in": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 2.746484801155564,
+       "p95": 4.861705039250552,
+       "mean": 3.2364756259028367,
+       "min": 2.0488707813678744,
+       "max": 4.999116569185356,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "untradable_weight_share": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 6.845779298524393e-05,
+       "min": 0.0,
+       "max": 0.014269690797933708,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "book_age_in_anchors_since_last_refresh": {
+       "n_population": 6702,
+       "n_measured": 6702,
+       "median": 0.0,
+       "p95": 0.0,
+       "mean": 0.0,
+       "min": 0.0,
+       "max": 0.0,
+       "coverage": 1.0,
+       "population": "non_fallback_anchors/effective"
+      },
+      "n_no_effective_book": 0
+     }
+    }
+   },
+   "consecutive_hold_runs": {
+    "whole_window": {
+     "n_runs": 0,
+     "longest_anchors": 0,
+     "longest_hours": 0,
+     "longest_days": 0,
+     "median_anchors": null,
+     "p95_anchors": null,
+     "total_hold_anchors": 0
+    },
+    "full_recipe_window": {
+     "n_runs": 0,
+     "longest_anchors": 0,
+     "longest_hours": 0,
+     "longest_days": 0,
+     "median_anchors": null,
+     "p95_anchors": null,
+     "total_hold_anchors": 0
+    },
+    "note": "a run = consecutive anchors at which this arm writes no usable target, so the executor carries the previous book unchanged; 0 runs means the arm rebalances at every anchor. A run is attributed to the cell of its START anchor and reported at its true unbroken length, never truncated at the cell edge."
+   },
+   "named_no_measurement": {
+    "no_written_target": {
+     "n": 0,
+     "first": [],
+     "last": [],
+     "reason": "no file is written at this anchor (hold), or the written row has no in-universe weight; there is NO concentration measurement \u2014 not 0, not 1 (E-0920-C)"
+    },
+    "no_effective_book": {
+     "n": 0,
+     "anchors": [],
+     "reason": "before this arm's first written target of the window there is no book to measure"
+    }
+   }
+  }
+ },
+ "prereg_s4_F1_concentration_gate": {
+  "whole_window": {
+   "F0_p95": 0.021868386330673933,
+   "F1_p95": 0.01817077715632019,
+   "ratio": 0.8309153168211936,
+   "threshold": 1.5,
+   "breached": false,
+   "rule": "PREREG \u00a74: if F1's single-name max weight p95 exceeds 1.5x F0's, F1 can only be labelled (C) undecidable even if its return is better"
+  },
+  "full_recipe_window": {
+   "F0_p95": 0.01627052476131164,
+   "F1_p95": 0.016927568548923303,
+   "ratio": 1.040382458295014,
+   "threshold": 1.5,
+   "breached": false,
+   "rule": "PREREG \u00a74: if F1's single-name max weight p95 exceeds 1.5x F0's, F1 can only be labelled (C) undecidable even if its return is better"
+  },
+  "fallback_subsample": {
+   "F0_p95": 0.02564406591924403,
+   "F1_p95": 0.01790538961932028,
+   "ratio": 0.6982274057361384,
+   "threshold": 1.5,
+   "breached": false,
+   "rule": "PREREG \u00a74: if F1's single-name max weight p95 exceeds 1.5x F0's, F1 can only be labelled (C) undecidable even if its return is better"
+  },
+  "fallback_subsample_full_recipe": {
+   "F0_p95": 0.01713526030755028,
+   "F1_p95": 0.018793420724599805,
+   "ratio": 1.0967689073459184,
+   "threshold": 1.5,
+   "breached": false,
+   "rule": "PREREG \u00a74: if F1's single-name max weight p95 exceeds 1.5x F0's, F1 can only be labelled (C) undecidable even if its return is better"
+  }
+ }
+}

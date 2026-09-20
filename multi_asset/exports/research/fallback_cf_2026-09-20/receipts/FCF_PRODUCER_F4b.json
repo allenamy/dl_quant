@@ -1,0 +1,72 @@
+{
+ "device": "fcf_mk_producer_F4b.py",
+ "self_sha256": "56daab331d0b041c42f380b2fbd3b5181acc068bba38f0c95c9a32f9ce1c6757",
+ "source": {
+  "path": "/workspace/object_b_2026-09-19/devices/shadow_loop_v3_replay.py",
+  "sha256": "4d3bc157f03e3462a69e64f817b3fd4cd51be4c03d72650304b7d0c1a0089d42"
+ },
+ "pinned_production_sha256": "4d3bc157f03e3462a69e64f817b3fd4cd51be4c03d72650304b7d0c1a0089d42",
+ "intervention": {
+  "line": 449,
+  "before": "    z = w3[0] * np.nan_to_num(legz[\"king\"]) + w3[1] * np.nan_to_num(legz[\"rev24\"]) + w3[2] * np.nan_to_num(legz[\"fund\"])",
+  "after": "    z = w3[0] * np.nan_to_num(legz[\"king\"]) + 0.0 * np.nan_to_num(legz[\"rev24\"]) + w3[2] * np.nan_to_num(legz[\"fund\"])",
+  "meaning": "the rev24 leg is removed from the producer's book signal; the seat w3 is NOT renormalised and NOT changed"
+ },
+ "gates": [
+  {
+   "gate": "G1.source_is_the_pinned_production_producer",
+   "ok": true,
+   "detail": {
+    "got": "4d3bc157f03e3462",
+    "want": "4d3bc157f03e3462"
+   }
+  },
+  {
+   "gate": "G3a.line_449_is_the_expected_production_line",
+   "ok": true,
+   "detail": {
+    "got": "    z = w3[0] * np.nan_to_num(legz[\"king\"]) + w3[1] * np.nan_to_num(legz[\"rev24\"]) + w3[2] * np.nan_to_num(legz[\"fund\"])",
+    "want": "    z = w3[0] * np.nan_to_num(legz[\"king\"]) + w3[1] * np.nan_to_num(legz[\"rev24\"]) + w3[2] * np.nan_to_num(legz[\"fund\"])"
+   }
+  },
+  {
+   "gate": "G2.exactly_one_changed_line",
+   "ok": true,
+   "detail": {
+    "n_changed": 1,
+    "lines": [
+     449
+    ],
+    "n_lines_src": 609,
+    "n_lines_dst": 609
+   }
+  },
+  {
+   "gate": "G3b.the_changed_line_is_449_with_the_expected_text",
+   "ok": true,
+   "detail": {
+    "line": 449
+   }
+  },
+  {
+   "gate": "G4a.output_parses",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "gate": "G4b.REPLAY_META_production_sha256_unchanged",
+   "ok": true,
+   "detail": {
+    "n": 1
+   }
+  }
+ ],
+ "utc": "2026-09-20T11:04:32Z",
+ "unified_diff": "--- shadow_loop_v3_replay.py\n+++ shadow_loop_v3_replay_F4b.py\n@@ -448,3 +448,3 @@\n     legz = {\"king\": xz(pred), \"rev24\": xz(-rev24), \"fund\": xz_in_base(fe_v[m], [st.syms[int(j)] for j in m], base_vals)}   # M1\n-    z = w3[0] * np.nan_to_num(legz[\"king\"]) + w3[1] * np.nan_to_num(legz[\"rev24\"]) + w3[2] * np.nan_to_num(legz[\"fund\"])\n+    z = w3[0] * np.nan_to_num(legz[\"king\"]) + 0.0 * np.nan_to_num(legz[\"rev24\"]) + w3[2] * np.nan_to_num(legz[\"fund\"])\n     qv4h = np.expm1(np.clip(qvm[m], 0, 30)) * 48\n",
+ "output": {
+  "path": "/workspace/fallback_cf_2026-09-20/devices/shadow_loop_v3_replay_F4b.py",
+  "sha256": "145ec53b7526b51c3ad59aa3561a00bc5d65f43ebbc7de6e8f4dea4dbcea98b0"
+ },
+ "VERDICT": "PASS",
+ "failed": []
+}
