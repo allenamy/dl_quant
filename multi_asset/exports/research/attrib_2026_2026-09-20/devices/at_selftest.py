@@ -67,7 +67,7 @@ rd2 = np.full(365, 0.001)
 item("cagr.compound_365",
      lambda: abs(L.cagr_of(rd2) - (1.001 ** 365 - 1)) < 1e-12,
      lambda: abs(L.cagr_of(rd2) - 365 * 0.001) < 1e-12)
-rd3 = np.array([0.01, -0.01] * 50)
+rd3 = np.array([0.012, -0.008] * 50)
 item("sharpe.annualised_by_sqrt365",
      lambda: abs(L.sharpe_of(rd3) - rd3.mean() / rd3.std(ddof=1) * np.sqrt(365)) < 1e-12,
      lambda: abs(L.sharpe_of(rd3) - rd3.mean() / rd3.std(ddof=0) * np.sqrt(252)) < 1e-12)
@@ -96,7 +96,7 @@ item("bootstrap.blocks_are_contiguous",
      lambda: bool((np.diff(np.sort(i1[:, :b], axis=1), axis=1) == 2).all()))
 
 # 6 ── Holm
-p_ = [0.001, 0.02, 0.2, 0.9]
+p_ = [0.001, 0.01, 0.2, 0.9]
 rej, thr = L.holm(p_, 0.05)
 item("holm.step_down_stops_at_the_first_failure",
      lambda: rej == [True, True, False, False] and abs(thr[0] - 0.05 / 4) < 1e-15,
@@ -150,7 +150,7 @@ item("fee.allocation_sums_to_the_realised_fee",
      lambda: abs(float(fee_i[:-1].sum() - fee_anchor)) < 1e-15)
 
 # 10 ── expanding terciles are causal
-xs = np.concatenate([np.zeros(1080), np.array([5.0, -5.0])])
+xs = np.concatenate([np.linspace(0.0, 1.0, 1080), np.full(1080, 5.0)])
 
 
 def exp_ter(x, warm=1080, peek=False):
@@ -167,7 +167,7 @@ def exp_ter(x, warm=1080, peek=False):
 
 
 item("expanding_terciles.causal_label_does_not_see_the_future",
-     lambda: int(exp_ter(xs)[1080]) == 2 and int(exp_ter(xs, peek=True)[1080]) == 2 and int(exp_ter(xs)[1081]) == 0,
+     lambda: int(exp_ter(xs)[1080]) == 2 and int(exp_ter(xs, peek=True)[1080]) == 1,
      lambda: np.array_equal(exp_ter(xs), exp_ter(xs, peek=True)))
 
 # 11 ── period masks are inclusive at both ends and give the published anchor counts on the real axis
@@ -178,11 +178,11 @@ if os.path.exists(AGGP):
               "2026H1": 1086, "2026JA": 367, "FULL_RECIPE": 6948, "PARTIAL_RECIPE": 2191, "WHOLE_WINDOW": 9139,
               "2026": 1453, "HIST": 5495}
     got = {n_: int(L.period_mask(Aax, lo, hi).sum()) for n_, lo, hi, _ in L.PERIODS}
+    got_excl = {n_: int(((Aax >= L.ts(lo)) & (Aax < L.ts(hi))).sum()) for n_, lo, hi, _ in L.PERIODS}
     item("periods.anchor_counts_match_the_published_table",
          lambda: all(got[k] == v for k, v in EXPECT.items()),
-         lambda: all(int(L.period_mask(Aax, lo, hi[:-9] + "T00:00:00Z").sum()) == EXPECT[n_]
-                     for n_, lo, hi, _ in L.PERIODS if n_ in EXPECT),
-         {"got": got, "expected": EXPECT})
+         lambda: all(got_excl[k] == v for k, v in EXPECT.items()),     # an exclusive upper bound must NOT match
+         {"got": got, "got_with_exclusive_upper_bound": got_excl, "expected": EXPECT})
 else:
     rows.append({"item": "periods.anchor_counts_match_the_published_table", "credited": False, "detail": "AGG missing"})
     fails.append("periods.anchor_counts_match_the_published_table")

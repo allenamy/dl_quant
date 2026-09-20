@@ -1,0 +1,330 @@
+{
+ "created_utc": "2026-09-20T01:40:45Z",
+ "status": "FROZEN before any number of this stream; written by at_prerun.py after every check above passed",
+ "prereg": {
+  "doc": "docs/PREREG_attribution_2026_vs_history_2026-09-20.md",
+  "commit": "174250770",
+  "sha256": "40a72981"
+ },
+ "object": "certified production path = object B, arm A0, reading `scaled` (B-scaled, the baseline table's main reading)",
+ "window": {
+  "main": [
+   "2022-06-30T00:00:00Z",
+   "2026-08-31T00:00:00Z"
+  ],
+  "n_anchors": 9139,
+  "extension_describe_only": [
+   "2026-08-31T04:00:00Z",
+   "2026-09-18T20:00:00Z"
+  ]
+ },
+ "units": "bps per anchor per unit TARGET gross (denominator gm\u00b7NAV(A), gm = 2.0) \u2014 the baseline table's unit",
+ "layers": {
+  "L1_realised": "simulator per-anchor cash, 32 fill paths, path mean (the only layer for NAV / Sharpe / drawdown / g)",
+  "L2_paper": "target book reshaped as the executor reshapes it, marked to the certified price table + spliced funding ledger (the only layer that can be cut per name)",
+  "reconciliation": "L2 \u2212 L1 reported per period in the same unit; never absorbed"
+ },
+ "paper_book": "pop = non-zero entries of the written `scaled` CSR row; v -= mean(v); v /= \u03a3|v| (legs.py 1e655daf reshape_after_withhold, redemean+rescale); pops / force_flat / clamps NOT modelled (they are execution and fall in L2\u2212L1)",
+ "leg_split": {
+  "seats": "combo_meta.w3_masked = [king, mid(=0), fund] of P3.json; kind 1 (king file written) \u21d2 \u03c6_king=1, \u03c6_fund=0, kc:=king_file, fc:=0",
+  "a_i": "\u03c6_king\u00b7(kc_i \u2212 mean over pop_mix of kc)",
+  "b_i": "\u03c6_fund\u00b7(fc_i \u2212 mean over pop_mix of fc)",
+  "A1": "1e4\u00b7\u03a3(a_i/L)\u00b7x and 1e4\u00b7\u03a3(b_i/L)\u00b7x, L = \u03a3|a+b| \u2014 the MIX book (no FTRIM / EMA / band)",
+  "A2": "s_i = a_i/(a_i+b_i) if |a_i+b_i| \u2265 1e-12 else \u03c6_king/(\u03c6_king+\u03c6_fund); 1e4\u00b7\u03a3 s_i\u00b7W_i\u00b7x and 1e4\u00b7\u03a3(1\u2212s_i)\u00b7W_i\u00b7x \u2014 sums to the traded book exactly",
+  "A2b": "A1 + named residual 1e4\u00b7\u03a3(W_i \u2212 (a_i+b_i)/L)\u00b7x = the reshaping (FTRIM / EMA / band / renormalisation)",
+  "disagreement_rule": "name every period with |A1_leg \u2212 A2_leg| > 0.05\u00b7max(|A1_total|, |A2_total|)"
+ },
+ "returns": "RET_i(E) = exp(P[row(E+4h),i] \u2212 P[row(E),i]) \u2212 1 on price_full_raw_x0918r 23af32bd; out-of-life (outside [first_fin, last_fin]) is identically 0 and its weight share is reported",
+ "funding": "FUNDPAID_i(E) = \u03a3 rate_i over settlements with ft \u2208 (E, E+4h] of the spliced ledger 073088e5; POSITIVE = the book pays when long",
+ "fee_per_name": "fee_i(E) = realised L1 fee(E)\u00b7|\u0394W_i|/\u03a3|\u0394W_j| (\u0394W against the previous anchor of the axis); \u03a3_i fee_i = the realised fee exactly",
+ "net_per_name": "net_i = price_i \u2212 funding_paid_i \u2212 fee_i; realised g \u2212 \u03a3_i net_i = the execution residual, reported per period, never absorbed",
+ "market_vs_selection": "\u0233(E) = equal-weight mean RET over the producer member list pm \u2229 in-life; the priced set Q = in-life names; market_i = W_i\u00b7\u0233 on Q, selection_i = W_i\u00b7(RET_i \u2212 \u0233) on Q, both 0 off Q; market + selection = price identically",
+ "characteristics": {
+  "source": "same channels and same missing-data handling as c0_chars.py f4c13d76",
+  "AGE": "(E \u2212 first cache bar with log_cnt finite and > 0)/86400, cache ch 4, x0918r 08bb2957; left-censored flagged",
+  "RN8": "panel f_fund_now\u00b78/f_fund_iv (iv NaN or \u22640 \u2192 8) at the anchor row, panel e5fcb419",
+  "MOM30": "exp(P[row(E)] \u2212 P[row(E\u2212720h)]) \u2212 1 on the certified price table (= \u03a0(1+y4)\u22121 over 180 4h intervals, RAW), NaN unless in life over the whole 30 days; cross-checked against meta_newprod_v4 y4 and against panel f_mom_30d",
+  "LIQ": "log(\u03a3 expm1(log_qv)\u00b7288/n) over the 288 bars closing in (E\u221224h, E], n = finite log_qv, NaN if n < 144 (cache ch 3)",
+  "TBF": "simple mean of cache ch 6 over the bars of that window with log_cnt > 0 and finite tbf, NaN if < 48",
+  "holefix": "INCL (filled bars used), c0's primary"
+ },
+ "groups": {
+  "AGE": [
+   "<90d",
+   "90-180d",
+   "180-365d",
+   "365-730d",
+   ">=730d"
+  ],
+  "FUND": [
+   "<=-10bp",
+   "(-10,0)bp",
+   "[0,base)",
+   "base 1bp",
+   "(base,5]bp",
+   ">5bp"
+  ],
+  "MOM30": [
+   "L",
+   "M",
+   "H"
+  ],
+  "LIQ": [
+   "L",
+   "M",
+   "H"
+  ],
+  "TBF": [
+   "L",
+   "M",
+   "H"
+  ],
+  "DIR": [
+   "long",
+   "short"
+  ]
+ },
+ "group_rules": {
+  "AGE": "fixed, left-closed: <90 | [90,180) | [180,365) | [365,730) | >=730 days",
+  "FUND": "fixed on RN8 in bp/8h: <=-10 | (-10,0) | [0,0.999) | [0.999,1.001] | (1.001,5] | >5",
+  "MOM30/LIQ/TBF": "per-anchor terciles inside the member set over finite values: q = np.quantile(v,[1/3,2/3]); L: v<q\u2153; H: v>q\u2154; M: the closed middle",
+  "DIR": "sign(W_i); W_i = 0 contributes nothing",
+  "NA": "characteristic NaN"
+ },
+ "n_group_tests": 22,
+ "conditions": [
+  "DISP",
+  "FDISP",
+  "FLEVEL",
+  "BREADTH",
+  "VOL",
+  "ALT",
+  "UBAR",
+  "TURN"
+ ],
+ "conditions_from_g0": {
+  "DISP": "RG-DISP",
+  "FDISP": "RG-FDISP",
+  "FLEVEL": "RG-FLEVEL",
+  "BREADTH": "RG-BREADTH",
+  "VOL": "RG-VOL",
+  "ALT": "RG-ALT",
+  "TREND": "RG-TREND"
+ },
+ "conditions_extra_not_in_family": [
+  "TREND"
+ ],
+ "condition_labels": "the six from G0 use G0's own frozen LAB_EXCL (expanding-window terciles, 1,080-anchor warm-up); UBAR and TURN are labelled by the same rule re-implemented on this device's axis",
+ "statistics": {
+  "bootstrap": "moving-block on UTC days, non-circular, B = 10,000, block 5 days main (1 and 10 sensitivity), rng numpy.random.default_rng([20260920, k])",
+  "per_anchor_mean": "resampled as \u03a3(day sums)/\u03a3(day counts)",
+  "family": "22 group tests (2026 vs HIST mean net contribution) + 8 condition tests (top tercile g \u2212 bottom tercile g on FULL_RECIPE) = 30, Holm at 0.05",
+  "p": "two-sided centred p = (1 + #{|\u0394*\u2212\u0394\u0302| \u2265 |\u0394\u0302|})/(B+1)",
+  "no_marks_on": [
+   "\u00a72-E",
+   "\u00a72-F",
+   "\u00a72-G"
+  ]
+ },
+ "periods": [
+  {
+   "name": "2022H2",
+   "from": "2022-06-30T00:00:00Z",
+   "to": "2022-12-31T20:00:00Z",
+   "partial_recipe": true
+  },
+  {
+   "name": "2023pre",
+   "from": "2023-01-01T00:00:00Z",
+   "to": "2023-06-30T00:00:00Z",
+   "partial_recipe": true
+  },
+  {
+   "name": "2023full",
+   "from": "2023-06-30T04:00:00Z",
+   "to": "2023-12-31T20:00:00Z",
+   "partial_recipe": false
+  },
+  {
+   "name": "2024",
+   "from": "2024-01-01T00:00:00Z",
+   "to": "2024-12-31T20:00:00Z",
+   "partial_recipe": false
+  },
+  {
+   "name": "2025",
+   "from": "2025-01-01T00:00:00Z",
+   "to": "2025-12-31T20:00:00Z",
+   "partial_recipe": false
+  },
+  {
+   "name": "2026H1",
+   "from": "2026-01-01T00:00:00Z",
+   "to": "2026-06-30T20:00:00Z",
+   "partial_recipe": false
+  },
+  {
+   "name": "2026JA",
+   "from": "2026-07-01T00:00:00Z",
+   "to": "2026-08-31T00:00:00Z",
+   "partial_recipe": false
+  },
+  {
+   "name": "2026",
+   "from": "2026-01-01T00:00:00Z",
+   "to": "2026-08-31T00:00:00Z",
+   "partial_recipe": false
+  },
+  {
+   "name": "HIST",
+   "from": "2023-06-30T04:00:00Z",
+   "to": "2025-12-31T20:00:00Z",
+   "partial_recipe": false
+  },
+  {
+   "name": "FULL_RECIPE",
+   "from": "2023-06-30T04:00:00Z",
+   "to": "2026-08-31T00:00:00Z",
+   "partial_recipe": false
+  },
+  {
+   "name": "PARTIAL_RECIPE",
+   "from": "2022-06-30T00:00:00Z",
+   "to": "2023-06-30T00:00:00Z",
+   "partial_recipe": true
+  },
+  {
+   "name": "WHOLE_WINDOW",
+   "from": "2022-06-30T00:00:00Z",
+   "to": "2026-08-31T00:00:00Z",
+   "partial_recipe": true
+  }
+ ],
+ "extremes": {
+  "tail": "top and bottom 1 % of anchors by REALISED per-anchor g inside FULL_RECIPE (6,948 \u21d2 69 + 69)",
+  "detail": "written book kind, both legs, top-10 names by |paper net|, the anchor's 8 conditions + TREND, stop / halt / flatten counts",
+  "runs": "also the extreme 3-consecutive-anchor and 24h (6-anchor) cumulative segments"
+ },
+ "forbidden": [
+  "changing a bin edge, a window, a group or a definition after seeing a number",
+  "any per-arm execution outcome (blind protocol) \u2014 arm counts only",
+  "any forward claim, any statement that a regime has ended or will persist",
+  "reusing the numbers or conclusions of RESULT_c0_attribution / RESULT_regime_g0 (old research book)"
+ ],
+ "inputs": {
+  "TARGETS_A0_MAIN": {
+   "path": "/workspace/object_b_2026-09-19/work/A0_main/TARGETS_A0_main.npz",
+   "sha256": "b9f0dc9f2011f9defaac80b116415de3f4d75ffb497cbb9533cd995879036c41"
+  },
+  "TARGETS_A0_EXT": {
+   "path": "/workspace/object_b_2026-09-19/work/A0_ext/TARGETS_A0_ext.npz",
+   "sha256": "085d88585244190dde4ec71cddbea1a6ff22f8c0bcf5bc583f54dc3cb5d7de04"
+  },
+  "P3VEC_A0_MAIN": {
+   "path": "/workspace/object_b_2026-09-19/work/A0_main/P3.vec.npz",
+   "sha256": "dae0107140673c98f346073733a99b48aea33b002a51ea6c660bb75aac554d92"
+  },
+  "P3JSON_A0_MAIN": {
+   "path": "/workspace/object_b_2026-09-19/work/A0_main/P3.json",
+   "sha256": "cff3e160f4a4961e97043cdcdb93a105c24694f83931509dc5539bac72826bcd"
+  },
+  "P3JSON_A0_EXT": {
+   "path": "/workspace/object_b_2026-09-19/work/A0_ext/P3.json",
+   "sha256": "ac70210ad1519e9989cfae640be88bc3d360ae00d043fa7d08362c31a615546e"
+  },
+  "P3VEC_A0_EXT": {
+   "path": "/workspace/object_b_2026-09-19/work/A0_ext/P3.vec.npz",
+   "sha256": "4295b64053d493100a5609c920dceb7e5fe3896d37cb43b08be60f291d49d190"
+  },
+  "UNIVERSE_EXT": {
+   "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+   "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f"
+  },
+  "PRICE_FULL": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r.npy",
+   "sha256": "23af32bd97c267d126c2109641815b92082b8688e35bcfbaaa1e88c2dc5bb5d8"
+  },
+  "PRICE_META": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r_meta.npz",
+   "sha256": "d1e49cc9f0a7ddc4104feb52a42da3024ba1e66ad5891a26c96f00cff7ce5d90"
+  },
+  "LEDGER_SPLICED": {
+   "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+   "sha256": "073088e503c026d6071c76764426503616d53570e5f3763807df27ea7cc80362"
+  },
+  "G0_LABELS": {
+   "path": "/workspace/baseline_tables_2026-09-19/g0x/g0_labels_x0918.npz",
+   "sha256": "c3832939e1b0133369af96ea2866e3cfb226274aeda98c81b82e531654b185b6"
+  },
+  "G0_STATE": {
+   "path": "/workspace/baseline_tables_2026-09-19/g0x/g0_state_vars_x0918.npz",
+   "sha256": "79753acde3c13d217dd524e15627674774cf915f6a505a2740466bbf3dc7a40f"
+  },
+  "PANEL_X0918": {
+   "path": "/workspace/axis_0919/panels/wide_panel_4h_v2ext_x0918.npz",
+   "sha256": "e5fcb4198ddebb52fe6e92438c5111ed22f41dbacbd9ec9af459c9ac6c40b47c"
+  },
+  "CACHE_X0918R": {
+   "path": "/workspace/axis_0919/x0918r/data/dlnative_5m_wide829_f16_holefix2_x0918r.npz",
+   "sha256": "08bb295745e6df84cb42574ef073dc54817a19ad7754bf6319cfcb30bd9baa75"
+  },
+  "META_V4": {
+   "path": "/workspace/fp2_2026-09/refute_C6_2/altrun/meta_newprod_v4.npz",
+   "sha256": "e1cf515eca46b0a1a7afe2bd6e89039cb68f4eea1a0428353e2f3aac989890a7"
+  },
+  "BT_MAIN_A0": {
+   "path": "/workspace/baseline_tables_2026-09-19/receipts/BT_MAIN_A0.json",
+   "sha256": "fa3c2ce7c20e6b997a6c88e75ba532e758c0a80eaa900774338fb7ede24eaf94"
+  },
+  "BT_RUN_CONFIG": {
+   "path": "/workspace/baseline_tables_2026-09-19/RUN_CONFIG_main_A0_2026-09-19.json",
+   "sha256": "7b6dca2c48feda294676ab5ce46b748c71ab87103cc64ead5be7957fe5bbfe93"
+  },
+  "AGG_A0": {
+   "path": "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0_scaled_rule_raw_UAFE/AGG_OBJB_A0_scaled_rule_raw_UAFE.npz",
+   "sha256": "d01eebe3f6a05b6af474dbdbae6b99ff0e03198a507f8f53ab3170df7888aa1a"
+  },
+  "MIRROR_LEGS": {
+   "path": "/workspace/replay_exec_mirror_59875e5a/exec_tree_409ea16/signal/legs.py",
+   "sha256": "1e655daf64b2b563841a95326be19a83bb9e0a6b158e77f346abdf90f9c2ff63"
+  },
+  "C0_CHARS": {
+   "path": "/workspace/attrib_2026_2026-09-20/devices/c0_chars_f4c13d76_REFERENCE.py",
+   "sha256": "f4c13d76ebffcd1339b8d6615e5083e3f1b39a1fe6850aaf42b5514823c399d9"
+  }
+ },
+ "path_sha256": {
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_00.npz": "84b5a8fb2bb941cfb57e6af6ea365d00bc79c92393a9148e530ead021495423a",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_01.npz": "6b1af0cd7e13be3d4458e5652fdadf3db1070e3d17ae1c67f7e69cc7a289460b",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_02.npz": "086cde5f37f043a85823220c0d9f309ea9886051150b5fe350806228a758362c",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_03.npz": "aff2901822f7be1fe1beca57ea95088dc127cce65dbd4fde7998609d14833c70",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_04.npz": "a79aef9173a558f33722460e0b72a5c222b9ca8ca707c85ab6cd47478ada5c74",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_05.npz": "399ca2b54464dd78cc8dc7f6f40dfbb0d5db7b0e177b0832cbd336cd2e139526",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_06.npz": "da54076ca82f41bc9cdfb1a88f8ef6ca233fc1d6e878c00071a955a1d038143b",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_07.npz": "f1db6b5f55fe5c74447088ab1e4798059f51c2df618220ca289c46e328c2d0c4",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_08.npz": "2e2db257d1d47aefbd58dc21d034e72cce5dd2689e08dc357116f4d0de178165",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_09.npz": "d7038ecaab7a51b85c8001abf2a2d632583d98723610718625f8f0f3c428ce70",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_10.npz": "9b35439da8991aea14db3277a7cc170227ce4f05eb35f8aef678e7f8c564dfe9",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_11.npz": "dd5c69320600f84f3544848905e1a69afe176bfe64f22c5e7860cdb52bd6d5e1",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_12.npz": "fd6475e74a5b9dcb67696db1b961232bd0b6e1a86607af95cb39f94e93d1ed15",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_13.npz": "ca7b63ae40b56dfa4f959592953fdb4abe0ef1f3e7a30590eef080e9a3fdfc53",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_14.npz": "d7c6e726d8ae8df9a9ea7b53bdb8899412781e00c3a54d011df52ade33a38080",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_15.npz": "c2d700496fd4057f350fa1d9b196ee38463ecbd36ad034eee3715649f67f05f0",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_16.npz": "e1ecc8782078eefbed38219eb42ee8d5b8ada3dc4dd0fc4c2018fe46706c0390",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_17.npz": "09c2d94def6ce5af9f0d926915844d58a7149d70e6fd33b56b6dcbdd66362dac",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_18.npz": "69bb1acc5b1fc6d602b58ca700d3b44bb286fadd7a5dc5b7ec0e62c0555fd5c1",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_19.npz": "e50e1cac4200f884d19466ba15251102a90405a00a4c02ebcf7bb2ad0c2cb1d5",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_20.npz": "ad31f531125070427bb9b653cf5268bf8453401c21700b4791fddb66a0946749",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_21.npz": "04bb7428ae5f8fcd4fec020a210cb9105623c86a97ad3e32e50106ffbbf44718",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_22.npz": "97546c4233738235fcff44ba0679f66d9de70584fe3a51714ed91313923d673d",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_23.npz": "43fdcb6f7c48baf8607a9b0b3f4c35aa82528425e00e38b3ed0e46e7a0a79c61",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_24.npz": "a3fe6849c1dc406ffe9b0147e4ef9f08574cfa7927e63e75c7c5695fbe73acfd",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_25.npz": "c9c743f1c8165210616f77a53bf271daaf461fa8b72285f1438b2a97e615fb31",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_26.npz": "b25a0f8ca94c1a73babd606cb55cf9cf27f604439740b1efce93177505befbab",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_27.npz": "138df6cf0af8b3a7924a0b99a48c5c5ae56153edfc53ed6e17481b39ba34efe0",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_28.npz": "bf2a9eb2f7c69e953d86e1bbb4e5c12bfc8abaac9d0e12dfa1390533429cce0c",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_29.npz": "159ef0359a82d0cbad61f8b62a3bcaa73059cf88b017655602f01280360bd39c",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_30.npz": "9a41b66fed96595074d06e2fcf815a74345ccdf3f4358953100171a84dda700c",
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_31.npz": "fca11addac71da3c09585f7d6affd47e32076184f93866860d4603f156864e6d"
+ }
+}

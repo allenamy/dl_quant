@@ -9,11 +9,16 @@ It reports, for every condition of §2-D (plus RG-TREND, outside the family):
     historical anchor that started in that bucket;
   · the book's g and its day-block bootstrap CI in each bucket (FULL_RECIPE only — the only window with
     realised cash);
-  · which bucket combination the book is in at the last labelled anchor (2026-09-18T20:00Z), how often that
-    exact combination occurred historically and how long those episodes lasted; and the same for the modal
-    combination of the 2023-06-30 → 2023-12-31 fall;
+  · which bucket combination the book is in at the last anchor where that combination is fully labelled, how
+    often it occurred historically and how long those episodes lasted; and the same for the modal combination
+    of the 2023-06-30 → 2023-12-31 fall. Two sets are reported because the frozen upstream labels do not all
+    reach the axis end: JOINT8 = the prereg's own eight §2-D conditions (its last fully labelled anchor is
+    2026-08-31T00:00Z, because G0's RG-ALT stops there and TURN needs realised turnover), JOINT6 = exactly the
+    subset that IS labelled through 2026-09-18T20:00Z. Neither is chosen by what it shows; the gap is a
+    coverage fact and is printed as one. [This paragraph was rewritten after the first run REFUSED on
+    `joint.last_anchor_fully_labelled`; no analysis definition changed, only which anchor "current" means.]
   · and, because an exact 8-way combination is almost always rare, a MATCH PROFILE: for every historical
-    anchor, how many of the 8 buckets it shares with the reference state, the number of anchors at each match
+    anchor, how many of the buckets it shares with the reference state, the number of anchors at each match
     count, and the book's realised g in FULL_RECIPE at each match count. Declared here, before the first run;
     it is a coarse non-selective summary, not a chosen cut.
 
@@ -128,34 +133,15 @@ for ci, cn in enumerate(CONDN):
             d["g_FULL_RECIPE"][bn] = {"n_anchors": int(mm_run.sum())}
     OUTJ["conditions"][cn] = d
 
-# ── the joint combination (all conditions except TURN, which has no label past the certified window) ──
-FAM = [cn for cn in CONDN if cn != "TURN"]
-LABM = np.stack([CLAB[cn] for cn in FAM], 1)
-allok = (LABM >= 0).all(1)
-key = np.where(allok, (LABM * (3 ** np.arange(len(FAM)))[None, :]).sum(1), -1)
-last = NA - 1
-chk("joint.last_anchor_fully_labelled", bool(allok[last]), {"anchor": L.utc(A[last]),
-                                                            "unlabelled": [FAM[j] for j in range(len(FAM)) if LABM[last, j] < 0]})
-
-
-def combo_stats(k):
-    m = key == k
-    r_ = runs_of(m.astype(np.int8), 1)
-    out = {"n_anchors": int(m.sum()), "share_of_labelled": float(m.sum() / max(allok.sum(), 1)),
-           "n_episodes": int(len(r_)),
-           "median_run_anchors": (float(np.median(r_)) if len(r_) else None),
-           "p90_run_anchors": (float(np.percentile(r_, 90)) if len(r_) else None),
-           "max_run_anchors": (int(r_.max()) if len(r_) else None),
-           "dates": [[L.utc(A[i]), L.utc(A[j])] for i, j in _episodes(m)][:20]}
-    mr = m[in_run] & mfull[in_run]
-    if mr.sum() >= 2:
-        _, s, c = L.day_aggregate(A_run, g_run, mr)
-        dr = L.boot_mean_ratio(s, c, seed_k=900)
-        out["g_FULL_RECIPE"] = L.ci_p(float(s.sum() / c.sum()), dr)
-        out["g_FULL_RECIPE"]["n_anchors"] = int(mr.sum())
-    else:
-        out["g_FULL_RECIPE"] = {"n_anchors": int(mr.sum())}
-    return out
+# ── the joint combination ────────────────────────────────────────────────────────────────────────────
+# Two sets are reported, because the frozen upstream labels do not all reach the last anchor:
+#   JOINT8 = the eight conditions of PREREG §2-D. TURN has no label past 2026-08-31 (no realised turnover
+#            beyond the certified run) and G0's RG-ALT / RG-TREND stop at 2026-08-31 as well, so JOINT8's
+#            last fully labelled anchor is inside the certified window. Reported at ITS OWN last anchor.
+#   JOINT6 = the six that are labelled through 2026-09-18T20:00Z (DISP, FDISP, FLEVEL, BREADTH, VOL, UBAR).
+# Neither set is chosen by what it shows: JOINT8 is the prereg's own list, JOINT6 is exactly the subset that
+# the upstream labels cover to the end of the axis. The mismatch is a coverage fact and is stated as one.
+_episodes_cache = {}
 
 
 def _episodes(m):
@@ -165,19 +151,75 @@ def _episodes(m):
     return list(zip(st.tolist(), en.tolist()))
 
 
-cur = {cn: BUCK[int(CLAB[cn][last])] if CLAB[cn][last] >= 0 else "unlabelled" for cn in CONDN}
-OUTJ["current_state_2026-09-18T20Z"] = {"buckets": cur, "levels": {cn: (float(COND[last, ci]) if np.isfinite(COND[last, ci]) else None) for ci, cn in enumerate(CONDN)},
-                                        "joint_key_stats": combo_stats(int(key[last])) if allok[last] else None,
-                                        "note": "TURN is unlabelled after 2026-08-31 (no realised turnover beyond the certified run)"}
-# the 2023 fall's modal combination
-m23 = L.period_mask(A, "2023-06-30T04:00:00Z", "2023-12-31T20:00:00Z") & allok
-if m23.any():
-    vals, cnt = np.unique(key[m23], return_counts=True)
-    k23 = int(vals[np.argmax(cnt)])
-    OUTJ["2023_fall_modal_combination"] = {
-        "buckets": {FAM[j]: BUCK[(k23 // 3 ** j) % 3] for j in range(len(FAM))},
-        "share_of_2023H2_labelled_anchors": float(cnt.max() / m23.sum()),
-        "stats": combo_stats(k23)}
+SETS = {"JOINT8": list(L.COND_NAMES),
+        "JOINT6": [cn for cn in ("DISP", "FDISP", "FLEVEL", "BREADTH", "VOL", "UBAR")]}
+m23_win = L.period_mask(A, "2023-06-30T04:00:00Z", "2023-12-31T20:00:00Z")
+for sname, FAM in SETS.items():
+    LABM = np.stack([CLAB[cn] for cn in FAM], 1)
+    allok = (LABM >= 0).all(1)
+    key = np.where(allok, (LABM * (3 ** np.arange(len(FAM)))[None, :]).sum(1), -1)
+    li = int(np.nonzero(allok)[0][-1])
+    chk(f"joint.{sname}.has_a_fully_labelled_anchor", bool(allok.any()),
+        {"last_fully_labelled": L.utc(A[li]), "n_fully_labelled": int(allok.sum()),
+         "unlabelled_at_axis_end": [FAM[j] for j in range(len(FAM)) if LABM[NA - 1, j] < 0]})
+
+    def combo_stats(k, _key=key, _allok=allok):
+        m = _key == k
+        r_ = runs_of(m.astype(np.int8), 1)
+        out = {"n_anchors": int(m.sum()), "share_of_labelled": float(m.sum() / max(_allok.sum(), 1)),
+               "n_episodes": int(len(r_)),
+               "median_run_anchors": (float(np.median(r_)) if len(r_) else None),
+               "p90_run_anchors": (float(np.percentile(r_, 90)) if len(r_) else None),
+               "max_run_anchors": (int(r_.max()) if len(r_) else None),
+               "episodes": [[L.utc(A[i]), L.utc(A[j])] for i, j in _episodes(m)][:20]}
+        mr = m[in_run] & mfull[in_run]
+        if mr.sum() >= 2:
+            _, s, c = L.day_aggregate(A_run, g_run, mr)
+            dr = L.boot_mean_ratio(s, c, seed_k=900 + len(FAM))
+            out["g_FULL_RECIPE"] = L.ci_p(float(s.sum() / c.sum()), dr)
+            out["g_FULL_RECIPE"]["n_anchors"] = int(mr.sum())
+        else:
+            out["g_FULL_RECIPE"] = {"n_anchors": int(mr.sum())}
+        return out
+
+    OUTJ[f"current_state_{sname}"] = {
+        "conditions": FAM, "at_anchor": L.utc(A[li]),
+        "is_axis_end": bool(li == NA - 1),
+        "buckets": {cn: BUCK[int(CLAB[cn][li])] for cn in FAM},
+        "levels": {cn: (float(COND[li, CONDN.index(cn)]) if np.isfinite(COND[li, CONDN.index(cn)]) else None) for cn in FAM},
+        "joint_stats": combo_stats(int(key[li]))}
+    m23 = m23_win & allok
+    if m23.any():
+        vals, cnt = np.unique(key[m23], return_counts=True)
+        k23 = int(vals[np.argmax(cnt)])
+        OUTJ[f"2023_fall_modal_combination_{sname}"] = {
+            "buckets": {FAM[j]: BUCK[(k23 // 3 ** j) % 3] for j in range(len(FAM))},
+            "share_of_2023H2_labelled_anchors": float(cnt.max() / m23.sum()),
+            "n_2023H2_fully_labelled": int(m23.sum()),
+            "stats": combo_stats(k23)}
+
+    def match_profile(ref_lab, tag, _LABM=LABM, _allok=allok, _FAM=FAM):
+        mc = (_LABM == ref_lab[None, :]).sum(1)
+        mc = np.where(_allok, mc, -1)
+        out = {"conditions": _FAM, "reference": {_FAM[j]: BUCK[int(ref_lab[j])] for j in range(len(_FAM))}, "by_match_count": {}}
+        for c_ in range(len(_FAM) + 1):
+            m = mc == c_
+            rr = {"n_anchors": int(m.sum()), "share": float(m.sum() / max(_allok.sum(), 1))}
+            mr = m[in_run] & mfull[in_run]
+            if mr.sum() >= 2:
+                _, s, c2 = L.day_aggregate(A_run, g_run, mr)
+                rr["g_FULL_RECIPE"] = float(s.sum() / c2.sum())
+                rr["n_anchors_FULL_RECIPE"] = int(mr.sum())
+            out["by_match_count"][str(c_)] = rr
+        r_ = runs_of((mc >= len(_FAM) - 1).astype(np.int8), 1)
+        out["runs_with_at_most_one_mismatch"] = ({"n_episodes": int(len(r_)), "median_anchors": float(np.median(r_)),
+                                                  "p90_anchors": float(np.percentile(r_, 90)), "max_anchors": int(r_.max()),
+                                                  "total_anchors": int(r_.sum())} if len(r_) else {"n_episodes": 0})
+        OUTJ[tag] = out
+
+    match_profile(LABM[li], f"match_profile_vs_current_{sname}")
+    if m23.any():
+        match_profile(np.array([(k23 // 3 ** j) % 3 for j in range(len(FAM))]), f"match_profile_vs_2023_fall_{sname}")
 # per-condition marginal distance of the current state from the 2023H2 distribution
 OUTJ["bucket_shares_by_period"] = {}
 for name, lo, hi, _ in L.PERIODS:
@@ -189,35 +231,6 @@ for name, lo, hi, _ in L.PERIODS:
         for cn in CONDN}
 OUTJ["extension_bucket_shares_2026-09"] = {
     cn: {bn: float((CLAB[cn][~in_run] == b).mean()) for b, bn in enumerate(BUCK)} for cn in CONDN}
-
-
-def match_profile(ref_lab, tag):
-    """how many of the |FAM| buckets a historical anchor shares with the reference state, and the book's
-    realised g in FULL_RECIPE by that match count. Declared before running; a coarse, non-selective summary
-    of 'how close has the book ever been to this exact combination'."""
-    mc = (LABM == ref_lab[None, :]).sum(1)
-    mc = np.where(allok, mc, -1)
-    out = {"reference": {FAM[j]: BUCK[int(ref_lab[j])] for j in range(len(FAM))}, "by_match_count": {}}
-    for c_ in range(len(FAM) + 1):
-        m = mc == c_
-        row = {"n_anchors": int(m.sum()), "share": float(m.sum() / max(allok.sum(), 1))}
-        mr = m[in_run] & mfull[in_run]
-        if mr.sum() >= 2:
-            _, s, c2 = L.day_aggregate(A_run, g_run, mr)
-            row["g_FULL_RECIPE"] = float(s.sum() / c2.sum())
-            row["n_anchors_FULL_RECIPE"] = int(mr.sum())
-        out["by_match_count"][str(c_)] = row
-    r_ = runs_of((mc >= len(FAM) - 1).astype(np.int8), 1)
-    out["runs_with_at_most_one_mismatch"] = ({"n_episodes": int(len(r_)), "median_anchors": float(np.median(r_)),
-                                              "p90_anchors": float(np.percentile(r_, 90)), "max_anchors": int(r_.max()),
-                                              "total_anchors": int(r_.sum())} if len(r_) else {"n_episodes": 0})
-    OUTJ[tag] = out
-
-
-if allok[last]:
-    match_profile(LABM[last], "match_profile_vs_current_2026-09-18")
-if m23.any():
-    match_profile(np.array([(k23 // 3 ** j) % 3 for j in range(len(FAM))]), "match_profile_vs_2023_fall_modal")
 
 p = f"{OUT}/AT_REGIME.json"
 tmp = p + ".tmp"

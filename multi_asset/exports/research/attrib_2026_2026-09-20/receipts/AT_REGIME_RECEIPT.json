@@ -1,0 +1,148 @@
+{
+ "device": "at_regime.py",
+ "self_sha256": "0dbdc908df114f9acb17eccc0041ede2a63559eca542826806eeed1f58437c05",
+ "lib_sha256": "1e85dfb3eb508cdc67476f11c1f9a55b8c9b81336fed945538b80ef082c56fb0",
+ "argv": [
+  "devices/at_regime.py",
+  "PATH,HOME,LC_CTYPE,LANG,PWD,SHLVL,_",
+  "/workspace/attrib_2026_2026-09-20/receipts"
+ ],
+ "env": {
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "PATH": "/usr/bin:/bin"
+ },
+ "numpy": "2.4.6",
+ "python": "3.11.10",
+ "utc_start": "2026-09-20T01:52:23Z",
+ "pid": 1480556,
+ "pgid": 1480555,
+ "frozen_config": {
+  "path": "/workspace/attrib_2026_2026-09-20/RUN_CONFIG_attrib_2026-09-20.json",
+  "sha256": "401d7a0af349ebe5e2ce23751f730ea99001fe4d710d9be60d633ba510471a69"
+ },
+ "upstream": {
+  "panel": {
+   "path": "/workspace/attrib_2026_2026-09-20/work/AT_PANEL.npz",
+   "sha256": "27c2543e1f364fcd073cefd44080cc6678d84bca77ff6864889191533eaa102c"
+  },
+  "L1_mean": {
+   "path": "/workspace/attrib_2026_2026-09-20/work/AT_L1_mean.npz",
+   "sha256": "a3cd9c99f78d45e6b572fc6da731c2093fbdb9343040716cdf8c495ab2fbadcb"
+  }
+ },
+ "caveat": "Historical frequencies of a finite sample; not probabilities, not forecasts. No claim that a state has ended, will end, will persist or will return.",
+ "outputs": {
+  "regime": {
+   "path": "/workspace/attrib_2026_2026-09-20/receipts/AT_REGIME.json",
+   "sha256": "745b3502ccc8f95600a3f00bbd086f79fed1212cea07cc508544d7ecf65117a0"
+  }
+ },
+ "peak_rss_gb": 0.21015548706054688,
+ "runtime_s": 3.3,
+ "checks": [
+  {
+   "check": "env.whitelist",
+   "ok": true,
+   "detail": {
+    "extra": []
+   }
+  },
+  {
+   "check": "axis",
+   "ok": true,
+   "detail": {
+    "n": 9252,
+    "last": "2026-09-18T20:00:00Z"
+   }
+  },
+  {
+   "check": "labels.present.DISP",
+   "ok": true,
+   "detail": {
+    "n_labelled": 9061
+   }
+  },
+  {
+   "check": "labels.present.FDISP",
+   "ok": true,
+   "detail": {
+    "n_labelled": 9072
+   }
+  },
+  {
+   "check": "labels.present.FLEVEL",
+   "ok": true,
+   "detail": {
+    "n_labelled": 9072
+   }
+  },
+  {
+   "check": "labels.present.BREADTH",
+   "ok": true,
+   "detail": {
+    "n_labelled": 9025
+   }
+  },
+  {
+   "check": "labels.present.VOL",
+   "ok": true,
+   "detail": {
+    "n_labelled": 9072
+   }
+  },
+  {
+   "check": "labels.present.ALT",
+   "ok": true,
+   "detail": {
+    "n_labelled": 8958
+   }
+  },
+  {
+   "check": "labels.present.UBAR",
+   "ok": true,
+   "detail": {
+    "n_labelled": 8172
+   }
+  },
+  {
+   "check": "labels.present.TURN",
+   "ok": true,
+   "detail": {
+    "n_labelled": 8059
+   }
+  },
+  {
+   "check": "labels.present.TREND",
+   "ok": true,
+   "detail": {
+    "n_labelled": 8958
+   }
+  },
+  {
+   "check": "joint.JOINT8.has_a_fully_labelled_anchor",
+   "ok": true,
+   "detail": {
+    "last_fully_labelled": "2026-08-31T00:00:00Z",
+    "n_fully_labelled": 8059,
+    "unlabelled_at_axis_end": [
+     "ALT",
+     "TURN"
+    ]
+   }
+  },
+  {
+   "check": "joint.JOINT6.has_a_fully_labelled_anchor",
+   "ok": true,
+   "detail": {
+    "last_fully_labelled": "2026-09-18T20:00:00Z",
+    "n_fully_labelled": 8125,
+    "unlabelled_at_axis_end": []
+   }
+  }
+ ],
+ "n_checks": 13,
+ "failed": [],
+ "VERDICT": "PASS",
+ "utc_end": "2026-09-20T01:52:26Z"
+}

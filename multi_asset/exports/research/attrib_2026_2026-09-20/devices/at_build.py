@@ -90,8 +90,16 @@ RET = np.expm1(LP[k0 + 1] - LP[k0]).astype(np.float64)        # (NA, 829)
 FF = PME["first_fin"].astype(np.int64)
 LF = PME["last_fin"].astype(np.int64)
 INLIFE = (FF[None, :] <= A[:, None]) & (LF[None, :] >= (A[:, None] + L.H4))
-chk("price.dead_rows_are_flat", float(np.abs(RET[~INLIFE]).max()) < 1e-12,
-    {"max_abs_ret_outside_life": float(np.abs(RET[~INLIFE]).max()), "cells": int((~INLIFE).sum())})
+# STRICT_OUT = the whole 4h window lies outside [first_fin, last_fin]. There the cumulated log-price is flat
+# by construction and the return must be exactly 0. The remaining ~1 anchor per name is the LISTING (or
+# delisting) window, where first_fin or last_fin falls inside (E, E+4h]: there the table does move, the name
+# is not yet (or no longer) a full-window instrument, and INLIFE excludes it. Counted and reported, not hidden.
+STRICT_OUT = (FF[None, :] > (A[:, None] + L.H4)) | (LF[None, :] < A[:, None])
+chk("price.strictly_dead_rows_are_flat", float(np.abs(RET[STRICT_OUT]).max()) < 1e-12,
+    {"max_abs_ret": float(np.abs(RET[STRICT_OUT]).max()), "cells": int(STRICT_OUT.sum())})
+trans = (~INLIFE) & (~STRICT_OUT) & (np.abs(RET) > 1e-12)
+rec["price_listing_transition_cells"] = {"cells": int(trans.sum()), "names": int((trans.any(0)).sum()),
+                                         "max_abs_ret": float(np.abs(RET[trans]).max()) if trans.any() else 0.0}
 RET = np.where(INLIFE, RET, 0.0)
 # MOM30 = 180 4h intervals back, on the same table
 MOM30 = np.full((NA, NW), np.nan)
@@ -145,13 +153,21 @@ MEMB = np.zeros((NA, NW), bool)
 NPOP = np.zeros(NA, np.int32)
 g1 = g2 = g3 = 0.0
 b3_bad = 0
-jmap = {}
+# materialise every CSR array ONCE: an NpzFile re-decompresses the whole array on each key access, which
+# inside a 9,252-iteration loop costs minutes per key and hides the real work.
+CS = {k: np.asarray(TX[k]) for k in ("scaled_off", "scaled_idx", "scaled_val", "scaled_kind")}
+for pref in ("kc", "fc", "king_file", "combo", "king"):
+    for suf in ("_off", "_idx", "_val"):
+        CS[pref + suf] = np.asarray(PX[pref + suf])
+CS["pm_off"] = np.asarray(PX["pm_off"])
+CS["pm"] = np.asarray(PX["pm"])
 for i, a in enumerate(sel):
-    ii = TX["scaled_idx"][int(TX["scaled_off"][a]):int(TX["scaled_off"][a + 1])]
-    vv = TX["scaled_val"][int(TX["scaled_off"][a]):int(TX["scaled_off"][a + 1])]
-    kind = int(TX["scaled_kind"][a])
+    o0, o1 = int(CS["scaled_off"][a]), int(CS["scaled_off"][a + 1])
+    ii = CS["scaled_idx"][o0:o1]
+    vv = CS["scaled_val"][o0:o1]
+    kind = int(CS["scaled_kind"][a])
     KIND[i] = kind
-    pmi = PX["pm"][int(PX["pm_off"][a]):int(PX["pm_off"][a + 1])]
+    pmi = CS["pm"][int(CS["pm_off"][a]):int(CS["pm_off"][a + 1])]
     MEMB[i, pmi] = True
     if len(ii) == 0:
         continue
@@ -163,7 +179,7 @@ for i, a in enumerate(sel):
     # seats
     if kind == 1:
         phik, phif = 1.0, 0.0
-        kc = L.csr_dense(PX, "king_file", a)
+        kc = L.csr_dense(CS, "king_file", a)
         fc = np.zeros(NW)
         tgt = np.zeros(NW)
         tgt[ii] = vv
@@ -173,8 +189,8 @@ for i, a in enumerate(sel):
         cm = (P3J[a]["combo"].get("combo_meta") or {})
         w3 = cm.get("w3_masked") or [np.nan, np.nan, np.nan]
         phik, phif = float(w3[0]), float(w3[2])
-        kc = L.csr_dense(PX, "kc", a)
-        fc = L.csr_dense(PX, "fc", a)
+        kc = L.csr_dense(CS, "kc", a)
+        fc = L.csr_dense(CS, "fc", a)
     PHI[i] = (phik, phif)
     pop = (np.abs(phik * kc) > 0) | (np.abs(phif * fc) > 0)
     if pop.any():
@@ -242,15 +258,22 @@ rec["B7"] = {"pearson_price": rp, "pearson_funding": rf,
 PAN = np.load(L.PINS["PANEL_X0918"][0], allow_pickle=True)
 PTS = PAN["ts"].astype(np.int64)
 prow = {int(t): i for i, t in enumerate(PTS)}
-pj = np.array([prow[int(t)] for t in A], np.int64)
-fn = np.asarray(PAN["f_fund_now"], np.float64)[pj]
-iv = np.asarray(PAN["f_fund_iv"], np.float64)[pj]
+pj = np.array([prow.get(int(t), -1) for t in A], np.int64)
+haspan = pj >= 0
+chk("panel.rows_missing_are_extension_only", bool(haspan[in_run].all()),
+    {"n_missing": int((~haspan).sum()), "missing": [L.utc(t) for t in A[~haspan]][:12],
+     "note": "the x0918 panel ends 2026-09-18T00:00Z; RN8 is NaN on any later extension anchor"})
+pjs = np.where(haspan, pj, 0)
+fn = np.asarray(PAN["f_fund_now"], np.float64)[pjs]
+iv = np.asarray(PAN["f_fund_iv"], np.float64)[pjs]
 RN8 = fn * (8.0 / np.where(np.isfinite(iv) & (iv > 0), iv, 8.0))
+RN8[~haspan] = np.nan
 ok_x = np.isfinite(RN8) & np.isfinite(RN8_LED) & LIVEM
 rec["RN8_crosscheck_vs_ledger"] = {"cells": int(ok_x.sum()),
                                    "pearson": float(np.corrcoef(RN8[ok_x], RN8_LED[ok_x])[0, 1]) if ok_x.sum() > 100 else None,
                                    "mean_abs_diff_bp": float(np.abs(RN8[ok_x] - RN8_LED[ok_x]).mean() * 1e4) if ok_x.sum() else None}
-MOM30_PANEL = np.asarray(PAN["f_mom_30d"], np.float64)[pj]
+MOM30_PANEL = np.asarray(PAN["f_mom_30d"], np.float64)[pjs]
+MOM30_PANEL[~haspan] = np.nan
 ok_m = np.isfinite(MOM30) & np.isfinite(MOM30_PANEL) & LIVEM
 rec["MOM30_crosscheck_vs_panel"] = {"cells": int(ok_m.sum()),
                                     "pearson": float(np.corrcoef(MOM30[ok_m], MOM30_PANEL[ok_m])[0, 1]) if ok_m.sum() > 100 else None}
