@@ -12,6 +12,9 @@ CT = json.load(open(f"{R}/AT_CONTROL.json"))
 BD = json.load(open(f"{R}/AT_BUILD.json"))
 AT = json.load(open(f"{R}/AT_ATTRIB.json"))
 RG = json.load(open(f"{R}/AT_REGIME.json"))
+import os
+LG = json.load(open(f"{R}/AT_LEGS2.json")) if os.path.exists(f"{R}/AT_LEGS2.json") else None
+BT = json.load(open(f"{R}/AT_BETA.json")) if os.path.exists(f"{R}/AT_BETA.json") else None
 COLS = ["2022H2", "2023pre", "2023full", "2024", "2025", "2026H1", "2026JA", "2026", "FULL_RECIPE"]
 O = []
 
@@ -86,6 +89,9 @@ w("")
 # ── T2 block A ──
 w("## T2 块 A · 逐腿(两条路径 A1 / A2 并列, 价格项)")
 w("")
+w("> ⛔ **本表整体作废(E-0920-B)**: 装置把组件内部的信号席位当成了两个组件之间的融合权重。原字节保留作历史。")
+w("> **更正后的组件层分解见下面的 T2b, 以及结果件 §3。**")
+w("")
 head(["时段", "A1 king", "A1 fund", "A1 整形残差", "A1 合计", "A2 king", "A2 fund", "A2 合计",
       "腿自身 gross 上的原始收益 king / fund", "φ_fund 均值", "只写 king 文件的锚占比", "A1−A2 差 >5%?"])
 for k in COLS:
@@ -141,6 +147,9 @@ for gname, tab in AT["block_B_groups"].items():
 # ── T4 block C ──
 w("## T4 块 C · 市场 vs 选股")
 w("")
+w("> ⛔ **本表的「市场」「选股」两列整体作废(E-0920-B)**: 市场项算的是美元净敞口 × 宇宙收益, 按构造为零, 证明的只是美元中性。")
+w("> **更正后的事前风险分解见下面的 T4b, 以及结果件 §5。** 其余列(ȳ、多空篮相对 ȳ、死名与成员集份额)不受影响。")
+w("")
 head(["时段", "价格", "= 市场", "+ 选股", "市场多 / 空", "选股多 / 空", "宇宙 ȳ bps/4h",
       "多头篮−ȳ", "空头篮−ȳ", "已计价净敞口 /gross", "死名 gross 份额", "成员集外 gross 份额"])
 for k in COLS:
@@ -154,6 +163,78 @@ for k in COLS:
          pct(d["net_priced_exposure_share_of_gross"], 2), pct(d["gross_out_of_life_share"], 3),
          pct(d["gross_outside_member_set_share"], 2)])
 w("")
+
+# ── T2b / T4b: the corrected blocks ──
+if LG:
+    w("## T2b 块 A(**已更正**)· 组件层分解 —— 0.55 King 组件 + 0.45 F10 组件, 权重固定")
+    w("")
+    w("结构断言逐位通过: %s" % LG["structure"]["book_level"])
+    w("")
+    head(["时段", "锚", "写 combo", "KC", "FC", "整形位移", "三腿 king 文件", "= 价格", "r(KC)", "r(FC)", "模型分歧", "资金费信号 z 权重"])
+    for k in COLS:
+        d = LG["per_period"].get(k)
+        if not d:
+            continue
+        c_ = d["component_own_gross_return"]; s_ = d["seats_z_level"]
+        row([k, d["n_anchors"], pct(d["share_anchors_combo"], 1), f(d["price"]["KC_king_component"]),
+             f(d["price"]["FC_f10_component"]), f(d["price"]["reshape_shift"]), f(d["price"]["KING_FILE_3leg"]),
+             f(d["price_total"]), f(c_["kc_king_component"], 2), f(c_["fc_f10_component"], 2),
+             f(c_["difference_kc_minus_fc_isolates_model_disagreement"], 2), f(s_["funding_signal_z_weight_mean"], 3)])
+    w("")
+    w("**三信号(资金费 / king / F10)的书层拆分不可识别**: %s" % LG["structure"]["not_identifiable"])
+    w("")
+    w("席位取极值的子样本(按恒等式精确; ⚠ %s):" % LG["seat_extreme_subsamples"]["caveat"])
+    w("")
+    head(["子样本", "时段", "锚", "占比", "g", "价格", "资金费付出"])
+    for tag, lab in (("pure_model_composite_funding_seat_exactly_zero", "资金费席位=0 ⇒ 纯 0.55/0.45 模型复合"),
+                     ("pure_funding_book_model_seat_exactly_zero", "模型席位=0 ⇒ 纯资金费书")):
+        for k, v in LG["seat_extreme_subsamples"][tag].items():
+            if k in COLS or k in ("HIST",):
+                row([lab, k, v["n_anchors"], pct(v["share_of_period"], 1), f(v["g"]), f(v["price"]), f(v["funding_paid"])])
+    w("")
+    w("king 文件锚(回落到生产者原三腿 king 书)单列:")
+    w("")
+    head(["时段", "king 文件锚", "占比", "那些锚上的 g", "那些锚上的纸面价格", "对全期价格的贡献"])
+    for k in COLS + ["HIST"]:
+        v = LG.get("king_file_anchors_conditional", {}).get(k)
+        if not v:
+            continue
+        row([k, v["n_king_file_anchors"], pct(v["share_of_period"], 1), f(v["g_on_those_anchors"], 2),
+             f(v["paper_price_on_those_anchors"], 2), f(v["contribution_to_the_period_price"])])
+    w("")
+if BT:
+    w("## T4b 块 C(**已更正**)· 事前 β 与风格的风险分解")
+    w("")
+    w("β 分布(持仓名): " + json.dumps(BT["beta_distribution_held_names"]))
+    w("")
+    head(["时段", "价格", "共同(β×市场)", "残差", "未归属", "事前净 β 均值", "|净 β| 均值", "净 β p05/p95",
+          "多头净 β", "空头净 β", "美元净/gross", "市场 bps/4h"])
+    for k in COLS:
+        d = BT["per_period"].get(k)
+        if not d:
+            continue
+        row([k, f(d["price"]), f(d["common_market"]), f(d["residual_selection"]), f(d["unattributed_no_beta"]),
+             f(d["book_ex_ante_net_beta_mean"]), f(d["book_ex_ante_net_beta_absmean"]),
+             "[%s, %s]" % (f(d["book_ex_ante_net_beta_p05_p95"][0], 2), f(d["book_ex_ante_net_beta_p05_p95"][1], 2)),
+             f(d["net_beta_long_side"]), f(d["net_beta_short_side"]), f(d["dollar_net_over_gross"], 5), f(d["mean_market_bps"], 2)])
+    w("")
+    head(["时段", "共同(β+风格)", "残差(名字特有)", "多头 共同/残差", "空头 共同/残差", "入回归名数", "BTC 净 β", "BTC 共同"])
+    for k in COLS:
+        d = BT["per_period"].get(k)
+        if not d:
+            continue
+        row([k, f(d["style_common_risk_and_style"]), f(d["style_residual_selection"]),
+             "%s / %s" % (f(d["style_common_long"], 2), f(d["style_residual_long"], 2)),
+             "%s / %s" % (f(d["style_common_short"], 2), f(d["style_residual_short"], 2)),
+             "%.0f" % d["style_mean_names_in_fit"], f(d.get("btc_net_beta_mean"), 3), f(d.get("btc_common_market"), 3)])
+    w("")
+    w("2026 − HIST 的 Δg = +2.915 按状态量做「格间移动 vs 格内变化」:")
+    w("")
+    head(["状态量", "高档占比 HIST → 2026", "总 Δ", "格间移动", "格内变化"])
+    for cn, v in BT["bucket_shift_vs_within_2026_minus_HIST"].items():
+        row([cn, "%s → %s" % (pct(v["share_hist"][2], 1), pct(v["share_2026"][2], 1)),
+             f(v["total_delta"]), f(v["between_bucket_shift"]), f(v["within_bucket_change"])])
+    w("")
 
 # ── T5 block D ──
 w("## T5 块 D · 锚级条件量")

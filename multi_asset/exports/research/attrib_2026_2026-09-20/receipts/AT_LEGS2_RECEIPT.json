@@ -1,0 +1,167 @@
+{
+ "device": "at_legs2.py",
+ "self_sha256": "cbecb044b12e30b89c4409186a26a8b2152caa1e9032a1a06ca8af6ba8cc902b",
+ "lib_sha256": "1e85dfb3eb508cdc67476f11c1f9a55b8c9b81336fed945538b80ef082c56fb0",
+ "argv": [
+  "devices/at_legs2.py",
+  "PATH,HOME,LC_CTYPE,LANG,PWD,SHLVL,_",
+  "receipts"
+ ],
+ "env": {
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "PATH": "/usr/bin:/bin"
+ },
+ "numpy": "2.4.6",
+ "python": "3.11.10",
+ "utc_start": "2026-09-20T08:57:53Z",
+ "pid": 1580879,
+ "pgid": 1580876,
+ "replaces": "at_attrib.py block_A_legs (A1 / A2 / A2b) \u2014 withdrawn, error ledger E-0920-B",
+ "production_source": {
+  "producer": "~/wide_shadow/fea171/combo_stage.py",
+  "sha256_16": "3520d36394fbe7b9",
+  "replay_copy": "/workspace/object_b_2026-09-19/devices/combo_stage_replay_3520d363.py"
+ },
+ "inputs": {
+  "TARGETS_A0_MAIN": {
+   "path": "/workspace/object_b_2026-09-19/work/A0_main/TARGETS_A0_main.npz",
+   "sha256": "b9f0dc9f2011f9defaac80b116415de3f4d75ffb497cbb9533cd995879036c41"
+  },
+  "P3VEC_A0_MAIN": {
+   "path": "/workspace/object_b_2026-09-19/work/A0_main/P3.vec.npz",
+   "sha256": "dae0107140673c98f346073733a99b48aea33b002a51ea6c660bb75aac554d92"
+  },
+  "P3JSON_A0_EXT": {
+   "path": "/workspace/object_b_2026-09-19/work/A0_ext/P3.json",
+   "sha256": "ac70210ad1519e9989cfae640be88bc3d360ae00d043fa7d08362c31a615546e"
+  },
+  "AGG_A0": {
+   "path": "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0_scaled_rule_raw_UAFE/AGG_OBJB_A0_scaled_rule_raw_UAFE.npz",
+   "sha256": "d01eebe3f6a05b6af474dbdbae6b99ff0e03198a507f8f53ab3170df7888aa1a"
+  }
+ },
+ "upstream": {
+  "panel": {
+   "path": "/workspace/attrib_2026_2026-09-20/work/AT_PANEL.npz",
+   "sha256": "27c2543e1f364fcd073cefd44080cc6678d84bca77ff6864889191533eaa102c"
+  },
+  "L1_mean": {
+   "path": "/workspace/attrib_2026_2026-09-20/work/AT_L1_mean.npz",
+   "sha256": "a3cd9c99f78d45e6b572fc6da731c2093fbdb9343040716cdf8c495ab2fbadcb"
+  }
+ },
+ "outputs": {
+  "legs2": {
+   "path": "receipts/AT_LEGS2.json",
+   "sha256": "5feb77c123b9c32f707c0908ede22cd462b0e398430c22ce82d31e420b2b3ba2"
+  }
+ },
+ "peak_rss_gb": 0.7401008605957031,
+ "runtime_s": 3.2,
+ "checks": [
+  {
+   "check": "env.whitelist",
+   "ok": true,
+   "detail": {
+    "extra": []
+   }
+  },
+  {
+   "check": "input_sha.TARGETS_A0_MAIN",
+   "ok": true,
+   "detail": {
+    "expected": "b9f0dc9f2011f9de",
+    "got": "b9f0dc9f2011f9de"
+   }
+  },
+  {
+   "check": "input_sha.P3VEC_A0_MAIN",
+   "ok": true,
+   "detail": {
+    "expected": "dae0107140673c98",
+    "got": "dae0107140673c98"
+   }
+  },
+  {
+   "check": "input_sha.P3JSON_A0_EXT",
+   "ok": true,
+   "detail": {
+    "expected": "ac70210ad1519e99",
+    "got": "ac70210ad1519e99"
+   }
+  },
+  {
+   "check": "input_sha.AGG_A0",
+   "ok": true,
+   "detail": {
+    "expected": "d01eebe3f6a05b6a",
+    "got": "d01eebe3f6a05b6a"
+   }
+  },
+  {
+   "check": "axis.aligned",
+   "ok": true,
+   "detail": {
+    "n": 9139
+   }
+  },
+  {
+   "check": "A0a.combo_target_is_0.55kc_plus_0.45fc_BITWISE",
+   "ok": true,
+   "detail": {
+    "n_combo_anchors": 6702,
+    "n_bad": 0
+   }
+  },
+  {
+   "check": "A0b.kingfile_target_is_the_king_file_BITWISE",
+   "ok": true,
+   "detail": {
+    "n_kingfile_anchors": 2437,
+    "n_bad": 0
+   }
+  },
+  {
+   "check": "A0c.parts_reproduce_the_traded_paper_book",
+   "ok": true,
+   "detail": {
+    "max_abs_weight_resid": 6.938893903907228e-18
+   }
+  },
+  {
+   "check": "A0d.float32_storage_deviation_is_round_off_only",
+   "ok": true,
+   "detail": {
+    "max_abs": 1.5514731097066026e-09,
+    "float32_eps_times_typical_weight": 2.01371168722129e-09,
+    "note": "contributions below use the float64 reconstruction WEX, not the float32 panel copy"
+   }
+  },
+  {
+   "check": "additivity.fee_allocation_sums_to_realised",
+   "ok": true,
+   "detail": {
+    "max_abs_bps": 8.881784197001252e-16
+   }
+  },
+  {
+   "check": "additivity.price",
+   "ok": true,
+   "detail": {
+    "max_abs_bps": 7.105427357601002e-14
+   }
+  },
+  {
+   "check": "additivity.funding",
+   "ok": true,
+   "detail": {
+    "max_abs_bps": 1.7763568394002505e-15
+   }
+  }
+ ],
+ "n_checks": 13,
+ "failed": [],
+ "VERDICT": "PASS",
+ "utc_end": "2026-09-20T08:57:56Z"
+}
