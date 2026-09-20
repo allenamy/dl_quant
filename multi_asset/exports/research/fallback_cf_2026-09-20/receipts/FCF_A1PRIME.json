@@ -1,0 +1,85 @@
+{
+ "device": "fcf_a1prime.py",
+ "self_sha256": "cb6159644eea40abf38a4d8db9084bd0849571bc643b288d7f12b411be0b9d16",
+ "criterion": "docs/AMENDMENT_4_fallback_counterfactual_2026-09-20.md (81a34e674) \u00a73 A1', implemented as written",
+ "inputs": {
+  "archive_P1_vec": "04249082f6b9d42b3e93482e467e5552fe9f0603d51dadb8c8152568c260b49d",
+  "archive_P1_json": "3cf3c0708f94236936d4fbbe7977e7f2eaef25c4445c729f6f41dbed3172305f",
+  "f4bp_P1_vec": "03c9e86bca86baa3b234b56ce1a70d693770c3f4adb41cd71441565fcfb0734c",
+  "f4bp_P1_json": "7f6940eb1e8a82f3d053282d8f13bdce43684cc83933156285e6c246d575cfde",
+  "producer_config": {
+   "path": "/workspace/shadow_bundle_v3/config.json",
+   "sha256": "3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e"
+  }
+ },
+ "utc": "2026-09-20T14:55:06Z",
+ "clauses": [
+  {
+   "clause": "A1p.1_S-IDENTICAL_legz_and_pm_bitwise",
+   "ok": true,
+   "detail": {
+    "legz_equal": 10038,
+    "pm_equal": 10038,
+    "shared_anchors": 10038,
+    "first_mismatch": {}
+   }
+  },
+  {
+   "clause": "A1p.2_W3-MATCH_to_4dp_where_both_wrote_at_the_previous_anchor",
+   "ok": false,
+   "detail": {
+    "anchors_in_scope": 10037,
+    "compared": 10037,
+    "n_mismatch": 1,
+    "mismatches": [
+     {
+      "anchor": "2022-06-30T00:00:00Z",
+      "archive": [
+       0.0,
+       0.9691,
+       0.0309
+      ],
+      "f4bprime": [
+       0.3333,
+       0.3333,
+       0.3333
+      ]
+     }
+    ],
+    "scope_rule": "AMENDMENT 4 \u00a73-2 verbatim: every anchor where BOTH arms wrote a book at the PREVIOUS anchor",
+    "precision": "4 dp, the archive's own recorded precision"
+   }
+  },
+  {
+   "clause": "A1p.3_DECAY-BOUND_below_the_production_writer_resolution",
+   "ok": true,
+   "detail": {
+    "alpha_read_from": "/workspace/shadow_bundle_v3/config.json",
+    "alpha": 0.1,
+    "one_minus_alpha": 0.9,
+    "divergence_anchor": "2022-06-30T00:00:00Z",
+    "full_recipe_start": "2023-06-30T04:00:00Z",
+    "n_anchors_between": 2191,
+    "bound": "5.563e-101",
+    "threshold": 1e-09,
+    "threshold_rationale": "write_target_live L70-73 keeps a name only when |v| > 1e-9, so a perturbation below that cannot change any weight that reaches a target file; the threshold is derived, not picked",
+    "note_vs_amendment": "the amendment states 2,190 anchors and ~1e-100; recomputed here from the config and the axis as 2191 anchors and 5.563e-101 \u2014 same order, the anchor count differs by one"
+   }
+  }
+ ],
+ "adversarial_check_on_clause_2": {
+  "question": "clause 2 conditions on 'both arms wrote at the previous anchor', so it is blind on the anchors that FOLLOW a non-write. Does that blind set contain the actual divergence?",
+  "n_anchors_blind_to_clause_2": 1,
+  "blind_anchors": [
+   "2022-01-31T04:00:00Z"
+  ],
+  "divergence_anchor": "2022-06-30T00:00:00Z",
+  "divergence_is_inside_the_blind_set": false,
+  "finding": "the divergence is NOT in clause 2's blind set, so clause 2 is JUDGING this arm at that anchor rather than exempting it",
+  "residual_hole": "an intervention that altered w3 ONLY at anchors following a non-write would pass all three clauses. For this arm that hole is 1 anchor(s) wide and does not contain the divergence, so it does not affect this verdict; it is stated because the amendment asked for the detection-power argument to be attacked."
+ },
+ "VERDICT": "REFUSED",
+ "failed": [
+  "A1p.2_W3-MATCH_to_4dp_where_both_wrote_at_the_previous_anchor"
+ ]
+}

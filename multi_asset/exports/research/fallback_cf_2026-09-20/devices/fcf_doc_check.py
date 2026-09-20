@@ -172,6 +172,27 @@ P2R = json.load(open(f"{R}/FCF_P2_READING.json"))["assertions"]
 add("\u00a76 W_ENTRY==W_CARRY cells equal", sum(1 for x in P2R if x["W_ENTRY_equals_W_CARRY"]), 46)
 add("\u00a76 W_ENTRY==W_CARRY cells differing", sum(1 for x in P2R if not x["W_ENTRY_equals_W_CARRY"]), 4)
 add("\u00a76 all differing cells are H=never", all(x["H"] == "never" for x in P2R if not x["W_ENTRY_equals_W_CARRY"]), True)
+# ---- AMENDMENT 4 A1' (§8.5) ----
+AP = json.load(open(f"{R}/FCF_A1PRIME.json"))
+cl = {c["clause"][:6]: c for c in AP["clauses"]}
+add("\u00a78.5.2 A1' overall verdict", AP["VERDICT"], "REFUSED")
+add("\u00a78.5.2 A1' clause 1 (legz/pm bitwise) ok", cl["A1p.1_"]["ok"], True)
+add("\u00a78.5.2 A1' clause 1 legz equal", cl["A1p.1_"]["detail"]["legz_equal"], 10038)
+add("\u00a78.5.2 A1' clause 1 pm equal", cl["A1p.1_"]["detail"]["pm_equal"], 10038)
+add("\u00a78.5.2 A1' clause 2 (W3-MATCH) ok", cl["A1p.2_"]["ok"], False)
+add("\u00a78.5.2 A1' clause 2 anchors in scope", cl["A1p.2_"]["detail"]["anchors_in_scope"], 10037)
+add("\u00a78.5.2 A1' clause 2 n_mismatch", cl["A1p.2_"]["detail"]["n_mismatch"], 1)
+add("\u00a78.5.2 A1' clause 2 the mismatching anchor", cl["A1p.2_"]["detail"]["mismatches"][0]["anchor"], "2022-06-30T00:00:00Z")
+add("\u00a78.5.2 A1' clause 3 (decay bound) ok", cl["A1p.3_"]["ok"], True)
+d3 = cl["A1p.3_"]["detail"]
+add("\u00a78.5.2 alpha read from the frozen config", d3["alpha"], 0.1)
+add("\u00a78.5.2 n anchors to the full-recipe start", d3["n_anchors_between"], 2191)
+add("\u00a78.5.2 decay bound", d3["bound"], "5.563e-101")
+add("\u00a78.5.2 decay threshold (writer resolution)", d3["threshold"], 1e-09)
+ad = AP["adversarial_check_on_clause_2"]
+add("\u00a78.5.5 clause-2 blind set size", ad["n_anchors_blind_to_clause_2"], 1)
+add("\u00a78.5.5 the blind anchor", ad["blind_anchors"][0], "2022-01-31T04:00:00Z")
+add("\u00a78.5.5 divergence inside the blind set?", ad["divergence_is_inside_the_blind_set"], False)
 bad = [r for r in rows if r[1] != r[2]]
 for lab, got, doc in rows:
     print(("  OK   " if got == doc else "MISMATCH ") + f"{lab:52s} receipt={got!r:>12}  doc={doc!r}")
