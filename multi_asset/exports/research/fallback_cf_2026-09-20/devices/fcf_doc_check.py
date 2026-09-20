@@ -90,6 +90,32 @@ for lab, B, want in (("FULLRECIPE", B2, {"F0": "2024-03-18T16:00:00Z", "F1": "20
         if a not in want: continue
         ha = sorted(m2["halt_anchor"] for m2 in r["bases"][B]["summary"]["end_return_phalt"]["population"]["members"] if m2.get("fired"))
         add(f"§6.1 {lab} {a} median halt anchor", ha[len(ha) // 2] if ha else None, want[a])
+# §6.1b — the UNSATURATED quantities (survival days, no-halt end return) the doc now leads with
+U = json.load(open(f"{R}/FCF_P_UNSATURATED.json"))
+DOC_U = {
+    ("2023-06-30T04:00:00Z"): {"F0": (32, 262.5, 266.7, 1.3463), "F1": (32, 381.5, 380.7, 2.2100),
+                               "F2": (10, 402.2, 397.4, 1.9542), "F4a": (32, 352.8, 346.1, 1.7667)},
+    ("2022-06-30T00:00:00Z"): {"F0": (32, 202.7, 235.0, 1.4448), "F1": (0, None, None, 3.0995),
+                               "F2": (0, None, None, 2.6908), "F4a": (0, None, None, 2.5397)},
+}
+for B, d in U["bases"].items():
+    want = DOC_U[d["base_anchor_utc"]]
+    for a, v in d["arms"].items():
+        nb, med, mean, nohalt = want[a]
+        sv = v["survival_days_to_halt"]
+        add(f"§6.1b {d['base_anchor_utc']} {a} breaching", v["paths_breaching"], nb)
+        add(f"§6.1b {d['base_anchor_utc']} {a} survival median", None if sv["median"] is None else round(sv["median"], 1), med)
+        add(f"§6.1b {d['base_anchor_utc']} {a} survival mean", None if sv["mean"] is None else round(sv["mean"], 1), mean)
+        add(f"§6.1b {d['base_anchor_utc']} {a} no-halt end mean", round(v["end_return_no_halt"]["mean"], 4), nohalt)
+        add(f"§6.1b {d['base_anchor_utc']} {a} survival n_measured == breaching", sv["n_measured"], nb)
+        add(f"§6.1b {d['base_anchor_utc']} {a} never-halt named count", sv["no_measurement"]["n"], 32 - nb)
+u = U["bases"]["FULL_RECIPE window start @ 2023-06-30T04:00:00Z"]["arms"]
+add("§0/§6.1b F1 survives longer than F0 (median days)",
+    round(u["F1"]["survival_days_to_halt"]["median"] - u["F0"]["survival_days_to_halt"]["median"], 0), 119.0)
+add("§0/§6.1b that as a share of F0 (%)",
+    round(100 * (u["F1"]["survival_days_to_halt"]["median"] / u["F0"]["survival_days_to_halt"]["median"] - 1), 0), 45.0)
+add("§0/§6.1b no-halt end gap F1-F0 (pp)",
+    round(100 * (u["F1"]["end_return_no_halt"]["mean"] - u["F0"]["end_return_no_halt"]["mean"]), 0), 86.0)
 bad = [r for r in rows if r[1] != r[2]]
 for lab, got, doc in rows:
     print(("  OK   " if got == doc else "MISMATCH ") + f"{lab:52s} receipt={got!r:>12}  doc={doc!r}")
