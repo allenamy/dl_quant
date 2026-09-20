@@ -1,0 +1,589 @@
+{
+ "config": "RUN_CONFIG_CF3_2026-09-20",
+ "status": "FROZEN before any CF3 outcome number (arms are bitwise-gated by CF_ARMS)",
+ "created_utc": "2026-09-20T11:10:19Z",
+ "prereg": "docs/PREREG_three_signal_counterfactual_2026-09-20.md (c5427ee30) + addenda A1 (ea8054e87), A2 (6ce1902fe), A3 (f27a716c5)",
+ "object": "CF3 three-signal counterfactual re-chain of the certified object B A0_main (B-scaled reading); 8 coalitions x 2 gate conventions, NONE_GF == NONE",
+ "window": {
+  "first_anchor": "2022-06-30T00:00:00Z",
+  "last_anchor": "2026-08-31T00:00:00Z",
+  "n_anchors": 9139,
+  "full_recipe_start": "2023-06-30T04:00:00Z",
+  "full_recipe_start_rule": "object-B receipts TARGETS_<tag>.json B_CORE_start (object-B prereg \u00a74); anchors before it are PARTIAL_RECIPE (prereg \u00a71)",
+  "extension_label": "2026-08-31T04Z \u2192 2026-09-18T20Z overlaps object A / the live period: describe only (prereg \u00a74)",
+  "coverage": "targets end at 2026-08-31T00:00:00Z: the extension segment to 2026-09-18T20Z follows with the extension targets"
+ },
+ "nav0_usdt": 100000.0,
+ "paths_R": 32,
+ "seeds": "0..31",
+ "runs": [
+  {
+   "arm": "CF_BASE",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "tag": "CF_BASE|scaled|rule|raw|UAFE",
+   "book": "scaled",
+   "targets": {
+    "source": "objb",
+    "reading": "scaled",
+    "arm": "A0",
+    "sources": [
+     {
+      "npz": "/workspace/cf3_2026-09-20/work/TARGETS_CF_BASE.npz",
+      "npz_sha256": "5a4236df86e2a7eb466b85b51c017753199f4ac70008d7a450a0016a4df7323b",
+      "receipt": "/workspace/cf3_2026-09-20/receipts/TARGETS_CF_BASE.json",
+      "receipt_sha256": "20a5c0eb013694cf7da9ebd429d03347c8dd6bcbe9affddff7d556bc3fd1fbcd"
+     }
+    ],
+    "universe": {
+     "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+     "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+     "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+    }
+   },
+   "role": "CF3 counterfactual re-chain, coalition BASE, gate convention G-FAITHFUL (= the certified OBJB_A0|scaled run's book, bitwise; Gate J control)"
+  },
+  {
+   "arm": "CF_noFUND",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "tag": "CF_noFUND|scaled|rule|raw|UAFE",
+   "book": "scaled",
+   "targets": {
+    "source": "objb",
+    "reading": "scaled",
+    "arm": "A0",
+    "sources": [
+     {
+      "npz": "/workspace/cf3_2026-09-20/work/TARGETS_CF_noFUND.npz",
+      "npz_sha256": "935ef41040c776bbc8d5cd4eeaf560c192e53b72427ae47986a63b65d176e003",
+      "receipt": "/workspace/cf3_2026-09-20/receipts/TARGETS_CF_noFUND.json",
+      "receipt_sha256": "d582f31ef269e70920ccd5676fc0f9d62e93f842e9dbb043a601959fe8d2eb15"
+     }
+    ],
+    "universe": {
+     "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+     "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+     "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+    }
+   },
+   "role": "CF3 counterfactual re-chain, coalition noFUND, gate convention G-FAITHFUL"
+  },
+  {
+   "arm": "CF_noKING",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "tag": "CF_noKING|scaled|rule|raw|UAFE",
+   "book": "scaled",
+   "targets": {
+    "source": "objb",
+    "reading": "scaled",
+    "arm": "A0",
+    "sources": [
+     {
+      "npz": "/workspace/cf3_2026-09-20/work/TARGETS_CF_noKING.npz",
+      "npz_sha256": "d1472d20e68a3df523a3dadd002f7820465f0de17bbac220a7f51bde21b66bfc",
+      "receipt": "/workspace/cf3_2026-09-20/receipts/TARGETS_CF_noKING.json",
+      "receipt_sha256": "75419caca3c4d2648b5ac7b64af2be5075c0a1a8baf1131db431f0bd1586887a"
+     }
+    ],
+    "universe": {
+     "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+     "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+     "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+    }
+   },
+   "role": "CF3 counterfactual re-chain, coalition noKING, gate convention G-FAITHFUL"
+  },
+  {
+   "arm": "CF_noF10",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "tag": "CF_noF10|scaled|rule|raw|UAFE",
+   "book": "scaled",
+   "targets": {
+    "source": "objb",
+    "reading": "scaled",
+    "arm": "A0",
+    "sources": [
+     {
+      "npz": "/workspace/cf3_2026-09-20/work/TARGETS_CF_noF10.npz",
+      "npz_sha256": "833a4b5a93a076ffb63450b1347a5400930cf4e20cd80ee300d85366994a4d0c",
+      "receipt": "/workspace/cf3_2026-09-20/receipts/TARGETS_CF_noF10.json",
+      "receipt_sha256": "ba94277fcf226fdbe39b268bb8e9f5c32dabffba6844d6760f4ed4a345e40377"
+     }
+    ],
+    "universe": {
+     "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+     "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+     "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+    }
+   },
+   "role": "CF3 counterfactual re-chain, coalition noF10, gate convention G-FAITHFUL"
+  },
+  {
+   "arm": "CF_onlyFUND",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "tag": "CF_onlyFUND|scaled|rule|raw|UAFE",
+   "book": "scaled",
+   "targets": {
+    "source": "objb",
+    "reading": "scaled",
+    "arm": "A0",
+    "sources": [
+     {
+      "npz": "/workspace/cf3_2026-09-20/work/TARGETS_CF_onlyFUND.npz",
+      "npz_sha256": "16a6e6bd372ac57e3da6cd1fed87afb9c1a103c650aabbd7574e5c39c637560d",
+      "receipt": "/workspace/cf3_2026-09-20/receipts/TARGETS_CF_onlyFUND.json",
+      "receipt_sha256": "0d877da4581ee177ac9abca67a6a3abdebb483ad2415b9fb9e149592202a3b96"
+     }
+    ],
+    "universe": {
+     "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+     "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+     "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+    }
+   },
+   "role": "CF3 counterfactual re-chain, coalition onlyFUND, gate convention G-FAITHFUL"
+  },
+  {
+   "arm": "CF_onlyKING",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "tag": "CF_onlyKING|scaled|rule|raw|UAFE",
+   "book": "scaled",
+   "targets": {
+    "source": "objb",
+    "reading": "scaled",
+    "arm": "A0",
+    "sources": [
+     {
+      "npz": "/workspace/cf3_2026-09-20/work/TARGETS_CF_onlyKING.npz",
+      "npz_sha256": "11527b3ec3d8b17fc7c57ac4ea34e71d0f5a0b26408acac2bec7a5258920fc6a",
+      "receipt": "/workspace/cf3_2026-09-20/receipts/TARGETS_CF_onlyKING.json",
+      "receipt_sha256": "9fdb2b3f1a6edacfaca9d00363e98480733a9bfdba5f1837d978acbebafd36d1"
+     }
+    ],
+    "universe": {
+     "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+     "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+     "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+    }
+   },
+   "role": "CF3 counterfactual re-chain, coalition onlyKING, gate convention G-FAITHFUL"
+  },
+  {
+   "arm": "CF_onlyF10",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "tag": "CF_onlyF10|scaled|rule|raw|UAFE",
+   "book": "scaled",
+   "targets": {
+    "source": "objb",
+    "reading": "scaled",
+    "arm": "A0",
+    "sources": [
+     {
+      "npz": "/workspace/cf3_2026-09-20/work/TARGETS_CF_onlyF10.npz",
+      "npz_sha256": "742b7de274571a3f13c37936d2a33be98b6004f81ea3e24a7b0218a0de247bcb",
+      "receipt": "/workspace/cf3_2026-09-20/receipts/TARGETS_CF_onlyF10.json",
+      "receipt_sha256": "a42ae52bdbf246a30ed177871d210eb23601baae6e5e2fa4612504650c50452b"
+     }
+    ],
+    "universe": {
+     "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+     "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+     "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+    }
+   },
+   "role": "CF3 counterfactual re-chain, coalition onlyF10, gate convention G-FAITHFUL"
+  },
+  {
+   "arm": "CF_NONE",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "tag": "CF_NONE|scaled|rule|raw|UAFE",
+   "book": "scaled",
+   "targets": {
+    "source": "objb",
+    "reading": "scaled",
+    "arm": "A0",
+    "sources": [
+     {
+      "npz": "/workspace/cf3_2026-09-20/work/TARGETS_CF_NONE.npz",
+      "npz_sha256": "742b7de274571a3f13c37936d2a33be98b6004f81ea3e24a7b0218a0de247bcb",
+      "receipt": "/workspace/cf3_2026-09-20/receipts/TARGETS_CF_NONE.json",
+      "receipt_sha256": "a4ae64bbaccd493760287a288b94543badccb86e53f10eaa9f31dd99211b3bde"
+     }
+    ],
+    "universe": {
+     "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+     "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+     "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+    }
+   },
+   "role": "CF3 counterfactual re-chain, coalition NONE, gate convention G-FAITHFUL"
+  },
+  {
+   "arm": "CF_noFUND_GF",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "tag": "CF_noFUND_GF|scaled|rule|raw|UAFE",
+   "book": "scaled",
+   "targets": {
+    "source": "objb",
+    "reading": "scaled",
+    "arm": "A0",
+    "sources": [
+     {
+      "npz": "/workspace/cf3_2026-09-20/work/TARGETS_CF_noFUND_GF.npz",
+      "npz_sha256": "620c8cc3e184c192f264b520f00833ac19b30d28588cb6b63b1c0855f3172ac1",
+      "receipt": "/workspace/cf3_2026-09-20/receipts/TARGETS_CF_noFUND_GF.json",
+      "receipt_sha256": "51ceae36bc81335876e52329942cf50dda97a191f021b2acc9602e60e9f1fdac"
+     }
+    ],
+    "universe": {
+     "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+     "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+     "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+    }
+   },
+   "role": "CF3 counterfactual re-chain, coalition noFUND, gate convention G-FROZEN"
+  },
+  {
+   "arm": "CF_noKING_GF",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "tag": "CF_noKING_GF|scaled|rule|raw|UAFE",
+   "book": "scaled",
+   "targets": {
+    "source": "objb",
+    "reading": "scaled",
+    "arm": "A0",
+    "sources": [
+     {
+      "npz": "/workspace/cf3_2026-09-20/work/TARGETS_CF_noKING_GF.npz",
+      "npz_sha256": "075e63d4cf6f597ac61de9623842141ad2dc3ac6770723a76e6d826b80e72dc3",
+      "receipt": "/workspace/cf3_2026-09-20/receipts/TARGETS_CF_noKING_GF.json",
+      "receipt_sha256": "1a3bd31158bc91cb207aa84d92d2ee2c21771ba15cf4309c67ef33202d067346"
+     }
+    ],
+    "universe": {
+     "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+     "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+     "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+    }
+   },
+   "role": "CF3 counterfactual re-chain, coalition noKING, gate convention G-FROZEN"
+  },
+  {
+   "arm": "CF_noF10_GF",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "tag": "CF_noF10_GF|scaled|rule|raw|UAFE",
+   "book": "scaled",
+   "targets": {
+    "source": "objb",
+    "reading": "scaled",
+    "arm": "A0",
+    "sources": [
+     {
+      "npz": "/workspace/cf3_2026-09-20/work/TARGETS_CF_noF10_GF.npz",
+      "npz_sha256": "c431a61df7f2f4f15231e2097f7481a2a328b152c047c61ea89d2405e6ab9130",
+      "receipt": "/workspace/cf3_2026-09-20/receipts/TARGETS_CF_noF10_GF.json",
+      "receipt_sha256": "aea5b9c3f01c9b7029559e9274fb1a5ca2c79d2143567fc458beba9331525720"
+     }
+    ],
+    "universe": {
+     "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+     "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+     "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+    }
+   },
+   "role": "CF3 counterfactual re-chain, coalition noF10, gate convention G-FROZEN"
+  },
+  {
+   "arm": "CF_onlyFUND_GF",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "tag": "CF_onlyFUND_GF|scaled|rule|raw|UAFE",
+   "book": "scaled",
+   "targets": {
+    "source": "objb",
+    "reading": "scaled",
+    "arm": "A0",
+    "sources": [
+     {
+      "npz": "/workspace/cf3_2026-09-20/work/TARGETS_CF_onlyFUND_GF.npz",
+      "npz_sha256": "db041eb26c0f17b750a648d62e93c0389ce547834c9e84fcd71714957ddb4468",
+      "receipt": "/workspace/cf3_2026-09-20/receipts/TARGETS_CF_onlyFUND_GF.json",
+      "receipt_sha256": "158ce62739afc8afe26b2b06dc7020ba5ca4507ec05dba142615403dff10d1bf"
+     }
+    ],
+    "universe": {
+     "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+     "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+     "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+    }
+   },
+   "role": "CF3 counterfactual re-chain, coalition onlyFUND, gate convention G-FROZEN"
+  },
+  {
+   "arm": "CF_onlyKING_GF",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "tag": "CF_onlyKING_GF|scaled|rule|raw|UAFE",
+   "book": "scaled",
+   "targets": {
+    "source": "objb",
+    "reading": "scaled",
+    "arm": "A0",
+    "sources": [
+     {
+      "npz": "/workspace/cf3_2026-09-20/work/TARGETS_CF_onlyKING_GF.npz",
+      "npz_sha256": "fc880dbedea1b5a87d05ba44234b6a5cd314e26bb439ae0fa711a9e49d2bd213",
+      "receipt": "/workspace/cf3_2026-09-20/receipts/TARGETS_CF_onlyKING_GF.json",
+      "receipt_sha256": "045032a70152258b3a9a721bc5a900d91de6baee21c09114c040f1f6c70f8b5c"
+     }
+    ],
+    "universe": {
+     "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+     "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+     "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+    }
+   },
+   "role": "CF3 counterfactual re-chain, coalition onlyKING, gate convention G-FROZEN"
+  },
+  {
+   "arm": "CF_onlyF10_GF",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "tag": "CF_onlyF10_GF|scaled|rule|raw|UAFE",
+   "book": "scaled",
+   "targets": {
+    "source": "objb",
+    "reading": "scaled",
+    "arm": "A0",
+    "sources": [
+     {
+      "npz": "/workspace/cf3_2026-09-20/work/TARGETS_CF_onlyF10_GF.npz",
+      "npz_sha256": "68930d140da0ed8da9b89ff68b9bf41a954d4463d6f72b3fb7f206e142112600",
+      "receipt": "/workspace/cf3_2026-09-20/receipts/TARGETS_CF_onlyF10_GF.json",
+      "receipt_sha256": "7cfdaa351f281b3cd998f7569449236eb028b627140ad5742004b5bd038f666e"
+     }
+    ],
+    "universe": {
+     "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+     "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+     "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+    }
+   },
+   "role": "CF3 counterfactual re-chain, coalition onlyF10, gate convention G-FROZEN"
+  }
+ ],
+ "current_production_config": {
+  "gross_mult": 2.0,
+  "chase_weights": {
+   "chase": 0.5,
+   "no_chase": 0.5
+  },
+  "E4_from_anchor": 0,
+  "requote_assignment_from_anchor": 0,
+  "fee_era": "USDT_era maker/taker of the pooled calibration for every trade",
+  "decision": "t_dec = A + decision_offset_default_s (1440 = N+24:00), rid = A{t_dec}; decision bar = floor_5m(t_dec) = N+20",
+  "stop_eval": "A + eval_offset_without_frame_s (2700 = N+45; no live readback frames in history)",
+  "rule_flatten": "max(A + rule_flatten_offset_s (2760 = N+46), t_eval + 1 s)",
+  "per_name_stop": "409ea16 config/book.json active_profile wide (\u22120.30 \u00d7 2 consecutive, 7-day cooldown, 5 USDT)",
+  "on_unavailable": "hold",
+  "venue_tradable": "tradability_v1 state_W24H == 2 at A",
+  "meta_exclusions": "none",
+  "exchange_filters": "stream-E mirror exchange_info_cache.json (current values)"
+ },
+ "events": {
+  "rule": "only \u00a74-2 (\u22124 % vs the previous UTC day's last evaluation equity \u21d2 flatten at N+46, HALT until next UTC day 00Z); per-name stops by the executor's own state machine"
+ },
+ "unavailable_policies": {
+  "UA-FREEZE-EXCLUDE": "object-B prereg AMENDMENT 1 \u00a7A1.2; E2 mapping: (A) UNKNOWN cells = (name, window) with any UA bar closing in [A, A+4h] \u21d2 price-and-trading and funding P&L removed from the main NAV numerator, reported separately with notional at risk (bounds UNBOUNDED); (B) no trading at A if the bar closing at A or the decision bar is UA; (B') no fill booked inside a UA bar \u2014 AMENDMENT 1 item 5; per-run trigger counts and notional reported (bt_run_summary)"
+ },
+ "cost_cells": {},
+ "statistics": {
+  "regime_cells": "AMENDMENT 1 item 3: B = 10,000, 5-day blocks main (1 / 10 sensitivity), rng [20260919, 1000 + k], k = PROGRAM \u00a74 order \u00d7 low/mid/high",
+  "pairing": "AMENDMENT 1 item 4: main \u0394Sharpe, \u0394CAGR and \u0394g alongside; 5-day MBB B = 10,000 rng [20260919, 99]; labels one-sided p < 0.05, descriptive only"
+ },
+ "simulator": {
+  "exec_sim.py": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24 (v3.1, unchanged)",
+  "calibration": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6 (pooled; per-arm fields of CALIBRATION_FROZEN never read)",
+  "gate": "v1b_gate v2 4a725921 (period definitions only; imported by exec_sim)",
+  "executor_tree": "409ea16 (INPUT_MANIFEST 59875e5a)"
+ },
+ "pins": {
+  "prereg": {
+   "path": "/workspace/baseline_tables_2026-09-19/pins/PREREG_baseline_tables_certified_2026-09-19.md",
+   "sha256": "d9fe45e3191f56e564e1df951ddfc9465e75d7ef03e680e31943cc9057398ae2"
+  },
+  "prereg_amendment_1": {
+   "path": "/workspace/baseline_tables_2026-09-19/pins/AMENDMENT_1_baseline_tables_certified_2026-09-19.md",
+   "sha256": "766bc367743d8542a2da4c2c547df16d2bac7c6984acf7f734ddd1e59c5c26cb"
+  },
+  "exec_sim": {
+   "path": "/workspace/cf3_2026-09-20/devices_bt/exec_copy/exec_sim.py",
+   "sha256": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24"
+  },
+  "simlib": {
+   "path": "/workspace/cf3_2026-09-20/devices_bt/exec_copy/simlib.py",
+   "sha256": "55246fe98da2d57a33bbbe0f22fc67e6581da539c353b026d8ef41673dfec2f1"
+  },
+  "v1b_gate": {
+   "path": "/workspace/cf3_2026-09-20/devices_bt/exec_copy/v1b_gate.py",
+   "sha256": "4a725921a470f4c11f47cda5a8e210979215079cea16b496c709c7cc62fb5410"
+  },
+  "v1_gate": {
+   "path": "/workspace/cf3_2026-09-20/devices_bt/exec_copy/v1_gate.py",
+   "sha256": "c97d9b3d49212b49ea2cde883d7a06fe749f43ed23f3aef7de6345a4d8075d0d"
+  },
+  "calibration": {
+   "path": "/workspace/cf3_2026-09-20/devices_bt/exec_copy/CALIBRATION_v3_POOLED_20260826_20260910.json",
+   "sha256": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6"
+  },
+  "input_manifest": {
+   "path": "/workspace/cf3_2026-09-20/devices_bt/exec_copy/INPUT_MANIFEST.json",
+   "sha256": "59875e5a69db415f5ce20b35b888f2d49a31427fdde8b7b847a9645ee135a5ae"
+  },
+  "p2_s2_lib": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/devices/p2_s2_lib.py",
+   "sha256": "c53f5c495036727fcd7115bad6838229923c91f6b76bed955ebdb0f25d57c831"
+  },
+  "price_full_raw": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r.npy",
+   "sha256": "23af32bd97c267d126c2109641815b92082b8688e35bcfbaaa1e88c2dc5bb5d8"
+  },
+  "price_full_meta": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r_meta.npz",
+   "sha256": "d1e49cc9f0a7ddc4104feb52a42da3024ba1e66ad5891a26c96f00cff7ce5d90"
+  },
+  "price_receipt": {
+   "path": "/workspace/baseline_tables_2026-09-19/receipts/BT_PRICES_FULL_X0918R.json",
+   "sha256": "130592b122831e03c24916e771be5174c9be3930500eb735a7d268907ee000f2"
+  },
+  "price_source_table_x0918r": {
+   "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/work/price_logtable_raw_x0918r.npy",
+   "sha256": "9249b0da4a4c578900cbafd29e1cec28de57f4437f037f1280040b2a84196608"
+  },
+  "price_source_meta_x0918r": {
+   "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/work/price_meta_raw_x0918r.npz",
+   "sha256": "da136830cee7e1a219e56e69ce9d50de2eead6864df7d205cdb7559151162df3"
+  },
+  "ledger_full": {
+   "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+   "sha256": "073088e503c026d6071c76764426503616d53570e5f3763807df27ea7cc80362"
+  },
+  "funding_overlap_proof": {
+   "path": "/workspace/baseline_tables_2026-09-19/funding/BT_FUNDING_OVERLAP.json",
+   "sha256": "0ee6d99bfa2acfb9576efb90655ac3e6b1f68fbdb7de14fcecbd3b02531c635b"
+  },
+  "funding_source_p2": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+   "sha256": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
+  },
+  "funding_source_stream_d": {
+   "path": "/workspace/axis_0919/funding/funding_ledger.npz",
+   "sha256": "74b69e635efbf3556fe706520fda9d5a1b5cda86dda9d04a844ba5d617a3a09d"
+  },
+  "funding_4h_accounting_stream_d": {
+   "path": "/workspace/axis_0919/funding/funding_4h_accounting.npz",
+   "sha256": "2838e5f6cf42fff5619460f64708d952cd56e23e6621195d8e3d8bd5466aca72"
+  },
+  "tradability": {
+   "path": "/workspace/axis_0919/x0918r/trd/tradability_v1.npz",
+   "sha256": "bebf69ab9ddb3b05b49552e66dccf9b8cde3caee0593b14e1b3fe1a4c93c9db8"
+  },
+  "universe": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/work/universe.npz",
+   "sha256": "6322b57366078ed0022fd8a8156ee36f527bf309e0d66bfa5f6ec17d7a09efa7"
+  },
+  "g0_labels": {
+   "path": "/workspace/baseline_tables_2026-09-19/g0x/g0_labels_x0918.npz",
+   "sha256": "c3832939e1b0133369af96ea2866e3cfb226274aeda98c81b82e531654b185b6"
+  },
+  "g0_receipt": {
+   "path": "/workspace/baseline_tables_2026-09-19/g0x/RECEIPT_bt_g0_extend.json",
+   "sha256": "8afd680472ef21be2731bf4b7e55cea018dc80ac44c370ef8321f9cb02fc82de"
+  }
+ },
+ "pending": {
+  "(a) arm target files": "filled: 15 files written by cf_arms.py, BASE bitwise-gated vs the archive",
+  "(b) gate conventions": "filled: G-FAITHFUL + G-FROZEN (PREREG addendum A3)"
+ },
+ "paths": {
+  "pod_root": "/workspace/cf3_2026-09-20",
+  "exec_mirror": "/workspace/replay_r_2026-09-19/work/exec_mirror",
+  "mac_root": "multi_asset/exports/research/cf3_2026-09-20"
+ },
+ "launch": {
+  "max_parallel": 8,
+  "min_available_gib": 22,
+  "nice": 10,
+  "threads_per_run": 1
+ },
+ "blind_protocol": "CFG-06 AMENDMENT 1: pooled outcome parameters only; outputs carry per-arm assignment COUNTS only; no per-arm outcome quantity is computed, printed or stored",
+ "frozen_by": {
+  "device": "cf_mkconfig.py",
+  "sha256": "b935cc130c6cf6b6e92dd478a10f73499896fef97108b960e83ceaa5da528fc6",
+  "upstream_receipts": {
+   "CF_REBUILD.json": "e505040eeffe3396494737bebbe0bc1212ca96fddc689b0b875f7ac26c4ea6bb",
+   "CF_ARMS.json": "3b0dfed8deee7881f0ee27b4692f129645a10590ee2446fd71f2a7d0bc17eaee"
+  }
+ },
+ "objb_lineage": {
+  "note": "targets are CF3 re-chains of object B A0_main; the BASE arm is bitwise identical to /workspace/object_b_2026-09-19/work/A0_main/TARGETS_A0_main.npz",
+  "objb_targets_sha256": "b9f0dc9f2011f9defaac80b116415de3f4d75ffb497cbb9533cd995879036c41"
+ },
+ "derived_from": {
+  "path": "/workspace/baseline_tables_2026-09-19/RUN_CONFIG_main_A0_2026-09-19.json",
+  "sha256": "7b6dca2c48feda294676ab5ce46b748c71ab87103cc64ead5be7957fe5bbfe93",
+  "changed_fields": [
+   "runs",
+   "paths.pod_root",
+   "config",
+   "status",
+   "created_utc",
+   "object",
+   "prereg",
+   "frozen_by",
+   "objb_lineage",
+   "pending",
+   "cost_cells",
+   "launch.max_parallel",
+   "pins.exec_sim/simlib/v1b_gate/v1_gate/calibration/input_manifest (re-pointed at byte-identical copies under devices_bt/)"
+  ]
+ }
+}

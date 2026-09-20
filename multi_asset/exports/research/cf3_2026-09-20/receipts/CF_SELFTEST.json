@@ -1,0 +1,180 @@
+{
+ "device": "cf_selftest.py",
+ "self_sha256": "de770f180ee1802dc4f1abf5b2e3eb77fe20788a655a89a4596626b6343e6920",
+ "argv": [
+  "cf_selftest.py",
+  "PATH,HOME,LC_CTYPE,LANG,PWD,SHLVL,_",
+  "/workspace/cf3_2026-09-20/receipts"
+ ],
+ "env": {
+  "PATH": "/usr/bin:/bin",
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8"
+ },
+ "python": "3.11.10",
+ "numpy": "2.4.6",
+ "utc_start": "2026-09-20T11:18:22Z",
+ "prereg": "docs/PREREG_three_signal_counterfactual_2026-09-20.md",
+ "items": [
+  {
+   "item": "C1.chain_scale_invariant_positive_to_float_precision",
+   "baseline_green": true,
+   "baseline_value": {
+    "max_abs_dev": 2.6020852139652106e-18,
+    "max_abs_weight": 0.007423604255357709,
+    "bitwise": false
+   },
+   "mutation_red": true,
+   "mutation_value": {
+    "sign_flipped_max_abs_dev": 0.014847208510715419
+   },
+   "credited": true,
+   "note": "positive scaling must not change the book beyond float noise; a sign flip must change it materially"
+  },
+  {
+   "item": "C2.chain_is_not_linear",
+   "baseline_green": true,
+   "baseline_value": {
+    "identical_input_gap": 0.0
+   },
+   "mutation_red": true,
+   "mutation_value": {
+    "max_abs_gap_0.55z+0.45y": 0.002197888226584844
+   },
+   "credited": true,
+   "note": "null control = the same expression with weights (1,0); a true zero there proves the gap above is the operator"
+  },
+  {
+   "item": "C3.chain_returns_None_on_a_flat_z",
+   "baseline_green": true,
+   "baseline_value": {
+    "real_z_returns_vector": true
+   },
+   "mutation_red": true,
+   "mutation_value": {
+    "zero_z_is_None": true,
+    "constant_z_is_None": true
+   },
+   "credited": true,
+   "note": "constant z demeans to zero on sel, so it degenerates too"
+  },
+  {
+   "item": "C4.dead_band_freezes_small_moves",
+   "baseline_green": true,
+   "baseline_value": {
+    "cells_that_moved_when_H_is_far": 30,
+    "n": 40
+   },
+   "mutation_red": true,
+   "mutation_value": {
+    "cells_frozen_when_H_is_near": 40,
+    "n": 40,
+    "size_of_the_move_that_was_frozen": 7.423604255357708e-05,
+    "band": 0.00025
+   },
+   "credited": true,
+   "note": "a non-zero move below the band is discarded; this is why C-DEGEN-STATE is a zero state and not 'let the EMA decay into flat' (the decay would freeze at a residue)"
+  },
+  {
+   "item": "C5.bitwise_equal_is_1ulp_sensitive",
+   "baseline_green": true,
+   "baseline_value": {
+    "identical_arrays_equal": true
+   },
+   "mutation_red": true,
+   "mutation_value": {
+    "cells_differ_after_one_ulp": 1
+   },
+   "credited": true,
+   "note": ""
+  },
+  {
+   "item": "C6.zf_is_the_production_rank_transform",
+   "baseline_green": true,
+   "baseline_value": {
+    "matches_rankdata_bitwise": true
+   },
+   "mutation_red": true,
+   "mutation_value": {
+    "swapping_two_scores_changes_zf": true
+   },
+   "credited": true,
+   "note": ""
+  },
+  {
+   "item": "C7.weights_file_is_float32_and_1e-9_filtered",
+   "baseline_green": true,
+   "baseline_value": {
+    "below_1e-9_dropped": 0.0
+   },
+   "mutation_red": true,
+   "mutation_value": {
+    "float64_value": 0.3333333333333333,
+    "after_round_trip": 0.3333333432674408
+   },
+   "credited": true,
+   "note": ""
+  },
+  {
+   "item": "C8.decomposition_exact_on_additive_and_gap_shows_on_nonadditive",
+   "baseline_green": true,
+   "baseline_value": {
+    "GAP_LOO": 0.0,
+    "shapley_residual": 0.0,
+    "shapley": {
+     "FUND": 1.5,
+     "KING": -0.3999999999999999,
+     "F10": 2.25
+    },
+    "per_signal_ordering_range": {
+     "FUND": 0.0,
+     "KING": 1.1102230246251565e-16,
+     "F10": 0.0
+    }
+   },
+   "mutation_red": true,
+   "mutation_value": {
+    "GAP_LOO": -6.0,
+    "shapley_residual_still_zero": 0.0,
+    "per_signal_ordering_range": {
+     "FUND": 3.0,
+     "KING": 2.9999999999999996,
+     "F10": 3.0
+    }
+   },
+   "credited": true,
+   "note": "Shapley always sums to the total; the LOO gap is what exposes the interaction"
+  },
+  {
+   "item": "C9.empty_subset_is_None_not_zero",
+   "baseline_green": true,
+   "baseline_value": {
+    "non_empty_subset_mean": 1.5
+   },
+   "mutation_red": true,
+   "mutation_value": {
+    "empty_subset_value": null
+   },
+   "credited": true,
+   "note": "E-0920-C: 'no measurement' must never be encoded as a benign number"
+  },
+  {
+   "item": "C10.bucket_partition_check_fires",
+   "baseline_green": true,
+   "baseline_value": {
+    "partition_on_valid_kinds": true
+   },
+   "mutation_red": true,
+   "mutation_value": {
+    "partition_on_an_out_of_range_kind": false
+   },
+   "credited": true,
+   "note": ""
+  }
+ ],
+ "n_items": 10,
+ "n_credited": 10,
+ "failed": [],
+ "verdict": "ALL PASS",
+ "runtime_s": 3.4
+}
