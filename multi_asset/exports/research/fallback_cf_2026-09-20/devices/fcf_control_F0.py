@@ -7,7 +7,10 @@ What this certifies, and what it does not:
                 executor tree, seeds) is the same judge that produced the certified A0 tables — end to end, not by sha bookkeeping.
                 It also certifies that the run TAG has no numerical effect (the certified run's tag is OBJB_A0|…, this one's is
                 OBJB_F0|…, and the tag travels into the target document's booster_sha / producer fields).
-  IT DOES NOT   certify any arm's return, and it is not a judgement about any arm.
+  IT DOES NOT   certify any arm's return, and it is not a judgement about any arm. It also does NOT make any later agreement
+                between the two pipelines into independent evidence: once the path files and their flatten_log are identical,
+                two devices reading them agree because they are reading the SAME BYTES. Downstream agreement is therefore
+                cross-device consistency on a shared artefact, never a second measurement of the world.
 
 A DIFFERENCE IS A REFUSAL, not a tolerance: every array of every seed must be bitwise equal. The comparison is over the FULL key set of
 both files (asserted equal first), so a key present in one and missing in the other is a failure, not an unexamined pass.
@@ -47,10 +50,27 @@ def main():
         diff = [k for k in ka if (Za[k].dtype != Zb[k].dtype or Za[k].shape != Zb[k].shape or Za[k].tobytes() != Zb[k].tobytes())]
         ok = not diff
         if not ok: bad.append(f"seed{s:02d}:" + ",".join(diff[:4]))
+        # ALSO compare the .json sidecar, because the P2 reading device reads `flatten_log` from it and the npz comparison
+        # alone says nothing about that field. Provenance fields (tag, run, runtime, config/sealed shas) are EXPECTED to
+        # differ — this run is configured separately — so they are listed rather than counted as a failure.
+        PROV = {"tag", "run", "runtime_s", "config_sha256", "sealed_initial_sha256"}
+        ja = json.load(open(os.path.join(MD, f"PATH_{MT}_seed_{s:02d}.json")))
+        jb = json.load(open(os.path.join(CD, f"PATH_{CT}_seed_{s:02d}.json")))
+        sub = sorted(k for k in set(ja) | set(jb)
+                     if k not in PROV and json.dumps(ja.get(k), sort_keys=True) != json.dumps(jb.get(k), sort_keys=True))
+        fl_same = json.dumps(ja.get("flatten_log"), sort_keys=True) == json.dumps(jb.get("flatten_log"), sort_keys=True)
+        if not fl_same or sub: bad.append(f"seed{s:02d}:sidecar:" + ",".join((["flatten_log"] if not fl_same else []) + sub)[:60])
+        ok = ok and fl_same and not sub
         doc["seeds"][s] = {"ok": ok, "n_keys": len(ka), "keys_differing": diff[:8],
                            "npz_sha256_mine": sha(a), "npz_sha256_certified": sha(b),
+                           "sidecar_flatten_log_identical": fl_same,
+                           "sidecar_substantive_keys_differing": sub,
+                           "sidecar_provenance_keys_expected_to_differ": sorted(PROV),
                            "nav_last_mine": float(Za["nav1"][-1]), "nav_last_certified": float(Zb["nav1"][-1])}
     doc["n_seeds_bitwise_equal"] = sum(1 for v in doc["seeds"].values() if v.get("ok"))
+    doc["n_sidecar_flatten_log_identical"] = sum(1 for v in doc["seeds"].values() if v.get("sidecar_flatten_log_identical"))
+    doc["coverage"] = ("every array of every path npz, PLUS the .json sidecar's flatten_log and every non-provenance sidecar key; "
+                       "provenance keys (tag/run/runtime_s/config_sha256/sealed_initial_sha256) are expected to differ and are listed")
     doc["VERDICT"] = "PASS" if (not bad and doc["n_seeds_bitwise_equal"] == NS) else "REFUSED"
     doc["failures"] = bad
     json.dump(doc, open(OUTP + ".tmp", "w"), indent=1); os.replace(OUTP + ".tmp", OUTP)

@@ -254,6 +254,14 @@ for _nm, _r in _P2["runs"].items():
 for _a, _v in (("F0", -0.2513), ("F1", -0.1752), ("F2", -0.1278), ("F4a", -0.2241), ("F4bp", -0.2506)):
     _we = _P2["runs"][[k for k in _P2["runs"] if k.endswith(f"arm {_a})")][0]]["bases"][_B]["never"]["W_ENTRY"]["summary"]["end_return_P2"]["measured"]
     add(f"\u00a76.2 never row is the W-ENTRY figure for {_a}", round(_we["mean"], 4), _v)
+# ---- §2.1 control now also covers the sidecar (the gap the seed-claim correction exposed) ----
+_C0 = json.load(open(f"{R}/FCF_CONTROL_F0.json"))
+add("\u00a72.1 control verdict", _C0["VERDICT"], "PASS")
+add("\u00a72.1 seeds bitwise equal", _C0["n_seeds_bitwise_equal"], 32)
+add("\u00a76(a) sidecar flatten_log identical (why the seed match is NOT independent evidence)",
+    _C0["n_sidecar_flatten_log_identical"], 32)
+add("\u00a76(a) no substantive sidecar key differs",
+    max(len(v["sidecar_substantive_keys_differing"]) for v in _C0["seeds"].values()), 0)
 bad = [r for r in rows if r[1] != r[2]]
 for lab, got, doc in rows:
     print(("  OK   " if got == doc else "MISMATCH ") + f"{lab:52s} receipt={got!r:>12}  doc={doc!r}")
