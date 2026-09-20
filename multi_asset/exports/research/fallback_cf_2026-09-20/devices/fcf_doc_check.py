@@ -262,6 +262,14 @@ add("\u00a76(a) sidecar flatten_log identical (why the seed match is NOT indepen
     _C0["n_sidecar_flatten_log_identical"], 32)
 add("\u00a76(a) no substantive sidecar key differs",
     max(len(v["sidecar_substantive_keys_differing"]) for v in _C0["seeds"].values()), 0)
+# ---- the entailment premise for §6(a): the reading parameters ARE the certified ones, so the seed match is a consequence ----
+_MY = json.load(open("/workspace/fallback_cf_2026-09-20/RUN_CONFIG_P2reading_F_2026-09-20.json"))
+_CE = json.load(open("/workspace/baseline_tables_2026-09-19/RUN_CONFIG_P2reading_A0_2026-09-20.json"))
+for _k in ("p_reading", "p2_reading", "paths_R"):
+    add(f"\u00a76(a) reading config `{_k}` byte-identical to the certified config",
+        json.dumps(_MY.get(_k), sort_keys=True) == json.dumps(_CE.get(_k), sort_keys=True), True)
+add("\u00a76(a) base anchors identical",
+    [b["anchor"] for b in _MY["p_reading"]["bases"]], [b["anchor"] for b in _CE["p_reading"]["bases"]])
 bad = [r for r in rows if r[1] != r[2]]
 for lab, got, doc in rows:
     print(("  OK   " if got == doc else "MISMATCH ") + f"{lab:52s} receipt={got!r:>12}  doc={doc!r}")
