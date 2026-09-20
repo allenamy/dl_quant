@@ -211,6 +211,22 @@ ad = AP["adversarial_check_on_clause_2"]
 add("\u00a78.5.5 clause-2 blind set size", ad["n_anchors_blind_to_clause_2"], 1)
 add("\u00a78.5.5 the blind anchor", ad["blind_anchors"][0], "2022-01-31T04:00:00Z")
 add("\u00a78.5.5 divergence inside the blind set?", ad["divergence_is_inside_the_blind_set"], False)
+# ---- p2's receipt-only positive control on the W_ENTRY/W_CARRY split (§6 declaration 1) ----
+SC = json.load(open(f"{R}/FCF_SEMANTICS_CONTROL.json"))
+scc = {c["check"]: c for c in SC["checks"]}
+add("\u00a76 semantics control verdict", SC["VERDICT"], "PASS")
+add("\u00a76 predicted == observed differing set",
+    scc["predicted_differing_set_equals_observed_differing_set"]["ok"], True)
+add("\u00a76 n predicted differing",
+    scc["predicted_differing_set_equals_observed_differing_set"]["detail"]["n_predicted"], 4)
+add("\u00a76 n observed differing",
+    scc["predicted_differing_set_equals_observed_differing_set"]["detail"]["n_observed"], 4)
+add("\u00a76 split is exercised (flag demonstrably wired)",
+    "the_split_is_EXERCISED_by_this_data_so_the_flag_is_demonstrably_wired" in scc, True)
+_pre = {c["run"]: c["n_paths_with_pre_base_flattens"] for c in SC["cells"]
+        if c["H"] == "never" and c["base"] == "2023-06-30T04:00:00Z"}
+for _a, _n in (("F0", 4), ("F1", 32), ("F2", 0), ("F4a", 32), ("F4bp", 32)):
+    add(f"\u00a76 {_a} paths with pre-base flattens", _pre.get(_a), _n)
 bad = [r for r in rows if r[1] != r[2]]
 for lab, got, doc in rows:
     print(("  OK   " if got == doc else "MISMATCH ") + f"{lab:52s} receipt={got!r:>12}  doc={doc!r}")

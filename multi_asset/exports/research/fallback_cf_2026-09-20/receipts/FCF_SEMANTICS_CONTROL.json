@@ -1,0 +1,499 @@
+{
+ "device": "fcf_semantics_control.py",
+ "self_sha256": "72cc9bf9771a22f9bbf6781667e93c95fdb1efa7a681f99539d948cb2f580a7a",
+ "source": {
+  "path": "receipts/FCF_P2_READING.json",
+  "sha256": "1992dd3654092b1e4fbe3d29b32c2d182d6022f7e177a160c91e7aab23c6f616"
+ },
+ "control": "p2-aggregation-fix's receipt-only positive control on the W_ENTRY / W_CARRY split",
+ "rule": "a cell MUST differ iff H == 'never' and some path has W_CARRY.day_stop_events_in_scope > W_ENTRY's",
+ "utc": "2026-09-20T15:16:29Z",
+ "checks": [
+  {
+   "check": "pre_base_flatten_count_is_the_same_under_every_H_for_a_given_base",
+   "ok": true,
+   "detail": {
+    "n_base_cells": 10,
+    "n_inconsistent": 0
+   }
+  },
+  {
+   "check": "predicted_differing_set_equals_observed_differing_set",
+   "ok": true,
+   "detail": {
+    "n_predicted": 4,
+    "n_observed": 4,
+    "predicted_not_observed": [],
+    "observed_not_predicted": []
+   }
+  },
+  {
+   "check": "the_split_is_EXERCISED_by_this_data_so_the_flag_is_demonstrably_wired",
+   "ok": true,
+   "detail": {
+    "n_cells_that_differ": 4,
+    "cells": [
+     "F0|H=never",
+     "F1|H=never",
+     "F4a|H=never",
+     "F4bp|H=never"
+    ],
+    "meaning": "a never-wired flag would make the two semantics identical everywhere; they are not"
+   }
+  }
+ ],
+ "cells": [
+  {
+   "run": "F0",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "12",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F0",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "20",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F0",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "8",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F0",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "never",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F0",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "sim",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F0",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "12",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 4,
+   "total_pre_base_flattens": 4
+  },
+  {
+   "run": "F0",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "20",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 4,
+   "total_pre_base_flattens": 4
+  },
+  {
+   "run": "F0",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "8",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 4,
+   "total_pre_base_flattens": 4
+  },
+  {
+   "run": "F0",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "never",
+   "predicted_to_differ": true,
+   "observed_to_differ": true,
+   "n_paths_with_pre_base_flattens": 4,
+   "total_pre_base_flattens": 4
+  },
+  {
+   "run": "F0",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "sim",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 4,
+   "total_pre_base_flattens": 4
+  },
+  {
+   "run": "F1",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "12",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F1",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "20",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F1",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "8",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F1",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "never",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F1",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "sim",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F1",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "12",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 32,
+   "total_pre_base_flattens": 32
+  },
+  {
+   "run": "F1",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "20",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 32,
+   "total_pre_base_flattens": 32
+  },
+  {
+   "run": "F1",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "8",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 32,
+   "total_pre_base_flattens": 32
+  },
+  {
+   "run": "F1",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "never",
+   "predicted_to_differ": true,
+   "observed_to_differ": true,
+   "n_paths_with_pre_base_flattens": 32,
+   "total_pre_base_flattens": 32
+  },
+  {
+   "run": "F1",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "sim",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 32,
+   "total_pre_base_flattens": 32
+  },
+  {
+   "run": "F2",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "12",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F2",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "20",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F2",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "8",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F2",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "never",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F2",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "sim",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F2",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "12",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F2",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "20",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F2",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "8",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F2",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "never",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F2",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "sim",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F4a",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "12",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F4a",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "20",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F4a",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "8",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F4a",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "never",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F4a",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "sim",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F4a",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "12",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 32,
+   "total_pre_base_flattens": 32
+  },
+  {
+   "run": "F4a",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "20",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 32,
+   "total_pre_base_flattens": 32
+  },
+  {
+   "run": "F4a",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "8",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 32,
+   "total_pre_base_flattens": 32
+  },
+  {
+   "run": "F4a",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "never",
+   "predicted_to_differ": true,
+   "observed_to_differ": true,
+   "n_paths_with_pre_base_flattens": 32,
+   "total_pre_base_flattens": 32
+  },
+  {
+   "run": "F4a",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "sim",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 32,
+   "total_pre_base_flattens": 32
+  },
+  {
+   "run": "F4bp",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "12",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F4bp",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "20",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F4bp",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "8",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F4bp",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "never",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F4bp",
+   "base": "2022-06-30T00:00:00Z",
+   "H": "sim",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 0,
+   "total_pre_base_flattens": 0
+  },
+  {
+   "run": "F4bp",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "12",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 32,
+   "total_pre_base_flattens": 32
+  },
+  {
+   "run": "F4bp",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "20",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 32,
+   "total_pre_base_flattens": 32
+  },
+  {
+   "run": "F4bp",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "8",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 32,
+   "total_pre_base_flattens": 32
+  },
+  {
+   "run": "F4bp",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "never",
+   "predicted_to_differ": true,
+   "observed_to_differ": true,
+   "n_paths_with_pre_base_flattens": 32,
+   "total_pre_base_flattens": 32
+  },
+  {
+   "run": "F4bp",
+   "base": "2023-06-30T04:00:00Z",
+   "H": "sim",
+   "predicted_to_differ": false,
+   "observed_to_differ": false,
+   "n_paths_with_pre_base_flattens": 32,
+   "total_pre_base_flattens": 32
+  }
+ ],
+ "VERDICT": "PASS",
+ "failed": []
+}
