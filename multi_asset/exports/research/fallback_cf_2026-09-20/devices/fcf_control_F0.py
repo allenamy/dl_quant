@@ -53,6 +53,12 @@ def main():
         # ALSO compare the .json sidecar, because the P2 reading device reads `flatten_log` from it and the npz comparison
         # alone says nothing about that field. Provenance fields (tag, run, runtime, config/sealed shas) are EXPECTED to
         # differ — this run is configured separately — so they are listed rather than counted as a failure.
+        # tag / run / runtime_s / config_sha256 are labels or timing: benign on inspection.
+        # sealed_initial_sha256 is NOT a label, it names STATE, so its benignness is PROVED rather than assumed:
+        # fcf_sealed_state_probe.py (receipt FCF_SEALED_STATE_PROBE.json, VERDICT=PASS) reconstructs the sealed object from
+        # bt_hist_sim31 L244-247 and shows that swapping ONLY `tag` reproduces the other run's sha on all 32 seeds — the state
+        # is a flat start (no positions, no entries, empty stop state, NAV0 in cash, same t0/seed/policy) and `tag` is the sole
+        # differing member. An enumerated difference still asserts "this cannot matter"; for this key that had to be earned.
         PROV = {"tag", "run", "runtime_s", "config_sha256", "sealed_initial_sha256"}
         ja = json.load(open(os.path.join(MD, f"PATH_{MT}_seed_{s:02d}.json")))
         jb = json.load(open(os.path.join(CD, f"PATH_{CT}_seed_{s:02d}.json")))

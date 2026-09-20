@@ -270,6 +270,16 @@ for _k in ("p_reading", "p2_reading", "paths_R"):
         json.dumps(_MY.get(_k), sort_keys=True) == json.dumps(_CE.get(_k), sort_keys=True), True)
 add("\u00a76(a) base anchors identical",
     [b["anchor"] for b in _MY["p_reading"]["bases"]], [b["anchor"] for b in _CE["p_reading"]["bases"]])
+# ---- the sealed-initial-state question (§2.1): proved benign, not assumed ----
+_SS = json.load(open(f"{R}/FCF_SEALED_STATE_PROBE.json"))
+add("\u00a72.1 sealed-state probe verdict", _SS["VERDICT"], "PASS")
+add("\u00a72.1 the two sealed shas really do differ",
+    sum(1 for v in _SS["seeds"].values() if v["observed_differ"]), 32)
+add("\u00a72.1 my sealed sha reproduced by flat-start + MY tag",
+    sum(1 for v in _SS["seeds"].values() if v["mine_reproduced"]), 32)
+add("\u00a72.1 certified sealed sha reproduced by the SAME object with ONLY the tag swapped",
+    sum(1 for v in _SS["seeds"].values() if v["certified_reproduced"]), 32)
+add("\u00a72.1 finding is reading (a) benign", _SS["finding"].startswith("(a) BENIGN"), True)
 bad = [r for r in rows if r[1] != r[2]]
 for lab, got, doc in rows:
     print(("  OK   " if got == doc else "MISMATCH ") + f"{lab:52s} receipt={got!r:>12}  doc={doc!r}")
