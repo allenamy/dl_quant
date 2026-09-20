@@ -17,11 +17,14 @@ Checks (each named; any failure ⇒ no config, exit 1):
      extension receipt's own B_CORE_start is recorded (not used).
 Window: first anchor 2022-06-30T00Z (prereg); last anchor = 2026-09-18T20Z if the extension segment is among the sources, else the last
 anchor the main-axis targets cover minus nothing — the config then says which, and the result doc must label it.
-v2 (2026-09-20, the extension run): optional <run_tag_suffix> — the run tags become OBJB_A0<suffix>|… so the extended runs write their own
+v2 (2026-09-20, the extension run): optional <run_tag_suffix> — the run tags become OBJB_<ARM><suffix>|… so the extended runs write their own
 run directories and never touch the ones already published; the config name comes from the output file name. A new check D.ext_B_CORE_start
 compares an extension receipt's B_CORE_start with the main receipt's when both are given.
+v3 (2026-09-20, the v4 arm): optional <arm> ∈ {A0, V4} (default A0) — it drives the receipt check (targets and run config must BOTH say that
+arm), the adapter's arm argument, and which of the template's runs are kept (arm == "OBJB_<ARM>"). Everything else is identical, and the A0
+call is byte-for-byte the config it wrote before (regression-checked against RUN_CONFIG_main_A0ext_2026-09-20.json acafccc6).
 usage: env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B bt_objb_prerun.py PATH,HOME,LC_CTYPE universe <out.json>
-       env -i … bt_objb_prerun.py PATH,HOME,LC_CTYPE full <out.json> <template.json> <frozen_config_out.json> <gate_f_sha_at_d3596aced> <tag>[,<ext_tag>] [<run_tag_suffix>]
+       env -i … bt_objb_prerun.py PATH,HOME,LC_CTYPE full <out.json> <template.json> <frozen_config_out.json> <gate_f_sha_at_d3596aced> <tag>[,<ext_tag>] [<run_tag_suffix>] [<arm>]
 """
 import os, sys, json, time, hashlib, calendar
 WL = set(sys.argv[1].split(",")) if len(sys.argv) > 1 else set()
@@ -79,6 +82,9 @@ if MODE == "universe": done(0 if not FAILS else 1)
 TEMPLATE = json.load(open(sys.argv[4])); CFG_OUT = sys.argv[5]; GATE_SHA_GIT = sys.argv[6]; TAGS = sys.argv[7].split(",")
 SUF = sys.argv[8] if len(sys.argv) > 8 else ""
 assert all(ch.isalnum() or ch in "_-" for ch in SUF), "run tag suffix must be alphanumeric"
+ARM = sys.argv[9] if len(sys.argv) > 9 else "A0"
+assert ARM in ("A0", "V4"), f"arm must be A0 or V4, not {ARM}"
+rec["arm"] = ARM
 gate_p = OB + "/receipts/GATE_F.json"; gate_sha = OT.sha_file(gate_p); G = json.load(open(gate_p))
 check("G.gate_f_file_equals_the_d3596aced_blob", gate_sha == GATE_SHA_GIT, {"pod": gate_sha[:16], "git_d3596aced": GATE_SHA_GIT[:16]})
 check("G.gate_f_verdict_PASS", G.get("VERDICT") == "PASS", G.get("VERDICT"))
@@ -91,7 +97,7 @@ for tag in TAGS:
     TJ = json.load(open(tj)); RC = json.load(open(rc))
     check(f"G.{tag}.p3_sha_matches_targets_receipt", OT.sha_file(p3) == TJ.get("p3_json_sha256"))
     check(f"G.{tag}.run_config_gate_f_PASS_same_file", RC.get("gate_f_verdict") == "PASS" and RC.get("gate_f_sha256") == gate_sha, {"verdict": RC.get("gate_f_verdict"), "sha": str(RC.get("gate_f_sha256"))[:16]})
-    check(f"G.{tag}.arm_A0", TJ.get("arm") == "A0" and RC.get("arm", "A0") == "A0", {"targets": TJ.get("arm"), "run_config": RC.get("arm", "A0")})
+    check(f"G.{tag}.arm_{ARM}", TJ.get("arm") == ARM and RC.get("arm", "A0") == ARM, {"targets": TJ.get("arm"), "run_config": RC.get("arm", "A0"), "want": ARM})
     check(f"T.{tag}.npz_sha_matches_receipt", OT.sha_file(tn) == TJ.get("targets_npz_sha256"))
     sources.append({"npz": tn, "npz_sha256": OT.sha_file(tn), "receipt": tj, "receipt_sha256": OT.sha_file(tj)})
     info[tag] = dict(axis=TJ.get("axis"), data=TJ.get("data"), B_CORE_start=TJ.get("B_CORE_start"), king_first_served=TJ.get("king_first_served"),
@@ -101,7 +107,7 @@ if FAILS: done(1)
 T = {}
 for reading in OT.READINGS:
     try:
-        T[reading] = OT.load_targets(sources, reading=reading, arm="A0")
+        T[reading] = OT.load_targets(sources, reading=reading, arm=ARM)
         check(f"T.load_and_validate.{reading}", True, {"axis": [iso(T[reading]["anchor"][0]), iso(T[reading]["anchor"][-1])], "n": len(T[reading]["anchor"])})
     except OT.TargetFormatError as e:
         check(f"T.load_and_validate.{reading}", False, str(e))
@@ -132,19 +138,21 @@ if FAILS: done(1)
 # ---------------- the frozen A0 config ----------------
 C = json.loads(json.dumps(TEMPLATE))
 C["config"] = os.path.basename(CFG_OUT)[:-5] if CFG_OUT.endswith(".json") else os.path.basename(CFG_OUT)
-C["status"] = "FROZEN before any object-B number of this device (A0 part; pairing with the v4 refit follows)"
+C["status"] = f"FROZEN before any object-B number of this device (arm {ARM}" + ("; pairing with the v4 refit follows)" if ARM == "A0" else "; paired against the published A0 arm)")
 C["created_utc"] = rec["utc"]; C["frozen_by"] = {"device": "bt_objb_prerun.py", "sha256": rec["self_sha256"], "receipt": OUTP}
 C["window"]["last_anchor"] = iso(last); C["window"]["n_anchors"] = int(len(win)); C["window"]["full_recipe_start"] = bcore
 C["window"]["coverage"] = ("full prereg window" if last == end_full else f"targets end at {iso(last)}: the extension segment to 2026-09-18T20Z follows with the extension targets")
-C["runs"] = [r for r in C["runs"] if r["arm"] == "OBJB_A0"]
+C["runs"] = [r for r in C["runs"] if r["arm"] == "OBJB_" + ARM]
+assert C["runs"], f"the template has no runs for arm OBJB_{ARM}"
 for r in C["runs"]:
     r["targets"]["sources"] = sources
-    if SUF: r["tag"] = r["tag"].replace("OBJB_A0|", "OBJB_A0" + SUF + "|", 1)     # its own run directories; the published runs are never touched
+    if SUF: r["tag"] = r["tag"].replace(f"OBJB_{ARM}|", f"OBJB_{ARM}{SUF}|", 1)   # its own run directories; the published runs are never touched
 C["run_tag_suffix"] = SUF or None
 C["launch"]["max_parallel"] = 4
-C["pending"] = {"(a) object-B A0 targets": "filled: " + ", ".join(TAGS) + " (gate F lineage checked)", "(b) object-B v4 targets": "not in this config: the v4 runs and the pairing table follow on the lead's go",
+C["pending"] = {f"(a) object-B {ARM} targets": "filled: " + ", ".join(TAGS) + " (gate F lineage checked)",
+                "(b) the other arm": ("not in this config: the v4 runs and the pairing table follow on the lead's go" if ARM == "A0" else "this IS the v4 arm; the A0 arm is already published"),
                 "(c) restored prices to 09-18T20Z": "DONE (pinned)", "(d) full-recipe window start": f"filled from TARGETS_{TAGS[0]}.json B_CORE_start"}
 C["objb_lineage"] = {"gate_f_sha256": gate_sha, "gate_f_commit": "d3596aced", "sources": info}
 json.dump(C, open(CFG_OUT, "w"), indent=1, ensure_ascii=False)
-rec["frozen_config"] = {"path": CFG_OUT, "sha256": OT.sha_file(CFG_OUT), "runs": [r["tag"] for r in C["runs"]], "window": [iso(first), iso(last)], "full_recipe_start": bcore}
+rec["frozen_config"] = {"arm": ARM, "path": CFG_OUT, "sha256": OT.sha_file(CFG_OUT), "runs": [r["tag"] for r in C["runs"]], "window": [iso(first), iso(last)], "full_recipe_start": bcore}
 done(0)

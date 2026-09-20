@@ -1,0 +1,23 @@
+{
+ "device": "bt_objb_prerun.py v3 (arm parameter) regression check",
+ "utc": "2026-09-20T02:57:56Z",
+ "question": "does the v3 device, called with arm=A0, still write the SAME frozen config as the v2 device wrote for the extension run?",
+ "compared_to": {
+  "path": "RUN_CONFIG_main_A0ext_2026-09-20.json",
+  "sha256": "acafccc6b3b7a1e15ab502b92b5bd78603da1befa2d2b10bf063fc4937f9ab3b"
+ },
+ "keys_that_differ": [
+  "config",
+  "created_utc",
+  "frozen_by",
+  "pending",
+  "status"
+ ],
+ "substantive_keys_that_differ": [],
+ "runs_identical": true,
+ "window_identical": true,
+ "pins_identical": true,
+ "objb_lineage_identical": true,
+ "VERDICT": "PASS",
+ "note": "the differing keys are the config NAME (taken from the output file name), the timestamp, the device sha, and two wording fields the v3 device intentionally rephrases (status / pending); nothing that governs a run changed."
+}
