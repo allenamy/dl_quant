@@ -113,3 +113,16 @@ bash $R/post_v4.sh > $R/logs/post_v4.log 2>&1
 # (Mac) /usr/bin/python3 devices/bt_main_render.py receipts/pod2/receipts/BT_MAIN_V4.json receipts/pod2/receipts/BT_RUN_SUMMARY_V4.json receipts/V4_TABLES_rendered.md
 # (Mac) /usr/bin/python3 devices/bt_pair_render.py receipts/pod2/receipts/BT_MAIN_PAIR_A0_vs_V4.json receipts/PAIR_A0_vs_V4_rendered.md
 # (Mac) /usr/bin/python3 devices/bt_p_render.py receipts/pod2/receipts/BT_P_READING_V4.json receipts/V4_P_TABLES_rendered.md
+# ---- round-6 review (R6-02 provenance gate, R6-03 halt/resume) — lead 2026-09-20 ----
+# p. the approved-inputs table (cross-checked across the three frozen configs, every entry re-hashed from its own path)
+env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B bt_approved_inputs.py PATH,HOME,LC_CTYPE $R/APPROVED_INPUTS_2026-09-20.json $R/RUN_CONFIG_main_A0_2026-09-19.json $R/RUN_CONFIG_main_A0ext_2026-09-20.json $R/RUN_CONFIG_main_V4_2026-09-20.json
+# q. the tamper cases against BOTH gates (copies only; nothing in runs/ is touched)
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_gate_tamper_test.py PATH,HOME,LC_CTYPE $R/APPROVED_INPUTS_2026-09-20.json $R/RUN_CONFIG_main_A0_2026-09-19.json $R/runs_smoke/gov0_215215/OBJB_A0_scaled_rule_raw_UAFE 4 $R/work/tamper $R/receipts/BT_GATE_TAMPER_TEST.json > $R/logs/bt_gate_tamper_test.log 2>&1
+# r. the external-provenance gate at FULL coverage on the three main-reading run directories (devices/chains/gate_all.sh)
+bash $R/gate_all.sh          # writes receipts/BT_GATE_EXTERNAL_{A0,A0X,V4}_scaled.json and logs/bt_gate_external_all.log
+# s. reading P2 (AMENDMENT 3): the three configs are the frozen P configs plus the pre-declared p2_reading block
+for a in A0 A0ext V4; do
+  env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 /workspace/venv/bin/python -B bt_p2_reading.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_P2reading_${a}_2026-09-20.json $R/receipts/BT_P2_READING_${a}.json
+done
+# (Mac) /usr/bin/python3 devices/bt_p2_reading_test.py <scratch> receipts/BT_P2_READING_TEST_mac.json
+# (Mac) for a in A0 A0ext V4; do /usr/bin/python3 devices/bt_p2_render.py receipts/pod2/receipts/BT_P2_READING_$a.json receipts/${a}_P2_TABLES_rendered.md; done
