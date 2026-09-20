@@ -3,7 +3,16 @@
 The doc's tables are machine-rendered; these are the ones a human typed, so they are the ones that can be wrong.
 usage: fcf_doc_check.py   (prints "receipt value" next to "as written in the doc"; any row that does not match is a defect)
 """
-import json
+import json, re, sys
+
+# --without-arm <ARM>: exercise the demotion path. Assertions ABOUT that arm are skipped (and COUNTED, so a skip that silently
+# does nothing is visible in the verdict line); every other assertion must still pass. Used by fcf_demotion_drill.py.
+# NOTE the boundary match: labels contain forms like 'F4bp-F0', which split() keeps as ONE token, so a token test silently
+# skipped nothing the first time I wrote this. Non-alphanumeric boundaries also stop 'F4b' matching 'F4bp'.
+WITHOUT = None
+for _i, _a in enumerate(sys.argv):
+    if _a == '--without-arm' and _i + 1 < len(sys.argv): WITHOUT = sys.argv[_i + 1]
+SKIPPED = []
 
 R = "/workspace/fallback_cf_2026-09-20/receipts"
 T = json.load(open(f"{R}/FCF_TABLES.json"))
@@ -16,8 +25,9 @@ rows = []
 
 
 def add(label, got, doc):
+    if WITHOUT and re.search(r'(?<![A-Za-z0-9])' + re.escape(WITHOUT) + r'(?![A-Za-z0-9])', label):
+        SKIPPED.append(label); return
     rows.append((label, got, doc))
-
 
 for a in ("F0", "F1", "F2", "F4a"):
     c = T["arms"][a]["cells"][FB]
@@ -85,7 +95,15 @@ for (lab, H), want in DOC_P2.items():
             print("  NOTE  \u00a76.2 %s H=%s %-5s end_return_P2 mean = %+.4f  (n_eff %d) \u2014 not yet quoted in the doc"
                   % (lab, H, a, m["mean"], m["n_eff"])); continue
         add(f"\u00a76.2 {lab} H={H} {a} end_return_P2 mean", round(m["mean"], 4), w_)
-        add(f"§6.2 {lab} H={H} {a} n_eff beside the mean", m["n_eff"], 32)
+        # E-0920-C balance identity: measured + not-applicable must close on the declared population. Stays green on a
+        # legitimately incomplete population (a path that traded no anchor of the window); still red if a member vanishes
+        # from both sides. Raised by p2-aggregation-fix, who owns the aggregator: a hardcoded n_eff == 32 would go red on a
+        # CORRECT number the moment a never/later-base figure is printed, and the cheap way out would be to relax it.
+        blk = r["bases"][B][H]["W_ENTRY"]["summary"]["end_return_P2"]
+        add(f"§6.2 {lab} H={H} {a} population closes (n_eff + no_measurement == population_n)",
+            m["n_eff"] + blk["no_measurement"]["n"], m["population_n"])
+        # a SEPARATE, differently-named claim, so "arithmetic closed" and "population happens to be complete" are not welded:
+        add(f"§6.2 {lab} H={H} {a} population is COMPLETE for the printed figure", m["n_eff"], m["population_n"])
 # §6.1 median halt anchors quoted in the doc
 for lab, B, want in (("FULLRECIPE", B2, {"F0": "2024-03-18T16:00:00Z", "F1": "2024-07-15T16:00:00Z", "F2": "2024-08-05T08:00:00Z",
                                          "F4a": "2024-06-18T08:00:00Z"}),
@@ -196,5 +214,6 @@ add("\u00a78.5.5 divergence inside the blind set?", ad["divergence_is_inside_the
 bad = [r for r in rows if r[1] != r[2]]
 for lab, got, doc in rows:
     print(("  OK   " if got == doc else "MISMATCH ") + f"{lab:52s} receipt={got!r:>12}  doc={doc!r}")
-print(f"\nFCF_DOC_CHECK VERDICT={'PASS' if not bad else 'MISMATCH'} checked={len(rows)} mismatching={len(bad)}")
+print(f"\nFCF_DOC_CHECK VERDICT={'PASS' if not bad else 'MISMATCH'} checked={len(rows)} mismatching={len(bad)}"
+      + (f' | skipped(--without-arm {WITHOUT}): {len(SKIPPED)}' if WITHOUT else ''))
 raise SystemExit(0 if not bad else 3)

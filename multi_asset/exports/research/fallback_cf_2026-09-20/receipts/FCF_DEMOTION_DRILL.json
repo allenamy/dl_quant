@@ -1,0 +1,65 @@
+{
+ "device": "fcf_demotion_drill.py",
+ "self_sha256": "ca4ad81ab7c3137cc481c97a780d9bd00c752503aca43b92375b1bc653a70dff",
+ "claim_under_test": "pulling F4b' is a one-line change and no other number moves",
+ "utc": "2026-09-20T15:06:46Z",
+ "steps": [
+  {
+   "step": "1.rebuild_tables_with_the_arm_pulled",
+   "ok": true,
+   "detail": {
+    "returncode": 0,
+    "tail": [
+     "    F4a  g +0.5125  cagr +0.2117  sharpe 1.027  maxdd4h -0.2930  turn/gross 0.0854  fee +0.2145  daystops 3.6  pnstops 628.3  hold 0"
+    ]
+   }
+  },
+  {
+   "step": "2.the_pulled_build_really_has_no_F4bp",
+   "ok": true,
+   "detail": {
+    "arms_in_pulled": [
+     "F0",
+     "F1",
+     "F2",
+     "F4a"
+    ],
+    "arms_in_shipped": [
+     "F0",
+     "F1",
+     "F2",
+     "F4a",
+     "F4bp"
+    ]
+   }
+  },
+  {
+   "step": "3.no_other_number_moves_when_the_arm_is_pulled",
+   "ok": true,
+   "detail": {
+    "n_compared": 7998,
+    "n_moved": 0,
+    "moved": [],
+    "only_in_shipped": [],
+    "only_in_pulled": []
+   }
+  },
+  {
+   "step": "4.doc_check_passes_with_the_arm_ACTUALLY_excluded",
+   "ok": true,
+   "detail": {
+    "returncode": 0,
+    "verdict_line": "FCF_DOC_CHECK VERDICT=PASS checked=246 mismatching=0 | skipped(--without-arm F4bp): 38",
+    "full_verdict_line": "FCF_DOC_CHECK VERDICT=PASS checked=284 mismatching=0",
+    "n_skipped": 38,
+    "n_checked_without_arm": 246,
+    "n_checked_full": 284,
+    "balance": "checked_without_arm + skipped == checked_full",
+    "why": "a skip of 0 would make this step a second run of the full check, i.e. a vacuous green"
+   }
+  }
+ ],
+ "VERDICT": "PASS",
+ "failed": [],
+ "conclusion": "the demotion is genuinely a one-line change: rebuilding without the arm leaves every other number bitwise identical and the remaining prose still verifies"
+}
