@@ -60,26 +60,31 @@ for lab, B, want in (("FULLRECIPE", B2, {"F0": 32, "F1": 32, "F2": 10, "F4a": 32
     for nm, r in P["runs"].items():
         a = nm.split("arm ")[-1].rstrip(")")
         mem = r["bases"][B]["summary"]["end_return_phalt"]["population"]["members"]
-        add(f"§6.1 {lab} {a} paths breaching", sum(1 for m in mem if m.get("fired")), want[a])
+        if a not in want: continue
+        add(f"\u00a76.1 {lab} {a} paths breaching", sum(1 for m in mem if m.get("fired")), want[a])
         add(f"§6.1 {lab} {a} P-halt end mean", round(r["bases"][B]["summary"]["end_return_phalt"]["measured"]["mean"], 4),
             {("FULLRECIPE", "F0"): -0.2527, ("FULLRECIPE", "F1"): -0.2519, ("FULLRECIPE", "F2"): 1.2889, ("FULLRECIPE", "F4a"): -0.2514,
              ("RUNWINDOW", "F0"): -0.2527, ("RUNWINDOW", "F1"): 3.0995, ("RUNWINDOW", "F2"): 2.6908, ("RUNWINDOW", "F4a"): 2.5397}[(lab, a)])
 # §6.2 — the hand-typed reading-P2 table (W_ENTRY, the AMENDMENT 4 main slice)
 P2 = json.load(open(f"{R}/FCF_P2_READING.json"))
 DOC_P2 = {
-    ("RUNWINDOW", "12"): {"F0": -0.2526, "F1": 3.0161, "F2": 2.6456, "F4a": 2.4756},
-    ("RUNWINDOW", "sim"): {"F0": -0.2527, "F1": 3.0995, "F2": 2.6908, "F4a": 2.5397},
-    ("RUNWINDOW", "never"): {"F0": -0.2332, "F1": -0.0397, "F2": 0.0898, "F4a": -0.0397},
-    ("FULLRECIPE", "12"): {"F0": -0.2530, "F1": -0.2519, "F2": 0.6567, "F4a": -0.2512},
-    ("FULLRECIPE", "sim"): {"F0": -0.2527, "F1": -0.2519, "F2": 1.2889, "F4a": -0.2514},
-    ("FULLRECIPE", "never"): {"F0": -0.2513, "F1": -0.1752, "F2": -0.1278, "F4a": -0.2241},
+    ("RUNWINDOW", "12"): {"F0": -0.2526, "F1": 3.0161, "F2": 2.6456, "F4a": 2.4756, "F4bp": 2.1020},
+    ("RUNWINDOW", "sim"): {"F0": -0.2527, "F1": 3.0995, "F2": 2.6908, "F4a": 2.5397, "F4bp": 2.1170},
+    ("RUNWINDOW", "never"): {"F0": -0.2332, "F1": -0.0397, "F2": 0.0898, "F4a": -0.0397, "F4bp": -0.0249},
+    ("FULLRECIPE", "12"): {"F0": -0.2530, "F1": -0.2519, "F2": 0.6567, "F4a": -0.2512, "F4bp": -0.2533},
+    ("FULLRECIPE", "sim"): {"F0": -0.2527, "F1": -0.2519, "F2": 1.2889, "F4a": -0.2514, "F4bp": -0.2529},
+    ("FULLRECIPE", "never"): {"F0": -0.2513, "F1": -0.1752, "F2": -0.1278, "F4a": -0.2241, "F4bp": -0.2506},
 }
 for (lab, H), want in DOC_P2.items():
     B = B1 if lab == "RUNWINDOW" else B2
     for nm, r in P2["runs"].items():
         a = nm.split("arm ")[-1].rstrip(")")
         m = r["bases"][B][H]["W_ENTRY"]["summary"]["end_return_P2"]["measured"]
-        add(f"§6.2 {lab} H={H} {a} end_return_P2 mean", round(m["mean"], 4), want[a])
+        w_ = want.get(a, None)
+        if w_ is None:
+            print("  NOTE  \u00a76.2 %s H=%s %-5s end_return_P2 mean = %+.4f  (n_eff %d) \u2014 not yet quoted in the doc"
+                  % (lab, H, a, m["mean"], m["n_eff"])); continue
+        add(f"\u00a76.2 {lab} H={H} {a} end_return_P2 mean", round(m["mean"], 4), w_)
         add(f"§6.2 {lab} H={H} {a} n_eff beside the mean", m["n_eff"], 32)
 # §6.1 median halt anchors quoted in the doc
 for lab, B, want in (("FULLRECIPE", B2, {"F0": "2024-03-18T16:00:00Z", "F1": "2024-07-15T16:00:00Z", "F2": "2024-08-05T08:00:00Z",
@@ -94,9 +99,11 @@ for lab, B, want in (("FULLRECIPE", B2, {"F0": "2024-03-18T16:00:00Z", "F1": "20
 U = json.load(open(f"{R}/FCF_P_UNSATURATED.json"))
 DOC_U = {
     ("2023-06-30T04:00:00Z"): {"F0": (32, 262.5, 266.7, 1.3463), "F1": (32, 381.5, 380.7, 2.2100),
-                               "F2": (10, 402.2, 397.4, 1.9542), "F4a": (32, 352.8, 346.1, 1.7667)},
+                               "F2": (10, 402.2, 397.4, 1.9542), "F4a": (32, 352.8, 346.1, 1.7667),
+                               "F4bp": (32, 262.8, 270.1, 1.4803)},
     ("2022-06-30T00:00:00Z"): {"F0": (32, 202.7, 235.0, 1.4448), "F1": (0, None, None, 3.0995),
-                               "F2": (0, None, None, 2.6908), "F4a": (0, None, None, 2.5397)},
+                               "F2": (0, None, None, 2.6908), "F4a": (0, None, None, 2.5397),
+                               "F4bp": (0, None, None, 2.1170)},
 }
 for B, d in U["bases"].items():
     want = DOC_U[d["base_anchor_utc"]]
@@ -116,6 +123,55 @@ add("§0/§6.1b that as a share of F0 (%)",
     round(100 * (u["F1"]["survival_days_to_halt"]["median"] / u["F0"]["survival_days_to_halt"]["median"] - 1), 0), 45.0)
 add("§0/§6.1b no-halt end gap F1-F0 (pp)",
     round(100 * (u["F1"]["end_return_no_halt"]["mean"] - u["F0"]["end_return_no_halt"]["mean"]), 0), 86.0)
+# ---- F4b′ (F4 of record) and AMENDMENT 3 §4 conditions 1 and 2 ----
+FB4 = "fallback_subsample_HIST"; EX = "fallback_subsample_HIST_EXCL_allrev24"; AR = "allrev24_anchors_that_are_fallback"
+for a, lvl, dg, lo, hi in (("F0", -1.2438, None, None, None), ("F1", -0.0750, 1.1688, 0.4470, 1.9711),
+                           ("F2", -0.4807, 0.7631, -0.7365, 2.3798), ("F4a", -0.6993, 0.5445, 0.1172, 0.9985),
+                           ("F4bp", -1.0562, 0.1876, -0.1393, 0.5119)):
+    add(f"\u00a70.3/\u00a78.4 {a} fallback g (incl)", round(T["arms"][a]["cells"][FB4]["g"], 4), lvl)
+    if dg is not None:
+        q = T["paired_vs_F0"][a][FB4]["d_g"]
+        add(f"\u00a70.3 {a}-F0 fallback dg (incl)", round(q["estimate"], 4), dg)
+        add(f"\u00a70.3 {a}-F0 fallback CI (incl)", [round(q["ci95"][0], 4), round(q["ci95"][1], 4)], [lo, hi])
+for a, lvl, dg, lo, hi in (("F0", -1.2335, None, None, None), ("F1", -0.0410, 1.1925, 0.4631, 2.0008),
+                           ("F2", -0.4610, 0.7725, -0.7321, 2.4002), ("F4a", -0.6857, 0.5478, 0.1203, 1.0011),
+                           ("F4bp", -1.0428, 0.1907, -0.1372, 0.5170)):
+    add(f"\u00a78.4c1 {a} fallback g (EXCL allrev24)", round(T["arms"][a]["cells"][EX]["g"], 4), lvl)
+    if dg is not None:
+        q = T["paired_vs_F0"][a][EX]["d_g"]
+        add(f"\u00a78.4c1 {a}-F0 dg (EXCL)", round(q["estimate"], 4), dg)
+        add(f"\u00a78.4c1 {a}-F0 CI (EXCL)", [round(q["ci95"][0], 4), round(q["ci95"][1], 4)], [lo, hi])
+add("\u00a78.4c1 n incl", T["cell_definitions"][FB4]["n_anchors"], 1323)
+add("\u00a78.4c1 n excl", T["cell_definitions"][EX]["n_anchors"], 1321)
+add("\u00a78.4c1 allrev24 on the 10039 axis", T["allrev24_subset"]["n_on_the_10039_anchor_axis"], 172)
+add("\u00a78.4c1 allrev24 in the judge window", T["allrev24_subset"]["n_in_the_judge_window"], 172)
+add("\u00a78.4c1 allrev24 that are fallback (n)", T["cell_definitions"][AR]["n_anchors"], 70)
+for a, lvl, sh in (("F0", -4.5435, -8.626), ("F1", -0.1020, -0.385), ("F2", -0.3856, -4.634),
+                   ("F4a", 0.2647, 1.061), ("F4bp", 0.3436, 1.233)):
+    add(f"\u00a78.4c1 70-anchor {a} g", round(T["arms"][a]["cells"][AR]["g"], 4), lvl)
+    add(f"\u00a78.4c1 70-anchor {a} sharpe", round(T["arms"][a]["cells"][AR]["sharpe_daily"], 3), sh)
+KC = json.load(open(f"{R}/FCF_F4BP_VS_KC.json"))
+zc = [c for c in KC["checks"] if c["check"].startswith("A.")][0]["detail"]
+add("\u00a78.4c2 z(F4b\u2032)==z_kc pre-FTRIM, equal", zc["equal"], 10038)
+add("\u00a78.4c2 z(F4b\u2032)==z_kc pre-FTRIM, compared", zc["compared"], 10038)
+bc = [c for c in KC["checks"] if c["check"].startswith("B.")][0]["detail"]
+add("\u00a78.4c2 anchors where FTRIM zeroed nothing", bc["anchors_where_FTRIM_zeroed_nothing"], 1963)
+cc = KC["C_residual_on_simulated_fallback_anchors"]
+add("\u00a78.4c2 chain-state-only n", cc["FTRIM_fired_nothing__residual_is_CHAIN_STATE_ALONE"]["n"], 398)
+add("\u00a78.4c2 ftrim+chain n", cc["FTRIM_fired__residual_is_FTRIM_PLUS_CHAIN_STATE"]["n"], 2039)
+add("\u00a78.4c2 chain-state-only L1 median",
+    round(cc["FTRIM_fired_nothing__residual_is_CHAIN_STATE_ALONE"]["sum_abs_dw_L1"]["median"], 4), 0.0239)
+add("\u00a78.4c2 ftrim+chain L1 median",
+    round(cc["FTRIM_fired__residual_is_FTRIM_PLUS_CHAIN_STATE"]["sum_abs_dw_L1"]["median"], 4), 0.0534)
+add("\u00a78.4c2 ratio", round(KC["C_verdict"]["ratio_ftrim_plus_chain_over_chain_alone"], 2), 2.23)
+add("\u00a70.3 rev24 share of the gap, CLEAN (%)",
+    round(100 * T["paired_vs_F0"]["F4bp"][FB4]["d_g"]["estimate"] / T["paired_vs_F0"]["F1"][FB4]["d_g"]["estimate"], 1), 16.1)
+add("\u00a70.3 F4a overstates rev24 by (x)",
+    round(T["paired_vs_F0"]["F4a"][FB4]["d_g"]["estimate"] / T["paired_vs_F0"]["F4bp"][FB4]["d_g"]["estimate"], 1), 2.9)
+P2R = json.load(open(f"{R}/FCF_P2_READING.json"))["assertions"]
+add("\u00a76 W_ENTRY==W_CARRY cells equal", sum(1 for x in P2R if x["W_ENTRY_equals_W_CARRY"]), 46)
+add("\u00a76 W_ENTRY==W_CARRY cells differing", sum(1 for x in P2R if not x["W_ENTRY_equals_W_CARRY"]), 4)
+add("\u00a76 all differing cells are H=never", all(x["H"] == "never" for x in P2R if not x["W_ENTRY_equals_W_CARRY"]), True)
 bad = [r for r in rows if r[1] != r[2]]
 for lab, got, doc in rows:
     print(("  OK   " if got == doc else "MISMATCH ") + f"{lab:52s} receipt={got!r:>12}  doc={doc!r}")

@@ -1,0 +1,92 @@
+{
+ "device": "fcf_f4bp_vs_kc.py",
+ "self_sha256": "6cc54b653366df38b87a296d3ca09eabaf5608cae492a3dbb9e012677751b706",
+ "ruling": "docs/AMENDMENT_3_fallback_counterfactual_2026-09-20.md (32c4ff43e) \u00a74 condition 2",
+ "inputs": {
+  "P1.vec": "04249082f6b9d42b3e93482e467e5552fe9f0603d51dadb8c8152568c260b49d",
+  "P3.vec": "dae0107140673c98f346073733a99b48aea33b002a51ea6c660bb75aac554d92",
+  "P3.json": "cff3e160f4a4961e97043cdcdb93a105c24694f83931509dc5539bac72826bcd",
+  "F4bp_KING": "5f7e087084f4a017680281498b038d2530a2557087b8c30af2da22b18f8c4a9d"
+ },
+ "utc": "2026-09-20T14:28:01Z",
+ "checks": [
+  {
+   "check": "A.z_F4bprime_equals_z_kc_before_FTRIM_bitwise_on_every_anchor",
+   "ok": true,
+   "detail": {
+    "equal": 10038,
+    "compared": 10038,
+    "first_mismatch": [],
+    "note": "w3m read from the archive's own combo_meta.w3_masked, not re-derived"
+   }
+  },
+  {
+   "check": "B.FTRIM_footprint_named",
+   "ok": true,
+   "detail": {
+    "anchors_with_an_ftrim_record": 10038,
+    "anchors_where_FTRIM_zeroed_nothing": 1963,
+    "share": 0.1955,
+    "meaning": "on these, z_kc == z_kc-before-FTRIM, so z(F4b\u2032) == z_kc bitwise and any book difference is NOT FTRIM"
+   }
+  },
+  {
+   "check": "C.chain_state_residual_is_measured_and_named",
+   "ok": true,
+   "detail": {
+    "n_chain_state_only": 398,
+    "n_ftrim_plus_chain": 2039
+   }
+  }
+ ],
+ "C_residual_on_simulated_fallback_anchors": {
+  "FTRIM_fired_nothing__residual_is_CHAIN_STATE_ALONE": {
+   "n": 398,
+   "max_abs_dw": {
+    "median": 0.0019805901613592324,
+    "p95": 0.006186226455558682,
+    "max": 0.012696159376338492
+   },
+   "sum_abs_dw_L1": {
+    "median": 0.023934121874976587,
+    "p95": 0.044482844782450265,
+    "max": 0.09111512807642524
+   },
+   "gross_difference_F4bprime_minus_kc": {
+    "median": -0.006406411639066578,
+    "p05": -0.01986793310494895,
+    "p95": 0.0004659995477240926
+   },
+   "first": "2022-07-02T16:00:00Z",
+   "last": "2025-05-22T08:00:00Z"
+  },
+  "FTRIM_fired__residual_is_FTRIM_PLUS_CHAIN_STATE": {
+   "n": 2039,
+   "max_abs_dw": {
+    "median": 0.004245876183363332,
+    "p95": 0.009987163540374048,
+    "max": 0.014373749012258094
+   },
+   "sum_abs_dw_L1": {
+    "median": 0.05344400867711957,
+    "p95": 0.11958347693136002,
+    "max": 0.1884484931048827
+   },
+   "gross_difference_F4bprime_minus_kc": {
+    "median": -0.008727847642885034,
+    "p05": -0.024383647346201687,
+    "p95": 0.005208515471552365
+   },
+   "first": "2022-06-30T00:00:00Z",
+   "last": "2025-09-01T00:00:00Z"
+  }
+ },
+ "C_verdict": {
+  "chain_state_alone_L1_median": 0.023934121874976587,
+  "ftrim_plus_chain_state_L1_median": 0.05344400867711957,
+  "ratio_ftrim_plus_chain_over_chain_alone": 2.233,
+  "reading": "if the two are the same order, the chain-state path is NOT negligible and 'F4a - F4b\u2032 = FTRIM alone' is FALSE; AMENDMENT 3 \u00a74-3 then forces (C) and no point estimate for rev24"
+ },
+ "VERDICT": "PASS",
+ "failed": []
+}

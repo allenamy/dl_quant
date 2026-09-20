@@ -28,7 +28,7 @@ HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 import bt_tables as BT
 
 OUT = "/workspace/fallback_cf_2026-09-20"
-ARM_INDEX = {"F1": 1, "F2": 2, "F3": 3, "F4a": 4, "F4b": 4}      # F-prereg §3 rng = [20260920, 臂序号]
+ARM_INDEX = {"F1": 1, "F2": 2, "F3": 3, "F4a": 4, "F4b": 4, "F4bp": 4}   # F-prereg §3 rng = [20260920, 臂序号]; F4a and F4b′ are both the F4 seat      # F-prereg §3 rng = [20260920, 臂序号]
 
 
 def sha(p):
@@ -59,6 +59,14 @@ def load_arm(run_dir, tag, nseed):
 
 def main():
     CFG = json.load(open(sys.argv[1])); OUTP = sys.argv[2]
+    EXTRA = [json.load(open(x)) for x in sys.argv[3:] if x.endswith(".json")]
+    for E in EXTRA:
+        # an extra config may only ADD runs; every pin, the window and the production config must be identical to the primary,
+        # otherwise the arms would not be judged by the same judge and the pairing would be meaningless.
+        assert E["pins"] == CFG["pins"], "extra config has different pins"
+        assert E["window"] == CFG["window"] and E["nav0_usdt"] == CFG["nav0_usdt"] and E["paths_R"] == CFG["paths_R"]
+        assert E["current_production_config"] == CFG["current_production_config"]
+        CFG["runs"] = CFG["runs"] + E["runs"]
     nseed = int(CFG["paths_R"]); root = CFG["paths"]["pod_root"]
     frs = ts(CFG["window"]["full_recipe_start"])
     doc = {"device": "fcf_tables.py", "self_sha256": sha(os.path.abspath(__file__)),
@@ -86,6 +94,17 @@ def main():
     fb = kind0 == 1
     for a in ARMS: assert np.array_equal(ARMS[a][1]["A"], A), a
 
+    # AMENDMENT 3 §4-1: the anchors where the msharpe seat is 100 % rev24 (w3[0] + w3[2] == 0) are a NAMED subset with its own n,
+    # and every fallback result is reported BOTH with and without them. Read from the archive's own logged seat, not re-derived.
+    P1J = json.load(open("/workspace/object_b_2026-09-19/work/A0_main/P1.json"))["records"]
+    allrev = set()
+    for r_ in P1J:
+        w_ = (r_.get("signal") or {}).get("w3")
+        if w_ and (w_[0] + w_[2]) < 1e-12: allrev.add(int(r_["anchor"]))
+    ar_mask = np.array([int(a) in allrev for a in A])
+    doc["allrev24_subset"] = {"definition": "archived logged w3 has w3[0] + w3[2] == 0, i.e. the seat is 100 % on rev24, so 'the king book "
+                                            "without rev24' has no definition there",
+                              "n_on_the_10039_anchor_axis": len(allrev), "n_in_the_judge_window": int(ar_mask.sum())}
     HIST = (A >= frs) & (A <= ts("2025-12-31T20:00:00Z"))
     RLEV = A >= frs
     cells = {"R_level_2023-06-30→2026-08-31": RLEV,
@@ -94,6 +113,9 @@ def main():
              "fallback_subsample_HIST": fb & HIST,
              "combo_subsample_R": (~fb) & RLEV,
              "combo_subsample_HIST": (~fb) & HIST,
+             "fallback_subsample_HIST_EXCL_allrev24": fb & HIST & (~ar_mask),
+             "allrev24_anchors_in_window": ar_mask,
+             "allrev24_anchors_that_are_fallback": ar_mask & fb,
              "PARTIAL_RECIPE_before_2023-06-30 (describe only)": A < frs}
     for nm, m in BT.year_cells(A, frs).items():
         cells["year " + nm] = m["mask"]

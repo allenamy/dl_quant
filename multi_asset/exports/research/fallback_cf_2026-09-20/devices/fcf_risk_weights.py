@@ -66,6 +66,10 @@ def stat(v, n_pop, label):
 
 def main():
     CFG = json.load(open(sys.argv[1]))
+    for x in sys.argv[2:]:                      # extra frozen configs may only ADD runs; pins/window/production config must match
+        E = json.load(open(x))
+        assert E["pins"] == CFG["pins"] and E["window"] == CFG["window"] and E["current_production_config"] == CFG["current_production_config"]
+        CFG["runs"] = CFG["runs"] + E["runs"]
     anchors = np.arange(ts(CFG["window"]["first_anchor"]), ts(CFG["window"]["last_anchor"]) + 1, H4, dtype=np.int64)
     assert len(anchors) == CFG["window"]["n_anchors"], (len(anchors), CFG["window"]["n_anchors"])
     PM = np.load(CFG["pins"]["price_full_meta"]["path"], allow_pickle=True); SY = [str(s) for s in PM["symbols"]]

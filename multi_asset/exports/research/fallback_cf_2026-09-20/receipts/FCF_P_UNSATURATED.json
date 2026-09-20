@@ -3,10 +3,10 @@
  "self_sha256": "9d3d4e481e6a680c5fd9d46fe0004d6fad5e3acbada05f71f399f06af831be1f",
  "source": {
   "path": "receipts/FCF_P_READING.json",
-  "sha256": "25d86fc40f9b84995f2943ab74ffbaec5be2a333d2a76ff9ac2f760a37c27f2b"
+  "sha256": "432dd9f50d4e3abe02532b8fca99a973ca6be33758e272425b5afc389ccff815"
  },
  "why": "reading P's end_return_phalt saturates at the threshold; two arms that both breach print the same number and that is the statistic's property, not the arms'. These are the quantities that keep their resolution.",
- "utc": "2026-09-20T13:11:11Z",
+ "utc": "2026-09-20T14:41:38Z",
  "bases": {
   "FULL_RECIPE window start @ 2023-06-30T04:00:00Z": {
    "base_anchor_utc": "2023-06-30T04:00:00Z",
@@ -138,6 +138,38 @@
       "n_eff": 32
      },
      "saturation_note": "end_return_P_halt is bounded at the threshold for every breaching path; compare arms on survival_days_to_halt and end_return_no_halt instead"
+    },
+    "F4bp": {
+     "paths_breaching": 32,
+     "n_paths": 32,
+     "survival_days_to_halt": {
+      "n_population": 32,
+      "n_measured": 32,
+      "median": 262.8333333333333,
+      "mean": 270.05729166666663,
+      "p05": 259.6666666666667,
+      "p95": 325.22499999999997,
+      "min": 259.5,
+      "max": 351.1666666666667,
+      "no_measurement": {
+       "n": 0,
+       "reason": "this path never breached in this window, so it has no time-to-halt"
+      }
+     },
+     "end_return_no_halt": {
+      "mean": 1.4803015983760854,
+      "median": 1.4787020382252027,
+      "p05": 1.2646105815428268,
+      "p95": 1.6911155775361664,
+      "n_eff": 32,
+      "population_n": 32
+     },
+     "end_return_P_halt_SATURATED": {
+      "mean": -0.25290370260208106,
+      "median": -0.25201256725492127,
+      "n_eff": 32
+     },
+     "saturation_note": "end_return_P_halt is bounded at the threshold for every breaching path; compare arms on survival_days_to_halt and end_return_no_halt instead"
     }
    }
   },
@@ -262,6 +294,36 @@
      "end_return_P_halt_SATURATED": {
       "mean": 2.5397336155336596,
       "median": 2.5647686875379883,
+      "n_eff": 32
+     },
+     "saturation_note": "end_return_P_halt is bounded at the threshold for every breaching path; compare arms on survival_days_to_halt and end_return_no_halt instead"
+    },
+    "F4bp": {
+     "paths_breaching": 0,
+     "n_paths": 32,
+     "survival_days_to_halt": {
+      "n_population": 32,
+      "n_measured": 0,
+      "median": null,
+      "mean": null,
+      "p05": null,
+      "p95": null,
+      "no_measurement": {
+       "n": 32,
+       "reason": "this path never breached in this window, so it has no time-to-halt"
+      }
+     },
+     "end_return_no_halt": {
+      "mean": 2.116989477237982,
+      "median": 2.1199027484044373,
+      "p05": 1.8841891137650908,
+      "p95": 2.3804619138753766,
+      "n_eff": 32,
+      "population_n": 32
+     },
+     "end_return_P_halt_SATURATED": {
+      "mean": 2.116989477237982,
+      "median": 2.1199027484044373,
       "n_eff": 32
      },
      "saturation_note": "end_return_P_halt is bounded at the threshold for every breaching path; compare arms on survival_days_to_halt and end_return_no_halt instead"
