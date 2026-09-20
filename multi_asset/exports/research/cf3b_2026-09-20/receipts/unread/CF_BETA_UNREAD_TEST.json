@@ -1,0 +1,39 @@
+{
+ "n_ext_rows": 113,
+ "n_in_run_rows": 9139,
+ "poison": 12345.0,
+ "n_numbers_compared": 562,
+ "mutation_ext_rows": {
+  "n_numbers_changed": 0,
+  "expected": 0,
+  "rc": 0,
+  "verdict_line": "AT_BETA VERDICT=PASS checks=6 failed=[]",
+  "n_keys_missing": 0,
+  "first_changed": {}
+ },
+ "control_one_in_run_row": {
+  "row": 4569,
+  "perturbation": "W[row] x 1.001",
+  "rc": 0,
+  "verdict_line": "AT_BETA VERDICT=PASS checks=6 failed=[]",
+  "n_numbers_changed": 121,
+  "expected": ">0",
+  "first_changed": {
+   "/per_period/2024/price": [
+    0.8718005247064465,
+    0.8717952454484289
+   ],
+   "/per_period/2024/common_market": [
+    -0.17625172380618934,
+    -0.17625141373109265
+   ],
+   "/per_period/2024/residual_selection": [
+    1.0480522485126356,
+    1.0480466591795214
+   ]
+  }
+ },
+ "panel_restored_bitwise": true,
+ "verdict": "PASS",
+ "reading": "the 113 EXT_NOT_COVERED rows are PROVEN unreadable (poisoning them changes nothing) and the comparison is not vacuous (poisoning one in_run row does change the output)"
+}

@@ -1,0 +1,143 @@
+{
+ "device": "cf_beta.py",
+ "self_sha256": "a2a4fed0033f52d5f4e074d530ec27619ef694ce1c97e60ca956a8e4df47774b",
+ "arm": "NONE",
+ "argv": [
+  "cf_beta.py",
+  "PATH,HOME,LC_CTYPE,LANG,PWD,SHLVL,_",
+  "NONE",
+  "/workspace/cf3b_2026-09-20/receipts"
+ ],
+ "env": {
+  "PATH": "/usr/bin:/bin",
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8"
+ },
+ "python": "3.11.10",
+ "numpy": "2.4.6",
+ "utc_start": "2026-09-20T13:24:52Z",
+ "prereg": "docs/PREREG_style_beta_on_counterfactual_worlds_2026-09-20.md (+B-A1)",
+ "instrument": {
+  "at_beta_sha256": "142157422c00ec20a8e6616eef816e819de0c7eb60b408927b6541976abf7830",
+  "at_lib_sha256_certified": "1e85dfb3eb508cdc67476f11c1f9a55b8c9b81336fed945538b80ef082c56fb0",
+  "at_lib_sha256_mine": "f69bd29a86f62913bcb8da4a3d6d2d860ac255c8a918f501e28c6e48ccc0c2cc"
+ },
+ "inputs": {
+  "archived_panel": {
+   "path": "/workspace/attrib_2026_2026-09-20/work/AT_PANEL.npz",
+   "sha256": "27c2543e1f364fcd073cefd44080cc6678d84bca77ff6864889191533eaa102c"
+  },
+  "archived_L1": {
+   "path": "/workspace/attrib_2026_2026-09-20/work/AT_L1_mean.npz",
+   "sha256": "a3cd9c99f78d45e6b572fc6da731c2093fbdb9343040716cdf8c495ab2fbadcb"
+  },
+  "arm_targets": {
+   "path": "/workspace/cf3_2026-09-20/work/TARGETS_CF_NONE.npz",
+   "sha256": "742b7de274571a3f13c37936d2a33be98b6004f81ea3e24a7b0218a0de247bcb"
+  },
+  "arm_run_dir": "/workspace/cf3_2026-09-20/runs/CF_NONE_scaled_rule_raw_UAFE"
+ },
+ "verdict": "PASS",
+ "runtime_s": 1.7,
+ "checks": [
+  {
+   "check": "env.whitelist",
+   "ok": true,
+   "detail": {
+    "extra": []
+   }
+  },
+  {
+   "check": "B1.at_beta_byte_identical",
+   "ok": true,
+   "detail": {
+    "certified": "142157422c00ec20a8e6616eef816e819de0c7eb60b408927b6541976abf7830",
+    "mine": "142157422c00ec20a8e6616eef816e819de0c7eb60b408927b6541976abf7830"
+   }
+  },
+  {
+   "check": "B1.at_lib_diff_is_only_the_ROOT_line",
+   "ok": true,
+   "detail": {
+    "n_differing_lines": 1,
+    "diff": [
+     {
+      "line": 147,
+      "certified": "ROOT = f\"{W_}/attrib_2026_2026-09-20\"",
+      "mine": "ROOT = f\"{W_}/cf3b_2026-09-20\""
+     }
+    ]
+   }
+  },
+  {
+   "check": "B-A1.covered_equals_in_run",
+   "ok": true,
+   "detail": {
+    "n_covered": 9139,
+    "n_in_run": 9139,
+    "n_EXT_NOT_COVERED": 113,
+    "ext_first": "2026-08-31T04:00:00Z",
+    "ext_last": "2026-09-18T20:00:00Z"
+   }
+  },
+  {
+   "check": "B-A1.ext_rows_are_NaN",
+   "ok": true,
+   "detail": {
+    "n_rows": 113
+   }
+  },
+  {
+   "check": "input.32_path_files",
+   "ok": true,
+   "detail": {
+    "n": 32
+   }
+  },
+  {
+   "check": "L1.axis_equals_panel_in_run",
+   "ok": true,
+   "detail": {
+    "n": 9139
+   }
+  },
+  {
+   "check": "B3.BASE_W_bitwise_vs_archive",
+   "ok": true,
+   "detail": {
+    "skipped": "not the BASE arm; B3 is certified on BASE"
+   }
+  },
+  {
+   "check": "B4.BASE_g_bitwise_vs_archive",
+   "ok": true,
+   "detail": {
+    "skipped": "not the BASE arm; B4 is certified on BASE"
+   }
+  },
+  {
+   "check": "B2.only_W_is_replaced_verified_on_the_written_file",
+   "ok": true,
+   "detail": {
+    "n_keys": 32,
+    "n_arrays_carried_bitwise": 31,
+    "bad": [],
+    "missing_keys": [],
+    "extra_keys": [],
+    "W_round_trip_bitwise": true,
+    "W_round_trip_cells_differ": 0
+   }
+  }
+ ],
+ "failed": [],
+ "outputs": {
+  "panel": {
+   "path": "/workspace/cf3b_2026-09-20/work/AT_PANEL.npz",
+   "sha256": "315db5748e459fb37d14f1a48e8629ac6f949092f3c87812f60da7a6f541252c"
+  },
+  "L1": {
+   "path": "/workspace/cf3b_2026-09-20/work/AT_L1_mean.npz",
+   "sha256": "ac4153616aada61bd99414e56068970521cdf23c83840fe1c2694888debc8de3"
+  }
+ }
+}

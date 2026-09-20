@@ -1,0 +1,97 @@
+{
+ "device": "at_beta.py",
+ "self_sha256": "142157422c00ec20a8e6616eef816e819de0c7eb60b408927b6541976abf7830",
+ "lib_sha256": "f69bd29a86f62913bcb8da4a3d6d2d860ac255c8a918f501e28c6e48ccc0c2cc",
+ "argv": [
+  "at_beta.py",
+  "PATH,HOME,LC_CTYPE,LANG,PWD,SHLVL,_",
+  "/workspace/cf3b_2026-09-20/receipts/BASE"
+ ],
+ "env": {
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "PATH": "/usr/bin:/bin"
+ },
+ "numpy": "2.4.6",
+ "python": "3.11.10",
+ "utc_start": "2026-09-20T13:21:25Z",
+ "pid": 1640291,
+ "pgid": 1640289,
+ "replaces": "at_attrib.py block_C_market_vs_selection \u2014 the 'market \u03b2 = 0' reading, withdrawn",
+ "upstream": {
+  "panel": {
+   "path": "/workspace/cf3b_2026-09-20/work/AT_PANEL.npz",
+   "sha256": "c6cfd31c5e2e93041eeb7f074742259e32ea297e4b222b55f28e641d9b1b45e5"
+  },
+  "L1_mean": {
+   "path": "/workspace/cf3b_2026-09-20/work/AT_L1_mean.npz",
+   "sha256": "6149e56bf074b5ebfccc35ec932eec274584c49859b45f8d458bd71a12b633c0"
+  }
+ },
+ "beta_distribution_held": {
+  "p01": 0.04226675731180937,
+  "p25": 0.8720721753900907,
+  "p50": 1.0231847842243313,
+  "p75": 1.1666121656069586,
+  "p99": 1.75572427173401
+ },
+ "outputs": {
+  "beta": {
+   "path": "/workspace/cf3b_2026-09-20/receipts/BASE/AT_BETA.json",
+   "sha256": "66f4f475913cdf20b7138dc5fa719bbe3f0969e4ad5e2c1ed04674ac5309ecee"
+  }
+ },
+ "peak_rss_gb": 1.4947319030761719,
+ "runtime_s": 8.7,
+ "checks": [
+  {
+   "check": "env.whitelist",
+   "ok": true,
+   "detail": {
+    "extra": []
+   }
+  },
+  {
+   "check": "beta.causal_window",
+   "ok": true,
+   "detail": {
+    "window_anchors": 180,
+    "min_obs": 120,
+    "note": "rows t-180..t-1 only; every return realised by A[t]"
+   }
+  },
+  {
+   "check": "beta.coverage_of_held_names",
+   "ok": true,
+   "detail": {
+    "share_of_held_name_anchors_with_a_beta": 0.9891114430692104
+   }
+  },
+  {
+   "check": "split.additive",
+   "ok": true,
+   "detail": {
+    "max_abs_bps": 5.684341886080802e-14
+   }
+  },
+  {
+   "check": "style.additive",
+   "ok": true,
+   "detail": {
+    "max_abs_bps": 4.263256414560601e-14
+   }
+  },
+  {
+   "check": "style.fit_population",
+   "ok": true,
+   "detail": {
+    "mean_names_in_fit": 273.1779188094978,
+    "anchors_below_60": 180
+   }
+  }
+ ],
+ "n_checks": 6,
+ "failed": [],
+ "VERDICT": "PASS",
+ "utc_end": "2026-09-20T13:21:34Z"
+}

@@ -1,0 +1,786 @@
+{
+ "status": "CORRECTED \u00a72-C: ex-ante risk decomposition; replaces the withdrawn 'market \u03b2 = 0' reading",
+ "definitions": {
+  "market": "\u0233(E) = equal-weight member \u2229 in-life 4h return (primary); BTCUSDT 4h return (sensitivity)",
+  "beta": "OLS Cov(r_i,m)/Var(m) over the 180 anchors ending at E (all realised by E); \u2265120 usable pairs; no winsorisation",
+  "split": "price = m\u00b7\u03a3 W \u03b2 (COMMON) + \u03a3 W (RET \u2212 \u03b2 m) (RESIDUAL) + \u03a3_{no \u03b2} W RET (UNATTRIBUTED)"
+ },
+ "beta_distribution_held_names": {
+  "p01": 0.04247033524913949,
+  "p25": 0.8720414260690581,
+  "p50": 1.0231813297322405,
+  "p75": 1.1666569781031284,
+  "p99": 1.755725726736722
+ },
+ "per_period": {
+  "2022H2": {
+   "n_anchors": 1110,
+   "price": 0.07448125871404349,
+   "common_market": -0.19139950673800188,
+   "residual_selection": -0.0029331372534057674,
+   "unattributed_no_beta": 0.26881390270545114,
+   "unattributed_bound_abs": 0.0,
+   "gross_share_without_beta": 0.16216216217447404,
+   "book_ex_ante_net_beta_mean": 0.0010850721279987534,
+   "book_ex_ante_net_beta_absmean": 0.03516385030413356,
+   "book_ex_ante_net_beta_p05_p95": [
+    -0.08489601833816238,
+    0.09198968504289513
+   ],
+   "net_beta_long_side": 0.41539340016832915,
+   "net_beta_short_side": -0.41430832804033035,
+   "common_long": -2.363103618416824,
+   "common_short": 2.1717041116788227,
+   "residual_long": -0.33573087200915364,
+   "residual_short": 0.3327977347557479,
+   "dollar_net_over_gross": 6.090248705748325e-11,
+   "mean_market_bps": -2.4063308111189285,
+   "style_common_risk_and_style": -0.5368967384940532,
+   "style_residual_selection": 0.6113779972080969,
+   "style_common_long": -2.5544837408532377,
+   "style_common_short": 2.0175870023591846,
+   "style_residual_long": -0.1443507495727397,
+   "style_residual_short": 0.4869148440753854,
+   "style_mean_names_in_fit": 118.54144144144144,
+   "btc_net_beta_mean": -0.0029690844449857417,
+   "btc_common_market": -0.04524362133574268,
+   "btc_mean_market_bps": -1.111011581841766
+  },
+  "2023pre": {
+   "n_anchors": 1081,
+   "price": 2.5628065390972528,
+   "common_market": 0.48243116815812015,
+   "residual_selection": 2.0803753709391324,
+   "unattributed_no_beta": 0.0,
+   "unattributed_bound_abs": 0.0,
+   "gross_share_without_beta": 0.0,
+   "book_ex_ante_net_beta_mean": -0.09115283612721743,
+   "book_ex_ante_net_beta_absmean": 0.09718083346871834,
+   "book_ex_ante_net_beta_p05_p95": [
+    -0.16798188415183038,
+    0.02621568619826941
+   ],
+   "net_beta_long_side": 0.4656782184911193,
+   "net_beta_short_side": -0.5568310546183368,
+   "common_long": 1.8687307288480475,
+   "common_short": -1.3862995606899278,
+   "residual_long": 1.0067459467491477,
+   "residual_short": 1.0736294241899849,
+   "dollar_net_over_gross": 4.6302173422346296e-11,
+   "mean_market_bps": 3.2550296769358633,
+   "style_common_risk_and_style": 1.4220873775010934,
+   "style_residual_selection": 1.140719161596159,
+   "style_common_long": 2.3191319409183184,
+   "style_common_short": -0.8970445634172242,
+   "style_residual_long": 0.5563447346788771,
+   "style_residual_short": 0.5843744269172823,
+   "style_mean_names_in_fit": 158.74098057354303,
+   "btc_net_beta_mean": -0.10157378425299497,
+   "btc_common_market": -0.34525895608687157,
+   "btc_mean_market_bps": 6.267021226954095
+  },
+  "2023full": {
+   "n_anchors": 1109,
+   "price": 0.08246306458307318,
+   "common_market": -0.3785695771921073,
+   "residual_selection": 0.4610326417751804,
+   "unattributed_no_beta": 0.0,
+   "unattributed_bound_abs": 0.0,
+   "gross_share_without_beta": 0.0,
+   "book_ex_ante_net_beta_mean": -0.08056346716764431,
+   "book_ex_ante_net_beta_absmean": 0.08082557189617046,
+   "book_ex_ante_net_beta_p05_p95": [
+    -0.13681130954161505,
+    -0.02564797924097457
+   ],
+   "net_beta_long_side": 0.4631667808542909,
+   "net_beta_short_side": -0.5437302480219351,
+   "common_long": 2.5884407426630784,
+   "common_short": -2.9670103198551865,
+   "residual_long": 0.18547018415839353,
+   "residual_short": 0.2755624576167867,
+   "dollar_net_over_gross": 2.2550499289758922e-11,
+   "mean_market_bps": 5.446687766220644,
+   "style_common_risk_and_style": 0.1856362440005029,
+   "style_residual_selection": -0.10317317941742996,
+   "style_common_long": 2.7846882264084476,
+   "style_common_short": -2.5990519824079445,
+   "style_residual_long": -0.010777299586975412,
+   "style_residual_short": -0.09239587983045455,
+   "style_mean_names_in_fit": 196.31199278629396,
+   "btc_net_beta_mean": -0.07505318141676119,
+   "btc_common_market": -0.2445091540382029,
+   "btc_mean_market_bps": 3.1673104276861817
+  },
+  "2024": {
+   "n_anchors": 2196,
+   "price": 0.25233578506913584,
+   "common_market": -0.2609634457955637,
+   "residual_selection": 0.5132992308646996,
+   "unattributed_no_beta": 0.0,
+   "unattributed_bound_abs": 0.0,
+   "gross_share_without_beta": 0.0,
+   "book_ex_ante_net_beta_mean": -0.01985399732332097,
+   "book_ex_ante_net_beta_absmean": 0.06075441302476879,
+   "book_ex_ante_net_beta_p05_p95": [
+    -0.12390779854362974,
+    0.08416796718622008
+   ],
+   "net_beta_long_side": 0.49362785984139884,
+   "net_beta_short_side": -0.5134818571647198,
+   "common_long": 1.109600548004119,
+   "common_short": -1.370563993799683,
+   "residual_long": 0.13593553011515508,
+   "residual_short": 0.3773637007495447,
+   "dollar_net_over_gross": 1.5511226789945284e-11,
+   "mean_market_bps": 2.4421105772607734,
+   "style_common_risk_and_style": -0.1836430196041918,
+   "style_residual_selection": 0.4359788046733276,
+   "style_common_long": 1.0659983581752015,
+   "style_common_short": -1.2496413777793935,
+   "style_residual_long": 0.17953771994407258,
+   "style_residual_short": 0.25644108472925503,
+   "style_mean_names_in_fit": 261.26593806921676,
+   "btc_net_beta_mean": -0.020049430949319946,
+   "btc_common_market": -0.277496134648125,
+   "btc_mean_market_bps": 4.226693505314355
+  },
+  "2025": {
+   "n_anchors": 2190,
+   "price": 0.16129391417295072,
+   "common_market": 0.4014513112731991,
+   "residual_selection": -0.24015739710024797,
+   "unattributed_no_beta": 0.0,
+   "unattributed_bound_abs": 0.0,
+   "gross_share_without_beta": 0.0,
+   "book_ex_ante_net_beta_mean": -0.031124444673626076,
+   "book_ex_ante_net_beta_absmean": 0.06194697368817069,
+   "book_ex_ante_net_beta_p05_p95": [
+    -0.15978540176001513,
+    0.08653769886184125
+   ],
+   "net_beta_long_side": 0.48481263936035324,
+   "net_beta_short_side": -0.5159370840339792,
+   "common_long": -1.6131461260756403,
+   "common_short": 2.0145974373488396,
+   "residual_long": -0.021302503676689583,
+   "residual_short": -0.2188548934235585,
+   "dollar_net_over_gross": -3.1780484984972806e-06,
+   "mean_market_bps": -3.57721846702293,
+   "style_common_risk_and_style": -0.0605662576268437,
+   "style_residual_selection": 0.22186017179979486,
+   "style_common_long": -1.7713031783049416,
+   "style_common_short": 1.7107369206780982,
+   "style_residual_long": 0.1368545485526114,
+   "style_residual_short": 0.08500562324718344,
+   "style_mean_names_in_fit": 378.0671232876712,
+   "btc_net_beta_mean": -0.019812807598137427,
+   "btc_common_market": 0.3327875791053613,
+   "btc_mean_market_bps": 0.145717505438785
+  },
+  "2026H1": {
+   "n_anchors": 1086,
+   "price": -0.05570294623808756,
+   "common_market": 0.1678326186636698,
+   "residual_selection": -0.22353556490175736,
+   "unattributed_no_beta": 0.0,
+   "unattributed_bound_abs": 0.0,
+   "gross_share_without_beta": 0.0,
+   "book_ex_ante_net_beta_mean": -0.011407679626333512,
+   "book_ex_ante_net_beta_absmean": 0.054062668393145774,
+   "book_ex_ante_net_beta_p05_p95": [
+    -0.11466899185058674,
+    0.09278032806004288
+   ],
+   "net_beta_long_side": 0.48603142560184937,
+   "net_beta_short_side": -0.49743910522818297,
+   "common_long": -0.5645631665386042,
+   "common_short": 0.732395785202274,
+   "residual_long": -0.8904632968518682,
+   "residual_short": 0.6669277319501109,
+   "dollar_net_over_gross": 5.365425476532422e-11,
+   "mean_market_bps": -1.3137047680625222,
+   "style_common_risk_and_style": -0.7952476978532697,
+   "style_residual_selection": 0.739544751615182,
+   "style_common_long": -1.3934336536974867,
+   "style_common_short": 0.5981859558442172,
+   "style_residual_long": -0.061592809692985334,
+   "style_residual_short": 0.8011375613081672,
+   "style_mean_names_in_fit": 399.88581952117863,
+   "btc_net_beta_mean": 0.051058553100891545,
+   "btc_common_market": 0.02918659751405766,
+   "btc_mean_market_bps": -3.2448428612350524
+  },
+  "2026JA": {
+   "n_anchors": 367,
+   "price": 0.690698981457174,
+   "common_market": -0.11959613279838693,
+   "residual_selection": 0.8102951142555612,
+   "unattributed_no_beta": 0.0,
+   "unattributed_bound_abs": 0.0,
+   "gross_share_without_beta": 0.0,
+   "book_ex_ante_net_beta_mean": -0.07049814052643716,
+   "book_ex_ante_net_beta_absmean": 0.07152514831439172,
+   "book_ex_ante_net_beta_p05_p95": [
+    -0.1481815310717993,
+    0.0029658116128530128
+   ],
+   "net_beta_long_side": 0.4657429726952299,
+   "net_beta_short_side": -0.5362411132216671,
+   "common_long": 1.9934219516763665,
+   "common_short": -2.113018084474754,
+   "residual_long": 0.563146246240142,
+   "residual_short": 0.24714886801541974,
+   "dollar_net_over_gross": 7.599043525825667e-11,
+   "mean_market_bps": 4.293135708719874,
+   "style_common_risk_and_style": -0.16834522301617158,
+   "style_residual_selection": 0.8590442044733463,
+   "style_common_long": 1.1314839416756932,
+   "style_common_short": -1.2998291646918652,
+   "style_residual_long": 1.4250842562408157,
+   "style_residual_short": -0.5660400517674699,
+   "style_mean_names_in_fit": 380.6539509536785,
+   "btc_net_beta_mean": 0.05823460548893954,
+   "btc_common_market": 0.30658734994709375,
+   "btc_mean_market_bps": 7.97307398797462
+  },
+  "2026": {
+   "n_anchors": 1453,
+   "price": 0.1328238999175635,
+   "common_market": 0.09523361536939937,
+   "residual_selection": 0.037590284548164224,
+   "unattributed_no_beta": 0.0,
+   "unattributed_bound_abs": 0.0,
+   "gross_share_without_beta": 0.0,
+   "book_ex_ante_net_beta_mean": -0.02633279948203759,
+   "book_ex_ante_net_beta_absmean": 0.0584733567146167,
+   "book_ex_ante_net_beta_p05_p95": [
+    -0.13887522914769687,
+    0.08848791655339822
+   ],
+   "net_beta_long_side": 0.48090695057312993,
+   "net_beta_short_side": -0.5072397500551675,
+   "common_long": 0.08153493283159112,
+   "common_short": 0.013698682537807469,
+   "residual_long": -0.5233093379291099,
+   "residual_short": 0.5608996224772743,
+   "dollar_net_over_gross": 5.929594660352533e-11,
+   "mean_market_bps": 0.10247586165471108,
+   "style_common_risk_and_style": -0.6369041271270376,
+   "style_residual_selection": 0.7697280270446015,
+   "style_common_long": -0.75568777792188,
+   "style_common_short": 0.11878365079484189,
+   "style_residual_long": 0.31391337282436166,
+   "style_residual_short": 0.45581465422023965,
+   "style_mean_names_in_fit": 395.0282174810736,
+   "btc_net_beta_mean": 0.05287108663593188,
+   "btc_common_market": 0.09925272011758433,
+   "btc_mean_market_bps": -0.4114116956053555
+  },
+  "HIST": {
+   "n_anchors": 5495,
+   "price": 0.18176789711978397,
+   "common_market": -0.020697182235632165,
+   "residual_selection": 0.20246507935541622,
+   "unattributed_no_beta": 0.0,
+   "unattributed_bound_abs": 0.0,
+   "gross_share_without_beta": 0.0,
+   "book_ex_ante_net_beta_mean": -0.03659814322951256,
+   "book_ex_ante_net_beta_absmean": 0.06528045907412906,
+   "book_ex_ante_net_beta_p05_p95": [
+    -0.13663532052866614,
+    0.08012230806180912
+   ],
+   "net_beta_long_side": 0.483966955482856,
+   "net_beta_short_side": -0.5205650987123687,
+   "common_long": 0.32292512664690587,
+   "common_short": -0.34362230888253814,
+   "residual_long": 0.08326631033896065,
+   "residual_short": 0.11919876901645557,
+   "dollar_net_over_gross": -1.2665818272158874e-06,
+   "mean_market_bps": 0.6495255901043008,
+   "style_common_risk_and_style": -0.060063617953964574,
+   "style_residual_selection": 0.24183151507374853,
+   "style_common_long": 0.28207419056449307,
+   "style_common_short": -0.34213780851845754,
+   "style_residual_long": 0.12411724642137334,
+   "style_residual_short": 0.11771426865237519,
+   "style_mean_names_in_fit": 294.7073703366697,
+   "btc_net_beta_mean": -0.031055974011977388,
+   "btc_common_market": -0.027613715245661214,
+   "btc_mean_market_bps": 2.38643995248139
+  },
+  "FULL_RECIPE": {
+   "n_anchors": 6948,
+   "price": 0.17153248722703401,
+   "common_market": 0.0035468374707740466,
+   "residual_selection": 0.16798564975626,
+   "unattributed_no_beta": 0.0,
+   "unattributed_bound_abs": 0.0,
+   "gross_share_without_beta": 0.0,
+   "book_ex_ante_net_beta_mean": -0.03445140395704838,
+   "book_ex_ante_net_beta_absmean": 0.06385692428305659,
+   "book_ex_ante_net_beta_p05_p95": [
+    -0.1367067874242807,
+    0.08216033400916295
+   ],
+   "net_beta_long_side": 0.4833270321763172,
+   "net_beta_short_side": -0.5177784361333656,
+   "common_long": 0.27244441973647787,
+   "common_short": -0.26889758226570387,
+   "residual_long": -0.043583778454002284,
+   "residual_short": 0.21156942821026237,
+   "dollar_net_over_gross": -1.0016955934860227e-06,
+   "mean_market_bps": 0.5351238550097054,
+   "style_common_risk_and_style": -0.18069534792352057,
+   "style_residual_selection": 0.3522278351505547,
+   "style_common_long": 0.06505229358540579,
+   "style_common_short": -0.2457476415089261,
+   "style_residual_long": 0.16380834769707026,
+   "style_residual_short": 0.1884194874534845,
+   "style_mean_names_in_fit": 315.68696027633854,
+   "btc_net_beta_mean": -0.013504733493639422,
+   "btc_common_market": -0.0010827810800313864,
+   "btc_mean_market_bps": 1.8013394279174806
+  },
+  "PARTIAL_RECIPE": {
+   "n_anchors": 2191,
+   "price": 1.302176205356786,
+   "common_market": 0.14105643099029924,
+   "residual_selection": 1.0249338172678786,
+   "unattributed_no_beta": 0.13618595709860828,
+   "unattributed_bound_abs": 0.0,
+   "gross_share_without_beta": 0.0821542674697122,
+   "book_ex_ante_net_beta_mean": -0.04442345312252097,
+   "book_ex_ante_net_beta_absmean": 0.06576191456744535,
+   "book_ex_ante_net_beta_p05_p95": [
+    -0.15740002652812735,
+    0.07191359130560768
+   ],
+   "net_beta_long_side": 0.44020302527418775,
+   "net_beta_short_side": -0.48462647839670864,
+   "common_long": -0.27519265109901203,
+   "common_short": 0.41624908208931083,
+   "residual_long": 0.32662304906694123,
+   "residual_short": 0.6983107682009373,
+   "dollar_net_over_gross": 5.369895486232896e-11,
+   "mean_market_bps": 0.3868826473873382,
+   "style_common_risk_and_style": 0.4296307965998551,
+   "style_residual_selection": 0.872545408756931,
+   "style_common_long": -0.14992940402299912,
+   "style_common_short": 0.5795602006228553,
+   "style_residual_long": 0.2013598019909288,
+   "style_residual_short": 0.5349996496673939,
+   "style_mean_names_in_fit": 138.37517115472386,
+   "btc_net_beta_mean": -0.05161887015582918,
+   "btc_common_market": -0.19326579242929376,
+   "btc_mean_market_bps": 2.529177129389784
+  },
+  "WHOLE_WINDOW": {
+   "n_anchors": 9139,
+   "price": 0.4425950089933418,
+   "common_market": 0.036513630271001636,
+   "residual_selection": 0.37343191685528143,
+   "unattributed_no_beta": 0.03264946186705884,
+   "unattributed_bound_abs": 0.0,
+   "gross_share_without_beta": 0.019695809172098913,
+   "book_ex_ante_net_beta_mean": -0.03684212063519155,
+   "book_ex_ante_net_beta_absmean": 0.06431363001815843,
+   "book_ex_ante_net_beta_p05_p95": [
+    -0.14341073473598434,
+    0.08068272111462327
+   ],
+   "net_beta_long_side": 0.47298840660212244,
+   "net_beta_short_side": -0.509830527237314,
+   "common_long": 0.14115294121579117,
+   "common_short": -0.10463931094478957,
+   "residual_long": 0.04517026018243359,
+   "residual_short": 0.32826165667284773,
+   "dollar_net_over_gross": -7.615344489693383e-07,
+   "mean_market_bps": 0.4995842460918141,
+   "style_common_risk_and_style": -0.03437468016438761,
+   "style_residual_selection": 0.4769696891577296,
+   "style_common_long": 0.01351220173071529,
+   "style_common_short": -0.0478868818951028,
+   "style_residual_long": 0.1728109996675095,
+   "style_residual_short": 0.27150922762316115,
+   "style_mean_names_in_fit": 273.1779188094978,
+   "btc_net_beta_mean": -0.022642283928791813,
+   "btc_common_market": -0.04715707562716277,
+   "btc_mean_market_bps": 1.9758325238717227
+  }
+ },
+ "ci_2023H2_vs_reference": {
+  "common_market": {
+   "2023H2": {
+    "point": -0.3785695771921074,
+    "ci95": [
+     -0.9933679913370992,
+     0.1906258856261856
+    ],
+    "p": 0.21147885211478853,
+    "B_used": 10000
+   },
+   "2024_2026_reference": {
+    "point": 0.07612212499622976,
+    "ci95": [
+     -0.2731734965013087,
+     0.40409160594776444
+    ],
+    "p": 0.6511348865113489,
+    "B_used": 10000
+   }
+  },
+  "market_bps": {
+   "2023H2": {
+    "point": 5.446687766220644,
+    "ci95": [
+     -0.6068226328111505,
+     11.422305148040095
+    ],
+    "p": 0.0776922307769223,
+    "B_used": 10000
+   },
+   "2024_2026_reference": {
+    "point": -0.39772841036671763,
+    "ci95": [
+     -4.5141528710354075,
+     3.6961976258335225
+    ],
+    "p": 0.8483151684831517,
+    "B_used": 10000
+   }
+  },
+  "net_beta": {
+   "2023H2": {
+    "point": -0.08056346716764431,
+    "ci95": [
+     -0.09057740886262254,
+     -0.07161211872645552
+    ],
+    "p": 9.999000099990002e-05,
+    "B_used": 10000
+   },
+   "2024_2026_reference": {
+    "point": -0.025693349820971843,
+    "ci95": [
+     -0.034643292946930984,
+     -0.016738181260446707
+    ],
+    "p": 9.999000099990002e-05,
+    "B_used": 10000
+   }
+  },
+  "price": {
+   "2023H2": {
+    "point": 0.0824630645830732,
+    "ci95": [
+     -1.2150517287907292,
+     1.2226981237199277
+    ],
+    "p": 0.8917108289171083,
+    "B_used": 10000
+   },
+   "2024_2026_reference": {
+    "point": 0.18844942329693526,
+    "ci95": [
+     -0.5695546088890335,
+     0.9782896075307405
+    ],
+    "p": 0.6232376762323768,
+    "B_used": 10000
+   }
+  },
+  "residual_selection": {
+   "2023H2": {
+    "point": 0.46103264177518016,
+    "ci95": [
+     -0.8098670014907552,
+     1.6103693145871023
+    ],
+    "p": 0.45985401459854014,
+    "B_used": 10000
+   },
+   "2024_2026_reference": {
+    "point": 0.11232729830070556,
+    "ci95": [
+     -0.6134932898567211,
+     0.8937887123791052
+    ],
+    "p": 0.769023097690231,
+    "B_used": 10000
+   }
+  },
+  "style_common": {
+   "2023H2": {
+    "point": 0.18563624400050302,
+    "ci95": [
+     -0.7506838624415222,
+     0.9982656505254034
+    ],
+    "p": 0.6788321167883211,
+    "B_used": 10000
+   },
+   "2024_2026_reference": {
+    "point": -0.2502726274994312,
+    "ci95": [
+     -0.7556039625090979,
+     0.2713765123016294
+    ],
+    "p": 0.34406559344065596,
+    "B_used": 10000
+   }
+  },
+  "style_residual": {
+   "2023H2": {
+    "point": -0.10317317941743,
+    "ci95": [
+     -0.8202204710634892,
+     0.5511011744392436
+    ],
+    "p": 0.7695230476952305,
+    "B_used": 10000
+   },
+   "2024_2026_reference": {
+    "point": 0.4387220507963665,
+    "ci95": [
+     -0.021601457059361655,
+     0.9402580998207237
+    ],
+    "p": 0.07589241075892411,
+    "B_used": 10000
+   }
+  }
+ },
+ "ci_2026_vs_HIST": {
+  "common_market": {
+   "point": 0.11593079760503157,
+   "ci95": [
+    -0.4780104324263391,
+    0.6648275664004749
+   ],
+   "p": 0.6917308269173083,
+   "B_used": 10000,
+   "mean_2026": 0.09523361536939941,
+   "mean_hist": -0.020697182235632165
+  },
+  "market_bps": {
+   "point": -0.5470497284495901,
+   "ci95": [
+    -7.912259666592156,
+    6.031986761996472
+   ],
+   "p": 0.8759124087591241,
+   "B_used": 10000,
+   "mean_2026": 0.10247586165471106,
+   "mean_hist": 0.6495255901043011
+  },
+  "net_beta": {
+   "point": 0.010265343747474957,
+   "ci95": [
+    -0.00999517492237688,
+    0.031170876596420156
+   ],
+   "p": 0.3261673832616738,
+   "B_used": 10000,
+   "mean_2026": -0.026332799482037598,
+   "mean_hist": -0.036598143229512554
+  },
+  "price": {
+   "point": -0.048943997202220174,
+   "ci95": [
+    -2.126563996650915,
+    1.820962946536185
+   ],
+   "p": 0.9619038096190381,
+   "B_used": 10000,
+   "mean_2026": 0.13282389991756371,
+   "mean_hist": 0.1817678971197839
+  },
+  "residual_selection": {
+   "point": -0.16487479480725167,
+   "ci95": [
+    -2.1981995453627188,
+    1.7584501959927845
+   ],
+   "p": 0.8726127387261274,
+   "B_used": 10000,
+   "mean_2026": 0.03759028454816445,
+   "mean_hist": 0.20246507935541613
+  },
+  "style_common": {
+   "point": -0.576840509173073,
+   "ci95": [
+    -1.6313370839578114,
+    0.41842716936198443
+   ],
+   "p": 0.27607239276072393,
+   "B_used": 10000,
+   "mean_2026": -0.6369041271270376,
+   "mean_hist": -0.060063617953964636
+  },
+  "style_residual": {
+   "point": 0.5278965119708525,
+   "ci95": [
+    -0.946667448265439,
+    1.9072323907699908
+   ],
+   "p": 0.4727527247275273,
+   "B_used": 10000,
+   "mean_2026": 0.7697280270446012,
+   "mean_hist": 0.24183151507374862
+  }
+ },
+ "bucket_shift_vs_within_2026_minus_HIST": {
+  "DISP": {
+   "share_hist": [
+    0.15686988171064603,
+    0.3008189262966333,
+    0.5423111919927207
+   ],
+   "share_2026": [
+    0.0,
+    0.06675843083275981,
+    0.9332415691672402
+   ],
+   "g_hist_by_bucket": [
+    -0.497727500065802,
+    -0.7437463059633057,
+    -0.03379691948389702
+   ],
+   "g_2026_by_bucket": [
+    0.0,
+    -4.027056018332946,
+    0.7346212264424997
+   ],
+   "total_delta": 0.7368789923966529,
+   "between_bucket_shift": 0.23894784045147818,
+   "within_bucket_change": 0.4979311519451748
+  },
+  "FDISP": {
+   "share_hist": [
+    0.16524112829845314,
+    0.3079162875341219,
+    0.5268425841674249
+   ],
+   "share_2026": [
+    0.0006882312456985547,
+    0.14315209910529939,
+    0.856159669649002
+   ],
+   "g_hist_by_bucket": [
+    -0.5316113068076894,
+    0.2401187700500608,
+    -0.5812595720965114
+   ],
+   "g_2026_by_bucket": [
+    -5.538121092107105,
+    4.110655516623546,
+    -0.19610633206419334
+   ],
+   "total_delta": 0.7368789923966532,
+   "between_bucket_shift": -0.14350350182371105,
+   "within_bucket_change": 0.8803824942203642
+  },
+  "VOL": {
+   "share_hist": [
+    0.45550500454959053,
+    0.3403093721565059,
+    0.20418562329390355
+   ],
+   "share_2026": [
+    0.46730901582931866,
+    0.2904335856847901,
+    0.24225739848589126
+   ],
+   "g_hist_by_bucket": [
+    -0.3733094116964983,
+    -0.40089313377937724,
+    -0.0669384592088308
+   ],
+   "g_2026_by_bucket": [
+    1.2003664911948884,
+    0.4362520149532577,
+    -1.1182535470280406
+   ],
+   "total_delta": 0.7368789923966528,
+   "between_bucket_shift": 0.013039845861166436,
+   "within_bucket_change": 0.7238391465354865
+  },
+  "ALT": {
+   "share_hist": [
+    0.4120109190172884,
+    0.3057324840764331,
+    0.2822565969062784
+   ],
+   "share_2026": [
+    0.030282174810736407,
+    0.6827253957329663,
+    0.2869924294562973
+   ],
+   "g_hist_by_bucket": [
+    -0.8138245817693409,
+    -0.9276116997800201,
+    1.0584899676854562
+   ],
+   "g_2026_by_bucket": [
+    -3.613905308966889,
+    0.6419369697239138,
+    0.30631249138166566
+   ],
+   "total_delta": 0.736878992396653,
+   "between_bucket_shift": -0.03402996874066955,
+   "within_bucket_change": 0.7709089611373225
+  },
+  "BREADTH": {
+   "share_hist": [
+    0.33393994540491356,
+    0.3537761601455869,
+    0.31228389444949956
+   ],
+   "share_2026": [
+    0.18926359256710254,
+    0.5760495526496903,
+    0.23468685478320717
+   ],
+   "g_hist_by_bucket": [
+    -0.7591930690822267,
+    -0.6597687025510243,
+    0.5341148430355472
+   ],
+   "g_2026_by_bucket": [
+    -1.415334322690687,
+    0.4526064347472614,
+    1.8061797716545884
+   ],
+   "total_delta": 0.7368789923966526,
+   "between_bucket_shift": -0.07825747411087086,
+   "within_bucket_change": 0.8151364665075236
+  },
+  "FLEVEL": {
+   "share_hist": [
+    0.17197452229299362,
+    0.7175614194722475,
+    0.11046405823475887
+   ],
+   "share_2026": [
+    0.16999311768754302,
+    0.830006882312457,
+    0.0
+   ],
+   "g_hist_by_bucket": [
+    -0.009380899617387932,
+    -0.4121551204454657,
+    -0.20622072293439134
+   ],
+   "g_2026_by_bucket": [
+    -1.2157062116434287,
+    0.7510790908405147,
+    0.0
+   ],
+   "total_delta": 0.7368789923966529,
+   "between_bucket_shift": -0.023546407975308842,
+   "within_bucket_change": 0.7604254003719616
+  }
+ }
+}
