@@ -139,8 +139,10 @@ EXIT=0
 表格是机器渲染的(`fcf_render.py`), 但 §0 / §6 / §7 的散文数字是手打的 —— 手打的才是会错的。`fcf_doc_check.py` 把这些数字从收据里重新取出来, 与本文写的逐条并排比对:
 
 ```
-FCF_DOC_CHECK VERDICT=PASS checked=56 mismatching=0      REAL_EXIT=0
+FCF_DOC_CHECK VERDICT=PASS checked=109 mismatching=0      REAL_EXIT=0
 ```
+
+覆盖 §0 的全部结论数字、§3.1 的逐臂水平、§4 的配对点估计与 CI、§5 的风险列与集中度门、§6.1 的触发路径数 / P-halt 窗末 / 中位停机锚、§6.2 的 P2 全表(两个基准 × 三个 H × 四臂), 以及 §7 的每一条对照。每个 P2 读数旁边还断言了它的 `n_eff == 32`。
 
 ### 2.6 机制描述的独立复算
 

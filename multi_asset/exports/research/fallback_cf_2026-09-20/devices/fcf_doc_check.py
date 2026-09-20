@@ -64,6 +64,32 @@ for lab, B, want in (("FULLRECIPE", B2, {"F0": 32, "F1": 32, "F2": 10, "F4a": 32
         add(f"§6.1 {lab} {a} P-halt end mean", round(r["bases"][B]["summary"]["end_return_phalt"]["measured"]["mean"], 4),
             {("FULLRECIPE", "F0"): -0.2527, ("FULLRECIPE", "F1"): -0.2519, ("FULLRECIPE", "F2"): 1.2889, ("FULLRECIPE", "F4a"): -0.2514,
              ("RUNWINDOW", "F0"): -0.2527, ("RUNWINDOW", "F1"): 3.0995, ("RUNWINDOW", "F2"): 2.6908, ("RUNWINDOW", "F4a"): 2.5397}[(lab, a)])
+# §6.2 — the hand-typed reading-P2 table (W_ENTRY, the AMENDMENT 4 main slice)
+P2 = json.load(open(f"{R}/FCF_P2_READING.json"))
+DOC_P2 = {
+    ("RUNWINDOW", "12"): {"F0": -0.2526, "F1": 3.0161, "F2": 2.6456, "F4a": 2.4756},
+    ("RUNWINDOW", "sim"): {"F0": -0.2527, "F1": 3.0995, "F2": 2.6908, "F4a": 2.5397},
+    ("RUNWINDOW", "never"): {"F0": -0.2332, "F1": -0.0397, "F2": 0.0898, "F4a": -0.0397},
+    ("FULLRECIPE", "12"): {"F0": -0.2530, "F1": -0.2519, "F2": 0.6567, "F4a": -0.2512},
+    ("FULLRECIPE", "sim"): {"F0": -0.2527, "F1": -0.2519, "F2": 1.2889, "F4a": -0.2514},
+    ("FULLRECIPE", "never"): {"F0": -0.2513, "F1": -0.1752, "F2": -0.1278, "F4a": -0.2241},
+}
+for (lab, H), want in DOC_P2.items():
+    B = B1 if lab == "RUNWINDOW" else B2
+    for nm, r in P2["runs"].items():
+        a = nm.split("arm ")[-1].rstrip(")")
+        m = r["bases"][B][H]["W_ENTRY"]["summary"]["end_return_P2"]["measured"]
+        add(f"§6.2 {lab} H={H} {a} end_return_P2 mean", round(m["mean"], 4), want[a])
+        add(f"§6.2 {lab} H={H} {a} n_eff beside the mean", m["n_eff"], 32)
+# §6.1 median halt anchors quoted in the doc
+for lab, B, want in (("FULLRECIPE", B2, {"F0": "2024-03-18T16:00:00Z", "F1": "2024-07-15T16:00:00Z", "F2": "2024-08-05T08:00:00Z",
+                                         "F4a": "2024-06-18T08:00:00Z"}),
+                     ("RUNWINDOW", B1, {"F0": "2023-01-18T16:00:00Z"})):
+    for nm, r in P["runs"].items():
+        a = nm.split("arm ")[-1].rstrip(")")
+        if a not in want: continue
+        ha = sorted(m2["halt_anchor"] for m2 in r["bases"][B]["summary"]["end_return_phalt"]["population"]["members"] if m2.get("fired"))
+        add(f"§6.1 {lab} {a} median halt anchor", ha[len(ha) // 2] if ha else None, want[a])
 bad = [r for r in rows if r[1] != r[2]]
 for lab, got, doc in rows:
     print(("  OK   " if got == doc else "MISMATCH ") + f"{lab:52s} receipt={got!r:>12}  doc={doc!r}")
