@@ -1,0 +1,27 @@
+  [C0_baseline] OLD GREEN | NEW GREEN (exit 0) []
+PASS C0.baseline_green_on_BOTH_gates (green baseline first) {"old": "GREEN", "new": "GREEN"}
+  [C1_initial_cash_in_path] OLD GREEN | NEW RED (exit 3) ['E4.initial_state_of_every_path_equals_the_approved_initial_cash_and_a_flat_book', 'E5.seed00.re-run_from_external_inputs_is_bitwise_the_stored_path']
+PASS C1_initial_cash_in_path.NEW_gate_is_RED {"new": "RED"}
+  [C2_base_prices] OLD RED | NEW RED (exit 3) ['E3.run_config_pins_match_the_approved_table']
+PASS C2_base_prices.NEW_gate_is_RED {"new": "RED"}
+  [C3_path_economics] OLD GREEN | NEW RED (exit 3) ['E5.seed01.re-run_from_external_inputs_is_bitwise_the_stored_path']
+PASS C3_path_economics.NEW_gate_is_RED {"new": "RED"}
+  [C3b_path_economics_spotcheck] OLD GREEN | NEW GREEN-SPOTCHECK (exit 0) []
+PASS C3b_path_economics_spotcheck.a_spot_check_does_NOT_claim_PASS (it must say SPOTCHECK, naming the seeds it did not certify) {"new": "GREEN-SPOTCHECK"}
+  [C4_initial_cash_in_config] OLD GREEN | NEW RED (exit 3) ['E2.economics_block_sha_equals_the_approved_one', 'E2.initial_cash_equals_the_approved_constant']
+PASS C4_initial_cash_in_config.NEW_gate_is_RED {"new": "RED"}
+  [C5_funding_ledger] OLD GREEN | NEW RED (exit 3) ['E3.run_config_pins_match_the_approved_table']
+PASS C5_funding_ledger.NEW_gate_is_RED {"new": "RED"}
+PASS CLASS.at_least_two_cases_where_the_OLD_gate_passes_and_the_NEW_one_refuses ["C1_initial_cash_in_path", "C3_path_economics", "C4_initial_cash_in_config", "C5_funding_ledger"]
+
+| case | old gate | new gate |
+|---|---|---|
+| C0_baseline (untouched copy) | GREEN | GREEN |
+| C1_initial_cash_in_path (nav/navm of one path scaled by 1.05, receipts recomputed) | GREEN | RED |
+| C2_base_prices (one cell of the pinned price table changed, the config's pin sha re-signed) | RED | RED |
+| C3_path_economics (price P&L / fees / funding of one path (seed 01) changed with the ledger identity kept, receipts recomputed) | GREEN | RED |
+| C3b_path_economics_spotcheck (the SAME tamper, gate in spot-check mode (only seed 00 re-run): it cannot see seed 01) | GREEN | GREEN-SPOTCHECK |
+| C4_initial_cash_in_config (nav0_usdt 100000 -> 120000 in the run config) | GREEN | RED |
+| C5_funding_ledger (one funding rate in the sealed ledger changed, the config's pin sha re-signed) | GREEN | RED |
+BT_GATE_TAMPER_TEST VERDICT: ALL PASS 13/13 checks (baseline green on both; every tamper case green on the OLD gate and RED on the NEW one)
+EXIT 0

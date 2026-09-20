@@ -1,0 +1,16 @@
+BT_P2_READING written /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/p2fix/o1.json 951a8dcde2f3991a | H list: [12, 8, 20, 'sim', 'never']
+PASS U0.withheld_anchors_are_exactly_the_window_[t, t+H) {"device": 3, "reference": 3}
+PASS U0.end_return_matches_a_hand_built_reference_series {"device": 0.44507647142749773, "reference": 0.44507647142749707}
+PASS U0.a_path_without_a_flatten_is_untouched {"resume_rule": "12 h", "anchors_withheld_by_day_stop": 0, "day_stop_events_in_window": 0, "fired_day_stop": false, "fired_cum25": false, "cum25_anchor": null, "cum_at_cum25": null, "end_return_P2": 0.22079423648679342, "end_return_no_halt": 0.2207942364867934
+PASS [mutation red] a withheld anchor that still contributes its return is a different number {"withheld": 0.44507647142749707, "not_withheld": 0.4004163830780296}
+PASS U1.never_resumes_ends_the_path_at_the_first_flatten {"device": 0.11566834666531656, "reference": 0.11566834666531656, "withheld": 29}
+PASS U2.H=sim_withholds_nothing_extra {"resume_rule": "sim (next 00Z) = reading P", "anchors_withheld_by_day_stop": 0, "day_stop_events_in_window": 1, "fired_day_stop": false, "fired_cum25": false, "cum25_anchor": null, "cum_at_cum25": null, "end_return_P2": 0.4004163830780303, "end_return_no_halt
+BT_P_READING written /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/p2fix/oP.json 1a7d3c475e6b655f | quarterly starts that breach on at least one path: {"FIX_P2": 0}
+PASS U2.P2_with_H=sim_equals_the_published_reading_P (cross-device) {"P2": 0.4004163830780303, "P": 0.4004163830780296}
+BT_P2_READING written /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/p2fix/o2.json b13a666c0ecc27a5 | H list: [12, 8, 20, 'sim', 'never']
+PASS U3.cum25_still_halts_under_P2 {"resume_rule": "12 h", "anchors_withheld_by_day_stop": 3, "day_stop_events_in_window": 1, "fired_day_stop": true, "fired_cum25": true, "cum25_anchor": "2024-01-04T16:00:00Z", "cum_at_cum25": -0.25351373416227985, "end_return_P2": -0.25351373416227985, "end_re
+PASS U4.a_longer_resume_delay_never_withholds_fewer_anchors {"8h": 2, "12h": 3, "20h": 5}
+PASS [mutation red] 8 h and 20 h differ on this fixture (otherwise the sensitivity is vacuous) {"8h": 2, "20h": 5}
+PASS U5.flatten_costs_reported_per_event {"device": [{"anchor": "2024-01-02T16:00:00Z", "turnover_flatten_over_gross": 0.1357930432039475, "window_fee_bps_of_gross": 0.54317217281579}], "reference_turnover": 0.1357930432039475}
+PASS [mutation red] a path npz changed after its json was written is refused "npz sha != its json: /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea"
+BT_P2_READING_TEST VERDICT: ALL PASS 12/12 checks (baselines green, every mutation red)

@@ -1,0 +1,210 @@
+{
+ "device": "bt_gate_tamper_test.py",
+ "self_sha256": "f5ba805c97d5b7798bb31d165b2897d373f2e80036205605d93ab7ac43159354",
+ "gate_sha256": "1909d3838cc43e71e44e15a75881ea8b783ee70e77a834e368da0bb4c43626fa",
+ "argv": [
+  "bt_gate_tamper_test.py",
+  "PATH,HOME,LC_CTYPE",
+  "/workspace/baseline_tables_2026-09-19/APPROVED_INPUTS_2026-09-20.json",
+  "/workspace/baseline_tables_2026-09-19/RUN_CONFIG_main_A0_2026-09-19.json",
+  "/workspace/baseline_tables_2026-09-19/runs_smoke/gov0_215215/OBJB_A0_scaled_rule_raw_UAFE",
+  "4",
+  "/workspace/baseline_tables_2026-09-19/work/tamper",
+  "/workspace/baseline_tables_2026-09-19/receipts/BT_GATE_TAMPER_TEST.json"
+ ],
+ "source_run_dir": "/workspace/baseline_tables_2026-09-19/runs_smoke/gov0_215215/OBJB_A0_scaled_rule_raw_UAFE",
+ "n_seeds": 4,
+ "approved_table": "7be371ce0c414e186c1000a0c60c2e5670338e617f3955727420a3e5f88ed0ce",
+ "run_config": "7b6dca2c48feda294676ab5ce46b748c71ab87103cc64ead5be7957fe5bbfe93",
+ "table": [
+  {
+   "case": "C0_baseline",
+   "note": "untouched copy",
+   "gate_coverage": "all",
+   "old_gate": "GREEN",
+   "old_failed": [],
+   "new_gate": "GREEN",
+   "new_failed": [],
+   "new_gate_exit_code": 0
+  },
+  {
+   "case": "C1_initial_cash_in_path",
+   "note": "nav/navm of one path scaled by 1.05, receipts recomputed",
+   "gate_coverage": "all",
+   "old_gate": "GREEN",
+   "old_failed": [],
+   "new_gate": "RED",
+   "new_failed": [
+    "E4.initial_state_of_every_path_equals_the_approved_initial_cash_and_a_flat_book",
+    "E5.seed00.re-run_from_external_inputs_is_bitwise_the_stored_path"
+   ],
+   "new_gate_exit_code": 3
+  },
+  {
+   "case": "C2_base_prices",
+   "note": "one cell of the pinned price table changed, the config's pin sha re-signed",
+   "gate_coverage": "all",
+   "old_gate": "RED",
+   "old_failed": [
+    "O1.price_receipt.PASS_and_outputs"
+   ],
+   "new_gate": "RED",
+   "new_failed": [
+    "E3.run_config_pins_match_the_approved_table"
+   ],
+   "new_gate_exit_code": 3
+  },
+  {
+   "case": "C3_path_economics",
+   "note": "price P&L / fees / funding of one path (seed 01) changed with the ledger identity kept, receipts recomputed",
+   "gate_coverage": "all",
+   "old_gate": "GREEN",
+   "old_failed": [],
+   "new_gate": "RED",
+   "new_failed": [
+    "E5.seed01.re-run_from_external_inputs_is_bitwise_the_stored_path"
+   ],
+   "new_gate_exit_code": 3
+  },
+  {
+   "case": "C3b_path_economics_spotcheck",
+   "note": "the SAME tamper, gate in spot-check mode (only seed 00 re-run): it cannot see seed 01",
+   "gate_coverage": "1",
+   "old_gate": "GREEN",
+   "old_failed": [],
+   "new_gate": "GREEN-SPOTCHECK",
+   "new_failed": [],
+   "new_gate_exit_code": 0
+  },
+  {
+   "case": "C4_initial_cash_in_config",
+   "note": "nav0_usdt 100000 -> 120000 in the run config",
+   "gate_coverage": "all",
+   "old_gate": "GREEN",
+   "old_failed": [],
+   "new_gate": "RED",
+   "new_failed": [
+    "E2.economics_block_sha_equals_the_approved_one",
+    "E2.initial_cash_equals_the_approved_constant"
+   ],
+   "new_gate_exit_code": 3
+  },
+  {
+   "case": "C5_funding_ledger",
+   "note": "one funding rate in the sealed ledger changed, the config's pin sha re-signed",
+   "gate_coverage": "all",
+   "old_gate": "GREEN",
+   "old_failed": [],
+   "new_gate": "RED",
+   "new_failed": [
+    "E3.run_config_pins_match_the_approved_table"
+   ],
+   "new_gate_exit_code": 3
+  }
+ ],
+ "checks": [
+  {
+   "check": "C0.baseline_green_on_BOTH_gates (green baseline first)",
+   "ok": true,
+   "detail": {
+    "old": "GREEN",
+    "new": "GREEN"
+   }
+  },
+  {
+   "check": "C1_initial_cash_in_path.NEW_gate_is_RED",
+   "ok": true,
+   "detail": {
+    "new": "RED"
+   }
+  },
+  {
+   "check": "C1_initial_cash_in_path.OLD_gate_verdict_recorded",
+   "ok": true,
+   "detail": {
+    "old": "GREEN",
+    "class_demonstrated_here": true
+   }
+  },
+  {
+   "check": "C2_base_prices.NEW_gate_is_RED",
+   "ok": true,
+   "detail": {
+    "new": "RED"
+   }
+  },
+  {
+   "check": "C2_base_prices.OLD_gate_verdict_recorded",
+   "ok": true,
+   "detail": {
+    "old": "RED",
+    "class_demonstrated_here": false
+   }
+  },
+  {
+   "check": "C3_path_economics.NEW_gate_is_RED",
+   "ok": true,
+   "detail": {
+    "new": "RED"
+   }
+  },
+  {
+   "check": "C3_path_economics.OLD_gate_verdict_recorded",
+   "ok": true,
+   "detail": {
+    "old": "GREEN",
+    "class_demonstrated_here": true
+   }
+  },
+  {
+   "check": "C3b_path_economics_spotcheck.a_spot_check_does_NOT_claim_PASS (it must say SPOTCHECK, naming the seeds it did not certify)",
+   "ok": true,
+   "detail": {
+    "new": "GREEN-SPOTCHECK"
+   }
+  },
+  {
+   "check": "C4_initial_cash_in_config.NEW_gate_is_RED",
+   "ok": true,
+   "detail": {
+    "new": "RED"
+   }
+  },
+  {
+   "check": "C4_initial_cash_in_config.OLD_gate_verdict_recorded",
+   "ok": true,
+   "detail": {
+    "old": "GREEN",
+    "class_demonstrated_here": true
+   }
+  },
+  {
+   "check": "C5_funding_ledger.NEW_gate_is_RED",
+   "ok": true,
+   "detail": {
+    "new": "RED"
+   }
+  },
+  {
+   "check": "C5_funding_ledger.OLD_gate_verdict_recorded",
+   "ok": true,
+   "detail": {
+    "old": "GREEN",
+    "class_demonstrated_here": true
+   }
+  },
+  {
+   "check": "CLASS.at_least_two_cases_where_the_OLD_gate_passes_and_the_NEW_one_refuses",
+   "ok": true,
+   "detail": [
+    "C1_initial_cash_in_path",
+    "C3_path_economics",
+    "C4_initial_cash_in_config",
+    "C5_funding_ledger"
+   ]
+  }
+ ],
+ "failed": [],
+ "VERDICT": "PASS",
+ "runtime_s": 309.5
+}

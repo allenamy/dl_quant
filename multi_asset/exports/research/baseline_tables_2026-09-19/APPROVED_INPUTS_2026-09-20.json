@@ -1,0 +1,187 @@
+{
+ "device": "bt_approved_inputs.py",
+ "self_sha256": "a17cddfe0f015a23bfea2fbadfaab860a06a0c89a87e45f343dabfb2c296660e",
+ "utc": "2026-09-20T08:51:51Z",
+ "built_from_configs": {
+  "RUN_CONFIG_main_A0_2026-09-19.json": "7b6dca2c48feda294676ab5ce46b748c71ab87103cc64ead5be7957fe5bbfe93",
+  "RUN_CONFIG_main_A0ext_2026-09-20.json": "acafccc6b3b7a1e15ab502b92b5bd78603da1befa2d2b10bf063fc4937f9ab3b",
+  "RUN_CONFIG_main_V4_2026-09-20.json": "e353fb955860ccd6f9f7b0f2ea0a803561aef7201c8c144c882f15c560ed9bfc"
+ },
+ "rule": "every entry re-hashed from its own path here; the configs must agree on every shared pin and on the economics block",
+ "economics": {
+  "current_production_config": {
+   "gross_mult": 2.0,
+   "chase_weights": {
+    "chase": 0.5,
+    "no_chase": 0.5
+   },
+   "E4_from_anchor": 0,
+   "requote_assignment_from_anchor": 0,
+   "fee_era": "USDT_era maker/taker of the pooled calibration for every trade",
+   "decision": "t_dec = A + decision_offset_default_s (1440 = N+24:00), rid = A{t_dec}; decision bar = floor_5m(t_dec) = N+20",
+   "stop_eval": "A + eval_offset_without_frame_s (2700 = N+45; no live readback frames in history)",
+   "rule_flatten": "max(A + rule_flatten_offset_s (2760 = N+46), t_eval + 1 s)",
+   "per_name_stop": "409ea16 config/book.json active_profile wide (−0.30 × 2 consecutive, 7-day cooldown, 5 USDT)",
+   "on_unavailable": "hold",
+   "venue_tradable": "tradability_v1 state_W24H == 2 at A",
+   "meta_exclusions": "none",
+   "exchange_filters": "stream-E mirror exchange_info_cache.json (current values)"
+  },
+  "nav0_usdt": 100000.0,
+  "paths_R": 32,
+  "sha256": "210a9174147a0ab34ade120e52a64724f5a0bdd14c4764f62d3b5359700e57d6"
+ },
+ "pin_role": {},
+ "inputs": {
+  "prereg": {
+   "path": "/workspace/baseline_tables_2026-09-19/pins/PREREG_baseline_tables_certified_2026-09-19.md",
+   "sha256": "d9fe45e3191f56e564e1df951ddfc9465e75d7ef03e680e31943cc9057398ae2",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "prereg_amendment_1": {
+   "path": "/workspace/baseline_tables_2026-09-19/pins/AMENDMENT_1_baseline_tables_certified_2026-09-19.md",
+   "sha256": "766bc367743d8542a2da4c2c547df16d2bac7c6984acf7f734ddd1e59c5c26cb",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "exec_sim": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/exec_sim.py",
+   "sha256": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "simlib": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/simlib.py",
+   "sha256": "55246fe98da2d57a33bbbe0f22fc67e6581da539c353b026d8ef41673dfec2f1",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "v1b_gate": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/v1b_gate.py",
+   "sha256": "4a725921a470f4c11f47cda5a8e210979215079cea16b496c709c7cc62fb5410",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "v1_gate": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/v1_gate.py",
+   "sha256": "c97d9b3d49212b49ea2cde883d7a06fe749f43ed23f3aef7de6345a4d8075d0d",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "calibration": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/CALIBRATION_v3_POOLED_20260826_20260910.json",
+   "sha256": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "input_manifest": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/INPUT_MANIFEST.json",
+   "sha256": "59875e5a69db415f5ce20b35b888f2d49a31427fdde8b7b847a9645ee135a5ae",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "p2_s2_lib": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/devices/p2_s2_lib.py",
+   "sha256": "c53f5c495036727fcd7115bad6838229923c91f6b76bed955ebdb0f25d57c831",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "price_full_raw": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r.npy",
+   "sha256": "23af32bd97c267d126c2109641815b92082b8688e35bcfbaaa1e88c2dc5bb5d8",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "price_full_meta": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r_meta.npz",
+   "sha256": "d1e49cc9f0a7ddc4104feb52a42da3024ba1e66ad5891a26c96f00cff7ce5d90",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "price_receipt": {
+   "path": "/workspace/baseline_tables_2026-09-19/receipts/BT_PRICES_FULL_X0918R.json",
+   "sha256": "130592b122831e03c24916e771be5174c9be3930500eb735a7d268907ee000f2",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "price_source_table_x0918r": {
+   "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/work/price_logtable_raw_x0918r.npy",
+   "sha256": "9249b0da4a4c578900cbafd29e1cec28de57f4437f037f1280040b2a84196608",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "price_source_meta_x0918r": {
+   "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/work/price_meta_raw_x0918r.npz",
+   "sha256": "da136830cee7e1a219e56e69ce9d50de2eead6864df7d205cdb7559151162df3",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "ledger_full": {
+   "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+   "sha256": "073088e503c026d6071c76764426503616d53570e5f3763807df27ea7cc80362",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "funding_overlap_proof": {
+   "path": "/workspace/baseline_tables_2026-09-19/funding/BT_FUNDING_OVERLAP.json",
+   "sha256": "0ee6d99bfa2acfb9576efb90655ac3e6b1f68fbdb7de14fcecbd3b02531c635b",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "funding_source_p2": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+   "sha256": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "funding_source_stream_d": {
+   "path": "/workspace/axis_0919/funding/funding_ledger.npz",
+   "sha256": "74b69e635efbf3556fe706520fda9d5a1b5cda86dda9d04a844ba5d617a3a09d",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "funding_4h_accounting_stream_d": {
+   "path": "/workspace/axis_0919/funding/funding_4h_accounting.npz",
+   "sha256": "2838e5f6cf42fff5619460f64708d952cd56e23e6621195d8e3d8bd5466aca72",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "tradability": {
+   "path": "/workspace/axis_0919/x0918r/trd/tradability_v1.npz",
+   "sha256": "bebf69ab9ddb3b05b49552e66dccf9b8cde3caee0593b14e1b3fe1a4c93c9db8",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "universe": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/work/universe.npz",
+   "sha256": "6322b57366078ed0022fd8a8156ee36f527bf309e0d66bfa5f6ec17d7a09efa7",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "g0_labels": {
+   "path": "/workspace/baseline_tables_2026-09-19/g0x/g0_labels_x0918.npz",
+   "sha256": "c3832939e1b0133369af96ea2866e3cfb226274aeda98c81b82e531654b185b6",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "g0_receipt": {
+   "path": "/workspace/baseline_tables_2026-09-19/g0x/RECEIPT_bt_g0_extend.json",
+   "sha256": "8afd680472ef21be2731bf4b7e55cea018dc80ac44c370ef8321f9cb02fc82de",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "targets_A0_main_npz": {
+   "path": "/workspace/object_b_2026-09-19/work/A0_main/TARGETS_A0_main.npz",
+   "sha256": "b9f0dc9f2011f9defaac80b116415de3f4d75ffb497cbb9533cd995879036c41",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "targets_A0_main_receipt": {
+   "path": "/workspace/object_b_2026-09-19/receipts/TARGETS_A0_main.json",
+   "sha256": "5ebac7205afc2cd0b5a0c85bd3daf2e2210e56dad9b0461fd015025cb4518385",
+   "first_seen_in": "RUN_CONFIG_main_A0_2026-09-19.json"
+  },
+  "targets_A0_ext_npz": {
+   "path": "/workspace/object_b_2026-09-19/work/A0_ext/TARGETS_A0_ext.npz",
+   "sha256": "085d88585244190dde4ec71cddbea1a6ff22f8c0bcf5bc583f54dc3cb5d7de04",
+   "first_seen_in": "RUN_CONFIG_main_A0ext_2026-09-20.json"
+  },
+  "targets_A0_ext_receipt": {
+   "path": "/workspace/object_b_2026-09-19/receipts/TARGETS_A0_ext.json",
+   "sha256": "e9fd58b1a801e9d87b3c64940f067dc95f7af370cd0eecbfed7daf2c04288722",
+   "first_seen_in": "RUN_CONFIG_main_A0ext_2026-09-20.json"
+  },
+  "prereg_amendment_2": {
+   "path": "/workspace/baseline_tables_2026-09-19/pins/AMENDMENT_2_baseline_tables_certified_2026-09-20.md",
+   "sha256": "52ae1969522d86208c46005251f4b67146f5cf677b85b893380e8ebf18a2f31d",
+   "first_seen_in": "RUN_CONFIG_main_V4_2026-09-20.json"
+  },
+  "targets_V4_main_npz": {
+   "path": "/workspace/object_b_2026-09-19/work/V4_main/TARGETS_V4_main.npz",
+   "sha256": "a937a481fef08513bee2e2839c2e96787d6e0767175e2d3f50ebd35a24089dba",
+   "first_seen_in": "RUN_CONFIG_main_V4_2026-09-20.json"
+  },
+  "targets_V4_main_receipt": {
+   "path": "/workspace/object_b_2026-09-19/receipts/TARGETS_V4_main.json",
+   "sha256": "41b6f8fb9c95380a270fb01e92cacdb493efcbd13636ee32f0dc8082ade72cce",
+   "first_seen_in": "RUN_CONFIG_main_V4_2026-09-20.json"
+  }
+ }
+}

@@ -1,0 +1,141 @@
+{
+ "device": "bt_p2_reading_test.py",
+ "self_sha256": "8028ae82fc33f860a76e797554cbae48e0d85ae7a6baa0be334b9cf346a620d1",
+ "tested": "508213154863a29914f1b5e1b9802c92ce1470561b17c38d7c69c78774a39823",
+ "argv": [
+  "devices/bt_p2_reading_test.py",
+  "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/p2fix",
+  "receipts/BT_P2_READING_TEST_mac.json"
+ ],
+ "numpy": "1.26.4",
+ "checks": [
+  {
+   "check": "U0.withheld_anchors_are_exactly_the_window_[t, t+H)",
+   "ok": true,
+   "detail": {
+    "device": 3,
+    "reference": 3
+   }
+  },
+  {
+   "check": "U0.end_return_matches_a_hand_built_reference_series",
+   "ok": true,
+   "detail": {
+    "device": 0.44507647142749773,
+    "reference": 0.44507647142749707
+   }
+  },
+  {
+   "check": "U0.a_path_without_a_flatten_is_untouched",
+   "ok": true,
+   "detail": {
+    "resume_rule": "12 h",
+    "anchors_withheld_by_day_stop": 0,
+    "day_stop_events_in_window": 0,
+    "fired_day_stop": false,
+    "fired_cum25": false,
+    "cum25_anchor": null,
+    "cum_at_cum25": null,
+    "end_return_P2": 0.22079423648679342,
+    "end_return_no_halt": 0.22079423648679342,
+    "seed": 1
+   }
+  },
+  {
+   "check": "[mutation red] a withheld anchor that still contributes its return is a different number",
+   "ok": true,
+   "detail": {
+    "withheld": 0.44507647142749707,
+    "not_withheld": 0.4004163830780296
+   }
+  },
+  {
+   "check": "U1.never_resumes_ends_the_path_at_the_first_flatten",
+   "ok": true,
+   "detail": {
+    "device": 0.11566834666531656,
+    "reference": 0.11566834666531656,
+    "withheld": 29
+   }
+  },
+  {
+   "check": "U2.H=sim_withholds_nothing_extra",
+   "ok": true,
+   "detail": {
+    "resume_rule": "sim (next 00Z) = reading P",
+    "anchors_withheld_by_day_stop": 0,
+    "day_stop_events_in_window": 1,
+    "fired_day_stop": false,
+    "fired_cum25": false,
+    "cum25_anchor": null,
+    "cum_at_cum25": null,
+    "end_return_P2": 0.4004163830780303,
+    "end_return_no_halt": 0.4004163830780303,
+    "seed": 0
+   }
+  },
+  {
+   "check": "U2.P2_with_H=sim_equals_the_published_reading_P (cross-device)",
+   "ok": true,
+   "detail": {
+    "P2": 0.4004163830780303,
+    "P": 0.4004163830780296
+   }
+  },
+  {
+   "check": "U3.cum25_still_halts_under_P2",
+   "ok": true,
+   "detail": {
+    "resume_rule": "12 h",
+    "anchors_withheld_by_day_stop": 3,
+    "day_stop_events_in_window": 1,
+    "fired_day_stop": true,
+    "fired_cum25": true,
+    "cum25_anchor": "2024-01-04T16:00:00Z",
+    "cum_at_cum25": -0.25351373416227985,
+    "end_return_P2": -0.25351373416227985,
+    "end_return_no_halt": -0.5016398181210457,
+    "seed": 0
+   }
+  },
+  {
+   "check": "U4.a_longer_resume_delay_never_withholds_fewer_anchors",
+   "ok": true,
+   "detail": {
+    "8h": 2,
+    "12h": 3,
+    "20h": 5
+   }
+  },
+  {
+   "check": "[mutation red] 8 h and 20 h differ on this fixture (otherwise the sensitivity is vacuous)",
+   "ok": true,
+   "detail": {
+    "8h": 2,
+    "20h": 5
+   }
+  },
+  {
+   "check": "U5.flatten_costs_reported_per_event",
+   "ok": true,
+   "detail": {
+    "device": [
+     {
+      "anchor": "2024-01-02T16:00:00Z",
+      "turnover_flatten_over_gross": 0.1357930432039475,
+      "window_fee_bps_of_gross": 0.54317217281579
+     }
+    ],
+    "reference_turnover": 0.1357930432039475
+   }
+  },
+  {
+   "check": "[mutation red] a path npz changed after its json was written is refused",
+   "ok": true,
+   "detail": "npz sha != its json: /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea"
+  }
+ ],
+ "failed": [],
+ "VERDICT": "PASS",
+ "runtime_s": 0.1
+}
