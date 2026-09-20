@@ -2,7 +2,7 @@
 
 # RESULT · 2026 与历史的最细粒度归因(认证生产路径, 逐锚 / 逐腿 / 逐名)
 
-**装置与收据**: `multi_asset/exports/research/attrib_2026_2026-09-20/`(`devices/` 九个装置 + 逐字运行脚本; 仓库根 `RUN_CONFIG_attrib_2026-09-20.json` = 冻结运行配置; `receipts/` = 十一份收据 + 全表 `ATTRIB_TABLES.md` + 日志)。pod2 只写 `/workspace/attrib_2026_2026-09-20/`, 只用 CPU, 未调用交易所, 未碰实盘目录, 未用 GPU。**盲态**: 本文不含任何分臂执行结果量(CFG-06)。
+**装置与收据**: `multi_asset/exports/research/attrib_2026_2026-09-20/`(`devices/` 十个装置 + 逐字运行脚本; 仓库根 `RUN_CONFIG_attrib_2026-09-20.json` = 冻结运行配置; `receipts/` = 十三份收据 + 全表 `ATTRIB_TABLES.md` + 日志)。pod2 只写 `/workspace/attrib_2026_2026-09-20/`, 只用 CPU, 未调用交易所, 未碰实盘目录, 未用 GPU。**盲态**: 本文不含任何分臂执行结果量(CFG-06)。
 
 **上游**: 基线表 `docs/RESULT_baseline_tables_A0_objB_2026-09-19.md`(本文的 L1 层与它逐格相同)· 对象 B 预注册与门 F · 模拟器 v3.1 · G0 冻结状态量 `docs/PROGRAM_credible_replay_regime_optimization_2026-09-19.md` §4 · C0 冻结特征与分组定义 `docs/RESULT_c0_attribution_2026-09-19.md` §1.3/§1.4/§3(**只沿用定义, 不引用其数字与结论** —— 那是旧研究书, 有已具名的缺陷)。
 
@@ -124,6 +124,12 @@
 | **L2 纸面** | 生产者写出的目标书, 按执行器自己的 reshape 整形, 用认证价格表与拼接资金费账本计价 | **唯一**能切到逐名 / 逐腿 / 逐分组的层(模拟器不输出逐名现金) |
 
 **每一张表都标了自己在哪一层**; 块 R(§2)逐时段报 L1 − L2 的残差(= 执行: 成交时点 N+24 分钟、部分成交、逐名止损、日止损平仓、停机、灰尘、场所钳制与弹出), **从不吸收进任何腿或任何分组**。
+
+**g 与其分解用的分母与人口(与基线表口径对账; lead 2026-09-20 要求; 装置 `at_gcal.py` 85da2704, 收据 `AT_G_CONVENTION.json` 32a9339f)**: 本文的 g 与价格 / 资金费 / 手续费三项**全部除以「目标 gross」= gross_mult × 该锚自己窗初的 NAV**(`at_control.py` L47 `den = GM * Z["nav0"]`, GM = 2.0; L61 `s["g"] = 1e4 * s["r"] / GM`), **不是当窗的实际 gross `gross0`**。本运行上 `navm0 == nav0` 逐位相同(UA 规则未触发), 所以 NAV 收益形式与分项形式共用同一个分母, 恒等式 `g = 价格 − 资金费 − 手续费 − UNKNOWN` 逐锚成立(残差 ≤ 2.0e-11 bps)。**人口 = 窗内每一个锚的算术平均, 一个不丢**: 持有 / 停机 / 逐名止损 / `gross0 = 0` 的锚全部保留(掩码 `at_lib.period_mask` 是纯时间过滤); 自举同口径(`day_aggregate` 按锚求和再按锚计数 ⇒ Σ日和/Σ日锚数 = 同一个不加权的逐锚平均)。
+
+这与基线表各表的口径**是同一个, 不是巧合落在同一个值上**: HIST 实测 **+0.07279**, 即基线表对账便条 `multi_asset/exports/research/baseline_tables_2026-09-19/receipts/G_CONVENTION_reconciliation_2026-09-20.md`(装置 `bt_g_convention.py` 44cfecf2, 提交 ddee744fd)里的 +0.0728。**人口不是差别来源, 这一侧也独立复核过**: 每条路径各自剔掉自己的停机锚再跨路径平均 = **+0.0730**(HIST 人口: 0 个持有锚、21 个至少一条路径停机的锚、862 个含逐名止损的锚、30 个至少一条路径 gross0 = 0 的锚)。
+⚠ 一个**容易摆错的人口变体**, 写在这里免得别人重踩: 「只要有任一条路径停机就把该锚从全部 32 条路径上剔掉」会删掉 21 个**多数路径其实正常交易**的锚, 而这些锚平均 **+11.4 bps**(它们紧跟 −4% 日止损, 书小而市场反弹), 给出 +0.0292 —— 那是变体摆错, 不是口径问题。
+本文**没有**复现对方的 `gross0` 分母读数: 我自己按 `gross0` 重算 HIST 得 **+0.0679** 而不是 +0.0432; 差别在于分母可以趋近 0 时「先按路径平均还是先按锚平均」, 这是那个口径自身的不稳定性, 与本文所用口径无关, 本文不为它背书也不需要它。两种口径在每个窗上的绝对差 ≤ 0.03 bps/锚(实际 / 目标 gross 的水平本身一致, HIST 逐锚均值 0.9994), 在 2026 的 +3.0 上看不出来, 在 HIST 的 +0.05 上显眼 —— **本文任何结论都不受影响。**
 
 **纸面书 W(E)**: 人口 = 生产者在该锚写出非零权重的名字(`TARGETS_A0_*.npz` 的 `scaled` CSR 行; kind 2 = combo 文件, kind 1 = king 文件 —— 写了哪个哪个就是交易的书); v ← v − mean(v); v ← v / Σ|v|。这是镜像运行树 409ea16 的 `scheduler/anchor_loop.py::apply_withhold_and_reshape` → `signal/legs.py`(1e655daf, L176–200)`reshape_after_withhold(redemean=True, rescale=True)` **逐值抄写**; pop / force_flat / clamp 三步没有模拟, 它们依赖场所状态与逐名止损链, 按构造落在 L1 − L2 残差里。
 
@@ -444,9 +450,10 @@ G0 的冻结标签里 **RG-ALT 与 RG-TREND 只到 2026-08-31**(它们要 BTC 30
 | `at_attrib.py` | 块 R / A / B / C / D / E / F + 30 检验 Holm 家族 | `AT_ATTRIB VERDICT=PASS checks=23 failed=[]` |
 | `at_regime.py` | 块 G | `AT_REGIME VERDICT=PASS checks=13 failed=[]` |
 | `at_supp.py` | **冻结后追加, 探索性**: 特征×方向、逐月、名字集中度、席位反事实、A2 退化量化、五元因果状态、因果 UBAR | `AT_SUPP VERDICT=PASS (冻结后追加, 探索性) checks=3 failed=[]` |
+| `at_gcal.py` | **口径对账**: 从本文自己的代码路径确认 g 的分母与人口, 并在同一批路径文件上验证(见 §1.1) | `AT_G_CONVENTION VERDICT=PASS checks=6 failed=[]`; 判词行同时打印 `HIST g = +0.0728 (target gross, every anchor)` |
 | `at_render.py` | 渲染(只排版, 不算任何量) | 631 行 `ATTRIB_TABLES.md` |
 
-**装置 sha256 前 16**(每份收据里记录的 `self_sha256` / `lib_sha256` 与下表**逐个核对通过**, 核对命令见本节末): `at_lib.py` **1e85dfb3eb508cdc** · `at_prerun.py` 3b7d8517f8ece638 · `at_control.py` 585d0e5f96a12047 · `at_build.py` 95dcd8099b321463 · `at_attrib.py` ab5a176dbd16070b · `at_regime.py` 0dbdc908df114f9a · `at_selftest.py` f3abbcce27a69a89 · `at_supp.py` a0687f2e08f756b4 · `at_render.py` caa9e3394e0b7158 · `run_attrib.sh` db2d0282bede638c。
+**装置 sha256 前 16**(每份收据里记录的 `self_sha256` / `lib_sha256` 与下表**逐个核对通过**, 核对命令见本节末): `at_lib.py` **1e85dfb3eb508cdc** · `at_prerun.py` 3b7d8517f8ece638 · `at_control.py` 585d0e5f96a12047 · `at_build.py` 95dcd8099b321463 · `at_attrib.py` ab5a176dbd16070b · `at_regime.py` 0dbdc908df114f9a · `at_selftest.py` f3abbcce27a69a89 · `at_supp.py` a0687f2e08f756b4 · `at_gcal.py` 85da2704c7481ca0 · `at_render.py` caa9e3394e0b7158 · `run_attrib.sh` db2d0282bede638c。
 
 **★ 全部冻结定义所在的 `at_lib.py` 自装置提交 282016a86 起一字未改**(`git diff --quiet 282016a86 -- .../devices/at_lib.py` 通过)。首跑之后改过的只有三个文件, 逐条说明, 没有一条是分析定义的改动:
 
@@ -466,6 +473,7 @@ G0 的冻结标签里 **RG-ALT 与 RG-TREND 只到 2026-08-31**(它们要 BTC 30
 | `receipts/AT_ATTRIB.json` / `AT_ATTRIB_RECEIPT.json` | 376cd201fad83b64 / 91243bc80812276b |
 | `receipts/AT_REGIME.json` / `AT_REGIME_RECEIPT.json` | 745b3502ccc8f956 / b51770dd94c12db4 |
 | `receipts/AT_SUPP.json` / `AT_SUPP_RECEIPT.json`(冻结后追加) | 464fe32c72f451ec / c92a862504d03973 |
+| `receipts/AT_G_CONVENTION.json` / `AT_G_CONVENTION_RECEIPT.json`(口径对账) | 32a9339fa8cf6d55 / 1a19fb65097b7093 |
 | `receipts/ATTRIB_TABLES.md`(全表 631 行) | 61d595cccbdbb264 |
 
 **逐字复跑**(pod2; 环境白名单传给每个装置并在装置内断言, 任何白名单之外的变量直接拒跑):
@@ -482,12 +490,13 @@ env -i PATH=/usr/bin:/bin HOME=$HOME $PY -B $D/at_build.py    "$ENVW" $R
 env -i PATH=/usr/bin:/bin HOME=$HOME $PY -B $D/at_attrib.py   "$ENVW" $R
 env -i PATH=/usr/bin:/bin HOME=$HOME $PY -B $D/at_regime.py   "$ENVW" $R
 env -i PATH=/usr/bin:/bin HOME=$HOME $PY -B $D/at_supp.py     "$ENVW" $R   # 冻结后追加
+env -i PATH=/usr/bin:/bin HOME=$HOME $PY -B $D/at_gcal.py     "$ENVW" $R   # 口径对账
 # 渲染在 mac 上:
 python multi_asset/exports/research/attrib_2026_2026-09-20/devices/at_render.py \
        multi_asset/exports/research/attrib_2026_2026-09-20/receipts
 ```
 
-**收据与装置的核对**(每份收据里记录的 `self_sha256` / `lib_sha256` 必须等于入库的那份文件; 七份全过):
+**收据与装置的核对**(每份收据里记录的 `self_sha256` / `lib_sha256` 必须等于入库的那份文件; 八份全过):
 
 ```sh
 python - <<'EOF'
@@ -497,7 +506,8 @@ D = 'multi_asset/exports/research/attrib_2026_2026-09-20'
 dev = {f[:-3]: sha(f'{D}/devices/{f}') for f in os.listdir(f'{D}/devices') if f.endswith('.py')}
 for rf, nm in (('AT_PRERUN.json', 'at_prerun'), ('AT_CONTROL.json', 'at_control'), ('AT_BUILD.json', 'at_build'),
                ('AT_ATTRIB_RECEIPT.json', 'at_attrib'), ('AT_REGIME_RECEIPT.json', 'at_regime'),
-               ('AT_SELFTEST.json', 'at_selftest'), ('AT_SUPP_RECEIPT.json', 'at_supp')):
+               ('AT_SELFTEST.json', 'at_selftest'), ('AT_SUPP_RECEIPT.json', 'at_supp'),
+               ('AT_G_CONVENTION_RECEIPT.json', 'at_gcal')):
     d = json.load(open(f'{D}/receipts/{rf}'))
     print(rf, d['self_sha256'] == dev[nm], d['lib_sha256'] == dev['at_lib'], d['VERDICT'])
 EOF

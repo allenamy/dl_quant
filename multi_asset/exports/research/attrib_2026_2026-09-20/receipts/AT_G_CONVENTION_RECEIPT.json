@@ -1,0 +1,136 @@
+{
+ "device": "at_gcal.py",
+ "self_sha256": "85da2704c7481ca0c117720114369ba13948386bcfbb00cc73e19238a536debd",
+ "lib_sha256": "1e85dfb3eb508cdc67476f11c1f9a55b8c9b81336fed945538b80ef082c56fb0",
+ "argv": [
+  "devices/at_gcal.py",
+  "PATH,HOME,LC_CTYPE,LANG,PWD,SHLVL,_",
+  "/workspace/attrib_2026_2026-09-20/receipts"
+ ],
+ "env": {
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "PATH": "/usr/bin:/bin"
+ },
+ "numpy": "2.4.6",
+ "python": "3.11.10",
+ "utc_start": "2026-09-20T02:41:16Z",
+ "pid": 1499442,
+ "pgid": 1499441,
+ "purpose": "state and prove this stream's g denominator and anchor population (coordinator request 2026-09-20)",
+ "inputs": {
+  "AGG_A0": {
+   "path": "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0_scaled_rule_raw_UAFE/AGG_OBJB_A0_scaled_rule_raw_UAFE.npz",
+   "sha256": "d01eebe3f6a05b6af474dbdbae6b99ff0e03198a507f8f53ab3170df7888aa1a"
+  }
+ },
+ "outputs": {
+  "g_convention": {
+   "path": "/workspace/attrib_2026_2026-09-20/receipts/AT_G_CONVENTION.json",
+   "sha256": "32a9339fa8cf6d55261b22fe976d8dd69a15ae0968f23d3a9784b53bd0f79e02"
+  }
+ },
+ "headline": {
+  "2022H2": {
+   "n": 1110,
+   "g": -0.7623
+  },
+  "2023pre": {
+   "n": 1081,
+   "g": 1.0639
+  },
+  "2023full": {
+   "n": 1109,
+   "g": -0.7378
+  },
+  "2024": {
+   "n": 2196,
+   "g": 0.4252
+  },
+  "2025": {
+   "n": 2190,
+   "g": 0.1299
+  },
+  "2026H1": {
+   "n": 1086,
+   "g": 3.3985
+  },
+  "2026JA": {
+   "n": 367,
+   "g": 1.7718
+  },
+  "2026": {
+   "n": 1453,
+   "g": 2.9876
+  },
+  "HIST": {
+   "n": 5495,
+   "g": 0.0728
+  },
+  "FULL_RECIPE": {
+   "n": 6948,
+   "g": 0.6824
+  },
+  "PARTIAL_RECIPE": {
+   "n": 2191,
+   "g": 0.1387
+  },
+  "WHOLE_WINDOW": {
+   "n": 9139,
+   "g": 0.552
+  }
+ },
+ "runtime_s": 0.7,
+ "checks": [
+  {
+   "check": "env.whitelist",
+   "ok": true,
+   "detail": {
+    "extra": []
+   }
+  },
+  {
+   "check": "input_sha.AGG_A0",
+   "ok": true,
+   "detail": {
+    "expected": "d01eebe3f6a05b6a",
+    "got": "d01eebe3f6a05b6a"
+   }
+  },
+  {
+   "check": "navm0_equals_nav0_bitwise",
+   "ok": true,
+   "detail": {
+    "note": "\u21d2 the NAV-return form and the component form share the denominator 2\u00b7NAV(A)"
+   }
+  },
+  {
+   "check": "HIST.g_is_the_published_number",
+   "ok": true,
+   "detail": {
+    "g": 0.07279108647033455,
+    "doc_says": "+0.073"
+   }
+  },
+  {
+   "check": "HIST.population_is_not_the_driver",
+   "ok": true,
+   "detail": {
+    "all_anchors": 0.07279108647033455,
+    "per_path_drop_own_halts": 0.07297049646834065
+   }
+  },
+  {
+   "check": "HIST.realised_and_target_gross_levels_agree",
+   "ok": true,
+   "detail": {
+    "mean_gross0_over_2NAV": 0.9993852068597767,
+    "note": "the two conventions differ by the averaging of a ratio with a moving denominator, not by the gross level"
+   }
+  }
+ ],
+ "n_checks": 6,
+ "failed": [],
+ "VERDICT": "PASS",
+ "utc_end": "2026-09-20T02:41:17Z"
+}

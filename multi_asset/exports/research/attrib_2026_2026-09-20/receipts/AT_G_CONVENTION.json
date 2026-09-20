@@ -1,0 +1,191 @@
+{
+ "convention": {
+  "denominator": "TARGET gross = gross_mult \u00b7 NAV(A) with gross_mult = 2.0 (at_control.py L47 `den = GM * Z[\"nav0\"]`, L61 `s[\"g\"] = 1e4 * s[\"r\"] / GM`)",
+  "is_realised_gross0": false,
+  "population": "every anchor in the time window; arithmetic mean; hold / halt / per-name-stop / zero-gross anchors all kept (at_control.py `s[k][m].mean()`, at_attrib.py `L1[k][mask].mean()`, mask = at_lib.period_mask = pure time filter)",
+  "bootstrap": "at_lib.day_aggregate sums per-anchor values and counts anchors \u21d2 \u03a3(day sums)/\u03a3(day counts) = the same unweighted per-anchor mean",
+  "identity": "g = price \u2212 funding_paid \u2212 fee \u2212 unknown_excluded, every term over the same 2\u00b7NAV(A)"
+ },
+ "windows": {
+  "2022H2": {
+   "n_anchors": 1110,
+   "g_AS_PUBLISHED_target_gross_all_anchors": -0.7623110220314115,
+   "population_counts": {
+    "hold_any_path": 0,
+    "halt_any_path": 0,
+    "halt_all_paths": 0,
+    "any_per_name_stop": 28,
+    "zero_gross_any_path": 2
+   },
+   "sensitivity_MEANINGFUL_per_path_drop_own_halts": -0.7623110220314112,
+   "sensitivity_ILLPOSED_drop_anchor_if_any_path_halted": -0.7623110220314115,
+   "sensitivity_traded_only_gross0_gt_0_on_every_path": -0.8098056194475176,
+   "mean_realised_over_target_gross": 0.9996304410273533
+  },
+  "2023pre": {
+   "n_anchors": 1081,
+   "g_AS_PUBLISHED_target_gross_all_anchors": 1.0638618344745283,
+   "population_counts": {
+    "hold_any_path": 0,
+    "halt_any_path": 0,
+    "halt_all_paths": 0,
+    "any_per_name_stop": 65,
+    "zero_gross_any_path": 0
+   },
+   "sensitivity_MEANINGFUL_per_path_drop_own_halts": 1.0638618344745283,
+   "sensitivity_ILLPOSED_drop_anchor_if_any_path_halted": 1.0638618344745283,
+   "sensitivity_traded_only_gross0_gt_0_on_every_path": 1.0638618344745283,
+   "mean_realised_over_target_gross": 0.9995414344868796
+  },
+  "2023full": {
+   "n_anchors": 1109,
+   "g_AS_PUBLISHED_target_gross_all_anchors": -0.7377515775022794,
+   "population_counts": {
+    "hold_any_path": 0,
+    "halt_any_path": 0,
+    "halt_all_paths": 0,
+    "any_per_name_stop": 94,
+    "zero_gross_any_path": 0
+   },
+   "sensitivity_MEANINGFUL_per_path_drop_own_halts": -0.7377515775022794,
+   "sensitivity_ILLPOSED_drop_anchor_if_any_path_halted": -0.7377515775022794,
+   "sensitivity_traded_only_gross0_gt_0_on_every_path": -0.7377515775022794,
+   "mean_realised_over_target_gross": 1.0005136882749464
+  },
+  "2024": {
+   "n_anchors": 2196,
+   "g_AS_PUBLISHED_target_gross_all_anchors": 0.42515410286231964,
+   "population_counts": {
+    "hold_any_path": 0,
+    "halt_any_path": 0,
+    "halt_all_paths": 0,
+    "any_per_name_stop": 283,
+    "zero_gross_any_path": 1
+   },
+   "sensitivity_MEANINGFUL_per_path_drop_own_halts": 0.4251541028623196,
+   "sensitivity_ILLPOSED_drop_anchor_if_any_path_halted": 0.42515410286231964,
+   "sensitivity_traded_only_gross0_gt_0_on_every_path": 0.4138066996660145,
+   "mean_realised_over_target_gross": 0.9993918938645036
+  },
+  "2025": {
+   "n_anchors": 2190,
+   "g_AS_PUBLISHED_target_gross_all_anchors": 0.12991557521409264,
+   "population_counts": {
+    "hold_any_path": 0,
+    "halt_any_path": 21,
+    "halt_all_paths": 10,
+    "any_per_name_stop": 485,
+    "zero_gross_any_path": 29
+   },
+   "sensitivity_MEANINGFUL_per_path_drop_own_halts": 0.13070386376962315,
+   "sensitivity_ILLPOSED_drop_anchor_if_any_path_halted": 0.020440854614393343,
+   "sensitivity_traded_only_gross0_gt_0_on_every_path": 0.025078357063905155,
+   "mean_realised_over_target_gross": 0.9988033300836743
+  },
+  "2026H1": {
+   "n_anchors": 1086,
+   "g_AS_PUBLISHED_target_gross_all_anchors": 3.3984868934901797,
+   "population_counts": {
+    "hold_any_path": 0,
+    "halt_any_path": 0,
+    "halt_all_paths": 0,
+    "any_per_name_stop": 420,
+    "zero_gross_any_path": 3
+   },
+   "sensitivity_MEANINGFUL_per_path_drop_own_halts": 3.3984868934901806,
+   "sensitivity_ILLPOSED_drop_anchor_if_any_path_halted": 3.3984868934901797,
+   "sensitivity_traded_only_gross0_gt_0_on_every_path": 3.455487978380172,
+   "mean_realised_over_target_gross": 0.9987218027499863
+  },
+  "2026JA": {
+   "n_anchors": 367,
+   "g_AS_PUBLISHED_target_gross_all_anchors": 1.7717656556090955,
+   "population_counts": {
+    "hold_any_path": 0,
+    "halt_any_path": 4,
+    "halt_all_paths": 2,
+    "any_per_name_stop": 124,
+    "zero_gross_any_path": 7
+   },
+   "sensitivity_MEANINGFUL_per_path_drop_own_halts": 1.781947792518213,
+   "sensitivity_ILLPOSED_drop_anchor_if_any_path_halted": 1.666212342817846,
+   "sensitivity_traded_only_gross0_gt_0_on_every_path": 1.877335694925529,
+   "mean_realised_over_target_gross": 0.9972547136424654
+  },
+  "2026": {
+   "n_anchors": 1453,
+   "g_AS_PUBLISHED_target_gross_all_anchors": 2.9876082325800914,
+   "population_counts": {
+    "hold_any_path": 0,
+    "halt_any_path": 4,
+    "halt_all_paths": 2,
+    "any_per_name_stop": 544,
+    "zero_gross_any_path": 10
+   },
+   "sensitivity_MEANINGFUL_per_path_drop_own_halts": 2.991980003753791,
+   "sensitivity_ILLPOSED_drop_anchor_if_any_path_halted": 2.9645216333838604,
+   "sensitivity_traded_only_gross0_gt_0_on_every_path": 3.061770152986082,
+   "mean_realised_over_target_gross": 0.9983535127947192
+  },
+  "HIST": {
+   "n_anchors": 5495,
+   "g_AS_PUBLISHED_target_gross_all_anchors": 0.07279108647033455,
+   "population_counts": {
+    "hold_any_path": 0,
+    "halt_any_path": 21,
+    "halt_all_paths": 10,
+    "any_per_name_stop": 862,
+    "zero_gross_any_path": 30
+   },
+   "sensitivity_MEANINGFUL_per_path_drop_own_halts": 0.07297049646834065,
+   "sensitivity_ILLPOSED_drop_anchor_if_any_path_halted": 0.02919403070775404,
+   "sensitivity_traded_only_gross0_gt_0_on_every_path": 0.026410528075383993,
+   "mean_realised_over_target_gross": 0.9993852068597767
+  },
+  "FULL_RECIPE": {
+   "n_anchors": 6948,
+   "g_AS_PUBLISHED_target_gross_all_anchors": 0.6823520123910999,
+   "population_counts": {
+    "hold_any_path": 0,
+    "halt_any_path": 25,
+    "halt_all_paths": 12,
+    "any_per_name_stop": 1406,
+    "zero_gross_any_path": 40
+   },
+   "sensitivity_MEANINGFUL_per_path_drop_own_halts": 0.6839643021020239,
+   "sensitivity_ILLPOSED_drop_anchor_if_any_path_halted": 0.6435649242911251,
+   "sensitivity_traded_only_gross0_gt_0_on_every_path": 0.660461474622306,
+   "mean_realised_over_target_gross": 0.9991693401362076
+  },
+  "PARTIAL_RECIPE": {
+   "n_anchors": 2191,
+   "g_AS_PUBLISHED_target_gross_all_anchors": 0.13868982592975726,
+   "population_counts": {
+    "hold_any_path": 0,
+    "halt_any_path": 0,
+    "halt_all_paths": 0,
+    "any_per_name_stop": 93,
+    "zero_gross_any_path": 2
+   },
+   "sensitivity_MEANINGFUL_per_path_drop_own_halts": 0.13868982592975748,
+   "sensitivity_ILLPOSED_drop_anchor_if_any_path_halted": 0.13868982592975726,
+   "sensitivity_traded_only_gross0_gt_0_on_every_path": 0.1154728262764346,
+   "mean_realised_over_target_gross": 0.9995865067486996
+  },
+  "WHOLE_WINDOW": {
+   "n_anchors": 9139,
+   "g_AS_PUBLISHED_target_gross_all_anchors": 0.5520134796701456,
+   "population_counts": {
+    "hold_any_path": 0,
+    "halt_any_path": 25,
+    "halt_all_paths": 12,
+    "any_per_name_stop": 1499,
+    "zero_gross_any_path": 42
+   },
+   "sensitivity_MEANINGFUL_per_path_drop_own_halts": 0.5530041125341185,
+   "sensitivity_ILLPOSED_drop_anchor_if_any_path_halted": 0.5221932608601664,
+   "sensitivity_traded_only_gross0_gt_0_on_every_path": 0.5293215217555244,
+   "mean_realised_over_target_gross": 0.9992695150135494
+  }
+ }
+}
