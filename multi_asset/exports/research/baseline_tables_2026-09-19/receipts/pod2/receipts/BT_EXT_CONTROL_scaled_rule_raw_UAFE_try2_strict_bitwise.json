@@ -1,36 +1,34 @@
 {
  "device": "bt_ext_control.py",
- "self_sha256": "886a513b7db8e86ad60ddb634cc8ffdee13de7a8d83b2774c0246146c899f62f",
+ "self_sha256": "942c0e9b926f18b02ad4ac0ed37535113d851f1ca30e0ab262d7f1bf52e7a6fe",
  "argv": [
   "bt_ext_control.py",
   "PATH,HOME,LC_CTYPE",
-  "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0_scaled_rule_raw_UAFE_fee_x1.25",
-  "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0X_scaled_rule_raw_UAFE_fee_x1.25",
+  "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0_scaled_rule_raw_UAFE",
+  "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0X_scaled_rule_raw_UAFE",
   "32",
   "9139",
-  "/workspace/baseline_tables_2026-09-19/receipts/BT_EXT_CONTROL_scaled_rule_raw_UAFE_fee_x1.25.json"
+  "/workspace/baseline_tables_2026-09-19/receipts/BT_EXT_CONTROL_scaled_rule_raw_UAFE.json"
  ],
  "numpy": "2.4.6",
- "EXCEPTION_RULING": "lead's ruling 2026-09-20, recorded verbatim: \"at that one bar the two runs do not perform the same computation \u2014 the block height of the BLAS product differs by construction \u2014 so 'bitwise' is the wrong criterion there; the right one is 'within floating-point block-order rounding, with zero effect on every published quantity'. You demonstrated both: <=2 ulp (max |delta| 5.82e-11 USDT, relative 1.2e-16), mechanism proven by the chunk probe (4/4), and the only consumer, the 5-minute maxDD, differs by exactly 0.0 on 160/160 seed pairs. Requiring bitwise would move published numbers by <=1 ulp for no informational gain.\" Criterion pre-declared for all future extended/overlapping runs: bitwise everywhere except bars at a block boundary, which must be <= 4 ulp AND have zero effect on every published quantity; any bar that fails either test blocks publication.",
- "ulp_bound": 4.0,
- "old_run_dir": "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0_scaled_rule_raw_UAFE_fee_x1.25",
- "new_run_dir": "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0X_scaled_rule_raw_UAFE_fee_x1.25",
+ "old_run_dir": "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0_scaled_rule_raw_UAFE",
+ "new_run_dir": "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0X_scaled_rule_raw_UAFE",
  "n_seeds": 32,
  "expected_shared_anchors": 9139,
  "per_seed": {
   "0": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 2.9103830456733704e-11,
-   "n_differ_total": 2,
+   "max_abs_delta_over_keys": 0.0,
+   "n_differ_total": 0,
    "cells_compared": 1416547,
    "window_keys": 59
   },
   "1": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 2.9103830456733704e-11,
-   "n_differ_total": 2,
+   "max_abs_delta_over_keys": 0.0,
+   "n_differ_total": 0,
    "cells_compared": 1416547,
    "window_keys": 59
   },
@@ -61,72 +59,72 @@
   "5": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 2.9103830456733704e-11,
-   "n_differ_total": 2,
+   "max_abs_delta_over_keys": 0.0,
+   "n_differ_total": 0,
    "cells_compared": 1416547,
    "window_keys": 59
   },
   "6": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 0.0,
-   "n_differ_total": 0,
+   "max_abs_delta_over_keys": 2.9103830456733704e-11,
+   "n_differ_total": 2,
    "cells_compared": 1416547,
    "window_keys": 59
   },
   "7": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 2.9103830456733704e-11,
-   "n_differ_total": 2,
+   "max_abs_delta_over_keys": 0.0,
+   "n_differ_total": 0,
    "cells_compared": 1416547,
    "window_keys": 59
   },
   "8": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 0.0,
-   "n_differ_total": 0,
+   "max_abs_delta_over_keys": 2.9103830456733704e-11,
+   "n_differ_total": 2,
    "cells_compared": 1416547,
    "window_keys": 59
   },
   "9": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 2.9103830456733704e-11,
-   "n_differ_total": 2,
+   "max_abs_delta_over_keys": 0.0,
+   "n_differ_total": 0,
    "cells_compared": 1416547,
    "window_keys": 59
   },
   "10": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 0.0,
-   "n_differ_total": 0,
+   "max_abs_delta_over_keys": 2.9103830456733704e-11,
+   "n_differ_total": 2,
    "cells_compared": 1416547,
    "window_keys": 59
   },
   "11": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 2.9103830456733704e-11,
-   "n_differ_total": 2,
+   "max_abs_delta_over_keys": 0.0,
+   "n_differ_total": 0,
    "cells_compared": 1416547,
    "window_keys": 59
   },
   "12": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 2.9103830456733704e-11,
-   "n_differ_total": 2,
+   "max_abs_delta_over_keys": 0.0,
+   "n_differ_total": 0,
    "cells_compared": 1416547,
    "window_keys": 59
   },
   "13": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 0.0,
-   "n_differ_total": 0,
+   "max_abs_delta_over_keys": 2.9103830456733704e-11,
+   "n_differ_total": 2,
    "cells_compared": 1416547,
    "window_keys": 59
   },
@@ -141,24 +139,24 @@
   "15": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 2.9103830456733704e-11,
-   "n_differ_total": 2,
+   "max_abs_delta_over_keys": 0.0,
+   "n_differ_total": 0,
    "cells_compared": 1416547,
    "window_keys": 59
   },
   "16": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 2.9103830456733704e-11,
-   "n_differ_total": 2,
+   "max_abs_delta_over_keys": 0.0,
+   "n_differ_total": 0,
    "cells_compared": 1416547,
    "window_keys": 59
   },
   "17": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 0.0,
-   "n_differ_total": 0,
+   "max_abs_delta_over_keys": 2.9103830456733704e-11,
+   "n_differ_total": 2,
    "cells_compared": 1416547,
    "window_keys": 59
   },
@@ -205,32 +203,32 @@
   "23": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 2.9103830456733704e-11,
-   "n_differ_total": 2,
+   "max_abs_delta_over_keys": 0.0,
+   "n_differ_total": 0,
    "cells_compared": 1416547,
    "window_keys": 59
   },
   "24": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 2.9103830456733704e-11,
-   "n_differ_total": 2,
+   "max_abs_delta_over_keys": 0.0,
+   "n_differ_total": 0,
    "cells_compared": 1416547,
    "window_keys": 59
   },
   "25": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 2.9103830456733704e-11,
-   "n_differ_total": 2,
+   "max_abs_delta_over_keys": 0.0,
+   "n_differ_total": 0,
    "cells_compared": 1416547,
    "window_keys": 59
   },
   "26": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 0.0,
-   "n_differ_total": 0,
+   "max_abs_delta_over_keys": 2.9103830456733704e-11,
+   "n_differ_total": 2,
    "cells_compared": 1416547,
    "window_keys": 59
   },
@@ -245,8 +243,8 @@
   "28": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 2.9103830456733704e-11,
-   "n_differ_total": 2,
+   "max_abs_delta_over_keys": 0.0,
+   "n_differ_total": 0,
    "cells_compared": 1416547,
    "window_keys": 59
   },
@@ -261,8 +259,8 @@
   "30": {
    "n_shared": 9139,
    "n_new": 9252,
-   "max_abs_delta_over_keys": 0.0,
-   "n_differ_total": 0,
+   "max_abs_delta_over_keys": 2.9103830456733704e-11,
+   "n_differ_total": 2,
    "cells_compared": 1416547,
    "window_keys": 59
   },
@@ -288,7 +286,7 @@
   "turnover": 0.0
  },
  "max_abs_delta_overall": 2.9103830456733704e-11,
- "n_differ_overall": 30,
+ "n_differ_overall": 18,
  "checks": [
   {
    "check": "C0.seed00.both_paths_present_and_self_consistent",
@@ -317,51 +315,23 @@
    }
   },
   {
-   "check": "C3.seed00.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed00.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 227433.37044670724,
-       "new": 227433.37044670727,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.2796640352104083e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     },
     "nav5_main": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 227433.37044670724,
-       "new": 227433.37044670727,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.2796640352104083e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     }
    }
   },
@@ -373,21 +343,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed00.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed00.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.40967668472757224,
-     "maxdd_new": -0.40967668472757224,
+     "maxdd_old": -0.3847059868459278,
+     "maxdd_new": -0.3847059868459278,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.40967668472757224,
-     "maxdd_new": -0.40967668472757224,
+     "maxdd_old": -0.3847059868459278,
+     "maxdd_new": -0.3847059868459278,
      "delta": 0.0
     }
    }
@@ -419,51 +389,23 @@
    }
   },
   {
-   "check": "C3.seed01.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed01.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 234141.21159855754,
-       "new": 234141.21159855757,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.2430033251315508e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     },
     "nav5_main": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 234141.21159855754,
-       "new": 234141.21159855757,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.2430033251315508e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     }
    }
   },
@@ -475,21 +417,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed01.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed01.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.41266970611164533,
-     "maxdd_new": -0.41266970611164533,
+     "maxdd_old": -0.39757806172461274,
+     "maxdd_new": -0.39757806172461274,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.41266970611164533,
-     "maxdd_new": -0.41266970611164533,
+     "maxdd_old": -0.39757806172461274,
+     "maxdd_new": -0.39757806172461274,
      "delta": 0.0
     }
    }
@@ -521,12 +463,10 @@
    }
   },
   {
-   "check": "C3.seed02.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed02.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -551,21 +491,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed02.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed02.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4218332397258181,
-     "maxdd_new": -0.4218332397258181,
+     "maxdd_old": -0.39463257249486683,
+     "maxdd_new": -0.39463257249486683,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4218332397258181,
-     "maxdd_new": -0.4218332397258181,
+     "maxdd_old": -0.39463257249486683,
+     "maxdd_new": -0.39463257249486683,
      "delta": 0.0
     }
    }
@@ -597,12 +537,10 @@
    }
   },
   {
-   "check": "C3.seed03.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed03.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -627,21 +565,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed03.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed03.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4236623812862772,
-     "maxdd_new": -0.4236623812862772,
+     "maxdd_old": -0.3940048437147651,
+     "maxdd_new": -0.3940048437147651,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4236623812862772,
-     "maxdd_new": -0.4236623812862772,
+     "maxdd_old": -0.3940048437147651,
+     "maxdd_new": -0.3940048437147651,
      "delta": 0.0
     }
    }
@@ -673,12 +611,10 @@
    }
   },
   {
-   "check": "C3.seed04.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed04.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -703,21 +639,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed04.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed04.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4127184056722515,
-     "maxdd_new": -0.4127184056722515,
+     "maxdd_old": -0.38760606973846634,
+     "maxdd_new": -0.38760606973846634,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4127184056722515,
-     "maxdd_new": -0.4127184056722515,
+     "maxdd_old": -0.38760606973846634,
+     "maxdd_new": -0.38760606973846634,
      "delta": 0.0
     }
    }
@@ -749,51 +685,23 @@
    }
   },
   {
-   "check": "C3.seed05.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed05.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 213672.2022811247,
-       "new": 213672.20228112472,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.362078461588668e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     },
     "nav5_main": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 213672.2022811247,
-       "new": 213672.20228112472,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.362078461588668e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     }
    }
   },
@@ -805,21 +713,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed05.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed05.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4241728865350821,
-     "maxdd_new": -0.4241728865350821,
+     "maxdd_old": -0.3977431653802276,
+     "maxdd_new": -0.3977431653802276,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4241728865350821,
-     "maxdd_new": -0.4241728865350821,
+     "maxdd_old": -0.3977431653802276,
+     "maxdd_new": -0.3977431653802276,
      "delta": 0.0
     }
    }
@@ -851,25 +759,41 @@
    }
   },
   {
-   "check": "C3.seed06.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
-   "ok": true,
+   "check": "C3.seed06.nav5_prefix_bitwise_equal",
+   "ok": false,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 0,
-     "max_abs_delta": 0.0,
-     "bytes_equal": true,
+     "n_differ": 1,
+     "max_abs_delta": 2.9103830456733704e-11,
+     "bytes_equal": false,
      "n_old": 438673,
-     "n_new": 444097
+     "n_new": 444097,
+     "where": [
+      {
+       "index": 438672,
+       "utc": "2026-08-31T04:00:00Z",
+       "old": 252987.8021705677,
+       "new": 252987.80217056768,
+       "relative": 1.150404494091439e-16
+      }
+     ]
     },
     "nav5_main": {
-     "n_differ": 0,
-     "max_abs_delta": 0.0,
-     "bytes_equal": true,
+     "n_differ": 1,
+     "max_abs_delta": 2.9103830456733704e-11,
+     "bytes_equal": false,
      "n_old": 438673,
-     "n_new": 444097
+     "n_new": 444097,
+     "where": [
+      {
+       "index": 438672,
+       "utc": "2026-08-31T04:00:00Z",
+       "old": 252987.8021705677,
+       "new": 252987.80217056768,
+       "relative": 1.150404494091439e-16
+      }
+     ]
     }
    }
   },
@@ -881,21 +805,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed06.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed06.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.3975160780337679,
-     "maxdd_new": -0.3975160780337679,
+     "maxdd_old": -0.37020526301123924,
+     "maxdd_new": -0.37020526301123924,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.3975160780337679,
-     "maxdd_new": -0.3975160780337679,
+     "maxdd_old": -0.37020526301123924,
+     "maxdd_new": -0.37020526301123924,
      "delta": 0.0
     }
    }
@@ -927,51 +851,23 @@
    }
   },
   {
-   "check": "C3.seed07.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed07.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 217142.8469282458,
-       "new": 217142.84692824577,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.3403080446094998e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     },
     "nav5_main": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 217142.8469282458,
-       "new": 217142.84692824577,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.3403080446094998e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     }
    }
   },
@@ -983,21 +879,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed07.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed07.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.43291962831415753,
-     "maxdd_new": -0.43291962831415753,
+     "maxdd_old": -0.40729970842060137,
+     "maxdd_new": -0.40729970842060137,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.43291962831415753,
-     "maxdd_new": -0.43291962831415753,
+     "maxdd_old": -0.40729970842060137,
+     "maxdd_new": -0.40729970842060137,
      "delta": 0.0
     }
    }
@@ -1029,25 +925,41 @@
    }
   },
   {
-   "check": "C3.seed08.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
-   "ok": true,
+   "check": "C3.seed08.nav5_prefix_bitwise_equal",
+   "ok": false,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 0,
-     "max_abs_delta": 0.0,
-     "bytes_equal": true,
+     "n_differ": 1,
+     "max_abs_delta": 2.9103830456733704e-11,
+     "bytes_equal": false,
      "n_old": 438673,
-     "n_new": 444097
+     "n_new": 444097,
+     "where": [
+      {
+       "index": 438672,
+       "utc": "2026-08-31T04:00:00Z",
+       "old": 239463.45532139187,
+       "new": 239463.4553213919,
+       "relative": 1.2153767019553145e-16
+      }
+     ]
     },
     "nav5_main": {
-     "n_differ": 0,
-     "max_abs_delta": 0.0,
-     "bytes_equal": true,
+     "n_differ": 1,
+     "max_abs_delta": 2.9103830456733704e-11,
+     "bytes_equal": false,
      "n_old": 438673,
-     "n_new": 444097
+     "n_new": 444097,
+     "where": [
+      {
+       "index": 438672,
+       "utc": "2026-08-31T04:00:00Z",
+       "old": 239463.45532139187,
+       "new": 239463.4553213919,
+       "relative": 1.2153767019553145e-16
+      }
+     ]
     }
    }
   },
@@ -1059,21 +971,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed08.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed08.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.42863288601983784,
-     "maxdd_new": -0.42863288601983784,
+     "maxdd_old": -0.3950718081732767,
+     "maxdd_new": -0.3950718081732767,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.42863288601983784,
-     "maxdd_new": -0.42863288601983784,
+     "maxdd_old": -0.3950718081732767,
+     "maxdd_new": -0.3950718081732767,
      "delta": 0.0
     }
    }
@@ -1105,51 +1017,23 @@
    }
   },
   {
-   "check": "C3.seed09.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed09.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 229912.8633479451,
-       "new": 229912.86334794512,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.265863511633475e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     },
     "nav5_main": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 229912.8633479451,
-       "new": 229912.86334794512,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.265863511633475e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     }
    }
   },
@@ -1161,21 +1045,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed09.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed09.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.42033444175154566,
-     "maxdd_new": -0.42033444175154566,
+     "maxdd_old": -0.39991933710326666,
+     "maxdd_new": -0.39991933710326666,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.42033444175154566,
-     "maxdd_new": -0.42033444175154566,
+     "maxdd_old": -0.39991933710326666,
+     "maxdd_new": -0.39991933710326666,
      "delta": 0.0
     }
    }
@@ -1207,25 +1091,41 @@
    }
   },
   {
-   "check": "C3.seed10.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
-   "ok": true,
+   "check": "C3.seed10.nav5_prefix_bitwise_equal",
+   "ok": false,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 0,
-     "max_abs_delta": 0.0,
-     "bytes_equal": true,
+     "n_differ": 1,
+     "max_abs_delta": 2.9103830456733704e-11,
+     "bytes_equal": false,
      "n_old": 438673,
-     "n_new": 444097
+     "n_new": 444097,
+     "where": [
+      {
+       "index": 438672,
+       "utc": "2026-08-31T04:00:00Z",
+       "old": 231719.4907256968,
+       "new": 231719.49072569684,
+       "relative": 1.255994062717237e-16
+      }
+     ]
     },
     "nav5_main": {
-     "n_differ": 0,
-     "max_abs_delta": 0.0,
-     "bytes_equal": true,
+     "n_differ": 1,
+     "max_abs_delta": 2.9103830456733704e-11,
+     "bytes_equal": false,
      "n_old": 438673,
-     "n_new": 444097
+     "n_new": 444097,
+     "where": [
+      {
+       "index": 438672,
+       "utc": "2026-08-31T04:00:00Z",
+       "old": 231719.4907256968,
+       "new": 231719.49072569684,
+       "relative": 1.255994062717237e-16
+      }
+     ]
     }
    }
   },
@@ -1237,21 +1137,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed10.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed10.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4351756863591547,
-     "maxdd_new": -0.4351756863591547,
+     "maxdd_old": -0.41141959597949096,
+     "maxdd_new": -0.41141959597949096,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4351756863591547,
-     "maxdd_new": -0.4351756863591547,
+     "maxdd_old": -0.41141959597949096,
+     "maxdd_new": -0.41141959597949096,
      "delta": 0.0
     }
    }
@@ -1283,51 +1183,23 @@
    }
   },
   {
-   "check": "C3.seed11.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed11.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 223121.87644985504,
-       "new": 223121.87644985502,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.3043916141174336e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     },
     "nav5_main": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 223121.87644985504,
-       "new": 223121.87644985502,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.3043916141174336e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     }
    }
   },
@@ -1339,21 +1211,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed11.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed11.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.410322075822235,
-     "maxdd_new": -0.410322075822235,
+     "maxdd_old": -0.3847609186299147,
+     "maxdd_new": -0.3847609186299147,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.410322075822235,
-     "maxdd_new": -0.410322075822235,
+     "maxdd_old": -0.3847609186299147,
+     "maxdd_new": -0.3847609186299147,
      "delta": 0.0
     }
    }
@@ -1385,51 +1257,23 @@
    }
   },
   {
-   "check": "C3.seed12.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed12.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 214074.15923448853,
-       "new": 214074.1592344885,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.3595209510950128e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     },
     "nav5_main": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 214074.15923448853,
-       "new": 214074.1592344885,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.3595209510950128e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     }
    }
   },
@@ -1441,21 +1285,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed12.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed12.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.438148664951713,
-     "maxdd_new": -0.438148664951713,
+     "maxdd_old": -0.40944857823402625,
+     "maxdd_new": -0.40944857823402625,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.438148664951713,
-     "maxdd_new": -0.438148664951713,
+     "maxdd_old": -0.40944857823402625,
+     "maxdd_new": -0.40944857823402625,
      "delta": 0.0
     }
    }
@@ -1487,25 +1331,41 @@
    }
   },
   {
-   "check": "C3.seed13.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
-   "ok": true,
+   "check": "C3.seed13.nav5_prefix_bitwise_equal",
+   "ok": false,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 0,
-     "max_abs_delta": 0.0,
-     "bytes_equal": true,
+     "n_differ": 1,
+     "max_abs_delta": 2.9103830456733704e-11,
+     "bytes_equal": false,
      "n_old": 438673,
-     "n_new": 444097
+     "n_new": 444097,
+     "where": [
+      {
+       "index": 438672,
+       "utc": "2026-08-31T04:00:00Z",
+       "old": 258137.25257265213,
+       "new": 258137.25257265216,
+       "relative": 1.1274556526296993e-16
+      }
+     ]
     },
     "nav5_main": {
-     "n_differ": 0,
-     "max_abs_delta": 0.0,
-     "bytes_equal": true,
+     "n_differ": 1,
+     "max_abs_delta": 2.9103830456733704e-11,
+     "bytes_equal": false,
      "n_old": 438673,
-     "n_new": 444097
+     "n_new": 444097,
+     "where": [
+      {
+       "index": 438672,
+       "utc": "2026-08-31T04:00:00Z",
+       "old": 258137.25257265213,
+       "new": 258137.25257265216,
+       "relative": 1.1274556526296993e-16
+      }
+     ]
     }
    }
   },
@@ -1517,21 +1377,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed13.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed13.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4192415915413431,
-     "maxdd_new": -0.4192415915413431,
+     "maxdd_old": -0.3922600384684205,
+     "maxdd_new": -0.3922600384684205,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4192415915413431,
-     "maxdd_new": -0.4192415915413431,
+     "maxdd_old": -0.3922600384684205,
+     "maxdd_new": -0.3922600384684205,
      "delta": 0.0
     }
    }
@@ -1563,12 +1423,10 @@
    }
   },
   {
-   "check": "C3.seed14.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed14.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -1593,21 +1451,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed14.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed14.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.41617858421257603,
-     "maxdd_new": -0.41617858421257603,
+     "maxdd_old": -0.39735041485605205,
+     "maxdd_new": -0.39735041485605205,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.41617858421257603,
-     "maxdd_new": -0.41617858421257603,
+     "maxdd_old": -0.39735041485605205,
+     "maxdd_new": -0.39735041485605205,
      "delta": 0.0
     }
    }
@@ -1639,51 +1497,23 @@
    }
   },
   {
-   "check": "C3.seed15.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed15.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 218273.49538646068,
-       "new": 218273.49538646065,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.3333652995845592e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     },
     "nav5_main": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 218273.49538646068,
-       "new": 218273.49538646065,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.3333652995845592e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     }
    }
   },
@@ -1695,21 +1525,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed15.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed15.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4034023588568091,
-     "maxdd_new": -0.4034023588568091,
+     "maxdd_old": -0.3716207518527276,
+     "maxdd_new": -0.3716207518527276,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4034023588568091,
-     "maxdd_new": -0.4034023588568091,
+     "maxdd_old": -0.3716207518527276,
+     "maxdd_new": -0.3716207518527276,
      "delta": 0.0
     }
    }
@@ -1741,51 +1571,23 @@
    }
   },
   {
-   "check": "C3.seed16.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed16.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 213427.89852448585,
-       "new": 213427.89852448582,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.3636375871167904e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     },
     "nav5_main": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 213427.89852448585,
-       "new": 213427.89852448582,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.3636375871167904e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     }
    }
   },
@@ -1797,21 +1599,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed16.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed16.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4128829840068696,
-     "maxdd_new": -0.4128829840068696,
+     "maxdd_old": -0.38428295530031265,
+     "maxdd_new": -0.38428295530031265,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4128829840068696,
-     "maxdd_new": -0.4128829840068696,
+     "maxdd_old": -0.38428295530031265,
+     "maxdd_new": -0.38428295530031265,
      "delta": 0.0
     }
    }
@@ -1843,25 +1645,41 @@
    }
   },
   {
-   "check": "C3.seed17.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
-   "ok": true,
+   "check": "C3.seed17.nav5_prefix_bitwise_equal",
+   "ok": false,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 0,
-     "max_abs_delta": 0.0,
-     "bytes_equal": true,
+     "n_differ": 1,
+     "max_abs_delta": 2.9103830456733704e-11,
+     "bytes_equal": false,
      "n_old": 438673,
-     "n_new": 444097
+     "n_new": 444097,
+     "where": [
+      {
+       "index": 438672,
+       "utc": "2026-08-31T04:00:00Z",
+       "old": 238382.04881140837,
+       "new": 238382.04881140834,
+       "relative": 1.220890188747336e-16
+      }
+     ]
     },
     "nav5_main": {
-     "n_differ": 0,
-     "max_abs_delta": 0.0,
-     "bytes_equal": true,
+     "n_differ": 1,
+     "max_abs_delta": 2.9103830456733704e-11,
+     "bytes_equal": false,
      "n_old": 438673,
-     "n_new": 444097
+     "n_new": 444097,
+     "where": [
+      {
+       "index": 438672,
+       "utc": "2026-08-31T04:00:00Z",
+       "old": 238382.04881140837,
+       "new": 238382.04881140834,
+       "relative": 1.220890188747336e-16
+      }
+     ]
     }
    }
   },
@@ -1873,21 +1691,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed17.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed17.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.42124065064021754,
-     "maxdd_new": -0.42124065064021754,
+     "maxdd_old": -0.39247994745400683,
+     "maxdd_new": -0.39247994745400683,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.42124065064021754,
-     "maxdd_new": -0.42124065064021754,
+     "maxdd_old": -0.39247994745400683,
+     "maxdd_new": -0.39247994745400683,
      "delta": 0.0
     }
    }
@@ -1919,12 +1737,10 @@
    }
   },
   {
-   "check": "C3.seed18.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
-   "ok": true,
+   "check": "C3.seed18.nav5_prefix_bitwise_equal",
+   "ok": false,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 1,
      "max_abs_delta": 2.9103830456733704e-11,
@@ -1935,13 +1751,9 @@
       {
        "index": 438672,
        "utc": "2026-08-31T04:00:00Z",
-       "old": 209124.57297109367,
-       "new": 209124.57297109364,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.3916982611487075e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
+       "old": 230819.90465547473,
+       "new": 230819.9046554747,
+       "relative": 1.260889111802317e-16
       }
      ]
     },
@@ -1955,13 +1767,9 @@
       {
        "index": 438672,
        "utc": "2026-08-31T04:00:00Z",
-       "old": 209124.57297109367,
-       "new": 209124.57297109364,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.3916982611487075e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
+       "old": 230819.90465547473,
+       "new": 230819.9046554747,
+       "relative": 1.260889111802317e-16
       }
      ]
     }
@@ -1975,21 +1783,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed18.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed18.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4286838096359803,
-     "maxdd_new": -0.4286838096359803,
+     "maxdd_old": -0.4008730215031252,
+     "maxdd_new": -0.4008730215031252,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4286838096359803,
-     "maxdd_new": -0.4286838096359803,
+     "maxdd_old": -0.4008730215031252,
+     "maxdd_new": -0.4008730215031252,
      "delta": 0.0
     }
    }
@@ -2021,12 +1829,10 @@
    }
   },
   {
-   "check": "C3.seed19.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed19.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -2051,21 +1857,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed19.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed19.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.41613486742745465,
-     "maxdd_new": -0.41613486742745465,
+     "maxdd_old": -0.3867427382819496,
+     "maxdd_new": -0.3867427382819496,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.41613486742745465,
-     "maxdd_new": -0.41613486742745465,
+     "maxdd_old": -0.3867427382819496,
+     "maxdd_new": -0.3867427382819496,
      "delta": 0.0
     }
    }
@@ -2097,12 +1903,10 @@
    }
   },
   {
-   "check": "C3.seed20.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed20.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -2127,21 +1931,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed20.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed20.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4329396191499728,
-     "maxdd_new": -0.4329396191499728,
+     "maxdd_old": -0.4066499315639194,
+     "maxdd_new": -0.4066499315639194,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4329396191499728,
-     "maxdd_new": -0.4329396191499728,
+     "maxdd_old": -0.4066499315639194,
+     "maxdd_new": -0.4066499315639194,
      "delta": 0.0
     }
    }
@@ -2173,12 +1977,10 @@
    }
   },
   {
-   "check": "C3.seed21.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed21.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -2203,21 +2005,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed21.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed21.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4237799906666344,
-     "maxdd_new": -0.4237799906666344,
+     "maxdd_old": -0.3967921723042406,
+     "maxdd_new": -0.3967921723042406,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4237799906666344,
-     "maxdd_new": -0.4237799906666344,
+     "maxdd_old": -0.3967921723042406,
+     "maxdd_new": -0.3967921723042406,
      "delta": 0.0
     }
    }
@@ -2249,12 +2051,10 @@
    }
   },
   {
-   "check": "C3.seed22.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed22.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -2279,21 +2079,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed22.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed22.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.40714530353202005,
-     "maxdd_new": -0.40714530353202005,
+     "maxdd_old": -0.3800196233712353,
+     "maxdd_new": -0.3800196233712353,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.40714530353202005,
-     "maxdd_new": -0.40714530353202005,
+     "maxdd_old": -0.3800196233712353,
+     "maxdd_new": -0.3800196233712353,
      "delta": 0.0
     }
    }
@@ -2325,51 +2125,23 @@
    }
   },
   {
-   "check": "C3.seed23.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed23.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 242862.81158029998,
-       "new": 242862.8115803,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.198365046807952e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     },
     "nav5_main": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 242862.81158029998,
-       "new": 242862.8115803,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.198365046807952e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     }
    }
   },
@@ -2381,21 +2153,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed23.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed23.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.40990445783283724,
-     "maxdd_new": -0.40990445783283724,
+     "maxdd_old": -0.38422614846066405,
+     "maxdd_new": -0.38422614846066405,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.40990445783283724,
-     "maxdd_new": -0.40990445783283724,
+     "maxdd_old": -0.38422614846066405,
+     "maxdd_new": -0.38422614846066405,
      "delta": 0.0
     }
    }
@@ -2427,51 +2199,23 @@
    }
   },
   {
-   "check": "C3.seed24.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed24.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 239087.4103638387,
-       "new": 239087.41036383866,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.2172882885152359e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     },
     "nav5_main": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 239087.4103638387,
-       "new": 239087.41036383866,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.2172882885152359e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     }
    }
   },
@@ -2483,21 +2227,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed24.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed24.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4197275625995378,
-     "maxdd_new": -0.4197275625995378,
+     "maxdd_old": -0.3918266936941781,
+     "maxdd_new": -0.3918266936941781,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4197275625995378,
-     "maxdd_new": -0.4197275625995378,
+     "maxdd_old": -0.3918266936941781,
+     "maxdd_new": -0.3918266936941781,
      "delta": 0.0
     }
    }
@@ -2529,51 +2273,23 @@
    }
   },
   {
-   "check": "C3.seed25.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed25.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 239146.63654820228,
-       "new": 239146.6365482023,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.216986819334486e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     },
     "nav5_main": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 239146.63654820228,
-       "new": 239146.6365482023,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.216986819334486e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     }
    }
   },
@@ -2585,21 +2301,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed25.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed25.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.40819455840606145,
-     "maxdd_new": -0.40819455840606145,
+     "maxdd_old": -0.3811805303250322,
+     "maxdd_new": -0.3811805303250322,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.40819455840606145,
-     "maxdd_new": -0.40819455840606145,
+     "maxdd_old": -0.3811805303250322,
+     "maxdd_new": -0.3811805303250322,
      "delta": 0.0
     }
    }
@@ -2631,25 +2347,41 @@
    }
   },
   {
-   "check": "C3.seed26.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
-   "ok": true,
+   "check": "C3.seed26.nav5_prefix_bitwise_equal",
+   "ok": false,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 0,
-     "max_abs_delta": 0.0,
-     "bytes_equal": true,
+     "n_differ": 1,
+     "max_abs_delta": 2.9103830456733704e-11,
+     "bytes_equal": false,
      "n_old": 438673,
-     "n_new": 444097
+     "n_new": 444097,
+     "where": [
+      {
+       "index": 438672,
+       "utc": "2026-08-31T04:00:00Z",
+       "old": 240725.6441573193,
+       "new": 240725.64415731933,
+       "relative": 1.2090041573515839e-16
+      }
+     ]
     },
     "nav5_main": {
-     "n_differ": 0,
-     "max_abs_delta": 0.0,
-     "bytes_equal": true,
+     "n_differ": 1,
+     "max_abs_delta": 2.9103830456733704e-11,
+     "bytes_equal": false,
      "n_old": 438673,
-     "n_new": 444097
+     "n_new": 444097,
+     "where": [
+      {
+       "index": 438672,
+       "utc": "2026-08-31T04:00:00Z",
+       "old": 240725.6441573193,
+       "new": 240725.64415731933,
+       "relative": 1.2090041573515839e-16
+      }
+     ]
     }
    }
   },
@@ -2661,21 +2393,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed26.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed26.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4146101817329024,
-     "maxdd_new": -0.4146101817329024,
+     "maxdd_old": -0.3895571180667632,
+     "maxdd_new": -0.3895571180667632,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4146101817329024,
-     "maxdd_new": -0.4146101817329024,
+     "maxdd_old": -0.3895571180667632,
+     "maxdd_new": -0.3895571180667632,
      "delta": 0.0
     }
    }
@@ -2707,12 +2439,10 @@
    }
   },
   {
-   "check": "C3.seed27.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed27.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -2737,21 +2467,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed27.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed27.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4187091702962473,
-     "maxdd_new": -0.4187091702962473,
+     "maxdd_old": -0.3899666989084726,
+     "maxdd_new": -0.3899666989084726,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4187091702962473,
-     "maxdd_new": -0.4187091702962473,
+     "maxdd_old": -0.3899666989084726,
+     "maxdd_new": -0.3899666989084726,
      "delta": 0.0
     }
    }
@@ -2783,51 +2513,23 @@
    }
   },
   {
-   "check": "C3.seed28.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed28.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 233914.4262379143,
-       "new": 233914.42623791427,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.2442084451487488e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     },
     "nav5_main": {
-     "n_differ": 1,
-     "max_abs_delta": 2.9103830456733704e-11,
-     "bytes_equal": false,
+     "n_differ": 0,
+     "max_abs_delta": 0.0,
+     "bytes_equal": true,
      "n_old": 438673,
-     "n_new": 444097,
-     "where": [
-      {
-       "index": 438672,
-       "utc": "2026-08-31T04:00:00Z",
-       "old": 233914.4262379143,
-       "new": 233914.42623791427,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.2442084451487488e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
-      }
-     ]
+     "n_new": 444097
     }
    }
   },
@@ -2839,21 +2541,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed28.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed28.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4077511902335118,
-     "maxdd_new": -0.4077511902335118,
+     "maxdd_old": -0.38461565220061744,
+     "maxdd_new": -0.38461565220061744,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4077511902335118,
-     "maxdd_new": -0.4077511902335118,
+     "maxdd_old": -0.38461565220061744,
+     "maxdd_new": -0.38461565220061744,
      "delta": 0.0
     }
    }
@@ -2885,12 +2587,10 @@
    }
   },
   {
-   "check": "C3.seed29.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "check": "C3.seed29.nav5_prefix_bitwise_equal",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -2915,21 +2615,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed29.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed29.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4113438023672268,
-     "maxdd_new": -0.4113438023672268,
+     "maxdd_old": -0.3798509394253886,
+     "maxdd_new": -0.3798509394253886,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4113438023672268,
-     "maxdd_new": -0.4113438023672268,
+     "maxdd_old": -0.3798509394253886,
+     "maxdd_new": -0.3798509394253886,
      "delta": 0.0
     }
    }
@@ -2961,25 +2661,41 @@
    }
   },
   {
-   "check": "C3.seed30.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
-   "ok": true,
+   "check": "C3.seed30.nav5_prefix_bitwise_equal",
+   "ok": false,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
-     "n_differ": 0,
-     "max_abs_delta": 0.0,
-     "bytes_equal": true,
+     "n_differ": 1,
+     "max_abs_delta": 2.9103830456733704e-11,
+     "bytes_equal": false,
      "n_old": 438673,
-     "n_new": 444097
+     "n_new": 444097,
+     "where": [
+      {
+       "index": 438672,
+       "utc": "2026-08-31T04:00:00Z",
+       "old": 236794.20550671485,
+       "new": 236794.20550671482,
+       "relative": 1.2290769697871004e-16
+      }
+     ]
     },
     "nav5_main": {
-     "n_differ": 0,
-     "max_abs_delta": 0.0,
-     "bytes_equal": true,
+     "n_differ": 1,
+     "max_abs_delta": 2.9103830456733704e-11,
+     "bytes_equal": false,
      "n_old": 438673,
-     "n_new": 444097
+     "n_new": 444097,
+     "where": [
+      {
+       "index": 438672,
+       "utc": "2026-08-31T04:00:00Z",
+       "old": 236794.20550671485,
+       "new": 236794.20550671482,
+       "relative": 1.2290769697871004e-16
+      }
+     ]
     }
    }
   },
@@ -2991,21 +2707,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed30.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed30.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.4208808463005659,
-     "maxdd_new": -0.4208808463005659,
+     "maxdd_old": -0.3943806594683684,
+     "maxdd_new": -0.3943806594683684,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.4208808463005659,
-     "maxdd_new": -0.4208808463005659,
+     "maxdd_old": -0.3943806594683684,
+     "maxdd_new": -0.3943806594683684,
      "delta": 0.0
     }
    }
@@ -3037,12 +2753,10 @@
    }
   },
   {
-   "check": "C3.seed31.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
-   "ok": true,
+   "check": "C3.seed31.nav5_prefix_bitwise_equal",
+   "ok": false,
    "detail": {
     "nav5_t0_equal": true,
-    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
-    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 1,
      "max_abs_delta": 2.9103830456733704e-11,
@@ -3053,13 +2767,9 @@
       {
        "index": 438672,
        "utc": "2026-08-31T04:00:00Z",
-       "old": 191185.64899753904,
-       "new": 191185.64899753907,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.5222811235747266e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
+       "old": 212022.083633347,
+       "new": 212022.08363334698,
+       "relative": 1.3726792019959297e-16
       }
      ]
     },
@@ -3073,13 +2783,9 @@
       {
        "index": 438672,
        "utc": "2026-08-31T04:00:00Z",
-       "old": 191185.64899753904,
-       "new": 191185.64899753907,
-       "abs_delta": 2.9103830456733704e-11,
-       "relative": 1.5222811235747266e-16,
-       "ulps": 1.0,
-       "at_block_boundary": true,
-       "admissible": true
+       "old": 212022.083633347,
+       "new": 212022.08363334698,
+       "relative": 1.3726792019959297e-16
       }
      ]
     }
@@ -3093,21 +2799,21 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
+    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
    }
   },
   {
-   "check": "C7.seed31.five_minute_maxdd_delta_is_exactly_zero (criterion)",
+   "check": "C7.seed31.five_minute_maxdd_over_the_shared_prefix",
    "ok": true,
    "detail": {
     "nav5_sim": {
-     "maxdd_old": -0.44411275609924694,
-     "maxdd_new": -0.44411275609924694,
+     "maxdd_old": -0.4160288161425362,
+     "maxdd_new": -0.4160288161425362,
      "delta": 0.0
     },
     "nav5_main": {
-     "maxdd_old": -0.44411275609924694,
-     "maxdd_new": -0.44411275609924694,
+     "maxdd_old": -0.4160288161425362,
+     "maxdd_new": -0.4160288161425362,
      "delta": 0.0
     }
    }
@@ -3167,7 +2873,17 @@
    }
   }
  ],
- "failed": [],
- "VERDICT": "PASS",
- "runtime_s": 2.9
+ "failed": [
+  "C3.seed06.nav5_prefix_bitwise_equal",
+  "C3.seed08.nav5_prefix_bitwise_equal",
+  "C3.seed10.nav5_prefix_bitwise_equal",
+  "C3.seed13.nav5_prefix_bitwise_equal",
+  "C3.seed17.nav5_prefix_bitwise_equal",
+  "C3.seed18.nav5_prefix_bitwise_equal",
+  "C3.seed26.nav5_prefix_bitwise_equal",
+  "C3.seed30.nav5_prefix_bitwise_equal",
+  "C3.seed31.nav5_prefix_bitwise_equal"
+ ],
+ "VERDICT": "RED",
+ "runtime_s": 6.5
 }

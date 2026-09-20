@@ -1,6 +1,6 @@
 {
  "device": "bt_ext_control.py",
- "self_sha256": "942c0e9b926f18b02ad4ac0ed37535113d851f1ca30e0ab262d7f1bf52e7a6fe",
+ "self_sha256": "886a513b7db8e86ad60ddb634cc8ffdee13de7a8d83b2774c0246146c899f62f",
  "argv": [
   "bt_ext_control.py",
   "PATH,HOME,LC_CTYPE",
@@ -11,6 +11,8 @@
   "/workspace/baseline_tables_2026-09-19/receipts/BT_EXT_CONTROL_scaled_rule_raw_UAFE_slip_x1.5.json"
  ],
  "numpy": "2.4.6",
+ "EXCEPTION_RULING": "lead's ruling 2026-09-20, recorded verbatim: \"at that one bar the two runs do not perform the same computation \u2014 the block height of the BLAS product differs by construction \u2014 so 'bitwise' is the wrong criterion there; the right one is 'within floating-point block-order rounding, with zero effect on every published quantity'. You demonstrated both: <=2 ulp (max |delta| 5.82e-11 USDT, relative 1.2e-16), mechanism proven by the chunk probe (4/4), and the only consumer, the 5-minute maxDD, differs by exactly 0.0 on 160/160 seed pairs. Requiring bitwise would move published numbers by <=1 ulp for no informational gain.\" Criterion pre-declared for all future extended/overlapping runs: bitwise everywhere except bars at a block boundary, which must be <= 4 ulp AND have zero effect on every published quantity; any bar that fails either test blocks publication.",
+ "ulp_bound": 4.0,
  "old_run_dir": "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0_scaled_rule_raw_UAFE_slip_x1.5",
  "new_run_dir": "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0X_scaled_rule_raw_UAFE_slip_x1.5",
  "n_seeds": 32,
@@ -315,10 +317,12 @@
    }
   },
   {
-   "check": "C3.seed00.nav5_prefix_bitwise_equal",
+   "check": "C3.seed00.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -343,11 +347,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed00.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed00.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -389,10 +393,12 @@
    }
   },
   {
-   "check": "C3.seed01.nav5_prefix_bitwise_equal",
-   "ok": false,
+   "check": "C3.seed01.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 1,
      "max_abs_delta": 2.9103830456733704e-11,
@@ -405,7 +411,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 216267.86870896484,
        "new": 216267.86870896487,
-       "relative": 1.345730673283658e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.345730673283658e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     },
@@ -421,7 +431,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 216267.86870896484,
        "new": 216267.86870896487,
-       "relative": 1.345730673283658e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.345730673283658e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     }
@@ -435,11 +449,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed01.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed01.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -481,10 +495,12 @@
    }
   },
   {
-   "check": "C3.seed02.nav5_prefix_bitwise_equal",
-   "ok": false,
+   "check": "C3.seed02.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 1,
      "max_abs_delta": 2.9103830456733704e-11,
@@ -497,7 +513,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 194409.9197654267,
        "new": 194409.91976542672,
-       "relative": 1.4970342301385716e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.4970342301385716e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     },
@@ -513,7 +533,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 194409.9197654267,
        "new": 194409.91976542672,
-       "relative": 1.4970342301385716e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.4970342301385716e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     }
@@ -527,11 +551,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed02.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed02.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -573,10 +597,12 @@
    }
   },
   {
-   "check": "C3.seed03.nav5_prefix_bitwise_equal",
-   "ok": false,
+   "check": "C3.seed03.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 1,
      "max_abs_delta": 2.9103830456733704e-11,
@@ -589,7 +615,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 208915.1655688715,
        "new": 208915.16556887148,
-       "relative": 1.3930932384676142e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.3930932384676142e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     },
@@ -605,7 +635,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 208915.1655688715,
        "new": 208915.16556887148,
-       "relative": 1.3930932384676142e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.3930932384676142e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     }
@@ -619,11 +653,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed03.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed03.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -665,10 +699,12 @@
    }
   },
   {
-   "check": "C3.seed04.nav5_prefix_bitwise_equal",
+   "check": "C3.seed04.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -693,11 +729,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed04.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed04.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -739,10 +775,12 @@
    }
   },
   {
-   "check": "C3.seed05.nav5_prefix_bitwise_equal",
+   "check": "C3.seed05.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -767,11 +805,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed05.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed05.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -813,10 +851,12 @@
    }
   },
   {
-   "check": "C3.seed06.nav5_prefix_bitwise_equal",
+   "check": "C3.seed06.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -841,11 +881,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed06.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed06.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -887,10 +927,12 @@
    }
   },
   {
-   "check": "C3.seed07.nav5_prefix_bitwise_equal",
-   "ok": false,
+   "check": "C3.seed07.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 1,
      "max_abs_delta": 2.9103830456733704e-11,
@@ -903,7 +945,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 203589.09144064988,
        "new": 203589.09144064985,
-       "relative": 1.4295378131896633e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.4295378131896633e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     },
@@ -919,7 +965,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 203589.09144064988,
        "new": 203589.09144064985,
-       "relative": 1.4295378131896633e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.4295378131896633e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     }
@@ -933,11 +983,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed07.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed07.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -979,10 +1029,12 @@
    }
   },
   {
-   "check": "C3.seed08.nav5_prefix_bitwise_equal",
-   "ok": false,
+   "check": "C3.seed08.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 1,
      "max_abs_delta": 2.9103830456733704e-11,
@@ -995,7 +1047,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 199544.05623690409,
        "new": 199544.0562369041,
-       "relative": 1.4585165304137573e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.4585165304137573e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     },
@@ -1011,7 +1067,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 199544.05623690409,
        "new": 199544.0562369041,
-       "relative": 1.4585165304137573e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.4585165304137573e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     }
@@ -1025,11 +1085,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed08.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed08.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -1071,10 +1131,12 @@
    }
   },
   {
-   "check": "C3.seed09.nav5_prefix_bitwise_equal",
-   "ok": false,
+   "check": "C3.seed09.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 1,
      "max_abs_delta": 2.9103830456733704e-11,
@@ -1087,7 +1149,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 215202.66746114253,
        "new": 215202.66746114256,
-       "relative": 1.352391715218342e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.352391715218342e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     },
@@ -1103,7 +1169,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 215202.66746114253,
        "new": 215202.66746114256,
-       "relative": 1.352391715218342e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.352391715218342e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     }
@@ -1117,11 +1187,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed09.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed09.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -1163,10 +1233,12 @@
    }
   },
   {
-   "check": "C3.seed10.nav5_prefix_bitwise_equal",
-   "ok": false,
+   "check": "C3.seed10.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 1,
      "max_abs_delta": 2.9103830456733704e-11,
@@ -1179,7 +1251,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 195941.9388826409,
        "new": 195941.93888264094,
-       "relative": 1.4853293084011683e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.4853293084011683e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     },
@@ -1195,7 +1271,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 195941.9388826409,
        "new": 195941.93888264094,
-       "relative": 1.4853293084011683e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.4853293084011683e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     }
@@ -1209,11 +1289,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed10.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed10.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -1255,10 +1335,12 @@
    }
   },
   {
-   "check": "C3.seed11.nav5_prefix_bitwise_equal",
+   "check": "C3.seed11.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -1283,11 +1365,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed11.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed11.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -1329,10 +1411,12 @@
    }
   },
   {
-   "check": "C3.seed12.nav5_prefix_bitwise_equal",
+   "check": "C3.seed12.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -1357,11 +1441,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed12.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed12.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -1403,10 +1487,12 @@
    }
   },
   {
-   "check": "C3.seed13.nav5_prefix_bitwise_equal",
+   "check": "C3.seed13.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -1431,11 +1517,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed13.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed13.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -1477,10 +1563,12 @@
    }
   },
   {
-   "check": "C3.seed14.nav5_prefix_bitwise_equal",
+   "check": "C3.seed14.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -1505,11 +1593,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed14.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed14.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -1551,10 +1639,12 @@
    }
   },
   {
-   "check": "C3.seed15.nav5_prefix_bitwise_equal",
+   "check": "C3.seed15.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -1579,11 +1669,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed15.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed15.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -1625,10 +1715,12 @@
    }
   },
   {
-   "check": "C3.seed16.nav5_prefix_bitwise_equal",
+   "check": "C3.seed16.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -1653,11 +1745,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed16.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed16.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -1699,10 +1791,12 @@
    }
   },
   {
-   "check": "C3.seed17.nav5_prefix_bitwise_equal",
+   "check": "C3.seed17.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -1727,11 +1821,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed17.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed17.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -1773,10 +1867,12 @@
    }
   },
   {
-   "check": "C3.seed18.nav5_prefix_bitwise_equal",
+   "check": "C3.seed18.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -1801,11 +1897,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed18.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed18.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -1847,10 +1943,12 @@
    }
   },
   {
-   "check": "C3.seed19.nav5_prefix_bitwise_equal",
+   "check": "C3.seed19.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -1875,11 +1973,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed19.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed19.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -1921,10 +2019,12 @@
    }
   },
   {
-   "check": "C3.seed20.nav5_prefix_bitwise_equal",
+   "check": "C3.seed20.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -1949,11 +2049,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed20.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed20.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -1995,10 +2095,12 @@
    }
   },
   {
-   "check": "C3.seed21.nav5_prefix_bitwise_equal",
+   "check": "C3.seed21.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -2023,11 +2125,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed21.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed21.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -2069,10 +2171,12 @@
    }
   },
   {
-   "check": "C3.seed22.nav5_prefix_bitwise_equal",
+   "check": "C3.seed22.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -2097,11 +2201,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed22.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed22.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -2143,10 +2247,12 @@
    }
   },
   {
-   "check": "C3.seed23.nav5_prefix_bitwise_equal",
+   "check": "C3.seed23.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -2171,11 +2277,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed23.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed23.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -2217,10 +2323,12 @@
    }
   },
   {
-   "check": "C3.seed24.nav5_prefix_bitwise_equal",
-   "ok": false,
+   "check": "C3.seed24.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 1,
      "max_abs_delta": 2.9103830456733704e-11,
@@ -2233,7 +2341,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 224500.9390041656,
        "new": 224500.93900416562,
-       "relative": 1.2963790078487684e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.2963790078487684e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     },
@@ -2249,7 +2361,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 224500.9390041656,
        "new": 224500.93900416562,
-       "relative": 1.2963790078487684e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.2963790078487684e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     }
@@ -2263,11 +2379,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed24.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed24.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -2309,10 +2425,12 @@
    }
   },
   {
-   "check": "C3.seed25.nav5_prefix_bitwise_equal",
+   "check": "C3.seed25.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -2337,11 +2455,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed25.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed25.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -2383,10 +2501,12 @@
    }
   },
   {
-   "check": "C3.seed26.nav5_prefix_bitwise_equal",
+   "check": "C3.seed26.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -2411,11 +2531,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed26.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed26.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -2457,10 +2577,12 @@
    }
   },
   {
-   "check": "C3.seed27.nav5_prefix_bitwise_equal",
-   "ok": false,
+   "check": "C3.seed27.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
+   "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 1,
      "max_abs_delta": 2.9103830456733704e-11,
@@ -2473,7 +2595,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 207494.75156238792,
        "new": 207494.75156238794,
-       "relative": 1.4026297165392633e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.4026297165392633e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     },
@@ -2489,7 +2615,11 @@
        "utc": "2026-08-31T04:00:00Z",
        "old": 207494.75156238792,
        "new": 207494.75156238794,
-       "relative": 1.4026297165392633e-16
+       "abs_delta": 2.9103830456733704e-11,
+       "relative": 1.4026297165392633e-16,
+       "ulps": 1.0,
+       "at_block_boundary": true,
+       "admissible": true
       }
      ]
     }
@@ -2503,11 +2633,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed27.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed27.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -2549,10 +2679,12 @@
    }
   },
   {
-   "check": "C3.seed28.nav5_prefix_bitwise_equal",
+   "check": "C3.seed28.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -2577,11 +2709,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed28.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed28.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -2623,10 +2755,12 @@
    }
   },
   {
-   "check": "C3.seed29.nav5_prefix_bitwise_equal",
+   "check": "C3.seed29.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -2651,11 +2785,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed29.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed29.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -2697,10 +2831,12 @@
    }
   },
   {
-   "check": "C3.seed30.nav5_prefix_bitwise_equal",
+   "check": "C3.seed30.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -2725,11 +2861,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed30.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed30.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -2771,10 +2907,12 @@
    }
   },
   {
-   "check": "C3.seed31.nav5_prefix_bitwise_equal",
+   "check": "C3.seed31.nav5_prefix_equal_bitwise_or_admissible_block_boundary",
    "ok": true,
    "detail": {
     "nav5_t0_equal": true,
+    "criterion": "bitwise, except a block-boundary bar within 4 ulp",
+    "inadmissible": [],
     "nav5_sim": {
      "n_differ": 0,
      "max_abs_delta": 0.0,
@@ -2799,11 +2937,11 @@
     "price": true,
     "ua_set": true,
     "calibration_params_used": true,
-    "sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it": true
+    "sealed_initial_sha256_equal_iff_the_run_tag_is_equal": true
    }
   },
   {
-   "check": "C7.seed31.five_minute_maxdd_over_the_shared_prefix",
+   "check": "C7.seed31.five_minute_maxdd_delta_is_exactly_zero (criterion)",
    "ok": true,
    "detail": {
     "nav5_sim": {
@@ -2873,17 +3011,7 @@
    }
   }
  ],
- "failed": [
-  "C3.seed01.nav5_prefix_bitwise_equal",
-  "C3.seed02.nav5_prefix_bitwise_equal",
-  "C3.seed03.nav5_prefix_bitwise_equal",
-  "C3.seed07.nav5_prefix_bitwise_equal",
-  "C3.seed08.nav5_prefix_bitwise_equal",
-  "C3.seed09.nav5_prefix_bitwise_equal",
-  "C3.seed10.nav5_prefix_bitwise_equal",
-  "C3.seed24.nav5_prefix_bitwise_equal",
-  "C3.seed27.nav5_prefix_bitwise_equal"
- ],
- "VERDICT": "RED",
- "runtime_s": 5.3
+ "failed": [],
+ "VERDICT": "PASS",
+ "runtime_s": 3.0
 }
