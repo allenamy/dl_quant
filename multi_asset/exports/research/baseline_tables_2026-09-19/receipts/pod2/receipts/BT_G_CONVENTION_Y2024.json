@@ -1,0 +1,68 @@
+{
+ "device": "bt_g_convention.py",
+ "self_sha256": "44cfecf2bee4420c186b8770a35f0fe75e3e72a9d229502dec50b23e019c5735",
+ "run_dir": "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0_scaled_rule_raw_UAFE",
+ "n_seeds": 32,
+ "window": [
+  "2024-01-01T00:00:00Z",
+  "2024-12-31T20:00:00Z"
+ ],
+ "n_anchors_in_window": 2196,
+ "gross_mult": 2.0,
+ "variants": {
+  "TABLES (this project): mean over ALL anchors of 1e4\u00b7r/gross_mult": {
+   "g_bps_per_anchor": 0.4251541028623196,
+   "per_path_p05": 0.3447525391145335,
+   "per_path_p95": 0.4706804537102362,
+   "note": "the convention of every g in the A0 / A0ext tables; nothing is dropped"
+  },
+  "drop no HOLD anchors": {
+   "g_bps_per_anchor": 0.4251541028623196,
+   "per_path_p05": 0.3447525391145335,
+   "per_path_p95": 0.4706804537102362,
+   "note": "status == 2 removed from the population (0 anchors on average)"
+  },
+  "drop no HALT anchors": {
+   "g_bps_per_anchor": 0.4251541028623196,
+   "per_path_p05": 0.3447525391145335,
+   "per_path_p95": 0.4706804537102362,
+   "note": "status == 1 removed from the population (0 anchors on average)"
+  },
+  "drop HOLD and HALT anchors (traded anchors only)": {
+   "g_bps_per_anchor": 0.4251541028623196,
+   "per_path_p05": 0.3447525391145335,
+   "per_path_p95": 0.4706804537102362,
+   "note": "status == 0 only"
+  },
+  "value weighted: 1e4 \u00b7 \u03a3(navm1\u2212navm0) / \u03a3(gross_mult\u00b7navm0)": {
+   "g_bps_per_anchor": 0.4374001604547837,
+   "per_path_p05": 0.3444065144816134,
+   "per_path_p95": 0.4900953548849622,
+   "note": "one ratio of sums instead of the mean of per-anchor ratios; later (larger) windows weigh more"
+  },
+  "realized gross denominator: 1e4 \u00b7 mean((navm1\u2212navm0)/gross0)": {
+   "g_bps_per_anchor": 0.3979725779425741,
+   "per_path_p05": 0.3206596147705119,
+   "per_path_p95": 0.4410034636931363,
+   "note": "divides by the REALIZED gross of that window instead of the target gross 2\u00d7NAV; windows with gross 0 (flat book) drop out"
+  },
+  "compounded: 1e4\u00b7(\u03a0(1+r)\u22121)/n/gross_mult": {
+   "g_bps_per_anchor": 0.41651135087716606,
+   "per_path_p05": 0.32263766323362275,
+   "per_path_p95": 0.4706610903556632,
+   "note": "the window's compounded return spread over its anchors (not an average of per-anchor rates)"
+  },
+  "no /gross_mult (NAV-relative bps per anchor)": {
+   "g_bps_per_anchor": 0.8503082057246392,
+   "per_path_p05": 0.689505078229067,
+   "per_path_p95": 0.9413609074204724,
+   "note": "same population, denominator = NAV instead of gross"
+  },
+  "sim NAV instead of main-reading NAV": {
+   "g_bps_per_anchor": 0.4251541028623196,
+   "per_path_p05": 0.3447525391145335,
+   "per_path_p95": 0.4706804537102362,
+   "note": "UA-FREEZE-EXCLUDE removes UNKNOWN cells from the main NAV; when the rule never binds the two coincide"
+  }
+ }
+}
