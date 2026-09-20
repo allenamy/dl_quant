@@ -86,4 +86,21 @@ $R/memsample.sh $(cat $R/logs/full_a0x.pgid) $R/logs/full_a0x_memsamples.log
 # j. post-run: the control on all five run pairs (9,139 shared anchors x 32 seeds), battery on each extended run directory, run summary, tables
 bash $R/post_a0ext.sh > $R/logs/post_a0ext.log 2>&1
 # (Mac) /usr/bin/python3 devices/bt_main_render.py receipts/pod2/receipts/BT_MAIN_A0X.json receipts/pod2/receipts/BT_RUN_SUMMARY_A0X.json receipts/A0EXT_TABLES_rendered.md
-# ---- still to come on the lead's go: the V4 runs + the pairing table ----
+# k. after the lead's ruling (accept and name the junction-bar exception): the control device carries the pre-declared criterion
+#    (bitwise except block-boundary bars, <= 4 ulp AND zero effect on every published quantity); the five controls and the identity
+#    self-test were re-run under it (the strict-bitwise receipts are kept as *_try2_strict_bitwise.json)
+for f in scaled_rule_raw_UAFE lit_rule_raw_UAFE scaled_rule_raw_UAFE_fee_x1.25 scaled_rule_raw_UAFE_slip_x1.5 scaled_rule_raw_UAFE_fill_x0.9; do
+  env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_ext_control.py PATH,HOME,LC_CTYPE $R/runs/OBJB_A0_$f $R/runs/OBJB_A0X_$f 32 9139 $R/receipts/BT_EXT_CONTROL_$f.json > $R/logs/bt_ext_control_$f.log 2>&1
+done
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_ext_control.py PATH,HOME,LC_CTYPE $R/runs/OBJB_A0_scaled_rule_raw_UAFE $R/runs/OBJB_A0_scaled_rule_raw_UAFE 32 9139 $R/receipts/BT_EXT_CONTROL_selftest_identity.json > $R/logs/bt_ext_control_selftest.log 2>&1
+# l. reading P (AMENDMENT 2) on the published window and on the extended window; and the g-convention reconciliation
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 /workspace/venv/bin/python -B bt_p_reading.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_Preading_A0_2026-09-20.json $R/receipts/BT_P_READING_A0.json > $R/logs/bt_p_reading_a0.log 2>&1
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_p_reading.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_Preading_A0ext_2026-09-20.json $R/receipts/BT_P_READING_A0X.json >> $R/logs/post_a0ext.log 2>&1
+for w in "2023-06-30T04:00:00Z 2025-12-31T20:00:00Z HIST" "2023-06-30T04:00:00Z 2023-12-31T20:00:00Z H2_2023" "2024-01-01T00:00:00Z 2024-12-31T20:00:00Z Y2024" "2025-01-01T00:00:00Z 2025-12-31T20:00:00Z Y2025" "2026-01-01T00:00:00Z 2026-08-31T00:00:00Z Y2026"; do
+  set -- $w; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_g_convention.py PATH,HOME,LC_CTYPE $R/runs/OBJB_A0_scaled_rule_raw_UAFE 32 $1 $2 $R/receipts/BT_G_CONVENTION_$3.json
+done
+# (Mac) /usr/bin/python3 devices/bt_p_render.py receipts/pod2/receipts/BT_P_READING_A0.json  receipts/A0_P_TABLES_rendered.md
+# (Mac) /usr/bin/python3 devices/bt_p_render.py receipts/pod2/receipts/BT_P_READING_A0X.json receipts/A0EXT_P_TABLES_rendered.md
+# (Mac) /usr/bin/python3 devices/bt_p_reading_test.py <scratch> receipts/BT_P_READING_TEST_mac.json
+# ---- next, on the lead's standing GO once object B writes TARGETS_V4_main: the same pre-run checks, the five v4 runs, reading P for v4,
+#      the pairing table (AMENDMENT 1 item 4, descriptive labels only) and step (3) for v4 ----
