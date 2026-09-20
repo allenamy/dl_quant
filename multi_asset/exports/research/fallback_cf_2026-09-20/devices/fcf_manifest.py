@@ -69,6 +69,17 @@ STEPS = [
     {"step": "11. build the F4b target file",
      "cmd": f"cd {OUT} && /workspace/venv/bin/python -B devices/fcf_targets_F4b.py",
      "artefacts": [f"{OUT}/receipts/TARGETS_F4b_GATE.json", f"{OUT}/work/TARGETS_F4b_A0_main.npz", f"{OUT}/receipts/TARGETS_F4b_A0_main.json"]},
+    {"step": "11b. F4b was REFUSED by two devices (see FCF_RECHAIN_ASSERT.json and TARGETS_F4b_GATE.json, exit 3 each). Its TARGETS "
+             "artefacts are therefore ABSENT ON PURPOSE, not pending — a refused arm must not leave a usable target file behind.",
+     "cmd": "(no command — the refusal is the outcome)", "artefacts": []},
+    {"step": "11c. F4b\u2032: rev24 removed AND the masked seat renormalised the way production does it (combo_stage L232-233)",
+     "cmd": f"cd {OUT} && /workspace/venv/bin/python -B devices/fcf_mk_producer_F4bp.py && nohup setsid env -i PATH=/usr/bin:/bin "
+            f"HOME=/root LC_CTYPE=C.UTF-8 OBJB_ROOT=/workspace/object_b_2026-09-19 OBJB_ARM=A0 OBJB_DATA=holefix2 nice -n 12 "
+            f"/workspace/venv/bin/python -B devices/fcf_rechain_F4bp.py PATH,HOME,LC_CTYPE,OBJB_ROOT,OBJB_ARM,OBJB_DATA "
+            f"> logs/rechain_F4bp.log 2>&1 & ; then: fcf_rechain_assert_F4bp.py ; fcf_targets_F4bp.py",
+     "artefacts": [f"{OUT}/receipts/FCF_PRODUCER_F4bp.json", f"{D}/shadow_loop_v3_replay_F4bp.py", f"{OUT}/work/F4bp_KING.npz",
+                   f"{OUT}/receipts/FCF_RECHAIN_F4bp.json", f"{OUT}/receipts/FCF_RECHAIN_ASSERT_F4bp.json",
+                   f"{OUT}/receipts/TARGETS_F4bp_GATE.json"]},
     {"step": "12. main-reading tables and the paired bootstrap",
      "cmd": f"cd {OUT} && /workspace/venv/bin/python -B devices/fcf_tables.py RUN_CONFIG_fallback_cf_F_2026-09-20.json "
             f"{OUT}/receipts/FCF_TABLES.json",
@@ -88,7 +99,7 @@ STEPS = [
 doc = {"device": "fcf_manifest.py", "self_sha256": sha(os.path.abspath(__file__)),
        "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
        "root_pod2": OUT, "root_repo": "multi_asset/exports/research/fallback_cf_2026-09-20",
-       "note": "every command is verbatim; the judge, the simulator, the prices, the calibration and the executor tree are the certified "
+       "note": "an artefact listed MISSING is either not produced yet or DELIBERATELY ABSENT because its arm was refused — read the step text and the arm\u2019s gate receipt, never assume \u201cpending\u201d. Every command is verbatim; the judge, the simulator, the prices, the calibration and the executor tree are the certified "
                "baseline-tables ones and are NOT re-derived here — their pins live in RUN_CONFIG_fallback_cf_F_2026-09-20.json",
        "devices": {os.path.basename(p): entry(p) for p in sorted(
            os.path.join(D, f) for f in os.listdir(D) if f.endswith(".py"))},

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""fcf_targets_F4b.py — build the F4b arm's TARGETS npz from the F4b counterfactual re-chain. Additive: it does not touch the
+"""fcf_targets_F4bp.py — build the F4b′ arm's TARGETS npz from the F4b′ counterfactual re-chain. Additive: it does not touch the
 F0/F1/F2/F4a files or their receipt.
 
-ARM F4b (PREREG §2 F4, reading b — the clean single-variable control):
+ARM F4b′ (PREREG §2 F4, reading b′ — see below; NOT the literal F4b, which is degenerate):
   preflight PASSED at this anchor -> the archived combo row, untouched (identical to every other arm)
-  preflight FAILED at this anchor -> the king file the F4b producer wrote at that anchor, i.e. the producer's own book with the rev24
-                                     leg removed and NOTHING else changed (fcf_mk_producer_F4b.py gates G1-G4: exactly one changed
+  preflight FAILED at this anchor -> the king file the F4b′ producer wrote at that anchor, i.e. the producer's own book with the rev24
+                                     leg removed AND the masked seat renormalised over the two surviving legs exactly the
+                                     way production itself does it (combo_stage L232-233, including its [0.5,0,0.5] fallback) (fcf_mk_producer_F4b.py gates G1-G4: exactly one changed
                                      line, line 449; fcf_rechain_assert.py: member sets, all three leg z-vectors and the funding state
                                      bitwise identical to the archived P1 run, so the msharpe seat is unchanged by measurement)
   preflight FAILED and the F4b producer wrote NO file -> kind 0 (hold), the executor's own on_unavailable = hold carries the book.
@@ -18,11 +19,17 @@ PRODUCTION DEFINITION LINES (E-0920-B) — the ones this arm's rule turns on, co
 b_driver.py L261:  scaled = (okf >= f380) and (0.4 <= g <= 1.2) and (nn >= f150) and inside and (n_in >= f150) and (g_in > 0.4) and king_w is not None
 b_driver.py L343:                  rec["traded_scaled"] = "combo" if crec.get("scaled_ok") else "king"
 b_targets.py L40:        elif t == "king": kd = 1; i_, v_ = vec("king_file", k)
-shadow_loop_v3_replay.py L449 (the intervention, before -> after):
+shadow_loop_v3_replay.py L449 (the intervention, one line removed / two added; see fcf_mk_producer_F4bp.py G1-G5):
     z = w3[0] * np.nan_to_num(legz["king"]) + w3[1] * np.nan_to_num(legz["rev24"]) + w3[2] * np.nan_to_num(legz["fund"])
     z = w3[0] * np.nan_to_num(legz["king"]) + 0.0    * np.nan_to_num(legz["rev24"]) + w3[2] * np.nan_to_num(legz["fund"])
 
-usage: fcf_targets_F4b.py [--selftest]
+usage: fcf_targets_F4bp.py [--selftest]
+
+WHY NOT THE LITERAL F4b: with the seat untouched, the rev24-free signal is identically zero wherever the msharpe seat is 100 %% rev24
+(172 of 10,039 archived anchors, 1.7 %%: 2022 68, 2023 83, 2024 21, 2025 0, 2026 0). The producer only advances prev_rec /
+last_anchor when it WRITES, so the first such anchor (2022-07-01T08:00:00Z, archived w3 = [0.0, 1.0, 0.0]) freezes the leg-return
+ledger, which freezes the seat at [0,1,0], which makes every later anchor degenerate: the literal-F4b chain wrote 907 books and then
+none at all. Gate A5 below refuses any arm whose simulated fallback rows all equal F2's, because such an arm IS F2 relabelled.
 """
 import hashlib, json, os, sys, time
 
@@ -33,7 +40,7 @@ W = f"{OBJB}/work/A0_main"
 OUT = "/workspace/fallback_cf_2026-09-20"
 JUDGE_FIRST_ANCHOR = 1656547200
 JUDGE_LAST_ANCHOR = 1788480000
-ARM = "F4b"
+ARM = "F4bp"
 
 
 def sha(p):
@@ -52,7 +59,7 @@ def bits(a): return (str(a.dtype), a.shape, a.tobytes())
 def load():
     T = np.load(f"{W}/TARGETS_A0_main.npz"); TA = {k: T[k] for k in T.files}
     R = json.load(open(f"{OBJB}/receipts/TARGETS_A0_main.json"))
-    K = np.load(f"{OUT}/work/F4b_KING.npz"); VK = {k: K[k] for k in K.files}
+    K = np.load(f"{OUT}/work/F4bp_KING.npz"); VK = {k: K[k] for k in K.files}
     A = TA["anchor"].astype(np.int64)
     assert R["targets_npz_sha256"] == sha(f"{W}/TARGETS_A0_main.npz")
     return TA, R, VK, A
@@ -103,7 +110,7 @@ def assert_structure(out, TA, VK, A, fail):
             else:
                 o = np.argsort(r[0], kind="stable"); wi, wv, wk = r[0][o], np.asarray(r[1], np.float64)[o], 1
         if int(out["scaled_kind"][k]) != wk or bits(i_w.astype(np.int64)) != bits(wi.astype(np.int64)) or bits(v_w) != bits(np.asarray(wv, np.float64)):
-            fail(f"F4b.row@{iso(A[k])}", False, dict(kind_got=int(out["scaled_kind"][k]), kind_want=wk, n_got=len(i_w), n_want=len(wi)))
+            fail(f"F4bp.row@{iso(A[k])}", False, dict(kind_got=int(out["scaled_kind"][k]), kind_want=wk, n_got=len(i_w), n_want=len(wi)))
             return False
     return True
 
@@ -111,15 +118,15 @@ def assert_structure(out, TA, VK, A, fail):
 def main():
     t0 = time.time()
     TA, R, VK, A = load()
-    ar = json.load(open(f"{OUT}/receipts/FCF_RECHAIN_ASSERT.json"))
-    rc = json.load(open(f"{OUT}/receipts/FCF_RECHAIN_F4b.json"))
-    rec = {"device": "fcf_targets_F4b.py", "self_sha256": sha(os.path.abspath(__file__)),
+    ar = json.load(open(f"{OUT}/receipts/FCF_RECHAIN_ASSERT_F4bp.json"))
+    rc = json.load(open(f"{OUT}/receipts/FCF_RECHAIN_F4bp.json"))
+    rec = {"device": "fcf_targets_F4bp.py", "self_sha256": sha(os.path.abspath(__file__)),
            "prereg": "docs/PREREG_fallback_counterfactual_2026-09-20.md §2 F4 (reading b: the clean single-variable rev24 ablation)",
            "inputs": {"TARGETS_arch": {"path": f"{W}/TARGETS_A0_main.npz", "sha256": sha(f"{W}/TARGETS_A0_main.npz")},
-                      "F4b_KING": {"path": f"{OUT}/work/F4b_KING.npz", "sha256": sha(f"{OUT}/work/F4b_KING.npz")},
-                      "rechain_receipt": {"path": f"{OUT}/receipts/FCF_RECHAIN_F4b.json", "sha256": sha(f"{OUT}/receipts/FCF_RECHAIN_F4b.json")},
-                      "rechain_assert_receipt": {"path": f"{OUT}/receipts/FCF_RECHAIN_ASSERT.json", "sha256": sha(f"{OUT}/receipts/FCF_RECHAIN_ASSERT.json")},
-                      "producer_gate_receipt": {"path": f"{OUT}/receipts/FCF_PRODUCER_F4b.json", "sha256": sha(f"{OUT}/receipts/FCF_PRODUCER_F4b.json")}},
+                      "F4bp_KING": {"path": f"{OUT}/work/F4bp_KING.npz", "sha256": sha(f"{OUT}/work/F4bp_KING.npz")},
+                      "rechain_receipt": {"path": f"{OUT}/receipts/FCF_RECHAIN_F4bp.json", "sha256": sha(f"{OUT}/receipts/FCF_RECHAIN_F4bp.json")},
+                      "rechain_assert_receipt": {"path": f"{OUT}/receipts/FCF_RECHAIN_ASSERT_F4bp.json", "sha256": sha(f"{OUT}/receipts/FCF_RECHAIN_ASSERT_F4bp.json")},
+                      "producer_gate_receipt": {"path": f"{OUT}/receipts/FCF_PRODUCER_F4bp.json", "sha256": sha(f"{OUT}/receipts/FCF_PRODUCER_F4bp.json")}},
            "utc": iso(time.time()), "checks": []}
     FAILS = []
 
@@ -129,17 +136,17 @@ def main():
         if not ok: FAILS.append(name)
 
     check("G0.rechain_structural_assertion_passed", ar.get("VERDICT") == "PASS", dict(verdict=ar.get("VERDICT"), failed=ar.get("failed")))
-    check("G0.producer_intervention_gate_passed", json.load(open(f"{OUT}/receipts/FCF_PRODUCER_F4b.json")).get("VERDICT") == "PASS")
+    check("G0.producer_intervention_gate_passed", json.load(open(f"{OUT}/receipts/FCF_PRODUCER_F4bp.json")).get("VERDICT") == "PASS")
     check("G0.rechain_is_not_a_smoke", rc.get("smoke_n_anchors") in (None, 0) and rc["anchors"][2] == len(A),
           dict(smoke=rc.get("smoke_n_anchors"), n_anchors=rc["anchors"][2], want=len(A)))
     if FAILS:
-        json.dump(dict(rec, VERDICT="REFUSED", failed=FAILS), open(f"{OUT}/receipts/TARGETS_F4b_GATE.json", "w"), indent=1)
+        json.dump(dict(rec, VERDICT="REFUSED", failed=FAILS), open(f"{OUT}/receipts/TARGETS_F4bp_GATE.json", "w"), indent=1)
         print("FCF_TARGETS_F4b VERDICT=REFUSED failed=" + ",".join(FAILS), flush=True); sys.exit(3)
 
     out, cls = build(TA, VK, A)
     ok = assert_structure(out, TA, VK, A, check)
     kind_a = TA["scaled_kind"].astype(np.int8); fb = kind_a == 1
-    check("F4b.structural_assertion_full_population", ok,
+    check("F4bp.structural_assertion_full_population", ok,
           dict(n=int(len(A)), unchanged=int((cls == "unchanged").sum()), rule=int((cls == "rule").sum()),
                rule_no_book_written=int((cls == "rule_no_book_written").sum())))
     diff = [k for k in range(len(A)) if not (int(out["scaled_kind"][k]) == int(kind_a[k])
@@ -177,19 +184,19 @@ def main():
     else:
         check("A5.F2_targets_present_for_the_distinguishability_gate", False, dict(missing=F2p))
     if FAILS:
-        json.dump(dict(rec, VERDICT="REFUSED", failed=FAILS), open(f"{OUT}/receipts/TARGETS_F4b_GATE.json", "w"), indent=1)
+        json.dump(dict(rec, VERDICT="REFUSED", failed=FAILS), open(f"{OUT}/receipts/TARGETS_F4bp_GATE.json", "w"), indent=1)
         print("FCF_TARGETS_F4b VERDICT=REFUSED failed=" + ",".join(FAILS), flush=True); sys.exit(3)
 
-    p = f"{OUT}/work/TARGETS_F4b_A0_main.npz"
+    p = f"{OUT}/work/TARGETS_F4bp_A0_main.npz"
     np.savez_compressed(p + ".tmp.npz", **out); os.replace(p + ".tmp.npz", p)
     kc = {"combo": int((out["scaled_kind"] == 2).sum()), "king": int((out["scaled_kind"] == 1).sum()), "hold": int((out["scaled_kind"] == 0).sum())}
     rl = np.diff(out["scaled_off"])
-    doc = {"tag": "F4b_A0_main", "arm": "A0", "data": R.get("data"), "fcf_arm": ARM,
+    doc = {"tag": "F4bp_A0_main", "arm": "A0", "data": R.get("data"), "fcf_arm": ARM,
            "fcf_arm_rule": "preflight failed -> the king book the F4b counterfactual producer wrote (rev24 leg removed, one line, nothing else); "
                            "if that producer wrote no file, hold",
            "comparison_type": "(1) historical recipe — object B, F-family fallback counterfactual, F4b re-chain (targets only; no returns)",
            "axis": [iso(A[0]), iso(A[-1])], "n_anchors": int(len(A)), "B_CORE_start": R.get("B_CORE_start"), "PRE_window": R.get("PRE_window"),
-           "source_targets_npz_sha256": sha(f"{W}/TARGETS_A0_main.npz"), "f4b_king_npz_sha256": sha(f"{OUT}/work/F4b_KING.npz"),
+           "source_targets_npz_sha256": sha(f"{W}/TARGETS_A0_main.npz"), "f4b_king_npz_sha256": sha(f"{OUT}/work/F4bp_KING.npz"),
            "counts": kc, "n_rows_rule_applied": int((cls == "rule").sum()),
            "arm_outcome_no_book_written": {"n": len(nb), "n_inside_judge_window": len(inside), "anchors_utc": [iso(a) for a in nb],
                                            "meaning": "the F4b producer's book signal was identically zero, so it wrote nothing and the executor holds; "
@@ -197,13 +204,13 @@ def main():
            "written_rows_without_weights": int(((out["scaled_kind"] > 0) & (rl == 0)).sum()),
            "self_sha256": rec["self_sha256"], "utc": iso(time.time())}
     doc["targets_npz_sha256"] = sha(p)
-    json.dump(doc, open(f"{OUT}/receipts/TARGETS_F4b_A0_main.json", "w"), indent=1)
+    json.dump(doc, open(f"{OUT}/receipts/TARGETS_F4bp_A0_main.json", "w"), indent=1)
     rec["VERDICT"] = "PASS"; rec["failed"] = []; rec["runtime_s"] = round(time.time() - t0, 1)
-    rec["arm"] = {"npz": p, "npz_sha256": sha(p), "receipt": f"{OUT}/receipts/TARGETS_F4b_A0_main.json",
-                  "receipt_sha256": sha(f"{OUT}/receipts/TARGETS_F4b_A0_main.json"), "counts": kc}
-    json.dump(rec, open(f"{OUT}/receipts/TARGETS_F4b_GATE.json", "w"), indent=1)
+    rec["arm"] = {"npz": p, "npz_sha256": sha(p), "receipt": f"{OUT}/receipts/TARGETS_F4bp_A0_main.json",
+                  "receipt_sha256": sha(f"{OUT}/receipts/TARGETS_F4bp_A0_main.json"), "counts": kc}
+    json.dump(rec, open(f"{OUT}/receipts/TARGETS_F4bp_GATE.json", "w"), indent=1)
     print("F4b", json.dumps(kc), "rule", int((cls == 'rule').sum()), "no_book", len(nb), "inside_window", len(inside), flush=True)
-    print("FCF_TARGETS_F4b VERDICT=PASS checks=%d receipt_sha256=%s" % (len(rec["checks"]), sha(f"{OUT}/receipts/TARGETS_F4b_GATE.json")), flush=True)
+    print("FCF_TARGETS_F4b VERDICT=PASS checks=%d receipt_sha256=%s" % (len(rec["checks"]), sha(f"{OUT}/receipts/TARGETS_F4bp_GATE.json")), flush=True)
 
 
 if __name__ == "__main__":

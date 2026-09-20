@@ -1,0 +1,58 @@
+{
+ "device": "fcf_targets_F4b.py",
+ "self_sha256": "2cf76bf494d36e0cb3373e2fb8dfea3f78e8c6c618a9b2b907e19143ff5a3e2d",
+ "prereg": "docs/PREREG_fallback_counterfactual_2026-09-20.md \u00a72 F4 (reading b: the clean single-variable rev24 ablation)",
+ "inputs": {
+  "TARGETS_arch": {
+   "path": "/workspace/object_b_2026-09-19/work/A0_main/TARGETS_A0_main.npz",
+   "sha256": "b9f0dc9f2011f9defaac80b116415de3f4d75ffb497cbb9533cd995879036c41"
+  },
+  "F4b_KING": {
+   "path": "/workspace/fallback_cf_2026-09-20/work/F4b_KING.npz",
+   "sha256": "8e5482c10c04ea7629957e6f40367409764df8562c65d7a2d0f93998a95bbfae"
+  },
+  "rechain_receipt": {
+   "path": "/workspace/fallback_cf_2026-09-20/receipts/FCF_RECHAIN_F4b.json",
+   "sha256": "f3f6ccc5980a003ac6cb6ff2fd2f32379634ca168387c151e221e03ac0617738"
+  },
+  "rechain_assert_receipt": {
+   "path": "/workspace/fallback_cf_2026-09-20/receipts/FCF_RECHAIN_ASSERT.json",
+   "sha256": "89c80eb42049d442bafb2831e479f5efea915d28351fd113442e67e9a9514523"
+  },
+  "producer_gate_receipt": {
+   "path": "/workspace/fallback_cf_2026-09-20/receipts/FCF_PRODUCER_F4b.json",
+   "sha256": "f543f3bb57fa3288804848a1049085cabd845ece50283c79ada04338714a268f"
+  }
+ },
+ "utc": "2026-09-20T12:36:42Z",
+ "checks": [
+  {
+   "check": "G0.rechain_structural_assertion_passed",
+   "ok": false,
+   "detail": {
+    "verdict": "REFUSED",
+    "failed": [
+     "S-SEAT.logged_w3_equal_to_the_archive_at_every_shared_anchor_to_1e-4"
+    ]
+   }
+  },
+  {
+   "check": "G0.producer_intervention_gate_passed",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "G0.rechain_is_not_a_smoke",
+   "ok": true,
+   "detail": {
+    "smoke": null,
+    "n_anchors": 10039,
+    "want": 10039
+   }
+  }
+ ],
+ "VERDICT": "REFUSED",
+ "failed": [
+  "G0.rechain_structural_assertion_passed"
+ ]
+}

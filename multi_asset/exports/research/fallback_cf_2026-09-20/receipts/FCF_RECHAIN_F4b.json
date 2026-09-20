@@ -1,0 +1,65 @@
+{
+ "device": "fcf_rechain_F4b.py",
+ "self_sha256": "f841a8f32cc635465ad85df6c3b6c8e581e7d4359380b182ad3dae666db2fd78",
+ "producer": {
+  "path": "/workspace/fallback_cf_2026-09-20/devices/shadow_loop_v3_replay_F4b.py",
+  "sha256": "145ec53b7526b51c3ad59aa3561a00bc5d65f43ebbc7de6e8f4dea4dbcea98b0",
+  "gate_receipt_sha256": "f543f3bb57fa3288804848a1049085cabd845ece50283c79ada04338714a268f",
+  "intervention": {
+   "line": 449,
+   "before": "    z = w3[0] * np.nan_to_num(legz[\"king\"]) + w3[1] * np.nan_to_num(legz[\"rev24\"]) + w3[2] * np.nan_to_num(legz[\"fund\"])",
+   "after": "    z = w3[0] * np.nan_to_num(legz[\"king\"]) + 0.0 * np.nan_to_num(legz[\"rev24\"]) + w3[2] * np.nan_to_num(legz[\"fund\"])",
+   "meaning": "the rev24 leg is removed from the producer's book signal; the seat w3 is NOT renormalised and NOT changed"
+  }
+ },
+ "b_driver_sha256": "aaf82ba6cf602725bc840327de6d0551f684dd28d3c3f6e109ce59cff93ee94a",
+ "b_lib_sha256": "4b85bbd724e9cb91419b464e355215bcbc5ee76297b9bf8f80768ffc17a5f0c2",
+ "patched": [
+  "b_driver.import_producer -> import_producer_F4b (imports the one-line-changed producer)",
+  "b_driver.producer_step -> producer_step_rec (records this anchor's king file; calls the original first)"
+ ],
+ "env": {
+  "PATH": "/usr/bin:/bin",
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "OBJB_ROOT": "/workspace/object_b_2026-09-19",
+  "OBJB_ARM": "A0",
+  "OBJB_DATA": "holefix2",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "MKL_NUM_THREADS": "1",
+  "WIDE_SHADOW_HOME": "/workspace/fallback_cf_2026-09-20/work/rh_F4b",
+  "WIDE_SHADOW_BUNDLE": "/workspace/shadow_bundle_v3",
+  "KMP_DUPLICATE_LIB_OK": "True",
+  "KMP_INIT_AT_FORK": "FALSE"
+ },
+ "inputs_sha256": {
+  "cache": "1d7f459dee434ec49e7714a2a612807f2e38e97f35c6c39471a8a4aaa7452488",
+  "ledger": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad",
+  "universe": "6322b57366078ed0022fd8a8156ee36f527bf309e0d66bfa5f6ec17d7a09efa7",
+  "tradability": "54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302",
+  "upit": "ccb7a0805be2a106898467b5ffef3a8fd4813a659e044492c0a437b0e5d7aece",
+  "upit_crypto": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5",
+  "bundle_config": "3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e",
+  "bundle_leg_returns": "6061af108e45fee5ea0257b37f35e9efd0783d494934cad398e003fd47de7c13",
+  "king_meta_v2ext": "4b1b6047107d25573244a84df69d45bc987ada89b6731e826c867a230e247082",
+  "king_meta_v4": "12ea42c4557093f10f954f648db9239f4dd8283ea365ba299f31bd81e7e5ab51"
+ },
+ "anchors": [
+  "2022-01-31T00:00:00Z",
+  "2026-08-31T00:00:00Z",
+  10039
+ ],
+ "outputs": {
+  "king_npz": "/workspace/fallback_cf_2026-09-20/work/F4b_KING.npz",
+  "king_npz_sha256": "8e5482c10c04ea7629957e6f40367409764df8562c65d7a2d0f93998a95bbfae",
+  "p1_json": "/workspace/fallback_cf_2026-09-20/work/F4b_P1.json",
+  "p1_vec": "/workspace/fallback_cf_2026-09-20/work/F4b_P1.vec.npz",
+  "p1_vec_sha256": "4a399890a617a22fab7a6b573be5473ab099be8c0b26dd6730d0c33c544d498c"
+ },
+ "runtime_s": 5232.8,
+ "python": "3.11.10",
+ "numpy": "2.4.6",
+ "utc": "2026-09-20T12:35:59Z",
+ "smoke_n_anchors": null
+}
