@@ -1,0 +1,83 @@
+{
+ "config": "RUN_CONFIG_Preading_A0_2026-09-20",
+ "status": "FROZEN before any number of reading P (AMENDMENT 2); it governs post-processing only — no simulation, no run output changes",
+ "created_utc": "2026-09-20T01:42:15Z",
+ "object": "reading P for the published A0 tables (certified object B, in-service recipe, window 2022-06-30T00Z → 2026-08-31T00Z)",
+ "paths_R": 32,
+ "pins": {
+  "prereg_amendment_2": {
+   "doc": "docs/AMENDMENT_2_baseline_tables_certified_2026-09-20.md",
+   "commit": "9bbd850ac",
+   "sha256": "52ae1969522d86208c46005251f4b67146f5cf677b85b893380e8ebf18a2f31d"
+  },
+  "prereg": {
+   "doc": "docs/PREREG_baseline_tables_certified_2026-09-19.md",
+   "sha256": "d9fe45e3191f56e5"
+  },
+  "prereg_amendment_1": {
+   "doc": "docs/AMENDMENT_1_baseline_tables_certified_2026-09-19.md",
+   "sha256": "766bc367743d8542"
+  },
+  "run_config_of_the_runs_read": {
+   "path": "RUN_CONFIG_main_A0_2026-09-19.json",
+   "sha256": "7b6dca2c48feda294676ab5ce46b748c71ab87103cc64ead5be7957fe5bbfe93"
+  },
+  "live_watchdog_source_read_only": {
+   "path": "~/dl_quant_live/live/watchdog.py",
+   "sha256_16": "ec744c6654cd6baa",
+   "line": 131,
+   "text": "DRAWDOWN_LIMIT_PCT = -25.0                    # §4-4, % of STARTING equity (policy, unscaled)",
+   "live_trigger_expression": "watchdog.py L1862 / L1940: cum = prod(1 + r_d) - 1 ; hit = cum < DRAWDOWN_LIMIT_PCT (daily returns, strictly below)",
+   "note": "read-only confirmation of the constant and its caliber; no live process was touched"
+  }
+ },
+ "p_reading": {
+  "threshold_cum_return": -0.25,
+  "caliber": "cumulative return from STARTING equity of the base anchor (not peak-relative); main-reading NAV series navm; window ends = anchor ends (AMENDMENT 2 §1)",
+  "halt_semantics": "at the first window end strictly below the threshold the path stops trading and its NAV is held flat; no manual resume is modelled",
+  "breach_by": "2026-08-31T00:00:00Z",
+  "starts": [
+   "2022-07-01T00:00:00Z",
+   "2022-10-01T00:00:00Z",
+   "2023-01-01T00:00:00Z",
+   "2023-04-01T00:00:00Z",
+   "2023-07-01T00:00:00Z",
+   "2023-10-01T00:00:00Z",
+   "2024-01-01T00:00:00Z",
+   "2024-04-01T00:00:00Z",
+   "2024-07-01T00:00:00Z",
+   "2024-10-01T00:00:00Z",
+   "2025-01-01T00:00:00Z",
+   "2025-04-01T00:00:00Z",
+   "2025-07-01T00:00:00Z",
+   "2025-10-01T00:00:00Z",
+   "2026-01-01T00:00:00Z",
+   "2026-04-01T00:00:00Z",
+   "2026-07-01T00:00:00Z"
+  ],
+  "bases": [
+   {
+    "label": "run window start",
+    "anchor": "2022-06-30T00:00:00Z"
+   },
+   {
+    "label": "FULL_RECIPE window start",
+    "anchor": "2023-06-30T04:00:00Z"
+   }
+  ],
+  "granularity": [
+   "anchor_end (main, AMENDMENT 2)",
+   "utc_day_ends_only (sensitivity, the live watchdog's daily cadence)"
+  ]
+ },
+ "runs": [
+  {
+   "label": "OBJB_A0|scaled (main reading)",
+   "dir": "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0_scaled_rule_raw_UAFE"
+  },
+  {
+   "label": "OBJB_A0|lit (reported)",
+   "dir": "/workspace/baseline_tables_2026-09-19/runs/OBJB_A0_lit_rule_raw_UAFE"
+  }
+ ]
+}
