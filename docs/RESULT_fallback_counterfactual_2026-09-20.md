@@ -543,6 +543,8 @@ env -i PATH=/usr/bin:/bin HOME=/root LC_CTYPE=C.UTF-8 /workspace/venv/bin/python
 /workspace/venv/bin/python -B devices/fcf_manifest.py
 ```
 
+**盲态(CFG-04 追单 / CFG-06 重挂, 两者都是在役实验)**: 本文的任何一个数字都**没有**按这两个实验的臂拆过。认证判官写出的路径文件里带着 `armcount_chase / no_chase / chase_forced`(**分配计数**, 允许), 但我自己的装置一个都没读过它们 —— 实测: `grep -l "chase\|requote\|armcount\|CFG-04\|CFG-06" devices/fcf_*.py devices/mk_*.py` **零命中**, 我写的收据里也零命中。所有报出的量都是合池量; 臂平衡未被计算、未被打印、未被落盘。
+
 全部装置 sha、全部继承的钉、每一步的产物 sha 都在 **`receipts/FCF_MANIFEST.json`**(缺失的产物按 `MISSING` 逐条列出, 不静默跳过)。判官、模拟器、价格、标定、执行器树的钉**没有在本文重新推导**, 它们逐字继承自 `RUN_CONFIG_main_A0_2026-09-19.json`(sha256 `7b6dca2c48feda294676ab5ce46b748c71ab87103cc64ead5be7957fe5bbfe93`, 与认证运行收据 `BT_LAUNCH_full_a0.json` 记录的一致)。
 
 | 件 | sha256(前 16) |
