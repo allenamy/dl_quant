@@ -30,6 +30,7 @@ Definitions (prereg §4; written here before any number from this device):
   §3.4 cost cells      fee × 1.25 (USDT maker / taker rates); slippage × 1.5 (the pooled signed slippage values, as written); fill rate × 0.9 (every
                        fill probability: first-leg full and partial shares × 0.9 with the removed mass moved to 'zero', and the completion probability
                        π × 0.9). Applied one at a time by COST_CELLS → calibration override (bt_driver consumes it); Δ vs the base cell.
+  §3.5 pairing table CLI `main_pair` (in-service A0 vs retrain V4, same window / base / seeds; per period, both readings)
   §3.5 pairing         (AMENDMENT 1 item 4: main reading ΔSharpe, ΔCAGR and Δg reported alongside; the labels are DESCRIPTIVE ONLY — no multiplicity
                        control, no switch decision.)
                        ΔSR = SR(a) − SR(b), ΔR = CAGR(a) − CAGR(b) on the aligned daily returns of the two mean paths; Δg = linear mean of per-anchor
@@ -435,6 +436,69 @@ def main_a0(args):
 def iso_d(t): return time.strftime("%Y-%m-%dT%HZ", time.gmtime(int(t)))
 
 
+def restrict_to_common(sa, sb):
+    """both series on the anchors they SHARE (prereg §3.5 'same window'); the dropped counts are reported, never silently"""
+    A = np.intersect1d(sa["A"], sb["A"])
+    if not len(A): raise AssertionError("the two arms share no anchor")
+    return restrict(sa, int(A[0]), int(A[-1])), restrict(sb, int(A[0]), int(A[-1])), {"n_common": int(len(A)),
+            "dropped_a": int(len(sa["A"]) - len(A)), "dropped_b": int(len(sb["A"]) - len(A)), "span": [iso_d(A[0]), iso_d(A[-1])]}
+
+
+def label_of(pr, key="d_sharpe"):
+    """prereg §3.5 reading + AMENDMENT 1 item 4 — the label the paired estimator itself produced for the MAIN reading (one source of
+    truth: (A)/(B) at one-sided p < 0.05, (C) otherwise, UNAVAILABLE when too many bootstrap draws are undefined). Descriptive only."""
+    return pr[key]["label"]
+
+
+def pair_cell(sa_mean, sb_mean, sa_paths, sb_paths, mask):
+    """one period of the §3.5 pairing table: A (in-service) − B (retrain) on the same windows, same fill seeds"""
+    pr = paired(sa_mean, sb_mean, mask=mask)
+    ma = cell_metrics(sa_mean, mask); mb = cell_metrics(sb_mean, mask)
+    out = {"n_anchors": int(np.asarray(mask, bool).sum()), "paired_bootstrap_5d": pr, "label_on_the_main_reading": label_of(pr),
+           "labels_are": "DESCRIPTIVE ONLY (prereg §3.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+           "A_in_service": {k: ma[k] for k in ("cagr", "sharpe_daily", "g", "maxdd_4h", "maxdd_5m", "nav_return")},
+           "B_retrain": {k: mb[k] for k in ("cagr", "sharpe_daily", "g", "maxdd_4h", "maxdd_5m", "nav_return")},
+           "delta_point": {k: ((ma[k] - mb[k]) if (ma[k] is not None and mb[k] is not None) else None) for k in ("cagr", "sharpe_daily", "g", "maxdd_4h", "maxdd_5m")}}
+    if sa_paths and sb_paths:
+        assert len(sa_paths) == len(sb_paths)
+        pa = [cell_metrics(p, mask) for p in sa_paths]; pb = [cell_metrics(p, mask) for p in sb_paths]
+        out["per_fill_path_delta"] = {"pairing": "paired by fill seed"}
+        for k in ("cagr", "sharpe_daily", "g", "maxdd_4h", "maxdd_5m"):
+            d = [(x[k] - y[k]) if (x.get(k) is not None and y.get(k) is not None) else None for x, y in zip(pa, pb)]
+            out["per_fill_path_delta"][k] = {"median": pct(d, 50), "p05": pct(d, 5), "p95": pct(d, 95), "n": len([v for v in d if v is not None])}
+    return out
+
+
+def main_pair(args):
+    """§3.5 pairing table, in-service (A0) vs retrain (V4): same window, same base, same seeds.
+    usage: bt_tables.py main_pair <A0_frozen_config.json> <V4_frozen_config.json> <runs_root> <out.json>"""
+    import calendar
+    a_cfg_p, b_cfg_p, root, outp = args
+    CA = json.load(open(a_cfg_p)); CB = json.load(open(b_cfg_p))
+    frs_iso = CA["window"]["full_recipe_start"]; frs = calendar.timegm(time.strptime(frs_iso, "%Y-%m-%dT%H:%M:%SZ"))
+    assert CB["window"]["full_recipe_start"] == frs_iso, "the two arms must share the full-recipe start"
+    out = {"device": "bt_tables.py main_pair", "self_sha256": _sha(os.path.abspath(__file__)), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+           "arms": {"A_in_service": {"config": a_cfg_p, "sha256": _sha(a_cfg_p)}, "B_retrain": {"config": b_cfg_p, "sha256": _sha(b_cfg_p)}},
+           "rule": "prereg §3.5: same window, same base, same seeds, daily returns aligned; 5-day MBB, B=%d, rng %s; Δg = linear paired mean; "
+                   "labels one-sided p<0.05 each way, DESCRIPTIVE ONLY (AMENDMENT 1 item 4)" % (B_DEFAULT, list(RNG_SEED)),
+           "full_recipe_start": frs_iso, "tables": {}}
+    for reading in ("scaled", "lit"):
+        ta = next(r["tag"] for r in CA["runs"] if r["book"] == reading and not r.get("cost_cell"))
+        tb = next(r["tag"] for r in CB["runs"] if r["book"] == reading and not r.get("cost_cell"))
+        pa, fa = load_run_dir(os.path.join(root, ta.replace("|", "_")), int(CA["paths_R"]))
+        pb, fb = load_run_dir(os.path.join(root, tb.replace("|", "_")), int(CB["paths_R"]))
+        assert len(pa) == len(pb), "the two arms must have the same number of fill paths"
+        ma, mb, common = restrict_to_common(series_mean(pa), series_mean(pb))
+        RA = [restrict(p, int(ma["A"][0]), int(ma["A"][-1])) for p in pa]; RB = [restrict(p, int(mb["A"][0]), int(mb["A"][-1])) for p in pb]
+        P = periods_a0(ma["A"], frs, iso_d(int(ma["A"][-1]))[:10])
+        out["tables"][f"pairing {reading} (A = in-service A0 − B = retrain V4)"] = {
+            "arms": {"A": ta, "B": tb, "files_A": fa, "files_B": fb}, "common_window": common,
+            "periods": {nm: dict(pair_cell(ma, mb, RA, RB, v["mask"]), partial_recipe=v["partial_recipe"], describe_only=v["describe_only"])
+                        for nm, v in P.items() if v["mask"].any()}}
+    json.dump(out, open(outp + ".tmp", "w"), indent=1, default=float); os.replace(outp + ".tmp", outp)
+    print("BT_TABLES main_pair written", outp, _sha(outp))
+
+
 # ───────────────────────── CLI: steps ① and ② only ─────────────────────────
 def load_run_dir(d, R=32):
     files = sorted(f for f in os.listdir(d) if f.startswith("PATH_") and f.endswith(".npz"))
@@ -477,6 +541,8 @@ def main_recon(argv):
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "recon":
         main_recon(sys.argv[2:])
+    elif len(sys.argv) > 1 and sys.argv[1] == "main_pair":
+        main_pair(sys.argv[2:])
     elif len(sys.argv) > 1 and sys.argv[1] == "main_a0":
         main_a0(sys.argv[2:])
     else:

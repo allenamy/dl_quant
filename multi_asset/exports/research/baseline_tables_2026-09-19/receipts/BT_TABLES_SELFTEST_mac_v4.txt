@@ -1,0 +1,64 @@
+T1 fixtures
+  PASS T1.daily_returns  [0.10000000000000009, -0.050000000000000044, 0.020000000000000018]
+  PASS T1.cagr  2354.968984181749
+  PASS T1.sharpe_ddof1_sqrt365
+  PASS T1.maxdd_4h  -0.050000000000000155
+  PASS [mutation red] T1.arithmetic_annualisation
+  PASS [mutation red] T1.sharpe_ddof0
+  PASS [mutation red] T1.sharpe_sqrt252
+  PASS [mutation red] T1.maxdd_without_start_point  [0.0, -0.09999999999999998]
+  PASS T1.maxdd_5m_sees_intra_window_dip  [-0.21472392638036808, -0.21472392638036808, -0.050000000000000155]
+  PASS [mutation red] T1.maxdd_5m_read_at_window_boundaries_only
+  PASS T1.g_identity
+  PASS [mutation red] T1.g_identity_detects_a_missing_component
+  PASS T1.worst_30d  -0.2602996266117195
+  PASS T1.cvar5
+  PASS [mutation red] T1.cvar5_quantile_not_mean
+T2 stream-R reproduction
+  PASS T2.published_nav_return_cagr_sharpe_maxdd_reproduced  {"cells": 48, "max_rel_err": 1.691070757445377e-14}
+  PASS [mutation red] T2.annual_arith_moves_published_cells  {"cells_moved": 12}
+  PASS [mutation red] T2.ddof0_moves_published_cells  {"cells_moved": 12}
+  PASS [mutation red] T2.sqrt252_moves_published_cells  {"cells_moved": 12}
+  PASS [mutation red] T2.maxdd_daily_moves_published_cells  {"cells_moved": 12}
+T3 moving-block bootstrap
+  PASS T3.shape
+  PASS T3.blocks_are_consecutive_days
+  PASS T3.within_range_noncircular
+  PASS T3.reproducible
+  PASS [mutation red] T3.other_seed_differs
+  PASS [mutation red] T3.circular_wrap_would_differ
+  PASS T3.block1_is_day_iid_shape
+T4 paired estimator
+  PASS T4.identical_series_zero  {"d_sharpe": [0.0, 0.0], "d_cagr": [0.0, 0.0], "d_g": [0.0, 0.0]}
+  PASS T4.better_series_label_A  {"d_cagr": 0.04154147537781938, "p_up": 0.0004997501249375312}
+  PASS T4.worse_series_label_B  "(B) worse"
+  PASS T4.labels_marked_descriptive_main_reading_sharpe
+  PASS [mutation red] T4.independent_draws_give_nonzero_CI_on_identical_series
+T5 regime cells
+  PASS T5.21_cells_partition_labelled_anchors
+  PASS T5.bonferroni_contains_ci95  {"mean": -1.0442751429922497, "ci95": [-2.3166115663946654, 0.4232065003021569], "ci_bonf": [-3.3384291930858487, 1.2463238929391716], "n_draws_defined": 1000}
+  PASS T5.cell_index_and_rng_follow_AMENDMENT1_item3
+  PASS T5.cell_CI_equals_its_own_seed_draws  [-0.4508021340474427, 2.599970503681063]
+  PASS [mutation red] T5.shared_seed_99_would_give_another_CI
+  PASS T5.single_day_cell_describe_only
+  PASS [mutation red] T5.off_by_one_label_row_detected
+T6 periods
+  PASS T6.every_anchor_in_exactly_one_period  ["2022H2 (PARTIAL_RECIPE)", "2023 (PARTIAL_RECIPE)", "2024 (PARTIAL_RECIPE, before full-recipe start)", "2024 (full recipe)", "2025", "2026H1", "2026-07-01\u2192end"]
+  PASS T6.2024_split_and_partial_labelled
+  PASS T6.2026_07_describe_only
+  PASS [mutation red] T6.no_full_recipe_start_means_no_split
+T7 reconciliation telescoping
+  PASS T7.sum_of_steps_equals_total  {"cagr": 0.0, "sharpe_daily": 0.0, "maxdd_4h": 0.0, "g": 0.0}
+  PASS [mutation red] T7.step_against_original_baseline_breaks_telescoping  {"cagr": 0.05003318186511696, "sharpe_daily": 0.22051151251962808, "maxdd_4h": 0.009768454688564465, "g": 0.09999999999999992}
+T8 mean path
+  PASS T8.window_mean_equals_stacked_mean
+  PASS T8.nav5_mean_path_compounds_mean_5m_returns
+  PASS [mutation red] T8.mean_over_a_dropped_seed_differs
+  PASS T9.pair_cell_delta_is_A_minus_B_and_positive  {"d_g": 1.4999999999999996, "boot": 1.5}
+  PASS T9.label_comes_from_the_estimator_itself  "(A) better"
+  PASS [mutation red] T9.swapping_the_arms_flips_every_sign  {"A-B": 1.4999999999999996, "B-A": -1.4999999999999996}
+  PASS T9.per_fill_path_pairing_is_by_seed  {"median": 1.4999999999999998, "p05": 1.4999999999999993, "p95": 1.5, "n": 8}
+  PASS [mutation red] T9.unpaired_arms_(shuffled_seed_order)_widen_the_per_path_spread
+  PASS T9.restrict_to_common_reports_what_it_dropped  {"n_common": 390, "dropped_a": 10, "dropped_b": 0, "span": ["2023-11-16T16Z", "2024-01-20T12Z"]}
+  PASS [mutation red] T9.arms_that_share_no_anchor_are_refused
+BT_TABLES_SELFTEST VERDICT: ALL PASS 55/55 checks (baselines green, every mutation red)

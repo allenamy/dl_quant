@@ -198,6 +198,43 @@ r5m = np.stack([p["nav5"][1:] / p["nav5"][:-1] - 1 for p in paths]).mean(0)
 ok("T8.nav5_mean_path_compounds_mean_5m_returns", np.allclose(ms["nav5"], np.concatenate([[1.0], np.cumprod(1 + r5m)]), rtol=0, atol=1e-15))
 mut("T8.mean_over_a_dropped_seed_differs", not np.array_equal(BT.series_mean(paths[:3])["r"], ms["r"]))
 
+# ── T9 §3.5 pairing table plumbing (main_pair): common window, arm order, per-fill-path pairing, label source ──
+def mkpath(rr, A):
+    n = len(rr); t = A[0] + 300 * np.arange(n * 48 + 1, dtype=np.int64)
+    return dict(A=A, r=rr, g=1e4 * rr / 2, pnl=1e4 * rr / 2, car=np.zeros(n), cst=np.zeros(n), unk=np.zeros(n), tau=np.zeros(n), dstop=np.zeros(n),
+                nstop=np.zeros(n), halt=np.zeros(n), hold=np.zeros(n), dust=np.zeros(n), unk_notional=np.zeros(n),
+                t5=t, nav5=np.concatenate([[1.0], np.cumprod(np.repeat(1 + rr, 48) ** (1 / 48))]))
+
+
+nA = 400; A9 = A4[0] + 14400 * np.arange(nA, dtype=np.int64)
+rng9 = np.random.default_rng(7)
+base = rng9.normal(0.0, 2e-3, size=(8, nA))
+PA = [mkpath(base[i] + 3e-4, A9) for i in range(8)]          # arm A (in-service): +3 bp per window on every fill path
+PB = [mkpath(base[i], A9) for i in range(8)]                 # arm B (retrain): the same fill paths without it
+mA = BT.series_mean(PA); mB = BT.series_mean(PB)
+c1 = BT.pair_cell(mA, mB, PA, PB, np.ones(nA, bool))
+ok("T9.pair_cell_delta_is_A_minus_B_and_positive", c1["delta_point"]["g"] > 0 and abs(c1["delta_point"]["g"] - (1e4 * 3e-4 / 2)) < 1e-9
+   and c1["paired_bootstrap_5d"]["d_g"]["estimate"] > 0, {"d_g": c1["delta_point"]["g"], "boot": c1["paired_bootstrap_5d"]["d_g"]["estimate"]})
+ok("T9.label_comes_from_the_estimator_itself", c1["label_on_the_main_reading"] == c1["paired_bootstrap_5d"]["d_sharpe"]["label"]
+   and "no switch decision" in c1["labels_are"], c1["label_on_the_main_reading"])
+c2 = BT.pair_cell(mB, mA, PB, PA, np.ones(nA, bool))
+mut("T9.swapping_the_arms_flips_every_sign", abs(c2["delta_point"]["g"] + c1["delta_point"]["g"]) < 1e-12
+    and c2["per_fill_path_delta"]["g"]["median"] < 0 < c1["per_fill_path_delta"]["g"]["median"], {"A-B": c1["delta_point"]["g"], "B-A": c2["delta_point"]["g"]})
+ok("T9.per_fill_path_pairing_is_by_seed", abs(c1["per_fill_path_delta"]["g"]["p05"] - c1["per_fill_path_delta"]["g"]["p95"]) < 1e-9
+   and c1["per_fill_path_delta"]["g"]["n"] == len(PA), c1["per_fill_path_delta"]["g"])
+mut("T9.unpaired_arms_(shuffled_seed_order)_widen_the_per_path_spread",
+    abs(BT.pair_cell(mA, mB, PA, PB[::-1], np.ones(nA, bool))["per_fill_path_delta"]["g"]["p95"]
+        - BT.pair_cell(mA, mB, PA, PB[::-1], np.ones(nA, bool))["per_fill_path_delta"]["g"]["p05"]) > 1e-6)
+sA, sB, common = BT.restrict_to_common(mA, BT.restrict(mB, int(A9[10]), int(A9[-1])))
+ok("T9.restrict_to_common_reports_what_it_dropped", common["n_common"] == nA - 10 and common["dropped_a"] == 10 and common["dropped_b"] == 0
+   and np.array_equal(sA["A"], sB["A"]), common)
+mDIS = BT.series_mean([mkpath(base[i], A9 + 14400 * nA) for i in range(8)])      # a disjoint axis, no shared anchor at all
+try:
+    BT.restrict_to_common(mA, mDIS); no_err = True
+except AssertionError:
+    no_err = False
+mut("T9.arms_that_share_no_anchor_are_refused", not no_err)
+
 n_pass = sum(1 for _, c_, _ in RES if c_); n = len(RES)
 line = ("BT_TABLES_SELFTEST VERDICT: ALL PASS %d/%d checks (baselines green, every mutation red)" % (n_pass, n)) if n_pass == n else \
        ("BT_TABLES_SELFTEST VERDICT: FAIL %d/%d checks; failed: %s" % (n_pass, n, [nm for nm, c_, _ in RES if not c_]))

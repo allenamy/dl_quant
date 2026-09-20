@@ -1,0 +1,2133 @@
+{
+ "device": "bt_tables.py main_pair",
+ "self_sha256": "892ba66b9e8040ff04caede02272556dec5a71eb4632cbe7a2a13f46bd35f389",
+ "utc": "2026-09-20T02:49:18Z",
+ "arms": {
+  "A_in_service": {
+   "config": "/workspace/baseline_tables_2026-09-19/RUN_CONFIG_main_A0_2026-09-19.json",
+   "sha256": "7b6dca2c48feda294676ab5ce46b748c71ab87103cc64ead5be7957fe5bbfe93"
+  },
+  "B_retrain": {
+   "config": "/workspace/baseline_tables_2026-09-19/RUN_CONFIG_main_A0_2026-09-19.json",
+   "sha256": "7b6dca2c48feda294676ab5ce46b748c71ab87103cc64ead5be7957fe5bbfe93"
+  }
+ },
+ "rule": "prereg \u00a73.5: same window, same base, same seeds, daily returns aligned; 5-day MBB, B=10000, rng [20260919, 99]; \u0394g = linear paired mean; labels one-sided p<0.05 each way, DESCRIPTIVE ONLY (AMENDMENT 1 item 4)",
+ "full_recipe_start": "2023-06-30T04:00:00Z",
+ "tables": {
+  "pairing scaled (A = in-service A0 \u2212 B = retrain V4)": {
+   "arms": {
+    "A": "OBJB_A0|scaled|rule|raw|UAFE",
+    "B": "OBJB_A0|scaled|rule|raw|UAFE",
+    "files_A": [
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_00.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_01.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_02.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_03.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_04.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_05.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_06.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_07.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_08.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_09.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_10.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_11.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_12.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_13.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_14.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_15.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_16.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_17.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_18.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_19.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_20.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_21.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_22.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_23.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_24.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_25.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_26.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_27.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_28.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_29.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_30.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_31.npz"
+    ],
+    "files_B": [
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_00.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_01.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_02.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_03.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_04.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_05.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_06.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_07.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_08.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_09.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_10.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_11.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_12.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_13.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_14.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_15.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_16.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_17.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_18.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_19.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_20.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_21.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_22.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_23.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_24.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_25.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_26.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_27.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_28.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_29.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_30.npz",
+     "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_31.npz"
+    ]
+   },
+   "common_window": {
+    "n_common": 9139,
+    "dropped_a": 0,
+    "dropped_b": 0,
+    "span": [
+     "2022-06-30T00Z",
+     "2026-08-31T00Z"
+    ]
+   },
+   "periods": {
+    "2022H2 (PARTIAL_RECIPE)": {
+     "n_anchors": 1110,
+     "paired_bootstrap_5d": {
+      "n_days": 185,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": -0.29930177706420047,
+      "sharpe_daily": -1.4881218724009997,
+      "g": -0.7623110220314115,
+      "maxdd_4h": -0.2513656230302469,
+      "maxdd_5m": -0.25532785722428675,
+      "nav_return": -0.16495957356754454
+     },
+     "B_retrain": {
+      "cagr": -0.29930177706420047,
+      "sharpe_daily": -1.4881218724009997,
+      "g": -0.7623110220314115,
+      "maxdd_4h": -0.2513656230302469,
+      "maxdd_5m": -0.25532785722428675,
+      "nav_return": -0.16495957356754454
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": true,
+     "describe_only": false
+    },
+    "2023 (PARTIAL_RECIPE, before full-recipe start)": {
+     "n_anchors": 1081,
+     "paired_bootstrap_5d": {
+      "n_days": 181,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": 0.5624334818549559,
+      "sharpe_daily": 2.5421472093956456,
+      "g": 1.0638618344745283,
+      "maxdd_4h": -0.12261805003462822,
+      "maxdd_5m": -0.1257930273374791,
+      "nav_return": 0.2476831898377585
+     },
+     "B_retrain": {
+      "cagr": 0.5624334818549559,
+      "sharpe_daily": 2.5421472093956456,
+      "g": 1.0638618344745283,
+      "maxdd_4h": -0.12261805003462822,
+      "maxdd_5m": -0.1257930273374791,
+      "nav_return": 0.2476831898377585
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": true,
+     "describe_only": false
+    },
+    "2023 (full recipe)": {
+     "n_anchors": 1109,
+     "paired_bootstrap_5d": {
+      "n_days": 185,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": -0.28852221911004106,
+      "sharpe_daily": -1.6580723681903833,
+      "g": -0.7377515775022794,
+      "maxdd_4h": -0.2180506370255617,
+      "maxdd_5m": -0.22012396690674407,
+      "nav_return": -0.1584729560299225
+     },
+     "B_retrain": {
+      "cagr": -0.28852221911004106,
+      "sharpe_daily": -1.6580723681903833,
+      "g": -0.7377515775022794,
+      "maxdd_4h": -0.2180506370255617,
+      "maxdd_5m": -0.22012396690674407,
+      "nav_return": -0.1584729560299225
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": false,
+     "describe_only": false
+    },
+    "2024": {
+     "n_anchors": 2196,
+     "paired_bootstrap_5d": {
+      "n_days": 366,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": 0.18240160483227252,
+      "sharpe_daily": 0.9580746871298215,
+      "g": 0.42515410286231964,
+      "maxdd_4h": -0.2659295629243257,
+      "maxdd_5m": -0.26867424670328943,
+      "nav_return": 0.18294449267091295
+     },
+     "B_retrain": {
+      "cagr": 0.18240160483227252,
+      "sharpe_daily": 0.9580746871298215,
+      "g": 0.42515410286231964,
+      "maxdd_4h": -0.2659295629243257,
+      "maxdd_5m": -0.26867424670328943,
+      "nav_return": 0.18294449267091295
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": false,
+     "describe_only": false
+    },
+    "2025": {
+     "n_anchors": 2190,
+     "paired_bootstrap_5d": {
+      "n_days": 365,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": 0.02210621361818932,
+      "sharpe_daily": 0.2135256624391727,
+      "g": 0.12991557521409264,
+      "maxdd_4h": -0.2692263157373229,
+      "maxdd_5m": -0.27582168212570934,
+      "nav_return": 0.022106213618184878
+     },
+     "B_retrain": {
+      "cagr": 0.02210621361818932,
+      "sharpe_daily": 0.2135256624391727,
+      "g": 0.12991557521409264,
+      "maxdd_4h": -0.2692263157373229,
+      "maxdd_5m": -0.27582168212570934,
+      "nav_return": 0.022106213618184878
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": false,
+     "describe_only": false
+    },
+    "2026H1": {
+     "n_anchors": 1086,
+     "paired_bootstrap_5d": {
+      "n_days": 181,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": 3.2304622645475236,
+      "sharpe_daily": 4.947968648107576,
+      "g": 3.3984868934901797,
+      "maxdd_4h": -0.09429772200643427,
+      "maxdd_5m": -0.10289239509675152,
+      "nav_return": 1.0446534809242323
+     },
+     "B_retrain": {
+      "cagr": 3.2304622645475236,
+      "sharpe_daily": 4.947968648107576,
+      "g": 3.3984868934901797,
+      "maxdd_4h": -0.09429772200643427,
+      "maxdd_5m": -0.10289239509675152,
+      "nav_return": 1.0446534809242323
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": false,
+     "describe_only": false
+    },
+    "2026-07-01\u21922026-08-31": {
+     "n_anchors": 367,
+     "paired_bootstrap_5d": {
+      "n_days": 62,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": 1.0282589267805178,
+      "sharpe_daily": 2.2685733352145205,
+      "g": 1.7717656556090955,
+      "maxdd_4h": -0.17725580577710454,
+      "maxdd_5m": -0.1810336943568739,
+      "nav_return": 0.1276359306143633
+     },
+     "B_retrain": {
+      "cagr": 1.0282589267805178,
+      "sharpe_daily": 2.2685733352145205,
+      "g": 1.7717656556090955,
+      "maxdd_4h": -0.17725580577710454,
+      "maxdd_5m": -0.1810336943568739,
+      "nav_return": 0.1276359306143633
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": false,
+     "describe_only": true
+    },
+    "FULL_RECIPE window": {
+     "n_anchors": 6948,
+     "paired_bootstrap_5d": {
+      "n_days": 1159,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": 0.30804512336351175,
+      "sharpe_daily": 1.221318337395336,
+      "g": 0.6823520123910999,
+      "maxdd_4h": -0.3820537674225828,
+      "maxdd_5m": -0.38375228880304,
+      "nav_return": 1.3459410480575151
+     },
+     "B_retrain": {
+      "cagr": 0.30804512336351175,
+      "sharpe_daily": 1.221318337395336,
+      "g": 0.6823520123910999,
+      "maxdd_4h": -0.3820537674225828,
+      "maxdd_5m": -0.38375228880304,
+      "nav_return": 1.3459410480575151
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": false,
+     "describe_only": false
+    },
+    "PARTIAL_RECIPE window (not the production strategy)": {
+     "n_anchors": 2191,
+     "paired_bootstrap_5d": {
+      "n_days": 366,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": 0.041749159983762274,
+      "sharpe_daily": 0.30210853662631576,
+      "g": 0.13868982592975726,
+      "maxdd_4h": -0.34316171052316646,
+      "maxdd_5m": -0.34666456335359064,
+      "nav_return": 0.0418659028947288
+     },
+     "B_retrain": {
+      "cagr": 0.041749159983762274,
+      "sharpe_daily": 0.30210853662631576,
+      "g": 0.13868982592975726,
+      "maxdd_4h": -0.34316171052316646,
+      "maxdd_5m": -0.34666456335359064,
+      "nav_return": 0.0418659028947288
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": true,
+     "describe_only": true
+    }
+   }
+  },
+  "pairing lit (A = in-service A0 \u2212 B = retrain V4)": {
+   "arms": {
+    "A": "OBJB_A0|lit|rule|raw|UAFE",
+    "B": "OBJB_A0|lit|rule|raw|UAFE",
+    "files_A": [
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_00.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_01.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_02.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_03.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_04.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_05.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_06.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_07.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_08.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_09.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_10.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_11.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_12.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_13.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_14.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_15.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_16.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_17.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_18.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_19.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_20.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_21.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_22.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_23.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_24.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_25.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_26.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_27.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_28.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_29.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_30.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_31.npz"
+    ],
+    "files_B": [
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_00.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_01.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_02.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_03.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_04.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_05.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_06.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_07.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_08.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_09.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_10.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_11.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_12.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_13.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_14.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_15.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_16.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_17.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_18.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_19.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_20.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_21.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_22.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_23.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_24.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_25.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_26.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_27.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_28.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_29.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_30.npz",
+     "PATH_OBJB_A0_lit_rule_raw_UAFE_seed_31.npz"
+    ]
+   },
+   "common_window": {
+    "n_common": 9139,
+    "dropped_a": 0,
+    "dropped_b": 0,
+    "span": [
+     "2022-06-30T00Z",
+     "2026-08-31T00Z"
+    ]
+   },
+   "periods": {
+    "2022H2 (PARTIAL_RECIPE)": {
+     "n_anchors": 1110,
+     "paired_bootstrap_5d": {
+      "n_days": 185,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": -0.29930177706420047,
+      "sharpe_daily": -1.4881218724009997,
+      "g": -0.7623110220314115,
+      "maxdd_4h": -0.2513656230302469,
+      "maxdd_5m": -0.25532785722428675,
+      "nav_return": -0.16495957356754454
+     },
+     "B_retrain": {
+      "cagr": -0.29930177706420047,
+      "sharpe_daily": -1.4881218724009997,
+      "g": -0.7623110220314115,
+      "maxdd_4h": -0.2513656230302469,
+      "maxdd_5m": -0.25532785722428675,
+      "nav_return": -0.16495957356754454
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": true,
+     "describe_only": false
+    },
+    "2023 (PARTIAL_RECIPE, before full-recipe start)": {
+     "n_anchors": 1081,
+     "paired_bootstrap_5d": {
+      "n_days": 181,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": 0.2329919015870261,
+      "sharpe_daily": 1.0440688613783842,
+      "g": 0.5462344470632371,
+      "maxdd_4h": -0.1322253452923996,
+      "maxdd_5m": -0.1338208941757446,
+      "nav_return": 0.10944634289071598
+     },
+     "B_retrain": {
+      "cagr": 0.2329919015870261,
+      "sharpe_daily": 1.0440688613783842,
+      "g": 0.5462344470632371,
+      "maxdd_4h": -0.1322253452923996,
+      "maxdd_5m": -0.1338208941757446,
+      "nav_return": 0.10944634289071598
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": true,
+     "describe_only": false
+    },
+    "2023 (full recipe)": {
+     "n_anchors": 1109,
+     "paired_bootstrap_5d": {
+      "n_days": 185,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": -0.3633968739707357,
+      "sharpe_daily": -1.8894472038571688,
+      "g": -0.9813227937032737,
+      "maxdd_4h": -0.2706790954431829,
+      "maxdd_5m": -0.2726057780265987,
+      "nav_return": -0.2045900510244254
+     },
+     "B_retrain": {
+      "cagr": -0.3633968739707357,
+      "sharpe_daily": -1.8894472038571688,
+      "g": -0.9813227937032737,
+      "maxdd_4h": -0.2706790954431829,
+      "maxdd_5m": -0.2726057780265987,
+      "nav_return": -0.2045900510244254
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": false,
+     "describe_only": false
+    },
+    "2024": {
+     "n_anchors": 2196,
+     "paired_bootstrap_5d": {
+      "n_days": 366,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": -0.10027954304810782,
+      "sharpe_daily": -0.4017844822048262,
+      "g": -0.18535294508660813,
+      "maxdd_4h": -0.40203439021167475,
+      "maxdd_5m": -0.4053971047041337,
+      "nav_return": -0.10053998345834103
+     },
+     "B_retrain": {
+      "cagr": -0.10027954304810782,
+      "sharpe_daily": -0.4017844822048262,
+      "g": -0.18535294508660813,
+      "maxdd_4h": -0.40203439021167475,
+      "maxdd_5m": -0.4053971047041337,
+      "nav_return": -0.10053998345834103
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": false,
+     "describe_only": false
+    },
+    "2025": {
+     "n_anchors": 2190,
+     "paired_bootstrap_5d": {
+      "n_days": 365,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": 0.06971914904504062,
+      "sharpe_daily": 0.38729839610092137,
+      "g": 0.23687699111137725,
+      "maxdd_4h": -0.2737189838512739,
+      "maxdd_5m": -0.28115104985591466,
+      "nav_return": 0.06971914904504439
+     },
+     "B_retrain": {
+      "cagr": 0.06971914904504062,
+      "sharpe_daily": 0.38729839610092137,
+      "g": 0.23687699111137725,
+      "maxdd_4h": -0.2737189838512739,
+      "maxdd_5m": -0.28115104985591466,
+      "nav_return": 0.06971914904504439
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": false,
+     "describe_only": false
+    },
+    "2026H1": {
+     "n_anchors": 1086,
+     "paired_bootstrap_5d": {
+      "n_days": 181,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": 3.235284502217765,
+      "sharpe_daily": 4.947615600855096,
+      "g": 3.4010448365052817,
+      "maxdd_4h": -0.09431058565732542,
+      "maxdd_5m": -0.10293396716414782,
+      "nav_return": 1.045808905198057
+     },
+     "B_retrain": {
+      "cagr": 3.235284502217765,
+      "sharpe_daily": 4.947615600855096,
+      "g": 3.4010448365052817,
+      "maxdd_4h": -0.09431058565732542,
+      "maxdd_5m": -0.10293396716414782,
+      "nav_return": 1.045808905198057
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": false,
+     "describe_only": false
+    },
+    "2026-07-01\u21922026-08-31": {
+     "n_anchors": 367,
+     "paired_bootstrap_5d": {
+      "n_days": 62,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": 0.6903173302178096,
+      "sharpe_daily": 1.7327810465172215,
+      "g": 1.3488406137572573,
+      "maxdd_4h": -0.18818598875835635,
+      "maxdd_5m": -0.19296031184122442,
+      "nav_return": 0.09325978470002938
+     },
+     "B_retrain": {
+      "cagr": 0.6903173302178096,
+      "sharpe_daily": 1.7327810465172215,
+      "g": 1.3488406137572573,
+      "maxdd_4h": -0.18818598875835635,
+      "maxdd_5m": -0.19296031184122442,
+      "nav_return": 0.09325978470002938
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": false,
+     "describe_only": true
+    },
+    "FULL_RECIPE window": {
+     "n_anchors": 6948,
+     "paired_bootstrap_5d": {
+      "n_days": 1159,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": 0.18444165781089006,
+      "sharpe_daily": 0.7928038368159476,
+      "g": 0.46229098483023084,
+      "maxdd_4h": -0.5245568875076425,
+      "maxdd_5m": -0.52696656956508,
+      "nav_return": 0.7117135526278273
+     },
+     "B_retrain": {
+      "cagr": 0.18444165781089006,
+      "sharpe_daily": 0.7928038368159476,
+      "g": 0.46229098483023084,
+      "maxdd_4h": -0.5245568875076425,
+      "maxdd_5m": -0.52696656956508,
+      "nav_return": 0.7117135526278273
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": false,
+     "describe_only": false
+    },
+    "PARTIAL_RECIPE window (not the production strategy)": {
+     "n_anchors": 2191,
+     "paired_bootstrap_5d": {
+      "n_days": 366,
+      "block_days": 5,
+      "B": 10000,
+      "rng": [
+       20260919,
+       99
+      ],
+      "undefined_sharpe_draws": 0,
+      "main_reading": "d_sharpe",
+      "labels": "descriptive only (AMENDMENT 1 item 4): no multiplicity control, no switch decision",
+      "d_sharpe": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_cagr": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      },
+      "d_g": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "p_up": 1.0,
+       "p_down": 1.0,
+       "label": "(C) undecidable",
+       "undefined_share": 0.0
+      }
+     },
+     "label_on_the_main_reading": "(C) undecidable",
+     "labels_are": "DESCRIPTIVE ONLY (prereg \u00a73.5 + AMENDMENT 1 item 4): no multiplicity control, no switch decision; 'CI contains 0' is not equivalence",
+     "A_in_service": {
+      "cagr": -0.07337401053173931,
+      "sharpe_daily": -0.229009269689705,
+      "g": -0.11669821870356324,
+      "maxdd_4h": -0.3503540620228317,
+      "maxdd_5m": -0.35266416076030493,
+      "nav_return": -0.07356745272860643
+     },
+     "B_retrain": {
+      "cagr": -0.07337401053173931,
+      "sharpe_daily": -0.229009269689705,
+      "g": -0.11669821870356324,
+      "maxdd_4h": -0.3503540620228317,
+      "maxdd_5m": -0.35266416076030493,
+      "nav_return": -0.07356745272860643
+     },
+     "delta_point": {
+      "cagr": 0.0,
+      "sharpe_daily": 0.0,
+      "g": 0.0,
+      "maxdd_4h": 0.0,
+      "maxdd_5m": 0.0
+     },
+     "per_fill_path_delta": {
+      "pairing": "paired by fill seed",
+      "cagr": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "sharpe_daily": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "g": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_4h": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      },
+      "maxdd_5m": {
+       "median": 0.0,
+       "p05": 0.0,
+       "p95": 0.0,
+       "n": 32
+      }
+     },
+     "partial_recipe": true,
+     "describe_only": true
+    }
+   }
+  }
+ }
+}
