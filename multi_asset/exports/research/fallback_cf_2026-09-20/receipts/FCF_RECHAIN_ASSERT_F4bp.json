@@ -1,0 +1,101 @@
+{
+ "device": "fcf_rechain_assert_F4bp.py",
+ "self_sha256": "1c729b45b3170c53717236e7ae14a558cfa3566473d7c7df82b801cfe904979a",
+ "archive_p1_vec_sha256": "04249082f6b9d42b3e93482e467e5552fe9f0603d51dadb8c8152568c260b49d",
+ "mine_p1_vec_sha256": "03c9e86bca86baa3b234b56ce1a70d693770c3f4adb41cd71441565fcfb0734c",
+ "rechain_receipt_sha256": "99db93562743bd55f89f0299b8b7bf12a6afafe897428d1e0285c5a19b23e89b",
+ "smoke": false,
+ "utc": "2026-09-20T14:16:16Z",
+ "checks": [
+  {
+   "check": "S-POPULATION.closed",
+   "ok": true,
+   "detail": {
+    "n_archive": 10039,
+    "n_f4b_written": 10038,
+    "n_shared": 10038,
+    "n_archive_only_f4b_wrote_nothing": 1,
+    "n_f4b_only": 0
+   }
+  },
+  {
+   "check": "S-POPULATION.no_anchor_outside_the_archived_axis",
+   "ok": true,
+   "detail": {
+    "n": 0,
+    "first": []
+   }
+  },
+  {
+   "check": "S-IDENTICAL.pm_bitwise_equal_to_the_archived_P1_on_every_shared_anchor",
+   "ok": true,
+   "detail": {
+    "equal": 10038,
+    "shared": 10038,
+    "first_mismatch": null
+   }
+  },
+  {
+   "check": "S-IDENTICAL.legz_bitwise_equal_to_the_archived_P1_on_every_shared_anchor",
+   "ok": true,
+   "detail": {
+    "equal": 10038,
+    "shared": 10038,
+    "first_mismatch": null
+   }
+  },
+  {
+   "check": "S-IDENTICAL.fe_bitwise_equal_to_the_archived_P1_on_every_shared_anchor",
+   "ok": true,
+   "detail": {
+    "equal": 10038,
+    "shared": 10038,
+    "first_mismatch": null
+   }
+  },
+  {
+   "check": "S-IDENTICAL.fn_bitwise_equal_to_the_archived_P1_on_every_shared_anchor",
+   "ok": true,
+   "detail": {
+    "equal": 10038,
+    "shared": 10038,
+    "first_mismatch": null
+   }
+  },
+  {
+   "check": "S-DIFFERENT.the_book_actually_changed",
+   "ok": true,
+   "detail": {
+    "anchors_with_a_different_book": 10038,
+    "shared": 10038,
+    "share": 1.0,
+    "threshold": 0.9,
+    "note": "frozen before the numbers"
+   }
+  },
+  {
+   "check": "S-SEAT.logged_w3_equal_to_the_archive_at_every_shared_anchor_to_1e-4",
+   "ok": false,
+   "detail": {
+    "n_compared": 10038,
+    "n_mismatch": 1,
+    "first": [
+     "2022-06-30T00:00:00Z"
+    ],
+    "precision": "the producer logs w3 rounded to 4 decimals (L528); this check is exact only to 1e-4 and is NOT a bitwise claim \u2014 the bitwise part of the seat claim is S-IDENTICAL.legz"
+   }
+  }
+ ],
+ "f4b_wrote_no_book": {
+  "n": 1,
+  "anchors_utc": [
+   "2022-01-31T00:00:00Z"
+  ],
+  "reason": "with rev24 removed the book signal z was identically zero at this anchor, so run_anchor returned at `if g < 1e-9` without writing; in the F4b world the executor holds. NAMED, never imputed (E-0920-C)",
+  "last": "2022-01-31T00:00:00Z"
+ },
+ "VERDICT": "REFUSED",
+ "failed": [
+  "S-SEAT.logged_w3_equal_to_the_archive_at_every_shared_anchor_to_1e-4"
+ ]
+}
