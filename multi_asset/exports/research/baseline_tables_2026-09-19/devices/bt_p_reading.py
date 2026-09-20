@@ -16,6 +16,9 @@ reading assumes it never fires. Reading P asks the other question.
       the 5 / 95 percentiles.
 Bases reported for P-halt: every entry of config `p_reading.bases` (the run window's start per AMENDMENT 2 §1, and the FULL_RECIPE window
 start, which is the base the lead's independent check used and the base of the published headline).
+MEAN PATH: besides the 32 fill paths, the same rule is applied to the tables' MEAN PATH (the per-window mean of the path returns,
+compounded — the series every published headline number is computed on). AMENDMENT 2 prescribes the per-path reading; the mean path is
+reported beside it because the lead's independent check was made on it, and a minority-of-paths breach is invisible on the mean path.
 GRANULARITY: AMENDMENT 2 prescribes the ANCHOR ends, and that is the main reading here. The live watchdog evaluates once a day
 (`watchdog.py` L1862: `cum = prod(1 + r_d) - 1 ; trigger: cum < DRAWDOWN_LIMIT_PCT`, daily returns), so a second, clearly labelled
 sensitivity is reported on UTC DAY ends only (the 20:00Z anchors, whose windows close at 24:00Z). The anchor-end reading can halt earlier
@@ -61,6 +64,13 @@ def load_paths(run_dir, n_seeds):
     return out
 
 
+def mean_path(paths):
+    """the tables' mean path: per-window MEAN of the path returns, compounded (bt_tables.series_mean caliber)"""
+    R = np.mean([p["navm1"] / p["navm0"] - 1.0 for p in paths], axis=0)
+    nav = 1.0 * np.cumprod(1.0 + R)
+    return {"seed": "mean_path", "A": paths[0]["A"].copy(), "navm1": nav, "navm0": np.concatenate([[1.0], nav[:-1]])}
+
+
 DAY_END_ANCHOR_S = 72000          # the 20:00Z anchor: its 4h window closes at 24:00Z, so its end is a UTC day end
 
 
@@ -99,10 +109,12 @@ def run(cfg_p, outp):
            "config": {"path": cfg_p, "sha256": sha(cfg_p)}, "amendment_2": CFG["pins"]["prereg_amendment_2"], "rule": PR, "runs": {}}
     for r in CFG["runs"]:
         P = load_paths(r["dir"], n_seeds); A = P[0]["A"]; row = {int(a): i for i, a in enumerate(A)}
-        res = {"dir": r["dir"], "n_paths": len(P), "window": [iso(A[0]), iso(A[-1])], "bases": {}, "p_start": {}}
+        MP = mean_path(P)
+        res = {"dir": r["dir"], "n_paths": len(P), "window": [iso(A[0]), iso(A[-1])], "bases": {}, "p_start": {}, "mean_path": {"bases": {}, "p_start": {}}}
         for b in PR["bases"]:
             t = ts(b["anchor"])
             if t not in row: raise PReadingError(f"base {b['anchor']} is not an anchor of {r['dir']}")
+            res["mean_path"]["bases"][b["label"] + " @ " + b["anchor"]] = dict(halt_of(MP, row[t], thr), utc_day_ends_only=halt_of(MP, row[t], thr, day_end_only=True))
             per = [dict(halt_of(p, row[t], thr), seed=p["seed"]) for p in P]
             per_d = [dict(halt_of(p, row[t], thr, day_end_only=True), seed=p["seed"]) for p in P]
             res["bases"][b["label"] + " @ " + b["anchor"]] = {"per_path": per, "summary": spread(per),
@@ -118,6 +130,7 @@ def run(cfg_p, outp):
                 res["p_start"][st_iso] = {"status": "start is after breach_by", "in_window": False}; continue
             per_b = [halt_of(p, i0, thr, upto_i) for p in P]                     # breach judged up to breach_by (AMENDMENT 2 §2)
             per_e = [halt_of(p, i0, thr, None) for p in P]                       # returns to the run window end
+            res["mean_path"]["p_start"][st_iso] = dict(halt_of(MP, i0, thr, upto_i), to_window_end=halt_of(MP, i0, thr))
             per_d = [halt_of(p, i0, thr, upto_i, day_end_only=True) for p in P]
             res["p_start"][st_iso] = {"in_window": True, "start_index": i0, "anchors_to_breach_by": int(upto_i - i0 + 1),
                                       "sensitivity_utc_day_ends_only": {"fired_paths": sum(1 for x in per_d if x["fired"]),
