@@ -102,5 +102,14 @@ done
 # (Mac) /usr/bin/python3 devices/bt_p_render.py receipts/pod2/receipts/BT_P_READING_A0.json  receipts/A0_P_TABLES_rendered.md
 # (Mac) /usr/bin/python3 devices/bt_p_render.py receipts/pod2/receipts/BT_P_READING_A0X.json receipts/A0EXT_P_TABLES_rendered.md
 # (Mac) /usr/bin/python3 devices/bt_p_reading_test.py <scratch> receipts/BT_P_READING_TEST_mac.json
-# ---- next, on the lead's standing GO once object B writes TARGETS_V4_main: the same pre-run checks, the five v4 runs, reading P for v4,
-#      the pairing table (AMENDMENT 1 item 4, descriptive labels only) and step (3) for v4 ----
+# ---- EXECUTED: the v4 retrain arm (object B wrote TARGETS_V4_main at 2026-09-20T04:17Z; the lead's standing GO) ----
+# m. pre-run checks with the arm parameter (device v3), then the frozen v4 config
+env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B bt_objb_prerun.py PATH,HOME,LC_CTYPE full $R/receipts/BT_OBJB_PRERUN_V4.json $R/RUN_CONFIG_main_TEMPLATE_2026-09-19.json $R/RUN_CONFIG_main_V4_2026-09-20.json 916b109f181103191efff915923d1647e35e7a7dbdfc6caffa42077e7fc65b9c V4_main "" V4 > $R/logs/bt_objb_prerun_v4.log 2>&1
+# n. the five v4 runs x 32 seeds, started after object B's v4 scoring went quiet (fast_exec 0, load 1.55); PGID in $R/logs/full_v4.pgid
+setsid bash -c "env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_launch.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_main_V4_2026-09-20.json --resume v4 > $R/logs/bt_launch_full_v4.log 2>&1; echo \"EXIT \$?\" >> $R/logs/bt_launch_full_v4.log"
+$R/memsample.sh $(cat $R/logs/full_v4.pgid) $R/logs/full_v4_memsamples.log
+# o. post-run chain: battery x5, run summary, v4 tables (incl. step 3), the §3.5 pairing table, the v4 reading-P config + reading P
+bash $R/post_v4.sh > $R/logs/post_v4.log 2>&1
+# (Mac) /usr/bin/python3 devices/bt_main_render.py receipts/pod2/receipts/BT_MAIN_V4.json receipts/pod2/receipts/BT_RUN_SUMMARY_V4.json receipts/V4_TABLES_rendered.md
+# (Mac) /usr/bin/python3 devices/bt_pair_render.py receipts/pod2/receipts/BT_MAIN_PAIR_A0_vs_V4.json receipts/PAIR_A0_vs_V4_rendered.md
+# (Mac) /usr/bin/python3 devices/bt_p_render.py receipts/pod2/receipts/BT_P_READING_V4.json receipts/V4_P_TABLES_rendered.md
