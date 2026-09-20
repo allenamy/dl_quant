@@ -94,6 +94,20 @@ B-scaled 前飞门里的 `gross ∈ [0.4,1.2]` 与 `gross_in > 0.4` **依赖臂*
 - **G-FROZEN**(A3): 沿用 BASE 的 kind, 只豁免前飞下限 —— 隔离信号本身。
 两者之差**就是**前飞门的尺度敏感性, 单独点名, **不分摊到任何信号上**。
 
+**★ 这个门不可能是风险控制 —— 它是退化探测器**(lead 指出, 我在源码里独立核过, 抄行):
+```
+exec_tree_409ea16/live/external_book.py L498–505  def target_vector(ext, symbols):
+    """w_in / gross_in aligned to `symbols` — sum|.| == 1 over the IN-UNIVERSE book, so
+       `to_notional(., gross)` gives a live gross of exactly NAV x gross_mult …"""
+    gn = float(ext.get("gross_in") or ext["gross_norm"])
+    return np.array([float(ext["w"].get(s, 0.0)) / gn for s in symbols], dtype=float)
+exec_tree_409ea16/signal/legs.py L363–365  def to_notional(target_w, symbols, gross_usdt):
+    return {s: float(w * gross_usdt) for s, w in zip(symbols, target_w) if abs(w) > 1e-12}
+```
+⇒ 执行器**先把书 L1 归一到 Σ|w| = 1, 再乘 NAV × gross_mult**。**combo 文件的 raw gross 被整除掉了, 对实际交易的书的形状与大小没有任何影响。** 所以 `0.4 ≤ gross ≤ 1.2` 这个门**不是**仓位/风险上限, 它只是在探测「raw gross 很小」这件事。
+**在生产里**「raw gross 很小」是一个有意义的代理: 按 lead 的 FINDING, 它意味着**两个组件互相抵消**(模型席位高 ⇒ `z_kc − z_fc = w3m[0]·(z_king − z_f10)` 变大 ⇒ 0.55/0.45 混合抵消)—— 那是真退化。
+**但在本文的反事实臂里, raw gross 小是被我按构造造出来的**(删掉了一个组件, 书只剩 0.55 或 0.45 倍)。**探测器在对的阈值上, 对着错的成因开火。** 因此 §5.7 里 `LOI_F10 ≡ 0` **不是关于 F10 的经济事实, 而是这个探测器在构造性低 gross 上触发的产物** —— 这正是 G-FROZEN 必须与 G-FAITHFUL 并列的原因。
+
 ---
 
 ## §3 judge 与控制复现
@@ -201,7 +215,7 @@ CF_READ   VERDICT=PASS checks=8 failed=[] receipt_sha256=0bbd08d7f5c41014c65571e
 
 ### 5.7 前飞门的尺度敏感性(两套口径之差, 点名不分摊)
 
-- G-FAITHFUL 下 `onlyF10` 在每个时段的 combo 锚数都是 **0**, `NONE` 也是 0 ⇒ **`v({F10}) ≡ v(∅)` 按构造相等**, `LOI_F10 ≡ 0`。那测的是门, 不是信号。
+- G-FAITHFUL 下 `onlyF10` 在每个时段的 combo 锚数都是 **0**, `NONE` 也是 0 ⇒ **`v({F10}) ≡ v(∅)` 按构造相等**, `LOI_F10 ≡ 0`。**这是退化探测器在构造性低 gross 上触发, 不是关于 F10 的经济事实**(§2.5: 执行器先 L1 归一再乘 NAV × gross_mult, raw gross 被整除掉 ⇒ 该门不可能是风险控制)。两种触发要分开: `NONE` 的书是**真的空**, 探测器正确触发; `onlyF10` 的书**非空**(0.45·chain(z_f10)), 只是被我按构造砍掉了一半 gross。
 - 完整配方窗上两套口径的差: `LOO_king` **+0.023 → −0.129**(符号翻转), `LOO_fund` +0.806 → +0.848, `LOO_F10` +0.183 → +0.170。
 - 门翻转的锚数(完整配方窗): `noFUND` 1,848 · `noKING` 1,405 · `noF10` 1,261 · `onlyKING` 5,236 · `onlyF10` 5,625。**2026: `noKING`/`noF10` 均为 0。**
 
@@ -239,7 +253,10 @@ CF_READ   VERDICT=PASS checks=8 failed=[] receipt_sha256=0bbd08d7f5c41014c65571e
 7. **模拟器标定是合池且固定的**: 不同的书会有不同的成交/冲击特征, 这一层没有建模。这是本反事实的**部分均衡**边界 —— 而**席位不在这条边界内**(§2.3, 席位对本干预精确不变)。
 8. **本文全部数字是【主读数 level R】, 不是政策排名**。同日 lead 的 F 族在**同一批 32 条路径**上实测: 换到读数 P(实盘 §4-4 看门狗, 从基准锚累计 −25% ⇒ 整书平仓 + 只能人工恢复), **主读数最好的臂与在役臂没有区别**(都 32/32 被打穿, 只是日期不同), 而且**基准锚一换结论整体翻转**。⇒ 本文的留一效应**不得**读成「该信号该留该去」的政策判断; 任何政策结论必须在 P 读数上、并且**两个基准都报**之后才谈。见 `docs/FINDING_seat_drives_preflight_fallback_2026-09-20.md` 与 F 族预注册/结果件。
 9. **延展段**(2026-08-31T04Z → 09-18T20Z)不在本文窗口内。
-10. **本文不提任何换装建议**。这是归因, 不是候选评估; 任何「去掉某条腿更好」的读法都必须先过 §7.1 与 §6 的 UNDECIDED。
+10. **可达性(每个联盟到底在生产里发生过没有)**: **只有 `BASE` 发生过**(全部 10,039 锚)。其余 7 个联盟**一次都没发生过**, 是构造。与之相关的一条可达性事实: **生产自己的退化(`chain` 返回 `None`)在 10,039 个锚里只出现过 1 次**(首锚 2022-01-31T00Z, 在全部报告窗之外)⇒ **C-DEGEN 约定管的是生产几乎从不表现的行为**, 它的影响面(完整配方窗 7.3%–100%)全部由**我的构造**产生, 不是历史频率。凡是用「联盟之间的跨度」做论据的地方(6 个排序的边际跨度), 都要连着这一行读; 这也是按 C3 撤回 Shapley 的第二个理由。
+11. **本文没有运行任何生产者装置**, 因此不引用任何生产者判词。生产者本来也**不发判词** —— 收据里 `VERDICT` 键**缺席**是键缺席, **不是判词为空**(与 E-0920-C 同族)。本文引用的四条判词全部来自**本任务自己的装置**与**基线表的 `bt_launch.py`**, 四者的收据都**确有** `VERDICT` 键(`BT_LAUNCH_full.json` 的 `VERDICT` / `failed: []` 已逐个核对)。
+12. **与兄弟任务 `fallback-counterfactual`(F 族, `/workspace/fallback_cf_2026-09-20`)**: 两边从不同侧问重叠的问题 —— 那边变「预检失败时写哪本书」, 这边变「z 里有哪个信号」。**双方不交换中间结果、不对齐数字。** 若两边对**这个门到底值多少**给出不一致的答案, 按规矩**在本文里直说不一致**, 不私下调和。
+13. **本文不提任何换装建议**。这是归因, 不是候选评估; 任何「去掉某条腿更好」的读法都必须先过 §7.1 与 §6 的 UNDECIDED。
 
 ---
 
