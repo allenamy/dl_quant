@@ -37,21 +37,10 @@ ENV (all explicit, no silent default selects data — E-0826-D):
   EXPORT_ARM BUNDLE_OUT BUNDLE_FEA BUNDLE_META BUNDLE_BASE EXPORT_PANEL BUNDLE_CACHE FUND_AUG LIVE_PINS JUDGE_HC V4CHAIN_DIR
   SIGNAL_RECEIPT EXPORT_GATE_OUT  [require mode: REQUIRE_OUT REQUIRE_RECOMPUTE_GUARDS]
   BUNDLE_GUARD_LO / BUNDLE_GUARD_HI / JUDGE_N_FROZEN, if present, must EQUAL the contract values or the gate refuses (exit 2).
-  V4_MONTH  the month whose approved export baseline E2b checks against (TRN-15, 2026-09-21). Its ABSENCE is a named FAIL of
-            E2b with a receipt, not a bare refusal — an unapproved or undeclared month must leave evidence of why it stopped.
-
-★ TRN-15 (2026-09-21): E2b's approved pins / baseline pair is resolved PER MONTH from
-  month_contract_rulings.TRN-15_export_baseline_per_month.approved_export_baselines[V4_MONTH], via v4e_export_baseline_lib.
-  RUNBOOK §0★ step 0 re-copies LIVE_PINS and re-establishes BUNDLE_BASE every month, so the single frozen pair in
-  gates.BUNDLE_export.approved_baseline fails E2b by construction from October on. The gate is NOT relaxed — it still demands a
-  byte-identical match against an explicitly approved sha, it never accepts "whatever is on disk", and it never falls back to
-  another month's approval (2026-10 is deliberately null until the October files exist and are approved by their own user word).
 """
 import os, sys, json, time, hashlib, calendar
 import numpy as np
 from scipy.stats import rankdata, spearmanr
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import v4e_export_baseline_lib as xbl          # TRN-15: the PER-MONTH approved export baseline (shared by every export-gate variant)
 
 GATE = "BUNDLE_export"
 REQ = ["EXPORT_ARM", "BUNDLE_OUT", "BUNDLE_FEA", "BUNDLE_META", "BUNDLE_BASE", "EXPORT_PANEL",
@@ -72,15 +61,6 @@ AB_REQUIRED = ["device_sha256", "costb_json_sha256", "costb_tiers", "umask_npz_s
 TH_REQUIRED = ["guard_band", "n_frozen", "frozen_window_utc", "ic_tol", "sharpe_claim_tol", "identity_tol", "w_gross_tol", "turnover_tol",
                "netlong_tol", "gross_max", "gross_ratio_band", "gross_ratio_median_band"]
 SEATS = (("dyn", "42"), ("dyn", "2027"), ("fix", "42"), ("fix", "2027"))
-# ★ fp2dyn VARIANT (2026-09-17, user word「线上的策略都是动态席位, 回测应该也是动态的」; PROPOSED5): every book is still LOADED, HASHED and shape-checked
-#   (E5/E6/E7 unchanged, the 28-name input floor unchanged), but the BOOK-CONTENT verdicts E8/E9 fold only the IN-SERVICE seat(s) into the gate
-#   verdict — NARROWED after independent review round 4: for a seat outside CHECK_SEATS only the two invariants the tradable regime breaks are
-#   informational (the K6 gross CEILING gt ≤ gross_max; the E9 gross-ratio band) — K6 positivity (frozen-window gross > 0, gross ≥ 0) stays hard. Its ACCOUNTING IDENTITIES (K1 Σ|W|=gross, K2 turnover, K3 netlong, K4 net identity,
-#   K7 cost bounds) and the E9 BASELINE IDENTITY (baseline book sha approved, axis covers the frozen window) still fold into the verdict: a
-#   diagnostic book must still be an honest book. This is an after-the-fact change of the gate's acceptance domain (old file: v2 FAIL, variant
-#   PASS), not a mere identity correction. The fix seat is a September control (E-0902-D: the replay's dynamic
-#   seat then did not track live); in the v4 chain the replay's dynamic seat tracks the live seat (0.32–0.37 vs 0.36–0.38, AMENDMENT 11).
-CHECK_SEATS = {"dyn"}
 
 
 def T(*a): return calendar.timegm(a + (0,) * (6 - len(a)))
@@ -148,8 +128,6 @@ class Ctx:
                   "contract_sha256": sha256_file(self.gc.CONTRACT_PATH), "contract_schema": self.contract.get("contract_schema"),
                   "approved_baseline_used": {k: self.ab[k] for k in ("device_sha256", "costb_json_sha256", "umask_npz_sha256", "live_pins_sha256", "bundle_base_sha256", "baseline_arm")},
                   "thresholds_used": self.th, "checks": {}}
-        self.month = (os.environ.get("V4_MONTH") or "").strip()      # TRN-15: which month's approved baseline applies. ABSENT is a NAMED FAIL
-        self.R["month"] = self.month                                 # in E2b, never a bare die — October must get a receipt that says why
         self.fails = []; self.inputs = {}; self.OUT = E["BUNDLE_OUT"]
         self.cfg = {}; self.femat = None; self.B = {}; self.BASE = {}; self.MT = None; self.PRED = None
 
@@ -200,20 +178,10 @@ def E2_config(cx):
     cx.chk("E2_config", (not pdiff) and cfg.get("keep_names") == pins["keep_names"] and cfg.get("symbols_live") == pins["symbols_live"],
            {"param_diffs": pdiff, "keep_names_equal": cfg.get("keep_names") == pins["keep_names"],
             "symbols_live_equal": cfg.get("symbols_live") == pins["symbols_live"], "n_live": len(pins["symbols_live"])})
-    # (d) the reference files the caller names must BE the approved ones (reviewer: BUNDLE_BASE was the caller's choice).
-    #     ★ TRN-15 (2026-09-21): the approved pair is resolved PER MONTH. The pins are re-copied and the baseline json
-    #     re-established every month (RUNBOOK §0★ step 0), so a single frozen pair fails every month after the one it was
-    #     frozen for. The gate is NOT relaxed: it still demands a byte-identical match against an EXPLICITLY approved sha,
-    #     and there is no fallback to another month's approval (v4e_export_baseline_lib docstring).
+    # (d) the reference files the caller names must BE the approved ones (reviewer: BUNDLE_BASE was the caller's choice)
     sp_ = sha256_file(E["LIVE_PINS"]); sb = sha256_file(E["BUNDLE_BASE"]) if os.path.exists(E["BUNDLE_BASE"]) else None
-    mb, why, det = xbl.approved_export_baseline(cx.contract, cx.month)
-    measured = {"month": cx.month, "live_pins_sha256": sp_, "bundle_base_sha256": sb}
-    if mb is None:
-        return cx.chk("E2b_pins_identity", False, {"refused": why, **det, **measured,
-                      "frozen_global_baseline_not_used": {"live_pins_sha256": cx.ab["live_pins_sha256"], "bundle_base_sha256": cx.ab["bundle_base_sha256"]}})
-    return cx.chk("E2b_pins_identity", sp_ == mb["live_pins_sha256"] and sb == mb["bundle_base_sha256"],
-                  {**measured, "approved": mb["live_pins_sha256"], "approved_base": mb["bundle_base_sha256"],
-                   "approval_source": mb["source"], "approval_utc": mb["approved_utc"], "declared_paths": mb["declared_paths"]})
+    return cx.chk("E2b_pins_identity", sp_ == cx.ab["live_pins_sha256"] and sb == cx.ab["bundle_base_sha256"],
+                  {"live_pins_sha256": sp_, "approved": cx.ab["live_pins_sha256"], "bundle_base_sha256": sb, "approved_base": cx.ab["bundle_base_sha256"]})
 
 
 def sp(a, b):
@@ -463,10 +431,7 @@ def E8_books_content(cx):
         d["K7_cost_pos_frozen"] = bool(fm.any() and (cost[fm] > 0).all() and (cex[fm] > 0).all())
         d["K7_cost_le_turnover_x_ratemax_violations"] = int((cost > to * rate_max * (1 + 1e-6) + 1e-9).sum()); d["K7_rate_max"] = rate_max
         d["K7_ok"] = d["K7_cost_pos_frozen"] and d["K7_cost_le_turnover_x_ratemax_violations"] == 0
-        d["ok"] = all(d[k] for k in ("K1_ok", "K2_ok", "K3_ok", "K4_ok", "K6_ok", "K7_ok")); d["informational_seat"] = nm.split("_")[1] not in CHECK_SEATS
-        d["K6_positivity_ok"] = bool(fm.any() and (gt[fm] > 0).all() and (gt >= 0).all()); d["K6_ceiling_ok"] = bool((gt <= th["gross_max"]).all())   # rev3 (review round 5): K6 split
-        d["identities_ok"] = all(d[k] for k in ("K1_ok", "K2_ok", "K3_ok", "K4_ok", "K7_ok", "K6_positivity_ok"))                                 # only the CEILING is exempt for a non-checked seat
-        ok_all &= (d["ok"] if not d["informational_seat"] else d["identities_ok"]); per[nm] = d   # fp2dyn (narrowed): non-checked seat — identities still fold, only K6 is informational
+        d["ok"] = all(d[k] for k in ("K1_ok", "K2_ok", "K3_ok", "K4_ok", "K6_ok", "K7_ok")); ok_all &= d["ok"]; per[nm] = d
     return cx.chk("E8_books_content", ok_all, per)
 
 
@@ -479,7 +444,7 @@ def E9_gross_band_vs_baseline(cx):
         d["baseline_sha_ok"] = d["baseline_sha256"] == ab["baseline_books_sha256"][f"{seat}_s{s}"]
         b = cx.B.get(kn); base = cx.BASE.get(bn)
         if not (b and base and b["rec"] is not None and base["rec"] is not None and d["baseline_sha_ok"]):
-            d["ok"] = False; d["informational_seat"] = seat not in CHECK_SEATS; per[kn] = d; ok_all = False; continue   # fp2dyn (narrowed): baseline identity / missing book folds for EVERY seat
+            d["ok"] = False; per[kn] = d; ok_all = False; continue
         R, RB = b["rec"], base["rec"]; ts = np.round(R[:, 0]).astype(np.int64); tsb = np.round(RB[:, 0]).astype(np.int64)
         gb = dict(zip(tsb.tolist(), RB[:, C["gross_total"]].tolist())); fm = (ts >= F0) & (ts < F1)
         bt = np.array([gb.get(int(t), np.nan) for t in ts[fm]]); ga = R[fm, C["gross_total"]]
@@ -490,9 +455,7 @@ def E9_gross_band_vs_baseline(cx):
             d["n_anchors_outside_band"] = int(((ratio < lo) | (ratio > hi)).sum())
             d["band_ok"] = d["n_anchors_outside_band"] == 0 and mlo <= d["ratio_median"] <= mhi
         else: d["band_ok"] = False
-        d["ok"] = d["baseline_sha_ok"] and d["baseline_axis_covers_frozen"] and d["band_ok"]; d["informational_seat"] = seat not in CHECK_SEATS
-        d["identity_ok"] = d["baseline_sha_ok"] and d["baseline_axis_covers_frozen"]
-        ok_all &= (d["ok"] if not d["informational_seat"] else d["identity_ok"]); per[kn] = d   # fp2dyn (narrowed): non-checked seat — identity folds, only the band is informational
+        d["ok"] = d["baseline_sha_ok"] and d["baseline_axis_covers_frozen"] and d["band_ok"]; ok_all &= d["ok"]; per[kn] = d
     return cx.chk("E9_gross_band_vs_baseline", ok_all, {"band": [lo, hi], "median_band": [mlo, mhi], "baseline_arm": ab["baseline_arm"], **per})
 
 
@@ -512,10 +475,7 @@ def run_all(cx, guards=True):
     for fn in (E5_books_shape, E6_books_config, E7_signal_receipt, E8_books_content, E9_gross_band_vs_baseline): safe(cx, fn)
     E = cx.E
     cx.inputs.update({"wide_fea_v4": E["BUNDLE_FEA"], "wide_fea_v4_meta": E["BUNDLE_META"], "bundle_base": E["BUNDLE_BASE"],
-                      "export_panel": E["EXPORT_PANEL"], "bundle_cache": E["BUNDLE_CACHE"], "fund_aug": E["FUND_AUG"], "live_pins": E["LIVE_PINS"],
-                      # ★ R14-C2 shape (a dependency that is not RECORDED cannot be re-hashed): E2b's approved pair now comes from a
-                      #   helper module, so the helper is a registered input — swapping it leaves the gate's own sha untouched.
-                      "export_baseline_lib": os.path.abspath(xbl.__file__)})
+                      "export_panel": E["EXPORT_PANEL"], "bundle_cache": E["BUNDLE_CACHE"], "fund_aug": E["FUND_AUG"], "live_pins": E["LIVE_PINS"]})
 
 
 # ----------------------------------------------------------------------------------------------------------------- modes
@@ -523,7 +483,7 @@ def gate_main():
     E = read_env(); cx = Ctx(E); run_all(cx, guards=True)
     R = cx.R; R["PASS"] = bool(not cx.fails); R["failed_checks"] = cx.fails
     R["registered_inputs"] = sorted(cx.inputs); R["registered_floor_v4_gate_common"] = cx.gc.REQUIRED_INPUTS.get(GATE)
-    R["built_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()); R["gate_version"] = "v2 (r20 gate closure 2026-09-12) + fp2dyn variant rev3 (2026-09-17: for seats outside CHECK_SEATS only the K6 gross CEILING and the E9 band are informational; K6 positivity, K1–K4/K7 identities and baseline identity fold)"; R["gate_version"] += " + TRN-15 per-month export baseline (2026-09-21)"; R["seats_checked"] = sorted(CHECK_SEATS); R["seats_informational"] = sorted({s for s, _ in SEATS} - CHECK_SEATS)
+    R["built_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()); R["gate_version"] = "v2 (r20 gate closure 2026-09-12)"
     print(("EXPORT_GATE_V2 PASS " if R["PASS"] else "EXPORT_GATE_V2 FAIL ") + str(cx.fails), flush=True)
     cx.gc.finalize(GATE, R, E["EXPORT_GATE_OUT"], cx.inputs)
 

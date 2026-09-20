@@ -333,3 +333,69 @@ w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025
 **电池**: `tests_member_liveness.py` **53/53**(48 → 53; 原来断言「回退后 PASS」的两格已按新合同重写, 并加入复审的两个探针: 删掉无关名字的末端 bar **不得**翻转判词; 事后改写 MANIFEST **必须**被 `require` 拒绝)· `tests_chain_binding_r13.py` 11/11 · `tests_chain_wiring_r12.py` 17/17 · `tests_chain_month_contract_r12c5.py` 24/24 · `tests_fp2_decision.py` · `tests_run_v4_arms.py` · `tests_pipeline_gates.py` **490/490**。合同 `9330e44c` → `624836f0`, 前身 `ELIGIBILITY_CONTRACT.r6_9330e44c.json` 保留。
 
 **③ 十月仍未注册(不在本节修复范围, 按复审要求明写)**: 合同里 2026-10 的 `approved_controls_refs` **仍为 null**, `fp2_decision.py` 的 `PROFILE_MONTH` **仍是 2026-09**。因此十月的正跑条件**仍不成立** —— 目前只做到「缺项时能正确拒跑」, 这不是「可以正跑」。十月还缺: 实际 masked builds、mask/umask 与 controls refs 的批准值、月专属出口基线与决策剖面、有效的 roll/依赖收据, 以及新根的端到端正跑。
+
+### §0★ 修订 11(2026-09-21; 离线重训链补洞: TRN-15 按月参数化**已落地** + 十月链**首次**干演练)
+
+**为什么有这一节**: 修订 6 第 2 条把 TRN-15 记为「方向已定, 待做」, 修订 8 步 2 把它记为「机制已入合同」—— 但**代码一直没改**: `v4e_gate_export_v2.py` 的 E2b 仍然只比对 `gates.BUNDLE_export.approved_baseline` 那一对冻结 sha。机制写在合同里而门不执行它, 与没有这条机制不可区分。本节把它落地, 并记下**第一次真的把十月链走一遍**的结果(E-0920-G:「一条从未被执行过的路径, 与一条不存在的路径不可区分」)。
+
+#### ① TRN-15 落地(按月参数化, **门没有放宽**)
+
+- 新装置 `v4e_export_baseline_lib.py`(实测 `eeb68b94c00c6b646e132a5ee9692a6ada27c68047e03f636f2698627bb39c20`): 只回答一个问题 —— 「这个月被批准的 pins/baseline sha 是哪一对」。它**不哈希任何文件、不看任何路径**, 所以 E2b 仍然是**对一个被显式批准的常量**做逐字节比对。
+- 四个具名拒绝(每个都进收据, 没有一个是静默放行): `contract_block_absent`(旧形状合同 —— **全局 `approved_baseline` 不作回退**, 回退等于把一个月的批准复用给之后每个月)· `month_not_declared`(E-0826-D)· `month_not_approved`(该月无条目**或**条目为 null; **2026-10 故意留 null**)· `entry_malformed_*`。
+- 两个门变体 **都**改了(缺陷是类形状的, 修法不能是实例形状的): `v4e_gate_export_v2.py` **36c68e96c8a953a5640a3a82524d760135eb1b0b04fba7f9776c30c87efbd90b**, `v4e_gate_export_fp2dyn.py` **74e13a16c663c2b19a690ab7f53699d3773da5c686e74b23117aef6e0effabd8**。前身按惯例归档为 `v4e_gate_export_v2.r1_d63f4ec3.py` / `v4e_gate_export_fp2dyn.r1_16e9cc32.py`, 并在合同 `superseded_source_sha256` 里点名。
+- helper **本身是门的注册输入**(`export_baseline_lib`)与 preflight 的装置文件 —— 否则换掉 helper 而门自身 sha 不变, `require` 无从重哈希(R14-C2 那一族)。
+- 驱动 `chain_v4_monthly.sh`: `$GX` 传 `V4_MONTH`; DEV_FILES 收 helper; **preflight 新增同形检查** —— 一个日历月若无批准条目, 在**第一分钟**按名失败, 而不是等整条链(含 ~5.5 h GPU)跑完后才被 E2b 拒。非日历月标签(测试夹具 `2026-99`)沿用 R12-C5 的作用域: **记录**而不失败; **⚠ 这条是继承下来的开口**(修订 9 已列): 非日历月的 `V4_MONTH` 在 preflight 仍然只记录不拒绝。
+- **合同**(`ELIGIBILITY_CONTRACT.json` → 实测 `4309e1b6c8efbddc1e3c2247eda67bc8d56b1f2835d82ee1b6ec48ffdc4a67f7`): `month_contract_rulings.TRN-15_export_baseline_per_month.approved_export_baselines` = `{"2026-09": {…}, "2026-10": null}`。**2026-09 的两个值逐字从冻结对照抄来, 没有重测** —— 九月判词在参数化前后必须逐位相同。
+- **明写**: 09-18 那条裁定的 `not_changed` 字段里写着「…the gate source」。**那一行现在是错的** —— 这条机制不改门源码就实现不了。两个新 sha 已按本仓既有做法(R12-C5 / R14-C1 在同一句用户字下的做法)写进 `approved_source_sha256`, 旧的两个转入 `superseded`。若这被认为超出 09-18 用户字的射程, **回滚动作 = 把 `approved_source_sha256` 改回旧对**(两个归档件仍在), 十月随即回到「按构造必败 E2b」的状态。
+- **自检**: `tests_export_baseline_per_month.py` 判词整行 **`ALL PASS (32 checks)`**, 退出码 **0**。结构: [A] 先断言**基线为绿**(九月月份 + 与批准对相等的文件 ⇒ E2b PASS), 才做后面的翻红探针(基线已红时的红能力检查是空的); [B] **归档的旧门**在同一批夹具上, 九月**绿**、十月**红** —— 「按构造必败」是**实测**出来的, 不是断言的; [C] 新形状在十月被批准后**绿**, null / 缺条目 / 缺月份 / 畸形 sha / 半批准各自按**具名**理由红; [D] 批准固定而换掉盘上文件 ⇒ PASS→FAIL(「盘上是什么就用什么」被排除); [E] **类形状**: 变体人口用 glob 枚举(不是手写名单)且 `live + archived == glob 全集`, 并且**变异共享 helper 必须让每个变体的判词翻红** —— 明天新加一个内联自己一份查表的变体, 会在这里被点名; [F] 对**已提交的合同**核: 2026-09 条目 == 冻结对(**比集合不比计数**)、2026-10 未批准、批准 sha 集合 == 盘上变体 sha 集合、归档件 sha ⊆ superseded 且与 approved 不相交、helper 已记录。
+
+#### ② 十月链干演练(2026-09-21, pod2 `/workspace/rehearse_2026-10_0921/`; 判据先于数字: `docs/PREREG_october_chain_rehearsal_2026-09-21.md`)
+
+装置逐文件与 git 单源相等(`chain_v4_monthly.sh` / 门 / helper / 合同 四件现场 `sha256sum` 对上)。月合同 = **模板逐键填、每个 `TODO_` 换成十月将要产出的真实路径**。
+
+**阶段人口是从驱动实测枚举的, 不是手抄**: `grep -oE '^if want [a-z0-9_]+'` ⇒ **17** 个阶段。
+
+| 判词 | 整行 + 退出码 |
+|---|---|
+| 负控(独立脚本) | `DRYRUN_PASS driver_rc=3 stopped_at=FAIL_preflight_rc_3 training_launched=0 gpu=0 %, 2 MiB receipt=…/dryrun_receipt.json`, **exit 0** |
+| 十月本月负控(月 env, `roll_paths required: 1`) | `PREFLIGHT FAIL device_files=32 inputs=12 approvals=4/4 fails=30` → `FAIL_preflight_rc_3`, **exit 3** |
+| 逐阶段(17/17) | 全部 `FAIL_<stage>_prereq_preflight`, **rc 3** —— **没有任何阶段能绕过 preflight 被单独演练**(fail-closed, 符合设计), 因而**整条链今天无法端到端执行** |
+| decision 剖面探针 | `DECISION REFUSED_PROFILE_MONTH G1=None G2=None G3=None unavailable=0 profile=formal`, **exit 3**, 收据 `PASS=false`, `profile_month.covers=2026-09 / run_month=2026-10` —— 修订 9 ③ 的声称**经实跑证实** |
+
+**演练判词(按预注册 §6): REHEARSED** —— 17 个阶段各有一条记录, 且 **1** 个阶段(preflight)真被调度并产出收据(`preflight.json` + `ROLL_PATHS_preflight_live.json` + 日志)。**不是 VACUOUS**。**REHEARSED ≠ 十月可以跑。**
+
+**闭合人口与平衡**: `n_dispatched=1`(preflight)+ `n_blocked_at_prereq=16` + `n_not_reached=0` = **17**。「未测量」的具名子集 = 那 16 个阶段的**内部行为**(它们一步都没进), 这个子集**不进任何通过率**。
+
+##### 演练把 Q-DATA 与 Q-STRUCT 分开了(这是本次最有用的一格)
+
+R1(真十月路径)preflight **30** 条失败。再做一次**沙箱**运行: 把每个缺失输入都造成 stub(34 个)后重跑 ⇒ 只剩 **5** 条。也就是说 **30 − 5 = 25 条靠「把十月的东西建出来」就会消失**, 而**剩下 5 条建什么都消不掉**:
+
+1. `roll receipt missing: …/v4_gates/ROLL_PATHS.json`
+2. `live roll gate rerun is not PASS: rc=3 VERDICT='FAIL' failed=['P0_rolled_keys_present','P3_rolled_under_root','P4_previous_untouched']`
+3. `no approved UMASK_NPZ for month 2026-10 …(R12-C5)`
+4. `no approved CONTROLS_REF for month 2026-10 …(R12-C5)`
+5. `no approved export baseline for month 2026-10 (month_not_approved) …(TRN-15)`
+
+⇒ **十月正跑的前置 = 三次「用户下字」(umask / controls refs / pins+baseline)+ 一次十月自己的 roll 记录, 外加十月自己的决策剖面预注册。** 这五项与「数据建没建好」正交。
+
+##### 演练发现的、**不在**预注册 §5 已知五项里的问题(= 真发现)
+
+1. **`PREV_MONTH_ENV` 在模板里是一个写死的、pod2 上不存在的路径**: `PREV_MONTH_ENV=/workspace/review_scratch/v4_month_2026-09.env`(该键**没有** `TODO_` 前缀, 所以「把 TODO_ 换成真路径」这条指令**不会**让操作者去看它)。pod2 实测: `find /workspace -maxdepth 3 -name 'v4_month_*.env'` 的结果里**没有**它; 九月合同实际在 `/workspace/fp2_2026-09/devices_v4chain/v4_month_2026-09.env`。`PREV_SHA_JSON` 同理(且它本来就该由 `mk_prev_sha_record.py` 在九月链收官后生成 —— **没有生成过**)。**修法方向(未做, 待裁)**: 这两键应带 `TODO_` 前缀, 或由 preflight 对「post-2026-09 且该路径不存在」单独点名为「上月合同未立档」。
+2. **驱动要求本月根 `R` 预先存在, 步骤单没有这一步**: 首次运行直接 `FAIL_month_root_missing_/workspace/m2026-10` rc 3, 连 preflight 都不到、**不产出任何收据**。§0★ 步 0 写的是「pod 环境 + 装置同步 + 本月钉子」, 没写 `mkdir -p $R`。
+3. **`np_export` 阶段在任何步骤单里都不存在**: 驱动实测 17 个阶段, 而修订 3 的注释写 11 个(`preflight → … → export`)、修订 8 补 5 个, 合计 16。`np_export`(位于 refit 与 arms 之间)**没有被任何一节文档提到**。
+4. **修订 8 的「顺序 `controls → a0rerun → member_rule → per_year → decision`」与驱动实际顺序不符**: 实测源码顺序是 `preflight cache data **controls** gates king legs mwf refit np_export arms **a0rerun** judge export member_rule per_year decision` —— `controls` 排在**第 4 位(gates 之前)**, `a0rerun` 排在 **arms 与 judge 之间**, 两者都不是「接在 export 之后的五连」。
+5. **模板里一句注释已经过时**: `UMASK_NPZ` 那行仍写「preflight 把它的 sha 绑到 `gates.BUNDLE_export.approved_baseline.umask_npz_sha256`」, 而 R12-C5 早已把 umask 改成**按月**批准。(修订 9 ② 的正文改了, 模板注释没改。)
+
+##### 演练过程中我自己犯的一个错(先写下来)
+
+做「所有输入都存在」的沙箱时, 我的造 stub 脚本对**绝对路径**一视同仁, 于是在 `/workspace/` 与 **`/workspace/review_scratch/`(九月根)** 下建了 12 个 5 字节 `STUB` 文件 —— 违反了我自己预注册 §4 的「不写九月任何目录」。**没有覆盖任何已有文件**(脚本对已存在的路径 `continue`), 12 个全部删除并**按缺席复核**(`[ -e ] && echo STILL PRESENT || echo absent`, 6/6 absent); 九月根文件数 377 不变, 该根下唯一的 mtime 变化是两个**目录**自身(建/删导致)。危险点在于其中两个落在 `PREV_MONTH_ENV` / `PREV_SHA_JSON` 的**期望路径**上: 若留着, 十月 preflight 会把 5 字节 stub 当成「可读的上月合同」放行。
+
+#### ③ 十月执行前仍需的用户下字(在修订 8 步 2 的基础上更新)
+
+| # | 对象 | 现状 | 卡在哪一步 |
+|---|---|---|---|
+| 1 | 十月 `LIVE_PINS` / `BUNDLE_BASE` 的 sha(TRN-15 按月批准) | **机制已落地; 实物不存在 ⇒ 合同 `2026-10` = null** | preflight(本修订新增)+ 导出阶段 E2b |
+| 2 | 十月 `UMASK_NPZ` 的 sha | 合同无条目 | preflight |
+| 3 | 十月 `CONTROLS_REF_*` 三个 sha | 合同 `2026-10` = null | preflight |
+| 4 | 十月决策剖面(窗口 / 锚数 / δ / 绑定门身份)预注册 | `fp2_decision.py` `PROFILE_MONTH` 仍是 `2026-09` | decision 阶段(**已实跑证实** rc 3) |
+| 5 | 两个月度数据门 sha(修订 6 声明块) | 已入合同 | — |

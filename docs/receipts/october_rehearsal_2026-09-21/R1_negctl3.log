@@ -1,0 +1,18 @@
+MONTH_ENV_OK /workspace/rehearse_2026-10_0921/v4_month_2026-10R1.env V4_MONTH=2026-10 R=/workspace/rehearse_2026-10_0921/R1 D=/workspace/rehearse_2026-10_0921/D MONTHS_ALL=202501,202502,202503,202504,202505,202506,202507,202508,202509,202510,202511,202512,202601,202602,202603,202604,202605,202606,202607,202608,202609 SEEDS=42,2027 BUNDLE_GENERATION=v4_2026-10
+[2026-09-20T16:36:22Z] chain_v4_monthly start month=2026-10 env=/workspace/rehearse_2026-10_0921/v4_month_2026-10R1.env sha=b802464b8be0672d6f33e599ec2f185b822a4ab0ed0cbe12037e62e6ab7cfe4d device=/workspace/rehearse_2026-10_0921/D root=/workspace/rehearse_2026-10_0921/R1 stages=all dryrun=1
+[2026-09-20T16:36:22Z] preflight: device files, gate approval, inputs (roll_paths required: 1)
+PREFLIGHT FAIL device_files=32 inputs=12 approvals=4/4 fails=30
+  - roll receipt missing: /workspace/rehearse_2026-10_0921/R1/v4_gates/ROLL_PATHS.json (every month after 2026-09 must pass v4_gate_roll_paths.py first)
+  - prev_month_env=/workspace/review_scratch/v4_month_2026-09.env is not a readable file
+  - prev_sha_json=/workspace/review_scratch/v4_gates/PREV_SHA_2026-09.json is not a readable file
+  - live roll gate rerun is not PASS: rc=3 VERDICT='FAIL' failed=None unevaluated=None
+  - input missing: CACHE=/workspace/data/dlnative_5m_wide829_f16_holefix2_2026-10.npz
+  - input missing: PANEL_SPLICE=/workspace/data/wide_panel_4h_v3splice_2026-10.npz
+  - input missing: PANEL_KING=/workspace/data/wide_panel_4h_v2ext_2026-10.npz
+  - input missing: RAW_PATCH=/workspace/rehearse_2026-10_0921/R1/raw_patch.npz
+  - input missing: HOLE_CELLS=/workspace/rehearse_2026-10_0921/R1/holefix2_cells_2026-10.npz
+  - input missing: BUNDLE_BASE=/workspace/slow_scorer_v4base_2026-10.json
+  - input missing: EXPORT_PANEL=/workspace/data/wide_panel_4h_v3splice_2026-10.npz
+  - input missing: EMA_STATE_JSON=/workspace/fund_state_canoncont_2026-10.json
+[2026-09-20T16:36:23Z] preflight rc=3 FAIL 30 fails ['roll receipt missing: /workspace/rehearse_2026-10_0921/R1/v4_gates/ROLL_PATHS.json (every month after 2026-09 must pass v4_gate_roll_paths.py first)', 'prev_month_env=/workspace/review_scratch/v4_month_2026-09.env is not a readable file', 'prev_sha_json=/workspace/review_scratch/v4_gates/PREV_SHA_2026-09.json is not a readable file']
+FAIL_preflight_rc_3

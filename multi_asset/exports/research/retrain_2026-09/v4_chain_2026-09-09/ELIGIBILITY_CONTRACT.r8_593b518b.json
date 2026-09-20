@@ -115,8 +115,8 @@
   "BUNDLE_export": {
    "source": "v4e_gate_export_v2.py",
    "approved_source_sha256": [
-    "36c68e96c8a953a5640a3a82524d760135eb1b0b04fba7f9776c30c87efbd90b",
-    "74e13a16c663c2b19a690ab7f53699d3773da5c686e74b23117aef6e0effabd8"
+    "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+    "16e9cc32369daf634b03d05a5e1294cbae4ab2a8dc3f91a3e761100c0f7b453c"
    ],
    "approved_baseline": {
     "device_sha256": "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d",
@@ -238,14 +238,13 @@
      },
      "a0_rerun_receipt_sha256": "a3feff928b5ed7a1ee1c61485914569f428629f704b55d94183d84a8d5161793",
      "review": "independent researcher review requested (post-hoc, same protocol as PROPOSED3)"
-    },
-    "_TRN15_note": "live_pins_sha256 / bundle_base_sha256 below remain the 2026-09 values and are STILL used by E0's shape checks and recorded in the receipt, but E2b no longer compares against them: it uses month_contract_rulings.TRN-15_export_baseline_per_month.approved_export_baselines[V4_MONTH]. Carried here so the September verdict is bit-identical before and after the parameterisation."
+    }
    },
    "note": "r20 gate closure 2026-09-12. Replaces the 2026-09-11 INFRA2 proposal (v4e_gate_export.py sha f814c728…, WITHDRAWN: the independent reviewer showed it not falsifiable — wrong-gate PASS accepted, failing signal gate accepted, different cost/knobs accepted, zero W / non-finite pnl accepted, shipped bundle unbound). v2 keeps E1–E4 verbatim and adds E0 contract block, E2b pin identity, E5 finite+baseline symbols, E6 all 27 knobs + cost/mask/king/FEMAT by file, E7 bound signal receipt with PASS re-derived, E8 exact device identities on the arrays, E9 gross band vs the approved A0 books; `require` mode re-verifies the full floor and re-runs the content gates. Approving this sha approves those checks, the approved_baseline shas and the thresholds AS the export standard.",
    "approved_variants": {
     "v4e_gate_export_fp2dyn.py": {
-     "sha256": "74e13a16c663c2b19a690ab7f53699d3773da5c686e74b23117aef6e0effabd8",
-     "base": "v4e_gate_export_v2.py 36c68e96 (TRN-15 per-month export baseline, 2026-09-21); the pre-TRN-15 pair d63f4ec3 / 16e9cc32 is superseded and archived",
+     "sha256": "16e9cc32369daf634b03d05a5e1294cbae4ab2a8dc3f91a3e761100c0f7b453c",
+     "base": "v4e_gate_export_v2.py d63f4ec3 (unchanged, still approved)",
      "diff_receipt": "docs/fixprogram_2026-09-13/FP2_receipts/diff_v4e_gate_export_v2_to_fp2dyn.patch (rev2, 58 lines)",
      "scope": {
       "V4_MONTH": "2026-09",
@@ -264,17 +263,8 @@
      ],
      "revised_utc": "2026-09-17T14:38:54Z",
      "nature": "AFTER-THE-FACT CHANGE OF THE GATE'S ACCEPTANCE DOMAIN (the same old books: v2 FAIL, variant PASS) — not a mere identity correction; the v2 FAIL receipts are kept (BUNDLE_export_v2_A1_FAIL_E6E8E9, _final); approval requested post-hoc",
-     "limitation": "seat-level agreement of the replay dynamic seat with live (2026 mean 0.36–0.37 vs live 0.36–0.38) is NOT per-anchor production parity; the fix-seat control's former role (E-0902-D) is redefined, not certified away",
-     "trn15_note": "the variant carries the SAME per-month E2b as v2 (both import v4e_export_baseline_lib; tests_export_baseline_per_month.py [E1] proves each variant really consults the shared helper by flipping its verdict when the helper is mutated)"
+     "limitation": "seat-level agreement of the replay dynamic seat with live (2026 mean 0.36–0.37 vs live 0.36–0.38) is NOT per-anchor production parity; the fix-seat control's former role (E-0902-D) is redefined, not certified away"
     }
-   },
-   "superseded_source_sha256": {
-    "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e": "v4e_gate_export_v2.py before TRN-15 per-month parameterisation (2026-09-21); E2b compared LIVE_PINS/BUNDLE_BASE against the single frozen approved_baseline pair, which fails by construction for every month after 2026-09. Archived beside the gate as v4e_gate_export_v2.r1_d63f4ec3.py",
-    "16e9cc32369daf634b03d05a5e1294cbae4ab2a8dc3f91a3e761100c0f7b453c": "v4e_gate_export_fp2dyn.py, same defect, same date. Archived as v4e_gate_export_fp2dyn.r1_16e9cc32.py"
-   },
-   "approved_helper_sha256": {
-    "v4e_export_baseline_lib.py": "eeb68b94c00c6b646e132a5ee9692a6ada27c68047e03f636f2698627bb39c20",
-    "why": "E2b resolves the per-month approved pair through this helper, which both approved gate variants import. A helper that is not recorded cannot be re-hashed (R14-C2), so it is ALSO a registered input of the gate ('export_baseline_lib') and a preflight device file."
    }
   },
   "MEMBER_LIVENESS": {
@@ -398,40 +388,7 @@
    "why": "E2b requires LIVE_PINS / BUNDLE_BASE to equal the contract's approved_baseline byte for byte, while RUNBOOK §0★ step 0 requires the pins to be re-copied and the baseline json re-established every month ⇒ October would fail E2b by construction. The September pins cannot be reused (universe Phase A M1 went live 2026-09-04).",
    "mechanism_approved": true,
    "october_shas": "NOT YET — the October pins/baseline do not exist; their shas are approved when the month contract is立档 (a separate, recorded approval under this key)",
-   "not_changed": "thresholds, identities, the 28-input floor, the gate source",
-   "implemented_utc": "2026-09-21",
-   "implementation": {
-    "gate_change": "v4e_gate_export_v2.py + v4e_gate_export_fp2dyn.py check E2b_pins_identity against approved_export_baselines[V4_MONTH] via v4e_export_baseline_lib.approved_export_baseline(); there is NO fallback to gates.BUNDLE_export.approved_baseline.",
-    "driver_change": "chain_v4_monthly.sh passes V4_MONTH into the export gate's env and hashes v4e_export_baseline_lib.py as a device file.",
-    "refusal_names": [
-     "contract_block_absent",
-     "month_not_declared",
-     "month_not_approved",
-     "entry_malformed_*"
-    ],
-    "ruling_line_now_false": "this ruling's not_changed field said '... the gate source'. Implementing the mechanism REQUIRES a gate-source change, so that line was wrong; the two new source shas are approved above and the two old ones are superseded."
-   },
-   "approved_export_baselines": {
-    "2026-09": {
-     "LIVE_PINS": {
-      "sha256": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece",
-      "declared_paths": [
-       "/workspace/live_pins.json (v4_month_2026-09.env)",
-       "$R/live_pins.json (v4_month_2026-09_fp2.env)"
-      ]
-     },
-     "BUNDLE_BASE": {
-      "sha256": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d",
-      "declared_paths": [
-       "/workspace/slow_scorer_v4base.json (both September contracts)"
-      ]
-     },
-     "provenance": "carried VERBATIM from gates.BUNDLE_export.approved_baseline.{live_pins_sha256,bundle_base_sha256}, frozen 2026-09-12 (r20 gate closure). Not re-measured by this edit — the September verdict must be bit-identical before and after the parameterisation, and the frozen pair IS the September approval object. The two contracts declare different PATHS for LIVE_PINS; the binding is the sha, the paths are provenance.",
-     "approved_utc": "2026-09-12 (frozen), recorded per month 2026-09-21"
-    },
-    "2026-10": null
-   },
-   "october_note": "2026-10 is deliberately null: the October live_pins.json and slow_scorer_v4base json DO NOT EXIST yet. E2b therefore FAILS by name ('month_not_approved') with a receipt, until those two files are built and their shas approved here by their own user word. Null is a refusal, never a skipped check."
+   "not_changed": "thresholds, identities, the 28-input floor, the gate source"
   },
   "TRN-16_fea89_trend_builder": {
    "ruling": "October keeps the GLOBAL cumulative-sum builder pod_f8_build_ext.py (pod2 sha f606bffa620004f69ace3704ca19d8f3643b764e918f5eea5a4575b40587f07e). The stable local-trend builder pod_f8_build_stable.py (git 59a8127e…) is NOT used in October: it does not exist on pod2 and would need to be shipped and re-verified first; 2026-09-09 G3 closed it as a caliber correction with no book-level difference (A1s−A0 / A1s−A1 four cells (C) undetected).",

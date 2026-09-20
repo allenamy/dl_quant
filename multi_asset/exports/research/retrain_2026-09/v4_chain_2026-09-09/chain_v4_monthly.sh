@@ -76,7 +76,7 @@ if want preflight; then
   V4_ROLL_REQUIRED=0; [ "$V4_MONTH" \> "2026-09" ] && V4_ROLL_REQUIRED=1
   V4_ROLL_SRC=""; [ "$V4_ROLL_REQUIRED" = 1 ] && { V4_ROLL_SRC=$(gate_sha "$D/v4_gate_roll_paths.py") || die "gate_source_unreadable_v4_gate_roll_paths" 3; }
   stage "preflight: device files, gate approval, inputs (roll_paths required: $V4_ROLL_REQUIRED)"
-  DEV_FILES="chain_lib.sh chain_v4_monthly.sh v4_months.py v4_gate_common.py ELIGIBILITY_CONTRACT.json $GATE_STEP1 $GATE_STEP2 ${GATE_EXPORT:-v4e_gate_export_v2.py} $GL v4_member_mask_liveness.py fp2_gate_lib.py fp2_controls.py fp2_member_rule_check.py fp2_per_year_table.py fp2_decision.py pod_dlw_targets_raw.py pod_fea_ext_clamp.py $BT $BK pod_export_bundle_v4.py pod_legs_v4b.py pod_f10_train_monthly_v4.py launch_mwf_v4b.sh merge_mwf_v4b.py pod_f10_refit_v4.py build_dev_v4.py run_v4_arms.sh run_arm.sh judge_v4.py v4e_gate_export_v2.py gate_signal_parity_v2.py cache_coverage_gate_v2.py"
+  DEV_FILES="chain_lib.sh chain_v4_monthly.sh v4_months.py v4_gate_common.py ELIGIBILITY_CONTRACT.json $GATE_STEP1 $GATE_STEP2 ${GATE_EXPORT:-v4e_gate_export_v2.py} v4e_export_baseline_lib.py $GL v4_member_mask_liveness.py fp2_gate_lib.py fp2_controls.py fp2_member_rule_check.py fp2_per_year_table.py fp2_decision.py pod_dlw_targets_raw.py pod_fea_ext_clamp.py $BT $BK pod_export_bundle_v4.py pod_legs_v4b.py pod_f10_train_monthly_v4.py launch_mwf_v4b.sh merge_mwf_v4b.py pod_f10_refit_v4.py build_dev_v4.py run_v4_arms.sh run_arm.sh judge_v4.py v4e_gate_export_v2.py gate_signal_parity_v2.py cache_coverage_gate_v2.py"
   PF_INPUTS="CACHE PANEL_SPLICE PANEL_KING RAW_PATCH HOLE_CELLS BUNDLE_BASE EXPORT_PANEL EMA_STATE_JSON LIVE_PINS FUND_AUG FUNDING_DIR LEGS_OLD LEGS_PANEL SIGNAL_RECEIPT BUILDER_FEA82 BUILDER_FEA89 BASE_TRAINER PREV_META REF_META"
   [ -z "${MEMBER_MASK:-}" ] || PF_INPUTS="$PF_INPUTS MEMBER_MASK"   # FP2-8: a declared mask is a preflight-hashed input
   [ -z "${UMASK_NPZ:-}" ] || PF_INPUTS="$PF_INPUTS UMASK_NPZ"   # FP3 F: the evaluation umask is a preflight-hashed input, bound to the contract sha below
@@ -216,6 +216,28 @@ if _refs:
             if _k in inputs: inputs[_k]["contract_approved_sha256"] = _want
             if not _want: fails.append(f"{_k} is declared but not approved for month {E['V4_MONTH']} in the contract (R12-C5)")
             elif not _got or _got != _want: fails.append(f"{_k} sha {str(_got)[:12]} != approved {str(_want)[:12]} for month {E['V4_MONTH']} (R12-C5)")
+# ★ TRN-15 (2026-09-21): the export gate's approved LIVE_PINS / BUNDLE_BASE are a PER-MONTH approval object too (the pins are
+#   re-copied and the baseline json re-established EVERY month, RUNBOOK §0★ step 0). E2b enforces it, but E2b runs in the EXPORT
+#   stage — after the whole chain. A month with no approved entry must be told here, in the same place UMASK_NPZ and
+#   CONTROLS_REF_* are told. Preflight does NOT hash the two files (October's do not exist yet): it checks that an APPROVED
+#   OBJECT exists for this month, which is the one thing building artefacts cannot fix.
+sys.path.insert(0, D)
+import v4e_export_baseline_lib as _xbl
+_xc = json.load(open(os.path.join(D, "ELIGIBILITY_CONTRACT.json")))
+_xent, _xwhy, _xdet = _xbl.approved_export_baseline(_xc, E["V4_MONTH"])
+inputs["_export_baseline_approval"] = {"month": E["V4_MONTH"], "approved": _xent is not None, "refused": _xwhy,
+                                       "months_declared": _xdet.get("months_declared"),
+                                       "approved_shas": None if _xent is None else {k: _xent[k] for k in ("live_pins_sha256", "bundle_base_sha256")}}
+inputs["_export_baseline_approval"]["enforced"] = _cal          # same scoping as R12-C5's MEMBER_MASK/UMASK rule: a CALENDAR month is a real
+if _xent is None and _cal:                                      # month and must be approved; a non-calendar fixture label is RECORDED, not failed
+    fails.append(f"no approved export baseline for month {E['V4_MONTH']} ({_xwhy}): LIVE_PINS / BUNDLE_BASE are a per-month approval "
+                 f"object (month_contract_rulings.{_xbl.RULING_KEY}.{_xbl.MAP_KEY}); without it the export stage's E2b refuses "
+                 f"AFTER the whole chain has run (TRN-15)")
+elif _xent is None:
+    inputs["_export_baseline_approval"]["not_enforced_why"] = ("V4_MONTH is not a calendar month (month_label_not_calendar), so this preflight "
+        "check RECORDS the absence instead of failing — the same scoping R12-C5 gave MEMBER_MASK/UMASK. The EXPORT stage's E2b is NOT scoped "
+        "this way: it refuses any month with no approved entry, calendar or not. ★ OPEN (inherited, RUNBOOK §0★ 修订 9): a non-calendar V4_MONTH "
+        "is still only recorded and not refused anywhere in preflight.")
 for gate, src in (("STEP1", E["GATE_STEP1"]), ("STEP2", E["GATE_STEP2"]), ("BUNDLE_export", E.get("GATE_EXPORT") or "v4e_gate_export_v2.py"), ("MEMBER_LIVENESS", E.get("GATE_LIVENESS") or "v4_gate_member_liveness.py")):
     p = os.path.join(D, src)
     if not os.path.isfile(p): approval[gate] = {"source": src, "ok": False, "why": "source missing"}; continue
@@ -569,7 +591,7 @@ if want export; then
   require_gate "$R/v4_gates/member_liveness_export.json" recorded_extras=1 gate=MEMBER_LIVENESS self_sha=$GL_SRC cache=$CACHE hole_cells=$HOLE_CELLS wide_fea_v4_meta=$KING_META dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz bundle_config=$BUNDLE_OUT/config.json
   [ -f "$BUNDLE_OUT/MANIFEST.json" ] || stage "export liveness: bundle has no MANIFEST.json (nothing to bind for R14-C2)"
   [ $rcl -eq 0 ] || die "export_liveness_rc_$rcl" 3
-  GX="EXPORT_ARM=$EXPORT_ARM BUNDLE_OUT=$BUNDLE_OUT BUNDLE_FEA=$KING_FEA BUNDLE_META=$KING_META BUNDLE_BASE=$BUNDLE_BASE EXPORT_PANEL=$EXPORT_PANEL BUNDLE_CACHE=$CACHE FUND_AUG=$FUND_AUG LIVE_PINS=$LIVE_PINS JUDGE_HC=$HC V4CHAIN_DIR=$D SIGNAL_RECEIPT=$SIGNAL_RECEIPT"
+  GX="V4_MONTH=$V4_MONTH EXPORT_ARM=$EXPORT_ARM BUNDLE_OUT=$BUNDLE_OUT BUNDLE_FEA=$KING_FEA BUNDLE_META=$KING_META BUNDLE_BASE=$BUNDLE_BASE EXPORT_PANEL=$EXPORT_PANEL BUNDLE_CACHE=$CACHE FUND_AUG=$FUND_AUG LIVE_PINS=$LIVE_PINS JUDGE_HC=$HC V4CHAIN_DIR=$D SIGNAL_RECEIPT=$SIGNAL_RECEIPT"
   REC=$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM}.json
   env $GX EXPORT_GATE_OUT=$REC "$PY" "$D/$GE" > "$R/export_gate_v2.log" 2>&1; rc=$?
   stage "export gate rc=$rc $(tail -1 "$R/export_gate_v2.log" | cut -c1-140)"; [ $rc -eq 0 ] || die "export_gate_v2_rc_$rc" 3
