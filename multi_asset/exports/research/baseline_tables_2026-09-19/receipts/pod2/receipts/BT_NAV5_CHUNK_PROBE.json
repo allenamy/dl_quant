@@ -1,0 +1,89 @@
+{
+ "device": "bt_nav5_chunk_probe.py",
+ "self_sha256": "d2eb621ca035b9a0fbdcd8d35ca2537875b5197fa409430f3d65d6b5dd0bbe78",
+ "argv": [
+  "bt_nav5_chunk_probe.py",
+  "PATH,HOME,LC_CTYPE",
+  "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r.npy",
+  "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r_meta.npz",
+  "2026-08-31T04:00:00Z",
+  "2.9103830456733704e-11",
+  "/workspace/baseline_tables_2026-09-19/receipts/BT_NAV5_CHUNK_PROBE.json"
+ ],
+ "numpy": "2.4.6",
+ "price_npy": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r.npy",
+ "junction": "2026-08-31T04:00:00Z",
+ "junction_row": 438720,
+ "n_names_in_probe": 240,
+ "values_by_block_height": {
+  "1": -12742.382540864422,
+  "2": -12742.382540864426,
+  "3": -12742.382540864422,
+  "5": -12742.382540864422,
+  "8": -12742.382540864422,
+  "13": -12742.382540864422,
+  "48": -12742.382540864422,
+  "97": -12742.382540864422,
+  "288": -12742.382540864422,
+  "577": -12742.382540864422
+ },
+ "values_row_inside_block": {
+  "1": -12742.382540864422,
+  "2": -12742.382540864426,
+  "3": -12742.382540864422,
+  "5": -12742.382540864422,
+  "8": -12742.382540864422,
+  "13": -12742.382540864422
+ },
+ "checks": [
+  {
+   "check": "P0.same_row_different_block_heights_can_differ",
+   "ok": true,
+   "detail": {
+    "distinct_values": 2,
+    "abs_spread": 3.637978807091713e-12,
+    "relative": 2.8550224382487557e-16,
+    "by_height_last_row": {
+     "1": -12742.382540864422,
+     "2": -12742.382540864426,
+     "3": -12742.382540864422,
+     "5": -12742.382540864422,
+     "8": -12742.382540864422,
+     "13": -12742.382540864422,
+     "48": -12742.382540864422,
+     "97": -12742.382540864422,
+     "288": -12742.382540864422,
+     "577": -12742.382540864422
+    }
+   }
+  },
+  {
+   "check": "P0.difference_is_last_bit",
+   "ok": true,
+   "detail": {
+    "relative_spread": 2.8550224382487557e-16
+   }
+  },
+  {
+   "check": "P1.same_block_height_is_bitwise_identical (control)",
+   "ok": true,
+   "detail": {
+    "repeats": 5,
+    "distinct": 1,
+    "value": -12742.382540864422
+   }
+  },
+  {
+   "check": "P2.observed_run_difference_is_of_the_same_order",
+   "ok": true,
+   "detail": {
+    "observed_abs_delta": 2.9103830456733704e-11,
+    "probe_abs_spread": 3.637978807091713e-12,
+    "observed_relative_to_probe_value": 2.2840179505990045e-15
+   }
+  }
+ ],
+ "failed": [],
+ "VERDICT": "PASS",
+ "runtime_s": 0.2
+}

@@ -10,9 +10,15 @@ Nothing is tolerated: any non-zero difference is a FAIL and the extended tables 
       fields carry NaN where the producer wrote no value; try 1 of this device, receipt BT_EXT_CONTROL_selftest_identity_try1.json, used
       `a != b` and therefore reported 18 differing cells when comparing a run directory WITH ITSELF — caught by the identity self-test)
   C3  the 5-minute NAV grids start at the same epoch (nav5_t0) and NEW["nav5_sim"], NEW["nav5_main"] are bitwise equal to OLD's on OLD's length
-  C4  the per-path json: runtime and device shas may differ, but the audits, the fired-event counts, the UA counters and the status counts
-      restricted to the shared window must agree — checked through the arrays (C2) plus the summary fields that do not depend on the window
-      (policy, price pin, ua_set, calibration params, config gross): any mismatch is named
+  C4  the per-path json summary fields that depend neither on the window nor on the run's NAME: policy, price pin, ua_set, calibration params.
+      DISCLOSURE (v2, 2026-09-20, written AFTER the first run of this check went red): `sealed_initial_sha256` was in this list and differs
+      between the two runs. It is not a window-independent field: the sealed initial state hashes, among other things, the RUN TAG
+      (bt_hist_sim31: {"nav0_usdt", "cash_K0", "entries", "stop_state", "tag", "seed", "policy"}), and the extended runs were given their own
+      tags on purpose (OBJB_A0X|… , so that they write their own directories and never touch the published ones). The substantive content of
+      that sealed state — the initial NAV and the initial book — is compared bitwise anyway by C2 (nav0 / navm0 / gross0 at the first window).
+      The first, red receipt is kept: BT_EXT_CONTROL_<run>_try1.json.
+  C7  the only table quantity that reads the 5-minute grid is the 5-minute maximum drawdown: it is recomputed per seed from both runs over
+      the shared prefix and the difference is reported (a named measurement, not a criterion)
   C5  the measurement is not vacuous: every seed was compared, and the number of cells actually compared equals
       shared_anchors x window_keys + the two 5-minute grids (a zero-measurement pass is impossible)
   mutations (must go red): one cell of one NEW array perturbed by 1 ulp; a shifted (off-by-one-window) comparison; the SAME comparison
@@ -91,10 +97,22 @@ for seed in range(NSEED):
     t_eq = int(O["nav5_t0"]) == int(N["nav5_t0"])
     n5 = {}
     for k in ("nav5_sim", "nav5_main"):
-        n5[k] = dict(cmp_arrays(O[k], N[k][:len(O[k])]), n_old=int(len(O[k])), n_new=int(len(N[k])))
+        a = O[k]; b = N[k][:len(a)]; n5[k] = dict(cmp_arrays(a, b), n_old=int(len(a)), n_new=int(len(N[k])))
+        ix = np.nonzero(a != b)[0]
+        if len(ix):
+            t0 = int(O["nav5_t0"])
+            n5[k]["where"] = [{"index": int(i), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0 + 300 * int(i))), "old": float(a[i]), "new": float(b[i]),
+                               "relative": float(abs(a[i] - b[i]) / max(abs(a[i]), 1e-300))} for i in ix[:10]]
     ok(f"C3.seed{seed:02d}.nav5_prefix_bitwise_equal", t_eq and all(v["n_differ"] == 0 and v["bytes_equal"] for v in n5.values()), {"nav5_t0_equal": t_eq, **n5})
-    same = {f: (OJ.get(f) == NJ.get(f)) for f in ("policy", "price", "ua_set", "calibration_params_used", "sealed_initial_sha256")}
-    ok(f"C4.seed{seed:02d}.window_independent_summary_fields_agree", all(same.values()), same)
+    same = {f: (OJ.get(f) == NJ.get(f)) for f in ("policy", "price", "ua_set", "calibration_params_used")}
+    same["sealed_initial_sha256_differs_because_the_run_tag_is_part_of_it"] = (OJ.get("sealed_initial_sha256") != NJ.get("sealed_initial_sha256")) and (OJ.get("tag") != NJ.get("tag"))
+    ok(f"C4.seed{seed:02d}.window_and_name_independent_summary_fields_agree", all(same.values()), same)
+    dd = {}
+    for k in ("nav5_sim", "nav5_main"):
+        a = O[k]; b = N[k][:len(a)]
+        dd[k] = {"maxdd_old": float(np.min(a / np.maximum.accumulate(a) - 1.0)), "maxdd_new": float(np.min(b / np.maximum.accumulate(b) - 1.0))}
+        dd[k]["delta"] = dd[k]["maxdd_new"] - dd[k]["maxdd_old"]
+    ok(f"C7.seed{seed:02d}.five_minute_maxdd_over_the_shared_prefix", all(v["delta"] == 0.0 for v in dd.values()), dd)
     cells = sum(int(np.asarray(O[k]).size) for k in O if k not in NAV5) + int(O["nav5_sim"].size) + int(O["nav5_main"].size)
     per_seed[seed] = {"n_shared": int(k_o), "n_new": int(len(A_n)), "max_abs_delta_over_keys": max([v["max_abs_delta"] or 0.0 for v in diffs.values()] + [v["max_abs_delta"] or 0.0 for v in n5.values()]),
                       "n_differ_total": sum(max(v["n_differ"], 0) for v in diffs.values()) + sum(max(v["n_differ"], 0) for v in n5.values()),

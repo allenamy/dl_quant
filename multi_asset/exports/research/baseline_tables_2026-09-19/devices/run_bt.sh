@@ -75,4 +75,15 @@ done
 env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_run_summary.py $R/receipts/BT_LAUNCH_full_a0.json $R/runs $R/receipts/BT_RUN_SUMMARY_A0.json
 env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_tables.py main_a0 $R/RUN_CONFIG_main_A0_2026-09-19.json $R/runs $R/g0x/g0_labels_x0918.npz $R/runs/S2_A0pred_s42_CMB_rule_raw_UAFE $R/receipts/BT_RECON_steps12_P2CMB.json $R/receipts/BT_MAIN_A0.json > $R/logs/bt_main_a0.log 2>&1
 # (Mac) /usr/bin/python3 devices/bt_main_render.py receipts/pod2/receipts/BT_MAIN_A0.json receipts/pod2/receipts/BT_RUN_SUMMARY_A0.json receipts/A0_TABLES_rendered.md
-# ---- still to come on the lead's go: the V4 runs + the pairing table; the 2026-08-31T04Z -> 09-18T20Z extension segment (object-B A0_ext targets) ----
+# ---- EXTENSION run (lead 2026-09-20): object-B A0_ext targets 085d8858 (2022-01-31 -> 2026-09-18T20Z); its own run tags OBJB_A0X|* ----
+# g. pre-run checks again on the ext targets + the frozen ext config (run_tag_suffix X keeps the published runs untouched)
+env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B bt_objb_prerun.py PATH,HOME,LC_CTYPE full $R/receipts/BT_OBJB_PRERUN_A0ext.json $R/RUN_CONFIG_main_TEMPLATE_2026-09-19.json $R/RUN_CONFIG_main_A0ext_2026-09-20.json 916b109f181103191efff915923d1647e35e7a7dbdfc6caffa42077e7fc65b9c A0_ext X > $R/logs/bt_objb_prerun_a0ext.log 2>&1
+# h. the bitwise control device, self-tested first on an IDENTITY comparison (the same directory on both sides; try 1 went red and is kept)
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 /workspace/venv/bin/python -B bt_ext_control.py PATH,HOME,LC_CTYPE $R/runs/OBJB_A0_scaled_rule_raw_UAFE $R/runs/OBJB_A0_scaled_rule_raw_UAFE 32 9139 $R/receipts/BT_EXT_CONTROL_selftest_identity.json > $R/logs/bt_ext_control_selftest.log 2>&1
+# i. the five extended runs x 32 seeds, started after object B's v4 scoring went quiet (fast_exec workers 0, load 0.85); PGID in $R/logs/full_a0x.pgid
+setsid bash -c "env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B bt_launch.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_main_A0ext_2026-09-20.json --resume a0x > $R/logs/bt_launch_full_a0x.log 2>&1; echo \"EXIT \$?\" >> $R/logs/bt_launch_full_a0x.log"
+$R/memsample.sh $(cat $R/logs/full_a0x.pgid) $R/logs/full_a0x_memsamples.log
+# j. post-run: the control on all five run pairs (9,139 shared anchors x 32 seeds), battery on each extended run directory, run summary, tables
+bash $R/post_a0ext.sh > $R/logs/post_a0ext.log 2>&1
+# (Mac) /usr/bin/python3 devices/bt_main_render.py receipts/pod2/receipts/BT_MAIN_A0X.json receipts/pod2/receipts/BT_RUN_SUMMARY_A0X.json receipts/A0EXT_TABLES_rendered.md
+# ---- still to come on the lead's go: the V4 runs + the pairing table ----
