@@ -126,3 +126,24 @@ for a in A0 A0ext V4; do
 done
 # (Mac) /usr/bin/python3 devices/bt_p2_reading_test.py <scratch> receipts/BT_P2_READING_TEST_mac.json
 # (Mac) for a in A0 A0ext V4; do /usr/bin/python3 devices/bt_p2_render.py receipts/pod2/receipts/BT_P2_READING_$a.json receipts/${a}_P2_TABLES_rendered.md; done
+# t. E-0920-C 修复 + AMENDMENT 4(聚合合同 + 窗口切片语义): bt_agg.py 新增, bt_p_reading.py / bt_p2_reading.py 改走合同。
+#    装置测试先跑(基线绿在前, 每条变异红), 再重出三条 P 与三条 P2; 任一退出码非 0 即停。
+cd $R/devices_v3
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 /workspace/venv/bin/python -B bt_agg_test.py $R/receipts/BT_AGG_TEST.json > $R/logs/bt_agg_test.log 2>&1
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 /workspace/venv/bin/python -B bt_p_reading_test.py $R/work/pfix_scr $R/receipts/BT_P_READING_TEST_pod2.json > $R/logs/bt_p_reading_test.log 2>&1
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 /workspace/venv/bin/python -B bt_p2_reading_test.py $R/work/p2fix_scr $R/receipts/BT_P2_READING_TEST_pod2.json > $R/logs/bt_p2_reading_test.log 2>&1
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 /workspace/venv/bin/python -B bt_p_reading.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_Preading_A0_2026-09-20.json    $R/receipts/BT_P_READING_A0.json  > $R/logs/bt_p_reading_A0_amd4.log 2>&1
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 /workspace/venv/bin/python -B bt_p_reading.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_Preading_A0ext_2026-09-20.json $R/receipts/BT_P_READING_A0X.json > $R/logs/bt_p_reading_A0X_amd4.log 2>&1
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 /workspace/venv/bin/python -B bt_p_reading.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_Preading_V4_2026-09-20.json    $R/receipts/BT_P_READING_V4.json  > $R/logs/bt_p_reading_V4_amd4.log 2>&1
+for a in A0 A0ext V4; do
+  env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 /workspace/venv/bin/python -B bt_p2_reading.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_P2reading_${a}_2026-09-20.json $R/receipts/BT_P2_READING_${a}.json > $R/logs/bt_p2_reading_${a}_amd4.log 2>&1
+done
+# (Mac) 三个装置测试 + 渲染 + 对账。对账的 <old_dir> 里放 `git show ec00bbb75:.../BT_P2_READING_{A0,A0ext,V4}.json` 取出的三份旧收据。
+# /usr/bin/python3 devices/bt_agg_test.py        receipts/BT_AGG_TEST_mac.json
+# /usr/bin/python3 devices/bt_p_reading_test.py  <scratch>/pscr  receipts/BT_P_READING_TEST_mac.json
+# /usr/bin/python3 devices/bt_p2_reading_test.py <scratch>/p2scr receipts/BT_P2_READING_TEST_mac.json
+# /usr/bin/python3 devices/bt_p_render.py  receipts/pod2/receipts/BT_P_READING_A0.json  receipts/A0_P_TABLES_rendered.md
+# /usr/bin/python3 devices/bt_p_render.py  receipts/pod2/receipts/BT_P_READING_A0X.json receipts/A0EXT_P_TABLES_rendered.md
+# /usr/bin/python3 devices/bt_p_render.py  receipts/pod2/receipts/BT_P_READING_V4.json  receipts/V4_P_TABLES_rendered.md
+# for a in A0 A0ext V4; do /usr/bin/python3 devices/bt_p2_render.py receipts/pod2/receipts/BT_P2_READING_$a.json receipts/${a}_P2_TABLES_rendered.md; done
+# /usr/bin/python3 devices/bt_p2_amd4_delta.py <old_dir> receipts/pod2/receipts receipts/BT_P2_AMD4_DELTA.json

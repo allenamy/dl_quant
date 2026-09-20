@@ -99,6 +99,6 @@
 ## §7 运行与资源 · 收据
 
 - 5 个运行 × 32 条路径 = 160 条, 窗口 9,139 锚; 墙钟 **4,125 s**(04:19Z → 05:28Z), 路径单线程合计 15,982 s = **4.44 核时**, 最多 4 个子进程; 自身 Σ Pss 峰值 **3.64 GiB**, 内存 PSI avg10 全程 **0.00**, 无调速动作。v4 打分结束(`fast_exec` 归零、负载 1.55)之后才开跑。
-- 收据: `BT_OBJB_PRERUN_V4.json` · `BT_LAUNCH_full_v4.json`(007582e2)· `BT_BATTERY_post_OBJB_V4_*.json`(5 份)· `BT_RUN_SUMMARY_V4.json` · `BT_MAIN_V4.json`(8e415582)· **`BT_MAIN_PAIR_A0_vs_V4.json`(ee7bc040)** · `BT_P_READING_V4.json`(5c53d7d6)· `SHA256SUMS_pod2_runs_V4.txt`。
+- 收据: `BT_OBJB_PRERUN_V4.json` · `BT_LAUNCH_full_v4.json`(007582e2)· `BT_BATTERY_post_OBJB_V4_*.json`(5 份)· `BT_RUN_SUMMARY_V4.json` · `BT_MAIN_V4.json`(8e415582)· **`BT_MAIN_PAIR_A0_vs_V4.json`(ee7bc040)** · `BT_P_READING_V4.json`(**8a9fc83e**, AMENDMENT 4 重出; 改造前 5c53d7d6, **数字未变**)· `SHA256SUMS_pod2_runs_V4.txt`。
 - 配对装置 `bt_tables.py main_pair` 先于任何 v4 数字入库(提交 7276a95f9), 自测 `BT_TABLES_SELFTEST VERDICT: ALL PASS 55/55 checks` + 真实文件上的同臂空对照(Δ 精确为 0, CI [0,0], 标记 (C))。
 - 逐字复跑命令: `devices/run_bt.sh` + `devices/chains/post_v4.sh`。

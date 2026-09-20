@@ -1,0 +1,201 @@
+{
+ "device": "bt_agg_test.py",
+ "self_sha256": "378f922a1429754f9cdba3d72ad800c4e1ca03af27ece8698a7860f0f822c4cb",
+ "tested": "8c4934eb5eeba63aeff03803abe9ec61086f40cdd1debc7304fbe9c3a27c0dc5",
+ "argv": [
+  "bt_agg_test.py",
+  "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/bt_agg_test.json"
+ ],
+ "numpy": "1.26.4",
+ "checks": [
+  {
+   "check": "C0.BASELINE_GREEN new aggregator on a fully measured population == naive np.mean, bit for bit",
+   "ok": true,
+   "detail": {
+    "new_mean": -0.24562,
+    "naive_mean": -0.24562,
+    "n_eff": 5
+   }
+  },
+  {
+   "check": "C0.BASELINE_GREEN the same population also passes the structural sweep (so a later refusal is a real signal)",
+   "ok": true,
+   "detail": {
+    "clause": "A4",
+    "aggregate_blocks_swept": 2,
+    "min_blocks_required": 2,
+    "violations": 0
+   }
+  },
+  {
+   "check": "C1.the OLD aggregator reports a benign mean, and its n EQUALS the population \u2014 so 'n was reported' was never the guard",
+   "ok": true,
+   "detail": {
+    "old_mean": -0.1849,
+    "old_n": 8,
+    "population": 8,
+    "truth_on_measured": -0.24653333333333335
+   }
+  },
+  {
+   "check": "C1.the NEW aggregator keeps the unmeasured members OUT of the headline mean",
+   "ok": true,
+   "detail": {
+    "measured_mean": -0.24653333333333335,
+    "n_eff": 6
+   }
+  },
+  {
+   "check": "C1.the NEW aggregator NAMES the subset and lists its members (they are findable, not just excluded)",
+   "ok": true,
+   "detail": {
+    "n": 2,
+    "by_reason": {
+     "day-stopped before the window started, so no anchor of this window was ever traded": {
+      "n": 2,
+      "members": [
+       6,
+       7
+      ]
+     }
+    }
+   }
+  },
+  {
+   "check": "C1.the NEW aggregator still reports the whole-population figure, under a NAMED convention (A3'): the old number is not hidden",
+   "ok": true,
+   "detail": {
+    "whole_population_mean": -0.1849,
+    "old_mean": -0.1849,
+    "convention": "a path withheld for the entire window contributes its flat-book return of exactly 0"
+   }
+  },
+  {
+   "check": "C1.the two figures differ by the amount the defect was worth, and both carry n_eff",
+   "ok": true,
+   "detail": {
+    "pp_gap": 6.163333333333335
+   }
+  },
+  {
+   "check": "C2.the OLD shape silently shrank the population: it reports n=3 while being quoted for 5, and the 2 dropped members appear NOWHERE in its output",
+   "ok": true,
+   "detail": {
+    "old": {
+     "mean": 5.396666666666666,
+     "p05": 5.3260000000000005,
+     "median": 5.38,
+     "p95": 5.479,
+     "n": 3
+    },
+    "quoted_for": 5
+   }
+  },
+  {
+   "check": "C2.the NEW aggregator declares the population of 5, measures 3, and NAMES the other reason class",
+   "ok": true,
+   "detail": {
+    "population_n": 5,
+    "n_eff": 3,
+    "reasons": [
+     "this path had no day-stop event at all, so a per-event cost is not applicable to it"
+    ]
+   }
+  },
+  {
+   "check": "C2.this reason is NOT the C1 reason \u2014 the fix is about the class, not about 'never'",
+   "ok": true,
+   "detail": {
+    "C1_reason": "day-stopped before the window started, so no anchor of this window was ever traded",
+    "C2_reason": "this path had no day-stop event at all, so a per-event cost is not applicable to it"
+   }
+  },
+  {
+   "check": "C2.with no convention declared, the whole-population figure is null WITH a reason \u2014 not a number, not an absent key",
+   "ok": true,
+   "detail": {
+    "n_eff": 3,
+    "population_n": 5,
+    "equals_measured": false,
+    "mean": null,
+    "median": null,
+    "p05": null,
+    "p95": null,
+    "min": null,
+    "max": null,
+    "refused_because": "2/5 members have no measurement and no whole-population convention was declared for them (A3')"
+   }
+  },
+  {
+   "check": "C3.a genuinely undefined quantity refuses its whole-population figure instead of inventing one",
+   "ok": true,
+   "detail": {
+    "n_eff": 2,
+    "population_n": 3,
+    "equals_measured": false,
+    "mean": null,
+    "median": null,
+    "p05": null,
+    "p95": null,
+    "min": null,
+    "max": null,
+    "refused_because": "1/3 members have no measurement and no whole-population convention was declared for them (A3')"
+   }
+  },
+  {
+   "check": "C4.a NEW aggregate nobody wrote a rule for is refused, because the sweep walks the document rather than a list of quantities",
+   "ok": true,
+   "detail": {
+    "refusal": "A4 structural sweep: 1 aggregate block(s) persist a statistic with no effective sample size beside it (missing n_eff/population_n). First offenders: [{\"path\": \"$.new_diagnostic_added_later.turnover_ra"
+   }
+  },
+  {
+   "check": "C4.BASELINE_GREEN the same document WITHOUT that block passes \u2014 so C4's red is the block, not a document that was always red",
+   "ok": true,
+   "detail": {
+    "clause": "A4",
+    "aggregate_blocks_swept": 4,
+    "min_blocks_required": 2,
+    "violations": 0
+   }
+  },
+  {
+   "check": "C5.a document with zero aggregate blocks is REFUSED, not waved through ('zero measurements also passes' does not exempt the guard itself)",
+   "ok": true,
+   "detail": {
+    "refusal": "A4 structural sweep inspected only 0 aggregate block(s) but at least 1 were expected \u2014 a sweep that finds nothing passes vacuously, which is the defect family this contract exists for"
+   }
+  },
+  {
+   "check": "C6.measured-but-None is refused: an unexplained missing value must be NAMED before it can be excluded",
+   "ok": true,
+   "detail": {
+    "refusal": "x: member 0 is classified as MEASURED but its value is None \u2014 an unexplained missing value is not a class, name it in applicability() first (A5)"
+   }
+  },
+  {
+   "check": "C6.unmeasured-but-carries-a-value is refused: the classifier and the data must be reconciled first",
+   "ok": true,
+   "detail": {
+    "refusal": "x: member 0 is classified 'not applicable' yet carries the value 1.0 \u2014 the classifier and the data disagree, reconcile before aggregating (A5)"
+   }
+  },
+  {
+   "check": "C7.a population that is not an explicit closed list is refused (a generator has already hidden its filtering)",
+   "ok": true,
+   "detail": {
+    "refusal": "x: the population must be an explicit closed list, got generator (A1)"
+   }
+  },
+  {
+   "check": "C7.aggregating without declaring an applicability classifier is refused",
+   "ok": true,
+   "detail": {
+    "refusal": "x: no applicability classifier was declared \u2014 a population cannot be aggregated until every member is classified measured / named-not-measured (A2)"
+   }
+  }
+ ],
+ "failed": [],
+ "VERDICT": "PASS",
+ "runtime_s": 0.0
+}

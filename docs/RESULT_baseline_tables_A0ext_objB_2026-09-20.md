@@ -81,7 +81,7 @@
 | 逐位控制(5 对)+ 恒等自测 + 两版红收据 | `receipts/pod2/receipts/BT_EXT_CONTROL_*.json` | 见提交 |
 | 块舍入探针 | `receipts/pod2/receipts/BT_NAV5_CHUNK_PROBE.json` | 见提交 b51e955ce |
 | 电池(5 个运行目录) | `receipts/pod2/receipts/BT_BATTERY_post_OBJB_A0X_*.json` | 见提交 ae2984068 |
-| 运行汇总 / 表 / 读数 P | `BT_RUN_SUMMARY_A0X.json` / `BT_MAIN_A0X.json` / `BT_P_READING_A0X.json` | 见提交 |
+| 运行汇总 / 表 / 读数 P | `BT_RUN_SUMMARY_A0X.json` / `BT_MAIN_A0X.json` / `BT_P_READING_A0X.json` | 见提交; 读数 P 收据 **bb729bfc**(AMENDMENT 4 重出, 改造前 2b3b948f, **数字未变**) |
 | 渲染表 | `receipts/A0EXT_TABLES_rendered.md` · `receipts/A0EXT_P_TABLES_rendered.md` | 见提交 |
 | 逐文件 sha | `receipts/pod2/receipts/SHA256SUMS_pod2_runs_A0X.txt`(330 个文件) | 见提交 |
 | 逐字复跑命令 | `devices/run_bt.sh` 第 g–j 步 | 见提交 |

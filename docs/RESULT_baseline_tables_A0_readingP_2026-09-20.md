@@ -5,7 +5,9 @@
 **预注册:** `docs/AMENDMENT_2_baseline_tables_certified_2026-09-20.md`(9bbd850ac, sha 52ae1969)—— 定义写于其任何数字之前。
 **主读数(不停机口径)的表:** `docs/RESULT_baseline_tables_A0_objB_2026-09-19.md`(本文不改动它)。
 **覆盖审计来源:** `docs/AUDIT_component_coverage_certified_replay_2026-09-20.md`(1603fd552)。
-**冻结配置:** `multi_asset/exports/research/baseline_tables_2026-09-19/RUN_CONFIG_Preading_A0_2026-09-20.json`(54219e60)。**收据:** `receipts/pod2/receipts/BT_P_READING_A0.json`(d7b58184)。
+**冻结配置:** `multi_asset/exports/research/baseline_tables_2026-09-19/RUN_CONFIG_Preading_A0_2026-09-20.json`(54219e60)。**收据:** `receipts/pod2/receipts/BT_P_READING_A0.json`(**31d07343**, AMENDMENT 4 重出; 改造前 d7b58184 —— 数字未变, 见下方追记)。
+
+> **2026-09-20 晚追记(AMENDMENT 4, 承 E-0920-C):** 装置 `bt_p_reading.py` 已改走聚合合同(闭合人口 + 具名无测量子集 + 每个落盘均值旁带 n_eff + 落盘前结构扫描)。**本文与三份 P 表的数字一个都没有变** —— 读数 P **没有** E-0920-C 那类替换(逐路径 `end_return_phalt` 恰为 0.0 的有 0/128 条), 改的只是记账方式。证据: 用**未改动的**渲染器重出的三份 P 表与改造前版本**逐字节相同**; 之后才在表里加上 `(n_eff x/y)` 标注(去掉标注再比对仍逐字节相同)。收据里新增的 `measured` / `whole_population` / `no_measurement` 三段与原 `mean/median/p05/p95/n` 并存, 后者数值不变。
 
 ---
 
