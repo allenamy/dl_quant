@@ -7,7 +7,9 @@ A = int(sys.argv[1]); W = "/Users/haosiyu/wide_shadow"; L = "/Users/haosiyu/dl_q
 #   不打印任何逐臂结果量(重挂腿落单 / 二次拒、分臂成交 / 滑点等)。停止点之后才可 `--unblind "<理由>"`, 理由会印在输出首行。
 UNBLIND = sys.argv[sys.argv.index("--unblind") + 1] if "--unblind" in sys.argv[2:] and len(sys.argv) > sys.argv.index("--unblind") + 1 else None
 BLIND = UNBLIND is None
-ARM_TOK = re.compile(r"chase|forced|join|behind|requote|direct|臂|重报价|重挂|二次拒", re.I)
+ARM_TOK = re.compile(r"\bchase\w*|\bforced\b|\bjoin\b|\bbehind\b|\brequote\w*|\bdirect\b|分臂|逐臂|重报价|重挂|二次拒", re.I)
+# ★ 2026-09-20: 原先用子串匹配, "direct" 命中了 "directory", 把一条运维告警(台账公证失败)误挡。
+#   改成词边界, 并把裸「臂」换成「分臂 / 逐臂」—— 单字「臂」在中文里也会误命中。
 def utc(t): return datetime.fromtimestamp(t, tz=timezone.utc).strftime("%m-%d %H:%M:%SZ")
 def jl(path):
     out = []
