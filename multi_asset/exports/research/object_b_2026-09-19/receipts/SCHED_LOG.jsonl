@@ -62,3 +62,9 @@
 {"utc": "2026-09-19T21:40:59Z", "ev": "done_small", "name": "targets A0_main", "rc": 0, "log": "/workspace/object_b_2026-09-19/logs/targets_A0_main.log"}
 {"utc": "2026-09-19T21:40:59Z", "sched": "v7", "ev": "mem_check", "step": "V4_main P2 7 workers", "static_running_GiB": 6.2, "unreclaimable_now_GiB": 6.74, "own_need_GiB": 17.12, "projected_GiB": 23.86, "own_cap_GB": 24.0, "free_at_projected_GiB": 32.95, "cores_in_use": 1, "own_cores": 7, "psi_avg10": 0.0, "ok": true}
 {"utc": "2026-09-19T21:40:59Z", "ev": "launch", "name": "V4_main P2,P3 7w (after A0_main)", "pgid": 1401054, "argv": ["b_launch.py", "--tag", "V4_main", "--start", "2022-01-31T00:00:00Z", "--end", "2026-08-31T00:00:00Z", "--workers", "7", "--stages", "P2,P3", "--p1-from", "A0_main"], "env": {"OBJB_ARM": "V4", "OBJB_FAST": "1"}, "log": "/workspace/object_b_2026-09-19/logs/launch_V4_main.log"}
+{"utc": "2026-09-20T00:08:03Z", "sched": "v7", "ev": "done", "name": "A0_ext P2,P3", "rc": 0}
+{"utc": "2026-09-20T00:08:12Z", "ev": "done_small", "name": "targets A0_ext", "rc": 0, "log": "/workspace/object_b_2026-09-19/logs/targets_A0_ext.log"}
+{"utc": "2026-09-20T00:08:15Z", "ev": "done_small", "name": "EXT-REPRO A0_ext vs A0_main", "rc": 0, "log": "/workspace/object_b_2026-09-19/logs/ext_repro_A0_ext.log"}
+{"utc": "2026-09-20T00:08:45Z", "sched": "v7", "ev": "scale_up", "from_w": 7, "to_w": 11}
+{"utc": "2026-09-20T00:08:45Z", "ev": "stop", "name": "V4_main", "pgid": 1401054}
+{"utc": "2026-09-20T00:08:47Z", "ev": "launch", "name": "V4_main P2,P3 11w (scale-up after the extension)", "pgid": 1448221, "argv": ["b_launch.py", "--tag", "V4_main", "--start", "2022-01-31T00:00:00Z", "--end", "2026-08-31T00:00:00Z", "--workers", "11", "--stages", "P2,P3", "--p1-from", "A0_main"], "env": {"OBJB_ARM": "V4", "OBJB_FAST": "1"}, "log": "/workspace/object_b_2026-09-19/logs/launch_V4_main.log"}
