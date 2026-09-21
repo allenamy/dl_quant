@@ -124,17 +124,22 @@ for fn in RECEIPTS:
     v = (json.load(open(os.path.join(RCPT, fn))).get("device_sha256") or {}).get("chain_v4_monthly.sh")
     if fn.endswith("NEW.json") or fn.startswith("R3stub"):
         REHEARSED_DRIVER_SHA = v
+# Search the path's OWN revision list for the version whose sha256 is the one the receipts recorded. An earlier version of
+# this device walked HEAD~2..HEAD by guess and broke the moment two more commits landed — a device that stops working when
+# somebody commits does not outlive the verdict it certifies.
+DRIVER_PATH = "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/chain_v4_monthly.sh"
 drv_text = None
-for rev in ("HEAD~2", "HEAD~3", "HEAD~4", "HEAD~5", "HEAD"):
-    r = subprocess.run(["git", "-C", REPO, "show",
-                        f"{rev}:multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/chain_v4_monthly.sh"],
-                       capture_output=True)
+drv_rev = None
+_revs = subprocess.run(["git", "-C", REPO, "log", "--format=%H", "--", DRIVER_PATH], capture_output=True, text=True)
+for rev in (_revs.stdout or "").split():
+    r = subprocess.run(["git", "-C", REPO, "show", f"{rev}:{DRIVER_PATH}"], capture_output=True)
     if r.returncode == 0 and hashlib.sha256(r.stdout).hexdigest() == REHEARSED_DRIVER_SHA:
-        drv_text = r.stdout.decode("utf-8", "replace")
+        drv_text = r.stdout.decode("utf-8", "replace"); drv_rev = rev
         break
 check("★ C0 the DRIVER the rehearsal ran is recovered from git by SHA (not by revision guess): the extracted preflight below is "
       "the rehearsal's own bytes, not today's",
-      drv_text is not None, {"wanted": (REHEARSED_DRIVER_SHA or "")[:16]})
+      drv_text is not None, {"wanted": (REHEARSED_DRIVER_SHA or "")[:16], "found_at_commit": drv_rev,
+                             "n_revisions_searched": len((_revs.stdout or "").split())})
 
 PRE = extract_preflight(drv_text) if drv_text else None
 check("C1 its preflight block is locatable between its own heredoc delimiters and is non-trivial",
