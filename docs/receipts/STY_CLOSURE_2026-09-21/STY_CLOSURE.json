@@ -1,0 +1,46 @@
+{
+ "receipt": "STY_CLOSURE_consumers_updated",
+ "finding": "round-8 review §1 / notes/policy.md POL-01 + POL-04: the ledger withdrew STY-01/02 and H-02 but SEVEN live files still carried the readings",
+ "utc": "2026-09-21T04:14:30Z",
+ "device": "multi_asset/exports/research/sty_closure_2026-09-21/devices/sty_scan.py",
+ "device_sha256": "470bc0548ef1e9f3d8b753ac4d2bfb9e1b5c8796ed697c940bd426e1f4abe731",
+ "verdict_before": "STY_SCAN VERDICT=OPEN_REFERENCES ... open=22 annotated=6 (exit 3)",
+ "verdict_after": "STY_SCAN VERDICT=PASS control_scopes_reached=4/4 not_reached=[] files_scanned={'repo_body': 8898, 'memory_body': 481, 'memory_description': 481, 'memory_index': 1} frozen_json_excluded=3603 open=0 annotated=29 unreadable=0 (exit 0)",
+ "red_capability": {
+  "baseline_first_asserted_green": "STY_SCAN VERDICT=PASS ... open=0 (exit 0)",
+  "mutation": "the withdrawal marker stripped from STATE.md:11 only",
+  "result": "STY_SCAN VERDICT=OPEN_REFERENCES ... open=2 annotated=27 (exit 3), both hits on STATE.md:11",
+  "restored": "STY_SCAN VERDICT=PASS ... open=0 (exit 0)"
+ },
+ "positive_control": "the same enumerators run over a fixture root with a canary planted in each of FOUR scopes; found_per_scope repo_body 1 / memory_body 2 / memory_description 1 / memory_index 1, scopes_not_reached []. A scope whose canary is missing makes the whole run red regardless of hit count.",
+ "scopes": [
+  "repo_body (git-tracked .md/.txt/.py/.sh + docs/*.json = 8,898 files)",
+  "memory_body (481 files)",
+  "memory_description (the description: frontmatter line of the same 481)",
+  "memory_index (MEMORY.md, 1 file)"
+ ],
+ "excluded_by_rule": "3,603 tracked .json/.jsonl OUTSIDE docs/ — frozen machine artefacts whose bytes are their identity (E-0921-E precedent). Counted and printed on the verdict line, never silent.",
+ "numbers_moved": {
+  "form share of the cross-period improvement": "16% -> 4.5%; four-cell identity 2.914817 = 2.783435 + 0.131382; the complement 95.5% must NOT be called 'environment' (NONE is another construction, not an environment)",
+  "same-denominator gap": "159.920635pp (product of means) -> 159.902772pp (per-path mean); the 0.017864pp difference is the omitted cross-path covariance 100*Cov = -0.01786366pp, not display precision",
+  "'214pp'": "withdrawn wherever it appeared as the size of the give-up; it was computed off the SHRUNKEN principal",
+  "'159.9206 reproduced bitwise'": "withdrawn: what was reproduced bitwise is the product of means, not that statistic"
+ },
+ "files_corrected_in_place_original_bytes_kept": [
+  "STATE.md:11 (positively excluded / strongly supported)",
+  "STATE.md:14 (16/84)",
+  "docs/RESULT_style_beta_on_counterfactual_worlds_2026-09-20.md:21",
+  "docs/RESULT_attribution_2026_vs_history_2026-09-20.md:417 (beta 'no contribution')",
+  "docs/PROPOSAL_s44_resume_rule_2026-09-20.md:6,13,39 (214pp)",
+  "docs/FINDING_s44_halt_base_rate_and_resume_2026-09-20.md:12,26 (214pp)",
+  "docs/REVIEW_REQUEST_round7_2026-09-20.md:34,35,42",
+  "docs/REVIEW_REQUEST_round8_2026-09-21.md:16,19",
+  "docs/ERROR_LEDGER_2026-08-20.md:1065,1072,1073 (E-0921-C/D) and 1123 (E-0920-F, the reviewer's named gap)",
+  "MEMORY three_signals_are_substitutes_not_a_decomposition_2026_09_20.md:34 (outside the git repo; edited in place)"
+ ],
+ "not_found_stated_rather_than_omitted": [
+  "cf3_2026-09-20/devices/cf_read.py and cf3b_2026-09-20/devices/cf_beta_read.py, which notes/policy.md lists among the seven, carry NO token: cf_beta_read.py:150 only prints the per-criterion word 支持/不支持 from the pre-registered criterion itself, which is correct behaviour. They are unchanged, and that is a measurement, not an omission.",
+  "the MEMORY.md index scope and the memory description scope returned ZERO hits; the positive control proves both scopes were read."
+ ],
+ "blind_spot": "the device binds the TOKENS listed in it. A withdrawn reading phrased in words none of the six patterns cover would not be found. Registering the next withdrawal means adding one TOKENS row, nothing else."
+}
