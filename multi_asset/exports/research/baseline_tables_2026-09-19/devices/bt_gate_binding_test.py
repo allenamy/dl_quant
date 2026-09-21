@@ -13,7 +13,30 @@ WHAT IS REAL HERE AND WHAT IS A DOUBLE — stated up front, because a probe that
   THEREFORE this device proves what the gate BINDS TO. It does not certify any archived path's simulation, and no case here is
          evidence that a published flatten_log was ever altered.
 
+  ⚠ CORRECTION 2026-09-21, and it cuts AGAINST me. I first wrote up the line above as "no real 32-seed run has ever been
+    gated". That was a statement about THIS MACHINE promoted into a statement about the gate, and it is wrong. The lead
+    checked on pod2 and found: all 30/30 approved-table entries present on disk (0 missing); `bt_gate_external.py` itself
+    contains NO double, stub, fixture or injection point — it calls DL.verify_pins (:219), DL.import_modules (:221),
+    DL.load_context (:229) and DL.run_one (:235) directly; and an independent full-coverage re-execution against the real
+    run directory with `--reproduce all` gave
+        BT_GATE_EXTERNAL VERDICT: PASS 77/77 checks (inputs re-hashed from source against the approved table;
+        32/32 paths recomputed bitwise from those inputs)            exit 0
+        receipt: coverage.n_reproduced = 32, full = true, not_certified = []
+    So: the author's committed PASS 77/77 is a receipt; an INDEPENDENT full-coverage re-execution was performed separately
+    by the lead on pod2 against the 30 approved inputs, and THE GATE ITSELF CARRIES NO DOUBLES. The four doubles named
+    above live in THIS TEST DEVICE, which is the correct place for them, and that part of the statement stands.
+    Why this correction is worth its own paragraph: over-stating a coverage gap is the same error as a check that certifies
+    less than it appears to, with the sign flipped. It sends a reviewer hunting a hole that is not there while the real one
+    (P3, below) sits beside it.
+
 CASES (each is its own fixture directory; nothing in a published run directory is touched)
+  P3   OPEN, NOT CLOSED — the approval table is this gate's root of trust and is NOT pinned. `bt_gate_external.py:51` takes
+       the table from the CALLER and `:197` only records its SHA; it is never compared to a fixed git revision or table
+       digest. A caller who swaps BOTH the table AND the input it names passes on the old gate and on the new one
+       (old_exit_code 0, new_exit_code 0). Pinning it to a git revision is a real change that needs a ruling and was not
+       made inside a fix task. MITIGATION, and it is a mitigation and not a closure: the committed gate receipts do record
+       an approval-table SHA matching the committed table (7be371ce…). This row is deliberately a PASS that says NOT_FIXED,
+       so the gap stays visible instead of disappearing into a green count.
   C0   baseline, untouched fixture                                            → OLD green, NEW green   (green baseline FIRST)
   C1   negative control: one stored array altered and re-signed               → OLD red,   NEW red     (the harness can go red)
   G02  the sidecar's `flatten_log` gains one day-stop, every npz byte kept    → OLD green, NEW RED
@@ -320,7 +343,35 @@ out = dict(device="bt_gate_binding_test.py", self_sha256=DL.sha(os.path.abspath(
                           "receipt, and the real bt_p2_reading consumer for G-02",
                   "doubles": ["DL.verify_pins", "DL.import_modules", "DL.load_context", "DL.run_one"],
                   "not_claimed": "no archived path's simulation is certified here, and no published flatten_log is claimed to "
-                                 "have been altered"},
+                                 "have been altered",
+                  "doubles_live_HERE_not_in_the_gate": "the four doubles above are in THIS TEST DEVICE. bt_gate_external.py "
+                                                       "itself contains no double, stub, fixture or injection point: it calls "
+                                                       "DL.verify_pins (:219), DL.import_modules (:221), DL.load_context "
+                                                       "(:229) and DL.run_one (:235) directly",
+                  "correction_2026-09-21_against_me": {
+                      "what_I_wrote": "no real 32-seed run has ever been gated; the 30 approved inputs do not exist",
+                      "why_it_was_wrong": "a statement about THIS MACHINE promoted into a statement about the gate",
+                      "what_is_true": "all 30/30 approved-table entries are present on pod2 (0 missing), and an INDEPENDENT "
+                                      "full-coverage re-execution was performed by the lead on pod2 against the real run "
+                                      "directory with --reproduce all",
+                      "independent_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 77/77 checks (inputs re-hashed from source "
+                                                  "against the approved table; 32/32 paths recomputed bitwise from those inputs)",
+                      "independent_exit_code": 0,
+                      "independent_coverage": {"n_reproduced": 32, "full": True, "not_certified": []},
+                      "what_still_stands": "the four doubles in THIS device, and the P3 root-of-trust gap below",
+                      "why_this_matters": "over-stating a coverage gap is the same error as a check that certifies less than "
+                                          "it appears to, with the sign flipped: it sends a reviewer hunting a hole that is "
+                                          "not there while the real one (P3) sits beside it"}},
+           P3_open_not_closed={
+               "status": "OPEN — needs a ruling, deliberately not closed inside a fix task",
+               "what": "the approval table is this gate's root of trust and is NOT pinned: bt_gate_external.py:51 takes it from "
+                       "the CALLER, :197 only records its SHA, and it is never compared to a fixed git revision or table digest",
+               "consequence": "a caller who swaps BOTH the table AND the input it names passes on the old gate and the new one",
+               "old_exit_code": 0, "new_exit_code": 0,
+               "mitigation_NOT_closure": "the committed gate receipts do record an approval-table SHA matching the committed "
+                                         "table (7be371ce…). That is a mitigation; it is not a pin and it does not close this.",
+               "why_it_is_a_PASS_row": "recorded as a PASS that says NOT_FIXED, so the gap stays visible instead of "
+                                       "disappearing into a green count"},
            argv=sys.argv, numpy=np.__version__, table=ROWS, checks=RES, failed=fails,
            VERDICT="PASS" if not fails else "RED", runtime_s=round(time.time() - T0, 1))
 json.dump(out, open(OUTP, "w"), indent=1, default=str)

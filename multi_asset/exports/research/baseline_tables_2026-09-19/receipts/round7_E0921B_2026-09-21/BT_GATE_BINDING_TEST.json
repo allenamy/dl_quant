@@ -1,6 +1,6 @@
 {
  "device": "bt_gate_binding_test.py",
- "self_sha256": "06a5ab0415ab57bcf097a7f21a4e6777e853dac03949bd2b4cbf65eaf643ba89",
+ "self_sha256": "6e51281d77d9c3c982788d637880278b2927c0957d8d26dc5b36a9399d57dfb5",
  "gate_sha256": "f8b0201cee22ea55e7f3eb07aea74553ff545edf19e5d2ac1cbdcf56e9bdbab7",
  "bindings_sha256": "e52060b301875d14620323bc0fb69c029af2f212aa7c16b1bfb33a2b999030bc",
  "prefix_gate": {
@@ -16,11 +16,35 @@
    "DL.load_context",
    "DL.run_one"
   ],
-  "not_claimed": "no archived path's simulation is certified here, and no published flatten_log is claimed to have been altered"
+  "not_claimed": "no archived path's simulation is certified here, and no published flatten_log is claimed to have been altered",
+  "doubles_live_HERE_not_in_the_gate": "the four doubles above are in THIS TEST DEVICE. bt_gate_external.py itself contains no double, stub, fixture or injection point: it calls DL.verify_pins (:219), DL.import_modules (:221), DL.load_context (:229) and DL.run_one (:235) directly",
+  "correction_2026-09-21_against_me": {
+   "what_I_wrote": "no real 32-seed run has ever been gated; the 30 approved inputs do not exist",
+   "why_it_was_wrong": "a statement about THIS MACHINE promoted into a statement about the gate",
+   "what_is_true": "all 30/30 approved-table entries are present on pod2 (0 missing), and an INDEPENDENT full-coverage re-execution was performed by the lead on pod2 against the real run directory with --reproduce all",
+   "independent_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 77/77 checks (inputs re-hashed from source against the approved table; 32/32 paths recomputed bitwise from those inputs)",
+   "independent_exit_code": 0,
+   "independent_coverage": {
+    "n_reproduced": 32,
+    "full": true,
+    "not_certified": []
+   },
+   "what_still_stands": "the four doubles in THIS device, and the P3 root-of-trust gap below",
+   "why_this_matters": "over-stating a coverage gap is the same error as a check that certifies less than it appears to, with the sign flipped: it sends a reviewer hunting a hole that is not there while the real one (P3) sits beside it"
+  }
+ },
+ "P3_open_not_closed": {
+  "status": "OPEN \u2014 needs a ruling, deliberately not closed inside a fix task",
+  "what": "the approval table is this gate's root of trust and is NOT pinned: bt_gate_external.py:51 takes it from the CALLER, :197 only records its SHA, and it is never compared to a fixed git revision or table digest",
+  "consequence": "a caller who swaps BOTH the table AND the input it names passes on the old gate and the new one",
+  "old_exit_code": 0,
+  "new_exit_code": 0,
+  "mitigation_NOT_closure": "the committed gate receipts do record an approval-table SHA matching the committed table (7be371ce\u2026). That is a mitigation; it is not a pin and it does not close this.",
+  "why_it_is_a_PASS_row": "recorded as a PASS that says NOT_FIXED, so the gap stays visible instead of disappearing into a green count"
  },
  "argv": [
   "bt_gate_binding_test.py",
-  "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/final2/bt_gate_binding_test.scratch",
+  "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/r8/gb.scratch",
   "../receipts/round7_E0921B_2026-09-21/BT_GATE_BINDING_TEST.json"
  ],
  "numpy": "1.26.4",
@@ -317,7 +341,7 @@
    "detail": {
     "baseline_end_return_P2": 0.06152015060099969,
     "after_the_sidecar_edit": 0.010000000000000009,
-    "npz_sha_unchanged": true
+    "npz_sha_unchanged": false
    }
   },
   {
@@ -536,5 +560,5 @@
  ],
  "failed": [],
  "VERDICT": "PASS",
- "runtime_s": 2.0
+ "runtime_s": 249.6
 }
