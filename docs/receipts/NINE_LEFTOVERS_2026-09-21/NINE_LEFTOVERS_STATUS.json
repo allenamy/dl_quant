@@ -1,0 +1,86 @@
+{
+ "receipt": "round8_nine_leftovers_status",
+ "utc": "2026-09-21T04:43:18Z",
+ "source": "REVIEW_round8_2026-09-21.md §3.6 (nine items, in the order the review gives)",
+ "items": [
+  {
+   "id": "G-03",
+   "status": "CLOSED — landed AFTER the review's freeze, re-verified by me here",
+   "by": "4c7954a93 + 0b40d79a0 (not mine)",
+   "requirement": "approved seed/arm population must match the actual members one for one; a shrunken population or a repeated member must not pass",
+   "my_verification": [
+    "BT_AGG_TEST VERDICT: ALL PASS 36/36 checks (baseline asserted GREEN on the new aggregator first) exit 0",
+    "BT_GATE_BINDING_TEST VERDICT: ALL PASS 23/23 checks (baseline asserted green on BOTH gates first; every G-02/G-03 mutation green on the pre-fix gate and RED on the fixed one) exit 0"
+   ],
+   "note": "the fix compares SETS, not counts, and rebuilds the schema as a symmetric union so a deleted OR added array is caught — class-shaped, not three named keys"
+  },
+  {
+   "id": "G-04",
+   "status": "CLOSED — landed after the freeze, re-verified",
+   "by": "4c7954a93",
+   "requirement": "whole/measured on both sides plus member closure, block by block; missing or altering one side must be refused",
+   "my_verification": [
+    "BT_AGG_TEST VERDICT: ALL PASS 36/36 checks exit 0"
+   ]
+  },
+  {
+   "id": "G-05",
+   "status": "CLOSED — landed after the freeze, re-verified",
+   "by": "4c7954a93",
+   "requirement": "cover every declared statistic type; new min/max/p50/std must not bypass the on-write check",
+   "my_verification": [
+    "BT_AGG_TEST VERDICT: ALL PASS 36/36 checks exit 0"
+   ]
+  },
+  {
+   "id": "FB-04",
+   "status": "CLOSED — landed after the freeze (not re-run by me: needs the frozen fallback inputs)",
+   "by": "118485ea3 + 6bba6e9fe + d7836411e",
+   "requirement": "after really removing the arm's input the tables/summary/read-back must complete with the real consumed status; the sensitivity label must travel with every table automatically",
+   "my_verification": "NOT RE-RUN BY ME. The owner's receipts report FCF_F4BP_VS_KC_FIXTURE VERDICT=PASS steps=4 failed=0 exit 0 and FCF_DOC_CHECK / FCF_DEMOTION_DRILL verdicts; I did not reproduce them and do not certify them here."
+  },
+  {
+   "id": "FB-03",
+   "status": "CLOSED BY ME (documentary correction; no verdict moved)",
+   "requirement": "separate 'ledger length -1' from 'the active 900 window is permanently misaligned'; withdraw the permanent-misalignment claim with evidence",
+   "what_i_did": "AMENDMENT_4:45's second clause withdrawn in place, original bytes quoted. The cumulative length really does differ by 1; the ACTIVE window does not. The frozen producer consumes LR[-look:], not an absolute index; the reviewer's reconstruction gives lr_len error 0 over all 10,039 records, the missing entry is only the first source anchor 1643587200, and once both sides satisfy look=900 the last-900 source-anchor sequences are identical on 9,138/9,138 anchors. Exactly one anchor (1656547200) diverges, 900 vs 899.",
+   "verdict_unchanged": "A1's literal 'the seat agrees everywhere' really did fail and A1' did not cover that anchor: REFUSED and the demotion stand. Only the mechanism description moved."
+  },
+  {
+   "id": "FB-05",
+   "status": "CLOSED BY ME (documentary correction; the withdrawn narrative is gone)",
+   "requirement": "numerator and denominator on the same window and the same population; separate whole-window 70 from HIST 2/1323; withdraw '5% dominated / 95% irrelevant'",
+   "what_i_did": "RESULT:690 and RESULT:47 corrected in place with the original bytes quoted. The 70 anchors come from the WHOLE judge window (2022-07-01..2024-03-02); 1,323 is the HIST fallback population. The document's own table already contained the refutation: 1,323 with the all-rev24 anchors and 1,321 without ⇒ only 2 of them are in HIST ⇒ 2/1,323 = 0.151%, not 5.3%. The '5% bad / 95% irrelevant' sentence is withdrawn entirely.",
+   "what_survives": "on the HIST fallback population, removing those 2 anchors moves F0 only from -1.2438 to -1.2335 — a statement that THIS population is insensitive to THAT subset, not a statement about rev24 elsewhere. The whole-window 70-anchor descriptive reading is unaffected but must not be quoted across populations."
+  },
+  {
+   "id": "STY-05",
+   "status": "CLOSED BY ME",
+   "receipt": "docs/receipts/STY03_04_05_2026-09-21/STY03_04_05.json",
+   "verdict": "CF_BETA_READ_GATES ALL PASS checks=11 failed=0 (exit 0)"
+  },
+  {
+   "id": "STY-04",
+   "status": "CLOSED BY ME, re-run on pod2 with real data",
+   "verdict": "CF_READ VERDICT=PASS checks=9 failed=[] receipt_sha256=9260ad6c… (exit 0)",
+   "cross_check": "all four cells the reviewer independently recomputed reproduce exactly"
+  },
+  {
+   "id": "STY-03",
+   "status": "CLOSED BY ME (wording; the GAP arithmetic was already correct)",
+   "bound_by": "the withdrawal scanner's STY03_SUBSTITUTES token, verified to fire on the original sentence"
+  }
+ ],
+ "also": {
+  "G-01": "CLOSED after the freeze by a79001ef5 (E-0921-B), not mine, not re-verified by me",
+  "G-02": "CLOSED after the freeze by 4c7954a93; re-verified via BT_GATE_BINDING_TEST ALL PASS 23/23 exit 0",
+  "FB-01": "CLOSED after the freeze by 118485ea3, not mine",
+  "FB-02": "CLOSED after the freeze by 6bba6e9fe (E-0921-E), not mine"
+ },
+ "not_re_run_by_me_stated_rather_than_omitted": [
+  "bt_gate_tamper_test.py — needs <approved_inputs.json> <run_config.json> <source_run_dir> <n_seeds>, i.e. a real run tree; it is the G-02 tamper suite and its verdict in commit 4c7954a93 is the OWNER's measurement, not mine",
+  "the FB-01/FB-02/FB-04 fixture suites — they need the frozen fallback inputs; I report the owner's verdicts as theirs",
+  "G-01's re-issued P2 tables — the review assigns their window-end / cutoff verification to the main review domain"
+ ],
+ "scanner_after_fb03_fb05": "STY_SCAN VERDICT=PASS control_scopes_reached=4/4 not_reached=[] files_scanned={'repo_body': 8905, 'memory_body': 481, 'memory_description': 481, 'memory_index': 1} frozen_json_excluded=3604 self_excluded=6 open=0 annotated=41 unreadable=0 (exit 0); both new tokens verified to FIRE on the original sentences before those sentences were corrected"
+}

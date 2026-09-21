@@ -26,7 +26,7 @@
   }
  },
  "files_scanned": {
-  "repo_body": 8899,
+  "repo_body": 8905,
   "memory_body": 481,
   "memory_description": 481,
   "memory_index": 1
@@ -41,8 +41,8 @@
    "multi_asset/exports/research/sty_closure_2026-09-21/devices/rehearsal_contract_identity.py",
    "multi_asset/exports/research/sty_closure_2026-09-21/devices/sty_scan.py"
   ],
-  "repo_body": 8899,
-  "repo_frozen_json_excluded": 3603,
+  "repo_body": 8905,
+  "repo_frozen_json_excluded": 3604,
   "repo_frozen_json_examples": [
    "configs/abl11/A_450_pat10.json",
    "configs/abl11/B_550_pat5.json",
@@ -52,7 +52,7 @@
   ]
  },
  "n_open": 0,
- "n_closed_annotated": 37,
+ "n_closed_annotated": 41,
  "open_by_token": {},
  "open": [],
  "closed": [
@@ -99,6 +99,17 @@
    "annotated": true,
    "why_wrong": "GAP_LOO < 0 推不出替代: 纯互补 v(S)=1{S=N} 给 GAP = −2, 纯替代 v(S)=1{S≠∅} 给 GAP = +1 — 符号方向恰好相反 (STY-03)",
    "must_say": "「留一不可相加, 存在不可忽略的交互与基线/门约定效应」; 也不得反过来说「已证明互补」"
+  },
+  {
+   "scope": "repo_body",
+   "path": "docs/AMENDMENT_4_fallback_counterfactual_2026-09-20.md",
+   "line": 45,
+   "token": "FB03_PERMANENT_MISALIGNMENT",
+   "text": "**账本的一条相位差是永久的**(`lr_len` 899 vs 900), 它不是一次性扰动 —— 原句逐字保留: 「它让 msharpe 的**输入窗口内容永久错开一条**。」⚠ **后半句已撤回**(FB-03, 第七轮独立复审): **累计长度永久差 1 是真的; 「活动窗口内容永久错开」不是。** 冻结生产者 `shadow_loop_v3_replay_F4bp.py` L402–416 / L433–439 在进入数据驱动",
+   "matched": "输入窗口内容永久错开",
+   "annotated": true,
+   "why_wrong": "累计长度永久差 1 为真, 但活动窗口只消费 LR[-look:] — 9,138/9,138 个末 900 来源锚序列完全相同, 只有 1656547200 一个锚分岔 (FB-03)",
+   "must_say": "「永久不同的是累计长度, 不是活动数据窗口」; 判词 REFUSED 与降级不变"
   },
   {
    "scope": "repo_body",
@@ -267,6 +278,28 @@
   },
   {
    "scope": "repo_body",
+   "path": "docs/RESULT_fallback_counterfactual_2026-09-20.md",
+   "line": 47,
+   "token": "FB05_5PCT_DOMINATED",
+   "text": "> 同时保留一条关于 rev24 的强陈述(来自被判 REFUSED 的 F4b, §8.1): **席位把 100% 权重给 rev24 的锚有 172/10,039(1.7%)**(2023 有 83 个, 2024 有 21 个), 在那些锚上「去掉 rev24 的 king 书」根本没有定义 ⇒ **rev24 不是搭便车的腿**。这与「它是不是这次亏损的主因未知」**不矛盾**: 前者说它在自己主导的锚上举足轻重, 后者说它在",
+   "matched": "rev24 的强陈述(来自被判 REFUSED 的 F4b, §8.1): **席位把 100% 权重给 rev24 的锚有 172/10,039(1.7%)*",
+   "annotated": true,
+   "why_wrong": "70 取自整个判官窗, 1,323 是 HIST 回退人口 — 分子分母不同人口 (FB-05)",
+   "must_say": "同窗同人口是 2 / 1,323 = 0.151%; 「5% 上很糟 / 95% 上近乎无关」整句作废"
+  },
+  {
+   "scope": "repo_body",
+   "path": "docs/RESULT_fallback_counterfactual_2026-09-20.md",
+   "line": 690,
+   "token": "FB05_5PCT_DOMINATED",
+   "text": "**但它解释不了总账**: 原句逐字保留 ⚠**已撤回**(FB-05, 第七轮独立复审) —— 「这样的回退锚只有 **70 / 1,323 = 5.3%**, 所以剔除它们之后 F0 只从 −1.2438 动到 −1.2335。⇒ **「rev24 不是搭便车的腿」与「rev24 不解释这次的亏损」同时为真, 并不矛盾** —— 它在自己主导的 5% 锚上很糟, 在其余 95% 上近乎无关。」",
+   "matched": "回退锚只有 **70 / 1,323 = 5.3%**, 所以剔除它们之后 F0 只从 −1.2438 动到 −1.2335。⇒ **「rev24 不是搭便车的",
+   "annotated": true,
+   "why_wrong": "70 取自整个判官窗, 1,323 是 HIST 回退人口 — 分子分母不同人口 (FB-05)",
+   "must_say": "同窗同人口是 2 / 1,323 = 0.151%; 「5% 上很糟 / 95% 上近乎无关」整句作废"
+  },
+  {
+   "scope": "repo_body",
    "path": "docs/RESULT_style_beta_on_counterfactual_worlds_2026-09-20.md",
    "line": 21,
    "token": "STY01_POSITIVELY_EXCLUDED",
@@ -415,6 +448,17 @@
    "token": "STY_BETA_NO_CONTRIBUTION",
    "text": "**STY-01 一并接受**(本行「正面排除 / 强支持 / 无贡献」三处皆为**已撤回措辞的引用**, 不是主张): 我确实把 UNDECIDED 写成了「正面排除 / 强支持」。NONE 的逐名残差改善 **+1.5547 [0.1050, 2.9610] 不是零**, β **−0.0661 [−0.7022, +0.6331] 不显著 ≠ 无贡献**。正式判词维持 UNDECIDED。",
    "matched": "β **−0.0661 [−0.7022, +0.6331] 不显著 ≠ 无贡献",
+   "annotated": true,
+   "why_wrong": "p = 0.84 是不显著, 不是零; 「不显著 ≠ 无贡献」(round-8 §1 接受的收窄)",
+   "must_say": "「共同项 −0.065, CI [−0.702, +0.633], p = 0.84 ⇒ 未能识别出贡献」"
+  },
+  {
+   "scope": "repo_body",
+   "path": "docs/receipts/STY03_04_05_2026-09-21/STY03_04_05.json",
+   "line": 34,
+   "token": "STY_BETA_NO_CONTRIBUTION",
+   "text": "\"what\": \"the withdrawal scanner accepted a marker ANYWHERE on the line. That marked RESULT_attribution:48 closed: the line opens with 「市场 β 对这个改善没有贡献」 and ends with 「…已作废(E-0920-B)」, and the 作废 belongs to a DIFFERENT cla",
+   "matched": "β 对这个改善没有贡献",
    "annotated": true,
    "why_wrong": "p = 0.84 是不显著, 不是零; 「不显著 ≠ 无贡献」(round-8 §1 接受的收窄)",
    "must_say": "「共同项 −0.065, CI [−0.702, +0.633], p = 0.84 ⇒ 未能识别出贡献」"

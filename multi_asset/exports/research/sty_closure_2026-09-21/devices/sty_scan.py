@@ -49,6 +49,15 @@ TOKENS = [
     ("STY03_SUBSTITUTES", r"(三个?信号|三信号|GAP_?LOO|留一)[^。\n]{0,80}(是\*{0,2}替代品|互相\*{0,2}替代)|(是\*{0,2}替代品|互相\*{0,2}替代)[^。\n]{0,80}(三个?信号|三信号|留一)",
      "GAP_LOO < 0 推不出替代: 纯互补 v(S)=1{S=N} 给 GAP = −2, 纯替代 v(S)=1{S≠∅} 给 GAP = +1 — 符号方向恰好相反 (STY-03)",
      "「留一不可相加, 存在不可忽略的交互与基线/门约定效应」; 也不得反过来说「已证明互补」"),
+    # NOTE the gap class here is [^\n], not [^。\n]: on RESULT:47 the anchor word `rev24` and the claim 「主导的 5.3% 锚」
+    # sit in DIFFERENT sentences of the same line, and a sentence-bounded gap could not reach across. The two anchor terms
+    # are specific enough that widening the gap does not open the token up — measured: 0 false positives over 8,905 files.
+    ("FB05_5PCT_DOMINATED", r"70\s*/\s*1[,.]?323|(rev24|回退锚)[^\n]{0,260}(主导的 ?5(\.3)? ?%|其余 ?95 ?%)|(主导的 ?5(\.3)? ?%|其余 ?95 ?%)[^\n]{0,260}(rev24|回退锚)",
+     "70 取自整个判官窗, 1,323 是 HIST 回退人口 — 分子分母不同人口 (FB-05)",
+     "同窗同人口是 2 / 1,323 = 0.151%; 「5% 上很糟 / 95% 上近乎无关」整句作废"),
+    ("FB03_PERMANENT_MISALIGNMENT", r"(输入)?窗口(内容)?\s*\*{0,2}永久错开|永久错位|窗口\s*\*{0,2}永久\s*\*{0,2}错",
+     "累计长度永久差 1 为真, 但活动窗口只消费 LR[-look:] — 9,138/9,138 个末 900 来源锚序列完全相同, 只有 1656547200 一个锚分岔 (FB-03)",
+     "「永久不同的是累计长度, 不是活动数据窗口」; 判词 REFUSED 与降级不变"),
     ("H02_214PP", r"214\s*pp|213\.997|213\.9970",
      "214pp 是从缩小后的本金起算的后续收益, 不是同一本金下的差 (E-0921-D)",
      "同一本金下 159.902772pp (约 160pp)"),
