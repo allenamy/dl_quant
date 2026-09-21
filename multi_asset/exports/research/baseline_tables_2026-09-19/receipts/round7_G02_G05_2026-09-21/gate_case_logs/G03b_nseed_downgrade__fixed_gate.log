@@ -1,0 +1,36 @@
+PASS E1.calibration.sha_from_its_own_path_equals_the_approved_table {"path": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/work/R2/gb_scr/G03b_nseed_downgrade/CALIBRATION.json", "got": "7eccee497225ef46", "approved": "7eccee497225ef46"}
+PASS E1.price_full_raw.sha_from_its_own_path_equals_the_approved_table {"path": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/work/R2/gb_scr/G03b_nseed_downgrade/price_full_raw.npy", "got": "3c3d49b92ca784b9", "approved": "3c3d49b92ca784b9"}
+PASS E1.exec_sim.sha_from_its_own_path_equals_the_approved_table {"path": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/work/R2/gb_scr/G03b_nseed_downgrade/exec_sim.py", "got": "31baf1476fad82e9", "approved": "31baf1476fad82e9"}
+PASS E1.every_approved_input_present []
+PASS E2.economics_block_sha_equals_the_approved_one {"got": "90ec9b50e5b23778", "approved": "90ec9b50e5b23778", "block": "current_production_config + nav0_usdt + paths_R"}
+PASS E2.initial_cash_equals_the_approved_constant {"config": 100.0, "approved": 100.0}
+PASS E3.run_config_pins_match_the_approved_table {}
+PASS E3.target_files_named_by_the_runs_are_approved {}
+PASS E0.the_seed_population_comes_from_the_approved_economics_not_from_the_caller {"approved_paths_R": 2, "seeds": [0, 1]}
+FAIL E0.the_caller_may_not_shrink_the_population (n_seeds on the command line must BE the approved population) {"argv_n_seeds": 1, "approved_paths_R": 2}
+PASS E4.all_paths_present {"quantity": "stored path files", "missing": [], "unexpected": [], "repeated": [], "n_listed": 2, "n_distinct": 2, "n_approved": 2, "ok": true}
+PASS E6.each_path_npz_matches_the_sha_in_its_own_json []
+PASS E4.every_path_declares_the_run_tag_of_its_directory_and_its_own_seed {}
+PASS E4.initial_state_of_every_path_equals_the_approved_initial_cash_and_a_flat_book {"approved_nav0": 100.0, "bad": {}}
+PASS E5.every_stored_path_declares_the_SAME_array_schema (a deleted array is a missing member, not an absent key to skip) {"distinct_schemas": 1, "by_path": "one schema"}
+PASS E6.the_AGG_averages_EXACTLY_the_approved_population_once_each (sets, not counts) {"quantity": "aggregate members", "missing": [], "unexpected": [], "repeated": [], "n_listed": 2, "n_distinct": 2, "n_approved": 2, "ok": true}
+PASS E6.AGG_listing_json_shas_match_the_sidecars []
+PASS E6.AGG_listing_shas_match_the_files {"n_paths": 2}
+PASS E6.AGG_equals_the_mean_of_the_path_files {"keys": 21, "n_paths": 2}
+PASS E7.every_sidecar_field_a_consumer_reads_is_either_recomputed_or_certified_by_a_NAMED_check {"ok": true, "consumed_fields_bound_by_recomputation": ["calibration_params_used", "events_fired_counts", "flatten_log", "policy", "price", "sealed_initial_sha256", "seed", "tag", "ua_counters", "ua_set"], "consumed_fields_certified_otherwise": {"calibration_sha256": "E7.save_time_calibration_sha_eq
+PASS E7.no_consumer_reads_a_sidecar_field_this_gate_does_not_bind (source census; an omission detector, not a proof) {"undeclared_fields_a_consumer_reads": {}, "declared_but_no_consumer_reads_them": ["calibration_params_used", "price", "seed", "ua_set"], "listed_consumers_that_load_no_sidecar": [], "files_that_touch_a_sidecar_and_are_classified_as_neither": [], "fields_found": ["calibration_sha256", "config_sha256
+PASS E7.the_save_time_fields_name_the_approved_price_table_the_approved_calibration_and_the_config_the_gate_was_given {}
+PASS E7.the_device_shas_of_the_code_E5_EXECUTES_match_the_files_here ['bt_hist_sim31.py', 'bt_driver_lib.py', 'exec_sim.py'] {}
+PASS E7.the_other_device_shas_the_archive_names_still_resolve_to_a_file_here_and_match (the launcher: it computes no number, so this is named separately — a red here is code drift around the run, not a different number) {}
+PASS E5.reproduce_count_is_positive (a zero-measurement pass is refused) {"--reproduce": "all", "seeds_to_reproduce": 2}
+PASS E5.pins_verify_against_the_approved_paths []
+PASS E5.the_anchors_being_reproduced_are_on_the_config_axis {"first": 1767225600, "n": 6}
+PASS E5.context_loads_from_the_approved_inputs []
+PASS E5.seed00.re-run_from_external_inputs_is_bitwise_the_stored_path {"differing": {}}
+PASS E5.seed00.the_archive_holds_EXACTLY_the_arrays_the_simulator_emits {"absent_from_the_archive": [], "absent_from_the_recomputation": []}
+PASS E7.seed00.the_sidecar_json_the_readers_use_is_reproduced_field_for_field {"absent_from_the_archive": [], "absent_from_the_recomputation": [], "differing": [], "exempt_and_certified_elsewhere": ["calibration_sha256", "config_sha256", "device_sha256", "npz_sha256", "price_pin", "runtime_s"], "compared": 6, "ok": true}
+FAIL E5.seed01.re-run_from_external_inputs_is_bitwise_the_stored_path {"differing": {"navm1": {"n_differ": 6, "max_abs_delta": 11.261624192640014}}}
+PASS E5.seed01.the_archive_holds_EXACTLY_the_arrays_the_simulator_emits {"absent_from_the_archive": [], "absent_from_the_recomputation": []}
+PASS E7.seed01.the_sidecar_json_the_readers_use_is_reproduced_field_for_field {"absent_from_the_archive": [], "absent_from_the_recomputation": [], "differing": [], "exempt_and_certified_elsewhere": ["calibration_sha256", "config_sha256", "device_sha256", "npz_sha256", "price_pin", "runtime_s"], "compared": 6, "ok": true}
+PASS E5.every_reproduced_seed_accounted_for {"quantity": "seeds reproduced", "missing": [], "unexpected": [], "repeated": [], "n_listed": 2, "n_distinct": 2, "n_approved": 2, "ok": true}
+BT_GATE_EXTERNAL VERDICT: FAILURES 2/35: ['E0.the_caller_may_not_shrink_the_population (n_seeds on the command line must BE the approved population)', 'E5.seed01.re-run_from_external_inputs_is_bitwise_the_stored_path']

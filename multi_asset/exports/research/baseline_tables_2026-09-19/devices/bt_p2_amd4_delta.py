@@ -35,6 +35,12 @@ def sha(p):
     return h.hexdigest()
 
 
+def one_value(x):
+    """a single published statistic: since 2026-09-21 (round-7 G-05) it is a bt_agg.one_value_block carrying its own n_eff, and
+    before that it was a bare scalar. Both shapes compare, so this delta still reads receipts written on either side of that fix."""
+    return x.get("value") if isinstance(x, dict) else x
+
+
 def ok(name, cond, detail=None):
     RES.append(dict(check=name, ok=bool(cond), detail=detail))
     if not cond: print("FAIL " + name, json.dumps(detail, default=str)[:300], flush=True)
@@ -84,9 +90,9 @@ for arm in ARMS:
                 omp, nmp = O["bases"][bn][H]["mean_path"], N["bases"][bn][H]["W_CARRY"]["mean_path"]
                 ok(f"R8 {arm}.{lbl}.{bn}.H={H}: mean-path window end and median breach anchor unchanged",
                    (eq(omp["end_return_P2"], nmp["end_return_P2"]) if nmp["has_measurement"] else omp["end_return_P2"] == 0.0)
-                   and eq(oS["cum25_anchor_median"], nS["cum25_anchor_median_utc"]),
+                   and eq(oS["cum25_anchor_median"], one_value(nS["cum25_anchor_median_utc"])),
                    {"old_meanpath": omp["end_return_P2"], "new_meanpath": nmp["end_return_P2"], "new_has_measurement": nmp["has_measurement"],
-                    "old_median_anchor": oS["cum25_anchor_median"], "new_median_anchor": nS["cum25_anchor_median_utc"]})
+                    "old_median_anchor": oS["cum25_anchor_median"], "new_median_anchor": one_value(nS["cum25_anchor_median_utc"])})
                 # DELTA: the main reading vs what was published
                 E = N["bases"][bn][H]["W_ENTRY"]["summary"]
                 DELTA.append({"arm": arm, "run": lbl, "scope": "base " + bn, "H": str(H),

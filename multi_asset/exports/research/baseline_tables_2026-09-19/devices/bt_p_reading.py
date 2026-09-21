@@ -107,6 +107,17 @@ def halt_of(p, base_i, threshold, upto_i=None, day_end_only=False):
             "end_return_phalt": float(cum[j]), "anchors_after_halt": int(hi - 1 - g), "share_anchors_after_halt": float((hi - 1 - g) / max(hi - base_i, 1))}
 
 
+def median_anchor_block(per):
+    """the median FIRST-BREACH anchor, carrying its own effective sample size (AMENDMENT 4 §A4). It used to be persisted as a BARE
+    SCALAR beside `fired_paths` — 18 of them per document — and the pre-fix sweep never looked at it because its key is
+    `first_breach_median` and the trigger was the whitelist (mean, median, p05, p95). Round-7 review G-05: the trigger is now
+    inverted, and this is one of the two real instances it found in the committed receipts."""
+    v = sorted(x["halt_anchor"] for x in per if x["fired"])
+    return AG.one_value_block(v[len(v) // 2] if v else None, len(v), len(per),
+                              "the median first-breach anchor by the element rule sorted(fired)[k // 2]",
+                              not_applicable={"n": len(per) - len(v), "reason": NO_BREACH})
+
+
 def spread(vals, keys=("end_return_nohalt", "end_return_phalt", "cum_at_halt"), pop="fill paths"):
     """AMENDMENT 4 §A: a closed population, a NAMED no-measurement subset per quantity, and n_eff beside every statistic.
     The numbers themselves are unchanged — reading P never substituted a value for a missing one (`halt_of` always returns a
@@ -156,7 +167,7 @@ def run(cfg_p, outp):
             per_d = [halt_of(p, i0, thr, upto_i, day_end_only=True) for p in P]
             res["p_start"][st_iso] = {"in_window": True, "start_index": i0, "anchors_to_breach_by": int(upto_i - i0 + 1),
                                       "sensitivity_utc_day_ends_only": {"fired_paths": sum(1 for x in per_d if x["fired"]),
-                                                                        "first_breach_median": (sorted([x["halt_anchor"] for x in per_d if x["fired"]])[len([x for x in per_d if x["fired"]]) // 2] if any(x["fired"] for x in per_d) else None)},
+                                                                        "first_breach_median": median_anchor_block(per_d)},
                                       "breach_by_" + PR["breach_by"][:10]: spread(per_b), "to_window_end": spread(per_e),
                                       "first_breach_utc": {"min": min([x["halt_anchor"] for x in per_b if x["fired"]], default=None),
                                                            "median": (sorted([x["halt_anchor"] for x in per_b if x["fired"]])[len([x for x in per_b if x["fired"]]) // 2] if any(x["fired"] for x in per_b) else None),

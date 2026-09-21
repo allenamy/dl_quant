@@ -1,0 +1,405 @@
+{
+ "device": "bt_agg_test.py",
+ "self_sha256": "0bc4cb9ca38a4cc1f6b87f4c0f33520882e1baea7f11370455c1b6fc16de8a8c",
+ "tested": "e657789f9d552ab63bde80c77bc6b7cecff5beed785380b91b100e81843c257e",
+ "argv": [
+  "bt_agg_test.py",
+  "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/work/R/BT_AGG_TEST.json"
+ ],
+ "numpy": "1.26.4",
+ "checks": [
+  {
+   "check": "C0.BASELINE_GREEN new aggregator on a fully measured population == naive np.mean, bit for bit",
+   "ok": true,
+   "detail": {
+    "new_mean": -0.24562,
+    "naive_mean": -0.24562,
+    "n_eff": 5
+   }
+  },
+  {
+   "check": "C0.BASELINE_GREEN the same population also passes the structural sweep (so a later refusal is a real signal)",
+   "ok": true,
+   "detail": {
+    "clause": "A4+A3''",
+    "aggregate_blocks_swept": 2,
+    "min_blocks_required": 2,
+    "violations": 0,
+    "statistic_blocks_swept": 2,
+    "contract_blocks_validated": 1,
+    "unclassified_scalar_keys": 0
+   }
+  },
+  {
+   "check": "C1.the OLD aggregator reports a benign mean, and its n EQUALS the population \u2014 so 'n was reported' was never the guard",
+   "ok": true,
+   "detail": {
+    "old_mean": -0.1849,
+    "old_n": 8,
+    "population": 8,
+    "truth_on_measured": -0.24653333333333335
+   }
+  },
+  {
+   "check": "C1.the NEW aggregator keeps the unmeasured members OUT of the headline mean",
+   "ok": true,
+   "detail": {
+    "measured_mean": -0.24653333333333335,
+    "n_eff": 6
+   }
+  },
+  {
+   "check": "C1.the NEW aggregator NAMES the subset and lists its members (they are findable, not just excluded)",
+   "ok": true,
+   "detail": {
+    "n": 2,
+    "by_reason": {
+     "day-stopped before the window started, so no anchor of this window was ever traded": {
+      "n": 2,
+      "members": [
+       6,
+       7
+      ]
+     }
+    }
+   }
+  },
+  {
+   "check": "C1.the NEW aggregator still reports the whole-population figure, under a NAMED convention (A3'): the old number is not hidden",
+   "ok": true,
+   "detail": {
+    "whole_population_mean": -0.1849,
+    "old_mean": -0.1849,
+    "convention": "a path withheld for the entire window contributes its flat-book return of exactly 0"
+   }
+  },
+  {
+   "check": "C1.the two figures differ by the amount the defect was worth, and both carry n_eff",
+   "ok": true,
+   "detail": {
+    "pp_gap": 6.163333333333335
+   }
+  },
+  {
+   "check": "C2.the OLD shape silently shrank the population: it reports n=3 while being quoted for 5, and the 2 dropped members appear NOWHERE in its output",
+   "ok": true,
+   "detail": {
+    "old": {
+     "mean": 5.396666666666666,
+     "p05": 5.3260000000000005,
+     "median": 5.38,
+     "p95": 5.479,
+     "n": 3
+    },
+    "quoted_for": 5
+   }
+  },
+  {
+   "check": "C2.the NEW aggregator declares the population of 5, measures 3, and NAMES the other reason class",
+   "ok": true,
+   "detail": {
+    "population_n": 5,
+    "n_eff": 3,
+    "reasons": [
+     "this path had no day-stop event at all, so a per-event cost is not applicable to it"
+    ]
+   }
+  },
+  {
+   "check": "C2.this reason is NOT the C1 reason \u2014 the fix is about the class, not about 'never'",
+   "ok": true,
+   "detail": {
+    "C1_reason": "day-stopped before the window started, so no anchor of this window was ever traded",
+    "C2_reason": "this path had no day-stop event at all, so a per-event cost is not applicable to it"
+   }
+  },
+  {
+   "check": "C2.with no convention declared, the whole-population figure is null WITH a reason \u2014 not a number, not an absent key",
+   "ok": true,
+   "detail": {
+    "n_eff": 3,
+    "population_n": 5,
+    "equals_measured": false,
+    "mean": null,
+    "median": null,
+    "p05": null,
+    "p95": null,
+    "min": null,
+    "max": null,
+    "produced_by": "bt_agg._stats",
+    "refused_because": "2/5 members have no measurement and no whole-population convention was declared for them (A3')",
+    "statistic_keys": [
+     "max",
+     "mean",
+     "median",
+     "min",
+     "p05",
+     "p95"
+    ]
+   }
+  },
+  {
+   "check": "C3.a genuinely undefined quantity refuses its whole-population figure instead of inventing one",
+   "ok": true,
+   "detail": {
+    "n_eff": 2,
+    "population_n": 3,
+    "equals_measured": false,
+    "mean": null,
+    "median": null,
+    "p05": null,
+    "p95": null,
+    "min": null,
+    "max": null,
+    "produced_by": "bt_agg._stats",
+    "refused_because": "1/3 members have no measurement and no whole-population convention was declared for them (A3')",
+    "statistic_keys": [
+     "max",
+     "mean",
+     "median",
+     "min",
+     "p05",
+     "p95"
+    ]
+   }
+  },
+  {
+   "check": "C4.a NEW aggregate nobody wrote a rule for is refused, because the sweep walks the document rather than a list of quantities",
+   "ok": true,
+   "detail": {
+    "refusal": "A4 structural sweep: 1 block(s) persist a statistic with no n_eff/population_n beside it. First offenders: [{\"path\": \"$.new_diagnostic_added_later.turnover_ratio\", \"statistics_with_no_sample_size\": [\""
+   }
+  },
+  {
+   "check": "C4.BASELINE_GREEN the same document WITHOUT that block passes \u2014 so C4's red is the block, not a document that was always red",
+   "ok": true,
+   "detail": {
+    "clause": "A4+A3''",
+    "aggregate_blocks_swept": 4,
+    "min_blocks_required": 2,
+    "violations": 0,
+    "statistic_blocks_swept": 4,
+    "contract_blocks_validated": 2,
+    "unclassified_scalar_keys": 0
+   }
+  },
+  {
+   "check": "C5.a document with zero aggregate blocks is REFUSED, not waved through ('zero measurements also passes' does not exempt the guard itself)",
+   "ok": true,
+   "detail": {
+    "refusal": "A4 structural sweep inspected only 0 aggregate block(s) but at least 1 were expected \u2014 a sweep that finds nothing passes vacuously, which is the defect family this contract exists for"
+   }
+  },
+  {
+   "check": "C6.measured-but-None is refused: an unexplained missing value must be NAMED before it can be excluded",
+   "ok": true,
+   "detail": {
+    "refusal": "x: member 0 is classified as MEASURED but its value is None \u2014 an unexplained missing value is not a class, name it in applicability() first (A5)"
+   }
+  },
+  {
+   "check": "C6.unmeasured-but-carries-a-value is refused: the classifier and the data must be reconciled first",
+   "ok": true,
+   "detail": {
+    "refusal": "x: member 0 is classified 'not applicable' yet carries the value 1.0 \u2014 the classifier and the data disagree, reconcile before aggregating (A5)"
+   }
+  },
+  {
+   "check": "C7.a population that is not an explicit closed list is refused (a generator has already hidden its filtering)",
+   "ok": true,
+   "detail": {
+    "refusal": "x: the population must be an explicit closed list, got generator (A1)"
+   }
+  },
+  {
+   "check": "C7.aggregating without declaring an applicability classifier is refused",
+   "ok": true,
+   "detail": {
+    "refusal": "x: no applicability classifier was declared \u2014 a population cannot be aggregated until every member is classified measured / named-not-measured (A2)"
+   }
+  },
+  {
+   "check": "G0.BASELINE_GREEN a document of three real contract blocks passes BOTH the pre-fix sweep and the fixed one \u2014 every G-04/G-05 red below is therefore the mutation, not a document that was always red",
+   "ok": true,
+   "detail": {
+    "fixed_sweep": {
+     "clause": "A4+A3''",
+     "aggregate_blocks_swept": 6,
+     "min_blocks_required": 6,
+     "violations": 0,
+     "statistic_blocks_swept": 6,
+     "contract_blocks_validated": 3,
+     "unclassified_scalar_keys": 0
+    },
+    "prefix_sweep": "green",
+    "contract_blocks": 3
+   }
+  },
+  {
+   "check": "G4a.the PRE-FIX write side accepts whole_population.mean=123456 / n_eff=999 with equals_measured still true",
+   "ok": true,
+   "detail": {
+    "mutation": "equals_measured=true but the two sides now differ"
+   }
+  },
+  {
+   "check": "G4a.the fixed write side REFUSES it at the real persistence entry point, and writes no file",
+   "ok": true,
+   "detail": {
+    "refusal": "A3'' block relations at $.runs.A0.12.W_ENTRY.summary.fully_measured ('end_return_P2'): whole_population claims equals_measured but its n_eff 999 != measured's 5",
+    "file_written": false
+   }
+  },
+  {
+   "check": "G4b.the PRE-FIX side accepts a block with one side DELETED, and its census count is unchanged because `whole_population` was not part of a block's identity \u2014 so the count could be padded back with an unrelated statistics dict",
+   "ok": true,
+   "detail": {
+    "prefix_census": 3,
+    "fixed_census": 2
+   }
+  },
+  {
+   "check": "G4b.the fixed side REFUSES the mutilated block by NAME, writes no file, and its census drops to 2 (the padding cannot compensate)",
+   "ok": true,
+   "detail": {
+    "refusal": "A3'' block relations at $.runs.A0.12.W_ENTRY.summary.fully_measured ('end_return_P2'): required side(s) ['whole_population'] are absent \u2014 a block missing a side is not a smaller block, it is an unread",
+    "fixed_census": 2
+   }
+  },
+  {
+   "check": "G4c.the PRE-FIX side accepts a whole-population mean that its own named convention does not produce",
+   "ok": true,
+   "detail": {
+    "mutation": "convention mean moved by +0.05"
+   }
+  },
+  {
+   "check": "G4c.the fixed side re-derives (n_measured\u00b7mean_measured + n_unmeasured\u00b7value_for_unmeasured)/n and REFUSES",
+   "ok": true,
+   "detail": {
+    "refusal": "A3'' block relations at $.runs.A0.12.W_ENTRY.summary.end_return_P2 ('end_return_P2'): whole_population.mean = -0.13490000000000002 but the named convention forces (6\u00b7-0.24653333333333335 + 2\u00b70.0) / 8 "
+   }
+  },
+  {
+   "check": "G4d.a population that names the same member twice is refused \u2014 [seed0, seed0] has the COUNT of the closed population, which is why counts were never the guard (A1)",
+   "ok": true,
+   "detail": {
+    "refusal": "x: the population names the same member more than once ([0]) \u2014 a population with a repeated member is a SELECTED population wearing the size of the closed one (A1)"
+   }
+  },
+  {
+   "check": "G4e.the PRE-FIX side accepts a no-measurement member that is not in the declared population",
+   "ok": true,
+   "detail": {
+    "mutation": "unmeasured member id 9999, not a member"
+   }
+  },
+  {
+   "check": "G4e.the fixed side REFUSES it (membership closure between the population and the named subsets)",
+   "ok": true,
+   "detail": {
+    "refusal": "A3'' block relations at $.runs.A0.12.W_ENTRY.summary.end_return_P2 ('end_return_P2'): no-measurement member(s) [9999] are not in the declared population (A1/A2)"
+   }
+  },
+  {
+   "check": "G5.every one of min/max/p50/median_element/std \u2014 AND names nobody has used yet (iqr, cvar95) \u2014 is GREEN on the pre-fix whitelist and RED on the inverted trigger. The acceptance question is the last two: a statistic invented tomorrow is caught by NOT being classified, instead of by being remembered.",
+   "ok": true,
+   "detail": {
+    "min": {
+     "prefix_gate_green": true,
+     "fixed_gate_red": true,
+     "refusal": "A4 structural sweep: 1 block(s) persist a statistic with no n_eff/population_n beside it. First offenders: [{\"path\": \"$."
+    },
+    "max": {
+     "prefix_gate_green": true,
+     "fixed_gate_red": true,
+     "refusal": "A4 structural sweep: 1 block(s) persist a statistic with no n_eff/population_n beside it. First offenders: [{\"path\": \"$."
+    },
+    "p50": {
+     "prefix_gate_green": true,
+     "fixed_gate_red": true,
+     "refusal": "A4 structural sweep: 1 block(s) persist a statistic with no n_eff/population_n beside it. First offenders: [{\"path\": \"$."
+    },
+    "median_element": {
+     "prefix_gate_green": true,
+     "fixed_gate_red": true,
+     "refusal": "A4 structural sweep: 1 block(s) persist a statistic with no n_eff/population_n beside it. First offenders: [{\"path\": \"$."
+    },
+    "std": {
+     "prefix_gate_green": true,
+     "fixed_gate_red": true,
+     "refusal": "A4 structural sweep: 1 block(s) persist a statistic with no n_eff/population_n beside it. First offenders: [{\"path\": \"$."
+    },
+    "iqr": {
+     "prefix_gate_green": true,
+     "fixed_gate_red": true,
+     "refusal": "A4 structural sweep: 1 block(s) persist a statistic with no n_eff/population_n beside it. First offenders: [{\"path\": \"$."
+    },
+    "cvar95": {
+     "prefix_gate_green": true,
+     "fixed_gate_red": true,
+     "refusal": "A4 structural sweep: 1 block(s) persist a statistic with no n_eff/population_n beside it. First offenders: [{\"path\": \"$."
+    }
+   }
+  },
+  {
+   "check": "G5.POSITIVE_CONTROL the same injection keyed `mean` IS red on the pre-fix sweep \u2014 so the seven rows above are the whitelist's blind spot and not a harness that cannot refuse anything",
+   "ok": true,
+   "detail": {
+    "prefix": "PRE-FIX A4 structural sweep: [\"$.a_diagnostic_added_later.two.levels\"]"
+   }
+  },
+  {
+   "check": "G5.REAL_SHAPE `cum25_anchor_median_utc` persisted as a bare median beside a summary is green on the pre-fix whitelist and RED now \u2014 this is the shape the committed P/P2 receipts actually carry, and a STRING value, so a type-based trigger would have missed it too",
+   "ok": true,
+   "detail": {
+    "prefix_green": true,
+    "refusal": "A4 structural sweep: 1 block(s) persist a statistic with no n_eff/population_n beside it. First offenders: [{\"path\": \"$.runs.A0.12.W_ENTRY.summary\", \"statistics_with_no_sample_size"
+   }
+  },
+  {
+   "check": "G5.the FIXED producer shape for `cum25_anchor_median_utc` (bt_agg.one_value_block, carrying its own n_eff/population_n) passes",
+   "ok": true,
+   "detail": {
+    "clause": "A4+A3''",
+    "aggregate_blocks_swept": 7,
+    "min_blocks_required": 6,
+    "violations": 0,
+    "statistic_blocks_swept": 7,
+    "contract_blocks_validated": 3,
+    "unclassified_scalar_keys": 0
+   }
+  },
+  {
+   "check": "G5.REAL_SHAPE `first_breach_median` persisted as a bare median beside a summary is green on the pre-fix whitelist and RED now \u2014 this is the shape the committed P/P2 receipts actually carry, and a STRING value, so a type-based trigger would have missed it too",
+   "ok": true,
+   "detail": {
+    "prefix_green": true,
+    "refusal": "A4 structural sweep: 1 block(s) persist a statistic with no n_eff/population_n beside it. First offenders: [{\"path\": \"$.runs.A0.12.W_ENTRY.summary\", \"statistics_with_no_sample_size"
+   }
+  },
+  {
+   "check": "G5.the FIXED producer shape for `first_breach_median` (bt_agg.one_value_block, carrying its own n_eff/population_n) passes",
+   "ok": true,
+   "detail": {
+    "clause": "A4+A3''",
+    "aggregate_blocks_swept": 7,
+    "min_blocks_required": 6,
+    "violations": 0,
+    "statistic_blocks_swept": 7,
+    "contract_blocks_validated": 3,
+    "unclassified_scalar_keys": 0
+   }
+  },
+  {
+   "check": "G5.the refusal NAMES the remedy: an unclassified scalar key is refused with the instruction to classify it in bt_agg.NON_STATISTIC_KEYS with its reason \u2014 failing closed, with the way out written down",
+   "ok": true,
+   "detail": {
+    "refusal": "A4 structural sweep: 1 block(s) persist a statistic with no n_eff/population_n beside it. First offenders: [{\"path\": \"$.a_key_nobody_classified.deeper\", \"statistics_with_no_sample_size\": [\"turnover_ra"
+   }
+  }
+ ],
+ "failed": [],
+ "VERDICT": "PASS",
+ "runtime_s": 0.1
+}

@@ -16,6 +16,12 @@ SEMN = {"W_ENTRY": "W-ENTRY(入场时点, **主读数**)", "W_CARRY": "W-CARRY(�
 def pc(x, n=1): return "—" if x is None else f"{100 * x:+.{n}f}%"
 
 
+def one_value(x):
+    """a single published statistic: since 2026-09-21 (round-7 G-05) it is a bt_agg.one_value_block carrying its own n_eff, and
+    before that it was a bare scalar. Both shapes render, so an already-published receipt still renders."""
+    return x.get("value") if isinstance(x, dict) else x
+
+
 def cell(bk):
     """a mean is never printed without its n_eff, and an all-unmeasured cell prints no number at all"""
     m = bk["measured"]
@@ -41,7 +47,7 @@ def rows(B, sem):
         nm = e["no_measurement"]["n"]
         out.append(f"| {NAME[H]} | {s['paths_that_hit_the_day_stop']['n_true']}/{s['paths_that_hit_the_day_stop']['population']['n']} | "
                    f"{s['paths_that_hit_cum25']['n_true']}/{s['paths_that_hit_cum25']['n_asked']} | "
-                   f"{str(s['cum25_anchor_median_utc'] or '—')[:16].replace('T', ' ')} | {s['anchors_withheld']['measured']['median']:.0f} | "
+                   f"{str(one_value(s['cum25_anchor_median_utc']) or '—')[:16].replace('T', ' ')} | {s['anchors_withheld']['measured']['median']:.0f} | "
                    f"{nm}/{e['population']['n']} | {cell(e)} | {whole(e)} | "
                    f"{pc(mp['end_return_P2']) if mp['has_measurement'] else '—(整窗未交易)'} | {cell(s['end_return_no_halt'])} |")
     return out

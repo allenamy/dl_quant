@@ -243,6 +243,17 @@ def cum25_median_iso(per):
     return v[len(v) // 2] if v else None
 
 
+def cum25_median_block(per):
+    """the same median, carrying its own effective sample size (AMENDMENT 4 §A4). It used to be persisted as a BARE SCALAR beside
+    the summary — 118 of them per document — and the pre-fix sweep never saw it because its key is `cum25_anchor_median_utc` and
+    the trigger was the whitelist (mean, median, p05, p95). Round-7 review G-05: the trigger is now inverted, and this is one of the
+    two real instances it found in the committed receipts."""
+    v = sorted(x["cum25_anchor"] for x in per if x["cum25_anchor"])
+    return AG.one_value_block(v[len(v) // 2] if v else None, len(v), len(per),
+                              "the median breach anchor by the published element rule sorted(fired)[k // 2]",
+                              not_applicable={"n": len(per) - len(v), "reason": NOT_BREACHED})
+
+
 def run(cfg_p, outp):
     NBLOCKS[0] = 0                                    # the census counts the aggregates of THIS document, not of the process
     CFG = json.load(open(cfg_p)); P = CFG["p_reading"]; P2 = CFG["p2_reading"]
@@ -280,7 +291,7 @@ def run(cfg_p, outp):
                                      "population_n": len(PP), "paths_with_no_traded_anchor_in_window": sum(1 for x in per if not x["has_measurement"]),
                                      "seeds_with_no_traded_anchor": [x["seed"] for x in per if not x["has_measurement"]]}),
                                  "per_event_example_seed00": per[0]["per_event"][:8]}
-                    cell[sem]["summary"]["cum25_anchor_median_utc"] = cum25_median_iso(per)
+                    cell[sem]["summary"]["cum25_anchor_median_utc"] = cum25_median_block(per)
                 # AMENDMENT 4 §B-4: the two readings MUST agree bit for bit where they are the same question
                 e_entry = [x["end_return_P2"] for x in cell["W_ENTRY"]["per_path"]]
                 e_carry = [x["end_return_P2"] for x in cell["W_CARRY"]["per_path"]]
@@ -311,7 +322,7 @@ def run(cfg_p, outp):
                     MP = dict(PP[0], navm0=np.ones(len(A)), navm1=np.ones(len(A)), flatten=[])
                     per = [dict(p2_of(p, i0, thr, H, sem, upto_i), seed=p["seed"]) for p in PP]
                     s = summarise(per, pop_name)                          # the WHOLE summary is emitted: a block built but not
-                    s["cum25_anchor_median_utc"] = cum25_median_iso(per)     # a block built but not persisted would fail the census
+                    s["cum25_anchor_median_utc"] = cum25_median_block(per)   # a block built but not persisted would fail the census
                     n_traded = sum(1 for x in per if x["has_measurement"])
                     e[str(H)][sem] = dict(s, mean_path=dict({k: v for k, v in p2_of(MP, i0, thr, H, sem, upto_i, series=MPr, traded_members=n_traded).items() if k != "per_event"},
                                                             caliber="WHOLE POPULATION: the per-anchor mean over all %d paths, a withheld path contributing its flat-book 0" % len(PP)),
