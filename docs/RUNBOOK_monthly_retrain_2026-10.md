@@ -351,7 +351,17 @@ w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025
 
 #### ② 十月链干演练(2026-09-21, pod2 `/workspace/rehearse_2026-10_0921/`; 判据先于数字: `docs/PREREG_october_chain_rehearsal_2026-09-21.md`)
 
-装置逐文件与 git 单源相等(`chain_v4_monthly.sh` / 门 / helper / 合同 四件现场 `sha256sum` 对上)。月合同 = **模板逐键填、每个 `TODO_` 换成十月将要产出的真实路径**。
+⚠ **原句已更正(R8-G-02, 第八轮独立复审; 原句逐字保留)**: 「装置逐文件与 git 单源相等(`chain_v4_monthly.sh` / 门 / helper / 合同 四件现场 `sha256sum` 对上)。」
+
+**更正**: **四件里有三件对得上, 合同对不上。** 五份演练收据(`AB_oct_NEW/OLD`、`AB_sept_NEW/OLD`、`R3stub_preflight`)记录的合同全是 `a071b604b5370cb5…`, 而当时 git 里的合同是 `4309e1b6c8efbddc…`。驱动 `cf1a5fbb…`、两个 step 门、出口门 `36c68e96…`、helper `eeb68b94…`、`fp2_gate_lib e98b15b0…` 等**其余全部装置逐字节相符**。⇒ **这几次运行不能用来认证当时那份合同**, 「四件逐字节一致」不成立。
+
+**差在哪(现在能答了, 因为那份合同的字节已归档)**: `a071b604` 的字节本来**不在仓库里任何地方** —— 已从 pod2 `/workspace/rehearse_2026-10_0921/D/` 取回并存到 `docs/receipts/october_rehearsal_2026-09-21/rehearsed_contract_a071b604/`, sha 逐位核过 = 五份收据记录的值。逐键比对(装置 `multi_asset/exports/research/sty_closure_2026-09-21/devices/rehearsal_contract_identity.py`, 判词 `REHEARSAL_CONTRACT_IDENTITY VERDICT=PASS checks=12 failed=0`, 退出码 0)⇒ **差异只有 3 个键, 全在 `gates.BUNDLE_export.approved_variants.v4e_gate_export_fp2dyn.py` 里**: 演练时那条变体条目还是 **TRN-15 之前的 `16e9cc32`** + 旧 `base` 文案 + 没有 `trn15_note`; 而同一份文件的 `approved_source_sha256` / `superseded` / `approved_helper_sha256` / `month_contract_rulings` **已经**是 TRN-15 之后的。**那是同一次编辑的中间态, 而且自相矛盾** —— `approved_source_sha256` 已列 `74e13a16`, 变体条目却仍指向被它自己声明为 superseded 的 `16e9cc32`。
+
+**这个差异影响了演练的判词吗 —— 实测, 不是推断**: 用**演练当时那份驱动**(按 sha 从 git 取回, 不是今天的)提取它自己的 preflight 字节, 在同一个沙箱里只换合同跑两次, **比较失败集合(比集合, 不比计数)**: 两次都是 12 条、**集合完全相同**。**红能力控制**(否则这个「无差异」是空的): 把同一份合同里 preflight 确实会读的那一块(`month_contract_rulings.TRN-15_export_baseline_per_month`)整块删掉再跑, 失败集合**确实移动**。⇒ 差异**没有到达 preflight 的判词**; 它触及的变体条目由**出口阶段**的查表消费, 而 preflight 查的是 `GATE_EXPORT` 自身的源 sha。
+
+**但这三条都不成立, 明写**: ① 这只说了**第 1 个阶段**, 对从未运行的 16 个阶段一无所知; ② 它**不使这几次运行成为对任何一份合同的认证** —— 要认证只能对准确的那份合同重演练; ③ 合同**此后又动了一次**(R8-G-01, 2026-09-21): 演练态 `a071b604` / 复审冻结态 `4309e1b6` / 现行 `3ee689b9` 是**三个不同的 sha**。④ 同包补交的 `DOC_APPROVAL_IDENTITY.json` **自身 PASS=false**, 不能替这五份收据补身份闭合。
+
+月合同 = **模板逐键填、每个 `TODO_` 换成十月将要产出的真实路径**。
 
 **阶段人口是从驱动实测枚举的, 不是手抄**: `grep -oE '^if want [a-z0-9_]+'` ⇒ **17** 个阶段。
 
@@ -366,7 +376,9 @@ w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025
 
 **闭合人口与平衡**: `n_dispatched=1`(preflight)+ `n_blocked_at_prereq=16` + `n_not_reached=0` = **17**。「未测量」的具名子集 = 那 16 个阶段的**内部行为**(它们一步都没进), 这个子集**不进任何通过率**。
 
-##### 演练把 Q-DATA 与 Q-STRUCT 分开了(这是本次最有用的一格)
+##### 演练把「缺失路径」与「批准/roll 前提」分开了(⚠ 标题已收窄, R8-G-02)
+
+> ⚠ **原标题**「演练把 Q-DATA 与 Q-STRUCT 分开了」**已收窄**(第八轮复审): 下面这一格分开的是**「把十月的文件建出来就会消失的失败」与「建什么都消不掉的失败」**, 这是**缺失路径 vs 批准/roll 前提**, **不是** Q-STRUCT。`R3stub_preflight` 的 23 项输入是同一个 **5 字节 STUB**, 它只证明若干**存在性检查**不再失败 —— **不证明文件可解析、步骤可完成、阶段产物或收据内容正确**。**其余 16 个阶段的 Q-STRUCT 继续具名未测**, `REHEARSED` **不得**被读成「16 个后续阶段跑过了」; 本轮复审接受的只有一条: **preflight 的拒绝路径确实被走过一次**。另: 下面第 2 条那两次 roll 失败**可以**由正确构建/记录/通过 roll 流程消掉, 所以「建什么都消不掉」对它们是**字面过强**的说法。
 
 R1(真十月路径)preflight **30** 条失败。再做一次**沙箱**运行: 把每个缺失输入都造成 stub(34 个)后重跑 ⇒ 只剩 **5** 条。也就是说 **30 − 5 = 25 条靠「把十月的东西建出来」就会消失**, 而**剩下 5 条建什么都消不掉**:
 
