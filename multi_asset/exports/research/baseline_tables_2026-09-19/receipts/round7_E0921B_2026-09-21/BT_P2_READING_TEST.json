@@ -1,0 +1,344 @@
+{
+ "device": "bt_p2_reading_test.py",
+ "self_sha256": "b21b38ec5c333786f47af3676f929fcb0d09364345b4c56aef3605f99214aaa8",
+ "tested": "fa67ae2992e1c50e1295fe8d0939c3ca80888d0ca8a51138d6c0cc83dd0efc23",
+ "tested_bt_agg": "43fe1092f6e30361d1423e098c00e67111c926f8897a19c4194b6a7140bfbb06",
+ "argv": [
+  "bt_p2_reading_test.py",
+  "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/final2/bt_p2_reading_test.scratch",
+  "../receipts/round7_E0921B_2026-09-21/BT_P2_READING_TEST.json"
+ ],
+ "numpy": "1.26.4",
+ "checks": [
+  {
+   "check": "U0.withheld_anchors_are_exactly_the_window_[t, t+H)",
+   "ok": true,
+   "detail": {
+    "device": 3,
+    "reference": 3
+   }
+  },
+  {
+   "check": "U0.end_return_matches_a_hand_built_reference_series",
+   "ok": true,
+   "detail": {
+    "device": 0.44507647142749773,
+    "reference": 0.44507647142749707
+   }
+  },
+  {
+   "check": "U0.a_path_without_a_flatten_is_untouched",
+   "ok": true,
+   "detail": {
+    "window_semantics": "W_ENTRY",
+    "resume_rule": "12 h",
+    "anchors_in_window": 40,
+    "anchors_traded_in_window": 40,
+    "anchors_withheld_by_day_stop": 0,
+    "day_stop_events_in_window": 0,
+    "day_stop_events_in_scope": 0,
+    "fired_day_stop": false,
+    "has_measurement": true,
+    "no_measurement_reason": null,
+    "fired_cum25": false,
+    "cum25_anchor": null,
+    "cum25_anchor_epoch": null,
+    "cum_at_cum25": null,
+    "end_return_P2": 0.22079423648679342,
+    "end_return_no_halt": 0.22079423648679342,
+    "window_last_anchor": "2024-01-07T12:00:00Z",
+    "window_last_index": 39,
+    "window_scope": "run_window_end",
+    "seed": 1
+   }
+  },
+  {
+   "check": "[mutation red] a withheld anchor that still contributes its return is a different number",
+   "ok": true,
+   "detail": {
+    "withheld": 0.44507647142749707,
+    "not_withheld": 0.4004163830780296
+   }
+  },
+  {
+   "check": "U1.never_resumes_ends_the_path_at_the_first_flatten",
+   "ok": true,
+   "detail": {
+    "device": 0.11566834666531656,
+    "reference": 0.11566834666531656,
+    "withheld": 29
+   }
+  },
+  {
+   "check": "U2.H=sim_withholds_nothing_extra",
+   "ok": true,
+   "detail": {
+    "window_semantics": "W_ENTRY",
+    "resume_rule": "sim (next 00Z) = reading P",
+    "anchors_in_window": 40,
+    "anchors_traded_in_window": 40,
+    "anchors_withheld_by_day_stop": 0,
+    "day_stop_events_in_window": 1,
+    "day_stop_events_in_scope": 1,
+    "fired_day_stop": false,
+    "has_measurement": true,
+    "no_measurement_reason": null,
+    "fired_cum25": false,
+    "cum25_anchor": null,
+    "cum25_anchor_epoch": null,
+    "cum_at_cum25": null,
+    "end_return_P2": 0.4004163830780303,
+    "end_return_no_halt": 0.4004163830780303,
+    "window_last_anchor": "2024-01-07T12:00:00Z",
+    "window_last_index": 39,
+    "window_scope": "run_window_end",
+    "seed": 0
+   }
+  },
+  {
+   "check": "U2.P2_with_H=sim_equals_the_published_reading_P (cross-device)",
+   "ok": true,
+   "detail": {
+    "P2": 0.4004163830780303,
+    "P": 0.4004163830780296
+   }
+  },
+  {
+   "check": "U3.cum25_still_halts_under_P2",
+   "ok": true,
+   "detail": {
+    "window_semantics": "W_ENTRY",
+    "resume_rule": "12 h",
+    "anchors_in_window": 40,
+    "anchors_traded_in_window": 37,
+    "anchors_withheld_by_day_stop": 3,
+    "day_stop_events_in_window": 1,
+    "day_stop_events_in_scope": 1,
+    "fired_day_stop": true,
+    "has_measurement": true,
+    "no_measurement_reason": null,
+    "fired_cum25": true,
+    "cum25_anchor": "2024-01-04T16:00:00Z",
+    "cum25_anchor_epoch": 1704384000.0,
+    "cum_at_cum25": -0.25351373416227985,
+    "end_return_P2": -0.25351373416227985,
+    "end_return_no_halt": -0.5016398181210457,
+    "window_last_anchor": "2024-01-07T12:00:00Z",
+    "window_last_index": 39,
+    "window_scope": "run_window_end",
+    "seed": 0
+   }
+  },
+  {
+   "check": "U4.a_longer_resume_delay_never_withholds_fewer_anchors",
+   "ok": true,
+   "detail": {
+    "8h": 2,
+    "12h": 3,
+    "20h": 5
+   }
+  },
+  {
+   "check": "[mutation red] 8 h and 20 h differ on this fixture (otherwise the sensitivity is vacuous)",
+   "ok": true,
+   "detail": {
+    "8h": 2,
+    "20h": 5
+   }
+  },
+  {
+   "check": "U5.flatten_costs_reported_per_event",
+   "ok": true,
+   "detail": {
+    "device": [
+     {
+      "anchor": "2024-01-02T16:00:00Z",
+      "turnover_flatten_over_gross": 0.1357930432039475,
+      "window_fee_bps_of_gross": 0.54317217281579
+     }
+    ],
+    "reference_turnover": 0.1357930432039475
+   }
+  },
+  {
+   "check": "U5.the path with no flatten is a NAMED subset of the cost aggregate, not a member a comprehension dropped",
+   "ok": true,
+   "detail": {
+    "population_n": 2,
+    "n_eff": 1,
+    "named": [
+     "this path had no day-stop event in this window, so a per-event flatten cost is not applicable to it"
+    ]
+   }
+  },
+  {
+   "check": "W1.W_CARRY: a path halted BEFORE the window has NO window-end return \u2014 None, not 0.0 (this is E-0920-C)",
+   "ok": true,
+   "detail": {
+    "end_return_P2": null,
+    "reason": "no anchor of this window was ever traded: the resume rule withheld all 28 of them (first day-stop in scope 2024-01-01T09:00:00Z, window starts 2024-01-03T00:00:00Z, semantics W_CARRY)"
+   }
+  },
+  {
+   "check": "W2.W_CARRY summary: the headline mean is over the paths that traded, and equals a hand-built mean of exactly those",
+   "ok": true,
+   "detail": {
+    "measured_mean": 0.002408278544678566,
+    "hand_built": 0.002408278544678566,
+    "n_eff": 2,
+    "population_n": 3
+   }
+  },
+  {
+   "check": "W2.W_CARRY summary: the unmeasured path is NAMED and listed by seed",
+   "ok": true,
+   "detail": {
+    "n": 1,
+    "by_reason": {
+     "this path traded no anchor of this window, so it has no window-end return to summarise": {
+      "n": 1,
+      "members": [
+       0
+      ]
+     }
+    }
+   }
+  },
+  {
+   "check": "W2.W_CARRY summary: whole_population still reports the PRE-FIX number, under its named convention \u2014 the old figure is not hidden",
+   "ok": true,
+   "detail": {
+    "whole_population": 0.0016055190297857107,
+    "pre_fix_arithmetic": 0.0016055190297857107,
+    "measured": 0.002408278544678566,
+    "gap_pp": -0.08027595148928553
+   }
+  },
+  {
+   "check": "W2.the two figures actually differ on this fixture (otherwise W2 would be vacuous)",
+   "ok": true,
+   "detail": {
+    "gap_pp": -0.08027595148928553
+   }
+  },
+  {
+   "check": "W3.W_ENTRY (main): the same path DOES have a measurement \u2014 a halt that began before the window is not inherited",
+   "ok": true,
+   "detail": {
+    "device": -0.10615652151479027,
+    "hand_built": -0.10615652151479038
+   }
+  },
+  {
+   "check": "W3.W_ENTRY summary has no unmeasured member on this fixture, so its whole_population equals its measured figure",
+   "ok": true,
+   "detail": {
+    "n_eff": 3,
+    "population_n": 3,
+    "mean": -0.033779988141811046,
+    "median": -0.05272198167986708,
+    "p05": -0.10081306753129796,
+    "p95": 0.04651248672431507,
+    "min": -0.10615652151479027,
+    "max": 0.05753853876922421,
+    "produced_by": "bt_agg._stats",
+    "statistic_keys": [
+     "max",
+     "mean",
+     "median",
+     "min",
+     "p05",
+     "p95"
+    ]
+   }
+  },
+  {
+   "check": "W4.a path whose day-stop is INSIDE the window is identical under both semantics (the change is about pre-window halts only)",
+   "ok": true,
+   "detail": {
+    "seed1": -0.05272198167986708,
+    "seed2": 0.05753853876922421
+   }
+  },
+  {
+   "check": "W5.B4-a: at the base that IS the path start, the two semantics agree bit for bit on every H",
+   "ok": true,
+   "detail": {
+    "n": 5
+   }
+  },
+  {
+   "check": "W5.B4-b: at H='sim' the two semantics agree bit for bit on every base",
+   "ok": true,
+   "detail": {
+    "n": 2
+   }
+  },
+  {
+   "check": "W5.B4 is not vacuous: at the mid base under H='never' the two semantics DISAGREE on this fixture",
+   "ok": true,
+   "detail": [
+    {
+     "run": "FIX_P2_PREWIN",
+     "base": "2024-01-01T00:00:00Z",
+     "H": "never",
+     "base_index": 0,
+     "clause": "B4-a (base is the path start)",
+     "W_ENTRY_equals_W_CARRY": true
+    },
+    {
+     "run": "FIX_P2_PREWIN",
+     "base": "2024-01-03T00:00:00Z",
+     "H": "never",
+     "base_index": 12,
+     "clause": "\u2014",
+     "W_ENTRY_equals_W_CARRY": false
+    }
+   ]
+  },
+  {
+   "check": "W6.the structural sweep ran on the emitted document and found aggregates to inspect",
+   "ok": true,
+   "detail": {
+    "clause": "A4+A3''",
+    "aggregate_blocks_swept": 370,
+    "min_blocks_required": 338,
+    "violations": 0,
+    "statistic_blocks_swept": 370,
+    "contract_blocks_validated": 233,
+    "unclassified_scalar_keys": 0
+   }
+  },
+  {
+   "check": "W6.every persisted mean in the real device output carries n_eff (re-swept here, independently of the device's own call)",
+   "ok": true,
+   "detail": {
+    "clause": "A4+A3''",
+    "aggregate_blocks_swept": 370,
+    "min_blocks_required": 20,
+    "violations": 0,
+    "statistic_blocks_swept": 370,
+    "contract_blocks_validated": 233,
+    "unclassified_scalar_keys": 0
+   }
+  },
+  {
+   "check": "[mutation red] a path npz changed after its json was written is refused",
+   "ok": true,
+   "detail": "npz sha != its json: /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea"
+  },
+  {
+   "check": "[mutation red] a member named 'traded nothing' that still carries a value is refused (A5)",
+   "ok": true,
+   "detail": "x: member 0 is classified 'this path traded no anchor of this window, so it has no window-end return to summarise' yet carries the value -0.25 \u2014 the classifier "
+  },
+  {
+   "check": "[mutation red] an aggregate added to the REAL device output tomorrow, with no n_eff beside it, is refused by the sweep",
+   "ok": true,
+   "detail": "A4 structural sweep: 1 block(s) persist a statistic with no n_eff/population_n beside it. First offenders: [{\"path\": \"$.someone_adds_this_next_week\", \"statistics_with_no_sample_size\": [\"mean\", \"median"
+  }
+ ],
+ "failed": [],
+ "VERDICT": "PASS",
+ "runtime_s": 0.7
+}

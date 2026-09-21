@@ -42,6 +42,7 @@ NOT_SIDECAR_FIELD_READERS = {
     "bt_gate_binding_test.py": "test device: it builds fixture sidecars and publishes no number",
     "bt_launch_governor_test.py": "test device", "bt_main_a0_test.py": "test device",
     "bt_p2_reading_test.py": "test device: hand-built fixture paths", "bt_p_reading_test.py": "test device: hand-built fixture paths",
+    "bt_window_end_test.py": "test device (E-0921-B): hand-built fixture paths; publishes no number",
     "bt_gate_bindings.py": "this module: it is handed the sidecar dict, it never opens one",
     "bt_tables.py": "reads PATH_*.npz arrays only (bt_tables.py:504 lists *.npz); it opens no sidecar json",
 }

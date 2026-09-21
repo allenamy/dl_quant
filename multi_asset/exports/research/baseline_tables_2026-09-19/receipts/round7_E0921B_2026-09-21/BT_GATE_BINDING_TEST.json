@@ -1,0 +1,540 @@
+{
+ "device": "bt_gate_binding_test.py",
+ "self_sha256": "06a5ab0415ab57bcf097a7f21a4e6777e853dac03949bd2b4cbf65eaf643ba89",
+ "gate_sha256": "f8b0201cee22ea55e7f3eb07aea74553ff545edf19e5d2ac1cbdcf56e9bdbab7",
+ "bindings_sha256": "e52060b301875d14620323bc0fb69c029af2f212aa7c16b1bfb33a2b999030bc",
+ "prefix_gate": {
+  "rev": "2814d4fd6",
+  "sha256": "1909d3838cc43e71e44e15a75881ea8b783ee70e77a834e368da0bb4c43626fa",
+  "unavailable_because": null
+ },
+ "scope": {
+  "real": "gate source and control flow, E1-E7 comparisons, DL.aggregate_arrays, DL.sha, verdict, exit code, receipt, and the real bt_p2_reading consumer for G-02",
+  "doubles": [
+   "DL.verify_pins",
+   "DL.import_modules",
+   "DL.load_context",
+   "DL.run_one"
+  ],
+  "not_claimed": "no archived path's simulation is certified here, and no published flatten_log is claimed to have been altered"
+ },
+ "argv": [
+  "bt_gate_binding_test.py",
+  "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/final2/bt_gate_binding_test.scratch",
+  "../receipts/round7_E0921B_2026-09-21/BT_GATE_BINDING_TEST.json"
+ ],
+ "numpy": "1.26.4",
+ "table": [
+  {
+   "case": "C0_baseline",
+   "note": "untouched fixture",
+   "aggregate_members": [
+    0,
+    1
+   ],
+   "argv_n_seeds": 2,
+   "old_gate": "PASS",
+   "old_exit_code": 0,
+   "old_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 20/20 checks (inputs re-hashed from source against the approved table; 2/2 paths recomputed bitwise from those inputs)",
+   "old_coverage_full": true,
+   "new_gate": "PASS",
+   "new_exit_code": 0,
+   "new_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 35/35 checks (inputs re-hashed from source against the approved table; 2/2 approved paths recomputed bitwise from those inputs, arrays AND the sidecar the readers use)",
+   "new_failed": [],
+   "new_coverage_full": true
+  },
+  {
+   "case": "C0b_spotcheck",
+   "note": "untouched fixture, --reproduce 1",
+   "aggregate_members": [
+    0,
+    1
+   ],
+   "argv_n_seeds": 2,
+   "old_gate": "PASS-SPOTCHECK",
+   "old_exit_code": 0,
+   "old_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS-SPOTCHECK 19/19 checks (inputs re-hashed from source against the approved table; 1/2 paths recomputed bitwise from those inputs; seeds 1 NOT certified)",
+   "old_coverage_full": false,
+   "new_gate": "PASS-SPOTCHECK",
+   "new_exit_code": 0,
+   "new_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS-SPOTCHECK 32/32 checks (inputs re-hashed from source against the approved table; 1/2 approved paths recomputed bitwise from those inputs, arrays AND the sidecar the readers use; seeds 1 NOT certified)",
+   "new_failed": [],
+   "new_coverage_full": false
+  },
+  {
+   "case": "C1_altered_array_negative_control",
+   "note": "one stored array altered and re-signed",
+   "aggregate_members": [
+    0,
+    1
+   ],
+   "argv_n_seeds": 2,
+   "old_gate": "RED",
+   "old_exit_code": 3,
+   "old_verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 1/20: ['E5.seed01.re-run_from_external_inputs_is_bitwise_the_stored_path']",
+   "old_coverage_full": true,
+   "new_gate": "RED",
+   "new_exit_code": 3,
+   "new_verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 1/35: ['E5.seed01.re-run_from_external_inputs_is_bitwise_the_stored_path']",
+   "new_failed": [
+    "E5.seed01.re-run_from_external_inputs_is_bitwise_the_stored_path"
+   ],
+   "new_coverage_full": true
+  },
+  {
+   "case": "G02_flatten_log_changed",
+   "note": "one day-stop added to PATH_*.json; every npz byte unchanged",
+   "aggregate_members": [
+    0,
+    1
+   ],
+   "argv_n_seeds": 2,
+   "old_gate": "PASS",
+   "old_exit_code": 0,
+   "old_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 20/20 checks (inputs re-hashed from source against the approved table; 2/2 paths recomputed bitwise from those inputs)",
+   "old_coverage_full": true,
+   "new_gate": "RED",
+   "new_exit_code": 3,
+   "new_verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 1/35: ['E7.seed00.the_sidecar_json_the_readers_use_is_reproduced_field_for_field']",
+   "new_failed": [
+    "E7.seed00.the_sidecar_json_the_readers_use_is_reproduced_field_for_field"
+   ],
+   "new_coverage_full": true
+  },
+  {
+   "case": "G02b_sidecar_field_added",
+   "note": "a field the recomputation does not produce, added to the sidecar",
+   "aggregate_members": [
+    0,
+    1
+   ],
+   "argv_n_seeds": 2,
+   "old_gate": "PASS",
+   "old_exit_code": 0,
+   "old_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 20/20 checks (inputs re-hashed from source against the approved table; 2/2 paths recomputed bitwise from those inputs)",
+   "old_coverage_full": true,
+   "new_gate": "RED",
+   "new_exit_code": 3,
+   "new_verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 1/35: ['E7.seed00.the_sidecar_json_the_readers_use_is_reproduced_field_for_field']",
+   "new_failed": [
+    "E7.seed00.the_sidecar_json_the_readers_use_is_reproduced_field_for_field"
+   ],
+   "new_coverage_full": true
+  },
+  {
+   "case": "G02c_price_pin_swapped",
+   "note": "the save-time price_pin replaced by an unapproved sha",
+   "aggregate_members": [
+    0,
+    1
+   ],
+   "argv_n_seeds": 2,
+   "old_gate": "PASS",
+   "old_exit_code": 0,
+   "old_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 20/20 checks (inputs re-hashed from source against the approved table; 2/2 paths recomputed bitwise from those inputs)",
+   "old_coverage_full": true,
+   "new_gate": "RED",
+   "new_exit_code": 3,
+   "new_verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 1/35: ['E7.the_save_time_fields_name_the_approved_price_table_the_approved_calibration_and_the_config_the_gate_was_given']",
+   "new_failed": [
+    "E7.the_save_time_fields_name_the_approved_price_table_the_approved_calibration_and_the_config_the_gate_was_given"
+   ],
+   "new_coverage_full": true
+  },
+  {
+   "case": "G03a_aggregate_duplicate_member",
+   "note": "the AGG averages [seed0, seed0]",
+   "aggregate_members": [
+    0,
+    0
+   ],
+   "argv_n_seeds": 2,
+   "old_gate": "PASS",
+   "old_exit_code": 0,
+   "old_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 20/20 checks (inputs re-hashed from source against the approved table; 2/2 paths recomputed bitwise from those inputs)",
+   "old_coverage_full": true,
+   "new_gate": "RED",
+   "new_exit_code": 3,
+   "new_verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 1/35: ['E6.the_AGG_averages_EXACTLY_the_approved_population_once_each (sets, not counts)']",
+   "new_failed": [
+    "E6.the_AGG_averages_EXACTLY_the_approved_population_once_each (sets, not counts)"
+   ],
+   "new_coverage_full": true
+  },
+  {
+   "case": "G03b_nseed_downgrade",
+   "note": "n_seeds=1 on the command line, seed 1 corrupted and still in the AGG",
+   "aggregate_members": [
+    0,
+    1
+   ],
+   "argv_n_seeds": 1,
+   "old_gate": "PASS",
+   "old_exit_code": 0,
+   "old_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 19/19 checks (inputs re-hashed from source against the approved table; 1/1 paths recomputed bitwise from those inputs)",
+   "old_coverage_full": true,
+   "new_gate": "RED",
+   "new_exit_code": 3,
+   "new_verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 2/35: ['E0.the_caller_may_not_shrink_the_population (n_seeds on the command line must BE the approved population)', 'E5.seed01.re-run_from_external_inputs_is_bitwise_the_stored_path']",
+   "new_failed": [
+    "E0.the_caller_may_not_shrink_the_population (n_seeds on the command line must BE the approved population)",
+    "E5.seed01.re-run_from_external_inputs_is_bitwise_the_stored_path"
+   ],
+   "new_coverage_full": true
+  },
+  {
+   "case": "G03c_deleted_array",
+   "note": "`turnover_flatten` deleted from one npz and re-signed",
+   "aggregate_members": [
+    0,
+    1
+   ],
+   "argv_n_seeds": 2,
+   "old_gate": "PASS",
+   "old_exit_code": 0,
+   "old_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 20/20 checks (inputs re-hashed from source against the approved table; 2/2 paths recomputed bitwise from those inputs)",
+   "old_coverage_full": true,
+   "new_gate": "RED",
+   "new_exit_code": 3,
+   "new_verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 2/35: ['E5.every_stored_path_declares_the_SAME_array_schema (a deleted array is a missing member, not an absent key to skip)', 'E5.seed01.the_archive_holds_EXACTLY_the_arrays_the_simulator_emits']",
+   "new_failed": [
+    "E5.every_stored_path_declares_the_SAME_array_schema (a deleted array is a missing member, not an absent key to skip)",
+    "E5.seed01.the_archive_holds_EXACTLY_the_arrays_the_simulator_emits"
+   ],
+   "new_coverage_full": true
+  },
+  {
+   "case": "G03d_extra_array",
+   "note": "an array the simulator does not emit added to one npz and re-signed",
+   "aggregate_members": [
+    0,
+    1
+   ],
+   "argv_n_seeds": 2,
+   "old_gate": "RED",
+   "old_exit_code": 3,
+   "old_verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 1/20: ['E5.seed01.re-run_from_external_inputs_is_bitwise_the_stored_path']",
+   "old_coverage_full": true,
+   "new_gate": "RED",
+   "new_exit_code": 3,
+   "new_verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 2/35: ['E5.every_stored_path_declares_the_SAME_array_schema (a deleted array is a missing member, not an absent key to skip)', 'E5.seed01.the_archive_holds_EXACTLY_the_arrays_the_simulator_emits']",
+   "new_failed": [
+    "E5.every_stored_path_declares_the_SAME_array_schema (a deleted array is a missing member, not an absent key to skip)",
+    "E5.seed01.the_archive_holds_EXACTLY_the_arrays_the_simulator_emits"
+   ],
+   "new_coverage_full": true
+  },
+  {
+   "case": "P3_caller_replaces_approval_table",
+   "note": "the caller hands in a replaced approval table",
+   "aggregate_members": [
+    0,
+    1
+   ],
+   "argv_n_seeds": 2,
+   "old_gate": "PASS",
+   "old_exit_code": 0,
+   "old_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 20/20 checks (inputs re-hashed from source against the approved table; 2/2 paths recomputed bitwise from those inputs)",
+   "old_coverage_full": true,
+   "new_gate": "PASS",
+   "new_exit_code": 0,
+   "new_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 35/35 checks (inputs re-hashed from source against the approved table; 2/2 approved paths recomputed bitwise from those inputs, arrays AND the sidecar the readers use)",
+   "new_failed": [],
+   "new_coverage_full": true
+  }
+ ],
+ "checks": [
+  {
+   "check": "C0.BASELINE_GREEN the FIXED gate passes the untouched fixture, exit 0 (a red-capability check on a red baseline is vacuous)",
+   "ok": true,
+   "detail": {
+    "verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 35/35 checks (inputs re-hashed from source against the approved table; 2/2 approved paths recomputed bitwise from those inputs, arrays AND the sidecar the readers use)",
+    "exit_code": 0,
+    "coverage_full": true
+   }
+  },
+  {
+   "check": "C0.BASELINE_GREEN the PRE-FIX gate also passes it, so every OLD-green/NEW-red row below is about the mutation",
+   "ok": true,
+   "detail": {
+    "old": "PASS",
+    "verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 20/20 checks (inputs re-hashed from source against the approved table; 2/2 paths recomputed bitwise from those inputs)"
+   }
+  },
+  {
+   "check": "C0.the single NON-REPRODUCIBLE field is exercised by the green baseline (stored runtime_s 3.5 vs recomputed 9.75) \u2014 the exemption is used, named, and still green",
+   "ok": true,
+   "detail": {
+    "exempt": [
+     "calibration_sha256",
+     "config_sha256",
+     "device_sha256",
+     "npz_sha256",
+     "price_pin",
+     "runtime_s"
+    ]
+   }
+  },
+  {
+   "check": "C0b.a spot check still reports PASS-SPOTCHECK and NAMES the seed it did not certify \u2014 coverage is decided by set equality against the approved population, and one reproduced seed is not that set",
+   "ok": true,
+   "detail": {
+    "verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS-SPOTCHECK 32/32 checks (inputs re-hashed from source against the approved table; 1/2 approved paths recomputed bitwise from those inputs, arrays AND the sidecar the readers use; seeds 1 NOT certified)",
+    "coverage_full": false
+   }
+  },
+  {
+   "check": "C1.NEGATIVE_CONTROL an altered stored array is RED on the fixed gate, exit 3",
+   "ok": true,
+   "detail": {
+    "verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 1/35: ['E5.seed01.re-run_from_external_inputs_is_bitwise_the_stored_path']",
+    "failed": [
+     "E5.seed01.re-run_from_external_inputs_is_bitwise_the_stored_path"
+    ]
+   }
+  },
+  {
+   "check": "G02.the fixed gate REFUSES a sidecar whose flatten_log was changed although every npz byte is identical, exit 3",
+   "ok": true,
+   "detail": {
+    "verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 1/35: ['E7.seed00.the_sidecar_json_the_readers_use_is_reproduced_field_for_field']",
+    "failed": [
+     "E7.seed00.the_sidecar_json_the_readers_use_is_reproduced_field_for_field"
+    ]
+   }
+  },
+  {
+   "check": "G02.the PRE-FIX gate passed exactly this (that is the P1 finding), so the row is old-green/new-red and not red-red",
+   "ok": true,
+   "detail": {
+    "old": "PASS",
+    "old_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 20/20 checks (inputs re-hashed from source against the approved table; 2/2 paths recomputed bitwise from those inputs)"
+   }
+  },
+  {
+   "check": "G02.the REAL P2 consumer (no double) reads the changed sidecar and returns a different window end \u2014 this is what the pre-fix PASS was certifying",
+   "ok": true,
+   "detail": {
+    "baseline_end_return_P2": 0.06152015060099969,
+    "after_the_sidecar_edit": 0.010000000000000009,
+    "npz_sha_unchanged": true
+   }
+  },
+  {
+   "check": "G02b.a sidecar field the simulator never emitted is RED \u2014 the binding is the WHOLE document, not a list of fields somebody remembered",
+   "ok": true,
+   "detail": {
+    "verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 1/35: ['E7.seed00.the_sidecar_json_the_readers_use_is_reproduced_field_for_field']",
+    "failed": [
+     "E7.seed00.the_sidecar_json_the_readers_use_is_reproduced_field_for_field"
+    ]
+   }
+  },
+  {
+   "check": "G02c.a save-time field that names a price table the approved list does not contain is RED",
+   "ok": true,
+   "detail": {
+    "verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 1/35: ['E7.the_save_time_fields_name_the_approved_price_table_the_approved_calibration_and_the_config_the_gate_was_given']",
+    "failed": [
+     "E7.the_save_time_fields_name_the_approved_price_table_the_approved_calibration_and_the_config_the_gate_was_given"
+    ]
+   }
+  },
+  {
+   "check": "G03a.an aggregate that averages the same member twice is RED (its COUNT still equals the population \u2014 which is why counts were never the guard)",
+   "ok": true,
+   "detail": {
+    "verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 1/35: ['E6.the_AGG_averages_EXACTLY_the_approved_population_once_each (sets, not counts)']",
+    "failed": [
+     "E6.the_AGG_averages_EXACTLY_the_approved_population_once_each (sets, not counts)"
+    ],
+    "members": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "check": "G03a.the PRE-FIX gate passed it",
+   "ok": true,
+   "detail": {
+    "old_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 20/20 checks (inputs re-hashed from source against the approved table; 2/2 paths recomputed bitwise from those inputs)"
+   }
+  },
+  {
+   "check": "G03b.the caller may not shrink the population from the command line: RED, exit 3",
+   "ok": true,
+   "detail": {
+    "verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 2/35: ['E0.the_caller_may_not_shrink_the_population (n_seeds on the command line must BE the approved population)', 'E5.seed01.re-run_from_external_inputs_is_bitwise_the_stored_path']",
+    "failed": [
+     "E0.the_caller_may_not_shrink_the_population (n_seeds on the command line must BE the approved population)",
+     "E5.seed01.re-run_from_external_inputs_is_bitwise_the_stored_path"
+    ]
+   }
+  },
+  {
+   "check": "G03b.the PRE-FIX gate not only passed it, it declared FULL COVERAGE (`full=true`, `not_certified=[]`) while seed 1 was corrupt \u2014 the count comparison len(covered)==NSEED is the defect itself",
+   "ok": true,
+   "detail": {
+    "old_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 19/19 checks (inputs re-hashed from source against the approved table; 1/1 paths recomputed bitwise from those inputs)",
+    "old_coverage_full": true
+   }
+  },
+  {
+   "check": "G03c.deleting an array the simulator emits is RED \u2014 an absent key is a missing member, not a key the loop skips",
+   "ok": true,
+   "detail": {
+    "verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 2/35: ['E5.every_stored_path_declares_the_SAME_array_schema (a deleted array is a missing member, not an absent key to skip)', 'E5.seed01.the_archive_holds_EXACTLY_the_arrays_the_simulator_emits']",
+    "failed": [
+     "E5.every_stored_path_declares_the_SAME_array_schema (a deleted array is a missing member, not an absent key to skip)",
+     "E5.seed01.the_archive_holds_EXACTLY_the_arrays_the_simulator_emits"
+    ]
+   }
+  },
+  {
+   "check": "G03c.the PRE-FIX gate passed it although reading P2 requires that array",
+   "ok": true,
+   "detail": {
+    "old_verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 20/20 checks (inputs re-hashed from source against the approved table; 2/2 paths recomputed bitwise from those inputs)"
+   }
+  },
+  {
+   "check": "G03d.the other direction is RED too: an archive may not carry an array the recomputation does not produce",
+   "ok": true,
+   "detail": {
+    "verdict_line": "BT_GATE_EXTERNAL VERDICT: FAILURES 2/35: ['E5.every_stored_path_declares_the_SAME_array_schema (a deleted array is a missing member, not an absent key to skip)', 'E5.seed01.the_archive_holds_EXACTLY_the_arrays_the_simulator_emits']",
+    "failed": [
+     "E5.every_stored_path_declares_the_SAME_array_schema (a deleted array is a missing member, not an absent key to skip)",
+     "E5.seed01.the_archive_holds_EXACTLY_the_arrays_the_simulator_emits"
+    ]
+   }
+  },
+  {
+   "check": "P3.NOT_FIXED_AND_RECORDED the approved table is this gate's root of trust: a caller who replaces the table AND the input it names still passes. The round-7 review filed this as a boundary (P3), not as part of G-02/G-03; closing it needs the table pinned to a git revision, which is a separate change with its own ruling.",
+   "ok": true,
+   "detail": {
+    "new": "PASS",
+    "verdict_line": "BT_GATE_EXTERNAL VERDICT: PASS 35/35 checks (inputs re-hashed from source against the approved table; 2/2 approved paths recomputed bitwise from those inputs, arrays AND the sidecar the readers use)"
+   }
+  },
+  {
+   "check": "X1.BASELINE_GREEN the census over the real consumers finds no undeclared field, no consumer that stopped reading a sidecar, and no unclassified file that touches one",
+   "ok": true,
+   "detail": {
+    "undeclared_fields_a_consumer_reads": {},
+    "declared_but_no_consumer_reads_them": [
+     "calibration_params_used",
+     "price",
+     "seed",
+     "ua_set"
+    ],
+    "listed_consumers_that_load_no_sidecar": [],
+    "files_that_touch_a_sidecar_and_are_classified_as_neither": [],
+    "fields_found": [
+     "calibration_sha256",
+     "config_sha256",
+     "device_sha256",
+     "events_fired_counts",
+     "flatten_log",
+     "npz_sha256",
+     "policy",
+     "price_pin",
+     "runtime_s",
+     "sealed_initial_sha256",
+     "tag",
+     "ua_counters"
+    ]
+   }
+  },
+  {
+   "check": "X1.a consumer that starts reading an undeclared sidecar field is NAMED by the census (the omission is visible, not silent)",
+   "ok": true,
+   "detail": {
+    "undeclared_fields_a_consumer_reads": {
+     "a_field_added_tomorrow": [
+      "bt_fake_consumer.py"
+     ]
+    },
+    "declared_but_no_consumer_reads_them": [
+     "calibration_params_used",
+     "calibration_sha256",
+     "config_sha256",
+     "device_sha256",
+     "events_fired_counts",
+     "npz_sha256",
+     "policy",
+     "price",
+     "price_pin",
+     "runtime_s",
+     "sealed_initial_sha256",
+     "seed",
+     "tag",
+     "ua_counters",
+     "ua_set"
+    ],
+    "listed_consumers_that_load_no_sidecar": [],
+    "files_that_touch_a_sidecar_and_are_classified_as_neither": [
+     "bt_fake_unlisted.py"
+    ],
+    "fields_found": [
+     "a_field_added_tomorrow",
+     "flatten_log"
+    ]
+   }
+  },
+  {
+   "check": "X1.a NEW device that touches a sidecar and is on neither list is reported as unclassified (fail closed, not invisible)",
+   "ok": true,
+   "detail": [
+    "bt_fake_unlisted.py"
+   ]
+  },
+  {
+   "check": "X1.the certification closure holds: every consumed field is either recomputed or certified by a named check",
+   "ok": true,
+   "detail": {
+    "ok": true,
+    "consumed_fields_bound_by_recomputation": [
+     "calibration_params_used",
+     "events_fired_counts",
+     "flatten_log",
+     "policy",
+     "price",
+     "sealed_initial_sha256",
+     "seed",
+     "tag",
+     "ua_counters",
+     "ua_set"
+    ],
+    "consumed_fields_certified_otherwise": {
+     "calibration_sha256": "E7.save_time_calibration_sha_equals_the_approved_calibration_pin",
+     "config_sha256": "E7.save_time_config_sha_equals_the_run_config_the_gate_was_given",
+     "device_sha256": "E7.save_time_device_shas_match_the_code_that_is_here / the approved table (checked in the gate)",
+     "npz_sha256": "E6.each_path_npz_matches_the_sha_in_its_own_json re-hashes the array file from disk",
+     "price_pin": "E7.save_time_price_pin_equals_the_approved_price_table",
+     "runtime_s": "wall-clock seconds of the original run: not a property of the numbers and not reproducible by construction. It is a budget figure in bt_run_summary, never an input to a published number."
+    },
+    "exemptions_with_no_reason": [],
+    "exemptions_in_both_lists": []
+   }
+  },
+  {
+   "check": "CLASS.at_least_four_cases_where_the_PRE-FIX_gate_passes_and_the_fixed_one_refuses",
+   "ok": true,
+   "detail": {
+    "old_green_new_red": [
+     "G02_flatten_log_changed",
+     "G02b_sidecar_field_added",
+     "G02c_price_pin_swapped",
+     "G03a_aggregate_duplicate_member",
+     "G03b_nseed_downgrade",
+     "G03c_deleted_array"
+    ],
+    "prefix_gate": "2814d4fd6"
+   }
+  }
+ ],
+ "failed": [],
+ "VERDICT": "PASS",
+ "runtime_s": 2.0
+}
