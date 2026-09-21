@@ -1,0 +1,152 @@
+{
+ "device": "fcf_decay_bound.py",
+ "self_sha256": "794fadd321143845b1aa7818f408d40be6290704e870324a7b5d17d25966066b",
+ "utc": "2026-09-21T01:48:20Z",
+ "question": "does (1-alpha)^n, the contraction rate of the operator's LINEAR PART, bound the operator itself?",
+ "operator": {
+  "source": "/workspace/fallback_cf_2026-09-20/devices/shadow_loop_v3_replay_F4bp.py",
+  "source_sha256": "52de2b117e9003a5afdc2b9016fadf41ac408d9658b027248f819c5564953e73",
+  "lines": [
+   470,
+   472
+  ],
+  "text_as_executed": "sm = st.H + P[\"alpha\"] * (tgt - st.H)\ntrade = sm - st.H\nsm = np.where(np.abs(trade) < P[\"band\"], st.H, sm)",
+  "raw_lines": [
+   "    sm = st.H + P[\"alpha\"] * (tgt - st.H)",
+   "    trade = sm - st.H",
+   "    sm = np.where(np.abs(trade) < P[\"band\"], st.H, sm)"
+  ]
+ },
+ "config": {
+  "path": "/workspace/shadow_bundle_v3/config.json",
+  "sha256": "3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e",
+  "alpha": 0.1,
+  "band": 0.00025
+ },
+ "axis": {
+  "divergence_anchor": "2022-06-30T00:00:00Z",
+  "full_recipe_start": "2023-06-30T04:00:00Z",
+  "n_steps": 2191
+ },
+ "measured": [
+  {
+   "operating_point": "band ON, same operating point as the control (tgt = 0, H0 = delta)",
+   "initial_Linf_gap": 0.001,
+   "gap_after_2191_steps": 0.001,
+   "pure_EMA_prediction": "5.563373e-104",
+   "measured_over_predicted": "1.797e+100",
+   "contracted_at_all": false,
+   "above_writer_resolution_1e-9": true
+  },
+  {
+   "operating_point": "band ON, FB-02's point: state already AT a balanced target, perturbation INSIDE band/alpha",
+   "initial_Linf_gap": 0.0010000000000000009,
+   "gap_after_2191_steps": 0.0010000000000000009,
+   "pure_EMA_prediction": "5.563373e-104",
+   "measured_over_predicted": "1.797e+100",
+   "contracted_at_all": false,
+   "above_writer_resolution_1e-9": true
+  },
+  {
+   "operating_point": "band ON, cold start: state far from a balanced target (it contracts, then freezes)",
+   "initial_Linf_gap": 0.001,
+   "gap_after_2191_steps": 9.697737297947873e-06,
+   "pure_EMA_prediction": "5.563373e-104",
+   "measured_over_predicted": "1.743e+98",
+   "contracted_at_all": true,
+   "above_writer_resolution_1e-9": true
+  },
+  {
+   "operating_point": "band ON, cold start, perturbation 10x",
+   "initial_Linf_gap": 0.01,
+   "gap_after_2191_steps": 0.00015516379676602798,
+   "pure_EMA_prediction": "5.563373e-103",
+   "measured_over_predicted": "2.789e+98",
+   "contracted_at_all": true,
+   "above_writer_resolution_1e-9": true
+  },
+  {
+   "operating_point": "band ON, cold start, perturbation 100x",
+   "initial_Linf_gap": 0.1,
+   "gap_after_2191_steps": 4.9943347084024925e-05,
+   "pure_EMA_prediction": "5.563373e-102",
+   "measured_over_predicted": "8.977e+96",
+   "contracted_at_all": true,
+   "above_writer_resolution_1e-9": true
+  }
+ ],
+ "checks": [
+  {
+   "check": "0.the_operator_executed_is_the_producer_source_at_its_named_lines",
+   "ok": true,
+   "first_line_executed": "sm = st.H + P[\"alpha\"] * (tgt - st.H)",
+   "expected": "sm = st.H + P[\"alpha\"] * (tgt - st.H)",
+   "source_sha256": "52de2b117e9003a5afdc2b9016fadf41ac408d9658b027248f819c5564953e73",
+   "lines": [
+    470,
+    472
+   ],
+   "why": "a line-number drift must fail loudly instead of silently executing some other code"
+  },
+  {
+   "check": "1.POSITIVE_CONTROL_with_the_band_switched_off_the_SAME_bytes_DO_contract_at_(1-alpha)^n",
+   "ok": true,
+   "operating_point": "tgt = 0, H0 = delta, band = 0 (one side identically zero: no cancellation)",
+   "n_steps": 2191,
+   "initial_Linf_gap": 0.001,
+   "measured_gap": "5.563373e-104",
+   "analytic_prediction": "5.563373e-104",
+   "relative_error": "1.559e-14",
+   "tolerance": "1.946e-12",
+   "tolerance_derivation": "4 * n_steps * float64_eps",
+   "control_v1_failed_on_float_cancellation": {
+    "operating_point": "balanced tgt, H0 = 0, band = 0",
+    "n_steps": 200,
+    "measured": 7.055189765736714e-13,
+    "predicted": 7.055079108655332e-13,
+    "relative_error": 1.5684739983375486e-05,
+    "diagnosis": "both states converge to ~0.25; their difference at 7e-13 is ~1e4 x the cancellation floor",
+    "disposition": "control redesigned to an operating point without cancellation, disclosed here"
+   },
+   "why_the_control_comes_first": "a decay failure below is only meaningful if this device can see decay when decay is really there"
+  },
+  {
+   "check": "2.THE_ANALYTIC_BOUND_DOES_NOT_BOUND_THE_OPERATOR_AT_ANY_OPERATING_POINT_TESTED",
+   "ok": true,
+   "alpha": 0.1,
+   "band": 0.00025,
+   "n_steps": 2191,
+   "analytic_bound_claimed_by_AMENDMENT_4_s3_clause_3_and_AMENDMENT_5_s3_item_2": "5.563e-101",
+   "worst_case": {
+    "operating_point": "band ON, FB-02's point: state already AT a balanced target, perturbation INSIDE band/alpha",
+    "initial_Linf_gap": 0.0010000000000000009,
+    "gap_after_2191_steps": 0.0010000000000000009,
+    "pure_EMA_prediction": "5.563373e-104",
+    "measured_over_predicted": "1.797e+100",
+    "contracted_at_all": false,
+    "above_writer_resolution_1e-9": true
+   },
+   "points_where_the_gap_exceeds_the_bound": "5/5",
+   "points_still_above_the_writer_resolution_1e-9": "5/5",
+   "writer_resolution_the_bound_was_compared_to": 1e-09,
+   "verdict": "the DECAY-BOUND clause is WITHDRAWN: (1-alpha)^n is the contraction rate of the LINEAR PART only. The residual depends on the operating point and at FB-02's point there is NO contraction at all."
+  },
+  {
+   "check": "3.the_device_holds_NO_copy_of_the_operator_and_can_only_have_measured_the_producer_source",
+   "ok": true,
+   "executed_lines": [
+    "sm = st.H + P[\"alpha\"] * (tgt - st.H)",
+    "trade = sm - st.H",
+    "sm = np.where(np.abs(trade) < P[\"band\"], st.H, sm)"
+   ],
+   "lines_also_found_verbatim_in_this_device": [],
+   "rule": "for an operator with a dead band, clamp, threshold or any other saturation, the contraction rate of its LINEAR PART is not a bound on the operator; to give a bound, run the operator",
+   "how_this_device_obeys_it": "the recurrence is not written here \u2014 it is extracted from the producer source at lines 470-472 and executed, with the source sha256 in this receipt",
+   "what_this_device_does_NOT_establish": "the net effect of the 2022-06-30 divergence on any published number. It refutes the bound; it does not measure the consequence. Isolating that needs two full re-chains from a shared initial state (FB-02)."
+  }
+ ],
+ "verdict": "PASS",
+ "n_checks": 4,
+ "n_failed": 0,
+ "failed": []
+}

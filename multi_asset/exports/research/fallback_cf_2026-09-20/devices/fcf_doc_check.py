@@ -328,11 +328,11 @@ add("\u00a78.5.2 A1' clause 2 (W3-MATCH) ok", cl["A1p.2_"]["ok"], False)
 add("\u00a78.5.2 A1' clause 2 anchors in scope", cl["A1p.2_"]["detail"]["anchors_in_scope"], 10037)
 add("\u00a78.5.2 A1' clause 2 n_mismatch", cl["A1p.2_"]["detail"]["n_mismatch"], 1)
 add("\u00a78.5.2 A1' clause 2 the mismatching anchor", cl["A1p.2_"]["detail"]["mismatches"][0]["anchor"], "2022-06-30T00:00:00Z")
-add("\u00a78.5.2 A1' clause 3 (decay bound) ok", cl["A1p.3_"]["ok"], True)
+add("\u00a78.5.2 A1' clause 3 ok IN THE FROZEN RECEIPT (the clause itself is WITHDRAWN: E-0921-E)", cl["A1p.3_"]["ok"], True)
 d3 = cl["A1p.3_"]["detail"]
 add("\u00a78.5.2 alpha read from the frozen config", d3["alpha"], 0.1)
 add("\u00a78.5.2 n anchors to the full-recipe start", d3["n_anchors_between"], 2191)
-add("\u00a78.5.2 decay bound", d3["bound"], "5.563e-101")
+add("\u00a78.5.2 decay bound AS THE FROZEN DEVICE COMPUTED IT (WITHDRAWN as a bound: E-0921-E)", d3["bound"], "5.563e-101")
 add("\u00a78.5.2 decay threshold (writer resolution)", d3["threshold"], 1e-09)
 ad = AP["adversarial_check_on_clause_2"]
 add("\u00a78.5.5 clause-2 blind set size", ad["n_anchors_blind_to_clause_2"], 1)
@@ -472,6 +472,14 @@ if DOCPATH:
     add("doc.the live verdict sentence is present", S["live_verdict"] in _doc, True)
     add("doc.every withdrawn clause kept its original bytes behind the marker",
         sum(1 for l in _lines if _wm in l) > 0, True)
+
+    # A registered withdrawal is only real if the prose that still carries its number carries the marker too. This loop
+    # is driven by the registry, not by a list of sentences: registering the NEXT withdrawal with its `tokens` is the
+    # whole of the work, and a doc that repeats the number bare goes red here without anyone editing this file.
+    for _w in S["withdrawn"]:
+        for _tok in _w.get("tokens", []):
+            _bare = [l for l in _lines if _tok in l and _wm not in l]
+            add(f"doc.lines repeating the withdrawn token {_tok!r} with no withdrawal marker", _bare[:3], [])
 
 bad = [r for r in rows if r[1] != r[2]]
 for lab, got, doc in rows:

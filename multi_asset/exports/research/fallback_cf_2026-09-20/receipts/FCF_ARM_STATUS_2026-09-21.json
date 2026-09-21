@@ -1,7 +1,7 @@
 {
  "device": "fcf_arm_status.py",
- "self_sha256": "6bc32628d7e8b94eedd13dbc96fc3d1e05b26267d3aa72407b2f99a54f9e439a",
- "utc": "2026-09-21T01:30:35Z",
+ "self_sha256": "17bfd192875627b3897542a897c9ac24259ba2f03a6565d35bed102f2f4266ac",
+ "utc": "2026-09-21T01:51:30Z",
  "contract": "every consumer of the F-family receipts MUST look each arm up here and MUST fail closed on an arm with no entry; every number of an arm whose non_preregistered is true MUST be printed with its label",
  "arms": {
   "F0": {
@@ -101,6 +101,17 @@
    "withdrawn": "RESULT L630 / L808「F4b′ 立为 F4 of record」",
    "replacement": "F4 of record = F4a",
    "why": "修订 3 的立臂被 A1/A1′ 两条判据推翻, round-7 复审维持"
+  },
+  {
+   "withdrawn": "AMENDMENT 4 §3 clause 3 / AMENDMENT 5 §3 item 2 :: DECAY-BOUND 「一次性状态扰动按 (1−α)^n 收缩, α=0.1 ⇒ 0.9^2191 = 5.563e-101 ≪ 1e-9」",
+   "replacement": "FCF_DECAY_BOUND_2026-09-21.json :: 在役链是 EMA + 免交易带; 实测 5 个工作点 5/5 超过该界、5/5 仍高于 1e-9; FB-02 工作点 0.001 → 2,191 步后仍 0.001(不收缩, 是纯 EMA 预测的 1.797e+100 倍)。正控: 同一份抽取字节把 band 置 0 后确实按 0.9^n 收缩(相对误差 1.559e-14 < 容差 1.946e-12)",
+   "why": "(1−α)^n 是算子 LINEAR PART 的收缩率, 不是算子本身的界 —— 带死区/钳制/阈值的算子不得用其线性部分代替 (E-0921-E)",
+   "tokens": [
+    "5.563e-101",
+    "0.9^2191",
+    "1e-100",
+    "0.9^2190"
+   ]
   }
  ],
  "checks": [

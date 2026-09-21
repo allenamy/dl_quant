@@ -82,6 +82,16 @@ WITHDRAWN = [
     dict(withdrawn="RESULT L630 / L808「F4b′ 立为 F4 of record」",
          replacement="F4 of record = " + F_OF_RECORD,
          why="修订 3 的立臂被 A1/A1′ 两条判据推翻, round-7 复审维持"),
+    # round-7 FB-02 / E-0921-E. `tokens` is what makes this entry ENFORCEABLE rather than decorative: every prose line
+    # that carries one of these strings must also carry WITHDRAWN_MARKER, or fcf_doc_check --doc goes red. Registering a
+    # withdrawal is therefore the whole of the work — no consumer has to be edited for the next one.
+    dict(withdrawn="AMENDMENT 4 §3 clause 3 / AMENDMENT 5 §3 item 2 :: DECAY-BOUND 「一次性状态扰动按 (1−α)^n 收缩, "
+                   "α=0.1 ⇒ 0.9^2191 = 5.563e-101 ≪ 1e-9」",
+         replacement="FCF_DECAY_BOUND_2026-09-21.json :: 在役链是 EMA + 免交易带; 实测 5 个工作点 5/5 超过该界、"
+                     "5/5 仍高于 1e-9; FB-02 工作点 0.001 → 2,191 步后仍 0.001(不收缩, 是纯 EMA 预测的 1.797e+100 倍)。"
+                     "正控: 同一份抽取字节把 band 置 0 后确实按 0.9^n 收缩(相对误差 1.559e-14 < 容差 1.946e-12)",
+         why="(1−α)^n 是算子 LINEAR PART 的收缩率, 不是算子本身的界 —— 带死区/钳制/阈值的算子不得用其线性部分代替 (E-0921-E)",
+         tokens=["5.563e-101", "0.9^2191", "1e-100", "0.9^2190"]),
 ]
 
 
