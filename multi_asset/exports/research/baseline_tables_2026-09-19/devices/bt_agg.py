@@ -69,6 +69,18 @@ NON_STATISTIC_KEYS = {
     "halt_anchor": "per path: the anchor at which it halted", "halt_index": "per path: that anchor's index",
     "share_anchors_after_halt": "per path", "turnover_flatten_over_gross": "per flatten event of one example path",
     "window_fee_bps_of_gross": "per flatten event of one example path", "seed": "which member this is",
+    # E-0921-B: the anchor a terminal value was read at, and what that anchor is supposed to be. These are provenance of
+    # ONE reading, not summaries of a population; bt_p_reading.assert_window_ends is what checks them.
+    "window_last_anchor": "provenance: the anchor this reading's terminal value was taken at",
+    "window_last_index": "provenance: that anchor's index on the run axis",
+    "window_scope": "provenance: which anchor this reading's terminal value is REQUIRED to have been taken at",
+    "reading_rule": "prose: which question each of the two readings in this cell answers (E-0921-B)",
+    "carriers": "census of the E-0921-B window-end sweep: how many terminal-value carriers it inspected",
+    "run_window_end": "census of that sweep: carriers whose scope is the run's own last anchor",
+    "configured_cutoff": "census of that sweep: carriers whose scope is the configured breach_by",
+    "run_window_last_anchor": "the run's own last anchor, the value every run_window_end carrier is checked against",
+    "configured_cutoff_anchor": "the anchor the configured breach_by resolves to on this run's axis",
+    "quarterly_starts_checked": "census: how many in-window quarterly starts the both-readings assertion inspected",
     # --- counts and population sizes: A4 asks for n_eff BESIDE a statistic, these ARE the sample sizes ------------------------
     "n": "population size (A1)", "n_eff": "effective sample size (A4 itself)", "population_n": "declared population size (A4)",
     "n_asked": "count_block: members that were asked", "n_true": "count_block: members the predicate held for",

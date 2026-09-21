@@ -161,7 +161,11 @@ def p2_of(p, base_i, thr, H, sem, upto_i=None, series=None, traded_members=None)
             "cum25_anchor_epoch": (float(A[base_i + j]) if (fired44 and measured) else None),
             "cum_at_cum25": (float(cum[j]) if (fired44 and measured) else None),
             "end_return_P2": end_p2,
-            "end_return_no_halt": (float(np.prod(1.0 + r[base_i:hi]) - 1.0) if hi > base_i else None)}
+            "end_return_no_halt": (float(np.prod(1.0 + r[base_i:hi]) - 1.0) if hi > base_i else None),
+            # E-0921-B: which anchor this terminal value was read at, and what that anchor is supposed to be. Derived from
+            # the slice actually taken, so the label cannot drift from the arithmetic. PR.assert_window_ends checks it.
+            "window_last_anchor": (PR.iso(A[hi - 1]) if hi - 1 >= 0 else None), "window_last_index": int(hi - 1),
+            "window_scope": ("run_window_end" if upto_i is None else "configured_cutoff")}
 
 
 def mean_p2_series(paths, H, base_t, sem):
@@ -309,6 +313,7 @@ def run(cfg_p, outp):
                 flatten_cost_block(PP, "base window " + b["anchor"] + " → " + PR.iso(A[-1]), lo_t=int(A[i0]), hi_t=int(A[-1]))
         # the quarterly starts, main H and the strict bound, mean path and per path (AMENDMENT 3 §4), under BOTH semantics
         upto_i = int(np.searchsorted(A, PR.ts(P["breach_by"]), "right")) - 1
+        CUT_KEY = "breach_by_" + P["breach_by"][:10]
         res["p_start"] = {}
         for st_iso in P["starts"]:
             t = PR.ts(st_iso)
@@ -320,16 +325,29 @@ def run(cfg_p, outp):
                 for sem in SEMANTICS:
                     MPr = mean_p2_series(PP, H, A[i0], sem)
                     MP = dict(PP[0], navm0=np.ones(len(A)), navm1=np.ones(len(A)), flatten=[])
-                    per = [dict(p2_of(p, i0, thr, H, sem, upto_i), seed=p["seed"]) for p in PP]
-                    s = summarise(per, pop_name)                          # the WHOLE summary is emitted: a block built but not
-                    s["cum25_anchor_median_utc"] = cum25_median_block(per)   # a block built but not persisted would fail the census
-                    n_traded = sum(1 for x in per if x["has_measurement"])
-                    e[str(H)][sem] = dict(s, mean_path=dict({k: v for k, v in p2_of(MP, i0, thr, H, sem, upto_i, series=MPr, traded_members=n_traded).items() if k != "per_event"},
-                                                            caliber="WHOLE POPULATION: the per-anchor mean over all %d paths, a withheld path contributing its flat-book 0" % len(PP)),
+                    # E-0921-B: the two uses are SEPARATE, exactly as the sibling bt_p_reading already separates them.
+                    #   CUT_KEY        the configured cutoff decides WHETHER a breach happened by that date
+                    #   to_window_end  the terminal VALUE, read at the run's own last anchor
+                    # Before this fix only the first existed and the renderer printed it in a column headed "window end";
+                    # on the extended A0 run that truncated 23 of 34 rows at 2026-08-31 while the run reaches 2026-09-18T20Z.
+                    cell2 = {}
+                    for key, up in ((CUT_KEY, upto_i), ("to_window_end", None)):
+                        per = [dict(p2_of(p, i0, thr, H, sem, up), seed=p["seed"]) for p in PP]
+                        sm = summarise(per, pop_name)                         # the WHOLE summary is emitted: a block built but not
+                        sm["cum25_anchor_median_utc"] = cum25_median_block(per)  # persisted would fail the census
+                        n_traded = sum(1 for x in per if x["has_measurement"])
+                        cell2[key] = dict(sm, mean_path=dict({k: v for k, v in p2_of(MP, i0, thr, H, sem, up, series=MPr, traded_members=n_traded).items() if k != "per_event"},
+                                                             caliber="WHOLE POPULATION: the per-anchor mean over all %d paths, a withheld path contributing its flat-book 0" % len(PP)),
                                           census_of_the_paths_it_averages={"population_n": len(PP),
                                                                            "paths_with_no_traded_anchor_in_window": sum(1 for x in per if not x["has_measurement"]),
                                                                            "seeds_with_no_traded_anchor": [x["seed"] for x in per if not x["has_measurement"]]})
+                    cell2["reading_rule"] = ("AMENDMENT 2 §2 + E-0921-B: %r is judged up to the configured breach_by and answers "
+                                             "WHETHER a breach happened by that date; 'to_window_end' answers WHAT THE WINDOW-END "
+                                             "VALUE IS and is read at this run's own last anchor %s" % (CUT_KEY, PR.iso(A[-1])))
+                    e[str(H)][sem] = cell2
             res["p_start"][st_iso] = dict(e, in_window=True)
+        res["window_end_contract"] = dict(PR.assert_window_ends(res, A, PR.iso(A[upto_i]), f"bt_p2_reading run {r['label']!r}"),
+                                          quarterly=PR.assert_every_quarterly_start_reports_both(res["p_start"], f"bt_p2_reading run {r['label']!r}"))
         out["runs"][r["label"]] = res
     out["runtime_s"] = round(time.time() - T0, 1)
     receipt = AG.write_json_checked(out, outp, min_blocks=2 * NBLOCKS[0])

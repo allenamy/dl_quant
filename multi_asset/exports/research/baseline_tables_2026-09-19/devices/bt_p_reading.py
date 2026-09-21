@@ -99,12 +99,98 @@ def halt_of(p, base_i, threshold, upto_i=None, day_end_only=False):
     if day_end_only: below = below & (A[base_i:hi] % 86400 == DAY_END_ANCHOR_S)
     k = np.nonzero(below)[0]
     end_nohalt = float(cum[-1]) if len(cum) else None
+    # E-0921-B: a terminal value must say WHICH ANCHOR it was read at, and what that anchor is supposed to be. The scope is
+    # derived from the slice actually taken, never declared by the caller, so the label cannot drift away from the arithmetic.
+    W = {"window_last_anchor": (iso(A[hi - 1]) if hi - 1 >= 0 else None), "window_last_index": int(hi - 1),
+         "window_scope": ("run_window_end" if upto_i is None else "configured_cutoff")}
     if not len(k):
         return {"fired": False, "halt_index": None, "halt_anchor": None, "cum_at_halt": None, "end_return_nohalt": end_nohalt,
-                "end_return_phalt": end_nohalt, "anchors_after_halt": 0, "share_anchors_after_halt": 0.0}
+                "end_return_phalt": end_nohalt, "anchors_after_halt": 0, "share_anchors_after_halt": 0.0, **W}
     j = int(k[0]); g = base_i + j
     return {"fired": True, "halt_index": g, "halt_anchor": iso(A[g]), "cum_at_halt": float(cum[j]), "end_return_nohalt": end_nohalt,
-            "end_return_phalt": float(cum[j]), "anchors_after_halt": int(hi - 1 - g), "share_anchors_after_halt": float((hi - 1 - g) / max(hi - base_i, 1))}
+            "end_return_phalt": float(cum[j]), "anchors_after_halt": int(hi - 1 - g),
+            "share_anchors_after_halt": float((hi - 1 - g) / max(hi - base_i, 1)), **W}
+
+
+class WindowEndError(Exception):
+    pass
+
+
+WINDOW_SCOPES = {
+    # scope -> which anchor a value carrying it MUST have been read at. Adding a scope means declaring its anchor here;
+    # a carrier whose scope is not in this table is REFUSED, so a new one cannot slip through by not being on a list.
+    "run_window_end": "the run's own last anchor",
+    "configured_cutoff": "the anchor named by the configured breach_by",
+}
+
+
+def sweep_window_ends(node, last_anchor_iso, cutoff_iso, path="$", census=None):
+    """E-0921-B. Walk a whole emitted document and check every terminal value against the anchor it says it was read at.
+
+    THE DEFECT THIS EXISTS FOR was not an arithmetic slip: `hi = upto_i + 1` was computed from the CONFIGURED cutoff and then
+    used for BOTH the breach test and the window-end value, so an extended run reported a window end truncated at a date the
+    run had long passed. A configured date may decide WHETHER something happened; it may never decide WHAT A TERMINAL VALUE
+    IS. The value's anchor must come from the run's own axis.
+
+    The sweep is structural, not a list of field names: any dict that carries `window_last_anchor` is a terminal-value
+    carrier, whatever it is called and wherever it sits. A carrier with no `window_scope`, or with one that is not declared
+    in WINDOW_SCOPES, is REFUSED rather than skipped — an absent key must not mean "not my problem" (that family has bitten
+    this project repeatedly). The caller must then assert the census is non-empty: a sweep that measured nothing must not be
+    read as a sweep that found nothing wrong."""
+    if census is None:
+        census = {"run_window_end": 0, "configured_cutoff": 0, "carriers": 0, "violations": []}
+    if isinstance(node, dict):
+        if "window_last_anchor" in node:
+            census["carriers"] += 1
+            sc = node.get("window_scope")
+            if sc not in WINDOW_SCOPES:
+                raise WindowEndError("%s carries a terminal value at anchor %r with window_scope %r, which is not declared in "
+                                     "WINDOW_SCOPES %s — a terminal value whose scope is unclassified is refused, not skipped"
+                                     % (path, node.get("window_last_anchor"), sc, sorted(WINDOW_SCOPES)))
+            want = last_anchor_iso if sc == "run_window_end" else cutoff_iso
+            census[sc] += 1
+            if node["window_last_anchor"] != want:
+                census["violations"].append({"at": path, "window_scope": sc, "read_at_anchor": node["window_last_anchor"],
+                                             "must_be": want})
+        for k, v in node.items():
+            sweep_window_ends(v, last_anchor_iso, cutoff_iso, path + "." + str(k), census)
+    elif isinstance(node, list):
+        for i, v in enumerate(node):
+            sweep_window_ends(v, last_anchor_iso, cutoff_iso, path + "[%d]" % i, census)
+    return census
+
+
+def assert_window_ends(node, A, cutoff_iso, where):
+    """run the sweep and refuse on any violation, on an unclassified carrier, or on a sweep that measured nothing"""
+    last = iso(A[-1])
+    c = sweep_window_ends(node, last, cutoff_iso)
+    if c["violations"]:
+        raise WindowEndError("%s: %d terminal value(s) were read at an anchor other than the one their scope requires. "
+                             "First: %s" % (where, len(c["violations"]), json.dumps(c["violations"][:3])))
+    if c["carriers"] == 0:
+        raise WindowEndError("%s: the window-end sweep measured NOTHING — zero terminal-value carriers. A sweep that "
+                             "measured nothing is not a sweep that found nothing wrong" % where)
+    return dict(c, run_window_last_anchor=last, configured_cutoff_anchor=cutoff_iso)
+
+
+def assert_every_quarterly_start_reports_both(p_start, where):
+    """E-0921-B, the shape check the defect actually needed: at every quarterly start that is in the window, BOTH readings
+    must be present — the one truncated at the configured cutoff (which decides whether a breach happened) AND the one that
+    runs to the run's own last anchor (which is the window-end value). The pre-fix document carried only the first, and the
+    renderer printed it in a column headed 'window end'. Requiring both, per cell, is what makes that shape impossible."""
+    bad = []
+    for st, v in p_start.items():
+        if not isinstance(v, dict) or not v.get("in_window"):
+            continue
+        c = sweep_window_ends(v, "\x00never", "\x01never")      # sentinels: we only want the per-scope counts here
+        if c["run_window_end"] == 0 or c["configured_cutoff"] == 0:
+            bad.append({"start": st, "run_window_end_carriers": c["run_window_end"],
+                        "configured_cutoff_carriers": c["configured_cutoff"]})
+    if bad:
+        raise WindowEndError("%s: %d quarterly start(s) do not report BOTH a cutoff reading and a run-window-end reading. "
+                             "First: %s" % (where, len(bad), json.dumps(bad[:3])))
+    return {"quarterly_starts_checked": sum(1 for v in p_start.values() if isinstance(v, dict) and v.get("in_window")),
+            "every_one_reports_both": True}
 
 
 def median_anchor_block(per):
@@ -174,6 +260,10 @@ def run(cfg_p, outp):
                                                            "max": max([x["halt_anchor"] for x in per_b if x["fired"]], default=None),
                                                            "n_eff": sum(1 for x in per_b if x["fired"]), "population_n": len(per_b),
                                                            "not_applicable": {"n": sum(1 for x in per_b if not x["fired"]), "reason": NO_BREACH}}}
+        # E-0921-B: nothing is written until every terminal value in this run has been checked against the anchor it
+        # claims to have been read at, and until every quarterly start reports BOTH readings.
+        res["window_end_contract"] = dict(assert_window_ends(res, A, iso(A[upto_i]), f"bt_p_reading run {r['label']!r}"),
+                                          quarterly=assert_every_quarterly_start_reports_both(res["p_start"], f"bt_p_reading run {r['label']!r}"))
         out["runs"][r["label"]] = res
     out["runtime_s"] = round(time.time() - T0, 1)
     receipt = AG.write_json_checked(out, outp, min_blocks=2 * NBLOCKS[0])

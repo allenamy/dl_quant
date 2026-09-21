@@ -22,6 +22,15 @@ usage: /usr/bin/python3 bt_p2_amd4_delta.py <old_dir> <new_dir> <out.json>
 """
 import json, os, sys, time, hashlib
 
+def CUTCELL(cell):
+    """E-0921-B: the quarterly-start cell now holds BOTH readings. This delta compares against the PRE-AMENDMENT-4 device,
+    whose single number was the one truncated at the configured breach_by, so the like-for-like operand is the cutoff
+    reading. A cell that predates the split is returned unchanged so an old receipt still compares."""
+    k = [x for x in cell if x.startswith("breach_by_")]
+    return cell[k[0]] if k else cell
+
+
+
 T0 = time.time()
 OLD, NEW, OUTP = sys.argv[1], sys.argv[2], sys.argv[3]
 ARMS = ("A0", "A0ext", "V4")
@@ -108,25 +117,25 @@ for arm in ARMS:
             if not O["p_start"][st].get("in_window"): continue
             for H in [k for k in O["p_start"][st] if k != "in_window"]:
                 om = O["p_start"][st][H]["end_return_P2"]["mean"]
-                nm = N["p_start"][st][H]["W_CARRY"]["end_return_P2"]["whole_population"]["mean"]
+                nm = CUTCELL(N["p_start"][st][H]["W_CARRY"])["end_return_P2"]["whole_population"]["mean"]
                 ok(f"R3 {arm}.{lbl}.start {st[:10]}.H={H}: the old published mean IS the new W_CARRY whole-population mean", eq(om, nm),
                    {"old": om, "new": nm})
                 ok(f"R9 {arm}.{lbl}.start {st[:10]}.H={H}: day-stop count, breach count and mean path unchanged",
-                   O["p_start"][st][H]["paths_day_stopped"] == N["p_start"][st][H]["W_CARRY"]["paths_that_hit_the_day_stop"]["n_true"]
-                   and O["p_start"][st][H]["paths_cum25"] == N["p_start"][st][H]["W_CARRY"]["paths_that_hit_cum25"]["n_true"]
-                   and ((eq(O["p_start"][st][H]["mean_path"]["end_return_P2"], N["p_start"][st][H]["W_CARRY"]["mean_path"]["end_return_P2"]))
-                        if N["p_start"][st][H]["W_CARRY"]["mean_path"]["has_measurement"] else O["p_start"][st][H]["mean_path"]["end_return_P2"] == 0.0),
+                   O["p_start"][st][H]["paths_day_stopped"] == CUTCELL(N["p_start"][st][H]["W_CARRY"])["paths_that_hit_the_day_stop"]["n_true"]
+                   and O["p_start"][st][H]["paths_cum25"] == CUTCELL(N["p_start"][st][H]["W_CARRY"])["paths_that_hit_cum25"]["n_true"]
+                   and ((eq(O["p_start"][st][H]["mean_path"]["end_return_P2"], CUTCELL(N["p_start"][st][H]["W_CARRY"])["mean_path"]["end_return_P2"]))
+                        if CUTCELL(N["p_start"][st][H]["W_CARRY"])["mean_path"]["has_measurement"] else O["p_start"][st][H]["mean_path"]["end_return_P2"] == 0.0),
                    {"old": [O["p_start"][st][H]["paths_day_stopped"], O["p_start"][st][H]["paths_cum25"], O["p_start"][st][H]["mean_path"]["end_return_P2"]],
-                    "new": [N["p_start"][st][H]["W_CARRY"]["paths_that_hit_the_day_stop"]["n_true"],
-                            N["p_start"][st][H]["W_CARRY"]["paths_that_hit_cum25"]["n_true"],
-                            N["p_start"][st][H]["W_CARRY"]["mean_path"]["end_return_P2"]]})
-                E = N["p_start"][st][H]["W_ENTRY"]
+                    "new": [CUTCELL(N["p_start"][st][H]["W_CARRY"])["paths_that_hit_the_day_stop"]["n_true"],
+                            CUTCELL(N["p_start"][st][H]["W_CARRY"])["paths_that_hit_cum25"]["n_true"],
+                            CUTCELL(N["p_start"][st][H]["W_CARRY"])["mean_path"]["end_return_P2"]]})
+                E = CUTCELL(N["p_start"][st][H]["W_ENTRY"])
                 DELTA.append({"arm": arm, "run": lbl, "scope": "start " + st[:10], "H": str(H), "published_old": om,
                               "main_now_W_ENTRY_measured": E["end_return_P2"]["measured"]["mean"],
                               "delta_pp": (None if (om is None or E["end_return_P2"]["measured"]["mean"] is None)
                                            else 100.0 * (E["end_return_P2"]["measured"]["mean"] - om)),
-                              "W_CARRY_measured": N["p_start"][st][H]["W_CARRY"]["end_return_P2"]["measured"]["mean"],
-                              "n_unmeasured_under_W_CARRY": N["p_start"][st][H]["W_CARRY"]["end_return_P2"]["no_measurement"]["n"],
+                              "W_CARRY_measured": CUTCELL(N["p_start"][st][H]["W_CARRY"])["end_return_P2"]["measured"]["mean"],
+                              "n_unmeasured_under_W_CARRY": CUTCELL(N["p_start"][st][H]["W_CARRY"])["end_return_P2"]["no_measurement"]["n"],
                               "published_breach": O["p_start"][st][H]["paths_cum25"],
                               "main_now_breach": f'{E["paths_that_hit_cum25"]["n_true"]}/{E["paths_that_hit_cum25"]["n_asked"]}',
                               "meanpath_published_old": O["p_start"][st][H]["mean_path"]["end_return_P2"],

@@ -1,0 +1,146 @@
+{
+ "device": "bt_window_end_test.py",
+ "self_sha256": "1ee4a2392934de12556359aa5dbd6d8561713ec2b8a4b1af555765d0ed161ec0",
+ "utc": "2026-09-21T01:59:33Z",
+ "ledger": "E-0921-B",
+ "review": "round-7 G-01",
+ "pinned_pre_fix": {
+  "commit": "6bba6e9fe65d27d8d65912aa522f21763556848c",
+  "blob_bt_p2_reading": "586ce296e854352562f5970d6fe612efedacf7cd"
+ },
+ "checks": [
+  {
+   "check": "B0.BASELINE_GREEN the fixed device wrote a receipt and its window-end sweep found no violation",
+   "ok": true,
+   "detail": {
+    "violations": [],
+    "run_window_last_anchor": "2024-01-05T20:00:00Z",
+    "configured_cutoff_anchor": "2024-01-02T12:00:00Z"
+   }
+  },
+  {
+   "check": "B0.BASELINE_GREEN the sweep measured a NON-ZERO number of carriers, of BOTH scopes (not a vacuous pass)",
+   "ok": true,
+   "detail": {
+    "carriers": 42,
+    "run_window_end": 36,
+    "configured_cutoff": 6
+   }
+  },
+  {
+   "check": "B0.BASELINE_GREEN every quarterly start reports BOTH readings",
+   "ok": true,
+   "detail": {
+    "quarterly_starts_checked": 1,
+    "every_one_reports_both": true
+   }
+  },
+  {
+   "check": "N1.the PRE-FIX device (pinned blob 586ce296e854) returned the value truncated at the cutoff",
+   "ok": true,
+   "detail": {
+    "pre_fix_device_value_pct": 6.1106,
+    "expected_pct": 6.1106,
+    "pinned_commit": "6bba6e9fe65d27d8d65912aa522f21763556848c",
+    "pinned_blob": "586ce296e854352562f5970d6fe612efedacf7cd",
+    "stderr_tail": ""
+   }
+  },
+  {
+   "check": "N1.the FIXED device's to_window_end is the plain compounding of all six anchors",
+   "ok": true,
+   "detail": {
+    "to_window_end_pct": 22.825141712,
+    "hand_compounded_pct": 22.825141712,
+    "review_expected_pct": 22.825141712
+   }
+  },
+  {
+   "check": "N1.the FIXED device still reports the cutoff reading, and it equals what the pre-fix device published",
+   "ok": true,
+   "detail": {
+    "cutoff_reading_pct": 6.1106,
+    "pre_fix_published_pct": 6.1106,
+    "why": "the cutoff reading is not deleted \u2014 it is the answer to a DIFFERENT question and is now labelled as such"
+   }
+  },
+  {
+   "check": "N1.the gap between the two readings on this fixture",
+   "ok": true,
+   "detail": {
+    "gap_pp": 16.714541712
+   }
+  },
+  {
+   "check": "N1.the window-end value was read at the RUN's last anchor, not at the cutoff",
+   "ok": true,
+   "detail": {
+    "to_window_end_read_at": "2024-01-01T20:00:00Z",
+    "cutoff_read_at": "2024-01-01T08:00:00Z",
+    "run_last_anchor": "2024-01-01T20:00:00Z"
+   }
+  },
+  {
+   "check": "R1.RED_ON_THE_OLD_SHAPE a quarterly cell carrying ONLY the cutoff reading is refused",
+   "ok": true,
+   "detail": {
+    "refusal": "WindowEndError: R1 old shape: 1 quarterly start(s) do not report BOTH a cutoff reading and a run-window-end reading. First: [{\"start\": \"2024-01-01T00:00:00Z\", \"run_window_end_carriers\": 0, \"configured_cutoff_carriers\": 1}]"
+   }
+  },
+  {
+   "check": "R1.GREEN_ON_THE_NEW_SHAPE the same assertion accepts the fixed device's own document",
+   "ok": true,
+   "detail": {
+    "refused": false
+   }
+  },
+  {
+   "check": "R2.RED a value whose scope is run_window_end but whose anchor is the cutoff is refused, and the refusal NAMES it",
+   "ok": true,
+   "detail": {
+    "refusal": "WindowEndError: R2: 1 terminal value(s) were read at an anchor other than the one their scope requires. First: [{\"at\": \"$.p_start.2024-01-01T00:00:00Z.12.W_ENTRY.to_window_end.mean_path\", \"window_scope\": \"run_window_end\", \"read_at_anchor\": \"2024-01-02T12:00:00Z\", \"must_be\": \"2024-01-05T20:00:00Z\"}]"
+   }
+  },
+  {
+   "check": "R3.RED_FAIL_CLOSED a terminal-value carrier with window_scope absent is refused, not skipped",
+   "ok": true,
+   "detail": {
+    "refusal": "WindowEndError: $.p_start.2024-01-01T00:00:00Z.12.W_ENTRY.to_window_end.mean_path carries a terminal value at anchor '2024-01-05T20:00:00Z' with window_scope None, which is not declared in WINDOW_SCOPES ['configured_cutoff', 'run_window_end'] \u2014 a terminal value whose scope is unclassified is refused"
+   }
+  },
+  {
+   "check": "R3.RED_FAIL_CLOSED a terminal-value carrier with window_scope is a name nobody declared is refused, not skipped",
+   "ok": true,
+   "detail": {
+    "refusal": "WindowEndError: $.p_start.2024-01-01T00:00:00Z.12.W_ENTRY.to_window_end.mean_path carries a terminal value at anchor '2024-01-05T20:00:00Z' with window_scope 'to_the_end_ish', which is not declared in WINDOW_SCOPES ['configured_cutoff', 'run_window_end'] \u2014 a terminal value whose scope is unclassifie"
+   }
+  },
+  {
+   "check": "R4.RED_NOT_VACUOUS a document with zero terminal-value carriers is refused",
+   "ok": true,
+   "detail": {
+    "refusal": "WindowEndError: R4: the window-end sweep measured NOTHING \u2014 zero terminal-value carriers. A sweep that measured nothing is not a sweep that found nothing wrong"
+   }
+  },
+  {
+   "check": "R5.RED the renderer REFUSES a pre-fix receipt instead of printing its truncated number under 'window end'",
+   "ok": true,
+   "detail": {
+    "returncode": 1,
+    "message": "REFUSED: this receipt predates E-0921-B \u2014 its quarterly-start cells carry only the reading truncated at the configured breach_by, and there is no window-end value to render. Re-run bt_p2_reading.py on this run. (FIX_REND)"
+   }
+  },
+  {
+   "check": "R5.GREEN the renderer renders the fixed receipt, and its quarterly table states the E-0921-B caliber",
+   "ok": true,
+   "detail": {
+    "returncode": 0,
+    "stdout": "rendered /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scr",
+    "caliber_line_present": true
+   }
+  }
+ ],
+ "n_checks": 16,
+ "n_failed": 0,
+ "runtime_s": 1.4
+}

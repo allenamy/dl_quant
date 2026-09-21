@@ -69,14 +69,30 @@ for lbl, R in d["runs"].items():
                  f"**{tg['measured']['median']:.3f}**(即整本书被平掉, n_eff {tg['measured']['n_eff']}/{tg['population']['n']}), "
                  f"该窗手续费中位 **{fe['measured']['median']:.2f} bps**(相对 gross)。"
                  f"P 与 P2 的窗末收益都是**盯市**的, 没有再扣一次退出成本。")
+    # E-0921-B: the configured cutoff decides WHETHER a breach happened; every RETURN below is read at the run's own last
+    # anchor. A receipt written before this fix has no 'to_window_end' cell, and is REFUSED rather than rendered — the
+    # pre-fix number was printed under a heading that said "window end" while being truncated at the cutoff, and renaming
+    # the column would have left it sitting beside correctly-computed window ends inviting the same comparison.
+    _q = [v for v in R["p_start"].values() if isinstance(v, dict) and v.get("in_window")]
+    if _q and "to_window_end" not in _q[0]["12"]["W_ENTRY"]:
+        raise SystemExit("REFUSED: this receipt predates E-0921-B — its quarterly-start cells carry only the reading "
+                         "truncated at the configured breach_by, and there is no window-end value to render. Re-run "
+                         "bt_p2_reading.py on this run. (%s)" % lbl)
+    _cut = None
+    for v in _q:
+        _cut = [k for k in v["12"]["W_ENTRY"] if k.startswith("breach_by_")][0]; break
     L.append(f"\n**季度起点 · {lbl}**(H = 12 小时与永不恢复皆为 **W-ENTRY 主读数**; W-CARRY 一列并列具名)\n")
-    L.append("| 起点 | 日止损路径(H=12) | −25% 路径(H=12) | P2 窗末 H=12(W-ENTRY, n_eff) | P2 窗末 永不恢复(**W-ENTRY 主**, n_eff) | "
+    L.append(f"> **E-0921-B 口径**: 「是否触线」判到配置的截止日 **{_cut.replace('breach_by_', '')}**; "
+             f"**所有收益列读到本次运行自己的末锚 {R['window'][1][:16].replace('T', ' ')}Z**。两者是不同的量, 不再共用一个索引。\n")
+    L.append("| 起点 | 日止损路径(H=12) | −25% 路径(H=12, 判到截止日) | P2 窗末 H=12(W-ENTRY, n_eff) | P2 窗末 永不恢复(**W-ENTRY 主**, n_eff) | "
              "永不恢复 W-CARRY · 有测量子集 | 永不恢复 W-CARRY · 全人口 | 读数 P(模拟器规则)窗末 |")
     L.append("|---|---|---|---|---|---|---|---|")
     for st, v in R["p_start"].items():
-        if not v.get("in_window"): continue
-        h12, nvE, nvC, sm = v["12"]["W_ENTRY"], v["never"]["W_ENTRY"], v["never"]["W_CARRY"], v["sim"]["W_ENTRY"]
-        L.append(f"| {st[:10]} | {h12['paths_that_hit_the_day_stop']['n_true']} | {h12['paths_that_hit_cum25']['n_true']}/{h12['paths_that_hit_cum25']['n_asked']} | "
+        if not isinstance(v, dict) or not v.get("in_window"): continue
+        b12 = v["12"]["W_ENTRY"][_cut]                                     # the breach question, judged to the cutoff
+        h12, nvE, nvC, sm = (v["12"]["W_ENTRY"]["to_window_end"], v["never"]["W_ENTRY"]["to_window_end"],
+                             v["never"]["W_CARRY"]["to_window_end"], v["sim"]["W_ENTRY"]["to_window_end"])
+        L.append(f"| {st[:10]} | {b12['paths_that_hit_the_day_stop']['n_true']} | {b12['paths_that_hit_cum25']['n_true']}/{b12['paths_that_hit_cum25']['n_asked']} | "
                  f"{cell(h12['end_return_P2'])} | {cell(nvE['end_return_P2'])} | {cell(nvC['end_return_P2'])} | {whole(nvC['end_return_P2'])} | "
                  f"{cell(sm['end_return_P2'])} |")
 sw = d.get("aggregation_contract", {}).get("sweep", {})
