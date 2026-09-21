@@ -46,6 +46,16 @@ ENV (all explicit, no silent default selects data — E-0826-D):
   gates.BUNDLE_export.approved_baseline fails E2b by construction from October on. The gate is NOT relaxed — it still demands a
   byte-identical match against an explicitly approved sha, it never accepts "whatever is on disk", and it never falls back to
   another month's approval (2026-10 is deliberately null until the October files exist and are approved by their own user word).
+
+★ R8-G-01 / E-0921-F (2026-09-21, independent review round 8): the helper above is CODE THAT DECIDES A VERDICT, and the contract
+  approves it by sha (gates.BUNDLE_export.approved_helper_sha256) — but until now no run-time entry read that approval. The gate
+  recorded the helper's CURRENT sha and `require` compared "the file now == the sha the receipt recorded", so a helper swapped
+  BEFORE the run produced a perfectly self-consistent receipt from unapproved code; the reviewer flipped E2b to true that way.
+  Now: (a) E2b verifies the helper against the contract-approved sha BEFORE consuming its answer, a missing/ malformed/ absent
+  approval being a NAMED FAIL with a receipt; (b) gate_main / require_main first run a CENSUS of every module imported from the
+  chain directory, so a NEW unregistered sibling helper is refused too; (c) `require` demands the sha the receipt RECORDED equal
+  the APPROVED sha, which the old "changed since the receipt" control passes by construction. All four call sites share ONE
+  implementation in v4_gate_common (require_approved_helper / helper_closure / receipt_helpers_approved).
 """
 import os, sys, json, time, hashlib, calendar
 import numpy as np
@@ -197,8 +207,19 @@ def E2_config(cx):
     #     frozen for. The gate is NOT relaxed: it still demands a byte-identical match against an EXPLICITLY approved sha,
     #     and there is no fallback to another month's approval (v4e_export_baseline_lib docstring).
     sp_ = sha256_file(E["LIVE_PINS"]); sb = sha256_file(E["BUNDLE_BASE"]) if os.path.exists(E["BUNDLE_BASE"]) else None
-    mb, why, det = xbl.approved_export_baseline(cx.contract, cx.month)
     measured = {"month": cx.month, "live_pins_sha256": sp_, "bundle_base_sha256": sb}
+    #     ★ R8-G-01 / E-0921-F (2026-09-21, independent review round 8): the helper that RESOLVES the approved pair is itself
+    #     approved BY SHA in the frozen contract (gates.BUNDLE_export.approved_helper_sha256) — and until now NOTHING read that
+    #     approval at run time. Both gates recorded the helper's CURRENT sha and `require` compared "current file == recorded",
+    #     so swapping the helper BEFORE the run and regenerating the receipt kept every relation true while the code deciding
+    #     this very check was never approved; the reviewer flipped E2b from month_not_approved to TRUE exactly that way.
+    #     The check therefore runs HERE, BEFORE the helper's answer is consumed, and a missing/ malformed/ absent approval is a
+    #     NAMED FAIL with a receipt, never a skip. ONE shared implementation — v4_gate_common.require_approved_helper — is what
+    #     the other export-gate variant, the monthly driver's preflight and `require` also call (E-0921-F clause 3).
+    hok, hwhy, hdet = cx.gc.require_approved_helper(GATE, os.path.abspath(xbl.__file__), cx.contract)
+    if not hok:
+        return cx.chk("E2b_pins_identity", False, {"refused": "helper_not_approved", "why": hwhy, **hdet, **measured})
+    mb, why, det = xbl.approved_export_baseline(cx.contract, cx.month)
     if mb is None:
         return cx.chk("E2b_pins_identity", False, {"refused": why, **det, **measured,
                       "frozen_global_baseline_not_used": {"live_pins_sha256": cx.ab["live_pins_sha256"], "bundle_base_sha256": cx.ab["bundle_base_sha256"]}})
@@ -501,12 +522,40 @@ def run_all(cx, guards=True):
                       "export_panel": E["EXPORT_PANEL"], "bundle_cache": E["BUNDLE_CACHE"], "fund_aug": E["FUND_AUG"], "live_pins": E["LIVE_PINS"],
                       # ★ R14-C2 shape (a dependency that is not RECORDED cannot be re-hashed): E2b's approved pair now comes from a
                       #   helper module, so the helper is a registered input — swapping it leaves the gate's own sha untouched.
-                      "export_baseline_lib": os.path.abspath(xbl.__file__)})
+                      "export_baseline_lib": os.path.abspath(xbl.__file__),
+                      # ★ R8-G-01 (2026-09-21): the shared gate-discipline module decides the SHAPE of this receipt and of
+                      #   `require`'s verdict, so it is code this gate depends on — recorded here and approved by sha in the
+                      #   contract's approved_helper_sha256, for the same R14-C2 reason the baseline helper is.
+                      "v4_gate_common": os.path.abspath(cx.gc.__file__)})
 
 
 # ----------------------------------------------------------------------------------------------------------------- modes
+def helper_closure_or_refuse(E, write_receipt, recorded=None):
+    """★ R8-G-01 / E-0921-F (2026-09-21) — the CLASS-shaped half, run at the PRODUCTION ENTRY POINTS before anything else.
+    Every module this process imported from the chain directory (or from the gate's own directory, which need not be the same
+    place) must be a contract-approved helper of this gate. Fixing only today's helper by name would leave tomorrow's new
+    sibling module unchecked; this census is what makes the answer to "would a new one be caught?" yes.
+    Not run inside run_all: a TEST process legitimately holds the other variants and the harness itself in sys.modules, so a
+    census there would measure the harness rather than the gate."""
+    sys.path.insert(0, E["V4CHAIN_DIR"])
+    import v4_gate_common as gc  # noqa: E402
+    c, err = gc.load_contract()
+    if c is None: refuse(f"frozen contract: {err}")
+    ok, why, det = gc.helper_closure(GATE, [E["V4CHAIN_DIR"], os.path.dirname(os.path.abspath(__file__))],
+                                     os.path.abspath(__file__), c, recorded=recorded)
+    if ok: return det
+    print("  FAIL E_helper_closure " + str(why)[:400], flush=True)
+    if write_receipt:
+        gc.finalize(GATE, {"PASS": False, "failed_checks": ["E_helper_closure"], "refused": "helper_closure", "why": why,
+                           "helper_closure": det, "gate_version": "R8-G-01 helper approval closure (2026-09-21)",
+                           "built_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
+                    E["EXPORT_GATE_OUT"], {})                     # finalize writes the receipt and exits 3
+    print("EXPORT_GATE_REFUSED: " + str(why), flush=True); sys.exit(3)
+
+
 def gate_main():
-    E = read_env(); cx = Ctx(E); run_all(cx, guards=True)
+    E = read_env(); helper_closure_or_refuse(E, write_receipt=True); cx = Ctx(E); run_all(cx, guards=True)
+    helper_closure_or_refuse(E, write_receipt=True, recorded=cx.inputs)     # ★ R14-C2: every imported chain-dir module is also a REGISTERED input
     R = cx.R; R["PASS"] = bool(not cx.fails); R["failed_checks"] = cx.fails
     R["registered_inputs"] = sorted(cx.inputs); R["registered_floor_v4_gate_common"] = cx.gc.REQUIRED_INPUTS.get(GATE)
     R["built_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()); R["gate_version"] = "v2 (r20 gate closure 2026-09-12) + TRN-15 per-month export baseline (2026-09-21)"
@@ -516,8 +565,9 @@ def gate_main():
 
 def require_main(receipt_path):
     """Identity + full-floor sha re-verification (v4_gate_common.require) AND content gates re-run from the files. Nothing is read from the receipt but the shas."""
-    E = read_env(); cx = Ctx(E); recompute = os.environ.get("REQUIRE_RECOMPUTE_GUARDS") == "1"
+    E = read_env(); helper_closure_or_refuse(E, write_receipt=False); cx = Ctx(E); recompute = os.environ.get("REQUIRE_RECOMPUTE_GUARDS") == "1"
     run_all(cx, guards=recompute)                      # derives the full input set from disk (books -> costb/umask/slow/femat; manifest -> bundle/*)
+    helper_closure_or_refuse(E, write_receipt=False, recorded=cx.inputs)    # ★ R14-C2, same call, same implementation
     me = sha256_file(os.path.abspath(__file__))
     ok_id, why = cx.gc.require(receipt_path, cx.inputs, expected_gate=GATE, expected_self_sha=me)
     out = {"mode": "require", "receipt": receipt_path, "gate_self_sha256": me, "identity_and_inputs": {"ok": bool(ok_id), "why": why, "n_inputs_declared": len(cx.inputs), "inputs": sorted(cx.inputs)},

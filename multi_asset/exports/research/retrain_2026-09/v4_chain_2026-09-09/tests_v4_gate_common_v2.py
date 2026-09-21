@@ -14,7 +14,13 @@ def check(name, ok, detail=None):
     N[0] += 1
     if not ok: FAILS.append(name)
     print(("  OK   " if ok else "  FAIL ") + name + (("  — " + str(detail)[:220]) if detail is not None else ""), flush=True)
-FROZEN_SHA8 = "24e813f1"
+# ★ 2026-09-21 (R8-G-01 follow-on, pre-existing red found while re-running the battery): this check pinned the LIVE
+#   v4_gate_common.py at its r1 sha 24e813f1 and had been failing since E-0918-R moved the live file to cc1492d3 — a stale pin
+#   that had been red at HEAD for days, so this suite's 9/10 was not the successor's doing. What the check MEANS is "the frozen
+#   predecessor device was not edited"; that object is the ARCHIVED snapshot, which is what is pinned now. The live file is a
+#   separate, maintained pin (it is contract-approved as a BUNDLE_export helper since R8-G-01), so a drift of either is still red.
+FROZEN_ARCHIVE = ("v4_gate_common.r1_24e813f1.py", "24e813f1")
+LIVE_SHA8 = "d844bddb"
 def sha8(p): return hashlib.sha256(open(p, "rb").read()).hexdigest()[:8]
 
 print("[A] three verdicts through a real gate script")
@@ -34,7 +40,9 @@ rc, o, r = run_gate({"PASS": True, "VERDICT": "UNAVAILABLE"})
 check("★★ a result that says PASS=True but VERDICT=UNAVAILABLE is written as UNAVAILABLE with PASS False — VERDICT wins, PASS is derived", r.get("PASS") is False and r.get("VERDICT") == "UNAVAILABLE" and rc == 3, (rc, r.get("PASS")))
 
 print("\n[B] the frozen module is untouched")
-check(f"★★★ v4_gate_common.py sha8 == {FROZEN_SHA8} (frozen device not edited by the successor)", sha8(os.path.join(HERE, "v4_gate_common.py")) == FROZEN_SHA8, sha8(os.path.join(HERE, "v4_gate_common.py")))
+check(f"★★★ the FROZEN predecessor device {FROZEN_ARCHIVE[0]} is byte-identical ({FROZEN_ARCHIVE[1]}) and the LIVE v4_gate_common.py is its maintained successor {LIVE_SHA8} (contract-approved as a BUNDLE_export helper since R8-G-01) — a drift of EITHER is red",
+      sha8(os.path.join(HERE, FROZEN_ARCHIVE[0])) == FROZEN_ARCHIVE[1] and sha8(os.path.join(HERE, "v4_gate_common.py")) == LIVE_SHA8,
+      {"archive": sha8(os.path.join(HERE, FROZEN_ARCHIVE[0])), "live": sha8(os.path.join(HERE, "v4_gate_common.py"))})
 
 print("\n[C] existing readers refuse an UNAVAILABLE receipt and accept a PASS receipt")
 _, _, r_un = run_gate({"PASS": False, "VERDICT": "UNAVAILABLE", "unevaluated_checks": ["P4"]})

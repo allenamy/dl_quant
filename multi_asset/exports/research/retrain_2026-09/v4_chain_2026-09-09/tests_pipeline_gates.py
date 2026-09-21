@@ -1637,9 +1637,28 @@ def _contract_is_r1_plus_proposed3():
     else: return False
     # ── 2026-09-21 (TRN-15, RUNBOOK §0★ 修订 6 item 2): LIVE_PINS / BUNDLE_BASE became a PER-MONTH approval object, which could not be
     #    implemented without changing the gate source. Stripped HERE field by field, so a change OUTSIDE these fields still fails.
+    # ── 2026-09-21 (R8-G-01 / E-0921-F, independent review round 8): the approved HELPER sha is now consumed BEFORE use by both
+    #    gates, the driver preflight and `require`, which could not be implemented without changing the gate sources again.
+    #    Stripped HERE first, field by field, rewinding to the TRN-15 state the block below expects — a change OUTSIDE these
+    #    fields still fails.
+    _X16 = ("568e1b23eb176e792a62c27045e629c719fa3eb49cc2bb0fb3e9adab6e82bf1e", "b7248f5faf0c7f54ae24ec64c17b72d09b71e3b26bf4aa3cbc1e55bcdc54ac12")
     _X15 = ("36c68e96c8a953a5640a3a82524d760135eb1b0b04fba7f9776c30c87efbd90b", "74e13a16c663c2b19a690ab7f53699d3773da5c686e74b23117aef6e0effabd8")
     _X14 = ("d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e", "16e9cc32369daf634b03d05a5e1294cbae4ab2a8dc3f91a3e761100c0f7b453c")
     xg = cur["gates"]["BUNDLE_export"]
+    if tuple(xg["approved_source_sha256"]) != _X16: return False                 # the ONLY approved-source move R8-G-01 makes
+    xg["approved_source_sha256"] = list(_X15)                                    # rewound to the TRN-15 pair
+    _xs = xg.get("superseded_source_sha256") or {}
+    if _X15[0] not in _xs or _X15[1] not in _xs: return False                    # R8-G-01 supersedes exactly the TRN-15 pair
+    _xs.pop(_X15[0]); _xs.pop(_X15[1]); xg["superseded_source_sha256"] = _xs
+    _xh = xg.get("approved_helper_sha256") or {}
+    if not _xh.pop("v4_gate_common.py", None): return False                      # R8-G-01 registers the shared module as a helper
+    xg["approved_helper_sha256"] = _xh
+    for _g in ("STEP1", "STEP2"):                                                # R8-G-01 follow-on: fp2_gate_lib approved
+        if not (cur["gates"][_g].pop("approved_helper_sha256", None) or {}).get("fp2_gate_lib.py"): return False
+    _xv0 = xg["approved_variants"]["v4e_gate_export_fp2dyn.py"]
+    if not _xv0.pop("r8g01_note", None) or _xv0["sha256"] != _X16[1]: return False
+    _xv0["sha256"] = _X15[1]
+    _xv0["base"] = "v4e_gate_export_v2.py 36c68e96 (TRN-15 per-month export baseline, 2026-09-21); the pre-TRN-15 pair d63f4ec3 / 16e9cc32 is superseded and archived"
     if not xg.pop("superseded_source_sha256", None) or not xg.pop("approved_helper_sha256", None): return False
     if not xg["approved_baseline"].pop("_TRN15_note", None): return False
     if tuple(xg["approved_source_sha256"]) != _X15: return False                 # the ONLY approved-source move TRN-15 makes
@@ -1672,8 +1691,8 @@ def _contract_is_r1_plus_proposed3():
     r1r = [r for r in r1.get("rules", []) if not r.startswith("MEMBER_LIVENESS (")]            # the PROPOSED6 rule line post-dates r1 entirely
     r1 = dict(r1, rules=r1r); cur = dict(cur, rules=[r for r in cur["rules"] if not r.startswith("MEMBER_LIVENESS (")])
     return cur == r1
-check("★★★ [T] G0 the FOUR contract-frozen files are byte-identical after round 3 as well (STEP1 278fdce6, STEP2 db7ab356, the contract still equals r1_1188267a apart from exactly the PROPOSED3/4/5 + 2026-09-18 approval fields, the v2 export gate: the ARCHIVED pre-TRN-15 snapshot is still d63f4ec3 and the live one is 36c68e96, TRN-15 2026-09-21)",
-      _sha(f"{HERE}/v4_gate_step1.py").startswith("278fdce6") and _sha(f"{HERE}/v4_gate_step2.py").startswith("db7ab356") and _contract_is_r1_plus_proposed3() and _sha(f"{HERE}/v4e_gate_export_v2.r1_d63f4ec3.py").startswith("d63f4ec3") and _sha(f"{HERE}/v4e_gate_export_v2.py").startswith("36c68e96"),   # FP2-8: contract = kept r1 (1188267a) + PROPOSED3 delta only
+check("★★★ [T] G0 the FOUR contract-frozen files are byte-identical after round 3 as well (STEP1 278fdce6, STEP2 db7ab356, the contract still equals r1_1188267a apart from exactly the PROPOSED3/4/5 + 2026-09-18 approval fields, the v2 export gate: the ARCHIVED pre-TRN-15 snapshot is still d63f4ec3, the pre-R8-G-01 snapshot is 36c68e96 and the live one is 9ad611be, R8-G-01 2026-09-21)",
+      _sha(f"{HERE}/v4_gate_step1.py").startswith("278fdce6") and _sha(f"{HERE}/v4_gate_step2.py").startswith("db7ab356") and _contract_is_r1_plus_proposed3() and _sha(f"{HERE}/v4e_gate_export_v2.r1_d63f4ec3.py").startswith("d63f4ec3") and _sha(f"{HERE}/v4e_gate_export_v2.py").startswith("568e1b23") and _sha(f"{HERE}/v4e_gate_export_v2.r2_36c68e96.py").startswith("36c68e96"),   # FP2-8: contract = kept r1 (1188267a) + PROPOSED3 delta only
       [_sha(f"{HERE}/{f}")[:8] for f in ("v4_gate_step1.py", "v4_gate_step2.py", "ELIGIBILITY_CONTRACT.json", "v4e_gate_export_v2.py")])
 
 # ── [U] ROUND 4 (2026-09-13, X3; independent review REVIEW_round3_code_and_research_2026-09-13 §4 + codex_round3_code_review_2026-09-13/retrain/RESULT.md R3-D1 / R3-D3 / R3-D2):
@@ -1866,10 +1885,10 @@ with tempfile.TemporaryDirectory() as d:
     _rc_n, _r_n = _umemb(np.array([[0, 1], [2, 3]], dtype=np.int64), "u2n_ndim2", "v4_gate_step2_m.py")
     check("★★ [U] D2 the pre-existing structural rules still follow the dtype rule: an INTEGER but 2-D index ⇒ FAIL rc 3 'ndim 2 != 1' (dtype first, then 1-D / range / uniqueness)",
           _rc_n == 3 and _r_n["tail_quality"]["member_index_ok"] is False and "ndim 2" in _r_n["tail_quality"]["member_index_bad"][0]["why"][0], (_rc_n, _r_n and _r_n.get("tail_quality")))
-check("★★★ [U] G0 the contract-frozen and do-not-touch files are byte-identical after round 4: v4_gate_step1 278fdce6, v4_gate_step2 db7ab356, ELIGIBILITY_CONTRACT r1 predecessor 1188267a (current = r1 + PROPOSED3, FP2-8), v4e_gate_export_v2.r1_d63f4ec3 (archived) + the live v2 36c68e96 and fp2dyn 74e13a16 (TRN-15 2026-09-21), v4_gate_common cc1492d3 (was a1d41044, archived as v4_gate_common.r2_a1d41044.py and pinned here too; E-0918-R inlined the interpreter-safety guard at import + interp fingerprint in finalize + require's interp re-check; the r1 predecessor 24e813f1 stays pinned), judge_v4 c2a81c48, make_sha_manifest ba521004, tests_judge_dynamic_deps 4dfee3fd",
+check("★★★ [U] G0 the contract-frozen and do-not-touch files are byte-identical after round 4: v4_gate_step1 278fdce6, v4_gate_step2 db7ab356, ELIGIBILITY_CONTRACT r1 predecessor 1188267a (current = r1 + PROPOSED3, FP2-8), v4e_gate_export_v2.r1_d63f4ec3 (archived) + the live v2 9ad611be and fp2dyn d9719e9b (R8-G-01 2026-09-21; their pre-R8-G-01 snapshots 36c68e96 / 74e13a16 are archived and pinned here too), v4_gate_common 38d22867 (was cc1492d3, archived as v4_gate_common.r4_cc1492d3.py and pinned here too — R8-G-01 added the shared approved-helper mechanism; was a1d41044, archived as v4_gate_common.r2_a1d41044.py and pinned here too; E-0918-R inlined the interpreter-safety guard at import + interp fingerprint in finalize + require's interp re-check; the r1 predecessor 24e813f1 stays pinned), judge_v4 c2a81c48, make_sha_manifest ba521004, tests_judge_dynamic_deps 4dfee3fd",
       all(_sha(f"{HERE}/{f}") == s for f, s in (("v4_gate_step1.py", "278fdce611e91571d24ec26c78ddc4620668bfd4598a01f577f1f6887dd62be4"), ("v4_gate_step2.py", "db7ab3561f97423a8d5dd74251257adcedd743129d22a07d7cd186d102dd80d8"),
-                                                ("ELIGIBILITY_CONTRACT.r1_1188267a.json", "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732"), ("v4e_gate_export_v2.r1_d63f4ec3.py", "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e"), ("v4e_gate_export_v2.py", "36c68e96c8a953a5640a3a82524d760135eb1b0b04fba7f9776c30c87efbd90b"), ("v4e_gate_export_fp2dyn.py", "74e13a16c663c2b19a690ab7f53699d3773da5c686e74b23117aef6e0effabd8"),
-                                                ("v4_gate_common.py", "cc1492d385ff1368f2e445f9453eef24f620756ffa5ead3a7d845c9367d8a357"), ("v4_gate_common.r1_24e813f1.py", "24e813f145c35033552ee54ae166092a8204490ff52c011a87217a8e81a187a1"), ("v4_gate_common.r2_a1d41044.py", "a1d41044957d2cd878b3d5a36df088ee6cc71c1080e9999e0617f02b2af53158"), ("judge_v4.py", "c2a81c48f037756067b23225b5a6bbee43ce6589898db3230437a17d398956ba"),
+                                                ("ELIGIBILITY_CONTRACT.r1_1188267a.json", "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732"), ("v4e_gate_export_v2.r1_d63f4ec3.py", "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e"), ("v4e_gate_export_v2.py", "568e1b23eb176e792a62c27045e629c719fa3eb49cc2bb0fb3e9adab6e82bf1e"), ("v4e_gate_export_v2.r2_36c68e96.py", "36c68e96c8a953a5640a3a82524d760135eb1b0b04fba7f9776c30c87efbd90b"), ("v4e_gate_export_fp2dyn.py", "b7248f5faf0c7f54ae24ec64c17b72d09b71e3b26bf4aa3cbc1e55bcdc54ac12"), ("v4e_gate_export_fp2dyn.r2_74e13a16.py", "74e13a16c663c2b19a690ab7f53699d3773da5c686e74b23117aef6e0effabd8"),
+                                                ("v4_gate_common.py", "d844bddb11a0f322d08c2899dfed8e6c04d80726dd210b8deeca65565c8f31fe"), ("v4_gate_common.r4_cc1492d3.py", "cc1492d385ff1368f2e445f9453eef24f620756ffa5ead3a7d845c9367d8a357"), ("v4_gate_common.r1_24e813f1.py", "24e813f145c35033552ee54ae166092a8204490ff52c011a87217a8e81a187a1"), ("v4_gate_common.r2_a1d41044.py", "a1d41044957d2cd878b3d5a36df088ee6cc71c1080e9999e0617f02b2af53158"), ("judge_v4.py", "c2a81c48f037756067b23225b5a6bbee43ce6589898db3230437a17d398956ba"),
                                                 ("make_sha_manifest.py", "ba521004daaa164e815d92a7ee28810f84e1d4dd526fd3ed06550720e50cd4b1"), ("tests_judge_dynamic_deps.py", "4dfee3fd016a708ee320c5d23585632071e4f79331209d6a88f06d9829aa5122"))) and _contract_is_r1_plus_proposed3(),
       [_sha(f"{HERE}/{f}")[:8] for f in ("v4_gate_step1.py", "v4_gate_step2.py", "ELIGIBILITY_CONTRACT.json", "v4e_gate_export_v2.py", "v4_gate_common.py", "judge_v4.py", "make_sha_manifest.py", "tests_judge_dynamic_deps.py")])
 

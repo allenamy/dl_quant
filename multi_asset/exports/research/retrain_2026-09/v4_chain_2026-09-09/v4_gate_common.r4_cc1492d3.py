@@ -50,13 +50,7 @@
 CLI:
   python v4_gate_common.py require <receipt.json> gate=<expected_gate> self_sha=<sha256> [profile=<stage>] [recorded_extras=1] name=path [name=path ...]
                                                                        # exit 0 iff PASS & identity & fresh & full registered dependency set (& every recorded extra, round 8)
-  python v4_gate_common.py helper <gate> <path>                        # ★ R8-G-01: rc 0 iff the FILE at <path> equals gates.<gate>.approved_helper_sha256[<basename>]
   python v4_gate_common.py sha <path> [...]                            # print sha256 per file
-
-★ R8-G-01 / E-0921-F (2026-09-21, independent review round 8): approval of the code a gate IMPORTS. `approved_helper_sha256`
-  existed in the contract but NOTHING read it at run time, so a helper swapped BEFORE the run produced a fully self-consistent
-  receipt from unapproved code. `require_approved_helper` / `helper_closure` / `receipt_helpers_approved` below are the ONE
-  implementation the two export gates, the monthly driver's preflight and `require` all share.
 """
 import hashlib
 import json
@@ -204,183 +198,6 @@ def sha256_file(p, chunk=16 << 20):
     return h.hexdigest()
 
 
-# ─────────────────────────────────────────────────────────────────────────────────────────── approved HELPER identity (R8-G-01)
-# ★ R8-G-01 / E-0921-F (2026-09-21, independent review round 8 + the lead's own reproduction). The contract gained
-#   gates.<gate>.approved_helper_sha256 — an APPROVAL of the code a gate IMPORTS — but NOTHING consumed it at run time: the only
-#   readers in the whole repo were two test files. The gates recorded the helper's CURRENT sha in the receipt and `require` then
-#   compared "current file == what the receipt recorded". Swap the helper BEFORE the run and regenerate the receipt and every one
-#   of those relations still holds, while the code that decides the verdict was never approved. The reviewer's counterexample
-#   flipped both real E2b entries from `month_not_approved` to true by replacing only their helper copy.
-#
-#   THE FOUR CLAUSES the acceptance bar now demands (E-0921-F; my previous bar asked only for clause 1's weaker "some gate
-#   enforces it", which is why it passed a mechanism nothing enforced):
-#     1. consumed by the PRODUCTION ENTRY, BEFORE the helper's answer is used — not a post-receipt re-hash, not a test;
-#     2. a MISSING value REFUSES (absent block, absent entry, malformed sha, absent file) — never a skipped check;
-#     3. ONE implementation — this function — shared by both export gates, the monthly driver's preflight and `require`;
-#     4. TWO negative controls: "file changed after the receipt" (which already existed and does NOT catch this) AND
-#        "helper swapped before the run with the gate source unchanged" (which does). See tests_export_helper_approval.py.
-#
-#   WHAT IT CANNOT DO, stated so nobody reads more into it: a swap of THIS module is not caught by this module (the swapped copy
-#   would simply answer True). v4_gate_common.py is nevertheless listed as an approved helper of BUNDLE_export, because the
-#   realistic failure this closes is an out-of-date / wrongly-synced copy, not an adversary; identity of THIS file against an
-#   adversary comes from the gate-source approval, the receipt's recorded input set and git, not from a self-hash.
-HELPER_KEY = "approved_helper_sha256"
-_HELPER_META_KEYS = frozenset({"why"})      # prose that shares the object with the map; EVERY other key is <filename> -> hex64
-
-
-def approved_helpers(gate, contract=None):
-    """({filename: approved_sha256}, None) or (None, refusal). NEVER returns an empty map with no error: a gate whose contract
-    block declares no helper is a refusal for any caller that HAS one, because "no approval recorded" is not "approved"."""
-    c, err = (contract, None) if contract is not None else load_contract()
-    if c is None:
-        return None, err
-    g = (c.get("gates") or {}).get(gate)
-    if not isinstance(g, dict):
-        return None, (f"gate {gate!r} is absent from the frozen contract's gates: a gate the contract does not govern approves "
-                      f"no helper, so the code it imports cannot be checked against anything")
-    blk = g.get(HELPER_KEY)
-    if blk is None:
-        return None, (f"gates.{gate}.{HELPER_KEY} is absent: the helper module this gate imports carries NO approval. A missing "
-                      f"approval is a REFUSAL, never a skipped check (E-0921-F clause 2; 「字段缺了就跳过」是一整类门缺陷)")
-    if not isinstance(blk, dict):
-        return None, f"gates.{gate}.{HELPER_KEY} is a {type(blk).__name__}, expected an object of <filename> -> sha256"
-    out = {}
-    for k, v in blk.items():
-        if k in _HELPER_META_KEYS:
-            continue
-        if not (isinstance(v, str) and _HEX64.match(v)):
-            return None, (f"gates.{gate}.{HELPER_KEY}[{k!r}] is not a sha256 (64 lowercase hex): {str(v)[:32]!r}. A malformed "
-                          f"approval is refused by name, never coerced or ignored")
-        out[k] = v
-    if not out:
-        return None, (f"gates.{gate}.{HELPER_KEY} declares no helper at all (only the prose keys {sorted(_HELPER_META_KEYS)}): "
-                      f"an empty approval map approves nothing")
-    return out, None
-
-
-def require_approved_helper(gate, helper_path, contract=None):
-    """(ok, why, detail). CALL THIS BEFORE USING ANYTHING THE HELPER COMPUTES.
-
-    ok iff the FILE ON DISK at `helper_path` is byte-identical to the sha the frozen contract approves for its basename under
-    gates.<gate>.approved_helper_sha256. This is an approval check against a FROZEN CONSTANT, not a consistency check against a
-    receipt the same run wrote — the distinction is the whole of R8-G-01."""
-    name = os.path.basename(str(helper_path or ""))
-    det = {"gate": gate, "helper": name, "helper_path": str(helper_path)}
-    amap, err = approved_helpers(gate, contract)
-    if amap is None:
-        return False, err, det
-    det["approved_helpers"] = sorted(amap)
-    if name not in amap:
-        return False, (f"{name!r} is not an approved helper of gate {gate!r} (approved: {sorted(amap)}): this gate imports a "
-                       f"module the frozen contract never approved"), det
-    det["approved_sha256"] = amap[name]
-    if not helper_path or not os.path.exists(helper_path):
-        return False, f"approved helper {name!r} is not on disk at {helper_path!r}: its identity cannot be verified", det
-    cur = sha256_file(helper_path)
-    det["measured_sha256"] = cur
-    if cur != amap[name]:
-        return False, (f"helper {name!r} sha {cur[:12]} != contract-approved {amap[name][:12]}: the GATE's own source is "
-                       f"unchanged, but the code that resolves its approved object is NOT the approved code (R8-G-01)"), det
-    return True, None, det
-
-
-def helper_closure(gate, chain_dirs, self_path, contract=None, recorded=None):
-    """(ok, why, detail) — the CLASS-shaped half. Census of every module ALREADY IMPORTED in this process whose file lives in one
-    of `chain_dirs` (a path or an iterable of paths — the gate's own directory AND V4CHAIN_DIR, which are not always the same
-    place), minus the entry script itself; each one must be a contract-approved helper of `gate` and match its approved sha.
-
-    Why a census and not a list: a per-name patch closes today's helper. The question the acceptance bar asks is "if someone adds
-    a NEW sibling module tomorrow and does not register it, is it caught?" — with a hand-written list the answer is no. Run this
-    from the PRODUCTION ENTRY POINTS only (gate_main / require_main): in a test process sys.modules legitimately holds the other
-    variants and the harness itself, so a census there would measure the harness, not the gate."""
-    if isinstance(chain_dirs, str):
-        chain_dirs = [chain_dirs]
-    roots = sorted({os.path.realpath(d) for d in chain_dirs if d})
-    me = os.path.realpath(self_path) if self_path else None
-    seen = {}
-    for m in list(sys.modules.values()):
-        f = getattr(m, "__file__", None)
-        if not f or not str(f).endswith(".py"):
-            continue
-        rp = os.path.realpath(f)
-        if os.path.dirname(rp) not in roots or rp == me:
-            continue
-        seen[os.path.basename(rp)] = rp
-    det = {"gate": gate, "chain_dirs": roots, "entry_script": me, "census": sorted(seen), "n_census": len(seen)}
-    amap, err = approved_helpers(gate, contract)
-    if amap is None:
-        # only a refusal if the census is non-empty: a gate that imports nothing from its own directory needs no helper block
-        if not seen:
-            det["why_no_check"] = "census is empty: this gate imported no module from its own directory"
-            return True, None, det
-        return False, err, det
-    det["approved_helpers"] = sorted(amap)
-    bad = []
-    for nm, rp in sorted(seen.items()):
-        ok, why, _d = require_approved_helper(gate, rp, contract)
-        if not ok:
-            bad.append({"module": nm, "why": why})
-    det["unapproved"] = bad
-    if bad:
-        return False, (f"{len(bad)} module(s) imported from the gate's own directory are not approved helpers of {gate!r}: "
-                       + "; ".join(b["why"] for b in bad)), det
-    if recorded is not None:
-        # ★ R14-C2 at the producing end: a module this process IMPORTED but did not REGISTER as a receipt input cannot be
-        #   re-hashed by any later consumer. Checked against the imports, not against an old receipt.
-        rec_names = {os.path.basename(os.path.realpath(p)) for p in recorded.values() if isinstance(p, str)}
-        det["recorded"] = sorted(rec_names & set(seen))
-        unrecorded = sorted(set(seen) - rec_names)
-        det["unrecorded"] = unrecorded
-        if unrecorded:
-            return False, (f"module(s) {unrecorded} were imported from the gate's directory but are NOT registered receipt "
-                           f"inputs: a dependency that is not RECORDED cannot be re-hashed (R14-C2)"), det
-    return True, None, det
-
-
-def receipt_helpers_approved(gate, receipt, contract=None):
-    """(ok, why) — the CONSUMER half of R8-G-01, used by `require`. Two directions, both necessary:
-
-    (a) every .py file the receipt recorded as an input from the CHAIN DIRECTORY (i.e. code the producing run depended on) must
-        be a contract-approved helper of `gate`, and the sha the receipt RECORDED must equal the APPROVED sha. This is the one
-        that catches the defect: a run with a swapped helper writes a receipt that is internally consistent (the file on disk
-        still equals what it recorded), so the pre-existing "changed since the receipt" control stays green;
-    NOT checked here: "every approved helper must APPEAR in the receipt". That refuses every receipt written by a gate source
-    that predates the helper — including the archived exporters the round 4-7 judge fixtures approve on purpose — so it produced
-    false refusals on legitimate history. The property it was meant to close (a producer that silently stops RECORDING its
-    helper) is a property of the CODE, not of an old receipt, so it lives in helper_closure(recorded=...) at the production
-    entry, where it is measured against the modules actually imported.
-    """
-    amap, err = approved_helpers(gate, contract)
-    paths = receipt.get("inputs_path") if isinstance(receipt.get("inputs_path"), dict) else {}
-    rec = receipt.get("inputs_sha256") if isinstance(receipt.get("inputs_sha256"), dict) else {}
-    chain_dir = os.path.realpath(os.path.dirname(CONTRACT_PATH))
-    # recorded input name -> basename. A recorded .py counts as a CODE dependency when it came from the chain directory OR when
-    # it carries an approved helper's filename from anywhere else — the second half matters because a SWAPPED helper is by
-    # definition a different copy, typically outside the chain directory, and a directory filter alone would let it through.
-    code = {}
-    for k, p in paths.items():
-        if not isinstance(p, str) or not p.endswith(".py"):
-            continue
-        rp = os.path.realpath(p)
-        bn = os.path.basename(rp)
-        if os.path.dirname(rp) == chain_dir or (amap is not None and bn in amap):
-            code[k] = bn
-    if amap is None:
-        if not code:
-            return True, None                         # the receipt records no code dependency from the chain dir: nothing to approve
-        return False, (f"receipt records code dependencies {sorted(code.values())} from the chain directory, but {err}")
-    for k, nm in sorted(code.items()):
-        if nm not in amap:
-            return False, (f"receipt recorded input {k!r} = {nm}, a module from the chain directory that is NOT an approved "
-                           f"helper of gate {gate!r} (approved: {sorted(amap)}): the producing run depended on unapproved code")
-        got = rec.get(k)
-        if got != amap[nm]:
-            return False, (f"receipt recorded helper {nm} (input {k!r}) as {str(got)[:12]} but the frozen contract approves "
-                           f"{amap[nm][:12]}: the run that wrote this receipt used UNAPPROVED helper code. Note this is NOT the "
-                           f"'changed since the receipt' case — that control passes here, which is why it never caught R8-G-01")
-    return True, None
-
-
 def utc():
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
@@ -452,15 +269,6 @@ def require(receipt_path, inputs=None, expected_gate=None, expected_self_sha=Non
             return False, (f"gate source {expected_self_sha[:12]} is not an APPROVED source of gate {expected_gate!r} in the frozen contract "
                            f"(approved: {[a[:12] for a in approved] or 'none — the physical gate is not built'}); a program that re-ran and "
                            f"signed its own receipt is not the reviewed program")
-        # ★ R8-G-01 / E-0921-F (2026-09-21): the gate SOURCE being approved says nothing about the code it IMPORTS. The receipt's
-        #   recorded helper sha must equal the CONTRACT-APPROVED sha, not merely the file that is on disk right now.
-        #   SCOPE: the same scope the round-5 source approval has — a gate the contract's `gates` does not list carries no
-        #   approval regime at all (a governed gate missing from `gates` was already refused above), so applying a helper rule
-        #   to it would refuse fixture gates that were never meant to be governed. Within a listed gate nothing is skipped.
-        if isinstance((contract.get("gates") or {}).get(expected_gate), dict):
-            ok_h, why_h = receipt_helpers_approved(expected_gate, r, contract)
-            if not ok_h:
-                return False, why_h
     if r.get("PASS") is not True:
         return False, f"receipt says PASS={r.get('PASS')!r} (gate {r.get('gate')}, {r.get('utc')})"
     # ★ E-0918-R (2026-09-18): a receipt produced under a verdict-unsafe interpreter (-O strips its asserts) is NOT
@@ -526,10 +334,6 @@ def main():
         lst, err = approved_sources(sys.argv[2])
         ok = bool(lst) and len(sys.argv) > 3 and sys.argv[3] in lst
         print(("APPROVED " if ok else "NOT_APPROVED ") + (err or f"{sys.argv[2]}: {lst}"), flush=True)
-        sys.exit(0 if ok else 3)
-    if len(sys.argv) >= 4 and sys.argv[1] == "helper":     # helper <gate> <path> -> rc 0 iff the FILE equals the contract-approved sha (R8-G-01)
-        ok, why, det = require_approved_helper(sys.argv[2], sys.argv[3])
-        print(("HELPER_APPROVED " if ok else "HELPER_NOT_APPROVED ") + (why or json.dumps(det, default=str)), flush=True)
         sys.exit(0 if ok else 3)
     if len(sys.argv) >= 3 and sys.argv[1] == "sha":
         for p in sys.argv[2:]:

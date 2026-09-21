@@ -25,10 +25,6 @@
     "3ad3a6c604dd5310ab59b9ea361e52c4700e261b84e7d7c116d108e6d26dfa69",
     "79950786271e690a24c72bc189b20e65eab6271164c1e582dff72b799db00163"
    ],
-   "approved_helper_sha256": {
-    "fp2_gate_lib.py": "e98b15b0e2da7c9c95cb901762dcc86a81e68edc75dad514fcd06b51f3d85c3a",
-    "why": "★ R8-G-01 follow-on (2026-09-21): the STEP1/STEP2 variants fp2_gate_step1.py / fp2_gate_step2.py IMPORT fp2_gate_lib and RECORD it as a receipt input, but nothing approved it — fp2_gate_step1.py:20 says so in its own comment ('the contract pins only the gate file'). That is the SAME class R8-G-01 names, found by the new census, and it is registered here so v4_gate_common.require refuses a receipt that recorded unapproved library bytes. SCOPE, stated not implied: for STEP1/STEP2 only the CONSUMER clause is wired — the pre-use check inside the gate and the production-entry census are wired for BUNDLE_export only, because wiring them here would change two more approved gate sources. The sha recorded is the bytes that produced the existing green receipts; registering it makes future drift detectable, it does not independently certify those bytes."
-   },
    "approved_variants": {
     "fp2_gate_step1.py": {
      "sha256": "3ad3a6c604dd5310ab59b9ea361e52c4700e261b84e7d7c116d108e6d26dfa69",
@@ -74,10 +70,6 @@
     "bd8e04c7b5a1e7b97fc24032f2243081aa33d8f533b76a0f7be0507b56e8640f",
     "d99a910951e070f70ae3eede1533013e009a62fa617eda55dff546290864329d"
    ],
-   "approved_helper_sha256": {
-    "fp2_gate_lib.py": "e98b15b0e2da7c9c95cb901762dcc86a81e68edc75dad514fcd06b51f3d85c3a",
-    "why": "★ R8-G-01 follow-on (2026-09-21): the STEP1/STEP2 variants fp2_gate_step1.py / fp2_gate_step2.py IMPORT fp2_gate_lib and RECORD it as a receipt input, but nothing approved it — fp2_gate_step1.py:20 says so in its own comment ('the contract pins only the gate file'). That is the SAME class R8-G-01 names, found by the new census, and it is registered here so v4_gate_common.require refuses a receipt that recorded unapproved library bytes. SCOPE, stated not implied: for STEP1/STEP2 only the CONSUMER clause is wired — the pre-use check inside the gate and the production-entry census are wired for BUNDLE_export only, because wiring them here would change two more approved gate sources. The sha recorded is the bytes that produced the existing green receipts; registering it makes future drift detectable, it does not independently certify those bytes."
-   },
    "approved_variants": {
     "fp2_gate_step2.py": {
      "sha256": "bd8e04c7b5a1e7b97fc24032f2243081aa33d8f533b76a0f7be0507b56e8640f",
@@ -123,8 +115,8 @@
   "BUNDLE_export": {
    "source": "v4e_gate_export_v2.py",
    "approved_source_sha256": [
-    "568e1b23eb176e792a62c27045e629c719fa3eb49cc2bb0fb3e9adab6e82bf1e",
-    "b7248f5faf0c7f54ae24ec64c17b72d09b71e3b26bf4aa3cbc1e55bcdc54ac12"
+    "36c68e96c8a953a5640a3a82524d760135eb1b0b04fba7f9776c30c87efbd90b",
+    "74e13a16c663c2b19a690ab7f53699d3773da5c686e74b23117aef6e0effabd8"
    ],
    "approved_baseline": {
     "device_sha256": "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d",
@@ -252,8 +244,8 @@
    "note": "r20 gate closure 2026-09-12. Replaces the 2026-09-11 INFRA2 proposal (v4e_gate_export.py sha f814c728…, WITHDRAWN: the independent reviewer showed it not falsifiable — wrong-gate PASS accepted, failing signal gate accepted, different cost/knobs accepted, zero W / non-finite pnl accepted, shipped bundle unbound). v2 keeps E1–E4 verbatim and adds E0 contract block, E2b pin identity, E5 finite+baseline symbols, E6 all 27 knobs + cost/mask/king/FEMAT by file, E7 bound signal receipt with PASS re-derived, E8 exact device identities on the arrays, E9 gross band vs the approved A0 books; `require` mode re-verifies the full floor and re-runs the content gates. Approving this sha approves those checks, the approved_baseline shas and the thresholds AS the export standard.",
    "approved_variants": {
     "v4e_gate_export_fp2dyn.py": {
-     "sha256": "b7248f5faf0c7f54ae24ec64c17b72d09b71e3b26bf4aa3cbc1e55bcdc54ac12",
-     "base": "v4e_gate_export_v2.py 9ad611be (TRN-15 per-month export baseline + R8-G-01 run-time helper approval, 2026-09-21); the pre-TRN-15 pair d63f4ec3 / 16e9cc32 and the TRN-15-only pair 36c68e96 / 74e13a16 are superseded and archived",
+     "sha256": "74e13a16c663c2b19a690ab7f53699d3773da5c686e74b23117aef6e0effabd8",
+     "base": "v4e_gate_export_v2.py 36c68e96 (TRN-15 per-month export baseline, 2026-09-21); the pre-TRN-15 pair d63f4ec3 / 16e9cc32 is superseded and archived",
      "diff_receipt": "docs/fixprogram_2026-09-13/FP2_receipts/diff_v4e_gate_export_v2_to_fp2dyn.patch (rev2, 58 lines)",
      "scope": {
       "V4_MONTH": "2026-09",
@@ -273,20 +265,16 @@
      "revised_utc": "2026-09-17T14:38:54Z",
      "nature": "AFTER-THE-FACT CHANGE OF THE GATE'S ACCEPTANCE DOMAIN (the same old books: v2 FAIL, variant PASS) — not a mere identity correction; the v2 FAIL receipts are kept (BUNDLE_export_v2_A1_FAIL_E6E8E9, _final); approval requested post-hoc",
      "limitation": "seat-level agreement of the replay dynamic seat with live (2026 mean 0.36–0.37 vs live 0.36–0.38) is NOT per-anchor production parity; the fix-seat control's former role (E-0902-D) is redefined, not certified away",
-     "trn15_note": "the variant carries the SAME per-month E2b as v2 (both import v4e_export_baseline_lib; tests_export_baseline_per_month.py [E1] proves each variant really consults the shared helper by flipping its verdict when the helper is mutated)",
-     "r8g01_note": "BOTH variants carry the identical R8-G-01 change (the defect is class-shaped, so the fix may not be instance-shaped): E2b verifies the helper against approved_helper_sha256 BEFORE using its answer, gate_main/require_main census every module imported from the chain directory, and both call the SAME v4_gate_common implementation. tests_export_helper_approval.py runs every probe over the glob-enumerated variant population and asserts the population is non-empty."
+     "trn15_note": "the variant carries the SAME per-month E2b as v2 (both import v4e_export_baseline_lib; tests_export_baseline_per_month.py [E1] proves each variant really consults the shared helper by flipping its verdict when the helper is mutated)"
     }
    },
    "superseded_source_sha256": {
     "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e": "v4e_gate_export_v2.py before TRN-15 per-month parameterisation (2026-09-21); E2b compared LIVE_PINS/BUNDLE_BASE against the single frozen approved_baseline pair, which fails by construction for every month after 2026-09. Archived beside the gate as v4e_gate_export_v2.r1_d63f4ec3.py",
-    "16e9cc32369daf634b03d05a5e1294cbae4ab2a8dc3f91a3e761100c0f7b453c": "v4e_gate_export_fp2dyn.py, same defect, same date. Archived as v4e_gate_export_fp2dyn.r1_16e9cc32.py",
-    "36c68e96c8a953a5640a3a82524d760135eb1b0b04fba7f9776c30c87efbd90b": "v4e_gate_export_v2.py after TRN-15 but before R8-G-01 (2026-09-21): it IMPORTED v4e_export_baseline_lib and RECORDED the helper sha, but no run-time entry compared that sha against approved_helper_sha256, so a helper swapped BEFORE the run produced a self-consistent receipt from unapproved code (independent review round 8; the reviewer flipped E2b from month_not_approved to true by replacing only the helper copy). Archived as v4e_gate_export_v2.r2_36c68e96.py",
-    "74e13a16c663c2b19a690ab7f53699d3773da5c686e74b23117aef6e0effabd8": "v4e_gate_export_fp2dyn.py, same defect, same date. Archived as v4e_gate_export_fp2dyn.r2_74e13a16.py"
+    "16e9cc32369daf634b03d05a5e1294cbae4ab2a8dc3f91a3e761100c0f7b453c": "v4e_gate_export_fp2dyn.py, same defect, same date. Archived as v4e_gate_export_fp2dyn.r1_16e9cc32.py"
    },
    "approved_helper_sha256": {
     "v4e_export_baseline_lib.py": "eeb68b94c00c6b646e132a5ee9692a6ada27c68047e03f636f2698627bb39c20",
-    "v4_gate_common.py": "d844bddb11a0f322d08c2899dfed8e6c04d80726dd210b8deeca65565c8f31fe",
-    "why": "E2b resolves the per-month approved pair through v4e_export_baseline_lib, and v4_gate_common decides the SHAPE of the receipt and of `require`'s verdict; both are code this gate imports, both are registered inputs of the gate ('export_baseline_lib' / 'v4_gate_common') and preflight device files, because a dependency that is not RECORDED cannot be re-hashed (R14-C2). ENFORCEMENT (R8-G-01 / E-0921-F, 2026-09-21 — until this date NOTHING read this block at run time and the only readers in the repo were two test files): (1) E2b calls v4_gate_common.require_approved_helper BEFORE consuming the helper's answer, a missing/absent/malformed approval being a NAMED FAIL with a receipt, never a skip; (2) gate_main and require_main run v4_gate_common.helper_closure, a CENSUS of every module imported from the chain directory, so an unregistered NEW helper is refused too; (3) the monthly driver's preflight calls the same function before it consults the helper, so the refusal lands in the first minute rather than after the chain; (4) v4_gate_common.require demands the sha the RECEIPT recorded equal the approved sha — the pre-existing 'file changed after the receipt' control passes the swapped-before-the-run case by construction, which is precisely why it never caught this. LIMIT, stated rather than implied: a swap of v4_gate_common itself is not caught by v4_gate_common; what this closes is an out-of-date or wrongly-synced copy, not an adversary."
+    "why": "E2b resolves the per-month approved pair through this helper, which both approved gate variants import. A helper that is not recorded cannot be re-hashed (R14-C2), so it is ALSO a registered input of the gate ('export_baseline_lib') and a preflight device file."
    }
   },
   "MEMBER_LIVENESS": {

@@ -222,16 +222,42 @@ if _refs:
 #   CONTROLS_REF_* are told. Preflight does NOT hash the two files (October's do not exist yet): it checks that an APPROVED
 #   OBJECT exists for this month, which is the one thing building artefacts cannot fix.
 sys.path.insert(0, D)
-import v4e_export_baseline_lib as _xbl
+# ★ R8-G-01 / E-0921-F (2026-09-21, independent review round 8): the helper that answers "which pair is approved for this month" is
+#   itself approved BY SHA in the contract (gates.BUNDLE_export.approved_helper_sha256) — and until this date NOTHING read that
+#   approval at run time, so a helper swapped BEFORE the run produced a self-consistent receipt from unapproved code. Preflight
+#   checks it HERE, BEFORE it imports or consults the helper, through the SAME v4_gate_common.require_approved_helper the two
+#   export gates and `require` call (one implementation, not four copies). The population is the contract's OWN map, so a helper
+#   added tomorrow is checked here without editing this file. Unlike the per-month approval below there is no calendar scoping:
+#   code approval has no month, so a missing or mismatching helper approval FAILS for every V4_MONTH label.
+import v4_gate_common as _gcm
 _xc = json.load(open(os.path.join(D, "ELIGIBILITY_CONTRACT.json")))
-_xent, _xwhy, _xdet = _xbl.approved_export_baseline(_xc, E["V4_MONTH"])
+_rk, _mk = "TRN-15_export_baseline_per_month", "approved_export_baselines"
+_hmap, _herr = _gcm.approved_helpers("BUNDLE_export", _xc)
+if _hmap is None:
+    _hok_all = False
+    inputs["_export_helper_approval"] = {"ok": False, "why": _herr}
+    fails.append(f"export gate helper approval unreadable: {_herr} (R8-G-01)")
+else:
+    _hres = {}
+    for _hn in sorted(_hmap):
+        _hok, _hwhy, _hdet = _gcm.require_approved_helper("BUNDLE_export", os.path.join(D, _hn), _xc)
+        _hres[_hn] = {"ok": _hok, "why": _hwhy, "measured_sha256": _hdet.get("measured_sha256"), "approved_sha256": _hdet.get("approved_sha256")}
+        if not _hok: fails.append(f"export gate helper NOT approved in the frozen contract: {_hwhy} (R8-G-01)")
+    _hok_all = all(v["ok"] for v in _hres.values())
+    inputs["_export_helper_approval"] = {"ok": _hok_all, "n_declared": len(_hmap), "helpers": _hres}
+if _hok_all:
+    import v4e_export_baseline_lib as _xbl
+    _rk, _mk = _xbl.RULING_KEY, _xbl.MAP_KEY
+    _xent, _xwhy, _xdet = _xbl.approved_export_baseline(_xc, E["V4_MONTH"])
+else:                            # the helper is NOT approved, so its ANSWER is not used at all (that is the whole of R8-G-01)
+    _xent, _xwhy, _xdet = None, "helper_not_approved", {}
 inputs["_export_baseline_approval"] = {"month": E["V4_MONTH"], "approved": _xent is not None, "refused": _xwhy,
                                        "months_declared": _xdet.get("months_declared"),
                                        "approved_shas": None if _xent is None else {k: _xent[k] for k in ("live_pins_sha256", "bundle_base_sha256")}}
 inputs["_export_baseline_approval"]["enforced"] = _cal          # same scoping as R12-C5's MEMBER_MASK/UMASK rule: a CALENDAR month is a real
 if _xent is None and _cal:                                      # month and must be approved; a non-calendar fixture label is RECORDED, not failed
     fails.append(f"no approved export baseline for month {E['V4_MONTH']} ({_xwhy}): LIVE_PINS / BUNDLE_BASE are a per-month approval "
-                 f"object (month_contract_rulings.{_xbl.RULING_KEY}.{_xbl.MAP_KEY}); without it the export stage's E2b refuses "
+                 f"object (month_contract_rulings.{_rk}.{_mk}); without it the export stage's E2b refuses "
                  f"AFTER the whole chain has run (TRN-15)")
 elif _xent is None:
     inputs["_export_baseline_approval"]["not_enforced_why"] = ("V4_MONTH is not a calendar month (month_label_not_calendar), so this preflight "
@@ -255,7 +281,7 @@ res = {"gate": "PREFLIGHT", "PASS": not fails, "month": E["V4_MONTH"], "month_en
        "roll": roll,                                   # FP2-3: what preflight verified about the roll gate (archived receipt + live rerun)
        "fails": fails, "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "dryrun": E.get("V4_DRYRUN", "0")}
 os.makedirs(os.path.dirname(out), exist_ok=True); json.dump(res, open(out, "w"), indent=1)
-print(f"PREFLIGHT {'PASS' if not fails else 'FAIL'} device_files={len(dev)} inputs={len(inputs)} approvals={sum(1 for a in approval.values() if a['ok'])}/4 fails={len(fails)}")
+print(f"PREFLIGHT {'PASS' if not fails else 'FAIL'} device_files={len(dev)} inputs={len(inputs)} approvals={sum(1 for a in approval.values() if a['ok'])}/4 helpers={sum(1 for v in (inputs.get('_export_helper_approval', {}).get('helpers') or {}).values() if v['ok'])}/{inputs.get('_export_helper_approval', {}).get('n_declared', 0)} fails={len(fails)}")
 for f in fails[:12]: print("  -", f)
 sys.exit(0 if not fails else 3)
 PYEOF

@@ -41,6 +41,9 @@ def load(fname, alias=None):
 
 XBL = load("v4e_export_baseline_lib.py", "v4e_export_baseline_lib")
 sys.modules.setdefault("v4e_export_baseline_lib", XBL)
+# ★ R8-G-01 (2026-09-21): E2b now verifies the helper against the contract's approved sha BEFORE using its answer, through
+#   cx.gc.require_approved_helper — so the reduced context below must carry the real shared module, exactly as the gate does.
+GC = load("v4_gate_common.py", "v4_gate_common")
 
 # ------------------------------------------------------------------ fixtures: real files, so the gate's own sha256_file runs
 FROZEN_SEPT_PINS = "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece"   # the frozen pair, quoted for the [F] identity check only
@@ -78,7 +81,10 @@ OCT = make_month_files("2026-10", 407)          # a different universe => a diff
 def contract(entries, with_block=True):
     """A contract of the shape the gate reads. entries maps month -> (pins_sha, base_sha) or None."""
     ab = {"live_pins_sha256": FROZEN_SEPT_PINS, "bundle_base_sha256": FROZEN_SEPT_BASE}
-    c = {"gates": {"BUNDLE_export": {"approved_baseline": ab}}, "month_contract_rulings": {}}
+    # ★ R8-G-01: carry the COMMITTED approved_helper_sha256 verbatim — these fixtures are about the per-month pair, and the
+    #   helper-approval probes live in tests_export_helper_approval.py.
+    _hb = dict(json.load(open(f"{HERE}/ELIGIBILITY_CONTRACT.json"))["gates"]["BUNDLE_export"]["approved_helper_sha256"])
+    c = {"gates": {"BUNDLE_export": {"approved_baseline": ab, "approved_helper_sha256": _hb}}, "month_contract_rulings": {}}
     if with_block:
         m = {}
         for mo, v in entries.items():
@@ -94,7 +100,7 @@ class Cx:
         write_config(mod, fx)
         self.E = {"LIVE_PINS": fx["LIVE_PINS"], "BUNDLE_BASE": fx["BUNDLE_BASE"]}
         self.OUT = fx["OUT"]
-        self.contract, self.ab, self.month = contract_dict, ab, month
+        self.contract, self.ab, self.month, self.gc = contract_dict, ab, month, GC
         self.res = {}
 
     def chk(self, name, ok, detail):

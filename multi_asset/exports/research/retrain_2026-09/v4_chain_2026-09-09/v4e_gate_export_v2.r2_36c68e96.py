@@ -46,16 +46,6 @@ ENV (all explicit, no silent default selects data — E-0826-D):
   gates.BUNDLE_export.approved_baseline fails E2b by construction from October on. The gate is NOT relaxed — it still demands a
   byte-identical match against an explicitly approved sha, it never accepts "whatever is on disk", and it never falls back to
   another month's approval (2026-10 is deliberately null until the October files exist and are approved by their own user word).
-
-★ R8-G-01 / E-0921-F (2026-09-21, independent review round 8): the helper above is CODE THAT DECIDES A VERDICT, and the contract
-  approves it by sha (gates.BUNDLE_export.approved_helper_sha256) — but until now no run-time entry read that approval. The gate
-  recorded the helper's CURRENT sha and `require` compared "the file now == the sha the receipt recorded", so a helper swapped
-  BEFORE the run produced a perfectly self-consistent receipt from unapproved code; the reviewer flipped E2b to true that way.
-  Now: (a) E2b verifies the helper against the contract-approved sha BEFORE consuming its answer, a missing/ malformed/ absent
-  approval being a NAMED FAIL with a receipt; (b) gate_main / require_main first run a CENSUS of every module imported from the
-  chain directory, so a NEW unregistered sibling helper is refused too; (c) `require` demands the sha the receipt RECORDED equal
-  the APPROVED sha, which the old "changed since the receipt" control passes by construction. All four call sites share ONE
-  implementation in v4_gate_common (require_approved_helper / helper_closure / receipt_helpers_approved).
 """
 import os, sys, json, time, hashlib, calendar
 import numpy as np
@@ -82,15 +72,6 @@ AB_REQUIRED = ["device_sha256", "costb_json_sha256", "costb_tiers", "umask_npz_s
 TH_REQUIRED = ["guard_band", "n_frozen", "frozen_window_utc", "ic_tol", "sharpe_claim_tol", "identity_tol", "w_gross_tol", "turnover_tol",
                "netlong_tol", "gross_max", "gross_ratio_band", "gross_ratio_median_band"]
 SEATS = (("dyn", "42"), ("dyn", "2027"), ("fix", "42"), ("fix", "2027"))
-# ★ fp2dyn VARIANT (2026-09-17, user word「线上的策略都是动态席位, 回测应该也是动态的」; PROPOSED5): every book is still LOADED, HASHED and shape-checked
-#   (E5/E6/E7 unchanged, the 28-name input floor unchanged), but the BOOK-CONTENT verdicts E8/E9 fold only the IN-SERVICE seat(s) into the gate
-#   verdict — NARROWED after independent review round 4: for a seat outside CHECK_SEATS only the two invariants the tradable regime breaks are
-#   informational (the K6 gross CEILING gt ≤ gross_max; the E9 gross-ratio band) — K6 positivity (frozen-window gross > 0, gross ≥ 0) stays hard. Its ACCOUNTING IDENTITIES (K1 Σ|W|=gross, K2 turnover, K3 netlong, K4 net identity,
-#   K7 cost bounds) and the E9 BASELINE IDENTITY (baseline book sha approved, axis covers the frozen window) still fold into the verdict: a
-#   diagnostic book must still be an honest book. This is an after-the-fact change of the gate's acceptance domain (old file: v2 FAIL, variant
-#   PASS), not a mere identity correction. The fix seat is a September control (E-0902-D: the replay's dynamic
-#   seat then did not track live); in the v4 chain the replay's dynamic seat tracks the live seat (0.32–0.37 vs 0.36–0.38, AMENDMENT 11).
-CHECK_SEATS = {"dyn"}
 
 
 def T(*a): return calendar.timegm(a + (0,) * (6 - len(a)))
@@ -216,19 +197,8 @@ def E2_config(cx):
     #     frozen for. The gate is NOT relaxed: it still demands a byte-identical match against an EXPLICITLY approved sha,
     #     and there is no fallback to another month's approval (v4e_export_baseline_lib docstring).
     sp_ = sha256_file(E["LIVE_PINS"]); sb = sha256_file(E["BUNDLE_BASE"]) if os.path.exists(E["BUNDLE_BASE"]) else None
-    measured = {"month": cx.month, "live_pins_sha256": sp_, "bundle_base_sha256": sb}
-    #     ★ R8-G-01 / E-0921-F (2026-09-21, independent review round 8): the helper that RESOLVES the approved pair is itself
-    #     approved BY SHA in the frozen contract (gates.BUNDLE_export.approved_helper_sha256) — and until now NOTHING read that
-    #     approval at run time. Both gates recorded the helper's CURRENT sha and `require` compared "current file == recorded",
-    #     so swapping the helper BEFORE the run and regenerating the receipt kept every relation true while the code deciding
-    #     this very check was never approved; the reviewer flipped E2b from month_not_approved to TRUE exactly that way.
-    #     The check therefore runs HERE, BEFORE the helper's answer is consumed, and a missing/ malformed/ absent approval is a
-    #     NAMED FAIL with a receipt, never a skip. ONE shared implementation — v4_gate_common.require_approved_helper — is what
-    #     the other export-gate variant, the monthly driver's preflight and `require` also call (E-0921-F clause 3).
-    hok, hwhy, hdet = cx.gc.require_approved_helper(GATE, os.path.abspath(xbl.__file__), cx.contract)
-    if not hok:
-        return cx.chk("E2b_pins_identity", False, {"refused": "helper_not_approved", "why": hwhy, **hdet, **measured})
     mb, why, det = xbl.approved_export_baseline(cx.contract, cx.month)
+    measured = {"month": cx.month, "live_pins_sha256": sp_, "bundle_base_sha256": sb}
     if mb is None:
         return cx.chk("E2b_pins_identity", False, {"refused": why, **det, **measured,
                       "frozen_global_baseline_not_used": {"live_pins_sha256": cx.ab["live_pins_sha256"], "bundle_base_sha256": cx.ab["bundle_base_sha256"]}})
@@ -484,10 +454,7 @@ def E8_books_content(cx):
         d["K7_cost_pos_frozen"] = bool(fm.any() and (cost[fm] > 0).all() and (cex[fm] > 0).all())
         d["K7_cost_le_turnover_x_ratemax_violations"] = int((cost > to * rate_max * (1 + 1e-6) + 1e-9).sum()); d["K7_rate_max"] = rate_max
         d["K7_ok"] = d["K7_cost_pos_frozen"] and d["K7_cost_le_turnover_x_ratemax_violations"] == 0
-        d["ok"] = all(d[k] for k in ("K1_ok", "K2_ok", "K3_ok", "K4_ok", "K6_ok", "K7_ok")); d["informational_seat"] = nm.split("_")[1] not in CHECK_SEATS
-        d["K6_positivity_ok"] = bool(fm.any() and (gt[fm] > 0).all() and (gt >= 0).all()); d["K6_ceiling_ok"] = bool((gt <= th["gross_max"]).all())   # rev3 (review round 5): K6 split
-        d["identities_ok"] = all(d[k] for k in ("K1_ok", "K2_ok", "K3_ok", "K4_ok", "K7_ok", "K6_positivity_ok"))                                 # only the CEILING is exempt for a non-checked seat
-        ok_all &= (d["ok"] if not d["informational_seat"] else d["identities_ok"]); per[nm] = d   # fp2dyn (narrowed): non-checked seat — identities still fold, only K6 is informational
+        d["ok"] = all(d[k] for k in ("K1_ok", "K2_ok", "K3_ok", "K4_ok", "K6_ok", "K7_ok")); ok_all &= d["ok"]; per[nm] = d
     return cx.chk("E8_books_content", ok_all, per)
 
 
@@ -500,7 +467,7 @@ def E9_gross_band_vs_baseline(cx):
         d["baseline_sha_ok"] = d["baseline_sha256"] == ab["baseline_books_sha256"][f"{seat}_s{s}"]
         b = cx.B.get(kn); base = cx.BASE.get(bn)
         if not (b and base and b["rec"] is not None and base["rec"] is not None and d["baseline_sha_ok"]):
-            d["ok"] = False; d["informational_seat"] = seat not in CHECK_SEATS; per[kn] = d; ok_all = False; continue   # fp2dyn (narrowed): baseline identity / missing book folds for EVERY seat
+            d["ok"] = False; per[kn] = d; ok_all = False; continue
         R, RB = b["rec"], base["rec"]; ts = np.round(R[:, 0]).astype(np.int64); tsb = np.round(RB[:, 0]).astype(np.int64)
         gb = dict(zip(tsb.tolist(), RB[:, C["gross_total"]].tolist())); fm = (ts >= F0) & (ts < F1)
         bt = np.array([gb.get(int(t), np.nan) for t in ts[fm]]); ga = R[fm, C["gross_total"]]
@@ -511,9 +478,7 @@ def E9_gross_band_vs_baseline(cx):
             d["n_anchors_outside_band"] = int(((ratio < lo) | (ratio > hi)).sum())
             d["band_ok"] = d["n_anchors_outside_band"] == 0 and mlo <= d["ratio_median"] <= mhi
         else: d["band_ok"] = False
-        d["ok"] = d["baseline_sha_ok"] and d["baseline_axis_covers_frozen"] and d["band_ok"]; d["informational_seat"] = seat not in CHECK_SEATS
-        d["identity_ok"] = d["baseline_sha_ok"] and d["baseline_axis_covers_frozen"]
-        ok_all &= (d["ok"] if not d["informational_seat"] else d["identity_ok"]); per[kn] = d   # fp2dyn (narrowed): non-checked seat — identity folds, only the band is informational
+        d["ok"] = d["baseline_sha_ok"] and d["baseline_axis_covers_frozen"] and d["band_ok"]; ok_all &= d["ok"]; per[kn] = d
     return cx.chk("E9_gross_band_vs_baseline", ok_all, {"band": [lo, hi], "median_band": [mlo, mhi], "baseline_arm": ab["baseline_arm"], **per})
 
 
@@ -536,52 +501,23 @@ def run_all(cx, guards=True):
                       "export_panel": E["EXPORT_PANEL"], "bundle_cache": E["BUNDLE_CACHE"], "fund_aug": E["FUND_AUG"], "live_pins": E["LIVE_PINS"],
                       # ★ R14-C2 shape (a dependency that is not RECORDED cannot be re-hashed): E2b's approved pair now comes from a
                       #   helper module, so the helper is a registered input — swapping it leaves the gate's own sha untouched.
-                      "export_baseline_lib": os.path.abspath(xbl.__file__),
-                      # ★ R8-G-01 (2026-09-21): the shared gate-discipline module decides the SHAPE of this receipt and of
-                      #   `require`'s verdict, so it is code this gate depends on — recorded here and approved by sha in the
-                      #   contract's approved_helper_sha256, for the same R14-C2 reason the baseline helper is.
-                      "v4_gate_common": os.path.abspath(cx.gc.__file__)})
+                      "export_baseline_lib": os.path.abspath(xbl.__file__)})
 
 
 # ----------------------------------------------------------------------------------------------------------------- modes
-def helper_closure_or_refuse(E, write_receipt, recorded=None):
-    """★ R8-G-01 / E-0921-F (2026-09-21) — the CLASS-shaped half, run at the PRODUCTION ENTRY POINTS before anything else.
-    Every module this process imported from the chain directory (or from the gate's own directory, which need not be the same
-    place) must be a contract-approved helper of this gate. Fixing only today's helper by name would leave tomorrow's new
-    sibling module unchecked; this census is what makes the answer to "would a new one be caught?" yes.
-    Not run inside run_all: a TEST process legitimately holds the other variants and the harness itself in sys.modules, so a
-    census there would measure the harness rather than the gate."""
-    sys.path.insert(0, E["V4CHAIN_DIR"])
-    import v4_gate_common as gc  # noqa: E402
-    c, err = gc.load_contract()
-    if c is None: refuse(f"frozen contract: {err}")
-    ok, why, det = gc.helper_closure(GATE, [E["V4CHAIN_DIR"], os.path.dirname(os.path.abspath(__file__))],
-                                     os.path.abspath(__file__), c, recorded=recorded)
-    if ok: return det
-    print("  FAIL E_helper_closure " + str(why)[:400], flush=True)
-    if write_receipt:
-        gc.finalize(GATE, {"PASS": False, "failed_checks": ["E_helper_closure"], "refused": "helper_closure", "why": why,
-                           "helper_closure": det, "gate_version": "R8-G-01 helper approval closure (2026-09-21)",
-                           "built_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
-                    E["EXPORT_GATE_OUT"], {})                     # finalize writes the receipt and exits 3
-    print("EXPORT_GATE_REFUSED: " + str(why), flush=True); sys.exit(3)
-
-
 def gate_main():
-    E = read_env(); helper_closure_or_refuse(E, write_receipt=True); cx = Ctx(E); run_all(cx, guards=True)
-    helper_closure_or_refuse(E, write_receipt=True, recorded=cx.inputs)     # ★ R14-C2: every imported chain-dir module is also a REGISTERED input
+    E = read_env(); cx = Ctx(E); run_all(cx, guards=True)
     R = cx.R; R["PASS"] = bool(not cx.fails); R["failed_checks"] = cx.fails
     R["registered_inputs"] = sorted(cx.inputs); R["registered_floor_v4_gate_common"] = cx.gc.REQUIRED_INPUTS.get(GATE)
-    R["built_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()); R["gate_version"] = "v2 (r20 gate closure 2026-09-12) + fp2dyn variant rev3 (2026-09-17: for seats outside CHECK_SEATS only the K6 gross CEILING and the E9 band are informational; K6 positivity, K1–K4/K7 identities and baseline identity fold)"; R["gate_version"] += " + TRN-15 per-month export baseline (2026-09-21)"; R["seats_checked"] = sorted(CHECK_SEATS); R["seats_informational"] = sorted({s for s, _ in SEATS} - CHECK_SEATS)
+    R["built_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()); R["gate_version"] = "v2 (r20 gate closure 2026-09-12) + TRN-15 per-month export baseline (2026-09-21)"
     print(("EXPORT_GATE_V2 PASS " if R["PASS"] else "EXPORT_GATE_V2 FAIL ") + str(cx.fails), flush=True)
     cx.gc.finalize(GATE, R, E["EXPORT_GATE_OUT"], cx.inputs)
 
 
 def require_main(receipt_path):
     """Identity + full-floor sha re-verification (v4_gate_common.require) AND content gates re-run from the files. Nothing is read from the receipt but the shas."""
-    E = read_env(); helper_closure_or_refuse(E, write_receipt=False); cx = Ctx(E); recompute = os.environ.get("REQUIRE_RECOMPUTE_GUARDS") == "1"
+    E = read_env(); cx = Ctx(E); recompute = os.environ.get("REQUIRE_RECOMPUTE_GUARDS") == "1"
     run_all(cx, guards=recompute)                      # derives the full input set from disk (books -> costb/umask/slow/femat; manifest -> bundle/*)
-    helper_closure_or_refuse(E, write_receipt=False, recorded=cx.inputs)    # ★ R14-C2, same call, same implementation
     me = sha256_file(os.path.abspath(__file__))
     ok_id, why = cx.gc.require(receipt_path, cx.inputs, expected_gate=GATE, expected_self_sha=me)
     out = {"mode": "require", "receipt": receipt_path, "gate_self_sha256": me, "identity_and_inputs": {"ok": bool(ok_id), "why": why, "n_inputs_declared": len(cx.inputs), "inputs": sorted(cx.inputs)},
