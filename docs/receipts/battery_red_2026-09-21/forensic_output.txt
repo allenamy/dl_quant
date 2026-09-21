@@ -1,0 +1,195 @@
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/forensic.py:368: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).
+  print(f"{dt.datetime.utcfromtimestamp(A).strftime('%Y-%m-%d %HZ')} {rid} inv={inv:9.1f} del={d:8.1f} cap={cap:8.1f} tot={tot:9.1f} named={nn} unsized={nu}")
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/forensic.py:372: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).
+  print(f"\n### {dt.datetime.utcfromtimestamp(A).strftime('%Y-%m-%d %HZ')} {rid}  inv={inv:.1f}")
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/forensic.py:401: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).
+  print(f"{dt.datetime.utcfromtimestamp(a).strftime('%m-%d %HZ')} {rid} {str(sym):14s} {str(ot):18s} intended={it:9.1f} residual={res}")
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/forensic.py:413: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).
+  print(f"  {dt.datetime.utcfromtimestamp(a).strftime('%m-%d %HZ')} {str(r.get('order_type')):18s} "
+[A] the matrix is CLOSED over everything the venue has ever told us
+  OK    ★★★ no terminal state in the entire production ledger lacks a cell — the closed-world assertion, on every row we have ever written  — 100272 rows clean
+  OK    ★★★ and the matrix covers the WRITER's whole vocabulary too, not just what has occurred — a state that has never happened yet is exactly the one that will surprise us  — all TERMINAL_REASONS declared
+  OK    ★★ ...and no cell is stale (a matrix that outlives the states it describes stops being a map)
+
+[B] ONE CHECK PER CELL — what each terminal state means for the name
+  OK    ★★ `filled` -> COMPLETE — the intent was met; nothing is owed  — complete
+  OK    ★★ `partial_expired` -> RECOVERED — the ONE path that always worked: remainder -> top-up  — recovered
+  OK    ★★ `skipped_min_notional` -> COMPLETE — below the venue floor; no order could have been sent  — complete
+  OK    ★★ `skipped_no_mid` -> GAP — no book, so no price; nothing retries it  — gap
+  OK    ★★ `never_submitted` -> GAP — built and never left the process  — gap
+  OK    ★★ `filled_amount_unknown` -> GAP — it filled and we cannot say how much — a gap of UNKNOWN size, which must not read as zero  — gap
+  OK    ★★ `venue_reject` -> GAP — code-dependent: -5022 recovered, our-bug codes are real gaps  — gap
+  OK    ★★ `submitted_rejected` -> GAP — the venue refused it; nothing retries  — gap
+  OK    ★★ `skipped_rate_limit` -> GAP — throttled; retrying inside the anchor is wrong  — gap
+  OK    ★★ `blocked_by_halt` -> GAP — our OWN halt refused it — an INTENDED gap, and still a gap  — gap
+  OK    ★★ `abandoned_spread_gt_25bps` -> GAP — chasing costs more than the tracking error  — gap
+  OK    ★★ `abandoned_max_attempts` -> GAP — code-dependent: -4164 is dust below the floor  — gap
+  OK    ★★ `skipped_unknown_fill` -> GAP — could not read the maker's fill; sizing would risk doubling  — gap
+  OK    ★★★ every declared cell carries a WHY, not just a verdict — the next person needs the reason, because the verdict alone cannot be re-derived
+
+[C] the two CODE-DEPENDENT cells — resolved by the venue code, not by the state alone
+  OK    ★★★ a -5022 maker is NOT a gap — since 2026-08-02 its residual is recovered by the taker top-up, which is the whole fix
+  OK    ★★★ ...but a -1111 maker IS a gap — OUR malformed order, which must not be auto-retried (as a MARKET order it might SUCCEED, which is worse than failing)  — 100.0
+  OK    ★★★ a -4164 top-up is NOT a gap — MEASURED: all 68 such rows in the whole ledger are -4164, median $0.017, $6.62 total. Dust below a floor no order could clear, not an abandoned trade. Counting them would bury the gaps that matter under 68 sub-cent rows  — {'n_named': 0, 'n_unsized': 0, 'gross_usdt': 0, 'net_usdt': 0, 'venue_cap_usdt': 0, 'venue_cap_names': [], 'names': [], 'unsized': [], 'caliber': "residual = intended - filled, per order row, for every terminal state the matrix marks GAP. SIGNED: net is the directional tilt these gaps leave. `unsized` are rows whose residual cannot be stated (filled amount unknown) — counted, never summed as zero. -5022 is EXCLUDED: since 2026-08-02 its residual is recovered by the taker top-up, so it is not a gap. RECORD ONLY — no guard consumes this yet; feeding it to §4-5e/§4-6 as the underfill explanation set is B's pre-registered change."}
+  OK    ★★★ ...but any OTHER code on that state IS a gap — the path ended and nothing downstream exists  — 80.0
+  OK    ★★★ a -2027 maker (E-0909-E) is a gap that STAYS in gross AND is named as venue-capped — so the evaporation ruler can exclude it without the ledger forgetting it  — {'n_named': 2, 'n_unsized': 0, 'gross_usdt': 537.0, 'net_usdt': 477.0, 'venue_cap_usdt': 507.0, 'venue_cap_names': ['PIEVERSEUSDT'], 'names': [{'symbol': 'PIEVERSEUSDT', 'leg': 'maker', 'terminal_reason': 'venue_reject', 'residual_notional': 507.0, 'side': 'buy', 'why': '-5022 (post-only would have crossed) is recovered by the taker top-up since 2026-08-02: the liquidity is demonstrably th', 'structural': 'venue_position_limit'}, {'symbol': 'BBBUSDT', 'leg': 'maker', 'terminal_reason': 'venue_reject', 'residual_notional': -30.0, 'side': 'sell', 'why': '-5022 (post-only would have crossed) is recovered by the taker top-up since 2026-08-02: the liquidity is demonstrably th'}], 'unsized': [], 'caliber': "residual = intended - filled, per order row, for every terminal state the matrix marks GAP. SIGNED: net is the directional tilt these gaps leave. `unsized` are rows whose residual cannot be stated (filled amount unknown) — counted, never summed as zero. -5022 is EXCLUDED: since 2026-08-02 its residual is recovered by the taker top-up, so it is not a gap. RECORD ONLY — no guard consumes this yet; feeding it to §4-5e/§4-6 as the underfill explanation set is B's pre-registered change."}
+
+[D] the ledger's arithmetic — signed, and honest about what it cannot size
+  OK    ★★★ gross is 140 and net is +60 — SIGNED, because the direction the gaps leave is the thing that becomes a net exposure nobody chose  — (140.0, 60.0)
+  OK    ★★★ an unsizable gap is COUNTED SEPARATELY, never summed as zero — the same three-state discipline `fee_paid` and `filled_notional` already use  — (2, 1)
+  OK    ★★ a completed order contributes nothing
+  OK    ★★ residual is intended MINUS filled, so a partially-covered gap counts only the remainder
+  OK    ★★ rows from another rebalance are excluded
+
+[E] the REAL ledger — what each anchor would now declare
+
+
+================ FORENSIC ================
+
+-- 非自愿 > 200U 的锚(全史) --
+2026-08-01 06Z A1785565796 inv=   4197.6 del=     0.0 cap=     0.0 tot=   4197.6 named=100 unsized=0
+2026-08-02 00Z A1785628878 inv=   4223.9 del=     0.0 cap=     0.0 tot=   4223.9 named=94 unsized=0
+2026-08-02 05Z A1785648721 inv=   4169.2 del=     0.0 cap=     0.0 tot=   4169.2 named=94 unsized=0
+2026-08-05 04Z A1785902442 inv=   4366.2 del=     0.0 cap=     0.0 tot=   4366.2 named=99 unsized=0
+2026-08-05 08Z A1785916892 inv=   4364.0 del=     0.0 cap=     0.0 tot=   4364.0 named=102 unsized=0
+2026-08-22 00Z A1787356861 inv=  30715.1 del=     0.0 cap=     0.0 tot=  30715.1 named=99 unsized=0
+2026-08-22 04Z A1787371250 inv=  30526.1 del=     0.0 cap=     0.0 tot=  30526.1 named=98 unsized=0
+2026-08-22 08Z A1787386980 inv=  15456.4 del=     0.0 cap=     0.0 tot=  15456.4 named=291 unsized=0
+2026-08-26 16Z A1787761380 inv=  22751.6 del=     0.0 cap=     0.0 tot=  22751.6 named=267 unsized=0
+2026-08-26 20Z A1787775780 inv=   6520.6 del=   565.2 cap=     0.0 tot=   7085.8 named=88 unsized=0
+2026-08-27 08Z A1787819040 inv=    424.8 del=   610.1 cap=     0.0 tot=   1034.9 named=70 unsized=0
+2026-09-06 12Z A1788697439 inv= 164477.7 del=     0.0 cap=     0.0 tot= 164477.7 named=227 unsized=0
+2026-09-06 16Z A1788711840 inv= 164462.0 del=     0.0 cap=     0.0 tot= 164462.0 named=230 unsized=0
+2026-09-06 20Z A1788726239 inv= 164469.5 del=     0.0 cap=     0.0 tot= 164469.5 named=229 unsized=0
+2026-09-07 00Z A1788740639 inv= 164469.9 del=     0.0 cap=     0.0 tot= 164469.9 named=229 unsized=0
+2026-09-07 04Z A1788755040 inv=  52334.0 del=  9785.2 cap=     0.0 tot=  62119.2 named=84 unsized=0
+2026-09-09 20Z A1788985440 inv= 232266.7 del=     0.0 cap=     0.0 tot= 232266.7 named=231 unsized=0
+2026-09-10 00Z A1788999840 inv=  72813.0 del=  1605.8 cap=  2238.9 tot=  76657.7 named=80 unsized=0
+2026-09-11 08Z A1789115039 inv=   4014.2 del=   489.9 cap=  2202.3 tot=   6706.4 named=96 unsized=0
+2026-09-12 16Z A1789230240 inv= 235320.4 del=     0.0 cap=     0.0 tot= 235320.4 named=243 unsized=0
+2026-09-12 20Z A1789244640 inv= 235267.4 del=     0.0 cap=     0.0 tot= 235267.4 named=243 unsized=0
+2026-09-13 00Z A1789259039 inv= 235261.8 del=     0.0 cap=     0.0 tot= 235261.8 named=240 unsized=0
+2026-09-13 04Z A1789273440 inv= 235189.7 del=     0.0 cap=     0.0 tot= 235189.7 named=240 unsized=0
+2026-09-13 08Z A1789287840 inv= 235107.7 del=     0.0 cap=     0.0 tot= 235107.7 named=243 unsized=0
+2026-09-18 16Z A1789748640 inv=    309.5 del=   374.6 cap=     0.0 tot=    684.1 named=11 unsized=0
+2026-09-19 12Z A1789820640 inv=   2536.3 del=   881.7 cap=     0.0 tot=   3418.0 named=16 unsized=0
+
+-- 逐行明细(非自愿>200 的锚) --
+
+### 2026-08-01 06Z A1785565796  inv=4197.6
+    blocked_by_halt                     n= 100 gross=    4197.6
+
+### 2026-08-02 00Z A1785628878  inv=4223.9
+    blocked_by_halt                     n=  94 gross=    4223.9
+
+### 2026-08-02 05Z A1785648721  inv=4169.2
+    blocked_by_halt                     n=  94 gross=    4169.2
+
+### 2026-08-05 04Z A1785902442  inv=4366.2
+    blocked_by_halt                     n=  99 gross=    4366.2
+
+### 2026-08-05 08Z A1785916892  inv=4364.0
+    blocked_by_halt                     n= 102 gross=    4364.0
+
+### 2026-08-22 00Z A1787356861  inv=30715.1
+    blocked_by_halt                     n=  99 gross=   30715.1
+
+### 2026-08-22 04Z A1787371250  inv=30526.1
+    blocked_by_halt                     n=  98 gross=   30526.1
+
+### 2026-08-22 08Z A1787386980  inv=15456.4
+    blocked_by_halt                     n= 291 gross=   15456.4
+
+### 2026-08-26 16Z A1787761380  inv=22751.6
+    blocked_by_halt                     n= 267 gross=   22751.6
+
+### 2026-08-26 20Z A1787775780  inv=6520.6
+    abandoned_max_attempts       -4400  n=  75 gross=    6520.6
+    skipped_no_chase_arm                n=  13 gross=     565.2
+
+### 2026-08-27 08Z A1787819040  inv=424.8
+    skipped_no_chase_arm                n=  46 gross=     610.1
+    abandoned_max_attempts       -4400  n=  24 gross=     424.8
+
+### 2026-09-06 12Z A1788697439  inv=164477.7
+    blocked_by_halt                     n= 227 gross=  164477.7
+
+### 2026-09-06 16Z A1788711840  inv=164462.0
+    blocked_by_halt                     n= 230 gross=  164462.0
+
+### 2026-09-06 20Z A1788726239  inv=164469.5
+    blocked_by_halt                     n= 229 gross=  164469.5
+
+### 2026-09-07 00Z A1788740639  inv=164469.9
+    blocked_by_halt                     n= 229 gross=  164469.9
+
+### 2026-09-07 04Z A1788755040  inv=52334.0
+    abandoned_max_attempts       -4400  n=  68 gross=   52334.0
+    skipped_no_chase_arm                n=  16 gross=    9785.2
+
+### 2026-09-09 20Z A1788985440  inv=232266.7
+    blocked_by_halt                     n= 231 gross=  232266.7
+
+### 2026-09-10 00Z A1788999840  inv=72813.0
+    abandoned_max_attempts       -4400  n=  71 gross=   72813.0
+    venue_reject                 -2027  n=   1 gross=    2238.9
+    skipped_no_chase_arm                n=   8 gross=    1605.8
+
+### 2026-09-11 08Z A1789115039  inv=4014.2
+    abandoned_max_attempts       -4400  n=  73 gross=    4014.2
+    venue_reject                 -2027  n=   1 gross=    2202.3
+    skipped_no_chase_arm                n=  22 gross=     489.9
+
+### 2026-09-12 16Z A1789230240  inv=235320.4
+    blocked_by_halt                     n= 243 gross=  235320.4
+
+### 2026-09-12 20Z A1789244640  inv=235267.4
+    blocked_by_halt                     n= 243 gross=  235267.4
+
+### 2026-09-13 00Z A1789259039  inv=235261.8
+    blocked_by_halt                     n= 240 gross=  235261.8
+
+### 2026-09-13 04Z A1789273440  inv=235189.7
+    blocked_by_halt                     n= 240 gross=  235189.7
+
+### 2026-09-13 08Z A1789287840  inv=235107.7
+    blocked_by_halt                     n= 243 gross=  235107.7
+
+### 2026-09-18 16Z A1789748640  inv=309.5
+    skipped_no_chase_arm                n=  10 gross=     374.6
+    skipped_stop_maker_only             n=   1 gross=     309.5
+
+### 2026-09-19 12Z A1789820640  inv=2536.3
+    skipped_stop_maker_only             n=   1 gross=    2536.3
+    skipped_no_chase_arm                n=  15 gross=     881.7
+
+
+== skipped_stop_maker_only 全史(每行) ==
+09-18 16Z A1789748640 GUSDT          topup_taker        intended=    309.5 residual=309.53104934
+09-19 12Z A1789820640 STARUSDT       topup_taker        intended=  -2536.3 residual=2536.32678
+总行数 2
+
+== 该终态在矩阵里的判定 ==
+gap | recoverable= False
+a stopped name's from_partial residual (per-name stop cf40ea21: maker-only exit, never chased — ruling R2'): sendable, deliberately not sent, carried to the next anchor's maker exit. Intended, recorded, paged while it lasts, and still a gap
+
+
+== 两个被止损名的后续锚(是否平掉) ==
+
+--- GUSDT ---
+  09-18 12Z maker              venue_reject               intended=     30.8 filled=0.0 note=[-5022] Due to the order could not be ex
+  09-18 12Z maker              venue_reject               intended=     30.8 filled=0.0 note=requote [-5022] Due to the order could n
+  09-18 12Z topup_taker        filled                     intended=     30.8 filled=29.836633 note=
+  09-18 16Z maker              partial_expired            intended=    309.5 filled=0.0 note=
+  09-18 16Z topup_taker        skipped_stop_maker_only    intended=    309.5 filled=0.0 note=per-name stop (cf40ea21): a stopped name
+  09-18 20Z maker              partial_expired            intended=    278.2 filled=278.39541 note=
+  09-18 20Z topup_taker        skipped_min_notional       intended=     -0.1 filled=0.0 note=
+
+--- STARUSDT ---
+  09-19 08Z maker              venue_reject               intended=     66.2 filled=0.0 note=[-5022] Due to the order could not be ex
+  09-19 08Z maker              partial_expired            intended=     66.2 filled=65.99394 note=
+  09-19 08Z topup_taker        skipped_min_notional       intended=      0.2 filled=0.0 note=
+  09-19 12Z maker              partial_expired            intended=  -2555.1 filled=-18.81282 note=
+  09-19 12Z topup_taker        skipped_stop_maker_only    intended=  -2536.3 filled=0.0 note=per-name stop (cf40ea21): a stopped name
+  09-19 16Z maker              partial_expired            intended=  -2445.0 filled=-2445.34608 note=
+  09-19 16Z topup_taker        skipped_min_notional       intended=      0.4 filled=0.0 note=
