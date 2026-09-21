@@ -46,6 +46,9 @@ TOKENS = [
     ("H02_PRODUCT_OF_MEANS", r"159\.9206|159\.92063|159\.92060",
      "两个完整精度均值相乘, 遗漏了跨路径协方差 100·Cov = −0.01786366pp (R8-POL-02)",
      "逐路径同本金均值 159.902772pp (mean_s[(1+R_hit,s)×R_after,s] = mean_s[R_end,s − R_hit,s])"),
+    ("STY03_SUBSTITUTES", r"(三个?信号|三信号|GAP_?LOO|留一)[^。\n]{0,80}(是\*{0,2}替代品|互相\*{0,2}替代)|(是\*{0,2}替代品|互相\*{0,2}替代)[^。\n]{0,80}(三个?信号|三信号|留一)",
+     "GAP_LOO < 0 推不出替代: 纯互补 v(S)=1{S=N} 给 GAP = −2, 纯替代 v(S)=1{S≠∅} 给 GAP = +1 — 符号方向恰好相反 (STY-03)",
+     "「留一不可相加, 存在不可忽略的交互与基线/门约定效应」; 也不得反过来说「已证明互补」"),
     ("H02_214PP", r"214\s*pp|213\.997|213\.9970",
      "214pp 是从缩小后的本金起算的后续收益, 不是同一本金下的差 (E-0921-D)",
      "同一本金下 159.902772pp (约 160pp)"),
@@ -54,16 +57,27 @@ RX = [(tid, re.compile(pat), why, fix) for tid, pat, why, fix in TOKENS]
 
 TEXT_EXT = (".md", ".py", ".txt", ".json", ".sh", ".jsonl")
 SKIP_DIRS = {".git", "__pycache__", ".claude", "node_modules", ".venv"}
+SELF_PATHS = ("multi_asset/exports/research/sty_closure_2026-09-21/", "docs/receipts/STY_CLOSURE_2026-09-21/")
 
 
-def _annotated(line, heading=""):
-    """CLOSED only when the LINE itself carries a withdrawal marker.
+ADJACENCY = 140          # characters; a marker further away than this is not annotating THIS claim
 
-    An earlier version also accepted the enclosing `## E-09xx-Y` heading, on the reasoning that a ledger entry's purpose is to
-    quote the wrong number. That was too generous in a way that mattered: inside E-0921-D the CORRECTED figure 159.9206 is an
-    assertion, not a quotation, and R8-POL-02 supersedes it — block annotation marked it closed. A marker has to sit on the
-    line that makes the claim."""
-    return any(m in line for m in MARKERS)
+
+def _annotated(line, span=None):
+    """CLOSED only when a withdrawal marker sits NEXT TO the claim — within ADJACENCY characters of the match.
+
+    Two earlier versions were both too generous, and the second one was caught by this scanner's own output:
+      (1) accepting the enclosing `## E-09xx-Y` heading marked E-0921-D's own 159.9206 closed, although inside that entry the
+          corrected figure is an ASSERTION (and R8-POL-02 supersedes it), not a quotation of the error;
+      (2) accepting a marker ANYWHERE ON THE LINE marked RESULT_attribution:48 closed — that line opens with 「市场 β 对这个
+          改善没有贡献」 and ends with 「…已作废(E-0920-B)」, and the 作废 belongs to a DIFFERENT claim in the same sentence.
+          That is the "declaration that does not bind the conclusion" family, in the device written to hunt it.
+    So the marker must be adjacent to the token it is supposed to retract."""
+    if span is None:
+        return any(m in line for m in MARKERS)
+    lo = max(0, span[0] - ADJACENCY)
+    hi = min(len(line), span[1] + ADJACENCY)
+    return any(m in line[lo:hi] for m in MARKERS)
 
 
 def _scan_text(path, rel, scope, out, only_line_pred=None):
@@ -75,17 +89,15 @@ def _scan_text(path, rel, scope, out, only_line_pred=None):
         return 0
     out["files_scanned"][scope] += 1
     n = 0
-    heading = ""
     for i, line in enumerate(lines, 1):
-        if line.startswith("#"):
-            heading = line
         if only_line_pred is not None and not only_line_pred(line):
             continue
         for tid, rx, why, fix in RX:
-            if rx.search(line):
+            m = rx.search(line)
+            if m:
                 n += 1
                 rec = {"scope": scope, "path": rel, "line": i, "token": tid, "text": line.strip()[:220],
-                       "annotated": _annotated(line, heading), "heading": heading[:120],
+                       "matched": line[m.start():m.end()][:80], "annotated": _annotated(line, m.span()),
                        "why_wrong": why, "must_say": fix}
                 (out["closed"] if rec["annotated"] else out["open"]).append(rec)
     return n
@@ -100,10 +112,14 @@ def repo_population(root):
     if r.returncode != 0:
         return None, f"git ls-files failed rc={r.returncode}: {r.stderr.decode()[:200]}"
     rels = [x for x in r.stdout.decode("utf-8", "replace").split("\0") if x]
-    keep, excluded = [], []
+    keep, excluded, excluded_self = [], [], []
     for x in rels:
         if x.split("/")[0] in SKIP_DIRS:
             continue
+        if x.startswith(SELF_PATHS):
+            # this device and its own receipts QUOTE every token on purpose (the canary, the refusal texts, the recorded
+            # hits). Excluded BY RULE, counted and named on the verdict line — never silently.
+            excluded_self.append(x); continue
         if x.endswith((".md", ".txt", ".py", ".sh")):
             keep.append(x)
         elif x.endswith((".json", ".jsonl")):
@@ -111,7 +127,7 @@ def repo_population(root):
             # (E-0921-E: 冻结件刻意不动 — editing one breaks the receipt it certifies). Excluded BY RULE, counted, and named,
             # never silently: the count is printed on the verdict line.
             (keep if x.startswith("docs/") else excluded).append(x)
-    return keep, (None, excluded)
+    return keep, (None, excluded, excluded_self)
 
 
 def scan_repo(root, out):
@@ -119,7 +135,9 @@ def scan_repo(root, out):
     if rels is None:                                  # a scope that cannot be enumerated is NOT an empty scope
         out["unreadable"].append({"scope": "repo_body", "path": root, "why": info})
         return
-    _err, excluded = info
+    _err, excluded, excluded_self = info
+    out["population"]["repo_self_excluded"] = len(excluded_self)
+    out["population"]["repo_self_excluded_paths"] = excluded_self
     out["population"]["repo_body"] = len(rels)
     out["population"]["repo_frozen_json_excluded"] = len(excluded)
     out["population"]["repo_frozen_json_examples"] = excluded[:5]
@@ -215,6 +233,7 @@ def main():
     print(f"\nSTY_SCAN VERDICT={res['VERDICT']} control_scopes_reached="
           f"{len(ctrl['found_per_scope'])}/{len(ctrl['scopes_required'])} not_reached={ctrl['scopes_not_reached']} "
           f"files_scanned={out['files_scanned']} frozen_json_excluded={out['population'].get('repo_frozen_json_excluded')} "
+          f"self_excluded={out['population'].get('repo_self_excluded')} "
           f"open={len(out['open'])} annotated={len(out['closed'])} "
           f"unreadable={len(out['unreadable'])}", flush=True)
     sys.exit(0 if ok else 3)

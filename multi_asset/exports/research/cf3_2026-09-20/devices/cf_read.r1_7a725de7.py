@@ -19,18 +19,6 @@ POPULATIONS (PREREG 7.3, E-0920-C)
   HAS_POSITION (gross0 > 0 at the window start) is reported next to the whole-population figure with
   both n's and the named complement NO_POSITION.
 
-★ STY-04 (round-7 independent review, closed 2026-09-21). THE DEFECT: GROSS0 was read ONCE, from the BASE arm's AGG, and then
-  used inside every arm's loop under the name "has position" — so a subset labelled "this arm had a position" was in fact
-  "BASE had a position". The reviewer recomputed from each arm's own AGG and the 32 raw paths: NONE/HIST 5,476 anchors, not
-  5,480; NONE/2026 1,449, not 1,450; noKING_GF/HIST 5,487, not 5,480; noKING_GF/FULL_RECIPE 6,935, not 6,930 — and the
-  conditional g moves with them (noKING_GF/FULL_RECIPE +0.80236362 vs the published +0.78899358). The WHOLE-POPULATION g is
-  unaffected and was reproduced exactly; what was wrong is the sub-table's membership and its label.
-  NOW: both conditions are computed and BOTH are named. `*_BASE_has_position` is the fixed common condition (kept, because a
-  fixed population is a legitimate thing to condition on — it just has to say so), and `*_own_has_position` comes from THAT
-  arm's own AGG. The ambiguous names `n_has_position` / `g_has_position` are GONE rather than redefined, so a consumer that
-  still reads them fails loudly instead of silently reading the other thing. A closed-count identity ("the counts add up") is
-  NOT evidence that the membership is right — that was the reasoning that hid this.
-
 usage: env -i ... /workspace/venv/bin/python -B cf_read.py <ENV_WHITELIST_CSV> <OUT_DIR>
 """
 import itertools
@@ -127,18 +115,7 @@ fa = F["anchor"].astype(np.int64)
 sel_rows = np.searchsorted(fa, A)
 chk("population.flags_axis_covers_the_sim_window", bool(np.array_equal(fa[sel_rows], A)), None)
 BASE_KIND = F["BASE_kind"][sel_rows]
-GROSS0 = np.asarray(ZA["gross0_over_gmnav0_mean"])          # ★ STY-04: this is BASE's, and it is now NAMED as BASE's
-# ★ STY-04: every arm's OWN gross0, from that arm's OWN aggregate. A missing key is a refusal, not a fallback to BASE's —
-#   falling back would silently restore exactly the defect this fixes.
-GROSS0_OWN = {}
-for _a in S:
-    _z = np.load(S[_a]["agg"])
-    if "gross0_over_gmnav0_mean" not in _z.files:
-        chk("population.arm_%s_has_own_gross0" % _a, False,
-            {"agg": S[_a]["agg"], "why": "this arm's AGG carries no gross0_over_gmnav0_mean, so its own HAS_POSITION cannot "
-                                          "be derived; falling back to BASE's is the STY-04 defect"})
-        fail("population — arm %s has no own gross0" % _a)
-    GROSS0_OWN[_a] = np.asarray(_z["gross0_over_gmnav0_mean"])
+GROSS0 = np.asarray(ZA["gross0_over_gmnav0_mean"])
 
 BUCKETS = {"COMBO": BASE_KIND == 2, "KING_FILE": BASE_KIND == 1, "HOLD": BASE_KIND == 0}
 chk("population.buckets_are_a_partition",
@@ -155,13 +132,10 @@ for p, pm in PERIODS.items():
          "first_anchor": L.iso(A[pm][0]) if pm.any() else None,
          "last_anchor": L.iso(A[pm][-1]) if pm.any() else None,
          "buckets_by_BASE_kind": {k: int((pm & v).sum()) for k, v in BUCKETS.items()},
-         # ★ STY-04: this population row is cut by the BASE arm's kind, so its position condition is BASE's too — said here
-         #   in the key name rather than left to the reader.
-         "BASE_HAS_POSITION_gross0_gt_0": int((pm & (GROSS0 > 0)).sum()),
-         "BASE_NO_POSITION_gross0_eq_0": int((pm & (GROSS0 <= 0)).sum()),
-         "per_arm_own_HAS_POSITION": {a: int((pm & (GROSS0_OWN[a] > 0)).sum()) for a in sorted(S)}}
+         "HAS_POSITION_gross0_gt_0": int((pm & (GROSS0 > 0)).sum()),
+         "NO_POSITION_gross0_eq_0": int((pm & (GROSS0 <= 0)).sum())}
     d["buckets_sum_equals_n"] = sum(d["buckets_by_BASE_kind"].values()) == d["n_anchors"]
-    d["has_position_plus_no_position_equals_n"] = d["BASE_HAS_POSITION_gross0_gt_0"] + d["BASE_NO_POSITION_gross0_eq_0"] == d["n_anchors"]
+    d["has_position_plus_no_position_equals_n"] = d["HAS_POSITION_gross0_gt_0"] + d["NO_POSITION_gross0_eq_0"] == d["n_anchors"]
     rec["populations"][p] = d
 chk("population.closed_in_every_period",
     all(v["buckets_sum_equals_n"] and v["has_position_plus_no_position_equals_n"] for v in rec["populations"].values()), None)
@@ -177,41 +151,19 @@ for arm in S:
         cell["path_distribution"] = BT.path_distribution(S[arm]["paths"], pm)
         # bucket g: closed population, both whole-population and has-measurement variants
         bk = {}
-        g0 = GROSS0_OWN[arm]                                  # ★ STY-04: THIS arm's own gross0
         for bname, bmask in BUCKETS.items():
             mm = pm & bmask
             n = int(mm.sum())
-            hpB = mm & (GROSS0 > 0)                            # the fixed BASE condition, named as such
-            hpO = mm & (g0 > 0)                                # this arm's own condition
+            hp = mm & (GROSS0 > 0)
             bk[bname] = {"n": n,
                          "g_whole_population": (float(m["g"][mm].mean()) if n else None),
-                         "n_BASE_has_position": int(hpB.sum()),
-                         "g_BASE_has_position": (float(m["g"][hpB].mean()) if hpB.any() else None),
-                         "n_own_has_position": int(hpO.sum()),
-                         "g_own_has_position": (float(m["g"][hpO].mean()) if hpO.any() else None),
-                         "n_BASE_no_position_named_subset": int(n - hpB.sum()),
-                         "n_own_no_position_named_subset": int(n - hpO.sum())}
+                         "n_has_position": int(hp.sum()),
+                         "g_has_position": (float(m["g"][hp].mean()) if hp.any() else None),
+                         "n_no_position_named_subset": int(n - hp.sum())}
         cell["buckets_by_BASE_kind"] = bk
-        cell["g_BASE_has_position"] = (float(m["g"][pm & (GROSS0 > 0)].mean()) if (pm & (GROSS0 > 0)).any() else None)
-        cell["n_BASE_has_position"] = int((pm & (GROSS0 > 0)).sum())
-        cell["g_own_has_position"] = (float(m["g"][pm & (g0 > 0)].mean()) if (pm & (g0 > 0)).any() else None)
-        cell["n_own_has_position"] = int((pm & (g0 > 0)).sum())
-        cell["own_vs_BASE_position_mask_differs"] = int(int((pm & (g0 > 0)).sum()) != int((pm & (GROSS0 > 0)).sum()))
-        cell["position_condition_note"] = ("*_BASE_has_position is the FIXED BASE condition; *_own_has_position is this arm's "
-                                           "own gross0. Before STY-04 only the first existed, under the name of the second.")
+        cell["g_has_position"] = (float(m["g"][pm & (GROSS0 > 0)].mean()) if (pm & (GROSS0 > 0)).any() else None)
+        cell["n_has_position"] = int((pm & (GROSS0 > 0)).sum())
         TAB[arm][p] = cell
-
-# ★ STY-04: the fix is only meaningful if the two conditions actually differ somewhere. If they never did, this device would
-#   be publishing a distinction that is not one — so the disagreement is MEASURED and named, not assumed.
-_diff = {a: {p: {"n_BASE": TAB[a][p]["n_BASE_has_position"], "n_own": TAB[a][p]["n_own_has_position"]}
-             for p in TAB[a] if TAB[a][p]["own_vs_BASE_position_mask_differs"]} for a in TAB}
-_diff = {a: v for a, v in _diff.items() if v}
-rec["sty04_own_vs_BASE_position"] = {
-    "n_arm_period_cells_where_they_differ": sum(len(v) for v in _diff.values()),
-    "arms_affected": sorted(_diff), "detail": _diff,
-    "meaning": "before STY-04 every one of these cells was published under the arm's name while carrying BASE's membership"}
-chk("sty04.own_and_BASE_position_conditions_really_differ", sum(len(v) for v in _diff.values()) > 0,
-    rec["sty04_own_vs_BASE_position"])
 
 # ── Delta vs BASE, paired MBB ───────────────────────────────────────────────
 log("paired bootstrap ...")

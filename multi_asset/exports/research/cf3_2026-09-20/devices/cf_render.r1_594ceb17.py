@@ -74,7 +74,7 @@ for p in ["HIST", "2026", "FULL_RECIPE", "PRE", "ALL_2022_06"]:
     b = v["buckets_by_BASE_kind"]
     w("| %s | %d | %s | %s | %d | %d | %d | %s | %d | %d |"
       % (p, v["n_anchors"], v["first_anchor"], v["last_anchor"], b["COMBO"], b["KING_FILE"], b["HOLD"],
-         "是" if v["buckets_sum_equals_n"] else "**否**", v["BASE_HAS_POSITION_gross0_gt_0"], v["BASE_NO_POSITION_gross0_eq_0"]))
+         "是" if v["buckets_sum_equals_n"] else "**否**", v["HAS_POSITION_gross0_gt_0"], v["NO_POSITION_gross0_eq_0"]))
 w()
 w("桶按 **BASE 臂的 kind** 切, 因此逐臂可比; 各臂自己的 kind 翻转数见 T5。")
 w()
@@ -93,7 +93,7 @@ for gate, arms in (("G-FAITHFUL(主口径, 每臂重算前飞门)", FAITH), ("G-
             w("| `%s` | %d | %s | %s | %s | %s | %s | **%s** | %d | %s |"
               % (a, c["n_anchors"], f(c["nav_return"], 2, True), f(c["cagr"], 2, True),
                  f(c["sharpe_daily"], 2), f(c["maxdd_4h"], 2, True), f(c["maxdd_5m"], 2, True),
-                 f(c["g"]), c["n_own_has_position"], f(c["g_own_has_position"])))
+                 f(c["g"]), c["n_has_position"], f(c["g_has_position"])))
         w()
 
 # ── T3 逐桶 g ──

@@ -1,0 +1,40 @@
+{
+ "receipt": "STY03_04_05_closure",
+ "utc": "2026-09-21T04:35:54Z",
+ "source": "round-7 independent review notes/style.md STY-03 / STY-04 / STY-05; round-8 review §3.6 ordering (STY-05 first)",
+ "STY-05": {
+  "status": "CLOSED",
+  "defect": "cf_beta_read.py computed B5, the upstream gate verdicts and the §5.4 unattributed bound, RECORDED all three, and wrote every arm number regardless. The reviewer measured exit 0 with all numbers written for a mutated B5 cell, for an upstream REFUSED, and FINAL='5.1' for a §5.1-supporting configuration whose bound was UNREADABLE.",
+  "fix": "hard gates (B5 bit-identity, every upstream arm gate PASS, the B-A1 unreadability test AND its zero control, every input readable) are evaluated BEFORE anything is written; any failure ⇒ FINAL=REFUSED, exit 3, a refusal receipt naming the gate, and NO arm numbers on either surface (JSON `arms` absent AND the markdown per-arm table absent). §5.4 is applied ahead of §5.1/§5.2 so an unreadable bound can only ever produce UNDECIDED; the receipt records what the verdict WOULD have been, so the downgrade is visible.",
+  "device_sha256": {
+   "cf_beta_read.py": "16ff0ee95ad255e9328f865d29fc1b66736e25e2ac4c0db831cc4497f4ef2f59",
+   "cf_beta_read.r1_7dce2b8c.py (archived pre-fix)": "7dce2b8c5ce55a00ef76e85638f7434cc7d5b53acd6638606ae81c00a412bc56",
+   "tests_cf_beta_read_gates.py": "213e3f827b69095e63ec4bab37e40217c5764c19dc81299859d0477992341581"
+  },
+  "verdict": "CF_BETA_READ_GATES ALL PASS checks=11 failed=0 (exit 0)",
+  "defect_measured_not_asserted": "the suite runs the ARCHIVED pre-fix reader over the SAME fixtures: exit 0 with all arm numbers written for both the B5 red and the upstream REFUSED, and FINAL='5.1' for the unreadable-bound case — the reviewer's four-row table reproduced rather than quoted."
+ },
+ "STY-04": {
+  "status": "CLOSED",
+  "defect": "cf_read.py read GROSS0 once from the BASE arm's AGG and used it inside every arm's loop as that arm's HAS_POSITION.",
+  "fix": "each arm's own gross0 is loaded from its OWN aggregate (a missing key REFUSES rather than falling back to BASE's, which would restore the defect); both conditions are emitted and both are named (*_BASE_has_position / *_own_has_position); the ambiguous n_has_position / g_has_position are DELETED rather than redefined, so a stale consumer fails loudly. A new check asserts the two conditions really differ somewhere, so the distinction is measured rather than assumed.",
+  "rerun": "pod2 /workspace/sty04_2026-09-21 (read-only against /workspace/cf3_2026-09-20/runs; /proc/pressure/memory avg10 0.00 checked first; nice -n 15)",
+  "verdict": "CF_READ VERDICT=PASS checks=9 failed=[] receipt_sha256=9260ad6c4fa98ac3a928d17cf35d78f55260758272a42b488e70a57ba05dae1b (exit 0)",
+  "cross_instrument_agreement": "all four cells the reviewer independently recomputed reproduce EXACTLY — NONE/HIST n 5,476 g -0.37483597; NONE/2026 n 1,449 g 2.41114987; noKING_GF/HIST n 5,487 g 0.10082580; noKING_GF/FULL_RECIPE n 6,935 g 0.80236362 — and the *_BASE_has_position column reproduces the previously published numbers exactly.",
+  "population_of_the_error": "50 arm x period cells across ALL 14 arms had the two conditions disagree; every one of them was published under the arm's name while carrying BASE's membership.",
+  "unaffected": "the WHOLE-POPULATION g, reproduced exactly (the reviewer said so and this rerun confirms it)."
+ },
+ "STY-03": {
+  "status": "CLOSED (wording; the GAP arithmetic was already correct and is unchanged)",
+  "defect": "GAP_LOO < 0 was read as 'the three signals are substitutes'. The sign points the other way: pure complementarity v(S)=1{S=N} gives total 1, each LOO 1, sum 3, GAP = -2; pure substitution v(S)=1{S!=0} gives GAP = +1.",
+  "fix": "the claim is withdrawn in place with the original bytes quoted, in STATE.md:23, the result document's summary line, its item 6 and its section 5.4 heading and body (which now carries the two counterexamples as a table), and in the long-term memory file's body, its description: frontmatter and its MEMORY.md index line. What stands is 'LOO is not additive; there are non-negligible interaction and baseline/gate-convention effects', and the reverse claim 'complementarity proved' is refused too.",
+  "note": "the memory file's NAME still says three_signals_are_substitutes_...; it is kept because it is the stable identifier other memories link to with [[...]], and the file now says so."
+ },
+ "scanner_tightened_by_its_own_output": {
+  "what": "the withdrawal scanner accepted a marker ANYWHERE on the line. That marked RESULT_attribution:48 closed: the line opens with 「市场 β 对这个改善没有贡献」 and ends with 「…已作废(E-0920-B)」, and the 作废 belongs to a DIFFERENT claim in the same sentence — the 'declaration that does not bind the conclusion' family, inside the device written to hunt it.",
+  "fix": "a marker now has to sit within 140 characters of the match. Under the stricter rule two genuine open references appeared that the looser rule had hidden: STATE.md:23 and RESULT_attribution:48. Both corrected.",
+  "self_exclusion": "the closure device and its own receipts quote every token on purpose; 6 paths excluded BY RULE, counted and printed on the verdict line.",
+  "verdict_after": "STY_SCAN VERDICT=PASS control_scopes_reached=4/4 not_reached=[] files_scanned={'repo_body': 8899, 'memory_body': 481, 'memory_description': 481, 'memory_index': 1} frozen_json_excluded=3603 self_excluded=6 open=0 annotated=37 unreadable=0 (exit 0)",
+  "red_capability": "remove the adjacency marker from STATE.md:23 only -> VERDICT=OPEN_REFERENCES open=1 annotated=36 (exit 3) -> restore -> exit 0"
+ }
+}

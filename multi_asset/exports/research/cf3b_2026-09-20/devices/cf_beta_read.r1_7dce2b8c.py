@@ -11,24 +11,7 @@ PREREG docs/PREREG_style_beta_on_counterfactual_worlds_2026-09-20.md §5 (+B-A1)
   5.4 unattributed bound > half of |d_common|  =>  the common term is unreadable => UNDECIDED
       and: |s_noFUND - s_noFUND_GF| > 15pp => that contrast is gate-convention-dominated, description only
 
-★ STY-05 (round-7 independent review, closed 2026-09-21). THE DEFECT: this reader COMPUTED B5, the upstream gate verdicts and
-  the §5.4 unattributed bound, RECORDED all three in the receipt — and then wrote every arm number regardless. The reviewer ran
-  the frozen reader with (a) one published B5 cell mutated, (b) NONE's upstream gate marked REFUSED, (c) a §5.1-supporting
-  configuration whose bound was unreadable, and got exit 0 with all arm numbers written in every case, and FINAL="5.1" in (c).
-  That is the "gate exists, its verdict is computed, but the WRITE does not depend on it" family.
-
-  THE CONTRACT NOW IN CODE, in priority order, decided BEFORE anything is written:
-    1. HARD GATES (PREREG §3: "B1–B5 任一不过 ⇒ REFUSED, 不出臂数字"). B5 control not bit-identical, or ANY upstream arm gate
-       not PASS, or a receipt that cannot be read ⇒ FINAL = REFUSED, the arm numbers are NOT written (neither JSON nor
-       markdown), and the process exits 3. A refusal receipt IS written, naming which gate failed — a refusal must leave
-       evidence, it is not a bare die.
-    2. §5.4 BOUND. If the UNATTRIBUTED bound exceeds |Δcommon|/2 for any arm the common term is unreadable ⇒ FINAL is forced to
-       UNDECIDED. It can never become 5.1 or 5.2. This is a DOWNGRADE, not a refusal: the numbers are still written.
-    3. Only then do §5.1 / §5.2 decide between 5.1, 5.2 and UNDECIDED (§5.3).
-  A missing or unreadable input is a NAMED refusal, never an unhandled traceback and never a skip.
-
-usage: /workspace/venv/bin/python -B cf_beta_read.py <RECEIPTS_DIR> <OUT_JSON> <OUT_MD> [CERT_JSON]
-       CERT_JSON (or env CF_BETA_CERT) overrides the certified §5 receipt; default is the pod2 path below.
+usage: /workspace/venv/bin/python -B cf_beta_read.py <RECEIPTS_DIR> <OUT_JSON> <OUT_MD>
 """
 import json
 import os
@@ -37,57 +20,13 @@ import sys
 R = sys.argv[1]
 OUTJ = sys.argv[2]
 OUTM = sys.argv[3]
-CERT_PATH = (sys.argv[4] if len(sys.argv) > 4 else
-             os.environ.get("CF_BETA_CERT") or "/workspace/attrib_2026_2026-09-20/receipts/AT_BETA.json")
 ARMS = ["BASE", "NONE", "noFUND", "noFUND_GF"]
+D = {a: json.load(open(f"{R}/{a}/AT_BETA.json")) for a in ARMS}
+CERT = json.load(open("/workspace/attrib_2026_2026-09-20/receipts/AT_BETA.json"))
+UNREAD = json.load(open(f"{R}/unread/CF_BETA_UNREAD_TEST.json"))
+GATES = {a: json.load(open(f"{R}/CF_BETA_{a}.json")) for a in ARMS}
 
-out = {"prereg": "docs/PREREG_style_beta_on_counterfactual_worlds_2026-09-20.md (+B-A1)",
-       "sty05": "hard gates decide the WRITE, not just the record (round-7 STY-05, 2026-09-21)"}
-REFUSALS = []
-
-
-def refuse(why):
-    """★ STY-05: a refusal LEAVES EVIDENCE and stops the numbers. It is not a bare die and not a skipped check."""
-    REFUSALS.append(why)
-
-
-def load(path, what):
-    if not os.path.exists(path):
-        refuse(f"{what}: input missing on disk ({path})"); return None
-    try:
-        return json.load(open(path))
-    except Exception as e:                                        # noqa: BLE001
-        refuse(f"{what}: unreadable ({path}): {type(e).__name__}: {e}"); return None
-
-
-def write_refusal(reasons, extra=None):
-    """The refusal receipt. It deliberately carries NO arm numbers — PREREG §3 says 不出臂数字, and a refusal that still
-    prints the numbers is the defect STY-05 names."""
-    res = dict(out)
-    res.pop("arms", None); res.pop("verdicts", None)
-    res["verdicts"] = {"FINAL": "REFUSED (PREREG §3: a failed hard gate blocks the arm numbers)"}
-    res["REFUSED"] = True
-    res["refused_reasons"] = list(reasons)
-    if extra:
-        res.update(extra)
-    os.makedirs(os.path.dirname(os.path.abspath(OUTJ)) or ".", exist_ok=True)
-    json.dump(res, open(OUTJ, "w"), indent=1, default=float)
-    open(OUTM, "w").write(
-        "# CF3-B · **REFUSED**\n\n"
-        "PREREG §3: B1–B5 任一不过 ⇒ **REFUSED, 不出臂数字**。本次未写出任何臂数字。\n\n"
-        + "\n".join("- " + r for r in reasons) + "\n")
-    print("CF_BETA_READ REFUSED n_reasons=%d reasons=%s" % (len(reasons), reasons), flush=True)
-    sys.exit(3)
-
-
-D = {}
-for a in ARMS:
-    D[a] = load(f"{R}/{a}/AT_BETA.json", f"arm {a} AT_BETA")
-CERT = load(CERT_PATH, "certified §5 receipt (B5 control reference)")
-UNREAD = load(f"{R}/unread/CF_BETA_UNREAD_TEST.json", "B-A1 unreadability test")
-GATES = {a: load(f"{R}/CF_BETA_{a}.json", f"arm {a} upstream gate receipt") for a in ARMS}
-if REFUSALS:
-    write_refusal(REFUSALS)
+out = {"prereg": "docs/PREREG_style_beta_on_counterfactual_worlds_2026-09-20.md (+B-A1)"}
 
 
 def share(a):
@@ -109,8 +48,7 @@ for a in ARMS:
                                 "unattributed_no_beta", "unattributed_bound_abs", "gross_share_without_beta",
                                 "book_ex_ante_net_beta_mean")}
                            for p in ("HIST", "2026", "FULL_RECIPE")}}
-# ★ STY-05: S is computed here but is NOT put into `out` yet — the hard gates below decide whether any arm number is
-#   written. Putting it in now and popping it later would make the refusal path depend on remembering to pop.
+out["arms"] = S
 
 # ── B5 control ─────────────────────────────────────────────────────────────
 b5 = {}
@@ -126,37 +64,7 @@ for k in CERT["ci_2026_vs_HIST"]:
 out["B5_control"] = {"n_cells": len(b5), "n_identical": sum(1 for v in b5.values() if v["identical"]),
                      "all_identical": all(v["identical"] for v in b5.values()), "cells": b5}
 
-# ── ★ STY-05 HARD GATES (PREREG §3). These decide whether the arm numbers are written AT ALL. They run here, before the
-#    verdict block and before json.dump, and each failure is NAMED. A gate whose verdict does not control the write is
-#    indistinguishable from no gate ("gate exists but its verdict does not control the write", 2026-09-17).
-hard = []
-if not out["B5_control"]["all_identical"]:
-    bad = sorted(k for k, v in b5.items() if not v["identical"])
-    hard.append("B5 control is NOT bit-identical to the published §5 receipt: %d/%d cells differ (%s)"
-                % (len(bad), len(b5), bad[:6]))
-for a in ARMS:
-    g = GATES[a]
-    v = g.get("verdict")
-    if v != "PASS":
-        hard.append("upstream gate for arm %s is %r (failed=%s): an arm whose own gate did not pass contributes no number"
-                    % (a, v, g.get("failed")))
-# the B-A1 unreadability test is a gate too: its mutation must move NOTHING and its zero-control must move SOMETHING.
-try:
-    _m = UNREAD["mutation_ext_rows"]["n_numbers_changed"]; _c = UNREAD["control_one_in_run_row"]["n_numbers_changed"]
-    if _m != 0 or _c <= 0:
-        hard.append("B-A1 unreadability test failed: mutation moved %s numbers (must be 0) and the zero control moved %s "
-                    "(must be > 0 — a control that moves nothing proves the probe is not wired)" % (_m, _c))
-except Exception as e:                                            # noqa: BLE001
-    hard.append("B-A1 unreadability test unreadable (%s): a gate whose result cannot be read is a refusal, not a pass" % e)
-out["hard_gates"] = {"n_failed": len(hard), "failed": hard,
-                     "contract": "PREREG §3 — any failure ⇒ REFUSED and the arm numbers are NOT written"}
-if hard:
-    write_refusal(hard, {"B5_control": out["B5_control"],
-                         "gate_receipts": {a: {"verdict": GATES[a].get("verdict"), "failed": GATES[a].get("failed")}
-                                           for a in ARMS}})
-
 # ── the pre-registered falsifiers, applied ─────────────────────────────────
-out["arms"] = S                      # hard gates passed: the arm numbers may now be written
 sB, sN = S["BASE"]["s_common_share"], S["NONE"]["s_common_share"]
 bound_ok = all(max(S[a]["per_period"]["HIST"]["unattributed_bound_abs"],
                    S[a]["per_period"]["2026"]["unattributed_bound_abs"]) <= abs(S[a]["d_common_style"]) / 2
@@ -179,15 +87,8 @@ out["verdicts"] = {
 }
 sup51 = out["verdicts"]["5.1_lead_reading_tailwind_lifts_any_book"]["SUPPORTED"]
 sup52 = out["verdicts"]["5.2_alternative_mostly_name_specific"]["SUPPORTED"]
-# ★ STY-05 / PREREG §5.4: an UNREADABLE common term can never become a supported reading. The bound check is applied HERE,
-#   ahead of 5.1/5.2, so the downgrade is a property of the verdict rather than a note beside it. It is a DOWNGRADE, not a
-#   refusal — the numbers stay, the reading does not.
-_base = ("5.1" if (sup51 and not sup52) else "5.2" if (sup52 and not sup51) else "UNDECIDED (PREREG 5.3)")
-out["verdicts"]["FINAL"] = _base if bound_ok else "UNDECIDED (PREREG 5.4: the UNATTRIBUTED bound leaves the common term unreadable)"
-out["verdicts"]["FINAL_priority"] = {
-    "order": ["REFUSED (PREREG §3 hard gate)", "UNDECIDED (PREREG §5.4 bound unreadable)", "5.1 / 5.2 / UNDECIDED (§5.3)"],
-    "bound_ok": bool(bound_ok), "would_have_been_without_the_bound_rule": _base,
-    "downgraded_by_5.4": bool(not bound_ok and _base != "UNDECIDED (PREREG 5.3)")}
+out["verdicts"]["FINAL"] = ("5.1" if (sup51 and not sup52) else
+                            "5.2" if (sup52 and not sup51) else "UNDECIDED (PREREG 5.3)")
 out["verdicts"]["direction_note"] = (
     "NOT part of the pre-registered test, stated because it is what the numbers show: NONE's improvement "
     "is MORE common/style-driven than BASE's (%.1f%% vs %.1f%%), not less, and its d_common is the most "
@@ -254,6 +155,5 @@ w("- `noFUND` 与 `noFUND_GF` 的 s 相差 **%.1f** 个百分点 ⇒ 该对照 *
 w()
 w("> " + out["verdicts"]["direction_note"])
 open(OUTM, "w").write("\n".join(L) + "\n")
-print("CF_BETA_READ PASS hard_gates_failed=0 bound_ok=%s FINAL=%s B5=%d/%d identical wrote %s %s"
-      % (bool(bound_ok), out["verdicts"]["FINAL"], out["B5_control"]["n_identical"], out["B5_control"]["n_cells"],
-         OUTJ, OUTM), flush=True)
+print("CF_BETA_READ wrote %s and %s | FINAL=%s | B5 %d/%d identical"
+      % (OUTJ, OUTM, out["verdicts"]["FINAL"], out["B5_control"]["n_identical"], out["B5_control"]["n_cells"]), flush=True)
