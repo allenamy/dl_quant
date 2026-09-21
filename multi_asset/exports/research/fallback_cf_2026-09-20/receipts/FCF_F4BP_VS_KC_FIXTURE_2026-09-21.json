@@ -1,0 +1,67 @@
+{
+ "device": "fcf_f4bp_vs_kc_fixture.py",
+ "self_sha256": "79bbc93effec501115f7f9c8541862dce69ae8b1afa6f7ef892e768ec9dd7e43",
+ "device_under_test": "/workspace/fallback_cf_2026-09-20/devices/fcf_f4bp_vs_kc.py",
+ "device_under_test_sha256": "b01e064a58bef5d9dd745121f3d52dd35376a39f1a86837f8746cb51a74c03fc",
+ "env": {
+  "FCF_DEV_DIR": null,
+  "FCF_FIXTURE_DIR": null,
+  "FCF_PY": "/workspace/venv/bin/python"
+ },
+ "utc": "2026-09-21T01:30:36Z",
+ "steps": [
+  {
+   "step": "1.GREEN_baseline_two_independent_agreeing_sources",
+   "ok": true,
+   "detail": {
+    "exit_code": 0,
+    "verdict_line": "FCF_F4BP_VS_KC VERDICT=PASS checks=6 failed=0 receipt_sha256=6a710e0a84dd9d327c6d890e1a0464954d02b844a1eae1bd2b06c3f3af343956",
+    "isolated_bucket_n": 2,
+    "why": "the baseline must be asserted green BEFORE the red case, or the red case proves nothing"
+   }
+  },
+  {
+   "step": "2.RED_on_the_reviewers_fixture",
+   "ok": true,
+   "detail": {
+    "exit_code": 3,
+    "verdict_line": "FCF_F4BP_VS_KC VERDICT=REFUSED checks=6 failed=3 receipt_sha256=012f383530023f3e577f3bc65e1ebba5e1f773ee5c2a90b2ffc86cd61775e4a1",
+    "A3_ok": false,
+    "A2_ok": false,
+    "named_anchors": [
+     "2022-06-30T00:00:00Z",
+     "2022-06-30T04:00:00Z"
+    ],
+    "measured_max_abs_dz": 1.0,
+    "independently_known_max_abs_dz": 1.0,
+    "withdrawn_device_on_this_same_fixture": "VERDICT=PASS equal=2 compared=2 exit=0"
+   }
+  },
+  {
+   "step": "3a.GREEN_ledger_accepts_two_distinct_sources",
+   "ok": true,
+   "detail": {
+    "shared": []
+   }
+  },
+  {
+   "step": "3b.RED_ledger_rejects_one_field_read_twice",
+   "ok": true,
+   "detail": {
+    "shared": [
+     {
+      "sides": [
+       "archive_kc",
+       "candidate_F4bprime"
+      ],
+      "path": "/tmp/tmpt5fvm_v7/a.json",
+      "field": "w3_masked"
+     }
+    ],
+    "why": "this is FB-01 itself: both operands from one (path, field)"
+   }
+  }
+ ],
+ "VERDICT": "PASS",
+ "failed": []
+}

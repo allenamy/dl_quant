@@ -1,0 +1,300 @@
+{
+ "device": "fcf_f4bp_vs_kc.py",
+ "self_sha256": "b01e064a58bef5d9dd745121f3d52dd35376a39f1a86837f8746cb51a74c03fc",
+ "repair": "round-7 review FB-01; written after the reviewer's counter-example was shown (stated in the docstring)",
+ "supersedes": {
+  "receipt": "FCF_F4BP_VS_KC.json",
+  "device_self_sha256": "6cc54b653366df38b87a296d3ca09eabaf5608cae492a3dbb9e012677751b706",
+  "withdrawn_claim": "A.z_F4bprime_equals_z_kc_before_FTRIM_bitwise_on_every_anchor equal=10038 compared=10038",
+  "why": "both operands were one field of one file; the expression compared was x + 0.0 == x"
+ },
+ "ruling": "docs/AMENDMENT_3_fallback_counterfactual_2026-09-20.md (32c4ff43e) \u00a74 condition 2",
+ "env": {
+  "FCF_OBJB": null,
+  "FCF_OUT": null
+ },
+ "sides": {
+  "archive_kc": {
+   "legz_pm": "/workspace/object_b_2026-09-19/work/A0_main/P1.vec.npz",
+   "seat": "/workspace/object_b_2026-09-19/work/A0_main/P3.json::combo.combo_meta.w3_masked",
+   "book": "/workspace/object_b_2026-09-19/work/A0_main/P3.vec.npz::kc",
+   "seat_record_decimals": 6,
+   "seat_is_recorded": "already masked+normalised"
+  },
+  "candidate_F4bprime": {
+   "legz_pm": "/workspace/fallback_cf_2026-09-20/work/F4bp_P1.vec.npz",
+   "seat": "/workspace/fallback_cf_2026-09-20/work/F4bp_w3.json::w3",
+   "book": "/workspace/fallback_cf_2026-09-20/work/F4bp_KING.npz::king_file",
+   "seat_record_decimals": 4,
+   "seat_is_recorded": "raw; masked here by the producer's own rule"
+  }
+ },
+ "inputs": {
+  "P1.vec": "04249082f6b9d42b3e93482e467e5552fe9f0603d51dadb8c8152568c260b49d",
+  "P3.vec": "dae0107140673c98f346073733a99b48aea33b002a51ea6c660bb75aac554d92",
+  "P3.json": "cff3e160f4a4961e97043cdcdb93a105c24694f83931509dc5539bac72826bcd",
+  "F4bp_P1.vec": "03c9e86bca86baa3b234b56ce1a70d693770c3f4adb41cd71441565fcfb0734c",
+  "F4bp_w3": "4d044eed7950cae647f45d43e64a9503cdc2f6d5fedb144850a9c2ecc1b3f7d4",
+  "F4bp_KING": "5f7e087084f4a017680281498b038d2530a2557087b8c30af2da22b18f8c4a9d"
+ },
+ "utc": "2026-09-21T01:30:41Z",
+ "checks": [
+  {
+   "check": "A0.the_two_sides_never_share_a_source_field",
+   "ok": true,
+   "detail": {
+    "shared": [],
+    "reads": {
+     "archive_kc": [
+      [
+       "/workspace/object_b_2026-09-19/work/A0_main/P1.vec.npz",
+       "legz"
+      ],
+      [
+       "/workspace/object_b_2026-09-19/work/A0_main/P1.vec.npz",
+       "pm"
+      ],
+      [
+       "/workspace/object_b_2026-09-19/work/A0_main/P3.json",
+       "combo.combo_meta.w3_masked"
+      ]
+     ],
+     "candidate_F4bprime": [
+      [
+       "/workspace/fallback_cf_2026-09-20/work/F4bp_P1.vec.npz",
+       "legz"
+      ],
+      [
+       "/workspace/fallback_cf_2026-09-20/work/F4bp_P1.vec.npz",
+       "pm"
+      ],
+      [
+       "/workspace/fallback_cf_2026-09-20/work/F4bp_w3.json",
+       "w3"
+      ]
+     ]
+    },
+    "why": "FB-01: the withdrawn version read combo_meta.w3_masked for BOTH operands, so its equality was x+0==x"
+   }
+  },
+  {
+   "check": "A1.population_is_closed_and_both_sides_are_named",
+   "ok": true,
+   "detail": {
+    "compared": 10038,
+    "only_in_archive": [
+     "2022-01-31T00:00:00Z"
+    ],
+    "n_only_in_archive": 1,
+    "only_in_candidate": [],
+    "n_only_in_candidate": 0,
+    "partition_closes": true
+   }
+  },
+  {
+   "check": "A2.byte_identical_legz_implies_an_equal_seat_record",
+   "ok": false,
+   "detail": {
+    "anchors_with_byte_identical_legz_and_a_refuted_seat": 1,
+    "first": [
+     "2022-06-30T00:00:00Z"
+    ],
+    "reading": "RED means the implication 'same legz \u21d2 same seat \u21d2 same book' is measured-FALSE on this very data, so nothing downstream may infer seat or book identity from the legz identity that A1\u2032 clause 1 proved"
+   }
+  },
+  {
+   "check": "A3.seat_records_agree_on_every_compared_anchor",
+   "ok": false,
+   "detail": {
+    "n_refuted": 1,
+    "refuted_anchors": [
+     "2022-06-30T00:00:00Z"
+    ],
+    "worst_real_z_difference": {
+     "anchor": "2022-06-30T00:00:00Z",
+     "members": 137,
+     "max_abs_dz": 0.2535211267605634,
+     "legz_sha256_both_sides": "fc80ce64810baddc262ae6f8af8dc1bbc7e1ef5bfa854478696edcdc7d126f71",
+     "archive_masked_seat": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "candidate_masked_seat": [
+      0.5,
+      0.0,
+      0.5
+     ],
+     "candidate_raw_seat_as_recorded": [
+      0.3333,
+      0.3333,
+      0.3333
+     ],
+     "seat_tolerance": 0.00022552250225022505,
+     "bound": 0.00011434943776067749
+    },
+    "n_bounded_not_bitwise": 9865,
+    "n_unresolved": 172
+   }
+  },
+  {
+   "check": "B.FTRIM_footprint_named_at_the_anchor_AND_earlier_in_H",
+   "ok": true,
+   "detail": {
+    "anchors_with_an_ftrim_record": 10038,
+    "anchors_where_FTRIM_zeroed_nothing_AT_THIS_ANCHOR": 1963,
+    "anchors_where_FTRIM_had_NEVER_fired_before": 2,
+    "first_anchor_FTRIM_ever_fired": "2022-01-31T04:00:00Z",
+    "meaning": "`n_kc == 0` excludes FTRIM truncation AT THIS ANCHOR only. An FTRIM that fired earlier is already carried in the EMA state H, so it is NOT excluded by that selector \u2014 this is the isolation the withdrawn bucket name claimed and did not have"
+   }
+  },
+  {
+   "check": "C.an_isolated_chain_state_bucket_EXISTS_and_is_measured",
+   "ok": false,
+   "detail": {
+    "isolated_bucket": "residual_contains__chain_state_cold_start",
+    "n": 0,
+    "buckets": {
+     "residual_contains__FTRIM_at_this_anchor+FTRIM_earlier_in_H+chain_state_cold_start+seat_divergence_at_or_before_this_anchor": 8,
+     "residual_contains__FTRIM_at_this_anchor+FTRIM_earlier_in_H+chain_state_cold_start+seat_divergence_at_or_before_this_anchor+seat_unresolved_at_or_before_this_anchor": 2031,
+     "residual_contains__FTRIM_earlier_in_H+chain_state_cold_start+seat_divergence_at_or_before_this_anchor+seat_unresolved_at_or_before_this_anchor": 398,
+     "residual_contains__chain_state_cold_start": 0
+    },
+    "reading": "n == 0 means NO anchor in the judge window carries the chain-state path alone, so the withdrawn number 0.0239 named 'CHAIN-STATE PATH, ALONE' was not isolated: every judge-window anchor also carries earlier FTRIM in H (and, from 2022-06-30T00:00Z on, an earlier seat divergence too)"
+   }
+  }
+ ],
+ "A_z_equality": {
+  "claim_available_from_these_records": "BOUNDED, not bitwise",
+  "why": "both seats are rounded records (6dp archive / 4dp candidate); a bitwise claim needs full-precision seats from both producers, which neither writes today \u2014 see the seat contract in the round-7 notes",
+  "REFUTED_BY_THE_RECORDS": {
+   "n": 1,
+   "anchors": [
+    "2022-06-30T00:00:00Z"
+   ],
+   "max_abs_dz": {
+    "2022-06-30T00:00:00Z": 0.2535211267605634
+   }
+  },
+  "BOUNDED_NOT_BITWISE": {
+   "n": 9865,
+   "max_abs_dz_measured_from_the_records": {
+    "median": 0.0,
+    "max": 0.00034898298691499186
+   },
+   "bound_on_abs_dz_from_record_rounding": {
+    "median": 0.00018140477143358948,
+    "max": 0.18750025
+   }
+  },
+  "UNRESOLVED_BY_THE_RECORDS": {
+   "n": 172,
+   "first": "2022-07-01T08:00:00Z",
+   "last": "2024-03-07T12:00:00Z",
+   "why": "recorded w3[0]+w3[2] == 0 at 4dp cannot exclude a true sum above the 1e-12 branch threshold, so which branch of the masking rule actually ran is not decidable from the record"
+  }
+ },
+ "C_residual_on_simulated_fallback_anchors": {
+  "residual_contains__FTRIM_at_this_anchor+FTRIM_earlier_in_H+chain_state_cold_start+seat_divergence_at_or_before_this_anchor": {
+   "n": 8,
+   "mechanisms": [
+    "FTRIM_at_this_anchor",
+    "FTRIM_earlier_in_H",
+    "chain_state_cold_start",
+    "seat_divergence_at_or_before_this_anchor"
+   ],
+   "isolates_chain_state_alone": false,
+   "max_abs_dw": {
+    "median": 0.007345976304166153,
+    "p95": 0.008433116848754542,
+    "max": 0.008570401701623043
+   },
+   "sum_abs_dw_L1": {
+    "median": 0.043940158566028,
+    "p95": 0.05062806244665623,
+    "max": 0.051263766821439655
+   },
+   "gross_difference_F4bprime_minus_kc": {
+    "median": -0.004731750568832127,
+    "p05": -0.005894534195122048,
+    "p95": -0.0032252540494101534
+   },
+   "first": "2022-06-30T00:00:00Z",
+   "last": "2022-07-01T04:00:00Z"
+  },
+  "residual_contains__FTRIM_at_this_anchor+FTRIM_earlier_in_H+chain_state_cold_start+seat_divergence_at_or_before_this_anchor+seat_unresolved_at_or_before_this_anchor": {
+   "n": 2031,
+   "mechanisms": [
+    "FTRIM_at_this_anchor",
+    "FTRIM_earlier_in_H",
+    "chain_state_cold_start",
+    "seat_divergence_at_or_before_this_anchor",
+    "seat_unresolved_at_or_before_this_anchor"
+   ],
+   "isolates_chain_state_alone": false,
+   "max_abs_dw": {
+    "median": 0.004235124562337563,
+    "p95": 0.009987163540374048,
+    "max": 0.014373749012258094
+   },
+   "sum_abs_dw_L1": {
+    "median": 0.05360388126156188,
+    "p95": 0.1198503023437727,
+    "max": 0.1884484931048827
+   },
+   "gross_difference_F4bprime_minus_kc": {
+    "median": -0.008788496926650624,
+    "p05": -0.024388313917956927,
+    "p95": 0.005262161040014257
+   },
+   "first": "2022-07-01T08:00:00Z",
+   "last": "2025-09-01T00:00:00Z"
+  },
+  "residual_contains__FTRIM_earlier_in_H+chain_state_cold_start+seat_divergence_at_or_before_this_anchor+seat_unresolved_at_or_before_this_anchor": {
+   "n": 398,
+   "mechanisms": [
+    "FTRIM_earlier_in_H",
+    "chain_state_cold_start",
+    "seat_divergence_at_or_before_this_anchor",
+    "seat_unresolved_at_or_before_this_anchor"
+   ],
+   "isolates_chain_state_alone": false,
+   "max_abs_dw": {
+    "median": 0.0019805901613592324,
+    "p95": 0.006186226455558682,
+    "max": 0.012696159376338492
+   },
+   "sum_abs_dw_L1": {
+    "median": 0.023934121874976587,
+    "p95": 0.044482844782450265,
+    "max": 0.09111512807642524
+   },
+   "gross_difference_F4bprime_minus_kc": {
+    "median": -0.006406411639066578,
+    "p05": -0.01986793310494895,
+    "p95": 0.0004659995477240926
+   },
+   "first": "2022-07-02T16:00:00Z",
+   "last": "2025-05-22T08:00:00Z"
+  },
+  "residual_contains__chain_state_cold_start": {
+   "n": 0,
+   "mechanisms": [
+    "chain_state_cold_start"
+   ],
+   "isolates_chain_state_alone": true,
+   "note": "no member \u2014 no measurement, not 0"
+  }
+ },
+ "C_bucket_naming": "the key is generated from mechanisms() \u2014 the mechanisms MEASURED to be present \u2014 so a bucket can be called isolated only when the measurement says so. The withdrawn version hardcoded `CHAIN_STATE_ALONE` on a selector (`n_kc == 0` at the current anchor) that does not isolate it.",
+ "C_verdict": {
+  "chain_state_alone": "UNMEASURED \u2014 the isolated bucket is empty",
+  "reading": "AMENDMENT 3 \u00a74-3 asked whether the chain-state path is negligible. It cannot be answered from these buckets, because no bucket isolates it. What IS measured is that the residual is not attributable to FTRIM: every bucket also contains chain state, earlier FTRIM and (post-2022-06-30) a seat divergence. 'F4a \u2212 F4b\u2032 = FTRIM alone' stays FALSE; no point estimate for rev24 is licensed."
+ },
+ "VERDICT": "REFUSED",
+ "failed": [
+  "A2.byte_identical_legz_implies_an_equal_seat_record",
+  "A3.seat_records_agree_on_every_compared_anchor",
+  "C.an_isolated_chain_state_bucket_EXISTS_and_is_measured"
+ ]
+}

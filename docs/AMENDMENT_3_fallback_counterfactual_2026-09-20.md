@@ -1,5 +1,9 @@
 > **创建:** 2026-09-20 | **Session:** session_01KW6frfphbFmFzx7wUtGhLb(lead) | **状态:** 预注册 `PREREG_fallback_counterfactual_2026-09-20.md`(a964c2f9a)的修订 3 · **写于 F4b′ 任何数字之前**; F4b 本身已跑出并将以 REFUSED 收据入库 | **作废条件:** 看到 F4b′ 数字后再改本裁定
 
+> ⊘ 已撤回(2026-09-21, 由 round-7 独立复审 FB-01 / FB-04 触发; **本文件原字节一律保留, 不改写**):
+> · **§3 的「F4b′ 立为 F4 of record」已不再是现行状态。** A1(修订 1 §2)与其替换件 A1′(修订 4 §3)按字面实现后**都判 REFUSED**, 修订 5(845728052)已由作者撤回修订 4; round-7 独立复审维持该处置。**现行: F4 of record = F4a; F4b′ = 具名的非预注册敏感性(NOT pre-registered) · 不携带预注册判词。** 机器可读来源 = `multi_asset/exports/research/fallback_cf_2026-09-20/receipts/FCF_ARM_STATUS_2026-09-21.json`。
+> · **§4 条件 2 要求的「先断言 z(F4b′) 与 z_kc 逐位相同」在现有记录下不可得**: 两侧席位都只有舍入记录(档案 6 位小数 / 候选 4 位小数), 所以能给的是**有界**而不是逐位。更重要的是, 原先声称满足这条的装置把等式两边取自**同一份档案的同一个字段**(FB-01); 重做后的装置从两侧各自的记录取数, 判 `FCF_F4BP_VS_KC VERDICT=REFUSED checks=6 failed=3`(退出码 3), 并在 `2022-06-30T00:00:00Z` 上具名 `max|Δz| = 0.2535211267605634`。**本条的结论(「F4a − F4b′ = FTRIM 单独」为假)不变**, 见 `docs/RESULT_fallback_counterfactual_2026-09-20.md` §8.4 条件 2。
+
 # 修订 3 · F4b 判 REFUSED(自噬), F4b′ 立为 F4 of record —— 以及一条我必须先自承的分辨
 
 ## §1 F4b(只改 `w3[1] := 0`)为什么判 REFUSED

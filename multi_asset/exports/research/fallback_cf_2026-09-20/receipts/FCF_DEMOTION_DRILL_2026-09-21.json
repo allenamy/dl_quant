@@ -1,0 +1,109 @@
+{
+ "device": "fcf_demotion_drill.py",
+ "self_sha256": "f40a8bc543527de23ba7aa34baca8c9f9ec1a5c1a2530572f5af327418ffc181",
+ "claim_under_test": "pulling F4b' is a one-line change and no other number moves",
+ "repair": "round-7 review FB-04; written after the reviewer showed step 4 had never run against a no-arm input",
+ "utc": "2026-09-21T01:31:45Z",
+ "steps": [
+  {
+   "step": "1.rebuild_tables_with_the_arm_pulled",
+   "ok": true,
+   "detail": {
+    "returncode": 0,
+    "tail": [
+     "    F4a  g +0.5125  cagr +0.2117  sharpe 1.027  maxdd4h -0.2930  turn/gross 0.0854  fee +0.2145  daystops 3.6  pnstops 628.3  hold 0"
+    ]
+   }
+  },
+  {
+   "step": "2.the_pulled_build_really_has_no_F4bp",
+   "ok": true,
+   "detail": {
+    "arms_in_pulled": [
+     "F0",
+     "F1",
+     "F2",
+     "F4a"
+    ],
+    "arms_in_shipped": [
+     "F0",
+     "F1",
+     "F2",
+     "F4a",
+     "F4bp"
+    ]
+   }
+  },
+  {
+   "step": "3.no_other_number_moves_when_the_arm_is_pulled",
+   "ok": true,
+   "detail": {
+    "n_compared": 7998,
+    "n_moved": 0,
+    "moved": [],
+    "only_in_shipped": [],
+    "only_in_pulled": []
+   }
+  },
+  {
+   "step": "4.doc_check_passes_against_the_PULLED_table_and_the_populations_close_as_sets",
+   "ok": true,
+   "detail": {
+    "full_verdict_line": "FCF_DOC_CHECK VERDICT=PASS checked=361 mismatching=0 skipped=0 without_arm=None tables=/workspace/fallback_cf_2026-09-20/receipts/FCF_TABLES.json status=/workspace/fallback_cf_2026-09-20/receipts/FCF_ARM_STATUS_2026-09-21.json doc=None",
+    "pulled_verdict_line": "FCF_DOC_CHECK VERDICT=PASS checked=316 mismatching=0 skipped=45 without_arm=F4bp tables=/workspace/fallback_cf_2026-09-20/work/FCF_TABLES_without_F4bp.json status=/workspace/fallback_cf_2026-09-20/receipts/FCF_ARM_STATUS_2026-09-21.json doc=None",
+    "tables_used_by_the_pulled_run": "/workspace/fallback_cf_2026-09-20/work/FCF_TABLES_without_F4bp.json",
+    "n_checked_full": 361,
+    "n_checked_pulled": 316,
+    "n_skipped": 45,
+    "set_identity": "(full checked) − (pulled checked) == (pulled skipped)",
+    "set_identity_holds": true,
+    "leaked_into_pulled_only": [],
+    "example_skipped": [
+     "§0.3 F4a / F4bp Δg ratio (both arms confounded; NOT '2.9× overstatement of rev24') (x)",
+     "§0.3 F4bp SENSITIVITY: its Δg as a share of the F0→F1 gap (NOT a rev24 estimate) (%)",
+     "§0.3 F4bp-F0 fallback CI (incl)"
+    ]
+   }
+  },
+  {
+   "step": "5.positive_control_the_pulled_table_without_the_flag_fails_loudly",
+   "ok": true,
+   "detail": {
+    "returncode": 1,
+    "stderr_tail": "KeyError: \"T.arms['F4bp']\"",
+    "why": "if this were green, step 4's green could have come from the checker silently reading the shipped table instead of the pulled one"
+   }
+  },
+  {
+   "step": "6a.renderer_marks_every_row_of_the_demoted_arm_from_the_status_receipt",
+   "ok": true,
+   "detail": {
+    "verdict_line": "FCF_RENDER VERDICT=PASS bytes=24034 rows=186 marked_arms={\"F4a\": \"⚠混淆\", \"F4bp\": \"⚠非预注册敏感性\"} unlabelled_rows=0",
+    "n_rows": 32,
+    "marker": "⚠非预注册敏感性",
+    "unmarked": [],
+    "before_the_repair": "32 rows of F4bp with no label at all"
+   }
+  },
+  {
+   "step": "6b.renderer_emits_no_row_of_a_pulled_arm",
+   "ok": true,
+   "detail": {
+    "verdict_line": "FCF_RENDER VERDICT=PASS bytes=20160 rows=154 marked_arms={\"F4a\": \"⚠混淆\", \"F4bp\": \"⚠非预注册敏感性\"} unlabelled_rows=0",
+    "n_rows": 0
+   }
+  },
+  {
+   "step": "6c.RED_renderer_refuses_an_arm_with_no_declared_status",
+   "ok": true,
+   "detail": {
+    "returncode": 3,
+    "verdict_line": "FCF_RENDER VERDICT=REFUSED reason=arm_with_no_declared_status arms=F9zz",
+    "baseline_asserted_green_first": "6a"
+   }
+  }
+ ],
+ "VERDICT": "PASS",
+ "failed": [],
+ "conclusion": "the demotion is genuinely a one-line change: rebuilding without the arm leaves every other number bitwise identical, the remaining prose verifies AGAINST THE PULLED TABLE with a balanced skip population, and the renderer both marks the arm and refuses an undeclared one"
+}

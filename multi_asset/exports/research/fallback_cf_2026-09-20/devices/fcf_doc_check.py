@@ -1,31 +1,128 @@
 #!/usr/bin/env python3
 """fcf_doc_check.py — re-print, straight from the receipts, every number the result doc states in prose (§0, §6, §7).
 The doc's tables are machine-rendered; these are the ones a human typed, so they are the ones that can be wrong.
-usage: fcf_doc_check.py   (prints "receipt value" next to "as written in the doc"; any row that does not match is a defect)
+
+═══ 2026-09-21 REPAIR — round-7 independent review, finding FB-04 ═══════════════════════════════════════════════════
+The `--without-arm` switch used to skip assertions only INSIDE `add()`, while the argument expressions had already
+dereferenced `T['arms']['F4bp']`. So the demotion drill's "the remaining prose still verifies with the arm gone" step
+was run against the SHIPPED table with the arm still in it; pointing this file at a table that genuinely lacks the arm
+raised `KeyError: 'F4bp'`. "We can demote with one line" was an assertion about a path that had never executed.
+
+Three changes, all shaped like the class and not like the name F4bp:
+  1. `_Absent` — a removable arm that is really missing yields a sentinel that propagates through subscripting and
+     arithmetic, so no call site has to be edited; `add()` turns any row that touches one into a COUNTED skip. An arm
+     that is missing and NOT declared removable still raises, because that is a real defect.
+  2. `--tables <path>` — the drill now points this checker at its OWN rebuilt no-arm table, which is the drill it
+     claimed to be running.
+  3. `--status <path>` (required) — arm standing is consumed from `FCF_ARM_STATUS`: this checker fails closed on an arm
+     with no declared status, refuses to let a non-pre-registered arm's number be labelled a conclusion, and renders
+     the tables through `fcf_render` to assert every marked arm's row carries its marker.
+  `--doc <path>` additionally enforces the prose contract against the same status receipt.
+
+usage: fcf_doc_check.py [--receipts DIR] [--tables FCF_TABLES.json] [--status FCF_ARM_STATUS.json]
+                        [--without-arm ARM] [--doc RESULT.md] [--emit report.json]
 """
-import json, re, sys
+import importlib.util, json, os, re, sys
 
 # --without-arm <ARM>: exercise the demotion path. Assertions ABOUT that arm are skipped (and COUNTED, so a skip that silently
 # does nothing is visible in the verdict line); every other assertion must still pass. Used by fcf_demotion_drill.py.
 # NOTE the boundary match: labels contain forms like 'F4bp-F0', which split() keeps as ONE token, so a token test silently
 # skipped nothing the first time I wrote this. Non-alphanumeric boundaries also stop 'F4b' matching 'F4bp'.
-WITHOUT = None
-for _i, _a in enumerate(sys.argv):
-    if _a == '--without-arm' and _i + 1 < len(sys.argv): WITHOUT = sys.argv[_i + 1]
+def _opt(name, default=None):
+    for _i, _a in enumerate(sys.argv):
+        if _a == name and _i + 1 < len(sys.argv): return sys.argv[_i + 1]
+    return default
+
+
+WITHOUT = _opt('--without-arm')
+R = _opt('--receipts', "/workspace/fallback_cf_2026-09-20/receipts")
+TABLES = _opt('--tables', f"{R}/FCF_TABLES.json")
+STATUS = _opt('--status', f"{R}/FCF_ARM_STATUS_2026-09-21.json")
+DOCPATH = _opt('--doc')
+EMIT = _opt('--emit')
+DEVDIR = _opt('--devices', os.path.dirname(os.path.abspath(__file__)))
+REMOVABLE = {WITHOUT} if WITHOUT else set()
 SKIPPED = []
 
-R = "/workspace/fallback_cf_2026-09-20/receipts"
-T = json.load(open(f"{R}/FCF_TABLES.json"))
+
+class _Absent:
+    """An arm that is genuinely not in the input AND was declared removable. Propagates so that a call site written for
+    a present arm keeps working; `add()` counts every row that touches one as a skip."""
+    __slots__ = ("arm", "path")
+
+    def __init__(self, arm, path=""): self.arm, self.path = arm, path
+    def __getitem__(self, k): return _Absent(self.arm, f"{self.path}[{k!r}]")
+    def get(self, k, default=None): return _Absent(self.arm, f"{self.path}.get({k!r})")
+    def _op(self, *a, **k): return _Absent(self.arm, self.path + "<op>")
+    __add__ = __radd__ = __sub__ = __rsub__ = __mul__ = __rmul__ = _op
+    __truediv__ = __rtruediv__ = __floordiv__ = __neg__ = __abs__ = _op
+    def __round__(self, n=None): return _Absent(self.arm, self.path + "<round>")
+    def __repr__(self): return f"<ABSENT {self.arm}{self.path}>"
+    def __eq__(self, o): return False
+    def __ne__(self, o): return True
+    def __hash__(self): return hash(("_Absent", self.arm))
+
+
+def _armget(container, arm, where="?"):
+    """The ONE way this file reaches an arm-keyed value. Missing + declared removable -> counted-skip sentinel;
+    missing + NOT declared removable -> hard KeyError, because that is a real defect and must not be swallowed."""
+    if isinstance(container, dict) and arm in container: return container[arm]
+    if arm in REMOVABLE: return _Absent(arm, f"{where}[{arm!r}]")
+    raise KeyError(f"{where}[{arm!r}]")
+
+
+class _ArmMap(dict):
+    """A receipt's arm-keyed mapping. Subscripting goes through _armget, so every existing `X['arms'][a]` call site
+    inherits the behaviour without being edited."""
+
+    def __init__(self, d, where): super().__init__(d); self._where = where
+    def __getitem__(self, k): return _armget(dict(self), k, self._where)
+    def get(self, k, default=None):
+        try: return self[k]
+        except KeyError: return default
+
+
+def _run(runs, arm):
+    """P/P2 receipts key their runs by a name that ENDS in 'arm <A>)'. Missing + removable -> sentinel."""
+    hit = [k for k in runs if k.endswith(f"arm {arm})")]
+    if hit: return runs[hit[0]]
+    if arm in REMOVABLE: return _Absent(arm, f"runs[...arm {arm})]")
+    raise KeyError(f"runs[...arm {arm})]")
+
+
+def _absent_in(x):
+    if isinstance(x, _Absent): return x
+    if isinstance(x, (list, tuple)):
+        for v in x:
+            r = _absent_in(v)
+            if r is not None: return r
+    return None
+
+
+T = json.load(open(TABLES))
 W = json.load(open(f"{R}/FCF_RISK_WEIGHTS.json"))
 P = json.load(open(f"{R}/FCF_P_READING.json"))
+S = json.load(open(STATUS))
+T["arms"] = _ArmMap(T["arms"], "T.arms"); T["paired_vs_F0"] = _ArmMap(T["paired_vs_F0"], "T.paired_vs_F0")
+W["arms"] = _ArmMap(W["arms"], "W.arms")
 FB = "fallback_subsample_HIST"
 HI = "HIST_2023-06-30→2025-12-31 (the FINDING's window)"
 RL = "R_level_2023-06-30→2026-08-31"
 rows = []
 
 
+# Standing rows (status./render./doc.) are about whether the demotion reached the consumers, NOT about the arm's
+# numbers, so they run in EVERY mode — including the mode where the arm has been pulled. They are written to exist in
+# both modes, which is what keeps `checked_without + skipped == checked_full` a real balance identity.
+STANDING = ("status.", "render.", "doc.")
+
+
 def add(label, got, doc):
-    if WITHOUT and re.search(r'(?<![A-Za-z0-9])' + re.escape(WITHOUT) + r'(?![A-Za-z0-9])', label):
+    if (WITHOUT and not label.startswith(STANDING)
+            and re.search(r'(?<![A-Za-z0-9])' + re.escape(WITHOUT) + r'(?![A-Za-z0-9])', label)):
+        SKIPPED.append(label); return
+    miss = _absent_in(got)
+    if miss is not None:
         SKIPPED.append(label); return
     rows.append((label, got, doc))
 
@@ -168,23 +265,53 @@ for a, lvl, sh in (("F0", -4.5435, -8.626), ("F1", -0.1020, -0.385), ("F2", -0.3
                    ("F4a", 0.2647, 1.061), ("F4bp", 0.3436, 1.233)):
     add(f"\u00a78.4c1 70-anchor {a} g", round(T["arms"][a]["cells"][AR]["g"], 4), lvl)
     add(f"\u00a78.4c1 70-anchor {a} sharpe", round(T["arms"][a]["cells"][AR]["sharpe_daily"], 3), sh)
-KC = json.load(open(f"{R}/FCF_F4BP_VS_KC.json"))
-zc = [c for c in KC["checks"] if c["check"].startswith("A.")][0]["detail"]
-add("\u00a78.4c2 z(F4b\u2032)==z_kc pre-FTRIM, equal", zc["equal"], 10038)
-add("\u00a78.4c2 z(F4b\u2032)==z_kc pre-FTRIM, compared", zc["compared"], 10038)
-bc = [c for c in KC["checks"] if c["check"].startswith("B.")][0]["detail"]
-add("\u00a78.4c2 anchors where FTRIM zeroed nothing", bc["anchors_where_FTRIM_zeroed_nothing"], 1963)
+# ---- AMENDMENT 3 \u00a74 condition 2, AFTER the round-7 FB-01 repair ----
+# The withdrawn receipt (FCF_F4BP_VS_KC.json) is NOT read here: its A-check took both operands from one field of one
+# file. What is re-read is the repaired device's receipt, and the rows below assert the REFUSAL, not a pass.
+KCP = _opt('--kc', f"{R}/FCF_F4BP_VS_KC_2026-09-21.json")
+KC = json.load(open(KCP))
+kck = {c["check"].split(".")[0]: c for c in KC["checks"]}
+B398 = ("residual_contains__FTRIM_earlier_in_H+chain_state_cold_start+seat_divergence_at_or_before_this_anchor"
+        "+seat_unresolved_at_or_before_this_anchor")
+ISO = "residual_contains__chain_state_cold_start"
 cc = KC["C_residual_on_simulated_fallback_anchors"]
-add("\u00a78.4c2 chain-state-only n", cc["FTRIM_fired_nothing__residual_is_CHAIN_STATE_ALONE"]["n"], 398)
-add("\u00a78.4c2 ftrim+chain n", cc["FTRIM_fired__residual_is_FTRIM_PLUS_CHAIN_STATE"]["n"], 2039)
-add("\u00a78.4c2 chain-state-only L1 median",
-    round(cc["FTRIM_fired_nothing__residual_is_CHAIN_STATE_ALONE"]["sum_abs_dw_L1"]["median"], 4), 0.0239)
-add("\u00a78.4c2 ftrim+chain L1 median",
-    round(cc["FTRIM_fired__residual_is_FTRIM_PLUS_CHAIN_STATE"]["sum_abs_dw_L1"]["median"], 4), 0.0534)
-add("\u00a78.4c2 ratio", round(KC["C_verdict"]["ratio_ftrim_plus_chain_over_chain_alone"], 2), 2.23)
-add("\u00a70.3 rev24 share of the gap, CLEAN (%)",
+add("\u00a78.4c2 device verdict (the withdrawn device said PASS)", KC["VERDICT"], "REFUSED")
+add("\u00a78.4c2 A0 the two sides never share a source field", kck["A0"]["ok"], True)
+add("\u00a78.4c2 A1 anchors compared", kck["A1"]["detail"]["compared"], 10038)
+add("\u00a78.4c2 A2 'byte-identical legz \u21d2 equal seat record' holds", kck["A2"]["ok"], False)
+add("\u00a78.4c2 A3 seat records agree on every anchor", kck["A3"]["ok"], False)
+add("\u00a78.4c2 n anchors where the seat records are REFUTED", kck["A3"]["detail"]["n_refuted"], 1)
+add("\u00a78.4c2 the refuted anchor", kck["A3"]["detail"]["refuted_anchors"], ["2022-06-30T00:00:00Z"])
+_wz = kck["A3"]["detail"]["worst_real_z_difference"]
+add("\u00a78.4c2 real max|\u0394z| at that anchor", _wz["max_abs_dz"], 0.2535211267605634)
+add("\u00a78.4c2 members at that anchor", _wz["members"], 137)
+add("\u00a78.4c2 legz sha256, byte-identical on BOTH sides there", _wz["legz_sha256_both_sides"],
+    "fc80ce64810baddc262ae6f8af8dc1bbc7e1ef5bfa854478696edcdc7d126f71")
+add("\u00a78.4c2 archive masked seat there", _wz["archive_masked_seat"], [0.0, 0.0, 1.0])
+add("\u00a78.4c2 F4b\u2032 masked seat there", _wz["candidate_masked_seat"], [0.5, 0.0, 0.5])
+add("\u00a78.4c2 what the records can support", KC["A_z_equality"]["claim_available_from_these_records"],
+    "BOUNDED, not bitwise")
+add("\u00a78.4c2 n BOUNDED_NOT_BITWISE", KC["A_z_equality"]["BOUNDED_NOT_BITWISE"]["n"], 9865)
+add("\u00a78.4c2 n UNRESOLVED_BY_THE_RECORDS (no measurement, not agreement)",
+    KC["A_z_equality"]["UNRESOLVED_BY_THE_RECORDS"]["n"], 172)
+add("\u00a78.4c2 anchors where FTRIM zeroed nothing AT THIS ANCHOR",
+    kck["B"]["detail"]["anchors_where_FTRIM_zeroed_nothing_AT_THIS_ANCHOR"], 1963)
+add("\u00a78.4c2 anchors where FTRIM had NEVER fired before",
+    kck["B"]["detail"]["anchors_where_FTRIM_had_NEVER_fired_before"], 2)
+add("\u00a78.4c2 first anchor FTRIM ever fired", kck["B"]["detail"]["first_anchor_FTRIM_ever_fired"],
+    "2022-01-31T04:00:00Z")
+add("\u00a78.4c2 an ISOLATED chain-state bucket exists", kck["C"]["ok"], False)
+add("\u00a78.4c2 isolated chain-state bucket n (no measurement, not 0)", cc[ISO]["n"], 0)
+add("\u00a78.4c2 the 398-anchor bucket, renamed to what is measured to be in it", cc[B398]["n"], 398)
+add("\u00a78.4c2 that bucket's L1 median (the NUMBER did not move; its isolation claim was withdrawn)",
+    round(cc[B398]["sum_abs_dw_L1"]["median"], 4), 0.0239)
+add("\u00a78.4c2 chain-state-alone reading", KC["C_verdict"]["chain_state_alone"],
+    "UNMEASURED \u2014 the isolated bucket is empty")
+# The next two rows read off a NON-PRE-REGISTERED arm. They are labelled as such here so the re-reader cannot be
+# quoted as reproducing a conclusion; `status.*` below asserts that standing from the status receipt.
+add("\u00a70.3 F4bp SENSITIVITY: its \u0394g as a share of the F0\u2192F1 gap (NOT a rev24 estimate) (%)",
     round(100 * T["paired_vs_F0"]["F4bp"][FB4]["d_g"]["estimate"] / T["paired_vs_F0"]["F1"][FB4]["d_g"]["estimate"], 1), 16.1)
-add("\u00a70.3 F4a overstates rev24 by (x)",
+add("\u00a70.3 F4a / F4bp \u0394g ratio (both arms confounded; NOT '2.9\u00d7 overstatement of rev24') (x)",
     round(T["paired_vs_F0"]["F4a"][FB4]["d_g"]["estimate"] / T["paired_vs_F0"]["F4bp"][FB4]["d_g"]["estimate"], 1), 2.9)
 P2R = json.load(open(f"{R}/FCF_P2_READING.json"))["assertions"]
 add("\u00a76 W_ENTRY==W_CARRY cells equal", sum(1 for x in P2R if x["W_ENTRY_equals_W_CARRY"]), 46)
@@ -226,7 +353,7 @@ add("\u00a76 split is exercised (flag demonstrably wired)",
 _pre = {c["run"]: c["n_paths_with_pre_base_flattens"] for c in SC["cells"]
         if c["H"] == "never" and c["base"] == "2023-06-30T04:00:00Z"}
 for _a, _n in (("F0", 4), ("F1", 32), ("F2", 0), ("F4a", 32), ("F4bp", 32)):
-    add(f"\u00a76 {_a} paths with pre-base flattens", _pre.get(_a), _n)
+    add(f"\u00a76 {_a} paths with pre-base flattens", _armget(_pre, _a, "SC._pre"), _n)
 # ---- the three consequences p2-aggregation-fix derived from the per-arm counts (§6) ----
 _P2 = json.load(open(f"{R}/FCF_P2_READING.json"))
 _B = "FULL_RECIPE window start @ 2023-06-30T04:00:00Z"
@@ -252,7 +379,7 @@ for _nm, _r in _P2["runs"].items():
                 json.dumps(_e, sort_keys=True) == json.dumps(_c, sort_keys=True), True)
 # the doc must NOT quote the W_CARRY 0.0 anywhere: the §6.2 never row is W-ENTRY
 for _a, _v in (("F0", -0.2513), ("F1", -0.1752), ("F2", -0.1278), ("F4a", -0.2241), ("F4bp", -0.2506)):
-    _we = _P2["runs"][[k for k in _P2["runs"] if k.endswith(f"arm {_a})")][0]]["bases"][_B]["never"]["W_ENTRY"]["summary"]["end_return_P2"]["measured"]
+    _we = _run(_P2["runs"], _a)["bases"][_B]["never"]["W_ENTRY"]["summary"]["end_return_P2"]["measured"]
     add(f"\u00a76.2 never row is the W-ENTRY figure for {_a}", round(_we["mean"], 4), _v)
 # ---- §2.1 control now also covers the sidecar (the gap the seed-claim correction exposed) ----
 _C0 = json.load(open(f"{R}/FCF_CONTROL_F0.json"))
@@ -280,9 +407,81 @@ add("\u00a72.1 my sealed sha reproduced by flat-start + MY tag",
 add("\u00a72.1 certified sealed sha reproduced by the SAME object with ONLY the tag swapped",
     sum(1 for v in _SS["seeds"].values() if v["certified_reproduced"]), 32)
 add("\u00a72.1 finding is reading (a) benign", _SS["finding"].startswith("(a) BENIGN"), True)
+
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# ARM STANDING \u2014 round-7 FB-04. These rows are NOT about a number; they are about whether the demotion reached the
+# consumers. Everything below is driven by the status receipt, so demoting a DIFFERENT arm tomorrow is enforced here
+# without editing this file.
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+_arms_in_tables = sorted(dict(T["arms"]))
+_undeclared = [a for a in _arms_in_tables if a not in S["arms"]]
+add("status.every arm in the tables has a declared status (fail closed)", _undeclared, [])
+add("status.F of record", S["F_of_record"], "F4a")
+add("status.the live verdict on rev24", S["live_verdict"], "rev24 \u7684\u8d21\u732e\u672a\u77e5")
+add("status.F_of_record carries a pre-registered verdict",
+    S["arms"][S["F_of_record"]]["carries_a_preregistered_verdict"], True)
+for _a in sorted(S["arms"]):
+    _v = S["arms"][_a]
+    add(f"status.{_a} preregistered/non_preregistered are negations", _v["preregistered"] == (not _v["non_preregistered"]), True)
+    if _v["non_preregistered"]:
+        add(f"status.{_a} is NOT allowed to carry a pre-registered verdict", _v["carries_a_preregistered_verdict"], False)
+        add(f"status.{_a} carries a label and a short marker", bool(_v["label"] and _v["label_short"]), True)
+add("status.the SET of arms declared non-pre-registered",
+    sorted(a for a, v in S["arms"].items() if v["non_preregistered"]), ["F4bp"])
+add("status.the SET of arms carrying a marker",
+    sorted(a for a, v in S["arms"].items() if v.get("label_short")), ["F4a", "F4bp"])
+
+# The renderer is a consumer: render the SAME tables through it and assert the markers actually came out.
+_rend_path = os.path.join(DEVDIR, "fcf_render.py")
+_spec = importlib.util.spec_from_file_location("fcf_render_under_check", _rend_path)
+_rend = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(_rend)
+try:
+    _txt = _rend.render(TABLES, f"{R}/FCF_RISK_WEIGHTS.json", STATUS)
+    _rend_refused = None
+except _rend.StatusMissing as _e:
+    _txt = ""; _rend_refused = str(_e)
+add("render.the renderer accepted these tables (no arm with an undeclared status)", _rend_refused, None)
+add("render.rows that name a marked arm without its marker", len(_rend.unlabelled_rows(_txt, S)), 0)
+_data_txt = _txt.split("### A ·", 1)[-1]          # exclude the standing note, which lists DECLARED arms, not table arms
+for _a, _v in sorted(S["arms"].items()):
+    if not _v.get("label_short"): continue
+    _n_rows = sum(1 for l in _data_txt.splitlines() if l.startswith("| ") and l.split("|")[1].strip().split(" ")[0] == _a)
+    # expected is derived, not hardcoded: an arm present in the tables must produce marked rows; a pulled arm must
+    # produce none. The row therefore EXISTS in both modes, so the drill's balance identity stays a real identity.
+    add(f"render.{_a} produces marked rows iff it is in the tables", _n_rows > 0, _a in _arms_in_tables)
+
+# The prose is a consumer too. --doc enforces it against the same status receipt.
+if DOCPATH:
+    _doc = open(DOCPATH, encoding="utf-8").read()
+    _lines = _doc.splitlines()
+    _wm = S["withdrawn_marker"]
+    for _a, _v in sorted(S["arms"].items()):
+        if not _v["non_preregistered"]: continue
+        add(f"doc.{_a} label appears in the prose", _v["label"] in _doc, True)
+        _mark = _v["label_short"].lstrip("\u26a0 ")          # the marker's TEXT, without the warning glyph
+        _names = [_a, "F4b\u2032"] if _a == "F4bp" else [_a]
+        _claims = [l for l in _lines
+                   if any(nm in l for nm in _names) and any(m in l for m in S["conclusion_markers"])
+                   and _mark not in l and _wm not in l]
+        add(f"doc.lines that make a CLAIM about {_a} without its marker or a withdrawal marker",
+            _claims[:3], [])
+    _ofrec = [l for l in _lines if "F4 of record" in l and _wm not in l
+              and f"F4 of record = {S['F_of_record']}" not in l and f"F4 of record\u300d= {S['F_of_record']}" not in l
+              and f"**{S['F_of_record']}**" not in l]
+    add("doc.live 'F4 of record' lines that do not name the arm of record", _ofrec[:3], [])
+    add("doc.the live verdict sentence is present", S["live_verdict"] in _doc, True)
+    add("doc.every withdrawn clause kept its original bytes behind the marker",
+        sum(1 for l in _lines if _wm in l) > 0, True)
+
 bad = [r for r in rows if r[1] != r[2]]
 for lab, got, doc in rows:
     print(("  OK   " if got == doc else "MISMATCH ") + f"{lab:52s} receipt={got!r:>12}  doc={doc!r}")
+if EMIT:
+    json.dump({"tables": TABLES, "status": STATUS, "doc": DOCPATH, "without_arm": WITHOUT,
+               "checked_labels": sorted(l for l, _, _ in rows), "skipped_labels": sorted(SKIPPED),
+               "n_checked": len(rows), "n_skipped": len(SKIPPED), "n_mismatching": len(bad),
+               "mismatching": [[l, repr(g), repr(d)] for l, g, d in bad]},
+              open(EMIT, "w"), ensure_ascii=False, indent=1)
 print(f"\nFCF_DOC_CHECK VERDICT={'PASS' if not bad else 'MISMATCH'} checked={len(rows)} mismatching={len(bad)}"
-      + (f' | skipped(--without-arm {WITHOUT}): {len(SKIPPED)}' if WITHOUT else ''))
+      f" skipped={len(SKIPPED)} without_arm={WITHOUT} tables={TABLES} status={STATUS} doc={DOCPATH}")
 raise SystemExit(0 if not bad else 3)

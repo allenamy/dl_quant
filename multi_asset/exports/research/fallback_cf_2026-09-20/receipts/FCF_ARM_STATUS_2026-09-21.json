@@ -1,0 +1,139 @@
+{
+ "device": "fcf_arm_status.py",
+ "self_sha256": "6bc32628d7e8b94eedd13dbc96fc3d1e05b26267d3aa72407b2f99a54f9e439a",
+ "utc": "2026-09-21T01:30:35Z",
+ "contract": "every consumer of the F-family receipts MUST look each arm up here and MUST fail closed on an arm with no entry; every number of an arm whose non_preregistered is true MUST be printed with its label",
+ "arms": {
+  "F0": {
+   "status": "pre-registered · 在役行为, 端到端控制臂",
+   "preregistered": true,
+   "non_preregistered": false,
+   "label": null,
+   "label_short": null,
+   "reason": "PREREG_fallback_counterfactual_2026-09-20.md (a964c2f9a) §2 臂表; §2.1 控制逐位 PASS",
+   "carries_a_preregistered_verdict": true,
+   "confounded_by": []
+  },
+  "F1": {
+   "status": "pre-registered",
+   "preregistered": true,
+   "non_preregistered": false,
+   "label": null,
+   "label_short": null,
+   "reason": "PREREG §2 臂表",
+   "carries_a_preregistered_verdict": true,
+   "confounded_by": []
+  },
+  "F2": {
+   "status": "pre-registered",
+   "preregistered": true,
+   "non_preregistered": false,
+   "label": null,
+   "label_short": null,
+   "reason": "PREREG §2 臂表",
+   "carries_a_preregistered_verdict": true,
+   "confounded_by": []
+  },
+  "F4a": {
+   "status": "pre-registered · F4 of record · 带具名混淆",
+   "preregistered": true,
+   "non_preregistered": false,
+   "label": "带具名混淆(去 rev24 **+** FTRIM **+** 另一条链状态路径)",
+   "label_short": "⚠混淆",
+   "reason": "PREREG §2 臂表; 修订 1 §2 具名其混淆; round-7 独立复审判语「F4 of record = F4a」(review_round7_20260921/notes/fallback.md §判语)",
+   "carries_a_preregistered_verdict": true,
+   "confounded_by": [
+    "rev24_removal",
+    "FTRIM",
+    "a_different_chain_state_path"
+   ]
+  },
+  "F4bp": {
+   "status": "具名的非预注册敏感性(NOT pre-registered)",
+   "preregistered": false,
+   "non_preregistered": true,
+   "label": "非预注册敏感性(NOT pre-registered) · 不携带预注册判词",
+   "label_short": "⚠非预注册敏感性",
+   "reason": "预注册判据 A1(修订 1 §2)判 REFUSED(FCF_RECHAIN_ASSERT VERDICT=REFUSED, REAL_EXIT=3); 其替换件 A1′(修订 4 §3)按字面实现后也判 REFUSED(FCF_A1PRIME.json VERDICT=REFUSED), 并由其作者在修订 5(845728052)中撤回; round-7 独立复审维持该处置",
+   "carries_a_preregistered_verdict": false,
+   "confounded_by": [
+    "rev24_removal",
+    "a_seat_divergence_at_2022-06-30T00:00:00Z",
+    "a_different_chain_state_path"
+   ]
+  }
+ },
+ "F_of_record": "F4a",
+ "live_verdict": "rev24 的贡献未知",
+ "conclusion_markers": [
+  "只回收",
+  "干净消融",
+  "干净地去掉",
+  "of record",
+  "确立",
+  "否决",
+  "证明",
+  "解释了"
+ ],
+ "withdrawn_marker": "⊘ 已撤回",
+ "withdrawn": [
+  {
+   "withdrawn": "FCF_F4BP_VS_KC.json :: A.z_F4bprime_equals_z_kc_before_FTRIM_bitwise_on_every_anchor equal=10038 compared=10038",
+   "replacement": "FCF_F4BP_VS_KC_2026-09-21.json :: A3 n_refuted=1 @2022-06-30T00:00:00Z, max|Δz|=0.2535211267605634",
+   "why": "both operands were one field of one file (round-7 FB-01); the expression compared was x + 0.0 == x"
+  },
+  {
+   "withdrawn": "FCF_F4BP_VS_KC.json :: FTRIM_fired_nothing__residual_is_CHAIN_STATE_ALONE L1 median 0.0239 read as「链状态路径, 单独」",
+   "replacement": "the same 398 anchors, same L1 median 0.023934121874976587, under the name residual_contains__FTRIM_earlier_in_H+chain_state_cold_start+seat_divergence…; the isolated bucket residual_contains__chain_state_cold_start has n=0 (no measurement, not 0)",
+   "why": "`n_kc == 0` excludes FTRIM at THIS anchor only; earlier FTRIM is already inside H"
+  },
+  {
+   "withdrawn": "FCF_F4BP_VS_KC.json :: ratio_ftrim_plus_chain_over_chain_alone 2.23",
+   "replacement": "UNMEASURED — the denominator was never an isolated quantity",
+   "why": "same as above"
+  },
+  {
+   "withdrawn": "RESULT §0.3「去掉 rev24 本身只回收 16.1%」/「干净消融」/「干净地去掉 rev24」",
+   "replacement": "rev24 的贡献未知; 16.1% 是 F4bp 这条非预注册敏感性的读数, 不是 rev24 的贡献",
+   "why": "the arm carrying the reading holds no pre-registered verdict (FB-04)"
+  },
+  {
+   "withdrawn": "RESULT L630 / L808「F4b′ 立为 F4 of record」",
+   "replacement": "F4 of record = F4a",
+   "why": "修订 3 的立臂被 A1/A1′ 两条判据推翻, round-7 复审维持"
+  }
+ ],
+ "checks": [
+  {
+   "check": "status.preregistered_and_non_preregistered_are_negations",
+   "ok": true,
+   "detail": {
+    "offending": []
+   }
+  },
+  {
+   "check": "status.every_non_preregistered_arm_carries_a_label",
+   "ok": true,
+   "detail": {
+    "offending": []
+   }
+  },
+  {
+   "check": "status.F_of_record_is_an_arm_that_carries_a_preregistered_verdict",
+   "ok": true,
+   "detail": {
+    "F_of_record": "F4a",
+    "carries": true
+   }
+  },
+  {
+   "check": "status.no_non_preregistered_arm_carries_a_preregistered_verdict",
+   "ok": true,
+   "detail": {
+    "offending": []
+   }
+  }
+ ],
+ "VERDICT": "PASS",
+ "failed": []
+}
