@@ -1,0 +1,51 @@
+{
+ "absent_tables": [],
+ "appends": [],
+ "created_utc": "2026-09-22T13:23:33Z",
+ "day": "20260920",
+ "device": {
+  "path": "ops/notarize_ledgers.py",
+  "sha256": "b9bf2a2d6e33cc4499bad2e5097038d3564d1c2a4d21513a73435e544dccd3b2"
+ },
+ "files": {
+  "anchors.jsonl": {
+   "bytes": 188296,
+   "sha256": "3220783ee812df76c01a8d6de5867c25381ef50e5e702a9ee0f6838bd62d156c",
+   "tail_excluded_bytes": 0
+  },
+  "daily_nav.jsonl": {
+   "bytes": 6230,
+   "sha256": "3e1371e9759f004a46c7855ea0af2a803e15398456488bcb2ca9d4ebdc82ed25",
+   "tail_excluded_bytes": 0
+  },
+  "fills.jsonl": {
+   "bytes": 2150500,
+   "sha256": "b3545283cbf5bb68a4a3e51e93165bc9f053209c2379975977ff916aae121f0a",
+   "tail_excluded_bytes": 0
+  },
+  "funding.jsonl": {
+   "bytes": 446273,
+   "sha256": "0162d1e095aadb6c4d8f8799b499368eb0f80f722d9762ab2aae8c405984d9a3",
+   "tail_excluded_bytes": 0
+  },
+  "orders.jsonl": {
+   "bytes": 3949459,
+   "sha256": "470cd68cb3ae25b44d40242979624132f577bc4ddd8c1b6ca0db2b443bec64c2",
+   "tail_excluded_bytes": 0
+  },
+  "position_readback.jsonl": {
+   "bytes": 352823,
+   "sha256": "44c58e6fcaa0e1a08551407567b79ae1328b92c3c9b39e25f18ddd31d94302d9",
+   "tail_excluded_bytes": 0
+  }
+ },
+ "format": "notary_manifest_v2",
+ "integrity_findings": [],
+ "n_files": 6,
+ "not_notarized": [
+  "_schema.json"
+ ],
+ "note": "SHA-256 of the live trading ledger tables (pilot_log.SCHEMA). Each file entry hashes exactly its first `bytes` bytes, cut at a line boundary; the ledger is append-only, so a later file verifies when its first `bytes` bytes still hash to this value. `appends` checkpoints bytes added to earlier days since their last record. Chain: `prev_manifest_sha256` is the sha256 of the previous manifest file. `created_utc` is the actual observation time, including for delayed ledger days; it does not assert historical publication time.",
+ "prev_manifest": "manifest_20260919.json",
+ "prev_manifest_sha256": "3e5dd008f38ee08396a6c5d10d7c3f07dfb044ac21619b5d465d0406cc7592e7"
+}
