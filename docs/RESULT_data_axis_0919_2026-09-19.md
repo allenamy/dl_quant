@@ -293,3 +293,17 @@ STAGES=r2,r3,r4,r5 bash devices/ax_chain_r.sh ; STAGES=r6,r7,r8 bash devices/ax_
 AX_X=/workspace/axis_0919 AX_R=/workspace/axis_0919/x0918r AX_LO=490465 AX_HI=490752 AX_RECEIPT=/workspace/axis_0919/x0918r/receipts/VARIANT_DIFF.json python devices/ax14_variant_diff.py
 AX_INVENTORY=/workspace/axis_0919/receipts/INVENTORY.json AX_RECEIPT=/workspace/axis_0919/x0918r/receipts/X0918_INTEGRITY.json python devices/ax15_x0918_integrity.py
 ```
+
+### 11.10 补完(2026-09-20 05:38:59Z; 本节解决 §11.3 / §11.4 / §11.5 / §11.7 里标 PENDING 的四处)
+
+后台链 `STAGES=r9,r10,r11`(PGID 1274556)按 coordinator 的排队顺序无人值守跑完, 收据 `x0918r/receipts/PROGRESS.json` 状态 **COMPLETE**。
+
+- **king(r9 第 2 次尝试)**: 守卫等了 **63,818 s(17.7 h, 1,064 次检查)**, 2026-09-20 05:32:11Z 他人用量 **0.78 GiB** 时准入, 跑 293 s, 峰值 RSS **50.25 GiB**, 运行中他人用量最高 2.16 GiB, `oom_kill` 4→4(无新增)。收据 `logs/mem_r9_king.try2.json`(含 10 个运行中采样)。
+- **king 特征 vs x0918**(`VARIANT_DIFF.json`): 10,319 个共同锚上**成员 0 处不同、82 列逐位 0 差**; 元的 `y4` / `qvk` 0 差; 唯一变化 = 新增锚 09-01T00Z。与 DL 侧一致: 缓存数值没变, 变的只有判活掩码那一行。
+- **记账元**: 10,320 锚; 与 x0918 共同锚 `y4` / `qvk` **0 格差**; 新锚 09-01T00Z 成员 **400**, 400 个成员的 y4 全部有限; 对九月无掩码参照的自检 PASS(`y4_bitwise_equal_outside` 真, `qvk` 相等), 截断感知成员规则 `fp2_gate_lib.members_subset_check` **PASS**(移除 2,376 格全掩码假, 新增 145 格 / 108 锚全在参照截断到 400 的锚且掩码真, 保留成员全掩码真)。
+- **轴(四件齐)**: DL 目标 RAW / CLIP、king 元、记账元 **全部 10,320 锚, 2022-01-03T00:00Z → 2026-09-18T20:00Z, 格点 10,320, 缺 0**。死合约检查: 两套掩码在「最后成交 + 24h」之后为真的格都是 **0**。
+- **x0918 未被改动(最终)**: `X0918_INTEGRITY.json` 22 / 22 sha 相等(05:38:59Z)。
+- **最终 sha**: king 特征 `d6ad5934d592585c84ac1e77ce1b17d0b1898d57668dd19131301f283e544e86`; king 元 `bc3957432e05e1dfb2d8d0bc9f1cc2911ebc16d6dc734060602c2e7a75350f78`; 记账元 `5f1948d52a4f6f13794825b321e0a967cf573dd8edd395f8af34097efdb4730c`。
+- **全量差异证明判词**(`VARIANT_DIFF.json` `VERDICT`): C1 缓存、C2 补洞表、C3 可交易性/可交易掩码、C4 判活掩码、C5 原始面板、DL 目标 RAW/CLIP、fea82、fea89、king、记账元 —— **十项全 true, 0 处未解释**。
+
+**让路守卫在这次没有触发**(运行中他人最高 2.16 GiB, 远低于阈值), 所以它只被 §11.5 的第 1 次 OOM 证明了必要性, 还没有被实际触发过一次 —— 这是一条**从未执行过的路径**, 不要当成已验证的能力。
