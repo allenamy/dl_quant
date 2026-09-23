@@ -1,0 +1,51 @@
+{
+ "device": "news2_stage_inputs.py",
+ "self_sha256": "6080c8275578a95e98162d413ea17f73cf37cd151d959ccab2091e2677a44725",
+ "utc": "2026-09-23T22:39:50Z",
+ "phase": "pre_king",
+ "nc_root": "/dev/shm/nc_2026-09-23",
+ "news2_root": "/dev/shm/news2_2026-09-23",
+ "phase_note": "legs depend on the King OOF, so they are staged AFTER King training, not before; post_king refuses to run unless pre_king already staged the features",
+ "build_log": {
+  "path": "/dev/shm/nc_2026-09-23/logs/nc_build.log",
+  "exists": true,
+  "has_BUILD_DONE": true
+ },
+ "build_completion_override": false,
+ "staged": {
+  "work/NEWS_FEATURES.npz": {
+   "source": "/dev/shm/nc_2026-09-23/work/NC_FEATURES.npz",
+   "source_sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+   "staged_sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+   "how": "hardlink"
+  },
+  "receipts/P2B_FEATURES.json": {
+   "source": "/dev/shm/nc_2026-09-23/receipts/NC_FEATURES.json",
+   "source_sha256": "fa5712d2df6584911efd41cb62dab39d9de533cb15eef7c8ec4cfee2985458a3",
+   "staged_sha256": "fa5712d2df6584911efd41cb62dab39d9de533cb15eef7c8ec4cfee2985458a3",
+   "how": "hardlink"
+  },
+  "work/members_hist_all.npz": {
+   "source": "/dev/shm/nc_2026-09-23/work/members_hist_all.npz",
+   "source_sha256": "9bc9adafdda251e8f27f708b6b75cf68af86b4ef42d1ee6e2ca5d7a415e63bfa",
+   "staged_sha256": "9bc9adafdda251e8f27f708b6b75cf68af86b4ef42d1ee6e2ca5d7a415e63bfa",
+   "how": "hardlink"
+  },
+  "inputs/bundle_config.json": {
+   "source": "/dev/shm/nc_2026-09-23/inputs/bundle_config.json",
+   "source_sha256": "3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e",
+   "staged_sha256": "3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e",
+   "how": "hardlink"
+  }
+ },
+ "bindings": {
+  "work/NEWS_FEATURES.npz": {
+   "receipt": "receipts/P2B_FEATURES.json",
+   "field": "sha256",
+   "receipt_value": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+   "file_sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+   "MATCH": true
+  }
+ },
+ "VERDICT": "STAGED"
+}
