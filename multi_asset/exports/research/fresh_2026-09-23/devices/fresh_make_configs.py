@@ -85,8 +85,13 @@ def fresh_cfg(base, seed, ext):
     N["new_lineage"] = {"arm": arm, "adapter_receipt": {"path": p, "sha256": sha(p)}, "new_target_receipt": R["adapter"]["new_receipt"], "sources": R["adapter"]["sources"]}
     for r in N["runs"]:
         r["arm"] = run_arm; r["tag"] = run_arm + "|" + r["tag"].split("|", 1)[1]
+        old_role = r["role"]
         r["role"] = re.sub(r"NEW_S arm NEWS_s\d+", f"FRESH arm {arm}", r["role"])
-        assert f"FRESH arm {arm}" in r["role"] and "NEWS_s" not in r["role"], f"role relabel did not take: {r['role']}"
+        # not every role names the arm (the cost-cell runs read "§3.4 cost cell fee_x1.25 on the main reading"):
+        # require only that no role still names the control arm, and that any role that DID name it now names FRESH.
+        assert "NEWS_s" not in r["role"], f"role still names the control arm: {r['role']}"
+        if "NEWS_s" in old_role:
+            assert f"FRESH arm {arm}" in r["role"], f"role relabel did not take: {old_role} -> {r['role']}"
         r["targets"]["arm"] = arm
         r["targets"]["sources"] = [{"npz": R["_npz_path"], "npz_sha256": R["targets_npz_sha256"], "receipt": p, "receipt_sha256": sha(p)}]
     return N
