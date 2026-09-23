@@ -62,3 +62,8 @@ env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 $PV -B $W/devices/fresh_stats_ba
 env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 $PV -B fresh_mech_table.py PATH,HOME,LC_CTYPE $W/receipts/engine/FRESH_STATS.json $W/receipts/engine/FRESH_MECH_TABLE.json $W/receipts/FRESH_MECH_TABLE.md
   rc 0 ; prints n_sign_flips=14 — the FRESH−NEW_S sign of 14 of the 45 segment×column cells DISAGREES between the two seeds,
   hold_anchors among them (2024 / 2025 / judge), so "HOLD rose with FRESH" is an s42-only fact and is written with its reversal.
+
+--- byte-level record of the FRESH engine paths, taken BEFORE any cleanup of runs/
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 $PV -B $W/devices/fresh_runs_manifest.py PATH,HOME,LC_CTYPE $W/runs $W/receipts/FRESH_RUNS_MANIFEST.json
+  rc 0 ; cells=12 npz=396 json_verified=396
+  Needed because FRESH_STATS.json pins only the CONTROL arm's path shas (control_path_shas, 10 cells) and not FRESH's own.
