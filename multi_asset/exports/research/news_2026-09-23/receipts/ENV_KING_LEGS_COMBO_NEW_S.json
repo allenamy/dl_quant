@@ -1,27 +1,56 @@
 {
  "what": "Environment of the NEW_S King / legs / combo steps, reconstructed 2026-09-23 23:3xZ from the run's driver, chain.log and receipts on pod2 (/dev/shm/news_2026-09-23), at lead request after news2 found three different King OOF predictions_sha256 (d76b5b9b / 8f7b2bee / a10b8725) with identical version strings and only the interpreter PATH and NPY_DISABLE_CPU_FEATURES varied. Same standard as ENV_F10_NEW_S.json: VERIFIED = read from the driver source whose mtime precedes the step and/or a receipt bound by sha; otherwise NOT RECORDED.",
- "driver": {"file": "devices/news_chain_resume.sh", "sha256_prefix": "5d2b80c6a30b8a39", "mtime_utc": "2026-09-23T12:39:24Z",
-            "chain_log": ["12:39:27 RESUME (AMENDMENT 2): King interpreter -> /workspace/venv  [NOT written by the driver - it has no such echo; an operator line]",
-                          "12:39:27 START king / 12:40:26 DONE king", "12:40:26 START legs / 13:18:35 DONE legs", "14:15:20 START combo / 14:19:10 DONE combo"],
-            "which_file_ran": "not recorded by any process log; the START/DONE lines have the driver's step()/done_() format and step names, and the driver's mtime (12:39:24Z) precedes START king (12:39:27Z) and was never modified after — consistent with this file having run, not a recorded fact"},
+ "driver": {
+  "file": "devices/news_chain_resume.sh",
+  "sha256_prefix": "5d2b80c6a30b8a39",
+  "mtime_utc": "2026-09-23T12:39:24Z",
+  "chain_log": [
+   "12:39:27 RESUME (AMENDMENT 2): King interpreter -> /workspace/venv  [NOT written by the driver - it has no such echo; an operator line]",
+   "12:39:27 START king / 12:40:26 DONE king",
+   "12:40:26 START legs / 13:18:35 DONE legs",
+   "14:15:20 START combo / 14:19:10 DONE combo"
+  ],
+  "which_file_ran": "not recorded by any process log; the START/DONE lines have the driver's step()/done_() format and step names, and the driver's mtime (12:39:24Z) precedes START king (12:39:27Z) and was never modified after — consistent with this file having run, not a recorded fact"
+ },
  "king": {
-   "interpreter_path": "VERIFIED /workspace/venv/bin/python  (driver L8 PV=/workspace/venv/bin/python; L14 'nice -n 5 $PV -u news_train_king.py')",
-   "NPY_DISABLE_CPU_FEATURES": "VERIFIED set to 'X86_V4 AVX512_ICL AVX512_SPR' (driver L9 export, in effect at L14; first unset at L19)",
-   "OMP_NUM_THREADS / OPENBLAS_NUM_THREADS": "NOT RECORDED - not set by the driver for the King line, so inherited from the launching shell, which is unrecorded. LightGBM threads are pinned in the trainer: news_train_king.py L49 n_jobs=8, random_state=0",
-   "contemporaneous_receipt": "receipts/P3_KING_ENV.json (mtime 12:41:49Z, 83 s after DONE king; king_train_receipt_sha256 decd5b1d… == sha256(work/king/TRAIN_RECEIPT.json), verified): interpreter /workspace/venv/bin/python, python 3.11.10, numpy 2.4.6, scipy 1.17.1, sklearn 1.9.0, lightgbm 4.7.0, env_NPY_DISABLE_CPU_FEATURES 'X86_V4 AVX512_ICL AVX512_SPR (inherited from the chain)'. CAVEAT: written by hand after the King process had exited (no device writes it); its version strings describe the venv, they were not captured inside the King process",
-   "trainer": {"file": "devices/news_train_king.py", "sha256_prefix": "f1f393f83e6ac516", "mtime_utc": "2026-09-23T10:41:37Z (before the step)"},
-   "output": "work/king/TRAIN_RECEIPT.json predictions_sha256 744bc48ea1e2f3b8… (lightgbm 4.7.0, numpy 2.4.6) — the value news2's reruns should reproduce"},
+  "interpreter_path": "VERIFIED /workspace/venv/bin/python  (driver L8 PV=/workspace/venv/bin/python; L14 'nice -n 5 $PV -u news_train_king.py')",
+  "NPY_DISABLE_CPU_FEATURES": "VERIFIED set to 'X86_V4 AVX512_ICL AVX512_SPR' (driver L9 export, in effect at L14; first unset at L19)",
+  "OMP_NUM_THREADS / OPENBLAS_NUM_THREADS": "NOT RECORDED - not set by the driver for the King line, so inherited from the launching shell, which is unrecorded. LightGBM threads are pinned in the trainer: news_train_king.py L49 n_jobs=8, random_state=0",
+  "contemporaneous_receipt": "receipts/P3_KING_ENV.json (mtime 12:41:49Z, 83 s after DONE king; king_train_receipt_sha256 decd5b1d… == sha256(work/king/TRAIN_RECEIPT.json), verified): interpreter /workspace/venv/bin/python, python 3.11.10, numpy 2.4.6, scipy 1.17.1, sklearn 1.9.0, lightgbm 4.7.0, env_NPY_DISABLE_CPU_FEATURES 'X86_V4 AVX512_ICL AVX512_SPR (inherited from the chain)'. CAVEAT: written by hand after the King process had exited (no device writes it); its version strings describe the venv, they were not captured inside the King process",
+  "trainer": {
+   "file": "devices/news_train_king.py",
+   "sha256_prefix": "f1f393f83e6ac516",
+   "mtime_utc": "2026-09-23T10:41:37Z (before the step)"
+  },
+  "output": "work/king/TRAIN_RECEIPT.json predictions_sha256 744bc48ea1e2f3b8… (lightgbm 4.7.0, numpy 2.4.6), computed on the NEW_S input NEWS_FEATURES a490c294… (see erratum)"
+ },
  "legs": {
-   "interpreter_path": "VERIFIED /root/news_2026-09-23_env/venv314/bin/python (driver L8 P314; L15) -> resolves to cpython 3.14.4 (.uvpy/cpython-3.14.4-linux-x86_64-gnu)",
-   "NPY_DISABLE_CPU_FEATURES": "VERIFIED set (L9, in effect at L15)",
-   "threads": "VERIFIED OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 (L15)",
-   "numpy_version_at_run_time": "NOT RECORDED (today this interpreter imports numpy 2.5.2 - indirect only)",
-   "script": {"file": "devices/news_legs.py", "sha256_prefix": "2b890fe0d38cf71c", "mtime_utc": "2026-09-23T10:41:36Z"}},
+  "interpreter_path": "VERIFIED /root/news_2026-09-23_env/venv314/bin/python (driver L8 P314; L15) -> resolves to cpython 3.14.4 (.uvpy/cpython-3.14.4-linux-x86_64-gnu)",
+  "NPY_DISABLE_CPU_FEATURES": "VERIFIED set (L9, in effect at L15)",
+  "threads": "VERIFIED OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 (L15)",
+  "numpy_version_at_run_time": "NOT RECORDED (today this interpreter imports numpy 2.5.2 - indirect only)",
+  "script": {
+   "file": "devices/news_legs.py",
+   "sha256_prefix": "2b890fe0d38cf71c",
+   "mtime_utc": "2026-09-23T10:41:36Z"
+  }
+ },
  "combo": {
-   "interpreter_path": "VERIFIED /root/news_2026-09-23_env/venv314/bin/python (L29, both seeds)",
-   "NPY_DISABLE_CPU_FEATURES": "VERIFIED set (re-exported at L27 after the F10 step's unset at L19; in effect at L29; unset again at L32)",
-   "threads": "VERIFIED OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 (L29)",
-   "numpy_version_at_run_time": "NOT RECORDED (today numpy 2.5.2 - indirect only)",
-   "script": {"file": "devices/news_combo.py", "sha256_prefix": "e2724e6bcf6ed9e1", "mtime_utc": "2026-09-23T10:41:35Z"}},
- "for_reproduction": "King must be re-run as '/workspace/venv/bin/python -u news_train_king.py' with NPY_DISABLE_CPU_FEATURES='X86_V4 AVX512_ICL AVX512_SPR' exported; the thread environment of the original run is unknown (n_jobs=8 is fixed in code). /workspace/venv/bin/python and /usr/bin/python3 are the same binary (-> /usr/bin/python3.11) but select different site-packages (pyvenv.cfg include-system-site-packages = false)."
+  "interpreter_path": "VERIFIED /root/news_2026-09-23_env/venv314/bin/python (L29, both seeds)",
+  "NPY_DISABLE_CPU_FEATURES": "VERIFIED set (re-exported at L27 after the F10 step's unset at L19; in effect at L29; unset again at L32)",
+  "threads": "VERIFIED OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 (L29)",
+  "numpy_version_at_run_time": "NOT RECORDED (today numpy 2.5.2 - indirect only)",
+  "script": {
+   "file": "devices/news_combo.py",
+   "sha256_prefix": "e2724e6bcf6ed9e1",
+   "mtime_utc": "2026-09-23T10:41:35Z"
+  }
+ },
+ "for_reproduction": "King must be re-run as '/workspace/venv/bin/python -u news_train_king.py' with NPY_DISABLE_CPU_FEATURES='X86_V4 AVX512_ICL AVX512_SPR' exported; the thread environment of the original run is unknown (n_jobs=8 is fixed in code). /workspace/venv/bin/python and /usr/bin/python3 are the same binary (-> /usr/bin/python3.11) but select different site-packages (pyvenv.cfg include-system-site-packages = false).",
+ "erratum_2026-09-23T2340Z": {
+  "struck_text_in_this_receipt": "~~work/king/TRAIN_RECEIPT.json predictions_sha256 744bc48ea1e2f3b8… (lightgbm 4.7.0, numpy 2.4.6) — the value news2's reruns should reproduce~~",
+  "struck_text_in_my_message_to_lead_and_report": "~~news2 三次复跑得到的 d76b5b9b、8f7b2bee、a10b8725 都与 744bc48e 不同, 所以这三种环境变体没有一种复现出原结果~~",
+  "correction": "Retracted. news2's three runs used the NC input (NC_FEATURES 3c886a2b); 744bc48e was computed on the NEW_S input (NEWS_FEATURES a490c294). Different inputs must give different predictions, so the comparison carries no information about whether the environment reproduces NEW_S — even with a perfectly pinned environment those three shas would differ from 744bc48e (the lead's discriminator). News2's reruns can only be compared with each other (they show that interpreter path and NPY_DISABLE_CPU_FEATURES change King's output on a fixed input).",
+  "reproduction_status": "The original King input NEWS_FEATURES a490c294 no longer exists on pod2: deleted 2026-09-23 20:10Z to free /dev/shm for the NC pass 2 (lead-approved; sha re-verified before deletion; logs/shm_cleanup_2026-09-23T2010Z.log). /dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz is a hard link to NC_FEATURES (sha 3c886a2b), NOT the NEW_S input. A reproduction of 744bc48e needs NEWS_FEATURES rebuilt first (NEW_S P2 build)."
+ }
 }
