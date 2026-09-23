@@ -1,8 +1,8 @@
 {
  "device": "test_news2_stage_inputs.py",
- "self_sha256": "e4afb5c4289aac621ab4b9f5c546e7d7e4a1e29da3561ee2f1af63c8e293407b",
- "subject_sha256": "e3bf1fe5dd9f8dd40274789f1d90891ec433d381a351bb25457c4ac73a33cf0e",
- "utc": "2026-09-23T22:25:03Z",
+ "self_sha256": "891115da9fe3a68ad68abf34f5b5d901a3a5b4af3a1dccc7846a848cfe2a9ef6",
+ "subject_sha256": "6080c8275578a95e98162d413ea17f73cf37cd151d959ccab2091e2677a44725",
+ "utc": "2026-09-23T22:37:12Z",
  "defect_this_covers": "the first version of news2_stage_inputs.py listed legs.npz as a pre-chain input; legs consume the King OOF, which this chain produces, so the chain was unstartable. Found by the integrator 2026-09-23.",
  "cells": [
   {
@@ -21,13 +21,25 @@
    "cell": "GREEN.pre_king",
    "verdict": "PASS",
    "expected": "rc 0, STAGED, bindings_ok=1/1",
-   "observed": "rc=0 NEWS2_STAGE VERDICT=STAGED phase=pre_king staged=4 bindings_ok=1/1 receipt_sha256=8dfd5461"
+   "observed": "rc=0 NEWS2_STAGE VERDICT=STAGED phase=pre_king staged=4 bindings_ok=1/1 receipt_sha256=ddf06074"
   },
   {
    "cell": "GREEN.post_king",
    "verdict": "PASS",
    "expected": "rc 0, STAGED",
-   "observed": "rc=0 NEWS2_STAGE VERDICT=STAGED phase=post_king staged=2 bindings_ok=1/1 receipt_sha256=89586b7"
+   "observed": "rc=0 NEWS2_STAGE VERDICT=STAGED phase=post_king staged=2 bindings_ok=1/1 receipt_sha256=e111cc5"
+  },
+  {
+   "cell": "RED.unfinished_build",
+   "verdict": "PASS",
+   "expected": "rc 5 and nothing staged",
+   "observed": "rc=5 files_left=[]"
+  },
+  {
+   "cell": "GREEN.override_named",
+   "verdict": "PASS",
+   "expected": "rc 0 with the override, recorded as such",
+   "observed": "rc=0 NEWS2_STAGE VERDICT=STAGED phase=pre_king staged=4 bindings_ok=1/1 rec"
   },
   {
    "cell": "RED.partial",
@@ -42,8 +54,8 @@
    "observed": "rc=3 NEWS2_STAGE VERDICT=REFUSED: receipt does not bind the staged file phase=post_king staged="
   }
  ],
- "n_cells": 6,
+ "n_cells": 8,
  "n_not_pass": 0,
  "VERDICT": "PASS",
- "seconds": 0.4
+ "seconds": 0.6
 }

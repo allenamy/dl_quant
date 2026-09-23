@@ -27,6 +27,13 @@ usage: python news2_stage_inputs.py <nc_root> <news2_root> <out_receipt.json> --
 """
 import argparse, hashlib, json, os, shutil, sys, time
 
+# The producing build must have FINISHED. Found the hard way on 2026-09-23: merge2 OOM'd, was
+# restarted, and meanwhile a 2.96 GB NC_FEATURES.npz and a self-consistent NC_FEATURES.json from the
+# DEAD attempt sat on disk. Both existed, and the receipt's sha matched that stale file -- so the
+# existence check and the sha binding both passed while the real build was still running. Neither
+# guard can see this; only the producer's own completion marker can.
+BUILD_DONE_MARKER = "BUILD_DONE"
+
 PHASES = {
     # phase -> [(source in nc root, destination in news2 root, required)]
     "pre_king": [
@@ -66,6 +73,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("nc_root"); ap.add_argument("news2_root"); ap.add_argument("out")
     ap.add_argument("--phase", required=True, choices=sorted(PHASES))
+    ap.add_argument("--build-log", default=None,
+                    help="the producing build's log; it must contain BUILD_DONE. Default: <nc_root>/logs/nc_build.log")
+    ap.add_argument("--allow-incomplete-build", action="store_true",
+                    help="stage even though the build log has no BUILD_DONE. Recorded in the receipt as a named "
+                         "override; never use it to work around a build that is still running.")
     a = ap.parse_args()
     nc, w2, out_path, phase = a.nc_root, a.news2_root, a.out, a.phase
     rec = {"device": "news2_stage_inputs.py", "self_sha256": sha(os.path.abspath(__file__)),
@@ -73,6 +85,17 @@ def main():
            "phase": phase, "nc_root": nc, "news2_root": w2,
            "phase_note": ("legs depend on the King OOF, so they are staged AFTER King training, not before; "
                           "post_king refuses to run unless pre_king already staged the features")}
+
+    blog = a.build_log or os.path.join(nc, "logs/nc_build.log")
+    done = os.path.exists(blog) and BUILD_DONE_MARKER in open(blog, errors="replace").read()
+    rec["build_log"] = {"path": blog, "exists": os.path.exists(blog), "has_BUILD_DONE": done}
+    if not done and not a.allow_incomplete_build:
+        rec["VERDICT"] = "REFUSED: the producing build has not finished"
+        rec["why"] = (f"{blog} does not contain {BUILD_DONE_MARKER}. Files may exist and their receipt may even "
+                      f"bind them and still be from a dead attempt (merge2 OOM, 2026-09-23).")
+        rec["staged"] = {}; rec["nothing_was_staged"] = True
+        fail(out_path, rec, f"no {BUILD_DONE_MARKER} in {blog}", 5)
+    rec["build_completion_override"] = bool(a.allow_incomplete_build and not done)
 
     missing_prereq = [p for p in PREREQ.get(phase, []) if not os.path.exists(os.path.join(w2, p))]
     if missing_prereq:

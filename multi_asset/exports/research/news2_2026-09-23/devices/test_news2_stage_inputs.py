@@ -26,8 +26,8 @@ def sha(p):
     return h.hexdigest()
 
 
-def run(nc, w2, out, phase):
-    r = subprocess.run([sys.executable, DEV, nc, w2, out, "--phase", phase], capture_output=True, text=True)
+def run(nc, w2, out, phase, extra=()):
+    r = subprocess.run([sys.executable, DEV, nc, w2, out, "--phase", phase, *extra], capture_output=True, text=True)
     return r.returncode, (r.stdout + r.stderr).strip().splitlines()[-1] if (r.stdout or r.stderr) else ""
 
 
@@ -37,7 +37,7 @@ def cell(tag, ok, want, got):
     return ok
 
 
-def fixtures(nc):
+def fixtures(nc, build_done=True):
     for rel, body in (("work/NC_FEATURES.npz", b"FEATURES-FIXTURE"), ("work/members_hist_all.npz", b"MH-FIXTURE"),
                       ("inputs/bundle_config.json", b'{"params":{}}'), ("work/legs.npz", b"LEGS-FIXTURE")):
         os.makedirs(os.path.dirname(f"{nc}/{rel}"), exist_ok=True)
@@ -45,6 +45,8 @@ def fixtures(nc):
     os.makedirs(f"{nc}/receipts", exist_ok=True)
     json.dump({"sha256": sha(f"{nc}/work/NC_FEATURES.npz")}, open(f"{nc}/receipts/NC_FEATURES.json", "w"))
     json.dump({"sha256": sha(f"{nc}/work/legs.npz")}, open(f"{nc}/receipts/NC_LEGS.json", "w"))
+    os.makedirs(f"{nc}/logs", exist_ok=True)
+    open(f"{nc}/logs/nc_build.log", "w").write("START p2\nDONE p2\n" + ("BUILD_DONE\n" if build_done else ""))
 
 
 def main():
@@ -56,6 +58,9 @@ def main():
     nc = f"{work}/nc_empty"; w2 = f"{work}/w2_empty"
     shutil.rmtree(nc, ignore_errors=True); shutil.rmtree(w2, ignore_errors=True)
     os.makedirs(nc); os.makedirs(w2)
+    # the build FINISHED but produced nothing here: these two cells are about order and absence, so
+    # the build-completion guard must not be what fires
+    os.makedirs(f"{nc}/logs", exist_ok=True); open(f"{nc}/logs/nc_build.log", "w").write("BUILD_DONE\n")
     rc, line = run(nc, w2, f"{work}/o_order.json", "post_king")
     cell("RED.order", rc == 4 and "pre_king has not been staged" in line, "rc 4, refuses out of order", f"rc={rc} {line[:90]}")
     rc, line = run(nc, w2, f"{work}/o_missing.json", "pre_king")
@@ -71,6 +76,20 @@ def main():
     cell("GREEN.pre_king", ok_pre, "rc 0, STAGED, bindings_ok=1/1", f"rc={rc} {line[:90]}")
     rc, line = run(nc, w2, f"{work}/o_post.json", "post_king")
     cell("GREEN.post_king", rc == 0 and "VERDICT=STAGED" in line, "rc 0, STAGED", f"rc={rc} {line[:90]}")
+
+    # RED.unfinished_build: every file present and its receipt binding it, but the producing build has
+    # not written BUILD_DONE -- the live 2026-09-23 shape after merge2 OOM'd and was restarted.
+    nc3 = f"{work}/nc_unfinished"; w23 = f"{work}/w2_unfinished"
+    shutil.rmtree(nc3, ignore_errors=True); shutil.rmtree(w23, ignore_errors=True)
+    os.makedirs(nc3); os.makedirs(w23)
+    fixtures(nc3, build_done=False)
+    rc, line = run(nc3, w23, f"{work}/o_unfin.json", "pre_king")
+    left3 = [f for _, _, files in os.walk(w23) for f in files]
+    cell("RED.unfinished_build", rc == 5 and not left3, "rc 5 and nothing staged",
+         f"rc={rc} files_left={left3}")
+    rc, line = run(nc3, w23, f"{work}/o_unfin_ovr.json", "pre_king", ("--allow-incomplete-build",))
+    cell("GREEN.override_named", rc == 0 and "VERDICT=STAGED" in line,
+         "rc 0 with the override, recorded as such", f"rc={rc} {line[:70]}")
 
     # RED.partial: one required source missing -> refuses AND stages nothing. The old code linked
     # what it found before refusing; on 2026-09-23 that would have hard-linked a 3 GB NC_FEATURES.npz
