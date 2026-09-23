@@ -58,7 +58,34 @@ def king_block(shadow_src):
     body = "\n".join(lines[b:e + 1])
     code = ("def king_block(st, anchor, P, cfg, row_of, base, diag, append_log):\n" + body +
             "\n    return {'m': m, 'FE_ANCH': FE_ANCH, 'X': X, 'fe_v': fe_v, 'fn_v': fn_v, 'qvm': qvm, 'wstat': wstat}\n")
+    # ★ The King block of the nc-derived trees calls into the A-part contract module: NC.rr_from_ch0,
+    # NC.legal_live (which takes TR as an argument), NC.funding_asof, NC.fund_base. Those names are
+    # module-level imports in the producer, so the extracted block does not carry them and the block
+    # dies with `NameError: name 'NC' is not defined`. This is the same A<->B coupling as `c7`: a
+    # B-part harness cannot exercise the shipping King block without the A-part contract.
+    #
+    # They are loaded FROM THE TREE UNDER TEST (each tree ships its own fea171/nc_contract.py), not
+    # from any fixed copy -- otherwise the harness would test one tree's block against another tree's
+    # contract. The names injected here are exactly the ones nc_hist_features.pass1_anchor relies on.
     ns = {"np": np}
+    fea = os.path.join(os.path.dirname(os.path.abspath(shadow_src)), "fea171")
+    if os.path.exists(os.path.join(fea, "nc_contract.py")):
+        import importlib.util
+
+        def _load(name):
+            spec = importlib.util.spec_from_file_location(f"{name}__{abs(hash(fea))}", os.path.join(fea, f"{name}.py"))
+            mod = importlib.util.module_from_spec(spec)
+            sys.modules[spec.name] = mod
+            spec.loader.exec_module(mod)
+            return mod
+
+        sys.path.insert(0, fea)                     # nc_contract imports tradability by name
+        try:
+            ns["NC"] = _load("nc_contract")
+            ns["TR"] = _load("tradability")
+        finally:
+            sys.path.remove(fea)
+        ns["_contract_from"] = fea
     wl = [l for l in lines if l.startswith("WINS = ")]
     assert wl == ["WINS = (48, 288, 864, 2016, 8640)"], wl
     exec(wl[0], ns)
@@ -75,6 +102,12 @@ class _Diag:
         pass
 
 
+# A real 4h anchor, so st.cts are positive and 300 s aligned. The value itself is irrelevant to every
+# kernel under test, but legal_live slices a 24 h window off st.cts and rr_from_ch0 searchsorts it, so
+# a synthetic anchor of 0 would put the window at negative timestamps.
+FIXTURE_ANCHOR = 1742428800
+
+
 def run_king(shadow_src, cd, ntop=400, cov_min=0.95, vol_min=1e-4, nsym=None):
     kb, span = king_block(shadow_src)
     T, NW, _ = cd.shape
@@ -87,13 +120,34 @@ def run_king(shadow_src, cd, ntop=400, cov_min=0.95, vol_min=1e-4, nsym=None):
     st.sym_idx = {s: j for j, s in enumerate(syms)}
     st.ledger = {}
     st.ema = {}
+    # ★ A-part state the nc-derived King block reads (mirrors nc_hist_features.pass1_anchor, which sets
+    # exactly these): the 5-minute timestamp axis, the §A3 sparse boundary-raw table, the crypto mask
+    # and the symbol list. The boundary table is deliberately EMPTY -- the fixture cache holds no
+    # clipped cells, so there is nothing for it to override, and an empty table is the honest value
+    # rather than a padded one.
+    anchor = FIXTURE_ANCHOR
+    st.cts = (anchor - (T - 1 - np.arange(T, dtype=np.int64)) * 300).astype(np.int64)
+    st.bnd_ts = np.zeros(0, np.int64)
+    st.bnd_col = np.zeros(0, np.int64)
+    st.bnd_raw = np.zeros(0, np.float32)
+    st.crypto = np.ones(NW, bool)
+    st.fetch_mask = np.ones(NW, bool)
+    st.syms = list(syms)
+    # NC A2: the block records the as-of member set even when the anchor then skips. Captured rather
+    # than stubbed away, so a cell can assert on what was recorded (nc_hist_features L133 does the same).
+    st.mh_recorded = {}
+    st.record_members = lambda a, m: st.mh_recorded.__setitem__(int(a), np.asarray(m, np.int64).copy())
     P = {"cov_min": cov_min, "vol_min": vol_min, "NTOP": ntop}
     cfg = {"keep_idx": list(range(78))}
-    row_of = {0: 0}
-    anchor = 0
     row_of = {anchor: T - 1}
     logs = []
     out = kb(st, anchor, P, cfg, row_of, list(syms), _Diag(), logs.append)
+    # ★ A King cell whose member set came back empty (or below the early-return floor) proves nothing:
+    # every downstream comparison would be 0 vs 0. Surfaced, never swallowed.
+    if not isinstance(out, dict) or out.get("m") is None or len(out["m"]) == 0:
+        raise AssertionError(f"run_king produced no members on {shadow_src} (T={T}, NW={NW}, ntop={ntop}); "
+                             f"every comparison built on this would be vacuous")
+    out["recorded_members"] = st.mh_recorded
     return out, span, logs
 
 

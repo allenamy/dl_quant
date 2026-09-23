@@ -1,0 +1,233 @@
+{
+ "device": "test_news2_patches.py",
+ "self_sha256": "835372734fc443340b651ddc6df6ce099239c8d67bf96452badc5531b30515a9",
+ "utc": "2026-09-23T23:34:13Z",
+ "python": "3.9.6",
+ "numpy": "1.26.4",
+ "base_tree_shas": {
+  "shadow_loop_v3.py": "ed11d731ffc13ef1333c3fabe044bc209485ba237fd9b8ae11aeccb014be1ec9",
+  "fea171/combo_stage.py": "fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8",
+  "fea171/dlw_features.py": "29ae6a985d891e56340378bb432c0370e914b93709eec44f54592472e4d20a76",
+  "fea171/f8_higher_order_features.py": "2c500c7ad2bb0f5ddccf431021df50a106a39f4d228bd6cf2d074c5c12f66a5f"
+ },
+ "patched_tree_shas": {
+  "shadow_loop_v3.py": "a68c7a5f0c6e8e0af89eda0307ab0b9ad6b38fa82810f4d04c1ab99deb1d510c",
+  "fea171/combo_stage.py": "363dd8c8876ab29eb9c098fe47a40a37bd6c7c912d9cb6cf2cbc7a17b87e9f65",
+  "fea171/dlw_features.py": "874c18705c3027a2f1aaa50bff52d11edcb0f984e5945e8755b6c30890ce2247",
+  "fea171/f8_higher_order_features.py": "98bc036d98a1b2385dd9e035a4803e03426047ba058d30e93df959b3f3788fb6"
+ },
+ "cells": [
+  {
+   "cell": "D5.king_float64_sum",
+   "verdict": "PASS",
+   "baseline_observed": "max|f32acc - f64acc|=0.000488281",
+   "patched_observed": "max|patched - f64acc(rounded to f32)|=0",
+   "n_changed": 59,
+   "note": "range_mean_8640, 60 symbols; symbol 0 alternates 60000 / 2^-10 (numerical stress input)"
+  },
+  {
+   "cell": "D6.king_empty_window",
+   "verdict": "PASS",
+   "baseline_observed": "value=0 rank=-0.483051(in rank)",
+   "patched_observed": "value=0 rank=0(out of rank), wstat=NaN",
+   "n_changed": 59,
+   "note": "range_mean_48 of a symbol with 0 finite bars in [E-47,E]"
+  },
+  {
+   "cell": "D6.ret5_sum_stays_finite",
+   "verdict": "PASS",
+   "baseline_observed": "n/a",
+   "patched_observed": "ret5_sum_48=0.0",
+   "n_changed": 0,
+   "note": "declared invariant, not a fix"
+  },
+  {
+   "cell": "D14.stable_tiebreak",
+   "verdict": "PASS",
+   "baseline_observed": "|members\\stable|=58",
+   "patched_observed": "|members\\stable|=0",
+   "n_changed": 116,
+   "note": "120 candidates with identical qvm, NTOP=60"
+  },
+  {
+   "cell": "D9.coverage_gate",
+   "verdict": "PASS",
+   "baseline_observed": "btcv=0.00300615 (finite at 87.6% coverage)",
+   "patched_observed": "btcv=nan",
+   "n_changed": 1,
+   "note": "250 of 2016 bars missing in the window closing at the last anchor"
+  },
+  {
+   "cell": "D9.window_includes_E",
+   "verdict": "PASS",
+   "baseline_observed": "btcv unchanged by the bar at E (0.00298393)",
+   "patched_observed": "btcv moves to 0.00631436",
+   "n_changed": 1,
+   "note": "one 0.25 return placed exactly at row E"
+  },
+  {
+   "cell": "D9.no_backfill",
+   "verdict": "PASS",
+   "baseline_observed": "first anchor btcv=0.00302031 (backfilled)",
+   "patched_observed": "first anchor btcv=nan",
+   "n_changed": 39,
+   "note": "anchors with less than 7 days of history"
+  },
+  {
+   "cell": "D4.x82_precision",
+   "verdict": "PASS",
+   "baseline_observed": "dtype=float16, 416 distinct value pairs collapse onto one stored cell",
+   "patched_observed": "dtype=float32, those pairs stay distinct",
+   "n_changed": 986026,
+   "note": "log_qv_mean_2016 stored value, last anchor"
+  },
+  {
+   "cell": "D6.f10_empty_window",
+   "verdict": "PASS",
+   "baseline_observed": "value=0 rank=-0.483154(in rank)",
+   "patched_observed": "value=0 rank=0(out of rank)",
+   "n_changed": 12273,
+   "note": "range_mean_48 with 0 finite bars"
+  },
+  {
+   "cell": "D8.A:jump_288",
+   "verdict": "PASS",
+   "baseline_observed": "finite_share_raw=0.9952",
+   "patched_observed": "finite_share_raw=0.0000",
+   "n_changed": 12420,
+   "note": "gate tightened to a fully supported window"
+  },
+  {
+   "cell": "D8.B:vov_7d",
+   "verdict": "PASS",
+   "baseline_observed": "finite_share_raw=0.8029",
+   "patched_observed": "finite_share_raw=0.0000",
+   "n_changed": 10020,
+   "note": "gate tightened to a fully supported window"
+  },
+  {
+   "cell": "D8.C:ac1_288",
+   "verdict": "PASS",
+   "baseline_observed": "finite_share_raw=0.9952",
+   "patched_observed": "finite_share_raw=0.0000",
+   "n_changed": 12420,
+   "note": "gate tightened to a fully supported window"
+  },
+  {
+   "cell": "D8.C:upblk_2016",
+   "verdict": "PASS",
+   "baseline_observed": "finite_share_raw=0.8029",
+   "patched_observed": "finite_share_raw=0.0000",
+   "n_changed": 10020,
+   "note": "gate tightened to a fully supported window"
+  },
+  {
+   "cell": "D8.D:dhi_288",
+   "verdict": "PASS",
+   "baseline_observed": "finite_share_raw=0.9952",
+   "patched_observed": "finite_share_raw=0.0000",
+   "n_changed": 12420,
+   "note": "gate tightened to a fully supported window"
+  },
+  {
+   "cell": "D8.D:dlo_288",
+   "verdict": "PASS",
+   "baseline_observed": "finite_share_raw=0.9952",
+   "patched_observed": "finite_share_raw=0.0000",
+   "n_changed": 12420,
+   "note": "gate tightened to a fully supported window"
+  },
+  {
+   "cell": "D8.D:ppct_288",
+   "verdict": "PASS",
+   "baseline_observed": "finite_share_raw=0.9904",
+   "patched_observed": "finite_share_raw=0.0000",
+   "n_changed": 12360,
+   "note": "gate tightened to a fully supported window"
+  },
+  {
+   "cell": "D8.E:spr_7",
+   "verdict": "PASS",
+   "baseline_observed": "finite_share_raw=0.8606",
+   "patched_observed": "finite_share_raw=0.0078",
+   "n_changed": 10643,
+   "note": "gate tightened to a fully supported window"
+  },
+  {
+   "cell": "D8.G:tbac1_288",
+   "verdict": "PASS",
+   "baseline_observed": "finite_share_raw=0.9952",
+   "patched_observed": "finite_share_raw=0.0003",
+   "n_changed": 12416,
+   "note": "gate tightened to a fully supported window"
+  },
+  {
+   "cell": "D8.J:r4_lag_2",
+   "verdict": "PASS",
+   "baseline_observed": "finite_share_raw=0.9952",
+   "patched_observed": "finite_share_raw=0.2346",
+   "n_changed": 9492,
+   "note": "gate tightened to a fully supported window"
+  },
+  {
+   "cell": "D8.J:r24_lag1",
+   "verdict": "PASS",
+   "baseline_observed": "finite_share_raw=0.9663",
+   "patched_observed": "finite_share_raw=0.0000",
+   "n_changed": 12060,
+   "note": "gate tightened to a fully supported window"
+  },
+  {
+   "cell": "D8.F:amihud_288",
+   "verdict": "PASS",
+   "baseline_observed": "finite_share_raw=0.9952, max|rank delta|=0.5593",
+   "patched_observed": "finite_share_raw=0.9952",
+   "n_changed": 11009,
+   "note": "denominator restricted to the common population"
+  },
+  {
+   "cell": "D8.F:kyle_288",
+   "verdict": "PASS",
+   "baseline_observed": "finite_share_raw=0.9952, max|rank delta|=0.1017",
+   "patched_observed": "finite_share_raw=0.9952",
+   "n_changed": 2289,
+   "note": "denominator restricted to the common population"
+  },
+  {
+   "cell": "D8.G:tbvw_288",
+   "verdict": "PASS",
+   "baseline_observed": "finite_share_raw=0.9952, max|rank delta|=0.05085",
+   "patched_observed": "finite_share_raw=0.9952",
+   "n_changed": 1423,
+   "note": "denominator restricted to the common population"
+  },
+  {
+   "cell": "D7.kernel_wired_288",
+   "verdict": "PASS",
+   "baseline_observed": "base column == global_trend_block (cells differing: 0)",
+   "patched_observed": "patched column == stable_trend_block masked to full windows (cells differing: 0)",
+   "n_changed": 238,
+   "note": "reference kernels from stable_trend_reference.py 01bf8b3d, ranked with the shipped anchor_rank_block"
+  },
+  {
+   "cell": "D7.kernel_wired_2016",
+   "verdict": "PASS",
+   "baseline_observed": "base column == global_trend_block (cells differing: 0)",
+   "patched_observed": "patched column == stable_trend_block masked to full windows (cells differing: 0)",
+   "n_changed": 1318,
+   "note": "reference kernels from stable_trend_reference.py 01bf8b3d, ranked with the shipped anchor_rank_block"
+  },
+  {
+   "cell": "D7.full_window_mask",
+   "verdict": "PASS",
+   "baseline_observed": "symbol 3 keeps a rank (0.228814) with one bar missing",
+   "patched_observed": "symbol 3 drops out (rank 0); 58 cells in the column moved",
+   "n_changed": 58,
+   "note": "one 5m bar removed inside the 2016-row window at the extracted anchor"
+  }
+ ],
+ "n_cells": 26,
+ "n_not_pass": 0,
+ "VERDICT": "PASS",
+ "seconds": 46.4
+}
