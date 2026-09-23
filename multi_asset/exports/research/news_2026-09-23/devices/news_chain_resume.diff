@@ -1,0 +1,14 @@
+1a2
+> # news_chain_resume.sh = news_chain.sh (6a724084) with ONLY (i) the completed wait/merge steps removed and (ii) the King line interpreter $P314 -> $PV (AMENDMENT 2, lead ruling (a), 2026-09-23)
+11,14c12
+< # 0. wait for all 104 P2 shards
+< step wait_shards
+< while [ "$(ls $W/work/p2_shards/*.npz.json 2>/dev/null | wc -l)" -lt 104 ]; do sleep 30; done
+< done_ wait_shards
+---
+> # RESUME (AMENDMENT 2): the two completed steps (wait for 104 shards; merge → NEWS_FEATURES a490c294…) are removed; every other line is unchanged
+16,17c14
+< step merge;  OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 nice -n 5 $P314 -u news_p2_build.py merge > $L/chain_merge.log 2>&1; done_ merge
+< step king;   nice -n 5 $P314 -u news_train_king.py > $L/chain_king.log 2>&1; done_ king
+---
+> step king;   nice -n 5 $PV -u news_train_king.py > $L/chain_king.log 2>&1; done_ king

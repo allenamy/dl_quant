@@ -1,0 +1,23 @@
+12:34:23 King start 2022H2_WARMUP 131812 158494
+Traceback (most recent call last):
+  File "/dev/shm/news_2026-09-23/devices/news_train_king.py", line 83, in <module>
+    main()
+    ~~~~^^
+  File "/dev/shm/news_2026-09-23/devices/news_train_king.py", line 57, in main
+    model = lgb.LGBMRegressor(**params).fit(x[tr], target[tr]); modelpath = out / ('king_' + tag + '.txt'); model.booster_.save_model(str(modelpath))
+            ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/root/news_2026-09-23_env/venv314/lib/python3.14/site-packages/lightgbm/sklearn.py", line 1478, in __init__
+    super().__init__(
+    ~~~~~~~~~~~~~~~~^
+        boosting_type=boosting_type,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<18 lines>...
+        **kwargs,
+        ^^^^^^^^^
+    )
+    ^
+  File "/root/news_2026-09-23_env/venv314/lib/python3.14/site-packages/lightgbm/sklearn.py", line 721, in __init__
+    raise LightGBMError(
+    ...<2 lines>...
+    )
+lightgbm.basic.LightGBMError: scikit-learn is required for lightgbm.sklearn. You must install scikit-learn and restart your session to use this module.

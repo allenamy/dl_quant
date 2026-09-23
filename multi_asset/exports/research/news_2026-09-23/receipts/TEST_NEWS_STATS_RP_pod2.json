@@ -1,0 +1,61 @@
+{
+ "baseline": {
+  "OLD": {
+   "halted": 32,
+   "want": 32,
+   "run_key": "OBJB_A0|scaled (main reading, OVN OLD)",
+   "n_runs_in_receipt": 2
+  },
+  "OLD_HOLD": {
+   "halted": 10,
+   "want": 10,
+   "run_key": "OVN_OLD_HOLD|scaled (main reading, OVN OLD_HOLD)",
+   "n_runs_in_receipt": 1
+  },
+  "NEW_s42": {
+   "halted": 0,
+   "want": 0,
+   "run_key": "OVN_NEW_s42|scaled (main reading, OVN NEW_s42)",
+   "n_runs_in_receipt": 2
+  }
+ },
+ "mutations": {
+  "wrong_arm (OLD_HOLD receipt read for the NEWS_s42 base dir)": {
+   "refused": true,
+   "reason": "0 runs match dir /dev/shm/news_2026-09-23/runs/NEWS_s42_scaled_rule_raw_UAFE (runs: ['OVN_OLD_HOLD|scaled (main reading, OVN OLD_HOLD)'])",
+   "reason_as_named": true
+  },
+  "threshold_-0.99": {
+   "refused": true,
+   "reason": "threshold -0.99 != -0.25",
+   "reason_as_named": true
+  },
+  "32_copies_of_seed0": {
+   "refused": true,
+   "reason": "per-path seeds are not exactly 0..31: [0, 0, 0, 0, 0]\u2026 (n=32)",
+   "reason_as_named": true
+  },
+  "cutoff_2024_receipt": {
+   "refused": true,
+   "reason": "breach_by 2024-12-31T20:00:00Z != 2026-08-31T00:00:00Z",
+   "reason_as_named": true
+  },
+  "cutoff_2024_per_path_only": {
+   "refused": true,
+   "reason": "per-path window ends ['2024-12-31T20:00:00Z'] != {2026-08-31T00:00:00Z}",
+   "reason_as_named": true
+  },
+  "two_runs_same_dir": {
+   "refused": true,
+   "reason": "2 runs match dir /dev/shm/ovn_2026-09-23/runs/OVN_OLD_HOLD_scaled_rule_raw_UAFE (runs: ['OVN_OLD_HOLD|scaled (main reading, OVN OLD_HOLD)', 'OVN_OLD_HOLD|scaled (main reading, OVN OLD_HOLD) DUP'])",
+   "reason_as_named": true
+  },
+  "device_sha_mismatch": {
+   "refused": true,
+   "reason": "bt_p_reading sha 0000000000000000 != a7cb9c4d02dd0775",
+   "reason_as_named": true
+  }
+ },
+ "VERDICT": "PASS",
+ "news_stats_sha256": "7141ba42ab227b9f35b48acce62d5e2a2494f364fdf6a83189974cb2af67e03c"
+}
