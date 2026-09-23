@@ -16,7 +16,10 @@ What changes, and nothing else:
 
 The feature package itself is NOT renamed: news2_stage_inputs.py links the integrator's NC_FEATURES
 into this root under the name the trainers expect and copies its receipt, so the trainers' existing
-"sha(features) == receipt['sha256']" assertion still binds the real bytes.
+"sha(features) == receipt['sha256']" assertion still binds the real bytes. Staging runs in TWO phases
+(`--phase pre_king` = features; `--phase post_king` = legs) because nc_legs.py consumes the King OOF,
+which this chain produces: legs cannot be a pre-chain input. The chain order is therefore
+    stage pre_king -> King -> nc_legs -> stage post_king -> F10 -> combo -> adapter -> configs -> engine.
 
 usage: python news2_derive_chain.py <out_dir> [--news-devices DIR]
 """
@@ -120,7 +123,9 @@ def main():
            "substitution_totals": total_hits, "derived": rec_files, "copied_verbatim": verbatim,
            "note": ("the feature package keeps its NEW_S filename inside this root; news2_stage_inputs.py "
                     "links the integrator's NC_FEATURES there and copies its receipt, so the trainers' "
-                    "sha(features) == receipt['sha256'] assertion still binds the real bytes")}
+                    "sha(features) == receipt['sha256'] assertion still binds the real bytes"),
+           "chain_order": ["stage pre_king", "King", "nc_legs", "stage post_king", "F10 (2 seeds)",
+                           "combo", "adapter specs", "run configs", "engine launches", "R-P readings", "news2_stats"]}
     (out / "CHAIN_DERIVE_RECEIPT.json").write_text(json.dumps(rec, indent=1))
     print("CHAIN_DERIVE_OK", json.dumps({"n_derived": len(rec_files), "totals": total_hits}), flush=True)
 

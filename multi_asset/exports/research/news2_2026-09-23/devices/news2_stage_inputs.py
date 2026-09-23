@@ -3,37 +3,50 @@ chain devices expect, and bind every one of them by sha.
 
 The chain devices are derived from NEW_S's (news2_derive_chain.py) and therefore still look for
 `work/NEWS_FEATURES.npz`, `receipts/P2B_FEATURES.json`, `work/legs.npz`, `receipts/P3_LEGS.json`.
-The integrator's build (DESIGN A9) produces `NC_FEATURES.npz` / `NC_FEATURES.json` / `legs.npz` /
-`NC_LEGS.json` in the nc root. Renaming inside the trainers would have meant editing the recipe; a
-staging step keeps the recipe untouched and puts the mapping in ONE auditable place.
+The integrator's build (DESIGN A9) produces `NC_FEATURES.npz` / `NC_FEATURES.json` in the nc root and,
+LATER, `legs.npz` / `NC_LEGS.json`. A staging step keeps the recipes untouched and puts the mapping in
+ONE auditable place.
+
+★ TWO PHASES, and the split is not cosmetic (defect found by the integrator 2026-09-23, after the
+  first version of this file listed legs as a pre-chain input):
+
+      pre_king   features + its receipt + bundle_config + members_hist
+      post_king  legs + its receipt
+
+  nc_legs.py consumes the King OOF, so legs cannot exist until King training has run -- which is a
+  step of THIS chain. Requiring legs up front made the chain unstartable. `post_king` additionally
+  refuses to run unless `pre_king` has already been staged, so the order cannot be lost again.
 
 Two things this does NOT do, on purpose:
-  * it does not copy the feature npz (they are gigabytes) - it hard-links, and then re-hashes the
-    LINKED path, so the receipt records the sha of the bytes the trainers will actually open;
+  * it does not copy the feature npz (gigabytes) - it hard-links, then re-hashes the LINKED path, so
+    the receipt records the sha of the bytes the trainers will actually open;
   * it does not rewrite the integrator's receipts - it copies them, so their internal `output` path
     still points at the nc root and the provenance stays visible.
 
-The chain must not start before this has run: a missing input here is a loud refusal, whereas a
-half-staged root is how a trainer ends up reading last run's features.
-
-usage: python news2_stage_inputs.py <nc_root> <news2_root> <out_receipt.json>
+usage: python news2_stage_inputs.py <nc_root> <news2_root> <out_receipt.json> --phase pre_king|post_king
 """
-import hashlib, json, os, shutil, sys, time
+import argparse, hashlib, json, os, shutil, sys, time
 
-MAP = [
-    # (source in the nc root, destination in the news2 root, required)
-    ("work/NC_FEATURES.npz", "work/NEWS_FEATURES.npz", True),
-    ("receipts/NC_FEATURES.json", "receipts/P2B_FEATURES.json", True),
-    ("work/legs.npz", "work/legs.npz", True),
-    ("receipts/NC_LEGS.json", "receipts/P3_LEGS.json", True),
-    ("work/members_hist_all.npz", "work/members_hist_all.npz", False),
-    ("inputs/bundle_config.json", "inputs/bundle_config.json", True),
-]
-# the derived chain devices assert sha(features) == receipt['sha256'] and sha(legs) == receipt['sha256'];
-# these pairs say which receipt field must match which staged file, and are checked here too, so a
-# mismatch is caught before a multi-hour training run rather than inside it.
-BINDINGS = [("receipts/P2B_FEATURES.json", "sha256", "work/NEWS_FEATURES.npz"),
-            ("receipts/P3_LEGS.json", "sha256", "work/legs.npz")]
+PHASES = {
+    # phase -> [(source in nc root, destination in news2 root, required)]
+    "pre_king": [
+        ("work/NC_FEATURES.npz", "work/NEWS_FEATURES.npz", True),
+        ("receipts/NC_FEATURES.json", "receipts/P2B_FEATURES.json", True),
+        ("work/members_hist_all.npz", "work/members_hist_all.npz", True),
+        ("inputs/bundle_config.json", "inputs/bundle_config.json", True),
+    ],
+    "post_king": [
+        ("work/legs.npz", "work/legs.npz", True),
+        ("receipts/NC_LEGS.json", "receipts/P3_LEGS.json", True),
+    ],
+}
+# receipt field -> staged file it must bind. The chain devices re-check these; this is the early check.
+BINDINGS = {
+    "pre_king": [("receipts/P2B_FEATURES.json", "sha256", "work/NEWS_FEATURES.npz")],
+    "post_king": [("receipts/P3_LEGS.json", "sha256", "work/legs.npz")],
+}
+# post_king may not run before pre_king: these must already be staged
+PREREQ = {"post_king": ["work/NEWS_FEATURES.npz", "receipts/P2B_FEATURES.json"]}
 
 
 def sha(p):
@@ -43,49 +56,66 @@ def sha(p):
     return h.hexdigest()
 
 
+def fail(out_path, rec, msg, code):
+    json.dump(rec, open(out_path, "w"), indent=1)
+    print(f"NEWS2_STAGE VERDICT={rec['VERDICT']} {msg}", flush=True)
+    sys.exit(code)
+
+
 def main():
-    nc, w2, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
+    ap = argparse.ArgumentParser()
+    ap.add_argument("nc_root"); ap.add_argument("news2_root"); ap.add_argument("out")
+    ap.add_argument("--phase", required=True, choices=sorted(PHASES))
+    a = ap.parse_args()
+    nc, w2, out_path, phase = a.nc_root, a.news2_root, a.out, a.phase
+    rec = {"device": "news2_stage_inputs.py", "self_sha256": sha(os.path.abspath(__file__)),
+           "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+           "phase": phase, "nc_root": nc, "news2_root": w2,
+           "phase_note": ("legs depend on the King OOF, so they are staged AFTER King training, not before; "
+                          "post_king refuses to run unless pre_king already staged the features")}
+
+    missing_prereq = [p for p in PREREQ.get(phase, []) if not os.path.exists(os.path.join(w2, p))]
+    if missing_prereq:
+        rec["VERDICT"] = "REFUSED: pre_king has not been staged"
+        rec["missing_prerequisites"] = missing_prereq
+        fail(out_path, rec, f"missing={missing_prereq}", 4)
+
     staged, missing = {}, []
-    for src, dst, required in MAP:
-        s = os.path.join(nc, src)
-        d = os.path.join(w2, dst)
+    for src, dst, required in PHASES[phase]:
+        s = os.path.join(nc, src); d = os.path.join(w2, dst)
         if not os.path.exists(s):
-            (missing.append({"source": s, "dest": dst}) if required else staged.setdefault("_optional_absent", []).append(src))
+            if required:
+                missing.append({"source": s, "dest": dst})
+            else:
+                staged.setdefault("_optional_absent", []).append(src)
             continue
         os.makedirs(os.path.dirname(d), exist_ok=True)
         if os.path.lexists(d):
             os.remove(d)
         try:
-            os.link(s, d)                      # same filesystem (both under /dev/shm): no copy
-            how = "hardlink"
+            os.link(s, d); how = "hardlink"
         except OSError:
-            shutil.copyfile(s, d)
-            how = "copy"
+            shutil.copyfile(s, d); how = "copy"
         staged[dst] = {"source": s, "source_sha256": sha(s), "staged_sha256": sha(d), "how": how}
         assert staged[dst]["source_sha256"] == staged[dst]["staged_sha256"], (dst, "staged bytes differ from source")
+    rec["staged"] = staged
     if missing:
-        rec = {"device": "news2_stage_inputs.py", "VERDICT": "REFUSED: required inputs missing",
-               "missing": missing, "staged": staged}
-        json.dump(rec, open(out_path, "w"), indent=1)
-        print(f"NEWS2_STAGE VERDICT=REFUSED missing={[m['source'] for m in missing]}", flush=True)
-        sys.exit(2)
+        rec["VERDICT"] = "REFUSED: required inputs missing"
+        rec["missing"] = missing
+        fail(out_path, rec, f"missing={[m['source'] for m in missing]}", 2)
 
     bound = {}
-    for rcpt, field, target in BINDINGS:
+    for rcpt, field, target in BINDINGS[phase]:
         R = json.load(open(os.path.join(w2, rcpt)))
-        want = R.get(field)
-        got = staged[target]["staged_sha256"]
+        want, got = R.get(field), staged[target]["staged_sha256"]
         bound[target] = {"receipt": rcpt, "field": field, "receipt_value": want, "file_sha256": got,
                          "MATCH": want == got}
+    rec["bindings"] = bound
     bad = [k for k, v in bound.items() if not v["MATCH"]]
-    rec = {"device": "news2_stage_inputs.py", "self_sha256": sha(os.path.abspath(__file__)),
-           "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-           "nc_root": nc, "news2_root": w2, "staged": staged, "bindings": bound,
-           "VERDICT": "STAGED" if not bad else "REFUSED: receipt does not bind the staged file",
-           "note": "the chain devices re-check these same bindings; this is the early, cheap check"}
+    rec["VERDICT"] = "STAGED" if not bad else "REFUSED: receipt does not bind the staged file"
     json.dump(rec, open(out_path, "w"), indent=1)
-    print(f"NEWS2_STAGE VERDICT={rec['VERDICT']} staged={len(staged)} bindings_ok={len(bound) - len(bad)}/{len(bound)} "
-          f"receipt_sha256={sha(out_path)}", flush=True)
+    print(f"NEWS2_STAGE VERDICT={rec['VERDICT']} phase={phase} staged={len(staged)} "
+          f"bindings_ok={len(bound) - len(bad)}/{len(bound)} receipt_sha256={sha(out_path)}", flush=True)
     sys.exit(0 if not bad else 3)
 
 
