@@ -25,7 +25,9 @@ For every reference anchor A of the parity pack (pod2 export; the training repla
   compare with ref_*: m identical; X78, fe_v, fn_v, iv_v, qvm, rev24 (member order), base_val (829 axis, NaN elsewhere), btcv, X82, X89:
       the server value cast to the reference's dtype, equal element for element with the same NaN positions (bitwise differences are
       counted separately). Per anchor per quantity: n, n_differing, max|diff|, first differing (name, column).
-VERDICT = PASS iff >= 6 anchors, every quantity 0 differing, AND both negative controls detected (counted only on a green baseline):
+VERDICT = PASS iff >= 6 anchors ALL SERVED (a SKIPped anchor leaves no server value: n_differing None, and every quantity must have n > 0 —
+  a comparison over an empty array would otherwise report 0 differing), every quantity 0 differing, AND both negative controls detected
+  (counted only on a green baseline):
   NC-F  one funding rate of a member name in (A-4h, A] moved by 1 ulp -> fe_v or fn_v must differ;
   NC-R  one ch0 cell of a member in the last 4 h (not a sparse-table cell) moved by one float16 step -> X78, X82 or X89 must differ.
 Modes: --emit-ref F writes the server's outputs as ref_* into a copy of the pack (machinery: a pack whose reference is the server's own
@@ -317,7 +319,11 @@ def main():
         if A not in SRV:
             rec["comparison"][str(A)] = {"why": "not run"}; green = False; continue
         Q = compare(SRV[A], pk.ref(A), syms); rec["comparison"][str(A)] = Q
-        green &= all(v.get("n_differing") == 0 for v in Q.values())
+        # a comparison over an EMPTY array reports n_differing 0; require a measurement on every quantity
+        # (zero-measurement-counts-as-pass family: an anchor the producer SKIPped leaves srv empty)
+        empty = sorted(k for k, v in Q.items() if not (v.get("n") or 0) > 0)
+        if empty: Q["_no_measurement"] = empty; green = False
+        green &= all(v.get("n_differing") == 0 for k, v in Q.items() if k != "_no_measurement")
     green &= len(SRV) == len(anchors) >= 6
     rec["baseline_green"] = bool(green); dump()
     NEG = rec["negative_controls"]; NEG["counted"] = bool(green)
