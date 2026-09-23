@@ -1,0 +1,36 @@
+{
+ "device": "news2_d14_resolution.py",
+ "self_sha256": "ad910a884da61f5a0649446861102e79db4b4f735391e940bf1c9954cb6b4f0b",
+ "utc": "2026-09-23T23:36:31Z",
+ "mode": "selftest",
+ "cells": [
+  {
+   "cell": "RED.tie_across_cut",
+   "verdict": "PASS",
+   "expected": "tie_possible=True, superset 2 vs members 1",
+   "observed": "True 2/1"
+  },
+  {
+   "cell": "GREEN.no_tie",
+   "verdict": "PASS",
+   "expected": "tie_possible=False, superset 1",
+   "observed": "False 1"
+  },
+  {
+   "cell": "GREEN.tied_but_illegal",
+   "verdict": "PASS",
+   "expected": "tie_possible=False (the tied symbol is outside legal AND crypto)",
+   "observed": "False"
+  },
+  {
+   "cell": "GREEN.cut_not_executed",
+   "verdict": "PASS",
+   "expected": "cut_executed=False",
+   "observed": "False"
+  }
+ ],
+ "n_cells": 4,
+ "n_not_pass": 0,
+ "VERDICT": "PASS",
+ "seconds": 0.0
+}
