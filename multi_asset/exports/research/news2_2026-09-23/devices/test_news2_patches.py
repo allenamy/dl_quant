@@ -279,7 +279,7 @@ def t_d13(base_combo, new_combo):
 
 
 # ================================================================== D4 / D6(F10) / D7 / D8 via the real pipelines
-def build_mini(root, T=10000, NW=60, seed=101, edit_early=None):
+def build_mini(root, T=10000, NW=60, seed=101, edit_early=None, gap_rate=0.03):
     rng = np.random.default_rng(seed)
     os.makedirs(f"{root}/data", exist_ok=True)
     os.makedirs(f"{root}/results", exist_ok=True)
@@ -289,8 +289,9 @@ def build_mini(root, T=10000, NW=60, seed=101, edit_early=None):
     # Scattered gaps, INDEPENDENT per channel: most D8 windows are then not fully supported, and the
     # channel-intersection patches (Amihud / Kyle / flow) have a population to differ on at all.
     for c in range(7):
-        g = rng.random((T, NW)) < 0.03
-        cd[:, :, c][g] = np.nan
+        if gap_rate > 0:
+            g = rng.random((T, NW)) < gap_rate
+            cd[:, :, c][g] = np.nan
     # D4: two symbols whose 2016-window log_qv means differ below f16 resolution
     cd[:, 1, 3] = np.float16(10.0)
     cd[:, 2, 3] = np.float16(10.0)
@@ -395,25 +396,88 @@ def t_pipeline(base_tree, new_tree, work):
                  f"finite_share_raw={fnn_:.4f}", int((b89["X"][:, j] != n89["X"][:, j]).sum()),
                  "denominator restricted to the common population")
 
-    # ---- D7: history edited strictly before the window must not move the trend columns
-    for tree, root in ((base_tree, f"{work}/trend_base"), (new_tree, f"{work}/trend_new")):
-        for tag, edit in (("a", None), ("b", 4000)):
-            r = f"{root}_{tag}"
-            build_mini(r, edit_early=edit)
-            _, f89, names, _fin = run_pipeline(tree, r)
-            np.save(f"{r}/trend.npy", np.stack([f89["X"][:, names.index("C:trend_288")],
-                                                f89["X"][:, names.index("C:trend_2016")]], 1))
-    ba = np.load(f"{work}/trend_base_a/trend.npy")
-    bb = np.load(f"{work}/trend_base_b/trend.npy")
-    na = np.load(f"{work}/trend_new_a/trend.npy")
-    nb = np.load(f"{work}/trend_new_b/trend.npy")
-    # only anchors whose 2016-row window starts after the edited prefix
-    keep = slice(len(ba) // 2, None)
-    db = float(np.nanmax(np.abs(ba[keep] - bb[keep])))
-    dn = float(np.nanmax(np.abs(na[keep] - nb[keep])))
-    cell("D7.pre_window_edit_invariance", db > 0, f"max|trend(edited)-trend|={db:.3e}",
-         dn == 0.0, f"max|trend(edited)-trend|={dn:.3e}", int((ba != na).sum()),
-         "4000 pre-window rows overwritten with a +0.05/bar drift")
+    # ---- D7: which kernel is actually wired, and what the patch's full-window mask does.
+    #
+    # The cell this replaced asked "is the trend invariant to history edited before the window?", on
+    # the theory that the GLOBAL cumulative-moment formula loses that invariance to cancellation. With
+    # the comparison correctly restricted to pairs whose window starts past the edit, the base turned
+    # out to be invariant too (max|diff| = 0.000e+00 over 9,960 non-zero cells): at the producer's
+    # 40-day geometry the cumulative log price never gets large enough for the cancellation to reach
+    # float32 output. A cell whose baseline is not red proves nothing, so it is gone, and the two cells
+    # below test what the 24-anchor probe showed D7 actually does at this geometry.
+    import importlib.util as _ilu
+
+    def _load_f8(tree):
+        sp = _ilu.spec_from_file_location("f8mod_" + os.path.basename(tree), f"{tree}/fea171/f8_higher_order_features.py")
+        m = _ilu.module_from_spec(sp)
+        sp.loader.exec_module(m)
+        return m
+
+    sys.path.insert(0, f"{new_tree}/fea171")
+    from stable_trend_reference import stable_trend_block, global_trend_block
+    f8b = _load_f8(base_tree)
+
+    rb2, rn2 = f"{work}/kern_base", f"{work}/kern_new"
+    syms_k, e_rows_k, cd_k = build_mini(rb2, gap_rate=0.0)
+    build_mini(rn2, gap_rate=0.0)
+    _, k89b, namesk, _ = run_pipeline(base_tree, rb2)
+    _, k89n, _, _ = run_pipeline(new_tree, rn2)
+    r_k = cd_k[:, :, 0].astype(np.float32)
+    fin_k = np.isfinite(r_k)
+    rz_k = np.where(fin_k, r_k, 0).astype(np.float64)
+    first_k = np.where(fin_k.any(0), fin_k.argmax(0), len(r_k))
+    pm_k = np.arange(len(r_k))[:, None] >= first_k[None, :]
+    hi_k = np.asarray(e_rows_k) + 1
+    CSf_k = np.concatenate([np.zeros((1, r_k.shape[1])), np.cumsum(fin_k.astype(np.float64), 0)])
+    tidx_k = np.arange(len(r_k), dtype=np.float64)
+    lr_k = np.log1p(rz_k)
+
+    def ranked(raw):
+        out = np.zeros((len(e_rows_k) * r_k.shape[1],), np.float32)
+        for i in range(len(e_rows_k)):
+            sl = slice(i * r_k.shape[1], (i + 1) * r_k.shape[1])
+            out[sl] = f8b.anchor_rank_block(raw[i][:, None])[:, 0]
+        return out
+
+    for w in (288, 2016):
+        j = namesk.index(f"C:trend_{w}")
+        lo_k = np.maximum(hi_k - w, 0)
+        full = (CSf_k[hi_k] - CSf_k[lo_k]) == w
+        g = global_trend_block(lr_k, pm_k, hi_k, w, tidx_k).astype(np.float64)
+        g[(np.arange(len(hi_k))[:, None] >= 0) & ~full] = g[(np.arange(len(hi_k))[:, None] >= 0) & ~full]
+        st_ = stable_trend_block(lr_k, pm_k, hi_k, w).astype(np.float64)
+        st_[~full] = np.nan
+        eb, en = ranked(g), ranked(st_)
+        db = int((np.asarray(k89b["X"][:, j], np.float64) != eb).sum())
+        dn = int((np.asarray(k89n["X"][:, j], np.float64) != en).sum())
+        cell(f"D7.kernel_wired_{w}", db == 0,
+             f"base column == global_trend_block (cells differing: {db})",
+             dn == 0, f"patched column == stable_trend_block masked to full windows (cells differing: {dn})",
+             int((np.asarray(k89b["X"][:, j], np.float64) != np.asarray(k89n["X"][:, j], np.float64)).sum()),
+             "reference kernels from stable_trend_reference.py 01bf8b3d, ranked with the shipped anchor_rank_block")
+
+    # the full-window mask: one missing bar inside the 2016 window must take the whole column's ranks
+    # with it, which is the shape the 24-anchor probe saw at the two anchors where D7 bit.
+    rb3, rn3 = f"{work}/mask_base", f"{work}/mask_new"
+    for r_ in (rb3, rn3):
+        syms_m, e_rows_m, cd_m = build_mini(r_, gap_rate=0.0)
+        z = np.load(f"{r_}/cache.npz", allow_pickle=True)
+        d = z["data"].copy()
+        d[int(e_rows_m[-1]) - 900, 3, :] = np.nan          # one bar, one symbol, inside the 2016 window
+        np.savez(f"{r_}/cache.npz", ts=z["ts"], data=d, symbols=z["symbols"], ch=z["ch"])
+    _, m89b, namesm, _ = run_pipeline(base_tree, rb3)
+    _, m89n, _, _ = run_pipeline(new_tree, rn3)
+    j = namesm.index("C:trend_2016")
+    pa_m = m89b["pair_a"].astype(np.int64)
+    lastm = pa_m == pa_m.max()
+    ps_m = m89b["pair_s"].astype(np.int64)[lastm]
+    k3 = int(np.where(ps_m == 3)[0][0])
+    vb = float(np.asarray(m89b["X"][lastm][:, j], np.float64)[k3])
+    vn = float(np.asarray(m89n["X"][lastm][:, j], np.float64)[k3])
+    others_moved = int((np.asarray(m89b["X"][lastm][:, j], np.float64) != np.asarray(m89n["X"][lastm][:, j], np.float64)).sum())
+    cell("D7.full_window_mask", vb != 0.0, f"symbol 3 keeps a rank ({vb:.6g}) with one bar missing",
+         vn == 0.0 and others_moved > 1, f"symbol 3 drops out (rank {vn:.6g}); {others_moved} cells in the column moved",
+         others_moved, "one 5m bar removed inside the 2016-row window at the extracted anchor")
 
 
 def main():

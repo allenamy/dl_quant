@@ -1,7 +1,7 @@
 {
  "device": "test_news2_patches.py",
- "self_sha256": "ed2bba5a7fdfe58877886341f6e26b6f5f7c0dcc2aa4f8aa3d60d1cf1d3599e0",
- "utc": "2026-09-23T16:41:55Z",
+ "self_sha256": "83f6ae0978bf3e3c974a3f5b59051f7c6cf1e060bf32c35ada43f86214ead94f",
+ "utc": "2026-09-23T17:43:19Z",
  "python": "3.9.6",
  "numpy": "1.26.4",
  "base_tree_shas": {
@@ -14,7 +14,7 @@
   "shadow_loop_v3.py": "bfd6445fa9f13ccc9361e633827fbd8ebc7ea8ce3c1dd869dde552a00d8f8bea",
   "fea171/combo_stage.py": "8506141c33f9890e67b1e0a2de386b4e4b7e7383ab7471b3d37f9b3c0c704f08",
   "fea171/dlw_features.py": "057aa9104518bca2658c93f0b52ea60d6a0aa4016dc79220f3a94045c000b152",
-  "fea171/f8_higher_order_features.py": "ac7d76537c0769f9f95e3e13e011722b9c5708b31c441a811eeaea2043484430"
+  "fea171/f8_higher_order_features.py": "ae01e380cb2e99ad792f5439c0bd36f8c63dd1c2d75361873eb7dff7076a0716"
  },
  "cells": [
   {
@@ -218,16 +218,32 @@
    "note": "denominator restricted to the common population"
   },
   {
-   "cell": "D7.pre_window_edit_invariance",
+   "cell": "D7.kernel_wired_288",
    "verdict": "PASS",
-   "baseline_observed": "max|trend(edited)-trend|=6.441e-01",
-   "patched_observed": "max|trend(edited)-trend|=0.000e+00",
-   "n_changed": 23640,
-   "note": "4000 pre-window rows overwritten with a +0.05/bar drift"
+   "baseline_observed": "base column == global_trend_block (cells differing: 0)",
+   "patched_observed": "patched column == stable_trend_block masked to full windows (cells differing: 0)",
+   "n_changed": 238,
+   "note": "reference kernels from stable_trend_reference.py 01bf8b3d, ranked with the shipped anchor_rank_block"
+  },
+  {
+   "cell": "D7.kernel_wired_2016",
+   "verdict": "PASS",
+   "baseline_observed": "base column == global_trend_block (cells differing: 0)",
+   "patched_observed": "patched column == stable_trend_block masked to full windows (cells differing: 0)",
+   "n_changed": 1318,
+   "note": "reference kernels from stable_trend_reference.py 01bf8b3d, ranked with the shipped anchor_rank_block"
+  },
+  {
+   "cell": "D7.full_window_mask",
+   "verdict": "PASS",
+   "baseline_observed": "symbol 3 keeps a rank (0.228814) with one bar missing",
+   "patched_observed": "symbol 3 drops out (rank 0); 58 cells in the column moved",
+   "n_changed": 58,
+   "note": "one 5m bar removed inside the 2016-row window at the extracted anchor"
   }
  ],
- "n_cells": 26,
+ "n_cells": 28,
  "n_not_pass": 0,
  "VERDICT": "PASS",
- "seconds": 44.5
+ "seconds": 45.7
 }

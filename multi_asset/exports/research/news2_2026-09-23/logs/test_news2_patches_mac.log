@@ -1,6 +1,6 @@
-base tree  /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/news2_tests_4g_qe0ar/base_tree
-patched    /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/news2/a_all
-work       /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/news2_tests_4g_qe0ar
+base tree  /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/news2_tests_w4qpzy_b/base_tree
+patched    /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/news2/a_final
+work       /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/news2_tests_w4qpzy_b
   D5.king_float64_sum          PASS                       base=max|f32acc - f64acc|=0.000488281  patched=max|patched - f64acc(rounded to f32)|=0  n_changed=59
   D6.king_empty_window         PASS                       base=value=0 rank=-0.483051(in rank)  patched=value=0 rank=0(out of rank), wstat=NaN  n_changed=59
   D6.ret5_sum_stays_finite     PASS                       patched=ret5_sum_48=0.0
@@ -26,5 +26,7 @@ work       /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/news2_tests_4g_qe0ar
   D8.F:amihud_288              PASS                       base=finite_share_raw=0.9952, max|rank delta|=0.5593  patched=finite_share_raw=0.9952  n_changed=11009
   D8.F:kyle_288                PASS                       base=finite_share_raw=0.9952, max|rank delta|=0.1017  patched=finite_share_raw=0.9952  n_changed=2289
   D8.G:tbvw_288                PASS                       base=finite_share_raw=0.9952, max|rank delta|=0.05085  patched=finite_share_raw=0.9952  n_changed=1423
-  D7.pre_window_edit_invariance PASS                       base=max|trend(edited)-trend|=6.441e-01  patched=max|trend(edited)-trend|=0.000e+00  n_changed=23640
-NEWS2_PATCH_TESTS VERDICT=PASS cells=26 not_pass=0 receipt_sha256=fce82eb79b18813d0a48cec5f16159453d18ab9121450a9811600486bb92b1f1
+  D7.kernel_wired_288          PASS                       base=base column == global_trend_block (cells differing: 0)  patched=patched column == stable_trend_block masked to full windows (cells differing: 0)  n_changed=238
+  D7.kernel_wired_2016         PASS                       base=base column == global_trend_block (cells differing: 0)  patched=patched column == stable_trend_block masked to full windows (cells differing: 0)  n_changed=1318
+  D7.full_window_mask          PASS                       base=symbol 3 keeps a rank (0.228814) with one bar missing  patched=symbol 3 drops out (rank 0); 58 cells in the column moved  n_changed=58
+NEWS2_PATCH_TESTS VERDICT=PASS cells=28 not_pass=0 receipt_sha256=ed520fcf83c4520ad9c80170b265fc9f0c5114f78b35ad9bdb3f7bf5b5128f0e

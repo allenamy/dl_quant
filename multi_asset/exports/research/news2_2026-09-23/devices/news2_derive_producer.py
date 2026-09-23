@@ -390,10 +390,25 @@ D8_PATCHES = [
     ("D8:tbac1", "ac[wsum(CSft, hi, lo) < 72] = np.nan;", "ac[wsum(CSft, hi, lo) != 288] = np.nan;"),
 ]
 
+# NEW_S2 DEVIATION from derive_f8_candidate.py L21-L28, on lead's ruling DESIGN §E4(a)
+# (2026-09-23, after the 24-anchor probe showed 2/24 anchors DO differ at the served row):
+# the researcher's text computes the stable trend for every anchor row of the panel. The producer's
+# mini pipeline throws all rows but the current anchor away (combo_stage extracts pair_a == a_i), and
+# computing all ~240 rows costs +132% wall clock, which DESIGN §E makes the first deployment risk.
+# So WHICH rows to compute becomes an explicit parameter, F8_TREND_ROWS:
+#   "all"  (default) - the researcher's text, verbatim numerics, every row
+#   "last"           - only the row the mini pipeline extracts
+# Training replay and serving must pass the SAME value. Default is "all", so forgetting to set it is
+# slow, never wrong. "last" is admissible only after news2_d7_rows_gate.py shows the extracted row is
+# BITWISE equal between the two settings on the declared anchors (DESIGN §E4(a) admission gate).
 D7_NEW = '''        from stable_trend_reference import stable_trend_block
         trend_lr = np.log1p(rz)
+        _tr_rows = os.environ.get("F8_TREND_ROWS", "all")
+        assert _tr_rows in ("all", "last"), f"F8_TREND_ROWS must be all|last, got {_tr_rows!r}"
+        _ridx = np.arange(len(hi)) if _tr_rows == "all" else np.array([len(hi) - 1])
         for w in (288, 2016):
-            tr = np.concatenate([stable_trend_block(trend_lr, pm, hi[k:k+128], w, chunk_syms=2) for k in range(0, len(hi), 128)], axis=0)
+            tr = np.full((len(hi), nc), np.nan, np.float32)
+            tr[_ridx] = np.concatenate([stable_trend_block(trend_lr, pm, hi[_ridx][k:k+128], w, chunk_syms=2) for k in range(0, len(_ridx), 128)], axis=0)
             tr[wsum(CSf, hi, lo_of(w)) != w] = np.nan
             put(f"C:trend_{w}", tr, chunk)
         del trend_lr
