@@ -30,6 +30,9 @@ import bt_objb_targets as OT
 T0 = time.time()
 cfg_p, base_tag, m2_tag, beta_p, diag_p, out_npz, out_json = sys.argv[2:9]
 CFG = json.load(open(cfg_p)); runs = {r["tag"]: r for r in CFG["runs"]}
+if "m2" in CFG:                                    # the base run may live only in the base config the M2 config was derived from (NEW: Stage 1's)
+    _bc = CFG["m2"]["base_config"]; assert M.sha_file(_bc["path"]) == _bc["sha256"], "base config sha"
+    for r in json.load(open(_bc["path"]))["runs"]: runs.setdefault(r["tag"], r)
 rec = dict(device="m2_exec_path.py", self_sha256=M.sha_file(os.path.abspath(__file__)), argv=sys.argv, config={"path": cfg_p, "sha256": M.sha_file(cfg_p)},
            utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), checks=[])
 FAILS = []
@@ -104,7 +107,9 @@ def q(x):
 
 summ = {}
 for y in sorted(set(yr.tolist())):
-    m = yr == y
+    m = (yr == y) & np.isfinite(out["beta_exec_base"]) & np.isfinite(out["beta_exec_m2"])
+    if not m.any():                                 # a year with no published anchor (NEW 2022 = HOLD padding): named, not aggregated
+        summ[str(y)] = {"no_published_anchor": True, "n_anchors": int((yr == y).sum())}; continue
     ok = m & np.isfinite(survive) & (np.abs(intended) > 0.01)
     summ[str(y)] = {"beta_file_base_over_L1": q(bb_file[m] / L1b[m]), "beta_exec_base": q(out["beta_exec_base"][m]), "beta_exec_m2": q(out["beta_exec_m2"][m]),
                     "intended_hedge": q(intended[m]), "btc_exec_m2_minus_base": q(out["btc_exec_m2"][m] - out["btc_exec_base"][m]),

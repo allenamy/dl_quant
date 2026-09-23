@@ -1,0 +1,25 @@
+[     5s] CHECK pin.price_full_raw OK {"got": "23af32bd97c267d1", "want": "23af32bd97c267d1"}
+[     5s] CHECK pin.price_full_meta OK {"got": "d1e49cc9f0a7ddc4", "want": "d1e49cc9f0a7ddc4"}
+[     5s] CHECK pin.price_full_meta_old OK {"got": "f2f5382889f8c926", "want": "f2f5382889f8c926"}
+[     5s] CHECK pin.adapter OK {"got": "05cc5dc25df99459", "want": "05cc5dc25df99459"}
+[     5s] CHECK pin.base_npz OK {"got": "897387aa8889c7b5", "want": "897387aa8889c7b5"}
+[     5s] CHECK pin.base_receipt OK {"got": "dcfeab6d4a0ba206", "want": "dcfeab6d4a0ba206"}
+[     5s] CHECK axis.symbols_old_eq_raw OK 
+[     5s] CHECK grid.old_is_prefix_of_raw OK 
+[     5s] CHECK inlife_missing_equals_gapfilled_union_UA OK {"inlife_nan_old": 24397, "gapfilled": 21313, "ua": 3084, "overlap": 0, "inl_minus": 0, "union_minus": 0}
+[     5s] CHECK extension_rows_add_no_gapfill_or_ua_unaccounted OK {"ua_in_extension_rows": 0, "gapfilled_in_extension_rows": 0, "note": "extension (after the OLD grid) has no OLD in-life-NaN reference; the price device's G5 states the extension adds no UA and no gap fill"}
+[     5s] CHECK base_receipt.npz_sha OK "897387aa8889c7b5406d69ef49aed9b12c84d8c8abe8458368060be1d09b75b0"
+[     5s] CHECK base_receipt.arm OK "NEW_s2027"
+[     5s] CHECK base.axis_4h_contiguous OK {"n": 9252, "first": 1656547200, "last": 1789761600}
+[     5s] CHECK price.shape OK [444145, 829]
+[     5s] bars_4h ...
+[    13s] bars 9254 valid cells 3416090
+[    13s] betas ...
+[    33s] betas done
+[    36s] CHECK adapter.module_is_pinned_file OK "/workspace/baseline_tables_2026-09-19/devices_v3/bt_objb_targets.py"
+[    38s] CHECK adapter.loads_m2_file OK {"n": 9252, "sources": [{"tag": "NEW_s2027_M2", "arm": "NEW_s2027", "data": "codex_combo_20260923 corrected_combo_v1d combo_s2027 (copied from /tmp/codex_combo_20260923/combo_s2027, sha-equal to the local backup)", "written_rows_without_weights": 0, "zero_weights": 0}]}
+[    48s] CHECK adapter.dense_rows_equal_base_except_btc_bitwise OK {"anchors": 9252}
+[    48s] CHECK adapter.btc_column_equals_base_plus_hedge_bitwise OK {"max_abs": 2.7755575615628914e-17}
+[    48s] CHECK adapter.fresh_and_kind_unchanged OK {"m2": {"window_anchors": 9252, "combo": 6308, "king": 0, "hold": 2944, "written_rows_without_weights": 0}, "base": {"window_anchors": 9252, "combo": 6308, "king": 0, "hold": 2944, "written_rows_without_weights": 0}}
+[    48s] CHECK hold_rows_have_zero_hedge OK 2944
+M2_BUILD VERDICT=PASS tag=NEW_s2027_M2 targets_sha256=1757606145ee909e2e182a4a96128659f5a62f71a53c0bc8cbb28d6f27e11da0 receipt_sha256=309c0bfd9d5d4ab20df8d9ae36bd73396e34fe1d973daaf130c26c347a9e9ef3
