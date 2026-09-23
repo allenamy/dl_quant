@@ -1,0 +1,65 @@
+--- shadow_loop_v3.orig.py	2026-09-23 20:46:57
++++ shadow_loop_v3.py	2026-09-23 20:46:57
+@@ -271,6 +271,8 @@
+             before_files = _state_file_hashes(STATE_DIR)
+             self.legacy_import = True
+         self.syms = cfg["symbols_panel"]; self.live = cfg["symbols_live"]
++        # R10-B01 (NEW_S deploy): data/fetch list separate from the holding universe. symbols_fetch absent ⇒ fetch == live (behaviour unchanged).
++        self.fetch = list(cfg.get("symbols_fetch") or cfg["symbols_live"])
+         self.NW = len(self.syms)
+         self.sym_idx = {s: j for j, s in enumerate(self.syms)}
+         self.live_mask = np.zeros(self.NW, bool); self.live_mask[[self.sym_idx[s] for s in self.live if s in self.sym_idx]] = True
+@@ -305,7 +307,7 @@
+         self.last_anchor = int(aux["last_anchor"])
+         self.ema = aux["ema"]; self.ledger = aux["ledger_tail"]
+         self.prev_rec = aux.get("prev_rec")
+-        self.base = list(aux.get("base_syms") or self.live)   # M1: 秩基名单(上锚 exchangeInfo 结果), 缺省 = live
++        self.base = list(aux.get("base_syms") or self.fetch)   # M1: 秩基名单(上锚 exchangeInfo 结果), 缺省 = fetch(R10-B01; 无 symbols_fetch 时 = live)
+         lr = np.load(f"{BUNDLE}/leg_returns.npz")
+         p2 = f"{STATE_DIR}/leg_returns_live.json"
+         extra = json.load(open(p2)) if os.path.exists(p2) else {"king": [], "rev24": [], "fund": []}
+@@ -326,7 +328,7 @@
+         atomic_json(f"{STATE_DIR}/aux.json", {
+             "prev_close": self.prev_close, "H": {str(int(j)): float(self.H[j]) for j in np.where(np.abs(self.H) > 1e-9)[0]},
+             "last_anchor": self.last_anchor, "ema": self.ema, "ledger_tail": {s: r[-400:] for s, r in self.ledger.items()},
+-            "base_syms": list(getattr(self, "base", self.live)),   # M1
++            "base_syms": list(getattr(self, "base", self.fetch)),   # M1 (R10-B01: default = fetch list)
+             "prev_rec": self.prev_rec})
+         n_keep = 900 + 50
+         atomic_json(f"{STATE_DIR}/leg_returns_live.json",
+@@ -403,7 +405,7 @@
+     data_max_ts = 0
+     gap_bars = max(50, min(1000, (anchor - int(st.last_anchor)) // 300 + 4))
+     kw = 1 if gap_bars < 100 else (2 if gap_bars < 500 else 5)
+-    for s in st.live:
++    for s in st.fetch:   # R10-B01: klines for the fetch list
+         j = st.sym_idx.get(s)
+         if j is None: continue
+         r = fx.get("/fapi/v1/klines", {"symbol": s, "interval": "5m", "limit": gap_bars,
+@@ -431,7 +433,7 @@
+     # ── 3. 覆盖门(V2) ──
+     arow = row_of.get(anchor)
+     cov_now = float(np.isfinite(st.cd[arow, :, 3].astype(np.float32)).sum()) if arow is not None else 0
+-    exp_n = len(st.live)
++    exp_n = len(st.fetch)   # R10-B01: coverage over the fetch list
+     coverage = cov_now / max(exp_n, 1)
+     status = "OK" if coverage >= 0.95 else ("DEGRADED" if coverage >= 0.80 else "SKIP")
+     if status == "SKIP":
+@@ -445,7 +447,7 @@
+     if isinstance(_xi, dict) and isinstance(_xi.get("symbols"), list):
+         _b = [x["symbol"] for x in _xi["symbols"] if x.get("contractType") == "PERPETUAL" and x.get("quoteAsset") == "USDT" and x.get("status") == "TRADING"]
+         if len(_b) >= 300:
+-            st.base = sorted(set(_b) | set(st.live)); exinfo_ok = True
++            st.base = sorted(set(_b) | set(st.fetch)); exinfo_ok = True   # R10-B01
+     base = list(st.base); _live_set = set(st.live)
+     # ── 4. funding 增量(V12: fundingTime<=anchor) ── M1: 遍历基名单; fund_updates 语义不变(live 名), 基外名计 fund_updates_base
+     fund_updates = 0; fund_updates_base = 0
+@@ -535,7 +537,7 @@
+             rr[okx] = rankdata(x[okx]) / max(okx.sum() - 1, 1) - 0.5
+         FE_ANCH[:, col] = rr; col += 1
+     fe_v = np.full(st.NW, np.nan); fn_v = np.full(st.NW, np.nan); iv_v = np.full(st.NW, np.nan)
+-    for s in st.live:
++    for s in st.fetch:   # R10-B01: fund values for every fetched name (= training replay st.live = candidates)
+         j = st.sym_idx.get(s)
+         if j is None: continue
+         led = st.ledger.get(s); est = st.ema.get(s)
