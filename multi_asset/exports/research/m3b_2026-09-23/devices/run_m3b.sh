@@ -37,3 +37,19 @@ setsid bash -c "echo \$\$ > $R/logs/ctrl0_new.pgid; env -i PATH=/usr/bin:/bin HO
 #   m3tests_new: ALL GREEN 46/46, EXIT 0; ctrl0_new: BT_LAUNCH VERDICT=PASS, EXIT 0
 $P -B m2_path_compare.py $R/runs_smoke/ctrl0_new/OVN_NEW_s42XM3BH0_scaled_rule_raw_UAFE $BN 0 $R/receipts/M3BH0_CONTROL_seed0_NEW_s42_vs_base.json > $R/logs/cmp_ctrl0_new.log 2>&1
 # ==== commit (tests + R3 flat book + seed-0 controls; before any M3b NAV) ====
+# ==== commit 0f42996e8 (tests + R3 + seed-0 controls, before any M3b NAV) ====
+# ---- 5. 32-path overlay runs. Started 12:4xZ after NEW_S's p2b feature workers had all exited (pod2 loadavg 1.23 at 12:39Z; the only
+#         other heavy process was NEW_S's news_train_king.py at ~4 cores). My waiter's "0 workers" test never fired because `pgrep -fc`
+#         counted its own ssh shell (whose command line contains the pattern) — observed by hand instead. One launcher at a time
+#         (max_parallel 4 ⇒ <= 4 workers of mine at any moment) ----
+setsid bash -c "echo \$\$ > $R/logs/full_m3bh_old.pgid; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_hook.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_m3bh_OLD.json --resume m3bh_old > $R/logs/full_m3bh_old.log 2>&1; echo \"EXIT \$?\" >> $R/logs/full_m3bh_old.log"
+#   full_m3bh_old: BT_LAUNCH VERDICT=PASS (32 seeds), EXIT 0 ⇒ NEW_s42:
+setsid bash -c "echo \$\$ > $R/logs/full_m3bh_new.pgid; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_hook.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_m3bh_NEW_s42.json --resume m3bh_new > $R/logs/full_m3bh_new.log 2>&1; echo \"EXIT \$?\" >> $R/logs/full_m3bh_new.log"
+# ---- 6. readouts (R4's control arm = M3's 32-seed zero-hedge control, bitwise the base, receipts M3H0_CONTROL_32_*) ----
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_readout.py PATH,HOME,LC_CTYPE OLD $BO $R/runs/OBJB_A0XM3BH_scaled_rule_raw_UAFE $R3/runs/OBJB_A0XM3H0_scaled_rule_raw_UAFE $R/m3_sidecar/full_m3bh_old $R3/m3_sidecar/full_m3h0_old $R/work/EXEC_PATH_M3B_OLD.npz $R3/receipts/M3H0_CONTROL_32_OLD_vs_base.json $R/receipts/M3B_READOUT_OLD.json > $R/logs/readout_old.log 2>&1
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_readout.py PATH,HOME,LC_CTYPE NEW_s42 $BN $R/runs/OVN_NEW_s42XM3BH_scaled_rule_raw_UAFE $R3/runs/OVN_NEW_s42XM3H0_scaled_rule_raw_UAFE $R/m3_sidecar/full_m3bh_new $R3/m3_sidecar/full_m3h0_new $R/work/EXEC_PATH_M3B_NEW_s42.npz $R3/receipts/M3H0_CONTROL_32_NEW_s42_vs_base.json $R/receipts/M3B_READOUT_NEW_s42.json > $R/logs/readout_new.log 2>&1
+# (Mac) /usr/bin/python3 devices/m3_render.py - receipts/pod2/M3B_READOUT_OLD.json receipts/pod2/M3B_READOUT_NEW_s42.json > receipts/M3B_TABLES_rendered.md
+# ---- PGIDs recorded by the launch wrappers (logs/*.pgid; no signal was ever sent to any): ep_old 2256063 · ep_new 2256064 · m3btests_old
+#      2256065 · m3btests_new 2256297 · m3tests_old 2257110 · ctrl0_old 2257111 · m3tests_new 2258012 · ctrl0_new 2258013 · full_m3bh_old 2281227 ·
+#      full_m3bh_new 2282725
+# ---- 7. after the RESULT commit: rm -rf /dev/shm/m3_2026-09-23 (lead: keep M3's run root until the M3b comparison is done) ----
