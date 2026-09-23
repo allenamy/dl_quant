@@ -172,17 +172,18 @@ def run_producer(ws, A, fake, nc_rule, tag, cols_new=None):
             "target_live_written": os.path.exists(tl), "diag": last_diag(ws, A)}
 
 
-def run_combo(root, ws, exe, tag):
-    """The sandbox's combo_stage.py under sandbox-exec (COMBO_LIVE=1 into a rehearsal dir, network denied), as Candidate.step does."""
+def run_combo(root, ws, exe, tag, script=None, extra_env=None):
+    """The sandbox's combo_stage.py under sandbox-exec (COMBO_LIVE=1 into a rehearsal dir, network denied), as Candidate.step does.
+    script: another entry file inside the sandbox (the parity gate's wrapper that exec's combo_stage.py); extra_env: added variables."""
     sb = root; prof = f"{sb}/offline.sb"
     open(prof, "w").write('(version 1)\n(allow default)\n(deny network*)\n(deny file-write*)\n(allow file-write* (subpath (param "SANDBOX")) (literal "/dev/null"))\n'
                           '(deny file-read* file-write* (subpath (param "SOURCE_STATE")) (subpath (param "SOURCE_LIVE")) (regex #"(^|/)[.]env([^/]*$|/)"))\n')
     os.makedirs(f"{sb}/tmp", exist_ok=True); par = f"{ws}/state/target_live_PARITY"; os.makedirs(par, exist_ok=True)
     env = {"PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "PYTHONDONTWRITEBYTECODE": "1", "TMPDIR": f"{sb}/tmp", "WIDE_SHADOW_HOME": ws, "DL_QUANT_LIVE_ROOT": exe,
-           "COMBO_LIVE": "1", "COMBO_LIVE_DIR": par, "HOME": HOME}
+           "COMBO_LIVE": "1", "COMBO_LIVE_DIR": par, "HOME": HOME, **(extra_env or {})}
     la0 = os.getloadavg(); t0 = time.time()
     r = subprocess.run(["/usr/bin/sandbox-exec", "-D", f"SANDBOX={sb}", "-D", f"SOURCE_STATE={WS}/state", "-D", f"SOURCE_LIVE={LIVE}", "-f", prof,
-                        f"{WS}/venv/bin/python", "-u", f"{ws}/fea171/combo_stage.py"], env=env, cwd=f"{ws}/fea171", capture_output=True, text=True)
+                        f"{WS}/venv/bin/python", "-u", script or f"{ws}/fea171/combo_stage.py"], env=env, cwd=f"{ws}/fea171", capture_output=True, text=True)
     wall = time.time() - t0; la1 = os.getloadavg()
     open(f"{sb}/combo_{tag}.log", "w").write(r.stdout + "\n--- stderr ---\n" + r.stderr)
     st_p = f"{ws}/state/combo_live_status.json"

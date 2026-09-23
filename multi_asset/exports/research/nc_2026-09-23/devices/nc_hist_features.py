@@ -56,7 +56,7 @@ def _king_block(mutate=None):
     KING_SPAN = (b[0] + 1, e[0] + 1)
     code = ("def king_block(st, anchor, P, cfg, row_of, base, diag, append_log):\n" + "\n".join(lines[b[0]:e[0] + 1]) +
             "\n    return {'m': m, 'FE_ANCH': FE_ANCH, 'X': X, 'fe_v': fe_v, 'fn_v': fn_v, 'iv_v': iv_v, 'base_vals': base_vals, 'qvm': qvm,"
-            " 'ai': ai, 'wstat': wstat, 'legal_now': legal_now, 'cand_now': cand_now, 'CDf0': CDf[:, :, 0], 'c7': c7, 'v7': v7, 'covr': covr}\n")
+            " 'ai': ai, 'wstat': wstat, 'legal_now': legal_now, 'cand_now': cand_now, 'CDf0': CDf[:, :, 0], 'c7': fin5.sum(0), 'v7': v7, 'covr': covr}\n")   # c7 := fin5.sum(0): equal to the D5/D6 screen's c7, and defined in every arm (lead 2026-09-23)
     ns = {"np": np, "NC": _G["NC"], "TR": _G["TR"]}
     wl = [l for l in lines if l.startswith("WINS = ")]; assert wl == ["WINS = (48, 288, 864, 2016, 8640)"], wl
     exec(wl[0], ns)

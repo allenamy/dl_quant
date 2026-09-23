@@ -383,6 +383,19 @@
        - 这个键随两个钉一起改。执行器回滚时整份 book.json 逐字节恢复成换装前的备份(lead 裁定), 检查因此自动回到 legacy。
      - 文件: 执行器补丁基于 5b3d89c, 在 `multi_asset/exports/research/nc_2026-09-23/release_executor/`; 套件 `tests_anchor_report_builder` 加 [P5] 三格, 23/23。
    - 前三项随生产者发布一起安装; 第 (4) 项随执行器候选提交, 与两个钉、M3 在同一次电池里。安装命令与 sha 核对都写进部署手册 `docs/DEPLOY_producer_new_contract_2026-09-23.md`。
+6. **追加(实现细节; lead 批准 2026-09-23 21:2xZ): 平价门装置 `nc_parity_gate.py` 的规格**(FREEZE §3.3「平价门逐位」; §A9-3「一份实现」)
+   - 做法:
+     - 在轴末 E = 2026-09-19T00Z 之前的 6 个锚 A = E−20h … E 上, 服务端(Mac 生产 venv, 补丁生产者 `run_anchor` + combo_stage)喂与训练重放**完全相同**的输入。输入来自 pod2 导出的平价包: 窗内行、稀疏表、成员历史, 资金费取 ≤ A−4h 的末 400 条, EMA 取逐事件状态。
+     - 与训练构建 NC_FEATURES 在该锚的行逐位比较。比较的量: m、X78、fe_v、fn_v、iv_v、qvm、rev24、base_val、btcv、X82、X89。
+     - 判 PASS 的条件: 6 个锚、每个量 0 格不同, 且两个负控都能测出。负控是 rate +1 ulp 与 ch0 +1 个 f16 步长。
+   - **假 exchangeInfo = w24h**(lead 认可): 只列在 legal_live 窗口(最近 290 行)里有 bar 的加密名。
+     - 理由一: 历史上没有逐锚的 exchangeInfo, 「最近有成交」是 TRADING 的代理, 与 §E4-(b) 用的是同一个代理。
+     - 理由二: 名单是所有 legal 名的超集, 所以 m 与 base_val 按构造不受影响。
+     - 理由三: 实盘上 TRADING 名几乎都有 bar, 生产者的覆盖门(< 0.80 就跳过整锚)不会触发。反过来, 把 680 个加密名全列上, 等于造出一份历史上从未有过的名单(机器包覆盖率 0.66, 6 个锚全被跳过)。
+     - 剩余风险: 名单外的名字资金费不前推, 只影响 combo 资金费面板里的非成员列。若由此导致成员行出现不同, 门会报红, 并逐格归因, 不豁免。
+   - 真包到后先跑 `nc_parity_precheck.py`, 两种模式的逐锚覆盖率写进收据。门的收据头部记录 `exinfo_mode` 和 `exinfo_rationale`。
+   - 机器空跑 `MACHINERY_DRY_RUN_PASS` 只证明装置本身: 参照是生产者自己的输出, 不证明与 pod2 平价。部署前的硬门以真平价包上的结果为准。
+   - 同理, F-2 回滚演练必须在 merge2 之后用**真种子包**重跑; 机器种子上的 PASS 只作装置验证(lead 2026-09-23)。
    - 另记一条 pod2 约束: 容器 cgroup 内存上限 61 GB(`/sys/fs/cgroup/memory.max`)。/dev/shm 占用计入这个上限。§A9 第二遍 28 工人的峰值接近上限。同时段另起的种子包导出被 OOM 杀(rc 137), 第二遍工人未受影响。所以种子包在第二遍结束后再导。
 
 ### A8. 与 D15 / D16 的接口(不在本次代码修复内)

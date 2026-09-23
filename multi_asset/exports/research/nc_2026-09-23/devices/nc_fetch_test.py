@@ -86,6 +86,7 @@ def main():
     crypto = np.load(a.crypto)["crypto"].astype(bool); assert crypto.shape == (len(axis),)
     Z = np.load(f"{cp}/rolling.npz", allow_pickle=True); pts = Z["ts"].astype(np.int64); pdat = Z["data"]; prow = {int(t): i for i, t in enumerate(pts)}
     AUX = json.load(open(f"{cp}/aux.json")); pled = AUX["ledger_tail"]
+    _load0 = [round(x, 2) for x in os.getloadavg()]   # lead 2026-09-23: load average at start / end goes into the receipt (E3 gate input)
     rec = {"device_sha256": hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest(),
            "tree_shadow_loop_sha256": hashlib.sha256(open(f"{a.tree}/shadow_loop_v3.py", "rb").read()).hexdigest(),
            "quiet_window_at_start": st0 if isinstance(st0, dict) else str(st0), "deadline_utc": time.strftime("%H:%M:%SZ", time.gmtime(deadline)),
@@ -197,6 +198,7 @@ def main():
         mins[m]["requests"] += 1; mins[m]["fund_requests"] += int(x["path"] in FUND_PATHS)
         mins[m]["used_weight_1m_max"] = max(mins[m]["used_weight_1m_max"], x["used_weight_1m"] or 0); mins[m]["fund_5min_max"] = max(mins[m]["fund_5min_max"], x["fund_5min"])
     rec["per_minute"] = mins
+    rec["loadavg_1_5_15"] = {"start": _load0, "end": [round(x, 2) for x in os.getloadavg()], "ncpu": os.cpu_count()}
     json.dump(rec, open(os.path.join(a.out, "NC_FETCH_TEST.json"), "w"), indent=1)
     print(f"NC_FETCH_TEST VERDICT={rec['VERDICT']} anchors={len(rec['results'])} fetch_n={rec.get('fetch_n')}", flush=True)
     sys.exit(0 if rec["VERDICT"] == "PASS" else 3)
