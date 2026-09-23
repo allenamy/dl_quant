@@ -1,0 +1,101 @@
+{
+  "status": "FRESH_TARGETS_NOT_EXECUTION_PNL",
+  "seed": 2027,
+  "prereg": {
+    "path": "docs/PREREG_fresh_models_newS_2026-09-23.md",
+    "commit": "b6e682e0a"
+  },
+  "inputs": {
+    "/dev/shm/news_2026-09-23/work/NEWS_FEATURES.npz": "a490c294d90e0cdb2bb1dca503f3468dc1a4384396e3f7bae3e3020e161f79ac",
+    "/dev/shm/fresh_2026-09-23/work/legs.npz": "486dfe3765c5ef37adb6270b7c1642305bf0d6b1da9d1930b0963e8249f524d8",
+    "/dev/shm/fresh_2026-09-23/receipts/P3_LEGS.json": "ee9607ef24bd8fc36a62ed986f68a04df870a20f1e4ac7ff191f59bf6901d154",
+    "/dev/shm/fresh_2026-09-23/work/f10_s2027/F10_OOF.npz": "b4a972457406147c7db9b1aaa9450518aa481d01a709b240f1a1220afdc51a65",
+    "/dev/shm/fresh_2026-09-23/work/f10_s2027/TRAIN_RECEIPT.json": "9bb9f6f09c030ab0acb6c9dab6a4e80e48fd003d3818081f234fa501170aad3e",
+    "/dev/shm/news_2026-09-23/inputs/bundle_config.json": "3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e",
+    "/dev/shm/news_2026-09-23/receipts/P1_members_2025H2on.npz": "2323623fda9333710f5834911ab629377ab8c12b056f40ccfc9f7033c0c1f6f1",
+    "/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz": "f752d8ae3bf92f001fcb5d6f83a7e4ae286d9f11f7548c2e965305615aa9ae51",
+    "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f"
+  },
+  "sources": {
+    "/dev/shm/fresh_2026-09-23/devices/fresh_combo.py": "ba14db01c7646e9228da579cdf63deb5a6aa0e4442b86ff0903aafbb4f6312c0",
+    "/dev/shm/fresh_2026-09-23/devices/continuous_combo.py": "1501c9f63641bf447c4cb33661d08da25ced0948f9fae63cebb44cdfd1995d21",
+    "/dev/shm/fresh_2026-09-23/devices/combo_target.py": "d7577e824298fb90a554f35ac9c4d634202a4ed7e4e00cabc597a2d4eafdb544",
+    "/dev/shm/fresh_2026-09-23/devices/book_universe.py": "90e332cc27cf8f34aabcac13f9829f84e463ffa900efbe554e17c07436e8dcca",
+    "/dev/shm/fresh_2026-09-23/vendor_live/fea171/combo_stage.py": "fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8"
+  },
+  "policies": {
+    "literal": {
+      "path": "/dev/shm/fresh_2026-09-23/work/combo_s2027/literal.npz",
+      "sha": "fccc251fddbec59bbd856a99edc451440792a7483358210a611a4338a0a0905f",
+      "reasons": {
+        "F10 coverage,gross,names": 32,
+        "F10 coverage,names": 448,
+        "F10 coverage": 3238,
+        "F10 coverage,gross": 1245,
+        "gross": 169,
+        "publish": 3010
+      },
+      "years": {
+        "2023": {
+          "anchors": 2190,
+          "publish": 0,
+          "mean_producer_gross": 0.47443371510138477
+        },
+        "2024": {
+          "anchors": 2196,
+          "publish": 0,
+          "mean_producer_gross": 0.5610274223853282
+        },
+        "2025": {
+          "anchors": 2190,
+          "publish": 1444,
+          "mean_producer_gross": 0.5244211826814749
+        },
+        "2026": {
+          "anchors": 1566,
+          "publish": 1566,
+          "mean_producer_gross": 0.7681773965861604
+        }
+      }
+    },
+    "scaled_diagnostic": {
+      "path": "/dev/shm/fresh_2026-09-23/work/combo_s2027/scaled_diagnostic.npz",
+      "sha": "358f6cf714c84e46cabe7c5fd72b62de7e24fab9e22cdf4e7e80db3f7781a6f8",
+      "reasons": {
+        "gross": 1446,
+        "publish": 6696
+      },
+      "years": {
+        "2023": {
+          "anchors": 2190,
+          "publish": 1789,
+          "mean_producer_gross": 0.47443371510138477
+        },
+        "2024": {
+          "anchors": 2196,
+          "publish": 1857,
+          "mean_producer_gross": 0.5610274223853282
+        },
+        "2025": {
+          "anchors": 2190,
+          "publish": 1484,
+          "mean_producer_gross": 0.5244211826814749
+        },
+        "2026": {
+          "anchors": 1566,
+          "publish": 1566,
+          "mean_producer_gross": 0.7681773965861604
+        }
+      }
+    }
+  },
+  "member_cells_outside_book_universe": 167437,
+  "state_init": "zero at 2023-01-01; hypothetical common start, not live archived state",
+  "hold_contract": "trade_mask False = maintain quantities, never King substitution",
+  "fresh_note": "identical to news_combo.py except the roots; King/legs/F10 are FRESH (PREREG \u00a71 K/F/E)",
+  "limits": [
+    "production-caliber legs replayed on history; seat history starts with King OOF (2022-07)",
+    "no execution/cash or policy-stop result",
+    "scaled_diagnostic changes historical publication gate; never current-live literal"
+  ]
+}

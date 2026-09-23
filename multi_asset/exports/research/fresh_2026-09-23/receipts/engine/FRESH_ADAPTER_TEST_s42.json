@@ -1,0 +1,121 @@
+{
+ "device": "ovn_adapter_test.py",
+ "self_sha256": "878331f6caeb5cc84d89183132eaa359570d3745b654c384b1b3b5c2b3f0ae0c",
+ "adapter_sha256": "17555e56362c53ce4e961e0d8cb050be65cddae31088b275f190eecacd5794ea",
+ "loader_sha256": "05cc5dc25df99459d93b34c9b10477f08002dd301b9b45ec6aa47bd77fc95373",
+ "spec": {
+  "arm": "FRESH_s42",
+  "data": "FRESH (fresh_2026-09-23) combo_s42: NEW_S producer-replayed features, King monthly folds + F10 all-monthly full-window, seed 42",
+  "scaled": {
+   "npz": "/dev/shm/fresh_2026-09-23/work/combo_s42/scaled_diagnostic.npz",
+   "sha256": "3cf963227483d6be31e9a4de8ea7bfdafd8f9f584b65c4a660b44dac3a88460f"
+  },
+  "lit": {
+   "npz": "/dev/shm/fresh_2026-09-23/work/combo_s42/literal.npz",
+   "sha256": "1809b337458217ccc8874ccbd4fe43da5bddd4c76baf181ebf4329244d37809f"
+  },
+  "new_receipt": {
+   "path": "/dev/shm/fresh_2026-09-23/work/combo_s42/TARGET_RECEIPT.json",
+   "sha256": "0a9b05afb9f2aae62dc8aec028ae3bb93d8e6032d39bc603dfb01b45b0f7c674"
+  },
+  "price_meta": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r_meta.npz",
+   "sha256": "d1e49cc9f0a7ddc4104feb52a42da3024ba1e66ad5891a26c96f00cff7ce5d90"
+  },
+  "universe": {
+   "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+   "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f"
+  },
+  "window_first_anchor": "2022-06-30T00:00:00Z"
+ },
+ "utc_start": "2026-09-23T16:17:12Z",
+ "cases": [
+  {
+   "case": "baseline",
+   "outcome": "GREEN",
+   "detail": {
+    "scaled": {
+     "anchors_compared": 8142,
+     "published_equal": 6421,
+     "bitwise_equal": true,
+     "padded_checked": 1110
+    },
+    "lit": {
+     "anchors_compared": 8142,
+     "published_equal": 2853,
+     "bitwise_equal": true,
+     "padded_checked": 1110
+    }
+   },
+   "mutation": null,
+   "as_expected": true
+  },
+  {
+   "case": "M1_index_plus_one",
+   "outcome": "RED",
+   "error_type": "RoundTripError",
+   "error": "scaled: dense rows differ from NEW weights on 1 anchors, first 2024-10-23T16:00:00Z",
+   "expected": [
+    "RoundTripError",
+    "dense rows differ"
+   ],
+   "as_expected": true
+  },
+  {
+   "case": "M2_published_row_to_hold",
+   "outcome": "RED",
+   "error_type": "RoundTripError",
+   "error": "scaled: fresh != trade_mask on 1 anchors",
+   "expected": [
+    "RoundTripError",
+    "fresh != trade_mask"
+   ],
+   "as_expected": true
+  },
+  {
+   "case": "M3_value_plus_one_ulp",
+   "outcome": "RED",
+   "error_type": "RoundTripError",
+   "error": "scaled: dense rows differ from NEW weights on 1 anchors, first 2024-10-23T16:00:00Z",
+   "expected": [
+    "RoundTripError",
+    "dense rows differ"
+   ],
+   "as_expected": true
+  },
+  {
+   "case": "M4_symbols_swapped",
+   "outcome": "RED",
+   "error_type": "AdapterError",
+   "error": "symbols_vs_certified_price_axis {\"reading\": \"scaled\", \"n_positions\": 2, \"first\": [10, 11]}",
+   "mutation": {
+    "swapped_positions": [
+     10,
+     11
+    ]
+   },
+   "expected": [
+    "AdapterError",
+    "symbols_vs_certified_price_axis"
+   ],
+   "as_expected": true
+  },
+  {
+   "case": "M5_hold_row_weight",
+   "outcome": "RED",
+   "error_type": "AdapterError",
+   "error": "hold_row_with_weight {\"n\": 1, \"first_anchor\": \"2025-06-25T00:00:00Z\"}",
+   "mutation": {
+    "hold_anchor": "2025-06-25T00:00:00Z",
+    "col": 0
+   },
+   "expected": [
+    "AdapterError",
+    "hold_row_with_weight"
+   ],
+   "as_expected": true
+  }
+ ],
+ "VERDICT": "PASS",
+ "utc_end": "2026-09-23T16:17:20Z"
+}
