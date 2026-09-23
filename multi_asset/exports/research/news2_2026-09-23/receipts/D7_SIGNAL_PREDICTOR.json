@@ -154,5 +154,16 @@
    279
   ]
  },
- "seconds": 110.2
+ "seconds": 110.2,
+ "FALSIFIED": {
+  "utc": "2026-09-23T21:1xZ",
+  "how": "news2_nc_d7_gate.py was run on 6 anchors this receipt marks as able to differ (1650830400 / 1674504000 / 1704182400 / 1725940800 / 1752624000 / 1774512000). All six show D7_moves_the_row = 0: the floor arm and the D7 arm produce the same served row. Receipt: NC_D7_GATE_signal.json, VERDICT=PASS(NO-SIGNAL), usable=6 with_signal=0.",
+  "verdict": "THIS PREDICTOR DOES NOT PREDICT. The band [w//2, w) on rr support is not the condition under which the two arms differ. Do not use suggested_gate_anchors as evidence that an anchor exercises D7.",
+  "why_the_self_test_did_not_catch_it": "--selftest exercised difference_set_sizes, i.e. that the COUNTER counts and fires on an injected member. It never checked the DERIVATION linking the band to an observable difference. A red control on the arithmetic is not a red control on the claim.",
+  "two_candidate_faults_not_yet_separated": [
+   "the baseline's NaN condition in f8 is `n < w//2` on wsum(CSpm,...) -- the POST-LISTING mask count -- not on the finite-support count this predictor measured; for a long-listed name the baseline is finite regardless of support, so the difference set is not bounded below by w//2",
+   "f8's CSf counts finite values of the MINI CACHE's channel 0 inside pass2, which may not be the same array as work/R_crypto.npy that this predictor measured"
+  ],
+  "status": "receipt kept for the record; its by_year and difference-set numbers describe the rr support band and nothing more"
+ }
 }

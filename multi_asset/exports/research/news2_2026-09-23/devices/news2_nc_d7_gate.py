@@ -32,6 +32,12 @@ from news2_nc_adapter import Replay
 # carried it on the old contract (1685520000 / 1742428800) carry none on the new one, while the
 # predictor finds 960 others. So the requirement is driven by the predictor receipt, not hardcoded.
 MIN_SIGNAL_ANCHORS = 4
+# An anchor needs a full 40-day window (CACHE_ROWS) plus the 2016-row btcv lookback inside it, or the
+# UN-FIXED btcv in the floor arm degenerates to NaN and its original assertion fires. That is a
+# cache-start artifact, not a property of the fix under test, so such anchors are refused by name
+# rather than silently producing an UNAVAILABLE row. (Measured: 1641571200 sits at cache row 1920.)
+CACHE_ROWS = 11520
+MIN_HISTORY_ROWS = CACHE_ROWS + 2016
 ARMS = {"floor": "floor", "all": "floorD7all", "last": "floorD7"}
 
 
@@ -63,6 +69,11 @@ def main():
     assert len(in_sample) >= MIN_SIGNAL_ANCHORS, (
         f"refusing: need >= {MIN_SIGNAL_ANCHORS} anchors the predictor marks as able to differ; "
         f"sample has {len(in_sample)} ({in_sample}). Predictor: {pred_path}")
+    ax = np.load(os.path.join(os.environ.get("NC_W", "/dev/shm/nc_2026-09-23"), "work/axes.npz"), allow_pickle=True)
+    _ts = ax["ts"].astype(np.int64)
+    shallow = [int(a) for a in anchors if int(np.searchsorted(_ts, a)) < MIN_HISTORY_ROWS]
+    assert not shallow, (f"refusing: anchors without {MIN_HISTORY_ROWS} rows of history behind them "
+                         f"(the floor arm's un-fixed btcv degenerates there): {shallow}")
     t0 = time.time()
 
     with np.load(mh_path) as z:
@@ -132,6 +143,7 @@ def main():
            "predictor": {"path": pred_path, "sha256": sha(pred_path),
                          "n_anchors_with_signal": P.get("n_anchors_with_signal")},
            "sample_anchors_predicted_to_differ": in_sample, "anchors": anchors,
+           "min_history_rows": MIN_HISTORY_ROWS,
            "rows": rows, "n_ok": len(ok), "n_usable": len(usable),
            "n_anchors_where_D7_moves_the_row": len(signal),
            "median_seconds": {k: med(v) for k, v in timing.items()}, "seconds_per_anchor": timing,
