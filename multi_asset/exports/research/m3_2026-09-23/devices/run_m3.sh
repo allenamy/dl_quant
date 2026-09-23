@@ -50,3 +50,22 @@ env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_feasibility.py PATH,HOM
 #   net ≈ 1e-17): red on NEW (bitwise unchanged), and on OLD "green" only through a 1e-16 float difference, i.e. vacuous on both. Fixed the
 #   control (per-name N(0, 0.25) on row A, must move β_exec by > 1e-4); re-ran both commands above unchanged.
 #   re-run: M3_TESTS VERDICT=ALL GREEN tests=46 red=0, EXIT 0, both bases.
+# ==== commit 14891549c (feasibility rows, tests, seed-0 controls; before any M3 NAV) ====
+# ---- 9. full runs, 32 paths, R-main only: overlay OLD / NEW_s42 and zero-hedge control OLD first (3 launchers × max_parallel 4 = 12 workers),
+#         control NEW_s42 once a launcher has finished (CPU cap 12 workers) ----
+setsid bash -c "echo \$\$ > $R/logs/full_m3h_old.pgid; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_hook.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_m3h_OLD.json --resume m3h_old > $R/logs/full_m3h_old.log 2>&1; echo \"EXIT \$?\" >> $R/logs/full_m3h_old.log"
+setsid bash -c "echo \$\$ > $R/logs/full_m3h_new.pgid; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_hook.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_m3h_NEW_s42.json --resume m3h_new > $R/logs/full_m3h_new.log 2>&1; echo \"EXIT \$?\" >> $R/logs/full_m3h_new.log"
+setsid bash -c "echo \$\$ > $R/logs/full_m3h0_old.pgid; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_hook.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_m3h0_OLD.json --resume m3h0_old > $R/logs/full_m3h0_old.log 2>&1; echo \"EXIT \$?\" >> $R/logs/full_m3h0_old.log"
+#   full_m3h_new: BT_LAUNCH VERDICT=PASS (32 seeds), EXIT 0 ⇒ the fourth launcher:
+setsid bash -c "echo \$\$ > $R/logs/full_m3h0_new.pgid; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_hook.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_m3h0_NEW_s42.json --resume m3h0_new > $R/logs/full_m3h0_new.log 2>&1; echo \"EXIT \$?\" >> $R/logs/full_m3h0_new.log"
+# ---- 10. zero-hedge control vs base, all 32 seeds, bitwise; then the readouts ----
+S32=$(seq -s, 0 31)
+$P -B m2_path_compare.py $R/runs/OBJB_A0XM3H0_scaled_rule_raw_UAFE $BO $S32 $R/receipts/M3H0_CONTROL_32_OLD_vs_base.json > $R/logs/cmp_ctrl32_old.log 2>&1
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_readout.py PATH,HOME,LC_CTYPE OLD $BO $R/runs/OBJB_A0XM3H_scaled_rule_raw_UAFE $R/runs/OBJB_A0XM3H0_scaled_rule_raw_UAFE $R/m3_sidecar/full_m3h_old $R/m3_sidecar/full_m3h0_old $EP_O $R/receipts/M3H0_CONTROL_32_OLD_vs_base.json $R/receipts/M3_READOUT_OLD.json > $R/logs/readout_old.log 2>&1
+$P -B m2_path_compare.py $R/runs/OVN_NEW_s42XM3H0_scaled_rule_raw_UAFE $BN $S32 $R/receipts/M3H0_CONTROL_32_NEW_s42_vs_base.json > $R/logs/cmp_ctrl32_new.log 2>&1
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_readout.py PATH,HOME,LC_CTYPE NEW_s42 $BN $R/runs/OVN_NEW_s42XM3H_scaled_rule_raw_UAFE $R/runs/OVN_NEW_s42XM3H0_scaled_rule_raw_UAFE $R/m3_sidecar/full_m3h_new $R/m3_sidecar/full_m3h0_new $EP_N $R/receipts/M3H0_CONTROL_32_NEW_s42_vs_base.json $R/receipts/M3_READOUT_NEW_s42.json > $R/logs/readout_new.log 2>&1
+# (Mac) /usr/bin/python3 devices/m3_render.py receipts/pod2/M3_FEASIBILITY.json receipts/pod2/M3_READOUT_OLD.json receipts/pod2/M3_READOUT_NEW_s42.json > receipts/M3_TABLES_rendered.md
+# ---- PGIDs recorded by the launch wrappers (logs/*.pgid; the only process groups this run ever owned; no signal was sent to any) ----
+# build_beta 2243054 (try 1: 2242977) · dbg_ctrl_old 2243200 · ctrl0_old 2243576 · ctrl0_new 2243577 · ep_old 2243578 · ep_new 2243579 ·
+# tests_old / tests_new (re-run) 2244388 / 2244389 (try 1: 2244190 / 2244191) · full_m3h_old 2244586 · full_m3h_new 2244587 ·
+# full_m3h0_old 2244588 · full_m3h0_new 2247191
