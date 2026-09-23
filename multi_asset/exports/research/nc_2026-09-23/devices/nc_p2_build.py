@@ -156,7 +156,11 @@ def merge2():
     rows = _p1_view()
     p2r = {}
     for f in sorted(glob.glob(f"{OUT}/p2_shards/p2_*.npz")):
-        z = np.load(f); j = json.load(open(f + ".json")); assert j["sha256"] == sha(f)
+        j = json.load(open(f + ".json")); assert j["sha256"] == sha(f)
+        # read every member ONCE: an NpzFile re-reads (and re-allocates) the whole array on each key access, and a slice keeps its
+        # base alive — the first merge2 (2026-09-23 22:22Z) pinned one full shard array per anchor and was OOM-killed (oom_kill 8->9)
+        with np.load(f) as zz:
+            z = {k: zz[k] for k in ("anchor", "count", "X82", "X89", "btcv", "mh_missing")}
         off = np.concatenate([[0], np.cumsum(z["count"])])
         for i, A in enumerate(z["anchor"]):
             p2r[int(A)] = (z["X82"][off[i]:off[i + 1]], z["X89"][off[i]:off[i + 1]], float(z["btcv"][i]), int(z["mh_missing"][i]))
