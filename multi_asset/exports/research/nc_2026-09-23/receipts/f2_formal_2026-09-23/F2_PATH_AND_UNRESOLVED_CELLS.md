@@ -11,7 +11,7 @@ F-2 实际走的是 DESIGN §F-2 定义的路径(`--nc-state` 模式):
 2. **(a2)** 新 combo_stage 在 sandbox-exec 下跑 A1。
 3. **(a3)** 不开侧车,新生产者加新 combo 连推 A2。
 4. **(b)** `nc_downgrade_state.py` 以子进程方式运行(与部署当晚操作员的运行方式相同),把 A1 之后的 NC 状态降级。
-5. **(c)** 旧生产者(6080073b)加载降级后的状态,推进 A2。
+5. **(c)** 旧生产者(~~6080073b~~ → **60800739**, 全 sha `6080073964bffc621c893915b16f71ecafe093194f0b99a66a4463ee12c74e61`;更正见文末)加载降级后的状态,推进 A2。
 6. **(d)** 旧 combo 跑 A2。
 7. **(e1–e3)** 三个负控。
 
@@ -46,3 +46,18 @@ F-2 实际走的是 DESIGN §F-2 定义的路径(`--nc-state` 模式):
   - e1:旧加载器拒绝,报 `invalid generation schema`;
   - e2:旧生产者 TypeError,原因是 acc 为 None;
   - e3:旧生产者 TypeError,原因是 iv 为 None。
+
+## 更正(lead 2026-09-23 22:5xZ;原文划线保留)
+
+旧生产者 `~/wide_shadow/shadow_loop_v3.py` 的实测 sha256 为 `6080073964bffc621c893915b16f71ecafe093194f0b99a66a4463ee12c74e61`,前 8 位是 **60800739**,不是「6080073b」。
+
+- 「6080073b」**不指任何别的文件**,是一个抄错的前缀,在多处文本里沿用了下来。
+- **代码里的钉一律是正确的全 sha**,不受影响:
+  - `nc_downgrade_state.py` L22 `OLD_SHA = "6080073964bf…"`,L53 加载旧生产者时断言它;
+  - `nc_sandbox_lib.py` L14 `PIN["old_shadow"] = "6080073964bf…"`;
+  - `news2_b_edits_9c475421.py` L46 `RAW_SHADOW_SHA = "6080073964bf…"`。
+  - 所以 F-2 实际加载的就是 60800739 这个文件,不存在「钉了一个不存在的文件」的问题。
+- 抄错的前缀还出现在这些**文字**里:
+  - DESIGN 第 34、607、813 行,以及第 1 行的首行元信息;
+  - 装置 docstring / 注释:`nc_downgrade_state.py` L2、L9、L35,`test_nc_rollback_rehearsal.py` L15,`nc_sandbox_lib.py` L97,`news2_b_edits_9c475421.py` L8、L449。
+- 装置的注释今晚不改:F-2 在 treeNC5 上的正式重跑马上要用同一份装置,改注释会让装置 sha 变,收据就对不上。等发布后统一更正。DESIGN 里的这几处,由 lead 在冻结修订里处理,或者我另起更正附注。之后的收据一律写 60800739。
