@@ -28,7 +28,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from news2_nc_adapter import Replay
 
-MUST_INCLUDE = [1685520000, 1742428800]   # the anchors where D7 moved the served row on the old contract
+# Which anchors carry signal is a property of the CONTRACT, not a constant: the two anchors that
+# carried it on the old contract (1685520000 / 1742428800) carry none on the new one, while the
+# predictor finds 960 others. So the requirement is driven by the predictor receipt, not hardcoded.
+MIN_SIGNAL_ANCHORS = 4
 ARMS = {"floor": "floor", "all": "floorD7all", "last": "floorD7"}
 
 
@@ -49,10 +52,17 @@ def diff(a, b):
 
 
 def main():
-    arms_root, nc_dev, cfg, mh_path, work, out_path = sys.argv[1:7]
-    anchors = sorted(set(int(x) for x in sys.argv[7:]))
-    missing = [a for a in MUST_INCLUDE if a not in anchors]
-    assert not missing, f"refusing: the anchors where D7 moves the served row must be in the sample, missing {missing}"
+    arms_root, nc_dev, cfg, mh_path, pred_path, work, out_path = sys.argv[1:8]
+    anchors = sorted(set(int(x) for x in sys.argv[8:]))
+    # the sample must contain anchors the predictor says can differ, or the comparison has no resolution
+    P = json.load(open(pred_path))
+    pred_signal = set(P.get("suggested_gate_anchors", []))
+    pred_examples = set(int(k) for k in P.get("examples", {}))
+    predicted = pred_signal | pred_examples
+    in_sample = sorted(a for a in anchors if a in predicted)
+    assert len(in_sample) >= MIN_SIGNAL_ANCHORS, (
+        f"refusing: need >= {MIN_SIGNAL_ANCHORS} anchors the predictor marks as able to differ; "
+        f"sample has {len(in_sample)} ({in_sample}). Predictor: {pred_path}")
     t0 = time.time()
 
     with np.load(mh_path) as z:
@@ -118,7 +128,10 @@ def main():
            "design_ref": "DESIGN E4(a) admission gate, rebuilt on the nc tree",
            "arms": ARMS, "declared_trend_rows": declared, "floor": "D5,D6",
            "members_hist": {"path": mh_path, "sha256": sha(mh_path)},
-           "must_include_anchors": MUST_INCLUDE, "anchors": anchors,
+           "min_signal_anchors_required": MIN_SIGNAL_ANCHORS,
+           "predictor": {"path": pred_path, "sha256": sha(pred_path),
+                         "n_anchors_with_signal": P.get("n_anchors_with_signal")},
+           "sample_anchors_predicted_to_differ": in_sample, "anchors": anchors,
            "rows": rows, "n_ok": len(ok), "n_usable": len(usable),
            "n_anchors_where_D7_moves_the_row": len(signal),
            "median_seconds": {k: med(v) for k, v in timing.items()}, "seconds_per_anchor": timing,
