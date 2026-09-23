@@ -353,7 +353,9 @@
    - §A3 收益定义不变(服务端只是逐位延伸)。
    - 因此 King 与 F10 必须重训, NEW 的 Stage 1 结论不能直接沿用。
 6. **训练方案 = NEW_S 方案**: King 年折、F10 s42 / s2027 月折, 配方与 NEW_S 相同(`docs/RESULT_new_servable_models_2026-09-23.md` §5)。
-   - 依据: FRESH 判 KEEP_NEWS(lead 转达; 收据 sha 前缀 c1fb0bf0, 本代理**未打开核对**, 冻结前补上路径与全 sha)。
+   - 依据: FRESH 判 **KEEP_NEWS**。收据 pod2 `/dev/shm/fresh_2026-09-23/receipts/engine/FRESH_STATS.json`, sha256 `c1fb0bf03ff9f664c58633824c8c2e2cc4aaf499c5e4430b2e8a36b589393712`。
+     - 本代理 2026-09-23 在 pod2 自行核过: sha 相同; `VERDICT` = KEEP_NEWS; `failing_by_seed` 两个种子均为 F1–F4。
+     - fresh 代理入库后, 补研究仓路径 `multi_asset/exports/research/fresh_2026-09-23/receipts/`。
    - 训练、组合、引擎、判词归 news2(C-4)。
 
 ---
