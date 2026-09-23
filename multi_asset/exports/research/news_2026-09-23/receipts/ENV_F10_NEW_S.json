@@ -1,0 +1,21 @@
+{
+ "what": "Environment of the NEW_S F10 training run (seeds 42 and 2027), reconstructed 2026-09-23 23:2xZ from the run's own driver, logs and receipts on pod2 (/dev/shm/news_2026-09-23). Written at lead request (E-0826-D family: the F10 receipts did not record the interpreter).",
+ "run": {"driver": "devices/news_chain_resume.sh", "driver_sha256_prefix": "5d2b80c6a30b8a39", "driver_mtime_utc": "2026-09-23T12:39:24Z",
+         "resume_logged": "chain.log 12:39:27 'RESUME (AMENDMENT 2): King interpreter -> /workspace/venv'",
+         "f10_step": "chain.log 13:18:35 START f10 / 'f10 pgids 2285168 2285169' / 'f10 rc 0 0' / 14:15:20 DONE f10",
+         "trainer": "devices/news_train_f10.py", "trainer_sha256_prefix": "d4feabd1c6a1ff9d", "trainer_mtime_utc": "2026-09-23T10:41:38Z",
+         "files_unchanged_since_run": "both mtimes precede the f10 step (13:18:35Z), so the bytes on disk are the bytes that ran"},
+ "interpreter": {
+   "VERIFIED_invocation_path": "/workspace/venv/bin/python  (news_chain_resume.sh L8 PV=/workspace/venv/bin/python; L20-L21 'setsid $PV -u news_train_f10.py --seed 42|2027')",
+   "VERIFIED_now_symlink_chain": "/workspace/venv/bin/python -> python3 -> /usr/bin/python3 ; readlink -f = /usr/bin/python3.11 (Python 3.11.10)",
+   "VERIFIED_now_venv_config": "/workspace/venv/pyvenv.cfg: include-system-site-packages = false, executable = /usr/bin/python3.11, version = 3.11.10",
+   "KEY_FACT": "the BINARY is the same as /usr/bin/python3; the ENVIRONMENT is selected by the invocation path. Invoked as /workspace/venv/bin/python it loads /workspace/venv/lib/python3.11/site-packages; invoked as /usr/bin/python3 it loads the system site-packages (torch 2.4.1+cu124, arch list up to sm_90 -> 'no kernel image' on this sm_120 GPU). A re-run MUST use the path /workspace/venv/bin/python, not the binary."},
+ "torch_version_at_run_time": "NOT RECORDED - cannot be verified (neither the trainer nor its receipts/logs record torch.__version__ or sys.executable)",
+ "indirect_evidence_not_verification": [
+   "today /workspace/venv/bin/python imports torch 2.11.0+cu128, CUDA 12.8, arch list ends sm_90/sm_100/sm_120",
+   "/workspace/venv/lib/python3.11/site-packages/torch/version.py mtime 2026-08-24T12:35:16Z (before the run; a reinstall would have changed it)",
+   "the run trained on CUDA (trainer L64 asserts torch.cuda.is_available(); L78 dev='cuda') on an sm_120 GPU; the system torch 2.4.1+cu124 has no sm_120 kernels, so the run could not have used it"],
+ "gpu": {"VERIFIED_recorded": "NVIDIA RTX PRO 4500 Blackwell — FOLD_RECEIPT.json 'gpu' field, 23/23 folds for seed 42 and 23/23 for seed 2027",
+         "now": "nvidia-smi: NVIDIA RTX PRO 4500 Blackwell, compute capability 12.0"},
+ "also_noted": "the same resume driver ran King (news_train_king.py) with $PV = /workspace/venv/bin/python (L14; AMENDMENT 2), legs and combo with $P314 = /root/news_2026-09-23_env/venv314/bin/python (L15, L29)."
+}
