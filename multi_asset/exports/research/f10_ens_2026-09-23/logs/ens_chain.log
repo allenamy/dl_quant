@@ -1,0 +1,12 @@
+SPEC written; changed keys vs NEW_s42 spec: ['arm', 'data', 'lit', 'new_receipt', 'scaled']
+OVN_ADAPTER VERDICT=PASS arm=NEW_ENS npz_sha256=ea6d20f60336bc1f793090f6497c329c98249f6ae068a57debc9fd7c0c1af10a receipt_sha256=6cd1a213e1522abdaaee825563d2c0487e5814b709d180150d4ec53e3638bef3 roundtrip=bitwise scaled_published=6609 lit_published=3086 pad=1110
+{"case": "baseline", "outcome": "GREEN", "detail": {"scaled": {"anchors_compared": 8142, "published_equal": 6609, "bitwise_equal": true, "padded_checked": 1110}, "lit": {"anchors_compared": 8142, "published_equal": 3086, "bitwise_equal": true, "padded_checked": 1110}}, "mutation": null, "as_expected": true}
+{"case": "M1_index_plus_one", "outcome": "RED", "error_type": "RoundTripError", "error": "scaled: dense rows differ from NEW weights on 1 anchors, first 2024-12-03T00:00:00Z", "expected": ["RoundTripError", "dense rows differ"], "as_expected": true}
+{"case": "M2_published_row_to_hold", "outcome": "RED", "error_type": "RoundTripError", "error": "scaled: fresh != trade_mask on 1 anchors", "expected": ["RoundTripError", "fresh != trade_mask"], "as_expected": true}
+{"case": "M3_value_plus_one_ulp", "outcome": "RED", "error_type": "RoundTripError", "error": "scaled: dense rows differ from NEW weights on 1 anchors, first 2024-12-03T00:00:00Z", "expected": ["RoundTripError", "dense rows differ"], "as_expected": true}
+{"case": "M4_symbols_swapped", "outcome": "RED", "error_type": "AdapterError", "error": "symbols_vs_certified_price_axis {\"reading\": \"scaled\", \"n_positions\": 2, \"first\": [10, 11]}", "mutation": {"swapped_positions": [10, 11]}, "expected": ["AdapterError", "symbols_vs_certified_price_axis"], "as_expected": true}
+{"case": "M5_hold_row_weight", "outcome": "RED", "error_type": "AdapterError", "error": "hold_row_with_weight {\"n\": 1, \"first_anchor\": \"2025-06-17T00:00:00Z\"}", "mutation": {"hold_anchor": "2025-06-17T00:00:00Z", "col": 0}, "expected": ["AdapterError", "hold_row_with_weight"], "as_expected": true}
+OVN_ADAPTER_TEST VERDICT=PASS baseline=GREEN mutations_red_as_named=5/5
+ENS_MAKE_CONFIG VERDICT=PASS config_sha256 6bbfb181a4b9f92d0c778e98e1f8f24d1555591c6356bfbf7994f067cc79035e n_differing_leaves 63 diff_receipt_sha256 c9457a5b9d002caf3598c2bbf1a4837b172ff0d470320c663c109b3779c34174
+ENS_CHAIN DONE
+EXIT 0

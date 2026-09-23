@@ -27,7 +27,7 @@ PCT97_5 = (1.25, 98.75); PCT95 = (2.5, 97.5)
 E1_LB = -0.5; E2_TOL = 0.05; E3_MULT = 1.05; E4_TOL = 0.01
 DEV = {"bt_tables.py": "892ba66b9e8040ff04caede02272556dec5a71eb4632cbe7a2a13f46bd35f389", "bt_driver_lib.py": "ba3bc2610b12a3f0280ff8f03c039ff5c2e81b8c05789183fd2b1acab661bddb"}
 S1 = "/workspace/old_vs_new_2026-09-23"; S1RUNS = "/dev/shm/ovn_2026-09-23/runs"; S1REC = "/dev/shm/ovn_2026-09-23/receipts"
-ME = "/workspace/f10_ens_2026-09-23"; MERUNS = "/dev/shm/f10_ens_2026-09-23/runs"
+ME = "/dev/shm/f10_ens_2026-09-23"; MERUNS = ME + "/runs"          # active root on /dev/shm (/workspace EDQUOT 08:25Z)
 ARMS = {"NEW_ENS": (MERUNS, "F10ENS_NEW_ENS_scaled_rule_raw_UAFE"), "NEW_s42": (S1RUNS, "OVN_NEW_s42_scaled_rule_raw_UAFE"),
         "NEW_s2027": (S1RUNS, "OVN_NEW_s2027_scaled_rule_raw_UAFE")}
 CFG = {"NEW_s42": (f"{S1}/RUN_CONFIG_OVN_NEW_s42_2026-09-23.json", "162239b6e397c0aa2b017109b90e59a5cd1b54227ccae6b2321045f977f4533b"),

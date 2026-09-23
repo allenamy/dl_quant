@@ -1,0 +1,394 @@
+{
+ "device": "ens_make_config.py",
+ "self_sha256": "596993ad01322ab052e9924347fec9ba842d6cdf1893c5b3230e6a41d771db5c",
+ "utc": "2026-09-23T08:33:10Z",
+ "prereg": {
+  "path": "docs/PREREG_f10_seed_ensemble_book_2026-09-23.md",
+  "commit": "45aba1f3f",
+  "sha256": "56acd8320eae43450ba8a6ddfc7a3808bf0f742bcbe76c5d9890be6da6976d92"
+ },
+ "template": {
+  "path": "/workspace/old_vs_new_2026-09-23/RUN_CONFIG_OVN_NEW_s42_2026-09-23.json",
+  "sha256": "162239b6e397c0aa2b017109b90e59a5cd1b54227ccae6b2321045f977f4533b"
+ },
+ "config": {
+  "path": "/dev/shm/f10_ens_2026-09-23/RUN_CONFIG_F10ENS_NEW_ENS_2026-09-23.json",
+  "sha256": "6bbfb181a4b9f92d0c778e98e1f8f24d1555591c6356bfbf7994f067cc79035e",
+  "runs": [
+   "F10ENS_NEW_ENS|scaled|rule|raw|UAFE",
+   "F10ENS_NEW_ENS|lit|rule|raw|UAFE",
+   "F10ENS_NEW_ENS|scaled|rule|raw|UAFE|fee_x1.25",
+   "F10ENS_NEW_ENS|scaled|rule|raw|UAFE|slip_x1.5",
+   "F10ENS_NEW_ENS|scaled|rule|raw|UAFE|fill_x0.9"
+  ]
+ },
+ "allowed_leaves": [
+  "^config$",
+  "^status$",
+  "^created_utc$",
+  "^object$",
+  "^pending(\\.|$)",
+  "^ovn\\.role$",
+  "^f10ens(\\.|$)",
+  "^new_lineage(\\.|$)",
+  "^paths\\.pod_root$",
+  "^runs\\[\\d+\\]\\.(arm|tag|role)$",
+  "^runs\\[\\d+\\]\\.targets\\.arm$",
+  "^runs\\[\\d+\\]\\.targets\\.sources(\\[\\d+\\]\\.(npz|npz_sha256|receipt|receipt_sha256))?$"
+ ],
+ "n_differing_leaves": 63,
+ "differing_leaf_names": [
+  "config",
+  "created_utc",
+  "f10ens.derived_from.commit",
+  "f10ens.derived_from.config",
+  "f10ens.derived_from.sha256",
+  "f10ens.device",
+  "f10ens.pod_root_reason",
+  "f10ens.prereg.commit",
+  "f10ens.prereg.path",
+  "f10ens.prereg.sha256",
+  "new_lineage.adapter_receipt.path",
+  "new_lineage.adapter_receipt.sha256",
+  "new_lineage.arm",
+  "new_lineage.new_target_receipt.path",
+  "new_lineage.new_target_receipt.sha256",
+  "new_lineage.sources.lit.npz",
+  "new_lineage.sources.lit.sha256",
+  "new_lineage.sources.scaled.npz",
+  "new_lineage.sources.scaled.sha256",
+  "object",
+  "ovn.role",
+  "paths.pod_root",
+  "pending.(a) targets",
+  "pending.(b) the other arm",
+  "pending.(b) the other arms",
+  "runs[*].arm",
+  "runs[*].role",
+  "runs[*].tag",
+  "runs[*].targets.arm",
+  "runs[*].targets.sources[*].npz",
+  "runs[*].targets.sources[*].npz_sha256",
+  "runs[*].targets.sources[*].receipt",
+  "runs[*].targets.sources[*].receipt_sha256",
+  "status"
+ ],
+ "diff": [
+  {
+   "leaf": "config",
+   "a": "RUN_CONFIG_OVN_NEW_s42_2026-09-23",
+   "b": "RUN_CONFIG_F10ENS_NEW_ENS_2026-09-23"
+  },
+  {
+   "leaf": "created_utc",
+   "a": "2026-09-23T06:14:14Z",
+   "b": "2026-09-23T08:33:10Z"
+  },
+  {
+   "leaf": "f10ens.derived_from.commit",
+   "a": "<absent>",
+   "b": "e6d8f6680"
+  },
+  {
+   "leaf": "f10ens.derived_from.config",
+   "a": "<absent>",
+   "b": "RUN_CONFIG_OVN_NEW_s42_2026-09-23.json"
+  },
+  {
+   "leaf": "f10ens.derived_from.sha256",
+   "a": "<absent>",
+   "b": "162239b6e397c0aa2b017109b90e59a5cd1b54227ccae6b2321045f977f4533b"
+  },
+  {
+   "leaf": "f10ens.device",
+   "a": "<absent>",
+   "b": "ens_make_config.py"
+  },
+  {
+   "leaf": "f10ens.pod_root_reason",
+   "a": "<absent>",
+   "b": "output root only: the template's /dev/shm/ovn_2026-09-23 is Stage 1's directory (read-only for this task)"
+  },
+  {
+   "leaf": "f10ens.prereg.commit",
+   "a": "<absent>",
+   "b": "45aba1f3f"
+  },
+  {
+   "leaf": "f10ens.prereg.path",
+   "a": "<absent>",
+   "b": "docs/PREREG_f10_seed_ensemble_book_2026-09-23.md"
+  },
+  {
+   "leaf": "f10ens.prereg.sha256",
+   "a": "<absent>",
+   "b": "56acd8320eae43450ba8a6ddfc7a3808bf0f742bcbe76c5d9890be6da6976d92"
+  },
+  {
+   "leaf": "new_lineage.adapter_receipt.path",
+   "a": "/dev/shm/ovn_2026-09-23/targets/TARGETS_NEW_s42.json",
+   "b": "/dev/shm/f10_ens_2026-09-23/targets/TARGETS_NEW_ENS.json"
+  },
+  {
+   "leaf": "new_lineage.adapter_receipt.sha256",
+   "a": "6147cff76d1f3a1e90f80f0e65c636aaccafe141fdfd0223c271c195cab1c118",
+   "b": "6cd1a213e1522abdaaee825563d2c0487e5814b709d180150d4ec53e3638bef3"
+  },
+  {
+   "leaf": "new_lineage.arm",
+   "a": "NEW_s42",
+   "b": "NEW_ENS"
+  },
+  {
+   "leaf": "new_lineage.new_target_receipt.path",
+   "a": "/workspace/old_vs_new_2026-09-23/new_targets/combo_s42/TARGET_RECEIPT.json",
+   "b": "/dev/shm/f10_ens_2026-09-23/work/combo_ENS/TARGET_RECEIPT.json"
+  },
+  {
+   "leaf": "new_lineage.new_target_receipt.sha256",
+   "a": "36a65c856847da3ff6a5cda7f3f4288dad19b7ce1dda41d5fc3b7a5a9e781a47",
+   "b": "6af4817c99d7e5f0b92f31296d4c03c26b48ad44f2600bc5583ee15c9d845652"
+  },
+  {
+   "leaf": "new_lineage.sources.lit.npz",
+   "a": "/workspace/old_vs_new_2026-09-23/new_targets/combo_s42/literal.npz",
+   "b": "/dev/shm/f10_ens_2026-09-23/work/combo_ENS/literal.npz"
+  },
+  {
+   "leaf": "new_lineage.sources.lit.sha256",
+   "a": "cae52acf3bc2e82dbbe1cca351c1f3d40d21c91ba48c132241e797990de0f747",
+   "b": "65113808c8f1b76c9cffceae4f7da3acf361ceb3a1febfe4283412eb6f9ca919"
+  },
+  {
+   "leaf": "new_lineage.sources.scaled.npz",
+   "a": "/workspace/old_vs_new_2026-09-23/new_targets/combo_s42/scaled_diagnostic.npz",
+   "b": "/dev/shm/f10_ens_2026-09-23/work/combo_ENS/scaled_diagnostic.npz"
+  },
+  {
+   "leaf": "new_lineage.sources.scaled.sha256",
+   "a": "4dec6b38b08f8cc857c8f58659e846fea686c02c2959c622ea248c7ef5b22afa",
+   "b": "22d527b7b5e4cb905a9c495fd17443e58edf820ca8b59e7c821ab28a07280e44"
+  },
+  {
+   "leaf": "object",
+   "a": "OVN Stage 1 arm NEW_s42: researcher corrected_combo_v1d combo_s42 (scaled_diagnostic = scaled reading, literal = lit reading), through ovn_adapter.py",
+   "b": "F10 seed-ensemble arm NEW_ENS: combo with F10 = equal-weight rank average of seeds 42 and 2027 (ens_build.py), generated by ens_combo.py, through ovn_adapter.py"
+  },
+  {
+   "leaf": "ovn.role",
+   "a": "NEW arm NEW_s42",
+   "b": "NEW arm NEW_ENS (F10 seed-ensemble test; config derived from OVN NEW_s42)"
+  },
+  {
+   "leaf": "paths.pod_root",
+   "a": "/dev/shm/ovn_2026-09-23",
+   "b": "/dev/shm/f10_ens_2026-09-23"
+  },
+  {
+   "leaf": "pending.(a) targets",
+   "a": "filled: TARGETS_NEW_s42 (adapter round-trip bitwise PASS)",
+   "b": "filled: TARGETS_NEW_ENS (adapter round-trip bitwise PASS)"
+  },
+  {
+   "leaf": "pending.(b) the other arm",
+   "a": "RUN_CONFIG_OVN_OLD (re-run of the certified A0 config)",
+   "b": "<absent>"
+  },
+  {
+   "leaf": "pending.(b) the other arms",
+   "a": "<absent>",
+   "b": "NEW_s42 / NEW_s2027 = Stage 1's runs (reused, not re-run)"
+  },
+  {
+   "leaf": "runs[0].arm",
+   "a": "OVN_NEW_s42",
+   "b": "F10ENS_NEW_ENS"
+  },
+  {
+   "leaf": "runs[0].role",
+   "a": "MAIN: NEW arm NEW_s42, B-scaled reading (object-B prereg ruling 4 main)",
+   "b": "MAIN: NEW arm NEW_ENS, B-scaled reading (object-B prereg ruling 4 main)"
+  },
+  {
+   "leaf": "runs[0].tag",
+   "a": "OVN_NEW_s42|scaled|rule|raw|UAFE",
+   "b": "F10ENS_NEW_ENS|scaled|rule|raw|UAFE"
+  },
+  {
+   "leaf": "runs[0].targets.arm",
+   "a": "NEW_s42",
+   "b": "NEW_ENS"
+  },
+  {
+   "leaf": "runs[0].targets.sources[0].npz",
+   "a": "/dev/shm/ovn_2026-09-23/targets/TARGETS_NEW_s42.npz",
+   "b": "/dev/shm/f10_ens_2026-09-23/targets/TARGETS_NEW_ENS.npz"
+  },
+  {
+   "leaf": "runs[0].targets.sources[0].npz_sha256",
+   "a": "5c18bab2456010203076e117a520657ac4165b1949836f8c7dc26f8240ad7b1f",
+   "b": "ea6d20f60336bc1f793090f6497c329c98249f6ae068a57debc9fd7c0c1af10a"
+  },
+  {
+   "leaf": "runs[0].targets.sources[0].receipt",
+   "a": "/dev/shm/ovn_2026-09-23/targets/TARGETS_NEW_s42.json",
+   "b": "/dev/shm/f10_ens_2026-09-23/targets/TARGETS_NEW_ENS.json"
+  },
+  {
+   "leaf": "runs[0].targets.sources[0].receipt_sha256",
+   "a": "6147cff76d1f3a1e90f80f0e65c636aaccafe141fdfd0223c271c195cab1c118",
+   "b": "6cd1a213e1522abdaaee825563d2c0487e5814b709d180150d4ec53e3638bef3"
+  },
+  {
+   "leaf": "runs[1].arm",
+   "a": "OVN_NEW_s42",
+   "b": "F10ENS_NEW_ENS"
+  },
+  {
+   "leaf": "runs[1].role",
+   "a": "reported alongside: NEW arm NEW_s42, B-lit reading (as coded)",
+   "b": "reported alongside: NEW arm NEW_ENS, B-lit reading (as coded)"
+  },
+  {
+   "leaf": "runs[1].tag",
+   "a": "OVN_NEW_s42|lit|rule|raw|UAFE",
+   "b": "F10ENS_NEW_ENS|lit|rule|raw|UAFE"
+  },
+  {
+   "leaf": "runs[1].targets.arm",
+   "a": "NEW_s42",
+   "b": "NEW_ENS"
+  },
+  {
+   "leaf": "runs[1].targets.sources[0].npz",
+   "a": "/dev/shm/ovn_2026-09-23/targets/TARGETS_NEW_s42.npz",
+   "b": "/dev/shm/f10_ens_2026-09-23/targets/TARGETS_NEW_ENS.npz"
+  },
+  {
+   "leaf": "runs[1].targets.sources[0].npz_sha256",
+   "a": "5c18bab2456010203076e117a520657ac4165b1949836f8c7dc26f8240ad7b1f",
+   "b": "ea6d20f60336bc1f793090f6497c329c98249f6ae068a57debc9fd7c0c1af10a"
+  },
+  {
+   "leaf": "runs[1].targets.sources[0].receipt",
+   "a": "/dev/shm/ovn_2026-09-23/targets/TARGETS_NEW_s42.json",
+   "b": "/dev/shm/f10_ens_2026-09-23/targets/TARGETS_NEW_ENS.json"
+  },
+  {
+   "leaf": "runs[1].targets.sources[0].receipt_sha256",
+   "a": "6147cff76d1f3a1e90f80f0e65c636aaccafe141fdfd0223c271c195cab1c118",
+   "b": "6cd1a213e1522abdaaee825563d2c0487e5814b709d180150d4ec53e3638bef3"
+  },
+  {
+   "leaf": "runs[2].arm",
+   "a": "OVN_NEW_s42",
+   "b": "F10ENS_NEW_ENS"
+  },
+  {
+   "leaf": "runs[2].tag",
+   "a": "OVN_NEW_s42|scaled|rule|raw|UAFE|fee_x1.25",
+   "b": "F10ENS_NEW_ENS|scaled|rule|raw|UAFE|fee_x1.25"
+  },
+  {
+   "leaf": "runs[2].targets.arm",
+   "a": "NEW_s42",
+   "b": "NEW_ENS"
+  },
+  {
+   "leaf": "runs[2].targets.sources[0].npz",
+   "a": "/dev/shm/ovn_2026-09-23/targets/TARGETS_NEW_s42.npz",
+   "b": "/dev/shm/f10_ens_2026-09-23/targets/TARGETS_NEW_ENS.npz"
+  },
+  {
+   "leaf": "runs[2].targets.sources[0].npz_sha256",
+   "a": "5c18bab2456010203076e117a520657ac4165b1949836f8c7dc26f8240ad7b1f",
+   "b": "ea6d20f60336bc1f793090f6497c329c98249f6ae068a57debc9fd7c0c1af10a"
+  },
+  {
+   "leaf": "runs[2].targets.sources[0].receipt",
+   "a": "/dev/shm/ovn_2026-09-23/targets/TARGETS_NEW_s42.json",
+   "b": "/dev/shm/f10_ens_2026-09-23/targets/TARGETS_NEW_ENS.json"
+  },
+  {
+   "leaf": "runs[2].targets.sources[0].receipt_sha256",
+   "a": "6147cff76d1f3a1e90f80f0e65c636aaccafe141fdfd0223c271c195cab1c118",
+   "b": "6cd1a213e1522abdaaee825563d2c0487e5814b709d180150d4ec53e3638bef3"
+  },
+  {
+   "leaf": "runs[3].arm",
+   "a": "OVN_NEW_s42",
+   "b": "F10ENS_NEW_ENS"
+  },
+  {
+   "leaf": "runs[3].tag",
+   "a": "OVN_NEW_s42|scaled|rule|raw|UAFE|slip_x1.5",
+   "b": "F10ENS_NEW_ENS|scaled|rule|raw|UAFE|slip_x1.5"
+  },
+  {
+   "leaf": "runs[3].targets.arm",
+   "a": "NEW_s42",
+   "b": "NEW_ENS"
+  },
+  {
+   "leaf": "runs[3].targets.sources[0].npz",
+   "a": "/dev/shm/ovn_2026-09-23/targets/TARGETS_NEW_s42.npz",
+   "b": "/dev/shm/f10_ens_2026-09-23/targets/TARGETS_NEW_ENS.npz"
+  },
+  {
+   "leaf": "runs[3].targets.sources[0].npz_sha256",
+   "a": "5c18bab2456010203076e117a520657ac4165b1949836f8c7dc26f8240ad7b1f",
+   "b": "ea6d20f60336bc1f793090f6497c329c98249f6ae068a57debc9fd7c0c1af10a"
+  },
+  {
+   "leaf": "runs[3].targets.sources[0].receipt",
+   "a": "/dev/shm/ovn_2026-09-23/targets/TARGETS_NEW_s42.json",
+   "b": "/dev/shm/f10_ens_2026-09-23/targets/TARGETS_NEW_ENS.json"
+  },
+  {
+   "leaf": "runs[3].targets.sources[0].receipt_sha256",
+   "a": "6147cff76d1f3a1e90f80f0e65c636aaccafe141fdfd0223c271c195cab1c118",
+   "b": "6cd1a213e1522abdaaee825563d2c0487e5814b709d180150d4ec53e3638bef3"
+  },
+  {
+   "leaf": "runs[4].arm",
+   "a": "OVN_NEW_s42",
+   "b": "F10ENS_NEW_ENS"
+  },
+  {
+   "leaf": "runs[4].tag",
+   "a": "OVN_NEW_s42|scaled|rule|raw|UAFE|fill_x0.9",
+   "b": "F10ENS_NEW_ENS|scaled|rule|raw|UAFE|fill_x0.9"
+  },
+  {
+   "leaf": "runs[4].targets.arm",
+   "a": "NEW_s42",
+   "b": "NEW_ENS"
+  },
+  {
+   "leaf": "runs[4].targets.sources[0].npz",
+   "a": "/dev/shm/ovn_2026-09-23/targets/TARGETS_NEW_s42.npz",
+   "b": "/dev/shm/f10_ens_2026-09-23/targets/TARGETS_NEW_ENS.npz"
+  },
+  {
+   "leaf": "runs[4].targets.sources[0].npz_sha256",
+   "a": "5c18bab2456010203076e117a520657ac4165b1949836f8c7dc26f8240ad7b1f",
+   "b": "ea6d20f60336bc1f793090f6497c329c98249f6ae068a57debc9fd7c0c1af10a"
+  },
+  {
+   "leaf": "runs[4].targets.sources[0].receipt",
+   "a": "/dev/shm/ovn_2026-09-23/targets/TARGETS_NEW_s42.json",
+   "b": "/dev/shm/f10_ens_2026-09-23/targets/TARGETS_NEW_ENS.json"
+  },
+  {
+   "leaf": "runs[4].targets.sources[0].receipt_sha256",
+   "a": "6147cff76d1f3a1e90f80f0e65c636aaccafe141fdfd0223c271c195cab1c118",
+   "b": "6cd1a213e1522abdaaee825563d2c0487e5814b709d180150d4ec53e3638bef3"
+  },
+  {
+   "leaf": "status",
+   "a": "FROZEN before any number of the OLD-vs-NEW comparison (OVN Stage 1); arm NEW_s42; settings byte-identical to RUN_CONFIG_OVN_OLD",
+   "b": "FROZEN before any number of the F10 seed-ensemble test (prereg 45aba1f3f); arm NEW_ENS; settings byte-identical to RUN_CONFIG_OVN_NEW_s42_2026-09-23 (162239b6)"
+  }
+ ],
+ "statement": "every differing leaf vs RUN_CONFIG_OVN_NEW_s42_2026-09-23 is a label, the target arm / sources / run naming / lineage, or the output root paths.pod_root; asserted"
+}
