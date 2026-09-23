@@ -1,0 +1,65 @@
+{
+ "receipt": "KING_ENV_SENSITIVITY.json",
+ "utc": "2026-09-23T23:56:25Z",
+ "question": "does the training environment change the King OOF, and which environment is the NEW_S scheme?",
+ "scheme_source": {
+  "file": "/dev/shm/news_2026-09-23/devices/news_chain_resume.sh",
+  "sha256": "5d2b80c6a30b8a39184d43326d311dda1652f06a1f31628ad8e97d87e17d0850",
+  "says": "exports NPY_DISABLE_CPU_FEATURES=\"X86_V4 AVX512_ICL AVX512_SPR\"; King uses PV=/workspace/venv/bin/python (AMENDMENT 2, lead ruling (a), P314 -> PV); legs uses P314 with OMP=OPENBLAS=1; F10 uses PV with the variable UNSET and OMP=OPENBLAS=2"
+ },
+ "why_it_matters": "my first pass launched King and legs with plain python3 and no NPY_DISABLE_CPU_FEATURES, read off the device names instead of the chain script (E-0826-D). Gates B1/B2 compare this book against NEW_S, so the training environment has to be the one NEW_S actually ran, not merely a working one.",
+ "runs": [
+  {
+   "run": "run1",
+   "dir": "work/king_run1_wrongenv",
+   "interpreter": "/usr/bin/python3",
+   "NPY_DISABLE_CPU_FEATURES": null,
+   "predictions_sha256": "d76b5b9bd0f565e411cb2ae25274fa27fbedfacbdb65ab6c96097639d9f96e4c",
+   "numpy": "2.4.6",
+   "lightgbm": "4.7.0",
+   "fold_spearman": [
+    0.052522,
+    0.053643,
+    0.059695,
+    0.069951,
+    0.067895
+   ]
+  },
+  {
+   "run": "run3",
+   "dir": "work/king_run3_syspy_envset",
+   "interpreter": "/usr/bin/python3",
+   "NPY_DISABLE_CPU_FEATURES": "X86_V4 AVX512_ICL AVX512_SPR",
+   "predictions_sha256": "8f7b2bee462c1f02ad8e3e70eda6f2fce6eb1837bad74560bf17dde8ca8160e5",
+   "numpy": "2.4.6",
+   "lightgbm": "4.7.0",
+   "fold_spearman": [
+    0.052522,
+    0.053643,
+    0.059695,
+    0.069951,
+    0.067895
+   ]
+  },
+  {
+   "run": "run4",
+   "dir": "work/king",
+   "interpreter": "/workspace/venv/bin/python",
+   "NPY_DISABLE_CPU_FEATURES": "X86_V4 AVX512_ICL AVX512_SPR",
+   "predictions_sha256": "a10b872506ca60afcd0f69b0e43d17a548cdd7c6956075000aac954b21e3df9a",
+   "numpy": "2.4.6",
+   "lightgbm": "4.7.0",
+   "fold_spearman": [
+    0.052522,
+    0.053643,
+    0.059695,
+    0.069951,
+    0.067895
+   ]
+  }
+ ],
+ "all_three_differ": true,
+ "finding": "three environments, three different King OOFs, although the version strings are IDENTICAL in both interpreters (python 3.11.10 / numpy 2.4.6 / lightgbm 4.7.0). Recording versions is not enough to reproduce a run; the interpreter path and the numpy CPU-feature mask are part of the scheme.",
+ "adopted": "run4 = PV + NPY_DISABLE_CPU_FEATURES set, per news_chain_resume.sh",
+ "consequence": "legs and F10 rerun on run4 KING_OOF; the first-pass legs.npz (9ee5886f) and the F10 run that reached 16/23 folds are discarded"
+}

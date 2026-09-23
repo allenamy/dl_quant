@@ -25,7 +25,19 @@ sys.path.insert(0, HERE)
 from test_news2_patches import run_king                     # the harness that builds the tree's King block
 
 WINS = (48, 288, 864, 2016, 8640)
-STATS = ("count", "sum", "mean", "std")
+# ★ The tree's closure is `wstat(ch, w, kind)` and it implements exactly TWO kinds:
+#       if kind == "sum": return s_.astype(np.float32)
+#       return np.where(cnt > 0, s_ / nf, np.nan).astype(np.float32)      # every other kind -> mean
+# There is no "count" and no "std". Asking for one does NOT raise -- it silently returns the MEAN, so a
+# device that asks for "count" gets a plausible float array and compares means against counts. That is
+# what the first version of this file did, and it produced a confident FAIL of 79,248/116,060 cells that
+# meant nothing. The fallback is now PROVEN below rather than assumed away, and only real kinds are compared.
+STATS = ("sum", "mean")
+# D5's stated policy: the float64 accumulator is "rounded back to the float32 this function already
+# returned", so the reference must be rounded to float32 before comparing. Comparing against float64
+# window_stats would report a difference on every cell and call it a failure of the patch.
+def f32(x):
+    return np.asarray(np.asarray(x, np.float64).astype(np.float32), np.float64)
 
 
 def sha(p):
@@ -41,26 +53,46 @@ def ne(a, b):
     return int((~((a == b) | (np.isnan(a) & np.isnan(b)))).sum())
 
 
-def compare(tree, cd, window_stats):
-    """Run the tree's wstat closure against window_stats over every channel x window x stat."""
-    out, span, _ = run_king(tree, cd, ntop=cd.shape[1])
+def compare(tree, cd, window_stats, ref_cd=None):
+    """Run the tree's wstat closure on `cd` against window_stats on `ref_cd` (default: the same array).
+
+    The two arrays are separate PARAMETERS rather than being told apart by comparing their contents.
+    The first version identified the reference array with `np.array_equal(src, cd[:, :, 1])`, which is
+    False whenever the data contains NaN -- so the red control's perturbed array was never substituted,
+    the control silently compared the array against itself, and it could not go red. Real cache data is
+    full of NaN, so that check was guaranteed to fail on exactly the input that matters.
+    """
+    # run_king takes the shadow_loop_v3.py PATH, not the tree directory.
+    shadow = tree if tree.endswith(".py") else os.path.join(tree, "shadow_loop_v3.py")
+    ref_cd = cd if ref_cd is None else ref_cd
+    out, span, _ = run_king(shadow, cd, ntop=cd.shape[1])
     wstat = out["wstat"]
     rows = np.array([cd.shape[0] - 1])
     per, n_cells, n_diff = {}, 0, 0
     for ch in range(cd.shape[2]):
-        ref_src = np.asarray(cd[:, :, ch], np.float32)
+        ref_src = np.asarray(ref_cd[:, :, ch], np.float32)
         for w in WINS:
             ref = window_stats(ref_src, rows, w)
             for st in STATS:
-                try:
-                    got = wstat(ch, w, st)
-                except Exception as e:                       # a stat the closure does not expose is recorded
-                    per[f"ch{ch}_w{w}_{st}"] = {"STATUS": f"NOT_EXPOSED: {type(e).__name__}: {e}"}
-                    continue
-                d = ne(got, ref[st])
-                per[f"ch{ch}_w{w}_{st}"] = {"cells": int(np.asarray(got).size), "cells_different": d}
-                n_cells += int(np.asarray(got).size); n_diff += d
-    return per, n_cells, n_diff, span
+                got = np.asarray(wstat(ch, w, st)).ravel()
+                want = f32(np.asarray(ref[st]).ravel())
+                # shapes must agree exactly; broadcasting a (1, N) reference against an (N,) result is
+                # how a mismatch hides
+                assert got.shape == want.shape, (ch, w, st, got.shape, want.shape)
+                d = ne(got, want)
+                per[f"ch{ch}_w{w}_{st}"] = {"cells": int(got.size), "cells_different": d}
+                n_cells += int(got.size); n_diff += d
+    # Prove the silent fallback instead of trusting the note above: a nonsense kind must come back
+    # equal to the mean. If it ever raises or returns something else, the STATS list above is stale and
+    # this device would be comparing the wrong quantities again.
+    probe = {"nonsense_kind_equals_mean": None, "raised": None}
+    try:
+        probe["nonsense_kind_equals_mean"] = bool(
+            ne(np.asarray(wstat(0, WINS[0], "__not_a_kind__")).ravel(),
+               np.asarray(wstat(0, WINS[0], "mean")).ravel()) == 0)
+    except Exception as e:
+        probe["raised"] = f"{type(e).__name__}: {e}"
+    return per, n_cells, n_diff, span, probe
 
 
 def main():
@@ -75,7 +107,7 @@ def main():
     ia = int(np.searchsorted(ts, anchor))
     i0 = max(ia + 1 - 11520, 0)
     cd = np.array(C["data"][i0:ia + 1], dtype=np.float16)
-    per, n_cells, n_diff, span = compare(tree, cd, window_stats)
+    per, n_cells, n_diff, span, probe = compare(tree, cd, window_stats)
 
     # ★ Red control: run the tree's kernel on the real input, but give the REFERENCE a copy of the
     # input with one finite cell moved. The two sides are then genuinely computing different things,
@@ -88,14 +120,7 @@ def main():
         cdx = cd.copy()
         cdx[r, c, 1] = np.float16(float(cd[r, c, 1]) + 1.0)
 
-        def shifted_reference(src, rows, w):
-            """window_stats on the PERTURBED array whenever it is asked for channel 1."""
-            if src.shape == cd[:, :, 1].shape and np.array_equal(np.asarray(src, np.float32),
-                                                                 np.asarray(cd[:, :, 1], np.float32)):
-                return window_stats(np.asarray(cdx[:, :, 1], np.float32), rows, w)
-            return window_stats(src, rows, w)
-
-        _, red_cells, red_diff, _ = compare(tree, cd, shifted_reference)
+        _, red_cells, red_diff, _, _ = compare(tree, cd, window_stats, ref_cd=cdx)
         red_ok = red_cells > 0 and red_diff > 0
         red_note = (f"reference fed cd[{r},{c},ch1] + 1.0 while the tree kernel saw the original; "
                     f"cells_compared={red_cells} cells_different={red_diff}")
@@ -113,6 +138,9 @@ def main():
            "n_comparisons": len(per), "cells_compared": n_cells, "cells_different": n_diff,
            "per_comparison": per,
            "red_control": {"passed": red_ok, "note": red_note},
+           "kinds_compared": list(STATS),
+           "fallback_probe": probe,
+           "reference_rounded_to_float32": True,
            "what_this_adds": ("the earlier B8 receipt compared a TRANSCRIPTION of the kernel; this runs the "
                               "tree's own wstat closure, so a patch that drifted from the transcription "
                               "would now be caught"),

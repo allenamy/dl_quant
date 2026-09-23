@@ -1,0 +1,95 @@
+{
+ "device": "news2_d14_resolution.py",
+ "self_sha256": "ad910a884da61f5a0649446861102e79db4b4f735391e940bf1c9954cb6b4f0b",
+ "utc": "2026-09-23T23:45:49Z",
+ "argv": [
+  "/dev/shm/news2_2026-09-23/devices/news2_d14_resolution.py",
+  "/dev/shm/nc_2026-09-23/devices",
+  "/dev/shm/news2_2026-09-23/treeNC5_deploy",
+  "/dev/shm/news2_2026-09-23/inputs/bundle_config.json",
+  "/dev/shm/news2_2026-09-23/work/d14res",
+  "/dev/shm/news2_2026-09-23/work/members_hist_all.npz",
+  "/dev/shm/news2_2026-09-23/receipts/D14_RESOLUTION.json",
+  "1685520000",
+  "1718150400",
+  "1742428800",
+  "1779235200",
+  "1789660800"
+ ],
+ "rerun_command": "/usr/bin/python3 /dev/shm/news2_2026-09-23/devices/news2_d14_resolution.py /dev/shm/nc_2026-09-23/devices /dev/shm/news2_2026-09-23/treeNC5_deploy /dev/shm/news2_2026-09-23/inputs/bundle_config.json /dev/shm/news2_2026-09-23/work/d14res /dev/shm/news2_2026-09-23/work/members_hist_all.npz /dev/shm/news2_2026-09-23/receipts/D14_RESOLUTION.json 1685520000 1718150400 1742428800 1779235200 1789660800",
+ "env": {
+  "NC_W": "/dev/shm/nc_2026-09-23",
+  "NC_WS": "/dev/shm/nc_2026-09-23/ws",
+  "NC_CFG": "/dev/shm/news2_2026-09-23/inputs/bundle_config.json",
+  "NC_TREE": null
+ },
+ "tree": "/dev/shm/news2_2026-09-23/treeNC5_deploy",
+ "tree_shadow_loop_sha256": "a68c7a5f0c6e8e0af89eda0307ab0b9ad6b38fa82810f4d04c1ab99deb1d510c",
+ "NTOP": 400,
+ "anchors": [
+  1685520000,
+  1718150400,
+  1742428800,
+  1779235200,
+  1789660800
+ ],
+ "rows": [
+  {
+   "anchor": 1685520000,
+   "n_members": 183,
+   "n_cand": 184,
+   "NTOP": 400,
+   "cut_executed": false,
+   "tie_possible": false,
+   "why": "n_cand <= NTOP: the producer does not execute the cut at this anchor"
+  },
+  {
+   "anchor": 1718150400,
+   "n_members": 261,
+   "n_cand": 263,
+   "NTOP": 400,
+   "cut_executed": false,
+   "tie_possible": false,
+   "why": "n_cand <= NTOP: the producer does not execute the cut at this anchor"
+  },
+  {
+   "anchor": 1742428800,
+   "n_members": 365,
+   "n_cand": 369,
+   "NTOP": 400,
+   "cut_executed": false,
+   "tie_possible": false,
+   "why": "n_cand <= NTOP: the producer does not execute the cut at this anchor"
+  },
+  {
+   "anchor": 1779235200,
+   "n_members": 400,
+   "n_cand": 528,
+   "NTOP": 400,
+   "cut_executed": true,
+   "cut_value": 8.15803050994873,
+   "n_members_at_cut": 1,
+   "n_superset_at_cut": 1,
+   "tie_possible": false,
+   "why": "the cut key is held only by selected members, over a SUPERSET of the candidates"
+  },
+  {
+   "anchor": 1789660800,
+   "n_members": 400,
+   "n_cand": 520,
+   "NTOP": 400,
+   "cut_executed": true,
+   "cut_value": 7.752600193023682,
+   "n_members_at_cut": 1,
+   "n_superset_at_cut": 1,
+   "tie_possible": false,
+   "why": "the cut key is held only by selected members, over a SUPERSET of the candidates"
+  }
+ ],
+ "n_measured": 5,
+ "n_not_measurable": 0,
+ "n_tie_possible": 0,
+ "soundness": "counted over legal AND crypto, a SUPERSET of the candidate set: this can over-report a possible tie, never miss one",
+ "VERDICT": "NO_TIE_POSSIBLE at all 5 anchors: the stable tie-break cannot change the member set at these anchors, which explains the reach arm's zero",
+ "seconds": 105.1
+}
