@@ -1,0 +1,96 @@
+{
+  "status": "NEWS_TARGETS_NOT_EXECUTION_PNL",
+  "seed": 2027,
+  "inputs": {
+    "/dev/shm/news_2026-09-23/work/NEWS_FEATURES.npz": "a490c294d90e0cdb2bb1dca503f3468dc1a4384396e3f7bae3e3020e161f79ac",
+    "/dev/shm/news_2026-09-23/work/legs.npz": "18999e169c6b68546271f8194fd74eaa79041d1967ba44df978f4cbea33d6bd5",
+    "/dev/shm/news_2026-09-23/receipts/P3_LEGS.json": "36e59ce5251b41230393e5f0af83844927feefa5a31b0ea5c07d2efff9958ff0",
+    "/dev/shm/news_2026-09-23/work/f10_s2027/F10_OOF.npz": "a37dab090f173fe6b9a84d811bafe13e94226ac72cb6a367af3a18e1c69232e6",
+    "/dev/shm/news_2026-09-23/work/f10_s2027/TRAIN_RECEIPT.json": "a88691434c72170bb4107f1f0857e748b02dbbe73178859ccd7a69a63e16cf78",
+    "/dev/shm/news_2026-09-23/inputs/bundle_config.json": "3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e",
+    "/dev/shm/news_2026-09-23/receipts/P1_members_2025H2on.npz": "2323623fda9333710f5834911ab629377ab8c12b056f40ccfc9f7033c0c1f6f1",
+    "/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz": "f752d8ae3bf92f001fcb5d6f83a7e4ae286d9f11f7548c2e965305615aa9ae51",
+    "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f"
+  },
+  "sources": {
+    "/dev/shm/news_2026-09-23/devices/news_combo.py": "e2724e6bcf6ed9e12c6655c470f2851dd5fc9d1c21d296a08462f5129dce2725",
+    "/dev/shm/news_2026-09-23/devices/continuous_combo.py": "1501c9f63641bf447c4cb33661d08da25ced0948f9fae63cebb44cdfd1995d21",
+    "/dev/shm/news_2026-09-23/devices/combo_target.py": "d7577e824298fb90a554f35ac9c4d634202a4ed7e4e00cabc597a2d4eafdb544",
+    "/dev/shm/news_2026-09-23/devices/book_universe.py": "90e332cc27cf8f34aabcac13f9829f84e463ffa900efbe554e17c07436e8dcca",
+    "/dev/shm/news_2026-09-23/vendor_live/fea171/combo_stage.py": "fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8"
+  },
+  "policies": {
+    "literal": {
+      "path": "/dev/shm/news_2026-09-23/work/combo_s2027/literal.npz",
+      "sha": "0711e36998ed29cba1fcbadcac05b8e6ff952c1a5c1046d5a8423bd1ff009ac1",
+      "reasons": {
+        "F10 coverage,gross,names": 93,
+        "F10 coverage,names": 387,
+        "F10 coverage": 2551,
+        "F10 coverage,gross": 1932,
+        "gross": 208,
+        "publish": 2971
+      },
+      "years": {
+        "2023": {
+          "anchors": 2190,
+          "publish": 0,
+          "mean_producer_gross": 0.48504117497597016
+        },
+        "2024": {
+          "anchors": 2196,
+          "publish": 0,
+          "mean_producer_gross": 0.5553596789782121
+        },
+        "2025": {
+          "anchors": 2190,
+          "publish": 1405,
+          "mean_producer_gross": 0.517058049681621
+        },
+        "2026": {
+          "anchors": 1566,
+          "publish": 1566,
+          "mean_producer_gross": 0.7635596527028996
+        }
+      }
+    },
+    "scaled_diagnostic": {
+      "path": "/dev/shm/news_2026-09-23/work/combo_s2027/scaled_diagnostic.npz",
+      "sha": "10bbc571b25d172e720f512c68a330058f9afa08ad516e9b9c415fe254a92af4",
+      "reasons": {
+        "gross": 2233,
+        "publish": 5909
+      },
+      "years": {
+        "2023": {
+          "anchors": 2190,
+          "publish": 1473,
+          "mean_producer_gross": 0.48504117497597016
+        },
+        "2024": {
+          "anchors": 2196,
+          "publish": 1450,
+          "mean_producer_gross": 0.5553596789782121
+        },
+        "2025": {
+          "anchors": 2190,
+          "publish": 1420,
+          "mean_producer_gross": 0.517058049681621
+        },
+        "2026": {
+          "anchors": 1566,
+          "publish": 1566,
+          "mean_producer_gross": 0.7635596527028996
+        }
+      }
+    }
+  },
+  "member_cells_outside_book_universe": 167437,
+  "state_init": "zero at 2023-01-01; hypothetical common start, not live archived state",
+  "hold_contract": "trade_mask False = maintain quantities, never King substitution",
+  "limits": [
+    "production-caliber legs replayed on history; seat history starts with King OOF (2022H2)",
+    "no execution/cash or policy-stop result",
+    "scaled_diagnostic changes historical publication gate; never current-live literal"
+  ]
+}

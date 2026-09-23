@@ -62,6 +62,7 @@ def parse():
     for k in ("king", "f10", "manifest", "eval", "replay", "added", "x0918r", "holes", "producer", "control-f10", "out"): ap.add_argument("--" + k, required=True)
     ap.add_argument("--start", type=int, required=True); ap.add_argument("--n", type=int, required=True)
     a = ap.parse_args()          # unknown arguments ⇒ argparse error, exit 2
+    for k in ("king", "f10", "manifest", "eval", "replay", "added", "x0918r", "holes", "producer", "control_f10", "out"): setattr(a, k, os.path.abspath(getattr(a, k)))
     return a
 
 
@@ -151,8 +152,26 @@ class Candidate:
         raw = np.zeros(len(self.syms))
         if os.path.exists(wc) and status.get("ok"):
             z = np.load(wc); raw[z["idx"].astype(int)] = z["val"].astype(np.float64)
-        aux = json.load(open(f"{self.ws}/state/aux.json"))
-        return {"rc": r.returncode, "status": status, "target_combo": tc, "combo_raw_f32": raw, "prev_rec": aux["prev_rec"], "aux": aux, "cfg": cfg}
+        aux = json.load(open(f"{self.ws}/state/aux.json")); prev = {}
+        lrj = json.load(open(f"{self.ws}/state/leg_returns_live.json")); LRs = np.stack([np.array(lrj[k], np.float64) for k in ("king", "rev24", "fund")], 1)
+        for tag in ("kc", "fc"):
+            v = np.zeros(len(self.syms)); p_ = f"{self.ws}/fea171/state_H_{tag}_{A - 14400}.npz"
+            if os.path.exists(p_):
+                z = np.load(p_); v[z["idx"].astype(int)] = z["val"].astype(np.float64)
+            prev[tag] = v
+        return {"rc": r.returncode, "status": status, "target_combo": tc, "combo_raw_f32": raw, "prev_rec": aux["prev_rec"], "aux": aux, "cfg": cfg,
+                "kc_prev": prev["kc"], "fc_prev": prev["fc"], "lr": LRs, "w3": msharpe(LRs, cfg["params"]["msharpe_look"])}
+
+
+def msharpe(LR, look):
+    """the seat rule exactly as combo_stage.py L56-64 computes it from state/leg_returns_live.json (same op order)"""
+    if LR.shape[0] < look: return np.array([1 / 3] * 3)
+    r = np.stack([np.array(LR[-look:, c], np.float64) for c in range(3)]); shp = r.mean(1) / (r.std(1) + 1e-9); shp = np.maximum(shp, 0)
+    return shp / shp.sum() if shp.sum() > 0 else np.array([1 / 3] * 3)
+
+
+def masked(w3):
+    w = np.array([w3[0], 0.0, w3[2]]); return w / w.sum() if w.sum() > 1e-12 else np.array([0.5, 0.0, 0.5])
 
 
 def serving_features(cand, A, served):
@@ -164,39 +183,65 @@ def serving_features(cand, A, served):
 
 
 def check_anchor(cand, A, served, a, king_booster, M10):
+    """Item-by-item comparison. The evaluation stored King OOF, F10 OOF and the leg z in float32 arrays (inherited dtypes of NEW's train_king /
+    train_f10 / combo_legs); serving keeps float64. So scores and leg z are compared at float32 (bitwise), and the combo target is attributed
+    in two exact steps (R5): (a) combo_target.step on the SERVED inputs (float64) must equal the served combo_raw bit for bit (code parity);
+    (b) the same step on the served inputs rounded to the evaluation's float32 storage (fund z on the axis-restricted base, R2) must equal the
+    evaluation raw bit for bit (numerics parity)."""
     E = cand.E; r = {"anchor": A, "utc": time.strftime("%Y-%m-%dT%H:%MZ", time.gmtime(A)), "named": {}}
     xz_in_base, xz = NL.prod_funcs(); os.makedirs(f"{cand.root}/work", exist_ok=True)
     pr = served["prev_rec"]; m = np.array(pr["members"], int)
     r["members"] = bool(np.array_equal(np.sort(m), np.sort(E[f"m_{A}"].astype(int))))
+    if not r["members"]:
+        r["members_diff"] = {"served_not_eval": sorted(set(m.tolist()) - set(E[f"m_{A}"].astype(int).tolist()))[:20], "eval_not_served": sorted(set(E[f"m_{A}"].astype(int).tolist()) - set(m.tolist()))[:20]}
+        r["publish_served"] = bool(served["status"].get("ok")); r["publish_eval"] = bool(E[f"trade_mask_{A}"]); r["publish_equal"] = r["publish_served"] == r["publish_eval"]
+        return r
     S = serving_features(cand, A, served)
-    for k, dt, sk in (("X78", np.float32, "king_X78"), ("X82", np.float16, "X82"), ("X89", np.float32, "X89")): r[k] = r["members"] and bits_eq(S[sk], E[f"{k}_{A}"], dt)
-    pk = king_booster.predict(S["king_X78"]) if r["members"] else None
-    r["king_pred_vs_oof"] = r["members"] and bits_eq(pk, E[f"king_oof_{A}"], np.float64)
-    for k, ek in (("king", "KZ"), ("rev24", "Z24"), ("fund", "ZFD")): r[f"legz_{k}"] = r["members"] and bits_eq(np.array(pr["legz"][k]), np.nan_to_num(E[f"{ek}_{A}"]), np.float64)
-    if r["members"] and not r["legz_fund"]:          # R2 attribution: base restricted to the 829-name axis
-        axis_base = {s: v for s, v in _fresh_base(served["aux"], A).items() if s in cand.sidx}
-        fz = xz_in_base(S["fe_v"], [cand.syms[j] for j in m], axis_base)
-        r["named"]["R2_fund_base_offaxis"] = {"offaxis_names": sorted(set(_fresh_base(served["aux"], A)) - set(axis_base)), "axis_base_recompute_bitwise": bits_eq(np.nan_to_num(fz), np.nan_to_num(E[f"ZFD_{A}"]), np.float64)}
-    if r["members"]:
-        X171 = np.concatenate([S["X82"].astype(np.float32), S["X89"]], 1)
-        xz_in = np.nan_to_num(np.clip((X171 - M10["mu"]) / M10["sd_"], -5, 5)); from scipy.special import erf
-        g = lambda x: 0.5 * x * (1 + erf(x / np.sqrt(2))); h = g(xz_in @ M10["w0"].T + M10["b0"]); h = g(h @ M10["w1"].T + M10["b1"]); f10 = (h @ M10["w2"].T + M10["b2"]).squeeze(-1)
-        go = E[f"f10_oof_{A}"]; r["f10_numpy_vs_gpu"] = {"max_abs": float(np.abs(f10.astype(np.float64) - go).max()), "rank_mismatch": int((np.argsort(np.argsort(f10)) != np.argsort(np.argsort(go))).sum())}
+    for k, dt, sk in (("X78", np.float32, "king_X78"), ("X82", np.float16, "X82"), ("X89", np.float32, "X89")): r[k] = bits_eq(S[sk], E[f"{k}_{A}"], dt)
+    pk = king_booster.predict(S["king_X78"])
+    r["king_pred_f32_vs_oof"] = bits_eq(pk.astype(np.float32), E[f"king_oof_{A}"].astype(np.float32), np.float32)
+    lz_served = {k: np.array(pr["legz"][k]) for k in ("king", "rev24", "fund")}
+    r["served_legz_king_is_xz_of_pred"] = bits_eq(np.nan_to_num(xz(pk)), lz_served["king"], np.float64)       # the served prev_rec King z is the package booster's
+    for k, ek in (("king", "KZ"), ("rev24", "Z24")): r[f"legz_{k}_f32"] = bits_eq(lz_served[k].astype(np.float32), np.nan_to_num(E[f"{ek}_{A}"]).astype(np.float32), np.float32)
+    axis_base = {s: v for s, v in _fresh_base(served["aux"], A).items() if s in cand.sidx}
+    fz_axis = np.nan_to_num(xz_in_base(S["fe_v"], [cand.syms[j] for j in m], axis_base))
+    r["legz_fund_f32"] = bits_eq(lz_served["fund"].astype(np.float32), np.nan_to_num(E[f"ZFD_{A}"]).astype(np.float32), np.float32)
+    r["named"]["R2_fund_base_offaxis"] = {"offaxis_names": sorted(set(_fresh_base(served["aux"], A)) - set(axis_base)),
+                                          "axis_base_recompute_f32_bitwise": bits_eq(fz_axis.astype(np.float32), np.nan_to_num(E[f"ZFD_{A}"]).astype(np.float32), np.float32)}
+    X171 = np.concatenate([S["X82"].astype(np.float32), S["X89"]], 1)
+    xz_in = np.nan_to_num(np.clip((X171 - M10["mu"]) / M10["sd_"], -5, 5)); from scipy.special import erf
+    g = lambda x: 0.5 * x * (1 + erf(x / np.sqrt(2))); h = g(xz_in @ M10["w0"].T + M10["b0"]); h = g(h @ M10["w1"].T + M10["b1"]); f10 = (h @ M10["w2"].T + M10["b2"]).squeeze(-1)
+    go = E[f"f10_oof_{A}"]; r["f10_numpy_vs_gpu"] = {"max_abs": float(np.abs(f10.astype(np.float64) - go).max()), "rank_mismatch": int((np.argsort(np.argsort(f10)) != np.argsort(np.argsort(go))).sum())}
     wl = E[f"WL_{A}"]; wm = np.array([wl[0], 0.0, wl[2]]); wm = wm / wm.sum()
     r["seats_w3_masked"] = [round(float(x), 6) for x in wm] == served["target_combo"]["w3_masked"]
+    # seats: (i) the served seats are the seat rule on the served leg-return file (code parity); (ii) the evaluation seats are the same rule on
+    # the evaluation leg-return rows; (iii) the served and evaluation leg-return rows differ only in the fund column beyond float32 rounding
+    # (the fund leg's z carries the R2 base difference) ⇒ a seat difference is attributed to R2, else it is unexplained.
+    LRs = served["lr"]; LRe = E[f"LR_upto_{A}"]; look = served["cfg"]["params"]["msharpe_look"]; n = min(LRs.shape[0], LRe.shape[0])
+    dS = np.abs(LRs[-n:] - LRe[-n:]); tol = 1e-6 * np.maximum(1.0, np.abs(LRe[-n:]))
+    r["named"]["R2_seats"] = {"served_w3_rule_eq_target_combo": [round(float(x), 6) for x in masked(served["w3"])] == served["target_combo"]["w3_masked"],
+                              "eval_w3_rule_eq_WL_bitwise": bits_eq(msharpe(LRe, look).astype(np.float32), wl, np.float32),   # the evaluation stored WL as float32 (news_legs L39)
+                              "leg_return_rows_compared": int(n), "king_rev24_rows_within_f32": bool((dS[:, :2] <= tol[:, :2]).all()),
+                              "fund_rows_differing": int((dS[:, 2] > tol[:, 2]).sum()), "fund_row_maxabs": float(dS[:, 2].max()),
+                              "seat_maxabs_served_vs_eval": float(np.abs(masked(served["w3"]) - wm).max())}
     r["publish_served"] = bool(served["status"].get("ok")); r["publish_eval"] = bool(E[f"trade_mask_{A}"]); r["publish_equal"] = r["publish_served"] == r["publish_eval"]
-    if r["publish_served"] and r["publish_eval"]:
-        er = E[f"raw_{A}"].astype(np.float32).astype(np.float64)       # weights_combo stores combo_raw as float32 (combo_stage L376)
-        r["combo_raw_f32_vs_eval"] = bits_eq(served["combo_raw_f32"], np.where(np.abs(er) > 1e-9, er, 0.0), np.float64)
-        if not r["combo_raw_f32_vs_eval"] and r["members"]:          # R4 / R2 attribution with combo_target.step on the served inputs
-            import combo_target as CT
-            CT.ROOT = __import__("pathlib").Path(f"{cand.root}/ctroot"); os.makedirs(f"{cand.root}/ctroot/vendor_live/fea171", exist_ok=True)
-            shutil.copy2(f"{cand.ws}/fea171/combo_stage.py", f"{cand.root}/ctroot/vendor_live/fea171/combo_stage.py")
-            led = served["aux"]["ledger_tail"]
-            rn8 = np.array([(float(led[cand.syms[j]][-1][1]) * (8.0 / (float(led[cand.syms[j]][-1][2]) or 8.0))) if led.get(cand.syms[j]) else np.nan for j in m])
-            qv = np.expm1(np.clip(S["qvm"], 0, 30)) * 48; legal = np.array([s in set(served["cfg"]["symbols_live"]) for s in cand.syms])
-            o = CT.step(np.array(pr["legz"]["king"]), f10, np.array(pr["legz"]["fund"]), wl, rn8, m, qv, legal, served["cfg"]["params"], E[f"kc_prev_{A}"], E[f"fc_prev_{A}"], "scaled_diagnostic")
-            r["named"]["step_on_served_inputs_vs_served_raw"] = bits_eq(np.where(np.abs(o["raw"]) > 1e-9, o["raw"], 0).astype(np.float32).astype(np.float64), served["combo_raw_f32"], np.float64) if o["raw"] is not None else None
+    er = E[f"raw_{A}"]
+    r["combo_raw_f32_vs_eval"] = bits_eq(served["combo_raw_f32"], np.where(np.abs(er) > 1e-9, er, 0.0).astype(np.float32).astype(np.float64), np.float64) if (r["publish_served"] and r["publish_eval"]) else None
+    import combo_target as CT
+    CT.ROOT = __import__("pathlib").Path(f"{cand.root}/ctroot"); os.makedirs(f"{cand.root}/ctroot/vendor_live/fea171", exist_ok=True)
+    shutil.copy2(f"{cand.ws}/fea171/combo_stage.py", f"{cand.root}/ctroot/vendor_live/fea171/combo_stage.py")
+    led = served["aux"]["ledger_tail"]
+    rn8 = np.array([(float(led[cand.syms[j]][-1][1]) * (8.0 / (float(led[cand.syms[j]][-1][2]) or 8.0))) if led.get(cand.syms[j]) else np.nan for j in m])
+    qv = np.expm1(np.clip(S["qvm"], 0, 30)) * 48; legal = np.array([s in set(served["cfg"]["symbols_live"]) for s in cand.syms])
+    kc_p, fc_p = served["kc_prev"], served["fc_prev"]
+    oa = CT.step(lz_served["king"], f10, lz_served["fund"], served["w3"], rn8, m, qv, legal, served["cfg"]["params"], kc_p, fc_p, "scaled_diagnostic")   # served seats (R5a = code parity)
+    f32 = lambda v: np.asarray(v, np.float32).astype(np.float64)
+    ob = CT.step(f32(lz_served["king"]), f32(f10), f32(fz_axis), wl, rn8, m, qv, E[f"book_legal_{A}"], served["cfg"]["params"], E[f"kc_prev_{A}"], E[f"fc_prev_{A}"], "scaled_diagnostic")
+    ser = lambda o: np.where(np.abs(o["raw"]) > 1e-9, o["raw"], 0.0).astype(np.float32).astype(np.float64) if o["raw"] is not None else None
+    r["named"]["R5a_step_on_served_inputs_eq_served_raw"] = (bool(oa["accepted"]) == r["publish_served"]) and (not r["publish_served"] or bits_eq(ser(oa), served["combo_raw_f32"], np.float64))
+    r["named"]["R5b_step_on_f32_rounded_inputs_eq_eval_raw"] = (bool(ob["accepted"]) == r["publish_eval"]) and bits_eq(np.asarray(ob["raw"]), er, np.float64) if ob["raw"] is not None else False
+    r["named"]["served_vs_eval_raw_maxabs"] = float(np.abs(served["combo_raw_f32"] - np.where(np.abs(er) > 1e-9, er, 0.0)).max()) if r["publish_served"] else None
+    r["kc_prev_equal_eval"] = bits_eq(kc_p, E[f"kc_prev_{A}"], np.float64); r["fc_prev_equal_eval"] = bits_eq(fc_p, E[f"fc_prev_{A}"], np.float64)
     return r
 
 
@@ -217,11 +262,18 @@ def run_chain(a, tag, f10_file, n, fetchlist=True, reseed=True, zero_state=False
 
 
 def unexplained(r):
-    keys = ["members", "X78", "X82", "X89", "king_pred_vs_oof", "legz_king", "legz_rev24", "seats_w3_masked", "publish_equal"]
+    if not r.get("members"): return ["members"]
+    keys = ["X78", "X82", "X89", "king_pred_f32_vs_oof", "served_legz_king_is_xz_of_pred", "legz_king_f32", "legz_rev24_f32", "seats_w3_masked", "publish_equal"]
     bad = [k for k in keys if not r.get(k)]
-    if "f10_numpy_vs_gpu" not in r or r["f10_numpy_vs_gpu"]["max_abs"] > F10_NUMERICS_TOL: bad.append("f10_scores")
-    if not r.get("legz_fund") and not r.get("named", {}).get("R2_fund_base_offaxis", {}).get("axis_base_recompute_bitwise"): bad.append("legz_fund")
-    if r.get("publish_served") and r.get("publish_eval") and not r.get("combo_raw_f32_vs_eval") and not r.get("named", {}).get("step_on_served_inputs_vs_served_raw"): bad.append("combo_raw")
+    sn = r["named"].get("R2_seats", {})
+    if "seats_w3_masked" in bad and sn.get("served_w3_rule_eq_target_combo") and sn.get("eval_w3_rule_eq_WL_bitwise") and sn.get("king_rev24_rows_within_f32") and sn.get("fund_rows_differing", 0) > 0:
+        bad.remove("seats_w3_masked")        # named: R2 via the fund leg-return rows
+    elif not sn.get("served_w3_rule_eq_target_combo", True) or not sn.get("eval_w3_rule_eq_WL_bitwise", True):
+        bad.append("seat_rule_parity")
+    if r["f10_numpy_vs_gpu"]["max_abs"] > F10_NUMERICS_TOL: bad.append("f10_scores")
+    if not r.get("legz_fund_f32") and not r["named"]["R2_fund_base_offaxis"]["axis_base_recompute_f32_bitwise"]: bad.append("legz_fund")
+    if not r["named"]["R5a_step_on_served_inputs_eq_served_raw"]: bad.append("combo_code_parity")
+    if not r["named"]["R5b_step_on_f32_rounded_inputs_eq_eval_raw"]: bad.append("combo_numerics_parity")
     return bad
 
 

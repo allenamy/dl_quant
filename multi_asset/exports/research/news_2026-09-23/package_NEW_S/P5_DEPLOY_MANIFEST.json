@@ -1,0 +1,114 @@
+{
+ "device": "/dev/shm/news_2026-09-23/devices/news_export_models.py",
+ "device_sha256": "e2e05cab7a54eeef4c7b1eb333aa39cccbe6e4f0e27a91437370e0726be39d05",
+ "utc": "2026-09-23T15:24:30Z",
+ "links": {
+  "features": {
+   "path": "/dev/shm/news_2026-09-23/work/NEWS_FEATURES.npz",
+   "sha256": "a490c294d90e0cdb2bb1dca503f3468dc1a4384396e3f7bae3e3020e161f79ac"
+  },
+  "king": {
+   "receipt": "/dev/shm/news_2026-09-23/work/king/TRAIN_RECEIPT.json",
+   "receipt_sha256": "decd5b1de03f8fe83f399a3832ed78a7f145b539392ece4e4c96b364e20fb1de",
+   "oof_sha256": "744bc48ea1e2f3b823d4ae9268d4d791606319691da23bfa9f1d98eedf232ab9",
+   "fold_2026": {
+    "fold": "2026",
+    "score_start": 1767225600,
+    "score_end": 1789776000,
+    "max_train_label_end": 1766361600,
+    "embargo_anchors": 60,
+    "train_pairs": 2134326,
+    "scored_pairs": 626800,
+    "model_path": "/dev/shm/news_2026-09-23/work/king/king_2026.txt",
+    "model_sha256": "b521ccdcd045a0975f107fed1e415b22ec72a96fb7f17a30da13f0583bacd0a2",
+    "seconds": 18.018729426898062,
+    "mean_cs_spearman": 0.06788030822609775,
+    "mean_cs_pearson": 0.017861485320350177,
+    "mean_per_asset_pearson": 0.03522047637141606,
+    "n_cs_anchors": 1566,
+    "status": "SIGNAL_DIAGNOSTIC_ONLY"
+   }
+  },
+  "legs": {
+   "sha256": "18999e169c6b68546271f8194fd74eaa79041d1967ba44df978f4cbea33d6bd5"
+  },
+  "f10_s42": {
+   "receipt_sha256": "2d2ee1e6b770699a97fc88b9d99fbe183f5534a3a9072f420d02658be684d6f8",
+   "oof_sha256": "aa6e30550d8079a3b6df8a4d98a7dd638c3178af1db294ab351b79ed99a91d08",
+   "fold_202609": {
+    "model_pt_sha256": "35c4f24702729037daa53d8388ca0fcdf6f5809fade1db9c72e57994e0a7e6bc",
+    "score_sha256": "b870159b74874ae87de52a3ed3788dbaca9679849f94090b8fd64e8823a90eff",
+    "admission": {
+     "fold": "202609",
+     "accepted_windows": 153,
+     "rejected": {
+      "unpriced_possible_holding": 6
+     },
+     "train_anchors": 7716,
+     "max_train_label_end": 1767744000,
+     "test_start": 1788220800,
+     "cutoff": 1787356800
+    },
+    "max_train_label_end_utc": "2026-01-07T00:00:00Z",
+    "cutoff_utc": "2026-08-22T00:00:00Z",
+    "note": "only the first 85% of admissible training anchors enter the gradient (train_f10.py L102-103): the last label the model saw is max_train_label_end, not the cutoff"
+   }
+  },
+  "combo_s42": {
+   "receipt_sha256": "5811bd01464287bd9b337d5f96d1025204f2d7494d824b7b06a9140517a684e3",
+   "scaled_sha256": "0c409fe3754acf971878c5a52cc6748f2066751257e1a39972866f3101f23a6c"
+  },
+  "adapter_s42": {
+   "receipt_sha256": "3d45596eac8163df5ce14fc72474c9c996071eede9edb2f2650ba0650e35e835",
+   "targets_npz_sha256": "1014579872f0471dae0eeb5377705b7b8fdc65a826c62e48f74de48c4f42f330"
+  },
+  "run_config_s42": {
+   "path": "/dev/shm/news_2026-09-23/configs/RUN_CONFIG_NEWS_s42_2026-09-23.json",
+   "sha256": "15a10d0ac2ccfbe0fb1c65482f65accd595ee48dd33a68e05d9a7442e6eca08f",
+   "pod_root": "/dev/shm/news_2026-09-23"
+  },
+  "stats": {
+   "path": "/dev/shm/news_2026-09-23/receipts/engine/NEWS_STATS.json",
+   "sha256": "d86e96f4502ed7b593349a85843d7882ac6227c87bb53e2a63c97f6f0db182bd",
+   "VERDICT": "SWAP",
+   "failing_by_seed": {
+    "NEWS_s42": [],
+    "NEWS_s2027": []
+   }
+  }
+ },
+ "deploy": {
+  "slow2026.txt": {
+   "path": "/dev/shm/news_2026-09-23/deploy/slow2026.txt",
+   "sha256": "b521ccdcd045a0975f107fed1e415b22ec72a96fb7f17a30da13f0583bacd0a2",
+   "= King fold 2026 model": true
+  },
+  "f10_live_s42_np.npz": {
+   "path": "/dev/shm/news_2026-09-23/deploy/f10_live_s42_np.npz",
+   "sha256": "6e97dc8afcaff41d672206871f071c4562bd66bf55ec3403d69eb652a2d4e6eb",
+   "from_model_pt_sha256": "35c4f24702729037daa53d8388ca0fcdf6f5809fade1db9c72e57994e0a7e6bc",
+   "alpha": 0.09373189508914948,
+   "trained_through(max_train_label_end)": 1767744000,
+   "trained_through_utc": "2026-01-07T00:00:00Z"
+  },
+  "V1_gate": {
+   "spearman": 0.9999999999955554,
+   "maxabs": 5.154857224409781e-08,
+   "rows": 30000,
+   "PASS": true,
+   "rule": "spearman >= 0.99999 and maxabs <= 1e-5 (pod_f10_np_export.py)"
+  },
+  "numpy_serving_vs_gpu_oof_202609": {
+   "anchors": 109,
+   "max_abs": 9.557011187467934e-08,
+   "within_anchor_rank_mismatch_cells": 4
+  },
+  "executor_pins": {
+   "booster_sha_pin": "b521ccdcd045a0975f107fed1e415b22ec72a96fb7f17a30da13f0583bacd0a2",
+   "f10_sha_pin": "6e97dc8afcaff41d672206871f071c4562bd66bf55ec3403d69eb652a2d4e6eb"
+  }
+ },
+ "torch": "2.11.0+cu128",
+ "numpy": "2.4.6",
+ "VERDICT": "BOUND"
+}
