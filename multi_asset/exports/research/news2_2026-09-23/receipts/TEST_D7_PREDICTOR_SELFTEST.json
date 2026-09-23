@@ -1,0 +1,31 @@
+{
+ "device": "news2_d7_signal_predictor.py --selftest",
+ "self_sha256": "a3f586a1bab1173f8474ad9dfb8f09a32cfe65bd82fd644483c715732f651fb3",
+ "utc": "2026-09-23T19:50:56Z",
+ "w": 2016,
+ "band": [
+  1008,
+  2016
+ ],
+ "cells": [
+  {
+   "cell": "GREEN.full_support",
+   "verdict": "PASS",
+   "expected": "0 anchors with signal",
+   "observed": "sum(sizes)=0"
+  },
+  {
+   "cell": "RED.one_member_in_band",
+   "verdict": "PASS",
+   "expected": "anchor 3 reports exactly member 7",
+   "observed": "sizes=[0, 0, 0, 1, 0] examples={3: [7]}"
+  },
+  {
+   "cell": "RED.boundaries",
+   "verdict": "PASS",
+   "expected": "only support == w//2 fires (w and w//2-1 do not)",
+   "observed": "sizes=[0, 1, 0, 0, 0] examples={1: [2]}"
+  }
+ ],
+ "VERDICT": "PASS"
+}
