@@ -1,3 +1,9 @@
+> **[2026-09-23 23:1xZ] 完整修正版(NC):三道部署前硬门在 treeNC5 上全部 PASS;平价门首跑抓到一个在役同样存在的生产者缺陷,已修**
+> - 平价门首跑(treeNC4)`FAIL_PARITY`:只有 1789704000 的 ONEUSDT 资金费列不同。原因是交易所把结算周期 8h→1h 时,生产者按旧周期预测并跳过,服务端滞后一锚。在役 `shadow_loop_v3.py`(60800739)同一行。E-0923-I;冻结修订 2(778ba7324)只改一行:批量成功时不跳过,请求数不增。
+> - treeNC5(shadow_loop a68c7a5f):平价门 `NC_PARITY_GATE PASS`,6 锚 × 11 量 0 差,两负控测出,撤改动复红(5fe0cf11c);E3 `NC_TIMING_GATE PASS`,combo 写完 N+17:44.3,余量 110.7 s;F-2 `NC_ROLLBACK PASS`,e1–e3 全拦(e54c60809)。
+> - 未完:news2 判词(A / B1 / B2,F10 两种子 23:10Z 起训练);M3c 待 s42 组合目标;安装演练 §P2 待部署模型;部署手册改成 treeNC5;用户确认书行为改动(DEPLOY §0.2-7)。
+> - 在役书的 E-0923-I 滞后随 NC 发布一起修,不单独热修。
+
 > **[2026-09-23 18:1xZ] 完整修正版:设计与决策规则已冻结**(`docs/FREEZE_new_servable_v2_2026-09-23.md`,b30e4afa5;先于任何 NEW_S2 数字)
 > - 设计 = `DESIGN_producer_new_contract_2026-09-23.md` 33ef8164:D1–D14 全修;成员只取加密;动态取数 + 同锚回填;并行取数层;D7 当锚行;M3 字段并入;耗时硬门;回滚须演练。训练方案 = NEW_S 方案。
 > - 决策规则由 lead 书写:A = 对 OLD / OLD_HOLD 过 S1–S5;B1 = 对 NEW_S 点估计 ≥ 0;B2 = R-P 触线 ≤ NEW_S。A 过而 B 不过 ⇒ 交用户,不自动回退 NEW_S。
