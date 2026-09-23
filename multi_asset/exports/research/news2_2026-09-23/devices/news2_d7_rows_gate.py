@@ -66,8 +66,13 @@ def main():
     cfg = json.load(open(CFG))
 
     def run(arm, rows_mode, A):
-        os.environ["F8_TREND_ROWS"] = rows_mode
+        # The two settings differ in the SHIPPED TEXT of combo_stage.py (tree "D7" declares "last",
+        # tree "D7all" declares "all"), not in this process's environment: news2_hist_features reads
+        # the declaration out of the tree, so an environment variable here would change nothing and
+        # the gate would compare a setting against itself.
         H.set_tree(build_tree(work, arm))
+        if rows_mode is not None:
+            assert H._trend_rows() == rows_mode, (arm, "declares", H._trend_rows(), "expected", rows_mode)
         i = int(np.searchsorted(fa, A))
         mi = int(np.searchsorted(mts, A))
         if i >= len(fa) or fa[i] != A or mi >= len(mts) or mts[mi] != A:
@@ -84,7 +89,7 @@ def main():
     for A in anchors:
         rec = {"anchor": A}
         out = {}
-        for tag, arm, mode in (("base", "base", "all"), ("all", "D7", "all"), ("last", "D7", "last")):
+        for tag, arm, mode in (("base", "base", None), ("all", "D7all", "all"), ("last", "D7", "last")):
             r, dt = run(arm, mode, A)
             if r is None or "skip" in r:
                 rec["status"] = "UNAVAILABLE"
@@ -128,7 +133,8 @@ def main():
            "design_ref": "DESIGN_producer_new_contract_2026-09-23.md E4(a)",
            "must_include_anchors": MUST_INCLUDE, "anchors": anchors,
            "inputs": {p: H.sha(p) for p in (CACHE_AXES, MASK, HOLES, FUND, CRYPTO, CFG)},
-           "tree_shas": {arm: json.load(open(f"{work}/tree_{arm}/PATCH_RECEIPT.json"))["outputs"] for arm in ("base", "D7")},
+           "tree_shas": {arm: json.load(open(f"{work}/tree_{arm}/PATCH_RECEIPT.json"))["outputs"] for arm in ("base", "D7", "D7all")},
+           "tree_declared_trend_rows": {arm: json.load(open(f"{work}/tree_{arm}/PATCH_RECEIPT.json"))["config"]["trend_rows_declared"] for arm in ("D7", "D7all")},
            "rows": rows, "n_ok": len(ok), "n_unavailable": len(unavail),
            "n_anchors_where_D7_moves_the_row": len(with_signal),
            "median_seconds": {k: med(v) for k, v in timing.items()}, "seconds_per_anchor": timing,

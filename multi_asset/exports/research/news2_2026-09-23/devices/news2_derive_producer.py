@@ -275,7 +275,7 @@ def patch_dlw(P):
 
 
 # ---------------------------------------------------------------- fea171/combo_stage.py (btcv, fund panel, rn8)
-def patch_combo(P):
+def patch_combo(P, trend_rows="last"):
     # D9 — btcv window [E-2015, E] including the closing bar; coverage gate; no backfill.
     P.replace(
         "D9:btcv_window",
@@ -351,6 +351,24 @@ def patch_combo(P):
         if j is not None:
             fn[-1, j] = float(rows_[-1][1])
 """,
+    )
+    # D7 wiring — the mini pipeline is the ONLY place where "compute the trend for the extracted row
+    # only" is valid, because it is the code that discards every other row. So the mini pipeline
+    # DECLARES the value instead of inheriting it from whatever the producer process happens to have
+    # in its environment: a setting that lives in a plist is a setting nobody notices is missing.
+    # news2_hist_features.py reads this same literal out of this file, so training and serving cannot
+    # disagree about it.
+    P.replace(
+        "D7:mini_pipeline_declares_trend_rows",
+        """    env = dict(os.environ)
+    env.update({"F171_CACHE": f"{MINI}/cache.npz", "F171_TARGETS": f"{MINI}/data/dlw_targets.npz", "F171_OUT": MINI,
+                "F171_FEA82": f"{MINI}/data/dlw_fea82.npz", "F171_PANEL": f"{_feature_workspace.name}/xfer_panel_live.npz"})
+""",
+        """    env = dict(os.environ)
+    env.update({"F171_CACHE": f"{MINI}/cache.npz", "F171_TARGETS": f"{MINI}/data/dlw_targets.npz", "F171_OUT": MINI,
+                "F171_FEA82": f"{MINI}/data/dlw_fea82.npz", "F171_PANEL": f"{_feature_workspace.name}/xfer_panel_live.npz",
+                "F8_TREND_ROWS": "%s"})   # NEW_S2 D7: declared here, not inherited from the environment
+""" % trend_rows,
     )
     # D13 — FTRIM's rn8 gets the same freshness. Interval stays the producer's inferred/default-8 rule (D10 out of scope).
     P.replace(
@@ -429,6 +447,9 @@ def main():
                     help="PREREG §1.4(a): whether D5/D6 also cover the member screen (L499-L507)")
     ap.add_argument("--shadow-base", choices=("ed11d731", "raw"), default="ed11d731",
                     help="raw = the unpatched producer file 6080073b, for the 'base swap is a no-op' gate")
+    ap.add_argument("--trend-rows", choices=("all", "last"), default="last",
+                    help="the F8_TREND_ROWS value the mini pipeline DECLARES (DESIGN E4(a)); the arms of "
+                         "news2_d7_rows_gate.py differ in this literal, not in an environment variable")
     ap.add_argument("--only", default="",
                     help="comma-separated fix families to APPLY (D4,D5,D6,D7,D8,D9,D11,D13,D14); empty = all")
     args = ap.parse_args()
@@ -465,7 +486,7 @@ def main():
         patchers[name] = Patcher(name, srcs[name].read_text(), enabled)
     patch_shadow(patchers["shadow_loop_v3.py"], args.member_screen_f64 == "yes")
     patch_dlw(patchers["fea171/dlw_features.py"])
-    patch_combo(patchers["fea171/combo_stage.py"])
+    patch_combo(patchers["fea171/combo_stage.py"], args.trend_rows)
     patch_f8(patchers["fea171/f8_higher_order_features.py"])
 
     (out / "fea171").mkdir(parents=True)
@@ -491,7 +512,8 @@ def main():
         "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "prereg": "docs/PREREG_new_servable_v2_features_2026-09-23.md",
         "config": {"out": str(out), "member_screen_f64": args.member_screen_f64,
-                   "only": sorted(enabled) if enabled else "ALL", "shadow_base": args.shadow_base},
+                   "only": sorted(enabled) if enabled else "ALL", "shadow_base": args.shadow_base,
+                   "trend_rows_declared": args.trend_rows},
         "sources": {k: {"path": str(v), "sha256": got[k]} for k, v in srcs.items()},
         "raw_producer_shadow_loop_v3_sha256": RAW_SHADOW_SHA,
         "outputs": written,

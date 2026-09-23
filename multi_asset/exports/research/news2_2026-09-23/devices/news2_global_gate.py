@@ -113,6 +113,8 @@ def build_tree(work, arm):
         cmd += ["--only", "NONE", "--shadow-base", "raw"]
     elif arm == "base":
         cmd += ["--only", "NONE"]
+    elif arm == "D7all":
+        cmd += ["--only", "D7", "--trend-rows", "all"]
     elif arm != "all":
         cmd += ["--only", arm]
     r = subprocess.run(cmd, capture_output=True, text=True)

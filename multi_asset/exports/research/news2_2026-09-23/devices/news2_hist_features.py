@@ -70,6 +70,10 @@ def _king_block():
     return ns["king_block"]
 
 
+def _has_d7():
+    return '"F8_TREND_ROWS"' in open(COMBO_SRC).read()
+
+
 def _combo_funcs():
     raw = open(COMBO_SRC, "rb").read(); assert hashlib.sha256(raw).hexdigest() == COMBO_SHA
     t = ast.parse(raw)
@@ -80,8 +84,20 @@ def _combo_funcs():
     return ns
 
 
+_TREND_ROWS_RE = r'"F8_TREND_ROWS":\s*"(all|last)"'
 _FUND_BEGIN = 'scol_of = {s_: j for j, s_ in enumerate(syms_all)}\n'
 _FUND_END = '    np.savez(f"{_feature_workspace.name}/xfer_panel_live.npz"'
+
+
+def _trend_rows():
+    """The value combo_stage.py DECLARES for F8_TREND_ROWS. Read out of the shipped text, never
+    guessed and never taken from this process's environment: training and serving then cannot
+    disagree about it, and a tree built without the D7 patch has no value to read, which is a
+    refusal rather than a silent fallback."""
+    import re
+    m = re.findall(_TREND_ROWS_RE, open(COMBO_SRC).read())
+    assert len(m) == 1, f"combo_stage.py must declare F8_TREND_ROWS exactly once, found {len(m)}"
+    return m[0]
 
 
 def _fund_panel_block():
@@ -105,7 +121,9 @@ class _St:
 
 def replay_anchor(A, cd, ts, syms, chn, cand, ema, ledger, P, cfg, work, holes=None, keep_mini=False, cols=None):
     """Features the patched producer would compute at anchor A with fetch list = candidates."""
+    _HAS_D7 = _has_d7()
     king_block = _king_block(); cf = _combo_funcs(); fund_code, fund_span = _fund_panel_block()
+    trend_rows = _trend_rows() if _HAS_D7 else None
     ia = int(np.searchsorted(ts, A)); assert ts[ia] == A
     i0 = max(ia + 1 - CACHE_ROWS, 0)
     RD = np.array(cd[i0:ia + 1], dtype=np.float16)
@@ -162,6 +180,8 @@ def replay_anchor(A, cd, ts, syms, chn, cand, ema, ledger, P, cfg, work, holes=N
         env = dict(os.environ)
         env.update({"F171_CACHE": f"{MINI}/cache.npz", "F171_TARGETS": f"{MINI}/data/dlw_targets.npz", "F171_OUT": MINI,
                     "F171_FEA82": f"{MINI}/data/dlw_fea82.npz", "F171_PANEL": f"{mini_root}/xfer_panel_live.npz"})
+        if _HAS_D7:
+            env["F8_TREND_ROWS"] = trend_rows        # the value combo_stage declares, not this process's env
         HERE = f"{TREE}/fea171"; PY = sys.executable
         r1 = subprocess.run([PY, f"{HERE}/dlw_features.py"], env=env, capture_output=True, text=True, cwd=HERE)
         assert r1.returncode == 0, r1.stderr[-800:]
@@ -182,7 +202,7 @@ def replay_anchor(A, cd, ts, syms, chn, cand, ema, ledger, P, cfg, work, holes=N
                "base_vals": out["base_vals"], "X82": X82, "X89": X89,
                "f89_names": m89["names"], "f89_finite_share_raw": m89["finite_share_raw"],
                "btcv_anchor": float(T9["btcv"][a_i]), "btcv_nan_rows": int((~np.isfinite(T9["btcv"])).sum()),
-               "king_span": KING_SPAN, "fund_span": fund_span}
+               "king_span": KING_SPAN, "fund_span": fund_span, "trend_rows": trend_rows}
         return res
     finally:
         if not keep_mini:
