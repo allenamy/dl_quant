@@ -1,0 +1,20 @@
+--- news_2026-09-23/devices/news_train_f10.py
++++ news2_2026-09-23/devices/news2_train_f10.py
+@@ -13,7 +13,7 @@
+ import torch
+ from torch import nn
+ import hashlib
+-W=pathlib.Path('/dev/shm/news_2026-09-23')
++W=pathlib.Path('/dev/shm/news2_2026-09-23')
+ NEWT=pathlib.Path('/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz');NEWT_SHA='ca479fccd3d3245e9438a8c82ba7b4a1950ab6e06607f28b25923c4526924d62'
+ def sha(p):
+     h=hashlib.sha256()
+@@ -65,7 +65,7 @@
+     # ---- NEWS input section (the only lines that differ from train_f10.py 07ac4c67) ----
+     r=W/'work';out=r/f'f10_s{args.seed}';out.mkdir(exist_ok=True)
+     files=[r/'NEWS_FEATURES.npz',NEWT,r/'legs.npz',W/'receipts/P2B_FEATURES.json',W/'receipts/P3_LEGS.json']
+-    inputs={str(p):sha(p) for p in files};sources={str(p):sha(p) for p in (pathlib.Path(__file__),W/'devices/f10_observability.py',W/'devices/news_hist_features.py',W/'devices/news_legs.py',W/'devices/news_p2_build.py')}
++    inputs={str(p):sha(p) for p in files};sources={str(p):sha(p) for p in (pathlib.Path(__file__),W/'devices/f10_observability.py',W/'devices/nc_hist_features.py',W/'devices/nc_legs.py',W/'devices/nc_p2_build.py')}
+     assert inputs[str(files[1])]==NEWT_SHA and json.load(open(files[3]))['sha256']==inputs[str(files[0])] and json.load(open(files[4]))['sha256']==inputs[str(files[2])]
+     F=np.load(files[0]);T=np.load(files[1],allow_pickle=True);leg=np.load(files[2])
+     a=F['anchors'].astype(np.int64);assert np.array_equal(T['symbols'],F['symbols']) and np.array_equal(leg['E_ts'],a) and np.array_equal(leg['symbols'],F['symbols'])

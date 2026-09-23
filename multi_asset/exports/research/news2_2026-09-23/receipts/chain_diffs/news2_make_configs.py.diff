@@ -1,0 +1,64 @@
+--- news_2026-09-23/devices/news_make_configs.py
++++ news2_2026-09-23/devices/news2_make_configs.py
+@@ -1,18 +1,18 @@
+ #!/usr/bin/env python3
+ """news_make_configs.py — NEW_S run configurations derived by copy from the Stage 1 configs (ovn_make_configs.py), with the leaf-level
+ diff asserted before anything is written:
+-  RUN_CONFIG_NEWS_s{42,2027}   = Stage 1 RUN_CONFIG_OVN_NEW_s{seed} with ONLY labels (config / status / created_utc / object / pending / ovn),
++  RUN_CONFIG_NEWS2_s{42,2027}   = Stage 1 RUN_CONFIG_OVN_NEW_s{seed} with ONLY labels (config / status / created_utc / object / pending / ovn),
+                                  per run arm / tag / role / targets.arm / targets.sources (this agent's adapter npz + receipt, shas pinned),
+-                                 new_lineage, and paths.pod_root (/dev/shm/news_2026-09-23). Asserted against RUN_CONFIG_OVN_OLD:
++                                 new_lineage, and paths.pod_root (/dev/shm/news2_2026-09-23). Asserted against RUN_CONFIG_OVN_OLD:
+                                  every differing leaf ∈ Stage 1's ALLOWED_NEW_VS_OLD ∪ {paths.pod_root} (the output root).
+-  RUN_CONFIG_NEWS_s{seed}X     = the same substitutions on Stage 1 RUN_CONFIG_OVN_NEW_s{seed}X (describe-only extension, scaled main run only).
++  RUN_CONFIG_NEWS2_s{seed}X     = the same substitutions on Stage 1 RUN_CONFIG_OVN_NEW_s{seed}X (describe-only extension, scaled main run only).
+ usage: python -B news_make_configs.py PATH,HOME,LC_CTYPE <out_dir> <adapter_receipt_s42> <adapter_receipt_s2027> <diff_receipt.json>
+ """
+ import os, sys, json, time, hashlib, re
+ 
+ WL = set(sys.argv[1].split(",")); extra = sorted(set(os.environ) - WL); assert not extra, f"env outside whitelist: {extra}"
+ OUTD, AR42, AR2027, DIFF = sys.argv[2:6]
+-S1 = "/workspace/old_vs_new_2026-09-23"; POD_ROOT = "/dev/shm/news_2026-09-23"
++S1 = "/workspace/old_vs_new_2026-09-23"; POD_ROOT = "/dev/shm/news2_2026-09-23"
+ STAGE1 = {"OLD": f"{S1}/RUN_CONFIG_OVN_OLD_2026-09-23.json", "NEW_s42": f"{S1}/RUN_CONFIG_OVN_NEW_s42_2026-09-23.json",
+           "NEW_s2027": f"{S1}/RUN_CONFIG_OVN_NEW_s2027_2026-09-23.json", "NEW_s42X": f"{S1}/RUN_CONFIG_OVN_NEW_s42X_2026-09-23.json",
+           "NEW_s2027X": f"{S1}/RUN_CONFIG_OVN_NEW_s2027X_2026-09-23.json", "OLD_HOLD": f"{S1}/RUN_CONFIG_OVN_OLD_HOLD_2026-09-23.json"}
+@@ -57,8 +57,8 @@
+ C = {k: json.load(open(p)) for k, p in STAGE1.items()}
+ AR = {}
+ for seed, p in (("42", AR42), ("2027", AR2027)):
+-    R = json.load(open(p)); assert R["arm"] == f"NEWS_s{seed}" and R["roundtrip"]["scaled"]["bitwise_equal"] and R["roundtrip"]["lit"]["bitwise_equal"], "adapter receipt"
+-    R["_npz_path"] = f"{POD_ROOT}/targets/TARGETS_NEWS_s{seed}.npz"; assert sha(R["_npz_path"]) == R["targets_npz_sha256"]
++    R = json.load(open(p)); assert R["arm"] == f"NEWS2_s{seed}" and R["roundtrip"]["scaled"]["bitwise_equal"] and R["roundtrip"]["lit"]["bitwise_equal"], "adapter receipt"
++    R["_npz_path"] = f"{POD_ROOT}/targets/TARGETS_NEWS2_s{seed}.npz"; assert sha(R["_npz_path"]) == R["targets_npz_sha256"]
+     AR[seed] = (p, R)
+ os.makedirs(OUTD, exist_ok=True)
+ rec = {"device": "news_make_configs.py", "self_sha256": sha(os.path.abspath(__file__)), "utc": NOW, "prereg": PREREG,
+@@ -66,8 +66,8 @@
+ 
+ 
+ def news_cfg(base, seed, ext):
+-    N = json.loads(json.dumps(base)); p, R = AR[seed]; arm = f"NEWS_s{seed}"; run_arm = f"NEWS_s{seed}{'X' if ext else ''}"
+-    N["config"] = f"RUN_CONFIG_NEWS_s{seed}{'X' if ext else ''}_2026-09-23"
++    N = json.loads(json.dumps(base)); p, R = AR[seed]; arm = f"NEWS2_s{seed}"; run_arm = f"NEWS2_s{seed}{'X' if ext else ''}"
++    N["config"] = f"RUN_CONFIG_NEWS2_s{seed}{'X' if ext else ''}_2026-09-23"
+     N["status"] = f"FROZEN before any NEW_S book number; arm {arm}; settings byte-identical to Stage 1 RUN_CONFIG_OVN_OLD{'X' if ext else ''} (only labels, targets and output root differ)"
+     N["created_utc"] = NOW
+     N["object"] = f"NEW_S arm {arm}: producer-code-replayed features, retrained King + F10 s{seed}, combo via combo_target (scaled_diagnostic = scaled reading, literal = lit reading), through ovn_adapter.py"
+@@ -85,11 +85,11 @@
+ 
+ docs = {}
+ for seed in ("42", "2027"):
+-    N = news_cfg(C[f"NEW_s{seed}"], seed, False); d = diff(C["OLD"], N); check(d, ALLOWED_NEWS_VS_OLD, f"NEWS_s{seed} vs OVN_OLD"); rec["diffs"][f"NEWS_s{seed}_vs_OVN_OLD"] = d
+-    d2 = diff(C[f"NEW_s{seed}"], N); check(d2, ALLOWED_NEWS_VS_OLD, f"NEWS_s{seed} vs OVN_NEW_s{seed}"); rec["diffs"][f"NEWS_s{seed}_vs_OVN_NEW_s{seed}"] = d2
+-    docs[f"RUN_CONFIG_NEWS_s{seed}_2026-09-23.json"] = N
+-    NX = news_cfg(C[f"NEW_s{seed}X"], seed, True); d = diff(C[f"NEW_s{seed}X"], NX); check(d, ALLOWED_NEWS_VS_OLD, f"NEWS_s{seed}X vs OVN_NEW_s{seed}X"); rec["diffs"][f"NEWS_s{seed}X_vs_OVN_NEW_s{seed}X"] = d
+-    docs[f"RUN_CONFIG_NEWS_s{seed}X_2026-09-23.json"] = NX
++    N = news_cfg(C[f"NEW_s{seed}"], seed, False); d = diff(C["OLD"], N); check(d, ALLOWED_NEWS_VS_OLD, f"NEWS2_s{seed} vs OVN_OLD"); rec["diffs"][f"NEWS2_s{seed}_vs_OVN_OLD"] = d
++    d2 = diff(C[f"NEW_s{seed}"], N); check(d2, ALLOWED_NEWS_VS_OLD, f"NEWS2_s{seed} vs OVN_NEW_s{seed}"); rec["diffs"][f"NEWS2_s{seed}_vs_OVN_NEW_s{seed}"] = d2
++    docs[f"RUN_CONFIG_NEWS2_s{seed}_2026-09-23.json"] = N
++    NX = news_cfg(C[f"NEW_s{seed}X"], seed, True); d = diff(C[f"NEW_s{seed}X"], NX); check(d, ALLOWED_NEWS_VS_OLD, f"NEWS2_s{seed}X vs OVN_NEW_s{seed}X"); rec["diffs"][f"NEWS2_s{seed}X_vs_OVN_NEW_s{seed}X"] = d
++    docs[f"RUN_CONFIG_NEWS2_s{seed}X_2026-09-23.json"] = NX
+ # OLD_HOLD control: Stage 1 config vs OLD, re-listed for the record (no new run)
+ rec["diffs"]["stage1_OVN_OLD_HOLD_vs_OVN_OLD_leaves"] = [x["leaf"] for x in diff(C["OLD"], C["OLD_HOLD"])]
+ for fn, D in docs.items():
