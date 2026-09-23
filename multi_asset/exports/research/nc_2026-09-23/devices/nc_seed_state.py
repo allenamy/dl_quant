@@ -89,7 +89,7 @@ def main():
     rec["counts"]["boundary_cells"] = int(len(bt))
     # ---- funding: replay state at the axis end, advanced over the production ledger's later events
     f_off = np.concatenate([[0], np.cumsum(S["f_n"])]); ema_new = dict(aux["ema"]); led_new = dict(aux["ledger_tail"])
-    agree = disagree = advanced = 0; dis = []; miss_rep = []; miss_prod = []
+    agree = disagree = advanced = 0; dis = []; miss_rep = []; miss_prod = []; miss_prod_out = 0; rep_in_cov = 0
     for k, j in enumerate(S["f_sym"]):
         s = syms[int(j)]; b0, b1 = int(f_off[k]), int(f_off[k + 1])
         rows_ = [[int(S["f_ft"][q]), float(S["f_rate"][q]), (None if np.isnan(S["f_iv"][q]) else float(S["f_iv"][q]))] for q in range(b0, b1)]
@@ -105,9 +105,17 @@ def main():
                 else: disagree += 1; dis.append((s, int(r[0])))
             elif int(r[0]) <= E and int(r[0]) >= lo_r:
                 miss_rep.append((s, int(r[0])))          # a production event inside the pack's coverage that the replay does not have
+        # replay rows production lacks (lead 2026-09-23: counted, not refused, split by production's own coverage; a gate on the in-coverage share)
+        #   in coverage  = lo_p <= ft <= E (production recorded this name over that span, so a missing settlement there is a production gap)
+        #   out of coverage = ft < lo_p, or the name has no production ledger at all (production's tail is shorter / never fetched it)
         if lo_p is not None:
             pset = {int(r[0]) for r in pl}
-            miss_prod += [(s, r[0]) for r in rows_ if lo_p <= r[0] <= E and r[0] not in pset]
+            inc = [r for r in rows_ if lo_p <= r[0] <= E]
+            rep_in_cov += len(inc)
+            miss_prod += [(s, r[0]) for r in inc if r[0] not in pset]
+            miss_prod_out += sum(1 for r in rows_ if r[0] < lo_p)
+        else:
+            miss_prod_out += len(rows_)
         later = [(int(r[0]), float(r[1])) for r in pl if int(r[0]) > E]
         if rows_ or later:
             led, state, n = NC.ingest_settlements(rows_[-1:] if rows_ else [], state if rows_ else None, later)
@@ -115,7 +123,17 @@ def main():
             ema_new[s] = state; advanced += n
     rec["counts"]["ledger_rows_le_axis_agree"] = agree; rec["counts"]["ledger_rows_le_axis_disagree"] = disagree; rec["counts"]["events_advanced_after_axis"] = advanced
     rec["counts"]["ledger_rows_le_axis_missing_in_replay"] = len(miss_rep); rec["counts"]["missing_in_replay_first"] = miss_rep[:20]
-    rec["counts"]["replay_rows_missing_in_production"] = len(miss_prod); rec["counts"]["missing_in_production_first"] = miss_prod[:20]   # reported, not refused
+    rec["counts"]["replay_rows_in_production_coverage"] = rep_in_cov
+    rec["counts"]["replay_rows_missing_in_production_in_coverage"] = len(miss_prod)
+    rec["counts"]["replay_rows_missing_in_production_in_coverage_list"] = miss_prod                      # the full list (lead: count and names in the deploy receipt)
+    rec["counts"]["replay_rows_missing_in_production_in_coverage_by_name"] = {n_: sum(1 for x in miss_prod if x[0] == n_) for n_ in sorted({x[0] for x in miss_prod})}
+    rec["counts"]["replay_rows_missing_in_production_out_of_coverage"] = miss_prod_out                  # production tail shorter / name never fetched: expected
+    assert rep_in_cov > 0, "no replay funding row falls inside production's ledger coverage (zero measurements is not agreement)"
+    if len(miss_prod) > 0.01 * rep_in_cov:
+        rec["VERDICT"] = "STOP_REPORT_TO_LEAD"; os.makedirs(a.out, exist_ok=True)
+        json.dump(rec, open(os.path.join(a.out, "SEED_RECEIPT.json"), "w"), indent=1, default=str)
+        raise SystemExit(f"STOP_REPORT_TO_LEAD: {len(miss_prod)} replay settlements missing from the production ledger INSIDE its own coverage "
+                         f"(> 1% of {rep_in_cov}); production under-recorded where it should have data — investigate before seeding. Receipt: {a.out}/SEED_RECEIPT.json")
     assert disagree == 0 and not miss_rep, f"production ledger disagrees with the replay: rate {dis[:10]} / events absent from the replay {miss_rep[:10]}"
     assert agree > 0, "no production ledger row <= the axis end matched the replay (zero measurements is not agreement)"
     # ---- fetch list, prev close / ts

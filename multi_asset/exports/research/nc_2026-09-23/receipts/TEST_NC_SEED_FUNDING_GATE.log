@@ -1,0 +1,7 @@
+  OK   B0 baseline green: unmodified snapshot ⇒ SEEDED, 0 in-coverage missing, replay rows in coverage > 0  — (0, {'replay_rows_in_production_coverage': 183984, 'replay_rows_missing_in_production_in_coverage': 0, 'replay_rows_missing_in_production_out_of_coverage': 354}, '')
+  OK   T1 drop 0.5% of in-coverage production rows ⇒ SEEDED, in-coverage missing == dropped rows the replay has, names listed  — (0, {'dropped': 919, 'dropped_where_replay_has_the_event': 915, 'candidates': 183873}, 915, 183984)
+  OK   T2 drop 2% ⇒ exit != 0, STOP_REPORT_TO_LEAD, receipt VERDICT, no generation.json  — (1, {'dropped': 3677, 'dropped_where_replay_has_the_event': 3669, 'candidates': 183873}, 'STOP_REPORT_TO_LEAD', 'STOP_REPORT_TO_LEAD: 3669 replay settlements missing from the production ledger INSIDE its own coverage (> 1% of 183984); production under-recorded where it should have data — investigate
+  OK   T3 production row <= E absent from the replay ⇒ still refused (exit != 0)  — (1, {'name': '0GUSDT', 'ft': 1789774200}, "AssertionError: production ledger disagrees with the replay: rate [] / events absent from the replay [('0GUSDT', 1789774200)]")
+
+4/4 checks passed
+ALL PASS
