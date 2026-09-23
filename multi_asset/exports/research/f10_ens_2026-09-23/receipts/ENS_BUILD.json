@@ -1,0 +1,99 @@
+{
+ "device": "ens_build.py",
+ "self_sha256": "15d8a01fd4689d5f35f5550fd859ed4586376a01fae40a48d019e69243147884",
+ "utc": "2026-09-23T08:22:03Z",
+ "prereg": {
+  "path": "docs/PREREG_f10_seed_ensemble_book_2026-09-23.md",
+  "commit": "45aba1f3f",
+  "sha256": "56acd8320eae43450ba8a6ddfc7a3808bf0f742bcbe76c5d9890be6da6976d92"
+ },
+ "inputs": {
+  "f10_s42": {
+   "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/f10_s42/F10_OOF.npz",
+   "sha256": "bbc077d93669f249967980377dfe4b4fad438447773cf1f9a971712a5d7ac125"
+  },
+  "f10_s2027": {
+   "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/f10_s2027/F10_OOF.npz",
+   "sha256": "b7327184b2a44c4ab2846f2d00f2f49fde8f0c330e8740d7a765b9951f307a57"
+  },
+  "dlw_targets": {
+   "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz",
+   "sha256": "ca479fccd3d3245e9438a8c82ba7b4a1950ab6e06607f28b25923c4526924d62"
+  }
+ },
+ "rule": "per anchor, names finite in both seeds: rankdata(average) per seed, ENS = (r42 + r2027 - 2) / (2*max(nb-1,1)); one-seed-only -> NaN (counted); float32",
+ "output": {
+  "path": "/workspace/f10_ens_2026-09-23/work/F10_ENS.npz",
+  "sha256": "d66a092afdcfdaeb1eedd66ce2ac8ed8bbe915051d884ae87eaab5128e7cd1d7"
+ },
+ "roundtrip_vs_source_oof": {
+  "keys": [
+   "E_ts",
+   "P",
+   "symbols"
+  ],
+  "dtypes": {
+   "P": "float32",
+   "E_ts": "int64",
+   "symbols": "<U15"
+  },
+  "shapes": {
+   "P": [
+    10321,
+    829
+   ],
+   "E_ts": [
+    10321
+   ],
+   "symbols": [
+    829
+   ]
+  },
+  "bitwise_equal": true
+ },
+ "one_seed_only_names": {
+  "total": 0,
+  "anchors_with_any": 0,
+  "first_anchors": [],
+  "by_year": {
+   "2022": {
+    "anchors": 2178,
+    "one_seed_only_names_total": 0,
+    "anchors_with_one_seed_only_names": 0,
+    "both_finite_names_total": 0,
+    "anchors_with_no_finite_F10": 2178
+   },
+   "2023": {
+    "anchors": 2190,
+    "one_seed_only_names_total": 0,
+    "anchors_with_one_seed_only_names": 0,
+    "both_finite_names_total": 410256,
+    "anchors_with_no_finite_F10": 0
+   },
+   "2024": {
+    "anchors": 2196,
+    "one_seed_only_names_total": 0,
+    "anchors_with_one_seed_only_names": 0,
+    "both_finite_names_total": 600192,
+    "anchors_with_no_finite_F10": 0
+   },
+   "2025": {
+    "anchors": 2190,
+    "one_seed_only_names_total": 0,
+    "anchors_with_one_seed_only_names": 0,
+    "both_finite_names_total": 849226,
+    "anchors_with_no_finite_F10": 0
+   },
+   "2026": {
+    "anchors": 1567,
+    "one_seed_only_names_total": 0,
+    "anchors_with_one_seed_only_names": 0,
+    "both_finite_names_total": 626800,
+    "anchors_with_no_finite_F10": 0
+   }
+  },
+  "n_eff_anchors": 10321
+ },
+ "ens_finite_set_neq_members_anchors": 0,
+ "float32_rank_structure_preserved": "asserted on every anchor with >= 1 both-finite name"
+}

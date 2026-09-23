@@ -1,0 +1,9 @@
+{"case": "baseline_C1", "outcome": "GREEN", "detail": {"anchors_checked": 8142, "zf_bitwise_equal": true}, "as_expected": true}
+{"case": "baseline_C2", "outcome": "GREEN", "detail": {"anchor": "2024-11-09T12:00:00Z", "col": 418, "ens_is_nan": true, "one_only_count": 1, "other_anchors_bitwise_equal": true, "one_only_total_elsewhere": 0}, "as_expected": true}
+{"case": "baseline_C3", "outcome": "GREEN", "detail": {"keys": ["E_ts", "P", "symbols"], "dtypes": {"P": "float32", "E_ts": "int64", "symbols": "<U15"}, "shapes": {"P": [10321, 829], "E_ts": [10321], "symbols": [829]}, "bitwise_equal": true}, "as_expected": true}
+{"case": "M1_second_seed_sign_flipped", "outcome": "RED", "error": "C1 zf differs at 2023-01-01T00:00:00Z", "expected_red_reason": "C1 zf differs", "as_expected": true}
+{"case": "M2_one_only_filled_from_available_seed", "outcome": "RED", "error": "C2 one-only name finite at 2024-11-09T12:00:00Z col 418", "expected_red_reason": "C2 one-only name finite", "as_expected": true}
+{"case": "M3_symbols_reversed", "outcome": "RED", "error": "roundtrip symbols differ", "expected_red_reason": "roundtrip symbols differ", "as_expected": true}
+{"case": "M4_P_float64", "outcome": "RED", "error": "roundtrip dtype/shape P", "expected_red_reason": "roundtrip dtype/shape P", "as_expected": true}
+ENS_BUILD_TEST VERDICT=PASS baseline=GREEN(3/3) mutations_red_as_named=4/4 out_sha256=ad9edb51b5ca5e678d58cfd57857d6d09c2b6115731efa09328f3e255911e5b7
+EXIT 0

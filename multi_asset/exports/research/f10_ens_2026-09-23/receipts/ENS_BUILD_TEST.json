@@ -1,0 +1,92 @@
+{
+ "device": "ens_build_test.py",
+ "self_sha256": "10c1f2555e59b2029611b6376963cd33374b26d2c941b2ba7730feb6a51111e8",
+ "builder_sha256": "15d8a01fd4689d5f35f5550fd859ed4586376a01fae40a48d019e69243147884",
+ "utc_start": "2026-09-23T08:21:38Z",
+ "combo_axis_anchors": 8142,
+ "cases": [
+  {
+   "case": "baseline_C1",
+   "outcome": "GREEN",
+   "detail": {
+    "anchors_checked": 8142,
+    "zf_bitwise_equal": true
+   },
+   "as_expected": true
+  },
+  {
+   "case": "baseline_C2",
+   "outcome": "GREEN",
+   "detail": {
+    "anchor": "2024-11-09T12:00:00Z",
+    "col": 418,
+    "ens_is_nan": true,
+    "one_only_count": 1,
+    "other_anchors_bitwise_equal": true,
+    "one_only_total_elsewhere": 0
+   },
+   "as_expected": true
+  },
+  {
+   "case": "baseline_C3",
+   "outcome": "GREEN",
+   "detail": {
+    "keys": [
+     "E_ts",
+     "P",
+     "symbols"
+    ],
+    "dtypes": {
+     "P": "float32",
+     "E_ts": "int64",
+     "symbols": "<U15"
+    },
+    "shapes": {
+     "P": [
+      10321,
+      829
+     ],
+     "E_ts": [
+      10321
+     ],
+     "symbols": [
+      829
+     ]
+    },
+    "bitwise_equal": true
+   },
+   "as_expected": true
+  },
+  {
+   "case": "M1_second_seed_sign_flipped",
+   "outcome": "RED",
+   "error": "C1 zf differs at 2023-01-01T00:00:00Z",
+   "expected_red_reason": "C1 zf differs",
+   "as_expected": true
+  },
+  {
+   "case": "M2_one_only_filled_from_available_seed",
+   "outcome": "RED",
+   "error": "C2 one-only name finite at 2024-11-09T12:00:00Z col 418",
+   "expected_red_reason": "C2 one-only name finite",
+   "as_expected": true
+  },
+  {
+   "case": "M3_symbols_reversed",
+   "outcome": "RED",
+   "error": "roundtrip symbols differ",
+   "expected_red_reason": "roundtrip symbols differ",
+   "as_expected": true
+  },
+  {
+   "case": "M4_P_float64",
+   "outcome": "RED",
+   "error": "roundtrip dtype/shape P",
+   "expected_red_reason": "roundtrip dtype/shape P",
+   "as_expected": true
+  }
+ ],
+ "baseline_one_only_total": 0,
+ "VERDICT": "PASS",
+ "utc_end": "2026-09-23T08:21:52Z"
+}

@@ -1,0 +1,167 @@
+{
+ "device": "ens_dump.py",
+ "self_sha256": "4fa3eb5f8fef81c751b6392855f90d4012b2ac47f16d69d6e93385fa751fe368",
+ "utc": "2026-09-23T08:13:01Z",
+ "inputs": {
+  "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz": "ca479fccd3d3245e9438a8c82ba7b4a1950ab6e06607f28b25923c4526924d62",
+  "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/f10_s42/F10_OOF.npz": "bbc077d93669f249967980377dfe4b4fad438447773cf1f9a971712a5d7ac125",
+  "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/f10_s2027/F10_OOF.npz": "b7327184b2a44c4ab2846f2d00f2f49fde8f0c330e8740d7a765b9951f307a57",
+  "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+  "/workspace/codex_research/QNT-2026-0907/combo_20260923/devices/combo_target.py": "d7577e824298fb90a554f35ac9c4d634202a4ed7e4e00cabc597a2d4eafdb544",
+  "/workspace/codex_research/QNT-2026-0907/combo_20260923/devices/continuous_combo.py": "1501c9f63641bf447c4cb33661d08da25ced0948f9fae63cebb44cdfd1995d21"
+ },
+ "K2_consumption_quotes": {
+  "combo_target.step": [
+   "okf=np.isfinite(f10_score);zf=np.full(n,np.nan)",
+   "zf[okf]=rankdata(np.asarray(f10_score)[okf])/max(okf.sum()-1,1)-.5",
+   "coverage_gate=380 if publication=='literal' else int(np.ceil(.95*n))",
+   "if okf.sum()<coverage_gate:reasons.append('F10 coverage')",
+   "zfc=w[0]*np.nan_to_num(zf,nan=0.)+w[2]*np.nan_to_num(fund_rank,nan=0.)"
+  ],
+  "continuous_combo.evolve": [
+   "result=step(k[i,m],f10[i,m],fund[i,m],seats[i],rn8[i,m],m,qv[i,m],legal[i],params,kc,fc,publication)"
+  ],
+  "continuous_combo.main": [
+   "froot=r/f'f10_s{args.seed}'",
+   "score=np.load(paths[5])",
+   "score['P'][use]",
+   "use=(a>=1672531200)&(a<=universe['ts'][-1]);a=a[use]"
+  ]
+ },
+ "K2_reading": "F10 enters ONLY via step(): finite member scores are ranked (scipy rankdata, method 'average') and mapped to rank/(n_finite-1)-0.5; non-finite members get zf = NaN -> nan_to_num 0 in the F10 chain input; the publication gate counts okf.sum() = finite F10 among MEMBERS.",
+ "K1_keys": {
+  "42": {
+   "P": [
+    "float32",
+    [
+     10321,
+     829
+    ]
+   ],
+   "E_ts": [
+    "int64",
+    [
+     10321
+    ]
+   ],
+   "symbols": [
+    "<U15",
+    [
+     829
+    ]
+   ]
+  },
+  "2027": {
+   "P": [
+    "float32",
+    [
+     10321,
+     829
+    ]
+   ],
+   "E_ts": [
+    "int64",
+    [
+     10321
+    ]
+   ],
+   "symbols": [
+    "<U15",
+    [
+     829
+    ]
+   ]
+  }
+ },
+ "K1_axes_equal_across_seeds_and_dlw_targets": true,
+ "combo_axis": {
+  "first": "2023-01-01T00:00:00Z",
+  "last": "2026-09-18T20:00:00Z",
+  "n": 8142,
+  "rule": "continuous_combo.main use=(a>=1672531200)&(a<=universe['ts'][-1])"
+ },
+ "full_file_axis": {
+  "first": "2022-01-03T00:00:00Z",
+  "last": "2026-09-19T00:00:00Z",
+  "n": 10321
+ },
+ "K3_by_year": {
+  "2023": {
+   "n_members": 410256,
+   "fin42_all": 410256,
+   "fin2027_all": 410256,
+   "fin42_mem": 410256,
+   "fin2027_mem": 410256,
+   "fin42_outside_members": 0,
+   "fin2027_outside_members": 0,
+   "both_all": 410256,
+   "both_mem": 410256,
+   "one_only_all": 0,
+   "one_only_mem": 0,
+   "anchors": 2190
+  },
+  "2024": {
+   "n_members": 600192,
+   "fin42_all": 600192,
+   "fin2027_all": 600192,
+   "fin42_mem": 600192,
+   "fin2027_mem": 600192,
+   "fin42_outside_members": 0,
+   "fin2027_outside_members": 0,
+   "both_all": 600192,
+   "both_mem": 600192,
+   "one_only_all": 0,
+   "one_only_mem": 0,
+   "anchors": 2196
+  },
+  "2025": {
+   "n_members": 849226,
+   "fin42_all": 849226,
+   "fin2027_all": 849226,
+   "fin42_mem": 849226,
+   "fin2027_mem": 849226,
+   "fin42_outside_members": 0,
+   "fin2027_outside_members": 0,
+   "both_all": 849226,
+   "both_mem": 849226,
+   "one_only_all": 0,
+   "one_only_mem": 0,
+   "anchors": 2190
+  },
+  "2026": {
+   "n_members": 626400,
+   "fin42_all": 626400,
+   "fin2027_all": 626400,
+   "fin42_mem": 626400,
+   "fin2027_mem": 626400,
+   "fin42_outside_members": 0,
+   "fin2027_outside_members": 0,
+   "both_all": 626400,
+   "both_mem": 626400,
+   "one_only_all": 0,
+   "one_only_mem": 0,
+   "anchors": 1566
+  }
+ },
+ "K3_total": {
+  "n_members": 2486074,
+  "fin42_all": 2486074,
+  "fin2027_all": 2486074,
+  "fin42_mem": 2486074,
+  "fin2027_mem": 2486074,
+  "fin42_outside_members": 0,
+  "fin2027_outside_members": 0,
+  "both_all": 2486074,
+  "both_mem": 2486074,
+  "one_only_all": 0,
+  "one_only_mem": 0,
+  "anchors": 8142
+ },
+ "K3_statement": {
+  "one_only_all_total": 0,
+  "one_only_mem_total": 0,
+  "finite_outside_members_total_s42": 0,
+  "finite_outside_members_total_s2027": 0,
+  "anchors": 8142
+ }
+}
