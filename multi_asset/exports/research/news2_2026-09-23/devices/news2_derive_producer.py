@@ -1,3 +1,27 @@
+"""⚠ RETIRED 2026-09-23 (lead ruling). NOT the production implementation. Kept for its history only.
+
+The one implementation of the producer patch is `nc_derive_producer.py`, which carries a VENDORED,
+sha-pinned copy of THIS file at **9c475421d00379b5d6a514e8b406c0ba789a46b8acd9eb3db34ad56856e2c13a**
+(= this repo at commit 3dd4d6f50). That copy lives beside it as `news2_b_edits_9c475421.py`; I verified
+it is byte-identical to 3dd4d6f50's version of this file. Future B-part changes are made by the
+integrator in that copy, the pin is moved, and news2 re-runs its gates on the resulting nc tree.
+
+★ ONE THING THIS FILE WILL MISLEAD YOU ABOUT, so read it before using this file as a reference:
+  the pinned/vendored text is the version from BEFORE the D11/D13 removal, so it still CONTAINS the
+  `D11:fund_panel_freshness` and `D13:rn8_freshness` patch bodies. nc does not apply them -- it filters
+  by family (NEWS2_FAMILIES) and asserts the skipped set is exactly {D11, D13}. The file you are
+  reading is LATER (D11/D13 bodies deleted, commit 7e05145e1, DESIGN A5 moved them to the data layer),
+  so "no D11/D13 here" is NOT evidence about what nc ships. The removed bodies are in
+  handover_D11_D13/ and in git history.
+
+Measured, for the record (receipts/NEWS2_PIN_COMPARE.json): building the nc tree from the pinned
+version and from the post-removal version gives BITWISE IDENTICAL producer sources -- all five files,
+identical n_applied. The pin was kept at 9c475421 anyway, because moving it would empty nc's record of
+which families were skipped and make that guard unfalsifiable; the guard is now `== {"D11","D13"}`
+plus a positive check that A5's funding as-of call is present at all three consumers.
+
+Original docstring follows.
+"""
 """NEW_S2: deterministic patcher — producer feature code with D4/D5/D6/D7/D8/D9/D14 fixed.
 
 D11 / D13 moved to the data/state layer on 2026-09-23 (DESIGN A5). Their patch bodies are kept in
