@@ -109,6 +109,67 @@ def main():
     rc, line = run(nc, w2, f"{work}/o_bind.json", "post_king")
     cell("RED.binding", rc == 3 and "does not bind" in line, "rc 3, refuses the unbound file", f"rc={rc} {line[:90]}")
 
+    # ★ GREEN.in_place: the source root IS the news2 root, so source and destination are one inode.
+    # The first version did `os.remove(dest)` then `os.link(source, dest)` -- one unlink on one inode,
+    # i.e. it DELETED the artifact and then failed to link a path that no longer existed. This cell
+    # asserts the artifact SURVIVES with unchanged bytes, not merely that the verdict string is right:
+    # a verdict-only assertion would have passed on the broken code right up to the missing file.
+    one = f"{work}/one_root"
+    shutil.rmtree(one, ignore_errors=True); os.makedirs(one)
+    fixtures(one)
+    rc, line = run(one, one, f"{work}/o_pre_one.json", "pre_king")
+    pre_ok = rc == 0 and "VERDICT=STAGED" in line
+    legs_before = sha(f"{one}/work/legs.npz")
+    rc, line = run(one, one, f"{work}/o_in_place.json", "post_king")
+    survived = os.path.exists(f"{one}/work/legs.npz") and sha(f"{one}/work/legs.npz") == legs_before
+    how = json.load(open(f"{work}/o_in_place.json")).get("staged", {}).get("work/legs.npz", {}).get("how") \
+        if os.path.exists(f"{work}/o_in_place.json") else None
+    cell("GREEN.in_place", pre_ok and rc == 0 and "VERDICT=STAGED" in line and survived and how == "in_place",
+         f"rc 0, STAGED, how=in_place, legs.npz still sha {legs_before[:12]}",
+         f"rc={rc} how={how} survived={survived} sha_now="
+         f"{(sha(f'{one}/work/legs.npz')[:12] if os.path.exists(f'{one}/work/legs.npz') else 'FILE GONE')}")
+
+    # GREEN.alt_receipt: the legs receipt under the name nc_legs.py actually writes when it is invoked
+    # with explicit output paths (work/NC_LEGS_RECEIPT.json), the tabled name absent. The chosen
+    # candidate must be recorded, otherwise the receipt cannot say which file it verified.
+    alt = f"{work}/alt_root"; w2a = f"{work}/w2_alt"
+    shutil.rmtree(alt, ignore_errors=True); shutil.rmtree(w2a, ignore_errors=True)
+    os.makedirs(alt); os.makedirs(w2a)
+    fixtures(alt)
+    os.rename(f"{alt}/receipts/NC_LEGS.json", f"{alt}/work/NC_LEGS_RECEIPT.json")
+    run(alt, w2a, f"{work}/o_pre_alt.json", "pre_king")
+    rc, line = run(alt, w2a, f"{work}/o_alt.json", "post_king")
+    chosen = json.load(open(f"{work}/o_alt.json")).get("staged", {}).get("receipts/P3_LEGS.json", {}).get("source") \
+        if os.path.exists(f"{work}/o_alt.json") else None
+    cell("GREEN.alt_receipt", rc == 0 and "VERDICT=STAGED" in line and chosen and chosen.endswith("work/NC_LEGS_RECEIPT.json"),
+         "rc 0, STAGED, receipt resolved to the alternate name and recorded",
+         f"rc={rc} chosen={chosen}")
+
+    # ★ RED.producer_running: post_king's completion evidence is "no nc_legs.py process is alive".
+    # Spawn a REAL process whose command line matches, and require the refusal. Note the baseline: the
+    # three post_king GREEN cells above ran through this same guard and passed, so a green here is not
+    # an artefact of the guard never firing -- it is the same guard, with the condition flipped.
+    prod = f"{work}/fake_producer"
+    shutil.rmtree(prod, ignore_errors=True); os.makedirs(prod)
+    os.makedirs(f"{prod}/root"); fixtures(f"{prod}/root")
+    run(f"{prod}/root", f"{prod}/w2", f"{work}/o_pre_prod.json", "pre_king")
+    open(f"{prod}/nc_legs.py", "w").write("import time; time.sleep(120)\n")
+    proc = subprocess.Popen([sys.executable, f"{prod}/nc_legs.py"])
+    try:
+        time.sleep(1.0)  # let it appear in the process table
+        legs_before = sha(f"{prod}/root/work/legs.npz")
+        rc, line = run(f"{prod}/root", f"{prod}/w2", f"{work}/o_prod.json", "post_king")
+        staged_now = os.path.exists(f"{prod}/w2/receipts/P3_LEGS.json")
+        matches = json.load(open(f"{work}/o_prod.json")).get("completion_check", {}).get("n_matches") \
+            if os.path.exists(f"{work}/o_prod.json") else None
+        intact = sha(f"{prod}/root/work/legs.npz") == legs_before
+        cell("RED.producer_running",
+             rc == 5 and "has not finished" in line and not staged_now and (matches or 0) >= 1 and intact,
+             "rc 5, names the live producer, nothing staged, source intact",
+             f"rc={rc} n_matches={matches} staged={staged_now} source_intact={intact}")
+    finally:
+        proc.kill(); proc.wait()  # killed by the PID THIS device started; never by name
+
     bad = [x for x in R if x["verdict"] != "PASS"]
     rec = {"device": "test_news2_stage_inputs.py", "self_sha256": sha(os.path.abspath(__file__)),
            "subject_sha256": sha(DEV), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

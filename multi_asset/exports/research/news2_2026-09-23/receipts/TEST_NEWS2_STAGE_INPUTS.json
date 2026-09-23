@@ -1,8 +1,8 @@
 {
  "device": "test_news2_stage_inputs.py",
- "self_sha256": "891115da9fe3a68ad68abf34f5b5d901a3a5b4af3a1dccc7846a848cfe2a9ef6",
- "subject_sha256": "6080c8275578a95e98162d413ea17f73cf37cd151d959ccab2091e2677a44725",
- "utc": "2026-09-23T22:37:12Z",
+ "self_sha256": "606896df4e18ad9e9747ac11c1a072f77fa97fbdfdf949f669680dec0950aff4",
+ "subject_sha256": "e1e84b8abc283ee96e0c5000ff25d060143fff59413ace114bbf81c430dcc92e",
+ "utc": "2026-09-23T23:04:56Z",
  "defect_this_covers": "the first version of news2_stage_inputs.py listed legs.npz as a pre-chain input; legs consume the King OOF, which this chain produces, so the chain was unstartable. Found by the integrator 2026-09-23.",
  "cells": [
   {
@@ -15,19 +15,19 @@
    "cell": "RED.missing",
    "verdict": "PASS",
    "expected": "rc 2, names the absent sources",
-   "observed": "rc=2 NEWS2_STAGE VERDICT=REFUSED: required inputs missing missing=['/Users/haosiyu/cc_tmp/claud"
+   "observed": "rc=2 NEWS2_STAGE VERDICT=REFUSED: required inputs missing missing=[['/dev/shm/news2_2026-09-23/"
   },
   {
    "cell": "GREEN.pre_king",
    "verdict": "PASS",
    "expected": "rc 0, STAGED, bindings_ok=1/1",
-   "observed": "rc=0 NEWS2_STAGE VERDICT=STAGED phase=pre_king staged=4 bindings_ok=1/1 receipt_sha256=ddf06074"
+   "observed": "rc=0 NEWS2_STAGE VERDICT=STAGED phase=pre_king staged=4 bindings_ok=1/1 receipt_sha256=f586b0e1"
   },
   {
    "cell": "GREEN.post_king",
    "verdict": "PASS",
    "expected": "rc 0, STAGED",
-   "observed": "rc=0 NEWS2_STAGE VERDICT=STAGED phase=post_king staged=2 bindings_ok=1/1 receipt_sha256=e111cc5"
+   "observed": "rc=0 NEWS2_STAGE VERDICT=STAGED phase=post_king staged=2 bindings_ok=1/1 receipt_sha256=dead21d"
   },
   {
    "cell": "RED.unfinished_build",
@@ -52,10 +52,28 @@
    "verdict": "PASS",
    "expected": "rc 3, refuses the unbound file",
    "observed": "rc=3 NEWS2_STAGE VERDICT=REFUSED: receipt does not bind the staged file phase=post_king staged="
+  },
+  {
+   "cell": "GREEN.in_place",
+   "verdict": "PASS",
+   "expected": "rc 0, STAGED, how=in_place, legs.npz still sha 2558d5604931",
+   "observed": "rc=0 how=in_place survived=True sha_now=2558d5604931"
+  },
+  {
+   "cell": "GREEN.alt_receipt",
+   "verdict": "PASS",
+   "expected": "rc 0, STAGED, receipt resolved to the alternate name and recorded",
+   "observed": "rc=0 chosen=/dev/shm/news2_2026-09-23/tmp_stagetest/alt_root/work/NC_LEGS_RECEIPT.json"
+  },
+  {
+   "cell": "RED.producer_running",
+   "verdict": "PASS",
+   "expected": "rc 5, names the live producer, nothing staged, source intact",
+   "observed": "rc=5 n_matches=1 staged=False source_intact=True"
   }
  ],
- "n_cells": 8,
+ "n_cells": 11,
  "n_not_pass": 0,
  "VERDICT": "PASS",
- "seconds": 0.6
+ "seconds": 1.4
 }

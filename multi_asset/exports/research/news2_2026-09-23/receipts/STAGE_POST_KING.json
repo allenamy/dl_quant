@@ -1,0 +1,67 @@
+{
+ "device": "news2_stage_inputs.py",
+ "self_sha256": "e1e84b8abc283ee96e0c5000ff25d060143fff59413ace114bbf81c430dcc92e",
+ "utc": "2026-09-23T23:04:56Z",
+ "phase": "post_king",
+ "nc_root": "/dev/shm/news2_2026-09-23",
+ "news2_root": "/dev/shm/news2_2026-09-23",
+ "argv": [
+  "devices/news2_stage_inputs.py",
+  "/dev/shm/news2_2026-09-23",
+  "/dev/shm/news2_2026-09-23",
+  "/dev/shm/news2_2026-09-23/receipts/STAGE_POST_KING.json",
+  "--phase",
+  "post_king"
+ ],
+ "cwd": "/dev/shm/news2_2026-09-23",
+ "rerun_command": "/usr/bin/python3 /dev/shm/news2_2026-09-23/devices/news2_stage_inputs.py /dev/shm/news2_2026-09-23 /dev/shm/news2_2026-09-23 /dev/shm/news2_2026-09-23/receipts/STAGE_POST_KING.json --phase post_king",
+ "phase_note": "legs depend on the King OOF, so they are staged AFTER King training, not before; post_king refuses to run unless pre_king already staged the features",
+ "completion_check": {
+  "kind": "producer_quiesced",
+  "pattern": "nc_legs\\.py",
+  "producer": "nc_legs.py",
+  "matches": [],
+  "n_matches": 0,
+  "excluded_self_and_ancestors": [],
+  "satisfied": true,
+  "could_not_measure": false
+ },
+ "build_log": {
+  "path": null,
+  "exists": false,
+  "has_BUILD_DONE": null,
+  "NOT_APPLICABLE": "nc_legs.py writes no build log"
+ },
+ "build_completion_override": false,
+ "staged": {
+  "work/legs.npz": {
+   "source": "/dev/shm/news2_2026-09-23/work/legs.npz",
+   "candidates": [
+    "work/legs.npz"
+   ],
+   "source_sha256": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65",
+   "staged_sha256": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65",
+   "how": "in_place"
+  },
+  "receipts/P3_LEGS.json": {
+   "source": "/dev/shm/news2_2026-09-23/work/NC_LEGS_RECEIPT.json",
+   "candidates": [
+    "receipts/NC_LEGS.json",
+    "work/NC_LEGS_RECEIPT.json"
+   ],
+   "source_sha256": "3f8e23ff56842b7822618b13263c1a68dce60f8d5241741693f60c1ffde6cd20",
+   "staged_sha256": "3f8e23ff56842b7822618b13263c1a68dce60f8d5241741693f60c1ffde6cd20",
+   "how": "hardlink"
+  }
+ },
+ "bindings": {
+  "work/legs.npz": {
+   "receipt": "receipts/P3_LEGS.json",
+   "field": "sha256",
+   "receipt_value": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65",
+   "file_sha256": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65",
+   "MATCH": true
+  }
+ },
+ "VERDICT": "STAGED"
+}

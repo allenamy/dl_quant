@@ -1,0 +1,46 @@
+{
+ "receipt": "ENV_F10.json",
+ "utc": "2026-09-23T23:08:29Z",
+ "why": "news2_train_f10.py does not self-report its interpreter, and neither did NEW_S(E-0826-D). The default /usr/bin/python3 carries torch 2.4.1+cu124 whose arch list stops at sm_90; this GPU is Blackwell sm_120, so that interpreter fails at the first kernel launch with \"no kernel image is available\". The interpreter is part of the environment and is recorded here.",
+ "interpreter": "/workspace/venv/bin/python3.11",
+ "python_version": "3.11.10",
+ "torch": "2.11.0+cu128",
+ "torch_arch_list": [
+  "sm_75",
+  "sm_80",
+  "sm_86",
+  "sm_90",
+  "sm_100",
+  "sm_120"
+ ],
+ "cuda_runtime": "12.8",
+ "cuda_available": true,
+ "gpu_name": "NVIDIA RTX PRO 4500 Blackwell",
+ "gpu_capability": [
+  12,
+  0
+ ],
+ "numpy": "2.4.6",
+ "rejected_interpreter": {
+  "path": "/usr/bin/python3",
+  "torch": "2.4.1+cu124",
+  "arch_list": [
+   "sm_50",
+   "sm_60",
+   "sm_70",
+   "sm_75",
+   "sm_80",
+   "sm_86",
+   "sm_90"
+  ],
+  "observed": "RuntimeError: CUDA error: no kernel image is available for execution on the device"
+ },
+ "env_whitelist": {
+  "CUDA_VISIBLE_DEVICES": null,
+  "PYTORCH_CUDA_ALLOC_CONF": null,
+  "OMP_NUM_THREADS": null,
+  "OPENBLAS_NUM_THREADS": null,
+  "CAL": null,
+  "TZ": null
+ }
+}
