@@ -1,7 +1,8 @@
 #!/bin/bash
 # M3 production implementation — the checks behind docs/IMPL_m3_beta_overlay_2026-09-23.md, VERBATIM as run on 2026-09-23 (Mac).
-# Executor checkout: ~/cc_tmp/m3_impl_20260923/exec (branch m3-beta-overlay, commits 8725e7d + 11aa8d1 + c71ca7a + 4dd7d53 + 80ae104, base b66257b,
-# NOT pushed). Steps 1-8 ran on 4dd7d53; 80ae104 changes two comments only (compiled code identical: run_c5_textual.sh).
+# Executor checkout: ~/cc_tmp/m3_impl_20260923/exec (branch m3-beta-overlay, commits 8725e7d + 11aa8d1 + c71ca7a + 4dd7d53 + 80ae104
+# + b81c4cb + 5b3d89c, base b66257b, NOT pushed). Steps 1-8 ran on 4dd7d53; 80ae104 changes two comments only (run_c5_textual.sh);
+# b81c4cb/5b3d89c = the round-10 review fixes (steps 11-14). The deliverable patch (step 9) is b66257b..5b3d89c.
 # Producer copy:     ~/cc_tmp/m3_impl_20260923/producer_copy (excludes: ../PRODUCER_COPY_EXCLUDES.txt).
 # Heavy steps (full battery, producer rehearsal) only in the quiet window [N+1:00, N+3:40] UTC.
 set -u
@@ -44,14 +45,32 @@ rsync -a --exclude='/acceptance/' --exclude='quarantine/' --exclude='__pycache__
 #     tests_feature_cache_identity; do ( cd relcheck/$tree && /usr/bin/env -i PATH=/usr/bin:/bin HOME=$HOME PYTHONDONTWRITEBYTECODE=1 \
 #     TMPDIR=<scratch> ~/wide_shadow/venv/bin/python -m unittest -q $t ); done; done
 
-# 9. the deliverable patch (= git diff b66257b 80ae104) and its fresh-clone check (tree must equal 80ae104^{tree})
-( cd $M3/exec && git diff b66257b 80ae104 > $P/executor_m3_b66257b.patch && shasum -a 256 $P/executor_m3_b66257b.patch \
-  && git diff --name-only b66257b 80ae104 | while read f; do printf "%s  %s\n" "$(git show "80ae104:$f" | shasum -a 256 | cut -d' ' -f1)" "$f"; done > $P/EXECUTOR_FILES_SHA256.txt )
-V=$M3/verify_80ae104; rm -rf "$V"; git clone -q ~/dl_quant_live "$V"; git -C "$V" remote set-url origin https://github.com/allenamy/dl_quant_live.git
+# 9. the deliverable patch (= git diff b66257b 5b3d89c) and its fresh-clone check (tree must equal 5b3d89c^{tree})
+( cd $M3/exec && git diff b66257b 5b3d89c > $P/executor_m3_b66257b.patch && shasum -a 256 $P/executor_m3_b66257b.patch \
+  && git diff --name-only b66257b 5b3d89c | while read f; do printf "%s  %s\n" "$(git show "5b3d89c:$f" | shasum -a 256 | cut -d' ' -f1)" "$f"; done > $P/EXECUTOR_FILES_SHA256.txt )
+V=$M3/verify_5b3d89c; rm -rf "$V"; git clone -q ~/dl_quant_live "$V"; git -C "$V" remote set-url origin https://github.com/allenamy/dl_quant_live.git
 git -C "$V" checkout -q b66257b && git -C "$V" apply --check "$P/executor_m3_b66257b.patch" && git -C "$V" apply "$P/executor_m3_b66257b.patch" && echo APPLY_OK
 ( cd "$V" && shasum -a 256 -c "$P/EXECUTOR_FILES_SHA256.txt" | awk '{print $2}' | sort | uniq -c )     # 18 OK
-git -C "$V" add -A && echo "clone_tree=$(git -C "$V" write-tree) branch_tree=$(git -C $M3/exec rev-parse '80ae104^{tree}')"   # equal
-/usr/bin/python3 $P/devices/m3_strip_receipt.py "$V" b66257b "$V/../M3_STRIP_RECEIPT_verify_80ae104.json"; echo "STRIP_EXIT=$?"
+git -C "$V" add -A && echo "clone_tree=$(git -C "$V" write-tree) branch_tree=$(git -C $M3/exec rev-parse '5b3d89c^{tree}')"   # equal
+#    negative control: a stray non-M3 edit in a stripped file must turn the receipt DIFFERENT (exit 1), then restore
+/usr/bin/python3 $P/devices/m3_strip_receipt.py "$V" b66257b "$V/../M3_STRIP_RECEIPT_verify_5b3d89c.json"; echo "STRIP_EXIT=$?"
 
 # 10. commit 80ae104 (comment-only): compiled-code identity + the source-text suites (NOT tests_acceptance_entrypoints)
+#     ⚠ HISTORICAL, DO NOT RE-RUN AS IS: it runs single executor suites outside ops/run_acceptance_offline.sh, which E-0923-D
+#     now forbids (every executor suite, single ones included, only through the offline runner). Kept verbatim as the record.
 bash $P/devices/run_c5_textual.sh > $M3/receipts/c5_summary.txt 2>&1
+
+# 11. round-10 counterexamples (R10-A01 leverage, R10-A02 frozen net) on the pre-fix and the fixed module (pure module only)
+for v in 80ae104 b81c4cb; do git -C $M3/exec show $v:live/beta_overlay.py > $M3/receipts/r10/beta_overlay_$v.py
+  env -i PATH=/usr/bin:/bin PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 $P/devices/r10_counterexamples.py $M3/receipts/r10/beta_overlay_$v.py $v \
+    > $M3/receipts/r10/R10_COUNTEREXAMPLES_$v.log 2>&1; echo "EXIT=$?" >> $M3/receipts/r10/R10_COUNTEREXAMPLES_$v.log; done   # 80ae104 exit 1, b81c4cb exit 0
+
+# 12. the leverage budget decision table (numbers read from the commit's config / watchdog source)
+/usr/bin/python3 $P/devices/leverage_budget_table.py $M3/exec b81c4cb $M3/receipts/r10/LEVERAGE_BUDGET_TABLE_b81c4cb.json
+
+# 13. full offline battery on the final commit (ONLY through ops/run_acceptance_offline.sh — E-0923-D; quiet window; state copied first)
+rsync -a --exclude='/acceptance/' --exclude='quarantine/' --exclude='__pycache__/' --exclude='/pycache_void/' \
+      --exclude='/*.log' --exclude='/*.out' --exclude='/anchor.lock' ~/dl_quant_live/state/ $M3/exec/state/
+( cd $M3/exec && bash ops/run_acceptance_offline.sh > ../receipts/OFFLINE_BATTERY_5b3d89c.log 2>&1; echo "OFFLINE_EXIT=$?" >> ../receipts/OFFLINE_BATTERY_5b3d89c.log )
+
+# 14. beta parity (R10 A.4-5): see $P/beta_parity/RUN_COMMANDS.sh (pod2 for the certified table; a COPY of the producer cache locally)

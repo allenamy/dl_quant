@@ -1,0 +1,302 @@
+{
+ "device": "s2_eval_betas_pod2.py",
+ "self_sha256": "3768d89a16eec73a22b2993aa1aa07da21db34b0a0da709f4b6a4ba2b827ed5e",
+ "argv": [
+  "s2_eval_betas_pod2.py",
+  "PATH,HOME,LC_CTYPE",
+  "/workspace/m3_beta_parity_2026-09-23/out",
+  "/workspace/m3_beta_parity_2026-09-23/clip_cells.json"
+ ],
+ "env": {
+  "PATH": "/usr/bin:/bin",
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "MKL_NUM_THREADS": "1"
+ },
+ "numpy": "2.4.6",
+ "python": "3.11.10 (main, Sep  7 2024, 18:35:41) [GCC 11.4.0]",
+ "utc_start": "2026-09-23T13:31:08Z",
+ "inputs": {
+  "price_full_raw": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r.npy",
+   "sha256": "23af32bd97c267d126c2109641815b92082b8688e35bcfbaaa1e88c2dc5bb5d8"
+  },
+  "price_full_meta": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r_meta.npz",
+   "sha256": "d1e49cc9f0a7ddc4104feb52a42da3024ba1e66ad5891a26c96f00cff7ce5d90"
+  },
+  "m2_lib": {
+   "path": "/workspace/m3_beta_parity_2026-09-23/m2_lib.py",
+   "sha256": "93f8e76088ca523158df4d3ddb12f4f3239d0b75e3e0f7362ecc9ced914c8c9d"
+  },
+  "clip_cells": {
+   "path": "/workspace/m3_beta_parity_2026-09-23/clip_cells.json",
+   "sha256": "d05d2abd61c3bc276281faae59455ba51765df2426668b1a42b9dcb0b5567c35"
+  }
+ },
+ "checks": [
+  {
+   "check": "pin.price_full_raw",
+   "ok": true,
+   "detail": {
+    "got": "23af32bd97c267d1",
+    "want": "23af32bd97c267d1"
+   }
+  },
+  {
+   "check": "pin.price_full_meta",
+   "ok": true,
+   "detail": {
+    "got": "d1e49cc9f0a7ddc4",
+    "want": "d1e49cc9f0a7ddc4"
+   }
+  },
+  {
+   "check": "pin.m2_lib",
+   "ok": true,
+   "detail": {
+    "got": "93f8e76088ca5231",
+    "want": "93f8e76088ca5231"
+   }
+  },
+  {
+   "check": "price.shape",
+   "ok": true,
+   "detail": [
+    444145,
+    829
+   ]
+  },
+  {
+   "check": "grid.5min_contiguous",
+   "ok": true,
+   "detail": {
+    "first": "2022-06-29T20:00Z",
+    "last": "2026-09-19T00:00Z",
+    "n": 444145
+   }
+  },
+  {
+   "check": "anchors_le_last_4h_boundary",
+   "ok": true,
+   "detail": {
+    "last_boundary": "2026-09-19T00:00Z",
+    "last_anchor": "2026-09-19T00:00Z"
+   }
+  },
+  {
+   "check": "union_bars_on_T",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "anchor_rows_on_grid",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "btc_px_finite_positive",
+   "ok": true,
+   "detail": [
+    77097.67,
+    77253.68,
+    76804.42
+   ]
+  }
+ ],
+ "outputs": {
+  "npz": "/workspace/m3_beta_parity_2026-09-23/out/S2_eval_pod2.npz",
+  "npz_sha256": "acbf74547c771910e836e80d8783a4de0676b7615e69c4c008c081b863b3bbb5"
+ },
+ "clip_cells_cert": [
+  {
+   "ts": 1787430300,
+   "utc": "2026-08-22T20:25Z",
+   "sym": "TACUSDT",
+   "cert_col": 700,
+   "cert_r5": 0.39363484087102163,
+   "is_UA": false,
+   "is_gapfilled": false
+  },
+  {
+   "ts": 1787564700,
+   "utc": "2026-08-24T09:45Z",
+   "sym": "VELVETUSDT",
+   "cert_col": 761,
+   "cert_r5": 0.422582349832658,
+   "is_UA": false,
+   "is_gapfilled": false
+  },
+  {
+   "ts": 1787572500,
+   "utc": "2026-08-24T11:55Z",
+   "sym": "VELVETUSDT",
+   "cert_col": 761,
+   "cert_r5": -0.35217035217035225,
+   "is_UA": false,
+   "is_gapfilled": false
+  },
+  {
+   "ts": 1787572800,
+   "utc": "2026-08-24T12:00Z",
+   "sym": "VELVETUSDT",
+   "cert_col": 761,
+   "cert_r5": -0.3056257901390644,
+   "is_UA": false,
+   "is_gapfilled": false
+  },
+  {
+   "ts": 1787576400,
+   "utc": "2026-08-24T13:00Z",
+   "sym": "VELVETUSDT",
+   "cert_col": 761,
+   "cert_r5": -0.34096228868660594,
+   "is_UA": false,
+   "is_gapfilled": false
+  },
+  {
+   "ts": 1788385500,
+   "utc": "2026-09-02T21:45Z",
+   "sym": "AKEUSDT",
+   "cert_col": 46,
+   "cert_r5": 0.424925476744661,
+   "is_UA": false,
+   "is_gapfilled": false
+  },
+  {
+   "ts": 1788577200,
+   "utc": "2026-09-05T03:00Z",
+   "sym": "BULLAUSDT",
+   "cert_col": 168,
+   "cert_r5": 0.5581316444243384,
+   "is_UA": false,
+   "is_gapfilled": false
+  },
+  {
+   "ts": 1788658500,
+   "utc": "2026-09-06T01:35Z",
+   "sym": "WOOUSDT",
+   "cert_col": 784,
+   "cert_r5": 0.30058479532163784,
+   "is_UA": false,
+   "is_gapfilled": false
+  },
+  {
+   "ts": 1789270200,
+   "utc": "2026-09-13T03:30Z",
+   "sym": "LSKUSDT",
+   "cert_col": 440,
+   "cert_r5": 0.4657932023719977,
+   "is_UA": false,
+   "is_gapfilled": false
+  },
+  {
+   "ts": 1789523400,
+   "utc": "2026-09-16T01:50Z",
+   "sym": "AINUSDT",
+   "cert_col": 41,
+   "cert_r5": -0.5496222974733003,
+   "is_UA": false,
+   "is_gapfilled": false
+  },
+  {
+   "ts": 1789525500,
+   "utc": "2026-09-16T02:25Z",
+   "sym": "AINUSDT",
+   "cert_col": 41,
+   "cert_r5": -0.33035181872391184,
+   "is_UA": false,
+   "is_gapfilled": false
+  },
+  {
+   "ts": 1789525800,
+   "utc": "2026-09-16T02:30Z",
+   "sym": "AINUSDT",
+   "cert_col": 41,
+   "cert_r5": 0.3440189967349364,
+   "is_UA": false,
+   "is_gapfilled": false
+  }
+ ],
+ "summary": {
+  "n_anchors": 33,
+  "T_last": "2026-09-19T00:00Z",
+  "n_est_per_anchor": [
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797,
+   797
+  ],
+  "ua_cells_in_window": 0,
+  "gapfilled_cells_in_window": 0,
+  "cert_big_cells": 12,
+  "btc_px": [
+   77097.66864993512,
+   77253.68333845217,
+   76804.41912067223,
+   77557.8774207398,
+   77853.12571926754,
+   77744.64350573297,
+   78541.86365239552,
+   78950.98530423846,
+   78152.25562375867,
+   77657.58415963713,
+   76894.21907059665,
+   76898.80489882304,
+   76472.15227893247,
+   76147.04505082281,
+   75597.82759029219,
+   75785.34377629276,
+   75724.017282633,
+   76208.23326619664,
+   75751.81247880484,
+   76041.67143882065,
+   76172.53108974184,
+   76399.9675340741,
+   76431.271363678,
+   76447.85639142705,
+   76750.14637230852,
+   76559.49969749953,
+   76384.26635896722,
+   77347.35556082263,
+   77774.3240470655,
+   78029.07383910389,
+   80686.89334242737,
+   81167.27094969079,
+   80861.2257056352
+  ]
+ },
+ "failed": [],
+ "runtime_s": 5.5
+}

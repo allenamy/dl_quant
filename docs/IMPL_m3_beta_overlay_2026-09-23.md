@@ -1,9 +1,9 @@
-> **创建:** 2026-09-23 | **Session:** session_01MCyx6gj5EdbghE9bwjBjJv(M3 生产实现执行代理, lead 派出) | **状态:** 改动包就绪, **未部署**, 未推送; 开关默认 `off` | **作废条件:** 预注册 `docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md`(24c3f803f)改动; 执行器运行树离开 `b66257b` 且与本包冲突; 生产者 `~/wide_shadow/fea171/combo_stage.py` 离开 `fb5a9407…`; 或下文任一 sha 改变
+> **创建:** 2026-09-23 | **Session:** session_01MCyx6gj5EdbghE9bwjBjJv(M3 生产实现执行代理, lead 派出) | **状态:** 改动包就绪(含第十轮复审修复 `b81c4cb`+`5b3d89c`, §8), **未部署**, 未推送; 开关默认 `off`; 对冲预算键未设(待用户裁定) | **作废条件:** 预注册 `docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md`(24c3f803f)改动; 执行器运行树离开 `b66257b` 且与本包冲突; 生产者 `~/wide_shadow/fea171/combo_stage.py` 离开 `fb5a9407…`; 或下文任一 sha 改变
 
 # IMPL: M3 BTC-beta 叠加腿(按**执行后**持仓算 β)的生产实现
 
 预注册 §5 的生产线。**本文不含任何收益数字**(评估由另一代理按预注册 R1–R4 做)。改动在隔离副本里完成并测试:
-执行器 `~/cc_tmp/m3_impl_20260923/exec`(分支 `m3-beta-overlay` = `8725e7d` → `11aa8d1` → `c71ca7a` → `4dd7d53` → **`80ae104`(终版;相对 `4dd7d53` 只改 `live/beta_overlay.py` 两处注释,编译码逐字节相同,§4.5)**,基 `b66257b`,**未推送**;前两个提交是 `b7a44eb` / `98423ab` 只改提交说明(补署名行)的重写,树逐位相同;`c71ca7a` 是 AMENDMENT_1 的第一种读法,被 `4dd7d53` 取代以与评估的 M3b 钩子逐条一致),生产者 `~/cc_tmp/m3_impl_20260923/producer_copy`。
+执行器 `~/cc_tmp/m3_impl_20260923/exec`(分支 `m3-beta-overlay` = `8725e7d` → `11aa8d1` → `c71ca7a` → `4dd7d53` → `80ae104`(相对 `4dd7d53` 只改两处注释,编译码逐字节相同,§4.5)→ `b81c4cb`(第十轮复审修复,§8)→ **`5b3d89c`(终版;相对 `b81c4cb` 只改套件夹具)**,基 `b66257b`,**未推送**;前两个提交是 `b7a44eb` / `98423ab` 只改提交说明(补署名行)的重写,树逐位相同;`c71ca7a` 是 AMENDMENT_1 的第一种读法,被 `4dd7d53` 取代以与评估的 M3b 钩子逐条一致),生产者 `~/cc_tmp/m3_impl_20260923/producer_copy`。
 交付物: `multi_asset/exports/research/m3_impl_2026-09-23/`(两份 diff、执行器补丁、清单、收据、复跑命令)。
 
 ## §0 一页结论(白话)
@@ -15,6 +15,7 @@
 5. **缺失即不做**:字段缺失 / 版本错 / 截止时刻不是本锚 / 某个执行目标非零的名没有 β ⇒ 不下 BTC 单、HIGH 页报、已持 BTC 冻结在现值(不当 0 对冲平掉,也不按 β=1 重算)。两个变异体(缺失当「全体 β=1」、缺失当「对冲 0」)在同一输入上**都会下 BTC 单** —— 检查是承重的。
 6. **BTC 碎单判定按合计值(AMENDMENT_1 `912788743`,协调者的设计约束;与评估的 M3b 钩子 `c414ca4cf` 逐条一致)**:书这一层照 off 原样跑(非 BTC 名逐位同 off);BTC **仅因**书内分量低于 2×minNotional 而不可交易时,改用合计值 C = BTC 执行量 + 腿 重判:C 不是碎单 ⇒ 下 C 并把 BTC 放出只减名单;C 仍是碎单 ⇒ 不动(记缺口)。套件 N1:书内 BTC 4 USDT(< 2×5)、腿 1,962 USDT ⇒ BTC 单照下;N2 红变异(改回 M2 路线 H「书内碎单拦腿」)⇒ 同一输入不下 BTC 单。评估代理在认证模拟器上 R3 不过的缺口正来自那条旧规则(`14891549c`)。**逐名止损 / 冷却 / 场所撤名 / 场所上限**:腿不下(或被截)时一律 HIGH(持续暂停降为去重的固定文本)并把意图记为「对冲缺口」`hedge_gap_usdt`,见 §3。
 7. **上线前必须由人决定的事**见 §7,最要紧的:① 与 M3b 钩子逐条一致带来的两处取舍(持有退出算名字级原因 ⇒ 生产者某锚不目标 BTC 时对冲会被平掉;add_blocked 的 BTC 以持仓作底座值),见 §7-1;② 逐名止损条款目前也作用在对冲腿上(BTC 浮亏 ≤ −30% 连续 2 锚 ⇒ 对冲被 maker 平掉并冷却 7 天无对冲,期间每锚记缺口);③ 追单实验 C 的中性基准改为扣除对冲意图净额(否则 C 会把对冲当倾斜追回去)—— 认证仿真在这里没扣,评估读数与生产在这一点上不一致。
+8. **第十轮复审修复(§8)**:① 对冲腿下单前受账户总 gross 预算约束(`max_combined_leverage`,**不给缺省值**,未设则 on 也不下腿),看门狗 cond4b 改判 max(sizing, 合计目标, 读回) gross;② 冻结 BTC 时中性读数只扣冻结造成的增量;③ 配置损坏冻结在持的腿、显式 off/shadow 才撤腿;④ 生产 β 与评估 β 逐名平价:差异只来自缓存 ±0.30 裁剪的 7 个名字,max |Δβ| 0.066,β_exec 相对差 ≤ 0.9%,BTC 手数差 < 0.15 手(G=10k)。
 
 ## §1 设计(逐条对应任务书与预注册 §2 / §5)
 
@@ -54,7 +55,7 @@
 
 ## §2 改动清单(文件:行,均相对 `b66257b`)
 
-### 2.1 执行器(补丁 `executor_m3_b66257b.patch` sha256 `9704200dd376b6c6…`,18 个文件,+2332/−4;分支 `m3-beta-overlay` 五个提交,终版 `80ae104`(树 `9d8e619a…`),未推送;下表行号在 `4dd7d53` 与 `80ae104` 相同)
+### 2.1 执行器(补丁 `executor_m3_b66257b.patch` = `git diff b66257b 5b3d89c`,sha256 `def807861e152014…`,19 个文件,+2802/−4;分支 `m3-beta-overlay` 七个提交,终版 `5b3d89c`(树 `1082ef7b…`),未推送。⚠ 下表行号是 `4dd7d53`/`80ae104` 的;第十轮修复后的行号见 §8.1)
 | 文件 | 行 | 内容 |
 |---|---|---|
 | `live/beta_overlay.py`(新) | 1–465 | 开关解析、字段校验、β_exec、`hard_block` / `dust_only`(M3b 分类)、`stage`(合计值重判、对冲缺口)/ `after_cap` / `after_plan` / `neutrality_view`、`strip_m3` |
@@ -99,7 +100,7 @@ M3 插入全部带标记:块 `# ── M3-BEGIN … # ── M3-END`、单行 `#
 | **逐名止损**(cf40ea21, wide: −30% × 2 锚, 冷却 7 天) | 深度按 BTC 整个仓位(含对冲)算 | 硬原因 ⇒ 暂停,BTC 按止损条款 maker 平仓;冷却期(7 天 = 42 锚)不下腿,每锚记 `hedge_gap_usdt` = 整笔意图,首锚 HIGH、其后 INFO 固定文本(套件 H1/H1b/H2/H3)。**待裁定 §7-2** |
 | **比例响应**(EXE-01) | 若 BTC 被点名(≤5 名且 ≤2% gross)⇒ 局部平 BTC + 停开仓 | 停开仓期间对冲建不回来;对冲 >2% gross 时 BTC 被点名会超过比例门 ⇒ 走全书阶梯 |
 | **§4-5e 持仓断裂** | 意图 = orders 行 `target_w × target_gross`,已含对冲 | 对冲没成交 = UNDERFILL(只告警,永不平仓);只有拆分**说不出话**(覆盖 <90%)时回到未拆分的 10%/名 规则 —— 对冲本身约 0.08–0.19 gross(M2 RESULT §1.3 路线 H 的 abs(h) 均值 0.083–0.117;预注册 §1 的 2026 事前 β −0.14…−0.19),那时未成交的对冲变动 >10% gross 会被读成断裂。**§7-5** |
-| **§4-4b 有效杠杆** | 读 daily_nav 的 sizing gross(NAV×gross_mult),不含对冲 | 不受影响;实际持仓 gross 升到 (1+abs(β_exec)/G)× |
+| **§4-4b 有效杠杆** | ~~读 daily_nav 的 sizing gross,不含对冲~~ **`b81c4cb` 起(R10-A01)**:on 时 daily_nav 另记合计目标与读回 gross,cond4b 判三者最大值 | 下单前腿受账户预算约束(§8);现行报警 3.0× / 停机 5.0× 不改 |
 | **场所上限截断** | 作用于 BTC **合并**目标 | 截了 ⇒ HIGH + `venue_capped` + `hedge_after_cap_usdt` + `hedge_gap_usdt` = 意图 − 截后(套件 P2/P2b/P3) |
 | **2×minNotional dust** | M3b:BTC 仅因书内碎单不可交易时按合计值重判 | 书这一层照 off;C 不是碎单 ⇒ 下 C、放出只减;C 仍碎单 ⇒ 不动 + 缺口(套件 N1/N2/CD1/CD2/O1) |
 | **持有退出 held_exit**(持有 BTC 但文件不目标 BTC) | M3b:名字级原因 | 暂停 + HIGH + 缺口,BTC 与 off 一样只减平掉(套件 O3/O4;近 167 个 combo 文件 0 次) —— **§7-1** |
@@ -108,7 +109,7 @@ M3 插入全部带标记:块 `# ── M3-BEGIN … # ── M3-END`、单行 `#
 | **收锚中性页报 / 中性价格** | 原始 net/gross ≈ 对冲/gross,远超 ±3% | 改判扣对冲后的净额(套件 R4/R5);报表读者(`anchor_report` / `cost_drift` / `daily_summary`)仍读原始 `net_over_gross`,开 on 后会出现水平移位 —— **只记录,未改,§7-6** |
 | **计划层手数** | BTC 步长 0.001(≈110 USDT @110k),minNotional 50 | `round_qty` 向零截断 ⇒ 计划层最多少一手(≈110 USDT),对冲小于约 2,200 USDT 时计划层交付比可能低于 0.95(目标层恒为 1);增量 < 50 USDT 被 `skipped_min_notional`;记在 `diag_plan`(`tol_usdt` 一手 / minNotional,`ok`) |
 | **组合平价代理 comboparity** | 比较「归档 vs 重放」每个键 | 生产者在静默窗安装 ⇒ 同锚两边都有字段 ⇒ PARITY;仅当安装落在某锚的写与重放之间才会出现一次 `beta_overlay: present only in replay` |
-| **on 之后切 shadow / 配置写坏** | shadow 与 off 同一书层语义;无效配置按 off | 已持的对冲在下一锚按 dust / 非目标名经 clamp 只减平掉(一次完整平仓成本),HIGH 页报 —— **§7-8** |
+| **on 之后切 shadow / 配置写坏** | **`b81c4cb` 起分开**:显式 off / shadow(或非外部书锚)释放并撤腿;配置损坏冻结在持的腿 | 见 §8.1「模式过渡」;原 §7-8 的问题已按此实现 |
 | **生产者时间预算** | combo 发布窗 N+17…N+22:35,硬截止 N+22:40 | 字段计算 0.146 s + 校验 <0.1 s;页报放到发布之后 |
 
 ## §4 测试判词原文(真实退出码)
@@ -217,7 +218,7 @@ rsync -a --exclude='/acceptance/' --exclude='quarantine/' --exclude='__pycache__
       --exclude='/*.log' --exclude='/*.out' --exclude='/anchor.lock' ~/dl_quant_live/state/ "$D/state/"
 # A5 safe_commit(离线沙箱全电池, 全绿才提交并推 main); 路径逐一列出
 cd "$D" && bash ops/safe_commit.sh "M3 BTC-beta overlay leg on the executed book (PREREG_m3 24c3f803f): mode off by default = b66257b behaviour byte for byte" \
-  live/beta_overlay.py live/tests_beta_overlay.py scheduler/anchor_loop.py live/binance_executor.py live/external_book.py \
+  live/beta_overlay.py live/tests_beta_overlay.py scheduler/anchor_loop.py live/binance_executor.py live/external_book.py live/watchdog.py \
   config/book.json run_acceptance.sh ops/gate_coverage.py live/tests_imports.py live/tests_external_book.py \
   live/tests_gross_ladder_retired.py live/tests_per_name_stop.py live/tests_signal_and_loop.py live/tests_rehearsal_anchor.py \
   ops/producer_release/20260923_m3/combo_stage.py ops/producer_release/20260923_m3/beta_overlay_producer.py \
@@ -247,7 +248,7 @@ PYTHONDONTWRITEBYTECODE=1 M3_EXECUTOR_ROOT=~/dl_quant_live M3_REAL_ROLLING=$HOME
 
 **阶段 C — shadow(可选但建议 ≥2 锚)** 同 A 的隔离检出 + safe_commit + FF 路径,只改 `config/book.json` 的 `"mode": "shadow"`。验收:anchors 行 `m3_beta_overlay.status == "shadow"`、`field_ok == true`、`data_cutoff_ts == 名义锚`、`hedge_target_usdt` 有限;orders 与 off 同形(无 BTC 对冲单、无 `m3_overlay_leg`)。shadow 与 on 用同一本书(off 书),记录里 `shadow_would_be` 给出 on 时的状态(`applied` / `applied_via_combined`)。
 
-**阶段 D — on(书行为改动:须预注册 R1–R3 全过 + 用户裁定)** 同路径改 `"mode": "on"`。首锚验收:
+**阶段 D — on(书行为改动:须预注册 R1–R3 全过 + 用户裁定)** 同路径改 `"mode": "on"`,**并按用户裁定写入 `"max_combined_leverage": <值>`**(§8.3;不写 ⇒ on 也不下腿,`budget_unset` + HIGH)。首锚验收(另加:daily_nav 当锚行带 `base_sizing_gross` / `combined_target_gross` / `readback_gross`,看门狗 `cond4b_leverage.m3_numerator` 存在且 `actual_leverage` = max(三者)/nav;`budget.truncated == false`,除非预期截断):
 1. anchors 行 `m3_beta_overlay.status` 为 `applied_via_combined`(实盘 BTC 书内分量几乎总是碎单,预期是这个)或 `applied`;`btc_dust_only` 与之相符;经合计值时 `released_from` 列出 BTC 被放出的名单;`diag_target.ok == true`、`ratio` = 1(1e-9);`diag_plan.ok == true`(容差一手);`hedge_gap_usdt == 0`;`venue_capped == false`;`beta_final_usdt ≈ 0`。
 2. BTCUSDT 订单行带 `m3_overlay_leg`,`reduce_only == false`;成交后场所 BTC 持仓 ≈ `btc_combined_target_usdt`(一手以内)。
 3. 收锚 `net_ex_overlay_over_gross` 在 ±3% 内(不页报);原始 `net_over_gross` ≈ 对冲/gross。
@@ -255,7 +256,7 @@ PYTHONDONTWRITEBYTECODE=1 M3_EXECUTOR_ROOT=~/dl_quant_live M3_REAL_ROLLING=$HOME
 5. loop state `m3_overlay_last.status == "applied"`;下一锚 BTC 不在 clamp 名单、不带 reduce-only。
 
 **回滚**
-- **腿**:把 mode 改回 `off`(同路径提交 + FF)。下一锚持有的 BTC 对冲成为普通「持有的 dust / 不再目标的名」,经既有 clamp/flatten_only 只减通道(maker + 强制补单)平掉 —— 这是一次完整的对冲平仓成本。急停仍是 `bash ops/KILL.sh`。
+- **腿**:把 mode 改回 `off`(同路径提交 + FF;**必须是有效配置的显式 off** —— 配置写坏会冻结在持的腿而不是撤下,§8.1)。下一锚持有的 BTC 对冲成为普通「持有的 dust / 不再目标的名」,经既有 clamp/flatten_only 只减通道(maker + 强制补单)平掉 —— 这是一次完整的对冲平仓成本。急停仍是 `bash ops/KILL.sh`。
 - **生产者**:先确保 mode 为 off(否则 on 下每锚「缺失即不做」+ HIGH),再 `cp -p "$F/combo_stage.py.pre_m3_<TS>_fb5a9407" "$F/.c.tmp" && mv "$F/.c.tmp" "$F/combo_stage.py"`;`beta_overlay_producer.py` 可留(无人 import)。
 - **执行器代码**(通常不需要:mode off 已与 b66257b 行为逐位相同):先 mode off 且对冲已平,再用树替换正向提交回到 b66257b 的树(同 `RUNBOOK_deploy_executor_6661ea3_2026-09-17.md` §4 的做法,但在隔离检出里做;safe_commit 不能提交删除,故不用它):
 ```bash
@@ -276,6 +277,90 @@ git -C "$D" push origin "$RB:refs/heads/main" && /usr/bin/python3 ~/cc_tmp/lead_
 4. **β 数据源**:生产用生产者滚动缓存(ret5 截 ±0.30、float16),M2/M3 研究用认证价表。建议开 on 前在 pod2 用 09-13…09-18 的重叠锚对比两边 β(不是收益数字),给出最大差。
 5. **首锚建仓**:开 on 的第一锚会一次建满对冲(约 0.08–0.19 gross 的单名 BTC 单,量级出处同 §3)。§4-5e 拆分下未成交只是 UNDERFILL,但在拆分说不出话的锚(覆盖 <90%)会按 10%/名 判断裂;另外 −4400 账户锁(已发生 6 次)期间开仓单不发。是否分步建仓(新参数,预注册没有)需裁定。
 6. **报表读者**:`anchor_report` / `cost_drift` / `daily_summary` 读原始 `net_over_gross`,开 on 后出现水平移位;本包只改了会页报的两个读者。是否让报表改读 `net_ex_overlay_*` 需裁定。
-7. **杠杆**:实际持仓 gross = sizing gross + |对冲|(2.0× NAV → 约 2.2–2.4×,按上面的对冲量级);§4-4b 用 sizing gross 不受影响;初始保证金地板 gross/20 仍远。是否把对冲算进 `gross_mult` 预算(即缩书让总 gross 不变)是另一个政策问题,预注册没有。
-8. **on 期间配置写坏 / 改成 shadow 会平掉对冲**:两者都按 off 的书层语义处理 BTC(下一锚经只减通道平掉)。若希望「开关无效 ⇒ 冻结 BTC」而不是「⇒ 平掉」,需要记住上一锚的档位(新语义,需裁定)。
+7. **杠杆(`b81c4cb` 起已实现为预算键,数值待裁定,§8.3)**:实际持仓 gross = sizing gross + |对冲|(2.0× NAV → 约 2.2–2.4×,按上面的对冲量级);§4-4b 用 sizing gross 不受影响;初始保证金地板 gross/20 仍远。是否把对冲算进 `gross_mult` 预算(即缩书让总 gross 不变)是另一个政策问题,预注册没有。
+8. ~~**on 期间配置写坏 / 改成 shadow 会平掉对冲**~~(`b81c4cb` 已分开:配置损坏冻结、显式 shadow/off 撤腿;原文保留):两者都按 off 的书层语义处理 BTC(下一锚经只减通道平掉)。若希望「开关无效 ⇒ 冻结 BTC」而不是「⇒ 平掉」,需要记住上一锚的档位(新语义,需裁定)。
 9. **计划层手数截断**:`round_qty` 向零截断,BTC 一手 ≈ 110 USDT;对冲小于约 2,200 USDT 时单锚计划层交付比可能低于 0.95(目标层恒为 1)。R3 的判法若看计划层,需知道这一点;是否改成就近取整是执行器的共同规则,不在本包范围。
+
+## §8 第十轮独立复审的修复(提交 `b81c4cb` + `5b3d89c`(只改套件夹具),在 `80ae104` 之上;未推送、未部署,开关缺省仍 off,预算键**不设值**)
+
+复审件:研究员工作树 `.claude/worktrees/codex-strategy-uplift-20260920/docs/REVIEW_round10_core_release_2026-09-23.md` §3 R10-A01 / R10-A02、§5 A.4-4/5/11;lead 已核实源码论据。
+
+### 8.1 改了什么(文件:行,均为 `b81c4cb`;`5b3d89c` 相对它只改 `live/tests_beta_overlay.py` 的非 DRY 桩快照)
+| 问题 | 文件:行 | 改法 |
+|---|---|---|
+| **R10-A01 [P1] 对冲加的杠杆看门狗看不见、也没有上限** | `live/beta_overlay.py:97–122` | 新配置键 `beta_overlay.max_combined_leverage`(单位 ×NAV)。**不给缺省值**:对冲是否占用 2× 预算是政策裁定。on 下缺它 ⇒ 腿被拒(`budget_unset`,HIGH,已持 BTC 冻结);值非法(非正数 / 非有限 / 字符串 / 布尔)⇒ 配置损坏(见下「模式过渡」)。 |
+| 〃 | `live/beta_overlay.py:232–254`(`budget_scale`)、`stage` 内 | **下单前**把腿按比例缩到「合计目标 gross ≤ max(预算×NAV, 书自己的 gross)」:书本身已超预算时(那是 sizer 的事),腿只允许不增加 gross。被截 ⇒ HIGH 具名(意图→实下、合计 gross、预算、NAV),截掉的部分记为对冲缺口;缩到 0 ⇒ 状态 `budget_zero`,BTC 按书的决定;NAV 不可得 ⇒ 拒(`nav_unknown`),不当作「无上限」。 |
+| 〃 | `scheduler/anchor_loop.py:3231–3233, 3278, 3281–3284`;`live/beta_overlay.py:559–604`(`nav_fields` / `post_fill_check`) | daily_nav 行在 on(或冻结腿)时**另记**三个口径:`base_sizing_gross`(= NAV×gross_mult,= 原 `target_gross`,**不替换**)、`combined_target_gross`(对冲、预算、场所上限之后的最终目标 Σ\|w\|)、`readback_gross`(同一次账户读取的场所持仓 Σ\|名义\|,成交之后;任一名义不可读 ⇒ None,不当 0)。成交后读回超出 max(预算×NAV, sizing gross) 或读不到 ⇒ HIGH。off 时一个键都不加(套件 L10:与剥离执行器的 daily_nav 行逐字节相同)。 |
+| 〃 | `live/watchdog.py:2298–2309, 2318–2324, 2356–2361`(cond4b) | 带新键的行:杠杆 = **max(target_gross, combined_target_gross, readback_gross) / nav**,并在 detail 里写明分子;不带新键的行(今天的每一行)判法与输出逐字节不变(套件 L7)。**被判的那一行 `_lev_rows.append(...)` 原样保留**(`tests_guard_calibers` 的变异体钉在这一行上),M3 改动在其后的块里覆盖最后一个元素。报警/停机倍数沿用现行 1.5 / 2.5 × target_leverage,未改。 |
+| **R10-A02 [P2] 冻结 BTC 时从中性读数扣掉了整个 BTC** | `live/beta_overlay.py` `stage` 拒收分支、`after_cap`(455–486)、`neutrality_view`(525–557) | 叠加腿的净额**在每一层都定义为「最终 BTC 目标 − 书内 BTC 分量」**:冻结 ⇒ 现持 − 书内 BTC(复审例 +1500 − 500 = 1000,残差 0);场所上限截断 ⇒ 记录与追单基准都跟截后的目标(`anchor_loop.py:2238–2245` 在上限之后重设执行器的 `_m3_overlay_net_usdt`);成交后 ⇒ `m3_overlay_realised_usdt` = 场所 BTC − 书内 BTC,`m3_overlay_fill_gap_usdt` = 目标叠加 − 已实现。计划层 `diag_plan` 原本就是「计划后 BTC − 书内 BTC」,同一口径。 |
+| **模式过渡**(§5 A.4-4/11) | `scheduler/anchor_loop.py:1679–1707, 2106–2149`;`live/beta_overlay.py:257–291`(`leg_active` / `config_fault`) | 三种语义分开:① **显式 off / shadow**(配置有效)或**非外部书锚** ⇒ 在持的腿被**释放**(loop state `m3_overlay_last.released_by`),BTC 回到书的只减通道撤下,HIGH 一次;② **配置损坏**(mode 非法、预算值非法、book.json 读不了)且有在持的腿 ⇒ **冻结**在现持(不平掉、不重算),HIGH;若 BTC 此刻有名字级阻断(止损 / 冷却 / 场所 / 元数据 / 持有退出)则按书的规则处理并页报「无法冻结」;③ 已释放的腿不会因之后的配置损坏被「复活」;从未下过腿 ⇒ 与今天的书相同。loop state 新增 `leg_active`(下过腿、或拒收锚冻结了在持腿)。 |
+| 其它 | `live/tests_beta_overlay.py`(新组 [L] [F] [T] + [C] 预算解析 + S4 覆盖 watchdog)、`ops/gate_coverage.py`(范围自述)、`config/book.json`(只改 `_semantics` 文字;`mode` 仍 off,**无**预算键) | 剥离镜像树里 `watchdog.py` 写成实文件(不经符号链接写回仓库)。剥离收据装置改为**按标记派生**被剥离文件集合(含 watchdog.py),并写出全部改动文件的普查。 |
+
+### 8.2 判词(修前红 / 修后绿,原文 + 退出码)
+**复审反例原样**(`devices/r10_counterexamples.py`,只按路径加载 `beta_overlay.py` 这个纯模块,其余执行器代码不运行;收据 `receipts/r10/`):
+```
+R10_COUNTEREXAMPLES label=80ae104 A01=GOES_THROUGH A02=GOES_THROUGH      EXIT=1   (修前: 合计 7.0x NAV、看门狗读 2.0x;冻结时 ex-overlay 净额 -500)
+R10_COUNTEREXAMPLES label=b81c4cb A01=DEFENDED A02=DEFENDED              EXIT=0   (修后: 预算 3.0 下腿 +25,000→+5,000、合计 3.0x;预算未设 ⇒ refused budget_unset;净额 0)
+```
+(`beta_overlay.py` 在 `b81c4cb` 与 `5b3d89c` 逐字节相同,sha256 `a5018f49befbfe2d…`。)
+**全电池**:两轮,都经 `ops/run_acceptance_offline.sh`、都在 12Z 锚静默窗内、都先复制实盘 state(`OFFLINE_LEDGER_COPY: checkout 54 days cover all 53 completed production days`;`OFFLINE_KERNEL_PROBE: credential read/write, outside write, network denied`;`/usr/bin/python3` 3.9.6,`ACCEPT_PY=SET:/usr/bin/python3`,`.env=false`):
+- `b81c4cb`(13:32Z 起):`ACCEPTANCE: NOT GREEN — at least one suite failed (see table above)` / `OFFLINE_ACCEPTANCE_EXIT: 1`,162/163;唯一的红 `tests_beta_overlay` exit 1:`TESTS_BETA_OVERLAY FAILURES checks=159 failed=2`,即 L9 / L10 —— 新代码与剥离执行器**两边都 0 行 daily_nav**(`(0, 0)`):套件的非 DRY 桩快照缺 daily_nav 写入器读的三个余额字段,写入器的 KeyError 被捕获成「daily_nav row failed」。夹具缺陷,不是执行器改动;`5b3d89c` 只在挂 logger 时给桩快照补这三个键(收据 `receipts/OFFLINE_BATTERY_b81c4cb.log`、`receipts/r10/tests_beta_overlay_b81c4cb_battery.log`)。
+- **`5b3d89c`(13:50Z 起,终版)**:**`ACCEPTANCE: ALL GREEN (163/163 suites exit 0)`**,`OFFLINE_ACCEPTANCE_EXIT: 0`,外层 `OFFLINE_EXIT=0`;`tests_beta_overlay`、`tests_guard_calibers`、`tests_watchdog` 均 exit 0(收据 `receipts/OFFLINE_BATTERY_5b3d89c.log`)。新套件判词行:`TESTS_BETA_OVERLAY ALL PASS checks=159 failed=0`(`receipts/r10/tests_beta_overlay_5b3d89c_battery.log`)。
+
+**新套件承重行**(`5b3d89c` 电池内 `tests_beta_overlay` 的逐格日志原文;带 RED 的是修前行为的变异体/剥离对照,在同一输入上必须变红):
+```
+  OK   ★ L1 stress input, fixture budget 3.0 x NAV 5,000: the leg is SCALED (intent +25,000 → +5,000), the combined target gross is 15,000 = 3.0 x NAV, the cut is the recorded gap and pages HIGH naming the budget — ('applied_via_combined', 5000.0, 15000.0, 0.2)
+  OK   ★ L1-RED the pre-fix behaviour (no budget: mutant with an infinite limit) on the SAME input: combined gross 35,000 = 7x NAV — above the 5.0x halt line the old gate never saw (the reviewer's counterexample, reproduced) — 7.0
+  OK   ★ L2 budget UNSET under on ⇒ refused (budget_unset): no leg, BTC untouched (unheld ⇒ absent), HIGH '缺失即不做' — never 'no limit' — ('refused', 'budget_unset')
+  OK   ★ L5 through run_anchor (NAV 10,000, sizing 2.0x, fixture budget 2.05x): the leg is cut to the 500 U of room, the FINAL target gross is exactly 2.05 x NAV, the BTC order is the cut leg, HIGH names the budget — ('applied_via_combined', -499.99999999999636, 20500.0)
+  OK   ★ L6 cond4b on a row the leg shaped (sizing 10,000 / combined 35,000 / NAV 5,000): the gate reads 7.0x and TRIGGERS (halt above 5.0x), stating its numerator — (7.0, True)
+  OK   ★ L6-RED the STRIPPED watchdog (today's gate) on the SAME rows reads 2.0x and does not trigger — the blind spot the review found — (2.0, False)
+  OK   ★ L7 rows WITHOUT the M3 keys (every row today): the new gate's cond4b detail is byte-identical to the stripped gate's
+  OK   ★ L9 the daily_nav ROW (pilot_log, read back): target_gross stays the sizing gross (20,000); base_sizing_gross = 20,000; combined_target_gross = sum|final target| incl. the leg; readback_gross = sum|venue positions| (6,500) — {'target_gross': 20000.0, 'base_sizing_gross': 20000.0, 'combined_target_gross': 21669.018404907976, 'readback_gross': 6500.0}
+  OK   ★ L10 mode off: the daily_nav row is byte-identical to the stripped executor's (no M3 key)
+  OK   ★ F1 the reviewer's case (book BTC +500 / ETH -500, held BTC 1,500, field missing ⇒ frozen): overlay net = 1,000 (the freeze's increment), the ex-overlay net is 0 — (1000.0, 0.0)
+  OK   ★ F1-RED the pre-fix definition (the whole held BTC) on the SAME input leaves a -500 residual (the review's finding)
+  OK   ★ F2 venue cap: the overlay net and the chase basis follow the CAPPED BTC target (= hedge_after_cap), not the intent — (-961.2926004815703, -961.2926004815703, -1961.8216336358578)
+  OK   ★ T1 broken config (mode 'ON') + an active leg: FROZEN — BTC target = held, NO BTC order, HIGH '配置无效'/'冻结', state keeps the leg active; the overlay net = held - the book's BTC — ('frozen_config_invalid', -1961.8216336358578, 0)
+  OK   ★ T1-RED the pre-fix behaviour (a broken config treated as off) on the SAME input SENDS a BTC order (unwinds the leg) — (1, 0)
+  OK   ★ T2 explicit off + the same active leg: RELEASED — the book's rules unwind BTC (a reduce-only BTC order), HIGH names the explicit off, state marks released_by=off — (1, 'off')
+  OK   ★ T2 explicit shadow + the same active leg: RELEASED — the book's rules unwind BTC (a reduce-only BTC order), HIGH names the explicit shadow, state marks released_by=shadow — (1, 'shadow')
+  OK   ★ T4 broken config and NO leg ever placed (no loop state): plans / orders / target are the stripped executor's (only the page differs)
+  OK   T5 broken config + active leg + a NAME-level block on BTC (stop cooldown): no freeze — the book's rules handle BTC, HIGH says so — ('config_invalid_suspended', 0.0)
+```
+另:剥离收据装置改为按标记派生文件集合后,在全新克隆(`b66257b` + 补丁)上 `M3_STRIP_RECEIPT VERDICT=IDENTICAL base=b66257b live/binance_executor.py=== live/external_book.py=== live/watchdog.py=== scheduler/anchor_loop.py===`;负对照:在克隆的 watchdog.py 末尾加一行非 M3 注释 ⇒ `VERDICT=DIFFERENT … live/watchdog.py=!=`,exit 1,复原后 IDENTICAL。
+
+### 8.3 杠杆预算表(交用户裁定「对冲是否占用 2× 预算」;`devices/leverage_budget_table.py`,数字从 `b81c4cb` 的 config / watchdog 源码读出,收据 `receipts/r10/LEVERAGE_BUDGET_TABLE_b81c4cb.json`)
+现行政策:`target_leverage` 2.0(外部书 `gross_mult` 2.0);cond4b 报警 > 3.0×、停机 > 5.0×(1.5 / 2.5 倍)。假设腿**增加** gross(书内 BTC 分量约 0.2% gross)。
+
+| 对冲 (×NAV) | 合计杠杆 | 今天的门读到 | 修后的门:报警? / 停机? | 预算 = 未设 / 2.0 / 2.2 / 2.3 / 2.5 / 3.0 / 5.0 时实下的腿 (×NAV) |
+|---|---|---|---|---|
+| 0.1 | 2.1× | 2.0×(永不报) | 否 / 否 | 0 / 0 / 0.1 / 0.1 / 0.1 / 0.1 / 0.1 |
+| 0.2 | 2.2× | 2.0× | 否 / 否 | 0 / 0 / 0.2 / 0.2 / 0.2 / 0.2 / 0.2 |
+| 0.3 | 2.3× | 2.0× | 否 / 否 | 0 / 0 / 0.2 / 0.3 / 0.3 / 0.3 / 0.3 |
+| 0.38(预注册 2026 事前 β −0.19 gross × 2) | 2.38× | 2.0× | 否 / 否 | 0 / 0 / 0.2 / 0.3 / 0.38 / 0.38 / 0.38 |
+| 1.0 | 3.0× | 2.0× | 否(恰在线上)/ 否 | 0 / 0 / 0.2 / 0.3 / 0.5 / 1 / 1 |
+| 5.0(复审的合法压力输入) | 7.0× | 2.0× | **报警 / 停机** | 0 / 0 / 0.2 / 0.3 / 0.5 / 1 / 3 |
+
+读法:在现行报警 / 停机线下,+0.1 / +0.2 / +0.3 NAV 的对冲**都不触线**(修前修后都一样);修前的问题是极端合法输入(7×)门看不见,修后门看得见并停机,且预算在下单前截断。可选的政策:
+- **预算未设(现状)**:on 也不下腿(`budget_unset`)。
+- **预算 = 2.0(字面「占用 2× 预算」且不改书)**:书已占满 2.0 ⇒ 腿恒为 0,等于不开。若要「占用」且真的下腿,需要**先缩书**让出空间 —— 那是新的动作规格(sizer 改动),本包没有实现,需预注册。
+- **预算 ∈ (2.0, 3.0]**:腿在书之外、上限低于报警线;2.3–2.5 覆盖预注册的 2026 事前量级。
+- **预算 = 3.0(报警线)/ 5.0(停机线)**:只挡极端输入;5.0 时压力输入被截到恰好 5.0×(cond4b 用 `>`,不停机)。
+
+### 8.4 β 平价(R10 A.4-5;生产 f16 裁剪缓存 vs 评估认证原始价格表)
+(`beta_parity/`;独立执行代理完成,我核过收据自检 `failed: []`、上游 S1/S2 自检均空、每锚 450 名 = BTC + 宇宙。复跑 `beta_parity/RUN_COMMANDS.sh`;评估侧在 pod2 用认证原始价格表 `price_full_raw_x0918r`(sha 钉 `23af32bd…` / meta `d1e49cc9…`)跑 `m2_lib.betas_at`;生产侧在本机用生产者 `compute()` 跑滚动缓存**副本**(sha `73018d36…`,13:20Z 复制;`~/wide_shadow` 只读))
+- **锚**:33 个(2026-09-13T16Z … 09-19T00Z;生产缓存完整覆盖 180 根 bar 且认证表覆盖;每锚 target_live 文件 sha 与旁车一致)。
+- **β_i 差(生产 − 评估)**:33 锚 × 449 名 = 14,817 对,中位 −2e-15、p5/p95 ±1.6e-14、**max |Δβ| = 0.0663(AINUSDT,09-19T00Z)**;|Δβ| > 0.05 共 10 对、> 0.1 为 0。|Δβ| > 1e-9 的只有 7 个名字(AIN、AKE、BULLA、LSK、TAC、VELVET、WOO),其余全部名字差 ≤ 4.5e-14。
+- **机制**:差异**全部**来自缓存的 ±0.30/5 分钟裁剪 —— 窗口里 12 个 5 分钟格被截在 ±0.300049(float16 的 ±0.30),恰是认证表里 5 分钟涨跌超过 30% 的 12 格(原始 0.3006–0.558)。float16 本身不贡献差:认证原始表也由 float16 的 5 分钟缓存构建,不含裁剪格的 4h bar 两边相差 ≤ 7.9e-15 —— 所以**这次比较只隔离了裁剪,没有检验 float16 对真实成交价的误差**。
+- **回落人口**:两边**零**差异(每名每锚 180/180 有效 bar,有效性掩码 95,400 格全等;认证表在这些窗口里无 UA / 补缺格)。
+- **β_exec 差**(按该锚发布权重、Σ|w|=1):Δβ_exec = +0.00038 … +0.00111(相对 ≤ 0.89%;按执行器 reshape 的近似 ≤ 1.84%),**生产会比评估少对冲一点**;全部来自 6 个有权重的裁剪名。
+- **最终 BTC 手数差**:G = 10,000 USDT 时 |Δ| ≤ 0.14 手(0.001 BTC/手),**从不超过 1 手**;只在跨取整边界时差 1 手(发布权重、向零截断:G=10k 6/33 锚、G=20k 7/33 锚)。
+- **未验证**:33 锚里 10 个(09-17T12Z 起)有按锚归档的缓存快照,与副本逐格相同、`compute()` 输出逐字节相同;其余 23 个无归档,依据是 shadow_loop_v3 只填空行不改已填行。这些 target_live 文件都不带 `beta_overlay` 字段(生产者尚未装),生产 β 是 `compute()` 会写的值。
+
+### 8.5 限制(如实)
+- 非外部书锚的「释放」没有经 `run_anchor` 实跑(内部书锚需要 DL preds 路径),代码与显式 off 同一分支;套件范围自述里写明。
+- 预算的**数值**在套件里是夹具(3.0、2.05);生产值未设。
+- cond4b 的 `readback_gross` 取自 daily_nav 那一次账户读取(锚末);锚内成交过程中的瞬时杠杆不在任何门里(与今天相同)。
+- 本节之前的定向 / 读文本套件装置(`run_targeted*.sh`、`disk_mode_sweep*.sh`、`run_c5_textual.sh`)是在沙箱外单独跑执行器套件,**按 E-0923-D 已不许再这样跑**,只作历史记录;本节全部套件判词都来自离线全电池。
+- 冻结语义依赖 loop state 的 `m3_overlay_last`;state 文件本身丢失时,配置损坏按「从未下过腿」处理(与今天的 off 相同,会经书的规则撤腿),HIGH 页报仍在。

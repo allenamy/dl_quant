@@ -1,5 +1,5 @@
 diff --git a/config/book.json b/config/book.json
-index 4974cd0..a0d2281 100644
+index 4974cd0..bd64558 100644
 --- a/config/book.json
 +++ b/config/book.json
 @@ -178,5 +178,10 @@
@@ -10,16 +10,16 @@ index 4974cd0..a0d2281 100644
 + "beta_overlay": {
 +  "mode": "off",
 +  "_basis": "M3 (PREREG quant_research docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md, 24c3f803f; implementation docs/IMPL_m3_beta_overlay_2026-09-23.md): BTCUSDT overlay leg = -sum_i w_exec,i*beta_i on the EXECUTED book (after POP->RESHAPE->CLAMP), added after the reshape as an independent leg; betas from the producer's target_live field `beta_overlay` (version m3_beta_v1).",
-+  "_semantics": "off (default; also when this block is absent) = the executor without M3, byte for byte. shadow = validate the field, compute and record the hedge that WOULD be placed (anchors row m3_beta_overlay); book, orders and loop state identical to off. on = place the leg. Any other value = off + HIGH page. Switching on/shadow/off takes effect at the next anchor process; turning it OFF after it has been ON unwinds the held BTC hedge through the existing clamp/flatten_only reduce-only channel (it becomes an ordinary held dust/non-target name). Changing this value is a book-behaviour change: user ruling required (CLAUDE.md constraint 5)."
++  "_semantics": "off (default; also when this block is absent) = the executor without M3, byte for byte. shadow = validate the field, compute and record the hedge that WOULD be placed (anchors row m3_beta_overlay); book, orders and loop state identical to off. on = place the leg, scaled so the combined target gross (book + leg) <= max_combined_leverage x NAV (key `max_combined_leverage`, ABSENT here on purpose: whether the leg sits inside or outside the leverage budget is a user ruling; absent under on = the leg is refused, never unlimited). Any other value (or an invalid budget) = a BROKEN config: HIGH page, no new leg, and a leg already held is FROZEN at its held value (not unwound). Switching takes effect at the next anchor process; an EXPLICIT off or shadow after on unwinds the held BTC hedge through the existing clamp/flatten_only reduce-only channel (it becomes an ordinary held dust/non-target name). Changing this block is a book-behaviour change: user ruling required (CLAUDE.md constraint 5)."
   }
  }
 \ No newline at end of file
 diff --git a/live/beta_overlay.py b/live/beta_overlay.py
 new file mode 100644
-index 0000000..81cf5ed
+index 0000000..b147d48
 --- /dev/null
 +++ b/live/beta_overlay.py
-@@ -0,0 +1,465 @@
+@@ -0,0 +1,635 @@
 +"""beta_overlay — M3: the BTC-beta overlay leg computed on the EXECUTED book (after POP -> RESHAPE -> CLAMP).
 +
 +Pre-registration: quant_research docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md (24c3f803f), §2 formula, §5 production.
@@ -109,22 +109,38 @@ index 0000000..81cf5ed
 +# rounding). The plan-level tolerance is ONE lot of BTC at the plan's mid (round_qty floors toward zero; minNotional if skipped).
 +TARGET_DIAG_REL_TOL = 1e-9
 +APPLIED = ("applied", "applied_via_combined")
++BUDGET_KEY = "max_combined_leverage"
++# statuses whose BTC target the M3 stage SET (a placed leg, or a leg frozen at its held value): the overlay's net is then
++# `final BTC target - the book's BTC component` at every stage (target / cap / plan / fills) — R10-A02.
++LEG_STATUSES = APPLIED + ("refused", "frozen_config_invalid")
 +
 +
 +# ── config ───────────────────────────────────────────────────────────────────────────────────────
 +def config(book: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-+    """{"mode": off|shadow|on, "error": str|None, "present": bool}. Pure. Absent key/block ⇒ off (today's behaviour)."""
++    """{"mode": off|shadow|on, "error": str|None, "present": bool, "max_combined_leverage": float|None}. Pure.
++    Absent key/block ⇒ off (today's behaviour) — an EXPLICIT state (the pre-M3 config). `error` set ⇒ the config is BROKEN,
++    which the loop treats differently from an explicit off: an active leg is frozen, not unwound (R10 §5 A.4-4/11).
++    `max_combined_leverage` = the ACCOUNT-LEVEL budget on the combined target gross (book + leg) in units of NAV (R10-A01).
++    It has NO default: whether the leg sits inside or outside the book's leverage budget is a policy ruling, so an absent
++    value under mode on means the leg is not placed (refused `budget_unset`), and a present but invalid value is a broken
++    config."""
 +    if not isinstance(book, dict):
-+        return {"mode": "off", "error": "book config unreadable", "present": False}
++        return {"mode": "off", "error": "book config unreadable", "present": False, "max_combined_leverage": None}
 +    blk = book.get(CONFIG_KEY)
 +    if blk is None:
-+        return {"mode": "off", "error": None, "present": False}
++        return {"mode": "off", "error": None, "present": False, "max_combined_leverage": None}
 +    if not isinstance(blk, dict):
-+        return {"mode": "off", "error": f"{CONFIG_KEY} must be an object, got {type(blk).__name__}", "present": True}
++        return {"mode": "off", "error": f"{CONFIG_KEY} must be an object, got {type(blk).__name__}", "present": True,
++                "max_combined_leverage": None}
 +    mode = blk.get("mode", "off")
 +    if not isinstance(mode, str) or mode not in MODES:
-+        return {"mode": "off", "error": f"{CONFIG_KEY}.mode={mode!r} is not one of {MODES}", "present": True}
-+    return {"mode": mode, "error": None, "present": True}
++        return {"mode": "off", "error": f"{CONFIG_KEY}.mode={mode!r} is not one of {MODES}", "present": True,
++                "max_combined_leverage": None}
++    bud = blk.get(BUDGET_KEY)
++    if bud is not None and not (_finite(bud) and float(bud) > 0.0):
++        return {"mode": "off", "error": f"{CONFIG_KEY}.{BUDGET_KEY}={bud!r} is not a positive finite number", "present": True,
++                "max_combined_leverage": None}
++    return {"mode": mode, "error": None, "present": True, "max_combined_leverage": (None if bud is None else float(bud))}
 +
 +
 +# ── the field ────────────────────────────────────────────────────────────────────────────────────
@@ -235,10 +251,77 @@ index 0000000..81cf5ed
 +    return srcs == {"external_dust"}
 +
 +
++def budget_scale(book_gross: float, b: float, intent: float, max_combined_leverage: float, nav: float) -> Dict[str, Any]:
++    """R10-A01 — the ACCOUNT-LEVEL budget on the combined target gross, applied BEFORE any order. Pure.
++    book_gross = sum|target| after the book stage (BTC's executed base `b` included); the leg changes only BTC, so
++    gross(t) = (book_gross - |b|) + |b + t * intent| for the placed fraction t in [0, 1].
++    limit = max_combined_leverage x NAV. The leg may never LIFT the gross above max(limit, book_gross): when the book alone is
++    already above the limit (the sizer's business, not the leg's), the leg may still be placed as far as it does not add gross.
++    Returns the largest feasible t (1.0 exactly when the whole leg fits) and every number it used."""
++    L = float(max_combined_leverage) * float(nav)
++    g_other = float(book_gross) - abs(float(b))
++    cap = max(L, float(book_gross))
++    room = cap - g_other                                   # the |BTC target| the budget allows (>= |b| by construction)
++    full = b + intent
++    if abs(full) <= room:
++        t = 1.0
++    elif intent > 0:
++        t = max(0.0, min(1.0, (room - b) / intent))
++    else:
++        t = max(0.0, min(1.0, (room + b) / (-intent)))
++    placed = b + t * intent
++    return {"max_combined_leverage": float(max_combined_leverage), "nav_usdt": float(nav), "limit_usdt": L,
++            "gross_without_leg_usdt": float(book_gross), "gross_with_full_leg_usdt": g_other + abs(full),
++            "gross_with_placed_leg_usdt": g_other + abs(placed), "scale": t, "truncated": t < 1.0,
++            "rule": "the leg is scaled down so the combined target gross <= max(max_combined_leverage x NAV, the book's own gross)"}
++
++
++def leg_active(last: Optional[Dict[str, Any]]) -> bool:
++    """From loop state `m3_overlay_last`: does the account hold a leg this module placed (or froze) and nobody released?
++    An explicit off / shadow / non-external anchor RELEASES it (`released_by`); a broken config does not."""
++    if not isinstance(last, dict) or last.get("released_by"):
++        return False
++    if "leg_active" in last:
++        return bool(last["leg_active"])
++    return last.get("status") in APPLIED                   # state written before the flag existed
++
++
++def config_fault(target: Dict[str, float], held_true: Dict[str, float], hard: List[str], last: Optional[Dict[str, Any]],
++                 error: str) -> Optional[Dict[str, Any]]:
++    """The config is BROKEN (not an explicit off): an ACTIVE leg is FROZEN at its held value (never unwound on a typo), paged
++    HIGH; no active leg ⇒ None (the anchor is today's off book, paged by the caller). A name-level block on BTC (stop,
++    cooldown, venue, meta, held-exit) still wins: the book's rules handle BTC, as in mode on. MUTATES `target` when freezing.
++    Returns {"record", "alarms", "overlay_net_usdt"} or None."""
++    if not leg_active(last):
++        return None
++    held_btc = float((held_true or {}).get(BTC, 0.0) or 0.0)
++    b = float(target.get(BTC, 0.0) or 0.0)
++    rec = {"mode": "config_invalid", "config_error": str(error)[:300], "btc_book_target_usdt": b, "btc_held_usdt": held_btc,
++           "hard_sources": list(hard or []), "overlay_net_usdt": None, "hedge_gap_usdt": None,
++           "last": {k: last.get(k) for k in ("status", "hedge_target_usdt", "btc_combined_target_usdt", "rebalance_id")}}
++    if hard:
++        rec.update(status="config_invalid_suspended", reason="config broken AND BTC untradable (name-level): " + ",".join(hard))
++        return {"record": rec, "overlay_net_usdt": None,
++                "alarms": [("HIGH", f"M3 配置失效且 BTCUSDT 不可交易({', '.join(hard)}) — 对冲腿无法冻结, BTC 按书的场所规则处理"
++                                    f"(现持 {held_btc:+,.0f}U)。修配置。")]}
++    target[BTC] = held_btc
++    rec.update(status="frozen_config_invalid", reason="config broken: the active leg is frozen (an explicit off unwinds it)",
++               btc_frozen_at_usdt=held_btc, btc_combined_target_usdt=held_btc)
++    rec["overlay_net_usdt"] = held_btc - b
++    return {"record": rec, "overlay_net_usdt": held_btc - b,
++            "alarms": [("HIGH", f"M3 配置失效({str(error)[:120]}): 已持对冲腿冻结在现持 BTCUSDT {held_btc:+,.0f}U — 不平掉、不重算; "
++                                f"修好配置后按新配置执行(显式 off / shadow 才撤腿)。")]}
++
++
 +def stage(mode: str, target: Dict[str, float], held_true: Dict[str, float], ext: Dict[str, Any],
 +          sizing_gross: float, hard: List[str], prev_status: Optional[str] = None,
-+          btc_floor: Optional[float] = None, dust_mult: Optional[float] = None, btc_dust_only: bool = False) -> Dict[str, Any]:
++          btc_floor: Optional[float] = None, dust_mult: Optional[float] = None, btc_dust_only: bool = False,
++          max_combined_leverage: Optional[float] = None, nav: Optional[float] = None,
++          prev_leg_active: bool = False) -> Dict[str, Any]:
 +    """The M3 stage, run on the target the book stage produced (the off-mode book). MUTATES `target` only when mode == "on".
++    `max_combined_leverage` x `nav` = the account-level budget on the combined target gross (R10-A01; `budget_scale`): the leg
++    is scaled down, by name, so the leg never lifts the gross above max(budget, the book's own gross); unset budget or
++    unknown NAV ⇒ the leg is refused (never "no limit").
 +    `hard` = hard_block(...), `btc_dust_only` = dust_only(...), both taken BEFORE the book stage from the untradable sources;
 +    `btc_floor` / `dust_mult` = BTC's venue minNotional and the book's min_notional_mult (the combined-value dust rule).
 +    `prev_status` = the previous traded anchor's status (loop state): a suspension that CONTINUES pages HIGH once and INFO after.
@@ -273,6 +356,17 @@ index 0000000..81cf5ed
 +            rec["hedge_intent_usdt"] = -be["beta_exec_usdt"]
 +    usable = v["ok"] and be is not None and be["ok"]
 +    reason = (v["reason"] if not v["ok"] else be["reason"] if not be["ok"] else None)
++    _bdet = None
++    if usable:
++        # R10-A01: the leg adds gross the book's sizing does not see; without a budget and a NAV its size is unbounded
++        if max_combined_leverage is None:
++            usable, reason, _bdet = False, "budget_unset", (f"{CONFIG_KEY}.{BUDGET_KEY} is not set: whether the leg sits inside "
++                                                            f"or outside the leverage budget is a policy ruling, not a default")
++        elif not (_finite(nav) and float(nav) > 0.0):
++            usable, reason, _bdet = False, "nav_unknown", f"NAV {nav!r} is not a positive number: the budget cannot be evaluated"
++    rec["max_combined_leverage"] = max_combined_leverage
++    rec["nav_usdt"] = (float(nav) if _finite(nav) else None)
++    rec["prev_leg_active"] = bool(prev_leg_active)
 +    if hard:
 +        rec.update(status="suspended_btc_untradable", reason="BTC untradable (name-level): " + ",".join(hard),
 +                   hedge_gap_usdt=rec.get("hedge_intent_usdt"),
@@ -295,31 +389,49 @@ index 0000000..81cf5ed
 +            if held_btc != 0.0:
 +                target[BTC] = held_btc                     # FROZEN: delta 0 ⇒ no BTC order; never unwound as if hedge were 0
 +                rec["btc_frozen_at_usdt"] = held_btc
-+                out["overlay_net_usdt"] = held_btc         # the frozen position is the (stale) leg's; not a book tilt
++                # R10-A02: the overlay's net is what the freeze CHANGED — the held value minus the book's own BTC component,
++                # never the whole BTC position (the book's BTC is part of the neutral book, the readers must keep it)
++                out["overlay_net_usdt"] = held_btc - b
 +            # BTC not held: there is no leg at all — the book's own BTC component (if any) is part of the neutral book
 +            rec["btc_combined_target_usdt"] = float(target.get(BTC, 0.0) or 0.0)
-+            _det = v.get("detail") if not v["ok"] else ("names without beta: " + ", ".join(be["missing"][:8]))
++            _det = (v.get("detail") if not v["ok"] else ("names without beta: " + ", ".join(be["missing"][:8])) if not be["ok"]
++                    else _bdet)
 +            out["alarms"].append(("HIGH", f"M3 对冲腿缺失即不做: {reason} — {_det}。本锚不下对冲单; BTCUSDT 冻结在现持 "
 +                                          f"{held_btc:+,.0f}U(不当 0 对冲平掉, 也不按 β=1 重算)。检查生产者 beta_overlay 字段。"))
 +        else:
 +            out["alarms"].append(("INFO", f"M3 shadow: 字段不可用 {reason} — 若开启则本锚不下对冲单"))
 +        return _done()
-+    hedge = -be["beta_exec_usdt"]
++    intent = -be["beta_exec_usdt"]
++    if intent == 0.0:
++        rec.update({"hedge_target_usdt": 0.0, "btc_combined_target_usdt": b}, status="zero_hedge", reason=None,
++                   hedge_gap_usdt=0.0, hedge_gap_reason=None)
++        return _done()                                     # a zero leg touches nothing (M3b order)
++    bud = budget_scale(book_gross, b, intent, float(max_combined_leverage), float(nav))
++    rec["budget"] = bud
++    hedge = intent if bud["scale"] == 1.0 else intent * bud["scale"]
 +    combined = b + hedge
 +    thr = (float(dust_mult) * float(btc_floor)) if (btc_floor is not None and dust_mult is not None) else None
 +    rec.update({"hedge_target_usdt": hedge, "btc_combined_target_usdt": combined, "combined_dust_threshold_usdt": thr})
++    if bud["truncated"]:
++        rec["hedge_gap_budget_usdt"] = intent - hedge
++        _btxt = (f"M3 对冲腿被账户总 gross 预算截断: 意图 {intent:+,.0f}U → {hedge:+,.0f}U(合计目标 gross "
++                 f"{bud['gross_with_full_leg_usdt']:,.0f} → {bud['gross_with_placed_leg_usdt']:,.0f}U, 预算 "
++                 f"{bud['max_combined_leverage']}×NAV {bud['nav_usdt']:,.0f} = {bud['limit_usdt']:,.0f}U); 对冲缺口 "
++                 f"{intent - hedge:+,.0f}U 记账。")
++        out["alarms"].append(("HIGH" if mode == "on" else "INFO", _btxt if mode == "on" else "M3 shadow: " + _btxt))
 +    if hedge == 0.0:
-+        rec.update(status="zero_hedge", reason=None, hedge_gap_usdt=0.0, hedge_gap_reason=None)
-+        return _done()                                     # a zero leg touches nothing (M3b order)
++        rec.update(status="budget_zero", reason="the budget leaves no room for the leg (the book alone is at or above it)",
++                   hedge_gap_usdt=intent, hedge_gap_reason="account gross budget")
++        return _done()                                     # nothing touched: the book's own decision on BTC stands
 +    if btc_dust_only:
 +        if thr is None:
 +            rec.update(status="combined_dust", reason="combined dust NOT CHECKABLE (BTC minNotional / min_notional_mult unavailable)",
-+                       hedge_gap_usdt=hedge, hedge_gap_reason="the dust-only BTC could not be re-judged: nothing touched")
++                       hedge_gap_usdt=intent, hedge_gap_reason="the dust-only BTC could not be re-judged: nothing touched")
 +            out["alarms"].append(("HIGH", "M3 对冲腿: BTC 仅因书内碎单不可交易, 但合计目标无法判定(minNotional 不可得) — 本锚不下对冲单, 缺口记账。"))
 +            return _done()
 +        if abs(combined) < thr:
 +            rec.update(status="combined_dust", reason=f"|executed base + leg| {abs(combined):.2f} < {thr:.2f}",
-+                       hedge_gap_usdt=hedge, hedge_gap_reason="combined value still below min_notional_mult x minNotional: nothing touched")
++                       hedge_gap_usdt=intent, hedge_gap_reason="combined value still below min_notional_mult x minNotional: nothing touched")
 +            if mode == "on":
 +                out["alarms"].append(("INFO", "M3 对冲腿本锚合计目标(书内 BTC + 对冲)仍低于 2×minNotional, 按碎单规则不动(未持有 ⇒ 不下单; 持有 ⇒ 书的只减); "
 +                                              "对冲缺口记在 anchors 行。"))
@@ -336,11 +448,13 @@ index 0000000..81cf5ed
 +    out["release_btc"] = (status == "applied_via_combined")
 +    after = beta_exec(target, v["betas"])
 +    rec["diag_target"] = diag(be["beta_exec_usdt"], after["beta_exec_usdt"] if after["ok"] else None, hedge, stage_name="target")
-+    rec.update(status=status, reason=None, hedge_gap_usdt=0.0, hedge_gap_reason=None)
-+    out["leg"] = {BTC: {"version": VERSION, "hedge_target_usdt": hedge, "book_target_usdt": b, "combined_target_usdt": combined,
++    rec.update(status=status, reason=None, hedge_gap_usdt=intent - hedge,
++               hedge_gap_reason=("account gross budget" if bud["truncated"] else None))
++    out["leg"] = {BTC: {"version": VERSION, "hedge_target_usdt": hedge, "hedge_intent_usdt": intent,
++                        "book_target_usdt": b, "combined_target_usdt": combined,
 +                        "held_usdt": held_btc, "beta_exec_usdt": be["beta_exec_usdt"], "betas_sha256": v["betas_sha256"],
 +                        "via": status}}
-+    out["overlay_net_usdt"] = hedge
++    out["overlay_net_usdt"] = hedge                        # == combined - b: the definition every stage uses (R10-A02)
 +    return _done()
 +
 +
@@ -366,7 +480,12 @@ index 0000000..81cf5ed
 +    and what ex-ante beta does the FINAL target carry? Updates the record (`beta_final_usdt` = the residual beta after the leg and
 +    every cap — 0 when nothing was capped); returns alarms. The hedge is NOT recomputed after the cap (prereg §2: w_exec is the
 +    target after POP -> RESHAPE -> CLAMP); a non-BTC cap shows up here as a non-zero residual, stated, never absorbed."""
-+    if not rec or rec.get("status") not in APPLIED:
++    if not rec:
++        return []
++    rec["gross_final_target_usdt"] = float(sum(abs(float(v or 0.0)) for v in target.values()))
++    if rec.get("status") not in APPLIED:
++        if rec.get("overlay_net_usdt") is not None:        # a frozen leg: the cap may have moved it too (R10-A02 caliber)
++            rec["overlay_net_usdt"] = float(target.get(BTC, 0.0) or 0.0) - float(rec.get("btc_book_target_usdt") or 0.0)
 +        return []
 +    if betas:
 +        fin = beta_exec(target, betas)
@@ -378,8 +497,11 @@ index 0000000..81cf5ed
 +        return []
 +    delivered = float(target.get(BTC, 0.0) or 0.0) - float(rec.get("btc_book_target_usdt") or 0.0)
 +    rec["hedge_after_cap_usdt"] = delivered
-+    rec["hedge_gap_usdt"] = float(rec.get("hedge_target_usdt") or 0.0) - delivered
-+    rec["hedge_gap_reason"] = "venue cap (maxNotionalValue x (1 - margin)) on the combined BTC target"
++    rec["overlay_net_usdt"] = delivered                    # R10-A02: the readers subtract what the target now carries
++    _intent = rec.get("hedge_intent_usdt", rec.get("hedge_target_usdt"))
++    rec["hedge_gap_usdt"] = float(_intent or 0.0) - delivered
++    rec["hedge_gap_reason"] = ("venue cap (maxNotionalValue x (1 - margin)) on the combined BTC target"
++                               + (" + account gross budget" if (rec.get("budget") or {}).get("truncated") else ""))
 +    return [("HIGH", f"M3 对冲腿被场所上限截断: BTCUSDT {capped[0].get('target_before'):+,.0f}→{capped[0].get('target_after'):+,.0f}"
 +                     f"(cap {capped[0].get('cap')}); 对冲意图 {rec.get('hedge_target_usdt'):+,.0f}U, 实际 {delivered:+,.0f}U, "
 +                     f"对冲缺口 {rec['hedge_gap_usdt']:+,.0f}U 记账。")]
@@ -422,15 +544,22 @@ index 0000000..81cf5ed
 +                                "and min-notional skips are the only planned deviations (partial fills are phase B's)"}
 +
 +
-+def neutrality_view(row: Dict[str, Any], rec: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-+    """The end-of-anchor neutrality readers (the HIGH page and the neutrality price) judge the book EX-OVERLAY when the leg was
-+    placed: venue net minus the overlay's intended net. Adds `net_ex_overlay_*` to `row` (the raw `net_over_gross` stays the
-+    venue's fact) and returns a view for the two readers. No overlay applied ⇒ returns `row` itself (identity)."""
-+    if not rec or rec.get("status") not in APPLIED + ("refused",) or rec.get("mode") != "on":
++def neutrality_view(row: Dict[str, Any], rec: Optional[Dict[str, Any]], venue_btc_usdt: Optional[float] = None) -> Dict[str, Any]:
++    """The end-of-anchor neutrality readers (the HIGH page and the neutrality price) judge the book EX-OVERLAY when the M3
++    stage set the BTC target (a placed leg, or a frozen one): venue net minus the overlay's net, where the overlay's net is
++    ALWAYS `final BTC target - the book's BTC component` (R10-A02: never the whole BTC position). Adds `net_ex_overlay_*` to
++    `row` (the raw `net_over_gross` stays the venue's fact) and, when the venue's BTC notional is given, the overlay the fills
++    actually realised (`m3_overlay_realised_usdt` = venue BTC - book BTC component) and its shortfall against the target.
++    No overlay ⇒ returns `row` itself (identity)."""
++    if not rec or rec.get("mode") not in ("on", "config_invalid") or rec.get("status") not in LEG_STATUSES:
 +        return row
 +    ov = rec.get("overlay_net_usdt")
 +    if ov is None or row.get("venue_net_usdt") is None:
 +        return row
++    if _finite(venue_btc_usdt):
++        _real = float(venue_btc_usdt) - float(rec.get("btc_book_target_usdt") or 0.0)
++        row["m3_overlay_realised_usdt"] = round(_real, 6)
++        row["m3_overlay_fill_gap_usdt"] = round(float(ov) - _real, 6)
 +    net = float(row["venue_net_usdt"]) - float(ov)
 +    grs = row.get("venue_gross_usdt")
 +    eq_ratio = row.get("net_over_equity")
@@ -447,6 +576,47 @@ index 0000000..81cf5ed
 +        except (TypeError, ValueError, ZeroDivisionError):
 +            view["net_over_equity"] = None
 +    return view
++
++
++def nav_fields(rec: Optional[Dict[str, Any]], sizing_gross: float, snap: Optional[Dict[str, Any]]) -> Dict[str, Any]:
++    """R10-A01 — the daily_nav row's three gross calibers while the M3 stage shaped the book (mode on, or a frozen leg under a
++    broken config); {} otherwise, so the row is byte-identical to today's. `target_gross` (the sizing gross) is NOT replaced —
++    the watchdog's cond4b reads max(target_gross, combined_target_gross, readback_gross) when these keys exist.
++      base_sizing_gross      = NAV x gross_mult (what the sizer controls; = target_gross)
++      combined_target_gross  = sum|final target| after the leg, the budget and the venue cap (None when not measured)
++      readback_gross         = sum|venue position notional| from the SAME account read as `nav` (after the anchor's fills)"""
++    if not rec or rec.get("mode") not in ("on", "config_invalid"):
++        return {}
++    pos = (snap or {}).get("positions_notional")
++    rb = None
++    if isinstance(pos, dict):
++        vals = [float(v) for v in pos.values() if _finite(v)]
++        rb = float(sum(abs(v) for v in vals)) if len(vals) == len(pos) else None     # an unreadable entry ⇒ unknown, not 0
++    return {"base_sizing_gross": float(sizing_gross or 0.0),
++            "combined_target_gross": rec.get("gross_final_target_usdt"),
++            "readback_gross": rb,
++            "m3_max_combined_leverage": rec.get("max_combined_leverage"),
++            "m3_gross_caliber": ("M3 leg on: target_gross = the sizing gross (NAV x gross_mult, unchanged); combined_target_gross = "
++                                 "sum|final target| incl. the BTC leg; readback_gross = sum|venue positions| after fills. cond4b "
++                                 "judges max of the three / nav.")}
++
++
++def post_fill_check(fields: Dict[str, Any], nav: Optional[float]) -> List[tuple]:
++    """R10-A01 — after the fills: the ACTUAL combined position against the budget the leg was sized under. HIGH when the
++    readback exceeds it, HIGH when it cannot be measured (unknown is not "within budget"). [] when no M3 fields."""
++    if not fields:
++        return []
++    lev = fields.get("m3_max_combined_leverage")
++    rb = fields.get("readback_gross")
++    if lev is None:
++        return []                                          # the leg was not placed under a budget (refused / frozen)
++    if rb is None or not (_finite(nav) and float(nav) > 0):
++        return [("HIGH", "M3 成交后合计持仓 gross 无法核对(readback 或 NAV 不可得) — 不当作在预算内。")]
++    lim = max(float(lev) * float(nav), float(fields.get("base_sizing_gross") or 0.0))   # the same exemption as budget_scale
++    if rb > lim * (1.0 + 1e-9):
++        return [("HIGH", f"M3 成交后合计持仓 gross {rb:,.0f}U = {rb / float(nav):.2f}×NAV 超出对冲预算 max({lev}×NAV, 书的 sizing gross) "
++                         f"= {lim:,.0f}U — 核对对冲腿与书。")]
++    return []
 +
 +
 +# ── the source-level identity used by tests and by the deploy receipt ────────────────────────────
@@ -545,10 +715,10 @@ index 91659b1..4e635a2 100644
  
 diff --git a/live/tests_beta_overlay.py b/live/tests_beta_overlay.py
 new file mode 100644
-index 0000000..21949f7
+index 0000000..9645515
 --- /dev/null
 +++ b/live/tests_beta_overlay.py
-@@ -0,0 +1,895 @@
+@@ -0,0 +1,1128 @@
 +"""tests_beta_overlay — M3: the BTC-beta overlay leg on the EXECUTED book (live/beta_overlay.py + its anchor_loop wiring).
 +
 +Pre-registration: quant_research docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md (24c3f803f) §2 / §5.
@@ -571,7 +741,7 @@ index 0000000..21949f7
 +  ★[D] THE FLAT-BOOK DIAGNOSTIC on the executor's own code (prereg R3): with mode on, every non-BTC target is BITWISE the
 +      off-mode target, BTC = the book's executed BTC entry + hedge, and the ex-ante beta of the final target moved by
 +      exactly -beta_exec (ratio 1 within 1e-9, recomputed here independently of the module's own diagnostic); at the plan
-+      level (lot rounding) within half a lot of BTC at the mid. The anchor is built so the reshape CHANGES the net (the
++      level (lot rounding) within one lot of BTC at the mid. The anchor is built so the reshape CHANGES the net (the
 +      file is -X% net): the executed book's net is 0 before the leg and exactly the hedge after it — the leg is not
 +      spread. RED control ("route L", M2's failure reproduced on this executor): the same hedge written into the FILE as a
 +      BTC weight with mode off comes out of the reshape with net 0 and a beta move far from -beta_exec.
@@ -586,6 +756,15 @@ index 0000000..21949f7
 +  [R] accounting: every orders row of BTCUSDT carries `m3_overlay_leg` only while a leg was placed; the chase experiment's
 +      neutrality basis is ex-overlay (difference == hedge exactly, identity when no leg); the end-of-anchor neutrality page
 +      judges ex-overlay (a delivered hedge does not page; an undelivered one does); mode on writes loop state, shadow/off do not.
++  ★[L] R10-A01 (round-10 review): the leg is scaled to an ACCOUNT budget on the combined target gross before any order (the
++      reviewer's 7x-NAV input is cut to the budget; RED: a no-budget mutant reproduces 7x); unset budget / unknown NAV refuse
++      the leg; the watchdog's cond4b judges max(sizing, combined, readback) gross on rows the leg shaped (RED: the stripped gate
++      reads 2.0x on the same rows) and is byte-identical on rows without the keys; the daily_nav row carries the three calibers
++      in mode on and is byte-identical to the stripped executor's in mode off; the post-fill readback is checked.
++  ★[F] R10-A02: the overlay net = final BTC target - the book's BTC component, at target / cap / fills (RED: the whole-BTC
++      mutant leaves the reviewer's -500 residual); the chase basis follows the capped target.
++  ★[T] transitions: a BROKEN config freezes an active leg (RED: a mutant treating it as off sends the unwind order); explicit
++      off / shadow release and unwind it; a released leg is never resurrected; no leg ⇒ today's book.
 +  [X] PAIR: the producer's released beta module (ops/producer_release/20260923_m3/beta_overlay_producer.py, sha pinned)
 +      computes a field on a synthetic cache that THIS validator accepts, and a field with a changed parameter it refuses.
 +  [S] statics: registration, coverage entry, tests_imports census, strip markers well-formed, the disk config's mode is a
@@ -675,6 +854,7 @@ index 0000000..21949f7
 +
 +
 +_ABSENT = object()
++TEST_BUDGET = 3.0          # a FIXTURE budget (x NAV) so the on-path fixtures place their leg; production ships it UNSET (policy)
 +
 +
 +def write_target(weights=None, beta=_ABSENT, anchor=None, **override):
@@ -717,7 +897,8 @@ index 0000000..21949f7
 +    d.update({"book_source": "external", "external_book": ext_block(), "per_name_stop": pns_wide(),
 +              "target_leverage": 2.0, "anchor_late_tolerance_min": 10 ** 6})
 +    if mode is not _ABSENT:
-+        d["beta_overlay"] = mode if isinstance(mode, dict) else {"mode": mode}
++        d["beta_overlay"] = mode if isinstance(mode, dict) else dict({"mode": mode}, **(
++            {BO.BUDGET_KEY: TEST_BUDGET} if mode in ("on", "shadow") else {}))
 +    d.update(over)
 +    p = os.path.join(TMP, f"book_{len(os.listdir(TMP))}.json")
 +    json.dump(d, open(p, "w"), ensure_ascii=False, indent=1)
@@ -825,7 +1006,7 @@ index 0000000..21949f7
 +    if os.path.exists(os.path.join(REPO, _d)):
 +        os.symlink(os.path.join(REPO, _d), os.path.join(STRIP, _d))
 +for _f in os.listdir(os.path.join(REPO, "live")):
-+    if _f not in ("external_book.py", "binance_executor.py"):
++    if _f not in ("external_book.py", "binance_executor.py", "watchdog.py"):   # the stripped copies are written here, never via a link
 +        os.symlink(os.path.join(REPO, "live", _f), os.path.join(STRIP, "live", _f))
 +
 +
@@ -842,6 +1023,7 @@ index 0000000..21949f7
 +EXT0 = load_stripped("live/external_book.py", "external_book_m3stripped")
 +EX0 = load_stripped("live/binance_executor.py", "binance_executor_m3stripped")
 +AL0 = load_stripped("scheduler/anchor_loop.py", "anchor_loop_m3stripped")
++WD0 = load_stripped("live/watchdog.py", "watchdog_m3stripped")
 +AL0.EXT = EXT0                                   # the stripped loop reads the stripped adapter
 +
 +
@@ -860,13 +1042,20 @@ index 0000000..21949f7
 +
 +# ════════════════════════════════════════════════════════════════════════════════════════════════
 +print("\n[C] config")
-+check("C1 absent ⇒ off, no error", BO.config({}) == {"mode": "off", "error": None, "present": False})
++check("C1 absent ⇒ off, no error", BO.config({}) == {"mode": "off", "error": None, "present": False, "max_combined_leverage": None})
 +check("C2 off/shadow/on accepted", all(BO.config({"beta_overlay": {"mode": m}})["mode"] == m and BO.config({"beta_overlay": {"mode": m}})["error"] is None
 +                                       for m in ("off", "shadow", "on")))
 +for bad in ({"mode": "ON"}, {"mode": 1}, {"mode": None}, "on", ["on"]):
 +    c = BO.config({"beta_overlay": bad})
 +    check(f"C3 {bad!r} ⇒ off + error (never an accidental on)", c["mode"] == "off" and c["error"], c)
 +check("C4 unreadable book ⇒ off + error", BO.config(None)["mode"] == "off" and BO.config(None)["error"])
++check("C5 the account budget (R10-A01) is read as a positive number; ABSENT stays None (no default — a policy ruling)",
++      BO.config({"beta_overlay": {"mode": "on", "max_combined_leverage": 3}})["max_combined_leverage"] == 3.0
++      and BO.config({"beta_overlay": {"mode": "on"}})["max_combined_leverage"] is None
++      and BO.config({"beta_overlay": {"mode": "on"}})["error"] is None)
++for bad in ("3", 0, -1.0, float("nan"), float("inf"), True, [3]):
++    c = BO.config({"beta_overlay": {"mode": "on", "max_combined_leverage": bad}})
++    check(f"C6 budget {bad!r} ⇒ a BROKEN config (off + error), never 'no limit'", c["mode"] == "off" and c["error"], c)
 +
 +# ════════════════════════════════════════════════════════════════════════════════════════════════
 +print("\n[V] the field validator")
@@ -1166,15 +1355,24 @@ index 0000000..21949f7
 +      " tests_external_book F7): leg suspended, the gap recorded, HIGH; BTC handled on its TRUE position (reduce-only)")
 +
 +
-+def run_nondry(book_path, positions, btc_underlying="EQUITY"):
++def run_nondry(book_path, positions, btc_underlying="EQUITY", log_root=False, al_mod=None, ex_mod=None):
++    """log_root=True ⇒ a real PilotLogger in a temp dir and finalize_anchor after phase A: the daily_nav row is read back
++    (the account read is the stub below; income_since raises inside the stubbed transport ⇒ realised P&L None, paged)."""
 +    seed_state(positions)
-+    b, ex, loop, al = make_loop()
++    b, ex, loop, al = make_loop(al_mod, ex_mod)
++    _M = al_mod or AL
++    _root = None
++    if log_root:
++        _root = tempfile.mkdtemp(prefix="m3nd_", dir=TMP)
++        loop.log = PL.PilotLogger(_root, day="20260923")
 +    b.mode = "TESTNET"                      # past the DRY skips for THIS loop only; every venue call below is stubbed
 +    b.armed = False                         # ...and submit() stays on its dry branch
 +    _q = {s_: v / MIDS.get(s_, 100.0) for s_, v in positions.items()}
 +    b.positions = lambda: dict(_q)
-+    b.account_snapshot = lambda: {"positions_notional": dict(positions), "equity": 10_000.0, "positions_contracts": dict(_q),
-+                                  "positions_unrealized": {}, "read_ts": NOW}
++    _snapx = ({"total_unrealized_profit": 0.0, "total_wallet_balance": 10_000.0, "total_margin_balance": 10_000.0}
++              if log_root else {})                  # the daily_nav writer reads these three (a stub without them = no row)
++    b.account_snapshot = lambda: dict({"positions_notional": dict(positions), "equity": 10_000.0, "positions_contracts": dict(_q),
++                                       "positions_unrealized": {}, "read_ts": NOW}, **_snapx)
 +    b.open_orders = lambda: []
 +    b.symbol_config = {}
 +
@@ -1188,13 +1386,17 @@ index 0000000..21949f7
 +    _vs = _UNI.venue_status
 +    _UNI.venue_status = lambda src, timeout_ok=True: {s_: "TRADING" for s_ in UNIVERSE}
 +    try:
-+        with BC._using(book_path), pns_stub(AL), frozen_clock():
++        with BC._using(book_path), pns_stub(_M), frozen_clock():
 +            out = loop.run_anchor(now=NOW)
++            if log_root:
++                loop.finalize_anchor(out, None, now=NOW + 2.0)
 +    finally:
 +        _UNI.venue_status = _vs
++    _navp = os.path.join(_root, "20260923", "daily_nav.jsonl") if _root else None
++    nav_rows = [json.loads(x) for x in open(_navp)] if (_navp and os.path.exists(_navp)) else []
 +    return types.SimpleNamespace(out=out, b=b, ex=ex, loop=loop, al=al, ctx=copy.deepcopy(loop._anchor_ctx or {}),
 +                                 plans=[dict(p_) for p_ in (getattr(ex, "_last_plans", None) or [])],
-+                                 target=dict((loop._anchor_ctx or {}).get("target") or {}))
++                                 target=dict((loop._anchor_ctx or {}).get("target") or {}), nav_rows=nav_rows)
 +
 +
 +write_target(beta=field())
@@ -1391,6 +1593,207 @@ index 0000000..21949f7
 +      [k for k in set(_rows_off[0]) | set(_rows_ref[0]) if jd(_rows_off[0].get(k)) != jd(_rows_ref[0].get(k))] if _rows_off and _rows_ref else None)
 +
 +# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[L] ★ R10-A01 the leg's gross is BUDGETED before any order and SEEN by the leverage gate after it (round-10 review)")
++# the reviewer's legal stress input: a neutral book of 100 names x 100 U (gross 10,000), NAV 5,000, longs beta -1 / shorts
++# beta 4 (inside the approved clip) ⇒ beta_exec = -25,000 ⇒ a +25,000 U BTC leg ⇒ combined gross 35,000 = 7x NAV
++_LT = {f"L{i}USDT": 100.0 for i in range(50)}
++_LT.update({f"S{i}USDT": -100.0 for i in range(50)})
++_LB = {k: (-1.0 if k.startswith("L") else 4.0) for k in _LT}
++_LB[BTC] = 1.0
++_LF = {"version": BO.VERSION, "anchor_ts": 14400, "data_cutoff_ts": 14400, "n_win": 180, "n_min": 120, "clip": [-1.0, 4.0],
++       "fallback": 1.0, "btc": BTC, "betas": dict(_LB), "n_obs": {k: 180 for k in _LB}}
++
++
++def _lstage(budget, nav=5000.0, mod=None, target=None, held=None, dust=True):
++    t = dict(_LT if target is None else target)
++    o = (mod or BO).stage("on", t, dict(held or {}), {"anchor_ts": 14400, "beta_overlay": _LF}, 10_000.0, [],
++                          btc_floor=100.0, dust_mult=2.0, btc_dust_only=dust, max_combined_leverage=budget, nav=nav)
++    return o, t
++
++
++_lo, _lt = _lstage(3.0)
++_lr = _lo["record"]
++_lg = sum(abs(v) for v in _lt.values())
++check("★ L1 stress input, fixture budget 3.0 x NAV 5,000: the leg is SCALED (intent +25,000 → +5,000), the combined target gross"
++      " is 15,000 = 3.0 x NAV, the cut is the recorded gap and pages HIGH naming the budget",
++      _lr.get("status") == "applied_via_combined" and abs(_lr["hedge_intent_usdt"] - 25_000.0) < 1e-6
++      and abs(_lt[BTC] - 5_000.0) < 1e-6 and abs(_lg - 15_000.0) < 1e-6 and (_lr.get("budget") or {}).get("truncated") is True
++      and abs(_lr["hedge_gap_usdt"] - 20_000.0) < 1e-6 and any(sv == "HIGH" and "预算" in m for sv, m in _lo["alarms"]),
++      (_lr.get("status"), _lt.get(BTC), _lg, (_lr.get("budget") or {}).get("scale")))
++MUT_NOBUDGET = beta_mutant("no_budget", '''    L = float(max_combined_leverage) * float(nav)''', '''    L = float("inf")''')
++_mo, _mt = _lstage(3.0, mod=MUT_NOBUDGET)
++check("★ L1-RED the pre-fix behaviour (no budget: mutant with an infinite limit) on the SAME input: combined gross 35,000 = 7x NAV"
++      " — above the 5.0x halt line the old gate never saw (the reviewer's counterexample, reproduced)",
++      abs(sum(abs(v) for v in _mt.values()) - 35_000.0) < 1e-6 and sum(abs(v) for v in _mt.values()) / 5000.0 > 5.0,
++      sum(abs(v) for v in _mt.values()) / 5000.0)
++_uo, _ut = _lstage(None)
++check("★ L2 budget UNSET under on ⇒ refused (budget_unset): no leg, BTC untouched (unheld ⇒ absent), HIGH '缺失即不做' — never 'no limit'",
++      _uo["record"].get("status") == "refused" and _uo["record"].get("reason") == "budget_unset" and BTC not in _ut
++      and any(sv == "HIGH" and "budget_unset" in m for sv, m in _uo["alarms"]), (_uo["record"].get("status"), _uo["record"].get("reason")))
++_no, _nt = _lstage(3.0, nav=None)
++check("L3 NAV unknown ⇒ refused (nav_unknown), no leg", _no["record"].get("reason") == "nav_unknown" and BTC not in _nt,
++      _no["record"].get("reason"))
++# a book ALREADY above the budget: a leg that REDUCES gross is placed in full; one that adds gross is not placed at all
++_bk = {"AAAUSDT": 6000.0, "BBBUSDT": -9000.0, BTC: 3000.0}          # gross 18,000 > 1.0 x NAV 10,000
++_bs1 = BO.budget_scale(18_000.0, 3000.0, -2000.0, 1.0, 10_000.0)
++_bs2 = BO.budget_scale(18_000.0, 3000.0, 2000.0, 1.0, 10_000.0)
++check("L4 book alone above the limit: a leg that REDUCES gross is placed in full (scale 1); one that ADDS gross gets scale 0 —"
++      " the leg never lifts the gross above max(limit, the book's own gross)",
++      _bs1["scale"] == 1.0 and _bs2["scale"] == 0.0 and _bs2["gross_with_placed_leg_usdt"] == 18_000.0, (_bs1["scale"], _bs2["scale"]))
++write_target(beta=field())
++rl5 = run(book_with({"mode": "on", "max_combined_leverage": 2.05}))
++_r5 = rl5.ctx.get("m3_beta_overlay") or {}
++_g5 = sum(abs(v) for v in rl5.target.values())
++check("★ L5 through run_anchor (NAV 10,000, sizing 2.0x, fixture budget 2.05x): the leg is cut to the 500 U of room, the FINAL"
++      " target gross is exactly 2.05 x NAV, the BTC order is the cut leg, HIGH names the budget",
++      _r5.get("status") in BO.APPLIED and (_r5.get("budget") or {}).get("truncated") is True and abs(_g5 - 20_500.0) < 1e-6
++      and abs(abs(rl5.target[BTC]) - 500.0) < 1e-6 and any(sv == "HIGH" and "预算" in m for sv, m in rl5.al)
++      and abs(_r5.get("gross_final_target_usdt") - _g5) < 1e-6, (_r5.get("status"), rl5.target.get(BTC), _g5))
++# the leverage gate (watchdog cond4b) on daily_nav rows: new vs the STRIPPED watchdog
++import watchdog as WD                                   # noqa: E402
++
++
++def _nav_root(rows_by_day):
++    root = tempfile.mkdtemp(prefix="m3nav_", dir=TMP)
++    for day, rows in rows_by_day:
++        lg = PL.PilotLogger(root, day=day)
++        try:
++            for r in rows:
++                lg.daily_nav(**r)
++        finally:
++            lg.close()
++    return root
++
++
++_base_rows = [("20260921", [dict(day="20260921", target_gross=20_000.0, nav=10_000.0, realised_pnl=0.0, unrealised_pnl=0.0,
++                                 sizing_policy="constant_leverage_2.00", nav_ts=NOW - 86400)])]
++_m3row = dict(day="20260922", target_gross=10_000.0, nav=5_000.0, realised_pnl=0.0, unrealised_pnl=0.0,
++              sizing_policy="constant_leverage_2.00", nav_ts=NOW, base_sizing_gross=10_000.0,
++              combined_target_gross=35_000.0, readback_gross=35_000.0, m3_max_combined_leverage=None)
++_rootM = _nav_root(_base_rows + [("20260922", [_m3row])])
++_cw = WD.evaluate(_rootM, venue_events=[], ops_stats=[])["conditions"]["cond4b_leverage"]
++_cw0 = WD0.evaluate(_rootM, venue_events=[], ops_stats=[])["conditions"]["cond4b_leverage"]
++check("★ L6 cond4b on a row the leg shaped (sizing 10,000 / combined 35,000 / NAV 5,000): the gate reads 7.0x and TRIGGERS (halt"
++      " above 5.0x), stating its numerator", _cw["actual_leverage"] == 7.0 and _cw["triggered"] is True
++      and (_cw.get("m3_numerator") or {}).get("combined_target_gross") == 35_000.0, (_cw["actual_leverage"], _cw["triggered"]))
++check("★ L6-RED the STRIPPED watchdog (today's gate) on the SAME rows reads 2.0x and does not trigger — the blind spot the review found",
++      _cw0["actual_leverage"] == 2.0 and _cw0["triggered"] is False, (_cw0["actual_leverage"], _cw0["triggered"]))
++_rootP = _nav_root(_base_rows + [("20260922", [dict(day="20260922", target_gross=20_000.0, nav=10_000.0, realised_pnl=0.0,
++                                                    unrealised_pnl=0.0, sizing_policy="constant_leverage_2.00", nav_ts=NOW)])])
++_cp = WD.evaluate(_rootP, venue_events=[], ops_stats=[])["conditions"]["cond4b_leverage"]
++_cp0 = WD0.evaluate(_rootP, venue_events=[], ops_stats=[])["conditions"]["cond4b_leverage"]
++check("★ L7 rows WITHOUT the M3 keys (every row today): the new gate's cond4b detail is byte-identical to the stripped gate's",
++      jd(_cp) == jd(_cp0) and "m3_numerator" not in _cp, [k for k in set(_cp) | set(_cp0) if jd(_cp.get(k)) != jd(_cp0.get(k))])
++_lowrow = dict(_m3row, combined_target_gross=9_000.0, readback_gross=None)
++_cl = WD.evaluate(_nav_root(_base_rows + [("20260922", [_lowrow])]), venue_events=[], ops_stats=[])["conditions"]["cond4b_leverage"]
++check("L8 never LESS strict than today: a combined gross below the sizing gross (a leg that reduced gross) still reads the sizing"
++      " gross (2.0x); an unreadable readback is ignored, not read as 0", _cl["actual_leverage"] == 2.0, _cl["actual_leverage"])
++# the daily_nav row itself, through finalize_anchor on a non-DRY stubbed loop (the writer of the three calibers)
++write_target(beta=field())
++_dnr = run_nondry(book_with("on"), {BTC: 1500.0, "AAAUSDT": 5000.0}, btc_underlying="COIN", log_root=True)
++_dn = _dnr.nav_rows[-1] if _dnr.nav_rows else {}
++check("★ L9 the daily_nav ROW (pilot_log, read back): target_gross stays the sizing gross (20,000); base_sizing_gross = 20,000;"
++      " combined_target_gross = sum|final target| incl. the leg; readback_gross = sum|venue positions| (6,500)",
++      _dn.get("target_gross") == 20_000.0 and _dn.get("base_sizing_gross") == 20_000.0
++      and abs((_dn.get("combined_target_gross") or 0.0) - sum(abs(v) for v in _dnr.target.values())) < 1e-6
++      and _dn.get("readback_gross") == 6_500.0 and _dn.get("m3_max_combined_leverage") == TEST_BUDGET,
++      {k: _dn.get(k) for k in ("target_gross", "base_sizing_gross", "combined_target_gross", "readback_gross")})
++_dno = run_nondry(book_with("off"), {BTC: 1500.0, "AAAUSDT": 5000.0}, btc_underlying="COIN", log_root=True)
++_dn0 = run_nondry(book_with(), {BTC: 1500.0, "AAAUSDT": 5000.0}, btc_underlying="COIN", log_root=True, al_mod=AL0, ex_mod=EX0)
++check("★ L10 mode off: the daily_nav row is byte-identical to the stripped executor's (no M3 key)",
++      len(_dno.nav_rows) == 1 and jd(_dno.nav_rows) == jd(_dn0.nav_rows) and "combined_target_gross" not in _dno.nav_rows[0],
++      [k for k in set(_dno.nav_rows[0]) | set(_dn0.nav_rows[0]) if jd(_dno.nav_rows[0].get(k)) != jd(_dn0.nav_rows[0].get(k))]
++      if _dno.nav_rows and _dn0.nav_rows else (len(_dno.nav_rows), len(_dn0.nav_rows)))
++check("L11 after the fills: readback above max(budget x NAV, sizing gross) pages HIGH; unmeasurable readback pages HIGH (unknown is"
++      " not 'within budget'); within budget is silent",
++      BO.post_fill_check({"m3_max_combined_leverage": 3.0, "readback_gross": 35_000.0, "base_sizing_gross": 10_000.0}, 5_000.0)
++      and BO.post_fill_check({"m3_max_combined_leverage": 3.0, "readback_gross": None, "base_sizing_gross": 10_000.0}, 5_000.0)
++      and not BO.post_fill_check({"m3_max_combined_leverage": 3.0, "readback_gross": 14_000.0, "base_sizing_gross": 10_000.0}, 5_000.0)
++      and not BO.post_fill_check({}, 5_000.0))
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[F] ★ R10-A02 the overlay's net is what the M3 stage CHANGED on BTC (final BTC target - the book's BTC), at every stage")
++_ft = {BTC: 500.0, "ETHUSDT": -500.0}
++_fo = BO.stage("on", _ft, {BTC: 1500.0}, {"anchor_ts": 14400}, 10_000.0, [], max_combined_leverage=3.0, nav=5000.0)
++_frow = {"venue_net_usdt": 1000.0, "venue_gross_usdt": 2000.0, "net_over_gross": 0.5, "net_over_equity": 0.2}
++_fv = BO.neutrality_view(dict(_frow), _fo["record"])
++check("★ F1 the reviewer's case (book BTC +500 / ETH -500, held BTC 1,500, field missing ⇒ frozen): overlay net = 1,000 (the"
++      " freeze's increment), the ex-overlay net is 0", _ft[BTC] == 1500.0 and _fo["overlay_net_usdt"] == 1000.0
++      and _fv["venue_net_usdt"] == 0.0, (_fo["overlay_net_usdt"], _fv["venue_net_usdt"]))
++MUT_WHOLE = beta_mutant("freeze_whole_btc", "                out[\"overlay_net_usdt\"] = held_btc - b",
++                        "                out[\"overlay_net_usdt\"] = held_btc")
++_ft2 = {BTC: 500.0, "ETHUSDT": -500.0}
++_fo2 = MUT_WHOLE.stage("on", _ft2, {BTC: 1500.0}, {"anchor_ts": 14400}, 10_000.0, [], max_combined_leverage=3.0, nav=5000.0)
++check("★ F1-RED the pre-fix definition (the whole held BTC) on the SAME input leaves a -500 residual (the review's finding)",
++      MUT_WHOLE.neutrality_view(dict(_frow), _fo2["record"])["venue_net_usdt"] == -500.0)
++_rcf = rc.ctx.get("m3_beta_overlay") or {}
++check("★ F2 venue cap: the overlay net and the chase basis follow the CAPPED BTC target (= hedge_after_cap), not the intent",
++      abs(_rcf.get("overlay_net_usdt") - _rcf.get("hedge_after_cap_usdt")) < 1e-9
++      and abs(rc.ex._m3_overlay_net_usdt - (rc.target[BTC] - float(_rcf.get("btc_book_target_usdt") or 0.0))) < 1e-9
++      and abs(_rcf.get("overlay_net_usdt") - _rcf.get("hedge_target_usdt")) > 1.0,
++      (_rcf.get("overlay_net_usdt"), rc.ex._m3_overlay_net_usdt, _rcf.get("hedge_target_usdt")))
++_fv3 = BO.neutrality_view(dict(_row), _recA, venue_btc_usdt=0.4 * hedge)
++check("F3 after the fills (same caliber): realised overlay = venue BTC - book BTC; its shortfall against the target overlay is recorded",
++      abs(_fv3["m3_overlay_realised_usdt"] - round(0.4 * hedge - float(_recA.get("btc_book_target_usdt") or 0.0), 6)) < 1e-6
++      and abs(_fv3["m3_overlay_fill_gap_usdt"] - round(hedge - (0.4 * hedge - float(_recA.get("btc_book_target_usdt") or 0.0)), 6)) < 1e-6,
++      (_fv3.get("m3_overlay_realised_usdt"), _fv3.get("m3_overlay_fill_gap_usdt")))
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[T] ★ mode transitions: an EXPLICIT off / shadow unwinds the leg; a BROKEN config FREEZES it (never unwound on a typo)")
++write_target(beta=field())
++_hedgeT = float(hedge)
++_posT = {BTC: _hedgeT, "AAAUSDT": 5000.0}
++_lastT = {"status": "applied_via_combined", "hedge_target_usdt": _hedgeT, "btc_combined_target_usdt": _hedgeT, "leg_active": True,
++          "rebalance_id": "A-prev"}
++rt1 = run(book_with({"mode": "ON"}), positions=_posT, state_extra={"m3_overlay_last": dict(_lastT)})
++_t1 = rt1.ctx.get("m3_beta_overlay") or {}
++check("★ T1 broken config (mode 'ON') + an active leg: FROZEN — BTC target = held, NO BTC order, HIGH '配置无效'/'冻结', state keeps"
++      " the leg active; the overlay net = held - the book's BTC", _t1.get("status") == "frozen_config_invalid" and rt1.target.get(BTC) == _hedgeT
++      and not btc_orders(rt1) and any(sv == "HIGH" and "冻结" in m for sv, m in rt1.al)
++      and (rt1.st.get("m3_overlay_last") or {}).get("leg_active") is True
++      and abs(_t1.get("overlay_net_usdt") - (_hedgeT - float(_t1.get("btc_book_target_usdt") or 0.0))) < 1e-9,
++      (_t1.get("status"), rt1.target.get(BTC), len(btc_orders(rt1))))
++MUT_NOFREEZE = beta_mutant("config_fault_unwinds", '''    if not leg_active(last):
++        return None''', '''    if True:
++        return None''')
++_savedT = AL.BO
++AL.BO = MUT_NOFREEZE
++try:
++    rt1m = run(book_with({"mode": "ON"}), positions=_posT, state_extra={"m3_overlay_last": dict(_lastT)})
++finally:
++    AL.BO = _savedT
++check("★ T1-RED the pre-fix behaviour (a broken config treated as off) on the SAME input SENDS a BTC order (unwinds the leg)",
++      btc_orders(rt1m) and not btc_orders(rt1), (len(btc_orders(rt1m)), len(btc_orders(rt1))))
++for _lab in ("off", "shadow"):
++    rt2 = run(book_with(_lab), positions=_posT, state_extra={"m3_overlay_last": dict(_lastT)})
++    _bo2 = btc_orders(rt2)
++    check(f"★ T2 explicit {_lab} + the same active leg: RELEASED — the book's rules unwind BTC (a reduce-only BTC order), HIGH names"
++          f" the explicit {_lab}, state marks released_by={_lab}",
++          _bo2 and all(a["order"]["reduce_only"] for a in _bo2) and any(sv == "HIGH" and f"显式 {_lab}" in m for sv, m in rt2.al)
++          and (rt2.st.get("m3_overlay_last") or {}).get("released_by") == _lab,
++          (len(_bo2), (rt2.st.get("m3_overlay_last") or {}).get("released_by")))
++rt4 = run(book_with({"mode": "ON"}), positions=_posT, state_extra={"m3_overlay_last": dict(_lastT, released_by="off")})
++check("T3 broken config AFTER an explicit off released the leg: nothing is resurrected (no freeze record; the book's rules keep unwinding)",
++      "m3_beta_overlay" not in rt4.ctx and btc_orders(rt4), (sorted(rt4.ctx.get("m3_beta_overlay") or {}), len(btc_orders(rt4))))
++rt5 = run(book_with({"mode": "ON"}), positions=_posT)
++rt5r = run(book_with(), positions=_posT, al_mod=AL0, ex_mod=EX0)
++check("★ T4 broken config and NO leg ever placed (no loop state): plans / orders / target are the stripped executor's (only the page differs)",
++      jd(rt5.plans) == jd(rt5r.plans) and jd(rt5.target) == jd(rt5r.target) and "m3_beta_overlay" not in rt5.ctx,
++      [k for k in ("plans", "target") if jd(getattr(rt5, k)) != jd(getattr(rt5r, k))])
++PNS_STATE["cooldown"] = {BTC: NOW + 7 * 86400}
++try:
++    rt6 = run(book_with({"mode": "ON"}), positions=_posT, state_extra={"m3_overlay_last": dict(_lastT)})
++finally:
++    PNS_STATE["cooldown"] = {}
++check("T5 broken config + active leg + a NAME-level block on BTC (stop cooldown): no freeze — the book's rules handle BTC, HIGH says so",
++      (rt6.ctx.get("m3_beta_overlay") or {}).get("status") == "config_invalid_suspended" and rt6.target.get(BTC) != _hedgeT
++      and any(sv == "HIGH" and "无法冻结" in m for sv, m in rt6.al), ((rt6.ctx.get("m3_beta_overlay") or {}).get("status"), rt6.target.get(BTC)))
++check("T6 leg_active: a placed leg is active; released / never-placed / suspended are not; state written before the flag falls back to status",
++      BO.leg_active({"status": "applied", "leg_active": True}) and not BO.leg_active(dict(_lastT, released_by="shadow"))
++      and not BO.leg_active(None) and not BO.leg_active({"status": "suspended_btc_untradable", "leg_active": False})
++      and BO.leg_active({"status": "applied_via_combined"}) and not BO.leg_active({"status": "combined_dust"}))
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
 +print("\n[X] pair: the producer's released beta module writes a field this validator accepts")
 +PROD = os.path.join(REPO, "ops", "producer_release", "20260923_m3", "beta_overlay_producer.py")
 +_smap = json.load(open(os.path.join(os.path.dirname(PROD), "SOURCE_MAP.json")))
@@ -1425,7 +1828,7 @@ index 0000000..21949f7
 +check("S2 gate_coverage SUITE_SCOPE entry exists and states its blind spots", bool(_scope) and "Blind spots" in _scope, _scope[:80])
 +check("S3 tests_imports' production census lists beta_overlay", "beta_overlay" in open(os.path.join(HERE, "tests_imports.py")).read()
 +      and '"beta_overlay"' in open(os.path.join(HERE, "tests_imports.py")).read())
-+for rel in ("scheduler/anchor_loop.py", "live/binance_executor.py", "live/external_book.py"):
++for rel in ("scheduler/anchor_loop.py", "live/binance_executor.py", "live/external_book.py", "live/watchdog.py"):
 +    _s = open(os.path.join(REPO, rel)).read()
 +    try:
 +        _st = BO.strip_m3(_s)
@@ -1519,15 +1922,65 @@ index 0ccbd35..322326e 100644
      return d
  
  
+diff --git a/live/watchdog.py b/live/watchdog.py
+index 6c5cb5e..d73ac64 100644
+--- a/live/watchdog.py
++++ b/live/watchdog.py
+@@ -2295,6 +2295,18 @@ def evaluate(root: str, venue_events=None, ops_stats=None, *, book_observation=N
+     #   never silently dropped. With none in scope the gate is BLIND, which is the honest state
+     #   for a rule that has no rows it may judge yet.
+     _lev_rows, _lev_out_of_scope = [], []
++    # ── M3-BEGIN  R10-A01: a row written while the M3 leg shaped the book carries combined_target_gross (book + BTC leg, final
++    #    target) and readback_gross (venue positions after fills) beside the sizing gross. The gate judges the LARGEST of the
++    #    three — never less strict than today (target_gross stays the floor); rows without the keys are judged exactly as before.
++    def _m3_lev_gross(_r, _g):
++        _v = [float(_g)]
++        for _k in ("combined_target_gross", "readback_gross"):
++            _x = _r.get(_k)
++            if isinstance(_x, (int, float)) and not isinstance(_x, bool) and _x == _x and abs(_x) != float("inf"):
++                _v.append(float(_x))
++        return max(_v)
++    _m3_lev_last = None
++    # ── M3-END
+     for _r4 in _nav_all:
+         _n4, _g4 = _r4.get("nav"), _r4.get("target_gross")
+         if not (_n4 and _g4 and float(_n4) > 0):
+@@ -2303,6 +2315,13 @@ def evaluate(root: str, venue_events=None, ops_stats=None, *, book_observation=N
+             _lev_out_of_scope.append(str(_r4.get("day")))
+             continue
+         _lev_rows.append((str(_r4.get("day")), float(_g4) / float(_n4)))
++        # ── M3-BEGIN  (the line above stays byte-identical: tests_guard_calibers' mutants anchor on it)
++        if "combined_target_gross" in _r4 or "readback_gross" in _r4:
++            _lev_rows[-1] = (_lev_rows[-1][0], _m3_lev_gross(_r4, _g4) / float(_n4))
++            _m3_lev_last = _r4
++        else:
++            _m3_lev_last = None
++        # ── M3-END
+     _lev_now = _lev_rows[-1][1] if _lev_rows else None
+     _lev_tgt = None
+     try:
+@@ -2334,6 +2353,12 @@ def evaluate(root: str, venue_events=None, ops_stats=None, *, book_observation=N
+                     "leverage this should not move; if it has, the sizing step or its dead zone "
+                     "failed. Structural death (the initial-margin floor) is at 20x, far outside "
+                     "both limits — this gate is about the SIZER, not about margin.")}
++    # ── M3-BEGIN  the numerator the gate used, stated (only on rows the M3 leg shaped; absent otherwise ⇒ today's detail)
++    if _m3_lev_last is not None:
++        detail["cond4b_leverage"]["m3_numerator"] = {
++            k: _m3_lev_last.get(k) for k in ("target_gross", "combined_target_gross", "readback_gross", "nav", "m3_max_combined_leverage")}
++        detail["cond4b_leverage"]["m3_numerator"]["rule"] = "leverage = max(target_gross, combined_target_gross, readback_gross) / nav"
++    # ── M3-END
+     if _lev_halt:
+         triggers.append(f"§4-4b effective leverage {_lev_now:.2f}x exceeds "
+                         f"{_lev_tgt * LEVERAGE_HALT_MULT:.1f}x — the sizing step is not holding "
 diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
-index 96e7238..261d7fe 100644
+index 96e7238..a3c2aad 100644
 --- a/ops/gate_coverage.py
 +++ b/ops/gate_coverage.py
 @@ -302,6 +302,7 @@ SUITE_SCOPE = {
      "tests_reconcile_severity": "that the 5%% band and the 5 USDT floor are the RIGHT numbers — it proves the grading separates revaluation from structural difference (sign flip, one-sided name) and that venue truth is still adopted unconditionally. It cannot separate the two EXACTLY, because the cache stores no mark; a name whose price moved >5%% between anchors will be graded REAL and is a false page by construction",
      "tests_numerator_honesty": "that the venue's income ledger is COMPLETE — it proves we page it, do not double-count colliding timestamps, and that a truncated day is withheld rather than priced. It cannot prove the venue reported every settlement in the first place, and it says nothing about whether -6.7%/-6.0% are the right limits: this batch repairs the numerator and deliberately leaves the thresholds where they are",
      "tests_external_book": "that the WIDE BOOK IS WORTH TRADING — it proves the adapter reads the producer's signed target exactly (in-universe w / in-universe sum|w| x NAV x gross_mult, bitwise on a neutral unit-gross fixture; no EMA, no band, no risk budget), that every named defect of the file (missing / sidecar missing / sha mismatch / bad json / schema incl. a missing universe list / universe-list sha / anchor mismatch / stale / future-dated / pin mismatch / bad weights / gross_norm mismatch) HOLDS the anchor with zero orders and a HIGH `external_book_unavailable`, that the hold never falls back to the internal composer, that the age feeds the pre-registered ladder (and `on_unavailable: hold` pins it), that internal mode is byte-identical (the external reader is never invoked; a mutant that forces the external branch goes red), that INVALID config blocks, that names outside the producer's universe list are never targets (popped; the book normalised by the in-universe sum so the live gross is undiluted; a >25% tail pages HIGH; a reader that does not split is a red mutant), that a HELD name the file no longer targets is exited reduce-only through clamp/flatten_only (never market-exited), that the two KEPT per-name filters (venue meta: non-COIN/non-ASCII/non-USDT/leveraged/non-TRADING; 2x min-notional) withhold exactly the named names, and that the per_name_stop profile switch resolves (null = base bitwise, wide = d30_n2_c42, unknown = base + alarm) and is coupled to book_source; every fixture is the REAL config pinned to the internal baseline, so the suite is green with the disk in either state. Seven blind spots: (a) every loop test runs DRY_RUN with a stub bookTicker and hand-set filters — no venue, no fills, no real NAV; the first LIVE external anchor is the first; (b) the wait-for-slot is tested as a pure plan (wake time, 0/positive) — whether the real process actually idles to N+offset and the 3000s cap suffices is a wall-clock fact only a scheduled anchor shows; (c) it proves the file is READ FAITHFULLY, never that the producer's weights are RIGHT — the wide book's alpha, turnover and the N+8/N+23 phase question live in the shadow/audit, not here; (d) the producer side (shadow_loop_v3.write_target_live) is tested in the research repo (tests_target_live_output), and the pair agreement (its output is accepted by this reader; a v2-style file is refused) is asserted THERE, not in this battery; (e) venue eligibility is a pure function over a synthetic exchangeInfo — the real payload's field names drifting (underlyingType) would exclude nothing and this stays green; (f) the 2x min-notional rule, the 10% breadth-loss line (EXT_DUST_ALARM_FRAC) and the 25% tail line (OUTSIDE_UNIVERSE_ALARM_FRAC) are policy numbers — none is calibrated here; (g) the universe LIST is trusted once its sha matches the declared universe_sha — whether it is the RIGHT universe (450 = symbols_live) is the producer's claim, pinned only if `universe_sha_pin` is set",
-+    "tests_beta_overlay": "that the M3 BTC-beta overlay IMPROVES the book, or that the betas are RIGHT — it proves, DRY_RUN with a stubbed bookTicker, hand-set filters and a stubbed per-name-stop state, that mode off/absent/shadow gives plans, dry-run orders, order rows, anchor context, loop state and the phase-A record identical to the executor with every M3 insertion stripped (shadow adds only its record), on files with and without the field and with BTC unheld / held-dust / held-untargeted, and a leaking mutant is caught; that with mode on every non-BTC target is bitwise the off target, BTC = the book's executed BTC entry + (-beta_exec), the ex-ante beta of the final target moves by exactly -beta_exec (ratio 1 within 1e-9, recomputed independently) and within half a lot at plan level, on an anchor whose reshape changes the net (and the route-L control spreads the same hedge); that a held BTC whose book component is dust is released from the clamp and hedged while on (the off control clamps it), and a held BTC the file no longer targets is exited reduce-only as off; that the M3b rule (AMENDMENT_1 912788743, as the evaluator's hook c414ca4cf implements it) holds: the book stage is the off-mode book, a BTC untradable ONLY as dust is re-judged on the combined value (a 4-USDT book BTC with a large leg sends the leg while a mutant restoring M2 route H sends none; a combined value still below the line touches nothing), and every name-level reason (per-name stop, cooldown, held-exit, venue meta in a non-DRY stubbed loop) suspends the leg with the whole intent recorded as the hedge gap and paged, and a venue cap's shortfall is recorded as the gap; that a missing / wrong-version / wrong-cut-off field or a targeted name without a beta sends NO BTC order and freezes BTC with a HIGH page, and two mutants (missing = beta 1, missing = hedge 0) do send one; that HOLD keeps the hedge and the venue cap truncates the combined BTC target with a page; that BTC order rows carry m3_overlay_leg, the chase basis is ex-overlay by exactly the hedge, the neutrality page judges ex-overlay; and that the released producer module writes a field this validator accepts. Blind spots: (a) no venue, no fills, no real NAV — partial fills, maker/taker split and the real BTC lot/min-notional of the live account are not exercised; (b) the betas are fixtures — the producer's estimator is tested in ops/producer_release/20260923_m3/tests_beta_overlay_producer.py, NOT in this battery; (c) it cannot see whether the prereg's R1/R2 (neutralised realised beta, less loss on BTC-up days) hold — that is the research evaluation, not this suite; (d) position_break's 10% per-symbol line against a hedge of 0.08-0.19 gross, the proportional response naming BTC, and the report readers' raw |net/gross| (anchor_report / cost_drift / daily_summary) are documented interactions, not tested ones; (e) the OFF identity is against the STRIPPED source, and stripped == b66257b is a deploy receipt, not a battery check.",
++    "tests_beta_overlay": "that the M3 BTC-beta overlay IMPROVES the book, or that the betas are RIGHT — it proves, DRY_RUN with a stubbed bookTicker, hand-set filters and a stubbed per-name-stop state, that mode off/absent/shadow gives plans, dry-run orders, order rows, anchor context, loop state and the phase-A record identical to the executor with every M3 insertion stripped (shadow adds only its record), on files with and without the field and with BTC unheld / held-dust / held-untargeted, and a leaking mutant is caught; that with mode on every non-BTC target is bitwise the off target, BTC = the book's executed BTC entry + (-beta_exec), the ex-ante beta of the final target moves by exactly -beta_exec (ratio 1 within 1e-9, recomputed independently) and within one lot at plan level, on an anchor whose reshape changes the net (and the route-L control spreads the same hedge); that a held BTC whose book component is dust is released from the clamp and hedged while on (the off control clamps it), and a held BTC the file no longer targets is exited reduce-only as off; that the M3b rule (AMENDMENT_1 912788743, as the evaluator's hook c414ca4cf implements it) holds: the book stage is the off-mode book, a BTC untradable ONLY as dust is re-judged on the combined value (a 4-USDT book BTC with a large leg sends the leg while a mutant restoring M2 route H sends none; a combined value still below the line touches nothing), and every name-level reason (per-name stop, cooldown, held-exit, venue meta in a non-DRY stubbed loop) suspends the leg with the whole intent recorded as the hedge gap and paged, and a venue cap's shortfall is recorded as the gap; that a missing / wrong-version / wrong-cut-off field or a targeted name without a beta sends NO BTC order and freezes BTC with a HIGH page, and two mutants (missing = beta 1, missing = hedge 0) do send one; that HOLD keeps the hedge and the venue cap truncates the combined BTC target with a page; that BTC order rows carry m3_overlay_leg, the chase basis is ex-overlay by exactly the hedge, the neutrality page judges ex-overlay; and that the released producer module writes a field this validator accepts; and (round-10 review) that the leg is scaled to an account budget on the combined target gross BEFORE any order (the reviewer's 7x-NAV stress input is cut to the budget, a no-budget mutant reproduces 7x, an unset budget or unknown NAV refuses the leg), that the watchdog's cond4b judges max(sizing, combined target, readback) gross on rows the leg shaped (the stripped gate reads 2.0x on the same rows) and is byte-identical on rows without the keys, that the daily_nav row carries the three calibers in mode on and is byte-identical to the stripped executor's in mode off, that the overlay net subtracted by the neutrality readers and the chase basis is `final BTC target - book BTC` at target / cap / fills (the whole-BTC mutant leaves the reviewer's -500 residual), and that a BROKEN config freezes an active leg (a mutant treating it as off unwinds it) while an explicit off / shadow releases and unwinds it. Blind spots: (a) no venue, no fills, no real NAV — partial fills, maker/taker split and the real BTC lot/min-notional of the live account are not exercised; (b) the betas are fixtures — the producer's estimator is tested in ops/producer_release/20260923_m3/tests_beta_overlay_producer.py, NOT in this battery; (c) it cannot see whether the prereg's R1/R2 (neutralised realised beta, less loss on BTC-up days) hold — that is the research evaluation, not this suite; (d) position_break's 10% per-symbol line against a hedge of 0.08-0.19 gross, the proportional response naming BTC, and the report readers' raw |net/gross| (anchor_report / cost_drift / daily_summary) are documented interactions, not tested ones; (e) the OFF identity is against the STRIPPED source, and stripped == b66257b is a deploy receipt, not a battery check; (f) the budget VALUE in these fixtures is a test number — the production value is a policy ruling and ships unset; (g) the non-external-anchor release is not exercised through run_anchor (an internal-book anchor needs the DL preds path).",
      "tests_guard_calibers": "that the guard reads the ACCOUNT — it proves the §4-2/§4-4/§4-4b/per-name/§4-1/3/5/6/7 "
                              "arithmetic on fixtures generated from the producer's own identity "
                              "(nav_t = nav_{t-1} + d_realised + d_unrealised + d_flow) and that 33 named defects "
@@ -2436,7 +2889,7 @@ index a7abd4b..d644b33 100644
  
  # ★ registration guard: every live/tests_*.py must appear above. Catches the omission that this
 diff --git a/scheduler/anchor_loop.py b/scheduler/anchor_loop.py
-index ed5a65c..a8e34e6 100644
+index ed5a65c..1b3cfe6 100644
 --- a/scheduler/anchor_loop.py
 +++ b/scheduler/anchor_loop.py
 @@ -53,6 +53,7 @@ import book_config as BC      # noqa: E402
@@ -2447,7 +2900,7 @@ index ed5a65c..a8e34e6 100644
  
  # ★ THE BAND IS A POLICY NUMBER AND SAYS SO. 3% of gross is the lead's figure; no measurement
  #   produced it and it must not be quoted as if one had. The two live anchors so far read +0.99%
-@@ -1675,6 +1676,23 @@ class AnchorLoop:
+@@ -1675,6 +1676,35 @@ class AnchorLoop:
          #   `tests_exit_ledger` pins that equality — "it is pure" is a claim about the code.
          import rebalance_id as _RID
          rid = _RID.mint(now, rehearsal)
@@ -2461,17 +2914,29 @@ index ed5a65c..a8e34e6 100644
 +            _m3c = BO.config(BC.load())
 +        except Exception as _m3e:                              # noqa: BLE001 — unreadable ⇒ off, paged
 +            _m3c = {"mode": "off", "error": f"book config unreadable ({type(_m3e).__name__})", "present": True}
++        _m3last = state.get("m3_overlay_last")
 +        if _m3c.get("error"):
-+            self.alarm("HIGH", f"M3 beta_overlay 配置无效: {_m3c['error']} — 本锚按 off 处理(不加对冲腿, 不改书)。")
++            # a BROKEN config is not an explicit off: an active leg is FROZEN below (BO.config_fault), never unwound on a typo
++            self.alarm("HIGH", f"M3 beta_overlay 配置无效: {_m3c['error']} — 本锚不加新对冲腿; "
++                               + ("已持对冲腿冻结(不平掉)。" if BO.leg_active(_m3last) else "无在持对冲腿, 按 off 的书交易。"))
 +        if _m3c["mode"] != "off" and external is None:
 +            self.alarm("HIGH", f"M3 beta_overlay.mode={_m3c['mode']} 但本锚不是外部书 — 叠加腿只对外部书定义, 本锚按 off。")
-+            _m3c = dict(_m3c, mode="off")
-+        self._m3 = {"mode": _m3c["mode"], "record": None}
++            _m3c = dict(_m3c, mode="off", non_external=True)
++        if (not _m3c.get("error")) and _m3c["mode"] in ("off", "shadow") and isinstance(_m3last, dict) and not _m3last.get("released_by"):
++            # an EXPLICIT off / shadow (or a non-external anchor) RELEASES the leg: from here the held BTC is the book's again and
++            # its rules unwind the hedge (one full unwind cost). Recorded so a later broken config cannot resurrect a stale leg.
++            if BO.leg_active(_m3last):
++                self.alarm("HIGH", f"M3 显式 {_m3c['mode']}{'(非外部书)' if _m3c.get('non_external') else ''}: 在持对冲腿自本锚起"
++                                   f"交还书的规则撤下(一次对冲平仓成本)。")
++            state["m3_overlay_last"] = dict(_m3last, released_by=("non_external" if _m3c.get("non_external") else _m3c["mode"]),
++                                            released_rebalance_id=rid)
++        self._m3 = {"mode": _m3c["mode"], "record": None, "error": _m3c.get("error"),
++                    "max_combined_leverage": _m3c.get("max_combined_leverage")}
 +        # ── M3-END
          # ── EXTERNAL BOOK (DESIGN_wide_live_deployment_2026-08-22 §1) ──────────────────────
          # ★ The four DL-preds gates below (caliber stamp / frozen-input census / column set /
          #   universe OOD) judge the PREDS FILE, which does not decide an external anchor's book.
-@@ -1692,6 +1710,12 @@ class AnchorLoop:
+@@ -1692,6 +1722,12 @@ class AnchorLoop:
              #   the reader: `external["w"]` is the in-universe book, normalised by its own sum|w|).
              self._ext_held_exit = EXT.held_not_in_target(state.get("positions"), external["symbols"])
              symbols = sorted(set(external["symbols"]) | set(self._ext_held_exit))
@@ -2484,7 +2949,7 @@ index ed5a65c..a8e34e6 100644
              out_census = {"skipped": "external_book — the DL artifact census does not decide this book"}
              want = None
              _ood_report = {"state": "SKIPPED_EXTERNAL", "n_members": len(symbols), "n_ood": None,
-@@ -2039,6 +2063,11 @@ class AnchorLoop:
+@@ -2039,6 +2075,11 @@ class AnchorLoop:
          #   flatten_only」—— 与代码相反: 置零与 clamp 之间隔着 reshape 的 re-demean, 它把这些 0 平移成 a(撤名残差 net_before<0
          #   ⇒ a>0), 与 a 同号的已停持仓被判 add_blocked 钉住或 reduced 砍到 ≈ a(实盘 08-20..09-12 157 例中 144 例多头)。
          #   现在由拥有 POP → RESHAPE → CLAMP 顺序的函数负责: stop 集以 force_flat 传入, 移出重整人口, 重整后恰为 0, 再 clamp。
@@ -2496,17 +2961,31 @@ index ed5a65c..a8e34e6 100644
          _clamp, _rs = apply_withhold_and_reshape(
              target, _held_book, getattr(self, "_untradable", ()), self.gross,
              floors_usdt=_fl, floors_source=_fl_src,
-@@ -2062,6 +2091,32 @@ class AnchorLoop:
+@@ -2062,6 +2103,50 @@ class AnchorLoop:
              # this fix the only way to learn of it was to notice the position was not moving.
              self.alarm("HIGH", held_withheld_alarm_text(_clamp, getattr(self, "_untradable_sources", None) or {}))   # E6: per-name source
          out_clamp = _clamp
 +        # ── M3-BEGIN  the independent leg, AFTER POP -> RESHAPE -> CLAMP (prereg §2 step 4): beta on the EXECUTED book.
 +        #    shadow ⇒ validated + computed + recorded, target untouched; on ⇒ target[BTCUSDT] = book component + hedge.
++        if self._m3["mode"] == "off" and self._m3.get("error") and _is_ext:
++            # R10 §5 A.4-4/11: a broken config FREEZES an active leg (explicit off / shadow unwinds it); no active leg ⇒ None
++            _m3f0 = BO.config_fault(target, _held_book, _m3_hard, state.get("m3_overlay_last"), self._m3["error"])
++            if _m3f0 is not None:
++                self._m3["record"] = _m3f0["record"]
++                for _m3sev, _m3msg in _m3f0["alarms"]:
++                    self.alarm(_m3sev, _m3msg)
++                self.executor._m3_overlay_net_usdt = _m3f0["overlay_net_usdt"]
++                _m3f0["record"]["prev"] = state.get("m3_overlay_last")
++                state["m3_overlay_last"] = dict(state.get("m3_overlay_last") or {}, rebalance_id=rid,
++                                                nominal_ts=external.get("anchor_ts"), status=_m3f0["record"]["status"],
++                                                leg_active=(_m3f0["record"]["status"] == "frozen_config_invalid"))
 +        if self._m3["mode"] != "off":
 +            _m3o = BO.stage(self._m3["mode"], target, _held_book, external, self.gross, _m3_hard,
 +                            prev_status=(state.get("m3_overlay_last") or {}).get("status"),
 +                            btc_floor=(_fl or {}).get(BO.BTC), dust_mult=(external or {}).get("min_notional_mult"),
-+                            btc_dust_only=_m3_dust_only)
++                            btc_dust_only=_m3_dust_only, max_combined_leverage=self._m3.get("max_combined_leverage"),
++                            nav=(getattr(self, "_last_sizing", None) or {}).get("nav"),
++                            prev_leg_active=BO.leg_active(state.get("m3_overlay_last")))
 +            self._m3["record"] = _m3o["record"]
 +            self._m3["betas"] = _m3o["betas"]
 +            if _m3o["release_btc"]:
@@ -2521,15 +3000,19 @@ index ed5a65c..a8e34e6 100644
 +                self.executor._m3_overlay_leg = _m3o["leg"]
 +                self.executor._m3_overlay_net_usdt = _m3o["overlay_net_usdt"]
 +                _m3o["record"]["prev"] = state.get("m3_overlay_last")
++                _m3st = _m3o["record"].get("status")
 +                state["m3_overlay_last"] = {"rebalance_id": rid, "nominal_ts": external.get("anchor_ts"),
-+                                            "status": _m3o["record"].get("status"),
++                                            "status": _m3st,
 +                                            "hedge_target_usdt": _m3o["record"].get("hedge_target_usdt"),
-+                                            "btc_combined_target_usdt": _m3o["record"].get("btc_combined_target_usdt")}
++                                            "btc_combined_target_usdt": _m3o["record"].get("btc_combined_target_usdt"),
++                                            # a placed leg, or a refused anchor that FROZE a leg we already held
++                                            "leg_active": bool(_m3st in BO.APPLIED or (_m3st == "refused" and _m3o["record"].get(
++                                                "btc_frozen_at_usdt") is not None and BO.leg_active(_m3o["record"]["prev"])))}
 +        # ── M3-END
  
          if _is_ext:
              # ★ design §1: the external book is NOT passed through the neutral band (the producer's
-@@ -2150,6 +2205,11 @@ class AnchorLoop:
+@@ -2150,6 +2235,14 @@ class AnchorLoop:
              self.alarm("HIGH", f"场所上限截断: {len(_capd['invalid'])} 名的 cap/target/held 非有限值 "
                                 f"{_capd['invalid'][:4]}; target/held 非有限的名本锚不交易: "
                                 f"{_inv_disp or '(仅 cap 非有限: 未截断, 其余照常)'}")
@@ -2537,11 +3020,14 @@ index ed5a65c..a8e34e6 100644
 +        if self._m3.get("record") is not None:
 +            for _m3sev, _m3msg in BO.after_cap(self._m3["record"], target, _capd, self._m3.get("betas")):
 +                self.alarm(_m3sev, _m3msg)
++            if self._m3["record"].get("mode") in ("on", "config_invalid"):
++                # R10-A02: the chase basis subtracts the overlay the FINAL target carries (after the budget and the cap)
++                self.executor._m3_overlay_net_usdt = self._m3["record"].get("overlay_net_usdt")
 +        # ── M3-END
          plans = self.executor.plan(target, state.get("positions", {}), mids,
                                     reduce_only_syms=set(_clamp["reduced"])
                                     | set(_clamp["flatten_only"])
-@@ -2157,6 +2217,11 @@ class AnchorLoop:
+@@ -2157,6 +2250,11 @@ class AnchorLoop:
                                     # E-0912-A (b): full exits are sized as the venue's position (contracts)
                                     held_qty=getattr(self, "_held_qty", None))
          self.executor._last_plans = plans          # phase B (complete_anchor) reads these back
@@ -2553,7 +3039,7 @@ index ed5a65c..a8e34e6 100644
          # ★★ SWEEP BEFORE PLACING, NOT AFTER. An order left by an earlier anchor and a new order
          #    in the same name coexist as DOUBLE exposure — which is the very thing the k-cancel
          #    exists to prevent within a rebalance, and which nothing prevented BETWEEN rebalances.
-@@ -2318,6 +2383,10 @@ class AnchorLoop:
+@@ -2318,6 +2416,10 @@ class AnchorLoop:
              # correction and a correction that never ran produce the identical book.
              "reshape": _rs,
          }
@@ -2564,7 +3050,7 @@ index ed5a65c..a8e34e6 100644
          return {"columns_verified": (want or {}).get("columns_sha256", "SKIPPED")[:12],
                  "transport": getattr(self.executor, "transport_report", None),
                  "venue_cap_clamp": _capd,
-@@ -2976,10 +3045,18 @@ class AnchorLoop:
+@@ -2976,10 +3078,19 @@ class AnchorLoop:
                  row["book_source"] = ctx.get("book_source", "internal")
                  if ctx.get("external_book"):
                      row["external_book"] = ctx["external_book"]
@@ -2578,12 +3064,13 @@ index ed5a65c..a8e34e6 100644
                      out["venue_net_over_gross"] = row.get("net_over_gross")
 +                # ── M3-BEGIN  the neutrality readers judge the book EX-OVERLAY when the leg was placed (the raw venue net stays
 +                #    on the row as `net_over_gross`; `net_ex_overlay_*` beside it). No leg ⇒ `_m3_nrow is row`.
-+                _m3_nrow = BO.neutrality_view(row, ctx.get("m3_beta_overlay"))
++                _m3_nrow = BO.neutrality_view(row, ctx.get("m3_beta_overlay"), venue_btc_usdt=(
++                    None if snap is None else float((snap.get("positions_notional") or {}).get(BO.BTC, 0.0) or 0.0)))
 +                # ── M3-END
                  # ★★★ THE -2022 RESOLUTION, RUN HERE BECAUSE THIS IS WHERE THE READBACK IS — and
                  # BEFORE `log.anchor`, because a fact established after the write never reaches
                  # the ledger. (My first draft put it below, next to the alarms; the alarm would
-@@ -3023,7 +3100,7 @@ class AnchorLoop:
+@@ -3023,7 +3134,7 @@ class AnchorLoop:
                  #   5-10 anchors of this is the input to the lead's ruling on whether a neutrality
                  #   top-up is worth its cost; writing it into the row is how those anchors exist
                  #   to be counted later rather than being reconstructed by hand afterwards.
@@ -2592,7 +3079,7 @@ index ed5a65c..a8e34e6 100644
                  if _np is not None:
                      row["neutrality_price"] = _np
                  # ★★ THE CHASE EXPERIMENT'S OWN RECORD, plus an INDEPENDENT re-derivation of it.
-@@ -3047,7 +3124,7 @@ class AnchorLoop:
+@@ -3047,7 +3158,7 @@ class AnchorLoop:
                      row["chase_experiment"] = _ce
                  self.log.anchor(**row)
                  out["anchors_row"] = True
@@ -2601,3 +3088,27 @@ index ed5a65c..a8e34e6 100644
                                               ctx.get("rebalance_id"))
                  if _txt:
                      self.alarm("HIGH", _txt)
+@@ -3117,6 +3228,9 @@ class AnchorLoop:
+                     self.alarm("HIGH", f"income ledger unreadable ({inc_err}) — realised P&L "
+                                        f"stays UNKNOWN for {day} and the daily-loss stop-loss "
+                                        f"is blind for that day")
++                # ── M3-BEGIN  R10-A01: the leg's gross enters the row beside the sizing gross ({} when no M3 stage shaped the book)
++                _m3nav = BO.nav_fields((ctx or {}).get("m3_beta_overlay"), self.gross, snap)
++                # ── M3-END
+                 self.log.daily_nav(
+                     # ★★ THE ROW RECORDS THE POLICY IT WAS WRITTEN UNDER. Without this, rows from
+                     # the constant-GROSS era (gross pinned at 25,000, leverage drifting up to
+@@ -3161,8 +3275,13 @@ class AnchorLoop:
+                         "UNAVAILABLE — equity_delta_since_prev is P&L ONLY IF no "
+                         "deposit/withdrawal occurred, and we cannot say" if inc is None else
+                         "/fapi/v1/income incomeType=TRANSFER since 00:00Z"),
++                    **_m3nav,  # M3-LINE
+                     mode=self.broker.mode)
+                 out["daily_nav_row"] = True
++                # ── M3-BEGIN  after the fills: the actual combined position against the budget the leg was sized under
++                for _m3sev, _m3msg in BO.post_fill_check(_m3nav, eq):
++                    self.alarm(_m3sev, _m3msg)
++                # ── M3-END
+             except Exception as e:
+                 self.alarm("HIGH", f"daily_nav row failed ({e}) — the stop-losses that read NAV "
+                                    f"have no input for {time.strftime('%Y-%m-%d', time.gmtime(now))}")
