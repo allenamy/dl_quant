@@ -1,4 +1,4 @@
-> **创建:** 2026-09-23 19:5xZ | **Session:** session_01MCyx6gj5EdbghE9bwjBjJv(集成代理 C-4,受 lead 派) | **状态:** **草稿,未执行**。§0.2 的前置门尚未全部取得:news2 判词与部署模型、F-1 实测、E3 正式、F-2 正式、平价门、M3c。工具与机器演练已入库(§C) | **作废条件:** §0.3 执行前核对任一 sha 不符;冻结件 b30e4afa5 / 修订 1 5c89f8d22 改动;发布树 treeNC4 的 PATCH_RECEIPT(0364c28d)改动
+> **创建:** 2026-09-23 19:5xZ | **Session:** session_01MCyx6gj5EdbghE9bwjBjJv(集成代理 C-4,受 lead 派) | **状态:** **草稿,未执行**。§0.2 已取得(2026-09-23 窗口,全部在 treeNC5 上):F-1 PASS、E3 PASS、F-2 PASS、平价门 PASS、P3 电池全绿。尚缺:news2 判词与部署模型、M3c、真包安装演练 §P2。工具与机器演练已入库(§C) | **作废条件:** §0.3 执行前核对任一 sha 不符;冻结件 b30e4afa5 / 修订 1 5c89f8d22 改动;发布树 **treeNC5** 的 PATCH_RECEIPT(3135cf8b)改动(~~treeNC4 0364c28d~~,已被 treeNC5 取代:A4 资金费跳过规则修复,冻结修订 2 = 778ba7324)
 
 # 部署手册:完整修正版(生产者按研究员 NEW 特征合同服务)+ M3 对冲 shadow
 
@@ -30,9 +30,9 @@ export OLDB=8d79186b6380132cb67684acf1ebfcdb2c53261c850f46a4908b06bfa7a81282 OLD
 
 | 目的地(相对 HOME) | 来源 | 新 / 改 |
 |---|---|---|
-| `wide_shadow/shadow_loop_v3.py` | 发布树 treeNC4(46c52d94) | 改(原 60800739) |
-| `wide_shadow/fea171/{combo_stage,dlw_features,f8_higher_order_features,feature_cache_identity}.py` | treeNC4(363dd8c8 / 874c1870 / 98bc036d / e4ec55d1) | 改 |
-| `wide_shadow/fea171/{nc_contract,tradability,beta_overlay_producer,stable_trend_reference}.py` | treeNC4(316a0b9b / a9fad82c / b77c180d / 01bf8b3d) | 新 |
+| `wide_shadow/shadow_loop_v3.py` | 发布树 treeNC5(a68c7a5f;与 treeNC4 46c52d94 只差 L633 的 A4 修复) | 改(原 60800739) |
+| `wide_shadow/fea171/{combo_stage,dlw_features,f8_higher_order_features,feature_cache_identity}.py` | treeNC5(363dd8c8 / 874c1870 / 98bc036d / e4ec55d1,与 treeNC4 相同) | 改 |
+| `wide_shadow/fea171/{nc_contract,tradability,beta_overlay_producer,stable_trend_reference}.py` | treeNC5(316a0b9b / a9fad82c / b77c180d / 01bf8b3d,与 treeNC4 相同) | 新 |
 | `wide_shadow/fea171/combo_state_snapshot.sh`、`combosnap/combo_parity_replay.sh` | 发布附件(58e58bd1 / d49cd834;DESIGN §A7-5 (2)) | 改 |
 | `wide_shadow/fea171/combosnap/generation_files.py` | 发布附件(925481d0) | 新 |
 | `regime_dash/regime_dash.py` | 发布附件(8210fe73;§A7-5 (3)) | 改 |
@@ -48,15 +48,19 @@ export OLDB=8d79186b6380132cb67684acf1ebfcdb2c53261c850f46a4908b06bfa7a81282 OLD
 
 1. **换装判词**(FREEZE §2):F10 两个种子**各自**满足 A ∧ B1 ∧ B2。判词由 news2 给出,收据名在它交付时补进来。
 2. **§E3 时序门 PASS**。
-   - 装置:`nc_timing_gate.py`,在 treeNC4 上跑,不带 `--harness-phase-fix`;≥ 6 个锚,另加最坏回填锚。
+   - 装置:`nc_timing_gate.py`,在 treeNC5 上跑,不带 `--harness-phase-fix`;≥ 6 个锚,另加最坏回填锚。
+   - **已取得**:`NC_TIMING_GATE PASS`,7/7,combo 写完 N+17:44.3,余量 110.7 s(`receipts/e3_nc5_2026-09-23/`,e54c60809)。
    - `--fetch-measured` 与 `--backfill-measured` 取 F-1 的实测值(DESIGN §F-1)。
+   - F-1 **已取得**:`NC_FETCH_TEST VERDICT=PASS anchors=3 fetch_n=520`(21:19–21:22Z;`receipts/f1_2026-09-23T2119Z/`,4d548b0f6):并行臂取数加计算最多 36.72 s,最坏回填 14.5 s,本 IP 每分钟权重峰值 684,无 429/418。
    - 门:combo 写完 ≤ N+19:35。
 3. **§F-2 回滚演练 PASS**。
-   - 装置:`test_nc_rollback_rehearsal.py`,在 treeNC4 上跑,输入为真种子包经 `nc_seed_state.py` 播出的状态。
+   - 装置:`test_nc_rollback_rehearsal.py`,在 treeNC5 上跑,输入为真种子包经 `nc_seed_state.py` 播出的状态。
+   - **已取得**:`NC_ROLLBACK PASS`,a/a2/a3/b/c/d 全绿,e1–e3 全拦(`receipts/f2_nc5_2026-09-23/`,e54c60809)。F-2 不经 nc_install,路径说明见 `receipts/f2_formal_2026-09-23/F2_PATH_AND_UNRESOLVED_CELLS.md`。
    - (a)(a2)(a3)(b)(c)(d) 全绿;e1–e3 负控都能拦住。
    - (a3) 就是「侧车停掉后 combo 自写 state_H_f10」的一锚推进。
 4. **平价门 PASS**(FREEZE §3.3「平价门逐位」)。
    - 装置:`nc_parity_gate.py`,在轴末前 6 个锚上比较 Mac 服务端与 pod2 训练构建,要求 0 格不同;两个负控都能看见差异。
+   - **已取得**:treeNC5 `NC_PARITY_GATE PASS`,6 锚 × 11 量 0 格,两负控测出。treeNC4 首跑判 FAIL_PARITY(ONEUSDT 资金费周期 8h→1h 后被预测周期跳过),修复后通过;变异臂(treeNC4)同格复红(`receipts/parity_formal_2026-09-23/`,5fe0cf11c)。
 5. **安装 / 回滚机器演练 PASS**:`test_nc_install_rehearsal.py`,已有 7/7 MACHINERY_PASS(§C)。
    - 部署包打好之后,用真包再跑一次。
 6. **M3c**(AMENDMENT_3 §2-1):
@@ -107,14 +111,14 @@ grep -E "4-2|DAY_STOP" ~/dl_quant_live/state/live/watchdog/ALARM.log | tail -2  
 
 **P1 打包**(news2 交付部署模型之后):
 ```
-$PYP $NCW/src/nc_package.py $PKG --tree $NCW/treeNC4 --extras $NCW/release --king <news2 King slow2026.txt> --f10 <news2 f10_live_s42_np.npz> --crypto $CRYPTO --label NC_RELEASE ; echo "rc=$?"
+$PYP $NCW/src/nc_package.py $PKG --tree $NCW/treeNC5 --extras $NCW/release --king <news2 King slow2026.txt> --f10 <news2 f10_live_s42_np.npz> --crypto $CRYPTO --label NC_RELEASE ; echo "rc=$?"
 $PYP $NCW/src/nc_install.py preflight $PKG ; echo "rc=$?"          # PREFLIGHT_PASS
 ```
 - 核对:`INSTALL_CONTRACT.json` 的 `executor_pins` 与 news2 判词收据里的模型 sha 逐字相同。
 
 **P2 用真包做安装演练**(假 HOME,本机轻活):
 ```
-$PYP $NCW/src/test_nc_install_rehearsal.py $NCW/treeNC4 $NCW/release $SEEDPACK <最新快照锚> $NCW/release_tests/install_rehearsal_real
+$PYP $NCW/src/test_nc_install_rehearsal.py $NCW/treeNC5 $NCW/release $SEEDPACK <最新快照锚> $NCW/release_tests/install_rehearsal_real
 ```
 - 模型用真包的,不再用替身。
 - 通过条件:7/7。收据 `TEST_NC_INSTALL_REHEARSAL.json`。
@@ -131,6 +135,8 @@ $PYP $NCW/src/test_nc_install_rehearsal.py $NCW/treeNC4 $NCW/release $SEEDPACK <
   - 另外约 20 个套件读检出里的真实 book.json(例如 `tests_external_book` 的 BASE_BOOK)。
   - P3 就是为了在部署前实测这一点。
 - 判定:全绿 ⇒ A4 可按原样执行;有红格 ⇒ 读逐格日志归因,交 lead 裁定,**不放宽判据**。
+- **已取得(2026-09-23 21:00:50–21:18:34Z)**:`ACCEPTANCE: ALL GREEN (163/163 suites exit 0)` / `OFFLINE_ACCEPTANCE_EXIT: 0`;这是首次在检出配置 mode=shadow 下跑的全电池(`receipts/p3_2026-09-23T2100Z/`,2bec89bb3)。
+  - 当时的候选归档用的是 treeNC4 的 PATCH_RECEIPT,钉是替身。执行器侧不含生产者代码,换成 treeNC5 不影响结论;部署当晚 A4 的 safe_commit 电池会在真归档、真钉上再跑一次。
 
 **P4 前置门收据**:把 §0.2 第 1–6 项的收据路径和 sha 抄进 `$BK/PREREQS.md`。
 
@@ -155,7 +161,7 @@ ls ~/wide_shadow/state/snap/.parity.lock 2>/dev/null ; echo "上一行必须为�
 ```
 $PYP $NCW/src/nc_fetch_list.py ~/wide_shadow/state $CRYPTO $BK/fetch_list.json ; echo "rc=$?"     # 期望约 522 名, 其中约 72 名不在 symbols_live
 python3 ~/Desktop/quant_research/multi_asset/exports/research/common/venue_quiet_window.py --json ; echo "rc=$?  (必须 0)"
-$PYP $NCW/src/nc_deploy_fetch.py $NCW/treeNC4 ~/wide_shadow/state $BK/fetch_list.json $(python3 -c "import numpy as np;print(int(np.load('$SEEDPACK')['axis_end']))") $BK/live_pack.npz ; echo "rc=$?"
+$PYP $NCW/src/nc_deploy_fetch.py $NCW/treeNC5 ~/wide_shadow/state $BK/fetch_list.json $(python3 -c "import numpy as np;print(int(np.load('$SEEDPACK')['axis_end']))") $BK/live_pack.npz ; echo "rc=$?"
 ```
 - 预计请求量:
   - 新名 K 线:约 72 名 ×(轴末到当前锚的行数 / 1000,向上取整)次,每次权重 5;
@@ -172,7 +178,7 @@ $PYP $NCW/src/nc_deploy_fetch.py $NCW/treeNC4 ~/wide_shadow/state $BK/fetch_list
 
 **A2 播种新状态**(不调场所;只写 `$BK/seeded/`):
 ```
-$PYP $NCW/src/nc_seed_state.py $NCW/treeNC4 $SEEDPACK ~/wide_shadow/state $BK/seeded --live-pack $BK/live_pack.npz --fetch-list $BK/fetch_list.json ; echo "rc=$?"
+$PYP $NCW/src/nc_seed_state.py $NCW/treeNC5 $SEEDPACK ~/wide_shadow/state $BK/seeded --live-pack $BK/live_pack.npz --fetch-list $BK/fetch_list.json ; echo "rc=$?"
 ```
 - 通过条件:末行 `NC_SEED SEEDED`,rc=0。
 - 停点:
@@ -262,7 +268,8 @@ launchctl print gui/$(id -u)/com.hsy.sidecar 2>&1 | head -1                     
 
 **B3 新合同要素**(`signal` 行的 `nc` 块与相关字段):
 - `exinfo_ok = true`;`nc.fetch_n` ≈ 522,且与 exchangeInfo 实时名单一致;`nc.fetch_new` 与 `nc.backfill_residual` 如非空须逐名说明;
-- `nc.used_weight_1m_max` < 1200;`fund_bulk_ok`;
+- `nc.used_weight_1m_max` < 1200;`fund_bulk_ok` 为 true;`nc.fund_per_symbol` 很小(E3 在实盘快照锚上为 2);
+- **具名残余(A4 修复的剩余部分)**:若本锚 `fund_bulk_ok` 为 false(批量 10 页全满或失败,回退逐名),按预测周期跳过的规则仍然生效,缩短了结算周期的名会滞后一个旧周期。逐事件计数写进首锚验收与月度报告,格式同冻结修订 1 §2-4。
 - `members` = 400;`fund_updates` 在 anchor_report 的期望带内。
 - `combo_live_status` 或页报里若有 `nc_backfill_residual` 的 HIGH,逐名记入 RUNLOG。
 
