@@ -4,6 +4,8 @@
   G-screen (lead 2026-09-23, news2 ARM_VIABILITY.json): an arm must enable D5 or D6 (empty set included), because only their member-screen
           rewrite defines c7, which the replay's King-block capture reads. The hole is shown to be real: with the guard switched off a D4
           arm builds and its shadow_loop_v3.py stores no c7 (AST); a D5+D4 arm stores it.
+  G-phase (fork_e3_f2 2026-09-23): every diag.phase("x") literal is a key of _AnchorTiming.phase_s (dropping the exchange_info key edit
+          must be refused; the unpatched tree raised KeyError in run_anchor at every anchor).
 Each cell runs the real derive main() into a scratch dir."""
 import ast
 import importlib.util, sys, os, json, shutil, tempfile
@@ -55,6 +57,9 @@ cells["arm_only_D6_nonrelease_green"] = run(fams("D6"), probe=True)
 def d4_guard_off(M):
     M.NEWS2_FAMILIES = {"D4"}; M.REQUIRE_SCREEN_FAMILY = False
 cells["hole_D4_guard_off_builds_without_c7"] = run(d4_guard_off, probe=True)
+def drop_phase_key(M):   # fork_e3_f2 2026-09-23: run_anchor raised KeyError at every anchor; the static check must refuse the tree
+    M.SH = [e for e in M.SH if e[0] != "A1:phase_key_exchange_info"]
+cells["R_drop_phase_key_refused"] = run(drop_phase_key)
 def m3_undoes_a5(M):     # a later replacement-type edit (after M3) that removes an A5 call must be caught: the check runs after every edit
     M.POST_EDITS = [("fea171/combo_stage.py", "TEST:late_edit", '_fe, _fn, _iv, _r8 = NC.funding_asof(aux["ema"].get(s_), rows_[-1], A)', '_fe, _fn, _iv, _r8 = (np.nan,) * 4')]
 cells["R_late_edit_undoing_A5_refused"] = run(m3_undoes_a5)
@@ -62,7 +67,8 @@ ok = (cells["baseline_green"] == "PASS" and cells["release_default_green"] == "P
       and cells["arm_D5_D4_nonrelease_green"] == "PASS c7_stored=True" and cells["arm_only_D6_nonrelease_green"] == "PASS c7_stored=True"
       and cells["hole_D4_guard_off_builds_without_c7"] == "PASS c7_stored=False"
       and all(v.startswith("REFUSED") for k, v in cells.items() if k.startswith("R_"))
-      and all("D5 or D6" in cells[k] for k in cells if k.startswith("R_arm_") and "release" not in k))
+      and all("D5 or D6" in cells[k] for k in cells if k.startswith("R_arm_") and "release" not in k)
+      and "exchange_info" in cells["R_drop_phase_key_refused"])
 print(json.dumps(cells, indent=1)); print("TEST_NC_DERIVE_GUARDS", "PASS" if ok else "FAIL")
 json.dump({"cells": cells, "PASS": ok}, open(os.path.join(HERE, "TEST_NC_DERIVE_GUARDS.json"), "w"), indent=1)
 sys.exit(0 if ok else 3)

@@ -144,6 +144,14 @@ SH.append(("A1+A3:aux_save",
             "fetch_syms": list(self.fetch), "prev_close_ts": self.prev_close_ts,   # NC A1 / A3
 """))
 
+# --- _AnchorTiming: the exchange_info phase A1:fetch_dynamic opens must be a known key (without it the NEXT diag.phase raised
+# KeyError and run_anchor failed on every anchor; found by the F-2 / E3 harness 2026-09-23, the replay compiles only the King block)
+SH.append(("A1:phase_key_exchange_info",
+"""        self.phase_s = {k: None for k in ("setup", "klines", "funding", "feature_inference",
+""",
+"""        self.phase_s = {k: None for k in ("setup", "exchange_info", "klines", "funding", "feature_inference",
+"""))
+
 # --- run_anchor: exchangeInfo first (dynamic fetch list), then klines on it
 SH.append(("A1:fetch_dynamic",
 """    # ── 2. 增量 klines(V1: endTime=anchor-1ms, 只收 close<=anchor) ──
@@ -734,6 +742,20 @@ def check_a5(texts):
             assert l not in texts[k], f"A5: an old ledger-tail read survives in {k}: {l}"
 
 
+def check_phases(texts):
+    """Every diag.phase("<name>") literal in the producer is a key of _AnchorTiming.phase_s (else run_anchor raises KeyError at the
+    next phase switch). Parsed from the final text with ast, after every edit, before any write."""
+    t = ast.parse(texts["shadow_loop_v3.py"])
+    used = {n.args[0].value for n in ast.walk(t) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "phase"
+            and isinstance(n.func.value, ast.Name) and n.func.value.id == "diag" and n.args and isinstance(n.args[0], ast.Constant)}
+    keys = None
+    for c in (n for n in ast.walk(t) if isinstance(n, ast.ClassDef) and n.name == "_AnchorTiming"):
+        for a in (n for n in ast.walk(c) if isinstance(n, ast.Assign) and any(isinstance(x, ast.Attribute) and x.attr == "phase_s" for x in n.targets)):
+            keys = {e.value for e in a.value.generators[0].iter.elts}
+    assert keys and used, ("phase check found nothing to check", keys, used)
+    assert used <= keys, ("diag.phase names not in _AnchorTiming.phase_s", sorted(used - keys))
+
+
 POST_EDITS = []   # (file, tag, old, new): replacement-type edits after M3; the §A5 check runs after them
 
 
@@ -791,6 +813,7 @@ def main():
         A[k].replace(tag, old, new)
     # §A5 positive check AFTER every edit (B, A, M3) and BEFORE anything is written: a later edit must not undo it unseen
     check_a5({k: A[k].text for k in A})
+    check_phases({k: A[k].text for k in A})   # every diag.phase name is a timing key (fork_e3_f2 2026-09-23)
     (out / "fea171").mkdir(parents=True)
     outputs = {}
     for k, Pk in A.items():
