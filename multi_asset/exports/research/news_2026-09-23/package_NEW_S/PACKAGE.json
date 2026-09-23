@@ -1,0 +1,50 @@
+{
+ "candidate": "NEW_S",
+ "created_utc": "2026-09-23",
+ "files": {
+  "slow2026.txt": {
+   "sha256": "b521ccdcd045a0975f107fed1e415b22ec72a96fb7f17a30da13f0583bacd0a2",
+   "role": "King model (deploy; executor booster_sha_pin)"
+  },
+  "f10_live_s42_np.npz": {
+   "sha256": "6e97dc8afcaff41d672206871f071c4562bd66bf55ec3403d69eb652a2d4e6eb",
+   "role": "F10 numpy model (deploy; executor f10_sha_pin)"
+  },
+  "P5_DEPLOY_MANIFEST.json": {
+   "sha256": "3a648aa6212b48e9563be1746c7da05d66a9249b70b341c08120baa354bed8e0",
+   "role": "export manifest: VERDICT BOUND, V1 gate, lineage links, executor_pins"
+  },
+  "added_names.json": {
+   "sha256": "a216918cbda87ce35a85235ce087a537824acbfc96ff75f73696fb2542369dc7",
+   "role": "fetch-list additions (symbols_fetch = symbols_live + these, sorted); [] would mean: skip window 1"
+  },
+  "fund_replay_tail.npz": {
+   "sha256": "8b67ac597037ba135d3c52d61e0edfc15823865e220c51484e21c65f22d48e42",
+   "role": "EMA re-seed source: training replay funding state at 2026-09-19T00Z (news_ema_reseed.py)"
+  },
+  "NEWS_ACCEPT_ROWS.npz": {
+   "sha256": "e20c1e6cd106ce3938e530b4368abf0781d024ed74d98081fcad1a4dc169a931",
+   "role": "evaluation rows at 09-17T12Z..09-18T20Z for the candidate acceptance (mac_candidate_acceptance.py --eval)"
+  },
+  "f10_live_s2027_np_MUTATION_ONLY.npz": {
+   "sha256": "b83435dde03b48dca1253c583fdd61d22c7a4e0869218822a8e93e61af8b4000",
+   "role": "mutation control for the acceptance (--control-f10); NEVER deployed"
+  },
+  "crypto_P1_members_2025H2on.npz": {
+   "sha256": "2323623fda9333710f5834911ab629377ab8c12b056f40ccfc9f7033c0c1f6f1",
+   "role": "crypto-class flags over the 829-name axis (news_live_check.py --crypto; P1 rule)"
+  }
+ },
+ "executor_pins": {
+  "booster_sha_pin": "b521ccdcd045a0975f107fed1e415b22ec72a96fb7f17a30da13f0583bacd0a2",
+  "f10_sha_pin": "6e97dc8afcaff41d672206871f071c4562bd66bf55ec3403d69eb652a2d4e6eb"
+ },
+ "in_service_pins_before": {
+  "booster_sha_pin": "8d79186b6380132cb67684acf1ebfcdb2c53261c850f46a4908b06bfa7a81282",
+  "f10_sha_pin": "351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4"
+ },
+ "verdict": {
+  "NEWS_STATS.json": "d86e96f4502ed7b593349a85843d7882ac6227c87bb53e2a63c97f6f0db182bd",
+  "VERDICT": "SWAP"
+ }
+}
