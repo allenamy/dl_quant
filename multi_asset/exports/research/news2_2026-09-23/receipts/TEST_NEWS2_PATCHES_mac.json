@@ -1,7 +1,7 @@
 {
  "device": "test_news2_patches.py",
- "self_sha256": "83f6ae0978bf3e3c974a3f5b59051f7c6cf1e060bf32c35ada43f86214ead94f",
- "utc": "2026-09-23T18:09:11Z",
+ "self_sha256": "cdbf09211ddd4767e27697bbe3dbe8ec5ef05d46c0063966bb4d15cad02f0239",
+ "utc": "2026-09-23T18:25:12Z",
  "python": "3.9.6",
  "numpy": "1.26.4",
  "base_tree_shas": {
@@ -12,7 +12,7 @@
  },
  "patched_tree_shas": {
   "shadow_loop_v3.py": "bfd6445fa9f13ccc9361e633827fbd8ebc7ea8ce3c1dd869dde552a00d8f8bea",
-  "fea171/combo_stage.py": "80493176da91a52bbb195d3485aff9fd7247092a978348dcf18df124c250c2df",
+  "fea171/combo_stage.py": "524df3cb73f3a21a80fce11480c6a15c311fffea9e873a674f5b697329e8457d",
   "fea171/dlw_features.py": "057aa9104518bca2658c93f0b52ea60d6a0aa4016dc79220f3a94045c000b152",
   "fea171/f8_higher_order_features.py": "ae01e380cb2e99ad792f5439c0bd36f8c63dd1c2d75361873eb7dff7076a0716"
  },
@@ -72,22 +72,6 @@
    "patched_observed": "first anchor btcv=nan",
    "n_changed": 39,
    "note": "anchors with less than 7 days of history"
-  },
-  {
-   "cell": "D11.fund_panel_12h",
-   "verdict": "PASS",
-   "baseline_observed": "stale name written ema=0.699999988079071 now=0.0020000000949949026",
-   "patched_observed": "stale name left 0, fresh name kept ema=0.5",
-   "n_changed": 2,
-   "note": "last settlement 13h before the anchor"
-  },
-  {
-   "cell": "D13.rn8_12h",
-   "verdict": "PASS",
-   "baseline_observed": "stale rn8=-0.002 -> FTRIM excludes it",
-   "patched_observed": "stale rn8=nan -> not excluded; fresh rn8=-0.002 still excluded",
-   "n_changed": 1,
-   "note": "last settlement 13h before the anchor"
   },
   {
    "cell": "D4.x82_precision",
@@ -242,8 +226,8 @@
    "note": "one 5m bar removed inside the 2016-row window at the extracted anchor"
   }
  ],
- "n_cells": 28,
+ "n_cells": 26,
  "n_not_pass": 0,
  "VERDICT": "PASS",
- "seconds": 55.2
+ "seconds": 54.4
 }

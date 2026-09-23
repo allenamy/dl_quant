@@ -1,4 +1,7 @@
-"""NEW_S2: deterministic patcher — producer feature code with D4/D5/D6/D7/D8/D9/D11/D13/D14 fixed.
+"""NEW_S2: deterministic patcher — producer feature code with D4/D5/D6/D7/D8/D9/D14 fixed.
+
+D11 / D13 moved to the data/state layer on 2026-09-23 (DESIGN A5). Their patch bodies are kept in
+handover_D11_D13/ so A5 has the exact text that was tested here; they are NOT applied by this file.
 
 PREREG docs/PREREG_new_servable_v2_features_2026-09-23.md §1.1. Same shape as the researcher's
 derive_f8_candidate.py: every edit is a (old, new) pair whose `old` must occur EXACTLY ONCE in the
@@ -327,31 +330,6 @@ def patch_combo(P, trend_rows="last"):
     assert np.isfinite(out).any() and float(np.nanstd(out)) > 0, "btcv 序列退化(恒定或全 NaN)"
 """,
     )
-    # D11 — F10's fund panel gets the 12h freshness the producer already applies to King (L544-L546).
-    P.replace(
-        "D11:fund_panel_freshness",
-        """    for s_, est in aux["ema"].items():
-        j = scol_of.get(s_)
-        if j is not None and isinstance(est, dict) and "acc" in est:
-            fe[-1, j] = float(est["acc"])
-    for s_, rows_ in aux["ledger_tail"].items():
-        j = scol_of.get(s_)
-        if j is not None and rows_:
-            fn[-1, j] = float(rows_[-1][1])
-""",
-        """    # NEW_S2 D11: same 12h freshness rule shadow_loop_v3.py L544-L546 already applies to King's fe_v/fn_v
-    # (feature_contract.py:89-92). A settlement older than 12h must not enter F10's fund columns as current.
-    _fresh_rows = {s_: r_ for s_, r_ in aux["ledger_tail"].items() if r_ and A - int(r_[-1][0]) <= 12 * 3600}
-    for s_, est in aux["ema"].items():
-        j = scol_of.get(s_)
-        if j is not None and isinstance(est, dict) and "acc" in est and s_ in _fresh_rows:
-            fe[-1, j] = float(est["acc"])
-    for s_, rows_ in _fresh_rows.items():
-        j = scol_of.get(s_)
-        if j is not None:
-            fn[-1, j] = float(rows_[-1][1])
-""",
-    )
     # D7 wiring — the mini pipeline is the ONLY place where "compute the trend for the extracted row
     # only" is valid, because it is the code that discards every other row. So the mini pipeline
     # DECLARES the value instead of inheriting it from whatever the producer process happens to have
@@ -369,18 +347,6 @@ def patch_combo(P, trend_rows="last"):
                 "F171_FEA82": f"{MINI}/data/dlw_fea82.npz", "F171_PANEL": f"{_feature_workspace.name}/xfer_panel_live.npz",
                 "F8_TREND_ROWS": "%s"})   # NEW_S2 D7: declared here, not inherited from the environment
 """ % trend_rows,
-    )
-    # D13 — FTRIM's rn8 gets the same freshness. Interval stays the producer's inferred/default-8 rule (D10 out of scope).
-    P.replace(
-        "D13:rn8_freshness",
-        """    if _j is not None and _rows:
-        _r = _rows[-1]; _iv = float(_r[2]) if (len(_r) > 2 and _r[2]) else 8.0
-        rn8_full[_j] = float(_r[1]) * (8.0 / (_iv if _iv > 0 else 8.0))
-""",
-        """    if _j is not None and _rows and A - int(_rows[-1][0]) <= 12 * 3600:   # NEW_S2 D13 (feature_contract.py:90-92)
-        _r = _rows[-1]; _iv = float(_r[2]) if (len(_r) > 2 and _r[2]) else 8.0
-        rn8_full[_j] = float(_r[1]) * (8.0 / (_iv if _iv > 0 else 8.0))
-""",
     )
 
 
@@ -451,7 +417,7 @@ def main():
                     help="the F8_TREND_ROWS value the mini pipeline DECLARES (DESIGN E4(a)); the arms of "
                          "news2_d7_rows_gate.py differ in this literal, not in an environment variable")
     ap.add_argument("--only", default="",
-                    help="comma-separated fix families to APPLY (D4,D5,D6,D7,D8,D9,D11,D13,D14); empty = all")
+                    help="comma-separated fix families to APPLY (D4,D5,D6,D7,D8,D9,D14); empty = all")
     args = ap.parse_args()
     out = pathlib.Path(args.out)
     assert not out.exists(), f"refusing to overwrite {out}"

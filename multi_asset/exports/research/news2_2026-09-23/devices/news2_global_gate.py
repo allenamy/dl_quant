@@ -4,7 +4,7 @@ with one fix enabled at a time and check that ONLY the declared columns move.
 Arms:
   base_raw   6080073b, no fixes            -- for gate (ii), the base swap
   base       ed11d731, no fixes            -- the reference every other arm is diffed against
-  D4 D5 D6 D7 D8 D9 D11 D13 D14            -- one fix each
+  D4 D5 D6 D7 D8 D9 D14                    -- one fix each (D11/D13 moved to DESIGN A5)
   all        every fix
 
 Gates:
@@ -35,7 +35,7 @@ CRYPTO = os.environ.get("NEWS2_CRYPTO", os.path.join(HERE, "../../news_2026-09-2
 CFG = os.environ.get("NEWS2_CFG", os.path.expanduser("~/cc_tmp/news_20260923/producer_copy/shadow_bundle/config.json"))
 ANCH_ALL = [1789660800 + 14400 * k for k in range(9)]
 
-ARMS = ["base_raw", "base", "D4", "D5", "D6", "D7", "D8", "D9", "D11", "D13", "D14", "all"]
+ARMS = ["base_raw", "base", "D4", "D5", "D6", "D7", "D8", "D9", "D14", "all"]   # D11/D13 -> DESIGN A5
 REACH_CORRECTIONS = [{"utc": "2026-09-23T16:4xZ", "arm": "D8", "added": ["C:vr12_2016", "C:vr48_2016", "C:vr48_8640"],
                       "why": "BS (f8 L196) feeds the whole vr loop L194-L203, not only upblk; my first reach table under-read the source",
                       "seen_before_correction": "gate run 1 reported 1197 out-of-reach cells, all in C:vr48_8640"}]
@@ -70,7 +70,7 @@ def f89_reach(arm, names):
         return set(D8_COLS)
     if arm == "D9":
         return set(D9_COLS)
-    if arm in ("D5", "D11", "D13", "D14"):
+    if arm in ("D5", "D14"):
         return set()
     return set(names)                              # "all"
 
@@ -89,9 +89,7 @@ def x82_reach(arm, n_cols=82):
                 keep.add(2 * blk)
             keep.add(2 * blk + 1)                  # a rank can move even for ret5_sum: the denominator changes
         return keep
-    if arm == "D11":
-        return {80, 81}
-    if arm in ("D5", "D7", "D8", "D9", "D13", "D14"):
+    if arm in ("D5", "D7", "D8", "D9", "D14"):
         return set()
     return set(range(n_cols))
 
@@ -100,8 +98,7 @@ def king_reach(arm):
     return arm in ("D5", "D6", "all")
 
 
-EXPECTED_ZERO = {"D13": "rn8 is not a feature column; D13 is measured in the legs/combo layer",
-                 "D14": "on anchors whose member set is identical, D14 changes nothing by construction"}
+EXPECTED_ZERO = {"D14": "on anchors whose member set is identical, D14 changes nothing by construction"}
 
 
 def build_tree(work, arm):

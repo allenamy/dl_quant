@@ -1,0 +1,42 @@
+# NEW_S2 -> data/state layer handover (DESIGN A5; lead ruling 2026-09-23, commit 37fbe8867).
+# These two patch bodies were removed from news2_derive_producer.py after the ruling moved D11/D13
+# to the data/state layer. Kept verbatim so A5 has the exact text this agent tested. The last
+# version of the patcher that applied them is commit 3dd4d6f50.
+
+    # D11 — F10's fund panel gets the 12h freshness the producer already applies to King (L544-L546).
+    P.replace(
+        "D11:fund_panel_freshness",
+        """    for s_, est in aux["ema"].items():
+        j = scol_of.get(s_)
+        if j is not None and isinstance(est, dict) and "acc" in est:
+            fe[-1, j] = float(est["acc"])
+    for s_, rows_ in aux["ledger_tail"].items():
+        j = scol_of.get(s_)
+        if j is not None and rows_:
+            fn[-1, j] = float(rows_[-1][1])
+""",
+        """    # NEW_S2 D11: same 12h freshness rule shadow_loop_v3.py L544-L546 already applies to King's fe_v/fn_v
+    # (feature_contract.py:89-92). A settlement older than 12h must not enter F10's fund columns as current.
+    _fresh_rows = {s_: r_ for s_, r_ in aux["ledger_tail"].items() if r_ and A - int(r_[-1][0]) <= 12 * 3600}
+    for s_, est in aux["ema"].items():
+        j = scol_of.get(s_)
+        if j is not None and isinstance(est, dict) and "acc" in est and s_ in _fresh_rows:
+            fe[-1, j] = float(est["acc"])
+    for s_, rows_ in _fresh_rows.items():
+        j = scol_of.get(s_)
+        if j is not None:
+            fn[-1, j] = float(rows_[-1][1])
+""",
+    )
+    # D13 — FTRIM's rn8 gets the same freshness. Interval stays the producer's inferred/default-8 rule (D10 out of scope).
+    P.replace(
+        "D13:rn8_freshness",
+        """    if _j is not None and _rows:
+        _r = _rows[-1]; _iv = float(_r[2]) if (len(_r) > 2 and _r[2]) else 8.0
+        rn8_full[_j] = float(_r[1]) * (8.0 / (_iv if _iv > 0 else 8.0))
+""",
+        """    if _j is not None and _rows and A - int(_rows[-1][0]) <= 12 * 3600:   # NEW_S2 D13 (feature_contract.py:90-92)
+        _r = _rows[-1]; _iv = float(_r[2]) if (len(_r) > 2 and _r[2]) else 8.0
+        rn8_full[_j] = float(_r[1]) * (8.0 / (_iv if _iv > 0 else 8.0))
+""",
+    )

@@ -1,0 +1,23 @@
+# Handed to the data/state layer with D11/D13 (DESIGN A5). It runs the SHIPPED text of the
+# block between two markers that exist in both trees, so it re-points at A5's implementation
+# by changing only those markers. Last version that ran here: commit 3dd4d6f50.
+
+def t_d13(base_combo, new_combo):
+    BEGIN = "rn8_full = np.full(NW, np.nan)\n"
+    END = "rn8_m = rn8_full[pm]"
+    A = 1758153600
+    out = {}
+    for name, path in (("base", base_combo), ("patched", new_combo)):
+        code = extract_block(path, BEGIN, END, dedent=0)
+        ns = {"np": np, "A": A, "NW": 3, "_col_of": {"FRESH": 0, "STALE": 1, "NONE": 2},
+              "rn8_full": np.full(3, np.nan),
+              "aux": {"ledger_tail": {"FRESH": [[A - 3600, -0.002, 8.0]], "STALE": [[A - 13 * 3600, -0.002, 8.0]]}}}
+        exec(compile(code, path + ":D13", "exec"), ns)
+        out[name] = ns["rn8_full"].copy()
+    b, n = out["base"], out["patched"]
+    FTRIM_HI = -0.0010
+    base_excluded = bool(np.isfinite(b[1]) and b[1] <= FTRIM_HI)          # old: the stale name IS trimmed
+    new_ok = bool((not np.isfinite(n[1])) and np.isfinite(n[0]) and n[0] <= FTRIM_HI)
+    cell("D13.rn8_12h", base_excluded, f"stale rn8={float(b[1]):.6g} -> FTRIM excludes it",
+         new_ok, f"stale rn8=nan -> not excluded; fresh rn8={float(n[0]):.6g} still excluded",
+         int((np.isfinite(b) != np.isfinite(n)).sum()), "last settlement 13h before the anchor")

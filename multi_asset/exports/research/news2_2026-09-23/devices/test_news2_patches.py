@@ -8,6 +8,10 @@ patched tree from news2_derive_producer.py — on one constructed input, and ass
             a mutation check whose baseline is already red is vacuous (E: red_capability_check...).
   PATCHED   the patched tree exhibits the NEW behaviour.
 
+D11 / D13 moved to the data/state layer (DESIGN A5, lead 2026-09-23). Their patch bodies and the two
+red/green cells this file used to carry are in handover_D11_D13/ for A5 to re-point at its own
+implementation. They are not exercised here any more, because the patches are gone.
+
 No cell may pass without having measured a difference: each records n_changed, and n_changed == 0
 is reported NO-MEASUREMENT, not PASS.
 
@@ -235,49 +239,6 @@ def extract_block(path, begin, end, dedent=4):
     return "\n".join(l[dedent:] if l.startswith(" " * dedent) else l for l in txt[b:e].split("\n"))
 
 
-def t_d11(base_combo, new_combo):
-    BEGIN = 'scol_of = {s_: j for j, s_ in enumerate(syms_all)}\n'
-    END = '    np.savez(f"{_feature_workspace.name}/xfer_panel_live.npz"'
-    A = 1758153600
-    out = {}
-    for name, path in (("base", base_combo), ("patched", new_combo)):
-        code = extract_block(path, BEGIN, END)
-        ns = {"np": np, "A": A, "NW": 3, "syms_all": ["FRESH", "STALE", "NONE"],
-              "scol_of": {"FRESH": 0, "STALE": 1, "NONE": 2},
-              "fe": np.zeros((2, 3), np.float32), "fn": np.zeros((2, 3), np.float32),
-              "aux": {"ema": {"FRESH": {"acc": 0.5, "last_ts": A - 3600}, "STALE": {"acc": 0.7, "last_ts": A - 13 * 3600}},
-                      "ledger_tail": {"FRESH": [[A - 3600, 0.001, 8.0]], "STALE": [[A - 13 * 3600, 0.002, 8.0]]}}}
-        exec(compile(code, path + ":D11", "exec"), ns)
-        out[name] = (ns["fe"][-1].copy(), ns["fn"][-1].copy())
-    (feb, fnb), (fen, fnn) = out["base"], out["patched"]
-    base_red = feb[1] == np.float32(0.7) and fnb[1] == np.float32(0.002)
-    new_ok = fen[1] == 0.0 and fnn[1] == 0.0 and fen[0] == np.float32(0.5) and fnn[0] == np.float32(0.001)
-    cell("D11.fund_panel_12h", bool(base_red), f"stale name written ema={float(feb[1])} now={float(fnb[1])}",
-         bool(new_ok), f"stale name left 0, fresh name kept ema={float(fen[0])}",
-         int((feb != fen).sum() + (fnb != fnn).sum()), "last settlement 13h before the anchor")
-
-
-def t_d13(base_combo, new_combo):
-    BEGIN = "rn8_full = np.full(NW, np.nan)\n"
-    END = "rn8_m = rn8_full[pm]"
-    A = 1758153600
-    out = {}
-    for name, path in (("base", base_combo), ("patched", new_combo)):
-        code = extract_block(path, BEGIN, END, dedent=0)
-        ns = {"np": np, "A": A, "NW": 3, "_col_of": {"FRESH": 0, "STALE": 1, "NONE": 2},
-              "rn8_full": np.full(3, np.nan),
-              "aux": {"ledger_tail": {"FRESH": [[A - 3600, -0.002, 8.0]], "STALE": [[A - 13 * 3600, -0.002, 8.0]]}}}
-        exec(compile(code, path + ":D13", "exec"), ns)
-        out[name] = ns["rn8_full"].copy()
-    b, n = out["base"], out["patched"]
-    FTRIM_HI = -0.0010
-    base_excluded = bool(np.isfinite(b[1]) and b[1] <= FTRIM_HI)          # old: the stale name IS trimmed
-    new_ok = bool((not np.isfinite(n[1])) and np.isfinite(n[0]) and n[0] <= FTRIM_HI)
-    cell("D13.rn8_12h", base_excluded, f"stale rn8={float(b[1]):.6g} -> FTRIM excludes it",
-         new_ok, f"stale rn8=nan -> not excluded; fresh rn8={float(n[0]):.6g} still excluded",
-         int((np.isfinite(b) != np.isfinite(n)).sum()), "last settlement 13h before the anchor")
-
-
 # ================================================================== D4 / D6(F10) / D7 / D8 via the real pipelines
 def build_mini(root, T=10000, NW=60, seed=101, edit_early=None, gap_rate=0.03):
     rng = np.random.default_rng(seed)
@@ -501,8 +462,6 @@ def main():
     t_d6_king(bs, ns_)
     t_d14(bs, ns_)
     t_d9(bc, nc)
-    t_d11(bc, nc)
-    t_d13(bc, nc)
     t_pipeline(base_tree, new_tree, work)
     bad = [r for r in RESULTS if r["verdict"] != "PASS"]
     rec = {"device": "test_news2_patches.py", "self_sha256": sha(os.path.abspath(__file__)),
