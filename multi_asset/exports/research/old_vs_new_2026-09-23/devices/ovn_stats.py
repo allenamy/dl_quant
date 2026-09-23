@@ -42,12 +42,18 @@ SEG = {"2023H2": ("2023-06-30T04:00:00Z", "2023-12-31T20:00:00Z"), "2024": ("202
        "2026": ("2026-01-01T00:00:00Z", "2026-08-31T00:00:00Z")}
 JUDGE = ("2023H2", "2024", "2025")
 EXTSEG = ("2026-08-31T04:00:00Z", "2026-09-18T20:00:00Z")
-ARMS = {"OLD": "OBJB_A0", "NEW_s42": "OVN_NEW_s42", "NEW_s2027": "OVN_NEW_s2027"}
+ARMS = {"OLD": "OBJB_A0", "OLD_HOLD": "OVN_OLD_HOLD", "NEW_s42": "OVN_NEW_s42", "NEW_s2027": "OVN_NEW_s2027"}
+CONTROLS = ("OLD", "OLD_HOLD")        # AMENDMENT 1 (70adc6cac / 73336df6): NEW must beat BOTH; OLD_HOLD has no lit run by design
+AMD1 = {"path": "docs/AMENDMENT_1_old_vs_new_models_same_engine_2026-09-23.md", "commit": "70adc6cac", "sha256": "73336df6d4d5568bffff6148d9d63b3139d7279407958537f1d93c4d5d18a854"}
+DRYRUN = None
+if len(sys.argv) > 6 and sys.argv[5] == "--dryrun-arms":      # DEVICE TEST ONLY on already-published runs; the receipt says so and no verdict is meaningful
+    DRYRUN = dict(x.split("=") for x in sys.argv[6].split(",")); assert set(DRYRUN) == set(ARMS); ARMS = DRYRUN
 CELLS = {"base": "scaled_rule_raw_UAFE", "fee_x1.25": "scaled_rule_raw_UAFE_fee_x1.25", "slip_x1.5": "scaled_rule_raw_UAFE_slip_x1.5",
          "fill_x0.9": "scaled_rule_raw_UAFE_fill_x0.9", "lit": "lit_rule_raw_UAFE"}
 rec = {"device": "ovn_stats.py", "self_sha256": sha(os.path.abspath(__file__)), "devices": DEV, "utc_start": iso(time.time()), "runs_root": RUNS,
        "certified_runs_root": CERT, "rng": list(RNG), "B": B, "blocks": {"main": BLOCK_MAIN, "sensitivity": BLOCK_SENS}, "segments": SEG,
-       "operationalisation": "receipts/OVN_OPERATIONALISATION.json", "preconditions": {}, "unavailable": []}
+       "operationalisation": "receipts/OVN_OPERATIONALISATION.json", "preconditions": {}, "unavailable": [],
+       "DRYRUN_device_test_on_published_runs": DRYRUN, "amendment_1": AMD1}
 
 
 def load_cell(d, tag_dir, certified_dir=None):
@@ -136,6 +142,7 @@ def boot(x, block):
 S = {}
 for arm, pre in ARMS.items():
     for cell, suf in CELLS.items():
+        if arm == "OLD_HOLD" and cell == "lit": continue          # not run by design (AMENDMENT 1 rewrites the scaled reading only)
         tag_dir = f"{pre}_{suf}"; d = os.path.join(RUNS, tag_dir)
         try:
             S[(arm, cell)] = load_cell(d, tag_dir, os.path.join(CERT, tag_dir) if arm == "OLD" else None)
@@ -168,13 +175,10 @@ for (arm, cell), (paths, facts) in S.items():
         if cell == "base": T[arm][cell][s]["per_path"] = [{k: x[k] for k in ("sharpe", "total_return", "maxdd_5m", "day_stop_flattens")} for x in per]
 rec["tables"] = T
 
-# ─────────── §1.5 pairing, §1.6 criteria ───────────
-V = {}
-for seed in ("NEW_s42", "NEW_s2027"):
-    v = {}
-    if ("OLD", "base") not in S or (seed, "base") not in S:
-        V[seed] = {"VERDICT_SEED": "UNAVAILABLE"}; continue
-    po = S[("OLD", "base")][0]; pn = S[(seed, "base")][0]
+# ─────────── §1.5 pairing, §1.6 criteria (per NEW seed, per control: AMENDMENT 1) ───────────
+def crit(seed, ctrl):
+    if (ctrl, "base") not in S or (seed, "base") not in S: return {"UNAVAILABLE": True}
+    po = S[(ctrl, "base")][0]; pn = S[(seed, "base")][0]
     db, D = dbar(pn, po, masks["pre2026"], days["pre2026"])
     est = float(1e4 * db.mean())
     b30 = boot(db, BLOCK_MAIN); b5 = boot(db, BLOCK_SENS)
@@ -190,41 +194,52 @@ for seed in ("NEW_s42", "NEW_s2027"):
     G1_upper_below_0 = b30["ci97.5_two_sided_bps"][1] < 0
     G2n = sum(seg_means[s]["mean_bps_per_day"] > 0 for s in JUDGE); G2 = G2n >= 2
     sh = lambda arm: {s: T[arm]["base"][s]["paths"]["sharpe"]["path_mean"] for s in JUDGE}
-    shn, sho = sh(seed), sh("OLD"); worst_n, worst_o = min(shn.values()), min(sho.values())
-    ddn = T[seed]["base"]["pre2026"]["paths"]["maxdd_5m"]["path_mean"]; ddo = T["OLD"]["base"]["pre2026"]["paths"]["maxdd_5m"]["path_mean"]
+    shn, sho = sh(seed), sh(ctrl); worst_n, worst_o = min(shn.values()), min(sho.values())
+    ddn = T[seed]["base"]["pre2026"]["paths"]["maxdd_5m"]["path_mean"]; ddo = T[ctrl]["base"]["pre2026"]["paths"]["maxdd_5m"]["path_mean"]
     G3a = worst_n >= worst_o - 0.10; G3b = ddn >= ddo - 0.02; G3 = G3a and G3b
     g4 = {}
     for c in ("fee_x1.25", "slip_x1.5", "fill_x0.9"):
-        if ("OLD", c) not in S or (seed, c) not in S: g4[c] = {"UNAVAILABLE": True}; continue
-        x, _ = dbar(S[(seed, c)][0], S[("OLD", c)][0], masks["pre2026"], days["pre2026"]); e = float(1e4 * x.mean())
+        if (ctrl, c) not in S or (seed, c) not in S: g4[c] = {"UNAVAILABLE": True}; continue
+        x, _ = dbar(S[(seed, c)][0], S[(ctrl, c)][0], masks["pre2026"], days["pre2026"]); e = float(1e4 * x.mean())
         g4[c] = {"estimate_bps_per_day": e, "same_strict_sign_as_base": bool(np.sign(e) == np.sign(est) and e != 0.0)}
     G4 = all(isinstance(v_, dict) and v_.get("same_strict_sign_as_base") for v_ in g4.values())
-    evn = T[seed]["base"]["pre2026"]["paths"]["day_stop_flattens"]["path_mean"]; evo = T["OLD"]["base"]["pre2026"]["paths"]["day_stop_flattens"]["path_mean"]
+    evn = T[seed]["base"]["pre2026"]["paths"]["day_stop_flattens"]["path_mean"]; evo = T[ctrl]["base"]["pre2026"]["paths"]["day_stop_flattens"]["path_mean"]
     G5 = evn <= 1.25 * evo
-    v = {"G1": {"PASS": bool(G1), "estimate_bps_per_day": est, "boot_30d": b30, "boot_5d_sensitivity": b5, "n_days": int(len(db)), "n_paths": int(D.shape[0]),
+    v = {"control": ctrl,
+         "G1": {"PASS": bool(G1), "estimate_bps_per_day": est, "boot_30d": b30, "boot_5d_sensitivity": b5, "n_days": int(len(db)), "n_paths": int(D.shape[0]),
                 "gate": "estimate > 0 AND lower bound of the 97.5% two-sided interval (30-day blocks) > 0", "upper_below_0": bool(G1_upper_below_0),
                 "sensitivity_partial_first_day_included": {"estimate_bps_per_day": float(1e4 * dbp.mean()), "boot_30d": b30p,
                                                             "changes_G1": bool((float(dbp.mean()) > 0 and b30p["ci97.5_two_sided_bps"][0] > 0) != G1)}},
          "G2": {"PASS": bool(G2), "segments_positive": int(G2n), "segment_means": seg_means, "gate": ">= 2 of 2023H2 / 2024 / 2025 with segment mean d̄ > 0"},
-         "G3": {"PASS": bool(G3), "sharpe_path_mean_by_segment": {"NEW": shn, "OLD": sho}, "worst_segment_sharpe": {"NEW": worst_n, "OLD": worst_o},
-                "sharpe_part_PASS": bool(G3a), "maxdd_5m_pre2026_path_mean": {"NEW": ddn, "OLD": ddo}, "maxdd_part_PASS": bool(G3b),
-                "gate": "NEW worst-segment Sharpe >= OLD worst-segment Sharpe − 0.10 AND NEW pre-2026 maxDD >= OLD − 0.02"},
+         "G3": {"PASS": bool(G3), "sharpe_path_mean_by_segment": {"NEW": shn, "CTRL": sho}, "worst_segment_sharpe": {"NEW": worst_n, "CTRL": worst_o},
+                "sharpe_part_PASS": bool(G3a), "maxdd_5m_pre2026_path_mean": {"NEW": ddn, "CTRL": ddo}, "maxdd_part_PASS": bool(G3b),
+                "gate": "NEW worst-segment Sharpe >= control worst-segment Sharpe − 0.10 AND NEW pre-2026 maxDD >= control − 0.02"},
          "G4": {"PASS": bool(G4), "cells": g4, "base_estimate_bps_per_day": est, "gate": "G1 point estimate keeps its strict sign under each certified cost cell"},
-         "G5": {"PASS": bool(G5), "day_stop_flattens_pre2026_path_mean": {"NEW": evn, "OLD": evo, "limit_1.25x_OLD": 1.25 * evo}, "gate": "NEW <= 1.25 x OLD"}}
+         "G5": {"PASS": bool(G5), "day_stop_flattens_pre2026_path_mean": {"NEW": evn, "CTRL": evo, "limit_1.25x_CTRL": 1.25 * evo}, "gate": "NEW <= 1.25 x control"}}
     v["ALL_G_PASS"] = bool(G1 and G2 and G3 and G4 and G5)
-    V[seed] = v
+    return v
+
+
+V = {seed: {ctrl: crit(seed, ctrl) for ctrl in CONTROLS} for seed in ("NEW_s42", "NEW_s2027")}
 rec["criteria"] = V
-if all(V[s].get("ALL_G_PASS") for s in V): verdict = "PASS"
-elif all(isinstance(V[s].get("G1"), dict) and V[s]["G1"]["upper_below_0"] for s in V): verdict = "REVERSE"
+rec["C1_quantified_OLD_HOLD_minus_OLD (not a criterion)"] = crit("OLD_HOLD", "OLD")
+ok = lambda seed, ctrl: bool(V[seed][ctrl].get("ALL_G_PASS"))
+if all(ok(s, c) for s in V for c in CONTROLS): verdict = "PASS"
+elif all(isinstance(V[s]["OLD_HOLD"].get("G1"), dict) and V[s]["OLD_HOLD"]["G1"]["upper_below_0"] for s in V): verdict = "REVERSE"
 else: verdict = "UNDECIDED"
+rec["which_control_passed"] = {s: {c: ok(s, c) for c in CONTROLS} for s in V}
+rec["original_prereg_verdict_vs_OLD_only (superseded by AMENDMENT 1, reported for transparency)"] = (
+    "PASS" if all(ok(s, "OLD") for s in V) else ("REVERSE" if all(V[s]["OLD"].get("G1", {}).get("upper_below_0") for s in V) else "UNDECIDED"))
 rec["VERDICT"] = verdict
-rec["verdict_rule"] = "PASS iff both seeds pass G1..G5; REVERSE iff both seeds' 97.5% interval (30-day blocks) upper bound < 0; else UNDECIDED"
+rec["verdict_rule"] = ("AMENDMENT 1: PASS iff both NEW seeds pass G1..G5 against OLD AND against OLD_HOLD; REVERSE iff both seeds' G1 97.5% interval "
+                       "(30-day blocks) upper bound vs OLD_HOLD < 0; else UNDECIDED (which control each seed passed is listed)")
 rec["utc_end"] = iso(time.time())
 json.dump(rec, open(OUT + ".tmp", "w"), indent=1, default=float); os.replace(OUT + ".tmp", OUT)
 for s in ("NEW_s42", "NEW_s2027"):
-    v = V[s]
-    if "G1" not in v: print(f"OVN_STATS SEED {s}: UNAVAILABLE", flush=True); continue
-    print(f"OVN_STATS SEED {s}: G1={'PASS' if v['G1']['PASS'] else 'FAIL'}({v['G1']['estimate_bps_per_day']:+.3f} bps/d, 97.5%CI30 [{v['G1']['boot_30d']['ci97.5_two_sided_bps'][0]:+.3f}, {v['G1']['boot_30d']['ci97.5_two_sided_bps'][1]:+.3f}]) "
-          f"G2={'PASS' if v['G2']['PASS'] else 'FAIL'}({v['G2']['segments_positive']}/3) G3={'PASS' if v['G3']['PASS'] else 'FAIL'} G4={'PASS' if v['G4']['PASS'] else 'FAIL'} "
-          f"G5={'PASS' if v['G5']['PASS'] else 'FAIL'} ALL={'PASS' if v['ALL_G_PASS'] else 'FAIL'}", flush=True)
+    for c in CONTROLS:
+        v = V[s][c]
+        if "G1" not in v: print(f"OVN_STATS SEED {s} vs {c}: UNAVAILABLE", flush=True); continue
+        print(f"OVN_STATS SEED {s} vs {c}: G1={'PASS' if v['G1']['PASS'] else 'FAIL'}({v['G1']['estimate_bps_per_day']:+.3f} bps/d, 97.5%CI30 [{v['G1']['boot_30d']['ci97.5_two_sided_bps'][0]:+.3f}, {v['G1']['boot_30d']['ci97.5_two_sided_bps'][1]:+.3f}]) "
+              f"G2={'PASS' if v['G2']['PASS'] else 'FAIL'}({v['G2']['segments_positive']}/3) G3={'PASS' if v['G3']['PASS'] else 'FAIL'} G4={'PASS' if v['G4']['PASS'] else 'FAIL'} "
+              f"G5={'PASS' if v['G5']['PASS'] else 'FAIL'} ALL={'PASS' if v['ALL_G_PASS'] else 'FAIL'}", flush=True)
 print(f"OVN_STATS VERDICT={verdict} unavailable={len(rec['unavailable'])} old_reproduction={repro} receipt_sha256={sha(OUT)}", flush=True)
