@@ -24,6 +24,8 @@
 
 **完整 diff**:`multi_asset/exports/research/review_round10_2026-09-23/EXECUTOR_m3_b66257b_to_4dd7d53.diff`(2,603 行,18 个文件);提交链 `EXECUTOR_m3_commits.txt`(8725e7d → 11aa8d1 → c71ca7a → 4dd7d53)。克隆位置 `~/cc_tmp/m3_impl_20260923/exec`(只读)。
 
+**12:1xZ 更新**:实现代理已交付。终版 = **`80ae104`**,相对 `4dd7d53` 只改 `live/beta_overlay.py` 两处 `#` 注释(lead 核 `git diff`:1 文件 3+/3−,全是注释行),上面的 diff 仍有效。全电池在 `4dd7d53` 上 `ACCEPTANCE: ALL GREEN (163/163 suites exit 0)`;`80ae104` 本身没跑全电池,部署时 `safe_commit` 会在确切的树上跑。设计、逐行改动表、与现有机制的逐项交互、部署与回滚手册见 **`docs/IMPL_m3_beta_overlay_2026-09-23.md`**(研究仓 `9564851c4`);补丁 `multi_asset/exports/research/m3_impl_2026-09-23/executor_m3_b66257b.patch`。
+
 ### A.1 接入点(`scheduler/anchor_loop.py`,节选)
 
 ```python
@@ -109,6 +111,10 @@ def stage(mode, target, held_true, ext, sizing_gross, hard, prev_status=None, bt
 5. **生产 β vs 评估 β 的数值差**:评估用认证原始价格表,生产用 f16 裁剪缓存。**差多少没有量化**。请要求(或自行做)在最近若干锚上对比两者的 β_i 与 β_exec。
 6. `validate_field` 要求 `data_cutoff_ts == anchor_ts`:生产者在锚后若干分钟才运行(记录 A 约在 A+20 分钟算),缓存里是否确有"收盘于 A"的那一行?若生产者某次缓存末行晚于 A,β 是否仍只用 ≤A 的行(代码注释说是,测试是否覆盖了真实缓存形状)?
 7. `release_btc`:合计值推翻书内碎单判定后,BTC 被移出 clamp 的四个名单 —— 若 BTC 同时因其他原因在这些名单里(例如 held-exit),是否会误放?(`hard_block` 应已先拦下,请核。)
+8. **(实现代理自列,IMPL §7)首个 on 锚一次建满对冲**(约 0.08–0.19 gross):若没成交,§4-5e 持仓断裂的拆分在"说不出话"(覆盖 <90%)时回到每名 10% 规则,会把它读成断裂;场所量化规则锁(−4400,E-0910-A)也可能挡单。是否应该分几锚建仓?
+9. **(IMPL §7-3)追单实验的中性判定**在生产里剔除对冲腿,认证模拟器(`exec_sim.py:632`)不剔除 ⇒ 评估与生产在这一点上不同。影响多大?
+10. **(IMPL §7-9)计划层手数截断**:对冲小于约 2,200 USDT 时,计划层交付比可能低于 0.95(目标层恒为 1)。R3 在生产上的读法是否要改成目标层?
+11. **(IMPL §7-1、§7-8)两种会平掉对冲的过渡**:生产者不再给 BTC 目标而我们持有对冲时(近 167 个 combo 文件里 0 次);运行中配置失效或切回 shadow 时。是否应该冻结而不是平掉?
 
 ---
 
