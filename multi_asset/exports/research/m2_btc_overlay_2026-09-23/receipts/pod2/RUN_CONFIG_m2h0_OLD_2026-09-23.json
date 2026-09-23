@@ -1,0 +1,249 @@
+{
+ "config": "RUN_CONFIG_main_A0_2026-09-19__M2H0_btc_overlay_hook_2026-09-23",
+ "status": "FROZEN before any M2 number \u2014 NAMED DEVIATION route (executor-level overlay, m2_hook.py) of prereg docs/PREREG_old_vs_new_models_same_engine_2026-09-23.md Stage 2 (8530d2b7f / 1217d786)",
+ "created_utc": "2026-09-23T06:13:08Z",
+ "prereg": "docs/PREREG_baseline_tables_certified_2026-09-19.md (67769510b) + docs/AMENDMENT_1_baseline_tables_certified_2026-09-19.md (f6a2a909e, sha 766bc367) \u2014 both pinned below",
+ "object": "certified object B (recipe-matched OOF history) \u2014 comparison type (1) historical recipe; A0 = in-service recipe, V4 = retrain recipe",
+ "window": {
+  "first_anchor": "2022-06-30T00:00:00Z",
+  "last_anchor": "2026-08-31T00:00:00Z",
+  "n_anchors": 9139,
+  "full_recipe_start": "2023-06-30T04:00:00Z",
+  "full_recipe_start_rule": "object-B receipts TARGETS_<tag>.json B_CORE_start (object-B prereg \u00a74); anchors before it are PARTIAL_RECIPE (prereg \u00a71)",
+  "extension_label": "2026-08-31T04Z \u2192 2026-09-18T20Z overlaps object A / the live period: describe only (prereg \u00a74)",
+  "coverage": "targets end at 2026-08-31T00:00:00Z: the extension segment to 2026-09-18T20Z follows with the extension targets"
+ },
+ "nav0_usdt": 100000.0,
+ "paths_R": 32,
+ "seeds": "0..31",
+ "runs": [
+  {
+   "arm": "OBJB_A0M2H0",
+   "events": "rule",
+   "price": "raw",
+   "policy": "UA-FREEZE-EXCLUDE",
+   "ua_set": "UNAVAILABLE_3084",
+   "tag": "OBJB_A0M2H0|scaled|rule|raw|UAFE",
+   "book": "scaled",
+   "targets": {
+    "source": "objb",
+    "reading": "scaled",
+    "arm": "A0",
+    "sources": [
+     {
+      "npz": "/workspace/object_b_2026-09-19/work/A0_main/TARGETS_A0_main.npz",
+      "npz_sha256": "b9f0dc9f2011f9defaac80b116415de3f4d75ffb497cbb9533cd995879036c41",
+      "receipt": "/workspace/object_b_2026-09-19/receipts/TARGETS_A0_main.json",
+      "receipt_sha256": "5ebac7205afc2cd0b5a0c85bd3daf2e2210e56dad9b0461fd015025cb4518385"
+     }
+    ],
+    "universe": {
+     "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+     "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+     "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+    }
+   },
+   "role": "zero-hedge hook control: MAIN: in-service recipe (object B A0), B-scaled reading (object-B prereg ruling 4 main)"
+  }
+ ],
+ "current_production_config": {
+  "gross_mult": 2.0,
+  "chase_weights": {
+   "chase": 0.5,
+   "no_chase": 0.5
+  },
+  "E4_from_anchor": 0,
+  "requote_assignment_from_anchor": 0,
+  "fee_era": "USDT_era maker/taker of the pooled calibration for every trade",
+  "decision": "t_dec = A + decision_offset_default_s (1440 = N+24:00), rid = A{t_dec}; decision bar = floor_5m(t_dec) = N+20",
+  "stop_eval": "A + eval_offset_without_frame_s (2700 = N+45; no live readback frames in history)",
+  "rule_flatten": "max(A + rule_flatten_offset_s (2760 = N+46), t_eval + 1 s)",
+  "per_name_stop": "409ea16 config/book.json active_profile wide (\u22120.30 \u00d7 2 consecutive, 7-day cooldown, 5 USDT)",
+  "on_unavailable": "hold",
+  "venue_tradable": "tradability_v1 state_W24H == 2 at A",
+  "meta_exclusions": "none",
+  "exchange_filters": "stream-E mirror exchange_info_cache.json (current values)"
+ },
+ "events": {
+  "rule": "only \u00a74-2 (\u22124 % vs the previous UTC day's last evaluation equity \u21d2 flatten at N+46, HALT until next UTC day 00Z); per-name stops by the executor's own state machine"
+ },
+ "unavailable_policies": {
+  "UA-FREEZE-EXCLUDE": "object-B prereg AMENDMENT 1 \u00a7A1.2; E2 mapping: (A) UNKNOWN cells = (name, window) with any UA bar closing in [A, A+4h] \u21d2 price-and-trading and funding P&L removed from the main NAV numerator, reported separately with notional at risk (bounds UNBOUNDED); (B) no trading at A if the bar closing at A or the decision bar is UA; (B') no fill booked inside a UA bar \u2014 AMENDMENT 1 item 5; per-run trigger counts and notional reported (bt_run_summary)"
+ },
+ "cost_cells": {
+  "fee_x1.25": "every maker / taker fee rate \u00d7 1.25",
+  "slip_x1.5": "AMENDMENT 1 item 1: s' = s + 0.5\u00b7|s| per leg class (adverse)",
+  "fill_x0.9": "AMENDMENT 1 item 2: first-leg full and partial \u00d7 0.9 (mass \u2192 unfilled), completion \u03c0 \u00d7 0.9, fbar unchanged"
+ },
+ "statistics": {
+  "regime_cells": "AMENDMENT 1 item 3: B = 10,000, 5-day blocks main (1 / 10 sensitivity), rng [20260919, 1000 + k], k = PROGRAM \u00a74 order \u00d7 low/mid/high",
+  "pairing": "AMENDMENT 1 item 4: main \u0394Sharpe, \u0394CAGR and \u0394g alongside; 5-day MBB B = 10,000 rng [20260919, 99]; labels one-sided p < 0.05, descriptive only"
+ },
+ "simulator": {
+  "exec_sim.py": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24 (v3.1, unchanged)",
+  "calibration": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6 (pooled; per-arm fields of CALIBRATION_FROZEN never read)",
+  "gate": "v1b_gate v2 4a725921 (period definitions only; imported by exec_sim)",
+  "executor_tree": "409ea16 (INPUT_MANIFEST 59875e5a)"
+ },
+ "pins": {
+  "prereg": {
+   "path": "/workspace/baseline_tables_2026-09-19/pins/PREREG_baseline_tables_certified_2026-09-19.md",
+   "sha256": "d9fe45e3191f56e564e1df951ddfc9465e75d7ef03e680e31943cc9057398ae2"
+  },
+  "prereg_amendment_1": {
+   "path": "/workspace/baseline_tables_2026-09-19/pins/AMENDMENT_1_baseline_tables_certified_2026-09-19.md",
+   "sha256": "766bc367743d8542a2da4c2c547df16d2bac7c6984acf7f734ddd1e59c5c26cb"
+  },
+  "exec_sim": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/exec_sim.py",
+   "sha256": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24"
+  },
+  "simlib": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/simlib.py",
+   "sha256": "55246fe98da2d57a33bbbe0f22fc67e6581da539c353b026d8ef41673dfec2f1"
+  },
+  "v1b_gate": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/v1b_gate.py",
+   "sha256": "4a725921a470f4c11f47cda5a8e210979215079cea16b496c709c7cc62fb5410"
+  },
+  "v1_gate": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/v1_gate.py",
+   "sha256": "c97d9b3d49212b49ea2cde883d7a06fe749f43ed23f3aef7de6345a4d8075d0d"
+  },
+  "calibration": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/CALIBRATION_v3_POOLED_20260826_20260910.json",
+   "sha256": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6"
+  },
+  "input_manifest": {
+   "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/INPUT_MANIFEST.json",
+   "sha256": "59875e5a69db415f5ce20b35b888f2d49a31427fdde8b7b847a9645ee135a5ae"
+  },
+  "p2_s2_lib": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/devices/p2_s2_lib.py",
+   "sha256": "c53f5c495036727fcd7115bad6838229923c91f6b76bed955ebdb0f25d57c831"
+  },
+  "price_full_raw": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r.npy",
+   "sha256": "23af32bd97c267d126c2109641815b92082b8688e35bcfbaaa1e88c2dc5bb5d8"
+  },
+  "price_full_meta": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r_meta.npz",
+   "sha256": "d1e49cc9f0a7ddc4104feb52a42da3024ba1e66ad5891a26c96f00cff7ce5d90"
+  },
+  "price_receipt": {
+   "path": "/workspace/baseline_tables_2026-09-19/receipts/BT_PRICES_FULL_X0918R.json",
+   "sha256": "130592b122831e03c24916e771be5174c9be3930500eb735a7d268907ee000f2"
+  },
+  "price_source_table_x0918r": {
+   "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/work/price_logtable_raw_x0918r.npy",
+   "sha256": "9249b0da4a4c578900cbafd29e1cec28de57f4437f037f1280040b2a84196608"
+  },
+  "price_source_meta_x0918r": {
+   "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/work/price_meta_raw_x0918r.npz",
+   "sha256": "da136830cee7e1a219e56e69ce9d50de2eead6864df7d205cdb7559151162df3"
+  },
+  "ledger_full": {
+   "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+   "sha256": "073088e503c026d6071c76764426503616d53570e5f3763807df27ea7cc80362"
+  },
+  "funding_overlap_proof": {
+   "path": "/workspace/baseline_tables_2026-09-19/funding/BT_FUNDING_OVERLAP.json",
+   "sha256": "0ee6d99bfa2acfb9576efb90655ac3e6b1f68fbdb7de14fcecbd3b02531c635b"
+  },
+  "funding_source_p2": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+   "sha256": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
+  },
+  "funding_source_stream_d": {
+   "path": "/workspace/axis_0919/funding/funding_ledger.npz",
+   "sha256": "74b69e635efbf3556fe706520fda9d5a1b5cda86dda9d04a844ba5d617a3a09d"
+  },
+  "funding_4h_accounting_stream_d": {
+   "path": "/workspace/axis_0919/funding/funding_4h_accounting.npz",
+   "sha256": "2838e5f6cf42fff5619460f64708d952cd56e23e6621195d8e3d8bd5466aca72"
+  },
+  "tradability": {
+   "path": "/workspace/axis_0919/x0918r/trd/tradability_v1.npz",
+   "sha256": "bebf69ab9ddb3b05b49552e66dccf9b8cde3caee0593b14e1b3fe1a4c93c9db8"
+  },
+  "universe": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/work/universe.npz",
+   "sha256": "6322b57366078ed0022fd8a8156ee36f527bf309e0d66bfa5f6ec17d7a09efa7"
+  },
+  "g0_labels": {
+   "path": "/workspace/baseline_tables_2026-09-19/g0x/g0_labels_x0918.npz",
+   "sha256": "c3832939e1b0133369af96ea2866e3cfb226274aeda98c81b82e531654b185b6"
+  },
+  "g0_receipt": {
+   "path": "/workspace/baseline_tables_2026-09-19/g0x/RECEIPT_bt_g0_extend.json",
+   "sha256": "8afd680472ef21be2731bf4b7e55cea018dc80ac44c370ef8321f9cb02fc82de"
+  }
+ },
+ "pending": {
+  "(a) object-B A0 targets": "filled: A0_main (gate F lineage checked)",
+  "(b) object-B v4 targets": "not in this config: the v4 runs and the pairing table follow on the lead's go",
+  "(c) restored prices to 09-18T20Z": "DONE (pinned)",
+  "(d) full-recipe window start": "filled from TARGETS_A0_main.json B_CORE_start"
+ },
+ "paths": {
+  "pod_root": "/dev/shm/m2_btc_overlay_2026-09-23",
+  "exec_mirror": "/workspace/replay_r_2026-09-19/work/exec_mirror",
+  "mac_root": "multi_asset/exports/research/baseline_tables_2026-09-19"
+ },
+ "launch": {
+  "max_parallel": 4,
+  "min_available_gib": 22,
+  "nice": 10,
+  "threads_per_run": 1
+ },
+ "blind_protocol": "CFG-06 AMENDMENT 1: pooled outcome parameters only; outputs carry per-arm assignment COUNTS only; no per-arm outcome quantity is computed, printed or stored",
+ "frozen_by": {
+  "device": "bt_objb_prerun.py",
+  "sha256": "739fcb35ef5b07ea9de02a9fef350d708214f2f2fda0e6be234f93f3d7db09a3",
+  "receipt": "/workspace/baseline_tables_2026-09-19/receipts/BT_OBJB_PRERUN_A0.json"
+ },
+ "objb_lineage": {
+  "gate_f_sha256": "916b109f181103191efff915923d1647e35e7a7dbdfc6caffa42077e7fc65b9c",
+  "gate_f_commit": "d3596aced",
+  "sources": {
+   "A0_main": {
+    "axis": [
+     "2022-01-31T00:00:00Z",
+     "2026-08-31T00:00:00Z"
+    ],
+    "data": "holefix2",
+    "B_CORE_start": "2023-06-30T04:00:00Z",
+    "king_first_served": "2023-01-31T04:00:00Z",
+    "f10_first_served": "2023-01-01T00:00:00Z",
+    "run_config_sha256": "0b4b06da2f204832be3eeb124dcdd2ab72399f2dba21936f29c185f80d86f799",
+    "gate_f_disclosure": "third run of the same gate after control revisions; the parity criterion was never changed; revisions were written after seeing the failures"
+   }
+  }
+ },
+ "m2_hook": {
+  "device": "/dev/shm/m2_btc_overlay_2026-09-23/devices/m2_hook.py",
+  "device_sha256": "e6e755ea871c7398e0caabf54b07016b8f903d331e5c831039cb34a01e7d46ff",
+  "mode": "control",
+  "tables": {
+   "OBJB_A0M2H0": {
+    "npz": "/dev/shm/m2_btc_overlay_2026-09-23/work/M2H0_TABLE_A0_main_zero.npz",
+    "sha256": "ac9d398bd94e29a6924e2995e05e97f5f71ad950a5b4724d529678e6e7658113"
+   }
+  },
+  "prereg": {
+   "path": "docs/PREREG_old_vs_new_models_same_engine_2026-09-23.md",
+   "commit": "8530d2b7f",
+   "sha256": "1217d786b29cf8bcb37f4aa86f2e9862bb278f7c1a91cc9ac58ed9376b9a31b4"
+  },
+  "base_config": {
+   "path": "/workspace/baseline_tables_2026-09-19/RUN_CONFIG_main_A0_2026-09-19.json",
+   "sha256": "7b6dca2c48feda294676ab5ce46b748c71ab87103cc64ead5be7957fe5bbfe93"
+  },
+  "dropped_runs": [
+   "OBJB_A0|lit|rule|raw|UAFE",
+   "OBJB_A0|scaled|rule|raw|UAFE|fee_x1.25",
+   "OBJB_A0|scaled|rule|raw|UAFE|slip_x1.5",
+   "OBJB_A0|scaled|rule|raw|UAFE|fill_x0.9"
+  ]
+ }
+}

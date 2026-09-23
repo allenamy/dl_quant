@@ -1,0 +1,26 @@
+[     7s] CHECK pin.price_full_raw OK {"got": "23af32bd97c267d1", "want": "23af32bd97c267d1"}
+[     7s] CHECK pin.price_full_meta OK {"got": "d1e49cc9f0a7ddc4", "want": "d1e49cc9f0a7ddc4"}
+[     7s] CHECK pin.price_full_meta_old OK {"got": "f2f5382889f8c926", "want": "f2f5382889f8c926"}
+[     7s] CHECK pin.adapter OK {"got": "05cc5dc25df99459", "want": "05cc5dc25df99459"}
+[     7s] CHECK pin.base_npz OK {"got": "b9f0dc9f2011f9de", "want": "b9f0dc9f2011f9de"}
+[     7s] CHECK pin.base_receipt OK {"got": "5ebac7205afc2cd0", "want": "5ebac7205afc2cd0"}
+[     7s] CHECK axis.symbols_old_eq_raw OK 
+[     7s] CHECK grid.old_is_prefix_of_raw OK 
+[     7s] CHECK inlife_missing_equals_gapfilled_union_UA OK {"inlife_nan_old": 24397, "gapfilled": 21313, "ua": 3084, "overlap": 0, "inl_minus": 0, "union_minus": 0}
+[     7s] CHECK extension_rows_add_no_gapfill_or_ua_unaccounted OK {"ua_in_extension_rows": 0, "gapfilled_in_extension_rows": 0, "note": "extension (after the OLD grid) has no OLD in-life-NaN reference; the price device's G5 states the extension adds no UA and no gap fill"}
+[     7s] CHECK base_receipt.npz_sha OK "b9f0dc9f2011f9defaac80b116415de3f4d75ffb497cbb9533cd995879036c41"
+[     7s] CHECK base_receipt.arm OK "A0"
+[     7s] CHECK base.axis_4h_contiguous OK {"n": 10039, "first": 1643587200, "last": 1788134400}
+[     7s] CHECK price.shape OK [444145, 829]
+[     7s] bars_4h ...
+[     7s] bars 9254 valid cells 3416090
+[     7s] betas ...
+[    11s] betas done
+[    12s] CHECK adapter.module_is_pinned_file OK "/workspace/baseline_tables_2026-09-19/devices_v3/bt_objb_targets.py"
+[    13s] CHECK adapter.loads_m2_file OK {"n": 10039, "sources": [{"tag": "A0_main_M2", "arm": "A0", "data": "holefix2", "written_rows_without_weights": 0, "zero_weights": 0}]}
+[    18s] CHECK adapter.dense_rows_equal_base_except_btc_bitwise OK {"anchors": 10039}
+[    18s] CHECK adapter.btc_column_equals_base_plus_hedge_bitwise OK {"max_abs": 2.7755575615628914e-17}
+[    18s] CHECK adapter.fresh_and_kind_unchanged OK {"m2": {"window_anchors": 10039, "combo": 6702, "king": 3337, "hold": 0, "written_rows_without_weights": 0}, "base": {"window_anchors": 10039, "combo": 6702, "king": 3337, "hold": 0, "written_rows_without_weights": 0}}
+[    18s] CHECK hold_rows_have_zero_hedge OK 0
+M2_BUILD VERDICT=PASS tag=A0_main_M2 targets_sha256=25e1c3d15f7e763aee85ba0f247483b5a2925d9bea99e0de2f7a6d32b3ca585d receipt_sha256=cecefe2aec6d96e8ef44f4e3ed06fbfcb9bce947e8a9f34d494fb4ba96346ae3
+EXIT 0
