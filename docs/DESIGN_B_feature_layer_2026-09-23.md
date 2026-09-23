@@ -1,3 +1,5 @@
+> ⚠ **已并入主稿, 本文件作废, 不再编辑**(集成者 2026-09-23): 全文已逐字并入 `docs/DESIGN_producer_new_contract_2026-09-23.md` §B(标题降一级, 另加 B2 旁注与 B12 裁定附注)。**以主稿 §B 为准**; 后续修改一律改主稿。下面的原文逐字节保留。
+
 > **创建:** 2026-09-23 17:4xZ | **Session:** session_01MCyx6gj5EdbghE9bwjBjJv(news2 代理, 受 lead 派) | **状态:** **B 部分设计稿 + 已建已测的装置**, 待 lead 审; 审过之前不改生产树。**写成独立文件而不是直接改 `DESIGN_producer_new_contract_2026-09-23.md` §B**, 是为了不和集成代理同时改同一个文件(共享 git index 撞车)。集成代理可逐字并入 §B。 | **作废条件:** 生产者源码(`shadow_loop_v3.py` 6080073b / `combo_stage.py` fb5a9407 / `dlw_features.py` 29ae6a98 / `f8_higher_order_features.py` 2c500c7a)、研究员装置(`feature_contract.py` e4338749 / `f8_candidate.py` 4d495d06 / `stable_trend_reference.py` 01bf8b3d / `derive_f8_candidate.py`)任一改变, 或 DESIGN §C-4 的分工改变
 
 # DESIGN §B: 特征计算层(news2)—— D4 / D5 / D6 / D7 / D8 / D9 / D14
