@@ -1,0 +1,4 @@
+633c633
+<         if anchor - last_ts < exp_iv * 3600 * 0.9:
+---
+>         if not _bulk_ok and anchor - last_ts < exp_iv * 3600 * 0.9:   # NC A4: under bulk, never skip on the predicted interval

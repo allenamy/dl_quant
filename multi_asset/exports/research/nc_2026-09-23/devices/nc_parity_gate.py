@@ -196,7 +196,7 @@ def run_one(a, tree, pk, A, out, tag, NW, sidx, mutate_rate=None, mutate_cell=No
         res["producer"] = {"outcome": "raised", "error": f"{type(e).__name__}: {str(e)[:300]}", "tb": traceback.format_exc()[-1500:]}
     finally:
         sys.setprofile(None)
-    res["producer"].update(wall_s=round(time.time() - tt, 2), loadavg=[la0, os.getloadavg()], diag=L.last_diag(ws, A),
+    res["producer"].update(wall_s=round(time.time() - tt, 2), loadavg=[la0, os.getloadavg()], diag=L.last_diag(ws, A), signal_nc=L.last_signal_nc(ws, A),
                            predict_calls_from_run_anchor=len(rb.snaps))
     if os.path.exists(f"{ws}/shadow_log.jsonl"):
         sk = [json.loads(l) for l in open(f"{ws}/shadow_log.jsonl") if '"anchor_skip"' in l]

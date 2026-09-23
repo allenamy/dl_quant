@@ -274,6 +274,17 @@ SH.append(("A4:funding_skip_rule_unknown_iv",
 """        exp_iv = (led[-1][2] or 1.0) if led else 8.0   # NC A4: an unknown interval (None) is re-queried every anchor
 """))
 
+# NC A4 (parity gate 2026-09-23 22:45Z, FAIL_PARITY on ONEUSDT @ 09-18 04Z): the expected-interval skip predicts the next settlement from the
+# LAST interval; the venue shortens a name's interval exactly when its rate hits the cap (ONEUSDT 8h -> 1h after -0.02 at 09-18 00Z), so the
+# 01/02/03/04Z settlements were skipped at 04Z and the as-of lagged training by one old interval. With the bulk pages in hand every name's
+# newer events are already local: ingest them all (no request is added). The skip stays only for the per-name fallback (bulk failed), where
+# 520 per-name fundingRate calls would break the funding-class cap — a named residual (bulk failure AND an interval switch at that anchor).
+SH.append(("A4:funding_no_expected_interval_skip_under_bulk",
+"""        if anchor - last_ts < exp_iv * 3600 * 0.9:
+""",
+"""        if not _bulk_ok and anchor - last_ts < exp_iv * 3600 * 0.9:   # NC A4: under bulk, never skip on the predicted interval
+"""))
+
 # --- King block (replayed verbatim by the training build)
 SH.append(("A3:rr_channel",
 """    CDf = st.cd.astype(np.float32)

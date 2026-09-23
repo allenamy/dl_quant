@@ -93,7 +93,8 @@ def one(a, tree, A, out, crypto, sidx, worst=False):
         d = r["diag"] or {}
         rec["producer"] = {"outcome": d.get("outcome"), "error_type": d.get("error_type"), "total_s": d.get("total_s"), "phase_s": d.get("phase_s"),
                            "run_anchor_wall_s": r["wall_s"], "state_load_s": r["load_s"], "loadavg_before": r["loadavg_before"],
-                           "loadavg_after": r["loadavg_after"], "target_live_written": r["target_live_written"], "fake_calls": d.get("fetcher", {}).get("calls")}
+                           "loadavg_after": r["loadavg_after"], "target_live_written": r["target_live_written"], "fake_calls": d.get("fetcher", {}).get("calls"),
+                           "signal_nc": r.get("signal_nc")}
         rec["backfill_cap_s"] = float(r["module"].NC_BACKFILL_CAP_S)
         if worst:
             bf = [json.loads(l) for l in open(f"{ws}/shadow_log.jsonl") if '"nc_backfill"' in l]

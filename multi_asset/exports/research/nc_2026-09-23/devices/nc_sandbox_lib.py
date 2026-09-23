@@ -157,6 +157,19 @@ def last_diag(ws, A):
     return out
 
 
+def last_signal_nc(ws, A):
+    """The producer's own funding-fetch counters for anchor A (signal row, "nc" block): fund_bulk_ok, fund_bulk_pages, fund_per_symbol, ...
+    None if the producer wrote no signal row for A (a SKIPped / raised anchor) — never a default."""
+    out = None
+    p = f"{ws}/shadow_log.jsonl"
+    if os.path.exists(p):
+        for l in open(p):
+            if '"signal"' in l:
+                r = json.loads(l)
+                if r.get("e") == "signal" and r.get("anchor_ts") == A: out = r.get("nc")
+    return out
+
+
 def run_producer(ws, A, fake, nc_rule, tag, cols_new=None):
     """Load the sandbox producer, its own ShadowState (generation verification included), prefill bars, run_anchor(A). Returns dict;
     an exception from ShadowState / run_anchor propagates (callers record it)."""
@@ -169,7 +182,7 @@ def run_producer(ws, A, fake, nc_rule, tag, cols_new=None):
     wall = time.time() - t0; la1 = os.getloadavg()
     tl = f"{ws}/state/target_live/{A}.json"
     return {"module": M, "state": st, "wall_s": round(wall, 2), "load_s": round(t_load, 2), "prefill_rows": new_rows, "loadavg_before": la0, "loadavg_after": la1,
-            "target_live_written": os.path.exists(tl), "diag": last_diag(ws, A)}
+            "target_live_written": os.path.exists(tl), "diag": last_diag(ws, A), "signal_nc": last_signal_nc(ws, A)}
 
 
 def run_combo(root, ws, exe, tag, script=None, extra_env=None):
