@@ -1,0 +1,27 @@
+[     6s] CHECK pin.price_full_raw OK {"got": "23af32bd97c267d1", "want": "23af32bd97c267d1"}
+[     6s] CHECK pin.price_full_meta OK {"got": "d1e49cc9f0a7ddc4", "want": "d1e49cc9f0a7ddc4"}
+[     6s] CHECK pin.price_full_meta_old OK {"got": "f2f5382889f8c926", "want": "f2f5382889f8c926"}
+[     6s] CHECK pin.m2_lib OK {"got": "93f8e76088ca5231", "want": "93f8e76088ca5231"}
+[     6s] CHECK windows_equal_old_new OK [{"first_anchor": "2022-06-30T00:00:00Z", "last_anchor": "2026-09-18T20:00:00Z", "n_anchors": 9252, "full_recipe_start": "2023-06-30T04:00:00Z", "full_recipe_start_rule": "object-B receipts TARGETS_<tag>.json B_CORE_start (object-B prereg \u00a74); anchors before it are PARTIAL_RECIPE (prereg \u00a7
+[     6s] CHECK config_old.price_pins_are_the_pinned_table OK 
+[     6s] CHECK config_new.price_pins_are_the_pinned_table OK 
+[     6s] CHECK axis.n_anchors OK 9252
+[     6s] CHECK axis.symbols_old_eq_raw OK 
+[     6s] CHECK grid.old_is_prefix_of_raw OK 
+[     6s] CHECK inlife_missing_equals_gapfilled_union_UA OK {"inlife_nan_old": 24397, "gapfilled": 21313, "ua": 3084, "overlap": 0}
+[     6s] CHECK extension_rows_ua_and_gapfill_counted OK {"ua_in_extension_rows": 0, "gapfilled_in_extension_rows": 0}
+[     6s] CHECK price.shape OK [444145, 829]
+[     6s] bars_4h ...
+[     6s] CHECK price.last_4h_boundary_covers_last_anchor OK {"T_last": 1789776000, "A_last": 1789761600}
+[     6s] bars 9254 valid cells 3416090
+[    10s] betas done
+[    10s] CHECK beta.all_finite OK 
+[    10s] CHECK beta.btc_column_exactly_1 OK 
+[    10s] CHECK beta.within_clip OK 
+[    11s] CHECK m2_crosscheck.shared_anchor_count FAIL {"shared": 9139, "m2_anchors": 10039}
+[    11s] CHECK m2_crosscheck.symbols_equal OK 
+[    11s] CHECK m2_crosscheck.beta_bitwise_equal OK 
+[    11s] CHECK m2_crosscheck.nobs_equal OK 
+[    11s] CHECK m2_crosscheck.est_equal OK 
+M3_BUILD_BETA VERDICT=RED beta_sha256=6dcf97824f4ba3765e5f902c9a9edbf051f3354f28d2899724998e1c2584de4d receipt_sha256=60f58760770a7f0e22a8429c77e196c7400ab3163ede10369038ceaa50ce5c90
+EXIT 3

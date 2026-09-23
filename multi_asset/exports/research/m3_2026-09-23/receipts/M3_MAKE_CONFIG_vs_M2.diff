@@ -1,0 +1,90 @@
+--- ../m2_btc_overlay_2026-09-23/devices/m2_make_config_hook.py	2026-09-23 14:12:33
++++ devices/m3_make_config_hook.py	2026-09-23 17:55:55
+@@ -1,10 +1,18 @@
+ #!/usr/bin/env python3
+-"""m2_make_config_hook.py — run configuration for the NAMED-DEVIATION overlay route (m2_hook.py), derived from a FROZEN certified config
+-(for OLD: RUN_CONFIG_main_A0_2026-09-19.json). Targets are the BASE targets, unchanged (the hedge is added by the hook, not by the file).
+-Changes (asserted, flattened key paths): config / status / created_utc / paths.pod_root / m2_hook (added) and, per kept run, tag / arm / role.
+-  mode 'overlay' : the scaled runs (main + three cost cells), arm 'OBJB_<A>' → 'OBJB_<A>M2H', table = the formula hedge table
+-  mode 'control' : the scaled MAIN run only, arm → 'OBJB_<A>M2H0', table = zeros (must reproduce the certified base paths bitwise)
+-usage: python m2_make_config_hook.py <base_config> <mode> <hook_device> <table_npz> <out_config> <diff_receipt> <pod_root>
++"""m3_make_config_hook.py — run configuration for M3 (m3_hook.py), derived from a FROZEN base config. DERIVED FROM m2_make_config_hook.py
++(diff: receipts/M3_MAKE_CONFIG_vs_M2.diff). Base configs (the ones Stage 1 read the two bases from, both covering 2022-06-30T00Z →
++2026-09-18T20Z, 9,252 anchors):
++  OLD     = the certified /workspace/baseline_tables_2026-09-19/RUN_CONFIG_main_A0ext_2026-09-20.json (Stage 1's OLD extension run
++            OBJB_A0X; bitwise equal to OBJB_A0 on the 9,139 shared anchors)
++  NEW_s42 = /workspace/old_vs_new_2026-09-23/RUN_CONFIG_OVN_NEW_s42X_2026-09-23.json (Stage 1; bitwise equal to OVN_NEW_s42 on shared anchors)
++Targets are the BASE targets, unchanged (the hedge is added by the hook, not by the file).
++Changes (asserted, flattened key paths): config / status / created_utc / paths.pod_root / m3_hook (added) and, per kept run, tag / arm / role.
++  Only the scaled MAIN run is kept (no cost cells, no lit reading: the prereg reads R-main only).
++  mode 'overlay' : tag '<T>|…' → '<T>M3H|…', arm '<A>' → '<A>M3H', m3_hook.arms = {'<T>M3H': 'overlay'}   (keyed by the TAG prefix <T>,
++                   which is what the hook reads; the certified A0ext run has arm 'OBJB_A0' but tag 'OBJB_A0X|…')
++  mode 'control' : '<T>M3H0' / '<A>M3H0', m3_hook.arms = {'<T>M3H0': 'control'} (computes and records, never touches the target;
++                   must reproduce the base paths bitwise)
++usage: python m3_make_config_hook.py <base_config> <mode> <hook_device> <beta_npz> <prereg_md> <out_config> <diff_receipt> <pod_root>
+ """
+ import json, sys, time, hashlib, copy
+ 
+@@ -27,40 +35,42 @@
+     return out
+ 
+ 
+-base_p, mode, hook_p, table_p, out_p, diff_p, pod_root = sys.argv[1:8]
++base_p, mode, hook_p, beta_p, prereg_p, out_p, diff_p, pod_root = sys.argv[1:9]
+ assert mode in ("overlay", "control")
+-sfx = "M2H" if mode == "overlay" else "M2H0"
++sfx = "M3H" if mode == "overlay" else "M3H0"
+ B = json.load(open(base_p)); C = copy.deepcopy(B)
+-C["config"] = B["config"] + f"__{sfx}_btc_overlay_hook_2026-09-23"
+-C["status"] = ("FROZEN before any M2 number — NAMED DEVIATION route (executor-level overlay, m2_hook.py) of prereg "
+-               "docs/PREREG_old_vs_new_models_same_engine_2026-09-23.md Stage 2 (8530d2b7f / 1217d786)")
++C["config"] = B["config"] + f"__{sfx}_btc_overlay_executed_beta_2026-09-23"
++C["status"] = ("FROZEN before any M3 number — M3 BTC overlay with beta on the EXECUTED target (m3_hook.py, derived from M2 route H) of prereg "
++               "docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md (24c3f803f)")
+ C["created_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+ C["paths"]["pod_root"] = pod_root
+ kept, dropped = [], []
+ for r in B["runs"]:
+-    if r.get("book") != "scaled" or (mode == "control" and r.get("cost_cell")):
++    if r.get("book") != "scaled" or r.get("cost_cell"):
+         dropped.append(r["tag"]); continue
+-    r2 = copy.deepcopy(r); a0 = r["arm"]
+-    r2["arm"] = a0 + sfx; r2["tag"] = r["tag"].replace(a0 + "|", a0 + sfx + "|", 1)
+-    r2["role"] = ("M2 overlay via executor hook: " if mode == "overlay" else "zero-hedge hook control: ") + r["role"]
++    r2 = copy.deepcopy(r); a0 = r["arm"]; t0, rest = r["tag"].split("|", 1)
++    r2["arm"] = a0 + sfx; r2["tag"] = t0 + sfx + "|" + rest          # the tag PREFIX is what the hook keys on (A0ext: arm 'OBJB_A0', tag 'OBJB_A0X|…')
++    r2["role"] = ("M3 overlay (beta on the executed target) via executor hook: " if mode == "overlay" else "M3 zero-hedge hook control: ") + r["role"]
+     kept.append(r2)
++assert len(kept) == 1, [r["tag"] for r in kept]
+ C["runs"] = kept
+-arm = kept[0]["arm"]
+-C["m2_hook"] = {"device": hook_p, "device_sha256": sha(hook_p), "mode": mode, "tables": {arm: {"npz": table_p, "sha256": sha(table_p)}},
+-                "prereg": {"path": "docs/PREREG_old_vs_new_models_same_engine_2026-09-23.md", "commit": "8530d2b7f",
+-                           "sha256": "1217d786b29cf8bcb37f4aa86f2e9862bb278f7c1a91cc9ac58ed9376b9a31b4"},
+-                "base_config": {"path": base_p, "sha256": sha(base_p)}, "dropped_runs": dropped}
++arm = kept[0]["tag"].split("|")[0]                                     # m3_hook.arms is keyed by the run TAG's prefix (m3_hook.py reads tag.split('|')[0])
++C["m3_hook"] = {"device": hook_p, "device_sha256": sha(hook_p), "mode": mode, "beta": {"npz": beta_p, "sha256": sha(beta_p)}, "arms": {arm: mode},
++                "prereg": {"path": "docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md", "commit": "24c3f803f", "sha256": sha(prereg_p)},
++                "derived_from": "m2_make_config_hook.py (M2 route H)", "base_config": {"path": base_p, "sha256": sha(base_p)}, "dropped_runs": dropped}
+ json.dump(C, open(out_p, "w"), indent=1)
+ FB, FC = flat(B), flat(C)
+ non_run_same = all(FB[k] == FC[k] for k in FB if not k.startswith(("runs[", "config", "status", "created_utc", "paths.pod_root")))
++extra_top = sorted(set(C) - set(B))
+ bmap = {r["tag"]: r for r in B["runs"]}; run_check = []
+ for r2 in C["runs"]:
+-    r0 = bmap[r2["tag"].replace(sfx + "|", "|", 1)]; f0, f2 = flat(r0), flat(r2)
++    r0 = bmap[r2["tag"].replace(sfx + "|", "|", 1)]; f0, f2 = flat(r0), flat(r2)      # the tag, arm and role MUST all change (else the hook is inert)
+     d = sorted(k for k in set(f0) | set(f2) if f0.get(k, "<absent>") != f2.get(k, "<absent>"))
+-    run_check.append({"tag": r2["tag"], "differing_keys": d, "ok": set(d) <= {"tag", "arm", "role"}})
+-verdict = "PASS" if non_run_same and all(x["ok"] for x in run_check) else "RED"
+-json.dump({"device": "m2_make_config_hook.py", "self_sha256": sha(sys.argv[0]), "mode": mode, "base_config": {"path": base_p, "sha256": sha(base_p)},
++    run_check.append({"tag": r2["tag"], "differing_keys": d, "ok": set(d) == {"tag", "arm", "role"} and r2["tag"].split("|")[0] in C["m3_hook"]["arms"]
++                      and r2["tag"] != r0["tag"]})
++verdict = "PASS" if non_run_same and extra_top == ["m3_hook"] and all(x["ok"] for x in run_check) else "RED"
++json.dump({"device": "m3_make_config_hook.py", "self_sha256": sha(sys.argv[0]), "mode": mode, "base_config": {"path": base_p, "sha256": sha(base_p)},
+            "config": {"path": out_p, "sha256": sha(out_p)}, "per_run": run_check, "dropped_runs": dropped,
+-           "every_non_run_key_equal_except_labels_and_pod_root": non_run_same, "added_top_level": ["m2_hook"], "VERDICT": verdict}, open(diff_p, "w"), indent=1)
+-print("M2H_CONFIG", mode, verdict, out_p, sha(out_p))
++           "every_non_run_key_equal_except_labels_and_pod_root": non_run_same, "added_top_level": extra_top, "VERDICT": verdict}, open(diff_p, "w"), indent=1)
++print("M3H_CONFIG", mode, verdict, out_p, sha(out_p))
+ sys.exit(0 if verdict == "PASS" else 1)

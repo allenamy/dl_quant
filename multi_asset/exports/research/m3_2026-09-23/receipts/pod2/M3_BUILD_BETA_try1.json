@@ -1,0 +1,231 @@
+{
+ "device": "m3_build_beta.py",
+ "self_sha256": "d77f36065aa57b20bab08d9e9c5a071b273e6f7f3b7d2d681b0d25ee68f48299",
+ "argv": [
+  "m3_build_beta.py",
+  "PATH,HOME,LC_CTYPE",
+  "/workspace/baseline_tables_2026-09-19/RUN_CONFIG_main_A0ext_2026-09-20.json",
+  "/workspace/old_vs_new_2026-09-23/RUN_CONFIG_OVN_NEW_s42X_2026-09-23.json",
+  "/workspace/m2_btc_overlay_2026-09-23/work/targets/BETA_A0_main_M2.npz",
+  "/dev/shm/m3_2026-09-23"
+ ],
+ "env": {
+  "PATH": "/usr/bin:/bin",
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "MKL_NUM_THREADS": "1"
+ },
+ "numpy": "2.4.6",
+ "python": "3.11.10",
+ "utc_start": "2026-09-23T09:53:52Z",
+ "inputs": {
+  "price_full_raw": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r.npy",
+   "sha256": "23af32bd97c267d126c2109641815b92082b8688e35bcfbaaa1e88c2dc5bb5d8"
+  },
+  "price_full_meta": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r_meta.npz",
+   "sha256": "d1e49cc9f0a7ddc4104feb52a42da3024ba1e66ad5891a26c96f00cff7ce5d90"
+  },
+  "price_full_meta_old": {
+   "path": "/workspace/baseline_tables_2026-09-19/work/price_full_meta.npz",
+   "sha256": "f2f5382889f8c926ab2b47a81def234b1d5b7ee9cc15a86cdcfaba69416ff7b4"
+  },
+  "m2_lib": {
+   "path": "/dev/shm/m3_2026-09-23/devices/m2_lib.py",
+   "sha256": "93f8e76088ca523158df4d3ddb12f4f3239d0b75e3e0f7362ecc9ced914c8c9d"
+  },
+  "config_old": {
+   "path": "/workspace/baseline_tables_2026-09-19/RUN_CONFIG_main_A0ext_2026-09-20.json",
+   "sha256": "acafccc6b3b7a1e15ab502b92b5bd78603da1befa2d2b10bf063fc4937f9ab3b"
+  },
+  "config_new": {
+   "path": "/workspace/old_vs_new_2026-09-23/RUN_CONFIG_OVN_NEW_s42X_2026-09-23.json",
+   "sha256": "2ab5c02faec6d40b2b01ed0b5813c60ec571d95c2fa74bec0fdf253608474927"
+  },
+  "m2_beta": {
+   "path": "/workspace/m2_btc_overlay_2026-09-23/work/targets/BETA_A0_main_M2.npz",
+   "sha256": "b66afc8301af3c979bcf1764850d9c840b2df62405b6f0427f2bdd14bed6bd18"
+  }
+ },
+ "checks": [
+  {
+   "check": "pin.price_full_raw",
+   "ok": true,
+   "detail": {
+    "got": "23af32bd97c267d1",
+    "want": "23af32bd97c267d1"
+   }
+  },
+  {
+   "check": "pin.price_full_meta",
+   "ok": true,
+   "detail": {
+    "got": "d1e49cc9f0a7ddc4",
+    "want": "d1e49cc9f0a7ddc4"
+   }
+  },
+  {
+   "check": "pin.price_full_meta_old",
+   "ok": true,
+   "detail": {
+    "got": "f2f5382889f8c926",
+    "want": "f2f5382889f8c926"
+   }
+  },
+  {
+   "check": "pin.m2_lib",
+   "ok": true,
+   "detail": {
+    "got": "93f8e76088ca5231",
+    "want": "93f8e76088ca5231"
+   }
+  },
+  {
+   "check": "windows_equal_old_new",
+   "ok": true,
+   "detail": [
+    {
+     "first_anchor": "2022-06-30T00:00:00Z",
+     "last_anchor": "2026-09-18T20:00:00Z",
+     "n_anchors": 9252,
+     "full_recipe_start": "2023-06-30T04:00:00Z",
+     "full_recipe_start_rule": "object-B receipts TARGETS_<tag>.json B_CORE_start (object-B prereg \u00a74); anchors before it are PARTIAL_RECIPE (prereg \u00a71)",
+     "extension_label": "2026-08-31T04Z \u2192 2026-09-18T20Z overlaps object A / the live period: describe only (prereg \u00a74)",
+     "coverage": "full prereg window"
+    },
+    {
+     "first_anchor": "2022-06-30T00:00:00Z",
+     "last_anchor": "2026-09-18T20:00:00Z",
+     "n_anchors": 9252,
+     "full_recipe_start": "2023-06-30T04:00:00Z",
+     "full_recipe_start_rule": "object-B receipts TARGETS_<tag>.json B_CORE_start (object-B prereg \u00a74); anchors before it are PARTIAL_RECIPE (prereg \u00a71)",
+     "extension_label": "2026-08-31T04Z \u2192 2026-09-18T20Z overlaps object A / the live period: describe only (prereg \u00a74)",
+     "coverage": "full prereg window"
+    }
+   ]
+  },
+  {
+   "check": "config_old.price_pins_are_the_pinned_table",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "config_new.price_pins_are_the_pinned_table",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "axis.n_anchors",
+   "ok": true,
+   "detail": 9252
+  },
+  {
+   "check": "axis.symbols_old_eq_raw",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "grid.old_is_prefix_of_raw",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "inlife_missing_equals_gapfilled_union_UA",
+   "ok": true,
+   "detail": {
+    "inlife_nan_old": 24397,
+    "gapfilled": 21313,
+    "ua": 3084,
+    "overlap": 0
+   }
+  },
+  {
+   "check": "extension_rows_ua_and_gapfill_counted",
+   "ok": true,
+   "detail": {
+    "ua_in_extension_rows": 0,
+    "gapfilled_in_extension_rows": 0
+   }
+  },
+  {
+   "check": "price.shape",
+   "ok": true,
+   "detail": [
+    444145,
+    829
+   ]
+  },
+  {
+   "check": "price.last_4h_boundary_covers_last_anchor",
+   "ok": true,
+   "detail": {
+    "T_last": 1789776000,
+    "A_last": 1789761600
+   }
+  },
+  {
+   "check": "beta.all_finite",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "beta.btc_column_exactly_1",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "beta.within_clip",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "m2_crosscheck.shared_anchor_count",
+   "ok": false,
+   "detail": {
+    "shared": 9139,
+    "m2_anchors": 10039
+   }
+  },
+  {
+   "check": "m2_crosscheck.symbols_equal",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "m2_crosscheck.beta_bitwise_equal",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "m2_crosscheck.nobs_equal",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "m2_crosscheck.est_equal",
+   "ok": true,
+   "detail": null
+  }
+ ],
+ "outputs": {
+  "beta_npz": {
+   "path": "/dev/shm/m3_2026-09-23/work/BETA_M3_full.npz",
+   "sha256": "6dcf97824f4ba3765e5f902c9a9edbf051f3354f28d2899724998e1c2584de4d"
+  }
+ },
+ "est_share_by_year": {
+  "2022": 0.15890087916625914,
+  "2023": 0.23213642447576713,
+  "2024": 0.3456569791330218,
+  "2025": 0.5718327081646479,
+  "2026": 0.8280984491000714
+ },
+ "VERDICT": "RED",
+ "failed": [
+  "m2_crosscheck.shared_anchor_count"
+ ],
+ "runtime_s": 10.8
+}

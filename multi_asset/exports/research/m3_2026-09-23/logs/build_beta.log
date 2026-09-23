@@ -1,0 +1,27 @@
+[     2s] CHECK pin.price_full_raw OK {"got": "23af32bd97c267d1", "want": "23af32bd97c267d1"}
+[     2s] CHECK pin.price_full_meta OK {"got": "d1e49cc9f0a7ddc4", "want": "d1e49cc9f0a7ddc4"}
+[     2s] CHECK pin.price_full_meta_old OK {"got": "f2f5382889f8c926", "want": "f2f5382889f8c926"}
+[     2s] CHECK pin.m2_lib OK {"got": "93f8e76088ca5231", "want": "93f8e76088ca5231"}
+[     2s] CHECK windows_equal_old_new OK [{"first_anchor": "2022-06-30T00:00:00Z", "last_anchor": "2026-09-18T20:00:00Z", "n_anchors": 9252, "full_recipe_start": "2023-06-30T04:00:00Z", "full_recipe_start_rule": "object-B receipts TARGETS_<tag>.json B_CORE_start (object-B prereg \u00a74); anchors before it are PARTIAL_RECIPE (prereg \u00a7
+[     2s] CHECK config_old.price_pins_are_the_pinned_table OK 
+[     2s] CHECK config_new.price_pins_are_the_pinned_table OK 
+[     2s] CHECK axis.n_anchors OK 9252
+[     2s] CHECK axis.symbols_old_eq_raw OK 
+[     2s] CHECK grid.old_is_prefix_of_raw OK 
+[     2s] CHECK inlife_missing_equals_gapfilled_union_UA OK {"inlife_nan_old": 24397, "gapfilled": 21313, "ua": 3084, "overlap": 0}
+[     2s] CHECK extension_rows_ua_and_gapfill_counted OK {"ua_in_extension_rows": 0, "gapfilled_in_extension_rows": 0}
+[     2s] CHECK price.shape OK [444145, 829]
+[     2s] bars_4h ...
+[     2s] CHECK price.last_4h_boundary_covers_last_anchor OK {"T_last": 1789776000, "A_last": 1789761600}
+[     2s] bars 9254 valid cells 3416090
+[     7s] betas done
+[     7s] CHECK beta.all_finite OK 
+[     7s] CHECK beta.btc_column_exactly_1 OK 
+[     7s] CHECK beta.within_clip OK 
+[     7s] CHECK m2_crosscheck.shared_anchor_count OK {"shared": 9139, "m2_anchors": 10039, "m2_unshared_all_before_first_anchor": true, "n_unshared": 900}
+[     7s] CHECK m2_crosscheck.symbols_equal OK 
+[     7s] CHECK m2_crosscheck.beta_bitwise_equal OK 
+[     7s] CHECK m2_crosscheck.nobs_equal OK 
+[     7s] CHECK m2_crosscheck.est_equal OK 
+M3_BUILD_BETA VERDICT=PASS beta_sha256=6dcf97824f4ba3765e5f902c9a9edbf051f3354f28d2899724998e1c2584de4d receipt_sha256=d561ff8f67818e5349e3e6d2598dca81e1ca57cb5f8de358f40c1264e5947b85
+EXIT 0
