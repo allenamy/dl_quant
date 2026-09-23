@@ -1,0 +1,105 @@
+diff --git a/live/tests_anchor_report_builder.py b/live/tests_anchor_report_builder.py
+index 42b3bc3..a87a7fd 100644
+--- a/live/tests_anchor_report_builder.py
++++ b/live/tests_anchor_report_builder.py
+@@ -24,7 +24,10 @@ ASSERTED HERE:
+   [P4] the builder reads no network (urlopen raises for the whole of [P]).
+ 
+ NOT asserted: the Telegram transport; whether the trailing band is the right POLICY (the template owner decides levels);
+-the daemon/shadow/combo checks, which are unchanged text over unchanged inputs.
++the shadow/combo checks, which are unchanged text over unchanged inputs.
++  [P5] (quant_research DESIGN_producer_new_contract §A7-5) the producer-daemon check follows config external_book.producer_contract:
++       legacy (key missing / null / "legacy") requires prod + sidecar + combo; nc_v1 requires prod + combo and warns when the
++       sidecar runs; an unknown value is a named warning checked as legacy.
+ Exit 0 = all pass.
+ """
+ import gzip
+@@ -244,6 +247,26 @@ else:
+     check("P3c missing funding file: previous slot holding ⇒ warn (持仓中); unknown ⇒ warn (未知); flat ⇒ no warn",
+           fw(f_hold) == ["funding.jsonl 缺(结算时持仓中)"] and fw(f_unk) == ["funding.jsonl 缺(上一锚持仓未知)"]
+           and fw(f_flat) == [], (fw(f_hold), fw(f_unk), fw(f_flat)))
++    # [P5] producer daemons by external_book.producer_contract (quant_research DESIGN_producer_new_contract §A7-5, lead 2026-09-23)
++    P_ = "/x/venv/bin/python shadow_loop_v3.py run"; S_ = "/bin/bash /x/fea171/sidecar_daemon.sh"; C_ = "/bin/bash /x/fea171/combo_live_daemon.sh"
++    def _dm(ps, **k):
++        _, r = AR.build_report(A12, anchor_row=row, orders=O, history=base, **dict(kw, ps_text="\n".join(ps), **k))
++        return [w for w in r["warn"] if "守护" in w or "侧车" in w or "producer_contract" in w], [l for l in r["lines"] if "守护" in l or "侧车" in l]
++    w_all_leg, l_all_leg = _dm([P_, S_, C_], producer_contract=None)
++    w_nosc_leg, _ = _dm([P_, C_], producer_contract=None)
++    w_nosc_leg_key, _ = _dm([P_, C_], producer_contract="legacy")
++    w_nosc_missing, _ = _dm([P_, C_])                                        # key missing: the builder's default
++    check("P5a legacy (null / 'legacy' / key missing): all three running ⇒ '守护 3/3', no warning; sidecar absent ⇒ '守护缺 sidecar' in all three spellings",
++          w_all_leg == [] and l_all_leg == ["守护 3/3"] and w_nosc_leg == ["守护缺 sidecar"] and w_nosc_leg_key == ["守护缺 sidecar"]
++          and w_nosc_missing == ["守护缺 sidecar"], (w_all_leg, l_all_leg, w_nosc_leg, w_nosc_leg_key, w_nosc_missing))
++    w_nc, l_nc = _dm([P_, C_], producer_contract="nc_v1")
++    w_nc_sc, _ = _dm([P_, S_, C_], producer_contract="nc_v1")
++    w_nc_nocombo, _ = _dm([P_], producer_contract="nc_v1")
++    check("P5b nc_v1: prod + combo running, sidecar absent ⇒ '守护 2/2', no warning; sidecar running ⇒ warns; combo missing ⇒ '守护缺 combo'",
++          w_nc == [] and l_nc == ["守护 2/2"] and len(w_nc_sc) == 1 and "侧车在跑" in w_nc_sc[0] and w_nc_nocombo == ["守护缺 combo"],
++          (w_nc, l_nc, w_nc_sc, w_nc_nocombo))
++    w_unk, _ = _dm([P_, S_, C_], producer_contract="nc_v2")
++    check("P5c unknown producer_contract ⇒ named warning, checked as legacy", len(w_unk) == 1 and "未知值" in w_unk[0], w_unk)
+     check("P4 no cell above touched the network (urlopen raises in this process)", True)
+ 
+ shutil.rmtree(TMP, ignore_errors=True)
+diff --git a/ops/anchor_report.py b/ops/anchor_report.py
+index 200f2c1..f05bc4e 100644
+--- a/ops/anchor_report.py
++++ b/ops/anchor_report.py
+@@ -118,18 +118,39 @@ def _pct(x, nd=0):
+     return "n/a" if x is None else f"{x * 100:.{nd}f}%"
+ 
+ 
++# Producer daemons the report expects, by the producer contract named in config/book.json external_book.producer_contract
++# (quant_research DESIGN_producer_new_contract §A7-5, lead 2026-09-23): the NC producer release stops and disables the sidecar (it
++# overwrote the F10 chain state with old-contract features) — under "nc_v1" the sidecar is REQUIRED ABSENT and its presence is a warning;
++# key missing / null / "legacy" = the three daemons of before. The key moves with the model pins, so a rollback of the executor
++# config restores the old expectation in the same commit. An unknown value is itself a warning and is checked as legacy.
++PRODUCER_DAEMONS = {"prod": "shadow_loop_v3.py run", "sidecar": "sidecar_daemon.sh", "combo": "combo_live_daemon.sh"}
++DAEMON_CONTRACTS = {"legacy": (("prod", "sidecar", "combo"), ()), "nc_v1": (("prod", "combo"), ("sidecar",))}
++
++
++def daemon_check(ps_text, producer_contract):
++    """(line, warnings) for the producer daemons under the named contract. PURE."""
++    warn = []
++    key = "legacy" if producer_contract in (None, "legacy") else producer_contract
++    if key not in DAEMON_CONTRACTS:
++        warn.append(f"producer_contract 未知值 {producer_contract!r}(按 legacy 检查)"); key = "legacy"
++    required, forbidden = DAEMON_CONTRACTS[key]
++    running = lambda tag: sum(1 for l in (ps_text or "").splitlines() if PRODUCER_DAEMONS[tag] in l and "grep" not in l) >= 1   # noqa: E731
++    miss = [f"守护缺 {t}" for t in required if not running(t)]
++    extra = [f"侧车在跑(producer_contract={key} 下应已停用)" if t == "sidecar" else f"{t} 在跑(应已停用)" for t in forbidden if running(t)]
++    warn += miss + extra
++    line = f"守护 {len(required)}/{len(required)}" if not (miss or extra) else "; ".join(miss + extra)
++    return line, warn
++
++
+ def build_report(A, *, ps_text, shadow_row, combo_status, target_combo, anchor_row, orders, prev_row,
+-                 funding_rows, twin_line, history, drift=None):
++                 funding_rows, twin_line, history, drift=None, producer_contract=None):
+     """(text, record) for anchor slot A from already-gathered inputs. PURE — no file, network or clock read."""
+     hh = time.strftime("%m-%d %H:%MZ", time.gmtime(A))
+     L = [f"锚 {hh} 排查(常驻器)"]
+     warn = []
+-    miss = []
+-    for tag, pat in (("prod", "shadow_loop_v3.py run"), ("sidecar", "sidecar_daemon.sh"), ("combo", "combo_live_daemon.sh")):
+-        if sum(1 for l in (ps_text or "").splitlines() if pat in l and "grep" not in l) < 1:
+-            miss.append(f"守护缺 {tag}")
+-    warn += miss
+-    L.append("守护 3/3" if not miss else "; ".join(miss))
++    _dl, _dw = daemon_check(ps_text, producer_contract)
++    warn += _dw
++    L.append(_dl)
+     sh = shadow_row
+     if isinstance(sh, Exception):
+         warn.append(f"shadow读失败 {sh}")
+@@ -242,6 +263,10 @@ def gather(A):
+     day = time.strftime("%Y%m%d", time.gmtime(A))
+     g = {}
+     g["ps_text"] = subprocess.run(["/bin/ps", "axww"], capture_output=True, text=True).stdout
++    try:
++        g["producer_contract"] = (json.load(open(os.path.join(REPO, "config", "book.json"))).get("external_book") or {}).get("producer_contract")
++    except Exception:
++        g["producer_contract"] = None                                     # unreadable config: the legacy expectation (the loop itself refuses such a config)
+     try:
+         sh = None
+         for l in open(f"{WS}/shadow_log.jsonl"):
