@@ -1,0 +1,20 @@
+--- ../../m3_2026-09-23/devices/m3_readout.py	2026-09-23 17:52:43
++++ m3_readout.py	2026-09-23 18:48:38
+@@ -1,5 +1,7 @@
+ #!/usr/bin/env python3
+-"""m3_readout.py — M3 criteria R1–R3 (gates) and R4 (report only) on ONE base, per the definitions FROZEN in m3_rules.py (committed before any
++"""m3_readout.py — ★ M3b copy: identical to the M3 readout (e60dae8b) except that the in-path report counts cause 7 ('applied_via_combined')
++as applied (diff receipts/M3B_READOUT_vs_M3.diff). R4's control arm may be M3's zero-hedge control (bitwise the base for all 32 seeds).
++M3 text: M3 criteria R1–R3 (gates) and R4 (report only) on ONE base, per the definitions FROZEN in m3_rules.py (committed before any
+ M3 number). Inputs: the base's 32 certified paths, the M3 overlay's 32 paths, the zero-hedge control's 32 paths + its bitwise-comparison
+ receipt (must be BITWISE_EQUAL for all 32 seeds, else R4's cost attribution is UNAVAILABLE — named, not zero), both arms' sidecars, the flat-book
+ npz (R3).
+@@ -124,7 +126,7 @@
+         cause.append(S["cause"][m]); intended.append(S["add_intended"][m] / S["gs"][m]); applied.append(S["add_applied"][m] / S["gs"][m])
+         post.append((S["pos_beta"] + S["plan_beta"])[m]); btcsk.append(S["btc_plan_skip"][m])
+     cause = np.concatenate(cause); intended = np.concatenate(intended); applied = np.concatenate(applied); post = np.concatenate(post); btcsk = np.concatenate(btcsk)
+-    ap = cause == H.CAUSE["applied"]
++    ap = np.isin(cause, H.APPLIED)                     # M3b: 'applied' and 'applied_via_combined' both deliver the hedge
+     ip[w] = {"trading_anchor_records": int(len(cause)), "cause_counts": {cn[int(c)]: int(np.sum(cause == c)) for c in np.unique(cause)},
+              "delivered_share_at_target (Σ applied·sign(intended) / Σ|intended|)": float((applied * np.sign(intended)).sum() / np.abs(intended).sum()),
+              "intended_hedge_over_gs": RU.dist(intended), "planned_post_trade_book_beta_applied_anchors": RU.dist(post[ap]),

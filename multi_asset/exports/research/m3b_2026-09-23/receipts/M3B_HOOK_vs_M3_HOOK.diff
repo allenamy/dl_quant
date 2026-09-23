@@ -1,0 +1,131 @@
+--- ../../m3_2026-09-23/devices/m3_hook.py	2026-09-23 17:55:55
++++ m3_hook.py	2026-09-23 18:47:49
+@@ -1,7 +1,25 @@
+ #!/usr/bin/env python3
+-"""m3_hook.py — M3 (prereg docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md, commit 24c3f803f): the BTC-beta overlay leg with the
+-book beta computed on the EXECUTED target (after the executor's POP → RESHAPE → CLAMP) instead of on the published target.
++"""m3_hook.py — ★ M3b VARIANT (docs/AMENDMENT_1_m3_beta_overlay_2026-09-23.md, commit 912788743) of the M3 hook (prereg
++docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md, 24c3f803f). Diff vs the M3 hook (sha db05d136): receipts/M3B_HOOK_vs_M3_HOOK.diff.
++M3b's ONLY change (the amendment's "唯一改动"): BTC's COMBINED target = base BTC target + hedge leg, and the executor's dust (2 × min-notional)
++judgement is applied to the COMBINED target, not to the base BTC target alone. Operationally, at an anchor that reaches the reshape:
++  * BTC is "dust-only untradable" iff it is in the call's untradable set, NOT in force_flat (per-name stop), W24H-tradable, not in the meta
++    set, not in cooldown (per_name_stop.active_sets at t_dec), not a held-exit name (held but absent from the published target), and its
++    PRE-reshape base target is below 2 × min_notional (EXT.below_min_notional, the executor's own function) — i.e. dust is the only reason;
++  * the certified reshape runs exactly as in the base (BTC popped if unheld, clamped if held; every other name bitwise the base's);
++  * β_exec and the hedge −β_exec·Gs are computed exactly as in M3 (on the executed target, BTC's executed base value included);
++  * combined = executed base BTC value + hedge; if EXT.below_min_notional says the combined value is NOT dust ⇒ target[BTC] = combined and BTC
++    is released from the clamp's reduce-only lists (reduced / add_blocked / flatten_only / popped) so plan() may trade it both ways
++    (cause 'applied_via_combined'); if the combined value is still dust ⇒ nothing is touched (cause 'btc_combined_dust');
++  * every other untradability reason of BTC (venue, stop, cooldown, meta, held-exit) is a NAME-level fact the combined size cannot change ⇒
++    skipped exactly as in M3; a tradable BTC is hedged exactly as in M3 (a combined value below 2 × min-notional there is only COUNTED,
++    'm3h_combined_below_2floor_tradable_branch', never acted on — M3's behaviour unchanged in that branch);
++  * control mode touches neither the target nor the clamp lists (zero-hedge control ⇒ bitwise the base).
++Everything below this paragraph is the M3 hook's text, unchanged except where M3b adds the two causes, two record fields and the branch.
+ 
++M3 (original description): the BTC-beta overlay leg with the book beta computed on the EXECUTED target (after the executor's POP → RESHAPE →
++CLAMP) instead of on the published target.
++
+ DERIVED FROM m2_hook.py (M2 route H; docs/RESULT_m2_btc_overlay_2026-09-23.md, ac9a7274a; device sha e6e755ea). The diff is committed as
+ receipts/M3_HOOK_vs_M2_HOOK.diff. What changed, and nothing else:
+   (1) THE BETA OBJECT. M2 read a precomputed per-anchor hedge h(A) = −β_book(published target)/Σ|w| from a table. M3 computes it at run
+@@ -43,11 +61,14 @@
+ BTC = "BTCUSDT"
+ MODES = ("overlay", "control")
+ CAUSE = {"applied": 0, "zero_hedge": 1, "btc_force_flat": 2, "btc_not_w24h_tradable": 3, "btc_dust": 4, "btc_untradable_other": 5,
+-         "empty_target": 6}
++         "empty_target": 6, "applied_via_combined": 7, "btc_combined_dust": 8}          # 7, 8: M3b
++APPLIED = (0, 7)                                                                          # M3b: both deliver the hedge
++VARIANT = "M3b"
+ PLAN_SKIP = {"planned": 0, "no_plan_row": 1, "ua_frozen": 2, "skipped_min_notional": 3, "skipped_no_mid": 4, "other_skip": 9}
+ TKIND = {"first": 1, "later": 2, "flatten": 3, "exit_completion": 4}
+ REC_FIELDS = ("A", "gs", "beta_pre", "beta_exec", "net_exec", "gross_exec", "n_target", "add_intended", "add_applied", "btc_before",
+-              "btc_after", "cause", "btc_held_notional", "beta_after", "pos_beta", "plan_beta", "btc_plan_notional", "btc_plan_skip", "n_plans")
++              "btc_after", "cause", "btc_held_notional", "beta_after", "pos_beta", "plan_beta", "btc_plan_notional", "btc_plan_skip", "n_plans",
++              "btc_dust_only", "btc_released", "combined_small")                          # last three: M3b
+ 
+ 
+ class M3Error(Exception):
+@@ -93,14 +114,18 @@
+     return b, net, gro
+ 
+ 
+-def apply_overlay(target, untradable, force_flat, gs, brow, col, mode, btc_subcause=None):
++def apply_overlay(target, untradable, force_flat, gs, brow, col, mode, btc_subcause=None, btc_dust_only=False, is_dust=None):
+     """formula §2 steps 1–4 on the EXECUTED target (the dict the certified reshape just returned in place). overlay ⇒ mutates target[BTC];
+     control ⇒ never touches target. btc_subcause(): called only when BTC is untradable, returns one of the btc_* cause names.
+-    Returns the per-anchor record (no NaN except β_exec on an empty target)."""
++    Returns the per-anchor record (no NaN except β_exec on an empty target).
++    M3b: btc_dust_only = BTC is untradable ONLY because its base target is dust; is_dust(v) = the executor's dust test on a BTC notional v.
++    Then the combined value (executed base BTC + hedge) decides: not dust ⇒ 'applied_via_combined', dust ⇒ 'btc_combined_dust'."""
++    if btc_dust_only and is_dust is None: raise M3Error("btc_dust_only needs is_dust")
+     if mode not in MODES: raise M3Error(f"mode {mode!r}")
+     gs = float(gs)
+     if not (gs > 0): raise M3Error(f"sizing gross must be > 0, got {gs}")
+-    rec = {"gs": gs, "n_target": len(target), "btc_before": float(target.get(BTC, 0.0)), "add_applied": 0.0}
++    rec = {"gs": gs, "n_target": len(target), "btc_before": float(target.get(BTC, 0.0)), "add_applied": 0.0,
++           "btc_dust_only": 1.0 if btc_dust_only else 0.0, "combined_small": 0.0}
+     if not target:
+         rec.update(beta_exec=float("nan"), net_exec=0.0, gross_exec=0.0, add_intended=0.0, cause=CAUSE["empty_target"], btc_after=0.0, beta_after=float("nan"))
+         return rec
+@@ -110,11 +135,16 @@
+     ut = set(untradable); ff = set(force_flat or ())
+     if add == 0.0:                                              # M2 order: a zero hedge touches nothing
+         cause = "zero_hedge"
+-    elif BTC in ut or BTC in ff:                                # M2 rule, verbatim: the executor has decided BTC may not be opened / must flatten
+-        cause = "btc_force_flat" if BTC in ff else (btc_subcause() if btc_subcause is not None else "btc_untradable_other")
++    elif BTC in ff:                                             # M2 rule, verbatim: a per-name stop forces BTC flat
++        cause = "btc_force_flat"
++    elif BTC in ut and btc_dust_only:                           # ★ M3b: dust is judged on the COMBINED target
++        cause = "btc_combined_dust" if is_dust(rec["btc_before"] + add) else "applied_via_combined"
++    elif BTC in ut:                                             # M2 rule, verbatim: a name-level reason the size cannot change
++        cause = btc_subcause() if btc_subcause is not None else "btc_untradable_other"
+     else:
+         cause = "applied"
+-    if mode == "overlay" and cause == "applied":
++        if is_dust is not None and is_dust(rec["btc_before"] + add): rec["combined_small"] = 1.0     # counted only (M3 behaviour kept)
++    if mode == "overlay" and cause in ("applied", "applied_via_combined"):
+         target[BTC] = rec["btc_before"] + add
+         rec["add_applied"] = add
+     rec["cause"] = CAUSE[cause]
+@@ -169,15 +199,39 @@
+                     if abs(float(pre.get(BTC, 0.0))) < mult * fl: return "btc_dust"
+                     return "btc_untradable_other"
+ 
+-                r = apply_overlay(target, untradable, kw.get("force_flat") or (), gs, brow, beta.col, self.m3_mode, subcause)
++                # ★ M3b: is dust the ONLY reason BTC is untradable? (every other reason is re-derived from the same state exec_sim used)
++                ut = set(untradable); ff = set(kw.get("force_flat") or ())
++                fl = self.floor_of(BTC); mult = float(self.X0.ext_cfg["min_notional_mult"])
++
++                def is_dust(v):
++                    return BTC in self.X0.EXT.below_min_notional({BTC: float(v)}, {BTC: fl}, mult)["names"]
++                dust_only = False
++                if BTC in ut and BTC not in ff:
++                    c_ = self.cfg[A]
++                    held_btc = abs(float((held or {}).get(BTC, 0.0) or 0.0)) > 1e-9
++                    held_exit = held_btc and float(pre.get(BTC, 0.0)) == 0.0
++                    venue = c_["tradable"] is not None and BTC not in c_["tradable"]
++                    meta = BTC in (c_["meta"] or set())
++                    cool = BTC in self.X0.PNS.active_sets(self.pns, float(c_["t_dec"]))["cooldown"]
++                    dust_only = is_dust(pre.get(BTC, 0.0)) and not (venue or meta or cool or held_exit)
++                r = apply_overlay(target, untradable, kw.get("force_flat") or (), gs, brow, beta.col, self.m3_mode, subcause, dust_only, is_dust)
++                released = 0.0
++                if self.m3_mode == "overlay" and r["cause"] == CAUSE["applied_via_combined"]:
++                    clamp = out[0]                                                # the dict exec_sim reads its reduce-only set from
++                    for k_ in ("reduced", "add_blocked", "flatten_only", "popped"):
++                        if BTC in (clamp.get(k_) or []):
++                            clamp[k_] = [s_ for s_ in clamp[k_] if s_ != BTC]; released = 1.0
++                r.update(btc_released=released)
+                 r.update(A=A, beta_pre=beta_pre, btc_held_notional=float((held or {}).get(BTC, 0.0)),
+                          pos_beta=book_beta(held, gs, brow, beta.col)[0] if held else 0.0,
+                          plan_beta=float("nan"), btc_plan_notional=float("nan"), btc_plan_skip=PLAN_SKIP["no_plan_row"], n_plans=0)
+                 self._m3_cur = r
+                 c = r["cause"]; d = self.diag
+                 d["m3h_calls"] += 1
+-                if c == CAUSE["applied"]:
++                if c in APPLIED:
+                     d["m3h_hedge_computed_and_allowed"] += 1
++                    if c == CAUSE["applied_via_combined"]: d["m3h_applied_via_combined"] += 1
++                    if r["combined_small"]: d["m3h_combined_below_2floor_tradable_branch"] += 1
+                     if self.m3_mode == "overlay": d["m3h_applied"] += 1; d["m3h_abs_applied_over_gs_sum"] += abs(r["add_applied"]) / gs
+                 elif c == CAUSE["empty_target"]: d["m3h_empty_target"] += 1
+                 elif c == CAUSE["zero_hedge"]: d["m3h_zero_hedge"] += 1

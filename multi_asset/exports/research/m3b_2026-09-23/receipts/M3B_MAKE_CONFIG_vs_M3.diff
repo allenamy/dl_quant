@@ -1,0 +1,56 @@
+--- ../../m3_2026-09-23/devices/m3_make_config_hook.py	2026-09-23 17:55:55
++++ m3_make_config_hook.py	2026-09-23 18:48:07
+@@ -1,5 +1,7 @@
+ #!/usr/bin/env python3
+-"""m3_make_config_hook.py — run configuration for M3 (m3_hook.py), derived from a FROZEN base config. DERIVED FROM m2_make_config_hook.py
++"""m3_make_config_hook.py — ★ M3b copy (docs/AMENDMENT_1_m3_beta_overlay_2026-09-23.md, 912788743): labels M3BH / M3BH0, output root, the
++amendment pinned in the m3_hook block; nothing else differs from the M3 config maker (diff receipts/M3B_MAKE_CONFIG_vs_M3.diff).
++M3 text: run configuration for M3 (m3_hook.py), derived from a FROZEN base config. DERIVED FROM m2_make_config_hook.py
+ (diff: receipts/M3_MAKE_CONFIG_vs_M2.diff). Base configs (the ones Stage 1 read the two bases from, both covering 2022-06-30T00Z →
+ 2026-09-18T20Z, 9,252 anchors):
+   OLD     = the certified /workspace/baseline_tables_2026-09-19/RUN_CONFIG_main_A0ext_2026-09-20.json (Stage 1's OLD extension run
+@@ -12,7 +14,7 @@
+                    which is what the hook reads; the certified A0ext run has arm 'OBJB_A0' but tag 'OBJB_A0X|…')
+   mode 'control' : '<T>M3H0' / '<A>M3H0', m3_hook.arms = {'<T>M3H0': 'control'} (computes and records, never touches the target;
+                    must reproduce the base paths bitwise)
+-usage: python m3_make_config_hook.py <base_config> <mode> <hook_device> <beta_npz> <prereg_md> <out_config> <diff_receipt> <pod_root>
++usage: python m3_make_config_hook.py <base_config> <mode> <hook_device> <beta_npz> <prereg_md> <amendment_md> <out_config> <diff_receipt> <pod_root>
+ """
+ import json, sys, time, hashlib, copy
+ 
+@@ -35,13 +37,13 @@
+     return out
+ 
+ 
+-base_p, mode, hook_p, beta_p, prereg_p, out_p, diff_p, pod_root = sys.argv[1:9]
++base_p, mode, hook_p, beta_p, prereg_p, amend_p, out_p, diff_p, pod_root = sys.argv[1:10]
+ assert mode in ("overlay", "control")
+-sfx = "M3H" if mode == "overlay" else "M3H0"
++sfx = "M3BH" if mode == "overlay" else "M3BH0"
+ B = json.load(open(base_p)); C = copy.deepcopy(B)
+-C["config"] = B["config"] + f"__{sfx}_btc_overlay_executed_beta_2026-09-23"
+-C["status"] = ("FROZEN before any M3 number — M3 BTC overlay with beta on the EXECUTED target (m3_hook.py, derived from M2 route H) of prereg "
+-               "docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md (24c3f803f)")
++C["config"] = B["config"] + f"__{sfx}_btc_overlay_executed_beta_combined_dust_2026-09-23"
++C["status"] = ("FROZEN before any M3b number — M3b = M3 BTC overlay (beta on the EXECUTED target) with the dust judgement on the COMBINED BTC "
++               "target, docs/AMENDMENT_1_m3_beta_overlay_2026-09-23.md (912788743) of prereg docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md (24c3f803f)")
+ C["created_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+ C["paths"]["pod_root"] = pod_root
+ kept, dropped = [], []
+@@ -50,13 +52,15 @@
+         dropped.append(r["tag"]); continue
+     r2 = copy.deepcopy(r); a0 = r["arm"]; t0, rest = r["tag"].split("|", 1)
+     r2["arm"] = a0 + sfx; r2["tag"] = t0 + sfx + "|" + rest          # the tag PREFIX is what the hook keys on (A0ext: arm 'OBJB_A0', tag 'OBJB_A0X|…')
+-    r2["role"] = ("M3 overlay (beta on the executed target) via executor hook: " if mode == "overlay" else "M3 zero-hedge hook control: ") + r["role"]
++    r2["role"] = ("M3b overlay (beta on the executed target, dust on the combined BTC target) via executor hook: " if mode == "overlay"
++                  else "M3b zero-hedge hook control: ") + r["role"]
+     kept.append(r2)
+ assert len(kept) == 1, [r["tag"] for r in kept]
+ C["runs"] = kept
+ arm = kept[0]["tag"].split("|")[0]                                     # m3_hook.arms is keyed by the run TAG's prefix (m3_hook.py reads tag.split('|')[0])
+ C["m3_hook"] = {"device": hook_p, "device_sha256": sha(hook_p), "mode": mode, "beta": {"npz": beta_p, "sha256": sha(beta_p)}, "arms": {arm: mode},
+                 "prereg": {"path": "docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md", "commit": "24c3f803f", "sha256": sha(prereg_p)},
++                "amendment": {"path": "docs/AMENDMENT_1_m3_beta_overlay_2026-09-23.md", "commit": "912788743", "sha256": sha(amend_p)}, "variant": "M3b",
+                 "derived_from": "m2_make_config_hook.py (M2 route H)", "base_config": {"path": base_p, "sha256": sha(base_p)}, "dropped_runs": dropped}
+ json.dump(C, open(out_p, "w"), indent=1)
+ FB, FC = flat(B), flat(C)

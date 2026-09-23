@@ -1,0 +1,20 @@
+--- ../../m3_2026-09-23/devices/m3_render.py	2026-09-23 18:06:18
++++ m3_render.py	2026-09-23 18:48:38
+@@ -15,11 +15,12 @@
+ 
+ 
+ feas_p, *ro_ps = sys.argv[1:]
+-F = json.load(open(feas_p))
+-print(f"<!-- from {feas_p.split('/')[-1]} sha {sha(feas_p)[:16]} -->")
+-print("### 可行性三行(先于任何 M3 NAV;提交 14891549c)\n")
+-print("| 底座 | (a) 2026 窗日 β 标准误 NW / 经典(n 日) | 带半宽 0.10 ÷ SE(NW) | 底座已实现日 β | (b) 平书交付 D / 中位比(主窗) | (b) 辅助窗 D / 中位比 | (c) 事前执行书 β 平书 / 在路径 seed0 | 发布目标层 β |")
+-print("|---|---|---|---|---|---|---|---|")
++F = json.load(open(feas_p)) if feas_p != "-" else {"bases": {}}           # M3b: no feasibility receipt ⇒ "-"
++if feas_p != "-":
++    print(f"<!-- from {feas_p.split('/')[-1]} sha {sha(feas_p)[:16]} -->")
++    print("### 可行性三行(先于任何 M3 NAV;提交 14891549c)\n")
++    print("| 底座 | (a) 2026 窗日 β 标准误 NW / 经典(n 日) | 带半宽 0.10 ÷ SE(NW) | 底座已实现日 β | (b) 平书交付 D / 中位比(主窗) | (b) 辅助窗 D / 中位比 | (c) 事前执行书 β 平书 / 在路径 seed0 | 发布目标层 β |")
++    print("|---|---|---|---|---|---|---|---|")
+ for b, o in F["bases"].items():
+     a = o["a_resolution"]; bb = o["b_delivery_flat_book"]; ks = list(bb); m, x = bb[ks[0]]["R3"], bb[ks[1]]["R3"]; c = o["c_phenomenon"]
+     print(f"| {b} | {a['se_newey_west_lag5']:.3f} / {a['se_classical']:.3f} ({a['n_days']}) | {a['band_half_width_over_se_nw']:.2f} | {f(a['base_realised_daily_beta'])} | "
