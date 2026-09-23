@@ -12,10 +12,13 @@ export NPY_DISABLE_CPU_FEATURES="X86_V4 AVX512_ICL AVX512_SPR"
 step() { echo "$(date -u +%H:%M:%S) START $1" >> $L/chain.log; }
 done_() { echo "$(date -u +%H:%M:%S) DONE $1" >> $L/chain.log; }
 cd $D
-# 0. the GPU rule (PREREG §6): do not touch the GPU until NEW_S's chain has logged DONE f10
-step wait_news_f10
-while ! grep -q "DONE f10" $N/logs/chain.log; do sleep 60; done
-done_ wait_news_f10
+# 0. two gates, BOTH required before the GPU step:
+#    (a) PREREG §6: do not touch the GPU until NEW_S's chain has logged DONE f10;
+#    (b) this arm's own legs must exist — fresh_train_f10.py consumes work/legs.npz and receipts/P3_LEGS.json,
+#        so starting on (a) alone would run the trainer against a missing input.
+step wait_news_f10_and_own_legs
+while ! grep -q "DONE f10" $N/logs/chain.log || [ ! -f $W/receipts/P3_LEGS.json ] || [ ! -f $W/work/legs.npz ]; do sleep 30; done
+done_ wait_news_f10_and_own_legs
 # 1. F10: both seeds concurrently, same interpreter/torch as NEW_S; refuse if someone else is on the GPU
 step f10
 if [ -n "$(nvidia-smi --query-compute-apps=pid --format=csv,noheader,nounits)" ]; then echo "GPU busy: refuse" >> $L/chain.log; exit 7; fi

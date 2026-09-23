@@ -1,0 +1,50 @@
+{
+ "status": "PRODUCTION_CALIBER_LEGS_NOT_CASH_PNL",
+ "output": "/dev/shm/fresh_2026-09-23/work/legs.npz",
+ "sha256": "486dfe3765c5ef37adb6270b7c1642305bf0d6b1da9d1930b0963e8249f524d8",
+ "ready": 9247,
+ "not_ready": 1086,
+ "not_ready_reasons": {
+  "UNAVAILABLE": "the per-reason counter lived only in the fresh_legs.py process, which died on its receipt line (FileNotFoundError on the shared rolling cache path, deleted by NEW_S's chain at 2026-09-23T14:19:10Z). Diagnostic only: no downstream device reads this field. NOT replaced by {} or by zeros."
+ },
+ "leg_returns": 9246,
+ "first_ready": 1656633600,
+ "inputs": {
+  "features": "a490c294d90e0cdb2bb1dca503f3468dc1a4384396e3f7bae3e3020e161f79ac",
+  "king_oof": "4345541e4450b24a0bdf59c11219f2e5dda4476fa6f934f2d6a0569fd7b21951",
+  "fund_replay": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4",
+  "rolling_cache_npy": {
+   "path_at_run_time": "/dev/shm/news_2026-09-23/work/cache_x0918r_data.npy",
+   "sha256": "07f6f6d301666ed726e0f551a2b089ae9a755271978e45b343f893b8c02b89f7",
+   "size_bytes": 5755844950,
+   "how_measured": "sha256 of /proc/2285481/fd/9 \u2014 the still-open descriptor of the unlinked inode the run was reading, captured at 2026-09-23T14:22Z before the process exited",
+   "source_pin": {
+    "cache_npz_sha": "08bb295745e6df84cb42574ef073dc54817a19ad7754bf6319cfcb30bd9baa75",
+    "from": "/dev/shm/news_2026-09-23/receipts/P2B_FEATURES.json inputs.cache_npz_sha (NEW_S's own pin of the npz this npy was extracted from)"
+   },
+   "rows_in_axes": 495937,
+   "width": 829,
+   "size_implied_by_axes_approx": 5755844950
+  },
+  "cache_axes": "49c6451e11ad4520898c9bd5b082fadee0e9e39cc0143315d4a23d13d6588180"
+ },
+ "source_sha": {
+  "/dev/shm/fresh_2026-09-23/devices/fresh_legs.py": "97077d7e890223a966ed190ff4a1d6ffe7741ed333a2a4be94046756bf3fe776",
+  "/dev/shm/fresh_2026-09-23/devices/news_hist_features.py": "97a695d3c7ec7ae5fbfe0c81413a91a371e93dfbe3c8fdc3ae6e732a35191690"
+ },
+ "receipt_completed_by": {
+  "device": "fresh_legs_receipt.py",
+  "self_sha256": "c03c8652da126703901c8502fba4195ce374dd6ff3d44f45f071e1eaf2dab6d9",
+  "utc": "2026-09-23T14:28:16Z",
+  "why": "fresh_legs.py wrote work/legs.npz and then died building its receipt: it hashes the shared rolling cache BY PATH, and NEW_S's chain removed that path mid-run. legs.npz is unaffected (mmap keeps the unlinked inode). Every field above is measured from legs.npz / the input files / the captured descriptor; nothing is transcribed from the dead process."
+ },
+ "producer": {
+  "/dev/shm/news_2026-09-23/producer/shadow_loop_v3.py": "6080073964bffc621c893915b16f71ecafe093194f0b99a66a4463ee12c74e61"
+ },
+ "prereg": {
+  "path": "docs/PREREG_fresh_models_newS_2026-09-23.md",
+  "commit": "b6e682e0a"
+ },
+ "fresh_note": "identical to news_legs.py except the roots; King OOF is FRESH's monthly-fold OOF (PREREG \u00a71 K/E)",
+ "seconds": "UNAVAILABLE (the timer lived in the crashed process); wall clock of the run: 13:22:0xZ start, ~14:2xZ end, see logs/chain_legs.log"
+}
