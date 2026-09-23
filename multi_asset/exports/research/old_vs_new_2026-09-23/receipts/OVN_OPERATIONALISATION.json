@@ -1,0 +1,86 @@
+{
+ "doc": "OVN_OPERATIONALISATION",
+ "written_utc": "2026-09-23T06:00:00Z",
+ "status": "WRITTEN BEFORE ANY NAV / RETURN NUMBER OF THIS COMPARISON EXISTS (no OVN run launched, no OLD-vs-NEW daily series computed). It does not change any criterion of the prereg; it pins the choices the prereg leaves implicit. Any later change must be written as a named deviation.",
+ "prereg": {
+  "path": "docs/PREREG_old_vs_new_models_same_engine_2026-09-23.md",
+  "commit": "8530d2b7f",
+  "sha256": "1217d786b29cf8bcb37f4aa86f2e9862bb278f7c1a91cc9ac58ed9376b9a31b4",
+  "scope": "Stage 1 only"
+ },
+ "numbers_seen_before_this_file": "only those the prereg itself lists as already seen (certified OLD main reading; researcher NEW first-halt-latch yearly readings; live beta). Nothing from this engine for NEW.",
+ "O1_objects": {
+  "OLD": "certified object B A0_main, scaled reading (TARGETS_A0_main.npz b9f0dc9f), run through the certified runner config RUN_CONFIG_main_A0_2026-09-19.json (7b6dca2c). It is RE-RUN in the OVN root with a config identical except config/status/created labels and paths.pod_root (run tags unchanged); every re-run path npz must be byte-identical (sha256) to the certified /workspace/baseline_tables_2026-09-19/runs/OBJB_A0_* path npz of the same seed, else STOP and report (engine drift).",
+  "NEW_s42 / NEW_s2027": "researcher corrected_combo_v1d combo_s42 / combo_s2027: scaled_diagnostic.npz (4dec6b38 / 98797d49) = the scaled reading; literal.npz (cae52acf / 7c9f2faa) = the lit reading (reported only). Copied /tmp -> /workspace/old_vs_new_2026-09-23/new_targets after sha256 equality with the local backup (receipts/NEW_TARGETS_COPY_SHA256SUMS.txt).",
+  "deployment_seed_if_PASS": "s42 (fixed by the prereg before any number)"
+ },
+ "O2_adapter": {
+  "rule": "trade_mask[i] True => kind 2 (combo file), CSR row = the nonzero entries of weights[i] (column = index on the 829-symbol axis, which must equal the certified price-meta symbol axis and the universe_ext symbol axis element by element); trade_mask[i] False => kind 0 (HOLD: no file; the executor's on_unavailable = hold carries the book). weights on HOLD rows must be exactly zero (the builder's own contract) or the adapter refuses. No reweighting, no filtering, no rounding.",
+  "window_before_NEW_axis": "the certified window starts 2022-06-30T00Z; the NEW axis starts 2023-01-01T00Z ('start hypothetical strategy in cash', continuous_combo.py). The 1,104 anchors 2022-06-30T00Z..2022-12-31T20Z are written as kind 0 with an empty row (no file => the path holds its empty starting book = cash). No weight is fabricated. These anchors are all before the judgment window (PARTIAL_RECIPE). They are marked in the targets file (pad_before_new_axis) and counted in the receipt.",
+  "roundtrip": "the written file is read back through the CERTIFIED loader bt_objb_targets.load_targets + book_for_window (05cc5dc2); on every NEW-axis anchor of the certified window the dense row must equal weights[i] bit for bit (uint64 view) and fresh must equal trade_mask; on the padded anchors kind 0 and empty. Both readings.",
+  "red_green": "adapter test: baseline green asserted first, then each mutation must go red with its named reason: one CSR column index +1; one kind 2 -> 0; one value +1 ulp; two symbols swapped on the NEW axis; a HOLD row given a nonzero weight."
+ },
+ "O3_engine": "bt_launch.py 393a8dc8 / bt_driver_lib.py ba3bc261 / bt_hist_sim31.py 8ae6e2a4 / exec_sim.py 29679672 / calibration fda34243, copied into /workspace/old_vs_new_2026-09-23/devices and sha-checked equal to /workspace/baseline_tables_2026-09-19/devices_v3 (the versions the certified A0 and V4 runs recorded). NEW configs = the OVN OLD config with ONLY targets.sources / targets.arm / run arm / run tag / role / config-status-created labels / lineage note changed; the leaf-level diff is written and asserted before launch. 32 seeds 0..31; fills are per-request hashes of (seed, rid, symbol, leg), so the two arms share the same random numbers per request by construction.",
+ "O4_days": "per path k, main-reading window return r_w = navm1/navm0 - 1 (the certified main reading, UA-FREEZE-EXCLUDE); UTC-day return = prod over windows with anchor in the day of (1 + r_w) - 1. Every DAILY statistic (Sharpe, worst day, d-bar, bootstrap) uses FULL UTC days only = days whose 6 anchors (00..20Z) all lie in the segment. The judgment window starts 2023-06-30T04Z, so day 2023-06-30 (5 windows) is not a daily observation; its 5 windows do enter total return / CAGR / maxDD / event counts. G1 is additionally recomputed with that partial day included (sensitivity, reported only if it changes a G1 outcome).",
+ "O5_segments": {
+  "2023H2": [
+   "2023-06-30T04:00:00Z",
+   "2023-12-31T20:00:00Z"
+  ],
+  "2024": [
+   "2024-01-01T00:00:00Z",
+   "2024-12-31T20:00:00Z"
+  ],
+  "2025": [
+   "2025-01-01T00:00:00Z",
+   "2025-12-31T20:00:00Z"
+  ],
+  "pre2026 (judgment)": [
+   "2023-06-30T04:00:00Z",
+   "2025-12-31T20:00:00Z"
+  ],
+  "2026 (report only)": [
+   "2026-01-01T00:00:00Z",
+   "2026-08-31T00:00:00Z"
+  ],
+  "2026-08-31T04Z..2026-09-18T20Z (describe only)": "from the extension runs: NEW under a clone of RUN_CONFIG_main_A0ext_2026-09-20.json (scaled run only), OLD = the certified OBJB_A0X_scaled_rule_raw_UAFE run"
+ },
+ "O6_metrics": {
+  "path_mean": "'32 路径均值' = arithmetic mean over the 32 paths of the per-path metric; '[2.5%, 97.5%] 路径分位' = numpy linear percentiles of the 32 per-path values. G3 uses the path-mean of per-path Sharpe and of per-path maxDD. The certified MEAN-PATH values (bt_tables series_mean) are reported beside, descriptive only.",
+  "sharpe": "mean(r_d)/std(r_d, ddof=1)*sqrt(365) on full UTC days",
+  "total_return": "prod over the segment's windows of (1 + r_w) - 1",
+  "cagr": "(1 + total_return)^(2190 / n_windows) - 1",
+  "maxdd_5m": "bt_tables.maxdd_5m on the path's own 5-minute main NAV over the segment's windows (segment start NAV = first point)",
+  "worst_day": "min full-UTC-day return",
+  "cash_decomposition": "bt_tables series_from_path units, bps per anchor per unit target gross (gm = 2.0): price(+trading) / funding paid / fee / unknown-excluded, identity g = price - funding - fee - unknown asserted <= 1e-9 per window; turnover over gross; each as the path mean of the per-path segment mean",
+  "events": "section 4-2 day-stop flattens = sum over the segment of n_flatten_events; per-name stops = sum of n_stop_events; path mean and 2.5/97.5 percentiles"
+ },
+ "O7_pairing": "d_k(t) = r_NEW,k(t) - r_OLD,k(t) on full UTC days, paired by fill seed k (day axes asserted identical); d-bar(t) = mean over k of d_k(t); estimate = mean over the judgment-window days of d-bar, reported in bps/day (x1e4). Moving-block bootstrap on the day axis exactly as bt_tables.mbb_indices (non-circular, block starts uniform on 0..n-b, ceil(n/b) blocks concatenated and truncated to n), B = 10,000, rng = numpy.random.default_rng([20260923, 1]); blocks 30 days (main) and 5 days (sensitivity), each drawn from a fresh generator with that seed. 97.5% two-sided interval (Bonferroni over the two seeds) = percentiles 1.25 / 98.75 of the draws; the 95% interval (2.5 / 97.5) is reported beside.",
+ "O8_criteria_as_computed": {
+  "G1": "estimate > 0 AND 1.25th percentile (30-day blocks) > 0",
+  "G2": "number of {2023H2, 2024, 2025} with segment mean d-bar > 0 is >= 2 (segment means over that segment's full UTC days)",
+  "G3": "min over the 3 segments of NEW path-mean Sharpe >= min over the 3 segments of OLD path-mean Sharpe - 0.10, AND NEW path-mean maxDD_5m over the judgment window >= OLD path-mean maxDD_5m - 0.02 (drawdowns are negative numbers)",
+  "G4": "for each cost cell c in {fee_x1.25, slip_x1.5, fill_x0.9}: the G1 estimate computed from NEW_c vs OLD_c (both arms under the same cell, same seeds) has the same strict sign as the base-cell G1 estimate",
+  "G5": "path mean over 32 seeds of the judgment-window count of section 4-2 day-stop flattens: NEW <= 1.25 x OLD",
+  "PASS": "both seeds pass G1..G5",
+  "REVERSE": "both seeds: 98.75th percentile (30-day blocks) < 0",
+  "UNDECIDED": "otherwise"
+ },
+ "O9_unknown_is_not_zero": "a missing path file, a path whose audits are not clean, a NaN in any series or an empty segment raises; the affected arm/cell is reported UNAVAILABLE and nothing is substituted. n_eff (days, paths) is printed beside every aggregate.",
+ "O10_R_P_R_P2": "reported only: bt_p_reading.py a7cb9c4d and bt_p2_reading.py (the round-7 versions in the repo, with bt_agg 43fe1092) on configs copied from the frozen RUN_CONFIG_Preading_A0 / RUN_CONFIG_P2reading_A0 blocks byte for byte, changing only which run directories are read.",
+ "corrections_before_any_number": [
+  {
+   "utc": "2026-09-23T06:10:00Z",
+   "field": "O2_adapter.window_before_NEW_axis",
+   "was": "1,104 anchors",
+   "is": "1,110 anchors (2022-06-30T00Z..2022-12-31T20Z = 185 UTC days x 6; my hand count was one day short; the adapter's round-trip counted 1,110)",
+   "effect": "none on any criterion; these anchors are before the judgment window"
+  },
+  {
+   "utc": "2026-09-23T06:10:00Z",
+   "field": "run output location (new)",
+   "is": "paths.pod_root = /dev/shm/ovn_2026-09-23 (RAM-backed, outside the /workspace volume quota). At 06:03-06:05Z /workspace returned EDQUOT (Disk quota exceeded) after my adapter-test scratch copy (192 MiB) filled the remaining headroom; I deleted my own scratch and writes recovered with ~200 MB headroom. One run = 32 x ~11 MB path files = ~350 MB, so the ~17 runs cannot go on /workspace. Only compact receipts and the two NEW target files go there; durable copies are pulled to the Mac.",
+   "effect": "output location only; pod_root is identical in all three arm configs"
+  }
+ ]
+}
