@@ -72,6 +72,19 @@ def main():
     rc, line = run(nc, w2, f"{work}/o_post.json", "post_king")
     cell("GREEN.post_king", rc == 0 and "VERDICT=STAGED" in line, "rc 0, STAGED", f"rc={rc} {line[:90]}")
 
+    # RED.partial: one required source missing -> refuses AND stages nothing. The old code linked
+    # what it found before refusing; on 2026-09-23 that would have hard-linked a 3 GB NC_FEATURES.npz
+    # that merge2 was still writing.
+    nc2 = f"{work}/nc_partial"; w22 = f"{work}/w2_partial"
+    shutil.rmtree(nc2, ignore_errors=True); shutil.rmtree(w22, ignore_errors=True)
+    os.makedirs(nc2); os.makedirs(w22)
+    fixtures(nc2)
+    os.remove(f"{nc2}/receipts/NC_FEATURES.json")          # the live shape: payload present, receipt not yet
+    rc, line = run(nc2, w22, f"{work}/o_partial.json", "pre_king")
+    left = [f for _, _, files in os.walk(w22) for f in files]
+    cell("RED.partial", rc == 2 and not left, "rc 2 and nothing staged",
+         f"rc={rc} files_left={left}")
+
     # RED.binding: change the file after its receipt was written
     open(f"{nc}/work/legs.npz", "wb").write(b"TAMPERED")
     rc, line = run(nc, w2, f"{work}/o_bind.json", "post_king")

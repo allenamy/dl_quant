@@ -80,14 +80,26 @@ def main():
         rec["missing_prerequisites"] = missing_prereq
         fail(out_path, rec, f"missing={missing_prereq}", 4)
 
-    staged, missing = {}, []
+    # ★ CHECK EVERYTHING FIRST, THEN STAGE. The first version linked what it found and only then
+    # refused on what it did not, which leaves a half-staged root behind -- and on 2026-09-23 the live
+    # case was worse than untidy: NC_FEATURES.npz existed while merge2 was still writing it (restarted
+    # after an OOM) and its receipt did not exist yet, so the old order would have hard-linked a
+    # PARTIALLY WRITTEN 3 GB file and hashed it. A refusal whose side effects already happened is not
+    # a refusal.
+    missing = [{"source": os.path.join(nc, src), "dest": dst}
+               for src, dst, required in PHASES[phase] if required and not os.path.exists(os.path.join(nc, src))]
+    if missing:
+        rec["VERDICT"] = "REFUSED: required inputs missing"
+        rec["missing"] = missing
+        rec["staged"] = {}
+        rec["nothing_was_staged"] = True
+        fail(out_path, rec, f"missing={[m['source'] for m in missing]}", 2)
+
+    staged = {}
     for src, dst, required in PHASES[phase]:
         s = os.path.join(nc, src); d = os.path.join(w2, dst)
         if not os.path.exists(s):
-            if required:
-                missing.append({"source": s, "dest": dst})
-            else:
-                staged.setdefault("_optional_absent", []).append(src)
+            staged.setdefault("_optional_absent", []).append(src)
             continue
         os.makedirs(os.path.dirname(d), exist_ok=True)
         if os.path.lexists(d):
@@ -99,10 +111,6 @@ def main():
         staged[dst] = {"source": s, "source_sha256": sha(s), "staged_sha256": sha(d), "how": how}
         assert staged[dst]["source_sha256"] == staged[dst]["staged_sha256"], (dst, "staged bytes differ from source")
     rec["staged"] = staged
-    if missing:
-        rec["VERDICT"] = "REFUSED: required inputs missing"
-        rec["missing"] = missing
-        fail(out_path, rec, f"missing={[m['source'] for m in missing]}", 2)
 
     bound = {}
     for rcpt, field, target in BINDINGS[phase]:
