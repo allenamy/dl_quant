@@ -1,0 +1,144 @@
+{
+ "device": "news2_derive_chain.py",
+ "self_sha256": "9f7eea79681694959b152a583ef02a58f50c7e5413cb1ce69f9e2dc08b6443bc",
+ "utc": "2026-09-23T18:36:55Z",
+ "freeze": "docs/FREEZE_new_servable_v2_2026-09-23.md b30e4afa5 \u00a74 (news2: training / combo / engine / verdict)",
+ "training_scheme": "NEW_S scheme (FRESH judged KEEP_NEWS, c1fb0bf0); the recipe is derived, not retyped",
+ "source_dir": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/news_2026-09-23/devices",
+ "substitutions": [
+  {
+   "tag": "root",
+   "old": "/dev/shm/news_2026-09-23",
+   "new": "/dev/shm/news2_2026-09-23"
+  },
+  {
+   "tag": "arm_prefix",
+   "old": "NEWS_s",
+   "new": "NEWS2_s"
+  },
+  {
+   "tag": "src_hist",
+   "old": "news_hist_features.py",
+   "new": "nc_hist_features.py"
+  },
+  {
+   "tag": "src_legs",
+   "old": "news_legs.py",
+   "new": "nc_legs.py"
+  },
+  {
+   "tag": "src_p2",
+   "old": "news_p2_build.py",
+   "new": "nc_p2_build.py"
+  },
+  {
+   "tag": "provenance",
+   "old": "f\"NEW_S (news_2026-09-23) combo_s{seed}: producer-replayed features, King + F10 s{seed} retrained\"",
+   "new": "f\"NEW_S2 (nc_2026-09-23 features, news2_2026-09-23 models) combo_s{seed}: full corrected producer contract, King + F10 s{seed} retrained\""
+  }
+ ],
+ "substitution_totals": {
+  "root": 5,
+  "arm_prefix": 28,
+  "src_hist": 1,
+  "src_legs": 1,
+  "src_p2": 1,
+  "provenance": 1
+ },
+ "derived": {
+  "news2_train_king.py": {
+   "source": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/news_2026-09-23/devices/news_train_king.py",
+   "source_sha256": "f1f393f83e6ac516bf6e055fe36b81485ef1a76439bb0be2c2fe763c17a7dd17",
+   "output_sha256": "b19459a54eed64af6892d04cc58a001c6c65541ac14bdc42d4845d1bd0c9da4f",
+   "substitution_hits": {
+    "root": 1,
+    "arm_prefix": 0,
+    "src_hist": 0,
+    "src_legs": 0,
+    "src_p2": 0,
+    "provenance": 0
+   },
+   "diff_lines": 11
+  },
+  "news2_train_f10.py": {
+   "source": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/news_2026-09-23/devices/news_train_f10.py",
+   "source_sha256": "d4feabd1c6a1ff9d2ff607b71e57c60114436371cdda323928b1d65bda936f2c",
+   "output_sha256": "66bc7c3e69af7aab7062b562674fb3bbe272fd9a28fc3ea9639143f4549420db",
+   "substitution_hits": {
+    "root": 1,
+    "arm_prefix": 0,
+    "src_hist": 1,
+    "src_legs": 1,
+    "src_p2": 1,
+    "provenance": 0
+   },
+   "diff_lines": 20
+  },
+  "news2_combo.py": {
+   "source": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/news_2026-09-23/devices/news_combo.py",
+   "source_sha256": "e2724e6bcf6ed9e12c6655c470f2851dd5fc9d1c21d296a08462f5129dce2725",
+   "output_sha256": "1cbccc989407de029d8ba48fa4f6d1680e16550af8053751bf624ae27b2dc92e",
+   "substitution_hits": {
+    "root": 1,
+    "arm_prefix": 0,
+    "src_hist": 0,
+    "src_legs": 0,
+    "src_p2": 0,
+    "provenance": 0
+   },
+   "diff_lines": 11
+  },
+  "news2_make_configs.py": {
+   "source": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/news_2026-09-23/devices/news_make_configs.py",
+   "source_sha256": "22910d966860e91b1c4ce0ab6db985a5c7e250884076e0369b77131e10531841",
+   "output_sha256": "344ef8efe9e2158294a4e3db1f22e8dc6d15177949ee1205f9bba5ab4f2fb741",
+   "substitution_hits": {
+    "root": 2,
+    "arm_prefix": 15,
+    "src_hist": 0,
+    "src_legs": 0,
+    "src_p2": 0,
+    "provenance": 0
+   },
+   "diff_lines": 64
+  },
+  "news2_ext.py": {
+   "source": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/news_2026-09-23/devices/news_ext.py",
+   "source_sha256": "3ca0b9f731a61034af6416eb0aa93388b09b4f27174abdb04b621fb946e50aeb",
+   "output_sha256": "3ab88845ff48e76b7e17c0e506a1a79edb39a4b3a52f03fafaa13d05f7f41531",
+   "substitution_hits": {
+    "root": 0,
+    "arm_prefix": 11,
+    "src_hist": 0,
+    "src_legs": 0,
+    "src_p2": 0,
+    "provenance": 0
+   },
+   "diff_lines": 39
+  },
+  "news2_adapter_specs.py": {
+   "source": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/news_2026-09-23/devices/news_adapter_specs.py",
+   "source_sha256": "3daeb521dc639cecfe369ecfd1a734c4bc479dad3ea89867ea4e2bd784276e3a",
+   "output_sha256": "3d0ca94ad93da3fa73c8a78222141c475c0cadf6ad39de838c468c8ed3673dc5",
+   "substitution_hits": {
+    "root": 0,
+    "arm_prefix": 2,
+    "src_hist": 0,
+    "src_legs": 0,
+    "src_p2": 0,
+    "provenance": 1
+   },
+   "diff_lines": 16
+  }
+ },
+ "copied_verbatim": {
+  "king_folds.py": "4886c278c12b0f5126bb1e8ad6b4789db95e604180a77d0cd02f1e7c612df640",
+  "f10_observability.py": "c6399d7ae49482503209ce21916e38f1ad36fb7702c980eb5d0b67c5b9349dd1",
+  "continuous_combo.py": "1501c9f63641bf447c4cb33661d08da25ced0948f9fae63cebb44cdfd1995d21",
+  "combo_target.py": "d7577e824298fb90a554f35ac9c4d634202a4ed7e4e00cabc597a2d4eafdb544",
+  "book_universe.py": "90e332cc27cf8f34aabcac13f9829f84e463ffa900efbe554e17c07436e8dcca",
+  "train_king.py": "44a98396d0e923bfbf445b7c6ce39ebf6f85dbcab2fc40785cf27bf68b61d425",
+  "train_f10.py": "07ac4c67fa0d253339881d8e8ee546c6975c9ccc398b4af8824e542a4e8aa04e"
+ },
+ "note": "the feature package keeps its NEW_S filename inside this root; news2_stage_inputs.py links the integrator's NC_FEATURES there and copies its receipt, so the trainers' sha(features) == receipt['sha256'] assertion still binds the real bytes"
+}
