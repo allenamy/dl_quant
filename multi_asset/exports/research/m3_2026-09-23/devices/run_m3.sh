@@ -28,3 +28,25 @@ env -i PATH=/usr/bin:/bin HOME=/root $P -B m3_make_config_hook.py $CN control $R
 #   commands above were re-run as written: PASS, configs 68dc66fa / 7638d536 / 402accbd / 60630f8a.
 # ---- 3. debug smoke of the control arm (no M3 number: control never touches the target) ----
 setsid bash -c "echo \$\$ > $R/logs/dbg_ctrl_old.pgid; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_hook.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_m3h0_OLD.json --smoke 2026-03-01T00:00:00Z 12 0 'OBJB_A0XM3H0|scaled|rule|raw|UAFE' dbg_ctrl_old > $R/logs/dbg_ctrl_old.log 2>&1; echo \"EXIT \$?\" >> $R/logs/dbg_ctrl_old.log"
+# ==== commit bc9015f80 (devices + frozen rules, before any M3 number) ====
+# ---- 4. zero-hedge control, full window, seed 0, both bases (test: bitwise = base; its sidecar feeds feasibility row c) ----
+setsid bash -c "echo \$\$ > $R/logs/ctrl0_old.pgid; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_hook.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_m3h0_OLD.json --smoke 2022-06-30T00:00:00Z 9252 0 'OBJB_A0XM3H0|scaled|rule|raw|UAFE' ctrl0_old > $R/logs/ctrl0_old.log 2>&1; echo \"EXIT \$?\" >> $R/logs/ctrl0_old.log"
+setsid bash -c "echo \$\$ > $R/logs/ctrl0_new.pgid; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_hook.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_m3h0_NEW_s42.json --smoke 2022-06-30T00:00:00Z 9252 0 'OVN_NEW_s42XM3H0|scaled|rule|raw|UAFE' ctrl0_new > $R/logs/ctrl0_new.log 2>&1; echo \"EXIT \$?\" >> $R/logs/ctrl0_new.log"
+# ---- 5. flat-book delivery diagnostic (R3 / feasibility row b), 4 workers per base ----
+setsid bash -c "echo \$\$ > $R/logs/ep_old.pgid; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_exec_path.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_m3h_OLD.json $R/RUN_CONFIG_m3h0_OLD.json 4 $R/work/EXEC_PATH_M3_OLD.npz $R/receipts/M3_EXEC_PATH_OLD.json > $R/logs/ep_old.log 2>&1; echo \"EXIT \$?\" >> $R/logs/ep_old.log"
+setsid bash -c "echo \$\$ > $R/logs/ep_new.pgid; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_exec_path.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_m3h_NEW_s42.json $R/RUN_CONFIG_m3h0_NEW_s42.json 4 $R/work/EXEC_PATH_M3_NEW_s42.npz $R/receipts/M3_EXEC_PATH_NEW_s42.json > $R/logs/ep_new.log 2>&1; echo \"EXIT \$?\" >> $R/logs/ep_new.log"
+# ---- 6. test: zero-hedge control seed 0 vs the base seed 0, every array key bitwise (red control: vs base seed 1) ----
+$P -B m2_path_compare.py $R/runs_smoke/ctrl0_old/OBJB_A0XM3H0_scaled_rule_raw_UAFE $BO 0 $R/receipts/M3H0_CONTROL_seed0_OLD_vs_base.json > $R/logs/cmp_ctrl0_old.log 2>&1
+$P -B m2_path_compare.py $R/runs_smoke/ctrl0_new/OVN_NEW_s42XM3H0_scaled_rule_raw_UAFE $BN 0 $R/receipts/M3H0_CONTROL_seed0_NEW_s42_vs_base.json > $R/logs/cmp_ctrl0_new.log 2>&1
+# ---- 7. red/green tests (one per base: the in-simulator tests use that base's book) ----
+EP_O=$R/work/EXEC_PATH_M3_OLD.npz; EP_N=$R/work/EXEC_PATH_M3_NEW_s42.npz
+setsid bash -c "echo \$\$ > $R/logs/tests_old.pgid; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_tests.py PATH,HOME,LC_CTYPE $R/receipts/M3_TESTS_OLD.json $R/RUN_CONFIG_m3h_OLD.json $R/RUN_CONFIG_m3h0_OLD.json $EP_O > $R/logs/tests_old.log 2>&1; echo \"EXIT \$?\" >> $R/logs/tests_old.log"
+setsid bash -c "echo \$\$ > $R/logs/tests_new.pgid; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_tests.py PATH,HOME,LC_CTYPE $R/receipts/M3_TESTS_NEW_s42.json $R/RUN_CONFIG_m3h_NEW_s42.json $R/RUN_CONFIG_m3h0_NEW_s42.json $EP_N > $R/logs/tests_new.log 2>&1; echo \"EXIT \$?\" >> $R/logs/tests_new.log"
+# ---- 8. feasibility rows (a)(b)(c), before any M3 NAV ----
+SC0_O=$R/m3_sidecar/smoke_ctrl0_old/M3SC_OBJB_A0XM3H0_scaled_rule_raw_UAFE_seed_00.npz; SC0_N=$R/m3_sidecar/smoke_ctrl0_new/M3SC_OVN_NEW_s42XM3H0_scaled_rule_raw_UAFE_seed_00.npz
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_feasibility.py PATH,HOME,LC_CTYPE $R/receipts/M3_FEASIBILITY.json OLD=$BO,$EP_O,$SC0_O NEW_s42=$BN,$EP_N,$SC0_N > $R/logs/feasibility.log 2>&1
+#   try 1 of the tests (receipts/M3_TESTS_{OLD,NEW_s42}_try1.json, logs/tests_*_try1_weak_control.log): OLD 46/46 GREEN, NEW RED 1/46 —
+#   T1H's red-capability control added +0.25 UNIFORMLY to row A, which a dollar-neutral executed book cannot see (Σw(β+c) = β_exec + c·net,
+#   net ≈ 1e-17): red on NEW (bitwise unchanged), and on OLD "green" only through a 1e-16 float difference, i.e. vacuous on both. Fixed the
+#   control (per-name N(0, 0.25) on row A, must move β_exec by > 1e-4); re-ran both commands above unchanged.
+#   re-run: M3_TESTS VERDICT=ALL GREEN tests=46 red=0, EXIT 0, both bases.

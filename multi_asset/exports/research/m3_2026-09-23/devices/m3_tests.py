@@ -10,7 +10,8 @@ a mutant of the hook that the same assertion must reject); a control that does n
       price row after A is perturbed and UA cells are added after A; the subset build equals the full-table matrix row bitwise; control: the bar
       ENDING at A perturbed ⇒ β changes
   T1H future invariance at the HOOK's read point, inside the certified simulator (one anchor from a flat book, decision only): a β table whose
-      every row other than A is garbage (NaN / ±1e6) gives a hook record bitwise equal to the real table's; control: garbage in row A ⇒ differs
+      every row other than A is garbage (NaN / ±1e6) gives a hook record bitwise equal to the real table's; control: row A perturbed per name
+      (N(0, 0.25)) ⇒ β_exec moves by > 1e-4 (a UNIFORM shift would be invisible: the executed book is dollar-neutral)
   T2  the value point is AFTER reshape + clamp (synthetic anchor, the executor's own anchor_loop.apply_withhold_and_reshape, tree 409ea16):
       a published book with net +10 % of Gs whose POP removes a +40k name and whose CLAMP pins a held untradable short. Assert β_exec equals the
       dense dot product of the FINAL executed target (≤ 1e-15), and that it differs from (i) the published / pre-reshape β, (ii) the β of the
@@ -171,9 +172,11 @@ def t1_hook():
         for run in (rc_, ro):
             r0, _ = sim_one(A, run, BETA); r1, _ = sim_one(A, run, g_tab)
             rec(f"T1H.{iso}.{run['arm']}.other_rows_garbage_record_bitwise_equal", rec_bits(r0) == rec_bits(r1), beta_exec=r0["beta_exec"], add=r0["add_intended"])
-        Bc = BETA.B.copy(); Bc[i] = Bc[i] + 0.25
+        # control: a NON-uniform change of row A (a uniform shift is invisible to a dollar-neutral executed book: Σw·(β+c) = β_exec + c·net,
+        # net ≈ 0 — try 1 of this test used +0.25 uniformly and was red on NEW, green only by float noise on OLD)
+        Bc = BETA.B.copy(); Bc[i] = Bc[i] + np.random.default_rng(12).normal(0.0, 0.25, Bc.shape[1])
         r2, _ = sim_one(A, rc_, fake_table(BETA.anchor, Bc, BETA.symbols)); r0, _ = sim_one(A, rc_, BETA)
-        rec(f"T1H.{iso}.control_row_A_changed_record_differs", r2["beta_exec"] != r0["beta_exec"], beta_exec_real=r0["beta_exec"], beta_exec_mutated=r2["beta_exec"])
+        rec(f"T1H.{iso}.control_row_A_changed_record_differs", abs(r2["beta_exec"] - r0["beta_exec"]) > 1e-4, beta_exec_real=r0["beta_exec"], beta_exec_mutated=r2["beta_exec"])
 
 
 # ───────────────────────── T2: the value point is after reshape + clamp (synthetic, executor's own function) ─────────────────────────
