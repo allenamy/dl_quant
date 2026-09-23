@@ -1,0 +1,191 @@
+> **创建:** 2026-09-23 11:2xZ | **Session:** session_01MCyx6gj5EdbghE9bwjBjJv(lead) | **状态:** 第十轮复审指令 —— **紧急**(用户要求尽快换装,复审与实现并行,避免返工) | **作废条件:** 被引用的提交或文件改变;复审回应件出具后由其取代
+
+# 第十轮复审:四处即将上线 / 已上线实现的核心代码逻辑
+
+## 0. 目的与优先级
+
+实盘账户按看门狗 cond4 口径(剔除划转的时间加权, 自首个 LIVE 计价日起 53 天, `state/live/watchdog/last_eval.json` 评估于 2026-09-23T08:48:05Z)累计 **−5.64%**, 峰值回撤 −10.24%。我方分析(`docs/ANALYSIS_independent_researcher_takeover_2026-09-23.md`)认定两个问题:**① 在役模型训练在有缺陷的输入上**(Stage 1:同引擎 2023H2–2025,在役 OLD +1.8% / 回撤 −38%,修复输入重训 NEW +99%–122% / 回撤 −18%);**② 书对 BTC 的实际 beta 约 −0.35**(近期亏损的直接机制,新旧模型在 08-31→09-18 亏得一样)。对应两条上线线正在推进,请**先审代码**(结果之后陆续到):
+
+| 优先 | 对象 | 状态 | 上线时间点 |
+|---|---|---|---|
+| **P0** | **A. M3 BTC 对冲 —— 生产实现**(执行器 + 生产者) | 代码完成于执行器克隆分支 `m3-beta-overlay` @`4dd7d53`(未推送);评估 M3b 在跑 | 用户对 M3b 结果裁定后 |
+| **P0** | **B. NEW_S —— 既有策略在正确口径下重训**(历史特征回放、成员规则) | 代码已定,P2 历史特征重算在 pod2 跑;判词约 18:00Z | 若判 SWAP,最早 21:00–23:40Z 静默窗 |
+| P1 | C. M3 评估钩子(决定 A 能否上线的证据装置) | M3 已出(R3 投递未过),M3b 在跑 | — |
+| P2 | D. 离线电池账本门 | **已部署** `b66257b`(09-23 09:19Z) | 事后复审 |
+
+---
+
+## A. M3 BTC 对冲 —— 生产实现(P0)
+
+**做什么**:生产者在 target_live 里新增字段 `beta_overlay`(每名 β_i);执行器在 **POP → RESHAPE → CLAMP 之后**,用执行目标算 `β_exec = Σ w_i β_i`,把 BTCUSDT 目标设为"书内 BTC 分量 + (−β_exec)",作为不再经过去均值的独立叠加腿。开关 `config/book.json → beta_overlay.mode ∈ {off, shadow, on}`,缺省 off。
+
+**预注册**:`docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md`(24c3f803f)+ `AMENDMENT_1_m3_beta_overlay_2026-09-23.md`(912788743,碎单判定作用于合计)。
+
+**完整 diff**:`multi_asset/exports/research/review_round10_2026-09-23/EXECUTOR_m3_b66257b_to_4dd7d53.diff`(2,603 行,18 个文件);提交链 `EXECUTOR_m3_commits.txt`(8725e7d → 11aa8d1 → c71ca7a → 4dd7d53)。克隆位置 `~/cc_tmp/m3_impl_20260923/exec`(只读)。
+
+### A.1 接入点(`scheduler/anchor_loop.py`,节选)
+
+```python
+# 锚开始:每锚读配置,缺省/无效 ⇒ off(无效还发 HIGH);非外部书 ⇒ off
+self._m3 = {"mode": "off", "record": None}
+_m3c = BO.config(BC.load())
+...
+# mode on:BTC 永远进入本锚 symbols(与书的名字一起取价、过场所门、止损与元检查)
+if self._m3["mode"] == "on":
+    symbols = sorted(set(symbols) | {BO.BTC})
+...
+# ★ 在书的阶段【之前】对 BTC 的不可交易原因分类:名字级原因(止损/冷却/不可交易…)= hard ⇒ 暂停对冲腿;
+#   只有 external_dust 一个原因 ⇒ 允许按"合计值"改判(M3b)
+_m3_hard = BO.hard_block(self._untradable, self._untradable_sources)
+_m3_dust_only = BO.dust_only(self._untradable, self._untradable_sources)
+_clamp, _rs = apply_withhold_and_reshape(target, _held_book, self._untradable, self.gross, ...)   # POP→RESHAPE→CLAMP(现状不变)
+# ★ 对冲腿在这里,AFTER reshape+clamp
+if self._m3["mode"] != "off":
+    _m3o = BO.stage(self._m3["mode"], target, _held_book, external, self.gross, _m3_hard,
+                    prev_status=..., btc_floor=_fl.get(BTC), dust_mult=external.get("min_notional_mult"),
+                    btc_dust_only=_m3_dust_only)
+    if _m3o["release_btc"]:        # 合计值推翻了书内碎单判定 ⇒ BTC 移出 clamp 的只减/禁加/只平/弹出名单
+        for k in ("reduced", "add_blocked", "flatten_only", "popped"):
+            _clamp[k] = [s for s in _clamp[k] if s != BO.BTC]
+...
+# 场所上限截断作用于【合计】BTC 目标;被截断的对冲缺口页报并记账
+BO.after_cap(self._m3["record"], target, _capd, self._m3.get("betas"))
+plans = self.executor.plan(target, ...)
+BO.after_plan(self._m3["record"], plans, lot_step=..., min_notional=...)     # 计划层投递,只记录
+...
+# anchors 行:m3_beta_overlay 记录;中性读数改为"剔除对冲腿后"判(原始 net_over_gross 仍在行上)
+_m3_nrow = BO.neutrality_view(row, ctx.get("m3_beta_overlay"))
+```
+
+### A.2 对冲计算(`live/beta_overlay.py`,节选)
+
+```python
+def beta_exec(target, betas):
+    """Σ target_i·β_i,只对执行目标非零的名字;任一非零目标名缺 β ⇒ 整体拒绝(绝不默认 β)"""
+    ...
+def stage(mode, target, held_true, ext, sizing_gross, hard, prev_status=None, btc_floor=None, dust_mult=None, btc_dust_only=False):
+    b = target.get(BTC, 0.0)                         # 书内 BTC 执行分量
+    v = validate_field(ext.get(FIELD), ext["anchor_ts"], present=(FIELD in ext))
+        # 校验:版本 m3_beta_v1;字段锚 == 文件锚;data_cutoff_ts == 锚(早=陈旧,晚=未来);
+        #       n_win=180/n_min=120/clip=[-1,4]/fallback=1.0 逐项等于预注册;n_obs<120 的必须等于 fallback;β_BTC == 1.0
+    be = beta_exec(target, v["betas"]) if v["ok"] else None
+    if hard:                                         # BTC 名字级不可交易 ⇒ 暂停,对冲缺口 = 意图,记账;首锚 HIGH、持续期 INFO
+        ...; return
+    if not usable:                                   # 字段缺失/畸形/有名缺 β ⇒ 不下对冲单
+        if mode == "on" and held_btc != 0.0:
+            target[BTC] = held_btc                   # ★ 冻结在现持:delta 0,不当 0 对冲平掉,也不按 β=1 重算
+        ...; HIGH; return
+    hedge = -be["beta_exec_usdt"]; combined = b + hedge
+    thr = dust_mult * btc_floor
+    if btc_dust_only:                                # M3b:BTC 只因书内碎单不可交易 ⇒ 用合计值改判
+        if abs(combined) < thr: status="combined_dust"(不动,缺口记账); return
+        status = "applied_via_combined"
+    else:
+        status = "applied"                           # 可交易的 BTC:无论合计多小都对冲(只记录 combined_below_threshold)
+    if mode == "shadow": 只记录 would_be,不改 target; return
+    target[BTC] = combined                           # ★ 唯一改书的地方
+    diag(...)                                        # 平书诊断:执行书 β 的移动 / 意图,容差 1e-9 相对
+```
+
+### A.3 生产者 β(`ops/producer_release/20260923_m3/beta_overlay_producer.py`,节选)
+
+```python
+# β_i = 名 i 的 4h 对数收益对 BTCUSDT 4h 对数收益的 OLS 斜率(含截距),锚 A 已完成的最近 180 根 4h bar,
+#       成对有效 ≥120 否则 1.0,截断 [-1,4],BTC=1;BTC 方差为 0 ⇒ 抛异常
+# 数据 = 生产者自己的滚动缓存(state/rolling.npz):4h 收益 = 48 行 log1p(ret5) 之和;
+#       一根 bar 有效 ⇔ [T-4h, T] 闭区间的 49 行全有限(起点行缺失会让下一行跨缺口);缺行绝不填 0
+# ★ 与评估的具名差异:ret5 在生产缓存里是 float16、每 5 分钟裁剪 ±0.30;评估用的是认证原始价格表
+# 因果:只读 close_time <= A 的行;测试扰动 A 之后每一行 ⇒ β 逐位不变,扰动 A 那一行 ⇒ 必变
+```
+另:`ops/producer_release/20260923_m3/combo_stage.py`(476 行,生产者 combo_stage 的改版 —— 把字段写进 target_live);生产者 diff `multi_asset/exports/research/m3_impl_2026-09-23/producer_m3_fb5a9407.diff`。
+
+### A.4 我最担心、请重点查的(按严重度)
+
+1. **净敞口的全部读者(普查)**:对冲腿本身是 β×gross 量级的 BTC 净多头(M3 结果: 主窗执行书事前 β 平均约 −0.09 gross 单位, 被跳过的大锚平均 |意图| 0.14–0.15 ⇒ 净敞口约为 gross 的 9%–15%, 即 NAV 的 18%–30%)。E2 已把"中性读数"改成剔除对冲腿判(`neutrality_view`)。**请逐个找出所有读净敞口/净/gross 比的地方**:执行器 1.5% 中性带(`book_net`)、看门狗各条件(cond4b 杠杆、cond6 权重保真等)、guard_twin、"撤名残差"与 position reconcile 告警、reshape 残差告警、比例响应、逐名止损、账本类电池断言(`tests_disposition_matrix` 等)。**任何一个漏改,都可能在开关打开的第一个锚上误报、误判,甚至触发全书响应。**
+2. **BTC 被逐名止损当成 alpha 仓位**:BTC 目标 = 书内分量 + 对冲腿。逐名止损按"持仓深度 ≤ −30% 连续 2 个终锚"判 —— BTC 下跌 30% 时,**对冲腿会被当作亏损仓位止损、并进入 7 天冷却**(冷却期对冲腿按 hard 暂停)。这是想要的吗?止损应只判书内分量吗?
+3. **总杠杆**:对冲腿的 gross 加在 2×NAV 的书之上(典型 +0.2×NAV)。有没有哪条杠杆/保证金检查(cond4b、场所保证金、`sizing_gross` 相关断言)会因总 gross > 目标而触发?
+4. **开关切换**:off→on 首锚、on→off(BTC 目标回到书内分量 ⇒ 执行器平掉对冲腿)、on 期间出现 HOLD 锚(外部书不可用 ⇒ 整锚不下单 ⇒ 对冲腿保持)—— 三种过渡是否都对?预注册 §2.5 "HOLD 锚保持上一锚的量" 在实现里是由"整锚不下单"自然实现,还是有显式处理?
+5. **生产 β vs 评估 β 的数值差**:评估用认证原始价格表,生产用 f16 裁剪缓存。**差多少没有量化**。请要求(或自行做)在最近若干锚上对比两者的 β_i 与 β_exec。
+6. `validate_field` 要求 `data_cutoff_ts == anchor_ts`:生产者在锚后若干分钟才运行(记录 A 约在 A+20 分钟算),缓存里是否确有"收盘于 A"的那一行?若生产者某次缓存末行晚于 A,β 是否仍只用 ≤A 的行(代码注释说是,测试是否覆盖了真实缓存形状)?
+7. `release_btc`:合计值推翻书内碎单判定后,BTC 被移出 clamp 的四个名单 —— 若 BTC 同时因其他原因在这些名单里(例如 held-exit),是否会误放?(`hard_block` 应已先拦下,请核。)
+
+---
+
+## B. NEW_S —— 既有策略在正确口径下重训(P0)
+
+**做什么**:在役配方(King 年折 78 特征 LGBM + F10 V2MAIN/FIX7 + 资金费腿 + 55/45 组装 + 席位/链/FTRIM/发布门)**不变**,只把训练输入改正确。**训练特征 = 生产者今天线上实际运行的特征代码,原样在历史上逐锚回放产生**(一份实现 ⇒ 训练与线上逐位一致);上线时生产者特征代码**零改动**,只换模型文件与 `booster_sha_pin` / `f10_sha_pin`,生产者拉取名单 450 → 522。
+
+**预注册**:`docs/PREREG_new_servable_models_2026-09-23.md`(db0123df7)+ 修订 1(代理提交 63ca0d0bb,"本轮不修生产者服务时缺陷,训练向服务对齐")。装置:`multi_asset/exports/research/news_2026-09-23/devices/`。
+
+### B.1 成员规则(`p1_members.py`,逐字复用生产者 `shadow_loop_v3.py` L497–509)
+
+```python
+def producer_members(CDf, ai, P):
+    r5seg = CDf[max(ai + 1 - 2016, 0):ai + 1, :, 0]          # 过去 2016 行 = 7 天 5 分钟收益
+    fin5 = np.isfinite(r5seg)
+    covr = fin5.sum(0) / 2016                                 # 覆盖率
+    m7 = np.where(fin5, r5seg, 0).sum(0); n7 = np.maximum(fin5.sum(0), 1)
+    v7 = np.sqrt(np.maximum(np.where(fin5, r5seg**2, 0).sum(0) / n7 - (m7 / n7) ** 2, 0))   # 7 日波动
+    qseg = CDf[max(ai + 1 - 2016, 0):ai + 1, :, 3]; finq = np.isfinite(qseg)
+    qvm = np.where(finq, qseg, 0).sum(0) / np.maximum(finq.sum(0), 1)                     # 流动性均值
+    ok = (covr >= P["cov_min"]) & (v7 >= P["vol_min"])
+    m = np.where(ok)[0]
+    if len(m) > P["NTOP"]:
+        m = np.sort(m[np.argsort(-qvm[m])[:P["NTOP"]]])       # 流动性前 NTOP
+    return m, ok, qvm
+```
+历史各锚的候选 = 当锚合法掩码(可交易 W24H ∧ 判活,x0918r `f752d8ae`)∧ 加密币类(`venue_class_20260908.json`:underlyingType∈{COIN, INDEX} ∧ PERPETUAL;排除 149 个 TRADIFI_PERPETUAL)。非候选名在回放缓存里置 NaN ⇒ 覆盖率不过 ⇒ 不入选。
+
+### B.2 逐锚回放(`news_hist_features.py::replay_anchor`,节选)
+
+```python
+i0 = max(ia + 1 - CACHE_ROWS, 0)                       # CACHE_ROWS = 11520(shadow_loop_v3 L207,40 天)
+RD = np.array(cd[i0:ia + 1], dtype=np.float16)          # 生产者在 A 时持有的滚动缓存(f16,原样)
+RD[hole_rows, hole_cols, :] = np.nan                    # 研究缓存里的合成补洞 bar:线上从不摄入
+RD[:, ~cand, :] = np.nan                                # 拉取名单 = 候选
+# King:shadow_loop_v3 L486–L553 原文编译执行(_king_block)
+out = king_block(st, A, P, cfg, row_of, list(st.live), _Diag(), logs.append)
+m = out["m"]
+# F10 迷你管线:combo_stage L147–L185 语义
+ms_arr[i] = pm_l  for every E row                      # D2 按生产现状复现:历史各锚成员 = 当锚 pm
+fe[-1, j] = ema[s]["acc"]; fn[-1, j] = ledger[s][-1].rate   # 资金费面板只填最后一行(生产现状)
+subprocess dlw_features.py (29ae6a98) ; f8_higher_order_features.build (2c500c7a)   # 生产原码,同 F171_* 环境变量
+assert m82["self_sha256"] == DLW_SHA and m89["self_sha256"] == F8_SHA   # 跑的就是生产那份代码
+assert np.array_equal(scol, pm)                         # F10 行与成员顺序一致
+```
+资金费状态:`news_fund_replay.py` 把 `shadow_loop_v3.py` L451–L484 原文编译执行,在历史结算账本上逐锚回放(冷启动)。
+
+### B.3 我最担心、请重点查的
+
+1. **"只填最后一行"的资金费面板**:回放里 `f_fund_ema` / `f_fund_now` 只有最后一行非零、其余全 0。这是否**与生产 combo_stage 写 `xfer_panel_live` 的方式逐字相同**?若生产在迷你面板里写了多行历史,凡用到资金费历史的特征都会不同。
+2. **冷启动**:资金费 EMA 状态从空开始回放 ⇒ 历史最初一段 EMA 与线上"持续运行的 EMA"不同。前多少锚应丢弃作预热?训练窗是否避开?
+3. **缓存来源**:回放缓存 = 研究缓存 x0918r(`08bb2957…`,f16,裁剪 ±0.30)。它与生产者当时**实际**拉到的 5m 数据是否同源同口径(交易所 kline 字段、成交量通道 `lqv`、`tbf` 等)?合成补洞置 NaN 是对的,但**交易所真实缺口**在两边是否都为 NaN?
+4. **成员选择残余**(收据 `news_2026-09-23/receipts/P1B_FETCHLIST.json`):生产者成员筛不含合法掩码 ⇒ 已不合法但仍有冻结行、过覆盖/波动门的名可能被选入。实测:拉取全部加密名(680)时 2025-07→2026-09 有 181/2671 锚(6.8%)与训练规则不同,**全部**来自当锚已不合法的名(其中 2026-08 占 74 锚);拉取 522 名(450 ∪ 9 月候选)时 **9 月 109 锚 0 差**,但此前几乎每锚都差 —— 固定名单复现不了历史,新上市名会逐月漂离训练规则。⇒ 拉取名单必须按月维护(随月度重训)。请判断这是否可接受,或是否应在生产者成员筛里加合法掩码(那是生产者特征代码改动,超出本轮"零改动"范围)。另:回放只在成员列上算特征(提速),`P1_COLRESTRICT_BITWISE.json` 在 5 个锚(2022-03 → 2026-09-18)上与全列计算逐位相等(X82/X89 ndiff 0)。
+5. **标签**:训练标签必须是未裁剪原始价格收益、缺失不填 0(预注册 §1、修订 1 第 2 条)。请在 P3 训练收据出来后核标签构造。
+6. **决策规则**:预注册 §3 S1–S5(两种子各自:合并点估计 > 0 对 OLD 与 OLD_HOLD;三段至少两段 > 0;回撤不差于 OLD_HOLD;−25% 触线路径不多于 OLD_HOLD;成本格同号),**区间照报不作门**(依据 E-0923-B:该仪器区间半宽约 10 bps/日)。这是用户要求的直接决策规则。请判断它是否足以支撑换装,**若不足,请在 18:00Z 判词之前提出**(判词之后改规则就是挪门柱)。
+
+---
+
+## C. M3 评估钩子(P1)
+
+`multi_asset/exports/research/m3_2026-09-23/devices/m3_hook.py`:在认证模拟器的 `apply_withhold_and_reshape` 之后插钩,`w_exec,s = target_s / Gs`,`β_exec = Σ w_exec,s·β_s(A)`(β 公式沿用 M2 `m2_lib.betas_at`,认证原始价格表)。结果 `docs/RESULT_m3_beta_overlay_2026-09-23.md`(f7fab0642):R1、R2 两底座通过,**R3 投递未过**(D = 0.779 / 0.840),原因是从 M2 继承的"底座 BTC 是碎单 ⇒ 对冲跳过"。M3b(修订 912788743)在跑。
+
+**请查**:① 钩子看到的 `target` 与生产执行器在同一锚看到的 w_exec 是否同一对象(代理用构造锚 + 一个真实锚对模拟器决策记录验过);② R3 的 D 定义(整体意图 β 移动之和的比)与中位数都合理吗;③ R4 显示 2026 主窗对冲使总收益 −9.3 / −13.3pp(主要来自价格:2026 年负 β 整体赚钱),辅助窗 NEW +29.5pp —— 这个解读对吗。
+
+---
+
+## D. 离线电池账本门(P2,已部署)
+
+`ops/run_acceptance_offline.sh`(`b66257b`,副本 `multi_asset/exports/research/review_round10_2026-09-23/DEPLOYED_b66257b_run_acceptance_offline.sh`):进沙箱前,父进程**只列**实盘 `state/live/pilot_log` 的日目录名;检出缺任一已完成实盘日 ⇒ exit 78;实盘账本无日目录 ⇒ 拒绝(未知不是空)。测试 `ops/tests_acceptance_offline.py` ALL PASS 36(含基线绿先行、拆门变异变红);全电池 `ACCEPTANCE: ALL GREEN (162/162 suites exit 0)`。**已知遗留**:该测试与 `tests_acceptance_interpreter` 不在 `run_acceptance.sh` SUITES 里(原状)。
+
+**请查**:测试缝 `_offline_ledger_production="$_offline_production"` 这一行在生产里是否可能被别的东西改写(它只是一个脚本内赋值);"最新一天允许缺"是否会被利用成"复制一份停在昨天的副本"。
+
+---
+
+## 边界
+
+全部只读;不碰 `~/dl_quant_live`、`~/wide_shadow` 运行树与 `~/cc_tmp` 下各代理的工作目录(读可以,写不可以);不调交易所;本机重活只在静默窗 [N+1:00, N+3:40];pod2 禁止按名字杀进程;盲态:不读 CFG-04/06 逐臂数据。
+
+## 交付格式
+
+每条标 P1/P2/P3,附可复跑反例或证据路径。**A.4 与 B.3 请尽早分批回**(不必等全部审完):任何 P1 在对应线上线前必须解决。对四个对象各给一个判语:**可以上线 / 修后上线 / 不可上线**。
