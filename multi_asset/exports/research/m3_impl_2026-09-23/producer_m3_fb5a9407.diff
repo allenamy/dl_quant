@@ -1,0 +1,459 @@
+diff --git a/fea171/beta_overlay_producer.py b/fea171/beta_overlay_producer.py
+new file mode 100644
+index 0000000..8b735ea
+--- /dev/null
++++ b/fea171/beta_overlay_producer.py
+@@ -0,0 +1,149 @@
++"""beta_overlay_producer — M3 per-name BTC betas for target_live's `beta_overlay` field (the executor's overlay leg reads it).
++
++Pre-registration: quant_research docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md (24c3f803f) §2 step 2 and §5
++("生产者算 β_i 向量写进 target_live 的新字段"). The executor side is dl_quant_live live/beta_overlay.py (version VERSION;
++it refuses any other version, any other declared parameter, a cut-off other than the file's anchor, and a fallback
++inconsistency).
++
++THE FORMULA (identical to M2's m2_lib.betas_at; reproduced, not re-decided)
++    beta_i = OLS slope WITH intercept of name i's 4h log returns on BTCUSDT's 4h log returns over the most recent N_WIN = 180
++             4h bars COMPLETED at the anchor A (the bar ending at A is completed at A); pairwise-valid bars only; >= N_MIN = 120
++             valid pairs, else FALLBACK = 1.0; clipped to [-1, 4]; BTCUSDT's own beta = 1. A zero BTC variance raises.
++THE DATA — the producer's own rolling cache (state/rolling.npz, the same generation combo_stage scores), and its NAMED
++DIFFERENCES from M2's certified price table (price_full_raw_x0918r):
++    * 4h log return of bar (T-4h, T] = sum of log1p(ret5) over the 48 rows whose 5-minute bar CLOSES in (T-4h, T]
++      (rts are close times: shadow_loop_v3 writes row `close_s = open + 300 s`); ret5 = close/prev_close - 1, so the sum is
++      log(P_T / P_{T-4h}) exactly, up to the two cache properties below.
++    * a bar is VALID iff all 49 rows closing in the CLOSED interval [T-4h, T] are finite — the row closing AT the start
++      boundary included: when that row is missing, the next row's ret5 was computed from a stale prev_close and spans the gap
++      (the M2 / bt_hist_sim31 UA-FREEZE-EXCLUDE rule, same closed interval). Missing rows are never zero-filled.
++    * ret5 is CLIPPED to +-0.30 per 5 minutes (shadow_loop_v3 CHN_CLIPS) and stored as float16 (relative rounding ~5e-4 per
++      row). Neither exists in the certified table. A 5-minute move beyond 30% is the only way the clip binds.
++    * bars that start before the cache's first row do not exist and are invalid (the cache holds 40 days; 180 bars = 30 days).
++    * a name with no cache column has 0 valid pairs ⇒ FALLBACK (the formula's rule, not a special case).
++CAUSALITY: only rows with close time <= A are read (the slice ends at A's row); `tests_beta_overlay_producer` perturbs every
++later row and requires bitwise-identical betas, and perturbs the row closing AT A and requires a change.
++Pure: numpy only, no file, no network, no clock.
++"""
++from __future__ import annotations
++
++import math
++
++import numpy as np
++
++VERSION = "m3_beta_v1"
++BTC = "BTCUSDT"
++N_WIN = 180
++N_MIN = 120
++CLIP_LO, CLIP_HI = -1.0, 4.0
++FALLBACK = 1.0
++H4 = 14400
++ROW = 300
++ROWS_PER_BAR = H4 // ROW          # 48
++
++
++class BetaOverlayError(Exception):
++    pass
++
++
++def _fail(msg):
++    raise BetaOverlayError(msg)
++
++
++def compute(rts, ret5, symbols, names, anchor_ts):
++    """The `beta_overlay` field for anchor `anchor_ts`.
++
++    rts: (n,) integer close times of the 5-minute rows, contiguous (step 300 s), containing anchor_ts;
++    ret5: (n, n_sym) array-like of simple 5-minute returns (float16 ok; NaN = missing row), column order = `symbols`;
++    names: the names to write betas for (the producer's universe list, in its order); BTCUSDT is always written.
++    Raises BetaOverlayError on anything it cannot compute (never a default)."""
++    rts = np.asarray(rts)
++    if rts.ndim != 1 or len(rts) < 2 or not np.issubdtype(rts.dtype, np.integer):
++        _fail("rts must be a 1-d integer axis")
++    rts = rts.astype(np.int64)
++    if not np.all(np.diff(rts) == ROW):
++        _fail("rts not 5-minute contiguous")
++    A = int(anchor_ts)
++    if A % H4 != 0:
++        _fail(f"anchor {A} not on the 4h grid")
++    hit = np.nonzero(rts == A)[0]
++    if len(hit) != 1:
++        _fail(f"anchor {A} not in the cache axis exactly once")
++    ai = int(hit[0])
++    symbols = [str(s) for s in symbols]
++    if len(set(symbols)) != len(symbols):
++        _fail("duplicate symbols")
++    if getattr(ret5, "ndim", None) != 2 or ret5.shape[0] != len(rts) or ret5.shape[1] != len(symbols):
++        _fail(f"ret5 shape {getattr(ret5, 'shape', None)} != ({len(rts)}, {len(symbols)})")
++    col = {s: j for j, s in enumerate(symbols)}
++    if BTC not in col:
++        _fail("BTCUSDT has no cache column")
++    names = [str(n) for n in names]
++    if len(set(names)) != len(names):
++        _fail("duplicate names")
++    want = list(dict.fromkeys([BTC] + names))            # BTC first, then the universe order, unique
++    have = [n for n in want if n in col]
++    need_rows = N_WIN * ROWS_PER_BAR + 1                  # 8641: the start-boundary row of the first bar + 180 x 48
++    lo = ai - (need_rows - 1)
++    # ── the causal slice: rows [lo, ai] — nothing after A is ever read ──
++    cols = [col[n] for n in have]
++    if lo >= 0:
++        R = np.asarray(ret5[lo:ai + 1][:, cols], dtype=np.float64)
++    else:                                                 # bars before the cache's first row do not exist
++        R = np.full((need_rows, len(cols)), np.nan)
++        R[-lo:] = np.asarray(ret5[0:ai + 1][:, cols], dtype=np.float64)
++    with np.errstate(invalid="ignore", divide="ignore"):
++        L = np.log1p(R)
++    fin = np.isfinite(L)
++    body = L[1:].reshape(N_WIN, ROWS_PER_BAR, len(cols))
++    body_ok = fin[1:].reshape(N_WIN, ROWS_PER_BAR, len(cols)).all(axis=1)
++    start_ok = fin[0:N_WIN * ROWS_PER_BAR:ROWS_PER_BAR]  # the row closing AT each bar's start boundary
++    V = body_ok & start_ok                                # (180, m)
++    R4 = np.where(V, np.where(fin[1:].reshape(N_WIN, ROWS_PER_BAR, len(cols)), body, 0.0).sum(axis=1), np.nan)
++    jb = have.index(BTC)
++    vb = V[:, jb]
++    x_all = R4[:, jb]
++    betas, nobs = {}, {}
++    n_est = n_fb = 0
++    for k, n in enumerate(have):
++        if n == BTC:
++            betas[n] = 1.0
++            nobs[n] = int(vb.sum())
++            continue
++        m = V[:, k] & vb
++        cnt = int(m.sum())
++        nobs[n] = cnt
++        if cnt < N_MIN:
++            betas[n] = FALLBACK
++            n_fb += 1
++            continue
++        x = x_all[m]
++        y = R4[m, k]
++        dx = x - x.mean()
++        dy = y - y.mean()
++        sxx = float((dx * dx).sum())
++        if not (sxx > 0.0):
++            _fail(f"zero BTC variance on {n}'s {cnt} valid pairs")
++        b = float((dx * dy).sum()) / sxx
++        if not math.isfinite(b):
++            _fail(f"non-finite slope for {n}")
++        betas[n] = float(min(max(b, CLIP_LO), CLIP_HI))
++        n_est += 1
++    for n in want:
++        if n not in col:                                  # no cache column ⇒ 0 valid pairs ⇒ the formula's fallback
++            betas[n] = FALLBACK
++            nobs[n] = 0
++            n_fb += 1
++    return {
++        "version": VERSION, "anchor_ts": A, "data_cutoff_ts": A,
++        "first_bar_end_ts": A - (N_WIN - 1) * H4,
++        "n_win": N_WIN, "n_min": N_MIN, "clip": [CLIP_LO, CLIP_HI], "fallback": FALLBACK, "btc": BTC,
++        "betas": {n: betas[n] for n in want}, "n_obs": {n: nobs[n] for n in want},
++        "n_names": len(want), "n_estimated": n_est, "n_fallback": n_fb,
++        "n_no_cache_column": len(want) - len(have),
++        "method": ("OLS slope with intercept of 4h log returns (sum of log1p(ret5) over the 48 rows closing in (T-4h,T]; a "
++                   "bar is valid iff the 49 rows closing in [T-4h,T] are finite) on BTCUSDT's, pairwise-valid bars only; "
++                   ">=120 pairs else 1.0; clip [-1,4]; BTCUSDT = 1"),
++        "source": "producer rolling cache state/rolling.npz channel ret5 (simple 5m return, clipped +-0.30, float16)",
++        "prereg": "quant_research docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md (24c3f803f) §2 step 2",
++    }
+diff --git a/fea171/combo_stage.py b/fea171/combo_stage.py
+index 62e128e..d66e89a 100644
+--- a/fea171/combo_stage.py
++++ b/fea171/combo_stage.py
+@@ -363,6 +363,33 @@ if os.environ.get("COMBO_LIVE", "0") == "1":
+         assert len(_nz) >= 150, f"combo 名数 {len(_nz)} < 150"
+         assert kdoc.get("schema") == "wide_target_v1" and int(kdoc["anchor_ts"]) == A, "king 文件锚/schema 异常"
+         _uni = kdoc["universe"]
++        # ── M3(PREREG_m3_beta_overlay_executed_book_2026-09-23, 24c3f803f §5): 逐名 β 写入 target_live 新字段 `beta_overlay`,
++        #    供执行器在 reshape+clamp 之后算 β_exec 下 BTC 叠加腿。只加字段, 不改任何既有字段与权重。
++        #    ★ 绝不阻断发布: 计算失败 ⇒ 本锚不写该字段(执行器 on 时「缺失即不做」+ HIGH), 页报放在发布之后(不占截止余量)。
++        #    ★ Everything M3 adds runs inside ONE try whose except cannot raise: no NameError, no log failure, nothing M3 does
++        #      may reach the outer except (that path is _bail = "publication aborted"). Checked by re-running the 20260922
++        #      release's publication-boundary tests against this file (their harness namespace has no rts/RD — the field is
++        #      then simply omitted and the book publishes byte-identically).
++        _status["step"] = "beta_overlay"
++        _beta_field = None
++        _beta_page = None
++        try:
++            _t_beta = time.time()
++            import beta_overlay_producer as _BOP
++            _beta_field = _BOP.compute(rts, RD[:, :, 0], [str(x) for x in _symbols], list(_uni), A)
++            _status["beta_overlay"] = {"ok": True, "version": _beta_field["version"], "n_names": _beta_field["n_names"],
++                                       "n_estimated": _beta_field["n_estimated"], "n_fallback": _beta_field["n_fallback"],
++                                       "n_no_cache_column": _beta_field["n_no_cache_column"],
++                                       "elapsed_s": round(time.time() - _t_beta, 3)}
++            log(f"M3 beta_overlay: {_status['beta_overlay']}")
++        except Exception as _be:                    # noqa: BLE001 — the book is published without the field
++            _beta_field = None
++            try:
++                _status["beta_overlay"] = {"ok": False, "error": f"{type(_be).__name__}: {str(_be)[:200]}"}
++                _beta_page = (f"combo 写者: beta_overlay 字段计算失败 [锚 {A}] {type(_be).__name__}: {str(_be)[:160]} — "
++                              f"目标照常发布但不含该字段; 执行器 M3=on 时本锚不下对冲单(缺失即不做)。")
++            except Exception:                        # noqa: BLE001
++                _beta_page = "combo 写者: beta_overlay 字段计算失败(详情不可得) — 目标照常发布但不含该字段。"
+         # 备份 king
+         _status["step"] = "backup"
+         os.makedirs(f"{WS}/state/target_live_king", exist_ok=True)
+@@ -385,6 +412,8 @@ if os.environ.get("COMBO_LIVE", "0") == "1":
+                 "f10_sha": _F10_SHA,   # FP2-6b: the executor pins this (config f10_sha_pin) once the field is live for one anchor
+                 "written_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time())),
+                 "producer": "combo_stage_v1(kingLGBM 0.55 + V2MAIN 0.45, rev24 leg removed; base shadow_loop_v3)"}
++        if _beta_field is not None:
++            _doc["beta_overlay"] = _beta_field     # M3: new field only; every other key/value above is unchanged
+         _raw = json.dumps(_doc).encode()
+         _jp = f"{_outdir}/{A}.json"
+         os.makedirs(_outdir, exist_ok=True)
+@@ -408,6 +437,21 @@ if os.environ.get("COMBO_LIVE", "0") == "1":
+             assert _pt.get("ok"), f"parse_target: {_pt.get('reason')}: {_pt.get('detail')}"
+             assert _pt["gross_outside"] == 0.0, f"宇宙外权重 {_pt['gross_outside']}"
+             assert _pt["n_in_universe"] >= 150 and _pt["gross_in"] > 0.4
++            # M3: the executor's own field validator on the bytes actually staged (record only — never blocks the book)
++            if _beta_field is not None:
++                try:
++                    import beta_overlay as _BOX
++                    _bv = _BOX.validate_field(json.loads(_vf["raw"].decode()).get("beta_overlay"), A)
++                    _status["beta_overlay"]["reader_verdict"] = {"ok": _bv["ok"], "reason": _bv["reason"],
++                                                                 "detail": (_bv.get("detail") or "")[:160],
++                                                                 "betas_sha256": _bv.get("betas_sha256")}
++                    if not _bv["ok"] and _beta_page is None:
++                        _beta_page = (f"combo 写者: beta_overlay 字段被执行器校验器拒绝 [{time.strftime('%m-%d %H:%M', time.gmtime(A))}锚] "
++                                      f"{_bv['reason']}: {(_bv.get('detail') or '')[:160]} — 执行器 M3=on 时本锚不下对冲单。")
++                except ImportError:
++                    _status["beta_overlay"]["reader_verdict"] = "executor tree predates M3 (no live/beta_overlay.py) — not checked"
++                except Exception as _bve:            # noqa: BLE001
++                    _status["beta_overlay"]["reader_verdict"] = f"validator raised {type(_bve).__name__}: {str(_bve)[:120]}"
+             verify_source_snapshot(_source_snapshot["identity"])
+             verify_current_feature_cache(MINI, _feature_identity)
+             if (not _rehearsal) and time.time() > _deadline:
+@@ -419,6 +463,11 @@ if os.environ.get("COMBO_LIVE", "0") == "1":
+                        elapsed_s=round(time.time() - _now0, 1), rehearsal=_rehearsal)
+         json.dump(_status, open(f"{WS}/state/combo_live_status.json", "w"), indent=1)
+         log(f"⑤ COMBO_LIVE 写者完成 rehearsal={_rehearsal} n={len(_weights)} gross={_doc['gross_norm']:.4f} 读者验收 ok age={_pt['age_s']}s")
++        if _beta_page is not None and not _rehearsal:
++            try:                                      # M3: after publication (never spends the deadline margin), and a page
++                _page("HIGH", _beta_page)             #     failure can never turn a published book into a reported abort
++            except Exception:                         # noqa: BLE001
++                pass
+     except SystemExit:
+         raise
+     except Exception as _e:
+diff --git a/fea171/tests_beta_overlay_producer.py b/fea171/tests_beta_overlay_producer.py
+new file mode 100644
+index 0000000..3a2c262
+--- /dev/null
++++ b/fea171/tests_beta_overlay_producer.py
+@@ -0,0 +1,217 @@
++"""tests_beta_overlay_producer — the producer's M3 beta field (beta_overlay_producer.compute). Pure numpy fixtures; optional
++read-only real-cache checks when M3_REAL_ROLLING (a rolling.npz path) and M3_REAL_SYMS (xfer_syms.npz) are set; the pair check
++against the executor's validator REQUIRES M3_EXECUTOR_ROOT (a dl_quant_live tree with live/beta_overlay.py) — absent ⇒ RED,
++never skipped (an unchecked pair is not a checked one).
++
++  T1  future-perturbation invariance: every row after the anchor rewritten (values, NaNs, a +-30% spike) ⇒ the field is
++      byte-identical; control: the row closing AT the anchor changed ⇒ the beta changes (the bar ending at A is used).
++  T2  a name built as exactly 2 x BTC (+ constant) ⇒ beta 2.0 (error < 1e-12); BTC's own beta is exactly 1.
++  T3  119 valid pairs ⇒ fallback 1.0 with n_obs 119; 120 ⇒ estimated (2.0).
++  T4  clip: a 5x name ⇒ 4.0; a -3x name ⇒ -1.0.
++  T5  the start-boundary rule: a missing row closing AT a boundary T invalidates BOTH bars sharing it — the one ending at T
++      (the row is inside it) and the one starting at T (its start price is stale: the next row's ret5 spans the gap), 178
++      pairs; a gap-spanning spike placed in the next row leaves the beta exactly 2. RED control: a mutant that ignores the
++      start row counts 179 pairs and the spike moves the beta.
++  T6  refusals: anchor not in the axis / off the 4h grid / non-contiguous axis / duplicate symbols / BTC column missing / zero
++      BTC variance ⇒ BetaOverlayError (never a default); a name with no cache column ⇒ fallback, n_obs 0.
++  T7  PAIR: the field (JSON round-trip) is accepted by the executor's validator; a changed parameter is refused.
++  T8  (optional, real cache) the latest anchor: finite, clipped, BTC 1, one entry per universe name, < 2 s; and causality on
++      REAL data — the full cache vs the cache truncated at an earlier anchor give byte-identical fields for that anchor.
++"""
++import importlib.util
++import json
++import os
++import sys
++import time
++
++import numpy as np
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++sys.path.insert(0, HERE)
++import beta_overlay_producer as B  # noqa: E402
++
++FAILS, N = [], [0]
++
++
++def check(name, cond, detail=""):
++    N[0] += 1
++    print(f"  {'OK  ' if cond else 'FAIL'} {name}{(' — ' + str(detail)[:300]) if detail else ''}", flush=True)
++    if not cond:
++        FAILS.append(name)
++
++
++A = 1790150400
++BARS = 180
++ROWS = BARS * 48 + 1
++EXTRA = 24                                   # rows AFTER the anchor (the future the formula must not read)
++
++
++def axis(extra=EXTRA, before=0):
++    return np.arange(A - (ROWS - 1 + before) * 300, A + 1 + extra * 300, 300, dtype=np.int64)
++
++
++def synth(seed=1, extra=EXTRA, before=0):
++    """BTC + four names. Each 4h bar carries its whole log return in ONE row (the last) so exact targets are constructible."""
++    rts = axis(extra, before)
++    n = len(rts)
++    rng = np.random.default_rng(seed)
++    ai = int(np.nonzero(rts == A)[0][0])
++    x = np.zeros(n)
++    x[ai - (BARS - 1) * 48 - 48 * before: ai + 1: 48] = rng.normal(0, 0.02, size=len(range(ai - (BARS - 1) * 48 - 48 * before, ai + 1, 48)))
++    cols = {"BTCUSDT": x.copy(), "TWOUSDT": np.where(x != 0, 2 * x + 0.001, 0.0), "FIVEUSDT": 5 * x, "NEGUSDT": -3 * x,
++            "NOISEUSDT": rng.normal(0, 0.001, size=n)}
++    syms = list(cols)
++    L = np.stack([cols[s] for s in syms], 1)
++    return rts, np.expm1(L), syms          # simple returns, float64 (the exact tests); float16 is covered by T7/T8
++
++
++# ── T1 future invariance ──────────────────────────────────────────────────────────────────────────
++print("[T1] future-perturbation invariance")
++rts, R, syms = synth()
++names = syms[1:]
++f0 = B.compute(rts, R, syms, names, A)
++ai = int(np.nonzero(rts == A)[0][0])
++R2 = R.copy()
++rng = np.random.default_rng(99)
++R2[ai + 1:] = rng.normal(0, 0.05, size=R2[ai + 1:].shape)
++R2[ai + 3, 1] = np.nan
++R2[ai + 5, 0] = 0.30
++f1 = B.compute(rts, R2, syms, names, A)
++check("T1a every row after the anchor rewritten ⇒ field byte-identical", json.dumps(f0, sort_keys=True) == json.dumps(f1, sort_keys=True))
++R3 = R.copy()
++R3[ai, 1] += 0.01                                       # the row closing AT the anchor
++f3 = B.compute(rts, R3, syms, names, A)
++check("T1b control: the row closing AT the anchor changed ⇒ the beta changes (the bar ending at A is in the sample)",
++      f3["betas"]["TWOUSDT"] != f0["betas"]["TWOUSDT"], (f0["betas"]["TWOUSDT"], f3["betas"]["TWOUSDT"]))
++
++# ── T2 exact beta ────────────────────────────────────────────────────────────────────────────────
++print("\n[T2] exact beta and BTC")
++check("T2a a 2x(+const) name ⇒ beta 2 (|err| < 1e-12), 180 pairs", abs(f0["betas"]["TWOUSDT"] - 2.0) < 1e-12 and f0["n_obs"]["TWOUSDT"] == 180,
++      f0["betas"]["TWOUSDT"])
++check("T2b BTC's own beta is exactly 1.0 and it is written first", f0["betas"]["BTCUSDT"] == 1.0 and list(f0["betas"])[0] == "BTCUSDT")
++check("T2c declared parameters are the prereg's", (f0["version"], f0["n_win"], f0["n_min"], f0["clip"], f0["fallback"], f0["data_cutoff_ts"])
++      == ("m3_beta_v1", 180, 120, [-1.0, 4.0], 1.0, A))
++
++# ── T3 the 120 line ──────────────────────────────────────────────────────────────────────────────
++print("\n[T3] 119 ⇒ fallback, 120 ⇒ estimated")
++
++
++def knock(Rm, k_bars, col):
++    """make the LAST k_bars bars of `col` invalid (one NaN row inside each)."""
++    Rm = Rm.copy()
++    for k in range(k_bars):
++        Rm[ai - 48 * k - 10, col] = np.nan
++    return Rm
++
++
++f120 = B.compute(rts, knock(R, 60, 1), syms, names, A)
++f119 = B.compute(rts, knock(R, 61, 1), syms, names, A)
++check("T3a 120 valid pairs ⇒ estimated beta 2.0", f120["n_obs"]["TWOUSDT"] == 120 and abs(f120["betas"]["TWOUSDT"] - 2.0) < 1e-12,
++      (f120["n_obs"]["TWOUSDT"], f120["betas"]["TWOUSDT"]))
++check("T3b 119 valid pairs ⇒ fallback exactly 1.0", f119["n_obs"]["TWOUSDT"] == 119 and f119["betas"]["TWOUSDT"] == 1.0,
++      (f119["n_obs"]["TWOUSDT"], f119["betas"]["TWOUSDT"]))
++fb = B.compute(rts, knock(R, 61, 0), syms, names, A)
++check("T3c pairs are PAIRWISE: 61 invalid BTC bars ⇒ every name falls back (n_obs 119)", all(fb["betas"][n] == 1.0 and fb["n_obs"][n] == 119 for n in names))
++
++# ── T4 clip ──────────────────────────────────────────────────────────────────────────────────────
++print("\n[T4] clip")
++check("T4 a 5x name ⇒ 4.0; a -3x name ⇒ -1.0", f0["betas"]["FIVEUSDT"] == 4.0 and f0["betas"]["NEGUSDT"] == -1.0,
++      (f0["betas"]["FIVEUSDT"], f0["betas"]["NEGUSDT"]))
++
++# ── T5 start-boundary rule ───────────────────────────────────────────────────────────────────────
++print("\n[T5] a missing row AT a bar's start invalidates the bar (stale start price)")
++Rs = R.copy()
++k0 = ai - 48 * 50                                        # the row closing at the start of bar ending ai - 48*49
++Rs[k0, 1] = np.nan
++Rs[k0 + 1, 1] = 0.25                                     # the gap-spanning return the producer would have stored there
++fs = B.compute(rts, Rs, syms, names, A)
++check("T5a both bars sharing the boundary are invalid (178 pairs) and the beta stays 2.0 exactly", fs["n_obs"]["TWOUSDT"] == 178 and abs(fs["betas"]["TWOUSDT"] - 2.0) < 1e-12,
++      (fs["n_obs"]["TWOUSDT"], fs["betas"]["TWOUSDT"]))
++src = open(os.path.join(HERE, "beta_overlay_producer.py")).read()
++old = "    V = body_ok & start_ok                                # (180, m)"
++assert src.count(old) == 1
++import tempfile  # noqa: E402
++_td = tempfile.mkdtemp(prefix="bop_mut_")
++mp = os.path.join(_td, "bop_mut.py")
++open(mp, "w").write(src.replace(old, "    V = body_ok", 1))
++spec = importlib.util.spec_from_file_location("bop_mut", mp)
++Bm = importlib.util.module_from_spec(spec)
++spec.loader.exec_module(Bm)
++os.remove(mp)
++os.rmdir(_td)
++fm = Bm.compute(rts, Rs, syms, names, A)
++check("T5b RED control: a mutant without the start-row rule counts 179 pairs and the spike moves the beta",
++      fm["n_obs"]["TWOUSDT"] == 179 and abs(fm["betas"]["TWOUSDT"] - 2.0) > 1e-3, (fm["n_obs"]["TWOUSDT"], fm["betas"]["TWOUSDT"]))
++
++# ── T6 refusals ──────────────────────────────────────────────────────────────────────────────────
++print("\n[T6] refusals and the no-column fallback")
++
++
++def raises(label, fn):
++    try:
++        fn()
++        ok = False
++    except B.BetaOverlayError:
++        ok = True
++    check(f"T6 {label} ⇒ BetaOverlayError", ok)
++
++
++raises("anchor not in the axis", lambda: B.compute(rts, R, syms, names, A + 14400 * 10))
++raises("anchor off the 4h grid", lambda: B.compute(rts, R, syms, names, A + 300))
++_rb = rts.copy(); _rb[5] += 1
++raises("non-contiguous axis", lambda: B.compute(_rb, R, syms, names, A))
++raises("duplicate symbols", lambda: B.compute(rts, R, syms[:-1] + [syms[0]], names, A))
++raises("BTC column missing", lambda: B.compute(rts, R[:, 1:], syms[1:], names, A))
++_Rz = R.copy(); _Rz[:, 0] = 0.0
++raises("zero BTC variance", lambda: B.compute(rts, _Rz, syms, names, A))
++fnc = B.compute(rts, R, syms, names + ["NOCOLUSDT"], A)
++check("T6b a name with no cache column ⇒ fallback 1.0, n_obs 0, counted", fnc["betas"]["NOCOLUSDT"] == 1.0 and fnc["n_obs"]["NOCOLUSDT"] == 0
++      and fnc["n_no_cache_column"] == 1)
++fshort = B.compute(rts[200:], R[200:], syms, names, A)
++check("T6c bars before the cache's first row do not exist (invalid, never zero): a cache 200 rows short ⇒ 175 pairs",
++      fshort["n_obs"]["TWOUSDT"] == 175, fshort["n_obs"]["TWOUSDT"])
++
++# ── T7 pair with the executor's validator ────────────────────────────────────────────────────────
++print("\n[T7] pair: the executor's validator accepts this field")
++root = os.environ.get("M3_EXECUTOR_ROOT")
++if not root or not os.path.isfile(os.path.join(root, "live", "beta_overlay.py")):
++    check("T7 M3_EXECUTOR_ROOT names a dl_quant_live tree with live/beta_overlay.py (pair check is REQUIRED)", False, root)
++else:
++    spec = importlib.util.spec_from_file_location("beta_overlay_exec", os.path.join(root, "live", "beta_overlay.py"))
++    BX = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(BX)
++    f16 = B.compute(rts, R.astype(np.float16), syms, names, A)
++    v = BX.validate_field(json.loads(json.dumps(f16)), A)
++    check("T7a float16 cache field, JSON round-trip ⇒ ACCEPTED by the executor validator", v["ok"], (v.get("reason"), v.get("detail")))
++    v2 = BX.validate_field(json.loads(json.dumps(dict(f16, n_min=100))), A)
++    check("T7b a changed parameter ⇒ refused params_mismatch", (not v2["ok"]) and v2["reason"] == "params_mismatch", v2.get("reason"))
++
++# ── T8 real cache (optional, read-only) ──────────────────────────────────────────────────────────
++rp, sp = os.environ.get("M3_REAL_ROLLING"), os.environ.get("M3_REAL_SYMS")
++if rp and sp:
++    print("\n[T8] real cache (read-only)")
++    z = np.load(rp, allow_pickle=True)
++    rts_r, D = z["ts"].astype(np.int64), z["data"]
++    syms_r = [str(s) for s in np.load(sp, allow_pickle=True)["symbols"]]
++    Ar = int(rts_r[-1])
++    uni = json.load(open(os.environ["M3_REAL_UNIVERSE"]))["universe"] if os.environ.get("M3_REAL_UNIVERSE") else syms_r[:450]
++    t0 = time.time()
++    fr = B.compute(rts_r, D[:, :, 0], syms_r, uni, Ar)
++    el = time.time() - t0
++    bv = np.array(list(fr["betas"].values()))
++    check("T8a latest anchor: finite, inside the clip, BTC 1, one entry per universe name (+BTC), < 2 s",
++          np.isfinite(bv).all() and bv.min() >= -1 and bv.max() <= 4 and fr["betas"]["BTCUSDT"] == 1.0
++          and set(fr["betas"]) == set(uni) | {"BTCUSDT"} and el < 2.0, (round(el, 3), fr["n_estimated"], fr["n_fallback"]))
++    Ap = Ar - 6 * 14400
++    ip = int(np.nonzero(rts_r == Ap)[0][0])
++    fa = B.compute(rts_r, D[:, :, 0], syms_r, uni, Ap)
++    fb2 = B.compute(rts_r[:ip + 1], D[:ip + 1, :, 0], syms_r, uni, Ap)
++    check("T8b REAL causality: the field at A-24h from the full cache == from the cache truncated at A-24h (byte-identical)",
++          json.dumps(fa, sort_keys=True) == json.dumps(fb2, sort_keys=True))
++else:
++    print("\n[T8] real cache: not requested (M3_REAL_ROLLING / M3_REAL_SYMS unset) — the synthetic groups above are the suite")
++
++print(f"\nTESTS_BETA_OVERLAY_PRODUCER {'ALL PASS' if not FAILS else 'FAILURES'} checks={N[0]} failed={len(FAILS)}")
++for f in FAILS:
++    print("  FAILED:", f)
++sys.exit(0 if not FAILS else 1)

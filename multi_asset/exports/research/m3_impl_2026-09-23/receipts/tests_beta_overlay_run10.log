@@ -1,0 +1,216 @@
+[B] baseline green first: the harness reproduces the adapter on this fixture before any M3 claim
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   B1 stripped executor TRADEs the fixture at gross = NAV x 2.0 — ('TRADE', 20000.0)
+  OK   B2 the reshape did real work here: the file is -6% net, the executed book is neutral (|net| < 1e-9) and BTC's dust weight (0.0002 x 20k = 4 < 2 x 5) was popped — (-0.06000000000000003, 0.0, ['AAAUSDT', 'BBBUSDT', 'CCCUSDT', 'DDDUSDT', 'EEEUSDT', 'FFFUSDT', 'GGGUSDT', 'HHHUSDT'])
+  OK   B3 no M3 record in the stripped run (the reference really is M3-free)
+
+[C] config
+  OK   C1 absent ⇒ off, no error
+  OK   C2 off/shadow/on accepted
+  OK   C3 {'mode': 'ON'} ⇒ off + error (never an accidental on) — {'mode': 'off', 'error': "beta_overlay.mode='ON' is not one of ('off', 'shadow', 'on')", 'present': True}
+  OK   C3 {'mode': 1} ⇒ off + error (never an accidental on) — {'mode': 'off', 'error': "beta_overlay.mode=1 is not one of ('off', 'shadow', 'on')", 'present': True}
+  OK   C3 {'mode': None} ⇒ off + error (never an accidental on) — {'mode': 'off', 'error': "beta_overlay.mode=None is not one of ('off', 'shadow', 'on')", 'present': True}
+  OK   C3 'on' ⇒ off + error (never an accidental on) — {'mode': 'off', 'error': 'beta_overlay must be an object, got str', 'present': True}
+  OK   C3 ['on'] ⇒ off + error (never an accidental on) — {'mode': 'off', 'error': 'beta_overlay must be an object, got list', 'present': True}
+  OK   C4 unreadable book ⇒ off + error
+
+[V] the field validator
+  OK   V1 a producer-shaped field is accepted; betas / fallback count / sha recorded
+  OK   V2 absent ⇒ field_missing — ('field_missing', 'target_live has no `beta_overlay` field (producer predates M3, or its beta step failed)')
+  OK   V2 not an object ⇒ field_malformed — ('field_malformed', '`beta_overlay` is list, not an object')
+  OK   V2 version m3_beta_v0 ⇒ version_mismatch — ('version_mismatch', "version='m3_beta_v0', expected 'm3_beta_v1'")
+  OK   V2 another anchor's field ⇒ anchor_mismatch — ('anchor_mismatch', 'field anchor_ts=1790150400 != file anchor 1790164800')
+  OK   V2 cut-off one bar early (stale) ⇒ cutoff_mismatch — ('cutoff_mismatch', 'data_cutoff_ts=1790150400 != anchor 1790164800')
+  OK   V2 cut-off one bar late (the future) ⇒ cutoff_mismatch — ('cutoff_mismatch', 'data_cutoff_ts=1790179200 != anchor 1790164800')
+  OK   V2 declared n_win=179 ⇒ params_mismatch — ('params_mismatch', "declared {'n_win': 179, 'n_min': 120, 'clip': [-1.0, 4.0], 'fallback': 1.0, 'btc': 'BTCUSDT'} != prereg {'n_win': 180, 'n_min': 120, 'clip': [-1.0, 4.0], 'fallback': 1.0, 'btc': 'BTCUSDT'}")
+  OK   V2 declared n_min=119 ⇒ params_mismatch — ('params_mismatch', "declared {'n_win': 180, 'n_min': 119, 'clip': [-1.0, 4.0], 'fallback': 1.0, 'btc': 'BTCUSDT'} != prereg {'n_win': 180, 'n_min': 120, 'clip': [-1.0, 4.0], 'fallback': 1.0, 'btc': 'BTCUSDT'}")
+  OK   V2 declared clip=[-1.0, 5.0] ⇒ params_mismatch — ('params_mismatch', "declared {'n_win': 180, 'n_min': 120, 'clip': [-1.0, 5.0], 'fallback': 1.0, 'btc': 'BTCUSDT'} != prereg {'n_win': 180, 'n_min': 120, 'clip': [-1.0, 4.0], 'fallback': 1.0, 'btc': 'BTCUSDT'}")
+  OK   V2 declared fallback=0.0 ⇒ params_mismatch — ('params_mismatch', "declared {'n_win': 180, 'n_min': 120, 'clip': [-1.0, 4.0], 'fallback': 0.0, 'btc': 'BTCUSDT'} != prereg {'n_win': 180, 'n_min': 120, 'clip': [-1.0, 4.0], 'fallback': 1.0, 'btc': 'BTCUSDT'}")
+  OK   V2 declared btc='ETHUSDT' ⇒ params_mismatch — ('params_mismatch', "declared {'n_win': 180, 'n_min': 120, 'clip': [-1.0, 4.0], 'fallback': 1.0, 'btc': 'ETHUSDT'} != prereg {'n_win': 180, 'n_min': 120, 'clip': [-1.0, 4.0], 'fallback': 1.0, 'btc': 'BTCUSDT'}")
+  OK   V2 empty betas ⇒ bad_betas — ('bad_betas', 'betas must be a non-empty object {symbol: beta}')
+  OK   V2 n_obs names differ ⇒ bad_betas — ('bad_betas', "n_obs must be an object with exactly the betas' names")
+  OK   V2 a NaN beta ⇒ bad_betas — ('bad_betas', 'AAAUSDT: beta nan not a finite number')
+  OK   V2 a beta outside the clip (4.5) ⇒ bad_betas — ('bad_betas', 'AAAUSDT: beta 4.5 outside the clip [-1.0, 4.0]')
+  OK   V2 n_obs 181 ⇒ bad_betas — ('bad_betas', 'AAAUSDT: n_obs 181 not an integer in [0, 180]')
+  OK   V2 n_obs 100 but an estimated beta (producer self-inconsistency) ⇒ bad_betas — ('bad_betas', 'AAAUSDT: n_obs 100 < 120 but beta 1.5 != fallback 1.0')
+  OK   V2 BTC beta 0.999 ⇒ btc_beta_not_one — ('btc_beta_not_one', 'beta[BTCUSDT]=0.999, must be exactly 1.0')
+  OK   V2 BTC missing ⇒ btc_beta_not_one — ('btc_beta_not_one', 'beta[BTCUSDT]=None, must be exactly 1.0')
+
+[A] the arithmetic
+  OK   A1 beta_exec = sum w*beta over non-zero targets (a zero target needs no beta) — {'ok': True, 'reason': None, 'missing': [], 'n_missing': 0, 'beta_exec_usdt': 110.0, 'n_names': 2}
+  OK   A2 a NON-ZERO target without a beta refuses the whole computation (never a default beta) — {'ok': False, 'reason': 'beta_missing_for_targeted', 'missing': ['QQQUSDT'], 'n_missing': 1, 'beta_exec_usdt': None, 'n_names': 2}
+  OK   A3 hard_block (M3b): only external_dust is overrulable; held-exit, stop, cooldown, venue, meta are name-level; an untradable BTC no source recorded is name-level too (fail-closed)
+  OK   A4 dust_only: true iff BTC is untradable and external_dust is its ONLY recorded source
+
+[Z] ★ OFF (and SHADOW) is today's executor: new code vs the M3-stripped executor, same inputs
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ Z field present, BTC unheld — mode absent: plans / dry-run orders / order rows / ctx / loop state / record IDENTICAL to stripped
+  OK   Z field present, BTC unheld — mode absent: no M3 key anywhere in the anchor context / state
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ Z field present, BTC unheld — mode off: plans / dry-run orders / order rows / ctx / loop state / record IDENTICAL to stripped
+  OK   Z field present, BTC unheld — mode off: no M3 key anywhere in the anchor context / state
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ Z field present, BTC unheld — mode shadow: plans / dry-run orders / order rows / ctx / loop state / record IDENTICAL to stripped
+  OK   Z shadow records what it WOULD do (field present, BTC unheld): status shadow — ('shadow', None)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/10 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 10); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/10 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 10); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ Z field present, BTC HELD dust + a held untargeted name — mode absent: plans / dry-run orders / order rows / ctx / loop state / record IDENTICAL to stripped
+  OK   Z field present, BTC HELD dust + a held untargeted name — mode absent: no M3 key anywhere in the anchor context / state
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/10 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 10); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ Z field present, BTC HELD dust + a held untargeted name — mode off: plans / dry-run orders / order rows / ctx / loop state / record IDENTICAL to stripped
+  OK   Z field present, BTC HELD dust + a held untargeted name — mode off: no M3 key anywhere in the anchor context / state
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/10 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 10); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ Z field present, BTC HELD dust + a held untargeted name — mode shadow: plans / dry-run orders / order rows / ctx / loop state / record IDENTICAL to stripped
+  OK   Z shadow records what it WOULD do (field present, BTC HELD dust + a held untargeted name): status shadow — ('shadow', None)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ Z file WITHOUT the field — mode absent: plans / dry-run orders / order rows / ctx / loop state / record IDENTICAL to stripped
+  OK   Z file WITHOUT the field — mode absent: no M3 key anywhere in the anchor context / state
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ Z file WITHOUT the field — mode off: plans / dry-run orders / order rows / ctx / loop state / record IDENTICAL to stripped
+  OK   Z file WITHOUT the field — mode off: no M3 key anywhere in the anchor context / state
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ Z file WITHOUT the field — mode shadow: plans / dry-run orders / order rows / ctx / loop state / record IDENTICAL to stripped
+  OK   Z shadow records what it WOULD do (file WITHOUT the field): status refused — ('refused', 'field_missing')
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ Z MALFORMED field — mode absent: plans / dry-run orders / order rows / ctx / loop state / record IDENTICAL to stripped
+  OK   Z MALFORMED field — mode absent: no M3 key anywhere in the anchor context / state
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ Z MALFORMED field — mode off: plans / dry-run orders / order rows / ctx / loop state / record IDENTICAL to stripped
+  OK   Z MALFORMED field — mode off: no M3 key anywhere in the anchor context / state
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ Z MALFORMED field — mode shadow: plans / dry-run orders / order rows / ctx / loop state / record IDENTICAL to stripped
+  OK   Z shadow records what it WOULD do (MALFORMED field): status refused — ('refused', 'version_mismatch')
+  OK   Z-M0 mutant anchor text is unique — 1
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ Z-M1 RED-CAPABLE: the on-path-in-off mutant (BTC forced into the symbol set) differs from the stripped reference — ['ctx', 'out']
+  OK   Z-M2 mutant anchor text is unique
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ Z-M3 RED-CAPABLE: a mutant that runs the ON stage while the switch is off differs in plans — ['plans', 'actions', 'ctx', 'out', 'pending']
+
+[D] ★ flat-book diagnostic on the executor's own code; the leg is NOT spread by the reshape
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   D-pre the off-mode book pops the dust BTC (so this anchor exercises the combined-value path) — {'popped': ['BTCUSDT']}
+  OK   D0 the fixture's executed book has a material beta (|beta_exec| > 5% of gross), so the diagnostic can fail — 1961.8216336358578
+  OK   ★ D1 every non-BTC target is BITWISE the off-mode target (the leg changes nothing else) — ['BTCUSDT']
+  OK   ★ D2 BTC = the book's executed BTC entry + (-beta_exec), beta recomputed HERE from the fixture's betas — (-1961.8216336358578, 0.0, -1961.8216336358578)
+  OK   ★ D3 ex-ante beta of the final target moved by exactly -beta_exec: ratio 1 within 1e-9 (prereg R3 band is 0.95-1.05) — (1.0, 0.0)
+  OK   D4 the module's own record agrees (status applied, hedge, diag ok) — secondary to D3's independent recomputation — ('applied_via_combined', -1961.8216336358578, {'stage': 'target', 'beta_before_usdt': 1961.8216336358578, 'beta_after_usdt': 1.3926637620897964e-12, 'move_usdt': -1961.8216336358564, 'intent_usdt': -1961.8216336358578, 'ratio': 0.9999999999999993, 'ok': True, 'tol_usdt': 1.961821633635858e-06})
+  OK   ★ D5 NOT SPREAD: the file is -6% net; the executed book is neutral before the leg (|net|<1e-9) and its net after the leg is exactly the hedge — (0.0, -1961.8216336358578, -1961.8216336358578)
+  OK   D6 plan level: the BTC order leaves the book at book + hedge within ONE lot of BTC at the mid (round_qty floors toward zero) — (-1950.0, -1961.8216336358578, 50.0, None)
+  OK   D7 the plan-level record matches: ok with tol = one lot (0.001 x mid), ratio within it — {'stage': 'plan', 'planned_btc_usdt': -1950.0, 'hedge_delivered_usdt': -1950.0, 'intent_usdt': -1961.8216336358578, 'ratio': 0.9939741547176495, 'skip': None, 'tol_usdt': 50.0, 'ok': True, 'note': "delivered = BTC notional after this plan's order minus the book's BTC component; lot rounding and min-notional skips are the only planned deviations (partial fills are phase B's)"}
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ D8 RED control (route L): through the reshape the file hedge is spread — executed net ≈ 0 and the beta move is far from -beta_exec (ratio outside 0.95-1.05) — (-1.1368683772161603e-13, -0.09201097455771025)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ DB1 BTC untargeted by the file: every non-BTC target is BITWISE the DEFAULT off-mode target; BTC = the leg exactly — (-1961.8216336358587, -1961.8216336358587)
+
+[N] ★ AMENDMENT_1 (coordinator's test): the book's BTC is below 2 x minNotional, the leg is large ⇒ the leg IS placed; reverting to the book-component judgement (M2 route H) sends NO hedge
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ N1 book BTC 4 USDT < 2 x 5 (dust alone: the book stage pops it, executed base 0) and |leg| > 100x that ⇒ the combined value decides: a BTC order is SENT, not reduce-only (applied_via_combined) — (4.0, -1961.8216336358578, 1, 'applied_via_combined')
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ N2 RED control (mutant = M2 route H: BTC's dust judged on the book component and dust blocks the leg): the SAME input sends NO BTC order and records the whole intent as the gap — ('suspended_btc_untradable', -1961.8216336358578)
+
+[CD] the COMBINED value is still below 2 x minNotional (a NEUTRAL file; every beta 1 except HHH 1.01 ⇒ leg ≈ -0.01 x HHH ≈ -2 USDT; BTC popped unheld / ~4 USDT held ⇒ |C| < 10)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   CD1 unheld: status combined_dust, NOTHING touched (BTC stays popped), NO BTC order, the gap is the (tiny) leg, an INFO line names it — ('combined_dust', -1.7239866643267874)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   CD2 held 1500: nothing touched — the book stage's clamp stands (reduced toward the book's small BTC, reduce-only), recorded — ({'reduced': ['BTCUSDT']}, 3.5087719298245887)
+
+[O] who owns BTC while on
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ O1 on: a HELD BTC whose book component alone is dust is neither clamped nor reduce-only; target = book entry + leg = -beta(non-BTC book) (1e-9 rel) — ({}, False)
+  OK   O2 RED control: the same positions with mode off clamp BTC reduce-only toward the dust target (the hedge would unwind) — {'reduced': ['BTCUSDT']}
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   O3 on (M3b): a held BTC the file no longer targets IS an external_held_exit — a name-level reason — so the leg is SUSPENDED, the whole intent recorded as the gap, HIGH; BTC exits reduce-only exactly as off (0 of the last 167 combo files dropped BTC) — ('suspended_btc_untradable', ['external_held_exit'])
+  OK   O4 RED control: mode off exits it (held_exit, flatten_only, target 0) — ['BTCUSDT']
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   O5 on, BTC untargeted AND unheld: BTC is still priced (in the capture set) and gets the leg
+
+[H] a HARD reason suspends the leg: per-name stop on BTC
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ H1 suspended: status suspended_btc_untradable (per_name_stop), no hedge, HIGH page — ('suspended_btc_untradable', ['per_name_stop'])
+  OK   H1b the whole intended leg is recorded as the hedge gap, and the HIGH page says so (never a silent drop) — (-1961.8216336358578, -1961.8216336358578)
+  OK   H2 BTC follows the stop clause on its TRUE position: target exactly 0, reduce-only — (0.0, True)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   H3 a CONTINUING suspension (stop cooldown, previous anchor already suspended) is INFO with a STABLE body (no numbers ⇒ alarm_policy's identical-body de-duplication applies), not HIGH; the cooldown BTC is popped (unheld), no hedge — (['INFO'], None)
+
+[W] BTC WITHHELD by the venue (exchangeInfo meta exclusion; a non-DRY loop with every venue call stubbed, as tests_external_book F7): leg suspended, the gap recorded, HIGH; BTC handled on its TRUE position (reduce-only)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ W1 venue-withheld BTC (meta: underlyingType≠COIN): status suspended (external_meta), the whole intent is the recorded gap, HIGH names the gap; BTC reduced on its TRUE position, reduce-only — ('TRADE', 'suspended_btc_untradable', ['external_meta'], -1921.7791411042945, True)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   W2 control: the same non-DRY loop with BTC a COIN perp places the leg (the suspension above is the meta rule's doing) — applied_via_combined
+
+[M] ★ missing is not zero — no hedge order, HIGH, BTC frozen; mutants prove the check is load-bearing
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/1 = 0.0% 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ M field absent: refused (field_missing), BTC frozen at 1500 (target == held), NO BTC order, HIGH '缺失即不做' — ('refused', 'field_missing', 1500.0, 0)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   M field absent: the rest of the book still trades (non-BTC targets == off-mode targets)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/1 = 0.0% 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ M version mismatch: refused (version_mismatch), BTC frozen at 1500 (target == held), NO BTC order, HIGH '缺失即不做' — ('refused', 'version_mismatch', 1500.0, 0)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   M version mismatch: the rest of the book still trades (non-BTC targets == off-mode targets)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/1 = 0.0% 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ M another anchor's cut-off: refused (cutoff_mismatch), BTC frozen at 1500 (target == held), NO BTC order, HIGH '缺失即不做' — ('refused', 'cutoff_mismatch', 1500.0, 0)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   M another anchor's cut-off: the rest of the book still trades (non-BTC targets == off-mode targets)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/1 = 0.0% 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ M a targeted name without a beta: refused (beta_missing_for_targeted), BTC frozen at 1500 (target == held), NO BTC order, HIGH '缺失即不做' — ('refused', 'beta_missing_for_targeted', 1500.0, 0)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   M a targeted name without a beta: the rest of the book still trades (non-BTC targets == off-mode targets)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/1 = 0.0% 不含已落单 maker, 仅供跨切换对照。
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ M-RED missing ⇒ every beta 1: with the missing check removed the SAME input SENDS a BTC order (real code: none) — the check is load-bearing — (1, 0, 126.3803680981603)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ M-RED missing ⇒ hedge 0 (unwind): with the missing check removed the SAME input SENDS a BTC order (real code: none) — the check is load-bearing — (1, 0, 126.38036809815951)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   M5 field absent and BTC NOT held: no BTC order at all (nothing to freeze, nothing hedged)
+  OK   M6 refused with BTC unheld: the book's own BTC component is traded as the book (target untouched), NO overlay net — neither the chase basis nor the neutrality page subtracts it — (None, {'AAAUSDT': 600.0, 'BTCUSDT': -600.0})
+
+[P] HOLD keeps the hedge; the venue cap applies to the combined BTC target
+  OK   ★ P1 target file missing ⇒ HOLD: no orders of any kind, BTC position untouched (the hedge is held) — HOLD
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   P2 cap on BTC below the combined target ⇒ truncated to cap x (1 - margin), record venue_capped, HIGH page — (-961.2926004815703, True)
+  OK   P2b the cap's shortfall is recorded as the hedge gap (intent − placed after the cap) and paged — (-1000.5290331542875,)
+  OK   P3 the record states the residual beta the capped book carries (beta_final = recomputed here; 0 when uncapped) — (1000.5290331542886, 1000.5290331542875)
+
+[R] accounting and the two neutrality readers
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ R1 BTC's order rows carry m3_overlay_leg (book / hedge / held split); other symbols' rows do not — ({'version': 'm3_beta_v1', 'hedge_target_usdt': -1961.8216336358578, 'book_target_usdt': 0.0, 'combined_target_usdt': -1961.8216336358578, 'held_usdt': 0.0, 'beta_exec_usdt': 1961.8216336358578, 'betas_sha256': '65ea2f81230c6be5b913963c5d95db01a7dc023e0abc137f3452732dad57c155', 'via': 'applied_via_combined'}, ['anchor_ts', 'attempt_idx', 'avg_fill_px', 'cancel_ts', 'fee_paid', 'filled_known_notion
+  OK   R2 no leg set ⇒ the BTC row is byte-identical to the stripped executor's row (no m3 key)
+  OK   ★ R3 chase basis: no leg ⇒ identical record to the stripped executor; leg ⇒ book net lower by exactly the hedge — (450.0, -450.0)
+  OK   ★ R4 delivered hedge: raw net/gross is far outside ±3% but the ex-overlay view is 0 ⇒ NO neutrality page — (-0.08932872993701076, 0.0)
+  OK   R5 undelivered hedge (venue net 0, intent = hedge) ⇒ the ex-overlay view PAGES; the row keeps both calibers — (0.098091, 1961.821634)
+  OK   R6 no leg (shadow / off / suspended) ⇒ neutrality_view returns the row itself (identity)
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   R7 mode on writes loop state m3_overlay_last (hedge, status); shadow and off do not — {'rebalance_id': 'A1790166270', 'nominal_ts': 1790164800, 'status': 'applied_via_combined', 'hedge_target_usdt': -1961.8216336358578, 'btc_combined_target_usdt': -1961.8216336358578}
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+[A1790166270] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK   ★ R8 the anchors ROW (written by pilot_log, read back as JSON) carries m3_beta_overlay with status applied and the hedge; target_gross includes the leg — (1, ['anchor_ts', 'book_source', 'external_book', 'factor_version', 'known_gaps', 'm3_beta_overlay'])
+  OK   ★ R9 mode off: the anchors row is byte-identical to the stripped executor's (no m3 key)
+
+[X] pair: the producer's released beta module writes a field this validator accepts
+  OK   X0 the released producer module's sha equals SOURCE_MAP.json's pin — b77c180d69170988
+  OK   ★ X1 a producer field (synthetic cache, JSON round-trip) is ACCEPTED by this validator; BTC = 1; no-column name = fallback — (None, '')
+  OK   X2 the same field with a changed parameter is refused (params_mismatch) — params_mismatch
+  OK   X3 the two sides pin the same constants
+
+[S] statics
+  OK   S1 registered in run_acceptance.sh SUITES
+  OK   S2 gate_coverage SUITE_SCOPE entry exists and states its blind spots — that the M3 BTC-beta overlay IMPROVES the book, or that the betas are RIGHT — it
+  OK   S3 tests_imports' production census lists beta_overlay
+  OK   S4 scheduler/anchor_loop.py: M3 markers well-formed; the stripped source compiles and holds no M3 reference
+  OK   S4 live/binance_executor.py: M3 markers well-formed; the stripped source compiles and holds no M3 reference
+  OK   S4 live/external_book.py: M3 markers well-formed; the stripped source compiles and holds no M3 reference
+  OK   S5 the DISK config's beta_overlay mode is a valid mode with no error (green in off / shadow / on) — {'mode': 'off', 'error': None, 'present': True}
+
+TESTS_BETA_OVERLAY ALL PASS checks=125 failed=0

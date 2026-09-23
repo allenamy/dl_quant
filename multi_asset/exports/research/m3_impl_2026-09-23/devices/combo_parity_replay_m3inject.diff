@@ -1,0 +1,6 @@
+23a24,28
+> # ── M3 REHEARSAL INJECTION (m3_impl_20260923): the modified producer files replace the production copies INSIDE THE SANDBOX only
+> M3P="${M3_PRODUCER_COPY:?M3_PRODUCER_COPY}"
+> cp "$M3P/fea171/combo_stage.py" "$SB/wide_shadow/fea171/combo_stage.py" || exit 3
+> cp "$M3P/fea171/beta_overlay_producer.py" "$SB/wide_shadow/fea171/beta_overlay_producer.py" || exit 3
+> echo "M3_INJECTED combo_stage=$(shasum -a 256 "$SB/wide_shadow/fea171/combo_stage.py" | cut -c1-16) beta_overlay_producer=$(shasum -a 256 "$SB/wide_shadow/fea171/beta_overlay_producer.py" | cut -c1-16)"

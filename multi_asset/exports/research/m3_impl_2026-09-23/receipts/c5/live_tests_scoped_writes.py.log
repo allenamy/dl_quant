@@ -1,0 +1,20 @@
+[e] controls on the instrument itself, before trusting any byte-identical claim
+  OK    ★ NEGATIVE control: digest is stable across a no-op  — 56cf6ac5b7b5
+  OK    ★★ POSITIVE control: digest MOVES on a one-byte append (a digest that cannot move makes every 'unchanged' below vacuous)  — 56cf6ac5b7b5 -> 02c31a3e0a78
+
+[e] a scoped evaluation leaves the production order log byte-identical
+  OK    the fixture really tripped (otherwise the ladder never runs and this proves nothing)  — ["§4-5b liquidation/position anomaly on 1 name(s) at the latest reconciled anchor (1 in this window's history)", "§4-5e position break [split_unauth]: 8999 USDT of raw deviation (90.0% of a 10000 USDT target gross), of which UNAUTHORIZED 89.99% vs a 0.05 line; name(s) at/over their own min_notional: BTCUSDT; worst raw BTCUSDT 8999 USDT. WHY: split_unauth: the halt is the UNAUTHORIZED bucket only; underfill alarms and is re-targeted by the next anchor PROVENANCE (read from the record, not composed here): unauth is NOT computed here: it is reconcile's per-name residual, expected_qty = qty(T1) + sum dq_fills. If that upstream quantity is wrong the error passes through undetected and BOTH buckets are wrong together — this split is exactly as trustworthy as B30 and no more. expected_qty has no independent cross-check today."]
+  OK    ★★ one scoped run leaves the production orders.jsonl byte-identical  — 96c4c0ff74f4 -> 96c4c0ff74f4
+  OK    ★★ TWO scoped runs leave it byte-identical (the 2026-07-26 replay)  — 96c4c0ff74f4 -> 96c4c0ff74f4
+  OK    ★★ ...and the row count did not move  — 2 -> 2
+
+[e] the rows still exist — they are scoped, not discarded
+  OK    ★ the scoped run's flatten rows were written UNDER state_dir  — ['/tmp/tmptg4qgha5/pilot_log/20260923/orders.jsonl', '/tmp/tmp6_tdm87g/pilot_log/20260923/orders.jsonl']
+  OK    ★ ...and the ladder still reports what it wrote  — 1
+
+[e] an UNSCOPED run still writes to the log it is given (production unchanged)
+  OK    ★ an explicit rows_root still lands in that tree (the production path is unbroken)  — rows were written as before
+
+  9 checks run
+
+ALL PASS

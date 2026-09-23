@@ -1,0 +1,38 @@
+[1] the census passes on the tree as it stands, and covers what it claims to
+[guard-reach] watchdog conditions found: 13
+[guard-reach] declarations: 20  (13 conditions + 7 other guards)
+[guard-reach] OK — every guard declares what it cannot stop, and every declaration names a guard that still exists.
+  OK    ★★★ every guard declares its reach
+  OK    ★★★ the scan reaches the NESTED §4-5 sub-verdicts, not only top-level `detail` keys — a forward scan keyed on the top-level shape found 8 guards and silently omitted §4-5e, the one that has actually been flattening the book  — ['cond5_5a_outage', 'cond5_5b_liquidation_anomaly', 'cond5_5c_account_restriction', 'cond5_5d_withdrawal_halt', 'cond5_5e_position_break', 'cond5_venue_event']
+  OK    ★★ ...and §4-5e's declaration still names the specific thing it COULD NOT tell apart. B's wiring closed that gap on 2026-08-03; the sentence moved to the past tense and stayed, per the ruling that a guard's former reach gap is part of its history. A reach statement that quietly drops what it used to miss is a guard with no past
+
+[2] ★★★ a reach statement that says nothing is REFUSED
+[guard-reach] watchdog conditions found: 13
+[guard-reach] declarations: 20  (13 conditions + 7 other guards)
+
+★ guard-reach census FAILED:
+   TOO THIN: cond1_c_persist — a reach statement must name a specific state that passes this guard, not 'it might miss things'
+
+  A guard with no declared reach will eventually be cited as stronger than it is.
+  Three on this project already were: A3's documented sentence, 'the halt file exists => we are halted', and reconcile's anomaly list.
+  OK    ★★★ 'it might miss things' is rejected — true of everything, informs nobody. A reach statement must name a specific state that passes the guard while being what a reader would assume it caught
+
+[3] ★★★ the census goes red in BOTH directions
+  OK    the copied tree is green before mutation (otherwise §3 proves nothing)  — ds)
+[guard-reach] OK — every guard declares what it cannot stop, and every declaration names a guard that still exists.
+
+  OK    ★★★ FORWARD: a guard that writes a verdict and declares no reach fails the census  — ['   MISSING: cond9_brand_new_guard writes a verdict and declares no reach']
+  OK    ★★★ BACKWARD: a declaration naming a guard that no longer exists fails the census — a registry that only fails on ADDITIONS accumulates statements about deleted guards, and those read exactly like statements about live ones  — ['   STALE: live/deleted_guard.py::gone — live/deleted_guard.py does not exist']
+  OK    ★★ ...and a RENAMED symbol is caught too, not merely a deleted file — the file still exists, so a path-only check would pass while the declaration described nothing  — ['   STALE: live/reconcile.py::reconcile_renamed_away — live/reconcile.py no longer defines reconcile_renamed_away']
+  OK    the tree is restored and green again (so §3's reds were the mutations, not damage)  —  — every guard declares what it cannot stop, and every declaration names a guard that still exists.
+
+
+[4] ★★★ the negative fact: SUBSTANCE IS NOT CHECKED HERE, and two attempts prove it
+  NOTE  no assertion here checks that a reach statement is TRUE, or that the blind spots it does not mention do not exist. Two mechanical detectors were tried and both rejected good entries; the property is not machine-checkable and is not claimed to be.
+[guard-reach] watchdog conditions found: 13
+[guard-reach] declarations: 20  (13 conditions + 7 other guards)
+[guard-reach] OK — every guard declares what it cannot stop, and every declaration names a guard that still exists.
+  OK    ★★ what IS checkable is asserted instead: `verify()` enforces presence and a length floor, and that floor can go red
+  OK    ★★ the read-out gate's entry is the one the ruling came from, and it says outright that the gate does not stop the arithmetic
+
+ALL PASS   (11 checks)

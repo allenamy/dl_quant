@@ -1,0 +1,40 @@
+[T1] future-perturbation invariance
+  OK   T1a every row after the anchor rewritten ⇒ field byte-identical
+  OK   T1b control: the row closing AT the anchor changed ⇒ the beta changes (the bar ending at A is in the sample) — (2.0000000000000004, 2.0046438993457274)
+
+[T2] exact beta and BTC
+  OK   T2a a 2x(+const) name ⇒ beta 2 (|err| < 1e-12), 180 pairs — 2.0000000000000004
+  OK   T2b BTC's own beta is exactly 1.0 and it is written first
+  OK   T2c declared parameters are the prereg's
+
+[T3] 119 ⇒ fallback, 120 ⇒ estimated
+  OK   T3a 120 valid pairs ⇒ estimated beta 2.0 — (120, 2.0)
+  OK   T3b 119 valid pairs ⇒ fallback exactly 1.0 — (119, 1.0)
+  OK   T3c pairs are PAIRWISE: 61 invalid BTC bars ⇒ every name falls back (n_obs 119)
+
+[T4] clip
+  OK   T4 a 5x name ⇒ 4.0; a -3x name ⇒ -1.0 — (4.0, -1.0)
+
+[T5] a missing row AT a bar's start invalidates the bar (stale start price)
+  OK   T5a both bars sharing the boundary are invalid (178 pairs) and the beta stays 2.0 exactly — (178, 2.0)
+  OK   T5b RED control: a mutant without the start-row rule counts 179 pairs and the spike moves the beta — (179, 1.9780679998469834)
+
+[T6] refusals and the no-column fallback
+  OK   T6 anchor not in the axis ⇒ BetaOverlayError
+  OK   T6 anchor off the 4h grid ⇒ BetaOverlayError
+  OK   T6 non-contiguous axis ⇒ BetaOverlayError
+  OK   T6 duplicate symbols ⇒ BetaOverlayError
+  OK   T6 BTC column missing ⇒ BetaOverlayError
+  OK   T6 zero BTC variance ⇒ BetaOverlayError
+  OK   T6b a name with no cache column ⇒ fallback 1.0, n_obs 0, counted
+  OK   T6c bars before the cache's first row do not exist (invalid, never zero): a cache 200 rows short ⇒ 175 pairs — 175
+
+[T7] pair: the executor's validator accepts this field
+  OK   T7a float16 cache field, JSON round-trip ⇒ ACCEPTED by the executor validator — (None, '')
+  OK   T7b a changed parameter ⇒ refused params_mismatch — params_mismatch
+
+[T8] real cache (read-only)
+  OK   T8a latest anchor: finite, inside the clip, BTC 1, one entry per universe name (+BTC), < 2 s — (0.144, 449, 0)
+  OK   T8b REAL causality: the field at A-24h from the full cache == from the cache truncated at A-24h (byte-identical)
+
+TESTS_BETA_OVERLAY_PRODUCER ALL PASS checks=23 failed=0

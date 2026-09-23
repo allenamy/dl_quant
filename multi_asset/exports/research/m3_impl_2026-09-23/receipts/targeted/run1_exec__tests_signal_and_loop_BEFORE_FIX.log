@@ -1,0 +1,112 @@
+[A] vendored primitives reproduce the validated formulas
+  OK    rank_centered maps to [-1,1] with NaN->0  — [1.0, -1.0, 0.0, 0.0]
+  OK    ★ 25-way tie: every tied name gets the SAME rank
+  OK    ★ tie value matches scipy-rankdata average-rank formula  — -0.03703703703703709
+  OK    ★ rank of tied block is INVARIANT under array permutation (no position->weight leak)
+  OK    z is zero-mean unit-sd
+  OK    l1 normalizes to unit gross
+
+[B] ★ funding EMA: corrected caliber, correct order (normalize BEFORE smoothing)
+  OK    constant per-8h carry => EMA equals that constant across the migration  — 0.0001
+  OK    the un-normalized caliber produces a DIFFERENT (wrong) value — fix is not a no-op  — bad=5.03023e-05 vs 0.0001
+  OK    ★ span_override (frozen-panel parity mode) changes the smoothing horizon
+
+[C] composition: unit-gross, market-neutral, four legs live
+  OK    unit gross  — 1.0
+  OK    market-neutral (net ~ 0)  — -4.163336342344337e-17
+  OK    all four legs present and unit-gross each
+  OK    weights actually steer the book (king-only != four-leg)
+
+[D] ★ the staleness ladder is mechanical and pre-registered
+  OK    fresh -> TRADE
+  OK    1 anchor stale -> HOLD (one miss is a hiccup, not an outage)
+  OK    6 anchors (24h) -> DERISK
+  OK    12 anchors (48h) -> FLATTEN
+  OK    ★ target-fraction table: 6-8 anchors -> 50%
+  OK    ★ target-fraction table: 9-11 anchors -> 25%
+  OK    absent preds -> inf age -> FLATTEN path
+  OK    boundary: just under 6 stays HOLD
+
+[E] ★ the ladder acts through the loop, and DERISK is reduce-only throughout
+  OK    action is DERISK  — DERISK
+  OK    an alarm was raised at CRITICAL
+  OK    every de-risk order is reduce_only (composes with the watchdog halt)
+  OK    positions scaled to half of PRE-STALE snapshot
+  OK    ★ idempotent: re-running the same DERISK stage emits ZERO new orders
+  OK    ★ stage 2 targets 25% of the PRE-STALE ref (2500), not 25% of current (1250)  — 2500.0
+  OK    action is FLATTEN at >=12 anchors  — FLATTEN
+  OK    book emptied after flatten
+
+[E4] ★ severity follows consequence: flattening an EMPTY book is INFO, not CRITICAL
+  OK    cold start with empty book -> INFO alarm, nobody woken at midnight for a no-op  — [('INFO', 'no signal yet and book is empty — idle (cold start, expected until the preds producer is wired)')]
+  OK    note says cold start  — cold start: no signal, empty book, nothing to do
+
+[F] HOLD alarms once per episode, not once per anchor
+  OK    two stale anchors, exactly one alarm (a repeating alarm trains people to ignore it)  — 1
+
+[F2] ★ DERISK/FLATTEN alarm once per STAGE, not once per anchor (audit 3b)
+  OK    two DERISK anchors at the same stage -> exactly one CRITICAL  — 1
+
+[E2] ★ caliber stamp mismatch BLOCKS the anchor (audit ②)
+  OK    mismatched stamp -> anchor BLOCKED  — caliber_stamp_mismatch
+  OK    blocked anchor raised CRITICAL
+  OK    blocked anchor emitted no orders (count NEW actions, not a stale window)
+
+[E3] ★ two-phase anchor: phase B tops up the residual and emits rows
+[A1790157872] 拒单率 post-only 穿价(-5022) 首次尝试 0/3 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 3); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK    phase A traded (fresh signal, matching stamp)  — TRADE
+  OK    phase A left a pending handle
+  OK    phase B emitted rows  — 6
+  OK    ★ the mandatory top-up was exercised for every live name  — 3 vs 3
+  OK    top-up rows carry the SAME rebalance_id as phase A
+  OK    every row still carries mid_at_anchor through phase B
+
+[K] ★ KILL SWITCH: an engaged stop refuses everything, even with a fresh signal
+  OK    tests use an ISOLATED kill path (a real emergency stop must not skew the suite, and the suite must not touch a real one)
+  OK    ★ action is KILLED even though the signal is FRESH  — KILLED
+  OK    ★ zero orders submitted while killed
+  OK    the broker was also told to halt (belt and braces)
+  OK    the reason names the file to remove (recovery must be deliberate)
+  OK    removing the flag restores normal operation  — TRADE
+
+[G] fapi hygiene properties (no network needed)
+  OK    interval inferred PER ROW across a migration (8h then 4h)  — [8.0, 8.0, 4.0, 4.0]
+  OK    absurd gap falls back to 8h, never propagates
+  OK    every dataset leaves wearing its own age (fetch_ts present)
+
+[H] state writes are atomic (a crash never leaves a half-written state)
+  OK    state readable after save
+  OK    no tmp residue
+
+[U] ★ delisting: the book's width is dynamic, and an exit must not need a price
+  OK    tradable = only the names the venue says TRADING  — ['BTCUSDT', 'ETHUSDT']
+  OK    ★ a held SETTLING name is exit-only (not merely skipped)
+  OK    ★ a held name that VANISHED from exchangeInfo is flagged separately (may be unclosable)  — ['DEADUSDT', 'ORPHANUSDT']
+  OK    a held name no longer predicted is still handled, not orphaned
+  OK    a new listing is IGNORED (it has no panel warmup history yet)  — ['NEWUSDT']
+  OK    ★ exit orders are sized in CONTRACTS — no mid, no book, no price needed  — [{'symbol': 'SETTLEUSDT', 'side': 'buy', 'quantity': 300.0, 'reduce_only': True, '_reason': 'symbol no longer TRADING — price-free full exit'}]
+  OK    ★ every exit order is reduce_only (passes the halt, composes with the kill switch)
+  OK    short position exits with a BUY
+  OK    ★ unreachable exchangeInfo yields UNKNOWN, never 'nothing trades'
+
+[U2] width is not hardcoded: composition follows whatever the panel provides
+  OK    N=110: unit-gross and market-neutral hold
+  OK    N=87: unit-gross and market-neutral hold
+  OK    N=40: unit-gross and market-neutral hold
+  OK    N=12: unit-gross and market-neutral hold
+
+[P] compute_preds — the producer must fail by writing NOTHING, never by writing garbage
+  OK    ★ warmup BLOCK: nothing written, previous computed_ts preserved  — reason=warmup_block
+  OK    ★ caliber BLOCK: nothing written, previous computed_ts preserved  — reason=caliber_block
+  OK    ★ producer crash: nothing written, previous computed_ts preserved  — reason=RuntimeError
+  OK    a blocked producer never invents a fresh computed_ts (the ladder stays in control)
+  OK    column fingerprint is order-sensitive (the encoder attends ACROSS columns)
+  OK    column fingerprint counts columns
+
+[P2] the consumer BLOCKS on a column set it does not recognise
+Traceback (most recent call last):
+  File "/Users/haosiyu/cc_tmp/m3_impl_20260923/exec/live/tests_signal_and_loop.py", line 462, in <module>
+    _out = _loop._trade(_p, {"positions": {}}, _time.time())
+  File "/Users/haosiyu/cc_tmp/m3_impl_20260923/exec/scheduler/anchor_loop.py", line 1682, in _trade
+    self.executor._m3_overlay_leg = None
+AttributeError: 'NoneType' object has no attribute '_m3_overlay_leg'

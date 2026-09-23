@@ -1,0 +1,46 @@
+[VF] ★ commission is collected per symbol — it exists ONLY in userTrades
+  OK    the collector returns an entry for the symbol  — ['BTCUSDT']
+  OK    ★ commission is SUMMED across child fills (0.12 + 0.16)  — 0.28
+  OK    every child fill is kept, not just the aggregate (M2 needs per-fill)  — 2
+  OK    signed notional follows the side (BUY positive)  — 1004.0
+  OK    maker and taker fills are distinguishable (M2 measures maker markout)  — [True, False]
+
+[VF] ★ a SELL's notional is negative — the sign convention topup() depends on
+  OK    a SELL yields negative filled_notional  — -500.0
+  OK    commission stays POSITIVE regardless of side (it is always a cost)  — 0.2
+
+[VF] ★ absence must stay UNKNOWN — a symbol we could not query is not 'zero fees'
+  OK    ★ an unreachable symbol is ABSENT from the result, never present with commission 0.0
+  OK    and the coverage set reports it was not reached
+
+[VF] ★★ commission paid in BNB is NOT a USDT number
+  OK    ★★ the USDT commission total contains ONLY the USDT fills (0.10, not 0.103)  — 0.1
+  OK    ★ non-USDT commission is reported separately, not discarded and not summed  — {'BNB': 0.003}
+  OK    ★ and the symbol is FLAGGED as not fully priced in USDT, so a consumer cannot report a complete fee measurement
+  OK    an all-USDT symbol is flagged complete  — True
+
+[VF] DRY_RUN contacts no venue
+  OK    DRY_RUN returns empty without a request
+
+[VF] ★★ a fill is a FACT; the +60s mid is a future OBSERVATION about it
+  OK    one row per CHILD fill (M2 measures per fill, not per order)  — 2
+  OK    ★ the fact is recorded even though the +60s mid is not available yet  — [None, None]
+  OK    ★ and each row says WHY it is absent, so it reads as pending rather than as zero  — not yet observable when this row was written (the +60s mark had not passed or its 1m candle had not closed); pending backfill, NOT zero
+  OK    maker/taker is carried per fill (the two have different markout semantics)  — ['maker', 'topup_taker']
+  OK    ★ the SCHEMA accepts a pending measurement (mid_at_fill_plus_60s off not_null)  — validate raised
+
+[VF] ★ and the measurement can arrive LATE — backfill fills it in
+  OK    a row whose +60s mark IS available carries it  — 100.5
+  OK    and it no longer claims to be pending
+
+[C] non-USDT commission converts with evidence, and never silently vanishes
+  OK    raw USDT-only `commission` field is UNTOUCHED by the conversion
+  OK    raw asset composition (`commission_other`) is untouched
+  OK    `commission_all_usdt` still tells the raw truth (False here)
+  OK    converted total = USDT part + BNB×px  — 1.21
+  OK    conversion carries its evidence (qty/px/src)
+  OK    conversion_complete is True when every asset priced
+  OK    price failure -> converted total is None, NEVER a partial number pretending to be whole
+  OK    ...and the raw fields still stand
+
+ALL PASS

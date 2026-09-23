@@ -1,0 +1,2603 @@
+diff --git a/config/book.json b/config/book.json
+index 4974cd0..a0d2281 100644
+--- a/config/book.json
++++ b/config/book.json
+@@ -178,5 +178,10 @@
+   "enabled": true,
+   "_basis": "EXE-01 (P1, audit 2026-09-13 AUDIT_EXEC): R-14 read as option A with the switch ON; user rules 2026-09-12 (instrument doubt must never trigger a book-level response; a book-level response must pass a proportionality gate) and 2026-09-13 (fix every known issue without waiting for a ruling). Fact table quant_research docs/fixprogram_2026-09-13/FX_W6C/FACT_TABLE_W6C.md; report REPORT_FX_W6C.md.",
+   "_semantics": "true: when EVERY trigger of an evaluation is name-scoped (§4-5b, §4-5e split_unauth per-name clause alone, §4-7 drift), the names number <= 5 and their doubt is <= 2% of gross (watchdog.PROPORTIONAL_MAX_NAMES / PROPORTIONAL_MAX_FRAC_OF_GROSS — code constants, deliberately NOT keys here), the response is LOCAL: halt opening, cancel and flatten THOSE names only, page; otherwise the full ladder. false: every trip runs the full ladder (the behaviour before this key). Missing / unreadable / non-boolean => ON (watchdog.proportional_switch)."
++ },
++ "beta_overlay": {
++  "mode": "off",
++  "_basis": "M3 (PREREG quant_research docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md, 24c3f803f; implementation docs/IMPL_m3_beta_overlay_2026-09-23.md): BTCUSDT overlay leg = -sum_i w_exec,i*beta_i on the EXECUTED book (after POP->RESHAPE->CLAMP), added after the reshape as an independent leg; betas from the producer's target_live field `beta_overlay` (version m3_beta_v1).",
++  "_semantics": "off (default; also when this block is absent) = the executor without M3, byte for byte. shadow = validate the field, compute and record the hedge that WOULD be placed (anchors row m3_beta_overlay); book, orders and loop state identical to off. on = place the leg. Any other value = off + HIGH page. Switching on/shadow/off takes effect at the next anchor process; turning it OFF after it has been ON unwinds the held BTC hedge through the existing clamp/flatten_only reduce-only channel (it becomes an ordinary held dust/non-target name). Changing this value is a book-behaviour change: user ruling required (CLAUDE.md constraint 5)."
+  }
+ }
+\ No newline at end of file
+diff --git a/live/beta_overlay.py b/live/beta_overlay.py
+new file mode 100644
+index 0000000..81cf5ed
+--- /dev/null
++++ b/live/beta_overlay.py
+@@ -0,0 +1,465 @@
++"""beta_overlay — M3: the BTC-beta overlay leg computed on the EXECUTED book (after POP -> RESHAPE -> CLAMP).
++
++Pre-registration: quant_research docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md (24c3f803f), §2 formula, §5 production.
++Why it is an executor-side leg and not a target-file weight: quant_research docs/RESULT_m2_btc_overlay_2026-09-23.md §1 — the
++executor re-demeans and re-scales every published target (anchor_loop RESHAPE_REDEMEAN = RESHAPE_RESCALE = True), so a BTC weight
++written into the file is spread back as -h/N over the whole book and the executed book stays dollar-neutral.
++
++THE FORMULA (prereg §2, zero free parameters; reproduced, not re-decided)
++    w_exec   = the executor's target AFTER POP -> RESHAPE -> CLAMP (USDT here; gross units = USDT / sizing gross)
++    beta_i   = the producer's per-name beta (target_live field `beta_overlay`, version VERSION): OLS slope with intercept of
++               the name's 4h log returns on BTCUSDT's over the most recent 180 4h bars completed at the anchor; >= 120 valid
++               pairs, else 1.0; clipped to [-1, 4]; BTCUSDT's own beta = 1.
++    beta_exec = sum_i w_exec,i * beta_i                   (USDT; the book's own BTC entry counts, with beta 1)
++    hedge     = -beta_exec                               (USDT) — the prereg's "-beta_exec x book gross notional" with beta_exec
++                                                          in gross units; the normaliser cancels, so no gross enters here.
++    target[BTCUSDT] = (the book's executed BTC entry, 0 if it was popped) + hedge — an INDEPENDENT leg: it is added AFTER the
++               reshape and never passes through it; the venue cap (clamp_venue_cap) still applies to the combined BTC target.
++    HOLD / DERISK / FLATTEN anchors never reach this code: a HOLD keeps the BTC position (hedge included) untouched.
++
++THE THREE MODES (config/book.json `beta_overlay.mode`; key or block absent == "off")
++    off     today's executor, byte for byte: nothing here is consulted beyond reading the mode (tests_beta_overlay [Z]).
++    shadow  the field is validated and the hedge that WOULD be placed is computed and recorded; the book, the orders and the
++            loop state are those of "off" (tests_beta_overlay [Z] runs shadow against the stripped executor as well).
++    on      the leg is placed.
++    Anything else (a typo, a non-string) is treated as "off" and paged HIGH — the overlay adds exposure, so an unreadable switch
++    must not add it; it also must not remove a book, which is why it does not block the anchor.
++
++BTC's ELIGIBILITY WHILE mode == on — the M3b rule (quant_research AMENDMENT_1, 912788743; evaluated by the M3b hook, c414ca4cf,
++reproduced here decision for decision so the evaluation describes production):
++    * The book stage (POP -> RESHAPE -> CLAMP) runs EXACTLY as in mode off, on the TRUE positions: every non-BTC name is bitwise
++      the off-mode book. BTC's book component is popped if it is dust and unheld, clamped if it is dust and held — as today.
++    * beta_exec is computed on that executed target (BTC's executed base value included, beta 1); leg = -beta_exec.
++    * BTC DUST-ONLY (it is untradable and `external_dust` — its PRE-reshape book target below min_notional_mult x minNotional — is
++      the ONLY recorded reason): the dust rule is re-applied to the COMBINED value C = BTC's executed base value + leg. C not
++      dust ⇒ target[BTC] = C and BTC is released from the clamp's lists (reduced / add_blocked / flatten_only / popped), so it
++      is not sent reduce-only ("applied_via_combined"); C still dust ⇒ nothing is touched ("combined_dust", the gap recorded).
++    * BTC TRADABLE ⇒ target[BTC] = its executed value + leg ("applied"); a combined value below the line is only recorded.
++    * EVERY OTHER untradability reason is a NAME-level fact the combined size cannot change ⇒ the leg is SUSPENDED for the
++      anchor: per-name stop (force_flat), stop cooldown, venue status / zero cap, venue meta, held-exit (BTC held while the
++      producer's file does not target it — 0 of the last 167 combo files did so), or an untradable BTC no source recorded
++      (fail-closed). BTC then follows the book's venue rules on its true position (reduce-only); first anchor HIGH, a
++      continuing suspension INFO with a number-free body (alarm_policy de-duplicates identical bodies).
++    * A leg of exactly 0 touches nothing.
++    * BTC is always in the priced symbol set (its mid is captured with the book's); with a zero producer weight and no position
++      it is dust-popped by the book stage exactly as an absent name would be, and then hedged via the combined value.
++    Two consequences of matching M3b, stated rather than hidden: an add_blocked BTC (its executed base value is its HELD
++    position, possible only when the book's BTC weight exceeds a near-zero hedge) combines the held position with the new leg;
++    and a producer file that drops BTC while the hedge is held suspends and unwinds the leg that anchor.
++
++MISSING IS NOT ZERO (prereg §5)
++    A missing field, a wrong version, a field for another anchor or cut-off, a malformed beta, or a name with a non-zero
++    executed target and no beta ⇒ NO hedge order this anchor and a HIGH page. The held BTC position is FROZEN (its target is
++    its current notional, delta 0) — never unwound as if the hedge were 0, never re-hedged as if every beta were 1.
++
++ACCOUNTING
++    anchors row `m3_beta_overlay` (this module's record); every orders row of BTCUSDT for that rebalance carries
++    `m3_overlay_leg` (the book / hedge / held split of the BTC target, read by binance_executor._order_row from the executor-level
++    record, never stamped on the plan dict); fills rows are unchanged (fills write contract) and join to the tagged orders rows on
++    (rebalance_id, symbol, order_type, attempt_idx). The chase experiment's neutrality basis and the end-of-anchor neutrality page
++    are judged EX-OVERLAY (the hedge's intended net is deliberate, not a tilt to be chased or paged).
++
++Pure functions only: no file, no network, no clock. anchor_loop owns the wiring (blocks marked `M3-BEGIN` / `M3-END`,
++single lines `# M3-LINE`, modified lines `# M3-ORIG:`; `strip_m3` removes them and must give back the pre-M3 source).
++"""
++from __future__ import annotations
++
++import hashlib
++import json
++import math
++from typing import Any, Dict, Iterable, List, Optional
++
++BTC = "BTCUSDT"
++FIELD = "beta_overlay"
++VERSION = "m3_beta_v1"
++CONFIG_KEY = "beta_overlay"
++MODES = ("off", "shadow", "on")
++# the frozen formula's parameters (prereg §2 / M2 m2_lib.py): the producer must declare exactly these
++N_WIN = 180
++N_MIN = 120
++CLIP_LO, CLIP_HI = -1.0, 4.0
++FALLBACK = 1.0
++H4 = 14400
++# the one untradable source the combined value may overrule: external_dust (the BOOK's BTC component alone is below
++# min_notional_mult x minNotional, incl. BTC neither targeted nor held). Every other source (held_exit, unrecorded) is HARD.
++SOFT_SOURCES = ("external_dust",)       # the ONLY source the combined value can overrule (M3b "dust-only")
++# the executed hedge is compared with its intent at the TARGET level (exact arithmetic) and at the PLAN level (after lot
++# rounding). The plan-level tolerance is ONE lot of BTC at the plan's mid (round_qty floors toward zero; minNotional if skipped).
++TARGET_DIAG_REL_TOL = 1e-9
++APPLIED = ("applied", "applied_via_combined")
++
++
++# ── config ───────────────────────────────────────────────────────────────────────────────────────
++def config(book: Optional[Dict[str, Any]]) -> Dict[str, Any]:
++    """{"mode": off|shadow|on, "error": str|None, "present": bool}. Pure. Absent key/block ⇒ off (today's behaviour)."""
++    if not isinstance(book, dict):
++        return {"mode": "off", "error": "book config unreadable", "present": False}
++    blk = book.get(CONFIG_KEY)
++    if blk is None:
++        return {"mode": "off", "error": None, "present": False}
++    if not isinstance(blk, dict):
++        return {"mode": "off", "error": f"{CONFIG_KEY} must be an object, got {type(blk).__name__}", "present": True}
++    mode = blk.get("mode", "off")
++    if not isinstance(mode, str) or mode not in MODES:
++        return {"mode": "off", "error": f"{CONFIG_KEY}.mode={mode!r} is not one of {MODES}", "present": True}
++    return {"mode": mode, "error": None, "present": True}
++
++
++# ── the field ────────────────────────────────────────────────────────────────────────────────────
++def _finite(x) -> bool:
++    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(float(x))
++
++
++def betas_sha256(betas: Dict[str, float]) -> str:
++    """sha256 of the canonical JSON of the beta map (sorted keys, repr floats) — what the ledger records instead of 450 numbers."""
++    return hashlib.sha256(json.dumps({k: float(v) for k, v in sorted(betas.items())}, sort_keys=True,
++                                     separators=(",", ":")).encode()).hexdigest()
++
++
++def validate_field(raw: Any, anchor_ts: int, present: bool = True) -> Dict[str, Any]:
++    """Validate target_live's `beta_overlay` object for THIS anchor. Pure; never raises.
++    Returns {"ok", "reason", "detail", "betas", "n_obs", "version", "data_cutoff_ts", "n_betas", "n_fallback", "betas_sha256"}."""
++    def bad(reason, detail=""):
++        return {"ok": False, "reason": reason, "detail": str(detail)[:300], "betas": None}
++    if not present:
++        return bad("field_missing", f"target_live has no `{FIELD}` field (producer predates M3, or its beta step failed)")
++    if not isinstance(raw, dict):
++        return bad("field_malformed", f"`{FIELD}` is {type(raw).__name__}, not an object")
++    if raw.get("version") != VERSION:
++        return bad("version_mismatch", f"version={raw.get('version')!r}, expected {VERSION!r}")
++    try:
++        a = int(raw.get("anchor_ts"))
++        cut = int(raw.get("data_cutoff_ts"))
++    except (TypeError, ValueError):
++        return bad("field_malformed", f"anchor_ts / data_cutoff_ts not integers: {raw.get('anchor_ts')!r} / {raw.get('data_cutoff_ts')!r}")
++    if a != int(anchor_ts):
++        return bad("anchor_mismatch", f"field anchor_ts={a} != file anchor {int(anchor_ts)}")
++    if cut != int(anchor_ts):
++        # the formula's sample is the 180 bars COMPLETED AT the anchor: a cut-off before it is stale, after it is the future
++        return bad("cutoff_mismatch", f"data_cutoff_ts={cut} != anchor {int(anchor_ts)}")
++    decl = {"n_win": raw.get("n_win"), "n_min": raw.get("n_min"), "clip": raw.get("clip"), "fallback": raw.get("fallback"),
++            "btc": raw.get("btc")}
++    want = {"n_win": N_WIN, "n_min": N_MIN, "clip": [CLIP_LO, CLIP_HI], "fallback": FALLBACK, "btc": BTC}
++    if (decl["n_win"] != want["n_win"] or decl["n_min"] != want["n_min"] or decl["fallback"] != want["fallback"]
++            or decl["btc"] != want["btc"] or not isinstance(decl["clip"], list) or len(decl["clip"]) != 2
++            or [float(x) if _finite(x) else x for x in decl["clip"]] != want["clip"]):
++        return bad("params_mismatch", f"declared {decl} != prereg {want}")
++    betas, nobs = raw.get("betas"), raw.get("n_obs")
++    if not isinstance(betas, dict) or not betas:
++        return bad("bad_betas", "betas must be a non-empty object {symbol: beta}")
++    if not isinstance(nobs, dict) or set(nobs) != set(betas):
++        return bad("bad_betas", "n_obs must be an object with exactly the betas' names")
++    clean: Dict[str, float] = {}
++    n_fb = 0
++    for s, v in betas.items():
++        if not isinstance(s, str) or not s:
++            return bad("bad_betas", f"symbol key {s!r}")
++        if not _finite(v):
++            return bad("bad_betas", f"{s}: beta {v!r} not a finite number")
++        v = float(v)
++        if not (CLIP_LO <= v <= CLIP_HI):
++            return bad("bad_betas", f"{s}: beta {v} outside the clip [{CLIP_LO}, {CLIP_HI}]")
++        n = nobs.get(s)
++        if not (isinstance(n, int) and not isinstance(n, bool) and 0 <= n <= N_WIN):
++            return bad("bad_betas", f"{s}: n_obs {n!r} not an integer in [0, {N_WIN}]")
++        if s != BTC and n < N_MIN:
++            if v != FALLBACK:
++                # self-consistency of the producer: fewer than N_MIN valid pairs MUST be the fallback
++                return bad("bad_betas", f"{s}: n_obs {n} < {N_MIN} but beta {v} != fallback {FALLBACK}")
++            n_fb += 1
++        clean[s] = v
++    if clean.get(BTC) != 1.0:
++        return bad("btc_beta_not_one", f"beta[{BTC}]={clean.get(BTC)!r}, must be exactly 1.0")
++    return {"ok": True, "reason": None, "detail": "", "betas": clean, "n_obs": dict(nobs), "version": VERSION,
++            "data_cutoff_ts": cut, "n_betas": len(clean), "n_fallback": n_fb, "betas_sha256": betas_sha256(clean)}
++
++
++# ── the arithmetic ───────────────────────────────────────────────────────────────────────────────
++def beta_exec(target: Dict[str, float], betas: Dict[str, float]) -> Dict[str, Any]:
++    """beta_exec = sum_i target_i * beta_i (USDT) over every name with a NON-ZERO executed target. A name with a non-zero target
++    and no beta refuses the whole computation (never a default beta). Zero targets contribute 0 whatever their beta."""
++    tot, n, missing = 0.0, 0, []
++    for s in sorted(target):
++        w = float(target[s] or 0.0)
++        if w == 0.0:
++            continue
++        if s not in betas:
++            missing.append(s)
++            continue
++        tot += w * float(betas[s])
++        n += 1
++    if missing:
++        return {"ok": False, "reason": "beta_missing_for_targeted", "missing": missing, "n_missing": len(missing),
++                "beta_exec_usdt": None, "n_names": n}
++    return {"ok": True, "reason": None, "missing": [], "n_missing": 0, "beta_exec_usdt": tot, "n_names": n}
++
++
++def hard_block(untradable: Iterable[str], sources: Optional[Dict[str, Iterable[str]]]) -> List[str]:
++    """The NAME-level reasons BTC is untradable this anchor ([] = no name-level reason). Everything except `external_dust` is
++    name-level; an untradable BTC that NO source recorded is too (fail-closed)."""
++    if BTC not in set(untradable or ()):
++        return []
++    srcs = sorted(k for k, v in (sources or {}).items() if BTC in set(v or ()))
++    if not srcs:
++        return ["unrecorded_source"]
++    return [k for k in srcs if k not in SOFT_SOURCES]
++
++
++def dust_only(untradable: Iterable[str], sources: Optional[Dict[str, Iterable[str]]]) -> bool:
++    """BTC is untradable and `external_dust` is its ONLY recorded reason (the M3b condition for the combined judgement)."""
++    if BTC not in set(untradable or ()):
++        return False
++    srcs = {k for k, v in (sources or {}).items() if BTC in set(v or ())}
++    return srcs == {"external_dust"}
++
++
++def stage(mode: str, target: Dict[str, float], held_true: Dict[str, float], ext: Dict[str, Any],
++          sizing_gross: float, hard: List[str], prev_status: Optional[str] = None,
++          btc_floor: Optional[float] = None, dust_mult: Optional[float] = None, btc_dust_only: bool = False) -> Dict[str, Any]:
++    """The M3 stage, run on the target the book stage produced (the off-mode book). MUTATES `target` only when mode == "on".
++    `hard` = hard_block(...), `btc_dust_only` = dust_only(...), both taken BEFORE the book stage from the untradable sources;
++    `btc_floor` / `dust_mult` = BTC's venue minNotional and the book's min_notional_mult (the combined-value dust rule).
++    `prev_status` = the previous traded anchor's status (loop state): a suspension that CONTINUES pages HIGH once and INFO after.
++    Every status records the HEDGE GAP (`hedge_gap_usdt` = intended leg − placed leg at the target level; None when the intent
++    itself is not computable) and its reason — a leg not placed is never silent.
++    Returns {"record", "leg" ({BTC: ...} | None), "overlay_net_usdt", "alarms" [(sev, text)], "betas",
++    "release_btc" (the caller removes BTC from the clamp lists: the combined value overruled the book-component dust)}."""
++    held_btc = float((held_true or {}).get(BTC, 0.0) or 0.0)
++    b = float(target.get(BTC, 0.0) or 0.0)                  # BTC's EXECUTED base value (0 when popped; clamped value when held)
++    book_gross = float(sum(abs(float(v or 0.0)) for v in target.values()))
++    rec: Dict[str, Any] = {"mode": mode, "version_expected": VERSION, "btc_book_target_usdt": b, "btc_held_usdt": held_btc,
++                           "book_gross_usdt": book_gross, "sizing_gross_usdt": float(sizing_gross or 0.0),
++                           "hard_sources": list(hard or []), "btc_dust_only": bool(btc_dust_only), "overlay_net_usdt": None}
++    out: Dict[str, Any] = {"record": rec, "leg": None, "overlay_net_usdt": None, "alarms": [], "betas": None,
++                           "release_btc": False}
++
++    def _done():
++        rec["overlay_net_usdt"] = out["overlay_net_usdt"]
++        return out
++    v = validate_field(ext.get(FIELD), int(ext.get("anchor_ts") or 0), present=(FIELD in (ext or {})))
++    out["betas"] = v["betas"] if v["ok"] else None
++    rec.update({"field_ok": v["ok"], "field_reason": v["reason"], "field_detail": v.get("detail") or "",
++                "data_cutoff_ts": v.get("data_cutoff_ts"), "n_betas": v.get("n_betas"), "n_fallback": v.get("n_fallback"),
++                "betas_sha256": v.get("betas_sha256")})
++    be = beta_exec(target, v["betas"]) if v["ok"] else None
++    if be is not None:
++        rec.update({"beta_exec_usdt": be["beta_exec_usdt"], "n_targeted_names": be["n_names"],
++                    "n_beta_missing": be["n_missing"], "beta_missing_head": be["missing"][:12]})
++        if be["ok"]:
++            rec["beta_exec_gross_units"] = (be["beta_exec_usdt"] / sizing_gross) if sizing_gross else None
++            rec["beta_exec_over_book_gross"] = (be["beta_exec_usdt"] / book_gross) if book_gross else None
++            rec["hedge_intent_usdt"] = -be["beta_exec_usdt"]
++    usable = v["ok"] and be is not None and be["ok"]
++    reason = (v["reason"] if not v["ok"] else be["reason"] if not be["ok"] else None)
++    if hard:
++        rec.update(status="suspended_btc_untradable", reason="BTC untradable (name-level): " + ",".join(hard),
++                   hedge_gap_usdt=rec.get("hedge_intent_usdt"),
++                   hedge_gap_reason=("BTC untradable (" + ",".join(hard) + ")" if rec.get("hedge_intent_usdt") is not None
++                                     else "BTC untradable and the intent itself not computable: " + str(reason)))
++        if mode == "on" and prev_status == "suspended_btc_untradable":
++            # ★ a STABLE body (no numbers): alarm_policy de-duplicates identical bodies inside its window, so a 42-anchor
++            #   cooldown pages once per window instead of every anchor. The first anchor's HIGH (below) carries the numbers.
++            out["alarms"].append(("INFO", f"M3 对冲腿持续暂停: BTCUSDT 仍不可交易({', '.join(hard)}) — 首锚已页报; 对冲缺口逐锚记在 anchors 行; 原因解除后下一锚自动恢复。"))
++        elif mode == "on":
++            _gap = rec.get("hedge_intent_usdt")
++            out["alarms"].append(("HIGH", f"M3 对冲腿本锚暂停: BTCUSDT 不可交易({', '.join(hard)}) — 不下对冲单, 对冲缺口 "
++                                          f"{(format(_gap, '+,.0f')) if _gap is not None else '不可算'}U 记账; BTC 按书的场所规则处理"
++                                          f"(未持有 ⇒ 移出; 持有 ⇒ 只减/止损平仓, 现持 {held_btc:+,.0f}U)。"))
++        return _done()
++    if not usable:
++        rec.update(status="refused", reason=reason, hedge_gap_usdt=None,
++                   hedge_gap_reason="intent not computable (" + str(reason) + ") — the gap is UNKNOWN, not 0")
++        if mode == "on":
++            if held_btc != 0.0:
++                target[BTC] = held_btc                     # FROZEN: delta 0 ⇒ no BTC order; never unwound as if hedge were 0
++                rec["btc_frozen_at_usdt"] = held_btc
++                out["overlay_net_usdt"] = held_btc         # the frozen position is the (stale) leg's; not a book tilt
++            # BTC not held: there is no leg at all — the book's own BTC component (if any) is part of the neutral book
++            rec["btc_combined_target_usdt"] = float(target.get(BTC, 0.0) or 0.0)
++            _det = v.get("detail") if not v["ok"] else ("names without beta: " + ", ".join(be["missing"][:8]))
++            out["alarms"].append(("HIGH", f"M3 对冲腿缺失即不做: {reason} — {_det}。本锚不下对冲单; BTCUSDT 冻结在现持 "
++                                          f"{held_btc:+,.0f}U(不当 0 对冲平掉, 也不按 β=1 重算)。检查生产者 beta_overlay 字段。"))
++        else:
++            out["alarms"].append(("INFO", f"M3 shadow: 字段不可用 {reason} — 若开启则本锚不下对冲单"))
++        return _done()
++    hedge = -be["beta_exec_usdt"]
++    combined = b + hedge
++    thr = (float(dust_mult) * float(btc_floor)) if (btc_floor is not None and dust_mult is not None) else None
++    rec.update({"hedge_target_usdt": hedge, "btc_combined_target_usdt": combined, "combined_dust_threshold_usdt": thr})
++    if hedge == 0.0:
++        rec.update(status="zero_hedge", reason=None, hedge_gap_usdt=0.0, hedge_gap_reason=None)
++        return _done()                                     # a zero leg touches nothing (M3b order)
++    if btc_dust_only:
++        if thr is None:
++            rec.update(status="combined_dust", reason="combined dust NOT CHECKABLE (BTC minNotional / min_notional_mult unavailable)",
++                       hedge_gap_usdt=hedge, hedge_gap_reason="the dust-only BTC could not be re-judged: nothing touched")
++            out["alarms"].append(("HIGH", "M3 对冲腿: BTC 仅因书内碎单不可交易, 但合计目标无法判定(minNotional 不可得) — 本锚不下对冲单, 缺口记账。"))
++            return _done()
++        if abs(combined) < thr:
++            rec.update(status="combined_dust", reason=f"|executed base + leg| {abs(combined):.2f} < {thr:.2f}",
++                       hedge_gap_usdt=hedge, hedge_gap_reason="combined value still below min_notional_mult x minNotional: nothing touched")
++            if mode == "on":
++                out["alarms"].append(("INFO", "M3 对冲腿本锚合计目标(书内 BTC + 对冲)仍低于 2×minNotional, 按碎单规则不动(未持有 ⇒ 不下单; 持有 ⇒ 书的只减); "
++                                              "对冲缺口记在 anchors 行。"))
++            return _done()
++        status = "applied_via_combined"
++    else:
++        status = "applied"
++        if thr is not None and abs(combined) < thr:
++            rec["combined_below_threshold"] = True         # recorded only: a TRADABLE BTC is hedged regardless (M3b)
++    if mode == "shadow":
++        rec.update(status="shadow", shadow_would_be=status, reason=None)
++        return _done()
++    target[BTC] = combined
++    out["release_btc"] = (status == "applied_via_combined")
++    after = beta_exec(target, v["betas"])
++    rec["diag_target"] = diag(be["beta_exec_usdt"], after["beta_exec_usdt"] if after["ok"] else None, hedge, stage_name="target")
++    rec.update(status=status, reason=None, hedge_gap_usdt=0.0, hedge_gap_reason=None)
++    out["leg"] = {BTC: {"version": VERSION, "hedge_target_usdt": hedge, "book_target_usdt": b, "combined_target_usdt": combined,
++                        "held_usdt": held_btc, "beta_exec_usdt": be["beta_exec_usdt"], "betas_sha256": v["betas_sha256"],
++                        "via": status}}
++    out["overlay_net_usdt"] = hedge
++    return _done()
++
++
++def diag(beta_before: float, beta_after: Optional[float], intent: float, stage_name: str, tol: Optional[float] = None) -> Dict[str, Any]:
++    """The flat-book diagnostic (prereg R3 on the executor's own code): the move of the executed book's ex-ante beta against the
++    intent (-beta_before). ratio 1.0 = delivered exactly. `tol` absolute in USDT (None ⇒ relative TARGET_DIAG_REL_TOL)."""
++    if beta_after is None:
++        return {"stage": stage_name, "ok": None, "why": "beta after not computable"}
++    move = beta_after - beta_before
++    if intent == 0.0:
++        ok = (move == 0.0) if tol is None else abs(move) <= tol
++        return {"stage": stage_name, "beta_before_usdt": beta_before, "beta_after_usdt": beta_after, "move_usdt": move,
++                "intent_usdt": intent, "ratio": None, "ok": ok, "tol_usdt": tol}
++    ratio = move / intent
++    lim = (TARGET_DIAG_REL_TOL * abs(intent)) if tol is None else float(tol)
++    return {"stage": stage_name, "beta_before_usdt": beta_before, "beta_after_usdt": beta_after, "move_usdt": move,
++            "intent_usdt": intent, "ratio": ratio, "ok": abs(move - intent) <= lim, "tol_usdt": lim}
++
++
++def after_cap(rec: Dict[str, Any], target: Dict[str, float], capd: Dict[str, Any],
++              betas: Optional[Dict[str, float]] = None) -> List[tuple]:
++    """After clamp_venue_cap (a later, rare step the prereg's w_exec does not include): did the cap move the combined BTC target,
++    and what ex-ante beta does the FINAL target carry? Updates the record (`beta_final_usdt` = the residual beta after the leg and
++    every cap — 0 when nothing was capped); returns alarms. The hedge is NOT recomputed after the cap (prereg §2: w_exec is the
++    target after POP -> RESHAPE -> CLAMP); a non-BTC cap shows up here as a non-zero residual, stated, never absorbed."""
++    if not rec or rec.get("status") not in APPLIED:
++        return []
++    if betas:
++        fin = beta_exec(target, betas)
++        rec["beta_final_usdt"] = fin["beta_exec_usdt"] if fin["ok"] else None
++        rec["capped_names"] = sorted(c.get("symbol") for c in (capd or {}).get("capped") or [])
++    capped = [c for c in (capd or {}).get("capped") or [] if c.get("symbol") == BTC]
++    rec["venue_capped"] = bool(capped)
++    if not capped:
++        return []
++    delivered = float(target.get(BTC, 0.0) or 0.0) - float(rec.get("btc_book_target_usdt") or 0.0)
++    rec["hedge_after_cap_usdt"] = delivered
++    rec["hedge_gap_usdt"] = float(rec.get("hedge_target_usdt") or 0.0) - delivered
++    rec["hedge_gap_reason"] = "venue cap (maxNotionalValue x (1 - margin)) on the combined BTC target"
++    return [("HIGH", f"M3 对冲腿被场所上限截断: BTCUSDT {capped[0].get('target_before'):+,.0f}→{capped[0].get('target_after'):+,.0f}"
++                     f"(cap {capped[0].get('cap')}); 对冲意图 {rec.get('hedge_target_usdt'):+,.0f}U, 实际 {delivered:+,.0f}U, "
++                     f"对冲缺口 {rec['hedge_gap_usdt']:+,.0f}U 记账。")]
++
++
++def after_plan(rec: Dict[str, Any], plans: List[Dict[str, Any]], lot_step: Optional[float] = None,
++               min_notional: Optional[float] = None) -> None:
++    """Plan-level delivery (after lot rounding / min-notional): the BTC notional the plan will leave us holding, minus the book's
++    component, against the hedge intent. Tolerance = ONE lot of BTC at the plan's mid (binance_executor.round_qty floors the
++    quantity toward zero, so the planned order can fall short by up to a full step), or the venue's min_notional when the plan
++    SKIPPED the delta as below it — whichever is larger; None when the step / mid is unknown (then `ok` is None: not measured,
++    never "fine"). Record only (never a trading decision)."""
++    if not rec or rec.get("status") not in APPLIED:
++        return
++    row = next((p for p in plans or [] if p.get("symbol") == BTC), None)
++    if row is None:
++        rec["diag_plan"] = {"stage": "plan", "ok": None, "why": "no BTC plan row"}
++        return
++    cur = float(row.get("prev_notional") or 0.0)
++    mid = row.get("mid_at_anchor")
++    qty = row.get("qty")
++    if row.get("skip") is not None or qty is None:
++        planned = cur
++    elif mid:
++        planned = cur + float(qty) * float(mid)
++    else:
++        rec["diag_plan"] = {"stage": "plan", "ok": None, "why": "no mid"}
++        return
++    intent = float(rec.get("hedge_target_usdt") or 0.0)
++    delivered = planned - float(rec.get("btc_book_target_usdt") or 0.0)
++    tol = None
++    if lot_step and mid:
++        tol = float(lot_step) * float(mid)
++        if row.get("skip") == "skipped_min_notional" and min_notional:
++            tol = max(tol, float(min_notional))
++    rec["diag_plan"] = {"stage": "plan", "planned_btc_usdt": planned, "hedge_delivered_usdt": delivered, "intent_usdt": intent,
++                        "ratio": (delivered / intent) if intent else None, "skip": row.get("skip"),
++                        "tol_usdt": tol, "ok": (abs(delivered - intent) <= tol + 1e-9) if tol is not None else None,
++                        "note": "delivered = BTC notional after this plan's order minus the book's BTC component; lot rounding "
++                                "and min-notional skips are the only planned deviations (partial fills are phase B's)"}
++
++
++def neutrality_view(row: Dict[str, Any], rec: Optional[Dict[str, Any]]) -> Dict[str, Any]:
++    """The end-of-anchor neutrality readers (the HIGH page and the neutrality price) judge the book EX-OVERLAY when the leg was
++    placed: venue net minus the overlay's intended net. Adds `net_ex_overlay_*` to `row` (the raw `net_over_gross` stays the
++    venue's fact) and returns a view for the two readers. No overlay applied ⇒ returns `row` itself (identity)."""
++    if not rec or rec.get("status") not in APPLIED + ("refused",) or rec.get("mode") != "on":
++        return row
++    ov = rec.get("overlay_net_usdt")
++    if ov is None or row.get("venue_net_usdt") is None:
++        return row
++    net = float(row["venue_net_usdt"]) - float(ov)
++    grs = row.get("venue_gross_usdt")
++    eq_ratio = row.get("net_over_equity")
++    row["m3_overlay_net_usdt"] = float(ov)
++    row["net_ex_overlay_usdt"] = round(net, 6)
++    row["net_ex_overlay_over_gross"] = (round(net / float(grs), 6) if grs else None)
++    view = dict(row)
++    view["venue_net_usdt"] = row["net_ex_overlay_usdt"]
++    view["net_over_gross"] = row["net_ex_overlay_over_gross"]
++    if eq_ratio is not None and row.get("venue_net_usdt") not in (None, 0):
++        # net/equity rescaled by the same ratio (equity is not on the row)
++        try:
++            view["net_over_equity"] = round(float(eq_ratio) * net / float(row["venue_net_usdt"]), 6)
++        except (TypeError, ValueError, ZeroDivisionError):
++            view["net_over_equity"] = None
++    return view
++
++
++# ── the source-level identity used by tests and by the deploy receipt ────────────────────────────
++M3_BEGIN = "# ── M3-BEGIN"
++M3_END = "# ── M3-END"
++M3_LINE = "# M3-LINE"
++M3_ORIG = "# M3-ORIG:"
++
++
++def strip_m3(src: str) -> str:
++    """Remove every M3 insertion from a source file and restore every M3-modified line: the pre-M3 source, byte for byte
++    (asserted against the b66257b blobs in the deploy receipt; used by tests_beta_overlay [Z] to build the OFF reference)."""
++    out, skip = [], False
++    for line in src.splitlines(keepends=True):
++        s = line.strip()
++        if s.startswith(M3_BEGIN):
++            if skip:
++                raise ValueError("nested M3-BEGIN")
++            skip = True
++            continue
++        if s.startswith(M3_END):
++            if not skip:
++                raise ValueError("M3-END without M3-BEGIN")
++            skip = False
++            continue
++        if skip:
++            continue
++        if line.rstrip("\n").endswith(M3_LINE):
++            continue
++        i = line.find(M3_ORIG)
++        if i >= 0:
++            nl = "\n" if line.endswith("\n") else ""
++            out.append(line[i + len(M3_ORIG):].rstrip("\n")[1:] + nl)     # exactly one space after the marker
++            continue
++        out.append(line)
++    if skip:
++        raise ValueError("unterminated M3-BEGIN")
++    return "".join(out)
+diff --git a/live/binance_executor.py b/live/binance_executor.py
+index 8f4615b..8ea70ce 100644
+--- a/live/binance_executor.py
++++ b/live/binance_executor.py
+@@ -1625,18 +1625,21 @@ class RebalanceExecutor:
+         _plans = getattr(self, "_last_plans", None) or live
+         pos_now = sum(float(q.get("prev_notional") or 0.0) for q in _plans) \
+             + sum(float(v) for v in (filled or {}).values())
++        # M3: the overlay leg's intended net is deliberate, not a tilt for C to chase back to zero (0.0 when no leg)  # M3-LINE
++        _m3_net = float(getattr(self, "_m3_overlay_net_usdt", None) or 0.0)  # M3-LINE
++        _m3_basis = (f" EX-OVERLAY: the M3 BTC-beta leg's intended net {_m3_net:+.2f} USDT is subtracted." if _m3_net else "")  # M3-LINE
+         gross_now = sum(abs(float(q.get("prev_notional") or 0.0)
+                             + float(filled.get(q["symbol"], 0.0))) for q in _plans)
+         return CP.plan_experiment(
+             pop, rebalance_id,
+-            book_net_usdt=(pos_now + others), book_gross_usdt=gross_now,
++            book_net_usdt=(pos_now + others) - _m3_net, book_gross_usdt=gross_now,  # M3-ORIG:             book_net_usdt=(pos_now + others), book_gross_usdt=gross_now,
+             # ★ E4 (ruling R2′): a stopped name's from_partial residual is not sent by ANY chase path, so it is not in the
+             #   experiment's population and not in `others` (nothing is about to fill it); its position is already in the book
+             exclude={s_: STOP_EXIT_POLICY for s_ in (stop_names or ())},
+             net_basis=("prev_notional readback over the planned universe + this anchor's maker "
+                        "fills + the from_reject residuals about to be converted by this same "
+                        "loop. NOT a venue snapshot: the position readback happens after this "
+-                       "leg. Excludes any held name absent from the plan set."))
++                       "leg. Excludes any held name absent from the plan set." + _m3_basis))  # M3-ORIG:                        "leg. Excludes any held name absent from the plan set."))
+ 
+     def topup(self, live: List[Dict[str, Any]], filled: Dict[str, float], anchor_ts: float,
+               rebalance_id: str, spreads_bps: Optional[Dict[str, float]] = None,
+@@ -2283,6 +2286,7 @@ class RebalanceExecutor:
+         _parm = (_pe.get("arm") or {}).get(p.get("symbol"))
+         _rq = getattr(self, "_requote_experiment", None) or {}
+         _rarm = (_rq.get("arm") or {}).get(p.get("symbol")) or p.get("_requote_arm")
++        _m3leg = (getattr(self, "_m3_overlay_leg", None) or {}).get(p.get("symbol"))  # M3-LINE
+         self.rows_orders.append({
+             "placement_arm": _parm, "placement_eps": _pe.get("eps"),
+             "requote_arm": _rarm, "requote_p": _rq.get("p"),
+@@ -2355,6 +2359,8 @@ class RebalanceExecutor:
+             # E-0912-A (b): how a FULL EXIT's quantity was sized — `venue_position_qty` (the position itself) or
+             # `notional_over_mid` (the old path; the readback carried no quantity). Absent on every other row.
+             **({"qty_source": p["qty_source"]} if p.get("qty_source") else {}),
++            # M3 (PREREG_m3 24c3f803f): the BTC-beta overlay leg's split of this symbol's target, from the executor-level record  # M3-LINE
++            **({"m3_overlay_leg": dict(_m3leg)} if _m3leg else {}),  # M3-LINE
+             # ★ ONLY ON THE TOP-UP LEG, and only when the plan carries them. A maker row has no
+             #   "source" (it IS the source) and no separate limit reference (its own
+             #   `price_submit` is that price). Emitting them everywhere would invite a reader to
+diff --git a/live/external_book.py b/live/external_book.py
+index 91659b1..4e635a2 100644
+--- a/live/external_book.py
++++ b/live/external_book.py
+@@ -410,6 +410,8 @@ def parse_target(raw: bytes, cfg: Dict[str, Any], nominal_ts: int, now: float) -
+             "gross_norm": gn, "universe_sha": doc["universe_sha"], "booster_sha": doc["booster_sha"], "f10_sha": doc.get("f10_sha"),
+             "weights_sha": doc["weights_sha"], "written_utc": doc["written_utc"],
+             "age_s": round(age_s, 1), "producer": doc.get("producer"),
++            # M3 (PREREG_m3 24c3f803f): the producer's per-name betas, passed through UNREAD from the verified bytes  # M3-LINE
++            **({"beta_overlay": doc["beta_overlay"]} if "beta_overlay" in doc else {}),  # M3-LINE
+             "n_universe": doc.get("n_universe")}
+ 
+ 
+diff --git a/live/tests_beta_overlay.py b/live/tests_beta_overlay.py
+new file mode 100644
+index 0000000..21949f7
+--- /dev/null
++++ b/live/tests_beta_overlay.py
+@@ -0,0 +1,895 @@
++"""tests_beta_overlay — M3: the BTC-beta overlay leg on the EXECUTED book (live/beta_overlay.py + its anchor_loop wiring).
++
++Pre-registration: quant_research docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md (24c3f803f) §2 / §5.
++
++*** MOCK ONLY: temp dirs, a DRY_RUN broker with a stubbed bookTicker, hand-set filters, an injected per-name-stop state. No
++    venue, no credentials, no network, no production state (every state path is redirected by env; PNS reads are stubbed). ***
++
++WHAT IT PROVES (★ = the four properties the task names; every group carries a control that must go RED)
++  [B] BASELINE GREEN FIRST: the harness itself reproduces the adapter's arithmetic on a fixture (the stripped executor's
++      target == w/gross_in x NAV x gross_mult after the reshape it performs), before any M3 claim is judged.
++  [C] config: absent / off / shadow / on; a typo or a non-object is OFF + an error (never an accidental ON).
++  [V] the field validator: a producer-shaped field is accepted; each named defect is refused with its reason.
++  [A] the arithmetic: beta_exec = sum w*beta over NON-ZERO targets; a non-zero target without a beta refuses.
++  ★[Z] OFF IS TODAY'S EXECUTOR: the same inputs through the new code (mode absent / "off" / "shadow") and through the
++      executor with every M3 insertion STRIPPED (beta_overlay.strip_m3 on anchor_loop / binance_executor / external_book;
++      the deploy receipt proves stripped == b66257b byte for byte) give identical plans, dry-run orders, order rows, anchor
++      context, loop state and phase-A record — on files with and without the new field, with BTC unheld / held-dust /
++      held-untargeted. Shadow differs ONLY by the anchor context's `m3_beta_overlay` record. RED control: a mutant whose M3
++      code takes the "on" symbol path in "off" is detected by the same comparison.
++  ★[D] THE FLAT-BOOK DIAGNOSTIC on the executor's own code (prereg R3): with mode on, every non-BTC target is BITWISE the
++      off-mode target, BTC = the book's executed BTC entry + hedge, and the ex-ante beta of the final target moved by
++      exactly -beta_exec (ratio 1 within 1e-9, recomputed here independently of the module's own diagnostic); at the plan
++      level (lot rounding) within half a lot of BTC at the mid. The anchor is built so the reshape CHANGES the net (the
++      file is -X% net): the executed book's net is 0 before the leg and exactly the hedge after it — the leg is not
++      spread. RED control ("route L", M2's failure reproduced on this executor): the same hedge written into the FILE as a
++      BTC weight with mode off comes out of the reshape with net 0 and a beta move far from -beta_exec.
++  [O] who owns BTC while on: a HELD dust BTC is not clamped reduce-only and not unwound; a held BTC the file no longer
++      targets is not an external_held_exit. RED controls: the same positions with mode off clamp / exit BTC.
++  [H] hard reasons suspend the leg: a per-name stop on BTC ⇒ no hedge, HIGH page, BTC force-flat reduce-only (true position).
++  ★[M] MISSING IS NOT ZERO: field absent / wrong version / another anchor's cut-off / a targeted name without a beta ⇒ NO
++      BTC order, HIGH page, the held BTC frozen at its notional. RED controls (the check is load-bearing): mutants of
++      beta_overlay that (i) read a missing field as "every beta 1" and (ii) read it as "hedge 0" both SEND a BTC order on
++      the same input.
++  [P] HOLD keeps the hedge (no orders at all); the venue cap applies to the COMBINED BTC target and a truncated leg pages.
++  [R] accounting: every orders row of BTCUSDT carries `m3_overlay_leg` only while a leg was placed; the chase experiment's
++      neutrality basis is ex-overlay (difference == hedge exactly, identity when no leg); the end-of-anchor neutrality page
++      judges ex-overlay (a delivered hedge does not page; an undelivered one does); mode on writes loop state, shadow/off do not.
++  [X] PAIR: the producer's released beta module (ops/producer_release/20260923_m3/beta_overlay_producer.py, sha pinned)
++      computes a field on a synthetic cache that THIS validator accepts, and a field with a changed parameter it refuses.
++  [S] statics: registration, coverage entry, tests_imports census, strip markers well-formed, the disk config's mode is a
++      valid mode (green in any of the three states).
++
++Exit 0 = all pass. Nothing here places an order or reads the venue.
++"""
++import contextlib
++import copy
++import hashlib
++import importlib.util
++import json
++import os
++import shutil
++import sys
++import tempfile
++import time
++import types
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++REPO = os.path.dirname(HERE)
++for _d in ("live", "signal", "scheduler", "ops"):
++    sys.path.insert(0, os.path.join(REPO, _d))
++
++TMP = tempfile.mkdtemp(prefix="m3beta_")
++os.environ["LIVE_LOOP_STATE"] = os.path.join(TMP, "loop_state.json")
++os.environ["LIVE_PREDS_PATH"] = os.path.join(TMP, "preds.json")
++os.environ["LIVE_KILL_SWITCH"] = os.path.join(TMP, "KILL_SWITCH.json")
++os.environ["LIVE_HARVEST_STATE"] = os.path.join(TMP, "harvest_ema.json")
++os.environ["LIVE_FEE_BASELINE"] = os.path.join(TMP, "fee_asset_baseline.json")
++os.environ["LIVE_WATCHDOG_STATE"] = os.path.join(TMP, "watchdog_state.json")
++os.environ["LIVE_EXTERNAL_WAIT"] = "0"
++os.environ.setdefault("LIVE_MODE", "DRY_RUN")
++
++import book_config as BC              # noqa: E402
++import external_book as EXT           # noqa: E402
++import anchor_loop as AL              # noqa: E402
++import binance_broker as BB           # noqa: E402
++import binance_executor as EX         # noqa: E402
++import beta_overlay as BO             # noqa: E402
++
++FAILS, N = [], [0]
++
++
++def check(name, cond, detail=""):
++    N[0] += 1
++    print(f"  {'OK  ' if cond else 'FAIL'} {name}{(' — ' + str(detail)[:400]) if detail else ''}", flush=True)
++    if not cond:
++        FAILS.append(name)
++
++
++BTC = BO.BTC
++UTC = "%Y-%m-%dT%H:%M:%SZ"
++REAL_BOOK = json.load(open(BC.BOOK_PATH))
++
++
++def _internal_baseline(d):
++    d = json.loads(json.dumps(d))
++    d["book_source"] = "internal"
++    d["per_name_stop"] = dict(d.get("per_name_stop") or {}, active_profile=None)
++    d.pop("beta_overlay", None)                      # every fixture states its own mode
++    return d
++
++
++BASE_BOOK = _internal_baseline(REAL_BOOK)
++NOMINAL = EXT.nominal_anchor_ts(time.time())
++NOW = float(NOMINAL) + 24 * 60 + 30
++
++# a NON-NEUTRAL file (net -0.06 of gross): the reshape re-demeans it, so "the leg is not spread" is a real test
++W = {"AAAUSDT": 0.30, "BBBUSDT": -0.20, "CCCUSDT": 0.15, "DDDUSDT": -0.25, "EEEUSDT": 0.05, "FFFUSDT": -0.08,
++     "GGGUSDT": -0.04, "HHHUSDT": 0.0098, "BTCUSDT": 0.0002}
++UNIVERSE = sorted(set(W) | {"IIIUSDT", "JJJUSDT", "ZZZUSDT"})
++BETAS = {"AAAUSDT": 1.5, "BBBUSDT": 0.8, "CCCUSDT": 2.0, "DDDUSDT": 1.2, "EEEUSDT": 0.5, "FFFUSDT": 3.0,
++         "GGGUSDT": 1.0, "HHHUSDT": -0.25, "BTCUSDT": 1.0, "IIIUSDT": 1.0, "JJJUSDT": 0.9, "ZZZUSDT": 1.1}
++NOBS = {s: (180 if s not in ("IIIUSDT",) else 100) for s in BETAS}          # IIIUSDT is a fallback name (beta 1.0)
++BOOSTER = "b" * 64
++TDIR = os.path.join(TMP, "target_live")
++
++
++def field(anchor=None, **over):
++    f = {"version": BO.VERSION, "anchor_ts": int(anchor if anchor is not None else NOMINAL),
++         "data_cutoff_ts": int(anchor if anchor is not None else NOMINAL), "first_bar_end_ts": 0,
++         "n_win": 180, "n_min": 120, "clip": [-1.0, 4.0], "fallback": 1.0, "btc": BTC,
++         "betas": dict(BETAS), "n_obs": dict(NOBS), "n_names": len(BETAS)}
++    f.update(over)
++    return f
++
++
++_ABSENT = object()
++
++
++def write_target(weights=None, beta=_ABSENT, anchor=None, **override):
++    weights = dict(W if weights is None else weights)
++    anchor = NOMINAL if anchor is None else anchor
++    os.makedirs(TDIR, exist_ok=True)
++    doc = {"schema": "wide_target_v1", "anchor_ts": int(anchor), "weights": weights,
++           "gross_norm": float(sum(abs(v) for v in weights.values())), "n_names": len(weights),
++           "universe": list(UNIVERSE), "universe_sha": EXT.universe_sha(UNIVERSE), "n_universe": len(UNIVERSE),
++           "booster_sha": BOOSTER, "weights_sha": "a" * 64, "written_utc": time.strftime(UTC, time.gmtime(NOW - 60)),
++           "producer": "test_fixture"}
++    if beta is not _ABSENT:
++        doc["beta_overlay"] = beta
++    doc.update(override)
++    raw = json.dumps(doc, sort_keys=True, separators=(",", ":")).encode()
++    p = os.path.join(TDIR, f"{int(anchor)}.json")
++    open(p, "wb").write(raw)
++    open(p + ".sha256", "w").write(f"{hashlib.sha256(raw).hexdigest()}  {os.path.basename(p)}\n")
++    return p
++
++
++def ext_block(**over):
++    b = {"path": TDIR, "max_age_min": 10, "anchor_offset_min": 24, "poll_grace_min": 0, "gross_mult": 2.0,
++         "require_anchor_match": True, "universe_sha_pin": None, "booster_sha_pin": None, "min_notional_mult": 2.0,
++         "on_unavailable": "hold", "schema": "wide_target_v1"}
++    b.update(over)
++    return b
++
++
++def pns_wide():
++    p = json.loads(json.dumps(BASE_BOOK["per_name_stop"]))
++    p["active_profile"] = "wide"
++    p.setdefault("profiles", {})["wide"] = {"depth_pct": -0.3, "consecutive_anchors": 2, "cooloff_days": 7,
++                                            "min_notional_usdt": 5.0}
++    return p
++
++
++def book_with(mode=_ABSENT, **over):
++    d = json.loads(json.dumps(BASE_BOOK))
++    d.update({"book_source": "external", "external_book": ext_block(), "per_name_stop": pns_wide(),
++              "target_leverage": 2.0, "anchor_late_tolerance_min": 10 ** 6})
++    if mode is not _ABSENT:
++        d["beta_overlay"] = mode if isinstance(mode, dict) else {"mode": mode}
++    d.update(over)
++    p = os.path.join(TMP, f"book_{len(os.listdir(TMP))}.json")
++    json.dump(d, open(p, "w"), ensure_ascii=False, indent=1)
++    return p
++
++
++class _DryBroker(BB.BinanceBroker):
++    def __init__(self):
++        super().__init__(mode="DRY_RUN")
++        self.armed = True
++
++    def _request(self, method, path, params=None, signed=False, host=None):
++        raise AssertionError(f"network call attempted: {method} {path}")
++
++
++MIDS = {s: 100.0 for s in UNIVERSE}
++MIDS[BTC] = 50_000.0
++
++
++def make_loop(al_mod=None, ex_mod=None, alarms=None, symbol_config=None):
++    M, E = al_mod or AL, ex_mod or EX
++    b = _DryBroker()
++    b.symbol_config = dict(symbol_config or {})
++    ex = E.RebalanceExecutor(b)
++    ex.filters.f = {s: {"tick": 0.01, "step": 0.001, "min_notional": 5.0} for s in UNIVERSE}
++    ex.capture_anchor = lambda syms: (NOW + 1.0, {s: MIDS.get(s, 100.0) for s in syms})
++    al = alarms if alarms is not None else []
++    loop = M.AnchorLoop(b, ex, gross_usdt=0.0, alarm=lambda s, m: al.append((s, m)))
++    loop._equity = 10_000.0
++    return b, ex, loop, al
++
++
++def seed_state(positions=None, **extra):
++    st = {"positions": dict(positions or {}), "stale_ref_positions": None, "alarmed_stages": []}
++    st.update(extra)
++    AL._save(os.environ["LIVE_LOOP_STATE"], st)
++
++
++# ── hermetic per-name stop: the clone's state/live/per_name_stop.json (a production copy in the offline battery) must never
++#    decide these fixtures — BTCUSDT is a real symbol ──
++PNS_STATE = {"counters": {}, "stopped": {}, "cooldown": {}}
++_pns_mods = []
++
++
++@contextlib.contextmanager
++def pns_stub(module):
++    P = module.PNS
++    o_load, o_en = P.load_state, P.cfg_enabled
++    P.load_state = lambda *a, **k: json.loads(json.dumps(PNS_STATE))
++    P.cfg_enabled = lambda *a, **k: True
++    try:
++        yield
++    finally:
++        P.load_state, P.cfg_enabled = o_load, o_en
++
++
++@contextlib.contextmanager
++def frozen_clock(start=None):
++    """time.time() returns a deterministic sequence, reset per run, so two runs of equal call order are byte-comparable."""
++    t0 = float(start if start is not None else NOW)
++    c = [0]
++    real = time.time
++
++    def fake():
++        c[0] += 1
++        return t0 + c[0] * 1e-3
++    time.time = fake
++    try:
++        yield
++    finally:
++        time.time = real
++
++
++def run(book_path, positions=None, al_mod=None, ex_mod=None, symbol_config=None, state_extra=None):
++    """One anchor through run_anchor (phase A). Returns everything the comparisons read."""
++    seed_state(positions, **(state_extra or {}))
++    b, ex, loop, al = make_loop(al_mod, ex_mod, symbol_config=symbol_config)
++    M = al_mod or AL
++    with BC._using(book_path), pns_stub(M), frozen_clock():
++        out = loop.run_anchor(now=NOW)
++    st = AL._load(os.environ["LIVE_LOOP_STATE"], {})
++    return types.SimpleNamespace(out=out, b=b, ex=ex, loop=loop, al=al, st=st,
++                                 ctx=copy.deepcopy(loop._anchor_ctx or {}),
++                                 plans=[dict(p) for p in (getattr(ex, "_last_plans", None) or [])],
++                                 target=dict((loop._anchor_ctx or {}).get("target") or {}))
++
++
++def jd(x):
++    return json.dumps(x, sort_keys=True, default=repr)
++
++
++def beta_of(target):
++    return sum(float(v) * BETAS[s] for s, v in target.items() if float(v) != 0.0)
++
++
++# ── the STRIPPED executor: every M3 insertion removed (the OFF reference) ──────────────────────────
++# ★ A MIRROR TREE, not a bare temp file: anchor_loop / binance_executor locate config/ and state/ from their OWN file path
++#   (`_REPO = dirname(dirname(__file__))`). A stripped copy loaded from a flat temp dir read no config at all (min_gross 0,
++#   bandit defaults) and differed from the new code for THAT reason — measured on the first run of this suite. So the stripped
++#   files sit at their real relative paths in TMP/stripped, and everything else there is a symlink to this repo.
++STRIP = os.path.join(TMP, "stripped")
++os.makedirs(os.path.join(STRIP, "scheduler"), exist_ok=True)
++os.makedirs(os.path.join(STRIP, "live"), exist_ok=True)
++for _d in ("config", "signal", "ops", "checkpoints", "vendor", "state"):
++    if os.path.exists(os.path.join(REPO, _d)):
++        os.symlink(os.path.join(REPO, _d), os.path.join(STRIP, _d))
++for _f in os.listdir(os.path.join(REPO, "live")):
++    if _f not in ("external_book.py", "binance_executor.py"):
++        os.symlink(os.path.join(REPO, "live", _f), os.path.join(STRIP, "live", _f))
++
++
++def load_stripped(rel, name):
++    src = open(os.path.join(REPO, rel)).read()
++    p = os.path.join(STRIP, rel)
++    open(p, "w").write(BO.strip_m3(src))
++    spec = importlib.util.spec_from_file_location(name, p)
++    m = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(m)
++    return m
++
++
++EXT0 = load_stripped("live/external_book.py", "external_book_m3stripped")
++EX0 = load_stripped("live/binance_executor.py", "binance_executor_m3stripped")
++AL0 = load_stripped("scheduler/anchor_loop.py", "anchor_loop_m3stripped")
++AL0.EXT = EXT0                                   # the stripped loop reads the stripped adapter
++
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("[B] baseline green first: the harness reproduces the adapter on this fixture before any M3 claim")
++write_target(beta=field())
++r0 = run(book_with(), al_mod=AL0, ex_mod=EX0)
++_g = r0.out.get("sizing", {}).get("gross")
++_net0 = sum(r0.target.values())
++check("B1 stripped executor TRADEs the fixture at gross = NAV x 2.0", r0.out.get("action") == "TRADE" and _g == 20_000.0, (r0.out.get("action"), _g))
++check("B2 the reshape did real work here: the file is -6% net, the executed book is neutral (|net| < 1e-9) and BTC's dust"
++      " weight (0.0002 x 20k = 4 < 2 x 5) was popped", abs(sum(W.values()) + 0.06) < 1e-12 and abs(_net0) < 1e-9 and BTC not in r0.target
++      and BTC in r0.out["untradable_names"].get("popped", []), (sum(W.values()), _net0, sorted(r0.target)))
++check("B3 no M3 record in the stripped run (the reference really is M3-free)", "m3_beta_overlay" not in r0.ctx
++      and not hasattr(AL0, "BO"))
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[C] config")
++check("C1 absent ⇒ off, no error", BO.config({}) == {"mode": "off", "error": None, "present": False})
++check("C2 off/shadow/on accepted", all(BO.config({"beta_overlay": {"mode": m}})["mode"] == m and BO.config({"beta_overlay": {"mode": m}})["error"] is None
++                                       for m in ("off", "shadow", "on")))
++for bad in ({"mode": "ON"}, {"mode": 1}, {"mode": None}, "on", ["on"]):
++    c = BO.config({"beta_overlay": bad})
++    check(f"C3 {bad!r} ⇒ off + error (never an accidental on)", c["mode"] == "off" and c["error"], c)
++check("C4 unreadable book ⇒ off + error", BO.config(None)["mode"] == "off" and BO.config(None)["error"])
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[V] the field validator")
++v = BO.validate_field(field(), NOMINAL)
++check("V1 a producer-shaped field is accepted; betas / fallback count / sha recorded",
++      v["ok"] and v["betas"] == BETAS and v["n_fallback"] == 1 and len(v["betas_sha256"]) == 64, v.get("reason"))
++
++
++def refused(label, reason, raw, present=True, anchor=None):
++    r = BO.validate_field(raw, NOMINAL if anchor is None else anchor, present=present)
++    check(f"V2 {label} ⇒ {reason}", (not r["ok"]) and r["reason"] == reason, (r["reason"], r.get("detail")))
++
++
++refused("absent", "field_missing", None, present=False)
++refused("not an object", "field_malformed", [1, 2])
++refused("version m3_beta_v0", "version_mismatch", field(version="m3_beta_v0"))
++refused("another anchor's field", "anchor_mismatch", field(anchor=NOMINAL - 14400))
++refused("cut-off one bar early (stale)", "cutoff_mismatch", field(data_cutoff_ts=NOMINAL - 14400))
++refused("cut-off one bar late (the future)", "cutoff_mismatch", field(data_cutoff_ts=NOMINAL + 14400))
++for k, bad in (("n_win", 179), ("n_min", 119), ("clip", [-1.0, 5.0]), ("fallback", 0.0), ("btc", "ETHUSDT")):
++    refused(f"declared {k}={bad!r}", "params_mismatch", field(**{k: bad}))
++refused("empty betas", "bad_betas", field(betas={}, n_obs={}))
++refused("n_obs names differ", "bad_betas", field(n_obs={k: v for k, v in NOBS.items() if k != "AAAUSDT"}))
++refused("a NaN beta", "bad_betas", field(betas=dict(BETAS, AAAUSDT=float("nan"))))
++refused("a beta outside the clip (4.5)", "bad_betas", field(betas=dict(BETAS, AAAUSDT=4.5)))
++refused("n_obs 181", "bad_betas", field(n_obs=dict(NOBS, AAAUSDT=181)))
++refused("n_obs 100 but an estimated beta (producer self-inconsistency)", "bad_betas", field(n_obs=dict(NOBS, AAAUSDT=100)))
++refused("BTC beta 0.999", "btc_beta_not_one", field(betas=dict(BETAS, BTCUSDT=0.999)))
++refused("BTC missing", "btc_beta_not_one", field(betas={k: v for k, v in BETAS.items() if k != BTC},
++                                                n_obs={k: v for k, v in NOBS.items() if k != BTC}))
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[A] the arithmetic")
++t = {"AAAUSDT": 100.0, "BBBUSDT": -50.0, "QQQUSDT": 0.0}
++a = BO.beta_exec(t, BETAS)
++check("A1 beta_exec = sum w*beta over non-zero targets (a zero target needs no beta)", a["ok"] and a["beta_exec_usdt"] == 100.0 * 1.5 - 50.0 * 0.8, a)
++a2 = BO.beta_exec(dict(t, QQQUSDT=10.0), BETAS)
++check("A2 a NON-ZERO target without a beta refuses the whole computation (never a default beta)",
++      (not a2["ok"]) and a2["reason"] == "beta_missing_for_targeted" and a2["missing"] == ["QQQUSDT"], a2)
++check("A3 hard_block (M3b): only external_dust is overrulable; held-exit, stop, cooldown, venue, meta are name-level; an"
++      " untradable BTC no source recorded is name-level too (fail-closed)",
++      BO.hard_block({BTC}, {"external_dust": {BTC}}) == [] and BO.hard_block({BTC}, {"external_held_exit": {BTC}}) == ["external_held_exit"]
++      and BO.hard_block({BTC}, {"per_name_stop": {BTC}, "external_dust": {BTC}}) == ["per_name_stop"]
++      and BO.hard_block({BTC}, {}) == ["unrecorded_source"] and BO.hard_block(set(), {"per_name_stop": {BTC}}) == [])
++check("A4 dust_only: true iff BTC is untradable and external_dust is its ONLY recorded source",
++      BO.dust_only({BTC}, {"external_dust": {BTC}}) is True and BO.dust_only({BTC}, {"external_dust": {BTC}, "per_name_stop_cooldown": {BTC}}) is False
++      and BO.dust_only(set(), {"external_dust": {BTC}}) is False and BO.dust_only({BTC}, {}) is False)
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[Z] ★ OFF (and SHADOW) is today's executor: new code vs the M3-stripped executor, same inputs")
++Z_CASES = [
++    ("field present, BTC unheld", field(), {}),
++    ("field present, BTC HELD dust + a held untargeted name", field(), {BTC: 750.0, "ZZZUSDT": -120.0, "AAAUSDT": 5000.0}),
++    ("file WITHOUT the field", _ABSENT, {BTC: 750.0}),
++    ("MALFORMED field", {"version": "junk"}, {BTC: -300.0, "BBBUSDT": -900.0}),
++]
++
++
++def z_view(r, drop_m3=False):
++    ctx = dict(r.ctx)
++    if drop_m3:
++        ctx.pop("m3_beta_overlay", None)
++    return {"plans": r.plans, "actions": r.b.actions, "rows": r.ex.rows_orders, "ctx": ctx, "state": r.st,
++            "out": {k: v for k, v in r.out.items() if k != "_pending"}, "pending": r.out.get("_pending"),
++            "alarms": [(s, m) for s, m in r.al if not m.startswith("M3 shadow")]}
++
++
++for label, beta, pos in Z_CASES:
++    write_target(beta=beta)
++    ref = run(book_with(), positions=pos, al_mod=AL0, ex_mod=EX0)
++    for mode_label, bk in (("absent", book_with()), ("off", book_with("off")), ("shadow", book_with("shadow"))):
++        new = run(bk, positions=pos)
++        same = jd(z_view(new, drop_m3=(mode_label == "shadow"))) == jd(z_view(ref))
++        diffk = [k for k in z_view(ref) if jd(z_view(new, drop_m3=(mode_label == "shadow"))[k]) != jd(z_view(ref)[k])]
++        check(f"★ Z {label} — mode {mode_label}: plans / dry-run orders / order rows / ctx / loop state / record IDENTICAL to stripped",
++              same and len(ref.plans) > 0, diffk)
++        if mode_label == "shadow":
++            m3 = new.ctx.get("m3_beta_overlay") or {}
++            check(f"Z shadow records what it WOULD do ({label}): status {'shadow' if beta is not _ABSENT and isinstance(beta, dict) and beta.get('version') == BO.VERSION else 'refused'}",
++                  m3.get("mode") == "shadow" and m3.get("status") == ("shadow" if isinstance(beta, dict) and beta.get("version") == BO.VERSION else "refused"),
++                  (m3.get("status"), m3.get("field_reason")))
++        if mode_label in ("absent", "off"):
++            check(f"Z {label} — mode {mode_label}: no M3 key anywhere in the anchor context / state",
++                  "m3_beta_overlay" not in new.ctx and "m3_overlay_last" not in new.st)
++
++# RED control: a mutant whose M3 code takes the ON symbol path while OFF must be caught by the same comparison
++_src_al = open(os.path.join(REPO, "scheduler", "anchor_loop.py")).read()
++_needle = '            if self._m3["mode"] == "on":\n                symbols = sorted(set(symbols) | {BO.BTC})'
++check("Z-M0 mutant anchor text is unique", _src_al.count(_needle) == 1, _src_al.count(_needle))
++_mp = os.path.join(STRIP, "scheduler", "anchor_loop_m3mut_onpath.py")
++open(_mp, "w").write(_src_al.replace(_needle, _needle.replace('self._m3["mode"] == "on"', "True"), 1))
++_spec = importlib.util.spec_from_file_location("anchor_loop_m3mut_onpath", _mp)
++ALmut = importlib.util.module_from_spec(_spec)
++_spec.loader.exec_module(ALmut)
++write_target(weights={k: v for k, v in W.items() if k != BTC}, beta=field())     # BTC neither targeted nor held: the path matters
++_ref = run(book_with(), positions={"AAAUSDT": 5000.0}, al_mod=AL0, ex_mod=EX0)
++_mut = run(book_with("off"), positions={"AAAUSDT": 5000.0}, al_mod=ALmut)
++_pos = {BTC: 750.0, "AAAUSDT": 5000.0}
++check("★ Z-M1 RED-CAPABLE: the on-path-in-off mutant (BTC forced into the symbol set) differs from the stripped reference",
++      jd(z_view(_mut)) != jd(z_view(_ref)), [k for k in z_view(_ref) if jd(z_view(_mut)[k]) != jd(z_view(_ref)[k])])
++_needle2 = '        if self._m3["mode"] != "off":\n            _m3o = BO.stage(self._m3["mode"]'
++check("Z-M2 mutant anchor text is unique", _src_al.count(_needle2) == 1)
++_mp2 = os.path.join(STRIP, "scheduler", "anchor_loop_m3mut_heldview.py")
++open(_mp2, "w").write(_src_al.replace(_needle2, _needle2.replace('if self._m3["mode"] != "off":', 'if True:').replace('BO.stage(self._m3["mode"]', 'BO.stage("on"'), 1))
++_spec2 = importlib.util.spec_from_file_location("anchor_loop_m3mut_heldview", _mp2)
++ALmut2 = importlib.util.module_from_spec(_spec2)
++_spec2.loader.exec_module(ALmut2)
++write_target(beta=field())                                                         # BTC targeted (dust) AND held
++_ref2 = run(book_with(), positions=_pos, al_mod=AL0, ex_mod=EX0)
++_mut2 = run(book_with("off"), positions=_pos, al_mod=ALmut2)
++check("★ Z-M3 RED-CAPABLE: a mutant that runs the ON stage while the switch is off differs in plans",
++      jd(_mut2.plans) != jd(_ref2.plans), [k for k in z_view(_ref2) if jd(z_view(_mut2)[k]) != jd(z_view(_ref2)[k])])
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[D] ★ flat-book diagnostic on the executor's own code; the leg is NOT spread by the reshape")
++# ★ M3b (AMENDMENT_1 912788743 as the evaluator's hook c414ca4cf reads it): the book stage runs EXACTLY as off, so the reference is
++#   the DEFAULT off-mode book. In this fixture BTC is targeted at 0.0002 = 4 USDT < 2 x 5: the book stage pops it (dust, unheld),
++#   its executed base value is 0, and the leg reaches BTC through the combined value (status applied_via_combined).
++write_target(beta=field())
++off = run(book_with("off"))
++on = run(book_with("on"))
++t_off, t_on = off.target, on.target
++check("D-pre the off-mode book pops the dust BTC (so this anchor exercises the combined-value path)", BTC not in t_off
++      and BTC in off.out["untradable_names"].get("popped", []), off.out.get("untradable_names"))
++b_book = float(t_off.get(BTC, 0.0))
++beta_book = beta_of(t_off)
++hedge = -beta_book
++check("D0 the fixture's executed book has a material beta (|beta_exec| > 5% of gross), so the diagnostic can fail",
++      abs(beta_book) > 0.05 * 20_000.0, beta_book)
++check("★ D1 every non-BTC target is BITWISE the off-mode target (the leg changes nothing else)",
++      {k: v for k, v in t_on.items() if k != BTC} == {k: v for k, v in t_off.items() if k != BTC}, sorted(set(t_on) ^ set(t_off)))
++check("★ D2 BTC = the book's executed BTC entry + (-beta_exec), beta recomputed HERE from the fixture's betas",
++      t_on.get(BTC) == b_book + hedge, (t_on.get(BTC), b_book, hedge))
++beta_after = beta_of(t_on)
++ratio = (beta_after - beta_book) / hedge
++check("★ D3 ex-ante beta of the final target moved by exactly -beta_exec: ratio 1 within 1e-9 (prereg R3 band is 0.95-1.05)",
++      abs(ratio - 1.0) <= 1e-9 and abs(beta_after) <= 1e-9 * abs(beta_book), (ratio, beta_after))
++rec = on.ctx.get("m3_beta_overlay") or {}
++check("D4 the module's own record agrees (status applied, hedge, diag ok) — secondary to D3's independent recomputation",
++      rec.get("status") == "applied_via_combined" and rec.get("hedge_target_usdt") == hedge and (rec.get("diag_target") or {}).get("ok") is True,
++      (rec.get("status"), rec.get("hedge_target_usdt"), rec.get("diag_target")))
++_net_off, _net_on = sum(t_off.values()), sum(t_on.values())
++check("★ D5 NOT SPREAD: the file is -6% net; the executed book is neutral before the leg (|net|<1e-9) and its net after the leg"
++      " is exactly the hedge", abs(_net_off) < 1e-9 and abs(_net_on - hedge) <= 1e-9 * abs(hedge), (_net_off, _net_on, hedge))
++bp = next(p for p in on.plans if p["symbol"] == BTC)
++_lot = 0.001 * MIDS[BTC]
++_planned = float(bp.get("prev_notional") or 0.0) + (float(bp["qty"]) * MIDS[BTC] if bp.get("qty") is not None and bp.get("skip") is None else 0.0)
++check("D6 plan level: the BTC order leaves the book at book + hedge within ONE lot of BTC at the mid (round_qty floors toward zero)",
++      abs((_planned - b_book) - hedge) <= _lot + 1e-9 and bp.get("reduce_only") is False and bp.get("skip") is None,
++      (_planned, hedge, _lot, bp.get("skip")))
++check("D7 the plan-level record matches: ok with tol = one lot (0.001 x mid), ratio within it",
++      (rec.get("diag_plan") or {}).get("ok") is True and abs((rec.get("diag_plan") or {}).get("tol_usdt") - _lot) < 1e-9
++      and abs(((rec.get("diag_plan") or {}).get("ratio") or 0) - 1.0) <= _lot / abs(hedge) + 1e-12, rec.get("diag_plan"))
++# RED control — "route L" (M2's literal failure) on THIS executor: the same hedge written into the FILE as a BTC weight
++_wL = dict(W)
++_gin = sum(abs(v) for v in W.values())
++_wL[BTC] = W[BTC] + hedge / 20_000.0 * _gin            # the hedge in file units (so file x gross = the intended USDT)
++write_target(weights=_wL, beta=field())
++rL = run(book_with("off"))
++tL = rL.target
++check("★ D8 RED control (route L): through the reshape the file hedge is spread — executed net ≈ 0 and the beta move is far"
++      " from -beta_exec (ratio outside 0.95-1.05)", abs(sum(tL.values())) < 1e-6 * 20_000.0
++      and not (0.95 <= (beta_of(tL) - beta_book) / hedge <= 1.05), (sum(tL.values()), (beta_of(tL) - beta_book) / hedge))
++
++_wNoB = {k: v for k, v in W.items() if k != BTC}
++write_target(weights=_wNoB, beta=field())
++offB, onB = run(book_with("off")), run(book_with("on"))
++_hB = -beta_of(offB.target)
++check("★ DB1 BTC untargeted by the file: every non-BTC target is BITWISE the DEFAULT off-mode target; BTC = the leg exactly",
++      {k: v for k, v in onB.target.items() if k != BTC} == offB.target and BTC not in offB.target and onB.target.get(BTC) == _hB
++      and abs((beta_of(onB.target) - beta_of(offB.target)) / _hB - 1.0) <= 1e-9, (onB.target.get(BTC), _hB))
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[N] ★ AMENDMENT_1 (coordinator's test): the book's BTC is below 2 x minNotional, the leg is large ⇒ the leg IS placed;"
++      " reverting to the book-component judgement (M2 route H) sends NO hedge")
++write_target(beta=field())
++_bpre = W[BTC] * 20_000.0
++rn1 = run(book_with("on"))
++_r1 = rn1.ctx.get("m3_beta_overlay") or {}
++_btc_sub = [a for a in rn1.b.actions if a["action"] == "submit_dry_run" and a["order"]["symbol"] == BTC]
++check("★ N1 book BTC 4 USDT < 2 x 5 (dust alone: the book stage pops it, executed base 0) and |leg| > 100x that ⇒ the combined"
++      " value decides: a BTC order is SENT, not reduce-only (applied_via_combined)", _bpre < 2 * 5.0 and abs(_r1.get("hedge_target_usdt") or 0) > 100 * _bpre
++      and len(_btc_sub) == 1 and _btc_sub[0]["order"]["reduce_only"] is False and _r1.get("btc_dust_only") is True
++      and _r1.get("status") == "applied_via_combined" and float(_r1.get("btc_book_target_usdt") or 0.0) == 0.0,
++      (_bpre, _r1.get("hedge_target_usdt"), len(_btc_sub), _r1.get("status")))
++MUT_M2H = None
++
++
++def _mut_m2h():
++    src = open(os.path.join(HERE, "beta_overlay.py")).read()
++    a1 = 'SOFT_SOURCES = ("external_dust",)'
++    assert src.count(a1) == 1, "mutant anchor"
++    src = src.replace(a1, 'SOFT_SOURCES = ()', 1)       # M2 route H: the book-component dust blocks the leg like any other reason
++    p_ = os.path.join(TMP, "beta_overlay_m2h.py")
++    open(p_, "w").write(src)
++    spec_ = importlib.util.spec_from_file_location("beta_overlay_m2h", p_)
++    m_ = importlib.util.module_from_spec(spec_)
++    spec_.loader.exec_module(m_)
++    return m_
++
++
++MUT_M2H = _mut_m2h()
++_saved = AL.BO
++AL.BO = MUT_M2H
++try:
++    rn2 = run(book_with("on"))
++finally:
++    AL.BO = _saved
++_r2 = rn2.ctx.get("m3_beta_overlay") or {}
++check("★ N2 RED control (mutant = M2 route H: BTC's dust judged on the book component and dust blocks the leg): the SAME input"
++      " sends NO BTC order and records the whole intent as the gap", not [a for a in rn2.b.actions if a["action"] == "submit_dry_run"
++      and a["order"]["symbol"] == BTC] and _r2.get("status") == "suspended_btc_untradable" and _r2.get("hedge_gap_usdt") == _r2.get("hedge_intent_usdt"),
++      (_r2.get("status"), _r2.get("hedge_gap_usdt")))
++
++print("\n[CD] the COMBINED value is still below 2 x minNotional (a NEUTRAL file; every beta 1 except HHH 1.01 ⇒ leg ≈ -0.01 x HHH ≈ -2"
++      " USDT; BTC popped unheld / ~4 USDT held ⇒ |C| < 10)")
++_ones = dict({k: 1.0 for k in BETAS}, HHHUSDT=1.01)
++_WN = dict(W, EEEUSDT=W["EEEUSDT"] + 0.06)                   # net exactly 0 (sum W = -0.06)
++assert abs(sum(_WN.values())) < 1e-12
++write_target(weights=_WN, beta=field(betas=_ones, n_obs={k: 180 for k in _ones}))
++rc1 = run(book_with("on"))
++_c1 = rc1.ctx.get("m3_beta_overlay") or {}
++check("CD1 unheld: status combined_dust, NOTHING touched (BTC stays popped), NO BTC order, the gap is the (tiny) leg, an INFO line names it",
++      _c1.get("status") == "combined_dust" and 0 < abs(_c1.get("hedge_target_usdt") or 0) < 10 and BTC not in rc1.target and not [a for a in rc1.b.actions if a["action"] == "submit_dry_run"
++      and a["order"]["symbol"] == BTC] and _c1.get("hedge_gap_usdt") == _c1.get("hedge_target_usdt")
++      and any(s_ == "INFO" and "合计目标" in m for s_, m in rc1.al), (_c1.get("status"), _c1.get("btc_combined_target_usdt")))
++rc2 = run(book_with("on"), positions={BTC: 1500.0, "AAAUSDT": 5000.0})
++_c2 = rc2.ctx.get("m3_beta_overlay") or {}
++_bpc = next(p for p in rc2.plans if p["symbol"] == BTC)
++check("CD2 held 1500: nothing touched — the book stage's clamp stands (reduced toward the book's small BTC, reduce-only), recorded",
++      _c2.get("status") == "combined_dust" and BTC in rc2.out["untradable_names"].get("reduced", []) and _bpc["reduce_only"] is True
++      and rc2.target[BTC] == _c2["btc_book_target_usdt"] and 0 < rc2.target[BTC] < 10.0, (rc2.out.get("untradable_names"), rc2.target.get(BTC)))
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[O] who owns BTC while on")
++write_target(beta=field())
++_held = {BTC: 1500.0, "AAAUSDT": 5000.0}
++on_h = run(book_with("on"), positions=_held)
++off_h = run(book_with("off"), positions=_held)
++_bp_on = next(p for p in on_h.plans if p["symbol"] == BTC)
++_nb = -beta_of({k: v for k, v in on_h.target.items() if k != BTC})
++check("★ O1 on: a HELD BTC whose book component alone is dust is neither clamped nor reduce-only; target = book entry + leg"
++      " = -beta(non-BTC book) (1e-9 rel)", BTC not in sum((on_h.out["untradable_names"].get(k, []) for k in ("reduced", "add_blocked", "flatten_only")), [])
++      and _bp_on["reduce_only"] is False and abs(on_h.target[BTC] - _nb) <= 1e-9 * abs(_nb),
++      (on_h.out.get("untradable_names"), _bp_on.get("reduce_only")))
++check("O2 RED control: the same positions with mode off clamp BTC reduce-only toward the dust target (the hedge would unwind)",
++      BTC in sum((off_h.out["untradable_names"].get(k, []) for k in ("reduced", "add_blocked", "flatten_only")), [])
++      and next(p for p in off_h.plans if p["symbol"] == BTC)["reduce_only"] is True, off_h.out.get("untradable_names"))
++_wNo = {k: v for k, v in W.items() if k != BTC}
++write_target(weights=_wNo, beta=field())
++on_x = run(book_with("on"), positions=_held)
++off_x = run(book_with("off"), positions=_held)
++_rx = on_x.ctx.get("m3_beta_overlay") or {}
++check("O3 on (M3b): a held BTC the file no longer targets IS an external_held_exit — a name-level reason — so the leg is SUSPENDED,"
++      " the whole intent recorded as the gap, HIGH; BTC exits reduce-only exactly as off (0 of the last 167 combo files dropped BTC)",
++      BTC in ((on_x.ctx.get("external_book") or {}).get("held_exit") or []) and _rx.get("status") == "suspended_btc_untradable"
++      and _rx.get("hard_sources") == ["external_held_exit"] and _rx.get("hedge_gap_usdt") == _rx.get("hedge_intent_usdt")
++      and on_x.target.get(BTC) == 0.0 and any(s_ == "HIGH" and "对冲缺口" in m for s_, m in on_x.al), (_rx.get("status"), _rx.get("hard_sources")))
++check("O4 RED control: mode off exits it (held_exit, flatten_only, target 0)", BTC in ((off_x.ctx.get("external_book") or {}).get("held_exit") or [])
++      and off_x.target.get(BTC) == 0.0, (off_x.ctx.get("external_book") or {}).get("held_exit"))
++check("O5 on, BTC untargeted AND unheld: BTC is still priced (in the capture set) and gets the leg",
++      BTC in run(book_with("on")).target)
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[H] a HARD reason suspends the leg: per-name stop on BTC")
++write_target(beta=field())
++PNS_STATE["stopped"] = {BTC: {"since": NOW - 3600}}
++try:
++    on_s = run(book_with("on"), positions={BTC: 1500.0, "AAAUSDT": 5000.0})
++finally:
++    PNS_STATE["stopped"] = {}
++rs = on_s.ctx.get("m3_beta_overlay") or {}
++_bps = next(p for p in on_s.plans if p["symbol"] == BTC)
++check("★ H1 suspended: status suspended_btc_untradable (per_name_stop), no hedge, HIGH page",
++      rs.get("status") == "suspended_btc_untradable" and "per_name_stop" in rs.get("hard_sources", [])
++      and any(s == "HIGH" and "暂停" in m for s, m in on_s.al), (rs.get("status"), rs.get("hard_sources")))
++check("H1b the whole intended leg is recorded as the hedge gap, and the HIGH page says so (never a silent drop)",
++      rs.get("hedge_gap_usdt") is not None and rs.get("hedge_gap_usdt") == rs.get("hedge_intent_usdt")
++      and any(s == "HIGH" and "对冲缺口" in m for s, m in on_s.al), (rs.get("hedge_gap_usdt"), rs.get("hedge_intent_usdt")))
++check("H2 BTC follows the stop clause on its TRUE position: target exactly 0, reduce-only", on_s.target.get(BTC) == 0.0
++      and _bps["reduce_only"] is True and on_s.ex._m3_overlay_leg is None, (on_s.target.get(BTC), _bps.get("reduce_only")))
++PNS_STATE["cooldown"] = {BTC: NOW + 7 * 86400}
++try:
++    on_c = run(book_with("on"), positions={"AAAUSDT": 5000.0},
++               state_extra={"m3_overlay_last": {"status": "suspended_btc_untradable"}})
++finally:
++    PNS_STATE["cooldown"] = {}
++_sev_c = [s for s, m in on_c.al if "暂停" in m]
++_txt_c = [m for s, m in on_c.al if "暂停" in m]
++check("H3 a CONTINUING suspension (stop cooldown, previous anchor already suspended) is INFO with a STABLE body (no numbers ⇒"
++      " alarm_policy's identical-body de-duplication applies), not HIGH; the cooldown BTC is popped (unheld), no hedge",
++      _sev_c == ["INFO"] and "持续暂停" in _txt_c[0] and "对冲缺口" in _txt_c[0] and not any(ch.isdigit() for ch in _txt_c[0].replace("M3", ""))
++      and (on_c.ctx.get("m3_beta_overlay") or {}).get("hedge_gap_usdt") is not None and BTC not in on_c.target
++      and (on_c.ctx.get("m3_beta_overlay") or {}).get("hard_sources") == ["per_name_stop_cooldown"], (_sev_c, on_c.target.get(BTC)))
++
++print("\n[W] BTC WITHHELD by the venue (exchangeInfo meta exclusion; a non-DRY loop with every venue call stubbed, as"
++      " tests_external_book F7): leg suspended, the gap recorded, HIGH; BTC handled on its TRUE position (reduce-only)")
++
++
++def run_nondry(book_path, positions, btc_underlying="EQUITY"):
++    seed_state(positions)
++    b, ex, loop, al = make_loop()
++    b.mode = "TESTNET"                      # past the DRY skips for THIS loop only; every venue call below is stubbed
++    b.armed = False                         # ...and submit() stays on its dry branch
++    _q = {s_: v / MIDS.get(s_, 100.0) for s_, v in positions.items()}
++    b.positions = lambda: dict(_q)
++    b.account_snapshot = lambda: {"positions_notional": dict(positions), "equity": 10_000.0, "positions_contracts": dict(_q),
++                                  "positions_unrealized": {}, "read_ts": NOW}
++    b.open_orders = lambda: []
++    b.symbol_config = {}
++
++    class _Src:
++        def _get(self, path, params=None, weight=1):
++            assert path == "/fapi/v1/exchangeInfo", path
++            return {"symbols": [{"symbol": s_, "underlyingType": (btc_underlying if s_ == BTC else "COIN"),
++                                 "contractType": "PERPETUAL", "status": "TRADING"} for s_ in UNIVERSE]}
++    loop.src = _Src()
++    import universe as _UNI
++    _vs = _UNI.venue_status
++    _UNI.venue_status = lambda src, timeout_ok=True: {s_: "TRADING" for s_ in UNIVERSE}
++    try:
++        with BC._using(book_path), pns_stub(AL), frozen_clock():
++            out = loop.run_anchor(now=NOW)
++    finally:
++        _UNI.venue_status = _vs
++    return types.SimpleNamespace(out=out, b=b, ex=ex, loop=loop, al=al, ctx=copy.deepcopy(loop._anchor_ctx or {}),
++                                 plans=[dict(p_) for p_ in (getattr(ex, "_last_plans", None) or [])],
++                                 target=dict((loop._anchor_ctx or {}).get("target") or {}))
++
++
++write_target(beta=field())
++rw = run_nondry(book_with("on"), {BTC: 1500.0, "AAAUSDT": 5000.0})
++_rw = rw.ctx.get("m3_beta_overlay") or {}
++_bpw = next((p_ for p_ in rw.plans if p_["symbol"] == BTC), {})
++check("★ W1 venue-withheld BTC (meta: underlyingType≠COIN): status suspended (external_meta), the whole intent is the recorded gap,"
++      " HIGH names the gap; BTC reduced on its TRUE position, reduce-only", rw.out.get("action") == "TRADE"
++      and _rw.get("status") == "suspended_btc_untradable" and "external_meta" in (_rw.get("hard_sources") or [])
++      and _rw.get("hedge_gap_usdt") is not None and _rw.get("hedge_gap_usdt") == _rw.get("hedge_intent_usdt")
++      and any(s_ == "HIGH" and "对冲缺口" in m for s_, m in rw.al) and _bpw.get("reduce_only") is True
++      and rw.ctx["external_book"]["meta_excluded"].get(BTC, "").startswith("underlyingType="),
++      (rw.out.get("action"), _rw.get("status"), _rw.get("hard_sources"), _rw.get("hedge_gap_usdt"), _bpw.get("reduce_only")))
++rw0 = run_nondry(book_with("on"), {BTC: 1500.0, "AAAUSDT": 5000.0}, btc_underlying="COIN")
++check("W2 control: the same non-DRY loop with BTC a COIN perp places the leg (the suspension above is the meta rule's doing)",
++      (rw0.ctx.get("m3_beta_overlay") or {}).get("status") in BO.APPLIED, (rw0.ctx.get("m3_beta_overlay") or {}).get("status"))
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[M] ★ missing is not zero — no hedge order, HIGH, BTC frozen; mutants prove the check is load-bearing")
++_heldM = {BTC: 1500.0, "AAAUSDT": 5000.0}
++M_CASES = [("field absent", _ABSENT, "field_missing"),
++           ("version mismatch", field(version="m3_beta_v0"), "version_mismatch"),
++           ("another anchor's cut-off", field(data_cutoff_ts=NOMINAL - 14400), "cutoff_mismatch"),
++           ("a targeted name without a beta", field(betas={k: v for k, v in BETAS.items() if k != "CCCUSDT"},
++                                                     n_obs={k: v for k, v in NOBS.items() if k != "CCCUSDT"}),
++            "beta_missing_for_targeted")]
++
++
++def btc_orders(r):
++    return [a for a in r.b.actions if a["action"] == "submit_dry_run" and a["order"]["symbol"] == BTC]
++
++
++for label, beta, reason in M_CASES:
++    write_target(beta=beta)
++    rm = run(book_with("on"), positions=_heldM)
++    m3 = rm.ctx.get("m3_beta_overlay") or {}
++    check(f"★ M {label}: refused ({reason}), BTC frozen at 1500 (target == held), NO BTC order, HIGH '缺失即不做'",
++          m3.get("status") == "refused" and m3.get("reason") == reason and rm.target.get(BTC) == 1500.0 and not btc_orders(rm)
++          and any(s == "HIGH" and "缺失即不做" in m for s, m in rm.al) and rm.ex._m3_overlay_leg is None,
++          (m3.get("status"), m3.get("reason"), rm.target.get(BTC), len(btc_orders(rm))))
++    check(f"M {label}: the rest of the book still trades (non-BTC targets == off-mode targets)",
++          {k: v for k, v in rm.target.items() if k != BTC} == {k: v for k, v in run(book_with("off"), positions=_heldM).target.items() if k != BTC})
++
++
++def beta_mutant(name, old, new):
++    src = open(os.path.join(HERE, "beta_overlay.py")).read()
++    if src.count(old) != 1:
++        raise AssertionError(f"mutant {name}: anchor not unique ({src.count(old)})")
++    p = os.path.join(TMP, f"beta_overlay_{name}.py")
++    open(p, "w").write(src.replace(old, new, 1))
++    spec = importlib.util.spec_from_file_location(f"beta_overlay_{name}", p)
++    m = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(m)
++    return m
++
++
++_miss_old = '''    if not present:
++        return bad("field_missing", f"target_live has no `{FIELD}` field (producer predates M3, or its beta step failed)")'''
++MUT_BETA1 = beta_mutant("missing_as_beta1", _miss_old, '''    if not present:
++        return {"ok": True, "reason": None, "detail": "", "betas": _AllOne(), "n_obs": {}, "version": VERSION,
++                "data_cutoff_ts": int(anchor_ts), "n_betas": 0, "n_fallback": 0, "betas_sha256": "mutant"}''')
++MUT_BETA1._AllOne = type("_AllOne", (dict,), {"__contains__": lambda self, k: True, "__getitem__": lambda self, k: 1.0})
++MUT_HEDGE0 = beta_mutant("missing_as_hedge0", _miss_old, '''    if not present:
++        return {"ok": True, "reason": None, "detail": "", "betas": _Zero(), "n_obs": {}, "version": VERSION,
++                "data_cutoff_ts": int(anchor_ts), "n_betas": 0, "n_fallback": 0, "betas_sha256": "mutant"}''')
++MUT_HEDGE0._Zero = type("_Zero", (dict,), {"__contains__": lambda self, k: True, "__getitem__": lambda self, k: 0.0})
++write_target(beta=_ABSENT)
++_real = run(book_with("on"), positions=_heldM)
++for mlabel, mm in (("missing ⇒ every beta 1", MUT_BETA1), ("missing ⇒ hedge 0 (unwind)", MUT_HEDGE0)):
++    _saved = AL.BO
++    AL.BO = mm
++    try:
++        rmut = run(book_with("on"), positions=_heldM)
++    finally:
++        AL.BO = _saved
++    check(f"★ M-RED {mlabel}: with the missing check removed the SAME input SENDS a BTC order (real code: none) — the check is load-bearing",
++          btc_orders(rmut) and not btc_orders(_real), (len(btc_orders(rmut)), len(btc_orders(_real)), rmut.target.get(BTC)))
++write_target(beta=_ABSENT)
++rn = run(book_with("on"))
++check("M5 field absent and BTC NOT held: no BTC order at all (nothing to freeze, nothing hedged)",
++      not btc_orders(rn) and (rn.ctx.get("m3_beta_overlay") or {}).get("status") == "refused", rn.target.get(BTC))
++_t6 = {"AAAUSDT": 600.0, BTC: -600.0}                     # a refused anchor whose BOOK carries a non-dust BTC component, BTC unheld
++_o6 = BO.stage("on", _t6, {}, {"anchor_ts": NOMINAL}, 20_000.0, [])
++_ROW6 = {"venue_net_usdt": -600.0, "venue_gross_usdt": 1200.0, "net_over_gross": -0.5}
++check("M6 refused with BTC unheld: the book's own BTC component is traded as the book (target untouched), NO overlay net —"
++      " neither the chase basis nor the neutrality page subtracts it", _t6 == {"AAAUSDT": 600.0, BTC: -600.0}
++      and _o6["overlay_net_usdt"] is None and _o6["record"]["overlay_net_usdt"] is None
++      and BO.neutrality_view(_ROW6, _o6["record"]) is _ROW6,
++      (_o6["overlay_net_usdt"], _t6))
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[P] HOLD keeps the hedge; the venue cap applies to the combined BTC target")
++shutil.rmtree(TDIR, ignore_errors=True)
++os.makedirs(TDIR)
++rh = run(book_with("on"), positions={BTC: 1500.0, "AAAUSDT": 5000.0})
++check("★ P1 target file missing ⇒ HOLD: no orders of any kind, BTC position untouched (the hedge is held)",
++      rh.out.get("action") == "HOLD" and not [a for a in rh.b.actions if a["action"].startswith("submit")]
++      and rh.st["positions"].get(BTC) == 1500.0 and "m3_beta_overlay" not in rh.ctx, rh.out.get("action"))
++write_target(beta=field())
++_cap = abs(hedge) * 0.5
++rc = run(book_with("on"), symbol_config={BTC: {"maxNotionalValue": _cap, "leverage": 20}})
++rcr = rc.ctx.get("m3_beta_overlay") or {}
++check("P2 cap on BTC below the combined target ⇒ truncated to cap x (1 - margin), record venue_capped, HIGH page",
++      abs(abs(rc.target[BTC]) - _cap * (1 - AL.VENUE_CAP_MARGIN)) < 1e-6 and rcr.get("venue_capped") is True
++      and any(s == "HIGH" and "场所上限截断" in m and "M3" in m for s, m in rc.al), (rc.target.get(BTC), rcr.get("venue_capped")))
++check("P2b the cap's shortfall is recorded as the hedge gap (intent − placed after the cap) and paged",
++      abs(rcr.get("hedge_gap_usdt") - (rcr.get("hedge_target_usdt") - rcr.get("hedge_after_cap_usdt"))) < 1e-9 and rcr.get("hedge_gap_usdt") != 0
++      and any("对冲缺口" in m for s, m in rc.al), (rcr.get("hedge_gap_usdt"),))
++check("P3 the record states the residual beta the capped book carries (beta_final = recomputed here; 0 when uncapped)",
++      abs(rcr.get("beta_final_usdt") - beta_of(rc.target)) < 1e-6 and abs(rcr["beta_final_usdt"]) > 1.0
++      and abs((on.ctx.get("m3_beta_overlay") or {}).get("beta_final_usdt")) < 1e-9, (rcr.get("beta_final_usdt"), beta_of(rc.target)))
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[R] accounting and the two neutrality readers")
++write_target(beta=field())
++ro = run(book_with("on"))
++leg = (ro.ex._m3_overlay_leg or {}).get(BTC) or {}
++p0 = {"symbol": BTC, "side": "buy", "delta_notional": 100.0, "target_w": 0.1, "prev_w": 0.0}
++ro.ex._order_row(p0, NOW, "rid-test", 1, "maker", "skipped_min_notional", submitted=False)
++ro.ex._order_row(dict(p0, symbol="AAAUSDT"), NOW, "rid-test", 1, "maker", "skipped_min_notional", submitted=False)
++_rows = [r for r in ro.ex.rows_orders if r["rebalance_id"] == "rid-test"]
++check("★ R1 BTC's order rows carry m3_overlay_leg (book / hedge / held split); other symbols' rows do not",
++      _rows[0].get("m3_overlay_leg", {}).get("hedge_target_usdt") == hedge and "m3_overlay_leg" not in _rows[1]
++      and leg.get("combined_target_usdt") == ro.target[BTC], (_rows[0].get("m3_overlay_leg"), sorted(_rows[1])))
++e0 = EX.RebalanceExecutor(_DryBroker())
++e0._order_row(p0, NOW, "rid-x", 1, "maker", "skipped_min_notional", submitted=False)
++e00 = EX0.RebalanceExecutor(_DryBroker())
++e00._order_row(p0, NOW, "rid-x", 1, "maker", "skipped_min_notional", submitted=False)
++check("R2 no leg set ⇒ the BTC row is byte-identical to the stripped executor's row (no m3 key)",
++      "m3_overlay_leg" not in e0.rows_orders[0] and jd(e0.rows_orders[0]) == jd(e00.rows_orders[0]))
++# chase neutrality basis: ex-overlay by exactly the hedge; identity when no leg
++_live = [{"symbol": "AAAUSDT", "delta_notional": 300.0, "prev_notional": 0.0},
++         {"symbol": "BBBUSDT", "delta_notional": -250.0, "prev_notional": 0.0},
++         {"symbol": BTC, "delta_notional": 900.0, "prev_notional": 0.0}]
++_filled = {"AAAUSDT": 100.0, "BBBUSDT": -50.0, BTC: 400.0}
++ec = EX.RebalanceExecutor(_DryBroker())
++ec._last_plans = _live
++c_none = ec._plan_chase_experiment(_live, _filled, set(), "rid-chase")
++ec0 = EX0.RebalanceExecutor(_DryBroker())
++ec0._last_plans = _live
++c_ref = ec0._plan_chase_experiment(_live, _filled, set(), "rid-chase")
++ec._m3_overlay_net_usdt = 900.0
++c_on = ec._plan_chase_experiment(_live, _filled, set(), "rid-chase")
++_bn = lambda c: (c.get("neutral_only") or c).get("book_net_usdt", c.get("book_net_usdt"))
++check("★ R3 chase basis: no leg ⇒ identical record to the stripped executor; leg ⇒ book net lower by exactly the hedge",
++      jd(c_none) == jd(c_ref) and c_none is not None and abs((_bn(c_none) - _bn(c_on)) - 900.0) < 1e-9 and "EX-OVERLAY" in jd(c_on),
++      (_bn(c_none), _bn(c_on)))
++# neutrality page: a delivered hedge must not page; an undelivered one must
++_recA = dict(ro.ctx["m3_beta_overlay"])
++_row = {"venue_net_usdt": hedge, "venue_gross_usdt": 20_000.0 + abs(hedge), "net_over_gross": hedge / (20_000.0 + abs(hedge)),
++        "net_over_equity": hedge / 10_000.0}
++_view = BO.neutrality_view(dict(_row), _recA)
++check("★ R4 delivered hedge: raw net/gross is far outside ±3% but the ex-overlay view is 0 ⇒ NO neutrality page",
++      AL.neutrality_alarm_text(_row, [], "r") is not None and AL.neutrality_alarm_text(_view, [], "r") is None, (_row["net_over_gross"], _view.get("net_over_gross")))
++_row2 = {"venue_net_usdt": 0.0, "venue_gross_usdt": 20_000.0, "net_over_gross": 0.0, "net_over_equity": 0.0}
++_view2 = BO.neutrality_view(_row2, _recA)
++check("R5 undelivered hedge (venue net 0, intent = hedge) ⇒ the ex-overlay view PAGES; the row keeps both calibers",
++      AL.neutrality_alarm_text(_view2, [], "r") is not None and _row2["net_over_gross"] == 0.0
++      and _row2["net_ex_overlay_usdt"] == round(-hedge, 6), (_view2.get("net_over_gross"), _row2.get("net_ex_overlay_usdt")))
++check("R6 no leg (shadow / off / suspended) ⇒ neutrality_view returns the row itself (identity)",
++      BO.neutrality_view(_row, dict(_recA, mode="shadow")) is _row and BO.neutrality_view(_row, None) is _row)
++check("R7 mode on writes loop state m3_overlay_last (hedge, status); shadow and off do not",
++      (ro.st.get("m3_overlay_last") or {}).get("hedge_target_usdt") == hedge
++      and "m3_overlay_last" not in run(book_with("shadow")).st and "m3_overlay_last" not in run(book_with("off")).st,
++      ro.st.get("m3_overlay_last"))
++
++# the ANCHORS ROW itself (finalize_anchor through a real PilotLogger): on carries the record; off is byte-identical to stripped
++import pilot_log as PL                                   # noqa: E402
++
++
++def anchors_row(book_path, al_mod=None, ex_mod=None, positions=None):
++    seed_state(positions)
++    b, ex, loop, al = make_loop(al_mod, ex_mod)
++    root = tempfile.mkdtemp(prefix="m3rows_", dir=TMP)
++    loop.log = PL.PilotLogger(root, day="20260923")
++    M = al_mod or AL
++    with BC._using(book_path), pns_stub(M), frozen_clock():
++        o = loop.run_anchor(now=NOW)
++        loop.finalize_anchor(o, None, now=NOW + 2.0)
++    rows = [json.loads(x) for x in open(os.path.join(root, "20260923", "anchors.jsonl"))]
++    return rows
++
++
++write_target(beta=field())
++_rows_on = anchors_row(book_with("on"))
++_rows_off = anchors_row(book_with("off"))
++_rows_ref = anchors_row(book_with(), al_mod=AL0, ex_mod=EX0)
++check("★ R8 the anchors ROW (written by pilot_log, read back as JSON) carries m3_beta_overlay with status applied and the"
++      " hedge; target_gross includes the leg", len(_rows_on) == 1 and (_rows_on[0].get("m3_beta_overlay") or {}).get("status") in BO.APPLIED
++      and (_rows_on[0]["m3_beta_overlay"].get("hedge_target_usdt") == hedge)
++      and abs(_rows_on[0]["target_gross"] - sum(abs(v) for v in on.target.values())) < 1e-6, (len(_rows_on), sorted((_rows_on[0] if _rows_on else {}).keys())[:6]))
++check("★ R9 mode off: the anchors row is byte-identical to the stripped executor's (no m3 key)",
++      len(_rows_off) == 1 and "m3_beta_overlay" not in _rows_off[0] and jd(_rows_off) == jd(_rows_ref),
++      [k for k in set(_rows_off[0]) | set(_rows_ref[0]) if jd(_rows_off[0].get(k)) != jd(_rows_ref[0].get(k))] if _rows_off and _rows_ref else None)
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[X] pair: the producer's released beta module writes a field this validator accepts")
++PROD = os.path.join(REPO, "ops", "producer_release", "20260923_m3", "beta_overlay_producer.py")
++_smap = json.load(open(os.path.join(os.path.dirname(PROD), "SOURCE_MAP.json")))
++_psha = hashlib.sha256(open(PROD, "rb").read()).hexdigest()
++check("X0 the released producer module's sha equals SOURCE_MAP.json's pin", _psha == _smap["files"]["fea171/beta_overlay_producer.py"]["sha256"],
++      _psha[:16])
++_spec = importlib.util.spec_from_file_location("beta_overlay_producer_rel", PROD)
++BOP = importlib.util.module_from_spec(_spec)
++_spec.loader.exec_module(BOP)
++import numpy as np                                       # noqa: E402
++_A = 1790150400
++_rows = 180 * 48 + 1 + 96
++_rts = np.arange(_A - (_rows - 1) * 300, _A + 1 + 5 * 300, 300, dtype=np.int64)
++_rng = np.random.default_rng(7)
++_syms = [BTC, "AAAUSDT", "BBBUSDT"]
++_R = _rng.normal(0, 0.002, size=(len(_rts), 3)).astype(np.float16)
++_f = BOP.compute(_rts, _R, _syms, ["AAAUSDT", "BBBUSDT", "NEWUSDT"], _A)
++_vx = BO.validate_field(json.loads(json.dumps(_f)), _A)
++check("★ X1 a producer field (synthetic cache, JSON round-trip) is ACCEPTED by this validator; BTC = 1; no-column name = fallback",
++      _vx["ok"] and _vx["betas"][BTC] == 1.0 and _vx["betas"]["NEWUSDT"] == 1.0 and _f["n_obs"]["NEWUSDT"] == 0, (_vx.get("reason"), _vx.get("detail")))
++_vx2 = BO.validate_field(json.loads(json.dumps(dict(_f, n_win=179))), _A)
++check("X2 the same field with a changed parameter is refused (params_mismatch)", (not _vx2["ok"]) and _vx2["reason"] == "params_mismatch", _vx2.get("reason"))
++check("X3 the two sides pin the same constants", (BOP.VERSION, BOP.N_WIN, BOP.N_MIN, BOP.CLIP_LO, BOP.CLIP_HI, BOP.FALLBACK, BOP.BTC)
++      == (BO.VERSION, BO.N_WIN, BO.N_MIN, BO.CLIP_LO, BO.CLIP_HI, BO.FALLBACK, BO.BTC))
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[S] statics")
++_acc = open(os.path.join(REPO, "run_acceptance.sh")).read()
++check("S1 registered in run_acceptance.sh SUITES", '"tests_beta_overlay:$_SELF/live/tests_beta_overlay.py"' in _acc)
++import gate_coverage as GC                               # noqa: E402
++_scope = GC.SUITE_SCOPE.get("tests_beta_overlay") or ""
++check("S2 gate_coverage SUITE_SCOPE entry exists and states its blind spots", bool(_scope) and "Blind spots" in _scope, _scope[:80])
++check("S3 tests_imports' production census lists beta_overlay", "beta_overlay" in open(os.path.join(HERE, "tests_imports.py")).read()
++      and '"beta_overlay"' in open(os.path.join(HERE, "tests_imports.py")).read())
++for rel in ("scheduler/anchor_loop.py", "live/binance_executor.py", "live/external_book.py"):
++    _s = open(os.path.join(REPO, rel)).read()
++    try:
++        _st = BO.strip_m3(_s)
++        compile(_st, rel, "exec")
++        _ok = ("beta_overlay" not in _st) and ("_m3" not in _st) and (_st != _s)
++    except Exception as e:                                # noqa: BLE001
++        _ok, _st = False, repr(e)
++    check(f"S4 {rel}: M3 markers well-formed; the stripped source compiles and holds no M3 reference", _ok)
++_mode = BO.config(REAL_BOOK)
++check("S5 the DISK config's beta_overlay mode is a valid mode with no error (green in off / shadow / on)",
++      _mode["error"] is None and _mode["mode"] in BO.MODES and _mode["present"], _mode)
++
++shutil.rmtree(TMP, ignore_errors=True)
++print(f"\nTESTS_BETA_OVERLAY {'ALL PASS' if not FAILS else 'FAILURES'} checks={N[0]} failed={len(FAILS)}")
++if FAILS:
++    for f in FAILS:
++        print("  FAILED:", f)
++sys.exit(0 if not FAILS else 1)
+diff --git a/live/tests_external_book.py b/live/tests_external_book.py
+index 468726a..4aed3a7 100644
+--- a/live/tests_external_book.py
++++ b/live/tests_external_book.py
+@@ -100,6 +100,7 @@ def _internal_baseline(d):
+     d = json.loads(json.dumps(d))
+     d["book_source"] = "internal"
+     d["per_name_stop"] = dict(d.get("per_name_stop") or {}, active_profile=None)
++    d.pop("beta_overlay", None)      # M3 (24c3f803f): the overlay switch is a production switch too — pinned off here; tests_beta_overlay owns it
+     return d
+ 
+ 
+diff --git a/live/tests_gross_ladder_retired.py b/live/tests_gross_ladder_retired.py
+index 6e35b7b..93560e7 100644
+--- a/live/tests_gross_ladder_retired.py
++++ b/live/tests_gross_ladder_retired.py
+@@ -66,6 +66,7 @@ def _internal_baseline(d):
+     d = json.loads(json.dumps(d))
+     d["book_source"] = "internal"
+     d["per_name_stop"] = dict(d.get("per_name_stop") or {}, active_profile=None)
++    d.pop("beta_overlay", None)      # M3 (24c3f803f): the overlay switch is a production switch too — pinned off here; tests_beta_overlay owns it
+     return d
+ 
+ 
+diff --git a/live/tests_imports.py b/live/tests_imports.py
+index 61d1041..94c3b3c 100644
+--- a/live/tests_imports.py
++++ b/live/tests_imports.py
+@@ -38,6 +38,7 @@ PRODUCTION_MODULES = [
+     "watchdog", "watchdog_inputs", "pilot_log", "pilot_metrics", "telegram_notify",
+     "per_name_stop",  # 逐名止损条款 cf40ea21(2026-08-20 全面启用)
+     "external_book",  # 外部书适配器 (DESIGN_wide_live_deployment_2026-08-22 §1): anchor_loop imports it
++    "beta_overlay",   # M3 BTC-beta 叠加腿 (PREREG_m3 24c3f803f): anchor_loop imports it; pure functions + tests_beta_overlay
+     "reject_rate",    # 场所拒单率口径 (E-0905-H, 2026-09-05): anchor_loop imports it; pure functions + tests_reject_rate
+     "requote_experiment",  # -5022 重挂随机实验 (PREREG_requote_randomised_2026-09-05): binance_executor imports it; pure functions + tests_requote_experiment
+     # `sigma_ladder` left 2026-09-13 (OPS-01b): the withdrawn σ_fund gross ladder is no longer read by anchor_loop, so it is not a
+diff --git a/live/tests_per_name_stop.py b/live/tests_per_name_stop.py
+index c69d561..7557355 100644
+--- a/live/tests_per_name_stop.py
++++ b/live/tests_per_name_stop.py
+@@ -320,6 +320,7 @@ import hashlib                        # noqa: E402
+ _REAL_BOOK = json.load(open(BC.BOOK_PATH))
+ _BASE = json.loads(json.dumps(_REAL_BOOK)); _BASE["book_source"] = "internal"
+ _BASE["per_name_stop"] = dict(_BASE.get("per_name_stop") or {}, active_profile=None)
++_BASE.pop("beta_overlay", None)      # M3 (24c3f803f): the overlay switch is a production switch too — pinned off here; tests_beta_overlay owns it
+ _WC = {"AAAUSDT": 0.25, "BBBUSDT": -0.25, "CCCUSDT": 0.125, "DDDUSDT": -0.125, "EEEUSDT": 0.0625, "FFFUSDT": -0.0625,
+        "GGGUSDT": -0.0625, "HHHUSDT": -0.0625, "SSSUSDT": 0.0625, "QQQUSDT": 0.0625}
+ _UNIV = sorted(_WC) + ["ZZZUSDT"]
+diff --git a/live/tests_rehearsal_anchor.py b/live/tests_rehearsal_anchor.py
+index 4cecc5a..c67ab24 100644
+--- a/live/tests_rehearsal_anchor.py
++++ b/live/tests_rehearsal_anchor.py
+@@ -343,6 +343,10 @@ _EXEMPT = {
+                             "exactly like pilot_log; never groups or counts by it. A rehearsal's "
+                             "uncancellable order is as real as any other and must be pinned.",
+     "live/binance_executor.py": "stamps the id onto order rows it builds. No aggregation.",
++    "live/beta_overlay.py": "M3 BTC-beta overlay (PREREG_m3 24c3f803f): the string appears ONLY in its docstring, "
++                            "naming the join key (rebalance_id, symbol, order_type, attempt_idx) by which fills rows "
++                            "reach the tagged BTC order rows. Pure module: mints nothing, stores nothing, counts "
++                            "nothing, never groups or selects anchors by the id.",
+     "live/cost_drift.py": "pure cost-mix DRIFT comparator (LED-08 follow-up, 2026-09-16): its "
+                           "window_levels() indexes order rows BY rebalance_id only to JOIN each "
+                           "anchors row of a FROZEN window to its own order rows, exactly as the "
+diff --git a/live/tests_signal_and_loop.py b/live/tests_signal_and_loop.py
+index 0ccbd35..322326e 100644
+--- a/live/tests_signal_and_loop.py
++++ b/live/tests_signal_and_loop.py
+@@ -93,6 +93,7 @@ def _internal_baseline(d):
+     d = dict(d)
+     d["book_source"] = "internal"
+     d["per_name_stop"] = dict(d.get("per_name_stop") or {}, active_profile=None)
++    d.pop("beta_overlay", None)      # M3 (24c3f803f): the overlay switch is a production switch too — pinned off here; tests_beta_overlay owns it
+     return d
+ 
+ 
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index 96e7238..261d7fe 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -302,6 +302,7 @@ SUITE_SCOPE = {
+     "tests_reconcile_severity": "that the 5%% band and the 5 USDT floor are the RIGHT numbers — it proves the grading separates revaluation from structural difference (sign flip, one-sided name) and that venue truth is still adopted unconditionally. It cannot separate the two EXACTLY, because the cache stores no mark; a name whose price moved >5%% between anchors will be graded REAL and is a false page by construction",
+     "tests_numerator_honesty": "that the venue's income ledger is COMPLETE — it proves we page it, do not double-count colliding timestamps, and that a truncated day is withheld rather than priced. It cannot prove the venue reported every settlement in the first place, and it says nothing about whether -6.7%/-6.0% are the right limits: this batch repairs the numerator and deliberately leaves the thresholds where they are",
+     "tests_external_book": "that the WIDE BOOK IS WORTH TRADING — it proves the adapter reads the producer's signed target exactly (in-universe w / in-universe sum|w| x NAV x gross_mult, bitwise on a neutral unit-gross fixture; no EMA, no band, no risk budget), that every named defect of the file (missing / sidecar missing / sha mismatch / bad json / schema incl. a missing universe list / universe-list sha / anchor mismatch / stale / future-dated / pin mismatch / bad weights / gross_norm mismatch) HOLDS the anchor with zero orders and a HIGH `external_book_unavailable`, that the hold never falls back to the internal composer, that the age feeds the pre-registered ladder (and `on_unavailable: hold` pins it), that internal mode is byte-identical (the external reader is never invoked; a mutant that forces the external branch goes red), that INVALID config blocks, that names outside the producer's universe list are never targets (popped; the book normalised by the in-universe sum so the live gross is undiluted; a >25% tail pages HIGH; a reader that does not split is a red mutant), that a HELD name the file no longer targets is exited reduce-only through clamp/flatten_only (never market-exited), that the two KEPT per-name filters (venue meta: non-COIN/non-ASCII/non-USDT/leveraged/non-TRADING; 2x min-notional) withhold exactly the named names, and that the per_name_stop profile switch resolves (null = base bitwise, wide = d30_n2_c42, unknown = base + alarm) and is coupled to book_source; every fixture is the REAL config pinned to the internal baseline, so the suite is green with the disk in either state. Seven blind spots: (a) every loop test runs DRY_RUN with a stub bookTicker and hand-set filters — no venue, no fills, no real NAV; the first LIVE external anchor is the first; (b) the wait-for-slot is tested as a pure plan (wake time, 0/positive) — whether the real process actually idles to N+offset and the 3000s cap suffices is a wall-clock fact only a scheduled anchor shows; (c) it proves the file is READ FAITHFULLY, never that the producer's weights are RIGHT — the wide book's alpha, turnover and the N+8/N+23 phase question live in the shadow/audit, not here; (d) the producer side (shadow_loop_v3.write_target_live) is tested in the research repo (tests_target_live_output), and the pair agreement (its output is accepted by this reader; a v2-style file is refused) is asserted THERE, not in this battery; (e) venue eligibility is a pure function over a synthetic exchangeInfo — the real payload's field names drifting (underlyingType) would exclude nothing and this stays green; (f) the 2x min-notional rule, the 10% breadth-loss line (EXT_DUST_ALARM_FRAC) and the 25% tail line (OUTSIDE_UNIVERSE_ALARM_FRAC) are policy numbers — none is calibrated here; (g) the universe LIST is trusted once its sha matches the declared universe_sha — whether it is the RIGHT universe (450 = symbols_live) is the producer's claim, pinned only if `universe_sha_pin` is set",
++    "tests_beta_overlay": "that the M3 BTC-beta overlay IMPROVES the book, or that the betas are RIGHT — it proves, DRY_RUN with a stubbed bookTicker, hand-set filters and a stubbed per-name-stop state, that mode off/absent/shadow gives plans, dry-run orders, order rows, anchor context, loop state and the phase-A record identical to the executor with every M3 insertion stripped (shadow adds only its record), on files with and without the field and with BTC unheld / held-dust / held-untargeted, and a leaking mutant is caught; that with mode on every non-BTC target is bitwise the off target, BTC = the book's executed BTC entry + (-beta_exec), the ex-ante beta of the final target moves by exactly -beta_exec (ratio 1 within 1e-9, recomputed independently) and within half a lot at plan level, on an anchor whose reshape changes the net (and the route-L control spreads the same hedge); that a held BTC whose book component is dust is released from the clamp and hedged while on (the off control clamps it), and a held BTC the file no longer targets is exited reduce-only as off; that the M3b rule (AMENDMENT_1 912788743, as the evaluator's hook c414ca4cf implements it) holds: the book stage is the off-mode book, a BTC untradable ONLY as dust is re-judged on the combined value (a 4-USDT book BTC with a large leg sends the leg while a mutant restoring M2 route H sends none; a combined value still below the line touches nothing), and every name-level reason (per-name stop, cooldown, held-exit, venue meta in a non-DRY stubbed loop) suspends the leg with the whole intent recorded as the hedge gap and paged, and a venue cap's shortfall is recorded as the gap; that a missing / wrong-version / wrong-cut-off field or a targeted name without a beta sends NO BTC order and freezes BTC with a HIGH page, and two mutants (missing = beta 1, missing = hedge 0) do send one; that HOLD keeps the hedge and the venue cap truncates the combined BTC target with a page; that BTC order rows carry m3_overlay_leg, the chase basis is ex-overlay by exactly the hedge, the neutrality page judges ex-overlay; and that the released producer module writes a field this validator accepts. Blind spots: (a) no venue, no fills, no real NAV — partial fills, maker/taker split and the real BTC lot/min-notional of the live account are not exercised; (b) the betas are fixtures — the producer's estimator is tested in ops/producer_release/20260923_m3/tests_beta_overlay_producer.py, NOT in this battery; (c) it cannot see whether the prereg's R1/R2 (neutralised realised beta, less loss on BTC-up days) hold — that is the research evaluation, not this suite; (d) position_break's 10% per-symbol line against a hedge of 0.08-0.19 gross, the proportional response naming BTC, and the report readers' raw |net/gross| (anchor_report / cost_drift / daily_summary) are documented interactions, not tested ones; (e) the OFF identity is against the STRIPPED source, and stripped == b66257b is a deploy receipt, not a battery check.",
+     "tests_guard_calibers": "that the guard reads the ACCOUNT — it proves the §4-2/§4-4/§4-4b/per-name/§4-1/3/5/6/7 "
+                             "arithmetic on fixtures generated from the producer's own identity "
+                             "(nav_t = nav_{t-1} + d_realised + d_unrealised + d_flow) and that 33 named defects "
+diff --git a/ops/producer_release/20260923_m3/SOURCE_MAP.json b/ops/producer_release/20260923_m3/SOURCE_MAP.json
+new file mode 100644
+index 0000000..0d3ce2f
+--- /dev/null
++++ b/ops/producer_release/20260923_m3/SOURCE_MAP.json
+@@ -0,0 +1,23 @@
++{
++ "_note": "M3 producer release (PREREG quant_research docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md 24c3f803f; IMPL docs/IMPL_m3_beta_overlay_2026-09-23.md). Exact sources to install into ~/wide_shadow/fea171/ (non-git producer). combo_stage.py = production fb5a9407 + the beta_overlay field (new key only; every other key/value unchanged \u2014 rehearsal receipt M3_PRODUCER_REHEARSAL_1790150400: all keys equal to the archived production target except the new key, weights max|dw| 0; the 20260922 release's publication-boundary tests pass against this combo_stage). Committing this directory does not deploy or restart anything.",
++ "base": {
++  "fea171/combo_stage.py": {
++   "sha256": "fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8",
++   "source": "~/wide_shadow/fea171/combo_stage.py as running 2026-09-23 (== ops/producer_release/20260922/combo_stage.py)"
++  }
++ },
++ "files": {
++  "fea171/combo_stage.py": {
++   "sha256": "41f9174d7d6400f5964e7cdf878efce58ef3965dd202b6a364f6e45c8d166d3c",
++   "install_to": "~/wide_shadow/fea171/combo_stage.py"
++  },
++  "fea171/beta_overlay_producer.py": {
++   "sha256": "b77c180d69170988780566e19d0ee4a0f85af25a9b9e9be08b6e4a386095fb58",
++   "install_to": "~/wide_shadow/fea171/beta_overlay_producer.py"
++  },
++  "fea171/tests_beta_overlay_producer.py": {
++   "sha256": "1b7c892893d46be87cf14671f22e6e244978aec855667a146db4949443f2c41f",
++   "install_to": "~/wide_shadow/fea171/tests_beta_overlay_producer.py"
++  }
++ }
++}
+\ No newline at end of file
+diff --git a/ops/producer_release/20260923_m3/beta_overlay_producer.py b/ops/producer_release/20260923_m3/beta_overlay_producer.py
+new file mode 100644
+index 0000000..8b735ea
+--- /dev/null
++++ b/ops/producer_release/20260923_m3/beta_overlay_producer.py
+@@ -0,0 +1,149 @@
++"""beta_overlay_producer — M3 per-name BTC betas for target_live's `beta_overlay` field (the executor's overlay leg reads it).
++
++Pre-registration: quant_research docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md (24c3f803f) §2 step 2 and §5
++("生产者算 β_i 向量写进 target_live 的新字段"). The executor side is dl_quant_live live/beta_overlay.py (version VERSION;
++it refuses any other version, any other declared parameter, a cut-off other than the file's anchor, and a fallback
++inconsistency).
++
++THE FORMULA (identical to M2's m2_lib.betas_at; reproduced, not re-decided)
++    beta_i = OLS slope WITH intercept of name i's 4h log returns on BTCUSDT's 4h log returns over the most recent N_WIN = 180
++             4h bars COMPLETED at the anchor A (the bar ending at A is completed at A); pairwise-valid bars only; >= N_MIN = 120
++             valid pairs, else FALLBACK = 1.0; clipped to [-1, 4]; BTCUSDT's own beta = 1. A zero BTC variance raises.
++THE DATA — the producer's own rolling cache (state/rolling.npz, the same generation combo_stage scores), and its NAMED
++DIFFERENCES from M2's certified price table (price_full_raw_x0918r):
++    * 4h log return of bar (T-4h, T] = sum of log1p(ret5) over the 48 rows whose 5-minute bar CLOSES in (T-4h, T]
++      (rts are close times: shadow_loop_v3 writes row `close_s = open + 300 s`); ret5 = close/prev_close - 1, so the sum is
++      log(P_T / P_{T-4h}) exactly, up to the two cache properties below.
++    * a bar is VALID iff all 49 rows closing in the CLOSED interval [T-4h, T] are finite — the row closing AT the start
++      boundary included: when that row is missing, the next row's ret5 was computed from a stale prev_close and spans the gap
++      (the M2 / bt_hist_sim31 UA-FREEZE-EXCLUDE rule, same closed interval). Missing rows are never zero-filled.
++    * ret5 is CLIPPED to +-0.30 per 5 minutes (shadow_loop_v3 CHN_CLIPS) and stored as float16 (relative rounding ~5e-4 per
++      row). Neither exists in the certified table. A 5-minute move beyond 30% is the only way the clip binds.
++    * bars that start before the cache's first row do not exist and are invalid (the cache holds 40 days; 180 bars = 30 days).
++    * a name with no cache column has 0 valid pairs ⇒ FALLBACK (the formula's rule, not a special case).
++CAUSALITY: only rows with close time <= A are read (the slice ends at A's row); `tests_beta_overlay_producer` perturbs every
++later row and requires bitwise-identical betas, and perturbs the row closing AT A and requires a change.
++Pure: numpy only, no file, no network, no clock.
++"""
++from __future__ import annotations
++
++import math
++
++import numpy as np
++
++VERSION = "m3_beta_v1"
++BTC = "BTCUSDT"
++N_WIN = 180
++N_MIN = 120
++CLIP_LO, CLIP_HI = -1.0, 4.0
++FALLBACK = 1.0
++H4 = 14400
++ROW = 300
++ROWS_PER_BAR = H4 // ROW          # 48
++
++
++class BetaOverlayError(Exception):
++    pass
++
++
++def _fail(msg):
++    raise BetaOverlayError(msg)
++
++
++def compute(rts, ret5, symbols, names, anchor_ts):
++    """The `beta_overlay` field for anchor `anchor_ts`.
++
++    rts: (n,) integer close times of the 5-minute rows, contiguous (step 300 s), containing anchor_ts;
++    ret5: (n, n_sym) array-like of simple 5-minute returns (float16 ok; NaN = missing row), column order = `symbols`;
++    names: the names to write betas for (the producer's universe list, in its order); BTCUSDT is always written.
++    Raises BetaOverlayError on anything it cannot compute (never a default)."""
++    rts = np.asarray(rts)
++    if rts.ndim != 1 or len(rts) < 2 or not np.issubdtype(rts.dtype, np.integer):
++        _fail("rts must be a 1-d integer axis")
++    rts = rts.astype(np.int64)
++    if not np.all(np.diff(rts) == ROW):
++        _fail("rts not 5-minute contiguous")
++    A = int(anchor_ts)
++    if A % H4 != 0:
++        _fail(f"anchor {A} not on the 4h grid")
++    hit = np.nonzero(rts == A)[0]
++    if len(hit) != 1:
++        _fail(f"anchor {A} not in the cache axis exactly once")
++    ai = int(hit[0])
++    symbols = [str(s) for s in symbols]
++    if len(set(symbols)) != len(symbols):
++        _fail("duplicate symbols")
++    if getattr(ret5, "ndim", None) != 2 or ret5.shape[0] != len(rts) or ret5.shape[1] != len(symbols):
++        _fail(f"ret5 shape {getattr(ret5, 'shape', None)} != ({len(rts)}, {len(symbols)})")
++    col = {s: j for j, s in enumerate(symbols)}
++    if BTC not in col:
++        _fail("BTCUSDT has no cache column")
++    names = [str(n) for n in names]
++    if len(set(names)) != len(names):
++        _fail("duplicate names")
++    want = list(dict.fromkeys([BTC] + names))            # BTC first, then the universe order, unique
++    have = [n for n in want if n in col]
++    need_rows = N_WIN * ROWS_PER_BAR + 1                  # 8641: the start-boundary row of the first bar + 180 x 48
++    lo = ai - (need_rows - 1)
++    # ── the causal slice: rows [lo, ai] — nothing after A is ever read ──
++    cols = [col[n] for n in have]
++    if lo >= 0:
++        R = np.asarray(ret5[lo:ai + 1][:, cols], dtype=np.float64)
++    else:                                                 # bars before the cache's first row do not exist
++        R = np.full((need_rows, len(cols)), np.nan)
++        R[-lo:] = np.asarray(ret5[0:ai + 1][:, cols], dtype=np.float64)
++    with np.errstate(invalid="ignore", divide="ignore"):
++        L = np.log1p(R)
++    fin = np.isfinite(L)
++    body = L[1:].reshape(N_WIN, ROWS_PER_BAR, len(cols))
++    body_ok = fin[1:].reshape(N_WIN, ROWS_PER_BAR, len(cols)).all(axis=1)
++    start_ok = fin[0:N_WIN * ROWS_PER_BAR:ROWS_PER_BAR]  # the row closing AT each bar's start boundary
++    V = body_ok & start_ok                                # (180, m)
++    R4 = np.where(V, np.where(fin[1:].reshape(N_WIN, ROWS_PER_BAR, len(cols)), body, 0.0).sum(axis=1), np.nan)
++    jb = have.index(BTC)
++    vb = V[:, jb]
++    x_all = R4[:, jb]
++    betas, nobs = {}, {}
++    n_est = n_fb = 0
++    for k, n in enumerate(have):
++        if n == BTC:
++            betas[n] = 1.0
++            nobs[n] = int(vb.sum())
++            continue
++        m = V[:, k] & vb
++        cnt = int(m.sum())
++        nobs[n] = cnt
++        if cnt < N_MIN:
++            betas[n] = FALLBACK
++            n_fb += 1
++            continue
++        x = x_all[m]
++        y = R4[m, k]
++        dx = x - x.mean()
++        dy = y - y.mean()
++        sxx = float((dx * dx).sum())
++        if not (sxx > 0.0):
++            _fail(f"zero BTC variance on {n}'s {cnt} valid pairs")
++        b = float((dx * dy).sum()) / sxx
++        if not math.isfinite(b):
++            _fail(f"non-finite slope for {n}")
++        betas[n] = float(min(max(b, CLIP_LO), CLIP_HI))
++        n_est += 1
++    for n in want:
++        if n not in col:                                  # no cache column ⇒ 0 valid pairs ⇒ the formula's fallback
++            betas[n] = FALLBACK
++            nobs[n] = 0
++            n_fb += 1
++    return {
++        "version": VERSION, "anchor_ts": A, "data_cutoff_ts": A,
++        "first_bar_end_ts": A - (N_WIN - 1) * H4,
++        "n_win": N_WIN, "n_min": N_MIN, "clip": [CLIP_LO, CLIP_HI], "fallback": FALLBACK, "btc": BTC,
++        "betas": {n: betas[n] for n in want}, "n_obs": {n: nobs[n] for n in want},
++        "n_names": len(want), "n_estimated": n_est, "n_fallback": n_fb,
++        "n_no_cache_column": len(want) - len(have),
++        "method": ("OLS slope with intercept of 4h log returns (sum of log1p(ret5) over the 48 rows closing in (T-4h,T]; a "
++                   "bar is valid iff the 49 rows closing in [T-4h,T] are finite) on BTCUSDT's, pairwise-valid bars only; "
++                   ">=120 pairs else 1.0; clip [-1,4]; BTCUSDT = 1"),
++        "source": "producer rolling cache state/rolling.npz channel ret5 (simple 5m return, clipped +-0.30, float16)",
++        "prereg": "quant_research docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md (24c3f803f) §2 step 2",
++    }
+diff --git a/ops/producer_release/20260923_m3/combo_stage.py b/ops/producer_release/20260923_m3/combo_stage.py
+new file mode 100644
+index 0000000..d66e89a
+--- /dev/null
++++ b/ops/producer_release/20260923_m3/combo_stage.py
+@@ -0,0 +1,476 @@
++"""COMBO-STAGE(候选形态前向影子, 2026-08-26) = sidecar_blend 全文 + 文末追加 combo 计算。
++原侧车职责不变; 新增: 去rev24∧混V2MAIN φ0.45 的目标向量, 只写 state/target_combo/(无读者, 零风险)。
++判据装置 = w10 LEGS=101 CAL=simple PHI=0.45(docs/PREREG_leg_ablation_2026-08-26.md §T5)。
++原头注: 侧车双跑器 v1(dry-run) @Mac。规格: REVIEW §11 冻结。只读影子状态; 输出到 target_blend/(live 不读)。
++步骤: 上锚 prev_rec(members/legz/sm) → ① king 书链复算自平价 → ② 171 管线+numpy 推理 → F-10 书 → ③ 0.55/0.45 权重混合落盘。"""
++import os, sys, json, glob, time, subprocess, shutil, hashlib, io, tempfile
++import numpy as np
++from scipy.stats import rankdata
++from feature_cache_identity import capture_producer_inputs, verify_source_snapshot
++HOME = os.path.expanduser("~")
++def _runtime_roots(env, home):
++    default_ws = os.path.realpath(os.path.join(home, "wide_shadow"))
++    default_exec = os.path.realpath(os.path.join(home, "dl_quant_live"))
++    ws = os.path.realpath(env.get("WIDE_SHADOW_HOME", default_ws))
++    executor = os.path.realpath(env.get("DL_QUANT_LIVE_ROOT", default_exec))
++    custom = (ws, executor) != (default_ws, default_exec)
++    if env.get("COMBO_LIVE", "0") == "1" and custom:
++        out = env.get("COMBO_LIVE_DIR")
++        if (not out or not os.path.isabs(out)
++                or ws == default_ws or executor == default_exec
++                or any(os.path.commonpath([candidate, production]) in (candidate, production)
++                       for candidate in (ws, executor) for production in (default_ws, default_exec))
++                or os.path.commonpath([os.path.realpath(out), os.path.join(ws, "state")]) != os.path.join(ws, "state")
++                or os.path.realpath(out) == os.path.join(ws, "state/target_live")):
++            raise RuntimeError("custom runtime roots require a separate explicit rehearsal directory")
++        # Root checks are not a kernel sandbox, but reject known mutable child
++        # directory aliases before inference can write any checkpoint.
++        for relative in ("fea171", "state", "state/weights_combo", "state/target_blend",
++                         "state/target_combo", "state/target_live", "state/target_live_king"):
++            if os.path.commonpath([os.path.realpath(os.path.join(ws, relative)), ws]) != ws:
++                raise RuntimeError("rehearsal mutable directory escapes its root")
++        if os.path.commonpath([os.path.realpath(os.path.join(executor, "live")), executor]) != executor:
++            raise RuntimeError("rehearsal executor directory escapes its root")
++    return ws, executor
++WS, EXECUTOR_ROOT = _runtime_roots(os.environ, HOME)
++HERE = f"{WS}/fea171"
++T0 = time.time()
++def log(*a): print(f"[{time.time()-T0:6.1f}s]", *a, flush=True)
++_source_snapshot = capture_producer_inputs(WS, HERE)
++cfg = _source_snapshot["cfg"]; P = cfg["params"]
++aux = _source_snapshot["aux"]; pr = aux["prev_rec"]
++_symbols = _source_snapshot["symbols"]; _channels = _source_snapshot["channels"]
++A = int(pr["anchor_ts"]); pm = np.array(pr["members"], np.int64)
++legz = {k: np.array(v, np.float64) for k, v in pr["legz"].items()}
++sm_ref = np.array(pr["sm"], np.float64); smi_ref = np.array(pr["sm_idx"], np.int64)
++log(f"anchor {time.strftime('%m-%d %H:%M', time.gmtime(A))} members {len(pm)}")
++rts = _source_snapshot["rts"]; RD = _source_snapshot["data"]
++ai = int(np.searchsorted(rts, A, side="right")) - 1
++assert rts[ai] <= A < rts[ai] + 300, "锚未对齐滚动缓存"
++NW = RD.shape[1]
++# H_prev: 上上锚权重文件
++wf = f"{WS}/state/weights/{A-14400}.npz"
++H = np.zeros(NW)
++if os.path.exists(wf):
++    z = np.load(wf); H[z["idx"].astype(np.int64)] = z["val"].astype(np.float64)
++# w3 msharpe(900)
++LR = _source_snapshot["lr"]
++look = P["msharpe_look"]
++if len(LR["king"]) >= look:
++    r = np.stack([np.array(LR[k][-look:], np.float64) for k in ("king", "rev24", "fund")])
++    shp = r.mean(1) / (r.std(1) + 1e-9); shp = np.maximum(shp, 0)
++    w3 = shp / shp.sum() if shp.sum() > 0 else np.array([1/3]*3)
++else:
++    w3 = np.array([1/3]*3)
++# sel: qv4h 门(与 run_anchor 同式)
++CDf = RD.astype(np.float32)
++qseg = CDf[max(ai + 1 - 2016, 0):ai + 1, :, 3]; finq = np.isfinite(qseg)
++qvm = np.where(finq, qseg, 0).sum(0) / np.maximum(finq.sum(0), 1)
++qv4h = np.expm1(np.clip(qvm[pm], 0, 30)) * 48
++sel = qv4h >= P["qv4h_min"]
++
++_tl = f"{WS}/state/target_live/{A}.json"
++KEEP_NAMES = set((json.load(open(_tl)).get("universe") or [])) if os.path.exists(_tl) else set()
++LIVE_MASK = np.array([str(x) in KEEP_NAMES for x in _symbols]) if KEEP_NAMES else None
++
++
++def _btcv_series(rts, RD, e_rows):
++    """E-0825-C 修复: btcv = BTC 5m 收益 2016 根(7天)滚动 std。配方由与 xfer_ref 的精确对照确定
++    (corr=1.0000000, 比值=1.0000, n=111 重叠锚); 此前此处硬编码为 zeros ⇒ 5 个模型输入长期恒零。
++    自检: 与 xfer_ref 重叠锚 corr>0.999 且比值∈[0.99,1.01], 否则抛错(不静默降级)。"""
++    _sy = [str(s) for s in _symbols]
++    _jb = _sy.index("BTCUSDT")
++    _r5 = RD[:, _jb, 0].astype(np.float64)
++    W = 2016
++    _v = np.full(len(_r5), np.nan)
++    for i in range(W, len(_r5)):
++        _v[i] = np.nanstd(_r5[i - W:i])          # 只用满窗(短窗值与配方不符, 自检会拦)
++    _full = np.isfinite(_v)
++    if _full.any():
++        _v[:np.argmax(_full)] = _v[_full][0]      # 早期不足 7 天的行: 显式回填首个满窗值(近似, 只影响 causal_z 的早期统计)
++    out = _v[np.asarray(e_rows, int)].astype(np.float32)
++    _fullmask = np.asarray(e_rows, int) >= W
++    _ref = _source_snapshot["reference"]
++    _m = {int(t): k for k, t in enumerate(rts[np.asarray(e_rows, int)])}
++    _pairs = [(out[_m[int(t)]], float(b)) for t, b in zip(_ref["E_ts"].astype(np.int64), _ref["btcv"])
++              if int(t) in _m and _fullmask[_m[int(t)]]]
++    if len(_pairs) >= 30:
++        _a = np.array([p[0] for p in _pairs]); _b = np.array([p[1] for p in _pairs])
++        _ok = np.isfinite(_a) & np.isfinite(_b) & (_b > 0)
++        _c = float(np.corrcoef(_a[_ok], _b[_ok])[0, 1]); _ratio = float(np.median(_a[_ok] / _b[_ok]))
++        assert _c > 0.999 and 0.99 < _ratio < 1.01, f"btcv 重建自检失败 corr={_c:.5f} ratio={_ratio:.4f}"
++    assert np.isfinite(out).all() and out.std() > 0, "btcv 序列退化(恒定或含 NaN)"
++    return out
++
++
++def chain(zc):
++    w = np.where(sel, zc, 0.0)
++    # ★ E-0825-B: 与生产者 shadow_loop_v3.py 逐字同构(集合一致的去均值)
++    w = np.where(sel, w - (w[sel].mean() if sel.any() else 0), w)
++    g = np.abs(w).sum()
++    if g < 1e-9: return None
++    w = w / g
++    capw = P["cap_mult"] / max(int(sel.sum()), 1)
++    w = np.clip(w, -capw, capw)
++    g2 = np.abs(w).sum()
++    if g2 > 1e-9: w = w / g2
++    tgt = np.zeros(NW); tgt[pm] = w
++    smv = H + P["alpha"] * (tgt - H)
++    trade = smv - H
++    smv = np.where(np.abs(trade) < P["band"], H, smv)
++    # ★ E-0825-B 二阶段: 与生产者逐字同构 —— 流动性出场集独立于 LIVE_MASK 是否可用
++    _keep_liq = np.zeros(NW, bool); _keep_liq[pm[sel]] = True
++    keep = (LIVE_MASK.copy() if LIVE_MASK is not None else np.ones(NW, bool))
++    if LIVE_MASK is not None:
++        _mm = np.zeros(NW, bool); _mm[pm] = True
++        keep &= _mm
++    keep &= _keep_liq
++    leave = (~keep) & (np.abs(smv) > 1e-12)
++    smv = np.where(leave, 0.0, smv)
++    return smv
++
++# ① 自平价
++z_king = w3[0]*np.nan_to_num(legz["king"]) + w3[1]*np.nan_to_num(legz["rev24"]) + w3[2]*np.nan_to_num(legz["fund"])
++sm_rep = chain(z_king)
++ref = np.zeros(NW); ref[smi_ref] = sm_ref
++d = np.abs(sm_rep - ref)
++self_par = float(np.max(d))
++log(f"① king 书自平价 max|Δw|={self_par:.2e} (EXIT 已复算, 零豁免)")
++# ② Every invocation builds from its captured inputs in a private workspace.
++from feature_cache_identity import FeatureCacheError, load_verified_feature_cache, verify_current_feature_cache, require_current_anchor_axis, fresh_feature_workspace
++_feature_workspace = fresh_feature_workspace()
++MINI = f"{_feature_workspace.name}/mini"
++require_current_anchor_axis(rts, A)
++need = True
++if need:
++    log("② 触发 171 管线重跑(全尾)")
++    # 构造 targets: 全尾 4h 锚, 成员=当前 pm(近似, 训练一致性>成员漂移)
++    e_rows = [i for i in range(len(rts)) if rts[i] % 14400 == 0 and i >= 48]
++    ms_arr = np.empty(len(e_rows), object)
++    for i in range(len(e_rows)): ms_arr[i] = pm
++    zz = np.zeros((len(e_rows), NW), np.float32)
++    os.makedirs(f"{MINI}/data", exist_ok=True); os.makedirs(f"{MINI}/results", exist_ok=True); os.makedirs(f"{MINI}/preds", exist_ok=True)
++    np.savez(f"{MINI}/cache.npz", ts=rts, data=RD, symbols=_symbols, ch=_channels)
++    np.savez(f"{MINI}/data/dlw_targets.npz", E_row=np.array(e_rows), E_ts=rts[e_rows], members=ms_arr,
++             y4s=zz, YR4s=zz, YRZ=zz, yrs=np.array([time.gmtime(int(t)).tm_year for t in rts[e_rows]]),
++             qvk=zz, btcv=_btcv_series(rts, RD, e_rows), has_panel=np.ones(len(e_rows), bool),
++             symbols=_symbols, y4old=zz, meta_json="{}")
++    env = dict(os.environ)
++    env.update({"F171_CACHE": f"{MINI}/cache.npz", "F171_TARGETS": f"{MINI}/data/dlw_targets.npz", "F171_OUT": MINI,
++                "F171_FEA82": f"{MINI}/data/dlw_fea82.npz", "F171_PANEL": f"{_feature_workspace.name}/xfer_panel_live.npz"})
++    # fund 面板: 用影子 fund ema 状态构造当前值, 历史锚回填 0(fund_ema/now 两列只在 82 列口径, F-10 mu/sd 会 z 化; dry-run 近似, 入档)
++    fe = np.zeros((len(e_rows), NW), np.float32); fn = np.zeros((len(e_rows), NW), np.float32)
++    syms_all = [str(x) for x in _symbols]
++    scol_of = {s_: j for j, s_ in enumerate(syms_all)}
++    for s_, est in aux["ema"].items():
++        j = scol_of.get(s_)
++        if j is not None and isinstance(est, dict) and "acc" in est:
++            fe[-1, j] = float(est["acc"])
++    for s_, rows_ in aux["ledger_tail"].items():
++        j = scol_of.get(s_)
++        if j is not None and rows_:
++            fn[-1, j] = float(rows_[-1][1])
++    np.savez(f"{_feature_workspace.name}/xfer_panel_live.npz", ts=rts[e_rows], f_fund_ema=fe, f_fund_now=fn)
++    PY = f"{WS}/venv/bin/python"
++    r1 = subprocess.run([PY, f"{HERE}/dlw_features.py"], env=env, capture_output=True, text=True, cwd=HERE)
++    assert r1.returncode == 0, r1.stderr[-500:]
++    r2 = subprocess.run([PY, "-c", f"import os,sys; sys.path.insert(0,'{HERE}'); os.chdir('{HERE}'); import f8_higher_order_features as m; m.build()"], env=env, capture_output=True, text=True)
++    assert r2.returncode == 0, r2.stderr[-500:]
++# Always validate again after construction; never score a partial generation.
++F82, F89, T9, _feature_identity = load_verified_feature_cache(MINI, A)
++ets = T9["E_ts"].astype(np.int64); a_i = int(np.where(ets == A)[0][0])
++pa2 = F82["pair_a"].astype(np.int64); ps2 = F82["pair_s"].astype(np.int64)
++rowm = (pa2 == a_i)
++X171 = np.concatenate([F82["X"][rowm].astype(np.float32), F89["X"][rowm]], 1)
++scol = ps2[rowm]
++with open(f"{HERE}/f10_live_s42_np.npz", "rb") as _f10_file:
++    _f10_bytes = _f10_file.read()
++M = np.load(io.BytesIO(_f10_bytes))
++_F10_SHA = hashlib.sha256(_f10_bytes).hexdigest()   # Exactly the bytes loaded for this inference.
++from scipy.special import erf
++def gelu(x): return 0.5*x*(1+erf(x/np.sqrt(2)))
++# E-0826(NaN序修复): 训练是 标准化→clip→NaN置0(标准化空间), 服务端必须同序;
++# 旧写法 nan_to_num 在前会让 NaN 变 −mu/sd(非零)。当前锚实测 0 个 NaN ⇒ 今日行为不变, 修的是未来。
++xz_in = np.nan_to_num(np.clip((X171 - M["mu"]) / M["sd_"], -5, 5))
++h = gelu(xz_in @ M["w0"].T + M["b0"]); h = gelu(h @ M["w1"].T + M["b1"])
++f10 = (h @ M["w2"].T + M["b2"]).squeeze(-1)
++# 对齐到 pm 序
++pos_in_pm = {int(s): j for j, s in enumerate(pm)}
++f10_pm = np.full(len(pm), np.nan)
++for v, s_ in zip(f10, scol):
++    j = pos_in_pm.get(int(s_))
++    if j is not None: f10_pm[j] = v
++okf = np.isfinite(f10_pm)
++zf = np.full(len(pm), np.nan); zf[okf] = rankdata(f10_pm[okf]) / max(okf.sum() - 1, 1) - 0.5
++z_f10book = w3[0]*np.nan_to_num(zf) + w3[1]*np.nan_to_num(legz["rev24"]) + w3[2]*np.nan_to_num(legz["fund"])
++# F-10 书自持 H 状态
++# E-0825-D 修复: 状态按锚命名 ⇒ 重跑同锚幂等; 回落到 king 书的仓位不再静默
++h_source = "king_fallback"
++hf_prev = f"{HERE}/state_H_f10_{A - 14400}.npz"
++hf_p = f"{HERE}/state_H_f10_{A}.npz"
++H_f10_prev = H.copy()
++if os.path.exists(hf_prev):
++    zz2 = np.load(hf_prev)
++    if int(zz2["anchor"]) == A - 14400:
++        H_f10_prev = np.zeros(NW); H_f10_prev[zz2["idx"].astype(np.int64)] = zz2["val"]
++        h_source = "own"
++elif os.path.exists(f"{HERE}/state_H_f10.npz"):          # 一次性迁移: 旧的单文件形态
++    zz2 = np.load(f"{HERE}/state_H_f10.npz")
++    if int(zz2["anchor"]) == A - 14400:
++        H_f10_prev = np.zeros(NW); H_f10_prev[zz2["idx"].astype(np.int64)] = zz2["val"]
++        h_source = "own_legacy"
++Hsave = H; H = H_f10_prev
++sm_f10 = chain(z_f10book)
++H = Hsave
++nz = np.where(np.abs(sm_f10) > 1e-9)[0]
++np.savez(hf_p, anchor=A, idx=nz, val=sm_f10[nz])
++# ③ 混合 + E-0825-A 执行器口径 reshape(蓝本 dl_quant_live/signal/legs.py:124 redemean+rescale; 自平价仍文件口径)
++def exec_reshape(w):
++    nz_ = np.abs(w) > 1e-12
++    o = w.copy()
++    if nz_.any():
++        o[nz_] -= o[nz_].mean()
++        g0 = np.abs(w).sum(); g1 = np.abs(o).sum()
++        if g1 > 1e-9:
++            o *= g0 / g1
++    return o
++blend_raw = 0.55 * ref + 0.45 * sm_f10
++blend = exec_reshape(blend_raw)
++ref_ex = exec_reshape(ref)
++os.makedirs(f"{WS}/state/target_blend", exist_ok=True)
++syms = [str(s) for s in _symbols]
++wnz = {syms[int(j)]: round(float(blend[j]), 8) for j in np.where(np.abs(blend) > 1e-9)[0]}
++json.dump({"schema": "wide_target_blend_v2_execcal", "anchor_ts": A, "phi": 0.45, "weights": wnz,
++           "caliber": "exec_reshape_v1(E-0825-A)+btcv_fix(E-0825-C)", "h_source": h_source,
++           "net_before": round(float(blend_raw.sum()), 6),
++           "ref_net_before": round(float(ref.sum()), 6), "ref_ex_gross": round(float(np.abs(ref_ex).sum()), 6),
++           "self_parity_maxdw": self_par, "n_f10_scored": int(okf.sum()),
++           "rho_f10_vs_king": round(float(np.corrcoef(zf[okf & np.isfinite(legz['king'])], legz["king"][okf & np.isfinite(legz['king'])])[0, 1]), 4)},
++          open(f"{WS}/state/target_blend/{A}.json", "w"), indent=1)
++log(f"③ blend 落盘 n={len(wnz)} gross={float(np.abs(blend).sum()):.4f} net={float(blend.sum()):+.5f} ρ(f10,king)={np.corrcoef(zf[okf], legz['king'][okf])[0,1]:.3f}")
++log(f"SIDECAR_DRYRUN {'PASS' if self_par < 1e-6 else 'SELF_PARITY_' + ('SOFT' if self_par < 1e-3 else 'FAIL')}")
++
++# ═══ COMBO STAGE(候选形态): 去rev24 ∧ 混V2MAIN φ0.45 ═══
++# 两本书都去掉 rev24 腿(w3 掩码后在 king/fund 上重归一), 各走完整链条、各自 EMA 态(锚寻址, 幂等),
++# 0.55/0.45 混合 → 执行器口径 reshape → state/target_combo/。首锚状态: king侧以实盘 H 暖启动,
++# F10侧以侧车 f10 态暖启动(EMA α=0.1 ⇒ 暖启动差异半衰期 ~7 锚, 2-3 天内收敛; 来源字段入档)。
++w3m = np.array([w3[0], 0.0, w3[2]])
++w3m = w3m / w3m.sum() if w3m.sum() > 1e-12 else np.array([0.5, 0.0, 0.5])
++z_kc = w3m[0] * np.nan_to_num(legz["king"]) + w3m[2] * np.nan_to_num(legz["fund"])
++z_fc = w3m[0] * np.nan_to_num(zf) + w3m[2] * np.nan_to_num(legz["fund"])
++# ★ FTRIM(PREREG_deploy_ftrim_2026-09-02, 用户字 09-02 "确认无误可立即部署"): 负费率空头 z 层排除 ——
++#   当前 8h 归一化费率 rn8 = ledger 最新 rate×(8/iv) ≤ −0.0010 且 z<0 的名, 在去均值/L1/cap/EMA 之前把 z 置 0
++#   (kc/fc 同点; 与判决装置 w10_ftrim_band.py pre 模式 L129-131 / L158-160 逐字同构; 缺费率名不排除)。
++#   受据: 双口径(msharpe/W3FIX)双种子四门过, Δ +0.21~+0.23 bps/锚; 实盘反事实 S|S<−10bp sleeve −74U/35 锚。
++FTRIM_HI = -0.0010
++_col_of = {s_: j for j, s_ in enumerate(syms)}
++rn8_full = np.full(NW, np.nan)
++for _s, _rows in aux["ledger_tail"].items():
++    _j = _col_of.get(_s)
++    if _j is not None and _rows:
++        _r = _rows[-1]; _iv = float(_r[2]) if (len(_r) > 2 and _r[2]) else 8.0
++        rn8_full[_j] = float(_r[1]) * (8.0 / (_iv if _iv > 0 else 8.0))
++rn8_m = rn8_full[pm]
++_band_kc = (z_kc < 0) & np.isfinite(rn8_m) & (rn8_m <= FTRIM_HI)
++_band_fc = (z_fc < 0) & np.isfinite(rn8_m) & (rn8_m <= FTRIM_HI)
++z_kc = np.where(_band_kc, 0.0, z_kc)
++z_fc = np.where(_band_fc, 0.0, z_fc)
++ftrim_rec = {"rule": "pre_zero_rn8_le_-10bp_8h", "hi": FTRIM_HI, "rn8_coverage": round(float(np.isfinite(rn8_m).mean()), 4),
++             "n_kc": int(_band_kc.sum()), "n_fc": int(_band_fc.sum()),
++             "names_kc": {syms[int(pm[k])]: round(float(rn8_m[k]), 7) for k in np.where(_band_kc)[0]},
++             "names_fc": {syms[int(pm[k])]: round(float(rn8_m[k]), 7) for k in np.where(_band_fc)[0]}}
++log(f"FTRIM 负费率空头排除: kc {ftrim_rec['n_kc']} 名 / fc {ftrim_rec['n_fc']} 名 (rn8 覆盖 {ftrim_rec['rn8_coverage']:.3f})")
++def _load_state2(pth, fallback, tag):
++    if os.path.exists(pth):
++        zz = np.load(pth)
++        if int(zz["anchor"]) == A - 14400:
++            v = np.zeros(NW); v[zz["idx"].astype(np.int64)] = zz["val"].astype(np.float64)
++            return v, "own"
++    return fallback.copy(), tag
++H_kc_prev, kc_src = _load_state2(f"{HERE}/state_H_kc_{A-14400}.npz", H, "warmstart_live_H")
++H_fc_prev, fc_src = _load_state2(f"{HERE}/state_H_fc_{A-14400}.npz", H_f10_prev, "warmstart_f10_H")
++_Hs2 = H
++H = H_kc_prev; sm_kc = chain(z_kc)
++H = H_fc_prev; sm_fc = chain(z_fc)
++H = _Hs2
++for _p, _sm in ((f"{HERE}/state_H_kc_{A}.npz", sm_kc), (f"{HERE}/state_H_fc_{A}.npz", sm_fc)):
++    _nz = np.where(np.abs(_sm) > 1e-9)[0]
++    np.savez(_p, anchor=A, idx=_nz, val=_sm[_nz])
++combo_raw = 0.55 * sm_kc + 0.45 * sm_fc
++combo = exec_reshape(combo_raw)
++os.makedirs(f"{WS}/state/target_combo", exist_ok=True)
++cnz = {syms[int(j)]: round(float(combo[j]), 8) for j in np.where(np.abs(combo) > 1e-9)[0]}
++json.dump({"schema": "wide_target_combo_v1_execcal", "anchor_ts": A, "phi": 0.45,
++           "book_form": "combo_v2main_norev24", "w3_masked": [round(float(x), 6) for x in w3m],
++           "weights": cnz, "kc_state_source": kc_src, "fc_state_source": fc_src,
++           "gross": round(float(np.abs(combo).sum()), 6), "net_after_reshape": round(float(combo.sum()), 8),
++           "kc_gross": round(float(np.abs(sm_kc).sum()), 6), "fc_gross": round(float(np.abs(sm_fc).sum()), 6),
++           "rho_kc_fc": round(float(np.corrcoef(sm_kc[np.abs(sm_kc)+np.abs(sm_fc)>1e-9], sm_fc[np.abs(sm_kc)+np.abs(sm_fc)>1e-9])[0,1]), 4) if (np.abs(sm_kc)+np.abs(sm_fc)>1e-9).sum()>10 else None,
++           "n_f10_scored": int(okf.sum()), "ftrim": ftrim_rec},
++          open(f"{WS}/state/target_combo/{A}.json", "w"), indent=1)
++log(f"④ COMBO 落盘 n={len(cnz)} gross={float(np.abs(combo).sum()):.4f} kc_src={kc_src} fc_src={fc_src} w3m={np.round(w3m,4).tolist()}")
++
++# ═══ COMBO_LIVE(2026-08-26, 用户令"现在切"): 把候选书写为执行器读取的 target_live ═══
++# 安全设计(五层):
++#   1) 硬截止 N+22:40 —— 绝不在执行器读取窗(N+23:00)内/后重写;
++#   2) 先备份生产者 king 文件到 target_live_king/(仅留档，不回写目标);
++#   3) 飞前断言: F10打分覆盖≥380 / gross∈[0.4,1.2] / 名数≥150 / 宇宙名单与king文件逐字相同;
++#   4) 发布前在私有临时目录用实盘读者 verify_file+parse_target 验收，失败只告警;
++#      目标替换失败也不回写 King；当前读者对缺/未通过身份钉的目标 HOLD;
++#   5) 全程状态入 state/combo_live_status.json; 失败路径全部 HIGH 页报。
++if os.environ.get("COMBO_LIVE", "0") == "1":
++    _now0 = time.time()
++    _status = {"anchor": A, "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(_now0)), "ok": False, "step": "start"}
++    def _page(sev, msg):
++        try:
++            sys.path.insert(0, f"{EXECUTOR_ROOT}/live")
++            import telegram_notify as _TN
++            # 只从 .env 取 TELEGRAM 两项作构造参数; 绝不把 BINANCE 键装进环境(无钥匙纪律)
++            _tok = _cid = None
++            try:
++                for _ln in open(f"{EXECUTOR_ROOT}/.env"):
++                    _ln = _ln.strip()
++                    if _ln.startswith("TELEGRAM_BOT_TOKEN="): _tok = _ln.split("=", 1)[1].strip().strip('"')
++                    elif _ln.startswith("TELEGRAM_CHAT_ID="): _cid = _ln.split("=", 1)[1].strip().strip('"')
++            except Exception:
++                pass
++            _r = _TN.TelegramNotifier(token=_tok, chat_id=_cid).alarm(sev, msg)
++            log(f"PAGE {sev} status={_r.get('status') if isinstance(_r, dict) else _r}")
++        except Exception as _e:
++            log("PAGE_FAIL", repr(_e)[:120])
++    def _bail(why):
++        _status.update(ok=False, why=why)
++        json.dump(_status, open(f"{WS}/state/combo_live_status.json", "w"), indent=1)
++        log(f"COMBO_LIVE ABORT: {why}")
++        _page("HIGH", f"combo 换装写者中止 [{time.strftime('%m-%d %H:%M', time.gmtime(A))}锚]\n{why}\n停止本次发布；当前执行器对缺失或未通过身份钉的目标 HOLD，不回退交易 King。")
++        sys.exit(3)
++    _outdir = os.environ.get("COMBO_LIVE_DIR", f"{WS}/state/target_live")
++    _rehearsal = _outdir != f"{WS}/state/target_live"
++    try:
++        _deadline = A + 22 * 60 + 40
++        if (not _rehearsal) and _now0 > _deadline:
++            _bail(f"过硬截止 N+22:40(now−anchor={_now0-A:.0f}s), 拒绝在读取窗附近重写")
++        _kp = f"{WS}/state/target_live/{A}.json"
++        if not os.path.exists(_kp) or not os.path.exists(_kp + ".sha256"):
++            _bail("生产者 king 文件或其 sha256 边车不存在")
++        kdoc = json.load(open(_kp))
++        # 飞前断言
++        _status["step"] = "preflight"
++        _g = float(np.abs(combo_raw).sum())
++        _nz = np.where(np.abs(combo_raw) > 1e-9)[0]
++        assert int(okf.sum()) >= 380, f"F10 打分覆盖 {int(okf.sum())}/400 < 380"
++        assert 0.4 <= _g <= 1.2, f"combo gross {_g:.4f} 出界 [0.4,1.2]"
++        assert len(_nz) >= 150, f"combo 名数 {len(_nz)} < 150"
++        assert kdoc.get("schema") == "wide_target_v1" and int(kdoc["anchor_ts"]) == A, "king 文件锚/schema 异常"
++        _uni = kdoc["universe"]
++        # ── M3(PREREG_m3_beta_overlay_executed_book_2026-09-23, 24c3f803f §5): 逐名 β 写入 target_live 新字段 `beta_overlay`,
++        #    供执行器在 reshape+clamp 之后算 β_exec 下 BTC 叠加腿。只加字段, 不改任何既有字段与权重。
++        #    ★ 绝不阻断发布: 计算失败 ⇒ 本锚不写该字段(执行器 on 时「缺失即不做」+ HIGH), 页报放在发布之后(不占截止余量)。
++        #    ★ Everything M3 adds runs inside ONE try whose except cannot raise: no NameError, no log failure, nothing M3 does
++        #      may reach the outer except (that path is _bail = "publication aborted"). Checked by re-running the 20260922
++        #      release's publication-boundary tests against this file (their harness namespace has no rts/RD — the field is
++        #      then simply omitted and the book publishes byte-identically).
++        _status["step"] = "beta_overlay"
++        _beta_field = None
++        _beta_page = None
++        try:
++            _t_beta = time.time()
++            import beta_overlay_producer as _BOP
++            _beta_field = _BOP.compute(rts, RD[:, :, 0], [str(x) for x in _symbols], list(_uni), A)
++            _status["beta_overlay"] = {"ok": True, "version": _beta_field["version"], "n_names": _beta_field["n_names"],
++                                       "n_estimated": _beta_field["n_estimated"], "n_fallback": _beta_field["n_fallback"],
++                                       "n_no_cache_column": _beta_field["n_no_cache_column"],
++                                       "elapsed_s": round(time.time() - _t_beta, 3)}
++            log(f"M3 beta_overlay: {_status['beta_overlay']}")
++        except Exception as _be:                    # noqa: BLE001 — the book is published without the field
++            _beta_field = None
++            try:
++                _status["beta_overlay"] = {"ok": False, "error": f"{type(_be).__name__}: {str(_be)[:200]}"}
++                _beta_page = (f"combo 写者: beta_overlay 字段计算失败 [锚 {A}] {type(_be).__name__}: {str(_be)[:160]} — "
++                              f"目标照常发布但不含该字段; 执行器 M3=on 时本锚不下对冲单(缺失即不做)。")
++            except Exception:                        # noqa: BLE001
++                _beta_page = "combo 写者: beta_overlay 字段计算失败(详情不可得) — 目标照常发布但不含该字段。"
++        # 备份 king
++        _status["step"] = "backup"
++        os.makedirs(f"{WS}/state/target_live_king", exist_ok=True)
++        shutil.copy2(_kp, f"{WS}/state/target_live_king/{A}.json")
++        shutil.copy2(_kp + ".sha256", f"{WS}/state/target_live_king/{A}.json.sha256")
++        # combo 权重 npz 存档 + weights_sha(与生产者对 npz 取 sha 同法)
++        _status["step"] = "write"
++        os.makedirs(f"{WS}/state/weights_combo", exist_ok=True)
++        _wnpz = f"{WS}/state/weights_combo/{A}.npz"
++        _tmpn = _wnpz + ".tmp.npz"
++        np.savez_compressed(_tmpn, anchor=A, idx=_nz, val=combo_raw[_nz].astype(np.float32))
++        os.replace(_tmpn, _wnpz)
++        with open(_wnpz, "rb") as _f:
++            _wsha = hashlib.sha256(_f.read()).hexdigest()
++        _weights = {syms[int(j)]: float(combo_raw[j]) for j in _nz}
++        _doc = {"schema": "wide_target_v1", "anchor_ts": int(A), "weights": _weights,
++                "gross_norm": float(sum(abs(v) for v in _weights.values())), "n_names": len(_weights),
++                "universe": _uni, "universe_sha": kdoc["universe_sha"], "n_universe": len(_uni),
++                "booster_sha": kdoc["booster_sha"], "weights_sha": _wsha,
++                "f10_sha": _F10_SHA,   # FP2-6b: the executor pins this (config f10_sha_pin) once the field is live for one anchor
++                "written_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time())),
++                "producer": "combo_stage_v1(kingLGBM 0.55 + V2MAIN 0.45, rev24 leg removed; base shadow_loop_v3)"}
++        if _beta_field is not None:
++            _doc["beta_overlay"] = _beta_field     # M3: new field only; every other key/value above is unchanged
++        _raw = json.dumps(_doc).encode()
++        _jp = f"{_outdir}/{A}.json"
++        os.makedirs(_outdir, exist_ok=True)
++        # Same filesystem, private staging: invalid bytes never reach the live target.
++        with tempfile.TemporaryDirectory(prefix=f".combo-{A}-", dir=_outdir) as _stage_dir:
++            _candidate_path = f"{_stage_dir}/{A}.json"
++            with open(_candidate_path, "wb") as _f:
++                _f.write(_raw)
++            with open(_candidate_path + ".sha256", "w") as _f:
++                _f.write(hashlib.sha256(_raw).hexdigest() + "  " + os.path.basename(_jp) + "\n")
++            # 在发布前用实盘执行器自己的校验代码验收
++            _status["step"] = "prepublish_validate_with_live_reader"
++            sys.path.insert(0, f"{EXECUTOR_ROOT}/live"); sys.path.insert(0, EXECUTOR_ROOT)
++            import external_book as _EB
++            _vf = _EB.verify_file(_candidate_path)
++            assert _vf.get("ok"), f"verify_file: {_vf.get('reason')}: {_vf.get('detail')}"
++            _cfgE = {"schema": "wide_target_v1", "require_anchor_match": True, "max_age_min": 10.0,
++                     "universe_sha_pin": None, "booster_sha_pin": None, "f10_sha_pin": None}
++            _pt = _EB.parse_target(_vf["raw"], _cfgE, A, time.time() if not _rehearsal else
++                                   time.mktime(time.strptime(_doc["written_utc"], "%Y-%m-%dT%H:%M:%SZ")) - time.timezone + 60)
++            assert _pt.get("ok"), f"parse_target: {_pt.get('reason')}: {_pt.get('detail')}"
++            assert _pt["gross_outside"] == 0.0, f"宇宙外权重 {_pt['gross_outside']}"
++            assert _pt["n_in_universe"] >= 150 and _pt["gross_in"] > 0.4
++            # M3: the executor's own field validator on the bytes actually staged (record only — never blocks the book)
++            if _beta_field is not None:
++                try:
++                    import beta_overlay as _BOX
++                    _bv = _BOX.validate_field(json.loads(_vf["raw"].decode()).get("beta_overlay"), A)
++                    _status["beta_overlay"]["reader_verdict"] = {"ok": _bv["ok"], "reason": _bv["reason"],
++                                                                 "detail": (_bv.get("detail") or "")[:160],
++                                                                 "betas_sha256": _bv.get("betas_sha256")}
++                    if not _bv["ok"] and _beta_page is None:
++                        _beta_page = (f"combo 写者: beta_overlay 字段被执行器校验器拒绝 [{time.strftime('%m-%d %H:%M', time.gmtime(A))}锚] "
++                                      f"{_bv['reason']}: {(_bv.get('detail') or '')[:160]} — 执行器 M3=on 时本锚不下对冲单。")
++                except ImportError:
++                    _status["beta_overlay"]["reader_verdict"] = "executor tree predates M3 (no live/beta_overlay.py) — not checked"
++                except Exception as _bve:            # noqa: BLE001
++                    _status["beta_overlay"]["reader_verdict"] = f"validator raised {type(_bve).__name__}: {str(_bve)[:120]}"
++            verify_source_snapshot(_source_snapshot["identity"])
++            verify_current_feature_cache(MINI, _feature_identity)
++            if (not _rehearsal) and time.time() > _deadline:
++                _bail("发布前已过硬截止 N+22:40，拒绝替换目标文件")
++            os.replace(_candidate_path, _jp)
++            os.replace(_candidate_path + ".sha256", _jp + ".sha256")
++        _status.update(ok=True, step="done", n=len(_weights), gross=_doc["gross_norm"],
++                       reader_ok=True, n_in_universe=_pt["n_in_universe"], age_s=_pt["age_s"],
++                       elapsed_s=round(time.time() - _now0, 1), rehearsal=_rehearsal)
++        json.dump(_status, open(f"{WS}/state/combo_live_status.json", "w"), indent=1)
++        log(f"⑤ COMBO_LIVE 写者完成 rehearsal={_rehearsal} n={len(_weights)} gross={_doc['gross_norm']:.4f} 读者验收 ok age={_pt['age_s']}s")
++        if _beta_page is not None and not _rehearsal:
++            try:                                      # M3: after publication (never spends the deadline margin), and a page
++                _page("HIGH", _beta_page)             #     failure can never turn a published book into a reported abort
++            except Exception:                         # noqa: BLE001
++                pass
++    except SystemExit:
++        raise
++    except Exception as _e:
++        # Never restore King: this invocation may not have published, or the
++        # deadline may have passed. A partial pair is rejected by the reader.
++        _bail(f"{type(_e).__name__}: {str(_e)[:220]}")
+diff --git a/ops/producer_release/20260923_m3/tests_beta_overlay_producer.py b/ops/producer_release/20260923_m3/tests_beta_overlay_producer.py
+new file mode 100644
+index 0000000..3a2c262
+--- /dev/null
++++ b/ops/producer_release/20260923_m3/tests_beta_overlay_producer.py
+@@ -0,0 +1,217 @@
++"""tests_beta_overlay_producer — the producer's M3 beta field (beta_overlay_producer.compute). Pure numpy fixtures; optional
++read-only real-cache checks when M3_REAL_ROLLING (a rolling.npz path) and M3_REAL_SYMS (xfer_syms.npz) are set; the pair check
++against the executor's validator REQUIRES M3_EXECUTOR_ROOT (a dl_quant_live tree with live/beta_overlay.py) — absent ⇒ RED,
++never skipped (an unchecked pair is not a checked one).
++
++  T1  future-perturbation invariance: every row after the anchor rewritten (values, NaNs, a +-30% spike) ⇒ the field is
++      byte-identical; control: the row closing AT the anchor changed ⇒ the beta changes (the bar ending at A is used).
++  T2  a name built as exactly 2 x BTC (+ constant) ⇒ beta 2.0 (error < 1e-12); BTC's own beta is exactly 1.
++  T3  119 valid pairs ⇒ fallback 1.0 with n_obs 119; 120 ⇒ estimated (2.0).
++  T4  clip: a 5x name ⇒ 4.0; a -3x name ⇒ -1.0.
++  T5  the start-boundary rule: a missing row closing AT a boundary T invalidates BOTH bars sharing it — the one ending at T
++      (the row is inside it) and the one starting at T (its start price is stale: the next row's ret5 spans the gap), 178
++      pairs; a gap-spanning spike placed in the next row leaves the beta exactly 2. RED control: a mutant that ignores the
++      start row counts 179 pairs and the spike moves the beta.
++  T6  refusals: anchor not in the axis / off the 4h grid / non-contiguous axis / duplicate symbols / BTC column missing / zero
++      BTC variance ⇒ BetaOverlayError (never a default); a name with no cache column ⇒ fallback, n_obs 0.
++  T7  PAIR: the field (JSON round-trip) is accepted by the executor's validator; a changed parameter is refused.
++  T8  (optional, real cache) the latest anchor: finite, clipped, BTC 1, one entry per universe name, < 2 s; and causality on
++      REAL data — the full cache vs the cache truncated at an earlier anchor give byte-identical fields for that anchor.
++"""
++import importlib.util
++import json
++import os
++import sys
++import time
++
++import numpy as np
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++sys.path.insert(0, HERE)
++import beta_overlay_producer as B  # noqa: E402
++
++FAILS, N = [], [0]
++
++
++def check(name, cond, detail=""):
++    N[0] += 1
++    print(f"  {'OK  ' if cond else 'FAIL'} {name}{(' — ' + str(detail)[:300]) if detail else ''}", flush=True)
++    if not cond:
++        FAILS.append(name)
++
++
++A = 1790150400
++BARS = 180
++ROWS = BARS * 48 + 1
++EXTRA = 24                                   # rows AFTER the anchor (the future the formula must not read)
++
++
++def axis(extra=EXTRA, before=0):
++    return np.arange(A - (ROWS - 1 + before) * 300, A + 1 + extra * 300, 300, dtype=np.int64)
++
++
++def synth(seed=1, extra=EXTRA, before=0):
++    """BTC + four names. Each 4h bar carries its whole log return in ONE row (the last) so exact targets are constructible."""
++    rts = axis(extra, before)
++    n = len(rts)
++    rng = np.random.default_rng(seed)
++    ai = int(np.nonzero(rts == A)[0][0])
++    x = np.zeros(n)
++    x[ai - (BARS - 1) * 48 - 48 * before: ai + 1: 48] = rng.normal(0, 0.02, size=len(range(ai - (BARS - 1) * 48 - 48 * before, ai + 1, 48)))
++    cols = {"BTCUSDT": x.copy(), "TWOUSDT": np.where(x != 0, 2 * x + 0.001, 0.0), "FIVEUSDT": 5 * x, "NEGUSDT": -3 * x,
++            "NOISEUSDT": rng.normal(0, 0.001, size=n)}
++    syms = list(cols)
++    L = np.stack([cols[s] for s in syms], 1)
++    return rts, np.expm1(L), syms          # simple returns, float64 (the exact tests); float16 is covered by T7/T8
++
++
++# ── T1 future invariance ──────────────────────────────────────────────────────────────────────────
++print("[T1] future-perturbation invariance")
++rts, R, syms = synth()
++names = syms[1:]
++f0 = B.compute(rts, R, syms, names, A)
++ai = int(np.nonzero(rts == A)[0][0])
++R2 = R.copy()
++rng = np.random.default_rng(99)
++R2[ai + 1:] = rng.normal(0, 0.05, size=R2[ai + 1:].shape)
++R2[ai + 3, 1] = np.nan
++R2[ai + 5, 0] = 0.30
++f1 = B.compute(rts, R2, syms, names, A)
++check("T1a every row after the anchor rewritten ⇒ field byte-identical", json.dumps(f0, sort_keys=True) == json.dumps(f1, sort_keys=True))
++R3 = R.copy()
++R3[ai, 1] += 0.01                                       # the row closing AT the anchor
++f3 = B.compute(rts, R3, syms, names, A)
++check("T1b control: the row closing AT the anchor changed ⇒ the beta changes (the bar ending at A is in the sample)",
++      f3["betas"]["TWOUSDT"] != f0["betas"]["TWOUSDT"], (f0["betas"]["TWOUSDT"], f3["betas"]["TWOUSDT"]))
++
++# ── T2 exact beta ────────────────────────────────────────────────────────────────────────────────
++print("\n[T2] exact beta and BTC")
++check("T2a a 2x(+const) name ⇒ beta 2 (|err| < 1e-12), 180 pairs", abs(f0["betas"]["TWOUSDT"] - 2.0) < 1e-12 and f0["n_obs"]["TWOUSDT"] == 180,
++      f0["betas"]["TWOUSDT"])
++check("T2b BTC's own beta is exactly 1.0 and it is written first", f0["betas"]["BTCUSDT"] == 1.0 and list(f0["betas"])[0] == "BTCUSDT")
++check("T2c declared parameters are the prereg's", (f0["version"], f0["n_win"], f0["n_min"], f0["clip"], f0["fallback"], f0["data_cutoff_ts"])
++      == ("m3_beta_v1", 180, 120, [-1.0, 4.0], 1.0, A))
++
++# ── T3 the 120 line ──────────────────────────────────────────────────────────────────────────────
++print("\n[T3] 119 ⇒ fallback, 120 ⇒ estimated")
++
++
++def knock(Rm, k_bars, col):
++    """make the LAST k_bars bars of `col` invalid (one NaN row inside each)."""
++    Rm = Rm.copy()
++    for k in range(k_bars):
++        Rm[ai - 48 * k - 10, col] = np.nan
++    return Rm
++
++
++f120 = B.compute(rts, knock(R, 60, 1), syms, names, A)
++f119 = B.compute(rts, knock(R, 61, 1), syms, names, A)
++check("T3a 120 valid pairs ⇒ estimated beta 2.0", f120["n_obs"]["TWOUSDT"] == 120 and abs(f120["betas"]["TWOUSDT"] - 2.0) < 1e-12,
++      (f120["n_obs"]["TWOUSDT"], f120["betas"]["TWOUSDT"]))
++check("T3b 119 valid pairs ⇒ fallback exactly 1.0", f119["n_obs"]["TWOUSDT"] == 119 and f119["betas"]["TWOUSDT"] == 1.0,
++      (f119["n_obs"]["TWOUSDT"], f119["betas"]["TWOUSDT"]))
++fb = B.compute(rts, knock(R, 61, 0), syms, names, A)
++check("T3c pairs are PAIRWISE: 61 invalid BTC bars ⇒ every name falls back (n_obs 119)", all(fb["betas"][n] == 1.0 and fb["n_obs"][n] == 119 for n in names))
++
++# ── T4 clip ──────────────────────────────────────────────────────────────────────────────────────
++print("\n[T4] clip")
++check("T4 a 5x name ⇒ 4.0; a -3x name ⇒ -1.0", f0["betas"]["FIVEUSDT"] == 4.0 and f0["betas"]["NEGUSDT"] == -1.0,
++      (f0["betas"]["FIVEUSDT"], f0["betas"]["NEGUSDT"]))
++
++# ── T5 start-boundary rule ───────────────────────────────────────────────────────────────────────
++print("\n[T5] a missing row AT a bar's start invalidates the bar (stale start price)")
++Rs = R.copy()
++k0 = ai - 48 * 50                                        # the row closing at the start of bar ending ai - 48*49
++Rs[k0, 1] = np.nan
++Rs[k0 + 1, 1] = 0.25                                     # the gap-spanning return the producer would have stored there
++fs = B.compute(rts, Rs, syms, names, A)
++check("T5a both bars sharing the boundary are invalid (178 pairs) and the beta stays 2.0 exactly", fs["n_obs"]["TWOUSDT"] == 178 and abs(fs["betas"]["TWOUSDT"] - 2.0) < 1e-12,
++      (fs["n_obs"]["TWOUSDT"], fs["betas"]["TWOUSDT"]))
++src = open(os.path.join(HERE, "beta_overlay_producer.py")).read()
++old = "    V = body_ok & start_ok                                # (180, m)"
++assert src.count(old) == 1
++import tempfile  # noqa: E402
++_td = tempfile.mkdtemp(prefix="bop_mut_")
++mp = os.path.join(_td, "bop_mut.py")
++open(mp, "w").write(src.replace(old, "    V = body_ok", 1))
++spec = importlib.util.spec_from_file_location("bop_mut", mp)
++Bm = importlib.util.module_from_spec(spec)
++spec.loader.exec_module(Bm)
++os.remove(mp)
++os.rmdir(_td)
++fm = Bm.compute(rts, Rs, syms, names, A)
++check("T5b RED control: a mutant without the start-row rule counts 179 pairs and the spike moves the beta",
++      fm["n_obs"]["TWOUSDT"] == 179 and abs(fm["betas"]["TWOUSDT"] - 2.0) > 1e-3, (fm["n_obs"]["TWOUSDT"], fm["betas"]["TWOUSDT"]))
++
++# ── T6 refusals ──────────────────────────────────────────────────────────────────────────────────
++print("\n[T6] refusals and the no-column fallback")
++
++
++def raises(label, fn):
++    try:
++        fn()
++        ok = False
++    except B.BetaOverlayError:
++        ok = True
++    check(f"T6 {label} ⇒ BetaOverlayError", ok)
++
++
++raises("anchor not in the axis", lambda: B.compute(rts, R, syms, names, A + 14400 * 10))
++raises("anchor off the 4h grid", lambda: B.compute(rts, R, syms, names, A + 300))
++_rb = rts.copy(); _rb[5] += 1
++raises("non-contiguous axis", lambda: B.compute(_rb, R, syms, names, A))
++raises("duplicate symbols", lambda: B.compute(rts, R, syms[:-1] + [syms[0]], names, A))
++raises("BTC column missing", lambda: B.compute(rts, R[:, 1:], syms[1:], names, A))
++_Rz = R.copy(); _Rz[:, 0] = 0.0
++raises("zero BTC variance", lambda: B.compute(rts, _Rz, syms, names, A))
++fnc = B.compute(rts, R, syms, names + ["NOCOLUSDT"], A)
++check("T6b a name with no cache column ⇒ fallback 1.0, n_obs 0, counted", fnc["betas"]["NOCOLUSDT"] == 1.0 and fnc["n_obs"]["NOCOLUSDT"] == 0
++      and fnc["n_no_cache_column"] == 1)
++fshort = B.compute(rts[200:], R[200:], syms, names, A)
++check("T6c bars before the cache's first row do not exist (invalid, never zero): a cache 200 rows short ⇒ 175 pairs",
++      fshort["n_obs"]["TWOUSDT"] == 175, fshort["n_obs"]["TWOUSDT"])
++
++# ── T7 pair with the executor's validator ────────────────────────────────────────────────────────
++print("\n[T7] pair: the executor's validator accepts this field")
++root = os.environ.get("M3_EXECUTOR_ROOT")
++if not root or not os.path.isfile(os.path.join(root, "live", "beta_overlay.py")):
++    check("T7 M3_EXECUTOR_ROOT names a dl_quant_live tree with live/beta_overlay.py (pair check is REQUIRED)", False, root)
++else:
++    spec = importlib.util.spec_from_file_location("beta_overlay_exec", os.path.join(root, "live", "beta_overlay.py"))
++    BX = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(BX)
++    f16 = B.compute(rts, R.astype(np.float16), syms, names, A)
++    v = BX.validate_field(json.loads(json.dumps(f16)), A)
++    check("T7a float16 cache field, JSON round-trip ⇒ ACCEPTED by the executor validator", v["ok"], (v.get("reason"), v.get("detail")))
++    v2 = BX.validate_field(json.loads(json.dumps(dict(f16, n_min=100))), A)
++    check("T7b a changed parameter ⇒ refused params_mismatch", (not v2["ok"]) and v2["reason"] == "params_mismatch", v2.get("reason"))
++
++# ── T8 real cache (optional, read-only) ──────────────────────────────────────────────────────────
++rp, sp = os.environ.get("M3_REAL_ROLLING"), os.environ.get("M3_REAL_SYMS")
++if rp and sp:
++    print("\n[T8] real cache (read-only)")
++    z = np.load(rp, allow_pickle=True)
++    rts_r, D = z["ts"].astype(np.int64), z["data"]
++    syms_r = [str(s) for s in np.load(sp, allow_pickle=True)["symbols"]]
++    Ar = int(rts_r[-1])
++    uni = json.load(open(os.environ["M3_REAL_UNIVERSE"]))["universe"] if os.environ.get("M3_REAL_UNIVERSE") else syms_r[:450]
++    t0 = time.time()
++    fr = B.compute(rts_r, D[:, :, 0], syms_r, uni, Ar)
++    el = time.time() - t0
++    bv = np.array(list(fr["betas"].values()))
++    check("T8a latest anchor: finite, inside the clip, BTC 1, one entry per universe name (+BTC), < 2 s",
++          np.isfinite(bv).all() and bv.min() >= -1 and bv.max() <= 4 and fr["betas"]["BTCUSDT"] == 1.0
++          and set(fr["betas"]) == set(uni) | {"BTCUSDT"} and el < 2.0, (round(el, 3), fr["n_estimated"], fr["n_fallback"]))
++    Ap = Ar - 6 * 14400
++    ip = int(np.nonzero(rts_r == Ap)[0][0])
++    fa = B.compute(rts_r, D[:, :, 0], syms_r, uni, Ap)
++    fb2 = B.compute(rts_r[:ip + 1], D[:ip + 1, :, 0], syms_r, uni, Ap)
++    check("T8b REAL causality: the field at A-24h from the full cache == from the cache truncated at A-24h (byte-identical)",
++          json.dumps(fa, sort_keys=True) == json.dumps(fb2, sort_keys=True))
++else:
++    print("\n[T8] real cache: not requested (M3_REAL_ROLLING / M3_REAL_SYMS unset) — the synthetic groups above are the suite")
++
++print(f"\nTESTS_BETA_OVERLAY_PRODUCER {'ALL PASS' if not FAILS else 'FAILURES'} checks={N[0]} failed={len(FAILS)}")
++for f in FAILS:
++    print("  FAILED:", f)
++sys.exit(0 if not FAILS else 1)
+diff --git a/run_acceptance.sh b/run_acceptance.sh
+index a7abd4b..d644b33 100644
+--- a/run_acceptance.sh
++++ b/run_acceptance.sh
+@@ -367,6 +367,9 @@ SUITES=(
+   # ★ 外部书适配器 (DESIGN_wide_live_deployment_2026-08-22 §1/§3.2): 宽书签名目标文件 → 目标向量;
+   #   读取/校验/换算/过滤/告警 + internal 逐位不变 + per_name_stop profile 切换; 每条有会红变异体。
+   "tests_external_book:$_SELF/live/tests_external_book.py"
++  # ★ M3 BTC-beta 叠加腿 (PREREG_m3_beta_overlay_executed_book_2026-09-23 24c3f803f): 执行书(POP→RESHAPE→CLAMP 之后)上算 β 的
++  #   独立 BTC 腿; off/shadow 与剥离 M3 的执行器逐位相同, 平书诊断 ratio 1, 缺失即不做(变异体证承重), 生产者字段配对。
++  "tests_beta_overlay:$_SELF/live/tests_beta_overlay.py"
+ )
+ 
+ # ★ registration guard: every live/tests_*.py must appear above. Catches the omission that this
+diff --git a/scheduler/anchor_loop.py b/scheduler/anchor_loop.py
+index ed5a65c..a8e34e6 100644
+--- a/scheduler/anchor_loop.py
++++ b/scheduler/anchor_loop.py
+@@ -53,6 +53,7 @@ import book_config as BC      # noqa: E402
+ import per_name_stop as PNS   # noqa: E402  逐名止损条款 cf40ea21(2026-08-20 用户裁定全面启用)
+ import external_book as EXT   # noqa: E402  外部书适配器(DESIGN_wide_live_deployment_2026-08-22 §1)
+ import reject_rate as RR      # noqa: E402  场所拒单率: 以场所应答的首次 maker 单为分母(E-0905-H)
++import beta_overlay as BO     # noqa: E402  M3 BTC-beta 叠加腿(PREREG_m3_beta_overlay 24c3f803f; 执行书上算 β)  # M3-LINE
+ 
+ # ★ THE BAND IS A POLICY NUMBER AND SAYS SO. 3% of gross is the lead's figure; no measurement
+ #   produced it and it must not be quoted as if one had. The two live anchors so far read +0.99%
+@@ -1675,6 +1676,23 @@ class AnchorLoop:
+         #   `tests_exit_ledger` pins that equality — "it is pure" is a claim about the code.
+         import rebalance_id as _RID
+         rid = _RID.mint(now, rehearsal)
++        # ── M3-BEGIN  BTC-beta overlay leg (live/beta_overlay.py; PREREG_m3 24c3f803f). Resolved per anchor, reset per anchor.
++        #    mode off (key absent) ⇒ nothing below changes the book, the orders or the loop state (tests_beta_overlay [Z]).
++        self._m3 = {"mode": "off", "record": None}
++        if getattr(self, "executor", None) is not None:        # a loop built without an executor (tests) stays constructible
++            self.executor._m3_overlay_leg = None
++            self.executor._m3_overlay_net_usdt = None
++        try:
++            _m3c = BO.config(BC.load())
++        except Exception as _m3e:                              # noqa: BLE001 — unreadable ⇒ off, paged
++            _m3c = {"mode": "off", "error": f"book config unreadable ({type(_m3e).__name__})", "present": True}
++        if _m3c.get("error"):
++            self.alarm("HIGH", f"M3 beta_overlay 配置无效: {_m3c['error']} — 本锚按 off 处理(不加对冲腿, 不改书)。")
++        if _m3c["mode"] != "off" and external is None:
++            self.alarm("HIGH", f"M3 beta_overlay.mode={_m3c['mode']} 但本锚不是外部书 — 叠加腿只对外部书定义, 本锚按 off。")
++            _m3c = dict(_m3c, mode="off")
++        self._m3 = {"mode": _m3c["mode"], "record": None}
++        # ── M3-END
+         # ── EXTERNAL BOOK (DESIGN_wide_live_deployment_2026-08-22 §1) ──────────────────────
+         # ★ The four DL-preds gates below (caliber stamp / frozen-input census / column set /
+         #   universe OOD) judge the PREDS FILE, which does not decide an external anchor's book.
+@@ -1692,6 +1710,12 @@ class AnchorLoop:
+             #   the reader: `external["w"]` is the in-universe book, normalised by its own sum|w|).
+             self._ext_held_exit = EXT.held_not_in_target(state.get("positions"), external["symbols"])
+             symbols = sorted(set(external["symbols"]) | set(self._ext_held_exit))
++            # ── M3-BEGIN  mode on: BTC is always priced, venue-gated, stop-checked and meta-checked with the book's names. A BTC
++            #    the file does not target and we do not hold enters with weight 0 and is dust-popped by the book stage exactly as an
++            #    absent name (the book is unchanged); the leg then reaches it through the combined value (M3b).
++            if self._m3["mode"] == "on":
++                symbols = sorted(set(symbols) | {BO.BTC})
++            # ── M3-END
+             out_census = {"skipped": "external_book — the DL artifact census does not decide this book"}
+             want = None
+             _ood_report = {"state": "SKIPPED_EXTERNAL", "n_members": len(symbols), "n_ood": None,
+@@ -2039,6 +2063,11 @@ class AnchorLoop:
+         #   flatten_only」—— 与代码相反: 置零与 clamp 之间隔着 reshape 的 re-demean, 它把这些 0 平移成 a(撤名残差 net_before<0
+         #   ⇒ a>0), 与 a 同号的已停持仓被判 add_blocked 钉住或 reduced 砍到 ≈ a(实盘 08-20..09-12 157 例中 144 例多头)。
+         #   现在由拥有 POP → RESHAPE → CLAMP 顺序的函数负责: stop 集以 force_flat 传入, 移出重整人口, 重整后恰为 0, 再 clamp。
++        # ── M3-BEGIN  BTC's untradability, classified BEFORE the book stage (which runs exactly as in mode off): name-level
++        #    reasons (hard) suspend the leg; `external_dust` alone lets the COMBINED value decide (M3b, AMENDMENT_1 912788743).
++        _m3_hard = BO.hard_block(getattr(self, "_untradable", ()), getattr(self, "_untradable_sources", None))
++        _m3_dust_only = BO.dust_only(getattr(self, "_untradable", ()), getattr(self, "_untradable_sources", None))
++        # ── M3-END
+         _clamp, _rs = apply_withhold_and_reshape(
+             target, _held_book, getattr(self, "_untradable", ()), self.gross,
+             floors_usdt=_fl, floors_source=_fl_src,
+@@ -2062,6 +2091,32 @@ class AnchorLoop:
+             # this fix the only way to learn of it was to notice the position was not moving.
+             self.alarm("HIGH", held_withheld_alarm_text(_clamp, getattr(self, "_untradable_sources", None) or {}))   # E6: per-name source
+         out_clamp = _clamp
++        # ── M3-BEGIN  the independent leg, AFTER POP -> RESHAPE -> CLAMP (prereg §2 step 4): beta on the EXECUTED book.
++        #    shadow ⇒ validated + computed + recorded, target untouched; on ⇒ target[BTCUSDT] = book component + hedge.
++        if self._m3["mode"] != "off":
++            _m3o = BO.stage(self._m3["mode"], target, _held_book, external, self.gross, _m3_hard,
++                            prev_status=(state.get("m3_overlay_last") or {}).get("status"),
++                            btc_floor=(_fl or {}).get(BO.BTC), dust_mult=(external or {}).get("min_notional_mult"),
++                            btc_dust_only=_m3_dust_only)
++            self._m3["record"] = _m3o["record"]
++            self._m3["betas"] = _m3o["betas"]
++            if _m3o["release_btc"]:
++                # the combined value overruled the book-component dust: BTC leaves the clamp's lists, so it is not sent reduce-only
++                _m3o["record"]["released_from"] = sorted(k for k in ("reduced", "add_blocked", "flatten_only", "popped")
++                                                         if BO.BTC in (_clamp.get(k) or []))
++                for _m3k in ("reduced", "add_blocked", "flatten_only", "popped"):
++                    _clamp[_m3k] = [s_ for s_ in (_clamp.get(_m3k) or []) if s_ != BO.BTC]
++            for _m3sev, _m3msg in _m3o["alarms"]:
++                self.alarm(_m3sev, _m3msg)
++            if self._m3["mode"] == "on":
++                self.executor._m3_overlay_leg = _m3o["leg"]
++                self.executor._m3_overlay_net_usdt = _m3o["overlay_net_usdt"]
++                _m3o["record"]["prev"] = state.get("m3_overlay_last")
++                state["m3_overlay_last"] = {"rebalance_id": rid, "nominal_ts": external.get("anchor_ts"),
++                                            "status": _m3o["record"].get("status"),
++                                            "hedge_target_usdt": _m3o["record"].get("hedge_target_usdt"),
++                                            "btc_combined_target_usdt": _m3o["record"].get("btc_combined_target_usdt")}
++        # ── M3-END
+ 
+         if _is_ext:
+             # ★ design §1: the external book is NOT passed through the neutral band (the producer's
+@@ -2150,6 +2205,11 @@ class AnchorLoop:
+             self.alarm("HIGH", f"场所上限截断: {len(_capd['invalid'])} 名的 cap/target/held 非有限值 "
+                                f"{_capd['invalid'][:4]}; target/held 非有限的名本锚不交易: "
+                                f"{_inv_disp or '(仅 cap 非有限: 未截断, 其余照常)'}")
++        # ── M3-BEGIN  the venue cap applies to the COMBINED BTC target; a truncated hedge is paged and recorded
++        if self._m3.get("record") is not None:
++            for _m3sev, _m3msg in BO.after_cap(self._m3["record"], target, _capd, self._m3.get("betas")):
++                self.alarm(_m3sev, _m3msg)
++        # ── M3-END
+         plans = self.executor.plan(target, state.get("positions", {}), mids,
+                                    reduce_only_syms=set(_clamp["reduced"])
+                                    | set(_clamp["flatten_only"])
+@@ -2157,6 +2217,11 @@ class AnchorLoop:
+                                    # E-0912-A (b): full exits are sized as the venue's position (contracts)
+                                    held_qty=getattr(self, "_held_qty", None))
+         self.executor._last_plans = plans          # phase B (complete_anchor) reads these back
++        # ── M3-BEGIN  plan-level delivery of the hedge (lot rounding / min-notional), record only
++        if self._m3.get("record") is not None:
++            _m3f = (getattr(getattr(self.executor, "filters", None), "f", None) or {}).get(BO.BTC) or {}
++            BO.after_plan(self._m3["record"], plans, lot_step=_m3f.get("step"), min_notional=_m3f.get("min_notional"))
++        # ── M3-END
+         # ★★ SWEEP BEFORE PLACING, NOT AFTER. An order left by an earlier anchor and a new order
+         #    in the same name coexist as DOUBLE exposure — which is the very thing the k-cancel
+         #    exists to prevent within a rebalance, and which nothing prevented BETWEEN rebalances.
+@@ -2318,6 +2383,10 @@ class AnchorLoop:
+             # correction and a correction that never ran produce the identical book.
+             "reshape": _rs,
+         }
++        # ── M3-BEGIN  the overlay's record travels with the anchor (anchors row `m3_beta_overlay`)
++        if self._m3.get("record") is not None:
++            self._anchor_ctx["m3_beta_overlay"] = self._m3["record"]
++        # ── M3-END
+         return {"columns_verified": (want or {}).get("columns_sha256", "SKIPPED")[:12],
+                 "transport": getattr(self.executor, "transport_report", None),
+                 "venue_cap_clamp": _capd,
+@@ -2976,10 +3045,18 @@ class AnchorLoop:
+                 row["book_source"] = ctx.get("book_source", "internal")
+                 if ctx.get("external_book"):
+                     row["external_book"] = ctx["external_book"]
++                # ── M3-BEGIN
++                if ctx.get("m3_beta_overlay") is not None:
++                    row["m3_beta_overlay"] = ctx["m3_beta_overlay"]
++                # ── M3-END
+                 # ★ realised neutrality, measured from venue truth and recorded every anchor
+                 if snap is not None:
+                     row.update(neutrality_from_snapshot(snap))
+                     out["venue_net_over_gross"] = row.get("net_over_gross")
++                # ── M3-BEGIN  the neutrality readers judge the book EX-OVERLAY when the leg was placed (the raw venue net stays
++                #    on the row as `net_over_gross`; `net_ex_overlay_*` beside it). No leg ⇒ `_m3_nrow is row`.
++                _m3_nrow = BO.neutrality_view(row, ctx.get("m3_beta_overlay"))
++                # ── M3-END
+                 # ★★★ THE -2022 RESOLUTION, RUN HERE BECAUSE THIS IS WHERE THE READBACK IS — and
+                 # BEFORE `log.anchor`, because a fact established after the write never reaches
+                 # the ledger. (My first draft put it below, next to the alarms; the alarm would
+@@ -3023,7 +3100,7 @@ class AnchorLoop:
+                 #   5-10 anchors of this is the input to the lead's ruling on whether a neutrality
+                 #   top-up is worth its cost; writing it into the row is how those anchors exist
+                 #   to be counted later rather than being reconstructed by hand afterwards.
+-                _np = neutrality_price(row, self.executor.rows_orders, ctx.get("rebalance_id"))
++                _np = neutrality_price(_m3_nrow, self.executor.rows_orders, ctx.get("rebalance_id"))  # M3-ORIG:                 _np = neutrality_price(row, self.executor.rows_orders, ctx.get("rebalance_id"))
+                 if _np is not None:
+                     row["neutrality_price"] = _np
+                 # ★★ THE CHASE EXPERIMENT'S OWN RECORD, plus an INDEPENDENT re-derivation of it.
+@@ -3047,7 +3124,7 @@ class AnchorLoop:
+                     row["chase_experiment"] = _ce
+                 self.log.anchor(**row)
+                 out["anchors_row"] = True
+-                _txt = neutrality_alarm_text(row, self.executor.rows_orders,
++                _txt = neutrality_alarm_text(_m3_nrow, self.executor.rows_orders,  # M3-ORIG:                 _txt = neutrality_alarm_text(row, self.executor.rows_orders,
+                                              ctx.get("rebalance_id"))
+                 if _txt:
+                     self.alarm("HIGH", _txt)
