@@ -21,6 +21,11 @@ def main():
     sys.path.insert(0, res_dir); import feature_contract as FC
     H.set_tree(TREE); NC, TR = H._G["NC"], H._G["TR"]; I = H.Inputs()
     cfg = json.load(open(CFG)); P = cfg["params"]; kb = H._king_block()
+    # R1-4 mutation arms: the member-screen empty-window rule back to max(n,1) (D6) / the tie-break back to quicksort (D14)
+    MUT = {"D6_back_to_max_n_1": [("v7 = np.where(c7 > 0, v7, np.nan).astype(np.float32)", "v7 = v7.astype(np.float32)"),
+                                  ("qvm = np.where(cq > 0, qvm, np.nan).astype(np.float32)", "qvm = qvm.astype(np.float32)")],
+           "D14_back_to_quicksort": [('m = np.sort(m[np.argsort(-qvm[m], kind="stable")[:P["NTOP"]]])', 'm = np.sort(m[np.argsort(-qvm[m])[:P["NTOP"]]])')]}
+    KBM = {k: H._king_block(v) for k, v in MUT.items()}
     MK = np.load(MASK, allow_pickle=True); assert [str(s) for s in MK["symbols"]] == I.syms
     mts = MK["ts"].astype(np.int64); mask = MK["mask"]
     out = {"device_sha256": H.sha(os.path.abspath(__file__)), "tree_receipt_sha256": H.sha(f"{TREE}/PATCH_RECEIPT.json")}
@@ -68,12 +73,23 @@ def main():
                "R1_4_ties_in_candidate_qvm": int(len(qc) - len(np.unique(qc))),
                "R1_4_empty_7d_window_candidates": int((cand & (n7 == 0)).sum())}
         row["PASS"] = row["n7_equal"] and row["v7_f32_differ"] == 0 and row["q7_f32_differ"] == 0 and row["members_equal"]
+        row["n7_zero_crypto_columns"] = int((I.crypto & (n7 == 0)).sum())
+        row["mutations"] = {}
+        for mk, kbm in KBM.items():
+            rm = H.pass1_anchor(I, A, P, cfg, kbm)
+            scm = rm.get("screen"); rrm = rm.get("members") if rm.get("members") is not None else np.zeros(0, np.int64)
+            dvm = int((~((scm["v7"].view(np.uint32) == v7r.view(np.uint32)) | (np.isnan(scm["v7"]) & np.isnan(v7r)))).sum()) if scm else None
+            dqm = int((~((scm["qvm"].view(np.uint32) == q7r.view(np.uint32)) | (np.isnan(scm["qvm"]) & np.isnan(q7r)))).sum()) if scm else None
+            row["mutations"][mk] = {"v7_f32_differ": dvm, "q7_f32_differ": dqm, "members_equal": bool(np.array_equal(np.sort(rrm), np.sort(mr))),
+                                    "G1_3_turns_red": bool(dvm or dqm or not np.array_equal(np.sort(rrm), np.sort(mr)))}
         g13.append(row); print("G1-3", json.dumps(row)[:400], flush=True)
     out["G1_3_members"] = g13
     out["G1_3_PASS"] = all(r["PASS"] for r in g13) and len(g13) >= 6
-    out["R1_4_testable"] = {"ties": sum(r["R1_4_ties_in_candidate_qvm"] for r in g13), "empty": sum(r["R1_4_empty_7d_window_candidates"] for r in g13)}
+    out["R1_4_testable"] = {"ties": sum(r["R1_4_ties_in_candidate_qvm"] for r in g13), "empty": sum(r["R1_4_empty_7d_window_candidates"] for r in g13),
+                            "n7_zero_crypto_columns": sum(r["n7_zero_crypto_columns"] for r in g13)}
+    out["R1_4_red"] = {mk: [r["anchor"] for r in g13 if r["mutations"][mk]["G1_3_turns_red"]] for mk in MUT}
     json.dump(out, open(f"{W}/receipts/NC_GATE_G1.json", "w"), indent=1)
-    print("NC_GATE_G1", "G1-1", out["G1_1"]["PASS"], "G1-3", out["G1_3_PASS"], "R1-4 testable", out["R1_4_testable"], flush=True)
+    print("NC_GATE_G1", "G1-1", out["G1_1"]["PASS"], "G1-3", out["G1_3_PASS"], "R1-4 testable", out["R1_4_testable"], "R1-4 red at", {k: len(v) for k, v in out["R1_4_red"].items()}, flush=True)
 
 
 if __name__ == "__main__":

@@ -17,7 +17,9 @@ import ast, hashlib, importlib.util, json, os, pathlib, shutil, sys, time
 
 HOME = os.path.expanduser("~")
 REPO = pathlib.Path(os.environ.get("NC_REPO", f"{HOME}/Desktop/quant_research"))
-NEWS2_DEVICE = pathlib.Path(os.environ.get("NC_NEWS2_DEVICE", str(REPO / "multi_asset/exports/research/news2_2026-09-23/devices/news2_derive_producer.py")))
+# B part (D4..D14) edit texts: a VENDORED, sha-pinned copy of news2's patcher at 9c475421 (lead ruling 2026-09-23: nc_derive_producer.py
+# is the ONE implementation of the producer patch; news2's own patcher is retired and news2 diffs its original against this copy).
+NEWS2_DEVICE = pathlib.Path(os.environ.get("NC_NEWS2_DEVICE", os.path.join(os.path.dirname(os.path.abspath(__file__)), "news2_b_edits_9c475421.py")))
 M3_DIR = pathlib.Path(os.environ.get("NC_M3_DIR", f"{HOME}/cc_tmp/m3_impl_20260923/exec/ops/producer_release/20260923_m3"))
 NC_SRC = pathlib.Path(os.environ.get("NC_SRC", os.path.dirname(os.path.abspath(__file__))))
 TRAD = pathlib.Path(os.environ.get("NC_TRAD", str(REPO / "multi_asset/exports/research/common/tradability.py")))
@@ -35,6 +37,9 @@ def sha_file(p):
 
 def load_news2():
     assert sha_file(NEWS2_DEVICE) == PIN["news2_device"], "news2 patcher changed"
+    # the vendored copy derives its default paths from its own location; point it at the repo explicitly
+    os.environ.setdefault("NEWS2_BASE_SHADOW", str(REPO / "multi_asset/exports/research/news_2026-09-23/deploy/producer_patch/shadow_loop_v3.patched.py"))
+    os.environ.setdefault("NEWS2_RESEARCH_TREE", str(REPO / ".claude/worktrees/codex-strategy-uplift-20260920/multi_asset/experiments/codex_combo_20260923/devices"))
     spec = importlib.util.spec_from_file_location("news2_derive_producer", NEWS2_DEVICE)
     N2 = importlib.util.module_from_spec(spec); spec.loader.exec_module(N2)
     return N2
@@ -308,6 +313,267 @@ SH.append(("A5+A6:fund_asof_and_base",
 """))
 
 
+# ================================================================================================ (d) parallel fetch layer (lead ruling §E4′-1)
+# Port of exec_n6 Phase 2 v2 (PREREG_deploy_exec_n6_phase2_2026-09-06, verified 3 anchors max|Δw| 0) onto the current Fetcher, plus
+# NC C-3 same-anchor backfill of names entering the dynamic fetch list. Knobs are plist environment variables; the processing code
+# that consumes the responses is unchanged, so outputs equal sequential fetching by construction (F-1 re-measures it bitwise).
+SH.append(("d:fetch_knobs",
+"""import nc_contract as NC
+import tradability as TR
+""",
+"""import nc_contract as NC
+import tradability as TR
+import threading, concurrent.futures, urllib.parse
+FETCH_WORKERS = int(os.environ.get("FETCH_WORKERS", "6"))        # (d) parallel K-line workers; 1 = sequential
+FETCH_BUDGET = int(os.environ.get("FETCH_BUDGET", "900"))        # (d) own weight per 60 s window (published IP limit 2400)
+FUND_BULK = int(os.environ.get("FUND_BULK", "1"))                # (d) funding via the symbol-less bulk endpoint (time pages) + per-name fallback
+HTTP_TIMEOUT = float(os.environ.get("HTTP_TIMEOUT", "15")) or None
+BULK_HOURS = int(os.environ.get("BULK_HOURS", "26"))
+BULK_PAGES = int(os.environ.get("BULK_PAGES", "10"))
+NC_BACKFILL_CAP_S = float(os.environ.get("NC_BACKFILL_CAP_S", "120"))   # NC C-3: same-anchor backfill hard cap
+NC_EXT_WEIGHT_PAUSE = int(os.environ.get("NC_EXT_WEIGHT_PAUSE", "1200"))  # (d) IP used-weight (all clients) above which requests pause
+"""))
+
+SH.append(("d:fetcher",
+"""    def get(self, path, params, weight):
+        self._diag["calls"] += 1
+        # 节流: 150 weight / 60s 滑窗
+        now = time.time()
+        if now - self.win_start > 60:
+            self.win_start, self.win_weight = now, 0
+        if self.win_weight + weight > 240:   # M1(PREREG_deploy_universe §1): 基扩 +≈210 weight, 150→240/min(≤4 req/s), 落盘 ≤N+21
+            started = time.monotonic()
+            try:
+                time.sleep(max(60 - (now - self.win_start), 0.5))
+            finally:
+                self._diag["throttle_sleep_s"] += time.monotonic() - started
+            self.win_start, self.win_weight = time.time(), 0
+        q = "&".join(f"{k}={v}" for k, v in params.items())
+        url = f"{BASE}{path}?{q}" if q else f"{BASE}{path}"
+        for att in range(3):  # V5: 超时重试后放弃, 永不挂死整锚
+            self._diag["attempts"] += 1
+            self._diag["retries"] += int(att > 0)
+            started = time.monotonic()
+            try:
+                try:
+                    with urllib.request.urlopen(url) as r:
+                        self.weight_used += weight; self.win_weight += weight
+                        return json.loads(r.read())
+                finally:
+                    self._diag["http_attempt_s"] += time.monotonic() - started
+            except Exception as e:
+                name = type(e).__name__
+                self._diag["exceptions"][name] = self._diag["exceptions"].get(name, 0) + 1
+                if att == 2:
+                    self._diag["exhausted_calls"] += 1
+                    return {"_err": f"{type(e).__name__}: {str(e)[:80]}"}
+                started = time.monotonic()
+                try:
+                    time.sleep(1 + att)
+                finally:
+                    self._diag["backoff_sleep_s"] += time.monotonic() - started
+""",
+"""    def get(self, path, params, weight):
+        # (d) thread-safe: the budget is reserved under a lock before the request; the IP's used weight (X-MBX-USED-WEIGHT-1M, every
+        # client on this IP incl. the executor) is recorded and requests pause above NC_EXT_WEIGHT_PAUSE until the next minute.
+        if not hasattr(self, "_lock"):
+            self._lock = threading.Lock(); self._diag.update({"used_weight_1m_max": 0, "ext_pause_s": 0.0, "http_429_418": None})
+            self._fund_times = []; self._banned_until = 0.0
+        # (d) a 429 / 418 stops every further request of this anchor until Retry-After has passed (never retried: a retried 429 is how
+        # an IP gets banned, and the ban would hit the live executor on the same IP)
+        if time.time() < self._banned_until:
+            return {"_err": "banned: waiting for Retry-After"}
+        # (d) fundingRate / fundingInfo share a separate 500 per 5 minutes per IP (not in the weight header): own cap 300 per 5 minutes
+        if path in ("/fapi/v1/fundingRate", "/fapi/v1/fundingInfo"):
+            while True:
+                with self._lock:
+                    t_ = time.time(); self._fund_times = [x for x in self._fund_times if t_ - x < 300]
+                    if len(self._fund_times) < 300:
+                        self._fund_times.append(t_); break
+                time.sleep(1.0)
+        with self._lock:
+            self._diag["calls"] += 1
+            now = time.time()
+            if now - self.win_start > 60:
+                self.win_start, self.win_weight = now, 0
+            if self.win_weight + weight > FETCH_BUDGET or self._diag.get("used_weight_1m_last", 0) > NC_EXT_WEIGHT_PAUSE:
+                started = time.monotonic()
+                try:
+                    time.sleep(max(60 - (now - self.win_start), 0.5))
+                finally:
+                    self._diag["throttle_sleep_s"] += time.monotonic() - started
+                self.win_start, self.win_weight = time.time(), 0
+                self._diag["used_weight_1m_last"] = 0
+            self.win_weight += weight
+        q = urllib.parse.urlencode(params)
+        url = f"{BASE}{path}?{q}" if q else f"{BASE}{path}"
+        for att in range(3):  # V5: 超时重试后放弃, 永不挂死整锚
+            with self._lock:
+                self._diag["attempts"] += 1
+                self._diag["retries"] += int(att > 0)
+            started = time.monotonic()
+            try:
+                try:
+                    with (urllib.request.urlopen(url, timeout=HTTP_TIMEOUT) if HTTP_TIMEOUT else urllib.request.urlopen(url)) as r:
+                        body = r.read(); used = int(r.headers.get("X-MBX-USED-WEIGHT-1M", "0") or 0)
+                        with self._lock:
+                            self.weight_used += weight
+                            self._diag["used_weight_1m_last"] = used
+                            self._diag["used_weight_1m_max"] = max(self._diag["used_weight_1m_max"], used)
+                        return json.loads(body)
+                finally:
+                    with self._lock:
+                        self._diag["http_attempt_s"] += time.monotonic() - started
+            except Exception as e:
+                name = type(e).__name__
+                with self._lock:
+                    self._diag["exceptions"][name] = self._diag["exceptions"].get(name, 0) + 1
+                if getattr(e, "code", None) in (429, 418):
+                    ra = 60.0
+                    try: ra = float(e.headers.get("Retry-After") or 60)
+                    except Exception: pass
+                    with self._lock:
+                        self._banned_until = time.time() + ra
+                        self._diag["http_429_418"] = {"code": e.code, "retry_after": ra, "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+                    return {"_err": f"HTTP {e.code}: stopped, Retry-After {ra}s"}
+                if att == 2:
+                    with self._lock:
+                        self._diag["exhausted_calls"] += 1
+                    return {"_err": f"{type(e).__name__}: {str(e)[:80]}"}
+                started = time.monotonic()
+                try:
+                    time.sleep(1 + att)
+                finally:
+                    with self._lock:
+                        self._diag["backoff_sleep_s"] += time.monotonic() - started
+"""))
+
+SH.append(("d:klines_parallel_and_backfill",
+"""    for s in st.fetch:   # R10-B01: klines for the fetch list
+        j = st.sym_idx.get(s)
+        if j is None: continue
+        r = fx.get("/fapi/v1/klines", {"symbol": s, "interval": "5m", "limit": gap_bars,
+                                       "endTime": anchor * 1000 - 1}, weight=kw)
+""",
+"""    # NC C-3: names entering the dynamic fetch list get their 40-day window backfilled in THIS anchor (parallel, hard cap);
+    # a name not completed in time is not a candidate at this anchor (named residual + HIGH via combo_stage)
+    st.backfill_residual = []
+    if getattr(st, "fetch_new", None):
+        _bf = nc_backfill(st, fx, [s for s in st.fetch_new if st.sym_idx.get(s) is not None], anchor, NC_BACKFILL_CAP_S)
+        st.backfill_residual = sorted(s for s, ok in _bf.items() if not ok)
+        for s in st.backfill_residual:
+            st.fetch_mask[st.sym_idx[s]] = False
+        append_log({"e": "nc_backfill", "anchor_ts": anchor, "names": sorted(_bf), "residual": st.backfill_residual})
+    _kq = lambda s: ("/fapi/v1/klines", {"symbol": s, "interval": "5m", "limit": gap_bars, "endTime": anchor * 1000 - 1})
+    _resp = {}
+    if FETCH_WORKERS > 1:   # (d) parallel prefetch; the loop below consumes the responses in the original order
+        _ks = [s for s in st.fetch if st.sym_idx.get(s) is not None]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=FETCH_WORKERS) as _ex:
+            for s, r in zip(_ks, _ex.map(lambda s: fx.get(*_kq(s), weight=kw), _ks)): _resp[s] = r
+    for s in st.fetch:   # NC A1: klines for the dynamic fetch list
+        j = st.sym_idx.get(s)
+        if j is None: continue
+        r = _resp[s] if s in _resp else fx.get(*_kq(s), weight=kw)
+"""))
+
+SH.append(("d:backfill_function",
+"""def bars_to_channels(k):""",
+"""def nc_backfill(st, fx, names, anchor, cap_s):
+    \"\"\"NC C-3: fill every NaN row of the 40-day window for `names` from paged klines (limit 1000, weight 5), the no-cross-gap rule and
+    the sparse boundary table exactly as the per-anchor ingestion does. Returns {name: completed_bool}; never raises.\"\"\"
+    t_end = time.time() + cap_s; row_of = {int(t): i for i, t in enumerate(st.cts)}
+    def one(s):
+        rows = []; start = (int(st.cts[0]) - 600) * 1000
+        while True:
+            if time.time() > t_end: return s, None
+            r = fx.get("/fapi/v1/klines", {"symbol": s, "interval": "5m", "startTime": start, "endTime": anchor * 1000 - 1, "limit": 1000}, weight=5)
+            if isinstance(r, dict): return s, None
+            rows += r
+            if len(r) < 1000: return s, rows
+            start = int(r[-1][0]) + 300000
+    out = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(FETCH_WORKERS, 1)) as ex:
+        res = list(ex.map(one, names))
+    for s, rows in res:
+        if rows is None or time.time() > t_end:
+            out[s] = False; continue
+        j = st.sym_idx[s]; pc = pc_ts = None
+        for k in rows:
+            close_s = (int(k[0]) + 300000) // 1000
+            if close_s > anchor: continue
+            c, ch = bars_to_channels(k)
+            ret5 = (c / pc - 1) if (pc and pc > 0 and pc_ts == close_s - 300) else np.nan
+            i = row_of.get(close_s)
+            if i is not None and not np.isfinite(float(st.cd[i, j, 3])):
+                ch[0] = ret5; st.cd[i, j] = np.array(clipch(ch), np.float16)
+                if NC.needs_boundary_raw(ret5): st.bnd_add(close_s, j, ret5)
+            pc = c; pc_ts = close_s
+        if rows:
+            lt = (int(rows[-1][0]) + 300000) // 1000
+            if lt >= st.prev_close_ts.get(s, 0):
+                st.prev_close[s] = float(rows[-1][4]); st.prev_close_ts[s] = lt
+        out[s] = True
+    return out
+
+def bars_to_channels(k):"""))
+
+SH.append(("d:funding_bulk",
+"""    for s in base:
+        led = st.ledger.get(s, [])
+        last_ts = led[-1][0] if led else anchor - 40 * 86400
+""",
+"""    # (d) bulk funding: symbol-less fundingRate pages over the last BULK_HOURS; names whose query window starts earlier fall back per name.
+    _bulk = {}; _bulk_ok = False; _bulk_pages = 0; _fund_per_symbol = 0
+    _bulk_start = (anchor - BULK_HOURS * 3600 + 1) * 1000
+    if FUND_BULK:
+        _seen = set(); _start = _bulk_start; _ok = True
+        for _pg in range(BULK_PAGES):
+            r = fx.get("/fapi/v1/fundingRate", {"startTime": _start, "endTime": anchor * 1000 + 999, "limit": 1000}, weight=1)
+            _bulk_pages += 1
+            if isinstance(r, dict) or not isinstance(r, list): _ok = False; break
+            for row in r:
+                key = (row["symbol"], int(row["fundingTime"]))
+                if key in _seen: continue
+                _seen.add(key); _bulk.setdefault(row["symbol"], []).append(row)
+            if len(r) < 1000: break
+            _start = int(r[-1]["fundingTime"])
+        else:
+            _ok = False
+        _bulk_ok = _ok
+        if not _bulk_ok: _bulk = {}
+    for s in base:
+        led = st.ledger.get(s, [])
+        last_ts = led[-1][0] if led else anchor - 40 * 86400
+"""))
+
+SH.append(("d:funding_request",
+"""        r = fx.get("/fapi/v1/fundingRate", {"symbol": s, "startTime": (last_ts + 1) * 1000,
+                                            "endTime": anchor * 1000 + 999, "limit": 100}, weight=1)
+        if isinstance(r, dict): continue
+        # NC A4""",
+"""        if _bulk_ok and (last_ts + 1) * 1000 >= _bulk_start:   # (d) same semantics as the per-name query: fundingTime in [(last_ts+1)s, anchor+999ms]
+            r = sorted([row for row in _bulk.get(s, []) if int(row["fundingTime"]) >= (last_ts + 1) * 1000], key=lambda x: int(x["fundingTime"]))
+        else:
+            _fund_per_symbol += 1
+            r = fx.get("/fapi/v1/fundingRate", {"symbol": s, "startTime": (last_ts + 1) * 1000,
+                                                "endTime": anchor * 1000 + 999, "limit": 100}, weight=1)
+        if isinstance(r, dict): continue
+        # NC A4"""))
+
+SH.append(("d:signal_log",
+"""                "fetched": fetched, "missing": missing, "future_dropped": future_dropped,""",
+"""                "fetched": fetched, "missing": missing, "future_dropped": future_dropped,
+                "nc": {"fetch_n": len(st.fetch), "fetch_new": list(getattr(st, "fetch_new", [])), "backfill_residual": list(getattr(st, "backfill_residual", [])),
+                       "fetch_workers": FETCH_WORKERS, "fetch_budget": FETCH_BUDGET, "fund_bulk_ok": _bulk_ok, "fund_bulk_pages": _bulk_pages,
+                       "fund_per_symbol": _fund_per_symbol, "used_weight_1m_max": fx.diagnostics().get("used_weight_1m_max")},"""))
+
+SH.append(("d:aux_residual",
+"""            "fetch_syms": list(self.fetch), "prev_close_ts": self.prev_close_ts,   # NC A1 / A3
+""",
+"""            "fetch_syms": list(self.fetch), "prev_close_ts": self.prev_close_ts,   # NC A1 / A3
+            "nc_backfill_residual": list(getattr(self, "backfill_residual", [])),   # NC C-3: combo_stage pages HIGH when non-empty
+"""))
+
 # ================================================================================================ fea171/feature_cache_identity.py
 FC = []
 FC.append(("A2+A3:generation_files",
@@ -445,6 +711,22 @@ def m3_hunks():
     return hunks
 
 
+A5_SITES = {   # §A5 positive check: the funding_state as-of call at the three consumers, and none of the old tail reads left
+    "shadow_loop_v3.py": {"present": ["fe_v[j], fn_v[j], iv_v[j], _rn8 = NC.funding_asof(st.ema.get(s), led[-1], anchor)"],
+                          "absent": ["fn_v[j] = led[-1][1]; iv_v[j] = led[-1][2]"]},
+    "fea171/combo_stage.py": {"present": ['_fe, _fn, _iv, _r8 = NC.funding_asof(aux["ema"].get(s_), rows_[-1], A)',
+                                          'rn8_full[_j] = NC.funding_asof(aux["ema"].get(_s), _rows[-1], A)[3]'],
+                              "absent": ['fe[-1, j] = float(est["acc"])', "fn[-1, j] = float(rows_[-1][1])", "rn8_full[_j] = float(_r[1]) * (8.0 /"]}}
+
+
+def check_a5(texts):
+    for k, spec in A5_SITES.items():
+        for l in spec["present"]:
+            assert texts[k].count(l) == 1, f"A5 as-of call missing in {k}: {l}"
+        for l in spec["absent"]:
+            assert l not in texts[k], f"A5: an old ledger-tail read survives in {k}: {l}"
+
+
 def apply(P, edits):
     for tag, old, new in edits:
         P.replace(tag, old, new)
@@ -467,12 +749,14 @@ def main():
     N2.patch_combo(P["fea171/combo_stage.py"], "last")
     N2.patch_f8(P["fea171/f8_higher_order_features.py"])
     skipped = [e["tag"] for k in P for e in P[k].edits if not e["applied"]]
-    assert set(t.split(":")[0] for t in skipped) <= {"D11", "D13"}, skipped
+    # pinned at 9c475421 the skipped families are EXACTLY D11 and D13 (they belong to §A5); an empty or larger set is refused
+    assert set(t.split(":")[0] for t in skipped) == {"D11", "D13"}, skipped
     news2_texts = {k: P[k].text for k in P}
     # 2. A part (enabled=None: every A edit applied)
     A = {k: N2.Patcher(k, news2_texts[k], None) for k in P}
     apply(A["shadow_loop_v3.py"], SH); apply(A["fea171/feature_cache_identity.py"], FC)
     apply(A["fea171/combo_stage.py"], CS); apply(A["fea171/dlw_features.py"], DL); apply(A["fea171/f8_higher_order_features.py"], F8)
+    check_a5({k: A[k].text for k in A})
     # 3. M3 hunks on the combo_stage text
     for n, (ctx, ins) in enumerate(m3_hunks()):
         A["fea171/combo_stage.py"].replace(f"M3:hunk{n + 1}", ctx, ctx + ins)

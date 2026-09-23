@@ -42,10 +42,14 @@ def set_tree(tree):
     return REC
 
 
-def _king_block():
+def _king_block(mutate=None):
+    """mutate: optional [(old, new)] text replacements applied to the block (mutation arms of the gates only; each must hit once)."""
     global KING_SPAN
     src = open(SHADOW_SRC, "rb").read(); assert hashlib.sha256(src).hexdigest() == REC["outputs"]["shadow_loop_v3.py"]
-    lines = src.decode().split("\n")
+    txt = src.decode()
+    for old, new in (mutate or []):
+        assert txt.count(old) == 1, ("mutation anchor", old[:60]); txt = txt.replace(old, new)
+    lines = txt.split("\n")
     b = [i for i, l in enumerate(lines) if l.strip() == 'diag.phase("feature_inference")']
     e = [i for i, l in enumerate(lines) if l.strip() == "X = FE_ANCH[:, keep]"]
     assert len(b) == 1 and len(e) == 1, (b, e)
