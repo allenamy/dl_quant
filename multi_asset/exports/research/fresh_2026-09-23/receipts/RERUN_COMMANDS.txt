@@ -1,0 +1,59 @@
+FRESH (docs/PREREG_fresh_models_newS_2026-09-23.md, commit b6e682e0a) — rerun commands, copied verbatim.
+Host: pod2. Own root: /dev/shm/fresh_2026-09-23 (= $W below). NEW_S read-only root: /dev/shm/news_2026-09-23 (= $N).
+Every device self-reports its own sha256 into its product; the shas are in DEVICES_SHA256SUMS_pod2.txt.
+
+--- stage 1 (King -> legs -> F10 -> final fits -> combo -> adapter -> configs -> engine -> readings)
+bash /dev/shm/fresh_2026-09-23/devices/fresh_chain.sh
+  (driver PGID recorded in PGIDS.txt; the per-step commands are the lines of fresh_chain.sh, which is itself
+   committed under devices/ at the sha in DEVICES_SHA256SUMS_pod2.txt)
+
+--- deployment-candidate export (V1 inference-consistency gate), run out of band; does not depend on the engine
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 /workspace/venv/bin/python -B /dev/shm/fresh_2026-09-23/devices/fresh_export_models.py
+  rc 0 ; stdout line quoted verbatim in RESULT §deployment candidate ; product $W/receipts/P5_EXPORT.json
+
+--- stage 2 (R-P selection red/green on the real receipts -> F1..F5 -> extension -> report tables)
+bash /dev/shm/fresh_2026-09-23/devices/fresh_chain2.sh
+
+--- tables rendered into the RESULT doc (no hand transcription)
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 /workspace/venv/bin/python -B /dev/shm/fresh_2026-09-23/devices/fresh_tables.py PATH,HOME,LC_CTYPE <args recorded below when run>
+
+--- stage 2, run step by step so each verdict line and exit code is captured separately (NOT via fresh_chain2.sh,
+    whose `set -e` would swallow a failing step's rc). The command text below is what fresh_chain2.sh contains.
+W=/dev/shm/fresh_2026-09-23; D=$W/devices; E=$W/engine; N=/dev/shm/news_2026-09-23; PV=/workspace/venv/bin/python
+cp -p $D/fresh_stats.py $D/test_fresh_stats_rp.py $D/fresh_ext.py $D/fresh_report.py $E/ ; cd $E
+
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 $PV -B test_fresh_stats_rp.py PATH,HOME,LC_CTYPE $W/scratch/rp_cases_real.json $W/receipts/TEST_FRESH_STATS_RP_real.json
+  rc 0
+
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 $PV -B fresh_stats.py PATH,HOME,LC_CTYPE \
+  $N/runs $W/runs \
+  $N/receipts/engine/BT_P_READING_NEWS_s42.json $N/receipts/engine/BT_P_READING_NEWS_s2027.json \
+  $W/receipts/engine/BT_P_READING_FRESH_s42.json $W/receipts/engine/BT_P_READING_FRESH_s2027.json \
+  $N/configs/RUN_CONFIG_NEWS_s42_2026-09-23.json $N/configs/RUN_CONFIG_NEWS_s2027_2026-09-23.json \
+  $W/configs/RUN_CONFIG_FRESH_s42_2026-09-23.json $W/configs/RUN_CONFIG_FRESH_s2027_2026-09-23.json \
+  $W/receipts/engine/FRESH_STATS.json
+  rc 0
+
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 $PV -B fresh_ext.py PATH,HOME,LC_CTYPE $W/runs $N/runs $W/receipts/engine/FRESH_EXT.json
+  rc 0
+
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 $PV -B fresh_report.py PATH,HOME,LC_CTYPE $W $N $W/receipts/engine/FRESH_REPORT.json
+  rc 0
+
+--- report-only channel location + the H-SEAT hypothesis test (no gate)
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 $PV -B fresh_where.py PATH,HOME,LC_CTYPE $W/receipts/engine/FRESH_STATS.json $W/receipts/engine/FRESH_WHERE.json $W/receipts/FRESH_WHERE.md
+  rc 0
+
+--- tables rendered into the RESULT doc (no hand transcription)
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 $PV -B fresh_tables.py PATH,HOME,LC_CTYPE \
+  $W/receipts/engine/FRESH_STATS.json $W/receipts/engine/FRESH_REPORT.json $W/receipts/engine/FRESH_EXT.json \
+  $W/receipts/TEST_FRESH_STATS_RP_real.json $W/receipts/FRESH_TABLES.md
+  rc 0
+
+--- proof that fresh_stats.py is based on the FIXED news_stats.py (7141ba42), not the pre-fix 10cb1d9e
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 $PV -B $W/devices/fresh_stats_base_equiv.py PATH,HOME,LC_CTYPE \
+  $N/devices/news_stats.py $W/devices/fresh_stats.py $W/scratch/news_stats_prefix_10cb1d9e.py $W/receipts/FRESH_STATS_BASE_EQUIV.json
+  rc 0
+
+--- NOT RUN (written for the deployment package, dropped by lead's 2026-09-23 scope ruling; produced no numbers)
+    devices/fresh_p5_extract.py, devices/fresh_deploy_manifest.py

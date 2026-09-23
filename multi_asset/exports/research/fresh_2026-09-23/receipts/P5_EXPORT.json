@@ -1,0 +1,63 @@
+{
+ "status": "DEPLOYMENT_CANDIDATE_NOT_DEPLOYED",
+ "prereg": {
+  "path": "docs/PREREG_fresh_models_newS_2026-09-23.md",
+  "commit": "b6e682e0a"
+ },
+ "cutoff_rule": {
+  "axis_last_anchor": 1789776000,
+  "last_available_label_end": 1789776000,
+  "embargo_anchors": 6,
+  "cutoff": 1789689600,
+  "cutoff_iso": "2026-09-18T00:00:00Z",
+  "rule": "training-label cutoff = last available label on the axis \u2212 6 anchors"
+ },
+ "king": {
+  "source": "/dev/shm/fresh_2026-09-23/work/final/king_final.txt",
+  "sha256": "2ee2ffe1ed1cf78221213db1720a04efcc461e309eea00ba1db30e62dbd37c7b",
+  "deploy_file": "/dev/shm/fresh_2026-09-23/deploy/slow2026.txt",
+  "fold": "FINAL",
+  "actual_gradient_cutoff": {
+   "max_train_label_end": 1789689600,
+   "iso": "2026-09-18T00:00:00Z"
+  },
+  "train_pairs": 2782290,
+  "train_anchors": 10326,
+  "receipt_sha256": "9d5ef07847d8fa87d4e6eb406ef59396d614e2b9db216feb1e3c593302ef7089"
+ },
+ "f10_s42": {
+  "source": "/dev/shm/fresh_2026-09-23/work/final/f10_final_s42.pt",
+  "model_pt_sha256": "b865f14fc333b0c7660faa2cf48431755c7debb24ace2e10a7b6ec85f57fbb7a",
+  "deploy_file": "/dev/shm/fresh_2026-09-23/deploy/f10_live_s42_np.npz",
+  "deploy_sha256": "b74ebcc32dc19485eb5313b897780cca333f6fb22c928c14bd69c61f22c4c7a4",
+  "fold": "FINAL",
+  "alpha": 0.09160004556179047,
+  "actual_gradient_cutoff": {
+   "max_train_label_end": 1789689600,
+   "iso": "2026-09-18T00:00:00Z"
+  },
+  "admission": {
+   "fold": "FINAL",
+   "accepted_windows": 179,
+   "rejected": {
+    "unpriced_possible_holding": 11
+   },
+   "train_anchors": 9240,
+   "max_train_label_end": 1789689600,
+   "cutoff": 1789689600,
+   "embargo_anchors": 6,
+   "train_frac": 1.0
+  },
+  "receipt_sha256": "b3d536d35ced57a7cdfee0b9dd8da53373aace37c45769dc839aedd20c477d5e"
+ },
+ "V1_gate": {
+  "spearman": 0.9999999999972221,
+  "maxabs": 6.777390049172993e-08,
+  "rows": 30000,
+  "PASS": true,
+  "rule": "spearman >= 0.99999 and maxabs <= 1e-5 (pod_f10_np_export.py)"
+ },
+ "torch": "2.11.0+cu128",
+ "numpy": "2.4.6",
+ "device_sha256": "a859da843e254bcb7a894fd0dd48f851eae988b4c7db3a68cc859960f107bd9d"
+}

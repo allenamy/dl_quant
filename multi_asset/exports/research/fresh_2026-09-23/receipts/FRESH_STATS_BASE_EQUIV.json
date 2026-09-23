@@ -1,0 +1,111 @@
+{
+ "device": "fresh_stats_base_equiv.py",
+ "self_sha256": "9712fbe8158de2b3f237339104955ded7d6e625d1d797e38797189f08f4a4e42",
+ "utc": "2026-09-23T16:45:17Z",
+ "files": {
+  "fixed_news_stats": {
+   "path": "/dev/shm/news_2026-09-23/devices/news_stats.py",
+   "sha256": "7141ba42ab227b9f35b48acce62d5e2a2494f364fdf6a83189974cb2af67e03c"
+  },
+  "fresh_stats": {
+   "path": "/dev/shm/fresh_2026-09-23/devices/fresh_stats.py",
+   "sha256": "4b111d4a9774e9832f961fb45021d6ba1359569295cbf427e3b20e81a0c88109"
+  },
+  "prefix_news_stats": {
+   "path": "/dev/shm/fresh_2026-09-23/scratch/news_stats_prefix_10cb1d9e.py",
+   "sha256": "10cb1d9e56f63355dc5fdf107b4c8d399f12aa768cb60aa4f36d5f9dffbc5672"
+  }
+ },
+ "C1_select_rp_run_source": {
+  "present_in_fixed": true,
+  "present_in_fresh": true,
+  "present_in_prefix_version": false,
+  "bytes_fixed": 2145,
+  "bytes_fresh": 2145,
+  "sha256_fixed": "8b14851c4f548f834b37298332b36a7595d2bbf3553e59875a6f9309bc4613b2",
+  "sha256_fresh": "8b14851c4f548f834b37298332b36a7595d2bbf3553e59875a6f9309bc4613b2",
+  "IDENTICAL": true
+ },
+ "C2_frozen_object_constants": {
+  "fixed": {
+   "NPATH": 32,
+   "BTP_SHA": "a7cb9c4d02dd07751fd298500c8e88d54e884d236429bff2f3567fbb77e1ff48",
+   "RP_THRESHOLD": -0.25,
+   "RP_BASE_LABEL": "FULL_RECIPE window start",
+   "RP_BASE_ANCHOR": "2023-06-30T04:00:00Z",
+   "RP_BASE_KEY": "f\"{RP_BASE_LABEL} @ {RP_BASE_ANCHOR}\"",
+   "RP_WINDOW_END": "2026-08-31T00:00:00Z"
+  },
+  "fresh": {
+   "NPATH": 32,
+   "BTP_SHA": "a7cb9c4d02dd07751fd298500c8e88d54e884d236429bff2f3567fbb77e1ff48",
+   "RP_THRESHOLD": -0.25,
+   "RP_BASE_LABEL": "FULL_RECIPE window start",
+   "RP_BASE_ANCHOR": "2023-06-30T04:00:00Z",
+   "RP_BASE_KEY": "f\"{RP_BASE_LABEL} @ {RP_BASE_ANCHOR}\"",
+   "RP_WINDOW_END": "2026-08-31T00:00:00Z"
+  },
+  "prefix_version": {
+   "NPATH": 32,
+   "BTP_SHA": "a7cb9c4d02dd07751fd298500c8e88d54e884d236429bff2f3567fbb77e1ff48"
+  },
+  "missing_in_fresh": [],
+  "missing_in_fixed": [],
+  "IDENTICAL": true
+ },
+ "C3_import_side_effects": {
+  "fixed": {
+   "tripped_file_opens": [],
+   "import_error": null,
+   "select_rp_run_importable": true
+  },
+  "fresh": {
+   "tripped_file_opens": [],
+   "import_error": null,
+   "select_rp_run_importable": true
+  },
+  "prefix_version": {
+   "tripped_file_opens": [],
+   "import_error": "IndexError: list index out of range",
+   "select_rp_run_importable": false
+  },
+  "IDENTICAL": true
+ },
+ "prefix_version_did": {
+  "function": "halted",
+  "source": "def halted(p, label):\n    R = json.load(open(p)); assert R[\"self_sha256\"] == BTP_SHA, f\"bt_p_reading sha {p}\"\n    runs = list(R[\"runs\"].values()); assert len(runs) == 1\n    b = runs[0][\"bases\"][\"FULL_RECIPE window start @ 2023-06-30T04:00:00Z\"]; pp = b[\"per_path\"]; assert len(pp) == NPATH\n    return {\"receipt\": p, \"receipt_sha256\": sha(p), \"halted_paths\": int(sum(1 for x in pp if x[\"fired\"])), \"n_paths\": len(pp),\n            \"window_last_anchor\": pp[0][\"window_last_anchor\"], \"label\": label}",
+  "note": "asserts len(runs)==1 over ALL runs in the receipt; a receipt holding scaled+lit therefore stops the device rather than selecting the scaled main reading. No threshold / base / seed / window checks."
+ },
+ "C4_function_census": {
+  "identical": [
+   "boot",
+   "daily_on",
+   "dbar",
+   "full_days",
+   "iso",
+   "mean_path_metrics",
+   "path_metrics",
+   "seg_mask",
+   "select_rp_run",
+   "sha",
+   "summarise"
+  ],
+  "different": [
+   "load_cell",
+   "main",
+   "rules",
+   "ts"
+  ],
+  "only_in_fixed": [],
+  "only_in_fresh": [],
+  "why_each_difference_is_required": {
+   "load_cell": "FRESH has no certified-reproduction arm (NEW_S's OLD arm re-checks against CERT); FRESH instead records the engine/calibration/price/config pins its own P0_same_engine precondition compares across arms",
+   "main": "different arms, roots and argv (FRESH vs NEW_S)",
+   "rules": "prereg \u00a73 F1..F5 (FRESH) vs S1..S5 (NEW_S) \u2014 different documents, different gates",
+   "ts": "parameter renamed iso -> iso_ so it does not shadow the module-level iso(); body otherwise identical"
+  },
+  "unexpected_differences": [],
+  "IDENTICAL": true
+ },
+ "VERDICT": "FRESH_STATS_CARRIES_FIXED_RP_SELECTION"
+}

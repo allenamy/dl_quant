@@ -6,6 +6,12 @@ Baseline is asserted GREEN FIRST and every baseline cell prints its measured val
 selector must return exactly one run, through the base-cell directory the tables load, and — where the published count is known —
 the published halted count. Only then is each mutation required to be REFUSED with an RPError naming the reason.
 
+Provenance: the method is NEW_S's test_news_stats_rp.py (sha 23846cb4…, commit f24467c5d) — baseline green first, then each mutation
+refused with the reason named. All seven of its mutations are reproduced here (wrong arm / threshold / 32 copies of seed 0 / cutoff at
+the rule level / cutoff at the per-path level / two runs claiming one dir / wrong bt_p_reading device). Added here: the FULL_RECIPE base
+removed from the rule, n_paths not 32, the selected run's own window end cut, the base key absent from the run, and a branch-coverage
+assertion that every `raise RPError` site in select_rp_run is named by some mutation (so a branch added later is red until covered).
+
 usage: python -B test_fresh_stats_rp.py PATH,HOME,LC_CTYPE <cases.json> <out.json>
   cases.json = [{"name":…, "receipt":…, "dir":…, "want": <int or null>}, …]   (want=null ⇒ baseline records the measured count)
 """
@@ -49,9 +55,9 @@ def run_key_for(R, d):
 def expect_refused(name, path, d, must_contain, check_sha=True):
     try:
         r = FS.select_rp_run(path, d, check_device_sha=check_sha)
-        rep["mutations"][name] = {"refused": False, "got_halted": r["halted_paths"], "run_key": r["run_key"], "reason_as_named": False}
+        rep["mutations"][name] = {"refused": False, "got_halted": r["halted_paths"], "run_key": r["run_key"], "reason_as_named": False, "_must_contain": must_contain}
     except FS.RPError as e:
-        rep["mutations"][name] = {"refused": True, "reason": str(e)[:300], "reason_as_named": must_contain in str(e)}
+        rep["mutations"][name] = {"refused": True, "reason": str(e)[:300], "reason_as_named": must_contain in str(e), "_must_contain": must_contain}
 
 
 # 1. wrong arm: a real receipt read for a directory that belongs to another arm
@@ -93,8 +99,31 @@ expect_refused("n_paths_31", mutated(BASE["receipt"], lambda R: R["runs"][run_ke
 # 9. a different bt_p_reading device produced the receipt
 expect_refused("device_sha_mismatch", mutated(BASE["receipt"], lambda R: R.__setitem__("self_sha256", "0" * 64)), BASE["dir"], "bt_p_reading sha")
 
-rep["VERDICT"] = "PASS" if all(v["refused"] and v["reason_as_named"] for v in rep["mutations"].values()) else "FAIL"
+# 10. the SELECTED RUN's own window end cut to 2024 while the rule still declares the full window
+#     (neither this test nor NEW_S's test_news_stats_rp.py reached this branch before: their cutoff_2024_receipt
+#      mutates breach_by first, which refuses earlier, so the run-level window check was never exercised)
+expect_refused("run_window_end_2024_only", mutated(BASE["receipt"], lambda R: R["runs"][run_key_for(R, BASE["dir"])]["window"].__setitem__(-1, "2024-12-31T20:00:00Z")), BASE["dir"], "run window end")
+# 11. the FULL_RECIPE base still declared in the rule, but absent from the selected run's bases
+expect_refused("base_key_absent_from_run", mutated(BASE["receipt"], lambda R: R["runs"][run_key_for(R, BASE["dir"])]["bases"].pop(FS.RP_BASE_KEY)), BASE["dir"], "no base")
+
+# ───── coverage: EVERY refusal branch of select_rp_run must be named by at least one mutation above.
+# Read from the source, not from a hand-kept list, so a branch added tomorrow makes this test red until it is covered.
+import ast, inspect
+_src = inspect.getsource(FS.select_rp_run)
+_sites = [ast.get_source_segment(_src, n.exc) for n in ast.walk(ast.parse(_src))
+          if isinstance(n, ast.Raise) and isinstance(n.exc, ast.Call) and getattr(n.exc.func, "id", "") == "RPError"]
+_named = sorted({v["_must_contain"] for v in rep["mutations"].values()})
+_uncovered = [s for s in _sites if not any(m in s for m in _named)]
+rep["branch_coverage"] = {"raise_sites_in_select_rp_run": len(_sites), "named_reasons_exercised": _named,
+                          "uncovered_raise_sites": _uncovered, "COMPLETE": not _uncovered,
+                          "rule": "each `raise RPError(...)` in select_rp_run must contain, as a literal substring of its own source, "
+                                  "the reason string at least one mutation above requires; a new branch is therefore red until a mutation names it"}
+for v in rep["mutations"].values(): v.pop("_must_contain", None)
+
+ok = rep["baseline_green"] and all(v["refused"] and v["reason_as_named"] for v in rep["mutations"].values()) and rep["branch_coverage"]["COMPLETE"]
+rep["VERDICT"] = "PASS" if ok else "FAIL"
 json.dump(rep, open(OUT, "w"), indent=1)
 print("TEST_FRESH_STATS_RP VERDICT=" + rep["VERDICT"], "baseline", json.dumps({k: {"halted": v["halted_paths"], "want": v["want"], "n_runs": v["n_runs_in_receipt"]} for k, v in rep["baseline"].items()}),
-      "mutations_refused", sum(v["refused"] for v in rep["mutations"].values()), "/", len(rep["mutations"]), flush=True)
-sys.exit(0 if rep["VERDICT"] == "PASS" else 3)
+      "mutations_refused_as_named", sum(v["refused"] and v["reason_as_named"] for v in rep["mutations"].values()), "/", len(rep["mutations"]),
+      "branch_coverage", f"{len(_sites) - len(_uncovered)}/{len(_sites)}", "uncovered", _uncovered, flush=True)
+sys.exit(0 if ok else 3)
