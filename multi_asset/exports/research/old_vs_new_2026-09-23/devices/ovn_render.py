@@ -128,12 +128,9 @@ if PDIR != "-":
         if os.path.exists(p2f):
             P2 = json.load(open(p2f)); run = next(v for k, v in P2["runs"].items() if "scaled" in k); base = next(v for k, v in run["bases"].items() if k.startswith("FULL_RECIPE"))
             sm = base["12"]["W_ENTRY"]["summary"]
-            def g(x, k):
-                v = sm.get(x, {}); return v.get(k) if isinstance(v, dict) else None
-            hit = sm.get("paths_that_hit_cum25", {})
-            cells += [json.dumps({k: hit.get(k) for k in ("count", "n", "population_n", "mean") if k in hit}) if isinstance(hit, dict) else str(hit),
-                      str(sm.get("cum25_anchor_median_utc", {}).get("value") if isinstance(sm.get("cum25_anchor_median_utc"), dict) else sm.get("cum25_anchor_median_utc")),
-                      f"{pct(g('end_return_P2', 'mean'))} / {pct(g('end_return_no_halt', 'mean'))}"]
+            hit = sm["paths_that_hit_cum25"]; e2 = sm["end_return_P2"]["measured"]; e0 = sm["end_return_no_halt"]["measured"]
+            cells += [f"{hit['n_true']}/{hit['population']['n']}", str(sm["cum25_anchor_median_utc"].get("value")),
+                      f"{pct(e2['mean'])} / {pct(e0['mean'])} (n_eff {e2['n_eff']})"]
         else: cells += ["UNAVAILABLE"] * 3
         w(f"| {a} | " + " | ".join(cells) + " |")
 open(OUT, "w").write("\n".join(L) + "\n"); print("rendered", OUT, sha(OUT))
