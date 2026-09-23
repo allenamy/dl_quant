@@ -1,0 +1,134 @@
+{
+ "device": "test_news2_stats.py",
+ "self_sha256": "372e28b914fd00e7f656869bc893cb9f20a07808c8a84d09688d97e43dfdd50a",
+ "news2_stats_sha256": "9e89561838cf7dbd9895868e8afff0956d8608e6a543bfaeb5ab4f928b518538",
+ "utc": "2026-09-23T18:19:11Z",
+ "python": "3.11.10",
+ "inputs": {
+  "runs_stage1": "/dev/shm/ovn_2026-09-23/runs",
+  "runs_news": "/dev/shm/news_2026-09-23/runs",
+  "certified": "/workspace/baseline_tables_2026-09-19/runs",
+  "rp": {
+   "OLD": {
+    "path": "/dev/shm/ovn_2026-09-23/receipts/BT_P_READING_OVN_OLD.json",
+    "sha256": "e6287c0bd4df9017dbe23231e514bc5ebccb091c8aa3b3a2c2fa9b637214ea6b"
+   },
+   "OLD_HOLD": {
+    "path": "/dev/shm/ovn_2026-09-23/receipts/BT_P_READING_OVN_OLD_HOLD.json",
+    "sha256": "048bbcd74ed0a7966eac6090d8c9d460169eed05888a919dfcda979862398323"
+   },
+   "NEWS_s42": {
+    "path": "/dev/shm/news_2026-09-23/receipts/engine/BT_P_READING_NEWS_s42.json",
+    "sha256": "0bc2e65af5fe414af9b6446cbb6d3d2852957cd20a43a2df177706a65d981ec0"
+   },
+   "NEWS_s2027": {
+    "path": "/dev/shm/news_2026-09-23/receipts/engine/BT_P_READING_NEWS_s2027.json",
+    "sha256": "aae693dff3413128d71428c2a5e1edfac1c96e2393b71fa18c6d63ccca4f2350"
+   }
+  }
+ },
+ "cells": [
+  {
+   "cell": "BASELINE.verdict",
+   "verdict": "PASS",
+   "expected": "DEPLOY",
+   "observed": "DEPLOY",
+   "note": ""
+  },
+  {
+   "cell": "BASELINE.B1_zero_s42",
+   "verdict": "PASS",
+   "expected": "0.0 and PASS",
+   "observed": "0.0 PASS=True",
+   "note": "an arm against itself"
+  },
+  {
+   "cell": "BASELINE.B2_equal_s42",
+   "verdict": "PASS",
+   "expected": "equal halted paths",
+   "observed": "{\"NEWS2\": 0, \"NEWS\": 0}",
+   "note": ""
+  },
+  {
+   "cell": "BASELINE.A_pass_s42",
+   "verdict": "PASS",
+   "expected": "A PASS, failing []",
+   "observed": "[]",
+   "note": ""
+  },
+  {
+   "cell": "BASELINE.S1_s42_vs_OLD",
+   "verdict": "PASS",
+   "expected": "+6.148 (published)",
+   "observed": "+6.148",
+   "note": "RESULT_new_servable_models_2026-09-23.md \u00a71"
+  },
+  {
+   "cell": "BASELINE.S1_s42_vs_OLD_HOLD",
+   "verdict": "PASS",
+   "expected": "+3.621 (published)",
+   "observed": "+3.621",
+   "note": "RESULT_new_servable_models_2026-09-23.md \u00a71"
+  },
+  {
+   "cell": "BASELINE.B1_zero_s2027",
+   "verdict": "PASS",
+   "expected": "0.0 and PASS",
+   "observed": "0.0 PASS=True",
+   "note": "an arm against itself"
+  },
+  {
+   "cell": "BASELINE.B2_equal_s2027",
+   "verdict": "PASS",
+   "expected": "equal halted paths",
+   "observed": "{\"NEWS2\": 0, \"NEWS\": 0}",
+   "note": ""
+  },
+  {
+   "cell": "BASELINE.A_pass_s2027",
+   "verdict": "PASS",
+   "expected": "A PASS, failing []",
+   "observed": "[]",
+   "note": ""
+  },
+  {
+   "cell": "BASELINE.S1_s2027_vs_OLD",
+   "verdict": "PASS",
+   "expected": "+4.804 (published)",
+   "observed": "+4.804",
+   "note": "RESULT_new_servable_models_2026-09-23.md \u00a71"
+  },
+  {
+   "cell": "BASELINE.S1_s2027_vs_OLD_HOLD",
+   "verdict": "PASS",
+   "expected": "+2.277 (published)",
+   "observed": "+2.277",
+   "note": "RESULT_new_servable_models_2026-09-23.md \u00a71"
+  },
+  {
+   "cell": "MUT.to_user",
+   "verdict": "PASS",
+   "expected": "TO_USER with B1 failing for s42",
+   "observed": "TO_USER, B1(s42)=-1.344",
+   "note": "NEW_S2 arm = NEW_S s2027 runs; A still passes, but it is worse than the s42 control"
+  },
+  {
+   "cell": "MUT.no_deploy",
+   "verdict": "PASS",
+   "expected": "NO_DEPLOY naming A:S1",
+   "observed": "NO_DEPLOY {\"s42\": [\"A:S1\", \"A:S2\", \"A:S3\", \"A:S4\", \"A:S5\", \"B1\", \"B2\"], \"s2027\": [\"A:S1\", \"A:S2\", \"A:S3\", \"A:S4\", \"A:S5\", \"B1\", \"B2\"]}",
+   "note": "NEW_S2 arm = OLD runs, so S1 against OLD is exactly 0 and the gate wants > 0"
+  },
+  {
+   "cell": "MUT.refuse_wrong_rp_dir",
+   "verdict": "PASS",
+   "expected": "non-zero exit naming RPError",
+   "observed": "rc=1 stderr_has_RPError=True",
+   "note": "the R-P receipt must belong to the directory the S tables loaded"
+  }
+ ],
+ "n_cells": 14,
+ "n_not_pass": 0,
+ "VERDICT": "PASS",
+ "seconds": 319.7
+}
