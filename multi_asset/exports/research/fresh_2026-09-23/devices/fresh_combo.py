@@ -49,7 +49,7 @@ def main():
     ident[UNIVERSE_PATH] = UNIVERSE_SHA
     config = json.loads(paths[5].read_text())
     sources = {str(p): sha(p) for p in [pathlib.Path(__file__), pathlib.Path(HERE) / 'continuous_combo.py', pathlib.Path(HERE) / 'combo_target.py', pathlib.Path(HERE) / 'book_universe.py',
-                                          N / 'vendor_live/fea171/combo_stage.py']}
+                                          W / 'vendor_live/fea171/combo_stage.py']}   # combo_target.source_kernels loads THIS copy (ROOT = parents[1] of devices/)
     out = W / f'work/combo_s{args.seed}'; out.mkdir(exist_ok=False)
     mem_u = [members[i] for i in np.flatnonzero(use)]
     # members outside the book universe: counted (they can hold no weight: LIVE_MASK False ⇒ chain's keep excludes them)

@@ -86,6 +86,7 @@ def fresh_cfg(base, seed, ext):
     for r in N["runs"]:
         r["arm"] = run_arm; r["tag"] = run_arm + "|" + r["tag"].split("|", 1)[1]
         r["role"] = re.sub(r"NEW_S arm NEWS_s\d+", f"FRESH arm {arm}", r["role"])
+        assert f"FRESH arm {arm}" in r["role"] and "NEWS_s" not in r["role"], f"role relabel did not take: {r['role']}"
         r["targets"]["arm"] = arm
         r["targets"]["sources"] = [{"npz": R["_npz_path"], "npz_sha256": R["targets_npz_sha256"], "receipt": p, "receipt_sha256": sha(p)}]
     return N

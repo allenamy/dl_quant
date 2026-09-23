@@ -147,8 +147,10 @@ for seed in SEEDS:
                                                         "receipt_sha256": sha(f"{fr}/TRAIN_RECEIPT.json")}
 
 # ───── 3. target difference vs NEW_S + 4. chain turnover ─────
-def dense(z, pre, i):
-    v = np.zeros(len(syms)); s, e = z[pre + "_off"][i], z[pre + "_off"][i + 1]
+def dense(z, pre, i, width):
+    """the adapter's sparse target row as a dense vector over ITS OWN index space (int16 idx into the run universe,
+    the same for both arms because both adapter specs carry the same universe file/sha)."""
+    v = np.zeros(width); s, e = z[pre + "_off"][i], z[pre + "_off"][i + 1]
     v[z[pre + "_idx"][s:e].astype(int)] = z[pre + "_val"][s:e]; return v
 
 
@@ -157,10 +159,11 @@ for seed in SEEDS:
     zf = np.load(f"{FW}/targets/TARGETS_FRESH_s{seed}.npz"); zn = np.load(f"{NW}/targets/TARGETS_NEWS_s{seed}.npz")
     assert np.array_equal(zf["anchor"], zn["anchor"]), "target axes differ"
     an = zf["anchor"].astype(np.int64); n = len(an)
+    width = int(max(zf["scaled_idx"].max(), zn["scaled_idx"].max())) + 1
     l1 = np.zeros(n); gf = np.zeros(n); gn = np.zeros(n); kf = zf["scaled_kind"]; kn = zn["scaled_kind"]
-    prev_f = np.zeros(len(syms)); prev_n = np.zeros(len(syms)); tof = np.zeros(n); ton = np.zeros(n)
+    prev_f = np.zeros(width); prev_n = np.zeros(width); tof = np.zeros(n); ton = np.zeros(n)
     for i in range(n):
-        wf = dense(zf, "scaled", i); wn = dense(zn, "scaled", i)
+        wf = dense(zf, "scaled", i, width); wn = dense(zn, "scaled", i, width)
         l1[i] = np.abs(wf - wn).sum(); gf[i] = np.abs(wf).sum(); gn[i] = np.abs(wn).sum()
         tof[i] = np.abs(wf - prev_f).sum(); ton[i] = np.abs(wn - prev_n).sum(); prev_f, prev_n = wf, wn
     diff = l1 > 0
