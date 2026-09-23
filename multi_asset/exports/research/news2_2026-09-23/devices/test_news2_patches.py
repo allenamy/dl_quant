@@ -16,7 +16,7 @@ usage: python test_news2_patches.py <patched_tree> <out.json>
 import ast, hashlib, json, os, subprocess, sys, tempfile, time
 import numpy as np
 
-REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../../.."))
+REPO = os.environ.get("NEWS2_REPO", os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../../..")))
 BASE_TREE = os.path.join(REPO, "multi_asset/exports/research/news2_2026-09-23/work/base_tree")
 WIDE = os.path.expanduser("~/wide_shadow")
 CH = ["ret5", "range", "cpos", "log_qv", "log_cnt", "log_avgsz", "tbf"]

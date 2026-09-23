@@ -25,10 +25,15 @@ usage: python news2_derive_producer.py <out_dir> [--member-screen-f64 yes|no]
 """
 import argparse, ast, hashlib, json, os, pathlib, shutil, sys, time
 
-WIDE = pathlib.Path(os.path.expanduser("~/wide_shadow"))
-REPO = pathlib.Path(__file__).resolve().parents[5]
-BASE_SHADOW = REPO / "multi_asset/exports/research/news_2026-09-23/deploy/producer_patch/shadow_loop_v3.patched.py"
-RESEARCH_TREE = REPO / ".claude/worktrees/codex-strategy-uplift-20260920/multi_asset/experiments/codex_combo_20260923/devices"
+# Paths are env-overridable so the SAME device runs on the production Mac and on pod2; every file is
+# sha-pinned below, so a wrong path fails loudly instead of quietly patching something else.
+WIDE = pathlib.Path(os.environ.get("NEWS2_WIDE", os.path.expanduser("~/wide_shadow")))
+_p = pathlib.Path(__file__).resolve().parents
+REPO = _p[5] if len(_p) > 5 else pathlib.Path("/nonexistent-repo")   # pod2 has no repo checkout; env vars supply the paths
+BASE_SHADOW = pathlib.Path(os.environ.get(
+    "NEWS2_BASE_SHADOW", str(REPO / "multi_asset/exports/research/news_2026-09-23/deploy/producer_patch/shadow_loop_v3.patched.py")))
+RESEARCH_TREE = pathlib.Path(os.environ.get(
+    "NEWS2_RESEARCH_TREE", str(REPO / ".claude/worktrees/codex-strategy-uplift-20260920/multi_asset/experiments/codex_combo_20260923/devices")))
 
 SRC_SHA = {
     "shadow_loop_v3.py": "ed11d731ffc13ef1333c3fabe044bc209485ba237fd9b8ae11aeccb014be1ec9",
@@ -69,7 +74,10 @@ class Patcher:
         self.enabled = enabled          # None = all
 
     def _on(self, tag):
-        return self.enabled is None or tag.split(":")[0] in self.enabled or tag in self.enabled
+        if self.enabled is None:
+            return True
+        fam = tag.split(":")[0]
+        return tag in self.enabled or any(f in self.enabled for f in fam.split("+"))
 
     def replace(self, tag, old, new):
         n = self.text.count(old)
@@ -96,58 +104,108 @@ class Patcher:
 
 
 # ---------------------------------------------------------------- shadow_loop_v3.py (King block)
+# D5 and D6 touch the SAME three kernels (wstat, the vol block, the member screen), so each kernel's
+# replacement text is generated from the two flags. That keeps the per-fix arms of the global gate
+# genuinely separable instead of collapsing D5 and D6 into one indivisible edit.
+def _wstat_new(d5, d6):
+    acc = "np.where(fin, seg, 0).sum(0, dtype=np.float64)" if d5 else "np.where(fin, seg, 0).sum(0)"
+    cast = ".astype(np.float32)" if d5 else ""
+    mean = ('np.where(cnt > 0, s_ / nf, np.nan)' + cast) if d6 else ("s_ / nf" + cast)
+    return f"""    def wstat(ch, w, kind):
+        # NEW_S2{' D5: float64 accumulator (feature_contract.window_stats policy), rounded back to the' if d5 else ''}
+        # {'float32 this function already returned.' if d5 else ''}{' NEW_S2 D6: an empty window has no mean - NaN, so the' if d6 else ''}
+        # {'existing np.isfinite(x) guard below keeps it out of the cross-sectional rank.' if d6 else ''}
+        seg = CDf[max(ai + 1 - w, 0):ai + 1, :, ch]
+        fin = np.isfinite(seg)
+        cnt = fin.sum(0)
+        nf = np.maximum(cnt, 1)
+        s_ = {acc}
+        if kind == "sum": return s_{cast}
+        return {mean}
+"""
+
+
+def _vol_new(d5, d6):
+    if d5:
+        body = """        z64 = np.where(fin, seg, 0).astype(np.float64)      # NEW_S2 D5: square in float64, not float32
+        mm = z64.sum(0) / nf
+        vv = np.sqrt(np.maximum((z64 * z64).sum(0) / nf - mm**2, 0))
+        del z64
+"""
+    else:
+        body = """        mm = np.where(fin, seg, 0).sum(0) / nf
+        vv = np.sqrt(np.maximum(np.where(fin, seg**2, 0).sum(0) / nf - mm**2, 0))
+"""
+    tail = "        vv = np.where(cnt > 0, vv, np.nan).astype(np.float32)   # NEW_S2 D6\n" if d6 else (
+           "        vv = vv.astype(np.float32)\n" if d5 else "")
+    return f"""        seg = CDf[max(ai + 1 - w, 0):ai + 1, :, 0]
+        fin = np.isfinite(seg)
+        cnt = fin.sum(0)
+        nf = np.maximum(cnt, 1)
+{body}{tail}        vals.append(vv[m]); names_order.append(f"vol_{{w}}")
+"""
+
+
+def _screen_new(d5, d6):
+    if d5:
+        stats = """    z5 = np.where(fin5, r5seg, 0).astype(np.float64)        # NEW_S2 D5
+    m7 = z5.sum(0)
+    v7 = np.sqrt(np.maximum((z5 * z5).sum(0) / n7 - (m7 / n7) ** 2, 0))
+    del z5
+"""
+        qv = "    qvm = np.where(finq, qseg, 0).sum(0, dtype=np.float64) / np.maximum(cq, 1)\n"
+    else:
+        stats = """    m7 = np.where(fin5, r5seg, 0).sum(0)
+    v7 = np.sqrt(np.maximum(np.where(fin5, r5seg**2, 0).sum(0) / n7 - (m7 / n7) ** 2, 0))
+"""
+        qv = "    qvm = np.where(finq, qseg, 0).sum(0) / np.maximum(cq, 1)\n"
+    v7tail = "    v7 = np.where(c7 > 0, v7, np.nan).astype(np.float32)   # NEW_S2 D6\n" if d6 else (
+             "    v7 = v7.astype(np.float32)\n" if d5 else "")
+    qvtail = "    qvm = np.where(cq > 0, qvm, np.nan).astype(np.float32)   # NEW_S2 D6\n" if d6 else (
+             "    qvm = qvm.astype(np.float32)\n" if d5 else "")
+    return f"""    r5seg = CDf[max(ai + 1 - 2016, 0):ai + 1, :, 0]
+    fin5 = np.isfinite(r5seg)
+    covr = fin5.sum(0) / 2016
+    c7 = fin5.sum(0)
+    n7 = np.maximum(c7, 1)
+{stats}{v7tail}    qseg = CDf[max(ai + 1 - 2016, 0):ai + 1, :, 3]
+    finq = np.isfinite(qseg)
+    cq = finq.sum(0)
+{qv}{qvtail}"""
+
+
 def patch_shadow(P, member_screen_f64):
-    # D5 + D6 — the window kernel. float64 accumulator; empty window -> NaN mean (never a ranked zero).
+    d5 = P._on("D5:x"); d6 = P._on("D6:x")
+    P.replace("D5+D6:wstat", ORIG_WSTAT, _wstat_new(d5, d6))
+    P.replace("D5+D6:vol", ORIG_VOL, _vol_new(d5, d6))
+    if member_screen_f64:
+        P.replace("D5+D6:member_screen", ORIG_SCREEN, _screen_new(d5, d6))
+        if d6:
+            P.replace("D6:qvm_population_assert", ORIG_OK, NEW_OK)
+    # D14 - stable tie-break on the liquidity sort.
     P.replace(
-        "D5+D6:wstat",
-        """    def wstat(ch, w, kind):
+        "D14:stable_argsort",
+        '        m = np.sort(m[np.argsort(-qvm[m])[:P["NTOP"]]])',
+        '        m = np.sort(m[np.argsort(-qvm[m], kind="stable")[:P["NTOP"]]])   # NEW_S2 D14 (feature_contract.select_members)',
+    )
+
+
+ORIG_WSTAT = """    def wstat(ch, w, kind):
         seg = CDf[max(ai + 1 - w, 0):ai + 1, :, ch]
         fin = np.isfinite(seg)
         nf = np.maximum(fin.sum(0), 1)
         s_ = np.where(fin, seg, 0).sum(0)
         if kind == "sum": return s_
         return s_ / nf
-""",
-        """    def wstat(ch, w, kind):
-        # NEW_S2 D5: float64 accumulator (feature_contract.window_stats policy), result rounded back to
-        # the float32 this function already returned. NEW_S2 D6: an empty window has no mean — NaN, so the
-        # existing np.isfinite(x) guard below keeps it out of the cross-sectional rank.
-        seg = CDf[max(ai + 1 - w, 0):ai + 1, :, ch]
-        fin = np.isfinite(seg)
-        cnt = fin.sum(0)
-        nf = np.maximum(cnt, 1)
-        s_ = np.where(fin, seg, 0).sum(0, dtype=np.float64)
-        if kind == "sum": return s_.astype(np.float32)
-        return np.where(cnt > 0, s_ / nf, np.nan).astype(np.float32)
-""",
-    )
-    # D5 + D6 — the vol block (same kernel, written out inline in the producer).
-    P.replace(
-        "D5+D6:vol",
-        """        seg = CDf[max(ai + 1 - w, 0):ai + 1, :, 0]
+"""
+ORIG_VOL = """        seg = CDf[max(ai + 1 - w, 0):ai + 1, :, 0]
         fin = np.isfinite(seg)
         nf = np.maximum(fin.sum(0), 1)
         mm = np.where(fin, seg, 0).sum(0) / nf
         vv = np.sqrt(np.maximum(np.where(fin, seg**2, 0).sum(0) / nf - mm**2, 0))
         vals.append(vv[m]); names_order.append(f"vol_{w}")
-""",
-        """        seg = CDf[max(ai + 1 - w, 0):ai + 1, :, 0]
-        fin = np.isfinite(seg)
-        cnt = fin.sum(0)
-        nf = np.maximum(cnt, 1)
-        z64 = np.where(fin, seg, 0).astype(np.float64)      # NEW_S2 D5: square in float64, not float32
-        mm = z64.sum(0) / nf
-        vv = np.sqrt(np.maximum((z64 * z64).sum(0) / nf - mm**2, 0))
-        vv = np.where(cnt > 0, vv, np.nan).astype(np.float32)   # NEW_S2 D6
-        del z64
-        vals.append(vv[m]); names_order.append(f"vol_{w}")
-""",
-    )
-    if member_screen_f64:
-        # D5 + D6 on the member screen (PREREG §1.4(a); the researcher's one kernel feeds n7/v7/q7 too).
-        P.replace(
-            "D5+D6:member_screen",
-            """    r5seg = CDf[max(ai + 1 - 2016, 0):ai + 1, :, 0]
+"""
+ORIG_SCREEN = """    r5seg = CDf[max(ai + 1 - 2016, 0):ai + 1, :, 0]
     fin5 = np.isfinite(r5seg)
     covr = fin5.sum(0) / 2016
     m7 = np.where(fin5, r5seg, 0).sum(0)
@@ -156,48 +214,21 @@ def patch_shadow(P, member_screen_f64):
     qseg = CDf[max(ai + 1 - 2016, 0):ai + 1, :, 3]
     finq = np.isfinite(qseg)
     qvm = np.where(finq, qseg, 0).sum(0) / np.maximum(finq.sum(0), 1)
-""",
-            """    r5seg = CDf[max(ai + 1 - 2016, 0):ai + 1, :, 0]
-    fin5 = np.isfinite(r5seg)
-    covr = fin5.sum(0) / 2016
-    c7 = fin5.sum(0)                                        # NEW_S2 D6
-    n7 = np.maximum(c7, 1)
-    z5 = np.where(fin5, r5seg, 0).astype(np.float64)        # NEW_S2 D5
-    m7 = z5.sum(0)
-    v7 = np.sqrt(np.maximum((z5 * z5).sum(0) / n7 - (m7 / n7) ** 2, 0))
-    v7 = np.where(c7 > 0, v7, np.nan).astype(np.float32)
-    del z5
-    qseg = CDf[max(ai + 1 - 2016, 0):ai + 1, :, 3]
-    finq = np.isfinite(qseg)
-    cq = finq.sum(0)
-    qvm = np.where(finq, qseg, 0).sum(0, dtype=np.float64) / np.maximum(cq, 1)
-    qvm = np.where(cq > 0, qvm, np.nan).astype(np.float32)
-""",
-        )
-        # A name that clears cov/vol but has no liquidity measurement at all would sort as NaN. The
-        # producer has no guard for it and this round does not add a member rule, so assert it away.
-        P.replace(
-            "D6:qvm_population_assert",
-            """    ok = (covr >= P["cov_min"]) & (v7 >= P["vol_min"])
+"""
+ORIG_OK = """    ok = (covr >= P["cov_min"]) & (v7 >= P["vol_min"])
     m = np.where(ok)[0]
-""",
-            """    ok = (covr >= P["cov_min"]) & (v7 >= P["vol_min"])
+"""
+NEW_OK = """    ok = (covr >= P["cov_min"]) & (v7 >= P["vol_min"])
     # NEW_S2 D6: no member rule is added this round, so a screened-in name with NO liquidity measurement
     # would reach argsort as NaN. Declared to be an empty population; stop rather than sort NaN silently.
     assert not np.any(ok & ~np.isfinite(qvm)), "NEW_S2 D6: member passes cov/vol but qvm window is empty"
     m = np.where(ok)[0]
-""",
-        )
-    # D14 — stable tie-break on the liquidity sort.
-    P.replace(
-        "D14:stable_argsort",
-        '        m = np.sort(m[np.argsort(-qvm[m])[:P["NTOP"]]])',
-        '        m = np.sort(m[np.argsort(-qvm[m], kind="stable")[:P["NTOP"]]])   # NEW_S2 D14 (feature_contract.select_members)',
-    )
+"""
 
 
 # ---------------------------------------------------------------- fea171/dlw_features.py (F10 82 cols)
 def patch_dlw(P):
+    d6 = P._on("D6:x")
     # D4 — 82-column storage precision.
     P.replace(
         "D4:x82_dtype",
@@ -207,9 +238,10 @@ def patch_dlw(P):
     # D6 — empty window -> NaN mean/std. (The ret5 SUM column stays a finite 0, as in the researcher's
     # build_combo_inputs.py:113, which takes st['sum'] for channel 0.) The rank exclusion needs no edit:
     # the existing ok = np.isfinite(xv) below already drops NaN from the rank and writes 0 for the value.
-    P.replace(
-        "D6:dlw_windows",
-        """        for w in WINS:
+    if d6:
+        P.replace(
+            "D6:dlw_windows",
+            """        for w in WINS:
             lo = np.maximum(hi - w, 0)
             nf = np.maximum(CSf[hi] - CSf[lo], 1)
             if c == 0:
@@ -223,7 +255,7 @@ def patch_dlw(P):
                 mm = (CSx[hi] - CSx[lo]) / nf
                 VOLS.append(np.sqrt(np.maximum((CS2[hi] - CS2[lo]) / nf - mm ** 2, 0)).astype(np.float32))
 """,
-        """        for w in WINS:
+            """        for w in WINS:
             lo = np.maximum(hi - w, 0)
             cnt = CSf[hi] - CSf[lo]                      # NEW_S2 D6
             nf = np.maximum(cnt, 1)
@@ -239,7 +271,7 @@ def patch_dlw(P):
                 vv = np.sqrt(np.maximum((CS2[hi] - CS2[lo]) / nf - mm ** 2, 0))
                 VOLS.append(np.where(cnt > 0, vv, np.nan).astype(np.float32))   # NEW_S2 D6
 """,
-    )
+        )
 
 
 # ---------------------------------------------------------------- fea171/combo_stage.py (btcv, fund panel, rn8)

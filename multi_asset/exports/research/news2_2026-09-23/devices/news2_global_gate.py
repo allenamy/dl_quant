@@ -30,14 +30,23 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import news2_hist_features as H
 
-PAR = os.path.expanduser("~/cc_tmp/news_20260923/parity")
-CRYPTO = os.path.join(HERE, "../../news_2026-09-23/receipts/P1_members_2025H2on.npz")
-CFG = os.path.expanduser("~/cc_tmp/news_20260923/producer_copy/shadow_bundle/config.json")
+PAR = os.environ.get("NEWS2_PAR", os.path.expanduser("~/cc_tmp/news_20260923/parity"))
+CRYPTO = os.environ.get("NEWS2_CRYPTO", os.path.join(HERE, "../../news_2026-09-23/receipts/P1_members_2025H2on.npz"))
+CFG = os.environ.get("NEWS2_CFG", os.path.expanduser("~/cc_tmp/news_20260923/producer_copy/shadow_bundle/config.json"))
 ANCH_ALL = [1789660800 + 14400 * k for k in range(9)]
 
 ARMS = ["base_raw", "base", "D4", "D5", "D6", "D7", "D8", "D9", "D11", "D13", "D14", "all"]
+REACH_CORRECTIONS = [{"utc": "2026-09-23T16:4xZ", "arm": "D8", "added": ["C:vr12_2016", "C:vr48_2016", "C:vr48_8640"],
+                      "why": "BS (f8 L196) feeds the whole vr loop L194-L203, not only upblk; my first reach table under-read the source",
+                      "seen_before_correction": "gate run 1 reported 1197 out-of-reach cells, all in C:vr48_8640"}]
 
-D8_COLS = ["A:jump_288", "A:jump_2016", "B:vov_7d", "C:ac1_288", "C:ac1_2016", "C:upblk_2016",
+# CORRECTION (2026-09-23 16:4xZ, after gate run 1 reported C:vr48_8640 out of reach): the D8:BS_support
+# patch rewrites BS at f8_higher_order_features.py L196, and BS feeds EVERY column of the vr loop
+# (L194-L203): C:vr12_2016, C:vr48_2016, C:vr48_8640 and C:upblk_2016. The first three were missing from
+# this table. This is a correction to a DESCRIPTION OF THE SOURCE'S DEPENDENCY GRAPH (re-derived by
+# reading L188-L204), not a loosening of a judging criterion; it is recorded here and in the receipt.
+D8_COLS = ["A:jump_288", "A:jump_2016", "B:vov_7d", "C:ac1_288", "C:ac1_2016",
+           "C:vr12_2016", "C:vr48_2016", "C:vr48_8640", "C:upblk_2016",
            "D:dhi_48", "D:dhi_288", "D:dhi_2016", "D:dhi_8640", "D:dlo_288", "D:dlo_2016", "D:dlo_8640",
            "D:ppct_288", "D:ppct_2016", "E:spr_7", "E:spr_30", "E:spr_30_t",
            "F:amihud_288", "F:amihud_2016", "F:damihud", "F:kyle_288", "F:kyle_2016",
@@ -67,6 +76,8 @@ def f89_reach(arm, names):
 
 
 def x82_reach(arm, n_cols=82):
+    if arm == "D5":
+        return set()            # D5 is King-side only; F10's kernel is untouched (D5' in the PREREG)
     if arm == "D4":
         return set(range(n_cols))
     if arm == "D6":
@@ -120,11 +131,15 @@ def main():
     C = np.load(f"{PAR}/parity_cache_slice.npz", allow_pickle=True)
     ts = C["ts"].astype(np.int64); D = C["data"]; row0 = int(C["row0"])
     syms = [str(s) for s in C["symbols"]]; chn = [str(c) for c in C["ch"]]
-    hz = np.load(f"{PAR}/parity_holes_slice.npz"); o = np.lexsort((hz["col"], hz["row"]))
+    with np.load(f"{PAR}/parity_holes_slice.npz") as z: hz = {"row": z["row"], "col": z["col"]}
+    o = np.lexsort((hz["col"], hz["row"]))
     holes = (hz["row"][o].astype(np.int64) - row0, hz["col"][o].astype(np.int64))
-    mk = np.load(f"{PAR}/parity_mask_slice.npz"); mts = mk["ts"].astype(np.int64)
-    fr = np.load(f"{PAR}/parity_fund_slice.npz"); fa = fr["anchors"].astype(np.int64)
-    crypto = np.load(os.path.abspath(CRYPTO))["crypto"]
+    # Materialise every array ONCE (an NpzFile decompresses on every __getitem__, and these are read per anchor).
+    with np.load(f"{PAR}/parity_mask_slice.npz") as z: mk = {"ts": z["ts"].astype(np.int64), "mask": z["mask"]}
+    mts = mk["ts"]
+    with np.load(f"{PAR}/parity_fund_slice.npz") as z: fr = {k: z[k] for k in ("anchors", "ema_acc", "last_ft", "last_rate", "last_iv")}
+    fa = fr["anchors"].astype(np.int64)
+    with np.load(os.path.abspath(CRYPTO)) as z: crypto = z["crypto"]
     cfg = json.load(open(CFG))
 
     res = {}
@@ -249,7 +264,7 @@ def main():
                                             f"{PAR}/parity_mask_slice.npz", f"{PAR}/parity_fund_slice.npz",
                                             os.path.abspath(CRYPTO), CFG]},
            "tree_shas": {arm: json.load(open(f"{work}/tree_{arm}/PATCH_RECEIPT.json"))["outputs"] for arm in ARMS},
-           "gates": cells, "diagnostics": diag,
+           "gates": cells, "diagnostics": diag, "reach_corrections": REACH_CORRECTIONS,
            "VERDICT": "PASS" if not bad else "FAIL", "n_gates": len(cells), "n_not_pass": len(bad),
            "seconds": round(time.time() - t0, 1)}
     with open(out_path, "w") as f:
