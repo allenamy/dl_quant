@@ -374,7 +374,15 @@
      - anchor_report 读 `fund_updates`, 补丁保留了这个键;
      - stop_overlay 只读 config 的 `symbols_panel`;
      - depthwatch / guardtwin / c2shadow / w4liqcapture / notary / markout_backfill / regime_weekly 都不读生产者状态。
-   - 三项都随生产者发布一起安装, 安装命令与 sha 核对写进部署手册。
+   - **(4) 普查补遗: 执行器 `ops/anchor_report.py` 的守护检查。** 第一轮普查只看了读文件的消费者, 漏了按进程名的检查。
+     - 缺陷: L128 写死要求 prod / sidecar / combo 三个守护在跑。侧车停用后, 每锚都会报「守护缺 sidecar」, 是一类新的误报。
+     - 修法(lead 裁定): 改为读 `config/book.json` 的显式键 `external_book.producer_contract`。
+       - 缺失 / null / `legacy`: 要求三个守护;
+       - `nc_v1`: 要求 prod 与 combo, 侧车在跑时告警;
+       - 未知值: 具名告警, 按 legacy 检查。
+       - 这个键随两个钉一起改。执行器回滚时整份 book.json 逐字节恢复成换装前的备份(lead 裁定), 检查因此自动回到 legacy。
+     - 文件: 执行器补丁基于 5b3d89c, 在 `multi_asset/exports/research/nc_2026-09-23/release_executor/`; 套件 `tests_anchor_report_builder` 加 [P5] 三格, 23/23。
+   - 前三项随生产者发布一起安装; 第 (4) 项随执行器候选提交, 与两个钉、M3 在同一次电池里。安装命令与 sha 核对都写进部署手册 `docs/DEPLOY_producer_new_contract_2026-09-23.md`。
    - 另记一条 pod2 约束: 容器 cgroup 内存上限 61 GB(`/sys/fs/cgroup/memory.max`)。/dev/shm 占用计入这个上限。§A9 第二遍 28 工人的峰值接近上限。同时段另起的种子包导出被 OOM 杀(rc 137), 第二遍工人未受影响。所以种子包在第二遍结束后再导。
 
 ### A8. 与 D15 / D16 的接口(不在本次代码修复内)

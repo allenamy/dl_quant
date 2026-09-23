@@ -4,22 +4,45 @@ checkout (never the running tree), and asserts that nothing else in it changes:
   external_book.booster_sha_pin / f10_sha_pin : from --expect-old to the new pins (the package's INSTALL_CONTRACT executor_pins, or --pins)
   beta_overlay.mode                           : --beta-mode (off | shadow | on)
   beta_overlay.max_combined_leverage          : --max-combined (set when given; otherwise kept as is)
-  external_book.producer_contract             : --producer-contract nc_v1 (set) | legacy (removed: key missing = legacy) — read by
-                                                ops/anchor_report.py's daemon check; moves with the pins (lead 2026-09-23)
+  external_book.producer_contract             : --producer-contract nc_v1 (set; key missing = legacy) — read by ops/anchor_report.py's
+                                                daemon check; moves with the pins (lead 2026-09-23)
+ROLLBACK is NOT an edit (lead 2026-09-23): --restore <pre-deploy backup of book.json> --restore-sha <its sha recorded before the deploy>
+copies those bytes back verbatim and verifies the sha, so the file is byte-identical to before the release (the pre-M3 file has no
+beta_overlay block = an explicit off, which releases a held hedge; live/beta_overlay.config).
 The edit is textual (the two pin strings and the beta_overlay block) so the file keeps its layout; the result is re-parsed and compared
 key by key with the original. Prints old -> new; exit 3 on any refusal.
 usage: /usr/bin/python3 nc_exec_config.py <checkout>/config/book.json (--contract INSTALL_CONTRACT.json | --pins BOOSTER F10)
-       --expect-old BOOSTER F10 --beta-mode MODE --producer-contract {nc_v1,legacy} [--max-combined 2.5]"""
+       --expect-old BOOSTER F10 --beta-mode MODE --producer-contract nc_v1 [--max-combined 2.5]
+       /usr/bin/python3 nc_exec_config.py <checkout>/config/book.json --restore <backup book.json> --restore-sha <sha256> --expect-old BOOSTER F10"""
+import hashlib
 import argparse, copy, json, sys
 
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("book"); ap.add_argument("--contract"); ap.add_argument("--pins", nargs=2)
-    ap.add_argument("--expect-old", nargs=2, required=True); ap.add_argument("--beta-mode", required=True, choices=["off", "shadow", "on"])
-    ap.add_argument("--max-combined", type=float); ap.add_argument("--producer-contract", required=True, choices=["nc_v1", "legacy"])
+    ap.add_argument("--expect-old", nargs=2, required=True); ap.add_argument("--beta-mode", choices=["off", "shadow", "on"])
+    ap.add_argument("--max-combined", type=float); ap.add_argument("--producer-contract", choices=["nc_v1"])
+    ap.add_argument("--restore"); ap.add_argument("--restore-sha")
     a = ap.parse_args()
     if a.book.startswith("/Users/haosiyu/dl_quant_live/"):
         print("NC_EXEC_CONFIG REFUSED: edit an isolated checkout, never the running tree"); return 3
+    if a.restore:
+        cur = json.load(open(a.book))["external_book"]
+        if [cur["booster_sha_pin"], cur["f10_sha_pin"]] != list(a.expect_old):
+            print("NC_EXEC_CONFIG REFUSED: current pins", cur["booster_sha_pin"][:8], cur["f10_sha_pin"][:8], "!= expected", [x[:8] for x in a.expect_old]); return 3
+        raw = open(a.restore, "rb").read()
+        if not a.restore_sha or hashlib.sha256(raw).hexdigest() != a.restore_sha:
+            print("NC_EXEC_CONFIG REFUSED: the backup's sha != the sha recorded before the deploy"); return 3
+        open(a.book, "wb").write(raw)
+        if hashlib.sha256(open(a.book, "rb").read()).hexdigest() != a.restore_sha:
+            print("NC_EXEC_CONFIG REFUSED: restored bytes differ"); return 3
+        rb = json.loads(raw.decode())
+        print("NC_EXEC_CONFIG RESTORED", json.dumps({"sha256": a.restore_sha, "pins": [rb["external_book"]["booster_sha_pin"][:8], rb["external_book"]["f10_sha_pin"][:8]],
+                                                    "beta_overlay": rb.get("beta_overlay", {}).get("mode", "absent (= explicit off)"),
+                                                    "producer_contract": rb["external_book"].get("producer_contract")}))
+        return 0
+    if not a.beta_mode or not a.producer_contract:
+        print("NC_EXEC_CONFIG REFUSED: an edit needs --beta-mode and --producer-contract nc_v1 (rollback is --restore, not an edit)"); return 3
     new_pins = a.pins or [json.load(open(a.contract))["executor_pins"][k] for k in ("booster_sha_pin", "f10_sha_pin")]
     raw = open(a.book).read(); b = json.loads(raw); eb = b["external_book"]
     old = (eb["booster_sha_pin"], eb["f10_sha_pin"])
@@ -55,11 +78,6 @@ def main():
             print("NC_EXEC_CONFIG REFUSED: cannot place producer_contract (f10_sha_pin line not unique)"); return 3
         ind = new[:new.index(anchor)].split("\n")[-1]
         new = new.replace(anchor, anchor + "\n" + ind + '"producer_contract": "nc_v1",')
-    elif a.producer_contract == "legacy" and pc_old is not None:
-        line = f'"producer_contract": "{pc_old}",'
-        if new.count(line) != 1:
-            print("NC_EXEC_CONFIG REFUSED: producer_contract line not unique"); return 3
-        i0 = new.index(line); ls = new.rfind("\n", 0, i0); new = new[:ls] + new[i0 + len(line):]
     nb2 = json.loads(new)
     # every key other than the edited ones is unchanged
     chk = copy.deepcopy(nb2); chk["external_book"]["booster_sha_pin"], chk["external_book"]["f10_sha_pin"] = old
