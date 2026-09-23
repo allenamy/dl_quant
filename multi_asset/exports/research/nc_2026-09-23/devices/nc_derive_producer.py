@@ -28,7 +28,11 @@ PIN = {"news2_device": "9c475421d00379b5d6a514e8b406c0ba789a46b8acd9eb3db34ad568
        "m3_combo_stage.py": "41f9174d7d6400f5964e7cdf878efce58ef3965dd202b6a364f6e45c8d166d3c",
        "beta_overlay_producer.py": "b77c180d69170988780566e19d0ee4a0f85af25a9b9e9be08b6e4a386095fb58",
        "prod_combo_stage.py": "fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8"}
-NEWS2_FAMILIES = {"D4", "D5", "D6", "D7", "D8", "D9", "D14"}
+DEFAULT_FAMILIES = "D4,D5,D6,D7,D8,D9,D14"; DEFAULT_TREND_ROWS = "last"
+ALL_NEWS2_FAMILIES = {"D4", "D5", "D6", "D7", "D8", "D9", "D11", "D13", "D14"}   # the families news2's patcher knows at 9c475421
+# test arms only (news2's reach gate / D7 admission gate): NC_NEWS2_FAMILIES / NC_TREND_ROWS; a --release build refuses non-defaults
+NEWS2_FAMILIES = {f.strip() for f in os.environ.get("NC_NEWS2_FAMILIES", DEFAULT_FAMILIES).split(",") if f.strip()}
+TREND_ROWS = os.environ.get("NC_TREND_ROWS", DEFAULT_TREND_ROWS)
 
 
 def sha_file(p):
@@ -279,12 +283,12 @@ SH.append(("A1:candidates",
 """))
 
 SH.append(("A2:record_members",
-"""        m = np.sort(m[np.argsort(-qvm[m], kind="stable")[:P["NTOP"]]])   # NEW_S2 D14 (feature_contract.select_members)
-    if len(m) < 50:
+"""    if len(m) < 50:
+        append_log({"e": "anchor_skip", "anchor_ts": anchor, "reason": f"members {len(m)}<50"})
 """,
-"""        m = np.sort(m[np.argsort(-qvm[m], kind="stable")[:P["NTOP"]]])   # NEW_S2 D14 (feature_contract.select_members)
-    st.record_members(anchor, m)                                          # NC A2: history also when the anchor skips below
+"""    st.record_members(anchor, m)                                          # NC A2: history also when the anchor skips below
     if len(m) < 50:
+        append_log({"e": "anchor_skip", "anchor_ts": anchor, "reason": f"members {len(m)}<50"})
 """))
 
 SH.append(("A5+A6:fund_asof_and_base",
@@ -612,15 +616,13 @@ _mh = _source_snapshot["members_hist"]
 MEMBERS_HIST = {int(_mh["anchors"][k]): _mh["idx"][_mh["off"][k]:_mh["off"][k + 1]] for k in range(len(_mh["anchors"]))}   # NC A2
 """))
 open_btcv_old = """    _r5 = RD[:, _jb, 0].astype(np.float64)
-    W = 2016
-    # NEW_S2 D9"""
+"""
 CS.append(("A3:btcv_reads_rr",
 """def _btcv_series(rts, RD, e_rows):""",
 """def _btcv_series(rts, RD, e_rows, RR=None):"""))
 CS.append(("A3:btcv_rr_channel", open_btcv_old,
 """    _r5 = (RR[:, _jb] if RR is not None else RD[:, _jb, 0]).astype(np.float64)   # NC A3: rr (the replay passes the same RR)
-    W = 2016
-    # NEW_S2 D9"""))
+"""))
 CS.append(("A2:members_history",
 """    for i in range(len(e_rows)): ms_arr[i] = pm
 """,
@@ -727,13 +729,19 @@ def check_a5(texts):
             assert l not in texts[k], f"A5: an old ledger-tail read survives in {k}: {l}"
 
 
+POST_EDITS = []   # (file, tag, old, new): replacement-type edits after M3; the §A5 check runs after them
+
+
 def apply(P, edits):
     for tag, old, new in edits:
         P.replace(tag, old, new)
 
 
 def main():
+    release = "--release" in sys.argv[2:]
     out = pathlib.Path(sys.argv[1]); assert not out.exists(), f"refusing to overwrite {out}"
+    if release:   # a production / deploy build: the test-arm switches must be at their defaults
+        assert NEWS2_FAMILIES == set(DEFAULT_FAMILIES.split(",")) and TREND_ROWS == DEFAULT_TREND_ROWS, ("release build with non-default arm switches", sorted(NEWS2_FAMILIES), TREND_ROWS)
     N2 = load_news2()
     assert sha_file(TRAD) == PIN["tradability.py"] and sha_file(M3_DIR / "beta_overlay_producer.py") == PIN["beta_overlay_producer.py"]
     srcs = {"shadow_loop_v3.py": N2.BASE_SHADOW, "fea171/combo_stage.py": N2.WIDE / "fea171/combo_stage.py",
@@ -746,20 +754,34 @@ def main():
     P = {k: N2.Patcher(k, pathlib.Path(p).read_text(), NEWS2_FAMILIES) for k, p in srcs.items()}
     N2.patch_shadow(P["shadow_loop_v3.py"], True)
     N2.patch_dlw(P["fea171/dlw_features.py"])
-    N2.patch_combo(P["fea171/combo_stage.py"], "last")
+    assert TREND_ROWS in ("all", "last"), TREND_ROWS
+    N2.patch_combo(P["fea171/combo_stage.py"], TREND_ROWS)
     N2.patch_f8(P["fea171/f8_higher_order_features.py"])
     skipped = [e["tag"] for k in P for e in P[k].edits if not e["applied"]]
-    # pinned at 9c475421 the skipped families are EXACTLY D11 and D13 (they belong to §A5); an empty or larger set is refused
-    assert set(t.split(":")[0] for t in skipped) == {"D11", "D13"}, skipped
+    # pinned at 9c475421 the skipped families are EXACTLY the ones not enabled — with the default set, EXACTLY D11 and D13 (they belong to
+    # §A5); an empty or different set is refused. A family name is split on "+" (news2 tags such as D5+D6 name two families).
+    fam = set()
+    for t in skipped: fam |= set(t.split(":")[0].split("+")) - NEWS2_FAMILIES
+    expected_skip = ALL_NEWS2_FAMILIES - NEWS2_FAMILIES
+    if NEWS2_FAMILIES == set(DEFAULT_FAMILIES.split(",")):
+        assert fam == {"D11", "D13"}, ("default build must skip exactly D11/D13", sorted(fam))      # strict: an empty set is refused
+    else:
+        # test arms: news2's patcher only attempts some edits when their family is on, so a skipped set can be smaller than the
+        # complement; it can never contain an enabled family
+        assert fam <= expected_skip, ("arm skipped an enabled family", sorted(fam), sorted(expected_skip))
     news2_texts = {k: P[k].text for k in P}
     # 2. A part (enabled=None: every A edit applied)
     A = {k: N2.Patcher(k, news2_texts[k], None) for k in P}
     apply(A["shadow_loop_v3.py"], SH); apply(A["fea171/feature_cache_identity.py"], FC)
     apply(A["fea171/combo_stage.py"], CS); apply(A["fea171/dlw_features.py"], DL); apply(A["fea171/f8_higher_order_features.py"], F8)
-    check_a5({k: A[k].text for k in A})
     # 3. M3 hunks on the combo_stage text
     for n, (ctx, ins) in enumerate(m3_hunks()):
         A["fea171/combo_stage.py"].replace(f"M3:hunk{n + 1}", ctx, ctx + ins)
+    # 4. POST_EDITS: any later (replacement-type) edit lands here, so the checks below always see the final text. Empty in this release.
+    for k, tag, old, new in POST_EDITS:
+        A[k].replace(tag, old, new)
+    # §A5 positive check AFTER every edit (B, A, M3) and BEFORE anything is written: a later edit must not undo it unseen
+    check_a5({k: A[k].text for k in A})
     (out / "fea171").mkdir(parents=True)
     outputs = {}
     for k, Pk in A.items():
@@ -775,7 +797,8 @@ def main():
     rec = {"device": "nc_derive_producer.py", "self_sha256": sha_file(os.path.abspath(__file__)), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "freeze": {"FREEZE_new_servable_v2_2026-09-23.md": "b30e4afa5", "amendment1": "5c89f8d22", "design_sha256": "33ef8164e6d97a71b94498b2d06e13917dd7ada127a278165bbc0beb7a6b11d3"},
            "pins": PIN, "sources": {k: {"path": str(p), "sha256": got[k]} for k, p in srcs.items()},
-           "news2_families": sorted(NEWS2_FAMILIES), "news2_skipped_tags": skipped, "trend_rows_declared": "last",
+           "news2_families": sorted(NEWS2_FAMILIES), "news2_skipped_tags": skipped, "trend_rows_declared": TREND_ROWS,
+           "arm_switches_at_defaults": NEWS2_FAMILIES == set(DEFAULT_FAMILIES.split(",")) and TREND_ROWS == DEFAULT_TREND_ROWS, "release_build": release,
            "outputs": outputs,
            "edits": {k: [{kk: vv for kk, vv in e.items() if kk not in ("old", "new")} for e in P[k].edits + A[k].edits] for k in A},
            "n_applied": {k: sum(1 for e in P[k].edits + A[k].edits if e["applied"]) for k in A}}

@@ -82,7 +82,8 @@ def main():
            "first_ready": int(a[np.argmax(ready)]) if ready.any() else None,
            "inputs": {"features": H.sha(fpath), "king_oof": H.sha(kpath), "fund_state": H.sha(f"{W}/work/fund_state.npz"), "R_crypto": H.sha(f"{W}/work/R_crypto.npy")},
            "source_sha": H.sha(os.path.abspath(__file__)), "tree_shadow_loop_sha256": H.REC["outputs"]["shadow_loop_v3.py"], "seconds": round(time.time() - t0, 1)}
-    json.dump(rec, open(os.path.join(os.path.dirname(out), "NC_LEGS_RECEIPT.json"), "w"), indent=1)
+    os.makedirs(f"{W}/receipts", exist_ok=True)
+    json.dump(rec, open(f"{W}/receipts/NC_LEGS.json", "w"), indent=1)          # the name news2_stage_inputs.py binds
     print("NC_LEGS_DONE", json.dumps({k: rec[k] for k in ("ready", "not_ready", "not_ready_reasons", "leg_returns")}), flush=True)
 
 

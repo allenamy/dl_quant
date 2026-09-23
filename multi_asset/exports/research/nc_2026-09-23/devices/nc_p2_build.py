@@ -65,34 +65,68 @@ def p1(k, n):
 
 
 def merge1():
+    """Concatenate the pass-1 shards in anchor order WITHOUT per-anchor python objects (the first version pickled an object array of
+    10k dicts and was OOM-killed): p1_merged.npz (flat arrays + offsets) and members_hist_all.npz."""
     import glob
     fs = sorted(glob.glob(f"{OUT}/p1_shards/p1_*.npz")); assert fs
-    rows = []
+    parts = []
     for f in fs:
-        z = np.load(f); j = json.load(open(f + ".json")); assert j["sha256"] == sha(f)
-        off = np.concatenate([[0], np.cumsum(z["mcount"])]); koff = np.concatenate([[0], np.cumsum(z["kcount"])]); boff = np.concatenate([[0], np.cumsum(z["base_n"])])
-        ki = 0
-        for i, A in enumerate(z["anchor"]):
-            r = {"A": int(A), "m_all": z["m_all"][off[i]:off[i + 1]].astype(np.int64), "king": bool(z["king"][i])}
-            if r["king"]:
-                s = slice(koff[ki], koff[ki + 1])
-                r.update({"m": z["m"][s].astype(np.int64), "X78": z["X78"][s], **{kk: z[kk][s] for kk in ("fe_v", "fn_v", "iv_v", "qvm", "rev24")},
-                          "base_i": z["base_i"][boff[ki]:boff[ki + 1]].astype(np.int64), "base_v": z["base_v"][boff[ki]:boff[ki + 1]],
-                          "n_legal": int(z["n_legal"][ki]), "n_cand": int(z["n_cand"][ki])})
-                ki += 1
-            rows.append(r)
-    rows.sort(key=lambda r: r["A"]); A = np.array([r["A"] for r in rows], np.int64); assert len(set(A.tolist())) == len(A)
-    mc = np.array([len(r["m_all"]) for r in rows]); moff = np.concatenate([[0], np.cumsum(mc)])
-    np.savez(f"{OUT}/members_hist_all.npz", anchors=A, off=moff, idx=np.concatenate([r["m_all"] for r in rows]).astype(np.int16))
-    np.save(f"{OUT}/p1_rows.npy", np.array(rows, dtype=object), allow_pickle=True)
-    print("MERGE1_DONE anchors", len(A), "with King features", int(sum(r["king"] for r in rows)), flush=True)
+        j = json.load(open(f + ".json")); assert j["sha256"] == sha(f)
+        with np.load(f) as z: parts.append({k: z[k] for k in z.files})     # materialise once (NpzFile re-reads on every access)
+    A = np.concatenate([z["anchor"] for z in parts]); order = np.argsort(A, kind="stable"); A = A[order]
+    assert len(np.unique(A)) == len(A)
+    # per-anchor slices in every shard, then gathered in anchor order
+    def gather(count_key, key, flag=None):
+        chunks = []
+        for z in parts:
+            cnt = z[count_key]; off = np.concatenate([[0], np.cumsum(cnt)])
+            if flag is None:
+                chunks.append([z[key][off[i]:off[i + 1]] for i in range(len(cnt))])
+            else:
+                fl = z[flag]; ki = np.cumsum(fl) - 1
+                chunks.append([(z[key][off[ki[i]]:off[ki[i] + 1]] if fl[i] else None) for i in range(len(fl))])
+        flat = [x for c in chunks for x in c]
+        return [flat[i] for i in order]
+    m_all = gather("mcount", "m_all")
+    king = np.concatenate([z["king"] for z in parts])[order]
+    np.savez(f"{OUT}/members_hist_all.npz", anchors=A, off=np.concatenate([[0], np.cumsum([len(x) for x in m_all])]).astype(np.int64),
+             idx=np.concatenate(m_all).astype(np.int16))
+    out = {"anchors": A, "king": king}
+    for key in ("m", "X78", "fe_v", "fn_v", "iv_v", "qvm", "rev24"):
+        g = gather("kcount", key, flag="king"); gk = [x for x in g if x is not None]
+        out[key] = np.concatenate(gk); out["kcount"] = np.array([len(x) for x in gk], np.int64)
+    gb_i = gather("base_n", "base_i", flag="king"); gb_v = gather("base_n", "base_v", flag="king")
+    out["base_n"] = np.array([len(x) for x in gb_i if x is not None], np.int64)
+    out["base_i"] = np.concatenate([x for x in gb_i if x is not None]); out["base_v"] = np.concatenate([x for x in gb_v if x is not None])
+    for key in ("n_legal", "n_cand"):
+        v = []
+        for z in parts:
+            fl = z["king"]; ki = np.cumsum(fl) - 1; v.append([int(z[key][ki[i]]) if fl[i] else -1 for i in range(len(fl))])
+        out[key] = np.array([x for c in v for x in c], np.int64)[order]
+    np.savez(f"{OUT}/p1_merged.npz", **out)
+    print("MERGE1_DONE anchors", len(A), "with King features", int(king.sum()), "pairs", int(out["kcount"].sum()), flush=True)
+
+
+def _p1_view():
+    """p1_merged.npz as {anchor: dict} for the anchors with King features (arrays are views, not copies)."""
+    with np.load(f"{OUT}/p1_merged.npz") as zz: z = {k: zz[k] for k in zz.files}
+    A = z["anchors"]; king = z["king"]; kc = z["kcount"]; off = np.concatenate([[0], np.cumsum(kc)]); bn = z["base_n"]; boff = np.concatenate([[0], np.cumsum(bn)])
+    rows = {}; ki = 0
+    for i, a in enumerate(A):
+        if not king[i]: continue
+        s = slice(off[ki], off[ki + 1])
+        rows[int(a)] = {"A": int(a), "king": True, "m": z["m"][s].astype(np.int64), "X78": z["X78"][s],
+                        **{kk: z[kk][s] for kk in ("fe_v", "fn_v", "iv_v", "qvm", "rev24")},
+                        "base_i": z["base_i"][boff[ki]:boff[ki + 1]].astype(np.int64), "base_v": z["base_v"][boff[ki]:boff[ki + 1]]}
+        ki += 1
+    return rows
 
 
 def p2(k, n):
     H.set_tree(TREE); I = H.Inputs(); code = H._mini_block(); cf = H._combo_funcs()
-    rows = np.load(f"{OUT}/p1_rows.npy", allow_pickle=True)
+    king_anchors = sorted(_p1_view())
     mh = np.load(f"{OUT}/members_hist_all.npz"); MH = {int(a): mh["idx"][mh["off"][i]:mh["off"][i + 1]].astype(np.int64) for i, a in enumerate(mh["anchors"])}
-    todo = shard_of([r["A"] for r in rows if r["king"]], k, n); t0 = time.time()
+    todo = shard_of(king_anchors, k, n); t0 = time.time()
     out = {"anchor": [], "X82": [], "X89": [], "btcv": [], "mh_missing": [], "n_keep": []}; fails = {}
     work = f"{W}/scratch/p2_{k:03d}"; os.makedirs(work, exist_ok=True)
     for A in todo:
@@ -119,7 +153,7 @@ def p2(k, n):
 def merge2():
     import glob
     H.set_tree(TREE)
-    rows = {r["A"]: r for r in np.load(f"{OUT}/p1_rows.npy", allow_pickle=True)}
+    rows = _p1_view()
     p2r = {}
     for f in sorted(glob.glob(f"{OUT}/p2_shards/p2_*.npz")):
         z = np.load(f); j = json.load(open(f + ".json")); assert j["sha256"] == sha(f)

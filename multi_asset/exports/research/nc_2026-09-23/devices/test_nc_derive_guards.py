@@ -6,9 +6,9 @@ import importlib.util, sys, os, json, shutil, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 def load():
     spec = importlib.util.spec_from_file_location("ncd", os.path.join(HERE, "nc_derive_producer.py")); M = importlib.util.module_from_spec(spec); spec.loader.exec_module(M); return M
-def run(mut):
+def run(mut, release=False):
     M = load(); mut(M); d = tempfile.mkdtemp(); out = os.path.join(d, "t")
-    sys.argv = ["x", out]
+    sys.argv = ["x", out] + (["--release"] if release else [])
     try:
         M.main(); return "PASS"
     except AssertionError as e:
@@ -29,7 +29,19 @@ cells["R_drop_panel_A5_refused"] = run(drop_panel_a5)
 def drop_ftrim_a5(M):
     M.CS = [e for e in M.CS if e[0] != "A5:ftrim_rn8_asof"]
 cells["R_drop_ftrim_A5_refused"] = run(drop_ftrim_a5)
-ok = cells["baseline_green"] == "PASS" and all(v.startswith("REFUSED") for k, v in cells.items() if k.startswith("R_"))
+cells["release_default_green"] = run(lambda M: None, release=True)
+def arm_trend_all(M):
+    M.TREND_ROWS = "all"
+cells["arm_trend_all_nonrelease_green"] = run(arm_trend_all)
+cells["R_arm_trend_all_release_refused"] = run(arm_trend_all, release=True)
+def arm_only_d4(M):
+    M.NEWS2_FAMILIES = {"D4"}
+cells["arm_only_D4_nonrelease_green"] = run(arm_only_d4)
+cells["R_arm_only_D4_release_refused"] = run(arm_only_d4, release=True)
+def m3_undoes_a5(M):     # a later replacement-type edit (after M3) that removes an A5 call must be caught: the check runs after every edit
+    M.POST_EDITS = [("fea171/combo_stage.py", "TEST:late_edit", '_fe, _fn, _iv, _r8 = NC.funding_asof(aux["ema"].get(s_), rows_[-1], A)', '_fe, _fn, _iv, _r8 = (np.nan,) * 4')]
+cells["R_late_edit_undoing_A5_refused"] = run(m3_undoes_a5)
+ok = cells["baseline_green"] == "PASS" and cells["release_default_green"] == "PASS" and cells["arm_trend_all_nonrelease_green"] == "PASS" and cells["arm_only_D4_nonrelease_green"] == "PASS" and all(v.startswith("REFUSED") for k, v in cells.items() if k.startswith("R_"))
 print(json.dumps(cells, indent=1)); print("TEST_NC_DERIVE_GUARDS", "PASS" if ok else "FAIL")
 json.dump({"cells": cells, "PASS": ok}, open(os.path.join(HERE, "TEST_NC_DERIVE_GUARDS.json"), "w"), indent=1)
 sys.exit(0 if ok else 3)
