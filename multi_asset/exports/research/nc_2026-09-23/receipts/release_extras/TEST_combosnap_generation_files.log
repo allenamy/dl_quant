@@ -1,0 +1,13 @@
+anchor 1790179200; fci old 55bdef28 new e4ec55d1; original c94fd427 patched 58e58bd1
+  OK   B0 baseline green: original script, old-format world ⇒ rc 0, COMPLETE snapshot, generation check passes  — (0, '', '')
+  OK   T1 patched script, old-format world ⇒ rc 0, same file set as the original script's snapshot, check passes  — (0, ['COMPLETE', 'SHA256SUMS', 'aux.json', 'combo_live_status.json', 'generation.json', 'leg_returns_live.json', 'rolling.npz'], '')
+  OK   T2 fixture reproduces the defect: original script, new-format world ⇒ rc 3, no snapshot  — (3, ['UNAVAILABLE snapshot generation: FeatureCacheError: producer generation unavailable: FileNotFoundError'])
+  OK   T3 patched script, new-format world ⇒ rc 0, snapshot = 5 signed + generation + status (+SHA256SUMS, COMPLETE), bytes equal, check passes  — (0, ['COMPLETE', 'SHA256SUMS', 'aux.json', 'boundary_raw.npz', 'combo_live_status.json', 'generation.json', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz'], (0, ''), '')
+  OK   T4 negative: new-format world with members_hist.npz missing ⇒ rc != 0, no snapshot, no .tmp  — (3, ['UNAVAILABLE snapshot generation: FeatureCacheError: producer generation unavailable: FileNotFoundError'])
+  OK   T5 negative: new-format world with boundary_raw.npz missing ⇒ rc != 0, no snapshot, no .tmp  — (3, ['UNAVAILABLE snapshot generation: FeatureCacheError: producer generation unavailable: FileNotFoundError'])
+  OK   T6 negative: marker names '../x.npz' ⇒ generation_files.py rc 3 (REFUSED), agent writes no snapshot  — (3, "GENERATION_FILES_REFUSED /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/tmp4_ku87g0/ws/state/generation.json: ValueError: refused names ['../x.npz']", 3)
+  OK   T7 negative: new-format generation with the OLD feature_cache_identity ⇒ rc 3, no snapshot  — (3, ['UNAVAILABLE snapshot generation: FeatureCacheError: invalid producer generation manifest'])
+
+8/8 checks passed
+ALL PASS
+rc=0

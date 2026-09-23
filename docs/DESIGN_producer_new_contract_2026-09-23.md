@@ -325,6 +325,57 @@
      - P4 对照第一次跑出**假绿**: C2 在当前实盘锚上 0 差。原因: 合法性由滚动缓存算出, 没取数的名在缓存里没有 bar, 所以永远不合法、也永远不是训练候选。
    - 修法: 加 C2a, 用场所名单(aux base_syms)∩ 829 轴 ∩ 加密类, 独立核对取数覆盖。
    - 重跑结果: C0 / C1 / C3 绿(装置逐位复现生产), C2a 红, 点名 72 个未取数的名(正是 NEW_S 的 72 名)。红绿单测 `test_live_check_c2a.json` PASS。
+5. **追加(实现细节; lead 批准 2026-09-23 19:1xZ): 生产者状态的下游消费者**
+   - 来由: 写部署手册 A0 时, 普查了全部 16 个 `com.hsy.*` launchd 任务读哪些生产者文件。新状态合同下有三处会坏, 且都不在补丁树里。
+   - **(1) `com.hsy.sidecar` 停用。**
+     - 做法: A0 bootout 以后不再 bootstrap, 并 `launchctl disable`; plist 保留, 供回滚。R-B 回滚时 enable + bootstrap, 恢复换装前的原样。
+     - 理由:
+       - `fea171/sidecar_blend.py`(sha256 `6140790e…`)每锚在 target_live 写出约 120 s 后, 在持久目录 `fea171/mini` 里重建自己的 171 管线。输入是旧合同: f16 ch0; 资金费历史行填 0, 只有末行取自 aux ema。
+       - 它用新模型打分, 然后覆写 `state_H_f10_<A>.npz`。combo 在 A+4h 把这个文件当 F10 链的暖启动(FX-PROD P12: 128/129 锚上侧车是最后写者)。
+       - 新合同下它会出两种结果之一:
+         - 任一名的 `acc` 为 None 时, 在 L137 抛 TypeError 崩掉;
+         - 否则, 打过补丁的 dlw / f8 在缺 `ret_f32` 键时回退读 ch0, 它就静默地把旧合同特征写进服务链。
+       - 它的产物 `target_blend/` 没有读者。停掉以后, combo 自己写的 `state_H_f10` 生效, 这正是重放所模拟的链。今天两者差 2.63e-8, 停掉没有可测的书效应。
+     - 演练: F-2 演练加 (a3) 步。在同一份 NC 状态副本上, 新生产者 + 新 combo 连推 A1、A2, 不开侧车。要求:
+       - A2 前后 `state_H_f10_<A1>` 的 sha 与 combo 在 A1 写出时相同;
+       - A2 的 kc_src / fc_src 都是 own;
+       - rc 0, 状态 ok。
+   - **(2) `com.hsy.combosnap` / `com.hsy.comboparity`: 按 generation.json 的 `files` 清单拷贝。**
+     - 缺陷: 补丁后的 `feature_cache_identity.GENERATION_FILES` 有 5 个文件。原快照脚本只拷 3 个状态文件, 所以快照检查返回 exit 3, 换装后不再产出快照和平价收据。
+     - 修法: 新增 `combosnap/generation_files.py`。它打印生成标记签名的文件名, 拒绝空集、路径形名字、标记自身。
+       - `combo_state_snapshot.sh` 与 `combo_parity_replay.sh` 都按这份清单拷贝;
+       - 快照脚本另加一条: 拷贝后若标记的文件集变了就丢弃这份快照。
+       - 新旧格式都适用, 回滚后同样可用。
+     - 文件(工作副本 `~/cc_tmp/nc_20260923/release/wide_shadow/fea171/`):
+       - `combo_state_snapshot.sh` `58e58bd1…`(原 `c94fd427`);
+       - `combosnap/combo_parity_replay.sh` `d49cd834…`(原 `c360fd60`);
+       - `combosnap/generation_files.py` `925481d0…`;
+       - 测试 `combosnap/tests_combosnap_generation_files.py` `20eb85ea…`。
+     - 测试 8/8 PASS(收据 `release_tests/TEST_combosnap_generation_files.log`):
+       - 基线: 原脚本 + 旧格式 → 绿;
+       - 补丁脚本 + 旧格式 → 文件集与原脚本相同;
+       - 原脚本 + 新格式 → rc 3(缺陷复现);
+       - 补丁脚本 + 新格式 → 5 个签名文件 + 标记 + 状态, 字节相同, 检查通过;
+       - 负控: 缺 `members_hist.npz` / 缺 `boundary_raw.npz` / 路径形名字 / 新格式配旧 fci, 均不出快照。
+     - 补丁后的平价回放在生产最新快照 1790179200(旧格式)上实跑: `PARITY` 298/298 名, max|Δw| = 0。
+     - 新格式快照与平价, 在 F-2 演练 (a2)/(a3) 的沙箱上实测。
+   - **(3) `com.hsy.regime_dash`: EMA 读法加守卫。**
+     - 缺陷: `regime_dash.py` L22 的 `float(est['acc'])` 遇到 acc=None 会 TypeError, 整锚仪表盘不出。
+     - 修法: 改为 `est.get('acc') is not None`。None ⇒ NaN ⇒ 该名不进瞬时分数(未知不是零)。
+     - 文件: `~/cc_tmp/nc_20260923/release/regime_dash/regime_dash.py` `8210fe73…`(原 `4349a5c5`)。
+     - 测试 `tests_regime_dash_acc_none.py` `8052f956…` 4/4 PASS。测试在假 HOME 上端到端跑: pilot_log 为空目录; 不拷 `regime_dash_ext.py`, 所以不发送任何东西。
+       - 基线: 原脚本 → 绿;
+       - 原脚本 + acc=None → TypeError(缺陷复现);
+       - 补丁脚本 + acc=None → rc 0, 该名不计分, 其余 399 名照常;
+       - 补丁脚本 + 原 aux → 行与基线逐字段相同。
+     - L18 遇到 iv=None 已回退 8.0: 读法与合同不同, 但不会崩。
+   - 其余 11 个任务不读新合同改变的字段:
+     - universe_shadow 只读 prev_rec 与 shadow_log 的 w3;
+     - anchor_report 读 `fund_updates`, 补丁保留了这个键;
+     - stop_overlay 只读 config 的 `symbols_panel`;
+     - depthwatch / guardtwin / c2shadow / w4liqcapture / notary / markout_backfill / regime_weekly 都不读生产者状态。
+   - 三项都随生产者发布一起安装, 安装命令与 sha 核对写进部署手册。
+   - 另记一条 pod2 约束: 容器 cgroup 内存上限 61 GB(`/sys/fs/cgroup/memory.max`)。/dev/shm 占用计入这个上限。§A9 第二遍 28 工人的峰值接近上限。同时段另起的种子包导出被 OOM 杀(rc 137), 第二遍工人未受影响。所以种子包在第二遍结束后再导。
 
 ### A8. 与 D15 / D16 的接口(不在本次代码修复内)
 

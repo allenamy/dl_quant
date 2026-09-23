@@ -1,0 +1,10 @@
+snapshot anchor 1790179200; original /Users/haosiyu/regime_dash/regime_dash.py; patched ../release/regime_dash/regime_dash.py
+  OK   T0 baseline green: original script, unmodified aux ⇒ rc 0 and one row for A  — (0, '')
+  name X = 0GUSDT (baseline tr_score 0.004967, acc 9.243673135973255e-05), 400 names scored
+  OK   T1 fixture reproduces the defect: original script with X.acc = None ⇒ rc != 0, TypeError  — (1, ["TypeError: float() argument must be a string or a number, not 'NoneType'"])
+  OK   T2 patched script with X.acc = None ⇒ rc 0, X unscored (NaN, not zero), every other baseline name still scored  — (0, '', 399)
+  OK   T3 patched script, unmodified aux ⇒ row identical to the baseline row  — (0, [])
+
+4/4 checks passed
+ALL PASS
+rc=0
