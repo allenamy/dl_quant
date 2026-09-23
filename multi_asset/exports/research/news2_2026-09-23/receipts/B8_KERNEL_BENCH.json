@@ -1,0 +1,30 @@
+{
+ "producer": {
+  "seconds": [
+   0.24,
+   0.23,
+   0.24
+  ],
+  "median": 0.24
+ },
+ "vendor": {
+  "seconds": [
+   7.01,
+   7.0,
+   7.01
+  ],
+  "median": 7.01
+ },
+ "ratio_vendor_over_producer": 29.21,
+ "note": "window_stats recomputes a full-axis cumsum per call; the producer sums the slice directly. 40 calls each.",
+ "shared_cumsum": {
+  "seconds": [
+   0.9,
+   0.9,
+   0.9
+  ],
+  "median": 0.9,
+  "note": "float64 cumsum semantics identical to window_stats, one pass per channel instead of one per (channel,width); NOT the researcher bytes"
+ },
+ "ratio_shared_over_producer": 3.75
+}
