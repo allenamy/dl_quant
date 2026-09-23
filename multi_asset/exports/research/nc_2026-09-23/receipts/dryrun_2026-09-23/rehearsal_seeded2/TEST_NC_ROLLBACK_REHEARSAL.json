@@ -1,0 +1,379 @@
+{
+ "device": "/Users/haosiyu/cc_tmp/nc_20260923/src/test_nc_rollback_rehearsal.py",
+ "device_sha256": "3acb19dd9c1a3794cd7909a3a721f40b98b9630f242d1e77b3567921774e9c54",
+ "lib_sha256": "647f41c47d6f3892752c3299a8c5b186be8b7af9d9b545285dad3f2c384ab963",
+ "converter_sha256": "94a20f2ad4c2c0fee04acee15616fcf77865012c4f903e7bcfdb290a323a2197",
+ "tree": "/Users/haosiyu/cc_tmp/nc_20260923/treeNC2",
+ "tree_shadow_loop_sha256": "a25a2981dfff3c1872423055fee062ce9d402154d86dca7ae31c31f64c546317",
+ "old_producer_sha256": "6080073964bffc621c893915b16f71ecafe093194f0b99a66a4463ee12c74e61",
+ "quiet_window_at_start": {
+  "now_utc": "2026-09-23T19:21:45Z",
+  "anchor_N_utc": "2026-09-23T16:00:00Z",
+  "minutes_since_N": 201.8,
+  "window": "[N+60m, N+220m]",
+  "remaining_min": 18.2,
+  "open": true,
+  "reason": "open",
+  "override": null,
+  "last_anchor_start_utc": "2026-09-23T16:00:01Z",
+  "last_anchor_done_utc": "2026-09-23T16:58:31Z",
+  "anchor_in_progress": false,
+  "stale_start": false
+ },
+ "started_utc": "2026-09-23T19:21:45Z",
+ "checks": {
+  "a_new_producer_A1": {
+   "ok": true,
+   "outcome": "returned",
+   "error_type": null,
+   "target_live_written": true,
+   "reloaded_last_anchor": 1789804800,
+   "wall_s": 6.6,
+   "prefill_rows": 48,
+   "phase_s": {
+    "setup": 0.0027229030383750796,
+    "exchange_info": 0.0006551679689437151,
+    "klines": 0.007202047039754689,
+    "funding": 0.19528552505653352,
+    "feature_inference": 2.246471917955205,
+    "previous_anchor_score": 0.0031530980486422777,
+    "target_build": 0.005414168001152575,
+    "target_write": 0.0047144959680736065,
+    "state_save": 4.132655413006432
+   },
+   "fake_calls": {
+    "/fapi/v1/exchangeInfo": 1,
+    "/fapi/v1/klines": 522,
+    "/fapi/v1/fundingRate#bulk": 4,
+    "/fapi/v1/fundingRate": 2
+   }
+  },
+  "a2_new_combo_A1": {
+   "ok": true,
+   "rc": 0,
+   "wall_s": 33.22,
+   "loadavg_before": [
+    3.08251953125,
+    3.69287109375,
+    3.75244140625
+   ],
+   "loadavg_after": [
+    2.7783203125,
+    3.5380859375,
+    3.69189453125
+   ],
+   "status_step": "done",
+   "status_why": null,
+   "stderr_tail": "",
+   "log": "/Users/haosiyu/cc_tmp/nc_20260923/dryrun/rehearsal_seeded2/sb_new/combo_a2.log"
+  },
+  "b_downgrade": {
+   "rc": 0,
+   "line": "NC_DOWNGRADE_OK {\"ema_entries_removed\": 0, \"ema_removed_names_first\": [], \"ledger_iv_filled\": 174, \"ledger_iv_filled_names\": 174, \"ledger_iv_known_differs_from_old_rule_kept\": 7, \"aux_keys_dropped\": [\"fetch_syms\", \"prev_close_ts\", \"nc_backfill_residual\"], \"files_not_copied\": [\"boundary_raw.npz\", \"members_hist.npz\"], \"not_handled_entries\": [\"combo_live_status.json\", \"target_blend\", \"target_combo\", \"target_live\", \"target_live_PARITY\", \"target_live_king\", \"weights\", \"weights_combo\"]}",
+   "stderr_tail": "",
+   "ema_none": 0,
+   "iv_none": 0,
+   "nc_keys_left": [],
+   "files": [
+    "aux.json",
+    "generation.json",
+    "leg_returns_live.json",
+    "rolling.npz"
+   ],
+   "receipt_counts": {
+    "ema_entries_removed": 0,
+    "ema_removed_names_first": [],
+    "ledger_iv_filled": 174,
+    "ledger_iv_filled_names": 174,
+    "ledger_iv_known_differs_from_old_rule_kept": 7,
+    "aux_keys_dropped": [
+     "fetch_syms",
+     "prev_close_ts",
+     "nc_backfill_residual"
+    ],
+    "files_not_copied": [
+     "boundary_raw.npz",
+     "members_hist.npz"
+    ],
+    "not_handled_entries": [
+     "combo_live_status.json",
+     "target_blend",
+     "target_combo",
+     "target_live",
+     "target_live_PARITY",
+     "target_live_king",
+     "weights",
+     "weights_combo"
+    ]
+   },
+   "ok": true
+  },
+  "c_old_producer_A2": {
+   "ok": true,
+   "carried_from_nc_chain": {
+    "copied": [
+     "1789804800.npz",
+     "state_H_f10_1789804800.npz",
+     "state_H_kc_1789804800.npz",
+     "state_H_fc_1789804800.npz"
+    ],
+    "missing": []
+   },
+   "mutation": null,
+   "producer_outcome": "returned",
+   "producer_error_type": null,
+   "target_live_written": true,
+   "wall_s": 5.31,
+   "phase_s": {
+    "setup": 0.002312695956788957,
+    "klines": 0.0007001870544627309,
+    "funding": 0.057281006942503154,
+    "feature_inference": 0.8102280200691894,
+    "previous_anchor_score": 0.002623413922265172,
+    "target_build": 0.005585110047832131,
+    "target_write": 0.005725163966417313,
+    "state_save": 4.419858406065032
+   }
+  },
+  "d_old_combo_A2": {
+   "ok": true,
+   "rc": 0,
+   "wall_s": 34.4,
+   "loadavg_before": [
+    3.8505859375,
+    3.71484375,
+    3.74853515625
+   ],
+   "loadavg_after": [
+    6.44482421875,
+    4.453125,
+    4.01904296875
+   ],
+   "status_step": "done",
+   "status_why": null,
+   "stderr_tail": "",
+   "log": "/Users/haosiyu/cc_tmp/nc_20260923/dryrun/rehearsal_seeded2/sb_old_base/combo_base.log"
+  }
+ },
+ "negative_controls": {
+  "counted": true,
+  "e1_old_loader_on_nc_state": {
+   "refused": true,
+   "error": "ValueError: generation unavailable: invalid generation schema",
+   "detected": true
+  },
+  "e2_ema_acc_none": {
+   "detected": true,
+   "caught_by": "old producer raised (TypeError: unsupported operand type(s) for -: 'float' and 'NoneType')",
+   "carried_from_nc_chain": {
+    "copied": [
+     "1789804800.npz",
+     "state_H_f10_1789804800.npz",
+     "state_H_kc_1789804800.npz",
+     "state_H_fc_1789804800.npz"
+    ],
+    "missing": []
+   },
+   "mutation": {
+    "ema_acc_none": "KMNOUSDT"
+   },
+   "producer_outcome": "raised_before_or_in_run_anchor",
+   "producer_error": "TypeError: unsupported operand type(s) for -: 'float' and 'NoneType'",
+   "target_live_written": false,
+   "diag": {
+    "e": "anchor_diagnostics",
+    "anchor_ts": 1789819200,
+    "outcome": "raised",
+    "error_type": "TypeError",
+    "total_s": 0.03079290606547147,
+    "phase_s": {
+     "setup": 0.002279826090671122,
+     "klines": 0.0006776369409635663,
+     "funding": 0.027832041028887033,
+     "feature_inference": null,
+     "previous_anchor_score": null,
+     "target_build": null,
+     "target_write": null,
+     "state_save": null
+    },
+    "fetcher": {
+     "fake": true,
+     "calls": {
+      "/fapi/v1/klines": 450,
+      "/fapi/v1/exchangeInfo": 1,
+      "/fapi/v1/fundingRate": 203
+     },
+     "used_weight_1m_max": null
+    },
+    "logged_utc": "2026-09-23T19:24:02Z"
+   }
+  },
+  "e3_ledger_iv_none": {
+   "detected": true,
+   "caught_by": "old producer raised (TypeError: unsupported operand type(s) for *: 'NoneType' and 'int')",
+   "carried_from_nc_chain": {
+    "copied": [
+     "1789804800.npz",
+     "state_H_f10_1789804800.npz",
+     "state_H_kc_1789804800.npz",
+     "state_H_fc_1789804800.npz"
+    ],
+    "missing": []
+   },
+   "mutation": {
+    "ledger_last_iv_none": "KMNOUSDT"
+   },
+   "producer_outcome": "raised_before_or_in_run_anchor",
+   "producer_error": "TypeError: unsupported operand type(s) for *: 'NoneType' and 'int'",
+   "target_live_written": false,
+   "diag": {
+    "e": "anchor_diagnostics",
+    "anchor_ts": 1789819200,
+    "outcome": "raised",
+    "error_type": "TypeError",
+    "total_s": 0.022529055015183985,
+    "phase_s": {
+     "setup": 0.0017169989878311753,
+     "klines": 0.0005166759947314858,
+     "funding": 0.02029249002225697,
+     "feature_inference": null,
+     "previous_anchor_score": null,
+     "target_build": null,
+     "target_write": null,
+     "state_save": null
+    },
+    "fetcher": {
+     "fake": true,
+     "calls": {
+      "/fapi/v1/klines": 450,
+      "/fapi/v1/exchangeInfo": 1,
+      "/fapi/v1/fundingRate": 202
+     },
+     "used_weight_1m_max": null
+    },
+    "logged_utc": "2026-09-23T19:24:05Z"
+   }
+  }
+ },
+ "tree_phase_key_check": {
+  "called": [
+   "exchange_info",
+   "feature_inference",
+   "funding",
+   "klines",
+   "previous_anchor_score",
+   "state_save",
+   "target_build",
+   "target_write"
+  ],
+  "keys": [
+   "setup",
+   "klines",
+   "funding",
+   "feature_inference",
+   "previous_anchor_score",
+   "target_build",
+   "target_write",
+   "state_save"
+  ],
+  "missing": [
+   "exchange_info"
+  ]
+ },
+ "harness_phase_fix": {
+  "patched_tree": "/Users/haosiyu/cc_tmp/nc_20260923/dryrun/rehearsal_seeded2/tree_harness",
+  "missing_before": [
+   "exchange_info"
+  ],
+  "after": {
+   "called": [
+    "exchange_info",
+    "feature_inference",
+    "funding",
+    "klines",
+    "previous_anchor_score",
+    "state_save",
+    "target_build",
+    "target_write"
+   ],
+   "keys": [
+    "setup",
+    "exchange_info",
+    "klines",
+    "funding",
+    "feature_inference",
+    "previous_anchor_score",
+    "target_build",
+    "target_write",
+    "state_save"
+   ],
+   "missing": []
+  },
+  "sha_before": "a25a2981dfff3c1872423055fee062ce9d402154d86dca7ae31c31f64c546317",
+  "sha_after": "46c52d946dc164d6b640149d3dbc3c232dd6c6cd8b2a4ba8f18f1b33664ab6d5",
+  "edit": "phase_s keys: (\"setup\", \"klines\", ...) -> (\"setup\", \"exchange_info\", \"klines\", ...)"
+ },
+ "input": {
+  "synthetic": false,
+  "nc_state": "/Users/haosiyu/cc_tmp/nc_20260923/dryrun/seedtest/seeded2/state",
+  "files": {
+   "aux.json": "d25a32781fbe7b96d58565d4d3b5b7e0bfe692e7421a5cd63a8e3d91051061fc",
+   "boundary_raw.npz": "0cc262bf585c974727f45e5052226204a8683fe2e50743744b3051ecb2794953",
+   "generation.json": "2abe02038cc010b4281b7987090948ca4014477fc17c3ba090fc0ca482df4b4b",
+   "leg_returns_live.json": "a1a4444e3b2af31f604b959dc84b5fc2c36f5d21f7e2fd28b48492e8e5e10b54",
+   "members_hist.npz": "3843d4a031ab9ed0a64875cf3f786e5e08bbf09a731b5b09abf8ac8364c0dd18",
+   "rolling.npz": "4149c8926f408a61ab1d49a6b3cf861761ee6184f030c85f004d203a7a7fa604"
+  }
+ },
+ "anchors": {
+  "A0": 1789790400,
+  "A1": 1789804800,
+  "A2": 1789819200
+ },
+ "carry_prior_A0": {
+  "copied": [
+   "1789790400.npz",
+   "state_H_f10_1789790400.npz",
+   "state_H_kc_1789790400.npz",
+   "state_H_fc_1789790400.npz"
+  ],
+  "missing": []
+ },
+ "sandboxes": {
+  "a_a2_new_side_post_a2": "/Users/haosiyu/cc_tmp/nc_20260923/dryrun/rehearsal_seeded2/sb_new",
+  "a3_post_A2": "/Users/haosiyu/cc_tmp/nc_20260923/dryrun/rehearsal_seeded2/sb_a3",
+  "old_side_base": "/Users/haosiyu/cc_tmp/nc_20260923/dryrun/rehearsal_seeded2/sb_old_base",
+  "old_side_e2_ema_acc_none": "/Users/haosiyu/cc_tmp/nc_20260923/dryrun/rehearsal_seeded2/sb_old_e2_ema_acc_none",
+  "old_side_e3_ledger_iv_none": "/Users/haosiyu/cc_tmp/nc_20260923/dryrun/rehearsal_seeded2/sb_old_e3_ledger_iv_none"
+ },
+ "a3_f10_chain_without_sidecar": {
+  "sha_after_a2": "030f7b1178a6bc0a025bce8f5d8fb540b22c002a939e2fb645c667cb34b047a6",
+  "sha_before_a2run": "030f7b1178a6bc0a025bce8f5d8fb540b22c002a939e2fb645c667cb34b047a6",
+  "A1_file_anchor_field": 1789804800,
+  "producer_outcome": "returned",
+  "producer_error_type": null,
+  "target_live_written": true,
+  "rc": 0,
+  "status": {
+   "ok": true,
+   "step": "done",
+   "why": null
+  },
+  "combo_wall_s": 34.92,
+  "combo_log": "/Users/haosiyu/cc_tmp/nc_20260923/dryrun/rehearsal_seeded2/sb_a3/combo_a3.log",
+  "h_f10_source": "own",
+  "kc_src": "own",
+  "fc_src": "own",
+  "log4_line": "[  32.1s] \u2463 COMBO \u843d\u76d8 n=255 gross=0.8341 kc_src=own fc_src=own w3m=[0.3771, 0.0, 0.6229]",
+  "log4_kc_src": "own",
+  "log4_fc_src": "own",
+  "f10_A2_written": true,
+  "sha_A1_after_a2run": "030f7b1178a6bc0a025bce8f5d8fb540b22c002a939e2fb645c667cb34b047a6",
+  "criterion_source": "combo_stage's own fields: target_blend/<A2>.json h_source (H_f10_prev: 'own' only when fea171/state_H_f10_<A2-4h>.npz exists AND its anchor field == A2-4h = A1) and target_combo/<A2>.json kc_state_source / fc_state_source; the log line \u2463 kc_src / fc_src must agree",
+  "ok": true
+ },
+ "baseline_green": true,
+ "VERDICT": "PASS_WITH_HARNESS_PATCH",
+ "finished_utc": "2026-09-23T19:24:05Z",
+ "sandboxes_kept": true
+}

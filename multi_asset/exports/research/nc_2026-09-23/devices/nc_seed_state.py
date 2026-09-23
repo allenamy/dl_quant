@@ -40,7 +40,9 @@ def main():
     rec = {"device_sha256": sha(os.path.abspath(__file__)), "tree_patch_receipt_sha256": sha(f"{a.tree}/PATCH_RECEIPT.json"), "inputs": {}, "counts": {}}
     for f in ("rolling.npz", "aux.json", "leg_returns_live.json"): rec["inputs"][f"prod/{f}"] = sha(f"{a.prod}/{f}")
     rec["inputs"]["seed_pack"] = sha(a.seed)
-    S = np.load(a.seed, allow_pickle=True); E = int(S["axis_end"]); cols = S["crypto_cols"].astype(np.int64)
+    with np.load(a.seed, allow_pickle=True) as _S:      # materialise once: NpzFile re-reads (and decompresses) an array on EVERY S[key]
+        S = {k: _S[k] for k in _S.files}
+    E = int(S["axis_end"]); cols = S["crypto_cols"].astype(np.int64)
     cfg = json.load(open(f"{HOME}/wide_shadow/shadow_bundle/config.json")); syms = cfg["symbols_panel"]; NW = len(syms); sidx = {s: j for j, s in enumerate(syms)}
     assert [str(s) for s in S["symbols"]] == syms
     crypto = np.zeros(NW, bool); crypto[cols] = True
@@ -87,7 +89,7 @@ def main():
     rec["counts"]["boundary_cells"] = int(len(bt))
     # ---- funding: replay state at the axis end, advanced over the production ledger's later events
     f_off = np.concatenate([[0], np.cumsum(S["f_n"])]); ema_new = dict(aux["ema"]); led_new = dict(aux["ledger_tail"])
-    agree = disagree = advanced = 0; dis = []
+    agree = disagree = advanced = 0; dis = []; miss_rep = []; miss_prod = []
     for k, j in enumerate(S["f_sym"]):
         s = syms[int(j)]; b0, b1 = int(f_off[k]), int(f_off[k + 1])
         rows_ = [[int(S["f_ft"][q]), float(S["f_rate"][q]), (None if np.isnan(S["f_iv"][q]) else float(S["f_iv"][q]))] for q in range(b0, b1)]
@@ -95,17 +97,27 @@ def main():
         state = {"acc": None if np.isnan(acc) else float(acc), "last_ts": None if prev < 0 else prev}
         pl = aux["ledger_tail"].get(s, [])
         rep = {int(r[0]): float(r[1]) for r in rows_}
+        # coverage: the pack holds the last 400 events <= E (fewer = the name's whole history); production holds its own tail
+        lo_r = rows_[0][0] if len(rows_) >= 400 else -1; lo_p = int(pl[0][0]) if pl else None
         for r in pl:
             if int(r[0]) <= E and int(r[0]) in rep:
                 if float(r[1]) == rep[int(r[0])]: agree += 1
                 else: disagree += 1; dis.append((s, int(r[0])))
+            elif int(r[0]) <= E and int(r[0]) >= lo_r:
+                miss_rep.append((s, int(r[0])))          # a production event inside the pack's coverage that the replay does not have
+        if lo_p is not None:
+            pset = {int(r[0]) for r in pl}
+            miss_prod += [(s, r[0]) for r in rows_ if lo_p <= r[0] <= E and r[0] not in pset]
         later = [(int(r[0]), float(r[1])) for r in pl if int(r[0]) > E]
         if rows_ or later:
             led, state, n = NC.ingest_settlements(rows_[-1:] if rows_ else [], state if rows_ else None, later)
             led_new[s] = (rows_ + led[1:] if rows_ else led)[-400:]
             ema_new[s] = state; advanced += n
     rec["counts"]["ledger_rows_le_axis_agree"] = agree; rec["counts"]["ledger_rows_le_axis_disagree"] = disagree; rec["counts"]["events_advanced_after_axis"] = advanced
-    assert disagree == 0, f"production ledger disagrees with the replay: {dis[:10]}"
+    rec["counts"]["ledger_rows_le_axis_missing_in_replay"] = len(miss_rep); rec["counts"]["missing_in_replay_first"] = miss_rep[:20]
+    rec["counts"]["replay_rows_missing_in_production"] = len(miss_prod); rec["counts"]["missing_in_production_first"] = miss_prod[:20]   # reported, not refused
+    assert disagree == 0 and not miss_rep, f"production ledger disagrees with the replay: rate {dis[:10]} / events absent from the replay {miss_rep[:10]}"
+    assert agree > 0, "no production ledger row <= the axis end matched the replay (zero measurements is not agreement)"
     # ---- fetch list, prev close / ts
     if a.fetch_list:
         fetch = json.load(open(a.fetch_list))
@@ -113,14 +125,29 @@ def main():
         tb = set(aux.get("base_syms") or [])
         fetch = [s for j, s in enumerate(syms) if s in tb and crypto[j]]
     rec["counts"]["fetch_n"] = len(fetch)
-    prev_close_ts = {}
+    prev_close_ts = {}; prev_close = dict(aux["prev_close"])
     for s in fetch:
         j = sidx[s]; fin = np.flatnonzero(has_bar[:, j])
         if len(fin) and s in aux["prev_close"]: prev_close_ts[s] = int(ts[fin[-1]])
+    if live_pack is not None and "pc_sym" in live_pack.files:
+        # the live pack's last close per fetched name (nc_deploy_fetch.py pc_sym / pc_close / pc_ts) takes priority over production's
+        n_set = 0; over = []; not_fetch = []
+        for s_, c_, t_ in zip(live_pack["pc_sym"], live_pack["pc_close"], live_pack["pc_ts"]):
+            s_ = str(s_); t_ = int(t_)
+            assert t_ <= last_anchor, f"live-pack close of {s_} at {t_} is after the state's last anchor {last_anchor}"
+            if s_ in aux["prev_close"]: over.append(s_)
+            if s_ not in set(fetch): not_fetch.append(s_)
+            prev_close[s_] = float(c_); prev_close_ts[s_] = t_; n_set += 1
+        rec["counts"]["live_pack_prev_close_set"] = n_set; rec["counts"]["live_pack_prev_close_overrode_production"] = over
+        rec["counts"]["live_pack_prev_close_not_in_fetch"] = not_fetch
+    elif live_pack is not None:
+        rec["counts"]["live_pack_prev_close_set"] = "live pack has no pc_sym (older format): production prev_close kept"
     # ---- member history: seed pack anchors + recompute after the axis end with the producer's King block
     ma = S["m_anchors"].astype(np.int64); mo = S["m_off"]; mi = S["m_idx"].astype(np.int64)
     mh = {int(ma[k]): mi[mo[k]:mo[k + 1]] for k in range(len(ma)) if int(ma[k]) >= w0}
     HF.set_tree(a.tree); kb = HF._king_block(); P = cfg["params"]
+
+    kpos = {syms[int(jj)]: q for q, jj in enumerate(S["f_sym"])}
 
     class Prov:
         """state-backed provider with the replay Inputs' interface for pass1_anchor"""
@@ -139,13 +166,15 @@ def main():
                 if not rows_: continue
                 st_ = None; lr = []
                 # EMA as of A: replay the name's ledger (<= 400 rows) from the axis-end state
-                k = [q for q, jj in enumerate(S["f_sym"]) if syms[int(jj)] == s]
-                if k:
-                    k = k[0]; acc = S["f_acc"][k]; prev = int(S["f_prev"][k])
+                k = kpos.get(s)
+                if k is not None:
+                    acc = S["f_acc"][k]; prev = int(S["f_prev"][k])
                     st_ = {"acc": None if np.isnan(acc) else float(acc), "last_ts": None if prev < 0 else prev}
                     base_rows = [r for r in rows_ if int(r[0]) <= E]; later = [(int(r[0]), float(r[1])) for r in rows_ if int(r[0]) > E]
                     if base_rows:
                         _, st_, _ = NC.ingest_settlements(base_rows[-1:], st_, later)
+                    else:                                   # no replay event <= E: the same start as the main funding block (empty ledger, None)
+                        _, st_, _ = NC.ingest_settlements([], None, later)
                 ema[s] = st_; led[s] = [rows_[-1]]
             return ema, led
     pv = Prov(); recomputed = 0
@@ -155,7 +184,7 @@ def main():
     rec["counts"]["member_history_anchors_from_seed"] = int(sum(1 for x in mh if x <= E)); rec["counts"]["member_history_anchors_recomputed"] = recomputed
     # ---- write
     np.savez_compressed(f"{out_state}/rolling.npz", ts=ts, data=D)
-    aux_new = dict(aux); aux_new.update({"ema": ema_new, "ledger_tail": {s: r[-400:] for s, r in led_new.items()}, "fetch_syms": fetch,
+    aux_new = dict(aux); aux_new.update({"ema": ema_new, "ledger_tail": {s: r[-400:] for s, r in led_new.items()}, "fetch_syms": fetch, "prev_close": prev_close,
                                           "prev_close_ts": prev_close_ts, "nc_backfill_residual": []})
     with open(f"{out_state}/aux.json", "w") as f: json.dump(aux_new, f)
     shutil.copy2(f"{a.prod}/leg_returns_live.json", f"{out_state}/leg_returns_live.json")

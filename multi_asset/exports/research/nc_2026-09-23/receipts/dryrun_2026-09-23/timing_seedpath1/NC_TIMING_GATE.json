@@ -1,0 +1,245 @@
+{
+ "device_sha256": "602cd35aad87d1ff43e02e6989d70462dc889ec4164593e60ff12deb32fa24fe",
+ "lib_sha256": "647f41c47d6f3892752c3299a8c5b186be8b7af9d9b545285dad3f2c384ab963",
+ "seed_device_sha256": "af8b1b7f3fa643ba0649e0b2195f69abbf7036d9e05d7ad1d3db6591effe3901",
+ "tree": "/Users/haosiyu/cc_tmp/nc_20260923/treeNC2",
+ "tree_shadow_loop_sha256": "a25a2981dfff3c1872423055fee062ce9d402154d86dca7ae31c31f64c546317",
+ "tree_phase_key_check": {
+  "called": [
+   "exchange_info",
+   "feature_inference",
+   "funding",
+   "klines",
+   "previous_anchor_score",
+   "state_save",
+   "target_build",
+   "target_write"
+  ],
+  "keys": [
+   "setup",
+   "klines",
+   "funding",
+   "feature_inference",
+   "previous_anchor_score",
+   "target_build",
+   "target_write",
+   "state_save"
+  ],
+  "missing": [
+   "exchange_info"
+  ]
+ },
+ "harness_phase_fix": {
+  "patched_tree": "/Users/haosiyu/cc_tmp/nc_20260923/dryrun/timing_seedpath1/tree_harness",
+  "missing_before": [
+   "exchange_info"
+  ],
+  "after": {
+   "called": [
+    "exchange_info",
+    "feature_inference",
+    "funding",
+    "klines",
+    "previous_anchor_score",
+    "state_save",
+    "target_build",
+    "target_write"
+   ],
+   "keys": [
+    "setup",
+    "exchange_info",
+    "klines",
+    "funding",
+    "feature_inference",
+    "previous_anchor_score",
+    "target_build",
+    "target_write",
+    "state_save"
+   ],
+   "missing": []
+  },
+  "sha_before": "a25a2981dfff3c1872423055fee062ce9d402154d86dca7ae31c31f64c546317",
+  "sha_after": "46c52d946dc164d6b640149d3dbc3c232dd6c6cd8b2a4ba8f18f1b33664ab6d5",
+  "edit": "phase_s keys: (\"setup\", \"klines\", ...) -> (\"setup\", \"exchange_info\", \"klines\", ...)"
+ },
+ "seed_mode": {
+  "seed_pack": "seedtest/synth_seed_pack.npz",
+  "sha256": "acbbe4a6a7603eac5c4d083a08152ca5cac43df25ee87ec9cc8defe3215711b0"
+ },
+ "anchors": [
+  1789819200
+ ],
+ "n_ordinary_anchors_required": 6,
+ "runs_done": 2,
+ "runs_planned": 2,
+ "all_runs_ok": true,
+ "stopped": null,
+ "per_phase_s_ordinary": {
+  "exchange_info": {
+   "p50": 0.0006887470372021198,
+   "max": 0.0006887470372021198
+  },
+  "feature_inference": {
+   "p50": 1.9500514690298587,
+   "max": 1.9500514690298587
+  },
+  "funding": {
+   "p50": 0.18666471389587969,
+   "max": 0.18666471389587969
+  },
+  "klines": {
+   "p50": 0.3568955090595409,
+   "max": 0.3568955090595409
+  },
+  "previous_anchor_score": {
+   "p50": 0.0026810839772224426,
+   "max": 0.0026810839772224426
+  },
+  "setup": {
+   "p50": 0.003062836010940373,
+   "max": 0.003062836010940373
+  },
+  "state_save": {
+   "p50": 3.989467106992379,
+   "max": 3.989467106992379
+  },
+  "target_build": {
+   "p50": 0.005204432061873376,
+   "max": 0.005204432061873376
+  },
+  "target_write": {
+   "p50": 0.004810062004253268,
+   "max": 0.004810062004253268
+  }
+ },
+ "producer_total_s": {
+  "p50": 6.499531305045821,
+  "max": 6.499531305045821,
+  "values": [
+   6.499531305045821
+  ]
+ },
+ "combo_wall_s": {
+  "p50": 31.72,
+  "max": 31.99,
+  "values": [
+   31.45,
+   31.99
+  ]
+ },
+ "worst_backfill": {
+  "total_s": 7.7866492450702935,
+  "phase_s": {
+   "setup": 0.0023598880507051945,
+   "exchange_info": 0.0006972099654376507,
+   "klines": 2.5446614479878917,
+   "funding": 0.17087181098759174,
+   "feature_inference": 0.9046540160197765,
+   "previous_anchor_score": 0.0030686809914186597,
+   "target_build": 0.005243199993856251,
+   "target_write": 0.005223682033829391,
+   "state_save": 4.149864088045433
+  },
+  "synthesis": {
+   "names": [
+    "0GUSDT",
+    "ARKUSDT",
+    "BROCCOLIF3BUSDT",
+    "DOGSUSDT",
+    "GPSUSDT",
+    "KERNELUSDT",
+    "MYXUSDT",
+    "PUMPUSDT",
+    "SPACEUSDT",
+    "UAIUSDT"
+   ],
+   "k": 10,
+   "what": "fetch_syms minus these names, their columns all-NaN; fake serves synthetic paged 40-day 5m K-lines (deterministic random walk, limit 1000 pages) for their backfill"
+  },
+  "backfill_log": {
+   "e": "nc_backfill",
+   "anchor_ts": 1789819200,
+   "names": [
+    "0GUSDT",
+    "ARKUSDT",
+    "BROCCOLIF3BUSDT",
+    "DOGSUSDT",
+    "GPSUSDT",
+    "KERNELUSDT",
+    "MYXUSDT",
+    "PUMPUSDT",
+    "SPACEUSDT",
+    "UAIUSDT"
+   ],
+   "residual": [],
+   "logged_utc": "2026-09-23T19:26:04Z"
+  },
+  "cap_s": 120.0
+ },
+ "loadavg": {
+  "1789819200": {
+   "producer": [
+    [
+     7.302734375,
+     5.21826171875,
+     4.34375
+    ],
+    [
+     6.86181640625,
+     5.19384765625,
+     4.3447265625
+    ]
+   ],
+   "combo": [
+    [
+     6.86181640625,
+     5.19384765625,
+     4.3447265625
+    ],
+    [
+     5.4521484375,
+     5.0263671875,
+     4.31298828125
+    ]
+   ]
+  },
+  "1789819200_worst": {
+   "producer": [
+    [
+     4.533203125,
+     4.8447265625,
+     4.26025390625
+    ],
+    [
+     6.27978515625,
+     5.19775390625,
+     4.39111328125
+    ]
+   ],
+   "combo": [
+    [
+     6.27978515625,
+     5.19775390625,
+     4.39111328125
+    ],
+    [
+     4.56982421875,
+     4.876953125,
+     4.30126953125
+    ]
+   ]
+  }
+ },
+ "inputs": {
+  "fetch_measured_s": null,
+  "backfill_measured_s": null,
+  "backfill_k": 10
+ },
+ "gate": {
+  "formula": "max(720 + fetch + compute, 1020) + 8 + combo_max <= 1175 (seconds after N)",
+  "ordinary": "NOT COMPUTED: --fetch-measured not given (never estimated here)",
+  "worst": "NOT COMPUTED: --fetch-measured not given (never estimated here)"
+ },
+ "VERDICT": "NO_GATE_FETCH_NOT_GIVEN_WITH_HARNESS_PATCH",
+ "written_utc": "2026-09-23T19:26:42Z"
+}
