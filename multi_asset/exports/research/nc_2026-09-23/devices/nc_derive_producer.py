@@ -33,6 +33,11 @@ ALL_NEWS2_FAMILIES = {"D4", "D5", "D6", "D7", "D8", "D9", "D11", "D13", "D14"}  
 # test arms only (news2's reach gate / D7 admission gate): NC_NEWS2_FAMILIES / NC_TREND_ROWS; a --release build refuses non-defaults
 NEWS2_FAMILIES = {f.strip() for f in os.environ.get("NC_NEWS2_FAMILIES", DEFAULT_FAMILIES).split(",") if f.strip()}
 TREND_ROWS = os.environ.get("NC_TREND_ROWS", DEFAULT_TREND_ROWS)
+# The replay device's King-block capture (nc_hist_features._king_block, the G1-3 screen dict) reads c7, and only the D5/D6 member-screen
+# rewrite defines c7; an arm without D5 and D6 derives fine and dies with NameError at its first replayed anchor (news2
+# ARM_VIABILITY.json 2026-09-23: base / D4 / D7 / D8 / D9 / D14). Refused at build time (lead 2026-09-23). The flag exists only so
+# the guard test can show the hole is real (a D4 arm built with it off has no c7).
+REQUIRE_SCREEN_FAMILY = True
 
 
 def sha_file(p):
@@ -742,6 +747,10 @@ def main():
     out = pathlib.Path(sys.argv[1]); assert not out.exists(), f"refusing to overwrite {out}"
     if release:   # a production / deploy build: the test-arm switches must be at their defaults
         assert NEWS2_FAMILIES == set(DEFAULT_FAMILIES.split(",")) and TREND_ROWS == DEFAULT_TREND_ROWS, ("release build with non-default arm switches", sorted(NEWS2_FAMILIES), TREND_ROWS)
+    if REQUIRE_SCREEN_FAMILY:
+        assert NEWS2_FAMILIES & {"D5", "D6"}, ("arm without D5 or D6 (empty set included): the member screen keeps its original text, which "
+                                               "defines no c7, and the replay's King-block capture reads c7 -> NameError at the first anchor; "
+                                               "build D5 or D6 together with the family under test", sorted(NEWS2_FAMILIES))
     N2 = load_news2()
     assert sha_file(TRAD) == PIN["tradability.py"] and sha_file(M3_DIR / "beta_overlay_producer.py") == PIN["beta_overlay_producer.py"]
     srcs = {"shadow_loop_v3.py": N2.BASE_SHADOW, "fea171/combo_stage.py": N2.WIDE / "fea171/combo_stage.py",
