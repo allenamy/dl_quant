@@ -297,7 +297,12 @@
    - 之后用生产账本 09-19 后的事件, 按 §A4 函数顺序推进;
    - 验收 G10-1, 干跑报告与写入分开(沿用 NEW_S `news_ema_reseed.py` 的外壳)。
 3. **成员历史播种**(新): 见 §A2; 验收 G2-1。
-4. **检查装置**: 沿用 NEW_S 的 `news_live_check.py`(C0 身份 / C1 复现 / C2 训练规则成员 / C3 combo 逐位)与 `mac_candidate_acceptance.py` 的框架, 输入换成新合同。今晚按原计划在 17:00Z 静默窗跑 P3(安装/回滚演练)与 P4(检查装置对照), 工具复用。
+4. **检查装置**: 沿用 NEW_S 的 `news_live_check.py`(C0 身份 / C1 复现 / C2a 取数覆盖 / C2 训练规则成员 / C3 combo 逐位)与 `mac_candidate_acceptance.py` 的框架, 输入换成新合同。
+   - 2026-09-23T17Z 静默窗实跑(收据 `multi_asset/exports/research/news_2026-09-23/deploy/p3_p4_2026-09-23T17Z/`):
+     - P3 安装 / 回滚演练 PASS, 9/9 步;
+     - P4 对照第一次跑出**假绿**: C2 在当前实盘锚上 0 差。原因: 合法性由滚动缓存算出, 没取数的名在缓存里没有 bar, 所以永远不合法、也永远不是训练候选。
+   - 修法: 加 C2a, 用场所名单(aux base_syms)∩ 829 轴 ∩ 加密类, 独立核对取数覆盖。
+   - 重跑结果: C0 / C1 / C3 绿(装置逐位复现生产), C2a 红, 点名 72 个未取数的名(正是 NEW_S 的 72 名)。红绿单测 `test_live_check_c2a.json` PASS。
 
 ### A8. 与 D15 / D16 的接口(不在本次代码修复内)
 

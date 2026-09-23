@@ -1,0 +1,83 @@
+{
+ "device_sha256": "437b4393c70ca05f8e2c8f4fe47bd8ce930e2c39fcd4cd592e23a4c41b31807e",
+ "pkg": "/Users/haosiyu/cc_tmp/news_20260923/package_NEW_S",
+ "A0": 1789660800,
+ "A1": 1789675200,
+ "steps": {
+  "S0_sandbox_loads": {
+   "PASS": true,
+   "err": null
+  },
+  "S1_emulated_fetch": {
+   "PASS": true,
+   "added_columns_rows_finite_log_qv": 596448
+  },
+  "S2_install": {
+   "rc": 0,
+   "log": "INSTALL done; generation d433dae07bc86ff99ecb7e9edfef612f922b6c4938773d939813556487f536ae\n",
+   "added_equal_isolated": true,
+   "others_byte_identical": true,
+   "prev_close_set": true,
+   "producer_loads": true,
+   "load_err": null,
+   "PASS": true
+  },
+  "S3_second_install_refused": {
+   "rc": 1,
+   "log": "ssert sha(f\"{STATE}/generation.json\") == src[\"source_generation_sha256\"], \"REFUSE: production state advanced since the fetch \u2014 re-run fetch\"\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: REFUSE: production state advanced since the fetch \u2014 re-run fetch\n",
+   "PASS": true
+  },
+  "S4_patch_fetchlist": {
+   "rc": 0,
+   "log": "{\"config.json\": {\"old\": \"3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e\", \"new\": \"2caec5874e473f8d8ccc7e908ae42148b9705f8c00195239af50640370b95706\"}, \"MANIFEST.json_new\": \"d36543ffeac35f2a2ecb0f391cd380506119aede980ea29242701aa012cbe4a5\", \"n_live(holding)\": 450, \"n_fetch\": 522}\n",
+   "patched_sha_ok": true,
+   "n_fetch": 522,
+   "symbols_live_unchanged": true,
+   "loads": true,
+   "err": null,
+   "PASS": true
+  },
+  "S5_one_anchor": {
+   "members_equal_training": true,
+   "added_members": 38,
+   "added_names_zero_weight": true,
+   "universe_450": true,
+   "state_reloads": true,
+   "err": null,
+   "PASS": true
+  },
+  "S6_models": {
+   "rc": 0,
+   "printed": {
+    "booster_sha_pin": "b521ccdcd045a0975f107fed1e415b22ec72a96fb7f17a30da13f0583bacd0a2",
+    "f10_sha_pin": "6e97dc8afcaff41d672206871f071c4562bd66bf55ec3403d69eb652a2d4e6eb",
+    "MANIFEST.json_new": "0be4f0ab97299ce7194e2f318b0c8709de35e55794807b47bbd0ae25e74d7470"
+   },
+   "pins_equal_manifest": true,
+   "bytes_equal_package": true,
+   "loads": true,
+   "err": null,
+   "PASS": true
+  },
+  "S7_RB_restore": {
+   "king_sha": "8d79186b",
+   "f10_sha": "351ae26b",
+   "loads": true,
+   "err": null,
+   "manifest_equal_B0": true,
+   "PASS": true
+  },
+  "S8_RA_restore": {
+   "rc": 0,
+   "log": "ROLLBACK done; generation e7ce4f97e3575f273c4e68b50b021d2bbba684af33f79b5b8db5009748b77879\n",
+   "added_all_nan": true,
+   "others_unchanged_since_S5": true,
+   "prev_close_removed": true,
+   "original_producer_loads": true,
+   "err": null,
+   "producer_sha": "60800739",
+   "PASS": true
+  }
+ },
+ "VERDICT": "PASS"
+}

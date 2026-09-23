@@ -9,6 +9,12 @@ Checks (bitwise unless stated):
  C0 identity   target_live/<A>.json booster_sha / f10_sha == sha256 of --king / --f10 (the models that must be in service at A).
  C1 reproduce  the producer King block (shadow_loop_v3.py L486-L553 verbatim; fetch list = config symbols_fetch, or symbols_live when absent;
                base = aux base_syms) on the snapshot ⇒ members == prev_rec members; legz king == xz(booster(X78)); rev24; fund == prev_rec.
+ C2a fetch     the names the training rule could select must all be FETCHED: expected = the anchor's venue TRADING perpetual list
+    coverage   (aux base_syms, read by the producer from exchangeInfo at A) ∩ the 829 axis ∩ crypto class; PASS iff expected ⊆ fetch list.
+               WHY (P4 control 2026-09-23T16Z): C2 alone is VACUOUS for a missing fetch list — legality is computed from the rolling
+               cache, and a name that is not fetched has no bars there, so it is never legal and never a training candidate either;
+               C2 then passes with 0 differences although the fetch list lacks ~70 legal names. C2a reads legality's precondition
+               (being fetched) from an independent source (the venue list).
  C2 training   candidates = SPEC legal (TRADABLE W24H ∧ LIVE on the snapshot's last 288 rows, the function validated against the x0918r
     rule       mask in P5_DATA_PARITY) ∧ crypto class ⇒ the same King block with the non-candidates removed ⇒ members_train.
                PASS if equal; otherwise every differing name is listed with its fetch / legal / crypto flags; a difference is NAMED R1 only if
@@ -17,9 +23,9 @@ Checks (bitwise unless stated):
                and --f10; seats = the seat rule of combo_stage L56-64 on the snapshot leg-return file; kc/fc = production state_H at A-4h;
                rn8 from the snapshot ledger; qv4h from the snapshot cache; LIVE_MASK = target_live universe) == production weights_combo/<A>
                (float32 as stored); publish flag == combo_live_status ok; w3_masked == target_combo w3_masked.
-Verdict line `NEWS_LIVE_CHECK VERDICT=PASS|FAIL anchor=<utc> ...`; exit 0 only on PASS (C0 ∧ C1 ∧ C3 ∧ (C2 or all C2 differences R1)).
-Control (run before the fetch-list change, on any current anchor): C2 must FAIL with differences that are NOT R1 (names outside the fetch
-list) — proves C2 can see a missing fetch list.
+Verdict line `NEWS_LIVE_CHECK VERDICT=PASS|FAIL anchor=<utc> ...`; exit 0 only on PASS (C0 ∧ C1 ∧ C2a ∧ C3 ∧ (C2 or all C2 differences R1)).
+Control (run before the fetch-list change, on any current anchor): C2a must FAIL naming the unfetched TRADING crypto axis names — proves the
+device can see a missing fetch list (the first control run showed that C2 alone cannot).
 usage: ~/wide_shadow/venv/bin/python news_live_check.py --anchor A --king F --f10 F --crypto P1_members_2025H2on.npz --out DIR
 """
 import os, sys, json, time, shutil, hashlib, argparse
@@ -41,6 +47,14 @@ def legal_spec(block):
     """verbatim mac_p5_datacheck.legal_spec: block (288, N, 7) f16 rows (A−24h, A] ⇒ TRADABLE W24H ∧ LIVE"""
     lc = block[:, :, 4].astype(np.float32); lq = block[:, :, 3].astype(np.float32)
     return (np.isfinite(lc) & (lc > 0)).any(0) & np.isfinite(lq).any(0)
+
+
+def fetch_coverage(base_syms, panel, crypto, fetch):
+    """C2a: expected = venue TRADING perpetuals at A (aux base_syms) ∩ 829 axis ∩ crypto; returns (missing sorted, extra sorted)"""
+    ax = {s: j for j, s in enumerate(panel)}
+    expected = {s for s in base_syms if s in ax and bool(crypto[ax[s]])}
+    f = set(fetch)
+    return sorted(expected - f), sorted(f - expected), len(expected)
 
 
 def main():
@@ -74,8 +88,11 @@ def main():
     for k in ("king", "rev24", "fund"):
         c1[f"legz_{k}_bitwise"] = CA.bits_eq(np.nan_to_num(lz[k]), np.array(pr["legz"][k], np.float64), np.float64) if len(lz[k]) == len(pr["legz"][k]) else False
     c1["PASS"] = all(c1.values()); r["C1"] = c1
-    # C2 training rule
+    # C2a fetch coverage (independent of the rolling cache)
     crypto = np.load(a.crypto)["crypto"].astype(bool); assert crypto.shape == (NW,)
+    miss, extra, n_exp = fetch_coverage(aux["base_syms"], syms, crypto, fetch)
+    r["C2a"] = {"expected_n": n_exp, "fetch_n": len(fetch), "missing_n": len(miss), "missing": miss, "fetched_not_expected": extra, "PASS": not miss}
+    # C2 training rule
     legal = legal_spec(d[-288:]); cand = legal & crypto
     st2 = H._St(); d2 = d.copy(); d2[:, ~cand, :] = np.nan; st2.cd = d2; st2.live = [syms[j] for j in np.flatnonzero(cand)]; st2.sym_idx = sidx
     st2.ledger = aux["ledger_tail"]; st2.ema = aux["ema"]; st2.NW = NW
@@ -123,10 +140,10 @@ def main():
     c3["n_f10_scored"] = int(np.isfinite(f10).sum()); c3["target_combo_n_f10_scored"] = tc.get("n_f10_scored")
     c3["PASS"] = c3["publish_equal"] and c3["combo_raw_f32_bitwise"] and c3["w3_masked_equal"] and c3["kc_prev_found"] and c3["fc_prev_found"]
     r["C3"] = c3
-    ok = r["C0"]["PASS"] and r["C1"]["PASS"] and r["C3"]["PASS"] and r["C2"]["PASS_or_named_R1"]
+    ok = r["C0"]["PASS"] and r["C1"]["PASS"] and r["C2a"]["PASS"] and r["C3"]["PASS"] and r["C2"]["PASS_or_named_R1"]
     r["VERDICT"] = "PASS" if ok else "FAIL"
     p = f"{a.out}/NEWS_LIVE_CHECK_{A}.json"; json.dump(r, open(p, "w"), indent=1)
-    print(f"NEWS_LIVE_CHECK VERDICT={r['VERDICT']} anchor={utc} C0={r['C0']['PASS']} C1={r['C1']['PASS']} C2={r['C2']['PASS']}(n_diff {r['C2']['n_diff']}, "
+    print(f"NEWS_LIVE_CHECK VERDICT={r['VERDICT']} anchor={utc} C0={r['C0']['PASS']} C1={r['C1']['PASS']} C2a={r['C2a']['PASS']}(missing {r['C2a']['missing_n']} of {r['C2a']['expected_n']}) C2={r['C2']['PASS']}(n_diff {r['C2']['n_diff']}, "
           f"all_R1 {r['C2']['PASS_or_named_R1']}) C3={r['C3']['PASS']} fetch_n={len(fetch)} receipt={p} sha256={sha(p)}", flush=True)
     sys.exit(0 if ok else 3)
 
