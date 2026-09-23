@@ -72,6 +72,18 @@ git -C ~/dl_quant_live rev-parse --short HEAD                       # 期望 b66
 /usr/bin/python3 -c "import json;b=json.load(open('$HOME/dl_quant_live/config/book.json'))['external_book'];print(b['booster_sha_pin'][:8],b['f10_sha_pin'][:8],b.get('producer_contract'))"   # 期望 8d79186b 351ae26b None
 shasum -a 256 $SEEDPACK $CRYPTO                                    # 与种子包收据 NC_SEED_PACK.json、2323623f… 相同
 launchctl print-disabled gui/$(id -u) | grep com.hsy.sidecar       # 期望没有 disabled 行(或 => false)
+# 执行器状态正常(lead 裁定;任一不满足就不开窗 —— 否则 §B4「本锚有下单」必红, 换装会被误判失败)
+grep "anchor done" ~/dl_quant_live/state/anchor_runs.log | tail -1  # 必须是本锚(N+0:2x)的一行且 rc=0
+/usr/bin/python3 - <<'PYCHK'
+import json, os, glob
+L = os.path.expanduser("~/dl_quant_live/state/live")
+w = json.load(open(f"{L}/watchdog/state.json")); e = json.load(open(f"{L}/watchdog/last_eval.json"))
+r = [json.loads(x) for x in open(sorted(glob.glob(f"{L}/pilot_log/2*/anchors.jsonl"))[-1])][-1]
+print("watchdog tripped_at", w.get("tripped_at"), "reduce_only", w.get("reduce_only"), "| last_eval tripped", e.get("tripped"), "triggers", e.get("triggers"), e.get("evaluated_utc"))
+print("last anchors row nominal", (r.get("external_book") or {}).get("nominal_ts"), "opening_halted", r.get("opening_halted"))
+PYCHK
+# 期望: tripped_at None · reduce_only False · tripped False · triggers [](任何触发都不在, 含 §4-2 日止损)· 本锚行 nominal = 本锚且 opening_halted False
+grep -E "4-2|DAY_STOP" ~/dl_quant_live/state/live/watchdog/ALARM.log | tail -2   # 当日有 §4-2 日止损生效记录 ⇒ 不开窗
 ```
 
 ## 1. 时间线(一个静默窗 W = [N+1:00, N+3:40])
@@ -107,9 +119,18 @@ $PYP $NCW/src/test_nc_install_rehearsal.py $NCW/treeNC4 $NCW/release $SEEDPACK <
 - 模型用真包的,不再用替身。
 - 通过条件:7/7。收据 `TEST_NC_INSTALL_REHEARSAL.json`。
 
-**P3 执行器候选干跑**(可选,强烈建议;静默窗,约 20 分钟):
-- 按 A4 的 1–4 步做出候选检出,不运行 `safe_commit`,改为在候选检出里运行 `bash ops/run_acceptance_offline.sh`,只看结果、不提交。
-- 注意:钉与生产者文件的一致性类套件,在生产者尚未安装时可能判红。这一格按「预期红、具名」记录,其余必须全绿。
+**P3 执行器候选干跑**(**必做**,lead 裁定;静默窗,约 20 分钟):
+- 按 A4 的条件做出候选检出:M3 合入、anchor_report 补丁、生产者发布归档、`nc_exec_config.py` 改好钉与配置(shadow、2.5、nc_v1),并 rsync 实盘 state。
+- 不运行 `safe_commit`,改为在候选检出里运行 `bash ops/run_acceptance_offline.sh`,只看结果、不提交、不推送。
+- 读源码普查的结论(2026-09-23,候选 = b66257b + 5b3d89c + 补丁):
+  - 电池里读 `booster_sha_pin` / `f10_sha_pin` / target_live 的套件只有 5 个:`tests_external_book`、`tests_beta_overlay`、`tests_gross_ladder_retired`、`tests_per_name_stop`、`tests_arm_margin_scope`。
+  - 它们比较的都是**自己在临时目录里造的**目标文件与夹具钉,不读检出里 book.json 的钉,也不读生产者的真实文件。
+  - 离线沙箱允许读 `~/wide_shadow`,但没有套件去读它。只有 fixture 构建器 `build_fixture_0913_08z.py` 读,它不在电池里。
+  - 所以换钉本身不会让任何套件变红。
+- 真正的未知是另一件事:全电池从来没有在检出里 `beta_overlay.mode="shadow"` 的配置下跑过。IMPL_m3 §7 写明:全电池只在 off 下跑过,shadow / on 只跑过 5 个套件。
+  - 另外约 20 个套件读检出里的真实 book.json(例如 `tests_external_book` 的 BASE_BOOK)。
+  - P3 就是为了在部署前实测这一点。
+- 判定:全绿 ⇒ A4 可按原样执行;有红格 ⇒ 读逐格日志归因,交 lead 裁定,**不放宽判据**。
 
 **P4 前置门收据**:把 §0.2 第 1–6 项的收据路径和 sha 抄进 `$BK/PREREQS.md`。
 
