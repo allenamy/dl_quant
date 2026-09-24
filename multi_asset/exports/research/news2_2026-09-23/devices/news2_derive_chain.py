@@ -39,6 +39,11 @@ SRC_SHA = {
     "news_make_configs.py": None,
     "news_ext.py": None,
     "news_adapter_specs.py": None,
+    # added 2026-09-24: the deployment exporter. It asserts the whole chain of sha equalities
+    # (features -> King -> legs -> F10 -> combo -> adapter -> run config -> engine run -> verdict), so it
+    # can only run after the verdict exists, but it has to be derived with the same substitutions as
+    # everything else rather than hand-edited at the last minute.
+    "news_export_models.py": None,
 }
 # substitutions applied to every file; `min_hits` guards against a silent no-op rename.
 SUBS = [
@@ -52,9 +57,16 @@ SUBS = [
     # confused later.
     ("provenance", 'f"NEW_S (news_2026-09-23) combo_s{seed}: producer-replayed features, King + F10 s{seed} retrained"',
      'f"NEW_S2 (nc_2026-09-23 features, news2_2026-09-23 models) combo_s{seed}: full corrected producer contract, King + F10 s{seed} retrained"', 0),
+    # The verdict receipt is NEWS2_STATS.json here. `arm_prefix` does not cover it: that pattern is
+    # "NEWS_s" with a lowercase s, and this name has an uppercase S. Enumerated every NEWS* token in the
+    # exporter rather than assuming one rule covered them all -- NEWS_FEATURES is deliberately NOT
+    # substituted, because the staged feature file in this root really is called NEWS_FEATURES.npz.
+    ("stats_receipt", "NEWS_STATS", "NEWS2_STATS", 0),
+    ("doc_label", "NEWS P5 model export", "NEWS2 P5 model export", 0),
 ]
 # at least one file must be touched by each substitution, or the table has gone stale
-REQUIRED_GLOBAL_HITS = {"root": 1, "arm_prefix": 1, "src_hist": 1, "src_legs": 1, "src_p2": 1, "provenance": 1}
+REQUIRED_GLOBAL_HITS = {"root": 1, "arm_prefix": 1, "src_hist": 1, "src_legs": 1, "src_p2": 1,
+                        "provenance": 1, "stats_receipt": 1, "doc_label": 1}
 
 
 def sha_file(p):

@@ -1,0 +1,43 @@
+--- news_2026-09-23/devices/news_export_models.py
++++ news2_2026-09-23/devices/news2_export_models.py
+@@ -1,10 +1,10 @@
+-"""NEWS P5 model export (pod2, /workspace/venv torch) — deploy files in the PRODUCTION formats, bound into ONE manifest with the exact
++"""NEWS2 P5 model export (pod2, /workspace/venv torch) — deploy files in the PRODUCTION formats, bound into ONE manifest with the exact
+ artifacts the evaluation used (R10 export item): any link that does not match ⇒ refuse (exit 3), nothing half-written counts.
+ Chain bound (each arrow = a sha equality asserted from the receipts, not from file names):
+   NEWS_FEATURES (P2B_FEATURES.sha256) → King TRAIN_RECEIPT.inputs → fold 2026 model sha → KING_OOF (predictions_sha256) → legs.npz inputs
+   → F10 s42 fold receipts (inputs: features + legs) → fold 202609 model.pt / scores.npz → F10_OOF (pred_sha256) → combo_s42 TARGET_RECEIPT
+-  (inputs: F10_OOF, legs, features) → scaled_diagnostic.npz → adapter TARGETS_NEWS_s42.json (sources.scaled sha, targets_npz_sha256)
+-  → RUN_CONFIG_NEWS_s42 (targets.sources) → engine run dir → NEWS_STATS.json (runs root, verdict).
++  (inputs: F10_OOF, legs, features) → scaled_diagnostic.npz → adapter TARGETS_NEWS2_s42.json (sources.scaled sha, targets_npz_sha256)
++  → RUN_CONFIG_NEWS2_s42 (targets.sources) → engine run dir → NEWS2_STATS.json (runs root, verdict).
+   deploy slow2026.txt == fold 2026 model (sha); deploy f10_live_s42_np.npz exported from fold 202609 model.pt (V1 gate numpy ≡ torch).
+ F10 202609 training span is reported as it is: the trainer uses only the first 85 % of the admissible training anchors (train_f10.py L102-103),
+ so ADMISSION.max_train_label_end (≈ 2026-01) — not the 2026-08-22 cutoff — is the last label the gradient saw.
+@@ -14,7 +14,7 @@
+ import torch
+ from scipy.stats import spearmanr
+ from scipy.special import erf
+-W = "/dev/shm/news_2026-09-23"
++W = "/dev/shm/news2_2026-09-23"
+ 
+ 
+ class ExportError(Exception):
+@@ -72,13 +72,13 @@
+     need(cr["inputs"].get(f"{W}/work/f10_s42/F10_OOF.npz") == fr["pred_sha256"] and cr["inputs"].get(f"{W}/work/legs.npz") == lg["sha256"] and cr["inputs"].get(feat) == p2b["sha256"], "combo lineage")
+     sc = cr["policies"]["scaled_diagnostic"]; need(sha(sc["path"]) == sc["sha"], "combo scaled npz sha")
+     L["combo_s42"] = {"receipt_sha256": sha(cr_p), "scaled_sha256": sc["sha"]}
+-    ar_p = f"{W}/targets/TARGETS_NEWS_s42.json"; ar = json.load(open(ar_p))
+-    need(ar["adapter"]["sources"]["scaled"]["sha256"] == sc["sha"] and ar["roundtrip"]["scaled"]["bitwise_equal"] and sha(f"{W}/targets/TARGETS_NEWS_s42.npz") == ar["targets_npz_sha256"], "adapter lineage")
++    ar_p = f"{W}/targets/TARGETS_NEWS2_s42.json"; ar = json.load(open(ar_p))
++    need(ar["adapter"]["sources"]["scaled"]["sha256"] == sc["sha"] and ar["roundtrip"]["scaled"]["bitwise_equal"] and sha(f"{W}/targets/TARGETS_NEWS2_s42.npz") == ar["targets_npz_sha256"], "adapter lineage")
+     L["adapter_s42"] = {"receipt_sha256": sha(ar_p), "targets_npz_sha256": ar["targets_npz_sha256"]}
+-    cfg_p = f"{W}/configs/RUN_CONFIG_NEWS_s42_2026-09-23.json"; cfg = json.load(open(cfg_p))
++    cfg_p = f"{W}/configs/RUN_CONFIG_NEWS2_s42_2026-09-23.json"; cfg = json.load(open(cfg_p))
+     need(all(r["targets"]["sources"][0]["npz_sha256"] == ar["targets_npz_sha256"] and r["targets"]["sources"][0]["receipt_sha256"] == sha(ar_p) for r in cfg["runs"]), "run config targets")
+     L["run_config_s42"] = {"path": cfg_p, "sha256": sha(cfg_p), "pod_root": cfg["paths"]["pod_root"]}
+-    st_p = f"{W}/receipts/engine/NEWS_STATS.json"; st = json.load(open(st_p))
++    st_p = f"{W}/receipts/engine/NEWS2_STATS.json"; st = json.load(open(st_p))
+     need(st["runs_roots"]["news"] == f"{cfg['paths']['pod_root']}/runs", "stats read another runs root")
+     L["stats"] = {"path": st_p, "sha256": sha(st_p), "VERDICT": st["VERDICT"], "failing_by_seed": st["failing_by_seed"]}
+     # ---- deploy files ----

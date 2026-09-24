@@ -1,7 +1,7 @@
 {
  "device": "news2_derive_chain.py",
- "self_sha256": "9f7eea79681694959b152a583ef02a58f50c7e5413cb1ce69f9e2dc08b6443bc",
- "utc": "2026-09-23T18:36:55Z",
+ "self_sha256": "723e158c4e6850582b2bcc34bad7866716c061e027d1112a6e552753fe3e7ac7",
+ "utc": "2026-09-24T00:42:03Z",
  "freeze": "docs/FREEZE_new_servable_v2_2026-09-23.md b30e4afa5 \u00a74 (news2: training / combo / engine / verdict)",
  "training_scheme": "NEW_S scheme (FRESH judged KEEP_NEWS, c1fb0bf0); the recipe is derived, not retyped",
  "source_dir": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/news_2026-09-23/devices",
@@ -35,15 +35,27 @@
    "tag": "provenance",
    "old": "f\"NEW_S (news_2026-09-23) combo_s{seed}: producer-replayed features, King + F10 s{seed} retrained\"",
    "new": "f\"NEW_S2 (nc_2026-09-23 features, news2_2026-09-23 models) combo_s{seed}: full corrected producer contract, King + F10 s{seed} retrained\""
+  },
+  {
+   "tag": "stats_receipt",
+   "old": "NEWS_STATS",
+   "new": "NEWS2_STATS"
+  },
+  {
+   "tag": "doc_label",
+   "old": "NEWS P5 model export",
+   "new": "NEWS2 P5 model export"
   }
  ],
  "substitution_totals": {
-  "root": 5,
-  "arm_prefix": 28,
+  "root": 6,
+  "arm_prefix": 33,
   "src_hist": 1,
   "src_legs": 1,
   "src_p2": 1,
-  "provenance": 1
+  "provenance": 1,
+  "stats_receipt": 2,
+  "doc_label": 1
  },
  "derived": {
   "news2_train_king.py": {
@@ -56,7 +68,9 @@
     "src_hist": 0,
     "src_legs": 0,
     "src_p2": 0,
-    "provenance": 0
+    "provenance": 0,
+    "stats_receipt": 0,
+    "doc_label": 0
    },
    "diff_lines": 11
   },
@@ -70,7 +84,9 @@
     "src_hist": 1,
     "src_legs": 1,
     "src_p2": 1,
-    "provenance": 0
+    "provenance": 0,
+    "stats_receipt": 0,
+    "doc_label": 0
    },
    "diff_lines": 20
   },
@@ -84,7 +100,9 @@
     "src_hist": 0,
     "src_legs": 0,
     "src_p2": 0,
-    "provenance": 0
+    "provenance": 0,
+    "stats_receipt": 0,
+    "doc_label": 0
    },
    "diff_lines": 11
   },
@@ -98,7 +116,9 @@
     "src_hist": 0,
     "src_legs": 0,
     "src_p2": 0,
-    "provenance": 0
+    "provenance": 0,
+    "stats_receipt": 0,
+    "doc_label": 0
    },
    "diff_lines": 64
   },
@@ -112,7 +132,9 @@
     "src_hist": 0,
     "src_legs": 0,
     "src_p2": 0,
-    "provenance": 0
+    "provenance": 0,
+    "stats_receipt": 0,
+    "doc_label": 0
    },
    "diff_lines": 39
   },
@@ -126,9 +148,27 @@
     "src_hist": 0,
     "src_legs": 0,
     "src_p2": 0,
-    "provenance": 1
+    "provenance": 1,
+    "stats_receipt": 0,
+    "doc_label": 0
    },
    "diff_lines": 16
+  },
+  "news2_export_models.py": {
+   "source": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/news_2026-09-23/devices/news_export_models.py",
+   "source_sha256": "e2e05cab7a54eeef4c7b1eb333aa39cccbe6e4f0e27a91437370e0726be39d05",
+   "output_sha256": "1fc5b742a794235fee2ad4d5dc04f9ac382503ae0c791eddef386d3a014563f5",
+   "substitution_hits": {
+    "root": 1,
+    "arm_prefix": 5,
+    "src_hist": 0,
+    "src_legs": 0,
+    "src_p2": 0,
+    "provenance": 0,
+    "stats_receipt": 2,
+    "doc_label": 1
+   },
+   "diff_lines": 43
   }
  },
  "copied_verbatim": {
@@ -140,5 +180,18 @@
   "train_king.py": "44a98396d0e923bfbf445b7c6ce39ebf6f85dbcab2fc40785cf27bf68b61d425",
   "train_f10.py": "07ac4c67fa0d253339881d8e8ee546c6975c9ccc398b4af8824e542a4e8aa04e"
  },
- "note": "the feature package keeps its NEW_S filename inside this root; news2_stage_inputs.py links the integrator's NC_FEATURES there and copies its receipt, so the trainers' sha(features) == receipt['sha256'] assertion still binds the real bytes"
+ "note": "the feature package keeps its NEW_S filename inside this root; news2_stage_inputs.py links the integrator's NC_FEATURES there and copies its receipt, so the trainers' sha(features) == receipt['sha256'] assertion still binds the real bytes",
+ "chain_order": [
+  "stage pre_king",
+  "King",
+  "nc_legs",
+  "stage post_king",
+  "F10 (2 seeds)",
+  "combo",
+  "adapter specs",
+  "run configs",
+  "engine launches",
+  "R-P readings",
+  "news2_stats"
+ ]
 }
