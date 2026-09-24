@@ -42,6 +42,10 @@ def main():
     ap.add_argument("--nc-key", default="X82")
     ap.add_argument("--label", default="X82")
     ap.add_argument("--hash-inputs", action="store_true", help="sha the (multi-GB) inputs too")
+    ap.add_argument("--keep-idx-config", default=None,
+                    help="config.json holding keep_idx/keep_names: select those researcher columns "
+                         "before comparing. This is what King actually eats (train_king.py L16-17: "
+                         "x = f['X'][:, cfg['keep_idx']], asserted to be 78 wide).")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
 
@@ -118,6 +122,24 @@ def main():
 
     XR, XN = np.asarray(R["X"]), np.asarray(N[a.nc_key])
     names = [str(x) for x in R["names"]] if "names" in R.files else None
+    if a.keep_idx_config:
+        cfg = json.load(open(a.keep_idx_config))
+        ki = list(cfg["keep_idx"])
+        kn = list(cfg.get("keep_names", []))
+        # the researcher's own assertion, re-checked here rather than trusted
+        got = [names[i] for i in ki] if names else None
+        rec["keep_idx"] = {"config": a.keep_idx_config, "n_keep": len(ki),
+                           "keep_names_match_config": (got == kn) if (got and kn) else None,
+                           "dropped_idx": [i for i in range(XR.shape[1]) if i not in set(ki)],
+                           "dropped_names": [names[i] for i in range(XR.shape[1])
+                                             if i not in set(ki)] if names else None}
+        if got and kn and got != kn:
+            rec["verdict"] = "UNAVAILABLE"
+            rec["why"] = "keep_idx does not reproduce keep_names; the column selection is not what config says"
+            json.dump(rec, open(a.out, "w"), indent=2)
+            print(f"{a.label}_DIFF VERDICT=UNAVAILABLE keep_idx/keep_names mismatch"); return 2
+        XR = XR[:, ki]
+        names = [names[i] for i in ki] if names else None
     rec["column_names_source"] = ("researcher 'names' array; NC panel carries no column names, so NC "
                                   "columns are aligned BY POSITION -- that is an assumption, stated")
     if XR.shape[1] != XN.shape[1]:
