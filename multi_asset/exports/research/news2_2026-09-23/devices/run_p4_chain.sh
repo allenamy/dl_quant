@@ -79,13 +79,67 @@ done_ shm_gate
 
 step engine
 env -i PATH=/usr/bin:/bin HOME=/root $PV $GATE --check engine $R/ENV_GATE_engine.json | tee -a $L/chain2.log
+# * Sample the memory the engine actually uses on NC inputs. Nobody has measured this: the 4.1 GiB figure
+#   in circulation was measured on NEW_S inputs. Samples every 10 s and keeps the worst case, so the
+#   answer is a measurement rather than another inherited number. Costs nothing and it is the question the
+#   headroom gate above could not answer.
+( while true; do
+    date -u +%s
+    df -k /dev/shm | tail -1 | awk '{print "shm_free_kib", $4}'
+    awk '/^anon /{print "cgroup_anon_bytes", $2} /^shmem /{print "cgroup_shmem_bytes", $2}' /sys/fs/cgroup/memory.stat
+    sleep 10
+  done ) > $L/engine_mem_samples.txt 2>&1 &
+SAMPLER=$!
+echo "engine memory sampler pid $SAMPLER" | tee -a $L/chain2.log
+LAUNCH_PIDS=""
 for pair in "news2_s42:RUN_CONFIG_NEWS2_s42_2026-09-23.json" "news2_s2027:RUN_CONFIG_NEWS2_s2027_2026-09-23.json" "news2_s42x:RUN_CONFIG_NEWS2_s42X_2026-09-23.json" "news2_s2027x:RUN_CONFIG_NEWS2_s2027X_2026-09-23.json"; do
   LB=${pair%%:*}; C=${pair#*:}
   setsid env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $PV -B bt_launch.py PATH,HOME,LC_CTYPE $W/configs/$C --resume $LB > $L/chain_launch_$LB.log 2>&1 < /dev/null &
+  LAUNCH_PIDS="$LAUNCH_PIDS $!"
   echo "launch $LB pid $!" | tee -a $L/chain2.log; sleep 20
 done
-wait
+# wait on the FOUR recorded launch pids, not on `jobs -p` (that would also wait on the sampler, which
+# never exits), and record each exit code instead of letting `wait` collapse them into one.
+ENGINE_RC=0
+for p in $LAUNCH_PIDS; do
+  rc=0; wait $p || rc=$?
+  echo "launch pid $p rc=$rc" | tee -a $L/chain2.log
+  [ $rc -eq 0 ] || ENGINE_RC=$rc
+done
+kill $SAMPLER 2>/dev/null || true       # killed by the pid THIS script started, never by name
+echo "ENGINE_RC=$ENGINE_RC" | tee -a $L/chain2.log
+python3 - "$L/engine_mem_samples.txt" "$R/ENGINE_MEMORY_MEASURED.json" <<'PYEOF'
+import json, sys, time
+free, anon, shmem, n = [], [], [], 0
+for ln in open(sys.argv[1], errors="replace"):
+    f = ln.split()
+    if len(f) == 2 and f[0] == "shm_free_kib":
+        free.append(int(f[1])); n += 1
+    elif len(f) == 2 and f[0] == "cgroup_anon_bytes":
+        anon.append(int(f[1]))
+    elif len(f) == 2 and f[0] == "cgroup_shmem_bytes":
+        shmem.append(int(f[1]))
+G = 2 ** 30
+# n_samples is part of the verdict: a "peak" from zero samples is not a measurement.
+rec = {"receipt": "ENGINE_MEMORY_MEASURED.json", "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+       "question": "how much memory does the engine actually need on NC inputs? The 4.1 GiB figure in "
+                   "circulation was measured on NEW_S inputs and nobody had measured these.",
+       "n_samples": n, "sample_interval_s": 10,
+       "shm_free_min_gib": (min(free) / 1048576 if free else None),
+       "shm_free_max_gib": (max(free) / 1048576 if free else None),
+       "cgroup_anon_max_gib": (max(anon) / G if anon else None),
+       "cgroup_shmem_max_gib": (max(shmem) / G if shmem else None),
+       "VERDICT": ("MEASURED" if n >= 3 else f"NO-MEASUREMENT: only {n} samples")}
+json.dump(rec, open(sys.argv[2], "w"), indent=1)
+print("ENGINE_MEMORY", rec["VERDICT"], "n_samples", n,
+      "shm_free_min_gib", rec["shm_free_min_gib"], "anon_max_gib", rec["cgroup_anon_max_gib"], flush=True)
+PYEOF
 grep -h "VERDICT" $L/chain_launch_*.log >> $L/chain2.log || true
+# set -e does not see a non-zero rc that `wait` returned inside the loop above, so it is enforced here.
+if [ "$ENGINE_RC" -ne 0 ]; then
+  echo "STOP: an engine launch exited $ENGINE_RC; not proceeding to readings or the verdict." | tee -a $L/chain2.log
+  exit $ENGINE_RC
+fi
 done_ engine
 
 step readings
