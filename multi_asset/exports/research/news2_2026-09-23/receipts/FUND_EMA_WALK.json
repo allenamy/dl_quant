@@ -1,0 +1,589 @@
+{
+  "device": "news2_fund_ema_walk.py",
+  "self_sha256": "7059fabb6747373051ad83c9146fb9b60488f16d57936c7e107a4ff09edc6d4b",
+  "argv": [
+    "--nc-fund-state",
+    "/dev/shm/nc_2026-09-23/work/fund_state.npz",
+    "--researcher-ledger",
+    "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+    "--researcher-funding-state",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/funding_state.npz",
+    "--nc-axes",
+    "/dev/shm/nc_2026-09-23/work/axes.npz",
+    "--cells",
+    "auto",
+    "--out",
+    "/dev/shm/news2_2026-09-23/receipts/FUND_EMA_WALK.json"
+  ],
+  "cwd": "/dev/shm/news2_2026-09-23/devices",
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "status": "FIRST_DIVERGENCE_ONLY_NOT_WHICH_SIDE_IS_RIGHT",
+  "loop_bodies_arithmetically_identical": {
+    "researcher": "feature_contract.py funding_state L80-L88",
+    "nc": "nc_contract.py ema_step L55-L63",
+    "same_terms": [
+      "rn = rate*8/iv",
+      "decay = 2**(-dt/(3*86400)) over dt not iv",
+      "acc = decay*acc + (1-decay)*rn",
+      "reset on non-finite rate or iv<=0"
+    ]
+  },
+  "inputs": {
+    "nc_fund_state": {
+      "path": "/dev/shm/nc_2026-09-23/work/fund_state.npz",
+      "bytes": 133613094
+    },
+    "researcher_ledger": {
+      "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+      "bytes": 56625076
+    },
+    "researcher_funding_state": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/funding_state.npz",
+      "bytes": 43465863
+    },
+    "nc_axes": {
+      "path": "/dev/shm/nc_2026-09-23/work/axes.npz",
+      "bytes": 4106344
+    }
+  },
+  "researcher_ledger_fields": {
+    "iv_field_used_here": "zip_iv",
+    "note": "the ledger records zip_iv; funding_state() takes iv as an argument"
+  },
+  "cell_selection": {
+    "mode": "auto",
+    "wanted": [
+      "iv=1h",
+      "iv=4h",
+      "unknown iv"
+    ],
+    "found": [
+      {
+        "anchor": 1745136000,
+        "symbol": "VOXELUSDT"
+      },
+      {
+        "anchor": 1668024000,
+        "symbol": "SOLUSDT"
+      },
+      {
+        "anchor": 1641168000,
+        "symbol": "BNTUSDT"
+      }
+    ]
+  },
+  "compared_objects": {
+    "researcher": "funding_state.npz ema = as-of, freshness-gated inside funding_state()",
+    "nc": "fund_state.npz ema = per-event ema, ungated; gate lives in NC's consumer"
+  },
+  "cells": [
+    {
+      "anchor": 1745136000,
+      "utc": "2025-04-20T08:00Z",
+      "symbol": "VOXELUSDT",
+      "n_events_used_full_history": {
+        "nc": 1463,
+        "researcher": 1463
+      },
+      "total_events_up_to_anchor": {
+        "nc": 1463,
+        "researcher": 1463
+      },
+      "divergence_counts_by_field": {
+        "iv": 3
+      },
+      "n_aligned_events": 1463,
+      "first_divergence_excluding_first_event": {
+        "ft": 1745078400,
+        "field": "iv",
+        "utc": "2025-04-19T16:00Z",
+        "researcher": {
+          "rate": -0.02,
+          "iv": 2.0
+        },
+        "nc": {
+          "rate": -0.02,
+          "iv": 4.0
+        }
+      },
+      "first_diverging_event": {
+        "ft": 1724155200,
+        "field": "iv (researcher zip_iv vs NC snap_interval(gap))",
+        "researcher": 4.0,
+        "nc": null,
+        "utc": "2024-08-20T12:00Z"
+      },
+      "shared_loop_final_acc": {
+        "on_researcher_events": -0.021776311827848272,
+        "on_nc_events": -0.01913907665355907
+      },
+      "freshness": {
+        "max_age_s": 43200,
+        "researcher_age_s": 0,
+        "nc_age_s": 0,
+        "researcher_stale": false,
+        "nc_stale": false
+      },
+      "shared_loop_asof_after_freshness": {
+        "researcher": -0.021776311827848272,
+        "nc": -0.01913907665355907
+      },
+      "recorded": {
+        "researcher_funding_state_ema": -0.021776311827848272,
+        "nc_fund_state_ema": -0.01913907665355907
+      },
+      "shared_loop_reproduces": {
+        "researcher": true,
+        "nc": true
+      },
+      "walk_tail": {
+        "researcher": [
+          {
+            "ft": 1745107200,
+            "rate": -0.02,
+            "iv": 2.0,
+            "reset": false,
+            "rn": -0.08,
+            "decay": 0.980930087668915,
+            "acc": -0.014184852923269322
+          },
+          {
+            "ft": 1745114400,
+            "rate": -0.02,
+            "iv": 2.0,
+            "reset": false,
+            "rn": -0.08,
+            "decay": 0.980930087668915,
+            "acc": -0.015439942008080042
+          },
+          {
+            "ft": 1745121600,
+            "rate": -0.02,
+            "iv": 2.0,
+            "reset": false,
+            "rn": -0.08,
+            "decay": 0.980930087668915,
+            "acc": -0.01667109665407572
+          },
+          {
+            "ft": 1745128800,
+            "rate": -0.01793384,
+            "iv": 1.0,
+            "reset": false,
+            "rn": -0.14347072,
+            "decay": 0.980930087668915,
+            "acc": -0.0190891543548971
+          },
+          {
+            "ft": 1745132400,
+            "rate": -0.02,
+            "iv": 1.0,
+            "reset": false,
+            "rn": -0.16,
+            "decay": 0.9904191474668262,
+            "acc": -0.020439200387347638
+          },
+          {
+            "ft": 1745136000,
+            "rate": -0.02,
+            "iv": 1.0,
+            "reset": false,
+            "rn": -0.16,
+            "decay": 0.9904191474668262,
+            "acc": -0.021776311827848272
+          }
+        ],
+        "nc": [
+          {
+            "ft": 1745107200,
+            "rate": -0.02,
+            "iv": 2.0,
+            "reset": false,
+            "rn": -0.08,
+            "decay": 0.980930087668915,
+            "acc": -0.012785813157391277
+          },
+          {
+            "ft": 1745114400,
+            "rate": -0.02,
+            "iv": 2.0,
+            "reset": false,
+            "rn": -0.08,
+            "decay": 0.980930087668915,
+            "acc": -0.014067581807884994
+          },
+          {
+            "ft": 1745121600,
+            "rate": -0.02,
+            "iv": 2.0,
+            "reset": false,
+            "rn": -0.08,
+            "decay": 0.980930087668915,
+            "acc": -0.015324907242585062
+          },
+          {
+            "ft": 1745128800,
+            "rate": -0.01793384,
+            "iv": 2.0,
+            "reset": false,
+            "rn": -0.07173536,
+            "decay": 0.980930087668915,
+            "acc": -0.016400649631225776
+          },
+          {
+            "ft": 1745132400,
+            "rate": -0.02,
+            "iv": 1.0,
+            "reset": false,
+            "rn": -0.16,
+            "decay": 0.9904191474668262,
+            "acc": -0.017776453830968552
+          },
+          {
+            "ft": 1745136000,
+            "rate": -0.02,
+            "iv": 1.0,
+            "reset": false,
+            "rn": -0.16,
+            "decay": 0.9904191474668262,
+            "acc": -0.01913907665355907
+          }
+        ]
+      }
+    },
+    {
+      "anchor": 1668024000,
+      "utc": "2022-11-09T20:00Z",
+      "symbol": "SOLUSDT",
+      "n_events_used_full_history": {
+        "nc": 2363,
+        "researcher": 2363
+      },
+      "total_events_up_to_anchor": {
+        "nc": 2363,
+        "researcher": 2363
+      },
+      "divergence_counts_by_field": {
+        "iv": 1
+      },
+      "n_aligned_events": 2363,
+      "first_divergence_excluding_first_event": null,
+      "first_diverging_event": {
+        "ft": 1600012800,
+        "field": "iv (researcher zip_iv vs NC snap_interval(gap))",
+        "researcher": 8.0,
+        "nc": null,
+        "utc": "2020-09-13T16:00Z"
+      },
+      "shared_loop_final_acc": {
+        "on_researcher_events": -0.00361413347936638,
+        "on_nc_events": -0.00361413347936638
+      },
+      "freshness": {
+        "max_age_s": 43200,
+        "researcher_age_s": 0,
+        "nc_age_s": 0,
+        "researcher_stale": false,
+        "nc_stale": false
+      },
+      "shared_loop_asof_after_freshness": {
+        "researcher": -0.00361413347936638,
+        "nc": -0.00361413347936638
+      },
+      "recorded": {
+        "researcher_funding_state_ema": -0.00361413347936638,
+        "nc_fund_state_ema": -0.00361413347936638
+      },
+      "shared_loop_reproduces": {
+        "researcher": true,
+        "nc": true
+      },
+      "walk_tail": {
+        "researcher": [
+          {
+            "ft": 1667894400,
+            "rate": -0.00124635,
+            "iv": 8.0,
+            "reset": false,
+            "rn": -0.00124635,
+            "decay": 0.9258747122872905,
+            "acc": -6.495113704927074e-05
+          },
+          {
+            "ft": 1667923200,
+            "rate": -0.00059042,
+            "iv": 8.0,
+            "reset": false,
+            "rn": -0.00059042,
+            "decay": 0.9258747122872905,
+            "acc": -0.0001039016676995639
+          },
+          {
+            "ft": 1667952000,
+            "rate": -0.0075,
+            "iv": 8.0,
+            "reset": false,
+            "rn": -0.0075,
+            "decay": 0.9258747122872905,
+            "acc": -0.000652139584532825
+          },
+          {
+            "ft": 1667980800,
+            "rate": -0.0075,
+            "iv": 8.0,
+            "reset": false,
+            "rn": -0.0075,
+            "decay": 0.9258747122872905,
+            "acc": -0.001159739208045804
+          },
+          {
+            "ft": 1668009600,
+            "rate": -0.015,
+            "iv": 8.0,
+            "reset": false,
+            "rn": -0.015,
+            "decay": 0.9258747122872905,
+            "acc": -0.002185652521268342
+          },
+          {
+            "ft": 1668024000,
+            "rate": -0.02,
+            "iv": 4.0,
+            "reset": false,
+            "rn": -0.04,
+            "decay": 0.9622238368941451,
+            "acc": -0.00361413347936638
+          }
+        ],
+        "nc": [
+          {
+            "ft": 1667894400,
+            "rate": -0.00124635,
+            "iv": 8.0,
+            "reset": false,
+            "rn": -0.00124635,
+            "decay": 0.9258747122872905,
+            "acc": -6.495113704927074e-05
+          },
+          {
+            "ft": 1667923200,
+            "rate": -0.00059042,
+            "iv": 8.0,
+            "reset": false,
+            "rn": -0.00059042,
+            "decay": 0.9258747122872905,
+            "acc": -0.0001039016676995639
+          },
+          {
+            "ft": 1667952000,
+            "rate": -0.0075,
+            "iv": 8.0,
+            "reset": false,
+            "rn": -0.0075,
+            "decay": 0.9258747122872905,
+            "acc": -0.000652139584532825
+          },
+          {
+            "ft": 1667980800,
+            "rate": -0.0075,
+            "iv": 8.0,
+            "reset": false,
+            "rn": -0.0075,
+            "decay": 0.9258747122872905,
+            "acc": -0.001159739208045804
+          },
+          {
+            "ft": 1668009600,
+            "rate": -0.015,
+            "iv": 8.0,
+            "reset": false,
+            "rn": -0.015,
+            "decay": 0.9258747122872905,
+            "acc": -0.002185652521268342
+          },
+          {
+            "ft": 1668024000,
+            "rate": -0.02,
+            "iv": 4.0,
+            "reset": false,
+            "rn": -0.04,
+            "decay": 0.9622238368941451,
+            "acc": -0.00361413347936638
+          }
+        ]
+      }
+    },
+    {
+      "anchor": 1641168000,
+      "utc": "2022-01-03T00:00Z",
+      "symbol": "BNTUSDT",
+      "n_events_used_full_history": {
+        "nc": 350,
+        "researcher": 350
+      },
+      "total_events_up_to_anchor": {
+        "nc": 350,
+        "researcher": 350
+      },
+      "divergence_counts_by_field": {
+        "iv": 1
+      },
+      "n_aligned_events": 350,
+      "first_divergence_excluding_first_event": null,
+      "first_diverging_event": {
+        "ft": 1609459200,
+        "field": "iv (researcher zip_iv vs NC snap_interval(gap))",
+        "researcher": 8.0,
+        "nc": null,
+        "utc": "2021-01-01T00:00Z"
+      },
+      "shared_loop_final_acc": {
+        "on_researcher_events": 0.0001,
+        "on_nc_events": 0.0001
+      },
+      "freshness": {
+        "max_age_s": 43200,
+        "researcher_age_s": 21657600,
+        "nc_age_s": 21657600,
+        "researcher_stale": true,
+        "nc_stale": true
+      },
+      "shared_loop_asof_after_freshness": {
+        "researcher": NaN,
+        "nc": NaN
+      },
+      "recorded": {
+        "researcher_funding_state_ema": NaN,
+        "nc_fund_state_ema": 0.0001
+      },
+      "shared_loop_reproduces": {
+        "researcher": true,
+        "nc": true
+      },
+      "walk_tail": {
+        "researcher": [
+          {
+            "ft": 1619366400,
+            "rate": 0.0001,
+            "iv": 8.0,
+            "reset": false,
+            "rn": 0.0001,
+            "decay": 0.9258747122872905,
+            "acc": 0.0001
+          },
+          {
+            "ft": 1619395200,
+            "rate": 0.0001,
+            "iv": 8.0,
+            "reset": false,
+            "rn": 0.0001,
+            "decay": 0.9258747122872905,
+            "acc": 0.0001
+          },
+          {
+            "ft": 1619424000,
+            "rate": 0.0001,
+            "iv": 8.0,
+            "reset": false,
+            "rn": 0.0001,
+            "decay": 0.9258747122872905,
+            "acc": 0.0001
+          },
+          {
+            "ft": 1619452800,
+            "rate": 0.0001,
+            "iv": 8.0,
+            "reset": false,
+            "rn": 0.0001,
+            "decay": 0.9258747122872905,
+            "acc": 0.0001
+          },
+          {
+            "ft": 1619481600,
+            "rate": 0.0001,
+            "iv": 8.0,
+            "reset": false,
+            "rn": 0.0001,
+            "decay": 0.9258747122872905,
+            "acc": 0.0001
+          },
+          {
+            "ft": 1619510400,
+            "rate": 0.0001,
+            "iv": 8.0,
+            "reset": false,
+            "rn": 0.0001,
+            "decay": 0.9258747122872905,
+            "acc": 0.0001
+          }
+        ],
+        "nc": [
+          {
+            "ft": 1619366400,
+            "rate": 0.0001,
+            "iv": 8.0,
+            "reset": false,
+            "rn": 0.0001,
+            "decay": 0.9258747122872905,
+            "acc": 0.0001
+          },
+          {
+            "ft": 1619395200,
+            "rate": 0.0001,
+            "iv": 8.0,
+            "reset": false,
+            "rn": 0.0001,
+            "decay": 0.9258747122872905,
+            "acc": 0.0001
+          },
+          {
+            "ft": 1619424000,
+            "rate": 0.0001,
+            "iv": 8.0,
+            "reset": false,
+            "rn": 0.0001,
+            "decay": 0.9258747122872905,
+            "acc": 0.0001
+          },
+          {
+            "ft": 1619452800,
+            "rate": 0.0001,
+            "iv": 8.0,
+            "reset": false,
+            "rn": 0.0001,
+            "decay": 0.9258747122872905,
+            "acc": 0.0001
+          },
+          {
+            "ft": 1619481600,
+            "rate": 0.0001,
+            "iv": 8.0,
+            "reset": false,
+            "rn": 0.0001,
+            "decay": 0.9258747122872905,
+            "acc": 0.0001
+          },
+          {
+            "ft": 1619510400,
+            "rate": 0.0001,
+            "iv": 8.0,
+            "reset": false,
+            "rn": 0.0001,
+            "decay": 0.9258747122872905,
+            "acc": 0.0001
+          }
+        ]
+      }
+    }
+  ],
+  "red_control": {
+    "n_cells": 3,
+    "n_reproducing_researcher": 3,
+    "n_reproducing_nc": 3,
+    "mutation_changes_acc": true,
+    "baseline_green": true,
+    "threshold": "every cell must reproduce BOTH sides; ANY shortfall means this device's own loop body is not the shared reference and no divergence claim below it holds"
+  },
+  "verdict": "MEASURED"
+}
