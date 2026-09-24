@@ -276,3 +276,157 @@ VERSION_PROBE after-a5 OK n=0
 probe rc=0
 --- executor unchanged since A4: HEAD 5d3029c0411bf08d7d3e1457f6b46c3ac1ff043b book.json f623ac271851dc0a32a68e4dd25bab452ca106d6e521ec903ab8c3c1c5bf180c
 ## A5 end 05:26:11
+## §B first anchor A=1790236800 (08Z) B1-B3 read at 08:18:25Z
+B1 target_live keys: ['anchor_ts', 'beta_overlay', 'booster_sha', 'f10_sha', 'gross_norm', 'n_names', 'n_universe', 'producer', 'schema', 'universe', 'universe_sha', 'weights_sha', 'written_utc']
+B1 target_live booster_sha 700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d f10_sha 3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f written_utc 2026-09-24T08:17:55Z producer combo_stage_v1(kingLGBM 0.55 + V2MAIN 0.45, rev24 leg removed; base shadow_loop_
+B1 beta_overlay present True version m3_beta_v1 anchor_ts 1790236800 data_cutoff_ts 1790236800 n_names 450 n_estimated 449 n_fallback 0 n_no_cache_column 0
+B1 combo_live_status: {"anchor": 1790236800, "step": "done", "ok": true, "reader_ok": true, "reader_verdict": null, "beta_overlay": {"ok": true, "version": "m3_beta_v1", "n_names": 450, "n_estimated": 449, "n_fallback": 0, "n_no_cache_column": 0, "elapsed_s": 0.172, "reader_verdict": {"ok": true, "reason": null, "detail": "", "betas_sha256": "9a04b58ba8b63f45f9de6efb1d9b564694bc8c44096239428a7ae889069b728c"}}}
+B1 target_combo: {"schema": "wide_target_combo_v1_execcal", "anchor_ts": 1790236800, "phi": 0.45, "book_form": "combo_v2main_norev24", "w3_masked": [0.396099, 0.0, 0.603901], "kc_state_source": "own", "fc_state_source": "own", "gross": 0.837882, "net_after_reshape": 0.0, "kc_gross": 0.877891, "fc_gross": 0.836567, "rho_kc_fc": 0.9106, "n_f10_scored": 400, "ftrim": {"rule": "pre_zero_rn8_le_-10bp_8h", "hi": -0.001, "rn8_coverage": 1.0, "n_kc": 8, "n_fc": 8, "names_kc": {"CELRUSDT": -0.0021352, "CVCUSDT": -0.0072292, "IOSTUSDT": -0.0011377, "KERNELUSDT": -0.001487, "LSKUSDT": -0.0116231, "ONEUSDT": -0.0116949, "STEEMUSDT": -0.0091092, "VTHOUSDT": -0.0016519}, "names_fc": {"CELRUSDT": -0.0021352, "CVCUSDT": -0.0072292, "IOSTUSDT": -0.0011377, "KERNELUSDT": -0.001487, "LSKUSDT": -0.0116231, "ONEUSDT": -0.0116949, "STEEMUSDT": -0.0091092, "VTHOUSDT": -0.0016519}}}
+B2/B3 shadow_log rows for A: [('target_live', 1790236800), ('signal', 1790236800), ('anchor_diagnostics', 1790236800)]
+B2 signal keys: ['anchor_ts', 'base_n', 'booster_sha', 'carry_bps', 'cost_bps', 'coverage', 'data_max_ts', 'e', 'exinfo_ok', 'fetched', 'forced_exit_gross', 'forced_exit_n', 'fund_base_n', 'fund_updates', 'fund_updates_base', 'future_dropped', 'gross_pos', 'logged_utc', 'members', 'missing', 'nc', 'runtime_s', 'sel', 'status', 'top5', 'turnover', 'w3', 'weight_used', 'weights_sha']
+B2 runtime_s 42.2 logged_utc 2026-09-24T08:12:42Z
+B2 anchor_diagnostics phase_s {"setup": 0.7062334030633792, "exchange_info": 0.27890612196642905, "klines": 34.050157806952484, "funding": 3.2683304040692747, "feature_inference": 3.8185291859554127, "previous_anchor_score": 0.005966034950688481, "target_build": 0.026645545032806695, "target_write": 0.012718272977508605, "state_save": 7.749679426080547} total 49.917176758055575
+B3 exinfo_ok True fund_bulk_ok None members 400 fund_updates 454
+B3 nc block: {"fetch_n": 520, "fetch_new": [], "backfill_residual": [], "fetch_workers": 6, "fetch_budget": 900, "fund_bulk_ok": true, "fund_bulk_pages": 7, "fund_per_symbol": 0, "used_weight_1m_max": 521}
+--- B2 combo_live.log for 08Z
+waiting launch-window anchor=1790236800 elapsed=1013 Thu Sep 24 08:16:53 UTC 2026
+waiting launch-window anchor=1790236800 elapsed=1018 Thu Sep 24 08:16:58 UTC 2026
+=== combo_live anchor=1790236800 rc=0 Thu Sep 24 08:17:57 UTC 2026
+1537:[  31.9s] ⑤ COMBO_LIVE 写者完成 rehearsal=False n=298 gross=0.8377 读者验收 ok age=0.5s
+1549:[  49.6s] FTRIM 负费率空头排除: kc 6 名 / fc 6 名 (rn8 覆盖 1.000)
+1550:[  49.6s] ④ COMBO 落盘 n=299 gross=0.8386 kc_src=own fc_src=own w3m=[0.4003, 0.0, 0.5997]
+1551:[  50.6s] ⑤ COMBO_LIVE 写者完成 rehearsal=False n=299 gross=0.8386 读者验收 ok age=0.4s
+1569:[  39.0s] FTRIM 负费率空头排除: kc 5 名 / fc 5 名 (rn8 覆盖 1.000)
+1570:[  39.0s] ④ COMBO 落盘 n=303 gross=0.8407 kc_src=own fc_src=own w3m=[0.3981, 0.0, 0.6019]
+1571:[  39.6s] ⑤ COMBO_LIVE 写者完成 rehearsal=False n=303 gross=0.8407 读者验收 ok age=0.5s
+1624:[   1.9s] anchor 09-24 08:00 members 400
+1630:[  47.6s] FTRIM 负费率空头排除: kc 8 名 / fc 8 名 (rn8 覆盖 1.000)
+1631:[  47.6s] ④ COMBO 落盘 n=304 gross=0.8379 kc_src=own fc_src=own w3m=[0.3961, 0.0, 0.6039]
+1632:[  47.8s] M3 beta_overlay: {'ok': True, 'version': 'm3_beta_v1', 'n_names': 450, 'n_estimated': 449, 'n_fallback': 0, 'n_no_cache_column': 0, 'elapsed_s': 0.172}
+1633:[  49.5s] ⑤ COMBO_LIVE 写者完成 rehearsal=False n=304 gross=0.8379 读者验收 ok age=0.6s
+B3 aux.fetch_syms n 520 | A1 fetch_list (04Z) n 522 | in 04Z not 08Z: ['SCRTUSDT', 'STORJUSDT'] | in 08Z not 04Z: []
+--- B5 at 08:26:05
+COMPLETE
+PARITY.json
+PARITY.run.log
+SHA256SUMS
+aux.json
+boundary_raw.npz
+combo_live_status.json
+generation.json
+leg_returns_live.json
+members_hist.npz
+rolling.npz
+snap generation 1 1790236800 ['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz']
+snap 1790222400 2026-09-24T04:18:16Z
+snap 1790236800 2026-09-24T08:18:11Z
+parity 1790222400 rc=0 2026-09-24T04:19:17Z PARITY_PARITY anchor 1790222400 why=[] weights={'n_archived': 303, 'n_replay': 303, 'n_differing': 0, 'max_abs_dw': 0.0}
+parity 1790236800 rc=0 2026-09-24T08:22:00Z PARITY_PARITY anchor 1790236800 why=[] weights={'n_archived': 304, 'n_replay': 304, 'n_differing': 0, 'max_abs_dw': 0.0}
+-	0	com.hsy.comboparity
+-	0	com.hsy.combosnap
+invalid-manifest lines total: 171; last err line: UNAVAILABLE snapshot generation: FeatureCacheError: invalid producer generation manifest
+Sep 24 16:17
+## B0 first-anchor probe 08:58:49
+first-anchor A=1790236800 (2026-09-24T08:00Z)
+  VAL target_live booster_sha=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d f10_sha=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f written_utc=2026-09-24T08:17:55Z
+  OK  target_live booster_sha: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  target_live f10_sha: measured=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  VAL shadow_log signal rows for A: 1; booster_sha(12)=['700d9e7b7ee9']
+  OK  shadow_log signal booster_sha (12): measured=['700d9e7b7ee9'] compared_with=['700d9e7b7ee9']
+  OK  MANIFEST slow2026.txt: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  on-disk slow2026.txt: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  on-disk f10_live_s42_np.npz: measured=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  VAL generation.json schema_version=1 anchor_ts=1790236800 files=['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz']
+  OK  generation.json file set (NC contract = 5 signed files): measured=['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz'] compared_with=['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz']
+  VAL executor anchors rows for A: 1; external_book ok=True reason=None sha_ok=True booster_sha=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d f10_sha=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f opening_halted=False
+  OK  executor external_book ok: measured=True compared_with=True
+  OK  executor external_book reason: measured=None compared_with=None
+  OK  executor read booster_sha == book pin: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  executor read f10_sha == book pin: measured=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  VAL anchor_runs.log lines in hour 2026-09-24T08Z naming REFUSED/HOLD/sha_pin/PIN: 1
+    2026-09-24T08:25:44Z phase_A: {"anchor_wall_ts": 1790236904.8318021, "book_source": "external", "external_wait": {"nominal_anchor_ts": 1790236800, "wake_at": 1790238240.0, "wait_s": 1335.2, "reason": 
+  OK  anchor_runs.log pin refusal / HOLD lines: measured=[] compared_with=[]
+VERSION_PROBE first-anchor OK n=0
+probe rc=0
+## B4 executor 08Z (pooled only)
+B4 anchors row: opening_halted False target_gross 223266.5 realized_gross 221528.2 n_names_skipped 93 net_over_gross 0.0136
+B4 m3_beta_overlay keys ['beta_exec_gross_units', 'beta_exec_over_book_gross', 'beta_exec_usdt', 'beta_missing_head', 'betas_sha256', 'book_gross_usdt', 'btc_book_target_usdt', 'btc_combined_target_usdt', 'btc_dust_only', 'btc_held_usdt', 'budget', 'combined_dust_threshold_usdt', 'data_cutoff_ts', 'field_detail', 'field_ok', 'field_reason', 'gross_final_target_usdt', 'hard_sources', 'hedge_intent_usdt', 'hedge_target_usdt', 'max_combined_leverage', 'mode', 'n_beta_missing', 'n_betas', 'n_fallback', 'n_targeted_names', 'nav_usdt', 'overlay_net_usdt', 'prev_leg_active', 'reason', 'shadow_would_be', 'sizing_gross_usdt', 'status', 'version_expected']
+B4 m3: mode shadow status shadow reason None field_ok True n_betas 450 n_fallback 0 data_cutoff_ts 1790236800 beta_exec_usdt -4708.16437857485 hedge_intent_usdt 4708.16437857485 hedge_target_usdt 4708.16437857485 betas_sha256 9a04b58ba8b63f45
+B4 hedge_target_usdt finite: True
+B4 pilot_log files: ['_schema.json', 'anchors.jsonl', 'daily_nav.jsonl', 'fills.jsonl', 'funding.jsonl', 'orders.jsonl', 'position_readback.jsonl']
+B4 rebalance_id A1790238240 orders rows this anchor: 554 | status counts: {None: 554}
+B4 order keys with m3/overlay in name: []
+B4 orders carrying an m3/overlay/hedge marker: 0 | rows with a truthy m3/overlay key: 0
+--- B4 anchor_report
+Sep 24 16:55
+keys ['anchor_ts', 'lines', 'status', 'utc', 'warn']
+anchor 1790236800
+守护 … 08:55:02Z", "status": "green", "warn": [], "lines": ["锚 09-24 08:00Z 排查(常驻器)", "守护 2/2", "fund_upd 454 cov 1.0 forced 16", "w3m [0.396, 0.0, 0.604] kc/fc own/own f10 400", "age 365.0s n 304 | 单 554 拒 
+基线(近42锚, 不含重建/停开仓): taker 中位 25% 线 41% | |净/gross| 中位 0.50% 线 1.62%
+参照(S1a_2026-08-28_2026-09-01T12Z): taker 中位 5.0% → 当前 24.6% (Δ+19.56pp) | |净/gross| 中位 0.36% → 当前 0.50% (Δ+0.14pp) · 判词见日报
+funding 287名 -12.29U
+twin AGREE(ledger-only; nav row stale) eq=112952.14 nav=112861.12370189 day
+[sent]
+## B6 regime_dash 08:59:28
+B6 last row anchor 1790236800 2026-09-24T08:00Z w3_masked 0.3961 0.6039 keys 35
+awk: syntax error at source line 1
+ context is
+	{print >>>  \ <<< "REGIME_DASH.md mtime\", $6,$7,$8}
+awk: illegal statement at source line 1
+/Users/haosiyu/regime_dash/launchd.log:0
+/Users/haosiyu/regime_dash/launchd_weekly.log:0
+launchd.log REGIME_DASH.md regime_dash.jsonl REGIME_DASH.html flag_state.json regime_dash.py 
+## B7(b) self-check 08:59:28
+M3 selfcheck (production-formula self-consistency, NOT research-side parity) A=1790236800
+  OK  installed beta_overlay_producer.py sha == contract candidate: measured=b77c180d69170988780566e19d0ee4a0f85af25a9b9e9be08b6e4a386095fb58 compared_with=b77c180d69170988780566e19d0ee4a0f85af25a9b9e9be08b6e4a386095fb58
+  OK  target_live has beta_overlay field: measured=True compared_with=True
+  VAL field version=m3_beta_v1 anchor_ts=1790236800 data_cutoff_ts=1790236800 n_names=450 n_estimated=449 n_fallback=0 n_no_cache_column=0
+  OK  field anchor_ts / data_cutoff_ts == A: measured=(1790236800, 1790236800) compared_with=(1790236800, 1790236800)
+  OK  snapshot COMPLETE: measured=True compared_with=True
+  OK  snapshot rolling.npz sha == its SHA256SUMS entry: measured=1e2585a686477b684832aaf4e5d483bd338aa308856d729d368a43a093dea218 compared_with=1e2585a686477b684832aaf4e5d483bd338aa308856d729d368a43a093dea218
+  VAL snapshot generation anchor_ts=1790236800 files=['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz']
+  OK  snapshot generation anchor == A: measured=1790236800 compared_with=1790236800
+  OK  recomputed name list == published: measured=['BTCUSDT', '0GUSDT', '1000BONKUSDT', '1000CATUSDT', '1000FLOKIUSDT', '1000LUNCUSDT', '1000PEPEUSDT', '1000RATSUSDT', '1000SATSUSDT', '1000SHIBUSDT', '1000XECUSDT', '1INCHUSDT', '1MBABYDOGEUSDT', '2ZUSDT', '4USDT', 'AAVEUSDT', 'ACEUSDT', 'ACHUSDT', 'ACTUSDT', 'ACUUSDT', 'ADAUSDT', 'AEROUSDT', 'AEVOUSDT', 'AGLDUSDT', 'AGTUSDT', 'AIAUSDT', 'AIGENSYNUSDT', 'AINUSDT', 'AIOTUSDT', 'AIOUSDT', 'AIXBTUSDT', 'AKEUSDT', 'AKTUSDT', 'ALGOUSDT', 'ALICEUSDT', 'ALLOUSDT', 'ALTUSDT', 'ANKRUSDT', 'APEUSDT', 'API3USDT', 'APRUSDT', 'APTUSDT', 'ARBUSDT', 'ARCUSDT', 'ARIAUSDT', 'ARKMUSDT', 'ARPAUSDT', 'ARUSDT', 'ASTERUSDT', 'ATHUSDT', 'ATOMUSDT', 'ATUSDT', 'AUCTIONUSDT', 'AUSDT', 'AVAAIUSDT', 'AVAXUSDT', 'AVNTUSDT', 'AWEUSDT', 'AXSUSDT', 'B2USDT', 'BABYUSDT', 'BANANAS31USDT', 'BANANAUSDT', 'BANKUSDT', 'BANUSDT', 'BARDUSDT', 'BASEDUSDT', 'BASUSDT', 'BATUSDT', 'BBUSDT', 'BCHUSDT', 'BEATUSDT', 'BELUSDT', 'BERAUSDT', 'BICOUSDT', 'BIGTIMEUSDT', 'BILLUSDT', 'BIOUSDT', 'BIRBUSDT', 'BLESSUSDT', 'BLUAIUSDT', 'BLURUSDT', 'BMTUSDT', 'BNBUSDT', 'BOMEUSDT', 'BRETTUSDT', 'BREVUSDT', 'BROCCOLI714USDT', 'BROCCOLIF3BUSDT', 'BRUSDT', 'BSBUSDT', 'BSVUSDT', 'BTCDOMUSDT', 'BTRUSDT', 'BULLAUSDT', 'BUSDT', 'C98USDT', 'CAKEUSDT', 'CARVUSDT', 'CATIUSDT', 'CCUSDT', 'CELOUSDT', 'CETUSUSDT', 'CFGUSDT', 'CFXUSDT', 'CGPTUSDT', 'CHILLGUYUSDT', 'CHIPUSDT', 'CHRUSDT', 'CHZUSDT', 'CLOUSDT', 'COAIUSDT', 'COLLECTUSDT', 'COMPUSDT', 'COOKIEUSDT', 'COTIUSDT', 'CROSSUSDT', 'CRVUSDT', 'CTSIUSDT', 'CUSDT', 'CVXUSDT', 'CYSUSDT', 'DASHUSDT', 'DEEPUSDT', 'DEXEUSDT', 'DIAUSDT', 'DODOXUSDT', 'DOGEUSDT', 'DOGSUSDT', 'DOLOUSDT', 'DOODUSDT', 'DOTUSDT', 'DRIFTUSDT', 'DUSKUSDT', 'DYDXUSDT', 'DYMUSDT', 'EDENUSDT', 'EDGEUSDT', 'EDUUSDT', 'EGLDUSDT', 'EIGENUSDT', 'ELSAUSDT', 'ENAUSDT', 'ENJUSDT', 'ENSOUSDT', 'ENSUSDT', 'EPICUSDT', 'ERAUSDT', 'ESPORTSUSDT', 'ESPUSDT', 'ETCUSDT', 'ETHFIUSDT', 'ETHUSDT', 'EULUSDT', 'EVAAUSDT', 'FARTCOINUSDT', 'FETUSDT', 'FFUSDT', 'FHEUSDT', 'FIDAUSDT', 'FIGHTUSDT', 'FILUSDT', 'FLOCKUSDT', 'FLOWUSDT', 'FLUIDUSDT', 'FOGOUSDT', 'FOLKSUSDT', 'FORMUSDT', 'FUSDT', 'GALAUSDT', 'GASUSDT', 'GENIUSUSDT', 'GIGGLEUSDT', 'GMTUSDT', 'GMXUSDT', 'GPSUSDT', 'GRASSUSDT', 'GRIFFAINUSDT', 'GRTUSDT', 'GTCUSDT', 'GUAUSDT', 'GUNUSDT', 'GUSDT', 'GWEIUSDT', 'HAEDALUSDT', 'HANAUSDT', 'HBARUSDT', 'HEIUSDT', 'HEMIUSDT', 'HMSTRUSDT', 'HOLOUSDT', 'HOMEUSDT', 'HOTUSDT', 'HUMAUSDT', 'HUSDT', 'HYPERUSDT', 'HYPEUSDT', 'ICNTUSDT', 'ICPUSDT', 'IDOLUSDT', 'IDUSDT', 'IMXUSDT', 'INJUSDT', 'INUSDT', 'INXUSDT', 'IOSTUSDT', 'IOTAUSDT', 'IOTXUSDT', 'IOUSDT', 'IRYSUSDT', 'JASMYUSDT', 'JCTUSDT', 'JELLYJELLYUSDT', 'JOEUSDT', 'JSTUSDT', 'JTOUSDT', 'JUPUSDT', 'KAIAUSDT', 'KAITOUSDT', 'KASUSDT', 'KATUSDT', 'KAVAUSDT', 'KERNELUSDT', 'KGENUSDT', 'KITEUSDT', 'KMNOUSDT', 'KOMAUSDT', 'KSMUSDT', 'LABUSDT', 'LAUSDT', 'LAYERUSDT', 'LDOUSDT', 'LIGHTUSDT', 'LINEAUSDT', 'LINKUSDT', 'LISTAUSDT', 'LITUSDT', 'LPTUSDT', 'LQTYUSDT', 'LSKUSDT', 'LTCUSDT', 'LUMIAUSDT', 'LUNA2USDT', 'LYNUSDT', 'MAGICUSDT', 'MAGMAUSDT', 'MANAUSDT', 'MANTAUSDT', 'MANTRAUSDT', 'MAVUSDT', 'MEGAUSDT', 'MEMEUSDT', 'MERLUSDT', 'METUSDT', 'MEUSDT', 'MINAUSDT', 'MIRAUSDT', 'MITOUSDT', 'MMTUSDT', 'MONUSDT', 'MOODENGUSDT', 'MORPHOUSDT', 'MOVEUSDT', 'MOVRUSDT', 'MUBARAKUSDT', 'MUSDT', 'MYXUSDT', 'NAORISUSDT', 'NEARUSDT', 'NEIROUSDT', 'NEOUSDT', 'NEWTUSDT', 'NIGHTUSDT', 'NILUSDT', 'NOMUSDT', 'NOTUSDT', 'NXPCUSDT', 'OGNUSDT', 'ONDOUSDT', 'ONEUSDT', 'ONGUSDT', 'ONTUSDT', 'ONUSDT', 'OPENUSDT', 'OPGUSDT', 'OPNUSDT', 'OPUSDT', 'ORCAUSDT', 'ORDERUSDT', 'ORDIUSDT', 'PARTIUSDT', 'PAXGUSDT', 'PENDLEUSDT', 'PENGUUSDT', 'PEOPLEUSDT', 'PHAROSUSDT', 'PHAUSDT', 'PIEVERSEUSDT', 'PIPPINUSDT', 'PIXELUSDT', 'PLAYUSDT', 'PLUMEUSDT', 'PNUTUSDT', 'POLUSDT', 'POPCATUSDT', 'PORTALUSDT', 'POWERUSDT', 'POWRUSDT', 'PRLUSDT', 'PROMPTUSDT', 'PROMUSDT', 'PROVEUSDT', 'PTBUSDT', 'PUMPUSDT', 'PYTHUSDT', 'QNTUSDT', 'QTUMUSDT', 'QUSDT', 'RAREUSDT', 'RAVEUSDT', 'RECALLUSDT', 'RENDERUSDT', 'RESOLVUSDT', 'REZUSDT', 'RIFUSDT', 'RIVERUSDT', 'RLCUSDT', 'ROBOUSDT', 'RONINUSDT', 'ROSEUSDT', 'RSRUSDT', 'RUNEUSDT', 'RVNUSDT', 'SAFEUSDT', 'SAGAUSDT', 'SAHARAUSDT', 'SANDUSDT', 'SAPIENUSDT', 'SCRTUSDT', 'SCRUSDT', 'SEIUSDT', 'SENTUSDT', 'SHELLUSDT', 'SIGNUSDT', 'SIRENUSDT', 'SKLUSDT', 'SKRUSDT', 'SKYAIUSDT', 'SKYUSDT', 'SNXUSDT', 'SOLUSDT', 'SOLVUSDT', 'SOONUSDT', 'SOPHUSDT', 'SPACEUSDT', 'SPELLUSDT', 'SPKUSDT', 'SPXUSDT', 'SQDUSDT', 'SSVUSDT', 'STABLEUSDT', 'STARUSDT', 'STBLUSDT', 'STGUSDT', 'STORJUSDT', 'STOUSDT', 'STRKUSDT', 'STXUSDT', 'SUIUSDT', 'SUSDT', 'SUSHIUSDT', 'SWARMSUSDT', 'SXTUSDT', 'SYNUSDT', 'SYRUPUSDT', 'TACUSDT', 'TAGUSDT', 'TAIKOUSDT', 'TAKEUSDT', 'TAOUSDT', 'TAUSDT', 'THETAUSDT', 'THEUSDT', 'TIAUSDT', 'TLMUSDT', 'TNSRUSDT', 'TOSHIUSDT', 'TOWNSUSDT', 'TRADOORUSDT', 'TRBUSDT', 'TREEUSDT', 'TRIAUSDT', 'TRUMPUSDT', 'TRUSTUSDT', 'TRUTHUSDT', 'TRXUSDT', 'TSTUSDT', 'TURBOUSDT', 'TURTLEUSDT', 'TUSDT', 'TUTUSDT', 'TWTUSDT', 'UAIUSDT', 'UBUSDT', 'UMAUSDT', 'UNIUSDT', 'USDCUSDT', 'USELESSUSDT', 'USUALUSDT', 'USUSDT', 'VANAUSDT', 'VELODROMEUSDT', 'VELVETUSDT', 'VETUSDT', 'VIRTUALUSDT', 'VVVUSDT', 'WALUSDT', 'WAXPUSDT', 'WETUSDT', 'WIFUSDT', 'WLDUSDT', 'WLFIUSDT', 'WOOUSDT', 'WUSDT', 'XAIUSDT', 'XANUSDT', 'XAUTUSDT', 'XLMUSDT', 'XMRUSDT', 'XNYUSDT', 'XPINUSDT', 'XPLUSDT', 'XRPUSDT', 'XTZUSDT', 'XVGUSDT', 'YBUSDT', 'YFIUSDT', 'YGGUSDT', 'ZAMAUSDT', 'ZBTUSDT', 'ZECUSDT', 'ZENUSDT', 'ZEREBROUSDT', 'ZETAUSDT', 'ZILUSDT', 'ZKCUSDT', 'ZKPUSDT', 'ZKUSDT', 'ZORAUSDT', 'ZROUSDT'] compared_with=['BTCUSDT', '0GUSDT', '1000BONKUSDT', '1000CATUSDT', '1000FLOKIUSDT', '1000LUNCUSDT', '1000PEPEUSDT', '1000RATSUSDT', '1000SATSUSDT', '1000SHIBUSDT', '1000XECUSDT', '1INCHUSDT', '1MBABYDOGEUSDT', '2ZUSDT', '4USDT', 'AAVEUSDT', 'ACEUSDT', 'ACHUSDT', 'ACTUSDT', 'ACUUSDT', 'ADAUSDT', 'AEROUSDT', 'AEVOUSDT', 'AGLDUSDT', 'AGTUSDT', 'AIAUSDT', 'AIGENSYNUSDT', 'AINUSDT', 'AIOTUSDT', 'AIOUSDT', 'AIXBTUSDT', 'AKEUSDT', 'AKTUSDT', 'ALGOUSDT', 'ALICEUSDT', 'ALLOUSDT', 'ALTUSDT', 'ANKRUSDT', 'APEUSDT', 'API3USDT', 'APRUSDT', 'APTUSDT', 'ARBUSDT', 'ARCUSDT', 'ARIAUSDT', 'ARKMUSDT', 'ARPAUSDT', 'ARUSDT', 'ASTERUSDT', 'ATHUSDT', 'ATOMUSDT', 'ATUSDT', 'AUCTIONUSDT', 'AUSDT', 'AVAAIUSDT', 'AVAXUSDT', 'AVNTUSDT', 'AWEUSDT', 'AXSUSDT', 'B2USDT', 'BABYUSDT', 'BANANAS31USDT', 'BANANAUSDT', 'BANKUSDT', 'BANUSDT', 'BARDUSDT', 'BASEDUSDT', 'BASUSDT', 'BATUSDT', 'BBUSDT', 'BCHUSDT', 'BEATUSDT', 'BELUSDT', 'BERAUSDT', 'BICOUSDT', 'BIGTIMEUSDT', 'BILLUSDT', 'BIOUSDT', 'BIRBUSDT', 'BLESSUSDT', 'BLUAIUSDT', 'BLURUSDT', 'BMTUSDT', 'BNBUSDT', 'BOMEUSDT', 'BRETTUSDT', 'BREVUSDT', 'BROCCOLI714USDT', 'BROCCOLIF3BUSDT', 'BRUSDT', 'BSBUSDT', 'BSVUSDT', 'BTCDOMUSDT', 'BTRUSDT', 'BULLAUSDT', 'BUSDT', 'C98USDT', 'CAKEUSDT', 'CARVUSDT', 'CATIUSDT', 'CCUSDT', 'CELOUSDT', 'CETUSUSDT', 'CFGUSDT', 'CFXUSDT', 'CGPTUSDT', 'CHILLGUYUSDT', 'CHIPUSDT', 'CHRUSDT', 'CHZUSDT', 'CLOUSDT', 'COAIUSDT', 'COLLECTUSDT', 'COMPUSDT', 'COOKIEUSDT', 'COTIUSDT', 'CROSSUSDT', 'CRVUSDT', 'CTSIUSDT', 'CUSDT', 'CVXUSDT', 'CYSUSDT', 'DASHUSDT', 'DEEPUSDT', 'DEXEUSDT', 'DIAUSDT', 'DODOXUSDT', 'DOGEUSDT', 'DOGSUSDT', 'DOLOUSDT', 'DOODUSDT', 'DOTUSDT', 'DRIFTUSDT', 'DUSKUSDT', 'DYDXUSDT', 'DYMUSDT', 'EDENUSDT', 'EDGEUSDT', 'EDUUSDT', 'EGLDUSDT', 'EIGENUSDT', 'ELSAUSDT', 'ENAUSDT', 'ENJUSDT', 'ENSOUSDT', 'ENSUSDT', 'EPICUSDT', 'ERAUSDT', 'ESPORTSUSDT', 'ESPUSDT', 'ETCUSDT', 'ETHFIUSDT', 'ETHUSDT', 'EULUSDT', 'EVAAUSDT', 'FARTCOINUSDT', 'FETUSDT', 'FFUSDT', 'FHEUSDT', 'FIDAUSDT', 'FIGHTUSDT', 'FILUSDT', 'FLOCKUSDT', 'FLOWUSDT', 'FLUIDUSDT', 'FOGOUSDT', 'FOLKSUSDT', 'FORMUSDT', 'FUSDT', 'GALAUSDT', 'GASUSDT', 'GENIUSUSDT', 'GIGGLEUSDT', 'GMTUSDT', 'GMXUSDT', 'GPSUSDT', 'GRASSUSDT', 'GRIFFAINUSDT', 'GRTUSDT', 'GTCUSDT', 'GUAUSDT', 'GUNUSDT', 'GUSDT', 'GWEIUSDT', 'HAEDALUSDT', 'HANAUSDT', 'HBARUSDT', 'HEIUSDT', 'HEMIUSDT', 'HMSTRUSDT', 'HOLOUSDT', 'HOMEUSDT', 'HOTUSDT', 'HUMAUSDT', 'HUSDT', 'HYPERUSDT', 'HYPEUSDT', 'ICNTUSDT', 'ICPUSDT', 'IDOLUSDT', 'IDUSDT', 'IMXUSDT', 'INJUSDT', 'INUSDT', 'INXUSDT', 'IOSTUSDT', 'IOTAUSDT', 'IOTXUSDT', 'IOUSDT', 'IRYSUSDT', 'JASMYUSDT', 'JCTUSDT', 'JELLYJELLYUSDT', 'JOEUSDT', 'JSTUSDT', 'JTOUSDT', 'JUPUSDT', 'KAIAUSDT', 'KAITOUSDT', 'KASUSDT', 'KATUSDT', 'KAVAUSDT', 'KERNELUSDT', 'KGENUSDT', 'KITEUSDT', 'KMNOUSDT', 'KOMAUSDT', 'KSMUSDT', 'LABUSDT', 'LAUSDT', 'LAYERUSDT', 'LDOUSDT', 'LIGHTUSDT', 'LINEAUSDT', 'LINKUSDT', 'LISTAUSDT', 'LITUSDT', 'LPTUSDT', 'LQTYUSDT', 'LSKUSDT', 'LTCUSDT', 'LUMIAUSDT', 'LUNA2USDT', 'LYNUSDT', 'MAGICUSDT', 'MAGMAUSDT', 'MANAUSDT', 'MANTAUSDT', 'MANTRAUSDT', 'MAVUSDT', 'MEGAUSDT', 'MEMEUSDT', 'MERLUSDT', 'METUSDT', 'MEUSDT', 'MINAUSDT', 'MIRAUSDT', 'MITOUSDT', 'MMTUSDT', 'MONUSDT', 'MOODENGUSDT', 'MORPHOUSDT', 'MOVEUSDT', 'MOVRUSDT', 'MUBARAKUSDT', 'MUSDT', 'MYXUSDT', 'NAORISUSDT', 'NEARUSDT', 'NEIROUSDT', 'NEOUSDT', 'NEWTUSDT', 'NIGHTUSDT', 'NILUSDT', 'NOMUSDT', 'NOTUSDT', 'NXPCUSDT', 'OGNUSDT', 'ONDOUSDT', 'ONEUSDT', 'ONGUSDT', 'ONTUSDT', 'ONUSDT', 'OPENUSDT', 'OPGUSDT', 'OPNUSDT', 'OPUSDT', 'ORCAUSDT', 'ORDERUSDT', 'ORDIUSDT', 'PARTIUSDT', 'PAXGUSDT', 'PENDLEUSDT', 'PENGUUSDT', 'PEOPLEUSDT', 'PHAROSUSDT', 'PHAUSDT', 'PIEVERSEUSDT', 'PIPPINUSDT', 'PIXELUSDT', 'PLAYUSDT', 'PLUMEUSDT', 'PNUTUSDT', 'POLUSDT', 'POPCATUSDT', 'PORTALUSDT', 'POWERUSDT', 'POWRUSDT', 'PRLUSDT', 'PROMPTUSDT', 'PROMUSDT', 'PROVEUSDT', 'PTBUSDT', 'PUMPUSDT', 'PYTHUSDT', 'QNTUSDT', 'QTUMUSDT', 'QUSDT', 'RAREUSDT', 'RAVEUSDT', 'RECALLUSDT', 'RENDERUSDT', 'RESOLVUSDT', 'REZUSDT', 'RIFUSDT', 'RIVERUSDT', 'RLCUSDT', 'ROBOUSDT', 'RONINUSDT', 'ROSEUSDT', 'RSRUSDT', 'RUNEUSDT', 'RVNUSDT', 'SAFEUSDT', 'SAGAUSDT', 'SAHARAUSDT', 'SANDUSDT', 'SAPIENUSDT', 'SCRTUSDT', 'SCRUSDT', 'SEIUSDT', 'SENTUSDT', 'SHELLUSDT', 'SIGNUSDT', 'SIRENUSDT', 'SKLUSDT', 'SKRUSDT', 'SKYAIUSDT', 'SKYUSDT', 'SNXUSDT', 'SOLUSDT', 'SOLVUSDT', 'SOONUSDT', 'SOPHUSDT', 'SPACEUSDT', 'SPELLUSDT', 'SPKUSDT', 'SPXUSDT', 'SQDUSDT', 'SSVUSDT', 'STABLEUSDT', 'STARUSDT', 'STBLUSDT', 'STGUSDT', 'STORJUSDT', 'STOUSDT', 'STRKUSDT', 'STXUSDT', 'SUIUSDT', 'SUSDT', 'SUSHIUSDT', 'SWARMSUSDT', 'SXTUSDT', 'SYNUSDT', 'SYRUPUSDT', 'TACUSDT', 'TAGUSDT', 'TAIKOUSDT', 'TAKEUSDT', 'TAOUSDT', 'TAUSDT', 'THETAUSDT', 'THEUSDT', 'TIAUSDT', 'TLMUSDT', 'TNSRUSDT', 'TOSHIUSDT', 'TOWNSUSDT', 'TRADOORUSDT', 'TRBUSDT', 'TREEUSDT', 'TRIAUSDT', 'TRUMPUSDT', 'TRUSTUSDT', 'TRUTHUSDT', 'TRXUSDT', 'TSTUSDT', 'TURBOUSDT', 'TURTLEUSDT', 'TUSDT', 'TUTUSDT', 'TWTUSDT', 'UAIUSDT', 'UBUSDT', 'UMAUSDT', 'UNIUSDT', 'USDCUSDT', 'USELESSUSDT', 'USUALUSDT', 'USUSDT', 'VANAUSDT', 'VELODROMEUSDT', 'VELVETUSDT', 'VETUSDT', 'VIRTUALUSDT', 'VVVUSDT', 'WALUSDT', 'WAXPUSDT', 'WETUSDT', 'WIFUSDT', 'WLDUSDT', 'WLFIUSDT', 'WOOUSDT', 'WUSDT', 'XAIUSDT', 'XANUSDT', 'XAUTUSDT', 'XLMUSDT', 'XMRUSDT', 'XNYUSDT', 'XPINUSDT', 'XPLUSDT', 'XRPUSDT', 'XTZUSDT', 'XVGUSDT', 'YBUSDT', 'YFIUSDT', 'YGGUSDT', 'ZAMAUSDT', 'ZBTUSDT', 'ZECUSDT', 'ZENUSDT', 'ZEREBROUSDT', 'ZETAUSDT', 'ZILUSDT', 'ZKCUSDT', 'ZKPUSDT', 'ZKUSDT', 'ZORAUSDT', 'ZROUSDT']
+  VAL betas: n=450 max|recomputed - published|=0.000e+00 n_differing=0
+  OK  betas bit-identical (n differing): measured=0 compared_with=0
+  OK  n_obs identical (n differing): measured=0 compared_with=0
+  OK  counter n_names: measured=450 compared_with=450
+  OK  counter n_estimated: measured=449 compared_with=449
+  OK  counter n_fallback: measured=0 compared_with=0
+  OK  counter n_no_cache_column: measured=0 compared_with=0
+  OK  counter first_bar_end_ts: measured=1787659200 compared_with=1787659200
+  OK  counter version: measured=m3_beta_v1 compared_with=m3_beta_v1
+  OK  executor anchors rows for A: measured=True compared_with=True
+  VAL anchors.m3_beta_overlay keys=['beta_exec_gross_units', 'beta_exec_over_book_gross', 'beta_exec_usdt', 'beta_missing_head', 'betas_sha256', 'book_gross_usdt', 'btc_book_target_usdt', 'btc_combined_target_usdt', 'btc_dust_only', 'btc_held_usdt', 'budget', 'combined_dust_threshold_usdt', 'data_cutoff_ts', 'field_detail', 'field_ok', 'field_reason', 'gross_final_target_usdt', 'hard_sources', 'hedge_intent_usdt', 'hedge_target_usdt', 'max_combined_leverage', 'mode', 'n_beta_missing', 'n_betas', 'n_fallback', 'n_targeted_names', 'nav_usdt', 'overlay_net_usdt', 'prev_leg_active', 'reason', 'shadow_would_be', 'sizing_gross_usdt', 'status', 'version_expected']
+  VAL mode=shadow status=shadow reason=None field_ok=True n_betas=450 n_fallback=0 data_cutoff_ts=1790236800 beta_exec_usdt=-4708.16437857485 hedge_intent_usdt=4708.16437857485 hedge_target_usdt=4708.16437857485
+  OK  executor mode: measured=shadow compared_with=shadow
+  OK  executor status: measured=shadow compared_with=shadow
+  OK  executor betas_sha256 == canonical hash of published betas: measured=9a04b58ba8b63f45f9de6efb1d9b564694bc8c44096239428a7ae889069b728c compared_with=9a04b58ba8b63f45f9de6efb1d9b564694bc8c44096239428a7ae889069b728c
+  VAL beta_exec recompute: NOT COMPUTABLE from the anchors row (no executed-target map in the row); reported, not estimated
+M3_SELFCHECK 1790236800 OK n=0
+selfcheck rc=0
+B6 REGIME_DASH.md mtime 2026-09-24T16:50:04+0800
+2
+B7 m3 record (pooled): {"nav_usdt": 112902.31304595001, "sizing_gross_usdt": 225804.63, "book_gross_usdt": 223266.54562743174, "gross_final_target_usdt": 223266.54562743174, "beta_exec_usdt": -4708.16437857485, "beta_exec_gross_units": -0.020850610452827517, "beta_exec_over_book_gross": -0.021087639284890606, "hedge_intent_usdt": 4708.16437857485, "hedge_target_usdt": 4708.16437857485, "overlay_net_usdt": null, "btc_book_target_usdt": 559.3740458271146, "btc_combined_target_usdt": 5267.538424401965, "btc_dust_only": false, "btc_held_usdt": 588.6524, "max_combined_leverage": 2.5, "budget": {"max_combined_leverage": 2.5, "nav_usdt": 112902.31304595001, "limit_usdt": 282255.782614875, "gross_without_leg_usdt": 223266.54562743174, "gross_with_full_leg_usdt": 227974.7100060066, "gross_with_placed_leg_usdt": 227974.7100060066, "scale": 1.0, "truncated": false, "rule": "the leg is scaled down so the combined target gross <= max(max_combined_leverage x NAV, the book's own gross)"}, "n_targeted_names": 290, "n_beta_missing": 0, "prev_leg_active": false, "shadow_would_be": "applied", "hard_sources": []}
+B7 combined leverage reading: (book final gross 223266.5 + |hedge| 4708.2) / nav 112902.3 = 2.0192x (cap 2.5)
+--- new alarm classes since 08:00Z
+ALARM.log rows since 05:00Z: 0
+B7 overlay_net_usdt = null
+B7 budget = {"max_combined_leverage": 2.5, "nav_usdt": 112902.31304595001, "limit_usdt": 282255.782614875, "gross_without_leg_usdt": 223266.54562743174, "gross_with_full_leg_usdt": 227974.7100060066, "gross_with_placed_leg_usdt": 227974.7100060066, "scale": 1.0, "truncated": false, "rule": "the leg is scaled down so the combined target gross <= max(max_combined_leverage x NAV, the book's own gross)"}
+B7 shadow_would_be = "applied"
+B7 btc_dust_only = false
+B7 prev_leg_active = false
+B7 n_targeted_names = 290
+B7 n_beta_missing = 0
+B7 hard_sources = []
+B7 max_combined_leverage = 2.5
+B7 anchors neutrality fields: {"neutrality_caliber": "signed sum of the venue's own position notionals at the end-of-anchor read; a SNAPSHOT, not a P&L and not a forecast. net_over_gross is the leverage-independent reading \u2014 use it to compare across anchors.", "neutrality_price": {"deficient_side": "sell", "taker_notional_needed_usdt": 3012.7392, "measured_taker_bps_same_side": 101.9402, "measured_over": "MEASURED fills only \u2014 fills with a usable price (finite positive avg_fill_px and mid) AND a known fee (fee_paid
+B7 notify_audit messages since 08:00Z: 7
+   08:24:00Z HIGH | class: position reconcile: # name(s) differ fro | seen in prior 14 days: True
+   08:24:02Z INFO | class: # name(s) withheld: the venue reports ma | seen in prior 14 days: True
+   08:24:03Z INFO | class: 重整后 # 个名字跨过了 min_notional 门槛: ['#SYM'] — | seen in prior 14 days: True
+   08:24:03Z INFO | class: # held name(s) withheld, reduce#only fro | seen in prior 14 days: True
+   08:44:33Z INFO | class: # 个 maker 被 # 拒(post#only 会立刻成交), 其残差按全额 | seen in prior 14 days: True
+   08:46:50Z INFO | class: per_name_stop: SYM 冷却期满, 恢复可入 | seen in prior 14 days: True
+   08:50:02Z INFO | class: ℹ️
+funding span 表(执行器内部 DL 面板专用)已过期: # 个 | seen in prior 14 days: True
