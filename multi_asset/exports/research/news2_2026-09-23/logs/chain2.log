@@ -1,0 +1,37 @@
+01:00:49 START combo
+NEWS2_ENV_GATE step=combo VERDICT=PASS sys_prefix=/root/news_2026-09-23_env/venv314 npy_disable='X86_V4 AVX512_ICL AVX512_SPR' omp='1' openblas='1' unconstrained=none
+NEWS2_ENV_GATE step=combo VERDICT=PASS sys_prefix=/root/news_2026-09-23_env/venv314 npy_disable='X86_V4 AVX512_ICL AVX512_SPR' omp='1' openblas='1' unconstrained=none
+01:04:36 DONE combo
+01:04:36 START adapter
+NEWS2_ENV_GATE step=adapter VERDICT=PASS sys_prefix=/workspace/venv npy_disable=None omp=None openblas=None unconstrained=['OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS']
+01:05:12 DONE adapter
+TARGET_s42 PATH=/dev/shm/news2_2026-09-23/targets/TARGETS_NEWS2_s42.npz SHA256=cbb6d10748fc7aa913fcd9ec0872f17829bde72e6bbb32344c67ca13b4bb52b7
+TARGET_s2027 PATH=/dev/shm/news2_2026-09-23/targets/TARGETS_NEWS2_s2027.npz SHA256=891ee590713dd86a3f215374aa706f23c1d5d7953295f044710302f4c08f3bf3
+01:05:12 START configs
+NEWS2_ENV_GATE step=configs VERDICT=PASS sys_prefix=/workspace/venv npy_disable=None omp=None openblas=None unconstrained=['OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS']
+01:05:26 DONE configs
+01:05:26 START shm_gate
+SHM_FREE_GIB=6.39 (target >= 6.00 before the engine step)
+01:05:26 DONE shm_gate
+01:05:26 START engine
+NEWS2_ENV_GATE step=engine VERDICT=PASS sys_prefix=/workspace/venv npy_disable=None omp=None openblas=None unconstrained=['OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS']
+engine memory sampler pid 2433437
+launch news2_s42 pid 2433444
+launch news2_s2027 pid 2433495
+launch news2_s42x pid 2433557
+launch news2_s2027x pid 2433625
+launch pid 2433444 rc=0
+launch pid 2433495 rc=0
+launch pid 2433557 rc=0
+launch pid 2433625 rc=0
+ENGINE_RC=0
+BT_LAUNCH VERDICT=PASS label=full_news2_s2027 runs=5 seeds=32 receipt_sha256=bf7d9f353c6867f0b728e53f17c4ad3627a4a993438c7dcbd671735d31a8b291
+BT_LAUNCH VERDICT=PASS label=full_news2_s2027x runs=1 seeds=32 receipt_sha256=ca6191ad1d94ba4a025c94261f865585059fbe4e8fa37e828197fde3442c99bd
+BT_LAUNCH VERDICT=PASS label=full_news2_s42 runs=5 seeds=32 receipt_sha256=3607e022600efa014501bb24ddd274f87d655d21571aafa807707f2b89d9e588
+BT_LAUNCH VERDICT=PASS label=full_news2_s42x runs=1 seeds=32 receipt_sha256=27aa76ce2601df58b32ed63f4cc9c40c83958e0ed60a626990361437ec849c66
+02:01:08 DONE engine
+02:01:08 START readings
+NEWS2_ENV_GATE step=readings VERDICT=PASS sys_prefix=/workspace/venv npy_disable=None omp=None openblas=None unconstrained=['OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS']
+02:01:45 DONE readings
+02:01:45 START stats
+NEWS2_ENV_GATE step=stats VERDICT=PASS sys_prefix=/workspace/venv npy_disable=None omp=None openblas=None unconstrained=['OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS']

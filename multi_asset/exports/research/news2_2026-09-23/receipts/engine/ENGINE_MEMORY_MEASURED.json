@@ -1,0 +1,25 @@
+{
+ "receipt": "ENGINE_MEMORY_MEASURED.json",
+ "utc": "2026-09-24T02:01:08Z",
+ "question": "how much memory does the engine actually need on NC inputs? The 4.1 GiB figure in circulation was measured on NEW_S inputs and nobody had measured these.",
+ "n_samples": 333,
+ "sample_interval_s": 10,
+ "shm_free_min_gib": 2.3471221923828125,
+ "shm_free_max_gib": 6.389186859130859,
+ "cgroup_anon_max_gib": 12.747459411621094,
+ "cgroup_shmem_max_gib": 25.59256362915039,
+ "VERDICT": "MEASURED",
+ "CORRECTION_02_0xZ": "The first reading of this receipt (mine, relayed to lead and to the integrator) called the 4.04 GiB drop in /dev/shm free space the PEAK memory of the engine and said it would be returned once the engine exited. That is wrong. Measured after the engine exited: free is still 2.31 GiB, and runs/ holds 4.1 GiB of engine OUTPUT FILES. The drop is a PERMANENT footprint, not a transient peak. Two different quantities were conflated: output files on a tmpfs, and transient anonymous memory.",
+ "shm_permanent_footprint_gib": {
+  "runs_dir": 4.057,
+  "my_whole_root": 7.521,
+  "note": "runs/ is engine output and stays until deleted; exiting the engine does not reclaim it"
+ },
+ "shm_free_after_engine_exit_gib": 2.308,
+ "transient_vs_permanent": {
+  "permanent_tmpfs_output_gib": 4.057,
+  "transient_memory": "cgroup anon peak 12.75 GiB is the transient figure, but the cgroup is SHARED with the other agents, so it is not attributable to this chain alone",
+  "the_4.1_GiB_NEW_S_figure": "which of the two quantities it meant is not established, so comparing my 4.04 GiB against it was not like-for-like; that comparison is withdrawn"
+ },
+ "hardlink_note": "du on my root alone reports 7.6 GiB, while a du across /dev/shm/* reports 4.8 GiB for it, because work/NEWS_FEATURES.npz (2.8 GiB) is a HARDLINK shared with the nc root and is counted once per du invocation. The unique footprint is the smaller number."
+}

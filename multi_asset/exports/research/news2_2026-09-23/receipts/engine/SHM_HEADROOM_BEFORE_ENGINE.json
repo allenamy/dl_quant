@@ -1,0 +1,10 @@
+{
+ "receipt": "SHM_HEADROOM_BEFORE_ENGINE.json",
+ "utc": "2026-09-24T01:05:26Z",
+ "measured_free_gib": 6.39,
+ "target_gib": 6.0,
+ "meets_target": true,
+ "why": "the 4.1 GiB engine figure was measured on NEW_S inputs; the NC inputs (NC_FEATURES 2.96 GB) have never been measured, so the headroom is measured here rather than assumed.",
+ "df_k": "Filesystem     1K-blocks     Used Available Use% Mounted on\nshm             29296876 22597316   6699560  78% /dev/shm\n",
+ "rule": "below target -> stop and report to lead; never delete another agent files to get under it"
+}

@@ -158,7 +158,18 @@ cp -p $NS/devices/news_stats.py $E/
 cp -p $D/news2_stats.py $D/news2_ext.py $D/news2_env_gate.py $E/
 cd $E
 env -i PATH=/usr/bin:/bin HOME=/root $PV $GATE --check stats $R/ENV_GATE_stats.json | tee -a $L/chain2.log
-env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 $PV -B news2_stats.py PATH,HOME,LC_CTYPE \
+# NEWS2_NEWS_DEVICES must be passed THROUGH env -i. news2_stats.py needs the pinned news_stats.py AND
+# bt_tables.py AND bt_driver_lib.py in ONE directory; only $E has all three (the NEW_S devices dir has
+# news_stats.py but not the other two). Without it the default resolves to the NEW_S devices dir and the
+# run dies at the sha pin with FileNotFoundError: bt_tables.py -- which is what happened at 02:01:45Z.
+# My own 14-cell suite always passed this variable, so the suite was green while the real chain failed:
+# the suite and the chain were not invoking the device the same way. Fixed here; recorded as a deviation.
+# ... and it must ALSO be named in the whitelist argument, because news2_stats.py L88-89 asserts that no
+# environment variable exists outside that list. Adding the variable to the environment alone would have
+# traded FileNotFoundError for "env outside whitelist". The 14-cell suite passes
+# "PATH,HOME,LC_CTYPE,NEWS2_NEWS_DEVICES" (test_news2_stats.py L69) -- the suite had the correct form all
+# along, which is exactly why a green suite did not protect the real chain.
+env -i PATH=/usr/bin:/bin HOME=/root NEWS2_NEWS_DEVICES=$E nice -n 15 $PV -B news2_stats.py PATH,HOME,LC_CTYPE,NEWS2_NEWS_DEVICES \
   $S1/runs $NS/runs $W/runs $B/runs \
   $S1/receipts/BT_P_READING_OVN_OLD.json $S1/receipts/BT_P_READING_OVN_OLD_HOLD.json \
   $NS/receipts/engine/BT_P_READING_NEWS_s42.json $NS/receipts/engine/BT_P_READING_NEWS_s2027.json \
