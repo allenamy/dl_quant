@@ -1,0 +1,348 @@
+{
+ "device": "tf_gates.py",
+ "self_sha256": "2d3c5b2822e0e1467d4bf703cf20e780aed8e2ef6ab2ae97cfdd9fc064ae7c6d",
+ "utc": "2026-09-24T02:46:50Z",
+ "prereg": {
+  "path": "docs/PREREG_tradfi_universe_gap_2026-09-24.md",
+  "commit": "58a29c04a"
+ },
+ "amendment_1": {
+  "path": "docs/AMENDMENT_1_tradfi_universe_gap_2026-09-24.md",
+  "commit": "3b20d1c41"
+ },
+ "gates": {
+  "P0_reproduce_quoted_sharpe": {
+   "quoted": {
+    "NEW": {
+     "s42": 1.44,
+     "s2027": 1.28
+    },
+    "NEW_S": {
+     "s42": 1.11,
+     "s2027": 0.96
+    },
+    "NC": {
+     "s42": 1.02,
+     "s2027": 1.14
+    }
+   },
+   "measured": {
+    "NEW": {
+     "receipt": "/dev/shm/ovn_2026-09-23/receipts/OVN_STATS.json",
+     "receipt_sha256": "660ea5584fee439d4189b0de221da79614e4a50b3d82c136eb5b08eaa773c81a",
+     "seeds": {
+      "s42": 1.4447926109717266,
+      "s2027": 1.2846106950042882
+     }
+    },
+    "NEW_S": {
+     "receipt": "/dev/shm/news_2026-09-23/receipts/engine/NEWS_STATS.json",
+     "receipt_sha256": "d86e96f4502ed7b593349a85843d7882ac6227c87bb53e2a63c97f6f0db182bd",
+     "seeds": {
+      "s42": 1.1061970000331698,
+      "s2027": 0.9599821220025047
+     }
+    },
+    "NC": {
+     "receipt": "/dev/shm/news2_2026-09-23/receipts/engine/NEWS2_STATS.json",
+     "receipt_sha256": "6d689c9a152e81f93bf52410ac29db1102bf6e30e1c7eab9f7dfc9addc5055c8",
+     "seeds": {
+      "s42": 1.0205269605166336,
+      "s2027": 1.1369332184419685
+     }
+    }
+   },
+   "max_abs_dev": 0.004792610971726674,
+   "tol": 0.005,
+   "readout": "tables[arm][base][pre2026].paths.sharpe.path_mean, explicit path, raises on missing key",
+   "missing": [],
+   "PASS": true
+  },
+  "P0b_denominator_same_engine": {
+   "pins": {
+    "NEW_s42": {
+     "device_sha256": {
+      "bt_hist_sim31.py": "8ae6e2a441d700824372784b1bc0bd9e0ee2f686a3c22f522b6bb962911022a1",
+      "bt_driver_lib.py": "ba3bc2610b12a3f0280ff8f03c039ff5c2e81b8c05789183fd2b1acab661bddb",
+      "bt_launch.py": "393a8dc8d43193f6cac37ec39700a0263b5d459f5571065528448745d50281cb",
+      "exec_sim.py": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24"
+     },
+     "calibration_sha256": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6",
+     "price_pin": "23af32bd97c267d126c2109641815b92082b8688e35bcfbaaa1e88c2dc5bb5d8"
+    },
+    "NEW_s2027": {
+     "device_sha256": {
+      "bt_hist_sim31.py": "8ae6e2a441d700824372784b1bc0bd9e0ee2f686a3c22f522b6bb962911022a1",
+      "bt_driver_lib.py": "ba3bc2610b12a3f0280ff8f03c039ff5c2e81b8c05789183fd2b1acab661bddb",
+      "bt_launch.py": "393a8dc8d43193f6cac37ec39700a0263b5d459f5571065528448745d50281cb",
+      "exec_sim.py": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24"
+     },
+     "calibration_sha256": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6",
+     "price_pin": "23af32bd97c267d126c2109641815b92082b8688e35bcfbaaa1e88c2dc5bb5d8"
+    },
+    "NC_s42": {
+     "device_sha256": {
+      "bt_hist_sim31.py": "8ae6e2a441d700824372784b1bc0bd9e0ee2f686a3c22f522b6bb962911022a1",
+      "bt_driver_lib.py": "ba3bc2610b12a3f0280ff8f03c039ff5c2e81b8c05789183fd2b1acab661bddb",
+      "bt_launch.py": "393a8dc8d43193f6cac37ec39700a0263b5d459f5571065528448745d50281cb",
+      "exec_sim.py": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24"
+     },
+     "calibration_sha256": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6",
+     "price_pin": "23af32bd97c267d126c2109641815b92082b8688e35bcfbaaa1e88c2dc5bb5d8"
+    },
+    "NC_s2027": {
+     "device_sha256": {
+      "bt_hist_sim31.py": "8ae6e2a441d700824372784b1bc0bd9e0ee2f686a3c22f522b6bb962911022a1",
+      "bt_driver_lib.py": "ba3bc2610b12a3f0280ff8f03c039ff5c2e81b8c05789183fd2b1acab661bddb",
+      "bt_launch.py": "393a8dc8d43193f6cac37ec39700a0263b5d459f5571065528448745d50281cb",
+      "exec_sim.py": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24"
+     },
+     "calibration_sha256": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6",
+     "price_pin": "23af32bd97c267d126c2109641815b92082b8688e35bcfbaaa1e88c2dc5bb5d8"
+    }
+   },
+   "identical": {
+    "device_sha256": true,
+    "calibration_sha256": true,
+    "price_pin": true
+   },
+   "PASS": true
+  },
+  "P0c_denominator_vs_quoted": {
+   "quoted_about": {
+    "s42": 2.8,
+    "s2027": 0.9
+   },
+   "measured_bps_per_day": {
+    "s42": {
+     "estimate": 2.8345771325820928,
+     "n_days": 915,
+     "n_paths": 32,
+     "vs_quoted_rel_dev": 0.01234897592217605,
+     "flag_over_20pct": false
+    },
+    "s2027": {
+     "estimate": 0.934773682799159,
+     "n_days": 915,
+     "n_paths": 32,
+     "vs_quoted_rel_dev": 0.03863742533239881,
+     "flag_over_20pct": false
+    }
+   },
+   "note": "computed here because no receipt holds a NEW-vs-NC paired difference",
+   "ASSERTED": false
+  }
+ },
+ "T0": {
+  "crypto_npz": {
+   "path": "/dev/shm/news_2026-09-23/receipts/P1_members_2025H2on.npz",
+   "sha256": "2323623fda9333710f5834911ab629377ab8c12b056f40ccfc9f7033c0c1f6f1"
+  },
+  "n_crypto": 680,
+  "n_tradfi": 149,
+  "seeds": {
+   "s42": {
+    "combo": {
+     "path": "/workspace/old_vs_new_2026-09-23/new_targets/combo_s42/scaled_diagnostic.npz",
+     "sha256": "4dec6b38b08f8cc857c8f58659e846fea686c02c2959c622ea248c7ef5b22afa"
+    },
+    "pre2026": {
+     "n_published_anchors": 4352,
+     "gross_sum": 2513.2004716120327,
+     "tradfi_gross_sum": 0.0,
+     "share": 0.0,
+     "share_per_anchor_mean": 0.0,
+     "anchors_with_any_tradfi": 0
+    },
+    "by_year": {
+     "2023": {
+      "n_published_anchors": 1558,
+      "gross_sum": 838.7737468690611,
+      "tradfi_gross_sum": 0.0,
+      "share": 0.0,
+      "share_per_anchor_mean": 0.0,
+      "anchors_with_any_tradfi": 0
+     },
+     "2024": {
+      "n_published_anchors": 1931,
+      "gross_sum": 1144.9686738117093,
+      "tradfi_gross_sum": 0.0,
+      "share": 0.0,
+      "share_per_anchor_mean": 0.0,
+      "anchors_with_any_tradfi": 0
+     },
+     "2025": {
+      "n_published_anchors": 1668,
+      "gross_sum": 967.1173710723997,
+      "tradfi_gross_sum": 0.0,
+      "share": 0.0,
+      "share_per_anchor_mean": 0.0,
+      "anchors_with_any_tradfi": 0
+     },
+     "2026": {
+      "n_published_anchors": 1566,
+      "gross_sum": 1092.3853622908541,
+      "tradfi_gross_sum": 0.0,
+      "share": 0.0,
+      "share_per_anchor_mean": 0.0,
+      "anchors_with_any_tradfi": 0
+     }
+    },
+    "all_anchors": {
+     "n": 8142,
+     "n_published": 6723,
+     "anchors_with_any_tradfi_weight": 0,
+     "max_tradfi_share": 0.0
+    }
+   },
+   "s2027": {
+    "combo": {
+     "path": "/workspace/old_vs_new_2026-09-23/new_targets/combo_s2027/scaled_diagnostic.npz",
+     "sha256": "98797d491486335e692b7028b50308250e037bbbbc8c74d43cba7e7c28cf9fca"
+    },
+    "pre2026": {
+     "n_published_anchors": 3841,
+     "gross_sum": 2264.0762452375548,
+     "tradfi_gross_sum": 0.0,
+     "share": 0.0,
+     "share_per_anchor_mean": 0.0,
+     "anchors_with_any_tradfi": 0
+    },
+    "by_year": {
+     "2023": {
+      "n_published_anchors": 1658,
+      "gross_sum": 888.1603002714317,
+      "tradfi_gross_sum": 0.0,
+      "share": 0.0,
+      "share_per_anchor_mean": 0.0,
+      "anchors_with_any_tradfi": 0
+     },
+     "2024": {
+      "n_published_anchors": 1576,
+      "gross_sum": 967.4049386106366,
+      "tradfi_gross_sum": 0.0,
+      "share": 0.0,
+      "share_per_anchor_mean": 0.0,
+      "anchors_with_any_tradfi": 0
+     },
+     "2025": {
+      "n_published_anchors": 1508,
+      "gross_sum": 895.6418346221939,
+      "tradfi_gross_sum": 0.0,
+      "share": 0.0,
+      "share_per_anchor_mean": 0.0,
+      "anchors_with_any_tradfi": 0
+     },
+     "2026": {
+      "n_published_anchors": 1566,
+      "gross_sum": 1093.057050487112,
+      "tradfi_gross_sum": 0.0,
+      "share": 0.0,
+      "share_per_anchor_mean": 0.0,
+      "anchors_with_any_tradfi": 0
+     }
+    },
+    "all_anchors": {
+     "n": 8142,
+     "n_published": 6308,
+     "anchors_with_any_tradfi_weight": 0,
+     "max_tradfi_share": 0.0
+    }
+   }
+  },
+  "engine_input_check": {
+   "s42": {
+    "targets_npz": "/dev/shm/ovn_2026-09-23/targets/TARGETS_NEW_s42.npz",
+    "targets_sha256": "5c18bab2456010203076e117a520657ac4165b1949836f8c7dc26f8240ad7b1f",
+    "readings": {
+     "scaled": {
+      "nnz_total": 1780855,
+      "nnz_on_tradfi": 0,
+      "nnz_on_crypto": 1780855,
+      "counts_balance": true,
+      "abs_mass_total": 4043.2451540440243,
+      "abs_mass_on_tradfi": 0.0,
+      "distinct_columns_used": 657,
+      "max_column_index": 828,
+      "axis_width": 829
+     },
+     "lit": {
+      "nnz_total": 955887,
+      "nnz_on_tradfi": 0,
+      "nnz_on_crypto": 955887,
+      "counts_balance": true,
+      "abs_mass_total": 1989.924514356994,
+      "abs_mass_on_tradfi": 0.0,
+      "distinct_columns_used": 615,
+      "max_column_index": 828,
+      "axis_width": 829
+     }
+    }
+   },
+   "s2027": {
+    "targets_npz": "/dev/shm/ovn_2026-09-23/targets/TARGETS_NEW_s2027.npz",
+    "targets_sha256": "897387aa8889c7b5406d69ef49aed9b12c84d8c8abe8458368060be1d09b75b0",
+    "readings": {
+     "scaled": {
+      "nnz_total": 1649036,
+      "nnz_on_tradfi": 0,
+      "nnz_on_crypto": 1649036,
+      "counts_balance": true,
+      "abs_mass_total": 3844.264123991374,
+      "abs_mass_on_tradfi": 0.0,
+      "distinct_columns_used": 657,
+      "max_column_index": 828,
+      "axis_width": 829
+     },
+     "lit": {
+      "nnz_total": 946126,
+      "nnz_on_tradfi": 0,
+      "nnz_on_crypto": 946126,
+      "counts_balance": true,
+      "abs_mass_total": 1975.6158116582683,
+      "abs_mass_on_tradfi": 0.0,
+      "distinct_columns_used": 615,
+      "max_column_index": 828,
+      "axis_width": 829
+     }
+    }
+   }
+  },
+  "exposure_channel_empty_on_engine_input": true,
+  "all_counts_balance": true,
+  "two_instruments_agree": true,
+  "T1a_is_bitwise_noop": true,
+  "decision_rule_verbatim": "prereg \u00a71 arm 0: if the TradFi gross share is exactly 0 at every anchor then T1a is a bitwise no-op, assert it and stop; otherwise T1a runs regardless of how small the share is"
+ },
+ "gap_share": {
+  "unit_primary": "bps/day",
+  "numerator_definition": "NEW - T1a, pre-2026 paired daily difference",
+  "seeds": {
+   "s42": {
+    "numerator_bps_per_day": 0.0,
+    "denominator_bps_per_day": 2.8345771325820928,
+    "share": 0.0,
+    "why_numerator_is_exactly_zero": "T1a is a bitwise no-op: NEW's book holds no TradFi weight at any anchor, so removing those columns changes nothing the engine reads"
+   },
+   "s2027": {
+    "numerator_bps_per_day": 0.0,
+    "denominator_bps_per_day": 0.934773682799159,
+    "share": 0.0,
+    "why_numerator_is_exactly_zero": "T1a is a bitwise no-op: NEW's book holds no TradFi weight at any anchor, so removing those columns changes nothing the engine reads"
+   }
+  },
+  "sharpe_side_report": {
+   "s42": {
+    "numerator_sharpe_points": 0.0,
+    "denominator_sharpe_points": 0.424265650455093,
+    "share": 0.0
+   },
+   "s2027": {
+    "numerator_sharpe_points": 0.0,
+    "denominator_sharpe_points": 0.14767747656231967,
+    "share": 0.0
+   }
+  }
+ },
+ "GATES_PASS": true
+}

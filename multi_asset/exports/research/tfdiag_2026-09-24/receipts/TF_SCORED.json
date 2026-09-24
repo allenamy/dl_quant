@@ -1,0 +1,113 @@
+{
+ "device": "chk_scored.py",
+ "self_sha256": "e6d32ba4a3a53c1cbc1399123bca697d49d7f749f7a3f19abf3f43f2478c95b1",
+ "utc": "2026-09-24T02:48:59Z",
+ "question": "were NEW's 149 TradFi names present in the combo composite state at all, or identically zero",
+ "reads": {
+  "s42": {
+   "combo": "/workspace/old_vs_new_2026-09-23/new_targets/combo_s42/scaled_diagnostic.npz",
+   "sha256": "4dec6b38b08f8cc857c8f58659e846fea686c02c2959c622ea248c7ef5b22afa"
+  },
+  "s2027": {
+   "combo": "/workspace/old_vs_new_2026-09-23/new_targets/combo_s2027/scaled_diagnostic.npz",
+   "sha256": "98797d491486335e692b7028b50308250e037bbbbc8c74d43cba7e7c28cf9fca"
+  }
+ },
+ "crypto_flag": {
+  "path": "/dev/shm/news_2026-09-23/receipts/P1_members_2025H2on.npz",
+  "sha256": "2323623fda9333710f5834911ab629377ab8c12b056f40ccfc9f7033c0c1f6f1"
+ },
+ "per_seed": {
+  "s42": {
+   "kc": {
+    "nonzero_cells_tradfi": 0,
+    "nonzero_cells_crypto": 2125350,
+    "finite_nonzero_tradfi": 0,
+    "max_abs_tradfi": 0.0,
+    "max_abs_crypto": 0.0149557713794992,
+    "n_nan_tradfi": 0,
+    "n_nan_crypto": 0
+   },
+   "fc": {
+    "nonzero_cells_tradfi": 0,
+    "nonzero_cells_crypto": 2128652,
+    "finite_nonzero_tradfi": 0,
+    "max_abs_tradfi": 0.0,
+    "max_abs_crypto": 0.014686301594168632,
+    "n_nan_tradfi": 0,
+    "n_nan_crypto": 0
+   },
+   "raw": {
+    "nonzero_cells_tradfi": 0,
+    "nonzero_cells_crypto": 2132692,
+    "finite_nonzero_tradfi": 0,
+    "max_abs_tradfi": 0.0,
+    "max_abs_crypto": 0.014563126013668161,
+    "n_nan_tradfi": 0,
+    "n_nan_crypto": 0
+   },
+   "weights": {
+    "nonzero_cells_tradfi": 0,
+    "nonzero_cells_crypto": 1780855,
+    "finite_nonzero_tradfi": 0,
+    "max_abs_tradfi": 0.0,
+    "max_abs_crypto": 0.014563126013668161,
+    "n_nan_tradfi": 0,
+    "n_nan_crypto": 0
+   },
+   "columns_ever_weighted": {
+    "total": 657,
+    "of_which_crypto": 657,
+    "of_which_tradfi": 0,
+    "crypto_available": 680
+   }
+  },
+  "s2027": {
+   "kc": {
+    "nonzero_cells_tradfi": 0,
+    "nonzero_cells_crypto": 2125350,
+    "finite_nonzero_tradfi": 0,
+    "max_abs_tradfi": 0.0,
+    "max_abs_crypto": 0.0149557713794992,
+    "n_nan_tradfi": 0,
+    "n_nan_crypto": 0
+   },
+   "fc": {
+    "nonzero_cells_tradfi": 0,
+    "nonzero_cells_crypto": 2128342,
+    "finite_nonzero_tradfi": 0,
+    "max_abs_tradfi": 0.0,
+    "max_abs_crypto": 0.014621267098811147,
+    "n_nan_tradfi": 0,
+    "n_nan_crypto": 0
+   },
+   "raw": {
+    "nonzero_cells_tradfi": 0,
+    "nonzero_cells_crypto": 2132668,
+    "finite_nonzero_tradfi": 0,
+    "max_abs_tradfi": 0.0,
+    "max_abs_crypto": 0.014038222265062867,
+    "n_nan_tradfi": 0,
+    "n_nan_crypto": 0
+   },
+   "weights": {
+    "nonzero_cells_tradfi": 0,
+    "nonzero_cells_crypto": 1649036,
+    "finite_nonzero_tradfi": 0,
+    "max_abs_tradfi": 0.0,
+    "max_abs_crypto": 0.014038222265062867,
+    "n_nan_tradfi": 0,
+    "n_nan_crypto": 0
+   },
+   "columns_ever_weighted": {
+    "total": 657,
+    "of_which_crypto": 657,
+    "of_which_tradfi": 0,
+    "crypto_available": 680
+   }
+  }
+ },
+ "finding": "kc, fc, raw and weights are ALL identically zero on every TradFi column at every anchor, both seeds",
+ "limit_of_inference": "this shows the TradFi names contribute nothing to the composite books. It does NOT by itself prove they were absent from the member set, because the rank base is a MEMBER-LEVEL input (king_rank / fund_rank, shape (n_members,)) which is not on disk. So the rank-base channel remains untested, exactly as PREREG 58a29c04a section 0 states for (C).",
+ "ALL_ZERO_ON_TRADFI": true
+}
