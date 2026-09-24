@@ -115,9 +115,19 @@ unconstrained**, 不静默跳过。
 `run_p4_chain.sh` 在引擎步之前实测并写 `SHM_HEADROOM_BEFORE_ENGINE.json`, 低于 6.00 GiB 目标即
 `exit 8` 停下报 lead, 不放宽、不删任何别人的文件。
 
-00:23Z 实测 **5.70 GiB** < 6.00 ⇒ 会在此停。已把三个选项交 lead 裁(降目标 / 删 `p1_merged.npz` /
-先串行跑一条臂实测引擎峰值)。注: 我暂存的 `work/NEWS_FEATURES.npz` 是对 nc 根 `NC_FEATURES.npz` 的
-**硬链接**, 删它腾不出空间。
+00:23Z 实测 **5.70 GiB** < 6.00, 会在此停, 于是把三个选项交 lead(降目标 / 删 `p1_merged.npz` /
+先串行跑一条臂)。**lead 裁定三个都不选**: 由集成代理把 `p1_merged.npz`(950 MB)从 `/dev/shm`
+**搬**到容器盘而不是删 —— 搬前扫 `/proc/*/fd` 确认无进程打开, 两边 sha 均 `d2afedb2…`, 核过才删原件。
+00:34Z 实测 **6.59 GiB**, 门槛不放宽, 引擎步照常并行不串行化。
+
+裁定另加两条, 已落进脚本:
+- 引擎运行期间每 10 s 采样 `/dev/shm` 已用量与 cgroup `anon`/`shmem`, 峰值写进判词收据的 ENV 段
+  (`ENGINE_MEMORY_MEASURED.json`; `n_samples < 3` 判 `NO-MEASUREMENT`, 零样本的「峰值」不是测量)。
+  这样「NC 输入要多少」变成实测值, 不必多等一两小时。
+- 任一臂因空间不足失败即停下报 lead, **不重试、不删别人的东西**。
+
+注: 我暂存的 `work/NEWS_FEATURES.npz` 是对 nc 根 `NC_FEATURES.npz` 的**硬链接**, 删它腾不出空间;
+容器盘现仅余 0.96 GiB, 不往那里写大文件。
 
 ## 3. 判词
 

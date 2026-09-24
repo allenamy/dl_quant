@@ -125,7 +125,13 @@ def main():
                                  "ENV_F10.json. A step with no entry here did not run behind a gate, and "
                                  "that absence is the honest record -- it is not filled in from memory."),
            "shm_headroom_before_engine": _read_json(os.path.join(os.path.dirname(os.path.abspath(OUT)),
-                                                                 "SHM_HEADROOM_BEFORE_ENGINE.json"))}
+                                                                 "SHM_HEADROOM_BEFORE_ENGINE.json")),
+           # lead 2026-09-24: the engine-run memory peak belongs in the ENV section, so that "how much
+           # does the engine need on NC inputs" becomes a measured number instead of the 4.1 GiB figure
+           # inherited from NEW_S inputs. Sampled every 10 s during the engine step; n_samples is part of
+           # that receipt's verdict, because a peak taken from zero samples is not a peak.
+           "engine_memory_measured": _read_json(os.path.join(os.path.dirname(os.path.abspath(OUT)),
+                                                             "ENGINE_MEMORY_MEASURED.json"))}
 
     S = {}
     for arm, (root, pre) in ARMS.items():
