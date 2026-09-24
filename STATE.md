@@ -1,3 +1,11 @@
+> **[2026-09-24 05:2xZ] NC s42 已部署(用户在判词 NO_DEPLOY 之上放行,判词不改写)。首个 NC 锚 = 08Z,生产者 08:12Z 起算,执行器 08:24Z 读取**
+> - 生产者:shadow_loop a68c7a5f / combo_stage 363dd8c8 / King 700d9e7b / F10 s42 3d7d050f,共 17 个文件。版本探针 after-a3 为 0 不符,lead 独立复算。新状态 5 个文件,generation 锚 04Z。旁路进程已停用。
+> - 执行器:运行树 **5d3029c**(b66257b + M3 7 个提交 + 发布提交)。离线电池 `ACCEPTANCE: ALL GREEN (163/163 suites exit 0)`。book.json:钉 700d9e7b / 3d7d050f,producer_contract nc_v1,beta_overlay shadow,上限 2.5。三方 HEAD 一致,after-a4 为 0 不符。
+> - 服务:05:26:03Z 重启,after-a5 为 0 不符。
+> - 已知过渡问题:combosnap 在 08Z 之前每分钟 exit 3(新验证器读到盘上旧格式快照),不写文件、不影响下单,预计 08Z 后自愈,由 §B5 确认。
+> - 回滚材料:`~/cc_tmp/nc_deploy_20260924T0500Z/`(install 备份 15 项,book.json.pre_nc 484e3728)。
+> - 待办:§B 首锚验收;M3 shadow 验收(头两个锚)之后再问用户是否打开对冲;§S 席位播种另议;研究员 NEW 缺口与 FRESH 反常的诊断在跑。
+
 > **[2026-09-24 02:5xZ] 用户放行 NC s42(越过判词 NO_DEPLOY,判词不改写),并最后确认书行为清单,定 05:00Z 窗部署**
 > - 裁定:`docs/RULING_user_NC_s42_override_2026-09-24.md`(053d50f4,b9c7a933d,被部署包按 sha 绑定);确认:`docs/RULING_user_NC_s42_final_confirm_2026-09-24.md`(e6d9605ba)。
 > - 导出:King 700d9e7b、F10 s42 3d7d050f(HANDOFF e24231fb)。打包:INSTALL_CONTRACT 00238e4b。真包演练 `REAL_PACKAGE_PASS` 14/14(621033c0d)。
