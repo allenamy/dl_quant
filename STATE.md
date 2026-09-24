@@ -1,3 +1,10 @@
+> **[2026-09-24 02:5xZ] 用户放行 NC s42(越过判词 NO_DEPLOY,判词不改写),并最后确认书行为清单,定 05:00Z 窗部署**
+> - 裁定:`docs/RULING_user_NC_s42_override_2026-09-24.md`(053d50f4,b9c7a933d,被部署包按 sha 绑定);确认:`docs/RULING_user_NC_s42_final_confirm_2026-09-24.md`(e6d9605ba)。
+> - 导出:King 700d9e7b、F10 s42 3d7d050f(HANDOFF e24231fb)。打包:INSTALL_CONTRACT 00238e4b。真包演练 `REAL_PACKAGE_PASS` 14/14(621033c0d)。
+> - 待:M3c 判词(过 ⇒ shadow,否则 off);席位过渡差距量化(部署前报用户);§S 席位播种另议。
+> - 研究员 NEW 与 NC 的缺口(2.83 / 0.93 bps/日):「持有 TradFi」通道实测为 0(4b4f8ba20),**「交易品种不同」这一嫌疑作废**;缺口原因未解释,需向研究员要成员数组、打分输入、模型与组合代码。
+> - FRESH 反常(IC 更高、书更差)在查,第一阶段只读,owner fresh。
+
 > **[2026-09-24 02:3xZ] NC(完整修正版)判词 `NEWS2_STATS VERDICT=NO_DEPLOY`(receipt_sha256 6d689c9a…,lead 已复制收据核对)⇒ 按冻结件 §2 交用户,不自动部署任何版本**
 > - s42:A 全过(对 OLD_HOLD +3.14 bps/日,S2 2/3,回撤 −23.1% 对 −29.0%,触线 0 对 10);B1 不过,对 NEW_S −0.48 bps/日(30 日块 95% 区间 [−4.1, +2.5])。
 > - s2027:A:S2 不过,对 OLD_HOLD 分段 2023H2 −3.16、2024 −0.51、2025 +11.33 bps/日,只有 1/3 为正;B1 过,+1.40 bps/日。
