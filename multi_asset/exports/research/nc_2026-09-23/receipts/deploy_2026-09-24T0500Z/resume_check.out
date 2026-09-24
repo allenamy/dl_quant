@@ -1,0 +1,12 @@
+## resume_from_trip --check 13:01:32
+══ CHECK MODE — this run will not modify anything. ══
+── 0/4  mode = LIVE
+        trip state : /Users/haosiyu/dl_quant_live/state/live/watchdog/state.json
+        judged over: /Users/haosiyu/dl_quant_live/state/live/pilot_log
+   ✓ LIVE is the tripped mode
+── 1/4  is the trigger condition still true?  (HARD GATE — nothing is touched if it is)
+   ✗ A LOCAL RESPONSE WOULD STILL FIRE on ['STGUSDT']: §4-5b liquidation/position anomaly on 1 name(s) at the latest reconciled anchor (16 in this window's history); §4-5e position break [split_unauth]: 1629 USDT of raw deviation (0.7% of a 222997 USDT target gross), of which UNAUTHORIZED 0.37% vs a 0.05 line; name(s) at/over their own min_notional: STGUSDT; worst raw TUSDT 87 USDT. WHY: split_unauth: the halt is the UNAUTHORIZED bucket only; underfill alarms and is re-targeted by the next anchor PROVENANCE (read from the record, not composed here): unauth is NOT computed here: it is reconcile's per-name residual, expected_qty = qty(T1) + sum dq_fills. If that upstream quantity is wrong the error passes through undetected and BOTH buckets are wrong together — this split is exactly as trustworthy as B30 and no more. expected_qty has no independent cross-check today.; §4-7 un-recovered position drift
+   refusing to clear. Fix the cause (or wait until those names reconcile clean), then re-run.
+── CHECK: NOT RESUMABLE — the trigger condition still holds. Nothing was touched.
+   (nothing would have been touched in a real run either: step 1 is a hard gate)
+resume_check rc=1

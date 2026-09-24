@@ -430,3 +430,133 @@ B7 notify_audit messages since 08:00Z: 7
    08:46:50Z INFO | class: per_name_stop: SYM 冷却期满, 恢复可入 | seen in prior 14 days: True
    08:50:02Z INFO | class: ℹ️
 funding span 表(执行器内部 DL 面板专用)已过期: # 个 | seen in prior 14 days: True
+B4 reject check (pooled, no arm split): 08Z anchor rejects=82 orders=554 maker=333 reject/orders=0.148 reject/maker=0.246
+past 14 days, 08Z anchors only: anchors=14 rejects median=60 p90=91 | reject/orders median=0.127 p90=0.166 | reject/maker median=0.218 p90=0.283
+past 14 days, all anchors: anchors=83 rejects median=69 p90=92 | reject/orders median=0.137 p90=0.177 | reject/maker median=0.241 p90=0.302
+SCRT/STORJ (pooled, the two names combined):
+  last readback before the 08Z rebalance: names with rows=0 gross position notional=0.00 USDT (read_ts max None)
+  in the 08Z target: 0 of 2; combined |weight| in target=0.000000
+  08Z orders on the two names: rows=0 intended_notional=0.00 filled_notional=0.00 USDT; terminal_reason set=[]
+  last readback after the 08Z rebalance: gross position notional=0.00 USDT
+  target_live 1790208000: SCRT/STORJ in target 0 of 2
+  target_live 1790222400: SCRT/STORJ in target 0 of 2
+  position_readback rows for the two names in the last 8 daily logs: 0; latest read_ts None
+EXEC_TRACKING (pooled; target_i = target_live w_i / sum|w| x anchors.target_gross; actual = post-anchor venue readback; fill = sum|filled_notional| / sum|intended_notional| over the rebalance's order rows)
+  08Z 09-24: L1/gross=0.1304 fill/planned=0.6540 fill/planned(excl skipped_min_notional)=0.6620 G=223267 orders=554
+  past 14d, 08Z anchors (n=14): l1_over_gross median=0.1283 p90=0.1574 p10=0.0859
+  past 14d, 08Z anchors (n=14): fill_over_planned median=0.6514 p90=0.7098 p10=0.4142
+  past 14d, 08Z anchors (n=14): fill_over_planned_excl_skipped median=0.6609 p90=0.7199 p10=0.4164
+  past 14d, all anchors (n=83): l1_over_gross median=0.1244 p90=0.1626 p10=0.0870
+  past 14d, all anchors (n=83): fill_over_planned median=0.6363 p90=0.7047 p10=0.4537
+  past 14d, all anchors (n=83): fill_over_planned_excl_skipped median=0.6432 p90=0.7107 p10=0.4574
+## §B second anchor A=1790251200 (12Z) B1-B3 read at 12:18:32Z
+B1 target_live booster_sha 700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d f10_sha 3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f written_utc 2026-09-24T12:17:48Z
+B1 beta_overlay present True version m3_beta_v1 anchor_ts 1790251200 data_cutoff_ts 1790251200 n_names 450 n_estimated 449 n_fallback 0 n_no_cache_column 0
+B1 combo_live_status: {"anchor": 1790251200, "step": "done", "ok": true, "reader_ok": true, "reader_verdict": null, "beta_overlay": {"ok": true, "version": "m3_beta_v1", "n_names": 450, "n_estimated": 449, "n_fallback": 0, "n_no_cache_column": 0, "elapsed_s": 0.193, "reader_verdict": {"ok": true, "reason": null, "detail": "", "betas_sha256": "96dd666c372bbf31ae707dbef9d4d152e30dcbf030d7c20e1b0baa8ed61828a3"}}}
+B1 target_combo: {"anchor_ts": 1790251200, "w3_masked": [0.388768, 0.0, 0.611232], "kc_state_source": "own", "fc_state_source": "own", "gross": 0.828908, "net_after_reshape": -0.0, "n_f10_scored": 400} ftrim n_kc 6 n_fc 6 rn8_coverage 1.0
+B2 signal runtime_s 26.5 logged_utc 2026-09-24T12:12:26Z | diag total 34.22 phase_s {"setup": 0.57, "exchange_info": 0.2, "klines": 22.14, "funding": 1.38, "feature_inference": 2.14, "previous_anchor_score": 0.0, "target_build": 0.02, "target_write": 0.01, "state_save": 7.75}
+B3 exinfo_ok True members 400 fund_updates 355 forced_exit_n 19
+B3 nc: {"fetch_n": 519, "fetch_new": [], "backfill_residual": [], "fetch_workers": 6, "fetch_budget": 900, "fund_bulk_ok": true, "fund_bulk_pages": 7, "fund_per_symbol": 0, "used_weight_1m_max": 520}
+B3 aux fetch_syms n 519 nc_backfill_residual []
+[  40.3s] ④ COMBO 落盘 n=306 gross=0.8289 kc_src=own fc_src=own w3m=[0.3888, 0.0, 0.6112]
+[  40.4s] M3 beta_overlay: {'ok': True, 'version': 'm3_beta_v1', 'n_names': 450, 'n_estimated': 449, 'n_fallback': 0, 'n_no_cache_column': 0, 'elapsed_s': 0.193}
+[  41.8s] ⑤ COMBO_LIVE 写者完成 rehearsal=False n=306 gross=0.8289 读者验收 ok age=0.2s
+B3 fetch set 08Z 520 -> 12Z 519 | dropped ['STGUSDT'] in symbols_live [True] | added []
+dropped names in 08Z target: ['STGUSDT']
+## EXINFO probe re-armed 12:19:14 with --symbols SCRTUSDT,STORJUSDT,STGUSDT (lead approval); previous waiting task stopped by its own task id before 13:00:30Z, no request had been sent
+FORCED_EXIT attribution A=1790236800: n_forced=191 (producer king-book H weight on them, gross units 0.5642)
+   3 member but fails the liquidity gate sel (qv4h; pre-existing rule): 191
+FORCED_EXIT attribution A=1790251200: n_forced=196 (producer king-book H weight on them, gross units 0.5783)
+   2c legal+crypto but not in this anchor's fetch set (exchangeInfo not TRADING): 1
+   3 member but fails the liquidity gate sel (qv4h; pre-existing rule): 195
+   STGUSDT among the 12Z forced: True ["2c legal+crypto but not in this anchor's fetch set (exchangeInfo not TRADING)"]
+(corrected: sel_idx are POSITIONS within prev_rec.members — shadow_loop_v3.py L861 np.where(sel)[0])
+FORCED_EXIT attribution A=1790236800: n_forced=1 (producer king-book H on them, gross units 0.0008)
+   3 member but fails the liquidity gate sel (qv4h >= qv4h_min; pre-existing rule): 1
+FORCED_EXIT attribution A=1790251200: n_forced=2 (producer king-book H on them, gross units 0.0062)
+   2c legal+crypto but not in this anchor's fetch set: 1
+   3 member but fails the liquidity gate sel (qv4h >= qv4h_min; pre-existing rule): 1
+   STGUSDT among the 12Z forced: True ["2c legal+crypto but not in this anchor's fetch set"] | source of 12Z state: /Users/haosiyu/wide_shadow/state/snap/1790251200
+A=1790236800: members outside symbols_live=38; SELECTED members (m[sel]) outside symbols_live=24; held-H names not kept=1; sum=25 (signal forced_exit_n: 16)
+A=1790251200: members outside symbols_live=38; SELECTED members (m[sel]) outside symbols_live=24; held-H names not kept=2; sum=26 (signal forced_exit_n: 19)
+A=1790236800 reconstruction: forced_n=16 forced_gross=0.0107 | signal: forced_exit_n=16 forced_exit_gross=0.0107
+   of which: selected members OUTSIDE symbols_live (never holdable; alpha*tgt >= band) = 15 (gross 0.0098); names inside symbols_live that were held and are no longer kept = 1 (gross 0.0008)
+A=1790251200 reconstruction: forced_n=19 forced_gross=0.0161 | signal: forced_exit_n=19 forced_exit_gross=0.0161
+   of which: selected members OUTSIDE symbols_live (never holdable; alpha*tgt >= band) = 17 (gross 0.0104); names inside symbols_live that were held and are no longer kept = 2 (gross 0.0057)
+## 12Z executor read
+12:25:29
+{'ok': True, 'reason': None, 'nominal_ts': 1790251200, 'n_names': 306, 'booster_sha': '700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d', 'f10_sha': '3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f', 'sha_ok': True, 'age_s': 372.0}
+
+[exited with code 0]
+--- B5 12Z 12:25:37
+COMPLETE PARITY.json PARITY.run.log SHA256SUMS aux.json boundary_raw.npz combo_live_status.json generation.json leg_returns_live.json members_hist.npz rolling.npz 
+snap 1790251200 2026-09-24T12:18:47Z
+parity 1790251200 rc=0 2026-09-24T12:23:02Z PARITY_PARITY anchor 1790251200 why=[] weights={'n_archived': 306, 'n_replay': 306, 'n_differing': 0, 'max_abs_dw': 0.0}
+-	0	com.hsy.comboparity
+-	0	com.hsy.combosnap
+## B0 12Z probe 12:58:55
+first-anchor A=1790251200 (2026-09-24T12:00Z)
+  VAL target_live booster_sha=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d f10_sha=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f written_utc=2026-09-24T12:17:48Z
+  OK  target_live booster_sha: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  target_live f10_sha: measured=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  VAL shadow_log signal rows for A: 1; booster_sha(12)=['700d9e7b7ee9']
+  OK  shadow_log signal booster_sha (12): measured=['700d9e7b7ee9'] compared_with=['700d9e7b7ee9']
+  OK  MANIFEST slow2026.txt: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  on-disk slow2026.txt: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  on-disk f10_live_s42_np.npz: measured=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  VAL generation.json schema_version=1 anchor_ts=1790251200 files=['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz']
+  OK  generation.json file set (NC contract = 5 signed files): measured=['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz'] compared_with=['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz']
+  VAL executor anchors rows for A: 1; external_book ok=True reason=None sha_ok=True booster_sha=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d f10_sha=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f opening_halted=False
+  OK  executor external_book ok: measured=True compared_with=True
+  OK  executor external_book reason: measured=None compared_with=None
+  OK  executor read booster_sha == book pin: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  executor read f10_sha == book pin: measured=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  VAL anchor_runs.log lines in hour 2026-09-24T12Z naming REFUSED/HOLD/sha_pin/PIN: 1
+    2026-09-24T12:25:20Z phase_A: {"anchor_wall_ts": 1790251243.700235, "book_source": "external", "external_wait": {"nominal_anchor_ts": 1790251200, "wake_at": 1790252640.0, "wait_s": 1396.3, "reason": "
+  OK  anchor_runs.log pin refusal / HOLD lines: measured=[] compared_with=[]
+VERSION_PROBE first-anchor OK n=0
+probe rc=0
+## B4 12Z (pooled) rebalance A1790252640: orders 593 venue_reject 109 opening_halted False target_gross 222997.0 realized_gross 222052.8 net_over_gross 0.012829
+B4 m3: mode shadow status shadow field_ok True n_betas 450 n_fallback 0 beta_exec_usdt -4693.160366861709 hedge_target_usdt 4693.160366861709 finite True shadow_would_be applied n_beta_missing 0 hard_sources []
+B7 budget: limit 281950.195407125 gross_without_leg 222997.01925972776 gross_with_full_leg 227690.17962658947 scale 1.0 truncated False nav 112780.07816285
+B7 combined leverage reading (integrator's division of the executor's fields): 2.0189x (cap 2.5)
+B4 orders with an overlay/hedge marker: 0
+B4 STGUSDT (pooled): position notional after the 08Z rebalance 835.94 USDT; 12Z target weight 0.0; 12Z orders rows 0 intended 0.00 filled 0.00 USDT; terminal []; position after 12Z 0.00 USDT
+anchor_report 1790251200 green [] 2026-09-24T12:55:01Z
+锚 09-24 12:00Z 排查(常驻器)
+守护 2/2
+fund_upd 355 cov 1.0 forced 19
+w3m [0.389, 0.0, 0.611] kc/fc own/own f10 400
+age 372.0s n 306 | 单 593 拒 109 | 换手 8.0% 成交 11562U taker 22% fee 2.67bps
+gross 222053 net 2849(1.28%) gaps 219U
+external_book held_exit: ['PRLUSDT', 'SCRUSDT', 'THEUSDT'] n_held_exit 3
+post readback rows 297 | STG row present: True
+STG fills today: [('A1790209440', 'buy', 30.58, 'maker'), ('A1790209440', 'buy', 30.58, 'maker'), ('A1790238240', 'buy', 4.87, 'maker'), ('A1790238240', 'buy', 13.04, 'maker'), ('A1790238240', 'buy', 13.04, 'maker'), ('A1790238240', 'buy', 46.89, 'maker'), ('A1790238240', 'buy', 13.57, 'maker'), ('A1790238240', 'buy', 42.01, 'maker'), ('A1790238240', 'buy', 4.87, 'maker'), ('A1790238240', 'buy', 13.04, 'maker'), ('A1790238240', 'buy', 46.89, 'maker'), ('A1790238240', 'buy', 13.57, 'maker'), ('A1790238240', 'buy', 42.01, 'maker'), ('A1790238240', 'buy', 13.04, 'maker')]
+STG order rows today: [('A1790209440', 'buy', 'maker', 30.72, 0.0, 'venue_reject'), ('A1790209440', 'buy', 'maker', 30.72, 30.58, 'partial_expired'), ('A1790209440', 'buy', 'topup_taker', 0.13, 0.0, 'skipped_min_notional'), ('A1790223839', 'buy', 'maker', 60.34, 0.0, 'venue_reject'), ('A1790223839', 'buy', 'topup_taker', 60.34, 0.0, 'skipped_venue_lock'), ('A1790238240', 'buy', 'maker', 133.69, 0.0, 'venue_reject'), ('A1790238240', 'buy', 'maker', 133.69, 133.41, 'partial_expired'), ('A1790238240', 'buy', 'topup_taker', 0.27, 0.0, 'abandoned_spread_gt_25bps')]
+## B6 12Z 13:00:09
+B6 last row 1790251200 2026-09-24T12:00Z 0.3888 0.6112
+B6 REGIME_DASH.md mtime 2026-09-24T20:50:04+0800
+0
+## B7(b) 12Z
+  VAL betas: n=450 max|recomputed - published|=0.000e+00 n_differing=0
+  VAL mode=shadow status=shadow reason=None field_ok=True n_betas=450 n_fallback=0 data_cutoff_ts=1790251200 beta_exec_usdt=-4693.160366861709 hedge_intent_usdt=4693.160366861709 hedge_target_usdt=4693.160366861709
+  OK  executor betas_sha256 == canonical hash of published betas: measured=96dd666c372bbf31ae707dbef9d4d152e30dcbf030d7c20e1b0baa8ed61828a3 compared_with=96dd666c372bbf31ae707dbef9d4d152e30dcbf030d7c20e1b0baa8ed61828a3
+  VAL beta_exec recompute: NOT COMPUTABLE from the anchors row (no executed-target map in the row); reported, not estimated
+M3_SELFCHECK 1790251200 OK n=0
+selfcheck rc=0
+B7 12Z notify_audit since 12:00Z: 6
+   12:24:01Z HIGH | class: position reconcile: # name(s) differ fro | seen in prior 14 days: True
+   12:24:02Z INFO | class: # name(s) withheld: the venue reports ma | seen in prior 14 days: True
+   12:24:02Z INFO | class: 重整后 # 个名字跨过了 min_notional 门槛: ['#SYM', ' | seen in prior 14 days: True
+   12:24:02Z INFO | class: # held name(s) withheld, reduce#only fro | seen in prior 14 days: True
+   12:44:06Z INFO | class: # 个 maker 被 # 拒(post#only 会立刻成交), 其残差按全额 | seen in prior 14 days: True
+   12:48:43Z HIGH | class: 局部止损触发(比例门): 仅所涉名已平, 全书未平, 开仓已停。触发: §#b  | seen in prior 14 days: False
+  '局部止损' (local stop) pages in the whole audit file: 1 | first: 2026-09-24T12:48Z
+  ALARM.log rows since 12:00Z: [('2026-09-24T12:48:40Z', 'HIGH', '局部止损触发(比例门): 仅所涉名已平, 全书未平, 开仓已停')]
+## EXINFO probe start 13:00:50 (waits for M3 FETCH_MANIFEST.json "verdict")
+## EXINFO probe (no-wait, lead 13:0xZ) start 13:01:17
+{ "now_utc": "2026-09-24T13:01:18Z", "anchor_N_utc": "2026-09-24T12:00:00Z", "minutes_since_N": 61.3, "window": "[N+60m, N+220m]", "remaining_min": 158.7, "open": true, "reason": "open", "override": null, "last_anchor_st
+
+EXINFO_PROBE preceding job ended: NO_WAIT (lead instruction: send now)
+EXINFO_PROBE {"utc": "2026-09-24T13:01:18Z", "path": "/fapi/v1/exchangeInfo", "weight_declared": 1, "used_weight_1m_after": 43, "n_symbols_in_response": 907, "preceding_job_end_line": "NO_WAIT (lead instruction: send now)", "symbols": {"SCRTUSDT": {"status": "SETTLING", "contractType": "PERPETUAL"}, "STORJUSDT": {"status": "SETTLING", "contractType": "PERPETUAL"}, "STGUSDT": {"status": "SETTLING", "contractType": "PERPETUAL"}}}
+exinfo_probe rc=0 end 13:01:18

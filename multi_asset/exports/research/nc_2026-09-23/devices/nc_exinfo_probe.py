@@ -18,11 +18,18 @@ from venue_quiet_window import require_quiet_window
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("tree"); ap.add_argument("out")
-    ap.add_argument("--after-log", required=True); ap.add_argument("--end-regex", required=True)
+    ap.add_argument("--after-log"); ap.add_argument("--end-regex")
+    ap.add_argument("--no-wait", action="store_true", help="lead 2026-09-24 13:0xZ: send now, do not wait for another job's end marker (recorded)")
     ap.add_argument("--symbols", default="SCRTUSDT,STORJUSDT"); ap.add_argument("--wait-deadline-min", type=float, default=60)
     a = ap.parse_args(); syms = [s for s in a.symbols.split(",") if s]
-    t_end = time.time() + a.wait_deadline_min * 60; rx = re.compile(a.end_regex); seen = None
-    while time.time() < t_end:
+    if a.no_wait:
+        seen = "NO_WAIT (lead instruction: send now)"
+    elif not (a.after_log and a.end_regex):
+        print("EXINFO_PROBE REFUSED: need --after-log and --end-regex, or --no-wait", flush=True); return 3
+    else:
+        seen = None
+    t_end = time.time() + a.wait_deadline_min * 60; rx = re.compile(a.end_regex) if a.end_regex else None
+    while not seen and time.time() < t_end:
         if os.path.exists(a.after_log):
             for line in open(a.after_log, errors="replace"):
                 if rx.search(line): seen = line.strip()[:300]
