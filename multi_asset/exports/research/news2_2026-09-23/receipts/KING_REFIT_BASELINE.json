@@ -1,0 +1,148 @@
+{
+  "device": "news2_king_refit_perturb.py",
+  "self_sha256": "3acdcac162b673d8a108446cd914329196c5d104e398887c3339aab7022c9f03",
+  "argv": [
+    "--nc-features",
+    "/dev/shm/nc_2026-09-23/work/NC_FEATURES.npz",
+    "--nc-king",
+    "/dev/shm/news2_2026-09-23/work/king/KING_OOF.npz",
+    "--researcher-king",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/king/KING_OOF.npz",
+    "--researcher-panel",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_fea82.npz",
+    "--researcher-axis",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/f10v2_legs.npz",
+    "--targets",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz",
+    "--keep-idx-config",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/vendor_live/shadow_bundle/config.json",
+    "--devices-dir",
+    "/dev/shm/news2_2026-09-23/devices",
+    "--arms",
+    "baseline",
+    "--out",
+    "/dev/shm/news2_2026-09-23/receipts/KING_REFIT_BASELINE.json"
+  ],
+  "cwd": "/dev/shm/news2_2026-09-23/devices",
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "prereg": "docs/PREREG_king_refit_perturbations_2026-09-24.md @ ebe3448a2",
+  "status": "SINGLE_VARIABLE_PERTURBATION_NOT_BOOK_LAYER",
+  "params": {
+    "n_estimators": 400,
+    "learning_rate": 0.05,
+    "num_leaves": 63,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "n_jobs": 8,
+    "verbose": -1,
+    "random_state": 0
+  },
+  "king_folds_sha256": "4886c278c12b0f5126bb1e8ad6b4789db95e604180a77d0cd02f1e7c612df640",
+  "limits": [
+    "(b) replaces only the 2,742,865 shared pairs; NC-only pairs keep NC values (counted)",
+    "(a)'s injected rows carry researcher feature values -- not a pure row-count change",
+    "each arm is ONE perturbation, not a distribution"
+  ],
+  "inputs": {
+    "nc_features": {
+      "path": "/dev/shm/nc_2026-09-23/work/NC_FEATURES.npz",
+      "bytes": 2960618767
+    },
+    "nc_king": {
+      "path": "/dev/shm/news2_2026-09-23/work/king/KING_OOF.npz",
+      "bytes": 37042878
+    },
+    "researcher_king": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/king/KING_OOF.npz",
+      "bytes": 36999918
+    },
+    "researcher_panel": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_fea82.npz",
+      "bytes": 611491720
+    },
+    "targets": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz",
+      "bytes": 29543787
+    }
+  },
+  "fund_columns_in_X78": {
+    "fund_ema": 76,
+    "fund_now": 77
+  },
+  "shared_pairs": 2742865,
+  "nc_only_pairs_not_replaceable": 42889,
+  "folds": {
+    "baseline": [
+      {
+        "fold": "2022H2_WARMUP",
+        "train_pairs": 132084,
+        "scored_pairs": 158535,
+        "seconds": 2.7
+      },
+      {
+        "fold": "2023",
+        "train_pairs": 290199,
+        "scored_pairs": 410256,
+        "seconds": 4.2
+      },
+      {
+        "fold": "2024",
+        "train_pairs": 694838,
+        "scored_pairs": 600192,
+        "seconds": 7.4
+      },
+      {
+        "fold": "2025",
+        "train_pairs": 1289444,
+        "scored_pairs": 849226,
+        "seconds": 11.9
+      },
+      {
+        "fold": "2026",
+        "train_pairs": 2134630,
+        "scored_pairs": 626800,
+        "seconds": 16.8
+      }
+    ]
+  },
+  "red_control": {
+    "baseline_vs_archived_frac_identical": 1.0,
+    "baseline_reproduces_archived_bitwise": true,
+    "baseline_green": true
+  },
+  "axis_rows": {
+    "nc_anchors": 10333,
+    "researcher_anchors": 10321,
+    "nc_anchors_absent_from_researcher": 12
+  },
+  "reference_baseline_nc_vs_researcher": {
+    "2022": {
+      "n_anchors": 1104,
+      "median": 0.7851162243208509,
+      "p10": 0.6647439098454687
+    },
+    "2023": {
+      "n_anchors": 2190,
+      "median": 0.7802009329599091,
+      "p10": 0.6241697509645298
+    },
+    "2024": {
+      "n_anchors": 2196,
+      "median": 0.8088818773046538,
+      "p10": 0.6863813856758282
+    },
+    "2025": {
+      "n_anchors": 2190,
+      "median": 0.8681690612809074,
+      "p10": 0.7888369677310484
+    },
+    "2026": {
+      "n_anchors": 1567,
+      "median": 0.9077458091196604,
+      "p10": 0.8693306620431577
+    }
+  },
+  "arms": {},
+  "verdict": "MEASURED"
+}
