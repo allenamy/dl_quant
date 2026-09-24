@@ -129,6 +129,15 @@ def main():
     B_ = XN[inn]
     del XR, XN
 
+    # PER-YEAR. Pooling across years hid the structure in the first run: I reported "all 40 rank
+    # columns differ" from a pooled rate, when they are bitwise identical in 2023/2024 and only
+    # diverge in 2026. A pooled agreement rate over a heterogeneous population is not a property of
+    # the population; it is an average of very different sub-populations.
+    import datetime as _dt
+    yr = np.array([_dt.datetime.utcfromtimestamp(int(k // SCALE)).year for k in common])
+    years = sorted(set(yr.tolist()))
+    rec["per_year_pairs"] = {str(y): int((yr == y).sum()) for y in years}
+
     cols, identical_cols, differing = [], 0, []
     for j in range(A_.shape[1]):
         x, y = A_[:, j].astype(np.float64), B_[:, j].astype(np.float64)
@@ -148,6 +157,12 @@ def main():
              "median_rel_diff": float(np.median(rel)) if rel.size else None,
              "zero_denominator_positions": zero_den,
              "zero_denominator_note": "counted, not dropped"}
+        e["by_year"] = {}
+        for Y in years:
+            sy = yr == Y
+            if not sy.any():
+                continue
+            e["by_year"][str(Y)] = {"n": int(sy.sum()), "frac_bitwise_identical": float(eq[sy].mean())}
         cols.append(e)
         if frac_eq == 1.0 and nan_mismatch == 0:
             identical_cols += 1
@@ -200,6 +215,15 @@ def main():
                   f"max|d|={d['max_abs_diff']}  med_rel={d['median_rel_diff']}  nan_mm={d['nan_pattern_mismatch']}")
     else:
         print("  all columns bitwise identical on the common pairs")
+    print("  PER-YEAR bitwise-identical fraction (pooled rates hide this):")
+    ys = sorted(rec["per_year_pairs"])
+    print("   col  name                      " + "  ".join(f"{y:>7s}" for y in ys))
+    for e in cols:
+        if e["frac_bitwise_identical"] == 1.0 and e["nan_pattern_mismatch"] == 0:
+            continue
+        row = "  ".join(f"{e['by_year'].get(y, {}).get('frac_bitwise_identical', float('nan')):7.4f}" for y in ys)
+        print(f"   {e['col']:3d}  {str(e['name'])[:24]:24s}  {row}")
+    print("   n_pairs per year: " + "  ".join(f"{y}={rec['per_year_pairs'][y]}" for y in ys))
     return 0
 
 
