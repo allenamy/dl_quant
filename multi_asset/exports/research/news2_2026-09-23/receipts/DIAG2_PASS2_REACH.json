@@ -6351,5 +6351,27 @@
  "nan_flips": {
   "all_matrices_all_arms": 0,
   "how_known": "cells_different equals n_finite_deltas for every (arm, matrix, anchor)"
+ },
+ "D4_RESOLVED_06_0xZ": {
+  "history": [
+   "(1) I wrote: float32 storage, ~1e-7, pure precision -- mechanism right, CONSTANT WRONG (1e-7 is float32 eps; the baseline is float16).",
+   "(2) I then withdrew the mechanism entirely -- an OVER-CORRECTION, caused by comparing against the wrong precision constant (lead caught this).",
+   "(3) Measured, below."
+  ],
+  "measured": {
+   "base_X82_dtype": "float16",
+   "D4_X82_dtype": "float32",
+   "base_X89_dtype": "float32",
+   "D4_X89_dtype": "float32",
+   "f16_rounding_on_real_values_median_rel": 0.0001661,
+   "f16_rounding_p99_rel": 0.0004273,
+   "f16_rounding_max_rel": 0.01312,
+   "f16_unit_roundoff": 0.0004883,
+   "D4_measured_median_rel_X82": 0.000166,
+   "D4_measured_median_rel_X89": 0.000329
+  },
+  "conclusion_X82": "EXPLAINED: removing float16 storage rounding; magnitude agrees with the f16 rounding median to three significant figures.",
+  "conclusion_X89": "NOT EXPLAINED BY DTYPE: X89 is float32 on BOTH sides, so its 23,511 cells / 22 columns at 3.29e-04 median relative are something else D4 does. This measurement does not establish what, and no guess is recorded here.",
+  "anchor": 1789660800
  }
 }
