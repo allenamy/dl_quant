@@ -1,0 +1,44 @@
+{
+ "device": "test_news2_export_override.py",
+ "self_sha256": "977252c1de411dfa9b0bb7f3e6571e0ef774f09db5fb1266cd11971a10cc0b19",
+ "subject": "/dev/shm/news2_2026-09-23/devices/news2_export_models.py",
+ "subject_sha256": "127a9a53dc813a6ea89ffd3878e7046d1e28e96feb42e0e3ec925aac6b6d5769",
+ "utc": "2026-09-24T02:33:41Z",
+ "ruling": {
+  "path": "/dev/shm/news2_2026-09-23/inputs/RULING_user_NC_s42_override_2026-09-24.md",
+  "sha256_declared": "053d50f4ab034ca5e311600b10864d0e30046f2aedf2fca369ebecdc8d032b6b",
+  "sha256_measured": "053d50f4ab034ca5e311600b10864d0e30046f2aedf2fca369ebecdc8d032b6b",
+  "matches": true
+ },
+ "why": "the exporter must refuse to write under a non-DEPLOY verdict unless the user override is named, hashed and limited to s42. Baseline green runs first, because three refusals on a broken exporter would look identical to three working refusals.",
+ "cells": [
+  {
+   "cell": "GREEN.correct",
+   "verdict": "PASS",
+   "expected": "rc 0, both files written, manifest VERDICT=NO_DEPLOY + USER_OVERRIDE + seed=s42 + 2 exported_files",
+   "observed": "rc=0 files=['f10_live_s42_np.npz', 'slow2026.txt'] VERDICT=NO_DEPLOY OVERRIDE=053d50f4ab03 seed=s42 n_exported=2"
+  },
+  {
+   "cell": "RED.no_override",
+   "verdict": "PASS",
+   "expected": "rc 3, nothing written, reason names both flags",
+   "observed": "rc=3 files=[] EXPORT REFUSED: stats VERDICT=NO_DEPLOY: --user-override AND --user-override-sha"
+  },
+  {
+   "cell": "RED.wrong_sha",
+   "verdict": "PASS",
+   "expected": "rc 3, nothing written, reason names the mismatch",
+   "observed": "rc=3 files=[] EXPORT REFUSED: override sha mismatch: measured 053d50f4ab034ca5e311600b10864d0e"
+  },
+  {
+   "cell": "RED.wrong_seed",
+   "verdict": "PASS",
+   "expected": "rc 3, nothing written, reason says the override covers s42 only",
+   "observed": "rc=3 files=[] EXPORT REFUSED: the override releases s42 only; refused seed=s2027; nothing writ"
+  }
+ ],
+ "n_cells": 4,
+ "n_not_pass": 0,
+ "VERDICT": "PASS",
+ "seconds": 55.9
+}

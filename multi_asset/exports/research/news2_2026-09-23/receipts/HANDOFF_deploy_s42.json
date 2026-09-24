@@ -1,0 +1,142 @@
+{
+ "handoff": "HANDOFF_deploy_s42.json",
+ "utc": "2026-09-24T02:35:29Z",
+ "purpose": "the handoff surface for the install rehearsal (DEPLOY manual P2) and for lead. Written by the producing side so it does not depend on me relaying a log line -- the 01:05Z combo target sat unrelayed for 56 minutes because it only existed in a log.",
+ "FROZEN_VERDICT": "NO_DEPLOY",
+ "USER_OVERRIDE": "053d50f4ab034ca5e311600b10864d0e30046f2aedf2fca369ebecdc8d032b6b",
+ "override_ruling": {
+  "path": "/dev/shm/news2_2026-09-23/inputs/RULING_user_NC_s42_override_2026-09-24.md",
+  "sha256_measured": "053d50f4ab034ca5e311600b10864d0e30046f2aedf2fca369ebecdc8d032b6b",
+  "verified": true,
+  "repo_copy": "docs/RULING_user_NC_s42_override_2026-09-24.md"
+ },
+ "seed": "s42",
+ "status": "FILES_WRITTEN_UNDER_USER_OVERRIDE. This is a permission recorded against a NO_DEPLOY verdict, not an admission: no gate was passed and no criterion was relaxed. FREEZE section 2 is unamended.",
+ "exported_files": [
+  {
+   "name": "slow2026.txt",
+   "path": "/dev/shm/news2_2026-09-23/deploy/slow2026.txt",
+   "sha256": "700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d",
+   "bytes": 2387328
+  },
+  {
+   "name": "f10_live_s42_np.npz",
+   "path": "/dev/shm/news2_2026-09-23/deploy/f10_live_s42_np.npz",
+   "sha256": "3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f",
+   "bytes": 444372
+  }
+ ],
+ "executor_pins": {
+  "booster_sha_pin": "700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d",
+  "f10_sha_pin": "3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f"
+ },
+ "V1_gate": {
+  "spearman": 0.999999999997111,
+  "maxabs": 6.549119863086261e-08,
+  "rows": 30000,
+  "PASS": true,
+  "rule": "spearman >= 0.99999 and maxabs <= 1e-5 (pod_f10_np_export.py)"
+ },
+ "numpy_serving_vs_gpu_oof_202609": {
+  "anchors": 109,
+  "max_abs": 1.0919744841686452e-07,
+  "within_anchor_rank_mismatch_cells": 0
+ },
+ "override_gate_selftest": {
+  "receipt": "/dev/shm/news2_2026-09-23/receipts/TEST_EXPORT_OVERRIDE.json",
+  "VERDICT": "PASS",
+  "cells": 4,
+  "n_not_pass": 0,
+  "cell_names": [
+   "GREEN.correct",
+   "RED.no_override",
+   "RED.wrong_sha",
+   "RED.wrong_seed"
+  ]
+ },
+ "manifest": {
+  "path": "/dev/shm/news2_2026-09-23/receipts/P5_DEPLOY_MANIFEST.json",
+  "sha256": "64abda0d8793a1fc44235b3b8057302ec24de19b3c827f70961753918d86efd9"
+ },
+ "lineage_roots": {
+  "features": {
+   "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+   "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8"
+  },
+  "king": {
+   "receipt": "/dev/shm/news2_2026-09-23/work/king/TRAIN_RECEIPT.json",
+   "receipt_sha256": "8b6ae7ac105284db48c15b2a221d7d854b986c0893bcdeaf44a35f6894f2da56",
+   "oof_sha256": "a10b872506ca60afcd0f69b0e43d17a548cdd7c6956075000aac954b21e3df9a",
+   "fold_2026": {
+    "fold": "2026",
+    "score_start": 1767225600,
+    "score_end": 1789776000,
+    "max_train_label_end": 1766361600,
+    "embargo_anchors": 60,
+    "train_pairs": 2134630,
+    "scored_pairs": 626800,
+    "model_path": "/dev/shm/news2_2026-09-23/work/king/king_2026.txt",
+    "model_sha256": "700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d",
+    "seconds": 17.648058319464326,
+    "mean_cs_spearman": 0.06789537387092202,
+    "mean_cs_pearson": 0.01829526689964522,
+    "mean_per_asset_pearson": 0.0339930410381435,
+    "n_cs_anchors": 1566,
+    "status": "SIGNAL_DIAGNOSTIC_ONLY"
+   }
+  },
+  "legs": {
+   "sha256": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65"
+  },
+  "f10_s42": {
+   "receipt_sha256": "8016186b22732714a8073cf55c5d9c8292cefddc883ee40222882f8749960593",
+   "oof_sha256": "2af48f7c84bfd5de2df83fa1266455ca718558a80ae68017de444b510a592d51",
+   "fold_202609": {
+    "model_pt_sha256": "b67499bb8956551880b9e88fb4a1a875e02621a5600ff0f708a421d178d04129",
+    "score_sha256": "d2fb07315388e9da5011b69d15e6bf9f4e124a670f771f3d32acbc14649fe9f0",
+    "admission": {
+     "fold": "202609",
+     "accepted_windows": 153,
+     "rejected": {
+      "unpriced_possible_holding": 6
+     },
+     "train_anchors": 7716,
+     "max_train_label_end": 1767744000,
+     "test_start": 1788220800,
+     "cutoff": 1787356800
+    },
+    "max_train_label_end_utc": "2026-01-07T00:00:00Z",
+    "cutoff_utc": "2026-08-22T00:00:00Z",
+    "note": "only the first 85% of admissible training anchors enter the gradient (train_f10.py L102-103): the last label the model saw is max_train_label_end, not the cutoff"
+   }
+  },
+  "combo_s42": {
+   "receipt_sha256": "91c5d29ada87931599c0a5e9bf651a4ec5323f8983ea844020249caa5cf6e21a",
+   "scaled_sha256": "f4630a20f796bce26590aedeadfc28791be7eeecee8c14789f418b5a08de4388"
+  },
+  "adapter_s42": {
+   "receipt_sha256": "2b6347c59be4b8249e880625fe0979a1e4903f8f1174fd07cb57ed961e93cf4d",
+   "targets_npz_sha256": "cbb6d10748fc7aa913fcd9ec0872f17829bde72e6bbb32344c67ca13b4bb52b7"
+  },
+  "run_config_s42": {
+   "path": "/dev/shm/news2_2026-09-23/configs/RUN_CONFIG_NEWS2_s42_2026-09-23.json",
+   "sha256": "21aed8aa636880d18f437a5440bd95e663acfd9689bf2ebe591fdbe13329282c",
+   "pod_root": "/dev/shm/news2_2026-09-23"
+  },
+  "stats": {
+   "path": "/dev/shm/news2_2026-09-23/receipts/engine/NEWS2_STATS.json",
+   "sha256": "6d689c9a152e81f93bf52410ac29db1102bf6e30e1c7eab9f7dfc9addc5055c8",
+   "VERDICT": "NO_DEPLOY",
+   "failing_by_seed": {
+    "s42": [
+     "B1"
+    ],
+    "s2027": [
+     "A:S2"
+    ]
+   }
+  }
+ },
+ "wording_note": "the only remaining 'PASS' anywhere in the manifest is deploy.V1_gate.PASS, which is the numpy-equals-torch numerical equivalence gate (spearman >= 0.99999, maxabs <= 1e-5). It is not an admission of the book and its name predates this ruling; renaming it would break the pin semantics the executor and the rehearsal read.",
+ "not_released": "s2027 is NOT exported and is NOT a fallback (ruling section 4-1). Only s42 exists in deploy/."
+}

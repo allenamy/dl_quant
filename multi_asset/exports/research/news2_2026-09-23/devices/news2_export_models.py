@@ -9,7 +9,7 @@ Chain bound (each arrow = a sha equality asserted from the receipts, not from fi
 F10 202609 training span is reported as it is: the trainer uses only the first 85 % of the admissible training anchors (train_f10.py L102-103),
 so ADMISSION.max_train_label_end (≈ 2026-01) — not the 2026-08-22 cutoff — is the last label the gradient saw.
 usage: /workspace/venv/bin/python news_export_models.py"""
-import os, sys, json, time, hashlib, shutil
+import argparse, os, sys, json, time, hashlib, shutil
 import numpy as np
 import torch
 from scipy.stats import spearmanr
@@ -45,8 +45,56 @@ def np_infer(M, X171):
 def iso(t): return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(t)))
 
 
+# ---------------------------------------------------------------------------------------------------
+# USER OVERRIDE GATE (lead relaying the user ruling, 2026-09-24; RULING_user_NC_s42_override_2026-09-24.md)
+#
+# The frozen verdict is NO_DEPLOY. The user chose to release s42 ON TOP OF that verdict. This exporter
+# therefore refuses to write anything under a non-DEPLOY verdict UNLESS the override is named, its file
+# hash is verified, and the seed is exactly s42. When the verdict is DEPLOY the behaviour is unchanged.
+#
+# The override is a PERMISSION, not a re-judgement: nothing here rewrites the verdict, and the manifest
+# carries VERDICT=NO_DEPLOY verbatim plus the ruling sha. Wording that would read as admission
+# ("PASS", "admitted", "certified") is kept out of the export status on purpose -- a deploy artefact that
+# describes itself as passing would outlive the conversation in which it was an exception.
+OVERRIDE_SEED = "s42"
+
+
+def override_gate(stats_verdict, args):
+    """Returns the override record, or raises ExportError. Writes nothing either way."""
+    rec = {"stats_VERDICT": stats_verdict, "seed_requested": args.seed,
+           "override_path": args.user_override, "override_sha_declared": args.user_override_sha}
+    if stats_verdict == "DEPLOY":
+        rec["override_required"] = False
+        rec["note"] = "verdict is DEPLOY; the override path is not consulted"
+        return rec
+    rec["override_required"] = True
+    if not args.user_override or not args.user_override_sha:
+        raise ExportError(f"stats VERDICT={stats_verdict}: --user-override AND --user-override-sha are "
+                          f"both required; nothing written")
+    if not os.path.exists(args.user_override):
+        raise ExportError(f"override file not found: {args.user_override}; nothing written")
+    measured = sha(args.user_override)
+    rec["override_sha_measured"] = measured
+    if measured != args.user_override_sha:
+        raise ExportError(f"override sha mismatch: measured {measured} != declared "
+                          f"{args.user_override_sha}; nothing written")
+    if args.seed != OVERRIDE_SEED:
+        raise ExportError(f"the override releases {OVERRIDE_SEED} only; refused seed={args.seed}; "
+                          f"nothing written")
+    rec["override_verified"] = True
+    return rec
+
+
 def main():
-    man = {"device": os.path.abspath(__file__), "device_sha256": sha(os.path.abspath(__file__)), "utc": iso(time.time()), "links": {}}
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--seed", default="s42", help="which F10 seed to export; the user override covers s42 only")
+    ap.add_argument("--user-override", default=None, help="path to the user ruling that releases export under a non-DEPLOY verdict")
+    ap.add_argument("--user-override-sha", default=None, help="the expected sha256 of that file; measured and compared")
+    ap.add_argument("--out-dir", default=None, help="deploy output dir (default <W>/deploy); the selftest uses a temp dir")
+    ap.add_argument("--manifest", default=None, help="manifest path (default <W>/receipts/P5_DEPLOY_MANIFEST.json)")
+    args = ap.parse_args()
+    man = {"device": os.path.abspath(__file__), "device_sha256": sha(os.path.abspath(__file__)), "utc": iso(time.time()),
+           "argv": list(sys.argv), "links": {}}
     L = man["links"]
     feat = f"{W}/work/NEWS_FEATURES.npz"; p2b = json.load(open(f"{W}/receipts/P2B_FEATURES.json"))
     need(sha(feat) == p2b["sha256"], "features sha != P2B receipt"); L["features"] = {"path": feat, "sha256": p2b["sha256"]}
@@ -79,10 +127,19 @@ def main():
     need(all(r["targets"]["sources"][0]["npz_sha256"] == ar["targets_npz_sha256"] and r["targets"]["sources"][0]["receipt_sha256"] == sha(ar_p) for r in cfg["runs"]), "run config targets")
     L["run_config_s42"] = {"path": cfg_p, "sha256": sha(cfg_p), "pod_root": cfg["paths"]["pod_root"]}
     st_p = f"{W}/receipts/engine/NEWS2_STATS.json"; st = json.load(open(st_p))
-    need(st["runs_roots"]["news"] == f"{cfg['paths']['pod_root']}/runs", "stats read another runs root")
+    need(st["runs_roots"]["news2"] == f"{cfg['paths']['pod_root']}/runs", "stats read another runs root")
     L["stats"] = {"path": st_p, "sha256": sha(st_p), "VERDICT": st["VERDICT"], "failing_by_seed": st["failing_by_seed"]}
+    # * the gate runs HERE: after the lineage is verified, before anything is written.
+    man["user_override"] = override_gate(st["VERDICT"], args)
+    man["VERDICT"] = st["VERDICT"]                       # the frozen verdict, verbatim, never rewritten
+    man["seed"] = args.seed
+    if st["VERDICT"] != "DEPLOY":
+        man["USER_OVERRIDE"] = args.user_override_sha
+        man["export_status"] = ("FILES_WRITTEN_UNDER_USER_OVERRIDE. This is a permission recorded against "
+                                "a NO_DEPLOY verdict, not an admission: no gate was passed and no criterion "
+                                "was relaxed. FREEZE section 2 is unamended.")
     # ---- deploy files ----
-    out = f"{W}/deploy"; os.makedirs(out, exist_ok=True)
+    out = args.out_dir or f"{W}/deploy"; os.makedirs(out, exist_ok=True)
     shutil.copy2(k26[0]["model_path"], f"{out}/slow2026.txt"); need(sha(f"{out}/slow2026.txt") == k26[0]["model_sha256"], "deploy King copy")
     ck = torch.load(mp, map_location="cpu", weights_only=False); sdict = ck["state_dict"]
     alpha = float((.02 + .88 * torch.sigmoid(sdict["a"])).item())
@@ -113,8 +170,16 @@ def main():
                      "numpy_serving_vs_gpu_oof_202609": {"anchors": n_an, "max_abs": dmax, "within_anchor_rank_mismatch_cells": rk},
                      "executor_pins": {"booster_sha_pin": sha(f"{out}/slow2026.txt"), "f10_sha_pin": sha(npz)}}
     need(v1, f"V1 gate failed rho={rho} maxabs={mx}")
-    man["torch"] = torch.__version__; man["numpy"] = np.__version__; man["VERDICT"] = "BOUND"
-    json.dump(man, open(f"{W}/receipts/P5_DEPLOY_MANIFEST.json", "w"), indent=1)
+    man["torch"] = torch.__version__; man["numpy"] = np.__version__
+    man["lineage_bound"] = True          # was man["VERDICT"]="BOUND"; that key now holds the FROZEN verdict
+    # lead: list every exported model file with its path and FULL sha; the install rehearsal takes its
+    # shas from here, so this list is the handoff surface, not the log line.
+    man["exported_files"] = [{"name": os.path.basename(pth), "path": pth, "sha256": sha(pth),
+                              "bytes": os.path.getsize(pth)}
+                             for pth in (f"{out}/slow2026.txt", npz)]
+    mpath = args.manifest or f"{W}/receipts/P5_DEPLOY_MANIFEST.json"
+    json.dump(man, open(mpath, "w"), indent=1)
+    print("EXPORT_FILES " + json.dumps(man["exported_files"]), flush=True)
     print("EXPORT BOUND", json.dumps(man["deploy"]["executor_pins"]), "V1", man["deploy"]["V1_gate"], "gpu_vs_np", man["deploy"]["numpy_serving_vs_gpu_oof_202609"], flush=True)
 
 

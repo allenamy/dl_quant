@@ -62,11 +62,19 @@ SUBS = [
     # exporter rather than assuming one rule covered them all -- NEWS_FEATURES is deliberately NOT
     # substituted, because the staged feature file in this root really is called NEWS_FEATURES.npz.
     ("stats_receipt", "NEWS_STATS", "NEWS2_STATS", 0),
+    # UNDER-substitution, caught 2026-09-24 by the exporter refusing to run: news_export_models.py
+    # asserts st["runs_roots"]["news"] == pod_root/runs. In NEW_S that key IS its own runs root; in the
+    # news2 verdict device "news" is the NEW_S COMPARISON arm and this chain lives under "news2". None of
+    # the other rules reach it: `arm_prefix` is "NEWS_s" (uppercase, trailing _s) and this key is a bare
+    # lowercase "news". Left alone, the exporter compares the wrong root -- and it did, refusing all four
+    # selftest cells with "stats read another runs root". The assertion was load-bearing, so the wrong
+    # lineage could not be exported; the cost was one failed run, not a wrong artefact.
+    ("runs_root_key", '["runs_roots"]["news"]', '["runs_roots"]["news2"]', 0),
     ("doc_label", "NEWS P5 model export", "NEWS2 P5 model export", 0),
 ]
 # at least one file must be touched by each substitution, or the table has gone stale
 REQUIRED_GLOBAL_HITS = {"root": 1, "arm_prefix": 1, "src_hist": 1, "src_legs": 1, "src_p2": 1,
-                        "provenance": 1, "stats_receipt": 1, "doc_label": 1}
+                        "provenance": 1, "stats_receipt": 1, "doc_label": 1, "runs_root_key": 1}
 
 
 def sha_file(p):

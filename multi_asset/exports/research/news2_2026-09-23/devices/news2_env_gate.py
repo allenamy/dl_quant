@@ -58,6 +58,14 @@ PINS = {
     "ext":      (PV,   None, None, None, "news_chain_resume.sh: env -i ... $PV -B news_ext.py"),
     # my own step; NEW_S has no counterpart, so there is nothing to match and nothing is claimed
     "staging":  (None, None, None, None, "news2 only (no NEW_S counterpart): pure file staging, no arithmetic"),
+    # P5 export. The pin source is WEAKER than the others and that is stated rather than smoothed over:
+    # NEW_S's P5 manifest records only torch 2.11.0+cu128 / numpy 2.4.6 (which identifies PV), and the
+    # device docstring documents the usage as "/workspace/venv/bin/python news_export_models.py" with no
+    # env prefix -- so NPY_DISABLE unset is read off the DOCUMENTED USAGE, not off a recorded environment.
+    "export":   (PV,   None, None, None, "news_export_models.py docstring usage line + the NEW_S P5 manifest "
+                                         "(torch 2.11.0+cu128 / numpy 2.4.6 => PV). NOTE: NEW_S recorded no "
+                                         "env for this step, so the unset requirement is inferred from the "
+                                         "documented usage, not measured from NEW_S."),
 }
 
 
