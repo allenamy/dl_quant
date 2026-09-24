@@ -1,0 +1,83 @@
+{
+  "device": "news2_member_diff_shape.py",
+  "self_sha256": "566311cb572fe9842c5cf956959e13510810c72f6e5fd7a611b8ef81e03ddb9e",
+  "argv": [
+    "--nc-features",
+    "/dev/shm/nc_2026-09-23/work/NC_FEATURES.npz",
+    "--researcher-panel",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_fea82.npz",
+    "--researcher-axis",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/f10v2_legs.npz",
+    "--out",
+    "/dev/shm/news2_2026-09-23/receipts/MEMBER_DIFF_SHAPE.json"
+  ],
+  "cwd": "/dev/shm/news2_2026-09-23/devices",
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "prereg": "docs/PREREG_member_diff_attribution_2026-09-24.md @ 547f16825",
+  "status": "SHAPE_OF_THE_DIFFERENCE_NOT_ITS_SHARE",
+  "declared_in_advance": {
+    "AMENDMENT_1_L65": "D5/D6 covering the member screen L497-L505 => the member set may change",
+    "DESIGN_producer_new_contract_L485": "mechanism: v7 near the 1e-4 gate, qvm order near rank 400",
+    "DESIGN_producer_new_contract_L491": "lead 2026-09-23: the member screen is inside D5 (B8)"
+  },
+  "inputs": {
+    "nc_features": {
+      "path": "/dev/shm/nc_2026-09-23/work/NC_FEATURES.npz",
+      "bytes": 2960618767
+    },
+    "researcher_panel": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_fea82.npz",
+      "bytes": 611491720
+    },
+    "researcher_axis": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/f10v2_legs.npz",
+      "bytes": 18332422
+    }
+  },
+  "red_control": {
+    "baseline_both_sides_median_norm_rank": 0.4943820224719101,
+    "baseline_not_concentrated": true,
+    "mutation_reversed_median": 0.04749999999999999,
+    "mutation_flips_verdict": true,
+    "n_only_nc_positions": 42889,
+    "n_both_positions": 2742865,
+    "baseline_green": true
+  },
+  "predictions": {
+    "P1_only_nc_ranks_concentrate_near_the_cut": {
+      "criterion": "median normalised qvm rank of NC-only symbols >= 0.9",
+      "median_norm_rank": 0.9525,
+      "p10": 0.875,
+      "p25": 0.9075,
+      "p75": 0.98,
+      "frac_in_last_10pct": 0.7943761803725897,
+      "frac_in_last_25pct": 1.0,
+      "holds": true
+    },
+    "P2_member_counts_almost_equal": {
+      "criterion": "median |n_NC - n_RES| <= 1",
+      "median_abs_dn": 0.0,
+      "mean_dn": -0.013212863110852036,
+      "max_abs_dn": 136.0,
+      "frac_equal_counts": 0.9999028465947731,
+      "holds": true
+    },
+    "P3_difference_is_widespread": {
+      "criterion": "fraction of shared anchors with any difference >= 0.5",
+      "n_shared_anchors": 10293,
+      "n_anchors_with_diff": 1488,
+      "frac": 0.14456426697755756,
+      "holds": false
+    }
+  },
+  "named_non_measurement": {
+    "researcher_only_pairs_rank": "NC has no qvm for a non-member; counts only, no rank judgement",
+    "share_not_measured": "shape is not share; D5's share needs D5 switched off and re-run"
+  },
+  "totals": {
+    "only_nc_pairs": 42889,
+    "only_res_pairs": 43025
+  },
+  "verdict": "MEASURED"
+}
