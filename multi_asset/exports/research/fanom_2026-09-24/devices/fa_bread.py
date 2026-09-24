@@ -56,12 +56,17 @@ for arm in ("FRESH", "NEWS"):
         dprice = V["price_vs_own_original_bps"]
         # 2-5 need the variant's own publication state
         root = F if arm == "FRESH" else N
-        pref = "B5T" if VAR == "B5" else "B4"
+        # explicit variant -> combo-dir map. The previous fallback ("B5T" if B5 else "B4") silently read the
+        # B4 combo for B2 and reported B4's hold/gross as if they were B2's. A default that quietly resolves
+        # to another variant is the same family as a missing key resolving to some other arm.
+        PREF = {"B4": "B4", "B5": "B5", "B2": "B2"}
+        assert VAR in PREF, f"no combo prefix mapped for variant {VAR}"
+        pref = PREF[VAR]
         vdir = f"/dev/shm/fanom_2026-09-24/bvar/{pref}_{'fresh' if arm=='FRESH' else 'news'}_2026-09-23_s{seed}"
         if VAR == "B5":
             # B5's variant combo lives under the B5_ prefix (the transform used the ORIGINAL targets, but the
             # publication state it represents is the B5 variant combo built by fa_bvariant.py)
-            vdir_c = vdir.replace("B5T_", "B5_")
+            vdir_c = vdir
             CV = np.load(f"{vdir_c}/scaled_diagnostic.npz", allow_pickle=True)
         else:
             CV = np.load(f"{vdir}/scaled_diagnostic.npz", allow_pickle=True)
