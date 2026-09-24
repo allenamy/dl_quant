@@ -1,0 +1,137 @@
+{
+ "device": "fa_mix.py",
+ "self_sha256": "56bb5640dd9855f6cdc5a7176c4150681a9980197e54b6797f93205d123e104f",
+ "utc": "2026-09-24T10:27:14Z",
+ "prereg": {
+  "path": "docs/PREREG_seat_window_mixing_2026-09-24.md",
+  "commit": "0da6d4ae6"
+ },
+ "look": 900,
+ "primary_statistic": "bps per anchor (intensity); share reported but NOT the criterion",
+ "fold_counts": {
+  "FRESH": 51,
+  "NEWS": 5
+ },
+ "zero_control": {
+  "NEWS_annual_mix_distribution": {
+   "1": 3697,
+   "2": 1798
+  },
+  "FRESH_monthly_mix_distribution": {
+   "5": 468,
+   "6": 5027
+  },
+  "NEWS_share_mix_le_2": 1.0,
+  "DEVICE_CHECK_PASS": true,
+  "rule": "prereg \u00a74: if NEW_S's mixing is also mostly >=3 the mix computation is wrong; STOP, no verdict"
+ },
+ "population": {
+  "phase2_denominator_bps": -3116.454543230235,
+  "phase2_anchors": 5495,
+  "excluded_incomplete_window": 0,
+  "anchors_after_exclusion": 5495,
+  "sum_after_exclusion_bps": -3116.454543230235,
+  "difference_vs_phase2_bps": 0.0,
+  "fraction_of_phase2_denominator": 1.0,
+  "note": "shares below close to 1 over the POST-EXCLUSION sum, per prereg \u00a76"
+ },
+ "by_mixing": {
+  "rows": {
+   "5": {
+    "n_anchors": 468,
+    "sum_bps": 115.32931918190283,
+    "bps_per_anchor": 0.24643016919210006,
+    "share_of_post_exclusion_sum": -0.037006578335124024,
+    "effective": true
+   },
+   "6": {
+    "n_anchors": 5027,
+    "sum_bps": -3231.783862412137,
+    "bps_per_anchor": -0.6428851924432339,
+    "share_of_post_exclusion_sum": 1.0370065783351239,
+    "effective": true
+   }
+  },
+  "sum_of_shares": 0.9999999999999997,
+  "CLOSES": true,
+  "min_n_effective": 100
+ },
+ "criterion": {
+  "effective_levels": [
+   5,
+   6
+  ],
+  "bps_per_anchor_in_order": [
+   0.24643016919210006,
+   -0.6428851924432339
+  ],
+  "longest_monotone_nonincreasing_run": 2,
+  "cond1_run_ge_3": false,
+  "cond2_highest_more_negative_than_lowest": true,
+  "VERDICT": "UNDECIDED",
+  "frozen_in": "PREREG 0da6d4ae6 \u00a73"
+ },
+ "VERDICT": "UNDECIDED",
+ "separability": {
+  "spearman_mix_vs_seat_tercile": -0.2527686685188555,
+  "contingency_mix_by_tercile": {
+   "5": {
+    "0": 140,
+    "1": 194,
+    "2": 134
+   },
+   "6": {
+    "0": 1692,
+    "1": 1637,
+    "2": 1698
+   }
+  },
+  "stratified_bps_per_anchor_min_n": 50,
+  "stratified": {
+   "0": {
+    "5": {
+     "n": 140,
+     "bps_per_anchor": -0.4667123760775243
+    },
+    "6": {
+     "n": 1692,
+     "bps_per_anchor": -0.2645864931902901
+    }
+   },
+   "1": {
+    "5": {
+     "n": 194,
+     "bps_per_anchor": -0.18895110453413697
+    },
+    "6": {
+     "n": 1637,
+     "bps_per_anchor": -0.26226624730788434
+    }
+   },
+   "2": {
+    "5": {
+     "n": 134,
+     "bps_per_anchor": 1.6218325829282003
+    },
+    "6": {
+     "n": 1698,
+     "bps_per_anchor": -1.3867925024093992
+    }
+   }
+  },
+  "rule": "prereg \u00a75: if mix and seat are highly correlated they are not separable in this data; say so and do not claim the loss is attributed to mixing rather than seat"
+ },
+ "derived_series": {
+  "path": "/dev/shm/fanom_2026-09-24/receipts/FA_ANCHOR_SERIES.npz",
+  "sha256": "e9305cc55706ec2d23cd3731efd3f9e622e6dd369492c1091fcc98d4b9e9a321",
+  "arrays": [
+   "anchors",
+   "price_diff_D_minus_A_bps",
+   "mix_FRESH",
+   "mix_NEWS",
+   "seat_king_FRESH",
+   "in_pre2026"
+  ],
+  "why": "keeps every per-anchor quantity this line of work has needed, so the engine cell is disposable; regenerating the cell costs ~10 min and 350 MiB, this file is ~260 KB"
+ }
+}
