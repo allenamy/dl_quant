@@ -1,0 +1,17 @@
+=== SEAT stdout ===
+FA_B8_SEAT G1_PASS {"FRESH": {"verdict": "PASS", "compared_rows": 9247, "n_mismatch_rows": 0, "rows_not_equal_to_one_third": 8264}, "NEWS": {"verdict": "PASS", "compared_rows": 9247, "n_mismatch_rows": 0, "rows_not_equal_to_one_third": 8321}}
+
+=== RED TEST: unwired seat labelled look=180, carrying look=900 values ===
+command: env -i PATH=/usr/bin:/bin HOME=/root python -B fa_b8combo.py PATH,HOME,LC_CTYPE --legs-root /dev/shm/fresh_2026-09-23 --f10-root /dev/shm/fresh_2026-09-23 --seed 42 --out .../out_unwired --seat-npz .../WL_FRESH_unwired.npz
+RED_TEST_RC=1
+  File "/dev/shm/fresh_2026-09-23/devices/fa_b8combo.py", line 268, in <module>
+    main()
+  File "/dev/shm/fresh_2026-09-23/devices/fa_b8combo.py", line 194, in main
+    assert nd > 0, f'B8 look={lk}: seat bitwise identical to look=900 on every ready anchor in the window'
+           ^^^^^^
+AssertionError: B8 look=180: seat bitwise identical to look=900 on every ready anchor in the window
+
+=== no book written by the red run ===
+total 0
+drwxr-xr-x 2 root root 40 Sep 24 15:39 .
+drwxr-xr-x 3 root root 80 Sep 24 15:39 ..
