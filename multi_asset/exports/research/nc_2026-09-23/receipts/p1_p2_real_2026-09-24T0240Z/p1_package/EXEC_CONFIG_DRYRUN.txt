@@ -1,0 +1,19 @@
+# nc_exec_config.py forward edit, dry run on a COPY of book.json at 5b3d89c (m3-beta-overlay tip), contract = package_NC INSTALL_CONTRACT 00238e4b; 2026-09-24T02:50:03Z
+NC_EXEC_CONFIG OK {"pins": ["8d79186b->700d9e7b", "351ae26b->3d7d050f"], "beta_overlay": {"mode": "off->shadow", "max_combined_leverage": "None->2.5"}, "producer_contract": "None->nc_v1"}  rc=0
+# on b66257b's book.json (no M3 block) the tool refuses: NC_EXEC_CONFIG REFUSED: no beta_overlay block (the checkout does not carry the m3-beta-overlay commits) rc=3 (expected; A4 merges M3 first)
+163,164c163,165
+<         "booster_sha_pin": "8d79186b6380132cb67684acf1ebfcdb2c53261c850f46a4908b06bfa7a81282",
+<         "f10_sha_pin": "351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4",
+---
+>         "booster_sha_pin": "700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d",
+>         "f10_sha_pin": "3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f",
+>         "producer_contract": "nc_v1",
+183c184
+<         "mode": "off",
+---
+>         "mode": "shadow",
+185c186,187
+<         "_semantics": "off (default; also when this block is absent) = the executor without M3, byte for byte. shadow = validate the field, compute and record the hedge that WOULD be placed (anchors row m3_beta_overlay); book, orders and loop state identical to off. on = place the leg, scaled so the combined target gross (book + leg) <= max_combined_leverage x NAV (key `max_combined_leverage`, ABSENT here on purpose: whether the leg sits inside or outside the leverage budget is a user ruling; absent under on = the leg is refused, never unlimited). Any other value (or an invalid budget) = a BROKEN config: HIGH page, no new leg, and a leg already held is FROZEN at its held value (not unwound). Switching takes effect at the next anchor process; an EXPLICIT off or shadow after on unwinds the held BTC hedge through the existing clamp/flatten_only reduce-only channel (it becomes an ordinary held dust/non-target name). Changing this block is a book-behaviour change: user ruling required (CLAUDE.md constraint 5)."
+---
+>         "_semantics": "off (default; also when this block is absent) = the executor without M3, byte for byte. shadow = validate the field, compute and record the hedge that WOULD be placed (anchors row m3_beta_overlay); book, orders and loop state identical to off. on = place the leg, scaled so the combined target gross (book + leg) <= max_combined_leverage x NAV (key `max_combined_leverage`, ABSENT here on purpose: whether the leg sits inside or outside the leverage budget is a user ruling; absent under on = the leg is refused, never unlimited). Any other value (or an invalid budget) = a BROKEN config: HIGH page, no new leg, and a leg already held is FROZEN at its held value (not unwound). Switching takes effect at the next anchor process; an EXPLICIT off or shadow after on unwinds the held BTC hedge through the existing clamp/flatten_only reduce-only channel (it becomes an ordinary held dust/non-target name). Changing this block is a book-behaviour change: user ruling required (CLAUDE.md constraint 5).",
+>         "max_combined_leverage": 2.5

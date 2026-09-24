@@ -16,6 +16,9 @@ Seeded-state row checks (independent of nc_seed_state.py): rows <= axis end, cry
 non-crypto columns = production bytes on every row; rows > axis end, crypto columns: channels 1..6 = production bytes except rows the live
 pack filled, channel 0 = production or NaN (the no-cross-gap rule may only blank it); the sparse table covers every bound cell.
 --home H runs against a copy of the machine layout (rehearsal); --no-launchctl skips the service check (rehearsal only; recorded).
+Verdict record (lead 2026-09-24): preflight re-verifies the contract's verdict block from the package's own copies (verdict/export_manifest.json
+sha, verdict/ruling.md sha == USER_OVERRIDE, the manifest's pins == executor_pins) and REFUSES an unbound contract on the real home. Every
+receipt carries VERDICT and USER_OVERRIDE verbatim at top level; the verdict is never restated as an admission.
 usage: ~/wide_shadow/venv/bin/python nc_install.py {preflight|apply|rollback} <pkg> [<backup dir>] [--seeded D] [--seed-pack F]
        [--downgraded D] [--home H] [--reserve 20] [--no-launchctl]"""
 import argparse, datetime, fcntl, hashlib, importlib.util, json, os, re, shutil, subprocess, sys, time
@@ -92,6 +95,7 @@ def producer_loads(home, tag):
 
 def preflight(pkg, home, seeded=None, seed_pack=None):
     C = json.load(open(f"{pkg}/INSTALL_CONTRACT.json")); rep = {"contract_sha256": sha(f"{pkg}/INSTALL_CONTRACT.json"), "files": len(C["files"])}
+    rep["verdict"] = verdict_checks(pkg, C, home)                # first: an unbound contract is refused on the real home before anything else
     for it in C["files"]:
         check(sha(f"{pkg}/files/{it['dest']}") == it["candidate_sha256"], f"package file differs from contract: {it['dest']}")
         cur = f"{home}/{it['dest']}"
@@ -112,6 +116,30 @@ def preflight(pkg, home, seeded=None, seed_pack=None):
     if seeded:
         rep["seeded"] = seeded_checks(seeded, seed_pack, home)
     return C, rep
+
+
+def verdict_checks(pkg, C, home):
+    V = C.get("verdict") or {}
+    if not V.get("bound"):
+        check(os.path.realpath(home) != os.path.realpath(os.path.expanduser("~")),
+              "contract carries no bound verdict record (nc_package.py --export-manifest/--ruling); refused on the real home")
+        return {"bound": False, "VERDICT": None, "USER_OVERRIDE": None}
+    check(C.get("VERDICT") == V.get("VERDICT") and C.get("USER_OVERRIDE") == V.get("USER_OVERRIDE"), "contract top-level VERDICT/USER_OVERRIDE != its verdict block")
+    mp = f"{pkg}/verdict/export_manifest.json"
+    check(os.path.isfile(mp) and sha(mp) == V["export_manifest"]["sha256"], "package export manifest copy missing or != contract sha")
+    M = json.load(open(mp))
+    check(M.get("VERDICT") == V["VERDICT"] and M.get("seed") == "s42" and M.get("lineage_bound") is True, "export manifest VERDICT / seed / lineage differ from the contract")
+    check((M.get("deploy") or {}).get("executor_pins") == C["executor_pins"], "export manifest executor_pins != contract executor_pins")
+    ex = {e["name"]: e["sha256"] for e in M.get("exported_files", [])}
+    check(ex == {"slow2026.txt": C["executor_pins"]["booster_sha_pin"], "f10_live_s42_np.npz": C["executor_pins"]["f10_sha_pin"]}, "export manifest exported_files != contract pins")
+    if V["VERDICT"] != "DEPLOY":
+        rp = f"{pkg}/verdict/ruling.md"
+        check(V.get("USER_OVERRIDE") and os.path.isfile(rp) and sha(rp) == V["USER_OVERRIDE"] == M.get("USER_OVERRIDE"),
+              "VERDICT != DEPLOY but the package's ruling copy / USER_OVERRIDE do not agree")
+    else:
+        check(V.get("USER_OVERRIDE") is None and "USER_OVERRIDE" not in M, "VERDICT=DEPLOY with a USER_OVERRIDE")
+    return {"bound": True, "VERDICT": V["VERDICT"], "USER_OVERRIDE": V.get("USER_OVERRIDE"), "export_manifest_sha256": V["export_manifest"]["sha256"],
+            "statement": V.get("statement")}
 
 
 def seeded_checks(seeded, seed_pack, home):
@@ -182,7 +210,8 @@ def apply(pkg, bk, home, seeded, seed_pack, reserve, skip_lc):
     C, rep = preflight(pkg, home, seeded, seed_pack)
     rep["services_before"] = services_idle(C["services"]["stop"], skip_lc)
     lock = take_lock(home); quiet(reserve // 2)
-    rec = {"verb": "apply", "started_utc": utc(), "home": home, "preflight": rep, "no_launchctl": skip_lc, "ignore_window": IGNORE_WINDOW, "stage": "backup"}
+    rec = {"verb": "apply", "VERDICT": rep["verdict"]["VERDICT"], "USER_OVERRIDE": rep["verdict"]["USER_OVERRIDE"], "started_utc": utc(), "home": home,
+           "preflight": rep, "no_launchctl": skip_lc, "ignore_window": IGNORE_WINDOW, "stage": "backup"}
     os.makedirs(f"{bk}/files"); os.makedirs(f"{bk}/state")
     wr = lambda: json.dump(rec, open(f"{bk}/NC_INSTALL_RECEIPT.json", "w"), indent=1)
     wr()
@@ -236,7 +265,7 @@ def rollback(pkg, bk, home, downgraded, reserve, skip_lc):
         for f in NC_STATE:
             check(D["inputs"].get(f) == sha(f"{prod}/{f}"), f"the downgraded state was not made from the CURRENT state ({f}); re-run nc_downgrade_state.py")
     for f in OLD_STATE + ["generation.json"]: check(os.path.isfile(f"{src_state}/{f}"), f"state source misses {f}")
-    rec = {"verb": "rollback", "started_utc": utc(), "home": home, "no_launchctl": skip_lc, "ignore_window": IGNORE_WINDOW, "state_source": state_source, "install_stage": I.get("stage"),
+    rec = {"verb": "rollback", "VERDICT": I.get("VERDICT"), "USER_OVERRIDE": I.get("USER_OVERRIDE"), "started_utc": utc(), "home": home, "no_launchctl": skip_lc, "ignore_window": IGNORE_WINDOW, "state_source": state_source, "install_stage": I.get("stage"),
            "services_before": services_idle(C["services"]["stop"], skip_lc)}
     lock = take_lock(home); aside = f"{bk}/rollback_moved_aside_{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}"; os.makedirs(aside)
     wr = lambda: json.dump(rec, open(f"{aside}/NC_ROLLBACK_RECEIPT.json", "w"), indent=1)
@@ -267,6 +296,10 @@ def rollback(pkg, bk, home, downgraded, reserve, skip_lc):
     return rec
 
 
+def vtag(r):
+    return f"VERDICT={r.get('VERDICT')} USER_OVERRIDE={r.get('USER_OVERRIDE')}"
+
+
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("verb", choices=["preflight", "apply", "rollback"]); ap.add_argument("pkg"); ap.add_argument("bk", nargs="?")
     ap.add_argument("--seeded"); ap.add_argument("--seed-pack"); ap.add_argument("--downgraded"); ap.add_argument("--home", default=os.path.expanduser("~"))
@@ -278,14 +311,15 @@ def main():
     global IGNORE_WINDOW; IGNORE_WINDOW = a.ignore_window
     try:
         if a.verb == "preflight":
-            _, rep = preflight(a.pkg, a.home, a.seeded, a.seed_pack); print("NC_INSTALL PREFLIGHT_PASS", json.dumps(rep, default=str)[:1500]); return 0
+            _, rep = preflight(a.pkg, a.home, a.seeded, a.seed_pack)
+            print("NC_INSTALL PREFLIGHT_PASS", vtag(rep["verdict"]), json.dumps(rep, default=str)[:1500]); return 0
         if a.verb == "apply":
             check(a.bk and a.seeded and a.seed_pack, "apply needs <backup dir> --seeded --seed-pack")
             rec = apply(a.pkg, a.bk, a.home, a.seeded, a.seed_pack, a.reserve, a.no_launchctl)
         else:
             check(a.bk, "rollback needs <backup dir> [--downgraded D]")
             rec = rollback(a.pkg, a.bk, a.home, a.downgraded, a.reserve, a.no_launchctl)
-        print("NC_INSTALL", rec["stage"], json.dumps(rec.get("producer_load")), flush=True); return 0
+        print("NC_INSTALL", rec["stage"], vtag(rec), json.dumps(rec.get("producer_load")), flush=True); return 0
     except Refused as e:
         print("NC_INSTALL REFUSED:", e, flush=True); return 3
 

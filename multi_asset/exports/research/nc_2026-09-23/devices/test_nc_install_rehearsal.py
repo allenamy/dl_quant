@@ -16,7 +16,15 @@ usage: ~/wide_shadow/venv/bin/python test_nc_install_rehearsal.py <NC tree> <ext
        [--king F --king-sha S --f10 F --f10-sha S]   (lead 2026-09-24: model paths and their DECLARED sha as arguments; defaults = the
        NEW_S stand-ins below. P0: the INSTALL_CONTRACT built from the given files must pin exactly the declared shas, else the rehearsal
        refuses (REFUSED_PIN_MISMATCH, exit 3) before any seeding / install. NK / NF (after a green baseline): the same run with a wrong
-       declared King / F10 sha must refuse that way and must not reach apply.)"""
+       declared King / F10 sha must refuse that way and must not reach apply.)
+       [--export-manifest M --ruling R]   (lead 2026-09-24, §P2 real package): passed through to nc_package.py. Extra cells:
+         V0 the contract's VERDICT / USER_OVERRIDE == the export manifest's, USER_OVERRIDE == sha(--ruling), verdict.bound
+         V1 the install receipt (bk1) carries the same VERDICT / USER_OVERRIDE at top level
+         NR (after a green baseline) nc_package.py with a ruling file of other bytes ⇒ REFUSED exit 3, no package dir
+       NU (always, after a green baseline): an UNBOUND contract (no export manifest) preflighted with HOME = the fake home (so the fake home IS
+         "the real home" for the tool) ⇒ REFUSED "no bound verdict record" — the real ~ is never read by this cell.
+       The rehearsal verdict is REAL_PACKAGE_PASS only with an export manifest AND non-stand-in models; otherwise MACHINERY_PASS. The release's
+       own verdict is recorded separately as release_VERDICT / release_USER_OVERRIDE (verbatim from the contract)."""
 import hashlib, json, os, shutil, subprocess, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__)); HOME = os.path.expanduser("~"); PY = f"{HOME}/wide_shadow/venv/bin/python"
@@ -61,13 +69,17 @@ def main():
     import argparse
     ap = argparse.ArgumentParser(); [ap.add_argument(x) for x in ("tree", "extras", "pack", "A", "work")]
     ap.add_argument("--king", default=KING); ap.add_argument("--king-sha", default=KING_SHA); ap.add_argument("--f10", default=F10); ap.add_argument("--f10-sha", default=F10_SHA)
+    ap.add_argument("--export-manifest", default=None); ap.add_argument("--ruling", default=None)
     ap.add_argument("--mutation-only", action="store_true", help=argparse.SUPPRESS)   # internal: the NK / NF child runs stop right after P0
     a = ap.parse_args(); tree, extras, pack, A, work = a.tree, a.extras, a.pack, int(a.A), a.work
     KING, F10, KING_SHA, F10_SHA = a.king, a.f10, a.king_sha, a.f10_sha
     assert not os.path.exists(work); os.makedirs(work); fh = f"{work}/home"; fake_home(fh, A)
     st = f"{fh}/wide_shadow/state"; pre = {f: sha(f"{st}/{f}") for f in os.listdir(st)}
     pkg = f"{work}/package"; seeded = f"{work}/seeded"
-    rc, out = run([f"{HERE}/nc_package.py", pkg, "--home", fh, "--tree", tree, "--extras", extras, "--king", KING, "--f10", F10, "--crypto", CRYPTO, "--label", "MACHINERY_REHEARSAL"])
+    STANDIN = KING_SHA == "b521ccdcd045a0975f107fed1e415b22ec72a96fb7f17a30da13f0583bacd0a2" and F10_SHA == "6e97dc8afcaff41d672206871f071c4562bd66bf55ec3403d69eb652a2d4e6eb"
+    vargs = (["--export-manifest", a.export_manifest] + (["--ruling", a.ruling] if a.ruling else [])) if a.export_manifest else []
+    pkg_args = ["--home", fh, "--tree", tree, "--extras", extras, "--king", KING, "--f10", F10, "--crypto", CRYPTO]
+    rc, out = run([f"{HERE}/nc_package.py", pkg] + pkg_args + ["--label", "MACHINERY_REHEARSAL" if STANDIN or not a.export_manifest else "REAL_PACKAGE_REHEARSAL"] + vargs)
     C = json.load(open(f"{pkg}/INSTALL_CONTRACT.json")) if rc == 0 else {}
     base = {it["dest"]: it["baseline_sha256"] for it in C.get("files", [])}
     pins = C.get("executor_pins", {}); want = {"booster_sha_pin": KING_SHA, "f10_sha_pin": F10_SHA}
@@ -76,6 +88,12 @@ def main():
         print("TEST_NC_INSTALL_REHEARSAL REFUSED_PIN_MISMATCH", flush=True); sys.exit(3)
     if a.mutation_only:
         print("TEST_NC_INSTALL_REHEARSAL MUTATION_CHILD_PASSED_P0", flush=True); sys.exit(0)
+    CV = C.get("verdict") or {}
+    if a.export_manifest:
+        M = json.load(open(a.export_manifest)); rs = sha(a.ruling) if a.ruling else None
+        check("V0 contract VERDICT / USER_OVERRIDE == export manifest (verbatim); USER_OVERRIDE == sha(--ruling); bound",
+              CV.get("bound") is True and C.get("VERDICT") == CV.get("VERDICT") == M.get("VERDICT") and C.get("USER_OVERRIDE") == CV.get("USER_OVERRIDE") == M.get("USER_OVERRIDE")
+              and (M.get("VERDICT") == "DEPLOY" or C.get("USER_OVERRIDE") == rs), {"contract": [C.get("VERDICT"), C.get("USER_OVERRIDE")], "manifest": [M.get("VERDICT"), M.get("USER_OVERRIDE")], "ruling_sha": rs})
     rc2, out2 = run([f"{HERE}/nc_seed_state.py", tree, pack, st, seeded + "_nolive"])
     # post-axis bound cells need their exact raw from a live pack (nc_deploy_fetch.py, venue); the rehearsal uses a STAND-IN pack whose raw
     # values are +-0.35 (beyond the clip, sign of ch0) for exactly the cells the seed tool named — machinery only
@@ -109,6 +127,10 @@ def main():
     check("A1 apply ⇒ installed_not_started; NC producer (5 STATE_FILES) loads the state",
           rc == 0 and R.get("stage") == "installed_not_started" and len(pl.get("state_files", [])) == 5 and all(sha(f"{fh}/{d}") == c for d, c in R.get("installed", {}).items()),
           (rc, out[0][:200], R.get("stage"), pl))
+    if a.export_manifest:
+        check("V1 install receipt carries the contract's VERDICT / USER_OVERRIDE at top level",
+              R.get("VERDICT") == C.get("VERDICT") and R.get("USER_OVERRIDE") == C.get("USER_OVERRIDE") and f"VERDICT={C.get('VERDICT')} USER_OVERRIDE={C.get('USER_OVERRIDE')}" in out[0],
+              [R.get("VERDICT"), R.get("USER_OVERRIDE"), out[0][:160]])
     rc, out = run([f"{HERE}/nc_install.py", "rollback", pkg, f"{work}/bk1"] + common)
     rb = sorted(x for x in os.listdir(f"{work}/bk1") if x.startswith("rollback_moved_aside_"))
     RR = json.load(open(f"{work}/bk1/{rb[-1]}/NC_ROLLBACK_RECEIPT.json")) if rb else {}
@@ -144,17 +166,38 @@ def main():
             applied = any(x.startswith("bk") for x in os.listdir(wd)) if os.path.isdir(wd) else None
             check(f"{tag} wrong declared {'King' if tag == 'NK' else 'F10'} sha ⇒ REFUSED_PIN_MISMATCH (exit 3), no apply",
                   r.returncode == 3 and "REFUSED_PIN_MISMATCH" in last[0] and applied is False, (r.returncode, last[0][:120], applied))
+        if a.export_manifest and a.ruling:
+            bad = f"{work}/ruling_other_bytes.md"; open(bad, "wb").write(open(a.ruling, "rb").read() + b"\n")
+            rc, out = run([f"{HERE}/nc_package.py", f"{work}/package_NR"] + pkg_args + vargs[:2] + ["--ruling", bad])
+            check("NR ruling file of other bytes ⇒ nc_package REFUSED (exit 3), no package written",
+                  rc == 3 and "NC_PACKAGE REFUSED" in out[0] and not os.path.exists(f"{work}/package_NR"), (rc, out[0][:200]))
+        pu = pkg
+        if CV.get("bound"):
+            pu = f"{work}/package_unbound"; rc, out = run([f"{HERE}/nc_package.py", pu] + pkg_args + ["--label", "UNBOUND_FOR_NU"])
+        env = dict(os.environ, HOME=fh)
+        r = subprocess.run([PY, f"{HERE}/nc_install.py", "preflight", pu], capture_output=True, text=True, env=env)
+        last = (r.stdout + r.stderr).strip().splitlines()[-1:] or [""]
+        check("NU unbound contract, preflight with HOME = the fake home ⇒ REFUSED (no bound verdict record)",
+              r.returncode == 3 and "no bound verdict record" in last[0], (r.returncode, last[0][:200]))
     else:
-        print("  (baseline not green: mutation cells NK / NF not run)", flush=True)
-    verdict = "MACHINERY_PASS" if not FAILS else "MACHINERY_FAIL"
+        print("  (baseline not green: mutation cells NK / NF / NR / NU not run)", flush=True)
+    kind = "REAL_PACKAGE" if (a.export_manifest and not STANDIN) else "MACHINERY"
+    verdict = f"{kind}_PASS" if not FAILS else f"{kind}_FAIL"
     json.dump({"verdict": verdict, "checks": N[0], "failed": FAILS, "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                "device_sha256": {f: sha(f"{HERE}/{f}") for f in ("nc_package.py", "nc_install.py", "nc_seed_state.py", "nc_downgrade_state.py", "test_nc_install_rehearsal.py")},
-               "tree_patch_receipt_sha256": sha(f"{tree}/PATCH_RECEIPT.json"), "snapshot_anchor": A, "stand_in_models": [KING, F10], "models": {"king": KING, "king_sha256": KING_SHA, "f10": F10, "f10_sha256": F10_SHA,
-               "are_new_s_stand_ins": KING_SHA == "b521ccdcd045a0975f107fed1e415b22ec72a96fb7f17a30da13f0583bacd0a2" and F10_SHA == "6e97dc8afcaff41d672206871f071c4562bd66bf55ec3403d69eb652a2d4e6eb"},
+               "tree_patch_receipt_sha256": sha(f"{tree}/PATCH_RECEIPT.json"), "snapshot_anchor": A, "stand_in_models": [KING, F10] if STANDIN else None,
+               "models": {"king": KING, "king_sha256": KING_SHA, "f10": F10, "f10_sha256": F10_SHA, "are_new_s_stand_ins": STANDIN},
+               "seed_pack": {"path": os.path.abspath(pack), "sha256": sha(pack)}, "tree": os.path.abspath(tree),
+               "release_VERDICT": C.get("VERDICT"), "release_USER_OVERRIDE": C.get("USER_OVERRIDE"), "contract_verdict_bound": bool(CV.get("bound")),
+               "export_manifest": {"path": os.path.abspath(a.export_manifest), "sha256": sha(a.export_manifest)} if a.export_manifest else None,
+               "ruling": {"path": os.path.abspath(a.ruling), "sha256": sha(a.ruling)} if a.ruling else None,
+               "contract_sha256": sha(f"{pkg}/INSTALL_CONTRACT.json"),
                "cells": CELLS,
                "stand_in_live_pack": "raw = +-0.35 for the seed tool's unresolved post-axis bound cells (machinery only)"},
               open(f"{work}/TEST_NC_INSTALL_REHEARSAL.json", "w"), indent=1)
-    print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed"); print("TEST_NC_INSTALL_REHEARSAL", verdict)
+    print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
+    print(f"RELEASE_RECORD VERDICT={C.get('VERDICT')} USER_OVERRIDE={C.get('USER_OVERRIDE')} (from the contract, verbatim; not judged by this rehearsal)")
+    print("TEST_NC_INSTALL_REHEARSAL", verdict)
     sys.exit(0 if not FAILS else 1)
 
 

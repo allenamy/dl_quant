@@ -1,4 +1,4 @@
-> **创建:** 2026-09-23 19:5xZ | **Session:** session_01MCyx6gj5EdbghE9bwjBjJv(集成代理 C-4,受 lead 派) | **状态:** **草稿,未执行**。§0.2 已取得(2026-09-23 窗口,全部在 treeNC5 上):F-1 PASS、E3 PASS、F-2 PASS、平价门 PASS、P3 电池全绿。尚缺:news2 判词与部署模型、M3c、真包安装演练 §P2。工具与机器演练已入库(§C) | **作废条件:** §0.3 执行前核对任一 sha 不符;冻结件 b30e4afa5 / 修订 1 5c89f8d22 改动;发布树 **treeNC5** 的 PATCH_RECEIPT(3135cf8b)改动(~~treeNC4 0364c28d~~,已被 treeNC5 取代:A4 资金费跳过规则修复,冻结修订 2 = 778ba7324)
+> **创建:** 2026-09-23 19:5xZ | **Session:** session_01MCyx6gj5EdbghE9bwjBjJv(集成代理 C-4,受 lead 派) | **状态:** **草稿,未执行**。判词 `VERDICT=NO_DEPLOY`,用户放行 s42(`USER_OVERRIDE=053d50f4…`,`docs/RULING_user_NC_s42_override_2026-09-24.md`)。§0.2 清单(2026-09-24 02:5xZ):部署包 §P1 已打,真包安装演练 §P2 `REAL_PACKAGE_PASS` 14/14;E3 / F-1 / F-2 / 平价门 / P3 全过(treeNC5)。尚缺:M3c 判词、用户对 §0.4 书行为清单的确认、lead 定窗口。工具与演练已入库(§C) | **作废条件:** §0.3 执行前核对任一 sha 不符;冻结件 b30e4afa5 / 修订 1 5c89f8d22 改动;发布树 **treeNC5** 的 PATCH_RECEIPT(3135cf8b)改动(~~treeNC4 0364c28d~~,已被 treeNC5 取代:A4 资金费跳过规则修复,冻结修订 2 = 778ba7324)
 
 # 部署手册:完整修正版(生产者按研究员 NEW 特征合同服务)+ M3 对冲 shadow
 
@@ -16,7 +16,9 @@
 路径约定(执行前逐个 `export`):
 ```
 export NCW=~/cc_tmp/nc_20260923                      # 工具、发布树、种子包的本机目录
-export PKG=$NCW/package_NC                            # §P1 打出的部署包
+export PKG=$NCW/package_NC                            # §P1 打出的部署包(2026-09-24 02:39Z 已打, INSTALL_CONTRACT 00238e4b…)
+export MODELS=$NCW/models_s42                         # news2 交接件: HANDOFF_deploy_s42.json(e24231fb)、P5_DEPLOY_MANIFEST.json(64abda0d)、两个模型
+export RULING=~/Desktop/quant_research/docs/RULING_user_NC_s42_override_2026-09-24.md   # sha 053d50f4… = USER_OVERRIDE
 export SEEDPACK=$NCW/seed_pack_0919.npz               # 训练重放导出的种子包(pod2 nc_export_seed.py)
 export CRYPTO=~/cc_tmp/news_20260923/package_NEW_S/crypto_P1_members_2025H2on.npz   # 冻结的加密类标记(sha 2323623f…)
 export BK=~/cc_tmp/nc_deploy_$(date -u +%Y%m%dT%H%MZ) # 本次备份与收据根目录
@@ -37,37 +39,34 @@ export OLDB=8d79186b6380132cb67684acf1ebfcdb2c53261c850f46a4908b06bfa7a81282 OLD
 | `wide_shadow/fea171/combosnap/generation_files.py` | 发布附件(925481d0) | 新 |
 | `regime_dash/regime_dash.py` | 发布附件(8210fe73;§A7-5 (3)) | 改 |
 | `wide_shadow/shadow_bundle/crypto_axis.json` | 由 `$CRYPTO` 生成,字节与演练沙箱相同(工具断言) | 新 |
-| `wide_shadow/shadow_bundle/slow2026.txt` | news2 的 King 部署模型 | 改 |
+| `wide_shadow/shadow_bundle/slow2026.txt` | news2 的 King 部署模型(`700d9e7b…`,取自 HANDOFF_deploy_s42.json) | 改(原 8d79186b) |
 | `wide_shadow/shadow_bundle/MANIFEST.json` | 生产 MANIFEST,只把 slow2026.txt 与 crypto_axis.json 两项设成新值 | 改 |
-| `wide_shadow/fea171/f10_live_s42_np.npz` | news2 的 F10 s42 部署模型 | 改 |
+| `wide_shadow/fea171/f10_live_s42_np.npz` | news2 的 F10 s42 部署模型(`3d7d050f…`,取自 HANDOFF_deploy_s42.json) | 改(原 351ae26b) |
 
 - 保持不变、安装时再核一次的文件:`config.json`、`xfer_*.npz`、combosnap 其余文件、`combo_live_daemon.sh`、`sidecar_blend.py`。
 - 执行器钉 = 合同里的 `executor_pins`,也就是两个模型文件的 sha。
 
-### 0.2 前置条件(硬门;任一不满足就不开始)
+### 0.2 前置条件清单(硬门;任一项不是「已满足」就不开始)
 
-1. **换装判词**(FREEZE §2):F10 两个种子**各自**满足 A ∧ B1 ∧ B2。判词由 news2 给出,收据名在它交付时补进来。
-2. **§E3 时序门 PASS**。
-   - 装置:`nc_timing_gate.py`,在 treeNC5 上跑,不带 `--harness-phase-fix`;≥ 6 个锚,另加最坏回填锚。
-   - **已取得**:`NC_TIMING_GATE PASS`,7/7,combo 写完 N+17:44.3,余量 110.7 s(`receipts/e3_nc5_2026-09-23/`,e54c60809)。
-   - `--fetch-measured` 与 `--backfill-measured` 取 F-1 的实测值(DESIGN §F-1)。
-   - F-1 **已取得**:`NC_FETCH_TEST VERDICT=PASS anchors=3 fetch_n=520`(21:19–21:22Z;`receipts/f1_2026-09-23T2119Z/`,4d548b0f6):并行臂取数加计算最多 36.72 s,最坏回填 14.5 s,本 IP 每分钟权重峰值 684,无 429/418。
-   - 门:combo 写完 ≤ N+19:35。
-3. **§F-2 回滚演练 PASS**。
-   - 装置:`test_nc_rollback_rehearsal.py`,在 treeNC5 上跑,输入为真种子包经 `nc_seed_state.py` 播出的状态。
-   - **已取得**:`NC_ROLLBACK PASS`,a/a2/a3/b/c/d 全绿,e1–e3 全拦(`receipts/f2_nc5_2026-09-23/`,e54c60809)。F-2 不经 nc_install,路径说明见 `receipts/f2_formal_2026-09-23/F2_PATH_AND_UNRESOLVED_CELLS.md`。
-   - (a)(a2)(a3)(b)(c)(d) 全绿;e1–e3 负控都能拦住。
-   - (a3) 就是「侧车停掉后 combo 自写 state_H_f10」的一锚推进。
-4. **平价门 PASS**(FREEZE §3.3「平价门逐位」)。
-   - 装置:`nc_parity_gate.py`,在轴末前 6 个锚上比较 Mac 服务端与 pod2 训练构建,要求 0 格不同;两个负控都能看见差异。
-   - **已取得**:treeNC5 `NC_PARITY_GATE PASS`,6 锚 × 11 量 0 格,两负控测出。treeNC4 首跑判 FAIL_PARITY(ONEUSDT 资金费周期 8h→1h 后被预测周期跳过),修复后通过;变异臂(treeNC4)同格复红(`receipts/parity_formal_2026-09-23/`,5fe0cf11c)。
-5. **安装 / 回滚机器演练 PASS**:`test_nc_install_rehearsal.py`,已有 7/7 MACHINERY_PASS(§C)。
-   - 部署包打好之后,用真包再跑一次。
-6. **M3c**(AMENDMENT_3 §2-1):
-   - 过 ⇒ 执行器配置 `beta_overlay.mode="shadow"`;
-   - 不过 ⇒ `mode="off"`,对冲不随发布上线,新版本照常换装。
-7. **用户确认书行为变化**:新模型、新成员规则、新资金费规则;M3 为 shadow。B3 席位播种另需用户单独的一句话(§S)。
-8. 由 lead 执行,或在 lead 监督下执行。
+2026-09-24 02:5xZ 集成代理整理。收据路径都相对研究仓 `multi_asset/exports/research/`,另注明的除外。
+判词照写 `VERDICT=NO_DEPLOY` 加 `USER_OVERRIDE=053d50f4ab034ca5e311600b10864d0e30046f2aedf2fca369ebecdc8d032b6b`。这是用户在判词之上的放行,不是判词通过。
+
+| # | 项 | 状态 | 收据 | 还缺什么 |
+|---|---|---|---|---|
+| 1 | 换装判词与用户放行(FREEZE §2;裁定 §4) | **判词 `VERDICT=NO_DEPLOY`,未改写**。s42:B1 不过,对 NEW_S −0.477 bps/日;s2027:A:S2 不过。**用户放行 s42**,`USER_OVERRIDE=053d50f4…`。s2027 不导出,也不作备选 | 判词 `news2_2026-09-23/receipts/engine/NEWS2_STATS.json`(6d689c9a);裁定 `docs/RULING_user_NC_s42_override_2026-09-24.md`(053d50f4,提交 b9c7a933d);news2 交接 `nc_2026-09-23/receipts/p1_p2_real_2026-09-24T0240Z/inputs_from_news2/HANDOFF_deploy_s42.json`(e24231fb)与 `P5_DEPLOY_MANIFEST.json`(64abda0d) | 不挡部署。裁定 §5 的必报项(N1–N5 全表、对研究员 NEW 的差距、30 日块原句、修订 1 两项诊断、逐修复书层归因)发布后补齐,owner news2 |
+| 2 | 部署包 §P1 | **已打包**(02:39Z,treeNC5):`INSTALL_CONTRACT.json` sha 00238e4b…,17 个文件。执行器钉 = HANDOFF 的钉,逐字相同:King `700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d`,F10 s42 `3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f`。合同里写有 `VERDICT=NO_DEPLOY` 与 `USER_OVERRIDE=053d50f4…`。真 HOME 只读预检 `NC_INSTALL PREFLIGHT_PASS`,rc=0 | `nc_2026-09-23/receipts/p1_p2_real_2026-09-24T0240Z/p1_package/`(合同、打包与预检日志、`HANDOFF_CHECK.json`) | 无。W 开始时 §0.3 再预检一次:生产文件必须仍是打包时的基线 |
+| 3 | 真包安装 / 回滚演练 §P2 | **`TEST_NC_INSTALL_REHEARSAL REAL_PACKAGE_PASS`,14/14,rc=0**(02:40:23–02:42:19Z,静默窗内,启动脚本自检)。输入:treeNC5(3135cf8b);真种子包 600d760e;最新快照 1790208000(09-24 00Z);真模型,sha 由 `nc_handoff_check.py` 从 HANDOFF 取。演练包与 §P1 包的 17 个候选 sha 逐个相同,基线也逐个相同。安装收据顶层写 `VERDICT=NO_DEPLOY`、`USER_OVERRIDE=053d50f4…` | `…/p1_p2_real_2026-09-24T0240Z/p2_rehearsal/`(`TEST_NC_INSTALL_REHEARSAL.json`、运行日志、`bk1_NC_INSTALL_RECEIPT.json`) | 无。具名限定:轴末之后的 3 个界值格用的是替身原始收益(演练不调场所)。部署时由 A1 实时取数补真值;没补上的,A2 按 `SEEDED_WITH_UNRESOLVED_BOUND_CELLS` 停 |
+| 4 | §E3 时序门 | **`NC_TIMING_GATE PASS`**,7/7。combo 写完于 N+17:44.3,余量 110.7 s | `nc_2026-09-23/receipts/e3_nc5_2026-09-23/`(e54c60809) | 无。具名限定:沙箱用的是在役旧模型文件。真模型格式相同:King 文件小 0.1%,F10 字节数相同、网络形状相同。King 推理实测最多 2.2 s,相对 110.7 s 的余量可以忽略。真模型的耗时由换装后 §B2 逐锚实测 |
+| 5 | §F-1 实时取数实测 | **`NC_FETCH_TEST VERDICT=PASS anchors=3 fetch_n=520`**。取数加计算最多 36.72 s,本 IP 每分钟权重峰值 684,无 429 / 418 | `nc_2026-09-23/receipts/f1_2026-09-23T2119Z/`(4d548b0f6) | 无 |
+| 6 | §F-2 回滚演练 | **`NC_ROLLBACK PASS`**。a/a2/a3/b/c/d 全绿;e1–e3 三个负控都拦住 | `nc_2026-09-23/receipts/f2_nc5_2026-09-23/`(e54c60809) | 无 |
+| 7 | 平价门(FREEZE §3.3) | **treeNC5 `NC_PARITY_GATE PASS`**:6 锚 × 11 量,0 格不同;两个负控都测出差异 | `nc_2026-09-23/receipts/parity_formal_2026-09-23/`(5fe0cf11c) | 无 |
+| 8 | §P3 执行器候选全电池 | **`ACCEPTANCE: ALL GREEN (163/163 suites exit 0)`**,首次在 `mode=shadow` 配置下跑全电池 | `nc_2026-09-23/receipts/p3_2026-09-23T2100Z/`(2bec89bb3) | 无。当时的钉是替身;A4 的 `safe_commit` 会用真钉在真归档上再跑一次全电池,红了就不推 |
+| 9 | M3c(AMENDMENT_3 §2-1) | **未出**。owner:M3 评估代理。M3c(s42)装置测试全绿,零对冲对照与底座逐位相等(0e6d6b7c4);R1–R3 判词未出 | `m3c_2026-09-24/`(判词待补) | M3c 判词。过 ⇒ A4 用 `--beta-mode shadow --max-combined 2.5`;不过 ⇒ `--beta-mode off`,对冲不随发布上线,换装照常 |
+| 10 | 用户确认书行为改动(裁定 §4-3) | **待用户** | 本手册 §0.4 | 用户对 §0.4 清单的一句确认。§S 席位播种不在本清单内,需另说一句 |
+| 11 | lead 执行或监督 | **待定** | — | lead 选定窗口。最早是 05:00Z 窗(N = 04Z);A0 最晚 N+2:05 = 06:05Z 开始 |
+
+- 第 1 项的 HANDOFF 里有一个键叫 `V1_gate.PASS`。它是 numpy 推理与 torch 推理的数值等价门(spearman ≥ 0.99999 且 maxabs ≤ 1e-5;实测 0.999999999997 / 6.55e-08),**不是书层录取**。
+- 本清单之外,W 开始时还要跑 §0.3 执行前核对,其中含执行器健康检查。
 
 ### 0.3 执行前核对(W 开始的第一条命令;任一不符 ⇒ 停,手册过期)
 ```
@@ -90,6 +89,88 @@ PYCHK
 grep -E "4-2|DAY_STOP" ~/dl_quant_live/state/live/watchdog/ALARM.log | tail -2   # 当日有 §4-2 日止损生效记录 ⇒ 不开窗
 ```
 
+### 0.4 这次上线改变的书行为(交用户最后确认;§0.2 第 10 项)
+
+2026-09-24 集成代理整理,用白话写。每条后面注明依据的文件。除第 9 条外,各条都从换装后的第一个锚起生效。
+
+**背景**
+- 这个版本的判词是 `VERDICT=NO_DEPLOY`:s42 在 B1 上对 NEW_S 差 −0.477 bps/日,30 日块区间 [−4.11, +2.52]。
+- 这次上线是用户在判词之上放行 s42,`USER_OVERRIDE=053d50f4…`,不是判词通过(`docs/RULING_user_NC_s42_override_2026-09-24.md` §1、§4)。
+
+**会改变下单结果的**
+
+1. **两个打分模型都换掉。**
+   - King 从 `8d79186b` 换成 `700d9e7b`,F10 从 `351ae26b` 换成 s42 的 `3d7d050f`。
+   - 两个新模型都是在修正后的特征上重训的,训练方案与 NEW_S 相同。
+   - 模型看到的最后一个训练标签:King 是 2025-12-22,F10 是 2026-01-07。
+   - s2027 不上,也不作备选。
+   - 依据:news2 `HANDOFF_deploy_s42.json`(e24231fb)、FREEZE §3-2、裁定 §4-1。
+2. **成员只从加密币里选。**
+   - 每锚打分的 400 名成员,不再包括代币化股票、商品这类 TradFi 永续。829 名轴上有 680 名算加密。
+   - 可以持仓的仍是原来的 450 名。
+   - 依据:DESIGN 开头「唯一例外」、FREEZE 修订 1 §3.2 的冻结规则、`P1_MEMBERS.json`。
+3. **成员筛选加上「能交易、还活着」两道门;候选池改为逐锚从交易所名单生成。**
+   - 过去 24 小时里一根真实成交 bar 都没有的名,不能当成员。
+   - 候选池每锚取「交易所当前在交易的 USDT 永续 ∩ 829 名轴 ∩ 加密」,约 520 名,比现在的 450 名多约 70 名。
+   - 多出来的名参加成员筛选和横截面排序,但仍然不能持仓。
+   - 依据:DESIGN §A1(D1)。
+4. **5 分钟收益不再截断,也不跨缺口。**
+   - 过去单根 bar 的收益超过 ±30% 会被截到 ±30%,现在保留原值。
+   - 缺口之后的第一根 bar,过去记的是跨缺口的收益,现在记为缺失。
+   - 部署时,轴末以前的历史行换成训练重放的行,两边一致。
+   - 依据:DESIGN §A3(D3)、FREEZE 修订 1 §2。
+5. **资金费的结算周期和新鲜度改了。**
+   - 结算周期按相邻两次结算的实际时差来判(1/2/4/6/8 小时),不再在不确定时默认 8 小时。
+   - 最近 12 小时内没有结算的名,资金费特征一律当缺失。King、F10、FTRIM 三处用同一个规则。
+   - 结算周期变短的名(例:ONEUSDT 从 8h 改成 1h)不再被旧周期的预测跳过。
+   - 具名残余:某锚批量取资金费失败、回退到逐名取时,周期刚变短的名会晚一个旧周期。这种情况逐次记数。
+   - 依据:DESIGN §A4(D10)、§A5(D11 / D13)、FREEZE 修订 2(778ba7324,A4 跳过规则修复)、平价门收据 `PARITY_RESULT_and_A4_skip_fix.md`。
+6. **资金费动量腿的排序范围改了。**
+   - 这条腿是书的主体,约六到八成权重,占比按锚滚动。
+   - 它的排序范围只剩「能交易 ∧ 加密 ∧ 829 名轴 ∧ 12 小时内有新鲜资金费」的名。
+   - 轴外的名不再进来,例:DOSUSDT、MARSCOINUSDT、PONSUSDT。
+   - 依据:DESIGN §A6(D12)。
+7. **特征计算的七项修正**(依据:DESIGN §B1–§B7):
+   - D4:F10 的 82 列改存 32 位(过去 16 位),模型读到的数更精细;
+   - D5:窗口统计改用 64 位累加,影响 King 的 X78 特征块;成员筛选用同一个修正;
+   - D6:窗口里没有数据时,均值和标准差记为缺失,不再记 0 去参加排序;
+   - D7:F89 趋势块换成稳定算法,并按整窗检查;窗内缺 bar 的名,这列记缺失;
+   - D8:F89 的缺失判定修正 18 处。部分列的有效比例下降,最明显的 `dhi/dlo_8640` 从 0.82 降到 0.25;
+   - D9:BTC 波动序列的窗口包含当前 bar;覆盖不足 95% 记缺失,不再回填。影响 5 列;
+   - D14:流动性排名并列时用稳定排序。9 月的锚上,成员集与改前逐名相同。
+8. **组合链换装后有一段过渡期。**
+   - combo 的 kc / fc 两条链从现在的在役链接着算(α = 0.1,半衰期约 6.6 锚),头几十个锚里新旧成分混在一起。
+   - 席位(King 与资金费腿的配比)仍按换装前、旧模型的腿收益历史计算,要约 900 锚才会被新历史替换完。
+   - 用新历史重新播种席位是另一项书行为改动,需要用户另说一句(§S)。本次不做。
+   - 依据:本手册 §B8、§S,DESIGN §A8。
+
+**不改变下单结果、但会变的**
+
+9. **执行器新增 BTC beta 对冲,先用 shadow 模式。**
+   - shadow 只计算、只记录「假如对冲会下多少」,不下 BTC 对冲单。
+   - 书、订单和循环状态与关闭时逐位相同,执行器套件 [Z] 证明了这一点。
+   - 合计杠杆上限 2.5× 在 shadow 下不起作用。
+   - 换装后两个锚的 shadow 验收都过,才切到 on;切 on 以后才开始下对冲单。对冲不在换模型的同一个锚里下单。
+   - M3c 不过,就用 off,对冲不随发布上线,换装照常。
+   - 依据:AMENDMENT_3 §2、`docs/IMPL_m3_beta_overlay_2026-09-23.md` §0 第 2–3 条与 §1.3(三档开关)、本手册 §B7。
+10. **侧车停用。**
+    - 侧车过去每锚用旧格式特征重算 F10,覆写 combo 的暖启动文件。停用后由 combo 自己写。
+    - 两者今天只差 2.63e-8,没有可测的书效应。
+    - 不停的话,新格式下侧车会崩溃,或把旧格式特征静默写进链里。
+    - 依据:DESIGN §A7-5 (1)。
+11. **页报、仪表盘、快照工具跟着新状态格式改。**
+    - anchor_report 的守护检查从「3/3」改为「2/2」,侧车在跑时会告警。
+    - regime_dash 加了一个空值保护;快照 / 平价工具改为按新的状态文件清单拷贝。
+    - 这些都只影响监控,不影响下单。
+    - 依据:DESIGN §A7-5 (2)–(4)。
+
+**不变的**
+- 总杠杆 gross 2.0。
+- 可持仓的 450 名。
+- 成员数 400,生产发布门(字面 380 名)。
+- 组合与席位的规则本身。它们的输入(模型分数、资金费状态)按上面几条变了。
+- 执行器的逐名止损、看门狗阈值、maker 优先执行。
+
 ## 1. 时间线(一个静默窗 W = [N+1:00, N+3:40])
 
 | 步 | 内容 | 预计 | 截止 / 停点 |
@@ -109,19 +190,56 @@ grep -E "4-2|DAY_STOP" ~/dl_quant_live/state/live/watchdog/ALARM.log | tail -2  
 
 ## P. 预备步骤(更早的静默窗;不改线上)
 
-**P1 打包**(news2 交付部署模型之后):
+**P1 打包**(news2 交付部署模型之后;**已做**,2026-09-24 02:39Z):
 ```
-$PYP $NCW/src/nc_package.py $PKG --tree $NCW/treeNC5 --extras $NCW/release --king <news2 King slow2026.txt> --f10 <news2 f10_live_s42_np.npz> --crypto $CRYPTO --label NC_RELEASE ; echo "rc=$?"
-$PYP $NCW/src/nc_install.py preflight $PKG ; echo "rc=$?"          # PREFLIGHT_PASS
+/usr/bin/python3 $NCW/src/nc_handoff_check.py $MODELS/HANDOFF_deploy_s42.json $MODELS/P5_DEPLOY_MANIFEST.json $MODELS/slow2026.txt $MODELS/f10_live_s42_np.npz $RULING --out $MODELS/HANDOFF_CHECK.json ; echo "rc=$?"   # HANDOFF_CHECK OK
+$PYP $NCW/src/nc_package.py $PKG --tree $NCW/treeNC5 --extras $NCW/release --king $MODELS/slow2026.txt --f10 $MODELS/f10_live_s42_np.npz --crypto $CRYPTO --label NC_RELEASE \
+  --export-manifest $MODELS/P5_DEPLOY_MANIFEST.json --ruling $RULING ; echo "rc=$?"
+$PYP $NCW/src/nc_install.py preflight $PKG ; echo "rc=$?"          # NC_INSTALL PREFLIGHT_PASS VERDICT=NO_DEPLOY USER_OVERRIDE=053d50f4…
 ```
-- 核对:`INSTALL_CONTRACT.json` 的 `executor_pins` 与 news2 判词收据里的模型 sha 逐字相同。
+- 模型从 pod2 `/dev/shm/news2_2026-09-23/{deploy,receipts}/` 拷来后,先在本机重算 sha 再用。sha 一律取自 HANDOFF,不从消息里抄。
+- `nc_handoff_check.py` 逐项核对,任一不符就拒绝(exit 3):
+  - HANDOFF 里记的 manifest sha 等于 manifest 文件的 sha;
+  - FROZEN_VERDICT 等于 manifest 的 VERDICT;
+  - HANDOFF 的 USER_OVERRIDE、manifest 的 USER_OVERRIDE、裁定文件的实测 sha 三者相同;
+  - seed 为 s42;
+  - HANDOFF、manifest、本机文件三处的钉与导出文件 sha 相同。
+- `nc_package.py --export-manifest --ruling`:
+  - 核对 manifest 的谱系、seed s42、导出文件 sha 与钉等于 `--king` / `--f10` 的 sha,且 USER_OVERRIDE 等于裁定文件的实测 sha,不符就拒绝;
+  - 合同写入 `verdict` 块与顶层 `VERDICT` / `USER_OVERRIDE` 原文;
+  - 把 manifest 和裁定拷进 `$PKG/verdict/`,供 `nc_install.py` 从包内复核。
+- 没有 `verdict` 绑定的合同,`nc_install.py` 在真 HOME 上拒绝(演练格 NU)。
+- 结果:
+  - `INSTALL_CONTRACT.json` sha 00238e4b…;
+  - 执行器钉等于 HANDOFF 的 `executor_pins`,逐字相同(King 700d9e7b…、F10 3d7d050f…);
+  - 预检 `NC_INSTALL PREFLIGHT_PASS`,rc=0;
+  - 收据在 `receipts/p1_p2_real_2026-09-24T0240Z/p1_package/`。
 
-**P2 用真包做安装演练**(假 HOME,本机轻活):
+**P2 用真包做安装演练**(假 HOME;静默窗内、剩余 ≥ 15 分钟,由启动脚本自检;**已做**):
 ```
-$PYP $NCW/src/test_nc_install_rehearsal.py $NCW/treeNC5 $NCW/release $SEEDPACK <最新快照锚> $NCW/release_tests/install_rehearsal_real
+bash $NCW/src/run_install_rehearsal_p2.sh $MODELS ; echo "rc=$?"
 ```
-- 模型用真包的,不再用替身。
-- 通过条件:7/7。收据 `TEST_NC_INSTALL_REHEARSAL.json`。
+- 启动脚本先核对三样输入,再跑演练:
+  - treeNC5 PATCH_RECEIPT 的 sha(3135cf8b…);
+  - 种子包 sha 等于 `NC_SEED_PACK.json` 的记录(600d760e…);
+  - HANDOFF 核对(同 P1)。
+- 快照取最新一个带 COMPLETE 的;King 与 F10 的 sha 取自核对结果,即 HANDOFF。
+- 然后跑 `test_nc_install_rehearsal.py`,带 `--king/--king-sha/--f10/--f10-sha/--export-manifest/--ruling`。
+- 格:
+  - P0:合同钉等于声明 sha;
+  - V0:合同 VERDICT / USER_OVERRIDE 等于 manifest,且 USER_OVERRIDE 等于裁定文件的实测 sha;
+  - P1、N1、A1;
+  - V1:安装收据顶层写有 VERDICT / USER_OVERRIDE;
+  - R1、A2、N2、R2;
+  - NK、NF:声明错的钉 ⇒ 拒绝;
+  - NR:裁定文件字节不同 ⇒ 打包拒绝;
+  - NU:未绑定的合同在「真 HOME」上预检 ⇒ 拒绝。
+- 结果:
+  - **`TEST_NC_INSTALL_REHEARSAL REAL_PACKAGE_PASS`,14/14,rc=0**(02:40:23–02:42:19Z);
+  - 快照 1790208000;
+  - 演练包与 $PKG 的候选 sha、基线 sha 都逐个相同;
+  - 收据在 `receipts/p1_p2_real_2026-09-24T0240Z/p2_rehearsal/`。
+- 同一装置先在合成 manifest 与替身模型上跑过一次(`MACHINERY_PASS` 14/14,02:32–02:38Z,`…/device_test_synthetic_manifest/`)。那一次只认证装置本身。
 
 **P3 执行器候选干跑**(**必做**,lead 裁定;静默窗,约 20 分钟):
 - 按 A4 的条件做出候选检出:M3 合入、anchor_report 补丁、生产者发布归档、`nc_exec_config.py` 改好钉与配置(shadow、2.5、nc_v1),并 rsync 实盘 state。
@@ -138,7 +256,7 @@ $PYP $NCW/src/test_nc_install_rehearsal.py $NCW/treeNC5 $NCW/release $SEEDPACK <
 - **已取得(2026-09-23 21:00:50–21:18:34Z)**:`ACCEPTANCE: ALL GREEN (163/163 suites exit 0)` / `OFFLINE_ACCEPTANCE_EXIT: 0`;这是首次在检出配置 mode=shadow 下跑的全电池(`receipts/p3_2026-09-23T2100Z/`,2bec89bb3)。
   - 当时的候选归档用的是 treeNC4 的 PATCH_RECEIPT,钉是替身。执行器侧不含生产者代码,换成 treeNC5 不影响结论;部署当晚 A4 的 safe_commit 电池会在真归档、真钉上再跑一次。
 
-**P4 前置门收据**:把 §0.2 第 1–6 项的收据路径和 sha 抄进 `$BK/PREREQS.md`。
+**P4 前置门收据**:把 §0.2 清单第 1–9 项的收据路径和 sha 抄进 `$BK/PREREQS.md`。第一行照写 `VERDICT=NO_DEPLOY USER_OVERRIDE=053d50f4ab034ca5e311600b10864d0e30046f2aedf2fca369ebecdc8d032b6b`(用户放行,不是判词通过)。
 
 ## A. 窗口 W
 
@@ -226,7 +344,7 @@ mkdir -p $XC/ops/producer_release/20260923_nc && cp -p $PKG/INSTALL_CONTRACT.jso
   --beta-mode shadow --max-combined 2.5 --producer-contract nc_v1 ; echo "rc=$?"        # M3c 不过 ⇒ --beta-mode off, 不给 --max-combined
 git -C $XC diff --stat
 rsync -a --exclude acceptance/ --exclude quarantine/ --exclude __pycache__/ --exclude pycache_void/ --exclude '/*.log' --exclude '/*.out' --exclude anchor.lock ~/dl_quant_live/state/ $XC/state/
-(cd $XC && bash ops/safe_commit.sh "NC release: producer_contract nc_v1 + pins (booster <8> / f10 <8>) + M3 beta_overlay shadow 2.5 + anchor_report daemon contract; quant_research DEPLOY_producer_new_contract_2026-09-23 A4" \
+(cd $XC && bash ops/safe_commit.sh "NC release: producer_contract nc_v1 + pins (booster 700d9e7b / f10 3d7d050f) + M3 beta_overlay shadow 2.5 + anchor_report daemon contract; VERDICT=NO_DEPLOY USER_OVERRIDE=053d50f4ab034ca5e311600b10864d0e30046f2aedf2fca369ebecdc8d032b6b (user release over the verdict); quant_research DEPLOY_producer_new_contract_2026-09-23 A4" \
    config/book.json ops/anchor_report.py live/tests_anchor_report_builder.py ops/producer_release/20260923_nc/INSTALL_CONTRACT.json ops/producer_release/20260923_nc/PATCH_RECEIPT.json) ; echo "rc=$?"
 NEWSHA=$(git -C $XC rev-parse HEAD); echo $NEWSHA
 /usr/bin/python3 ~/cc_tmp/lead_deploy_20260923/ff_running_tree.py $NEWSHA ; echo "rc=$?"   # 持 state/anchor.lock 快进运行树
@@ -337,8 +455,10 @@ launchctl print gui/$(id -u)/com.hsy.sidecar 2>&1 | head -1                     
 | 工具 | 作用 | 测试 / 演练收据 |
 |---|---|---|
 | `devices/nc_derive_producer.py` | 发布树派生:唯一补丁实现;默认构建断言;check_a5 / check_phases | `receipts/TEST_NC_DERIVE_GUARDS.json` 20/20;`tree_receipt_release_2026-09-23T1950Z/` |
-| `devices/nc_package.py` | 部署包与安装合同 | 安装演练 P1 |
-| `devices/nc_install.py` | 预检 / 安装 / 回滚 | `receipts/install_rehearsal_machinery/` 7/7 MACHINERY_PASS |
+| `devices/nc_package.py` | 部署包与安装合同;`--export-manifest --ruling` 绑定判词与放行(8c5fbd1d) | 安装演练 P0 / V0 / NR;`receipts/p1_p2_real_2026-09-24T0240Z/` |
+| `devices/nc_handoff_check.py` | HANDOFF ↔ manifest ↔ 本机模型 ↔ 裁定 sha 的逐项核对(db14dea2) | 正例 OK;两个负例(换错 F10、换错裁定)exit 3 |
+| `devices/run_install_rehearsal_p2.sh` | §P2 启动脚本(静默窗自检 + 输入 sha 断言) | `receipts/p1_p2_real_2026-09-24T0240Z/p2_rehearsal/` |
+| `devices/nc_install.py` | 预检 / 安装 / 回滚;预检先从包内复核判词块,真 HOME 拒未绑定合同;收据顶层写 VERDICT / USER_OVERRIDE(4ec71b91) | `receipts/install_rehearsal_machinery/` 7/7 MACHINERY_PASS;真包 `receipts/p1_p2_real_2026-09-24T0240Z/` 14/14 REAL_PACKAGE_PASS |
 | `devices/nc_seed_state.py` | 播种新状态 | `receipts/TEST_NC_SEED_FUNDING_GATE.log` 4/4 |
 | `devices/nc_fetch_list.py` / `nc_deploy_fetch.py` | 取数名单 / 实时回填包 | F-1(`nc_fetch_test.py`)实测后补 |
 | `devices/nc_downgrade_state.py` | 状态降级 | F-2 演练(e1–e3) |
