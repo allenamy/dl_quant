@@ -1,0 +1,45 @@
+{
+ "receipt": "M3C_OPERATIONALISATION.json",
+ "written": "2026-09-24T02:5xZ, before any M3c number (no M3c flat-book, test, NAV or readout has run)",
+ "orders": "lead message 2026-09-24 (M3c 开跑): AMENDMENT_3 §2-1 (80c6c3e4b) — base = NC s42 targets; hook = M3b hook + combined leverage 2.5 truncation; R1–R3 unchanged, windows = M3b's, R4 report only; s2027 side report in the same table, not part of the verdict; FAIL ⇒ hedge not shipped with the release, back to the user",
+ "1_inputs_checked_before_reading": {
+  "TARGETS_NEWS2_s42.npz": {"path": "pod2 /dev/shm/news2_2026-09-23/targets/TARGETS_NEWS2_s42.npz", "sha256": "cbb6d10748fc7aa913fcd9ec0872f17829bde72e6bbb32344c67ca13b4bb52b7", "bytes": 26574752, "equals_lead_value": true},
+  "TARGETS_NEWS2_s2027.npz": {"path": "pod2 /dev/shm/news2_2026-09-23/targets/TARGETS_NEWS2_s2027.npz", "sha256": "891ee590713dd86a3f215374aa706f23c1d5d7953295f044710302f4c08f3bf3", "equals_lead_value": true},
+  "TARGETS_NEWS2_s42.json (adapter receipt)": "2b6347c59be4b8249e880625fe0979a1e4903f8f1174fd07cb57ed961e93cf4d",
+  "TARGETS_NEWS2_s2027.json (adapter receipt)": "c4729e4b0467d58b7da029379cb087f448597750af6a74f1f3de55f2a02397bf",
+  "base_configs_read_only": {"RUN_CONFIG_NEWS2_s42X_2026-09-23.json": "9526ad1883129f689bff53f9b68b91ade3db8885f67a43f8c21e038fb2e85e2a",
+                             "RUN_CONFIG_NEWS2_s2027X_2026-09-23.json": "edd176f3719c13661add9b62a1645fb798c480e0f562145cf364e133f45e02d1"},
+  "base_engine_runs_read_only": {"BT_LAUNCH_full_news2_s42x.json": ["27aa76ce2601df58b32ed63f4cc9c40c83958e0ed60a626990361437ec849c66", "VERDICT PASS, 32 seeds, run NEWS2_s42X|scaled|rule|raw|UAFE, pod2 /dev/shm/news2_2026-09-23/runs/NEWS2_s42X_scaled_rule_raw_UAFE"],
+                                 "BT_LAUNCH_full_news2_s2027x.json": ["ca6191ad1d94ba4a025c94261f865585059fbe4e8fa37e828197fde3442c99bd", "VERDICT PASS, 32 seeds"]}
+ },
+ "2_target_file_opened_and_compared_with_the_file_M3b_used": {
+  "M3b_used": "Stage 1 OVN TARGETS_NEW_s42.npz sha 5c18bab2 (the NEW_s42 base of M3b; the lead calls it the NEW_S target) — local copy multi_asset/exports/research/old_vs_new_2026-09-23/targets/",
+  "same": ["keys: anchor, pad_before_new_axis, {scaled,lit}_{kind,off,idx,val}", "dtypes <i8 / |b1 / |i1 / <i8 / <i2 / <f8", "anchor axis 2022-06-30T00Z → 2026-09-18T20Z, 9,252 anchors, contiguous 4h", "kind values {0, 2} only", "column index ≤ 828 (829-symbol axis)", "adapter ovn_adapter.py self_sha 17555e56, 1,110 HOLD pad anchors 2022-06-30 → 2022-12-31T20Z, round trip bitwise through the certified loader 05cc5dc2"],
+  "different": ["scaled: published 6,520 / HOLD 2,732 (NEW_s42: 6,723 / 2,529); nnz 1,719,326 (1,780,855)", "lit: published 2,946 (3,072)", "json 'data' field: NEW_S2 (nc_2026-09-23 features, news2_2026-09-23 models) combo_s42 — quoted, no meaning inferred from it or from the file name"]
+ },
+ "3_budget_operationalisation (the 5b3d89c rule as written in IMPL_m3_beta_overlay §8.1 / AMENDMENT_2 §3-2)": {
+  "NAV": "Gs / gm with Gs = the executor's sizing gross passed to the reshape call (exec_sim: equity × gm) and gm = the anchor config's gross_mult (2.0) ⇒ NAV = decision equity",
+  "book_gross": "Σ|target| of the executed target after POP → RESHAPE → CLAMP, before the leg",
+  "limit": "L = max(2.5 × NAV, book_gross)  ('combined target gross ≤ max(budget × NAV, the book's own gross)')",
+  "scale": "s = largest value in [0, 1] with (book_gross − |b|) + |b + s·leg| ≤ L, b = executed book BTC, leg = −β_exec·Gs; = min(1, (L − others − sign(leg)·b) / |leg|)",
+  "order": "budget first, then the M3b dust judgement on b + s·leg (the leg that would be placed); name-level BTC blocks (stop, venue, cooldown, meta, held-exit) keep M3b's causes; s = 0 with a non-zero formula leg ⇒ cause 'budget_zero'",
+  "equivalence_to_AMENDMENT_2_short_form": "with BTC ≈ 0 in the book and book_gross = Gs = 2 NAV this is |leg| ≤ 0.5 NAV = 0.25 gross units, the AMENDMENT_2 wording",
+  "value_source": "m3_hook.max_combined_leverage = 2.5 in the run config (no default; run() refuses a config without it)"
+ },
+ "4_criteria (m3_rules.py 76238ac8, frozen in bc9015f80, unchanged)": {
+  "R1": "MAIN realised daily β of the M3c mean path ∈ [−0.10, +0.10]",
+  "R2": "MAIN days with BTC's own 24h return > +2 %: mean daily return M3c > base (base = news2's NEWS2_s42X 32-path run)",
+  "R3": "flat-book delivery with intent = −β_exec (the formula hedge, UNCAPPED, as m3_rules defines it); D and median both ∈ [0.95, 1.05]. Clarification written before any number: a budget cut on the flat book counts as non-delivery under this frozen rule; the reading against the CAPPED leg is reported next to it and does not gate",
+  "R4": "report only, as M3b (hedge-leg cost vs the zero-hedge control; Sharpe / return / maxDD / worst day, MAIN and AUX)",
+  "windows": "MAIN 2026-01-01T00Z → 2026-09-18T20Z, AUX 2023-06-30T04Z → 2025-12-31T20Z (same as M3b)",
+  "verdict": "PASS iff R1–R3 all pass; any FAIL ⇒ FAIL ⇒ the hedge does not ship with the release and goes back to the user; not computable ⇒ UNDECIDED"
+ },
+ "5_where_it_runs": {
+  "host": "pod2, CPU only, one launcher at a time (max_parallel 4 from the base config)",
+  "outputs": "/root/m3c_2026-09-24 (container overlay; /dev/shm is closed to M3c by the lead, /workspace is at its quota)",
+  "dev_shm": "not written: the hook redirects every HistMirror temp dir (/dev/shm/bt_*, the certified engine's per-path target-JSON dirs) under /root/m3c_2026-09-24/tmp; NC targets and news2's base paths are only read",
+  "footprint": "full path files are compacted after their bitwise checks (m3c_compact.py: the arrays the readout reads, bitwise; full npz removed, its sha kept) so the overlay never holds more than ~0.65 GB",
+  "zero_hedge_control": "M3c control seed 0 (full window) and then all 32 seeds compared bitwise with news2's base paths before compaction"
+ },
+ "6_s2027_side_report": "same procedure on TARGETS_NEWS2_s2027 / RUN_CONFIG_NEWS2_s2027X, after s42; reported in the same table, not part of the verdict"
+}

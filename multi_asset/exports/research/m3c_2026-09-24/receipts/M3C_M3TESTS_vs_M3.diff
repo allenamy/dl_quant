@@ -1,0 +1,46 @@
+--- m3_2026-09-23/devices/m3_tests.py	2026-09-23 18:03:23
++++ m3c_2026-09-24/devices/m3_tests.py	2026-09-24 10:14:54
+@@ -1,5 +1,8 @@
+ #!/usr/bin/env python3
+-"""m3_tests.py — red/green tests for M3 (m3_hook.py). pod2 only (the executor code and the certified simulator are imported from the pinned
++"""m3_tests.py — ★★ M3c copy (regression of M3's 46 tests on the M3c hook, budget-less M3b semantics by construction: the factory / core
++are called without max_lev exactly as in M3). Only change: temp files / target dirs live under <pod_root>/tmp instead of /dev/shm
++(diff receipts/M3C_M3TESTS_vs_M3.diff). M3 text:
++m3_tests.py — red/green tests for M3 (m3_hook.py). pod2 only (the executor code and the certified simulator are imported from the pinned
+ paths). Every test has a BASELINE that must be green and, where it could be vacuous, a RED-CAPABILITY control (a deliberately wrong input or
+ a mutant of the hook that the same assertion must reject); a control that does not go red fails the test. Values are printed.
+ 
+@@ -42,6 +45,7 @@
+ 
+ T0 = time.time()
+ outp, cfg_o, cfg_c, ep_npz = sys.argv[2:6]
++TMPDIR = os.path.join(json.load(open(cfg_o))["paths"]["pod_root"], "tmp"); os.makedirs(TMPDIR, exist_ok=True)      # M3c: never /dev/shm
+ OUT = {"device": "m3_tests.py", "self_sha256": H.sha(os.path.abspath(__file__)), "hook_sha256": H.sha(os.path.join(HERE, "m3_hook.py")),
+        "m2_lib_sha256": H.sha(os.path.join(HERE, "m2_lib.py")), "configs": [cfg_o, H.sha(cfg_o), cfg_c, H.sha(cfg_c)], "exec_path_npz": [ep_npz, H.sha(ep_npz)],
+        "numpy": np.__version__, "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "pgid": os.getpgid(0), "tests": []}
+@@ -91,7 +95,7 @@
+              ("gs_zero", lambda: H.book_beta(base, 0.0, brow, col)), ("gs_nan", lambda: H.apply_overlay(dict(base), [], (), float("nan"), brow, col, "overlay")),
+              ("bad_mode", lambda: H.apply_overlay(dict(base), [], (), gs, brow, col, "hedge"))]
+     res = [(n, raises(f)) for n, f in cases]
+-    tmp = "/dev/shm/m3_tests_%d_nan.npz" % os.getpid()
++    tmp = os.path.join(TMPDIR, "m3_tests_%d_nan.npz" % os.getpid())
+     np.savez(tmp, anchor=np.array([0], np.int64), beta=np.array([[np.nan, 1.0, 1.0]]), symbols=np.array(syms)); res.append(("nonfinite_table", raises(lambda: H.BetaTable(tmp))))
+     np.savez(tmp, anchor=np.array([0], np.int64), beta=np.array([[1.0, 0.9, 1.0]]), symbols=np.array(syms)); res.append(("btc_column_not_1", raises(lambda: H.BetaTable(tmp))))
+     os.remove(tmp)
+@@ -138,6 +142,7 @@
+ # ───────────────────────── context for the in-simulator tests ─────────────────────────
+ CO, CC = json.load(open(cfg_o)), json.load(open(cfg_c)); ro, rc_ = CO["runs"][0], CC["runs"][0]
+ ES, SL, BH, L2 = DL.import_modules(CO, DEV)
++H.install_tmp_redirect(BH, TMPDIR)                                   # M3c: load_context's bt_ctx dir and every HistMirror off /dev/shm
+ _orig_make = BH.make_sim_class
+ BETA = H.BetaTable(CO["m3_hook"]["beta"]["npz"], CO["m3_hook"]["beta"]["sha256"])
+ _ck = []
+@@ -149,7 +154,7 @@
+     """one anchor from a flat book with the M3 hook built on `beta`, decision only; returns (hook record, exec_sim decision record)"""
+     cls = H.hooked_class_factory(_orig_make, beta, {ro["tag"].split("|")[0]: "overlay", rc_["tag"].split("|")[0]: "control"}, None)(ES)
+     i = int(np.nonzero(C.anchors == A)[0][0]); W, fr = C.BOOKS[(run["arm"], run["book"])]
+-    tdir = "/dev/shm/m3_tests_%d" % os.getpid()
++    tdir = os.path.join(TMPDIR, "m3_tests_%d" % os.getpid())
+     S = cls(C.BH.HistMirror(C.MIR, tdir), C.CAL, run["events"], {}, C.X, C.PANELS[run["price"]], C.fund, [A], C.cfgmap, W[i:i + 1], fr[i:i + 1],
+             C.PIT_by_tag[run["tag"]][i:i + 1], C.SY, run["tag"], C.NAV0, 0, run["policy"], C.UA_SETS[run["ua_set"]], decisions_mode="none",
+             keep_decisions=(A,) if keep else (), stop_at=float(C.cfgmap[A]["t_dec"]))

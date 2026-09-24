@@ -1,0 +1,186 @@
+--- m3b_2026-09-23/devices/m3_hook.py	2026-09-23 18:47:49
++++ m3c_2026-09-24/devices/m3_hook.py	2026-09-24 10:13:53
+@@ -1,5 +1,22 @@
+ #!/usr/bin/env python3
+-"""m3_hook.py — ★ M3b VARIANT (docs/AMENDMENT_1_m3_beta_overlay_2026-09-23.md, commit 912788743) of the M3 hook (prereg
++"""m3_hook.py — ★★ M3c VARIANT (docs/AMENDMENT_3_m3_beta_overlay_2026-09-24.md §2-1, 80c6c3e4b; AMENDMENT_2 §3-2, 4530892bc): the M3b hook
++(sha 873769b9) PLUS the combined-leverage budget of the production rule (IMPL_m3_beta_overlay §8.1, executor 5b3d89c `budget_scale`), plus a
++temp-dir redirect so nothing is written under /dev/shm. Diff vs the M3b hook: receipts/M3C_HOOK_vs_M3B_HOOK.diff. What M3c adds, and nothing else:
++  * BUDGET (before the M3b dust judgement, on the leg that would be placed): NAV = Gs / gm (the executor's own sizing gross ÷ gross_mult;
++    exec_sim: Gs = equity × gm ⇒ NAV = the decision equity); book gross G = Σ|target| of the executed target (after POP → RESHAPE → CLAMP,
++    before the leg); limit L = max(max_combined_leverage × NAV, G) — "combined target gross ≤ max(budget × NAV, the book's own gross)";
++    b = the executed book's BTC value, others = G − |b|. If others + |b + leg| > L the leg is scaled by
++        s = min(1, (L − others − sign(leg)·b) / |leg|)  (≥ 0 because L ≥ G)
++    so the combined gross is exactly L; s < 1 ⇒ 'budget_truncated' (counted), s = 0 with a non-zero formula leg ⇒ cause 'budget_zero'.
++    The formula hedge −β_exec·Gs is recorded as add_intended (unchanged meaning); the scaled leg is add_leg; add_applied = what was placed.
++  * max_combined_leverage comes ONLY from the run config (m3_hook.max_combined_leverage, AMENDMENT_2: 2.5); run() REFUSES a config without a
++    finite positive value (no default — the production rule: unset ⇒ no leg). The pure core accepts max_lev=None = "no budget" ONLY so that
++    the M3 / M3b regression suites can run their own (budget-less) semantics; every M3c path (run(), m3_exec_path, m3c_tests) passes 2.5.
++  * install_tmp_redirect(BH, root): bt_hist_sim31.HistMirror target dirs under /dev/shm/ are created under <root>/ instead (the certified
++    files are not edited; the per-anchor target JSON is written and read back inside the process, so the location cannot change a number).
++Everything below this paragraph is the M3b hook's text, unchanged except where M3c adds the budget branch, three causes/fields and the redirect.
++
++M3b (original description): ★ M3b VARIANT (docs/AMENDMENT_1_m3_beta_overlay_2026-09-23.md, commit 912788743) of the M3 hook (prereg
+ docs/PREREG_m3_beta_overlay_executed_book_2026-09-23.md, 24c3f803f). Diff vs the M3 hook (sha db05d136): receipts/M3B_HOOK_vs_M3_HOOK.diff.
+ M3b's ONLY change (the amendment's "唯一改动"): BTC's COMBINED target = base BTC target + hedge leg, and the executor's dust (2 × min-notional)
+ judgement is applied to the COMBINED target, not to the base BTC target alone. Operationally, at an anchor that reaches the reshape:
+@@ -61,14 +78,15 @@
+ BTC = "BTCUSDT"
+ MODES = ("overlay", "control")
+ CAUSE = {"applied": 0, "zero_hedge": 1, "btc_force_flat": 2, "btc_not_w24h_tradable": 3, "btc_dust": 4, "btc_untradable_other": 5,
+-         "empty_target": 6, "applied_via_combined": 7, "btc_combined_dust": 8}          # 7, 8: M3b
++         "empty_target": 6, "applied_via_combined": 7, "btc_combined_dust": 8, "budget_zero": 9}   # 7, 8: M3b; 9: M3c
+ APPLIED = (0, 7)                                                                          # M3b: both deliver the hedge
+-VARIANT = "M3b"
++VARIANT = "M3c"
+ PLAN_SKIP = {"planned": 0, "no_plan_row": 1, "ua_frozen": 2, "skipped_min_notional": 3, "skipped_no_mid": 4, "other_skip": 9}
+ TKIND = {"first": 1, "later": 2, "flatten": 3, "exit_completion": 4}
+ REC_FIELDS = ("A", "gs", "beta_pre", "beta_exec", "net_exec", "gross_exec", "n_target", "add_intended", "add_applied", "btc_before",
+               "btc_after", "cause", "btc_held_notional", "beta_after", "pos_beta", "plan_beta", "btc_plan_notional", "btc_plan_skip", "n_plans",
+-              "btc_dust_only", "btc_released", "combined_small")                          # last three: M3b
++              "btc_dust_only", "btc_released", "combined_small",                          # M3b
++              "add_leg", "budget_scale", "budget_limit_over_nav", "book_gross_over_nav", "combined_gross_over_nav")   # M3c
+ 
+ 
+ class M3Error(Exception):
+@@ -114,7 +132,21 @@
+     return b, net, gro
+ 
+ 
+-def apply_overlay(target, untradable, force_flat, gs, brow, col, mode, btc_subcause=None, btc_dust_only=False, is_dust=None):
++def budget_scale(book_gross, btc_before, leg, limit):
++    """M3c: the largest s in [0, 1] with (book_gross − |btc_before|) + |btc_before + s·leg| ≤ limit, limit ≥ book_gross (asserted)"""
++    if not (np.isfinite(limit) and np.isfinite(book_gross) and limit >= book_gross): raise M3Error(f"budget limit {limit} < book gross {book_gross}")
++    others = book_gross - abs(btc_before)
++    if leg == 0.0 or others + abs(btc_before + leg) <= limit: return 1.0
++    return float(min(1.0, max(0.0, (limit - others - np.sign(leg) * btc_before) / abs(leg))))
++
++
++def check_max_lev(v):
++    """the config's max_combined_leverage: a finite positive number (bool / str / None refused — no default)"""
++    if isinstance(v, bool) or not isinstance(v, (int, float)) or not np.isfinite(v) or v <= 0: raise M3Error(f"max_combined_leverage invalid: {v!r}")
++    return float(v)
++
++
++def apply_overlay(target, untradable, force_flat, gs, brow, col, mode, btc_subcause=None, btc_dust_only=False, is_dust=None, max_lev=None, gm=None):
+     """formula §2 steps 1–4 on the EXECUTED target (the dict the certified reshape just returned in place). overlay ⇒ mutates target[BTC];
+     control ⇒ never touches target. btc_subcause(): called only when BTC is untradable, returns one of the btc_* cause names.
+     Returns the per-anchor record (no NaN except β_exec on an empty target).
+@@ -125,22 +157,37 @@
+     gs = float(gs)
+     if not (gs > 0): raise M3Error(f"sizing gross must be > 0, got {gs}")
+     rec = {"gs": gs, "n_target": len(target), "btc_before": float(target.get(BTC, 0.0)), "add_applied": 0.0,
+-           "btc_dust_only": 1.0 if btc_dust_only else 0.0, "combined_small": 0.0}
++           "btc_dust_only": 1.0 if btc_dust_only else 0.0, "combined_small": 0.0,
++           "add_leg": 0.0, "budget_scale": float("nan"), "budget_limit_over_nav": float("nan"), "book_gross_over_nav": float("nan"),
++           "combined_gross_over_nav": float("nan")}
++    if max_lev is not None:
++        max_lev = check_max_lev(max_lev)
++        if gm is None or not (float(gm) > 0): raise M3Error(f"gross_mult needed for the budget, got {gm!r}")
+     if not target:
+         rec.update(beta_exec=float("nan"), net_exec=0.0, gross_exec=0.0, add_intended=0.0, cause=CAUSE["empty_target"], btc_after=0.0, beta_after=float("nan"))
+         return rec
+     b, net, gro = book_beta(target, gs, brow, col)
+     add = -b * gs                                               # = −β_exec × book gross notional
+     rec.update(beta_exec=b, net_exec=net, gross_exec=gro, add_intended=add)
++    formula_add = add
++    book_gross = float(sum(abs(float(v)) for v in target.values()))
++    if max_lev is not None:                                     # ★ M3c: the combined-leverage budget, on the leg that would be placed
++        nav = gs / float(gm); limit = max(max_lev * nav, book_gross)
++        sc = budget_scale(book_gross, rec["btc_before"], add, limit)
++        add = add * sc
++        rec.update(budget_scale=sc, budget_limit_over_nav=limit / nav, book_gross_over_nav=book_gross / nav)
++    rec["add_leg"] = add
+     ut = set(untradable); ff = set(force_flat or ())
+-    if add == 0.0:                                              # M2 order: a zero hedge touches nothing
++    if formula_add == 0.0:                                      # M2 order: a zero hedge touches nothing
+         cause = "zero_hedge"
+     elif BTC in ff:                                             # M2 rule, verbatim: a per-name stop forces BTC flat
+         cause = "btc_force_flat"
+-    elif BTC in ut and btc_dust_only:                           # ★ M3b: dust is judged on the COMBINED target
+-        cause = "btc_combined_dust" if is_dust(rec["btc_before"] + add) else "applied_via_combined"
+-    elif BTC in ut:                                             # M2 rule, verbatim: a name-level reason the size cannot change
++    elif BTC in ut and not btc_dust_only:                       # M2 rule, verbatim: a name-level reason the size cannot change
+         cause = btc_subcause() if btc_subcause is not None else "btc_untradable_other"
++    elif add == 0.0:                                            # ★ M3c: the budget cut the leg to nothing (after the name-level blocks)
++        cause = "budget_zero"
++    elif BTC in ut:                                             # ★ M3b: dust is the only reason ⇒ judged on the COMBINED target
++        cause = "btc_combined_dust" if is_dust(rec["btc_before"] + add) else "applied_via_combined"
+     else:
+         cause = "applied"
+         if is_dust is not None and is_dust(rec["btc_before"] + add): rec["combined_small"] = 1.0     # counted only (M3 behaviour kept)
+@@ -149,12 +196,32 @@
+         rec["add_applied"] = add
+     rec["cause"] = CAUSE[cause]
+     rec["btc_after"] = float(target.get(BTC, 0.0))
++    if max_lev is not None:
++        rec["combined_gross_over_nav"] = float(sum(abs(float(v)) for v in target.values())) / (gs / float(gm))
+     rec["beta_after"] = book_beta(target, gs, brow, col)[0]
+     return rec
+ 
+ 
+-def hooked_class_factory(orig_make, beta, arms, sidecar_dir=None):
+-    """arms: {arm: 'overlay' | 'control'}; sidecar_dir None ⇒ records stay in memory (S.m3_rec, S.m3_tr, S.m3_fu)"""
++def install_tmp_redirect(BH, root):
++    """M3c: HistMirror target dirs under /dev/shm/ are created under <root>/ (no certified file is edited); idempotent"""
++    orig = BH.HistMirror.__init__
++    if getattr(orig, "_m3c_redirect", None) is not None: return orig._m3c_redirect
++    root = os.path.abspath(root)
++
++    def init(self, mroot, target_dir):
++        td = str(target_dir)
++        if td.startswith("/dev/shm/"): td = os.path.join(root, td[len("/dev/shm/"):])
++        if td.startswith("/dev/shm"): raise M3Error(f"refusing a /dev/shm target dir: {td}")
++        orig(self, mroot, td)
++    init._m3c_redirect = root
++    BH.HistMirror.__init__ = init
++    return root
++
++
++def hooked_class_factory(orig_make, beta, arms, sidecar_dir=None, max_lev=None):
++    """arms: {arm: 'overlay' | 'control'}; sidecar_dir None ⇒ records stay in memory (S.m3_rec, S.m3_tr, S.m3_fu).
++    M3c: max_lev = the combined-leverage budget (× NAV); None = no budget (M3b semantics — only the M3 / M3b regression suites use it)."""
++    if max_lev is not None: max_lev = check_max_lev(max_lev)
+     for a, m in arms.items():
+         if m not in MODES: raise M3Error(f"arm {a}: mode {m!r}")
+ 
+@@ -214,7 +281,8 @@
+                     meta = BTC in (c_["meta"] or set())
+                     cool = BTC in self.X0.PNS.active_sets(self.pns, float(c_["t_dec"]))["cooldown"]
+                     dust_only = is_dust(pre.get(BTC, 0.0)) and not (venue or meta or cool or held_exit)
+-                r = apply_overlay(target, untradable, kw.get("force_flat") or (), gs, brow, beta.col, self.m3_mode, subcause, dust_only, is_dust)
++                r = apply_overlay(target, untradable, kw.get("force_flat") or (), gs, brow, beta.col, self.m3_mode, subcause, dust_only, is_dust,
++                                  max_lev=max_lev, gm=float(self.cfg[A]["gm"]))
+                 released = 0.0
+                 if self.m3_mode == "overlay" and r["cause"] == CAUSE["applied_via_combined"]:
+                     clamp = out[0]                                                # the dict exec_sim reads its reduce-only set from
+@@ -228,6 +296,8 @@
+                 self._m3_cur = r
+                 c = r["cause"]; d = self.diag
+                 d["m3h_calls"] += 1
++                if max_lev is None: d["m3h_budget_unset_M3b_semantics"] += 1
++                elif r["budget_scale"] < 1.0: d["m3h_budget_truncated"] += 1
+                 if c in APPLIED:
+                     d["m3h_hedge_computed_and_allowed"] += 1
+                     if c == CAUSE["applied_via_combined"]: d["m3h_applied_via_combined"] += 1
+@@ -303,15 +373,18 @@
+     me = sha(os.path.abspath(__file__))
+     if H["device_sha256"] != me: raise SystemExit(f"m3_hook device sha {me[:16]} != config {H['device_sha256'][:16]}")
+     beta = BetaTable(H["beta"]["npz"], H["beta"]["sha256"])
++    if "max_combined_leverage" not in H: raise SystemExit("m3_hook (M3c): config has no m3_hook.max_combined_leverage — refused (no default)")
++    max_lev = check_max_lev(H["max_combined_leverage"])
+     inert = [r["tag"] for r in CFG["runs"] if r["tag"].split("|")[0] not in H["arms"]]
+     if inert: raise SystemExit(f"m3_hook: runs whose tag prefix is not a hooked arm (the hook would be inert): {inert}")
+     sys.path.insert(0, DEV)
+     import bt_hist_sim31 as BH
+     assert os.path.realpath(BH.__file__) == os.path.realpath(os.path.join(DEV, "bt_hist_sim31.py"))
+     sc_dir = os.path.join(CFG["paths"]["pod_root"], "m3_sidecar", launch_label(argv))
+-    BH.make_sim_class = hooked_class_factory(BH.make_sim_class, beta, dict(H["arms"]), sc_dir)
++    tmp_root = install_tmp_redirect(BH, os.path.join(CFG["paths"]["pod_root"], "tmp"))
++    BH.make_sim_class = hooked_class_factory(BH.make_sim_class, beta, dict(H["arms"]), sc_dir, max_lev=max_lev)
+     rec = {"device": "m3_hook.py", "self_sha256": me, "config": {"path": cfg_p, "sha256": sha(cfg_p)}, "beta": H["beta"], "arms": H["arms"],
+-           "sidecar_dir": sc_dir, "launcher": {"path": os.path.join(DEV, "bt_launch.py"), "sha256": sha(os.path.join(DEV, "bt_launch.py"))},
++           "sidecar_dir": sc_dir, "max_combined_leverage": max_lev, "tmp_redirect_root": tmp_root, "launcher": {"path": os.path.join(DEV, "bt_launch.py"), "sha256": sha(os.path.join(DEV, "bt_launch.py"))},
+            "argv": argv, "pid": os.getpid(), "pgid": os.getpgid(0)}
+     rp = os.path.join(CFG["paths"]["pod_root"], "receipts", "M3H_WRAPPER_" + os.path.basename(cfg_p).replace(".json", "") + "_%d.json" % os.getpid())
+     os.makedirs(os.path.dirname(rp), exist_ok=True)

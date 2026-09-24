@@ -1,0 +1,53 @@
+--- m3b_2026-09-23/devices/m3_readout.py	2026-09-23 18:48:38
++++ m3c_2026-09-24/devices/m3_readout.py	2026-09-24 10:16:56
+@@ -1,5 +1,9 @@
+ #!/usr/bin/env python3
+-"""m3_readout.py — ★ M3b copy: identical to the M3 readout (e60dae8b) except that the in-path report counts cause 7 ('applied_via_combined')
++"""m3_readout.py — ★★ M3c copy: adds (report only) the R3 reading against the CAPPED leg, the budget truncation counts from the flat book and
++from the in-path sidecars, the max combined gross / NAV, and asserts that the budget was active on every in-path record of the M3c run
++(budget_scale finite). The overlay / control path directories may hold COMPACT path files (m3c_compact.py: the keys bt_tables.series_from_path
++and this readout read, bitwise the full file's arrays). Diff receipts/M3C_READOUT_vs_M3B.diff.
++M3b text: ★ M3b copy: identical to the M3 readout (e60dae8b) except that the in-path report counts cause 7 ('applied_via_combined')
+ as applied (diff receipts/M3B_READOUT_vs_M3.diff). R4's control arm may be M3's zero-hedge control (bitwise the base for all 32 seeds).
+ M3 text: M3 criteria R1–R3 (gates) and R4 (report only) on ONE base, per the definitions FROZEN in m3_rules.py (committed before any
+ M3 number). Inputs: the base's 32 certified paths, the M3 overlay's 32 paths, the zero-hedge control's 32 paths + its bitwise-comparison
+@@ -65,6 +69,11 @@
+ Z = np.load(ep_npz); mm = (Z["window"] == 0) & Z["reached"].astype(bool)
+ crit["R3"] = RU.r3(Z["intended_gross_units"][mm], Z["move_plan"][mm])
+ OUT["criteria"] = crit
++OUT["R3_capped_intent_report_only"] = RU.r3(Z["add_leg_c"][mm] / Z["gs_c"][mm], Z["move_plan"][mm])
++OUT["flat_book_budget_report_only"] = {"main_published_reached": int(mm.sum()), "budget_truncated_anchors": int(np.sum(Z["budget_scale_c"][mm] < 1.0)),
++                                       "budget_zero_anchors": int(np.sum(Z["budget_scale_c"][mm] == 0.0)),
++                                       "combined_gross_over_nav_max_overlay": float(np.nanmax(Z["combined_gross_over_nav_o"][mm])),
++                                       "cause_counts_control": {str(int(c)): int(np.sum(Z["cause_c"][mm] == c)) for c in np.unique(Z["cause_c"][mm])}}
+ 
+ 
+ # ---- R4: hedge-leg cost from the sidecars ----
+@@ -120,18 +129,25 @@
+ # ---- in-path hedge statistics (report only; pooled over 32 seeds of the M3 run) ----
+ cn = {v: k for k, v in H.CAUSE.items()}; ip = {}
+ for w, (w0, w1) in RU.WINDOWS.items():
+-    cause = []; intended = []; applied = []; post = []; btcsk = []; gsx = []
++    cause = []; intended = []; applied = []; post = []; btcsk = []; gsx = []; bscale = []; cgross = []
+     for seed in range(32):
+         S = np.load(sc_file(m3_sc, seed)); A = S["A"].astype(np.int64); m = (A >= w0) & (A <= w1)
++        bscale.append(S["budget_scale"][m]); cgross.append(S["combined_gross_over_nav"][m])
+         cause.append(S["cause"][m]); intended.append(S["add_intended"][m] / S["gs"][m]); applied.append(S["add_applied"][m] / S["gs"][m])
+         post.append((S["pos_beta"] + S["plan_beta"])[m]); btcsk.append(S["btc_plan_skip"][m])
+     cause = np.concatenate(cause); intended = np.concatenate(intended); applied = np.concatenate(applied); post = np.concatenate(post); btcsk = np.concatenate(btcsk)
++    bscale = np.concatenate(bscale); cgross = np.concatenate(cgross)
++    nonempty = cause != H.CAUSE["empty_target"]
++    if not np.all(np.isfinite(bscale[nonempty])): raise RU.Empty(f"{w}: budget not active on {int(np.sum(~np.isfinite(bscale[nonempty])))} in-path records")
+     ap = np.isin(cause, H.APPLIED)                     # M3b: 'applied' and 'applied_via_combined' both deliver the hedge
+     ip[w] = {"trading_anchor_records": int(len(cause)), "cause_counts": {cn[int(c)]: int(np.sum(cause == c)) for c in np.unique(cause)},
+              "delivered_share_at_target (Σ applied·sign(intended) / Σ|intended|)": float((applied * np.sign(intended)).sum() / np.abs(intended).sum()),
+              "intended_hedge_over_gs": RU.dist(intended), "planned_post_trade_book_beta_applied_anchors": RU.dist(post[ap]),
+              "planned_post_trade_book_beta_skipped_anchors": RU.dist(post[~ap]) if (~ap).any() else None,
+-             "btc_plan_row_on_applied_anchors": {k: int(np.sum(btcsk[ap] == v)) for k, v in H.PLAN_SKIP.items() if np.sum(btcsk[ap] == v)}}
++             "btc_plan_row_on_applied_anchors": {k: int(np.sum(btcsk[ap] == v)) for k, v in H.PLAN_SKIP.items() if np.sum(btcsk[ap] == v)},
++             "budget_truncated_records": int(np.sum(bscale[nonempty] < 1.0)), "budget_zero_records": int(np.sum(bscale[nonempty] == 0.0)),
++             "combined_gross_over_nav_max": float(np.nanmax(cgross[nonempty])), "combined_gross_over_nav": RU.dist(cgross[nonempty]),
++             "leg_over_formula_on_truncated": RU.dist(bscale[nonempty & (bscale < 1.0)]) if np.any(bscale[nonempty] < 1.0) else None}
+ OUT["in_path_hedge_report_only"] = ip
+ 
+ und = [k for k in ("R1", "R2", "R3") if crit[k].get("pass") is None]

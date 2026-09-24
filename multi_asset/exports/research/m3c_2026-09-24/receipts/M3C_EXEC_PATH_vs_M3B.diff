@@ -1,0 +1,67 @@
+--- m3b_2026-09-23/devices/m3_exec_path.py	2026-09-23 18:47:19
++++ m3c_2026-09-24/devices/m3_exec_path.py	2026-09-24 10:14:27
+@@ -1,5 +1,8 @@
+ #!/usr/bin/env python3
+-"""m3_exec_path.py — FLAT-BOOK DELIVERY DIAGNOSTIC for M3 (prereg §1 row 2 / R3; rule in m3_rules.r3). No NAV, no fills.
++"""m3_exec_path.py — ★★ M3c copy: passes the config's max_combined_leverage (2.5) to the hook, redirects the temp target dirs off /dev/shm,
++records the budget fields, and reports (not gates) R3 against the CAPPED leg next to the frozen R3 (intent = −β_exec, uncapped).
++Diff: receipts/M3C_EXEC_PATH_vs_M3B.diff. M3/M3b text:
++m3_exec_path.py — FLAT-BOOK DELIVERY DIAGNOSTIC for M3 (prereg §1 row 2 / R3; rule in m3_rules.r3). No NAV, no fills.
+ DERIVED FROM m2_exec_path.py (M2; diff receipts/M3_EXEC_PATH_vs_M2.diff) with one change of method: M2 re-assembled the executor's steps by hand
+ (parse_target → target_vector → to_notional → dust → apply_withhold_and_reshape); M3 runs the CERTIFIED simulator itself (bt_hist_sim31.HistSim31
+ built by bt_driver_lib.load_context from the run config, with the m3_hook class wrapper — the same objects bt_launch.py forks) for ONE anchor from a
+@@ -56,13 +59,16 @@
+ check("beta_same_in_both_configs", ho["beta"] == hc["beta"])
+ check("modes", ho["mode"] == "overlay" and hc["mode"] == "control")
+ check("same_base_config", ho["base_config"] == hc["base_config"])
++check("M3c.budget_same_and_valid", ho.get("max_combined_leverage") == hc.get("max_combined_leverage") == 2.5, [ho.get("max_combined_leverage"), hc.get("max_combined_leverage")])
+ ro, rc_ = CO["runs"][0], CC["runs"][0]
+ check("same_targets_and_settings", {k: v for k, v in ro.items() if k not in ("tag", "arm", "role")} == {k: v for k, v in rc_.items() if k not in ("tag", "arm", "role")})
+ DL.verify_pins(CO, check)
+ if FAILS: finish(3, "M3_EXEC_PATH VERDICT=REFUSED")
+ ES, SL, BH, L2 = DL.import_modules(CO, DEV)
+ beta = H.BetaTable(ho["beta"]["npz"], ho["beta"]["sha256"])
+-BH.make_sim_class = H.hooked_class_factory(BH.make_sim_class, beta, {ro["tag"].split("|")[0]: "overlay", rc_["tag"].split("|")[0]: "control"}, sidecar_dir=None)
++TMP = H.install_tmp_redirect(BH, os.path.join(CO["paths"]["pod_root"], "tmp"))
++BH.make_sim_class = H.hooked_class_factory(BH.make_sim_class, beta, {ro["tag"].split("|")[0]: "overlay", rc_["tag"].split("|")[0]: "control"}, sidecar_dir=None,
++                                           max_lev=ho["max_combined_leverage"])
+ C = DL.load_context(CO, ES, BH, L2, slice(0, int(CO["window"]["n_anchors"])), [ro, rc_], check, log)
+ if FAILS: finish(3, "M3_EXEC_PATH VERDICT=REFUSED")
+ anchors = C.anchors
+@@ -74,7 +80,8 @@
+ sel = np.nonzero(inwin & fo)[0]
+ check("anchors_selected", len(sel) > 0, {"published_in_windows": int(len(sel)), "per_window": {nm: int(np.sum(fo & (wcode == k))) for k, nm in enumerate(RU.WINDOWS)}})
+ FIELDS = ("beta_pre", "beta_exec", "net_exec", "gross_exec", "cause", "add_intended", "gs", "beta_after", "plan_beta", "btc_plan_notional", "btc_plan_skip",
+-          "btc_before", "btc_after", "n_target", "n_plans")
++          "btc_before", "btc_after", "n_target", "n_plans",
++          "add_leg", "budget_scale", "budget_limit_over_nav", "book_gross_over_nav", "combined_gross_over_nav")                      # M3c
+ 
+ 
+ def one(i, run, W, fr, tdir):
+@@ -89,7 +96,7 @@
+ 
+ 
+ def work(idx, part):
+-    tdir = "/dev/shm/m3_ep_%d" % os.getpid()
++    tdir = os.path.join(TMP, "m3_ep_%d" % os.getpid())
+     out = {f + "_" + a: np.full(len(idx), np.nan) for f in FIELDS for a in ("c", "o")}
+     reached = np.zeros(len(idx), np.int8)
+     for n, i in enumerate(idx.tolist()):
+@@ -128,6 +135,7 @@
+ check("control_vs_overlay.beta_exec_bitwise", np.array_equal(D["beta_exec_c"][r].view(np.uint64), D["beta_exec_o"][r].view(np.uint64)))
+ check("control_vs_overlay.cause_equal", np.array_equal(D["cause_c"][r], D["cause_o"][r]))
+ check("control.never_touches_target", bool(np.all(D["btc_after_c"][r] == D["btc_before_c"][r])))
++check("M3c.budget_active_on_every_reached_anchor", bool(np.all(np.isfinite(D["budget_scale_c"][r])) and np.all(np.isfinite(D["budget_scale_o"][r]))))
+ intended = -D["beta_exec_c"]                                   # gross units
+ move_plan = D["plan_beta_o"] - D["plan_beta_c"]
+ move_target = D["beta_after_o"] - D["beta_exec_o"]
+@@ -150,6 +158,9 @@
+     try:
+         s["R3"] = RU.r3(intended[mr], move_plan[mr])
+         s["R3_on_target_before_plan"] = RU.r3(intended[mr], move_target[mr])
++        s["R3_capped_intent_report_only"] = RU.r3(D["add_leg_c"][mr] / D["gs_c"][mr], move_plan[mr])
++        s["budget_truncated_anchors"] = int(np.sum(D["budget_scale_c"][mr] < 1.0)); s["budget_zero_anchors"] = int(np.sum(D["budget_scale_c"][mr] == 0.0))
++        s["combined_gross_over_nav_overlay"] = RU.dist(D["combined_gross_over_nav_o"][mr]); s["combined_gross_over_nav_max"] = float(np.nanmax(D["combined_gross_over_nav_o"][mr]))
+         s["beta_exec"] = RU.dist(D["beta_exec_c"][mr]); s["beta_pre_published"] = RU.dist(D["beta_pre_c"][mr]); s["net_exec"] = RU.dist(D["net_exec_c"][mr])
+         s["gross_exec"] = RU.dist(D["gross_exec_c"][mr]); s["beta_exec_minus_beta_pre"] = RU.dist(D["beta_exec_c"][mr] - D["beta_pre_c"][mr])
+         s["beta_after_overlay"] = RU.dist(D["beta_after_o"][mr]); s["plan_beta_overlay"] = RU.dist(D["plan_beta_o"][mr]); s["plan_beta_control"] = RU.dist(D["plan_beta_c"][mr])
