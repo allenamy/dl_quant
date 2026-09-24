@@ -1,0 +1,150 @@
+{
+  "device": "news2_prod_ledger_gaps.py",
+  "self_sha256": "cdbad247f6082d61d4e9f0269acfa74137117d1cdb9c2ea3c449dbd1c0cc2379",
+  "argv": [
+    "--aux",
+    "/Users/haosiyu/wide_shadow/state/aux.json",
+    "--out",
+    "multi_asset/exports/research/news2_2026-09-23/receipts/PROD_LEDGER_GAPS.json"
+  ],
+  "cwd": "/Users/haosiyu/Desktop/quant_research",
+  "python": "/usr/local/opt/python@3.14/bin/python3.14",
+  "status": "UPPER_BOUND_ON_MISSING_SETTLEMENTS_READ_ONLY",
+  "source": {
+    "path": "/Users/haosiyu/wide_shadow/state/aux.json",
+    "sha256": "c44ba5d033b19d630c640fdb9b41c3e820b40210619eb7812d66d1ca95eb592b",
+    "key": "ledger_tail (producer's own per-name ledger tail)"
+  },
+  "limits": [
+    "tail is a window, not full history; each name's first event excluded",
+    "an interval that genuinely changed also shows as a multiple => UPPER bound",
+    "reads the producer's ledger, not what the exchange actually settled"
+  ],
+  "ledger_tail": {
+    "n_names": 683,
+    "n_events": 271589,
+    "window_first_utc": "2020-07-21T08:00Z",
+    "window_last_utc": "2026-09-24T04:00Z",
+    "recorded_iv_distribution": {
+      "1.0": 3743,
+      "2.0": 805,
+      "4.0": 199226,
+      "8.0": 67808
+    }
+  },
+  "missing_settlement_upper_bound": {
+    "total": 41,
+    "by_multiple": {
+      "2": 19,
+      "3": 8,
+      "4": 13,
+      "537": 1
+    },
+    "by_year": {
+      "2025": 1,
+      "2026": 40
+    },
+    "pct_of_events": 0.015096340426158645
+  },
+  "examples": [
+    {
+      "symbol": "1000XECUSDT",
+      "prev_ft": 1784754000,
+      "ft": 1784764800,
+      "utc": "2026-07-23T00:00Z",
+      "recorded_iv_on_prev": 1.0,
+      "gap_hours": 3.0,
+      "k_multiple": 3,
+      "nc_would_snap_to": 4.0,
+      "ratio_nc_over_recorded": 4.0
+    },
+    {
+      "symbol": "ACEUSDT",
+      "prev_ft": 1786327200,
+      "ft": 1786334400,
+      "utc": "2026-08-10T04:00Z",
+      "recorded_iv_on_prev": 1.0,
+      "gap_hours": 2.0,
+      "k_multiple": 2,
+      "nc_would_snap_to": 2.0,
+      "ratio_nc_over_recorded": 2.0
+    },
+    {
+      "symbol": "ACEUSDT",
+      "prev_ft": 1786334400,
+      "ft": 1786348800,
+      "utc": "2026-08-10T08:00Z",
+      "recorded_iv_on_prev": 2.0,
+      "gap_hours": 4.0,
+      "k_multiple": 2,
+      "nc_would_snap_to": 4.0,
+      "ratio_nc_over_recorded": 2.0
+    },
+    {
+      "symbol": "AKEUSDT",
+      "prev_ft": 1790020800,
+      "ft": 1790035200,
+      "utc": "2026-09-22T00:00Z",
+      "recorded_iv_on_prev": 1.0,
+      "gap_hours": 4.0,
+      "k_multiple": 4,
+      "nc_would_snap_to": 4.0,
+      "ratio_nc_over_recorded": 4.0
+    },
+    {
+      "symbol": "BANKUSDT",
+      "prev_ft": 1785906000,
+      "ft": 1785916800,
+      "utc": "2026-08-05T08:00Z",
+      "recorded_iv_on_prev": 1.0,
+      "gap_hours": 3.0,
+      "k_multiple": 3,
+      "nc_would_snap_to": 4.0,
+      "ratio_nc_over_recorded": 4.0
+    },
+    {
+      "symbol": "COTIUSDT",
+      "prev_ft": 1788206400,
+      "ft": 1788220800,
+      "utc": "2026-09-01T00:00Z",
+      "recorded_iv_on_prev": 1.0,
+      "gap_hours": 4.0,
+      "k_multiple": 4,
+      "nc_would_snap_to": 4.0,
+      "ratio_nc_over_recorded": 4.0
+    },
+    {
+      "symbol": "DEXEUSDT",
+      "prev_ft": 1786082400,
+      "ft": 1786089600,
+      "utc": "2026-08-07T08:00Z",
+      "recorded_iv_on_prev": 1.0,
+      "gap_hours": 2.0,
+      "k_multiple": 2,
+      "nc_would_snap_to": 2.0,
+      "ratio_nc_over_recorded": 2.0
+    },
+    {
+      "symbol": "DEXEUSDT",
+      "prev_ft": 1786089600,
+      "ft": 1786104000,
+      "utc": "2026-08-07T12:00Z",
+      "recorded_iv_on_prev": 2.0,
+      "gap_hours": 4.0,
+      "k_multiple": 2,
+      "nc_would_snap_to": 4.0,
+      "ratio_nc_over_recorded": 2.0
+    }
+  ],
+  "red_control": {
+    "fires_on_2x": true,
+    "fires_on_4x": true,
+    "silent_on_1x": true,
+    "silent_on_1p5x": true,
+    "snap_selftest_3h_is_4": true,
+    "snap_selftest_25h_is_None": true,
+    "baseline_green": true,
+    "iv_distribution_non_degenerate": true
+  },
+  "verdict": "MEASURED"
+}

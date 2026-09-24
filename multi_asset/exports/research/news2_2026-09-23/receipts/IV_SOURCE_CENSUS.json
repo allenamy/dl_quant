@@ -1,0 +1,260 @@
+{
+  "device": "news2_iv_source_census.py",
+  "self_sha256": "affa3ea6dc33910951c2d0e55891c32f02b8aa8e80aaead0d1a959cf32b2eaef",
+  "argv": [
+    "--ledger",
+    "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+    "--out",
+    "/dev/shm/news2_2026-09-23/receipts/IV_SOURCE_CENSUS.json"
+  ],
+  "cwd": "/dev/shm/news2_2026-09-23/devices",
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "status": "COUNTS_BY_REASON_NOT_WHICH_SIDE_IS_RIGHT",
+  "d10": {
+    "nc": "snap_interval(ft - previous ledger ft), nc_contract.py L32-44",
+    "researcher": "the ledger's recorded zip_iv",
+    "prior_measurement": "ANALYSIS_researcher_feature_contract_validity (bff28680f): the two differ on about 0.23% of events"
+  },
+  "limit_on_reason_ii": "lead described (ii) as 'zip_iv on extension rows equals the fetch-time value'. What is observable here is that src==1 rows carry NaN zip_iv. 'Equals the fetch-time value' is a claim about provenance this file cannot show, so (ii) is reported as 'researcher iv absent' and is NOT asserted to be the same phenomenon as the remembered x0910 mismatch.",
+  "inputs": {
+    "ledger": {
+      "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+      "sha256": "073088e503c026d6071c76764426503616d53570e5f3763807df27ea7cc80362"
+    }
+  },
+  "ledger": {
+    "n_events": 2693666,
+    "n_symbols": 829,
+    "cut": 1788228000,
+    "cut_utc": "2026-09-01T02:00Z",
+    "src_counts": {
+      "3": 2365163,
+      "2": 158857,
+      "1": 109070,
+      "4": 60576
+    },
+    "zip_iv_nan": 109070
+  },
+  "totals": {
+    "events": 2693666,
+    "compared": 2693666,
+    "disagreeing": 110515,
+    "pct_disagreeing": 4.102772949578752
+  },
+  "by_reason": {
+    "ii_researcher_iv_absent": {
+      "count": 109060,
+      "pct_of_events": 4.048757344080521,
+      "pct_of_disagreements": 98.68343663756052,
+      "by_year": {
+        "2021": 184,
+        "2022": 2736,
+        "2023": 350,
+        "2026": 105790
+      }
+    },
+    "iii_first_event": {
+      "count": 821,
+      "pct_of_events": 0.030478908669448995,
+      "pct_of_disagreements": 0.7428855811428313,
+      "by_year": {
+        "2020": 81,
+        "2021": 58,
+        "2022": 25,
+        "2023": 96,
+        "2024": 131,
+        "2025": 238,
+        "2026": 192
+      }
+    },
+    "i_missing_settlement": {
+      "count": 485,
+      "pct_of_events": 0.018005201832743924,
+      "pct_of_disagreements": 0.43885445414649593,
+      "by_year": {
+        "2021": 1,
+        "2022": 2,
+        "2023": 15,
+        "2024": 8,
+        "2025": 14,
+        "2026": 445
+      }
+    },
+    "iv_other": {
+      "count": 149,
+      "pct_of_events": 0.005531494996038855,
+      "pct_of_disagreements": 0.1348233271501606,
+      "by_year": {
+        "2022": 2,
+        "2023": 4,
+        "2025": 39,
+        "2026": 104
+      }
+    }
+  },
+  "missing_settlement_multiples": {
+    "2": 450,
+    "4": 33,
+    "8": 2
+  },
+  "examples": {
+    "iii_first_event": [
+      {
+        "symbol": "0GUSDT",
+        "ft": 1758124800,
+        "utc": "2025-09-17T16:00Z",
+        "prev_gap_hours": null,
+        "researcher_zip_iv": 4.0,
+        "nc_snap_interval": null,
+        "src": 3,
+        "rate": 5e-05,
+        "after_cut": false
+      },
+      {
+        "symbol": "1000000BOBUSDT",
+        "ft": 1749110400,
+        "utc": "2025-06-05T08:00Z",
+        "prev_gap_hours": null,
+        "researcher_zip_iv": 8.0,
+        "nc_snap_interval": null,
+        "src": 3,
+        "rate": 0.0001,
+        "after_cut": false
+      },
+      {
+        "symbol": "1000000MOGUSDT",
+        "ft": 1730995200,
+        "utc": "2024-11-07T16:00Z",
+        "prev_gap_hours": null,
+        "researcher_zip_iv": 4.0,
+        "nc_snap_interval": null,
+        "src": 3,
+        "rate": 5e-05,
+        "after_cut": false
+      }
+    ],
+    "iv_other": [
+      {
+        "symbol": "0GUSDT",
+        "ft": 1764792000,
+        "utc": "2025-12-03T20:00Z",
+        "prev_gap_hours": 1.0,
+        "researcher_zip_iv": 4.0,
+        "nc_snap_interval": 1.0,
+        "src": 3,
+        "rate": 5e-05,
+        "after_cut": false
+      },
+      {
+        "symbol": "0GUSDT",
+        "ft": 1771128000,
+        "utc": "2026-02-15T04:00Z",
+        "prev_gap_hours": 2.0,
+        "researcher_zip_iv": 4.0,
+        "nc_snap_interval": 2.0,
+        "src": 3,
+        "rate": -0.00030768,
+        "after_cut": false
+      },
+      {
+        "symbol": "AAPLUSDT",
+        "ft": 1778515200,
+        "utc": "2026-05-11T16:00Z",
+        "prev_gap_hours": 3.0,
+        "researcher_zip_iv": 8.0,
+        "nc_snap_interval": 4.0,
+        "src": 3,
+        "rate": 1.324e-05,
+        "after_cut": false
+      }
+    ],
+    "ii_researcher_iv_absent": [
+      {
+        "symbol": "0GUSDT",
+        "ft": 1785542400,
+        "utc": "2026-08-01T00:00Z",
+        "prev_gap_hours": 4.0,
+        "researcher_zip_iv": null,
+        "nc_snap_interval": 4.0,
+        "src": 1,
+        "rate": 5e-05,
+        "after_cut": false
+      },
+      {
+        "symbol": "0GUSDT",
+        "ft": 1785556800,
+        "utc": "2026-08-01T04:00Z",
+        "prev_gap_hours": 4.0,
+        "researcher_zip_iv": null,
+        "nc_snap_interval": 4.0,
+        "src": 1,
+        "rate": 3.924e-05,
+        "after_cut": false
+      },
+      {
+        "symbol": "0GUSDT",
+        "ft": 1785571200,
+        "utc": "2026-08-01T08:00Z",
+        "prev_gap_hours": 4.0,
+        "researcher_zip_iv": null,
+        "nc_snap_interval": 4.0,
+        "src": 1,
+        "rate": 5e-05,
+        "after_cut": false
+      }
+    ],
+    "i_missing_settlement": [
+      {
+        "symbol": "1000000BOBUSDT",
+        "ft": 1782288000,
+        "utc": "2026-06-24T08:00Z",
+        "prev_gap_hours": 8.0,
+        "researcher_zip_iv": 4.0,
+        "nc_snap_interval": 8.0,
+        "src": 3,
+        "rate": 0.00039909,
+        "after_cut": false
+      },
+      {
+        "symbol": "1000000MOGUSDT",
+        "ft": 1782288000,
+        "utc": "2026-06-24T08:00Z",
+        "prev_gap_hours": 8.0,
+        "researcher_zip_iv": 4.0,
+        "nc_snap_interval": 8.0,
+        "src": 3,
+        "rate": 5e-05,
+        "after_cut": false
+      },
+      {
+        "symbol": "1000BONKUSDT",
+        "ft": 1782288000,
+        "utc": "2026-06-24T08:00Z",
+        "prev_gap_hours": 8.0,
+        "researcher_zip_iv": 4.0,
+        "nc_snap_interval": 8.0,
+        "src": 3,
+        "rate": 9.64e-06,
+        "after_cut": false
+      }
+    ]
+  },
+  "red_control": {
+    "reasons_sum": 110515,
+    "disagreeing": 110515,
+    "exhaustive": true,
+    "n_distinct_reasons_seen": 4,
+    "snap_interval_selftest": {
+      "3600s->1h": 1.0,
+      "7200s->2h": 2.0,
+      "28800s->8h": 8.0,
+      "90000s(25h)->None": null,
+      "0s->None": null,
+      "tie_10800s(3h)->larger": 4.0
+    },
+    "snap_interval_ok": true,
+    "baseline_green": true
+  },
+  "verdict": "MEASURED"
+}
