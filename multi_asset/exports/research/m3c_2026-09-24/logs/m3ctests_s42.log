@@ -1,0 +1,19 @@
+GREEN C0.M3b_full_leg_exceeds_budget (red) {"combined_over_nav": 3.0}
+GREEN C0.M3c_scaled_to_exactly_2.5_NAV (green) {"combined_over_nav": 2.5, "scale": 0.5}
+GREEN C0.book_above_budget_leg_cannot_add_gross {"combined_over_nav": 2.6, "cause": 9, "scale": 0.0}
+GREEN C0.book_above_budget_leg_reducing_BTC_short_passes_up_to_the_book_gross {"combined_over_nav": 2.6, "btc_after": 20000.0, "scale": 0.5000000000000001}
+GREEN C0.at_limit_same_side_budget_zero_untouched {"cause": 9, "leg": 80000.0}
+GREEN C0.dust_only_uses_the_scaled_leg {"cause": 7, "btc": 50000.0}
+GREEN C0.within_budget_bitwise_M3b {"scale": 1.0}
+GREEN C0.invalid_budget_raises {"cases": [["None", true], ["0", true], ["-1.0", true], ["nan", true], ["inf", true], ["'2.5'", true], ["True", true]]}
+GREEN C0.check_max_lev_accepts_2.5 {}
+GREEN C1.budget_none_equals_M3b_bitwise_3000_books {"n_equal": 3000, "first_bad": []}
+GREEN C1.budget_never_exceeded {"n_ok": 3000, "worst_excess_over_nav": 5.350728109305758e-16}
+GREEN C1.scale1_iff_M3b_within_budget {"n_ok": 3000, "n_binding": 2383}
+GREEN C1.property_exercised_both_branches {"n_binding": 2383}
+GREEN C2.tmp_redirect_off_dev_shm {"tdir": "/root/m3c_2026-09-24/tmp/m3c_redirect_probe_2449350"}
+UNEXERCISED C3a.budget_binds_on_the_flat_book {"anchor": "2026-06-17T16:00:00Z", "beta_exec": -0.23072458390322798, "M3b_combined_over_nav": 2.4614491678064567, "cause": 7, "note": "the largest |\u03b2_exec| MAIN anchor on the flat book does not exceed the room; in-path truncation counts are the evidence"}
+GREEN C3b.non_binding_anchor_equals_M3b_semantics {"anchor": "2026-08-07T08:00:00Z", "beta_exec": 0.0005128279992236183}
+GREEN C3c.dust_only_logic_under_budget {"anchor": "2026-05-02T20:00:00Z", "btc_planned": 37864.078839597445, "leg": 37920.955368825846}
+M3C_TESTS VERDICT=ALL GREEN tests=16 red=0 unexercised=1 out_sha256=3ecce7f5f2ae0f858d2ae7e2c7d8294438f3f008360cc7c2192fe6ad4538005d
+EXIT 0

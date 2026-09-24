@@ -1,0 +1,156 @@
+{
+ "device": "m3c_tests.py",
+ "self_sha256": "35f5a713bf443bba4cd10d492f9e1ef4c2068e629d02ff774784971ac33b2495",
+ "hook_m3c_sha256": "95ff9632d155c6a7868afbca844fddd30dbed0b5202b61c2a50a7ab10568e4eb",
+ "hook_m3b_sha256": "873769b995b913260be8831cce116ba9312fb607ee49fe595a25844b8a2682ba",
+ "configs": [
+  "/root/m3c_2026-09-24/RUN_CONFIG_m3ch_s42.json",
+  "588603d5975607ba6ef084e62aa9829089af7ee45770e00a5bd1e15493009ffb",
+  "/root/m3c_2026-09-24/RUN_CONFIG_m3ch0_s42.json",
+  "2f4888342cb01e6cf7d03e5d17acad818e2baa2514a719b64a07acfa6da0b5bf"
+ ],
+ "m3c_flat_book_npz": [
+  "/root/m3c_2026-09-24/work/EXEC_PATH_M3C_s42.npz",
+  "cfce610cf245f6f1033261ef077b43d7bf786b7e114394e0a7e37c54a2b68215"
+ ],
+ "utc": "2026-09-24T02:22:21Z",
+ "pgid": 2449348,
+ "tests": [
+  {
+   "test": "C0.M3b_full_leg_exceeds_budget (red)",
+   "ok": true,
+   "combined_over_nav": 3.0
+  },
+  {
+   "test": "C0.M3c_scaled_to_exactly_2.5_NAV (green)",
+   "ok": true,
+   "combined_over_nav": 2.5,
+   "scale": 0.5
+  },
+  {
+   "test": "C0.book_above_budget_leg_cannot_add_gross",
+   "ok": true,
+   "combined_over_nav": 2.6,
+   "cause": 9,
+   "scale": 0.0
+  },
+  {
+   "test": "C0.book_above_budget_leg_reducing_BTC_short_passes_up_to_the_book_gross",
+   "ok": true,
+   "combined_over_nav": 2.6,
+   "btc_after": 20000.0,
+   "scale": 0.5000000000000001
+  },
+  {
+   "test": "C0.at_limit_same_side_budget_zero_untouched",
+   "ok": true,
+   "cause": 9,
+   "leg": 80000.0
+  },
+  {
+   "test": "C0.dust_only_uses_the_scaled_leg",
+   "ok": true,
+   "cause": 7,
+   "btc": 50000.0
+  },
+  {
+   "test": "C0.within_budget_bitwise_M3b",
+   "ok": true,
+   "scale": 1.0
+  },
+  {
+   "test": "C0.invalid_budget_raises",
+   "ok": true,
+   "cases": [
+    [
+     "None",
+     true
+    ],
+    [
+     "0",
+     true
+    ],
+    [
+     "-1.0",
+     true
+    ],
+    [
+     "nan",
+     true
+    ],
+    [
+     "inf",
+     true
+    ],
+    [
+     "'2.5'",
+     true
+    ],
+    [
+     "True",
+     true
+    ]
+   ]
+  },
+  {
+   "test": "C0.check_max_lev_accepts_2.5",
+   "ok": true
+  },
+  {
+   "test": "C1.budget_none_equals_M3b_bitwise_3000_books",
+   "ok": true,
+   "n_equal": 3000,
+   "first_bad": []
+  },
+  {
+   "test": "C1.budget_never_exceeded",
+   "ok": true,
+   "n_ok": 3000,
+   "worst_excess_over_nav": 5.350728109305758e-16
+  },
+  {
+   "test": "C1.scale1_iff_M3b_within_budget",
+   "ok": true,
+   "n_ok": 3000,
+   "n_binding": 2383
+  },
+  {
+   "test": "C1.property_exercised_both_branches",
+   "ok": true,
+   "n_binding": 2383
+  },
+  {
+   "test": "C2.tmp_redirect_off_dev_shm",
+   "ok": true,
+   "tdir": "/root/m3c_2026-09-24/tmp/m3c_redirect_probe_2449350"
+  },
+  {
+   "test": "C3b.non_binding_anchor_equals_M3b_semantics",
+   "ok": true,
+   "anchor": "2026-08-07T08:00:00Z",
+   "beta_exec": 0.0005128279992236183
+  },
+  {
+   "test": "C3c.dust_only_logic_under_budget",
+   "ok": true,
+   "anchor": "2026-05-02T20:00:00Z",
+   "btc_planned": 37864.078839597445,
+   "leg": 37920.955368825846
+  }
+ ],
+ "unexercised": [
+  {
+   "test": "C3a.budget_binds_on_the_flat_book",
+   "anchor": "2026-06-17T16:00:00Z",
+   "beta_exec": -0.23072458390322798,
+   "M3b_combined_over_nav": 2.4614491678064567,
+   "cause": 7,
+   "note": "the largest |\u03b2_exec| MAIN anchor on the flat book does not exceed the room; in-path truncation counts are the evidence"
+  }
+ ],
+ "n_tests": 16,
+ "n_red": 0,
+ "red": [],
+ "runtime_s": 5.9,
+ "VERDICT": "ALL GREEN"
+}
