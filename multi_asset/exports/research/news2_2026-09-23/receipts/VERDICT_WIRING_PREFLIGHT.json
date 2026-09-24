@@ -1,0 +1,77 @@
+{
+ "receipt": "VERDICT_WIRING_PREFLIGHT.json",
+ "utc": "2026-09-24T00:20:13Z",
+ "why": "news2_stats.py imports every statistic from the pinned news_stats.py INSIDE main(), after the argument unpack. So running it with no arguments proves only that numpy imported -- it never reaches the pin check or the import. I first read that failure as evidence the wiring was fine; it was not. This does the check the earlier smoke test only appeared to do.",
+ "engine_dir": "/dev/shm/news2_2026-09-23/engine",
+ "news_stats_sha256": "7141ba42ab227b9f35b48acce62d5e2a2494f364fdf6a83189974cb2af67e03c",
+ "pin": "7141ba42ab227b9f35b48acce62d5e2a2494f364fdf6a83189974cb2af67e03c",
+ "pin_matches": true,
+ "bt_tables_sha256": "892ba66b9e8040ff04caede02272556dec5a71eb4632cbe7a2a13f46bd35f389",
+ "bt_driver_lib_sha256": "ba3bc2610b12a3f0280ff8f03c039ff5c2e81b8c05789183fd2b1acab661bddb",
+ "names_referenced_by_news2_stats": [
+  "B",
+  "BLOCK_MAIN",
+  "BLOCK_SENS",
+  "BT",
+  "CELLS",
+  "DEV",
+  "DL",
+  "JUDGE",
+  "RNG",
+  "SEG",
+  "SENTENCE",
+  "boot",
+  "dbar",
+  "full_days",
+  "iso",
+  "load_cell",
+  "mean_path_metrics",
+  "path_metrics",
+  "seg_mask",
+  "select_rp_run",
+  "summarise"
+ ],
+ "names_missing": [],
+ "all_present": true,
+ "constants_read_back": {
+  "SEG": {
+   "2023H2": [
+    "2023-06-30T04:00:00Z",
+    "2023-12-31T20:00:00Z"
+   ],
+   "2024": [
+    "2024-01-01T00:00:00Z",
+    "2024-12-31T20:00:00Z"
+   ],
+   "2025": [
+    "2025-01-01T00:00:00Z",
+    "2025-12-31T20:00:00Z"
+   ],
+   "pre2026": [
+    "2023-06-30T04:00:00Z",
+    "2025-12-31T20:00:00Z"
+   ],
+   "2026": [
+    "2026-01-01T00:00:00Z",
+    "2026-08-31T00:00:00Z"
+   ]
+  },
+  "CELLS": {
+   "base": "scaled_rule_raw_UAFE",
+   "fee_x1.25": "scaled_rule_raw_UAFE_fee_x1.25",
+   "slip_x1.5": "scaled_rule_raw_UAFE_slip_x1.5",
+   "fill_x0.9": "scaled_rule_raw_UAFE_fill_x0.9",
+   "lit": "lit_rule_raw_UAFE"
+  },
+  "JUDGE": [
+   "2023H2",
+   "2024",
+   "2025"
+  ],
+  "RNG": [
+   20260923,
+   1
+  ]
+ },
+ "VERDICT": "PASS"
+}
