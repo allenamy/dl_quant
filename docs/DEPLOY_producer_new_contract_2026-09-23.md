@@ -1,4 +1,4 @@
-> **创建:** 2026-09-23 19:5xZ | **Session:** session_01MCyx6gj5EdbghE9bwjBjJv(集成代理 C-4,受 lead 派) | **状态:** **草稿,未执行**。判词 `VERDICT=NO_DEPLOY`,用户放行 s42(`USER_OVERRIDE=053d50f4…`,`docs/RULING_user_NC_s42_override_2026-09-24.md`)。§0.2 清单(2026-09-24 02:5xZ):部署包 §P1 已打,真包安装演练 §P2 `REAL_PACKAGE_PASS` 14/14;E3 / F-1 / F-2 / 平价门 / P3 全过(treeNC5)。用户已确认 §0.4(`docs/RULING_user_NC_s42_final_confirm_2026-09-24.md`,e6d9605ba),05:00Z 窗部署,lead 监督。尚缺:M3c 判词。工具与演练已入库(§C) | **作废条件:** §0.3 执行前核对任一 sha 不符;冻结件 b30e4afa5 / 修订 1 5c89f8d22 改动;发布树 **treeNC5** 的 PATCH_RECEIPT(3135cf8b)改动(~~treeNC4 0364c28d~~,已被 treeNC5 取代:A4 资金费跳过规则修复,冻结修订 2 = 778ba7324)
+> **创建:** 2026-09-23 19:5xZ | **Session:** session_01MCyx6gj5EdbghE9bwjBjJv(集成代理 C-4,受 lead 派) | **状态:** **草稿,未执行**。判词 `VERDICT=NO_DEPLOY`,用户放行 s42(`USER_OVERRIDE=053d50f4…`,`docs/RULING_user_NC_s42_override_2026-09-24.md`)。§0.2 清单(2026-09-24 02:5xZ):部署包 §P1 已打,真包安装演练 §P2 `REAL_PACKAGE_PASS` 14/14;E3 / F-1 / F-2 / 平价门 / P3 全过(treeNC5)。用户已确认 §0.4(`docs/RULING_user_NC_s42_final_confirm_2026-09-24.md`,e6d9605ba),05:00Z 窗部署,lead 监督。M3c(s42)判 PASS(dcd054a7c)⇒ A4 带 shadow 2.5。§0.2 全部满足,待窗口执行。工具与演练已入库(§C) | **作废条件:** §0.3 执行前核对任一 sha 不符;冻结件 b30e4afa5 / 修订 1 5c89f8d22 改动;发布树 **treeNC5** 的 PATCH_RECEIPT(3135cf8b)改动(~~treeNC4 0364c28d~~,已被 treeNC5 取代:A4 资金费跳过规则修复,冻结修订 2 = 778ba7324)
 
 # 部署手册:完整修正版(生产者按研究员 NEW 特征合同服务)+ M3 对冲 shadow
 
@@ -61,9 +61,9 @@ export OLDB=8d79186b6380132cb67684acf1ebfcdb2c53261c850f46a4908b06bfa7a81282 OLD
 | 6 | §F-2 回滚演练 | **`NC_ROLLBACK PASS`**。a/a2/a3/b/c/d 全绿;e1–e3 三个负控都拦住 | `nc_2026-09-23/receipts/f2_nc5_2026-09-23/`(e54c60809) | 无 |
 | 7 | 平价门(FREEZE §3.3) | **treeNC5 `NC_PARITY_GATE PASS`**:6 锚 × 11 量,0 格不同;两个负控都测出差异 | `nc_2026-09-23/receipts/parity_formal_2026-09-23/`(5fe0cf11c) | 无 |
 | 8 | §P3 执行器候选全电池 | **`ACCEPTANCE: ALL GREEN (163/163 suites exit 0)`**,首次在 `mode=shadow` 配置下跑全电池 | `nc_2026-09-23/receipts/p3_2026-09-23T2100Z/`(2bec89bb3) | 无。当时的钉是替身;A4 的 `safe_commit` 会用真钉在真归档上再跑一次全电池,红了就不推 |
-| 9 | M3c(AMENDMENT_3 §2-1) | **未出**。owner:M3 评估代理。M3c(s42)装置测试全绿,零对冲对照与底座逐位相等(0e6d6b7c4);R1–R3 判词未出 | `m3c_2026-09-24/`(判词待补) | M3c 判词。过 ⇒ A4 用 `--beta-mode shadow --max-combined 2.5`;不过 ⇒ `--beta-mode off`,对冲不随发布上线,换装照常 |
+| 9 | M3c(AMENDMENT_3 §2-1) | **已满足**:判定底座 s42 判 PASS。判词行原文 `M3_READOUT NC_s42 VERDICT=PASS failing=[] undecided=[] R1=+0.0476 R2_diff=0.00853053275874803 R3_D=0.9995 out_sha256=091f8a041248ac81974f98274e477b65dbc27195c0e214f0fae3e60cfe4c5b42`。装置与口径先于数字提交(3df05f205、0e6d6b7c4);零对冲对照与底座逐位相等 | `m3c_2026-09-24/receipts/pod2/M3C_READOUT_s42.json`(提交 dcd054a7c;集成代理本机重算 sha = 091f8a04…,与判词行的 out_sha256 相同) | 无。A4 用 `--beta-mode shadow --max-combined 2.5`。s2027 是旁报,不参与判定,不等它 |
 | 10 | 用户确认书行为改动(裁定 §4-3) | **已确认**(2026-09-24 02:5xZ):确认 §0.4(621033c0d)并定 05:00Z 窗部署 s42 | `docs/RULING_user_NC_s42_final_confirm_2026-09-24.md`(a1b44207,提交 e6d9605ba) | 无。§S 席位播种不在确认范围内。部署前还要报用户两项:席位差距量化(§0.5)与 M3c 判词 |
-| 11 | lead 执行或监督 | **已定**:05:00Z 窗(N = 04Z),集成代理执行,lead 监督;每步报判词行原文与 rc,lead 确认后进下一步;停点一律按 §R | lead 消息(2026-09-24 03:0xZ) | A0 最晚 06:05Z 开始;A4 最晚 07:05Z 开始 |
+| 11 | lead 执行或监督 | **已定**:05:00Z 窗(N = 04Z),集成代理执行,lead 监督;每步报判词行原文与 rc,lead 确认后进下一步;停点一律按 §R | lead 消息(2026-09-24 02:5xZ) | A0 最晚 06:05Z 开始;A4 最晚 07:05Z 开始 |
 
 - 第 1 项的 HANDOFF 里有一个键叫 `V1_gate.PASS`。它是 numpy 推理与 torch 推理的数值等价门(spearman ≥ 0.99999 且 maxabs ≤ 1e-5;实测 0.999999999997 / 6.55e-08),**不是书层录取**。
 - 本清单之外,W 开始时还要跑 §0.3 执行前核对,其中含执行器健康检查。
@@ -89,7 +89,7 @@ PYCHK
 grep -E "4-2|DAY_STOP" ~/dl_quant_live/state/live/watchdog/ALARM.log | tail -2   # 当日有 §4-2 日止损生效记录 ⇒ 不开窗
 /usr/bin/python3 $NCW/src/nc_handoff_check.py $MODELS/HANDOFF_deploy_s42.json $MODELS/P5_DEPLOY_MANIFEST.json $MODELS/slow2026.txt $MODELS/f10_live_s42_np.npz $RULING ; echo "rc=$?"   # HANDOFF_CHECK OK, rc=0
 ```
-- **预核(2026-09-24 03:0xZ,窗前,只读)**:
+- **预核(2026-09-24 02:57Z,窗前,只读)**:
   - lead 在 26905a4b5 改过裁定文件的字节,又在 e6d9605ba 恢复成 b9c7a933d 的原字节。改动发生在 02:56:59Z,恢复在 02:57:21Z,都晚于 P1 / P2(02:39–02:42Z),所以 P1 / P2 不受影响。
   - 对工作树里的裁定文件重跑 `nc_handoff_check.py`:`HANDOFF_CHECK OK`,rc=0。
   - 工作树、HEAD、b9c7a933d 三处的裁定文件 sha 都是 053d50f4…,与包内副本 `$PKG/verdict/ruling.md` 字节相同。
