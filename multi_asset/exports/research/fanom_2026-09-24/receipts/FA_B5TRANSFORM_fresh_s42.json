@@ -1,0 +1,34 @@
+{
+  "device": "fa_b5transform.py",
+  "self_sha256": "5ad767f92431955c6ba4ba74abab1bb4ff6681570700c841810bbe9558ee769b",
+  "utc": "2026-09-24T13:25:47Z",
+  "arm": "FRESH",
+  "seed": "42",
+  "assert_1_changed_equals_gate_failures": {
+    "changed": 1721,
+    "gate_failures": 1721,
+    "PASS": true
+  },
+  "assert_2_all_other_arrays_bitwise_identical": {
+    "arrays_checked": 9,
+    "PASS": true
+  },
+  "assert_3_reader_written_rows_without_weights": {
+    "got": 1721,
+    "expected": 1721,
+    "PASS": true
+  },
+  "out_npz": "/dev/shm/fanom_2026-09-24/bvar/B5T_fresh_2026-09-23_s42/TARGETS.npz",
+  "out_npz_sha256": "e9927e02b76713993f2967f696e8672c97ca65187d3c41b575e858d7458ee0d9",
+  "out_receipt": "/dev/shm/fanom_2026-09-24/bvar/B5T_fresh_2026-09-23_s42/TARGETS.json",
+  "out_receipt_sha256": "fdc02c4cae0a2e8d8254758cc9d00c1b4f4155a7518a76bd119c6e7b770884ca",
+  "named_deviation": {
+    "named_deviation": "the adapter would REFUSE this artifact (ovn_adapter.py:78 published_row_without_weight); it is produced only by an assertion-bound post-processing of the adapter's own output for the ORIGINAL arm",
+    "why_format_and_engine_accept_it": "bt_objb_targets rejects only kind==0-with-weights; both the reader (L88) and the window loader (L119) carry a dedicated written_rows_without_weights counter for this exact state",
+    "source_npz": "/dev/shm/fresh_2026-09-23/targets/TARGETS_FRESH_s42.npz",
+    "source_npz_sha256": "5ee47aa2abca8ac2f03ae974e9c9fbeaf2c18c72343e2aa99b7081641224a027",
+    "change": "scaled_kind 0 -> 2 on the gate-failure anchors only; scaled_off/idx/val and all lit_* untouched",
+    "n_anchors_changed": 1721,
+    "gate_failure_anchors": 1721
+  }
+}
