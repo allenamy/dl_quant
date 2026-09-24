@@ -12,17 +12,22 @@ machine pack; the verdict is prefixed MACHINERY_ and is not a deployment receipt
   A2 apply again (same seeded dir: production is byte-identical again) ⇒ installed
   N2 state advanced (aux changed + generation re-signed by the NC module), rollback WITHOUT --downgraded ⇒ REFUSED (named)
   R2 nc_downgrade_state.py on the current state, rollback --downgraded ⇒ OLD producer loads; destinations at baseline
-usage: ~/wide_shadow/venv/bin/python test_nc_install_rehearsal.py <NC tree> <extras dir> <synth seed pack> <snapshot anchor> <work dir>"""
+usage: ~/wide_shadow/venv/bin/python test_nc_install_rehearsal.py <NC tree> <extras dir> <synth seed pack> <snapshot anchor> <work dir>
+       [--king F --king-sha S --f10 F --f10-sha S]   (lead 2026-09-24: model paths and their DECLARED sha as arguments; defaults = the
+       NEW_S stand-ins below. P0: the INSTALL_CONTRACT built from the given files must pin exactly the declared shas, else the rehearsal
+       refuses (REFUSED_PIN_MISMATCH, exit 3) before any seeding / install. NK / NF (after a green baseline): the same run with a wrong
+       declared King / F10 sha must refuse that way and must not reach apply.)"""
 import hashlib, json, os, shutil, subprocess, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__)); HOME = os.path.expanduser("~"); PY = f"{HOME}/wide_shadow/venv/bin/python"
 KING = f"{HOME}/cc_tmp/news_20260923/package_NEW_S/slow2026.txt"; F10 = f"{HOME}/cc_tmp/news_20260923/package_NEW_S/f10_live_s42_np.npz"
+KING_SHA = "b521ccdcd045a0975f107fed1e415b22ec72a96fb7f17a30da13f0583bacd0a2"; F10_SHA = "6e97dc8afcaff41d672206871f071c4562bd66bf55ec3403d69eb652a2d4e6eb"   # NEW_S stand-ins
 CRYPTO = f"{HOME}/cc_tmp/news_20260923/package_NEW_S/crypto_P1_members_2025H2on.npz"
-FAILS, N = [], [0]
+FAILS, N, CELLS = [], [0], []
 
 
 def check(name, ok, detail=None):
-    N[0] += 1
+    N[0] += 1; CELLS.append({"cell": name.split(" ")[0], "ok": bool(ok)})
     if not ok: FAILS.append(name)
     print(("  OK   " if ok else "  FAIL ") + name + (("  — " + str(detail)[:400]) if detail is not None else ""), flush=True)
 
@@ -52,13 +57,25 @@ def fake_home(fh, A):
 
 
 def main():
-    tree, extras, pack, A, work = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), sys.argv[5]
+    global KING, F10, KING_SHA, F10_SHA
+    import argparse
+    ap = argparse.ArgumentParser(); [ap.add_argument(x) for x in ("tree", "extras", "pack", "A", "work")]
+    ap.add_argument("--king", default=KING); ap.add_argument("--king-sha", default=KING_SHA); ap.add_argument("--f10", default=F10); ap.add_argument("--f10-sha", default=F10_SHA)
+    ap.add_argument("--mutation-only", action="store_true", help=argparse.SUPPRESS)   # internal: the NK / NF child runs stop right after P0
+    a = ap.parse_args(); tree, extras, pack, A, work = a.tree, a.extras, a.pack, int(a.A), a.work
+    KING, F10, KING_SHA, F10_SHA = a.king, a.f10, a.king_sha, a.f10_sha
     assert not os.path.exists(work); os.makedirs(work); fh = f"{work}/home"; fake_home(fh, A)
     st = f"{fh}/wide_shadow/state"; pre = {f: sha(f"{st}/{f}") for f in os.listdir(st)}
     pkg = f"{work}/package"; seeded = f"{work}/seeded"
     rc, out = run([f"{HERE}/nc_package.py", pkg, "--home", fh, "--tree", tree, "--extras", extras, "--king", KING, "--f10", F10, "--crypto", CRYPTO, "--label", "MACHINERY_REHEARSAL"])
     C = json.load(open(f"{pkg}/INSTALL_CONTRACT.json")) if rc == 0 else {}
     base = {it["dest"]: it["baseline_sha256"] for it in C.get("files", [])}
+    pins = C.get("executor_pins", {}); want = {"booster_sha_pin": KING_SHA, "f10_sha_pin": F10_SHA}
+    check("P0 INSTALL_CONTRACT pins == the declared model shas", rc == 0 and pins == want, {"contract": {k: str(v)[:12] for k, v in pins.items()}, "declared": {k: v[:12] for k, v in want.items()}})
+    if rc != 0 or pins != want:
+        print("TEST_NC_INSTALL_REHEARSAL REFUSED_PIN_MISMATCH", flush=True); sys.exit(3)
+    if a.mutation_only:
+        print("TEST_NC_INSTALL_REHEARSAL MUTATION_CHILD_PASSED_P0", flush=True); sys.exit(0)
     rc2, out2 = run([f"{HERE}/nc_seed_state.py", tree, pack, st, seeded + "_nolive"])
     # post-axis bound cells need their exact raw from a live pack (nc_deploy_fetch.py, venue); the rehearsal uses a STAND-IN pack whose raw
     # values are +-0.35 (beyond the clip, sign of ch0) for exactly the cells the seed tool named — machinery only
@@ -117,10 +134,24 @@ def main():
     check("R2 downgrade the current state, rollback --downgraded ⇒ OLD producer loads; destinations at baseline; no NC-only state file",
           rc == 0 and rc2 == 0 and "downgraded" in RR.get("state_source", "") and dest_ok and len(RR.get("producer_load", {}).get("state_files", [])) == 3
           and not any(os.path.exists(f"{st}/{f}") for f in ("boundary_raw.npz", "members_hist.npz")), (rc, out[0][:160], rc2, out2[0][:200], RR.get("state_source"), dest_ok))
+    # NK / NF (lead 2026-09-24): only on a green baseline — a wrong DECLARED sha must make the rehearsal refuse at P0, before any apply
+    if not FAILS:
+        for tag, kw in (("NK", {"--king-sha": F10_SHA}), ("NF", {"--f10-sha": KING_SHA})):
+            wd = f"{work}/mutation_{tag}"
+            argv = [os.path.abspath(__file__), tree, extras, pack, str(A), wd, "--king", KING, "--f10", F10, "--king-sha", KING_SHA, "--f10-sha", F10_SHA, "--mutation-only"]
+            for k, v in kw.items(): argv[argv.index(k) + 1] = v
+            r = subprocess.run([PY] + argv, capture_output=True, text=True); last = (r.stdout + r.stderr).strip().splitlines()[-1:] or [""]
+            applied = any(x.startswith("bk") for x in os.listdir(wd)) if os.path.isdir(wd) else None
+            check(f"{tag} wrong declared {'King' if tag == 'NK' else 'F10'} sha ⇒ REFUSED_PIN_MISMATCH (exit 3), no apply",
+                  r.returncode == 3 and "REFUSED_PIN_MISMATCH" in last[0] and applied is False, (r.returncode, last[0][:120], applied))
+    else:
+        print("  (baseline not green: mutation cells NK / NF not run)", flush=True)
     verdict = "MACHINERY_PASS" if not FAILS else "MACHINERY_FAIL"
     json.dump({"verdict": verdict, "checks": N[0], "failed": FAILS, "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                "device_sha256": {f: sha(f"{HERE}/{f}") for f in ("nc_package.py", "nc_install.py", "nc_seed_state.py", "nc_downgrade_state.py", "test_nc_install_rehearsal.py")},
-               "tree_patch_receipt_sha256": sha(f"{tree}/PATCH_RECEIPT.json"), "snapshot_anchor": A, "stand_in_models": [KING, F10],
+               "tree_patch_receipt_sha256": sha(f"{tree}/PATCH_RECEIPT.json"), "snapshot_anchor": A, "stand_in_models": [KING, F10], "models": {"king": KING, "king_sha256": KING_SHA, "f10": F10, "f10_sha256": F10_SHA,
+               "are_new_s_stand_ins": KING_SHA == "b521ccdcd045a0975f107fed1e415b22ec72a96fb7f17a30da13f0583bacd0a2" and F10_SHA == "6e97dc8afcaff41d672206871f071c4562bd66bf55ec3403d69eb652a2d4e6eb"},
+               "cells": CELLS,
                "stand_in_live_pack": "raw = +-0.35 for the seed tool's unresolved post-axis bound cells (machinery only)"},
               open(f"{work}/TEST_NC_INSTALL_REHEARSAL.json", "w"), indent=1)
     print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed"); print("TEST_NC_INSTALL_REHEARSAL", verdict)

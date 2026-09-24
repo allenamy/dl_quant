@@ -1,0 +1,19 @@
+quiet window open; out /Users/haosiyu/cc_tmp/nc_20260923/release_tests/install_rehearsal_regression_20260924T0101Z; loadavg 1.87 1.92 2.66
+  OK   P0 INSTALL_CONTRACT pins == the declared model shas  — {'contract': {'booster_sha_pin': 'b521ccdcd045', 'f10_sha_pin': '6e97dc8afcaf'}, 'declared': {'booster_sha_pin': 'b521ccdcd045', 'f10_sha_pin': '6e97dc8afcaf'}}
+  (stand-in live pack: 15 bound cells, 3 post-axis)
+  OK   P1 package + seed + preflight PASS  — (0, 'NC_PACKAGE {"out": "/Users/haosiyu/cc_tmp/nc_20260923/release_tests/install_rehearsal_regression_20260924T0101Z/package"', 0, 'NC_SEED SEEDED {"rows_from_seed_pack": 10176, "post_axis_ch0_cross_gap_set_nan": 0, "live_pack_rows_filled": 0, "post_ax', 0, 'NC_INSTALL PREFLIGHT_PASS {"contract_sha256": "0b1594495699afc4ae5f3c88c15237df14909302339532386d691d2c01916b87", "files": 17, "package": "PA
+  OK   N1 destination changed after packaging ⇒ preflight REFUSED  — NC_INSTALL REFUSED: destination not at its baseline (production changed since packaging): wide_shadow/fea171/combo_stage.py 460f9aa9b779077edeb1e8300a8958235e872e6b12dc28694ce2ff670c5ceb75 != fb5a9407
+  OK   A1 apply ⇒ installed_not_started; NC producer (5 STATE_FILES) loads the state  — (0, 'NC_INSTALL installed_not_started {"module_sha256": "46c52d946dc164d6b640149d3dbc3c232dd6c6cd8b2a4ba8f18f1b33664ab6d5", "state_files": ["aux.json", "boundary_raw.npz", "leg_returns_live.json", "members', 'installed_not_started', {'module_sha256': '46c52d946dc164d6b640149d3dbc3c232dd6c6cd8b2a4ba8f18f1b33664ab6d5', 'state_files': ['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members
+  OK   R1 rollback (never advanced) ⇒ backup state; destinations at baseline; new files gone; NC-only state gone; OLD producer loads; state = pre-install bytes  — (0, 'NC_INSTALL rolled_back_not_started {"module_sha256": "6080073964bffc621c893915b16f71ecafe093194f0b99a66a4463ee12c74e61", "state_files": ["aux.json", "leg_returns_live.json", "rolling.npz"], "generatio', 'backup (pre-install state; the NC producer never advanced it)', True, True)
+  OK   A2 apply again on the byte-identical production state ⇒ installed  — NC_INSTALL installed_not_started {"module_sha256": "46c52d946dc164d6b640149d3dbc3c232dd6c6cd8b2a4ba8f18f1b33664ab6d5", "state_files": ["aux.json", "boundary_raw.npz", "leg_returns_live.json", "members
+  OK   N2 state advanced, rollback without --downgraded ⇒ REFUSED (named)  — NC_INSTALL REFUSED: the NC producer advanced the state since the install: run nc_downgrade_state.py on the CURRENT state and pass --downgraded
+  OK   R2 downgrade the current state, rollback --downgraded ⇒ OLD producer loads; destinations at baseline; no NC-only state file  — (0, 'NC_DOWNGRADE_OK {"ema_entries_removed": 0, "ema_removed_names_first": [], "ledger_iv_filled": 173, "ledger_iv_filled_names": 173, "ledger_iv_known_differs_from_', 0, 'NC_INSTALL rolled_back_not_started {"module_sha256": "6080073964bffc621c893915b16f71ecafe093194f0b99a66a4463ee12c74e61", "state_files": ["aux.json", "leg_returns_live.json", "rolling.npz"], "generatio', 'downgraded current state
+  OK   NK wrong declared King sha ⇒ REFUSED_PIN_MISMATCH (exit 3), no apply  — (3, 'TEST_NC_INSTALL_REHEARSAL REFUSED_PIN_MISMATCH', False)
+  OK   NF wrong declared F10 sha ⇒ REFUSED_PIN_MISMATCH (exit 3), no apply  — (3, 'TEST_NC_INSTALL_REHEARSAL REFUSED_PIN_MISMATCH', False)
+
+10/10 checks passed
+TEST_NC_INSTALL_REHEARSAL MACHINERY_PASS
+rc=0
+01:02:55Z
+
+[exited with code 0]
