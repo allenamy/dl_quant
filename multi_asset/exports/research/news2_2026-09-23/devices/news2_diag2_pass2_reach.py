@@ -39,12 +39,36 @@ def sha(p):
 
 
 def diff_cells(a, b):
-    """cells differing, NaN==NaN equal; plus the per-column counts."""
+    """cells differing, NaN==NaN equal; per-column counts; AND the MAGNITUDE of the change.
+
+    ★ A cell count alone is misleading and would have been here: D4 stores X82 as float32, which moves
+    almost every cell of X82 by about 1e-7. Reporting "94,963 of 95,530 cells moved" without magnitude
+    makes a pure storage-precision change look like the dominant fix. So every count is paired with
+    max|delta|, median|delta| over the CHANGED cells, and the same relative to the base value.
+    """
     a, b = np.asarray(a), np.asarray(b)
     if a.shape != b.shape:
-        return None, None
-    ne = ~((a == b) | (np.isnan(a) & np.isnan(b))) if a.dtype.kind == "f" else (a != b)
-    return int(ne.sum()), ne.sum(axis=0).astype(int).tolist() if ne.ndim == 2 else None
+        return None
+    if a.dtype.kind == "f":
+        ne = ~((a == b) | (np.isnan(a) & np.isnan(b)))
+    else:
+        ne = a != b
+    out = {"cells": int(a.size), "cells_different": int(ne.sum()),
+           "per_column_cells": ne.sum(axis=0).astype(int).tolist() if ne.ndim == 2 else None}
+    if ne.any() and a.dtype.kind == "f":
+        da = np.abs(a[ne].astype(np.float64) - b[ne].astype(np.float64))
+        da = da[np.isfinite(da)]
+        base = np.abs(a[ne].astype(np.float64))
+        rel = da / np.maximum(base[np.isfinite(np.abs(a[ne].astype(np.float64)))][:da.size], 1e-12) if da.size else da
+        out["magnitude_on_changed_cells"] = {
+            "max_abs_delta": (float(da.max()) if da.size else None),
+            "median_abs_delta": (float(np.median(da)) if da.size else None),
+            "p99_abs_delta": (float(np.percentile(da, 99)) if da.size else None),
+            "median_rel_delta": (float(np.median(rel)) if rel.size else None),
+            "n_finite_deltas": int(da.size),
+            "note": "NaN<->finite flips have no finite delta and are excluded from these percentiles; "
+                    "n_finite_deltas vs cells_different shows how many those were"}
+    return out
 
 
 def main():
@@ -83,11 +107,14 @@ def main():
                     ent[m] = {"STATUS": "NOT_PRODUCED",
                               "base_unavailable": base[A]["unavailable"], "arm_unavailable": got[A]["unavailable"]}
                     continue
-                n, percol = diff_cells(a, b)
-                ent[m] = {"cells_compared": int(a.size), "cells_different": n,
+                d = diff_cells(a, b)
+                percol = None if d is None else d["per_column_cells"]
+                ent[m] = {"cells_compared": int(a.size),
+                          "cells_different": (None if d is None else d["cells_different"]),
                           "columns_touched": (None if percol is None else int(sum(1 for c in percol if c))),
                           "n_columns": (None if percol is None else len(percol)),
-                          "per_column_cells": (None if percol is None else percol)}
+                          "magnitude_on_changed_cells": (None if d is None else d.get("magnitude_on_changed_cells")),
+                          "per_column_cells": percol}
             per_anchor[A] = ent
         tot = {m: sum(per_anchor[A][m].get("cells_different") or 0 for A in anchors) for m in MATS}
         cmp_ = {m: sum(per_anchor[A][m].get("cells_compared") or 0 for A in anchors) for m in MATS}
@@ -124,16 +151,26 @@ def main():
          f"> 臂树为 2026-09-23 20:0xZ 那一代派生(`shadow_loop_v3.py` 15209f80), **不是发布代**"
          f"(a68c7a5f)。比较在同一代内 base ↔ base+该项, 所以代际差异在差分中抵消。", "",
          f"锚: {', '.join(str(a) for a in anchors)}", "",
-         "| 修复 | X82 动格/比格 | X82 动列 | X89 动格/比格 | X89 动列 | King X78 动格 | 判 |",
-         "|---|---|---|---|---|---|---|"]
+         "> **动格数不是效应量。** D4 把 X82 存成 float32, 于是 X82 几乎每一格都动约 1e-7 —— "
+         "只看格数会把一个纯存储精度改动读成作用最大的修复。所以每个格数都配 max|Δ| 与中位 |Δ|。", "",
+         "| 修复 | X82 动格/比格 | X82 动列 | X82 幅度 | X89 动格/比格 | X89 动列 | X89 幅度 | King X78 动格 | King 幅度 | 判 |",
+         "|---|---|---|---|---|---|---|---|---|---|"]
     for arm in ARMS:
         if arm not in rows:
-            L.append(f"| {arm} | " + " | ".join(["**缺测**"] * 5) + " | — |")
+            L.append(f"| {arm} | " + " | ".join(["**缺测**"] * 8) + " | — |")
             continue
         r = rows[arm]
         d, c, n = r["total_cells_different"], r["total_cells_compared"], r["n_columns_touched"]
-        L.append(f"| {arm} | {d['X82']}/{c['X82']} | {n['X82']}/82 | {d['X89']}/{c['X89']} | {n['X89']}/89 "
-                 f"| {d['king_X78']}/{c['king_X78']} | {'**NO-MEASUREMENT**' if r['VERDICT'].startswith('NO') else 'MEASURED'} |")
+        def mag(m):
+            vals = [r["per_anchor"][A][m].get("magnitude_on_changed_cells") for A in anchors]
+            vals = [v for v in vals if v and v.get("max_abs_delta") is not None]
+            if not vals:
+                return "—"
+            return (f"max {max(v['max_abs_delta'] for v in vals):.2e} / "
+                    f"med {np.median([v['median_abs_delta'] for v in vals]):.2e}")
+        L.append(f"| {arm} | {d['X82']}/{c['X82']} | {n['X82']}/82 | {mag('X82')} | {d['X89']}/{c['X89']} "
+                 f"| {n['X89']}/89 | {mag('X89')} | {d['king_X78']}/{c['king_X78']} | {mag('king_X78')} "
+                 f"| {'**NO-MEASUREMENT**' if r['VERDICT'].startswith('NO') else 'MEASURED'} |")
     if unavailable:
         L += ["", "**缺测(具名)**", ""] + [f"- `{u['arm']}`: {u['why']}" for u in unavailable]
     open(out_md, "w").write("\n".join(L) + "\n")
