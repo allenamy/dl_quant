@@ -53,3 +53,25 @@ setsid bash -c "echo \$\$ > $R/logs/ctrl0_s2027.pgid; env -i PATH=/usr/bin:/bin 
 #   → configs PASS (2414388f / 6643a55f); ep_s2027 DONE EXIT 0; ctrl0_s2027 PASS EXIT 0
 $P -B m2_path_compare.py $R/runs_smoke/ctrl0_s2027/NEWS2_s2027XM3CH0_scaled_rule_raw_UAFE $B27 0 $R/receipts/M3CH0_CONTROL_seed0_s2027_vs_news2_base.json > $R/logs/cmp_ctrl0_s2027.log 2>&1
 setsid bash -c "echo \$\$ > $R/logs/full_m3ch_s2027.pgid; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_hook.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_m3ch_s2027.json --resume m3ch_s2027 > $R/logs/full_m3ch_s2027.log 2>&1; echo \"EXIT \$?\" >> $R/logs/full_m3ch_s2027.log"
+#   → cmp BITWISE_EQUAL (seed 0); full_m3ch_s2027 BT_LAUNCH VERDICT=PASS 32 seeds EXIT 0
+$P -B m3c_compact.py $R/runs/NEWS2_s2027XM3CH_scaled_rule_raw_UAFE > $R/logs/compact_m3ch_s2027.log 2>&1
+setsid bash -c "echo \$\$ > $R/logs/full_m3ch0_s2027.pgid; env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_hook.py PATH,HOME,LC_CTYPE $R/RUN_CONFIG_m3ch0_s2027.json --resume m3ch0_s2027 > $R/logs/full_m3ch0_s2027.log 2>&1; echo \"EXIT \$?\" >> $R/logs/full_m3ch0_s2027.log"
+#   → compact DONE; full_m3ch0_s2027 BT_LAUNCH VERDICT=PASS 32 seeds EXIT 0
+$P -B m2_path_compare.py $R/runs/NEWS2_s2027XM3CH0_scaled_rule_raw_UAFE $B27 $S32 $R/receipts/M3CH0_CONTROL_32_s2027_vs_news2_base.json > $R/logs/cmp_ctrl32_s2027.log 2>&1
+$P -B m3c_compact.py $R/runs/NEWS2_s2027XM3CH0_scaled_rule_raw_UAFE > $R/logs/compact_m3ch0_s2027.log 2>&1
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_readout.py PATH,HOME,LC_CTYPE NC_s2027_side_report $B27 $R/runs/NEWS2_s2027XM3CH_scaled_rule_raw_UAFE/COMPACT $R/runs/NEWS2_s2027XM3CH0_scaled_rule_raw_UAFE/COMPACT $R/m3_sidecar/full_m3ch_s2027 $R/m3_sidecar/full_m3ch0_s2027 $R/work/EXEC_PATH_M3C_s2027.npz $R/receipts/M3CH0_CONTROL_32_s2027_vs_news2_base.json $R/receipts/M3C_READOUT_s2027.json > $R/logs/readout_s2027.log 2>&1
+#   ✗ the three commands above: the compare and the readout FAILED (rc 1, FileNotFoundError) — news2 had removed its NEWS2_s2027X (and s42X) run
+#     directories from /dev/shm after the s42 readout; the compact step between them ran anyway (my chain did not stop on the failed compare;
+#     it recorded every full file's sha256 before removing it, so nothing is lost). Replacement (receipts: logs/cmp_ctrl32_s2027.log keeps the
+#     failure): full-file sha256 equality against news2's launch receipt, which lists every seed's npz_sha256 (sha ca6191ad, pinned before any
+#     number in M3C_OPERATIONALISATION.json); base series for the s2027 readout = the zero-hedge control's compact paths (sha-equal to the base).
+$P -B m3c_sha_compare.py $R/runs/NEWS2_s2027XM3CH0_scaled_rule_raw_UAFE/COMPACT/COMPACT_RECEIPT.json $N2/receipts/BT_LAUNCH_full_news2_s2027x.json ca6191ad1d94ba4a025c94261f865585059fbe4e8fa37e828197fde3442c99bd $R/receipts/M3CH0_CONTROL_32_s2027_vs_news2_base_SHA.json > $R/logs/cmp_sha_ctrl32_s2027.log 2>&1
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 $P -B m3_readout.py PATH,HOME,LC_CTYPE NC_s2027_side_report $R/runs/NEWS2_s2027XM3CH0_scaled_rule_raw_UAFE/COMPACT $R/runs/NEWS2_s2027XM3CH_scaled_rule_raw_UAFE/COMPACT $R/runs/NEWS2_s2027XM3CH0_scaled_rule_raw_UAFE/COMPACT $R/m3_sidecar/full_m3ch_s2027 $R/m3_sidecar/full_m3ch0_s2027 $R/work/EXEC_PATH_M3C_s2027.npz $R/receipts/M3CH0_CONTROL_32_s2027_vs_news2_base_SHA.json $R/receipts/M3C_READOUT_s2027.json > $R/logs/readout_s2027.log 2>&1
+# s42 cross-check (evidence only): the s42 control's full-file shas against news2's s42x launch receipt
+$P -B m3c_sha_compare.py $R/receipts/COMPACT_RECEIPT_m3ch0_s42.json $N2/receipts/BT_LAUNCH_full_news2_s42x.json 27aa76ce2601df58b32ed63f4cc9c40c83958e0ed60a626990361437ec849c66 $R/receipts/M3CH0_CONTROL_32_s42_vs_news2_base_SHA.json > $R/logs/cmp_sha_ctrl32_s42.log 2>&1
+#   → M3C_SHA_COMPARE BITWISE_EQUAL equal 32 / 32 control_differs True (s2027 and s42); M3_READOUT NC_s2027_side_report VERDICT=PASS, EXIT 0
+# ---- 11. clean-up of the container disk: s2027 compact paths / sidecars / smoke were pulled to the Mac (266 files, sha-identical), then removed;
+#          the β matrix, configs, receipts and logs stay under $R (small) ----
+cd $R && rm -rf runs/NEWS2_s2027XM3CH_scaled_rule_raw_UAFE runs/NEWS2_s2027XM3CH0_scaled_rule_raw_UAFE m3_sidecar/full_m3ch_s2027 m3_sidecar/full_m3ch0_s2027 m3_sidecar/smoke_ctrl0_s2027 runs_smoke/ctrl0_s2027 tmp
+# ---- PGIDs recorded by the launch wrappers (logs/*.pgid; no signal was ever sent to any): ep_s42 2448517 · ctrl0_s42 2448632 · m3ctests_s42 2449348 ·
+#      full_m3ch_s42 2449561 · full_m3ch0_s42 2453840 · ep_s2027 2457127 · ctrl0_s2027 2457128 · full_m3ch_s2027 2458060 · full_m3ch0_s2027 2462003
