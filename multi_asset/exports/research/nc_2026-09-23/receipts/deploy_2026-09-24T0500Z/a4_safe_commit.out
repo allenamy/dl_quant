@@ -1,0 +1,26 @@
+--- safe_commit start 05:07:32
+── 1/5 拉取远端(显式检查, 不经管道)
+From https://github.com/allenamy/dl_quant_live
+ * branch            main       -> FETCH_HEAD
+  ✓ 已是最新
+── 2/5 检查显式路径存在(只对新文件 intent-to-add —— 见第 4 步为什么)
+ config/book.json                                   |  10 +-
+ live/tests_anchor_report_builder.py                |  25 +-
+ ops/anchor_report.py                               |  39 +-
+ .../20260923_nc/INSTALL_CONTRACT.json              | 179 ++++++++
+ .../20260923_nc/PATCH_RECEIPT.json                 | 469 +++++++++++++++++++++
+ 5 files changed, 710 insertions(+), 12 deletions(-)
+── 3/5 离线隔离验收 runner(全绿才提交)
+----------------------------------------------------------------
+ACCEPTANCE: ALL GREEN (163/163 suites exit 0)
+OFFLINE_ACCEPTANCE_EXIT: 0
+── 4/5 提交(pathspec 形式 —— 只提交列出的路径)
+[main 5d3029c] NC release: producer_contract nc_v1 + pins (booster 700d9e7b / f10 3d7d050f) + M3 beta_overlay shadow 2.5 + anchor_report daemon contract; VERDICT=NO_DEPLOY USER_OVERRIDE=053d50f4ab034ca5e311600b10864d0e30046f2aedf2fca369ebecdc8d032b6b (user release over the verdict); quant_research DEPLOY_producer_new_contract_2026-09-23 A4
+ 5 files changed, 710 insertions(+), 12 deletions(-)
+ create mode 100644 ops/producer_release/20260923_nc/INSTALL_CONTRACT.json
+ create mode 100644 ops/producer_release/20260923_nc/PATCH_RECEIPT.json
+── 5/5 推送
+To https://github.com/allenamy/dl_quant_live.git
+   b66257b..5d3029c  main -> main
+✓ 完成: 5d3029c NC release: producer_contract nc_v1 + pins (booster 700d9e7b / f10 3d7d050f) + M3 beta_overlay shadow 2.5 + anchor_report daemon contract; VERDICT=NO_DEPLOY USER_OVERRIDE=053d50f4ab034ca5e311600b10864d0e30046f2aedf2fca369ebecdc8d032b6b (user release over the verdict); quant_research DEPLOY_producer_new_contract_2026-09-23 A4
+safe_commit rc=0 end 05:25:09
