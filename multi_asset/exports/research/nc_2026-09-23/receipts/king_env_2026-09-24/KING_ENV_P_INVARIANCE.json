@@ -1,0 +1,20 @@
+{
+ "what": "Plan B (lead 2026-09-23 23:5xZ): is King's OOF prediction matrix sensitive to the training environment? Input NC_FEATURES 3c886a2b (unchanged), labels dlw_targets ca479fcc, folds king_folds 4886c278, trainer = news2_train_king.py b19459a5 copied with ONLY line 13 (root W) changed (per-run *.trainer.diff). Runs on pod2 2026-09-23 23:59Z - 2026-09-24 00:12Z, one at a time, nice 10, CUDA_VISIBLE_DEVICES empty, outputs on the container disk (not /dev/shm), deleted after comparison; news2's three KING_OOF.npz read-only.",
+ "baseline_on_file_sha": {"b1": "0d3ad3b4f94277bf…", "b2": "0c8e6dc54450e989…", "b3": "b2104f3d94055324…", "b4": "15df5a777e85ba63…",
+                          "verdict": "RED — four identical runs, four different KING_OOF.npz file sha256 (the value the trainer names 'predictions_sha256'); none equals news2 run4 a10b8725"},
+ "cause_of_red": "KING_OOF.npz holds P, E_ts, symbols AND model_sha256 (per-anchor hash of the LightGBM model text). With n_jobs=8 the float accumulation order varies, so a few leaf values differ in the 17th significant digit (e.g. 0.00023020510037324675 vs …683, king_2024.txt); the model text and hence the file hash change every run. 'predictions_sha256' is a FILE hash including that field — it is not a hash of the predictions.",
+ "measurement_on_P": {"reference": "b3 P (float32 10333 x 829, 2,645,009 finite cells)",
+   "b4 identical rerun": "bitwise equal, 0 cells differ",
+   "w1 outer OMP_NUM_THREADS=OPENBLAS_NUM_THREADS=1": "bitwise equal, 0 (the trainer overwrites both at L8 before importing numpy)",
+   "t1 in-code pin OMP=1 OPENBLAS=1": "bitwise equal, 0",
+   "t8 in-code pin OMP=2 OPENBLAS=8": "bitwise equal, 0",
+   "s1 interpreter /usr/bin/python3 (system site-packages), NPY set": "bitwise equal, 0",
+   "n1 venv interpreter, NPY_DISABLE_CPU_FEATURES unset": "bitwise equal, 0",
+   "news2 run1 (/usr/bin/python3, NPY unset)": "bitwise equal, 0",
+   "news2 run3 (/usr/bin/python3, NPY set)": "bitwise equal, 0",
+   "news2 run4 (venv, NPY set)": "bitwise equal, 0"},
+ "fold_metrics": "mean_cs_spearman / mean_cs_pearson / mean_per_asset_pearson identical to float64 precision in every fold of every run (*.king.log)",
+ "conclusion": "On a fixed input, King's predictions P are bitwise invariant to every tested environment variable: interpreter path, NPY_DISABLE_CPU_FEATURES, outer thread variables, and the in-code OMP/OPENBLAS pin (LightGBM threads are fixed by n_jobs=8 in the params). The three different 'predictions_sha256' in news2's KING_ENV_SENSITIVITY.json come from the embedded model_sha256 field, not from the predictions; its finding 'the environment changes the King OOF' is NOT supported.",
+ "for_gate_B1": "No tested environment variable changes King's P, so the unrecorded parts of NEW_S's King environment cannot introduce a King-side difference between NEW_S and NC. Limitation: measured on the NC input; NEW_S's own input (NEWS_FEATURES a490c294) was deleted, so NEW_S's P was not re-produced — the invariance on NEWS input is inferred (same code path), not measured.",
+ "recommendation": "Compare King outputs by the P array (or a hash of P alone), never by the npz file hash; rename or split 'predictions_sha256' in the trainer receipt (a trainer change — news2's call)."
+}

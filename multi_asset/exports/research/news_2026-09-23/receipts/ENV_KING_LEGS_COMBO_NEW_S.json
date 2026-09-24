@@ -15,7 +15,7 @@
  "king": {
   "interpreter_path": "VERIFIED /workspace/venv/bin/python  (driver L8 PV=/workspace/venv/bin/python; L14 'nice -n 5 $PV -u news_train_king.py')",
   "NPY_DISABLE_CPU_FEATURES": "VERIFIED set to 'X86_V4 AVX512_ICL AVX512_SPR' (driver L9 export, in effect at L14; first unset at L19)",
-  "OMP_NUM_THREADS / OPENBLAS_NUM_THREADS": "NOT RECORDED - not set by the driver for the King line, so inherited from the launching shell, which is unrecorded. LightGBM threads are pinned in the trainer: news_train_king.py L49 n_jobs=8, random_state=0",
+  "OMP_NUM_THREADS / OPENBLAS_NUM_THREADS": "VERIFIED pinned in code: news_train_king.py L8 os.environ['OMP_NUM_THREADS']='8'; os.environ['OPENBLAS_NUM_THREADS']='2', executed before numpy/scipy/lightgbm are imported, so any inherited value is overwritten; LightGBM threads fixed by n_jobs=8 (L49). news2's NC trainer news2_train_king.py (b19459a5) has the identical L8; the two files differ only in the root path (L13) within the first 80 lines.",
   "contemporaneous_receipt": "receipts/P3_KING_ENV.json (mtime 12:41:49Z, 83 s after DONE king; king_train_receipt_sha256 decd5b1d… == sha256(work/king/TRAIN_RECEIPT.json), verified): interpreter /workspace/venv/bin/python, python 3.11.10, numpy 2.4.6, scipy 1.17.1, sklearn 1.9.0, lightgbm 4.7.0, env_NPY_DISABLE_CPU_FEATURES 'X86_V4 AVX512_ICL AVX512_SPR (inherited from the chain)'. CAVEAT: written by hand after the King process had exited (no device writes it); its version strings describe the venv, they were not captured inside the King process",
   "trainer": {
    "file": "devices/news_train_king.py",
@@ -52,5 +52,22 @@
   "struck_text_in_my_message_to_lead_and_report": "~~news2 三次复跑得到的 d76b5b9b、8f7b2bee、a10b8725 都与 744bc48e 不同, 所以这三种环境变体没有一种复现出原结果~~",
   "correction": "Retracted. news2's three runs used the NC input (NC_FEATURES 3c886a2b); 744bc48e was computed on the NEW_S input (NEWS_FEATURES a490c294). Different inputs must give different predictions, so the comparison carries no information about whether the environment reproduces NEW_S — even with a perfectly pinned environment those three shas would differ from 744bc48e (the lead's discriminator). News2's reruns can only be compared with each other (they show that interpreter path and NPY_DISABLE_CPU_FEATURES change King's output on a fixed input).",
   "reproduction_status": "The original King input NEWS_FEATURES a490c294 no longer exists on pod2: deleted 2026-09-23 20:10Z to free /dev/shm for the NC pass 2 (lead-approved; sha re-verified before deletion; logs/shm_cleanup_2026-09-23T2010Z.log). /dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz is a hard link to NC_FEATURES (sha 3c886a2b), NOT the NEW_S input. A reproduction of 744bc48e needs NEWS_FEATURES rebuilt first (NEW_S P2 build)."
+ },
+ "erratum_2026-09-24T0015Z": {
+  "struck_text": "~~NOT RECORDED - not set by the driver for the King line, so inherited from the launching shell, which is unrecorded. LightGBM threads are pinned in the trainer: news_train_king.py L49 n_jobs=8, random_state=0~~",
+  "correction": "Wrong: the King thread environment WAS pinned — in the trainer itself (L8), not in the driver. I read the driver only.",
+  "measured_consequence": "receipts/king_env_2026-09-24/KING_ENV_P_INVARIANCE.json (nc_2026-09-23): on NC_FEATURES, King's P is bitwise invariant to interpreter path, NPY_DISABLE_CPU_FEATURES and thread pins (0 of 2,645,009 cells differ in every variant and in news2's three runs). The file-level 'predictions_sha256' varies run to run only because the npz embeds per-anchor model_sha256 (LightGBM model text differs in the 17th digit of a few leaf values)."
+ },
+ "input_deleted_and_rebuild_path": {
+  "statement": "NEW_S's King input NEWS_FEATURES.npz (a490c294) was deleted 2026-09-23 20:10Z to free /dev/shm for the NC pass 2 (lead-approved; sha verified before deletion; logs/shm_cleanup_2026-09-23T2010Z.log). The original King OOF 744bc48e can therefore not be re-produced as things stand.",
+  "rebuild_path_A": "Re-run the NEW_S replay device for the King block only (X78 + members; ~20–30 min wall estimated from the NC pass 1, ~1 GB /dev/shm), verify bitwise against the surviving 9-anchor slice NEWS_FEATURES_parity9.npz, then run news_train_king.py (f1f393f8) under the driver's pins and compare P with 744bc48e's P.",
+  "rebuild_path_depends_on (none is the deleted file)": [
+   "NEW_S devices on pod2: /dev/shm/news_2026-09-23/devices/{news_p2_build.py, news_hist_features.py, news_train_king.py, king_folds.py} and producer tree /dev/shm/news_2026-09-23/producer/",
+   "x0918r cache /workspace/axis_0919/x0918r/data/dlnative_5m_wide829_f16_holefix2_x0918r.npz (pinned sha 08bb2957…; present, sha not re-verified tonight) -> cache_x0918r_data.npy via p1_members.py",
+   "holes /workspace/axis_0919/x0918r/inputs/holefix2r_cells_x0918r.npz and mask …/member_mask_tradable_AND_live_W24H_cachegrid.npz (present)",
+   "work/fund_replay.npz (present), labels dlw_targets ca479fcc (present)",
+   "verification slice NEWS_FEATURES_parity9.npz (pod2 work/, Mac ~/cc_tmp/news_20260923/parity/, research repo news_2026-09-23/receipts/parity/)"
+  ],
+  "status": "not done (lead chose plan B; A only if the NEW_S control result itself needs backing)"
  }
 }
