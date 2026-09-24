@@ -1,6 +1,14 @@
-> **创建:** 2026-09-24 08:0xZ | **Session:** session_01MCyx6gj5EdbghE9bwjBjJv(news2) | **状态:** **设计, 交 lead 裁定; 未跑任何引擎** | **作废条件:** lead 否决; 或 `combo_target.py`(`d7577e82`)、NC `legs.npz`、研究员 `f10v2_legs.npz`(`f1cc7953`)任一 sha 改变
+> **创建:** 2026-09-24 08:0xZ | **Session:** session_01MCyx6gj5EdbghE9bwjBjJv(news2) | **状态:** **未跑 —— lead 2026-09-24 裁定:因扰动实验已给出更关键的问题,本臂这次不跑。设计保留备查** | **作废条件:** lead 否决; 或 `combo_target.py`(`d7577e82`)、NC `legs.npz`、研究员 `f10v2_legs.npz`(`f1cc7953`)任一 sha 改变
 
 # 设计:KZ 替换反事实 —— 量那 98%
+
+## ★ lead 裁定(2026-09-24):这次不跑
+
+> 「KZ 替换这次不跑。判据窗内唯一实质不同的输入已经确定是 King 的 P,KZ 替换能告诉我们的只是『大部分』,信息量有限。设计文档保留,状态标为『未跑,因扰动实验已给出更关键的问题』。」
+
+更关键的问题 = **这 2.83 / 0.93 bps/日有多少只是模型扰动的噪声**,设计见 `docs/DESIGN_perturbation_noise_experiment_2026-09-24.md`。
+
+本文以下内容保留备查,未执行。
 
 ## 0. 为什么是这一刀(lead 更正过我的推理)
 
