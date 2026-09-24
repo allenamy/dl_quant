@@ -1,0 +1,24 @@
+B7_FETCH VERDICT=PARTIAL_FAILED_SYMBOLS ok=5 failed=1 max_used_weight_1m=72 manifest_sha256=03bb5d6f35cf686ad380ea5c86d92bb248f40277883190bec1b9e6d48598af00
+GREEN F6.one_400_symbol_partial_and_named {"verdict": "PARTIAL_FAILED_SYMBOLS", "n": 6}
+B7_FETCH VERDICT=ABORTED_http_429 ok=2 failed=1 max_used_weight_1m=10 manifest_sha256=d025790db09887faa1f10c1305c2b22a679842fd16502c3f15f0985e7abcf1c2
+GREEN F2.http_429_aborts_no_retry {"verdict": "ABORTED_http_429", "calls": 3}
+B7_FETCH VERDICT=ABORTED_http_418 ok=1 failed=1 max_used_weight_1m=10 manifest_sha256=e9be4fbb2b69688a78a7976eae63b672c60886704662364d6348d3563646818c
+GREEN F2b.http_418_aborts_no_retry {"verdict": "ABORTED_http_418"}
+B7_FETCH VERDICT=ABORTED_weight_1201_above_1200 ok=2 failed=0 max_used_weight_1m=1201 manifest_sha256=eee84248b8163a759c5c5ff993cd76fe0e60c50c1d424eb48df5a32298bc0a36
+GREEN F3.weight_over_1200_aborts {"verdict": "ABORTED_weight_1201_above_1200"}
+B7_FETCH VERDICT=ABORTED_no_weight_header ok=3 failed=1 max_used_weight_1m=10 manifest_sha256=d389a04975f29b234a99a888508e7b074da720aa32cb551e0dcb6b02d1ec5d88
+GREEN F4.missing_weight_header_aborts {"verdict": "ABORTED_no_weight_header"}
+B7_FETCH VERDICT=ABORTED_quiet_window_closing (closing) ok=2 failed=0 max_used_weight_1m=10 manifest_sha256=fcfd94829a437c1410465ad5a3d5db8cbb3db3f41c6add9e82783fdf167ea8c9
+GREEN F5.quiet_window_closing_aborts {"verdict": "ABORTED_quiet_window_closing (closing)"}
+B7_FETCH VERDICT=PARTIAL_FAILED_SYMBOLS ok=5 failed=1 max_used_weight_1m=5 manifest_sha256=aab508eb198fe236efbf3c616fcf29cf7700787fdcd74571528575b74deaf145
+GREEN F1.log_one_line_per_request_and_raw_bodies {"n_log": 6, "n_ok": 5}
+B7_FETCH VERDICT=PARTIAL_FAILED_SYMBOLS ok=165 failed=1 max_used_weight_1m=5 manifest_sha256=cab29e1079b020097f89d285b40cc38a0ee46fbebd5eb0f7aad1b75601efbf13
+GREEN C1.research_beta_equals_truth_and_control_passes {"ctrl": {"n_compared_clean": 123, "max_abs_dbeta_clean": 7.327471962526033e-15, "n_ua_names_reported_not_gated": 41, "max_abs_dbeta_ua_names": 4.6629367034256575e-15, "gate": "max |\u0394\u03b2| \u2264 1e-6 on \u2265 100 clean names", "pass": true}}
+GREEN C1b.missing_name_is_MISSING_not_1 {"classes": {"both_estimated": 164, "BTC": 1, "MISSING": 1}}
+GREEN C2.closure_and_pass {"verdict": "PASS", "rel": 0.0022124853585489867, "closure": {"n_order_symbols": 5, "n_nonzero_target": 4, "sum_abs_target_w": 1.0, "c1_sum_abs_w_is_1": true, "c2_nonzero_count_equals_n_targeted_names": true, "c3_recon_with_prod_betas_equals_record": true, "recon_beta_exec_usdt_prod_betas": -5762.75
+GREEN C2b.layer_i_lists_the_one_name_over_1pct {"n_over": 0, "rel": {"n": 164, "p50": 4.571506571985918e-15, "p90": 5.995204332975809e-15, "p99": 5.995204332975809e-15, "max": 0.002999999999995215}}
+GREEN C2c.a_2pct_name_is_listed {"n": 1}
+GREEN C3.perturbed_target_w_not_recomputable {"verdict": "UNDECIDED"}
+GREEN C4.betas_sha_mismatch_undecided {"verdict": "UNDECIDED"}
+GREEN C5.five_pct_prod_betas_fail {"verdict": "FAIL", "rel": 0.047619047619044}
+B7_SELFTEST VERDICT=ALL GREEN tests=15 red=0

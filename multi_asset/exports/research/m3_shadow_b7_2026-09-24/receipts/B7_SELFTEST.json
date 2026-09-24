@@ -1,0 +1,114 @@
+{
+ "tests": [
+  {
+   "test": "F6.one_400_symbol_partial_and_named",
+   "ok": true,
+   "verdict": "PARTIAL_FAILED_SYMBOLS",
+   "n": 6
+  },
+  {
+   "test": "F2.http_429_aborts_no_retry",
+   "ok": true,
+   "verdict": "ABORTED_http_429",
+   "calls": 3
+  },
+  {
+   "test": "F2b.http_418_aborts_no_retry",
+   "ok": true,
+   "verdict": "ABORTED_http_418"
+  },
+  {
+   "test": "F3.weight_over_1200_aborts",
+   "ok": true,
+   "verdict": "ABORTED_weight_1201_above_1200"
+  },
+  {
+   "test": "F4.missing_weight_header_aborts",
+   "ok": true,
+   "verdict": "ABORTED_no_weight_header"
+  },
+  {
+   "test": "F5.quiet_window_closing_aborts",
+   "ok": true,
+   "verdict": "ABORTED_quiet_window_closing (closing)"
+  },
+  {
+   "test": "F1.log_one_line_per_request_and_raw_bodies",
+   "ok": true,
+   "n_log": 6,
+   "n_ok": 5
+  },
+  {
+   "test": "C1.research_beta_equals_truth_and_control_passes",
+   "ok": true,
+   "ctrl": {
+    "n_compared_clean": 123,
+    "max_abs_dbeta_clean": 7.327471962526033e-15,
+    "n_ua_names_reported_not_gated": 41,
+    "max_abs_dbeta_ua_names": 4.6629367034256575e-15,
+    "gate": "max |\u0394\u03b2| \u2264 1e-6 on \u2265 100 clean names",
+    "pass": true
+   }
+  },
+  {
+   "test": "C1b.missing_name_is_MISSING_not_1",
+   "ok": true,
+   "classes": {
+    "both_estimated": 164,
+    "BTC": 1,
+    "MISSING": 1
+   }
+  },
+  {
+   "test": "C2.closure_and_pass",
+   "ok": true,
+   "verdict": "PASS",
+   "rel": 0.0022124853585489867,
+   "closure": {
+    "n_order_symbols": 5,
+    "n_nonzero_target": 4,
+    "sum_abs_target_w": 1.0,
+    "c1_sum_abs_w_is_1": true,
+    "c2_nonzero_count_equals_n_targeted_names": true,
+    "c3_recon_with_prod_betas_equals_record": true,
+    "recon_beta_exec_usdt_prod_betas": -5762.75,
+    "ambiguous_symbols": 0,
+    "targeted_without_prod_beta": 0
+   }
+  },
+  {
+   "test": "C2b.layer_i_lists_the_one_name_over_1pct",
+   "ok": true,
+   "n_over": 0,
+   "rel": {
+    "n": 164,
+    "p50": 4.571506571985918e-15,
+    "p90": 5.995204332975809e-15,
+    "p99": 5.995204332975809e-15,
+    "max": 0.002999999999995215
+   }
+  },
+  {
+   "test": "C2c.a_2pct_name_is_listed",
+   "ok": true,
+   "n": 1
+  },
+  {
+   "test": "C3.perturbed_target_w_not_recomputable",
+   "ok": true,
+   "verdict": "UNDECIDED"
+  },
+  {
+   "test": "C4.betas_sha_mismatch_undecided",
+   "ok": true,
+   "verdict": "UNDECIDED"
+  },
+  {
+   "test": "C5.five_pct_prod_betas_fail",
+   "ok": true,
+   "verdict": "FAIL",
+   "rel": 0.047619047619044
+  }
+ ],
+ "red": []
+}
