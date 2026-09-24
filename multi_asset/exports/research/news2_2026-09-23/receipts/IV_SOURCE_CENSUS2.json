@@ -1,0 +1,248 @@
+{
+  "device": "news2_iv_source_census2.py",
+  "self_sha256": "d9c4a8e0102652396eb297cf1ea843e5d333b6bc011fc102dcf9fad5b97aeabc",
+  "argv": [
+    "--fund",
+    "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+    "--latest",
+    "/workspace/axis_0919/funding/funding_ledger.npz",
+    "--archive-root",
+    "/workspace/fx_prod_p9/zips_2026-08",
+    "--helper-dir",
+    "/workspace/codex_research/QNT-2026-0907/uplift_20260922/devices",
+    "--out",
+    "/dev/shm/news2_2026-09-23/receipts/IV_SOURCE_CENSUS2.json"
+  ],
+  "cwd": "/dev/shm/news2_2026-09-23/devices",
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "status": "COUNTS_BY_REASON_ON_THE_ASSEMBLED_IV",
+  "supersedes": {
+    "receipt": "IV_SOURCE_CENSUS.json",
+    "why": "it used the ledger's zip_iv column; the researcher passes official_intervals(fund, latest, official) to funding_state (build_combo_inputs.py L140-141). The 4.1028% it reported is retracted."
+  },
+  "helper": {
+    "module": "corrected_inputs.official_intervals",
+    "dir": "/workspace/codex_research/QNT-2026-0907/uplift_20260922/devices"
+  },
+  "inputs": {
+    "fund": {
+      "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+      "sha256": "073088e503c026d6071c76764426503616d53570e5f3763807df27ea7cc80362"
+    },
+    "latest": {
+      "path": "/workspace/axis_0919/funding/funding_ledger.npz",
+      "sha256": "74b69e635efbf3556fe706520fda9d5a1b5cda86dda9d04a844ba5d617a3a09d"
+    }
+  },
+  "archive": {
+    "zips_read": 679,
+    "rows": 103527
+  },
+  "researcher_iv_audit": {
+    "trusted_latest_events_matched": 98066,
+    "official_events_matched": 103527,
+    "max_rate_difference": 0.0,
+    "untrusted_latest_events": 21
+  },
+  "assembled_iv": {
+    "n_events": 2693666,
+    "n_unknown": 4663,
+    "zip_iv_n_unknown_for_contrast": 109070
+  },
+  "totals": {
+    "events": 2693666,
+    "disagreeing": 6132,
+    "pct": 0.22764514976986752
+  },
+  "by_reason": {
+    "ii_researcher_iv_absent": {
+      "count": 4653,
+      "pct_of_events": 0.17273856521187111,
+      "by_year": {
+        "2021": 184,
+        "2022": 2736,
+        "2023": 350,
+        "2026": 1383
+      }
+    },
+    "iii_first_event": {
+      "count": 821,
+      "pct_of_events": 0.030478908669448995,
+      "by_year": {
+        "2020": 81,
+        "2021": 58,
+        "2022": 25,
+        "2023": 96,
+        "2024": 131,
+        "2025": 238,
+        "2026": 192
+      }
+    },
+    "i_missing_settlement": {
+      "count": 503,
+      "pct_of_events": 0.018673436127567413,
+      "by_year": {
+        "2021": 1,
+        "2022": 2,
+        "2023": 15,
+        "2024": 8,
+        "2025": 14,
+        "2026": 463
+      }
+    },
+    "iv_other": {
+      "count": 155,
+      "pct_of_events": 0.005754239760980017,
+      "by_year": {
+        "2022": 2,
+        "2023": 4,
+        "2025": 39,
+        "2026": 110
+      }
+    }
+  },
+  "missing_settlement_multiples": {
+    "2": 450,
+    "4": 51,
+    "8": 2
+  },
+  "examples": {
+    "iii_first_event": [
+      {
+        "symbol": "0GUSDT",
+        "utc": "2025-09-17T16:00Z",
+        "gap_hours": null,
+        "researcher_iv": 4.0,
+        "nc_snap_interval": null,
+        "ratio_nc_over_researcher": null
+      },
+      {
+        "symbol": "1000000BOBUSDT",
+        "utc": "2025-06-05T08:00Z",
+        "gap_hours": null,
+        "researcher_iv": 8.0,
+        "nc_snap_interval": null,
+        "ratio_nc_over_researcher": null
+      },
+      {
+        "symbol": "1000000MOGUSDT",
+        "utc": "2024-11-07T16:00Z",
+        "gap_hours": null,
+        "researcher_iv": 4.0,
+        "nc_snap_interval": null,
+        "ratio_nc_over_researcher": null
+      }
+    ],
+    "iv_other": [
+      {
+        "symbol": "0GUSDT",
+        "utc": "2025-12-03T20:00Z",
+        "gap_hours": 1.0,
+        "researcher_iv": 4.0,
+        "nc_snap_interval": 1.0,
+        "ratio_nc_over_researcher": 0.25
+      },
+      {
+        "symbol": "0GUSDT",
+        "utc": "2026-02-15T04:00Z",
+        "gap_hours": 2.0,
+        "researcher_iv": 4.0,
+        "nc_snap_interval": 2.0,
+        "ratio_nc_over_researcher": 0.5
+      },
+      {
+        "symbol": "AAPLUSDT",
+        "utc": "2026-05-11T16:00Z",
+        "gap_hours": 3.0,
+        "researcher_iv": 8.0,
+        "nc_snap_interval": 4.0,
+        "ratio_nc_over_researcher": 0.5
+      }
+    ],
+    "i_missing_settlement": [
+      {
+        "symbol": "1000000BOBUSDT",
+        "utc": "2026-06-24T08:00Z",
+        "gap_hours": 8.0,
+        "researcher_iv": 4.0,
+        "nc_snap_interval": 8.0,
+        "ratio_nc_over_researcher": 2.0
+      },
+      {
+        "symbol": "1000000MOGUSDT",
+        "utc": "2026-06-24T08:00Z",
+        "gap_hours": 8.0,
+        "researcher_iv": 4.0,
+        "nc_snap_interval": 8.0,
+        "ratio_nc_over_researcher": 2.0
+      },
+      {
+        "symbol": "1000BONKUSDT",
+        "utc": "2026-06-24T08:00Z",
+        "gap_hours": 8.0,
+        "researcher_iv": 4.0,
+        "nc_snap_interval": 8.0,
+        "ratio_nc_over_researcher": 2.0
+      }
+    ],
+    "ii_researcher_iv_absent": [
+      {
+        "symbol": "AERGOUSDT",
+        "utc": "2026-07-01T00:00Z",
+        "gap_hours": 4.0,
+        "researcher_iv": null,
+        "nc_snap_interval": 4.0,
+        "ratio_nc_over_researcher": null
+      },
+      {
+        "symbol": "AERGOUSDT",
+        "utc": "2026-07-01T04:00Z",
+        "gap_hours": 4.0,
+        "researcher_iv": null,
+        "nc_snap_interval": 4.0,
+        "ratio_nc_over_researcher": null
+      },
+      {
+        "symbol": "AERGOUSDT",
+        "utc": "2026-07-01T08:00Z",
+        "gap_hours": 4.0,
+        "researcher_iv": null,
+        "nc_snap_interval": 4.0,
+        "ratio_nc_over_researcher": null
+      }
+    ]
+  },
+  "reconciliation": {
+    "in_case_receipt": "news_2026-09-23/receipts/IV_AUDIT_gap_rule_vs_research.json (40530ad7)",
+    "in_case": {
+      "both_known_differ": 692,
+      "researcher_known_gap_unknown": 821,
+      "researcher_unknown_gap_known": 4655,
+      "total": 6168
+    },
+    "mine": {
+      "both_known_differ": 658,
+      "researcher_known_gap_unknown": 821,
+      "researcher_unknown_gap_known": 4653,
+      "total": 6132
+    },
+    "delta": {
+      "both_known_differ": -34,
+      "researcher_known_gap_unknown": 0,
+      "researcher_unknown_gap_known": -2,
+      "total": -36
+    },
+    "in_case_pct": 0.2289816183595145,
+    "matches_total": false
+  },
+  "red_control": {
+    "snap_3h_is_4": true,
+    "snap_25h_is_None": true,
+    "classification_exhaustive": true,
+    "assembled_iv_differs_from_zip_iv": true,
+    "n_distinct_reasons": 4,
+    "baseline_green": true
+  },
+  "verdict": "MEASURED"
+}
