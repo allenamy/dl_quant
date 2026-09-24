@@ -10,19 +10,20 @@ CFG = os.environ.get("NC_CFG", f"{W}/inputs/bundle_config.json")
 
 CHILD = r'''
 import sys, json, traceback, numpy as np
-sys.path.insert(0, HERE_)
+sys.path.insert(0, @@HERE@@)
 import nc_hist_features as H
-out = {"arm": ARM_}
+out = {"arm": @@ARM@@}
 try:
-    H.set_tree(TREE_); I = H.Inputs(); cfg = json.load(open(CFG_)); P = cfg["params"]
-    r = H.pass1_anchor(I, A_, P, cfg, H._king_block())
+    H.set_tree(@@TREE@@); I = H.Inputs(); cfg = json.load(open(@@CFG@@)); P = cfg["params"]
+    r = H.pass1_anchor(I, @@A@@, P, cfg, H._king_block())
     out["pass1"] = {"members": None if r.get("members") is None else int(len(r["members"])), "king": bool(r.get("king")),
                     "n_legal": int(r.get("n_legal", -1)) if r.get("n_legal") is not None else None}
-    mh = np.load(W_ + "/work/members_hist_all.npz"); MH = {int(a): mh["idx"][mh["off"][i]:mh["off"][i + 1]].astype(np.int64) for i, a in enumerate(mh["anchors"])}
-    wk = W_ + "/scratch/armviab_" + ARM_; import os; os.makedirs(wk, exist_ok=True)
-    r2 = H.pass2_anchor(I, A_, MH, wk, H._mini_block(), H._combo_funcs())
+    mh = np.load(@@W@@ + "/work/members_hist_all.npz"); MH = {int(a): mh["idx"][mh["off"][i]:mh["off"][i + 1]].astype(np.int64) for i, a in enumerate(mh["anchors"])}
+    wk = @@W@@ + "/scratch/armviab_" + @@ARM@@; import os; os.makedirs(wk, exist_ok=True)
+    r2 = H.pass2_anchor(I, @@A@@, MH, wk, H._mini_block(), H._combo_funcs())
     out["pass2"] = {"X82": list(np.asarray(r2["X82"]).shape), "X89": list(np.asarray(r2["X89"]).shape), "n_keep": int(r2["n_keep"])}
     out["status"] = "OK"
+    import shutil; shutil.rmtree(wk, ignore_errors=True)            # /dev/shm is shared with news2's chain: leave nothing behind
 except Exception as e:
     out["status"] = "ERROR"; out["error"] = type(e).__name__ + ": " + str(e)[:300]; out["trace"] = traceback.format_exc()[-800:]
 print("ARM_ROW " + json.dumps(out))
@@ -37,7 +38,11 @@ def main():
     rows = []
     for name, tree in arms:
         rec = json.load(open(f"{tree}/PATCH_RECEIPT.json"))
-        code = CHILD.replace("HERE_", repr(HERE)).replace("TREE_", repr(tree)).replace("CFG_", repr(CFG)).replace("A_", str(A)).replace("ARM_", repr(name)).replace("W_", repr(W))
+        code = CHILD
+        for tok, val in (("@@HERE@@", repr(HERE)), ("@@TREE@@", repr(tree)), ("@@CFG@@", repr(CFG)), ("@@A@@", str(A)), ("@@ARM@@", repr(name)), ("@@W@@", repr(W))):
+            assert tok in code, ("placeholder absent from the child source", tok)
+            code = code.replace(tok, val)
+        assert "@@" not in code and 'print("ARM_ROW "' in code, "substitution damaged the child source"
         p = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=dict(os.environ))
         line = [l for l in p.stdout.splitlines() if l.startswith("ARM_ROW ")]
         row = json.loads(line[-1][8:]) if line else {"arm": name, "status": "NO_ROW", "rc": p.returncode, "stderr": p.stderr[-600:]}
