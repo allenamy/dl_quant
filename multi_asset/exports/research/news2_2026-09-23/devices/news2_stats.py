@@ -109,6 +109,17 @@ def main():
 
     rec = {"device": "news2_stats.py", "self_sha256": sha(os.path.abspath(__file__)),
            "statistics_imported_from": {"news_stats.py": NEWS_STATS_SHA}, "devices": NS.DEV,
+           # lead 2026-09-24: record the RESOLVED directory and the MEASURED sha of all three imported
+           # devices next to the pinned values, so the receipt shows what was actually loaded rather than
+           # only what was supposed to be. The 02:01:45Z failure was exactly a wrong resolution of this
+           # directory (env -i dropped NEWS2_NEWS_DEVICES, the default pointed at a dir with no
+           # bt_tables.py), and the receipt would not have said which directory it used.
+           "news_devices_resolved": nsd,
+           "news_devices_env_var": os.environ.get("NEWS2_NEWS_DEVICES"),
+           "news_devices_measured": {f: {"measured_sha256": sha(os.path.join(nsd, f)),
+                                         "pinned_sha256": s,
+                                         "matches": sha(os.path.join(nsd, f)) == s}
+                                     for f, s in ([("news_stats.py", NEWS_STATS_SHA)] + sorted(NS.DEV.items()))},
            "utc_start": NS.iso(time.time()),
            "runs_roots": {"stage1": RUNS1, "news": RUNSN, "news2": RUNS2}, "certified_runs_root": CERT,
            "rng": list(NS.RNG), "B": NS.B, "blocks": {"main": NS.BLOCK_MAIN, "sensitivity": NS.BLOCK_SENS},

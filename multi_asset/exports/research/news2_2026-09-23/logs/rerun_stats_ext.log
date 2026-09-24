@@ -1,0 +1,33 @@
+==== rerun stats+ext 02:18:00Z ====
+-- write-volume estimate (basis: the NEW_S equivalents) --
+   NEWS_STATS.json  264,377 bytes  -> NEWS2_STATS.json expected same order, plus the env_per_step /
+                                      engine-memory / shm-headroom blocks embedded verbatim, so budget ~0.5 MB
+   NEWS_EXT.json      4,990 bytes  -> NEWS2_EXT.json  expected same order, ~5 KB
+   total budget     < 1 MB against 2.28 GiB free
+   df free before: 2.281 GiB
+-- the three imported devices: measured vs pinned --
+   news_stats.py      measured 7141ba42ab227b9f35b48acce62d5e2a pinned 7141ba42ab227b9f35b48acce62d5e2a MATCH
+   bt_driver_lib.py   measured ba3bc2610b12a3f0280ff8f03c039ff5 pinned ba3bc2610b12a3f0280ff8f03c039ff5 MATCH
+   bt_tables.py       measured 892ba66b9e8040ff04caede02272556d pinned 892ba66b9e8040ff04caede02272556d MATCH
+   resolved dir: /dev/shm/news2_2026-09-23/engine
+   ALL THREE MATCH
+-- stats --
+NEWS2_ENV_GATE step=stats VERDICT=PASS sys_prefix=/workspace/venv npy_disable=None omp=None openblas=None unconstrained=['OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS']
+   STATS_RC=0
+NEWS2_STATS SEED s42: A=PASS(S1 vs OLD +5.671, vs OLD_HOLD +3.144 bps/d; S2 3/3, 2/3; S3 maxDD -0.2310 vs -0.2902; S4 halted 0 vs 10; S5 PASS) B1=FAIL(-0.477 bps/d vs NEW_S) B2=PASS(halted 0 vs 0) failing=['B1']
+NEWS2_STATS SEED s2027: A=FAIL(S1 vs OLD +6.207, vs OLD_HOLD +3.680 bps/d; S2 3/3, 1/3; S3 maxDD -0.2253 vs -0.2902; S4 halted 0 vs 10; S5 PASS) B1=PASS(+1.403 bps/d vs NEW_S) B2=PASS(halted 0 vs 0) failing=['A:S2']
+NEWS2_STATS VERDICT=NO_DEPLOY failing={'s42': ['B1'], 's2027': ['A:S2']} unavailable=0 old_reproduction={'base': {'n_identical': 32, 'n': 32}, 'fee_x1.25': {'n_identical': 32, 'n': 32}, 'slip_x1.5': {'n_identical': 32, 'n': 32}, 'fill_x0.9': {'n_identical': 32, 'n': 32}, 'lit': {'n_identical': 32, 'n': 32}} receipt_sha256=6d689c9a152e81f93bf52410ac29db1102bf6e30e1c7eab9f7dfc9addc5055c8
+-- ext --
+NEWS2_ENV_GATE step=ext VERDICT=PASS sys_prefix=/workspace/venv npy_disable=None omp=None openblas=None unconstrained=['OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS']
+   EXT_RC=0
+NEWS_EXT written /dev/shm/news2_2026-09-23/receipts/engine/NEWS2_EXT.json 8f5a011f38f8f066c8472d39e3b7e2e160fde8b2067f897f1f76f8040cb788b1 {'OLD': None, 'NEWS2_s42': 2.8913482127595245, 'NEWS2_s2027': 3.8616994588045834} {'NEWS2_s42': {'shared_anchors': 9138, 'max_abs_diff_window_return': 0.0, 'bitwise_equal': True}, 'NEWS2_s2027': {'shared_anchors': 9138, 'max_abs_diff_window_return': 0.0, 'bitwise_equal': True}}
+-- actual write volume --
+   /dev/shm/news2_2026-09-23/receipts/engine/NEWS2_STATS.json 414339 bytes
+   /dev/shm/news2_2026-09-23/receipts/engine/NEWS2_EXT.json 5010 bytes
+   df free after: 2.280 GiB
+-- lead req 2: upstream unchanged? --
+  n_files=798 total=4.128 GiB composite=64edf8bb7053754bd5b5f7b8
+   pre  composite 64edf8bb7053754bd5b5f7b81af15e11 n_files 798
+   post composite 64edf8bb7053754bd5b5f7b81af15e11 n_files 798
+   UPSTREAM UNCHANGED
+==== RERUN_DONE 02:20:12Z ====
