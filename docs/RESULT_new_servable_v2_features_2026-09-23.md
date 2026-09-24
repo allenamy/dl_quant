@@ -32,7 +32,7 @@
 | 射程门 | `VERDICT=FAIL`(唯一非 PASS 格 = floorD14 `NO-MEASUREMENT`) | 1 | `NC_REACH_GATE.json` |
 | └ D14 分辨力(补测) | `VERDICT=NO_TIE_POSSIBLE at all 5 anchors` | 0 | `D14_RESOLUTION.json` |
 | └ D14 分辨力红控 | `VERDICT=PASS mode=selftest cells=4 not_pass=0` | 0 | `D14_RESOLUTION_selftest.json` |
-| D7 准入(条件 1: 行独立性) | 见 `D7_ROW_INDEPENDENCE.json` | — | `D7_ROW_INDEPENDENCE.json` |
+| D7 准入(条件 1: 行独立性) | `VERDICT=ROW_INDEPENDENT`(`F8_TREND_ROWS=last` 在被取的那一行上等于 `=all`) | 0 | `D7_ROW_INDEPENDENCE.json` |
 | D7 准入(条件 2: 分辨力) | `VERDICT=PASS`(10/10 锚) | 0 | `NC_D7_RESOLUTION.json` |
 | B8 逐位(上线树内核) | `VERDICT=PASS: tree kernel == window_stats bitwise`, 70 对照 / 58,030 格 / 0 不同, 红控 True | 0 | `B8_TREE_BITWISE.json` |
 | 训练树 vs 上线树平价 | `VERDICT=PASS` 408,691 格 0 不同 | 0 | `TREE_PARITY_DEPLOY.json` |
