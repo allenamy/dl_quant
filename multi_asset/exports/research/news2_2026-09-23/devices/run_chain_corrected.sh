@@ -3,9 +3,15 @@
 # scheme as actually run, incl. AMENDMENT 2 lead ruling (a) which moved King from P314 to PV).
 #
 # Why this rerun exists: my first pass launched King and legs with plain `python3` and no
-# NPY_DISABLE_CPU_FEATURES, because I read the device names instead of the chain script. Measured:
-# King with the variable set gives predictions_sha256 8f7b2bee..., without it d76b5b9b... -- the
-# environment changes the trained model, so it is part of the scheme, not decoration (E-0826-D).
+# NPY_DISABLE_CPU_FEATURES, because I read the device names instead of the chain script. The scheme
+# pins the environment per step, so the rerun aligns with it.
+#
+# ★ RETRACTED (2026-09-24): this header used to claim the environment CHANGES the trained model,
+# citing three different KING_OOF.npz file shas. That was wrong -- a .npz file sha is not a content
+# identity. Comparing the arrays, the predictions `P` are BITWISE IDENTICAL across all three
+# environments (8,566,057 cells, 0 different); the file shas differ only through the per-anchor
+# `model_sha256` array stored in the same archive. See receipts/KING_ENV_SENSITIVITY.json.
+# The reason to align with the scheme is that the scheme says so, NOT that the numbers would move.
 set -e
 W=/dev/shm/news2_2026-09-23; D=$W/devices; L=$W/logs
 P314=/root/news_2026-09-23_env/venv314/bin/python; PV=/workspace/venv/bin/python
