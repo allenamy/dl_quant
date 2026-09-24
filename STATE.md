@@ -1,3 +1,9 @@
+> **[2026-09-24 09:0xZ] NC 首锚(08Z)验收通过,1% 研究侧平价一条待 13:00Z(方法 a)**
+> - 版本探针 `VERSION_PROBE first-anchor OK n=0`。执行器读到 King 700d9e7b / F10 3d7d050f,sha_ok,无拒收、无 HOLD;本锚 554 单;anchor_report 为 green,守护 2/2。
+> - 平价:`PARITY_PARITY` 304/304,0 差,这是新生产者的第一次整书平价。combosnap 已自愈(报错共 171 行,08:17Z 之后没有新增)。
+> - M3 shadow:field_ok;450 个 beta 由生产公式逐位复现(方法 b);β_exec −4708 USDT(占 gross −2.1%);合计杠杆 2.02×,低于上限 2.5;没有对冲单;无新告警类别。
+> - 待办:12Z 第二个验收锚;13:00Z 方法 a;SCRT / STORJ 这两个名掉出取数集(推断为非 TRADING),其持仓的合池核对待报。
+
 > **[2026-09-24 05:2xZ] NC s42 已部署(用户在判词 NO_DEPLOY 之上放行,判词不改写)。首个 NC 锚 = 08Z,生产者 08:12Z 起算,执行器 08:24Z 读取**
 > - 生产者:shadow_loop a68c7a5f / combo_stage 363dd8c8 / King 700d9e7b / F10 s42 3d7d050f,共 17 个文件。版本探针 after-a3 为 0 不符,lead 独立复算。新状态 5 个文件,generation 锚 04Z。旁路进程已停用。
 > - 执行器:运行树 **5d3029c**(b66257b + M3 7 个提交 + 发布提交)。离线电池 `ACCEPTANCE: ALL GREEN (163/163 suites exit 0)`。book.json:钉 700d9e7b / 3d7d050f,producer_contract nc_v1,beta_overlay shadow,上限 2.5。三方 HEAD 一致,after-a4 为 0 不符。
