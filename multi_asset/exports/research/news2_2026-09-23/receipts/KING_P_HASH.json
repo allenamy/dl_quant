@@ -1,0 +1,20 @@
+{
+ "receipt": "KING_P_HASH.json",
+ "utc": "2026-09-24T00:39:47Z",
+ "why": "the trainer receipt field is named predictions_sha256 but it is the hash of the WHOLE .npz, which also stores a per-anchor model_sha256 array. With n_jobs=8 a few LightGBM leaf values move in the 17th significant digit, so the model text and therefore the file hash change on every run while P does not. Anyone comparing runs by that field will see differences that are not there -- I did. This records the hash of P ITSELF, which is the quantity the name promises.",
+ "king_oof_path": "/dev/shm/news2_2026-09-23/work/king/KING_OOF.npz",
+ "whole_file_sha256": "a10b872506ca60afcd0f69b0e43d17a548cdd7c6956075000aac954b21e3df9a",
+ "P_array_sha256": "ea78c2f6bf3ffd0a850321ea20c8fe95d0301f46db6494a1c608365a8ccd2870",
+ "P_shape": [
+  10333,
+  829
+ ],
+ "P_dtype": "float32",
+ "P_finite_cells": 2645009,
+ "P_total_cells": 8566057,
+ "also_hashed": {
+  "E_ts": "9db1b7f9d7eabe0ed8dba395006da85a82efd87724dda79efa87a25fa8d019a5"
+ },
+ "cross_reference": "nc_2026-09-23/receipts/king_env_2026-09-24/KING_ENV_P_INVARIANCE.json (integrator): P bitwise invariant across 6 environment variants; 4 identical runs gave 4 different file hashes",
+ "recommendation_adopted": "compare King outputs by P (or a hash of P alone), never by the npz file hash"
+}
