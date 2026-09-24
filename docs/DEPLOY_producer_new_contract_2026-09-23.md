@@ -1,4 +1,4 @@
-> **创建:** 2026-09-23 19:5xZ | **Session:** session_01MCyx6gj5EdbghE9bwjBjJv(集成代理 C-4,受 lead 派) | **状态:** **草稿,未执行**。判词 `VERDICT=NO_DEPLOY`,用户放行 s42(`USER_OVERRIDE=053d50f4…`,`docs/RULING_user_NC_s42_override_2026-09-24.md`)。§0.2 清单(2026-09-24 02:5xZ):部署包 §P1 已打,真包安装演练 §P2 `REAL_PACKAGE_PASS` 14/14;E3 / F-1 / F-2 / 平价门 / P3 全过(treeNC5)。尚缺:M3c 判词、用户对 §0.4 书行为清单的确认、lead 定窗口。工具与演练已入库(§C) | **作废条件:** §0.3 执行前核对任一 sha 不符;冻结件 b30e4afa5 / 修订 1 5c89f8d22 改动;发布树 **treeNC5** 的 PATCH_RECEIPT(3135cf8b)改动(~~treeNC4 0364c28d~~,已被 treeNC5 取代:A4 资金费跳过规则修复,冻结修订 2 = 778ba7324)
+> **创建:** 2026-09-23 19:5xZ | **Session:** session_01MCyx6gj5EdbghE9bwjBjJv(集成代理 C-4,受 lead 派) | **状态:** **草稿,未执行**。判词 `VERDICT=NO_DEPLOY`,用户放行 s42(`USER_OVERRIDE=053d50f4…`,`docs/RULING_user_NC_s42_override_2026-09-24.md`)。§0.2 清单(2026-09-24 02:5xZ):部署包 §P1 已打,真包安装演练 §P2 `REAL_PACKAGE_PASS` 14/14;E3 / F-1 / F-2 / 平价门 / P3 全过(treeNC5)。用户已确认 §0.4(`docs/RULING_user_NC_s42_final_confirm_2026-09-24.md`,e6d9605ba),05:00Z 窗部署,lead 监督。尚缺:M3c 判词。工具与演练已入库(§C) | **作废条件:** §0.3 执行前核对任一 sha 不符;冻结件 b30e4afa5 / 修订 1 5c89f8d22 改动;发布树 **treeNC5** 的 PATCH_RECEIPT(3135cf8b)改动(~~treeNC4 0364c28d~~,已被 treeNC5 取代:A4 资金费跳过规则修复,冻结修订 2 = 778ba7324)
 
 # 部署手册:完整修正版(生产者按研究员 NEW 特征合同服务)+ M3 对冲 shadow
 
@@ -62,8 +62,8 @@ export OLDB=8d79186b6380132cb67684acf1ebfcdb2c53261c850f46a4908b06bfa7a81282 OLD
 | 7 | 平价门(FREEZE §3.3) | **treeNC5 `NC_PARITY_GATE PASS`**:6 锚 × 11 量,0 格不同;两个负控都测出差异 | `nc_2026-09-23/receipts/parity_formal_2026-09-23/`(5fe0cf11c) | 无 |
 | 8 | §P3 执行器候选全电池 | **`ACCEPTANCE: ALL GREEN (163/163 suites exit 0)`**,首次在 `mode=shadow` 配置下跑全电池 | `nc_2026-09-23/receipts/p3_2026-09-23T2100Z/`(2bec89bb3) | 无。当时的钉是替身;A4 的 `safe_commit` 会用真钉在真归档上再跑一次全电池,红了就不推 |
 | 9 | M3c(AMENDMENT_3 §2-1) | **未出**。owner:M3 评估代理。M3c(s42)装置测试全绿,零对冲对照与底座逐位相等(0e6d6b7c4);R1–R3 判词未出 | `m3c_2026-09-24/`(判词待补) | M3c 判词。过 ⇒ A4 用 `--beta-mode shadow --max-combined 2.5`;不过 ⇒ `--beta-mode off`,对冲不随发布上线,换装照常 |
-| 10 | 用户确认书行为改动(裁定 §4-3) | **待用户** | 本手册 §0.4 | 用户对 §0.4 清单的一句确认。§S 席位播种不在本清单内,需另说一句 |
-| 11 | lead 执行或监督 | **待定** | — | lead 选定窗口。最早是 05:00Z 窗(N = 04Z);A0 最晚 N+2:05 = 06:05Z 开始 |
+| 10 | 用户确认书行为改动(裁定 §4-3) | **已确认**(2026-09-24 02:5xZ):确认 §0.4(621033c0d)并定 05:00Z 窗部署 s42 | `docs/RULING_user_NC_s42_final_confirm_2026-09-24.md`(a1b44207,提交 e6d9605ba) | 无。§S 席位播种不在确认范围内。部署前还要报用户两项:席位差距量化(§0.5)与 M3c 判词 |
+| 11 | lead 执行或监督 | **已定**:05:00Z 窗(N = 04Z),集成代理执行,lead 监督;每步报判词行原文与 rc,lead 确认后进下一步;停点一律按 §R | lead 消息(2026-09-24 03:0xZ) | A0 最晚 06:05Z 开始;A4 最晚 07:05Z 开始 |
 
 - 第 1 项的 HANDOFF 里有一个键叫 `V1_gate.PASS`。它是 numpy 推理与 torch 推理的数值等价门(spearman ≥ 0.99999 且 maxabs ≤ 1e-5;实测 0.999999999997 / 6.55e-08),**不是书层录取**。
 - 本清单之外,W 开始时还要跑 §0.3 执行前核对,其中含执行器健康检查。
@@ -87,7 +87,14 @@ print("last anchors row nominal", (r.get("external_book") or {}).get("nominal_ts
 PYCHK
 # 期望: tripped_at None · reduce_only False · tripped False · triggers [](任何触发都不在, 含 §4-2 日止损)· 本锚行 nominal = 本锚且 opening_halted False
 grep -E "4-2|DAY_STOP" ~/dl_quant_live/state/live/watchdog/ALARM.log | tail -2   # 当日有 §4-2 日止损生效记录 ⇒ 不开窗
+/usr/bin/python3 $NCW/src/nc_handoff_check.py $MODELS/HANDOFF_deploy_s42.json $MODELS/P5_DEPLOY_MANIFEST.json $MODELS/slow2026.txt $MODELS/f10_live_s42_np.npz $RULING ; echo "rc=$?"   # HANDOFF_CHECK OK, rc=0
 ```
+- **预核(2026-09-24 03:0xZ,窗前,只读)**:
+  - lead 在 26905a4b5 改过裁定文件的字节,又在 e6d9605ba 恢复成 b9c7a933d 的原字节。改动发生在 02:56:59Z,恢复在 02:57:21Z,都晚于 P1 / P2(02:39–02:42Z),所以 P1 / P2 不受影响。
+  - 对工作树里的裁定文件重跑 `nc_handoff_check.py`:`HANDOFF_CHECK OK`,rc=0。
+  - 工作树、HEAD、b9c7a933d 三处的裁定文件 sha 都是 053d50f4…,与包内副本 `$PKG/verdict/ruling.md` 字节相同。
+  - 真 HOME 只读预检:`NC_INSTALL PREFLIGHT_PASS VERDICT=NO_DEPLOY USER_OVERRIDE=053d50f4…`,rc=0。
+  - 收据在 `receipts/p0_3_prechecks_2026-09-24/`。W 开始时整节 §0.3 照样再跑一遍。
 
 ### 0.4 这次上线改变的书行为(交用户最后确认;§0.2 第 10 项)
 
@@ -170,6 +177,44 @@ grep -E "4-2|DAY_STOP" ~/dl_quant_live/state/live/watchdog/ALARM.log | tail -2  
 - 成员数 400,生产发布门(字面 380 名)。
 - 组合与席位的规则本身。它们的输入(模型分数、资金费状态)按上面几条变了。
 - 执行器的逐名止损、看门狗阈值、maker 优先执行。
+
+### 0.5 席位差距量化(用户确认 §0.4 之后补充;§0.4 原文不改)
+
+lead 2026-09-24 要求,只读、不调场所。收据 `receipts/seat_quant_2026-09-24/SEAT_QUANT.json`,装置 `devices/nc_seat_quant.py`(41106a29)。
+
+**席位怎么算,「约 900 锚」从哪来**
+- 生产者与 combo 用同一个公式:取 `leg_returns_live.json` 三条腿(king / rev24 / fund)**最近 900 条**逐锚收益,各算均值 / 标准差,负值截成 0,再归一。
+- 这是等权的矩形窗,没有衰减;combo 再去掉 rev24,在 king 与 fund 之间重新归一(掩码席位)。
+- 代码行:
+  - 生产者 `shadow_loop_v3.py`(treeNC5)L783–789;
+  - combo `combo_stage.py` L61–69、掩码 L282–283;
+  - 窗长 `shadow_bundle/config.json` L1453 `msharpe_look: 900`;
+  - 每锚追加一条收益 L765(只在上一锚恰好早 4 小时时追加);
+  - 状态文件保留 950 条 L426–428。
+- 换装之后,每个锚挤掉一条旧口径收益、加入一条新口径收益。n 个锚之后,窗里还剩 (900 − n)/900 是旧的。
+- 900 锚 = 150 天(每天 6 锚)。跳过的锚不追加,实际还会更长。
+
+**同一锚上的席位(2026-09-19 00Z,回放能覆盖的最后一锚)**
+- 实盘:king 0.3834 / fund 0.6166(`~/wide_shadow/state/target_combo/1789776000.json` 的 `w3_masked`)。
+- NC s42 回放:king 0.3655 / fund 0.6345。
+  - 来源:news2 `work/legs.npz`(sha 9ee5886f…,即 HANDOFF 谱系里的 legs)第 10332 行(E_ts = 1789776000)的 `WL` = [0.2878, 0.2125, 0.4997],掩码后得到上面的值。
+  - 这份腿收益就是 §S 播种要用的「NC 口径腿收益截至轴末」。
+- 差:实盘的 king 席位高 +0.0179。
+- 09-02 到 09-19 重叠的 101 个锚上,实盘减回放的 king 席位:均值 +0.016,范围 [−0.066, +0.069]。实盘这段历史包含 09-05 的席位播种。
+- 部署时点:实盘最新 09-24 00Z 为 king 0.4003 / fund 0.5997(`target_combo/1790208000.json`)。回放轴末是 09-19 00Z,**覆盖不到 09-24**。以回放最后一锚为参照,差为 +0.0348。
+
+**对持仓的影响**(只换席位。输入固定为 NC s42 回放在 09-19 00Z 的 King 秩、F10 s42 分数、资金费秩、qv 门与 rn8,公式抄 combo_stage)
+- 各链内按暴露算的 king 份额:
+  - kc 链:实盘席位 35.8%,回放席位 34.1%(差 1.7 个百分点);
+  - fc 链的 F10 份额:37.2% 对 35.5%。
+- 目标差:两种席位下的 combo 目标(0.55 kc + 0.45 fc,每条链归一到 gross 1)L1 差为 **2.9% gross**,有 1 个名翻号。
+- 首锚持仓差:链是 EMA,α = 0.1,首锚只移动目标差的 1/10,即约 **0.29% gross**。
+- 以部署时点的实盘席位(09-24)对回放 09-19 的席位:目标差 5.8% gross,首锚约 0.58% gross,4 个名翻号。
+- 参照:实盘席位自己从 09-19 到 09-24 的变化,就造成 2.9% gross 的目标差。
+- **没有算的,不估**:
+  - 回放在部署锚上的席位:回放轴末是 09-19,§S 要接的「新生产者在实盘快照上逐锚产出的腿收益」这段没有产物;
+  - 部署锚本身的输入:这里用的是 09-19 的回放输入;
+  - EMA 的 band(0.00025)、执行器 reshape、LIVE_MASK 离场规则:都依赖状态,没有施加。上面的 α 乘积不是这些非线性步骤之后的持仓差。
 
 ## 1. 时间线(一个静默窗 W = [N+1:00, N+3:40])
 
