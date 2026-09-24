@@ -1,0 +1,26 @@
+{
+ "receipt": "P1_MEMBERS_COPY.json",
+ "utc": "2026-09-24T00:14:53Z",
+ "why": "news2_combo.py reads the crypto mask from receipts/P1_members_2025H2on.npz (paths[6], `crypto = np.load(paths[6])[\"crypto\"]`). The news2 chain has no P1 step of its own, so the file is taken from NEW_S. A mask is only meaningful against the symbol order it was built for, and it must be the same mask legs already used, or combo and legs would disagree about which names are crypto. Both were asserted BEFORE copying, not after.",
+ "source": "/dev/shm/news_2026-09-23/receipts/P1_members_2025H2on.npz",
+ "dest": "/dev/shm/news2_2026-09-23/receipts/P1_members_2025H2on.npz",
+ "sha256": "2323623fda9333710f5834911ab629377ab8c12b056f40ccfc9f7033c0c1f6f1",
+ "preconditions": {
+  "symbols_equal_my_features": true,
+  "symbols_equal_nc_inputs": true,
+  "crypto_equal_the_mask_legs_used": true,
+  "n_symbols": 829,
+  "n_crypto": 680,
+  "crypto_cells_different_vs_nc": 0
+ },
+ "fields_combo_uses": [
+  "crypto"
+ ],
+ "fields_present": [
+  "anchors",
+  "members_train_rule",
+  "members_live450_rule",
+  "symbols",
+  "crypto"
+ ]
+}
