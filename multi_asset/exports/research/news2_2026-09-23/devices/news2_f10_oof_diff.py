@@ -51,14 +51,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--researcher", required=True)
     ap.add_argument("--nc", required=True)
+    ap.add_argument("--label", default="F10_OOF",
+                    help="what is being compared; goes in the receipt and the verdict line, so a\n                          King comparison is not filed under an F10 name")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
 
     rec = {"device": os.path.basename(SELF), "self_sha256": sha(SELF), "argv": sys.argv[1:],
            "cwd": os.getcwd(), "python": sys.executable, "numpy": np.__version__,
-           "status": "F10_SCORE_AGREEMENT_NOT_SKILL_NOT_BOOK_LAYER",
+           "label": a.label,
+           "status": "SCORE_AGREEMENT_NOT_SKILL_NOT_BOOK_LAYER",
            "inputs": {k: {"path": p, "sha256": sha(p)} for k, p in
-                      (("researcher_f10_oof", a.researcher), ("nc_f10_oof", a.nc))}}
+                      ((f"researcher_{a.label}", a.researcher), (f"nc_{a.label}", a.nc))}}
 
     R, N = np.load(a.researcher, allow_pickle=False), np.load(a.nc, allow_pickle=False)
     rec["keys"] = {"researcher": list(R.files), "nc": list(N.files)}
@@ -69,7 +72,7 @@ def main():
         rec["verdict"] = "UNAVAILABLE"
         rec["why"] = "symbol axes differ; a by-index comparison would compare different names"
         json.dump(rec, open(a.out, "w"), indent=2)
-        print("F10_OOF_DIFF VERDICT=UNAVAILABLE symbol axes differ"); return 2
+        print(f"{a.label}_DIFF VERDICT=UNAVAILABLE symbol axes differ"); return 2
 
     RP, NP = np.asarray(R["P"]), np.asarray(N["P"])
     r_ts, n_ts = R["E_ts"].astype(np.int64), N["E_ts"].astype(np.int64)
@@ -78,7 +81,7 @@ def main():
     rec["n_anchors"] = {"researcher": int(r_ts.size), "nc": int(n_ts.size), "shared": len(shared)}
     if not shared:
         rec["verdict"] = "UNAVAILABLE"; rec["why"] = "no shared anchors"
-        json.dump(rec, open(a.out, "w"), indent=2); print("F10_OOF_DIFF VERDICT=UNAVAILABLE"); return 2
+        json.dump(rec, open(a.out, "w"), indent=2); print(f"{a.label}_DIFF VERDICT=UNAVAILABLE"); return 2
 
     per_year = {}
     for y in sorted({datetime.datetime.utcfromtimestamp(t).year for _, _, t in shared}):
@@ -145,7 +148,7 @@ def main():
         rec["verdict"] = "MEASURED"
 
     json.dump(rec, open(a.out, "w"), indent=2)
-    print(f"F10_OOF_DIFF VERDICT={rec['verdict']} shared_anchors={len(shared)} "
+    print(f"{a.label}_DIFF VERDICT={rec['verdict']} shared_anchors={len(shared)} "
           f"symbol_axis_identical={same_axis}")
     print(f"  red control: baseline_green={ctrl['baseline_green']} (self_pearson={sp}) "
           f"mutation_detected={ctrl['mutation_detected']} (mutated={mp})")
