@@ -50,6 +50,40 @@ def sha(p):
     return h.hexdigest()
 
 
+
+def _read_json(p):
+    """Returns the parsed file, or a NAMED absence -- never {} or None silently."""
+    try:
+        return json.load(open(p))
+    except FileNotFoundError:
+        return {"ABSENT": p}
+    except Exception as e:
+        return {"UNREADABLE": p, "error": f"{type(e).__name__}: {e}"}
+
+
+def _env_per_step(rdir):
+    """Every ENV_GATE_<step>.json the chain wrote, plus ENV_F10.json, keyed by step.
+
+    Steps that ran before the gate existed (King, legs, staging, the first F10 attempt) have no gate
+    receipt. They are listed as NOT_GATED with the reason, because "no entry" must not read as "checked
+    and fine".
+    """
+    import glob
+    out = {}
+    for f in sorted(glob.glob(os.path.join(rdir, "ENV_GATE_*.json"))):
+        step = os.path.basename(f)[len("ENV_GATE_"):-len(".json")]
+        if step.endswith("_dryrun"):
+            continue
+        out[step] = _read_json(f)
+    f10 = os.path.join(os.path.dirname(rdir), "ENV_F10.json")
+    out["f10_recorded_at_launch"] = _read_json(f10)
+    for step in ("king", "legs", "staging"):
+        if step not in out:
+            out[step] = {"NOT_GATED": "this step ran before news2_env_gate.py existed; its environment is "
+                                      "recorded in the deviations list of RESULT_new_servable_v2_features_"
+                                      "2026-09-23.md, not measured by a gate"}
+    return out
+
 def main():
     WL = set(sys.argv[1].split(","))
     extra = sorted(set(os.environ) - WL)
@@ -80,7 +114,18 @@ def main():
            "rng": list(NS.RNG), "B": NS.B, "blocks": {"main": NS.BLOCK_MAIN, "sensitivity": NS.BLOCK_SENS},
            "segments": SEG, "freeze": FREEZE, "prereg": PREREG, "amendment_1": AMD1,
            "decision_rules_author": "lead (FREEZE §2); news2 wrote the B-part patches and must not author the criterion",
-           "preconditions": {}, "unavailable": [], "interval_statement_verbatim": NS.SENTENCE}
+           "preconditions": {}, "unavailable": [], "interval_statement_verbatim": NS.SENTENCE,
+           # lead 2026-09-24: the verdict receipt carries a per-step ENV section -- sys.executable,
+           # realpath, sys.prefix, the numerical env vars and the numpy / lightgbm / torch versions, for
+           # every chain step. These are not retyped here: each step's startup gate
+           # (news2_env_gate.py --check <step>) wrote what it MEASURED at that step, and those receipts
+           # are embedded verbatim. A retyped environment is an environment nobody measured.
+           "env_per_step": _env_per_step(os.path.dirname(os.path.abspath(OUT))),
+           "env_per_step_note": ("collected from the startup-gate receipts written by each step, plus "
+                                 "ENV_F10.json. A step with no entry here did not run behind a gate, and "
+                                 "that absence is the honest record -- it is not filled in from memory."),
+           "shm_headroom_before_engine": _read_json(os.path.join(os.path.dirname(os.path.abspath(OUT)),
+                                                                 "SHM_HEADROOM_BEFORE_ENGINE.json"))}
 
     S = {}
     for arm, (root, pre) in ARMS.items():

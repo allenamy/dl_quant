@@ -1,0 +1,139 @@
+{
+ "device": "news2_env_gate.py",
+ "mode": "selftest",
+ "utc": "2026-09-24T00:26:22Z",
+ "why_sys_prefix_and_not_realpath": "/workspace/venv/bin/python and /usr/bin/python3 have the SAME realpath (/usr/bin/python3.11) and the SAME numpy version (2.4.6); they differ in sys.prefix and therefore in which site-packages numpy is loaded from. A gate on the realpath or on the version string could not refuse the mutation lead asked to be refused.",
+ "pins": {
+  "king": {
+   "sys_prefix": "/workspace/venv",
+   "NPY_DISABLE_CPU_FEATURES": "X86_V4 AVX512_ICL AVX512_SPR",
+   "OMP_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "pin_source": "news_chain_resume.sh L14: nice -n 5 $PV -u news_train_king.py, under the script-level `export NPY_DISABLE_CPU_FEATURES=...`; AMENDMENT 2 lead ruling (a) moved King from $P314 to $PV"
+  },
+  "legs": {
+   "sys_prefix": "/root/news_2026-09-23_env/venv314",
+   "NPY_DISABLE_CPU_FEATURES": "X86_V4 AVX512_ICL AVX512_SPR",
+   "OMP_NUM_THREADS": "1",
+   "OPENBLAS_NUM_THREADS": "1",
+   "pin_source": "news_chain_resume.sh L15: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 nice -n 5 $P314 -u news_legs.py"
+  },
+  "f10": {
+   "sys_prefix": "/workspace/venv",
+   "NPY_DISABLE_CPU_FEATURES": null,
+   "OMP_NUM_THREADS": "2",
+   "OPENBLAS_NUM_THREADS": "2",
+   "pin_source": "news_chain_resume.sh: `unset NPY_DISABLE_CPU_FEATURES` then OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 setsid $PV -u news_train_f10.py"
+  },
+  "combo": {
+   "sys_prefix": "/root/news_2026-09-23_env/venv314",
+   "NPY_DISABLE_CPU_FEATURES": "X86_V4 AVX512_ICL AVX512_SPR",
+   "OMP_NUM_THREADS": "1",
+   "OPENBLAS_NUM_THREADS": "1",
+   "pin_source": "news_chain_resume.sh: export restored, then OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 nice -n 5 $P314 -u news_combo.py"
+  },
+  "adapter": {
+   "sys_prefix": "/workspace/venv",
+   "NPY_DISABLE_CPU_FEATURES": null,
+   "OMP_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "pin_source": "news_chain_resume.sh: env -i PATH=/usr/bin:/bin HOME=/root $PV -B news_adapter_specs.py / ovn_adapter*.py (env -i leaves NPY unset)"
+  },
+  "configs": {
+   "sys_prefix": "/workspace/venv",
+   "NPY_DISABLE_CPU_FEATURES": null,
+   "OMP_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "pin_source": "news_chain_resume.sh: env -i ... $PV -B news_make_configs.py"
+  },
+  "engine": {
+   "sys_prefix": "/workspace/venv",
+   "NPY_DISABLE_CPU_FEATURES": null,
+   "OMP_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "pin_source": "news_chain_resume.sh: setsid env -i ... $PV -B bt_launch.py"
+  },
+  "readings": {
+   "sys_prefix": "/workspace/venv",
+   "NPY_DISABLE_CPU_FEATURES": null,
+   "OMP_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "pin_source": "news_chain_resume.sh: env -i ... $PV -B bt_p*_reading.py"
+  },
+  "stats": {
+   "sys_prefix": "/workspace/venv",
+   "NPY_DISABLE_CPU_FEATURES": null,
+   "OMP_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "pin_source": "news_chain_resume.sh: env -i ... $PV -B news_stats.py"
+  },
+  "ext": {
+   "sys_prefix": "/workspace/venv",
+   "NPY_DISABLE_CPU_FEATURES": null,
+   "OMP_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "pin_source": "news_chain_resume.sh: env -i ... $PV -B news_ext.py"
+  },
+  "staging": {
+   "sys_prefix": null,
+   "NPY_DISABLE_CPU_FEATURES": null,
+   "OMP_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "pin_source": "news2 only (no NEW_S counterpart): pure file staging, no arithmetic"
+  }
+ },
+ "cells": [
+  {
+   "cell": "GREEN.baseline.king",
+   "verdict": "PASS",
+   "expected": "rc 0, VERDICT=PASS under the pinned environment",
+   "observed": "rc=0 NEWS2_ENV_GATE step=king VERDICT=PASS sys_prefix=/workspace/venv npy_disable='X86_V4 AVX512_ICL AVX512_SPR' om"
+  },
+  {
+   "cell": "GREEN.baseline.legs",
+   "verdict": "PASS",
+   "expected": "rc 0, VERDICT=PASS under the pinned environment",
+   "observed": "rc=0 NEWS2_ENV_GATE step=legs VERDICT=PASS sys_prefix=/root/news_2026-09-23_env/venv314 npy_disable='X86_V4 AVX512_"
+  },
+  {
+   "cell": "GREEN.baseline.f10",
+   "verdict": "PASS",
+   "expected": "rc 0, VERDICT=PASS under the pinned environment",
+   "observed": "rc=0 NEWS2_ENV_GATE step=f10 VERDICT=PASS sys_prefix=/workspace/venv npy_disable=None omp='2' openblas='2' unconstr"
+  },
+  {
+   "cell": "GREEN.baseline.combo",
+   "verdict": "PASS",
+   "expected": "rc 0, VERDICT=PASS under the pinned environment",
+   "observed": "rc=0 NEWS2_ENV_GATE step=combo VERDICT=PASS sys_prefix=/root/news_2026-09-23_env/venv314 npy_disable='X86_V4 AVX512"
+  },
+  {
+   "cell": "GREEN.baseline.engine",
+   "verdict": "PASS",
+   "expected": "rc 0, VERDICT=PASS under the pinned environment",
+   "observed": "rc=0 NEWS2_ENV_GATE step=engine VERDICT=PASS sys_prefix=/workspace/venv npy_disable=None omp=None openblas=None unc"
+  },
+  {
+   "cell": "RED.mutation.system_python",
+   "verdict": "PASS",
+   "expected": "rc 9, REFUSED, and the reason names sys_prefix",
+   "observed": "rc=9 NEWS2_ENV_GATE step=king VERDICT=REFUSED sys_prefix=/usr npy_disable='X86_V4 AVX512_ICL AVX512_SPR' omp=None o"
+  },
+  {
+   "cell": "RED.mutation.npy_set_when_unset_required",
+   "verdict": "PASS",
+   "expected": "rc 9, REFUSED (f10 requires the variable UNSET)",
+   "observed": "rc=9 NEWS2_ENV_GATE step=f10 VERDICT=REFUSED sys_prefix=/workspace/venv npy_disable='X86_V4 AVX512_ICL AVX512_SPR' "
+  },
+  {
+   "cell": "RED.mutation.wrong_thread_count",
+   "verdict": "PASS",
+   "expected": "rc 9, REFUSED (legs pins OMP=1)",
+   "observed": "rc=9 NEWS2_ENV_GATE step=legs VERDICT=REFUSED sys_prefix=/root/news_2026-09-23_env/venv314 npy_disable='X86_V4 AVX5"
+  }
+ ],
+ "n_cells": 8,
+ "n_not_pass": 0,
+ "VERDICT": "PASS",
+ "seconds": 60.5
+}
