@@ -1,0 +1,971 @@
+{
+  "device": "news2_hold_population_attr.py",
+  "self_sha256": "76b337227d5ca94b7747b136dd0cab2a2574b7dedb75248095c5e3283c9dfdb3",
+  "argv": [
+    "--news-devices",
+    "/dev/shm/news2_2026-09-23/engine",
+    "--nc-targets",
+    "/dev/shm/news2_2026-09-23/targets/TARGETS_NEWS2_s42.npz",
+    "--researcher-combo",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/combo_s42/scaled_diagnostic.npz",
+    "--nc-combo",
+    "/dev/shm/news2_2026-09-23/work/combo_s42/scaled_diagnostic.npz",
+    "--nc-cell-dir",
+    "/dev/shm/news2_2026-09-23/runs/NEWS2_s42_scaled_rule_raw_UAFE",
+    "--nc-cell-tag",
+    "NEWS2_s42_scaled_rule_raw_UAFE",
+    "--new-cell-dir",
+    "/dev/shm/ovn_2026-09-23/runs/OVN_NEW_s42_scaled_rule_raw_UAFE",
+    "--new-cell-tag",
+    "OVN_NEW_s42_scaled_rule_raw_UAFE",
+    "--readings",
+    "A,B",
+    "--out",
+    "/dev/shm/news2_2026-09-23/receipts/HOLD_POP_ATTR.json"
+  ],
+  "cwd": "/dev/shm/news2_2026-09-23/devices",
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "prereg": "docs/PREREG_hold_population_attribution_2026-09-24.md @ a0d07fbe3",
+  "status": "DIAGNOSTIC_NO_GATE",
+  "caliber_source": {
+    "news_stats_path": "/dev/shm/news2_2026-09-23/engine/news_stats.py",
+    "news_stats_sha256": "7141ba42ab227b9f35b48acce62d5e2a2494f364fdf6a83189974cb2af67e03c",
+    "bt_tables_path": "/dev/shm/news2_2026-09-23/engine/bt_tables.py",
+    "bt_tables_sha256": "892ba66b9e8040ff04caede02272556dec5a71eb4632cbe7a2a13f46bd35f389",
+    "bt_driver_lib_path": "/dev/shm/news2_2026-09-23/engine/bt_driver_lib.py",
+    "bt_driver_lib_sha256": "ba3bc2610b12a3f0280ff8f03c039ff5c2e81b8c05789183fd2b1acab661bddb",
+    "NPATH": 32,
+    "B": 10000,
+    "RNG": [
+      20260923,
+      1
+    ],
+    "BLOCK_MAIN": 30,
+    "SEG": {
+      "2023H2": [
+        "2023-06-30T04:00:00Z",
+        "2023-12-31T20:00:00Z"
+      ],
+      "2024": [
+        "2024-01-01T00:00:00Z",
+        "2024-12-31T20:00:00Z"
+      ],
+      "2025": [
+        "2025-01-01T00:00:00Z",
+        "2025-12-31T20:00:00Z"
+      ],
+      "pre2026": [
+        "2023-06-30T04:00:00Z",
+        "2025-12-31T20:00:00Z"
+      ],
+      "2026": [
+        "2026-01-01T00:00:00Z",
+        "2026-08-31T00:00:00Z"
+      ]
+    }
+  },
+  "inputs": {
+    "nc_targets": {
+      "path": "/dev/shm/news2_2026-09-23/targets/TARGETS_NEWS2_s42.npz",
+      "sha256": "cbb6d10748fc7aa913fcd9ec0872f17829bde72e6bbb32344c67ca13b4bb52b7"
+    },
+    "researcher_combo": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/combo_s42/scaled_diagnostic.npz",
+      "sha256": "4dec6b38b08f8cc857c8f58659e846fea686c02c2959c622ea248c7ef5b22afa"
+    },
+    "nc_combo": {
+      "path": "/dev/shm/news2_2026-09-23/work/combo_s42/scaled_diagnostic.npz",
+      "sha256": "f4630a20f796bce26590aedeadfc28791be7eeecee8c14789f418b5a08de4388"
+    }
+  },
+  "population": {
+    "definition": "NC scaled_kind==0 and not pad  AND  researcher trade_mask==True",
+    "nc_hold_anchors": 1622,
+    "nc_publish_anchors": 6520,
+    "researcher_publish_anchors": 6723,
+    "P_size": 328,
+    "note_203_is_a_net_difference_not_P": true,
+    "also_reported_complement_nc_pub_and_new_hold": 125,
+    "nc_hold_from_combo_trade_mask": 1622,
+    "hold_sets_agree": true,
+    "P_on_engine_axis": 328,
+    "P_not_on_engine_axis": 0
+  },
+  "raw_gross": {
+    "note": "gross = sum|raw| per anchor from each side's own combo output; the shared preflight admits 0.4 <= gross <= 1.2 (combo_target.py L42)",
+    "population_A_pre2026": {
+      "NC": {
+        "n": 328,
+        "mean": 0.38692356114727317,
+        "p10": 0.37345844377908227,
+        "median": 0.389713799636627,
+        "p90": 0.39781092404196233,
+        "frac_below_0.4": 1.0,
+        "frac_above_1.2": 0.0,
+        "frac_inside_band": 0.0
+      },
+      "NEW": {
+        "n": 328,
+        "mean": 0.4113663884723004,
+        "p10": 0.40160332480358973,
+        "median": 0.4094592202246631,
+        "p90": 0.42364246214796,
+        "frac_below_0.4": 0.0,
+        "frac_above_1.2": 0.0,
+        "frac_inside_band": 1.0
+      }
+    },
+    "complement_pre2026": {
+      "NC": {
+        "n": 6248,
+        "mean": 0.5414876892853183,
+        "p10": 0.3612663653829762,
+        "median": 0.49957757339984854,
+        "p90": 0.7808910784631833,
+        "frac_below_0.4": 0.20710627400768244,
+        "frac_above_1.2": 0.0,
+        "frac_inside_band": 0.7928937259923176
+      },
+      "NEW": {
+        "n": 6248,
+        "mean": 0.5345672540502381,
+        "p10": 0.3710283919325492,
+        "median": 0.4985212628192853,
+        "p90": 0.7381654289794453,
+        "frac_below_0.4": 0.22711267605633803,
+        "frac_above_1.2": 0.0,
+        "frac_inside_band": 0.772887323943662
+      }
+    }
+  },
+  "cells": {
+    "nc": {
+      "dir": "/dev/shm/news2_2026-09-23/runs/NEWS2_s42_scaled_rule_raw_UAFE",
+      "tag": "NEWS2_s42_scaled_rule_raw_UAFE",
+      "n_paths": 32
+    },
+    "new": {
+      "dir": "/dev/shm/ovn_2026-09-23/runs/OVN_NEW_s42_scaled_rule_raw_UAFE",
+      "tag": "OVN_NEW_s42_scaled_rule_raw_UAFE",
+      "n_paths": 32
+    }
+  },
+  "anchor_axis_identical": true,
+  "segments_used": {
+    "2023H2": [
+      "2023-06-30T04:00:00Z",
+      "2023-12-31T20:00:00Z"
+    ],
+    "2024": [
+      "2024-01-01T00:00:00Z",
+      "2024-12-31T20:00:00Z"
+    ],
+    "2025": [
+      "2025-01-01T00:00:00Z",
+      "2025-12-31T20:00:00Z"
+    ],
+    "pre2026": [
+      "2023-06-30T04:00:00Z",
+      "2025-12-31T20:00:00Z"
+    ],
+    "2026": [
+      "2026-01-01T00:00:00Z",
+      "2026-08-31T00:00:00Z"
+    ]
+  },
+  "reading_A_same_caliber_day_split": {
+    "2023H2": {
+      "n_full_days": 184,
+      "n_days_with_a_P_anchor": 19,
+      "n_days_without": 165,
+      "all": {
+        "n_days": 184,
+        "mean_bps_per_day": 1.030222981269858,
+        "boot_30d": {
+          "block_days": 30,
+          "n_days": 184,
+          "B": 10000,
+          "rng": [
+            20260923,
+            1
+          ],
+          "ci97.5_two_sided_bps": [
+            -3.243505993172179,
+            4.757434632318569
+          ],
+          "ci95_bps": [
+            -2.644135166304203,
+            4.401730151897131
+          ],
+          "draws_defined": 10000
+        }
+      },
+      "days_with_P_anchor": {
+        "n_days": 19,
+        "mean_bps_per_day": -5.532669407062754,
+        "boot_30d": {
+          "block_days": 30,
+          "n_days": 19,
+          "B": 10000,
+          "rng": [
+            20260923,
+            1
+          ],
+          "ci97.5_two_sided_bps": [
+            -5.532669407062754,
+            -5.532669407062754
+          ],
+          "ci95_bps": [
+            -5.532669407062754,
+            -5.532669407062754
+          ],
+          "draws_defined": 10000
+        }
+      },
+      "days_without_P_anchor": {
+        "n_days": 165,
+        "mean_bps_per_day": 1.7859499835627042,
+        "boot_30d": {
+          "block_days": 30,
+          "n_days": 165,
+          "B": 10000,
+          "rng": [
+            20260923,
+            1
+          ],
+          "ci97.5_two_sided_bps": [
+            -1.0103776026616722,
+            5.26864842342333
+          ],
+          "ci95_bps": [
+            -0.6923508681779764,
+            4.875654389877447
+          ],
+          "draws_defined": 10000
+        }
+      },
+      "shares": {
+        "denominator_bps_per_day": 1.030222981269858,
+        "denominator_is": "this segment's own dbar over ALL full days (not the quoted 2.83)",
+        "n_days_total": 184,
+        "n_days_with_P_anchor": 19,
+        "frac_days_with_P_anchor": 0.10326086956521739,
+        "contribution_days_with_P_anchor_bps_per_day": -0.5713082539901757,
+        "contribution_days_without_bps_per_day": 1.6015312352600335,
+        "share_of_segment_gap_days_with_P": -0.5545481554740492,
+        "closure_recomposed_bps_per_day": 1.0302229812698578,
+        "closure_abs_residual_bps_per_day": 2.220446049250313e-16,
+        "closure_holds_to_1e-9": true
+      }
+    },
+    "2024": {
+      "n_full_days": 366,
+      "n_days_with_a_P_anchor": 28,
+      "n_days_without": 338,
+      "all": {
+        "n_days": 366,
+        "mean_bps_per_day": 2.328309055511569,
+        "boot_30d": {
+          "block_days": 30,
+          "n_days": 366,
+          "B": 10000,
+          "rng": [
+            20260923,
+            1
+          ],
+          "ci97.5_two_sided_bps": [
+            -1.0320494257200492,
+            6.69693199158078
+          ],
+          "ci95_bps": [
+            -0.6334469996237949,
+            6.140093029265735
+          ],
+          "draws_defined": 10000
+        }
+      },
+      "days_with_P_anchor": {
+        "n_days": 28,
+        "mean_bps_per_day": 3.5591026751588464,
+        "boot_30d": {
+          "block_days": 30,
+          "n_days": 28,
+          "B": 10000,
+          "rng": [
+            20260923,
+            1
+          ],
+          "ci97.5_two_sided_bps": [
+            3.5591026751588464,
+            3.5591026751588464
+          ],
+          "ci95_bps": [
+            3.5591026751588464,
+            3.5591026751588464
+          ],
+          "draws_defined": 10000
+        }
+      },
+      "days_without_P_anchor": {
+        "n_days": 338,
+        "mean_bps_per_day": 2.2263498207478896,
+        "boot_30d": {
+          "block_days": 30,
+          "n_days": 338,
+          "B": 10000,
+          "rng": [
+            20260923,
+            1
+          ],
+          "ci97.5_two_sided_bps": [
+            -1.1458916460080641,
+            7.347149633033689
+          ],
+          "ci95_bps": [
+            -0.7527595593231524,
+            6.731112817602141
+          ],
+          "draws_defined": 10000
+        }
+      },
+      "shares": {
+        "denominator_bps_per_day": 2.328309055511569,
+        "denominator_is": "this segment's own dbar over ALL full days (not the quoted 2.83)",
+        "n_days_total": 366,
+        "n_days_with_P_anchor": 28,
+        "frac_days_with_P_anchor": 0.07650273224043716,
+        "contribution_days_with_P_anchor_bps_per_day": 0.2722810789739008,
+        "contribution_days_without_bps_per_day": 2.0560279765376688,
+        "share_of_segment_gap_days_with_P": 0.11694370140826343,
+        "closure_recomposed_bps_per_day": 2.3283090555115695,
+        "closure_abs_residual_bps_per_day": 4.440892098500626e-16,
+        "closure_holds_to_1e-9": true
+      }
+    },
+    "2025": {
+      "n_full_days": 365,
+      "n_days_with_a_P_anchor": 41,
+      "n_days_without": 324,
+      "all": {
+        "n_days": 365,
+        "mean_bps_per_day": 4.2518244751828105,
+        "boot_30d": {
+          "block_days": 30,
+          "n_days": 365,
+          "B": 10000,
+          "rng": [
+            20260923,
+            1
+          ],
+          "ci97.5_two_sided_bps": [
+            -4.132615956137327,
+            11.681541251317892
+          ],
+          "ci95_bps": [
+            -3.248771228955878,
+            10.292010041893667
+          ],
+          "draws_defined": 10000
+        }
+      },
+      "days_with_P_anchor": {
+        "n_days": 41,
+        "mean_bps_per_day": 1.4320925093998003,
+        "boot_30d": {
+          "block_days": 30,
+          "n_days": 41,
+          "B": 10000,
+          "rng": [
+            20260923,
+            1
+          ],
+          "ci97.5_two_sided_bps": [
+            -29.391200040856717,
+            12.958850155419546
+          ],
+          "ci95_bps": [
+            -29.007633642377417,
+            10.224722134549854
+          ],
+          "draws_defined": 10000
+        }
+      },
+      "days_without_P_anchor": {
+        "n_days": 324,
+        "mean_bps_per_day": 4.6086424091244895,
+        "boot_30d": {
+          "block_days": 30,
+          "n_days": 324,
+          "B": 10000,
+          "rng": [
+            20260923,
+            1
+          ],
+          "ci97.5_two_sided_bps": [
+            -1.6641119134333426,
+            10.312562785660624
+          ],
+          "ci95_bps": [
+            -1.0140685858275937,
+            9.351014597650362
+          ],
+          "draws_defined": 10000
+        }
+      },
+      "shares": {
+        "denominator_bps_per_day": 4.2518244751828105,
+        "denominator_is": "this segment's own dbar over ALL full days (not the quoted 2.83)",
+        "n_days_total": 365,
+        "n_days_with_P_anchor": 41,
+        "frac_days_with_P_anchor": 0.11232876712328767,
+        "contribution_days_with_P_anchor_bps_per_day": 0.16086518598737484,
+        "contribution_days_without_bps_per_day": 4.090959289195437,
+        "share_of_segment_gap_days_with_P": 0.03783439013682669,
+        "closure_recomposed_bps_per_day": 4.251824475182812,
+        "closure_abs_residual_bps_per_day": 1.7763568394002505e-15,
+        "closure_holds_to_1e-9": true
+      }
+    },
+    "pre2026": {
+      "n_full_days": 915,
+      "n_days_with_a_P_anchor": 88,
+      "n_days_without": 827,
+      "all": {
+        "n_days": 915,
+        "mean_bps_per_day": 2.8345771325820928,
+        "boot_30d": {
+          "block_days": 30,
+          "n_days": 915,
+          "B": 10000,
+          "rng": [
+            20260923,
+            1
+          ],
+          "ci97.5_two_sided_bps": [
+            -0.6018127236215904,
+            7.4852111520414475
+          ],
+          "ci95_bps": [
+            -0.21421666962344676,
+            6.845672762791496
+          ],
+          "draws_defined": 10000
+        }
+      },
+      "days_with_P_anchor": {
+        "n_days": 88,
+        "mean_bps_per_day": 0.6051130574505371,
+        "boot_30d": {
+          "block_days": 30,
+          "n_days": 88,
+          "B": 10000,
+          "rng": [
+            20260923,
+            1
+          ],
+          "ci97.5_two_sided_bps": [
+            -12.352094451265966,
+            25.9549017140492
+          ],
+          "ci95_bps": [
+            -10.651848699287168,
+            23.28843341863775
+          ],
+          "draws_defined": 10000
+        }
+      },
+      "days_without_P_anchor": {
+        "n_days": 827,
+        "mean_bps_per_day": 3.071811520262355,
+        "boot_30d": {
+          "block_days": 30,
+          "n_days": 827,
+          "B": 10000,
+          "rng": [
+            20260923,
+            1
+          ],
+          "ci97.5_two_sided_bps": [
+            0.22374657289369396,
+            6.657660725812068
+          ],
+          "ci95_bps": [
+            0.52816896083062,
+            6.160058512130191
+          ],
+          "draws_defined": 10000
+        }
+      },
+      "shares": {
+        "denominator_bps_per_day": 2.8345771325820928,
+        "denominator_is": "this segment's own dbar over ALL full days (not the quoted 2.83)",
+        "n_days_total": 915,
+        "n_days_with_P_anchor": 88,
+        "frac_days_with_P_anchor": 0.09617486338797815,
+        "contribution_days_with_P_anchor_bps_per_day": 0.058196665634587176,
+        "contribution_days_without_bps_per_day": 2.776380466947505,
+        "share_of_segment_gap_days_with_P": 0.020530986779525123,
+        "closure_recomposed_bps_per_day": 2.8345771325820923,
+        "closure_abs_residual_bps_per_day": 4.440892098500626e-16,
+        "closure_holds_to_1e-9": true
+      }
+    },
+    "2026": {
+      "n_full_days": 242,
+      "n_days_with_a_P_anchor": 0,
+      "n_days_without": 242,
+      "all": {
+        "n_days": 242,
+        "mean_bps_per_day": -0.36666723768489107,
+        "boot_30d": {
+          "block_days": 30,
+          "n_days": 242,
+          "B": 10000,
+          "rng": [
+            20260923,
+            1
+          ],
+          "ci97.5_two_sided_bps": [
+            -3.720928206747852,
+            3.6684277901949
+          ],
+          "ci95_bps": [
+            -3.3171118729693556,
+            3.235870288806499
+          ],
+          "draws_defined": 10000
+        }
+      },
+      "days_with_P_anchor": {
+        "n_days": 0,
+        "note": "no day in this group; nothing measured"
+      },
+      "days_without_P_anchor": {
+        "n_days": 242,
+        "mean_bps_per_day": -0.36666723768489107,
+        "boot_30d": {
+          "block_days": 30,
+          "n_days": 242,
+          "B": 10000,
+          "rng": [
+            20260923,
+            1
+          ],
+          "ci97.5_two_sided_bps": [
+            -3.720928206747852,
+            3.6684277901949
+          ],
+          "ci95_bps": [
+            -3.3171118729693556,
+            3.235870288806499
+          ],
+          "draws_defined": 10000
+        }
+      },
+      "shares": {
+        "note": "day-level split is degenerate in this segment: one group has 0 full days",
+        "n_days_total": 242,
+        "n_days_with_P_anchor": 0,
+        "n_days_without_P_anchor": 242,
+        "consequence": "every full day in this segment contains a P anchor (or none does), so the gap cannot be attributed between the two groups here"
+      }
+    }
+  },
+  "reading_B_per_anchor_not_dbar": {
+    "unit": "bps_per_ANCHOR (NOT dbar, NOT bps/day; never compare with reading A)",
+    "units_note": "series_from_path already multiplies pnl/car/cst by 1e4, so those are ALREADY bps and are NOT scaled again here; only r is a raw return and is scaled by 1e4. car is -funding, i.e. funding RECEIVED.",
+    "2023H2": {
+      "P_nc_holds_new_publishes": {
+        "n_anchors": 55,
+        "total": {
+          "new_minus_nc_bps_per_anchor": -3.6699915811265957,
+          "across_path_sd_bps": 0.5104522290272961,
+          "level_new": -0.8480808458465094,
+          "level_nc": 2.8219107352800865
+        },
+        "price": {
+          "new_minus_nc_bps_per_anchor": -1.3340978577108191,
+          "across_path_sd_bps": 0.25060084067250643,
+          "level_new": -0.03502414011002442,
+          "level_nc": 1.2990737176007947
+        },
+        "funding": {
+          "new_minus_nc_bps_per_anchor": 0.09657653120170057,
+          "across_path_sd_bps": 0.011054830110291063,
+          "level_new": -0.015305118837541758,
+          "level_nc": -0.11188165003924233
+        },
+        "fee": {
+          "new_minus_nc_bps_per_anchor": 0.4043214016509892,
+          "across_path_sd_bps": 0.005125621490258575,
+          "level_new": 0.4043214016509892,
+          "level_nc": 0.0
+        },
+        "g_per_gross": {
+          "new_minus_nc_bps_per_anchor": -1.8349957905632976,
+          "across_path_sd_bps": 0.2552261145136482,
+          "level_new": -0.4240404229232546,
+          "level_nc": 1.4109553676400433
+        },
+        "status_hold_fraction": {
+          "new": 0.0,
+          "nc": 1.0
+        },
+        "status_halt_fraction": {
+          "new": 0.0,
+          "nc": 0.0
+        }
+      },
+      "complement": {
+        "n_anchors": 1054,
+        "total": {
+          "new_minus_nc_bps_per_anchor": 0.41364741508605174,
+          "across_path_sd_bps": 0.12572119959770953,
+          "level_new": -0.38036849449549026,
+          "level_nc": -0.794015909581542
+        },
+        "price": {
+          "new_minus_nc_bps_per_anchor": 0.15594097718134764,
+          "across_path_sd_bps": 0.06066061112473578,
+          "level_new": -0.054237453807214245,
+          "level_nc": -0.21017843098856187
+        },
+        "funding": {
+          "new_minus_nc_bps_per_anchor": -0.04457420345614582,
+          "across_path_sd_bps": 0.00658096175890158,
+          "level_new": 0.015304982231216128,
+          "level_nc": 0.059879185687361954
+        },
+        "fee": {
+          "new_minus_nc_bps_per_anchor": -0.006308526905524185,
+          "across_path_sd_bps": 0.0025290769045204784,
+          "level_new": 0.1206418112093593,
+          "level_nc": 0.1269503381148835
+        },
+        "g_per_gross": {
+          "new_minus_nc_bps_per_anchor": 0.20682370754302587,
+          "across_path_sd_bps": 0.06286059979885478,
+          "level_new": -0.19018424724774513,
+          "level_nc": -0.397007954790771
+        },
+        "status_hold_fraction": {
+          "new": 0.33743477229601515,
+          "nc": 0.3187855787476281
+        },
+        "status_halt_fraction": {
+          "new": 0.0006522770398481974,
+          "nc": 0.0
+        }
+      }
+    },
+    "2024": {
+      "P_nc_holds_new_publishes": {
+        "n_anchors": 72,
+        "total": {
+          "new_minus_nc_bps_per_anchor": 1.5944341374197677,
+          "across_path_sd_bps": 0.5918560969370991,
+          "level_new": 7.335007383381001,
+          "level_nc": 5.740573245961233
+        },
+        "price": {
+          "new_minus_nc_bps_per_anchor": 1.091261735582569,
+          "across_path_sd_bps": 0.2957009590701755,
+          "level_new": 4.012851242313684,
+          "level_nc": 2.9215895067311153
+        },
+        "funding": {
+          "new_minus_nc_bps_per_anchor": -0.04385714203188763,
+          "across_path_sd_bps": 0.00462450556759347,
+          "level_new": 0.007445741718566762,
+          "level_nc": 0.0513028837504544
+        },
+        "fee": {
+          "new_minus_nc_bps_per_anchor": 0.33790180890446486,
+          "across_path_sd_bps": 0.002013309614376745,
+          "level_new": 0.33790180890446486,
+          "level_nc": 0.0
+        },
+        "g_per_gross": {
+          "new_minus_nc_bps_per_anchor": 0.797217068709884,
+          "across_path_sd_bps": 0.29592804846854937,
+          "level_new": 3.6675036916905004,
+          "level_nc": 2.8702866229806165
+        },
+        "status_hold_fraction": {
+          "new": 0.0,
+          "nc": 1.0
+        },
+        "status_halt_fraction": {
+          "new": 0.0,
+          "nc": 0.0
+        }
+      },
+      "complement": {
+        "n_anchors": 2124,
+        "total": {
+          "new_minus_nc_bps_per_anchor": 0.3517054128611556,
+          "across_path_sd_bps": 0.08487313520677138,
+          "level_new": 1.464551881330284,
+          "level_nc": 1.1128464684691286
+        },
+        "price": {
+          "new_minus_nc_bps_per_anchor": 0.15234633500954065,
+          "across_path_sd_bps": 0.04298061515436279,
+          "level_new": 1.0483546172727731,
+          "level_nc": 0.8960082822632323
+        },
+        "funding": {
+          "new_minus_nc_bps_per_anchor": -0.02677148138590242,
+          "across_path_sd_bps": 0.00378010794229456,
+          "level_new": 0.1603310093494762,
+          "level_nc": 0.18710249073537863
+        },
+        "fee": {
+          "new_minus_nc_bps_per_anchor": 0.0032651099647819717,
+          "across_path_sd_bps": 0.0011648818789477904,
+          "level_new": 0.15574766725834183,
+          "level_nc": 0.15248255729355986
+        },
+        "g_per_gross": {
+          "new_minus_nc_bps_per_anchor": 0.17585270643057782,
+          "across_path_sd_bps": 0.04243656760338572,
+          "level_new": 0.732275940665142,
+          "level_nc": 0.5564232342345642
+        },
+        "status_hold_fraction": {
+          "new": 0.12476459510357815,
+          "nc": 0.089924670433145
+        },
+        "status_halt_fraction": {
+          "new": 0.0,
+          "nc": 0.0
+        }
+      }
+    },
+    "2025": {
+      "P_nc_holds_new_publishes": {
+        "n_anchors": 180,
+        "total": {
+          "new_minus_nc_bps_per_anchor": 0.21211042330880545,
+          "across_path_sd_bps": 0.4996173926871216,
+          "level_new": 5.4364069535713675,
+          "level_nc": 5.224296530262562
+        },
+        "price": {
+          "new_minus_nc_bps_per_anchor": 0.5031223112093354,
+          "across_path_sd_bps": 0.245242512046054,
+          "level_new": 3.2740473145677482,
+          "level_nc": 2.7709250033584127
+        },
+        "funding": {
+          "new_minus_nc_bps_per_anchor": 0.08707894677730312,
+          "across_path_sd_bps": 0.01069437701084226,
+          "level_new": 0.24585568500440425,
+          "level_nc": 0.15877673822710114
+        },
+        "fee": {
+          "new_minus_nc_bps_per_anchor": 0.3099881527779712,
+          "across_path_sd_bps": 0.014825514410184917,
+          "level_new": 0.3099881527779712,
+          "level_nc": 0.0
+        },
+        "g_per_gross": {
+          "new_minus_nc_bps_per_anchor": 0.10605521165440278,
+          "across_path_sd_bps": 0.24980869634356082,
+          "level_new": 2.7182034767856837,
+          "level_nc": 2.612148265131281
+        },
+        "status_hold_fraction": {
+          "new": 0.0,
+          "nc": 0.9777777777777777
+        },
+        "status_halt_fraction": {
+          "new": 0.022222222222222223,
+          "nc": 0.022222222222222223
+        }
+      },
+      "complement": {
+        "n_anchors": 2010,
+        "total": {
+          "new_minus_nc_bps_per_anchor": 0.7477402354146431,
+          "across_path_sd_bps": 0.13779514944790305,
+          "level_new": 2.1987029932509157,
+          "level_nc": 1.4509627578362727
+        },
+        "price": {
+          "new_minus_nc_bps_per_anchor": 0.3866390329496455,
+          "across_path_sd_bps": 0.05796024583588261,
+          "level_new": 1.650402846025914,
+          "level_nc": 1.2637638130762683
+        },
+        "funding": {
+          "new_minus_nc_bps_per_anchor": 0.023042931943119602,
+          "across_path_sd_bps": 0.0168469774987423,
+          "level_new": 0.4357025862963664,
+          "level_nc": 0.4126596543532468
+        },
+        "fee": {
+          "new_minus_nc_bps_per_anchor": -0.010274016700719866,
+          "across_path_sd_bps": 0.0020614089169816853,
+          "level_new": 0.11534876310415393,
+          "level_nc": 0.1256227798048738
+        },
+        "g_per_gross": {
+          "new_minus_nc_bps_per_anchor": 0.3738701177073216,
+          "across_path_sd_bps": 0.06889757472395151,
+          "level_new": 1.099351496625458,
+          "level_nc": 0.7254813789181364
+        },
+        "status_hold_fraction": {
+          "new": 0.25925062189054726,
+          "nc": 0.24713930348258706
+        },
+        "status_halt_fraction": {
+          "new": 0.002114427860696517,
+          "nc": 0.0018190298507462688
+        }
+      }
+    },
+    "pre2026": {
+      "P_nc_holds_new_publishes": {
+        "n_anchors": 307,
+        "total": {
+          "new_minus_nc_bps_per_anchor": -0.15918698003959114,
+          "across_path_sd_bps": 0.36185668826748885,
+          "level_new": 4.755795885096808,
+          "level_nc": 4.9149828651364
+        },
+        "price": {
+          "new_minus_nc_bps_per_anchor": 0.31191361174439824,
+          "across_path_sd_bps": 0.17757093617078742,
+          "level_new": 2.8544869002043276,
+          "level_nc": 2.5425732884599292
+        },
+        "funding": {
+          "new_minus_nc_bps_per_anchor": 0.058072330324795376,
+          "across_path_sd_bps": 0.006748595168787294,
+          "level_new": 0.14315418621649764,
+          "level_nc": 0.08508185589170225
+        },
+        "fee": {
+          "new_minus_nc_bps_per_anchor": 0.33343477143961137,
+          "across_path_sd_bps": 0.008734612370065113,
+          "level_new": 0.33343477143961137,
+          "level_nc": 0.0
+        },
+        "g_per_gross": {
+          "new_minus_nc_bps_per_anchor": -0.07959349001979558,
+          "across_path_sd_bps": 0.18092834413374445,
+          "level_new": 2.377897942548404,
+          "level_nc": 2.4574914325682
+        },
+        "status_hold_fraction": {
+          "new": 0.0,
+          "nc": 0.9869706840390879
+        },
+        "status_halt_fraction": {
+          "new": 0.013029315960912053,
+          "nc": 0.013029315960912053
+        }
+      },
+      "complement": {
+        "n_anchors": 5188,
+        "total": {
+          "new_minus_nc_bps_per_anchor": 0.5177263966077921,
+          "across_path_sd_bps": 0.08502142783482243,
+          "level_new": 1.374169780104398,
+          "level_nc": 0.8564433834966061
+        },
+        "price": {
+          "new_minus_nc_bps_per_anchor": 0.24384924089016813,
+          "across_path_sd_bps": 0.0397378249853617,
+          "level_new": 1.0576038263852454,
+          "level_nc": 0.8137545854950772
+        },
+        "funding": {
+          "new_minus_nc_bps_per_anchor": -0.011088578199838868,
+          "across_path_sd_bps": 0.006624746617160326,
+          "level_new": 0.23755526476208283,
+          "level_nc": 0.2486438429619217
+        },
+        "fee": {
+          "new_minus_nc_bps_per_anchor": -0.0039253792138921615,
+          "across_path_sd_bps": 0.0009298155929418163,
+          "level_new": 0.13296367157107403,
+          "level_nc": 0.1368890507849662
+        },
+        "g_per_gross": {
+          "new_minus_nc_bps_per_anchor": 0.25886319830389604,
+          "across_path_sd_bps": 0.0425107139174112,
+          "level_new": 0.6870848900521991,
+          "level_nc": 0.42822169174830305
+        },
+        "status_hold_fraction": {
+          "new": 0.2200751734772552,
+          "nc": 0.1973303777949113
+        },
+        "status_halt_fraction": {
+          "new": 0.0009517154973014649,
+          "nc": 0.0007047513492675404
+        }
+      }
+    },
+    "2026": {
+      "P_nc_holds_new_publishes": {
+        "n_anchors": 0,
+        "note": "empty group; nothing measured"
+      },
+      "complement": {
+        "n_anchors": 1453,
+        "total": {
+          "new_minus_nc_bps_per_anchor": -0.09357899823164251,
+          "across_path_sd_bps": 0.23485433970380512,
+          "level_new": 6.202897206044407,
+          "level_nc": 6.2964762042760505
+        },
+        "price": {
+          "new_minus_nc_bps_per_anchor": -0.0178148089039995,
+          "across_path_sd_bps": 0.11921959566135513,
+          "level_new": 4.325822301670239,
+          "level_nc": 4.343637110574237
+        },
+        "funding": {
+          "new_minus_nc_bps_per_anchor": 0.02735322215244044,
+          "across_path_sd_bps": 0.005018900202538791,
+          "level_new": 1.0994160019932295,
+          "level_nc": 1.072062779840789
+        },
+        "fee": {
+          "new_minus_nc_bps_per_anchor": 0.0016214680594242269,
+          "across_path_sd_bps": 0.0032465987754654235,
+          "level_new": 0.12495769665482215,
+          "level_nc": 0.12333622859539792
+        },
+        "g_per_gross": {
+          "new_minus_nc_bps_per_anchor": -0.046789499115821184,
+          "across_path_sd_bps": 0.11742716985190259,
+          "level_new": 3.1014486030222033,
+          "level_nc": 3.1482381021380244
+        },
+        "status_hold_fraction": {
+          "new": 0.0,
+          "nc": 0.0
+        },
+        "status_halt_fraction": {
+          "new": 0.0026884033035099795,
+          "nc": 0.0033551273227804546
+        }
+      }
+    }
+  },
+  "red_control": {
+    "self_dbar_max_abs_bps": 0.0,
+    "baseline_green": true,
+    "segment_used": "2023H2",
+    "P_nonempty": true,
+    "P_not_everything": true,
+    "population_non_degenerate": true
+  },
+  "verdict": "MEASURED"
+}
