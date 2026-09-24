@@ -40,3 +40,6 @@ zsh $D/devices/b7_copy_inputs.sh $IN
 # 13:1xZ  closes subset for the table probe (Mac): python3 -c (KLINES_RAW.jsonl.gz → probe/closes_all.json {symbol: {boundary_ts: close}}, sort_keys) sha 4e736066…
 #   scp devices/b7_ctrl_table_probe.py probe/closes_all.json pod2:/root/m3c_2026-09-24/b7/
 #   ssh pod2 'cd /root/m3c_2026-09-24/b7 && env -i PATH=/usr/bin:/bin HOME=/root nice -n 10 /workspace/venv/bin/python -B b7_ctrl_table_probe.py closes_all.json CTRL_TABLE_PROBE.json'   → probe rc=0
+# ---- DIAGNOSTIC L403 channel (lead 13:1xZ; prereg docs/PREREG_b7_diag_L403_channel_2026-09-24.md, frozen in f0a61add4 before any number) ----
+# 13:22:06Z  /usr/bin/python3 -B $D/devices/b7_diag_rr_channel.py $S/inputs $S/diag_rr > $S/diag_rr_stdout.log 2>&1; echo "diag_rr rc=$?"   → diag_rr rc=0
+#   B7_DIAG_RR READING=SUPPORTS_L403_WRONG_CHANNEL A08(n_ch0,n_rr,rel_exec_rr)=(7, 3, 0.0004085056793433615) A12(n_ch0,n_rr,rel_exec_rr)=(10, 5, 0.0004580193340031853) P0=[True, True] out_sha256=26e3dec54af4726f3c5cb91f509205c196281eae3bc75015ffe0072f8ad2f6da
