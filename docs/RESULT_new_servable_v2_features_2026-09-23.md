@@ -29,7 +29,7 @@
 | 项 | 判词 | 退出码 | 收据 |
 |---|---|---|---|
 | 单测(26 格, D11/D13 交出后) | `NEWS2_PATCH_TESTS VERDICT=PASS cells=26 not_pass=0` | 0 | `TEST_NEWS2_PATCHES_treeNC5.json` |
-| 射程门 | `VERDICT=FAIL`(唯一非 PASS 格 = floorD14 `NO-MEASUREMENT`) | 1 | `NC_REACH_GATE.json` |
+| 射程门 | `VERDICT=FAIL`(唯一非 PASS 格 = floorD14 `NO-MEASUREMENT`); 放行依据 = lead 裁定 b8b9a521a, 判词行不改判 | 1 | `NC_REACH_GATE.json` + `RULING_freeze_3-1_D14_reach_2026-09-24.md` |
 | └ D14 分辨力(补测) | `VERDICT=NO_TIE_POSSIBLE at all 5 anchors` | 0 | `D14_RESOLUTION.json` |
 | └ D14 分辨力红控 | `VERDICT=PASS mode=selftest cells=4 not_pass=0` | 0 | `D14_RESOLUTION_selftest.json` |
 | D7 准入(条件 1: 行独立性) | `VERDICT=ROW_INDEPENDENT`(`F8_TREND_ROWS=last` 在被取的那一行上等于 `=all`) | 0 | `D7_ROW_INDEPENDENCE.json` |
@@ -58,7 +58,18 @@
 
 3 个锚候选数 < NTOP 400, 生产者不执行 `if len(m) > P["NTOP"]` 那一刀; 2 个锚执行了, 而第 400 个键在整个 `legal ∧ crypto` **超集**里只有一个名持有。超集计数**可能虚报**并列、**绝不会漏报**, 对门而言是安全方向。
 
-**⇒ 射程门的 FAIL 是「这 5 个锚上 D14 没有可测效应」, 原因已由测量给出, 不是沉默。** 判词行照录, 不改判。
+上面这些都是**测量**。「§3-1 因此算不算满足、链能不能继续」是一个**放行决定**, 不由本文作出 ——
+news2 是 D14 补丁的作者, 放行依据不能落在被判对象作者的文字里(记忆 `criterion_author_must_have_no_stake`)。
+
+**放行依据 = lead 裁定 `docs/RULING_freeze_3-1_D14_reach_2026-09-24.md`(b8b9a521a, 写于任何 NC 书层数字之前)**:
+> **§3-1 对 D14 视为满足, 链继续。射程门判词行保持 FAIL, 不改判。**
+
+裁定给的理由是: §3-1 要证的性质(「接上了、会改并列时的选择」)已由上线树单测
+`D14.stable_tiebreak` 直接实测(基线 58 名不同, 补丁后 0 名, 构造输入会变红); 射程门在这 5 个锚上
+测不了该性质, 因为触发条件不存在; 且该裁定**不放宽任何书层判据**(冻结件 §2 的 A / B1 / B2 一字不动)。
+
+裁定另附两条限定(照写, 不作门): 实盘首次出现切口并列时 D14 才第一次在真实数据上生效, 其行为由单测
+覆盖但真实数据上从未测过; 月度报告逐锚记「切口是否执行」与「第 NTOP 个键的持有者数」, 大于 1 时具名报告。
 
 ### 2.2 两条平价的作用与限度
 
@@ -132,8 +143,8 @@ unconstrained**, 不静默跳过。
 | 4 | **`pre_king` 暂存收据没记 `argv`**: 复跑命令只能从源码反推。 | 装置已补 `argv`/`cwd`/`rerun_command`; 已出的那份 `STAGE_PRE_KING.json` 补不回去, 记在此。 |
 | 5 | **暂存装置曾会删掉自己要暂存的输入**: `post_king` 源与目的可能同一 inode(腿按集成者给的调用方式写进 news2 根), 原码 `os.remove(dest)` 再 `os.link(source, dest)` = 删掉 `legs.npz` 再链一个不存在的路径。跑之前发现, **无损失**。 | 加 `samefile` → `in_place` 分支; 新增 `GREEN.in_place` 一格, 断言**文件仍在且 sha 不变**而非判词字符串; 变异实测该格报 `survived=False sha_now=FILE GONE`, 其余九格不动。 |
 | 6 | **我给 `post_king` 写的「生产者还在跑就拒绝」守卫恒说通过**: 用 `pgrep -af`, 而 macOS 的 `pgrep` 没有 `-a` ⇒ 退非零、输出为空 ⇒ 空进程表被读成「已退出」。 | 改 `ps -Ao pid=,ppid=,args=` 自己匹配; **匹配脚本路径不匹配解释器名**(macOS 框架版 argv[0] 是 `.../MacOS/Python`, 原正则本机一个都匹配不到); 排除自身与祖先链(调起它的 shell 命令行必然含该模式); 测不到时报 `could_not_measure` 并拒绝。新增 `RED.producer_running` 真起一个匹配进程验证。套件 11 格 rc 0, 两台机器都绿。 |
-| 7 | **B8 新装置先给出一个假 FAIL(79,248/116,060)**: 树的闭包只实现 `"sum"` 与「其它一律当 mean」, 问 `"count"` **不报错**而静默回均值, 于是我拿均值跟计数比; 且 D5 政策是 float64 累加后 round 回 float32, 参照必须先取 float32。 | 只比真实存在的两种 kind, 并**实测证明**该回退存在(问不存在的 kind 必须与 `"mean"` 逐位相同 ⇒ True); 参照取 float32。 |
-| 8 | **该 B8 的红控自己也先失效过, 因此判 UNAVAILABLE 而非 PASS**: 我用 `np.array_equal(src, cd[:,:,1])` 认参照数组, 有 NaN 时恒 False, 扰动数组从未代入, 控制在拿自己跟自己比。 | 改成把参照数组作**显式参数**传入。现红控差 2 格 = 含被扰动行的 1 个窗 × 1 个名 × 2 种 kind, 自洽。 |
+| 7 | **B8 新装置先给出一个假 FAIL(79,248/116,060)** —— lead 记为「红控救了判词的一例」: 树的闭包只实现 `"sum"` 与「其它一律当 mean」, 问 `"count"` **不报错**而静默回均值, 于是我拿均值跟计数比; 且 D5 政策是 float64 累加后 round 回 float32, 参照必须先取 float32。 | 只比真实存在的两种 kind, 并**实测证明**该回退存在(问不存在的 kind 必须与 `"mean"` 逐位相同 ⇒ True); 参照取 float32。 |
+| 8 | **该 B8 的红控自己也先失效过, 因此判 UNAVAILABLE 而非 PASS**: 我用 `np.array_equal(src, cd[:,:,1])` 认参照数组, 有 NaN 时恒 False, 扰动数组从未代入, 控制在拿自己跟自己比。 | 改成把参照数组作**显式参数**传入。现红控差 2 格 = 含被扰动行的 1 个窗 × 1 个名 × 2 种 kind, 自洽。<br>**这个洞只在装置侧, 生产路径上没有**: 集成代理只读核过上线树 treeNC5 —— 生产者调 `wstat` 的两处 kind 都是字面量(`"sum"` 与 `"sum" if nm == "ret5" else "mean"`), 「其它一律 mean」的回退在生产路径上走不到; 且 `F8_TREND_ROWS` 在 f8 第 214 行有 `_tr_rows in ("all","last")` 断言, 非法值一律报错。所以只有**外部按 kind 调用它的装置**(我的 B8)会碰到, 修法(先打一发非法值实测回退再写进收据)仍然照留。 |
 | 9 | **六个链装置一个都没入库**(`news2_train_king/train_f10/combo/make_configs/ext/adapter_specs`), 其中三个连 pod2 都没上传 —— 链走到引擎配置会缺装置; 且 King 已训完而产它的脚本不在库里。 | 补齐, 逐个按派生收据 `output_sha256` 核对 MATCH, 六份派生 diff 一并入库。 |
 | 10 | **p2「卡住」误诊**(早前): 报出直接回收与 42 小时外推, 两条腿都错 —— `pgscan_direct` 是开机以来累计(当期增量 0, PSI 0.00), 且我取的是**父进程** `ps TIME`(不含 27 个子进程的 1186% CPU)。 | 数分钟内向集成者撤回, 对方确认未采取动作。正确做法: `/proc/<pid>/stat` 字段 14–17 含 `cutime/cstime`, 并按轴位置量进度。 |
 | 11 | **我自己的 D7 信号预测器被我自己的门证伪**: 960 个锚被标记, 抽测 6/6 全是 `D7_moves_row=0`。 | 标 `FALSIFIED`, 通知集成者不要并入。漏检根因: `--selftest` 测的是计数器, 不是推导。 |
