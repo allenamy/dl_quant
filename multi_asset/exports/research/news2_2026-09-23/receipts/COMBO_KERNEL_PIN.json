@@ -1,0 +1,35 @@
+{
+ "receipt": "COMBO_KERNEL_PIN.json",
+ "utc": "2026-09-24T00:02:27Z",
+ "question": "combo_target.source_kernels pins combo_stage.py to fb5a9407 (the AS-DEPLOYED file) and extracts only chain and exec_reshape. This release patches combo_stage (D7 f8 trend rows, D9 btcv) and the patched file is 363dd8c8. Does the pin therefore feed the combo step stale book kernels?",
+ "pin": {
+  "device": "/dev/shm/news2_2026-09-23/devices/combo_target.py",
+  "EXPECTED": "fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8",
+  "extracts": [
+   "chain",
+   "exec_reshape"
+  ]
+ },
+ "deployed_combo_stage": {
+  "path": "/dev/shm/news2_2026-09-23/vendor_live/fea171/combo_stage.py",
+  "sha256": "fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8"
+ },
+ "patched_combo_stage": {
+  "path": "/dev/shm/news2_2026-09-23/treeNC5_deploy/fea171/combo_stage.py",
+  "sha256": "363dd8c8876ab29eb9c098fe47a40a37bd6c7c912d9cb6cf2cbc7a17b87e9f65"
+ },
+ "per_function": {
+  "chain": {
+   "deployed": "fb5ced472d88f7d6497f1309beacf8fa1c0bb42959f60ac13eb0c0232ba64abf",
+   "patched": "fb5ced472d88f7d6497f1309beacf8fa1c0bb42959f60ac13eb0c0232ba64abf",
+   "identical": true
+  },
+  "exec_reshape": {
+   "deployed": "a31f38c56491d46b1315dac65b4e01d484a25134ac66f36ed509fb6724ca639f",
+   "patched": "a31f38c56491d46b1315dac65b4e01d484a25134ac66f36ed509fb6724ca639f",
+   "identical": true
+  }
+ },
+ "finding": "both extracted kernels are byte-identical between the two files (compared as normalised ASTs). The B-part combo_stage patches touch feature computation, not book construction, so the pin is immaterial to what the combo step runs. Answered by measurement rather than by reading the diff.",
+ "consequence": "vendor_live keeps the pinned fb5a9407 file, exactly as NEW_S did, with no semantic compromise."
+}
