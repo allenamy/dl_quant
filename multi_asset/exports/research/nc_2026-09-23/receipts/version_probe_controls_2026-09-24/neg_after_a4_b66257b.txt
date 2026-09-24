@@ -1,0 +1,17 @@
+after-a4 NEWSHA=b66257b6e86c18ed27c7971aa7fed64a69d71444
+  OK  running tree HEAD: measured=b66257b6e86c18ed27c7971aa7fed64a69d71444 compared_with=b66257b6e86c18ed27c7971aa7fed64a69d71444
+  OK  origin/main (local ref): measured=b66257b6e86c18ed27c7971aa7fed64a69d71444 compared_with=b66257b6e86c18ed27c7971aa7fed64a69d71444
+  OK  origin/main (GitHub ls-remote): measured=b66257b6e86c18ed27c7971aa7fed64a69d71444 compared_with=b66257b6e86c18ed27c7971aa7fed64a69d71444
+  BAD git show NEWSHA file list: measured=['ops/run_acceptance_offline.sh', 'ops/tests_acceptance_offline.py'] compared_with=['config/book.json', 'live/tests_anchor_report_builder.py', 'ops/anchor_report.py', 'ops/producer_release/20260923_nc/INSTALL_CONTRACT.json', 'ops/producer_release/20260923_nc/PATCH_RECEIPT.json']
+  VAL external_book.booster_sha_pin = 8d79186b6380132cb67684acf1ebfcdb2c53261c850f46a4908b06bfa7a81282
+  VAL external_book.f10_sha_pin = 351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4
+  VAL beta_overlay.mode = None
+  VAL beta_overlay.max_combined_leverage = None
+  VAL external_book.producer_contract = None
+  BAD booster_sha_pin == contract: measured=8d79186b6380132cb67684acf1ebfcdb2c53261c850f46a4908b06bfa7a81282 compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  BAD f10_sha_pin == contract: measured=351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4 compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  BAD beta_overlay.mode: measured=None compared_with=shadow
+  BAD beta_overlay.max_combined_leverage: measured=None compared_with=2.5
+  BAD external_book.producer_contract: measured=None compared_with=nc_v1
+  OK  running-tree book.json bytes == NEWSHA:config/book.json: measured=484e3728e9e9da40b68e846427f9abf3d4efbe54dcec71d39a7746a85288f76e compared_with=484e3728e9e9da40b68e846427f9abf3d4efbe54dcec71d39a7746a85288f76e
+VERSION_PROBE after-a4 MISMATCH n=6 bad=['git show NEWSHA file list', 'booster_sha_pin == contract', 'f10_sha_pin == contract', 'beta_overlay.mode', 'beta_overlay.max_combined_leverage', 'external_book.producer_contract']

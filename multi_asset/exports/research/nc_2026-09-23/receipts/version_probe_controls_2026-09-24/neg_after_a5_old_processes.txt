@@ -1,0 +1,15 @@
+after-a5 A3 apply completed_utc=2026-09-24T02:42:02Z stage=installed_not_started VERDICT=NO_DEPLOY USER_OVERRIDE=053d50f4ab034ca5e311600b10864d0e30046f2aedf2fca369ebecdc8d032b6b
+  VAL com.hsy.shadowloop pid=13652 start_utc=2026-09-22T13:24:53Z cwd=/Users/haosiyu/wide_shadow args=/usr/local/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python shadow_loop_v3.py run
+  BAD com.hsy.shadowloop start > A3 completion: measured=False compared_with=True
+  VAL com.hsy.shadowloop script path=/Users/haosiyu/wide_shadow/shadow_loop_v3.py realpath=/Users/haosiyu/wide_shadow/shadow_loop_v3.py
+  BAD com.hsy.shadowloop shadow_loop_v3.py sha at the run path: measured=6080073964bffc621c893915b16f71ecafe093194f0b99a66a4463ee12c74e61 compared_with=a68c7a5f0c6e8e0af89eda0307ab0b9ad6b38fa82810f4d04c1ab99deb1d510c
+  VAL com.hsy.combolive pid=13654 start_utc=2026-09-22T13:24:53Z cwd=/Users/haosiyu/wide_shadow/fea171 args=/bin/bash /Users/haosiyu/wide_shadow/fea171/combo_live_daemon.sh
+  BAD com.hsy.combolive start > A3 completion: measured=False compared_with=True
+  VAL combo daemon script invokes combo_stage.py in its cwd: True
+  VAL com.hsy.combolive script path=/Users/haosiyu/wide_shadow/fea171/combo_stage.py realpath=/Users/haosiyu/wide_shadow/fea171/combo_stage.py
+  BAD com.hsy.combolive combo_stage.py sha at the run path: measured=fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8 compared_with=363dd8c8876ab29eb9c098fe47a40a37bd6c7c912d9cb6cf2cbc7a17b87e9f65
+  VAL sidecar launchctl loaded=True print-disabled=[] processes=['801 /bin/bash /Users/haosiyu/wide_shadow/fea171/sidecar_daemon.sh']
+  BAD sidecar not loaded: measured=True compared_with=False
+  BAD sidecar processes: measured=['801 /bin/bash /Users/haosiyu/wide_shadow/fea171/sidecar_daemon.sh'] compared_with=[]
+  BAD sidecar disabled: measured=False compared_with=True
+VERSION_PROBE after-a5 MISMATCH n=7 bad=['com.hsy.shadowloop start > A3 completion', 'com.hsy.shadowloop shadow_loop_v3.py sha at the run path', 'com.hsy.combolive start > A3 completion', 'com.hsy.combolive combo_stage.py sha at the run path', 'sidecar not loaded', 'sidecar processes', 'sidecar disabled']

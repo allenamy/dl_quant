@@ -374,6 +374,11 @@ $PYP $NCW/src/nc_install.py apply $PKG $BK/install --seeded $BK/seeded --seed-pa
   - 最后用**新装的**生产者加载状态验证。
 - 通过条件:`NC_INSTALL installed_not_started`,rc=0。收据 `$BK/install/NC_INSTALL_RECEIPT.json`。
 - 停点:拒绝或中途失败 ⇒ §R-A。
+- **版本实测 A3**(lead 2026-09-24,用户要求「绝不能跑错代码版本」;`devices/nc_version_probe.py` 33cd1d15,只读;逐项打印实测值与对照值,不符的点名列出;正负对照见 `receipts/version_probe_controls_2026-09-24/`):
+  ```
+  /usr/bin/python3 $NCW/src/nc_version_probe.py --out $BK/VP_after_a3.txt after-a3 $PKG ; echo "rc=$?"      # 17 个目的地逐个重算 sha == 候选值;末行必须 VERSION_PROBE after-a3 OK n=0
+  ```
+  不符 ⇒ §R-A。
 
 **A4 执行器**(现行协议;执行器套件一律经 `ops/run_acceptance_offline.sh`,由 `safe_commit.sh` 调用):
 ```
@@ -395,7 +400,9 @@ NEWSHA=$(git -C $XC rev-parse HEAD); echo $NEWSHA
 /usr/bin/python3 ~/cc_tmp/lead_deploy_20260923/ff_running_tree.py $NEWSHA ; echo "rc=$?"   # 持 state/anchor.lock 快进运行树
 git -C ~/dl_quant_live rev-parse HEAD ; git -C ~/dl_quant_live rev-parse origin/main ; echo $NEWSHA   # 三方相同
 git -C ~/dl_quant_live status --porcelain --untracked-files=no | grep -v '^.. \(state\|logs\)/' ; echo "上一行必须为空"
+/usr/bin/python3 $NCW/src/nc_version_probe.py --out $BK/VP_after_a4.txt after-a4 $PKG $NEWSHA --beta-mode shadow --max-combined 2.5 ; echo "rc=$?"   # 版本实测 A4
 ```
+- **版本实测 A4**:打印运行树 HEAD、origin/main(本地引用与 GitHub ls-remote)、NEWSHA 三方;`git show NEWSHA` 的文件清单必须恰好是 pathspec 那 5 个;运行树 book.json 的 booster_sha_pin、f10_sha_pin、beta_overlay.mode、beta_overlay.max_combined_leverage、external_book.producer_contract 五个值,且字节等于 NEWSHA 里提交的 book.json。末行必须 `VERSION_PROBE after-a4 OK n=0`;不符 ⇒ 停,交 lead(已快进则按 §R-B)。
 - `safe_commit.sh` 的行为:
   - 只允许在 main 上运行,在运行树里会被拒绝(exit 78);
   - 落后 origin 就先 rebase;
@@ -413,9 +420,28 @@ ps eww -p $(cat ~/wide_shadow/shadow.lock) | tr ' ' '\n' | grep SHADOW_OFFSET_MI
 tail -2 ~/wide_shadow/loop.out                                                          # 必须出现 next <下一槽>
 launchctl print-disabled gui/$(id -u) | grep com.hsy.sidecar                            # 必须 => disabled(或 true)
 launchctl print gui/$(id -u)/com.hsy.sidecar 2>&1 | head -1                             # 必须是「未加载」类报错
+/usr/bin/python3 $NCW/src/nc_version_probe.py --out $BK/VP_after_a5.txt after-a5 $PKG $BK/install/NC_INSTALL_RECEIPT.json ; echo "rc=$?"   # 版本实测 A5
 ```
+- **版本实测 A5**:
+  - 生产者(com.hsy.shadowloop)与 combo 守护(com.hsy.combolive)的进程启动时刻必须晚于 A3 apply 的 `completed_utc`;
+  - 按进程实际运行的路径(lsof 取 cwd,加上 argv;combo 守护每锚在自己的 cwd 里跑 `combo_stage.py`)重算 sha,必须是 a68c7a5f… 与 363dd8c8…;
+  - 侧车:未加载、已 disabled、没有进程。
+  - 末行必须 `VERSION_PROBE after-a5 OK n=0`;不符 ⇒ 停,交 lead。
 
 ## B. 换装后验收(锚 N+4 与 N+8;只读)
+
+**B0 版本实测**(首锚;执行器 N+4:24 读取并记下 anchors 行之后):
+```
+/usr/bin/python3 $NCW/src/nc_version_probe.py --out $BK/VP_first_anchor_<A>.txt first-anchor $PKG <A> ; echo "rc=$?"
+```
+- 打印并核对:
+  - target_live/<A>.json 的 booster_sha / f10_sha(f10_sha 是 combo 按实际载入的字节算的);
+  - shadow_log 本锚 signal 行的 booster_sha;
+  - MANIFEST,以及磁盘上两个模型的 sha(生产者启动时逐项校验 MANIFEST,不符就拒启动);
+  - generation.json 的 schema_version、锚与签名文件集:NC 合同是 5 个文件。它没有显式的合同版本字段,合同由文件集识别;
+  - 执行器 anchors 行 external_book 的 ok / reason 与读到的 sha,必须等于 book.json 的钉;
+  - anchor_runs.log 本锚没有 REFUSED / HOLD。
+- 末行必须 `VERSION_PROBE first-anchor OK n=0`;不符 ⇒ §R-B,交 lead。
 
 **B1 身份**:
 - `state/target_live/<A>.json` 的 `booster_sha` / `f10_sha` = 新钉;
