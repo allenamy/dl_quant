@@ -75,6 +75,39 @@
 2. 只证**服务列在回放下**不动(`king_X78` / `X82` / `X89` / `m` / `qvm` / `fe_v` / `fn_v` / `iv_v` / `btcv_anchor`)。三棵树变的都是**实盘取数路径**(并行 K 线、批量 `fundingRate`、同锚新名回填、429/418 停止), 回放不执行那段 —— 那段的等价性本装置既没测也测不了, 归集成者自己的平价门与 lead。
 3. 射程门/D7 两项的结论因此是**有条件的**: 它们在臂那一代的树上测得, 经由上面的等价链适用于上线树, 而这条链的基础是 5 锚。
 
+## 2.3 环境启动门(lead 2026-09-24 要求的类形状修法)
+
+照着链脚本手动跑对一次不算修好 —— 钉必须在入口被强制。`devices/news2_env_gate.py` 把
+`news_chain_resume.sh` 的逐步钉转录成表(每条带出处行), 每步开跑前比对, 不符就 `exit 9` 具名拒绝。
+
+**钉的是 `sys.prefix`, 不是路径也不是 realpath。** `/workspace/venv/bin/python` 是符号链接, 实测:
+
+| 解释器 | realpath | `sys.prefix` | numpy | numpy 载入目录 |
+|---|---|---|---|---|
+| `/workspace/venv/bin/python` | `/usr/bin/python3.11` | `/workspace/venv` | 2.4.6 | `/workspace/venv/lib/python3.11/site-packages` |
+| `/usr/bin/python3` | `/usr/bin/python3.11` | `/usr` | 2.4.6 | `/usr/local/lib/python3.11/dist-packages` |
+
+realpath 相同, **numpy 版本号也相同**。若按 realpath 或版本字符串做门, 恰好会放过 lead 点名要拒的那个
+变异 —— 一个不可能失败的门。
+
+自测 `ENV_GATE_SELFTEST.json`, **8 格 rc 0**: 先 5 格基线绿(king/legs/f10/combo/engine 各自在自己的钉
+环境下 PASS —— 基线已红的变异检查恒真), 再 3 格变异全 rc 9 被拒(`/usr/bin/python3` 跑 king ⇒ 判词点名
+`sys_prefix=/usr`; f10 要求 unset 而给它设上; legs 钉 OMP=1 而给 8)。「不约束」写成 None 并**打印成
+unconstrained**, 不静默跳过。
+
+判词收据的 `env_per_step` **不重新键入环境**, 而是嵌入各步启动门当时测到的收据。门存在之前跑的三步
+(King / 腿 / 暂存)写成 `NOT_GATED` 并指向 §5 —— 「没有条目」不许读成「查过没事」。
+
+## 2.4 引擎步前的 /dev/shm 实测门
+
+4.1 GiB 那个数是在 NEW_S 输入上测的; NC 输入(`NC_FEATURES` 2.96 GB)的引擎内存**没有人测过**。
+`run_p4_chain.sh` 在引擎步之前实测并写 `SHM_HEADROOM_BEFORE_ENGINE.json`, 低于 6.00 GiB 目标即
+`exit 8` 停下报 lead, 不放宽、不删任何别人的文件。
+
+00:23Z 实测 **5.70 GiB** < 6.00 ⇒ 会在此停。已把三个选项交 lead 裁(降目标 / 删 `p1_merged.npz` /
+先串行跑一条臂实测引擎峰值)。注: 我暂存的 `work/NEWS_FEATURES.npz` 是对 nc 根 `NC_FEATURES.npz` 的
+**硬链接**, 删它腾不出空间。
+
 ## 3. 判词
 
 **`NOT PRESENT`** —— 组合 / 引擎 / 读数尚未跑完。判词将由 `news2_stats.py`(统计量全部从钉住的 `news_stats.py` `7141ba42…` **import**, 不复制)按冻结件 §2 的 A ∧ B1 ∧ B2 产出, 判词原文与退出码逐字录入此节。
@@ -94,8 +127,8 @@
 | # | 偏离 | 处置 |
 |---|---|---|
 | 1 | **E-0923-F 静默窗破入**: 16:21–16:23:43Z 在生产 Mac 上跑全局门, 不在 [N+1:00, N+3:40] 内, 因为把钟看错一小时。按自己记录的 PGID 32535 杀掉; 核实 16Z 生产者(16:17:31Z)与 combo(16:18:34Z)已完成、执行器 16:24:00Z 才读。 | lead 记入台账。此后本机重活一律经 `devices/run_local_gated.sh` —— 第一件事调 `venue_quiet_window.py`, 不开就 `exit 9` 什么都不启动。本轮 treeNC5 单测的门收据 `GATE_treeNC5_suite.json` 记 `open=True remaining_min=7.0`。 |
-| 2 | **「三种环境三个不同的 King OOF」是错的, 已撤回**: 我比的是 `.npz` **文件 sha**。比数组: 预测 `P` 8,566,057 格 **0 格不同**; 文件 sha 的差异全部来自同档另存的每锚 `model_sha256`(8143/10333 与 5953/10333 条不同)。抓到它的是重跑的 `legs.npz` 与第一遍**逐位相同**, 而 legs 的 KZ 由 `K["P"]` 的值算出。 | 改正三处: 收据顶部 CORRECTION 段 + 逐数组比较、`run_chain_corrected.sh` 头注释标 RETRACTED、给 lead 的更正消息。代价: 白扔一对已跑到 16/23 折的 F10(约 20 分钟)。重跑本身仍正确, 但理由是「方案这么写」不是「否则数字会变」。 |
-| 3 | **第一遍 King/腿的训练环境不对**: 按装置名启链, 没读 `news_chain_resume.sh`(它钉 King 用 PV 且 `NPY_DISABLE_CPU_FEATURES` 已设、腿用 P314 + OMP=1、F10 用 PV 且该变量 unset)。 | 全部重跑到位。注: 本轮实测该环境**没有**改变 King 预测(见 #2), 所以这条是纪律偏离而非数字偏离。 |
+| 2 | **「三种环境三个不同的 King OOF」是错的, 已撤回**(lead 也独立要求暂停引用; 我的撤回在收到之前): 我比的是 `.npz` **文件 sha**。比数组: 预测 `P` 8,566,057 格 **0 格不同**; 文件 sha 的差异全部来自同档另存的每锚 `model_sha256`(8143/10333 与 5953/10333 条不同)。抓到它的是重跑的 `legs.npz` 与第一遍**逐位相同**, 而 legs 的 KZ 由 `K["P"]` 的值算出。 | 改正三处: 收据顶部 CORRECTION 段 + 逐数组比较、`run_chain_corrected.sh` 头注释标 RETRACTED、给 lead 的更正消息。代价: 白扔一对已跑到 16/23 折的 F10(约 20 分钟)。重跑本身仍正确, 但理由是「方案这么写」不是「否则数字会变」。<br>**lead 在批准重跑时曾要求把这三个 sha 写进本清单「作为这类钉必须存在的依据」—— 这条依据不成立**: 按判别法, 即使环境完全不起作用, 三个 sha 也照样各不相同。故此处记为**被撤回的主张**, 钉的理由改以 #3 的 (a)(b) 两条承担。lead 补充的机制(LightGBM 8 线程下叶子值在第 17 位有效数字上不确定 ⇒ 模型文本每跑都变)我未实测, 出处记为 lead。 |
+| 3 | **第一遍 King/腿的训练环境不对**: 按装置名启链, 没读 `news_chain_resume.sh`(它钉 King 用 PV 且 `NPY_DISABLE_CPU_FEATURES` 已设、腿用 P314 + OMP=1、F10 用 PV 且该变量 unset)。 | 全部重跑到位, 解释器逐步与 lead 核实的清单(`ENV_F10_NEW_S.json`, fd38b892b)一致: King PV / 腿 P314 / F10 PV / 组合 P314。注: 本轮实测该环境**没有**改变 King 预测(见 #2), 所以这条是纪律偏离而非数字偏离。**钉必须存在的理由因此不是「否则数字会变」**, 而是: (a) 方案这么写, 且 B1/B2 是与 NEW_S 比, 同条件是判据的前提; (b) **腿这一步真的换了 Python 与 numpy 版本**(P314 = 3.14.4 / numpy 2.5.2 vs 系统 3.11.10 / 2.4.6), 这条不依赖任何 sha 比较。类形状修法见 §2.3。 |
 | 4 | **`pre_king` 暂存收据没记 `argv`**: 复跑命令只能从源码反推。 | 装置已补 `argv`/`cwd`/`rerun_command`; 已出的那份 `STAGE_PRE_KING.json` 补不回去, 记在此。 |
 | 5 | **暂存装置曾会删掉自己要暂存的输入**: `post_king` 源与目的可能同一 inode(腿按集成者给的调用方式写进 news2 根), 原码 `os.remove(dest)` 再 `os.link(source, dest)` = 删掉 `legs.npz` 再链一个不存在的路径。跑之前发现, **无损失**。 | 加 `samefile` → `in_place` 分支; 新增 `GREEN.in_place` 一格, 断言**文件仍在且 sha 不变**而非判词字符串; 变异实测该格报 `survived=False sha_now=FILE GONE`, 其余九格不动。 |
 | 6 | **我给 `post_king` 写的「生产者还在跑就拒绝」守卫恒说通过**: 用 `pgrep -af`, 而 macOS 的 `pgrep` 没有 `-a` ⇒ 退非零、输出为空 ⇒ 空进程表被读成「已退出」。 | 改 `ps -Ao pid=,ppid=,args=` 自己匹配; **匹配脚本路径不匹配解释器名**(macOS 框架版 argv[0] 是 `.../MacOS/Python`, 原正则本机一个都匹配不到); 排除自身与祖先链(调起它的 shell 命令行必然含该模式); 测不到时报 `could_not_measure` 并拒绝。新增 `RED.producer_running` 真起一个匹配进程验证。套件 11 格 rc 0, 两台机器都绿。 |
