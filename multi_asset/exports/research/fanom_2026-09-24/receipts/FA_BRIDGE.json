@@ -1,0 +1,210 @@
+{
+ "device": "fa_bridge.py",
+ "self_sha256": "94fb26cb4646ef45bfae4ec36946d32cc7950d83d242ec58967c46bf35d98a5b",
+ "utc": "2026-09-24T03:06:50Z",
+ "prereg": {
+  "path": "docs/PREREG_fresh_book_anomaly_2026-09-24.md",
+  "commit": "427d76f34"
+ },
+ "amendment_1": {
+  "path": "docs/AMENDMENT_1_fresh_book_anomaly_2026-09-24.md",
+  "commit": "84524bcdd"
+ },
+ "bridge_quantity": "King leg realised return LR[:, king], bps per anchor (LR is already bps; NOT rescaled)",
+ "why_not_price_channel": "FRESH engine paths and the feature panel were deleted; see AMENDMENT 1",
+ "inputs": {
+  "legs_FRESH": "486dfe3765c5ef37adb6270b7c1642305bf0d6b1da9d1930b0963e8249f524d8",
+  "legs_NEWS": "18999e169c6b68546271f8194fd74eaa79041d1967ba44df978f4cbea33d6bd5"
+ },
+ "king_fold_boundaries": {
+  "n": 51,
+  "first_iso": "2022-07-01T00:00:00Z",
+  "last_iso": "2026-09-01T00:00:00Z"
+ },
+ "segment_totals": {
+  "2023H2": {
+   "n_ready": 1109,
+   "mean_diff_bps_per_anchor": 0.8966023657342536,
+   "sum_diff_bps": 994.3320235992871,
+   "n_finite": 1109
+  },
+  "2024": {
+   "n_ready": 2196,
+   "mean_diff_bps_per_anchor": 0.08807989931053439,
+   "sum_diff_bps": 193.42345888593354,
+   "n_finite": 2196
+  },
+  "2025": {
+   "n_ready": 2190,
+   "mean_diff_bps_per_anchor": 0.4586322454887717,
+   "sum_diff_bps": 1004.40461762041,
+   "n_finite": 2190
+  },
+  "2026": {
+   "n_ready": 1453,
+   "mean_diff_bps_per_anchor": 0.6043400534371347,
+   "sum_diff_bps": 878.1060976441568,
+   "n_finite": 1453
+  },
+  "pre2026": {
+   "n_ready": 5495,
+   "mean_diff_bps_per_anchor": 0.3989372338681767,
+   "sum_diff_bps": 2192.160100105631,
+   "n_finite": 5495
+  }
+ },
+ "share_denominator": {
+  "segment": "pre2026",
+  "quantity": "sum of King leg return difference over ready anchors",
+  "value_bps": 2192.160100105631,
+  "unit": "bps (summed over anchors, not per-anchor)"
+ },
+ "oof": {
+  "FRESH_king": "4345541e4450b24a0bdf59c11219f2e5dda4476fa6f934f2d6a0569fd7b21951",
+  "NEWS_king": "744bc48ea1e2f3b823d4ae9268d4d791606319691da23bfa9f1d98eedf232ab9"
+ },
+ "king_ic_population": {
+  "cells_FRESH_finite": 2644977,
+  "cells_NEWS_finite": 2644977,
+  "cells_common_with_label": 2644538,
+  "arms_score_identical_cells": true,
+  "note": "IC is computed on cells finite in BOTH arms AND in the label, so the two arms are scored on one population (prereg 1.3, mechanism M5)"
+ },
+ "label": {
+  "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz",
+  "sha256": "ca479fccd3d3245e9438a8c82ba7b4a1950ab6e06607f28b25923c4526924d62",
+  "field": "y4s",
+  "label_string_FRESH": "NEW dlw_targets y4s (raw compounded, all closes observed; NaN excluded, never 0)",
+  "label_string_NEWS": "NEW dlw_targets y4s (raw compounded, all closes observed; NaN excluded, never 0)",
+  "oof_anchors": 10333,
+  "anchors_with_label_row": 10321
+ },
+ "king_ic_common_cells": {
+  "all": {
+   "FRESH_mean": 0.06936500724418443,
+   "NEWS_mean": 0.06167537110082538,
+   "diff": 0.0076896361433590465,
+   "n_anchors_FRESH": 9246,
+   "n_anchors_NEWS": 9246,
+   "same_anchor_count": true,
+   "unit": "correlation points (cross-sectional Spearman), recomputed on common cells"
+  },
+  "pre2026": {
+   "FRESH_mean": 0.0689612654474731,
+   "NEWS_mean": 0.060261037037574315,
+   "diff": 0.008700228409898779,
+   "n_anchors_FRESH": 5495,
+   "n_anchors_NEWS": 5495,
+   "same_anchor_count": true,
+   "unit": "correlation points (cross-sectional Spearman), recomputed on common cells"
+  }
+ },
+ "combo": {
+  "FRESH": "3cf963227483d6be31e9a4de8ea7bfdafd8f9f584b65c4a660b44dac3a88460f",
+  "NEWS": "0c409fe3754acf971878c5a52cc6748f2066751257e1a39972866f3101f23a6c",
+  "anchors_with_combo_row": 8142
+ },
+ "buckets": {
+  "publish_state": {
+   "rows": {
+    "both_publish": {
+     "n_anchors": 3658,
+     "sum_diff_bps": 1191.1560287952761,
+     "mean_diff_bps_per_anchor": 0.32563040699706836,
+     "share_of_denominator": 0.5433709101529032
+    },
+    "only_FRESH": {
+     "n_anchors": 334,
+     "sum_diff_bps": 443.22500419125845,
+     "mean_diff_bps_per_anchor": 1.3270209706325102,
+     "share_of_denominator": 0.2021864206769849
+    },
+    "only_NEWS": {
+     "n_anchors": 692,
+     "sum_diff_bps": 318.27735384107933,
+     "mean_diff_bps_per_anchor": 0.4599383726027158,
+     "share_of_denominator": 0.14518891837587175
+    },
+    "neither": {
+     "n_anchors": 811,
+     "sum_diff_bps": 239.50171327801718,
+     "mean_diff_bps_per_anchor": 0.29531653918374495,
+     "share_of_denominator": 0.10925375079424016
+    },
+    "no_combo_row": {
+     "n_anchors": 0,
+     "sum_diff_bps": 0.0,
+     "mean_diff_bps_per_anchor": null,
+     "share_of_denominator": 0.0
+    }
+   },
+   "sum_of_shares": 1.0,
+   "population_anchors": 5495,
+   "bucketed_anchors": 5495,
+   "CLOSES": true
+  },
+  "fresh_king_seat_tercile": {
+   "rows": {
+    "low": {
+     "n_anchors": 1832,
+     "sum_diff_bps": 585.2429969143117,
+     "mean_diff_bps_per_anchor": 0.31945578434187316,
+     "share_of_denominator": 0.266970919179722
+    },
+    "mid": {
+     "n_anchors": 1831,
+     "sum_diff_bps": 1540.053721785342,
+     "mean_diff_bps_per_anchor": 0.8410997934381989,
+     "share_of_denominator": 0.7025279411440494
+    },
+    "high": {
+     "n_anchors": 1832,
+     "sum_diff_bps": 66.86338140597775,
+     "mean_diff_bps_per_anchor": 0.036497478933393966,
+     "share_of_denominator": 0.030501139676228885
+    }
+   },
+   "sum_of_shares": 1.0000000000000002,
+   "population_anchors": 5495,
+   "bucketed_anchors": 5495,
+   "CLOSES": true
+  },
+  "seat_tercile_cuts": {
+   "q33": 0.5725596881282329,
+   "q67": 0.7810047984528542,
+   "quantity": "FRESH king seat WL[:,0]"
+  },
+  "anchors_past_king_fold_boundary": {
+   "rows": {
+    "0-5": {
+     "n_anchors": 180,
+     "sum_diff_bps": 297.5939673407156,
+     "mean_diff_bps_per_anchor": 1.6532998185595311,
+     "share_of_denominator": 0.135753755999106
+    },
+    "6-20": {
+     "n_anchors": 450,
+     "sum_diff_bps": 378.10224312970803,
+     "mean_diff_bps_per_anchor": 0.8402272069549067,
+     "share_of_denominator": 0.17247930163106648
+    },
+    "21-60": {
+     "n_anchors": 1200,
+     "sum_diff_bps": 448.7768785176435,
+     "mean_diff_bps_per_anchor": 0.3739807320980363,
+     "share_of_denominator": 0.20471902508216386
+    },
+    "61+": {
+     "n_anchors": 3665,
+     "sum_diff_bps": 1067.6870111175638,
+     "mean_diff_bps_per_anchor": 0.29131978475240483,
+     "share_of_denominator": 0.4870479172876636
+    }
+   },
+   "sum_of_shares": 1.0,
+   "population_anchors": 5495,
+   "bucketed_anchors": 5495,
+   "CLOSES": true
+  }
+ }
+}
