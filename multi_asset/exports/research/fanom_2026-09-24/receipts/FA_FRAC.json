@@ -1,0 +1,267 @@
+{
+ "device": "fa_frac.py",
+ "self_sha256": "28cb08e6edd86b8fdf8c2f5dfa26f4c84806b6a3c165a675f5e3f2f9cce79a10",
+ "utc": "2026-09-24T10:31:18Z",
+ "prereg": {
+  "path": "docs/PREREG_seat_window_fraction_2026-09-24.md",
+  "commit": "54748c683"
+ },
+ "disclosure": "SECOND test; the first (0da6d4ae6) was UNDECIDED and its direction was already seen. Criterion here is stricter: rank correlation over 5 bins AND a bootstrap interval excluding 0.",
+ "sign_convention": "intensity = SIGNED bps/anchor (more negative = worse for FRESH); mechanism predicts Spearman > 0",
+ "series": {
+  "path": "/dev/shm/fanom_2026-09-24/receipts/FA_ANCHOR_SERIES.npz",
+  "sha256": "e9305cc55706ec2d23cd3731efd3f9e622e6dd369492c1091fcc98d4b9e9a321"
+ },
+ "zero_control": {
+  "NEWS_frac_mean": 0.8360327570518653,
+  "NEWS_frac_median": 1.0,
+  "NEWS_frac_p10": 0.3048888888888889,
+  "NEWS_share_ge_0.5": 0.8362147406733395,
+  "FRESH_frac_mean": 0.10125447376402791,
+  "FRESH_frac_min": 0.0,
+  "FRESH_frac_max": 0.20555555555555555,
+  "DEVICE_CHECK_PASS": true,
+  "rule": "prereg \u00a74: if NEW_S's frac is NOT concentrated high, frac is miscomputed; STOP with no verdict",
+  "binned_by_NEWS_frac": {
+   "cuts": [
+    0.61,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "rows": {
+    "0": {
+     "n": 1100,
+     "bps_per_anchor": -0.8658495036744122
+    },
+    "1": {
+     "n": 4395,
+     "bps_per_anchor": -0.49238227285287395
+    },
+    "2": {
+     "n": 0,
+     "bps_per_anchor": null
+    },
+    "3": {
+     "n": 0,
+     "bps_per_anchor": null
+    },
+    "4": {
+     "n": 0,
+     "bps_per_anchor": null
+    }
+   },
+   "spearman": 0.9999999999999999,
+   "note": "the mechanism is about the MONTHLY arm's diluted seat memory; binning by the ANNUAL arm's own frac should NOT show it"
+  }
+ },
+ "population": {
+  "phase2_denominator_bps": -3116.454543230235,
+  "excluded_incomplete_window": 0,
+  "anchors_after_exclusion": 5495,
+  "sum_after_exclusion_bps": -3116.454543230235,
+  "fraction_of_phase2_denominator": 1.0
+ },
+ "bins": {
+  "quintile_cuts": [
+   0.04,
+   0.0811111111111111,
+   0.12111111111111111,
+   0.1622222222222222
+  ],
+  "rows": {
+   "0": {
+    "n_anchors": 1110,
+    "frac_range": [
+     0.0,
+     0.04
+    ],
+    "sum_bps": -499.378829366583,
+    "bps_per_anchor": -0.44989083726719187,
+    "share": 0.16023940745465584,
+    "effective": true
+   },
+   "1": {
+    "n_anchors": 1110,
+    "frac_range": [
+     0.04111111111111111,
+     0.0811111111111111
+    ],
+    "sum_bps": -803.1972516646715,
+    "bps_per_anchor": -0.7236011276258302,
+    "share": 0.2577278893444568,
+    "effective": true
+   },
+   "2": {
+    "n_anchors": 1080,
+    "frac_range": [
+     0.08222222222222222,
+     0.12111111111111111
+    ],
+    "sum_bps": -772.2772486431924,
+    "bps_per_anchor": -0.7150715265214744,
+    "share": 0.24780635749068866,
+    "effective": true
+   },
+   "3": {
+    "n_anchors": 1110,
+    "frac_range": [
+     0.12222222222222222,
+     0.1622222222222222
+    ],
+    "sum_bps": -802.4997157676505,
+    "bps_per_anchor": -0.7229727169077933,
+    "share": 0.257504065801599,
+    "effective": true
+   },
+   "4": {
+    "n_anchors": 1085,
+    "frac_range": [
+     0.16333333333333333,
+     0.20555555555555555
+    ],
+    "sum_bps": -239.10149778813644,
+    "bps_per_anchor": -0.2203700440443654,
+    "share": 0.07672227990859942,
+    "effective": true
+   }
+  },
+  "sum_of_shares": 0.9999999999999996,
+  "CLOSES": true
+ },
+ "bootstrap": {
+  "B": 10000,
+  "rng": [
+   20260923,
+   1
+  ],
+  "block_days": 30,
+  "draws_used": 10000,
+  "ci95": [
+   -0.49999999999999994,
+   0.8999999999999998
+  ],
+  "excludes_zero": false
+ },
+ "criterion": {
+  "effective_bins": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "bps_per_anchor_in_order": [
+   -0.44989083726719187,
+   -0.7236011276258302,
+   -0.7150715265214744,
+   -0.7229727169077933,
+   -0.2203700440443654
+  ],
+  "spearman": 0.3,
+  "ci95_lower": -0.49999999999999994,
+  "cond_rho_gt_0": true,
+  "cond_ci_excludes_zero": false,
+  "VERDICT": "REFUTED",
+  "frozen_in": "PREREG 54748c683 \u00a73"
+ },
+ "VERDICT": "REFUTED",
+ "separability": {
+  "spearman_frac_vs_seat_tercile": -0.015385445444570588,
+  "contingency": {
+   "0": {
+    "0": 320,
+    "1": 368,
+    "2": 422
+   },
+   "1": {
+    "0": 389,
+    "1": 376,
+    "2": 345
+   },
+   "2": {
+    "0": 387,
+    "1": 360,
+    "2": 333
+   },
+   "3": {
+    "0": 402,
+    "1": 330,
+    "2": 378
+   },
+   "4": {
+    "0": 334,
+    "1": 397,
+    "2": 354
+   }
+  },
+  "stratified": {
+   "0": {
+    "0": {
+     "n": 320,
+     "bps_per_anchor": 0.2995192174147413
+    },
+    "1": {
+     "n": 389,
+     "bps_per_anchor": -0.605080171672547
+    },
+    "2": {
+     "n": 387,
+     "bps_per_anchor": -0.6881294232091721
+    },
+    "3": {
+     "n": 402,
+     "bps_per_anchor": 0.10501621625763234
+    },
+    "4": {
+     "n": 334,
+     "bps_per_anchor": -0.44730680860640487
+    }
+   },
+   "1": {
+    "0": {
+     "n": 368,
+     "bps_per_anchor": -1.1149531304247258
+    },
+    "1": {
+     "n": 376,
+     "bps_per_anchor": 0.08245022210947232
+    },
+    "2": {
+     "n": 360,
+     "bps_per_anchor": 0.08148256873521594
+    },
+    "3": {
+     "n": 330,
+     "bps_per_anchor": 0.11959913461173399
+    },
+    "4": {
+     "n": 397,
+     "bps_per_anchor": -0.3916532287305838
+    }
+   },
+   "2": {
+    "0": {
+     "n": 422,
+     "bps_per_anchor": -0.43820432924881797
+    },
+    "1": {
+     "n": 345,
+     "bps_per_anchor": -1.735716951875978
+    },
+    "2": {
+     "n": 333,
+     "bps_per_anchor": -1.607522181999761
+    },
+    "3": {
+     "n": 378,
+     "bps_per_anchor": -2.339110976521405
+    },
+    "4": {
+     "n": 354,
+     "bps_per_anchor": 0.1858342036509733
+    }
+   }
+  }
+ }
+}
