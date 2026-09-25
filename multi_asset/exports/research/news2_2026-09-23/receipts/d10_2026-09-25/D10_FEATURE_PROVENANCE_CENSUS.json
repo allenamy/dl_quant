@@ -1,0 +1,72 @@
+{
+  "task": "lead 2026-09-25: which trained models/feature artifacts were built via news_p2_build.py",
+  "method": "read each artifact self-reported build receipt; never infer from the directory or file name",
+  "name_collision_warning": "TWO different files are both basenamed NEWS_FEATURES.npz, in sibling roots, one clean one contaminated; a reference without the root AND the sha is ambiguous",
+  "artifacts": {
+    "news2_2026-09-23/work/NEWS_FEATURES.npz": {
+      "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+      "same_inode_as": "/dev/shm/nc_2026-09-23/work/NC_FEATURES.npz (inode 28588827, 3 hardlinks)",
+      "build_receipt": "/dev/shm/nc_2026-09-23/receipts/NC_FEATURES.json",
+      "devices": {
+        "nc_p2_build.py": "671b69e692fb50042386e659089342021aef2f72ef377cb777f4239664cd4c68",
+        "nc_hist_features.py": "3eee6e8842eb86cf203c8eb86c55e7c33d8a18532c080fda0376c317d7cda343"
+      },
+      "tree_replayed": {
+        "shadow_loop_v3.py": "9403dedd0a578cb64f8c542183cf5c6582dc31c5b35cad1d3d30ee34f46c149c"
+      },
+      "news_p2_build_referenced": false,
+      "fund_replay_referenced": false,
+      "verdict": "CLEAN",
+      "consumers": [
+        "dlarch T0 x8 and T3",
+        "live NC training features (same artifact)"
+      ]
+    },
+    "news_2026-09-23/work/NEWS_FEATURES.npz": {
+      "sha256": "a490c294d90e... (from fresh f10_s42 TRAIN_RECEIPT inputs)",
+      "on_disk_now": false,
+      "note": "DELETED from /dev/shm; only NEWS_FEATURES_parity9.npz remains in that root",
+      "built_by": {
+        "news_p2_build.py": "809c0c4afaa95baaca1b3ee573a0403d6f18aa6ed0a908c9e3349c863df00c2f"
+      },
+      "consumes": {
+        "fund_replay.npz": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4"
+      },
+      "verdict": "CONTAMINATED",
+      "consumers": [
+        "fresh f10_s42",
+        "news f10_s2027"
+      ]
+    },
+    "researcher NEW (corrected_combo_v1d)": {
+      "build_receipt": "BUILD_RECEIPT.json",
+      "devices": {
+        "build_combo_inputs.py": "eb708c5a99f09d9967b1c4326c957331c9ca20260dfc8649b1c4179bd53a9390",
+        "feature_contract.py": "e4338749ac766a807aed788bf91e2058bd9631e716c9d6734b895c37c2cf76c2"
+      },
+      "news_p2_build_referenced": false,
+      "fund_replay_referenced": false,
+      "grep_scope": "whole combo_20260923 tree: zero hits for fund_replay or news_p2_build",
+      "verdict": "CLEAN"
+    }
+  },
+  "mechanism": "news_p2_build.py:36 packs last_rate as the rate element of led; funding_asof returns last_row[1] verbatim as fn_v = King keep_names fund_now",
+  "training_row_reach": {
+    "judged_wrong_cells_in_fetched_months": 2017,
+    "of_which_in_member_set_so_would_enter_a_training_row": 12,
+    "not_a_member_at_that_anchor": 2005,
+    "by_month": {
+      "2026-01": 3,
+      "2026-02": 2,
+      "2026-03": 5,
+      "2026-04": 1,
+      "2026-08": 1
+    },
+    "member_set_caveat": "counted against the NC member set; the deleted build used the same universe and mask, so this is a near-proxy, not the deleted artifact own member list",
+    "contaminated_value_shape": "every one is the +/-2% cap, sign-preserving: HFTUSDT truth +0.00322541 -> +0.02; TLMUSDT truth +0.0000125 -> -0.02 which is a SIGN FLIP"
+  },
+  "limits": [
+    "the contaminated artifact is deleted, so its cells are reconstructed from fund_replay last_rate, which funding_asof returns verbatim",
+    "2026-05/06/07 and 2020-2025 disputed cells are not yet judged (archive not fetched)"
+  ]
+}
