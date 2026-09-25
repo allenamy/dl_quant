@@ -1,0 +1,15 @@
+published anchors: base 6520 | B1 8142 | C1 8142  (of 8142)
+publication sets identical (B1 vs C1): True
+
+EXECUTOR-NORMALISED weight comparison, B1 vs C1 (the equivalence test of DECISION_RULE section 4-3):
+  anchors where any cell differs : 8142 / 8142
+  cells where they differ        : 2134027
+  per-anchor L1 distance on jointly-published anchors: median 0.009199  q90 0.078858  max 0.233792
+  cosine similarity: median 0.99995627  q10 0.99697702  min 0.97393199
+
+Interpretation guard: L1 distance 0 AND identical publication sets => the two arms trade the same book
+and DECISION_RULE 4-3 says merge them into one cell. Nonzero => they are different books and both must run.
+
+=== NC baseline gate-failure rate per year (B4 action surface) ===
+s42: 2023=682(31.1%) 2024=263(12.0%) 2025=677(30.9%) 2026=0(0.0%)
+s2027: 2023=561(25.6%) 2024=633(28.8%) 2025=697(31.8%) 2026=0(0.0%)

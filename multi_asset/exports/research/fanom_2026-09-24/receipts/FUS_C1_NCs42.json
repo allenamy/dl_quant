@@ -1,0 +1,320 @@
+{
+ "device": "fa_fusread.py",
+ "arm": "C1",
+ "member": "NCs42",
+ "self_sha256": "08c8ec99447ab7f47bb442b1c2a916651b578a9b7e3ffb93edba04ec14fbc0ee",
+ "utc": "2026-09-25T04:07:39Z",
+ "prereg": {
+  "path": "docs/PREREG_step1_rn8_clamp_2026-09-25.md",
+  "amendment_1": "64f0ebb27"
+ },
+ "caliber": {
+  "news_stats.py": "7141ba42ab227b9f35b48acce62d5e2a2494f364fdf6a83189974cb2af67e03c",
+  "functions_used": "dbar, boot, daily_on, seg_mask, full_days, path_metrics",
+  "reimplemented": "nothing -- AMENDMENT 1 section C"
+ },
+ "variant_cell": "/dev/shm/fanom_2026-09-24/runs/NEWS2_s42_scaled_rule_raw_UAFE",
+ "baseline_cell": "/dev/shm/news2_2026-09-23/runs/NEWS2_s42_scaled_rule_raw_UAFE",
+ "seed": "42",
+ "SENTENCE_verbatim": "30 \u65e5\u5757\u81ea\u4e3e\u533a\u95f4\u7167\u62a5,\u4e0d\u4f5c\u95e8\u3002\u4f9d\u636e E-0923-B:\u8fd9\u53f0\u4eea\u5668\u5bf9\u6b64\u7c7b\u6bd4\u8f83\u7684\u533a\u95f4\u534a\u5bbd\u7ea6 10 bps/\u65e5,\u4ee5\"\u4e0b\u754c > 0\"\u4e3a\u95e8\u7b49\u4e8e\u8981\u6c42\u6548\u5e94 \u2265 \u7ea6 10 bps/\u65e5\u3002\u672c\u89c4\u5219\u662f\u6362\u88c5\u51b3\u7b56\u89c4\u5219,\u4e0d\u662f\"\u7edf\u8ba1\u663e\u8457\"\u7684\u58f0\u660e\u3002",
+ "channel_identity": "g = pnl - car - cst - unk ; car == funding_paid (positive = PAID)",
+ "segments": {
+  "fullwin": {
+   "mean_bps_per_day": -1.00321451072824,
+   "n_days": 1157,
+   "n_windows": 6948,
+   "boot": {
+    "block_days": 30,
+    "n_days": 1157,
+    "B": 10000,
+    "rng": [
+     20260923,
+     1
+    ],
+    "ci97.5_two_sided_bps": [
+     -6.647659659097812,
+     4.370522158636523
+    ],
+    "ci95_bps": [
+     -5.9167846836350995,
+     3.59040813718331
+    ],
+    "draws_defined": 10000
+   },
+   "day_weighted_from_halves": -1.0032145107282404,
+   "mean_matches_day_weighted": true
+  },
+  "pre2026": {
+   "mean_bps_per_day": -1.254459608281472,
+   "n_days": 915,
+   "n_windows": 5495,
+   "boot": {
+    "block_days": 30,
+    "n_days": 915,
+    "B": 10000,
+    "rng": [
+     20260923,
+     1
+    ],
+    "ci97.5_two_sided_bps": [
+     -8.260843077483528,
+     5.645888098333336
+    ],
+    "ci95_bps": [
+     -7.368311571468136,
+     4.626604465042389
+    ],
+    "draws_defined": 10000
+   }
+  },
+  "2023H2": {
+   "mean_bps_per_day": -5.844099712517585,
+   "n_days": 184,
+   "n_windows": 1109
+  },
+  "2024": {
+   "mean_bps_per_day": 0.5917387069909745,
+   "n_days": 366,
+   "n_windows": 2196
+  },
+  "2025": {
+   "mean_bps_per_day": -0.7920344143370078,
+   "n_days": 365,
+   "n_windows": 2190
+  },
+  "2026": {
+   "mean_bps_per_day": -0.05325887328523583,
+   "n_days": 242,
+   "n_windows": 1453
+  }
+ },
+ "channels": {
+  "fullwin": {
+   "g": {
+    "variant": 1.0045896727618406,
+    "baseline": 1.086708976539318,
+    "delta": -0.08211930377747745
+   },
+   "price": {
+    "variant": 1.6473214269199579,
+    "baseline": 1.6283295208362156,
+    "delta": 0.018991906083742238
+   },
+   "funding_paid": {
+    "variant": 0.470769885578768,
+    "baseline": 0.4136142208051049,
+    "delta": 0.05715566477366307
+   },
+   "fee": {
+    "variant": 0.17196186857934737,
+    "baseline": 0.12800632349187074,
+    "delta": 0.04395554508747662
+   },
+   "unknown_excluded": {
+    "variant": 0.0,
+    "baseline": 0.0,
+    "delta": 0.0
+   },
+   "turnover_over_gross": {
+    "variant": 0.06815702087434927,
+    "baseline": 0.05078981374333819,
+    "delta": 0.01736720713101108
+   },
+   "NET_price_minus_funding_paid": -0.038163758689920835,
+   "ALT_price_plus_funding_paid": 0.07614757085740531,
+   "g_identity_max_err": {
+    "variant": 1.4158274552755756e-10,
+    "baseline": 1.084821121821733e-10
+   }
+  },
+  "pre2026": {
+   "g": {
+    "variant": 0.4389192561864037,
+    "baseline": 0.541594905657622,
+    "delta": -0.10267564947121832
+   },
+   "price": {
+    "variant": 0.9355602167300974,
+    "baseline": 0.9103419088454339,
+    "delta": 0.025218307884663504
+   },
+   "funding_paid": {
+    "variant": 0.31176833212201316,
+    "baseline": 0.23950580291996404,
+    "delta": 0.07226252920204912
+   },
+   "fee": {
+    "variant": 0.18487262842170532,
+    "baseline": 0.12924120026795355,
+    "delta": 0.05563142815375177
+   },
+   "unknown_excluded": {
+    "variant": 0.0,
+    "baseline": 0.0,
+    "delta": 0.0
+   },
+   "turnover_over_gross": {
+    "variant": 0.07348418394607405,
+    "baseline": 0.05150952039423118,
+    "delta": 0.02197466355184287
+   },
+   "NET_price_minus_funding_paid": -0.047044221317385615,
+   "ALT_price_plus_funding_paid": 0.09748083708671262,
+   "g_identity_max_err": {
+    "variant": 1.3672307730416833e-10,
+    "baseline": 1.0129497240995988e-10
+   }
+  },
+  "2026": {
+   "g": {
+    "variant": 3.143859417484501,
+    "baseline": 3.1482381021380244,
+    "delta": -0.004378684653523202
+   },
+   "price": {
+    "variant": 4.339081819207145,
+    "baseline": 4.343637110574237,
+    "delta": -0.004555291367092096
+   },
+   "funding_paid": {
+    "variant": 1.0720868410122626,
+    "baseline": 1.072062779840789,
+    "delta": 2.4061171473688248e-05
+   },
+   "fee": {
+    "variant": 0.12313556071027851,
+    "baseline": 0.12333622859539792,
+    "delta": -0.00020066788511940992
+   },
+   "unknown_excluded": {
+    "variant": 0.0,
+    "baseline": 0.0,
+    "delta": 0.0
+   },
+   "turnover_over_gross": {
+    "variant": 0.04801059205182505,
+    "baseline": 0.04806800503951372,
+    "delta": -5.7412987688673645e-05
+   },
+   "NET_price_minus_funding_paid": -0.004579352538565784,
+   "ALT_price_plus_funding_paid": -0.0045312301956184076,
+   "g_identity_max_err": {
+    "variant": 1.4158274552755756e-10,
+    "baseline": 1.084821121821733e-10
+   }
+  }
+ },
+ "behavioural": {
+  "anchors_with_price_difference": 5488,
+  "total_price_delta_bps_pre2026": 138.57460182622526,
+  "bang_bang_segmentation": {
+   "parts_absolute_bps": {
+    "bang_bang_seat": 412.2166248792955,
+    "interior_seat": -273.6420230530703
+   },
+   "n_bang_bang": 2362,
+   "n_interior": 3133,
+   "bang_bang_fraction": 0.429845313921747,
+   "note": "absolute contributions only; shares deliberately not reported"
+  },
+  "cancellation_ratio": 0.20204542472998088
+ },
+ "per_year": {
+  "2023": {
+   "dbar_bps_per_day": -2.8466578011381607,
+   "n_days": 365,
+   "delta_funding_paid_bps_per_anchor": 0.014731306975962047,
+   "delta_price_bps_per_anchor": -0.14423520509130194
+  },
+  "2024": {
+   "dbar_bps_per_day": 0.5917387069909745,
+   "n_days": 366,
+   "delta_funding_paid_bps_per_anchor": 0.006018201948872537,
+   "delta_price_bps_per_anchor": 0.0805760184338492
+  },
+  "2025": {
+   "dbar_bps_per_day": -0.7920344143370078,
+   "n_days": 365,
+   "delta_funding_paid_bps_per_anchor": 0.1516943191464259,
+   "delta_price_bps_per_anchor": 0.1579208992329535
+  },
+  "2026": {
+   "dbar_bps_per_day": -0.05325887328523583,
+   "n_days": 242,
+   "delta_funding_paid_bps_per_anchor": 2.4061171473688248e-05,
+   "delta_price_bps_per_anchor": -0.004555291367092096
+  }
+ },
+ "two_chain_by_w2": {
+  "w2_bucket_edges": [
+   0.0,
+   0.2583958827741022,
+   0.5001860145821448,
+   0.7414653787536264
+  ],
+  "buckets": {
+   "0": {
+    "n": 0
+   },
+   "1": {
+    "n": 3257,
+    "w2_median": 0.0,
+    "baseline_two_chain_corr_median": 0.06027082098540134,
+    "variant_two_chain_corr_median": 0.06027082098540134,
+    "baseline_cancellation_coeff_median": 0.7081265927255834,
+    "variant_cancellation_coeff_median": 0.7081265927255834
+   },
+   "2": {
+    "n": 1628,
+    "w2_median": 0.370488086685682,
+    "baseline_two_chain_corr_median": 0.3828028757814441,
+    "variant_two_chain_corr_median": 0.3828028757814441,
+    "baseline_cancellation_coeff_median": 0.8324234387348508,
+    "variant_cancellation_coeff_median": 0.8324234387348508
+   },
+   "3": {
+    "n": 1628,
+    "w2_median": 0.6564655850268766,
+    "baseline_two_chain_corr_median": 0.9198214164274124,
+    "variant_two_chain_corr_median": 0.9198214164274124,
+    "baseline_cancellation_coeff_median": 0.9823058225205056,
+    "variant_cancellation_coeff_median": 0.9823058225205056
+   },
+   "4": {
+    "n": 1629,
+    "w2_median": 0.8677772879600525,
+    "baseline_two_chain_corr_median": 0.9865717058488476,
+    "variant_two_chain_corr_median": 0.9865717058488476,
+    "baseline_cancellation_coeff_median": 0.9977498913562125,
+    "variant_cancellation_coeff_median": 0.9977498913562125
+   }
+  },
+  "retention_proxy_MEASURED_HERE": {
+   "note": "this device's own measured quantity. dlarch's 34.8%/58.1% has an UNDEFINED denominator (lead asking, 2026-09-25) and per FINDING 2f65fb70e is neither of these; it must not be used to infer the mixing ratio.",
+   "baseline": {
+    "nonzero_kc_median": 256.0,
+    "nonzero_fc_median": 256.0,
+    "L1_kc_median": 0.6947783688588025,
+    "L1_fc_median": 0.6800558131342205
+   },
+   "variant": {
+    "nonzero_kc_median": 256.0,
+    "nonzero_fc_median": 256.0,
+    "L1_kc_median": 0.6947783688588025,
+    "L1_fc_median": 0.6800558131342205
+   }
+  }
+ },
+ "family_row": {
+  "arm": "C1",
+  "member": "NCs42",
+  "seed": "42",
+  "d_fullwin_bps_per_day": -1.00321451072824,
+  "d_pre2026_bps_per_day": -1.254459608281472,
+  "d_2026_bps_per_day": -0.05325887328523583,
+  "delta_price": 0.018991906083742238,
+  "delta_funding_paid": 0.05715566477366307,
+  "net_price_minus_funding_paid": -0.038163758689920835
+ },
+ "daily_series_saved": "/dev/shm/fanom_2026-09-24/receipts/FUS_C1_NCs42_daily.npz"
+}
