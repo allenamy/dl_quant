@@ -88,6 +88,22 @@ def build(tree, A, sb, arm, prev_sb):
         for f in sorted(os.listdir(snap)):
             if f in ("COMPLETE", "SHA256SUMS", "combo_live_status.json") or f.startswith("PARITY"): continue
             shutil.copy2(f"{snap}/{f}", f"{sb}/wide_shadow/state/{f}")
+        # rev 2 (seg-2 run 1 STOPPED at 09-21 20Z: the tree's feature_cache_identity requires state/generation.json, which these old
+        # snapshots did not archive): SYNTHESISE the commit marker for the sandbox from the copied files — schema 1, anchor_ts = A, files =
+        # the tree module's own GENERATION_FILES with their sha256 — only after each file's sha matches the snapshot's SHA256SUMS. The
+        # marker certifies integrity only (it changes no computation); the base-arm bitwise check is what validates the replay.
+        import ast as _ast
+        src_fci = open(f"{sb}/wide_shadow/fea171/feature_cache_identity.py").read()
+        gf = [n for n in _ast.parse(src_fci).body if isinstance(n, _ast.Assign) and any(getattr(t, "id", "") == "GENERATION_FILES" for t in n.targets)]
+        assert len(gf) == 1, "tree has no single GENERATION_FILES"
+        files = list(_ast.literal_eval(gf[0].value))
+        sums = {l.split()[1]: l.split()[0] for l in open(f"{snap}/SHA256SUMS") if l.strip()}
+        man = {"schema_version": 1, "anchor_ts": int(A), "files": {}}
+        for f in files:
+            h = sha(f"{sb}/wide_shadow/state/{f}")
+            assert sums.get(f) == h, f"{f}: sandbox copy sha != snapshot SHA256SUMS"
+            man["files"][f] = {"sha256": h}
+        open(f"{sb}/wide_shadow/state/generation.json", "w").write(json.dumps(man))
     os.makedirs(f"{sb}/wide_shadow/state/target_live", exist_ok=True)
     for suf in ("", ".sha256"):
         if os.path.exists(f"{WS}/state/target_live_king/{A}.json{suf}"): shutil.copy2(f"{WS}/state/target_live_king/{A}.json{suf}", f"{sb}/wide_shadow/state/target_live/{A}.json{suf}")
