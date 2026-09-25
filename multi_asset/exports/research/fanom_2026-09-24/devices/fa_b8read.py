@@ -5,6 +5,21 @@ Derived from fa_bread.py; the readout list and its arithmetic are unchanged. Two
   2. PREREG §4's extra readout -- FRESH's variant against NEW_S's ORIGINAL look=900 book, i.e. how much of the gap
      is left -- computed with the same daily pairing and the same bootstrap.
 
+DENOMINATOR FLOOR (lead 2026-09-24, frozen before the look=360 readout was run; see the honesty note below).
+A share is only a number if the total it divides into is distinguishable from zero. Closure (sum_shares == 1) does NOT
+give a share resolution: it says the parts add up to the whole, not that the whole is big enough to divide by. B8's
+look=180 NEWS_s2027 cell made this concrete -- its four state shares closed to 1.000000 while the denominator was
+-71.93 bps total, so "high seat carries -1681%" was arithmetic noise, not a finding.
+
+Rule: shares are reported only if |sum(dprice)| >= K_SE * sd(dprice) * sqrt(n) over the same population, i.e. the total
+is at least K_SE standard errors from zero. Otherwise every share for that arm is the string UNDEFINED_DENOMINATOR and
+only the ABSOLUTE bps contributions are reported. K_SE = 3.0, chosen as a standard-error multiple rather than a bps
+constant so it is scale-free and not tuned to any observed total.
+
+HONESTY NOTE: the look=180 readout was produced and read BEFORE this rule existed. So for look=180 this rule is a
+RE-REPORT of numbers already seen, not a blind application; for look=360 it was frozen first. Stated rather than
+glossed, because "frozen before seeing the numbers" is exactly the claim that would otherwise be false.
+
 One thing to keep straight when reading the output: the high-seat tercile uses FRESH's look=900 seat (the fixed Q33/Q67
 below), NOT the variant's recomputed seat. It is deliberately a FIXED conditioning variable, so "high seat" names the
 same population of anchors in every arm and the buckets do not move underneath the comparison. It therefore does not
@@ -16,6 +31,7 @@ OUT = sys.argv[2]
 R = "/dev/shm/fanom_2026-09-24/receipts"; F = "/dev/shm/fresh_2026-09-23"; N = "/dev/shm/news_2026-09-23"
 PRE = ("2023-06-30T04:00:00Z", "2025-12-31T20:00:00Z"); Q33, Q67 = 0.5725596881282329, 0.7810047984528542
 B = 10000; RNG = (20260923, 1); BLOCK = 30; DAY = 86400
+K_SE = 3.0   # denominator floor, in standard errors of the sum; frozen before the look=360 readout
 def sha(p):
     h = hashlib.sha256()
     with open(p, "rb") as f:
@@ -48,6 +64,7 @@ def hold_age(pub):
 rec = {"device": "fa_b8read.py", "self_sha256": sha(os.path.abspath(__file__)),
        "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "variant": sys.argv[3] if len(sys.argv)>3 else "B4",
        "prereg": {"path": "docs/PREREG_fresh_rootcause_B8_2026-09-24.md", "commit": "38f4c0fbd"},
+       "denominator_floor": {"K_SE": K_SE, "frozen": "before the look=360 readout; look=180 was already seen (see docstring)"},
        "seat_tercile_note": "terciles use FRESH look=900 seat (fixed conditioning variable), not the variant seat",
        "arms": {}, "gap_remaining": {}}
 for arm in ("FRESH", "NEWS"):
@@ -98,6 +115,18 @@ for arm in ("FRESH", "NEWS"):
             rows[g] = {"n": int(m.sum()), "bps_per_anchor": float(np.nanmean(dprice[m])) if m.any() else None,
                        "share": (s / den if den else None)}
         closes = abs(tot - den) <= 1e-9 * max(1.0, abs(den)) and n == int(pop.sum())
+        # denominator floor: is the total distinguishable from zero at all?
+        _dp = dprice[pop]; _dp = _dp[np.isfinite(_dp)]
+        se_sum = float(np.std(_dp, ddof=1) * np.sqrt(len(_dp))) if len(_dp) > 1 else float("inf")
+        den_ok = bool(abs(den) >= K_SE * se_sum)
+        den_info = {"denominator_bps": float(den), "se_of_sum_bps": se_sum,
+                    "se_multiples_from_zero": (abs(den) / se_sum if se_sum > 0 else None),
+                    "K_SE": K_SE, "shares_reportable": den_ok,
+                    "rule": "shares are UNDEFINED unless |sum| >= K_SE * sd * sqrt(n)"}
+        if not den_ok:
+            for g in rows:
+                rows[g]["share"] = "UNDEFINED_DENOMINATOR"
+                rows[g]["absolute_bps_total"] = float(np.nansum(dprice[grp[g]]))
         age = np.full(len(ax), -1, np.int64); age[ok] = hold_age(np.asarray(CV["trade_mask"]).astype(bool))[ci[ok]]
         m12 = pop & (age >= 1) & (age <= 2)
         hi = pop & (terc == 2)
@@ -105,7 +134,9 @@ for arm in ("FRESH", "NEWS"):
                             "price_vs_own_original_bps_per_anchor": float(np.nanmean(dprice[pop])),
                             "state_groups": {"rows": rows, "sum_shares": float(tot / den) if den else None, "CLOSES": bool(closes)},
                             "hold_age_1_2": {"n": int(m12.sum()), "bps_per_anchor": float(np.nanmean(dprice[m12])) if m12.any() else None},
-                            "high_seat_share": (float(np.nansum(dprice[hi])) / den if den else None),
+                            "high_seat_share": ((float(np.nansum(dprice[hi])) / den if den else None) if den_ok else "UNDEFINED_DENOMINATOR"),
+                            "high_seat_absolute_bps": float(np.nansum(dprice[hi])),
+                            "denominator": den_info,
                             "gross_vs_floor": {"median": q(gv, pop)["median"], "q25": q(gv, pop)["q25"], "q75": q(gv, pop)["q75"],
                                                "frac_below_0.4": float(np.nanmean((gv[pop] < 0.4).astype(float)))},
                             "hold_fraction_variant": float((~pv[pop]).mean()), "hold_fraction_original": float((~po[pop]).mean())}
@@ -138,11 +169,13 @@ for seed in ("42", "2027"):
 json.dump(rec, open(OUT + ".tmp", "w"), indent=1, default=float); os.replace(OUT + ".tmp", OUT)
 print("FA_B8READ %s" % (sys.argv[3] if len(sys.argv)>3 else "B4"), flush=True)
 for k, v in rec["arms"].items():
-    print("  %-16s dbar=%+8.4f bps/d ci=%s | price=%+7.4f bps/anc | hold %.3f->%.3f | gross med %.4f (<0.4 %.3f) | hi_seat_share=%+.3f | age1-2=%s"
+    print("  %-16s dbar=%+8.4f bps/d ci=%s | price=%+7.4f bps/anc | hold %.3f->%.3f | gross med %.4f (<0.4 %.3f) | hi_seat=%s (den %+.1f bps = %.1f SE) | age1-2=%s"
           % (k, v["dbar_vs_own_original"]["mean_bps_per_day"],
              [round(c, 3) if c is not None else None for c in v["dbar_vs_own_original"]["ci95"]],
              v["price_vs_own_original_bps_per_anchor"], v["hold_fraction_original"], v["hold_fraction_variant"],
-             v["gross_vs_floor"]["median"], v["gross_vs_floor"]["frac_below_0.4"], v["high_seat_share"],
+             v["gross_vs_floor"]["median"], v["gross_vs_floor"]["frac_below_0.4"],
+             (v["high_seat_share"] if isinstance(v["high_seat_share"], str) else "%+.3f" % v["high_seat_share"]),
+             v["denominator"]["denominator_bps"], v["denominator"]["se_multiples_from_zero"] or 0.0,
              ("%+.4f" % v["hold_age_1_2"]["bps_per_anchor"]) if v["hold_age_1_2"]["bps_per_anchor"] is not None else "n/a"), flush=True)
 for k, v in rec["gap_remaining"].items():
     print("  GAP %-28s dbar=%+8.4f bps/d ci=%s | baseline gap %+8.4f | closed %+8.4f"
