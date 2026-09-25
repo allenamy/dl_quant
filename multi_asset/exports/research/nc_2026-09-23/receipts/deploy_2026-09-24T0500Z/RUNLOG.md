@@ -560,3 +560,272 @@ B7 12Z notify_audit since 12:00Z: 6
 EXINFO_PROBE preceding job ended: NO_WAIT (lead instruction: send now)
 EXINFO_PROBE {"utc": "2026-09-24T13:01:18Z", "path": "/fapi/v1/exchangeInfo", "weight_declared": 1, "used_weight_1m_after": 43, "n_symbols_in_response": 907, "preceding_job_end_line": "NO_WAIT (lead instruction: send now)", "symbols": {"SCRTUSDT": {"status": "SETTLING", "contractType": "PERPETUAL"}, "STORJUSDT": {"status": "SETTLING", "contractType": "PERPETUAL"}, "STGUSDT": {"status": "SETTLING", "contractType": "PERPETUAL"}}}
 exinfo_probe rc=0 end 13:01:18
+## §B 16Z A=1790265600 B1-B3 read at 16:18:31Z
+B1 target_live booster_sha 700d9e7b7ee9 f10_sha 3d7d050f78a9 written_utc 2026-09-24T16:17:53Z
+B1 beta_overlay m3_beta_v1 1790265600 1790265600 n_names 450 est 449 fb 0 [v1 clipped input]
+B1 combo_live_status anchor 1790265600 done ok True reader_ok True beta ok True reader_verdict ok True
+B1 target_combo {"w3_masked": [0.396073, 0.0, 0.603927], "kc_state_source": "own", "fc_state_source": "own", "gross": 0.828788, "net_after_reshape": 0.0, "n_f10_scored": 400} ftrim 6 6 1.0
+B2 signal runtime_s 26.9 logged 2026-09-24T16:12:27Z | diag total 34.93 klines 21.46 exchange_info 0.3
+B3 exinfo_ok True members 400 fund_updates 453 forced_exit_n 16 | nc {"fetch_n": 519, "fetch_new": [], "backfill_residual": [], "fetch_workers": 6, "fetch_budget": 900, "fund_bulk_ok": true, "fund_bulk_pages": 7, "fund_per_symbol": 0, "used_weight_1m_max": 520}
+B3 aux fetch_syms n 519 nc_backfill_residual []
+B3 fetch set change 12Z->16Z: dropped [] added []
+## resume_from_trip --check after 16Z 16:42:57
+══ CHECK MODE — this run will not modify anything. ══
+── 0/4  mode = LIVE
+        trip state : /Users/haosiyu/dl_quant_live/state/live/watchdog/state.json
+        judged over: /Users/haosiyu/dl_quant_live/state/live/pilot_log
+   ✓ LIVE is the tripped mode
+── 1/4  is the trigger condition still true?  (HARD GATE — nothing is touched if it is)
+   ✓ no condition currently fires, no local response would fire, and none was blind
+
+── CHECK: RESUMABLE — the gate passes and no condition is blind.
+   NOTHING WAS TOUCHED. Steps 2-4 were not run. What a real run would do:
+     2/4 copy   /Users/haosiyu/dl_quant_live/state/live/watchdog/state.json
+          ->    /Users/haosiyu/dl_quant_live/state/live/watchdog/quarantine/state_<stamp>_resumed.json  (+ _resume_reason)
+     3/4 remove /Users/haosiyu/dl_quant_live/state/live/watchdog/state.json
+          + quarantine & remove /Users/haosiyu/dl_quant_live/state/live/harvest_ema.json  (EMA memory — see PREREG_harvest_speed reset rule;
+            KEPT instead when the state is a proportional local response: the book was not flattened)
+     4/4 verify no halt/reduce-only state remains
+
+   to actually resume:  bash ops/resume_from_trip.sh "<why you are resuming>"
+resume_check rc=0
+## B0 16Z probe 16:44:15
+first-anchor A=1790265600 (2026-09-24T16:00Z)
+  VAL target_live booster_sha=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d f10_sha=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f written_utc=2026-09-24T16:17:53Z
+  OK  target_live booster_sha: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  target_live f10_sha: measured=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  VAL shadow_log signal rows for A: 1; booster_sha(12)=['700d9e7b7ee9']
+  OK  shadow_log signal booster_sha (12): measured=['700d9e7b7ee9'] compared_with=['700d9e7b7ee9']
+  OK  MANIFEST slow2026.txt: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  on-disk slow2026.txt: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  on-disk f10_live_s42_np.npz: measured=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  VAL generation.json schema_version=1 anchor_ts=1790265600 files=['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz']
+  OK  generation.json file set (NC contract = 5 signed files): measured=['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz'] compared_with=['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz']
+  VAL executor anchors rows for A: 1; external_book ok=True reason=None sha_ok=True booster_sha=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d f10_sha=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f opening_halted=True
+  OK  executor external_book ok: measured=True compared_with=True
+  OK  executor external_book reason: measured=None compared_with=None
+  OK  executor read booster_sha == book pin: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  executor read f10_sha == book pin: measured=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  VAL anchor_runs.log lines in hour 2026-09-24T16Z naming REFUSED/HOLD/sha_pin/PIN: 1
+    2026-09-24T16:24:02Z phase_A: {"anchor_wall_ts": 1790265662.014446, "book_source": "external", "external_wait": {"nominal_anchor_ts": 1790265600, "wake_at": 1790267040.0, "wait_s": 1378.0, "reason": "
+  OK  anchor_runs.log pin refusal / HOLD lines: measured=[] compared_with=[]
+VERSION_PROBE first-anchor OK n=0
+probe rc=0
+## B4 16Z (pooled) A1790267040: orders 297 terminal {'blocked_by_halt': 255, 'skipped_min_notional': 41, 'partial_expired': 1} opening_halted True target_gross 221552.0291403227 realized_gross 231340.2713435601 net_over_gross 0.008111
+B4 m3: mode shadow status shadow field_ok True n_betas 450 beta_exec_usdt -6346.116823045757 hedge_target_usdt 6346.116823045757 shadow_would_be applied [v1 clipped input]
+B4 orders with overlay/hedge marker: 0
+anchor_report 1790251200 green [] 2026-09-24T12:55:01Z
+锚 09-24 12:00Z 排查(常驻器)
+守护 2/2
+fund_upd 355 cov 1.0 forced 19
+w3m [0.389, 0.0, 0.611] kc/fc own/own f10 400
+age 372.0s n 306 | 单 593 拒 109 | 换手 8.0% 成交 11562U taker 22% fee 2.67bps
+gross 222053 net 2849(1.28%) gaps 219U
+COMPLETE PARITY.json PARITY.run.log SHA256SUMS aux.json boundary_raw.npz combo_live_status.json generation.json leg_returns_live.json members_hist.npz rolling.npz 
+parity 1790265600 rc=0 2026-09-24T16:24:01Z PARITY_PARITY anchor 1790265600 why=[] weights={'n_archived': 308, 'n_replay': 308, 'n_differing': 0, 'max_abs_dw': 0.0}
+## B7(b) 16Z 16:44:23 [v1 clipped input]
+  VAL betas: n=450 max|recomputed - published|=0.000e+00 n_differing=0
+  OK  executor betas_sha256 == canonical hash of published betas: measured=0536cfe66215074c4751dd24d6a4a16e65eb2dcbb4a95d9007866ab63db8a211 compared_with=0536cfe66215074c4751dd24d6a4a16e65eb2dcbb4a95d9007866ab63db8a211
+  VAL beta_exec recompute: NOT COMPUTABLE from the anchors row (no executed-target map in the row); reported, not estimated
+M3_SELFCHECK 1790265600 OK n=0
+selfcheck rc=0
+## RESUME pre-checks 16:54:34
+--- anchor.lock holders (lsof):
+(lsof rc=1; 1 = no holder)
+{ "now_utc": "2026-09-24T16:54:35Z", "anchor_N_utc": "2026-09-24T16:00:00Z", "minutes_since_N": 54.6, "window": "[N+60m, N+220m]", "remaining_min": 165.4, "open": false, "reason": "inside the live anchor span (N+55m < N+60m)", "override": null, "last_anchor_start_utc": "2026-09-24T16:00:00Z", "last_anchor_done_utc": "2026-09-24T16:42:40Z", "anchor_in_progress": false, "stale_start": false}
+2026-09-24T16:00:00Z anchor start mode=LIVE
+2026-09-24T16:42:40Z anchor done rc=0
+--- --check again
+══ CHECK MODE — this run will not modify anything. ══
+── 0/4  mode = LIVE
+        trip state : /Users/haosiyu/dl_quant_live/state/live/watchdog/state.json
+        judged over: /Users/haosiyu/dl_quant_live/state/live/pilot_log
+   ✓ LIVE is the tripped mode
+── 1/4  is the trigger condition still true?  (HARD GATE — nothing is touched if it is)
+   ✓ no condition currently fires, no local response would fire, and none was blind
+
+── CHECK: RESUMABLE — the gate passes and no condition is blind.
+   NOTHING WAS TOUCHED. Steps 2-4 were not run. What a real run would do:
+     2/4 copy   /Users/haosiyu/dl_quant_live/state/live/watchdog/state.json
+          ->    /Users/haosiyu/dl_quant_live/state/live/watchdog/quarantine/state_<stamp>_resumed.json  (+ _resume_reason)
+     3/4 remove /Users/haosiyu/dl_quant_live/state/live/watchdog/state.json
+          + quarantine & remove /Users/haosiyu/dl_quant_live/state/live/harvest_ema.json  (EMA memory — see PREREG_harvest_speed reset rule;
+            KEPT instead when the state is a proportional local response: the book was not flattened)
+     4/4 verify no halt/reduce-only state remains
+
+   to actually resume:  bash ops/resume_from_trip.sh "<why you are resuming>"
+resume_check rc=0
+## B6 16Z 16:56:05
+B6 last row 1790265600 2026-09-24T16:00Z 0.3961 0.6039
+B6 REGIME_DASH.md mtime 2026-09-25T00:50:04+0800
+0
+B4 anchor_report 1790265600 warn ['twin 最新 DISAGREE(1-2周期瞬态属常, 连看)'] 2026-09-24T16:55:01Z
+锚 09-24 16:00Z 排查(常驻器)
+守护 2/2
+fund_upd 453 cov 1.0 forced 16
+w3m [0.396, 0.0, 0.604] kc/fc own/own f10 400
+停开仓 | age 367.0s n 308 | 单 297 拒 0 | 意图(未发送) 6.8% 成交 51U taker 0% fee 2.00bps
+gross 231340 net 1876(0.81%) gaps 14207U
+## RESUME 17:00:13 (waited to N+60m so the N+0:50-0:55 report jobs were not reading the watchdog state)
+(lsof rc=1 ; 1 = no holder)
+-rw-r--r--@  1 haosiyu  staff    2048 Sep  7 09:11 state_20260907T011103Z_resumed.json
+-rw-r--r--@  1 haosiyu  staff  100272 Sep 10 07:23 state_20260909T232253Z_resumed.json
+-rw-r--r--@  1 haosiyu  staff  116271 Sep 13 20:06 state_20260913T120536Z_resumed.json
+430871217ff0f33a9f42e76d5259313b9106b161056c28c3fae687a8c67471c9  state/live/watchdog/state.json
+shasum: state/live/harvest_ema.json: No such file or directory
+--- --check (immediately before)
+   ✓ LIVE is the tripped mode
+   ✓ no condition currently fires, no local response would fire, and none was blind
+── CHECK: RESUMABLE — the gate passes and no condition is blind.
+check rc=0
+--- EXECUTE 17:01:17
+── 0/4  mode = LIVE
+        trip state : /Users/haosiyu/dl_quant_live/state/live/watchdog/state.json
+        judged over: /Users/haosiyu/dl_quant_live/state/live/pilot_log
+   ✓ LIVE is the tripped mode
+── 1/4  is the trigger condition still true?  (HARD GATE — nothing is touched if it is)
+   ✓ no condition currently fires, no local response would fire, and none was blind
+── 2/4  quarantine the evidence (never deleted)
+   -> /Users/haosiyu/dl_quant_live/state/live/watchdog/quarantine/state_20260924T170117Z_resumed.json
+── 3/4  clear the trip state
+   removed /Users/haosiyu/dl_quant_live/state/live/watchdog/state.json
+   no harvest_ema.json (EMA memory already clean)
+── 4/4  verify the system is actually resumable
+   ✓ no halt/reduce-only state remains
+✓ resumed (reason: STGUSDT venue delisting settlement (exchangeInfo status=SETTLING 13:01Z; DELIVERED_SETTELMENT -16.59 USDT); not a system anomaly; 16Z anchor reconciled clean; --check RESUMABLE 16:42:57Z; resume approved by user 2026-09-24). The next anchor trades normally.
+  If the guard fires again on the next anchor, the cause was NOT fixed — do not re-run this.
+resume rc=0
+--- after 17:02:15
+ls: state/live/watchdog/state.json: No such file or directory
+ls: state/live/harvest_ema.json: No such file or directory
+state_20260924T170117Z_resumed.json
+state_20260913T120536Z_resumed.json
+state_20260909T232253Z_resumed.json
+f3567e253b7d9942fd0e34d096fbd84bef9262463e99498666a6207fb86bdc96  state/live/watchdog/quarantine/state_20260924T170117Z_resumed.json
+quarantine: tripped_at 2026-09-24T12:48:39Z kind proportional_local open_orders_halted True reduce_only False _resumed_utc 20260924T170117Z
+_resume_reason STGUSDT venue delisting settlement (exchangeInfo status=SETTLING 13:01Z; DELIVERED_SETTELMENT -16.59 USDT); not a system anomaly; 16Z anchor reconciled clean; --check RESUMABLE 16:42:57Z; resume approved by user 2026-09-24
+--- watchdog dir after:
+ALARM.log archive events.jsonl last_eval.json local_response_receipt.json quarantine trip_receipt.json 
+watchdog state.json exists: False => open_orders_halted / reduce_only read as: absent (no halt, no reduce-only)
+last_eval: 2026-09-24T16:41:24Z tripped False triggers [] local_responses []
+Traceback (most recent call last):
+  File "<stdin>", line 5, in <module>
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/haosiyu/dl_quant_live/state/live/pilot_log/20260925/anchors.jsonl'
+## 20Z (pooled) rebalance A1790281440: orders 606 opening_halted False | terminal {'skipped_min_notional': 203, 'partial_expired': 181, 'venue_reject': 127, 'filled': 86, 'skipped_no_chase_arm': 9} | order_type {'maker': 346, 'topup_taker': 260}
+   intended 28334 USDT filled 17843 USDT | blocked_by_halt rows: 0
+   20Z: rejects 127 of 606 rows, maker rows 346, reject/maker 0.367
+   past 14d (n=83): rejects median 69 p90 92 max 126 | maker rows median 284 p90 322 max 348 | reject/maker median 0.241 p90 0.302
+   past 14d anchors with maker rows >= 85% of 20Z's: n=24 rejects [0, 60, 65, 69, 74, 75, 79, 80, 80, 82, 83, 87, 90, 91, 91, 92, 95, 96, 101, 105, 107, 109, 113, 126] reject/maker [0.0, 0.202, 0.21, 0.214, 0.239, 0.245, 0.246, 0.252, 0.253, 0.257, 0.27, 0.275, 0.284, 0.29, 0.292, 0.296, 0.3, 0.302, 0.312, 0.318, 0.342, 0.349, 0.358, 0.362]
+   first anchor after resume 20260802T005130Z -> 1785643200: no orders loaded for it
+   first anchor after resume 20260802T054936Z -> 1785657600: no orders loaded for it
+   first anchor after resume 20260805T083355Z -> 1785931200: no orders loaded for it
+   first anchor after resume 20260805T135959Z -> 1785945600: no orders loaded for it
+   first anchor after resume 20260821T152742Z -> 1787328000: rows 237 rejects 38 maker 135 reject/maker 0.281
+   first anchor after resume 20260822T002207Z -> 1787371200: rows 105 rejects 0 maker 105 reject/maker 0.000
+   first anchor after resume 20260822T112810Z -> 1787400000: rows 707 rejects 133 maker 402 reject/maker 0.331
+   first anchor after resume 20260822T122623Z -> 1787414400: rows 752 rejects 132 maker 460 reject/maker 0.287
+   first anchor after resume 20260826T164305Z -> 1787774400: rows 622 rejects 132 maker 357 reject/maker 0.370
+   first anchor after resume 20260907T011103Z -> 1788753600: rows 475 rejects 46 maker 250 reject/maker 0.184
+   first anchor after resume 20260909T232253Z -> 1788998400: rows 507 rejects 80 maker 273 reject/maker 0.293
+   first anchor after resume 20260913T120536Z -> 1789315200: rows 515 rejects 72 maker 284 reject/maker 0.254
+   first anchor after resume 20260924T170117Z -> 1790280000: rows 606 rejects 127 maker 346 reject/maker 0.367
+## CORRECTION 00:45:14: twin DISAGREE is the DAY clause from a previous-close base mismatch (twin own last snapshot 23:42:28Z vs daily_nav last row 20:46:02Z of 09-23: -0.677pp of the -0.709pp gap; equity-vs-nav 22 s apart: -0.034pp); closed_account_gap -0.0; the STG settlement (-16.59 USDT) is in both equity figures and cancels -> my earlier STG hypothesis is withdrawn
+## inspect_anchor.py 1790294400 (00Z) 00:56:34
+### anchor 1790294400 = 09-25 00:00:00Z  [BLIND: per-arm outcomes withheld until the CFG-04/CFG-06 stop points]
+producer: {'e': 'signal', 'members': 400, 'sel': 336, 'coverage': 1.0, 'fund_updates': 450, 'forced_exit_n': 19, 'w3': [0.3266, 0.1925, 0.4809], 'runtime_s': 25.9, 'fetched': 519, 'missing': 0}
+  masked king = 0.4045
+score(prev anchor): {'gross_bps': 10.912, 'net_bps': 9.808, 'carry_bps': 0.986, 'cost_bps': 0.118, 'gross_bps_total': 10.912, 'net_bps_total': 9.808}
+anchor_skip rows: 0
+combo: waiting launch-window anchor=1790294400 elapsed=1011 Fri Sep 25 00:16:51 UTC 2026
+combo: waiting launch-window anchor=1790294400 elapsed=1016 Fri Sep 25 00:16:57 UTC 2026
+combo: [  32.8s] ④ COMBO 落盘 n=312 gross=0.8304 kc_src=own fc_src=own w3m=[0.4044, 0.0, 0.5956]
+combo: === combo_live anchor=1790294400 rc=0 Fri Sep 25 00:17:38 UTC 2026
+target_combo: {'w3_masked': [0.404417, 0.0, 0.595583], 'book_form': 'combo_v2main_norev24', 'kc_gross': 0.865064, 'fc_gross': 0.834834, 'rho_kc_fc': 0.9078, 'phi': 0.45} n weights 312
+target_live: {'producer': 'combo_stage_v1(kingLGBM 0.55 + V2MAIN 0.45, rev24 leg removed; base shadow_loop_v3)', 'universe_sha': '93ad1d25c2ca8ffe7bf7be7b4e961c93c1434d7f5ff8e4e09639aeb302626295'} n 312 gross 0.8304
+counterfactual rewrite: sum|Δw|/gross_king = 30.1% (king n 307, live n 312)
+orders n 509 terminal: {'skipped_min_notional': 236, 'partial_expired': 136, 'venue_reject': 74, 'filled': 58, 'skipped_no_chase_arm': 5}
+post-only refusals: first-attempt -5022 66, rested attempt-1 113 ⇒ true rate 36.9%
+requote_arm on rows: {'requote': 62, 'direct': 35}
+placement arms: {'behind': 155, 'join': 164, 'exempt': 3} behind share 0.486
+chase arms: {'no_chase': 67, 'chase': 68, 'chase_forced': 1}
+fills n 265 notional 7492 maker share 0.679 commission by asset [2.219060 USDT] (no USDT conversion here); markout coverage 207/265
+requote report (blind: assignment/balance fields only): {'n_candidates': 31, 'n_requoted': 31, 'n_direct': 35, 'n_exempt': 0, 'p_requote': 0.5, 'error': None}
+reject-rate log line (blind: book-level first attempt only): 拒单率 post-only 穿价(-5022) 首次尝试 66/179 = 36.9% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 66 + 首次落单 113)
+post_only_refusals: [blind: unparsable, withheld]
+readback: {'anchor_ts': 1790295842.2825012, 'symbol': 'ZROUSDT', 'venue_position_notional': -627.50193271, 'venue_position_qty': -440.3, 'source': 'fapi/v3/account@post_anchor', 'held': True, 'targeted': True, 'read_ts': 1790297061.4832041}
+anchors row: {}
+daily_nav: {'sizing_policy': 'constant_leverage_2.00', 'day': '20260925', 'target_gross': 224159.04, 'nav': 112062.85643052, 'realised_pnl': 325.06853983999986, 'realised_pnl_source': '/fapi/v1/income since 00:00Z, sum of REALIZED_PNL+COMMISSION+FUNDING_FEE', 'realised_by_type': {'FUNDING_FEE': -23.0880298, 'REALIZED_PNL': 350.37562981999986, 'COMMISSION': -2.2190601800000005}, 'realised_by_type_asset': {'FUNDING_FEE': {'USDT': -23.0880298}, 'REALIZED_PNL': {'USDT': 350.37562981999986}, 'COMMISSION': {'USDT': -2.2190601800000005}}, 'realised_non_usdt_assets': [], 'realised_truncated': False}
+anchor_runs tail: ['2026-09-25T00:55:51Z rate_timeline: 3332 rows (dropped 0) -> /Users/haosiyu/dl_quant_live/state/live/rate_timeline/A1790', '2026-09-25T00:55:51Z venue_rate: DECIDED_ON=window_high_water(aligned 1m) peak_window_weight=620 | REPORTED_ONLY peak_us', '2026-09-25T00:55:51Z anchor done rc=0']
+alarm: HIGH ⚠️ HIGH
+position reconcile: 7 name(s) differ from the venue beyond revaluation (sign flip / one-sided / >5%) — adopting venue truth
+alarm: INFO ⚠️ HIGH
+1 name(s) withheld: the venue reports maxNotionalValue=0 (no new position permitted) — ['GUNUSDT']
+alarm: INFO ⚠️ HIGH
+重整后 1 个名字跨过了 min_notional 门槛: ['MANAUSDT'] — 这些名字的可交易性由这次重整改变, 不是由信号改变。仅报告, 不迭代。
+alarm: INFO ⚠️ HIGH
+6 held name(s) withheld, reduce-only from here — by source: 逐名止损冷却期: ['BCHUSDT', 'ENAUSDT', 'ZAMAUSDT']; 外部书不再持有(持仓出场): ['PRLUSDT', 'SCRUSDT']; 外部书目标低于 2×minNotional: ['1INCHUSDT']. reducing=[
+alarm: INFO ⚠️ HIGH
+43 个 maker 被 -5022 拒(post-only 会立刻成交), 其残差按全额进入 taker 补单: ['ACEUSDT', 'BRUSDT', 'DUSKUSDT', 'DYMUSDT', 'EDENUSDT', 'EDGEUSDT', 'EGLDUSDT', 'ESPUSDT']。这些名字此前会整个从本锚消失 —— 04:00Z 那次占了 §4-5e 缺口的 93
+alarm: INFO ℹ️
+funding span 表(执行器内部 DL 面板专用)已过期: 15 个 symbol 的结算间隔与交易所不符 (ANKRUSDT, AXSUSDT, ENJUSDT, FLOWUSDT, GMTUSDT, IOSTUSDT, KAVAUSDT, MASKUSDT...)。 另 3 个表内非 8h 的名字不在交易所列表(默认间隔或已下架, 离线不可分辨)。 book_source=ext
+per_name_stop: {'cooldown': 13, 'stopped': 0}
+DONE
+inspect rc=0
+## B0 00Z probe 00:56:40
+first-anchor A=1790294400 (2026-09-25T00:00Z)
+  VAL target_live booster_sha=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d f10_sha=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f written_utc=2026-09-25T00:17:37Z
+  OK  target_live booster_sha: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  target_live f10_sha: measured=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  VAL shadow_log signal rows for A: 1; booster_sha(12)=['700d9e7b7ee9']
+  OK  shadow_log signal booster_sha (12): measured=['700d9e7b7ee9'] compared_with=['700d9e7b7ee9']
+  OK  MANIFEST slow2026.txt: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  on-disk slow2026.txt: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  on-disk f10_live_s42_np.npz: measured=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  VAL generation.json schema_version=1 anchor_ts=1790294400 files=['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz']
+  OK  generation.json file set (NC contract = 5 signed files): measured=['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz'] compared_with=['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz']
+  VAL executor anchors rows for A: 1; external_book ok=True reason=None sha_ok=True booster_sha=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d f10_sha=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f opening_halted=False
+  OK  executor external_book ok: measured=True compared_with=True
+  OK  executor external_book reason: measured=None compared_with=None
+  OK  executor read booster_sha == book pin: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  executor read f10_sha == book pin: measured=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  VAL anchor_runs.log lines in hour 2026-09-25T00Z naming REFUSED/HOLD/sha_pin/PIN: 1
+    2026-09-25T00:24:40Z phase_A: {"anchor_wall_ts": 1790294476.55281, "book_source": "external", "external_wait": {"nominal_anchor_ts": 1790294400, "wake_at": 1790295840.0, "wait_s": 1363.4, "reason": "i
+  OK  anchor_runs.log pin refusal / HOLD lines: measured=[] compared_with=[]
+VERSION_PROBE first-anchor OK n=0
+probe rc=0
+## B4 00Z (pooled) A1790295839: orders 509 opening_halted False terminal {'skipped_min_notional': 236, 'partial_expired': 136, 'venue_reject': 74, 'filled': 58, 'skipped_no_chase_arm': 5} maker 330 reject/maker 0.224
+B4 m3: shadow/shadow field_ok True n_betas 450 beta_exec_usdt -5805.170985090368 hedge_target_usdt 5805.170985090368 shadow_would_be applied [v1 clipped input]
+B7 budget limit 280198.80437200004 with_full_leg 227448.66848756076 scale 1.0 truncated False nav 112079.5217488 -> combined 2.0294x (integrator's division)
+B4 orders with overlay/hedge marker: 0
+COMPLETE PARITY.json PARITY.run.log SHA256SUMS aux.json boundary_raw.npz combo_live_status.json generation.json leg_returns_live.json members_hist.npz rolling.npz 
+parity 1790294400 rc=0 2026-09-25T00:20:43Z PARITY_PARITY anchor 1790294400 why=[] weights={'n_archived': 312, 'n_replay': 312, 'n_differing': 0, 'max_abs_dw': 0.0}
+-	0	com.hsy.comboparity
+-	0	com.hsy.combosnap
+## B7(b) 00Z [v1 clipped input]
+  VAL betas: n=450 max|recomputed - published|=0.000e+00 n_differing=0
+  OK  executor betas_sha256 == canonical hash of published betas: measured=16cf93760b0947224815d175532c30c45d3a4ff040d6b8e55c390e161f09794e compared_with=16cf93760b0947224815d175532c30c45d3a4ff040d6b8e55c390e161f09794e
+M3_SELFCHECK 1790294400 OK n=0
+selfcheck rc=0
+## B6 00Z
+B6 last row 1790294400 2026-09-25T00:00Z 0.4045 0.5955
+0
+B4 anchor_report 1790294400 green [] 2026-09-25T00:55:03Z
+锚 09-25 00:00Z 排查(常驻器)
+守护 2/2
+fund_upd 450 cov 1.0 forced 19
+w3m [0.404, 0.0, 0.596] kc/fc own/own f10 400
+age 383.0s n 312 | 单 509 拒 74 | 换手 5.5% 成交 7492U taker 32% fee 2.96bps
+gross 221073 net 2696(1.22%) gaps 170U
+ALARM.log
+archive
+events.jsonl
+last_eval.json
+local_response_receipt.json
+quarantine
+state.json
+trip_receipt.json
+{
+ "reduce_only": false,
+ "tripped_at": null,
+ "_mode": "LIVE"
+}last_eval 2026-09-25T00:47:31Z tripped False triggers [] local []

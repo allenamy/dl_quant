@@ -1,0 +1,20 @@
+## resume_from_trip --check after 16Z 16:42:57
+══ CHECK MODE — this run will not modify anything. ══
+── 0/4  mode = LIVE
+        trip state : /Users/haosiyu/dl_quant_live/state/live/watchdog/state.json
+        judged over: /Users/haosiyu/dl_quant_live/state/live/pilot_log
+   ✓ LIVE is the tripped mode
+── 1/4  is the trigger condition still true?  (HARD GATE — nothing is touched if it is)
+   ✓ no condition currently fires, no local response would fire, and none was blind
+
+── CHECK: RESUMABLE — the gate passes and no condition is blind.
+   NOTHING WAS TOUCHED. Steps 2-4 were not run. What a real run would do:
+     2/4 copy   /Users/haosiyu/dl_quant_live/state/live/watchdog/state.json
+          ->    /Users/haosiyu/dl_quant_live/state/live/watchdog/quarantine/state_<stamp>_resumed.json  (+ _resume_reason)
+     3/4 remove /Users/haosiyu/dl_quant_live/state/live/watchdog/state.json
+          + quarantine & remove /Users/haosiyu/dl_quant_live/state/live/harvest_ema.json  (EMA memory — see PREREG_harvest_speed reset rule;
+            KEPT instead when the state is a proportional local response: the book was not flattened)
+     4/4 verify no halt/reduce-only state remains
+
+   to actually resume:  bash ops/resume_from_trip.sh "<why you are resuming>"
+resume_check rc=0
