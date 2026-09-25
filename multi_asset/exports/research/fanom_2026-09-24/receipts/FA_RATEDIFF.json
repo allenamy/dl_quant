@@ -1,0 +1,2176 @@
+{
+ "device": "fa_ratediff.py",
+ "self_sha256": "1b3a844685aee9c2beb11e8f1456c1e1d55f05536e72e4f866e78107dcd7fbdc",
+ "utc": "2026-09-25T01:00:36Z",
+ "ruling": "lead 2026-09-24: 3-SE rule stands; report absolute contributions + per-anchor rate difference",
+ "frozen_tercile_edges": {
+  "Q33": 0.5725596881282329,
+  "Q67": 0.7810047984528542
+ },
+ "gates": {
+  "G_A_seat_variable_identical_across_files": {
+   "files_checked": 20,
+   "reference": "SER_B2_FRESH_s2027.npz",
+   "all_identical": true,
+   "per_file": {
+    "SER_B2_FRESH_s2027.npz": true,
+    "SER_B2_FRESH_s42.npz": true,
+    "SER_B2_NEWS_s2027.npz": true,
+    "SER_B2_NEWS_s42.npz": true,
+    "SER_B4_FRESH_s2027.npz": true,
+    "SER_B4_FRESH_s42.npz": true,
+    "SER_B4_NEWS_s2027.npz": true,
+    "SER_B4_NEWS_s42.npz": true,
+    "SER_B5_FRESH_s2027.npz": true,
+    "SER_B5_FRESH_s42.npz": true,
+    "SER_B5_NEWS_s2027.npz": true,
+    "SER_B5_NEWS_s42.npz": true,
+    "SER_B8L180_FRESH_s2027.npz": true,
+    "SER_B8L180_FRESH_s42.npz": true,
+    "SER_B8L180_NEWS_s2027.npz": true,
+    "SER_B8L180_NEWS_s42.npz": true,
+    "SER_B8L360_FRESH_s2027.npz": true,
+    "SER_B8L360_FRESH_s42.npz": true,
+    "SER_B8L360_NEWS_s2027.npz": true,
+    "SER_B8L360_NEWS_s42.npz": true
+   }
+  },
+  "G_B_reproduce_frozen_edges": {
+   "Q33_frozen": 0.5725596881282329,
+   "Q33_recomputed": 0.5725621779759725,
+   "Q33_abs_diff": 2.4898477396506635e-06,
+   "Q67_frozen": 0.7810047984528542,
+   "Q67_recomputed": 0.7810042897860209,
+   "Q67_abs_diff": 5.086668333209587e-07,
+   "n_pre2026": 5495,
+   "EXACT_TO_1e-9": false,
+   "anchors_changing_tercile": 0,
+   "anchors_changing_tercile_fraction": 0.0,
+   "resolution": "NOT exactly reproducible; tolerance deliberately NOT loosened. Every table is reported under BOTH edge sets so the residual's effect is measured rather than assumed.",
+   "rejected_alternatives": "percentile 33/67 and 33.33/66.67; methods lower/higher/midpoint/nearest; np.quantile(1/3,2/3) -- all further from the frozen constants than 100/3,200/3"
+  }
+ },
+ "tables": {
+  "SECTION2_FRESH_minus_NEWS_price_s42__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -513.0200791288242,
+     "bps_per_anchor": -0.28003279428429273
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -465.9863611226294,
+     "bps_per_anchor": -0.25449828570323835
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -2137.4481029787803,
+     "bps_per_anchor": -1.1667293138530461
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.8994602883953738,
+    "ci95_30day_block": [
+     -1.7434081539102957,
+     -0.02970257957289879
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": true
+   },
+   "total_bps": -3116.454543230235,
+   "cancellation_ratio": 1.0000000000000002,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "SECTION2_FRESH_minus_NEWS_price_s42__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -513.0200791288242,
+     "bps_per_anchor": -0.28003279428429273
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -465.9863611226294,
+     "bps_per_anchor": -0.25449828570323835
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -2137.4481029787803,
+     "bps_per_anchor": -1.1667293138530461
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.8994602883953738,
+    "ci95_30day_block": [
+     -1.7434081539102957,
+     -0.02970257957289879
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": true
+   },
+   "total_bps": -3116.454543230235,
+   "cancellation_ratio": 1.0000000000000002,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "SECTION2_FRESH_minus_NEWS_price_s2027__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -800.3441875599317,
+     "bps_per_anchor": -0.4368690980130632
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -148.92916177744007,
+     "bps_per_anchor": -0.08133760883530315
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -1832.0639812279583,
+     "bps_per_anchor": -1.0000349242510689
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.7408830407300828,
+    "ci95_30day_block": [
+     -1.9347227828346494,
+     0.4828621744390315
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": -2781.3373305653304,
+   "cancellation_ratio": 1.0000000000000002,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "SECTION2_FRESH_minus_NEWS_price_s2027__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -800.3441875599317,
+     "bps_per_anchor": -0.4368690980130632
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -148.92916177744007,
+     "bps_per_anchor": -0.08133760883530315
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -1832.0639812279583,
+     "bps_per_anchor": -1.0000349242510689
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.7408830407300828,
+    "ci95_30day_block": [
+     -1.9347227828346494,
+     0.4828621744390315
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": -2781.3373305653304,
+   "cancellation_ratio": 1.0000000000000002,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B4_FRESH_s42_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 30.14649638609336,
+     "bps_per_anchor": 0.01645551112778022
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 1350.3163881423716,
+     "bps_per_anchor": 0.7374748160253258
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -295.7487630471798,
+     "bps_per_anchor": -0.16143491432706322
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.5383016586700785,
+    "ci95_30day_block": [
+     -1.1573206070424138,
+     0.1167674197084307
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 1084.7141214812855,
+   "cancellation_ratio": 0.647122410257762,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B4_FRESH_s42_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 30.14649638609336,
+     "bps_per_anchor": 0.01645551112778022
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 1350.3163881423716,
+     "bps_per_anchor": 0.7374748160253258
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -295.7487630471798,
+     "bps_per_anchor": -0.16143491432706322
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.5383016586700785,
+    "ci95_30day_block": [
+     -1.1573206070424138,
+     0.1167674197084307
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 1084.7141214812855,
+   "cancellation_ratio": 0.647122410257762,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B4_FRESH_s2027_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -0.8043223038767415,
+     "bps_per_anchor": -0.0004390405588846842
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 1276.2943468111014,
+     "bps_per_anchor": 0.6970477044298752
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 14.364298228094519,
+     "bps_per_anchor": 0.00784077414197299
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.3403683507576243,
+    "ci95_30day_block": [
+     -0.8661219553307539,
+     0.20524553078225677
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 1289.854322735319,
+   "cancellation_ratio": 0.9987544012887472,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B4_FRESH_s2027_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -0.8043223038767415,
+     "bps_per_anchor": -0.0004390405588846842
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 1276.2943468111014,
+     "bps_per_anchor": 0.6970477044298752
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 14.364298228094519,
+     "bps_per_anchor": 0.00784077414197299
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.3403683507576243,
+    "ci95_30day_block": [
+     -0.8661219553307539,
+     0.20524553078225677
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 1289.854322735319,
+   "cancellation_ratio": 0.9987544012887472,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B4_NEWS_s42_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -30.69978426307636,
+     "bps_per_anchor": -0.01675752416106788
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 426.4573792624431,
+     "bps_per_anchor": 0.23290954629297822
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -1106.3268899210846,
+     "bps_per_anchor": -0.6038902237560505
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.7119321552328091,
+    "ci95_30day_block": [
+     -1.224498689818105,
+     -0.14355441709230127
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": true
+   },
+   "total_bps": -710.5692949217182,
+   "cancellation_ratio": 0.45447812106257945,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B4_NEWS_s42_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -30.69978426307636,
+     "bps_per_anchor": -0.01675752416106788
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 426.4573792624431,
+     "bps_per_anchor": 0.23290954629297822
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -1106.3268899210846,
+     "bps_per_anchor": -0.6038902237560505
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.7119321552328091,
+    "ci95_30day_block": [
+     -1.224498689818105,
+     -0.14355441709230127
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": true
+   },
+   "total_bps": -710.5692949217182,
+   "cancellation_ratio": 0.45447812106257945,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B4_NEWS_s2027_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -95.00072870493499,
+     "bps_per_anchor": -0.051856292961209055
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 958.3194666973382,
+     "bps_per_anchor": 0.5233858365359575
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 46.29375388631104,
+     "bps_per_anchor": 0.025269516313488557
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.2104167348446886,
+    "ci95_30day_block": [
+     -1.0704296345955788,
+     0.7065555039983713
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 909.6124918787141,
+   "cancellation_ratio": 0.827210761074107,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B4_NEWS_s2027_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -95.00072870493499,
+     "bps_per_anchor": -0.051856292961209055
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 958.3194666973382,
+     "bps_per_anchor": 0.5233858365359575
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 46.29375388631104,
+     "bps_per_anchor": 0.025269516313488557
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.2104167348446886,
+    "ci95_30day_block": [
+     -1.0704296345955788,
+     0.7065555039983713
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 909.6124918787141,
+   "cancellation_ratio": 0.827210761074107,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B2_FRESH_s42_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 589.5069847262816,
+     "bps_per_anchor": 0.32178328860604893
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -1114.1328990377233,
+     "bps_per_anchor": -0.6084832872953159
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 643.2508901926144,
+     "bps_per_anchor": 0.3511194815461869
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.4943424993762283,
+    "ci95_30day_block": [
+     -0.2603328080026905,
+     1.240539996673168
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 118.62497588117299,
+   "cancellation_ratio": 0.05054558874130445,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B2_FRESH_s42_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 589.5069847262816,
+     "bps_per_anchor": 0.32178328860604893
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -1114.1328990377233,
+     "bps_per_anchor": -0.6084832872953159
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 643.2508901926144,
+     "bps_per_anchor": 0.3511194815461869
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.4943424993762283,
+    "ci95_30day_block": [
+     -0.2603328080026905,
+     1.240539996673168
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 118.62497588117299,
+   "cancellation_ratio": 0.05054558874130445,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B2_FRESH_s2027_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 500.8439153395002,
+     "bps_per_anchor": 0.2733864166700329
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -1152.6644198149177,
+     "bps_per_anchor": -0.6295272636891959
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 1137.6999831560884,
+     "bps_per_anchor": 0.6210152746485198
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.7989624503174845,
+    "ci95_30day_block": [
+     -0.14012683051897099,
+     1.7312674001147454
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 485.87947868067135,
+   "cancellation_ratio": 0.1740749608308598,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B2_FRESH_s2027_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 500.8439153395002,
+     "bps_per_anchor": 0.2733864166700329
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -1152.6644198149177,
+     "bps_per_anchor": -0.6295272636891959
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 1137.6999831560884,
+     "bps_per_anchor": 0.6210152746485198
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.7989624503174845,
+    "ci95_30day_block": [
+     -0.14012683051897099,
+     1.7312674001147454
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 485.87947868067135,
+   "cancellation_ratio": 0.1740749608308598,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B2_NEWS_s42_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 452.4784056539147,
+     "bps_per_anchor": 0.24698602928707133
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -2547.755042953122,
+     "bps_per_anchor": -1.3914555122627645
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -588.4529548630818,
+     "bps_per_anchor": -0.3212079447942586
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.25080314919951896,
+    "ci95_30day_block": [
+     -0.4963398300685928,
+     0.9776478585762317
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": -2683.7295921622895,
+   "cancellation_ratio": 0.7478306239205601,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B2_NEWS_s42_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 452.4784056539147,
+     "bps_per_anchor": 0.24698602928707133
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -2547.755042953122,
+     "bps_per_anchor": -1.3914555122627645
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -588.4529548630818,
+     "bps_per_anchor": -0.3212079447942586
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.25080314919951896,
+    "ci95_30day_block": [
+     -0.4963398300685928,
+     0.9776478585762317
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": -2683.7295921622895,
+   "cancellation_ratio": 0.7478306239205601,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B2_NEWS_s2027_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 140.9839493613748,
+     "bps_per_anchor": 0.0769563042365583
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -2287.260088745023,
+     "bps_per_anchor": -1.2491862854970088
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 654.9855272270654,
+     "bps_per_anchor": 0.35752485110647675
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.9434588230921845,
+    "ci95_30day_block": [
+     0.08378058446372694,
+     1.7773104001510294
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": true
+   },
+   "total_bps": -1491.2906121565834,
+   "cancellation_ratio": 0.4836780980968878,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B2_NEWS_s2027_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 140.9839493613748,
+     "bps_per_anchor": 0.0769563042365583
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -2287.260088745023,
+     "bps_per_anchor": -1.2491862854970088
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 654.9855272270654,
+     "bps_per_anchor": 0.35752485110647675
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.9434588230921845,
+    "ci95_30day_block": [
+     0.08378058446372694,
+     1.7773104001510294
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": true
+   },
+   "total_bps": -1491.2906121565834,
+   "cancellation_ratio": 0.4836780980968878,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B5_FRESH_s42_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.0,
+    "ci95_30day_block": [
+     0.0,
+     0.0
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 0.0,
+   "cancellation_ratio": null,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B5_FRESH_s42_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.0,
+    "ci95_30day_block": [
+     0.0,
+     0.0
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 0.0,
+   "cancellation_ratio": null,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B5_FRESH_s2027_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.0,
+    "ci95_30day_block": [
+     0.0,
+     0.0
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 0.0,
+   "cancellation_ratio": null,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B5_FRESH_s2027_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.0,
+    "ci95_30day_block": [
+     0.0,
+     0.0
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 0.0,
+   "cancellation_ratio": null,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B5_NEWS_s42_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.0,
+    "ci95_30day_block": [
+     0.0,
+     0.0
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 0.0,
+   "cancellation_ratio": null,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B5_NEWS_s42_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.0,
+    "ci95_30day_block": [
+     0.0,
+     0.0
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 0.0,
+   "cancellation_ratio": null,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B5_NEWS_s2027_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.0,
+    "ci95_30day_block": [
+     0.0,
+     0.0
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 0.0,
+   "cancellation_ratio": null,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B5_NEWS_s2027_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 0.0,
+     "bps_per_anchor": 0.0
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.0,
+    "ci95_30day_block": [
+     0.0,
+     0.0
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 0.0,
+   "cancellation_ratio": null,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L180_FRESH_s42_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 182.59069982618126,
+     "bps_per_anchor": 0.09966741256887623
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -235.06282011888482,
+     "bps_per_anchor": -0.1283794757612697
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 270.9228157614484,
+     "bps_per_anchor": 0.1478836330575592
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.16220853622237041,
+    "ci95_30day_block": [
+     -0.6642671254102552,
+     1.0236318504969355
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 218.45069546874487,
+   "cancellation_ratio": 0.3172497864664537,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L180_FRESH_s42_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 182.59069982618126,
+     "bps_per_anchor": 0.09966741256887623
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -235.06282011888482,
+     "bps_per_anchor": -0.1283794757612697
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 270.9228157614484,
+     "bps_per_anchor": 0.1478836330575592
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.16220853622237041,
+    "ci95_30day_block": [
+     -0.6642671254102552,
+     1.0236318504969355
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 218.45069546874487,
+   "cancellation_ratio": 0.3172497864664537,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L180_FRESH_s2027_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -7.889150809212936,
+     "bps_per_anchor": -0.004306305026862956
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 111.33145243463655,
+     "bps_per_anchor": 0.060803633224815155
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 889.7994285746239,
+     "bps_per_anchor": 0.485698378042917
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.4574586014593997,
+    "ci95_30day_block": [
+     -0.6014269831253314,
+     1.487916965461442
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 993.2417302000476,
+   "cancellation_ratio": 0.984362746902071,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L180_FRESH_s2027_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -7.889150809212936,
+     "bps_per_anchor": -0.004306305026862956
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": 111.33145243463655,
+     "bps_per_anchor": 0.060803633224815155
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 889.7994285746239,
+     "bps_per_anchor": 0.485698378042917
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.4574586014593997,
+    "ci95_30day_block": [
+     -0.6014269831253314,
+     1.487916965461442
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 993.2417302000476,
+   "cancellation_ratio": 0.984362746902071,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L180_NEWS_s42_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -304.06845043160916,
+     "bps_per_anchor": -0.1659762284015334
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -751.0375108209819,
+     "bps_per_anchor": -0.4101788699186138
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -653.3328951297356,
+     "bps_per_anchor": -0.35662275935029236
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.06857854388411955,
+    "ci95_30day_block": [
+     -0.8115110464554718,
+     0.6875399502720786
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": -1708.4388563823263,
+   "cancellation_ratio": 0.9999999999999999,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L180_NEWS_s42_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -304.06845043160916,
+     "bps_per_anchor": -0.1659762284015334
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -751.0375108209819,
+     "bps_per_anchor": -0.4101788699186138
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -653.3328951297356,
+     "bps_per_anchor": -0.35662275935029236
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.06857854388411955,
+    "ci95_30day_block": [
+     -0.8115110464554718,
+     0.6875399502720786
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": -1708.4388563823263,
+   "cancellation_ratio": 0.9999999999999999,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L180_NEWS_s2027_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -258.92574174871856,
+     "bps_per_anchor": -0.14133501187157127
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -1022.2441377868241,
+     "bps_per_anchor": -0.5582982729583966
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 1209.2435437514296,
+     "bps_per_anchor": 0.6600674365455401
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 1.0098271634184701,
+    "ci95_30day_block": [
+     0.32940446677336216,
+     1.6755233811889763
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": true
+   },
+   "total_bps": -71.9263357841129,
+   "cancellation_ratio": 0.02888128336908051,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L180_NEWS_s2027_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": -258.92574174871856,
+     "bps_per_anchor": -0.14133501187157127
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -1022.2441377868241,
+     "bps_per_anchor": -0.5582982729583966
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 1209.2435437514296,
+     "bps_per_anchor": 0.6600674365455401
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 1.0098271634184701,
+    "ci95_30day_block": [
+     0.32940446677336216,
+     1.6755233811889763
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": true
+   },
+   "total_bps": -71.9263357841129,
+   "cancellation_ratio": 0.02888128336908051,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L360_FRESH_s42_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 173.87625513645125,
+     "bps_per_anchor": 0.09491061961596683
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -666.8673667668827,
+     "bps_per_anchor": -0.3642093756236388
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -182.46602496191414,
+     "bps_per_anchor": -0.09959935860366492
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.03498734945815088,
+    "ci95_30day_block": [
+     -0.8052655190850707,
+     0.853352700896797
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": -675.4571365923454,
+   "cancellation_ratio": 0.6601356219243112,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L360_FRESH_s42_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 173.87625513645125,
+     "bps_per_anchor": 0.09491061961596683
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -666.8673667668827,
+     "bps_per_anchor": -0.3642093756236388
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -182.46602496191414,
+     "bps_per_anchor": -0.09959935860366492
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.03498734945815088,
+    "ci95_30day_block": [
+     -0.8052655190850707,
+     0.853352700896797
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": -675.4571365923454,
+   "cancellation_ratio": 0.6601356219243112,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L360_FRESH_s2027_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 297.2343190669212,
+     "bps_per_anchor": 0.16224580735093952
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -434.5850701916279,
+     "bps_per_anchor": -0.2373484818086444
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 357.1671059316432,
+     "bps_per_anchor": 0.1949602106613773
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.2324570032152148,
+    "ci95_30day_block": [
+     -0.9139390154460887,
+     1.270403748879645
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 219.8163548069363,
+   "cancellation_ratio": 0.20185406869397882,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L360_FRESH_s2027_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 297.2343190669212,
+     "bps_per_anchor": 0.16224580735093952
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -434.5850701916279,
+     "bps_per_anchor": -0.2373484818086444
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 357.1671059316432,
+     "bps_per_anchor": 0.1949602106613773
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.2324570032152148,
+    "ci95_30day_block": [
+     -0.9139390154460887,
+     1.270403748879645
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": 219.8163548069363,
+   "cancellation_ratio": 0.20185406869397882,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L360_NEWS_s42_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 249.70221568147295,
+     "bps_per_anchor": 0.13630033607067302
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -1069.3717450099984,
+     "bps_per_anchor": -0.5840369989131614
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -889.7640357886947,
+     "bps_per_anchor": -0.48567905883662377
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.261909053559931,
+    "ci95_30day_block": [
+     -0.9207327548796236,
+     0.3987215361229672
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": -1709.4335651172205,
+   "cancellation_ratio": 0.7739062655754936,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L360_NEWS_s42_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 249.70221568147295,
+     "bps_per_anchor": 0.13630033607067302
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -1069.3717450099984,
+     "bps_per_anchor": -0.5840369989131614
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": -889.7640357886947,
+     "bps_per_anchor": -0.48567905883662377
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": -0.261909053559931,
+    "ci95_30day_block": [
+     -0.9207327548796236,
+     0.3987215361229672
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": -1709.4335651172205,
+   "cancellation_ratio": 0.7739062655754936,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L360_NEWS_s2027_vs_own_original_price__edges_frozen": {
+   "tercile_edges": [
+    0.5725596881282329,
+    0.7810047984528542
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 317.3429219447049,
+     "bps_per_anchor": 0.17322211896545028
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -1253.0409149556353,
+     "bps_per_anchor": -0.6843478508769172
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 66.28259043197536,
+     "bps_per_anchor": 0.036180453292562975
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.2916262608303545,
+    "ci95_30day_block": [
+     -0.327920827291341,
+     0.8707010912517963
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": -869.4154025789549,
+   "cancellation_ratio": 0.5312111179527635,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  },
+  "B8L360_NEWS_s2027_vs_own_original_price__edges_recomputed": {
+   "tercile_edges": [
+    0.5725621779759725,
+    0.7810042897860209
+   ],
+   "population_anchors": 5495,
+   "window": "pre2026 (2023-06-30T04:00:00Z .. 2025-12-31T20:00:00Z)",
+   "buckets": {
+    "seat_low": {
+     "n": 1832,
+     "absolute_bps_total": 317.3429219447049,
+     "bps_per_anchor": 0.17322211896545028
+    },
+    "seat_mid": {
+     "n": 1831,
+     "absolute_bps_total": -1253.0409149556353,
+     "bps_per_anchor": -0.6843478508769172
+    },
+    "seat_high": {
+     "n": 1832,
+     "absolute_bps_total": 66.28259043197536,
+     "bps_per_anchor": 0.036180453292562975
+    }
+   },
+   "high_vs_rest_bps_per_anchor": {
+    "difference": 0.2916262608303545,
+    "ci95_30day_block": [
+     -0.327920827291341,
+     0.8707010912517963
+    ],
+    "n_high": 1832,
+    "n_rest": 3663,
+    "excludes_zero": false
+   },
+   "total_bps": -869.4154025789549,
+   "cancellation_ratio": 0.5312111179527635,
+   "note": "shares deliberately NOT reported (frozen 3-SE denominator rule, lead ruling 2026-09-24)"
+  }
+ },
+ "unavailable": [
+  {
+   "item": "state-group per-anchor rate differences with CI",
+   "why": "the publish/hold masks come from the variant combo npz, which were freed after their receipts were saved. Absolute contributions are recovered arithmetically from the receipts (n x bps_per_anchor); the CI is NOT recoverable without the masks and is therefore reported as UNAVAILABLE rather than re-run (lead 2026-09-24)."
+  }
+ ],
+ "state_group_absolutes_from_receipts": {
+  "B4_FRESH_s42": {
+   "G1_both_publish": {
+    "n": 3992,
+    "absolute_bps_total": -227.96002463247368,
+    "bps_per_anchor": -0.057104214587293006
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 1503,
+    "absolute_bps_total": 1312.6741461137588,
+    "bps_per_anchor": 0.8733693586917889
+   },
+   "G4_both_hold": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   }
+  },
+  "B4_FRESH_s2027": {
+   "G1_both_publish": {
+    "n": 4220,
+    "absolute_bps_total": -92.25708622105898,
+    "bps_per_anchor": -0.02186186877276279
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 1275,
+    "absolute_bps_total": 1382.111408956378,
+    "bps_per_anchor": 1.0840089482010808
+   },
+   "G4_both_hold": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   }
+  },
+  "B4_NEWS_s42": {
+   "G1_both_publish": {
+    "n": 4350,
+    "absolute_bps_total": -313.93944008182694,
+    "bps_per_anchor": -0.07216998622570735
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 1145,
+    "absolute_bps_total": -396.6298548398909,
+    "bps_per_anchor": -0.346401619947503
+   },
+   "G4_both_hold": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   }
+  },
+  "B4_NEWS_s2027": {
+   "G1_both_publish": {
+    "n": 3482,
+    "absolute_bps_total": -80.46326020450721,
+    "bps_per_anchor": -0.023108345837021024
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 2013,
+    "absolute_bps_total": 990.0757520832213,
+    "bps_per_anchor": 0.491840910125793
+   },
+   "G4_both_hold": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   }
+  },
+  "B2_FRESH_s42": {
+   "G1_both_publish": {
+    "n": 3980,
+    "absolute_bps_total": -944.6237249440585,
+    "bps_per_anchor": -0.23734264445830616
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 12,
+    "absolute_bps_total": 113.17474536944846,
+    "bps_per_anchor": 9.431228780787372
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 1503,
+    "absolute_bps_total": 950.073955455783,
+    "bps_per_anchor": 0.6321184001701816
+   },
+   "G4_both_hold": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   }
+  },
+  "B2_FRESH_s2027": {
+   "G1_both_publish": {
+    "n": 4215,
+    "absolute_bps_total": -283.4855759854431,
+    "bps_per_anchor": -0.0672563644093578
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 5,
+    "absolute_bps_total": 29.328584391332228,
+    "bps_per_anchor": 5.865716878266445
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 1275,
+    "absolute_bps_total": 740.0364702747819,
+    "bps_per_anchor": 0.580420760999829
+   },
+   "G4_both_hold": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   }
+  },
+  "B2_NEWS_s42": {
+   "G1_both_publish": {
+    "n": 4350,
+    "absolute_bps_total": -1609.5690708879097,
+    "bps_per_anchor": -0.3700158783650367
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 1145,
+    "absolute_bps_total": -1074.160521274379,
+    "bps_per_anchor": -0.9381314596282787
+   },
+   "G4_both_hold": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   }
+  },
+  "B2_NEWS_s2027": {
+   "G1_both_publish": {
+    "n": 3482,
+    "absolute_bps_total": -1107.7406823753574,
+    "bps_per_anchor": -0.31813345272123994
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 2013,
+    "absolute_bps_total": -383.54992978122505,
+    "bps_per_anchor": -0.19053647778500996
+   },
+   "G4_both_hold": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   }
+  },
+  "B5_FRESH_s42": {
+   "G1_both_publish": {
+    "n": 3992,
+    "absolute_bps_total": 0.0,
+    "bps_per_anchor": 0.0
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 1503,
+    "absolute_bps_total": 0.0,
+    "bps_per_anchor": 0.0
+   },
+   "G4_both_hold": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   }
+  },
+  "B5_FRESH_s2027": {
+   "G1_both_publish": {
+    "n": 4220,
+    "absolute_bps_total": 0.0,
+    "bps_per_anchor": 0.0
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 1275,
+    "absolute_bps_total": 0.0,
+    "bps_per_anchor": 0.0
+   },
+   "G4_both_hold": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   }
+  },
+  "B5_NEWS_s42": {
+   "G1_both_publish": {
+    "n": 4350,
+    "absolute_bps_total": 0.0,
+    "bps_per_anchor": 0.0
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 1145,
+    "absolute_bps_total": 0.0,
+    "bps_per_anchor": 0.0
+   },
+   "G4_both_hold": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   }
+  },
+  "B5_NEWS_s2027": {
+   "G1_both_publish": {
+    "n": 3482,
+    "absolute_bps_total": 0.0,
+    "bps_per_anchor": 0.0
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 2013,
+    "absolute_bps_total": 0.0,
+    "bps_per_anchor": 0.0
+   },
+   "G4_both_hold": {
+    "n": 0,
+    "absolute_bps_total": null,
+    "bps_per_anchor": null
+   }
+  },
+  "B8L180_FRESH_s42": {
+   "G1_both_publish": {
+    "n": 3808,
+    "absolute_bps_total": -157.2610939719159,
+    "bps_per_anchor": -0.041297556190103966
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 184,
+    "absolute_bps_total": -213.9373440024241,
+    "bps_per_anchor": -1.1627029565349136
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 619,
+    "absolute_bps_total": 569.5051379969357,
+    "bps_per_anchor": 0.9200406106574082
+   },
+   "G4_both_hold": {
+    "n": 884,
+    "absolute_bps_total": 20.14399544614919,
+    "bps_per_anchor": 0.022787325165327138
+   }
+  },
+  "B8L180_FRESH_s2027": {
+   "G1_both_publish": {
+    "n": 4055,
+    "absolute_bps_total": 422.43441789251585,
+    "bps_per_anchor": 0.10417618197102733
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 165,
+    "absolute_bps_total": 294.81166373111313,
+    "bps_per_anchor": 1.7867373559461401
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 457,
+    "absolute_bps_total": 445.55176238197396,
+    "bps_per_anchor": 0.9749491518205119
+   },
+   "G4_both_hold": {
+    "n": 818,
+    "absolute_bps_total": -169.55611380555547,
+    "bps_per_anchor": -0.20728131272072794
+   }
+  },
+  "B8L180_NEWS_s42": {
+   "G1_both_publish": {
+    "n": 4167,
+    "absolute_bps_total": -347.19406641767875,
+    "bps_per_anchor": -0.08331991034741511
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 183,
+    "absolute_bps_total": -593.5673876505576,
+    "bps_per_anchor": -3.2435376374347413
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 629,
+    "absolute_bps_total": -367.42242204610676,
+    "bps_per_anchor": -0.5841373959397563
+   },
+   "G4_both_hold": {
+    "n": 516,
+    "absolute_bps_total": -400.2549802679829,
+    "bps_per_anchor": -0.7756879462557807
+   }
+  },
+  "B8L180_NEWS_s2027": {
+   "G1_both_publish": {
+    "n": 3236,
+    "absolute_bps_total": 357.7702745901082,
+    "bps_per_anchor": 0.1105594173640631
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 246,
+    "absolute_bps_total": -479.6108663274876,
+    "bps_per_anchor": -1.949637667997917
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 1080,
+    "absolute_bps_total": -157.7060720712022,
+    "bps_per_anchor": -0.1460241408066687
+   },
+   "G4_both_hold": {
+    "n": 933,
+    "absolute_bps_total": 207.6203280244684,
+    "bps_per_anchor": 0.22252982639278499
+   }
+  },
+  "B8L360_FRESH_s42": {
+   "G1_both_publish": {
+    "n": 3874,
+    "absolute_bps_total": -942.8821673099885,
+    "bps_per_anchor": -0.24338723988383804
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 118,
+    "absolute_bps_total": -435.15127187813766,
+    "bps_per_anchor": -3.687722643035065
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 596,
+    "absolute_bps_total": 490.2167300375073,
+    "bps_per_anchor": 0.8225112920092404
+   },
+   "G4_both_hold": {
+    "n": 907,
+    "absolute_bps_total": 212.35957255827333,
+    "bps_per_anchor": 0.23413403810173464
+   }
+  },
+  "B8L360_FRESH_s2027": {
+   "G1_both_publish": {
+    "n": 4098,
+    "absolute_bps_total": 149.85942700274057,
+    "bps_per_anchor": 0.036568918253475004
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 122,
+    "absolute_bps_total": -344.3681105898334,
+    "bps_per_anchor": -2.8226894310642083
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 374,
+    "absolute_bps_total": 347.3084252664444,
+    "bps_per_anchor": 0.9286321531188352
+   },
+   "G4_both_hold": {
+    "n": 901,
+    "absolute_bps_total": 67.01661312758527,
+    "bps_per_anchor": 0.0743802587431579
+   }
+  },
+  "B8L360_NEWS_s42": {
+   "G1_both_publish": {
+    "n": 4271,
+    "absolute_bps_total": -1414.0620999990067,
+    "bps_per_anchor": -0.3310845469442769
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 79,
+    "absolute_bps_total": 13.741058473950954,
+    "bps_per_anchor": 0.17393744903735384
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 418,
+    "absolute_bps_total": -234.42656386377342,
+    "bps_per_anchor": -0.560829100152568
+   },
+   "G4_both_hold": {
+    "n": 727,
+    "absolute_bps_total": -74.68595972839144,
+    "bps_per_anchor": -0.10273171902117116
+   }
+  },
+  "B8L360_NEWS_s2027": {
+   "G1_both_publish": {
+    "n": 3348,
+    "absolute_bps_total": -322.4331980581927,
+    "bps_per_anchor": -0.09630621208428695
+   },
+   "G2_variant_hold_orig_publish": {
+    "n": 134,
+    "absolute_bps_total": -399.9188711287067,
+    "bps_per_anchor": -2.984469187527662
+   },
+   "G3_variant_publish_orig_hold": {
+    "n": 859,
+    "absolute_bps_total": -384.49301526502876,
+    "bps_per_anchor": -0.44760537283472496
+   },
+   "G4_both_hold": {
+    "n": 1154,
+    "absolute_bps_total": 237.42968187297325,
+    "bps_per_anchor": 0.20574495829547076
+   }
+  }
+ },
+ "seconds": 40.0
+}
