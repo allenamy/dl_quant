@@ -121,10 +121,16 @@ def main():
     ap.add_argument('--clamp-mode', choices=['clamp', 'tanh'], default='clamp')
     ap.add_argument('--folds', default='all')
     ap.add_argument('--band-temp-div', type=float, default=10.0)      # s = band / this; prereg pins 10
+    ap.add_argument('--no-mask', action='store_true',
+                    help='G1 IDENTITY CONTROL ONLY: leave WL unmasked. With --arm T0 this must reproduce the '
+                         'existing news2 F10 run BIT-FOR-BIT, proving T0 changed exactly one thing. Never a result arm.')
     args = ap.parse_args()
     assert torch.cuda.is_available(), 'GPU required; refuse silently slow CPU fallback'
     assert sha(REF) == REF_SHA, f'the reference recipe changed: {sha(REF)[:16]} != {REF_SHA[:16]}'
     arm = args.arm if args.arm == 'T0' else f'T3_{args.clamp_mode}'
+    if args.no_mask:
+        assert args.arm == 'T0', '--no-mask is the G1 identity control for T0 only'
+        arm = 'G1_T0_nomask'
     r = W / 'work'
     out = OUT_ROOT / arm / f'f10_s{args.seed}'; out.mkdir(parents=True, exist_ok=True)
     files = [r / 'NEWS_FEATURES.npz', NEWT, r / 'legs.npz', W / 'receipts/P2B_FEATURES.json', W / 'receipts/P3_LEGS.json']
@@ -152,12 +158,16 @@ def main():
     ready = leg['ready']; requested = None if args.folds == 'all' else set(args.folds.split(','))
     cols = [torch.as_tensor(ps[st[i]:st[i + 1]], device=dev) for i in range(n)]
     # ---- masked seats (T0 change; T3 inherits it) + the WL census for G2 ----
-    WL = torch.stack([mask_wl(WLraw[i]) for i in range(n)])
+    WL = WLraw if args.no_mask else torch.stack([mask_wl(WLraw[i]) for i in range(n)])
     wl_diff_rows = int((torch.abs(WL - WLraw).max(1).values > 0).sum().item())
     seat_census = {'raw_WL_mean': [float(v) for v in WLraw.mean(0)], 'masked_WL_mean': [float(v) for v in WL.mean(0)],
-                   'anchors_where_WL_changed': wl_diff_rows, 'n_anchors': int(n)}
+                   'anchors_where_WL_changed': wl_diff_rows, 'n_anchors': int(n), 'masking_applied': not args.no_mask}
     log('seat census', json.dumps(seat_census))
-    assert wl_diff_rows > 0, 'G2 SWITCH_NOT_WIRED: masking changed WL on zero anchors'
+    if args.no_mask:
+        # G1: the control must be a TRUE no-op on the seats, otherwise it is not an identity control.
+        assert wl_diff_rows == 0, 'G1 control is not a no-op: WL differs from raw'
+    else:
+        assert wl_diff_rows > 0, 'G2 SWITCH_NOT_WIRED: masking changed WL on zero anchors'
     # ---- T3-only fields: sel (from QV) and LIVE_MASK (book universe), both known 0/1 ----
     extra = {}
     if args.arm == 'T3':
