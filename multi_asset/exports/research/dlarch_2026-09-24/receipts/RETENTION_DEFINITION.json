@@ -1,0 +1,109 @@
+{
+ "device": "dlarch_retention_definition.py",
+ "self_sha256": "39dfdc76e6044dc0ae24f722b5cbbbde397b560ede919c6b30abf7ed897266fb",
+ "answers": "lead 2026-09-25: the denominator and layer of the published chain retention rate",
+ "published_terms": {
+  "L3k": 1.550789,
+  "L4kc": 0.539209,
+  "L3f": 1.550965,
+  "L4fc": 0.901484
+ },
+ "utc": "2026-09-25T03:54:16Z",
+ "seeds": {
+  "s42": {
+   "anchors": 5495,
+   "King": {
+    "A_mean_of_ratios": {
+     "L3": 1.5507890886600342,
+     "L4": 0.5392086849204881,
+     "retention": 0.3476995607354922
+    },
+    "B_ratio_of_sums": {
+     "L3": 1.7583769614525275,
+     "L4": 0.5100544508831841,
+     "retention": 0.29007116338799604
+    },
+    "abs_retention_diff_A_minus_B": 0.05762839734749614,
+    "mean_L1_pre_chain": 64.41383402818242,
+    "mean_L1_post_chain": 0.6525953322896004
+   },
+   "F10": {
+    "A_mean_of_ratios": {
+     "L3": 1.5509654889094364,
+     "L4": 0.9014840938836243,
+     "retention": 0.5812405887364419
+    },
+    "B_ratio_of_sums": {
+     "L3": 1.6967409579860315,
+     "L4": 0.8793792308531305,
+     "retention": 0.518275477888458
+    },
+    "abs_retention_diff_A_minus_B": 0.06296511084798395,
+    "mean_L1_pre_chain": 64.65111217011268,
+    "mean_L1_post_chain": 0.641914798084838
+   },
+   "L1_mass_ratio_kc_over_fc": 1.0166385542701741
+  },
+  "s2027": {
+   "anchors": 5495,
+   "King": {
+    "A_mean_of_ratios": {
+     "L3": 1.5507890886600342,
+     "L4": 0.5392086849204881,
+     "retention": 0.3476995607354922
+    },
+    "B_ratio_of_sums": {
+     "L3": 1.7583769614525275,
+     "L4": 0.5100544508831841,
+     "retention": 0.29007116338799604
+    },
+    "abs_retention_diff_A_minus_B": 0.05762839734749614,
+    "mean_L1_pre_chain": 64.41383402818242,
+    "mean_L1_post_chain": 0.6525953322896004
+   },
+   "F10": {
+    "A_mean_of_ratios": {
+     "L3": 1.9139056114183128,
+     "L4": 1.1264797012175534,
+     "retention": 0.5885764138508209
+    },
+    "B_ratio_of_sums": {
+     "L3": 1.9923343039740027,
+     "L4": 1.066807254109382,
+     "retention": 0.5354559483222663
+    },
+    "abs_retention_diff_A_minus_B": 0.05312046552855465,
+    "mean_L1_pre_chain": 64.66017712917693,
+    "mean_L1_post_chain": 0.6330372224361446
+   },
+   "L1_mass_ratio_kc_over_fc": 1.0308956711553068
+  }
+ },
+ "reproduction_of_published_terms": {
+  "terms": {
+   "L3k": {
+    "measured": 1.5507890886600342,
+    "published": 1.550789,
+    "abs_diff": 8.866003420315849e-08
+   },
+   "L4kc": {
+    "measured": 0.5392086849204881,
+    "published": 0.539209,
+    "abs_diff": 3.150795119255534e-07
+   },
+   "L3f": {
+    "measured": 1.5509654889094364,
+    "published": 1.550965,
+    "abs_diff": 4.889094364912694e-07
+   },
+   "L4fc": {
+    "measured": 0.9014840938836243,
+    "published": 0.901484,
+    "abs_diff": 9.388362431916875e-08
+   }
+  },
+  "tolerance": 0.002,
+  "PASS": true
+ },
+ "STATEMENT": "The retention rate is a ratio of two WINDOW-MEAN PER-UNIT-GROSS PAPER RETURNS (news2_layer_ladder.py L264-L286). Each term is divided by its OWN L1 norm at that anchor, so the L1 masses cancel INSIDE each term. It is NOT the L1 mass ratio of kc to fc and carries no information about it; that ratio is reported separately here and is ~1.02, consistent with fresh's 1.0025/1.0074 (2f65fb70e)."
+}
