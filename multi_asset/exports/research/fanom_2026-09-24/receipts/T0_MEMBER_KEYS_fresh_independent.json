@@ -1,29 +1,55 @@
 {
- "42": {
-  "fresh_arrays_key": "a60abc364375b67186665a39be5bde271fc8a26f85f7991d2ebd87f28880938d",
-  "container_sha": "de3f12028cd9c7c4238dab91d3172717566fa49996ce58a39feb54db91953dc3",
-  "npz_keys": [
-   "E_ts",
-   "P",
-   "symbols"
-  ]
+ "device": "fa_member_key.py",
+ "self_sha256": "8a6529c0f4bba424a828a12d196d25dfb63af97a9c1e0381c6a43d252a267717",
+ "utc": "2026-09-25T10:05:22Z",
+ "purpose": "independent second key for family members, so that a later disagreement can distinguish 'the data changed' from 'one device changed'",
+ "definition_executable": "h = sha256(); for k in sorted(z.files): a = ascontiguousarray(z[k]); h.update(k.encode()); h.update(str(a.dtype.str).encode()); h.update(str(a.shape).encode()); h.update(a.tobytes())  # NO separators; str(a.shape) is Python's default repr; keys sorted()",
+ "readings_that_are_WRONG": {
+  "literal_pipe_separators": "f'{k}|{dtype.str}|{shape}|' + bytes",
+  "literal_pipe_with_list_shape": "same but shape via list()",
+  "join_on_pipe": "'|'.join([k, dtype.str, str(shape)]) + bytes",
+  "shape_joined_with_x": "shape via 'x'.join(...)",
+  "bytes_only": "hash the raw bytes only, ignoring name/dtype/shape",
+  "per_array_sha_then_concat": "sha each array, then hash the concatenation of those digests"
  },
- "2027": {
-  "fresh_arrays_key": "c419dcacd34a6792d67cf8415b03336ce87472ad3c3f50cb8c893f9fde3c4d4c",
-  "container_sha": "86b3aab704c9110b33bcca47f3ef77ad176d5d07f5d0ea7b2fc48fb42e92413e",
-  "npz_keys": [
-   "E_ts",
-   "P",
-   "symbols"
-  ]
+ "reproduced_by": "dlarch, 3/3 seeds, from the written definition (after eliminating the 5 wrong readings)",
+ "expected_npz_schema": [
+  "E_ts",
+  "P",
+  "symbols"
+ ],
+ "schema_note": "asserted here INDEPENDENTLY of dlarch's device: if only one party checks for schema drift, that party's own error goes uncaught",
+ "members": {
+  "/workspace/dlarch_2026-09-24/T3/T0/f10_s42/F10_OOF.npz": {
+   "my_arrays_key": "a60abc364375b67186665a39be5bde271fc8a26f85f7991d2ebd87f28880938d",
+   "container_sha256": "de3f12028cd9c7c4238dab91d3172717566fa49996ce58a39feb54db91953dc3",
+   "npz_keys": [
+    "E_ts",
+    "P",
+    "symbols"
+   ],
+   "schema_ok": true
+  },
+  "/workspace/dlarch_2026-09-24/T3/T0/f10_s2027/F10_OOF.npz": {
+   "my_arrays_key": "c419dcacd34a6792d67cf8415b03336ce87472ad3c3f50cb8c893f9fde3c4d4c",
+   "container_sha256": "86b3aab704c9110b33bcca47f3ef77ad176d5d07f5d0ea7b2fc48fb42e92413e",
+   "npz_keys": [
+    "E_ts",
+    "P",
+    "symbols"
+   ],
+   "schema_ok": true
+  },
+  "/workspace/dlarch_2026-09-24/T3/T0/f10_s7/F10_OOF.npz": {
+   "my_arrays_key": "44e99cad2212cda7c39df2bc98bcdec97543eaa86ae5aef0a79d7dc15f18277f",
+   "container_sha256": "1c246c24fe78b98876baee13abeae1806d99c27da7bebfa96a3af435ff780b3f",
+   "npz_keys": [
+    "E_ts",
+    "P",
+    "symbols"
+   ],
+   "schema_ok": true
+  }
  },
- "7": {
-  "fresh_arrays_key": "44e99cad2212cda7c39df2bc98bcdec97543eaa86ae5aef0a79d7dc15f18277f",
-  "container_sha": "1c246c24fe78b98876baee13abeae1806d99c27da7bebfa96a3af435ff780b3f",
-  "npz_keys": [
-   "E_ts",
-   "P",
-   "symbols"
-  ]
- }
+ "all_schema_ok": true
 }
