@@ -42,3 +42,9 @@ sha rc=0) → `nc_2026-09-23_SHA256SUMS.txt`. The five reference files:
 Before deletion: 1386 files, 7263 MB (`du -sm`); sha256 of every file → `ovn_runs_SHA256SUMS.txt` (sha a2abd37b…), taken 07:04:47–07:05:08Z on pod2
 (`cd /dev/shm/ovn_2026-09-23 && nice -n 10 find runs -type f -print0 | sort -z | xargs -0 nice -n 10 sha256sum`, sha rc=0).
 No process had it open or as cwd (fd / cwd scan). The rest of ovn_2026-09-23 (receipts 44M, targets 115M, scratch) is NOT touched.
+Deleted 07:05:35Z: `rm -rf /dev/shm/ovn_2026-09-23/runs` → rm rc=0, path gone. Measured (cgroup memory.stat / df -B1M /dev/shm):
+| | before (07:04:47Z) | after (07:05:38Z) | released |
+|---|---|---|---|
+| cgroup shmem | 28,159,365,120 B | 20,543,676,416 B | 7,615,688,704 B (7.09 GiB) |
+| /dev/shm used | 26,840 MiB (94%) | 19,577 MiB (69%) | 7,263 MiB |
+| /dev/shm free | 1,772 MiB | 9,035 MiB | |
