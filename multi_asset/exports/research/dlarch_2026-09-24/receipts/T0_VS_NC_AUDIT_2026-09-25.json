@@ -1,0 +1,200 @@
+{
+ "device": "dlarch_t0_vs_nc_audit.py",
+ "self_sha256": "d51d9329318c5efc5929ac0f97da7e9a6045dd1ac13f5c0c7e421de84d3ba0b3",
+ "utc": "2026-09-25T18:35:37Z",
+ "asked_by": "lead 2026-09-25",
+ "t0_dir": "/workspace/dlarch_2026-09-24/T3/T0/f10_s42",
+ "nc_dir": "/dev/shm/news2_2026-09-23/work/f10_s42",
+ "differences": {
+  "fold_names_identical": true,
+  "n_folds": {
+   "T0": 23,
+   "NC": 23
+  },
+  "fold_boundaries_identical_every_fold": true,
+  "folds_with_differing_boundaries": [],
+  "scored_population_identical_every_fold": true,
+  "folds_with_differing_population": [],
+  "inputs_only_in_T0": [],
+  "inputs_only_in_NC": [],
+  "inputs_with_differing_sha": [],
+  "shared_sources_with_differing_sha": [],
+  "sources_only_in_T0": [
+   "dlarch_chain_torch.py",
+   "dlarch_train_f10.py"
+  ],
+  "seed": {
+   "T0": 42,
+   "NC": 42
+  },
+  "wl_masking": {
+   "population": "ready anchors with finite WL",
+   "n_population": 9247,
+   "n_anchors_total": 10333,
+   "n_excluded_not_ready_or_nonfinite_WL": 1086,
+   "raw_WL_mean": [
+    0.48381054401397705,
+    0.1610119640827179,
+    0.35517749190330505
+   ],
+   "masked_WL_mean": [
+    0.5887923836708069,
+    0.0,
+    0.4112076461315155
+   ],
+   "anchors_where_WL_changed": 6134,
+   "masking_applied": true
+  },
+  "the_only_substantive_difference": "the WL mask w=[WL0,0,WL2]; w/=w.sum(). Everything else compared here is identical: fold names, per-fold boundaries, scored population, all input shas, and the sha of the reference recipe news2_train_f10.py."
+ },
+ "leakage_F10_T0": {
+  "arm": "T0",
+  "folds_checked": 23,
+  "violations": [],
+  "n_violations": 0,
+  "embargo_gap_hours": {
+   "min": 868.0,
+   "max": 5688.0
+  },
+  "folds_2026": {
+   "202601": {
+    "max_train_label_end": "2025-06-14T12:00:00Z",
+    "test_start": "2026-01-01T00:00:00Z"
+   },
+   "202602": {
+    "max_train_label_end": "2025-07-10T20:00:00Z",
+    "test_start": "2026-02-01T00:00:00Z"
+   },
+   "202603": {
+    "max_train_label_end": "2025-08-03T12:00:00Z",
+    "test_start": "2026-03-01T00:00:00Z"
+   },
+   "202604": {
+    "max_train_label_end": "2025-08-30T00:00:00Z",
+    "test_start": "2026-04-01T00:00:00Z"
+   },
+   "202605": {
+    "max_train_label_end": "2025-09-24T12:00:00Z",
+    "test_start": "2026-05-01T00:00:00Z"
+   },
+   "202606": {
+    "max_train_label_end": "2025-10-20T20:00:00Z",
+    "test_start": "2026-06-01T00:00:00Z"
+   },
+   "202607": {
+    "max_train_label_end": "2025-11-15T08:00:00Z",
+    "test_start": "2026-07-01T00:00:00Z"
+   },
+   "202608": {
+    "max_train_label_end": "2025-12-11T16:00:00Z",
+    "test_start": "2026-08-01T00:00:00Z"
+   },
+   "202609": {
+    "max_train_label_end": "2026-01-07T00:00:00Z",
+    "test_start": "2026-09-01T00:00:00Z"
+   }
+  }
+ },
+ "leakage_F10_NC": {
+  "arm": "NC in-service",
+  "folds_checked": 23,
+  "violations": [],
+  "n_violations": 0,
+  "embargo_gap_hours": {
+   "min": 868.0,
+   "max": 5688.0
+  },
+  "folds_2026": {
+   "202601": {
+    "max_train_label_end": "2025-06-14T12:00:00Z",
+    "test_start": "2026-01-01T00:00:00Z"
+   },
+   "202602": {
+    "max_train_label_end": "2025-07-10T20:00:00Z",
+    "test_start": "2026-02-01T00:00:00Z"
+   },
+   "202603": {
+    "max_train_label_end": "2025-08-03T12:00:00Z",
+    "test_start": "2026-03-01T00:00:00Z"
+   },
+   "202604": {
+    "max_train_label_end": "2025-08-30T00:00:00Z",
+    "test_start": "2026-04-01T00:00:00Z"
+   },
+   "202605": {
+    "max_train_label_end": "2025-09-24T12:00:00Z",
+    "test_start": "2026-05-01T00:00:00Z"
+   },
+   "202606": {
+    "max_train_label_end": "2025-10-20T20:00:00Z",
+    "test_start": "2026-06-01T00:00:00Z"
+   },
+   "202607": {
+    "max_train_label_end": "2025-11-15T08:00:00Z",
+    "test_start": "2026-07-01T00:00:00Z"
+   },
+   "202608": {
+    "max_train_label_end": "2025-12-11T16:00:00Z",
+    "test_start": "2026-08-01T00:00:00Z"
+   },
+   "202609": {
+    "max_train_label_end": "2026-01-07T00:00:00Z",
+    "test_start": "2026-09-01T00:00:00Z"
+   }
+  }
+ },
+ "leakage_KING_NC": {
+  "arm": "KING (in-service NC)",
+  "folds": [
+   {
+    "fold": "2022H2_WARMUP",
+    "score_start": "2022-07-01T00:00:00Z",
+    "score_end": "2022-12-31T20:00:00Z",
+    "max_train_label_end": "2022-06-21T00:00:00Z"
+   },
+   {
+    "fold": "2023",
+    "score_start": "2023-01-01T00:00:00Z",
+    "score_end": "2023-12-31T20:00:00Z",
+    "max_train_label_end": "2022-12-22T00:00:00Z"
+   },
+   {
+    "fold": "2024",
+    "score_start": "2024-01-01T00:00:00Z",
+    "score_end": "2024-12-31T20:00:00Z",
+    "max_train_label_end": "2023-12-22T00:00:00Z"
+   },
+   {
+    "fold": "2025",
+    "score_start": "2025-01-01T00:00:00Z",
+    "score_end": "2025-12-31T20:00:00Z",
+    "max_train_label_end": "2024-12-22T00:00:00Z"
+   },
+   {
+    "fold": "2026",
+    "score_start": "2026-01-01T00:00:00Z",
+    "score_end": "2026-09-19T00:00:00Z",
+    "max_train_label_end": "2025-12-22T00:00:00Z"
+   }
+  ],
+  "n_violations": 0,
+  "violations": [],
+  "embargo_gap_hours": {
+   "min": 240.0,
+   "max": 240.0
+  },
+  "status_self_reported": "OOF_KING_NOT_FULL_STRATEGY",
+  "recipe": {
+   "n_estimators": 400,
+   "learning_rate": 0.05,
+   "num_leaves": 63,
+   "subsample": 0.8,
+   "colsample_bytree": 0.8,
+   "n_jobs": 8,
+   "verbose": -1,
+   "random_state": 0
+  }
+ },
+ "verdict_withheld": "facts only; whether to run an isolating arm is lead's call",
+ "scope_limit": "this checks RECORDED FOLD BOUNDARIES. It shows no fold's training labels reach into its own scoring window. It does NOT rule out every leakage channel -- a feature built with forward information would not appear here."
+}
