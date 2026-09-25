@@ -21,3 +21,9 @@ rc=1
 # 附带证实: 修复后的训练器能正常启动、载入面板、跑完 seat census 才到断言处
 #          (masking_applied=false, anchors_where_WL_changed=0, n_population=9247) ⇒
 #          safe_io 的接线与运行时守卫没有破坏启动路径。
+
+# ---- 更正 2026-09-25 05:3xZ(原句字节保留, 不改写)----
+# 上面写"被测折 2023"不够精确。命令里带 --no-mask, 而 dlarch_train_f10.py L141-143 规定
+# --no-mask ⇒ arm = 'G1_T0_nomask', L145 out = OUT_ROOT/arm/f10_s<seed> ⇒ 实际被测的是
+# T3/G1_T0_nomask/f10_s42/2023, 不是 T3/T0/f10_s42/2023。两者都由旧训练器(98bb7b61)写成,
+# 所以结论(续跑硬红)不变; 但"哪一折"这件事按代码而非按直觉记。

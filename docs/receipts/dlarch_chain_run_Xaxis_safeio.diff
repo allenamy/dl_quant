@@ -1,0 +1,57 @@
+--- /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/chain_run.before.py	2026-09-25 13:29:41
++++ dlarch_chain_run.py	2026-09-25 13:30:26
+@@ -24,6 +24,9 @@
+          PATH,HOME,LC_CTYPE <outdir> (--parity | --seed N) [--engine]
+ """
+ import os, sys, json, time, shutil, hashlib, subprocess
++sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
++import dlarch_safe_io as sio          # E-0925-A: artifact sha must come from a verified write
++sio.install_guards()
+ 
+ NS = "/dev/shm/news2_2026-09-23"
+ BASE = "/workspace/dlarch_2026-09-24"
+@@ -32,7 +35,10 @@
+ T0ROOT = f"{BASE}/T3/T0"
+ PV = "/workspace/venv/bin/python"
+ P314 = PV                                      # same interpreter as the NEW_S pin for combo
+-BASE_CFG = f"{NS}/configs/RUN_CONFIG_NEWS2_s42_2026-09-23.json"
++# Book-layer gate revision 2 (lead `8d2cc5546`): the T0 x 8 engine cells use the X extended axis
++# (last anchor 2026-09-18T20Z, 9,252 anchors), not the short 08-31 axis. BASE_CFG is used ONLY by
++# the engine step (L168/L181); the parity gate returns before it, so parity is NOT affected.
++BASE_CFG = f"{NS}/configs/RUN_CONFIG_NEWS2_s42X_2026-09-23.json"
+ BASE_TAG = "NEWS2_s42|scaled|rule|raw|UAFE"
+ SHARE = {
+     "work/NEWS_FEATURES.npz": f"{NS}/work/NEWS_FEATURES.npz",
+@@ -139,9 +145,9 @@
+         rec["PARITY"] = {"archive": arch, "files": cmp_, "ALL_IDENTICAL": all(v["IDENTICAL"] for v in cmp_.values())}
+         rec["utc_end"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+         op = os.path.join(outdir, "CHAIN_PARITY.json")
+-        tmp = op + ".tmp"; open(tmp, "w").write(json.dumps(rec, indent=1, allow_nan=False)); os.replace(tmp, op)
++        jsha = sio.write_json(op, rec)      # sha comes from the verified write, not a later re-read
+         print(f"DLARCH_CHAIN_PARITY ALL_IDENTICAL={rec['PARITY']['ALL_IDENTICAL']} "
+-              + " ".join(f"{n}={v['IDENTICAL']}" for n, v in cmp_.items()) + f" json={sha(op)[:16]}", flush=True)
++              + " ".join(f"{n}={v['IDENTICAL']}" for n, v in cmp_.items()) + f" json={jsha[:16]}", flush=True)
+         assert rec["PARITY"]["ALL_IDENTICAL"], "CHAIN PARITY FAILED -- the derived chain is not the production chain"
+         return
+ 
+@@ -176,7 +182,7 @@
+     r0["role"] = f"dlarch T0 family member seed {seed} (sigma_F10 + fresh's fusion-layer family)"
+     cfg["runs"] = [r0]; cfg["paths"]["pod_root"] = root; cfg["config"] = f"RUN_CONFIG_DLARCH_T0_s{seed}"
+     cpath = f"{root}/configs/RUN_CONFIG_DLARCH_T0_s{seed}.json"
+-    json.dump(cfg, open(cpath, "w"), indent=1)
++    sio.write_json(cpath, cfg)             # the engine reads this; read back before it is used
+     rec["steps"]["run_config"] = {"path": cpath, "sha256": sha(cpath), "arm": arm, "tag": r0["tag"],
+                                   "pod_root": root, "base_config": BASE_CFG, "base_config_sha256": sha(BASE_CFG)}
+     log("config done", arm)
+@@ -197,9 +203,9 @@
+         rec["steps"]["engine"] = {"SKIPPED": "run again with --engine"}
+     rec["utc_end"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+     op = os.path.join(outdir, f"CHAIN_{label}.json")
+-    tmp = op + ".tmp"; open(tmp, "w").write(json.dumps(rec, indent=1, allow_nan=False)); os.replace(tmp, op)
++    jsha = sio.write_json(op, rec)         # sha comes from the verified write
+     print(f"DLARCH_CHAIN seed={seed} combo_ok=1 targets={sha(tnpz)[:16]} "
+-          f"engine={rec['steps']['engine'].get('rc', 'skipped')} json={sha(op)[:16]}", flush=True)
++          f"engine={rec['steps']['engine'].get('rc', 'skipped')} json={jsha[:16]}", flush=True)
+ 
+ 
+ if __name__ == "__main__":
