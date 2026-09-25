@@ -1,0 +1,174 @@
+{
+ "device": "d10_p2_ledger_vs_archive.py",
+ "self_sha256": "9d51b508491c81cb3276b95baf0d403a515107ac231c34444268a5b5acbd5622",
+ "gate_sha256": "793c5eb2e85e84232df8cf5f25b62207400e390b1552d9196f1b4f76adcdc956",
+ "argv": [
+  "--ledger",
+  "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+  "--ledger-sha",
+  "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad",
+  "--zips-root",
+  "/dev/shm/d10_2026-09-25/zips",
+  "--months",
+  "2026-08",
+  "--positive-control",
+  "--out",
+  "/dev/shm/d10_2026-09-25/receipts/D10_P2_POSITIVE_CONTROL_2026-08.json"
+ ],
+ "question": "does P2 ledger_full.npz contain the settlements in +/-24h interval-switch windows?",
+ "ledger": {
+  "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+  "sha256": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad",
+  "pin_asserted": true,
+  "symbols": 829,
+  "rows": 2633090,
+  "ft_min_utc": "2020-01-01T00:00Z",
+  "ft_max_utc": "2026-09-01T02:00Z",
+  "nan_zip_iv_iff_src1": true
+ },
+ "consumed_by": [
+  "r_hist_sim.py:115-118 HistFunding reads off/ft/rate/symbols only",
+  "src and zip_iv are provenance; the pricing never reads them"
+ ],
+ "src_codes": {
+  "1": "API(fund_aug) only",
+  "2": "zip only",
+  "3": "both equal",
+  "4": "both unequal, API kept",
+  "source": "p2_prep_inputs.py L7,L70-77"
+ },
+ "months": [
+  "2026-08"
+ ],
+ "per_month": {
+  "2026-08": {
+   "archive_symbols": 680,
+   "shared_symbols": 679,
+   "archive_symbols_not_on_ledger_axis": 1,
+   "archive_symbols_not_on_ledger_axis_examples": [
+    "DOSUSDT"
+   ],
+   "switch_events": 48,
+   "symbols_with_a_switch": 27,
+   "switch_windows": {
+    "archive_events_in_windows": 832,
+    "present_in_ledger": 830,
+    "ABSENT_from_ledger": 2
+   },
+   "absent_rate_pct": 0.2404,
+   "absent_by_symbol_top10": [
+    [
+     "AAPLUSDT",
+     2
+    ]
+   ],
+   "absent_examples": [
+    {
+     "symbol": "AAPLUSDT",
+     "utc": "2026-08-09T22:00Z",
+     "sec": 1786312800,
+     "archive_iv_h": 1.0,
+     "archive_rate": 0.0,
+     "switch_utc": "2026-08-09T20:00Z",
+     "ledger_span": [
+      "2026-04-03T08:00Z",
+      "2026-09-01T00:00Z"
+     ]
+    },
+    {
+     "symbol": "AAPLUSDT",
+     "utc": "2026-08-09T22:00Z",
+     "sec": 1786312800,
+     "archive_iv_h": 1.0,
+     "archive_rate": 0.0,
+     "switch_utc": "2026-08-10T08:00Z",
+     "ledger_span": [
+      "2026-04-03T08:00Z",
+      "2026-09-01T00:00Z"
+     ]
+    }
+   ],
+   "month_totals_shared_axis": {
+    "archive_events": 103527,
+    "ledger_rows": 103527,
+    "ledger_rows_with_no_archive_event": 0,
+    "note": "ledger is a union (zip u API), so rows the monthly zip lacks are EXPECTED, not errors"
+   },
+   "src_composition": {
+    "1_api_only": 103527,
+    "2_zip_only": 0,
+    "3_both_equal": 0,
+    "4_both_unequal_api_kept": 0
+   },
+   "positive_control": {
+    "perturbed": [
+     {
+      "symbol": "0GUSDT",
+      "utc": "2026-08-16T12:00Z",
+      "kind": "1_ulp",
+      "from": 2.943e-05,
+      "to": 2.9430000000000005e-05,
+      "delta": 3.3881317890172014e-21
+     },
+     {
+      "symbol": "1000000BOBUSDT",
+      "utc": "2026-08-16T12:00Z",
+      "kind": "plus_1e-9",
+      "from": 0.00074921,
+      "to": 0.0007492110000000001,
+      "delta": 1.0000000000157452e-09
+     }
+    ],
+    "dropped": [
+     {
+      "symbol": "AAPLUSDT",
+      "utc": "2026-08-09T22:00Z",
+      "sec": 1786312800,
+      "removed_from": "ledger second-set (the searched side)",
+      "inside_switch_window_of": "2026-08-09T20:00Z",
+      "expect": "ABSENT_from_ledger >= 1"
+     }
+    ],
+    "in_window_drop_placed": true
+   },
+   "rate_agreement_on_shared_seconds": {
+    "compared": 103527,
+    "bitwise_equal": 103525,
+    "differing": 2,
+    "max_abs_diff": 1.0000000000157452e-09,
+    "max_abs_diff_where": "1000000BOBUSDT@2026-08-16T12:00Z ledger=0.00074921 archive=0.0007492110000000001",
+    "examples": [
+     {
+      "symbol": "0GUSDT",
+      "utc": "2026-08-16T12:00Z",
+      "ledger": 2.943e-05,
+      "archive": 2.9430000000000005e-05,
+      "abs_diff": 3.3881317890172014e-21
+     },
+     {
+      "symbol": "1000000BOBUSDT",
+      "utc": "2026-08-16T12:00Z",
+      "ledger": 0.00074921,
+      "archive": 0.0007492110000000001,
+      "abs_diff": 1.0000000000157452e-09
+     }
+    ],
+    "why_it_matters": "the rate is what prices the backtest; and where src==1 everywhere the builder's own src==4 check had no zip to compare against, so only this comparison can speak"
+   }
+  }
+ },
+ "all_months": {
+  "archive_events_in_windows": 832,
+  "present_in_ledger": 830,
+  "ABSENT_from_ledger": 2
+ },
+ "verdict": "POSITIVE_CONTROL_RUN_NOT_AN_AUDIT",
+ "absent_rate_pct_all": null,
+ "positive_control_result": {
+  "absent_channel_detected_the_dropped_in_window_event": true,
+  "rate_channel_detected_1_ULP_and_1e-9": true,
+  "verdict": "CONTROL_PASS",
+  "data_verdict_this_run_would_have_reported": "P2_LEDGER_HAS_ABSENT_SETTLEMENTS",
+  "meaning": "with the control on this run is NOT an audit of the data: every red counter here is an injected perturbation. It measures whether the comparison can see a difference at all. The clean run's 0-ABSENT / bitwise-equal headline is meaningful only because this run is red."
+ }
+}
