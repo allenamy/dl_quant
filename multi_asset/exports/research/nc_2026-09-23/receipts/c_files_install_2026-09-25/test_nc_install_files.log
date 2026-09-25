@@ -1,0 +1,27 @@
+, "7fa0881a5272", "d49cd8345f9d"], ["wide_shadow/fea171/combosnap/snap_retention.py", "8833da2c8377", "NEW"], ["wide_shadow/fea171/dlw_features.py", "db985ee41f82", "874c18705c30"], ["wide_shadow/fea171/durable_io.py", "34da08f87505", "NEW"], ["wide_shadow/fea171/f8_higher_order_features.py", "0e23d359ad27", "98bc036d98a1"], ["wide_shadow/fea171/feature_cache_identity.py", "57070424895e", "e4ec55d1e3d4"], ["wide_shadow/shadow_loop_v3.py", "52baf9790957", "a68c7a5f0c6e"]], "archive_moves": 4, "unchanged": 9, "contract_sha256": "9510630bb92535fe6f8e48c60cd4218a3453741e36c4add0ef6a10f7e68c60a1"}
+ 
+F0 / F1 / F5
+  OK   F0 baseline green: preflight PASS on the fixture  — 10 files, 4 archive moves
+  OK   F1 apply reached installed_not_started
+  OK   F1 every dest == candidate
+  OK   F1 archive: every source gone AND the archived sha == the pre-move sha
+  OK   F1 files-only: the state manifest is unchanged (diff empty)  — []
+  OK   F1 the installed producer loads the state  — {'module_sha256': '52baf979095752642cde16b1281911c6692f3251cd3b9d6d214a4b624d8d5f38', 'state_files': ['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz'], 'generation_anchor': 1790308800, 'last_anchor': 1790308800}
+  OK   F5 rollback reached rolled_back_not_started
+  OK   F5 every dest bit-for-bit back at its pre-release bytes (None = removed)
+  OK   F5 every archive source back at its pre-move sha, archive destinations gone
+  OK   F5 rollback touched no state file  — []
+F2 forbidden dest
+  OK   F2 RED: a contract writing wide_shadow/state/ is refused at preflight  — a files-only contract may not write state: wide_shadow/state/aux.json
+F3 state touched during apply
+  OK   F3 RED: one state file touched during apply ⇒ refused with FILES-ONLY VIOLATION  — FILES-ONLY VIOLATION: 1 state file(s) touched during the install: ['aux.json']
+F4 archive source changed
+  OK   F4 RED: an archive source changed after packaging ⇒ refused  — archive source missing or changed: wide_shadow/fea171/sidecar_blend.py
+F6 mutant rollback without unarchive
+  OK   F6 RED: a rollback that forgets the archive is refused  — archive move not reversed: wide_shadow/fea171/sidecar_blend.py
+F7 rehearsal flags on the real home
+  OK   F7 RED: --no-launchctl on the real home is refused before anything  — NC_INSTALL_FILES REFUSED: --no-launchctl / --ignore-window are rehearsal-only (need --home other than the real home)
+
+
+15/15 checks passed
+TEST_NC_INSTALL_FILES PASS 
