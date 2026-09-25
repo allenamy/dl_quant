@@ -1,0 +1,23 @@
+P0 baseline green first
+  OK   P0 atomic_write: durable bytes == base bytes == the given bytes
+  OK   P0 _save_npz: identical arrays from both
+P1 RED CONTROLS (base) / P2 durable
+  OK   P1 base atomic_write [enospc] (measured): raises=OSError, target intact=True
+  OK   P2 durable atomic_write [enospc]: DurableWriteError, target byte-identical, no temp left  — raised=DurableWriteError intact=True left=[]
+  OK   P1 base _save_npz [enospc] (measured): raises=OSError, target intact=True
+  OK   P2 durable _save_npz [enospc]: DurableWriteError, target byte-identical, no temp left  — raised=DurableWriteError intact=True left=[]
+  OK   P1 RED CONTROL base atomic_write [truncate]: no exception AND the target was replaced by damaged bytes  — raised=None intact=False
+  OK   P2 durable atomic_write [truncate]: DurableWriteError, target byte-identical, no temp left  — raised=DurableWriteError intact=True left=[]
+  OK   P1 RED CONTROL base _save_npz [truncate]: no exception AND the target was replaced by damaged bytes  — raised=None intact=False
+  OK   P2 durable _save_npz [truncate]: DurableWriteError, target byte-identical, no temp left  — raised=DurableWriteError intact=True left=[]
+  OK   P1 RED CONTROL base atomic_write [empty]: no exception AND the target was replaced by damaged bytes  — raised=None intact=False
+  OK   P2 durable atomic_write [empty]: DurableWriteError, target byte-identical, no temp left  — raised=DurableWriteError intact=True left=[]
+  OK   P1 RED CONTROL base _save_npz [empty]: no exception AND the target was replaced by damaged bytes  — raised=None intact=False
+  OK   P2 durable _save_npz [empty]: DurableWriteError, target byte-identical, no temp left  — raised=DurableWriteError intact=True left=[]
+P3 CLASS GUARD — the C package's state writes are routed through durable_io
+  OK   P3 shadow_loop: no np.savez* to a path remains (state npz go through durable_io)  — []
+  OK   P3 combo_stage: every np.savez* to a path is a declared per-run feature-workspace file (cache / dlw_targets / xfer_panel)  — []
+  OK   P3 no json.dump(x, open(...)) remains in shadow_loop / combo_stage  — []
+
+17/17 checks passed
+TEST_C_DURABLE_PRODUCER PASS 
