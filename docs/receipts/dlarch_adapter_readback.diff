@@ -1,0 +1,38 @@
+--- /tmp/cr5.before	2026-09-25 18:12:51
++++ multi_asset/exports/research/dlarch_2026-09-24/devices/dlarch_chain_run.py	2026-09-25 18:13:15
+@@ -289,7 +289,34 @@
+              cwd=f"{NS}/engine")
+     rec["steps"]["adapter"] = {"rc": rc, "seconds": round(time.monotonic() - t0, 1)}
+     assert rc == 0, "adapter failed"
+-    rec["steps"]["adapter"]["targets_npz_sha256"] = sha(tnpz)
++    # ---- read back the adapter's outputs BEFORE hashing them (E-0925-A, applied to a file that
++    # upstream code wrote). fresh spotted the hole at ovn_adapter.py:196: the adapter verifies the NPZ
++    # (verify_roundtrip + `assert sha(out_npz) == s_npz == R["targets_npz_sha256"]`) but then REWRITES
++    # the receipt with the round-trip result and prints `sha(out_receipt)` by re-reading the file, with
++    # no assertion that the rewritten receipt reads back. I then hash that same file and put the value
++    # into the engine's RUN_CONFIG as `receipt_sha256` -- so a truncated receipt would be compared
++    # against the sha OF THE TRUNCATED FILE, agree, and the engine would proceed. These three checks
++    # close that: the json must parse, the npz must decompress, and the receipt's own recorded
++    # npz sha must equal the npz's actual sha (which ties receipt CONTENT to the artifact).
++    try:
++        _R = json.load(open(tjson))
++    except Exception as e:
++        raise AssertionError(f"targets receipt does not parse after the adapter rewrote it: {tjson}: {e}")
++    import numpy as _np
++    with _np.load(tnpz, allow_pickle=False) as _z:
++        for _k in _z.files:
++            _a = _z[_k]
++            _ = _a.tobytes()[:1] if _a.size else b""
++    _npz_sha = sha(tnpz)
++    assert _R.get("targets_npz_sha256") == _npz_sha, (
++        f"targets receipt records npz sha {str(_R.get('targets_npz_sha256'))[:16]} but the npz is "
++        f"{_npz_sha[:16]} -- receipt and artifact disagree, refusing to hand this to the engine")
++    rec["steps"]["adapter"]["readback_verified"] = {
++        "receipt_parses": True, "npz_arrays_read_back": True,
++        "receipt_npz_sha_matches_artifact": True,
++        "why": "ovn_adapter rewrites the receipt then hashes it by re-reading; nothing asserted the "
++               "rewrite is readable (E-0925-A family, flagged by fresh)"}
++    rec["steps"]["adapter"]["targets_npz_sha256"] = _npz_sha
+     rec["steps"]["adapter"]["targets_json_sha256"] = sha(tjson)
+     log("adapter done", sha(tnpz)[:16])
+ 
