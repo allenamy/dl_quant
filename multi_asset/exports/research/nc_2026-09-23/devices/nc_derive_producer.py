@@ -39,6 +39,9 @@ PIN = {"news2_device": "9c475421d00379b5d6a514e8b406c0ba789a46b8acd9eb3db34ad568
        "m3_combo_stage.py": "41f9174d7d6400f5964e7cdf878efce58ef3965dd202b6a364f6e45c8d166d3c",
        "beta_overlay_producer.py": "b77c180d69170988780566e19d0ee4a0f85af25a9b9e9be08b6e4a386095fb58",
        "durable_io.py": "34da08f875055eedc48d0823fe51a6013d610552e603c9317cd18a69e7f1d28c",   # = dl_quant_live live/durable_io.py at a777f86 (B-2)
+       "snap_retention.py": "8833da2c8377d8e1e8102c49376dc8e15034272cea4e55aa3be14da55ac0da8a",   # C: snapshot retention (DESIGN_snap_retention_2026-09-25 d60f79588 + df8c6262b; user ruling)
+       "combo_state_snapshot.sh": "58e58bd11141daed1dfdd703c05df942223b95c9e7fc6010bfac6d61be72b915",   # production (NC release) source of the edit below
+       "combo_parity_replay.sh": "d49cd8345f9dae0a83ef18aa10c48a5b27b7bf27c7c20b335b03f7ce59f73922",   # production (NC release) source of the edit below
        "prod_combo_stage.py": "fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8"}
 DEFAULT_FAMILIES = "D4,D5,D6,D7,D8,D9,D14"; DEFAULT_TREND_ROWS = "last"
 ALL_NEWS2_FAMILIES = {"D4", "D5", "D6", "D7", "D8", "D9", "D11", "D13", "D14"}   # the families news2's patcher knows at 9c475421
@@ -934,6 +937,24 @@ DURABLE_EDITS = [
 ]
 
 
+SNAP_SH_EDITS = [   # (tag, old, new) on the production combo_state_snapshot.sh (pinned); user ruling 2026-09-25: 14 days full, older keep small files FOREVER
+    ("C:snap_header_retention", "# Runs as a launchd agent (com.hsy.combosnap) polling every 60 s; idempotent (a complete snapshot dir is never rewritten). Retention: 21 days.",
+     "# Runs as a launchd agent (com.hsy.combosnap) polling every 60 s; idempotent (a complete snapshot dir is never rewritten). Retention (user ruling 2026-09-25,\n"
+     "# DESIGN_snap_retention_2026-09-25): combosnap/snap_retention.py — 14 days in full (by the anchor ts in the directory name); older snapshots keep\n"
+     "# every file except rolling.npz (>= 1 MB and not on the keep list), whose sha is appended to state/snap/RETENTION_DELETED.sha256; small files are\n"
+     "# kept forever (the former whole-directory deletion after 21 days is gone)."),
+    ("C:snap_retention_replaces_find",
+     'find "$SNAP" -maxdepth 1 -mindepth 1 -type d -mtime +21 -exec rm -rf {} + 2>/dev/null\n',
+     '"$WS/venv/bin/python" "$WS/fea171/combosnap/snap_retention.py" "$SNAP" >> "$SNAP/retention.log" 2>&1 || echo "snap_retention rc=$? $(date -u +%FT%TZ) (see retention.log)" >> "$SNAP/snap.log"\n'),
+]
+REPLAY_SH_EDITS = [
+    ("C:replay_refuses_trimmed",
+     '[ -f "$SNAP/COMPLETE" ] || { echo "CANNOT_REPLAY no complete snapshot for $A"; exit 3; }\n',
+     '[ -f "$SNAP/COMPLETE" ] || { echo "CANNOT_REPLAY no complete snapshot for $A"; exit 3; }\n'
+     '[ -f "$SNAP/RETENTION_TRIMMED.json" ] && { echo "CANNOT_REPLAY TRIMMED_BY_RETENTION $A (rolling.npz removed by snap_retention; see RETENTION_TRIMMED.json)"; exit 3; }\n'),
+]
+
+
 def apply(P, edits):
     for tag, old, new in edits:
         P.replace(tag, old, new)
@@ -1010,14 +1031,25 @@ def main():
     if DURABLE:
         extra["fea171/durable_io.py"] = NC_SRC / "durable_io.py"
         assert sha_file(NC_SRC / "durable_io.py") == PIN["durable_io.py"], "durable_io.py is not the pinned executor copy"
+        extra["fea171/combosnap/snap_retention.py"] = NC_SRC / "snap_retention.py"
+        assert sha_file(NC_SRC / "snap_retention.py") == PIN["snap_retention.py"], "snap_retention.py is not the pinned copy"
     bop_edits = []
     for k, p in extra.items():
-        shutil.copyfile(p, out / k); outputs[k] = sha_file(out / k)
+        (out / k).parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(p, out / k); outputs[k] = sha_file(out / k)
     if M3_V2:                                   # the M3 producer file is pinned (b77c180d); v2 is two anchored replacements on top of it
         t = (out / "fea171/beta_overlay_producer.py").read_text()
         for tag, old, new in BOP_V2:
             assert t.count(old) == 1, ("BOP v2 anchor not unique", tag); t = t.replace(old, new); bop_edits.append({"tag": tag, "applied": True})
         ast.parse(t); (out / "fea171/beta_overlay_producer.py").write_text(t); outputs["fea171/beta_overlay_producer.py"] = sha_file(out / "fea171/beta_overlay_producer.py")
+    if DURABLE:                                  # the two combosnap shell scripts: anchored edits on the pinned production sources
+        sh_src = {"fea171/combo_state_snapshot.sh": (pathlib.Path(HOME) / "wide_shadow/fea171/combo_state_snapshot.sh", "combo_state_snapshot.sh", SNAP_SH_EDITS),
+                  "fea171/combosnap/combo_parity_replay.sh": (pathlib.Path(HOME) / "wide_shadow/fea171/combosnap/combo_parity_replay.sh", "combo_parity_replay.sh", REPLAY_SH_EDITS)}
+        for k, (src_p, pin_k, eds) in sh_src.items():
+            assert sha_file(src_p) == PIN[pin_k], ("shell source changed", k)
+            t = src_p.read_text()
+            for tag, old, new in eds:
+                assert t.count(old) == 1, ("shell edit anchor not unique", tag); t = t.replace(old, new); bop_edits.append({"tag": tag, "applied": True})
+            (out / k).parent.mkdir(parents=True, exist_ok=True); (out / k).write_text(t); os.chmod(out / k, 0o755); outputs[k] = sha_file(out / k)
     for f in ("xfer_syms.npz", "xfer_ref.npz"):
         shutil.copyfile(N2.WIDE / "fea171" / f, out / "fea171" / f); outputs[f"fea171/{f}"] = sha_file(out / "fea171" / f)
     rec = {"device": "nc_derive_producer.py", "self_sha256": sha_file(os.path.abspath(__file__)), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

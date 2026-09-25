@@ -1,7 +1,7 @@
 {
  "device": "nc_derive_producer.py",
- "self_sha256": "ad25250a6682941adfbf3b06af45aada3f2950daf739251a4f22fbec9de520e5",
- "utc": "2026-09-25T06:41:52Z",
+ "self_sha256": "6d66976de54f8969285ca1f2599d0c83415d7d59add724eee7752798cc6d3d2f",
+ "utc": "2026-09-25T06:46:48Z",
  "freeze": {
   "FREEZE_new_servable_v2_2026-09-23.md": "b30e4afa5",
   "amendment1": "5c89f8d22",
@@ -13,6 +13,9 @@
   "m3_combo_stage.py": "41f9174d7d6400f5964e7cdf878efce58ef3965dd202b6a364f6e45c8d166d3c",
   "beta_overlay_producer.py": "b77c180d69170988780566e19d0ee4a0f85af25a9b9e9be08b6e4a386095fb58",
   "durable_io.py": "34da08f875055eedc48d0823fe51a6013d610552e603c9317cd18a69e7f1d28c",
+  "snap_retention.py": "8833da2c8377d8e1e8102c49376dc8e15034272cea4e55aa3be14da55ac0da8a",
+  "combo_state_snapshot.sh": "58e58bd11141daed1dfdd703c05df942223b95c9e7fc6010bfac6d61be72b915",
+  "combo_parity_replay.sh": "d49cd8345f9dae0a83ef18aa10c48a5b27b7bf27c7c20b335b03f7ce59f73922",
   "prod_combo_stage.py": "fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8"
  },
  "sources": {
@@ -64,6 +67,9 @@
   "fea171/beta_overlay_producer.py": "fc990a0b7bf34199430968ea015e90d9312e65b3d3d7ec2484f2033dba5b9846",
   "fea171/stable_trend_reference.py": "01bf8b3d35a23b6599ceddcc849dbbbbb85eff5eceebfe1a5a045fe9ca8b79ae",
   "fea171/durable_io.py": "34da08f875055eedc48d0823fe51a6013d610552e603c9317cd18a69e7f1d28c",
+  "fea171/combosnap/snap_retention.py": "8833da2c8377d8e1e8102c49376dc8e15034272cea4e55aa3be14da55ac0da8a",
+  "fea171/combo_state_snapshot.sh": "0a0b8401bbc38cee545b44d50c7d52e43e1be9be7ae6dca066f5ba078ccf0d1b",
+  "fea171/combosnap/combo_parity_replay.sh": "7fa0881a52725e4cffcec85568495f796892ff8798657308268e11d4547af15d",
   "fea171/xfer_syms.npz": "d187042e60b480d3bb9e2d57757a1000da80428541011eeec67e330748ae1c92",
   "fea171/xfer_ref.npz": "33eb713b72a67665faaf72fa071e0a13c7a7a60a9f732f6e99398ae43dd7bfc8"
  },
@@ -76,6 +82,18 @@
   },
   {
    "tag": "V2:bop_source",
+   "applied": true
+  },
+  {
+   "tag": "C:snap_header_retention",
+   "applied": true
+  },
+  {
+   "tag": "C:snap_retention_replaces_find",
+   "applied": true
+  },
+  {
+   "tag": "C:replay_refuses_trimmed",
    "applied": true
   }
  ],

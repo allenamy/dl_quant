@@ -1,0 +1,27 @@
+R0 baseline
+  OK   R0 exit 0  — SNAP_RETENTION window_start=1790424000 deleted=6 bytes=7200000 refused=[] rule=snap_retention_v1_2026-09-25
+
+  OK   R0 inside the window: every file still there
+  OK   R0 outside the window: rolling.npz gone, aux.json + small files kept  — [1789992000, 1790078400, 1790164800, 1790251200, 1790337600]
+  OK   R0 a planted 1.2 MB unknown file outside the window is deleted too (rule by size, not by name)
+  OK   R0 every deletion has its resident-list line with the SHA256SUMS sha (and nothing else)  — (6, 6)
+  OK   R0 RETENTION_TRIMMED.json in every trimmed snapshot names its files
+  OK   R3 the resident list is append-only (the earlier bytes are its exact prefix)
+  OK   R4 idempotent: second run exit 0, nothing deleted, nothing appended  — SNAP_RETENTION window_start=1790424000 deleted=0 bytes=0 refused=[] rule=snap_retention_v1_2026-09-25
+
+R1/R2 refusals
+  OK   R1 exit 3 and a HIGH page attempted (PAGE / PAGE_FAIL printed)  — PAGE_FAIL ModuleNotFoundError("No module named 'telegram_notify'")
+PAGE_FAIL ModuleNotFoundError("No module named 'telegram_notify'")
+SNAP_RETENTION window_start=1790424000 deleted=3 bytes=3600000 refused=[1789992000, 1790164800] rule=snap_retention_v1_2026-09-25
+
+  OK   R1 the mismatching snapshot keeps every file
+  OK   R2 a large file with no SHA256SUMS line ⇒ that snapshot keeps every file
+  OK   R1/R2 the other outside snapshots are still trimmed
+R5 window by name
+  OK   R5 an old snapshot touched to now is still trimmed; a new one with an ancient mtime is not  — SNAP_RETENTION window_start=1790424000 deleted=5 bytes=6000000 refused=[] rule=snap_retention_v1_2026-09-25
+
+R6 red control: the former rule
+  OK   R6 RED CONTROL: the former `find -mtime +21 rm -rf` deletes whole snapshots, aux.json and small files included
+
+14/14 checks passed
+TEST_SNAP_RETENTION PASS 

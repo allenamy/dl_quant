@@ -37,6 +37,8 @@ Currently 3.3 GB total, growing about +0.5 GB/day.
 
 Once the window is full (from 2026-10-01T12Z), the snapshot directory is ≈ 7.2 GB, plus about 1.3 GB per month after that.
 
+**User's final ruling (2026-09-25 ~06:5xZ, relayed by the lead): small files are kept FOREVER; the long-term growth of about +1.3 GB/month is accepted with full knowledge.** Implementation: `snap_retention.py` (8833da2c) replaces the `find … -mtime +21 -exec rm -rf` line in combo_state_snapshot.sh; combo_parity_replay.sh refuses a trimmed snapshot by name (`CANNOT_REPLAY TRIMMED_BY_RETENTION`); built into treeNC7 by `nc_derive_producer --durable` (edits on the pinned production sources 58e58bd1 / d49cd834); test_snap_retention 14/14.
+
 Optional (needs a ruling): aux.json accounts for about 90% of the long-term growth. If gzipped copies were allowed (keep the original's sha and delete the plaintext), long-term growth would be expected to fall to about 1/5–1/10. This has not been measured; the ratio is to be measured before the ruling.
 
 ## Tests (red controls, go with C)
