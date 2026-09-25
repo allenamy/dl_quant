@@ -1,0 +1,23 @@
+# 把"守卫已经存在"从读代码得出的论断变成测量 (2026-09-25 05:18Z)
+# 主张: 训练器自己的 sha 在 `sources` 里, 所以改了训练器之后, 已完成折的续跑会硬红,
+#       不会把两个训练器 sha 的折静默混进同一个 OOF。
+# 仪器: 真的去跑一次续跑, 而不是再读一遍那行断言。
+# 命令(逐字):
+#   cd /workspace/dlarch_2026-09-24 && timeout 1200 env -i PATH=/usr/bin:/bin HOME=/root \
+#     /workspace/venv/bin/python -B dlarch_train_f10.py --arm T0 --seed 42 --folds 2023 \
+#     --no-mask --env-whitelist PATH,HOME,LC_CTYPE
+# 被测折 2023 已完成(FOLD_RECEIPT/scores.npz/model.pt 齐全), 记录的训练器 sha = 98bb7b61,
+# 当前训练器 sha = 4b74f2ce(E-0925-A 修复后)。
+05:18:47 seat census {"population": "ready anchors with finite WL", "n_population": 9247, "n_anchors_total": 10333, "n_excluded_not_ready_or_nonfinite_WL": 1086, "raw_WL_mean": [0.48381054401397705, 0.1610119640827179, 0.35517749190330505], "masked_WL_mean": [0.48381054401397705, 0.1610119640827179, 0.35517749190330505], "anchors_where_WL_changed": 0, "masking_applied": false}
+Traceback (most recent call last):
+  File "/workspace/dlarch_2026-09-24/dlarch_train_f10.py", line 330, in <module>
+    main()
+  File "/workspace/dlarch_2026-09-24/dlarch_train_f10.py", line 253, in main
+    old = json.load(open(result)); assert old['inputs'] == inputs and old['sources'] == sources and old['seed'] == args.seed and old['arm'] == arm, 'resume identity changed'
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: resume identity changed
+rc=1
+# 结果: AssertionError: resume identity changed (L253), rc=1, 没有写入任何文件。
+# 附带证实: 修复后的训练器能正常启动、载入面板、跑完 seat census 才到断言处
+#          (masking_applied=false, anchors_where_WL_changed=0, n_population=9247) ⇒
+#          safe_io 的接线与运行时守卫没有破坏启动路径。
