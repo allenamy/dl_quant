@@ -40,7 +40,7 @@ lead 裁定:因为空头判据是**原样继承、不调任何阈值**,不构成
 
 **P 层定义不变**:`r3d ≥ +0.20`(3 日涨幅 ≥ +20%)。被做空的名已经涨了 20% 再继续向上起始,正是"挤空"这一层,无需改写。`COST = 8.9 bps` 不变,`THETAS = (0.05, 0.08, 0.12)` 不变,`fwd()` 不变,bootstrap 与种子不变。
 
-**写到独立目录** `multi_asset/exports/live/parabolic_onset_forward_short/`,有自己的 `events.jsonl` / `run_log.jsonl` / 自己的 `done` 账。理由有两条,都是承重的:
+**写到独立目录 `~/parabolic_onset_forward_short/`**(**在 `~/Desktop` 之外** —— 照 §7 lead 裁定的方案 2,装置脚本与日志都不能留在研究仓里,否则 launchd 读不到/列举不到;研究仓里只存**定期快照**)。它有自己的 `events.jsonl` / `run_log.jsonl` / 自己的 `done` 账。理由有两条,都是承重的:
 
 1. **多头队列的文件必须逐位不变**(lead 要求的控制 1)。写同一个文件就无法逐位断言。
 2. **`done` 会静默决定回填窗口**。L69 是 `if A < SINCE or A in done or A % 14400 != 0: continue` —— `SINCE` 与 `done` **两者都**门住处理。若把空头队列塞进同一个 events 文件,126 个已记录锚会被 `A in done` 跳过 ⇒ 空头队列**只从 09-22 起**有记录。这是三个可能窗口里最差的一个,而且是**被默认值意外选中的**,不是被选择的。
