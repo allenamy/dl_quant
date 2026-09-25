@@ -71,7 +71,10 @@ def main():
     old = {s: {"ema": a0["ema"].get(s), "row": (a0["ledger_tail"].get(s) or [None])[-1]} for s in set(a0["ema"]) | set(a0["ledger_tail"])}
     rec = {"device_sha256": sha(os.path.abspath(__file__)), "price_snapshot": last, "rolling_sha256": sha(f"{WS}/state/snap/{last}/rolling.npz"),
            "old_cfg_sha256": sha(OLD_CFG), "old_init_snapshot": A_INIT, "n_old_live": len(old_live), "anchors": []}
-    tot = collections.defaultdict(float)
+    tot = collections.defaultdict(float); per_name = {}
+    # data age proxy (no venue call): first finite ch0 bar of the name in the latest rolling cache (the cache spans ~40 days; ">= span" if
+    # the first bar is the cache's first row). Exchange onboardDate is NOT read (would need a venue call).
+    fin = np.isfinite(Z["data"][:, :, 0].astype(np.float32)); first_row = np.where(fin.any(0), fin.argmax(0), -1)
     print(f"{'anchor':12s} {'rho_b':>6s} {'rho_c':>6s} {'ovQ5_b':>6s} {'ov50_b':>6s} {'fetch':>5s} {'skip':>4s} {'unem':>4s} "
           f"{'retQ_nc%':>8s} {'retQ_b%':>8s} {'fund_nc':>9s} {'fund_b':>9s} {'fund_c':>9s}")
     for A in snaps:
@@ -154,6 +157,15 @@ def main():
                 sel = (w < 0) if side == "short" else (w > 0)
                 row[f"fund_paper_nc_{side}"] = float(bF * (np.nan_to_num(fz_nc) * r)[sel].sum()); row[f"fund_paper_old_{side}"] = float(bF * (np.nan_to_num(fz_b) * r)[sel].sum())
             row["fund_paper_nc_on_nc_only_members"] = float(bF * (np.nan_to_num(fz_nc) * r)[nc_only].sum())
+            # revision 3 (lead 2026-09-25 09:2xZ): the NC-only members' fund P&L by book side (sign of the paper target) and by name
+            contrib = bF * np.nan_to_num(fz_nc) * r
+            row["nc_only_fund_long"] = float(contrib[nc_only & (w > 0)].sum()); row["nc_only_fund_short"] = float(contrib[nc_only & (w < 0)].sum())
+            row["nc_only_fund_flat"] = float(contrib[nc_only & (w == 0)].sum())
+            tradable_now = set(aux["base_syms"])
+            for i in np.where(nc_only)[0]:
+                nm = names_m[i]; e = per_name.setdefault(nm, {"fund_paper": 0.0, "anchors": 0, "in_exchangeinfo_trading_at_A": [], "side_by_anchor": []})
+                e["fund_paper"] += float(contrib[i]); e["anchors"] += 1; e["in_exchangeinfo_trading_at_A"].append(nm in tradable_now)
+                e["side_by_anchor"].append("long" if w[i] > 0 else ("short" if w[i] < 0 else "flat"))
             row["fund_paper_nc_on_common"] = float(bF * (np.nan_to_num(fz_nc) * r)[com].sum()); row["fund_paper_old_on_common"] = float(bF * (np.nan_to_num(fz_b) * r)[com].sum())
             for k in ("fund_paper_nc", "fund_paper_old", "fund_paper_oldrules_noskip", "fund_paper_nc_short", "fund_paper_old_short",
                       "fund_paper_nc_on_nc_only_members", "fund_paper_nc_on_common", "fund_paper_old_on_common"): tot[k] += row[k]
@@ -162,11 +174,19 @@ def main():
         g = lambda k, f="{:9.1f}": (f.format(row[k]) if k in row else f"{'-':>9s}")
         print(f"{row['anchor']:12s} {rho_b:6.3f} {rho_c:6.3f} {ovq_b:6.3f} {ov50_b:6.3f} {n_fetch:5d} {n_skip:4d} {n_unem:4d} "
               f"{g('bottomQ_mean_ret_pct_nc', '{:8.3f}')} {g('bottomQ_mean_ret_pct_old', '{:8.3f}')} {g('fund_paper_nc')} {g('fund_paper_old')} {g('fund_paper_oldrules_noskip')}")
+    for nm, e in per_name.items():
+        j = col.get(nm); fr = int(first_row[j]) if j is not None else -1
+        e["data_first_bar_utc"] = fmt(int(ts[fr])) if fr >= 0 else None; e["data_age_days_at_cache_end"] = round((int(ts[-1]) - int(ts[fr])) / 86400, 1) if fr >= 0 else None
+        e["data_age_is_cache_span_lower_bound"] = fr == 0; e["in_old_symbols_live"] = nm in set(old_live)
+    rec["nc_only_members"] = dict(sorted(per_name.items(), key=lambda kv: kv[1]["fund_paper"]))
     rec["totals"] = dict(tot)
     ov_min = min(a["bottomQ_overlap_old"] for a in rec["anchors"]); diff = (tot["fund_paper_old"] - tot["fund_paper_nc"]) / abs(tot["fund_paper_nc"]) if tot["fund_paper_nc"] else float("nan")
     rec["rule"] = {"min_bottomQ_overlap": ov_min, "paper_rel_diff": diff, "independent_of_release": bool(ov_min >= 0.9 and abs(diff) < 0.10)}
     json.dump(rec, open(f"{out}/FUND_LEG_PATH_COMPARE.json", "w"), indent=1)
     print("TOTALS (priced anchors):", {k: round(v, 1) for k, v in tot.items()})
+    print("NC-only members, fund P&L by anchor (long / short / flat):", [(a["anchor"], round(a.get("nc_only_fund_long", 0), 1), round(a.get("nc_only_fund_short", 0), 1), round(a.get("nc_only_fund_flat", 0), 1)) for a in rec["anchors"] if "nc_only_fund_long" in a])
+    print("NC-only members, worst 5 by fund P&L:"); [print(f"   {nm:16s} {e['fund_paper']:8.1f} USDT over {e['anchors']} anchors; sides {e['side_by_anchor']}; exchangeInfo TRADING at A {e['in_exchangeinfo_trading_at_A']}; "
+          f"in old symbols_live {e['in_old_symbols_live']}; data since {e['data_first_bar_utc']} ({e['data_age_days_at_cache_end']} d{' = cache span, lower bound' if e['data_age_is_cache_span_lower_bound'] else ''})") for nm, e in list(rec["nc_only_members"].items())[:5]]
     print("per anchor: bottom-quintile overlap on common names", [round(a["bottomQ_overlap_common_names"], 3) for a in rec["anchors"]],
           "| NC-only members", [a["n_nc_only_members"] for a in rec["anchors"]], "of which in the NC bottom quintile", [a["n_nc_only_in_nc_bottomQ"] for a in rec["anchors"]])
     print(f"FUND_LEG_PATH_COMPARE min bottom-quintile overlap {ov_min:.3f}; paper diff old vs NC {diff * 100:.1f}% ⇒ "
