@@ -73,9 +73,21 @@ PY
 env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B $W/devices/fa_launch_guard.py PATH,HOME,LC_CTYPE $VDIR/RUN_CONFIG.json
 setsid env -i PATH=/usr/bin:/bin HOME=/root nice -n 12 /workspace/venv/bin/python -B bt_launch.py PATH,HOME,LC_CTYPE \
   $VDIR/RUN_CONFIG.json --resume c3m_$SEED > $FA/logs/engine_c3m_$SEED.log 2>&1 < /dev/null &
-sleep 5; echo "  engine PGID=$(ps -o pgid= -p $! | tr -d \" \")"
-until grep -qE "BT_LAUNCH VERDICT|Traceback|No space left" $FA/logs/engine_c3m_$SEED.log 2>/dev/null; do sleep 20; done
-grep -E "BT_LAUNCH VERDICT|Traceback|No space left" $FA/logs/engine_c3m_$SEED.log | head -1
+sleep 5; PG=$(ps -o pgid= -p $! | tr -d " ")
+# news2 2026-09-25: a pipe that only PRINTS its PGID cannot be attributed later. Record it to a file so that
+# "is that third bt_launch group yours?" is answerable no matter who started the cell, and so that any later
+# kill is done by MY recorded PGID rather than by matching a process name on a shared host.
+echo "{\"arm\":\"C3m\",\"seed\":\"$SEED\",\"pgid\":\"$PG\",\"config\":\"$VDIR/RUN_CONFIG.json\",\"started_utc\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > $FA/logs/PGID_c3m_$SEED.json
+echo "  engine PGID=$PG (recorded in $FA/logs/PGID_c3m_$SEED.json)"
+# ★ The detection set included "Traceback" but NOTHING ACTED ON IT: the loop stopped waiting on a crash and the
+# pipe then proceeded to save a series anyway. Detection that binds no action is decoration -- six FX runs were
+# reported complete on 2026-09-25 while every one had died writing its receipt. Anchored at line start too, so a
+# traceback frame quoting the verdict source line cannot be mistaken for the verdict.
+LOG=$FA/logs/engine_c3m_$SEED.log
+until grep -qE "^BT_LAUNCH VERDICT=|^Traceback|No space left" $LOG 2>/dev/null; do sleep 20; done
+grep -E "^BT_LAUNCH VERDICT=|^Traceback|No space left" $LOG | head -1
+if grep -qE "^Traceback|No space left" $LOG; then echo "  ENGINE FAILED - not saving a series"; exit 9; fi
+grep -qE "^BT_LAUNCH VERDICT=PASS" $LOG || { echo "  NO PASS VERDICT - refusing to proceed"; exit 9; }
 CELL=$FA/runs/${TAG}_scaled_rule_raw_UAFE
 SER=$FA/receipts/SER_C3M_s${SEED}.npz
 env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 /workspace/venv/bin/python -B $W/devices/fa_ladsave.py PATH,HOME,LC_CTYPE $CELL $SER 2>&1 | tail -1

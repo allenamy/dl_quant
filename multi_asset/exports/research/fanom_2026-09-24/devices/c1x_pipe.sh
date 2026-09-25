@@ -67,8 +67,15 @@ env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B $W/devices/fa
 setsid env -i PATH=/usr/bin:/bin HOME=/root nice -n 12 /workspace/venv/bin/python -B bt_launch.py PATH,HOME,LC_CTYPE \
   $VDIR/RUN_CONFIG.json --resume c1x_$SEED > $FA/logs/engine_c1x_$SEED.log 2>&1 < /dev/null &
 sleep 5; echo "  engine PGID=$(ps -o pgid= -p $! | tr -d ' ')"
-until grep -qE "BT_LAUNCH VERDICT|Traceback|No space left" $FA/logs/engine_c1x_$SEED.log 2>/dev/null; do sleep 20; done
-grep -E "BT_LAUNCH VERDICT|Traceback|No space left" $FA/logs/engine_c1x_$SEED.log | head -1
+# ★ The detection set included "Traceback" but NOTHING ACTED ON IT: the loop stopped waiting on a crash and the
+# pipe then proceeded to save a series anyway. Detection that binds no action is decoration -- six FX runs were
+# reported complete on 2026-09-25 while every one had died writing its receipt. Anchored at line start too, so a
+# traceback frame quoting the verdict source line cannot be mistaken for the verdict.
+LOG=$FA/logs/engine_c1x_$SEED.log
+until grep -qE "^BT_LAUNCH VERDICT=|^Traceback|No space left" $LOG 2>/dev/null; do sleep 20; done
+grep -E "^BT_LAUNCH VERDICT=|^Traceback|No space left" $LOG | head -1
+if grep -qE "^Traceback|No space left" $LOG; then echo "  ENGINE FAILED - not saving a series"; exit 9; fi
+grep -qE "^BT_LAUNCH VERDICT=PASS" $LOG || { echo "  NO PASS VERDICT - refusing to proceed"; exit 9; }
 CELL=$FA/runs/${TAG}_scaled_rule_raw_UAFE
 SER=$FA/receipts/SER_C1X_s${SEED}.npz
 env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 /workspace/venv/bin/python -B $W/devices/fa_ladsave.py PATH,HOME,LC_CTYPE $CELL $SER 2>&1 | tail -1
