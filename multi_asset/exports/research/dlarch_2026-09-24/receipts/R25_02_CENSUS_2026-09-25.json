@@ -1,0 +1,290 @@
+{
+ "device": "dlarch_r25_02_census.py",
+ "self_sha256": "7d5af1a7e8b05d5693562459949a5f5b6e22228a704203a3bd9e93d2fcd348a4",
+ "utc": "2026-09-25T15:25:38Z",
+ "finding": "R25-02",
+ "review": "7cbe907ba",
+ "L1_training": {
+  "completed_folds_per_seed": {
+   "3": 23,
+   "5": 23,
+   "7": 23,
+   "11": 23,
+   "23": 23,
+   "42": 23,
+   "101": 23,
+   "2027": 23
+  },
+  "completed_folds_total": 184,
+  "expected_total": 184,
+  "pinned_trainer_sha256": "4b74f2cedca1cfe4e364c743ce0e16f31eedcee6e31b0434b3829fdfbee1eb2c",
+  "guard_verified_in": "/workspace/dlarch_2026-09-24/T3/../dlarch_train_f10.py",
+  "guard_present": true,
+  "guard_is_a_refusal_not_a_fill": true,
+  "hits": 0,
+  "why_this_is_a_direct_zero": "the guard RAISES rather than zero-filling, so a completed fold is a fold where the condition never held; 184/184 completed => zero occurrences, not an upper bound"
+ },
+ "L2_book_layer": {
+  "engine_files_reading_the_label_file": [],
+  "engine_reads_labels": false,
+  "unknown_excluded_per_segment": {
+   "2023H2": {
+    "path_mean": 0.0,
+    "p2.5": 0.0,
+    "p97.5": 0.0,
+    "n_eff": 32
+   },
+   "2024": {
+    "path_mean": 0.0,
+    "p2.5": 0.0,
+    "p97.5": 0.0,
+    "n_eff": 32
+   },
+   "2025": {
+    "path_mean": 0.0,
+    "p2.5": 0.0,
+    "p97.5": 0.0,
+    "n_eff": 32
+   },
+   "pre2026": {
+    "path_mean": 0.0,
+    "p2.5": 0.0,
+    "p97.5": 0.0,
+    "n_eff": 32
+   },
+   "2026": {
+    "path_mean": 0.0,
+    "p2.5": 0.0,
+    "p97.5": 0.0,
+    "n_eff": 32
+   },
+   "2026_frozen_truncated": {
+    "path_mean": 0.0,
+    "p2.5": 0.0,
+    "p97.5": 0.0,
+    "n_eff": 32
+   },
+   "full_window": {
+    "path_mean": 0.0,
+    "p2.5": 0.0,
+    "p97.5": 0.0,
+    "n_eff": 32
+   }
+  },
+  "all_unknown_excluded_zero": true,
+  "hits": 0,
+  "why_out_of_reach": "dbar comes from the engine's own price path; the engine never opens the label file, and its independent UNKNOWN channel reads exactly 0.0 in every segment. A defect in how labels are combined cannot move a number computed from neither."
+ },
+ "L3_leg_readout": {
+  "population_anchors": 8142,
+  "legal_cells": 2498407,
+  "upper_bound_cells": 79,
+  "upper_bound_anchors": 19,
+  "cells_in_2026": 72,
+  "fraction_of_legal_cells": 3.162e-05,
+  "cells_by_day": {
+   "2025-05-21": 4,
+   "2025-05-22": 3,
+   "2026-07-01": 6,
+   "2026-08-13": 6
+  },
+  "detail": [
+   {
+    "anchor_utc": "2025-05-21T08:00:00Z",
+    "cells": 1,
+    "names": [
+     "EOSUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2025-05-21T12:00:00Z",
+    "cells": 1,
+    "names": [
+     "EOSUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2025-05-21T16:00:00Z",
+    "cells": 1,
+    "names": [
+     "EOSUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2025-05-21T20:00:00Z",
+    "cells": 1,
+    "names": [
+     "EOSUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2025-05-22T00:00:00Z",
+    "cells": 1,
+    "names": [
+     "EOSUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2025-05-22T04:00:00Z",
+    "cells": 1,
+    "names": [
+     "EOSUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2025-05-22T08:00:00Z",
+    "cells": 1,
+    "names": [
+     "EOSUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2026-07-01T00:00:00Z",
+    "cells": 1,
+    "names": [
+     "AERGOUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2026-07-01T04:00:00Z",
+    "cells": 1,
+    "names": [
+     "AERGOUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2026-07-01T08:00:00Z",
+    "cells": 1,
+    "names": [
+     "AERGOUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2026-07-01T12:00:00Z",
+    "cells": 1,
+    "names": [
+     "AERGOUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2026-07-01T16:00:00Z",
+    "cells": 1,
+    "names": [
+     "AERGOUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2026-07-01T20:00:00Z",
+    "cells": 1,
+    "names": [
+     "AERGOUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2026-08-13T00:00:00Z",
+    "cells": 11,
+    "names": [
+     "ALCHUSDT",
+     "ARXUSDT",
+     "BTWUSDT",
+     "CAPUSDT",
+     "OUSDT",
+     "REDUSDT",
+     "REUSDT",
+     "RPLUSDT",
+     "SLXUSDT",
+     "SOMIUSDT",
+     "ZESTUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2026-08-13T04:00:00Z",
+    "cells": 11,
+    "names": [
+     "ALCHUSDT",
+     "ARXUSDT",
+     "BTWUSDT",
+     "CAPUSDT",
+     "OUSDT",
+     "REDUSDT",
+     "REUSDT",
+     "RPLUSDT",
+     "SLXUSDT",
+     "SOMIUSDT",
+     "ZESTUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2026-08-13T08:00:00Z",
+    "cells": 11,
+    "names": [
+     "ALCHUSDT",
+     "ARXUSDT",
+     "BTWUSDT",
+     "CAPUSDT",
+     "OUSDT",
+     "REDUSDT",
+     "REUSDT",
+     "RPLUSDT",
+     "SLXUSDT",
+     "SOMIUSDT",
+     "ZESTUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2026-08-13T12:00:00Z",
+    "cells": 11,
+    "names": [
+     "ALCHUSDT",
+     "ARXUSDT",
+     "BTWUSDT",
+     "CAPUSDT",
+     "OUSDT",
+     "REDUSDT",
+     "REUSDT",
+     "RPLUSDT",
+     "SLXUSDT",
+     "SOMIUSDT",
+     "ZESTUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2026-08-13T16:00:00Z",
+    "cells": 11,
+    "names": [
+     "ALCHUSDT",
+     "ARXUSDT",
+     "BTWUSDT",
+     "CAPUSDT",
+     "OUSDT",
+     "REDUSDT",
+     "REUSDT",
+     "RPLUSDT",
+     "SLXUSDT",
+     "SOMIUSDT",
+     "ZESTUSDT"
+    ]
+   },
+   {
+    "anchor_utc": "2026-08-13T20:00:00Z",
+    "cells": 11,
+    "names": [
+     "ALCHUSDT",
+     "ARXUSDT",
+     "BTWUSDT",
+     "CAPUSDT",
+     "OUSDT",
+     "REDUSDT",
+     "REUSDT",
+     "RPLUSDT",
+     "SLXUSDT",
+     "SOMIUSDT",
+     "ZESTUSDT"
+    ]
+   }
+  ],
+  "bound_is_an_UPPER_bound_because": "it counts cells the book MAY hold (legal). A true hit also needs the book to be NON-ZERO there, which requires one evolve pass; the fixed device reports that as a by-product and these candidate cells are its positive control -- if the fixed device reports 0 UNKNOWN cells, the detector is not wired up, rather than there being nothing to find."
+ },
+ "verdict": "no retrain (L1 direct zero, proven by a refusal guard); no book-layer re-judge (L2 structurally out of reach); leg-layer readout needs the UNKNOWN fix and a same-population re-judge (L3 upper bound is NOT zero and is concentrated in 2026)",
+ "size_caveat": "0.0032% of legal cells, but 72/79 fall in the 2026 segment and 66 of those on a single day -- reported rather than dismissed, because a small share concentrated in the gate's central segment is not the same as a small effect"
+}

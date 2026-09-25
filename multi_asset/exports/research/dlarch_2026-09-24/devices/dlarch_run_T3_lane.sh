@@ -37,6 +37,21 @@ printf 'pgid=%s pid=%s lane=%s owner=dlarch arm=T3 started=%s seeds=%s\n' \
   "$MYPGID" "$$" "$LANE" "$(date -u +%FT%TZ)" "$SEEDS" > "$W/T3_lane_$LANE.pgid"
 
 [ -f "$DEV/dlarch_train_f10.py" ] || { say "REFUSING: no trainer in $DEV"; exit 9; }
+
+# PIN THE TRAINER FOR THE WHOLE CAMPAIGN. Lane B starts ~1 h after lane A, and if the trainer file has
+# changed in between, the three T3 seeds would be trained by TWO code versions -- the same void-fold class
+# that voided 8 T0 folds this morning, except it would be discovered only at the merge. A campaign is a
+# unit: every seed in it must carry one trainer sha. R25-08 asks for a normalised parameter hash inside
+# the receipts; until that ships (it cannot ship mid-campaign, for exactly this reason) this pin is the
+# guard that makes an accidental sync loud instead of silent.
+EXPECT_TRAINER=cf66cecb1bfd4d0a16f06967
+ACTUAL_TRAINER=$(sha256sum "$DEV/dlarch_train_f10.py" | cut -c1-24)
+if [ "$ACTUAL_TRAINER" != "$EXPECT_TRAINER" ]; then
+  say "REFUSING: trainer is $ACTUAL_TRAINER but this T3 campaign is pinned to $EXPECT_TRAINER."
+  say "Starting now would train different seeds of one family with different code. If the change is"
+  say "intended, finish or discard the current campaign first, then update EXPECT_TRAINER deliberately."
+  exit 9
+fi
 say "=== T3 LANE START seeds: $SEEDS (pgid $MYPGID, trainer $(sha256sum "$DEV/dlarch_train_f10.py" | cut -c1-16)) ==="
 
 trainers(){ ps -eo pid,pgid,args | awk '$3 ~ /\/python$/ && /dlarch_train_f10\.py/' | grep -c . ; }
