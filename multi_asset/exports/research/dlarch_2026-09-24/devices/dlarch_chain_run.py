@@ -39,7 +39,12 @@ P314 = PV                                      # same interpreter as the NEW_S p
 # (last anchor 2026-09-18T20Z, 9,252 anchors), not the short 08-31 axis. BASE_CFG is used ONLY by
 # the engine step (L168/L181); the parity gate returns before it, so parity is NOT affected.
 BASE_CFG = f"{NS}/configs/RUN_CONFIG_NEWS2_s42X_2026-09-23.json"
-BASE_TAG = "NEWS2_s42|scaled|rule|raw|UAFE"
+# BASE_TAG is DERIVED from BASE_CFG, never written next to it: two constants that must agree will
+# drift, and they did -- switching BASE_CFG to the X config left the hardcoded BASE_TAG naming the
+# short-axis run, and `len(base_run) == 1` caught it with "found 0" instead of silently taking a
+# wrong run. The base cell is the one tagged "...|scaled|rule|raw|UAFE" with no cost-cell suffix:
+# true for the short config (5 runs, of which 1 matches) and the X config (1 run).
+BASE_CELL_SUFFIX = "|scaled|rule|raw|UAFE"
 SHARE = {
     "work/NEWS_FEATURES.npz": f"{NS}/work/NEWS_FEATURES.npz",
     "work/legs.npz": f"{NS}/work/legs.npz",
@@ -181,8 +186,11 @@ def main():
 
     # ---- 4. RUN_CONFIG: same settings, only targets / arm / pod_root changed ----
     cfg = json.load(open(BASE_CFG))
-    base_run = [r for r in cfg["runs"] if r["tag"] == BASE_TAG]
-    assert len(base_run) == 1, f"expected exactly one {BASE_TAG} run, found {len(base_run)}"
+    base_run = [r for r in cfg["runs"] if r["tag"].endswith(BASE_CELL_SUFFIX)]
+    assert len(base_run) == 1, (
+        f"expected exactly one base cell (tag ending {BASE_CELL_SUFFIX}) in {BASE_CFG}, "
+        f"found {[r['tag'] for r in base_run]}")
+    BASE_TAG = base_run[0]["tag"]
     r0 = json.loads(json.dumps(base_run[0]))
     arm = "DLARCH_REF_NC_s42X" if reference else f"DLARCH_T0_s{seed}"
     r0["arm"] = arm; r0["tag"] = f"{arm}|scaled|rule|raw|UAFE"; r0["targets"]["arm"] = arm
@@ -197,6 +205,7 @@ def main():
     cpath = f"{root}/configs/RUN_CONFIG_{arm}.json"
     sio.write_json(cpath, cfg)             # the engine reads this; read back before it is used
     rec["steps"]["run_config"] = {"path": cpath, "sha256": sha(cpath), "arm": arm, "tag": r0["tag"],
+                                  "base_tag_used": BASE_TAG,
                                   "pod_root": root, "base_config": BASE_CFG, "base_config_sha256": sha(BASE_CFG)}
     log("config done", arm)
 
