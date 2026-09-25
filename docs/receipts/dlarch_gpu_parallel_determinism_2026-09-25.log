@@ -1,0 +1,48 @@
+=== run A start 08:55:42Z  concurrent_trainers=0 ===
+3074118, 2636 MiB
+run A rc=0
+69c60c4b327c1a3b9a27097caf4c9344720123443556462fdaba9e9c1522fe5b  /workspace/dlarch_2026-09-24/determinism_probe/scores_A.npz
+=== run B start 08:56:37Z  concurrent_trainers=0 ===
+3074118, 2636 MiB
+run B rc=0
+69c60c4b327c1a3b9a27097caf4c9344720123443556462fdaba9e9c1522fe5b  /workspace/dlarch_2026-09-24/determinism_probe/scores_B.npz
+PROBE_DONE
+09:00:43Z backed up /workspace/dlarch_2026-09-24/T3/T0/f10_s42/202506 -> /workspace/dlarch_2026-09-24/determinism_probe/ref_parent/202506
+09:00:43Z concurrent trainers BEFORE (script-name pattern, not the buggy one): 3
+3074118, 2672 MiB
+09:00:43Z retraining 202506 at current load
+09:03:33Z retrain rc=0
+09:03:33Z concurrent trainers AFTER: 2
+09:03:33Z new scores.npz sha : 2d1d30ffc502f225a8c9a5c557fa65123d0b1860e78a6ae065294a71058499a8
+09:03:33Z ref scores.npz sha : 2d1d30ffc502f225a8c9a5c557fa65123d0b1860e78a6ae065294a71058499a8
+09:03:33Z scores MATCH       : YES
+09:03:33Z OOF sha now        : de3f12028cd9c7c4238dab91d3172717566fa49996ce58a39feb54db91953dc3
+09:03:33Z OOF UNCHANGED      : YES
+09:03:33Z CROSSLEVEL_DONE
+
+# ============ 测量与更正(dlarch, 2026-09-25 09:0xZ) ============
+# GPU 利用率(59 样本 / 60 秒, 单进程训练中):
+#   mean 22.1%  median 24%  min 0%  max 26%   >=50% 的样本 0%   0% 的样本 7%
+#   显存 2328-2646 MiB / 32768 MiB;  训练进程 host RSS 1.93 GiB;  cgroup avail 36.09 GiB
+#   => 利用率天花板 26% 且方差极小 = **启动受限(launch-bound)**, 不是算力受限。
+#
+# 确定性三项:
+#   (1) run-to-run @ 2 并发:  scores_A.npz == scores_B.npz  sha 69c60c4b327c1a3b...  (种子 99, 非家族)
+#   (2) 跨负载(solo -> 2 并发): 重训 (T0,s42,202506) 得 2d1d30ffc502... == 独跑时的存档  MATCH=YES
+#   (3) 已交付 OOF 未变: de3f12028cd9c7c4... UNCHANGED=YES
+#
+# ★ 我自己两处测量缺陷, 如实记录:
+#   a) 探针里 `pgrep -f 'dlarch_train_f10.py --arm'` 数到 0 —— 驱动器把 --env-whitelist 放在 --arm 前面,
+#      所以模式不匹配。日志里 "concurrent_trainers=0" 是错的, 实际是 2(nvidia-smi 佐证)。
+#   b) `pgrep -fc` 在 ssh 命令内部会**自匹配**(我自己那条 ssh 的 shell 命令行含该字符串), 报 3/4 而真值 2。
+#      这是我第三次踩 pgrep -f 自匹配。
+#   权威仪器: GPU 进程数用 `nvidia-smi --query-compute-apps`; 训练进程数用 `ps -eo args` 过滤到
+#   解释器调用行, 不用 pgrep -f。
+#
+# ★ 判据选择的一个关键事实: scores.npz 的**文件 sha 跨运行稳定**(2d1d30ffc502 在两次独立 solo 运行间相同),
+#   而 model.pt 的文件 sha **跨运行不同**(6dc2fe76 vs 2fa9e06c)而其**张量逐位相同**(G1b 已证)——
+#   torch.save 写的是 zip。所以"必须逐位相同"只能判在 scores.npz 上; 若判在 model.pt 文件 sha 上会假红。
+#
+# ★ 具名限定: 训练器只设 torch.manual_seed / np.random.seed, **没有** cudnn.deterministic、
+#   **没有** use_deterministic_algorithms、没有 TF32 控制(参照配方 news2_train_f10.py 同样如此)。
+#   所以逐位可复现是**观测到的经验性质, 不是配置保证的**; 驱动/库升级后必须重跑本探针。
