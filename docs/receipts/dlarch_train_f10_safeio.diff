@@ -1,0 +1,70 @@
+--- /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/train_f10.before.py	2026-09-25 13:01:46
++++ dlarch_train_f10.py	2026-09-25 13:01:46
+@@ -56,6 +56,8 @@
+ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+ from f10_observability import span_admissible, measured_dot          # noqa: E402
+ from dlarch_chain_torch import chain_torch                           # noqa: E402
++import dlarch_safe_io as sio                                         # noqa: E402
++sio.install_guards()   # E-0925-A: every artifact sha must come from a verified write, not a re-read
+ 
+ 
+ class Net(nn.Module):                                                # verbatim from news2_train_f10.py
+@@ -106,12 +108,12 @@
+         assert np.array_equal(z['rows'], rows) and np.array_equal(z['E_ts'], a[rows]) and np.array_equal(z['symbols'], symbols)
+         assert z['P'].shape == (len(rows), len(symbols)); pred[rows] = z['P']; found.append(tag)
+         fold_artifacts.update({str(q): sha(q) for q in (rp, p / 'scores.npz', p / 'model.pt')})
+-    tmp = out / 'F10_OOF.tmp.npz'; np.savez_compressed(tmp, P=pred, E_ts=a, symbols=symbols); tmp.replace(out / 'F10_OOF.npz')
++    oof_sha = sio.save_npz(out / 'F10_OOF.npz', P=pred, E_ts=a, symbols=symbols)
+     rr = {'status': 'ALL_DECLARED_FOLDS_SCORED_NOT_COMBO_CERTIFIED' if len(found) == len(fold_specs(a)) else 'PARTIAL_FOLDS',
+           'arm': arm, 'seed': seed, 'fold_artifacts': fold_artifacts, 'folds': found,
+           'expected_folds': [s[0] for s in fold_specs(a)], 'inputs': inputs, 'sources': sources,
+-          'pred_sha256': sha(out / 'F10_OOF.npz')}
+-    tmp = out / 'TRAIN_RECEIPT.tmp.json'; tmp.write_text(json.dumps(rr, indent=2)); tmp.replace(out / 'TRAIN_RECEIPT.json')
++          'pred_sha256': oof_sha}
++    sio.write_json(out / 'TRAIN_RECEIPT.json', rr)
+ 
+ 
+ def main():
+@@ -262,7 +264,7 @@
+             else: rejected[why['reason']] += 1
+         admission = {'fold': tag, 'accepted_windows': len(windows), 'rejected': dict(rejected), 'train_anchors': len(tr1),
+                      'max_train_label_end': int(a[tr1[-1]] + 14400), 'test_start': int(a[first]), 'cutoff': cutoff}
+-        (target_dir / 'ADMISSION.json').write_text(json.dumps(admission, indent=2)); log('F10 admission', arm, args.seed, admission)
++        sio.write_json(target_dir / 'ADMISSION.json', admission); log('F10 admission', arm, args.seed, admission)
+         if len(windows) < 5: raise ValueError('fewer than 5 observable training windows')
+         rowsel = np.concatenate([np.arange(st[i], st[i + 1]) for i in tr1[::7]])[::3]
+         xs = XT[torch.as_tensor(rowsel, device=dev)]; mu = xs.mean(0); sd = xs.std(0) + 1e-6; del xs
+@@ -294,7 +296,7 @@
+                 g4['band_open_cells'] = bo; g4['book_cells'] = bb; g4['basis'] = 'measured inside the differentiable chain'
+             curve.append(rr); grad_census.append(g4)
+             log('F10', arm, tag, args.seed, rr, 'g4_band_open', g4['band_open_frac_of_book'])
+-            (target_dir / 'PROGRESS.json').write_text(json.dumps({'curve': curve, 'grad_census': grad_census}, indent=2, allow_nan=False))
++            sio.write_json(target_dir / 'PROGRESS.json', {'curve': curve, 'grad_census': grad_census})
+         a_final = float(model.a.detach())
+         if args.arm == 'T3':
+             assert sum(g['a_grad_nonzero_steps'] for g in grad_census) == 0, 'G6b: a received a gradient in T3'
+@@ -304,8 +306,8 @@
+             for k, i in enumerate(te):
+                 if st[i + 1] - st[i] < 50: continue
+                 xx = torch.clamp((XT[st[i]:st[i + 1]] - mu) / sd, -5, 5); pred[k, ps[st[i]:st[i + 1]]] = model.f(xx).squeeze(-1).cpu().numpy()
+-        torch.save({'state_dict': model.state_dict(), 'mu': mu, 'sd': sd, 'input_dim': 171, 'fixed_epoch_index': 7}, target_dir / 'model.pt')
+-        np.savez_compressed(target_dir / 'scores.npz', P=pred, rows=te, E_ts=a[te], symbols=t['symbols']); allpred[te] = pred
++        model_sha = sio.save_torch(target_dir / 'model.pt', {'state_dict': model.state_dict(), 'mu': mu, 'sd': sd, 'input_dim': 171, 'fixed_epoch_index': 7})
++        score_sha = sio.save_npz(target_dir / 'scores.npz', P=pred, rows=te, E_ts=a[te], symbols=t['symbols']); allpred[te] = pred
+         rr = {'status': 'F10_OOF_SCORES_NOT_COMBO_PNL', 'arm': arm, 'clamp_mode': args.clamp_mode if args.arm == 'T3' else None,
+               'seed': args.seed, 'rng_rule': 'constant seed per fold', 'fold': tag, 'inputs': inputs, 'sources': sources,
+               'admission': admission, 'curve': curve, 'grad_census': grad_census, 'fixed_epoch_index': 7,
+@@ -313,11 +315,11 @@
+               'scored_pairs': int(np.isfinite(pred).sum()), 'score_label_missing_pairs': int((np.isfinite(pred) & ~np.isfinite(y[te])).sum()),
+               'param_count': nparam, 'a_init': a_init, 'a_final': a_final, 'seat_census': seat_census,
+               'anchors_skipped_in_spans': skipped_total, 't3_extra': {k: extra[k] for k in ('anchors_outside_universe', 'anchors_sel_below_min', 's_temp')} if args.arm == 'T3' else None,
+-              'score_sha256': sha(target_dir / 'scores.npz'), 'model_sha256': sha(target_dir / 'model.pt'),
++              'score_sha256': score_sha, 'model_sha256': model_sha,
+               'elapsed_seconds': time.monotonic() - started, 'gpu': torch.cuda.get_device_name(0)}
+         for p, hsh in inputs.items(): assert sha(p) == hsh
+         for p, hsh in sources.items(): assert sha(p) == hsh
+-        result.write_text(json.dumps(rr, indent=2, allow_nan=False)); reports.append(rr); log('F10_FOLD_DONE', arm, tag, args.seed)
++        sio.write_json(result, rr); reports.append(rr); log('F10_FOLD_DONE', arm, tag, args.seed)
+         merge_folds(out, a, t['symbols'], inputs, sources, args.seed, arm); del model, opt, sched; torch.cuda.empty_cache()
+     merge_folds(out, a, t['symbols'], inputs, sources, args.seed, arm)
+     print(f"DLARCH_TRAIN_DONE arm={arm} seed={args.seed} params={nparam} out={out} "
