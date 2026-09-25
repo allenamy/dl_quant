@@ -131,6 +131,12 @@ def main():
     ap.add_argument('--no-mask', action='store_true',
                     help='G1 IDENTITY CONTROL ONLY: leave WL unmasked. With --arm T0 this must reproduce the '
                          'existing news2 F10 run BIT-FOR-BIT, proving T0 changed exactly one thing. Never a result arm.')
+    ap.add_argument('--out-root', default=None,
+                    help='Write artifacts under this root instead of OUT_ROOT. For PROBES ONLY: a probe that '
+                         'has to retrain an already-produced fold must not delete and rebuild the delivered '
+                         'one (delivered trees are read-only, and "restores correctly on failure" is not the '
+                         'same as "cannot damage"). Absent => OUT_ROOT, so every real run is unaffected and '
+                         'no existing command line changes meaning.')
     args = ap.parse_args()
     SELF_SET = {'OPENBLAS_NUM_THREADS', 'OMP_NUM_THREADS'}      # set by this module at import
     extra = sorted(set(os.environ) - set(args.env_whitelist.split(',')) - SELF_SET)
@@ -142,7 +148,8 @@ def main():
         assert args.arm == 'T0', '--no-mask is the G1 identity control for T0 only'
         arm = 'G1_T0_nomask'
     r = W / 'work'
-    out = OUT_ROOT / arm / f'f10_s{args.seed}'; out.mkdir(parents=True, exist_ok=True)
+    root = pathlib.Path(args.out_root) if args.out_root else OUT_ROOT
+    out = root / arm / f'f10_s{args.seed}'; out.mkdir(parents=True, exist_ok=True)
     files = [r / 'NEWS_FEATURES.npz', NEWT, r / 'legs.npz', W / 'receipts/P2B_FEATURES.json', W / 'receipts/P3_LEGS.json']
     inputs = {str(p): sha(p) for p in files}
     sources = {str(p): sha(p) for p in (pathlib.Path(os.path.abspath(__file__)), REF,
