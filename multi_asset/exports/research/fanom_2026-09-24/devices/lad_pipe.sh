@@ -134,4 +134,15 @@ setsid env -i PATH=/usr/bin:/bin HOME=/root nice -n 12 /workspace/venv/bin/pytho
 sleep 5; echo "  engine PGID=$(ps -o pgid= -p $! | tr -d ' ')"
 until grep -qE "BT_LAUNCH VERDICT|Traceback|No space left" $FA/logs/engine_lad_$3_$4.log 2>/dev/null; do sleep 20; done
 grep -E "BT_LAUNCH VERDICT|Traceback|No space left" $FA/logs/engine_lad_$3_$4.log | head -1
-echo "  cell: $FA/runs/${RTAG}_scaled_rule_raw_UAFE"
+CELL=$FA/runs/${RTAG}_scaled_rule_raw_UAFE
+SER=$FA/receipts/SER_LAD_$3_s$4.npz
+# save the complete per-path series, THEN free the cell. Cells are ~0.44 GiB each; without this the queue starves
+# itself on the run gate's own /dev/shm floor (observed after the first two baselines).
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 15 /workspace/venv/bin/python -B $W/devices/fa_ladsave.py PATH,HOME,LC_CTYPE \
+  $CELL $SER 2>&1 | tail -1
+if [ -s "$SER" ] && /workspace/venv/bin/python -c "import numpy,sys;numpy.load(sys.argv[1]);print('  series loadable')" "$SER"; then
+  rm -rf "$CELL"; echo "  freed $CELL"
+else
+  echo "  SERIES MISSING - KEEPING CELL"; exit 8
+fi
+df -BM /dev/shm | tail -1
