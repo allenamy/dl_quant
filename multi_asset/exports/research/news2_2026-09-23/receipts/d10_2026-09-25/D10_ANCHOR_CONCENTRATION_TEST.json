@@ -1,0 +1,75 @@
+{
+ "device": "d10_anchor_concentration_test.py",
+ "self_sha256": "f29561e8d032dca18838e86f4f4a106695811aa574f9c94118c65241638e6e37",
+ "months": [
+  "2026-01",
+  "2026-02",
+  "2026-03",
+  "2026-04",
+  "2026-05",
+  "2026-08"
+ ],
+ "anchors_with_a_settlement": 1092,
+ "names_settling_at_anchor": {
+  "median": 541,
+  "p10": 412,
+  "p90": 583,
+  "min": 402,
+  "max": 679
+ },
+ "top_anchors": [
+  {
+   "anchor": "2026-08-01T00:00Z",
+   "names": 679,
+   "of_those_switched": 0
+  },
+  {
+   "anchor": "2026-08-01T08:00Z",
+   "names": 679,
+   "of_those_switched": 0
+  },
+  {
+   "anchor": "2026-08-01T16:00Z",
+   "names": 679,
+   "of_those_switched": 0
+  },
+  {
+   "anchor": "2026-08-02T00:00Z",
+   "names": 679,
+   "of_those_switched": 0
+  },
+  {
+   "anchor": "2026-08-02T08:00Z",
+   "names": 679,
+   "of_those_switched": 0
+  },
+  {
+   "anchor": "2026-08-02T16:00Z",
+   "names": 679,
+   "of_those_switched": 0
+  },
+  {
+   "anchor": "2026-08-03T00:00Z",
+   "names": 679,
+   "of_those_switched": 0
+  },
+  {
+   "anchor": "2026-08-03T08:00Z",
+   "names": 679,
+   "of_those_switched": 1
+  },
+  {
+   "anchor": "2026-08-03T16:00Z",
+   "names": 679,
+   "of_those_switched": 0
+  },
+  {
+   "anchor": "2026-08-04T00:00Z",
+   "names": 679,
+   "of_those_switched": 0
+  }
+ ],
+ "verdict": "MASS_SETTLEMENT_DOES_NOT_EXPLAIN_CONCENTRATION",
+ "explanation_discriminates": false,
+ "reading": "Names settling exactly at a 4h anchor: median 541, p90 583, max 679 over 1092 anchors. Mass simultaneous settlement is therefore the NORM, not a property of particular anchors, so it CANNOT explain why the wrong cells concentrate at one anchor. My earlier sentence -- that the 2026-06-24T12:00Z cluster 'looks like a mass miss at an anchor where many settlements land together' -- is WITHDRAWN: it named something universal as the cause of something specific. The concentration is currently UNEXPLAINED. 2026-06 was not pulled (lead closed the P2 line), so that particular anchor cannot be measured here; the alternation visible in the table (00/08/16 carrying ~676 names and 04/12/20 ~425) is just the 8h-interval names settling only on the 8h grid."
+}
