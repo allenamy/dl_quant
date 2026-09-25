@@ -1,0 +1,166 @@
+{
+ "device": "d10_legs_rn8_vs_archive.py",
+ "self_sha256": "5d697624d811a3e2573a7e8c473f43181308ea433bfedf32e4b652ccb39cd696",
+ "gate_sha256": "793c5eb2e85e84232df8cf5f25b62207400e390b1552d9196f1b4f76adcdc956",
+ "argv": [
+  "--legs",
+  "/dev/shm/news2_2026-09-23/work/legs.npz",
+  "--legs-sha",
+  "9ee5886f",
+  "--zips-root",
+  "/dev/shm/d10_2026-09-25/zips",
+  "--months",
+  "2026-08",
+  "--positive-control",
+  "--out",
+  "/dev/shm/d10_2026-09-25/receipts/D10_LEGS_RN8_POSITIVE_CONTROL.json"
+ ],
+ "what": "legs.npz RN8 vs the last archive settlement at or before each anchor (rate*8/iv)",
+ "legs": {
+  "path": "/dev/shm/news2_2026-09-23/work/legs.npz",
+  "sha256": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65",
+  "anchors": 10333,
+  "symbols": 829,
+  "ready_anchors": 9247,
+  "E_ts_range": [
+   "2022-01-01T00:00Z",
+   "2026-09-19T00:00Z"
+  ]
+ },
+ "cited": [
+  "nc_legs.py:74 RN8 = funding_asof(...)[3]",
+  "nc_contract.py:98 rn8 = rate*8/iv",
+  "nc_contract.py:95 FRESH_S=43200 gate",
+  "nc_contract.py:92 raises if the as-of row is after the anchor"
+ ],
+ "provenance_instrument_1": {
+  "source_sha_18387627": "/dev/shm/news2_2026-09-23/devices/nc_legs.py",
+  "features_3c886a2b": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "king_oof_a10b8725": "/dev/shm/news2_2026-09-23/work/king/KING_OOF.npz",
+  "fund_state_a12a8ed3": "/dev/shm/nc_2026-09-23/work/fund_state.npz",
+  "tree_shadow_loop_9403dedd": "/dev/shm/nc_2026-09-23/tree/shadow_loop_v3.py",
+  "method": "matched BY HASH over /dev/shm, not by directory name",
+  "note": "P3_LEGS.json is not modified by this device; its own file sha256 is 21cf687f, which nothing in the fanom receipts pins -- their legs_receipt_sha256 field is lr['sha256'], the receipt's CLAIM about legs.npz, not the receipt file's hash"
+ },
+ "months": {
+  "2026-08": {
+   "anchors_in_month": 186,
+   "shared_symbols": 679,
+   "cells": {
+    "legs_finite_but_no_spacing_available": 492,
+    "out_of_coverage_no_spacing": 439,
+    "compared_finite": 73890,
+    "DIFFER": 2,
+    "legs_nan_archive_fresh": 50807,
+    "bitwise_equal": 73886,
+    "asof_row_where_iv_column_disagrees_with_spacing": 64,
+    "  of_those_spacing_is_standard": 20,
+    "  of_those_spacing_is_NONSTANDARD": 44,
+    "unresolved_nonstandard_spacing_legs_used_iv_column": 2,
+    "both_nan_agree": 666
+   },
+   "agreement_pct": 99.994587,
+   "mismatch_examples": [
+    {
+     "symbol": "0GUSDT",
+     "anchor": "2026-08-01T04:00Z",
+     "legs_rn8": 7.848000677768141e-05,
+     "expected_rn8_by_spacing": 7.84799995017238e-05,
+     "expected_rn8_by_iv_column": 7.84799995017238e-05,
+     "asof_event": "2026-08-01T04:00Z",
+     "age_s": 0,
+     "archive_rate": 3.924e-05,
+     "iv_gap_h": 4.0,
+     "iv_column_h": 4.0,
+     "abs_diff": 7.275957614183426e-12
+    },
+    {
+     "symbol": "0GUSDT",
+     "anchor": "2026-08-01T08:00Z",
+     "legs_rn8": 7.84799995017238e-05,
+     "expected_rn8_by_spacing": 9.999999747378752e-05,
+     "expected_rn8_by_iv_column": 9.999999747378752e-05,
+     "asof_event": "2026-08-01T08:00Z",
+     "age_s": 0,
+     "archive_rate": 5e-05,
+     "iv_gap_h": 4.0,
+     "iv_column_h": 4.0,
+     "abs_diff": 2.151999797206372e-05
+    },
+    {
+     "symbol": "BANKUSDT",
+     "anchor": "2026-08-05T08:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": 2.8360000214888714e-05,
+     "by_spacing": 3.781333361985162e-05,
+     "by_iv_column": 2.8360000214888714e-05,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-08-05T08:00Z"
+    },
+    {
+     "symbol": "ONGUSDT",
+     "anchor": "2026-08-25T08:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": 9.999999747378752e-05,
+     "by_spacing": 0.00013333333481568843,
+     "by_iv_column": 9.999999747378752e-05,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-08-25T08:00Z"
+    }
+   ],
+   "legs_nan_archive_fresh_note": "NOT a miss: RN8 is filled only at member columns and this device has no member mask, so this count is undecidable here"
+  }
+ },
+ "all_months": {
+  "legs_finite_but_no_spacing_available": 492,
+  "out_of_coverage_no_spacing": 439,
+  "compared_finite": 73890,
+  "DIFFER": 2,
+  "legs_nan_archive_fresh": 50807,
+  "bitwise_equal": 73886,
+  "asof_row_where_iv_column_disagrees_with_spacing": 64,
+  "  of_those_spacing_is_standard": 20,
+  "  of_those_spacing_is_NONSTANDARD": 44,
+  "unresolved_nonstandard_spacing_legs_used_iv_column": 2,
+  "both_nan_agree": 666
+ },
+ "undecidable_by_this_device": {
+  "legs_finite_but_no_spacing_available": 492,
+  "unresolved_nonstandard_spacing_legs_used_iv_column": 2,
+  "legs_nan_archive_fresh_no_member_mask": 50807,
+  "out_of_coverage_no_in_month_asof": 0,
+  "out_of_coverage_no_spacing": 439
+ },
+ "classification_closes": true,
+ "verdict": "POSITIVE_CONTROL_RUN_NOT_AN_AUDIT",
+ "positive_control": {
+  "perturbed": [
+   {
+    "kind": "1_ulp_float32",
+    "symbol": "0GUSDT",
+    "anchor": "2026-08-01T04:00Z",
+    "from": 7.84799995017238e-05,
+    "to": 7.848000677768141e-05,
+    "delta": 7.275957614183426e-12
+   },
+   {
+    "kind": "stale_previous_settlement",
+    "symbol": "0GUSDT",
+    "anchor": "2026-08-01T08:00Z",
+    "from": 9.999999747378752e-05,
+    "to": 7.84799995017238e-05,
+    "stale_event": "2026-08-01T04:00Z"
+   }
+  ],
+  "placed": 2
+ },
+ "positive_control_result": {
+  "differ_channel_saw_the_perturbations": true,
+  "verdict": "CONTROL_PASS",
+  "n_differ": 2,
+  "data_verdict_this_run_would_have_reported": "LEGS_RN8_DISAGREES",
+  "meaning": "with the control on, every red counter here is my own injected perturbation"
+ }
+}
