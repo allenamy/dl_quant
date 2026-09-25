@@ -76,6 +76,11 @@ else
     --legs-root $N --f10-root $N --seed $SEED --donor-root $F --swap $SWAP --allow-crossed \
     --out $VDIR > $FA/logs/lad_combo_${LABEL}_s${SEED}.log 2>&1
   tail -1 $FA/logs/lad_combo_${LABEL}_s${SEED}.log | cut -c1-160
+  # fa_ladder writes FA_COMBO_RECEIPT.json but NOT TARGET_RECEIPT.json, and the adapter spec pins `new_receipt`
+  # by sha -- the same gap that bit B4 (`new_receipt_policy_sha`) and that fa_b8trcpt.py exists to close.
+  # It also asserts the arm's combo actually differs from the source, which is the behavioural check for this arm.
+  env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B $W/devices/fa_b8trcpt.py PATH,HOME,LC_CTYPE \
+    $N/work/combo_s${SEED} $VDIR 2>&1 | tail -1
   cd $N/engine
   /workspace/venv/bin/python - "$N" "$SEED" "$VDIR" "$FA" "$LABEL" <<'PY'
 import json, hashlib, sys, copy
