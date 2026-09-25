@@ -97,12 +97,12 @@ def build_root(root, seed, f10_src):
     return root
 
 
-# Team engine rule (lead 2026-09-25, updated): at most TWO cells in parallel.
-# MAX_FOREIGN_ENGINES is the count of OTHER bt_launch process groups tolerated -- 1, so that mine plus
-# one other makes two. The memory floor is the config's own launch.min_available_gib (single source,
+# Team engine rule (lead 2026-09-25, updated twice): at most THREE cells in parallel.
+# MAX_FOREIGN_ENGINES is the count of OTHER bt_launch process groups tolerated -- 2, so that mine plus
+# two others makes three. (It was 1 for the two-cell rule; lead raised it.) The memory floor is the config's own launch.min_available_gib (single source,
 # read from the very file bt_launch is handed) PLUS a named margin, so the two numbers never drift:
 # the margin is explicit and the base is never copied.
-MAX_FOREIGN_ENGINES = 1
+MAX_FOREIGN_ENGINES = 2
 ENGINE_GATE_MARGIN_GIB = 2.0      # named margin ON TOP OF the config's min_available_gib
 SHM_FREE_MIN_GIB = 4.0            # /dev/shm is shared with every other agent's caches
 
