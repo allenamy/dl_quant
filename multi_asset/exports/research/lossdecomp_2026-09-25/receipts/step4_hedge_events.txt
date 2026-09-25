@@ -1,0 +1,12 @@
+anchors rows with m3 shadow records: [('09-24T08:00Z', 4708.2), ('09-24T12:00Z', 4693.2), ('09-24T16:00Z', 6346.1), ('09-24T20:00Z', 6113.4), ('09-25T00:00Z', 5805.2)]
+per shadow anchor (anchor, would-be hedge USDT, BTC return to next anchor %, hedge PnL USDT, hedge traded USDT):
+   ('09-24T08:24Z', 4708.2, -0.979, -46.11, 4708.2)
+   ('09-24T12:24Z', 4693.2, 1.228, 57.65, 15.0)
+   ('09-24T16:24Z', 6346.1, -0.293, -18.62, 1653.0)
+   ('09-24T20:24Z', 6113.4, None, None, 232.7)
+   ('09-25T00:24Z', 5805.2, None, None, 308.2)
+SHADOW-RECORDED hedge (v1 clipped input), 3 complete intervals: gross -7.08 USDT; fees if maker 2 bps 1.38 / taker 5 bps 3.46; net -8.47 / -10.54
+EXTRAPOLATION (model, not recorded): hedge = mean(shadow hedge/NAV) 0.0493 x NAV each interval over 09-16 12:45Z..09-24 20:46Z: gross 612.83 USDT, fees maker 1.49 / taker 3.72
+
+watchdog events in window: [('2026-09-24T12:48:39Z', ['§4-5b liquidation/position anomaly on 1 name(s) at the lates', '§4-5e position break [split_unauth]: 1629 USDT of raw deviat'])]
+per-name stops executed in the window (phase_C): [('2026-09-17T04:44:51Z', '"ONEUSDT"'), ('2026-09-18T08:44:41Z', '"NEARUSDT"'), ('2026-09-18T12:45:01Z', '"GUSDT"'), ('2026-09-18T16:45:34Z', '"GUSDT"'), ('2026-09-18T20:45:14Z', '"ARBUSDT"'), ('2026-09-19T08:44:30Z', '"STARUSDT"'), ('2026-09-19T12:45:30Z', '"ARUSDT", "STARUSDT", "ZAMAUSDT"'), ('2026-09-19T20:45:01Z', '"ENAUSDT"'), ('2026-09-21T12:46:03Z', '"PHAUSDT"'), ('2026-09-21T16:24:06Z', '"PHAUSDT"'), ('2026-09-22T20:44:06Z', '"MINAUSDT"'), ('2026-09-23T00:46:03Z', '"BCHUSDT"'), ('2026-09-23T04:45:22Z', '"METUSDT", "TIAUSDT"'), ('2026-09-23T08:45:42Z', '"HUSDT"')]

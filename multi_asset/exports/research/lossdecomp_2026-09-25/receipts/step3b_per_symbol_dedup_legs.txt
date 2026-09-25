@@ -1,0 +1,11 @@
+fills 36056 -> deduplicated by (symbol, trade_id) 18059 (duplicates 17997)
+MTM total -10299.80; legs: long 18965.75 short -29265.55 flat 0.00
+avg leg notional: long 115147 USDT, short 114161 USDT
+leg return over window (PnL / avg notional): long 16.47%  short -25.64% (short-leg P&L sign: negative = shorted names went up)
+position-identity mismatches after dedup (>5 USDT): 1 cells, 836 USDT abs sum (readback vs fills; residual includes per-name partial fills outside the readback window, settlement, rounding)
+TOP-10 losers after dedup: [('PHAUSDT', -1337.8), ('MINAUSDT', -1274.0), ('HUSDT', -802.2), ('METUSDT', -708.5), ('CFGUSDT', -679.1), ('1000BONKUSDT', -586.1), ('TUTUSDT', -529.7), ('GRTUSDT', -497.3), ('ZAMAUSDT', -487.9), ('INJUSDT', -487.5)]
+
+book MTM return per interval (n=50) on BTC: beta -0.010 R2 0.000 | on equal-weight symbols_live market: beta -0.116 R2 0.053
+cumulative over these intervals: BTC 11.09%  equal-weight alt market 24.10%
+long leg USDT per-NAV return on EW market: beta 0.938 R2 0.883
+short leg USDT per-NAV return on EW market: beta -1.054 R2 0.940
