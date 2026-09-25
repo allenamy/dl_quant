@@ -35,3 +35,10 @@ REV1 judgement (commit 30de22823 rule; 05:14:04Z):
   combo_live_daemon.sh, shadowloop → shadow_loop_v3.py, combosnap, comboparity); target_blend is read by nothing in dl_quant_live.
   My own defect exposed by this: test_m3_v2_ret5.py T1 censused only the files of the v2 TREE (the changed files), not the producer's full
   fea171 as installed — an instance-shaped census; rev1's wider scope caught what T1 could not.
+Lead ruling k1 (~05:16Z): not k2 (whitelisting after seeing data = changing the criterion). (1) at the v2 two-sided deploy, move
+fea171/sidecar_blend.py, fea171/combo_stage_t3c_candidate.py, fea171/sidecar_daemon.sh into an archive directory inside the producer tree
+(not deleted), after a reference census (imports / scripts / launchd plists / cron / launch commands in docs), receipts committed; (2) gate 3'
+REVISION 2 = census scope of T1 and rev1 becomes "the producer's full installed code set + the tree overlay" (with my self-reported defect:
+T1's scope was instance-shaped), re-judged in the deploy sandbox with the moved layout before deploying; (3) ret5-class note: sidecar_blend
+reads the clipped ch0; its last run was 2026-09-24 04:21Z (before the NC release), the daemon has been stopped since, so NC-era live trading
+is unaffected (also recorded in docs/ERROR_LEDGER_2026-08-20.md under E-0924-B).
