@@ -1,0 +1,39 @@
+=== seed 42 target a60abc364375b671 ===
+target prefix : a60abc364375b671
+  MATCH a60abc364375b671  name, dtype.str, str(shape), bytes  (no separators)
+  no    d97184c8f717b135  f'{k}|{dtype.str}|{shape}|' then bytes
+  no    c04725fd82290bf3  f'{k}|{dtype.str}|{list(shape)}|' then bytes
+  no    cf20c75c916a5b65  '|'.join([k,dtype.str,str(shape)]) then bytes
+  no    1dde62e4039c516e  k + dtype.str + 'x'.join(shape) + bytes
+  no    ece34fbb3b357c67  bytes only (schema ignored)
+  no    365b66dd1020469e  per-array sha then sha of concatenation
+
+keys present: ['E_ts', 'P', 'symbols']
+REPRODUCED_FROM_WRITTEN_DEFINITION = True
+
+=== seed 2027 target c419dcacd34a6792 ===
+target prefix : c419dcacd34a6792
+  MATCH c419dcacd34a6792  name, dtype.str, str(shape), bytes  (no separators)
+  no    063677bc62ae0e8b  f'{k}|{dtype.str}|{shape}|' then bytes
+  no    7256467e21fcf57e  f'{k}|{dtype.str}|{list(shape)}|' then bytes
+  no    5d2db27950dfb50d  '|'.join([k,dtype.str,str(shape)]) then bytes
+  no    351d0d20a03ba6d2  k + dtype.str + 'x'.join(shape) + bytes
+  no    eb12512d28f39e44  bytes only (schema ignored)
+  no    d3cbe9df171c033b  per-array sha then sha of concatenation
+
+keys present: ['E_ts', 'P', 'symbols']
+REPRODUCED_FROM_WRITTEN_DEFINITION = True
+
+=== seed 7 target 44e99cad2212cda7 ===
+target prefix : 44e99cad2212cda7
+  MATCH 44e99cad2212cda7  name, dtype.str, str(shape), bytes  (no separators)
+  no    c1f00957d8c2c3f1  f'{k}|{dtype.str}|{shape}|' then bytes
+  no    71b26bb85023b819  f'{k}|{dtype.str}|{list(shape)}|' then bytes
+  no    0e3287659d58c8a6  '|'.join([k,dtype.str,str(shape)]) then bytes
+  no    e1556ae64ff609c9  k + dtype.str + 'x'.join(shape) + bytes
+  no    a7468c09d8b848dd  bytes only (schema ignored)
+  no    847ab830949eeb94  per-array sha then sha of concatenation
+
+keys present: ['E_ts', 'P', 'symbols']
+REPRODUCED_FROM_WRITTEN_DEFINITION = True
+
