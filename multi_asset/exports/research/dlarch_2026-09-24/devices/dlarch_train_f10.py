@@ -24,7 +24,7 @@ the end of the fold must equal its initial value.
 READ-ONLY inputs under /dev/shm; ALL outputs under /workspace. No writes to /dev/shm, none to live trees.
 
 usage: env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B dlarch_train_f10.py \
-         PATH,HOME,LC_CTYPE --arm T0|T3 --seed N [--clamp-mode clamp|tanh] [--folds all|t1,t2,...]
+         --env-whitelist PATH,HOME,LC_CTYPE --arm T0|T3 --seed N [--clamp-mode clamp|tanh] [--folds ...]
 """
 import os
 os.environ['OPENBLAS_NUM_THREADS'] = '2'; os.environ['OMP_NUM_THREADS'] = '2'
@@ -121,10 +121,18 @@ def main():
     ap.add_argument('--clamp-mode', choices=['clamp', 'tanh'], default='clamp')
     ap.add_argument('--folds', default='all')
     ap.add_argument('--band-temp-div', type=float, default=10.0)      # s = band / this; prereg pins 10
+    ap.add_argument('--env-whitelist', default='PATH,HOME,LC_CTYPE',
+                    help='E-0826-D: enumerate the allowed environment. Anything outside it (beyond the two '
+                         'thread caps this module sets at import) aborts the run, so a stray variable cannot '
+                         'silently change a result. The reference news2_train_f10.py has no such check; this '
+                         'is an addition, and it is the ONLY behavioural difference outside the two arms.')
     ap.add_argument('--no-mask', action='store_true',
                     help='G1 IDENTITY CONTROL ONLY: leave WL unmasked. With --arm T0 this must reproduce the '
                          'existing news2 F10 run BIT-FOR-BIT, proving T0 changed exactly one thing. Never a result arm.')
     args = ap.parse_args()
+    SELF_SET = {'OPENBLAS_NUM_THREADS', 'OMP_NUM_THREADS'}      # set by this module at import
+    extra = sorted(set(os.environ) - set(args.env_whitelist.split(',')) - SELF_SET)
+    assert not extra, f'env outside whitelist: {extra}'
     assert torch.cuda.is_available(), 'GPU required; refuse silently slow CPU fallback'
     assert sha(REF) == REF_SHA, f'the reference recipe changed: {sha(REF)[:16]} != {REF_SHA[:16]}'
     arm = args.arm if args.arm == 'T0' else f'T3_{args.clamp_mode}'
@@ -159,9 +167,20 @@ def main():
     cols = [torch.as_tensor(ps[st[i]:st[i + 1]], device=dev) for i in range(n)]
     # ---- masked seats (T0 change; T3 inherits it) + the WL census for G2 ----
     WL = WLraw if args.no_mask else torch.stack([mask_wl(WLraw[i]) for i in range(n)])
-    wl_diff_rows = int((torch.abs(WL - WLraw).max(1).values > 0).sum().item())
-    seat_census = {'raw_WL_mean': [float(v) for v in WLraw.mean(0)], 'masked_WL_mean': [float(v) for v in WL.mean(0)],
-                   'anchors_where_WL_changed': wl_diff_rows, 'n_anchors': int(n), 'masking_applied': not args.no_mask}
+    # `legs.npz` WL is NaN on NOT-ready anchors (it is only filled where the producer made a record), and
+    # training never touches those (run_span raises on not-ready). So the census AND G2's change count must
+    # be taken over the READY, FINITE population only. Taking them over all n would (a) make every mean NaN
+    # and (b) count NaN -> [.5,0,.5] as a "masking change", inflating G2 with anchors that are never used.
+    # Caught by allow_nan=False refusing to serialise the receipt.
+    fin = torch.isfinite(WLraw).all(1) & torch.from_numpy(ready.copy()).to(WLraw.device)
+    nfin = int(fin.sum().item())
+    assert nfin > 0, 'no ready anchor with a finite WL'
+    wl_diff_rows = int((torch.abs(WL[fin] - WLraw[fin]).max(1).values > 0).sum().item())
+    seat_census = {'population': 'ready anchors with finite WL', 'n_population': nfin, 'n_anchors_total': int(n),
+                   'n_excluded_not_ready_or_nonfinite_WL': int(n - nfin),
+                   'raw_WL_mean': [float(v) for v in WLraw[fin].mean(0)],
+                   'masked_WL_mean': [float(v) for v in WL[fin].mean(0)],
+                   'anchors_where_WL_changed': wl_diff_rows, 'masking_applied': not args.no_mask}
     log('seat census', json.dumps(seat_census))
     if args.no_mask:
         # G1: the control must be a TRUE no-op on the seats, otherwise it is not an identity control.
