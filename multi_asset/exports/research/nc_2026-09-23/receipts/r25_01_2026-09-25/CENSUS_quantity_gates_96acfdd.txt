@@ -1,0 +1,277 @@
+A live/alarm_policy.py:179 if (r.get("message_sha256") == body_sha
+B live/alarm_policy.py:180 and float(r.get("ts") or 0) >= cutoff
+B live/beta_overlay.py:275 held_btc = float((held_true or {}).get(BTC, 0.0) or 0.0)
+B live/beta_overlay.py:276 b = float(target.get(BTC, 0.0) or 0.0)
+B live/beta_overlay.py:310 held_btc = float((held_true or {}).get(BTC, 0.0) or 0.0)
+B live/beta_overlay.py:311 b = float(target.get(BTC, 0.0) or 0.0)                  # BTC's EXECUTED base value (0 when popped; clamped value when held)
+B live/beta_overlay.py:501 cur = float(row.get("prev_notional") or 0.0)
+B live/beta_overlay.py:511 intent = float(rec.get("hedge_target_usdt") or 0.0)
+B live/beta_overlay.py:199 w = float(target[s] or 0.0)
+B live/beta_overlay.py:476 delivered = float(target.get(BTC, 0.0) or 0.0) - float(rec.get("btc_book_target_usdt") or 0.0)
+B live/beta_overlay.py:476 delivered = float(target.get(BTC, 0.0) or 0.0) - float(rec.get("btc_book_target_usdt") or 0.0)
+B live/beta_overlay.py:512 delivered = planned - float(rec.get("btc_book_target_usdt") or 0.0)
+B live/beta_overlay.py:593 lim = max(float(lev) * float(nav), float(fields.get("base_sizing_gross") or 0.0))   # the same exemption as budget_scale
+B live/beta_overlay.py:374 rec["btc_combined_target_usdt"] = float(target.get(BTC, 0.0) or 0.0)
+B live/beta_overlay.py:538 _real = float(venue_btc_usdt) - float(rec.get("btc_book_target_usdt") or 0.0)
+B live/beta_overlay.py:466 rec["overlay_net_usdt"] = float(target.get(BTC, 0.0) or 0.0) - float(rec.get("btc_book_target_usdt") or 0.0)
+B live/beta_overlay.py:466 rec["overlay_net_usdt"] = float(target.get(BTC, 0.0) or 0.0) - float(rec.get("btc_book_target_usdt") or 0.0)
+B live/binance_broker.py:1390 float(_b1.get("notionalCap") or 0),
+B live/binance_broker.py:1391 float(_b1.get("cum") or 0))
+B live/binance_broker.py:1483 _eq_a7 = float(_snap_a7.get("equity") or 0.0)
+B live/binance_broker.py:1694 if not float(resp.get("cumQuote") or 0.0) or not float(resp.get("avgPrice") or 0.0):
+B live/binance_broker.py:1694 if not float(resp.get("cumQuote") or 0.0) or not float(resp.get("avgPrice") or 0.0):
+B live/binance_broker.py:1308 if float(c.get("maxNotionalValue") or 0) == 0)
+B live/binance_broker.py:1306 if float(c.get("maxNotionalValue") or 0) == 0)[:20]
+A live/binance_executor.py:2160 _dir = 1.0 if float(q.get("qty") or 0.0) >= 0 else -1.0
+B live/binance_executor.py:386 q = abs(float(t.get("qty") or 0.0))
+B live/binance_executor.py:424 q = abs(float(t.get("qty") or 0.0))
+B live/binance_executor.py:1284 bid, ask = float(b.get("bidPrice") or 0), float(b.get("askPrice") or 0)
+B live/binance_executor.py:1284 bid, ask = float(b.get("bidPrice") or 0), float(b.get("askPrice") or 0)
+B live/binance_executor.py:1438 pl["maker_executed_qty"] = float(resp.get("executedQty") or 0.0)
+B live/binance_executor.py:1627 pos_now = sum(float(q.get("prev_notional") or 0.0) for q in _plans) \
+B live/binance_executor.py:160 un += abs(float(r.get("notional_est") or 0.0)) * rem / q
+B live/binance_executor.py:389 else q * abs(float(t.get("price") or 0.0)))
+B live/binance_executor.py:429 else q * abs(float(t.get("price") or 0.0)))
+B live/binance_executor.py:1632 gross_now = sum(abs(float(q.get("prev_notional") or 0.0)
+B live/binance_executor.py:1818 _mkq = abs(float(p.get("qty") or 0.0)) * (1.0 if str(p.get("side", "")).lower() == "buy" else -1.0)
+B live/binance_executor.py:1821 _mkreq = {"client_id": _mkcid, "qty": _mkq, "notional_est": abs(float(p.get("delta_notional") or 0.0)),
+B live/binance_executor.py:2160 _dir = 1.0 if float(q.get("qty") or 0.0) >= 0 else -1.0
+B live/binance_executor.py:526 d["max_qty"] = float(flt.get("maxQty") or 0.0) or None
+B live/binance_executor.py:1700 _mq = abs(float(p.get("qty") or 0.0)) * (1.0 if str(p.get("side", "")).lower() == "buy" else -1.0)
+B live/binance_executor.py:1709 "notional_est": abs(float(p.get("delta_notional") or 0.0)),
+B live/binance_executor.py:2500 + (["USDT"] if float(b.get("commission") or 0.0) else [])))
+B live/binance_executor.py:532 d["mkt_max_qty"] = float(flt.get("maxQty") or 0.0) or None
+B live/binance_executor.py:533 d["mkt_step"] = float(flt.get("stepSize") or 0.0) or None
+B live/binance_executor.py:1197 believed_notional=float(p.get("prev_notional") or 0.0),
+A live/cost_buckets.py:120 sgn = 1.0 if float(o["filled_notional"]) > 0 else -1.0
+A live/cost_buckets.py:341 sgn = 1.0 if float(o["filled_notional"]) > 0 else -1.0
+A live/external_book.py:240 if 0.0 < wait <= float(cfg["anchor_offset_min"]) * 60.0 + 60.0:
+A live/external_book.py:379 if age_s > float(cfg["max_age_min"]) * 60.0:
+B live/external_book.py:149 tl = float(book.get("target_leverage") or 0.0)
+B live/external_book.py:435 _pdeadline = float(now) + (float(cfg.get("producer_grace_min") or 0.0) * 60.0 if poll else 0.0)
+B live/external_book.py:529 if abs(float(v)) < float(mult) * float((floors or {}).get(s, 0.0) or 0.0)}
+A live/per_name_stop.py:104 if abs(float(pn.get(s, 0.0))) < minn:
+A live/per_name_stop.py:113 if float(st["cooldown"][s]) <= now_ts:
+B live/pilot_metrics.py:422 real += abs(float(o["filled_notional"] or 0.0)) / g
+B live/position_break.py:563 ug = float(d.get("unauth_gross_usdt") or 0.0)
+B live/position_break.py:564 uf = float(d.get("underfill_gross_usdt") or 0.0)
+B live/position_break.py:549 u = float(v.get("unauth_usdt") or 0.0)
+B live/position_break.py:548 for s, v in sorted(by.items(), key=lambda kv: -abs(float(kv[1].get("unauth_usdt") or 0.0))):
+B live/reconcile.py:408 n = float(row.get("venue_position_notional") or 0.0)
+B live/reconcile.py:509 _k = float(o.get("filled_known_notional") or 0.0)
+B live/reduce_only_reject.py:70 v = float(venue_positions.get(r["symbol"], 0.0) or 0.0)
+B live/telegram_notify.py:125 return any(0 < now - float(r.get("ts") or 0) < window_s
+B live/tests_alarm_digest.py:147 _recent = [r for r in _withbody if float(r.get("ts") or 0) >= _t.time() - 86400]
+B live/tests_alarm_digest.py:170 if not (float(r.get("ts") or 0) < _STALE_DEMOTION_LANDED_TS
+B live/tests_anchor_series.py:82 reb = [t for t in trd if (t - 14400) in ext and float(ext[t - 14400].get("realized_gross") or 0) < 1.0]
+B live/tests_artifact_assertions.py:204 "any_filled": any(float(r.get("filled_notional") or 0) != 0 for r in rs),
+B live/tests_artifact_assertions.py:221 and not any(r.get("submit_ts") is not None or float(r.get("filled_notional") or 0) != 0 for r in _R00)
+B live/tests_beta_overlay.py:484 _planned = float(bp.get("prev_notional") or 0.0) + (float(bp["qty"]) * MIDS[BTC] if bp.get("qty") is not None and bp.get("skip") is None else 0.0)
+B live/tests_beta_overlay.py:521 and _r1.get("status") == "applied_via_combined" and float(_r1.get("btc_book_target_usdt") or 0.0) == 0.0,
+B live/tests_beta_overlay.py:1011 and abs(rc.ex._m3_overlay_net_usdt - (rc.target[BTC] - float(_rcf.get("btc_book_target_usdt") or 0.0))) < 1e-9
+B live/tests_beta_overlay.py:1033 and abs(_t1.get("overlay_net_usdt") - (_hedgeT - float(_t1.get("btc_book_target_usdt") or 0.0))) < 1e-9,
+B live/tests_beta_overlay.py:1016 abs(_fv3["m3_overlay_realised_usdt"] - round(0.4 * hedge - float(_recA.get("btc_book_target_usdt") or 0.0), 6)) < 1e-6
+B live/tests_beta_overlay.py:1017 and abs(_fv3["m3_overlay_fill_gap_usdt"] - round(hedge - (0.4 * hedge - float(_recA.get("btc_book_target_usdt") or 0.0)), 6)) < 1e-6,
+B live/tests_binance_executor.py:242 all(float(r.get("fee_paid") or 0) != 999.0 for r in _ex11.rows_orders),
+B live/tests_binance_executor.py:460 and all(abs(float(r.get("intended_residual") or 0)) >= 5.0 for r in _taker44),
+A live/tests_book_observability.py:142 if float(r["anchor_ts"]) != NEWEST_SCHED:
+B live/tests_book_observability.py:252 and float(_5eA.get("latest_anchor_ts") or 0) < NEWEST_SCHED,
+B live/tests_book_observability.py:322 and float(_5bA2.get("last_reconciled_anchor_ts") or 0) > NEWEST_SCHED,
+A live/tests_daily_summary.py:730 adv = sum((1 if float(o["filled_notional"]) > 0 else -1)
+B live/tests_daily_summary.py:291 _naive_mix = float(_MIX.get("realised_pnl") or 0.0)          # the pre-fix reading, verbatim
+B live/tests_daily_summary.py:320 _naive_none = float(_NONE.get("realised_pnl") or 0.0)
+B live/tests_daily_summary.py:521 eq = float(n1.get("nav") or 0.0)
+B live/tests_daily_summary.py:729 fee = sum(float(o.get("fee_paid") or 0) for o in fl)
+B live/tests_daily_summary.py:837 _old_want = sum(abs(float(o.get("intended_notional") or 0)) for o in _MI if o.get("order_type") == "maker")
+B live/tests_daily_summary.py:803 return [r for r in o if float(r.get("anchor_ts") or 0) == ats[0]] if ats else []
+B live/tests_daily_summary.py:724 fl = [o for o in og if abs(float(o.get("filled_notional") or 0)) > 0
+B live/tests_disposition_matrix.py:352 _it = float(_o.get("intended_notional") or 0.0)
+B live/tests_disposition_matrix.py:610 cap = float(g.get("venue_cap_usdt") or 0.0)
+B live/tests_disposition_matrix.py:622 _tr_cap = {r: float(_by[r].get("venue_cap_usdt") or 0.0) for r in _traded}
+B live/tests_disposition_matrix.py:1055 return float((_flat_batches.get(b) or [{}])[0].get("anchor_ts") or 0.0)
+B live/tests_disposition_matrix.py:692 return max(float(row.get("target_gross") or _resize_sig(rid)[3] or 0.0), 1.0)
+B live/tests_disposition_matrix.py:799 _ca = _containing_anchor(float(_rr[0].get("anchor_ts") or 0.0))
+B live/tests_disposition_matrix.py:1416 return g["gross_usdt"] - d - float(g.get("venue_cap_usdt") or 0.0)
+B live/tests_disposition_matrix.py:618 return d, g["gross_usdt"] - d - float(g.get("venue_cap_usdt") or 0.0)
+B live/tests_disposition_matrix.py:798 for _b, _rr in sorted(_flat_batches.items(), key=lambda kv: float(kv[1][0].get("anchor_ts") or 0)):
+B live/tests_disposition_matrix.py:493 tw, pw = float(r.get("target_w") or 0.0), float(r.get("prev_w") or 0.0)
+B live/tests_disposition_matrix.py:493 tw, pw = float(r.get("target_w") or 0.0), float(r.get("prev_w") or 0.0)
+B live/tests_disposition_matrix.py:496 fq = sum(float(r.get("filled_qty") or 0.0) for r in rr)
+B live/tests_disposition_matrix.py:712 {r: (round(_tr_split[r][1]), "vs 5% of", round(float(_resize_sig(r)[3] or 0.0)))
+B live/tests_disposition_matrix.py:780 cand = [a for a in _all_anchor_rows if float(a.get("anchor_ts") or 0.0) <= ts]
+B live/tests_disposition_matrix.py:806 anchor_realized=round(float(_ca.get("realized_gross") or 0.0), 4),
+B live/tests_disposition_matrix.py:1274 return sum(abs(float(n.get("residual_notional") or 0.0)) for n in _by[rid]["names"]
+B live/tests_disposition_matrix.py:449 round(float((_row_by_rid.get(r) or {}).get("target_gross") or 0.0), 4))
+B live/tests_disposition_matrix.py:1114 if str(r.get("terminal_reason")) != "filled" or not float(r.get("filled_notional") or 0.0)]
+B live/tests_disposition_matrix.py:1264 {r: (round(c), "1% realized", round(0.01 * float(_resize_sig(r)[3] or 0.0)),
+B live/tests_disposition_matrix.py:407 "intended_usdt": round(sum(abs(float(r.get("intended_notional") or 0.0))
+B live/tests_disposition_matrix.py:1266 for r, c in _capped.items() if c >= 0.01 * max(float(_resize_sig(r)[3] or 0.0), 1.0)})
+B live/tests_disposition_matrix.py:542 o["filled_qty"] = float(o.get("filled_qty") or 0.0) * k
+B live/tests_disposition_matrix.py:803 filled_usdt=round(sum(abs(float(r.get("filled_notional") or 0.0)) for r in _rr), 4),
+B live/tests_disposition_matrix.py:1262 any(c >= 0.01 * max(float(_resize_sig(r)[3] or 0.0), 1.0) for r, c in _capped.items())
+B live/tests_disposition_matrix.py:710 all((_tr_split[r][1] < 0.05 * max(float(_resize_sig(r)[3] or 0.0), 1.0)) or
+B live/tests_fills_contract.py:101 v4 = _fcv([o, dict(s_ok, fill_notional=float(o["fill_notional"] or 0) + 1)])
+A live/tests_flatten_exit_cost.py:104 sg = 1.0 if float(o["filled_notional"]) > 0 else -1.0
+B live/tests_guard_coverage.py:509 q = float(r.get("cumQuote") or 0.0)
+B live/tests_guard_coverage.py:510 ex = float(r.get("executedQty") or 0.0)
+B live/tests_guard_coverage.py:514 avg = float(r.get("avgPrice") or 0.0)
+B live/tests_neutrality_price.py:121 if r["anchor_ts"] == _A and abs(float(r.get("venue_position_notional") or 0)) > 0]
+A live/tests_offschedule_held_book.py:127 rewrite(t, lambda r: r if float(r["anchor_ts"]) <= FULLBOOK_ATS else None)
+B live/tests_per_name_stop.py:485 and abs(float(_rowsB.get("LSKUSDT", {}).get("intended_notional") or 0.0) - 85.77049032) < 1e-9 and _rowsB.get("LSKUSDT", {}).get("chase_arm") is None
+A live/tests_position_break_blindspot.py:267 if abs(float(o["anchor_ts"]) - _ats) < 0.6 and o.get("target_w") is not None:
+B live/tests_readers_three_bucket.py:302 _fee_old = sum(float(r.get("fee_paid") or 0.0) for r in _mk)
+B live/tests_readers_three_bucket.py:815 return [o for o in _D["orders"] if ats and float(o.get("anchor_ts") or 0) == ats[0]
+B live/tests_reduce_only_clamp.py:1014 and abs(float(_d13.get("filled_notional") or 0.0) + _n2) < 1e-6 and not _d13.get("inconsistent"),
+B live/tests_reject_topup.py:195 _sum = sum(abs(float(r.get("intended_notional") or 0)) for r in _rej)
+B live/tests_reject_topup.py:144 _tr and abs(float(_tr[0].get("intended_notional") or 0) + 250.0) < 1e-6,
+B live/tests_residual_vector.py:107 V["gross_usdt"] > sum(abs(float(a.get("residual_usdt") or 0)) for a in r["anomalies"]),
+B live/tests_residual_vector.py:109 f"{sum(abs(float(a.get('residual_usdt') or 0)) for a in r['anomalies'])}")
+B live/tests_watchdog.py:137 check("flat equity reads ~0% day change", abs(float(ev["conditions"]["cond2_day_loss"].get("worst_day_pct") or 0.0)) < 1e-6)
+B live/venue_fills.py:557 avg = float(r.get("avgPrice") or 0.0)
+B live/venue_fills.py:167 _ours = abs(float(p.get("qty") or 0.0))
+B live/venue_fills.py:753 q = float(r.get("quoteQty") or 0.0)
+B live/venue_fills.py:1319 q = float(r.get("cumQuote") or 0.0)
+B live/venue_fills.py:243 "origQty": abs(float(p.get("qty") or 0.0))}
+B live/venue_fills.py:554 orig_qty += abs(float(r.get("origQty") or 0.0))
+B live/venue_fills.py:765 c = abs(float(r.get("commission") or 0.0))
+B live/venue_fills.py:1032 c = abs(float(t.get("commission") or 0.0))
+B live/venue_fills.py:190 for key, exp in (("clientOrderId", cid), ("symbol", sym), ("side", _exp_side), ("origQty", abs(float(p.get("qty") or 0.0)))):
+B live/venue_fills.py:772 "side": r.get("side"), "price": float(r.get("price") or 0.0),
+B live/venue_fills.py:773 "qty": float(r.get("qty") or 0.0), "quote_qty": q,
+B live/venue_fills.py:774 "commission": float(r.get("commission") or 0.0),
+B live/venue_fills.py:1147 q = abs(float(t.get("qty") or 0.0))
+B live/venue_fills.py:1158 elif float(t.get("commission") or 0.0):
+B live/venue_fills.py:1020 unattributed_commission += abs(float(t.get("commission") or 0.0))
+B live/venue_fills.py:1148 n = abs(float(t.get("quote_qty") or 0.0)) or q * abs(float(t.get("price") or 0.0))
+B live/venue_fills.py:1157 commission += abs(float(t.get("commission") or 0.0))
+B live/venue_fills.py:1160 _ts = float(t.get("ts") or 0) / 1000.0 or None
+B live/venue_fills.py:1148 n = abs(float(t.get("quote_qty") or 0.0)) or q * abs(float(t.get("price") or 0.0))
+B live/watchdog.py:2330 _lev_tgt = float(_j4.load(open(_o4.path.join(
+B live/watchdog.py:3006 qty = float(o.get("quantity") or 0.0)
+B live/watchdog.py:1884 _flow = float(_r3.get("external_flow_usdt") or 0.0)
+B live/watchdog.py:2776 facts = (f"【评估 {ev.get('evaluated_utc')}; 名 {names}; 疑问名义 Σ {float(evd.get('sum_doubt_usdt_known') or 0.0):.2f} USDT"
+B live/watchdog.py:1368 _flow_day = any(abs(float(_r.get("external_flow_usdt") or 0.0)) > 1e-9 for _r in nav)
+B live/watchdog.py:2777 + (f" = {float(evd.get('frac') or 0.0):.2%} of gross {float(g):.2f}" if g else " (gross 未知)")
+B ops/alarm_digest.py:110 t = float(row.get("ts") or 0)
+B ops/alarm_digest.py:143 t = float(row.get("ts") or 0)
+B ops/alarm_digest.py:179 sel = [r for r in rows if float(r.get("ts") or 0) >= since]
+B ops/alarm_digest.py:111 return any(_HALT_WINDOW_S > t - float(o.get("ts") or 0) > 0
+B ops/alarm_digest.py:144 return any(_HALT_WINDOW_S > t - float(o.get("ts") or 0) > 0
+B ops/alarm_digest.py:221 rs.sort(key=lambda r: float(r.get("ts") or 0))
+B ops/assert_anchor_artifacts.py:441 return mode != "DRY_RUN" and float(r.get("filled_notional") or 0) != 0
+B ops/assert_anchor_artifacts.py:465 _no_trade_day = bool(orders) and _n_submitted == 0 and not any(float(o.get("filled_notional") or 0) != 0 for o in orders)
+B ops/assert_anchor_artifacts.py:276 if r.get("delivered_offbox") and (time.time() - float(r.get("ts", 0) or 0))
+B ops/assert_anchor_artifacts.py:479 n_filled = sum(1 for o in orders if float(o.get("filled_notional") or 0) != 0)
+A ops/backfill_markout.py:272 if cur and t - int((float(cur[0]["fill_ts"]) + MARK_LAG_S) * 1000) > GROUP_SPAN_MS:
+A ops/chase_readout.py:129 head += line + ("  WITHIN the tolerance N* assumed."
+A ops/chase_readout.py:253 sgn = 1.0 if float(o["filled_notional"]) > 0 else -1.0
+B ops/chase_readout.py:276 sum(abs(float(o.get("intended_notional") or 0)) for o in _held), 4)
+B ops/chase_readout.py:220 and abs(float(o.get("filled_notional") or 0)) > 0]
+B ops/check_funding_span.py:52 return {r["symbol"]: float(r.get("fundingIntervalHours") or 0) for r in rows}
+B ops/daily_summary.py:620 _ts_out = float(_nav_newest_outside.get("nav_ts") or 0)
+B ops/daily_summary.py:596 nav = [r for r in nav_all if float(r.get("nav_ts") or 0) >= since]
+B ops/daily_summary.py:611 al_win = [r for r in al if float(r.get("ts") or 0) >= since]
+B ops/daily_summary.py:588 A = sorted([r for r in rows["anchors"] if float(r.get("anchor_ts") or 0) >= since],
+B ops/daily_summary.py:597 _nav_newest_outside = (max(nav_all, key=lambda r: float(r.get("nav_ts") or 0)) if (nav_all and not nav) else None)
+B ops/daily_summary.py:640 og = [o for o in rows["orders"] if float(o.get("anchor_ts") or 0) == ats]
+B ops/first_real_anchor.py:48 print(f"★ filled: {len(filled)}  notional {sum(abs(float(o.get('filled_notional') or 0)) for o in filled):.2f}")
+A ops/ic_monitor.py:605 if now - float(st.get("last_INCOMPLETE", 0.0) or 0.0) >= COOLDOWN_S:
+B ops/ic_monitor.py:442 opened = float(event.get("opened_at") or 0)
+B ops/ic_monitor.py:515 t = float(st.get(f"last_{k}", 0.0) or 0.0)
+B ops/ic_monitor.py:605 if now - float(st.get("last_INCOMPLETE", 0.0) or 0.0) >= COOLDOWN_S:
+B ops/ic_monitor.py:414 return (f"事件: {event.get('level')} 自 {iso(float(event.get('opened_at') or 0))} 已开, "
+B ops/rejudge_ledger_rows.py:197 and abs(float(rb_prev.get("venue_position_qty") or 0.0) + c - float(rb_at.get("venue_position_qty") or 0.0)) <= 1e-9),
+B ops/rejudge_ledger_rows.py:197 and abs(float(rb_prev.get("venue_position_qty") or 0.0) + c - float(rb_at.get("venue_position_qty") or 0.0)) <= 1e-9),
+A ops/score_post_fix.py:342 if _anchor_ts is not None and abs(float(a["anchor_ts"]) - _anchor_ts) < 1e-6:
+A ops/verify_reshape_anchor.py:157 if rs and abs(float(rs["net_before"])) > 1e-9:
+B ops/verify_reshape_anchor.py:148 tg = float(pick.get("target_gross") or 0.0)
+B ops/verify_reshape_anchor.py:177 ok2 = abs(tg - (sizing or tg)) <= abs(float(pinned.get("net_shift_usdt") or 0)) + 1e-6
+B ops/verify_reshape_anchor.py:93 f"(旧记录: 基于 {nb} 笔 / ${float(np_.get('notional_basis_usdt') or 0):.2f}, 无三桶)")
+B ops/verify_reshape_anchor.py:96 f"(已测 {int(nm)} 笔 / ${float(np_.get('notional_measured_usdt') or 0):.2f}; "
+B ops/verify_reshape_anchor.py:97 f"全部 {nb} 笔 / ${float(np_.get('notional_basis_usdt') or 0):.2f}; "
+B ops/verify_reshape_anchor.py:98 f"未定价 ${float(np_.get('unpriced_notional_usdt') or 0):.2f}, 费未知 ${float(np_.get('fee_unknown_notional_usdt') or 0):.2f}; "
+B ops/verify_reshape_anchor.py:98 f"未定价 ${float(np_.get('unpriced_notional_usdt') or 0):.2f}, 费未知 ${float(np_.get('fee_unknown_notional_usdt') or 0):.2f}; "
+B ops/verify_reshape_anchor.py:201 and abs(float(r.get("venue_position_notional") or 0)) > 0]
+B ops/verify_reshape_anchor.py:86 out.append(f"   ★ 该侧 {nb} 笔 / ${float(np_.get('notional_basis_usdt') or 0):.2f} 成交中已测 0 笔 ⇒ 价格不可计 —— "
+B ops/verify_reshape_anchor.py:87 f"未定价 {int(np_.get('n_fills_unpriced') or 0)} 笔 / ${float(np_.get('unpriced_notional_usdt') or 0):.2f}, "
+B ops/verify_reshape_anchor.py:88 f"费未知 {int(np_.get('n_fills_fee_unknown') or 0)} 笔 / ${float(np_.get('fee_unknown_notional_usdt') or 0):.2f}"
+A scheduler/anchor_loop.py:195 sgn = 1.0 if float(o["filled_notional"]) > 0 else -1.0
+A scheduler/anchor_loop.py:331 if float((held or {}).get(s_, 0.0) or 0.0) == 0.0:
+A scheduler/anchor_loop.py:591 if float(r["anchor_ts"]) == last_ts and abs(float(
+A scheduler/anchor_loop.py:1424 if float(ext.get("gross_outside_frac") or 0.0) > EXT.OUTSIDE_UNIVERSE_ALARM_FRAC:
+B scheduler/anchor_loop.py:440 pinned_before = {s_: float(target.get(s_, 0.0) or 0.0) for s_ in untradable}
+B scheduler/anchor_loop.py:476 cur = float((held or {}).get(s_, 0.0) or 0.0)
+B scheduler/anchor_loop.py:479 tgt = float(target.get(s_, 0.0) or 0.0)
+B scheduler/anchor_loop.py:898 t = float(target.get(s_, 0.0) or 0.0)
+B scheduler/anchor_loop.py:899 cur = float((held or {}).get(s_, 0.0) or 0.0)
+B scheduler/anchor_loop.py:1539 floor = float(cfg.get("min_gross_usdt") or 0.0)
+B scheduler/anchor_loop.py:331 if float((held or {}).get(s_, 0.0) or 0.0) == 0.0:
+B scheduler/anchor_loop.py:2169 _bw = float((_load(os.path.join(_REPO, "config", "book.json"), {}) or {})
+B scheduler/anchor_loop.py:397 _flat_out_net = float(sum(float(target.get(s_) or 0.0) for s_ in _flat_out))
+B scheduler/anchor_loop.py:414 fl = ({i: float((floors_usdt or {}).get(s_, 0.0) or 0.0) for i, s_ in enumerate(syms)}
+B scheduler/anchor_loop.py:2058 _fl = {s_: float((self.executor.filters.f.get(s_) or {}).get("min_notional", 0.0)
+B scheduler/anchor_loop.py:110 names = [f"{o['symbol']}(${abs(float(o.get('intended_notional') or 0)):.0f})"
+B scheduler/anchor_loop.py:1424 if float(ext.get("gross_outside_frac") or 0.0) > EXT.OUTSIDE_UNIVERSE_ALARM_FRAC:
+B scheduler/anchor_loop.py:2230 _hv = float((_held_book or {}).get(_s, 0.0) or 0.0)
+B scheduler/anchor_loop.py:109 mine.sort(key=lambda o: -abs(float(o.get("intended_notional") or 0.0)))
+B scheduler/anchor_loop.py:155 and abs(float(o.get("filled_notional") or 0.0)) > 0
+B scheduler/anchor_loop.py:452 "pinned_net_usdt": float(sum(float(target.get(s_, 0.0) or 0.0) for s_ in pinned)),
+B scheduler/anchor_loop.py:591 if float(r["anchor_ts"]) == last_ts and abs(float(
+B scheduler/anchor_loop.py:1653 if float(c.get("maxNotionalValue") or 0) == 0}
+B scheduler/anchor_loop.py:453 "net_shift_usdt": float(sum(float(target.get(s_, 0.0) or 0.0) - pinned_before.get(s_, 0.0)
+B scheduler/anchor_loop.py:3097 None if snap is None else float((snap.get("positions_notional") or {}).get(BO.BTC, 0.0) or 0.0)))
+B scheduler/anchor_loop.py:1426 f"{float(ext.get('gross_outside_frac') or 0.0):.1%} 在其自己的宇宙之外(冻结尾巴) — "
+B scheduler/anchor_loop.py:3247 sizing_policy=("constant_leverage_%.2f" % float(
+B scheduler/anchor_loop.py:2334 + ", ".join(f"{r['symbol']} {float(r.get('intended_notional') or 0):+.0f}U"
+B scheduler/run_anchor.py:1053 f"{('=' + str(round(100.0 * float(_v.get('peak_weight_1m') or 0) / float(_lim.get('REQUEST_WEIGHT')), 1)) + '%') if _lim.get('REQUEST_WEIGHT') else ''
+B signal/legs.py:393 cur = float((positions or {}).get(s, 0.0) or 0.0)
+PER FILE (A comparisons on float(record) without an isfinite guard in the function, B float(record or 0) defaults):
+  scheduler/anchor_loop.py: A 4 B 24
+  live/tests_disposition_matrix.py: A 0 B 25
+  live/binance_executor.py: A 1 B 20
+  live/venue_fills.py: A 0 B 19
+  live/beta_overlay.py: A 0 B 15
+  ops/verify_reshape_anchor.py: A 1 B 11
+  live/tests_daily_summary.py: A 1 B 7
+  live/binance_broker.py: A 0 B 7
+  live/tests_beta_overlay.py: A 0 B 6
+  live/watchdog.py: A 0 B 6
+  ops/alarm_digest.py: A 0 B 6
+  ops/daily_summary.py: A 0 B 6
+  live/external_book.py: A 2 B 3
+  ops/ic_monitor.py: A 1 B 4
+  live/position_break.py: A 0 B 4
+  ops/assert_anchor_artifacts.py: A 0 B 4
+  ops/chase_readout.py: A 2 B 2
+  live/tests_book_observability.py: A 1 B 2
+  live/tests_guard_coverage.py: A 0 B 3
+  live/alarm_policy.py: A 1 B 1
+  live/cost_buckets.py: A 2 B 0
+  live/per_name_stop.py: A 2 B 0
+  live/reconcile.py: A 0 B 2
+  live/tests_alarm_digest.py: A 0 B 2
+  live/tests_artifact_assertions.py: A 0 B 2
+  live/tests_binance_executor.py: A 0 B 2
+  live/tests_readers_three_bucket.py: A 0 B 2
+  live/tests_reject_topup.py: A 0 B 2
+  live/tests_residual_vector.py: A 0 B 2
+  ops/rejudge_ledger_rows.py: A 0 B 2
+  live/pilot_metrics.py: A 0 B 1
+  live/reduce_only_reject.py: A 0 B 1
+  live/telegram_notify.py: A 0 B 1
+  live/tests_anchor_series.py: A 0 B 1
+  live/tests_fills_contract.py: A 0 B 1
+  live/tests_flatten_exit_cost.py: A 1 B 0
+  live/tests_neutrality_price.py: A 0 B 1
+  live/tests_offschedule_held_book.py: A 1 B 0
+  live/tests_per_name_stop.py: A 0 B 1
+  live/tests_position_break_blindspot.py: A 1 B 0
+  live/tests_reduce_only_clamp.py: A 0 B 1
+  live/tests_watchdog.py: A 0 B 1
+  ops/backfill_markout.py: A 1 B 0
+  ops/check_funding_span.py: A 0 B 1
+  ops/first_real_anchor.py: A 0 B 1
+  ops/score_post_fix.py: A 1 B 0
+  scheduler/run_anchor.py: A 0 B 1
+  signal/legs.py: A 0 B 1
+CENSUS_QUANTITY_GATES files=264 with_sites=48 A=23 B=204

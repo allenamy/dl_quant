@@ -1,0 +1,137 @@
+commit b1df4f55129e629bbe1c9131708f7e25b1b0cf13
+Author: haosiyu <siyuhao0702@gmail.com>
+Date:   Fri Sep 25 23:12:01 2026 +0800
+
+    R25-01 (independent review 7cbe907ba; NOT pushed): H1 predicate finiteness gate — held / post / filled_qty / target_w / prev_w must parse to a finite float, an unknown one is itself a violation (unknown is not zero); filled_qty missing counts as 0 only when filled_notional is a finite 0. Red capability +6 cells (held NaN, post NaN, filled_qty NaN, filled_qty missing with notional != 0, target_w NaN, held as text), each returned [] = clean under the old predicate (measured). tests_disposition_matrix ALL PASS 85 checks in the offline sandbox
+
+diff --git a/live/tests_disposition_matrix.py b/live/tests_disposition_matrix.py
+index d71db3f..e62c2bb 100644
+--- a/live/tests_disposition_matrix.py
++++ b/live/tests_disposition_matrix.py
+@@ -59,6 +59,7 @@ import collections
+ import copy
+ import glob
+ import json
++import math
+ import os
+ import re
+ import sys
+@@ -470,37 +471,70 @@ for _f in sorted(glob.glob(os.path.join(_REPO, "state/live/pilot_log/*/position_
+ _rb_anchors = sorted(_rb_by_anchor)
+ 
+ 
++def _h1_num(v):
++    """R25-01 (independent review 7cbe907ba): a quantity is usable only if it parses to a FINITE float. NaN made every
++    comparison below False, i.e. "no violation" — an unknown quantity certified a reduction. None / NaN / inf / text => None."""
++    try:
++        x = float(v)
++    except (TypeError, ValueError):
++        return None
++    return x if math.isfinite(x) else None
++
++
+ def _h1_violations(rows, rb_by_anchor, rb_anchors):
+-    """rows: the order rows of ONE H1 anchor. Returns a list of (symbol, why) — empty means every submit is a verified reduction."""
++    """rows: the order rows of ONE H1 anchor. Returns a list of (symbol, why) — empty means every submit is a verified reduction.
++    R25-01: every quantity the verdict rests on (held, post, each submitted row's filled_qty / target_w / prev_w) must be FINITE;
++    an unknown one is itself a violation (unknown is not zero). A submitted row with filled_qty missing counts as 0 only when its
++    filled_notional is a finite 0 (nothing filled, measured); otherwise the fill is unknown."""
+     out = []
+     subs = [r for r in rows if r.get("submit_ts") is not None]
+     if not subs:
+         return out
+-    ats = float(subs[0].get("anchor_ts"))
++    ats = _h1_num(subs[0].get("anchor_ts"))
++    if ats is None:
++        return [("*", f"anchor_ts not finite ({subs[0].get('anchor_ts')!r})")]
+     prev = [a for a in rb_anchors if a < ats]
+     if not prev:
+         return [("*", "no earlier venue readback to establish what was held")]
+     held_map, post_map = rb_by_anchor[prev[-1]], rb_by_anchor.get(ats, {})
+     for sym in sorted({r.get("symbol") for r in subs}):
+         rr = [r for r in rows if r.get("symbol") == sym]
+-        held = held_map.get(sym)
+-        if held is None or float(held) == 0.0:
+-            out.append((sym, f"submitted while NOT held at the previous readback (held={held})")); continue
+-        held = float(held)
++        held_raw = held_map.get(sym)
++        if held_raw is None:
++            out.append((sym, "submitted while NOT held at the previous readback (held=None)")); continue
++        held = _h1_num(held_raw)
++        if held is None:
++            out.append((sym, f"held quantity at the previous readback is not finite ({held_raw!r}) — unknown is not zero")); continue
++        if held == 0.0:
++            out.append((sym, f"submitted while NOT held at the previous readback (held={held_raw})")); continue
++        fq, fq_known = 0.0, True
+         for r in rr:
+             if r.get("submit_ts") is None:
+                 continue
+-            tw, pw = float(r.get("target_w") or 0.0), float(r.get("prev_w") or 0.0)
+-            if not (tw == 0.0 or (tw * pw > 0 and abs(tw) <= abs(pw))):
++            tw, pw = _h1_num(r.get("target_w")), _h1_num(r.get("prev_w"))
++            if tw is None or pw is None:
++                out.append((sym, f"target_w / prev_w not finite ({r.get('target_w')!r}, {r.get('prev_w')!r}) — the plan cannot be verified"))
++            elif not (tw == 0.0 or (tw * pw > 0 and abs(tw) <= abs(pw))):
+                 out.append((sym, f"planned move is not a reduction (prev_w {pw}, target_w {tw})"))
+-        fq = sum(float(r.get("filled_qty") or 0.0) for r in rr)
++            q = _h1_num(r.get("filled_qty"))
++            if q is None:
++                if r.get("filled_qty") is None and _h1_num(r.get("filled_notional")) == 0.0:
++                    q = 0.0                                   # measured: nothing filled
++                else:
++                    fq_known = False
++                    out.append((sym, f"filled_qty unknown ({r.get('filled_qty')!r}, filled_notional {r.get('filled_notional')!r}) — unknown is not zero"))
++                    continue
++            fq += q
++        if not fq_known:
++            continue
+         if fq * held > 0:
+             out.append((sym, f"fills move AWAY from zero (held {held}, filled {fq})"))
+         if abs(fq) > abs(held) + 1e-12:
+             out.append((sym, f"fills exceed the held position / cross zero (held {held}, filled {fq})"))
+-        post = post_map.get(sym)
+-        if post is None or abs(float(post) - (held + fq)) > 1e-9 * max(1.0, abs(held)):
+-            out.append((sym, f"closure broken: post readback {post} != held {held} + filled {fq}"))
++        post_raw = post_map.get(sym)
++        post = _h1_num(post_raw)
++        if post is None or abs(post - (held + fq)) > 1e-9 * max(1.0, abs(held)):
++            out.append((sym, f"closure broken: post readback {post_raw!r} != held {held} + filled {fq}"))
+     return out
+ 
+ 
+@@ -548,6 +582,19 @@ if _h1_rows:
+             rows.append(o)
+             return rows
+ 
++        def _set_rb(a, v):
++            def f(rb):
++                rb[a][_sub0["symbol"]] = v
++            return f
++
++        def _set_row(key, v):
++            def f(rows):
++                for o in rows:
++                    if o.get("symbol") == _sub0["symbol"] and o.get("submit_ts") is not None:
++                        o[key] = v
++                return rows
++            return f
++
+         def _break_closure(rb):
+             rb[_ats0][_sub0["symbol"]] = float(rb[_ats0][_sub0["symbol"]]) + abs(_held0) * 0.1
+ 
+@@ -555,7 +602,14 @@ if _h1_rows:
+                   "fills larger than the held position (crosses zero)": _plant(mut_rows=_scale(abs(_held0) / max(abs(float(_sub0.get('filled_qty') or 1.0)), 1e-12) * 1.5)),
+                   "fills in the OPENING direction": _plant(mut_rows=_scale(-1.0)),
+                   "an opening submit on a new name": _plant(mut_rows=_opening),
+-                  "post readback does not close": _plant(mut_rb=_break_closure)}
++                  "post readback does not close": _plant(mut_rb=_break_closure),
++                  # R25-01: each unknown quantity must be caught (before the fix every one of these returned [] = "clean")
++                  "held quantity NaN": _plant(mut_rb=_set_rb(_prev0, float("nan"))),
++                  "post readback NaN": _plant(mut_rb=_set_rb(_ats0, float("nan"))),
++                  "filled_qty NaN": _plant(mut_rows=_set_row("filled_qty", float("nan"))),
++                  "filled_qty missing with filled_notional != 0": _plant(mut_rows=_set_row("filled_qty", None)),
++                  "target_w NaN": _plant(mut_rows=_set_row("target_w", float("nan"))),
++                  "held quantity as text": _plant(mut_rb=_set_rb(_prev0, "n/a"))}
+         check("★★★ B-1 red capability: the real H1 anchor is clean AND every planted violation is caught",
+               not _h1_violations(_rows0, _rb_by_anchor, _rb_anchors) and all(v for v in _cells.values()),
+               {k: bool(v) for k, v in _cells.items()})
