@@ -41,6 +41,37 @@ def sha_file(p):
     return h.hexdigest()
 
 
+# The OOF's expected schema. fresh (2026-09-25) pointed out that `F10_OOF.npz`'s file sha is a
+# CONTAINER sha, not array identity: this project already has two counterexamples -- .npz file sha !=
+# array identity, and an npz carrying a per-run `model_sha256` whose container sha moved every run while
+# the prediction matrix was bit-identical. He checked my delivered file (keys E_ts/P/symbols only, no
+# timing/host/path/nested-sha), so the container sha happens to be safe TODAY -- but it depends on the
+# schema never gaining a field like `written_utc`, and that failure would be SILENT.
+# So the content key is built from ARRAY BYTES, and a schema change is made LOUD.
+OOF_EXPECTED_KEYS = ("E_ts", "P", "symbols")
+
+
+def oof_arrays(path):
+    """Per-array byte shas + a combined key. Independent of the container's schema."""
+    import numpy as np
+    with np.load(path, allow_pickle=False) as z:
+        keys = tuple(sorted(z.files))
+        per = {k: {"shape": list(z[k].shape), "dtype": str(z[k].dtype),
+                   "bytes_sha256": hashlib.sha256(np.ascontiguousarray(z[k]).tobytes()).hexdigest()}
+               for k in keys}
+    combined = hashlib.sha256(
+        "".join(f"{k}:{per[k]['dtype']}:{per[k]['shape']}:{per[k]['bytes_sha256']}" for k in keys).encode()
+    ).hexdigest()
+    unexpected = [k for k in keys if k not in OOF_EXPECTED_KEYS]
+    missing = [k for k in OOF_EXPECTED_KEYS if k not in keys]
+    return {"keys": list(keys), "per_array": per, "arrays_sha256": combined,
+            "schema_matches_expected": not unexpected and not missing,
+            "unexpected_keys": unexpected, "missing_keys": missing,
+            "note": ("arrays_sha256 is built from array BYTES, so it does not depend on the container "
+                     "schema; schema_matches_expected must stay true -- if a field is ever added to the "
+                     "OOF, the container sha would move silently while predictions are unchanged")}
+
+
 def strip_timing(o):
     """Recursively drop timing fields, so the curve keeps train_loss/alpha but not per-epoch seconds."""
     if isinstance(o, dict):
@@ -50,14 +81,27 @@ def strip_timing(o):
     return o
 
 
+# Version of the `content` field list. content_sha256 covers those fields, so ADDING a field moves the
+# hash even though nothing about the artifacts changed -- the same silent-drift hazard this device was
+# built to close, one level up. Bumping this makes the cause visible: a reader comparing two
+# content_sha256 values must first compare the versions.
+#   v1 (2026-09-25 09:2xZ): no oof_arrays; the prediction key was the OOF CONTAINER sha
+#   v2 (2026-09-25 09:4xZ): + oof_arrays (per-array byte shas + arrays_sha256) and a loud schema guard,
+#                           after fresh pointed out that a container sha depends on the schema holding
+CONTENT_SCHEMA_VERSION = 2
+
+
 def content_of(seed_dir):
     tr_path = os.path.join(seed_dir, "TRAIN_RECEIPT.json")
     tr = json.load(open(tr_path))
     oof = os.path.join(seed_dir, "F10_OOF.npz")
-    content = {"arm": tr.get("arm"), "seed": tr.get("seed"), "status": tr.get("status"),
+    content = {"content_schema_version": CONTENT_SCHEMA_VERSION,
+               "arm": tr.get("arm"), "seed": tr.get("seed"), "status": tr.get("status"),
                "folds": tr.get("folds"), "expected_folds": tr.get("expected_folds"),
-               # the OOF file sha IS content-stable (np.savez_compressed reproduces byte-for-byte)
+               # container sha (kept: it is what the trainer recorded and it is stable in practice)
                "oof_sha256": tr.get("pred_sha256"),
+               # ARRAY-level identity: the primary key, independent of the container schema
+               "oof_arrays": oof_arrays(oof) if os.path.exists(oof) else None,
                "inputs_by_basename": {os.path.basename(k): v for k, v in (tr.get("inputs") or {}).items()},
                "sources_by_basename": {os.path.basename(k): v for k, v in (tr.get("sources") or {}).items()},
                "per_fold": {}}
@@ -95,16 +139,34 @@ def main():
         rec = {"device": "dlarch_content_receipt.py",
                "self_sha256": sha_file(os.path.abspath(__file__)),
                "content_sha256": csha,
-               "REFERENCE_KEY": ("quote content_sha256 for the whole seed, or content.oof_sha256 for the "
-                                 "predictions; both survive a re-run. NEVER quote the TRAIN_RECEIPT "
-                                 "file sha as a reference key -- it moves when only timings change."),
+               "REFERENCE_KEY": ("PRIMARY: content_sha256 (whole seed). For predictions alone use "
+                                 "content.oof_arrays.arrays_sha256 -- it hashes ARRAY BYTES and so does "
+                                 "not depend on the OOF container schema. content.oof_sha256 is the "
+                                 "container sha: fine today (keys are exactly E_ts/P/symbols) but it "
+                                 "would move silently if a field were ever added to the OOF, so use it "
+                                 "only as corroboration. NEVER use the TRAIN_RECEIPT file sha as a "
+                                 "reference key -- it moves when only timings change."),
+               "KEY_STABILITY": ("oof_arrays.arrays_sha256 is the MOST stable key: it moves only if the "
+                                 "arrays move. content_sha256 also moves if this device's content field "
+                                 "list changes, which is why content_schema_version exists -- compare "
+                                 "versions before concluding that content differs."),
+               "content_schema_version": CONTENT_SCHEMA_VERSION,
+               "schema_guard": (None if content.get("oof_arrays") is None
+                                else {"matches_expected": content["oof_arrays"]["schema_matches_expected"],
+                                      "expected": list(OOF_EXPECTED_KEYS),
+                                      "actual": content["oof_arrays"]["keys"]}),
                "content": content, "env": env}
+        oa = content.get("oof_arrays")
+        assert oa is None or oa["schema_matches_expected"], (
+            f"{d}: OOF schema changed -- expected {OOF_EXPECTED_KEYS}, got {oa['keys']}; "
+            "the container sha would move silently while predictions are unchanged, so this is loud on purpose")
         out = os.path.join(d, "CONTENT_RECEIPT.json")
         written = sio.write_json(out, rec)
         rows.append((content.get("seed"), len(content.get("folds") or []), csha, content.get("oof_sha256"), out, written))
         print(f"seed {content.get('seed'):>5}  folds {len(content.get('folds') or []):>2}  "
               f"content_sha256 {csha}")
-        print(f"        oof_sha256 {content.get('oof_sha256')}")
+        print(f"        oof_arrays_sha256 {oa['arrays_sha256'] if oa else None}   (PRIMARY for predictions)")
+        print(f"        oof_container_sha {content.get('oof_sha256')}   (corroboration only)")
         print(f"        written {out} (file sha {written[:16]})")
     print(f"DLARCH_CONTENT_RECEIPT seeds={len(rows)}")
     return 0

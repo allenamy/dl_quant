@@ -1,9 +1,25 @@
 {
   "device": "dlarch_content_receipt.py",
-  "self_sha256": "837ef97d76a8c5d5564f72af5fc6df0e236a36bed5f7b6129a5c56c99f92ff33",
-  "content_sha256": "6beb8b0c426eafac647fc0b237ceae5b127bfe180abdf12935a2fa5770bc3114",
-  "REFERENCE_KEY": "quote content_sha256 for the whole seed, or content.oof_sha256 for the predictions; both survive a re-run. NEVER quote the TRAIN_RECEIPT file sha as a reference key -- it moves when only timings change.",
+  "self_sha256": "61c292525ba705f1c8e5773bdef0a019cfa0ba264e5e57beae4969c4cc9b7761",
+  "content_sha256": "1217d606704d3b8db51fbcd666cd8bca7f5e9515b18af97cef66e1c30e71b39c",
+  "REFERENCE_KEY": "PRIMARY: content_sha256 (whole seed). For predictions alone use content.oof_arrays.arrays_sha256 -- it hashes ARRAY BYTES and so does not depend on the OOF container schema. content.oof_sha256 is the container sha: fine today (keys are exactly E_ts/P/symbols) but it would move silently if a field were ever added to the OOF, so use it only as corroboration. NEVER use the TRAIN_RECEIPT file sha as a reference key -- it moves when only timings change.",
+  "KEY_STABILITY": "oof_arrays.arrays_sha256 is the MOST stable key: it moves only if the arrays move. content_sha256 also moves if this device's content field list changes, which is why content_schema_version exists -- compare versions before concluding that content differs.",
+  "content_schema_version": 2,
+  "schema_guard": {
+    "matches_expected": true,
+    "expected": [
+      "E_ts",
+      "P",
+      "symbols"
+    ],
+    "actual": [
+      "E_ts",
+      "P",
+      "symbols"
+    ]
+  },
   "content": {
+    "content_schema_version": 2,
     "arm": "T0",
     "seed": 2027,
     "status": "ALL_DECLARED_FOLDS_SCORED_NOT_COMBO_CERTIFIED",
@@ -58,6 +74,42 @@
       "202609"
     ],
     "oof_sha256": "86b3aab704c9110b33bcca47f3ef77ad176d5d07f5d0ea7b2fc48fb42e92413e",
+    "oof_arrays": {
+      "keys": [
+        "E_ts",
+        "P",
+        "symbols"
+      ],
+      "per_array": {
+        "E_ts": {
+          "shape": [
+            10333
+          ],
+          "dtype": "int64",
+          "bytes_sha256": "9db1b7f9d7eabe0ed8dba395006da85a82efd87724dda79efa87a25fa8d019a5"
+        },
+        "P": {
+          "shape": [
+            10333,
+            829
+          ],
+          "dtype": "float32",
+          "bytes_sha256": "85316828c45adcfdf170680bebb925afd8e7d15e08a97083aad0e3a97534ec7c"
+        },
+        "symbols": {
+          "shape": [
+            829
+          ],
+          "dtype": "<U15",
+          "bytes_sha256": "fef988f09dfccb9f85c1c53164f104aef5fd3cb732364c1cb21e4ce14d983c22"
+        }
+      },
+      "arrays_sha256": "79850ff371c23218f1bc12b6f4345c51ce587a32a569252170a98c370b869af0",
+      "schema_matches_expected": true,
+      "unexpected_keys": [],
+      "missing_keys": [],
+      "note": "arrays_sha256 is built from array BYTES, so it does not depend on the container schema; schema_matches_expected must stay true -- if a field is ever added to the OOF, the container sha would move silently while predictions are unchanged"
+    },
     "inputs_by_basename": {
       "NEWS_FEATURES.npz": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
       "dlw_targets.npz": "ca479fccd3d3245e9438a8c82ba7b4a1950ab6e06607f28b25923c4526924d62",
@@ -1785,6 +1837,6 @@
     "train_receipt_file_sha256": "57cc68f4c98cd28854ff6a41b026c80f67854c4c506c94c8a3d8d4e3899b0441",
     "oof_file_sha256_recomputed": "86b3aab704c9110b33bcca47f3ef77ad176d5d07f5d0ea7b2fc48fb42e92413e",
     "gpu_and_timings_excluded_from_content": true,
-    "utc_written": "2026-09-25T09:19:10Z"
+    "utc_written": "2026-09-25T09:43:00Z"
   }
 }
