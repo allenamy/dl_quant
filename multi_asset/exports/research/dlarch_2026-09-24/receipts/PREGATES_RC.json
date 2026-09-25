@@ -1,0 +1,327 @@
+{
+ "device": "dlarch_pregates.py",
+ "self_sha256": "6b74e55a44d38505877b360cd541a869edb5962f7026f03eeb8ed3355d28993f",
+ "prereg": {
+  "path": "docs/PREREG_dlarch_pregates_2026-09-25.md"
+ },
+ "caliber": {
+  "label": "dlw_targets.npz y4s, SCORE layer; NOT v4 RAW accounting caliber (KB-05)",
+  "never": "do not quote as a return or as book-layer evidence"
+ },
+ "test_years": [
+  2023,
+  2024,
+  2025
+ ],
+ "embargo_anchors": 60,
+ "lgb_params": {
+  "n_estimators": 400,
+  "learning_rate": 0.05,
+  "num_leaves": 63,
+  "subsample": 0.8,
+  "colsample_bytree": 0.8,
+  "random_state": 0,
+  "n_jobs": 8,
+  "verbose": -1
+ },
+ "ridge_alpha": 1.0,
+ "note_vs_F8": "3 folds here vs F8's 4 (2026 excluded) -> qualitative comparison only",
+ "utc_start": "2026-09-25T01:28:27Z",
+ "inputs": {
+  "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+  "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz": "ca479fccd3d3245e9438a8c82ba7b4a1950ab6e06607f28b25923c4526924d62",
+  "/dev/shm/news2_2026-09-23/work/king/KING_OOF.npz": "a10b872506ca60afcd0f69b0e43d17a548cdd7c6956075000aac954b21e3df9a",
+  "/dev/shm/news2_2026-09-23/devices/king_folds.py": "4886c278c12b0f5126bb1e8ad6b4789db95e604180a77d0cd02f1e7c612df640",
+  "/dev/shm/news2_2026-09-23/devices/news2_diag1_score_ic.py": "291d800709650dddac72ba347cd151e71a8b0d22c730b535f3298e85bf6c79fc",
+  "/dev/shm/news2_2026-09-23/treeNC5_deploy/fea171/dlw_features.py": "874c18705c3027a2f1aaa50bff52d11edcb0f984e5945e8755b6c30890ce2247",
+  "/dev/shm/news2_2026-09-23/treeNC5_deploy/fea171/f8_higher_order_features.py": "98bc036d98a1b2385dd9e035a4803e03426047ba058d30e93df959b3f3788fb6"
+ },
+ "arms": {
+  "BASE": {
+   "n_cols": 171,
+   "extra_names": [],
+   "shift_anchors": 0,
+   "years": {
+    "2023": {
+     "train_pairs": 290199,
+     "test_pairs": 410256,
+     "ridge_s": 0.7,
+     "lgbm_s": 7.9,
+     "ridge_ic": 0.09285385629392394,
+     "ridge_n_anchors": 2190,
+     "ridge_skipped": 0,
+     "lgbm_ic": 0.09573829908053828,
+     "lgbm_n_anchors": 2190,
+     "lgbm_skipped": 0
+    },
+    "2024": {
+     "train_pairs": 694838,
+     "test_pairs": 600192,
+     "ridge_s": 1.0,
+     "lgbm_s": 14.4,
+     "ridge_ic": 0.08134620178349353,
+     "ridge_n_anchors": 2196,
+     "ridge_skipped": 0,
+     "lgbm_ic": 0.08307087687980548,
+     "lgbm_n_anchors": 2196,
+     "lgbm_skipped": 0
+    },
+    "2025": {
+     "train_pairs": 1289444,
+     "test_pairs": 849226,
+     "ridge_s": 1.7,
+     "lgbm_s": 25.1,
+     "ridge_ic": 0.08210847284723305,
+     "ridge_n_anchors": 2190,
+     "ridge_skipped": 0,
+     "lgbm_ic": 0.08582156197249034,
+     "lgbm_n_anchors": 2190,
+     "lgbm_skipped": 0
+    }
+   },
+   "ridge_ic_all": 0.08543244524569428,
+   "ridge_n_anchors_all": 6576,
+   "ridge_skipped_all": 0,
+   "lgbm_ic_all": 0.08820555677223017,
+   "lgbm_n_anchors_all": 6576,
+   "lgbm_skipped_all": 0,
+   "total_seconds": 57.3
+  },
+  "Z6": {
+   "n_cols": 177,
+   "extra_names": [
+    "zero",
+    "zero",
+    "zero",
+    "zero",
+    "zero",
+    "zero"
+   ],
+   "shift_anchors": 0,
+   "years": {
+    "2023": {
+     "train_pairs": 290199,
+     "test_pairs": 410256,
+     "ridge_s": 0.5,
+     "lgbm_s": 7.7,
+     "ridge_ic": 0.0928516630715564,
+     "ridge_n_anchors": 2190,
+     "ridge_skipped": 0,
+     "lgbm_ic": 0.09573829908053828,
+     "lgbm_n_anchors": 2190,
+     "lgbm_skipped": 0
+    },
+    "2024": {
+     "train_pairs": 694838,
+     "test_pairs": 600192,
+     "ridge_s": 2.4,
+     "lgbm_s": 14.5,
+     "ridge_ic": 0.08134913453267813,
+     "ridge_n_anchors": 2196,
+     "ridge_skipped": 0,
+     "lgbm_ic": 0.08307087687980548,
+     "lgbm_n_anchors": 2196,
+     "lgbm_skipped": 0
+    },
+    "2025": {
+     "train_pairs": 1289444,
+     "test_pairs": 849226,
+     "ridge_s": 5.1,
+     "lgbm_s": 25.2,
+     "ridge_ic": 0.08219708793242558,
+     "ridge_n_anchors": 2190,
+     "ridge_skipped": 0,
+     "lgbm_ic": 0.08582156197249034,
+     "lgbm_n_anchors": 2190,
+     "lgbm_skipped": 0
+    }
+   },
+   "ridge_ic_all": 0.08546220561625331,
+   "ridge_n_anchors_all": 6576,
+   "ridge_skipped_all": 0,
+   "lgbm_ic_all": 0.08820555677223017,
+   "lgbm_n_anchors_all": 6576,
+   "lgbm_skipped_all": 0,
+   "total_seconds": 63.3
+  },
+  "RC": {
+   "n_cols": 177,
+   "extra_names": [
+    "label_rank",
+    "label_rank",
+    "label_rank",
+    "label_rank",
+    "label_rank",
+    "label_rank"
+   ],
+   "shift_anchors": 0,
+   "years": {
+    "2023": {
+     "train_pairs": 290199,
+     "test_pairs": 410256,
+     "ridge_s": 0.5,
+     "lgbm_s": 9.7,
+     "ridge_ic": 1.0,
+     "ridge_n_anchors": 2190,
+     "ridge_skipped": 0,
+     "lgbm_ic": 0.9999968093056838,
+     "lgbm_n_anchors": 2190,
+     "lgbm_skipped": 0
+    },
+    "2024": {
+     "train_pairs": 694838,
+     "test_pairs": 600192,
+     "ridge_s": 1.0,
+     "lgbm_s": 19.0,
+     "ridge_ic": 0.999999991233919,
+     "ridge_n_anchors": 2196,
+     "ridge_skipped": 0,
+     "lgbm_ic": 0.9999925330762376,
+     "lgbm_n_anchors": 2196,
+     "lgbm_skipped": 0
+    },
+    "2025": {
+     "train_pairs": 1289444,
+     "test_pairs": 849226,
+     "ridge_s": 2.0,
+     "lgbm_s": 35.2,
+     "ridge_ic": 0.9999894348238674,
+     "ridge_n_anchors": 2190,
+     "ridge_skipped": 0,
+     "lgbm_ic": 0.9999863637182028,
+     "lgbm_n_anchors": 2190,
+     "lgbm_skipped": 0
+    }
+   },
+   "ridge_ic_all": 0.9999964785605163,
+   "ridge_n_anchors_all": 6576,
+   "ridge_skipped_all": 0,
+   "lgbm_ic_all": 0.9999919026091438,
+   "lgbm_n_anchors_all": 6576,
+   "lgbm_skipped_all": 0,
+   "total_seconds": 74.4
+  }
+ },
+ "gates": {},
+ "checks": {
+  "target": {
+   "finite_pairs": 2784994,
+   "n_pairs": 2785754,
+   "anchors_with_target": 10291
+  },
+  "extra_columns": {
+   "A4b": {
+    "names": [
+     "selfz:ret5_sum_48_v",
+     "selfz:ret5_sum_288_v",
+     "selfz:ret5_sum_864_v",
+     "selfz:ret5_sum_2016_v",
+     "selfz:ret5_sum_8640_v",
+     "selfz:vol_48_v",
+     "selfz:vol_288_v",
+     "selfz:vol_864_v",
+     "selfz:vol_2016_v",
+     "selfz:vol_8640_v"
+    ],
+    "nonzero_cells": {
+     "selfz:ret5_sum_48_v": 2685348,
+     "selfz:ret5_sum_288_v": 2685348,
+     "selfz:ret5_sum_864_v": 2685348,
+     "selfz:ret5_sum_2016_v": 2685348,
+     "selfz:ret5_sum_8640_v": 2685348,
+     "selfz:vol_48_v": 2685348,
+     "selfz:vol_288_v": 2685348,
+     "selfz:vol_864_v": 2685348,
+     "selfz:vol_2016_v": 2685348,
+     "selfz:vol_8640_v": 2685348
+    },
+    "zero_cell_columns": [],
+    "diag": {
+     "cells_without_enough_self_history": 1004060,
+     "finite_source_cells_per_col": 2785754,
+     "note": "a cell needs >= 120 finite anchors in [i-540, i-1]; short-history cells are set to 0 by nan_to_num and are counted here, not silently zeroed"
+    },
+    "seconds": 4.8
+   },
+   "A1": {
+    "names": [
+     "grp:ret5_sum_288_r@log_qv_mean_8640_r",
+     "grp:ret5_sum_2016_r@log_qv_mean_8640_r",
+     "grp:ret5_sum_48_r@log_qv_mean_8640_r",
+     "grp:ret5_sum_288_r@vol_2016_r",
+     "grp:ret5_sum_2016_r@vol_2016_r",
+     "grp:vol_288_r@log_qv_mean_8640_r"
+    ],
+    "nonzero_cells": {
+     "grp:ret5_sum_288_r@log_qv_mean_8640_r": 2750379,
+     "grp:ret5_sum_2016_r@log_qv_mean_8640_r": 2750388,
+     "grp:ret5_sum_48_r@log_qv_mean_8640_r": 2750386,
+     "grp:ret5_sum_288_r@vol_2016_r": 2750387,
+     "grp:ret5_sum_2016_r@vol_2016_r": 2750391,
+     "grp:vol_288_r@log_qv_mean_8640_r": 2750386
+    },
+    "zero_cell_columns": [],
+    "diag": 0,
+    "seconds": 27.8
+   },
+   "A2": {
+    "names": [
+     "shape_accel",
+     "shape_curv",
+     "shape_r48_over_vol",
+     "shape_mid_accel",
+     "shape_long_accel",
+     "shape_nested_sign_count"
+    ],
+    "nonzero_cells": {
+     "shape_accel": 2781888,
+     "shape_curv": 2781888,
+     "shape_r48_over_vol": 2781889,
+     "shape_mid_accel": 2781886,
+     "shape_long_accel": 2781888,
+     "shape_nested_sign_count": 2780578
+    },
+    "zero_cell_columns": [],
+    "diag": 0,
+    "seconds": 3.8
+   },
+   "T6a": {
+    "names": [
+     "king_rank"
+    ],
+    "nonzero_cells": {
+     "king_rank": 2641776
+    },
+    "zero_cell_columns": [],
+    "diag": 0,
+    "seconds": 0.6
+   }
+  },
+  "base_ic_sanity": {
+   "lgbm_ic_all": 0.08820555677223017,
+   "ridge_ic_all": 0.08543244524569428,
+   "expected_range": [
+    0.03,
+    0.09
+   ],
+   "in_range": true
+  },
+  "red_capability": {
+   "ridge": {
+    "zero_columns_delta": 2.976037055903158e-05,
+    "label_rank_columns_delta": 0.9145640333148221,
+    "zero_delta_is_exactly_zero": false,
+    "label_arm_goes_hugely_green": true
+   },
+   "lgbm": {
+    "zero_columns_delta": 0.0,
+    "label_rank_columns_delta": 0.9117863458369136,
+    "zero_delta_is_exactly_zero": true,
+    "label_arm_goes_hugely_green": true
+   },
+   "GATE_CAN_GO_GREEN": true,
+   "note": "Ridge's zero-column delta must be exactly 0; LGBM's need not be, because colsample_bytree samples a fraction of the COLUMN COUNT -- that is the effect the permuted-column placebo has to absorb, measured here with zero information present."
+  }
+ },
+ "utc_end": "2026-09-25T01:32:24Z"
+}

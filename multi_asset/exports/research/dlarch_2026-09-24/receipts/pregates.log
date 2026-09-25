@@ -1,0 +1,120 @@
+01:11:12 hashing inputs
+01:11:14 n_pairs 2785754 anchors 10333 syms 829; CHN ['ret5', 'range', 'cpos', 'log_qv', 'log_cnt', 'log_avgsz', 'tbf'] WINS [48, 288, 864, 2016, 8640]
+01:11:15 target {"finite_pairs": 2784994, "n_pairs": 2785754, "anchors_with_target": 10291}
+01:11:22 built A4b nonzero [2685348, 2685348, 2685348, 2685348, 2685348, 2685348, 2685348, 2685348, 2685348, 2685348] diag {'cells_without_enough_self_history': 1004060, 'finite_source_cells_per_col': 2785754, 'note': 'a cell needs >= 120 finite anchors in [i-540, i-1]; short-history cells are set to 0 by nan_to_num and are counted here, not silently zeroed'} 5s
+01:11:49 built A1 nonzero [2750379, 2750388, 2750386, 2750387, 2750391, 2750386] diag 0 27s
+01:11:53 built A2 nonzero [2781888, 2781888, 2781889, 2781886, 2781888, 2780578] diag 0 4s
+01:11:53 built T6a nonzero [2641776] diag 0 1s
+01:11:53 king causality {"anchors_with_a_model": 9247, "anchors_whose_model_saw_labels_at_or_after_the_anchor": 0, "first_offenders": [], "anchors_with_unrecognised_model_sha": 0, "PASS": true}
+01:11:54 king KS {"2023": {"ks_stat": 0.24412499999999998, "n_train_sub": 200000, "n_test_sub": 200000}, "2024": {"ks_stat": 0.10132999999999998, "n_train_sub": 200000, "n_test_sub": 200000}, "2025": {"ks_stat": 0.057630000000000015, "n_train_sub": 200000, "n_test_sub": 200000}}
+01:11:54 ARM BASE
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 5.4759059509024155e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:12:04   BASE 2023 tr=290199 te=410256 ridge 1s lgbm 10s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 2.449218072797521e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:12:25   BASE 2024 tr=694838 te=600192 ridge 1s lgbm 19s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 1.09625046817996e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:13:00   BASE 2025 tr=1289444 te=849226 ridge 5s lgbm 29s
+01:13:05 ARM BASE ridge_all 0.08543244524569428 lgbm_all 0.08820555677223017
+01:13:05 ARM A4a
+01:13:16   A4a 2023 tr=290199 te=410256 ridge 0s lgbm 8s
+01:13:32   A4a 2024 tr=694838 te=600192 ridge 1s lgbm 15s
+01:14:00   A4a 2025 tr=1289444 te=849226 ridge 4s lgbm 23s
+01:14:05 ARM A4a ridge_all 0.08544456424644097 lgbm_all 0.08803633650123366
+01:14:05 ARM A4b
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 5.167039418552122e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:14:17   A4b 2023 tr=290199 te=410256 ridge 1s lgbm 10s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 2.3922755332250745e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:14:40   A4b 2024 tr=694838 te=600192 ridge 3s lgbm 20s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 9.59079482498737e-09.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:15:31   A4b 2025 tr=1289444 te=849226 ridge 10s lgbm 30s
+01:15:36 ARM A4b ridge_all 0.08527206024240573 lgbm_all 0.08897714313397469
+01:15:36 ARM A1
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 5.240956824081877e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:15:47   A1 2023 tr=290199 te=410256 ridge 1s lgbm 10s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 2.422058464901511e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:16:13   A1 2024 tr=694838 te=600192 ridge 9s lgbm 17s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 1.0060722921423348e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:17:19   A1 2025 tr=1289444 te=849226 ridge 16s lgbm 49s
+01:17:24 ARM A1 ridge_all 0.08543731730608851 lgbm_all 0.08836623228135904
+01:17:24 ARM A2
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 5.273607683875525e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:17:33   A2 2023 tr=290199 te=410256 ridge 1s lgbm 8s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 2.443306001964629e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:17:50   A2 2024 tr=694838 te=600192 ridge 1s lgbm 15s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 1.0153293317216594e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:18:27   A2 2025 tr=1289444 te=849226 ridge 5s lgbm 31s
+01:18:32 ARM A2 ridge_all 0.08607744573302423 lgbm_all 0.088733954544035
+01:18:32 ARM T6a
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 5.4437666818785146e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:18:43   T6a 2023 tr=290199 te=410256 ridge 1s lgbm 10s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 2.4306455514988556e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:19:09   T6a 2024 tr=694838 te=600192 ridge 7s lgbm 19s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 1.0884988022041853e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:20:14   T6a 2025 tr=1289444 te=849226 ridge 26s lgbm 31s
+01:20:19 ARM T6a ridge_all 0.08595142799847624 lgbm_all 0.08872779456453322
+01:20:19 ARM PL0
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 5.310335282615597e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:20:30   PL0 2023 tr=290199 te=410256 ridge 1s lgbm 10s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 2.4592539560330806e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:20:54   PL0 2024 tr=694838 te=600192 ridge 4s lgbm 19s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 1.0219045165626994e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:21:23   PL0 2025 tr=1289444 te=849226 ridge 2s lgbm 27s
+01:21:28 ARM PL0 ridge_all 0.08542298220809884 lgbm_all 0.08890449078408785
+01:21:29 ARM PL1
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 5.3106298025795695e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:21:38   PL1 2023 tr=290199 te=410256 ridge 1s lgbm 8s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 2.459229264673013e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:21:54   PL1 2024 tr=694838 te=600192 ridge 1s lgbm 15s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 1.0219181945103628e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:22:24   PL1 2025 tr=1289444 te=849226 ridge 2s lgbm 27s
+01:22:29 ARM PL1 ridge_all 0.085451361466989 lgbm_all 0.08804519719855547
+01:22:29 ARM PL2
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 5.310532813496138e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:22:39   PL2 2023 tr=290199 te=410256 ridge 1s lgbm 8s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 2.4591740199753076e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:22:55   PL2 2024 tr=694838 te=600192 ridge 1s lgbm 15s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 1.0218857759980438e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:23:25   PL2 2025 tr=1289444 te=849226 ridge 2s lgbm 27s
+01:23:30 ARM PL2 ridge_all 0.08544721033282252 lgbm_all 0.08810452682287209
+01:23:30 PG-T2 residual target
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 5.4759059509024155e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:23:39   T2 2023 tr=290199 done
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 2.449218072797521e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:23:54   T2 2024 tr=694838 done
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 1.09625046817996e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:24:20   T2 2025 tr=1289444 done
+01:24:25 T2 {"ridge_ic_vs_y4s": 0.07937077358627333, "ridge_ic_vs_residual_target": 0.06185947780381007, "lgbm_ic_vs_y4s": 0.08057744320879585, "lgbm_ic_vs_residual_target": 0.06215739094387922} R2 0.01645
+01:24:25 BASE sanity {"lgbm_ic_all": 0.08820555677223017, "ridge_ic_all": 0.08543244524569428, "expected_range": [0.03, 0.09], "in_range": true}
+01:24:25 GATE A4a FAIL {'ridge': 1e-05, 'lgbm': -0.00017}
+01:24:25 GATE A4b FAIL {'ridge': -0.00016, 'lgbm': 0.00077}
+01:24:25 GATE A1 FAIL {'ridge': 0.0, 'lgbm': 0.00016}
+01:24:25 GATE A2 FAIL {'ridge': 0.00065, 'lgbm': 0.00053}
+01:24:25 GATE T6a FAIL {'ridge': 0.00052, 'lgbm': 0.00052}
+PREGATES DONE arms=10 verdicts={"A4a": "FAIL", "A4b": "FAIL", "A1": "FAIL", "A2": "FAIL", "T6a": "FAIL"} base_lgbm_ic=0.08820555677223017 json=37dc55e99069c273

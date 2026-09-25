@@ -1,0 +1,43 @@
+01:28:27 hashing inputs
+01:28:29 n_pairs 2785754 anchors 10333 syms 829; CHN ['ret5', 'range', 'cpos', 'log_qv', 'log_cnt', 'log_avgsz', 'tbf'] WINS [48, 288, 864, 2016, 8640]
+01:28:30 target {"finite_pairs": 2784994, "n_pairs": 2785754, "anchors_with_target": 10291}
+01:28:37 built A4b nonzero [2685348, 2685348, 2685348, 2685348, 2685348, 2685348, 2685348, 2685348, 2685348, 2685348] diag {'cells_without_enough_self_history': 1004060, 'finite_source_cells_per_col': 2785754, 'note': 'a cell needs >= 120 finite anchors in [i-540, i-1]; short-history cells are set to 0 by nan_to_num and are counted here, not silently zeroed'} 5s
+01:29:05 built A1 nonzero [2750379, 2750388, 2750386, 2750387, 2750391, 2750386] diag 0 28s
+01:29:08 built A2 nonzero [2781888, 2781888, 2781889, 2781886, 2781888, 2780578] diag 0 4s
+01:29:09 built T6a nonzero [2641776] diag 0 1s
+01:29:09 ARM BASE
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 5.4759059509024155e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:29:18   BASE 2023 tr=290199 te=410256 ridge 1s lgbm 8s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 2.449218072797521e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:29:34   BASE 2024 tr=694838 te=600192 ridge 1s lgbm 14s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 1.09625046817996e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:30:01   BASE 2025 tr=1289444 te=849226 ridge 2s lgbm 25s
+01:30:06 ARM BASE ridge_all 0.08543244524569428 lgbm_all 0.08820555677223017
+01:30:06 ARM Z6
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 7.233370524772909e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:30:15   Z6 2023 tr=290199 te=410256 ridge 1s lgbm 8s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 2.997404990878749e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:30:33   Z6 2024 tr=694838 te=600192 ridge 2s lgbm 15s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 1.0220354340617632e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:31:05   Z6 2025 tr=1289444 te=849226 ridge 5s lgbm 25s
+01:31:10 ARM Z6 ridge_all 0.08546220561625331 lgbm_all 0.08820555677223017
+01:31:10 ARM RC
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 5.279636283717082e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:31:21   RC 2023 tr=290199 te=410256 ridge 1s lgbm 10s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 2.4474161364196334e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:31:41   RC 2024 tr=694838 te=600192 ridge 1s lgbm 19s
+/workspace/venv/lib/python3.11/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 1.0169575404006537e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+01:32:19   RC 2025 tr=1289444 te=849226 ridge 2s lgbm 35s
+01:32:24 ARM RC ridge_all 0.9999964785605163 lgbm_all 0.9999919026091438
+01:32:24 BASE sanity {"lgbm_ic_all": 0.08820555677223017, "ridge_ic_all": 0.08543244524569428, "expected_range": [0.03, 0.09], "in_range": true}
+01:32:24 RED-CAPABILITY {"ridge": {"zero_columns_delta": 2.976037055903158e-05, "label_rank_columns_delta": 0.9145640333148221, "zero_delta_is_exactly_zero": false, "label_arm_goes_hugely_green": true}, "lgbm": {"zero_columns_delta": 0.0, "label_rank_columns_delta": 0.9117863458369136, "zero_delta_is_exactly_zero": true, "label_arm_goes_hugely_green": true}, "GATE_CAN_GO_GREEN": true, "note": "Ridge's zero-column delta must be exactly 0; LGBM's need not be, because colsample_bytree samples a fraction of the COLUMN COUNT -- that is the effect the permuted-column placebo has to absorb, measured here with zero information present."}
+PREGATES DONE arms=3 verdicts={} base_lgbm_ic=0.08820555677223017 json=27496bf8e649ec1a
