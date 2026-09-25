@@ -1,0 +1,22 @@
+T1 census: 9 channel-0 subscripts in the v2 tree
+     shadow_loop_v3.py:661: CDf[:, :, 0] = NC.rr_from_ch0(st.cts, st.cd[:, :, 0], st.bnd_ts, st.bnd_col, st.bnd_raw)
+     shadow_loop_v3.py:675: r5seg = CDf[max(ai + 1 - 2016, 0):ai + 1, :, 0]
+     shadow_loop_v3.py:661: CDf[:, :, 0] = NC.rr_from_ch0(st.cts, st.cd[:, :, 0], st.bnd_ts, st.bnd_col, st.bnd_raw)
+     shadow_loop_v3.py:715: seg = CDf[max(ai + 1 - w, 0):ai + 1, :, 0]
+     shadow_loop_v3.py:754: seg = CDf[pi + 1:ai + 1, :, 0]
+     fea171/combo_stage.py:50: RR = NC.rr_from_ch0(rts, RD[:, :, 0], _bnd["ts"], _bnd["col"], _bnd["raw"])   # NC A3: the return channel ever
+     fea171/combo_stage.py:88: _r5 = (RR[:, _jb] if RR is not None else RD[:, _jb, 0]).astype(np.float64)   # NC A3: rr (the replay passes th
+     fea171/combo_stage.py:403: _beta_field = _BOP.compute(rts, RD[:, :, 0], [str(x) for x in _symbols], list(_uni), A)
+     fea171/f8_higher_order_features.py:142: r = (RET[:, chunk] if RET is not None else CD[:, chunk, 0]).astype(np.float32); fin = np.isfinite(r); rz = np.
+  FAIL T1 every channel-0 subscript is a whitelisted site  — [('fea171/combo_stage.py', 'RR = NC.rr_from_ch0(rts, RD[:, :, 0], _bnd["ts"], _bnd["col"], _bnd["raw"])   # NC A3: the return channel every consumer reads', 50), ('fea171/combo_stage.py', '_r5 = (RR[:, _jb] if RR is not None else RD[:, _jb, 0]).astype(np.float64)   # NC A3: rr (the replay passes the
+  OK   T2 baseline tree: capture channel 0 at the planted cells is the clipped storage 0.30  — (0.300048828125, 0.300048828125)
+  OK   T2 control (no table entry): v2 capture channel 0 at the planted cells = 0.30  — (0.300048828125, 0.300048828125)
+  FAIL T2 v2 tree: capture channel 0 at the planted cells = the table raw (0.90 / 0.75)  — (0.300048828125, 0.300048828125)
+Traceback (most recent call last):
+  File "/Users/haosiyu/cc_tmp/nc_20260923/src/test_m3_v2_ret5.py", line 152, in <module>
+    main()
+    ~~~~^^
+  File "/Users/haosiyu/cc_tmp/nc_20260923/src/test_m3_v2_ret5.py", line 98, in main
+    Bv = Sv["boundary"]; rr = NC.rr_from_ch0(Sv["rts"], Sv["ch0_storage_f16"], Bv["ts"], Bv["col"], Bv["raw"])
+                                                        ~~^^^^^^^^^^^^^^^^^^^
+KeyError: 'ch0_storage_f16'

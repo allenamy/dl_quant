@@ -10,7 +10,13 @@ Stack (every step sha-pinned; every edit asserts its anchor text occurs exactly 
      reproduce the M3 file 41f9174d exactly when applied to fb5a9407).
   4. (later stage) the parallel fetch layer (d).
 Extra files installed next to combo_stage.py: nc_contract.py, tradability.py (research common, a9fad82c), beta_overlay_producer.py.
-usage: python nc_derive_producer.py <out_dir>
+usage: python nc_derive_producer.py <out_dir> [--release] [--m3-v2]
+  --m3-v2  (DESIGN_ret5_single_accessor_2026-09-24; lead rulings 2026-09-24): the class-shaped ret5 fix + m3_beta_v2 —
+           capture_producer_inputs returns channel 0 AS rr (the clipped f16 storage only as `ch0_storage_f16`), combo's RR is
+           computed from that storage and asserted equal to capture's channel 0, the three silent ch0 fallbacks become hard errors
+           (combo _btcv_series RR required; dlw / f8 require ret_f32), the mini cache carries no channel-0 values, and
+           beta_overlay_producer VERSION = "m3_beta_v2" with its source text; combo_stage L403 (_BOP.compute(rts, RD[:, :, 0], ...))
+           is deliberately left unchanged: under the class fix it reads rr without an edit (that is the test of the class).
 env:   NC_NEWS2_DEVICE (news2_derive_producer.py), NC_M3_DIR (producer_release/20260923_m3), NC_SRC (dir of nc_contract.py),
        NC_TRAD (tradability.py), plus news2's NEWS2_* variables (sources)."""
 import ast, hashlib, importlib.util, json, os, pathlib, shutil, sys, time
@@ -38,6 +44,7 @@ TREND_ROWS = os.environ.get("NC_TREND_ROWS", DEFAULT_TREND_ROWS)
 # ARM_VIABILITY.json 2026-09-23: base / D4 / D7 / D8 / D9 / D14). Refused at build time (lead 2026-09-23). The flag exists only so
 # the guard test can show the hole is real (a D4 arm built with it off has no c7).
 REQUIRE_SCREEN_FAMILY = True
+M3_V2 = False   # set by --m3-v2 in main()
 
 
 def sha_file(p):
@@ -769,6 +776,56 @@ def check_phases(texts):
 
 POST_EDITS = []   # (file, tag, old, new): replacement-type edits after M3; the §A5 check runs after them
 
+# ================================================================================================ M3 v2 (--m3-v2 only)
+V2_EDITS = [
+    ("fea171/feature_cache_identity.py", "V2:capture_channel0_is_rr",
+     """            members_hist = {"anchors": _m["anchors"].astype(np.int64), "off": _m["off"].astype(np.int64), "idx": _m["idx"].astype(np.int64)}
+""",
+     """            members_hist = {"anchors": _m["anchors"].astype(np.int64), "off": _m["off"].astype(np.int64), "idx": _m["idx"].astype(np.int64)}
+        # v2 (DESIGN_ret5_single_accessor_2026-09-24 §3-1): channel 0 leaves this function AS rr, never as the clipped f16 storage;
+        # the storage is returned only under its own name for the one reader that needs it (nc_contract.rr_from_ch0)
+        import nc_contract as _NC
+        ch0_storage_f16 = np.array(data[:, :, 0])
+        data = np.asarray(data, dtype=np.float32).copy()
+        data[:, :, 0] = _NC.rr_from_ch0(rts, ch0_storage_f16, boundary["ts"], boundary["col"], boundary["raw"])
+"""),
+    ("fea171/feature_cache_identity.py", "V2:capture_return_storage",
+     """        return {"cfg": cfg, "aux": aux, "lr": lr, "rts": rts, "data": data, "boundary": boundary, "members_hist": members_hist,""",
+     """        return {"cfg": cfg, "aux": aux, "lr": lr, "rts": rts, "data": data, "boundary": boundary, "members_hist": members_hist, "ch0_storage_f16": ch0_storage_f16,"""),
+    ("fea171/combo_stage.py", "V2:rr_from_storage_asserted",
+     """RR = NC.rr_from_ch0(rts, RD[:, :, 0], _bnd["ts"], _bnd["col"], _bnd["raw"])   # NC A3: the return channel every consumer reads
+""",
+     """RR = NC.rr_from_ch0(rts, _source_snapshot["ch0_storage_f16"], _bnd["ts"], _bnd["col"], _bnd["raw"])   # NC A3: the return channel every consumer reads
+assert RR.shape == RD[:, :, 0].shape and np.array_equal(np.isnan(RR), np.isnan(RD[:, :, 0])) and np.array_equal(np.nan_to_num(RR), np.nan_to_num(RD[:, :, 0])), \
+    "v2: capture_producer_inputs' channel 0 is not rr"   # DESIGN_ret5_single_accessor_2026-09-24 §3-1
+"""),
+    ("fea171/combo_stage.py", "V2:btcv_rr_required_signature",
+     "def _btcv_series(rts, RD, e_rows, RR=None):", "def _btcv_series(rts, RD, e_rows, RR):"),
+    ("fea171/combo_stage.py", "V2:btcv_rr_required_body",
+     "    _r5 = (RR[:, _jb] if RR is not None else RD[:, _jb, 0]).astype(np.float64)   # NC A3: rr (the replay passes the same RR)",
+     "    _r5 = np.asarray(RR)[:, _jb].astype(np.float64)   # v2: RR required, no channel-0 fallback (DESIGN_ret5_single_accessor §3-2)"),
+    ("fea171/combo_stage.py", "V2:mini_cache_without_channel0",
+     """    np.savez(f"{MINI}/cache.npz", ts=rts, data=RD, symbols=_symbols, ch=_channels, ret_f32=RR)   # NC A3: ret_f32 = rr""",
+     """    _mini_data = RD.astype(np.float16); _mini_data[:, :, 0] = np.nan   # v2: the mini cache carries no channel-0 values; ret5 lives in ret_f32 only
+    np.savez(f"{MINI}/cache.npz", ts=rts, data=_mini_data, symbols=_symbols, ch=_channels, ret_f32=RR)   # NC A3: ret_f32 = rr"""),
+    ("fea171/dlw_features.py", "V2:dlw_ret_required",
+     """    RET = Z["ret_f32"] if "ret_f32" in Z.files else None   # NC A3 (amendment 1): the float32 return channel written by combo_stage""",
+     """    RET = Z["ret_f32"]   # v2: required — a cache without the float32 return channel is refused (KeyError), never read from channel 0"""),
+    ("fea171/dlw_features.py", "V2:dlw_channel0_is_ret",
+     "x = (RET if (c == 0 and RET is not None) else CD[:, :, c]).astype(np.float32)", "x = (RET if c == 0 else CD[:, :, c]).astype(np.float32)"),
+    ("fea171/f8_higher_order_features.py", "V2:f8_ret_required",
+     """    RET = Z["ret_f32"] if "ret_f32" in Z.files else None   # NC A3 (amendment 1): the float32 return channel written by combo_stage""",
+     """    RET = Z["ret_f32"]   # v2: required — a cache without the float32 return channel is refused (KeyError), never read from channel 0"""),
+    ("fea171/f8_higher_order_features.py", "V2:f8_channel0_is_ret",
+     "r = (RET[:, chunk] if RET is not None else CD[:, chunk, 0]).astype(np.float32)", "r = RET[:, chunk].astype(np.float32)"),
+]
+BOP_V2 = [
+    ("V2:bop_version", 'VERSION = "m3_beta_v1"', 'VERSION = "m3_beta_v2"   # v2: input = the rr return channel (DESIGN_ret5_single_accessor_2026-09-24; lead ruling 2026-09-24)'),
+    ("V2:bop_source",
+     '"source": "producer rolling cache state/rolling.npz channel ret5 (simple 5m return, clipped +-0.30, float16)",',
+     '"source": "producer return channel rr = nc_contract.rr_from_ch0(rolling ch0, sparse boundary table): raw where the +-0.30 clip bound, else float32(ch0) (FREEZE amendment 1 §2-2; m3_beta_v2)",'),
+]
+
 
 def apply(P, edits):
     for tag, old, new in edits:
@@ -776,7 +833,9 @@ def apply(P, edits):
 
 
 def main():
+    global M3_V2
     release = "--release" in sys.argv[2:]
+    M3_V2 = "--m3-v2" in sys.argv[2:]
     out = pathlib.Path(sys.argv[1]); assert not out.exists(), f"refusing to overwrite {out}"
     if release:   # a production / deploy build: the test-arm switches must be at their defaults
         assert NEWS2_FAMILIES == set(DEFAULT_FAMILIES.split(",")) and TREND_ROWS == DEFAULT_TREND_ROWS, ("release build with non-default arm switches", sorted(NEWS2_FAMILIES), TREND_ROWS)
@@ -822,6 +881,9 @@ def main():
     # 4. POST_EDITS: any later (replacement-type) edit lands here, so the checks below always see the final text. Empty in this release.
     for k, tag, old, new in POST_EDITS:
         A[k].replace(tag, old, new)
+    if M3_V2:
+        for k, tag, old, new in V2_EDITS:
+            A[k].replace(tag, old, new)
     # §A5 positive check AFTER every edit (B, A, M3) and BEFORE anything is written: a later edit must not undo it unseen
     check_a5({k: A[k].text for k in A})
     check_phases({k: A[k].text for k in A})   # every diag.phase name is a timing key (fork_e3_f2 2026-09-23)
@@ -833,8 +895,14 @@ def main():
     extra = {"fea171/nc_contract.py": NC_SRC / "nc_contract.py", "fea171/tradability.py": TRAD,
              "fea171/beta_overlay_producer.py": M3_DIR / "beta_overlay_producer.py",
              "fea171/stable_trend_reference.py": N2.RESEARCH_TREE / "stable_trend_reference.py"}
+    bop_edits = []
     for k, p in extra.items():
         shutil.copyfile(p, out / k); outputs[k] = sha_file(out / k)
+    if M3_V2:                                   # the M3 producer file is pinned (b77c180d); v2 is two anchored replacements on top of it
+        t = (out / "fea171/beta_overlay_producer.py").read_text()
+        for tag, old, new in BOP_V2:
+            assert t.count(old) == 1, ("BOP v2 anchor not unique", tag); t = t.replace(old, new); bop_edits.append({"tag": tag, "applied": True})
+        ast.parse(t); (out / "fea171/beta_overlay_producer.py").write_text(t); outputs["fea171/beta_overlay_producer.py"] = sha_file(out / "fea171/beta_overlay_producer.py")
     for f in ("xfer_syms.npz", "xfer_ref.npz"):
         shutil.copyfile(N2.WIDE / "fea171" / f, out / "fea171" / f); outputs[f"fea171/{f}"] = sha_file(out / "fea171" / f)
     rec = {"device": "nc_derive_producer.py", "self_sha256": sha_file(os.path.abspath(__file__)), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -842,7 +910,7 @@ def main():
            "pins": PIN, "sources": {k: {"path": str(p), "sha256": got[k]} for k, p in srcs.items()},
            "news2_families": sorted(NEWS2_FAMILIES), "news2_skipped_tags": skipped, "trend_rows_declared": TREND_ROWS,
            "arm_switches_at_defaults": NEWS2_FAMILIES == set(DEFAULT_FAMILIES.split(",")) and TREND_ROWS == DEFAULT_TREND_ROWS, "release_build": release,
-           "outputs": outputs,
+           "outputs": outputs, "m3_v2": M3_V2, "bop_v2_edits": bop_edits,
            "edits": {k: [{kk: vv for kk, vv in e.items() if kk not in ("old", "new")} for e in P[k].edits + A[k].edits] for k in A},
            "n_applied": {k: sum(1 for e in P[k].edits + A[k].edits if e["applied"]) for k in A}}
     (out / "PATCH_RECEIPT.json").write_text(json.dumps(rec, indent=1, ensure_ascii=False))

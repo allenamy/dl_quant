@@ -1,0 +1,530 @@
+{
+ "device": "nc_derive_producer.py",
+ "self_sha256": "5949bb339aaccde97c0f9dd0a7bfc469558dc2a2b0a13d4472b4b83e8315cd12",
+ "utc": "2026-09-25T04:13:41Z",
+ "freeze": {
+  "FREEZE_new_servable_v2_2026-09-23.md": "b30e4afa5",
+  "amendment1": "5c89f8d22",
+  "design_sha256": "33ef8164e6d97a71b94498b2d06e13917dd7ada127a278165bbc0beb7a6b11d3"
+ },
+ "pins": {
+  "news2_device": "9c475421d00379b5d6a514e8b406c0ba789a46b8acd9eb3db34ad56856e2c13a",
+  "tradability.py": "a9fad82ce26845a6f3d61cfa9077a6286949346e92c1fbfea17a663363264914",
+  "m3_combo_stage.py": "41f9174d7d6400f5964e7cdf878efce58ef3965dd202b6a364f6e45c8d166d3c",
+  "beta_overlay_producer.py": "b77c180d69170988780566e19d0ee4a0f85af25a9b9e9be08b6e4a386095fb58",
+  "prod_combo_stage.py": "fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8"
+ },
+ "sources": {
+  "shadow_loop_v3.py": {
+   "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/news_2026-09-23/deploy/producer_patch/shadow_loop_v3.patched.py",
+   "sha256": "ed11d731ffc13ef1333c3fabe044bc209485ba237fd9b8ae11aeccb014be1ec9"
+  },
+  "fea171/combo_stage.py": {
+   "path": "/Users/haosiyu/cc_tmp/news_20260923/producer_copy/fea171/combo_stage.py",
+   "sha256": "fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8"
+  },
+  "fea171/dlw_features.py": {
+   "path": "/Users/haosiyu/cc_tmp/news_20260923/producer_copy/fea171/dlw_features.py",
+   "sha256": "29ae6a985d891e56340378bb432c0370e914b93709eec44f54592472e4d20a76"
+  },
+  "fea171/f8_higher_order_features.py": {
+   "path": "/Users/haosiyu/cc_tmp/news_20260923/producer_copy/fea171/f8_higher_order_features.py",
+   "sha256": "2c500c7ad2bb0f5ddccf431021df50a106a39f4d228bd6cf2d074c5c12f66a5f"
+  },
+  "fea171/feature_cache_identity.py": {
+   "path": "/Users/haosiyu/cc_tmp/news_20260923/producer_copy/fea171/feature_cache_identity.py",
+   "sha256": "55bdef28def0e2a6faf1f28f6759cbcc48a4a947cf23214d05c2791bef9e4428"
+  }
+ },
+ "news2_families": [
+  "D14",
+  "D4",
+  "D5",
+  "D6",
+  "D7",
+  "D8",
+  "D9"
+ ],
+ "news2_skipped_tags": [
+  "D11:fund_panel_freshness",
+  "D13:rn8_freshness"
+ ],
+ "trend_rows_declared": "last",
+ "arm_switches_at_defaults": true,
+ "release_build": true,
+ "outputs": {
+  "shadow_loop_v3.py": "a68c7a5f0c6e8e0af89eda0307ab0b9ad6b38fa82810f4d04c1ab99deb1d510c",
+  "fea171/combo_stage.py": "3b4ad5d8cd5c433333d3e9cdd7faaebec1f17d755e6568edd629f565b0764a2a",
+  "fea171/dlw_features.py": "db985ee41f825f0dae0c92846fb47e086ee3f75da1df8e72ba7597ed536d8155",
+  "fea171/f8_higher_order_features.py": "0e23d359ad2764ddf7d2a6cf01acfcf62efb721578039704725efd5540cb28b7",
+  "fea171/feature_cache_identity.py": "57070424895e5c0e2f5a140993b0c07fef1a22a285b2210e460919c7157ae24c",
+  "fea171/nc_contract.py": "316a0b9bcf1461401740ebd79a3292a9bfcdc49d56f111219ff6e126110650cb",
+  "fea171/tradability.py": "a9fad82ce26845a6f3d61cfa9077a6286949346e92c1fbfea17a663363264914",
+  "fea171/beta_overlay_producer.py": "fc990a0b7bf34199430968ea015e90d9312e65b3d3d7ec2484f2033dba5b9846",
+  "fea171/stable_trend_reference.py": "01bf8b3d35a23b6599ceddcc849dbbbbb85eff5eceebfe1a5a045fe9ca8b79ae",
+  "fea171/xfer_syms.npz": "d187042e60b480d3bb9e2d57757a1000da80428541011eeec67e330748ae1c92",
+  "fea171/xfer_ref.npz": "33eb713b72a67665faaf72fa071e0a13c7a7a60a9f732f6e99398ae43dd7bfc8"
+ },
+ "m3_v2": true,
+ "bop_v2_edits": [
+  {
+   "tag": "V2:bop_version",
+   "applied": true
+  },
+  {
+   "tag": "V2:bop_source",
+   "applied": true
+  }
+ ],
+ "edits": {
+  "shadow_loop_v3.py": [
+   {
+    "tag": "D5+D6:wstat",
+    "line_in_source": 491,
+    "applied": true
+   },
+   {
+    "tag": "D5+D6:vol",
+    "line_in_source": 529,
+    "applied": true
+   },
+   {
+    "tag": "D5+D6:member_screen",
+    "line_in_source": 503,
+    "applied": true
+   },
+   {
+    "tag": "D6:qvm_population_assert",
+    "line_in_source": 518,
+    "applied": true
+   },
+   {
+    "tag": "D14:stable_argsort",
+    "line_in_source": 524,
+    "applied": true
+   },
+   {
+    "tag": "A0:imports",
+    "line_in_source": 6,
+    "applied": true
+   },
+   {
+    "tag": "A2+A3:state_files",
+    "line_in_source": 213,
+    "applied": true
+   },
+   {
+    "tag": "A1:fetch_init",
+    "line_in_source": 278,
+    "applied": true
+   },
+   {
+    "tag": "A1+A2+A3:state_load",
+    "line_in_source": 312,
+    "applied": true
+   },
+   {
+    "tag": "A1+A2+A3:state_methods",
+    "line_in_source": 346,
+    "applied": true
+   },
+   {
+    "tag": "A1+A3:aux_save",
+    "line_in_source": 377,
+    "applied": true
+   },
+   {
+    "tag": "A1:phase_key_exchange_info",
+    "line_in_source": 410,
+    "applied": true
+   },
+   {
+    "tag": "A1:fetch_dynamic",
+    "line_in_source": 449,
+    "applied": true
+   },
+   {
+    "tag": "A3:ingest_no_cross_gap",
+    "line_in_source": 477,
+    "applied": true
+   },
+   {
+    "tag": "A1:exchange_info_moved",
+    "line_in_source": 508,
+    "applied": true
+   },
+   {
+    "tag": "A4:funding_loop",
+    "line_in_source": 525,
+    "applied": true
+   },
+   {
+    "tag": "A4:funding_skip_rule_unknown_iv",
+    "line_in_source": 516,
+    "applied": true
+   },
+   {
+    "tag": "A4:funding_no_expected_interval_skip_under_bulk",
+    "line_in_source": 517,
+    "applied": true
+   },
+   {
+    "tag": "A3:rr_channel",
+    "line_in_source": 539,
+    "applied": true
+   },
+   {
+    "tag": "A1:candidates",
+    "line_in_source": 570,
+    "applied": true
+   },
+   {
+    "tag": "A2:record_members",
+    "line_in_source": 581,
+    "applied": true
+   },
+   {
+    "tag": "A5+A6:fund_asof_and_base",
+    "line_in_source": 614,
+    "applied": true
+   },
+   {
+    "tag": "d:fetch_knobs",
+    "line_in_source": 10,
+    "applied": true
+   },
+   {
+    "tag": "d:fetcher",
+    "line_in_source": 136,
+    "applied": true
+   },
+   {
+    "tag": "d:klines_parallel_and_backfill",
+    "line_in_source": 515,
+    "applied": true
+   },
+   {
+    "tag": "d:backfill_function",
+    "line_in_source": 432,
+    "applied": true
+   },
+   {
+    "tag": "d:funding_bulk",
+    "line_in_source": 609,
+    "applied": true
+   },
+   {
+    "tag": "d:funding_request",
+    "line_in_source": 640,
+    "applied": true
+   },
+   {
+    "tag": "d:signal_log",
+    "line_in_source": 883,
+    "applied": true
+   },
+   {
+    "tag": "d:aux_residual",
+    "line_in_source": 423,
+    "applied": true
+   }
+  ],
+  "fea171/combo_stage.py": [
+   {
+    "tag": "D9:btcv_window",
+    "line_in_source": 83,
+    "applied": true
+   },
+   {
+    "tag": "D9:selfcheck",
+    "line_in_source": 105,
+    "applied": true
+   },
+   {
+    "tag": "D11:fund_panel_freshness",
+    "line_in_source": 175,
+    "applied": false
+   },
+   {
+    "tag": "D7:mini_pipeline_declares_trend_rows",
+    "line_in_source": 168,
+    "applied": true
+   },
+   {
+    "tag": "D13:rn8_freshness",
+    "line_in_source": 281,
+    "applied": false
+   },
+   {
+    "tag": "A0:imports",
+    "line_in_source": 9,
+    "applied": true
+   },
+   {
+    "tag": "A3:rr_after_snapshot",
+    "line_in_source": 48,
+    "applied": true
+   },
+   {
+    "tag": "A3:btcv_reads_rr",
+    "line_in_source": 82,
+    "applied": true
+   },
+   {
+    "tag": "A3:btcv_rr_channel",
+    "line_in_source": 88,
+    "applied": true
+   },
+   {
+    "tag": "A2:members_history",
+    "line_in_source": 165,
+    "applied": true
+   },
+   {
+    "tag": "A3:mini_cache_returns",
+    "line_in_source": 178,
+    "applied": true
+   },
+   {
+    "tag": "A3:btcv_call",
+    "line_in_source": 181,
+    "applied": true
+   },
+   {
+    "tag": "A5:fund_panel_asof",
+    "line_in_source": 191,
+    "applied": true
+   },
+   {
+    "tag": "A5:ftrim_rn8_asof",
+    "line_in_source": 295,
+    "applied": true
+   },
+   {
+    "tag": "M3:hunk1",
+    "line_in_source": 387,
+    "applied": true
+   },
+   {
+    "tag": "M3:hunk2",
+    "line_in_source": 436,
+    "applied": true
+   },
+   {
+    "tag": "M3:hunk3",
+    "line_in_source": 461,
+    "applied": true
+   },
+   {
+    "tag": "M3:hunk4",
+    "line_in_source": 487,
+    "applied": true
+   },
+   {
+    "tag": "V2:rr_from_storage_asserted",
+    "line_in_source": 50,
+    "applied": true
+   },
+   {
+    "tag": "V2:btcv_rr_required_signature",
+    "line_in_source": 83,
+    "applied": true
+   },
+   {
+    "tag": "V2:btcv_rr_required_body",
+    "line_in_source": 89,
+    "applied": true
+   },
+   {
+    "tag": "V2:mini_cache_without_channel0",
+    "line_in_source": 179,
+    "applied": true
+   }
+  ],
+  "fea171/dlw_features.py": [
+   {
+    "tag": "D4:x82_dtype",
+    "line_in_source": 78,
+    "applied": true
+   },
+   {
+    "tag": "D6:dlw_windows",
+    "line_in_source": 53,
+    "applied": true
+   },
+   {
+    "tag": "A3:dlw_ret_f32",
+    "line_in_source": 49,
+    "applied": true
+   },
+   {
+    "tag": "A3:dlw_load_ret",
+    "line_in_source": 40,
+    "applied": true
+   },
+   {
+    "tag": "V2:dlw_ret_required",
+    "line_in_source": 41,
+    "applied": true
+   },
+   {
+    "tag": "V2:dlw_channel0_is_ret",
+    "line_in_source": 50,
+    "applied": true
+   }
+  ],
+  "fea171/f8_higher_order_features.py": [
+   {
+    "tag": "D7:stable_trend",
+    "line_in_source": 210,
+    "applied": true,
+    "region_first_line": 210,
+    "region_last_line": 217
+   },
+   {
+    "tag": "D8:BS_support",
+    "line_in_source": 196,
+    "applied": true
+   },
+   {
+    "tag": "D8:upblk",
+    "line_in_source": 203,
+    "applied": true
+   },
+   {
+    "tag": "D8:dhi",
+    "line_in_source": 227,
+    "applied": true
+   },
+   {
+    "tag": "D8:dlo",
+    "line_in_source": 229,
+    "applied": true
+   },
+   {
+    "tag": "D8:ppct",
+    "line_in_source": 231,
+    "applied": true
+   },
+   {
+    "tag": "D8:SR30",
+    "line_in_source": 240,
+    "applied": true
+   },
+   {
+    "tag": "D8:r4lag",
+    "line_in_source": 309,
+    "applied": true
+   },
+   {
+    "tag": "D8:r24lag",
+    "line_in_source": 311,
+    "applied": true
+   },
+   {
+    "tag": "D8:RVj",
+    "line_in_source": 178,
+    "applied": true
+   },
+   {
+    "tag": "D8:jump",
+    "line_in_source": 160,
+    "applied": true
+   },
+   {
+    "tag": "D8:bv_lo",
+    "line_in_source": 159,
+    "applied": true
+   },
+   {
+    "tag": "D8:ac1",
+    "line_in_source": 190,
+    "applied": true
+   },
+   {
+    "tag": "D8:qv_populations",
+    "line_in_source": 254,
+    "applied": true
+   },
+   {
+    "tag": "D8:kyle_inputs",
+    "line_in_source": 255,
+    "applied": true
+   },
+   {
+    "tag": "D8:amihud",
+    "line_in_source": 263,
+    "applied": true
+   },
+   {
+    "tag": "D8:kyle_gate",
+    "line_in_source": 267,
+    "applied": true
+   },
+   {
+    "tag": "D8:tbvw",
+    "line_in_source": 287,
+    "applied": true
+   },
+   {
+    "tag": "D8:tbac1",
+    "line_in_source": 297,
+    "applied": true
+   },
+   {
+    "tag": "A3:f8_load_ret",
+    "line_in_source": 107,
+    "applied": true
+   },
+   {
+    "tag": "A3:f8_ret_f32",
+    "line_in_source": 142,
+    "applied": true
+   },
+   {
+    "tag": "V2:f8_ret_required",
+    "line_in_source": 108,
+    "applied": true
+   },
+   {
+    "tag": "V2:f8_channel0_is_ret",
+    "line_in_source": 142,
+    "applied": true
+   }
+  ],
+  "fea171/feature_cache_identity.py": [
+   {
+    "tag": "A2+A3:generation_files",
+    "line_in_source": 16,
+    "applied": true
+   },
+   {
+    "tag": "A2+A3:capture",
+    "line_in_source": 106,
+    "applied": true
+   },
+   {
+    "tag": "A2+A3:capture_return",
+    "line_in_source": 133,
+    "applied": true
+   },
+   {
+    "tag": "V2:capture_channel0_is_rr",
+    "line_in_source": 111,
+    "applied": true
+   },
+   {
+    "tag": "V2:capture_return_storage",
+    "line_in_source": 139,
+    "applied": true
+   }
+  ]
+ },
+ "n_applied": {
+  "shadow_loop_v3.py": 30,
+  "fea171/combo_stage.py": 20,
+  "fea171/dlw_features.py": 6,
+  "fea171/f8_higher_order_features.py": 23,
+  "fea171/feature_cache_identity.py": 5
+ }
+}

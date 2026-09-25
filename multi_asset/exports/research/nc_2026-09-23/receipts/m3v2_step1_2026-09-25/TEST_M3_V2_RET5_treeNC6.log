@@ -1,0 +1,32 @@
+T1 census: 12 channel-0 subscripts in the v2 tree
+     shadow_loop_v3.py:661: CDf[:, :, 0] = NC.rr_from_ch0(st.cts, st.cd[:, :, 0], st.bnd_ts, st.bnd_col, st.bnd_raw)
+     shadow_loop_v3.py:675: r5seg = CDf[max(ai + 1 - 2016, 0):ai + 1, :, 0]
+     shadow_loop_v3.py:661: CDf[:, :, 0] = NC.rr_from_ch0(st.cts, st.cd[:, :, 0], st.bnd_ts, st.bnd_col, st.bnd_raw)
+     shadow_loop_v3.py:715: seg = CDf[max(ai + 1 - w, 0):ai + 1, :, 0]
+     shadow_loop_v3.py:754: seg = CDf[pi + 1:ai + 1, :, 0]
+     fea171/combo_stage.py:179: _mini_data = RD.astype(np.float16); _mini_data[:, :, 0] = np.nan   # v2: the mini cache carries no channel-0 v
+     fea171/combo_stage.py:51: assert RR.shape == RD[:, :, 0].shape and np.array_equal(np.isnan(RR), np.isnan(RD[:, :, 0])) and np.array_equa
+     fea171/combo_stage.py:51: assert RR.shape == RD[:, :, 0].shape and np.array_equal(np.isnan(RR), np.isnan(RD[:, :, 0])) and np.array_equa
+     fea171/combo_stage.py:51: assert RR.shape == RD[:, :, 0].shape and np.array_equal(np.isnan(RR), np.isnan(RD[:, :, 0])) and np.array_equa
+     fea171/combo_stage.py:405: _beta_field = _BOP.compute(rts, RD[:, :, 0], [str(x) for x in _symbols], list(_uni), A)
+     fea171/feature_cache_identity.py:117: data[:, :, 0] = _NC.rr_from_ch0(rts, ch0_storage_f16, boundary["ts"], boundary["col"], boundary["raw"])
+     fea171/feature_cache_identity.py:115: ch0_storage_f16 = np.array(data[:, :, 0])
+  OK   T1 every channel-0 subscript is a whitelisted site  — []
+  OK   T2 baseline tree: capture channel 0 at the planted cells is the clipped storage 0.30  — (0.300048828125, 0.300048828125)
+  OK   T2 control (no table entry): v2 capture channel 0 at the planted cells = 0.30  — (0.300048828125, 0.300048828125)
+  OK   T2 v2 tree: capture channel 0 at the planted cells = the table raw (0.90 / 0.75)  — (0.8999999761581421, 0.75)
+  OK   T2 v2 capture channel 0 == rr_from_ch0(storage, table) on every cell
+  OK   T2 v2 channel 0 differs from the storage only at table cells  — (17, 17)
+  OK   T3 BOP VERSION == m3_beta_v2  — m3_beta_v2
+  OK   T3 betas on capture channel 0 == betas on rr_from_ch0 (bitwise)
+  OK   T3 betas on capture channel 0 != betas on the clipped storage (BTC plant moves the betas)  — 445
+  OK   T4 _btcv_series found once in the v2 combo_stage
+  OK   T4 _btcv_series(RR=None) raises on the RR access itself (TypeError/IndexError, not a missing-name error)  — IndexError
+  OK   T4 btcv with rr != btcv with the clipped storage (BTC plant inside the window)  — 5
+  OK   T5 fea171/dlw_features.py: exactly one RET assignment  — 1
+  OK   T5 fea171/dlw_features.py: RET missing ⇒ KeyError; present ⇒ the array  — KeyError
+  OK   T5 fea171/f8_higher_order_features.py: exactly one RET assignment  — 1
+  OK   T5 fea171/f8_higher_order_features.py: RET missing ⇒ KeyError; present ⇒ the array  — KeyError
+
+16/16 checks passed; snapshot fixture from /Users/haosiyu/wide_shadow/state/snap/1790308800
+TEST_M3_V2_RET5 PASS 
