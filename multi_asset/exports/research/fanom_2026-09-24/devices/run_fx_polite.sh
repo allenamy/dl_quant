@@ -23,6 +23,15 @@ for arm in FX1 FX2 FX3; do
       sleep 120; waited=$((waited + 2))
     done
     echo "===== $arm s$s (tight gate open after ${waited}m) ====="
+    # ★ BUILD ON DEMAND. Pre-building all six arms up front parked ~2.4 GiB of /dev/shm and blocked MY OWN tight
+    # gate for 1h40m -- I was queued behind my own artefacts, not behind dlarch. The combo is regenerable by
+    # fa_fx.py in under a minute from pinned inputs, so it is built here, immediately before its run, and
+    # fx_pipe.sh frees it again after the verified series is saved.
+    NC=/dev/shm/news2_2026-09-23; FA=/dev/shm/fanom_2026-09-24
+    env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B "$D/fa_fx.py" PATH,HOME,LC_CTYPE       "$arm" "$s" "$NC/work/combo_s$s" "$NC/work/NEWS_FEATURES.npz" "$FA/fx/FXRATE.npz" "$FA/fx/${arm}_s$s"       > "$FA/logs/fxbuild_${arm}_s${s}.log" 2>&1
+    brc=$?
+    if [ "$brc" -ne 0 ]; then echo "  combo build FAILED rc=$brc"; tail -3 "$FA/logs/fxbuild_${arm}_s${s}.log"; exit "$brc"; fi
+    grep -hE "scaled_diagnostic|literal" "$FA/logs/fxbuild_${arm}_s${s}.log" | sed "s/^/  /"
     bash "$D/fx_pipe.sh" "$s" "$arm"
     rc=$?
     echo "  pipe_rc=$rc"
