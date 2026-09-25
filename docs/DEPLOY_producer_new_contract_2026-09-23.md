@@ -305,6 +305,8 @@ bash $NCW/src/run_install_rehearsal_p2.sh $MODELS ; echo "rc=$?"
 
 ## A. 窗口 W
 
+> **Same-window order for the vendored upstream (added 2026-09-25, E-0925-D; applies to every later executor release that changes the files in drift_gate's A_SET)**: first, inside the window, `git cherry-pick` the held patch into the research repo's `multi_asset/engine/live/` (this time: 8bde2f8dc) → then run the candidate battery in the candidate checkout (drift_gate must be green) → then deploy the executor. **Outside a release window, never commit these files in the research repo**: the deployed executor's drift_gate reads the working tree of that directory directly, so any such commit turns the deployed battery red (measured, E-0925-D). On rollback, run it in reverse: roll back the executor first, then `git revert` the upstream patch.
+
 **A0 停服务**(生产者、combo、快照、平价、侧车;执行器不停):
 ```
 for L in com.hsy.combosnap com.hsy.comboparity; do            # 周期任务: 等它自己跑完, 绝不在它持锁时杀
