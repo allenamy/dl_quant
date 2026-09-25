@@ -1,0 +1,27 @@
+{
+ "corrects": "D10_ROOTCAUSE_last_rate.json",
+ "corrects_note": "the original file is left byte-for-byte unchanged so its cited sha256 stays valid; this is the append-only correction beside it",
+ "recorded_by": "news2",
+ "recorded_utc": "2026-09-25T16:0xZ",
+ "retracted_field": "/verdict",
+ "retracted_value": "ROOT_CAUSE_IS_MISSING_1H_INTERVAL_SETTLEMENTS_IN_THE_REPLAYED_LEDGER",
+ "status": "RETRACTED",
+ "who_refuted_it": "fresh",
+ "why_it_was_wrong": "the 1h settlements WERE present in the ledger the replay was fed. I had printed them myself in the same session and still wrote a verdict that required their absence. The original receipt even carried the contradiction in its own /still_open field ('the spliced ledger I read DOES contain them') -- I published a verdict that my own open question contradicted, instead of treating the contradiction as a stop.",
+ "corrected_root_cause": "the exp_iv skip gate in the replayed producer block self-locks from a cold start: shadow_loop_v3.py:456 (sha 6080073964bffc..., the replay's SHADOW_SHA pin) reads `if anchor - last_ts < exp_iv * 3600 * 0.9: continue` with no _bulk_ok term, so once the predicted interval is 8h the gate skips every anchor closer than 7.2h and the as-of never advances past the settlement that triggered the switch. The settlements were in the ledger and were never read.",
+ "what_stands_from_the_original": [
+  "the 5,613 disagreement cells are real and reproduced",
+  "the archive adjudication: panel right, last_rate wrong, 2017:0",
+  "-0.02 is a GENUINE earlier settlement rate, not a substituted clamp constant (this corrected my earlier clamp claim and that correction still stands)",
+  "the error is systematic, regime-triggered and directional",
+  "the live NC path is clean on this: shadow_loop_v3.py L633-634 carries 'under bulk, never skip'"
+ ],
+ "what_falls": [
+  "the verdict string itself",
+  "any reading that the ledger/archive INPUT was incomplete -- the input was complete, the consumer skipped it"
+ ],
+ "defect_class": "a recurring value summoned a mechanism story, and the story was checked for consistency with the value instead of against the line that produces it. The same class as my clamp claim it replaced: two wrong mechanisms in a row for one number, both fixed only when someone read the consuming line.",
+ "propagation_checked": "a retraction binds only the file it is written in, so every file carrying the claim was searched, not just this receipt. Found and corrected: docs/RUNBOOK_monthly_retrain_2026-10.md L214, devices/d10_live_ledger_vs_archive.py L4. Checked and already correct: docs/PREREG_FX1_FX3_same_caliber_2026-09-25.md L191 (states the skip-gate self-lock). Checked and out of scope: docs/DESIGN_live_funding_ledger_archive_2026-09-25.md L14/L145 (a different, still-open question about the LIVE ledger).",
+ "also_sent_to": "lead and fresh in-session; the original commit 2b87e8546 is not amended",
+ "still_open": "which ledger news_fund_replay.py was fed is now moot for the root cause, but the deprecation assertion on news_fund_replay.py is still owed"
+}

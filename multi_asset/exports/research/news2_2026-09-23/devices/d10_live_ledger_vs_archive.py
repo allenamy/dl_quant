@@ -6,6 +6,15 @@ that the venue inserts during a funding spike. The live funding leg's EMA (fe_v)
 the LIVE ledger, and spike names are exactly the names that leg shorts, so the same defect in the live
 path would be a live problem, not a backtest one. 12 cells was too small a sample to answer it.
 
+CORRECTION 2026-09-25 (the paragraph above is left as written; this device's own MEASUREMENT is unaffected):
+"the replayed ledger was missing the 1h settlements" is RETRACTED -- refuted by fresh. The 1h settlements
+were IN that ledger. The real cause is the exp_iv skip gate self-locking from a cold start
+(shadow_loop_v3.py:456, sha 6080073964bffc..., no _bulk_ok term), so the as-of never advanced past the
+settlement that triggered the switch: the rows were present and never read. This device asks a DIFFERENT
+and still-open question -- whether the LIVE ledger ingests those settlements -- and it answers that by
+measurement, so its numbers stand on their own. Receipt:
+receipts/d10_2026-09-25/D10_ROOTCAUSE_last_rate_CORRECTION_2026-09-25.json
+
 THE LIVE LEDGER, cited:
   shadow_loop_v3.py:346  lg = json.load(open(f"{BUNDLE}/funding_ledger_seed.json"))   # cold-start seed
   shadow_loop_v3.py:376  self.ema = aux["ema"]; self.ledger = aux["ledger_tail"]      # warm state
