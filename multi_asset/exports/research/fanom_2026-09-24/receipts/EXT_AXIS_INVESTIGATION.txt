@@ -1,0 +1,14 @@
+=== axis bound investigation ===
+price grid      : 2022-06-29T20:00Z .. 2026-09-19T00:00Z (5-min, 444,145 rows)
+funding ledger  : ft to 2026-09-19T00:00Z; cut=2026-09-01T02:00Z is the SPLICE point, 63,978 events after 08-31
+tradability     : anchors to 2026-09-19, data_end_ts 2026-09-19
+targets npz     : 9,252 anchors, 2022-06-30 .. 2026-09-18T20:00Z
+prerun receipt  : universe_extension first_ext 2026-08-31T04:00Z, last 2026-09-18T20:00Z
+=> the 08-31 bound was NOT data: the non-X configs simply use the shorter axis.
+=> X configs (RUN_CONFIG_NEWS2_s{42,2027}X) already existed and had completed before (BT_LAUNCH_full_news2_s42x/s2027x).
+
+=== this run ===
+BT_LAUNCH VERDICT=PASS label=full_NEWS2_s42X runs=1 seeds=32 receipt_sha256=5891f792df7fb55d2b89d264e5409db2067ed5213371f04eae01cc55fb7c5f44
+RC=0
+BT_LAUNCH VERDICT=PASS label=full_NEWS2_s2027X runs=1 seeds=32 receipt_sha256=fdc96aa2b83a76023be3c2355dccc25ea90a624842233a4e4e15c91b10a4e4e7
+RC=0
