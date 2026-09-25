@@ -1,0 +1,343 @@
+{
+  "device": "news2_king_refit_perturb.py",
+  "self_sha256": "0ed00e8f9a115948eef4c4abc91326322351228d2f244cea88b18a8d855b4038",
+  "argv": [
+    "--nc-features",
+    "/dev/shm/nc_2026-09-23/work/NC_FEATURES.npz",
+    "--nc-king",
+    "/dev/shm/news2_2026-09-23/work/king/KING_OOF.npz",
+    "--researcher-king",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/king/KING_OOF.npz",
+    "--researcher-panel",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_fea82.npz",
+    "--researcher-axis",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/f10v2_legs.npz",
+    "--targets",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz",
+    "--keep-idx-config",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/vendor_live/shadow_bundle/config.json",
+    "--devices-dir",
+    "/dev/shm/pnoise_2026-09-24/devices",
+    "--arms",
+    "baseline,a,b",
+    "--out",
+    "/dev/shm/pnoise_2026-09-24/receipts/KING_REFIT_FOR_STEP0.json"
+  ],
+  "cwd": "/dev/shm/pnoise_2026-09-24/devices",
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "prereg": "docs/PREREG_king_refit_perturbations_2026-09-24.md @ ebe3448a2",
+  "status": "SINGLE_VARIABLE_PERTURBATION_NOT_BOOK_LAYER",
+  "params": {
+    "n_estimators": 400,
+    "learning_rate": 0.05,
+    "num_leaves": 63,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "n_jobs": 8,
+    "verbose": -1,
+    "random_state": 0
+  },
+  "king_folds_sha256": "4886c278c12b0f5126bb1e8ad6b4789db95e604180a77d0cd02f1e7c612df640",
+  "limits": [
+    "(b) replaces only the 2,742,865 shared pairs; NC-only pairs keep NC values (counted)",
+    "(a)'s injected rows carry researcher feature values -- not a pure row-count change",
+    "each arm is ONE perturbation, not a distribution"
+  ],
+  "inputs": {
+    "nc_features": {
+      "path": "/dev/shm/nc_2026-09-23/work/NC_FEATURES.npz",
+      "bytes": 2960618767
+    },
+    "nc_king": {
+      "path": "/dev/shm/news2_2026-09-23/work/king/KING_OOF.npz",
+      "bytes": 37042878
+    },
+    "researcher_king": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/king/KING_OOF.npz",
+      "bytes": 36999918
+    },
+    "researcher_panel": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_fea82.npz",
+      "bytes": 611491720
+    },
+    "targets": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz",
+      "bytes": 29543787
+    }
+  },
+  "fund_columns_in_X78": {
+    "fund_ema": 76,
+    "fund_now": 77
+  },
+  "shared_pairs": 2742865,
+  "nc_only_pairs_not_replaceable": 42889,
+  "arm_a_injected_rows": 136,
+  "arm_a_anchor": {
+    "ts": 1641571200,
+    "utc": "2022-01-07T16:00Z",
+    "nc_rows_before": 0
+  },
+  "arm_b_cells_replaced": {
+    "fund_ema": 2742865,
+    "fund_now": 2742865
+  },
+  "arm_b_all_finite_after_replacement": true,
+  "folds": {
+    "baseline": [
+      {
+        "fold": "2022H2_WARMUP",
+        "train_pairs": 132084,
+        "scored_pairs": 158535,
+        "seconds": 3.2
+      },
+      {
+        "fold": "2023",
+        "train_pairs": 290199,
+        "scored_pairs": 410256,
+        "seconds": 5.0
+      },
+      {
+        "fold": "2024",
+        "train_pairs": 694838,
+        "scored_pairs": 600192,
+        "seconds": 9.0
+      },
+      {
+        "fold": "2025",
+        "train_pairs": 1289444,
+        "scored_pairs": 849226,
+        "seconds": 13.2
+      },
+      {
+        "fold": "2026",
+        "train_pairs": 2134630,
+        "scored_pairs": 626800,
+        "seconds": 19.5
+      }
+    ],
+    "a": [
+      {
+        "fold": "2022H2_WARMUP",
+        "train_pairs": 132220,
+        "scored_pairs": 158535,
+        "seconds": 3.1
+      },
+      {
+        "fold": "2023",
+        "train_pairs": 290335,
+        "scored_pairs": 410256,
+        "seconds": 5.2
+      },
+      {
+        "fold": "2024",
+        "train_pairs": 694974,
+        "scored_pairs": 600192,
+        "seconds": 7.6
+      },
+      {
+        "fold": "2025",
+        "train_pairs": 1289580,
+        "scored_pairs": 849226,
+        "seconds": 11.6
+      },
+      {
+        "fold": "2026",
+        "train_pairs": 2134766,
+        "scored_pairs": 626800,
+        "seconds": 20.3
+      }
+    ],
+    "b": [
+      {
+        "fold": "2022H2_WARMUP",
+        "train_pairs": 132084,
+        "scored_pairs": 158535,
+        "seconds": 3.1
+      },
+      {
+        "fold": "2023",
+        "train_pairs": 290199,
+        "scored_pairs": 410256,
+        "seconds": 5.1
+      },
+      {
+        "fold": "2024",
+        "train_pairs": 694838,
+        "scored_pairs": 600192,
+        "seconds": 9.0
+      },
+      {
+        "fold": "2025",
+        "train_pairs": 1289444,
+        "scored_pairs": 849226,
+        "seconds": 13.4
+      },
+      {
+        "fold": "2026",
+        "train_pairs": 2134630,
+        "scored_pairs": 626800,
+        "seconds": 30.0
+      }
+    ]
+  },
+  "red_control": {
+    "baseline_vs_archived_frac_identical": 1.0,
+    "baseline_reproduces_archived_bitwise": true,
+    "baseline_green": true
+  },
+  "axis_rows": {
+    "nc_anchors": 10333,
+    "researcher_anchors": 10321,
+    "nc_anchors_absent_from_researcher": 12
+  },
+  "reference_baseline_nc_vs_researcher": {
+    "2022": {
+      "n_anchors": 1104,
+      "median": 0.7851162243208509,
+      "p10": 0.6647439098454687
+    },
+    "2023": {
+      "n_anchors": 2190,
+      "median": 0.7802009329599091,
+      "p10": 0.6241697509645298
+    },
+    "2024": {
+      "n_anchors": 2196,
+      "median": 0.8088818773046538,
+      "p10": 0.6863813856758282
+    },
+    "2025": {
+      "n_anchors": 2190,
+      "median": 0.8681690612809074,
+      "p10": 0.7888369677310484
+    },
+    "2026": {
+      "n_anchors": 1567,
+      "median": 0.9077458091196604,
+      "p10": 0.8693306620431577
+    }
+  },
+  "arms": {
+    "a": {
+      "vs_nc": {
+        "2022": {
+          "n_anchors": 1104,
+          "median": 0.7698919341000454,
+          "p10": 0.6484534124901221
+        },
+        "2023": {
+          "n_anchors": 2190,
+          "median": 0.7894466721110194,
+          "p10": 0.628748929876988
+        },
+        "2024": {
+          "n_anchors": 2196,
+          "median": 0.8092636336995195,
+          "p10": 0.6806586969302062
+        },
+        "2025": {
+          "n_anchors": 2190,
+          "median": 0.8687593984962406,
+          "p10": 0.7894385652410328
+        },
+        "2026": {
+          "n_anchors": 1567,
+          "median": 0.9144951530947067,
+          "p10": 0.8794101963137269
+        }
+      },
+      "vs_researcher": {
+        "2022": {
+          "n_anchors": 1104,
+          "median": 0.7750671054478453,
+          "p10": 0.658477803728306
+        },
+        "2023": {
+          "n_anchors": 2190,
+          "median": 0.8010075725970593,
+          "p10": 0.6528861016360765
+        },
+        "2024": {
+          "n_anchors": 2196,
+          "median": 0.827344710603314,
+          "p10": 0.7108808848664497
+        },
+        "2025": {
+          "n_anchors": 2190,
+          "median": 0.8788379143610583,
+          "p10": 0.8062595546427802
+        },
+        "2026": {
+          "n_anchors": 1567,
+          "median": 0.915755618800373,
+          "p10": 0.8802575458599543
+        }
+      },
+      "bitwise_identical_to_nc": false
+    },
+    "b": {
+      "vs_nc": {
+        "2022": {
+          "n_anchors": 1104,
+          "median": 0.7838969807576117,
+          "p10": 0.669779767235061
+        },
+        "2023": {
+          "n_anchors": 2190,
+          "median": 0.7957024691976545,
+          "p10": 0.6507877427754186
+        },
+        "2024": {
+          "n_anchors": 2196,
+          "median": 0.8278361219995054,
+          "p10": 0.7035593505993077
+        },
+        "2025": {
+          "n_anchors": 2190,
+          "median": 0.8857408171301071,
+          "p10": 0.818675960474753
+        },
+        "2026": {
+          "n_anchors": 1567,
+          "median": 0.9176772354827218,
+          "p10": 0.8826799167494797
+        }
+      },
+      "vs_researcher": {
+        "2022": {
+          "n_anchors": 1104,
+          "median": 0.7784914816748947,
+          "p10": 0.6650231298075281
+        },
+        "2023": {
+          "n_anchors": 2190,
+          "median": 0.781900733163228,
+          "p10": 0.638110872912149
+        },
+        "2024": {
+          "n_anchors": 2196,
+          "median": 0.8066512569850586,
+          "p10": 0.6674883758016503
+        },
+        "2025": {
+          "n_anchors": 2190,
+          "median": 0.8744987156169726,
+          "p10": 0.8026537603360021
+        },
+        "2026": {
+          "n_anchors": 1567,
+          "median": 0.9067981111908555,
+          "p10": 0.8665454250730115
+        }
+      },
+      "bitwise_identical_to_nc": false
+    }
+  },
+  "dumped_p": [
+    "a",
+    "b",
+    "baseline"
+  ],
+  "verdict": "MEASURED"
+}
