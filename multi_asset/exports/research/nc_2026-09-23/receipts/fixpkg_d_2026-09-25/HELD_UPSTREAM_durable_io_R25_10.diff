@@ -1,0 +1,72 @@
+--- a/multi_asset/engine/b/multi_asset/engine/live/durable_io.py	2026-09-25 21:00:45
++++ b/multi_asset/engine/live/durable_io.py	2026-09-25 23:58:58
+@@ -14,7 +14,11 @@
+   3. READ BACK and compared byte for byte with the in-memory bytes (catches silent truncation / a short write that
+      reported success — the pod2 quota failure shape: same size, zero tail, or a short file);
+   4. only then `os.replace` onto the target, and the directory is fsync'ed;
+-  5. any failure: the temporary file is removed, the TARGET IS UNTOUCHED, and `DurableWriteError` is raised.
++  5. any failure BEFORE the rename: the temporary file is removed, the TARGET IS UNTOUCHED, and `DurableWriteNotReplaced` is raised;
++     a failure AFTER the rename (the directory fsync): the TARGET ALREADY HOLDS THE NEW BYTES but the rename may not survive a power
++     loss, and `DurableWriteReplacedNotDurable` is raised (R25-10, independent review 7cbe907ba: the single error class used to say
++     "the target was NOT replaced" for this case too, which was false). Both subclass `DurableWriteError`, so `except DurableWriteError`
++     callers are unchanged; a caller that must know whether the new bytes are in place reads `.replaced`.
+ The returned sha256 is of the in-memory bytes — a receipt that certifies what was meant, verified to be what was written.
+ """
+ from __future__ import annotations
+@@ -24,13 +28,24 @@
+ import os
+ from typing import Any
+ 
+-__all__ = ["DurableWriteError", "write_bytes_durable", "write_json_durable"]
++__all__ = ["DurableWriteError", "DurableWriteNotReplaced", "DurableWriteReplacedNotDurable", "write_bytes_durable", "write_json_durable"]
+ 
+ 
+ class DurableWriteError(OSError):
+-    """a state write did not land byte for byte; the target file was left as it was"""
++    """a durable state write failed; see the subclass (and `.replaced`) for whether the target holds the old or the new bytes"""
++    replaced = None
+ 
+ 
++class DurableWriteNotReplaced(DurableWriteError):
++    """the write failed BEFORE the rename: the target file was left exactly as it was"""
++    replaced = False
++
++
++class DurableWriteReplacedNotDurable(DurableWriteError):
++    """the rename SUCCEEDED (the target holds the new, verified bytes) but the directory fsync failed: the rename may not survive a crash"""
++    replaced = True
++
++
+ def _fsync_dir(d: str) -> None:
+     fd = os.open(d, os.O_RDONLY)
+     try:
+@@ -53,20 +68,24 @@
+             f.flush()
+             os.fsync(f.fileno())
+         if n != len(data):
+-            raise DurableWriteError(f"short write to {tmp}: {n} of {len(data)} bytes")
++            raise DurableWriteNotReplaced(f"short write to {tmp}: {n} of {len(data)} bytes — the target {path} was NOT replaced")
+         with open(tmp, "rb") as f:
+             back = f.read()
+         if back != data:
+-            raise DurableWriteError(f"read-back of {tmp} differs from the bytes written "
+-                                    f"({len(back)} vs {len(data)} bytes) — the target {path} was NOT replaced")
++            raise DurableWriteNotReplaced(f"read-back of {tmp} differs from the bytes written "
++                                          f"({len(back)} vs {len(data)} bytes) — the target {path} was NOT replaced")
+         os.replace(tmp, path)
+-        _fsync_dir(d)
+     except DurableWriteError:
+         _remove_quietly(tmp)
+         raise
+     except OSError as e:
+         _remove_quietly(tmp)
+-        raise DurableWriteError(f"durable write of {path} failed ({type(e).__name__}: {e}) — the target was NOT replaced") from e
++        raise DurableWriteNotReplaced(f"durable write of {path} failed ({type(e).__name__}: {e}) — the target was NOT replaced") from e
++    try:                                         # R25-10: after the rename the target HOLDS the new bytes; only the rename's durability is open
++        _fsync_dir(d)
++    except OSError as e:
++        raise DurableWriteReplacedNotDurable(f"durable write of {path}: the target WAS replaced with the new, verified bytes, but the directory "
++                                             f"fsync failed ({type(e).__name__}: {e}) — the rename may not survive a power loss") from e
+     return hashlib.sha256(data).hexdigest()
+ 
+ 

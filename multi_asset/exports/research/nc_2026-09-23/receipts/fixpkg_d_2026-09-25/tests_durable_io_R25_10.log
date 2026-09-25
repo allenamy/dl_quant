@@ -1,0 +1,49 @@
+[0] baseline green first
+  OK   durable bytes == json.dumps for {'indent': 1}
+  OK   durable bytes == json.dumps for {'indent': 1, 'default': <class 'str'>}
+  OK   durable bytes == json.dumps for {}
+  OK   durable bytes == json.dumps for {'indent': 1, 'default': <class 'str'>, 'ensure_ascii': False}
+  OK   new _save writes exactly the old bytes (72 B)
+  OK   new _save writes exactly the old bytes (8556 B)
+  OK   no durable temp file left behind
+[1] RED CONTROLS — the former statements are SILENT under the faults
+  OK   old _save [enospc]: no exception AND the good state was replaced by damaged bytes — raised=None len 17->0
+  OK   old watchdog state write [enospc]: no exception AND the trip state was damaged — raised=None
+  OK   old _save [truncate]: no exception AND the good state was replaced by damaged bytes — raised=None len 17->4278
+  OK   old watchdog state write [truncate]: no exception AND the trip state was damaged — raised=None
+  OK   old _save [empty]: no exception AND the good state was replaced by damaged bytes — raised=None len 17->0
+  OK   old watchdog state write [empty]: no exception AND the trip state was damaged — raised=None
+[2] the new code is LOUD and leaves the target byte-identical
+  OK   anchor_loop._save [enospc]: DurableWriteError and the state is byte-identical — raised=DurableWriteNotReplaced
+  OK   anchor_loop._save [enospc]: no temp file left behind
+  OK   anchor_loop._save [truncate]: DurableWriteError and the state is byte-identical — raised=DurableWriteNotReplaced
+  OK   anchor_loop._save [truncate]: no temp file left behind
+  OK   anchor_loop._save [empty]: DurableWriteError and the state is byte-identical — raised=DurableWriteNotReplaced
+  OK   anchor_loop._save [empty]: no temp file left behind
+  OK   watchdog baseline run wrote state.json (fixture green)
+  OK   watchdog.run [enospc] on state.json: DurableWriteError and state.json byte-identical — raised=DurableWriteNotReplaced
+  OK   watchdog.run [truncate] on state.json: DurableWriteError and state.json byte-identical — raised=DurableWriteNotReplaced
+  OK   watchdog.run [empty] on state.json: DurableWriteError and state.json byte-identical — raised=DurableWriteNotReplaced
+  OK   state_root.stamp_mode [enospc]: no exception escapes AND the stamped file is byte-identical
+  OK   RED CONTROL old stamp_mode statement [enospc]: the stamped file was damaged silently
+  OK   state_root.stamp_mode [truncate]: no exception escapes AND the stamped file is byte-identical
+  OK   RED CONTROL old stamp_mode statement [truncate]: the stamped file was damaged silently
+  OK   state_root.stamp_mode [empty]: no exception escapes AND the stamped file is byte-identical
+  OK   RED CONTROL old stamp_mode statement [empty]: the stamped file was damaged silently
+[3] CLASS GUARD — the unclosed-handle idiom in production code
+  OK   no unclosed-handle write outside the declared whitelist (a new site anywhere is red) — []
+  OK   every whitelist entry still exists (a fixed site must leave the list, or the list stops meaning anything) — []
+  OK   the fixed site scheduler/anchor_loop.py carries no idiom
+  OK   the fixed site live/watchdog.py carries no idiom
+  OK   the fixed site live/deliver_report.py carries no idiom
+  OK   the fixed site live/factor_version_registry.py carries no idiom
+  OK   the fixed site live/regime_classifier.py carries no idiom
+  OK   RED CAPABILITY: a planted json.dump(o, open(p, "w")) in a copy of anchor_loop is found — [('scheduler/anchor_loop.py', 'json.dump(o, open(p, "w"))')]
+[R25-10] the two failure classes: NOT replaced vs replaced-but-not-durable
+  OK   ★★★ R25-10 a directory-fsync failure AFTER the rename raises DurableWriteReplacedNotDurable (.replaced True), still a DurableWriteError — DurableWriteReplacedNotDurable('durable write of /Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/tests_durable_io_djr9ttsr/dio_r25_usi5euxz/s.json: the target WAS 
+  OK   ★★★ R25-10 ...and the target DOES hold the new bytes (the message says replaced, and it is) — (b'{"v": "new"}', 'durable write of /Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/tests_durable_io_djr9ttsr/dio_r25_usi5euxz/s.json: the tar')
+  OK   ★★★ R25-10 a rename failure raises DurableWriteNotReplaced (.replaced False) and the target keeps the OLD bytes, no temp left — ("DurableWriteNotReplaced('durable write of /Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/tests_durable_io_djr9ttsr/dio_r25", b'{"v": "old"}')
+  OK   ★★ R25-10 every pre-rename fault of section [2] (enospc / truncate / empty) raises DurableWriteNotReplaced and leaves the old bytes — {'enospc': ('DurableWriteNotReplaced', True), 'truncate': ('DurableWriteNotReplaced', True), 'empty': ('DurableWriteNotReplaced', True)}
+  OK   ★★★ R25-10 RED CONTROL: the pre-fix module under a directory-fsync failure claims 'NOT replaced' while the target holds the new bytes — ('durable write of /Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/tests_durable_io_djr9ttsr/dio_r25_usi5euxz/s.json failed (', b'{"v": "new"}')
+
+tests_durable_io: ALL PASS (0 failing)

@@ -1,0 +1,296 @@
+commit b9daa11d2d358bf83b53ea72d1eb3a171e9733a1
+Author: haosiyu <siyuhao0702@gmail.com>
+Date:   Sat Sep 26 00:00:22 2026 +0800
+
+    R25-10 (independent review 7cbe907ba; NOT pushed): durable_io splits the failure: DurableWriteNotReplaced (before the rename; target untouched) vs DurableWriteReplacedNotDurable (rename done, directory fsync failed; target holds the new verified bytes), both DurableWriteError, .replaced tells which. tests_durable_io +5 R25-10 checks incl. RED CONTROL (the pre-fix module, kept as a fixture, claims 'NOT replaced' while the target holds the new bytes). Caller audit: 12 propagate, 8 catch Exception, NONE retries; run_anchor's two receipt handlers now say 'persisted but NOT durably' for the replaced case; state_root comment corrected. UPSTREAM_MANIFEST durable_io 34da08f8 -> d9b3cf04: the research copy must be re-vendored IN the release window (E-0925-D order: upstream first)
+
+diff --git a/live/durable_io.py b/live/durable_io.py
+index 505d5d1..0313887 100644
+--- a/live/durable_io.py
++++ b/live/durable_io.py
+@@ -14,7 +14,11 @@ and anchor_loop._load's `except Exception: return default` then turned the damag
+   3. READ BACK and compared byte for byte with the in-memory bytes (catches silent truncation / a short write that
+      reported success — the pod2 quota failure shape: same size, zero tail, or a short file);
+   4. only then `os.replace` onto the target, and the directory is fsync'ed;
+-  5. any failure: the temporary file is removed, the TARGET IS UNTOUCHED, and `DurableWriteError` is raised.
++  5. any failure BEFORE the rename: the temporary file is removed, the TARGET IS UNTOUCHED, and `DurableWriteNotReplaced` is raised;
++     a failure AFTER the rename (the directory fsync): the TARGET ALREADY HOLDS THE NEW BYTES but the rename may not survive a power
++     loss, and `DurableWriteReplacedNotDurable` is raised (R25-10, independent review 7cbe907ba: the single error class used to say
++     "the target was NOT replaced" for this case too, which was false). Both subclass `DurableWriteError`, so `except DurableWriteError`
++     callers are unchanged; a caller that must know whether the new bytes are in place reads `.replaced`.
+ The returned sha256 is of the in-memory bytes — a receipt that certifies what was meant, verified to be what was written.
+ """
+ from __future__ import annotations
+@@ -24,11 +28,22 @@ import json
+ import os
+ from typing import Any
+ 
+-__all__ = ["DurableWriteError", "write_bytes_durable", "write_json_durable"]
++__all__ = ["DurableWriteError", "DurableWriteNotReplaced", "DurableWriteReplacedNotDurable", "write_bytes_durable", "write_json_durable"]
+ 
+ 
+ class DurableWriteError(OSError):
+-    """a state write did not land byte for byte; the target file was left as it was"""
++    """a durable state write failed; see the subclass (and `.replaced`) for whether the target holds the old or the new bytes"""
++    replaced = None
++
++
++class DurableWriteNotReplaced(DurableWriteError):
++    """the write failed BEFORE the rename: the target file was left exactly as it was"""
++    replaced = False
++
++
++class DurableWriteReplacedNotDurable(DurableWriteError):
++    """the rename SUCCEEDED (the target holds the new, verified bytes) but the directory fsync failed: the rename may not survive a crash"""
++    replaced = True
+ 
+ 
+ def _fsync_dir(d: str) -> None:
+@@ -53,20 +68,24 @@ def write_bytes_durable(path: str, data: bytes) -> str:
+             f.flush()
+             os.fsync(f.fileno())
+         if n != len(data):
+-            raise DurableWriteError(f"short write to {tmp}: {n} of {len(data)} bytes")
++            raise DurableWriteNotReplaced(f"short write to {tmp}: {n} of {len(data)} bytes — the target {path} was NOT replaced")
+         with open(tmp, "rb") as f:
+             back = f.read()
+         if back != data:
+-            raise DurableWriteError(f"read-back of {tmp} differs from the bytes written "
+-                                    f"({len(back)} vs {len(data)} bytes) — the target {path} was NOT replaced")
++            raise DurableWriteNotReplaced(f"read-back of {tmp} differs from the bytes written "
++                                          f"({len(back)} vs {len(data)} bytes) — the target {path} was NOT replaced")
+         os.replace(tmp, path)
+-        _fsync_dir(d)
+     except DurableWriteError:
+         _remove_quietly(tmp)
+         raise
+     except OSError as e:
+         _remove_quietly(tmp)
+-        raise DurableWriteError(f"durable write of {path} failed ({type(e).__name__}: {e}) — the target was NOT replaced") from e
++        raise DurableWriteNotReplaced(f"durable write of {path} failed ({type(e).__name__}: {e}) — the target was NOT replaced") from e
++    try:                                         # R25-10: after the rename the target HOLDS the new bytes; only the rename's durability is open
++        _fsync_dir(d)
++    except OSError as e:
++        raise DurableWriteReplacedNotDurable(f"durable write of {path}: the target WAS replaced with the new, verified bytes, but the directory "
++                                             f"fsync failed ({type(e).__name__}: {e}) — the rename may not survive a power loss") from e
+     return hashlib.sha256(data).hexdigest()
+ 
+ 
+diff --git a/live/state_root.py b/live/state_root.py
+index 0ab5709..cdbfb45 100644
+--- a/live/state_root.py
++++ b/live/state_root.py
+@@ -149,6 +149,9 @@ def stamp_mode(path: str, mode: str) -> None:
+             # ★ B-2: durable — the former `json.dump(d, open(path, "w"))` could truncate the very state file it
+             #   annotates on a full disk and swallow the error (it is inside `except: pass`); now a failed stamp
+             #   leaves the file byte-identical (the tmp is discarded) and the best-effort `pass` below still applies.
++            #   R25-10: the one exception is a directory-fsync failure AFTER the rename (DurableWriteReplacedNotDurable): then
++            #   the file already holds the NEW, verified bytes (the stamp landed; only the rename's durability is open) — still
++            #   harmless for a best-effort stamp, and still swallowed below.
+             import durable_io as _DIO
+             _DIO.write_json_durable(path, d, indent=1, default=str)
+     except Exception:
+diff --git a/live/tests_durable_io.py b/live/tests_durable_io.py
+index 2428294..6bfc6cd 100644
+--- a/live/tests_durable_io.py
++++ b/live/tests_durable_io.py
+@@ -277,6 +277,67 @@ with open(os.path.join(tmp, "scheduler", "anchor_loop.py"), "a") as f:
+ planted = census(tmp) - set(WHITELIST)
+ check("RED CAPABILITY: a planted json.dump(o, open(p, \"w\")) in a copy of anchor_loop is found", any(h[0] == "scheduler/anchor_loop.py" for h in planted), sorted(planted))
+ 
++print("[R25-10] the two failure classes: NOT replaced vs replaced-but-not-durable")
++import importlib.util as _ilu                     # noqa: E402
++_d = tempfile.mkdtemp(prefix="dio_r25_", dir=TMPBASE); _p = os.path.join(_d, "s.json")
++DIO.write_json_durable(_p, {"v": "old"}); _old = rb(_p); _new = json.dumps({"v": "new"}).encode()
++_real_fsync_dir = DIO._fsync_dir
++def _bad_fsync_dir(d):
++    raise OSError(errno.EIO, "planted directory fsync failure")
++DIO._fsync_dir = _bad_fsync_dir
++try:
++    _e = None
++    try:
++        DIO.write_json_durable(_p, {"v": "new"})
++    except Exception as e:                        # noqa: BLE001
++        _e = e
++finally:
++    DIO._fsync_dir = _real_fsync_dir
++check("★★★ R25-10 a directory-fsync failure AFTER the rename raises DurableWriteReplacedNotDurable (.replaced True), still a DurableWriteError",
++      isinstance(_e, DIO.DurableWriteReplacedNotDurable) and isinstance(_e, DIO.DurableWriteError) and _e.replaced is True, repr(_e)[:160])
++check("★★★ R25-10 ...and the target DOES hold the new bytes (the message says replaced, and it is)",
++      rb(_p) == _new and "WAS replaced" in str(_e), (rb(_p)[:40], str(_e)[:120]))
++DIO.write_json_durable(_p, {"v": "old"})
++_real_replace = os.replace
++def _bad_replace(a, b):
++    raise OSError(errno.EXDEV, "planted rename failure")
++os.replace = _bad_replace
++try:
++    _e2 = None
++    try:
++        DIO.write_json_durable(_p, {"v": "new"})
++    except Exception as e:                        # noqa: BLE001
++        _e2 = e
++finally:
++    os.replace = _real_replace
++check("★★★ R25-10 a rename failure raises DurableWriteNotReplaced (.replaced False) and the target keeps the OLD bytes, no temp left",
++      isinstance(_e2, DIO.DurableWriteNotReplaced) and _e2.replaced is False and rb(_p) == _old and not glob.glob(os.path.join(_d, ".*durable-tmp*")),
++      (repr(_e2)[:120], rb(_p)[:40]))
++_types = {}
++for _mode, _obj in (("enospc", SMALL), ("truncate", LARGE), ("empty", LARGE)):
++    DIO.write_json_durable(_p, {"v": "old"}); _e4 = None
++    try:
++        with faulty(lambda q: ".durable-tmp." in q, _mode):
++            DIO.write_json_durable(_p, _obj)
++    except Exception as e:                        # noqa: BLE001
++        _e4 = e
++    _types[_mode] = (type(_e4).__name__, rb(_p) == _old)
++check("★★ R25-10 every pre-rename fault of section [2] (enospc / truncate / empty) raises DurableWriteNotReplaced and leaves the old bytes",
++      all(t_ == "DurableWriteNotReplaced" and same for t_, same in _types.values()), _types)
++# RED CONTROL: the pre-R25-10 module (fixture copy of the file as it was) under the same directory-fsync failure says "NOT replaced" while
++# the target holds the NEW bytes — the claim this item corrects
++_spec = _ilu.spec_from_file_location("durable_io_pre_r25_10", os.path.join(HERE, "tests_fixtures", "durable_io_pre_R25_10.py"))
++_OLD = _ilu.module_from_spec(_spec); _spec.loader.exec_module(_OLD)
++_OLD.write_json_durable(_p, {"v": "old"})
++_OLD._fsync_dir = _bad_fsync_dir
++_e3 = None
++try:
++    _OLD.write_json_durable(_p, {"v": "new"})
++except Exception as e:                            # noqa: BLE001
++    _e3 = e
++check("★★★ R25-10 RED CONTROL: the pre-fix module under a directory-fsync failure claims 'NOT replaced' while the target holds the new bytes",
++      _e3 is not None and "NOT replaced" in str(_e3) and rb(_p) == _new, (str(_e3)[:120], rb(_p)[:40]))
++
+ shutil.rmtree(TMPBASE, ignore_errors=True)
+ print()
+ print(f"tests_durable_io: {'ALL PASS' if not fails else 'FAIL'} ({len(fails)} failing)")
+diff --git a/live/tests_fixtures/durable_io_pre_R25_10.py b/live/tests_fixtures/durable_io_pre_R25_10.py
+new file mode 100644
+index 0000000..505d5d1
+--- /dev/null
++++ b/live/tests_fixtures/durable_io_pre_R25_10.py
+@@ -0,0 +1,84 @@
++"""durable_io — state files are written so that a failed write is LOUD and never replaces good bytes.
++
++WHY (E-0925-A class, census quant_research docs/receipts/write_point_census_2026-09-25, 501d80737; DESIGN_executor_durable_state_2026-09-25 B-2):
++the idiom `json.dump(obj, open(path, "w"))` never closes its handle explicitly, so the last buffer is flushed by the
++implicit close at garbage collection, where a write error is NOT raised to the caller (measured, gc_close_probe.py:
++/usr/bin/python3 3.9 loses ENOSPC for an object smaller than the buffer; python 3.14 for every size). Behind a
++`tmp + os.replace` that turns a full disk into a SILENT replacement of the good state by an empty / truncated file —
++and anchor_loop._load's `except Exception: return default` then turned the damaged file into a silent reset.
++
++`write_json_durable` / `write_bytes_durable`:
++  1. the bytes are produced in memory first;
++  2. written to a private temporary file in the SAME directory inside `with` (close is explicit, so its errors raise),
++     flushed and fsync'ed;
++  3. READ BACK and compared byte for byte with the in-memory bytes (catches silent truncation / a short write that
++     reported success — the pod2 quota failure shape: same size, zero tail, or a short file);
++  4. only then `os.replace` onto the target, and the directory is fsync'ed;
++  5. any failure: the temporary file is removed, the TARGET IS UNTOUCHED, and `DurableWriteError` is raised.
++The returned sha256 is of the in-memory bytes — a receipt that certifies what was meant, verified to be what was written.
++"""
++from __future__ import annotations
++
++import hashlib
++import json
++import os
++from typing import Any
++
++__all__ = ["DurableWriteError", "write_bytes_durable", "write_json_durable"]
++
++
++class DurableWriteError(OSError):
++    """a state write did not land byte for byte; the target file was left as it was"""
++
++
++def _fsync_dir(d: str) -> None:
++    fd = os.open(d, os.O_RDONLY)
++    try:
++        os.fsync(fd)
++    finally:
++        os.close(fd)
++
++
++def write_bytes_durable(path: str, data: bytes) -> str:
++    """write `data` to `path` durably (see module doc). Returns sha256(data). Raises DurableWriteError."""
++    if not isinstance(data, (bytes, bytearray)):
++        raise TypeError(f"write_bytes_durable needs bytes, got {type(data).__name__}")
++    data = bytes(data)
++    d = os.path.dirname(os.path.abspath(path)) or "."
++    os.makedirs(d, exist_ok=True)
++    tmp = os.path.join(d, f".{os.path.basename(path)}.durable-tmp.{os.getpid()}")
++    try:
++        with open(tmp, "wb") as f:
++            n = f.write(data)
++            f.flush()
++            os.fsync(f.fileno())
++        if n != len(data):
++            raise DurableWriteError(f"short write to {tmp}: {n} of {len(data)} bytes")
++        with open(tmp, "rb") as f:
++            back = f.read()
++        if back != data:
++            raise DurableWriteError(f"read-back of {tmp} differs from the bytes written "
++                                    f"({len(back)} vs {len(data)} bytes) — the target {path} was NOT replaced")
++        os.replace(tmp, path)
++        _fsync_dir(d)
++    except DurableWriteError:
++        _remove_quietly(tmp)
++        raise
++    except OSError as e:
++        _remove_quietly(tmp)
++        raise DurableWriteError(f"durable write of {path} failed ({type(e).__name__}: {e}) — the target was NOT replaced") from e
++    return hashlib.sha256(data).hexdigest()
++
++
++def write_json_durable(path: str, obj: Any, *, encoding: str = "utf-8", **dump_kw: Any) -> str:
++    """json.dumps(obj, **dump_kw) encoded with `encoding` (UTF-8 unless a caller must keep its former on-disk bytes, e.g. an
++    ensure_ascii=False writer that used the locale's encoding), written with write_bytes_durable. Returns sha256 of those bytes."""
++    return write_bytes_durable(path, json.dumps(obj, **dump_kw).encode(encoding))
++
++
++def _remove_quietly(p: str) -> None:
++    try:
++        if os.path.exists(p):
++            os.remove(p)
++    except OSError:
++        pass
+diff --git a/ops/UPSTREAM_MANIFEST.sha256 b/ops/UPSTREAM_MANIFEST.sha256
+index 8e1fe69..06fbc0b 100644
+--- a/ops/UPSTREAM_MANIFEST.sha256
++++ b/ops/UPSTREAM_MANIFEST.sha256
+@@ -7,4 +7,4 @@ a4f1dd31a10075ab4bfb43477540b0e5d977c0b3efc7013ed6afac345865a7cc  regime_classif
+ 94f76f3d04bb2cf5c509600e240aff0703e86ef554f8665e4562fa594fa6822c  production_state_guard.py  research->production
+ c5fd95d9e7dff1959684cebe59a9ab4ee01c5e911847fb6ab4dc0407d7bd1656  factor_version_registry.py  research->production
+ cd508c3f6a2727cca83666f0fab831a9249ff9279323ac96d0bef3e5dd1cacd6  pilot_metrics.py  production->research
+-34da08f875055eedc48d0823fe51a6013d610552e603c9317cd18a69e7f1d28c  durable_io.py  production->research
++d9b3cf04f350de67619ca966146fcbf274a53be484ed11167481bf7329adab3a  durable_io.py  production->research
+diff --git a/scheduler/run_anchor.py b/scheduler/run_anchor.py
+index e66efa7..5eada45 100644
+--- a/scheduler/run_anchor.py
++++ b/scheduler/run_anchor.py
+@@ -715,8 +715,12 @@ def main() -> int:
+                                         indent=1, default=str)
+                 log(f"trip receipt persisted: {_rp}")
+             except Exception as _e:
+-                log(f"could not persist the trip receipt ({_e}) — the run log is now its only "
+-                    f"record, and state.json will read as 'delivery unknown'")
++                if getattr(_e, "replaced", None) is True:     # R25-10: the receipt IS on disk; only the rename's durability is unknown
++                    log(f"trip receipt persisted but NOT durably ({_e}) — it is on disk; a power loss before the next directory sync "
++                        f"could lose the rename")
++                else:
++                    log(f"could not persist the trip receipt ({_e}) — the run log is now its only "
++                        f"record, and state.json will read as 'delivery unknown'")
+         elif ev.get("local_response"):
+             # ★★★ EXE-01: A PROPORTIONAL LOCAL RESPONSE MUST LEAVE THE MACHINE TOO. It halted opening and flattened
+             # named names; `tripped` is False on purpose (it is not a trip), which is exactly why the block above would
+@@ -737,7 +741,11 @@ def main() -> int:
+                                                "written_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
+                                         indent=1, default=str)
+             except Exception as _e:
+-                log(f"could not persist the local response receipt ({_e}) — the run log is now its only record")
++                if getattr(_e, "replaced", None) is True:     # R25-10: written, rename durability unknown
++                    log(f"local response receipt persisted but NOT durably ({_e}) — it is on disk; a power loss before the next "
++                        f"directory sync could lose the rename")
++                else:
++                    log(f"could not persist the local response receipt ({_e}) — the run log is now its only record")
+     except Exception as e:
+         # A watchdog that cannot evaluate must SAY SO loudly. Swallowing this would recreate
+         # exactly the failure it exists to prevent: protection that looks present and is not.
