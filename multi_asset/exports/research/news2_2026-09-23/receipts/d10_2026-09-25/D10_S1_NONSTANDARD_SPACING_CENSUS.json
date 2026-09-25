@@ -1,0 +1,203 @@
+{
+  "device": "d10_nonstandard_spacing_census.py",
+  "self_sha256": "a0e51de4bb53da76587f0a11514e4317fb31336dc569586428b9b7a10c4af009",
+  "argv": [
+    "--ledger",
+    "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+    "--out",
+    "/dev/shm/d10_2026-09-25/receipts/D10_S1_NONSTANDARD_SPACING_CENSUS.json"
+  ],
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "prereg": "docs/PREREG_D10_funding_truth_audit_stage1_2026-09-25.md @ 496142901",
+  "ruling": "lead 2026-09-25 created NONSTANDARD_SPACING and asked for the real occurrence count",
+  "allowed_iv": [
+    1.0,
+    2.0,
+    4.0,
+    6.0,
+    8.0
+  ],
+  "definitions": {
+    "safe": "back gap == forward gap (a switch row is never a candidate)",
+    "fires": "safe AND gap not in ALLOWED_IV"
+  },
+  "inputs": {
+    "ledger": {
+      "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+      "sha256": "073088e503c026d6071c76764426503616d53570e5f3763807df27ea7cc80362"
+    }
+  },
+  "rows_total": 2693666,
+  "interior_rows_with_both_gaps": 2692008,
+  "safe_rows_back_equals_fwd": 2690219,
+  "safe_gap_histogram_hours": {
+    "1.0": 80108,
+    "2.0": 3581,
+    "4.0": 1538794,
+    "8.0": 1067736
+  },
+  "offgrid_safe_rows_UPPER_BOUND": 0,
+  "offgrid_safe_per_year": {},
+  "offgrid_safe_gap_values": {},
+  "offgrid_safe_symbols": {},
+  "offgrid_safe_without_declared_interval_OPERATIVE": 0,
+  "operative_per_year": {},
+  "operative_examples": [],
+  "all_offgrid_safe_rows": [],
+  "unsafe_rows_back_ne_fwd": 1789,
+  "unsafe_gap_pairs_top": {
+    "back=8.0,fwd=4.0": 541,
+    "back=4.0,fwd=8.0": 428,
+    "back=4.0,fwd=1.0": 234,
+    "back=1.0,fwd=4.0": 130,
+    "back=2.0,fwd=4.0": 59,
+    "back=1.0,fwd=2.0": 53,
+    "back=1.0,fwd=3.0": 49,
+    "back=3.0,fwd=4.0": 45,
+    "back=1.0,fwd=0.0": 42,
+    "back=0.0,fwd=8.0": 37,
+    "back=8.0,fwd=8.0": 37,
+    "back=8.0,fwd=1.0": 32,
+    "back=4.0,fwd=2.0": 19,
+    "back=2.0,fwd=1.0": 9,
+    "back=8.0,fwd=6.0": 5
+  },
+  "unsafe_rows_with_an_offgrid_gap": 216,
+  "three_hour_rows": {
+    "count": 104,
+    "sustained_3h_safe_rows": 0,
+    "all_are_switch_rows": true,
+    "how_that_is_known": "derived: a sustained 3h interval would appear as a 3.0 bucket in safe_gap_histogram_hours; that bucket is 0",
+    "examples": [
+      {
+        "symbol": "1000XECUSDT",
+        "utc": "2026-07-22T21:00:00+00:00",
+        "back_h": 1.0,
+        "fwd_h": 3.0
+      },
+      {
+        "symbol": "1000XECUSDT",
+        "utc": "2026-07-23T00:00:00+00:00",
+        "back_h": 3.0,
+        "fwd_h": 4.0
+      },
+      {
+        "symbol": "AAPLUSDT",
+        "utc": "2026-05-11T13:00:00+00:00",
+        "back_h": 1.0,
+        "fwd_h": 3.0
+      },
+      {
+        "symbol": "AAPLUSDT",
+        "utc": "2026-05-11T16:00:00+00:00",
+        "back_h": 3.0,
+        "fwd_h": 8.0
+      },
+      {
+        "symbol": "AIAUSDT",
+        "utc": "2025-10-30T13:00:00+00:00",
+        "back_h": 1.0,
+        "fwd_h": 3.0
+      },
+      {
+        "symbol": "AIAUSDT",
+        "utc": "2025-10-30T16:00:00+00:00",
+        "back_h": 3.0,
+        "fwd_h": 4.0
+      },
+      {
+        "symbol": "ANIMEUSDT",
+        "utc": "2026-03-19T17:00:00+00:00",
+        "back_h": 1.0,
+        "fwd_h": 3.0
+      },
+      {
+        "symbol": "ANIMEUSDT",
+        "utc": "2026-03-19T20:00:00+00:00",
+        "back_h": 3.0,
+        "fwd_h": 4.0
+      },
+      {
+        "symbol": "API3USDT",
+        "utc": "2025-09-21T05:00:00+00:00",
+        "back_h": 1.0,
+        "fwd_h": 3.0
+      },
+      {
+        "symbol": "API3USDT",
+        "utc": "2025-09-21T08:00:00+00:00",
+        "back_h": 3.0,
+        "fwd_h": 4.0
+      },
+      {
+        "symbol": "ARIAUSDT",
+        "utc": "2026-04-15T21:00:00+00:00",
+        "back_h": 1.0,
+        "fwd_h": 3.0
+      },
+      {
+        "symbol": "ARIAUSDT",
+        "utc": "2026-04-16T00:00:00+00:00",
+        "back_h": 3.0,
+        "fwd_h": 4.0
+      },
+      {
+        "symbol": "ARKUSDT",
+        "utc": "2026-09-16T21:00:00+00:00",
+        "back_h": 1.0,
+        "fwd_h": 3.0
+      },
+      {
+        "symbol": "ARKUSDT",
+        "utc": "2026-09-17T00:00:00+00:00",
+        "back_h": 3.0,
+        "fwd_h": 4.0
+      },
+      {
+        "symbol": "AZTECUSDT",
+        "utc": "2026-02-26T21:00:00+00:00",
+        "back_h": 1.0,
+        "fwd_h": 3.0
+      },
+      {
+        "symbol": "AZTECUSDT",
+        "utc": "2026-02-27T00:00:00+00:00",
+        "back_h": 3.0,
+        "fwd_h": 4.0
+      },
+      {
+        "symbol": "BANKUSDT",
+        "utc": "2026-08-05T05:00:00+00:00",
+        "back_h": 1.0,
+        "fwd_h": 3.0
+      },
+      {
+        "symbol": "BANKUSDT",
+        "utc": "2026-08-05T08:00:00+00:00",
+        "back_h": 3.0,
+        "fwd_h": 4.0
+      },
+      {
+        "symbol": "BLURUSDT",
+        "utc": "2026-04-03T17:00:00+00:00",
+        "back_h": 1.0,
+        "fwd_h": 3.0
+      },
+      {
+        "symbol": "BLURUSDT",
+        "utc": "2026-04-03T20:00:00+00:00",
+        "back_h": 3.0,
+        "fwd_h": 4.0
+      }
+    ],
+    "reading": "3-hour gaps DO occur -- this is the 1000XECUSDT 2026-07-22/23 case on record -- but every one appears as a SWITCH row, the signature being back=1.0 fwd=3.0 followed by back=3.0 fwd=4.0, i.e. one 3h boundary gap inside a 1h -> 4h interval transition. A switch row fails spacing_is_safe, so it never reaches the spacing tier as truth and was NEVER a NONSTANDARD_SPACING candidate. The hard-fail path the ruling closes needs a SUSTAINED 3-hour interval (back == fwd == 3h), which does not occur here."
+  },
+  "reading": "UPPER BOUND = safe rows whose gap is off ALLOWED_IV. OPERATIVE = the subset with no declared interval in the ledger, which are the rows that actually reach the resolver's spacing tier; a row with a declared interval resolves EXACT and never sees the new label.",
+  "retraction": "I told lead that a real 3h gap 'would make the whole build raise rather than be labelled UNRESOLVED'. The first half is right (3h gaps are real, 104 rows) and the second half is WRONG: those rows are switch rows already handled by the unsafe-spacing path and they never reach gate_interval with a 3.0 value. I verified a REACHABLE CODE PATH and let it read as an OCCURRING problem without sizing it. The ruling's guard is correct, but it closes a case that is absent from this data, not an active defect.",
+  "verdict": "MEASURED",
+  "limits": [
+    "computed from ledger settlement times; the archive's own gaps may differ where the ledger is missing an event -- that is question 2 and is not settled here",
+    "the operative count uses the ledger's zip_iv column as the declared-interval proxy; the resolver also consults iv_best, which this device does not have"
+  ]
+}
