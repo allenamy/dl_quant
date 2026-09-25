@@ -1,0 +1,84 @@
+{
+  "task": "lead 2026-09-25: locate the line/mechanism producing last_rate=-0.02 with r_iv=8",
+  "verdict": "ROOT_CAUSE_IS_MISSING_1H_INTERVAL_SETTLEMENTS_IN_THE_REPLAYED_LEDGER",
+  "my_earlier_characterisation_was_WRONG": {
+    "what_I_said": "the real extreme value is replaced by the -2% cap (a clamp substitution)",
+    "why_it_was_wrong": "I inferred a clamp from the recurring -0.02 without checking last_ft. -0.02 is not a substituted constant: it is the GENUINE rate of an earlier settlement.",
+    "what_settled_it": "the replay last_ft column: it points 4h before the anchor, to the 8h-grid event"
+  },
+  "worked_example_GMTUSDT_2026-01-09": {
+    "ledger_settlements": [
+      {
+        "utc": "08:00",
+        "rate": -0.00252809,
+        "zip_iv": 8.0
+      },
+      {
+        "utc": "16:00",
+        "rate": -0.02,
+        "zip_iv": 8.0,
+        "note": "HIT THE -2% CAP; the replay stopped here"
+      },
+      {
+        "utc": "17:00",
+        "rate": -0.00120366,
+        "zip_iv": 1.0,
+        "note": "venue switched this symbol to 1h intervals"
+      },
+      {
+        "utc": "18:00",
+        "rate": -0.00057875,
+        "zip_iv": 1.0
+      },
+      {
+        "utc": "19:00",
+        "rate": -0.00035501,
+        "zip_iv": 1.0
+      },
+      {
+        "utc": "20:00",
+        "rate": -0.00039508,
+        "zip_iv": 1.0,
+        "note": "THE ANCHOR; panel and archive both use this"
+      },
+      {
+        "utc": "21:00",
+        "rate": -0.0011146,
+        "zip_iv": 1.0
+      }
+    ],
+    "replay_said": {
+      "last_ft": "16:00",
+      "last_rate": -0.02,
+      "last_iv": 8.0
+    },
+    "reading": "the replay did not ingest the 1h-interval settlements, so its as-of froze on the cap-hitting 8h event that TRIGGERED the interval switch"
+  },
+  "hypotheses_tested_and_refuted": [
+    {
+      "h": "replay uses strict < anchor instead of <= anchor (off-by-one settlement)",
+      "test": "compare replay last_ft against the latest ledger event STRICTLY BEFORE the anchor",
+      "result": "REFUTED 0 of 6: the strictly-prior event is 19:00 (1h grid), not 16:00"
+    },
+    {
+      "h": "-0.02 is a clamp/fill substituted when the rate is missing",
+      "test": "read the ledger rate at the replay last_ft",
+      "result": "REFUTED: -0.02 is the genuine rate of the 16:00 settlement"
+    }
+  ],
+  "consequence": "for a name in a funding-spike regime the model input says funding is AT THE CAP on an 8h interval, when the true as-of value has already normalised to ~-0.04% on a 1h interval; the error is systematic, regime-triggered, and directional",
+  "why_this_is_exactly_D10": "the defect is the interval/settlement completeness of the ledger used for training, which is the subject of the user ruling 96994c7f5",
+  "consistent_with": {
+    "fresh_FA_FXFIELD": "30.2% of mismatches also have iv differing; the worst names RAYUSDT/BDXNUSDT/SXPUSDT are names that repeatedly entered 1h spike regimes"
+  },
+  "builder": {
+    "script": "news_fund_replay.py",
+    "how": "compiles shadow_loop_v3.py L451-L484 verbatim and replays anchor by anchor over the historical settlement ledger from a cold start (REVIEW_REQUEST_round10_2026-09-23.md:163)",
+    "so_the_defect_is_not_in_the_replay_code": "the producer code was replayed verbatim; what it was fed lacked the 1h settlements"
+  },
+  "still_open": "WHICH ledger news_fund_replay.py was fed, and why it lacked the 1h settlements; the spliced ledger I read DOES contain them",
+  "limits": [
+    "6 cells inspected in detail, all six show the same shape",
+    "the 1h-settlement-absence is shown for the replay input, not yet traced to a specific upstream file"
+  ]
+}
