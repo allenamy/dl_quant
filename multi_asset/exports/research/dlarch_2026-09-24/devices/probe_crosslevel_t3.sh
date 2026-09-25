@@ -115,7 +115,15 @@ if [ "$LOAD_UP" -lt 1 ]; then
   touch "$K/runB.done"; kill "$LOADPID" 2>/dev/null; exit 1
 fi
 
-# ---- concurrency sampler: proves run B was loaded FOR ITS WHOLE DURATION, not just at the start ----
+# ---- concurrency sampler: proves run B was loaded FOR ITS DURATION, not just at the start ----
+# CRITERION DECLARED BEFORE THE NEXT RUN (the previous one was brittle by construction): require the
+# FRACTION of samples with >=2 trainers to be >= 95%, not min >= 2. Why the change is not criterion-
+# shopping: the sampler starts just BEFORE run B launches, so its FIRST sample necessarily sees only the
+# load's trainer -- `min >= 2` therefore cannot be satisfied even when the load is perfect, which is the
+# same defect as welding an arithmetic identity to a population expectation. Measured on the 12:53Z run:
+# 34/35 = 97.1% at two trainers, the single 1 being exactly that first sample, with an independent
+# corroboration that the load was real (loaded 345 s vs solo 247 s = 1.40x). A fraction criterion still
+# fails loudly if the load dies mid-run, which is the thing being guarded against.
 ( while [ ! -f "$K/runB.done" ]; do trainers >> "$K/concurrency.samples"; sleep 10; done ) &
 SAMPPID=$!
 echo "$SAMPPID" > "$K/sampler.pid"
@@ -129,7 +137,9 @@ touch "$K/runB.done"
 CMIN=$(sort -n "$K/concurrency.samples" 2>/dev/null | head -1)
 CMAX=$(sort -n "$K/concurrency.samples" 2>/dev/null | tail -1)
 CN=$(grep -c . "$K/concurrency.samples" 2>/dev/null || echo 0)
-log "concurrency during run B: n=$CN min=${CMIN:-?} max=${CMAX:-?}  (min must be >= 2 for the verdict to have power)"
+CGE2=$(awk '$1>=2' "$K/concurrency.samples" 2>/dev/null | grep -c . || echo 0)
+CPCT=$(awk -v a="$CGE2" -v b="$CN" 'BEGIN{if(b>0)printf "%.1f",100*a/b; else print "0.0"}')
+log "concurrency during run B: n=$CN  >=2 in $CGE2 ($CPCT%)  min=${CMIN:-?} max=${CMAX:-?}  (need >= 95% for power)"
 LOADED_DIR=$(outdir "$K/run_loaded.log")
 log "run B out dir (from the trainer's own line): ${LOADED_DIR:-<none announced>}"
 LOADED=$(sha256sum "$LOADED_DIR/$FOLD/scores.npz" 2>/dev/null | cut -d' ' -f1)
@@ -142,7 +152,7 @@ log "background load loop and sampler stopped (recorded pids $LOADPID / $SAMPPID
 log "solo   sha : $SOLO"
 log "loaded sha : $LOADED"
 if [ -n "$LOADED" ] && [ "$SOLO" = "$LOADED" ]; then V=IDENTICAL; else V=DIFFERENT; fi
-if [ "${CMIN:-0}" -ge 2 ]; then POWER=HAS_POWER; else POWER=NO_POWER_run_B_was_not_loaded_throughout; fi
+if awk -v p="$CPCT" 'BEGIN{exit !(p>=95)}'; then POWER=HAS_POWER; else POWER=NO_POWER_run_B_was_not_loaded_enough; fi
 log "T3_CROSSLOAD_VERDICT=$V  power=$POWER  solo=${SOLO_SEC}s loaded=${LOAD_SEC}s  slowdown=$(awk -v a=$SOLO_SEC -v b=$LOAD_SEC 'BEGIN{if(a>0)printf "%.2fx",b/a; else print "n/a"}')"
 [ "$POWER" = HAS_POWER ] || log "IDENTICAL under NO_POWER means only run-to-run determinism, NOT cross-load determinism -- do not read it as the latter"
 log "per-fold cost for scheduling: solo ${SOLO_SEC}s, under 2-way ${LOAD_SEC}s"
