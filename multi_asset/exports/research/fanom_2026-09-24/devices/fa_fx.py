@@ -26,14 +26,18 @@ RESTORES gross exactly, so of the kernel's three gates (combo_target.py L41-43) 
   a reimplemented gate that cannot reproduce the kernel's own output is not a gate, it is a guess.
   (Same discipline as the C3m recovery expression, which was certified on 6,483/6,203 anchors.)
 
-usage: ... fa_fx.py WL <arm> <seed> <base_combo_dir> <features.npz> <fund_replay.npz> <out_dir>
+REVISION 2 (lead 2026-09-25): the rate field is NO LONGER fund_replay's last_rate (adjudicated wrong 2017:0).
+It is the spliced field built by fa_fxrate.py: panel f_fund_now over the overlap, NC fn_v over 09-01..09-18, with
+stale/absent cells carried as NaN and NEVER as 0 (a 0 would read as a real rate and silently become a non-hit).
+
+usage: ... fa_fx.py WL <arm> <seed> <base_combo_dir> <features.npz> <FXRATE.npz> <out_dir>
        arm in {FX1,FX2,FX3,FXNULL}; FXNULL = threshold -inf, the G0 degeneracy control (must be bitwise base)
 """
 import os, sys, json, hashlib, time
 import numpy as np
 
 WL_ = set(sys.argv[1].split(",")); _x = sorted(set(os.environ) - WL_); assert not _x, f"env outside whitelist: {_x}"
-ARM, SEED, BASE, FEAT, REPLAY, OUT = sys.argv[2:8]
+ARM, SEED, BASE, FEAT, RATEF, OUT = sys.argv[2:8]
 MODES = ["scaled_diagnostic", "literal"]
 SPEC = {"FX1": ("zero", -0.0030), "FX2": ("half", -0.0030), "FX3": ("zero", -0.0010),
         "FXNULL": ("zero", -float("inf"))}
@@ -74,7 +78,7 @@ def gates(raw, n_members, coverage_failed, policy):
 
 
 os.makedirs(OUT, exist_ok=True)
-F = np.load(FEAT, allow_pickle=True); R = np.load(REPLAY, allow_pickle=False)
+F = np.load(FEAT, allow_pickle=True); R = np.load(RATEF, allow_pickle=False)
 rec = {"device": "fa_fx.py", "self_sha256": sha(os.path.abspath(__file__)), "arm": ARM, "seed": SEED,
        "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
        "prereg": "docs/PREREG_FX1_FX3_same_caliber_2026-09-25.md + 修订 1",
@@ -82,9 +86,12 @@ rec = {"device": "fa_fx.py", "self_sha256": sha(os.path.abspath(__file__)), "arm
                 "between two local sources; the final verdict belongs to stage 2 (exchange-archive truth)",
        "spec": {"FTRIM_MODE": FTRIM_MODE, "FTRIM_TH": FTRIM_TH,
                 "source": "eda/w10_ftrim_63feb2f7193f_2026-08-30.py L178-187 (verbatim)"},
-       "rate_field": {"name": "last_rate", "file": REPLAY, "sha256": sha(REPLAY),
+       "rate_field": {"name": "FXRATE (panel f_fund_now + NC fn_v splice)", "file": RATEF, "sha256": sha(RATEF),
                       "why": "08-30 applied the threshold to f_fund_now = the RAW settlement rate "
-                             "(r6_panel_splice.py L92 keeps the normalised rate as a SEPARATE variable rate_nf)"},
+                             "(r6_panel_splice.py L92 keeps the normalised rate as a SEPARATE variable rate_nf); "
+                             "fund_replay's last_rate was adjudicated WRONG 2017:0 by the archive",
+                      "nan_policy": "NaN = no usable rate; it must NOT be turned into 0, because 0 is a valid rate "
+                                    "and would silently become a non-hit under `rate <= TH`"},
        "modes": {}}
 
 for pol in MODES:
@@ -106,13 +113,18 @@ for pol in MODES:
                              f"(trade_mask ok={ok_tm}, reason ok={ok_rs}) — refusing to build the arm")
 
     # ---- the arm: FTRIM on raw, then restore gross (08-30 L178-187) ----
-    rate = R["last_rate"]; ra = R["anchors"].astype(np.int64); rsy = [str(s) for s in R["symbols"]]
-    assert rsy == [str(s) for s in syms], "replay symbol axis differs from the combo's"
+    rate = R["FXRATE"]; ra = R["E_ts"].astype(np.int64); rsy = [str(s) for s in R["symbols"]]
+    assert rsy == [str(s) for s in syms], "rate-field symbol axis differs from the combo's"
     ri = {t: i for i, t in enumerate(ra)}
-    assert all(int(t) in ri for t in E), "combo anchors not covered by the replay axis"
+    assert all(int(t) in ri for t in E), "combo anchors not covered by the rate field"
     rate_a = np.stack([rate[ri[int(t)]] for t in E])
-    fnf = np.nan_to_num(rate_a, nan=0.0)                       # 08-30 L179: nan -> 0.0
-    hit = (raw_b < 0) & (fnf <= FTRIM_TH)                      # 08-30 L180
+    # ★ 08-30 L179 is `np.nan_to_num(FN[j, m], nan=0.0)`. Transplanting that literally here would turn every
+    # stale/absent cell into 0.0. Under L180's `<= FTRIM_TH` a 0 is a NON-HIT, so the literal transplant is
+    # behaviourally safe for the HIT SET -- but it destroys the distinction between "no data" and "rate is 0",
+    # which the lead ruled must be preserved. So NaN is kept as NaN and the hit test requires FINITE:
+    finite = np.isfinite(rate_a)
+    hit = (raw_b < 0) & finite & (rate_a <= FTRIM_TH)          # 08-30 L180, with NaN explicitly excluded
+    n_nan_cells = int((~finite).sum())
     raw_v = raw_b.copy()
     g_orig = np.abs(raw_b).sum(1)
     if FTRIM_MODE == "zero": raw_v[hit] = 0.0                  # 08-30 L184
@@ -134,6 +146,9 @@ for pol in MODES:
          "publish_net": int(tm_v.sum() - tm_b.sum()),
          "trade_mask_bitwise_equal_base": bool(np.array_equal(tm_v, tm_b)),
          "hit_cells": int(hit.sum()), "hit_anchors": int(anch_hit.sum()),
+         "rate_nan_cells_excluded_from_hit_test": n_nan_cells,
+         "nan_handling": "NaN excluded by an explicit isfinite, not converted to 0 (08-30 L179 used nan_to_num=0.0; "
+                         "that is a non-hit either way, but it would merge 'no data' with 'rate is 0')",
          "weight_cells_differing": int((w_v != zb["weights"]).sum())}
     if ARM == "FXNULL":
         # G0 degeneracy control: threshold -inf can never fire => every array bitwise identical to base
