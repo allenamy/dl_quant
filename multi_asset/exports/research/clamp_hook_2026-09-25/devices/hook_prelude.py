@@ -23,7 +23,14 @@ assert os.path.realpath(AL.__file__).startswith(os.path.realpath(MIR)), AL.__fil
 _orig = AL.apply_withhold_and_reshape
 
 
+TGT_FROM = 1788220800   # v3: per-name targets only from 2026-09-01 (size); earlier anchors keep the v2 row
+
+
 def _hooked(*a, **k):
+    try:
+        _pre = {s_: float(v_) for s_, v_ in (a[0] if a else k.get("target") or {}).items()}   # v3: the target BEFORE pop/reshape/clamp (a copy)
+    except Exception:
+        _pre = None
     res = _orig(*a, **k)
     try:
         clamp, rs = res
@@ -46,7 +53,11 @@ def _hooked(*a, **k):
                 held_untr[s_] = {"sources": src_, "pos_usdt": float(pos_[s_])}
         except Exception as e2:
             held_untr = {"_error": f"{type(e2).__name__}: {str(e2)[:120]}"}
-        row = {"A": int(A) if A is not None else None, "held_untradable": held_untr, "pid": os.getpid(), "sizing_gross": (rep or {}).get("sizing_gross"),
+        tgt_rec = None
+        if A is not None and int(A) >= TGT_FROM and _pre is not None:
+            _post = a[0] if a else k.get("target")
+            tgt_rec = {"pre": _pre, "post_clamp": {s_: float(v_) for s_, v_ in (_post or {}).items()}}   # v3: before and after (copies)
+        row = {"A": int(A) if A is not None else None, "held_untradable": held_untr, "targets": tgt_rec, "pid": os.getpid(), "sizing_gross": (rep or {}).get("sizing_gross"),
                "net_before": (rep or {}).get("net_before"), "net_after": (rep or {}).get("net_after"), "n_popped": (rep or {}).get("n_popped"),
                "book_net_usdt": ca.get("book_net_usdt"), "net_shift_usdt": ca.get("net_shift_usdt"), "pinned_net_usdt": ca.get("pinned_net_usdt"),
                "clamped_names": ca.get("names"), "rs_none": rs is None}
