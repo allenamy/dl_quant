@@ -32,7 +32,7 @@ NS = "/dev/shm/news2_2026-09-23"
 BASE = "/workspace/dlarch_2026-09-24"
 CHAIN = f"{BASE}/chain"
 DEV = f"{CHAIN}/devices"
-T0ROOT = f"{BASE}/T3/T0"
+T0ROOT = f"{BASE}/T3/T0"          # kept for reference; the live value is TRAIN_ROOT, derived from --train-arm
 PV = "/workspace/venv/bin/python"
 P314 = PV                                      # same interpreter as the NEW_S pin for combo
 # Book-layer gate revision 2 (lead `8d2cc5546`): the T0 x 8 engine cells use the X extended axis
@@ -227,17 +227,28 @@ def main():
     inservice_f10 = parity or reference
     do_engine = "--engine" in args
     seed = 42 if inservice_f10 else int(args[args.index("--seed") + 1])
-    label = "parity" if parity else ("ref_nc_s42X" if reference else f"s{seed}")
-    f10_src = f"{NS}/work/f10_s42" if inservice_f10 else f"{T0ROOT}/f10_s{seed}"
+    # --train-arm: which TRAINING arm's family member this cell is built from. Default T0, so every
+    # existing command line keeps its exact meaning and the T0 cells already produced stay comparable.
+    # lead 2026-09-25 asked for T3 to be PIPELINED -- each T3 seed's book cell run as soon as that seed
+    # finishes training, rather than waiting for 3/3 -- which needs the source root and the cell's arm
+    # name to follow the training arm instead of being hardcoded to T0.
+    train_arm = "T0"
+    if "--train-arm" in args:
+        train_arm = args[args.index("--train-arm") + 1]
+    assert train_arm in ("T0", "T3_clamp"), f"unknown train arm {train_arm}"
+    assert not (inservice_f10 and train_arm != "T0"), "--parity/--reference use the in-service F10, so a train arm is meaningless there"
+    TRAIN_ROOT = f"{BASE}/T3/{train_arm}"
+    label = "parity" if parity else ("ref_nc_s42X" if reference else f"{'s' if train_arm == 'T0' else train_arm + '_s'}{seed}")
+    f10_src = f"{NS}/work/f10_s42" if inservice_f10 else f"{TRAIN_ROOT}/f10_s{seed}"
     # ONE source of truth for the arm name. It used to be rebuilt in four places (here, the adapter
     # spec device, the spec path, the targets path); the copies drifted as soon as --reference added a
     # second arm, and the engine's bt_objb_targets caught it: arm_mismatch {receipt: DLARCH_T0_s42,
     # want: DLARCH_REF_NC_s42X}. Computed once, passed down, recorded in the receipt.
-    arm = "DLARCH_REF_NC_s42X" if reference else f"DLARCH_T0_s{seed}"
+    arm = "DLARCH_REF_NC_s42X" if reference else f"DLARCH_{train_arm}_s{seed}"
     root = f"{CHAIN}/{label}"
     rec = {"device": "dlarch_chain_run.py", "self_sha256": sha(os.path.abspath(__file__)),
            "mode": "PARITY_GATE" if parity else ("REFERENCE_NC_s42X" if reference else "FAMILY_MEMBER"), "seed": seed, "root": root,
-           "f10_source": f10_src, "derived_devices": DEV,
+           "f10_source": f10_src, "train_arm": train_arm, "derived_devices": DEV,
            "derive_receipt_sha256": sha(f"{DEV}/DERIVE_CHAIN.json"),
            "utc_start": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "mem_gate_at_start": mem_gate(), "steps": {}}
