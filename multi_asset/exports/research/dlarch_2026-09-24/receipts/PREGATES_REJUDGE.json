@@ -1,0 +1,282 @@
+{
+ "device": "dlarch_pregates_rejudge.py",
+ "self_sha256": "3b69d945cf627ac24e5b25a5c9e7fe79c563cab69a3c5c75edf6f281c34cfcdd",
+ "gate_impl_from": "dlarch_pregates.gate_verdict (imported, single implementation)",
+ "gate_impl_sha256": "b1187d2fe6c0103f00d9bfe14b56dc05a6c342f384a9636afa8a02e107acd661",
+ "source_receipt": {
+  "path": "/workspace/dlarch_2026-09-24/out_pg/PREGATES.json",
+  "sha256": "37dc55e99069c273d5170b79bee075395981c445817cf1f45024b83fd8bba199"
+ },
+ "ruling": "lead 2026-09-24: the frozen pre-registration wording is the criterion; the code was the defect (E-0924-DLARCH-E)",
+ "recomputed_any_ic": false,
+ "utc": "2026-09-25T01:52:52Z",
+ "thresholds": {
+  "forward": 0.003,
+  "reverse": -0.001,
+  "reverse_arms": [
+   "A4a"
+  ]
+ },
+ "old_verdicts": {
+  "A4a": "FAIL",
+  "A4b": "FAIL",
+  "A1": "FAIL",
+  "A2": "FAIL",
+  "T6a": "FAIL"
+ },
+ "new_verdicts": {
+  "A4a": "PASS_CONDITIONAL",
+  "A4b": "FAIL",
+  "A1": "FAIL",
+  "A2": "FAIL",
+  "T6a": "FAIL"
+ },
+ "gates": {
+  "A4a": {
+   "direction": "reverse (drops columns)",
+   "per_year_test": "delta_year >= -0.001",
+   "ridge": {
+    "delta_ic_all": 1.2119000746685371e-05,
+    "delta_by_year": [
+     0.0006460073737587085,
+     -0.00018447926449446927,
+     -0.00042463248163995826
+    ],
+    "threshold": -0.001,
+    "years_positive": 1,
+    "years_meeting_per_year_test": 3,
+    "meets": true,
+    "years_ok": true,
+    "placebo_deltas": [
+     -9.46303759544187e-06,
+     1.8916221294726365e-05,
+     1.47650871282351e-05
+    ],
+    "placebo_max": 1.8916221294726365e-05,
+    "beats_placebo": false
+   },
+   "lgbm": {
+    "delta_ic_all": -0.0001692202709965146,
+    "delta_by_year": [
+     -9.899565918375375e-05,
+     0.0012614640951230521,
+     -0.0016740489321236535
+    ],
+    "threshold": -0.001,
+    "years_positive": 1,
+    "years_meeting_per_year_test": 2,
+    "meets": true,
+    "years_ok": true,
+    "placebo_deltas": [
+     0.0006989340118576798,
+     -0.00016035957367470377,
+     -0.00010102994935808074
+    ],
+    "placebo_max": 0.0006989340118576798,
+    "beats_placebo": false
+   },
+   "VERDICT": "PASS_CONDITIONAL"
+  },
+  "A4b": {
+   "direction": "forward (adds columns)",
+   "per_year_test": "delta_year > 0",
+   "ridge": {
+    "delta_ic_all": -0.000160385003288549,
+    "delta_by_year": [
+     -0.000283160507754468,
+     0.00031383245399044246,
+     -0.0005131261820119498
+    ],
+    "threshold": 0.003,
+    "years_positive": 1,
+    "years_meeting_per_year_test": 1,
+    "meets": false,
+    "years_ok": false,
+    "placebo_deltas": [
+     -9.46303759544187e-06,
+     1.8916221294726365e-05,
+     1.47650871282351e-05
+    ],
+    "placebo_max": 1.8916221294726365e-05,
+    "beats_placebo": false
+   },
+   "lgbm": {
+    "delta_ic_all": 0.000771586361744514,
+    "delta_by_year": [
+     0.001290401770902505,
+     0.0008852810994349758,
+     0.00013876472246406035
+    ],
+    "threshold": 0.003,
+    "years_positive": 3,
+    "years_meeting_per_year_test": 3,
+    "meets": false,
+    "years_ok": true,
+    "placebo_deltas": [
+     0.0006989340118576798,
+     -0.00016035957367470377,
+     -0.00010102994935808074
+    ],
+    "placebo_max": 0.0006989340118576798,
+    "beats_placebo": true
+   },
+   "VERDICT": "FAIL"
+  },
+  "A1": {
+   "direction": "forward (adds columns)",
+   "per_year_test": "delta_year > 0",
+   "ridge": {
+    "delta_ic_all": 4.872060394234268e-06,
+    "delta_by_year": [
+     -0.00024450785863389113,
+     3.148819810523673e-05,
+     0.00022756292078608686
+    ],
+    "threshold": 0.003,
+    "years_positive": 2,
+    "years_meeting_per_year_test": 2,
+    "meets": false,
+    "years_ok": true,
+    "placebo_deltas": [
+     -9.46303759544187e-06,
+     1.8916221294726365e-05,
+     1.47650871282351e-05
+    ],
+    "placebo_max": 1.8916221294726365e-05,
+    "beats_placebo": false
+   },
+   "lgbm": {
+    "delta_ic_all": 0.00016067550912886308,
+    "delta_by_year": [
+     0.001048845710238222,
+     -0.0006071798064849893,
+     4.246433682683626e-05
+    ],
+    "threshold": 0.003,
+    "years_positive": 2,
+    "years_meeting_per_year_test": 2,
+    "meets": false,
+    "years_ok": true,
+    "placebo_deltas": [
+     0.0006989340118576798,
+     -0.00016035957367470377,
+     -0.00010102994935808074
+    ],
+    "placebo_max": 0.0006989340118576798,
+    "beats_placebo": false
+   },
+   "VERDICT": "FAIL"
+  },
+  "A2": {
+   "direction": "forward (adds columns)",
+   "per_year_test": "delta_year > 0",
+   "ridge": {
+    "delta_ic_all": 0.000645000487329947,
+    "delta_by_year": [
+     0.000965862228371292,
+     0.0013444700213675748,
+     -0.0003772471426367885
+    ],
+    "threshold": 0.003,
+    "years_positive": 2,
+    "years_meeting_per_year_test": 2,
+    "meets": false,
+    "years_ok": true,
+    "placebo_deltas": [
+     -9.46303759544187e-06,
+     1.8916221294726365e-05,
+     1.47650871282351e-05
+    ],
+    "placebo_max": 1.8916221294726365e-05,
+    "beats_placebo": true
+   },
+   "lgbm": {
+    "delta_ic_all": 0.0005283977718048283,
+    "delta_by_year": [
+     0.0016494099958062197,
+     0.0011575777144125637,
+     -0.0012235181754689656
+    ],
+    "threshold": 0.003,
+    "years_positive": 2,
+    "years_meeting_per_year_test": 2,
+    "meets": false,
+    "years_ok": true,
+    "placebo_deltas": [
+     0.0006989340118576798,
+     -0.00016035957367470377,
+     -0.00010102994935808074
+    ],
+    "placebo_max": 0.0006989340118576798,
+    "beats_placebo": false
+   },
+   "VERDICT": "FAIL"
+  },
+  "T6a": {
+   "direction": "forward (adds columns)",
+   "per_year_test": "delta_year > 0",
+   "ridge": {
+    "delta_ic_all": 0.0005189827527819629,
+    "delta_by_year": [
+     7.738935437995309e-05,
+     0.0003552133278890979,
+     0.0011247942594327376
+    ],
+    "threshold": 0.003,
+    "years_positive": 3,
+    "years_meeting_per_year_test": 3,
+    "meets": false,
+    "years_ok": true,
+    "placebo_deltas": [
+     -9.46303759544187e-06,
+     1.8916221294726365e-05,
+     1.47650871282351e-05
+    ],
+    "placebo_max": 1.8916221294726365e-05,
+    "beats_placebo": true
+   },
+   "lgbm": {
+    "delta_ic_all": 0.0005222377923030513,
+    "delta_by_year": [
+     3.0832578278044975e-05,
+     0.0015056067106177934,
+     2.7579926593315762e-05
+    ],
+    "threshold": 0.003,
+    "years_positive": 3,
+    "years_meeting_per_year_test": 3,
+    "meets": false,
+    "years_ok": true,
+    "placebo_deltas": [
+     0.0006989340118576798,
+     -0.00016035957367470377,
+     -0.00010102994935808074
+    ],
+    "placebo_max": 0.0006989340118576798,
+    "beats_placebo": false
+   },
+   "VERDICT": "FAIL"
+  }
+ },
+ "changed": [
+  "A4a"
+ ],
+ "unchanged": [
+  "A4b",
+  "A1",
+  "A2",
+  "T6a"
+ ],
+ "delta_mismatch": [],
+ "surgical": {
+  "forward_arms": [
+   "A4b",
+   "A1",
+   "A2",
+   "T6a"
+  ],
+  "forward_arms_unchanged": true,
+  "reverse_arm_changed": true,
+  "deltas_bit_identical": true
+ }
+}

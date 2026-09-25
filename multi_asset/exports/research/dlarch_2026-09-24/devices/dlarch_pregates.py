@@ -119,6 +119,47 @@ def anchor_rank(v, ok):
     return out
 
 
+REVERSE_ARMS = ("A4a",)          # arms that REMOVE columns: "not worse" is the bar, not "positive"
+
+
+def gate_verdict(arm, r, b, pl, test_years):
+    """The gate EXACTLY as the pre-registration words it (docs/PREREG_dlarch_pregates_2026-09-25.md §5).
+
+    Forward arms:  delta_all >= +0.003  AND  >= 2/3 years with delta_year > 0  AND beats the placebo.
+    Reverse arms (they DROP columns): the prereg says "ΔIC >= -0.001 且逐年 >= 2/3 不劣" -- "不劣"
+    ("not worse"), NOT "positive". So the per-year test is `delta_year >= -0.001`, the same threshold,
+    and the placebo condition does not apply (a dropped column cannot be a free column).
+
+    E-0924-DLARCH-E: the first implementation used `delta_year > 0` for BOTH directions. On a forward
+    gate the two readings coincide; on a reverse gate they do not, and A4a was judged FAIL on a test its
+    own pre-registered wording did not ask for. lead ruled (2026-09-24) that the frozen WORDS are the
+    criterion and the code is its implementation, so the code is the defect. Fixed here, one place only.
+    """
+    rev = arm in REVERSE_ARMS
+    thr = GATE_A4A if rev else GATE_DELTA
+    g = {"direction": "reverse (drops columns)" if rev else "forward (adds columns)",
+         "per_year_test": f"delta_year >= {GATE_A4A}" if rev else "delta_year > 0"}
+    for mdl in ("ridge", "lgbm"):
+        d = r[f"{mdl}_ic_all"] - b[f"{mdl}_ic_all"]
+        yrs = [r["years"][str(y)][f"{mdl}_ic"] - b["years"][str(y)][f"{mdl}_ic"] for y in test_years]
+        ok_year = [(v >= GATE_A4A) if rev else (v > 0) for v in yrs]
+        g[mdl] = {"delta_ic_all": d, "delta_by_year": yrs, "threshold": thr,
+                  "years_positive": int(sum(1 for v in yrs if v > 0)),
+                  "years_meeting_per_year_test": int(sum(ok_year)),
+                  "meets": bool(d >= thr), "years_ok": bool(sum(ok_year) >= 2)}
+        if pl:
+            pld = [q[f"{mdl}_ic_all"] - b[f"{mdl}_ic_all"] for q in pl]
+            g[mdl]["placebo_deltas"] = pld; g[mdl]["placebo_max"] = max(pld)
+            g[mdl]["beats_placebo"] = bool(d > max(pld))
+    both = all(g[m]["meets"] and g[m]["years_ok"] for m in ("ridge", "lgbm"))
+    allyr = all(g[m]["years_meeting_per_year_test"] == len(test_years) for m in ("ridge", "lgbm"))
+    bp = True if rev else all(g[m].get("beats_placebo", True) for m in ("ridge", "lgbm"))
+    g["VERDICT"] = ("PASS" if (both and allyr and bp) else
+                    "PASS_CONDITIONAL" if (both and bp) else
+                    "INDISTINGUISHABLE_FROM_PLACEBO" if (both and not bp) else "FAIL")
+    return g
+
+
 def main():
     assert not sorted(set(os.environ) - set(sys.argv[1].split(","))), f"env outside whitelist: {sorted(set(os.environ) - set(sys.argv[1].split(',')))}"
     outdir = sys.argv[2]; os.makedirs(outdir, exist_ok=True)
@@ -491,24 +532,7 @@ def main():
         log("BASE sanity", json.dumps(rec["checks"]["base_ic_sanity"]))
         pl = [rec["arms"][f"PL{s}"] for s in range(PL_SEEDS) if f"PL{s}" in rec["arms"]]
         for arm in [x for x in ("A4a", "A4b", "A1", "A2", "T6a") if x in rec["arms"]]:
-            r = rec["arms"][arm]; g = {}
-            for mdl in ("ridge", "lgbm"):
-                d = r[f"{mdl}_ic_all"] - b[f"{mdl}_ic_all"]
-                yrs = [r["years"][str(y)][f"{mdl}_ic"] - b["years"][str(y)][f"{mdl}_ic"] for y in TEST_YEARS]
-                thr = GATE_A4A if arm == "A4a" else GATE_DELTA
-                g[mdl] = {"delta_ic_all": d, "delta_by_year": yrs,
-                          "years_positive": int(sum(1 for v in yrs if v > 0)), "threshold": thr,
-                          "meets": bool(d >= thr), "years_ok": int(sum(1 for v in yrs if v > 0)) >= 2}
-                if pl:
-                    pld = [p[f"{mdl}_ic_all"] - b[f"{mdl}_ic_all"] for p in pl]
-                    g[mdl]["placebo_deltas"] = pld; g[mdl]["placebo_max"] = max(pld)
-                    g[mdl]["beats_placebo"] = bool(d > max(pld))
-            both = all(g[m]["meets"] and g[m]["years_ok"] for m in ("ridge", "lgbm"))
-            allyr = all(g[m]["years_positive"] == len(TEST_YEARS) for m in ("ridge", "lgbm"))
-            bp = all(g[m].get("beats_placebo", True) for m in ("ridge", "lgbm")) if arm != "A4a" else True
-            g["VERDICT"] = ("PASS" if (both and allyr and bp) else
-                            "PASS_CONDITIONAL" if (both and bp) else
-                            "INDISTINGUISHABLE_FROM_PLACEBO" if (both and not bp) else "FAIL")
+            g = gate_verdict(arm, rec["arms"][arm], b, pl, TEST_YEARS)
             rec["gates"][arm] = g
             log("GATE", arm, g["VERDICT"], {m: round(g[m]["delta_ic_all"], 5) for m in ("ridge", "lgbm")})
 
