@@ -1,0 +1,14 @@
+synthetic table: 2 foreign launchers (one with 2 workers, one with 3 and NO config in argv),
+                 1 launcher of my own (pgid 3069221), 1 non-engine process
+gate counted    : 2   {'100': '/dev/shm/a/RUN_CONFIG.json', '200': '<config not in argv>'}
+count PIDs would give   : 5   (starvation: the gate could never open)
+match argv .json would  : 1   (FALSE NEGATIVE: the config-less group vanishes)
+count PGIDs (gate)      : 2   (one per launcher)
+  ok group with a config counted exactly once
+  ok group WITHOUT a config in argv IS counted
+  ok its label says so rather than dropping it
+  ok my own process group is excluded
+  ok non-engine processes ignored
+  ok count is GROUPS not PIDs
+  ok argv-matching would have under-counted
+DLARCH_ENGINE_GATE_SELFTEST=GREEN keyed_on=PGID label_only=config_path
