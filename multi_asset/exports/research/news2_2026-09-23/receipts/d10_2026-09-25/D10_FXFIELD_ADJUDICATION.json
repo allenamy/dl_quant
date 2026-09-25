@@ -1,6 +1,6 @@
 {
   "device": "d10_fxfield_adjudicate.py",
-  "self_sha256": "8b5897fd8c1ba202e2f3497ffad6054e7f820b87d51b5080c1f1d722e91531f4",
+  "self_sha256": "eb9be24d743eae9f1ea68830c5ba403acd0e93ae13a0cd0cec564441e49ac786",
   "argv": [
     "--panel",
     "/workspace/fx_data_2026-09-13/a0dev/pod_backup_2026-08-21/wide_panel_4h_hist_v2.npz",
@@ -10,9 +10,12 @@
     "/dev/shm/d10_2026-09-25/zips",
     "--inventory",
     "/dev/shm/d10_2026-09-25/receipts/D10_S1_ARCHIVE_INVENTORY.json",
+    "--cells-csv",
+    "/dev/shm/d10_2026-09-25/receipts/D10_FXFIELD_CELLS_fullprecision.csv",
     "--out",
     "/dev/shm/d10_2026-09-25/receipts/D10_FXFIELD_ADJUDICATION.json"
   ],
+  "gate_sha256": "793c5eb2e85e84232df8cf5f25b62207400e390b1552d9196f1b4f76adcdc956",
   "python": "/workspace/venv/bin/python",
   "numpy": "2.4.6",
   "task": "lead's priority target: judge fresh's 5,613 disagreement cells against the archive",
@@ -31,6 +34,12 @@
     "ledger": "fund_replay.npz from funding_state(..., max_age=43200) -- the same claimed quantity"
   },
   "truth": "archive last_funding_rate of the latest settlement <= anchor, NaN if older than 12h",
+  "replay_provenance": {
+    "state": "UNSTAMPED_PROVENANCE_UNKNOWN",
+    "why": "the npz carries no skip_gate_guard stamp, so it predates the guard (2026-09-25). Unstamped is not clean: the one known artifact of this kind is contaminated. Absence of a mark is not evidence of cleanliness",
+    "stamp": null,
+    "path": "/dev/shm/news2_2026-09-23/inputs/fund_replay.npz"
+  },
   "reproduction": {
     "common_anchors": 10039,
     "common_symbols": 829,
@@ -39,6 +48,54 @@
     "expected": 5613,
     "matches_fresh": true
   },
+  "months_verified": [
+    {
+      "month": "2026-01",
+      "zip_entries": 560,
+      "rehashed": 560,
+      "manifest_sha256": "d6d6b6dbe688bedbd25b30f6497f81e7e021c2400c5adf0d48da009eeaaa8fca"
+    },
+    {
+      "month": "2026-02",
+      "zip_entries": 563,
+      "rehashed": 563,
+      "manifest_sha256": "be686cc3775bd3dd6df76c8995627a125157a8d3b239f13651a48fffa1299f20"
+    },
+    {
+      "month": "2026-03",
+      "zip_entries": 573,
+      "rehashed": 573,
+      "manifest_sha256": "08db90fb94b45ce96dcc663416dd6a6d9c1ffd9d03567c0fc094f4c7779df3e9"
+    },
+    {
+      "month": "2026-04",
+      "zip_entries": 578,
+      "rehashed": 578,
+      "manifest_sha256": "016413f4ad38f54e1c7e1e71c9ba84f4efdf087fd6ba8d3203a006b09ec037cd"
+    },
+    {
+      "month": "2026-05",
+      "zip_entries": 592,
+      "rehashed": 592,
+      "manifest_sha256": "20d69096fbe9902cfc41015c25001b8a7d445eac3099954b2438eae7de3fe262"
+    },
+    {
+      "month": "2026-08",
+      "zip_entries": 680,
+      "rehashed": 680,
+      "manifest_sha256": "026471168f4fe844d61b7274b89758f5ae1eea449e3fa2f058394de0eb746185"
+    }
+  ],
+  "months_skipped": [
+    {
+      "month": "2026-06",
+      "verdict": "ABSENT_MANIFEST",
+      "mismatch": 0,
+      "unverified": 0,
+      "set_mismatch": 0,
+      "rehash_mismatch": 0
+    }
+  ],
   "symbol_window_source": {
     "path": "/dev/shm/d10_2026-09-25/receipts/D10_S1_ARCHIVE_INVENTORY.json",
     "sha256": "005413aa611d2a9d63695c5fb5ce41debb11326f658d3e7302ba67c6cdbff673",
@@ -49,16 +106,24 @@
     "2026-02",
     "2026-03",
     "2026-04",
+    "2026-05",
     "2026-08"
   ],
   "archive_symbols_loaded": 736,
-  "verdict_counts": {
-    "TRUTH_UNAVAILABLE_month_not_fetched": 3219,
-    "PANEL_RIGHT": 2017,
-    "TRUTH_UNAVAILABLE_outside_symbol_archive_window": 377
+  "cells_csv": {
+    "path": "/dev/shm/d10_2026-09-25/receipts/D10_FXFIELD_CELLS_fullprecision.csv",
+    "rows": 2021,
+    "sha256": "899cb1d43667aa5169f13a7dde8ef7873c8d5e7792e13242bca2d788036d9606",
+    "precision": "repr() round-trip, deliberately NOT rounded",
+    "for": "fresh's parity positive control needs a denominator larger than 3"
   },
-  "cells_judged": 2017,
-  "cells_not_judged": 3596,
+  "verdict_counts": {
+    "TRUTH_UNAVAILABLE_month_not_fetched": 3029,
+    "PANEL_RIGHT": 2021,
+    "TRUTH_UNAVAILABLE_outside_symbol_archive_window": 563
+  },
+  "cells_judged": 2021,
+  "cells_not_judged": 3592,
   "closure_check": {
     "sum_of_all_buckets": 5613,
     "mismatched_cells": 5613,
@@ -76,8 +141,8 @@
       "symbol": "BDXNUSDT",
       "total": 749,
       "by_verdict": {
-        "TRUTH_UNAVAILABLE_month_not_fetched": 553,
-        "TRUTH_UNAVAILABLE_outside_symbol_archive_window": 196
+        "TRUTH_UNAVAILABLE_month_not_fetched": 367,
+        "TRUTH_UNAVAILABLE_outside_symbol_archive_window": 382
       }
     },
     {

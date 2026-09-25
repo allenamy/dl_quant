@@ -26,8 +26,25 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import d10_manifest_gate as GATE   # R25-11: checksum_match must be True, set equality, per-file re-hash
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.realpath(__file__)))), "common"))
+# The guard lives beside the devices in the repo but NOT on pod2, where these files are copied into a flat
+# /dev/shm/<exp>/devices/. A parent-climb path assumes the repo layout and broke on pod2 only -- so search
+# the plausible locations, and if none has it, FAIL LOUDLY: this device's receipt promises a
+# `replay_provenance` field, and silently omitting it would be the same absent-means-pass error the manifest
+# gate had until R25-11.
+_HERE = os.path.dirname(os.path.realpath(__file__))
+for _c in (_HERE,
+           os.path.join(os.path.dirname(_HERE), "common"),
+           os.path.join(os.path.dirname(os.path.dirname(_HERE)), "common"),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(_HERE))), "common")):
+    if os.path.exists(os.path.join(_c, "fund_replay_guard.py")):
+        sys.path.insert(0, _c)
+        break
+else:
+    raise ImportError(
+        "fund_replay_guard.py not found next to this device or in any ../common; this device records the "
+        "replay artifact's provenance in its receipt, so running without the guard would publish a receipt "
+        "that silently omits it. Copy multi_asset/exports/research/common/fund_replay_guard.py beside this "
+        "device and re-run.")
 import fund_replay_guard as FRG   # records the replay artifact's provenance state in the receipt
 
 FRESH_S = 43200

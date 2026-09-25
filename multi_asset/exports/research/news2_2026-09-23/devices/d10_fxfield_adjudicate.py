@@ -32,8 +32,25 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import d10_manifest_gate as GATE   # R25-11: checksum_match must be True, set equality, per-file re-hash
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.realpath(__file__)))), "common"))
+# The guard lives beside the devices in the repo but NOT on pod2, where these files are copied into a flat
+# /dev/shm/<exp>/devices/. A parent-climb path assumes the repo layout and broke on pod2 only -- so search
+# the plausible locations, and if none has it, FAIL LOUDLY: this device's receipt promises a
+# `replay_provenance` field, and silently omitting it would be the same absent-means-pass error the manifest
+# gate had until R25-11.
+_HERE = os.path.dirname(os.path.realpath(__file__))
+for _c in (_HERE,
+           os.path.join(os.path.dirname(_HERE), "common"),
+           os.path.join(os.path.dirname(os.path.dirname(_HERE)), "common"),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(_HERE))), "common")):
+    if os.path.exists(os.path.join(_c, "fund_replay_guard.py")):
+        sys.path.insert(0, _c)
+        break
+else:
+    raise ImportError(
+        "fund_replay_guard.py not found next to this device or in any ../common; this device records the "
+        "replay artifact's provenance in its receipt, so running without the guard would publish a receipt "
+        "that silently omits it. Copy multi_asset/exports/research/common/fund_replay_guard.py beside this "
+        "device and re-run.")
 import fund_replay_guard as FRG   # records the replay artifact's provenance state in the receipt
 
 FRESH_S = 43200          # 12h, both sides' staleness window
@@ -60,6 +77,12 @@ def main():
     ap.add_argument("--inventory", required=True,
                     help="D10_S1_ARCHIVE_INVENTORY.json -- gives each symbol's archive coverage window")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--cells-csv", default=None,
+                    help="dump EVERY judged cell at FULL precision. fresh hit the trap this exists to "
+                         "avoid: the JSON examples carry values rounded for publication, and a 1e-12 "
+                         "\"bitwise\" test against a rounded reference tests the rounding, not the data, "
+                         "so it can never pass. Every float here is written with repr(), which is the "
+                         "shortest representation that round-trips exactly.")
     a = ap.parse_args()
 
     panel_real = os.path.realpath(a.panel)     # fresh's warning: those backup names are symlinks
@@ -151,6 +174,7 @@ def main():
     counts = collections.Counter()
     by_name = collections.defaultdict(collections.Counter)
     examples = collections.defaultdict(list)
+    all_cells = []
     rows = np.flatnonzero(bad.any(1))
     for i in rows:
         anchor = int(ti[i])
@@ -197,11 +221,31 @@ def main():
             else:
                 v = "NEITHER"
             counts[v] += 1; by_name[s][v] += 1
+            if a.cells_csv is not None:
+                all_cells.append((s, iso(anchor), v, truth, pv, lv,
+                                  iso(k[0]) if k else "", float(IV[i, j]), float(LIV[i, j]),
+                                  (anchor - k[0]) if k else ""))
             if len(examples[v]) < 12:
                 examples[v].append({"symbol": s, "anchor": iso(anchor), "panel": pv, "ledger": lv,
                                     "archive_truth": truth,
                                     "archive_event_utc": iso(k[0]) if k else None,
                                     "panel_iv": float(IV[i, j]), "ledger_iv": float(LIV[i, j])})
+    if a.cells_csv is not None:
+        with open(a.cells_csv, "w") as fh:
+            fh.write("# every judged cell from d10_fxfield_adjudicate.py, FULL PRECISION (repr, round-trips)\n")
+            fh.write("# archive_truth_rate is the venue archive's last settlement rate at or before the anchor;\n")
+            fh.write("# it is NOT rounded here. A tolerance test against a rounded reference measures the\n")
+            fh.write("# rounding rather than the data, which is why this file exists.\n")
+            fh.write("# verdict is judged at float32 (the panel's dtype); the raw values are given so a\n")
+            fh.write("# consumer can re-judge at any precision it prefers.\n")
+            fh.write("symbol,anchor_utc,verdict,archive_truth_rate,panel_value,ledger_value,"
+                     "archive_event_utc,panel_iv,ledger_iv,asof_age_s\n")
+            for (s_, au, v_, tr, pv_, lv_, aev, piv, liv, age) in all_cells:
+                fh.write(f"{s_},{au},{v_},{tr!r},{pv_!r},{lv_!r},{aev},{piv!r},{liv!r},{age}\n")
+        rec["cells_csv"] = {"path": a.cells_csv, "rows": len(all_cells), "sha256": sha(a.cells_csv),
+                            "precision": "repr() round-trip, deliberately NOT rounded",
+                            "for": "fresh's parity positive control needs a denominator larger than 3"}
+
     judged = sum(v for k, v in counts.items() if not k.startswith("TRUTH_UNAVAILABLE"))
     rec["verdict_counts"] = dict(counts)
     rec["cells_judged"] = judged
