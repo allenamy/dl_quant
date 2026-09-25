@@ -168,7 +168,7 @@ def main():
 
     UNK = {"pairs": set(), "notional": 0.0, "by_name": set()}
 
-    def book_series(bk, rng_mode=None, rng=None):
+    def book_series(bk, rng_mode=None, rng=None, unk_out=None):
         """u(book)/|book|_1*1e4 per anchor, for ANY book array (fc -> L4fc, raw -> L5raw).
         rng_mode 'A' permutes y ONLY among the finite positions, so the population is invariant.
 
@@ -193,10 +193,11 @@ def main():
             if unk.any():
                 # UNIQUE (anchor, name) pairs: book_series is called once per arm, and counting cell
                 # VISITS would multiply the same cell by the number of arms and look like more evidence
+                U = unk_out if unk_out is not None else UNK
                 for k in np.flatnonzero(unk):
-                    UNK["pairs"].add((int(au[j]), int(k)))
-                    UNK["by_name"].add(str(syms[k]))
-                UNK["notional"] += float(np.abs(bk[j][unk]).sum())
+                    U["pairs"].add((int(au[j]), int(k)))
+                    U["by_name"].add(str(syms[k]))
+                U["notional"] += float(np.abs(bk[j][unk]).sum())
             if v is None: continue
             vals[j] = v
         return vals, pop_mismatch
@@ -300,8 +301,59 @@ def main():
     # (ii) the realisation next to its candidate denominator. A realised 0 against a candidate 79 is a
     #     legitimate outcome (the book need not hold those names) and must not be read as a broken
     #     detector; that is precisely what (i) is for.
+    def endtoend_r25_02(bk):
+        """news2 2026-09-25: an injected control must not only have the DEFECT'S SHAPE, it must actually
+        REACH the code under test -- their first attempt perturbed a cell that an earlier coverage bucket
+        swallowed, so the control measured nothing while looking fine.
+
+        selftest_r25_02() proves the RULE is right (it calls anchor_value directly). It does NOT prove
+        book_series ever reaches that rule with a held, unlabelled name. So: take a cell the book really
+        HOLDS at a judged anchor whose label is FINITE, blank that label, re-run the real book_series, and
+        require the realised counter to pick it up. Without this, a realised count of 0 cannot be told
+        apart from 'the path is never reached' -- the very ambiguity that sank my first control.
+
+        Also per news2's second failure: the perturbed coordinate is RECORDED and required NOT to be one
+        of the natural candidates, because a control that lands on another control's cell silently cancels
+        it."""
+        tgt = None
+        for j in range(len(au)):
+            i = ci[j]
+            if not lab_ok[i]:
+                continue
+            nz = np.flatnonzero(bk[j] != 0)
+            if not len(nz):
+                continue
+            yr = Y[iy[i]]
+            ok = [int(k) for k in nz if np.isfinite(yr[k])]
+            if ok:
+                tgt = (j, i, ok[0])
+                break
+        if tgt is None:
+            return {"PASS": None, "why": "no held cell with a finite label exists, so nothing can be injected"}
+        j0, i0, k0 = tgt
+        coord = (int(au[j0]), k0)
+        natural = {(a_, k_) for (a_, k_) in UNK["pairs"]}
+        saved = Y[iy[i0]][k0].copy() if hasattr(Y[iy[i0]][k0], "copy") else Y[iy[i0]][k0]
+        probe = {"pairs": set(), "notional": 0.0, "by_name": set()}
+        try:
+            Y[iy[i0]][k0] = np.nan
+            book_series(bk, unk_out=probe)
+        finally:
+            Y[iy[i0]][k0] = saved
+        assert np.isfinite(Y[iy[i0]][k0]), "the injected label was not restored"
+        return {"injected_coord": {"anchor_utc": iso(au[j0]), "name": str(syms[k0])},
+                "collides_with_a_natural_candidate": coord in natural,
+                "realised_counter_saw_it": coord in probe["pairs"],
+                "probe_cells": len(probe["pairs"]),
+                "PASS": bool(coord in probe["pairs"] and coord not in natural),
+                "why": ("proves the injected defect REACHES book_series' accounting, not merely that "
+                        "anchor_value's rule is correct in isolation")}
+
+    _e2e = endtoend_r25_02(fc_cache[sorted(fc_cache)[0]]) if fc_cache else {"PASS": None, "why": "no arm loaded"}
+    assert _e2e.get("PASS") is not False, f"R25-02 end-to-end control FAILED: {_e2e}"
     rec["controls"]["r25_02_unknown_held_return"] = dict(unk_report(UNK),
-                                                         synthetic_positive_control=selftest_r25_02())
+                                                         synthetic_positive_control=selftest_r25_02(),
+                                                         end_to_end_positive_control=_e2e)
     log("R25-02", json.dumps({k: v for k, v in rec["controls"]["r25_02_unknown_held_return"].items()
                               if k != "synthetic_positive_control" and k != "unknown_names"}))
 
