@@ -1,12 +1,14 @@
 {
  "device": "d10_legs_rn8_vs_archive.py",
- "self_sha256": "5d697624d811a3e2573a7e8c473f43181308ea433bfedf32e4b652ccb39cd696",
+ "self_sha256": "4d87500b8b08199a814450d6ddeacd778eb6d44a008d1fbdac5d0fdd53c5b005",
  "gate_sha256": "793c5eb2e85e84232df8cf5f25b62207400e390b1552d9196f1b4f76adcdc956",
  "argv": [
   "--legs",
   "/dev/shm/news2_2026-09-23/work/legs.npz",
   "--legs-sha",
   "9ee5886f",
+  "--features",
+  "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
   "--zips-root",
   "/dev/shm/d10_2026-09-25/zips",
   "--months",
@@ -49,17 +51,18 @@
    "cells": {
     "legs_finite_but_no_spacing_available": 492,
     "out_of_coverage_no_spacing": 439,
-    "compared_finite": 73890,
+    "compared_finite": 73889,
     "DIFFER": 2,
-    "legs_nan_archive_fresh": 50807,
-    "bitwise_equal": 73886,
+    "legs_nan_correct_NOT_a_member": 50807,
+    "legs_nan_BUT_MEMBER_archive_fresh": 1,
+    "bitwise_equal": 73885,
     "asof_row_where_iv_column_disagrees_with_spacing": 64,
     "  of_those_spacing_is_standard": 20,
     "  of_those_spacing_is_NONSTANDARD": 44,
     "unresolved_nonstandard_spacing_legs_used_iv_column": 2,
     "both_nan_agree": 666
    },
-   "agreement_pct": 99.994587,
+   "agreement_pct": 99.994586,
    "mismatch_examples": [
     {
      "symbol": "0GUSDT",
@@ -73,6 +76,16 @@
      "iv_gap_h": 4.0,
      "iv_column_h": 4.0,
      "abs_diff": 7.275957614183426e-12
+    },
+    {
+     "symbol": "1000BONKUSDT",
+     "anchor": "2026-08-01T04:00Z",
+     "class": "MEMBER_WITH_NAN_RN8",
+     "archive_asof": "2026-08-01T04:00Z",
+     "age_s": 0,
+     "archive_rate": -6.86e-06,
+     "iv_gap_h": 4.0,
+     "iv_column_h": 4.0
     },
     {
      "symbol": "0GUSDT",
@@ -113,13 +126,22 @@
    "legs_nan_archive_fresh_note": "NOT a miss: RN8 is filled only at member columns and this device has no member mask, so this count is undecidable here"
   }
  },
+ "member_source": {
+  "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+  "construction": "members[i] = m[off[i]:off[i+1]] -> columns into symbols",
+  "explicitly_not": "cand = mask & crypto (tradable/candidate mask)",
+  "axes_identical_in_order": true,
+  "total_member_cells": 2785754
+ },
  "all_months": {
   "legs_finite_but_no_spacing_available": 492,
   "out_of_coverage_no_spacing": 439,
-  "compared_finite": 73890,
+  "compared_finite": 73889,
   "DIFFER": 2,
-  "legs_nan_archive_fresh": 50807,
-  "bitwise_equal": 73886,
+  "legs_nan_correct_NOT_a_member": 50807,
+  "legs_nan_BUT_MEMBER_archive_fresh": 1,
+  "bitwise_equal": 73885,
   "asof_row_where_iv_column_disagrees_with_spacing": 64,
   "  of_those_spacing_is_standard": 20,
   "  of_those_spacing_is_NONSTANDARD": 44,
@@ -129,7 +151,8 @@
  "undecidable_by_this_device": {
   "legs_finite_but_no_spacing_available": 492,
   "unresolved_nonstandard_spacing_legs_used_iv_column": 2,
-  "legs_nan_archive_fresh_no_member_mask": 50807,
+  "legs_nan_archive_fresh_UNDECIDABLE_no_member_mask": 0,
+  "legs_nan_correct_NOT_a_member": 50807,
   "out_of_coverage_no_in_month_asof": 0,
   "out_of_coverage_no_spacing": 439
  },
@@ -154,10 +177,18 @@
     "stale_event": "2026-08-01T04:00Z"
    }
   ],
+  "member_nan_control": {
+   "symbol": "1000BONKUSDT",
+   "anchor": "2026-08-01T04:00Z",
+   "blanked": "a MEMBER cell's RN8 set to NaN",
+   "expect": "legs_nan_BUT_MEMBER_archive_fresh >= 1"
+  },
   "placed": 2
  },
  "positive_control_result": {
   "differ_channel_saw_the_perturbations": true,
+  "member_nan_class_reddened": true,
+  "member_nan_class_note": "this class reads 0 in the clean run; a class that never fires cannot certify its own silence, so the control must make it fire",
   "verdict": "CONTROL_PASS",
   "n_differ": 2,
   "data_verdict_this_run_would_have_reported": "LEGS_RN8_DISAGREES",

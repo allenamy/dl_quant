@@ -97,6 +97,11 @@ def main():
     ap.add_argument("--zips-root", required=True)
     ap.add_argument("--months", required=True)
     ap.add_argument("--out", default=None)
+    ap.add_argument("--features", default=None,
+                    help="NEWS_FEATURES.npz -- supplies the per-anchor MEMBER set so the "
+                         "legs_nan_archive_fresh direction stops being undecidable. RN8 is filled only at "
+                         "member columns, so a NaN at a non-member column is CORRECT, not a miss. Without "
+                         "this the device reports that count as undecidable rather than as completeness.")
     ap.add_argument("--positive-control", action="store_true")
     a = ap.parse_args()
     months = [m.strip() for m in a.months.split(",") if m.strip()]
@@ -133,7 +138,30 @@ def main():
                         "lr['sha256'], the receipt's CLAIM about legs.npz, not the receipt file's hash")},
            "months": {}}
 
+    # the member set, from the construction dlarch's trainer uses (not a mask whose name sounds right;
+    # `cand = mask & crypto` is the tradable/candidate mask and is a DIFFERENT quantity)
+    member_at = None
+    if a.features:
+        Fz = np.load(a.features, allow_pickle=True)
+        fa = Fz["anchors"].astype(np.int64)
+        fs = [str(x) for x in Fz["symbols"]]
+        foff = Fz["off"].astype(np.int64)
+        fm = Fz["m"].astype(np.int64)
+        fcount = Fz["count"].astype(np.int64)
+        assert np.array_equal(np.diff(foff), fcount), "member construction does not close (count vs off)"
+        assert fm.max() < len(fs), "member index beyond the symbol axis"
+        # index directly only if the axes match in ORDER; otherwise map by value
+        assert fs == syms, "feature and legs symbol axes differ in order; refusing to index by position"
+        assert np.array_equal(fa, E), "feature and legs anchor axes differ in order; refusing to index by position"
+        member_at = [set(int(x) for x in fm[foff[i]:foff[i + 1]]) for i in range(len(fa))]
+        rec["member_source"] = {"path": a.features, "sha256": sha(a.features),
+                                "construction": "members[i] = m[off[i]:off[i+1]] -> columns into symbols",
+                                "explicitly_not": "cand = mask & crypto (tradable/candidate mask)",
+                                "axes_identical_in_order": True,
+                                "total_member_cells": int(fcount.sum())}
+
     ctrl = {"perturbed": []} if a.positive_control else None
+    ctrl_used = set()   # (i, j) already perturbed: the controls must not overwrite one another
     tot = collections.Counter()
     for m in months:
         arc = read_month(os.path.join(a.zips_root, m), m)
@@ -157,6 +185,7 @@ def main():
                     if len(ev) < 2:
                         continue
                     if placed == 0:
+                        ctrl_used.add((int(i), int(j)))
                         old = float(RN8[i, j])
                         # ULP in the array's OWN dtype. The first version took a float64 nextafter and
                         # stored it into this float32 array, so it rounded straight back to `old` and the
@@ -168,6 +197,7 @@ def main():
                                                   "from": old, "to": float(RN8[i, j]),
                                                   "delta": float(RN8[i, j]) - old})
                     else:
+                        ctrl_used.add((int(i), int(j)))
                         old = float(RN8[i, j])
                         psec, _pivcol, prate = ev[-2]
                         pgap = (psec - ev[-3][0]) / 3600.0 if len(ev) >= 3 else _pivcol
@@ -179,6 +209,41 @@ def main():
                     break
                 if placed >= 2:
                     break
+            # THIRD control, for the class whose emptiness is a headline. legs_nan_BUT_MEMBER_archive_fresh
+            # reads 0, and a class that has never fired cannot certify its own silence -- so blank one MEMBER
+            # cell's RN8 where the archive IS fresh, and that class must become >= 1.
+            ctrl["member_nan_control"] = None
+            if member_at is not None:
+                done3 = False
+                for i in ai:
+                    if done3:
+                        break
+                    A = int(E[i])
+                    for s in shared:
+                        j = idx[s]
+                        if (int(i), int(j)) in ctrl_used:
+                            continue   # a control that overwrites another control's cell silently cancels it:
+                                       # the first run of this third control blanked the ULP cell and DIFFER
+                                       # fell from 2 to 1, so the suite reported FAIL for the wrong reason
+                        if j not in member_at[i] or not np.isfinite(RN8[i, j]):
+                            continue
+                        # The cell must actually REACH the member-NaN branch: that needs a computable
+                        # spacing (so the as-of has an in-month predecessor) and a FRESH as-of, otherwise the
+                        # cell is consumed earlier by a coverage bucket. My first version ignored this and
+                        # picked a first-in-month as-of, so the control silently tested nothing -- CONTROL_FAIL
+                        # caught it, which is the second time today a control caught my own control.
+                        ev = [e for e in arc[s] if e[0] <= A]
+                        if len(ev) < 2 or (A - ev[-1][0]) > FRESH_S:
+                            continue
+                        gap = (ev[-1][0] - ev[-2][0]) / 3600.0
+                        if not gap:
+                            continue
+                        RN8[i, j] = np.float32(np.nan)
+                        ctrl["member_nan_control"] = {"symbol": s, "anchor": u(A),
+                                                      "blanked": "a MEMBER cell's RN8 set to NaN",
+                                                      "expect": "legs_nan_BUT_MEMBER_archive_fresh >= 1"}
+                        done3 = True
+                        break
             ctrl["placed"] = placed
 
         for i in ai:
@@ -268,7 +333,18 @@ def main():
                                      "age_s": A - sec,
                                      "why": "archive as-of is older than FRESH_S, so RN8 should be NaN"})
                 else:
-                    c["legs_nan_archive_fresh"] += 1              # guard 3: undecidable without members
+                    # guard 3, now DECIDABLE when --features is given: RN8 is filled only at member columns,
+                    # so NaN at a non-member column is correct behaviour and not a miss.
+                    if member_at is None:
+                        c["legs_nan_archive_fresh_UNDECIDABLE_no_member_mask"] += 1
+                    elif j in member_at[i]:
+                        c["legs_nan_BUT_MEMBER_archive_fresh"] += 1   # a genuine miss; must be named
+                        if len(mism) < 25:
+                            mism.append({"symbol": s, "anchor": u(A), "class": "MEMBER_WITH_NAN_RN8",
+                                         "archive_asof": u(sec), "age_s": A - sec,
+                                         "archive_rate": r, "iv_gap_h": iv, "iv_column_h": iv_col})
+                    else:
+                        c["legs_nan_correct_NOT_a_member"] += 1
 
         rec["months"][m] = {
             "anchors_in_month": int(ai.size), "shared_symbols": len(shared),
@@ -288,12 +364,15 @@ def main():
     # measure the spacing from and this device cannot judge the cell either way. Counting it as bad would
     # be the same error as calling a symbol whose archive simply ends a missing settlement. And the 26
     # UNRESOLVED nonstandard-spacing cells are a modelling convention, reported and excluded by name.
-    bad = tot["DIFFER"] + tot["legs_finite_archive_says_stale"] + tot["legs_finite_but_no_in_month_asof"]
+    bad = (tot["DIFFER"] + tot["legs_finite_archive_says_stale"] + tot["legs_finite_but_no_in_month_asof"]
+           + tot["legs_nan_BUT_MEMBER_archive_fresh"])
     undecidable = {
         "legs_finite_but_no_spacing_available": int(tot["legs_finite_but_no_spacing_available"]),
         "unresolved_nonstandard_spacing_legs_used_iv_column":
             int(tot["unresolved_nonstandard_spacing_legs_used_iv_column"]),
-        "legs_nan_archive_fresh_no_member_mask": int(tot["legs_nan_archive_fresh"]),
+        "legs_nan_archive_fresh_UNDECIDABLE_no_member_mask":
+            int(tot["legs_nan_archive_fresh_UNDECIDABLE_no_member_mask"]),
+        "legs_nan_correct_NOT_a_member": int(tot["legs_nan_correct_NOT_a_member"]),
         "out_of_coverage_no_in_month_asof": int(tot["out_of_coverage_no_in_month_asof"]),
         "out_of_coverage_no_spacing": int(tot["out_of_coverage_no_spacing"]),
     }
@@ -321,7 +400,9 @@ def main():
               f"  DIFFER_but_matches_iv_column={cc.get('DIFFER_but_matches_iv_column',0)}")
         print(f"       both_nan_agree={cc.get('both_nan_agree',0)} "
               f"legs_finite_archive_says_stale={cc.get('legs_finite_archive_says_stale',0)} "
-              f"legs_nan_archive_fresh={cc.get('legs_nan_archive_fresh',0)} "
+              f"nan_not_member={cc.get('legs_nan_correct_NOT_a_member',0)} "
+              f"nan_BUT_MEMBER={cc.get('legs_nan_BUT_MEMBER_archive_fresh',0)} "
+              f"nan_undecidable={cc.get('legs_nan_archive_fresh_UNDECIDABLE_no_member_mask',0)} "
               f"out_of_coverage={cc.get('out_of_coverage_no_in_month_asof',0)}")
         for e in d["mismatch_examples"][:5]:
             print(f"         {e}")
@@ -329,10 +410,16 @@ def main():
 
     if a.positive_control:
         seen = (tot["DIFFER"] >= 1)
+        seen_member_nan = (tot["legs_nan_BUT_MEMBER_archive_fresh"] >= 1)
         rec["positive_control"] = ctrl
         rec["positive_control_result"] = {
             "differ_channel_saw_the_perturbations": bool(seen),
-            "verdict": "CONTROL_PASS" if seen and tot["DIFFER"] >= 2 else "CONTROL_FAIL",
+            "member_nan_class_reddened": bool(seen_member_nan),
+            "member_nan_class_note": ("this class reads 0 in the clean run; a class that never fires cannot "
+                                      "certify its own silence, so the control must make it fire"),
+            "verdict": ("CONTROL_PASS" if (seen and tot["DIFFER"] >= 2 and
+                                           (seen_member_nan or ctrl.get("member_nan_control") is None))
+                        else "CONTROL_FAIL"),
             "n_differ": int(tot["DIFFER"]),
             "data_verdict_this_run_would_have_reported": rec["verdict"],
             "meaning": "with the control on, every red counter here is my own injected perturbation",
