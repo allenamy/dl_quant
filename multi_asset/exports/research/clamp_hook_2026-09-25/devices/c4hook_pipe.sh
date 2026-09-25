@@ -27,11 +27,12 @@ while true; do
   if [ "$GR" -eq 0 ] && [ "$OTHERS" -le 1 ]; then break; fi
   sleep 60
 done
-env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B /dev/shm/fresh_2026-09-23/devices/fa_launch_guard.py PATH,HOME,LC_CTYPE $ME/cfg/RUN_CONFIG.json >> $ME/logs/guard.log 2>&1; echo "guard rc=$?" >> $ME/logs/gate.log
+# rev 1: no fa_launch_guard here — it is fresh's guard (checks outputs against FRESH's root; run 1 printed REFUSE outside_my_root for this root, not applicable)
+mkdir -p $ME/receipts   # rev 1: bt_launch writes its launch receipt here (run 1: FileNotFoundError at finish, after every check OK and the path saved)
 cd $NC/engine
-env -i PATH=/usr/bin:/bin HOME=/root nice -n 12 /workspace/venv/bin/python -B $DEV/hook_prelude.py $ME/hook $NC/engine/bt_launch.py PATH,HOME,LC_CTYPE \
-  $ME/cfg/RUN_CONFIG.json --smoke 2022-06-30T00:00:00Z 9252 0 "$TAG" c4hook > $ME/logs/engine.log 2>&1
+env -i PATH=/usr/bin:/bin HOME=/root nice -n 12 /workspace/venv/bin/python -B $DEV/hook_prelude.py $ME/hook_${LABEL:-c4hook} $NC/engine/bt_launch.py PATH,HOME,LC_CTYPE \
+  $ME/cfg/RUN_CONFIG.json --smoke 2022-06-30T00:00:00Z 9252 0 "$TAG" ${LABEL:-c4hook} > $ME/logs/engine_${LABEL:-c4hook}.log 2>&1
 echo "engine rc=$? $(date -u +%FT%TZ)" >> $ME/logs/gate.log
-CELL=$ME/runs_smoke/c4hook/NEWS2_s42X_scaled_rule_raw_UAFE
-env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B $DEV/c4hook_read.py $CELL $ME/hook $FA/receipts/SER_EXT_NEWS2_s42X.npz $ME/C4HOOK_READ.json > $ME/logs/read.log 2>&1
+CELL=$ME/runs_smoke/${LABEL:-c4hook}/NEWS2_s42X_scaled_rule_raw_UAFE
+env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B $DEV/c4hook_read.py $CELL $ME/hook_${LABEL:-c4hook} $FA/receipts/SER_EXT_NEWS2_s42X.npz $ME/C4HOOK_READ_${LABEL:-c4hook}.json > $ME/logs/read_${LABEL:-c4hook}.log 2>&1
 echo "read rc=$? $(date -u +%FT%TZ)" >> $ME/logs/gate.log
