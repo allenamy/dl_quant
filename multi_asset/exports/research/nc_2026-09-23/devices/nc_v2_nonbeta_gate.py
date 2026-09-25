@@ -6,7 +6,9 @@ combosnap/combo_parity_replay.sh (production tree rsynced with the same excludes
 state/target_live_king/A.json), one with the BASE tree's changed files, one with the V2 tree's; combo_stage.py runs under sandbox-exec
 (network denied, writes only inside the sandbox) with a persistent feature workspace. Compared, bitwise:
   target_combo/A.json (every key except none; weights dict), state_H_kc_A / state_H_fc_A (idx, val), mini data dlw_fea82.npz / f8_fea89.npz /
-  dlw_targets.npz (every array), target_live_PARITY/A.json (every key except beta_overlay);
+  dlw_targets.npz (every array), target_live_PARITY/A.json (every key except beta_overlay and written_utc — the file's wall-clock write
+  time; the code has excluded written_utc since 4f8529505 while this line said "every key except beta_overlay" until the 2026-09-25 gate 3'
+  revision 1 corrected it: declaration ≠ implementation, recorded in receipts/m3v2_gate3prime_2026-09-25/README.md);
   beta_overlay: reported (version, n names whose beta differs), NOT a gate.
 Local heavy (~40 s x 2 per anchor) => quiet window only (checked before each anchor). Never calls the exchange.
 usage: ~/wide_shadow/venv/bin/python nc_v2_nonbeta_gate.py <base tree> <v2 tree> <out dir> [--anchors A,B,..]"""

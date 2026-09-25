@@ -13,3 +13,12 @@ Measured on run 1's already-built sandboxes of anchor 1790236800 with the fixed 
   changed by the v2 edits), cache_sha256 (the mini cache file: v2 writes ch0 = NaN by design) and, in f8, fea82_sha256 (sha of the dlw file,
   which differs through its meta_json). Under the literal criterion this anchor therefore FAILS; whether provenance-only meta differences are
   acceptable is the lead's ruling, not mine.
+run 2 (fixed comparator 7797a334; 05:03:17–05:11:25Z; OUT=~/cc_tmp/nc_20260923/v2gate_20260925T0503Z, same command as run 1):
+  → ARR_EQ_SELFTEST cases=9 wrong=0 [] · NC_V2_NONBETA_GATE FAIL anchors=6 · gate rc=1. On all 6 anchors: target_combo / state_H_kc / state_H_fc /
+    dlw_targets identical, target_live non-beta keys differing [] (written_utc excluded by the code), dlw_fea82 / f8_fea89 differ only in meta_json.
+REVISION 1 (lead rulings ~05:10Z and ~05:15Z, w1) — nc_v2_nonbeta_gate_rev1.py, committed BEFORE judging run 2's sandboxes: closed meta_json
+  exclusions {self_sha256, cache_sha256, f8 fea82_sha256}, each mapped to its v2 change; mini cache equal except v2 ch0 all NaN; every other
+  field / array / target_combo bytes / target_live non-beta key bitwise, plus ONE closed target_live exclusion `written_utc` (well-formed UTC
+  inside that sandbox's run window); ch0 AST census over the executed code (T1 whitelist); two verdict lines (FAIL_LITERAL/PASS_LITERAL and REV1).
+  Declaration ≠ implementation found: the gate code (4f8529505) excluded written_utc while its docstring said "every key except beta_overlay";
+  docstring corrected in this commit (code unchanged in behaviour).
