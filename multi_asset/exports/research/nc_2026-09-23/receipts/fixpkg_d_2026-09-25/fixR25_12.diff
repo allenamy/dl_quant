@@ -1,0 +1,244 @@
+commit 67f5ec8ba2855450033a803184dc952eea966e37
+Author: haosiyu <siyuhao0702@gmail.com>
+Date:   Sat Sep 26 00:01:44 2026 +0800
+
+    R25-12 (independent review 7cbe907ba; NOT pushed): drift guard — a production->research file MISSING from the research side is drift ('RESEARCH COPY MISSING'), not 'retired upstream' (research->production semantics unchanged). tests_drift_gate +4: baseline green, removed durable_io ⇒ RED named, RED CONTROL (the pre-fix guard on the same upstream prints 'no drift across 6', exit 0), research->production missing still retired. The suite's real-upstream check stays red until the held R25-10 durable_io patch lands upstream in the window (staged upstream with the held diff: 'no drift across 6')
+
+diff --git a/live/tests_drift_gate.py b/live/tests_drift_gate.py
+index 3dd87b0..c751394 100644
+--- a/live/tests_drift_gate.py
++++ b/live/tests_drift_gate.py
+@@ -212,6 +212,36 @@ except subprocess.TimeoutExpired:
+ check("B5-3 RED CONTROL: the former read (open(p, 'rb').read()) on the same file BLOCKS (still waiting after 3 s)", _blocked)
+ shutil.rmtree(_up, ignore_errors=True)
+ 
++# ★ R25-12 (independent review 7cbe907ba): a production->research file MISSING from the research side is drift, not "retired upstream".
++print("[R25-12] a missing research copy of a production->research file is RED")
++_up2 = tempfile.mkdtemp(prefix="drift_r2512_")
++for _name in _G.A_SET:
++    shutil.copy2(os.path.join(REPO, "live", _name), os.path.join(_up2, _name))
++_r0 = subprocess.run([sys.executable, GUARD, "--upstream", _up2, "--read-timeout", "3"], capture_output=True, text=True, cwd=REPO)
++check("R25-12-0 baseline green first: every A-set file present and equal ⇒ no drift", _r0.returncode == 0 and "no drift" in _r0.stdout, _r0.stdout[-160:])
++_p2r = sorted(n for n, d in _G.A_SET.items() if d == "production->research")
++_r2p = sorted(n for n, d in _G.A_SET.items() if d == "research->production")
++os.remove(os.path.join(_up2, _p2r[0]))
++_r1 = subprocess.run([sys.executable, GUARD, "--upstream", _up2, "--read-timeout", "3"], capture_output=True, text=True, cwd=REPO)
++check(f"★★★ R25-12-1 {_p2r[0]} (production->research) removed from the research side ⇒ exit 1, named RESEARCH COPY MISSING",
++      _r1.returncode == 1 and "RESEARCH COPY MISSING" in _r1.stdout and _p2r[0] in _r1.stdout, (_r1.returncode, _r1.stdout[-200:]))
++# the pre-fix guard resolves its repo from its own path, so it runs from a temp copy of the repo layout (ops/ + live/ A-set files + manifest)
++_old_repo = tempfile.mkdtemp(prefix="drift_old_repo_"); os.makedirs(os.path.join(_old_repo, "ops")); os.makedirs(os.path.join(_old_repo, "live"))
++shutil.copy2(os.path.join(HERE, "tests_fixtures", "check_upstream_drift_pre_R25_12.py"), os.path.join(_old_repo, "ops", "check_upstream_drift.py"))
++shutil.copy2(os.path.join(REPO, "ops", "UPSTREAM_MANIFEST.sha256"), os.path.join(_old_repo, "ops", "UPSTREAM_MANIFEST.sha256"))
++for _name in _G.A_SET:
++    shutil.copy2(os.path.join(REPO, "live", _name), os.path.join(_old_repo, "live", _name))
++_r3 = subprocess.run([sys.executable, os.path.join(_old_repo, "ops", "check_upstream_drift.py"), "--upstream", _up2, "--read-timeout", "3"],
++                     capture_output=True, text=True, cwd=_old_repo)
++shutil.rmtree(_old_repo, ignore_errors=True)
++check("★★★ R25-12 RED CONTROL: the pre-fix guard (fixture copy) on the SAME upstream exits 0 with 'no drift' — the silent skip this item fixes",
++      _r3.returncode == 0 and "no drift" in _r3.stdout, (_r3.returncode, _r3.stdout[-160:]))
++shutil.copy2(os.path.join(REPO, "live", _p2r[0]), os.path.join(_up2, _p2r[0])); os.remove(os.path.join(_up2, _r2p[0]))
++_r4 = subprocess.run([sys.executable, GUARD, "--upstream", _up2, "--read-timeout", "3"], capture_output=True, text=True, cwd=REPO)
++check(f"★★ R25-12-2 a research->production file ({_r2p[0]}) missing upstream is still 'retired' (unchanged semantics: the local copy is the source)",
++      _r4.returncode == 0 and "no drift" in _r4.stdout, (_r4.returncode, _r4.stdout[-160:]))
++shutil.rmtree(_up2, ignore_errors=True)
++
+ print(f"\n  {N_CHECKS[0]} checks run")
+ if N_CHECKS[0] == 0:
+     print("  FAIL  ZERO CHECKS RAN — an empty suite is a RED, not a pass")
+diff --git a/live/tests_fixtures/check_upstream_drift_pre_R25_12.py b/live/tests_fixtures/check_upstream_drift_pre_R25_12.py
+new file mode 100644
+index 0000000..287780f
+--- /dev/null
++++ b/live/tests_fixtures/check_upstream_drift_pre_R25_12.py
+@@ -0,0 +1,174 @@
++"""Drift gate between this repo's vendored live modules and their research-repo upstream.
++
++★ WHY A GATE AND NOT A RULE
++The migration is deliberately two-phase. The server's shadow (and its running 5-day acceptance
++clock) still executes the research-repo copies; killing those mid-clock to enforce "one copy"
++would trade a real, running verification for a tidiness principle. So for the transition window
++there ARE two copies — and two copies drift. That is the disease; this file is the containment:
++the duplication is allowed only while it is MACHINE-CHECKED. When the local loop takes over and
++the research-repo copies retire, this gate retires with them.
++
++Exit 0: vendored == upstream (or upstream absent: fine once retired).
++Exit 1: drift — someone edited one side. Re-vendor deliberately or revert; never ignore.
++"""
++import hashlib
++import os
++import subprocess
++import sys
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++REPO = os.path.dirname(HERE)
++MANIFEST = os.path.join(HERE, "UPSTREAM_MANIFEST.sha256")
++UPSTREAM = "/Users/haosiyu/Desktop/quant_research/multi_asset/engine/live"
++# ★ B-5 (lead ruling 2026-09-25; DESIGN_executor_durable_state_2026-09-25): UPSTREAM lives in the iCloud-synced research
++#   repo, whose files are routinely evicted to placeholders ("dataless"). Reading one blocks until iCloud delivers it —
++#   measured 2026-09-25: a baseline battery sat ~17 minutes in this guard on production_state_guard.py. A deploy or rollback
++#   battery must not hang on that, so an upstream file is (1) checked for the placeholder flag before any read, and (2) read
++#   in a child process with a timeout. Either case is a NAMED RED that prints the commands to materialise the file.
++SF_DATALESS = 0x40000000          # sys/stat.h: file is a placeholder whose data is not local
++READ_TIMEOUT_S = 10.0
++
++
++def _is_placeholder(p):
++    return bool(getattr(os.stat(p), "st_flags", 0) & SF_DATALESS)
++
++
++def _upstream_sha(p, timeout=None):
++    """(sha, None) or (None, reason). Never blocks longer than `timeout` seconds."""
++    if _is_placeholder(p):
++        return None, "iCloud placeholder (SF_DATALESS)"
++    try:
++        r = subprocess.run([sys.executable, "-c",
++                            "import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())", p],
++                           capture_output=True, text=True, timeout=READ_TIMEOUT_S if timeout is None else timeout)
++    except subprocess.TimeoutExpired:
++        return None, f"read timed out after {READ_TIMEOUT_S if timeout is None else timeout:.0f} s"
++    if r.returncode != 0 or len(r.stdout.strip()) != 64:
++        return None, f"read failed (rc {r.returncode}): {r.stderr.strip()[:160]}"
++    return r.stdout.strip(), None
++
++
++def sha(p):
++    return hashlib.sha256(open(p, "rb").read()).hexdigest()
++
++
++# ★★ THE A-SET IS DECLARED HERE, AND THE MANIFEST MUST COVER IT.
++# The manifest alone cannot notice that it has been emptied — it IS the thing that was emptied.
++# A guard whose only input is the file that was deleted has no way to be surprised, which is why
++# `no drift across 0 vendored modules` printed exit 0 for two days. So the SET is declared in
++# code, the manifest supplies the fingerprints, and the guard compares the two.
++# `direction` is a FIELD because a mismatch means opposite things for the two groups:
++#   research->production : our vendored copy fell behind the research original
++#   production->research : the research side fell behind OUR file (this repo holds the frozen
++#                          implementation; "fixing" our copy would overwrite the signed bytes)
++A_SET = {
++    "regime_classifier.py":       "research->production",
++    "deliver_report.py":          "research->production",
++    "production_state_guard.py":  "research->production",
++    "factor_version_registry.py": "research->production",
++    "pilot_metrics.py":           "production->research",
++    # B-2 (2026-09-25): the durable writer the three research->production modules above now import; it originates HERE
++    # (live/durable_io.py) and is copied to the research repo beside them, so its direction is production->research.
++    "durable_io.py":              "production->research",
++}
++
++
++def main(manifest=None, upstream=None, read_timeout=None):
++    """`manifest` overrides the path — so the guard can be exercised WITHOUT the subject being the
++    production file.
++
++    ★★ WHY THIS IS A PARAMETER AND NOT A TEST-LOCAL SWAP. `tests_drift_gate` had to prove that an
++    EMPTY manifest exits non-zero, and with the path hardcoded the only way to do that was to
++    overwrite `ops/UPSTREAM_MANIFEST.sha256` in place and restore it in a `finally`. That is a
++    correct-looking pattern with one hole: `finally` does not run under SIGKILL, a power loss, or
++    a `kill -9` on a hung suite. So the test whose entire subject is "the fingerprint table was
++    emptied and nobody noticed" could, on an unlucky interruption, LEAVE THE FINGERPRINT TABLE
++    EMPTIED. The guard's own red condition was reachable by running its test.
++    ⇒ The root cause is not the missing exception-safety, it is that the subject was the
++      production artifact. A guard is exercised against a one-off copy; the production file is
++      what it PROTECTS, never what it is tried on.
++    """
++    manifest = manifest or MANIFEST
++    lines = [l for l in open(manifest).read().splitlines() if l.strip()
++             and not l.lstrip().startswith("#")]
++    # ★★ SELF-CHECK FIRST, BEFORE ANY COMPARISON. An empty or short manifest is not "nothing to
++    # check" — it is the guard reporting that it has been disarmed, and that must be LOUD.
++    if not lines:
++        print("MANIFEST IS EMPTY — the drift gate is disarmed. This is a RED, not a pass: an "
++              "empty table cannot detect anything, and emptying it is indistinguishable from "
++              "regenerating it in the observable that used to define success (measured "
++              "2026-07-25: 19 deletions, 0 insertions, two days of `across 0 modules` exit 0).")
++        return 1
++    covered = set()
++    for l in lines:
++        parts = l.split()
++        if len(parts) >= 2:
++            covered.add(parts[1])
++    missing = sorted(set(A_SET) - covered)
++    if missing:
++        print(f"MANIFEST DOES NOT COVER THE DECLARED A-SET — missing {missing}. A partially "
++              f"emptied table is the same failure as an empty one, one entry at a time.")
++        return 1
++    UP = UPSTREAM if upstream is None else upstream
++    if not os.path.isdir(UP):
++        print(f"upstream absent — research-repo copies retired; gate passes vacuously BY DESIGN "
++              f"(declared A-set: {len(A_SET)} files)")
++        return 0
++    drift = []
++    unreadable = []
++    for l in lines:
++        parts = l.split()
++        h, name = parts[0], parts[1]
++        local_p = os.path.join(REPO, "live", name)
++        up_p = os.path.join(UP, name)
++        if not os.path.exists(up_p):
++            continue                       # retired upstream file: local copy is now the source
++        if not os.path.exists(local_p):
++            drift.append((name, "LOCAL COPY MISSING"))
++            continue
++        uh, why = _upstream_sha(up_p, read_timeout)
++        if uh is None:
++            unreadable.append((up_p, why))
++            continue
++        lh = sha(local_p)
++        direction = A_SET.get(name, "research->production")
++        if lh != uh:
++            # ★ worded from the direction field, because the responsible side differs
++            drift.append((name, "our vendored copy fell behind the research original"
++                                if direction == "research->production" else
++                                "the RESEARCH side fell behind this repo's file — do NOT "
++                                "'fix' the local copy, it is the upstream for this file"))
++        if uh != h:
++            drift.append((name, "upstream moved since vendoring"))
++    if unreadable:
++        print(f"UPSTREAM_UNREADABLE (iCloud placeholder) — {len(unreadable)} upstream file(s) could not be read without blocking; "
++              f"this is a RED, not a pass (nothing was compared for them). Materialise, then re-run the battery:")
++        for p, why in unreadable:
++            print(f"  {p}: {why}")
++            print(f"    brctl download \"{p}\"")
++            print(f"    cat \"{p}\" > /dev/null")
++    if drift:
++        print("DRIFT DETECTED — the two copies have diverged. Re-vendor deliberately or revert:")
++        for name, why in sorted(set(drift)):
++            print(f"  {name} [{A_SET.get(name, '?')}]: {why}")
++        return 1
++    if unreadable:
++        return 1
++    print(f"no drift across {len(lines)} vendored modules "
++          f"(declared A-set {len(A_SET)}, all covered)")
++    return 0
++
++
++if __name__ == "__main__":
++    # ★ argv, not an env var: an override that changes what a SAFETY GUARD is judging must be
++    # visible in the process line of whoever ran it. An exported variable is inherited silently by
++    # every descendant, which is the shape that would let a whole acceptance run be graded against
++    # a fixture without anything saying so.
++    _m = _u = _t = None
++    _a = sys.argv[1:]
++    while _a:
++        if _a[0] == "--manifest" and len(_a) > 1: _m = _a[1]; _a = _a[2:]
++        elif _a[0] == "--upstream" and len(_a) > 1: _u = _a[1]; _a = _a[2:]            # B-5: fixtures only (visible in the process line)
++        elif _a[0] == "--read-timeout" and len(_a) > 1: _t = float(_a[1]); _a = _a[2:]  # B-5: fixtures only
++        else: print(f"unknown argument {_a[0]!r}"); sys.exit(2)
++    sys.exit(main(_m, _u, _t))
+diff --git a/ops/check_upstream_drift.py b/ops/check_upstream_drift.py
+index 287780f..0c75eea 100644
+--- a/ops/check_upstream_drift.py
++++ b/ops/check_upstream_drift.py
+@@ -122,6 +122,12 @@ def main(manifest=None, upstream=None, read_timeout=None):
+         local_p = os.path.join(REPO, "live", name)
+         up_p = os.path.join(UP, name)
+         if not os.path.exists(up_p):
++            # R25-12 (independent review 7cbe907ba): only a research->production file can be "retired upstream" (the local copy
++            # becomes the source). For a production->research file THIS repo is the source and the research copy is the
++            # dependent: its absence is drift, not retirement. Measured 2026-09-25 (v2c pre-run): durable_io.py absent from the
++            # research repo and the guard printed the same "no drift across 6" line as when it was present and equal.
++            if A_SET.get(name, "research->production") == "production->research":
++                drift.append((name, "RESEARCH COPY MISSING — this repo is the source for this file; the research side must carry it"))
+             continue                       # retired upstream file: local copy is now the source
+         if not os.path.exists(local_p):
+             drift.append((name, "LOCAL COPY MISSING"))
