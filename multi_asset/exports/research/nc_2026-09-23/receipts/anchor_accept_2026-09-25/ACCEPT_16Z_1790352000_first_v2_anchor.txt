@@ -1,0 +1,93 @@
+## inspect_anchor.py 1790352000 16:55:18
+### anchor 1790352000 = 09-25 16:00:00Z  [BLIND: per-arm outcomes withheld until the CFG-04/CFG-06 stop points]
+producer: {'e': 'signal', 'members': 400, 'sel': 343, 'coverage': 1.0, 'fund_updates': 450, 'forced_exit_n': 18, 'w3': [0.33, 0.193, 0.477], 'runtime_s': 37.5, 'fetched': 519, 'missing': 0}
+  masked king = 0.4089
+score(prev anchor): {'gross_bps': 2.954, 'net_bps': 0.589, 'carry_bps': 2.281, 'cost_bps': 0.084, 'gross_bps_total': 2.954, 'net_bps_total': 0.589}
+anchor_skip rows: 0
+combo: waiting launch-window anchor=1790352000 elapsed=1014 Fri Sep 25 16:16:54 UTC 2026
+combo: waiting launch-window anchor=1790352000 elapsed=1019 Fri Sep 25 16:16:59 UTC 2026
+combo: [  34.6s] ④ COMBO 落盘 n=317 gross=0.8215 kc_src=own fc_src=own w3m=[0.4089, 0.0, 0.5911]
+combo: === combo_live anchor=1790352000 rc=0 Fri Sep 25 16:17:43 UTC 2026
+target_combo: {'w3_masked': [0.408887, 0.0, 0.591113], 'book_form': 'combo_v2main_norev24', 'kc_gross': 0.85613, 'fc_gross': 0.820382, 'rho_kc_fc': 0.9042, 'phi': 0.45} n weights 317
+target_live: {'producer': 'combo_stage_v1(kingLGBM 0.55 + V2MAIN 0.45, rev24 leg removed; base shadow_loop_v3)', 'universe_sha': '93ad1d25c2ca8ffe7bf7be7b4e961c93c1434d7f5ff8e4e09639aeb302626295'} n 317 gross 0.8215
+counterfactual rewrite: sum|Δw|/gross_king = 29.9% (king n 314, live n 317)
+orders n 542 terminal: {'skipped_min_notional': 234, 'partial_expired': 161, 'venue_reject': 73, 'filled': 60, 'skipped_no_chase_arm': 14}
+post-only refusals: first-attempt -5022 67, rested attempt-1 139 ⇒ true rate 32.5%
+requote_arm on rows: {'requote': 52, 'exempt': 4, 'direct': 39}
+placement arms: {'join': 167, 'behind': 155, 'exempt': 8} behind share 0.481
+chase arms: {'no_chase': 78, 'chase': 83}
+fills n 309 notional 8236 maker share 0.597 commission by asset [2.642225 USDT] (no USDT conversion here); markout coverage 224/309
+requote report: NOT FOUND
+reject-rate log line (blind: book-level first attempt only): 拒单率 post-only 穿价(-5022) 首次尝试 67/206 = 32.5% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 67 + 首次落单 139)
+post_only_refusals: [blind: unparsable, withheld]
+readback: {'anchor_ts': 1790353443.193434, 'symbol': 'ZROUSDT', 'venue_position_notional': -535.39233823, 'venue_position_qty': -347.4, 'source': 'fapi/v3/account@post_anchor', 'held': True, 'targeted': True, 'read_ts': 1790354724.507277}
+anchors row: {}
+daily_nav: {'sizing_policy': 'constant_leverage_2.00', 'day': '20260925', 'target_gross': 219022.6, 'nav': 109640.92595452, 'realised_pnl': 117.90415226999954, 'realised_pnl_source': '/fapi/v1/income since 00:00Z, sum of REALIZED_PNL+COMMISSION+FUNDING_FEE', 'realised_by_type': {'FUNDING_FEE': -133.22572972999995, 'REALIZED_PNL': 262.7086020399995, 'COMMISSION': -11.578720040000007}, 'realised_by_type_asset': {'FUNDING_FEE': {'USDT': -133.22572972999995}, 'REALIZED_PNL': {'USDT': 262.7086020399995}, 'COMMISSION': {'USDT': -11.578720040000007}}, 'realised_non_usdt_assets': [], 'realised_truncated': False}
+anchor_runs tail: ['2026-09-25T16:47:49Z nosleep: ok=True agent_pid=815 guard_age_h=265.043 power=AC | interval=4.5h log_verified=True slept', '2026-09-25T16:47:49Z alarms: raised=5 delivered_offbox=1 recorded_only=4 undelivered=0', '2026-09-25T16:47:57Z markout_backfill: day=20260924 pending=1 written=1 quarantined=0 no_trade=0 terminal=0 expired=0 re']
+alarm: HIGH ⚠️ HIGH
+position reconcile: 13 name(s) differ from the venue beyond revaluation (sign flip / one-sided / >5%) — adopting venue truth
+alarm: INFO ⚠️ HIGH
+2 name(s) withheld: the venue reports maxNotionalValue=0 (no new position permitted) — ['GUNUSDT', 'TLMUSDT']
+alarm: INFO ⚠️ HIGH
+重整后 2 个名字跨过了 min_notional 门槛: ['MMTUSDT', 'SYNUSDT'] — 这些名字的可交易性由这次重整改变, 不是由信号改变。仅报告, 不迭代。
+alarm: INFO ⚠️ HIGH
+9 held name(s) withheld, reduce-only from here — by source: 逐名止损冷却期: ['BCHUSDT', 'ENAUSDT', 'ZAMAUSDT']; 场所 maxNotionalValue=0(不许开新仓): ['TLMUSDT']; 外部书不再持有(持仓出场): ['BMTUSDT', 'PRLUSDT', 'SCRUS
+alarm: INFO ⚠️ HIGH
+45 个 maker 被 -5022 拒(post-only 会立刻成交), 其残差按全额进入 taker 补单: ['1000PEPEUSDT', 'ACEUSDT', 'AEROUSDT', 'BIOUSDT', 'BLESSUSDT', 'BROCCOLI714USDT', 'BRUSDT', 'BTCUSDT']。这些名字此前会整个从本锚消失 —— 04:00Z 那次占了 
+per_name_stop: {'cooldown': 12, 'stopped': 0}
+DONE
+inspect rc=0
+## B0 version probe 16:55:18
+  OK  target_live booster_sha: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  target_live f10_sha: measured=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  OK  shadow_log signal booster_sha (12): measured=['700d9e7b7ee9'] compared_with=['700d9e7b7ee9']
+  OK  MANIFEST slow2026.txt: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  on-disk slow2026.txt: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  on-disk f10_live_s42_np.npz: measured=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  OK  generation.json file set (NC contract = 5 signed files): measured=['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz'] compared_with=['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz']
+  OK  executor external_book ok: measured=True compared_with=True
+  OK  executor external_book reason: measured=None compared_with=None
+  OK  executor read booster_sha == book pin: measured=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d compared_with=700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d
+  OK  executor read f10_sha == book pin: measured=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f compared_with=3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f
+  OK  anchor_runs.log pin refusal / HOLD lines: measured=[] compared_with=[]
+VERSION_PROBE first-anchor OK n=0
+probe rc=0
+## B7(b) selfcheck [v2: rr input, released 13:19Z] 16:55:19
+  BAD installed beta_overlay_producer.py sha == contract candidate: measured=fc990a0b7bf34199430968ea015e90d9312e65b3d3d7ec2484f2033dba5b9846 compared_with=b77c180d69170988780566e19d0ee4a0f85af25a9b9e9be08b6e4a386095fb58
+  OK  c3 beta_exec recomputed == logged (rel 1e-9): measured=True compared_with=True
+  VAL B7v2 (ii) inputs (pooled): beta_exec_prod_usdt=-8858.164287992531 nav_usdt=109511.30074397 tolerance_usdt=max(0.01*|beta_exec|, 0.001*NAV)=109.51130074397
+M3_SELFCHECK 1790352000 MISMATCH n=1 bad=['installed beta_overlay_producer.py sha == contract candidate']
+selfcheck rc=3
+## B5 snapshot / parity
+COMPLETE PARITY.json PARITY.run.log SHA256SUMS aux.json boundary_raw.npz combo_live_status.json generation.json leg_returns_live.json members_hist.npz rolling.npz 
+parity 1790352000 rc=0 2026-09-25T16:19:49Z PARITY_PARITY anchor 1790352000 why=[] weights={'n_archived': 317, 'n_replay': 317, 'n_differing': 0, 'max_abs_dw': 0.0}
+## B6 dashboard / anchor_report
+B6 last row 1790352000 0.4089 0.5911
+## B4 + B6 anchor_report (pooled)
+B4 A=1790352000 rebalance anchor_ts=1790353443.193434 rebalance_id=A1790353440 opening_halted=False external_book ok=True reason=None book_source=external
+B4 orders 542 | order_type {'maker': 336, 'topup_taker': 206} | terminal {'skipped_min_notional': 234, 'venue_reject': 73, 'partial_expired': 161, '<arm-named label, pooled>': 14, 'filled': 60}
+B4 gross target 216558.75219748475 realized 217087.3685329699 venue_gross 217087.368533 venue_net 1899.445648 net/gross 0.00875
+B4 m3: mode shadow status shadow field_ok True reason None version_expected m3_beta_v2 n_betas 450 n_fallback 0 data_cutoff_ts 1790352000 betas_sha256 99537d767ee62ec0 beta_exec_usdt -8858.164287992531 hedge_target_usdt 8858.164287992531 shadow_would_be applied
+B4 orders with an overlay/hedge marker: 0
+B6 anchor_report anchor_ts 1790352000 status warn utc 2026-09-25T16:55:06Z warn(non-arm) ['taker 占比 40% > 近42锚 中位 25% + 3MAD = 39%']
+    锚 09-25 16:00Z 排查(常驻器)
+    守护 2/2
+    fund_upd 450 cov 1.0 forced 18
+    w3m [0.409, 0.0, 0.591] kc/fc own/own f10 400
+    gross 217087 net 1899(0.88%) gaps 785U
+    基线(近42锚, 不含重建/停开仓): taker 中位 25% 线 39% | |净/gross| 中位 0.64% 线 2.08%
+    参照(S1a_2026-08-28_2026-09-01T12Z): taker 中位 5.0% → 当前 25.1% (Δ+20.06pp) | |净/gross| 中位 0.36% → 当前 0.64% (Δ+0.28pp) · 判词见日报
+B4_POOLED OK []
+b4 rc=0
+## watchdog state
+{'reduce_only': False, 'tripped_at': None, '_mode': 'LIVE'}
+## v2 first-anchor field + retention
+target_live beta_overlay version m3_beta_v2 n_betas 450 data_cutoff_ts 1790352000
+SNAP_RETENTION window_start=1789142400 deleted=0 bytes=0 refused=[] rule=snap_retention_v1_2026-09-25
+0
+## forward-log freshness 16:55:20
+FRESHNESS /Users/haosiyu/parabolic_onset_forward_short/run_log.jsonl YOUNG_LOG age_h=9.55; not yet of judgeable age: first line 2026-09-25T06:19:27Z, progress window judged from 2026-09-26T12:19:27Z (after that no total increase = STALE_NO_PROGRESS red)
+FRESHNESS /Users/haosiyu/Desktop/quant_research/multi_asset/exports/live/parabolic_onset_forward/run_log.jsonl FRESH age_h=10.59 key=run_utc last=2026-09-25T06:19:49Z total 126 (at 2026-09-22T07:22:35Z) -> 144
+FORWARD_FRESHNESS OK n_red=0 n_young_not_judged=1 max_age_h=30 now=2026-09-25T16:55:20Z
+freshness rc=0
+DONE 16:55:20
