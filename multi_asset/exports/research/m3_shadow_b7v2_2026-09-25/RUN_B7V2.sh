@@ -46,3 +46,12 @@ V1=/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/m3_shadow_
 #     → B7V2_FETCH VERDICT=COMPLETE n_requests=451 ok=450 failed=0 max_used_weight_1m=208 soft_brakes=0 (envelope: <=500 requests, weight <=300)
 #   /usr/bin/python3 -B $D/devices/b7v2_compare.py $S/b7v2/in_1790352000 $S/b7v2/fetch_1790352000 $S/b7v2/in_1790352000/M3_SELFCHECK_1790352000.txt 1790352000 $D/receipts/anchor_1790352000
 #     → B7V2 STATUS=CLEAN gate0=True ii_abs_usdt=3.19 ii_tol_usdt=109.51 ii_pass=True n_over_band=1 n_unexplained=0 undecided=[]
+# ==== anchor 1790366400 (2026-09-25T20:00Z, second m3_beta_v2 shadow anchor), run 2026-09-25T21:00:13Z..21:04:44Z (quiet window OPEN, 159.7 min left) ====
+#   zsh $D/devices/b7v2_copy_inputs.sh $S/b7v2/in_1790366400 1790366400
+#   ~/wide_shadow/venv/bin/python -B /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/nc_2026-09-23/devices/nc_m3_selfcheck.py ~/cc_tmp/nc_20260923/package_v2c_20260925 1790366400 --out $S/b7v2/in_1790366400/M3_SELFCHECK_1790366400.txt
+#     → M3_SELFCHECK 1790366400 OK n=0
+#   /usr/bin/python3 /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/common/venue_quiet_window.py --json   → open, remaining 159.7
+#   /usr/bin/python3 -B $D/devices/b7v2_fetch.py $S/b7v2/in_1790366400 1790366400 $S/b7v2/fetch_1790366400
+#     → B7V2_FETCH VERDICT=COMPLETE n_requests=451 ok=450 failed=0 max_used_weight_1m=214 soft_brakes=0 (envelope: <=500 requests, weight <=300)
+#   /usr/bin/python3 -B $D/devices/b7v2_compare.py $S/b7v2/in_1790366400 $S/b7v2/fetch_1790366400 $S/b7v2/in_1790366400/M3_SELFCHECK_1790366400.txt 1790366400 $D/receipts/anchor_1790366400
+#     → B7V2 STATUS=CLEAN gate0=True ii_abs_usdt=3.06 ii_tol_usdt=109.38 ii_pass=True n_over_band=1 n_unexplained=0 undecided=[]

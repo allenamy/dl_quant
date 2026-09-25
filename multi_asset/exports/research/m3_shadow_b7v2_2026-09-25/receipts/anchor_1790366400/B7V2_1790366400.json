@@ -1,0 +1,101 @@
+{
+ "device": "b7v2_compare.py",
+ "self_sha256": "ac97201f496aff7c20e6ba71b3d102edbf4fff2b3ccfd75bcf143a80876383a6",
+ "m2_lib_sha256": "93f8e76088ca523158df4d3ddb12f4f3239d0b75e3e0f7362ecc9ced914c8c9d",
+ "rule": "docs/DECISION_RULE_B7_v2_m3_shadow_2026-09-25.md (b80f52b39)",
+ "anchor": 1790366400,
+ "anchor_utc": "2026-09-25T20:00:00Z",
+ "utc": "2026-09-25T21:04:43Z",
+ "inputs": {
+  "fetch_manifest": {
+   "sha256": "c3a6f83041474eeec85707f61ee876e80cbc1d15910c91a331c0c34250a2f4f2",
+   "verdict": "COMPLETE",
+   "anchor": 1790366400,
+   "n_requests": 451,
+   "max_used_weight_1m": 214
+  },
+  "target_live_copy_sha256": "7a29d74a1b23963c1acdbf118ed9a954895a8b24f2fd38d72419c984d10aa85b",
+  "anchors_copy_sha256": "8351f1dbe9d769c8e1aabe5126f130686a9c0e894b03eb37818b70b9b9d04dbc",
+  "orders_copy_sha256": "7aa650c1302b228f1899901967b0037f2126f5f4a0f9ab644f5ad01d7aca3645",
+  "selfcheck_txt_sha256": "de293b002a9aab92c16fca82f97904ec88cf2a5cf3637642157d164f3153870b"
+ },
+ "numpy": "1.26.4",
+ "python": "3.9.6",
+ "research_grid": {
+  "n_symbols": 450,
+  "n_ua_boundaries": 0,
+  "symbols_with_bad_klines": {}
+ },
+ "gate0": {
+  "items": {
+   "0a_field_version_v2": true,
+   "0b_record_v2_shadow_field_ok": true,
+   "0c_record_betas_sha256_matches_field": true,
+   "0d_selfcheck_ok_v2": true
+  },
+  "measured": {
+   "field_version": "m3_beta_v2",
+   "record_version_expected": "m3_beta_v2",
+   "record_mode": "shadow",
+   "record_field_ok": true,
+   "record_betas_sha256": "95aebe198235340d65386b2ad5cf7244a0810f8efa541095021e1b2551236e1c",
+   "field_betas_sha256": "95aebe198235340d65386b2ad5cf7244a0810f8efa541095021e1b2551236e1c",
+   "selfcheck_last_line": "M3_SELFCHECK 1790366400 OK n=0"
+  },
+  "pass": true
+ },
+ "layer_i": {
+  "role": "REPORTED, NOT A GATE (rule \u00a71)",
+  "n_names_non_btc": 449,
+  "abs_diff": {
+   "n": 449,
+   "p50": 4.576585489909912e-05,
+   "p90": 0.00013670750667475471,
+   "p99": 0.0003913964330969173,
+   "max": 0.03480066035816534
+  },
+  "n_over_band": 1,
+  "over_band_by_reason": {
+   "venue_status_SETTLING": 1
+  },
+  "n_unexplained": 0,
+  "over_band": [
+   {
+    "symbol": "STGUSDT",
+    "beta_prod": 0.19999156536882728,
+    "beta_res": 0.23479222572699263,
+    "abs_diff": 0.03480066035816534,
+    "band": 0.0023479222572699264,
+    "n_obs_prod": 171,
+    "n_obs_res": 180,
+    "est_res": true,
+    "venue_status_at_fetch": "SETTLING",
+    "reason": "venue_status_SETTLING"
+   }
+  ],
+  "venue_status_note": "status read from exchangeInfo at 2026-09-25T21:00:19Z (quiet window after A), not at A"
+ },
+ "layer_ii": {
+  "closure": {
+   "n_order_symbols": 307,
+   "n_nonzero_target": 305,
+   "sum_abs_target_w": 0.9999999999999996,
+   "c1": true,
+   "c2": true,
+   "c3": true,
+   "recon_beta_exec_usdt_prod_betas": -9193.116401999952,
+   "ambiguous_symbols": 0,
+   "targeted_without_prod_beta": 0
+  },
+  "beta_exec_prod_usdt": -9193.116401999949,
+  "beta_exec_res_usdt": -9190.057641719492,
+  "abs_diff_usdt": 3.058760280457136,
+  "nav_usdt": 109375.44261355,
+  "tolerance_usdt": 109.37544261354999,
+  "tolerance_rule": "max(0.01\u00b7|\u03b2_exec_prod|, 0.001\u00b7NAV)",
+  "rel_to_beta_exec": 0.00033272289251028164,
+  "pass": true
+ },
+ "instrument_undecided_because": [],
+ "STATUS": "CLEAN"
+}
