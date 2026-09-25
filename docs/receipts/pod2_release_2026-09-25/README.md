@@ -17,3 +17,15 @@ Commands (verbatim):
   ssh pod2 'cd /workspace/lead_tamper_check && find . -type f -size -1000k -print0 | sort -z | tar --null -T - -czf /root/release_20260925/lead_tamper_check_small_files.tgz; …'   → tar rc=0, 56 entries
   (first tar attempt used `-size -1M`, which find rounds up to whole MiB ⇒ matched only empty files ⇒ 0 entries; caught by the entry count, redone)
   scp -q pod2:/root/release_20260925/lead_tamper_check_SHA256SUMS.txt pod2:/root/release_20260925/lead_tamper_check_small_files.tgz <here>/ ; tar -xzf … ; per-file sha check → ok=56 bad=0
+
+## Deletion and measured result
+  ssh pod2 'date -u +%T; ls -d /workspace/lead_tamper_check && …; rm -rf /workspace/lead_tamper_check; echo "rm rc=$?"; ls -d /workspace/lead_tamper_check 2>&1'
+    → 04:54:22 · rm rc=0 · "No such file or directory". Released: 3,002 MiB (du -B1M at 04:50Z), 93 files.
+  Quota probe (/root/release_20260925/quota_probe.py on pod2: 1 GiB os.urandom written in 16 MiB chunks with md5 while writing, fsync,
+  re-read md5, then removed):
+  ssh pod2 '… nice -n 10 /workspace/venv/bin/python -B quota_probe.py /workspace/.c4_quota_probe_20260925.bin 1073741824; echo "probe rc=$?"'
+    → QUOTA_PROBE path=/workspace/.c4_quota_probe_20260925.bin requested=1073741824 written_by_writer=1073741824 write_error=None
+      size_on_disk=1073741824 md5_written=20056f3c6ba89115536800eeffb582ac md5_readback=20056f3c6ba89115536800eeffb582ac OK=True secs=7.1
+    → probe removed: True · probe rc=0
+  Reading: ≥ 1 GiB writable without truncation after the release (measured). "≈ 3 GiB free" = dlarch's earlier 128 MiB + 3,002 MiB
+  (INFERRED, not probed — a larger probe would compete with dlarch's writes). No pre-release probe of my own.
