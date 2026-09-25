@@ -78,7 +78,9 @@ def run(panel=None, days_back=None, verbose=True):
                    "anchors": rr,
                    "counts": {k: sum(1 for x in rr if x["regime"] == k)
                               for k in ("calm", "normal", "stress", "unknown")}}
-        json.dump(payload, open(f"{OUT}/{day}.json", "w"), indent=1)
+        # ★ durable write (quant_research DESIGN_executor_durable_state_2026-09-25 B-2): was json.dump(x, open(p, "w")), whose implicit close loses a full-disk error
+        import sys as _sys; _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import durable_io as _DIO
+        _DIO.write_json_durable(f"{OUT}/{day}.json", payload, indent=1)
         written.append(day)
     if verbose:
         allc = {k: sum(1 for r in rows if r["regime"] == k)

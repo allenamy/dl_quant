@@ -171,7 +171,9 @@ def dump():
                                 "from 'check code vs protocol' to 'keep file in sync with protocol'"),
     }
     os.makedirs(os.path.dirname(REGISTRY_PATH), exist_ok=True)
-    json.dump(payload, open(REGISTRY_PATH, "w"), indent=1)
+    # ★ durable write (quant_research DESIGN_executor_durable_state_2026-09-25 B-2): was json.dump(x, open(p, "w")), whose implicit close loses a full-disk error
+    import sys as _sys; _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import durable_io as _DIO
+    _DIO.write_json_durable(REGISTRY_PATH, payload, indent=1)
     return payload
 
 
