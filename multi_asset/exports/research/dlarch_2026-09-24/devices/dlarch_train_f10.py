@@ -53,6 +53,16 @@ REF = VENDOR / 'devices/news2_train_f10.py'
 REF_SHA = '66bc7c3e69af7aab7062b562674fb3bbe272fd9a28fc3ea9639143f4549420db'  # news2_train_f10.py, asserted in main()
 NEWT = pathlib.Path('/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz')
 NEWT_SHA = 'ca479fccd3d3245e9438a8c82ba7b4a1950ab6e06607f28b25923c4526924d62'
+# LITERAL pin for legs.npz (fresh 2026-09-25 spotted the gap this closes). The existing check is
+# `json.load(P3_LEGS.json)['sha256'] == sha(legs.npz)` -- the receipt's self-reported output sha against
+# the file. That catches an edited pair, but NOT a whole-tree mix-up: `news_2026-09-23/` differs from
+# `news2_2026-09-23/` by ONE CHARACTER, and over there the receipt and the legs file are a mutually
+# CONSISTENT pair, so a self-consistency check passes while the data is the polluted one (fresh's RN8
+# census: that tree's RN8 disagrees with the archive, TLMUSDT even flips sign). A literal expected value
+# is the only form that notices. NOT DEPLOYED to the in-flight T3 campaign: changing the trainer
+# mid-campaign would train one family under two code versions, which is the class that voided 8 T0 folds
+# on 2026-09-25. Takes effect from the next campaign, together with the R25-08 parameter hash.
+LEGS_SHA = '9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65'
 MASK_PATH = '/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz'
 # T3-only reads that were previously pinned NOWHERE: they were read straight off /dev/shm and did not
 # appear in `inputs`, so a change to either would have been SILENT. Vendored and asserted at the use site.
@@ -178,6 +188,9 @@ def main():
                                        VENDOR / 'devices/f10_observability.py', VENDOR / 'devices/nc_hist_features.py',
                                        VENDOR / 'devices/nc_legs.py', VENDOR / 'devices/nc_p2_build.py')}
     assert inputs[str(files[1])] == NEWT_SHA and json.load(open(files[3]))['sha256'] == inputs[str(files[0])] and json.load(open(files[4]))['sha256'] == inputs[str(files[2])]
+    assert inputs[str(files[2])] == LEGS_SHA, (
+        f"legs.npz is {inputs[str(files[2])][:16]}, expected {LEGS_SHA[:16]}. A self-consistent receipt+file "
+        "pair from the WRONG tree would pass the assertion above; this literal pin is what catches it.")
     F = np.load(files[0]); T = np.load(files[1], allow_pickle=True); leg = np.load(files[2])
     a = F['anchors'].astype(np.int64)
     assert np.array_equal(T['symbols'], F['symbols']) and np.array_equal(leg['E_ts'], a) and np.array_equal(leg['symbols'], F['symbols'])
