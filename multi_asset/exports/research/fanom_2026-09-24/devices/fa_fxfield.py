@@ -26,6 +26,7 @@ import numpy as np
 
 WL_ = set(sys.argv[1].split(",")); _x = sorted(set(os.environ) - WL_); assert not _x, f"env outside whitelist: {_x}"
 OUT, PANEL, REPLAY = sys.argv[2], sys.argv[3], sys.argv[4]
+CSV = sys.argv[5] if len(sys.argv) > 5 else None      # lead 2026-09-25 item 3: the full named list, fixed repo path
 THRESHOLDS = [-0.0010, -0.0030]        # the 08-30 whitelist, L24
 iso = lambda t: datetime.datetime.fromtimestamp(int(t), datetime.timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
 
@@ -131,6 +132,25 @@ for th in THRESHOLDS:
         "panel_hits": int(a.sum()), "replay_hits": int(b.sum()), "both": int((a & b).sum()),
         "only_panel": int((a & ~b).sum()), "only_replay": int((b & ~a).sum()),
         "disagree_pct_of_union": float(100 * ((a & ~b) | (b & ~a)).sum() / max(1, u))}
+
+if CSV:
+    # the FULL named list of disagreeing cells, for news2's event-level census to use as priority targets.
+    # Written with the same verify-then-commit discipline as the receipt: a truncated target list is worse than none,
+    # because the census would silently work a short list and report the rest as agreeing.
+    tmp = CSV + ".tmp"
+    lines = ["symbol,anchor_utc,panel_f_fund_now,replay_last_rate,panel_iv,replay_iv,abs_diff\n"]
+    for a, sx in zip(ai, si):
+        lines.append("%s,%s,%.10g,%.10g,%g,%g,%.10g\n" % (ps[sx], iso(ti[a]), FN[a, sx], LR[a, sx],
+                                                           IV[a, sx], LIV[a, sx], abs(float(FN[a, sx]) - float(LR[a, sx]))))
+    with open(tmp, "w") as f:
+        f.writelines(lines); f.flush(); os.fsync(f.fileno())
+    with open(tmp) as f:
+        back = f.readlines()
+    assert len(back) == len(lines) and back[-1] == lines[-1], "cell list did not read back complete"
+    assert len(back) - 1 == int(bad.sum()), f"csv rows {len(back)-1} != mismatched cells {int(bad.sum())}"
+    os.replace(tmp, CSV)
+    rec["named_cell_list"] = {"path": CSV, "rows": len(lines) - 1, "sha256": sha(CSV)}
+    print("  named cell list: %d rows -> %s" % (len(lines) - 1, CSV), flush=True)
 
 s = write_json_verified(rec, OUT)
 print("FA_FXFIELD receipt=%s sha=%s" % (OUT, s[:16]), flush=True)
