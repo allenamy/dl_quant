@@ -1,0 +1,102 @@
+{
+  "device": "pnoise_dbar.py",
+  "self_sha256": "d1c75e6d6ffbd40145d5e639fba6c5776855d2560fd16b5ce23c65b4d80decd1",
+  "argv": [
+    "--news-devices",
+    "/dev/shm/news2_2026-09-23/engine",
+    "--new-dir",
+    "/dev/shm/pnoise_2026-09-24/runs/NEWS2_s42_scaled_rule_raw_UAFE",
+    "--new-tag",
+    "NEWS2_s42_scaled_rule_raw_UAFE",
+    "--nc-dir",
+    "/dev/shm/news2_2026-09-23/runs/NEWS2_s42_scaled_rule_raw_UAFE",
+    "--nc-tag",
+    "NEWS2_s42_scaled_rule_raw_UAFE",
+    "--random-state",
+    "ladder_FUND_res_ncfill",
+    "--out",
+    "/dev/shm/pnoise_2026-09-24/receipts/STEP3_DBAR_FUND_res_ncfill.json"
+  ],
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "prereg": "docs/PREREG_perturbation_noise_run_2026-09-24.md @ 41e5e8776",
+  "random_state": "ladder_FUND_res_ncfill",
+  "caliber_source": {
+    "news_stats": "/dev/shm/news2_2026-09-23/engine/news_stats.py",
+    "news_stats_sha256": "7141ba42ab227b9f35b48acce62d5e2a2494f364fdf6a83189974cb2af67e03c",
+    "bt_tables_sha256": "892ba66b9e8040ff04caede02272556dec5a71eb4632cbe7a2a13f46bd35f389",
+    "bt_driver_lib_sha256": "ba3bc2610b12a3f0280ff8f03c039ff5c2e81b8c05789183fd2b1acab661bddb",
+    "NPATH": 32,
+    "BLOCK_MAIN": 30,
+    "SEG": {
+      "2023H2": [
+        "2023-06-30T04:00:00Z",
+        "2023-12-31T20:00:00Z"
+      ],
+      "2024": [
+        "2024-01-01T00:00:00Z",
+        "2024-12-31T20:00:00Z"
+      ],
+      "2025": [
+        "2025-01-01T00:00:00Z",
+        "2025-12-31T20:00:00Z"
+      ],
+      "pre2026": [
+        "2023-06-30T04:00:00Z",
+        "2025-12-31T20:00:00Z"
+      ],
+      "2026": [
+        "2026-01-01T00:00:00Z",
+        "2026-08-31T00:00:00Z"
+      ]
+    }
+  },
+  "cells": {
+    "perturbed": {
+      "dir": "/dev/shm/pnoise_2026-09-24/runs/NEWS2_s42_scaled_rule_raw_UAFE",
+      "tag": "NEWS2_s42_scaled_rule_raw_UAFE"
+    },
+    "nc_archived": {
+      "dir": "/dev/shm/news2_2026-09-23/runs/NEWS2_s42_scaled_rule_raw_UAFE",
+      "tag": "NEWS2_s42_scaled_rule_raw_UAFE"
+    }
+  },
+  "n_paths": {
+    "perturbed": 32,
+    "nc": 32
+  },
+  "anchor_axis_identical": true,
+  "dbar_vs_nc": {
+    "2023H2": {
+      "n_days": 184,
+      "mean_bps_per_day": -0.0913113310917415,
+      "max_abs_daily_bps": 7.0747146626451425,
+      "exactly_zero": false
+    },
+    "2024": {
+      "n_days": 366,
+      "mean_bps_per_day": -0.023792930814103237,
+      "max_abs_daily_bps": 12.737725944037653,
+      "exactly_zero": false
+    },
+    "2025": {
+      "n_days": 365,
+      "mean_bps_per_day": 0.05021250960267219,
+      "max_abs_daily_bps": 15.801767420882337,
+      "exactly_zero": false
+    },
+    "pre2026": {
+      "n_days": 915,
+      "mean_bps_per_day": -0.007849105567067615,
+      "max_abs_daily_bps": 15.801767420882337,
+      "exactly_zero": false
+    },
+    "2026": {
+      "n_days": 242,
+      "mean_bps_per_day": -0.8209636847439399,
+      "max_abs_daily_bps": 55.0207788300789,
+      "exactly_zero": false
+    }
+  },
+  "verdict": "MEASURED"
+}

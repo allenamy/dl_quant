@@ -18,7 +18,10 @@ to the production one and the whole ladder is UNAVAILABLE.
 ARMS (lead's list):
   none      red control     -- nothing substituted
   LEGAL_res / MEM_res            revision 1 (dd57ac30f): lead's two added arms
-  KZ_res_ncfill / KZWL_res_ncfill / F10_res_ncfill   revision 1: lead's path-2 sensitivity (NC fill)
+  KZ_res_ncfill / KZWL_res_ncfill / F10_res_ncfill / FUND_res_ncfill   revision 1: path-2 (NC fill).
+            FUND_res_ncfill exists because FUND_res is SILENTLY degraded (ZFD non-finite on 43,233
+            member cells / 1,715 anchors) and the reason-vocabulary detector cannot see silent
+            degradation -- it only sees what the consumer complains about.
   all_new_nclegal                revision 1: leave-one-out, everything NEW except legal
   all_new   positive control-- every array from NEW; must reproduce NEW's archived targets (<=1e-6)
   kz_neg    mutation        -- KZ negated; publish decisions must change
@@ -234,6 +237,13 @@ def main():
         sub("WL", nwl["WL"], rows_new, ncfill=True)
     elif ARM == "F10_res_ncfill":
         sub("P", nwf["P"], rows_new, ncfill=True)
+    elif ARM == "FUND_res_ncfill":
+        # lead's FUND_res trio, with the path-2 fill rule. FUND_res itself is silently degraded:
+        # ZFD is non-finite on 43,233 member cells over 1,715 anchors and combo neither refuses the
+        # anchor nor emits NaN, so the reason-vocabulary detector could not see it.
+        sub("ZFD", nwl["ZFD"], rows_new, ncfill=True)
+        sub("RN8", nwfund["rn8"], rows_new, ncfill=True)
+        sub("QV", nwt["qvk"], rows_new, ncfill=True)
     elif ARM == "all_new_nclegal":
         # leave-one-out: identical to all_new EXCEPT book_legal stays NC. NEW_LEGAL is left False.
         for nm in ("KZ", "ZFD", "WL"):

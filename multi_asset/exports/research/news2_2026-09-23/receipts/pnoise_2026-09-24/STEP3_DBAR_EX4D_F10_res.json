@@ -1,0 +1,78 @@
+{
+  "device": "ladder_dbar_ex4d.py",
+  "self_sha256": "930b58ed3557d91d6ec564f48fd72062770fbc5c493b6d5a2aab8b57211a3119",
+  "argv": [
+    "--news-devices",
+    "/dev/shm/news2_2026-09-23/engine",
+    "--new-dir",
+    "/dev/shm/pnoise_2026-09-24/runs/NEWS2_s42_scaled_rule_raw_UAFE",
+    "--new-tag",
+    "NEWS2_s42_scaled_rule_raw_UAFE",
+    "--nc-dir",
+    "/dev/shm/news2_2026-09-23/runs/NEWS2_s42_scaled_rule_raw_UAFE",
+    "--nc-tag",
+    "NEWS2_s42_scaled_rule_raw_UAFE",
+    "--arm",
+    "F10_res",
+    "--main-receipt",
+    "/dev/shm/pnoise_2026-09-24/receipts/STEP3_DBAR_F10_res.json",
+    "--out",
+    "/dev/shm/pnoise_2026-09-24/receipts/STEP3_DBAR_EX4D_F10_res.json"
+  ],
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "prereg": "docs/PREREG_gap_carrier_ladder_2026-09-25.md @ dd57ac30f (sha256 893abd37cfa87a0d07457bbdd62a5ccab804579605e1bac73244af1bdcf1ac03), revision 1",
+  "criterion_author": "team-lead (not news2)",
+  "arm": "F10_res",
+  "status": "SUPPLEMENTARY_READING_NOT_THE_MAIN_READING",
+  "what_this_is": "lead's supplementary pre-2026 reading with the four contaminated UTC days removed. The MAIN reading is the frozen 915-day pre2026 segment in STEP3_DBAR_<arm>.json and is unchanged by this device.",
+  "excluded_days": [
+    "2025-12-28",
+    "2025-12-29",
+    "2025-12-30",
+    "2025-12-31"
+  ],
+  "why_those_days": "the coverage artifact's entire pre-2026 footprint: 24 anchors, all 6 anchors on each of 2025-12-28..31 (STEP3_COVERAGE_ARTIFACT.json pre2026_days)",
+  "caliber_source": {
+    "news_stats_sha256": "7141ba42ab227b9f35b48acce62d5e2a2494f364fdf6a83189974cb2af67e03c",
+    "bt_tables_sha256": "892ba66b9e8040ff04caede02272556dec5a71eb4632cbe7a2a13f46bd35f389",
+    "bt_driver_lib_sha256": "ba3bc2610b12a3f0280ff8f03c039ff5c2e81b8c05789183fd2b1acab661bddb",
+    "NPATH": 32,
+    "BLOCK_MAIN": 30
+  },
+  "n_paths": 32,
+  "green_control": {
+    "main_receipt": "/dev/shm/pnoise_2026-09-24/receipts/STEP3_DBAR_F10_res.json",
+    "main_receipt_sha256": "7a3dd28b1f3aed35b92db797fc44983c91f28fa0ecfad5d0f0739dcc31c23acf",
+    "main_pre2026_mean_bps_per_day": 0.5097770755514891,
+    "recomputed_with_no_exclusion": 0.5097770755514891,
+    "main_n_days": 915,
+    "recomputed_n_days": 915,
+    "bitwise_equal": true,
+    "n_days_equal": true
+  },
+  "day_accounting": {
+    "days_in_frozen_pre2026": 915,
+    "days_excluded_found": 4,
+    "days_excluded_expected": 4,
+    "days_used": 911,
+    "excluded_days_actually_present": [
+      "2025-12-28",
+      "2025-12-29",
+      "2025-12-30",
+      "2025-12-31"
+    ]
+  },
+  "supplementary_pre2026_ex4d": {
+    "n_days": 911,
+    "mean_bps_per_day": 0.5162572699663478,
+    "max_abs_daily_bps": 400.9635086223054,
+    "main_reading_mean_bps_per_day": 0.5097770755514891,
+    "difference_vs_main": 0.006480194414858698
+  },
+  "verdict": "MEASURED_SUPPLEMENTARY",
+  "limits": [
+    "SUPPLEMENTARY, not the main reading; the main reading is the frozen 915-day pre2026",
+    "arms are NOT additive; every ladder arm is a pipeline-unproducible combination"
+  ]
+}

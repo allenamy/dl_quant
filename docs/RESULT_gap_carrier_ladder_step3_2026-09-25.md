@@ -182,3 +182,102 @@ if not np.isfinite(king_rank).all(): return {'accepted':False,'reason':'King sco
 - 装置: `devices/{pnoise_ladder_combo.py, ladder_poscontrol_check.py, ladder_coverage_artifact.py, ladder_arm.sh, ladder_five_arms_combo.sh, ladder_engine_arm.sh, ladder_engine_batch.sh, patch_ladder_sources.py}`
 - 前序: 第 0 步 `01f5b5183`(TIER_2_STANDS), 第 1 步 `ea79fe670`(SEAT_DIFF_FROM_INPUT_KING_P), 第 2 步 `ad6c8023f`
 - 本步提交: `bdf9c45d3`(控制三件), `c896c84b4`(五臂 + 覆盖缺陷), `c3d83ecd5`(引擎红控制 + Δw + 按天上界)
+
+---
+
+# 修订 1 结果(2026-09-25, lead 裁定 `dd57ac30f` 之后)
+
+预注册修订: `docs/PREREG_gap_carrier_ladder_2026-09-25.md` @ `dd57ac30f`(文件 sha256 `893abd37cfa87a0d07457bbdd62a5ccab804579605e1bac73244af1bdcf1ac03`)。**判据仍是 lead 的, 逐字抄录在该文件 §4。**
+
+## 9. 完整阶梯读数
+
+σ = 1.0436952(pre-2026 扰动族), σ₂₀₂₆ = 0.6026030。lead 的档: **承载大部分 ⇒ d ≥ max(2.835/2, 2σ) = 2.08739**; **不承载 ⇒ |d| ≤ 1σ = 1.04370**; 其余**分辨不出**。
+
+| 臂 | pre-2026 主(915 天) | in σ | 附加(911 天) | 主档 | 附加档 | 2026 | in σ₂₀₂₆ |
+|---|---|---|---|---|---|---|---|
+| `none` 红控制 | **0.000000** | 0.000 | — | — | — | **0.000000** | — |
+| `all_new` = **缺口** | **+2.834577** | +2.716 | — | — | — | −0.366667 | −0.61 |
+| `LEGAL_res` | **0 按构造** | 0.000 | — | 不承载 | — | **0 按构造** | — |
+| `MEM_res` | −0.224086 | −0.215 | **0.000000** | 不承载 | 不承载 | −36.389666 | UNAVAIL |
+| `WL_res` | +0.338361 | +0.324 | 无(装置晚于该格) | 不承载 | — | +1.131417 | +1.88 |
+| `FUND_res` | −0.004739 | −0.005 | 无(同上) | 不承载 | — | −0.840929 | −1.40 |
+| `FUND_res_ncfill` | −0.007849 | −0.008 | −0.008662 | 不承载 | 不承载 | −0.820964 | −1.36 |
+| `F10_res` | +0.509777 | +0.488 | +0.516257 | 不承载 | 不承载 | −9.709999 | UNAVAIL |
+| `F10_res_ncfill` | +0.511137 | +0.490 | +0.516257 | 不承载 | 不承载 | **+0.141795** | +0.24 |
+| `KZ_res` | +1.705715 | +1.634 | +1.953461 | **分辨不出** | **分辨不出** | −35.837853 | UNAVAIL |
+| `KZ_res_ncfill` | +1.931608 | +1.851 | +1.953461 | **分辨不出** | **分辨不出** | **−0.456279** | −0.76 |
+| `KZWL_res` | +1.974223 | +1.892 | +2.028276 | **分辨不出** | **分辨不出** | −41.566605 | UNAVAIL |
+| `KZWL_res_ncfill` | +2.055169 | +1.969 | +2.028276 | **分辨不出** | **分辨不出** | **+0.614262** | +1.02 |
+
+**每一个臂的主读数与附加读数落在同一档 —— 没有任何一处跨档不一致**, 所以 lead 写的「跨档就两个都报、不挑」这条应急没有触发(两个数我仍然都记进收据)。
+
+## 10. 一句话结论(按判据字面)
+
+**没有任何单一输入越过「承载大部分」的门。** 唯一不落在「不承载」带里的是 **King 通道**(`KZ_res` / `KZWL_res` 及其修复版), 读数 **+1.71 … +2.06**, 全部落在**分辨不出**。其余全部「不承载」。
+
+要说清一件事, 否则这张表会被读成「King 也不重要」: **King 通道的 +1.95 … +2.06 相当于 2.835 缺口的 69–72%**, 而门槛 2.08739 之所以比半个缺口(1.4175)高, 是因为 **2σ 压过了它** —— 噪声地板相对缺口太大。**所以「分辨不出」在这里的意思是「以这个噪声地板, 一个承载七成缺口的输入也判不出来」, 不是「它没作用」。** `KZWL_res_ncfill` 的 2.055 距门槛只差 1.6%。判据是 lead 写的, 我不改也不为它辩护, 只把这个性质摆在读数旁边。
+
+## 11. `LEGAL_res` 是结构性 no-op(四条独立确认)
+
+`align_universe` 把 `legal` 的全部差异吃掉了:
+1. 那 93,905 个 `mask&crypto` vs `funding_state[legal]` 不一致格**全部落在书宇宙之外**(宇宙内 **0** 格);
+2. combo 消费的 `book_legal` 两侧**完全相同**(各 2,498,407 个 True 格, 0 格不一致);
+3. `LEGAL_res` 的 combo 输出与 `none` **逐位相同**(`210270198350cdce` / `f4630a20f796bce2`);
+4. **事先写下的预测成立**: 留一臂 `all_new_nclegal`(全 NEW 但 legal 保留 NC)与 `all_new` **逐位相同**(`cae52acf3bc2e82d` / `4dec6b38b08f8cc8`)。
+
+⇒ **lead 的死合约风险在这个缺口里是实测的零**: 过宇宙筛后不存在「NEW 交易而 NC 判为不可交易」的格, NEW 在那种格上的持仓 **0.0% of gross**(逐年全 0)。`a0_reference_flattered_by_dead_contracts_2026_09_16` 那条在案风险**不适用于此**。宇宙内有 29,868 格两侧都判不可交易, 但**两侧完全一致**, 无不对称。
+
+**P&L 那一项没有造代理量**: 引擎只出逐路径 NAV、无逐格分解, 精确逐格 P&L 不存在可读; 报的是精确持仓权重(全 0)+ 留一臂的 dbar 口径答案(逐位等于 `all_new`)。收据 `STEP3_LEGAL_RES_BREAKDOWN.json`, 闭合断言 `sum(buckets) == total` 通过。
+
+## 12. 覆盖缺陷的统一机制: 一个日期
+
+**NC 与 NEW 的 member 集在 2025-12-28 之前完全相同, 从那天起分叉。** 实测: use 窗内 8,143 个锚中 **6,656 个两侧 member 集完全相同**, **1,487 个不同**(2025 年 24 个 = 12-28/29/30/31 四天全锚; 2026 年 1,463 个)。
+
+先前分别报的三个现象 —— NEW 的 KZ 在 NC members 上 42,889 格非有限、F10 的 `P` 逐格相同的足迹、`MEM_res` 的效应 —— **全是这同一个分叉的不同面**, 涉及同一批 1,487 个锚。它是一个**日期**, 指向 2025-12-28 前后某个筛选/宇宙变更, 不是「NEW 天生筛掉一批名字」这种一般性质。
+
+**`MEM_res` 由此得到一个带机制的恰好零**: 911 个干净 pre-2026 天上两侧 member 集本来就一样, 所以那个臂在那里**根本没换到任何东西** —— `ex4d = 0.000000` 是 no-op, 不是「效应小到测不出」。臂确实动了(combo 输出 sha `09f43308fa82920c` ≠ `none`), 只是动的地方全在那四天之后。**pre-2026 的 −0.224086 是 100% 由那四天贡献的。**
+
+⇒ **判据窗几乎整段是两侧共用同一 member 集的窗口, 所以 member 集差异在 pre-2026 不可能是缺口承载者。**
+
+## 13. 路 2 有效, 并且额外救回了 2026 段
+
+三个 `_ncfill` 臂的新拒绝理由**全部消失**, 成员格填补数 KZ 与 `P` **都恰好 42,889** —— 与覆盖缺陷普查逐格相同, 填补正打在缺陷格上。
+
+**一条内部一致性检验自己冒了出来**: `KZ_res` 与 `KZ_res_ncfill` 的附加读数**完全相同**(都是 +1.953461), `KZWL_res` 与 `KZWL_res_ncfill` 也**完全相同**(都是 +2.028276), `F10_res` 与 `F10_res_ncfill` 也一样(都是 +0.516257)。因为填补只动被污染的锚, 而那些锚全在被排除的四天与 2026 里 —— **填补在 911 个干净天上什么都没改**, 正该如此。这同时证明路 2 是对 artifact 的**纯修复**, 没有顺手改别的东西。
+
+**2026 段对修复后的臂可读了**: `KZ_res` 从 −35.84(artifact)变成 `KZ_res_ncfill` 的 **−0.456279**; `KZWL_res_ncfill` **+0.614262**; `F10_res_ncfill` **+0.141795**。按 2026 三档(σ₂₀₂₆ = 0.6026): −0.456 = −0.76σ ⇒ 不承载; +0.614 = +1.02σ ⇒ 分辨不出(勉强越 1σ); +0.142 = +0.24σ ⇒ 不承载。
+
+## 14. 我的探测器有盲区, 以及类形状的修法
+
+**症状**: 我的「拒绝理由词表」探测器把 `FUND_res` 判为干净(无新理由, 权重里 nan=0 inf=0)。但直接对成员格做非有限普查: `FUND_res` 换入的 **ZFD 在 43,233 个成员格 / 1,715 个锚上非有限**, `RN8` 在 352 格 / 275 锚 —— 而 **combo 对非有限 funding rank 是静默容忍的**(既不拒绝该锚, 也不产 NaN), 所以理由词表里永远不会有痕迹。
+
+**原理**: **理由词表探测器是必要但不充分的 —— 它只看得见消费者会抱怨的那种退化。** 用它去认证沉默, 等于用一个只在出声时才响的仪器去证明没有声音。
+
+**类形状的修法**(不是只给 FUND 打一个补丁): 新装置 `ladder_arm_input_census.py` **从每个臂自己的收据里读它实际替换了哪些数组**, 再逐个普查, 所以明天新加的臂自动被覆盖, 不必改这个文件。逐符号数组按**成员格**普查, 非逐符号数组(`WL` 是 `(n,3)` seats, `ready` 是 `(n,)`)按窗内/窗外非有限项普查(因为 `combo_target.py:24` 对非有限 seats 是 **raise** 而不是拒绝该锚)。
+
+**这个装置自己也抓到了我两个会导致错结论的缺陷**:
+1. **它一开始对每个臂都用 NC 的 member 集**。这对保留 NC members 的臂对, 对**替换** members 的臂(`all_new` / `MEM_res`)错 —— 那些臂跑在 NEW 的 member 集上。按 NC members 量, `all_new` 显示 KZ 有 42,889 个非有限成员格, 读起来像「NEW 自己的书带着 4 万多个缺失格在跑」。**改成按该臂实际读的 member 集之后: NEW 的 KZ 与 `P` 在 NEW 自己的 members 上非有限格都是 0。** 那个 42,889 完全是「拿 NC 的 member 集去问 NEW 的 King」造出来的。**差一步就发出一个错的断言。**
+2. 它对 `_ncfill` 臂普查的是**修复前**的源数组, 于是修复过的臂反而显示 SILENT_ONLY。现在它读臂收据里的填补记录, 把该数组标成 `[REPAIRED by ncfill]`。
+
+**修正后的普查结论**: `none` / `WL_res` / `LEGAL_res` / 三个 `_ncfill` = **CLEAN**; `KZ_res` / `KZWL_res` = LOUD_AND_SILENT; `F10_res` = SILENT_ONLY; `MEM_res` = LOUD_ONLY; `FUND_res` = SILENT_ONLY; **`all_new` = SILENT_ONLY 但只剩 ZFD 与 RN8 各 344 格 / 275 锚**(2023: 186, 2025: 39, 2026: 50)—— 这是 **NEW 自己的资金费状态里的小缺口**, 存在于在案 NEW 书中, 不是我替换造成的。
+
+**盲区被发现后用测量收尾, 没有留成保留意见**: `FUND_res_ncfill`(把 ZFD+RN8+QV 的缺失格补成 NC 值)读数 **−0.007849**(附加 −0.008662), 对比未修复的 `FUND_res` **−0.004739** —— **差 0.003 bps/day**。静默退化**不影响结论**, `FUND_res` 的「不承载」成立。
+
+## 15. 修订 1 的纪律执行
+
+- **引擎一次只开一个格**, 每格开跑前实测 cgroup 余量(`memory.max − anon − shmem`)并写进 `STEP3_MEMGATE_<arm>.json`: 实测 **22.744 / 32.447 / 32.764 / 32.89 / 33.022 / 36.185 / 36.2 / 36.3 GiB**, 门限 8.0 GiB(= 实测引擎 anon 3.00–3.04 GiB 的两倍 + 2 GiB 余量), **全部 PASS**。
+- 附加读数装置 `ladder_dbar_ex4d.py` 每次先跑**绿控制**: 不排除任何天必须逐位复现主读数 —— 八个格全部 `bitwise=True`, 天数 915/915, 天数收支 915 = 911 + 4。
+- `literal` 门在 2023/2024 对 KZ 不敏感这条读法提示, 已写在 §5 与每个 KZ 相关臂旁。
+- 不往 `/workspace` 写(账户配额只剩约 128 MiB)。
+
+## 16. 修订 1 收据
+
+- 预注册修订: `docs/PREREG_gap_carrier_ladder_2026-09-25.md` @ `dd57ac30f`
+- 逐臂 combo: `LADDER_{LEGAL_res,MEM_res,KZ_res_ncfill,KZWL_res_ncfill,F10_res_ncfill,FUND_res_ncfill,all_new_nclegal}.json` + `STEP3_REV1_ARMS_COMBO.tsv`
+- 引擎层: `STEP3_DBAR_{MEM_res,KZ_res,KZWL_res,F10_res,KZ_res_ncfill,KZWL_res_ncfill,F10_res_ncfill,FUND_res_ncfill}.json` + `STEP3_DBAR_SUMMARY_REV1.tsv`
+- 附加读数: `STEP3_DBAR_EX4D_*.json`
+- 内存门: `STEP3_MEMGATE_*.json`
+- LEGAL_res 必报: `STEP3_LEGAL_RES_BREAKDOWN.json`
+- 输入普查: `STEP3_ARM_INPUT_CENSUS.json`
+- 装置: `devices/{ladder_dbar_ex4d.py, ladder_arm_input_census.py, legal_res_breakdown.py, ladder_engine_batch_rev1.sh, ladder_rev1_arms_combo.sh, patch_ladder_rev1_arms.py, patch_ladder_fill_count.py, patch_ladder_fill_shape.py, patch_ladder_fund_ncfill.py, patch_census_correct_members.py}`
+- 修订 1 提交: `dd57ac30f`(预注册修订), `e32409568`(装置 + 组合层)

@@ -1,0 +1,536 @@
+{
+  "device": "ladder_arm_input_census.py",
+  "self_sha256": "0b9373e56f284f88fb1345d005d7a6c6af4580644f913a8adf943ec35fc076eb",
+  "argv": [
+    "--receipts",
+    "/dev/shm/pnoise_2026-09-24/receipts",
+    "--arms",
+    "none,all_new,WL_res,FUND_res,KZ_res,KZWL_res,F10_res,MEM_res,LEGAL_res,KZ_res_ncfill,KZWL_res_ncfill,F10_res_ncfill",
+    "--features",
+    "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+    "--new-legs",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/f10v2_legs.npz",
+    "--new-f10",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/f10_s42/F10_OOF.npz",
+    "--new-funding",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/funding_state.npz",
+    "--new-targets",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz",
+    "--out",
+    "/dev/shm/pnoise_2026-09-24/receipts/STEP3_ARM_INPUT_CENSUS.json"
+  ],
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "prereg": "docs/PREREG_gap_carrier_ladder_2026-09-25.md @ dd57ac30f (sha256 893abd37cfa87a0d07457bbdd62a5ccab804579605e1bac73244af1bdcf1ac03), revision 1",
+  "why": "closes the blind spot in the reason-vocabulary detector: combo tolerates a non-finite funding rank silently, so a silently degraded arm passes that detector. Arrays are taken from each arm's OWN receipt so a future arm is covered without editing this file.",
+  "coverage_rule": "per-symbol arrays -> member cells in the use window; others -> in/out of window entries",
+  "arms": {
+    "none": {
+      "substituted": [],
+      "arrays_censused": {},
+      "novel_refusal_reasons": null,
+      "loud_degradation": false,
+      "silent_degradation_arrays": [],
+      "member_set_used": "NC (this arm keeps NC's members)",
+      "arrays_repaired_by_ncfill": [],
+      "verdict": "CLEAN"
+    },
+    "all_new": {
+      "substituted": [
+        "KZ",
+        "ZFD",
+        "WL",
+        "RN8",
+        "QV",
+        "P",
+        "members",
+        "ready",
+        "legal(funding_state)"
+      ],
+      "arrays_censused": {
+        "KZ": {
+          "array": "legs[KZ]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NEW (this arm substitutes members, so it reads NEW's member set)",
+          "repaired_by_ncfill": false,
+          "non_finite_member_cells_in_use_window": 0,
+          "anchors_affected": 0,
+          "anchors_affected_per_year": {},
+          "silent": false
+        },
+        "ZFD": {
+          "array": "legs[ZFD]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NEW (this arm substitutes members, so it reads NEW's member set)",
+          "repaired_by_ncfill": false,
+          "non_finite_member_cells_in_use_window": 344,
+          "anchors_affected": 275,
+          "anchors_affected_per_year": {
+            "2023": 186,
+            "2025": 39,
+            "2026": 50
+          },
+          "silent": true
+        },
+        "WL": {
+          "array": "legs[WL]",
+          "shape": "(10321, 3)",
+          "per_symbol": false,
+          "member_set_used": "NEW (this arm substitutes members, so it reads NEW's member set)",
+          "repaired_by_ncfill": false,
+          "non_finite_entries_inside_use_window": 0,
+          "non_finite_entries_outside_use_window": 3222,
+          "silent": false
+        },
+        "RN8": {
+          "array": "funding[rn8]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NEW (this arm substitutes members, so it reads NEW's member set)",
+          "repaired_by_ncfill": false,
+          "non_finite_member_cells_in_use_window": 344,
+          "anchors_affected": 275,
+          "anchors_affected_per_year": {
+            "2023": 186,
+            "2025": 39,
+            "2026": 50
+          },
+          "silent": true
+        },
+        "QV": {
+          "array": "targets[qvk]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NEW (this arm substitutes members, so it reads NEW's member set)",
+          "repaired_by_ncfill": false,
+          "non_finite_member_cells_in_use_window": 0,
+          "anchors_affected": 0,
+          "anchors_affected_per_year": {},
+          "silent": false
+        },
+        "P": {
+          "array": "f10[P]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NEW (this arm substitutes members, so it reads NEW's member set)",
+          "repaired_by_ncfill": false,
+          "non_finite_member_cells_in_use_window": 0,
+          "anchors_affected": 0,
+          "anchors_affected_per_year": {},
+          "silent": false
+        },
+        "members": {
+          "array": "targets[members]",
+          "shape": "ragged object array",
+          "census": "not applicable -- member lists are index sets, not values; see the member-set comparison in the MEM_res reporting instead"
+        },
+        "ready": {
+          "array": "legs[ready]",
+          "shape": "(10321,)",
+          "per_symbol": false,
+          "member_set_used": "NEW (this arm substitutes members, so it reads NEW's member set)",
+          "repaired_by_ncfill": false,
+          "non_finite_entries_inside_use_window": 0,
+          "non_finite_entries_outside_use_window": 0,
+          "silent": false
+        },
+        "legal": {
+          "array": "funding[legal]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NEW (this arm substitutes members, so it reads NEW's member set)",
+          "repaired_by_ncfill": false,
+          "non_finite_member_cells_in_use_window": 0,
+          "anchors_affected": 0,
+          "anchors_affected_per_year": {},
+          "silent": false
+        }
+      },
+      "novel_refusal_reasons": null,
+      "loud_degradation": false,
+      "silent_degradation_arrays": [
+        "ZFD",
+        "RN8"
+      ],
+      "member_set_used": "NEW (this arm substitutes members, so it reads NEW's member set)",
+      "arrays_repaired_by_ncfill": [],
+      "verdict": "SILENT_ONLY"
+    },
+    "WL_res": {
+      "substituted": [
+        "WL"
+      ],
+      "arrays_censused": {
+        "WL": {
+          "array": "legs[WL]",
+          "shape": "(10321, 3)",
+          "per_symbol": false,
+          "member_set_used": "NC (this arm keeps NC's members)",
+          "repaired_by_ncfill": false,
+          "non_finite_entries_inside_use_window": 0,
+          "non_finite_entries_outside_use_window": 3222,
+          "silent": false
+        }
+      },
+      "novel_refusal_reasons": null,
+      "loud_degradation": false,
+      "silent_degradation_arrays": [],
+      "member_set_used": "NC (this arm keeps NC's members)",
+      "arrays_repaired_by_ncfill": [],
+      "verdict": "CLEAN"
+    },
+    "FUND_res": {
+      "substituted": [
+        "ZFD",
+        "RN8",
+        "QV",
+        "ready"
+      ],
+      "arrays_censused": {
+        "ZFD": {
+          "array": "legs[ZFD]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NC (this arm keeps NC's members)",
+          "repaired_by_ncfill": false,
+          "non_finite_member_cells_in_use_window": 43233,
+          "anchors_affected": 1715,
+          "anchors_affected_per_year": {
+            "2023": 186,
+            "2025": 63,
+            "2026": 1466
+          },
+          "silent": true
+        },
+        "RN8": {
+          "array": "funding[rn8]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NC (this arm keeps NC's members)",
+          "repaired_by_ncfill": false,
+          "non_finite_member_cells_in_use_window": 352,
+          "anchors_affected": 275,
+          "anchors_affected_per_year": {
+            "2023": 186,
+            "2025": 39,
+            "2026": 50
+          },
+          "silent": true
+        },
+        "QV": {
+          "array": "targets[qvk]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NC (this arm keeps NC's members)",
+          "repaired_by_ncfill": false,
+          "non_finite_member_cells_in_use_window": 0,
+          "anchors_affected": 0,
+          "anchors_affected_per_year": {},
+          "silent": false
+        },
+        "ready": {
+          "array": "legs[ready]",
+          "shape": "(10321,)",
+          "per_symbol": false,
+          "member_set_used": "NC (this arm keeps NC's members)",
+          "repaired_by_ncfill": false,
+          "non_finite_entries_inside_use_window": 0,
+          "non_finite_entries_outside_use_window": 0,
+          "silent": false
+        }
+      },
+      "novel_refusal_reasons": null,
+      "loud_degradation": false,
+      "silent_degradation_arrays": [
+        "ZFD",
+        "RN8"
+      ],
+      "member_set_used": "NC (this arm keeps NC's members)",
+      "arrays_repaired_by_ncfill": [],
+      "verdict": "SILENT_ONLY"
+    },
+    "KZ_res": {
+      "substituted": [
+        "KZ"
+      ],
+      "arrays_censused": {
+        "KZ": {
+          "array": "legs[KZ]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NC (this arm keeps NC's members)",
+          "repaired_by_ncfill": false,
+          "non_finite_member_cells_in_use_window": 42889,
+          "anchors_affected": 1487,
+          "anchors_affected_per_year": {
+            "2025": 24,
+            "2026": 1463
+          },
+          "silent": true
+        }
+      },
+      "novel_refusal_reasons": {
+        "literal": {
+          "King scores incomplete": 1486
+        },
+        "scaled_diagnostic": {
+          "King scores incomplete": 1486
+        }
+      },
+      "loud_degradation": true,
+      "silent_degradation_arrays": [
+        "KZ"
+      ],
+      "member_set_used": "NC (this arm keeps NC's members)",
+      "arrays_repaired_by_ncfill": [],
+      "verdict": "LOUD_AND_SILENT"
+    },
+    "KZWL_res": {
+      "substituted": [
+        "KZ",
+        "WL"
+      ],
+      "arrays_censused": {
+        "KZ": {
+          "array": "legs[KZ]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NC (this arm keeps NC's members)",
+          "repaired_by_ncfill": false,
+          "non_finite_member_cells_in_use_window": 42889,
+          "anchors_affected": 1487,
+          "anchors_affected_per_year": {
+            "2025": 24,
+            "2026": 1463
+          },
+          "silent": true
+        },
+        "WL": {
+          "array": "legs[WL]",
+          "shape": "(10321, 3)",
+          "per_symbol": false,
+          "member_set_used": "NC (this arm keeps NC's members)",
+          "repaired_by_ncfill": false,
+          "non_finite_entries_inside_use_window": 0,
+          "non_finite_entries_outside_use_window": 3222,
+          "silent": false
+        }
+      },
+      "novel_refusal_reasons": {
+        "literal": {
+          "King scores incomplete": 1486
+        },
+        "scaled_diagnostic": {
+          "King scores incomplete": 1486
+        }
+      },
+      "loud_degradation": true,
+      "silent_degradation_arrays": [
+        "KZ"
+      ],
+      "member_set_used": "NC (this arm keeps NC's members)",
+      "arrays_repaired_by_ncfill": [],
+      "verdict": "LOUD_AND_SILENT"
+    },
+    "F10_res": {
+      "substituted": [
+        "P"
+      ],
+      "arrays_censused": {
+        "P": {
+          "array": "f10[P]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NC (this arm keeps NC's members)",
+          "repaired_by_ncfill": false,
+          "non_finite_member_cells_in_use_window": 42889,
+          "anchors_affected": 1487,
+          "anchors_affected_per_year": {
+            "2025": 24,
+            "2026": 1463
+          },
+          "silent": true
+        }
+      },
+      "novel_refusal_reasons": null,
+      "loud_degradation": false,
+      "silent_degradation_arrays": [
+        "P"
+      ],
+      "member_set_used": "NC (this arm keeps NC's members)",
+      "arrays_repaired_by_ncfill": [],
+      "verdict": "SILENT_ONLY"
+    },
+    "MEM_res": {
+      "substituted": [
+        "members"
+      ],
+      "arrays_censused": {
+        "members": {
+          "array": "targets[members]",
+          "shape": "ragged object array",
+          "census": "not applicable -- member lists are index sets, not values; see the member-set comparison in the MEM_res reporting instead"
+        }
+      },
+      "novel_refusal_reasons": {
+        "literal": {
+          "King scores incomplete": 1486
+        },
+        "scaled_diagnostic": {
+          "King scores incomplete": 1486
+        }
+      },
+      "loud_degradation": true,
+      "silent_degradation_arrays": [],
+      "member_set_used": "NEW (this arm substitutes members, so it reads NEW's member set)",
+      "arrays_repaired_by_ncfill": [],
+      "verdict": "LOUD_ONLY"
+    },
+    "LEGAL_res": {
+      "substituted": [
+        "legal(funding_state)"
+      ],
+      "arrays_censused": {
+        "legal": {
+          "array": "funding[legal]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NC (this arm keeps NC's members)",
+          "repaired_by_ncfill": false,
+          "non_finite_member_cells_in_use_window": 0,
+          "anchors_affected": 0,
+          "anchors_affected_per_year": {},
+          "silent": false
+        }
+      },
+      "novel_refusal_reasons": null,
+      "loud_degradation": false,
+      "silent_degradation_arrays": [],
+      "member_set_used": "NC (this arm keeps NC's members)",
+      "arrays_repaired_by_ncfill": [],
+      "verdict": "CLEAN"
+    },
+    "KZ_res_ncfill": {
+      "substituted": [
+        "KZ(ncfill)"
+      ],
+      "arrays_censused": {
+        "KZ": {
+          "array": "legs[KZ]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NC (this arm keeps NC's members)",
+          "repaired_by_ncfill": true,
+          "non_finite_member_cells_in_use_window": 42889,
+          "anchors_affected": 1487,
+          "anchors_affected_per_year": {
+            "2025": 24,
+            "2026": 1463
+          },
+          "silent": false,
+          "repair_note": "lead's path-2 fill replaced these cells with NC values; the count above describes the INPUT before repair"
+        }
+      },
+      "novel_refusal_reasons": null,
+      "loud_degradation": false,
+      "silent_degradation_arrays": [],
+      "member_set_used": "NC (this arm keeps NC's members)",
+      "arrays_repaired_by_ncfill": [
+        "KZ"
+      ],
+      "verdict": "CLEAN"
+    },
+    "KZWL_res_ncfill": {
+      "substituted": [
+        "KZ(ncfill)",
+        "WL(ncfill)"
+      ],
+      "arrays_censused": {
+        "KZ": {
+          "array": "legs[KZ]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NC (this arm keeps NC's members)",
+          "repaired_by_ncfill": true,
+          "non_finite_member_cells_in_use_window": 42889,
+          "anchors_affected": 1487,
+          "anchors_affected_per_year": {
+            "2025": 24,
+            "2026": 1463
+          },
+          "silent": false,
+          "repair_note": "lead's path-2 fill replaced these cells with NC values; the count above describes the INPUT before repair"
+        },
+        "WL": {
+          "array": "legs[WL]",
+          "shape": "(10321, 3)",
+          "per_symbol": false,
+          "member_set_used": "NC (this arm keeps NC's members)",
+          "repaired_by_ncfill": true,
+          "non_finite_entries_inside_use_window": 0,
+          "non_finite_entries_outside_use_window": 3222,
+          "silent": false
+        }
+      },
+      "novel_refusal_reasons": null,
+      "loud_degradation": false,
+      "silent_degradation_arrays": [],
+      "member_set_used": "NC (this arm keeps NC's members)",
+      "arrays_repaired_by_ncfill": [
+        "KZ",
+        "WL"
+      ],
+      "verdict": "CLEAN"
+    },
+    "F10_res_ncfill": {
+      "substituted": [
+        "P(ncfill)"
+      ],
+      "arrays_censused": {
+        "P": {
+          "array": "f10[P]",
+          "shape": "(10321, 829)",
+          "per_symbol": true,
+          "member_set_used": "NC (this arm keeps NC's members)",
+          "repaired_by_ncfill": true,
+          "non_finite_member_cells_in_use_window": 42889,
+          "anchors_affected": 1487,
+          "anchors_affected_per_year": {
+            "2025": 24,
+            "2026": 1463
+          },
+          "silent": false,
+          "repair_note": "lead's path-2 fill replaced these cells with NC values; the count above describes the INPUT before repair"
+        }
+      },
+      "novel_refusal_reasons": null,
+      "loud_degradation": false,
+      "silent_degradation_arrays": [],
+      "member_set_used": "NC (this arm keeps NC's members)",
+      "arrays_repaired_by_ncfill": [
+        "P"
+      ],
+      "verdict": "CLEAN"
+    }
+  },
+  "headline": {
+    "none": "CLEAN",
+    "all_new": "SILENT_ONLY",
+    "WL_res": "CLEAN",
+    "FUND_res": "SILENT_ONLY",
+    "KZ_res": "LOUD_AND_SILENT",
+    "KZWL_res": "LOUD_AND_SILENT",
+    "F10_res": "SILENT_ONLY",
+    "MEM_res": "LOUD_ONLY",
+    "LEGAL_res": "CLEAN",
+    "KZ_res_ncfill": "CLEAN",
+    "KZWL_res_ncfill": "CLEAN",
+    "F10_res_ncfill": "CLEAN"
+  },
+  "limits": [
+    "a CLEAN verdict here means no non-finite input on member cells and no novel refusal reason; it does not certify the arm is a deployable combination -- no arm is",
+    "arms are NOT additive"
+  ]
+}
