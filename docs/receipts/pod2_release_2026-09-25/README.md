@@ -37,3 +37,8 @@ Kept in place; manifest of all 324 files taken 04:56:17Z on pod2 (`find . -type 
 sha rc=0) → `nc_2026-09-23_SHA256SUMS.txt`. The five reference files:
   ec7723c4… work/axes.npz · 7d22ca41… work/cache_crypto.npy · 16458cab… work/R_crypto.npy · 2e487eb5… work/boundary.npz · a12a8ed3… work/fund_state.npz
   (plus 3c886a2b… work/NC_FEATURES.npz and 9bc9adaf… work/members_hist_all.npz, 3-way hardlinks with news2 / pnoise).
+
+# /dev/shm/ovn_2026-09-23/runs — RELEASED (lead ruling ~07:0xZ: news2 and fresh checked by reference path, not by name; neither queued task reads it)
+Before deletion: 1386 files, 7263 MB (`du -sm`); sha256 of every file → `ovn_runs_SHA256SUMS.txt` (sha a2abd37b…), taken 07:04:47–07:05:08Z on pod2
+(`cd /dev/shm/ovn_2026-09-23 && nice -n 10 find runs -type f -print0 | sort -z | xargs -0 nice -n 10 sha256sum`, sha rc=0).
+No process had it open or as cwd (fd / cwd scan). The rest of ovn_2026-09-23 (receipts 44M, targets 115M, scratch) is NOT touched.
