@@ -75,11 +75,57 @@ n_shards = len([e for e in entries if e.endswith(".jsonl")])
 
 `~/funding_ledger_archive/runs/RUN_<utc>.json`, 字段: 窗口四值 · `aux.json` 的 sha256 与 mtime · 读到的名数/行数 · 新增事件数 · 逐月分片的行数与回读 sha · `conflicts` 计数 · 自检枚举结果 · 两个导出的阈值 · 状态码。**收据里的每个 sha 都来自回读**, 不是事后独立重算。
 
-## 7. 部署方式(待 lead 定; 本节只列选项与风险)
+## 7. 部署方式(**lead 2026-09-25 已裁定; 我的倾向被否, 理由我接受**)
 
-- **launchd**(每日): 优点是系统级; **风险已在案** —— 对 iCloud 桌面有 TCC 墙。归档目录在 Desktop 之外可避开, 但 launchd 仍需要能读 `~/wide_shadow`, 这一条**部署前必须实测枚举一次**, 不能假定。
-- **挂在集成代理已有的每锚链上**: 优点是存活检查天然在同一处, 不新增一个会静默死掉的东西; 缺点是与实盘链耦合。
-- 我的倾向: **后者**(少一个独立的静默死亡点), 但**判据在 lead**。
+**裁定**: **用独立的 launchd 用户级作业**, 形状同 `com.hsy.onsetfwd_short`(已实测按点自跑, 且其自检绑住消费者)。**存活检查挂在集成代理的每锚验收上。**
+
+**我原先倾向「挂在集成代理已有的每锚链上做唯一执行者」, lead 否掉了, 理由逐字**:
+
+> 集成代理的每锚验收由会话驱动, 会话结束它就停了, 不能做唯一的执行者。
+
+**这个理由纠正了我的想法, 记下来**: 我当时的考虑是「少一个会静默死掉的独立作业」, 但我把**执行**与**监督**混成了一件事。正确的分工是 —— **执行要交给一个不依赖会话存在的东西(launchd), 监督交给一个会被人看的东西(每锚验收)**。把执行挂在会话驱动的链上, 不是减少了静默死亡点, 而是把执行本身变成了会话的函数: 没有会话的那些天它根本不跑, 而且不跑得无声无息。同族: [[silent_watcher_death]]。
+
+**照抄 `com.hsy.onsetfwd_short` 的形状与它的两个关键细节**:
+
+```xml
+<key>ProgramArguments</key><array>
+  <string>/usr/bin/python3</string><string>-B</string>
+  <string>/Users/haosiyu/funding_ledger_archive/archive_live_ledger.py</string></array>
+<key>WorkingDirectory</key><string>/Users/haosiyu/funding_ledger_archive</string>
+<!-- 目标 09:30Z(在 08:00Z 锚的静默窗 09:00-11:40Z 内)。
+     launchd 按 LOCAL 时间排程, 本机 +08 且无 DST ⇒ Hour 写 17 不是 9。 -->
+<key>StartCalendarInterval</key><dict><key>Hour</key><integer>17</integer><key>Minute</key><integer>30</integer></dict>
+<key>RunAtLoad</key><false/>
+<key>StandardOutPath</key><string>/Users/haosiyu/funding_ledger_archive/launchd.log</string>
+<key>StandardErrorPath</key><string>/Users/haosiyu/funding_ledger_archive/launchd.err</string>
+```
+1. **`StartCalendarInterval` 是本地时间** —— 那份在案 plist 自己写了注释提醒(`07:22Z == 15:22 local`), 我照抄这个注释习惯, 把 UTC 目标与本地 Hour 同时写在 plist 里, 免得以后有人按 UTC 读它;
+2. **`RunAtLoad` 为 false** —— 加载时不跑, 避免在非静默窗被一次 `launchctl load` 触发。
+
+**launchd 触发 ≠ 窗口开着**: 固定本地时间只保证「大致在窗内」, 不保证守卫的条件 ②(上一锚已 done)成立。所以**脚本第一件事仍然调 `venue_quiet_window.py`**, 不在窗内就 `SKIPPED_WINDOW_CLOSED` 退出。两道都要。
+
+**部署前必须实测一次的一项**(不能假定): launchd 下的进程能否**枚举** `~/wide_shadow/state/`。在案 `launchd_cannot_enumerate_icloud_desktop_repo_2026_09_16` 是 `~/Desktop` 的 TCC 墙; `~/wide_shadow` 不在 Desktop 下, 但**「不在 Desktop 下」不等于「launchd 能枚举」**, 必须在 launchd 上下文里真跑一次 `os.listdir` 并把结果写进收据。
+
+## 7b. 部署前要交的控制(lead: 先交红控与正控的收据)
+
+**正控制**(证明它真的在做该做的事):
+- 跑一次后, 归档必须等于 `(跑前归档) ∪ (aux 的 ledger_tail)` 按 `(symbol, funding_time)` 去重的结果 —— 逐键比对, 不是只比计数;
+- 每个被改动的月分片的 sha **由回读返回**, 并与 `MANIFEST.json` 里记的一致。
+
+**红控制**(每条都必须能让它失败; 不能失败的控制不算控制):
+| 控制 | 注入 | 必须的行为 |
+|---|---|---|
+| R1 不可枚举的目录 | 把归档目录指到一个不可 `listdir` 的路径 | **非零退出**; 绝不能报「目录是空的」然后当成首跑 |
+| R2 幂等 | 对同一份 `aux.json` **连跑两次** | 第二次新增事件数 **恰好 0** |
+| R3 同键冲突 | 手工把归档里某键的 `rate` 改一位 | 该键进 `conflicts.jsonl`, 归档**两份都留**, 不覆盖 |
+| R4 窗口关闭 | 在非静默窗跑 | `SKIPPED_WINDOW_CLOSED`, **一个字节都不写** |
+| R5 分片损坏 | 改掉某月分片的一行 | 下次启动自检按 sha **报红**, 不静默继续 |
+| R6 非首跑空归档 | 清空归档目录后再跑 | **报红**(归档不该凭空变空), 不当成首跑 |
+| R7 路径越界 | 把归档目录指到 `~/Desktop/...` 或 `~/wide_shadow/...` | 自检**拒绝启动** |
+
+R2 与 R6 是一对: 一个证明「重复输入不会重复写」, 一个证明「输出消失会被发现」。**每条红控都要留一份失败时的收据**, 而不是只留通过时的。
+
+**排期**: lead 裁定部署等**今天发布完成 + B7 两个锚之后**再排; 届时我按本设计实现并**先交 7b 的收据**, 再谈加载 plist。
 
 ## 8. 两个月后能做什么
 
