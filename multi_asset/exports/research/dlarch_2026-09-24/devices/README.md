@@ -41,6 +41,19 @@
 
 **消息里必须写明是"内容 sha"还是"收据文件 sha"。** 前者重跑仍成立,后者一重跑就失效。
 
+### 键稳定性分层(引用前先想清楚要哪一层)
+
+| 键 | 什么时候会变 | 用途 |
+|---|---|---|
+| `content.oof_arrays.arrays_sha256` | **只在数组变时** | **预测的主键**,最稳;由数组字节算出,不依赖容器 schema |
+| `content_sha256` | 数组变 **或** 本装置的 content 字段表变 | 整套产物同一性;**比较前必须先比 `content_schema_version`** |
+| `content.oof_sha256`(容器 sha) | 数组变,**或** OOF 的 npz schema 变 | 第三重旁证;schema 变会**静默**移动它,故装置断言键恰为 `(E_ts, P, symbols)` |
+| `TRAIN_RECEIPT.json` 文件 sha | **一重跑就变**(记了计时) | **永不可作跨运行令牌** |
+
+为什么容器 sha 不够(fresh 2026-09-25 指出):`.npz` 文件 sha 不是数组同一性,本项目已有两条反例(其中一例是 npz 内夹了逐次变化的 `model_sha256`,容器 sha 每跑都变而预测矩阵逐位相同)。当前 OOF 的键恰好只有 `E_ts`/`P`/`symbols`,所以容器 sha 今天可用 —— 但那依赖 schema 不变,且失效**不报错**。红控制:给副本的 OOF 加一个 `written_utc`,装置抛 `OOF schema changed`。
+
+**`content_sha256` 自己也有这个毛病**(加字段就会变),所以有 `CONTENT_SCHEMA_VERSION`:v1 无 `oof_arrays`,v2 有。自证:两版之间 `arrays_sha256` 完全不变而 `content_sha256` 变了 —— 哪个稳定由读数展示,不靠声明。
+
 ## 3. 进程计数:不要用 `pgrep -f`
 
 本目录的装置一律用:
@@ -71,3 +84,14 @@
 | `dlarch_engine_gate_selftest.py` | 引擎门计数自测(PGID vs argv vs PID 三法并列) |
 | `dlarch_safe_io.py` | 写完读回比对才取 sha(E-0925-A) |
 | `probe_determinism.sh` / `probe_crosslevel.sh` | 并行确定性探针(§1) |
+
+## 6. 具名记录:我做错顺序的一次(2026-09-25)
+
+**先开了第二路并行训练,才算配额账。** lead 的上一条裁定是「GO 2 路」,我把它当作可执行就在 `09:16Z` 开了第二路;随后 lead 要求"开第二路之前先估算剩余写入量"。算完结论是**放得下**(需要约 780 MB,实测余量 `09:34:44Z` 1600 MiB),但**顺序错了**:资源账属于动手之前,不是动手之后。
+
+同一次里还有两处我的措辞/读数问题,一并记在这里:
+
+- 我报的「盘 947M」是**我自己的占用**,被读成"剩余余量"。此后报空间一律分开写:**占用** X / **实测余量** Y(带时间戳与探针量级)。
+- 我先前说「每格净增约 11 MB」是错的:小序列 11 MB,但**格目录**留存后 102 MB(多出的 85 MB 是 `work/combo_s*` 58 + `targets/*.npz` 28)。已改为自动腾掉可再生部分 ⇒ 每格回到 17 MB。
+
+教训与 [[re_measure_a_blocker_before_reporting_it]] 同族:**凡"我要动手了"的动作,前置条件必须在动手前测一次**,不能靠上一条裁定的余温。
