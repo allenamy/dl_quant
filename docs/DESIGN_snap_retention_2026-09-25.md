@@ -11,10 +11,12 @@
 | leg_returns_live.json | 0.06 MB | |
 | boundary_raw.npz, generation.json, SHA256SUMS, COMPLETE, combo_live_status.json, PARITY*.json / *.run.log | < 2 KB each | provenance and parity receipts |
 
-Currently 3.3 GB total, growing about +0.5 GB/day with no cap.
+Currently 3.3 GB total, growing about +0.5 GB/day.
+> ⚠ **Correction (2026-09-25 06:5xZ, same author; original line kept below):** "no cap" is **wrong**. `combo_state_snapshot.sh` already ends with `find "$SNAP" -maxdepth 1 -mindepth 1 -type d -mtime +21 -exec rm -rf {} +` (header: "Retention: 21 days"), i.e. **whole snapshot directories are deleted after 21 days by mtime** (they have not been reached yet because the 46 snapshots are all under 21 days old; steady state ≈ 21 × 6 × 84 MB ≈ 10.6 GB). I wrote "no cap" without reading the script. Consequences for this plan: the user's rule "14 days in full, older keep only small files" **replaces** that 21-day whole-directory deletion (otherwise the small files would be deleted at day 21 too), so that `find … -mtime +21 … rm -rf` line must go in the same change; after the change the long-term residue is the small files (≈ 6–8 MB per anchor, +1.3 GB/month), versus the old rule's steady ≈ 10.6 GB with nothing beyond 21 days. Original line: "Currently 3.3 GB total, growing about +0.5 GB/day with no cap."
 
 ## Rule (runs after each successful snapshot, in the same process as combo_state_snapshot.sh)
-- **Retention window:** anchors with A ≥ (newest anchor − 14 × 24 h) are left untouched (84 anchors).
+- **Retention window:** anchors with A ≥ (newest anchor − 14 × 24 h) are left untouched (84 anchors). The window is set by the anchor ts in the directory name, not by mtime (the existing 21-day `find -mtime` rule used mtime; a copy or `touch` would silently change the window).
+- **Removed at the same time:** the existing script line `find "$SNAP" -maxdepth 1 -mindepth 1 -type d -mtime +21 -exec rm -rf {} +` (whole-directory deletion after 21 days, which conflicts with the user's "keep the small files" ruling).
 - **Older than the window:** delete **only files ≥ 1 MB that are not on the keep list**.
   - Keep list = `aux.json`, target files (the snap dir contains none; target_live / target_combo / target_live_king live elsewhere and are out of scope), and all small files (`SHA256SUMS`, `generation.json`, `COMPLETE`, `PARITY*`, `combo_live_status.json`, `leg_returns_live.json`, `members_hist.npz`, `boundary_raw.npz`).
   - ⇒ in practice only `rolling.npz` is deleted. Any new large file added later is also treated as "large but not on the keep list", deleted and recorded (rule by class, not by file name).
