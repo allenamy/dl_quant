@@ -80,3 +80,26 @@ pre-2026 里价格侧是**赚**的(pnl +138.6 / +717.3), 但多付的资金费(c
 3. **σ 不属于本臂。** 若后续用 σ=1.0437 作尺度, 那是 King `random_state` 扰动的 SD, 对 C1X 是**借来的**。
 4. **本臂不回答门该设在哪。** 它只说"门失败也发布"这一个极端点的位移; B1/C2/B3 等价类是另一个问题。
 5. **2026 段的近零不可外推到其它放松方式** —— 见 §2 的 C3 对照。
+
+---
+
+## 注记(2026-09-25, RN8 血缘普查):**本件不受 `fund_replay` 污染 —— 已查明, 非假定**
+
+`fund_replay.npz`(sha `8a73588f`)的 `last_rate`/`last_iv` 被判为错(news2 `495909963`: 有归档真值的 2,017 格
+**面板对 2,017 / 账本对 0**), 而 `fresh_legs.py:80-81` 用它算研究 combo 的 RN8。**但本件不走那条路。**
+
+按**本臂自己收据**里的 `legs_f10_binding.legs_used` 原文查明(不凭目录名):
+
+| 本件的臂 | `legs_used` | sha | 判 |
+|---|---|---|---|
+| 见 `receipts/FA_RN8CENSUS.json` 的 `per_arm_legs_binding` | `/dev/shm/news2_2026-09-23/work/legs.npz` | `9ee5886f37d1727c` | **干净** |
+
+该 legs 的 RN8 在 news2 判定的三个诊断格上**逐位等于归档真值**
+(GMTUSDT 2026-01-09T20Z **−0.00316064**, AXSUSDT 2026-01-17T20Z **−0.00383392**,
+TLMUSDT 2026-03-02T04Z **+0.00010000**; 同格若走 `fund_replay` 会是 **−0.02**, 其中 TLMUSDT 连**符号都翻**)。
+另有平价收据 `receipts/FA_RN8PARITY.json`(`1f8456df0`)。
+
+⇒ **本件的读数不需要因 RN8 污染而重判。** 受污染的是 **FRESH 缺口阶梯的全部臂**(读 `news_2026-09-23/work/legs.npz`,
+与 `news2_` 只差一个字符)。普查装置 `devices/fa_rn8census.py`, 收据 `receipts/FA_RN8CENSUS.json`(`812c9c1bf`)。
+
+**注**: lead 12:4x 曾把本件一并标为「待重判」, 该判断**过宽**, 已由普查更正并经 lead 确认(裁定 2026-09-25)。
