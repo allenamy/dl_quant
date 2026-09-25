@@ -1,0 +1,126 @@
+{
+  "device": "ladder_coverage_artifact.py",
+  "self_sha256": "47327b345b8d368edb9448b3e851f0b60815be78cb9bd8c4d8b05ab91d3dc285",
+  "argv": [
+    "--features",
+    "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+    "--nc-legs",
+    "/dev/shm/news2_2026-09-23/work/legs.npz",
+    "--nc-f10",
+    "/dev/shm/news2_2026-09-23/work/f10_s42/F10_OOF.npz",
+    "--new-legs",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/f10v2_legs.npz",
+    "--new-f10",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/f10_s42/F10_OOF.npz",
+    "--new-targets",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz",
+    "--out",
+    "/dev/shm/pnoise_2026-09-24/receipts/STEP3_COVERAGE_ARTIFACT.json"
+  ],
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "prereg": "docs/PREREG_gap_carrier_ladder_2026-09-25.md @ be4a013a8 (step 3)",
+  "emitting_line": "combo_target.py:26  if not np.isfinite(king_rank).all(): reason='King scores incomplete'",
+  "inputs": {
+    "features": {
+      "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+      "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8"
+    },
+    "nc_legs": {
+      "path": "/dev/shm/news2_2026-09-23/work/legs.npz",
+      "sha256": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65"
+    },
+    "nc_f10": {
+      "path": "/dev/shm/news2_2026-09-23/work/f10_s42/F10_OOF.npz",
+      "sha256": "2af48f7c84bfd5de2df83fa1266455ca718558a80ae68017de444b510a592d51"
+    },
+    "new_legs": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/f10v2_legs.npz",
+      "sha256": "f1cc7953b9e78411544a9c04b1ea75eb21b5d483716b46a27cce0414e6db5648"
+    },
+    "new_f10": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/f10_s42/F10_OOF.npz",
+      "sha256": "bbc077d93669f249967980377dfe4b4fad438447773cf1f9a971712a5d7ac125"
+    },
+    "new_targets": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz",
+      "sha256": "ca479fccd3d3245e9438a8c82ba7b4a1950ab6e06607f28b25923c4526924d62"
+    }
+  },
+  "KZ": {
+    "anchors_refused_by_the_swap": 1487,
+    "per_year": {
+      "2023": {
+        "affected": 0,
+        "anchors_in_year": 2190,
+        "share_pct": 0.0
+      },
+      "2024": {
+        "affected": 0,
+        "anchors_in_year": 2196,
+        "share_pct": 0.0
+      },
+      "2025": {
+        "affected": 24,
+        "anchors_in_year": 2190,
+        "share_pct": 1.096
+      },
+      "2026": {
+        "affected": 1463,
+        "anchors_in_year": 1567,
+        "share_pct": 93.363
+      }
+    },
+    "first": 1766880000,
+    "last": 1789776000,
+    "non_finite_member_cells": 42889,
+    "member_cells_scanned": 2486474,
+    "non_finite_cell_share_pct": 1.7249,
+    "of_those_cells_absent_from_NEW_member_set": 42889,
+    "absent_share_pct": 100.0,
+    "green_control_nc_array_non_finite_on_nc_members": 0,
+    "green_control_expectation": 0,
+    "green_control_verdict": "PASS"
+  },
+  "F10_P": {
+    "anchors_refused_by_the_swap": 1487,
+    "per_year": {
+      "2023": {
+        "affected": 0,
+        "anchors_in_year": 2190,
+        "share_pct": 0.0
+      },
+      "2024": {
+        "affected": 0,
+        "anchors_in_year": 2196,
+        "share_pct": 0.0
+      },
+      "2025": {
+        "affected": 24,
+        "anchors_in_year": 2190,
+        "share_pct": 1.096
+      },
+      "2026": {
+        "affected": 1463,
+        "anchors_in_year": 1567,
+        "share_pct": 93.363
+      }
+    },
+    "first": 1766880000,
+    "last": 1789776000,
+    "non_finite_member_cells": 42889,
+    "member_cells_scanned": 2486474,
+    "non_finite_cell_share_pct": 1.7249,
+    "of_those_cells_absent_from_NEW_member_set": 42889,
+    "absent_share_pct": 100.0,
+    "green_control_nc_array_non_finite_on_nc_members": 0,
+    "green_control_expectation": 0,
+    "green_control_verdict": "PASS"
+  },
+  "reading": "NEW's King does not score names NEW never admits, so swapping NEW's KZ onto NC's LARGER member set leaves NaN on exactly those names and combo_target.py:26 then refuses the whole anchor. The same holds for F10's P. Consequence: for arms KZ_res / KZWL_res / F10_res the 2026 reading would measure the swap blanking the book, not whether the input carries the gap. 2023 and 2024 are unaffected; 2025 is affected on a small share. Lead's ruling required before any engine number from those three arms is reported.",
+  "limits": [
+    "this is a device-artifact diagnosis, not a book-layer result",
+    "arms remain non-additive, and every arm is a pipeline-unproducible combination"
+  ],
+  "verdict": "COVERAGE_ARTIFACT_CONFIRMED"
+}

@@ -1,0 +1,190 @@
+{
+  "device": "pnoise_ladder_combo.py",
+  "self_sha256": "23004b016e13438a934c1a171a564e5bd8672b1613cf0babdca7728b066db38d",
+  "argv": [
+    "--arm",
+    "KZWL_res",
+    "--devices",
+    "/dev/shm/pnoise_2026-09-24/devices",
+    "--nc-legs",
+    "/dev/shm/news2_2026-09-23/work/legs.npz",
+    "--nc-f10",
+    "/dev/shm/news2_2026-09-23/work/f10_s42/F10_OOF.npz",
+    "--new-legs",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/f10v2_legs.npz",
+    "--new-f10",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/f10_s42/F10_OOF.npz",
+    "--new-funding",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/funding_state.npz",
+    "--new-targets",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz",
+    "--features",
+    "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+    "--mask",
+    "/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+    "--crypto-axis",
+    "/dev/shm/pnoise_2026-09-24/receipts/P1_members_2025H2on.npz",
+    "--config",
+    "/dev/shm/pnoise_2026-09-24/inputs/bundle_config.json",
+    "--out-dir",
+    "/dev/shm/pnoise_2026-09-24/work/ladder_KZWL_res",
+    "--receipt",
+    "/dev/shm/pnoise_2026-09-24/receipts/LADDER_KZWL_res.json"
+  ],
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "prereg": "docs/PREREG_gap_carrier_ladder_2026-09-25.md @ be4a013a8 (step 3)",
+  "criterion_author": "team-lead (not news2)",
+  "arm": "KZWL_res",
+  "status": "PIPELINE_UNPRODUCIBLE_COMBINATION_MEASURING_INSTRUMENT_ONLY",
+  "combo_code": {
+    "continuous_combo": "1501c9f63641bf447c4cb33661d08da25ced0948f9fae63cebb44cdfd1995d21",
+    "combo_target": "d7577e824298fb90a554f35ac9c4d634202a4ed7e4e00cabc597a2d4eafdb544",
+    "modified_by_this_device": false
+  },
+  "inputs": {
+    "nc_legs": {
+      "path": "/dev/shm/news2_2026-09-23/work/legs.npz",
+      "sha256": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65"
+    },
+    "nc_f10": {
+      "path": "/dev/shm/news2_2026-09-23/work/f10_s42/F10_OOF.npz",
+      "sha256": "2af48f7c84bfd5de2df83fa1266455ca718558a80ae68017de444b510a592d51"
+    },
+    "new_legs": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/f10v2_legs.npz",
+      "sha256": "f1cc7953b9e78411544a9c04b1ea75eb21b5d483716b46a27cce0414e6db5648"
+    },
+    "new_f10": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/f10_s42/F10_OOF.npz",
+      "sha256": "bbc077d93669f249967980377dfe4b4fad438447773cf1f9a971712a5d7ac125"
+    },
+    "new_funding": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/funding_state.npz",
+      "sha256": "00128959fe87f7271ced7c95e7aa5f865395fa7c49eb236983495cc821cf665b"
+    },
+    "new_targets": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz",
+      "sha256": "ca479fccd3d3245e9438a8c82ba7b4a1950ab6e06607f28b25923c4526924d62"
+    },
+    "mask": {
+      "path": "/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+      "sha256": "f752d8ae3bf92f001fcb5d6f83a7e4ae286d9f11f7548c2e965305615aa9ae51"
+    },
+    "crypto_axis": {
+      "path": "/dev/shm/pnoise_2026-09-24/receipts/P1_members_2025H2on.npz",
+      "sha256": "2323623fda9333710f5834911ab629377ab8c12b056f40ccfc9f7033c0c1f6f1"
+    }
+  },
+  "new_input_provenance": {
+    "read_off": "continuous_combo.py:49 (paths), :61 (handles), :69 (book_legal), :78 (evolve call)",
+    "KZ/ZFD/WL/ready": "data/f10v2_legs.npz",
+    "P": "f10_s42/F10_OOF.npz",
+    "rn8": "data/funding_state.npz[rn8]",
+    "legal": "data/funding_state.npz[legal]  -- NEW book_legal = align_universe & fund[legal]",
+    "qv": "data/dlw_targets.npz[qvk]",
+    "members": "data/dlw_targets.npz[members]",
+    "not_in_the_legs_file": [
+      "rn8",
+      "legal",
+      "qv",
+      "members"
+    ],
+    "caliber_note": "NC book_legal = align_universe & tradable_mask & crypto (production); NEW = align_universe & funding_state[legal]. legal and members are NEW-vs-NC input differences that none of lead's five single-swap arms covers; lead's arm list is not edited here, the coverage hole is reported to lead."
+  },
+  "new_axis": {
+    "nc_anchors": 10333,
+    "new_anchors": 10321,
+    "nc_anchors_absent_from_new": 12
+  },
+  "substituted": [
+    "KZ",
+    "WL"
+  ],
+  "anchors_keeping_nc_values_because_new_lacks_them": {
+    "KZ": 12,
+    "WL": 12
+  },
+  "legal_source": "NC: align_universe & tradable_mask & crypto",
+  "window": {
+    "n_anchors_used": 8142,
+    "first": 1672531200,
+    "last": 1789761600
+  },
+  "policies": {
+    "literal": {
+      "path": "/dev/shm/pnoise_2026-09-24/work/ladder_KZWL_res/literal.npz",
+      "sha": "67b2eca0c7a7d648b242034d7522bf498fa45cc6e59db480a8aa830058777fa0",
+      "reasons": {
+        "F10 coverage,gross,names": 115,
+        "F10 coverage,names": 365,
+        "F10 coverage": 3310,
+        "F10 coverage,gross": 1173,
+        "publish": 1532,
+        "gross": 161,
+        "King scores incomplete": 1486
+      },
+      "publish_total": 1532,
+      "years": {
+        "2023": {
+          "anchors": 2190,
+          "publish": 0,
+          "mean_producer_gross": 0.4859342269459617
+        },
+        "2024": {
+          "anchors": 2196,
+          "publish": 0,
+          "mean_producer_gross": 0.5753376124009401
+        },
+        "2025": {
+          "anchors": 2190,
+          "publish": 1431,
+          "mean_producer_gross": 0.5153917992956625
+        },
+        "2026": {
+          "anchors": 1566,
+          "publish": 101,
+          "mean_producer_gross": 0.04827746391293921
+        }
+      }
+    },
+    "scaled_diagnostic": {
+      "path": "/dev/shm/pnoise_2026-09-24/work/ladder_KZWL_res/scaled_diagnostic.npz",
+      "sha": "bc0ff88a525ed14246d2df699f6098952d1355388a71536cc0814ac585679f0e",
+      "reasons": {
+        "gross": 1449,
+        "publish": 5207,
+        "King scores incomplete": 1486
+      },
+      "publish_total": 5207,
+      "years": {
+        "2023": {
+          "anchors": 2190,
+          "publish": 1515,
+          "mean_producer_gross": 0.4859342269459617
+        },
+        "2024": {
+          "anchors": 2196,
+          "publish": 2011,
+          "mean_producer_gross": 0.5753376124009401
+        },
+        "2025": {
+          "anchors": 2190,
+          "publish": 1580,
+          "mean_producer_gross": 0.5153917992956625
+        },
+        "2026": {
+          "anchors": 1566,
+          "publish": 101,
+          "mean_producer_gross": 0.04827746391293921
+        }
+      }
+    }
+  },
+  "verdict": "MEASURED",
+  "limits": [
+    "pipeline-unproducible combination; a measuring instrument, never a deployable version",
+    "arms are NOT additive",
+    "this is a NEW DRIVER calling the UNCHANGED evolve; the red control (arm none) is what licenses it"
+  ]
+}

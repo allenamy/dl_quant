@@ -1,0 +1,112 @@
+{
+  "device": "ladder_poscontrol_check.py",
+  "self_sha256": "8f20ebeff181d2c3997db1d3b82c5050697d1246d933e710385e5fc00fbc8368",
+  "argv": [
+    "--mine-dir",
+    "/dev/shm/pnoise_2026-09-24/work/ladder_none",
+    "--new-dir",
+    "/dev/shm/news2_2026-09-23/work/combo_s42",
+    "--out",
+    "/dev/shm/pnoise_2026-09-24/receipts/LADDER_REDCONTROL.json"
+  ],
+  "prereg": "docs/PREREG_gap_carrier_ladder_2026-09-25.md @ be4a013a8 (step 3 positive control)",
+  "criterion_author": "team-lead (not news2)",
+  "gate": "max|dw| <= 1e-6 vs NEW's archived targets, else report which input is missing",
+  "policies": {
+    "literal": {
+      "mine": "/dev/shm/pnoise_2026-09-24/work/ladder_none/literal.npz",
+      "mine_sha": "210270198350cdce0287cb2659708f9db52ea4c027346347e7b1e5366a781991",
+      "new": "/dev/shm/news2_2026-09-23/work/combo_s42/literal.npz",
+      "new_sha": "210270198350cdce0287cb2659708f9db52ea4c027346347e7b1e5366a781991",
+      "mine_keys": [
+        "E_ts",
+        "fc",
+        "kc",
+        "raw",
+        "reason",
+        "symbols",
+        "trade_mask",
+        "weights"
+      ],
+      "new_keys": [
+        "E_ts",
+        "fc",
+        "kc",
+        "raw",
+        "reason",
+        "symbols",
+        "trade_mask",
+        "weights"
+      ],
+      "axis": {
+        "mine_n": 8142,
+        "new_n": 8142,
+        "identical": true,
+        "common_n": 8142
+      },
+      "weights": {
+        "max_abs_dw": 0.0,
+        "n_cells": 6749718,
+        "n_cells_over_1e-6": 0,
+        "n_anchors_over_1e-6": 0,
+        "bitwise_identical": true
+      },
+      "trade_mask": {
+        "mine_publish": 2946,
+        "new_publish": 2946,
+        "disagreeing_anchors": 0
+      },
+      "reason": {
+        "disagreeing_anchors": 0
+      }
+    },
+    "scaled_diagnostic": {
+      "mine": "/dev/shm/pnoise_2026-09-24/work/ladder_none/scaled_diagnostic.npz",
+      "mine_sha": "f4630a20f796bce26590aedeadfc28791be7eeecee8c14789f418b5a08de4388",
+      "new": "/dev/shm/news2_2026-09-23/work/combo_s42/scaled_diagnostic.npz",
+      "new_sha": "f4630a20f796bce26590aedeadfc28791be7eeecee8c14789f418b5a08de4388",
+      "mine_keys": [
+        "E_ts",
+        "fc",
+        "kc",
+        "raw",
+        "reason",
+        "symbols",
+        "trade_mask",
+        "weights"
+      ],
+      "new_keys": [
+        "E_ts",
+        "fc",
+        "kc",
+        "raw",
+        "reason",
+        "symbols",
+        "trade_mask",
+        "weights"
+      ],
+      "axis": {
+        "mine_n": 8142,
+        "new_n": 8142,
+        "identical": true,
+        "common_n": 8142
+      },
+      "weights": {
+        "max_abs_dw": 0.0,
+        "n_cells": 6749718,
+        "n_cells_over_1e-6": 0,
+        "n_anchors_over_1e-6": 0,
+        "bitwise_identical": true
+      },
+      "trade_mask": {
+        "mine_publish": 6520,
+        "new_publish": 6520,
+        "disagreeing_anchors": 0
+      },
+      "reason": {
+        "disagreeing_anchors": 0
+      }
+    }
+  },
+  "verdict": "POSITIVE_CONTROL_PASS"
+}
