@@ -37,3 +37,12 @@ V1=/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/m3_shadow_
 #   /usr/bin/python3 /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/common/venue_quiet_window.py --json
 #   /usr/bin/python3 -B $D/devices/b7v2_fetch.py $S/b7v2/in_$A $A $S/b7v2/fetch_$A
 #   /usr/bin/python3 -B $D/devices/b7v2_compare.py $S/b7v2/in_$A $S/b7v2/fetch_$A $S/b7v2/in_$A/M3_SELFCHECK_$A.txt $A $D/receipts/anchor_$A
+# ==== anchor 1790352000 (2026-09-25T16:00Z, first m3_beta_v2 shadow anchor), run 2026-09-25T17:00:14Z..17:04:45Z (quiet window OPEN, 159.7 min left) ====
+#   zsh $D/devices/b7v2_copy_inputs.sh $S/b7v2/in_1790352000 1790352000
+#   ~/wide_shadow/venv/bin/python -B /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/nc_2026-09-23/devices/nc_m3_selfcheck.py ~/cc_tmp/nc_20260923/package_v2c_20260925 1790352000 --out $S/b7v2/in_1790352000/M3_SELFCHECK_1790352000.txt
+#     → M3_SELFCHECK 1790352000 OK n=0   (the template above named package_NC — the pre-v2 contract; v2 needs package_v2c_20260925, corrected here)
+#   /usr/bin/python3 /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/common/venue_quiet_window.py --json   → open, remaining 159.7
+#   /usr/bin/python3 -B $D/devices/b7v2_fetch.py $S/b7v2/in_1790352000 1790352000 $S/b7v2/fetch_1790352000
+#     → B7V2_FETCH VERDICT=COMPLETE n_requests=451 ok=450 failed=0 max_used_weight_1m=208 soft_brakes=0 (envelope: <=500 requests, weight <=300)
+#   /usr/bin/python3 -B $D/devices/b7v2_compare.py $S/b7v2/in_1790352000 $S/b7v2/fetch_1790352000 $S/b7v2/in_1790352000/M3_SELFCHECK_1790352000.txt 1790352000 $D/receipts/anchor_1790352000
+#     → B7V2 STATUS=CLEAN gate0=True ii_abs_usdt=3.19 ii_tol_usdt=109.51 ii_pass=True n_over_band=1 n_unexplained=0 undecided=[]

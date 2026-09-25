@@ -1,0 +1,35 @@
+B7v2 anchor 1790352000 start 2026-09-25T17:00:14Z
+$ zsh $D/devices/b7v2_copy_inputs.sh $S/b7v2/in_$A $A
+SIDECAR_OK 1790352000
+7625c05b763d0a86b4b9ed5d525b6fd6e69bcf0bc8f5c09e448cbd2db5ee6948  target_live/1790352000.json
+1036136f336767e980ee09adf3263ebfbc87cac3df48256c9b10bc7c6dec3d69  target_live/1790352000.json.sha256
+46b7e0c1f6dedc9cfd20e18665b9a223aec2c83c7a0d89c6d644c256f666fe16  anchors_20260925.jsonl
+710449b2738cd5d4eb654cd99b09c513520220d319d0a2789e6db7f73532665f  orders_20260925.jsonl
+2026-09-25T17:00:15Z
+copy rc=0
+$ nc_m3_selfcheck.py package_v2c $A --out
+M3_SELFCHECK 1790352000 OK n=0
+selfcheck rc=0
+$ venue_quiet_window.py --json
+{
+ "now_utc": "2026-09-25T17:00:16Z",
+ "anchor_N_utc": "2026-09-25T16:00:00Z",
+ "minutes_since_N": 60.3,
+ "window": "[N+60m, N+220m]",
+ "remaining_min": 159.7,
+ "open": true,
+ "reason": "open",
+ "override": null,
+ "last_anchor_start_utc": "2026-09-25T16:00:00Z",
+ "last_anchor_done_utc": "2026-09-25T16:56:20Z",
+ "anchor_in_progress": false,
+ "stale_start": false
+}
+qw rc=0
+$ /usr/bin/python3 -B $D/devices/b7v2_fetch.py $S/b7v2/in_$A $A $S/b7v2/fetch_$A
+B7V2_FETCH A=1790352000 VERDICT=COMPLETE n_requests=451 ok=450 failed=0 max_used_weight_1m=208 soft_brakes=0 manifest_sha256=ee6e0b6bf0ac40e605536e1200b1a44cf37b7e3b883db4db962d72a03d17a317
+fetch rc=0
+$ /usr/bin/python3 -B $D/devices/b7v2_compare.py ... $D/receipts/anchor_$A
+B7V2 A=1790352000 (2026-09-25T16:00:00Z) STATUS=CLEAN gate0=True ii_abs_usdt=3.1872384570851864 ii_tol_usdt=109.51130074397 ii_pass=True n_over_band=1 n_unexplained=0 undecided=[] out_sha256=3a73d81dd337f717efcfcc6375ba82ed46d24c01742e5cfa9b9d6a8f08498575
+compare rc=0
+end 2026-09-25T17:04:45Z
