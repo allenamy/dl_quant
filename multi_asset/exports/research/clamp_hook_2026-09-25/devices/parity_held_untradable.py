@@ -69,8 +69,8 @@ def main():
     hookf, out = sys.argv[1], sys.argv[2]; os.makedirs(out, exist_ok=True); a = sys.argv[3:]
     t_from = calendar.timegm(time.strptime(a[a.index("--from") + 1] if "--from" in a else "2026-09-16T12", "%Y-%m-%dT%H"))
     t_to = calendar.timegm(time.strptime(a[a.index("--to") + 1] if "--to" in a else "2026-09-25T12", "%Y-%m-%dT%H"))
-    book = json.load(open(f"{DQ}/config/book.json")); mult = float(((book.get("external_book") or {}).get("min_notional_mult")) or 2.0)
-    mn = {s: num(v.get("min_notional")) for s, v in json.load(open(f"{DQ}/state/exchange_info_cache.json")).items()}
+    book = json.load(open(f"{DQ}/config/book.json")); mult = float(book["external_book"]["min_notional_mult"])   # book.json L167 (external_book block); no default — a missing key must fail
+    mn = {s: num(v.get("min_notional")) for s, v in json.load(open(f"{DQ}/state/exchange_info_cache.json")).items() if isinstance(v, dict)}   # rev 1: skip "__venue__"/"__mode__" string entries
     pages = []
     for l in open(f"{DQ}/state/notify_audit.jsonl"):
         try: d = json.loads(l)
