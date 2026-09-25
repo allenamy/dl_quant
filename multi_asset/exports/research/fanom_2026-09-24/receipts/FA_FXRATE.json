@@ -1,0 +1,253 @@
+{
+ "device": "fa_fxrate.py",
+ "self_sha256": "aa26ce1e3f7eff5ccbb617add3dfb37fb170e4dbc0d003168601864c881baa0e",
+ "utc": "2026-09-25T15:52:15Z",
+ "prereg": "docs/PREREG_FX1_FX3_same_caliber_2026-09-25.md \u4fee\u8ba2 2",
+ "sources": {
+  "panel": {
+   "path_given": "/workspace/data/wide_panel_4h_v2ext.npz",
+   "resolved": "/workspace/data/wide_panel_4h_v2ext.npz",
+   "sha256": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116"
+  },
+  "features": {
+   "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+   "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8"
+  },
+  "combo_axis": {
+   "path": "/dev/shm/news2_2026-09-23/work/combo_s42/scaled_diagnostic.npz",
+   "sha256": "f4630a20f796bce26590aedeadfc28791be7eeecee8c14789f418b5a08de4388"
+  }
+ },
+ "value_column": {
+  "used": "NEWS_FEATURES.npz fn_v (float64, NaN preserved)",
+  "REJECTED": "X78[:,77] (keep_names idx 77 = fund_now) -- nan_to_num'd to 0.0 on all 163 cells where fn_v is NaN; using it would read a stale cell as a real 0 rate"
+ },
+ "alignment": {
+  "combo_anchors": 8142,
+  "anchor_sets_equal_combo_features": true,
+  "combo_anchors_missing_from_panel": [
+   "2026-08-31T04:00Z",
+   "2026-08-31T08:00Z",
+   "2026-08-31T12:00Z",
+   "2026-08-31T16:00Z",
+   "2026-08-31T20:00Z",
+   "2026-09-01T00:00Z",
+   "2026-09-01T04:00Z",
+   "2026-09-01T08:00Z",
+   "2026-09-01T12:00Z",
+   "2026-09-01T16:00Z",
+   "2026-09-01T20:00Z",
+   "2026-09-02T00:00Z",
+   "2026-09-02T04:00Z",
+   "2026-09-02T08:00Z",
+   "2026-09-02T12:00Z",
+   "2026-09-02T16:00Z",
+   "2026-09-02T20:00Z",
+   "2026-09-03T00:00Z",
+   "2026-09-03T04:00Z",
+   "2026-09-03T08:00Z",
+   "2026-09-03T12:00Z",
+   "2026-09-03T16:00Z",
+   "2026-09-03T20:00Z",
+   "2026-09-04T00:00Z",
+   "2026-09-04T04:00Z",
+   "2026-09-04T08:00Z",
+   "2026-09-04T12:00Z",
+   "2026-09-04T16:00Z",
+   "2026-09-04T20:00Z",
+   "2026-09-05T00:00Z",
+   "2026-09-05T04:00Z",
+   "2026-09-05T08:00Z",
+   "2026-09-05T12:00Z",
+   "2026-09-05T16:00Z",
+   "2026-09-05T20:00Z",
+   "2026-09-06T00:00Z",
+   "2026-09-06T04:00Z",
+   "2026-09-06T08:00Z",
+   "2026-09-06T12:00Z",
+   "2026-09-06T16:00Z"
+  ],
+  "combo_anchors_missing_from_panel_n": 113,
+  "symbol_sets_equal": true,
+  "symbol_order_identical_to_features": true
+ },
+ "overlap_classification": {
+  "overlap_anchors": 8029,
+  "a_both_finite": 2440711,
+  "a_bitwise_equal_after_promotion": 4447,
+  "a_equal_within_float32_precision": 2440711,
+  "a_NOT_equal": 2436264,
+  "a_not_equal_by_year": {
+   "2023": 409238,
+   "2024": 599021,
+   "2025": 847728,
+   "2026": 580277
+  },
+  "b_nc_nan_panel_finite": 529856,
+  "b_by_year": {
+   "2023": 25565,
+   "2024": 50854,
+   "2025": 167504,
+   "2026": 285933
+  },
+  "c_panel_nan_nc_finite": 0,
+  "c_both_nan": 3685474,
+  "dtype_note": "panel float32 promoted to float64 before comparison; both readings reported",
+  "a_not_equal_examples": [
+   {
+    "symbol": "1000LUNCUSDT",
+    "anchor": "2023-01-01T00:00Z",
+    "nc_fn_v": 4.52e-06,
+    "panel": 4.5199999476608355e-06,
+    "abs_diff": 5.233916446268803e-14
+   },
+   {
+    "symbol": "1000SHIBUSDT",
+    "anchor": "2023-01-01T00:00Z",
+    "nc_fn_v": 0.0001,
+    "panel": 9.999999747378752e-05,
+    "abs_diff": 2.526212488436659e-12
+   },
+   {
+    "symbol": "1000XECUSDT",
+    "anchor": "2023-01-01T00:00Z",
+    "nc_fn_v": 0.0001,
+    "panel": 9.999999747378752e-05,
+    "abs_diff": 2.526212488436659e-12
+   },
+   {
+    "symbol": "1INCHUSDT",
+    "anchor": "2023-01-01T00:00Z",
+    "nc_fn_v": 2.111e-05,
+    "panel": 2.1109999579493888e-05,
+    "abs_diff": 4.205061117563448e-13
+   },
+   {
+    "symbol": "AAVEUSDT",
+    "anchor": "2023-01-01T00:00Z",
+    "nc_fn_v": -5.83e-06,
+    "panel": -5.830000191053841e-06,
+    "abs_diff": 1.9105384117747322e-13
+   },
+   {
+    "symbol": "ADAUSDT",
+    "anchor": "2023-01-01T00:00Z",
+    "nc_fn_v": -7.036e-05,
+    "panel": -7.036000170046464e-05,
+    "abs_diff": 1.7004646388901756e-12
+   },
+   {
+    "symbol": "ALGOUSDT",
+    "anchor": "2023-01-01T00:00Z",
+    "nc_fn_v": 6.003e-05,
+    "panel": 6.0030000895494595e-05,
+    "abs_diff": 8.954945956312667e-13
+   },
+   {
+    "symbol": "ALICEUSDT",
+    "anchor": "2023-01-01T00:00Z",
+    "nc_fn_v": 0.0001,
+    "panel": 9.999999747378752e-05,
+    "abs_diff": 2.526212488436659e-12
+   },
+   {
+    "symbol": "ALPHAUSDT",
+    "anchor": "2023-01-01T00:00Z",
+    "nc_fn_v": -0.00033719,
+    "panel": -0.0003371899947524071,
+    "abs_diff": 5.2475929417789e-12
+   },
+   {
+    "symbol": "ANKRUSDT",
+    "anchor": "2023-01-01T00:00Z",
+    "nc_fn_v": 0.0001,
+    "panel": 9.999999747378752e-05,
+    "abs_diff": 2.526212488436659e-12
+   },
+   {
+    "symbol": "ANTUSDT",
+    "anchor": "2023-01-01T00:00Z",
+    "nc_fn_v": 0.0001,
+    "panel": 9.999999747378752e-05,
+    "abs_diff": 2.526212488436659e-12
+   },
+   {
+    "symbol": "APEUSDT",
+    "anchor": "2023-01-01T00:00Z",
+    "nc_fn_v": -0.00090476,
+    "panel": -0.000904759974218905,
+    "abs_diff": 2.5781095032255397e-11
+   }
+  ]
+ },
+ "splice": {
+  "from": "2026-09-01T00:00Z",
+  "splice_anchors": 108,
+  "anchors_ge_splice_on_the_COMBO_axis": 108,
+  "note_294": "294 was the LEGS-vs-panel anchor gap; the combo axis is a SUBSET (8,142 of the extended 9,252), so the count here is the combo anchors at/after the splice point and is derived, not asserted against 294",
+  "source": "NC fn_v, finite values only; stale/missing -> NaN, never 0",
+  "nan_cells_in_splice_total": 46332,
+  "nan_because_NOT_A_MEMBER": 46332,
+  "nan_because_MEMBER_BUT_fn_v_NaN": 0,
+  "member_cells_in_splice": 43200,
+  "stale_pct_of_MEMBER_cells": 0.0,
+  "stale_by_anchor_max": 0,
+  "stale_top10_names": [
+   {
+    "symbol": "0GUSDT",
+    "stale_anchors": 0
+   },
+   {
+    "symbol": "1000000BOBUSDT",
+    "stale_anchors": 0
+   },
+   {
+    "symbol": "1000000MOGUSDT",
+    "stale_anchors": 0
+   },
+   {
+    "symbol": "1000BONKUSDT",
+    "stale_anchors": 0
+   },
+   {
+    "symbol": "1000BTTCUSDT",
+    "stale_anchors": 0
+   },
+   {
+    "symbol": "1000CATUSDT",
+    "stale_anchors": 0
+   },
+   {
+    "symbol": "1000CHEEMSUSDT",
+    "stale_anchors": 0
+   },
+   {
+    "symbol": "1000FLOKIUSDT",
+    "stale_anchors": 0
+   },
+   {
+    "symbol": "1000LUNCUSDT",
+    "stale_anchors": 0
+   },
+   {
+    "symbol": "1000PEPEUSDT",
+    "stale_anchors": 0
+   }
+  ],
+  "zeros_in_splice_are_real": 39
+ },
+ "field": {
+  "shape": [
+   8142,
+   829
+  ],
+  "finite_cells": 3013767,
+  "nan_cells": 3735951,
+  "exact_zero_cells": 64734,
+  "zero_note": "exact zeros are REAL stored rates; stale/absent are NaN and never 0"
+ },
+ "output": {
+  "path": "/dev/shm/fanom_2026-09-24/fx/FXRATE.npz",
+  "sha256": "fad09cd7e8985e270271d8df0717dfa74394e7e8cc9e2c6acaa16cb58d148a3f"
+ }
+}
