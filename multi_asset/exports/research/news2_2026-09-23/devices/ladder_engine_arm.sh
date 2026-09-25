@@ -23,6 +23,13 @@ TAGD=NEWS2_s42_scaled_rule_raw_UAFE
 NCRUN=$SRC/runs/$TAGD
 say() { echo "$(date -u +%H:%M:%S) [eng:$ARM] $*" | tee -a $L/step3_engine.log; }
 
+# (2) record THIS cell's own PGID, unconditionally, however this script was started.
+MY_PGID=$(ps -o pgid= -p $$ | tr -d ' ')
+mkdir -p $L
+printf '%s\n' "PGID $MY_PGID arm=$ARM started=$(date -u +%H:%M:%SZ) launcher=$0" \
+  > $L/enginearm_$ARM.pgid
+say "own PGID $MY_PGID recorded to $L/enginearm_$ARM.pgid"
+
 LAD=$EXP/work/ladder_$ARM
 [ -s $LAD/literal.npz ] && [ -s $LAD/scaled_diagnostic.npz ] || { say "FATAL: arm combo missing"; exit 2; }
 
@@ -141,6 +148,11 @@ with open(f"{EXP}/configs/RUN_CONFIG_PNOISE.json","w") as f:
 print("config ok", h[:16], rh[:16])
 PY
 say "config done"
+
+# (1) team run gate -- blocks until other bt_launch groups <= 2, headroom >= 24 GiB, shm >= 4 GiB
+say "run gate"
+bash $D/rungate.sh "$ARM" "$EXP/receipts/STEP3_RUNGATE_$ARM.json" 2>&1 | tee -a $L/step3_engine.log
+if [ ! -s "$EXP/receipts/STEP3_RUNGATE_$ARM.json" ]; then say "RUN GATE produced no receipt"; exit 5; fi
 
 say "engine base cell"
 cd $E

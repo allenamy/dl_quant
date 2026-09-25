@@ -108,4 +108,40 @@ lead 写明:「若 pnoise 的 King OOF 没有落盘/已被腾掉 ⇒ 具名 UNAV
 
 - **引擎一次只开一个格**; 每格开跑前**实测 cgroup 内存余量**(`memory.max − anon − shmem`)并**写进该格的收据**; 余量不够就等, 不抢。2026-09-25 04:33Z 已发生 `oom_kill 9`。
 - `/workspace` 账户配额只剩约 128 MiB ⇒ **不往 `/workspace` 写任何东西**(我的产物全在 `/dev/shm/pnoise_2026-09-24` 与研究仓)。
-- `nc_2026-09-23/work/` 的 `cache_crypto.npy` / `R_crypto.npy` / `fund_state.npz` 第 3 步**不读**(已逐路径核对并回报 lead), 集成代理可释放; 但释放后任何从 King/腿 往下重建的全链臂需先重生成它们。`NC_FEATURES.npz` 与 `news2_2026-09-23/work/NEWS_FEATURES.npz` 是**同一 inode**, 删任一路径都腾不出空间。
+- `nc_2026-09-23/work/` 的 `cache_crypto.npy` / `R_crypto.npy` / `fund_state.npz` 第 3 步**不读**(已逐路径核对并回报 lead); 但释放后任何从 King/腿 往下重建的全链臂需先重生成它们。`NC_FEATURES.npz` 与 `news2_2026-09-23/work/NEWS_FEATURES.npz` 是**同一 inode**, 删任一路径都腾不出空间。
+  > ⚠ **更正(2026-09-25, 本行原句保留不改写)**: 上句的「集成代理可释放」是我的**错误归因**, 已删。**lead 的裁定是 `nc_2026-09-23/work` 五件全部保留**(集成代理的实盘平价旧轴回归要用作参照, D10 阶段 3 也要, 重生成本身又是一次内存负载)。实际被释放的是 **`ovn_2026-09-23/runs`(7.1 GB)** —— `/dev/shm` 从 1.8 回到约 9 GiB 空闲是它, 不是 nc/work。**逐项复核确认五件全部在位**: `cache_crypto.npy` 4721320368 / `R_crypto.npy` 1348948768 / `fund_state.npz` 133613094 / `axes.npz` 4106344 / `boundary.npz` 357070, `ovn_2026-09-23/runs` 已不可读。我在 `e32409568` 提交信息里也写了同一个错误归因, 该提交不 amend(会与其它代理竞争), 以本更正为准。
+
+---
+
+# 修订 2(2026-09-25, lead 裁定, 冻结于任何读数之前)
+
+## 7. `all_new_nclegal` 的读法(lead 原文, 逐字抄录, 未改一字)
+
+> - 量:`D_legal = dbar(all_new) − dbar(all_new_nclegal)`,pre-2026 为主(同 dbar、同延长轴、同 32 路径),2026 与 911 天附加读数单报。
+> - 三档(σ = 1.0437):`D_legal ≥ max(2.835/2, 2σ = 2.087)` ⇒「缺口的大部分依赖 NEW 的 legal 集」;`|D_legal| ≤ σ` ⇒「缺口不依赖 NEW 的 legal 集」;其余 ⇒ 分辨不出。
+> - **归属限定**:只有当 LEGAL_res 的必报拆分显示 94,054 个不一致格以「NC 侧 tradable_mask=False」为主时,才可把依赖 legal 的那部分称为「在不可交易格上交易 ⇒ 不可部署的优势」;若以 crypto=False 或资金费 legal 本身为主,就按实际原因命名,不许套「死合约」的说法。
+> - 与 LEGAL_res 是两台不同的仪器(一个是 NC 加上 NEW 的 legal,一个是 NEW 去掉 NEW 的 legal),**不相加**;两者方向一致时写「两台仪器同向」,不一致就两个都报。
+> - 权重那部分(NEW 在 NC 判为不可交易格上的持仓权重、格数、占 gross 份额,逐年)照报精确值。
+
+## 8. 按该读法的结果: `D_legal = 0.000000`, 且归属限定不适用
+
+判据落盘在读数之前, 但这一项的读数**已经在手且是构造性的**, 所以此处直接给出并说明为什么不需要再跑一格:
+
+- `all_new_nclegal` 的 combo 输出与 `all_new` **逐位相同**(`cae52acf3bc2e82d` / `4dec6b38b08f8cc8`, 两个策略都是)⇒ 两者的引擎格与 dbar 必然逐位相同 ⇒ **`D_legal = 0.000000` 精确, pre-2026 / 2026 / 911 天附加读数三者同为 0**。
+- 按 lead 的三档: `|D_legal| = 0 ≤ σ` ⇒ **「缺口不依赖 NEW 的 legal 集」**。
+- **归属限定不适用**(而不是「适用但结论不同」): 那 94,054 个不一致格在 combo 消费的层(过 `align_universe` 之后)**一个都不剩**, 三个原因桶(`tradable_mask=False` / `crypto=False` / 资金费 legal 本身)**各为 0 格**, 闭合断言 `sum(buckets) == total == 0` 通过。既然没有任何一个桶占主, 就**不存在**可以被命名的原因, 更不能套「死合约」的说法 —— lead 这条限定在此处的正确执行方式是**不使用它**。
+- **两台仪器同向**: `LEGAL_res`(NC 加上 NEW 的 legal)= 0 按构造; `D_legal`(NEW 去掉 NEW 的 legal)= 0 按构造。**方向一致, 不相加**(照 lead)。
+- 权重部分照报精确值: NEW 在「NC 判为不可交易」格上的持仓 **0 格、sum|w| = 0、占 gross 0.0000%、逐年全 0**。
+
+⇒ **不需要为 `D_legal` 跑引擎格**: 它不是「估计为 0」, 是两个逐位相同的目标文件之差。
+
+## 9. 修订 2 的运行门(lead 全队规则最终版)
+
+每一格进入引擎步之前必须同时满足, 否则让路、每 60 秒复查, 三个数进收据, **只读进程表、绝不发信号**:
+- **他人 `bt_launch` 组数 ≤ 2** —— **按不同的他人 PGID 计**, 配置路径只作标签。**不按 PID**(一格会被读成五格 ⇒ 门永不满足、队列自己饿死), **也不按 argv 里的 `RUN_CONFIG*.json` token**(lead 实测存在 argv 里没有该 token 的 launcher ⇒ 读成零组 ⇒ **假阴性、放行超额并行**; fresh 已更正并作废那一版)。
+- **cgroup 余量 ≥ 24 GiB**(`memory.max − anon − shmem`)
+- **`/dev/shm` 空闲 ≥ 4 GiB**
+
+**团队阈值作下限**: 调用方只能提高、不能降低, 且**降低的尝试必须被打印**。两个方向都已实测: 调用方传 `3000 100`(fresh 踩过的那个陷阱值)⇒ 打印两行拒绝并实际使用 24576 / 4096(`FLOOR HELD`); 传 `30000 5000` ⇒ 按 30000 / 5000 执行。装置 `devices/rungate.sh`, 收据 `STEP3_RUNGATE_<arm>.json`(含逐次复查轨迹)。
+
+**另一处我的失败与类形状修法**: lead 要我按自己记录的 PGID 核对 pod2 上第三组 `bt_launch`(pgid 3062350), **我答不出来** —— 因为 `FUND_res_ncfill` 那一格是我用 `ssh pod2 'bash ladder_engine_arm.sh ...'` 直接起的, 没走写 `.pgid` 文件的 setsid 包装; 排队跑的每一格都记了 PGID, **唯一手工起的那一格没记, 而它的窗口恰好与那个无归属的组重叠**。实例修法是「记得用包装」; **类形状修法是让脚本自己在每次调用时无条件记录自己的 PGID**(`logs/enginearm_<arm>.pgid`), 这样无论被队列还是被手工启动, 都不可能再出现一格无法归属。已实现。

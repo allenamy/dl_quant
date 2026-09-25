@@ -1,0 +1,27 @@
+{
+  "arm": "FLOORTEST",
+  "passed_at_utc": "2026-09-25T08:44:33.134086+00:00",
+  "my_pgid": 3076260,
+  "rechecks": 1,
+  "rule": {
+    "other_bt_launch_groups_max": 2,
+    "headroom_min_MiB": 24576,
+    "shm_free_min_MiB": 4096,
+    "thresholds_are_floors": "a caller may raise them, never lower them; a lowering attempt is printed"
+  },
+  "effective_thresholds": {
+    "headroom_min_MiB": 24576,
+    "shm_free_min_MiB": 4096
+  },
+  "measured_at_pass": {
+    "other_bt_launch_groups": 0,
+    "headroom_MiB": 36954,
+    "shm_free_MiB": 9062,
+    "other_groups_labels": null
+  },
+  "grouping_rule": "distinct OTHER PGID. NOT PID (one cell reads as five -> self-starvation) and NOT an argv RUN_CONFIG*.json token (a launcher without that token reads as zero groups -> false negative -> over-quota parallelism). The config path is a label only.",
+  "read_only": "inspects the process table; never signals another process",
+  "recheck_trace": [
+    "08:44:33Z other_groups=0 headroom_MiB=36954 shm_free_MiB=9062 others=[none]"
+  ]
+}
