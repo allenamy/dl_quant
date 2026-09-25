@@ -92,9 +92,9 @@ for seed in ("42", "2027"):
         db, _ = NS.dbar(pn, po, masks[key], days[key])
         return float(1e4 * db.mean()), int(len(db)), db
 
-    for key in ("pre2026", "2026_to_axis_end", "fullwin_to_axis_end"):
+    for key in ("pre2026", "2026_to_axis_end", "2026_SEG_truncated", "fullwin_to_axis_end"):
         v, nd, db = dbar_of(ff, fb, key)
-        s["G"][key] = {"frozen_dbar_bps_per_day": v, "n_days": nd}
+        s["G"][key] = {"frozen_dbar_bps_per_day": v, "n_days": nd, "n_windows": int(masks[key].sum())}
         if key == "pre2026":
             s["G"][key]["boot"] = NS.boot(db, 30)
     # old caliber, reference only
@@ -115,11 +115,15 @@ for seed in ("42", "2027"):
         pa, Aa, cha = paths(f)
         assert np.array_equal(Aa, A), f"{arm} axis differs"
         a = {"series_sha256": sha(f)}
-        for key in ("pre2026", "2026_to_axis_end", "fullwin_to_axis_end"):
+        for key in ("pre2026", "2026_to_axis_end", "2026_SEG_truncated", "fullwin_to_axis_end"):
             v, nd, db = dbar_of(pa, fb, key)
-            a[key] = {"d_bps_per_day": v, "n_days": nd}
+            a[key] = {"d_bps_per_day": v, "n_days": nd, "n_windows": int(masks[key].sum())}
             if key == "pre2026":
                 a[key]["boot"] = NS.boot(db, 30)
+        a["2026_definition_effect"] = {
+            "extended_minus_truncated_bps_per_day": a["2026_to_axis_end"]["d_bps_per_day"] - a["2026_SEG_truncated"]["d_bps_per_day"],
+            "sign_flips": bool((a["2026_to_axis_end"]["d_bps_per_day"] > 0) != (a["2026_SEG_truncated"]["d_bps_per_day"] > 0)),
+            "note": "dlarch measured a SIGN FLIP on a same-axis stand-in (+0.0767 vs -0.2949); this is the same check on this arm"}
         d = a["pre2026"]["d_bps_per_day"]
         a["ratio_d_over_G"] = (d / G) if G != 0 else None
         # frozen criteria, section 4 (lead-authored; applied mechanically)
@@ -163,10 +167,12 @@ for seed in ("42", "2027"):
         a = s["arms"].get(arm, {})
         if a.get("status"):
             print("     %-5s %s" % (arm, a["status"])); continue
-        print("     %-5s d=%+8.4f  d/G=%+6.3f  ci95=%s  2026=%+8.4f  NET=%+8.2f  -> %s"
+        print("     %-5s d=%+8.4f  d/G=%+6.3f  ci95=%s  2026=%+8.4f (SEG-trunc %+8.4f%s)  NET=%+8.2f  -> %s"
               % (arm, a["pre2026"]["d_bps_per_day"], a["ratio_d_over_G"],
                  [round(x, 2) for x in a["pre2026"]["boot"]["ci95_bps"]],
-                 a["2026_to_axis_end"]["d_bps_per_day"], a["channels_pre2026_bps"]["NET_price_minus_funding_paid"],
+                 a["2026_to_axis_end"]["d_bps_per_day"], a["2026_SEG_truncated"]["d_bps_per_day"],
+                 " SIGN FLIP" if a["2026_definition_effect"]["sign_flips"] else "",
+                 a["channels_pre2026_bps"]["NET_price_minus_funding_paid"],
                  a["VERDICT"]), flush=True)
 for arm, v in rec["seed_reversal"].items():
     if v["opposite_sign"]:
