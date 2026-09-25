@@ -1,0 +1,47 @@
+{
+ "device": "d10_bulk_ok_census.py",
+ "self_sha256": "1da6ac69ecc9094b892ef8e98fa425c46bb742463b82870ff3f85ba8386a5fe9",
+ "question": "lead item 3: anchors with _bulk_ok False since NC went live",
+ "inputs": {
+  "log": {
+   "path": "/Users/haosiyu/wide_shadow/shadow_log.jsonl",
+   "sha256": "855fe38d8a49d988ee5a432b978e49f99255637bab9083a424448b30d648c1b0",
+   "bytes": 301320
+  },
+  "producer": {
+   "path": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+   "sha256": "52baf979095752642cde16b1281911c6692f3251cd3b9d6d214a4b624d8d5f38"
+  }
+ },
+ "read_only": "this device never writes into ~/wide_shadow",
+ "field_appears_in": [
+  "shadow_log.jsonl",
+  "shadow_loop_v3.py"
+ ],
+ "field_appears_in_compiled_copies": [
+  "__pycache__/shadow_loop_v3.cpython-314.pyc"
+ ],
+ "field_has_no_other_home": true,
+ "log": {
+  "unparseable_lines": 0,
+  "signal_anchors": 240,
+  "first_anchor": "2026-08-16T12:00Z",
+  "last_anchor": "2026-09-25T16:00Z"
+ },
+ "answer": {
+  "anchors_carrying_the_field": 9,
+  "anchors_with_bulk_ok_not_true": 0,
+  "false_anchors": [],
+  "instrumented_from": "2026-09-24T08:00Z",
+  "instrumented_to": "2026-09-25T16:00Z",
+  "anchors_with_NO_nc_block_at_all": 231,
+  "unmeasured_from": "2026-08-16T12:00Z",
+  "unmeasured_to": "2026-09-24T04:00Z"
+ },
+ "reading": "0 anchors ran with _bulk_ok False, over a denominator of 9 anchors (2026-09-24T08:00Z -> 2026-09-25T16:00Z). For the earlier 231 anchors the field DOES NOT EXIST, so the quantity there is UNMEASURED, not measured zero. This matters because the 2026-09-16..09-24 drawdown lies ALMOST entirely before the instrument -- see drawdown_window_2026_09_16_to_09_24 for the exact overlap, which is a few anchors at the very end, NOT zero; an earlier draft of this reading said 'entirely' and that was wrong. The producer form running through the drawdown had no _bulk_ok variable at all (its skip gate was `if anchor - last_ts < exp_iv * 3600 * 0.9` with no bulk term), so asking how many of those anchors had _bulk_ok False asks for a quantity that did not exist. The answerable question there is which settlement the as-of froze on and for how long.",
+ "drawdown_window_2026_09_16_to_09_24": {
+  "anchors_in_window": 54,
+  "of_those_carrying_the_field": 4,
+  "fraction_measurable": 0.0741
+ }
+}
