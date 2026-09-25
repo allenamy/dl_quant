@@ -1,0 +1,53 @@
+host haosiyudeMacBook-Pro.local start 2026-09-25T09:00:14Z free_GiB=39
+shas: NC5 shadow_loop a68c7a5f0c6e NC7 shadow_loop 52baf9790957 prod shadow_loop a68c7a5f0c6e
+OPEN · open · remaining 159.8 min
+venue_quiet_window rc=0
+=== F2 start 2026-09-25T09:00:15Z
+cmd: /Users/haosiyu/wide_shadow/venv/bin/python -B /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/nc_2026-09-23/devices/test_c_rollback_rehearsal.py /Users/haosiyu/cc_tmp/nc_20260923/treeNC5 /Users/haosiyu/cc_tmp/nc_20260923/treeNC7 1790280000 /Users/haosiyu/cc_tmp/nc_20260923/prewindow_20260925T0900Z/f2
+C_ROLLBACK FAIL {"new_producer_A1": true, "new_combo_A1": true, "old_producer_A1": true, "old_combo_A1": true, "d_same_bytes": false, "b_old_producer_A2_on_new_state": true, "b_old_combo_A2": true, "f_new_loads_old_state_A2": true}
+=== F2 end 2026-09-25T09:02:36Z rc=1
+free_GiB=29
+=== GATE3P start 2026-09-25T09:02:36Z
+cmd: /Users/haosiyu/wide_shadow/venv/bin/python -B /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/nc_2026-09-23/devices/nc_v2_nonbeta_gate.py /Users/haosiyu/cc_tmp/nc_20260923/treeNC5 /Users/haosiyu/cc_tmp/nc_20260923/treeNC7 /Users/haosiyu/cc_tmp/nc_20260923/prewindow_20260925T0900Z/g3p --archive-k1
+anchor 1790236800: base rc 0 (34.7s) v2 rc 0 (35.2s) | non-beta identical False | {"target_combo": true, "state_H_kc": true, "state_H_fc": true, "dlw_fea82.npz": false, "f8_fea89.npz": false, "dlw_targets.npz": true, "target_live_nonbeta_keys_differing": [], "
+anchor 1790251200: base rc 0 (34.1s) v2 rc 0 (35.3s) | non-beta identical False | {"target_combo": true, "state_H_kc": true, "state_H_fc": true, "dlw_fea82.npz": false, "f8_fea89.npz": false, "dlw_targets.npz": true, "target_live_nonbeta_keys_differing": [], "
+anchor 1790265600: base rc 0 (35.5s) v2 rc 0 (36.5s) | non-beta identical False | {"target_combo": true, "state_H_kc": true, "state_H_fc": true, "dlw_fea82.npz": false, "f8_fea89.npz": false, "dlw_targets.npz": true, "target_live_nonbeta_keys_differing": [], "
+anchor 1790280000: base rc 0 (33.9s) v2 rc 0 (39.0s) | non-beta identical False | {"target_combo": true, "state_H_kc": true, "state_H_fc": true, "dlw_fea82.npz": false, "f8_fea89.npz": false, "dlw_targets.npz": true, "target_live_nonbeta_keys_differing": [], "
+anchor 1790294400: base rc 0 (36.8s) v2 rc 0 (37.0s) | non-beta identical False | {"target_combo": true, "state_H_kc": true, "state_H_fc": true, "dlw_fea82.npz": false, "f8_fea89.npz": false, "dlw_targets.npz": true, "target_live_nonbeta_keys_differing": [], "
+anchor 1790308800: base rc 0 (36.3s) v2 rc 0 (38.5s) | non-beta identical False | {"target_combo": true, "state_H_kc": true, "state_H_fc": true, "dlw_fea82.npz": false, "f8_fea89.npz": false, "dlw_targets.npz": true, "target_live_nonbeta_keys_differing": [], "
+anchor 1790323200: base rc 0 (34.6s) v2 rc 0 (36.5s) | non-beta identical False | {"target_combo": true, "state_H_kc": true, "state_H_fc": true, "dlw_fea82.npz": false, "f8_fea89.npz": false, "dlw_targets.npz": true, "target_live_nonbeta_keys_differing": [], "
+NC_V2_NONBETA_GATE FAIL anchors=7
+=== GATE3P end 2026-09-25T09:11:47Z rc=1
+free_GiB=21
+=== REV1 start 2026-09-25T09:11:47Z
+cmd: /Users/haosiyu/wide_shadow/venv/bin/python -B /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/nc_2026-09-23/devices/nc_v2_nonbeta_gate_rev1.py /Users/haosiyu/cc_tmp/nc_20260923/treeNC5 /Users/haosiyu/cc_tmp/nc_20260923/treeNC7 /Users/haosiyu/cc_tmp/nc_20260923/prewindow_20260925T0900Z/g3p /Users/haosiyu/cc_tmp/nc_20260923/prewindow_20260925T0900Z/NC_V2_NONBETA_GATE_REV1_postinstall.json
+anchor 1790236800: literal FAIL | rev1 PASS []
+anchor 1790251200: literal FAIL | rev1 PASS []
+anchor 1790265600: literal FAIL | rev1 PASS []
+anchor 1790280000: literal FAIL | rev1 PASS []
+anchor 1790294400: literal FAIL | rev1 PASS []
+anchor 1790308800: literal FAIL | rev1 PASS []
+anchor 1790323200: literal FAIL | rev1 PASS []
+item3 ch0 census over 15 executed files: 12 channel-0 subscripts, non-whitelisted 0 []; regex listing 6 (report only)
+NC_V2_NONBETA_GATE FAIL_LITERAL anchors=7 (unrevised criterion; meta_json provenance fields differ by construction)
+NC_V2_NONBETA_GATE_REV1 PASS anchors=7 written_utc_ruling=w1 out_sha256=6c710d428cb9541a93cfa746bbbb5cfb06c658dd13c0e2aa7b2f64ec27aa79a0
+=== REV1 end 2026-09-25T09:12:23Z rc=0
+=== T1 start 2026-09-25T09:12:23Z
+installed_moved: 16 entries in fea171; archived: combo_stage_t3c_candidate.py sidecar_blend.py sidecar_daemon.sh 
+cmd: /Users/haosiyu/wide_shadow/venv/bin/python -B /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/nc_2026-09-23/devices/test_m3_v2_ret5.py /Users/haosiyu/cc_tmp/nc_20260923/treeNC7 /Users/haosiyu/cc_tmp/nc_20260923/treeNC5 --installed /Users/haosiyu/cc_tmp/nc_20260923/prewindow_20260925T0900Z/installed_moved
+T1 census: 12 channel-0 subscripts in 14 files (installed /Users/haosiyu/cc_tmp/nc_20260923/prewindow_20260925T0900Z/installed_moved + v2 tree overlay)
+16/16 checks passed; snapshot fixture from /Users/haosiyu/wide_shadow/state/snap/1790323200
+TEST_M3_V2_RET5 PASS 
+=== T1 end 2026-09-25T09:12:32Z rc=0
+=== BETAPARITY start 2026-09-25T09:12:32Z
+cmd: /Users/haosiyu/wide_shadow/venv/bin/python -B /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/nc_2026-09-23/devices/nc_v2_beta_parity.py /Users/haosiyu/cc_tmp/nc_20260923/treeNC7 /Users/haosiyu/cc_tmp/nc_20260923/prewindow_20260925T0900Z/g3p /Users/haosiyu/cc_tmp/nc_20260923/prewindow_20260925T0900Z/NC_V2_BETA_PARITY_postinstall.json
+anchor 1790236800: served m3_beta_v2 n 450 | BASELINE served==direct: betas differing 0, n_obs differing 0, counters equal True -> GREEN | RED control (clipped input): 7 names differ (table cells 15) -> DETECTED
+anchor 1790251200: served m3_beta_v2 n 450 | BASELINE served==direct: betas differing 0, n_obs differing 0, counters equal True -> GREEN | RED control (clipped input): 7 names differ (table cells 15) -> DETECTED
+anchor 1790265600: served m3_beta_v2 n 450 | BASELINE served==direct: betas differing 0, n_obs differing 0, counters equal True -> GREEN | RED control (clipped input): 7 names differ (table cells 15) -> DETECTED
+anchor 1790280000: served m3_beta_v2 n 450 | BASELINE served==direct: betas differing 0, n_obs differing 0, counters equal True -> GREEN | RED control (clipped input): 7 names differ (table cells 15) -> DETECTED
+anchor 1790294400: served m3_beta_v2 n 450 | BASELINE served==direct: betas differing 0, n_obs differing 0, counters equal True -> GREEN | RED control (clipped input): 7 names differ (table cells 15) -> DETECTED
+anchor 1790308800: served m3_beta_v2 n 450 | BASELINE served==direct: betas differing 0, n_obs differing 0, counters equal True -> GREEN | RED control (clipped input): 7 names differ (table cells 15) -> DETECTED
+anchor 1790323200: served m3_beta_v2 n 450 | BASELINE served==direct: betas differing 0, n_obs differing 0, counters equal True -> GREEN | RED control (clipped input): 7 names differ (table cells 15) -> DETECTED
+NC_V2_BETA_PARITY PASS anchors=7
+=== BETAPARITY end 2026-09-25T09:12:37Z rc=0
+ALL DONE 2026-09-25T09:12:37Z free_GiB=21
