@@ -1,0 +1,185 @@
+commit ee455faf8ab136fa385f3ee342351352d85c9450
+Author: haosiyu <siyuhao0702@gmail.com>
+Date:   Sat Sep 26 02:41:15 2026 +0800
+
+    fix-pkg-d battery run 2 (18:19Z) reds caused by 19c7ae1, fixed without touching production code or any guard's scope:
+    (1) tests_static_names: the pre-fix copy of anchor_loop under live/tests_fixtures re-raised the WAIVED PEP 526 List annotation at an unwaived path. The 7 pre-fix copies are now <name>.py.prefix (verbatim 20d7894, sha-checked) loaded by an explicit SourceFileLoader; the waiver set stays frozen at 11.
+    (2) tests_nav_staleness, numerator_honesty, proportional_response, cond2_judged_text, unseal_rehearsal_halt: their daily_nav fixtures OMITTED external_flow_usdt, a row shape the only production writer never emits (anchor_loop L3305 always writes it: the income flow, or None when income is unreadable); under the fix an absent flow is UNKNOWN, so those fixtures' days became unpriceable. Each lg.daily_nav fixture call now states external_flow_usdt=0.0 (8 calls); no assertion changed.
+    (3) tests_guard_calibers: mutant cond2_transfers_ignored re-anchored on the new _flow_day line, same mutation (_flow_day = False); it still goes red.
+    Sandbox single-suite runs, exit 0 each: quantity_unknowns 20/20, static_names, nav_staleness, numerator_honesty, proportional_response, cond2_judged_text, unseal_rehearsal_halt, guard_calibers, watchdog
+    
+    Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01VNPQL7t93ECz7Xkrv9rH6n
+
+diff --git a/live/tests_cond2_judged_text.py b/live/tests_cond2_judged_text.py
+index 484b567..b29f085 100644
+--- a/live/tests_cond2_judged_text.py
++++ b/live/tests_cond2_judged_text.py
+@@ -55,7 +55,7 @@ def tree(navs, nav_rows=True):
+         lg.position_readback(anchor_ts=ats, symbol="AAAUSDT", venue_position_notional=0.0, venue_position_qty=0.0,
+                              source="mock", read_ts=ats + 10)
+         if nav_rows:
+-            lg.daily_nav(day=int(day), target_gross=2.0 * nav, nav=nav, sizing_policy="constant_leverage_2.00",
++            lg.daily_nav(external_flow_usdt=0.0, day=int(day), target_gross=2.0 * nav, nav=nav, sizing_policy="constant_leverage_2.00",
+                          realised_pnl=0.0, unrealised_pnl=0.0)
+         lg.close()
+     return root
+diff --git a/live/tests_fixtures/pre_fixD2/anchor_loop.py b/live/tests_fixtures/pre_fixD2/anchor_loop.py.prefix
+similarity index 100%
+rename from live/tests_fixtures/pre_fixD2/anchor_loop.py
+rename to live/tests_fixtures/pre_fixD2/anchor_loop.py.prefix
+diff --git a/live/tests_fixtures/pre_fixD2/binance_executor.py b/live/tests_fixtures/pre_fixD2/binance_executor.py.prefix
+similarity index 100%
+rename from live/tests_fixtures/pre_fixD2/binance_executor.py
+rename to live/tests_fixtures/pre_fixD2/binance_executor.py.prefix
+diff --git a/live/tests_fixtures/pre_fixD2/external_book.py b/live/tests_fixtures/pre_fixD2/external_book.py.prefix
+similarity index 100%
+rename from live/tests_fixtures/pre_fixD2/external_book.py
+rename to live/tests_fixtures/pre_fixD2/external_book.py.prefix
+diff --git a/live/tests_fixtures/pre_fixD2/position_break.py b/live/tests_fixtures/pre_fixD2/position_break.py.prefix
+similarity index 100%
+rename from live/tests_fixtures/pre_fixD2/position_break.py
+rename to live/tests_fixtures/pre_fixD2/position_break.py.prefix
+diff --git a/live/tests_fixtures/pre_fixD2/reconcile.py b/live/tests_fixtures/pre_fixD2/reconcile.py.prefix
+similarity index 100%
+rename from live/tests_fixtures/pre_fixD2/reconcile.py
+rename to live/tests_fixtures/pre_fixD2/reconcile.py.prefix
+diff --git a/live/tests_fixtures/pre_fixD2/venue_fills.py b/live/tests_fixtures/pre_fixD2/venue_fills.py.prefix
+similarity index 100%
+rename from live/tests_fixtures/pre_fixD2/venue_fills.py
+rename to live/tests_fixtures/pre_fixD2/venue_fills.py.prefix
+diff --git a/live/tests_fixtures/pre_fixD2/watchdog.py b/live/tests_fixtures/pre_fixD2/watchdog.py.prefix
+similarity index 100%
+rename from live/tests_fixtures/pre_fixD2/watchdog.py
+rename to live/tests_fixtures/pre_fixD2/watchdog.py.prefix
+diff --git a/live/tests_guard_calibers.py b/live/tests_guard_calibers.py
+index 9b82396..2cc8016 100644
+--- a/live/tests_guard_calibers.py
++++ b/live/tests_guard_calibers.py
+@@ -424,8 +424,10 @@ must_hold("★★ P2 withdrawal -2,955 (-30%) on D3: same — the day after read
+ must_hold("★ P2b the recorded flow amount is HALF the truth: reading unchanged (the amount never enters)",
+           lambda m: prop_c2_P2(m, +5000.0, flow_record=lambda f: 0.5 * f))
+ _m_noflow = mutant(WD_PATH, [(
+-    "                _flow_day = any(abs(float(_r.get(\"external_flow_usdt\") or 0.0)) > 1e-9 for _r in nav)",
+-    "                _flow_day = False")], "cond2_transfers_ignored")
++    # fix package D (R25-01 tier 1): the watchdog line now reads flows through _wd_flow (unknown = flow day); the mutant still
++    # forces "no transfer ever" on it — same mutation, new anchor text.
++    "            _flow_day = any(f_ is None or abs(f_) > 1e-9 for f_ in _flows)",
++    "            _flow_day = False")], "cond2_transfers_ignored")
+ must_red("cond2_transfers_ignored on a DEPOSIT (the day is priced at +51% and not named)",
+          lambda m: prop_c2_P2(m, +5000.0), _m_noflow)
+ must_red("cond2_transfers_ignored on a WITHDRAWAL (reads -29% and TRIPS — the dangerous direction)",
+diff --git a/live/tests_nav_staleness.py b/live/tests_nav_staleness.py
+index 298f5a0..2d3a860 100644
+--- a/live/tests_nav_staleness.py
++++ b/live/tests_nav_staleness.py
+@@ -59,7 +59,7 @@ def tree(snapshots):
+         # constant and the loss lived only in the P&L columns — that is the double-count shape
+         # that produced the 2026-08-21 false trip.) A None term leaves nav at the flat base.
+         _nav = 4719.11 + (float(real) if real is not None else 0.0) + (float(unreal) if unreal is not None else 0.0)
+-        lg.daily_nav(day=int(DAY), target_gross=GROSS, nav=_nav,
++        lg.daily_nav(external_flow_usdt=0.0, day=int(DAY), target_gross=GROSS, nav=_nav,
+                      realised_pnl=real, unrealised_pnl=unreal)
+     lg.close()
+     return root
+diff --git a/live/tests_numerator_honesty.py b/live/tests_numerator_honesty.py
+index 23c8d03..a19c44d 100644
+--- a/live/tests_numerator_honesty.py
++++ b/live/tests_numerator_honesty.py
+@@ -118,7 +118,7 @@ def tree(trunc_b):
+                                        (DAY_B, 4000.0, -2.5, 0.0, trunc_b),
+                                        (DAY_C, 3900.0, -3.0, 0.0, trunc_b)):
+         lg = PL.PilotLogger(root, day=day)
+-        lg.daily_nav(day=day, target_gross=25000.0, nav=nav, realised_pnl=real,
++        lg.daily_nav(external_flow_usdt=0.0, day=day, target_gross=25000.0, nav=nav, realised_pnl=real,
+                      unrealised_pnl=unreal, realised_truncated=tr, nav_ts=T0)
+         lg.close()
+     return root
+diff --git a/live/tests_proportional_response.py b/live/tests_proportional_response.py
+index 3c8faeb..0d5031a 100644
+--- a/live/tests_proportional_response.py
++++ b/live/tests_proportional_response.py
+@@ -100,7 +100,7 @@ def build(resid=None, n=100, target_gross=None, nav_change_pct=0.0, readback_nan
+             lg.position_readback(anchor_ts=ts, symbol=s, venue_position_notional=q, venue_position_qty=q, source="mock",
+                                  read_ts=ts + 10)
+         nav0 = tg / 2.0
+-        lg.daily_nav(day=int(day), target_gross=tg, nav=(nav_override if (second and nav_override) else
++        lg.daily_nav(external_flow_usdt=0.0, day=int(day), target_gross=tg, nav=(nav_override if (second and nav_override) else
+                                                           (nav0 * (1 + nav_change_pct / 100.0) if second else nav0)),
+                      sizing_policy="constant_leverage_2.00", realised_pnl=0.0, unrealised_pnl=0.0)
+         lg.close()
+@@ -673,7 +673,7 @@ for shape in ("U1", "U2", "U3"):
+             if not ((shape == "U1" and di == 2) or shape == "U2"):
+                 lg.position_readback(anchor_ts=ats, symbol=s, venue_position_notional=1000.0, venue_position_qty=1000.0,
+                                      source="mock", read_ts=ats + 10)
+-        lg.daily_nav(day=int(day), target_gross=8000.0, nav=4000.0, sizing_policy="constant_leverage_2.00", realised_pnl=0.0, unrealised_pnl=0.0)
++        lg.daily_nav(external_flow_usdt=0.0, day=int(day), target_gross=8000.0, nav=4000.0, sizing_policy="constant_leverage_2.00", realised_pnl=0.0, unrealised_pnl=0.0)
+         lg.close()
+     if shape == "U3":
+         p = os.path.join(root, "20260912", "position_readback.jsonl")
+@@ -732,7 +732,7 @@ def _next_halted_anchor(root, broker, halt_kind):
+         q = float(broker._contracts.get(x, 0.0))
+         lg.position_readback(anchor_ts=t3, symbol=x, venue_position_notional=q, venue_position_qty=q, source="mock",
+                              read_ts=t3 + 10)
+-    lg.daily_nav(day=20260914, target_gross=100000.0, nav=50000.0, sizing_policy="constant_leverage_2.00",
++    lg.daily_nav(external_flow_usdt=0.0, day=20260914, target_gross=100000.0, nav=50000.0, sizing_policy="constant_leverage_2.00",
+                  realised_pnl=0.0, unrealised_pnl=0.0)
+     lg.close()
+ 
+diff --git a/live/tests_quantity_unknowns.py b/live/tests_quantity_unknowns.py
+index 2df6091..6e95117 100644
+--- a/live/tests_quantity_unknowns.py
++++ b/live/tests_quantity_unknowns.py
+@@ -1,6 +1,6 @@
+ """UNKNOWN IS NOT ZERO on the money path — the seven tier-1 medium / low-medium sites of the R25-01 census triage (quant_research
+ receipts r25_01_2026-09-25/triage, 2cc3c0574), fixed in fix package D. Every cell runs the FIXED module and, as the red control, the
+-PRE-FIX module (a verbatim copy of each file at 20d7894 in tests_fixtures/pre_fixD2/) on the same input: the old code must show the
++PRE-FIX module (a verbatim copy of each file at 20d7894 in tests_fixtures/pre_fixD2/<name>.py.prefix) on the same input: the old code must show the
+ defect (reading an absent quantity as a measured 0), the new code must not.
+ *** MOCK ONLY: dicts, temp trees and stub brokers. No venue, no credentials, no production state. ***
+   Q1 position_break.decide: a decomposition that lost unauth_gross_usdt ⇒ can_speak False, action alarm (old: can_speak True, 'none')
+@@ -31,9 +31,15 @@ def check(name, cond, extra=""):
+     N[0] += 1
+     print(f"  {'OK  ' if cond else 'FAIL'}  {name}{('  — ' + str(extra)[:300]) if extra != '' else ''}")
+     if not cond: FAILS.append(name)
++# The pre-fix copies carry the suffix `.py.prefix`, not `.py`: they are frozen OLD code, never production, and as `.py` files under
++# live/ the production-path scanners (tests_static_names: pyflakes over live/) judged them — the copy of anchor_loop re-raised its
++# waived PEP 526 `List` annotation at an unwaived path. The suffix keeps them out of every *.py walker; they are loaded explicitly.
++import importlib.machinery
+ def old(mod):
+-    p = os.path.join(_HERE, "tests_fixtures", "pre_fixD2", mod + ".py")
+-    spec = importlib.util.spec_from_file_location("prefixD2_" + mod, p); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m); return m
++    p = os.path.join(_HERE, "tests_fixtures", "pre_fixD2", mod + ".py.prefix")
++    assert os.path.isfile(p), f"pre-fix copy missing: {p}"
++    ld = importlib.machinery.SourceFileLoader("prefixD2_" + mod, p)
++    spec = importlib.util.spec_from_loader("prefixD2_" + mod, ld); m = importlib.util.module_from_spec(spec); ld.exec_module(m); return m
+ TMP = tempfile.mkdtemp(prefix="tqu_", dir=os.environ.get("TMPDIR") or None)
+ 
+ print("[Q1] position_break.decide: a lost bucket gross is not 0 %")
+@@ -72,7 +78,7 @@ def floor_block(mod_path):
+     raise AssertionError("floor block not found")
+ stub = types.SimpleNamespace(executor=types.SimpleNamespace(filters=types.SimpleNamespace(f={"A": {"min_notional": 5.0}, "B": {}})))
+ ns_new = {"self": stub, "target": {"A": 1.0, "B": 1.0, "C": 1.0}}; exec(floor_block(os.path.join(_REPO, "scheduler", "anchor_loop.py")), ns_new)
+-ns_old = {"self": stub, "target": {"A": 1.0, "B": 1.0, "C": 1.0}}; exec(floor_block(os.path.join(_HERE, "tests_fixtures", "pre_fixD2", "anchor_loop.py")), ns_old)
++ns_old = {"self": stub, "target": {"A": 1.0, "B": 1.0, "C": 1.0}}; exec(floor_block(os.path.join(_HERE, "tests_fixtures", "pre_fixD2", "anchor_loop.py.prefix")), ns_old)
+ check("★★★ Q4 fixed: names without a min_notional (B: filters without it, C: no filters) get NO floor entry", ns_new["_fl"] == {"A": 5.0}, ns_new["_fl"])
+ check("★★★ Q4 RED CONTROL: pre-fix gives them 0.0", ns_old["_fl"].get("B") == 0.0 and ns_old["_fl"].get("C") == 0.0, ns_old["_fl"])
+ t4 = {"A": 10.0, "Z": -10.0}; c4 = AL.withhold_pop(t4, {"Z": -0.12}, ["Z"], floors={"A": 5.0})
+diff --git a/live/tests_unseal_rehearsal_halt.py b/live/tests_unseal_rehearsal_halt.py
+index 88a68d4..82097cc 100644
+--- a/live/tests_unseal_rehearsal_halt.py
++++ b/live/tests_unseal_rehearsal_halt.py
+@@ -74,11 +74,11 @@ def build_tree(days=("20260801",), n=12, nav=True, submitted=False,
+             # [B32] §4-2 judges the EQUITY day change, so a "trip-shaped" day must show the loss in
+             # nav itself: first snapshot at 2134, last snapshot at 2134 + unreal_pnl (a loss makes
+             # the intraday change negative). A flat day writes a single row as before.
+-            lg.daily_nav(day=day, target_gross=4269.0, nav=2134.0, realised_pnl=0.0,
++            lg.daily_nav(external_flow_usdt=0.0, day=day, target_gross=4269.0, nav=2134.0, realised_pnl=0.0,
+                          unrealised_pnl=0.0, sizing_policy="constant_leverage_2.00",
+                          nav_ts=ats + 900)
+             if unreal_pnl:
+-                lg.daily_nav(day=day, target_gross=4269.0, nav=2134.0 + float(unreal_pnl), realised_pnl=0.0,
++                lg.daily_nav(external_flow_usdt=0.0, day=day, target_gross=4269.0, nav=2134.0 + float(unreal_pnl), realised_pnl=0.0,
+                              unrealised_pnl=unreal_pnl, sizing_policy="constant_leverage_2.00",
+                              nav_ts=ats + 1800)
+         for i in range(n):

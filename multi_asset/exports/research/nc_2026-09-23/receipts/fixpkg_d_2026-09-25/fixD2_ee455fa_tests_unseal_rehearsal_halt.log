@@ -1,0 +1,80 @@
+[A] the deadlock this tool exists for
+  OK   ★★★ a zero-order seeded tree really does blind §4-1 and §4-7 — the premise is measured here, not quoted from the incident — blind=['cond1_c_persist', 'cond7_ops']
+  OK   ★★ and nothing is actually FIRING — the halt is unclearable purely for want of input — triggers=[]
+  OK   ★★ §4-1 is blind because no day carries a cost, which is what the halt guarantees — n_priced_days=0/1
+  OK   ★★ §4-7 is blind because the drift comparison never happened on a first anchor — drift_state=UNKNOWN
+  OK   ★★★ and the resume gate's rule is NOT relaxed anywhere — it still refuses on any blind condition, which is why a second tool was needed rather than a looser first one
+  ---- fidelity vs the real LIVE tree: NOT OBSERVABLE — that tree has TRADED, so it no longer
+       has the zero-order shape (blind=[]). The deadlock is a property of a
+       FRESH tree; this corroboration expired at the first live anchor, by design. Not a pass.
+
+[B] (a) marker present => clearable, and the clearing is recorded
+  OK   ★★★ judge says clearable — refusals=[]
+  OK   ★★ both blind conditions are waived WITH their own evidence, not by name alone — ['n_priced_days=0 of n_days=1', 'drift_state=UNKNOWN n_days=1']
+  OK   ★★ and the waiver's premise is read off the tree: nothing submitted, nothing filled — {'days': ['20260801'], 'n_order_rows': 12, 'n_submitted': 0, 'n_filled': 0, 'terminal_reasons': {'blocked_by_halt': 12}, 'caliber': 'submitted = submit_ts is not None; filled = filled_notional non-zero. Rows the halt refused are counted in n_order_rows and in neither.'}
+  OK   ★★★ the halt state is gone — exists=False
+  OK   ★★★ EVIDENCE IS QUARANTINED, NEVER DELETED — a halt is a fact about the system and must survive its own resolution — /Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/unseal_fx_f4sky5qw/watchdog/quarantine/state_20260925T184055Z_unsealed.json
+  OK   ★★ the quarantined copy still holds what the seed wrote (reason, tripped_at, marker)
+  OK   ★★★ and WHO cleared it, WHY, and the whole verdict the waiver rested on — so the decision can be re-read later rather than reconstructed
+  OK   ★★ the shared run log carries a line naming mode, operator and what was waived — [2026-09-25T18:40:55Z] unseal_rehearsal_halt mode=LIVE operator=tester seeded_at=2026-08-01T06:29:29Z waived=['cond1_c_persist', 'cond7_ops'
+  OK   ★★ the run-log line cannot be mistaken for an anchor block by the readers that slice on `anchor start mode=` (ops/capture_halt_evidence)
+  OK   ★★★ a page goes out at HIGH — a protective halt was removed from the live book, and that the operator is the one who removed it is not a reason to make it quiet — ['HIGH']
+  OK   ★★★ the page's numbers move with the tree (12 rows vs 7) — a constant would read the same in both and could never be wrong in testing nor right in an incident
+  OK   ★★ and it names the waived conditions with their evidence rather than 'blind waived'
+
+[C] (b) no marker => refused, and the blind set is identical
+  OK   ★★★ the blind set is the same as the accepted case — the ONLY difference between clearing and refusing is the marker — ['cond1_c_persist', 'cond7_ops']
+  OK   ★★★ judge REFUSES a state with no marker
+  OK   ★★ and says why in the operator's terms: this is resume_from_trip's object, not ours — /Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/unseal_fx_8owk15bk/watchdog/state.json does not carry _seeded_by_rehearsal 
+  OK   ★★★ and unseal TOUCHES NOTHING — the state file is still on disk, nothing quarantined, no page sent
+  OK   ★★ marker=False does not unlock it (identity, not truthiness)
+  OK   ★★ marker=the STRING 'false', which is truthy does not unlock it (identity, not truthiness)
+  OK   ★★ marker=the STRING 'true' does not unlock it (identity, not truthiness)
+  OK   ★★ marker=the int 1, which == True does not unlock it (identity, not truthiness)
+  OK   ★★ marker=a dict, which is truthy does not unlock it (identity, not truthiness)
+
+[D] (c) a blindness this halt did not cause refuses BY NAME
+  OK   ★★★ the fixture really does produce blindness outside the structural set — without this the assertion below would match nothing and pass for that reason — non-structural blind=['cond2_day_loss', 'cond4_drawdown', 'cond4b_leverage']
+  OK   ★★★ judge refuses
+  OK   ★★★ and EVERY non-structural blind condition is named — a refusal that named only the first would leave the operator fixing one of three — named=['cond2_day_loss', 'cond4_drawdown', 'cond4b_leverage']
+  OK   ★★ the structural two are still recognised as structural in the same verdict, so the refusal is about the extra ones specifically
+  OK   ★★★ a blind §4-1 that HAS priced days is not the shape seeding produces, and is not waivable — the entry is a mechanism plus a shape, not a name on a list
+  OK   ★★ same for §4-7: blind with a completed reconciliation is a different fact
+
+[E] a live verdict is not the seeded halt
+  OK   ★★ the fixture trips for real, and ONLY on §4-2 — nothing was submitted, so the trade premise and the structural waiver are both satisfied and cannot mask this gate — ['§4-2 single-day loss -9.37% of EQUITY on 2026-08-01, worse than -4.0%'] blind=['cond1_c_persist', 'cond7_ops']
+  OK   ★★★ judge refuses while a §4-x fires, even though the marker is present — 'may we proceed' means the same thing for both objects — ['a watchdog condition fires on the current tree: §4-2 single-day loss -9.37% of EQUITY on 2026-08-01, worse than -4.0% — that is not the seeded halt, it is a live verdict, and it stands.']
+
+[F] blindness on a tree that DID trade cannot be waived by clearing this halt
+  OK   ★★ the fixture is blind on exactly the structural pair, so the ONLY thing that can refuse it is the trade evidence — ['cond1_c_persist', 'cond7_ops']
+  OK   ★★★ judge refuses: 12 orders were submitted, so the blindness is not the seed's doing — the window ['20260801'] shows 12 submitted and 0 filled orders — trading DID happen, so the blindness above is
+
+[G] a real trip overwrites the marker — the split is only safe while this holds
+  OK   ★★★ after a genuine trigger writes over a rehearsal-seeded state, the marker is GONE — so a real trip can never be cleared by this tool, whatever it overwrote — ['degradation', 'flatten_ok', 'last_action_utc', 'open_orders_halted', 'reason', 'reduce_only', 'resume_requires', 'tripped_at']
+  OK   ★★ and the state now reads as a real trip (a reason built from the triggers) — §4-2 single-day loss -9.37% of EQUITY on 2026-08-01, worse than -4.0%
+
+[I] the route follows the halt's KIND, not a string that can go stale
+  OK   ★★★ a seeded halt routes to the unseal tool even when its own `resume_requires` names the trip script — the circular hand-off is impossible by construction, not by care — ops/unseed_rehearsal_halt.py
+  OK   ★★ and the stale claim is REPORTED rather than resolved silently — a state file whose advice has been overtaken is itself worth seeing
+  OK   ★★★ the route does not depend on the claim AT ALL — same kind, different claim, same route (the property the first fix lacked)
+  OK   ★★ a real trip routes to resume_from_trip
+  OK   ★★ an unreadable/empty state has no kind and gets the CONSERVATIVE route — the one whose gate refuses while anything holds
+  ---- the real seeded LIVE halt: NOT OBSERVABLE — it was unsealed before the first live anchor,
+       which is the outcome this tool exists for. Not counted as a pass.
+  OK   ★★ the hand-off asks state_root.resume_route rather than keeping its own opinion — ops/resume_from_trip.sh
+  OK   ★★ the readiness sheet asks state_root.resume_route rather than keeping its own opinion — ops/live_readiness_sheet.py
+  OK   ★★ the anchor's halt record asks state_root.resume_route rather than keeping its own opinion — scheduler/anchor_loop.py
+
+[H] red capability — mutate ops/unseed_rehearsal_halt.py, require this suite to notice
+  OK   M5 route-from-claim: injection target matches exactly once — count=1
+  OK   ★★★ M5 letting the state file's claim decide the route => the seeded LIVE halt routes back to resume_from_trip.sh, which is the loop that was measured, and [I] goes red
+  OK   M1 marker gate removed: injection target matches exactly once — count=1
+  OK   ★★★ M1 marker gate removed => a real-trip-shaped state (no marker) would be cleared, and this suite's assertion for it goes red
+  OK   M2 structural set ignored: injection target matches exactly once — count=1
+  OK   ★★★ M2 structural set ignored => a §4-2/§4-4 blinded by a missing NAV row would be waived, and this suite's assertion for it goes red
+  OK   M3 zero-trade premise dropped: injection target matches exactly once — count=1
+  OK   ★★★ M3 zero-trade premise dropped => blindness on a tree that traded would be waived, and this suite's assertion for it goes red
+  OK   M4 live-verdict gate dropped: injection target matches exactly once — count=1
+  OK   ★★★ M4 live-verdict gate dropped => a halt could be cleared while §4-2 is firing, and this suite's assertion for it goes red
+
+56/56 passed

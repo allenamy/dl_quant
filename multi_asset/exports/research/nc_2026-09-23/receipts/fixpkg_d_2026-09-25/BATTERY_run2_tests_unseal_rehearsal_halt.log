@@ -1,0 +1,25 @@
+[A] the deadlock this tool exists for
+  FAIL ★★★ a zero-order seeded tree really does blind §4-1 and §4-7 — the premise is measured here, not quoted from the incident — blind=['cond1_c_persist', 'cond2_day_loss', 'cond7_ops']
+  OK   ★★ and nothing is actually FIRING — the halt is unclearable purely for want of input — triggers=[]
+  OK   ★★ §4-1 is blind because no day carries a cost, which is what the halt guarantees — n_priced_days=0/1
+  OK   ★★ §4-7 is blind because the drift comparison never happened on a first anchor — drift_state=UNKNOWN
+  OK   ★★★ and the resume gate's rule is NOT relaxed anywhere — it still refuses on any blind condition, which is why a second tool was needed rather than a looser first one
+  ---- fidelity vs the real LIVE tree: NOT OBSERVABLE — that tree has TRADED, so it no longer
+       has the zero-order shape (blind=[]). The deadlock is a property of a
+       FRESH tree; this corroboration expired at the first live anchor, by design. Not a pass.
+
+[B] (a) marker present => clearable, and the clearing is recorded
+  FAIL ★★★ judge says clearable — refusals=['cond2_day_loss is blind and is NOT in the structural set — its blindness is not explained by seeding this halt, so clearing would arm the book under a guard that cannot see. Investigate cond2_day_loss on its own terms.']
+  OK   ★★ both blind conditions are waived WITH their own evidence, not by name alone — ['n_priced_days=0 of n_days=1', 'drift_state=UNKNOWN n_days=1']
+  OK   ★★ and the waiver's premise is read off the tree: nothing submitted, nothing filled — {'days': ['20260801'], 'n_order_rows': 12, 'n_submitted': 0, 'n_filled': 0, 'terminal_reasons': {'blocked_by_halt': 12}, 'caliber': 'submitted = submit_ts is not None; filled = filled_notional non-zero. Rows the halt refused are counted in n_order_rows and in neither.'}
+  FAIL ★★★ the halt state is gone — exists=True
+  FAIL ★★★ EVIDENCE IS QUARANTINED, NEVER DELETED — a halt is a fact about the system and must survive its own resolution — None
+  FAIL ★★ the quarantined copy still holds what the seed wrote (reason, tripped_at, marker)
+  FAIL ★★★ and WHO cleared it, WHY, and the whole verdict the waiver rested on — so the decision can be re-read later rather than reconstructed
+  FAIL ★★ the shared run log carries a line naming mode, operator and what was waived
+  OK   ★★ the run-log line cannot be mistaken for an anchor block by the readers that slice on `anchor start mode=` (ops/capture_halt_evidence)
+  FAIL ★★★ a page goes out at HIGH — a protective halt was removed from the live book, and that the operator is the one who removed it is not a reason to make it quiet — []
+Traceback (most recent call last):
+  File "/Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/live/tests_unseal_rehearsal_halt.py", line 231, in <module>
+    _t1, _t2 = nt.sent[0][1], nt2.sent[0][1]
+IndexError: list index out of range

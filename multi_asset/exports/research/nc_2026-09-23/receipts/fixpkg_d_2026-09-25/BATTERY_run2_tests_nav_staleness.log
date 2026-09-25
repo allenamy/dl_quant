@@ -1,0 +1,6 @@
+[B31] the day's loss is read from the LAST snapshot, not the first
+  OK    PRE-ASSERT: the day really holds several snapshots, first one flat  — [(0.0, 0.0), (-200.0, -600.0), (-300.0, -1700.0)]
+Traceback (most recent call last):
+  File "/Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/live/tests_nav_staleness.py", line 87, in <module>
+    abs(_c2["worst_day_pct"] - _last) < 1e-6,
+TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'

@@ -1,0 +1,20 @@
+[B31] the day's loss is read from the LAST snapshot, not the first
+  OK    PRE-ASSERT: the day really holds several snapshots, first one flat  — [(0.0, 0.0), (-200.0, -600.0), (-300.0, -1700.0)]
+  OK    ★★ §4-2 reads the day's LAST snapshot (the first would report 0.00%)  — worst_day_pct=-42.38087266454904 | first-row reading would be 0.00% | last-row reading is -42.38%
+  OK    ★★ ...and a book that lost 6% of gross TRIPS, where the stale row could not  — {'worst_day_pct': -42.38087266454904, 'limit_pct_of_equity': -4.0, 'triggered': True}
+
+[B31] ★★ RED CONTROL — with ONLY the flat opening snapshot the same day is silent
+  OK    ★★ one flat row ⇒ 0.00% and no trigger — this is exactly what production did all day  — {'worst_day_pct': 0.0, 'triggered': False}
+  OK    ★ ...so the assertion above is load-bearing: the two readings genuinely differ  — -42.38087266454904 vs 0.0
+
+[B31] the drawdown input must not count one day's snapshots as several days
+  OK    ★★ six snapshots of one day are ONE day of return, not six  — n_days=1 n_priced_days=1 (3 would accumulate one day's loss three times into the drawdown)
+  OK    ★★ ...and the day it prices is the LAST snapshot  — {'n_priced_days': 1, 'max_drawdown': None, 'daily_returns': None}
+
+[B31] an UNKNOWN last snapshot is still UNKNOWN — the fix must not un-blind anything
+  OK    ★★ [B32] a last row with realised_pnl=None is still PRICED from its own nav (equity caliber), not blind  — blind=False n_priced=1 worst=-12.714261799364712 expected=-12.7143
+  OK    ★★ [B32] a last row WITHOUT nav reports UNKNOWN, not the earlier row's 0.0  — blind=True n_priced=0
+
+  9 checks run
+
+ALL PASS

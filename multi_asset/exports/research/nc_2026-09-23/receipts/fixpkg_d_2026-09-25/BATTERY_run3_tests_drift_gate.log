@@ -1,0 +1,43 @@
+[drift] the guard arms a non-empty set and says how many
+  OK    the guard runs  — rc=1
+  FAIL  ★ it states its DENOMINATOR  — DRIFT DETECTED — the two copies have diverged. Re-vendor deliberately or revert:
+  durable_io.py [production->research]:
+  OK    ★★ the manifest is NOT empty  — 6 entries
+  OK    the armed set covers the A-set (5 files)  — 6
+
+[drift] ★★ emptying the table can no longer succeed quietly
+  OK    ★★ an EMPTY manifest exits NON-ZERO  — rc=1
+  OK    ★ ...and says so in words, not just a zero count  — MANIFEST IS EMPTY — the drift gate is disarmed. This is a RED, not a pass: an empty table cannot detect anything, and emptying it is indisti
+  OK    ★★ a manifest SMALLER than the covered set exits non-zero (partial emptying too)  — rc=1 out=MANIFEST DOES NOT COVER THE DECLARED A-SET — missing ['deliver_report.py', 'durable_io.py'
+
+[drift] ★★ a second independent source must be able to contradict it
+  OK    pilot_metrics is pinned by the drift manifest too  — ['deliver_report.py', 'durable_io.py', 'factor_version_registry.py', 'pilot_metrics.py', 'production_state_guard.py', 'regime_classifier.py']
+  OK    ★★ the two independent guards pin the SAME bytes  — manifest=cd508c3f6a2727cc freeze=cd508c3f6a2727cc
+
+[drift] direction is a field, not a comment
+  OK    ★ the manifest records a direction per entry  — direction markers present
+  OK    ★ pilot_metrics is marked production->research (this repo is its upstream)  — ['cd508c3f6a2727cca83666f0fab831a9249ff9279323ac96d0bef3e5dd1cacd6  pilot_metrics.py  production->research']
+
+[drift-P] ★★ the production manifest is the guard's SUBJECT, never the test's
+  OK    ★★ this suite has not written a single byte of ops/UPSTREAM_MANIFEST.sha256  — 4a24d23771fcbb6b -> 4a24d23771fcbb6b
+  OK    ★ ...and it is still non-empty afterwards (the failure mode this file exists for)  — 1003 bytes
+  OK    ★★ no code path in this suite opens the production manifest for WRITING  — 0 write-mode open(MANIFEST, ...) call(s) — a restore-in-finally is still a window: finally does not run under SIGKILL
+  OK    PRE-ASSERT: the AST walk can actually see open(MANIFEST, ...) calls at all  — a matcher that matches nothing is indistinguishable from a guard confirming safety
+[B-5] unreadable upstream = named red in seconds, with the materialisation commands
+  OK    B5-0 baseline green first: the fixture upstream (copies of the vendored files) passes the guard  — (0, 'no drift across 6 vendored modules (declared A-set 6, all covered)\n')
+  OK    B5-1 a placeholder upstream file (SF_DATALESS) ⇒ exit 1, named UPSTREAM_UNREADABLE, and the brctl + cat commands printed  — loud placeholder (SF_DATALESS)
+    brctl download "/Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/state/acceptance/offline.RWyTex/drift_b5_vcv1h0nf/deliver_report.py"
+    cat "/Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/state/acceptance/offline.RWyTex/drift_b5_vcv1h0nf/deliver_report.py" > /dev/null
+
+  OK    B5-2 a BLOCKING upstream read ⇒ the guard returns in seconds (not a hang), exit 1, 'read timed out', commands printed  — (1, 2.5)
+  OK    B5-3 RED CONTROL: the former read (open(p, 'rb').read()) on the same file BLOCKS (still waiting after 3 s)
+[R25-12] a missing research copy of a production->research file is RED
+  OK    R25-12-0 baseline green first: every A-set file present and equal ⇒ no drift  — no drift across 6 vendored modules (declared A-set 6, all covered)
+
+  OK    ★★★ R25-12-1 durable_io.py (production->research) removed from the research side ⇒ exit 1, named RESEARCH COPY MISSING  — (1, ' the two copies have diverged. Re-vendor deliberately or revert:\n  durable_io.py [production->research]: RESEARCH COPY MISSING — this repo is the source for this file; the research side must carry it\n')
+  OK    ★★★ R25-12 RED CONTROL: the pre-fix guard (fixture copy) on the SAME upstream exits 0 with 'no drift' — the silent skip this item fixes  — (0, 'no drift across 6 vendored modules (declared A-set 6, all covered)\n')
+  OK    ★★ R25-12-2 a research->production file (deliver_report.py) missing upstream is still 'retired' (unchanged semantics: the local copy is the source)  — (0, 'no drift across 6 vendored modules (declared A-set 6, all covered)\n')
+
+  23 checks run
+
+FAILURES: ['★ it states its DENOMINATOR']

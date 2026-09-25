@@ -1,0 +1,36 @@
+[0] sources under test
+  watchdog=/Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/live/watchdog.py
+  reconcile=/Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/live/reconcile.py
+  watchdog_inputs=/Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/live/watchdog_inputs.py
+  per_name_stop=/Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/live/per_name_stop.py
+  OK    target_leverage and per_name_stop are read from the live config (read-only) — the hand derivations below use THESE numbers  — target_leverage=2.0 per_name_stop={'enabled': True, 'depth_pct': -0.25, 'consecutive_anchors': 2, 'cooloff_days': 7, 'min_notional_usdt': 20.0, '_basis': 'PREREG_per_name_stop_standby_2026-08-12 (cf40ea21); 用户裁定全面启用 2026-08-20', '_semantics': '深度=unrealizedProfit/|notional| 终锚读回; ≤-25%连续2锚 ⇒ 该名flatten_only(maker出场不追); 平仓后7天禁入; 其余名字全程正常', 'active_profile': 'wide', '_active_profile_note': "null ⇒ 上面的基础值逐位生效(今天的行为)。'wide' ⇒ profiles.wide 覆盖其列出的键。与 book_source 成对切换(book_source=external ⇔ active_profile=wide), 由 external_book.pns_profile_consistent 守卫(不一致 ⇒ HIGH 告警, 条款仍按当前 profile 运行)。未知名 ⇒ 基础值继续生效 + 终锚告警(条款不失明)。读取经 per_name_stop.resolve_profile。", 'profiles': {'wide': {'depth_pct': -0.3, 'consecutive_anchors': 2, 'cooloff_days': 7, 'min_notional_usdt': 5.0, '_basis': '宽书止损层 d30_n2_c42 (DESIGN_wide_live_deployment_2026-08-22 §1; wide_stop_grid.json: maxDD −33.4%, 净额代价 2.6%, 全网格性价比最优; ~/wide_shadow/stop_overlay.py 同参数自 08-21 影子跟踪)。min_notional_usdt = 5.0: 2026-08-22 redteam R5 由 20 下调到交易所 minNotional, 见旁边 _min_notional_redteam_note(原文「沿用 20, ★待裁」已被该调整取代; 2026-09-13 CFG-02 更正文字, 数值未动)。', '_min_notional_redteam_note': '20→5 USDT (2026-08-22 redteam R5): at 1x NAV 15.4k the wide book has ~175 names (14% gross) under 20 USDT ⇒ the stop was blind to them; 5 USDT = exchange minNotional so every real position is judged.'}}}
+
+[A] §4-2 cond2 — the 5-day account path, hand-derived
+  OK    PRE-ASSERT the fixture IS the path described (closes 10000 / 9800 / 14898 / 14600 / 14454)  — [10000.0, 9800.0, 14898.0, 14600.0, 14454.0]
+  OK    ★★ worst_day_pct = -2.00% (D2), NOT the day with the biggest realised loss and NOT -3.42% ((-46-448)/14454, the retired caliber on D5)  — worst=-2.0 expected=-2.0
+  OK       2 priced days of 5; transfer days NAMED [D1, D3]; truncated day NAMED [D4]  — {'n_priced_days': 2, 'flow_days': ['20260801', '20260803'], 'truncated_days': ['20260804']}
+  OK       no trip (-2.00 > -4.0), no investigate (-2.00 > -2.68), degraded (a truncated day exists)  — {'triggered': False, 'investigate': False, 'degraded': True, 'blind': False, 'partial': True}
+  OK       probe [20260801,20260802]: worst = -2.0000% by hand  — worst=-2.0
+  OK       probe [20260802,20260803]: worst = +0.0000% by hand  — worst=0.0
+  OK       probe [20260803,20260804]: transfer then truncated => nothing priced (blind), both named  — {'worst_day_pct': None, 'flow_days': ['20260803'], 'truncated_days': ['20260804']}
+  OK       probe [20260804,20260805]: worst = -1.0000% by hand  — worst=-1.0
+
+[A] §4-2 — the 2026-08-21 12:16Z incident, replayed on the account's numbers
+  OK    ★★★ the incident day reads -2.9636% (equity day change), not -4.5185%  — worst=-2.9635923093866996 expected=-2.9636
+  OK    ★★★ => ALERT (investigate, < -2.68) and NO TRIP (> -4.0) — the book stays  — {'investigate': True, 'triggered': False}
+
+[B] §4-2 cond2 — P1 day-split invariance (1 / 3 / 6 rows per day, same end-of-day state)
+  OK    ★★ P1 holds: 1 / 3 / 6 rows per day read the same worst (-1.35%) and the same 4 priced days  — 1/3/6 rows -> [-1.35, -1.35, -1.35] priced=[4, 4, 4] hand=-1.350000
+  OK    ★ mutant "cond2_first_row_B31 (the day's FIRST snapshot: the 2026-07-28 staleness defect)" goes RED  — 1/3/6 rows -> [-1.35, -1.565657, -1.457286] priced=[4, 4, 4] hand=-1.350000
+  OK    ★ mutant "cond2_sum_rows (adds the day's progress snapshots: the 08-20 misread in FIELD_CALIBERS)" goes RED  — 1/3/6 rows -> [-1.35, -3.25, -5.825] priced=[4, 4, 4] hand=-1.350000
+
+[B] §4-2 cond2 — P2 transfer invariance (deposit, withdrawal, and an unreliable flow amount)
+  OK    ★★ P2 deposit +5,000 on D3: D3 UNKNOWN and named, worst unchanged (-2.2% = D5), 5 -> 4 priced  — no-transfer worst=-2.2000 priced=5 | transfer +5000 worst=-2.2000000000000104 priced=4 flow_days=['20260803'] trig=False
+  OK    ★★ P2 withdrawal -2,955 (-30%) on D3: same — the day after reads from the post-withdrawal nav  — no-transfer worst=-2.2000 priced=5 | transfer -2955 worst=-2.1999999999999886 priced=4 flow_days=['20260803'] trig=False
+  OK    ★ P2b the recorded flow amount is HALF the truth: reading unchanged (the amount never enters)  — no-transfer worst=-2.2000 priced=5 | transfer +5000 worst=-2.2000000000000104 priced=4 flow_days=['20260803'] trig=False
+Traceback (most recent call last):
+  File "/Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/live/tests_guard_calibers.py", line 426, in <module>
+    _m_noflow = mutant(WD_PATH, [(
+  File "/Users/haosiyu/cc_tmp/fixpkg_d_20260925/exec/live/tests_guard_calibers.py", line 143, in mutant
+    raise AssertionError(f"mutant {name!r}: anchor matched {n} times, not 1: {find[:70]!r}")
+AssertionError: mutant 'cond2_transfers_ignored': anchor matched 0 times, not 1: '                _flow_day = any(abs(float(_r.get("external_flow_usdt")'
