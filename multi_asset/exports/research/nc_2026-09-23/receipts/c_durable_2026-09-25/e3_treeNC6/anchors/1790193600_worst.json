@@ -1,0 +1,147 @@
+{
+ "anchor": 1790193600,
+ "utc": "2026-09-23T20:00:00Z",
+ "worst_backfill": true,
+ "window_at_start": {
+  "now_utc": "2026-09-25T07:18:50Z",
+  "anchor_N_utc": "2026-09-25T04:00:00Z",
+  "minutes_since_N": 198.8,
+  "window": "[N+60m, N+220m]",
+  "remaining_min": 21.2,
+  "open": true,
+  "reason": "open",
+  "override": null,
+  "last_anchor_start_utc": "2026-09-25T04:00:00Z",
+  "last_anchor_done_utc": "2026-09-25T04:53:41Z",
+  "anchor_in_progress": false,
+  "stale_start": false
+ },
+ "seed": {
+  "rc": 0,
+  "line": "NC_SEED SEEDED_WITH_UNRESOLVED_BOUND_CELLS {\"rows_from_seed_pack\": 10176, \"post_axis_ch0_cross_gap_set_nan\": 0, \"post_axis_bound_unresolved\": [[1789805100, \"B2USDT\"], [1790147100, \"TAKEUSDT\"], [1790151900, \"B2USDT\"]], \"boundary_cells\": 12, \"ledger_rows_le_axis_agree\": 174403, \"ledger_rows_le_axis_disagree\": 0, \"events_advanced_after_axis\": 13316, \"ledger_rows_le_axis_missing_in_replay\": 0, \"missin",
+  "stderr_tail": "",
+  "seconds": 44.2,
+  "receipt_verdict": "SEEDED_WITH_UNRESOLVED_BOUND_CELLS"
+ },
+ "carry_prior": {
+  "copied": [
+   "1790179200.npz",
+   "state_H_f10_1790179200.npz",
+   "state_H_kc_1790179200.npz",
+   "state_H_fc_1790179200.npz"
+  ],
+  "missing": []
+ },
+ "synthesis": {
+  "names": [
+   "0GUSDT",
+   "ARKUSDT",
+   "BROCCOLIF3BUSDT",
+   "DOGSUSDT",
+   "GPSUSDT",
+   "KERNELUSDT",
+   "MYXUSDT",
+   "PUMPUSDT",
+   "SPACEUSDT",
+   "UAIUSDT"
+  ],
+  "k": 10,
+  "what": "fetch_syms minus these names, their columns all-NaN; fake serves synthetic paged 40-day 5m K-lines (deterministic random walk, limit 1000 pages) for their backfill"
+ },
+ "producer": {
+  "outcome": "returned",
+  "error_type": null,
+  "total_s": 9.131668907008134,
+  "phase_s": {
+   "setup": 0.0022781710140407085,
+   "exchange_info": 0.0006730710156261921,
+   "klines": 3.0250768489204347,
+   "funding": 0.19833611603826284,
+   "feature_inference": 0.9567335429601371,
+   "previous_anchor_score": 0.0039002710254862905,
+   "target_build": 0.006861462024971843,
+   "target_write": 0.04052401694934815,
+   "state_save": 4.897280034027062
+  },
+  "run_anchor_wall_s": 9.13,
+  "state_load_s": 1.03,
+  "loadavg_before": [
+   6.0302734375,
+   6.5908203125,
+   6.1689453125
+  ],
+  "loadavg_after": [
+   5.56396484375,
+   6.4716796875,
+   6.13134765625
+  ],
+  "target_live_written": true,
+  "fake_calls": {
+   "/fapi/v1/exchangeInfo": 1,
+   "/fapi/v1/klines": 642,
+   "/fapi/v1/fundingRate#bulk": 4,
+   "/fapi/v1/fundingRate": 2
+  },
+  "signal_nc": {
+   "fetch_n": 522,
+   "fetch_new": [
+    "0GUSDT",
+    "ARKUSDT",
+    "BROCCOLIF3BUSDT",
+    "DOGSUSDT",
+    "GPSUSDT",
+    "KERNELUSDT",
+    "MYXUSDT",
+    "PUMPUSDT",
+    "SPACEUSDT",
+    "UAIUSDT"
+   ],
+   "backfill_residual": [],
+   "fetch_workers": 6,
+   "fetch_budget": 900,
+   "fund_bulk_ok": true,
+   "fund_bulk_pages": 4,
+   "fund_per_symbol": 2,
+   "used_weight_1m_max": null
+  }
+ },
+ "backfill_cap_s": 120.0,
+ "backfill_log": {
+  "e": "nc_backfill",
+  "anchor_ts": 1790193600,
+  "names": [
+   "0GUSDT",
+   "ARKUSDT",
+   "BROCCOLIF3BUSDT",
+   "DOGSUSDT",
+   "GPSUSDT",
+   "KERNELUSDT",
+   "MYXUSDT",
+   "PUMPUSDT",
+   "SPACEUSDT",
+   "UAIUSDT"
+  ],
+  "residual": [],
+  "logged_utc": "2026-09-25T07:19:45Z"
+ },
+ "combo": {
+  "rc": 0,
+  "wall_s": 36.02,
+  "loadavg_before": [
+   5.56396484375,
+   6.4716796875,
+   6.13134765625
+  ],
+  "loadavg_after": [
+   4.6357421875,
+   6.146484375,
+   6.02587890625
+  ],
+  "ok": true,
+  "status_step": "done",
+  "status_why": null,
+  "stderr_tail": "",
+  "log": "/Users/haosiyu/cc_tmp/nc_20260923/e3_treeNC6_20260925T0709Z/work_1790193600_worst/sb/combo_1790193600_worst.log"
+ },
+ "ok": true
+}

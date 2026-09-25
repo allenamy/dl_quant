@@ -12,3 +12,12 @@ step 2 (06:5xZ): snapshot retention added to --durable: fea171/combosnap/snap_re
 gate 3' treeNC6 (base) vs treeNC7 (v2 + durable), 06:54–07:03Z: `~/wide_shadow/venv/bin/python ~/cc_tmp/nc_20260923/src/nc_v2_nonbeta_gate.py ~/cc_tmp/nc_20260923/treeNC6 ~/cc_tmp/nc_20260923/treeNC7 /Users/haosiyu/cc_tmp/nc_20260923/v2gate_NC6vsNC7_20260925T0654Z`
   → gate rc=0 · ARR_EQ_SELFTEST 9/0 · NC_V2_NONBETA_GATE PASS anchors=6 — every compared output bitwise identical incl. meta_json (no provenance change),
     target_live non-beta keys differing [] (weights_sha included), betas differing 0 (v2 == v2). Key-output sha pairs listed; sandboxes deleted after.
+E3 timing, treeNC6 vs treeNC7 (same 6 anchors 1790121600..1790193600 as the NC5 E3, same inputs --fetch-measured 36.72 --backfill-measured 14.5
+--backfill-k 10, seed pack 600d760e), 07:09–07:31Z:
+  cd devices; for T in treeNC6 treeNC7: ~/wide_shadow/venv/bin/python -B nc_timing_gate.py ~/cc_tmp/nc_20260923/$T <out> --seed-pack ~/cc_tmp/nc_20260923/seed_pack_0919.npz --anchors 1790121600,...,1790193600 --fetch-measured 36.72 --backfill-measured 14.5 --backfill-k 10
+  → both NC_TIMING_GATE PASS (7/7 runs ok). The durable increment, measured (p50 / max over the 6 ordinary anchors):
+     state_save    NC6 4.947 / 5.327 s  → NC7 5.102 / 5.410 s   (+0.155 s p50; rolling.npz 78 MB built in memory, fsync, read back)
+     target_write  NC6 0.006 / 0.008 s  → NC7 0.041 / 0.065 s   (+0.035 s p50; fsync + read-back of the signed target + sidecar)
+     producer total NC6 6.74 / 7.66 s   → NC7 6.99 / 7.77 s     (+0.26 s p50)
+     combo wall    NC6 39.11 / 41.40 s  → NC7 38.74 / 39.79 s   (difference inside run-to-run noise)
+     gate slack (combo done vs N+19:35)  NC6 105.6 s → NC7 107.2 s (worst-backfill slack likewise); the increment is ~0.3 s of ~106 s.
