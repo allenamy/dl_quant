@@ -7,7 +7,7 @@ Input: the NC-format snapshot state/snap/<A0> (A1 = A0 + 4h and A2 = A0 + 8h mus
   (o)  OLD producer (treeNC5) runs A1 on an identical copy; (o2) OLD combo at A1: rc 0, status ok.
   (d)  the durable writes change HOW files are written, not WHAT: the state files and outputs the two trees wrote for A1 are compared
        byte for byte (rolling.npz, aux.json, leg_returns_live.json, boundary_raw.npz, members_hist.npz, generation.json, weights/<A1>.npz,
-       target_live/<A1>.json minus written_utc and minus beta_overlay (v2 vs v1 by design: version pair asserted, betas gated by nc_v2_beta_parity), target_combo/<A1>.json, state_H_{kc,fc,f10}_<A1>.npz); any difference is listed by file
+       target_live/<A1>.json (the producer's king file) minus written_utc, target_live_PARITY/<A1>.json (the combo output) minus written_utc and beta_overlay (v2 vs v1 by design: version pair asserted there, betas gated by nc_v2_beta_parity), target_combo/<A1>.json, state_H_{kc,fc,f10}_<A1>.npz); any difference is listed by file
        (a difference is a RED only if it is not a wall-clock field — each is named).
   (b)  ROLLBACK: the OLD producer loads the state the NEW producer wrote at A1 (its own generation verification) and runs A2; (b2) the OLD
        combo at A2: rc 0, status ok. This is the rollback path after a new anchor.
@@ -88,20 +88,25 @@ def main():
             else:
                 diffs[a] = "bytes differ"
     tl_n, tl_o = json.load(open(f"{wsn}/state/target_live/{A1}.json")), json.load(open(f"{wso}/state/target_live/{A1}.json"))
-    # revision 2026-09-25 08:0xZ (before the first run): the old tree (treeNC5) is M3 v1 and the new tree (treeNC7) is v2 + durable, so the
-    # target_live `beta_overlay` field differs BY DESIGN (v2's betas read the unclipped channel-0 returns). It is excluded from the byte
-    # comparison and REPORTED: the version pair must be exactly (m3_beta_v2 new, m3_beta_v1 old) — anything else means a tree is not what it
-    # says; the beta values themselves are gated elsewhere (nc_v2_beta_parity.py SERVED == DIRECT; gate 3' non-beta identity).
-    tl_keys = sorted(k for k in set(tl_n) | set(tl_o) if k not in ("written_utc", "beta_overlay") and tl_n.get(k) != tl_o.get(k))
-    bo_n, bo_o = tl_n.get("beta_overlay") or {}, tl_o.get("beta_overlay") or {}
-    bo_rep = {"version_new_old": [bo_n.get("version"), bo_o.get("version")],
+    # revision 2 (2026-09-25 09:1xZ, after run 1 FAILED on this device's own assertion): state/target_live/<A>.json is the PRODUCER's king file —
+    # it carries no beta_overlay (run 1 measured version pair [None, None]); the field is written by combo_stage into the combo output, which in
+    # the sandbox is COMBO_LIVE_DIR = state/target_live_PARITY/<A>.json (run 1 measured m3_beta_v2 new / m3_beta_v1 old there). So: the king file
+    # is compared on every key except written_utc; the combo output on every key except written_utc and beta_overlay (v2 vs v1 by design);
+    # the version pair is asserted on the combo output; the beta values are gated by nc_v2_beta_parity.py (SERVED == DIRECT).
+    tl_keys = sorted(k for k in set(tl_n) | set(tl_o) if k != "written_utc" and tl_n.get(k) != tl_o.get(k))
+    cl_n, cl_o = json.load(open(f"{wsn}/state/target_live_PARITY/{A1}.json")), json.load(open(f"{wso}/state/target_live_PARITY/{A1}.json"))
+    cl_keys = sorted(k for k in set(cl_n) | set(cl_o) if k not in ("written_utc", "beta_overlay") and cl_n.get(k) != cl_o.get(k))
+    bo_n, bo_o = cl_n.get("beta_overlay") or {}, cl_o.get("beta_overlay") or {}
+    bo_rep = {"file": f"state/target_live_PARITY/{A1}.json", "version_new_old": [bo_n.get("version"), bo_o.get("version")],
               "n_betas_differing": sum(1 for k in (bo_n.get("betas") or {}) if (bo_n.get("betas") or {}).get(k) != (bo_o.get("betas") or {}).get(k)),
               "n_betas_new_old": [len(bo_n.get("betas") or {}), len(bo_o.get("betas") or {})]}
     bo_ok = bo_rep["version_new_old"] == ["m3_beta_v2", "m3_beta_v1"]
     WALL = {"written_utc", "created_utc", "utc", "t_wall", "wall_s", "generated_utc", "signed_utc"}
     nonwall = {k: v for k, v in diffs.items() if not (isinstance(v, dict) and set(v["differing_keys"]) <= WALL)}
-    C["d_same_bytes"] = {"ok": not nonwall and not tl_keys and bo_ok, "diffs": diffs, "non_wallclock_diffs": nonwall,
-                         "target_live_keys_differing_ex_written_utc_and_beta_overlay": tl_keys, "beta_overlay_report": bo_rep, "beta_overlay_versions_ok": bo_ok}
+    C["d_same_bytes"] = {"ok": not nonwall and not tl_keys and not cl_keys and bo_ok, "diffs": diffs, "non_wallclock_diffs": nonwall,
+                         "king_file_target_live_keys_differing_ex_written_utc": tl_keys,
+                         "combo_output_target_live_PARITY_keys_differing_ex_written_utc_and_beta_overlay": cl_keys,
+                         "beta_overlay_report": bo_rep, "beta_overlay_versions_ok": bo_ok}
     dump()
     # (b) rollback: OLD code takes over the state the NEW code wrote at A1
     root_b = f"{out}/sb_rollback"; shutil.copytree(sides["new"][0], root_b, symlinks=True)
