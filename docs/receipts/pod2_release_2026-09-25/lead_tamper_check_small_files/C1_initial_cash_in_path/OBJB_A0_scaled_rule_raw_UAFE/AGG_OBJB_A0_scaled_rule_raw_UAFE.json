@@ -1,0 +1,67 @@
+{
+ "tag": "OBJB_A0|scaled|rule|raw|UAFE",
+ "run": {
+  "arm": "OBJB_A0",
+  "events": "rule",
+  "price": "raw",
+  "policy": "UA-FREEZE-EXCLUDE",
+  "ua_set": "UNAVAILABLE_3084",
+  "tag": "OBJB_A0|scaled|rule|raw|UAFE",
+  "book": "scaled",
+  "targets": {
+   "source": "objb",
+   "reading": "scaled",
+   "arm": "A0",
+   "sources": [
+    {
+     "npz": "/workspace/object_b_2026-09-19/work/A0_main/TARGETS_A0_main.npz",
+     "npz_sha256": "b9f0dc9f2011f9defaac80b116415de3f4d75ffb497cbb9533cd995879036c41",
+     "receipt": "/workspace/object_b_2026-09-19/receipts/TARGETS_A0_main.json",
+     "receipt_sha256": "5ebac7205afc2cd0b5a0c85bd3daf2e2210e56dad9b0461fd015025cb4518385"
+    }
+   ],
+   "universe": {
+    "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+    "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+    "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+   }
+  },
+  "role": "MAIN: in-service recipe (object B A0), B-scaled reading (object-B prereg ruling 4 main)"
+ },
+ "seeds": [
+  0,
+  1,
+  2,
+  3
+ ],
+ "path_files": [
+  {
+   "seed": 0,
+   "npz": "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_00.npz",
+   "sha256": "3f20f7a2d507b802246af1fe9d35c58a1d918e77de8f1226846e904234ed83ef",
+   "json_sha256": "b9bc62d694b3ad96338212ee477e6816a18bf929af0a082369b00a5d5919807d"
+  },
+  {
+   "seed": 1,
+   "npz": "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_01.npz",
+   "sha256": "1d09aa60bbfe3aefd01386bc8d4146e1183fbafae179fe520603faa137d22f59",
+   "json_sha256": "73f9673377617944cb0baa5be8564b01b4137f3cb773648edab0324bd07f88fe"
+  },
+  {
+   "seed": 2,
+   "npz": "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_02.npz",
+   "sha256": "01bac948296841f3ed507333d8ecabe489f1be5a239db6be342ee4e6270dfc4f",
+   "json_sha256": "1beeab814332d99c7bff05282be802c1c4a612e0f67902c4dd8362d80cf066b7"
+  },
+  {
+   "seed": 3,
+   "npz": "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_03.npz",
+   "sha256": "221fe77722d3fd9200250532bf94b179d2b9872c621fb870dbf945cce00f995e",
+   "json_sha256": "8f26f6a862d7136dbe5fac6cc619d01b10471687ff602869219de34fe697d762"
+  }
+ ],
+ "agg_npz_sha256": "6550774ac8f97068a79e63c3475df11c2efbd62afb20d9189dd596050d03e0e1",
+ "rule": "bt_driver_lib.aggregate_arrays over the path files in seed order",
+ "config_sha256": "7b6dca2c48feda294676ab5ce46b748c71ab87103cc64ead5be7957fe5bbfe93",
+ "label": "smoke_gov0_215215"
+}

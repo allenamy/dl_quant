@@ -1,0 +1,457 @@
+{
+ "device": "bt_gate_external.py",
+ "self_sha256": "1909d3838cc43e71e44e15a75881ea8b783ee70e77a834e368da0bb4c43626fa",
+ "driver_lib_sha256": "ba3bc2610b12a3f0280ff8f03c039ff5c2e81b8c05789183fd2b1acab661bddb",
+ "argv": [
+  "/workspace/lead_verify_devices/bt_gate_external.py",
+  "PATH,HOME,LC_CTYPE",
+  "/workspace/baseline_tables_2026-09-19/APPROVED_INPUTS_2026-09-20.json",
+  "/workspace/lead_tamper_check/cfg_C3b_path_economics_spotcheck.json",
+  "/workspace/lead_tamper_check/C3b_path_economics_spotcheck/OBJB_A0_scaled_rule_raw_UAFE",
+  "4",
+  "--reproduce",
+  "1",
+  "--workers",
+  "4",
+  "/workspace/lead_tamper_check/NEWGATE_C3b_path_economics_spotcheck.json"
+ ],
+ "numpy": "2.4.6",
+ "approved_table": {
+  "path": "/workspace/baseline_tables_2026-09-19/APPROVED_INPUTS_2026-09-20.json",
+  "sha256": "7be371ce0c414e186c1000a0c60c2e5670338e617f3955727420a3e5f88ed0ce"
+ },
+ "run_config": {
+  "path": "/workspace/lead_tamper_check/cfg_C3b_path_economics_spotcheck.json",
+  "sha256": "7b6dca2c48feda294676ab5ce46b748c71ab87103cc64ead5be7957fe5bbfe93"
+ },
+ "run_dir": "/workspace/lead_tamper_check/C3b_path_economics_spotcheck/OBJB_A0_scaled_rule_raw_UAFE",
+ "n_seeds": 4,
+ "reproduce": "1",
+ "workers": 4,
+ "reproduced": {
+  "seed_00": {
+   "keys": 62,
+   "differing_keys": {}
+  }
+ },
+ "initial_state": {
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_00": {
+   "nav0": 100000.0,
+   "navm0": 100000.0,
+   "gross0": 0.0
+  },
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_01": {
+   "nav0": 100000.0,
+   "navm0": 100000.0,
+   "gross0": 0.0
+  },
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_02": {
+   "nav0": 100000.0,
+   "navm0": 100000.0,
+   "gross0": 0.0
+  },
+  "PATH_OBJB_A0_scaled_rule_raw_UAFE_seed_03": {
+   "nav0": 100000.0,
+   "navm0": 100000.0,
+   "gross0": 0.0
+  }
+ },
+ "coverage": {
+  "seeds_reproduced": [
+   0
+  ],
+  "n_reproduced": 1,
+  "n_seeds": 4,
+  "full": false,
+  "not_certified": [
+   1,
+   2,
+   3
+  ],
+  "meaning": "ONLY the listed seeds were recomputed; the others are NOT certified by E5 and this receipt may not be cited as a publication gate"
+ },
+ "checks": [
+  {
+   "check": "E1.prereg.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/pins/PREREG_baseline_tables_certified_2026-09-19.md",
+    "got": "d9fe45e3191f56e5",
+    "approved": "d9fe45e3191f56e5"
+   }
+  },
+  {
+   "check": "E1.prereg_amendment_1.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/pins/AMENDMENT_1_baseline_tables_certified_2026-09-19.md",
+    "got": "766bc367743d8542",
+    "approved": "766bc367743d8542"
+   }
+  },
+  {
+   "check": "E1.exec_sim.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/exec_sim.py",
+    "got": "29679672e68d4842",
+    "approved": "29679672e68d4842"
+   }
+  },
+  {
+   "check": "E1.simlib.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/simlib.py",
+    "got": "55246fe98da2d57a",
+    "approved": "55246fe98da2d57a"
+   }
+  },
+  {
+   "check": "E1.v1b_gate.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/v1b_gate.py",
+    "got": "4a725921a470f4c1",
+    "approved": "4a725921a470f4c1"
+   }
+  },
+  {
+   "check": "E1.v1_gate.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/v1_gate.py",
+    "got": "c97d9b3d49212b49",
+    "approved": "c97d9b3d49212b49"
+   }
+  },
+  {
+   "check": "E1.calibration.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/CALIBRATION_v3_POOLED_20260826_20260910.json",
+    "got": "fda342431d39703e",
+    "approved": "fda342431d39703e"
+   }
+  },
+  {
+   "check": "E1.input_manifest.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/INPUT_MANIFEST.json",
+    "got": "59875e5a69db415f",
+    "approved": "59875e5a69db415f"
+   }
+  },
+  {
+   "check": "E1.p2_s2_lib.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/uplift_r2_2026-09-13/P2/devices/p2_s2_lib.py",
+    "got": "c53f5c495036727f",
+    "approved": "c53f5c495036727f"
+   }
+  },
+  {
+   "check": "E1.price_full_raw.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r.npy",
+    "got": "23af32bd97c267d1",
+    "approved": "23af32bd97c267d1"
+   }
+  },
+  {
+   "check": "E1.price_full_meta.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r_meta.npz",
+    "got": "d1e49cc9f0a7ddc4",
+    "approved": "d1e49cc9f0a7ddc4"
+   }
+  },
+  {
+   "check": "E1.price_receipt.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/receipts/BT_PRICES_FULL_X0918R.json",
+    "got": "130592b122831e03",
+    "approved": "130592b122831e03"
+   }
+  },
+  {
+   "check": "E1.price_source_table_x0918r.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/work/price_logtable_raw_x0918r.npy",
+    "got": "9249b0da4a4c5789",
+    "approved": "9249b0da4a4c5789"
+   }
+  },
+  {
+   "check": "E1.price_source_meta_x0918r.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/work/price_meta_raw_x0918r.npz",
+    "got": "da136830cee7e1a2",
+    "approved": "da136830cee7e1a2"
+   }
+  },
+  {
+   "check": "E1.ledger_full.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+    "got": "073088e503c026d6",
+    "approved": "073088e503c026d6"
+   }
+  },
+  {
+   "check": "E1.funding_overlap_proof.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/funding/BT_FUNDING_OVERLAP.json",
+    "got": "0ee6d99bfa2acfb9",
+    "approved": "0ee6d99bfa2acfb9"
+   }
+  },
+  {
+   "check": "E1.funding_source_p2.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+    "got": "bea6f5752772d54e",
+    "approved": "bea6f5752772d54e"
+   }
+  },
+  {
+   "check": "E1.funding_source_stream_d.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/axis_0919/funding/funding_ledger.npz",
+    "got": "74b69e635efbf355",
+    "approved": "74b69e635efbf355"
+   }
+  },
+  {
+   "check": "E1.funding_4h_accounting_stream_d.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/axis_0919/funding/funding_4h_accounting.npz",
+    "got": "2838e5f6cf42fff5",
+    "approved": "2838e5f6cf42fff5"
+   }
+  },
+  {
+   "check": "E1.tradability.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/axis_0919/x0918r/trd/tradability_v1.npz",
+    "got": "bebf69ab9ddb3b05",
+    "approved": "bebf69ab9ddb3b05"
+   }
+  },
+  {
+   "check": "E1.universe.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/uplift_r2_2026-09-13/P2/work/universe.npz",
+    "got": "6322b57366078ed0",
+    "approved": "6322b57366078ed0"
+   }
+  },
+  {
+   "check": "E1.g0_labels.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/g0x/g0_labels_x0918.npz",
+    "got": "c3832939e1b01333",
+    "approved": "c3832939e1b01333"
+   }
+  },
+  {
+   "check": "E1.g0_receipt.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/g0x/RECEIPT_bt_g0_extend.json",
+    "got": "8afd680472ef21be",
+    "approved": "8afd680472ef21be"
+   }
+  },
+  {
+   "check": "E1.targets_A0_main_npz.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/object_b_2026-09-19/work/A0_main/TARGETS_A0_main.npz",
+    "got": "b9f0dc9f2011f9de",
+    "approved": "b9f0dc9f2011f9de"
+   }
+  },
+  {
+   "check": "E1.targets_A0_main_receipt.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/object_b_2026-09-19/receipts/TARGETS_A0_main.json",
+    "got": "5ebac7205afc2cd0",
+    "approved": "5ebac7205afc2cd0"
+   }
+  },
+  {
+   "check": "E1.targets_A0_ext_npz.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/object_b_2026-09-19/work/A0_ext/TARGETS_A0_ext.npz",
+    "got": "085d88585244190d",
+    "approved": "085d88585244190d"
+   }
+  },
+  {
+   "check": "E1.targets_A0_ext_receipt.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/object_b_2026-09-19/receipts/TARGETS_A0_ext.json",
+    "got": "e9fd58b1a801e9d8",
+    "approved": "e9fd58b1a801e9d8"
+   }
+  },
+  {
+   "check": "E1.prereg_amendment_2.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/baseline_tables_2026-09-19/pins/AMENDMENT_2_baseline_tables_certified_2026-09-20.md",
+    "got": "52ae1969522d8620",
+    "approved": "52ae1969522d8620"
+   }
+  },
+  {
+   "check": "E1.targets_V4_main_npz.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/object_b_2026-09-19/work/V4_main/TARGETS_V4_main.npz",
+    "got": "a937a481fef08513",
+    "approved": "a937a481fef08513"
+   }
+  },
+  {
+   "check": "E1.targets_V4_main_receipt.sha_from_its_own_path_equals_the_approved_table",
+   "ok": true,
+   "detail": {
+    "path": "/workspace/object_b_2026-09-19/receipts/TARGETS_V4_main.json",
+    "got": "41b6f8fb9c95380a",
+    "approved": "41b6f8fb9c95380a"
+   }
+  },
+  {
+   "check": "E1.every_approved_input_present",
+   "ok": true,
+   "detail": []
+  },
+  {
+   "check": "E2.economics_block_sha_equals_the_approved_one",
+   "ok": true,
+   "detail": {
+    "got": "210a9174147a0ab3",
+    "approved": "210a9174147a0ab3",
+    "block": "current_production_config + nav0_usdt + paths_R"
+   }
+  },
+  {
+   "check": "E2.initial_cash_equals_the_approved_constant",
+   "ok": true,
+   "detail": {
+    "config": 100000.0,
+    "approved": 100000.0
+   }
+  },
+  {
+   "check": "E3.run_config_pins_match_the_approved_table",
+   "ok": true,
+   "detail": {}
+  },
+  {
+   "check": "E3.target_files_named_by_the_runs_are_approved",
+   "ok": true,
+   "detail": {}
+  },
+  {
+   "check": "E4.all_paths_present",
+   "ok": true,
+   "detail": {
+    "found": 4,
+    "expected": 4
+   }
+  },
+  {
+   "check": "E6.each_path_npz_matches_the_sha_in_its_own_json",
+   "ok": true,
+   "detail": []
+  },
+  {
+   "check": "E4.initial_state_of_every_path_equals_the_approved_initial_cash_and_a_flat_book",
+   "ok": true,
+   "detail": {
+    "approved_nav0": 100000.0,
+    "bad": {}
+   }
+  },
+  {
+   "check": "E6.AGG_listing_shas_match_the_files",
+   "ok": true,
+   "detail": {
+    "n_paths": 4
+   }
+  },
+  {
+   "check": "E6.AGG_equals_the_mean_of_the_path_files",
+   "ok": true,
+   "detail": {
+    "keys": 21,
+    "n_paths": 4
+   }
+  },
+  {
+   "check": "E5.reproduce_count_is_positive (a zero-measurement pass is refused)",
+   "ok": true,
+   "detail": {
+    "--reproduce": "1",
+    "seeds_to_reproduce": 1
+   }
+  },
+  {
+   "check": "E5.pins_verify_against_the_approved_paths",
+   "ok": true,
+   "detail": []
+  },
+  {
+   "check": "E5.the_anchors_being_reproduced_are_on_the_config_axis",
+   "ok": true,
+   "detail": {
+    "first": 1688097600,
+    "n": 3000
+   }
+  },
+  {
+   "check": "E5.context_loads_from_the_approved_inputs",
+   "ok": true,
+   "detail": []
+  },
+  {
+   "check": "E5.seed00.re-run_from_external_inputs_is_bitwise_the_stored_path",
+   "ok": true,
+   "detail": {
+    "differing": {}
+   }
+  },
+  {
+   "check": "E5.every_reproduced_seed_accounted_for",
+   "ok": true,
+   "detail": {
+    "reproduced": 1,
+    "asked": 1
+   }
+  }
+ ],
+ "failed": [],
+ "VERDICT": "PASS-SPOTCHECK",
+ "runtime_s": 37.9
+}
