@@ -38,6 +38,7 @@ NEWSHA=$(git -C $XC rev-parse HEAD)
 /usr/bin/python3 ~/cc_tmp/lead_deploy_20260923/ff_running_tree.py $NEWSHA ; echo "rc=$?"
 $PROBE after-w3 $NEWSHA ops/producer_release/20260925_m3v2_durable/INSTALL_CONTRACT.json ops/producer_release/20260925_m3v2_durable/PATCH_RECEIPT.json --out $RL/VP_after_w3.txt
 ```
+**Upstream pair check (lead 2026-09-25 ~10:1xZ; EXPECTED N = 6 written here before the window)**: after the battery, `/usr/bin/python3 $RC/devices/v2c_upstream_pair_check.py $XC --expect-n 6 --out $RL/PAIR_CHECK_after_battery.txt` and after the ff `… v2c_upstream_pair_check.py ~/dl_quant_live --expect-n 6 --out $RL/PAIR_CHECK_after_ff.txt` → `UPSTREAM_PAIR_CHECK PASS compared_equal=6 manifest_entries=6 expected=6 durable_io=COMPARED_EQUAL`; anything else = RED ⇒ restore. (drift_gate's own output cannot show this: it prints the manifest line count and skips a missing upstream file — measured: durable_io absent / present-equal ⇒ the identical line `no drift across 6 … all covered` rc 0.) Controls before the window: candidate vs unpatched upstream = RED (durable_io MISSING_RESEARCH, three DIFFERENT); running 5d3029c vs unpatched upstream = PASS n=5.
 Pass: safe_commit rc 0 with the battery all green (`$XC/state/_safe_commit_acc.log` summary + failing suites none), FF_OK, after-w3 OK n=0.
 
 ## W4 producer files-only install
