@@ -30,7 +30,23 @@ def _hooked(*a, **k):
         f = _s._getframe(1); A = f.f_locals.get("A")
         rep = copy.deepcopy(rs) if rs is not None else None
         ca = (rep or {}).get("clamped_after_reshape") or {}
-        row = {"A": int(A) if A is not None else None, "pid": os.getpid(), "sizing_gross": (rep or {}).get("sizing_gross"),
+        # v2 (lead 2026-09-25 ~15:4xZ, live-vs-engine parity of the held-untradable set): the SOURCES of `untr` read from the caller's
+        # frame (exec_sim.Sim.on_anchor builds untr from: symbols − c["tradable"], c["meta"] ∩ symbols, act["stop"], act["cooldown"],
+        # held_exit, dust["names"]) — for every HELD name (pos != 0) in untr: its sources and its position notional. Read-only (copies).
+        L_ = f.f_locals; held_untr = {}
+        try:
+            untr_ = set(L_.get("untr") or ()); pos_ = dict(L_.get("pos") or {}); c_ = L_.get("c") or {}; act_ = L_.get("act") or {}
+            sym_ = set(L_.get("symbols") or ()); hx_ = set(L_.get("held_exit") or ()); du_ = set((L_.get("dust") or {}).get("names") or ())
+            trad_ = c_.get("tradable"); meta_ = set(c_.get("meta") or ())
+            for s_ in sorted(untr_):
+                if not pos_.get(s_): continue
+                src_ = [k for k, v in (("not_tradable", trad_ is not None and s_ not in trad_ and s_ in sym_), ("meta", s_ in meta_ and s_ in sym_),
+                                       ("per_name_stop", s_ in set(act_.get("stop") or ())), ("per_name_stop_cooldown", s_ in set(act_.get("cooldown") or ())),
+                                       ("held_exit", s_ in hx_), ("dust", s_ in du_)) if v]
+                held_untr[s_] = {"sources": src_, "pos_usdt": float(pos_[s_])}
+        except Exception as e2:
+            held_untr = {"_error": f"{type(e2).__name__}: {str(e2)[:120]}"}
+        row = {"A": int(A) if A is not None else None, "held_untradable": held_untr, "pid": os.getpid(), "sizing_gross": (rep or {}).get("sizing_gross"),
                "net_before": (rep or {}).get("net_before"), "net_after": (rep or {}).get("net_after"), "n_popped": (rep or {}).get("n_popped"),
                "book_net_usdt": ca.get("book_net_usdt"), "net_shift_usdt": ca.get("net_shift_usdt"), "pinned_net_usdt": ca.get("pinned_net_usdt"),
                "clamped_names": ca.get("names"), "rs_none": rs is None}
