@@ -1,0 +1,103 @@
+{
+  "device": "d10_src_identity.py",
+  "self_sha256": "26dec50ec761c6ed019a759672c14993c23052cbdc14c003ea22865fbbcd6a9f",
+  "argv": [
+    "--ledger",
+    "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+    "--out",
+    "/dev/shm/d10_2026-09-25/receipts/D10_S1_SRC_IDENTITY.json"
+  ],
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "task": "D10 truth audit stage 1 question 1 (user ruling 96994c7f5, lead's five questions)",
+  "question": "why is the researcher ledger's zip_iv NaN on 109,070 rows",
+  "method": "cross-tabulate zip_iv finiteness against the ledger's own src column and require EXACT alignment; attach a label to a src class only when its count reproduces a number committed before this device (the D5 census)",
+  "d5_reference_counts": {
+    "api_only": 109070,
+    "zip_only": 158857,
+    "dual_source_same_second": 2365163,
+    "d5_total_rows": 2633090
+  },
+  "inputs": {
+    "ledger": {
+      "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+      "sha256": "073088e503c026d6071c76764426503616d53570e5f3763807df27ea7cc80362"
+    }
+  },
+  "ledger_keys": [
+    "cut",
+    "ft",
+    "off",
+    "rate",
+    "src",
+    "symbols",
+    "zip_iv"
+  ],
+  "rows_total": 2693666,
+  "zip_iv_non_finite": 109070,
+  "zip_iv_finite": 2584596,
+  "crosstab_src_x_zip_iv": {
+    "1": {
+      "rows": 109070,
+      "zip_iv_nan": 109070,
+      "zip_iv_finite": 0
+    },
+    "2": {
+      "rows": 158857,
+      "zip_iv_nan": 0,
+      "zip_iv_finite": 158857
+    },
+    "3": {
+      "rows": 2365163,
+      "zip_iv_nan": 0,
+      "zip_iv_finite": 2365163
+    },
+    "4": {
+      "rows": 60576,
+      "zip_iv_nan": 0,
+      "zip_iv_finite": 60576
+    }
+  },
+  "closure_check": {
+    "sum_of_src_classes": 2693666,
+    "rows_total": 2693666,
+    "equal": true
+  },
+  "exact_alignment": {
+    "src_classes_holding_every_nan_and_no_finite_row": [
+      "1"
+    ],
+    "is_exact": true
+  },
+  "src_labels": {
+    "1": {
+      "label": "api_only",
+      "earned_by": "row count 109070 reproduces D5 api_only"
+    },
+    "2": {
+      "label": "zip_only",
+      "earned_by": "row count 158857 reproduces D5 zip_only"
+    },
+    "3": {
+      "label": "dual_source_same_second",
+      "earned_by": "row count 2365163 reproduces D5 dual_source_same_second"
+    },
+    "4": {
+      "label": "rows_after_the_D5_cut",
+      "earned_by": "row count 60576 equals this ledger minus the D5 cut (2693666 - 2633090)"
+    }
+  },
+  "distinct_finite_zip_iv_values": [
+    1.0,
+    2.0,
+    4.0,
+    8.0
+  ],
+  "note_on_3h": "the declared-interval column never carries 3.0 (nor 6.0) here, so a 3-hour value can only arise from SPACING. common/funding_interval.py's ALLOWED_IV excludes 3.0, so an EXACT_BY_SPACING resolution of 3.0 hours would make gate_interval RAISE rather than label the row UNRESOLVED. Reported to lead as a reachable path, not adjudicated here.",
+  "verdict": "ZIP_IV_NAN_IS_EXACTLY_THE_API_ONLY_CLASS_BY_CONSTRUCTION",
+  "reading": "zip_iv is the archive's per-settlement column, so it is NaN on rows that came only from the API. That is a definition, not a data defect and not a truth gap: the researcher's assembly fills them from the other sources, leaving 4,663 unknown (IV_SOURCE_CENSUS2.json).",
+  "limits": [
+    "this explains the NaN population; it does not by itself say the assembled iv is correct",
+    "the src labels are earned by count reproduction, which is strong but not a proof of semantics"
+  ]
+}
