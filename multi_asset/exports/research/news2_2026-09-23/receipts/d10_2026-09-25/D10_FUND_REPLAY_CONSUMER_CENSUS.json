@@ -75,9 +75,16 @@
       "exec_sim.py:421 on_funding(t) applies the settlement; exec_sim.py:715 emits funding: d[fund]",
       "simlib.py:16-17 FundingBook = settlement rates per (symbol, fundingTime) from THE PRODUCER OWN LEDGER (aux.json ledger_tail), with the executor funding.jsonl as a cross-check and as a fallback for keys the producer lacks"
     ],
-    "verdict": "CLEAN: the engine accounting reads the LIVE ledger (measured complete in switch windows, 305/305) plus a second independent source as cross-check; fund_replay.npz is not in this path"
+    "verdict": "CLEAN FOR THE LIVE-LEDGER COVERAGE PERIOD ONLY (~trailing 2 months, measured on 2026-08). The historical-axis source for the engine's 2023H2-2025 backtests is not yet identified or audited; see QUALIFICATION_added_2026-09-25_after_lead_review.",
+    "QUALIFICATION_added_2026-09-25_after_lead_review": {
+      "what_I_overclaimed": "I wrote 'the engine accounting is CLEAN' without bounding it. The evidence I had was the live ledger being complete in 2026-08 switch windows, and the live ledger_tail is only a rolling 400 rows (~2 months).",
+      "correct_scope": "'accounting side clean' is established ONLY for the period the live ledger_tail actually covers (~trailing 2 months). The engine backtests 2023H2-2025, which the live tail cannot cover, so for those years the accounting source is NOT yet identified and NOT yet audited.",
+      "open_question_lead_raised": "what does simlib.py FundingBook actually read on the HISTORICAL axis (e.g. a 2024 anchor)? candidates /workspace/axis_0919/funding/funding_4h_accounting.npz and funding_ledger.npz -- and was the ledger that built them the SAME one fed to fund_replay, i.e. also missing the 1h spike settlements?",
+      "planned_test": "same +/-24h interval-switch-window audit, run against that accounting ledger using the already-downloaded and CHECKSUM-verified 2026-01..04 archive",
+      "status": "OPEN -- scheduled after 15:40Z per lead"
+    }
   },
-  "summary": "the contamination is confined to the SIGNAL side of the research/backtest path (RN8 and the fund_now feature column). The engine funding ACCOUNTING and the LIVE producer both read the live ledger and are clean.",
+  "summary": "the contamination is confined to the SIGNAL side of the research/backtest path (RN8 and the fund_now feature column). The LIVE producer is clean (measured). The engine funding ACCOUNTING is clean only where the live ledger covers it; its historical-axis source is an open question.",
   "limits": [
     "the live ledger completeness is established for 2026-08 switch windows only; its 400-row retention makes 2026-01..03 unauditable",
     "the RN8 quantification uses 4 worked cells; the population of affected cells beyond the fetched months is not yet judged"
