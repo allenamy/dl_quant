@@ -1,0 +1,46 @@
+{
+ "device": "gate_sizing.py",
+ "self_sha256": "e75d2f020ec5b6a1676ff043ef18c26ec10b1552b7253be318d9b6e1df6f1fcb",
+ "utc": "2026-09-25T11:03:49Z",
+ "events_file": "/Users/haosiyu/parabolic_onset_forward_short/events.jsonl",
+ "events_sha256": "2f4b722278c0d7e1105bde50dfde9608c1b187a86b6c9e995277487833047918",
+ "gate_start_utc": "2026-09-25T00:00:00Z",
+ "need": {
+  "theta8_P_filled": 200,
+  "calendar_days": 14
+ },
+ "segments": {
+  "in_sample_descriptive_NOT_forward": {
+   "anchors": 143,
+   "days": 23.83,
+   "theta8_P_events": 89,
+   "theta8_P_filled": 84
+  },
+  "gate_forward": {
+   "anchors": 1,
+   "days": 0.17,
+   "theta8_P_events": 0,
+   "theta8_P_filled": 0
+  }
+ },
+ "measured_rate_theta8_P_filled_per_day": 3.525,
+ "days_to_satisfy_count": 56.7,
+ "earliest_trigger_by_count": "2026-11-20",
+ "date_calendar_condition_satisfied": "2026-10-09",
+ "BINDING_CONDITION": "count",
+ "count_equivalent_to_14_days": 49,
+ "provenance_of_200": {
+  "claimed": "inherited from the six frozen conditions of 26aeb23",
+  "checked": "FALSE -- 26aeb23 contains no count condition",
+  "the_six_conditions_in_26aeb23": [
+   "theta8 P: >=2 of 3 years CI95 upper < 0",
+   "2026 holds",
+   "theta5 and theta12 same sign",
+   "mirror-rally placebo NOT negative in P",
+   "P-Q difference CI95 upper < 0",
+   "value bound >= +0.03 bps/anchor/gross with CI lower > 0"
+  ],
+  "long_side_log_gate_status": "null (18 runs; it predates the gate concept) -- 200 was not mirrored from a measured long-side rate either"
+ },
+ "NOTE": "this device supplies the SIZE only. dlarch has a stake in what this gate admits, so the criterion remains lead's to set or keep. The in-sample segment is descriptive and is never counted toward the trigger (lead's gate-window ruling); no direction is inferred from it here."
+}
