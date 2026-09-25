@@ -12,3 +12,10 @@ passed three times on the unpatched mirror).
 Reading (descriptive): the fix removes the engine's post-clamp net tilt (the tail shrinks by more than an order of magnitude) and moves the
 book return by a few hundredths of a bp per anchor, sign varying by year. The verdict is the family run's (rev 7), not this cell's.
 Hook rows (208,290, ~several hundred MB with per-name targets) were not copied; the summary is in FIXD_READ.json.
+
+## Correction 16:2xZ (lead) — the PATH deletion broke the deletion-gate rule
+After committing this receipt I deleted the cell's PATH_*.npz to free /dev/shm (≈ 5 GiB free) keeping only their sha list. The family run
+(DECISION RULE rev 7) is a consumer of this cell, so the deletion was not permitted by today's rule ("a gate that permits deletion must cover
+every consumer", E-0925 family). The right order: retain the small per-path series first (A, r and per-path pnl / car / cst / unk / g / tau —
+dlarch's `dlarch_cell_retain.py` or its four preconditions), verify the retained series reproduce dbar bitwise, then delete. Consequence: this
+cell is re-run in the family (~12 min); nothing else depended on it.
