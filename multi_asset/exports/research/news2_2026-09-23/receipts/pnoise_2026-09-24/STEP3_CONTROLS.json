@@ -1,0 +1,38 @@
+{
+  "prereg": "docs/PREREG_gap_carrier_ladder_2026-09-25.md @ be4a013a8 (step 3)",
+  "criterion_author": "team-lead (not news2)",
+  "gate": "lead: \u63a7\u5236(\u4e0d\u8fc7\u4efb\u4e00 \u21d2 \u6574\u4e2a\u9636\u68af UNAVAILABLE, \u4e0d\u8dd1\u5f15\u64ce)",
+  "controls": {
+    "red (arm none)": {
+      "verdict": "PASS",
+      "evidence": "combo output BITWISE IDENTICAL to archived NC combo; literal sha 210270198350cdce, scaled f4630a20f796bce2; unchanged after the source-wiring patch (baseline-green re-assertion)"
+    },
+    "positive (arm all_new)": {
+      "verdict": "PASS",
+      "evidence": "max|dw| = 0.000000e+00 in BOTH policies vs NEW archived combo_s42; publish 3072/6723 both sides; trade_mask and reason disagree on 0 anchors; axes identical 8142/8142"
+    },
+    "mutation (arm kz_neg)": {
+      "verdict": "PASS",
+      "evidence": "trade_mask flipped on 330 (literal) / 2059 (scaled) anchors; publish 2946->2740 and 6520->6289"
+    }
+  },
+  "ladder_licensed": true,
+  "positive_control_finding": {
+    "what_the_refusal_taught": "first run died with KeyError RN8 is not a file in the archive",
+    "root": "NEW f10v2_legs.npz holds only E_ts/symbols/KZ/Z24/ZFD/WL/ready/LR/seat_priced_fraction",
+    "four_evolve_args_live_outside_the_legs_file": {
+      "rn8": "data/funding_state.npz[rn8]",
+      "legal": "data/funding_state.npz[legal]",
+      "qv": "data/dlw_targets.npz[qvk]",
+      "members": "data/dlw_targets.npz[members]"
+    },
+    "read_off": "continuous_combo.py:49 (paths), :61 (handles), :69 (book_legal), :78 (evolve call)",
+    "coverage_hole": "legal and members are NEW-vs-NC input differences that NONE of lead five single-swap arms covers (lead FUND_res is written ZFD+ready+QV+RN8). legal alone: NC 2822237 True cells vs NEW 2916291, 94054 disagreeing cells over 1628/8143 anchors. lead arm list is NOT edited; reported to lead for a ruling.",
+    "config_is_not_a_ladder_input": "params byte-identical, config sha 3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e both sides",
+    "axis_is_not_a_confound": "NEW axis = NC axis restricted to [1641168000,1789776000] bitwise; the 12 NC anchors NEW lacks are 2022-01-01/02, BEFORE use>=1672531200, so the evolve state path is identical"
+  },
+  "limits": [
+    "arms are NOT additive",
+    "every arm is a pipeline-unproducible combination and only a measuring instrument, never a deployable version"
+  ]
+}

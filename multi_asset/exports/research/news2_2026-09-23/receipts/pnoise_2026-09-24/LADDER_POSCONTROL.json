@@ -1,0 +1,112 @@
+{
+  "device": "ladder_poscontrol_check.py",
+  "self_sha256": "8f20ebeff181d2c3997db1d3b82c5050697d1246d933e710385e5fc00fbc8368",
+  "argv": [
+    "--mine-dir",
+    "/dev/shm/pnoise_2026-09-24/work/ladder_all_new",
+    "--new-dir",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/combo_s42",
+    "--out",
+    "/dev/shm/pnoise_2026-09-24/receipts/LADDER_POSCONTROL.json"
+  ],
+  "prereg": "docs/PREREG_gap_carrier_ladder_2026-09-25.md @ be4a013a8 (step 3 positive control)",
+  "criterion_author": "team-lead (not news2)",
+  "gate": "max|dw| <= 1e-6 vs NEW's archived targets, else report which input is missing",
+  "policies": {
+    "literal": {
+      "mine": "/dev/shm/pnoise_2026-09-24/work/ladder_all_new/literal.npz",
+      "mine_sha": "cae52acf3bc2e82dbbe1cca351c1f3d40d21c91ba48c132241e797990de0f747",
+      "new": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/combo_s42/literal.npz",
+      "new_sha": "cae52acf3bc2e82dbbe1cca351c1f3d40d21c91ba48c132241e797990de0f747",
+      "mine_keys": [
+        "E_ts",
+        "fc",
+        "kc",
+        "raw",
+        "reason",
+        "symbols",
+        "trade_mask",
+        "weights"
+      ],
+      "new_keys": [
+        "E_ts",
+        "fc",
+        "kc",
+        "raw",
+        "reason",
+        "symbols",
+        "trade_mask",
+        "weights"
+      ],
+      "axis": {
+        "mine_n": 8142,
+        "new_n": 8142,
+        "identical": true,
+        "common_n": 8142
+      },
+      "weights": {
+        "max_abs_dw": 0.0,
+        "n_cells": 6749718,
+        "n_cells_over_1e-6": 0,
+        "n_anchors_over_1e-6": 0,
+        "bitwise_identical": true
+      },
+      "trade_mask": {
+        "mine_publish": 3072,
+        "new_publish": 3072,
+        "disagreeing_anchors": 0
+      },
+      "reason": {
+        "disagreeing_anchors": 0
+      }
+    },
+    "scaled_diagnostic": {
+      "mine": "/dev/shm/pnoise_2026-09-24/work/ladder_all_new/scaled_diagnostic.npz",
+      "mine_sha": "4dec6b38b08f8cc857c8f58659e846fea686c02c2959c622ea248c7ef5b22afa",
+      "new": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/combo_s42/scaled_diagnostic.npz",
+      "new_sha": "4dec6b38b08f8cc857c8f58659e846fea686c02c2959c622ea248c7ef5b22afa",
+      "mine_keys": [
+        "E_ts",
+        "fc",
+        "kc",
+        "raw",
+        "reason",
+        "symbols",
+        "trade_mask",
+        "weights"
+      ],
+      "new_keys": [
+        "E_ts",
+        "fc",
+        "kc",
+        "raw",
+        "reason",
+        "symbols",
+        "trade_mask",
+        "weights"
+      ],
+      "axis": {
+        "mine_n": 8142,
+        "new_n": 8142,
+        "identical": true,
+        "common_n": 8142
+      },
+      "weights": {
+        "max_abs_dw": 0.0,
+        "n_cells": 6749718,
+        "n_cells_over_1e-6": 0,
+        "n_anchors_over_1e-6": 0,
+        "bitwise_identical": true
+      },
+      "trade_mask": {
+        "mine_publish": 6723,
+        "new_publish": 6723,
+        "disagreeing_anchors": 0
+      },
+      "reason": {
+        "disagreeing_anchors": 0
+      }
+    }
+  },
+  "verdict": "POSITIVE_CONTROL_PASS"
+}
