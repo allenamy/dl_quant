@@ -132,7 +132,17 @@ def main():
         kq = int(np.isfinite(fz_nc).sum() // 5)
         Qn, Qb, Qc = bottom(fz_nc, kq), bottom(fz_b, kq), bottom(fz_c, kq)
         ovq_b = len(Qn & Qb) / max(kq, 1); ovq_c = len(Qn & Qc) / max(kq, 1); ov50_b = len(bottom(fz_nc, 50) & bottom(fz_b, 50)) / 50
-        row = {"anchor": fmt(A), "n_members": int(len(m)), "n_fz_nc": int(np.isfinite(fz_nc).sum()), "n_fz_old": int(np.isfinite(fz_b).sum()),
+        # revision 2026-09-25 09:3xZ (after run 1: rho 1.000 but bottom-quintile overlap 0.80): split the overlap by cause. Members the OLD
+        # path cannot rank (NaN: not in the old symbols_live — NC's dynamic list added them; the old producer would not have held them as
+        # members at all) vs the common names (finite in both).
+        com = np.isfinite(fz_nc) & np.isfinite(fz_b); kc = int(com.sum() // 5)
+        def bottom_in(fz, k, mask):
+            idx = np.where(mask)[0]; return set(idx[np.argsort(fz[idx], kind="stable")[:k]].tolist())
+        ov_common = len(bottom_in(fz_nc, kc, com) & bottom_in(fz_b, kc, com)) / max(kc, 1)
+        nc_only = np.isfinite(fz_nc) & ~np.isfinite(fz_b)
+        row = {"anchor": fmt(A), "n_members": int(len(m)), "n_nc_only_members": int(nc_only.sum()), "bottomQ_overlap_common_names": ov_common,
+               "nc_only_members": [names_m[i] for i in np.where(nc_only)[0]],
+               "n_nc_only_in_nc_bottomQ": int(len(Qn & set(np.where(nc_only)[0].tolist()))), "n_fz_nc": int(np.isfinite(fz_nc).sum()), "n_fz_old": int(np.isfinite(fz_b).sum()),
                "n_base_nc": pr.get("fund_base_n"), "n_base_old": len(bv_b), "old_fetch": n_fetch, "old_skip": n_skip, "old_unemulable": n_unem, "baseline_fund_z_old_max_abs_dev": base_dev,
                "spearman_nc_old": rho_b, "spearman_nc_oldrules_noskip": rho_c, "bottomQ_k": kq, "bottomQ_overlap_old": ovq_b,
                "bottomQ_overlap_oldrules_noskip": ovq_c, "bottom50_overlap_old": ov50_b, "bF": bF}
@@ -143,7 +153,10 @@ def main():
             for side in ("short", "long"):
                 sel = (w < 0) if side == "short" else (w > 0)
                 row[f"fund_paper_nc_{side}"] = float(bF * (np.nan_to_num(fz_nc) * r)[sel].sum()); row[f"fund_paper_old_{side}"] = float(bF * (np.nan_to_num(fz_b) * r)[sel].sum())
-            for k in ("fund_paper_nc", "fund_paper_old", "fund_paper_oldrules_noskip", "fund_paper_nc_short", "fund_paper_old_short"): tot[k] += row[k]
+            row["fund_paper_nc_on_nc_only_members"] = float(bF * (np.nan_to_num(fz_nc) * r)[nc_only].sum())
+            row["fund_paper_nc_on_common"] = float(bF * (np.nan_to_num(fz_nc) * r)[com].sum()); row["fund_paper_old_on_common"] = float(bF * (np.nan_to_num(fz_b) * r)[com].sum())
+            for k in ("fund_paper_nc", "fund_paper_old", "fund_paper_oldrules_noskip", "fund_paper_nc_short", "fund_paper_old_short",
+                      "fund_paper_nc_on_nc_only_members", "fund_paper_nc_on_common", "fund_paper_old_on_common"): tot[k] += row[k]
             tot["n_priced"] += 1
         rec["anchors"].append(row)
         g = lambda k, f="{:9.1f}": (f.format(row[k]) if k in row else f"{'-':>9s}")
@@ -154,6 +167,8 @@ def main():
     rec["rule"] = {"min_bottomQ_overlap": ov_min, "paper_rel_diff": diff, "independent_of_release": bool(ov_min >= 0.9 and abs(diff) < 0.10)}
     json.dump(rec, open(f"{out}/FUND_LEG_PATH_COMPARE.json", "w"), indent=1)
     print("TOTALS (priced anchors):", {k: round(v, 1) for k, v in tot.items()})
+    print("per anchor: bottom-quintile overlap on common names", [round(a["bottomQ_overlap_common_names"], 3) for a in rec["anchors"]],
+          "| NC-only members", [a["n_nc_only_members"] for a in rec["anchors"]], "of which in the NC bottom quintile", [a["n_nc_only_in_nc_bottomQ"] for a in rec["anchors"]])
     print(f"FUND_LEG_PATH_COMPARE min bottom-quintile overlap {ov_min:.3f}; paper diff old vs NC {diff * 100:.1f}% ⇒ "
           f"{'INDEPENDENT_OF_RELEASE' if rec['rule']['independent_of_release'] else 'DIFFERS (rule not met)'}")
 
