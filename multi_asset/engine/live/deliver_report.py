@@ -96,9 +96,7 @@ def send_report(report_md_path: str, subject_prefix="[pilot-prep]", verbose=True
 
 def _write(status, verbose):
     os.makedirs(os.path.dirname(STATUS_PATH), exist_ok=True)
-    # ★ durable write (quant_research DESIGN_executor_durable_state_2026-09-25 B-2): was json.dump(x, open(p, "w")), whose implicit close loses a full-disk error
-    import sys as _sys; _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import durable_io as _DIO
-    _DIO.write_json_durable(STATUS_PATH, status, indent=1)
+    json.dump(status, open(STATUS_PATH, "w"), indent=1)
     if verbose:
         print(f"[deliver] {status['state']} -> {RECIPIENT}"
               + (f" ({status.get('detail','')[:80]})" if not status.get("delivered") else ""),
