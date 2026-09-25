@@ -1,0 +1,18 @@
+commit 20d78941a3007a7af0f70ef500ab0861d8e3c7ec
+Author: haosiyu <siyuhao0702@gmail.com>
+Date:   Sat Sep 26 01:24:37 2026 +0800
+
+    gate_coverage: state tests_dust_pop's blind spots (the battery requires every suite to name what it cannot see; the fix-pkg-d battery at 17:05Z was red on exactly this)
+
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index 964d2ad..23e47cd 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -294,6 +294,7 @@ SUITE_SCOPE = {
+     "tests_request_budget": "that 600 requests/min is the RIGHT cap — the venue named 6000 without a window, so the number is conservative under any reading and is not a measurement. It proves the dimension is counted and throttles; it cannot prove the venue has no fourth quota we are still blind to",
+     "tests_notional_backfill": "that the venue reported every child fill — it proves the amount is rebuilt from the children we hold, signed, and only when the column is empty. If userTrades itself is short the recovered figure is short with it, and the row would then read as a confident wrong size rather than an honest None",
+     "tests_sizing_policy": "that 2.0x / +-10%% / 4,000 USDT are the RIGHT policy numbers — they are the user's risk tolerance and no suite can settle them. It proves the sizing arithmetic, the dead zone, the floor-halts-not-shrinks rule, the dead-zone x floor interaction, and that the threshold move is exactly x(2/5) of the 5x originals. It does NOT prove the historical series that justified the restatement is representative — that series is the structural caliber and is a one-sided floor on dispersion",
++    "tests_dust_pop": "that popping a dust position is economically harmless in every state — it proves the rule (strictly below the name's venue min notional ⇒ popped before the reshape; the clamp keeps a flatten row at 0.0; no order-bearing row) on synthetic books and on ONE recorded anchor (2026-09-25 08Z), not across the ledger. Two blind spots, each real: (a) the floor is the executor's cached min_notional — a venue floor that changed since the cache was written is not seen here; (b) a dust residual whose VALUE later grows above the floor (a large price move while held) returns to the clamp at that anchor, and nothing here tests that transition on real data",
+     "tests_orphan_position": "that a withheld-and-held name will actually be REDUCED at the venue — it proves the target survives the clamp so plan() emits a row, not that the order fills; a venue that refuses reduce orders too would still strand the position",
+     "tests_frontier_staleness": "that the frontier marker the upstream publishes is CORRECT — it proves we consume it and that a frozen frontier is no longer a pass. If the producer published a wrong newest_scored_anchor this consumer would believe it. ★ SINCE 2026-09-13 (ALM-03) IT PINS A RETIRED EVALUATOR: ops/check_factor_health.py is no longer called by the anchor (step 9 runs ops/check_rank_monitor_input.py) and its ssh source has had no producer since 2026-08-06, so a green here says nothing about what the anchor monitors now — that is tests_rank_monitor_input",
+     "tests_head_liveness": "that a head which passes the liveness test is USEFUL — it proves a collapsed head is caught and that the verdict is scale-free, not that a live head carries signal. IC is what says that, and no liveness test can",
