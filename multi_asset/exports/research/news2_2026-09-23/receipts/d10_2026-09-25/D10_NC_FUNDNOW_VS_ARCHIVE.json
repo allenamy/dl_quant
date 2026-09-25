@@ -1,0 +1,255 @@
+{
+  "device": "d10_nc_fundnow_vs_archive.py",
+  "self_sha256": "e9591b853f32d19899198ed78faed44586aac33ed5fdea5b8a8119ad8b179be7",
+  "argv": [
+    "--features",
+    "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+    "--panel",
+    "/workspace/fx_data_2026-09-13/a0dev/pod_backup_2026-08-21/wide_panel_4h_hist_v2.npz",
+    "--replay",
+    "/dev/shm/news2_2026-09-23/inputs/fund_replay.npz",
+    "--zips-root",
+    "/dev/shm/d10_2026-09-25/zips",
+    "--inventory",
+    "/dev/shm/d10_2026-09-25/receipts/D10_S1_ARCHIVE_INVENTORY.json",
+    "--out",
+    "/dev/shm/d10_2026-09-25/receipts/D10_NC_FUNDNOW_VS_ARCHIVE.json"
+  ],
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "task": "does the LIVE producer's own fund_now match the archive on the disputed cells",
+  "lineage_cited": {
+    "live_fund_now": "shadow_loop_v3.py:619 NC.funding_asof(st.ema.get(s), led[-1], anchor) -> ledger",
+    "funding_asof": "nc_contract.py:84-98, returns (ema, rate, iv, rate*8/iv), NaN if anchor-ft > FRESH_S",
+    "enters_features_at": "shadow_loop_v3.py:624 FE_ANCH[:, 81] = nan_to_num(fn_v, nan=0)",
+    "is_a_king_input": "bundle_config.json keep_names contains 'fund_now'",
+    "funding_leg_is_a_different_consumer": "nc_legs.py:71 ranks fe_v (EMA); nc_legs.py:73-74 RN8 = funding_asof(...)[3]"
+  },
+  "why": "the replay and the live producer share a rule family; sharing a rule is not evidence of sharing a value",
+  "inputs": {
+    "features": {
+      "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+      "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8"
+    },
+    "panel": {
+      "resolved": "/workspace/data/wide_panel_4h_v2ext.npz",
+      "sha256": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116"
+    },
+    "replay": {
+      "path": "/dev/shm/news2_2026-09-23/inputs/fund_replay.npz",
+      "sha256": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4"
+    },
+    "inventory": {
+      "path": "/dev/shm/d10_2026-09-25/receipts/D10_S1_ARCHIVE_INVENTORY.json",
+      "sha256": "005413aa611d2a9d63695c5fb5ce41debb11326f658d3e7302ba67c6cdbff673"
+    }
+  },
+  "counts": {
+    "LIVE_MATCHES_ARCHIVE": 12,
+    "LIVE_CELL_ABSENT_symbol_not_a_member_that_anchor": 2005
+  },
+  "cells_with_archive_truth_and_a_live_value": 2017,
+  "live_disagreement_rate_pct": 0.0,
+  "top10_names": [
+    {
+      "symbol": "KNCUSDT",
+      "total": 68,
+      "by_verdict": {
+        "LIVE_CELL_ABSENT_symbol_not_a_member_that_anchor": 68
+      }
+    },
+    {
+      "symbol": "SUPERUSDT",
+      "total": 68,
+      "by_verdict": {
+        "LIVE_CELL_ABSENT_symbol_not_a_member_that_anchor": 68
+      }
+    },
+    {
+      "symbol": "ZRXUSDT",
+      "total": 68,
+      "by_verdict": {
+        "LIVE_CELL_ABSENT_symbol_not_a_member_that_anchor": 68
+      }
+    },
+    {
+      "symbol": "ALLUSDT",
+      "total": 62,
+      "by_verdict": {
+        "LIVE_CELL_ABSENT_symbol_not_a_member_that_anchor": 62
+      }
+    },
+    {
+      "symbol": "ANIMEUSDT",
+      "total": 62,
+      "by_verdict": {
+        "LIVE_CELL_ABSENT_symbol_not_a_member_that_anchor": 62
+      }
+    },
+    {
+      "symbol": "BNTUSDT",
+      "total": 62,
+      "by_verdict": {
+        "LIVE_CELL_ABSENT_symbol_not_a_member_that_anchor": 62
+      }
+    },
+    {
+      "symbol": "BTWUSDT",
+      "total": 62,
+      "by_verdict": {
+        "LIVE_CELL_ABSENT_symbol_not_a_member_that_anchor": 62
+      }
+    },
+    {
+      "symbol": "CAPUSDT",
+      "total": 62,
+      "by_verdict": {
+        "LIVE_CELL_ABSENT_symbol_not_a_member_that_anchor": 62
+      }
+    },
+    {
+      "symbol": "CTRUSDT",
+      "total": 62,
+      "by_verdict": {
+        "LIVE_CELL_ABSENT_symbol_not_a_member_that_anchor": 62
+      }
+    },
+    {
+      "symbol": "CYBERUSDT",
+      "total": 62,
+      "by_verdict": {
+        "LIVE_CELL_ABSENT_symbol_not_a_member_that_anchor": 62
+      }
+    }
+  ],
+  "examples": {
+    "LIVE_MATCHES_ARCHIVE": [
+      {
+        "symbol": "GMTUSDT",
+        "anchor": "2026-01-09T20:00Z",
+        "live_fn_v": -0.00039508,
+        "archive_truth": -0.00039508,
+        "panel": -0.00039507998735643923,
+        "replay_last_rate": -0.02,
+        "live_equals_replay": false,
+        "live_equals_panel": true
+      },
+      {
+        "symbol": "AXSUSDT",
+        "anchor": "2026-01-17T20:00Z",
+        "live_fn_v": -0.00047924,
+        "archive_truth": -0.00047924,
+        "panel": -0.0004792399995494634,
+        "replay_last_rate": -0.02,
+        "live_equals_replay": false,
+        "live_equals_panel": true
+      },
+      {
+        "symbol": "DUSKUSDT",
+        "anchor": "2026-01-19T12:00Z",
+        "live_fn_v": -0.00221771,
+        "archive_truth": -0.00221771,
+        "panel": -0.002217710018157959,
+        "replay_last_rate": -0.02,
+        "live_equals_replay": false,
+        "live_equals_panel": true
+      },
+      {
+        "symbol": "ZILUSDT",
+        "anchor": "2026-02-02T20:00Z",
+        "live_fn_v": -0.00286688,
+        "archive_truth": -0.00286688,
+        "panel": -0.0028668800368905067,
+        "replay_last_rate": -0.02,
+        "live_equals_replay": false,
+        "live_equals_panel": true
+      },
+      {
+        "symbol": "ALICEUSDT",
+        "anchor": "2026-02-28T04:00Z",
+        "live_fn_v": -0.00023411,
+        "archive_truth": -0.00023411,
+        "panel": -0.00023411000438500196,
+        "replay_last_rate": -0.02,
+        "live_equals_replay": false,
+        "live_equals_panel": true
+      },
+      {
+        "symbol": "TLMUSDT",
+        "anchor": "2026-03-02T04:00Z",
+        "live_fn_v": 1.25e-05,
+        "archive_truth": 1.25e-05,
+        "panel": 1.249999968422344e-05,
+        "replay_last_rate": -0.02,
+        "live_equals_replay": false,
+        "live_equals_panel": true
+      },
+      {
+        "symbol": "ANKRUSDT",
+        "anchor": "2026-03-18T12:00Z",
+        "live_fn_v": -0.00136183,
+        "archive_truth": -0.00136183,
+        "panel": -0.00136183004360646,
+        "replay_last_rate": -0.02,
+        "live_equals_replay": false,
+        "live_equals_panel": true
+      },
+      {
+        "symbol": "ENJUSDT",
+        "anchor": "2026-03-18T12:00Z",
+        "live_fn_v": -0.00633612,
+        "archive_truth": -0.00633612,
+        "panel": -0.006336119957268238,
+        "replay_last_rate": -0.02,
+        "live_equals_replay": false,
+        "live_equals_panel": true
+      },
+      {
+        "symbol": "RDNTUSDT",
+        "anchor": "2026-03-21T20:00Z",
+        "live_fn_v": -0.00113231,
+        "archive_truth": -0.00113231,
+        "panel": -0.0011323100188747048,
+        "replay_last_rate": -0.02,
+        "live_equals_replay": false,
+        "live_equals_panel": true
+      },
+      {
+        "symbol": "ORDERUSDT",
+        "anchor": "2026-03-22T12:00Z",
+        "live_fn_v": -0.00092844,
+        "archive_truth": -0.00092844,
+        "panel": -0.0009284400148317218,
+        "replay_last_rate": -0.02,
+        "live_equals_replay": false,
+        "live_equals_panel": true
+      },
+      {
+        "symbol": "BLURUSDT",
+        "anchor": "2026-04-01T12:00Z",
+        "live_fn_v": -0.00432397,
+        "archive_truth": -0.00432397,
+        "panel": -0.004323970060795546,
+        "replay_last_rate": -0.02,
+        "live_equals_replay": false,
+        "live_equals_panel": true
+      },
+      {
+        "symbol": "HFTUSDT",
+        "anchor": "2026-08-07T04:00Z",
+        "live_fn_v": 0.00322541,
+        "archive_truth": 0.00322541,
+        "panel": 0.0032254098914563656,
+        "replay_last_rate": 0.02,
+        "live_equals_replay": false,
+        "live_equals_panel": true
+      }
+    ]
+  },
+  "examples_note": "of the 12 examples kept, 0 have the live value equal to the replay's last_rate; that is the check on whether the live producer really sits on the replay's side or only shares its rule",
+  "verdict": "MEASURED",
+  "limits": [
+    "only cells that have archive truth AND a live member value are counted",
+    "this measures fund_now, a King INPUT column; the funding LEG consumes fe_v and RN8 instead (nc_legs.py:71, 73-74), so a defect here is a model-input defect, not directly a leg defect"
+  ]
+}

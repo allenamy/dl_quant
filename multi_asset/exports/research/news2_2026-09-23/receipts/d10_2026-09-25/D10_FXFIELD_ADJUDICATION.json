@@ -1,0 +1,277 @@
+{
+  "device": "d10_fxfield_adjudicate.py",
+  "self_sha256": "8b5897fd8c1ba202e2f3497ffad6054e7f820b87d51b5080c1f1d722e91531f4",
+  "argv": [
+    "--panel",
+    "/workspace/fx_data_2026-09-13/a0dev/pod_backup_2026-08-21/wide_panel_4h_hist_v2.npz",
+    "--replay",
+    "/dev/shm/news2_2026-09-23/inputs/fund_replay.npz",
+    "--zips-root",
+    "/dev/shm/d10_2026-09-25/zips",
+    "--inventory",
+    "/dev/shm/d10_2026-09-25/receipts/D10_S1_ARCHIVE_INVENTORY.json",
+    "--out",
+    "/dev/shm/d10_2026-09-25/receipts/D10_FXFIELD_ADJUDICATION.json"
+  ],
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "task": "lead's priority target: judge fresh's 5,613 disagreement cells against the archive",
+  "reproduces": "fanom_2026-09-24/receipts/FA_FXFIELD.json (commit e58ddaf3e), device fa_fxfield.py",
+  "panel": {
+    "path_given": "/workspace/fx_data_2026-09-13/a0dev/pod_backup_2026-08-21/wide_panel_4h_hist_v2.npz",
+    "resolved": "/workspace/data/wide_panel_4h_v2ext.npz",
+    "sha256": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116"
+  },
+  "replay": {
+    "path": "/dev/shm/news2_2026-09-23/inputs/fund_replay.npz",
+    "sha256": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4"
+  },
+  "both_sides_claim": {
+    "panel": "r6_panel_splice.py L95-100: last event at or before the anchor, RAW rate, NaN if >12h old",
+    "ledger": "fund_replay.npz from funding_state(..., max_age=43200) -- the same claimed quantity"
+  },
+  "truth": "archive last_funding_rate of the latest settlement <= anchor, NaN if older than 12h",
+  "reproduction": {
+    "common_anchors": 10039,
+    "common_symbols": 829,
+    "common_finite_cells": 3166207,
+    "mismatched_cells": 5613,
+    "expected": 5613,
+    "matches_fresh": true
+  },
+  "symbol_window_source": {
+    "path": "/dev/shm/d10_2026-09-25/receipts/D10_S1_ARCHIVE_INVENTORY.json",
+    "sha256": "005413aa611d2a9d63695c5fb5ce41debb11326f658d3e7302ba67c6cdbff673",
+    "why": "distinguishes 'stale' from 'the archive does not cover this period'"
+  },
+  "archive_months_available": [
+    "2026-01",
+    "2026-02",
+    "2026-03",
+    "2026-04",
+    "2026-08"
+  ],
+  "archive_symbols_loaded": 736,
+  "verdict_counts": {
+    "TRUTH_UNAVAILABLE_month_not_fetched": 3219,
+    "PANEL_RIGHT": 2017,
+    "TRUTH_UNAVAILABLE_outside_symbol_archive_window": 377
+  },
+  "cells_judged": 2017,
+  "cells_not_judged": 3596,
+  "closure_check": {
+    "sum_of_all_buckets": 5613,
+    "mismatched_cells": 5613,
+    "equal": true
+  },
+  "top10_names": [
+    {
+      "symbol": "RAYUSDT",
+      "total": 1148,
+      "by_verdict": {
+        "TRUTH_UNAVAILABLE_month_not_fetched": 1148
+      }
+    },
+    {
+      "symbol": "BDXNUSDT",
+      "total": 749,
+      "by_verdict": {
+        "TRUTH_UNAVAILABLE_month_not_fetched": 553,
+        "TRUTH_UNAVAILABLE_outside_symbol_archive_window": 196
+      }
+    },
+    {
+      "symbol": "SXPUSDT",
+      "total": 539,
+      "by_verdict": {
+        "TRUTH_UNAVAILABLE_month_not_fetched": 358,
+        "TRUTH_UNAVAILABLE_outside_symbol_archive_window": 181
+      }
+    },
+    {
+      "symbol": "AERGOUSDT",
+      "total": 87,
+      "by_verdict": {
+        "TRUTH_UNAVAILABLE_month_not_fetched": 87
+      }
+    },
+    {
+      "symbol": "KNCUSDT",
+      "total": 81,
+      "by_verdict": {
+        "TRUTH_UNAVAILABLE_month_not_fetched": 13,
+        "PANEL_RIGHT": 68
+      }
+    },
+    {
+      "symbol": "ZRXUSDT",
+      "total": 70,
+      "by_verdict": {
+        "TRUTH_UNAVAILABLE_month_not_fetched": 2,
+        "PANEL_RIGHT": 68
+      }
+    },
+    {
+      "symbol": "SUPERUSDT",
+      "total": 69,
+      "by_verdict": {
+        "TRUTH_UNAVAILABLE_month_not_fetched": 1,
+        "PANEL_RIGHT": 68
+      }
+    },
+    {
+      "symbol": "MAVIAUSDT",
+      "total": 66,
+      "by_verdict": {
+        "TRUTH_UNAVAILABLE_month_not_fetched": 4,
+        "PANEL_RIGHT": 62
+      }
+    },
+    {
+      "symbol": "CYBERUSDT",
+      "total": 65,
+      "by_verdict": {
+        "TRUTH_UNAVAILABLE_month_not_fetched": 3,
+        "PANEL_RIGHT": 62
+      }
+    },
+    {
+      "symbol": "NMRUSDT",
+      "total": 64,
+      "by_verdict": {
+        "TRUTH_UNAVAILABLE_month_not_fetched": 2,
+        "PANEL_RIGHT": 62
+      }
+    }
+  ],
+  "examples": {
+    "PANEL_RIGHT": [
+      {
+        "symbol": "GMTUSDT",
+        "anchor": "2026-01-09T20:00Z",
+        "panel": -0.00039507998735643923,
+        "ledger": -0.02,
+        "archive_truth": -0.00039508,
+        "archive_event_utc": "2026-01-09T20:00Z",
+        "panel_iv": 1.0,
+        "ledger_iv": 8.0
+      },
+      {
+        "symbol": "SPORTFUNUSDT",
+        "anchor": "2026-01-16T20:00Z",
+        "panel": -0.0015742500545457006,
+        "ledger": -0.00109044,
+        "archive_truth": -0.00157425,
+        "archive_event_utc": "2026-01-16T20:00Z",
+        "panel_iv": 4.0,
+        "ledger_iv": 8.0
+      },
+      {
+        "symbol": "AXSUSDT",
+        "anchor": "2026-01-17T20:00Z",
+        "panel": -0.0004792399995494634,
+        "ledger": -0.02,
+        "archive_truth": -0.00047924,
+        "archive_event_utc": "2026-01-17T20:00Z",
+        "panel_iv": 1.0,
+        "ledger_iv": 8.0
+      },
+      {
+        "symbol": "DUSKUSDT",
+        "anchor": "2026-01-19T12:00Z",
+        "panel": -0.002217710018157959,
+        "ledger": -0.02,
+        "archive_truth": -0.00221771,
+        "archive_event_utc": "2026-01-19T12:00Z",
+        "panel_iv": 1.0,
+        "ledger_iv": 8.0
+      },
+      {
+        "symbol": "AIAUSDT",
+        "anchor": "2026-01-20T08:00Z",
+        "panel": 4.999999873689376e-05,
+        "ledger": 0.00060939,
+        "archive_truth": 5e-05,
+        "archive_event_utc": "2026-01-20T08:00Z",
+        "panel_iv": 4.0,
+        "ledger_iv": 1.0
+      },
+      {
+        "symbol": "ACUUSDT",
+        "anchor": "2026-01-21T20:00Z",
+        "panel": -0.00039915001252666116,
+        "ledger": -0.0008647,
+        "archive_truth": -0.00039915,
+        "archive_event_utc": "2026-01-21T20:00Z",
+        "panel_iv": 4.0,
+        "ledger_iv": 8.0
+      },
+      {
+        "symbol": "ELSAUSDT",
+        "anchor": "2026-01-22T12:00Z",
+        "panel": -0.0014899000525474548,
+        "ledger": -0.02,
+        "archive_truth": -0.0014899,
+        "archive_event_utc": "2026-01-22T12:00Z",
+        "panel_iv": 1.0,
+        "ledger_iv": 8.0
+      },
+      {
+        "symbol": "SKRUSDT",
+        "anchor": "2026-01-22T16:00Z",
+        "panel": -0.00285088992677629,
+        "ledger": -0.00041244,
+        "archive_truth": -0.00285089,
+        "archive_event_utc": "2026-01-22T16:00Z",
+        "panel_iv": 4.0,
+        "ledger_iv": 8.0
+      },
+      {
+        "symbol": "SPACEUSDT",
+        "anchor": "2026-01-23T16:00Z",
+        "panel": 0.0010297700064256787,
+        "ledger": 0.0003795,
+        "archive_truth": 0.00102977,
+        "archive_event_utc": "2026-01-23T16:00Z",
+        "panel_iv": 4.0,
+        "ledger_iv": 8.0
+      },
+      {
+        "symbol": "BIRBUSDT",
+        "anchor": "2026-01-29T12:00Z",
+        "panel": -0.014053179882466793,
+        "ledger": -0.01394171,
+        "archive_truth": -0.01405318,
+        "archive_event_utc": "2026-01-29T12:00Z",
+        "panel_iv": 4.0,
+        "ledger_iv": 8.0
+      },
+      {
+        "symbol": "GWEIUSDT",
+        "anchor": "2026-01-29T12:00Z",
+        "panel": -0.00017453999316785485,
+        "ledger": 5e-05,
+        "archive_truth": -0.00017454,
+        "archive_event_utc": "2026-01-29T12:00Z",
+        "panel_iv": 4.0,
+        "ledger_iv": 8.0
+      },
+      {
+        "symbol": "INXUSDT",
+        "anchor": "2026-01-31T00:00Z",
+        "panel": -0.00014673999976366758,
+        "ledger": -0.00221222,
+        "archive_truth": -0.00014674,
+        "archive_event_utc": "2026-01-31T00:00Z",
+        "panel_iv": 4.0,
+        "ledger_iv": 8.0
+      }
+    ]
+  },
+  "verdict": "MEASURED",
+  "limits": [
+    "only cells in months with a CHECKSUM-verified archive are judged; the rest are named TRUTH_UNAVAILABLE rather than assumed",
+    "TRUTH_IS_STALE now means the archive COVERS the period and still has no settlement within 12h; cells after a symbol's last archived month (or before its first) are TRUTH_UNAVAILABLE_outside_symbol_archive_window instead",
+    "the archive is treated as truth for the RAW rate; this device does not re-derive intervals"
+  ]
+}
