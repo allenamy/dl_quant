@@ -35,6 +35,7 @@ usage: dlarch_cell_retain.py --cell <dir> --tag <tag_dir> --control-cell <dir> -
                             [--delete]      # without --delete nothing is removed (verify only)
 """
 import argparse
+import glob
 import hashlib
 import json
 import os
@@ -93,6 +94,9 @@ def main():
     ap.add_argument("--engine", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--delete", action="store_true")
+    ap.add_argument("--cell-root", default=None,
+                    help="the chain/<label> root; with --delete its regenerable combo/targets .npz "
+                         "are freed after their sha256 are recorded in this receipt")
     ap.add_argument("--env-whitelist", required=True)
     a = ap.parse_args()
     extra = sorted(set(os.environ) - set(a.env_whitelist.split(",")))
@@ -229,7 +233,34 @@ def main():
                 os.remove(p)
         print(f"deleted {len(removed)} PATH_*.npz ({sum(x['bytes'] for x in removed)/1e6:.1f} MB); .json kept", flush=True)
     rec["deleted"] = removed
-    rec["deleted_note"] = "PATH_*.json and all receipts are kept" if a.delete else "verify-only: nothing removed"
+
+    # ---- also free the REGENERABLE bulk of this cell (measured: 85 of a cell's 102 retained MB) ----
+    # combo outputs and the targets .npz can be rebuilt from the F10 OOF by re-running the chain, and
+    # fresh's named keep-list does not include them (he asked for SER_*.npz, RUN_CONFIG.json, the
+    # BT_LAUNCH receipt and TARGETS*.json -- the json, not the npz). Their sha256 is recorded HERE
+    # before removal, so this receipt alone makes the deletion auditable; the chain receipt has them too.
+    regen = []
+    if a.delete and a.cell_root:
+        cands = []
+        for sub in ("work",):
+            for root, _dirs, files in os.walk(os.path.join(a.cell_root, sub)):
+                for f in files:
+                    if f.endswith(".npz"):
+                        cands.append(os.path.join(root, f))
+        for f in sorted(glob.glob(os.path.join(a.cell_root, "targets", "*.npz"))):
+            cands.append(f)
+        for f in cands:
+            if os.path.islink(f) or not os.path.isfile(f):
+                continue
+            regen.append({"file": os.path.relpath(f, a.cell_root), "bytes": os.path.getsize(f),
+                          "sha256": sha(f), "regenerable_by": "re-run dlarch_chain_run.py for this seed"})
+        for r in regen:
+            os.remove(os.path.join(a.cell_root, r["file"]))
+        print(f"freed {len(regen)} regenerable file(s) "
+              f"({sum(r['bytes'] for r in regen)/1e6:.1f} MB); their sha256 are in this receipt", flush=True)
+    rec["freed_regenerable"] = regen
+    rec["deleted_note"] = ("PATH_*.json, AGG_*, TARGETS*.json, receipts, logs and configs are kept"
+                           if a.delete else "verify-only: nothing removed")
 
     out = os.path.join(a.out, f"RETAIN_{a.tag}.json")
     rsha = sio.write_json(out, rec)
