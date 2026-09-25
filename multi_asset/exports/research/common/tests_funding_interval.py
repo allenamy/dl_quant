@@ -71,6 +71,33 @@ cell("FI8_zip_column_wins_and_off_grid_iv_is_refused", lambda: (
     (_ for _ in ()).throw(AssertionError()) if F.gate_interval(F.resolve(ZIP, allow_spacing=False), what="z") != 8.0 else None,
     raises(F.IntervalError, lambda: F.gate_interval(F.resolve(dict(ZIP, iv_zip="3.0"), allow_spacing=False), what="z"), "not in the allowed set")))
 
+SPACE_3H = {"iv_zip": "", "iv_best": "", "iv_best_source": "", "iv_gap_back": "3.0", "iv_gap_fwd": "3.0"}
+
+
+def _fi9():
+    """lead's ruling 2026-09-25: an off-grid gap on a NON-switch row is named, not raised and not guessed."""
+    r = F.resolve(SPACE_3H, allow_spacing=True)          # must not raise: the build has to continue
+    assert r["tier"] == F.NONSTANDARD_SPACING, r["tier"]
+    assert r["iv"] is None, r["iv"]                       # never a guessed number
+    assert r["spacing_value"] == 3.0, r                   # the off-grid value is carried for counting
+    assert r["spacing_safe"] is True, r                   # it IS a non-switch row; that is the point
+    raises(F.IntervalError, lambda: F.gate_interval(r, what="3h"), "refusing to use a UNRESOLVED_NONSTANDARD_SPACING")
+
+
+cell("FI9_offgrid_spacing_is_named_not_raised_and_not_guessed", _fi9)
+cell("FI9b_three_unresolved_kinds_stay_distinguishable", lambda: (
+    (_ for _ in ()).throw(AssertionError("kinds collided")) if len({
+        F.EVIDENCE_NOT_AVAILABLE, F.SOURCES_CONFLICT, F.NONSTANDARD_SPACING}) != 3 else None,
+    (_ for _ in ()).throw(AssertionError("nonstandard must not be gateable")) if F.NONSTANDARD_SPACING in F.GATEABLE else None))
+cell("FI9c_declared_offgrid_still_refuses_scope_is_spacing_only", lambda: (
+    raises(F.IntervalError, lambda: F.gate_interval(
+        F.resolve(dict(ZIP, iv_zip="3.0"), allow_spacing=True), what="declared3"), "not in the allowed set"),
+    (_ for _ in ()).throw(AssertionError("declared off-grid must NOT be relabelled as spacing")) if F.resolve(
+        dict(ZIP, iv_zip="3.0"), allow_spacing=True)["tier"] != F.EXACT else None))
+cell("FI9d_on_grid_safe_spacing_is_unchanged", lambda: (
+    (_ for _ in ()).throw(AssertionError()) if F.gate_interval(F.resolve(SAFE_SPACE, allow_spacing=True), what="s") != 8.0 else None,
+    (_ for _ in ()).throw(AssertionError()) if F.resolve(SAFE_SPACE, allow_spacing=True)["tier"] != F.EXACT_BY_SPACING else None))
+
 ok = sum(1 for _, o, _ in RES if o)
 for n, o, m in RES: print("%-52s %s%s" % (n, "PASS" if o else "FAIL", "" if o else "   " + m))
 print("SUMMARY %d/%d cells pass" % (ok, len(RES)))

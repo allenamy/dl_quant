@@ -24,16 +24,24 @@ LIKELY never satisfies a gate. `iv_likely` is a best guess for a human reading t
 Spacing safety: a short->long switch row is exactly where the time difference lies (FIXPROGRAM P9), so spacing may not be used
 as truth when the backward and forward gaps disagree. 166 of 243,989 rows are in that state.
 
-UNRESOLVED is two different things and the lead has ruled they must stay distinguishable:
+UNRESOLVED is three different things and the lead has ruled they must stay distinguishable:
   * `EVIDENCE_NOT_AVAILABLE` -- the zip is unpublished or a pull failed. It carries a retry record and blocks only when an
     affected row actually enters that month's training input.
   * `SOURCES_CONFLICT` -- sources contradict each other. A real refusal; it blocks.
+  * `NONSTANDARD_SPACING` -- added on the lead's ruling of 2026-09-25. A non-switch row (back == fwd) whose spacing lands off
+    ALLOWED_IV, the real case being a 3-hour gap. Before this, such a row reached `gate_interval` as EXACT_BY_SPACING and the
+    ALLOWED_IV check there raised IntervalError, which crashed a whole rebuild over one row. The lead's ruling is "neither
+    raise nor guess": name it, count it, report it per year, and let the build continue. The scope is the SPACING tier only --
+    a DECLARED value off the grid still refuses in `gate_interval`, which is what test cell FI8 pins (`iv_zip="3.0"` raises).
+    Measured basis: the archive's declared column carries only {1.0, 2.0, 4.0, 8.0} over 2,584,596 rows
+    (D10_S1_SRC_IDENTITY.json), so an off-grid value can only come from spacing.
 """
 EXACT = "EXACT"
 EXACT_BY_SPACING = "EXACT_BY_SPACING"
 LIKELY = "LIKELY"
 EVIDENCE_NOT_AVAILABLE = "UNRESOLVED_EVIDENCE_NOT_AVAILABLE"
 SOURCES_CONFLICT = "UNRESOLVED_SOURCES_CONFLICT"
+NONSTANDARD_SPACING = "UNRESOLVED_NONSTANDARD_SPACING"
 NOT_IN_P9 = "NOT_IN_P9"
 GATEABLE = (EXACT, EXACT_BY_SPACING)
 ALLOWED_IV = (1.0, 2.0, 4.0, 6.0, 8.0)
@@ -80,7 +88,18 @@ def resolve(row, *, allow_spacing):
                 "likely_iv": likely, "spacing_safe": spacing_is_safe(row),
                 "note": "a best guess for a human reader; it never satisfies a gate and is never promoted to EXACT"}
     if allow_spacing and spacing_is_safe(row):
-        return {"iv": _f(row.get("iv_gap_back")), "tier": EXACT_BY_SPACING, "source": "spacing",
+        sp = _f(row.get("iv_gap_back"))
+        if sp is not None and sp not in ALLOWED_IV:
+            # lead's ruling 2026-09-25: a non-switch row whose spacing lands off the allowed grid
+            # (the real case is a 3-hour gap) is neither guessed nor allowed to crash the build. It
+            # becomes a NAMED unresolved subclass, counted and reported like the other two.
+            # Scope is the SPACING tier only: a DECLARED value off the grid still refuses in
+            # gate_interval, which is what test cell FI8 pins (iv_zip="3.0" must raise).
+            return {"iv": None, "tier": NONSTANDARD_SPACING, "source": "spacing",
+                    "spacing_value": sp, "spacing_safe": True,
+                    "note": "backward and forward gaps agree but the gap is not in the allowed set; "
+                            "named unresolved rather than guessed, and the build continues"}
+        return {"iv": sp, "tier": EXACT_BY_SPACING, "source": "spacing",
                 "spacing_safe": True, "note": "backward and forward gaps agree, so this is not a switch row"}
     src = (row.get("iv_best_source") or "")
     if src.startswith("conflicting"):

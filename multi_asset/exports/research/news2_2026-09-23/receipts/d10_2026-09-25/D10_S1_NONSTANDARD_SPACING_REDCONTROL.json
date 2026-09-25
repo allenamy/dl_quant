@@ -1,0 +1,64 @@
+{
+  "device": "d10_nonstandard_spacing_redcontrol.py",
+  "self_sha256": "8ad344f97562e5e793eddbd63c180913d232e8565959258d1bcccf2ad38cfa91",
+  "argv": [
+    "--repo",
+    ".",
+    "--old-rev",
+    "HEAD",
+    "--scratch",
+    "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/d10",
+    "--out",
+    "multi_asset/exports/research/news2_2026-09-23/receipts/d10_2026-09-25/D10_S1_NONSTANDARD_SPACING_REDCONTROL.json"
+  ],
+  "python": "/usr/local/opt/python@3.14/bin/python3.14",
+  "ruling": "lead 2026-09-25: off-grid spacing on a non-switch row becomes a named UNRESOLVED subclass NONSTANDARD_SPACING -- neither raised nor guessed -- and the build continues",
+  "instrument": "exhaustive enumeration of the resolver's decision space, not a sample of rows, because the claim is about code behaviour",
+  "old": {
+    "rev": "HEAD",
+    "path_in_repo": "multi_asset/exports/research/common/funding_interval.py",
+    "extracted_to": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/d10/funding_interval_OLD.py",
+    "sha256": "29c29ca406be5e8e8abf85feb076edf232de7bca9d68938117f709827266f37a",
+    "source": "git show, never reimplemented"
+  },
+  "new": {
+    "path": "./multi_asset/exports/research/common/funding_interval.py",
+    "sha256": "4ce49ee54efe0205d0b05edb444d89983b8a185457009013fe2e0ea92de33357"
+  },
+  "tier_sets": {
+    "old": [
+      "ALLOWED_IV",
+      "EVIDENCE_NOT_AVAILABLE",
+      "EXACT",
+      "EXACT_BY_SPACING",
+      "GATEABLE",
+      "LIKELY",
+      "NOT_IN_P9",
+      "SOURCES_CONFLICT"
+    ],
+    "new": [
+      "ALLOWED_IV",
+      "EVIDENCE_NOT_AVAILABLE",
+      "EXACT",
+      "EXACT_BY_SPACING",
+      "GATEABLE",
+      "LIKELY",
+      "NONSTANDARD_SPACING",
+      "NOT_IN_P9",
+      "SOURCES_CONFLICT"
+    ]
+  },
+  "cases_enumerated": 3602,
+  "targeted_cases_old_raised_offgrid_spacing": 8,
+  "targeted_cases_failing_the_new_contract": [],
+  "other_cases": 3594,
+  "other_cases_differing": 0,
+  "first_differences": [],
+  "control_can_fire": true,
+  "verdict": "RED_CONTROL_PASS",
+  "reading": "OLD raised IntervalError on every off-grid safe-spacing case; NEW labels each one NONSTANDARD_SPACING without raising and its gate still refuses; every other point in the decision space is bitwise identical between OLD and NEW.",
+  "limits": [
+    "this certifies the code change over its decision space; it says nothing about how many REAL rows are NONSTANDARD_SPACING -- that count is a separate stage-1 measurement",
+    "the scope is the spacing tier only; a DECLARED off-grid value still refuses (FI8/FI9c)"
+  ]
+}
