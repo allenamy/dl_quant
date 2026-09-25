@@ -1,0 +1,23 @@
+[D1] sub-floor held residual ⇒ popped
+  OK    ★★★ D1 a held residual below its floor is POPPED before the reshape (listed as popped and dust-popped), so the reshape re-absorbs it  — {'popped': ['Z'], 'dust_popped': ['Z']}
+  OK    ★★★ D1 ...the clamp still gives the held residual its FLATTEN row at exactly 0.0 (flatten_only) — never an orphan (the 2026-08-01 lesson in clamp_held_untradable) — and that row moves the net by 0: the book after it is neutral  — {'Z': 0.0, 'flatten_only': ['Z'], 'net': -2.842170943040401e-14, 'shift': 0.0}
+[D2] held at / above the floor ⇒ clamped as before
+  OK    ★★★ D2 a held position above its floor is still CLAMPED (not popped; pinned)  — {'popped': [], 'clamped': ['Z'], 'Z': -60.0}
+  OK    ★★ D2 exactly AT the floor counts as held (clamped) — the rule is strictly below  — {'popped': []}
+[D3] floors absent ⇒ exact-zero rule
+  OK    ★★★ D3 without floors a sub-floor held name is CLAMPED (today's rule, no dust judgement without a floor)  — {'popped': [], 'Z': -0.12}
+  OK    ★★ D3 an exactly-zero held name is popped with or without floors (unchanged)
+[D4] a popped name gets no plan row and no order
+  OK    ★★★ D4 the dust name's plan row is a SKIP (skipped_min_notional, no qty): no opening and no closing attempt — the residual stays  — [{'symbol': 'Z', 'target_notional': 0.0, 'prev_notional': -0.12, 'delta_notional': 0.12, 'mid_at_anchor': 1.0, 'target_w': 0.0, 'prev_w': -0.00011999999999999999, 'reduce_only': True, 'skip': 'skipped_min_notional'}]
+  OK    ★★★ D4 ...and NO order-bearing row (qty) for it anywhere in the plan; every order-bearing row is a non-dust name  — [('A', 264.0, None), ('B', 147.0, None), ('C', 89.0, None), ('D', -262.0, None), ('E', -238.0, None), ('Z', None, 'skipped_min_notional')]
+[D5] reshape neutral with dust names; clamp shift excludes them
+  OK    ★★★ D5 two sub-floor held untradables: both dust-popped before the reshape, back at exactly 0.0, the book is neutral, the clamp net shift is 0  — {'net': -5.684341886080802e-14, 'shift': 0.0, 'popped': ['Z', 'E']}
+[D0 / D6] the recorded 2026-09-25 08Z anchor
+  OK    ★★★ D0 fixture fidelity: today's rule on the recorded inputs reproduces the executor's record (net_before, net_after, clamped names, book_net_usdt)  — {'net_before': (-3747.3832664084052, -3747.383266408407), 'book_net': (2464.182074454104, 2464.182119274111), 'clamped': ['BCHUSDT', 'ENAUSDT', 'PRLUSDT', 'SCRUSDT', 'SYNUSDT', 'ZAMAUSDT']}
+  OK    ★★★ D6 with the floors the book after the clamp is within 50 USDT of neutral (recorded +2,464)  — {'book_net_fixed': -7.164674998951796, 'recorded': 2464.182119274111}
+  OK    ★★ D6 ...exactly the sub-floor held names were dust-popped, each is back at exactly 0.0 (flatten), and the names above their floor keep today's clamp disposition  — {'dust': ['BCHUSDT', 'ENAUSDT', 'ZAMAUSDT'], 'dust_popped': ['BCHUSDT', 'ENAUSDT', 'ZAMAUSDT'], 'kept': {'PRLUSDT': (0.0, 0.0), 'SCRUSDT': (0.0, 0.0), 'SYNUSDT': (0.0, 0.0)}}
+[D7] the report names the dust-popped names
+  OK    ★★ D7 the reshape report lists the dust-popped names separately  — {'dust_popped_names': ['BCHUSDT', 'ENAUSDT', 'ZAMAUSDT'], 'expected': ['BCHUSDT', 'ENAUSDT', 'ZAMAUSDT']}
+
+13/13 checks passed
+ALL PASS

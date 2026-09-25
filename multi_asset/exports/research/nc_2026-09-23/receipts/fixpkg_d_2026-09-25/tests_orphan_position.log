@@ -1,0 +1,38 @@
+[A] the rule under test is the production one
+  OK    ★ the production functions are called, not a re-typed copy  — withhold_pop + clamp_held_untradable
+
+[B] the four cases
+  OK    ★★ (a) held + withheld, target REDUCES -> the target survives, so plan() emits a row  — target={'A': 100.0} clamp={'popped': [], 'reduced': ['A'], 'add_blocked': [], 'flatten_only': []}
+  OK       and the delta is toward zero
+  OK    ★★ (b) held + withheld, target would ADD -> clamped to the current position (delta 0)  — target={'A': 200.0} clamp={'popped': [], 'reduced': [], 'add_blocked': ['A'], 'flatten_only': []}
+  OK    ★★ (c) NOT held + withheld -> popped (unchanged: nothing to close, may not open)  — target={} clamp={'popped': ['A'], 'reduced': [], 'add_blocked': [], 'flatten_only': []}
+  OK    ★★ (d) target CROSSES ZERO -> clamped to 0, never past it  — target={'A': 0.0} clamp={'popped': [], 'reduced': [], 'add_blocked': [], 'flatten_only': ['A']}
+  OK    ★★    ...i.e. we close the 200 we hold and do NOT open 300 of the other side  — a -300 target against +200 is a 500 order; only 200 of it is a close
+  OK       a target of exactly 0 on a SHORT also flattens, not reverses  — target={'A': 0.0}
+  OK       a short reducing toward zero is a reduction, not a flatten  — target={'A': -50.0} clamp={'popped': [], 'reduced': ['A'], 'add_blocked': [], 'flatten_only': []}
+  OK       a short getting SHORTER-er is an add, and is blocked  — target={'A': -150.0}
+
+[C] the orphan is gone, and nothing else moved
+  OK    ★★ a name NOT withheld is untouched by any of this  — target={'A': 100.0, 'B': 300.0}
+  OK    ★ the disposition is three separate outcomes, not one 'withheld' count  — {'popped': [], 'reduced': ['A'], 'add_blocked': [], 'flatten_only': []}
+
+[D] the exit_only path (a name leaving TRADING) is a DIFFERENT branch and must not regress
+  OK    ★★ a held name that left TRADING is still exit_only  — {'BBBUSDT': 5.0}
+  OK    ★★ and its exit order is still reduce-only (so it passes the opening halt)  — [{'symbol': 'BBBUSDT', 'side': 'sell', 'quantity': 5.0, 'reduce_only': True, '_reason': 'symbol no longer TRADING — price-free full exit'}]
+  OK    ★ the two mechanisms are not the same set
+
+[E] the clamped names are tagged reduce-only WHERE THE VENUE CAN SEE IT
+  OK    ★★★ a PARTIAL reduction (hold 200, clamped target 100) is emitted reduce_only=True  — {'symbol': 'AAAUSDT', 'target_notional': 100.0, 'prev_notional': 200.0, 'delta_notional': -100.0, 'mid_at_anchor': 1.0, 'target_w': 0.25, 'prev_w': 0.5, 'reduce_only': True, 'qty': -100.0, 'side': 'sell'}
+  OK    ★★★ ...and its delta is toward zero, i.e. it really is a reduction  — -100.0
+  OK    ★★ an ordinary name is NOT tagged — the tag is a fact about the clamp, not a default
+  OK    ★★★ a FULL flatten (target clamped to 0) is emitted reduce_only=True  — {'symbol': 'AAAUSDT', 'target_notional': 0.0, 'prev_notional': 200.0, 'delta_notional': -200.0, 'mid_at_anchor': 1.0, 'target_w': 0.0, 'prev_w': 200.0, 'reduce_only': True, 'qty_source': 'notional_over_mid', 'qty_source_note': 'readback carried no quantity for this name', 'qty': -200.0, 'side': 'sell'}
+  OK    ★★★ the tag reaches the ORDER the broker is handed — the plan row is not the venue  — [{'symbol': 'AAAUSDT', 'side': 'sell', 'quantity': 200.0, 'price': 1.0, 'tif': 'GTX', 'client_id': 'RID-AAAUSDT-1', 'reduce_only': True}]
+  OK    ★★ and `broker.submit` is the thing that turns it into reduceOnly=true for the venue
+
+[F] red capability — put the pop back and the orphan returns
+  OK    ★★ mutant 'always_pop' (the old behaviour) orphans the held position again  — target={} — no row, no reduction, no record
+  OK    ★★ mutant 'allow_cross_zero' would OPEN 300 of the other side on a name the venue forbids opening  — target={'A': -300.0}
+  OK    ★★ mutant 'never_tag' emits the reduction WITHOUT reduceOnly — the order the venue may refuse on a maxNotionalValue=0 symbol
+  OK    ★ the on-disk source is unchanged
+
+ALL PASS  (25 checks)
