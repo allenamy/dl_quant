@@ -26,6 +26,7 @@ rev 1 (lead approval 2026-09-25 ~17:3xZ, main drawdown 09-16 12Z → 09-24 04Z, 
   (d) SEGMENTS "A,A;A,A": the EMA chain restarts at each segment start from production's own state of the anchor before — IDENTICAL for
       every arm. Named limitation: within a segment the counterfactual is "the leg removed FROM THE SEGMENT START", not "the leg never
       existed"; two segments are two chains, never one.
+rev 3 (lead approval, seg-1 run 1 STOP): the old tree's hard-coded root line is pointed at the sandbox home in the sandbox copy (see build()).
 usage: ~/wide_shadow/venv/bin/python cf_legs.py <default tree> <out dir> <A,A,...[;A,A,...]> [--tree-at A=<dir> ...] [--copy-extra <rel> ...]"""
 import collections, glob, hashlib, json, math, os, shutil, subprocess, sys, time
 import numpy as np
@@ -114,6 +115,18 @@ def build(tree, A, sb, arm, prev_sb):
         "    def send(self, *a, **k): return self.alarm('INFO', str(a))\n")
     open(f"{sb}/wide_shadow/fea171/_gate_wrap.py", "w").write(G.WRAP)
     cs = f"{sb}/wide_shadow/fea171/combo_stage.py"; src = open(cs).read()
+    # rev 3 (lead approval 2026-09-25 ~21:2xZ; seg-1 run 1 STOPPED at 09-17 12Z: the old tree b5c698f9 hard-codes HOME/WS at L9 and
+    # ignores WIDE_SHADOW_HOME, so it tried to read production state and the sandbox profile denied it): in the SANDBOX COPY only, that
+    # one root line reads the sandbox home (the layout {sb}/wide_shadow + {sb}/dl_quant_live mirrors HOME). The line must match EXACTLY
+    # once; a tree without it must read WIDE_SHADOW_HOME (the NC tree), else STOP. No computation line changes; the base-arm bitwise
+    # check stays the validator.
+    OLD_ROOT = 'HOME = os.path.expanduser("~"); WS = f"{HOME}/wide_shadow"; HERE = f"{WS}/fea171"'
+    n_root = src.count(OLD_ROOT)
+    if n_root == 0:
+        assert "WIDE_SHADOW_HOME" in src, "combo_stage neither has the old root line nor reads WIDE_SHADOW_HOME"
+    else:
+        assert n_root == 1, f"old root line matched {n_root} times, not 1"
+        src = src.replace(OLD_ROOT, 'HOME = os.environ["CF_SANDBOX_HOME"]; WS = f"{HOME}/wide_shadow"; HERE = f"{WS}/fea171"')
     for old, new in ARMS[arm].items():
         assert src.count(old) == 1, f"{arm}: the leg line matched {src.count(old)} times"
         src = src.replace(old, new)
@@ -132,7 +145,7 @@ def run(sb):
     open(prof, "w").write('(version 1)\n(allow default)\n(deny network*)\n(deny file-write*)\n(allow file-write* (subpath (param "SANDBOX")) (literal "/dev/null"))\n'
                           '(deny file-read* file-write* (subpath (param "SOURCE_STATE")) (subpath (param "SOURCE_LIVE")) (regex #"(^|/)[.]env([^/]*$|/)"))\n')
     env = {"PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "PYTHONDONTWRITEBYTECODE": "1", "TMPDIR": f"{sb}/tmp", "WIDE_SHADOW_HOME": f"{sb}/wide_shadow",
-           "DL_QUANT_LIVE_ROOT": f"{sb}/dl_quant_live", "COMBO_LIVE": "1", "COMBO_LIVE_DIR": par, "HOME": HOME, "GATE_FEATURE_WS": f"{sb}/featws"}
+           "DL_QUANT_LIVE_ROOT": f"{sb}/dl_quant_live", "COMBO_LIVE": "1", "COMBO_LIVE_DIR": par, "HOME": HOME, "CF_SANDBOX_HOME": sb, "GATE_FEATURE_WS": f"{sb}/featws"}
     r = subprocess.run(["/usr/bin/sandbox-exec", "-D", f"SANDBOX={sb}", "-D", f"SOURCE_STATE={WS}/state", "-D", f"SOURCE_LIVE={LIVE}", "-f", prof,
                         f"{WS}/venv/bin/python", "-u", "_gate_wrap.py"], env=env, cwd=f"{sb}/wide_shadow/fea171", capture_output=True, text=True)
     open(f"{sb}.combo.log", "w").write(r.stdout + "\n--- stderr ---\n" + r.stderr)
