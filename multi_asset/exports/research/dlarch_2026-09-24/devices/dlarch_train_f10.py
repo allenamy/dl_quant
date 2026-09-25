@@ -33,13 +33,34 @@ import numpy as np
 import torch
 from torch import nn
 
-W = pathlib.Path('/dev/shm/news2_2026-09-23')                      # READ-ONLY
+W = pathlib.Path('/dev/shm/news2_2026-09-23')                      # READ-ONLY -- DATA inputs only, see VENDOR
+# CODE comes from my own persistent tree, not from news2's volatile /dev/shm (lead ruling 2026-09-25).
+# news2 froze that tree and verified 5/5 shas, but a freeze is a promise about intent, not a property of
+# the filesystem -- they said themselves they nearly cleared it under their own "free it when the run is
+# done" rule, because the dependency was invisible to them. Vendored by dlarch_vendor_news2.py with a
+# read-back sha comparison; manifest receipts/VENDOR_NEWS2_20260923.json.
+# The BULK data (work/NEWS_FEATURES.npz 2.96 GB, work/legs.npz, receipts/P2B_FEATURES.json,
+# receipts/P3_LEGS.json) still comes from W: 2.96 GB does not fit my /workspace quota. Those four ARE
+# pinned -- they sit in `inputs`, asserted per fold, with NEWT_SHA and two receipt cross-checks on top --
+# so a changed or missing W fails LOUDLY and cannot silently train on other data. Residual exposure is
+# AVAILABILITY (cost = a re-run), not correctness.
+# I do not claim "everything read is pinned" as a blanket: until 2026-09-25 that was FALSE for
+# inputs/bundle_config.json and receipts/P1_members_2025H2on.npz, read at the T3 branch below and
+# present in no pinned list at all. They are vendored and asserted now (BUNDLE_CFG_SHA / P1_MEMBERS_SHA).
+VENDOR = pathlib.Path(os.path.dirname(os.path.abspath(__file__))) / 'vendor_news2_20260923'
 OUT_ROOT = pathlib.Path('/workspace/dlarch_2026-09-24/T3')         # ALL writes land here
-REF = W / 'devices/news2_train_f10.py'
+REF = VENDOR / 'devices/news2_train_f10.py'
 REF_SHA = '66bc7c3e69af7aab7062b562674fb3bbe272fd9a28fc3ea9639143f4549420db'  # news2_train_f10.py, asserted in main()
 NEWT = pathlib.Path('/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz')
 NEWT_SHA = 'ca479fccd3d3245e9438a8c82ba7b4a1950ab6e06607f28b25923c4526924d62'
 MASK_PATH = '/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz'
+# T3-only reads that were previously pinned NOWHERE: they were read straight off /dev/shm and did not
+# appear in `inputs`, so a change to either would have been SILENT. Vendored and asserted at the use site.
+# The pinned list and the read list are different lists; only comparing them shows the gap.
+BUNDLE_CFG = VENDOR / 'inputs/bundle_config.json'
+BUNDLE_CFG_SHA = '3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e'
+P1_MEMBERS = VENDOR / 'receipts/P1_members_2025H2on.npz'
+P1_MEMBERS_SHA = '2323623fda9333710f5834911ab629377ab8c12b056f40ccfc9f7033c0c1f6f1'
 
 
 def sha(p):
@@ -52,7 +73,7 @@ def sha(p):
 def log(*x): print(time.strftime('%H:%M:%S', time.gmtime()), *x, flush=True)
 
 
-sys.path.insert(0, str(W / 'devices'))
+sys.path.insert(0, str(VENDOR / 'devices'))   # CODE from my persistent tree, not news2's /dev/shm
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from f10_observability import span_admissible, measured_dot          # noqa: E402
 from dlarch_chain_torch import chain_torch                           # noqa: E402
@@ -154,8 +175,8 @@ def main():
     inputs = {str(p): sha(p) for p in files}
     sources = {str(p): sha(p) for p in (pathlib.Path(os.path.abspath(__file__)), REF,
                                        pathlib.Path(os.path.dirname(os.path.abspath(__file__))) / 'dlarch_chain_torch.py',
-                                       W / 'devices/f10_observability.py', W / 'devices/nc_hist_features.py',
-                                       W / 'devices/nc_legs.py', W / 'devices/nc_p2_build.py')}
+                                       VENDOR / 'devices/f10_observability.py', VENDOR / 'devices/nc_hist_features.py',
+                                       VENDOR / 'devices/nc_legs.py', VENDOR / 'devices/nc_p2_build.py')}
     assert inputs[str(files[1])] == NEWT_SHA and json.load(open(files[3]))['sha256'] == inputs[str(files[0])] and json.load(open(files[4]))['sha256'] == inputs[str(files[2])]
     F = np.load(files[0]); T = np.load(files[1], allow_pickle=True); leg = np.load(files[2])
     a = F['anchors'].astype(np.int64)
@@ -201,9 +222,11 @@ def main():
     if args.arm == 'T3':
         from book_universe import align as align_universe, PATH as UNIVERSE_PATH, SHA as UNIVERSE_SHA
         assert sha(UNIVERSE_PATH) == UNIVERSE_SHA
-        cfg = json.load(open(W / 'inputs/bundle_config.json'))['params']
+        assert sha(BUNDLE_CFG) == BUNDLE_CFG_SHA, ('bundle_config.json changed', sha(BUNDLE_CFG))
+        cfg = json.load(open(BUNDLE_CFG))['params']
         mk = np.load(MASK_PATH); assert np.array_equal(mk['ts'].astype(np.int64), a)
-        crypto = np.load(W / 'receipts/P1_members_2025H2on.npz')['crypto']
+        assert sha(P1_MEMBERS) == P1_MEMBERS_SHA, ('P1_members_2025H2on.npz changed', sha(P1_MEMBERS))
+        crypto = np.load(P1_MEMBERS)['crypto']
         cand = mk['mask'] & crypto[None, :]
         universe = np.load(UNIVERSE_PATH)
         inuni = a <= universe['ts'][-1]
