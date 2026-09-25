@@ -1,0 +1,602 @@
+{
+  "device": "d10_month_coverage_classify.py",
+  "self_sha256": "df38d5114296d370d056f3b6d2a843bdb59a7c6cb18158684bbdab849bd27975",
+  "argv": [
+    "--inventory",
+    "/dev/shm/d10_2026-09-25/receipts/D10_S1_ARCHIVE_INVENTORY.json",
+    "--ledger",
+    "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+    "--pull-symbols",
+    "/workspace/fx_prod_p9/symbols_for_zip_pull.txt",
+    "--out",
+    "/dev/shm/d10_2026-09-25/receipts/D10_S1_MONTH_COVERAGE.json"
+  ],
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "prereg": "docs/PREREG_D10_funding_truth_audit_stage1_2026-09-25.md @ 496142901",
+  "inputs": {
+    "inventory": {
+      "path": "/dev/shm/d10_2026-09-25/receipts/D10_S1_ARCHIVE_INVENTORY.json",
+      "sha256": "005413aa611d2a9d63695c5fb5ce41debb11326f658d3e7302ba67c6cdbff673"
+    },
+    "ledger": {
+      "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+      "sha256": "073088e503c026d6071c76764426503616d53570e5f3763807df27ea7cc80362"
+    },
+    "pull_symbols": {
+      "path": "/workspace/fx_prod_p9/symbols_for_zip_pull.txt",
+      "sha256": "8e0baa5a42ec230e57130e827603c894ec03f15d47b1662990f9e3f163a3074f"
+    }
+  },
+  "method": "classify each difference against that symbol's archive coverage window, never pool a count",
+  "totals": {
+    "ledger_symbol_months": 21016,
+    "archive_symbol_months": 20289,
+    "both": 20288,
+    "ledger_only": 728,
+    "archive_only": 1
+  },
+  "ledger_only_breakdown": {
+    "current_month_not_yet_published": {
+      "count": 676,
+      "month": "2026-09",
+      "why": "the archive publishes month M in early M+1"
+    },
+    "classified_rest": {
+      "after_archive_last_month": 12,
+      "before_archive_first_month": 40
+    },
+    "rest_total": 52,
+    "window_edge_total": 52,
+    "real_holes_inside_window": 0,
+    "hypothesis": "the archive's per-symbol coverage window is NARROWER than the ledger's at both ends",
+    "hypothesis_confirmed_for": "52 of 52",
+    "unexplained": [],
+    "detail": [
+      {
+        "symbol": "AERGOUSDT",
+        "month": "2026-07",
+        "ledger_events": 185,
+        "archive_window": [
+          "2024-09",
+          "2026-06"
+        ],
+        "class": "after_archive_last_month"
+      },
+      {
+        "symbol": "AERGOUSDT",
+        "month": "2026-08",
+        "ledger_events": 186,
+        "archive_window": [
+          "2024-09",
+          "2026-06"
+        ],
+        "class": "after_archive_last_month"
+      },
+      {
+        "symbol": "BDXNUSDT",
+        "month": "2026-04",
+        "ledger_events": 15,
+        "archive_window": [
+          "2025-06",
+          "2026-03"
+        ],
+        "class": "after_archive_last_month"
+      },
+      {
+        "symbol": "BDXNUSDT",
+        "month": "2026-05",
+        "ledger_events": 186,
+        "archive_window": [
+          "2025-06",
+          "2026-03"
+        ],
+        "class": "after_archive_last_month"
+      },
+      {
+        "symbol": "BDXNUSDT",
+        "month": "2026-06",
+        "ledger_events": 179,
+        "archive_window": [
+          "2025-06",
+          "2026-03"
+        ],
+        "class": "after_archive_last_month"
+      },
+      {
+        "symbol": "BDXNUSDT",
+        "month": "2026-07",
+        "ledger_events": 186,
+        "archive_window": [
+          "2025-06",
+          "2026-03"
+        ],
+        "class": "after_archive_last_month"
+      },
+      {
+        "symbol": "BDXNUSDT",
+        "month": "2026-08",
+        "ledger_events": 186,
+        "archive_window": [
+          "2025-06",
+          "2026-03"
+        ],
+        "class": "after_archive_last_month"
+      },
+      {
+        "symbol": "BNXUSDT",
+        "month": "2022-03",
+        "ledger_events": 1,
+        "archive_window": [
+          "2023-02",
+          "2025-06"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "BNXUSDT",
+        "month": "2022-04",
+        "ledger_events": 90,
+        "archive_window": [
+          "2023-02",
+          "2025-06"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "BNXUSDT",
+        "month": "2022-05",
+        "ledger_events": 93,
+        "archive_window": [
+          "2023-02",
+          "2025-06"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "BNXUSDT",
+        "month": "2022-06",
+        "ledger_events": 90,
+        "archive_window": [
+          "2023-02",
+          "2025-06"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "BNXUSDT",
+        "month": "2022-07",
+        "ledger_events": 93,
+        "archive_window": [
+          "2023-02",
+          "2025-06"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "BNXUSDT",
+        "month": "2022-08",
+        "ledger_events": 93,
+        "archive_window": [
+          "2023-02",
+          "2025-06"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "BNXUSDT",
+        "month": "2022-09",
+        "ledger_events": 90,
+        "archive_window": [
+          "2023-02",
+          "2025-06"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "BNXUSDT",
+        "month": "2022-10",
+        "ledger_events": 93,
+        "archive_window": [
+          "2023-02",
+          "2025-06"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "BNXUSDT",
+        "month": "2022-11",
+        "ledger_events": 90,
+        "archive_window": [
+          "2023-02",
+          "2025-06"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "BNXUSDT",
+        "month": "2022-12",
+        "ledger_events": 180,
+        "archive_window": [
+          "2023-02",
+          "2025-06"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "BNXUSDT",
+        "month": "2023-01",
+        "ledger_events": 93,
+        "archive_window": [
+          "2023-02",
+          "2025-06"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "BTCSTUSDT",
+        "month": "2026-07",
+        "ledger_events": 93,
+        "archive_window": [
+          "2021-03",
+          "2026-06"
+        ],
+        "class": "after_archive_last_month"
+      },
+      {
+        "symbol": "BTCSTUSDT",
+        "month": "2026-08",
+        "ledger_events": 93,
+        "archive_window": [
+          "2021-03",
+          "2026-06"
+        ],
+        "class": "after_archive_last_month"
+      },
+      {
+        "symbol": "DOLOUSDT",
+        "month": "2025-04",
+        "ledger_events": 1,
+        "archive_window": [
+          "2025-05",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "HAEDALUSDT",
+        "month": "2025-04",
+        "ledger_events": 1,
+        "archive_window": [
+          "2025-05",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "ICPUSDT",
+        "month": "2021-12",
+        "ledger_events": 93,
+        "archive_window": [
+          "2022-09",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "ICPUSDT",
+        "month": "2022-01",
+        "ledger_events": 93,
+        "archive_window": [
+          "2022-09",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "ICPUSDT",
+        "month": "2022-02",
+        "ledger_events": 84,
+        "archive_window": [
+          "2022-09",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "ICPUSDT",
+        "month": "2022-03",
+        "ledger_events": 93,
+        "archive_window": [
+          "2022-09",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "ICPUSDT",
+        "month": "2022-04",
+        "ledger_events": 90,
+        "archive_window": [
+          "2022-09",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "ICPUSDT",
+        "month": "2022-05",
+        "ledger_events": 93,
+        "archive_window": [
+          "2022-09",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "ICPUSDT",
+        "month": "2022-06",
+        "ledger_events": 90,
+        "archive_window": [
+          "2022-09",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "ICPUSDT",
+        "month": "2022-07",
+        "ledger_events": 93,
+        "archive_window": [
+          "2022-09",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "ICPUSDT",
+        "month": "2022-08",
+        "ledger_events": 93,
+        "archive_window": [
+          "2022-09",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "OGUSDT",
+        "month": "2023-04",
+        "ledger_events": 37,
+        "archive_window": [
+          "2025-05",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "RIFUSDT",
+        "month": "2023-05",
+        "ledger_events": 45,
+        "archive_window": [
+          "2023-10",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "SXPUSDT",
+        "month": "2026-06",
+        "ledger_events": 86,
+        "archive_window": [
+          "2020-07",
+          "2025-12"
+        ],
+        "class": "after_archive_last_month"
+      },
+      {
+        "symbol": "SXPUSDT",
+        "month": "2026-07",
+        "ledger_events": 93,
+        "archive_window": [
+          "2020-07",
+          "2025-12"
+        ],
+        "class": "after_archive_last_month"
+      },
+      {
+        "symbol": "SXPUSDT",
+        "month": "2026-08",
+        "ledger_events": 93,
+        "archive_window": [
+          "2020-07",
+          "2025-12"
+        ],
+        "class": "after_archive_last_month"
+      },
+      {
+        "symbol": "TLMUSDT",
+        "month": "2021-12",
+        "ledger_events": 93,
+        "archive_window": [
+          "2023-03",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "TLMUSDT",
+        "month": "2022-01",
+        "ledger_events": 93,
+        "archive_window": [
+          "2023-03",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "TLMUSDT",
+        "month": "2022-02",
+        "ledger_events": 84,
+        "archive_window": [
+          "2023-03",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "TLMUSDT",
+        "month": "2022-03",
+        "ledger_events": 93,
+        "archive_window": [
+          "2023-03",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "TLMUSDT",
+        "month": "2022-04",
+        "ledger_events": 90,
+        "archive_window": [
+          "2023-03",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "TLMUSDT",
+        "month": "2022-05",
+        "ledger_events": 93,
+        "archive_window": [
+          "2023-03",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "TLMUSDT",
+        "month": "2022-06",
+        "ledger_events": 90,
+        "archive_window": [
+          "2023-03",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "TLMUSDT",
+        "month": "2022-07",
+        "ledger_events": 93,
+        "archive_window": [
+          "2023-03",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "TLMUSDT",
+        "month": "2022-08",
+        "ledger_events": 93,
+        "archive_window": [
+          "2023-03",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "TLMUSDT",
+        "month": "2022-09",
+        "ledger_events": 90,
+        "archive_window": [
+          "2023-03",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "TLMUSDT",
+        "month": "2022-10",
+        "ledger_events": 93,
+        "archive_window": [
+          "2023-03",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "TLMUSDT",
+        "month": "2022-11",
+        "ledger_events": 90,
+        "archive_window": [
+          "2023-03",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "TLMUSDT",
+        "month": "2022-12",
+        "ledger_events": 93,
+        "archive_window": [
+          "2023-03",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "TLMUSDT",
+        "month": "2023-01",
+        "ledger_events": 93,
+        "archive_window": [
+          "2023-03",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "TLMUSDT",
+        "month": "2023-02",
+        "ledger_events": 84,
+        "archive_window": [
+          "2023-03",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      },
+      {
+        "symbol": "TUSDT",
+        "month": "2023-01",
+        "ledger_events": 1,
+        "archive_window": [
+          "2023-02",
+          "2026-08"
+        ],
+        "class": "before_archive_first_month"
+      }
+    ]
+  },
+  "archive_only_classified": [
+    {
+      "symbol": "DOSUSDT",
+      "month": "2026-08",
+      "in_ledger_symbol_axis": false,
+      "in_pull_list": true,
+      "reading": "NOT a missed settlement: this symbol is not in the ledger's universe at all"
+    }
+  ],
+  "archive_only_that_are_real_candidates": 0,
+  "symbols_in_pull_list_not_in_ledger_axis": [
+    "DOSUSDT",
+    "MARSCOINUSDT",
+    "PONSUSDT"
+  ],
+  "truth_available_scoring_set": {
+    "symbol_months_with_both_sides": 20288,
+    "note": "question 4's held-out scoring can only use months where archive truth exists, i.e. this set; the window edges above are exactly where no truth exists to score against"
+  },
+  "verdict": "MEASURED",
+  "limits": [
+    "month granularity; event-level completeness still needs the zip contents",
+    "a listing proves a file exists, not that its contents are complete"
+  ]
+}
