@@ -2,7 +2,7 @@
 # One READ-ONLY hooked engine cell (baseline NC s42X, seed 0 of 32, full X axis) under the team run gate; dlarch's book-layer cells first
 # (this cell starts only when at most ONE other engine group runs, i.e. it never takes the last slot). Outputs under /dev/shm/c4hook_2026-09-25.
 set -u
-NC=/dev/shm/news2_2026-09-23; ME=/dev/shm/c4hook_2026-09-25; DEV=$ME/devices; FA=/dev/shm/fanom_2026-09-24
+NC=/dev/shm/news2_2026-09-23; ME=/dev/shm/c4hook_2026-09-25; DEV=$ME/devices; FA=/dev/shm/fanom_2026-09-24; GATE=/dev/shm/fresh_2026-09-23/devices/memgate.sh
 TAG="NEWS2_s42X|scaled|rule|raw|UAFE"; mkdir -p $ME/logs $ME/hook $ME/cfg
 /workspace/venv/bin/python - "$NC" "$ME" <<'PY'
 import json, hashlib, sys, copy
@@ -22,7 +22,7 @@ json.dump(c, open(f"{me}/cfg/RUN_CONFIG.json", "w"), indent=1); print("DERIVED",
 PY
 while true; do
   OTHERS=$(ps -eo pgid=,args= | grep -E "bt_launch.py" | grep -v grep | grep -v "$ME" | awk '{print $1}' | sort -u | wc -l)
-  G=$(bash $FA/devices/memgate.sh 2>&1); GR=$?
+  G=$(bash $GATE 2>&1); GR=$?
   echo "$(date -u +%FT%TZ) others=$OTHERS memgate_rc=$GR $(echo "$G" | tail -1)" >> $ME/logs/gate.log
   if [ "$GR" -eq 0 ] && [ "$OTHERS" -le 1 ]; then break; fi
   sleep 60
