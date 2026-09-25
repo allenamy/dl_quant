@@ -29,7 +29,7 @@ V1=/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/m3_shadow_
 # abort / ≥240 soft brake, 429/418 abort, quiet window at start and before every request) · b7v2_compare.py (rule b80f52b39: gate (0),
 # (i) reported with named reasons, (ii) gate; instrument checks ⇒ UNDECIDED).
 # 2026-09-25T04:45Z offline self-test (fake transport / quiet window / clock; synthetic market; no network, no production file):
-#   /usr/bin/python3 -B devices/b7v2_selftest.py $S/../b7v2_selftest > receipts/selftest_2026-09-25/selftest_stdout.log 2>&1; echo "selftest rc=$?"
+#   (cwd $D) S=~/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/b7v2_selftest; mkdir -p receipts/selftest_2026-09-25; /usr/bin/python3 -B devices/b7v2_selftest.py $S > receipts/selftest_2026-09-25/selftest_stdout.log 2>&1; echo "selftest rc=$?"
 #     → selftest rc=0 · B7V2_SELFTEST VERDICT=ALL GREEN tests=31 red=0   (Mac /usr/bin/python3 3.9.6, numpy 1.26.4)
 # ==== per v2 shadow anchor A (template; quiet window after A, i.e. from N+60m; commands to be copied here verbatim when run) ====
 #   zsh $D/devices/b7v2_copy_inputs.sh $S/b7v2/in_$A $A
