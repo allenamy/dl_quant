@@ -155,6 +155,76 @@ rec["B_structural_parity_vs_panel"] = {
               "not a pass/fail gate. The panel's correctness is established on 2,017 cells in 5 months; using it as a "
               "reference elsewhere extrapolates that.")}
 
+# ---- (C) THE LEAD'S CONTROL, now with a real denominator: news2's 2,021-cell full-precision list ----
+# ★ news2 CORRECTED my diagnosis and it changes the method. I had read the receipt's archive_truth as "rounded for
+#   publication". It is NOT: -0.00039508 is the LITERAL value in the venue archive CSV. The panel's
+#   -0.00039507998735643923 is the panel's float32 value WIDENED to float64. Verified here:
+#   float64(float32(-0.00039508)) == -0.00039507998735643923, and the float64 gap is 1.264e-11, so a 1e-12 test can
+#   never pass. The mechanism is the PANEL'S STORAGE dtype, not rounding -- so "bind the tolerance to the reference's
+#   published precision" would have passed BY COINCIDENCE. The correct comparison is IN THE PANEL'S dtype:
+#   float32(a) == float32(b). That is caliber bound to the panel file, not a tolerance chosen to make a test pass.
+CELLS = os.environ.get("FX_CELLS_CSV", "/tmp/CELLS.csv")
+if os.path.exists(CELLS):
+    import csv as _csv
+    rows_c = []
+    with open(CELLS) as f:
+        for line in f:
+            if line.startswith("#"): continue
+            rows_c.append(line); 
+    rd = list(_csv.DictReader(rows_c))
+    FN_ = F["fn_v"].astype(np.float64); IV_ = F["iv_v"].astype(np.float64)
+    off_ = F["off"].astype(np.int64); mem_ = F["m"].astype(np.int64)
+    fidx = {t: i for i, t in enumerate(A_f)}; sidx = {t: j for j, t in enumerate(sy_f)}
+    cell_of = {}
+    for _k, _t in enumerate(A_f):
+        pass
+    def nc_cell(anchor_ts, sym_j):
+        i = fidx.get(anchor_ts)
+        if i is None: return None, None
+        lo, hi = int(off_[i]), int(off_[i + 1])
+        w = np.where(mem_[lo:hi] == sym_j)[0]
+        if not len(w): return None, None
+        k = lo + int(w[0])
+        return float(FN_[k]), float(IV_[k])
+    n_tot = n_axis = n_member = 0
+    rate_eq32 = rate_eq64 = iv_eq = rn8_eq32 = 0
+    rn8_bad = []
+    for r in rd:
+        n_tot += 1
+        t = int(datetime.datetime.strptime(r["anchor_utc"], "%Y-%m-%dT%H:%MZ").replace(tzinfo=datetime.timezone.utc).timestamp())
+        symj = sidx.get(r["symbol"])
+        if symj is None or t not in fidx: continue
+        n_axis += 1
+        fn_c, iv_c = nc_cell(t, symj)
+        if fn_c is None or not np.isfinite(fn_c): continue
+        n_member += 1
+        truth = float(r["archive_truth_rate"]); piv = float(r["panel_iv"])
+        if np.float32(fn_c) == np.float32(truth): rate_eq32 += 1
+        if fn_c == truth: rate_eq64 += 1
+        if iv_c == piv: iv_eq += 1
+        tr_rn8 = truth * 8.0 / piv if piv > 0 else np.nan
+        nc_rn8 = fn_c * 8.0 / iv_c if iv_c > 0 else np.nan
+        if np.isfinite(tr_rn8) and np.isfinite(nc_rn8):
+            if np.float32(nc_rn8) == np.float32(tr_rn8): rn8_eq32 += 1
+            elif len(rn8_bad) < 10:
+                rn8_bad.append({"symbol": r["symbol"], "anchor": r["anchor_utc"], "nc_rn8": nc_rn8,
+                                "truth_rn8": tr_rn8, "nc_iv": iv_c, "panel_iv": piv})
+    rec["C_lead_control_2021_cells"] = {
+        "cells_file": CELLS, "cells_sha256": sha(CELLS), "rows_in_file": n_tot,
+        "comparison": "float32(a) == float32(b) -- the PANEL's storage dtype (news2's correction; NOT a tolerance)",
+        "DENOMINATORS": {"rows": n_tot, "on_the_features_axis": n_axis,
+                         "AND_a_book_member_with_finite_fn_v": n_member},
+        "rate_equal_float32": rate_eq32, "rate_equal_float64": rate_eq64,
+        "rate_pct_float32": (100.0 * rate_eq32 / n_member) if n_member else None,
+        "interval_equal": iv_eq, "interval_pct": (100.0 * iv_eq / n_member) if n_member else None,
+        "rn8_equal_float32": rn8_eq32, "rn8_pct_float32": (100.0 * rn8_eq32 / n_member) if n_member else None,
+        "rn8_mismatch_examples": rn8_bad,
+        "decomposition_note": ("reported as rate / interval / composite separately, because news2 showed the "
+                               "fund_replay error was COMPOSITE (rate and iv both wrong) -- a single RN8 number "
+                               "would hide which side agrees"),
+        "denominator_note": ("rows on the features axis that are NOT book members have no fn_v and cannot be "
+                             "compared; they are excluded and counted, not folded in")}
+
 s = write_json_verified(rec, OUT)
 print("FA_RN8PARITY receipt sha=%s" % s[:16], flush=True)
 al = rec["alignment"]
@@ -172,6 +242,15 @@ for r in a["cells"][:6]:
           % (r["symbol"], r["anchor"], r["nc_legs_rn8"], r["truth_rn8_composed"],
              "EQUAL" if r["equal_within_published_precision"] else "DIFFERS",
              str(r["equal_to_panel_full_precision"]), r["ledger_rn8_for_contrast"] or float("nan")), flush=True)
+c3 = rec.get("C_lead_control_2021_cells")
+if c3:
+    print("  (C) lead's control on news2's full-precision list: rows %d -> on axis %d -> book member with fn_v %d"
+          % (c3["rows_in_file"], c3["DENOMINATORS"]["on_the_features_axis"], c3["DENOMINATORS"]["AND_a_book_member_with_finite_fn_v"]), flush=True)
+    print("      rate  float32-equal %d/%d (%.2f%%)  [float64-equal %d]"
+          % (c3["rate_equal_float32"], c3["DENOMINATORS"]["AND_a_book_member_with_finite_fn_v"],
+             c3["rate_pct_float32"] or 0.0, c3["rate_equal_float64"]), flush=True)
+    print("      iv    equal %d (%.2f%%) | RN8 float32-equal %d (%.2f%%)"
+          % (c3["interval_equal"], c3["interval_pct"] or 0.0, c3["rn8_equal_float32"], c3["rn8_pct_float32"] or 0.0), flush=True)
 b = rec["B_structural_parity_vs_panel"]
 print("  (B) vs panel: %d/%d within 1e-12 (%.2f%%), median |diff| %.3e, max %.3e"
       % (b["equal_within_1e-12"], b["denominator_finite_cells"], b["equal_pct"], b["median_abs_diff"], b["max_abs_diff"]), flush=True)
