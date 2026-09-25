@@ -229,7 +229,19 @@ def main():
         crypto = np.load(P1_MEMBERS)['crypto']
         cand = mk['mask'] & crypto[None, :]
         universe = np.load(UNIVERSE_PATH)
-        inuni = a <= universe['ts'][-1]
+        u_ts = universe['ts'].astype(np.int64)
+        # CLAMP BOTH ENDS. `a <= u_ts[-1]` alone is wrong: the training axis starts 2022-01-01 and the
+        # universe starts 2022-01-31, so 181 pre-universe anchors stayed in the slice and
+        # book_universe.align raised 'universe missing anchor; no forward/backfill' -- T3's first ever run
+        # died 23 s in. The worse half is the field below: `anchors_outside_universe` was computed from
+        # that same one-sided mask, so it would have printed 0 while 181 anchors were in fact outside.
+        # The name said "outside", the number meant "above". Both ends are clamped and reported separately
+        # now, so the quantity matches its name.
+        inuni = (a >= u_ts[0]) & (a <= u_ts[-1])
+        _missing = int((~np.isin(a[inuni], u_ts)).sum())
+        assert _missing == 0, (f'{_missing} anchors inside the universe window are absent from its grid: '
+                               'an INTERIOR gap, which clamping cannot fix and which would otherwise '
+                               'surface as book_universe.align\'s generic ValueError with no count')
         legal = np.zeros((n, w), bool)
         legal[inuni] = align_universe(a[inuni], t['symbols'], universe) & cand[inuni]
         QVn = leg['QV']
@@ -239,9 +251,13 @@ def main():
                  'sel': [torch.from_numpy(s).to(dev) for s in sel_list], 'sel_ok': sel_ok,
                  's_temp': cfg['band'] / args.band_temp_div,
                  'anchors_outside_universe': int((~inuni).sum()),
+                 'anchors_before_universe_start': int((a < u_ts[0]).sum()),
+                 'anchors_after_universe_end': int((a > u_ts[-1]).sum()),
                  'anchors_sel_below_min': int((~sel_ok).sum())}
         inputs[MASK_PATH] = sha(MASK_PATH); inputs[UNIVERSE_PATH] = UNIVERSE_SHA
-        log('T3 fields', json.dumps({k: extra[k] for k in ('anchors_outside_universe', 'anchors_sel_below_min', 's_temp')}))
+        log('T3 fields', json.dumps({k: extra[k] for k in (
+            'anchors_outside_universe', 'anchors_before_universe_start', 'anchors_after_universe_end',
+            'anchors_sel_below_min', 's_temp')}))
 
     RN8T = torch.from_numpy(leg['RN8'].astype(np.float64)).to(dev).float() if args.arm == 'T3' else None
 

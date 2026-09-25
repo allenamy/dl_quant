@@ -39,6 +39,14 @@ PY=/workspace/venv/bin/python
 mkdir -p "$K/solo" "$K/loaded" "$K/load_arm"
 log(){ echo "$(date -u +%H:%M:%SZ) $*" | tee -a "$K/crosslevel_t3.log"; }
 
+# SELF-ATTRIBUTION, unconditional, before any work (same rule as dlarch_run_T0_lane.sh; news2's
+# class-shaped fix). Without this the only way to find "is the probe still alive?" is a name scan, and
+# `pgrep -f <pattern>` self-matches whenever the pattern sits in the watching command's own argv -- I did
+# exactly that while watching this probe, and the watcher would have failed to notice a death.
+MYPGID=$(ps -o pgid= -p $$ | tr -d ' ')
+printf 'pgid=%s pid=%s owner=dlarch probe=t3_crossload started=%s dev=%s seed=%s fold=%s load_seed=%s\n' \
+  "$MYPGID" "$$" "$(date -u +%FT%TZ)" "$DEV" "$SEED" "$FOLD" "$LOAD_SEED" > "$K/probe.pgid"
+
 case "$DEV" in "$W/probe_"*) : ;; *) log "REFUSING: DEV=$DEV is not a probe copy under $W/probe_*"; exit 9;; esac
 [ -f "$DEV/dlarch_train_f10.py" ] || { log "REFUSING: no trainer in $DEV"; exit 9; }
 grep -q -- "--out-root" "$DEV/dlarch_train_f10.py" || { log "REFUSING: $DEV trainer has no --out-root; it would write into the delivered tree"; exit 9; }
