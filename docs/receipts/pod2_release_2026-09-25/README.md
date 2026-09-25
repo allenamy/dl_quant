@@ -29,3 +29,11 @@ Commands (verbatim):
     → probe removed: True · probe rc=0
   Reading: ≥ 1 GiB writable without truncation after the release (measured). "≈ 3 GiB free" = dlarch's earlier 128 MiB + 3,002 MiB
   (INFERRED, not probed — a larger probe would compete with dlarch's writes). No pre-release probe of my own.
+
+# /dev/shm/nc_2026-09-23 — KEPT (lead ruling (a1), 2026-09-25 ~04:57Z)
+The five nc_prep products in work/ (axes, cache_crypto, R_crypto, boundary, fund_state) are the old-axis bitwise regression reference of
+the live-parity extension (DESIGN_live_parity_binance_vision_2026-09-24 §2 L61–66); news2's ladder devices also point NC_W here.
+Kept in place; manifest of all 324 files taken 04:56:17Z on pod2 (`find . -type f -print0 | sort -z | xargs -0 nice -n 10 sha256sum`,
+sha rc=0) → `nc_2026-09-23_SHA256SUMS.txt`. The five reference files:
+  ec7723c4… work/axes.npz · 7d22ca41… work/cache_crypto.npy · 16458cab… work/R_crypto.npy · 2e487eb5… work/boundary.npz · a12a8ed3… work/fund_state.npz
+  (plus 3c886a2b… work/NC_FEATURES.npz and 9bc9adaf… work/members_hist_all.npz, 3-way hardlinks with news2 / pnoise).
