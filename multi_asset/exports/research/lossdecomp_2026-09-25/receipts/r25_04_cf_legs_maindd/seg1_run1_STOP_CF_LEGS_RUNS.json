@@ -1,0 +1,101 @@
+{
+ "device_sha256": "4ea5568ba64fb50e349dd34f70cb2de650de4b81bbc1fb0b7a12b7baf38faa32",
+ "tree": "/Users/haosiyu/cc_tmp/news_20260923/producer_copy",
+ "tree_at": {
+  "09-17T12Z": "/Users/haosiyu/cc_tmp/nc_20260923/tree_old_prefp26b"
+ },
+ "copy_extra": [
+  "fea171/f10_live_s42_np.npz"
+ ],
+ "segments": [
+  [
+   "09-17T12Z",
+   "09-17T16Z",
+   "09-17T20Z",
+   "09-18T00Z",
+   "09-18T04Z",
+   "09-18T08Z",
+   "09-18T12Z",
+   "09-18T16Z",
+   "09-18T20Z",
+   "09-19T00Z",
+   "09-19T04Z",
+   "09-19T08Z",
+   "09-19T12Z",
+   "09-19T16Z",
+   "09-19T20Z",
+   "09-20T00Z",
+   "09-20T04Z",
+   "09-20T08Z",
+   "09-20T12Z",
+   "09-20T16Z",
+   "09-20T20Z",
+   "09-21T00Z",
+   "09-21T04Z",
+   "09-21T08Z",
+   "09-21T12Z"
+  ]
+ ],
+ "anchors": [
+  "09-17T12Z",
+  "09-17T16Z",
+  "09-17T20Z",
+  "09-18T00Z",
+  "09-18T04Z",
+  "09-18T08Z",
+  "09-18T12Z",
+  "09-18T16Z",
+  "09-18T20Z",
+  "09-19T00Z",
+  "09-19T04Z",
+  "09-19T08Z",
+  "09-19T12Z",
+  "09-19T16Z",
+  "09-19T20Z",
+  "09-20T00Z",
+  "09-20T04Z",
+  "09-20T08Z",
+  "09-20T12Z",
+  "09-20T16Z",
+  "09-20T20Z",
+  "09-21T00Z",
+  "09-21T04Z",
+  "09-21T08Z",
+  "09-21T12Z"
+ ],
+ "arms": {
+  "base": {
+   "09-17T12Z": {
+    "rc": 1,
+    "combo_stage_sha256": "b5c698f9d1ee9acb73c9bf5f3a1e15843d3298e95a810ebf0107a7d68c6ee358",
+    "n": 0
+   }
+  },
+  "no_fund": {
+   "09-17T12Z": {
+    "rc": 1,
+    "combo_stage_sha256": "080f1af26fd2f04857e4f8865581cb19b0509107a24a2276dd83ecfb0e9bce2d",
+    "n": 0
+   }
+  },
+  "no_king": {
+   "09-17T12Z": {
+    "rc": 1,
+    "combo_stage_sha256": "88883cd6e13d7036abf97ea9f0f362affb242a94788452c5c5239067a6445d25",
+    "n": 0
+   }
+  },
+  "no_f10": {
+   "09-17T12Z": {
+    "rc": 1,
+    "combo_stage_sha256": "a58b905761527c5aeb244653c28f648d9b08982fea2fbfad9d710afc5f7055c8",
+    "n": 0
+   }
+  }
+ },
+ "checks": {
+  "base == production target_live 09-17T12Z (bitwise weights)": false
+ },
+ "named_limitation": "each segment starts every arm from production's state of the anchor before: the counterfactual is 'the leg removed from the segment start', not 'the leg never existed'; segments are separate chains",
+ "STOP": "base arm does not reproduce production at 09-17T12Z \u2014 counterfactual invalid"
+}
