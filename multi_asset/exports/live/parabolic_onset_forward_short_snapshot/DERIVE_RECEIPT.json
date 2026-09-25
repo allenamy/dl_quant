@@ -1,0 +1,69 @@
+{
+  "device": "derive_short_cohort_forward_log.py",
+  "self_sha256": "f033857d121d4746a27984f6ddd8a9340d58bd3b7bb822234b962a3dedad1989",
+  "utc": "2026-09-25T06:18:47Z",
+  "src": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/live/pilot_journal/tools/parabolic_onset_forward_log.py",
+  "src_sha256": "47dca131d8ffed819fa7e700b7554d4ad8b2852bae42171b5e94f22d91c0f965",
+  "derived": "/Users/haosiyu/parabolic_onset_forward_short/parabolic_onset_forward_log_short.py",
+  "derived_sha256": "38f684d360f74b1f2e909b4c50bfdfcdc78aa0aa2e4d3f28990ee42186f307df",
+  "diff": "/Users/haosiyu/parabolic_onset_forward_short/parabolic_onset_forward_log_short.py.diff",
+  "diff_lines": 155,
+  "gate_start_utc": "2026-09-25T00:00:00Z",
+  "prereg": "docs/PREREG_short_squeeze_onset_forward_2026-09-25.md rev1",
+  "substitutions": [
+    {
+      "occurrences": 1,
+      "why": "own directory, outside ~/Desktop; own events/run_log/done ledger",
+      "old_first80": "REPO = os.path.dirname(os.path.abspath(__file__)).split(\"/multi_asset/\")[0]; OUT",
+      "new_first80": "OUTD = os.environ.get(\"SHORT_OUTD\", f\"{HOME}/parabolic_onset_forward_short\")"
+    },
+    {
+      "occurrences": 1,
+      "why": "MIRROR 1: cohort = book SHORT names (w_norm stays signed, the threshold uses |w|)",
+      "old_first80": "coh = [(s, v, v / l1) for s, v in w.items() if v > 0 and l1 > 0 and (v / l1) >= ",
+      "new_first80": "coh = [(s, v, v / l1) for s, v in w.items() if v < 0 and l1 > 0 and (-v / l1) >="
+    },
+    {
+      "occurrences": 1,
+      "why": "MIRROR 2: onset = intra-anchor UP move (the squeeze); placebo = DOWN",
+      "old_first80": "for sign, typ in ((-1, \"onset\"), (+1, \"mirror\")):",
+      "new_first80": "for sign, typ in ((+1, \"onset\"), (-1, \"mirror\")):"
+    },
+    {
+      "occurrences": 1,
+      "why": "MIRROR 3a: value of exiting a short = +r - cost (event record)",
+      "old_first80": "\"value_bps\": (float(-f1[\"next\"] * 1e4 - COST) if f1[\"next\"] is not None else Non",
+      "new_first80": "\"value_bps\": (float(+f1[\"next\"] * 1e4 - COST) if f1[\"next\"] is not None else Non"
+    },
+    {
+      "occurrences": 1,
+      "why": "MIRROR 3b: same sign flip on the backfill/update pass",
+      "old_first80": "up[\"value_bps\"] = float(-up[\"fwd_delay5m\"][\"next\"] * 1e4 - COST)",
+      "new_first80": "up[\"value_bps\"] = float(+up[\"fwd_delay5m\"][\"next\"] * 1e4 - COST)"
+    },
+    {
+      "occurrences": 2,
+      "why": "cohort label on both the anchor record and each event record",
+      "old_first80": "\"cohort_def\": \"book_long_only\"",
+      "new_first80": "\"cohort_def\": \"book_short_only\""
+    },
+    {
+      "occurrences": 1,
+      "why": "startup self-check: enumerate the input dirs or exit non-zero",
+      "old_first80": "cfg = json.load(open(BUNDLE_CFG));",
+      "new_first80": "for _d in (STATE, f\"{STATE}/target_live_king\"):\n    # ENUMERATE, not stat: the T"
+    },
+    {
+      "occurrences": 1,
+      "why": "run_log reports gate vs in-sample segments separately + an explicit GATE_STATUS object",
+      "old_first80": "summ = {}\nfor th in THETAS:\n    k_ = f\"theta{int(th*100)}\"; summ[k_] = {}\n    fo",
+      "new_first80": "GATE_START = calendar.timegm(time.strptime(\"2026-09-25T00:00:00Z\", \"%Y-%m-%dT%H:"
+    },
+    {
+      "occurrences": 1,
+      "why": "run_log line carries the segmented summary, the gate status and the cohort label",
+      "old_first80": "\"events_new\": stats[\"events\"], \"updates\": updates, \"summary_2026_09plus\": summ, ",
+      "new_first80": "\"events_new\": stats[\"events\"], \"updates\": updates, \"summary_by_segment\": summ, \""
+    }
+  ]
+}

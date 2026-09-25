@@ -1,0 +1,38 @@
+# 空头队列上线控制 (prereg docs/PREREG_short_squeeze_onset_forward_2026-09-25.md rev1 §6)
+# 全部在 2026-09-25 06:19-06:21Z 实测。装置 sha 见 DERIVE_RECEIPT.json。
+
+CONTROL 1 (多头队列文件逐位不变):
+  before  events.jsonl  6aa3e08c670ec54495cf0f8b17ca36790aa29c1a96544961d9c520b6c073710f
+  before  run_log.jsonl 59e0109f790643f24b6e187519342a1e4d694ff4e95478d760fc1f47a60f744a
+  after 空头装置运行: diff = 空  =>  CONTROL_1=PASS (逐位相同)
+  (独立目录 => 结构上保证; 仍然实测断言, 不靠"小心")
+
+CONTROL 2 (开关接上):
+  OLD 长装置 events.jsonl : 2490 条记录, cohort_def = {book_long_only: 1791}, book_short_only = 0
+  NEW 短装置 events.jsonl : 1538 条记录, cohort_def = {book_short_only: 1538}
+  =>  CONTROL_2=PASS  (旧 0 条, 新 >0 条)
+
+CONTROL 3 (launchd 真的能跑 —— 这是把脚本与日志移出 ~/Desktop 的全部目的):
+  plist com.hsy.onsetfwd_short 已 load; launchctl kickstart 实跑一次
+  launchd.err = 空; run_log.jsonl 增加一行 run_utc=2026-09-25T06:20:43Z anchors_new=0
+  =>  CONTROL_3=PASS (launchd 自己跑通, 不是我的 shell 跑通)
+  ★ 时区: launchd 按**本地**时间排程。本地 = UTC+8 (无 DST), 所以 07:22Z = 15:22 本地,
+    plist 写 Hour=15 而不是 Hour=7。写 7 会错 8 小时。
+
+CONTROL 4 (列举自检有力 —— 红控制):
+  构造 target_live_king 存在但为空 (正是 TCC 墙的形态: 返回 [] 而不抛异常)
+  结果: AssertionError: cannot enumerate .../target_live_king (got 0 entries) -- refusing to run silently empty
+  退出码非零  =>  RED_CONTROL=PASS (守卫不是装饰)
+  同一目录上 stat 会**通过**: os.stat() 成功。=> 自检必须用 enumerate 而不是 stat, 动词错了守卫就失效。
+
+长队列补跑 (lead 任务 1, 日志自 09-22T07:22Z 停摆 3 天):
+  run_utc 2026-09-25T06:19:49Z  script_sha 47dca131d8ffed81 (与此前 17 次运行恒定)
+  cache_range 2026-08-16T04:05:00Z .. 2026-09-25T04:00:00Z  (40 日尾)
+  anchors_new 18, updates 36, anchors_total 144
+  => 两个队列现在都覆盖 09-01..09-25 的 144 个锚, 共用一条轴 (prereg §4 要的可比性)
+
+门状态 (装置输出, 不靠记忆):
+  gate_start_utc 2026-09-25T00:00:00Z, segment_used gate_forward_ge_20260925_00
+  theta8_P_filled_next 0 / need 200;  n_calendar_days 1 / need 14;  TRIGGERED False
+  in_sample_descriptive_NOT_forward: theta8 P n_events=87 filled=84  (永不计入门)
+  => 门未触发。判词由 lead 执行; 我不报也不解读两段的均值。
