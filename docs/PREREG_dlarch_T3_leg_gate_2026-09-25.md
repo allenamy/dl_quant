@@ -685,3 +685,65 @@ T0 既是**本预注册的共同基线**,又是 **fresh 组合层实验的族成
 **CPU**:T0 每种子训完即上书层引擎(32 路径),排在 news2 / fresh 之后;8 个引擎运行 ≈ 2.7 h CPU。
 **`/dev/shm` 04:0xZ 实测只剩 1.7 GB(94%)** ⇒ 我的输出全部在 `/workspace`,**不往 `/dev/shm` 写一个字节**;
 但书层引擎若需要 shm 暂存,**必须排在 news2 / fresh 之后并先看余量**。
+
+---
+
+## R10.1 vendoring 与**具名的路径变化**(lead 2026-09-25 裁定;§1–R9.4 原文字节未动)
+
+> 追加于 2026-09-25 12:4xZ,owner dlarch。本节**不改任何判据**,只记录一次实现层的路径变化与它的对照证据。
+
+**裁定**:族的产物不能依赖别人的易失 `/dev/shm` 树 ⇒ T0 8/8 之后、T3 开跑之前,把 news2 的文件按 sha 复制进我自己的持久树,T3 从那里 import。
+
+**先回答 lead 的前置问题:`sources` 连路径一起钉吗?钉。** `dlarch_train_f10.py:155` = `sources = {str(p): sha(p) for p in (...)}` —— **路径就是 dict 的键**。resume guard(L260)与 `merge_folds`(L105)都断言 `old['sources'] == sources` ⇒ vendored 的运行**按设计**不能从 `/dev/shm` 时代的折续跑。
+
+**一格逐位对照(lead 要求)**:arm T0 / seed 42 / fold 202506,同一折用 vendored 路径重训,经新增的 `--out-root` 写 throwaway 根,**交付树全程只读**:
+
+| | `scores.npz` sha256 |
+|---|---|
+| 交付件 | `2d1d30ffc502f225a8c9a5c557fa65123d0b1860e78a6ae065294a71058499a8` |
+| vendored 路径 | `2d1d30ffc502f225a8c9a5c557fa65123d0b1860e78a6ae065294a71058499a8` |
+
+**BITWISE IDENTICAL** ⇒ 路径变化对预测是**装饰性的**。收据 `multi_asset/exports/research/dlarch_2026-09-24/receipts/VENDOR_ONECELL_BITWISE_2026-09-25.json`。附带一条独立证据:七个 `sources` 里**恰好一个** sha 不同,就是我改过的 trainer 自己(`4b74f2ce → 3ebe17fe`),另外六个逐位相同 —— 这与 vendor 装置自身的回读检查**相互独立**。
+
+**vendored = 7 个代码文件(完整 import 闭包)+ 2 个小数据文件**,共 ~127 KB,结构镜像 `W`。清单 `receipts/VENDOR_NEWS2_20260923.json`。
+**未 vendored = 大块数据**(`work/NEWS_FEATURES.npz` 2.96 GB、`work/legs.npz` 35 MB、`receipts/P2B_FEATURES.json`、`receipts/P3_LEGS.json`),因为 2.96 GB 放不进我的 `/workspace` 配额。这四个**在 `inputs` 里逐折断言 sha** ⇒ 残留暴露是**可用性**(代价 = 重跑一次),**不是正确性**:`W` 变了或没了会**硬失败**,不可能静默地用别的数据训。
+
+**★ 我第一版 vendoring 是错的,记在这里**:我只搬了 `sources` 点名的 **5** 个文件。`sources` 是**出处清单,不是 import 闭包** —— T3 要 `from book_universe import align, PATH, SHA`,链要 `combo_target`,**两者都不在 `sources` 里**;而我已经把 `W/devices` 从 `sys.path` 摘掉,那一步会让 T3 **在 import 时炸**。按 import 语句传递遍历重新枚举 ⇒ **7** 个。
+**★ 顺带补上一个之前谁都没看见的静默洞**:`inputs/bundle_config.json` 与 `receipts/P1_members_2025H2on.npz` 在 T3 分支被读,却**不在 `sources`、也不在 `inputs`** ⇒ 它们变了是**静默的**。现已 vendor 并在使用点断言(`BUNDLE_CFG_SHA` / `P1_MEMBERS_SHA`)。**教训:钉住的清单与读取的清单是两份清单,只有并排对照才看得见缺口。**
+
+## R10.2 T3 首跑就死:universe 的**下界没夹**,且那个「界外锚数」字段只数了上界
+
+T3 在本文写下后**从未跑过**;跨负载探针的 run A 在 **23 s** 死:
+```
+book_universe.align -> ValueError('universe missing anchor; no forward/backfill')
+```
+病因是**我自己的代码**(`news2_train_f10.py` 里没有 `inuni` / `align_universe`,这段是 dlarch 写的):
+```python
+inuni = a <= universe['ts'][-1]        # 只夹了上界
+```
+训练轴起 `2022-01-01T00:00Z`(n=10333),universe 起 `2022-01-31T00:00Z`(干净 4h 网格,n=10152,**无内部缺口**)⇒ 180 个 universe 之前的锚留在切片里,`align` 抛错。
+
+**更咬人的是旁边那个必报字段**:`anchors_outside_universe = (~inuni).sum()` 用的是**同一个单边掩码** ⇒ 它会报 **1**(只有那个超出上界的锚),而实际界外有 **181** 个。**名字说 "outside",数字的意思是 "above"** —— 这个数本来是要报给 lead 的。
+
+**修法(类形)**:两端都夹;内部缺口用带计数的断言显式抓(而不是让它变成 `align` 的无计数 ValueError);并把界外拆成**分侧两个计数**,让量与名字一致:
+```python
+inuni = (a >= u_ts[0]) & (a <= u_ts[-1])
+assert (~np.isin(a[inuni], u_ts)).sum() == 0     # 内部缺口,夹子修不了
+# 另报 anchors_before_universe_start / anchors_after_universe_end
+```
+T0 **不走**这段(T3-only 分支),所以已交付的 8/8 族不受影响。
+
+## R10.3 这个修法**改变 T3 的人口吗?实测:零个锚**
+
+这是必须实测而不能断言的一件,因为它决定本文的人口定义是否变了。用 trainer **实际消费**的量重算(第一次我用错了轴 —— 拿了 targets 的 `E_ts`(n=10321)而 trainer 的轴是 `F['anchors']`/`leg['E_ts']`(n=10333),`sel_ok` 也该按 `members[i]` 而不是 mask 索引;两处都改正后与 trainer 自己的日志逐个吻合):
+
+| 量 | 值 |
+|---|---|
+| 轴 | n=**10333**,`2022-01-01T00:00Z` → `2026-09-19T00:00Z` |
+| universe | n=10152,`2022-01-31T00:00Z` → `2026-09-18T20:00Z` |
+| 界外:起点前 / 终点后 / 合计 | **180 / 1 / 181**(与 trainer 日志 `{"anchors_outside_universe": 181, "anchors_before_universe_start": 180, "anchors_after_universe_end": 1}` 一致) |
+| `sel_ok` False / `ready` False | 1086 / 1086 |
+| **起点前且其余条件都合格(`sel_ok & ready`)= 被夹子新排除的** | **0** |
+| 终点后且其余条件都合格 | 1(**旧的单边掩码本来就排除了它**) |
+
+⇒ **夹子是纯粹的崩溃修复,对 T3 的有效人口改变 0 个锚。** 180 个 universe 前的锚本来就全在 `sel_ok=False ∧ ready=False` 里;那 1 个 universe 后的锚旧掩码已排除,**而且它落在书层 X 轴之外** —— 书层轴的末锚 `2026-09-18T20:00Z` **恰好等于** universe 的末锚,所以它从不进入被判人口。本文人口定义**不变**。
