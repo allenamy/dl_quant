@@ -1,0 +1,85 @@
+{
+  "task": "lead 2026-09-25: full consumer census of fund_replay.npz, incl (a) research kernel rn8/last_iv and (b) engine funding_paid",
+  "method": "git grep --cached for every reference, then read the CONSUMING line for each; never infer from a path name",
+  "contaminated_artifact": {
+    "path": "/dev/shm/news2_2026-09-23/inputs/fund_replay.npz",
+    "sha256": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4",
+    "defect": "its last_rate/last_iv freeze on the last 8h-grid settlement because the replayed ledger lacked the 1h spike settlements"
+  },
+  "substantive_consumers": [
+    {
+      "consumer": "fresh_legs.py:37,80-81",
+      "fields": [
+        "last_rate",
+        "last_iv"
+      ],
+      "lands_on": "RN8 in the RESEARCH combo kernel",
+      "line": "iv = where(isfinite(li_) & (li_>0), li_, 8.0); RN8 = where(isfinite(lr_), lr_*(8.0/iv), nan)",
+      "its_own_comment": "combo_stage L266-273 rn8 (ledger tail, no freshness)",
+      "verdict": "CONTAMINATED; error compounds because the rate AND the interval are both wrong, so 8/iv is 1 instead of 8",
+      "quantified": {
+        "GMTUSDT 2026-01-09T20Z": {
+          "backtest": -0.02,
+          "truth": -0.00316064,
+          "ratio": "6.3x"
+        },
+        "AXSUSDT 2026-01-17T20Z": {
+          "backtest": -0.02,
+          "truth": -0.00383392,
+          "ratio": "5.2x"
+        },
+        "TLMUSDT 2026-03-02T04Z": {
+          "backtest": -0.02,
+          "truth": 0.0001,
+          "ratio": "-200x SIGN FLIP"
+        },
+        "HFTUSDT 2026-08-07T04Z": {
+          "backtest": 0.02,
+          "truth": 0.02580328,
+          "ratio": "0.8x"
+        }
+      }
+    },
+    {
+      "consumer": "news_p2_build.py:27,36",
+      "fields": [
+        "ema_acc",
+        "last_ft",
+        "last_rate",
+        "last_iv"
+      ],
+      "lands_on": "led -> funding_asof -> fn_v = King keep_names fund_now",
+      "line": "led = {syms[j]: [[int(lft[i,j]), float(lrt[i,j]), float(liv[i,j])]] ...}",
+      "verdict": "CONTAMINATED; built news_2026-09-23/work/NEWS_FEATURES.npz sha a490c294 (since DELETED), consumed by fresh f10_s42 and news f10_s2027"
+    }
+  ],
+  "non_substantive_references": [
+    {
+      "ref": "fresh_legs_receipt.py:87",
+      "use": "records the sha only"
+    },
+    {
+      "ref": "fa_fxfield.py (fresh)",
+      "use": "the cross-check device that found the disagreement"
+    },
+    {
+      "ref": "news2 run_d7rows_pod2.sh / run_probe_pod2.sh",
+      "use": "passes the path as an env var only"
+    }
+  ],
+  "b_engine_funding_paid": {
+    "question": "is the engine funding accounting sourced from fund_replay.npz",
+    "answer": "NO",
+    "chain": [
+      "news_stats.py:131 / bt_tables.py:183 / news2_ext.py:62: funding_paid is a REPORTING ALIAS for the per-path array car",
+      "exec_sim.py:421 on_funding(t) applies the settlement; exec_sim.py:715 emits funding: d[fund]",
+      "simlib.py:16-17 FundingBook = settlement rates per (symbol, fundingTime) from THE PRODUCER OWN LEDGER (aux.json ledger_tail), with the executor funding.jsonl as a cross-check and as a fallback for keys the producer lacks"
+    ],
+    "verdict": "CLEAN: the engine accounting reads the LIVE ledger (measured complete in switch windows, 305/305) plus a second independent source as cross-check; fund_replay.npz is not in this path"
+  },
+  "summary": "the contamination is confined to the SIGNAL side of the research/backtest path (RN8 and the fund_now feature column). The engine funding ACCOUNTING and the LIVE producer both read the live ledger and are clean.",
+  "limits": [
+    "the live ledger completeness is established for 2026-08 switch windows only; its 400-row retention makes 2026-01..03 unauditable",
+    "the RN8 quantification uses 4 worked cells; the population of affected cells beyond the fetched months is not yet judged"
+  ]
+}
