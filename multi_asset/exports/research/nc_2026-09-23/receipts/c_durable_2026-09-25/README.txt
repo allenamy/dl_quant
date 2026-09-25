@@ -9,3 +9,6 @@ step 2 (06:5xZ): snapshot retention added to --durable: fea171/combosnap/snap_re
   Rebuild (same env): --release --m3-v2 → treeNC6_regress2 == treeNC6 on every source file (only treeNC6's stale __pycache__ differs);
   --release --m3-v2 --durable → treeNC7 (receipt + SHA256SUMS here). test_snap_retention 14/14 PASS (R6 red control: the former rule deletes aux.json
   and the small files); test_c_durable_producer re-run on the rebuilt treeNC7: PASS.
+gate 3' treeNC6 (base) vs treeNC7 (v2 + durable), 06:54–07:03Z: `~/wide_shadow/venv/bin/python ~/cc_tmp/nc_20260923/src/nc_v2_nonbeta_gate.py ~/cc_tmp/nc_20260923/treeNC6 ~/cc_tmp/nc_20260923/treeNC7 /Users/haosiyu/cc_tmp/nc_20260923/v2gate_NC6vsNC7_20260925T0654Z`
+  → gate rc=0 · ARR_EQ_SELFTEST 9/0 · NC_V2_NONBETA_GATE PASS anchors=6 — every compared output bitwise identical incl. meta_json (no provenance change),
+    target_live non-beta keys differing [] (weights_sha included), betas differing 0 (v2 == v2). Key-output sha pairs listed; sandboxes deleted after.
