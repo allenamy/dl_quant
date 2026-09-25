@@ -11,7 +11,7 @@ state/target_live_king/A.json), one with the BASE tree's changed files, one with
   revision 1 corrected it: declaration ≠ implementation, recorded in receipts/m3v2_gate3prime_2026-09-25/README.md);
   beta_overlay: reported (version, n names whose beta differs), NOT a gate.
 Local heavy (~40 s x 2 per anchor) => quiet window only (checked before each anchor). Never calls the exchange.
-usage: ~/wide_shadow/venv/bin/python nc_v2_nonbeta_gate.py <base tree> <v2 tree> <out dir> [--anchors A,B,..]"""
+usage: ~/wide_shadow/venv/bin/python nc_v2_nonbeta_gate.py <base tree> <v2 tree> <out dir> [--anchors A,B,..] [--archive-k1]"""
 import json, os, shutil, subprocess, sys, time, glob, hashlib
 import numpy as np
 HOME = os.path.expanduser("~"); WS = f"{HOME}/wide_shadow"; LIVE = f"{HOME}/dl_quant_live"
@@ -20,6 +20,11 @@ from venue_quiet_window import require_quiet_window
 TREE_FILES = ["fea171/combo_stage.py", "fea171/dlw_features.py", "fea171/f8_higher_order_features.py", "fea171/feature_cache_identity.py",
               "fea171/beta_overlay_producer.py", "fea171/nc_contract.py", "fea171/tradability.py", "fea171/stable_trend_reference.py"]
 OPTIONAL_TREE_FILES = ["fea171/durable_io.py"]
+# --archive-k1 (gate 3' revision 2, lead ruling k1): build the sandbox in the POST-INSTALL layout — the three stale fea171 files the release
+# archives are left out of the rsync (they move to fea171/_archive_2026-09-25/, outside fea171/*.py), so the census judges the code set that
+# will actually be installed.
+K1_ARCHIVED = ["fea171/sidecar_blend.py", "fea171/combo_stage_t3c_candidate.py", "fea171/sidecar_daemon.sh"]
+ARCHIVE_K1 = "--archive-k1" in sys.argv
 WRAP = '''import os, sys, types, runpy
 sys.path.insert(0, os.getcwd())
 import feature_cache_identity as F
@@ -35,7 +40,7 @@ sha = lambda p: hashlib.sha256(open(p, "rb").read()).hexdigest()
 
 def run(tree, A, sb):
     os.makedirs(f"{sb}/wide_shadow/state"); os.makedirs(f"{sb}/dl_quant_live")
-    subprocess.run(["rsync", "-a"] + sum([["--exclude", e] for e in EX], []) + [f"{WS}/", f"{sb}/wide_shadow/"], check=True)
+    subprocess.run(["rsync", "-a"] + sum([["--exclude", e] for e in EX + (K1_ARCHIVED if ARCHIVE_K1 else [])], []) + [f"{WS}/", f"{sb}/wide_shadow/"], check=True)
     os.symlink(f"{WS}/venv", f"{sb}/wide_shadow/venv")
     for f in TREE_FILES: shutil.copy2(f"{tree}/{f}", f"{sb}/wide_shadow/{f}")
     for f in OPTIONAL_TREE_FILES:                 # C (2026-09-25): files only a later tree carries (durable_io.py); copied when the tree has them
