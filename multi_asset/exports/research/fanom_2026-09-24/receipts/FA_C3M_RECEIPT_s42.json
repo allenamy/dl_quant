@@ -1,8 +1,8 @@
 {
  "device": "fa_c3m.py",
- "self_sha256": "d710c2a481035ac944e0205228e2ffc79c0cb3ba6dd343f3dd12419e432f55fd",
+ "self_sha256": "979df5bb7f3f5a627be6a4174365835a02a25451529b2f506d8f13569acba155",
  "seed": "42",
- "utc": "2026-09-25T10:13:52Z",
+ "utc": "2026-09-25T10:35:34Z",
  "prereg": "docs/PREREG_C3m_exposure_vs_gate_2026-09-25.md (ebba4ece7)",
  "role": "DIAGNOSTIC \u2014 no verdict, not a family candidate (lead 2026-09-25)",
  "order_warning": "d(C3) != d(C3m) + d(pure gate effect); the split is order-dependent (prereg S2)",
@@ -11,9 +11,10 @@
  "modes": {
   "scaled_diagnostic": {
    "npz": "/dev/shm/fanom_2026-09-24/c3m/C3m_s42/scaled_diagnostic.npz",
-   "npz_sha256": "5dae8aa99a891078446ca37c35fc94c5bbd1d9f7611264a459402de8df45c935",
+   "npz_sha256": "b163d5338a6fb43a225f7e4abaab0fa20fdeda069f32754c408a443c36472a00",
    "controls": {
     "1_mask_bitwise_equals_base": true,
+    "0_recovery_reproduces_stored_weights_on_C3_published": true,
     "2_weights_bitwise_equal_C3_on_published": true,
     "2b_zero_off_published": true,
     "3_state_chain_bitwise_equals_C3": true,
@@ -21,6 +22,55 @@
     "4_differs_from_base_in_weights": true
    },
    "controls_failed": [],
+   "base_publishes_c3_does_not": {
+    "n": 37,
+    "E_ts": [
+     1684915200,
+     1684929600,
+     1685937600,
+     1686297600,
+     1686398400,
+     1686441600,
+     1686456000,
+     1686470400,
+     1686484800,
+     1686499200,
+     1686513600,
+     1686528000,
+     1686542400,
+     1690891200,
+     1690920000,
+     1691337600,
+     1691510400,
+     1691524800,
+     1692187200,
+     1692201600,
+     1696982400,
+     1697500800,
+     1697515200,
+     1697572800,
+     1697630400,
+     1697644800,
+     1697659200,
+     1697673600,
+     1697688000,
+     1697702400,
+     1697716800,
+     1697731200,
+     1697803200,
+     1697817600,
+     1698264000,
+     1718625600,
+     1723190400
+    ],
+    "gross_published_there_min": 0.36567791116595594,
+    "gross_published_there_max": 0.3991604885108769,
+    "c3_reason_there": {
+     "gross": 37
+    },
+    "cost": "C3m publishes a book the production gate (0.4 floor) would REJECT on these anchors; C3m is therefore NOT a deployable configuration",
+    "path_dependence": "direct contribution only; never removable from the window"
+   },
    "base_published": 6520,
    "c3_published": 7095,
    "anchors_c3_publishes_and_base_does_not": 612,
@@ -33,6 +83,7 @@
    "npz_sha256": "92573d2db7a753a5019ed3cbe624d3bc04a250649641f361215b44d07149bad4",
    "controls": {
     "1_mask_bitwise_equals_base": true,
+    "0_recovery_reproduces_stored_weights_on_C3_published": true,
     "2_weights_bitwise_equal_C3_on_published": true,
     "2b_zero_off_published": true,
     "3_state_chain_bitwise_equals_C3": true,
@@ -40,6 +91,15 @@
     "4_differs_from_base_in_weights": true
    },
    "controls_failed": [],
+   "base_publishes_c3_does_not": {
+    "n": 0,
+    "E_ts": [],
+    "gross_published_there_min": null,
+    "gross_published_there_max": null,
+    "c3_reason_there": {},
+    "cost": "C3m publishes a book the production gate (0.4 floor) would REJECT on these anchors; C3m is therefore NOT a deployable configuration",
+    "path_dependence": "direct contribution only; never removable from the window"
+   },
    "base_published": 2946,
    "c3_published": 3130,
    "anchors_c3_publishes_and_base_does_not": 184,
