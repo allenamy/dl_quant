@@ -1,0 +1,1132 @@
+{
+  "device": "dlarch_cell_retain.py",
+  "self_sha256": "26c287175a9ba8a4b3b397fdb30fbb0083f1dd5d4a1a6300e4050d626bcafdc1",
+  "frozen_judge": "/dev/shm/news2_2026-09-23/engine/news_stats.py",
+  "frozen_judge_sha256": "7141ba42ab227b9f35b48acce62d5e2a2494f364fdf6a83189974cb2af67e03c",
+  "frozen_deps": {
+    "bt_tables.py": "892ba66b9e8040ff04caede02272556dec5a71eb4632cbe7a2a13f46bd35f389",
+    "bt_driver_lib.py": "ba3bc2610b12a3f0280ff8f03c039ff5c2e81b8c05789183fd2b1acab661bddb"
+  },
+  "cell": "/workspace/dlarch_2026-09-24/chain/s5/runs/DLARCH_T0_s5_scaled_rule_raw_UAFE",
+  "tag": "DLARCH_T0_s5_scaled_rule_raw_UAFE",
+  "control_cell": "/workspace/dlarch_2026-09-24/chain/ref_nc_s42X/runs/DLARCH_REF_NC_s42X_scaled_rule_raw_UAFE",
+  "control_tag": "DLARCH_REF_NC_s42X_scaled_rule_raw_UAFE",
+  "frozen_SEG": {
+    "2023H2": [
+      "2023-06-30T04:00:00Z",
+      "2023-12-31T20:00:00Z"
+    ],
+    "2024": [
+      "2024-01-01T00:00:00Z",
+      "2024-12-31T20:00:00Z"
+    ],
+    "2025": [
+      "2025-01-01T00:00:00Z",
+      "2025-12-31T20:00:00Z"
+    ],
+    "pre2026": [
+      "2023-06-30T04:00:00Z",
+      "2025-12-31T20:00:00Z"
+    ],
+    "2026": [
+      "2026-01-01T00:00:00Z",
+      "2026-08-31T00:00:00Z"
+    ]
+  },
+  "checks": {
+    "P1_judge_table_archived": {
+      "segments": [
+        "2023H2",
+        "2024",
+        "2025",
+        "pre2026",
+        "2026",
+        "2026_frozen_truncated",
+        "full_window"
+      ],
+      "maxdd_5m_present": true
+    },
+    "P3_dstop_nstop_present": {
+      "dstop_per_path": [
+        32,
+        9252
+      ],
+      "nstop_per_path": [
+        32,
+        9252
+      ]
+    },
+    "P4_maxdd_5m_scalars": {
+      "2023H2": {
+        "n_paths": 32,
+        "n_defined": 32,
+        "path_mean": -0.15655260087180814
+      },
+      "2024": {
+        "n_paths": 32,
+        "n_defined": 32,
+        "path_mean": -0.2152826019352388
+      },
+      "2025": {
+        "n_paths": 32,
+        "n_defined": 32,
+        "path_mean": -0.16806348566002305
+      },
+      "pre2026": {
+        "n_paths": 32,
+        "n_defined": 32,
+        "path_mean": -0.25447762380982986
+      },
+      "2026": {
+        "n_paths": 32,
+        "n_defined": 32,
+        "path_mean": -0.2097613425643755
+      },
+      "2026_frozen_truncated": {
+        "n_paths": 32,
+        "n_defined": 32,
+        "path_mean": -0.2096779983302815
+      },
+      "full_window": {
+        "n_paths": 32,
+        "n_defined": 32,
+        "path_mean": -0.25447762380982986
+      }
+    },
+    "P2_dbar_bitwise_from_small_series": {
+      "2023H2": {
+        "BITWISE_IDENTICAL": true,
+        "mean_sha_path": "c34e205cfaa81169",
+        "mean_sha_small": "c34e205cfaa81169"
+      },
+      "2024": {
+        "BITWISE_IDENTICAL": true,
+        "mean_sha_path": "ba1b231b005dada7",
+        "mean_sha_small": "ba1b231b005dada7"
+      },
+      "2025": {
+        "BITWISE_IDENTICAL": true,
+        "mean_sha_path": "3ba55d7e987b3f2b",
+        "mean_sha_small": "3ba55d7e987b3f2b"
+      },
+      "pre2026": {
+        "BITWISE_IDENTICAL": true,
+        "mean_sha_path": "5d9eee2ad19d0cfa",
+        "mean_sha_small": "5d9eee2ad19d0cfa"
+      },
+      "2026": {
+        "BITWISE_IDENTICAL": true,
+        "mean_sha_path": "d5e5501551202604",
+        "mean_sha_small": "d5e5501551202604"
+      },
+      "2026_frozen_truncated": {
+        "BITWISE_IDENTICAL": true,
+        "mean_sha_path": "bd5384355f795912",
+        "mean_sha_small": "bd5384355f795912"
+      },
+      "full_window": {
+        "BITWISE_IDENTICAL": true,
+        "mean_sha_path": "77e58b1a7cc54162",
+        "mean_sha_small": "77e58b1a7cc54162"
+      }
+    },
+    "P2_red_control_one_cell_perturbation_breaks_it": {
+      "fired": true,
+      "segment": "pre2026",
+      "perturbed_anchor_index": 4938,
+      "perturbed_day_utc": 1727654400,
+      "windows_in_that_day": 6,
+      "delta": 1e-09,
+      "why_this_matters": "the first version perturbed a 5-window day that full_days discards, so it had no power"
+    }
+  },
+  "segments_used": {
+    "2023H2": [
+      "2023-06-30T04:00:00Z",
+      "2023-12-31T20:00:00Z"
+    ],
+    "2024": [
+      "2024-01-01T00:00:00Z",
+      "2024-12-31T20:00:00Z"
+    ],
+    "2025": [
+      "2025-01-01T00:00:00Z",
+      "2025-12-31T20:00:00Z"
+    ],
+    "pre2026": [
+      "2023-06-30T04:00:00Z",
+      "2025-12-31T20:00:00Z"
+    ],
+    "2026": [
+      "2026-01-01T00:00:00Z",
+      "2026-09-18T20:00:00Z"
+    ],
+    "2026_frozen_truncated": [
+      "2026-01-01T00:00:00Z",
+      "2026-08-31T00:00:00Z"
+    ],
+    "full_window": [
+      "2023-06-30T04:00:00Z",
+      "2026-09-18T20:00:00Z"
+    ]
+  },
+  "segment_policy": "lead revision 3 (6cd94f947): 2026 extended to the axis last anchor (2026-09-18T20:00:00Z); frozen SEG['2026'] ends 2026-08-31T00:00:00Z and is reported as 2026_frozen_truncated; full_window = pre2026 | extended 2026, which EXCLUDES the axis's first year (outside every frozen segment)",
+  "axis": {
+    "n": 9252,
+    "first": "2022-06-30T00:00:00Z",
+    "last": "2026-09-18T20:00:00Z"
+  },
+  "judge_table": {
+    "2023H2": {
+      "paths": {
+        "n_paths": 32,
+        "n_windows": 1109,
+        "n_full_days": 184,
+        "total_return": {
+          "path_mean": -0.08614216302612906,
+          "p2.5": -0.09691540154286556,
+          "p97.5": -0.07673099606226917,
+          "n_eff": 32
+        },
+        "cagr": {
+          "path_mean": -0.16293379624278978,
+          "p2.5": -0.1823363469691113,
+          "p97.5": -0.1458524514921709,
+          "n_eff": 32
+        },
+        "sharpe": {
+          "path_mean": -1.0260514592903687,
+          "p2.5": -1.1689610170764204,
+          "p97.5": -0.907023305363217,
+          "n_eff": 32
+        },
+        "worst_day": {
+          "path_mean": -0.04315868955394846,
+          "p2.5": -0.045164367920754504,
+          "p97.5": -0.036279243895740027,
+          "n_eff": 32
+        },
+        "maxdd_5m": {
+          "path_mean": -0.15655260087180814,
+          "p2.5": -0.1619897920434017,
+          "p97.5": -0.14868154780613493,
+          "n_eff": 32
+        },
+        "g": {
+          "path_mean": -0.37393942721119144,
+          "p2.5": -0.4278603488843127,
+          "p97.5": -0.3274878256826092,
+          "n_eff": 32
+        },
+        "price": {
+          "path_mean": -0.05622449452386042,
+          "p2.5": -0.1126307802820736,
+          "p97.5": -0.00958244404449626,
+          "n_eff": 32
+        },
+        "funding_paid": {
+          "path_mean": 0.15305841876653503,
+          "p2.5": 0.14863636817071146,
+          "p97.5": 0.15880990071883822,
+          "n_eff": 32
+        },
+        "fee": {
+          "path_mean": 0.16465651392083816,
+          "p2.5": 0.15907075721114902,
+          "p97.5": 0.16606170405050358,
+          "n_eff": 32
+        },
+        "unknown_excluded": {
+          "path_mean": 0.0,
+          "p2.5": 0.0,
+          "p97.5": 0.0,
+          "n_eff": 32
+        },
+        "turnover_over_gross": {
+          "path_mean": 0.06546052896449203,
+          "p2.5": 0.06405093293473745,
+          "p97.5": 0.06584395073833971,
+          "n_eff": 32
+        },
+        "day_stop_flattens": {
+          "path_mean": 0.84375,
+          "p2.5": 0.0,
+          "p97.5": 1.0,
+          "n_eff": 32
+        },
+        "per_name_stops": {
+          "path_mean": 70.40625,
+          "p2.5": 67.775,
+          "p97.5": 73.0,
+          "n_eff": 32
+        },
+        "halt_anchors": {
+          "path_mean": 0.0,
+          "p2.5": 0.0,
+          "p97.5": 0.0,
+          "n_eff": 32
+        },
+        "hold_anchors": {
+          "path_mean": 228.0,
+          "p2.5": 228.0,
+          "p97.5": 228.0,
+          "n_eff": 32
+        },
+        "g_identity_max_err": 6.613820602296983e-11
+      },
+      "mean_path": {
+        "total_return": -0.08612019422904515,
+        "sharpe": -1.028153855202422,
+        "maxdd_5m": -0.15595914080560314,
+        "worst_day": -0.04316012052584439,
+        "note": "certified MEAN PATH (descriptive only)"
+      }
+    },
+    "2024": {
+      "paths": {
+        "n_paths": 32,
+        "n_windows": 2196,
+        "n_full_days": 366,
+        "total_return": {
+          "path_mean": 0.24948833767451556,
+          "p2.5": 0.20319845503656905,
+          "p97.5": 0.29791124262651,
+          "n_eff": 32
+        },
+        "cagr": {
+          "path_mean": 0.248727312369655,
+          "p2.5": 0.20259048459827164,
+          "p97.5": 0.2969867980867807,
+          "n_eff": 32
+        },
+        "sharpe": {
+          "path_mean": 1.1892897948218644,
+          "p2.5": 1.0059610651117403,
+          "p97.5": 1.380531665183904,
+          "n_eff": 32
+        },
+        "worst_day": {
+          "path_mean": -0.040009338913038206,
+          "p2.5": -0.04336974648656005,
+          "p97.5": -0.035368393235493324,
+          "n_eff": 32
+        },
+        "maxdd_5m": {
+          "path_mean": -0.2152826019352388,
+          "p2.5": -0.22819600182080582,
+          "p97.5": -0.20027798797197796,
+          "n_eff": 32
+        },
+        "g": {
+          "path_mean": 0.5536354273486374,
+          "p2.5": 0.46837016223582956,
+          "p97.5": 0.6408507781321023,
+          "n_eff": 32
+        },
+        "price": {
+          "path_mean": 0.9038790261581757,
+          "p2.5": 0.8183541841425158,
+          "p97.5": 0.9898591727815225,
+          "n_eff": 32
+        },
+        "funding_paid": {
+          "path_mean": 0.19051055786099783,
+          "p2.5": 0.18775324696685683,
+          "p97.5": 0.1945187404702779,
+          "n_eff": 32
+        },
+        "fee": {
+          "path_mean": 0.15973304094879764,
+          "p2.5": 0.15808575009203568,
+          "p97.5": 0.16348585481890077,
+          "n_eff": 32
+        },
+        "unknown_excluded": {
+          "path_mean": 0.0,
+          "p2.5": 0.0,
+          "p97.5": 0.0,
+          "n_eff": 32
+        },
+        "turnover_over_gross": {
+          "path_mean": 0.06400476849388217,
+          "p2.5": 0.06367920633548843,
+          "p97.5": 0.06478423157660329,
+          "n_eff": 32
+        },
+        "day_stop_flattens": {
+          "path_mean": 0.53125,
+          "p2.5": 0.0,
+          "p97.5": 2.0,
+          "n_eff": 32
+        },
+        "per_name_stops": {
+          "path_mean": 327.0,
+          "p2.5": 286.775,
+          "p97.5": 354.225,
+          "n_eff": 32
+        },
+        "halt_anchors": {
+          "path_mean": 0.3125,
+          "p2.5": 0.0,
+          "p97.5": 2.0,
+          "n_eff": 32
+        },
+        "hold_anchors": {
+          "path_mean": 207.0,
+          "p2.5": 207.0,
+          "p97.5": 207.0,
+          "n_eff": 32
+        },
+        "g_identity_max_err": 8.93329854534386e-11
+      },
+      "mean_path": {
+        "total_return": 0.24942642279798255,
+        "sharpe": 1.1945299485594802,
+        "maxdd_5m": -0.21522803460816198,
+        "worst_day": -0.03834350093640171,
+        "note": "certified MEAN PATH (descriptive only)"
+      }
+    },
+    "2025": {
+      "paths": {
+        "n_paths": 32,
+        "n_windows": 2190,
+        "n_full_days": 365,
+        "total_return": {
+          "path_mean": 0.26889274997092927,
+          "p2.5": 0.21476718648606496,
+          "p97.5": 0.30955308873306564,
+          "n_eff": 32
+        },
+        "cagr": {
+          "path_mean": 0.26889274997092927,
+          "p2.5": 0.21476718648606496,
+          "p97.5": 0.30955308873306564,
+          "n_eff": 32
+        },
+        "sharpe": {
+          "path_mean": 1.0297455420638713,
+          "p2.5": 0.8707656360099969,
+          "p97.5": 1.1433920396248392,
+          "n_eff": 32
+        },
+        "worst_day": {
+          "path_mean": -0.04511740840601447,
+          "p2.5": -0.048572025442301645,
+          "p97.5": -0.04295452057447011,
+          "n_eff": 32
+        },
+        "maxdd_5m": {
+          "path_mean": -0.16806348566002305,
+          "p2.5": -0.18066100463842785,
+          "p97.5": -0.1561507524042873,
+          "n_eff": 32
+        },
+        "g": {
+          "path_mean": 0.6149887509854426,
+          "p2.5": 0.5154983448753472,
+          "p97.5": 0.6882108919862138,
+          "n_eff": 32
+        },
+        "price": {
+          "path_mean": 1.291812628294126,
+          "p2.5": 1.1933545002484551,
+          "p97.5": 1.3641129151409634,
+          "n_eff": 32
+        },
+        "funding_paid": {
+          "path_mean": 0.529908050228149,
+          "p2.5": 0.51857634254284,
+          "p97.5": 0.5379301128865532,
+          "n_eff": 32
+        },
+        "fee": {
+          "path_mean": 0.14691582708076562,
+          "p2.5": 0.14390785919624993,
+          "p97.5": 0.14823343301162217,
+          "n_eff": 32
+        },
+        "unknown_excluded": {
+          "path_mean": 0.0,
+          "p2.5": 0.0,
+          "p97.5": 0.0,
+          "n_eff": 32
+        },
+        "turnover_over_gross": {
+          "path_mean": 0.05727425773473938,
+          "p2.5": 0.05652021830163895,
+          "p97.5": 0.05760083100298193,
+          "n_eff": 32
+        },
+        "day_stop_flattens": {
+          "path_mean": 3.78125,
+          "p2.5": 3.0,
+          "p97.5": 4.0,
+          "n_eff": 32
+        },
+        "per_name_stops": {
+          "path_mean": 806.0,
+          "p2.5": 794.775,
+          "p97.5": 814.9,
+          "n_eff": 32
+        },
+        "halt_anchors": {
+          "path_mean": 11.09375,
+          "p2.5": 11.0,
+          "p97.5": 12.0,
+          "n_eff": 32
+        },
+        "hold_anchors": {
+          "path_mean": 430.0,
+          "p2.5": 430.0,
+          "p97.5": 430.0,
+          "n_eff": 32
+        },
+        "g_identity_max_err": 1.0691358909298287e-10
+      },
+      "mean_path": {
+        "total_return": 0.26900640420011435,
+        "sharpe": 1.0345696450007549,
+        "maxdd_5m": -0.16670810332272912,
+        "worst_day": -0.04363892660104818,
+        "note": "certified MEAN PATH (descriptive only)"
+      }
+    },
+    "pre2026": {
+      "paths": {
+        "n_paths": 32,
+        "n_windows": 5495,
+        "n_full_days": 915,
+        "total_return": {
+          "path_mean": 0.448678229196962,
+          "p2.5": 0.3758117629523709,
+          "p97.5": 0.5054611559818876,
+          "n_eff": 32
+        },
+        "cagr": {
+          "path_mean": 0.15908905027658699,
+          "p2.5": 0.1355554695136067,
+          "p97.5": 0.17708651279353682,
+          "n_eff": 32
+        },
+        "sharpe": {
+          "path_mean": 0.7456884361029338,
+          "p2.5": 0.6546017550902076,
+          "p97.5": 0.8178630824439455,
+          "n_eff": 32
+        },
+        "worst_day": {
+          "path_mean": -0.04545454548727493,
+          "p2.5": -0.048572025442301645,
+          "p97.5": -0.04383263793636312,
+          "n_eff": 32
+        },
+        "maxdd_5m": {
+          "path_mean": -0.25447762380982986,
+          "p2.5": -0.2669205125046152,
+          "p97.5": -0.24053941565165723,
+          "n_eff": 32
+        },
+        "g": {
+          "path_mean": 0.3908844291789837,
+          "p2.5": 0.3441369951970501,
+          "p97.5": 0.4259550541641626,
+          "n_eff": 32
+        },
+        "price": {
+          "path_mean": 0.8647197512248459,
+          "p2.5": 0.8188604545885994,
+          "p97.5": 0.8989207452847221,
+          "n_eff": 32
+        },
+        "funding_paid": {
+          "path_mean": 0.3182168519516806,
+          "p2.5": 0.31360060163593806,
+          "p97.5": 0.3216169972698891,
+          "n_eff": 32
+        },
+        "fee": {
+          "path_mean": 0.15561847009438506,
+          "p2.5": 0.15410957792030616,
+          "p97.5": 0.1576781689091029,
+          "n_eff": 32
+        },
+        "unknown_excluded": {
+          "path_mean": 0.0,
+          "p2.5": 0.0,
+          "p97.5": 0.0,
+          "n_eff": 32
+        },
+        "turnover_over_gross": {
+          "path_mean": 0.06161616427174999,
+          "p2.5": 0.06127573396305978,
+          "p97.5": 0.06206496659918983,
+          "n_eff": 32
+        },
+        "day_stop_flattens": {
+          "path_mean": 5.15625,
+          "p2.5": 4.0,
+          "p97.5": 7.0,
+          "n_eff": 32
+        },
+        "per_name_stops": {
+          "path_mean": 1203.40625,
+          "p2.5": 1160.875,
+          "p97.5": 1235.0,
+          "n_eff": 32
+        },
+        "halt_anchors": {
+          "path_mean": 11.40625,
+          "p2.5": 11.0,
+          "p97.5": 13.0,
+          "n_eff": 32
+        },
+        "hold_anchors": {
+          "path_mean": 865.0,
+          "p2.5": 865.0,
+          "p97.5": 865.0,
+          "n_eff": 32
+        },
+        "g_identity_max_err": 1.0691358909298287e-10
+      },
+      "mean_path": {
+        "total_return": 0.4489839691743913,
+        "sharpe": 0.748888165576782,
+        "maxdd_5m": -0.25437530313271994,
+        "worst_day": -0.04363892660104818,
+        "note": "certified MEAN PATH (descriptive only)"
+      }
+    },
+    "2026": {
+      "paths": {
+        "n_paths": 32,
+        "n_windows": 1566,
+        "n_full_days": 261,
+        "total_return": {
+          "path_mean": 1.2034495497765234,
+          "p2.5": 1.082165339335675,
+          "p97.5": 1.3393322467689528,
+          "n_eff": 32
+        },
+        "cagr": {
+          "path_mean": 2.0195863151051685,
+          "p2.5": 1.7890132925854767,
+          "p97.5": 2.282186423301027,
+          "n_eff": 32
+        },
+        "sharpe": {
+          "path_mean": 3.5954360133632797,
+          "p2.5": 3.3265089310132248,
+          "p97.5": 3.875058463021955,
+          "n_eff": 32
+        },
+        "worst_day": {
+          "path_mean": -0.04797240390589983,
+          "p2.5": -0.0501953770330326,
+          "p97.5": -0.043799492867335914,
+          "n_eff": 32
+        },
+        "maxdd_5m": {
+          "path_mean": -0.2097613425643755,
+          "p2.5": -0.22477833727826202,
+          "p97.5": -0.19404324604174644,
+          "n_eff": 32
+        },
+        "g": {
+          "path_mean": 2.6456144211562598,
+          "p2.5": 2.4661527689316687,
+          "p97.5": 2.8371229976725063,
+          "n_eff": 32
+        },
+        "price": {
+          "path_mean": 3.822431817445838,
+          "p2.5": 3.644981262980813,
+          "p97.5": 4.015674103213676,
+          "n_eff": 32
+        },
+        "funding_paid": {
+          "path_mean": 1.0452612965605552,
+          "p2.5": 1.0367324943565295,
+          "p97.5": 1.0514138002785989,
+          "n_eff": 32
+        },
+        "fee": {
+          "path_mean": 0.13155609972918086,
+          "p2.5": 0.12662356202632147,
+          "p97.5": 0.13592976789949432,
+          "n_eff": 32
+        },
+        "unknown_excluded": {
+          "path_mean": 0.0,
+          "p2.5": 0.0,
+          "p97.5": 0.0,
+          "n_eff": 32
+        },
+        "turnover_over_gross": {
+          "path_mean": 0.05034309267221883,
+          "p2.5": 0.04910349013800761,
+          "p97.5": 0.05149867390811396,
+          "n_eff": 32
+        },
+        "day_stop_flattens": {
+          "path_mean": 4.0625,
+          "p2.5": 3.0,
+          "p97.5": 5.0,
+          "n_eff": 32
+        },
+        "per_name_stops": {
+          "path_mean": 344.96875,
+          "p2.5": 338.775,
+          "p97.5": 351.0,
+          "n_eff": 32
+        },
+        "halt_anchors": {
+          "path_mean": 7.78125,
+          "p2.5": 5.55,
+          "p97.5": 9.224999999999998,
+          "n_eff": 32
+        },
+        "hold_anchors": {
+          "path_mean": 0.0,
+          "p2.5": 0.0,
+          "p97.5": 0.0,
+          "n_eff": 32
+        },
+        "g_identity_max_err": 1.4876277987241338e-10
+      },
+      "mean_path": {
+        "total_return": 1.2034482176402088,
+        "sharpe": 3.618744572101576,
+        "maxdd_5m": -0.2095927472904735,
+        "worst_day": -0.04722876203046722,
+        "note": "certified MEAN PATH (descriptive only)"
+      }
+    },
+    "2026_frozen_truncated": {
+      "paths": {
+        "n_paths": 32,
+        "n_windows": 1453,
+        "n_full_days": 242,
+        "total_return": {
+          "path_mean": 1.322056851191279,
+          "p2.5": 1.194286325378762,
+          "p97.5": 1.4577792587896299,
+          "n_eff": 32
+        },
+        "cagr": {
+          "path_mean": 2.5615086351794503,
+          "p2.5": 2.269020937997622,
+          "p97.5": 2.8783590110603505,
+          "n_eff": 32
+        },
+        "sharpe": {
+          "path_mean": 4.083787789675117,
+          "p2.5": 3.7942292752519604,
+          "p97.5": 4.380949323499788,
+          "n_eff": 32
+        },
+        "worst_day": {
+          "path_mean": -0.04797240390589983,
+          "p2.5": -0.0501953770330326,
+          "p97.5": -0.043799492867335914,
+          "n_eff": 32
+        },
+        "maxdd_5m": {
+          "path_mean": -0.2096779983302815,
+          "p2.5": -0.22477833727826202,
+          "p97.5": -0.19404324604174644,
+          "n_eff": 32
+        },
+        "g": {
+          "path_mean": 3.017000654742148,
+          "p2.5": 2.8237163171005513,
+          "p97.5": 3.213324269210267,
+          "n_eff": 32
+        },
+        "price": {
+          "path_mean": 4.2259480856567135,
+          "p2.5": 4.0351288309796605,
+          "p97.5": 4.4227272298685465,
+          "n_eff": 32
+        },
+        "funding_paid": {
+          "path_mean": 1.0810017387823674,
+          "p2.5": 1.0716578925902016,
+          "p97.5": 1.0875139962201983,
+          "n_eff": 32
+        },
+        "fee": {
+          "path_mean": 0.12794569213236054,
+          "p2.5": 0.12253002992949238,
+          "p97.5": 0.132596883080823,
+          "n_eff": 32
+        },
+        "unknown_excluded": {
+          "path_mean": 0.0,
+          "p2.5": 0.0,
+          "p97.5": 0.0,
+          "n_eff": 32
+        },
+        "turnover_over_gross": {
+          "path_mean": 0.04937614008016505,
+          "p2.5": 0.04803149439244568,
+          "p97.5": 0.05061073649213285,
+          "n_eff": 32
+        },
+        "day_stop_flattens": {
+          "path_mean": 3.0625,
+          "p2.5": 2.0,
+          "p97.5": 4.0,
+          "n_eff": 32
+        },
+        "per_name_stops": {
+          "path_mean": 314.6875,
+          "p2.5": 309.0,
+          "p97.5": 320.225,
+          "n_eff": 32
+        },
+        "halt_anchors": {
+          "path_mean": 5.0625,
+          "p2.5": 2.775,
+          "p97.5": 7.224999999999998,
+          "n_eff": 32
+        },
+        "hold_anchors": {
+          "path_mean": 0.0,
+          "p2.5": 0.0,
+          "p97.5": 0.0,
+          "n_eff": 32
+        },
+        "g_identity_max_err": 1.4697043582145852e-10
+      },
+      "mean_path": {
+        "total_return": 1.3219415914997756,
+        "sharpe": 4.110865237228329,
+        "maxdd_5m": -0.2095927472904735,
+        "worst_day": -0.04722876203046722,
+        "note": "certified MEAN PATH (descriptive only)"
+      }
+    },
+    "full_window": {
+      "paths": {
+        "n_paths": 32,
+        "n_windows": 7061,
+        "n_full_days": 1176,
+        "total_return": {
+          "path_mean": 2.191848550734595,
+          "p2.5": 1.9656302951388678,
+          "p97.5": 2.3943978887026733,
+          "n_eff": 32
+        },
+        "cagr": {
+          "path_mean": 0.43302829043440066,
+          "p2.5": 0.40096900974362887,
+          "p97.5": 0.4608813563039083,
+          "n_eff": 32
+        },
+        "sharpe": {
+          "path_mean": 1.5436336981607082,
+          "p2.5": 1.4498380168289984,
+          "p97.5": 1.62844834709677,
+          "n_eff": 32
+        },
+        "worst_day": {
+          "path_mean": -0.048201765957074254,
+          "p2.5": -0.0501953770330326,
+          "p97.5": -0.0449039438852595,
+          "n_eff": 32
+        },
+        "maxdd_5m": {
+          "path_mean": -0.25447762380982986,
+          "p2.5": -0.2669205125046152,
+          "p97.5": -0.24053941565165723,
+          "n_eff": 32
+        },
+        "g": {
+          "path_mean": 0.8909420934526582,
+          "p2.5": 0.8386935599158057,
+          "p97.5": 0.9367304669597156,
+          "n_eff": 32
+        },
+        "price": {
+          "path_mean": 1.520685916881562,
+          "p2.5": 1.4696005511577082,
+          "p97.5": 1.5662592110026674,
+          "n_eff": 32
+        },
+        "funding_paid": {
+          "path_mean": 0.4794619447512129,
+          "p2.5": 0.47520067195186566,
+          "p97.5": 0.48239854799429593,
+          "n_eff": 32
+        },
+        "fee": {
+          "path_mean": 0.15028187867788462,
+          "p2.5": 0.14861832133752853,
+          "p97.5": 0.15192348533959765,
+          "n_eff": 32
+        },
+        "unknown_excluded": {
+          "path_mean": 0.0,
+          "p2.5": 0.0,
+          "p97.5": 0.0,
+          "n_eff": 32
+        },
+        "turnover_over_gross": {
+          "path_mean": 0.0591160042200766,
+          "p2.5": 0.05869419111356454,
+          "p97.5": 0.05950468162795185,
+          "n_eff": 32
+        },
+        "day_stop_flattens": {
+          "path_mean": 9.21875,
+          "p2.5": 7.775,
+          "p97.5": 11.0,
+          "n_eff": 32
+        },
+        "per_name_stops": {
+          "path_mean": 1548.375,
+          "p2.5": 1506.325,
+          "p97.5": 1583.225,
+          "n_eff": 32
+        },
+        "halt_anchors": {
+          "path_mean": 19.1875,
+          "p2.5": 16.55,
+          "p97.5": 21.224999999999998,
+          "n_eff": 32
+        },
+        "hold_anchors": {
+          "path_mean": 865.0,
+          "p2.5": 865.0,
+          "p97.5": 865.0,
+          "n_eff": 32
+        },
+        "g_identity_max_err": 1.4876277987241338e-10
+      },
+      "mean_path": {
+        "total_return": 2.192761144266567,
+        "sharpe": 1.5515392478603258,
+        "maxdd_5m": -0.25437530313271994,
+        "worst_day": -0.04722876203046722,
+        "note": "certified MEAN PATH (descriptive only)"
+      }
+    }
+  },
+  "dbar_vs_control": {
+    "2023H2": {
+      "mean_bps_per_day": -0.4871863676318141,
+      "n_days": 184,
+      "n_paths": 32
+    },
+    "2024": {
+      "mean_bps_per_day": -0.9364583734045434,
+      "n_days": 366,
+      "n_paths": 32
+    },
+    "2025": {
+      "mean_bps_per_day": -3.216937230874673,
+      "n_days": 365,
+      "n_paths": 32
+    },
+    "pre2026": {
+      "mean_bps_per_day": -1.7558121809612819,
+      "n_days": 915,
+      "n_paths": 32
+    },
+    "2026": {
+      "mean_bps_per_day": -1.4315194106628875,
+      "n_days": 261,
+      "n_paths": 32
+    },
+    "2026_frozen_truncated": {
+      "mean_bps_per_day": -1.5572876569608862,
+      "n_days": 242,
+      "n_paths": 32
+    },
+    "full_window": {
+      "mean_bps_per_day": -1.6838390406144437,
+      "n_days": 1176,
+      "n_paths": 32
+    }
+  },
+  "small_series": {
+    "path": "/workspace/dlarch_2026-09-24/receipts/RETAIN_s5_2026-09-25.json/SER_DLARCH_T0_s5_scaled_rule_raw_UAFE.npz",
+    "keys": [
+      "anchors",
+      "car_per_path",
+      "cst_per_path",
+      "dstop_per_path",
+      "g_per_path",
+      "halt_per_path",
+      "hold_per_path",
+      "maxdd_5m_2023H2_per_path",
+      "maxdd_5m_2024_per_path",
+      "maxdd_5m_2025_per_path",
+      "maxdd_5m_2026_frozen_truncated_per_path",
+      "maxdd_5m_2026_per_path",
+      "maxdd_5m_full_window_per_path",
+      "maxdd_5m_pre2026_per_path",
+      "nstop_per_path",
+      "pnl_per_path",
+      "r_per_path",
+      "tau_per_path",
+      "unk_per_path"
+    ],
+    "sha256": "88ec7b542d25e078bff5670ec26c4a77dc93dd00aff516a01aa5a7c53f896c93",
+    "size_mb": 11.18
+  },
+  "ALL_PRECONDITIONS_PASS": true,
+  "RESIDUAL_LOSS": "PATH_*.npz removed: any NEW question needing the 5-minute NAV (nav5_main / nav5_sim), dust, or unk_notional cannot be answered for this cell -- it can only be re-run. The frozen judge's load_cell can no longer read this cell at all.",
+  "deleted": [
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_00.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_01.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_02.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_03.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_04.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_05.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_06.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_07.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_08.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_09.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_10.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_11.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_12.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_13.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_14.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_15.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_16.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_17.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_18.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_19.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_20.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_21.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_22.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_23.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_24.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_25.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_26.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_27.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_28.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_29.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_30.npz",
+      "bytes": 11294318
+    },
+    {
+      "file": "PATH_DLARCH_T0_s5_scaled_rule_raw_UAFE_seed_31.npz",
+      "bytes": 11294318
+    }
+  ],
+  "freed_regenerable": [
+    {
+      "file": "work/combo_s5/scaled_diagnostic.npz",
+      "bytes": 32352704,
+      "sha256": "b731e0250a56ca3e40dd369bdc26db31f586e0234f9e1abed6dc483dd1cd24f3",
+      "regenerable_by": "re-run dlarch_chain_run.py for this seed"
+    },
+    {
+      "file": "work/combo_s5/literal.npz",
+      "bytes": 27027416,
+      "sha256": "c2078d53310168252b73d4c776256a1f8b8bfed793d894475a928e6c55e58a8c",
+      "regenerable_by": "re-run dlarch_chain_run.py for this seed"
+    },
+    {
+      "file": "targets/TARGETS_DLARCH_T0_s5.npz",
+      "bytes": 27999652,
+      "sha256": "d8322b2d40cb0070fdf64dcb3141d7c74c300d3531c6ddf55f2095c504ec036a",
+      "regenerable_by": "re-run dlarch_chain_run.py for this seed"
+    }
+  ],
+  "deleted_note": "PATH_*.json, AGG_*, TARGETS*.json, receipts, logs and configs are kept"
+}
