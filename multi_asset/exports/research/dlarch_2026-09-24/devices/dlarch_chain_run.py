@@ -352,10 +352,23 @@ def main():
         t0 = time.monotonic()
         rc = run([PV, "-B", "bt_launch.py", "PATH,HOME,LC_CTYPE", cpath, "--resume", arm], f"{L}/engine.log",
                  cwd=f"{NS}/engine")
-        npaths = len([f for f in os.listdir(f"{root}/runs/{r0['tag'].replace('|', '_')}")
-                      if f.endswith(".npz")]) if os.path.isdir(f"{root}/runs/{r0['tag'].replace('|', '_')}") else 0
+        # Count ONLY the PATH npz. Counting every .npz also swept in the aggregate AGG_<tag>.npz, so the
+        # field named `path_npz_found` reported 33 against `expected: 32` -- a check that could never
+        # pass, and whose failure mode is that someone "fixes" it by changing 32 to 33 and loses the
+        # check entirely. Same family as `anchors_outside_universe` counting only one side: the name and
+        # the number have to mean the same thing. s42's cell was produced before this fix and its receipt
+        # says 33; its true PATH count was verified to be 32 (64 files = 32 npz + 32 json).
+        _rd = f"{root}/runs/{r0['tag'].replace('|', '_')}"
+        _all_npz = [f for f in os.listdir(_rd) if f.endswith(".npz")] if os.path.isdir(_rd) else []
+        npaths = len([f for f in _all_npz if f.startswith("PATH")])
+        nagg = len([f for f in _all_npz if f.startswith("AGG")])
         rec["steps"]["engine"] = {"rc": rc, "seconds": round(time.monotonic() - t0, 1),
-                                  "path_npz_found": npaths, "expected": 32}
+                                  "path_npz_found": npaths, "expected": 32,
+                                  "agg_npz_found": nagg, "all_npz": len(_all_npz),
+                                  "count_note": "path_npz_found counts PATH*.npz only; the aggregate is "
+                                                "counted separately so the field matches its name"}
+        assert rc != 0 or npaths == 32, (f"engine rc=0 but {npaths} PATH npz, expected 32 "
+                                         f"(aggregates: {nagg}, all npz: {len(_all_npz)})")
         rec["mem_gate_after_engine"] = mem_gate()
         log("engine rc", rc, "paths", npaths)
     else:
