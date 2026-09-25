@@ -3,6 +3,11 @@
 (one archived snapshot is COPIED into a temp fixture; nothing under ~/wide_shadow is written).
   T1 census (class guard): every 3-index subscript whose last index is the literal 0 in shadow_loop_v3.py + fea171/*.py must be one of the
      whitelisted sites (file + exact line text). A NEW channel-0 read anywhere turns this red — "would one added tomorrow be caught?".
+     SCOPE (gate 3' revision 2, lead ruling k1 2026-09-25): the census runs over the producer's FULL INSTALLED code set (--installed, default
+     ~/wide_shadow: shadow_loop_v3.py + fea171/*.py) OVERLAID with the tree's files (a tree file replaces the installed file of the same
+     relative path; tree-only files are added). Before this revision T1 censused only the tree's own (changed) files — an instance-shaped
+     scope that missed fea171/sidecar_blend.py and fea171/combo_stage_t3c_candidate.py (both read channel 0 of the clipped storage path).
+     --t1-only runs T1 alone (no fixture).
   T2 capture (behaviour): fixture = copy of the latest snapshot state with two PLANTED bound cells (storage ch0 = f16(0.30) at a BTCUSDT row
      and at another crypto name's row) and their raw values in the sparse table (0.90 / 0.75), generation re-signed.
        baseline tree (treeNC5): capture's channel 0 at the planted cells = 0.30 (the clipped storage — the defect's precondition);
@@ -12,7 +17,7 @@
   T4 _btcv_series (v2 tree, extracted by ast): RR=None raises; with capture's RR != with the clipped storage (BTC plant in the window).
   T5 dlw / f8: the RET-loading statement (extracted by ast) raises KeyError on a cache without ret_f32 and returns it when present.
 Baseline-green first: T2's baseline/control assertions run before the v2 assertions and are printed with measured values.
-usage: ~/wide_shadow/venv/bin/python test_m3_v2_ret5.py <v2 tree> <baseline tree>"""
+usage: ~/wide_shadow/venv/bin/python test_m3_v2_ret5.py <v2 tree> <baseline tree> [--installed <producer root>] [--t1-only]"""
 import ast, hashlib, json, os, shutil, sys, tempfile, importlib.util, glob
 import numpy as np
 
@@ -34,10 +39,19 @@ WHITELIST = {   # (file, stripped line text) of the sites that may index channel
 WHITELIST_PREFIX = [("shadow_loop_v3.py", "r5seg = CDf["), ("shadow_loop_v3.py", "seg = CDf[")]   # the producer's CDf channel 0 IS rr (shadow_loop_v3 L661)
 
 
-def census(tree):
+def overlay_files(tree, installed):
+    """relative path -> absolute path: the installed code set (shadow_loop_v3.py + fea171/*.py) with the tree's files on top"""
+    rel = lambda root: (["shadow_loop_v3.py"] if os.path.isfile(f"{root}/shadow_loop_v3.py") else []) + sorted(os.path.relpath(p, root) for p in glob.glob(f"{root}/fea171/*.py"))
+    m = {r: f"{installed}/{r}" for r in rel(installed)}
+    m.update({r: f"{tree}/{r}" for r in rel(tree)})
+    return m
+
+
+def census(tree, installed=None):
     hits = []
-    for f in ["shadow_loop_v3.py"] + sorted(os.path.relpath(p, tree) for p in glob.glob(f"{tree}/fea171/*.py")):
-        src = open(f"{tree}/{f}").read(); lines = src.splitlines()
+    files = overlay_files(tree, installed) if installed else {f: f"{tree}/{f}" for f in ["shadow_loop_v3.py"] + sorted(os.path.relpath(p, tree) for p in glob.glob(f"{tree}/fea171/*.py"))}
+    for f in sorted(files):
+        src = open(files[f]).read(); lines = src.splitlines()
         for n in ast.walk(ast.parse(src)):
             if isinstance(n, ast.Subscript) and isinstance(n.slice, ast.Tuple) and len(n.slice.elts) == 3 \
                     and isinstance(n.slice.elts[-1], ast.Constant) and n.slice.elts[-1].value == 0:
@@ -79,10 +93,14 @@ def fixture(root, with_table):
 
 def main():
     v2, base = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2])
-    # T1 census
-    hits = census(v2); bad = [h for h in hits if (h[0], h[1]) not in WHITELIST and not any(h[0] == f and h[1].startswith(p) for f, p in WHITELIST_PREFIX)]
-    print(f"T1 census: {len(hits)} channel-0 subscripts in the v2 tree"); [print(f"     {f}:{ln}: {t[:110]}") for f, t, ln in hits]
+    inst = os.path.abspath(sys.argv[sys.argv.index("--installed") + 1]) if "--installed" in sys.argv else WS
+    # T1 census over the installed code set + the v2 tree overlay (gate 3' revision 2)
+    nfiles = len(overlay_files(v2, inst))
+    hits = census(v2, inst); bad = [h for h in hits if (h[0], h[1]) not in WHITELIST and not any(h[0] == f and h[1].startswith(p) for f, p in WHITELIST_PREFIX)]
+    print(f"T1 census: {len(hits)} channel-0 subscripts in {nfiles} files (installed {inst} + v2 tree overlay)"); [print(f"     {f}:{ln}: {t[:110]}") for f, t, ln in hits]
     check("T1 every channel-0 subscript is a whitelisted site", not bad, bad)
+    if "--t1-only" in sys.argv:
+        print(f"TEST_M3_V2_RET5 T1-ONLY {'PASS' if not FAILS else 'FAIL'} n={N[0]} fails={FAILS}", flush=True); sys.exit(0 if not FAILS else 3)
     tmp = tempfile.mkdtemp(prefix="m3v2_ret5_")
     ws, here, row, jb, jo, snap = fixture(f"{tmp}/a", True); wsc, herec, _, _, _, _ = fixture(f"{tmp}/c", False)
     FCb = load(f"{base}/fea171/feature_cache_identity.py", "fci_base"); FCv = load(f"{v2}/fea171/feature_cache_identity.py", "fci_v2")

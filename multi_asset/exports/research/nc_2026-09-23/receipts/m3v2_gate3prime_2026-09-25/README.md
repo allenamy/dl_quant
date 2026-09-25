@@ -42,3 +42,11 @@ REVISION 2 = census scope of T1 and rev1 becomes "the producer's full installed 
 T1's scope was instance-shaped), re-judged in the deploy sandbox with the moved layout before deploying; (3) ret5-class note: sidecar_blend
 reads the clipped ch0; its last run was 2026-09-24 04:21Z (before the NC release), the daemon has been stopped since, so NC-era live trading
 is unaffected (also recorded in docs/ERROR_LEDGER_2026-08-20.md under E-0924-B).
+REVISION 2 (lead k1): test_m3_v2_ret5.py T1 census scope = the producer's full installed code set (shadow_loop_v3.py + fea171/*.py, --installed,
+  default ~/wide_shadow) overlaid with the tree's files; --t1-only added. rev1's census root (the v2 sandbox's wide_shadow = rsynced installed
+  code + tree files) already had this scope. Tests (05:2xZ, cwd devices/, v2 tree treeNC6, base treeNC5):
+  (a) live installed layout: `… test_m3_v2_ret5.py ~/cc_tmp/nc_20260923/treeNC6 ~/cc_tmp/nc_20260923/treeNC5 --t1-only` → t1 live rc=3,
+      "T1 census: 14 channel-0 subscripts in 15 files", FAIL naming exactly combo_stage_t3c_candidate.py:55 and sidecar_blend.py:52 (RED as expected)
+  (b) a scratch copy of the installed code set with sidecar_blend.py / combo_stage_t3c_candidate.py / sidecar_daemon.sh moved into
+      fea171/_archive_2026-09-25/: `… --installed <copy> --t1-only` → t1 moved rc=0, "12 channel-0 subscripts in 13 files", PASS (GREEN)
+  The deploy-sandbox re-judgement with the moved layout (gate 3' + rev1 + T1) is still to be run as part of the v2 deploy preparation.
