@@ -1,0 +1,18 @@
+{
+  "arm": "MEM_res",
+  "measured_at_utc": "2026-09-25T06:56:43.570801+00:00",
+  "formula": "headroom = memory.max - anon - shmem  (lead's revision-1 wording)",
+  "memory_max_bytes": 60999999488,
+  "memory_current_bytes": 45212532736,
+  "anon_bytes": 8448266240,
+  "shmem_bytes": 28130582528,
+  "headroom_bytes": 24421150720,
+  "memory_max_GiB": 56.811,
+  "anon_GiB": 7.868,
+  "shmem_GiB": 26.199,
+  "headroom_GiB": 22.744,
+  "threshold_GiB": 8.0,
+  "threshold_basis": "engine measured anon footprint 3.00-3.04 GiB per bt_launch (own_GiB in the engine logs); threshold = 2x that plus ~2 GiB margin",
+  "why_this_gate_exists": "cgroup oom_kill 9 at 2026-09-25T04:33Z killed another agent's job",
+  "verdict": "PASS"
+}

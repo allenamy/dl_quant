@@ -17,6 +17,9 @@ to the production one and the whole ladder is UNAVAILABLE.
 
 ARMS (lead's list):
   none      red control     -- nothing substituted
+  LEGAL_res / MEM_res            revision 1 (dd57ac30f): lead's two added arms
+  KZ_res_ncfill / KZWL_res_ncfill / F10_res_ncfill   revision 1: lead's path-2 sensitivity (NC fill)
+  all_new_nclegal                revision 1: leave-one-out, everything NEW except legal
   all_new   positive control-- every array from NEW; must reproduce NEW's archived targets (<=1e-6)
   kz_neg    mutation        -- KZ negated; publish decisions must change
   KZ_res / WL_res / F10_res / FUND_res(ZFD+ready+QV+RN8) / KZWL_res
@@ -114,12 +117,22 @@ def main():
     rec["new_axis"] = {"nc_anchors": int(anchors.size), "new_anchors": len(new_pos),
                        "nc_anchors_absent_from_new": int((rows_new < 0).sum())}
 
-    def take(nc_arr, new_arr, rows):
-        """NEW's array on NC's axis; anchors NEW lacks keep NC's values (counted)."""
+    def take(nc_arr, new_arr, rows, ncfill=False):
+        """NEW's array on NC's axis; anchors NEW lacks keep NC's values (counted).
+
+        ncfill implements lead's path-2 rule literally, per CELL: where NEW's value is non-finite,
+        keep NC's. The number of cells filled is returned so that "0 filled" is checkable, not assumed.
+        """
         out = np.asarray(nc_arr, np.float64).copy()
         ok = rows >= 0
-        out[ok] = np.asarray(new_arr, np.float64)[rows[ok]]
-        return out, int((~ok).sum())
+        newv = np.asarray(new_arr, np.float64)[rows[ok]]
+        n_filled = 0
+        if ncfill:
+            nonfin = ~np.isfinite(newv)
+            n_filled = int(nonfin.sum())
+            newv = np.where(nonfin, out[ok], newv)
+        out[ok] = newv
+        return out, int((~ok).sum()), n_filled
 
     base = {"KZ": np.asarray(ncl["KZ"], np.float64), "ZFD": np.asarray(ncl["ZFD"], np.float64),
             "WL": np.asarray(ncl["WL"], np.float64), "RN8": np.asarray(ncl["RN8"], np.float64),
@@ -127,10 +140,49 @@ def main():
             "P": np.asarray(ncf["P"], np.float64)}
     off = F["off"]; members = [F["m"][off[i]:off[i + 1]].astype(np.int64) for i in range(len(anchors))]
 
-    swapped, kept_nc, NEW_LEGAL = [], {}, [False]
-    def sub(name, new_arr, rows):
-        v, n_kept = take(base[name], new_arr, rows)
-        base[name] = v; swapped.append(name); kept_nc[name] = n_kept
+    swapped, kept_nc, NEW_LEGAL, nc_filled = [], {}, [False], {}
+    def sub(name, new_arr, rows, ncfill=False):
+        v, n_kept, n_fill = take(base[name], new_arr, rows, ncfill)
+        base[name] = v; swapped.append(name + ("(ncfill)" if ncfill else "")); kept_nc[name] = n_kept
+        if ncfill:
+            # The grid count is dominated by non-member cells, which are NaN on BOTH sides and never
+            # read (combo slices by members). Count MEMBER cells too and name that the consequential one.
+            NA = np.asarray(new_arr, np.float64)
+            per_symbol = NA.ndim == 2 and NA.shape[1] == len(syms)
+            ent = {"grid_entries": int(n_fill), "array_shape": str(NA.shape),
+                   "per_symbol_array": bool(per_symbol)}
+            if per_symbol:
+                n_mem = n_mem_use = 0
+                for i in range(len(anchors)):
+                    r = rows[i]
+                    if r < 0:
+                        continue
+                    nb = int((~np.isfinite(NA[r][members[i]])).sum())
+                    n_mem += nb
+                    if anchors[i] >= 1672531200:
+                        n_mem_use += nb
+                ent.update({"member_cells_all_anchors": n_mem,
+                            "member_cells_in_use_window": n_mem_use,
+                            "consequential_count": "member_cells_in_use_window",
+                            "grid_entries_note": ("whole (anchor x symbol) matrix; dominated by NON-member "
+                                                  "cells that are NaN on both sides and never read")})
+            else:
+                # not per-symbol (WL is (n,3) seat weights; ready is (n,)) -> member cells undefined.
+                # combo RAISES on non-finite seats (combo_target.py:24), it does not refuse the anchor,
+                # so what matters is whether any non-finite entry falls INSIDE the use window.
+                nf = ~np.isfinite(NA)
+                inw = np.zeros(NA.shape[0], bool)
+                for i in range(len(anchors)):
+                    if rows[i] >= 0 and anchors[i] >= 1672531200:
+                        inw[rows[i]] = True
+                ent.update({"member_cells_in_use_window": None,
+                            "consequential_count": "non_finite_entries_inside_use_window",
+                            "non_finite_entries_inside_use_window": int(nf[inw].sum()),
+                            "non_finite_entries_outside_use_window": int(nf[~inw].sum()),
+                            "note": ("member-cell count undefined for a non per-symbol array; combo_target.py:24 "
+                                     "RAISES on non-finite seats rather than refusing the anchor, so only the "
+                                     "in-window count has any consequence")})
+            nc_filled[name] = ent
 
     ARM = a.arm
     if ARM == "none":
@@ -148,7 +200,7 @@ def main():
         sub("ZFD", nwl["ZFD"], rows_new)
         sub("RN8", nwfund["rn8"], rows_new)
         sub("QV", nwt["qvk"], rows_new)
-        rd, nk = take(base["ready"].astype(np.float64), nwl["ready"].astype(np.float64), rows_new)
+        rd, nk, _ = take(base["ready"].astype(np.float64), nwl["ready"].astype(np.float64), rows_new)
         base["ready"] = rd > 0.5; swapped.append("ready"); kept_nc["ready"] = nk
     elif ARM == "KZWL_res":
         sub("KZ", nwl["KZ"], rows_new); sub("WL", nwl["WL"], rows_new)
@@ -165,13 +217,53 @@ def main():
                 members[i] = np.asarray(nm_new[rows_new[i]], np.int64); n_sw += 1
         swapped.append("members"); kept_nc["members"] = int(len(anchors) - n_sw)
         NEW_LEGAL[0] = True
-        rd, nk = take(base["ready"].astype(np.float64), nwl["ready"].astype(np.float64), rows_new)
+        rd, nk, _ = take(base["ready"].astype(np.float64), nwl["ready"].astype(np.float64), rows_new)
         base["ready"] = rd > 0.5; swapped.append("ready"); kept_nc["ready"] = nk
+    elif ARM == "LEGAL_res":
+        NEW_LEGAL[0] = True                                   # lead's new arm: only book_legal moves
+    elif ARM == "MEM_res":
+        nm_new = list(nwt["members"]); n_sw = 0                # lead's new arm: only members move
+        for i in range(len(anchors)):
+            if rows_new[i] >= 0:
+                members[i] = np.asarray(nm_new[rows_new[i]], np.int64); n_sw += 1
+        swapped.append("members"); kept_nc["members"] = int(len(anchors) - n_sw)
+    elif ARM == "KZ_res_ncfill":
+        sub("KZ", nwl["KZ"], rows_new, ncfill=True)
+    elif ARM == "KZWL_res_ncfill":
+        sub("KZ", nwl["KZ"], rows_new, ncfill=True)
+        sub("WL", nwl["WL"], rows_new, ncfill=True)
+    elif ARM == "F10_res_ncfill":
+        sub("P", nwf["P"], rows_new, ncfill=True)
+    elif ARM == "all_new_nclegal":
+        # leave-one-out: identical to all_new EXCEPT book_legal stays NC. NEW_LEGAL is left False.
+        for nm in ("KZ", "ZFD", "WL"):
+            sub(nm, nwl[nm], rows_new)
+        sub("RN8", nwfund["rn8"], rows_new)
+        sub("QV", nwt["qvk"], rows_new)
+        sub("P", nwf["P"], rows_new)
+        nm_new = list(nwt["members"]); n_sw = 0
+        for i in range(len(anchors)):
+            if rows_new[i] >= 0:
+                members[i] = np.asarray(nm_new[rows_new[i]], np.int64); n_sw += 1
+        swapped.append("members"); kept_nc["members"] = int(len(anchors) - n_sw)
+        rd, nk, _ = take(base["ready"].astype(np.float64), nwl["ready"].astype(np.float64), rows_new)
+        base["ready"] = rd > 0.5; swapped.append("ready"); kept_nc["ready"] = nk
+        rec["leave_one_out"] = ("everything NEW except book_legal, which stays NC. all_new minus this "
+                                "arm isolates how much of the gap needs NEW trading cells NC calls "
+                                "untradable -- exact, in dbar units, not a price-return proxy. Its "
+                                "reading rule is lead's to write; the seven-arm thresholds are NOT "
+                                "applied to it here.")
     else:
         rec["verdict"] = "UNAVAILABLE"; rec["why"] = f"unknown arm {ARM}"
         json.dump(rec, open(a.receipt, "w"), indent=2); print("LADDER UNAVAILABLE arm"); return 2
     rec["substituted"] = swapped
     rec["anchors_keeping_nc_values_because_new_lacks_them"] = kept_nc
+    if nc_filled:
+        rec["cells_filled_with_nc_because_new_had_no_score"] = nc_filled
+        rec["fill_rule"] = ("lead's path 2, per cell and literal: NEW value non-finite => use NC's. "
+                            "Counts are reported because '0 cells filled' is itself a claim. Read "
+                            "member_cells_in_use_window, NOT grid_cells: the grid count includes "
+                            "non-member cells that are NaN on both sides and are never read by combo.")
 
     # book_legal, built exactly as news2_combo.py does
     mk = np.load(a.mask, allow_pickle=False)
@@ -228,6 +320,10 @@ def main():
         print(f"  {pol:18s} publish={s['publish_total']:5d}  sha={s['sha'][:16]}  reasons={s['reasons']}")
     if kept_nc:
         print(f"  anchors keeping NC values (NEW lacks them): {kept_nc}")
+    for nm, v in nc_filled.items():
+        key = v["consequential_count"]
+        print(f"  ncfill {nm} {v['array_shape']}: {key} = {v[key]} (consequential)   "
+              f"whole-array entries = {v['grid_entries']}")
     return 0
 
 

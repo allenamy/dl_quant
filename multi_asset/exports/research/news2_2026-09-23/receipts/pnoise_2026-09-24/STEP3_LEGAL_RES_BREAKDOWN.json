@@ -1,0 +1,224 @@
+{
+  "device": "legal_res_breakdown.py",
+  "self_sha256": "6561ab71dce4657dcafb214680ab093b48c0ca2f06b0b814113516d8740b7ceb",
+  "argv": [
+    "--devices",
+    "/dev/shm/pnoise_2026-09-24/devices",
+    "--features",
+    "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+    "--mask",
+    "/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+    "--crypto-axis",
+    "/dev/shm/pnoise_2026-09-24/receipts/P1_members_2025H2on.npz",
+    "--new-funding",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/funding_state.npz",
+    "--new-combo-dir",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/combo_s42",
+    "--out",
+    "/dev/shm/pnoise_2026-09-24/receipts/STEP3_LEGAL_RES_BREAKDOWN.json"
+  ],
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "prereg": "docs/PREREG_gap_carrier_ladder_2026-09-25.md @ dd57ac30f (sha256 893abd37cfa87a0d07457bbdd62a5ccab804579605e1bac73244af1bdcf1ac03), revision 1",
+  "criterion_author": "team-lead (not news2)",
+  "status": "MANDATORY_REPORTING_FOR_LEGAL_RES_WRITTEN_BEFORE_THE_ARM_DBAR",
+  "definitions": {
+    "NC_book_legal": "align_universe & tradable_mask & crypto",
+    "NEW_book_legal": "align_universe & funding_state['legal']",
+    "tradable_mask_bucket_meaning": "the mask npz stores only the CONJUNCTION 'MEMBER_LIVENESS AND MASK_IN 9793722e'; MEMBER_LIVENESS = at least one REAL bar (not hole-filled, log_qv finite) in the 86400s window ending at the anchor. A False cell = no real bar in the trailing 24h OR excluded upstream by mask_in. The finer split is NOT available from this artifact and is not claimed.",
+    "pnl_note": "the engine emits per-PATH NAV only, with no per-cell decomposition, so an exact per-cell P&L attribution does not exist to be read. Exact held WEIGHT is reported instead; no price-return proxy is presented as P&L. The dbar-unit answer comes from the leave-one-out arm all_new_nclegal."
+  },
+  "inputs": {
+    "features": {
+      "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+      "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8"
+    },
+    "mask": {
+      "path": "/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+      "sha256": "f752d8ae3bf92f001fcb5d6f83a7e4ae286d9f11f7548c2e965305615aa9ae51"
+    },
+    "crypto_axis": {
+      "path": "/dev/shm/pnoise_2026-09-24/receipts/P1_members_2025H2on.npz",
+      "sha256": "2323623fda9333710f5834911ab629377ab8c12b056f40ccfc9f7033c0c1f6f1"
+    },
+    "new_funding": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/funding_state.npz",
+      "sha256": "00128959fe87f7271ced7c95e7aa5f865395fa7c49eb236983495cc821cf665b"
+    }
+  },
+  "consumed_layer": {
+    "note": "this is the layer combo actually consumes (after align_universe), not the pre-universe compare",
+    "nc_true_cells": 2498407,
+    "new_true_cells": 2498407,
+    "disagreeing_cells": 0,
+    "anchors_with_any_disagreement": 0,
+    "nc_false_new_true": 0,
+    "nc_true_new_false": 0
+  },
+  "pre_universe_layer": {
+    "note": "mask&crypto vs funding_state[legal], BEFORE align_universe -- the layer lead's 94,054 came from",
+    "disagreeing_cells": 93905,
+    "anchors_with_any_disagreement": 1627
+  },
+  "split_of_cells_NEW_trades_but_NC_would_not": {
+    "total_cells": 0,
+    "buckets": {
+      "tradable_mask_False_only": {
+        "cells": 0,
+        "anchors": 0,
+        "per_year": {
+          "2023": 0,
+          "2024": 0,
+          "2025": 0,
+          "2026": 0
+        }
+      },
+      "crypto_False_only": {
+        "cells": 0,
+        "anchors": 0,
+        "per_year": {
+          "2023": 0,
+          "2024": 0,
+          "2025": 0,
+          "2026": 0
+        }
+      },
+      "both_mask_and_crypto_False": {
+        "cells": 0,
+        "anchors": 0,
+        "per_year": {
+          "2023": 0,
+          "2024": 0,
+          "2025": 0,
+          "2026": 0
+        }
+      },
+      "outside_book_universe": {
+        "cells": 0,
+        "anchors": 0,
+        "per_year": {
+          "2023": 0,
+          "2024": 0,
+          "2025": 0,
+          "2026": 0
+        }
+      },
+      "funding_legal_itself": {
+        "cells": 0,
+        "anchors": 0,
+        "per_year": {
+          "2023": 0,
+          "2024": 0,
+          "2025": 0,
+          "2026": 0
+        },
+        "note": "NC mask AND crypto both True and in-universe, so only funding_state[legal] explains it"
+      }
+    },
+    "closure_check": {
+      "sum_of_buckets": 0,
+      "equals_total": true
+    }
+  },
+  "cells_NC_trades_but_NEW_would_not": {
+    "total_cells": 0,
+    "anchors": 0,
+    "per_year": {
+      "2023": 0,
+      "2024": 0,
+      "2025": 0,
+      "2026": 0
+    }
+  },
+  "new_held_weight_on_cells_nc_calls_illegal": {
+    "literal": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/combo_s42/literal.npz",
+      "sha256": "cae52acf3bc2e82dbbe1cca351c1f3d40d21c91ba48c132241e797990de0f747",
+      "new_total_gross_abs_weight": 1989.9245143569945,
+      "on_nc_untradable_mask_False": {
+        "cells_with_nonzero_weight": 0,
+        "sum_abs_weight": 0.0,
+        "share_of_new_gross_pct": 0.0,
+        "anchors_with_any": 0,
+        "per_year_share_pct": {
+          "2023": null,
+          "2024": null,
+          "2025": 0.0,
+          "2026": 0.0
+        }
+      },
+      "on_nc_noncrypto": {
+        "cells_with_nonzero_weight": 0,
+        "sum_abs_weight": 0.0,
+        "share_of_new_gross_pct": 0.0,
+        "anchors_with_any": 0,
+        "per_year_share_pct": {
+          "2023": null,
+          "2024": null,
+          "2025": 0.0,
+          "2026": 0.0
+        }
+      },
+      "on_any_cell_nc_calls_illegal": {
+        "cells_with_nonzero_weight": 0,
+        "sum_abs_weight": 0.0,
+        "share_of_new_gross_pct": 0.0,
+        "anchors_with_any": 0,
+        "per_year_share_pct": {
+          "2023": null,
+          "2024": null,
+          "2025": 0.0,
+          "2026": 0.0
+        }
+      }
+    },
+    "scaled_diagnostic": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/combo_s42/scaled_diagnostic.npz",
+      "sha256": "4dec6b38b08f8cc857c8f58659e846fea686c02c2959c622ea248c7ef5b22afa",
+      "new_total_gross_abs_weight": 4043.2451540440243,
+      "on_nc_untradable_mask_False": {
+        "cells_with_nonzero_weight": 0,
+        "sum_abs_weight": 0.0,
+        "share_of_new_gross_pct": 0.0,
+        "anchors_with_any": 0,
+        "per_year_share_pct": {
+          "2023": 0.0,
+          "2024": 0.0,
+          "2025": 0.0,
+          "2026": 0.0
+        }
+      },
+      "on_nc_noncrypto": {
+        "cells_with_nonzero_weight": 0,
+        "sum_abs_weight": 0.0,
+        "share_of_new_gross_pct": 0.0,
+        "anchors_with_any": 0,
+        "per_year_share_pct": {
+          "2023": 0.0,
+          "2024": 0.0,
+          "2025": 0.0,
+          "2026": 0.0
+        }
+      },
+      "on_any_cell_nc_calls_illegal": {
+        "cells_with_nonzero_weight": 0,
+        "sum_abs_weight": 0.0,
+        "share_of_new_gross_pct": 0.0,
+        "anchors_with_any": 0,
+        "per_year_share_pct": {
+          "2023": 0.0,
+          "2024": 0.0,
+          "2025": 0.0,
+          "2026": 0.0
+        }
+      }
+    }
+  },
+  "reading_note": "share_of_new_gross_pct is the exact fraction of NEW's own book, by absolute weight, placed on cells NC would not trade. It bounds how much of the gap COULD come from there; it does not by itself say how much DOES -- that is the leave-one-out arm all_new_nclegal, in dbar units.",
+  "limits": [
+    "weights are NEW's archived combo weights, not executed positions",
+    "no per-cell P&L exists in the engine output; none is fabricated here",
+    "arms are NOT additive; every ladder arm is a pipeline-unproducible combination"
+  ],
+  "verdict": "MEASURED"
+}
