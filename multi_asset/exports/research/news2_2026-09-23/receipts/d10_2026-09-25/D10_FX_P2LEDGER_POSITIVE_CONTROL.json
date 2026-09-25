@@ -1,0 +1,83 @@
+{
+ "device": "d10_fx_judge_from_p2ledger.py",
+ "self_sha256": "ed209a3781bf26c8378876b85aa943c10e0a796a435d4515721f0d0694288179",
+ "argv": [
+  "--ledger",
+  "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+  "--ledger-sha",
+  "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad",
+  "--panel",
+  "/workspace/fx_data_2026-09-13/a0dev/pod_backup_2026-08-21/wide_panel_4h_hist_v2.npz",
+  "--replay",
+  "/dev/shm/news2_2026-09-23/inputs/fund_replay.npz",
+  "--crosscheck-csv",
+  "/dev/shm/d10_2026-09-25/receipts/D10_FXFIELD_CELLS_fullprecision.csv",
+  "--positive-control",
+  "--out",
+  "/dev/shm/d10_2026-09-25/receipts/D10_FX_P2LEDGER_POSITIVE_CONTROL.json"
+ ],
+ "truth_source": {
+  "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+  "sha256": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad",
+  "symbols": 829,
+  "rows": 2633090,
+  "span": [
+   "2020-01-01T00:00Z",
+   "2026-09-01T02:00Z"
+  ],
+  "earned_by": "D10_P2_LEDGER_VS_ARCHIVE_full: 6,294/6,294 switch-window settlements present, 463,715 rates bitwise equal, src==4 is 0 across 2,633,090 rows, and 2026-08 is an independent match (ledger 100% API-only there)",
+  "weak_direction": "2026-01..04 are largely circular (the ledger's zip side is the same monthly archive); 2026-08 carries the independence"
+ },
+ "caliber": "float32, the panel's storage dtype -- not a float64 tolerance (a 1e-12 test against the archive's exact decimal fails on correct data by ~1.26e-11)",
+ "asof_rule": "nc_contract.py:84-98: last ft <= anchor, NaN unless anchor-ft <= 43200; rates only, so no interval enters the comparison",
+ "alignment": {
+  "panel_anchors": 10039,
+  "replay_anchors": 10333,
+  "anchor_sets_equal": false,
+  "comparable_anchors": 10039,
+  "anchors_only_in_panel": 0,
+  "anchors_only_in_replay": 294,
+  "anchors_only_in_panel_range": null,
+  "anchors_only_in_replay_range": [
+   "2022-01-01T00:00Z",
+   "2026-09-19T00:00Z"
+  ],
+  "panel_symbols": 829,
+  "replay_symbols": 829,
+  "symbol_sets_equal": true,
+  "symbols_only_in_panel": 0,
+  "symbols_only_in_replay": 0,
+  "note": "only the intersection is judgeable; a cell on an anchor the other side does not carry is not a mismatch and not an agreement, it is outside the comparable population"
+ },
+ "reproduction": {
+  "common_finite_cells": 3166207,
+  "mismatched_cells": 5613,
+  "expected_fresh_count": 5613,
+  "matches_fresh": true,
+  "why": "the same definition as d10_fxfield_adjudicate.py:120; reproducing 5,613 first is what proves this is the FX population and not another one"
+ },
+ "mismatched_cells": 5613,
+ "positive_control_cell": {
+  "symbol": "FILUSDT",
+  "anchor": "2022-02-27T00:00Z",
+  "perturbed": "panel value by one float32 ULP",
+  "expect": "this cell must stop being PANEL_RIGHT"
+ },
+ "verdict_counts": {
+  "NEITHER": 1,
+  "PANEL_RIGHT": 5612
+ },
+ "cells_judged": 5613,
+ "cells_excluded": 0,
+ "closure": true,
+ "crosscheck_vs_archive": {
+  "archive_judged_cells": 2021,
+  "overlap": 2021,
+  "verdict_agree": 2021,
+  "verdict_disagree": 0,
+  "disagreements": [],
+  "truth_bitwise_equal": 2021,
+  "meaning": "P2-as-truth is earned on the overlap before being used beyond it. Zero disagreements is the condition; anything else refuses the extension."
+ },
+ "verdict": "POSITIVE_CONTROL_RUN_NOT_AN_AUDIT"
+}
