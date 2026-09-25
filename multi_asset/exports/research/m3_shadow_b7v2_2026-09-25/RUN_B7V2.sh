@@ -23,3 +23,17 @@ V1=/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/m3_shadow_
 #   control gap (max 7.64e-4) is that input rounding, 0 from the formula/path. The v1 1e-6 gate compared two different inputs; the
 #   instrument is correct. Production v2 β is computed from rr (the same float16 storage + raw restore of clipped bars), so the same
 #   rounding separates it from a kline-based β_res; at the control anchor it stays inside the frozen rule (i) band on all 449 names (M4 = 0).
+
+# ==== step 1: per-anchor devices (committed BEFORE any m3_beta_v2 shadow anchor exists) ====
+# b7v2_copy_inputs.sh (read-only copies for one anchor) · b7v2_fetch.py (1 exchangeInfo + n klines, lead envelope: ≤500 requests, weight ≤300
+# abort / ≥240 soft brake, 429/418 abort, quiet window at start and before every request) · b7v2_compare.py (rule b80f52b39: gate (0),
+# (i) reported with named reasons, (ii) gate; instrument checks ⇒ UNDECIDED).
+# 2026-09-25T04:45Z offline self-test (fake transport / quiet window / clock; synthetic market; no network, no production file):
+#   /usr/bin/python3 -B devices/b7v2_selftest.py $S/../b7v2_selftest > receipts/selftest_2026-09-25/selftest_stdout.log 2>&1; echo "selftest rc=$?"
+#     → selftest rc=0 · B7V2_SELFTEST VERDICT=ALL GREEN tests=31 red=0   (Mac /usr/bin/python3 3.9.6, numpy 1.26.4)
+# ==== per v2 shadow anchor A (template; quiet window after A, i.e. from N+60m; commands to be copied here verbatim when run) ====
+#   zsh $D/devices/b7v2_copy_inputs.sh $S/b7v2/in_$A $A
+#   ~/wide_shadow/venv/bin/python -B /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/nc_2026-09-23/devices/nc_m3_selfcheck.py ~/cc_tmp/nc_20260923/package_NC $A --out $S/b7v2/in_$A/M3_SELFCHECK_$A.txt
+#   /usr/bin/python3 /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/common/venue_quiet_window.py --json
+#   /usr/bin/python3 -B $D/devices/b7v2_fetch.py $S/b7v2/in_$A $A $S/b7v2/fetch_$A
+#   /usr/bin/python3 -B $D/devices/b7v2_compare.py $S/b7v2/in_$A $S/b7v2/fetch_$A $S/b7v2/in_$A/M3_SELFCHECK_$A.txt $A $D/receipts/anchor_$A

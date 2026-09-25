@@ -1,0 +1,58 @@
+B7V2_FETCH A=1790323200 VERDICT=COMPLETE n_requests=42 ok=41 failed=0 max_used_weight_1m=51 soft_brakes=0 manifest_sha256=baa7ff57bcdb5ee693943c51c9914649f911a6ae543c6713b169ce54abfa688d
+PASS F1 BASELINE normal pull → COMPLETE, n+1 requests, exinfo subset written rc=0 verdict=COMPLETE
+PASS F1b pacing ≥ 0.5 s between requests (fake clock) 
+B7V2_FETCH A=1790323200 VERDICT=ABORTED_http_429 n_requests=5 ok=3 failed=1 max_used_weight_1m=14 soft_brakes=0 manifest_sha256=6049306cc1ede215eba8d519abc3b862bf4ce2dbb4f833b4b787c35b32c77367
+PASS F2 RED 429 → ABORTED_http_429, no further request n=5
+B7V2_FETCH A=1790323200 VERDICT=ABORTED_http_418 n_requests=4 ok=2 failed=1 max_used_weight_1m=13 soft_brakes=0 manifest_sha256=9a75ae8cbe950619365398a433c45308453e3004c136f5c45a2f3b676a7edf1b
+PASS F3 RED 418 → ABORTED_http_418 
+B7V2_FETCH A=1790323200 VERDICT=ABORTED_no_or_bad_weight_header n_requests=3 ok=1 failed=1 max_used_weight_1m=11 soft_brakes=0 manifest_sha256=376082043fafabdc2956e5c5ba7dbe2a806140359eb840a25fe9cbce8902c02d
+PASS F4 RED response without weight header → ABORT 
+B7V2_FETCH A=1790323200 VERDICT=ABORTED_weight_301_above_300 n_requests=4 ok=3 failed=0 max_used_weight_1m=301 soft_brakes=0 manifest_sha256=605edcddc73edf3d79a41c76f2faddd83f1653556bffc7f8a31a8cb60153e7c7
+PASS F5 RED weight 301 > 300 → ABORT 
+B7V2_FETCH A=1790323200 VERDICT=COMPLETE n_requests=42 ok=41 failed=0 max_used_weight_1m=250 soft_brakes=1 manifest_sha256=e2bf6b6f64cf90b550d611dac506958d59a7ecb87dbd2544f3af94a6498fba9f
+PASS F6 soft brake at 250 → sleeps to next minute + 2 s, continues, COMPLETE big=[60.5]
+PASS F7 RED 500 names ⇒ 501 requests > envelope → refused before any request 501 requests > envelope 500 — refused (ask the lead)
+PASS F8 RED quiet window closed at start → refused, no request quiet window closed (fake)
+B7V2_FETCH A=1790323200 VERDICT=ABORTED_quiet_window_closing (remaining 3.0 min) n_requests=6 ok=5 failed=0 max_used_weight_1m=15 soft_brakes=0 manifest_sha256=59d9f2ceecddfa60a7c25007c16c02d8c5740714510b56a9756d518d4daac43b
+PASS F9 RED window closing mid-run → ABORTED_quiet_window_closing n=6
+B7V2_FETCH A=1790323200 VERDICT=PARTIAL_FAILED_SYMBOLS n_requests=42 ok=40 failed=1 max_used_weight_1m=51 soft_brakes=0 manifest_sha256=081588cad74ee307ae3c4e9c1fca43fa2261391be52b638b66f985c55a6de817
+PASS F10 RED one symbol HTTP 500 → PARTIAL_FAILED_SYMBOLS (named) 
+PASS F11 RED VENUE_QUIET_WINDOW_OVERRIDE set → refused VENUE_QUIET_WINDOW_OVERRIDE is set — refused
+PASS C0 research β recovers the synthetic truth (sanity of the fixture, |β̂ − β| < 0.4 ≈ 5 se on all) 
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=CLEAN gate0=True ii_abs_usdt=0.12812681508864188 ii_tol_usdt=100.0 ii_pass=True n_over_band=0 n_unexplained=0 undecided=[] out_sha256=d20c0df36dc99aa7d26226462bead72abeae7a1302f1f43eb2179a6cdf7b9893
+PASS G BASELINE green market → CLEAN, (0) pass, (ii) pass, 0 over-band status=CLEAN und=[]
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=FAIL gate0=False ii_abs_usdt=0.12812681508864188 ii_tol_usdt=100.0 ii_pass=True n_over_band=0 n_unexplained=0 undecided=[] out_sha256=590c8faa25815333ad042d483c631c9a0954a761819a02da91cad2123890db8d
+PASS R1 field version v1 → FAIL at (0)a 
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=FAIL gate0=False ii_abs_usdt=0.12812681508864188 ii_tol_usdt=100.0 ii_pass=True n_over_band=0 n_unexplained=0 undecided=[] out_sha256=a1edc440317d977f1fe940e5f86c160e756b90202fd7fdf5098d3054035027e6
+PASS R2 record betas_sha256 ≠ field → FAIL at (0)c 
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=FAIL gate0=False ii_abs_usdt=0.12812681508864188 ii_tol_usdt=100.0 ii_pass=True n_over_band=0 n_unexplained=0 undecided=[] out_sha256=567fb8ca47e37bea257fb302ea7b6334e73690a87efd76e39095e4d1211d1a18
+PASS R3 method (b) MISMATCH → FAIL at (0)d 
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=FAIL gate0=False ii_abs_usdt=0.12812681508864188 ii_tol_usdt=100.0 ii_pass=True n_over_band=0 n_unexplained=0 undecided=[] out_sha256=e1d1dca345f3a9c6244ea9cac8f700394790647a9c4c1cc722c9db27bb67fe44
+PASS R3b executor record v1 → FAIL at (0)b 
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=CLEAN gate0=True ii_abs_usdt=89.87187318490453 ii_tol_usdt=100.0 ii_pass=True n_over_band=0 n_unexplained=0 undecided=[] out_sha256=26c6593cda14d080e0c7bfc473b88d232fe6517bdf9dc7af631844ee21aee713
+PASS R4a (ii) boundary: |Δβ_exec| = 0.9·tol → CLEAN abs=89.87187318490453 tol=100.0
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=FAIL gate0=True ii_abs_usdt=109.8718731849118 ii_tol_usdt=100.0 ii_pass=False n_over_band=0 n_unexplained=0 undecided=[] out_sha256=94e7ab3ea6d4600f275361ea515d5325c157cdacfaace153ef84e6bf9df5349b
+PASS R4b (ii) boundary: |Δβ_exec| = 1.1·tol → FAIL abs=109.8718731849118 tol=100.0
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=PENDING gate0=True ii_abs_usdt=6.597497761167968 ii_tol_usdt=100.0 ii_pass=True n_over_band=1 n_unexplained=1 undecided=[] out_sha256=1a0bf1b91d3767e2877379b8e51f628996a685fd32c9a5f7dd480fceba132658
+PASS R5 one small-target name off the band, TRADING, same n_obs → PENDING (unexplained, not red) status=PENDING
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=CLEAN gate0=True ii_abs_usdt=6.597497761167968 ii_tol_usdt=100.0 ii_pass=True n_over_band=1 n_unexplained=0 undecided=[] out_sha256=0c4acc14d86aabe36e60db72afd9cd92389012ac2aa2cfdc550bb85a46fb36da
+PASS R6 same name SETTLING at fetch → explained (venue_status_SETTLING) → CLEAN 
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=CLEAN gate0=True ii_abs_usdt=6.597497761167968 ii_tol_usdt=100.0 ii_pass=True n_over_band=1 n_unexplained=0 undecided=[] out_sha256=8e3b1eb696543c60c43f100573aa1a16ae82b7dd709b70129683d8c52172274b
+PASS R7 same name with n_obs_prod 150 ≠ 180 → explained (n_obs_differs) → CLEAN 
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=UNDECIDED gate0=True ii_abs_usdt=None ii_tol_usdt=None ii_pass=None n_over_band=0 n_unexplained=0 undecided=['layer (ii) not recomputable from the records (closure)'] out_sha256=7159ac37377b9f4999feda64108b831f97f3b21370d0723a463d05394694ef95
+PASS R8 target_w not summing to 1 → UNDECIDED (closure c1) 
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=UNDECIDED gate0=True ii_abs_usdt=None ii_tol_usdt=None ii_pass=None n_over_band=0 n_unexplained=0 undecided=['layer (ii) not recomputable from the records (closure)'] out_sha256=bf4308b79a8e0ef13e25b2d4f017165eedb63db7ab5db78de8513d128070eba6
+PASS R9 n_targeted_names ≠ non-zero targets → UNDECIDED (c2) 
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=UNDECIDED gate0=True ii_abs_usdt=None ii_tol_usdt=None ii_pass=None n_over_band=0 n_unexplained=0 undecided=['layer (ii) not recomputable from the records (closure)'] out_sha256=58eedc68f21b17c5c79b0bd7b5f0b0b784a197fa718549163f08ff37d977e3cb
+PASS R10 record beta_exec not reproduced by plan rows → UNDECIDED (c3) 
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=UNDECIDED gate0=True ii_abs_usdt=None ii_tol_usdt=None ii_pass=None n_over_band=0 n_unexplained=0 undecided=['fetch verdict PARTIAL_FAILED_SYMBOLS'] out_sha256=6f5923186ad64dfccc714ce29f98f14fefdb3fb757a42ee371c7042dad6b2918
+PASS R11 fetch not COMPLETE → UNDECIDED 
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=UNDECIDED gate0=True ii_abs_usdt=None ii_tol_usdt=None ii_pass=None n_over_band=1 n_unexplained=0 undecided=['1 targeted names without research data'] out_sha256=d82618204f8ce609e0ccd1c3d9af55e19412e6eb89bd7ffc667b270fabce1302
+PASS R12 targeted name without klines → UNDECIDED (named) and (i) lists it 
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=UNDECIDED gate0=False ii_abs_usdt=None ii_tol_usdt=None ii_pass=None n_over_band=0 n_unexplained=0 undecided=['2 anchors rows with nominal_ts == A', 'layer (ii) not recomputable from the records (closure)', 'nav_usdt not a positive number'] out_sha256=2eaff4bfdaabbf80c15baebce5e06db4ba10e3ba275c8a9e0202b4d35d1d29f5
+PASS R13 two anchors rows for A → UNDECIDED 
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=UNDECIDED gate0=True ii_abs_usdt=None ii_tol_usdt=None ii_pass=None n_over_band=0 n_unexplained=0 undecided=['layer (ii) not recomputable from the records (closure)', 'nav_usdt not a positive number'] out_sha256=eb29c780f660113edc38942633f6a19dc87e2e9462eb3568d7ff57b7d523eed3
+PASS R14 nav_usdt missing → UNDECIDED 
+B7V2 A=1790323200 (2026-09-25T08:00:00Z) STATUS=UNDECIDED gate0=True ii_abs_usdt=None ii_tol_usdt=None ii_pass=None n_over_band=0 n_unexplained=0 undecided=['fetch manifest is for anchor 1790308800, not 1790323200'] out_sha256=44cf66ad435afffae468010c4e914bb3b7902fa029299b22e5edcb6ddb17412d
+PASS R15 fetch manifest for another anchor → UNDECIDED 
+B7V2_SELFTEST VERDICT=ALL GREEN tests=31 red=0
