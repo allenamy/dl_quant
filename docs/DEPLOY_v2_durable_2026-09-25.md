@@ -18,7 +18,8 @@ Governing records: this release **changes no model and no state format**. The NC
 | Battery (v2+B) | 160 suites; only the two drift suites red, caused by the held upstream patch (against the staged upstream: no drift across 6) | a9f0533ee |
 | E3 timing | NC6 / NC7 both PASS; durable adds +0.26 s to the producer (p50), slack ≈ 107 s | 1070933ba |
 | Files-only install rehearsal | TEST_NC_INSTALL_FILES 15/15 (state untouched / archive sha / rollback byte-for-byte) | 4f4c2ce3a |
-| **Still to do before the window** | F-2 rollback rehearsal (test_c_rollback_rehearsal, 09:00Z window); gate 3′ + rev1 + T1 re-judged in the post-install layout (`--archive-k1`); candidate battery all green with the upstream applied (can only run inside the window) | — |
+| Pre-window gates (09:00Z 2026-09-25, post-install layout) | F-2 `C_ROLLBACK PASS` (run 2; run 1 red only on the device's own assertion); gate 3′ `--archive-k1` + `NC_V2_NONBETA_GATE_REV1 PASS anchors=7` (census 15 executed files, 0 non-whitelisted); `TEST_M3_V2_RET5 PASS` 16/16 with the moved layout; `NC_V2_BETA_PARITY PASS anchors=7` | 4524d9f04 |
+| **Still to do** | candidate battery all green with the upstream applied — can only run inside the window (W3) | — |
 
 ## 1. Window W = [N+1:00, N+3:40] (from lead approval to completion; every step reports its verdict line + real exit code)
 **W0 pre-check**: `venue_quiet_window.py` rc 0 and ≥ 60 min left; `df` free ≥ 15 GiB; executor running tree = 5d3029c; producer shas = baselines in the package contract (`nc_install_files.py preflight <PKG>` → `PREFLIGHT_PASS`); `launchctl list` does not contain com.hsy.sidecar.
