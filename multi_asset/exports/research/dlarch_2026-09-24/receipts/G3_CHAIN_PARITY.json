@@ -1,14 +1,15 @@
 {
  "device": "cpu",
- "self_sha256": "2031810162b7011aef4037c9d87ed601ecbe68a69ca687f516a055865d56797f",
+ "self_sha256": "d28b756a5ecd7c310b41fe7dd8598eb1c1ef5d52399f90f6dd974858bae8fa3d",
  "prereg": {
   "path": "docs/PREREG_dlarch_T3_leg_gate_2026-09-25.md",
-  "commit": "fd04f242f"
+  "revision": "3 (lead ruling (a))"
  },
+ "ruling": "lead 2026-09-25: T3 = rn8 clamp + chain, ONE alignment intervention",
  "producer_source": {
   "/dev/shm/news2_2026-09-23/vendor_live/fea171/combo_stage.py": "fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8"
  },
- "utc_start": "2026-09-25T02:06:27Z",
+ "utc_start": "2026-09-25T02:12:53Z",
  "torch": "2.11.0+cu128",
  "inputs": {
   "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
@@ -19,35 +20,57 @@
   "/dev/shm/news2_2026-09-23/work/combo_s2027/scaled_diagnostic.npz": "fe09d81744030e3fc7da3367ed7da8668d390a68d1db66764be4cc74f40b00ce"
  },
  "G3": {
-  "results": {
+  "tolerance": 1e-12,
+  "green": {
    "s42": {
     "anchors_tested": 400,
-    "fc_compared": 400,
-    "kc_compared": 400,
+    "skipped_sel_min": 0,
+    "chain_returned_none": 0,
     "max_abs_dw_fc": 1.734723475976807e-18,
     "max_abs_dw_kc": 1.734723475976807e-18,
-    "skipped_sel_min": 0,
-    "chain_returned_none": 0
+    "compared_fc": 400,
+    "compared_kc": 400,
+    "clamped_cells_fc": 243,
+    "clamped_cells_kc": 961,
+    "anchors_with_any_clamp": 369,
+    "max_abs_dw": 1.734723475976807e-18
    },
    "s2027": {
     "anchors_tested": 400,
-    "fc_compared": 400,
-    "kc_compared": 400,
+    "skipped_sel_min": 0,
+    "chain_returned_none": 0,
     "max_abs_dw_fc": 1.734723475976807e-18,
     "max_abs_dw_kc": 1.734723475976807e-18,
-    "skipped_sel_min": 0,
-    "chain_returned_none": 0
+    "compared_fc": 400,
+    "compared_kc": 400,
+    "clamped_cells_fc": 275,
+    "clamped_cells_kc": 961,
+    "anchors_with_any_clamp": 368,
+    "max_abs_dw": 1.734723475976807e-18
    }
   },
   "green_max_abs_dw": 1.734723475976807e-18,
-  "tolerance": 1e-12,
   "GREEN": true,
-  "red_control": {
-   "perturb": "alpha *= 1+1e-9",
+  "green_margin_x": 576460.7523034235,
+  "red_alpha": {
+   "perturb": "alpha *= 1+1e-6",
+   "max_abs_dw": 1.921565105818257e-09,
+   "RED": true,
+   "margin_x": 1921.565105818257,
+   "meets_lead_100x": true,
+   "anchors": 200
+  },
+  "red_no_rn8": {
+   "change": "rn8 funding clamp (combo_target.py L33-34) removed from the path",
+   "max_abs_dw": 0.0013506311984104692,
+   "RED": true,
+   "margin_x": 1350631198.4104693,
    "anchors": 200,
-   "max_abs_dw": 1.844465552514052e-12,
-   "RED": true
+   "clamped_cells_fc": 243,
+   "clamped_cells_kc": 961,
+   "anchors_with_any_clamp": 369,
+   "clamp_actually_fires": true
   }
  },
- "utc_end": "2026-09-25T02:06:31Z"
+ "utc_end": "2026-09-25T02:12:57Z"
 }

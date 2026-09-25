@@ -18,7 +18,15 @@ combo_target.source_kernels(). Its seven steps and how each is made differentiab
 
 G3 (load-bearing,先红后绿): with s=0 and clamp, this must reproduce the ARCHIVED production book
 bit-for-bit -- not "closely", bit-for-bit -- on real anchors, taking H from the archive's own previous
-anchor. Then a deliberately perturbed coefficient must make that parity go RED. Both are asserted.
+anchor. THREE controls are asserted (lead 2026-09-25):
+  GREEN      max|dw| <= 1e-12 on both books, both seeds;
+  RED-alpha  alpha *= 1+1e-6 must break parity by >= 100x the tolerance (the first version used 1e-9 and
+             cleared the bar by only 1.8x -- a weak demonstration, so lead required a bigger nudge);
+  RED-rn8    removing the rn8 funding clamp from the path must break parity. Under lead's ruling (a),
+             T3 = rn8 clamp + chain as ONE alignment intervention, so the clamp is part of the object
+             under test; this control proves it is actually wired in and not merely present in a
+             reference arm. The number of cells the clamp actually zeroes is reported and must be > 0 --
+             a clamp that never fires could not be detected by any parity test.
 
 READ-ONLY. CPU only, no GPU (G3 needs none).
 usage: env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B dlarch_chain_torch.py \
@@ -81,6 +89,33 @@ def chain_torch(zc, sel, H, pm, NW, live, cap_mult, alpha, band, s_temp=0.0,
     return torch.where(leave, zero, smv)
 
 
+def recon(j, ci, mm, off, leg_arrays, P10, params, apply_rn8=True):
+    """Rebuild one anchor's (zfc, zkc, sel, members) from legs + F10 OOF, exactly as the producer does.
+    apply_rn8=False drops combo_target.py L33-34 (the funding-sign clamp) -- used only by RED-rn8."""
+    from scipy.stats import rankdata
+    QV, WLa, KZ, ZFD, RN8 = leg_arrays
+    i = ci[j]; pmv = mm[off[i]:off[i + 1]]
+    qv = QV[i][pmv].astype(np.float64)
+    sel_np = np.isfinite(qv) & (qv >= params["qv4h_min"])
+    if sel_np.sum() < params["sel_min"]:
+        return None
+    wl = WLa[i].astype(np.float64)
+    w3 = np.array([wl[0], 0.0, wl[2]])
+    w3 = w3 / w3.sum() if w3.sum() > 1e-12 else np.array([.5, 0., .5])
+    kr = np.nan_to_num(KZ[i][pmv].astype(np.float64))
+    fr = np.nan_to_num(ZFD[i][pmv].astype(np.float64))
+    p = P10[i][pmv].astype(np.float64); okf = np.isfinite(p)
+    zf = np.zeros(len(pmv))
+    if okf.sum(): zf[okf] = rankdata(p[okf]) / max(int(okf.sum()) - 1, 1) - .5
+    rn = RN8[i][pmv].astype(np.float64); bad = np.isfinite(rn) & (rn <= -.001)
+    out = {"members": pmv, "sel": sel_np, "clamped_fc": 0, "clamped_kc": 0}
+    for nm, zpre in (("fc", w3[0] * zf + w3[2] * fr), ("kc", w3[0] * kr + w3[2] * fr)):
+        hit = (zpre < 0) & bad
+        out["clamped_" + nm] = int(hit.sum())
+        out[nm] = np.where(hit, 0.0, zpre) if apply_rn8 else zpre.copy()
+    return out
+
+
 def main():
     assert not sorted(set(os.environ) - set(sys.argv[1].split(","))), "env outside whitelist"
     outdir = sys.argv[2]; os.makedirs(outdir, exist_ok=True)
@@ -88,13 +123,13 @@ def main():
     sys.path.insert(0, f"{W}/devices")
     import combo_target
     from book_universe import align as align_universe, PATH as UNIVERSE_PATH, SHA as UNIVERSE_SHA
-    from scipy.stats import rankdata
 
     src = f"{W}/vendor_live/fea171/combo_stage.py"
     assert sha(src) == combo_target.EXPECTED, "producer source sha"
     assert sha(UNIVERSE_PATH) == UNIVERSE_SHA
     rec = {"device": "dlarch_chain_torch.py", "self_sha256": sha(os.path.abspath(__file__)),
-           "prereg": {"path": "docs/PREREG_dlarch_T3_leg_gate_2026-09-25.md", "commit": "fd04f242f"},
+           "prereg": {"path": "docs/PREREG_dlarch_T3_leg_gate_2026-09-25.md", "revision": "3 (lead ruling (a))"},
+           "ruling": "lead 2026-09-25: T3 = rn8 clamp + chain, ONE alignment intervention",
            "producer_source": {src: combo_target.EXPECTED}, "utc_start": iso(time.time()),
            "torch": torch.__version__, "device": "cpu", "inputs": {}}
 
@@ -105,10 +140,8 @@ def main():
     rec["inputs"].update({f"{W}/work/NEWS_FEATURES.npz": fsha, f"{W}/work/legs.npz": lsha})
     a = F["anchors"].astype(np.int64); syms = F["symbols"]; NW = len(syms)
     off = F["off"]; mm = F["m"].astype(np.int64)
-    # ★ materialise ONCE. np.load on an .npz returns a lazy loader: `leg["QV"]` inside a per-anchor loop
-    # re-reads and re-decompresses the whole (10333, 829) array every single iteration. The first run of
-    # this device did exactly that and had to be killed. Correctness was never at risk; speed was.
-    QV = leg["QV"]; WLa = leg["WL"]; KZ = leg["KZ"]; ZFD = leg["ZFD"]; RN8 = leg["RN8"]; READY = leg["ready"]
+    # materialise ONCE: np.load on an .npz is lazy; leg["QV"] inside a loop re-decompresses (10333,829).
+    legarr = (leg["QV"], leg["WL"], leg["KZ"], leg["ZFD"], leg["RN8"]); READY = leg["ready"]
     params = json.loads(open(f"{W}/inputs/bundle_config.json").read())["params"]
     mk = np.load(MASK_PATH); assert np.array_equal(mk["ts"].astype(np.int64), a)
     crypto = np.load(f"{W}/receipts/P1_members_2025H2on.npz")["crypto"]
@@ -117,92 +150,78 @@ def main():
     use = (a >= 1672531200) & (a <= universe["ts"][-1]); au = a[use]
     book_legal = align_universe(au, syms, universe) & cand[use]
     rec["inputs"][MASK_PATH] = sha(MASK_PATH); rec["inputs"][UNIVERSE_PATH] = UNIVERSE_SHA
+    ci = np.searchsorted(a, au); assert np.all(a[ci] == au)
+    m_pre = (au >= ts(SEG_PRE[0])) & (au <= ts(SEG_PRE[1]))
 
-    results = {}
-    for seed in (42, 2027):
+    def run(seed, apply_rn8=True, perturb=None, limit=0):
         cp = f"{W}/work/combo_s{seed}/scaled_diagnostic.npz"
         tr = json.load(open(f"{W}/work/combo_s{seed}/TARGET_RECEIPT.json"))
         assert tr["policies"]["scaled_diagnostic"]["sha"] == sha(cp)
         rec["inputs"][cp] = sha(cp)
-        C = np.load(cp); ca = C["E_ts"].astype(np.int64)
-        assert np.array_equal(ca, au), "combo axis != use-axis"
-        FC = C["fc"]; KC = C["kc"]
+        C = np.load(cp); assert np.array_equal(C["E_ts"].astype(np.int64), au)
+        arch = {"fc": C["fc"], "kc": C["kc"]}
         P10 = np.load(f"{W}/work/f10_s{seed}/F10_OOF.npz")["P"]
-        ci = np.searchsorted(a, ca)
-        m_pre = (ca >= ts(SEG_PRE[0])) & (ca <= ts(SEG_PRE[1]))
         rows = np.flatnonzero(m_pre & READY[ci])
-        if nmax: rows = rows[:nmax]
-        worst_fc = worst_kc = 0.0; nfc = nkc = 0; skipped = 0; none_cnt = 0
+        if limit: rows = rows[:limit]
+        st = {"anchors_tested": 0, "skipped_sel_min": 0, "chain_returned_none": 0,
+              "max_abs_dw_fc": 0.0, "max_abs_dw_kc": 0.0, "compared_fc": 0, "compared_kc": 0,
+              "clamped_cells_fc": 0, "clamped_cells_kc": 0, "anchors_with_any_clamp": 0}
         for j in rows:
             if j == 0: continue
-            i = ci[j]; pmv = mm[off[i]:off[i + 1]]
-            qv = QV[i][pmv].astype(np.float64)
-            sel_np = np.isfinite(qv) & (qv >= params["qv4h_min"])
-            if sel_np.sum() < params["sel_min"]: skipped += 1; continue
-            wl = WLa[i].astype(np.float64)
-            w3 = np.array([wl[0], 0.0, wl[2]]); w3 = w3 / w3.sum() if w3.sum() > 1e-12 else np.array([.5, 0., .5])
-            kr = np.nan_to_num(KZ[i][pmv].astype(np.float64))
-            fr = np.nan_to_num(ZFD[i][pmv].astype(np.float64))
-            p = P10[i][pmv].astype(np.float64); okf = np.isfinite(p)
-            zf = np.zeros(len(pmv))
-            if okf.sum(): zf[okf] = rankdata(p[okf]) / max(int(okf.sum()) - 1, 1) - .5
-            rn = RN8[i][pmv].astype(np.float64); bad = np.isfinite(rn) & (rn <= -.001)
-            for nm, zpre, arch in (("fc", w3[0] * zf + w3[2] * fr, FC), ("kc", w3[0] * kr + w3[2] * fr, KC)):
-                zc = np.where((zpre < 0) & bad, 0.0, zpre)
-                out = chain_torch(torch.from_numpy(zc), torch.from_numpy(sel_np),
-                                  torch.from_numpy(arch[j - 1].astype(np.float64)),
-                                  torch.from_numpy(pmv), NW, torch.from_numpy(book_legal[j]),
-                                  params["cap_mult"], params["alpha"], params["band"], 0.0, "clamp")
-                if out is None: none_cnt += 1; continue
-                d = float(np.max(np.abs(out.numpy() - arch[j])))
-                if nm == "fc": worst_fc = max(worst_fc, d); nfc += 1
-                else: worst_kc = max(worst_kc, d); nkc += 1
-        results[f"s{seed}"] = {"anchors_tested": int(len(rows)), "fc_compared": nfc, "kc_compared": nkc,
-                              "max_abs_dw_fc": worst_fc, "max_abs_dw_kc": worst_kc,
-                              "skipped_sel_min": skipped, "chain_returned_none": none_cnt}
-        log("G3", seed, json.dumps(results[f"s{seed}"]))
+            R = recon(j, ci, mm, off, legarr, P10, params, apply_rn8=apply_rn8)
+            if R is None: st["skipped_sel_min"] += 1; continue
+            st["anchors_tested"] += 1
+            st["clamped_cells_fc"] += R["clamped_fc"]; st["clamped_cells_kc"] += R["clamped_kc"]
+            if R["clamped_fc"] or R["clamped_kc"]: st["anchors_with_any_clamp"] += 1
+            for nm in ("fc", "kc"):
+                out = chain_torch(torch.from_numpy(R[nm]), torch.from_numpy(R["sel"]),
+                                  torch.from_numpy(arch[nm][j - 1].astype(np.float64)),
+                                  torch.from_numpy(R["members"]), NW,
+                                  torch.from_numpy(book_legal[j]), params["cap_mult"], params["alpha"],
+                                  params["band"], 0.0, "clamp", _perturb=perturb)
+                if out is None: st["chain_returned_none"] += 1; continue
+                d = float(np.max(np.abs(out.numpy() - arch[nm][j])))
+                st["max_abs_dw_" + nm] = max(st["max_abs_dw_" + nm], d); st["compared_" + nm] += 1
+        st["max_abs_dw"] = max(st["max_abs_dw_fc"], st["max_abs_dw_kc"])
+        return st
 
-    # ── G3 RED control: perturb alpha by 1+1e-9; parity MUST break ──
-    seed = 42
-    C = np.load(f"{W}/work/combo_s{seed}/scaled_diagnostic.npz"); FC = C["fc"]
-    P10 = np.load(f"{W}/work/f10_s{seed}/F10_OOF.npz")["P"]
-    ci = np.searchsorted(a, au)
-    m_pre = (au >= ts(SEG_PRE[0])) & (au <= ts(SEG_PRE[1]))
-    red_worst = 0.0; red_n = 0
-    for j in np.flatnonzero(m_pre & READY[ci])[:200]:
-        if j == 0: continue
-        i = ci[j]; pmv = mm[off[i]:off[i + 1]]
-        qv = QV[i][pmv].astype(np.float64)
-        sel_np = np.isfinite(qv) & (qv >= params["qv4h_min"])
-        if sel_np.sum() < params["sel_min"]: continue
-        wl = WLa[i].astype(np.float64)
-        w3 = np.array([wl[0], 0.0, wl[2]]); w3 = w3 / w3.sum() if w3.sum() > 1e-12 else np.array([.5, 0., .5])
-        fr = np.nan_to_num(ZFD[i][pmv].astype(np.float64))
-        p = P10[i][pmv].astype(np.float64); okf = np.isfinite(p)
-        zf = np.zeros(len(pmv))
-        if okf.sum(): zf[okf] = rankdata(p[okf]) / max(int(okf.sum()) - 1, 1) - .5
-        rn = RN8[i][pmv].astype(np.float64); bad = np.isfinite(rn) & (rn <= -.001)
-        zpre = w3[0] * zf + w3[2] * fr
-        zc = np.where((zpre < 0) & bad, 0.0, zpre)
-        out = chain_torch(torch.from_numpy(zc), torch.from_numpy(sel_np),
-                          torch.from_numpy(FC[j - 1].astype(np.float64)), torch.from_numpy(pmv), NW,
-                          torch.from_numpy(book_legal[j]), params["cap_mult"], params["alpha"],
-                          params["band"], 0.0, "clamp", _perturb=1.0 + 1e-9)
-        if out is None: continue
-        red_worst = max(red_worst, float(np.max(np.abs(out.numpy() - FC[j])))); red_n += 1
-    green = max(results["s42"]["max_abs_dw_fc"], results["s42"]["max_abs_dw_kc"],
-                results["s2027"]["max_abs_dw_fc"], results["s2027"]["max_abs_dw_kc"])
-    rec["G3"] = {"results": results, "green_max_abs_dw": green, "tolerance": 1e-12,
-                 "GREEN": bool(green <= 1e-12),
-                 "red_control": {"perturb": "alpha *= 1+1e-9", "anchors": red_n,
-                                 "max_abs_dw": red_worst, "RED": bool(red_worst > 1e-12)}}
+    TOL = 1e-12
+    green = {f"s{sd}": run(sd, limit=nmax) for sd in (42, 2027)}
+    gmax = max(v["max_abs_dw"] for v in green.values())
+    for k, v in green.items(): log("GREEN", k, json.dumps({q: v[q] for q in ("max_abs_dw", "compared_fc", "clamped_cells_fc", "anchors_with_any_clamp")}))
+    red_a = run(42, perturb=1.0 + 1e-6, limit=min(nmax, 200) if nmax else 200)
+    red_c = run(42, apply_rn8=False, limit=min(nmax, 200) if nmax else 200)
+    log("RED-alpha", red_a["max_abs_dw"]); log("RED-rn8", red_c["max_abs_dw"])
+    rec["G3"] = {
+        "tolerance": TOL, "green": green, "green_max_abs_dw": gmax,
+        "GREEN": bool(gmax <= TOL), "green_margin_x": (TOL / gmax) if gmax > 0 else None,
+        "red_alpha": {"perturb": "alpha *= 1+1e-6", "max_abs_dw": red_a["max_abs_dw"],
+                      "RED": bool(red_a["max_abs_dw"] > TOL),
+                      "margin_x": red_a["max_abs_dw"] / TOL,
+                      "meets_lead_100x": bool(red_a["max_abs_dw"] >= 100 * TOL),
+                      "anchors": red_a["anchors_tested"]},
+        "red_no_rn8": {"change": "rn8 funding clamp (combo_target.py L33-34) removed from the path",
+                       "max_abs_dw": red_c["max_abs_dw"], "RED": bool(red_c["max_abs_dw"] > TOL),
+                       "margin_x": red_c["max_abs_dw"] / TOL if TOL else None,
+                       "anchors": red_c["anchors_tested"],
+                       "clamped_cells_fc": green["s42"]["clamped_cells_fc"],
+                       "clamped_cells_kc": green["s42"]["clamped_cells_kc"],
+                       "anchors_with_any_clamp": green["s42"]["anchors_with_any_clamp"],
+                       "clamp_actually_fires": bool(green["s42"]["clamped_cells_fc"] > 0)}}
     rec["utc_end"] = iso(time.time())
     op = os.path.join(outdir, "G3_CHAIN_PARITY.json")
     tmp = op + ".tmp"; open(tmp, "w").write(json.dumps(rec, indent=1, allow_nan=False)); os.replace(tmp, op)
-    print(f"G3_CHAIN_PARITY green_max_abs_dw={green:.3e} GREEN={rec['G3']['GREEN']} "
-          f"red_max_abs_dw={red_worst:.3e} RED={rec['G3']['red_control']['RED']} json={sha(op)[:16]}", flush=True)
-    assert rec["G3"]["GREEN"], f"G3 parity FAILED: max|dw| = {green:.3e}"
-    assert rec["G3"]["red_control"]["RED"], "G3 red control vacuous: perturbing alpha did not break parity"
+    G = rec["G3"]
+    print(f"G3_CHAIN_PARITY GREEN={G['GREEN']} green_max_abs_dw={gmax:.3e} green_margin={G['green_margin_x']:.2e}x | "
+          f"RED_alpha={G['red_alpha']['RED']} {G['red_alpha']['max_abs_dw']:.3e} ({G['red_alpha']['margin_x']:.1f}x, "
+          f"lead_100x={G['red_alpha']['meets_lead_100x']}) | RED_rn8={G['red_no_rn8']['RED']} "
+          f"{G['red_no_rn8']['max_abs_dw']:.3e} ({G['red_no_rn8']['margin_x']:.1f}x) "
+          f"clamped_cells={G['red_no_rn8']['clamped_cells_fc']} fires={G['red_no_rn8']['clamp_actually_fires']} | "
+          f"json={sha(op)[:16]}", flush=True)
+    assert G["GREEN"], f"G3 parity FAILED: {gmax:.3e}"
+    assert G["red_alpha"]["meets_lead_100x"], "RED-alpha did not clear 100x the tolerance"
+    assert G["red_no_rn8"]["RED"], "RED-rn8 vacuous: removing the rn8 clamp did not break parity"
+    assert G["red_no_rn8"]["clamp_actually_fires"], "the rn8 clamp never fires -> no parity test could detect it"
 
 
 if __name__ == "__main__":
