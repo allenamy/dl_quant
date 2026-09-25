@@ -12,8 +12,12 @@ check licenses deleting the input of every OTHER consumer:
 So the delete gate covers EVERY quantity the frozen code can produce, not one statistic.
 
 THE FOUR PRECONDITIONS (all must pass before any file is removed):
-  1 judge table archived -- path_metrics + summarise for all 5 SEG segments, via the FROZEN functions
-    imported (never forked), plus dbar against the control cell
+  1 judge table archived -- path_metrics + summarise for every segment, via the FROZEN functions
+    imported (never forked), plus dbar against the control cell. Segments follow lead's decision-rule
+    revision 3 (6cd94f947): the frozen SEG["2026"] stops at 2026-08-31 while the X extended axis runs
+    to 2026-09-18T20Z, so "2026" is extended to the axis's last anchor and the frozen truncation is
+    reported ALONGSIDE it as "2026_frozen_truncated". Using the frozen bound on this axis would
+    silently drop 2026-09-01..09-18 -- the live drawdown. "full_window" = pre2026 | extended 2026.
   2 the small series reproduces the frozen `dbar` BITWISE (both the mean and the full daily matrix)
   3 the small series carries `dstop` and `nstop` per-anchor arrays
   4 `maxdd_5m` is precomputed per path per segment as scalars
@@ -101,7 +105,7 @@ def main():
            "frozen_judge_sha256": sha(os.path.join(a.engine, "news_stats.py")),
            "frozen_deps": {f: s for f, s in NS.DEV.items()},
            "cell": a.cell, "tag": a.tag, "control_cell": a.control_cell, "control_tag": a.control_tag,
-           "segments": {k: list(v) for k, v in NS.SEG.items()}, "checks": {}}
+           "frozen_SEG": {k: list(v) for k, v in NS.SEG.items()}, "checks": {}}
 
     print(f"frozen judge sha {rec['frozen_judge_sha256'][:16]}  segments {list(NS.SEG)}", flush=True)
     pn, facts_n = NS.load_cell(a.cell, a.tag)
@@ -110,12 +114,33 @@ def main():
     assert np.array_equal(po[0]["A"], A), "cell and control are on different axes"
     print(f"loaded {len(pn)} + {len(po)} paths, axis n={len(A)}", flush=True)
 
-    masks = {s: NS.seg_mask(A, x, y) for s, (x, y) in NS.SEG.items()}
-    days = {s: NS.full_days(A, masks[s]) for s in NS.SEG}
+    # ---- segments (lead's decision-rule revision 3, frozen 6cd94f947) --------------------------
+    # The frozen news_stats.SEG["2026"] ends 2026-08-31T00:00Z, but the X extended axis runs to
+    # 2026-09-18T20:00Z. Using the frozen bound on this axis would SILENTLY DROP 2026-09-01..09-18 --
+    # the live drawdown segment. So: the four earlier segments are the frozen ones verbatim; "2026" is
+    # extended to the axis's last anchor; the frozen truncation is reported SIDE BY SIDE so the two are
+    # never confused; and "full_window" is pre2026 union the extended 2026 (it therefore excludes the
+    # axis's first year 2022-06-30..2023-06-29, which lies outside every frozen segment).
+    axis_last = NS.iso(A[-1])
+    SEGS = {s: NS.SEG[s] for s in ("2023H2", "2024", "2025", "pre2026")}
+    SEGS["2026"] = ("2026-01-01T00:00:00Z", axis_last)                 # EXTENDED
+    SEGS["2026_frozen_truncated"] = NS.SEG["2026"]                     # reported alongside, never instead
+    masks = {s: NS.seg_mask(A, x, y) for s, (x, y) in SEGS.items()}
+    masks["full_window"] = masks["pre2026"] | masks["2026"]
+    SEGS["full_window"] = (NS.SEG["pre2026"][0], axis_last)
+    days = {s: NS.full_days(A, masks[s]) for s in SEGS}
+    rec["segments_used"] = {k: list(v) for k, v in SEGS.items()}
+    rec["segment_policy"] = ("lead revision 3 (6cd94f947): 2026 extended to the axis last anchor "
+                             f"({axis_last}); frozen SEG['2026'] ends {NS.SEG['2026'][1]} and is reported "
+                             "as 2026_frozen_truncated; full_window = pre2026 | extended 2026, which "
+                             "EXCLUDES the axis's first year (outside every frozen segment)")
+    rec["axis"] = {"n": int(len(A)), "first": NS.iso(A[0]), "last": axis_last}
+    print(f"axis n={len(A)} {NS.iso(A[0])}..{axis_last}")
+    print("segments: " + ", ".join(f"{s}({int(masks[s].sum())}w/{len(days[s])}d)" for s in SEGS))
 
     # ---- precondition 1: the judge table, from the FROZEN functions ----
     table, dbars = {}, {}
-    for s in NS.SEG:
+    for s in SEGS:
         per = [NS.path_metrics(p, masks[s], days[s]) for p in pn]
         table[s] = {"paths": NS.summarise(per), "mean_path": NS.mean_path_metrics(pn, masks[s], days[s])}
         db, D = NS.dbar(pn, po, masks[s], days[s])
@@ -124,25 +149,25 @@ def main():
     rec["dbar_vs_control"] = dbars
     rec["checks"]["P1_judge_table_archived"] = {"segments": list(table),
                                                 "maxdd_5m_present": all("maxdd_5m" in table[s]["paths"] for s in table)}
-    print("P1 judge table: " + " ".join(f"{s}:dbar={dbars[s]['mean_bps_per_day']:+.4f}" for s in NS.SEG), flush=True)
+    print("P1 judge table: " + " ".join(f"{s}:dbar={dbars[s]['mean_bps_per_day']:+.4f}" for s in SEGS), flush=True)
 
     # ---- precondition 3/4: build the small series + the scalars nav5 is needed for ----
     S = small_series(pn, BT)
-    maxdd = {s: [NS.BT.maxdd_5m(p, masks[s]) for p in pn] for s in NS.SEG}
+    maxdd = {s: [NS.BT.maxdd_5m(p, masks[s]) for p in pn] for s in SEGS}
     S_scalars = {f"maxdd_5m_{s}_per_path": np.asarray([np.nan if v is None else float(v) for v in maxdd[s]], np.float64)
-                 for s in NS.SEG}
+                 for s in SEGS}
     rec["checks"]["P3_dstop_nstop_present"] = {"dstop_per_path": list(S["dstop_per_path"].shape),
                                                "nstop_per_path": list(S["nstop_per_path"].shape)}
     rec["checks"]["P4_maxdd_5m_scalars"] = {s: {"n_paths": int(len(maxdd[s])),
                                                 "n_defined": int(sum(v is not None for v in maxdd[s])),
                                                 "path_mean": (None if any(v is None for v in maxdd[s])
                                                               else float(np.mean([float(v) for v in maxdd[s]])))}
-                                            for s in NS.SEG}
+                                            for s in SEGS}
 
     # ---- precondition 2: dbar from the small series must be BITWISE identical ----
     pn_small = paths_from_small(S)
     eq = {}
-    for s in NS.SEG:
+    for s in SEGS:
         db_a, D_a = NS.dbar(pn, po, masks[s], days[s])
         db_b, D_b = NS.dbar(pn_small, po, masks[s], days[s])
         same = (db_a.shape == db_b.shape and db_a.tobytes() == db_b.tobytes()
@@ -152,7 +177,7 @@ def main():
                  "mean_sha_small": hashlib.sha256(db_b.tobytes()).hexdigest()[:16]}
     rec["checks"]["P2_dbar_bitwise_from_small_series"] = eq
     p2 = all(v["BITWISE_IDENTICAL"] for v in eq.values())
-    print("P2 dbar bitwise: " + " ".join(f"{s}={'OK' if eq[s]['BITWISE_IDENTICAL'] else 'DIFFERS'}" for s in NS.SEG), flush=True)
+    print("P2 dbar bitwise: " + " ".join(f"{s}={'OK' if eq[s]['BITWISE_IDENTICAL'] else 'DIFFERS'}" for s in SEGS), flush=True)
 
     # Red control: a one-cell perturbation MUST break P2, else P2 is decoration.
     # ★ The perturbation has to land INSIDE the population the judge actually uses. My first version
