@@ -27,6 +27,9 @@ import argparse, collections, csv, datetime, glob, hashlib, io, json, os, sys, z
 
 import numpy as np
 
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import d10_manifest_gate as GATE   # R25-11: checksum_match must be True, set equality, per-file re-hash
+
 WINDOW_S = 24 * 3600
 
 
@@ -55,6 +58,9 @@ def main():
     L = json.load(open(a.live))
     rec = {"device": os.path.basename(os.path.realpath(__file__)),
            "self_sha256": sha(os.path.realpath(__file__)), "argv": sys.argv[1:],
+           # the archive gate is load-bearing for every number below it, so the receipt names
+           # WHICH gate signed it (R25-11): a conclusion and its judging device share a lifetime.
+           "gate_sha256": sha(os.path.realpath(GATE.__file__)),
            "python": sys.executable, "numpy": np.__version__,
            "task": "lead: does the LIVE ledger ingest the 1h spike settlements",
            "live_ledger": {"extract": a.live, "extract_sha256": sha(a.live),
@@ -75,10 +81,11 @@ def main():
 
     # archive 2026-08, with the per-settlement interval
     man = os.path.join(a.zips, f"MANIFEST_{a.month}.json")
-    assert os.path.exists(man), "the month's manifest must exist (CHECKSUM-verified pull)"
-    mm = json.load(open(man))["files"]
-    bad = [s for s, v in mm.items() if v.get("checksum_match") is False]
-    assert not bad, ("checksum mismatch in this month; refusing to judge against it", bad[:5])
+    # R25-11: checksum_match must be True for every zip-bearing entry, the disk set must equal the
+    # manifest's, and every zip is re-hashed here and now -- a file edited after the pull is caught.
+    gv = GATE.require_verified(a.zips, a.month, what=f"live-ledger-vs-archive {a.month}")
+    rec["archive_gate"] = {k: gv[k] for k in ("verdict", "n_entries", "n_zip_entries", "n_on_disk",
+                                              "n_404", "n_rehashed", "manifest_sha256")}
     arc = {}
     for zp in sorted(glob.glob(os.path.join(a.zips, "*-fundingRate-*.zip"))):
         s = os.path.basename(zp).split("-fundingRate-")[0]

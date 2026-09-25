@@ -24,6 +24,9 @@ import argparse, collections, csv, datetime, glob, hashlib, io, json, os, sys, z
 
 import numpy as np
 
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import d10_manifest_gate as GATE   # R25-11: checksum_match must be True, set equality, per-file re-hash
+
 FRESH_S = 43200
 
 
@@ -52,6 +55,9 @@ def main():
     panel_real = os.path.realpath(a.panel)
     rec = {"device": os.path.basename(os.path.realpath(__file__)),
            "self_sha256": sha(os.path.realpath(__file__)), "argv": sys.argv[1:],
+           # the archive gate is load-bearing for every number below it, so the receipt names
+           # WHICH gate signed it (R25-11): a conclusion and its judging device share a lifetime.
+           "gate_sha256": sha(os.path.realpath(GATE.__file__)),
            "python": sys.executable, "numpy": np.__version__,
            "task": "does the LIVE producer's own fund_now match the archive on the disputed cells",
            "lineage_cited": {
@@ -85,12 +91,13 @@ def main():
     have, arc = set(), collections.defaultdict(list)
     for mdir in sorted(glob.glob(os.path.join(a.zips_root, "*-*"))):
         month = os.path.basename(mdir)
-        mp = os.path.join(mdir, f"MANIFEST_{month}.json")
-        if not os.path.exists(mp):
+        gv = GATE.verify_month(mdir, month)
+        if not gv["ok"]:
+            rec.setdefault("months_skipped", []).append({"month": month, "verdict": gv["verdict"]})
             continue
-        man = json.load(open(mp))["files"]
-        if any(v.get("checksum_match") is False for v in man.values()):
-            continue
+        rec.setdefault("months_verified", []).append(
+            {"month": month, "zip_entries": gv["n_zip_entries"], "rehashed": gv["n_rehashed"],
+             "manifest_sha256": gv["manifest_sha256"]})
         have.add(month)
         for zp in glob.glob(os.path.join(mdir, "*-fundingRate-*.zip")):
             s = os.path.basename(zp).split("-fundingRate-")[0]

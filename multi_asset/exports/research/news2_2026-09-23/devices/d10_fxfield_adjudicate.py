@@ -30,6 +30,9 @@ import argparse, collections, csv, datetime, glob, hashlib, io, json, os, sys, z
 
 import numpy as np
 
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import d10_manifest_gate as GATE   # R25-11: checksum_match must be True, set equality, per-file re-hash
+
 FRESH_S = 43200          # 12h, both sides' staleness window
 EXPECT_MISMATCH = 5613   # fresh's count, asserted before any judging
 
@@ -59,6 +62,9 @@ def main():
     panel_real = os.path.realpath(a.panel)     # fresh's warning: those backup names are symlinks
     rec = {"device": os.path.basename(os.path.realpath(__file__)),
            "self_sha256": sha(os.path.realpath(__file__)), "argv": sys.argv[1:],
+           # the archive gate is load-bearing for every number below it, so the receipt names
+           # WHICH gate signed it (R25-11): a conclusion and its judging device share a lifetime.
+           "gate_sha256": sha(os.path.realpath(GATE.__file__)),
            "python": sys.executable, "numpy": np.__version__,
            "task": "lead's priority target: judge fresh's 5,613 disagreement cells against the archive",
            "reproduces": "fanom_2026-09-24/receipts/FA_FXFIELD.json (commit e58ddaf3e), device fa_fxfield.py",
@@ -93,11 +99,19 @@ def main():
     arc = collections.defaultdict(list)       # symbol -> [(ts, rate)]
     for mdir in sorted(glob.glob(os.path.join(a.zips_root, "*-*"))):
         month = os.path.basename(mdir)
-        if not os.path.exists(os.path.join(mdir, f"MANIFEST_{month}.json")):
+        gv = GATE.verify_month(mdir, month)
+        if not gv["ok"]:
+            # R25-11: every month we do not read is named with WHY, not silently continued
+            rec.setdefault("months_skipped", []).append(
+                {"month": month, "verdict": gv["verdict"], "mismatch": len(gv["mismatch"]),
+                 "unverified": len(gv["unverified"]) + len(gv["missing_key"]),
+                 "set_mismatch": len(gv["on_disk_not_in_manifest"]) + len(gv["in_manifest_not_on_disk"])
+                                 + len(gv["zip_where_404"]),
+                 "rehash_mismatch": len(gv["rehash_mismatch"])})
             continue
-        man = json.load(open(os.path.join(mdir, f"MANIFEST_{month}.json")))["files"]
-        if any(v.get("checksum_match") is False for v in man.values()):
-            rec.setdefault("months_skipped_checksum", []).append(month); continue
+        rec.setdefault("months_verified", []).append(
+            {"month": month, "zip_entries": gv["n_zip_entries"], "rehashed": gv["n_rehashed"],
+             "manifest_sha256": gv["manifest_sha256"]})
         have_months.add(month)
         for zp in glob.glob(os.path.join(mdir, "*-fundingRate-*.zip")):
             sym = os.path.basename(zp).split("-fundingRate-")[0]

@@ -1,0 +1,94 @@
+{
+ "device": "d10_gate_old_vs_new.py",
+ "self_sha256": "af2fdac5ca837db28f2c540c8183736ca6e627c87d969ab68d465623ddc8037b",
+ "gate_sha256": "793c5eb2e85e84232df8cf5f25b62207400e390b1552d9196f1b4f76adcdc956",
+ "what": "R25-11 before/after: which archive-corruption classes each gate detects",
+ "fixture": "synthetic month, green by construction",
+ "limitation": "fixture hashed by the gate's own hash function: tests the decision, not the algorithm",
+ "n_defect_classes": 7,
+ "old_missed": 6,
+ "new_missed": 0,
+ "baseline_green_under_both": true,
+ "rows": [
+  {
+   "mutation": "(no mutation) baseline",
+   "should_be_green": true,
+   "old_reads_as_verified": true,
+   "old_said": "read as VERIFIED",
+   "new_ok": true,
+   "new_verdict": "VERIFIED",
+   "old_wrong": false,
+   "new_wrong": false
+  },
+  {
+   "mutation": "byte flipped inside a pulled zip",
+   "should_be_green": false,
+   "old_reads_as_verified": true,
+   "old_said": "read as VERIFIED",
+   "new_ok": false,
+   "new_verdict": "REHASH_MISMATCH",
+   "old_wrong": true,
+   "new_wrong": false
+  },
+  {
+   "mutation": "a pulled zip deleted after the pull",
+   "should_be_green": false,
+   "old_reads_as_verified": true,
+   "old_said": "read as VERIFIED",
+   "new_ok": false,
+   "new_verdict": "SET_MISMATCH",
+   "old_wrong": true,
+   "new_wrong": false
+  },
+  {
+   "mutation": "stray zip on disk with no manifest entry",
+   "should_be_green": false,
+   "old_reads_as_verified": true,
+   "old_said": "read as VERIFIED",
+   "new_ok": false,
+   "new_verdict": "SET_MISMATCH",
+   "old_wrong": true,
+   "new_wrong": false
+  },
+  {
+   "mutation": "checksum_match = None (venue served no .CHECKSUM)",
+   "should_be_green": false,
+   "old_reads_as_verified": true,
+   "old_said": "read as VERIFIED",
+   "new_ok": false,
+   "new_verdict": "UNVERIFIED",
+   "old_wrong": true,
+   "new_wrong": false
+  },
+  {
+   "mutation": "checksum_match key absent (older manifest)",
+   "should_be_green": false,
+   "old_reads_as_verified": true,
+   "old_said": "read as VERIFIED",
+   "new_ok": false,
+   "new_verdict": "UNVERIFIED",
+   "old_wrong": true,
+   "new_wrong": false
+  },
+  {
+   "mutation": "recorded sha256 absent (nothing to re-hash against)",
+   "should_be_green": false,
+   "old_reads_as_verified": true,
+   "old_said": "read as VERIFIED",
+   "new_ok": false,
+   "new_verdict": "UNVERIFIED",
+   "old_wrong": true,
+   "new_wrong": false
+  },
+  {
+   "mutation": "checksum_match = False (the one class OLD was written for)",
+   "should_be_green": false,
+   "old_reads_as_verified": false,
+   "old_said": "MISMATCH (skipped)",
+   "new_ok": false,
+   "new_verdict": "MISMATCH",
+   "old_wrong": false,
+   "new_wrong": false
+  }
+ ]
+}
