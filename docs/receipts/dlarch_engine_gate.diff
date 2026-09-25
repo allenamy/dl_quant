@@ -1,0 +1,69 @@
+--- /tmp/cr2.before	2026-09-25 14:58:03
++++ multi_asset/exports/research/dlarch_2026-09-24/devices/dlarch_chain_run.py	2026-09-25 14:58:34
+@@ -97,6 +97,57 @@
+     return root
+ 
+ 
++def foreign_engines():
++    """Every bt_launch process group that is NOT mine, identified by the CONFIG PATH in its argv.
++
++    Team rule (lead 2026-09-25): one engine cell at a time; the 04:33Z oom_kill came from several heavy
++    runs stacking. Identification is by argv, NOT by pgid resemblance: at 06:56Z I mistook another
++    group's bt_launch (fanom's KZWL ladder) for my own purely because its pgid looked familiar and I
++    never read its argv. Reads the process table ONLY -- this function never signals anything.
++    """
++    mine = os.getpgid(0)
++    out = {}
++    try:
++        ps = subprocess.run(["ps", "-eo", "pid,pgid,args"], capture_output=True, text=True, timeout=30).stdout
++    except Exception as e:
++        return {"UNREADABLE": f"{type(e).__name__}: {e}"}     # cannot verify => caller must not proceed
++    for line in ps.splitlines()[1:]:
++        f = line.split(None, 2)
++        if len(f) < 3 or "bt_launch.py" not in f[2]:
++            continue
++        pgid = int(f[1])
++        if pgid == mine:
++            continue
++        cfg = next((t for t in f[2].split() if t.endswith(".json")), "<config not in argv>")
++        out.setdefault(pgid, cfg)
++    return out
++
++
++def engine_gate(min_avail_gib=8.0, poll=60, max_wait=7200):
++    """Block until no foreign bt_launch is running AND cgroup headroom is sufficient. Returns the
++    observation log for the receipt (every poll, so a long wait is auditable)."""
++    obs = []
++    t0 = time.monotonic()
++    while True:
++        g = foreign_engines()
++        m = mem_gate()
++        avail = m.get("available_gib_v2")        # computed by mem_gate; absent if memory.max is "max"
++        rec = {"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
++               "foreign_engine_pgids": {str(k): v for k, v in g.items()},
++               "avail_gib": avail, "mem_gate": m, "waited_s": int(time.monotonic() - t0)}
++        # An unreadable process table or an unavailable headroom reading is NOT a pass: if I cannot
++        # verify the condition, I must not start. (Absent evidence is not evidence of absence.)
++        ok = (not g) and avail is not None and avail >= min_avail_gib
++        rec["PASS"] = bool(ok)
++        obs.append(rec)
++        if ok:
++            log(f"engine gate PASS: no foreign bt_launch, avail {avail} GiB, waited {rec['waited_s']}s")
++            return obs
++        log(f"engine gate WAIT: foreign={list(g)} avail={avail} GiB waited={rec['waited_s']}s")
++        assert time.monotonic() - t0 < max_wait, f"engine gate: still blocked after {max_wait}s, giving up"
++        time.sleep(poll)
++
++
+ def run(cmd, logp, env=None, cwd=None):
+     e = {"PATH": "/usr/bin:/bin", "HOME": "/root"}
+     if env: e.update(env)
+@@ -215,6 +266,8 @@
+ 
+     # ---- 5. engine (upstream bt_launch, UNMODIFIED) ----
+     if do_engine:
++        # Team rule: one engine cell at a time. Gate BEFORE the engine step, never around it.
++        rec["engine_gate"] = engine_gate()
+         rec["mem_gate_before_engine"] = mem_gate()
+         t0 = time.monotonic()
+         rc = run([PV, "-B", "bt_launch.py", "PATH,HOME,LC_CTYPE", cpath, "--resume", arm], f"{L}/engine.log",
