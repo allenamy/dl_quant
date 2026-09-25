@@ -1,0 +1,65 @@
+commit 1e70316e9f3ac84326d52c823f210ee17de2dc18
+Author: haosiyu <siyuhao0702@gmail.com>
+Date:   Fri Sep 25 23:54:07 2026 +0800
+
+    fix package D: withhold_pop treats a held residual below the name's venue min notional as flat (pop before the reshape; no floor ⇒ exact-zero rule); report n_dust_popped / dust_popped_names; two source-injection anchors updated to the new pop line (tests_book_reshape order mutant, tests_orphan_position always_pop mutant — same mutants). tests_dust_pop 13/13, tests_book_reshape 38, tests_orphan_position 25, tests_per_name_stop, tests_venue_cap_clamp 22, tests_neutral_band, tests_disposition_matrix 85: all pass (offline sandbox)
+
+diff --git a/scheduler/anchor_loop.py b/scheduler/anchor_loop.py
+index f1113c0..f08503d 100644
+--- a/scheduler/anchor_loop.py
++++ b/scheduler/anchor_loop.py
+@@ -314,9 +314,18 @@ RESHAPE_REDEMEAN = True
+ RESHAPE_RESCALE = True
+ 
+ 
+-def withhold_pop(target, held, untradable):
++def withhold_pop(target, held, untradable, floors=None, dust_out=None):
+     """Pass 1 of the withhold: drop the untradable names we do NOT hold. Mutates `target`.
+ 
++    ★ FIX PACKAGE D (dust pop, quant_research DESIGN_dust_pop_before_reshape_2026-09-25, lead-approved): a held residual BELOW the
++      name's venue min notional (`floors[s]`) counts as NOT held. The planner can never close it (binance_executor.plan: |delta| <
++      min_notional ⇒ skipped_min_notional, exits included), so economically it is flat; before this it went to the clamp AFTER the
++      reshape and its reshape target was not re-absorbed (+2,464 USDT net long at 2026-09-25 08Z, the stop-cooldown trio held as
++      ~1 USDT dust while the producer kept shorting them). Strictly below the floor; no floor for the name (or floors None) ⇒ the
++      exact-zero rule as before. A popped name leaves the target, so the planner (which iterates the target only) gives it no row and
++      no order: it cannot be opened (the cooldown's intent) and its dust stays where it is. `dust_out` (a list) collects the names
++      popped BECAUSE of the floor, for the report.
++
+     Returns the popped symbols. Nothing to close and we may not open, so the name simply leaves
+     the book — which is precisely why the remainder must be reshaped afterwards.
+ 
+@@ -328,9 +337,14 @@ def withhold_pop(target, held, untradable):
+     """
+     popped = []
+     for s_ in untradable:                       # scored, but withheld by the venue
+-        if float((held or {}).get(s_, 0.0) or 0.0) == 0.0:
++        h_ = float((held or {}).get(s_, 0.0) or 0.0)
++        fl_ = (floors or {}).get(s_)
++        dust_ = (h_ != 0.0 and fl_ is not None and float(fl_) > 0.0 and abs(h_) < float(fl_))   # NaN held ⇒ False ⇒ clamp (unknown is not dust)
++        if h_ == 0.0 or dust_:
+             target.pop(s_, None)
+             popped.append(s_)
++            if dust_ and dust_out is not None:
++                dust_out.append(s_)
+     return popped
+ 
+ 
+@@ -391,7 +405,8 @@ def apply_withhold_and_reshape(target, held, untradable, sizing_gross,
+     #   for all of it; 09-13 12Z the producer's book was itself −8.46% of its gross and the 11 withheld names were +0.80%).
+     _net_composed = float(sum(float(v or 0.0) for v in target.values()))
+     # ── 1. the UNHELD untradables: pop. This is the shape change. ──────────────────────────
+-    clamp["popped"] = withhold_pop(target, held, untradable)
++    _dust_popped = []
++    clamp["popped"] = withhold_pop(target, held, untradable, floors=floors_usdt, dust_out=_dust_popped)   # fix package D: dust ⇒ pop
+     # ── 1b. W9: the HELD force_flat names still in the target leave the reshape population ───────
+     _flat_out = [s_ for s_ in _force if s_ in target]
+     _flat_out_net = float(sum(float(target.get(s_) or 0.0) for s_ in _flat_out))
+@@ -423,6 +438,8 @@ def apply_withhold_and_reshape(target, held, untradable, sizing_gross,
+             "NOT SUPPLIED — floor crossings were not checked, not 'none found'")
+         rs["n_popped"] = len(clamp["popped"])
+         rs["popped_names"] = sorted(clamp["popped"])
++        rs["n_dust_popped"] = len(_dust_popped)                   # fix package D: popped because |held| < min notional (a subset of popped)
++        rs["dust_popped_names"] = sorted(_dust_popped)
+         rs["sizing_gross"] = g
+         # ★ E6 (EXE-03): net_before == net_producer_usdt − net_removed_usdt, both stated
+         rs["net_producer_usdt"] = _net_composed
