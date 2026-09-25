@@ -83,31 +83,68 @@ log "run A (solo)  : rc=$RA  ${SOLO_SEC}s  scores.npz sha $SOLO"
 [ -n "$SOLO" ] || { log "run A produced no scores.npz -- cannot form a reference; STOP"; exit 1; }
 
 # ---- background load: a DIFFERENT seed, so the two runs never contend for one output dir ----
-log "starting background load: seed $LOAD_SEED, same arm, into $K/load_arm"
-run "$K/load_arm" "$LOAD_SEED" "$FOLD" "$K/run_load.log" &
+# TWO BUGS FIXED HERE, both of which silently destroyed the verdict's power on the 2026-09-25 12:28Z run:
+#
+# (1) THE READINESS CONDITION WAS IMPOSSIBLE. It waited for `trainers() -ge 2` BEFORE starting run B --
+#     but at that moment only ONE trainer can exist (the load); run B is what makes it two. So the loop
+#     burned its full 300 s timeout on a condition that could never be true, logged "load did not come
+#     up", and started run B at 12:38:11 -- 38 s AFTER the load had finished at 12:37:33. Run B then ran
+#     unloaded and came out FASTER than solo (250 s vs 277 s), which is the tell. Wait for `-ge 1` (the
+#     load is up) and assert it, then run B makes it two.
+#
+# (2) ONE LOAD FOLD IS SHORTER THAN RUN B. The load fold takes ~225 s and run B ~250-280 s, so even with
+#     correct sequencing the load expires mid-comparison. The load now LOOPS until run B signals done, so
+#     it cannot run out underneath the measurement.
+#
+# And the verdict now carries EVIDENCE that it was loaded: concurrency is sampled throughout run B and
+# the minimum is required to be >= 2. "I started a load" is not the same as "it was loaded the whole
+# time", and only the sampled minimum can tell those apart.
+log "starting background load: seed $LOAD_SEED, same arm, looping into $K/load_arm until run B is done"
+rm -f "$K/runB.done"
+( while [ ! -f "$K/runB.done" ]; do
+    rm -rf "$K/load_arm"                 # the trainer does mkdir(exist_ok=False), so clear between passes
+    run "$K/load_arm" "$LOAD_SEED" "$FOLD" "$K/run_load.log"
+  done ) &
 LOADPID=$!
 echo "$LOADPID" > "$K/load.pid"           # record it: the only safe kill target is one I wrote down
-for i in $(seq 1 60); do [ "$(trainers)" -ge 2 ] && break; sleep 5; done
-log "load up       : trainers=$(trainers) gpu_procs=$(gpu_procs) avail=$(mem_avail_gib) GiB"
-[ "$(trainers)" -ge 2 ] || log "WARNING: load did not come up; run B is not actually loaded -- verdict has no power"
+for i in $(seq 1 60); do [ "$(trainers)" -ge 1 ] && break; sleep 5; done
+LOAD_UP=$(trainers)
+log "load up       : trainers=$LOAD_UP gpu_procs=$(gpu_procs) avail=$(mem_avail_gib) GiB"
+if [ "$LOAD_UP" -lt 1 ]; then
+  log "REFUSING to report a verdict: the load never started, so a cross-load check is not what would be measured"
+  touch "$K/runB.done"; kill "$LOADPID" 2>/dev/null; exit 1
+fi
+
+# ---- concurrency sampler: proves run B was loaded FOR ITS WHOLE DURATION, not just at the start ----
+( while [ ! -f "$K/runB.done" ]; do trainers >> "$K/concurrency.samples"; sleep 10; done ) &
+SAMPPID=$!
+echo "$SAMPPID" > "$K/sampler.pid"
 
 # ---- run B: SAME fold, SAME seed, under load ----
 B0=$(date +%s)
 run "$K/loaded" "$SEED" "$FOLD" "$K/run_loaded.log"; RB=$?
 B1=$(date +%s)
 LOAD_SEC=$((B1-B0))
+touch "$K/runB.done"
+CMIN=$(sort -n "$K/concurrency.samples" 2>/dev/null | head -1)
+CMAX=$(sort -n "$K/concurrency.samples" 2>/dev/null | tail -1)
+CN=$(grep -c . "$K/concurrency.samples" 2>/dev/null || echo 0)
+log "concurrency during run B: n=$CN min=${CMIN:-?} max=${CMAX:-?}  (min must be >= 2 for the verdict to have power)"
 LOADED_DIR=$(outdir "$K/run_loaded.log")
 log "run B out dir (from the trainer's own line): ${LOADED_DIR:-<none announced>}"
 LOADED=$(sha256sum "$LOADED_DIR/$FOLD/scores.npz" 2>/dev/null | cut -d' ' -f1)
 log "run B (loaded): rc=$RB  ${LOAD_SEC}s  scores.npz sha $LOADED"
 
-wait "$LOADPID" 2>/dev/null; log "background load finished (pid $LOADPID)"
+wait "$LOADPID" 2>/dev/null; kill "$SAMPPID" 2>/dev/null   # only pids this script recorded itself
+log "background load loop and sampler stopped (recorded pids $LOADPID / $SAMPPID)"
 
 # ---- verdict ----
 log "solo   sha : $SOLO"
 log "loaded sha : $LOADED"
 if [ -n "$LOADED" ] && [ "$SOLO" = "$LOADED" ]; then V=IDENTICAL; else V=DIFFERENT; fi
-log "T3_CROSSLOAD_VERDICT=$V  solo=${SOLO_SEC}s loaded=${LOAD_SEC}s  slowdown=$(awk -v a=$SOLO_SEC -v b=$LOAD_SEC 'BEGIN{if(a>0)printf "%.2fx",b/a; else print "n/a"}')"
+if [ "${CMIN:-0}" -ge 2 ]; then POWER=HAS_POWER; else POWER=NO_POWER_run_B_was_not_loaded_throughout; fi
+log "T3_CROSSLOAD_VERDICT=$V  power=$POWER  solo=${SOLO_SEC}s loaded=${LOAD_SEC}s  slowdown=$(awk -v a=$SOLO_SEC -v b=$LOAD_SEC 'BEGIN{if(a>0)printf "%.2fx",b/a; else print "n/a"}')"
+[ "$POWER" = HAS_POWER ] || log "IDENTICAL under NO_POWER means only run-to-run determinism, NOT cross-load determinism -- do not read it as the latter"
 log "per-fold cost for scheduling: solo ${SOLO_SEC}s, under 2-way ${LOAD_SEC}s"
 if [ "$V" = DIFFERENT ]; then
   log "DO NOT parallelise T3: bitwise reproducibility is MEASURED here, not configured (the trainer sets"
