@@ -46,3 +46,27 @@ PROBE_DONE
 # ★ 具名限定: 训练器只设 torch.manual_seed / np.random.seed, **没有** cudnn.deterministic、
 #   **没有** use_deterministic_algorithms、没有 TF32 控制(参照配方 news2_train_f10.py 同样如此)。
 #   所以逐位可复现是**观测到的经验性质, 不是配置保证的**; 驱动/库升级后必须重跑本探针。
+
+# ============ 更正 2026-09-25 09:1xZ(原句字节保留, 不改写上文)============
+# 上文那段「★ 判据选择的一个关键事实」里的因果**是错的**, 当天被我自己的对账推翻:
+#
+#   错的说法: "model.pt 的文件 sha 跨运行不同(6dc2fe76 vs 2fa9e06c)而张量逐位相同 —— torch.save 写 zip"
+#   实际:     那两个 sha 来自**两个不同版本的写入代码**(裸 torch.save -> sio.save_torch, E-0925-A 修复
+#             前后), 不是同一份代码跑两次。今天重跑同一折, model.pt 的 sha **相同**(2fa9e06c)。
+#   我把「不同运行」与「不同代码」混成了一个解释。看到两个 sha 不同, 先问"中间改过代码吗"。
+#
+# 真正跨运行不稳定的量(重跑 (T0,s42,202506) 逐项对比备份, 实测):
+#   相同: scores.npz sha / model.pt sha / train_loss / alpha / a_final / scored_pairs / test_anchors
+#   不同: elapsed_seconds (135.33 -> 133.93) 与 curve[*].seconds   <- 墙钟计时字段
+#   => FOLD_RECEIPT.json 文件 sha 变 (2a47f56d -> 524eafd0)
+#   => 记录了它的 TRAIN_RECEIPT.json 文件 sha 变 (21f94f90 -> 178f2cbe)
+#
+# 所以: 判据选 scores.npz **仍然正确**, 但正确的理由是"它是内容 sha", 不是"model.pt 不稳定"。
+#
+# ★ 我没预料到的后果: 跨负载检查前我只验了 OOF sha(de3f1202 未变 ✓), **没验收据 sha**。
+#   交给 fresh 的 seed 42 TRAIN_RECEIPT sha 因此失效, 已通知他改为 178f2cbe...。
+#   任何预测都没有改变(OOF 未变、逐折 scores.npz 未变、回读门仍 GREEN 且其收据 sha 与原来完全相同
+#   651e0eff —— 因为回读收据只记内容统计量, 不记计时)。
+#
+# 可推广: **收据的 sha 不能当跨运行的同一性令牌**(只要它记了计时/主机/路径这类环境量);
+#   能当令牌的是**产物内容的 sha**。交 sha 作引用键时必须说清是内容 sha 还是收据 sha。
