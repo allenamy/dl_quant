@@ -1,0 +1,180 @@
+{
+  "device": "ladder_poscontrol_check.py",
+  "self_sha256": "8f20ebeff181d2c3997db1d3b82c5050697d1246d933e710385e5fc00fbc8368",
+  "argv": [
+    "--mine-dir",
+    "/dev/shm/pnoise_2026-09-24/work/ladder_FUND_res",
+    "--new-dir",
+    "/dev/shm/pnoise_2026-09-24/work/ladder_none",
+    "--out",
+    "/dev/shm/pnoise_2026-09-24/receipts/LADDER_DELTA_FUND_res_vs_none.json"
+  ],
+  "prereg": "docs/PREREG_gap_carrier_ladder_2026-09-25.md @ be4a013a8 (step 3 positive control)",
+  "criterion_author": "team-lead (not news2)",
+  "gate": "max|dw| <= 1e-6 vs NEW's archived targets, else report which input is missing",
+  "policies": {
+    "literal": {
+      "mine": "/dev/shm/pnoise_2026-09-24/work/ladder_FUND_res/literal.npz",
+      "mine_sha": "76d84da79864a8228b3df602b2af6c1355e42c1a5ceddb8997b92178e38d76ee",
+      "new": "/dev/shm/pnoise_2026-09-24/work/ladder_none/literal.npz",
+      "new_sha": "210270198350cdce0287cb2659708f9db52ea4c027346347e7b1e5366a781991",
+      "mine_keys": [
+        "E_ts",
+        "fc",
+        "kc",
+        "raw",
+        "reason",
+        "symbols",
+        "trade_mask",
+        "weights"
+      ],
+      "new_keys": [
+        "E_ts",
+        "fc",
+        "kc",
+        "raw",
+        "reason",
+        "symbols",
+        "trade_mask",
+        "weights"
+      ],
+      "axis": {
+        "mine_n": 8142,
+        "new_n": 8142,
+        "identical": true,
+        "common_n": 8142
+      },
+      "weights": {
+        "max_abs_dw": 0.002962046721475886,
+        "n_cells": 6749718,
+        "n_cells_over_1e-6": 809313,
+        "n_anchors_over_1e-6": 2890,
+        "bitwise_identical": false
+      },
+      "trade_mask": {
+        "mine_publish": 2946,
+        "new_publish": 2946,
+        "disagreeing_anchors": 0
+      },
+      "reason": {
+        "disagreeing_anchors": 4
+      },
+      "first_disagreeing_anchors": [
+        1744804800,
+        1744819200,
+        1744833600,
+        1744848000,
+        1744862400,
+        1744876800,
+        1744891200,
+        1744905600,
+        1744920000,
+        1744934400
+      ],
+      "per_year_anchors_over_1e-6": {
+        "2023": {
+          "anchors": 2190,
+          "over": 0,
+          "max_abs_dw": 0.0
+        },
+        "2024": {
+          "anchors": 2196,
+          "over": 0,
+          "max_abs_dw": 0.0
+        },
+        "2025": {
+          "anchors": 2190,
+          "over": 1324,
+          "max_abs_dw": 0.002962046721475886
+        },
+        "2026": {
+          "anchors": 1566,
+          "over": 1566,
+          "max_abs_dw": 0.0018896906283528535
+        }
+      }
+    },
+    "scaled_diagnostic": {
+      "mine": "/dev/shm/pnoise_2026-09-24/work/ladder_FUND_res/scaled_diagnostic.npz",
+      "mine_sha": "20ba850bbd57e817de873ee8dd8f3ef4a5d15955b0180667182c11eef262bd4a",
+      "new": "/dev/shm/pnoise_2026-09-24/work/ladder_none/scaled_diagnostic.npz",
+      "new_sha": "f4630a20f796bce26590aedeadfc28791be7eeecee8c14789f418b5a08de4388",
+      "mine_keys": [
+        "E_ts",
+        "fc",
+        "kc",
+        "raw",
+        "reason",
+        "symbols",
+        "trade_mask",
+        "weights"
+      ],
+      "new_keys": [
+        "E_ts",
+        "fc",
+        "kc",
+        "raw",
+        "reason",
+        "symbols",
+        "trade_mask",
+        "weights"
+      ],
+      "axis": {
+        "mine_n": 8142,
+        "new_n": 8142,
+        "identical": true,
+        "common_n": 8142
+      },
+      "weights": {
+        "max_abs_dw": 0.009922722761363988,
+        "n_cells": 6749718,
+        "n_cells_over_1e-6": 1326502,
+        "n_anchors_over_1e-6": 6319,
+        "bitwise_identical": false
+      },
+      "trade_mask": {
+        "mine_publish": 6516,
+        "new_publish": 6520,
+        "disagreeing_anchors": 4
+      },
+      "reason": {
+        "disagreeing_anchors": 4
+      },
+      "first_disagreeing_anchors": [
+        1673539200,
+        1673553600,
+        1673568000,
+        1673582400,
+        1674216000,
+        1674230400,
+        1674244800,
+        1674259200,
+        1674273600,
+        1674288000
+      ],
+      "per_year_anchors_over_1e-6": {
+        "2023": {
+          "anchors": 2190,
+          "over": 1508,
+          "max_abs_dw": 0.009922722761363988
+        },
+        "2024": {
+          "anchors": 2196,
+          "over": 1921,
+          "max_abs_dw": 0.005101628694405004
+        },
+        "2025": {
+          "anchors": 2190,
+          "over": 1324,
+          "max_abs_dw": 0.002962046721475886
+        },
+        "2026": {
+          "anchors": 1566,
+          "over": 1566,
+          "max_abs_dw": 0.0018896906283528535
+        }
+      }
+    }
+  },
+  "verdict": "POSITIVE_CONTROL_FAIL"
+}

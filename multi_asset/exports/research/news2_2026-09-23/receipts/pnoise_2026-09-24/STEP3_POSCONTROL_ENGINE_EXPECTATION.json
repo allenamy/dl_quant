@@ -1,0 +1,14 @@
+{
+  "written_at_utc": "2026-09-25T05:14:30.373917+00:00",
+  "what": "engine-layer positive control expectation, written BEFORE reading the all_new dbar",
+  "prereg": "docs/PREREG_gap_carrier_ladder_2026-09-25.md @ be4a013a8 (step 3)",
+  "source_of_the_expected_values": "receipts/pnoise_2026-09-24/PNOISE_READOUT.json readout.pre2026/y2026 quoted_values_placed",
+  "correction_to_my_own_earlier_wording": "2.835 and 0.935 are NEW-NC at seeds s42 and s2027, BOTH pre-2026 -- they are NOT a (pre-2026, 2026) pair. I had it wrong in my head and checked before quoting.",
+  "arm_all_new_uses_seed": "s42 on both sides (nc_f10 = news2 f10_s42, new_f10 = corrected_combo_v1d/f10_s42)",
+  "expected": {
+    "pre2026_bps_per_day": 2.835,
+    "y2026_bps_per_day": -0.367
+  },
+  "why_it_should_be_exact": "arm all_news combo output is BITWISE identical to NEWs archived combo (LADDER_POSCONTROL.json max|dw| = 0), and the engine red control (arm none) reproduced the NC run with dbar exactly 0.000000 in both segments, so the staged adapter/engine route is bit-faithful. If all_new does NOT land on 2.835 / -0.367, the discrepancy is in the adapter/engine staging, not in the combo, and that is a defect to report, not a result.",
+  "reading_rule": "any deviation is reported as a number, not smoothed over; no retry without reporting"
+}

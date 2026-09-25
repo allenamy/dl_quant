@@ -107,6 +107,22 @@ def main():
                "green_control_nc_array_non_finite_on_nc_members": ctl,
                "green_control_expectation": 0}
         out["green_control_verdict"] = "PASS" if ctl == 0 else "FAIL"
+
+        # The dbar denominator is DAYS, not anchors, so the anchor share does not bound the reading.
+        # pre-2026 day count comes from the frozen caliber (news_stats.full_days), quoted here from the
+        # engine red control receipt rather than recomputed, and named so it can be checked.
+        pre = bad[bad < 1767225600] if bad.size else bad          # 1767225600 = 2026-01-01T00Z
+        d_pre = sorted({datetime.datetime.fromtimestamp(int(x), datetime.timezone.utc).date().isoformat()
+                        for x in pre})
+        out["pre2026_days"] = {
+            "affected_anchors": int(pre.size), "distinct_utc_days_touched": len(d_pre), "days": d_pre,
+            "anchors_per_touched_day": {d: int(sum(1 for x in pre if datetime.datetime.fromtimestamp(
+                int(x), datetime.timezone.utc).date().isoformat() == d)) for d in d_pre},
+            "pre2026_full_day_denominator": 915,
+            "denominator_source": "STEP3_DBAR_none.json dbar_vs_nc.pre2026.n_days (frozen news_stats.full_days)",
+            "contaminated_share_of_days_pct": round(100.0 * len(d_pre) / 915, 3),
+            "note": ("the anchor share understates the bound; dbar averages per DAY, so the day share is "
+                     "what bounds the pre-2026 reading")}
         return out
 
     rec["KZ"] = scan(nwl["KZ"], ncl["KZ"], "KZ")
@@ -137,6 +153,10 @@ def main():
               f"   green control = {d['green_control_verdict']} ({d['green_control_nc_array_non_finite_on_nc_members']})")
         for y, v in d["per_year"].items():
             print(f"      {y}: {v['affected']:5d}/{v['anchors_in_year']:5d}  ({v['share_pct']}%)")
+        p = d["pre2026_days"]
+        print(f"      pre-2026: {p['affected_anchors']} anchors on {p['distinct_utc_days_touched']} distinct "
+              f"UTC days {p['days']} = {p['contaminated_share_of_days_pct']}% of the "
+              f"{p['pre2026_full_day_denominator']}-day dbar denominator")
     return 0 if rec["verdict"] == "COVERAGE_ARTIFACT_CONFIRMED" else 4
 
 
