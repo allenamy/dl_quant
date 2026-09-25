@@ -21,3 +21,7 @@ E3 timing, treeNC6 vs treeNC7 (same 6 anchors 1790121600..1790193600 as the NC5 
      producer total NC6 6.74 / 7.66 s   → NC7 6.99 / 7.77 s     (+0.26 s p50)
      combo wall    NC6 39.11 / 41.40 s  → NC7 38.74 / 39.79 s   (difference inside run-to-run noise)
      gate slack (combo done vs N+19:35)  NC6 105.6 s → NC7 107.2 s (worst-backfill slack likewise); the increment is ~0.3 s of ~106 s.
+Release / rollback ORDER rehearsal (lead review of DEPLOY_v2_durable §3), 07:4xZ:
+  /usr/bin/python3 -B devices/test_release_order_drift.py ~/cc_tmp/m3v2_exec_20260925 5d3029c 6cc11cc 8bde2f8dc ~/Desktop/quant_research <R>/RELEASE_ORDER_DRIFT.json → rc=0
+  O1 old guard vs unpatched upstream rc=0 "no drift across 5" · O2 old guard vs PATCHED rc=1 DRIFT (rollback in the wrong order blocks itself)
+  N1 new guard vs patched rc=0 "no drift across 6" · N2 new guard vs UNPATCHED rc=1 DRIFT (forward in the wrong order)  ⇒ RELEASE_ORDER_DRIFT PASS
