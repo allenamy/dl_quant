@@ -43,3 +43,12 @@ Scope: one comparison in `withhold_pop` (plus passing the floors to it); the res
 - Research engine parity: the engine imports the same function (409ea16 mirror); the fix must land in the engine mirror in the same release
   or the backtest / live gap reopens (the hook cell measured the engine's post-clamp net at ≈ 0 in median — the engine rarely creates dust;
   why the engine closes exits to exactly zero is the parity investigation's open item 1).
+
+## 7. Addendum 2026-09-25 16:0xZ — implementation refinement (lead-accepted; the text above is kept as written)
+§4 said a popped name gets "no plan row and no order at all". As implemented (fix-pkg-d 1e70316), the clamp (`clamp_held_untradable`,
+which runs after the reshape over the untradable names still held) gives a dust name its FLATTEN row at exactly 0.0 (flatten_only), and the
+planner marks that row `skipped_min_notional` with no qty. Reason: the clamp's own documentation records the 2026-08-01 defect — a held
+untradable with no row at all is silently orphaned (no reduction, no record, no alarm); keeping the row keeps the dust visible every anchor.
+Effect on the net: 0 (the name left the reshape population, so the reshape re-absorbed its target; the flatten row pins 0.0 → shift 0;
+tests D1 / D5). The "residual stays where it is" requirement is asserted in D4 on the plan row (skipped_min_notional, no qty) and on the
+order-bearing rows (none for the dust name). A NaN held value is not judged dust (unknown is not dust) and keeps today's clamp.
