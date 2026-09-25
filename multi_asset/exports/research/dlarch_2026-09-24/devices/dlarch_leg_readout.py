@@ -58,6 +58,45 @@ def sha(p):
 
 
 def ts(s): return calendar.timegm(time.strptime(s, "%Y-%m-%dT%H:%M:%SZ"))
+def anchor_value(row, yrow):
+    """THE R25-02 rule, in one place. Returns (value_in_bps or None, unknown_mask).
+
+    A non-zero weight whose label is not finite is UNKNOWN: dropped from the numerator AND from the
+    gross denominator, never zero-filled. Extracted as a function so the synthetic positive control
+    calls the SAME code the readout calls -- a control that re-implements the rule proves only that two
+    of my implementations agree.
+    """
+    unk = (row != 0) & ~np.isfinite(yrow)
+    if unk.any():
+        row = row.copy()
+        row[unk] = 0.0
+    g = float(np.abs(row).sum())
+    if g <= 1e-9:
+        return None, unk
+    return 1e4 * float((row * np.nan_to_num(yrow)).sum()) / g, unk
+
+
+def selftest_r25_02():
+    """The reviewer's synthetic case (lead's control (i)): book [.5, -.5] against labels [.01, NaN].
+    The -.5 leg is held and unlabelled, so it must be reported UNKNOWN, and the anchor's value must come
+    from the .5 leg alone -- gross .5, not 1.0. The old code returned 1e4*(.5*.01 + -.5*0)/1.0 = +50.0,
+    a fabricated 'this position returned zero'. Correct answer: +100.0 with one UNKNOWN cell."""
+    row = np.array([0.5, -0.5]); yrow = np.array([0.01, np.nan])
+    v, unk = anchor_value(row, yrow)
+    assert unk.tolist() == [False, True], f"UNKNOWN mask wrong: {unk.tolist()}"
+    assert v is not None and abs(v - 100.0) < 1e-9, f"value should be +100.0 (gross .5), got {v}"
+    old = 1e4 * float((row * np.nan_to_num(yrow)).sum()) / float(np.abs(row).sum())
+    assert abs(old - 50.0) < 1e-9, f"the pre-fix arithmetic should give +50.0, got {old}"
+    # and a book that is ENTIRELY unknown must yield no reading rather than 0.0
+    v2, unk2 = anchor_value(np.array([0.5, -0.5]), np.array([np.nan, np.nan]))
+    assert v2 is None and unk2.all(), f"all-unknown book must give None, got {v2}"
+    return {"synthetic_book": [0.5, -0.5], "synthetic_labels": [0.01, None],
+            "unknown_mask": unk.tolist(), "value_after_fix_bps": v, "value_before_fix_bps": old,
+            "all_unknown_book_returns": None, "PASS": True,
+            "why": ("the pre-fix path reported +50.0 by treating an unlabelled HELD leg as a zero-return "
+                    "holding; after the fix that leg is UNKNOWN, excluded from numerator and gross, and "
+                    "the anchor reads +100.0 from the labelled leg alone")}
+
 def iso(t): return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(t)))
 def log(*a): print(time.strftime("%H:%M:%S", time.gmtime()), *a, flush=True)
 
@@ -110,6 +149,16 @@ def main():
     use = (a >= 1672531200) & (a <= universe["ts"][-1]); au = a[use]
     book_legal = align_universe(au, syms, universe) & cand[use]
     ci = np.searchsorted(a, au); assert np.all(a[ci] == au)
+    # R25-02 control (ii), lead: report the candidate DENOMINATOR next to the realisation. This is an
+    # UPPER bound -- cells the book MAY hold (legal) whose label is NaN -- so a realised count of 0 is
+    # legitimate and is NOT evidence that the detector is broken. That job belongs to selftest_r25_02().
+    _cand_cells = 0; _cand_anchors = 0
+    for _j in range(len(au)):
+        _i = ci[_j]
+        if not lab_ok[_i]: continue
+        _h = int((book_legal[_j] & ~np.isfinite(Y[iy[_i]])).sum())
+        if _h: _cand_cells += _h; _cand_anchors += 1
+    CAND = {"cells": _cand_cells, "anchors": _cand_anchors}
     KZu = leg["KZ"][use].astype(np.float64); ZFDu = leg["ZFD"][use].astype(np.float64)
     WLu = leg["WL"][use].astype(np.float64); RN8u = leg["RN8"][use].astype(np.float64)
     QVu = leg["QV"][use].astype(np.float64); RDY = leg["ready"][use]
@@ -117,22 +166,51 @@ def main():
     INS = np.load(INSERVICE)["P"]; rec["inputs"][INSERVICE] = sha(INSERVICE)
     masks = {s: (au >= ts(lo)) & (au <= ts(hi)) for s, (lo, hi) in SEG.items()}
 
+    UNK = {"pairs": set(), "notional": 0.0, "by_name": set()}
+
     def book_series(bk, rng_mode=None, rng=None):
         """u(book)/|book|_1*1e4 per anchor, for ANY book array (fc -> L4fc, raw -> L5raw).
-        rng_mode 'A' permutes y ONLY among the finite positions, so the population is invariant."""
+        rng_mode 'A' permutes y ONLY among the finite positions, so the population is invariant.
+
+        R25-02 (independent review 7cbe907ba): a NON-ZERO position whose label is missing used to go
+        through nan_to_num, i.e. it was recorded as a held name that returned exactly zero. That is a
+        fabricated observation. Such a cell is now UNKNOWN: it is removed from the numerator AND from
+        the gross denominator (lead: not folded into the denominator), and counted. The pattern is
+        copied from the TRAINING layer, which already refuses this case outright
+        (dlarch_train_f10.py:289/293 raises 'unknown held return: loss refused').
+        nan_to_num is still applied afterwards, but only where the weight is now exactly 0, so a NaN
+        label on an unheld name legitimately contributes nothing."""
         vals = np.full(len(au), np.nan); pop_mismatch = 0
         for j in range(len(au)):
             i = ci[j]
             if not lab_ok[i]: continue
-            g = float(np.abs(bk[j]).sum())
-            if g <= 1e-9: continue
             yrow = Y[iy[i]].astype(np.float64)
             base_ok = np.isfinite(yrow)
             if rng_mode == "A":
                 v = yrow[base_ok].copy(); rng.shuffle(v); yrow = yrow.copy(); yrow[base_ok] = v
                 if not np.array_equal(np.isfinite(yrow), base_ok): pop_mismatch += 1
-            vals[j] = 1e4 * float((bk[j] * np.nan_to_num(yrow)).sum()) / g
+            v, unk = anchor_value(bk[j], yrow)
+            if unk.any():
+                # UNIQUE (anchor, name) pairs: book_series is called once per arm, and counting cell
+                # VISITS would multiply the same cell by the number of arms and look like more evidence
+                for k in np.flatnonzero(unk):
+                    UNK["pairs"].add((int(au[j]), int(k)))
+                    UNK["by_name"].add(str(syms[k]))
+                UNK["notional"] += float(np.abs(bk[j][unk]).sum())
+            if v is None: continue
+            vals[j] = v
         return vals, pop_mismatch
+
+    def unk_report(u):
+        return {"unknown_cells_with_nonzero_book": len(u["pairs"]),
+                "unknown_anchors": len({p[0] for p in u["pairs"]}),
+                "unknown_abs_notional": u["notional"], "unknown_names": sorted(u["by_name"]),
+                "candidate_denominator_legal_and_label_nan": CAND["cells"],
+                "candidate_anchors": CAND["anchors"],
+                "note": ("the candidate denominator is an UPPER bound (legal cells whose label is NaN); a "
+                         "true count of 0 is legitimate, because the book need not hold those names. Both "
+                         "numbers are reported so the reader can see the bound and the realisation. The "
+                         "detector's own positive control is the synthetic case below, not this ratio.")}
 
     def run_evolve(P10u):
         out = evolve(anchors=au, king=KZu, f10=P10u, fund=ZFDu, seats=WLu, rn8=RN8u, members=mem_u,
@@ -215,6 +293,17 @@ def main():
         log("DELTA", arm, seed, "L4fc", round(deltas[f"{arm}:{seed}"]["L4fc"][MAIN].get("mean", float("nan")), 4),
             "L5raw", round(deltas[f"{arm}:{seed}"]["L5raw"][MAIN].get("mean", float("nan")), 4))
     rec["delta_T3_minus_T0"] = deltas
+
+    # ── R25-02: both numbers lead asked for, side by side ──
+    # (i) the synthetic positive control, which is what certifies the detector -- it calls anchor_value,
+    #     the same function the readout calls, so it cannot pass by agreeing with a second implementation.
+    # (ii) the realisation next to its candidate denominator. A realised 0 against a candidate 79 is a
+    #     legitimate outcome (the book need not hold those names) and must not be read as a broken
+    #     detector; that is precisely what (i) is for.
+    rec["controls"]["r25_02_unknown_held_return"] = dict(unk_report(UNK),
+                                                         synthetic_positive_control=selftest_r25_02())
+    log("R25-02", json.dumps({k: v for k, v in rec["controls"]["r25_02_unknown_held_return"].items()
+                              if k != "synthetic_positive_control" and k != "unknown_names"}))
 
     # ── controls, on the first available arm ──
     if fc_cache:
