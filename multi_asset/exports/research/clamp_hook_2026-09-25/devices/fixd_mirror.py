@@ -7,7 +7,7 @@
 3. assert: the ONLY file that differs between src and dst is scheduler/anchor_loop.py (diff -rq);
 4. write a copy of INPUT_MANIFEST.json with that one sha replaced, and a derived RUN_CONFIG (paths.exec_mirror, pins.input_manifest {path, sha},
    paths.pod_root) — nothing else changed; every change listed in the config's _diagnostic_note.
-usage: /workspace/venv/bin/python fixd_mirror.py <src mirror> <dst mirror> <diff> <base RUN_CONFIG> <out RUN_CONFIG> <pod_root>"""
+usage: /workspace/venv/bin/python fixd_mirror.py <src mirror> <dst mirror> <diff> <base RUN_CONFIG> <out RUN_CONFIG> <pod_root> <reference fixed anchor_loop.py>"""
 import hashlib, json, os, shutil, subprocess, sys, copy
 
 src, dst, diff, cfg_in, cfg_out, root = sys.argv[1:7]
@@ -15,10 +15,21 @@ sha = lambda p: hashlib.sha256(open(p, "rb").read()).hexdigest()
 assert not os.path.exists(dst), f"refusing to overwrite {dst}"
 shutil.copytree(src, dst, symlinks=True)
 tree = os.path.join(dst, "exec_tree_409ea16")
-r = subprocess.run(["patch", "-p1", "--dry-run", "-d", tree, "-i", os.path.abspath(diff)], capture_output=True, text=True)
+r = subprocess.run(["patch", "-p1", "--dry-run", "--no-backup-if-mismatch", "-d", tree, "-i", os.path.abspath(diff)], capture_output=True, text=True)
 assert r.returncode == 0, f"dry-run rejected: {r.stdout[-600:]} {r.stderr[-300:]}"
-r = subprocess.run(["patch", "-p1", "-d", tree, "-i", os.path.abspath(diff)], capture_output=True, text=True)
+r = subprocess.run(["patch", "-p1", "--no-backup-if-mismatch", "-d", tree, "-i", os.path.abspath(diff)], capture_output=True, text=True)
 assert r.returncode == 0, r.stdout[-600:]
+print("patch:", r.stdout.strip().replace("\n", " | "))
+# rev 1: the patched functions must be AST-identical to the executor's fixed ones (reference = fix-pkg-d 1e70316 anchor_loop.py, passed as
+# argv[7]); a patch that applied with fuzz / offset is accepted only if the result is the same code
+import ast
+def fns(path):
+    T = ast.parse(open(path).read())
+    return {n.name: ast.dump(n) for n in T.body if isinstance(n, ast.FunctionDef) and n.name in ("withhold_pop", "apply_withhold_and_reshape", "clamp_held_untradable")}
+ref = fns(sys.argv[7]); got = fns(os.path.join(tree, "scheduler", "anchor_loop.py"))
+assert set(ref) == set(got) == {"withhold_pop", "apply_withhold_and_reshape", "clamp_held_untradable"} and all(ref[k] == got[k] for k in ref), \
+    {k: ref.get(k) == got.get(k) for k in ref}
+print("AST: withhold_pop / apply_withhold_and_reshape / clamp_held_untradable identical to the executor fix (1e70316)")
 d = subprocess.run(["diff", "-rq", src, dst], capture_output=True, text=True).stdout.strip().splitlines()
 assert len(d) == 1 and d[0].endswith("exec_tree_409ea16/scheduler/anchor_loop.py differ"), d
 c = json.load(open(cfg_in)); man_in = c["pins"]["input_manifest"]["path"]; m = json.load(open(man_in))

@@ -6,7 +6,7 @@ NC=/dev/shm/news2_2026-09-23; ME=/dev/shm/c4hook_2026-09-25; DEV=$ME/devices; FD
 mkdir -p $FD/logs $FD/receipts $FD/hook
 BASE=$NC/configs/RUN_CONFIG_NEWS2_s42X_2026-09-23.json
 SRC=$(/workspace/venv/bin/python -c "import json;print(json.load(open('$BASE'))['paths']['exec_mirror'])")
-[ -d $FD/exec_mirror ] || /workspace/venv/bin/python -B $DEV/fixd_mirror.py $SRC $FD/exec_mirror $DEV/fixD_anchor_loop.diff $BASE $FD/RUN_CONFIG_fixD.json $FD > $FD/logs/mirror.log 2>&1
+rm -rf $FD/exec_mirror;  /workspace/venv/bin/python -B $DEV/fixd_mirror.py $SRC $FD/exec_mirror $DEV/fixD_anchor_loop.diff $BASE $FD/RUN_CONFIG_fixD.json $FD $DEV/anchor_loop_fixD_1e70316.py > $FD/logs/mirror.log 2>&1
 grep -q FIXD_MIRROR_OK $FD/logs/mirror.log || { echo "mirror build FAILED" >> $FD/logs/gate.log; exit 3; }
 while true; do
   OTHERS=$(ps -eo pgid=,args= | grep -E "bt_launch.py" | grep -v grep | grep -v "$ME" | awk '{print $1}' | sort -u | wc -l)
