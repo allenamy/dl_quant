@@ -13,6 +13,16 @@ Two traps this device is built around, both measured rather than assumed:
     backwards; see AMENDMENT 1 §B. The identity is checked by the canonical path_metrics itself
     (g_identity_max_err), which is reported here rather than re-derived.
 
+AMENDMENT 2 (commit 1ea8644ab) adds the FULL WINDOW as the main gate: seg_mask(A, SEG['2023H2'][0], SEG['2026'][1])
+= 2023-06-30T04:00:00Z .. 2026-08-31T00:00:00Z, 1157 days. pre2026 and 2026 partition it exactly, so the full-window
+MEAN is their day-weighted average -- but the CI must be recomputed on the full-window daily series, which is why this
+device now also SAVES the per-day difference series D (so that adding one interval later never again costs an engine
+re-run; it cost two cells this time).
+
+Both sign readings of the net-channel condition are computed and reported, because AMENDMENT 2 section B records a
+literal conflict in the lead's wording (`Dpnl + Dcar` in the superseding ruling vs an explicit confirmation that
+`Dpnl - Dcar` is the intent). The device does not pick one silently: it emits both.
+
 usage: ... fa_rn8read.py WL <variant_cell> <baseline_cell> <seed> <out.json>
 """
 import os, sys, json, hashlib, time
@@ -58,7 +68,14 @@ for p in V + B_:
     assert np.array_equal(p["A"], A), "path anchor axes differ across paths/arms"
 
 masks = {s: NS.seg_mask(A, a, b) for s, (a, b) in NS.SEG.items()}
-days = {s: NS.full_days(A, masks[s]) for s in NS.SEG}
+# AMENDMENT 2: the full window, built with the canonical seg_mask rather than assembled by hand
+masks["fullwin"] = NS.seg_mask(A, NS.SEG["2023H2"][0], NS.SEG["2026"][1])
+days = {s: NS.full_days(A, masks[s]) for s in masks}
+# the two halves must partition the full window exactly, or a day-weighted check of the mean is not valid
+assert not (masks["pre2026"] & masks["2026"]).any(), "pre2026 and 2026 overlap"
+assert np.array_equal(masks["fullwin"], masks["pre2026"] | masks["2026"]), "pre2026|2026 != fullwin"
+assert len(days["fullwin"]) == len(days["pre2026"]) + len(days["2026"]), "day count is not the sum"
+
 
 rec = {"device": "fa_rn8read.py", "self_sha256": sha(os.path.abspath(__file__)),
        "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -71,16 +88,26 @@ rec = {"device": "fa_rn8read.py", "self_sha256": sha(os.path.abspath(__file__)),
        "segments": {}, "channels": {}, "behavioural": {}}
 
 # ---- main reading: canonical dbar on the pre-2026 judge window, plus every segment separately ----
-for s in ("pre2026", "2023H2", "2024", "2025", "2026"):
+DSAVE = {}
+for s in ("fullwin", "pre2026", "2023H2", "2024", "2025", "2026"):
     db, D = NS.dbar(V, B_, masks[s], days[s])
     est = float(1e4 * db.mean())
     e = {"mean_bps_per_day": est, "n_days": int(len(db)), "n_windows": int(masks[s].sum())}
-    if s == "pre2026":
+    if s in ("fullwin", "pre2026"):
         e["boot"] = NS.boot(db, 30)
     rec["segments"][s] = e
+    DSAVE["db_" + s] = db                      # per-day mean-across-paths difference; saved so a later CI needs no re-run
+    DSAVE["days_" + s] = days[s]
+# day-weighted identity check on the MEAN (the CI is genuinely recomputed, not composed)
+w = (rec["segments"]["pre2026"]["mean_bps_per_day"] * rec["segments"]["pre2026"]["n_days"]
+     + rec["segments"]["2026"]["mean_bps_per_day"] * rec["segments"]["2026"]["n_days"]) / rec["segments"]["fullwin"]["n_days"]
+rec["segments"]["fullwin"]["day_weighted_from_halves"] = float(w)
+rec["segments"]["fullwin"]["mean_matches_day_weighted"] = bool(abs(w - rec["segments"]["fullwin"]["mean_bps_per_day"]) < 1e-9)
+assert rec["segments"]["fullwin"]["mean_matches_day_weighted"], "mean != day-weighted halves"
+
 
 # ---- channels, via the canonical path_metrics (which also checks the g identity) ----
-for s in ("pre2026", "2026"):
+for s in ("fullwin", "pre2026", "2026"):
     mv = [NS.path_metrics(p, masks[s], days[s]) for p in V]
     mb = [NS.path_metrics(p, masks[s], days[s]) for p in B_]
     ch = {}
@@ -88,9 +115,28 @@ for s in ("pre2026", "2026"):
         a_ = float(np.mean([x[k] for x in mv])); b_ = float(np.mean([x[k] for x in mb]))
         ch[k] = {"variant": a_, "baseline": b_, "delta": a_ - b_}
     ch["NET_price_minus_funding_paid"] = ch["price"]["delta"] - ch["funding_paid"]["delta"]
+    # AMENDMENT 2 section B: the other literal reading, reported so neither verdict needs a re-run
+    ch["ALT_price_plus_funding_paid"] = ch["price"]["delta"] + ch["funding_paid"]["delta"]
     ch["g_identity_max_err"] = {"variant": float(max(x["g_identity_max_err"] for x in mv)),
                                 "baseline": float(max(x["g_identity_max_err"] for x in mb))}
     rec["channels"][s] = ch
+
+# ---- AMENDMENT 2 mandatory: per-year dbar and per-year Dcar, one line each ----
+YEARS = {"2023": ("2023-01-01T00:00:00Z", "2023-12-31T20:00:00Z"), "2024": NS.SEG["2024"],
+         "2025": NS.SEG["2025"], "2026": NS.SEG["2026"]}
+rec["per_year"] = {}
+for y, (lo, hi) in YEARS.items():
+    mk = NS.seg_mask(A, lo, hi)
+    if not mk.any():
+        rec["per_year"][y] = {"status": "NO_ANCHORS_IN_WINDOW"}; continue
+    dy = NS.full_days(A, mk)
+    db, _ = NS.dbar(V, B_, mk, dy)
+    mvy = [NS.path_metrics(p, mk, dy) for p in V]; mby = [NS.path_metrics(p, mk, dy) for p in B_]
+    rec["per_year"][y] = {"dbar_bps_per_day": float(1e4 * db.mean()), "n_days": int(len(db)),
+                          "delta_funding_paid_bps_per_anchor": float(np.mean([x["funding_paid"] for x in mvy])
+                                                                     - np.mean([x["funding_paid"] for x in mby])),
+                          "delta_price_bps_per_anchor": float(np.mean([x["price"] for x in mvy])
+                                                              - np.mean([x["price"] for x in mby]))}
 
 # ---- behavioural difference + mandatory cancellation ratio (no shares) ----
 dpnl = np.mean([p["pnl"] for p in V], 0) - np.mean([p["pnl"] for p in B_], 0)
@@ -115,7 +161,21 @@ assert rec["behavioural"]["anchors_with_price_difference"] > 0, \
     "variant and baseline price channels are identical on every anchor -- the clamp switch is not wired"
 
 json.dump(rec, open(OUT + ".tmp", "w"), indent=1, default=float); os.replace(OUT + ".tmp", OUT)
+np.savez_compressed(OUT.replace(".json", "_daily.npz.tmp.npz"), **DSAVE)
+os.replace(OUT.replace(".json", "_daily.npz.tmp.npz"), OUT.replace(".json", "_daily.npz"))
+rec["daily_series_saved"] = OUT.replace(".json", "_daily.npz")
+json.dump(rec, open(OUT + ".tmp", "w"), indent=1, default=float); os.replace(OUT + ".tmp", OUT)
 assert os.path.exists(OUT), "receipt not written"
+fw = rec["segments"]["fullwin"]; cf = rec["channels"]["fullwin"]
+print("FA_RN8READ s%s [AMD2 FULLWIN] dbar=%+.4f bps/d ci95=%s ci97.5=%s over %d days | dPrice=%+.4f dFundPaid=%+.4f NET(-)=%+.4f ALT(+)=%+.4f"
+      % (SEED, fw["mean_bps_per_day"], [round(x, 3) for x in fw["boot"]["ci95_bps"]],
+         [round(x, 3) for x in fw["boot"]["ci97.5_two_sided_bps"]], fw["n_days"],
+         cf["price"]["delta"], cf["funding_paid"]["delta"], cf["NET_price_minus_funding_paid"],
+         cf["ALT_price_plus_funding_paid"]), flush=True)
+for y in sorted(rec["per_year"]):
+    v = rec["per_year"][y]
+    if "dbar_bps_per_day" in v:
+        print("    year %-5s dbar=%+8.4f bps/d  dFundPaid=%+.4f  dPrice=%+.4f" % (y, v["dbar_bps_per_day"], v["delta_funding_paid_bps_per_anchor"], v["delta_price_bps_per_anchor"]), flush=True)
 p26 = rec["segments"]["pre2026"]; c = rec["channels"]["pre2026"]
 print("FA_RN8READ s%s | pre2026 dbar=%+.4f bps/d ci95=%s | 2026 dbar=%+.4f | dPrice=%+.4f dFundPaid=%+.4f NET=%+.4f | g_id_err=%.2e | cancel=%.3f"
       % (SEED, p26["mean_bps_per_day"], [round(x, 3) for x in p26["boot"]["ci95_bps"]],

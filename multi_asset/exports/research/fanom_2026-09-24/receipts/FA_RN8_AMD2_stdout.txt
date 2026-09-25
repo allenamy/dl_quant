@@ -1,0 +1,49 @@
+=== verdict stdout ===
+FA_RN8VERDICT AMD2 VERDICT=REJECT (operative, net=Dprice-DfundPaid) | alternate_literal_plus=REJECT
+   clause: s2027: fullwin dbar -3.3627 <= 0
+   clause: s2027: fullwin net -0.2878 <= 0
+   NOTE: 判据窗与实盘窗方向相反 (s42)
+   NOTE: 又一次按种子翻转 (fullwin dbar)
+   s42    fullwin dbar= +0.3391 ci95=[-1.759, +2.660] | pre2026= +1.1825 2026= -2.8495 | net(-)=+0.0174 net(+)=+0.8195
+   s2027  fullwin dbar= -3.3627 ci95=[-8.244, -0.211] | pre2026= -3.7007 2026= -2.0844 | net(-)=-0.2878 net(+)=+0.6182
+
+=== rerun s42 ===
+[RN8NC_s42] shm_gate avail=2150MiB need=1524MiB
+FA_COMBO {"no_rn8_clamp": true, "clamp_eligible_cells_upper_bound": 61702, "look": 900, "seat_rows_differing_from_look900": null, "legs": "news2_2026-09-23", "f10": "news2_2026-09-23", "crossed": false, "outside": 167420, "unverifiable": 0, "G0_arrays_bitwise_equal": null, "G0_container_sha_equal": {}}
+FA_B8TRCPT BEHAVIOURAL_DIFF_PRESENT {"scaled_diagnostic": {"anchors_with_any_weight_cell_differing": 6536, "anchors_with_trade_mask_differing": 95, "publish_source": 6520, "publish_variant": 6457}, "literal": {"anchors_with_any_weight_cell_differing": 2947, "anchors_with_trade_mask_differing": 38, "publish_source": 2946, "publish_variant": 2910}}
+DERIVED spec+config; pod_root -> /dev/shm/fanom_2026-09-24
+OVN_ADAPTER VERDICT=PASS arm=NEWS2_s42 npz_sha256=d0e8b951cf3b42d97f6f0ee81d19cec3f9ab95748e7c3216858b463d08b73e1c receipt_sha256=87436211f7762d79f32bd2146fa11672a75872898cecde64471a5557294a9b9d roundtrip=bitwise scaled_published=6457 lit_published=2910 pad=1110
+targets shas filled; no PENDING survives
+FA_LAUNCH_GUARD ACCEPT pod_root=/dev/shm/fanom_2026-09-24 n_outputs=1 outside_my_root=none
+[RN8NC_s42] engine PGID=2989908
+BT_LAUNCH VERDICT=PASS label=full_RN8NC_s42 runs=1 seeds=32 receipt_sha256=eed284f179e212506530712cba8a5b09147ee4ec7cb3b4ad46dcfee671d900d0
+    year 2026  dbar= -2.8495 bps/d  dFundPaid=+1.1043  dPrice=+0.8571
+FA_RN8READ s42 | pre2026 dbar=+1.1825 bps/d ci95=[-0.781, 3.775] | 2026 dbar=-2.8495 | dPrice=+0.3025 dFundPaid=+0.2151 NET=+0.0874 | g_id_err=1.21e-10 | cancel=1.000
+    seg 2023H2  dbar= -1.0999 bps/d over 184 days
+    seg 2024    dbar= +0.1476 bps/d over 366 days
+    seg 2025    dbar= +3.3708 bps/d over 365 days
+    seg 2026    dbar= -2.8495 bps/d over 242 days
+readout loadable
+[RN8NC_s42] readout verified -> freeing MY cell only (news2 baseline untouched)
+shm              28G   26G  2.1G  93% /dev/shm
+RC42=0
+=== rerun s2027 ===
+[RN8NC_s2027] shm_gate avail=2063MiB need=1524MiB
+FA_COMBO {"no_rn8_clamp": true, "clamp_eligible_cells_upper_bound": 61702, "look": 900, "seat_rows_differing_from_look900": null, "legs": "news2_2026-09-23", "f10": "news2_2026-09-23", "crossed": false, "outside": 167420, "unverifiable": 0, "G0_arrays_bitwise_equal": null, "G0_container_sha_equal": {}}
+FA_B8TRCPT BEHAVIOURAL_DIFF_PRESENT {"scaled_diagnostic": {"anchors_with_any_weight_cell_differing": 6271, "anchors_with_trade_mask_differing": 111, "publish_source": 6251, "publish_variant": 6180}, "literal": {"anchors_with_any_weight_cell_differing": 3011, "anchors_with_trade_mask_differing": 36, "publish_source": 3011, "publish_variant": 2975}}
+DERIVED spec+config; pod_root -> /dev/shm/fanom_2026-09-24
+OVN_ADAPTER VERDICT=PASS arm=NEWS2_s2027 npz_sha256=2cd683f5cc682dd771359e280a7295e02922d067cf4839dfe541c3e0f2181121 receipt_sha256=885e55cd98faa28611292ad34a6dfcf36e77a678c3c48db602a7b85894bafd60 roundtrip=bitwise scaled_published=6180 lit_published=2975 pad=1110
+targets shas filled; no PENDING survives
+FA_LAUNCH_GUARD ACCEPT pod_root=/dev/shm/fanom_2026-09-24 n_outputs=1 outside_my_root=none
+[RN8NC_s2027] engine PGID=2993008
+BT_LAUNCH VERDICT=PASS label=full_RN8NC_s2027 runs=1 seeds=32 receipt_sha256=16e9e778e632bfe0a013a410e1ceec30c48f0affd2a21d9a85c0927932f9f156
+    year 2026  dbar= -2.0844 bps/d  dFundPaid=+1.1056  dPrice=+0.9215
+FA_RN8READ s2027 | pre2026 dbar=-3.7007 bps/d ci95=[-9.495, 0.022] | 2026 dbar=-2.0844 | dPrice=-0.0348 dFundPaid=+0.2805 NET=-0.3153 | g_id_err=1.47e-10 | cancel=0.130
+    seg 2023H2  dbar= -2.4499 bps/d over 184 days
+    seg 2024    dbar= +0.8036 bps/d over 366 days
+    seg 2025    dbar= -8.8480 bps/d over 365 days
+    seg 2026    dbar= -2.0844 bps/d over 242 days
+readout loadable
+[RN8NC_s2027] readout verified -> freeing MY cell only (news2 baseline untouched)
+shm              28G   27G  2.0G  94% /dev/shm
+RC2027=0

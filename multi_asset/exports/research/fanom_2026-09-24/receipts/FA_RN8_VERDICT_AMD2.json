@@ -1,0 +1,85 @@
+{
+ "device": "fa_rn8verdict.py",
+ "self_sha256": "5b13c01e043ade08b96eb5eeee775af9c3d2f23a5ea2720acb0f7e10e0e4b6d1",
+ "utc": "2026-09-25T03:34:54Z",
+ "prereg": {
+  "path": "docs/PREREG_step1_rn8_clamp_2026-09-25.md",
+  "amendment_2": "1ea8644ab"
+ },
+ "inputs": {
+  "s42": {
+   "path": "/dev/shm/fanom_2026-09-24/receipts/FA_RN8_READ_s42.json",
+   "sha256": "4ec815711dc420c8e4888d3f264b128722cd74774a04a4c19ed1f3b0569c5645"
+  },
+  "s2027": {
+   "path": "/dev/shm/fanom_2026-09-24/receipts/FA_RN8_READ_s2027.json",
+   "sha256": "2a5bc521710603322856f98fc971e812f024357120a41f853a5a74990016c6e0"
+  }
+ },
+ "ci_bound_used": "ci95_bps lower bound",
+ "per_seed": {
+  "s42": {
+   "fullwin_dbar": 0.3391477611916079,
+   "fullwin_ci95": [
+    -1.7591268206795903,
+    2.660095165969409
+   ],
+   "fullwin_ci95_lower": -1.7591268206795903,
+   "pre2026_dbar": 1.1824826625216733,
+   "y2026_dbar": -2.8494945310274398,
+   "fullwin_net_confirmed_minus": 0.01739881389339326,
+   "fullwin_net_literal_plus": 0.8195470012715774,
+   "fullwin_dPrice": 0.41847290758248534,
+   "fullwin_dFundPaid": 0.4010740936890921,
+   "c1_dbar_gt0_and_lower_gt0": false,
+   "c2_both_segments_positive": false,
+   "c3_net_gt0_confirmed": true,
+   "c3_net_gt0_literal_plus": true,
+   "reject_clause_dbar": false,
+   "reject_clause_net_confirmed": false,
+   "reject_clause_net_literal_plus": false,
+   "segments_opposite_sign": true
+  },
+  "s2027": {
+   "fullwin_dbar": -3.36265589672399,
+   "fullwin_ci95": [
+    -8.244173996472371,
+    -0.2108864941170839
+   ],
+   "fullwin_ci95_lower": -8.244173996472371,
+   "pre2026_dbar": -3.7007399320358947,
+   "y2026_dbar": -2.08436295329262,
+   "fullwin_net_confirmed_minus": -0.28784754091648174,
+   "fullwin_net_literal_plus": 0.6182160027949475,
+   "fullwin_dPrice": 0.16518423093923285,
+   "fullwin_dFundPaid": 0.4530317718557146,
+   "c1_dbar_gt0_and_lower_gt0": false,
+   "c2_both_segments_positive": false,
+   "c3_net_gt0_confirmed": false,
+   "c3_net_gt0_literal_plus": true,
+   "reject_clause_dbar": true,
+   "reject_clause_net_confirmed": true,
+   "reject_clause_net_literal_plus": false,
+   "segments_opposite_sign": false
+  }
+ },
+ "verdict_operative_confirmed_sign": {
+  "verdict": "REJECT",
+  "clauses_fired": [
+   "s2027: fullwin dbar -3.3627 <= 0",
+   "s2027: fullwin net -0.2878 <= 0"
+  ],
+  "net_definition": "Dprice - Dfunding_paid (lead-confirmed intent)"
+ },
+ "verdict_alternate_literal_sign": {
+  "verdict": "REJECT",
+  "clauses_fired": [
+   "s2027: fullwin dbar -3.3627 <= 0"
+  ],
+  "net_definition": "Dprice + Dfunding_paid (literal wording of AMENDMENT 2)"
+ },
+ "mandatory_notes": [
+  "\u5224\u636e\u7a97\u4e0e\u5b9e\u76d8\u7a97\u65b9\u5411\u76f8\u53cd (s42)",
+  "\u53c8\u4e00\u6b21\u6309\u79cd\u5b50\u7ffb\u8f6c (fullwin dbar)"
+ ]
+}

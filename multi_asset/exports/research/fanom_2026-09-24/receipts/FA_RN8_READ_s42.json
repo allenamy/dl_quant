@@ -1,7 +1,7 @@
 {
  "device": "fa_rn8read.py",
- "self_sha256": "1b209aa1f866f25982d9ff86fdc2bcc8b2933b375bf8cd5665bd082feb52ae57",
- "utc": "2026-09-25T01:58:12Z",
+ "self_sha256": "903c2f532bc9424760f67f8924b3b243a28480c9592798530054575fe54e933b",
+ "utc": "2026-09-25T03:21:16Z",
  "prereg": {
   "path": "docs/PREREG_step1_rn8_clamp_2026-09-25.md",
   "amendment_1": "64f0ebb27"
@@ -17,6 +17,31 @@
  "SENTENCE_verbatim": "30 \u65e5\u5757\u81ea\u4e3e\u533a\u95f4\u7167\u62a5,\u4e0d\u4f5c\u95e8\u3002\u4f9d\u636e E-0923-B:\u8fd9\u53f0\u4eea\u5668\u5bf9\u6b64\u7c7b\u6bd4\u8f83\u7684\u533a\u95f4\u534a\u5bbd\u7ea6 10 bps/\u65e5,\u4ee5\"\u4e0b\u754c > 0\"\u4e3a\u95e8\u7b49\u4e8e\u8981\u6c42\u6548\u5e94 \u2265 \u7ea6 10 bps/\u65e5\u3002\u672c\u89c4\u5219\u662f\u6362\u88c5\u51b3\u7b56\u89c4\u5219,\u4e0d\u662f\"\u7edf\u8ba1\u663e\u8457\"\u7684\u58f0\u660e\u3002",
  "channel_identity": "g = pnl - car - cst - unk ; car == funding_paid (positive = PAID)",
  "segments": {
+  "fullwin": {
+   "mean_bps_per_day": 0.3391477611916079,
+   "n_days": 1157,
+   "n_windows": 6948,
+   "boot": {
+    "block_days": 30,
+    "n_days": 1157,
+    "B": 10000,
+    "rng": [
+     20260923,
+     1
+    ],
+    "ci97.5_two_sided_bps": [
+     -2.0818605137173742,
+     3.023456172228601
+    ],
+    "ci95_bps": [
+     -1.7591268206795903,
+     2.660095165969409
+    ],
+    "draws_defined": 10000
+   },
+   "day_weighted_from_halves": 0.33914776119160817,
+   "mean_matches_day_weighted": true
+  },
   "pre2026": {
    "mean_bps_per_day": 1.1824826625216733,
    "n_days": 915,
@@ -62,6 +87,44 @@
   }
  },
  "channels": {
+  "fullwin": {
+   "g": {
+    "variant": 1.1085143430137891,
+    "baseline": 1.086708976539318,
+    "delta": 0.021805366474471066
+   },
+   "price": {
+    "variant": 2.046802428418701,
+    "baseline": 1.6283295208362156,
+    "delta": 0.41847290758248534
+   },
+   "funding_paid": {
+    "variant": 0.814688314494197,
+    "baseline": 0.4136142208051049,
+    "delta": 0.4010740936890921
+   },
+   "fee": {
+    "variant": 0.12359977091065763,
+    "baseline": 0.12800632349187074,
+    "delta": -0.0044065525812131134
+   },
+   "unknown_excluded": {
+    "variant": 0.0,
+    "baseline": 0.0,
+    "delta": 0.0
+   },
+   "turnover_over_gross": {
+    "variant": 0.048609665291742016,
+    "baseline": 0.05078981374333819,
+    "delta": -0.002180148451596177
+   },
+   "NET_price_minus_funding_paid": 0.01739881389339326,
+   "ALT_price_plus_funding_paid": 0.8195470012715774,
+   "g_identity_max_err": {
+    "variant": 1.4445333818002837e-10,
+    "baseline": 1.084821121821733e-10
+   }
+  },
   "pre2026": {
    "g": {
     "variant": 0.6337119864450949,
@@ -94,6 +157,7 @@
     "delta": -0.0021315979616982686
    },
    "NET_price_minus_funding_paid": 0.08736524250542388,
+   "ALT_price_plus_funding_paid": 0.5176392871543145,
    "g_identity_max_err": {
     "variant": 1.2138290372831761e-10,
     "baseline": 1.0129497240995988e-10
@@ -131,6 +195,7 @@
     "delta": -0.0023637581845548927
    },
    "NET_price_minus_funding_paid": -0.24720237345905338,
+   "ALT_price_plus_funding_paid": 1.9613108616118138,
    "g_identity_max_err": {
     "variant": 1.4445333818002837e-10,
     "baseline": 1.084821121821733e-10
@@ -151,5 +216,32 @@
    "note": "absolute contributions only; shares deliberately not reported"
   },
   "cancellation_ratio": 1.0000000000000002
- }
+ },
+ "per_year": {
+  "2023": {
+   "dbar_bps_per_day": -1.6116828400713132,
+   "n_days": 365,
+   "delta_funding_paid_bps_per_anchor": 0.10988367836753195,
+   "delta_price_bps_per_anchor": -0.026724559712775098
+  },
+  "2024": {
+   "dbar_bps_per_day": 0.14757257909910057,
+   "n_days": 366,
+   "delta_funding_paid_bps_per_anchor": 0.06955761902935814,
+   "delta_price_bps_per_anchor": 0.08029333366033209
+  },
+  "2025": {
+   "dbar_bps_per_day": 3.370774725442297,
+   "n_days": 365,
+   "delta_funding_paid_bps_per_anchor": 0.38210843859880267,
+   "delta_price_bps_per_anchor": 0.6435284920106856
+  },
+  "2026": {
+   "dbar_bps_per_day": -2.8494945310274398,
+   "n_days": 242,
+   "delta_funding_paid_bps_per_anchor": 1.1042566175354336,
+   "delta_price_bps_per_anchor": 0.8570542440763802
+  }
+ },
+ "daily_series_saved": "/dev/shm/fanom_2026-09-24/receipts/FA_RN8_READ_s42_daily.npz"
 }
