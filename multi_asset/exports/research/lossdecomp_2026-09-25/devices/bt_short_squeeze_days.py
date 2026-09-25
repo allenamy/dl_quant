@@ -17,7 +17,7 @@ Definitions (per anchor t, on the panel's forward 4 h return y):
 Outputs: the daily distributions over 2023-07-01 .. 2026-09-18 (percentiles), the percentile of each supplied live value (--live name=value,...
 in percent, e.g. window=-4.18), the squeeze days (book short daily <= --threshold, default -4.18 %) with the book's forward 3 d / 7 d return
 (SER mean over paths, compounded over the next 18 / 42 anchors after the day's last anchor) vs the unconditional forward returns.
-usage: /workspace/venv/bin/python bt_short_squeeze_days.py <out json> [--threshold -4.18] [--live window=-4.18,...]"""
+usage: /workspace/venv/bin/python bt_short_squeeze_days.py <out json> [--threshold -4.18] [--live k=v,...] [--live-ls k=v,...] [--live-fund k=v,...]   (percent)"""
 import hashlib, json, os, sys, time, calendar, collections
 import numpy as np
 
@@ -38,10 +38,13 @@ def sha(p):
 def main():
     out = sys.argv[1]
     thr = float(sys.argv[sys.argv.index("--threshold") + 1]) / 100 if "--threshold" in sys.argv else -0.0418
-    live = {}
-    if "--live" in sys.argv:
-        for kv in sys.argv[sys.argv.index("--live") + 1].split(","):
-            k, v = kv.split("="); live[k] = float(v) / 100
+    def kv(flag):
+        o = {}
+        if flag in sys.argv:
+            for x in sys.argv[sys.argv.index(flag) + 1].split(","):
+                k, v = x.split("="); o[k] = float(v) / 100
+        return o
+    live = kv("--live"); live_ls = kv("--live-ls"); live_fund = kv("--live-fund")   # rev 1: long+short and fund-leg live values
     T = np.load(TARGETS); P = np.load(PANEL, allow_pickle=True); L = np.load(LEGS, allow_pickle=True); S = np.load(SER)
     rec = {"device_sha256": sha(os.path.abspath(__file__)), "inputs": {p: sha(p) for p in (TARGETS, PANEL, LEGS, SER)},
            "window": ["2023-07-01", "2026-09-18T20:00Z"], "threshold_book_short_daily": thr}
@@ -86,6 +89,10 @@ def main():
     bs = np.array([x["book_short"] for x in D]); fsd = np.array([x["fund_short"] for x in D if x["fund_short"] is not None])
     pct = lambda arr: {str(q): float(np.percentile(arr, q) * 100) for q in (0.5, 1, 2, 5, 10, 25, 50, 75, 90)}
     rec["n_days"] = len(D); rec["book_short_daily_pct"] = pct(bs); rec["fund_short_daily_pct"] = pct(fsd) if len(fsd) else None
+    ls = np.array([x["book_short"] + x["book_long"] for x in D])      # rev 1: long side + short side, per unit notional each (sign = P&L)
+    rec["book_long_plus_short_daily_pct"] = pct(ls)
+    rec["live_ls_percentiles"] = {k: {"value_pct": v * 100, "rank_pct": float((ls <= v).mean() * 100)} for k, v in live_ls.items()}
+    rec["live_fund_short_percentiles"] = {k: {"value_pct": v * 100, "rank_pct": float((fsd <= v).mean() * 100)} for k, v in live_fund.items()}
     rec["live_value_percentiles"] = {k: {"value_pct": v * 100, "book_short_rank_pct": float((bs <= v).mean() * 100),
                                          "fund_short_rank_pct": float((fsd <= v).mean() * 100) if len(fsd) else None} for k, v in live.items()}
     def fwd(t_last, n):
@@ -110,6 +117,9 @@ def main():
     print("book short daily percentiles (%):", {k: round(v, 3) for k, v in rec["book_short_daily_pct"].items()})
     if rec["fund_short_daily_pct"]: print("fund-leg short daily percentiles (%):", {k: round(v, 3) for k, v in rec["fund_short_daily_pct"].items()})
     for k, v in rec["live_value_percentiles"].items(): print(f"live {k} {v['value_pct']:.2f}%: book-short rank {v['book_short_rank_pct']:.2f} pct; fund-short rank {v['fund_short_rank_pct']}")
+    print("book long+short daily percentiles (%):", {k: round(v, 3) for k, v in rec["book_long_plus_short_daily_pct"].items()})
+    for k, v in rec["live_ls_percentiles"].items(): print(f"live long+short {k} {v['value_pct']:.2f}%: rank {v['rank_pct']:.2f} pct")
+    for k, v in rec["live_fund_short_percentiles"].items(): print(f"live fund-leg short {k} {v['value_pct']:.2f}%: rank {v['rank_pct']:.2f} pct")
     s = rec["squeeze_days"]; print(f"squeeze days (book short daily <= {thr * 100:.2f}%): n={s['n']} per year {s['per_year']}; fwd3d {s['fwd3d']}; fwd7d {s['fwd7d']}")
     print("unconditional fwd3d", rec["unconditional"]["fwd3d"], "fwd7d", rec["unconditional"]["fwd7d"])
     print("worst 15 book-short days:", [(x["day"], round(x["book_short_pct"], 2)) for x in rec["worst_book_short_days"]])
