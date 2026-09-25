@@ -10,7 +10,7 @@ Sources (hashes printed into the output):
 Sections: S1 window + channels, S2 per-interval + daily, S3 BTC / EW-market beta with USDT split, S4 per-name MTM, legs, top-10,
 S5 stopped names: loss until the stop PER ANCHOR, and the counterfactual "hold the stop-time notional to the end" vs actual-after, SAME end time,
 S6 M3 shadow hedge (recorded) + extrapolation (labelled model).
-usage: ~/wide_shadow/venv/bin/python loss_decomp.py <out dir> [--peak-ts 1789562700]"""
+usage: ~/wide_shadow/venv/bin/python loss_decomp.py <out dir> [--peak-ts 1789562700] [--end-ts <unix>]"""
 import json, os, sys, glob, hashlib, collections, time, calendar
 import numpy as np
 
@@ -50,7 +50,8 @@ def main():
         i0, i1 = idx(tA) + 1, idx(tB) + 1; seg = RR[i0:i1][:, live_cols]; ok = np.isfinite(seg).sum(0) >= 0.9 * max(i1 - i0, 1)
         return float(np.mean(np.expm1(np.nansum(np.log1p(seg), axis=0)[ok]))) if ok.any() else float("nan")
     # ---- S1 / S2 ----
-    rows = sorted((r for r in jl("daily_nav") if r["nav_ts"] >= peak_ts - 600), key=lambda r: r["nav_ts"])
+    end_ts = int(sys.argv[sys.argv.index("--end-ts") + 1]) if "--end-ts" in sys.argv else 10 ** 12   # 2026-09-25 09:1xZ: optional window end
+    rows = sorted((r for r in jl("daily_nav") if peak_ts - 600 <= r["nav_ts"] <= end_ts + 600), key=lambda r: r["nav_ts"])
     assert all(abs(r["nav"] - r["wallet_balance"] - r["unrealised_pnl"]) <= 0.01 for r in rows), "nav != wallet + upnl"
     pk, last = rows[0], rows[-1]
     inc = [r for r in (json.loads(l) for l in open(inc_p)) if pk["nav_ts"] < r["time"] / 1000 <= last["nav_ts"]]
@@ -123,6 +124,29 @@ def main():
         f"short {leg['short']:.2f} ({leg['short'] / (legN['short'] / n_int) * 100:.2f}% of avg notional {legN['short'] / n_int:.0f})")
     worst = sorted(sym, key=lambda s: sym[s])[:10]; say("S4 top-10 losers: " + json.dumps([(s, round(sym[s], 1)) for s in worst]))
     rec["S4"] = {"mtm_total": sum(sym.values()), "legs": dict(leg), "avg_leg_notional": {k: v / n_int for k, v in legN.items()}, "top10": [(s, sym[s]) for s in worst]}
+    # ---- S3b (2026-09-25 09:1xZ) position-level hourly beta: the HELD book (readback notionals, held until the next readback) marked hourly
+    # with rr; hourly book P&L regressed on hourly BTC and on the hourly equal-weight return of the live names. Window ends at the price cache end.
+    t0w, t1w = pk["nav_ts"], min(last["nav_ts"], float(ts[-1]))
+    say(f"S3b price window {fmt(t0w)} -> {fmt(t1w)} (price cache ends {fmt(ts[-1])}): BTC {ret(col['BTCUSDT'], t0w, t1w) * 100:.2f}%  EW live names {ew(t0w, t1w) * 100:.2f}%  "
+        f"EW ex-BTC/ETH {float(np.nanmean([ret(j, t0w, t1w) for j in live_cols if syms[j] not in ('BTCUSDT', 'ETHUSDT')])) * 100:.2f}%")
+    hp, hb, he = [], [], []
+    for a, b in zip(keys[:-1], keys[1:]):
+        h0 = rt[a]
+        while h0 + 3600 <= min(rt[b], float(ts[-1])):
+            pnl = sum(nv * ret(col[s_], h0, h0 + 3600) for s_, (qv, nv) in bat[a].items() if s_ in col and nv)
+            hp.append(pnl); hb.append(ret(col["BTCUSDT"], h0, h0 + 3600)); he.append(ew(h0, h0 + 3600)); h0 += 3600
+    hp, hb, he = np.array(hp), np.array(hb), np.array(he)
+    s3b = {"n_hours": int(len(hp))}
+    for name, X in (("btc", hb), ("ew_market", he)):
+        ok = np.isfinite(X) & np.isfinite(hp)
+        if ok.sum() >= 5:
+            A_ = np.vstack([np.ones(ok.sum()), X[ok]]).T; c, *_ = np.linalg.lstsq(A_, hp[ok], rcond=None); yh = A_ @ c
+            r2 = 1 - ((hp[ok] - yh) ** 2).sum() / ((hp[ok] - hp[ok].mean()) ** 2).sum()
+            s3b[name] = {"usdt_per_unit_return": float(c[1]), "beta_over_nav": float(c[1] / pk["nav"]), "r2": float(r2), "n": int(ok.sum()),
+                         "beta_part_usdt": float((c[1] * X[ok]).sum()), "held_book_pnl_usdt": float(hp[ok].sum())}
+            say(f"S3b held-book hourly on {name}: beta (USDT per unit return / NAV) {c[1] / pk['nav']:.3f}  R2 {r2:.3f}  n {int(ok.sum())} h | "
+                f"beta part {(c[1] * X[ok]).sum():.1f} of held-book P&L {hp[ok].sum():.1f} USDT")
+    rec["S3b"] = s3b
     # ---- S5 stopped names ----
     t_end = max(rt[k] for k in keys if rt[k] <= ts[-1] + 300)
     s5 = {}

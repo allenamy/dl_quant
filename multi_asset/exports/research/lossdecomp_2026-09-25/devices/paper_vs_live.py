@@ -9,7 +9,7 @@ Prices: ONE source for both sides — the live producer's rolling cache (latest 
   dev split by name category at k: STOP (name hit a per-name stop at or before t_k), HALT (the 09-24 16Z anchor, opening halted),
   UNTARGETED_HELD (actual != 0, target == 0: exits not completed), OTHER (partial / rejects / min_notional / withheld / sizing).
 Also paper0 = same targets held anchor-to-anchor from the anchor time A_k (no execution delay), for the timing component.
-Outputs PAPER_VS_LIVE.json + stdout table. usage: ~/wide_shadow/venv/bin/python paper_vs_live.py <out dir>"""
+Outputs PAPER_VS_LIVE.json + stdout table. usage: ~/wide_shadow/venv/bin/python paper_vs_live.py <out dir> [--t-start <unix>] [--t-end <unix>]   (read-time window of the readback batches)"""
 import json, os, sys, glob, hashlib, collections, time, calendar
 import numpy as np
 
@@ -38,6 +38,9 @@ def jl(name):
 
 def main():
     out = sys.argv[1]; os.makedirs(out, exist_ok=True)
+    global T_START, T_END                                   # 2026-09-25 09:1xZ: optional window override (defaults unchanged)
+    if "--t-start" in sys.argv: T_START = int(sys.argv[sys.argv.index("--t-start") + 1])
+    if "--t-end" in sys.argv: T_END = int(sys.argv[sys.argv.index("--t-end") + 1])
     snap = sorted(glob.glob(f"{WS}/state/snap/17*"))[-1]
     Z = np.load(f"{snap}/rolling.npz"); B = np.load(f"{snap}/boundary_raw.npz"); ts = Z["ts"].astype(np.int64)
     RR = NC.rr_from_ch0(ts, Z["data"][:, :, 0], B["ts"], B["col"], B["raw"]).astype(np.float64)
@@ -49,7 +52,7 @@ def main():
         i0 = int(np.searchsorted(ts, tA, side="right")) - 1; i1 = int(np.searchsorted(ts, tB, side="right")) - 1
         if i0 < 0 or i1 < i0: return None
         return float(np.expm1(LP[i1 + 1, j] - LP[i0 + 1, j]))
-    rec = {"price_source": {"snapshot": snap, "rolling_sha256": sha(f"{snap}/rolling.npz"), "boundary_sha256": sha(f"{snap}/boundary_raw.npz"),
+    rec = {"window": [fmt(T_START), fmt(T_END)], "price_source": {"snapshot": snap, "rolling_sha256": sha(f"{snap}/rolling.npz"), "boundary_sha256": sha(f"{snap}/boundary_raw.npz"),
                             "rows": [fmt(ts[0]), fmt(ts[-1])]}}
     P = jl("position_readback"); navs = sorted((r["nav_ts"], r["nav"]) for r in jl("daily_nav"))
     batches = collections.defaultdict(dict); rt = {}

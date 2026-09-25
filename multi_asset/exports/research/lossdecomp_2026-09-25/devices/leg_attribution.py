@@ -11,7 +11,7 @@ Per anchor A with an archived producer snapshot (state/snap/A, sha recorded):
       mean holding return, notional-weighted P&L.
 Old-vs-new producer: anchors before 2026-09-24T08Z were produced by the OLD producer / models (the NC release went live at 08Z); both are included
 and the split is printed.
-usage: ~/wide_shadow/venv/bin/python leg_attribution.py <out dir>"""
+usage: ~/wide_shadow/venv/bin/python leg_attribution.py <out dir> [--from-anchor <unix>]"""
 import json, os, sys, glob, hashlib, collections, time
 import numpy as np
 HOME = os.path.expanduser("~"); WS = f"{HOME}/wide_shadow"; L = f"{HOME}/dl_quant_live/state/live/pilot_log"
@@ -45,7 +45,9 @@ def main():
     navs = sorted((r["nav_ts"], r["nav"]) for r in jl("daily_nav"))
     rec = {"price_snapshot": last, "rolling_sha256": sha(f"{WS}/state/snap/{last}/rolling.npz"), "anchors": []}
     T = collections.defaultdict(float); LRsum = collections.defaultdict(float); q = collections.defaultdict(list); qp = collections.defaultdict(float)
+    A_FROM = int(sys.argv[sys.argv.index("--from-anchor") + 1]) if "--from-anchor" in sys.argv else 0   # 2026-09-25 09:1xZ: optional window start
     for A in snaps:
+        if A < A_FROM: continue
         if A + 14400 not in rt or A not in rt or rt[A + 14400] > ts[-1] + 300: continue
         sp = f"{WS}/state/snap/{A}"; tl = f"{WS}/state/target_live/{A}.json"
         if not os.path.exists(tl): continue
