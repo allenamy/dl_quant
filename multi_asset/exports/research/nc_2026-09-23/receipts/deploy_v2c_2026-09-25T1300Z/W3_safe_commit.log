@@ -1,0 +1,30 @@
+W3 start 2026-09-25T13:00:55Z
+rsync rc=0
+battery interpreter /usr/bin/python3 sys.prefix /Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9 3.9.6
+ACCEPT_PY=<unset>
+6cc11cc
+?? ops/producer_release/20260925_m3v2_durable/
+── 1/5 拉取远端(显式检查, 不经管道)
+From https://github.com/allenamy/dl_quant_live
+ * branch            main       -> FETCH_HEAD
+  ✓ 已是最新
+── 2/5 检查显式路径存在(只对新文件 intent-to-add —— 见第 4 步为什么)
+ .../20260925_m3v2_durable/INSTALL_CONTRACT.json    | 111 ++++
+ .../20260925_m3v2_durable/PATCH_RECEIPT.json       | 621 +++++++++++++++++++++
+ 2 files changed, 732 insertions(+)
+── 3/5 离线隔离验收 runner(全绿才提交)
+----------------------------------------------------------------
+ACCEPTANCE: ALL GREEN (164/164 suites exit 0)
+OFFLINE_ACCEPTANCE_EXIT: 0
+── 4/5 提交(pathspec 形式 —— 只提交列出的路径)
+[main 96acfdd] v2 + B + C release: M3 beta_overlay v2 (rr channel), B-1 halted-anchor class H1, B-2 durable state writes (+ re-vendor, A-set 6), B-5 drift_gate fail-fast; producer release archive 20260925_m3v2_durable (contract 9af4b672); quant_research DEPLOY_v2_durable_2026-09-25 W3
+ 2 files changed, 732 insertions(+)
+ create mode 100644 ops/producer_release/20260925_m3v2_durable/INSTALL_CONTRACT.json
+ create mode 100644 ops/producer_release/20260925_m3v2_durable/PATCH_RECEIPT.json
+── 5/5 推送
+To https://github.com/allenamy/dl_quant_live.git
+   5d3029c..96acfdd  main -> main
+✓ 完成: 96acfdd v2 + B + C release: M3 beta_overlay v2 (rr channel), B-1 halted-anchor class H1, B-2 durable state writes (+ re-vendor, A-set 6), B-5 drift_gate fail-fast; producer release archive 20260925_m3v2_durable (contract 9af4b672); quant_research DEPLOY_v2_durable_2026-09-25 W3
+safe_commit rc=0
+NEWSHA=96acfddec11e51984a63358155165ab8ee4ba14b
+W3 safe_commit end 2026-09-25T13:18:13Z

@@ -1,0 +1,91 @@
+{
+ "verb": "apply",
+ "schema": "nc_files_contract_v1",
+ "label": "v2c_20260925",
+ "started_utc": "2026-09-25T13:18:45Z",
+ "home": "/Users/haosiyu",
+ "preflight": {
+  "contract_sha256": "9af4b672879b4808b0ec7a2941c30069519eb4c399284e93a34539505c1c9cbe",
+  "files": 10,
+  "archive_moves": 4,
+  "package": "PASS",
+  "services_stopped": {
+   "com.hsy.shadowloop": {
+    "loaded": false,
+    "pid": null
+   },
+   "com.hsy.combolive": {
+    "loaded": false,
+    "pid": null
+   },
+   "com.hsy.combosnap": {
+    "loaded": false,
+    "pid": null
+   },
+   "com.hsy.comboparity": {
+    "loaded": false,
+    "pid": null
+   }
+  },
+  "services_not_loaded": {
+   "com.hsy.sidecar": {
+    "loaded": false
+   }
+  }
+ },
+ "no_launchctl": false,
+ "ignore_window": false,
+ "release_basis": {
+  "statement": "code-only release on top of the NC s42 book: m3_beta_v2 (DESIGN_ret5_single_accessor_2026-09-24) + C durable writes / snapshot retention (lead + user rulings 2026-09-25) + k1 archive; no model or state changes. The NC release's VERDICT=NO_DEPLOY USER_OVERRIDE=053d50f4ab034ca5e311600b10864d0e30046f2aedf2fca369ebecdc8d032b6b still governs the models, which this release does not touch."
+ },
+ "stage": "installed_not_started",
+ "state_manifest_before_n": 2016,
+ "backup": {
+  "entries": 12,
+  "sha256sums": "9baf28ad20f9e095658cdd142a3b4e7cbe43463fc3f1ae81e8df664e57dc976a"
+ },
+ "archived": {
+  "wide_shadow/fea171/sidecar_blend.py": {
+   "dst": "wide_shadow/fea171/_archive_2026-09-25/sidecar_blend.py",
+   "sha256": "6140790e55b70cffbaf180e8ed00145042c91611d556c267416207e2ae462a06"
+  },
+  "wide_shadow/fea171/combo_stage_t3c_candidate.py": {
+   "dst": "wide_shadow/fea171/_archive_2026-09-25/combo_stage_t3c_candidate.py",
+   "sha256": "30879e7b16d3293aabb521e75371e77115cff569176607453a36a1206963195e"
+  },
+  "wide_shadow/fea171/sidecar_daemon.sh": {
+   "dst": "wide_shadow/fea171/_archive_2026-09-25/sidecar_daemon.sh",
+   "sha256": "01d75619183da425eedb1da2e58d587975c9c50c6423ae2d66393c0da4cc7a65"
+  },
+  "Library/LaunchAgents/com.hsy.sidecar.plist": {
+   "dst": "wide_shadow/fea171/_archive_2026-09-25/com.hsy.sidecar.plist",
+   "sha256": "4b7f12bfd69f21c8c4afd5419ee2a8e88ac07d054d0c8af63a9ce88bdc72d0d5"
+  }
+ },
+ "producer_load": {
+  "module_sha256": "52baf979095752642cde16b1281911c6692f3251cd3b9d6d214a4b624d8d5f38",
+  "state_files": [
+   "aux.json",
+   "boundary_raw.npz",
+   "leg_returns_live.json",
+   "members_hist.npz",
+   "rolling.npz"
+  ],
+  "generation_anchor": 1790337600,
+  "last_anchor": 1790337600
+ },
+ "state_manifest_diff": [],
+ "installed": {
+  "wide_shadow/fea171/beta_overlay_producer.py": "fc990a0b7bf34199430968ea015e90d9312e65b3d3d7ec2484f2033dba5b9846",
+  "wide_shadow/fea171/combo_stage.py": "12a76de89831fb42d05ec722f2e2506d6b288b4b9f5b86be04bc390c789a62a9",
+  "wide_shadow/fea171/combo_state_snapshot.sh": "0a0b8401bbc38cee545b44d50c7d52e43e1be9be7ae6dca066f5ba078ccf0d1b",
+  "wide_shadow/fea171/combosnap/combo_parity_replay.sh": "7fa0881a52725e4cffcec85568495f796892ff8798657308268e11d4547af15d",
+  "wide_shadow/fea171/combosnap/snap_retention.py": "8833da2c8377d8e1e8102c49376dc8e15034272cea4e55aa3be14da55ac0da8a",
+  "wide_shadow/fea171/dlw_features.py": "db985ee41f825f0dae0c92846fb47e086ee3f75da1df8e72ba7597ed536d8155",
+  "wide_shadow/fea171/durable_io.py": "34da08f875055eedc48d0823fe51a6013d610552e603c9317cd18a69e7f1d28c",
+  "wide_shadow/fea171/f8_higher_order_features.py": "0e23d359ad2764ddf7d2a6cf01acfcf62efb721578039704725efd5540cb28b7",
+  "wide_shadow/fea171/feature_cache_identity.py": "57070424895e5c0e2f5a140993b0c07fef1a22a285b2210e460919c7157ae24c",
+  "wide_shadow/shadow_loop_v3.py": "52baf979095752642cde16b1281911c6692f3251cd3b9d6d214a4b624d8d5f38"
+ },
+ "completed_utc": "2026-09-25T13:18:47Z"
+}

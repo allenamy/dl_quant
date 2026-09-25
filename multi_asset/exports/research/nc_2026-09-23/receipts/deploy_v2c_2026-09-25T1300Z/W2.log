@@ -1,0 +1,25 @@
+W2 start 2026-09-25T13:00:45Z
+[research/book-uplift-2026-09-11 baed606f6] engine/live (vendored upstream of the executor, drift_gate A-set): deliver_report / factor_version_registry / regime_classifier write their state through durable_io (B-2, DESIGN_executor_durable_state_2026-09-25; lead ruling: fix upstream and re-vendor in the same release); durable_io.py added (production->research copy of the executor's live/durable_io.py, sha 34da08f8)
+ Date: Fri Sep 25 14:30:21 2026 +0800
+ 4 files changed, 93 insertions(+), 3 deletions(-)
+ create mode 100644 multi_asset/engine/live/durable_io.py
+cherry-pick rc=0
+U2=baed606f65441f241cb521a71bdd2d6156ec0cf1
+baed606f6 engine/live (vendored upstream of the executor, drift_gate A-set): deliver_report / factor_version_registry / regime_classifier write their state thro
+
+ multi_asset/engine/live/deliver_report.py          |  4 +-
+ multi_asset/engine/live/durable_io.py              | 84 ++++++++++++++++++++++
+ multi_asset/engine/live/factor_version_registry.py |  4 +-
+ multi_asset/engine/live/regime_classifier.py       |  4 +-
+ 4 files changed, 93 insertions(+), 3 deletions(-)
+(engine/live clean above)
+-- running (old 5d3029c) guard now (expected DRIFT):
+DRIFT DETECTED — the two copies have diverged. Re-vendor deliberately or revert:
+  deliver_report.py [research->production]: our vendored copy fell behind the research original
+  deliver_report.py [research->production]: upstream moved since vendoring
+  factor_version_registry.py [research->production]: our vendored copy fell behind the research original
+  factor_version_registry.py [research->production]: upstream moved since vendoring
+  regime_classifier.py [research->production]: our vendored copy fell behind the research original
+  regime_classifier.py [research->production]: upstream moved since vendoring
+old guard rc=1
+W2 done 2026-09-25T13:00:45Z
