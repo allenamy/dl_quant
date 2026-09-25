@@ -58,6 +58,14 @@ import combo_target
 # ONLY by this hunk: every line before it identical, every line after it identical, and the line count exactly +delta.
 # A variant kernel is a second copy of the mixing kernel; without this check "only one line changed" is my word for it.
 KERNEL_HUNK = {
+    "combo_target_c3": {
+        "orig_line_1based": 33,
+        "orig_text": "    zkc=np.where((zkc<0)&np.isfinite(rn8)&(rn8<=-.001),0.,zkc)",
+        "n_new_lines": 1,
+        "why": "C3: rn8 clamp threshold -0.001 -> 0 (refuse to short ANY name whose funding is negative)",
+        "second_line": {"orig_line_1based": 34,
+                        "orig_text": "    zfc=np.where((zfc<0)&np.isfinite(rn8)&(rn8<=-.001),0.,zfc)"},
+    },
     "combo_target_b1": {
         "orig_line_1based": 38,
         "orig_text": "    raw=.55*kc+.45*fc;gross=float(np.abs(raw).sum());names=int((np.abs(raw)>1e-9).sum())",
@@ -145,9 +153,18 @@ def main():
         A_ = korig.read_text().split('\n'); B_ = kvar.read_text().split('\n')
         i0 = spec["orig_line_1based"] - 1
         assert A_[i0] == spec["orig_text"], f"declared hunk text not at line {spec['orig_line_1based']} of combo_target.py"
-        assert A_[:i0] == B_[:i0], "variant kernel differs BEFORE the declared hunk"
-        assert A_[i0 + 1:] == B_[i0 + spec["n_new_lines"]:], "variant kernel differs AFTER the declared hunk"
-        assert len(B_) == len(A_) + spec["n_new_lines"] - 1, "variant kernel line count off"
+        if "second_line" in spec:
+            # a two-line hunk (C3 changes the same threshold on both clamp lines). Declared explicitly rather than
+            # loosening the single-hunk check, and the differing line set must equal EXACTLY the declared lines.
+            j0 = spec["second_line"]["orig_line_1based"] - 1
+            assert A_[j0] == spec["second_line"]["orig_text"], "declared second hunk text not where stated"
+            assert len(A_) == len(B_), "variant kernel line count changed"
+            got = [i for i in range(len(A_)) if A_[i] != B_[i]]
+            assert got == sorted([i0, j0]), f"variant kernel differs on unexpected lines: {[g+1 for g in got]}"
+        else:
+            assert A_[:i0] == B_[:i0], "variant kernel differs BEFORE the declared hunk"
+            assert A_[i0 + 1:] == B_[i0 + spec["n_new_lines"]:], "variant kernel differs AFTER the declared hunk"
+            assert len(B_) == len(A_) + spec["n_new_lines"] - 1, "variant kernel line count off"
         KINFO["only_declared_hunk_differs"] = True
         KMOD = importlib.import_module(args.kernel)
         import continuous_combo as _CC
