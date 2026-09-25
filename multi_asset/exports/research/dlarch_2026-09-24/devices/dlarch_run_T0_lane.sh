@@ -20,6 +20,10 @@
 # interpreter invocation. `pgrep -f` is never used: it self-matches inside an ssh command and it
 # missed a launcher whose argv put --env-whitelist before --arm.
 #
+# v2 (2026-09-25 09:2xZ) fixes two bugs found in v1 while it ran:
+#   * incomplete fold dirs left by a killed run were not cleaned -> FileExistsError on resume
+#   * give-up used `rmdir` on a claim dir containing an owner file -> silently failed, so a failed
+#     seed stayed claimed and no lane retried it
 # usage: DLARCH_LANE=A bash dlarch_run_T0_lane.sh "23 101 3 5"
 set -uo pipefail
 EXP=/workspace/dlarch_2026-09-24
@@ -81,6 +85,19 @@ for S in $SEEDS; do
     sleep 30
   done
 
+  # A killed run always leaves ONE fold dir with no FOLD_RECEIPT, and the trainer does
+  # target_dir.mkdir(exist_ok=False) -> FileExistsError on resume. This bit seed 11 at 09:20Z: I had
+  # inspected the dirs, THEN killed the old driver, THEN cleaned -- but the doomed trainer created one
+  # more dir between my inspection and the kill, so I cleaned a fold that had just COMPLETED and left
+  # the new incomplete one. Order matters: kill first, inspect after. Doing it here makes the lane
+  # self-healing regardless.
+  INC=0
+  for fd in "$EXP/T3/T0/f10_s$S"/*/; do
+    [ -d "$fd" ] || continue
+    if [ ! -f "$fd/FOLD_RECEIPT.json" ]; then say "seed $S: removing incomplete fold $(basename "$fd")"; rm -rf "$fd"; INC=$((INC+1)); fi
+  done
+  [ $INC -gt 0 ] && say "seed $S: cleaned $INC incomplete fold dir(s) before resume"
+
   say "seed $S: start  gpu_procs=$(gpu_procs) my_trainers=$(my_trainers) avail=$(mem_avail_gib) GiB oom_kill=$(awk '/^oom_kill /{print $2}' /sys/fs/cgroup/memory.events)"
   env -i PATH=/usr/bin:/bin HOME=/root nice -n 5 "$PY" -B "$EXP/dlarch_train_f10.py" \
       --env-whitelist PATH,HOME,LC_CTYPE --arm T0 --seed "$S" --folds all \
@@ -97,7 +114,7 @@ for S in $SEEDS; do
           >> "$EXP/logs_T0_lane${LANE}_s$S.log" 2>&1
       RC=$?; say "seed $S: retry rc=$RC"
     fi
-    [ $RC -ne 0 ] && { say "seed $S: giving up; releasing the claim so the other lane may retry"; rmdir "$CLAIMS/$S" 2>/dev/null; continue; }
+    [ $RC -ne 0 ] && { say "seed $S: giving up; releasing the claim so the other lane may retry"; rm -rf "$CLAIMS/$S"; continue; }   # rm -rf, NOT rmdir: the claim dir holds an owner file, so rmdir failed silently and the seed was claimed-but-abandoned
   fi
 
   OOF=$EXP/T3/T0/f10_s$S/F10_OOF.npz
