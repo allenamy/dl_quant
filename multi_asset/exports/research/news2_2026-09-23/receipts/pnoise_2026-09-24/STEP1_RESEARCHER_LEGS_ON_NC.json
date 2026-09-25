@@ -1,0 +1,386 @@
+{
+  "device": "step1_researcher_legs_on_nc.py",
+  "self_sha256": "e3d8a19d19a2fc952e227cefc7278eb81f901df7d468d7f0e1d4d2fec1516460",
+  "argv": [
+    "--researcher-devices",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/devices",
+    "--nc-features",
+    "/dev/shm/nc_2026-09-23/work/NC_FEATURES.npz",
+    "--nc-king",
+    "/dev/shm/news2_2026-09-23/work/king/KING_OOF.npz",
+    "--nc-axes",
+    "/dev/shm/nc_2026-09-23/work/axes.npz",
+    "--nc-returns",
+    "/dev/shm/nc_2026-09-23/work/R_crypto.npy",
+    "--nc-legs",
+    "/dev/shm/news2_2026-09-23/work/legs.npz",
+    "--researcher-legs",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/f10v2_legs.npz",
+    "--out",
+    "/dev/shm/pnoise_2026-09-24/receipts/STEP1_RESEARCHER_LEGS_ON_NC.json"
+  ],
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "prereg": "docs/PREREG_gap_carrier_ladder_2026-09-25.md @ be4a013a8 (step 1)",
+  "criterion_author": "team-lead (not news2)",
+  "status": "WHERE_THE_SEAT_DIFFERENCE_SITS_NOT_ITS_CAUSE",
+  "researcher_code": {
+    "module": "/workspace/codex_research/QNT-2026-0907/combo_20260923/devices/combo_legs.py",
+    "sha256": "0fc84ae8462f948c8b850eca376abfc2f8d5913500ac0c98a6e5e3a11f6e303b",
+    "modified_by_this_device": false
+  },
+  "inputs": {
+    "nc_features": {
+      "path": "/dev/shm/nc_2026-09-23/work/NC_FEATURES.npz",
+      "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8"
+    },
+    "nc_king": {
+      "path": "/dev/shm/news2_2026-09-23/work/king/KING_OOF.npz",
+      "sha256": "a10b872506ca60afcd0f69b0e43d17a548cdd7c6956075000aac954b21e3df9a"
+    },
+    "nc_axes": {
+      "path": "/dev/shm/nc_2026-09-23/work/axes.npz",
+      "sha256": "ec7723c4a4dfbbcc6e5e3a6e4cb026fda3cde6af059bac5739d65681862b2389"
+    },
+    "nc_legs": {
+      "path": "/dev/shm/news2_2026-09-23/work/legs.npz",
+      "sha256": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65"
+    },
+    "researcher_legs": {
+      "path": "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/f10v2_legs.npz",
+      "sha256": "f1cc7953b9e78411544a9c04b1ea75eb21b5d483716b46a27cce0414e6db5648"
+    },
+    "nc_returns": {
+      "path": "/dev/shm/nc_2026-09-23/work/R_crypto.npy",
+      "bytes": 1348948768
+    }
+  },
+  "built_inputs": {
+    "n_anchors": 10333,
+    "n_symbols": 829,
+    "mean_members": 269.59779347720894,
+    "anchors_with_seat_y": 10332,
+    "mean_base_size": 302.5356624407239,
+    "base_val_equals_fe_v_on_members": "MEASURED separately: exact on all 40 anchors tested"
+  },
+  "researcher_code_on_nc_inputs": {
+    "ready": 9247,
+    "not_ready": 1086,
+    "leg_returns_rows": 9246
+  },
+  "reference_ready": {
+    "nc": 9247,
+    "new": 9247
+  },
+  "n_anchors_compared": 10321,
+  "array_comparison": {
+    "KZ": {
+      "vs_nc": {
+        "positions_both_finite": 2645009,
+        "nan_pattern_mismatch": 0,
+        "all_equal": true,
+        "max_abs_diff": 0.0,
+        "median_abs_diff": 0.0,
+        "median_rel_diff": 0.0,
+        "differing_anchors": 0,
+        "total_anchors": 10321,
+        "first_differing_anchor": null
+      },
+      "vs_new": {
+        "positions_both_finite": 2602120,
+        "nan_pattern_mismatch": 85778,
+        "all_equal": false,
+        "max_abs_diff": 1.0000000298023224,
+        "median_abs_diff": 0.06265664100646973,
+        "median_rel_diff": 0.3018867818856842,
+        "differing_anchors": 9247,
+        "total_anchors": 10321,
+        "first_differing_anchor": {
+          "index": 1074,
+          "ts": 1656633600,
+          "utc": "2022-07-01T00:00Z"
+        }
+      }
+    },
+    "Z24": {
+      "vs_nc": {
+        "positions_both_finite": 2645009,
+        "nan_pattern_mismatch": 0,
+        "all_equal": true,
+        "max_abs_diff": 0.0,
+        "median_abs_diff": 0.0,
+        "median_rel_diff": 0.0,
+        "differing_anchors": 0,
+        "total_anchors": 10321,
+        "first_differing_anchor": null
+      },
+      "vs_new": {
+        "positions_both_finite": 2602120,
+        "nan_pattern_mismatch": 85778,
+        "all_equal": false,
+        "max_abs_diff": 0.12781956791877747,
+        "median_abs_diff": 0.0,
+        "median_rel_diff": 0.0,
+        "differing_anchors": 1487,
+        "total_anchors": 10321,
+        "first_differing_anchor": {
+          "index": 8730,
+          "ts": 1766880000,
+          "utc": "2025-12-28T00:00Z"
+        }
+      }
+    },
+    "ZFD": {
+      "vs_nc": {
+        "positions_both_finite": 2644846,
+        "nan_pattern_mismatch": 0,
+        "all_equal": true,
+        "max_abs_diff": 0.0,
+        "median_abs_diff": 0.0,
+        "median_rel_diff": 0.0,
+        "differing_anchors": 0,
+        "total_anchors": 10321,
+        "first_differing_anchor": null
+      },
+      "vs_new": {
+        "positions_both_finite": 2600685,
+        "nan_pattern_mismatch": 87050,
+        "all_equal": false,
+        "max_abs_diff": 0.9980544447898865,
+        "median_abs_diff": 0.0021141767501831055,
+        "median_rel_diff": 0.007692346502337117,
+        "differing_anchors": 8869,
+        "total_anchors": 10321,
+        "first_differing_anchor": {
+          "index": 1074,
+          "ts": 1656633600,
+          "utc": "2022-07-01T00:00Z"
+        }
+      }
+    },
+    "WL": {
+      "vs_nc": {
+        "positions_both_finite": 27741,
+        "nan_pattern_mismatch": 0,
+        "all_equal": false,
+        "max_abs_diff": 2.3245811462402344e-06,
+        "median_abs_diff": 0.0,
+        "median_rel_diff": 0.0,
+        "differing_anchors": 5375,
+        "total_anchors": 10321,
+        "first_differing_anchor": {
+          "index": 1975,
+          "ts": 1669608000,
+          "utc": "2022-11-28T04:00Z"
+        }
+      },
+      "vs_new": {
+        "positions_both_finite": 27741,
+        "nan_pattern_mismatch": 0,
+        "all_equal": false,
+        "max_abs_diff": 1.0,
+        "median_abs_diff": 0.010960578918457031,
+        "median_rel_diff": 0.050725465157207994,
+        "differing_anchors": 7416,
+        "total_anchors": 10321,
+        "first_differing_anchor": {
+          "index": 1974,
+          "ts": 1669593600,
+          "utc": "2022-11-28T00:00Z"
+        }
+      }
+    },
+    "LR": {
+      "vs_nc": {
+        "positions_both_finite": 27738,
+        "nan_pattern_mismatch": 0,
+        "all_equal": false,
+        "max_abs_diff": 4.325918287406694e-05,
+        "median_abs_diff": 1.0363391993450932e-06,
+        "median_rel_diff": 7.541738780053568e-08,
+        "differing_anchors": 9246,
+        "total_anchors": 10321,
+        "first_differing_anchor": {
+          "index": 1074,
+          "ts": 1656633600,
+          "utc": "2022-07-01T00:00Z"
+        }
+      },
+      "vs_new": {
+        "positions_both_finite": 27738,
+        "nan_pattern_mismatch": 0,
+        "all_equal": false,
+        "max_abs_diff": 227.92207977908538,
+        "median_abs_diff": 0.6251343848253779,
+        "median_rel_diff": 0.04810479890059911,
+        "differing_anchors": 9246,
+        "total_anchors": 10321,
+        "first_differing_anchor": {
+          "index": 1074,
+          "ts": 1656633600,
+          "utc": "2022-07-01T00:00Z"
+        }
+      }
+    }
+  },
+  "seat_distribution_three_way": {
+    "2022": {
+      "n_anchors": 1104,
+      "king": {
+        "researcher_code_on_nc": 0.360169503432901,
+        "nc": 0.3601695048636284,
+        "new": 0.36058380492571473
+      },
+      "rev24": {
+        "researcher_code_on_nc": 0.3394522693656061,
+        "nc": 0.3394522696895444,
+        "new": 0.34207161642826983
+      },
+      "fund": {
+        "researcher_code_on_nc": 0.3003782516925771,
+        "nc": 0.3003782495802295,
+        "new": 0.29734460279966396
+      },
+      "king_seat_distance": {
+        "to_nc": 1.4307274254221625e-09,
+        "to_new": 0.00041430149281374007,
+        "closer_to": "nc",
+        "share_of_gap_toward_new": 3.4533365422414262e-06
+      }
+    },
+    "2023": {
+      "n_anchors": 2190,
+      "king": {
+        "researcher_code_on_nc": 0.5337492414193066,
+        "nc": 0.5337492797132496,
+        "new": 0.5241909606110083
+      },
+      "rev24": {
+        "researcher_code_on_nc": 0.2170967723346596,
+        "nc": 0.21709676868017533,
+        "new": 0.23558462966865004
+      },
+      "fund": {
+        "researcher_code_on_nc": 0.24915398607607536,
+        "nc": 0.24915395148331232,
+        "new": 0.24022440929332595
+      },
+      "king_seat_distance": {
+        "to_nc": 3.829394301657629e-08,
+        "to_new": 0.009558280808298236,
+        "closer_to": "nc",
+        "share_of_gap_toward_new": 4.00634699542486e-06
+      }
+    },
+    "2024": {
+      "n_anchors": 2196,
+      "king": {
+        "researcher_code_on_nc": 0.5321861168766171,
+        "nc": 0.5321860901399512,
+        "new": 0.6480077241953693
+      },
+      "rev24": {
+        "researcher_code_on_nc": 0.06515807552101559,
+        "nc": 0.06515807194877221,
+        "new": 0.050658399785157605
+      },
+      "fund": {
+        "researcher_code_on_nc": 0.40265580777669213,
+        "nc": 0.4026558382278868,
+        "new": 0.30133387566322284
+      },
+      "king_seat_distance": {
+        "to_nc": 2.673666588126622e-08,
+        "to_new": 0.11582160731875224,
+        "closer_to": "nc",
+        "share_of_gap_toward_new": 2.3084345251486704e-07
+      }
+    },
+    "2025": {
+      "n_anchors": 2190,
+      "king": {
+        "researcher_code_on_nc": 0.6189522347085552,
+        "nc": 0.6189522541004773,
+        "new": 0.5932106882214683
+      },
+      "rev24": {
+        "researcher_code_on_nc": 0.08320977403770265,
+        "nc": 0.08320975829892092,
+        "new": 0.07781541367151489
+      },
+      "fund": {
+        "researcher_code_on_nc": 0.29783799087208246,
+        "nc": 0.2978379874366344,
+        "new": 0.3289738977676657
+      },
+      "king_seat_distance": {
+        "to_nc": 1.939192206812379e-08,
+        "to_new": 0.02574154648708693,
+        "closer_to": "nc",
+        "share_of_gap_toward_new": 7.53331097232782e-07
+      }
+    },
+    "2026": {
+      "n_anchors": 1567,
+      "king": {
+        "researcher_code_on_nc": 0.24446206909307797,
+        "nc": 0.24446207179848983,
+        "new": 0.26751624102434995
+      },
+      "rev24": {
+        "researcher_code_on_nc": 0.19997694427724014,
+        "nc": 0.19997694416312786,
+        "new": 0.20076810935156772
+      },
+      "fund": {
+        "researcher_code_on_nc": 0.5555609862707037,
+        "nc": 0.5555609836271027,
+        "new": 0.5317156494006124
+      },
+      "king_seat_distance": {
+        "to_nc": 2.705411866754659e-09,
+        "to_new": 0.02305417193127199,
+        "closer_to": "nc",
+        "share_of_gap_toward_new": 1.1735019402732386e-07
+      }
+    }
+  },
+  "frozen_reading": {
+    "rule": "lead, verbatim: \u7814\u7a76\u5458\u4ee3\u7801@NC\u8f93\u5165 \u7684 WL \u82e5\u66f4\u9760\u8fd1 NEW \u7684 WL(\u9010\u5e74 king \u5e2d\u4f4d\u5747\u503c\u7684\u8ddd\u79bb)\u21d2\u300c\u5e2d\u4f4d\u5dee\u6765\u81ea\u817f\u4ee3\u7801\u300d; \u82e5\u66f4\u9760\u8fd1 NC \u7684 \u21d2\u300c\u5e2d\u4f4d\u5dee\u6765\u81ea\u8f93\u5165(King P)\u300d; \u4e24\u8005\u4e4b\u95f4\u62a5\u6bd4\u4f8b, \u4e0d\u4e0b\u56e0\u679c\u3002",
+    "pre2026_per_year": {
+      "2023": {
+        "to_nc": 3.829394301657629e-08,
+        "to_new": 0.009558280808298236,
+        "closer_to": "nc",
+        "share_of_gap_toward_new": 4.00634699542486e-06
+      },
+      "2024": {
+        "to_nc": 2.673666588126622e-08,
+        "to_new": 0.11582160731875224,
+        "closer_to": "nc",
+        "share_of_gap_toward_new": 2.3084345251486704e-07
+      },
+      "2025": {
+        "to_nc": 1.939192206812379e-08,
+        "to_new": 0.02574154648708693,
+        "closer_to": "nc",
+        "share_of_gap_toward_new": 7.53331097232782e-07
+      }
+    },
+    "closer_to_by_year": [
+      "nc",
+      "nc",
+      "nc"
+    ],
+    "VERDICT": "SEAT_DIFF_FROM_INPUT_KING_P"
+  },
+  "red_control": {
+    "code_sha_matches_handoff_record": true,
+    "inputs_have_right_shape": true,
+    "legal_is_base_mask": true,
+    "seat_y_nonempty": true,
+    "ready_nonzero": true,
+    "baseline_green": true
+  },
+  "verdict": "MEASURED"
+}
