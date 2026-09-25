@@ -32,6 +32,9 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import d10_manifest_gate as GATE   # R25-11: checksum_match must be True, set equality, per-file re-hash
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.realpath(__file__)))), "common"))
+import fund_replay_guard as FRG   # records the replay artifact's provenance state in the receipt
 
 FRESH_S = 43200          # 12h, both sides' staleness window
 EXPECT_MISMATCH = 5613   # fresh's count, asserted before any judging
@@ -76,6 +79,11 @@ def main():
            "truth": "archive last_funding_rate of the latest settlement <= anchor, NaN if older than 12h"}
 
     P = np.load(panel_real, allow_pickle=True)
+    # This device exists to JUDGE the replay artifact, so it must not refuse it -- that would be a
+    # mandatory step breaking the one legitimate path. The state is recorded instead, so the
+    # conclusion carries the caliber of its input (allow names both dirty states on purpose).
+    rec["replay_provenance"] = FRG.require_clean_fund_replay(
+        a.replay, allow=(FRG.DEFECTIVE, FRG.UNSTAMPED, FRG.CLEAN))
     R = np.load(a.replay, allow_pickle=True)
     pt = P["ts"].astype(np.int64); ft = R["anchors"].astype(np.int64)
     ps = [str(s) for s in P["symbols"]]; rs = [str(s) for s in R["symbols"]]

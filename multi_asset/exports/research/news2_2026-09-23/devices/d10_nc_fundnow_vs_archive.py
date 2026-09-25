@@ -26,6 +26,9 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import d10_manifest_gate as GATE   # R25-11: checksum_match must be True, set equality, per-file re-hash
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.realpath(__file__)))), "common"))
+import fund_replay_guard as FRG   # records the replay artifact's provenance state in the receipt
 
 FRESH_S = 43200
 
@@ -77,6 +80,8 @@ def main():
     mem = F["m"].astype(np.int64); fnv = np.asarray(F["fn_v"], np.float64)
     fsyms = [str(s) for s in F["symbols"]]
 
+    rec["replay_provenance"] = FRG.require_clean_fund_replay(
+        a.replay, allow=(FRG.DEFECTIVE, FRG.UNSTAMPED, FRG.CLEAN))   # record, do not refuse: judging it is the job
     P = np.load(panel_real, allow_pickle=True); R = np.load(a.replay, allow_pickle=True)
     pt = P["ts"].astype(np.int64); rt = R["anchors"].astype(np.int64)
     ps = [str(s) for s in P["symbols"]]; rs = [str(s) for s in R["symbols"]]
