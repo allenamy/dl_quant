@@ -9,7 +9,9 @@ PROGRESS (lead 2026-09-25, dlarch's measurement): a run that processed nothing s
 second run the same day, and exactly what the long queue would do forever behind the launchd/iCloud TCC wall, which makes os.listdir return []).
 So, in parallel with freshness: `anchors_total_logged` must have INCREASED within the same window — the latest line's total vs the last line
 written at or before (now − max_age_h); compared across the TIME WINDOW, never run to run (two same-day runs legitimately have equal totals;
-measured recent totals [115, 121, 121, 126, 144]). No line old enough to anchor the window ⇒ YOUNG_LOG (named, counted, not a pass).
+measured recent totals [115, 121, 121, 126, 144]). No line old enough to anchor the window (the first line is younger than max_age_h) ⇒
+YOUNG_LOG: lead ruling 2026-09-25 — named, NEITHER red NOR a pass, deadline-bound (once the first line is max_age_h old the window rule
+applies and no increase is STALE_NO_PROGRESS red); ERR_CONTENT still turns a young log red.
 launchd.err next to the log: non-empty is REPORTED; content containing Traceback / AssertionError / "Error:" is a RED (the short queue's
 start-up self-check writes "AssertionError: cannot enumerate ..." there); a plain warning is not.
 Paths (2026-09-25): short queue ~/parabolic_onset_forward_short/run_log.jsonl (launchd com.hsy.onsetfwd_short, daily 07:22Z); long queue
@@ -57,8 +59,10 @@ def one(path, max_h, timeout):
         return "UNREADABLE", f"age_h={age_h:.2f} but the last line has no anchors_total_logged (progress cannot be judged)"
     old = [x for x in rows if key in x and parse_utc(x[key]) <= now - max_h * 3600 and "anchors_total_logged" in x]
     if not old:
-        return "YOUNG_LOG", (f"age_h={age_h:.2f}; no line older than {max_h:g} h in the last 400 lines to anchor the progress window — progress "
-                             f"cannot be judged yet (a known state for a new queue; still counted, not a pass)")
+        first = min(parse_utc(x[key]) for x in rows if key in x)
+        return "YOUNG_LOG", (f"age_h={age_h:.2f}; not yet of judgeable age: first line {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(first))}, "
+                             f"progress window judged from {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(first + max_h * 3600))} (after that no "
+                             f"total increase = STALE_NO_PROGRESS red)")
     t_new, t_old = int(d["anchors_total_logged"]), int(old[-1]["anchors_total_logged"])
     if t_new <= t_old:
         return "STALE_NO_PROGRESS", (f"age_h={age_h:.2f} key={key} last={d[key]} but anchors_total_logged {t_old} (at {old[-1][key]}) -> {t_new}: "
@@ -73,20 +77,21 @@ def main(argv):
     paths = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in ("--max-age-h", "--timeout"))]
     if not paths:
         print("FORWARD_FRESHNESS RED n_red=1 (no path given — an empty check is not a pass)"); return 1
-    red = 0
+    red = young = 0
     for p in paths:
         v, detail = one(p, max_h, timeout)
-        red += v != "FRESH"
+        red += v not in ("FRESH", "YOUNG_LOG")          # lead ruling 2026-09-25: YOUNG_LOG is neither red nor a pass (named, deadline-bound)
+        young += v == "YOUNG_LOG"
         d = p if os.path.isdir(p) else os.path.dirname(p)
         e = os.path.join(d, "launchd.err")                      # dlarch 2026-09-25: a non-empty launchd.err (start-up self-check) is worth reporting
         if os.path.isfile(e) and not (getattr(os.stat(e), "st_flags", 0) & SF_DATALESS) and os.path.getsize(e) > 0:
             txt = open(e, "rb").read()[-200000:].decode("utf-8", "replace")
             hard = [w for w in ("Traceback", "AssertionError", "Error:") if w in txt]
             detail += f" | launchd.err non-empty ({os.path.getsize(e)} B)" + (f" RED: contains {hard}" if hard else " (warnings only, reported)")
-            if hard and v == "FRESH":
+            if hard and v in ("FRESH", "YOUNG_LOG"):
                 v = "ERR_CONTENT"; red += 1
         print(f"FRESHNESS {p} {v} {detail}", flush=True)
-    print(f"FORWARD_FRESHNESS {'OK' if not red else 'RED'} n_red={red} max_age_h={max_h:g} now={time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}")
+    print(f"FORWARD_FRESHNESS {'OK' if not red else 'RED'} n_red={red} n_young_not_judged={young} max_age_h={max_h:g} now={time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}")
     return 0 if not red else 1
 
 
