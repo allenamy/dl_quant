@@ -37,6 +37,23 @@ mkdir -p "$CLAIMS"
 
 say(){ echo "$(date -u +%H:%M:%SZ) [lane $LANE] $*" | tee -a "$LOG"; }
 
+# ---- SELF-ATTRIBUTION (news2 2026-09-25, adopted as a class-shaped fix) ----------------------
+# Record OUR OWN process group id at startup, before doing any work. Two failure modes this closes,
+# both observed on this shared host:
+#   * news2 reported an unattributable third bt_launch group (pgid 3062350) that I had flagged as
+#     foreign. It was probably theirs, started by a manual ssh without their wrapper -- and they
+#     could not PROVE it from their own records. Absence of a record is what made it unresolvable,
+#     not absence of ownership.
+#   * signalling. The only safe kill target is a pgid I recorded MYSELF; `pgrep -f` self-matches
+#     inside ssh and is sensitive to argv order (it burned me twice). A file written here means a
+#     later session -- or another agent -- can answer "whose group is this?" without name-scanning.
+# `setsid`/`nohup` detach us from the ssh that launched us, so this pgid also survives the case
+# news2 warns about: TERM-ing the local ssh driver does NOT stop the remote command. Whoever wants
+# this lane stopped must signal the recorded pgid on pod2.
+MYPGID=$(ps -o pgid= -p $$ | tr -d ' ')
+PGF=$EXP/lane_${LANE}.pgid
+printf '%s\n' "pgid=$MYPGID pid=$$ lane=$LANE owner=dlarch started=$(date -u +%FT%TZ) seeds=$SEEDS device=$0" > "$PGF"
+
 # how many processes are on the GPU, and how many of those are trainers of mine
 gpu_procs(){ nvidia-smi --query-compute-apps=pid --format=csv,noheader 2>/dev/null | grep -c . ; }
 my_trainers(){ ps -eo pid,args | awk '$2 ~ /\/python$/ && /dlarch_train_f10\.py/' | grep -c . ; }
