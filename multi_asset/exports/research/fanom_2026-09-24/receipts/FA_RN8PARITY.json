@@ -1,0 +1,229 @@
+{
+ "device": "fa_rn8parity.py",
+ "self_sha256": "41b5c44c9dc0edd6c0f03d9c1ddf0f58299ecc76ca804eebe2709501acb86692",
+ "utc": "2026-09-25T15:30:51Z",
+ "ordered_by": "lead 2026-09-25 (rewire research RN8 to NC legs + parity control)",
+ "rn8_source": {
+  "path": "/dev/shm/news2_2026-09-23/work/legs.npz",
+  "sha256": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65",
+  "policy": "READ the producer's product; never re-derive the rule"
+ },
+ "retired": {
+  "fresh_legs.py": "main() raises; its RN8 came from the contaminated fund_replay.npz"
+ },
+ "inputs": {
+  "features": {
+   "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+   "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8"
+  },
+  "panel": {
+   "path_given": "/workspace/data/wide_panel_4h_v2ext.npz",
+   "resolved": "/workspace/data/wide_panel_4h_v2ext.npz",
+   "sha256": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116"
+  },
+  "adjudication": {
+   "path": "/tmp/ADJ.json",
+   "sha256": "61666703ba45390e205ffd71fa7d4f82897f6f766e3378de68c1ea92130fc266"
+  }
+ },
+ "alignment": {
+  "features_vs_legs": {
+   "anchors_legs": 10333,
+   "anchors_other": 10333,
+   "anchors_common": 10333,
+   "symbols_legs": 829,
+   "symbols_other": 829,
+   "symbols_common": 829,
+   "anchor_sets_equal": true,
+   "symbol_sets_equal": true,
+   "symbol_order_identical": true,
+   "anchors_in_legs_missing_from_other_n": 0,
+   "anchors_in_legs_missing_from_other_named": [],
+   "symbols_in_legs_missing_from_other_named": []
+  },
+  "panel_vs_legs": {
+   "anchors_legs": 10333,
+   "anchors_other": 10039,
+   "anchors_common": 10039,
+   "symbols_legs": 829,
+   "symbols_other": 829,
+   "symbols_common": 829,
+   "anchor_sets_equal": false,
+   "symbol_sets_equal": true,
+   "symbol_order_identical": true,
+   "anchors_in_legs_missing_from_other_n": 294,
+   "anchors_in_legs_missing_from_other_named": [
+    "2022-01-01T00:00Z",
+    "2022-01-01T04:00Z",
+    "2022-01-01T08:00Z",
+    "2022-01-01T12:00Z",
+    "2022-01-01T16:00Z",
+    "2022-01-01T20:00Z",
+    "2022-01-02T00:00Z",
+    "2022-01-02T04:00Z",
+    "2022-01-02T08:00Z",
+    "2022-01-02T12:00Z",
+    "2022-01-02T16:00Z",
+    "2022-01-02T20:00Z",
+    "2022-01-03T00:00Z",
+    "2022-01-03T04:00Z",
+    "2022-01-03T08:00Z",
+    "2022-01-03T12:00Z",
+    "2022-01-03T16:00Z",
+    "2022-01-03T20:00Z",
+    "2022-01-04T00:00Z",
+    "2022-01-04T04:00Z",
+    "2022-01-04T08:00Z",
+    "2022-01-04T12:00Z",
+    "2022-01-04T16:00Z",
+    "2022-01-04T20:00Z",
+    "2022-01-05T00:00Z",
+    "2022-01-05T04:00Z",
+    "2022-01-05T08:00Z",
+    "2022-01-05T12:00Z",
+    "2022-01-05T16:00Z",
+    "2022-01-05T20:00Z",
+    "2022-01-06T00:00Z",
+    "2022-01-06T04:00Z",
+    "2022-01-06T08:00Z",
+    "2022-01-06T12:00Z",
+    "2022-01-06T16:00Z",
+    "2022-01-06T20:00Z",
+    "2022-01-07T00:00Z",
+    "2022-01-07T04:00Z",
+    "2022-01-07T08:00Z",
+    "2022-01-07T12:00Z"
+   ],
+   "symbols_in_legs_missing_from_other_named": []
+  }
+ },
+ "A_direct_truth_parity": {
+  "reference": "archive rate (adjudicated) composed with the PANEL's iv (NOT adjudicated)",
+  "denominator_cells_on_legs_axis": 3,
+  "cells_offered_by_receipt": 12,
+  "equal_within_published_precision": 3,
+  "equal_within_published_precision_pct": 100.0,
+  "equal_to_panel_full_precision": 3,
+  "cells_with_no_nc_value": 9,
+  "precision_note": "the receipt's archive_truth is rounded for publication; a 1e-12 test against it is not a test of the data. Exact equality is tested against the panel's full-precision value, which the adjudication certified equal to the archive.",
+  "cells": [
+   {
+    "symbol": "GMTUSDT",
+    "anchor": "2026-01-09T20:00Z",
+    "archive_truth_rate": -0.00039508,
+    "iv_used_from_panel": 1.0,
+    "truth_rn8_composed": -0.00316064,
+    "nc_legs_rn8": -0.003160639898851514,
+    "equal_within_published_precision": true,
+    "tolerance_used": 4.1606400000000004e-10,
+    "equal_to_panel_full_precision": true,
+    "abs_diff_vs_rounded_truth": 1.0114848628811623e-10,
+    "abs_diff_vs_panel_full_precision": 0.0,
+    "ledger_rn8_for_contrast": -0.02
+   },
+   {
+    "symbol": "SPORTFUNUSDT",
+    "anchor": "2026-01-16T20:00Z",
+    "status": "NO NC VALUE (not a member, or stale under the 12h rule)",
+    "archive_truth_rate": -0.00157425,
+    "truth_rn8_composed": -0.0031485
+   },
+   {
+    "symbol": "AXSUSDT",
+    "anchor": "2026-01-17T20:00Z",
+    "archive_truth_rate": -0.00047924,
+    "iv_used_from_panel": 1.0,
+    "truth_rn8_composed": -0.00383392,
+    "nc_legs_rn8": -0.003833919996395707,
+    "equal_within_published_precision": true,
+    "tolerance_used": 4.83392e-10,
+    "equal_to_panel_full_precision": true,
+    "abs_diff_vs_rounded_truth": 3.6042930792734573e-12,
+    "abs_diff_vs_panel_full_precision": 0.0,
+    "ledger_rn8_for_contrast": -0.02
+   },
+   {
+    "symbol": "DUSKUSDT",
+    "anchor": "2026-01-19T12:00Z",
+    "archive_truth_rate": -0.00221771,
+    "iv_used_from_panel": 1.0,
+    "truth_rn8_composed": -0.01774168,
+    "nc_legs_rn8": -0.017741680145263672,
+    "equal_within_published_precision": true,
+    "tolerance_used": 1.8741679999999997e-09,
+    "equal_to_panel_full_precision": true,
+    "abs_diff_vs_rounded_truth": 1.452636726184675e-10,
+    "abs_diff_vs_panel_full_precision": 0.0,
+    "ledger_rn8_for_contrast": -0.02
+   },
+   {
+    "symbol": "AIAUSDT",
+    "anchor": "2026-01-20T08:00Z",
+    "status": "NO NC VALUE (not a member, or stale under the 12h rule)",
+    "archive_truth_rate": 5e-05,
+    "truth_rn8_composed": 0.0001
+   },
+   {
+    "symbol": "ACUUSDT",
+    "anchor": "2026-01-21T20:00Z",
+    "status": "NO NC VALUE (not a member, or stale under the 12h rule)",
+    "archive_truth_rate": -0.00039915,
+    "truth_rn8_composed": -0.0007983
+   },
+   {
+    "symbol": "ELSAUSDT",
+    "anchor": "2026-01-22T12:00Z",
+    "status": "NO NC VALUE (not a member, or stale under the 12h rule)",
+    "archive_truth_rate": -0.0014899,
+    "truth_rn8_composed": -0.0119192
+   },
+   {
+    "symbol": "SKRUSDT",
+    "anchor": "2026-01-22T16:00Z",
+    "status": "NO NC VALUE (not a member, or stale under the 12h rule)",
+    "archive_truth_rate": -0.00285089,
+    "truth_rn8_composed": -0.00570178
+   },
+   {
+    "symbol": "SPACEUSDT",
+    "anchor": "2026-01-23T16:00Z",
+    "status": "NO NC VALUE (not a member, or stale under the 12h rule)",
+    "archive_truth_rate": 0.00102977,
+    "truth_rn8_composed": 0.00205954
+   },
+   {
+    "symbol": "BIRBUSDT",
+    "anchor": "2026-01-29T12:00Z",
+    "status": "NO NC VALUE (not a member, or stale under the 12h rule)",
+    "archive_truth_rate": -0.01405318,
+    "truth_rn8_composed": -0.02810636
+   },
+   {
+    "symbol": "GWEIUSDT",
+    "anchor": "2026-01-29T12:00Z",
+    "status": "NO NC VALUE (not a member, or stale under the 12h rule)",
+    "archive_truth_rate": -0.00017454,
+    "truth_rn8_composed": -0.00034908
+   },
+   {
+    "symbol": "INXUSDT",
+    "anchor": "2026-01-31T00:00Z",
+    "status": "NO NC VALUE (not a member, or stale under the 12h rule)",
+    "archive_truth_rate": -0.00014674,
+    "truth_rn8_composed": -0.00029348
+   }
+  ],
+  "LIMIT": "12 cells only -- the receipt does not publish the per-cell list of the 2,017 adjudicated cells, so the lead's full-denominator control is NOT yet satisfied; requested from news2"
+ },
+ "B_structural_parity_vs_panel": {
+  "reference": "panel f_fund_now * 8 / f_fund_iv; the adjudication certified the panel RATE 2017:0 on 5 months",
+  "common_anchors": 10039,
+  "denominator_finite_cells": 2599246,
+  "equal_within_1e-12": 2598821,
+  "equal_pct": 99.98364910439412,
+  "median_abs_diff": 0.0,
+  "p99_abs_diff": 0.0,
+  "max_abs_diff": 0.07999999821186066,
+  "LIMIT": "differences here are NOT all defects: NC applies a 12h freshness rule while the panel carries the last settlement regardless, so legitimate staleness disagreements are included. This is a magnitude check, not a pass/fail gate. The panel's correctness is established on 2,017 cells in 5 months; using it as a reference elsewhere extrapolates that."
+ }
+}
