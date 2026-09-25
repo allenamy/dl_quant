@@ -1,0 +1,284 @@
+diff --git a/live/binance_executor.py b/live/binance_executor.py
+index a3ec3c4..0b6547d 100644
+--- a/live/binance_executor.py
++++ b/live/binance_executor.py
+@@ -382,20 +382,32 @@ def notional_from_child_fills(trades, side) -> Optional[float]:
+     """
+     tot = 0.0
+     for t in (trades or ()):
+-        try:
+-            q = abs(float(t.get("qty") or 0.0))
+-            n = t.get("quote_qty")
+-            n = (abs(float(n)) if n not in (None, "")
+-                 else q * abs(float(t.get("price") or 0.0)))
+-        except (TypeError, ValueError):
+-            continue
+-        if n > 0:
+-            tot += n
++        terms = _child_fill_terms(t)
++        if terms is None:
++            return None                      # fix package D: one malformed child ⇒ the leg's notional is UNKNOWN, not a partial sum
++        tot += terms[1]
+     if tot <= 0:
+         return None
+     return -tot if str(side or "").lower() == "sell" else tot
+ 
+ 
++def _child_fill_terms(t):
++    """fix package D (R25-01 triage, tier 1): ONE child fill's (qty, notional), or None when the row is MALFORMED — a qty or a
++    notional (quote_qty, else qty x price) that is missing, non-numeric, non-finite or not positive. A malformed child used to be
++    read as a zero-size fill (`float(x or 0.0)`) and silently dropped from the sums, which understates the leg instead of making
++    it unknown."""
++    try:
++        q = float(t.get("qty"))
++        n = t.get("quote_qty")
++        n = float(n) if n not in (None, "") else q * float(t.get("price"))
++    except (TypeError, ValueError):
++        return None
++    q, n = abs(q), abs(n)
++    if not (q == q and n == n) or q in (float("inf"),) or n in (float("inf"),) or q <= 0 or n <= 0:
++        return None
++    return q, n
++
++
+ def avg_px_from_child_fills(trades) -> Optional[float]:
+     """Sum(child fill notional) / Sum(child qty) over one leg's child fills, or None.
+ 
+@@ -420,18 +432,12 @@ def avg_px_from_child_fills(trades) -> Optional[float]:
+     """
+     num = qty = 0.0
+     for t in (trades or ()):
+-        try:
+-            q = abs(float(t.get("qty") or 0.0))
+-            n = t.get("quote_qty")
+-            # `quote_qty` is the venue's own quote volume for the child; price x qty is the same
+-            # identity one step earlier, used only when the venue omitted the quote column.
+-            n = (abs(float(n)) if n not in (None, "")
+-                 else q * abs(float(t.get("price") or 0.0)))
+-        except (TypeError, ValueError):
+-            continue
+-        if q > 0 and n > 0:
+-            num += n
+-            qty += q
++        # `quote_qty` is the venue's own quote volume for the child; price x qty is the same
++        # identity one step earlier, used only when the venue omitted the quote column.
++        terms = _child_fill_terms(t)
++        if terms is None:
++            return None                      # fix package D: one malformed child ⇒ the average is UNKNOWN, not an average of the rest
++        qty += terms[0]; num += terms[1]
+     return (num / qty) if qty > 0 else None
+ 
+ 
+diff --git a/live/external_book.py b/live/external_book.py
+index 4e635a2..9047e10 100644
+--- a/live/external_book.py
++++ b/live/external_book.py
+@@ -525,11 +525,13 @@ def below_min_notional(target: Dict[str, float], floors: Optional[Dict[str, floa
+         return {"checked": False, "names": set(), "n": 0, "mass_frac": None,
+                 "note": "floors unavailable — min-notional eligibility NOT checked"}
+     gross = float(sum(abs(v) for v in target.values())) or 1.0
++    # fix package D (R25-01 triage): a name with NO floor is UNCHECKED (listed), not "above a floor of 0".
++    unchecked = sorted(s for s in target if (floors or {}).get(s) is None)
+     names = {s for s, v in target.items()
+-             if abs(float(v)) < float(mult) * float((floors or {}).get(s, 0.0) or 0.0)}
++             if (floors or {}).get(s) is not None and abs(float(v)) < float(mult) * float(floors[s])}
+     mass = float(sum(abs(float(target[s])) for s in names)) / gross
+     return {"checked": True, "names": names, "n": len(names), "mass_frac": round(mass, 6),
+-            "mult": float(mult)}
++            "mult": float(mult), "unchecked_names": unchecked, "n_unchecked": len(unchecked)}
+ 
+ 
+ def venue_meta_exclusions(exinfo_symbols: List[Dict[str, Any]], names: List[str]) -> Dict[str, str]:
+diff --git a/live/position_break.py b/live/position_break.py
+index 964501d..a7c240d 100644
+--- a/live/position_break.py
++++ b/live/position_break.py
+@@ -560,10 +560,21 @@ def decide(decomposition: Dict[str, Any], target_gross: float,
+                           "less than that, so it is rounding, not exposure")
+             dust.append(rec)
+ 
+-    ug = float(d.get("unauth_gross_usdt") or 0.0)
+-    uf = float(d.get("underfill_gross_usdt") or 0.0)
+-    unauth_frac = (ug / gross) if gross else None
+-    underfill_frac = (uf / gross) if gross else None
++    # fix package D (R25-01 triage, tier 1 medium): an ABSENT or non-finite bucket gross is NOT a measured zero. The old
++    # `float(d.get(...) or 0.0)` turned a decomposition that lost the key into "0 % unauth" — a guard disarmed by a missing field.
++    # Unknown ⇒ can_speak False (the caller keeps the undifferentiated verdict) and the fraction is None; named in `why`.
++    def _pbnum(x):
++        try:
++            y = float(x)
++        except (TypeError, ValueError):
++            return None
++        return y if (y == y and y not in (float("inf"), float("-inf"))) else None
++    ug, uf = _pbnum(d.get("unauth_gross_usdt")), _pbnum(d.get("underfill_gross_usdt"))
++    _gross_unknown = [k for k, x in (("unauth_gross_usdt", ug), ("underfill_gross_usdt", uf)) if x is None]
++    if _gross_unknown:
++        can_speak = False
++    unauth_frac = (ug / gross) if (gross and ug is not None) else None
++    underfill_frac = (uf / gross) if (gross and uf is not None) else None
+     port_hit = unauth_frac is not None and unauth_frac > unauth_portfolio_frac
+     name_hit = bool(names)
+     unauth_triggered = bool(port_hit or name_hit)
+@@ -588,6 +599,7 @@ def decide(decomposition: Dict[str, Any], target_gross: float,
+         + f"; unauth_unmeasurable={n_unmeas} counted and alarmed, NEVER fed to the halt"
+         + f"; coverage {'n/a' if cov is None else f'{cov:.4f}'} "
+           f"(complete={coverage_complete}, can_speak={can_speak} at floor {coverage_min})"
++        + (f" — bucket gross UNKNOWN ({', '.join(_gross_unknown)} missing or non-finite): NOT MEASURED" if _gross_unknown else "")
+         + ("" if can_speak else " — TOO THIN TO CLEAR ANYTHING: the caller must keep the "
+                                 "undifferentiated verdict")
+         + ". PROVENANCE: " + prov)
+diff --git a/live/reconcile.py b/live/reconcile.py
+index b3434db..6f54749 100644
+--- a/live/reconcile.py
++++ b/live/reconcile.py
+@@ -405,7 +405,17 @@ def _qty_of(row: Dict[str, Any]) -> Tuple[Optional[float], str]:
+     q = row.get("venue_position_qty")
+     if q is not None:
+         return float(q), "venue_position_qty"
+-    n = float(row.get("venue_position_notional") or 0.0)
++    # fix package D (R25-01 triage, tier 1 medium): a row carrying NEITHER the quantity NOR the notional is UNKNOWN, not flat —
++    # the old `float(row.get("venue_position_notional") or 0.0)` turned an absent notional into the zero-notional identity.
++    _nraw = row.get("venue_position_notional")
++    if _nraw is None:
++        return None, "row carries neither `venue_position_qty` nor `venue_position_notional` — the position is unknown, not flat"
++    try:
++        n = float(_nraw)
++    except (TypeError, ValueError):
++        return None, f"venue_position_notional is not a number ({_nraw!r})"
++    if n != n or n in (float("inf"), float("-inf")):
++        return None, "venue_position_notional is not finite"
+     if n == 0.0:
+         return 0.0, "zero-notional identity (notional = qty x mark, mark > 0)"
+     return None, ("row carries no `venue_position_qty` and its notional is non-zero, so the "
+diff --git a/live/tests_watchdog.py b/live/tests_watchdog.py
+index da2896e..77d1d53 100644
+--- a/live/tests_watchdog.py
++++ b/live/tests_watchdog.py
+@@ -92,7 +92,12 @@ def build(days, c_bps=3.0, day_pnl_pct=0.1, regime="calm", w_err=0.0, markout_bp
+         lg.daily_nav(day=int(day), target_gross=notional,
+                      nav=(notional / 2.0) * ((1.0 - nav_drop_pct_per_day / 100.0) ** di),
+                      sizing_policy="constant_leverage_2.00",
+-                     realised_pnl=notional * day_pnl_pct / 100.0, unrealised_pnl=0.0)
++                     realised_pnl=notional * day_pnl_pct / 100.0, unrealised_pnl=0.0,
++                     # fix package D: the live writer (anchor_loop L3305) ALWAYS writes external_flow_usdt — a number, or None =
++                     # unknown; 331/331 live rows carry it (305 zero, 26 non-zero, 0 None). The fixture omitted the key, which the
++                     # pre-fix watchdog read as 0; the fixed watchdog reads an absent key as UNKNOWN, so the fixture now states the
++                     # measured zero every live row states.
++                     external_flow_usdt=0.0)
+         lg.close()
+     return root
+ 
+diff --git a/live/venue_fills.py b/live/venue_fills.py
+index b158ef8..42b5ff1 100644
+--- a/live/venue_fills.py
++++ b/live/venue_fills.py
+@@ -749,6 +749,27 @@ def user_trades_for(broker, symbols, since_ms=None, price_fn=None):
+             continue
+         commission, notional, trades = 0.0, 0.0, []
+         other: Dict[str, float] = {}
++        # fix package D (R25-01 triage, tier 1): a userTrades row whose quoteQty / qty / price is missing, non-numeric, non-finite or
++        # not positive, or whose commission is missing / non-numeric, is MALFORMED. It used to become a zero-size, zero-fee fill
++        # (`float(x or 0.0)`); now the symbol is NOT MEASURED — omitted from `out` and recorded in the read failures, the same
++        # contract as a symbol that could not be queried ("absence stays unknown").
++        def _vf_num(x, positive):
++            try:
++                y = float(x)
++            except (TypeError, ValueError):
++                return None
++            if y != y or y in (float("inf"), float("-inf")) or (positive and y <= 0):
++                return None
++            return y
++        _malformed = [r.get("id") for r in rows
++                      if _vf_num(r.get("quoteQty"), True) is None or _vf_num(r.get("qty"), True) is None
++                      or _vf_num(r.get("price"), True) is None or _vf_num(r.get("commission"), False) is None]
++        if _malformed:
++            _LAST_READ_FAILURES[sym] = {"endpoint": "/fapi/v1/userTrades", "error_class": "malformed_trade_rows",
++                                        "detail": f"{len(_malformed)} row(s) with a missing / non-numeric qty, price, quoteQty or commission: "
++                                                  f"ids {_malformed[:5]}"}
++            queried.discard(sym)
++            continue
+         for r in rows:
+             q = float(r.get("quoteQty") or 0.0)
+             is_buy = str(r.get("side", "")).upper() == "BUY"
+diff --git a/live/watchdog.py b/live/watchdog.py
+index ad866d7..860b279 100644
+--- a/live/watchdog.py
++++ b/live/watchdog.py
+@@ -1364,10 +1364,18 @@ def evaluate(root: str, venue_events=None, ops_stats=None, *, book_observation=N
+             #   an external transfer is UNKNOWN (nav delta is not P&L there) and is NAMED below,
+             #   never silently skipped; the first day of the window has no previous close = UNKNOWN.
+             _navv = n0.get("nav")
+-            try:
+-                _flow_day = any(abs(float(_r.get("external_flow_usdt") or 0.0)) > 1e-9 for _r in nav)
+-            except Exception:
+-                _flow_day = False
++            # fix package D (R25-01 triage, tier 1): an ABSENT / non-numeric / non-finite external_flow_usdt is UNKNOWN, not "no
++            # flow" — the day is then UNKNOWN like a transfer day (nav delta may not be P&L). The old `float(x or 0.0)` read an absent
++            # key as a measured zero, and a parse error as False (no flow).
++            def _wd_flow(r_):
++                raw_ = r_.get("external_flow_usdt")
++                try:
++                    v_ = float(raw_) if raw_ is not None else None
++                except (TypeError, ValueError):
++                    return None
++                return v_ if (v_ is not None and v_ == v_ and v_ not in (float("inf"), float("-inf"))) else None
++            _flows = [_wd_flow(_r) for _r in nav]
++            _flow_day = any(f_ is None or abs(f_) > 1e-9 for f_ in _flows)
+             if _trunc:
+                 # numerator honesty kept: a day whose ledger is a LOWER BOUND stays UNKNOWN even
+                 # though the equity caliber would not need the ledger — over-blind by choice, named.
+@@ -1880,11 +1888,16 @@ def evaluate(root: str, venue_events=None, ops_stats=None, *, book_observation=N
+         _use_days = {str(_r.get("day")) for _r in _nav_use}
+         for _r3 in _nav_all:       # day-collapsed, sorted
+             _navv = _r3.get("nav")
++            # fix package D (R25-01 triage, tier 1): unknown flow (absent / non-numeric / non-finite) is treated AS a flow day — the
++            # day's return then comes from realised + unrealised (flow-independent) or breaks the chain; never "0 flow".
++            _fraw = _r3.get("external_flow_usdt")
+             try:
+-                _flow = float(_r3.get("external_flow_usdt") or 0.0)
+-            except Exception:
+-                _flow = 0.0
+-            _is_flow = abs(_flow) > 1e-9
++                _flow = float(_fraw) if _fraw is not None else None
++            except (TypeError, ValueError):
++                _flow = None
++            if _flow is not None and (_flow != _flow or _flow in (float("inf"), float("-inf"))):
++                _flow = None
++            _is_flow = _flow is None or abs(_flow) > 1e-9
+             _is_trunc = str(_r3.get("day")) not in _use_days
+             if not _navv or _is_trunc:
+                 # unpriceable day (no equity snapshot / lower-bound ledger): the nav chain will
+diff --git a/scheduler/anchor_loop.py b/scheduler/anchor_loop.py
+index f08503d..389efc0 100644
+--- a/scheduler/anchor_loop.py
++++ b/scheduler/anchor_loop.py
+@@ -426,7 +426,7 @@ def apply_withhold_and_reshape(target, held, untradable, sizing_gross,
+         # floors let the reshape report a name that crosses its min-notional BECAUSE of the move.
+         # A floors-less run reports "nothing crossed", which is indistinguishable from "nothing
+         # was checked" unless the source is labelled — so it always is.
+-        fl = ({i: float((floors_usdt or {}).get(s_, 0.0) or 0.0) for i, s_ in enumerate(syms)}
++        fl = ({i: float(floors_usdt[s_]) for i, s_ in enumerate(syms) if floors_usdt.get(s_) is not None}   # fix package D: unknown floor = not checked
+               if floors_usdt is not None else None)
+         rs = LG.reshape_after_withhold(vec, sizing_gross=g, redemean=redemean, rescale=rescale,
+                                        floors_usdt=fl, strict=True)
+@@ -2072,8 +2072,18 @@ class AnchorLoop:
+         # ⇒ The comment is now true of the code, so the comment does not change.
+         _held_book = state.get("positions", {})
+         try:
+-            _fl = {s_: float((self.executor.filters.f.get(s_) or {}).get("min_notional", 0.0)
+-                             or 0.0) for s_ in target}
++            # fix package D (R25-01 triage): a name whose filters (or min_notional) are unknown gets NO floor entry — "not checked",
++            # never 0.0 (which passed every floor comparison). Consumers: EXT.below_min_notional reports it as unchecked; the dust
++            # pop (withhold_pop) treats a missing floor as "not dust" (clamp as before); the reshape floor report skips it.
++            _fl = {}
++            for s_ in target:
++                _mn = (self.executor.filters.f.get(s_) or {}).get("min_notional")
++                try:
++                    _mnf = float(_mn) if _mn is not None else None
++                except (TypeError, ValueError):
++                    _mnf = None
++                if _mnf is not None and _mnf == _mnf and _mnf > 0.0:
++                    _fl[s_] = _mnf
+             _fl_src = "executor.filters.f[*].min_notional"
+         except Exception as _e:
+             _fl, _fl_src = None, f"UNAVAILABLE ({type(_e).__name__}) — floor crossings NOT checked"

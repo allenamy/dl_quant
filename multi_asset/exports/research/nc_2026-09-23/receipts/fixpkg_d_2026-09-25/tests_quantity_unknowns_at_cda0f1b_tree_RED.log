@@ -1,0 +1,31 @@
+[Q1] position_break.decide: a lost bucket gross is not 0 %
+  FAIL  ★★★ Q1 fixed: unauth_gross_usdt / underfill_gross_usdt absent ⇒ can_speak False, action alarm, fractions None  — (True, 'none')
+  OK    ★★★ Q1 RED CONTROL: the pre-fix decide reads the absent keys as 0 % ⇒ can_speak True, action 'none'  — (True, 'none')
+  OK    ★★ Q1 baseline: measured zeros still speak (can_speak True, action none)
+[Q2] reconcile._qty_of
+  FAIL  ★★★ Q2 fixed: neither qty nor notional ⇒ None (unknown)  — (0.0, 'zero-notional identity (notional = qty x mark, mark > 0)')
+  OK    ★★★ Q2 RED CONTROL: pre-fix ⇒ 0.0 ('zero-notional identity')  — (0.0, 'zero-notional identity (notional = qty x mark, mark > 0)')
+  OK    ★★ Q2 baseline: an explicit notional 0 is still the zero-notional identity; a qty is still read
+[Q3] external_book.below_min_notional
+  FAIL  ★★★ Q3 fixed: A (no floor) is UNCHECKED, not below and not silently above  — {'checked': True, 'names': set(), 'n': 0, 'mass_frac': 0.0, 'mult': 2.0}
+  OK    ★★ Q3 RED CONTROL: pre-fix has no unchecked list — A was compared with a floor of 0 and passed silently  — {'checked': True, 'names': set(), 'n': 0, 'mass_frac': 0.0, 'mult': 2.0}
+  OK    ★★ Q3 baseline: a name WITH a floor is still judged
+[Q4] anchor_loop floors + dust
+  FAIL  ★★★ Q4 fixed: names without a min_notional (B: filters without it, C: no filters) get NO floor entry  — {'A': 5.0, 'B': 0.0, 'C': 0.0}
+  OK    ★★★ Q4 RED CONTROL: pre-fix gives them 0.0  — {'A': 5.0, 'B': 0.0, 'C': 0.0}
+  OK    ★★ Q4 a held residual of a name with an UNKNOWN floor is not judged dust (not popped ⇒ clamped as before)  — ([], {'A': 10.0, 'Z': -10.0})
+[Q5] child fills
+  FAIL  ★★★ Q5 fixed: one malformed child ⇒ notional None and avg price None  — (20.0, 10.0)
+  OK    ★★★ Q5 RED CONTROL: pre-fix returns the partial sum / average of the well-formed child (20.0 / 10.0)  — (20.0, 10.0)
+  OK    ★★ Q5 baseline: well-formed children still sum (sell signed)
+[Q6] venue_fills.user_trades_for
+  FAIL  ★★★ Q6 fixed: a malformed trade row ⇒ the symbol is NOT MEASURED (omitted, read failure 'malformed_trade_rows')  — (['XUSDT'], {})
+  OK    ★★★ Q6 RED CONTROL: pre-fix books the malformed row as a zero-qty fill  — [{'id': 1, 'order_id': 9, 'side': 'BUY', 'price': 10.0, 'qty': 2.0, 'quote_qty': 20.0, 'commission': 0.01, 'commission_asset': 'USDT', 'ts': 1, 'maker': True}, {'id': 2, 'order_id': 9, 'side': 'BUY', 'price': 10.0, 'qty': 0.0, 'quote_qty': 20.0, 'commission': 0.01, 'commission_asset': 'USDT', 'ts': 
+  OK    ★★ Q6 baseline: well-formed rows are still measured
+[Q7] watchdog.evaluate: a deposit day whose flow key is absent
+  FAIL  ★★★ Q7 fixed: the flow-key-less deposit day prices from P&L like a flow day (cum ≈ -0.26%)  — 194.03
+  OK    ★★★ Q7 RED CONTROL: pre-fix reads the absent key as 0 flow and books the +200 % nav jump as return  — 194.03
+
+13/20 checks passed
+FAILURES: ['★★★ Q1 fixed: unauth_gross_usdt / underfill_gross_usdt absent ⇒ can_speak False, action alarm, fractions None', '★★★ Q2 fixed: neither qty nor notional ⇒ None (unknown)', '★★★ Q3 fixed: A (no floor) is UNCHECKED, not below and not silently above', '★★★ Q4 fixed: names without a min_notional (B: filters without it, C: no filters) get NO floor entry', '★★★ Q5 fixed: one malformed child ⇒ notional None and avg price None', "★★★ Q6 fixed: a malformed trade row ⇒ the symbol is NOT MEASURED (omitted, read failure 'malformed_trade_rows')", '★★★ Q7 fixed: the flow-key-less deposit day prices from P&L like a flow day (cum ≈ -0.26%)']
+unfixed rc=1

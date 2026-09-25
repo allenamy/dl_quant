@@ -1,0 +1,176 @@
+commit cda0f1bc6c54246196d5fc70d6666d0aa5348d47
+Author: haosiyu <siyuhao0702@gmail.com>
+Date:   Sat Sep 26 02:00:12 2026 +0800
+
+    fix package D, R25-01 triage tier-1 medium/low-medium: tests FIRST — tests_quantity_unknowns.py (7 sites x fixed + RED CONTROL on the pre-fix module copies in tests_fixtures/pre_fixD2 + baseline), registered in run_acceptance.sh and given its blind spot in gate_coverage. Measured on this commit's tree (fixes not yet in): 13/20, the 7 'fixed' cells FAIL, exit 1 — the red capability
+    
+    Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01VNPQL7t93ECz7Xkrv9rH6n
+
+diff --git a/live/tests_quantity_unknowns.py b/live/tests_quantity_unknowns.py
+new file mode 100644
+index 0000000..2df6091
+--- /dev/null
++++ b/live/tests_quantity_unknowns.py
+@@ -0,0 +1,137 @@
++"""UNKNOWN IS NOT ZERO on the money path — the seven tier-1 medium / low-medium sites of the R25-01 census triage (quant_research
++receipts r25_01_2026-09-25/triage, 2cc3c0574), fixed in fix package D. Every cell runs the FIXED module and, as the red control, the
++PRE-FIX module (a verbatim copy of each file at 20d7894 in tests_fixtures/pre_fixD2/) on the same input: the old code must show the
++defect (reading an absent quantity as a measured 0), the new code must not.
++*** MOCK ONLY: dicts, temp trees and stub brokers. No venue, no credentials, no production state. ***
++  Q1 position_break.decide: a decomposition that lost unauth_gross_usdt ⇒ can_speak False, action alarm (old: can_speak True, 'none')
++  Q2 reconcile._qty_of: a readback row with neither qty nor notional ⇒ None (old: 0.0 'zero-notional identity')
++  Q3 external_book.below_min_notional: a name without a floor ⇒ listed UNCHECKED, not 'above 0' (old: silently above)
++  Q4 anchor_loop floors: a name whose filters carry no min_notional gets NO floor entry (old: 0.0); withhold_pop then treats it as not dust
++  Q5 binance_executor child fills: one malformed child ⇒ leg notional / avg price None (old: the partial sum / average of the rest)
++  Q6 venue_fills.user_trades_for: a malformed trade row ⇒ the symbol is NOT MEASURED (omitted, read failure named) (old: zero-size fill)
++  Q7 watchdog.evaluate: a deposit day whose external_flow_usdt key is ABSENT prices from P&L like a flow day (old: the nav jump is P&L)
++Exit 0 = all pass."""
++import ast, copy, importlib.util, json, os, shutil, sys, tempfile, textwrap, types
++
++_HERE = os.path.dirname(os.path.abspath(__file__)); _REPO = os.path.dirname(_HERE)
++sys.path.insert(0, _HERE)
++for _d in ("scheduler", "signal", "ops"):
++    sys.path.insert(0, os.path.join(_REPO, _d))
++import position_break as PB          # noqa: E402
++import reconcile as RC               # noqa: E402
++import external_book as EXT          # noqa: E402
++import binance_executor as EX        # noqa: E402
++import venue_fills as VF             # noqa: E402
++import watchdog as WD                # noqa: E402
++import pilot_log as PL               # noqa: E402
++import anchor_loop as AL             # noqa: E402
++
++FAILS, N = [], [0]
++def check(name, cond, extra=""):
++    N[0] += 1
++    print(f"  {'OK  ' if cond else 'FAIL'}  {name}{('  — ' + str(extra)[:300]) if extra != '' else ''}")
++    if not cond: FAILS.append(name)
++def old(mod):
++    p = os.path.join(_HERE, "tests_fixtures", "pre_fixD2", mod + ".py")
++    spec = importlib.util.spec_from_file_location("prefixD2_" + mod, p); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m); return m
++TMP = tempfile.mkdtemp(prefix="tqu_", dir=os.environ.get("TMPDIR") or None)
++
++print("[Q1] position_break.decide: a lost bucket gross is not 0 %")
++dec = {"available": True, "coverage": 1.0, "by_symbol": {}, "n_unauth_unmeasurable": 0, "unauth_provenance": "test"}
++new1 = PB.decide(dict(dec), 10_000.0); old1 = old("position_break").decide(dict(dec), 10_000.0)
++check("★★★ Q1 fixed: unauth_gross_usdt / underfill_gross_usdt absent ⇒ can_speak False, action alarm, fractions None",
++      new1["can_speak"] is False and new1["action"] == "alarm" and "UNKNOWN" in new1.get("why", ""), (new1["can_speak"], new1["action"]))
++check("★★★ Q1 RED CONTROL: the pre-fix decide reads the absent keys as 0 % ⇒ can_speak True, action 'none'",
++      old1["can_speak"] is True and old1["action"] == "none", (old1["can_speak"], old1["action"]))
++full = dict(dec, unauth_gross_usdt=0.0, underfill_gross_usdt=0.0)
++check("★★ Q1 baseline: measured zeros still speak (can_speak True, action none)", PB.decide(full, 10_000.0)["can_speak"] is True
++      and PB.decide(full, 10_000.0)["action"] == "none")
++
++print("[Q2] reconcile._qty_of")
++row = {"symbol": "XUSDT"}
++check("★★★ Q2 fixed: neither qty nor notional ⇒ None (unknown)", RC._qty_of(row)[0] is None, RC._qty_of(row))
++check("★★★ Q2 RED CONTROL: pre-fix ⇒ 0.0 ('zero-notional identity')", old("reconcile")._qty_of(row)[0] == 0.0, old("reconcile")._qty_of(row))
++check("★★ Q2 baseline: an explicit notional 0 is still the zero-notional identity; a qty is still read",
++      RC._qty_of({"venue_position_notional": 0.0})[0] == 0.0 and RC._qty_of({"venue_position_qty": -3.0})[0] == -3.0)
++
++print("[Q3] external_book.below_min_notional")
++tgt = {"A": 3.0, "B": 100.0}
++r3 = EXT.below_min_notional(tgt, {"B": 5.0}, 2.0); o3 = old("external_book").below_min_notional(tgt, {"B": 5.0}, 2.0)
++check("★★★ Q3 fixed: A (no floor) is UNCHECKED, not below and not silently above", "A" in r3.get("unchecked_names", []) and "A" not in r3["names"], r3)
++check("★★ Q3 RED CONTROL: pre-fix has no unchecked list — A was compared with a floor of 0 and passed silently",
++      "unchecked_names" not in o3 and "A" not in o3["names"], o3)
++check("★★ Q3 baseline: a name WITH a floor is still judged", EXT.below_min_notional({"A": 3.0}, {"A": 5.0}, 2.0)["names"] == {"A"})
++
++print("[Q4] anchor_loop floors + dust")
++def floor_block(mod_path):
++    src = open(mod_path).read(); T = ast.parse(src)
++    for n in ast.walk(T):
++        if isinstance(n, ast.Try) and any(isinstance(b, ast.Assign) and any(getattr(t, "id", "") == "_fl_src" for t in b.targets)
++                                          and "executor.filters.f[*].min_notional" in ast.unparse(b) for b in n.body):
++            return textwrap.dedent(ast.unparse(ast.Module(body=n.body, type_ignores=[])))
++    raise AssertionError("floor block not found")
++stub = types.SimpleNamespace(executor=types.SimpleNamespace(filters=types.SimpleNamespace(f={"A": {"min_notional": 5.0}, "B": {}})))
++ns_new = {"self": stub, "target": {"A": 1.0, "B": 1.0, "C": 1.0}}; exec(floor_block(os.path.join(_REPO, "scheduler", "anchor_loop.py")), ns_new)
++ns_old = {"self": stub, "target": {"A": 1.0, "B": 1.0, "C": 1.0}}; exec(floor_block(os.path.join(_HERE, "tests_fixtures", "pre_fixD2", "anchor_loop.py")), ns_old)
++check("★★★ Q4 fixed: names without a min_notional (B: filters without it, C: no filters) get NO floor entry", ns_new["_fl"] == {"A": 5.0}, ns_new["_fl"])
++check("★★★ Q4 RED CONTROL: pre-fix gives them 0.0", ns_old["_fl"].get("B") == 0.0 and ns_old["_fl"].get("C") == 0.0, ns_old["_fl"])
++t4 = {"A": 10.0, "Z": -10.0}; c4 = AL.withhold_pop(t4, {"Z": -0.12}, ["Z"], floors={"A": 5.0})
++check("★★ Q4 a held residual of a name with an UNKNOWN floor is not judged dust (not popped ⇒ clamped as before)", c4 == [] and "Z" in t4, (c4, t4))
++
++print("[Q5] child fills")
++kids = [{"qty": "2", "quote_qty": "20"}, {"qty": None, "quote_qty": None, "price": "10"}]
++check("★★★ Q5 fixed: one malformed child ⇒ notional None and avg price None",
++      EX.notional_from_child_fills(kids, "buy") is None and EX.avg_px_from_child_fills(kids) is None,
++      (EX.notional_from_child_fills(kids, "buy"), EX.avg_px_from_child_fills(kids)))
++OX = old("binance_executor")
++check("★★★ Q5 RED CONTROL: pre-fix returns the partial sum / average of the well-formed child (20.0 / 10.0)",
++      OX.notional_from_child_fills(kids, "buy") == 20.0 and OX.avg_px_from_child_fills(kids) == 10.0,
++      (OX.notional_from_child_fills(kids, "buy"), OX.avg_px_from_child_fills(kids)))
++check("★★ Q5 baseline: well-formed children still sum (sell signed)", EX.notional_from_child_fills([{"qty": 1, "quote_qty": 7}], "sell") == -7.0)
++
++print("[Q6] venue_fills.user_trades_for")
++class _B:
++    mode = "LIVE"
++    def __init__(self, rows): self.rows = rows
++    def _request(self, method, path, params=None, signed=False, host=None): return self.rows
++good = {"id": 1, "orderId": 9, "side": "BUY", "price": "10", "qty": "2", "quoteQty": "20", "commission": "0.01", "commissionAsset": "USDT", "time": 1, "maker": True}
++bad = dict(good, id=2, qty=None)
++out6 = VF.user_trades_for(_B([good, bad]), ["XUSDT"], since_ms=1, price_fn=lambda a: None)
++fail6 = VF.last_read_failures() if hasattr(VF, "last_read_failures") else dict(VF._LAST_READ_FAILURES)
++check("★★★ Q6 fixed: a malformed trade row ⇒ the symbol is NOT MEASURED (omitted, read failure 'malformed_trade_rows')",
++      "XUSDT" not in out6 and (fail6.get("XUSDT") or {}).get("error_class") == "malformed_trade_rows", (sorted(out6), fail6))
++OVF = old("venue_fills")
++out6o = OVF.user_trades_for(_B([good, bad]), ["XUSDT"], since_ms=1, price_fn=lambda a: None)
++check("★★★ Q6 RED CONTROL: pre-fix books the malformed row as a zero-qty fill", "XUSDT" in out6o and any(t["qty"] == 0.0 for t in out6o["XUSDT"]["trades"]),
++      out6o.get("XUSDT", {}).get("trades"))
++out6g = VF.user_trades_for(_B([good]), ["XUSDT"], since_ms=1, price_fn=lambda a: None)
++check("★★ Q6 baseline: well-formed rows are still measured", "XUSDT" in out6g and abs(out6g["XUSDT"]["filled_notional"] - 20.0) < 1e-12)
++
++print("[Q7] watchdog.evaluate: a deposit day whose flow key is absent")
++def tree(rows, drop_flow_day):
++    root = tempfile.mkdtemp(prefix="wd_q7_", dir=TMP)
++    for day, nav, real, unreal, flow in rows:
++        lg = PL.PilotLogger(root, day=day)
++        lg.daily_nav(day=day, target_gross=2.0 * nav, nav=nav, realised_pnl=real, unrealised_pnl=unreal, realised_truncated=False,
++                     external_flow_usdt=flow, nav_ts=1787000000.0)
++        lg.close()
++    p = [os.path.join(dp, f) for dp, _, fs in os.walk(root) for f in fs if f == "daily_nav.jsonl" and drop_flow_day in dp][0]
++    rs = [json.loads(l) for l in open(p) if l.strip()]
++    for r_ in rs: r_.pop("external_flow_usdt", None)
++    open(p, "w").write("".join(json.dumps(r_) + "\n" for r_ in rs))
++    return root
++rows7 = [("20260801", 2000.0, 0.0, 0.0, 2000.0), ("20260802", 1980.0, -15.0, -5.0, 0.0),
++         ("20260803", 5940.0, 10.0, 20.0, 3960.0), ("20260804", 5880.6, -40.0, 0.0, 0.0)]
++r7 = tree(rows7, "20260803")
++c7 = WD.evaluate(r7, venue_events=[], ops_stats=[])["conditions"]["cond4_drawdown"]
++exp = ((1 - 0.01) * (1 + 35.0 / 1980.0) * (5880.6 / 5940.0) - 1) * 100
++check(f"★★★ Q7 fixed: the flow-key-less deposit day prices from P&L like a flow day (cum ≈ {exp:.2f}%)",
++      c7["cum_return_from_start_pct"] is not None and abs(c7["cum_return_from_start_pct"] - exp) < 0.05, c7.get("cum_return_from_start_pct"))
++c7o = old("watchdog").evaluate(r7, venue_events=[], ops_stats=[])["conditions"]["cond4_drawdown"]
++check("★★★ Q7 RED CONTROL: pre-fix reads the absent key as 0 flow and books the +200 % nav jump as return",
++      c7o["cum_return_from_start_pct"] is not None and c7o["cum_return_from_start_pct"] > 100.0, c7o.get("cum_return_from_start_pct"))
++
++shutil.rmtree(TMP, ignore_errors=True)
++print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
++print("ALL PASS" if not FAILS else f"FAILURES: {FAILS}")
++sys.exit(0 if not FAILS else 1)
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index 23e47cd..fb98c04 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -295,6 +295,7 @@ SUITE_SCOPE = {
+     "tests_notional_backfill": "that the venue reported every child fill — it proves the amount is rebuilt from the children we hold, signed, and only when the column is empty. If userTrades itself is short the recovered figure is short with it, and the row would then read as a confident wrong size rather than an honest None",
+     "tests_sizing_policy": "that 2.0x / +-10%% / 4,000 USDT are the RIGHT policy numbers — they are the user's risk tolerance and no suite can settle them. It proves the sizing arithmetic, the dead zone, the floor-halts-not-shrinks rule, the dead-zone x floor interaction, and that the threshold move is exactly x(2/5) of the 5x originals. It does NOT prove the historical series that justified the restatement is representative — that series is the structural caliber and is a one-sided floor on dispersion",
+     "tests_dust_pop": "that popping a dust position is economically harmless in every state — it proves the rule (strictly below the name's venue min notional ⇒ popped before the reshape; the clamp keeps a flatten row at 0.0; no order-bearing row) on synthetic books and on ONE recorded anchor (2026-09-25 08Z), not across the ledger. Two blind spots, each real: (a) the floor is the executor's cached min_notional — a venue floor that changed since the cache was written is not seen here; (b) a dust residual whose VALUE later grows above the floor (a large price move while held) returns to the clamp at that anchor, and nothing here tests that transition on real data",
++    "tests_quantity_unknowns": "that every unknown-read-as-zero on the money path is gone — it proves the SEVEN sites of the R25-01 triage (position_break bucket gross, reconcile _qty_of, the external dust floor, the anchor_loop floor map, child-fill sums, userTrades rows, the watchdog NAV flow) refuse an absent quantity, each against the pre-fix module on the same input. The census that found them is a static LOWER BOUND (its detector does not follow a value through a local variable), and the 20 low sites are listed for the next package, not fixed here",
+     "tests_orphan_position": "that a withheld-and-held name will actually be REDUCED at the venue — it proves the target survives the clamp so plan() emits a row, not that the order fills; a venue that refuses reduce orders too would still strand the position",
+     "tests_frontier_staleness": "that the frontier marker the upstream publishes is CORRECT — it proves we consume it and that a frozen frontier is no longer a pass. If the producer published a wrong newest_scored_anchor this consumer would believe it. ★ SINCE 2026-09-13 (ALM-03) IT PINS A RETIRED EVALUATOR: ops/check_factor_health.py is no longer called by the anchor (step 9 runs ops/check_rank_monitor_input.py) and its ssh source has had no producer since 2026-08-06, so a green here says nothing about what the anchor monitors now — that is tests_rank_monitor_input",
+     "tests_head_liveness": "that a head which passes the liveness test is USEFUL — it proves a collapsed head is caught and that the verdict is scale-free, not that a live head carries signal. IC is what says that, and no liveness test can",
+diff --git a/run_acceptance.sh b/run_acceptance.sh
+index 0a3926e..9652bfb 100644
+--- a/run_acceptance.sh
++++ b/run_acceptance.sh
+@@ -281,6 +281,7 @@ SUITES=(
+   "tests_neutrality_check:$_SELF/live/tests_neutrality_check.py"
+   "tests_book_reshape:$_SELF/live/tests_book_reshape.py"
+   "tests_dust_pop:$_SELF/live/tests_dust_pop.py"
++  "tests_quantity_unknowns:$_SELF/live/tests_quantity_unknowns.py"
+   "tests_reduce_only_reject:$_SELF/live/tests_reduce_only_reject.py"
+   "tests_neutrality_price:$_SELF/live/tests_neutrality_price.py"
+   "tests_exit_ledger:$_SELF/live/tests_exit_ledger.py"

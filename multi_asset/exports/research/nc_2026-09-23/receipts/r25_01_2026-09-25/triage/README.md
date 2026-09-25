@@ -22,3 +22,9 @@ Low-medium (tier 1):
 - live/watchdog.py:1368, 1884 — external_flow_usdt missing ⇒ "no flow" in the drawdown watchdog's NAV series.
 No site was found that is currently exercised by the data (every field the defects read is written by its producer today — cf. the R25-01 NaN census: 0 non-finite values in the ledger); these are latent. Limitation: the census's A detector does not follow a value through a local variable (it missed the H1 site), so the census is a lower bound of the class.
 Proposed next step (not done): the two medium sites + the floors gap into the next fix package, each with a red control; the rest listed for the owners.
+
+## CORRECTION 2026-09-25 18:1xZ (C-4) — file split did not match the rows' `tier` field
+The table above counts by each row's `tier` field and is right (tier 1: 39 entries = 21 legitimate + 2 medium + 5 low-medium + 11 low; tier 2: 34 = 25 legitimate + 9 low).
+The files as first committed (2cc3c0574) put 55 rows in TRIAGE_tier1.jsonl, 16 of them carrying `tier: 2` (listed in MOVED_rows_tier2_found_in_tier1_file.json);
+anyone counting by file got 14 + 6 low instead of 11 + 9. The files are now re-split by the field; the 73-row multiset was asserted unchanged (no row text edited).
+The next-package list is NEXT_PACKAGE_low_defects.jsonl: the 20 low defects (tier 1: 11, tier 2: 9), owner C-4 with lead approval, each red-control first (lead ruling 2026-09-25).

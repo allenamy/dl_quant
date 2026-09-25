@@ -1,3 +1,19 @@
+{"site": "scheduler/run_anchor.py:1053", "tier": 2, "verdict": "legitimate", "why": "log formatting of a rate-limit headroom line; no decision"}
+{"site": "live/binance_broker.py:1306-1308", "tier": 2, "verdict": "legitimate", "why": "maxNotionalValue missing ⇒ 0 ⇒ the name is REPORTED as zero-cap (cannot open): conservative direction, report only"}
+{"site": "live/watchdog.py:3006", "tier": 2, "verdict": "defect (low)", "why": "order quantity missing ⇒ 0 ⇒ intended notional 0 in the flatten record (a missing size reported as a zero-size order)"}
+{"site": "live/watchdog.py:2776-2777", "tier": 2, "verdict": "legitimate", "why": "page text formatting (sum_doubt_usdt_known / frac); the decision is taken elsewhere on the unrounded record"}
+{"site": "scheduler/anchor_loop.py:109-110", "tier": 2, "verdict": "legitimate", "why": "sort key / names for an alarm message"}
+{"site": "scheduler/anchor_loop.py:155", "tier": 2, "verdict": "legitimate", "why": "neutrality-price reader: an order row without filled_notional did not fill (the writer sets it on every row); report only"}
+{"site": "scheduler/anchor_loop.py:195", "tier": 2, "verdict": "legitimate", "why": "adverse-selection cost over rows already filtered to measured fills (_pos refuses non-positive prices)"}
+{"site": "scheduler/anchor_loop.py:414", "tier": 2, "verdict": "legitimate", "why": "floors only feed the floor-crossing REPORT of the reshape; floors None is labelled 'NOT SUPPLIED'"}
+{"site": "scheduler/anchor_loop.py:1424-1426", "tier": 2, "verdict": "legitimate", "why": "alarm threshold on a reported fraction; the removal itself happens in external_book"}
+{"site": "scheduler/anchor_loop.py:2334", "tier": 2, "verdict": "legitimate", "why": "alarm text"}
+{"site": "scheduler/anchor_loop.py:3097", "tier": 2, "verdict": "legitimate", "why": "neutrality VIEW (report) reading the account snapshot; absent BTC position = none held; snap None handled"}
+{"site": "scheduler/anchor_loop.py:3247", "tier": 2, "verdict": "defect (low)", "why": "the sizing-policy caliber STAMP reads target_leverage missing as 0 ⇒ 'constant_leverage_0.00' — a label readers use to compare rows would be wrong rather than 'unknown'"}
+{"site": "live/binance_executor.py:1197", "tier": 2, "verdict": "legitimate", "why": "believed_notional in a reduce-only reject RECORD; plan rows always carry prev_notional"}
+{"site": "live/binance_executor.py:2500", "tier": 2, "verdict": "legitimate", "why": "fee-asset LIST for the row (report); absent commission = no USDT fee on the trades read"}
+{"site": "live/venue_fills.py:1020, 1032, 1157-1158", "tier": 2, "verdict": "defect (low)", "why": "commission missing ⇒ 0 in the fee sums: an absent fee is booked as no fee"}
+{"site": "live/venue_fills.py:1160", "tier": 2, "verdict": "legitimate", "why": "ts missing ⇒ 0 ⇒ `or None` ⇒ unknown time"}
 {"site": "live/alarm_policy.py:179-180", "tier": 2, "verdict": "legitimate", "why": "dedup window: ts missing ⇒ 0 ⇒ outside the window ⇒ the page is SENT again (conservative: more paging, never less)"}
 {"site": "live/cost_buckets.py:120, 341", "tier": 2, "verdict": "legitimate", "why": "sign of rows already filtered to measured fills (cost report)"}
 {"site": "live/pilot_metrics.py:422", "tier": 2, "verdict": "defect (low)", "why": "filled_notional None ⇒ 0 in a realised-gross metric (an unknown fill reported as none)"}
