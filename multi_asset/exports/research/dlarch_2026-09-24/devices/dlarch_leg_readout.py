@@ -117,20 +117,21 @@ def main():
     INS = np.load(INSERVICE)["P"]; rec["inputs"][INSERVICE] = sha(INSERVICE)
     masks = {s: (au >= ts(lo)) & (au <= ts(hi)) for s, (lo, hi) in SEG.items()}
 
-    def L4fc_series(fc, rng_mode=None, rng=None):
-        """u(fc)/|fc|_1*1e4 per anchor. rng_mode 'A' permutes y ONLY among finite positions."""
+    def book_series(bk, rng_mode=None, rng=None):
+        """u(book)/|book|_1*1e4 per anchor, for ANY book array (fc -> L4fc, raw -> L5raw).
+        rng_mode 'A' permutes y ONLY among the finite positions, so the population is invariant."""
         vals = np.full(len(au), np.nan); pop_mismatch = 0
         for j in range(len(au)):
             i = ci[j]
             if not lab_ok[i]: continue
-            g = float(np.abs(fc[j]).sum())
+            g = float(np.abs(bk[j]).sum())
             if g <= 1e-9: continue
             yrow = Y[iy[i]].astype(np.float64)
             base_ok = np.isfinite(yrow)
             if rng_mode == "A":
                 v = yrow[base_ok].copy(); rng.shuffle(v); yrow = yrow.copy(); yrow[base_ok] = v
                 if not np.array_equal(np.isfinite(yrow), base_ok): pop_mismatch += 1
-            vals[j] = 1e4 * float((fc[j] * np.nan_to_num(yrow)).sum()) / g
+            vals[j] = 1e4 * float((bk[j] * np.nan_to_num(yrow)).sum()) / g
         return vals, pop_mismatch
 
     def run_evolve(P10u):
@@ -138,26 +139,30 @@ def main():
                      qv=QVu, legal=book_legal, ready=RDY, params=params, publication="scaled_diagnostic")
         return out
 
-    LADDER_L4FC_S42 = 0.9015          # docs/RESULT_dl_layer_ladder_2026-09-24.md, L4fc, s42, pre-2026
+    LADDER_L4FC_S42 = 0.9015          # docs/RESULT_dl_layer_ladder_2026-09-24.md, L4fc,  s42, pre-2026
+    LADDER_L5RAW_S42 = 0.8175         # docs/RESULT_dl_layer_ladder_2026-09-24.md, L5raw, s42, pre-2026
     if selftest:
         t0 = time.monotonic(); out = run_evolve(INS[use].astype(np.float64))
-        vals, _ = L4fc_series(out["fc"])
-        got = float(np.nanmean(vals[masks[MAIN]]))
-        rec["SELFTEST"] = {"source": INSERVICE, "L4fc_pre2026_measured": got,
-                           "L4fc_pre2026_published": LADDER_L4FC_S42,
-                           "abs_diff": abs(got - LADDER_L4FC_S42), "tolerance": 2e-3,
+        vals, _ = book_series(out["fc"]); vraw, _ = book_series(out["raw"])
+        got = float(np.nanmean(vals[masks[MAIN]])); gotr = float(np.nanmean(vraw[masks[MAIN]]))
+        rec["SELFTEST"] = {"source": INSERVICE,
+                           "L4fc_pre2026_measured": got, "L4fc_pre2026_published": LADDER_L4FC_S42,
+                           "L4fc_abs_diff": abs(got - LADDER_L4FC_S42),
+                           "L5raw_pre2026_measured": gotr, "L5raw_pre2026_published": LADDER_L5RAW_S42,
+                           "L5raw_abs_diff": abs(gotr - LADDER_L5RAW_S42), "tolerance": 2e-3,
                            "publish_rate_pre2026": float(out["trade_mask"][masks[MAIN]].mean()),
                            "seconds": round(time.monotonic() - t0, 1),
-                           "PASS": bool(abs(got - LADDER_L4FC_S42) <= 2e-3)}
+                           "PASS": bool(abs(got - LADDER_L4FC_S42) <= 2e-3 and abs(gotr - LADDER_L5RAW_S42) <= 2e-3)}
         rec["utc_end"] = iso(time.time())
         op = os.path.join(outdir, "LEG_READOUT_SELFTEST.json")
         tmp = op + ".tmp"; open(tmp, "w").write(json.dumps(rec, indent=1, allow_nan=False)); os.replace(tmp, op)
-        print(f"LEG_READOUT_SELFTEST measured={got:.4f} published={LADDER_L4FC_S42:.4f} "
-              f"diff={abs(got-LADDER_L4FC_S42):.2e} PASS={rec['SELFTEST']['PASS']} json={sha(op)[:16]}", flush=True)
-        assert rec["SELFTEST"]["PASS"], f"selftest: {got:.6f} != published {LADDER_L4FC_S42}"
+        print(f"LEG_READOUT_SELFTEST L4fc {got:.4f} vs {LADDER_L4FC_S42:.4f} (d={abs(got-LADDER_L4FC_S42):.2e}) | "
+              f"L5raw {gotr:.4f} vs {LADDER_L5RAW_S42:.4f} (d={abs(gotr-LADDER_L5RAW_S42):.2e}) | "
+              f"PASS={rec['SELFTEST']['PASS']} json={sha(op)[:16]}", flush=True)
+        assert rec["SELFTEST"]["PASS"], f"selftest: L4fc {got:.6f} / L5raw {gotr:.6f} vs published {LADDER_L4FC_S42}/{LADDER_L5RAW_S42}"
         return
 
-    fc_cache = {}
+    fc_cache = {}; raw_cache = {}
     for arm, seed in spec:
         oof = f"{T3ROOT}/{arm}/f10_s{seed}/F10_OOF.npz"
         tr = f"{T3ROOT}/{arm}/f10_s{seed}/TRAIN_RECEIPT.json"
@@ -169,12 +174,13 @@ def main():
         Z = np.load(oof); assert np.array_equal(Z["E_ts"].astype(np.int64), a) and np.array_equal(Z["symbols"], syms)
         P10 = Z["P"]
         t0 = time.monotonic(); out = run_evolve(P10[use].astype(np.float64)); fc = out["fc"]
-        fc_cache[(arm, seed)] = fc
-        vals, _ = L4fc_series(fc)
+        fc_cache[(arm, seed)] = fc; raw_cache[(arm, seed)] = out['raw']
+        vals, _ = book_series(fc); vraw, _ = book_series(out["raw"])
         e = {"folds": R["folds"], "status": R["status"], "oof_sha256": sha(oof), "oof_path": oof,
              "receipt_sha256": sha(tr), "evolve_seconds": round(time.monotonic() - t0, 1),
              "publish_rate_pre2026": float(out["trade_mask"][masks[MAIN]].mean()),
-             "L4fc": {s: stats1(vals[masks[s]]) for s in SEG}}
+             "L4fc": {s: stats1(vals[masks[s]]) for s in SEG},
+             "L5raw": {s: stats1(vraw[masks[s]]) for s in SEG}}
         # lead 2026-09-25: distance from the in-service model, per year
         ins = {}
         for s in SEG:
@@ -198,10 +204,16 @@ def main():
     for (arm, seed), fc in list(fc_cache.items()):
         if not arm.startswith("T3"): continue
         if ("T0", seed) not in fc_cache: continue
-        v3, _ = L4fc_series(fc); v0, _ = L4fc_series(fc_cache[("T0", seed)])
-        d = v3 - v0
-        deltas[f"{arm}:{seed}"] = {s: stats1(d[masks[s]]) for s in SEG}
-        log("DELTA", arm, seed, round(deltas[f"{arm}:{seed}"][MAIN].get("mean", float("nan")), 4))
+        v3, _ = book_series(fc); v0, _ = book_series(fc_cache[("T0", seed)])
+        r3, _ = book_series(raw_cache[(arm, seed)]); r0, _ = book_series(raw_cache[("T0", seed)])
+        deltas[f"{arm}:{seed}"] = {
+            "L4fc": {s: stats1((v3 - v0)[masks[s]]) for s in SEG},
+            "L5raw": {s: stats1((r3 - r0)[masks[s]]) for s in SEG},
+            "gate_measurand": "L5raw" if arm.startswith(("T2", "T2T3")) else "L4fc",
+            "gate_note": ("T3's gate is L4fc (frozen); T2's and the combined arm's gate is L5raw. The two "
+                          "gates are on DIFFERENT objects, so 'T2 passed and T3 did not' does NOT order them.")}
+        log("DELTA", arm, seed, "L4fc", round(deltas[f"{arm}:{seed}"]["L4fc"][MAIN].get("mean", float("nan")), 4),
+            "L5raw", round(deltas[f"{arm}:{seed}"]["L5raw"][MAIN].get("mean", float("nan")), 4))
     rec["delta_T3_minus_T0"] = deltas
 
     # ── controls, on the first available arm ──
@@ -209,10 +221,10 @@ def main():
         key = sorted(fc_cache)[0]; fc = fc_cache[key]
         nulls = []; pop_bad = 0
         for b in range(NULL_DRAWS):
-            v, pm_ = L4fc_series(fc, rng_mode="A", rng=np.random.default_rng([RNG, b])); pop_bad += pm_
+            v, pm_ = book_series(fc, rng_mode="A", rng=np.random.default_rng([RNG, b])); pop_bad += pm_
             nulls.append(float(np.nanmean(v[masks[MAIN]])))
         nv = np.asarray(nulls); se = float(nv.std(ddof=1) / np.sqrt(len(nv)))
-        truth = float(np.nanmean(L4fc_series(fc)[0][masks[MAIN]]))
+        truth = float(np.nanmean(book_series(fc)[0][masks[MAIN]]))
         rec["controls"]["zero_control_schemeA"] = {
             "arm": f"{key[0]}:{key[1]}", "draws": NULL_DRAWS, "truth": truth, "mean_null": float(nv.mean()),
             "se": se, "gate_rhs_3se": K_SE * se, "abs_mean_over_se": abs(float(nv.mean())) / se if se > 0 else None,
@@ -227,7 +239,7 @@ def main():
             for j in np.flatnonzero(RDY):
                 i = ci[j]; m = members[i]
                 Pr[i, m] = g.permutation(len(m)) / max(len(m) - 1, 1) - .5
-            v, _ = L4fc_series(run_evolve(Pr[use].astype(np.float64))["fc"])
+            v, _ = book_series(run_evolve(Pr[use].astype(np.float64))["fc"])
             rr.append(float(np.nanmean(v[masks[MAIN]])))
         rec["controls"]["random_rank_arms"] = {"seeds": 3, "L4fc_pre2026": rr, "mean": float(np.mean(rr)),
                                               "note": "a random-rank F10 must not produce the arm's L4fc"}
@@ -248,9 +260,10 @@ def main():
     kub = PROJ["t_fc_to_raw"] * PROJ["anchors_per_day"] * PROJ["gm"]
     rec["projection_from_measured_delta"] = {
         "coefficients": PROJ, "bps_day_per_leg_bps": {"with_weak_link": k, "upper_bound_link_set_to_1": kub},
-        "per_arm": {a_: {"delta_pre2026": d[MAIN].get("mean"),
-                         "projected_book_dbar_bps_day": (d[MAIN]["mean"] * k) if "mean" in d[MAIN] else None,
-                         "projected_upper_bound": (d[MAIN]["mean"] * kub) if "mean" in d[MAIN] else None}
+        "per_arm": {a_: {"gate_measurand": d["gate_measurand"],
+                         "delta_pre2026": d[d["gate_measurand"]][MAIN].get("mean"),
+                         "projected_book_dbar_bps_day": (d[d["gate_measurand"]][MAIN]["mean"] * k) if "mean" in d[d["gate_measurand"]][MAIN] else None,
+                         "projected_upper_bound": (d[d["gate_measurand"]][MAIN]["mean"] * kub) if "mean" in d[d["gate_measurand"]][MAIN] else None}
                     for a_, d in deltas.items()},
         "caveat": "projection, not a measurement; the paper->realised coefficient crosses a caliber boundary"}
     rec["utc_end"] = iso(time.time())
