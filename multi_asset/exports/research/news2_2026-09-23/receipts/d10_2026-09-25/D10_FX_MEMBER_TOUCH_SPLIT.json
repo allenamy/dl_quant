@@ -1,0 +1,482 @@
+{
+ "device": "d10_member_touch_split.py",
+ "self_sha256": "64b6f1baecf782a860802b218761d8648fe921b5232e23035f647ae853ef4c67",
+ "question": "of the judged wrong cells, how many were BOOK MEMBERS at that anchor?",
+ "prompted_by": "fresh: their parity denominator was 13 not 2,021 because nearly none of those cells were book members; the same shape appeared twice more in their work (404 RN8 cells but 16 moved the clamp population; 529,856 stale-overlap cells but 0 book members). A raw wrong-cell count overstates what reached the book.",
+ "member_source": {
+  "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+  "construction": "members[i] = m[off[i]:off[i+1]] -> column indices into symbols",
+  "cited": "the construction dlarch's trainer and leg devices use",
+  "explicitly_not": "cand = mask & crypto (the tradable/candidate mask) is a DIFFERENT quantity and is not used here",
+  "closure_asserted": "count[i] == off[i+1]-off[i] for all anchors; max member index < len(symbols)",
+  "anchors": 10333,
+  "symbols": 829,
+  "axis_span": [
+   "2022-01-01T00:00Z",
+   "2026-09-19T00:00Z"
+  ],
+  "total_member_cells_on_axis": 2785754
+ },
+ "cells_csv": {
+  "path": "/dev/shm/d10_2026-09-25/receipts/D10_FX_P2JUDGED_CELLS.csv",
+  "sha256": "f0dcb96fca24600642ae2576d76723d646e1246abff15efcc38bd4b481e72de0",
+  "rows": 5613
+ },
+ "split": {
+  "NOT_A_MEMBER_at_that_anchor": 5422,
+  "BOOK_MEMBER": 191
+ },
+ "split_by_verdict": {
+  "PANEL_RIGHT": {
+   "NOT_A_MEMBER_at_that_anchor": 5422,
+   "BOOK_MEMBER": 191
+  }
+ },
+ "book_touch_pct_of_all_judged": 3.4028,
+ "anchors_with_at_least_one_member_cell": 39,
+ "worst_anchors": [
+  [
+   "2026-06-24T12:00Z",
+   135
+  ],
+  [
+   "2023-10-12T12:00Z",
+   15
+  ],
+  [
+   "2023-09-05T20:00Z",
+   2
+  ],
+  [
+   "2025-04-20T12:00Z",
+   2
+  ],
+  [
+   "2025-12-27T20:00Z",
+   2
+  ],
+  [
+   "2026-03-18T12:00Z",
+   2
+  ],
+  [
+   "2022-11-09T20:00Z",
+   1
+  ],
+  [
+   "2022-12-04T12:00Z",
+   1
+  ],
+  [
+   "2022-12-21T20:00Z",
+   1
+  ],
+  [
+   "2023-06-07T20:00Z",
+   1
+  ]
+ ],
+ "member_cell_examples": [
+  {
+   "symbol": "SOLUSDT",
+   "anchor_utc": "2022-11-09T20:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.02",
+   "panel_value": "-0.019999999552965164",
+   "ledger_value": "-0.015",
+   "asof_event_utc": "2022-11-09T20:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "BNXUSDT",
+   "anchor_utc": "2022-12-04T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.025",
+   "panel_value": "-0.02500000037252903",
+   "ledger_value": "-0.00604453",
+   "asof_event_utc": "2022-12-04T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "HNTUSDT",
+   "anchor_utc": "2022-12-21T20:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.02",
+   "panel_value": "-0.019999999552965164",
+   "ledger_value": "-0.01",
+   "asof_event_utc": "2022-12-21T20:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "MTLUSDT",
+   "anchor_utc": "2023-06-07T20:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.00376588",
+   "panel_value": "-0.003765879897400737",
+   "ledger_value": "-0.02",
+   "asof_event_utc": "2023-06-07T20:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "STMXUSDT",
+   "anchor_utc": "2023-07-23T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.01379602",
+   "panel_value": "-0.013796020299196243",
+   "ledger_value": "-0.025",
+   "asof_event_utc": "2023-07-23T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "CYBERUSDT",
+   "anchor_utc": "2023-08-31T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.00182505",
+   "panel_value": "-0.0018250499852001667",
+   "ledger_value": "-0.0097599",
+   "asof_event_utc": "2023-08-31T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "NMRUSDT",
+   "anchor_utc": "2023-09-02T20:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.00822913",
+   "panel_value": "-0.008229129947721958",
+   "ledger_value": "-0.02",
+   "asof_event_utc": "2023-09-02T20:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "BLZUSDT",
+   "anchor_utc": "2023-09-05T20:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.01520987",
+   "panel_value": "-0.015209870412945747",
+   "ledger_value": "-0.025",
+   "asof_event_utc": "2023-09-05T20:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "FLMUSDT",
+   "anchor_utc": "2023-09-05T20:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.01250372",
+   "panel_value": "-0.01250371988862753",
+   "ledger_value": "-0.00041998",
+   "asof_event_utc": "2023-09-05T20:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "AMBUSDT",
+   "anchor_utc": "2023-10-12T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "5e-05",
+   "panel_value": "4.999999873689376e-05",
+   "ledger_value": "0.0001",
+   "asof_event_utc": "2023-10-12T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "API3USDT",
+   "anchor_utc": "2023-10-12T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "5e-05",
+   "panel_value": "4.999999873689376e-05",
+   "ledger_value": "9.077e-05",
+   "asof_event_utc": "2023-10-12T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "BLZUSDT",
+   "anchor_utc": "2023-10-12T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.00022507",
+   "panel_value": "-0.000225070005399175",
+   "ledger_value": "0.0001",
+   "asof_event_utc": "2023-10-12T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "CYBERUSDT",
+   "anchor_utc": "2023-10-12T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "5e-05",
+   "panel_value": "4.999999873689376e-05",
+   "ledger_value": "4.4e-05",
+   "asof_event_utc": "2023-10-12T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "DODOXUSDT",
+   "anchor_utc": "2023-10-12T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "5e-05",
+   "panel_value": "4.999999873689376e-05",
+   "ledger_value": "0.0001",
+   "asof_event_utc": "2023-10-12T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "FLMUSDT",
+   "anchor_utc": "2023-10-12T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "5e-05",
+   "panel_value": "4.999999873689376e-05",
+   "ledger_value": "0.0001",
+   "asof_event_utc": "2023-10-12T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "HIFIUSDT",
+   "anchor_utc": "2023-10-12T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "5e-05",
+   "panel_value": "4.999999873689376e-05",
+   "ledger_value": "0.0001",
+   "asof_event_utc": "2023-10-12T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "IMXUSDT",
+   "anchor_utc": "2023-10-12T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "1.522e-05",
+   "panel_value": "1.5220000022964086e-05",
+   "ledger_value": "-8.677e-05",
+   "asof_event_utc": "2023-10-12T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "LPTUSDT",
+   "anchor_utc": "2023-10-12T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "5e-05",
+   "panel_value": "4.999999873689376e-05",
+   "ledger_value": "0.0001",
+   "asof_event_utc": "2023-10-12T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "NMRUSDT",
+   "anchor_utc": "2023-10-12T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "5e-05",
+   "panel_value": "4.999999873689376e-05",
+   "ledger_value": "0.0001",
+   "asof_event_utc": "2023-10-12T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "PERPUSDT",
+   "anchor_utc": "2023-10-12T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "5e-05",
+   "panel_value": "4.999999873689376e-05",
+   "ledger_value": "0.0001",
+   "asof_event_utc": "2023-10-12T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "STMXUSDT",
+   "anchor_utc": "2023-10-12T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "5e-05",
+   "panel_value": "4.999999873689376e-05",
+   "ledger_value": "5.824e-05",
+   "asof_event_utc": "2023-10-12T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "TRBUSDT",
+   "anchor_utc": "2023-10-12T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "3.15e-06",
+   "panel_value": "3.150000111418194e-06",
+   "ledger_value": "-3.996e-05",
+   "asof_event_utc": "2023-10-12T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "UNFIUSDT",
+   "anchor_utc": "2023-10-12T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "2.148e-05",
+   "panel_value": "2.148000021406915e-05",
+   "ledger_value": "2.033e-05",
+   "asof_event_utc": "2023-10-12T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "YGGUSDT",
+   "anchor_utc": "2023-10-12T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "5e-05",
+   "panel_value": "4.999999873689376e-05",
+   "ledger_value": "-0.00023133",
+   "asof_event_utc": "2023-10-12T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "REEFUSDT",
+   "anchor_utc": "2024-10-16T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "0.00086733",
+   "panel_value": "0.0008673300035297871",
+   "ledger_value": "0.00248486",
+   "asof_event_utc": "2024-10-16T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "BNXUSDT",
+   "anchor_utc": "2025-02-09T20:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "5e-05",
+   "panel_value": "4.999999873689376e-05",
+   "ledger_value": "-0.00591742",
+   "asof_event_utc": "2025-02-09T20:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "ARKUSDT",
+   "anchor_utc": "2025-02-17T20:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.02112185",
+   "panel_value": "-0.021121850237250328",
+   "ledger_value": "-0.02840059",
+   "asof_event_utc": "2025-02-17T20:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "BROCCOLIF3BUSDT",
+   "anchor_utc": "2025-04-20T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "0.00281199",
+   "panel_value": "0.0028119899798184633",
+   "ledger_value": "0.01011322",
+   "asof_event_utc": "2025-04-20T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "NKNUSDT",
+   "anchor_utc": "2025-04-20T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.01169759",
+   "panel_value": "-0.011697590351104736",
+   "ledger_value": "-0.01790626",
+   "asof_event_utc": "2025-04-20T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "MAGICUSDT",
+   "anchor_utc": "2025-04-21T20:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.02189346",
+   "panel_value": "-0.021893460303544998",
+   "ledger_value": "-0.03",
+   "asof_event_utc": "2025-04-21T20:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "RVNUSDT",
+   "anchor_utc": "2025-06-05T20:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.00412803",
+   "panel_value": "-0.00412803003564477",
+   "ledger_value": "-0.02",
+   "asof_event_utc": "2025-06-05T20:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "MASKUSDT",
+   "anchor_utc": "2025-06-07T04:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.00266858",
+   "panel_value": "-0.002668580040335655",
+   "ledger_value": "-0.0075",
+   "asof_event_utc": "2025-06-07T04:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "XTZUSDT",
+   "anchor_utc": "2025-07-20T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.00195059",
+   "panel_value": "-0.0019505900563672185",
+   "ledger_value": "-0.0075",
+   "asof_event_utc": "2025-07-20T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "KAVAUSDT",
+   "anchor_utc": "2025-11-09T12:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.00388436",
+   "panel_value": "-0.003884359961375594",
+   "ledger_value": "-0.02",
+   "asof_event_utc": "2025-11-09T12:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "SKLUSDT",
+   "anchor_utc": "2025-11-29T20:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.00132054",
+   "panel_value": "-0.0013205399736762047",
+   "ledger_value": "-0.02",
+   "asof_event_utc": "2025-11-29T20:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "LUNA2USDT",
+   "anchor_utc": "2025-12-05T20:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.00257984",
+   "panel_value": "-0.002579839900135994",
+   "ledger_value": "-0.02",
+   "asof_event_utc": "2025-12-05T20:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "LRCUSDT",
+   "anchor_utc": "2025-12-11T04:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.00375392",
+   "panel_value": "-0.0037539200857281685",
+   "ledger_value": "-0.02",
+   "asof_event_utc": "2025-12-11T04:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "FLOWUSDT",
+   "anchor_utc": "2025-12-27T20:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.00100445",
+   "panel_value": "-0.0010044500231742859",
+   "ledger_value": "-0.02",
+   "asof_event_utc": "2025-12-27T20:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "ONTUSDT",
+   "anchor_utc": "2025-12-27T20:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.00054485",
+   "panel_value": "-0.0005448500160127878",
+   "ledger_value": "-0.02",
+   "asof_event_utc": "2025-12-27T20:00Z",
+   "asof_age_s": "0"
+  },
+  {
+   "symbol": "STORJUSDT",
+   "anchor_utc": "2025-12-28T04:00Z",
+   "verdict": "PANEL_RIGHT",
+   "p2_truth_rate": "-0.00031408",
+   "panel_value": "-0.0003140800108667463",
+   "ledger_value": "-0.02",
+   "asof_event_utc": "2025-12-28T04:00Z",
+   "asof_age_s": "0"
+  }
+ ]
+}
