@@ -16,7 +16,14 @@ and has already been shown to FLIP a sign (+0.0767 vs -0.2949 on a same-axis sta
 NO VERDICT. This device reports member-level facts. Admission is the frozen family gate's business (n >= 8), and arms
 the lead designated diagnostic never get one at all.
 
-usage: ... fa_serread.py WL <out.json> <label>:<variant.npz>:<baseline.npz> [...]
+FOCUS ANCHORS (lead 2026-09-25): an arm may name a set of anchors whose contribution must be reported as its own
+column -- e.g. C3m's 37/48 anchors where the base publishes and C3 does not. The engine is PATH DEPENDENT, so such a
+set can NEVER be removed from the window and re-compared; only its DIRECT contribution is reportable. That direct
+contribution is an ANCHOR-level quantity (mean across paths of the per-anchor return difference), which is NOT the
+frozen day-level dbar and is labelled separately so the two can never be confused.
+
+usage: ... fa_serread.py WL <out.json> <label>:<variant.npz>:<baseline.npz>[:<focus.json>] [...]
+       focus.json = the FA_C3M receipt (or any json) carrying modes.<mode>.base_publishes_c3_does_not.E_ts
 """
 import os, sys, json, hashlib, time, calendar, datetime
 import numpy as np
@@ -62,7 +69,9 @@ rec = {"device": "fa_serread.py", "self_sha256": sha(os.path.abspath(__file__)),
        "arms": {}}
 
 for spec in SPECS:
-    label, vp, bp = spec.split(":")
+    parts = spec.split(":")
+    label, vp, bp = parts[0], parts[1], parts[2]
+    focus_p = parts[3] if len(parts) > 3 else None
     if not (os.path.exists(vp) and os.path.exists(bp)):
         rec["arms"][label] = {"status": "SERIES MISSING", "variant": vp, "baseline": bp}
         print("  %-16s SERIES MISSING" % label, flush=True); continue
@@ -96,6 +105,35 @@ for spec in SPECS:
         c["NET_price_minus_funding_paid"] = c["pnl"] - c["car"]
         c["identity_resid_g_minus_pnl_car_cst_unk"] = c["g"] - (c["pnl"] - c["car"] - c["cst"] - c["unk"])
         a["channels_bps"][k] = c
+    if focus_p:
+        fj = json.load(open(focus_p))
+        rv = np.stack([p["r"] for p in pv]); rb = np.stack([p["r"] for p in pb])
+        dr = 1e4 * (rv.mean(0) - rb.mean(0))          # per-anchor, mean across paths, bps
+        a["focus_anchors"] = {"source": focus_p,
+                              "caliber_note": ("ANCHOR-level direct contribution (mean across paths of the per-anchor "
+                                               "return difference, bps). NOT the frozen day-level dbar. The engine is "
+                                               "path dependent, so this set is NEVER removable from the window."),
+                              "modes": {}}
+        for mode, mv in fj.get("modes", {}).items():
+            ets = mv.get("base_publishes_c3_does_not", {}).get("E_ts", [])
+            if not ets: continue
+            sel = np.isin(A, np.asarray(ets, np.int64))
+            # every named anchor must be ON this axis, else the column silently describes a different set
+            assert int(sel.sum()) == len(set(ets)), f"{label}/{mode}: {len(set(ets))} named anchors, {int(sel.sum())} found on axis"
+            per = [{"E_ts": int(t), "utc": iso(t), "d_bps": float(dr[A == t][0])} for t in ets]
+            pos = sum(1 for x in per if x["d_bps"] > 0)
+            a["focus_anchors"]["modes"][mode] = {
+                "n": len(per), "sum_d_bps": float(dr[sel].sum()), "mean_d_bps": float(dr[sel].mean()),
+                "n_positive": pos, "n_negative": len(per) - pos,
+                "min_d_bps": float(dr[sel].min()), "max_d_bps": float(dr[sel].max()),
+                # the denominator is carried with the share: a near-zero full-window sum makes any share meaningless,
+                # and a share whose denominator is not shown cannot be sanity-checked by the reader
+                "fullwin_sum_d_bps_DENOMINATOR": float(dr.sum()),
+                "share_of_fullwin_sum_pct": (float(100.0 * dr[sel].sum() / dr.sum()) if abs(dr.sum()) > 1e-12 else None),
+                "per_anchor": per}
+            print("     focus[%s] n=%d  Σd=%+9.2f bps  mean=%+7.3f  +/-=%d/%d  range [%+.2f, %+.2f]"
+                  % (mode, len(per), dr[sel].sum(), dr[sel].mean(), pos, len(per) - pos,
+                     dr[sel].min(), dr[sel].max()), flush=True)
     rec["arms"][label] = a
     print("  %-16s pre2026 %+8.4f ci%s | 2026 %+8.4f (SEG-trunc %+8.4f%s) | full %+8.4f | Δfund_paid %+9.2f"
           % (label, a["pre2026"]["d_bps_per_day"], [round(x, 2) for x in a["pre2026"]["boot_ci95_bps"]],
