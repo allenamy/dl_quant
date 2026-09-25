@@ -10,7 +10,12 @@ Stack (every step sha-pinned; every edit asserts its anchor text occurs exactly 
      reproduce the M3 file 41f9174d exactly when applied to fb5a9407).
   4. (later stage) the parallel fetch layer (d).
 Extra files installed next to combo_stage.py: nc_contract.py, tradability.py (research common, a9fad82c), beta_overlay_producer.py.
-usage: python nc_derive_producer.py <out_dir> [--release] [--m3-v2]
+usage: python nc_derive_producer.py <out_dir> [--release] [--m3-v2] [--durable]
+  --durable (C package, lead rulings 2026-09-25; DESIGN_executor_durable_state_2026-09-25 / census 501d80737): the producer's state writes go
+           through fea171/durable_io.py (the executor's live/durable_io.py, byte-identical, pinned): shadow_loop atomic_write (target_live +
+           sidecar + aux.json), _save_npz (boundary_raw / members_hist), rolling.npz, weights/<A>.npz; combo_stage target_blend / target_combo,
+           state_H_* npz, weights_combo npz (its weights_sha now = sha of the verified in-memory bytes) and combo_live_status.json (a failed
+           status write is logged and the previous file kept intact — it never replaces a page or a publication). Requires --m3-v2.
   --m3-v2  (DESIGN_ret5_single_accessor_2026-09-24; lead rulings 2026-09-24): the class-shaped ret5 fix + m3_beta_v2 —
            capture_producer_inputs returns channel 0 AS rr (the clipped f16 storage only as `ch0_storage_f16`), combo's RR is
            computed from that storage and asserted equal to capture's channel 0, the three silent ch0 fallbacks become hard errors
@@ -33,6 +38,7 @@ PIN = {"news2_device": "9c475421d00379b5d6a514e8b406c0ba789a46b8acd9eb3db34ad568
        "tradability.py": "a9fad82ce26845a6f3d61cfa9077a6286949346e92c1fbfea17a663363264914",
        "m3_combo_stage.py": "41f9174d7d6400f5964e7cdf878efce58ef3965dd202b6a364f6e45c8d166d3c",
        "beta_overlay_producer.py": "b77c180d69170988780566e19d0ee4a0f85af25a9b9e9be08b6e4a386095fb58",
+       "durable_io.py": "34da08f875055eedc48d0823fe51a6013d610552e603c9317cd18a69e7f1d28c",   # = dl_quant_live live/durable_io.py at a777f86 (B-2)
        "prod_combo_stage.py": "fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8"}
 DEFAULT_FAMILIES = "D4,D5,D6,D7,D8,D9,D14"; DEFAULT_TREND_ROWS = "last"
 ALL_NEWS2_FAMILIES = {"D4", "D5", "D6", "D7", "D8", "D9", "D11", "D13", "D14"}   # the families news2's patcher knows at 9c475421
@@ -827,6 +833,107 @@ BOP_V2 = [
 ]
 
 
+# ================================================================================================ C: durable producer writes (--durable only)
+DUR_NOTE = "# C (durable, DESIGN_executor_durable_state_2026-09-25): memory bytes -> with-write -> fsync -> read-back byte compare -> os.replace; failure raises, target untouched"
+DURABLE_EDITS = [
+    ("shadow_loop_v3.py", "C:atomic_write_durable",
+     """def atomic_write(path, data_bytes):
+    tmp = path + ".tmp"
+    with open(tmp, "wb") as f:
+        f.write(data_bytes)
+    os.replace(tmp, path)
+""",
+     f"""def atomic_write(path, data_bytes):
+    {DUR_NOTE}
+    import durable_io as _DIO
+    _DIO.write_bytes_durable(path, data_bytes)
+"""),
+    ("shadow_loop_v3.py", "C:save_npz_durable",
+     """    def _save_npz(self, name, **arrays):
+        tmp = f"{STATE_DIR}/.{name[:-4]}_tmp.npz"          # ends in .npz: np.savez must not append a suffix (E-0917-B)
+        np.savez(tmp, **arrays)
+        os.replace(tmp, f"{STATE_DIR}/{name}")
+""",
+     f"""    def _save_npz(self, name, **arrays):
+        {DUR_NOTE}
+        import io as _io, durable_io as _DIO
+        _b = _io.BytesIO(); np.savez(_b, **arrays)
+        _DIO.write_bytes_durable(f"{{STATE_DIR}}/{{name}}", _b.getvalue())
+"""),
+    ("shadow_loop_v3.py", "C:rolling_durable",
+     """        tmp = f"{STATE_DIR}/.rolling_tmp.npz"
+        np.savez_compressed(tmp, ts=self.cts, data=self.cd)
+        os.replace(tmp, f"{STATE_DIR}/rolling.npz")
+""",
+     f"""        {DUR_NOTE}
+        import io as _io, durable_io as _DIO
+        _b = _io.BytesIO(); np.savez_compressed(_b, ts=self.cts, data=self.cd)
+        _DIO.write_bytes_durable(f"{{STATE_DIR}}/rolling.npz", _b.getvalue())
+"""),
+    ("shadow_loop_v3.py", "C:weights_npz_durable",
+     """    np.savez_compressed(f"{STATE_DIR}/weights/{anchor}.npz", idx=wnz.astype(np.int32),
+                        val=sm[wnz].astype(np.float32), members=m.astype(np.int32))
+""",
+     f"""    {DUR_NOTE} — write_target_live's weights_sha is then the sha of VERIFIED bytes
+    import io as _io, durable_io as _DIO
+    _b = _io.BytesIO(); np.savez_compressed(_b, idx=wnz.astype(np.int32), val=sm[wnz].astype(np.float32), members=m.astype(np.int32))
+    _DIO.write_bytes_durable(f"{{STATE_DIR}}/weights/{{anchor}}.npz", _b.getvalue())
+"""),
+    ("fea171/combo_stage.py", "C:import_durable_io",
+     "import nc_contract as NC   # NC: shared with the producer and the training replay\n",
+     "import nc_contract as NC   # NC: shared with the producer and the training replay\nimport durable_io as DIO   # C: durable state writes (imported here, before any executor path is put on sys.path)\n"),
+    ("fea171/combo_stage.py", "C:h_f10_durable",
+     "np.savez(hf_p, anchor=A, idx=nz, val=sm_f10[nz])\n",
+     f"_hb = io.BytesIO(); np.savez(_hb, anchor=A, idx=nz, val=sm_f10[nz]); DIO.write_bytes_durable(hf_p, _hb.getvalue())   {DUR_NOTE}\n"),
+    ("fea171/combo_stage.py", "C:target_blend_durable_head",
+     'json.dump({"schema": "wide_target_blend_v2_execcal", "anchor_ts": A, "phi": 0.45, "weights": wnz,',
+     'DIO.write_json_durable(f"{WS}/state/target_blend/{A}.json", {"schema": "wide_target_blend_v2_execcal", "anchor_ts": A, "phi": 0.45, "weights": wnz,'),
+    ("fea171/combo_stage.py", "C:target_blend_durable_tail",
+     '          open(f"{WS}/state/target_blend/{A}.json", "w"), indent=1)\n',
+     f'          indent=1)   {DUR_NOTE}\n'),
+    ("fea171/combo_stage.py", "C:h_kc_fc_durable",
+     "    np.savez(_p, anchor=A, idx=_nz, val=_sm[_nz])\n",
+     f"    _hb = io.BytesIO(); np.savez(_hb, anchor=A, idx=_nz, val=_sm[_nz]); DIO.write_bytes_durable(_p, _hb.getvalue())   {DUR_NOTE}\n"),
+    ("fea171/combo_stage.py", "C:target_combo_durable_head",
+     'json.dump({"schema": "wide_target_combo_v1_execcal", "anchor_ts": A, "phi": 0.45,',
+     'DIO.write_json_durable(f"{WS}/state/target_combo/{A}.json", {"schema": "wide_target_combo_v1_execcal", "anchor_ts": A, "phi": 0.45,'),
+    ("fea171/combo_stage.py", "C:target_combo_durable_tail",
+     '          open(f"{WS}/state/target_combo/{A}.json", "w"), indent=1)\n',
+     f'          indent=1)   {DUR_NOTE}\n'),
+    ("fea171/combo_stage.py", "C:status_bail_durable",
+     """        _status.update(ok=False, why=why)
+        json.dump(_status, open(f"{WS}/state/combo_live_status.json", "w"), indent=1)
+""",
+     f"""        _status.update(ok=False, why=why)
+        try:   {DUR_NOTE}
+            DIO.write_json_durable(f"{{WS}}/state/combo_live_status.json", _status, indent=1)
+        except DIO.DurableWriteError as _se:   # the page below must still go out; the previous status file stays intact
+            log(f"STATUS_WRITE_FAILED (durable write refused; previous combo_live_status.json kept intact): {{_se}}")
+"""),
+    ("fea171/combo_stage.py", "C:weights_combo_durable",
+     """        _tmpn = _wnpz + ".tmp.npz"
+        np.savez_compressed(_tmpn, anchor=A, idx=_nz, val=combo_raw[_nz].astype(np.float32))
+        os.replace(_tmpn, _wnpz)
+        with open(_wnpz, "rb") as _f:
+            _wsha = hashlib.sha256(_f.read()).hexdigest()
+""",
+     f"""        {DUR_NOTE}
+        _wb = io.BytesIO(); np.savez_compressed(_wb, anchor=A, idx=_nz, val=combo_raw[_nz].astype(np.float32))
+        _wsha = DIO.write_bytes_durable(_wnpz, _wb.getvalue())   # weights_sha = sha256 of the VERIFIED in-memory bytes (E-0925-A)
+"""),
+    ("fea171/combo_stage.py", "C:status_done_durable",
+     """                       elapsed_s=round(time.time() - _now0, 1), rehearsal=_rehearsal)
+        json.dump(_status, open(f"{WS}/state/combo_live_status.json", "w"), indent=1)
+""",
+     f"""                       elapsed_s=round(time.time() - _now0, 1), rehearsal=_rehearsal)
+        try:   {DUR_NOTE}
+            DIO.write_json_durable(f"{{WS}}/state/combo_live_status.json", _status, indent=1)
+        except DIO.DurableWriteError as _se:   # the target is ALREADY published: a status-file failure must not become a reported abort
+            log(f"STATUS_WRITE_FAILED after publication (durable write refused; previous combo_live_status.json kept intact): {{_se}}")
+"""),
+]
+
+
 def apply(P, edits):
     for tag, old, new in edits:
         P.replace(tag, old, new)
@@ -836,6 +943,8 @@ def main():
     global M3_V2
     release = "--release" in sys.argv[2:]
     M3_V2 = "--m3-v2" in sys.argv[2:]
+    DURABLE = "--durable" in sys.argv[2:]
+    assert not DURABLE or M3_V2, "--durable is built on top of --m3-v2"
     out = pathlib.Path(sys.argv[1]); assert not out.exists(), f"refusing to overwrite {out}"
     if release:   # a production / deploy build: the test-arm switches must be at their defaults
         assert NEWS2_FAMILIES == set(DEFAULT_FAMILIES.split(",")) and TREND_ROWS == DEFAULT_TREND_ROWS, ("release build with non-default arm switches", sorted(NEWS2_FAMILIES), TREND_ROWS)
@@ -884,6 +993,9 @@ def main():
     if M3_V2:
         for k, tag, old, new in V2_EDITS:
             A[k].replace(tag, old, new)
+    if DURABLE:
+        for k, tag, old, new in DURABLE_EDITS:
+            A[k].replace(tag, old, new)
     # §A5 positive check AFTER every edit (B, A, M3) and BEFORE anything is written: a later edit must not undo it unseen
     check_a5({k: A[k].text for k in A})
     check_phases({k: A[k].text for k in A})   # every diag.phase name is a timing key (fork_e3_f2 2026-09-23)
@@ -895,6 +1007,9 @@ def main():
     extra = {"fea171/nc_contract.py": NC_SRC / "nc_contract.py", "fea171/tradability.py": TRAD,
              "fea171/beta_overlay_producer.py": M3_DIR / "beta_overlay_producer.py",
              "fea171/stable_trend_reference.py": N2.RESEARCH_TREE / "stable_trend_reference.py"}
+    if DURABLE:
+        extra["fea171/durable_io.py"] = NC_SRC / "durable_io.py"
+        assert sha_file(NC_SRC / "durable_io.py") == PIN["durable_io.py"], "durable_io.py is not the pinned executor copy"
     bop_edits = []
     for k, p in extra.items():
         shutil.copyfile(p, out / k); outputs[k] = sha_file(out / k)
@@ -910,7 +1025,7 @@ def main():
            "pins": PIN, "sources": {k: {"path": str(p), "sha256": got[k]} for k, p in srcs.items()},
            "news2_families": sorted(NEWS2_FAMILIES), "news2_skipped_tags": skipped, "trend_rows_declared": TREND_ROWS,
            "arm_switches_at_defaults": NEWS2_FAMILIES == set(DEFAULT_FAMILIES.split(",")) and TREND_ROWS == DEFAULT_TREND_ROWS, "release_build": release,
-           "outputs": outputs, "m3_v2": M3_V2, "bop_v2_edits": bop_edits,
+           "outputs": outputs, "m3_v2": M3_V2, "durable": DURABLE, "bop_v2_edits": bop_edits,
            "edits": {k: [{kk: vv for kk, vv in e.items() if kk not in ("old", "new")} for e in P[k].edits + A[k].edits] for k in A},
            "n_applied": {k: sum(1 for e in P[k].edits + A[k].edits if e["applied"]) for k in A}}
     (out / "PATCH_RECEIPT.json").write_text(json.dumps(rec, indent=1, ensure_ascii=False))

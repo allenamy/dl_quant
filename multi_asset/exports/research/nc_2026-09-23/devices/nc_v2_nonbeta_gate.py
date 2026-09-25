@@ -19,6 +19,7 @@ sys.path.insert(0, f"{HOME}/Desktop/quant_research/multi_asset/exports/research/
 from venue_quiet_window import require_quiet_window
 TREE_FILES = ["fea171/combo_stage.py", "fea171/dlw_features.py", "fea171/f8_higher_order_features.py", "fea171/feature_cache_identity.py",
               "fea171/beta_overlay_producer.py", "fea171/nc_contract.py", "fea171/tradability.py", "fea171/stable_trend_reference.py"]
+OPTIONAL_TREE_FILES = ["fea171/durable_io.py"]
 WRAP = '''import os, sys, types, runpy
 sys.path.insert(0, os.getcwd())
 import feature_cache_identity as F
@@ -37,6 +38,8 @@ def run(tree, A, sb):
     subprocess.run(["rsync", "-a"] + sum([["--exclude", e] for e in EX], []) + [f"{WS}/", f"{sb}/wide_shadow/"], check=True)
     os.symlink(f"{WS}/venv", f"{sb}/wide_shadow/venv")
     for f in TREE_FILES: shutil.copy2(f"{tree}/{f}", f"{sb}/wide_shadow/{f}")
+    for f in OPTIONAL_TREE_FILES:                 # C (2026-09-25): files only a later tree carries (durable_io.py); copied when the tree has them
+        if os.path.exists(f"{tree}/{f}"): shutil.copy2(f"{tree}/{f}", f"{sb}/wide_shadow/{f}")
     snap = f"{WS}/state/snap/{A}"; gen = json.load(open(f"{snap}/generation.json"))
     for f in list(gen["files"]) + ["generation.json"]: shutil.copy2(f"{snap}/{f}", f"{sb}/wide_shadow/state/{f}")
     os.makedirs(f"{sb}/wide_shadow/state/target_live", exist_ok=True)
