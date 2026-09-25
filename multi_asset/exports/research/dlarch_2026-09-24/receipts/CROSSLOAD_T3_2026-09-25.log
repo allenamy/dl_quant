@@ -1,0 +1,17 @@
+13:58:48Z === T3 CROSS-LOAD DETERMINISM PROBE  arm=T3 seed=42 fold=202506 load_seed=2027 ===
+13:58:48Z dev copy      : /workspace/dlarch_2026-09-24/probe_20260925T121608Z (trainer sha cf66cecb1bfd4d0a)
+13:58:48Z state before  : trainers=0 gpu_procs=0 avail=30.62 GiB
+14:03:00Z run A out dir (from the trainer's own line): /workspace/dlarch_2026-09-24/crosslevel_t3_20260925T135848Z/solo/T3_clamp/f10_s42
+14:03:00Z run A (solo)  : rc=0  252s  scores.npz sha 0456946fe95d0558b375fedc644634abf2b9a9ed14fe1d9a2061eeb4b9d9384e
+14:03:00Z starting background load: seed 2027, same arm, looping into /workspace/dlarch_2026-09-24/crosslevel_t3_20260925T135848Z/load_arm until run B is done
+14:03:00Z load up       : trainers=1 gpu_procs=0 avail=29.97 GiB
+14:09:05Z concurrency during run B: n=37  >=2 in 36 (97.3%)  min=1 max=2  (need >= 95% for power)
+14:09:05Z run B out dir (from the trainer's own line): /workspace/dlarch_2026-09-24/crosslevel_t3_20260925T135848Z/loaded/T3_clamp/f10_s42
+14:09:05Z run B (loaded): rc=0  364s  scores.npz sha 0456946fe95d0558b375fedc644634abf2b9a9ed14fe1d9a2061eeb4b9d9384e
+14:13:22Z background load loop and sampler stopped (recorded pids 3127117 / 3127138)
+14:13:22Z solo   sha : 0456946fe95d0558b375fedc644634abf2b9a9ed14fe1d9a2061eeb4b9d9384e
+14:13:22Z loaded sha : 0456946fe95d0558b375fedc644634abf2b9a9ed14fe1d9a2061eeb4b9d9384e
+14:13:22Z T3_CROSSLOAD_VERDICT=IDENTICAL  power=HAS_POWER  solo=252s loaded=364s  slowdown=1.44x
+14:13:22Z per-fold cost for scheduling: solo 252s, under 2-way 364s
+14:13:22Z artifacts in /workspace/dlarch_2026-09-24/crosslevel_t3_20260925T135848Z (throwaway; no delivered tree was read or written)
+14:13:22Z CROSSLEVEL_T3_DONE
