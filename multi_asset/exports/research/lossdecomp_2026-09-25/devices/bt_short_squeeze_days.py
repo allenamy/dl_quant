@@ -110,6 +110,11 @@ def main():
                            "days": [{"day": x["day"], "book_short_pct": x["book_short"] * 100, "book_long_pct": x["book_long"] * 100,
                                      "fund_short_pct": (x["fund_short"] * 100 if x["fund_short"] is not None else None),
                                      "fwd3d_pct": (x["fwd3d"] * 100 if x["fwd3d"] is not None else None), "fwd7d_pct": (x["fwd7d"] * 100 if x["fwd7d"] is not None else None)} for x in sq]}
+    thr_ls = float(sys.argv[sys.argv.index("--threshold-ls") + 1]) / 100 if "--threshold-ls" in sys.argv else -0.0213   # rev 2
+    tl = [x for x in D if x["book_short"] + x["book_long"] <= thr_ls]
+    rec["long_plus_short_tail_days"] = {"threshold": thr_ls, "n": len(tl), "per_year": dict(collections.Counter(x["day"][:4] for x in tl)),
+                                        "fwd3d": stats([x["fwd3d"] for x in tl]), "fwd7d": stats([x["fwd7d"] for x in tl]),
+                                        "n_in_runs_of_3_consecutive_days": sum(1 for i in range(len(D) - 2) if all(D[i + k]["book_short"] + D[i + k]["book_long"] <= thr_ls for k in range(3)))}
     rec["unconditional"] = {"fwd3d": stats([x["fwd3d"] for x in D]), "fwd7d": stats([x["fwd7d"] for x in D])}
     rec["worst_book_short_days"] = [{"day": x["day"], "book_short_pct": x["book_short"] * 100} for x in sorted(D, key=lambda x: x["book_short"])[:15]]
     json.dump(rec, open(out + ".tmp", "w"), indent=1); os.replace(out + ".tmp", out)
@@ -121,6 +126,7 @@ def main():
     for k, v in rec["live_ls_percentiles"].items(): print(f"live long+short {k} {v['value_pct']:.2f}%: rank {v['rank_pct']:.2f} pct")
     for k, v in rec["live_fund_short_percentiles"].items(): print(f"live fund-leg short {k} {v['value_pct']:.2f}%: rank {v['rank_pct']:.2f} pct")
     s = rec["squeeze_days"]; print(f"squeeze days (book short daily <= {thr * 100:.2f}%): n={s['n']} per year {s['per_year']}; fwd3d {s['fwd3d']}; fwd7d {s['fwd7d']}")
+    t = rec["long_plus_short_tail_days"]; print(f"long+short tail days (<= {t['threshold'] * 100:.2f}%): n={t['n']} per year {t['per_year']}; fwd3d {t['fwd3d']}; fwd7d {t['fwd7d']}; 3-day runs {t['n_in_runs_of_3_consecutive_days']}")
     print("unconditional fwd3d", rec["unconditional"]["fwd3d"], "fwd7d", rec["unconditional"]["fwd7d"])
     print("worst 15 book-short days:", [(x["day"], round(x["book_short_pct"], 2)) for x in rec["worst_book_short_days"]])
 
