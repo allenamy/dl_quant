@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/Users/haosiyu/cc_tmp/nc_20260923/src/nc_v2_nonbeta_gate.py", line 122, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/Users/haosiyu/cc_tmp/nc_20260923/src/nc_v2_nonbeta_gate.py", line 98, in main
+    cmp[f] = npz_eq(f"{sbB}/featws/mini/data/{f}", f"{sbV}/featws/mini/data/{f}")
+             ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/haosiyu/cc_tmp/nc_20260923/src/nc_v2_nonbeta_gate.py", line 72, in npz_eq
+    elif not np.array_equal(x, y): bad.append(f"{k}: differs")
+             ~~~~~~~~~~~~~~^^^^^^
+  File "/Users/haosiyu/wide_shadow/venv/lib/python3.14/site-packages/numpy/_core/numeric.py", line 2537, in array_equal
+    return builtins.bool((asanyarray(a1 == a2)).all())
+                                     ^^^^^^^^
+ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()

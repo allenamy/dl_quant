@@ -59,18 +59,68 @@ def run(tree, A, sb):
     return r.returncode, round(time.time() - t0, 1)
 
 
+def arr_eq(x, y):
+    """BITWISE equality of two loaded npz values (fix 2026-09-25 after run v2gate_20260925T0500Z crashed on dlw_targets.npz `members`, an
+    object array of ragged index arrays, where np.array_equal raised "truth value ... ambiguous"). ndarray: same shape and dtype, then raw
+    bytes equal (so NaN payloads and -0.0 vs 0.0 count as differences — the gate says bitwise); object arrays: element by element,
+    recursively; anything else: same type and ==. Returns (ok, detail)."""
+    if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
+        if not (isinstance(x, np.ndarray) and isinstance(y, np.ndarray)): return False, "ndarray vs non-ndarray"
+        if x.shape != y.shape or x.dtype != y.dtype: return False, f"shape/dtype {x.shape}/{x.dtype} vs {y.shape}/{y.dtype}"
+        if x.dtype.kind == "O":
+            nd = sum(1 for a, b in zip(x.ravel(), y.ravel()) if not arr_eq(a, b)[0])
+            return nd == 0, (f"{nd} object elements differ" if nd else "")
+        xb, yb = np.ascontiguousarray(x), np.ascontiguousarray(y)
+        if xb.tobytes() == yb.tobytes(): return True, ""
+        k = x.dtype.itemsize
+        if k in (1, 2, 4, 8): nd = int((xb.view(f"u{k}") != yb.view(f"u{k}")).sum())
+        else: nd = int((xb.view("u1").reshape(-1, k) != yb.view("u1").reshape(-1, k)).any(axis=1).sum())
+        return False, f"{nd} cells differ (bitwise)"
+    if type(x) is not type(y): return False, f"type {type(x).__name__} vs {type(y).__name__}"
+    if isinstance(x, (float, np.floating)): return (np.float64(x).tobytes() == np.float64(y).tobytes()), "float scalar"
+    return bool(x == y), ""
+
+
+def selftest_arr_eq():
+    """baseline green first, then every planted difference must be caught; refuses the gate otherwise"""
+    f = np.array([[1.0, np.nan], [0.0, 2.0]], np.float32)
+    o = np.empty(2, object); o[0] = np.array([1, 2, 3], np.int64); o[1] = np.array([4], np.int64)
+    cases = [("float identical incl. NaN", f, f.copy(), True), ("object ragged identical", o, np.array([a.copy() for a in o] + [None], object)[:2], True),
+             ("unicode identical", np.array(["ab", "c"]), np.array(["ab", "c"]), True)]
+    f2 = f.copy(); f2[1, 1] = np.nextafter(np.float32(2.0), np.float32(3.0)); cases.append(("float one ulp", f, f2, False))
+    f3 = f.copy(); f3[1, 0] = -0.0; cases.append(("float -0.0 vs 0.0", f, f3, False))
+    o2 = np.empty(2, object); o2[0] = np.array([1, 2, 3], np.int64); o2[1] = np.array([5], np.int64); cases.append(("object one member differs", o, o2, False))
+    o3 = np.empty(2, object); o3[0] = np.array([1, 2, 3], np.int32); o3[1] = np.array([4], np.int64); cases.append(("object member dtype differs", o, o3, False))
+    cases.append(("dtype differs", f, f.astype(np.float64), False)); cases.append(("unicode differs", np.array(["ab", "c"]), np.array(["ab", "d"]), False))
+    bad = [(n, want) for n, a, b, want in cases if arr_eq(a, b)[0] is not want]
+    print(f"ARR_EQ_SELFTEST cases={len(cases)} wrong={len(bad)} {bad}", flush=True)
+    return not bad
+
+
+def _flat(d, p=""):
+    if isinstance(d, dict): return {k2: v2 for k, v in d.items() for k2, v2 in _flat(v, f"{p}/{k}").items()}
+    if isinstance(d, list): return {k2: v2 for i, v in enumerate(d) for k2, v2 in _flat(v, f"{p}[{i}]").items()}
+    return {p: d}
+
+
 def npz_eq(a, b):
+    """(ok, bad list[, meta_json field diff]) — the VERDICT uses ok (every array bitwise, meta_json included). When meta_json differs, the
+    differing JSON fields are listed by name with both values (a REPORT for the reader; it does not change ok)."""
     if not (os.path.exists(a) and os.path.exists(b)): return None, "missing"
     A, B = np.load(a, allow_pickle=True), np.load(b, allow_pickle=True)
     if sorted(A.files) != sorted(B.files): return False, f"keys {sorted(A.files)} vs {sorted(B.files)}"
-    bad = []
+    bad = []; meta = None
     for k in A.files:
-        x, y = A[k], B[k]
-        if x.shape != y.shape or x.dtype != y.dtype: bad.append(f"{k}: shape/dtype"); continue
-        if x.dtype.kind in "fc":
-            if not (np.array_equal(np.isnan(x), np.isnan(y)) and np.array_equal(np.nan_to_num(x), np.nan_to_num(y))): bad.append(f"{k}: {int((np.nan_to_num(x) != np.nan_to_num(y)).sum())} cells")
-        elif not np.array_equal(x, y): bad.append(f"{k}: differs")
-    return (not bad), bad
+        ok, det = arr_eq(A[k], B[k])
+        if not ok:
+            bad.append(f"{k}: {det}")
+            if k == "meta_json":
+                try:
+                    fa, fb = _flat(json.loads(str(A[k]))), _flat(json.loads(str(B[k])))
+                    meta = [[f, fa.get(f), fb.get(f)] for f in sorted(set(fa) | set(fb)) if fa.get(f) != fb.get(f)]
+                except Exception as e:
+                    meta = f"meta_json not parseable: {type(e).__name__}"
+    return (not bad), bad, {"arrays_other_than_meta_json_identical": all(x.startswith("meta_json:") for x in bad), "meta_json_field_diff": meta}
 
 
 def main():
@@ -81,7 +131,9 @@ def main():
         for d in sorted(glob.glob(f"{WS}/state/snap/17*")):
             A = int(os.path.basename(d))
             if os.path.isfile(f"{d}/COMPLETE") and os.path.isfile(f"{d}/boundary_raw.npz") and os.path.exists(f"{WS}/state/target_live_king/{A}.json"): anchors.append(A)
-    rec = {"base_tree_receipt_sha256": sha(f"{base}/PATCH_RECEIPT.json"), "v2_tree_receipt_sha256": sha(f"{v2}/PATCH_RECEIPT.json"), "anchors": {}}
+    if not selftest_arr_eq(): print("NC_V2_NONBETA_GATE REFUSED comparator self-test failed", flush=True); return 3
+    rec = {"base_tree_receipt_sha256": sha(f"{base}/PATCH_RECEIPT.json"), "v2_tree_receipt_sha256": sha(f"{v2}/PATCH_RECEIPT.json"), "anchors": {},
+           "comparator": "arr_eq (bitwise raw bytes; object arrays element-wise), self-test green at start"}
     all_ok = True
     for A in anchors:
         require_quiet_window(min_remaining_min=10)
@@ -111,7 +163,9 @@ def main():
         all_ok &= ok
         rec["anchors"][str(A)] = {"runs": res, "compare": cmp, "nonbeta_identical": ok}
         print(f"anchor {A}: base rc {res['base']['rc']} ({res['base']['sec']}s) v2 rc {res['v2']['rc']} ({res['v2']['sec']}s) | non-beta identical {ok} | "
-              + json.dumps({k: (v if not isinstance(v, tuple) else v[0]) for k, v in cmp.items()}, default=str)[:600], flush=True)
+              + json.dumps({k: (v if not isinstance(v, tuple) else v[0]) for k, v in cmp.items()}, default=str)[:600]
+              + " | REPORT arrays identical except meta_json: " + json.dumps({k: cmp[k][2]["arrays_other_than_meta_json_identical"] for k in cmp
+                                                                              if isinstance(cmp[k], tuple) and len(cmp[k]) == 3}), flush=True)
     rec["VERDICT"] = "PASS" if (all_ok and anchors) else "FAIL"
     json.dump(rec, open(f"{out}/NC_V2_NONBETA_GATE.json", "w"), indent=1, default=str)
     print(f"NC_V2_NONBETA_GATE {rec['VERDICT']} anchors={len(anchors)}", flush=True)
