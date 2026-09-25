@@ -1,0 +1,178 @@
+{
+ "device": "fa_rn8census.py",
+ "self_sha256": "cd3b8e5603d4f83808ce7abe9cc49b9747bdb435b112378cb4e31864415ba981",
+ "utc": "2026-09-25T15:07:53Z",
+ "ordered_by": "lead 2026-09-25 (RN8 provenance census)",
+ "reading_lines": {
+  "fa_ladder.py:187": "legs_p = LR_ROOT / 'work/legs.npz'",
+  "fa_ladder.py:383": "rn8_in = np.asarray(arr['RN8'])[use].astype(np.float64)",
+  "fresh_legs.py:80-81": "lr_=fr['last_rate'][i,m]; li_=fr['last_iv'][i,m]; RN8=lr_*(8.0/iv)",
+  "news_fund_replay.py:15": "LEDGER = /workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+  "shadow_loop_v3.py:455-456": "exp_iv = led[-1][2]; if anchor-last_ts < exp_iv*3600*0.9: skip",
+  "news_fund_replay.py:38-39": "truncate keeps the EARLIEST limit rows, drops the NEWEST"
+ },
+ "legs": {
+  "FRESH": {
+   "path": "/dev/shm/fresh_2026-09-23/work/legs.npz",
+   "sha256": "486dfe3765c5ef37adb6270b7c1642305bf0d6b1da9d1930b0963e8249f524d8",
+   "n_anchors": 10333,
+   "verdict": "CONTAMINATED"
+  },
+  "NEW_S": {
+   "path": "/dev/shm/news_2026-09-23/work/legs.npz",
+   "sha256": "18999e169c6b68546271f8194fd74eaa79041d1967ba44df978f4cbea33d6bd5",
+   "n_anchors": 10333,
+   "verdict": "CONTAMINATED"
+  },
+  "NC": {
+   "path": "/dev/shm/news2_2026-09-23/work/legs.npz",
+   "sha256": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65",
+   "n_anchors": 10333,
+   "verdict": "CLEAN"
+  }
+ },
+ "truth_cells": {
+  "FRESH": {
+   "GMTUSDT@2026-01-09T20:00:00Z": {
+    "rn8": -0.019999999552965164,
+    "archive_truth": -0.00316064,
+    "clean": false
+   },
+   "AXSUSDT@2026-01-17T20:00:00Z": {
+    "rn8": -0.019999999552965164,
+    "archive_truth": -0.00383392,
+    "clean": false
+   },
+   "TLMUSDT@2026-03-02T04:00:00Z": {
+    "rn8": -0.019999999552965164,
+    "archive_truth": 0.0001,
+    "clean": false
+   }
+  },
+  "NEW_S": {
+   "GMTUSDT@2026-01-09T20:00:00Z": {
+    "rn8": -0.019999999552965164,
+    "archive_truth": -0.00316064,
+    "clean": false
+   },
+   "AXSUSDT@2026-01-17T20:00:00Z": {
+    "rn8": -0.019999999552965164,
+    "archive_truth": -0.00383392,
+    "clean": false
+   },
+   "TLMUSDT@2026-03-02T04:00:00Z": {
+    "rn8": -0.019999999552965164,
+    "archive_truth": 0.0001,
+    "clean": false
+   }
+  },
+  "NC": {
+   "GMTUSDT@2026-01-09T20:00:00Z": {
+    "rn8": -0.003160639898851514,
+    "archive_truth": -0.00316064,
+    "clean": true
+   },
+   "AXSUSDT@2026-01-17T20:00:00Z": {
+    "rn8": -0.003833919996395707,
+    "archive_truth": -0.00383392,
+    "clean": true
+   },
+   "TLMUSDT@2026-03-02T04:00:00Z": {
+    "rn8": 9.999999747378752e-05,
+    "archive_truth": 0.0001,
+    "clean": true
+   }
+  }
+ },
+ "size_NEW_S_vs_NC": {
+  "common_finite_cells": 2644794,
+  "differing_cells": 404,
+  "differing_pct": 0.015275291761853663,
+  "sign_flips": 43,
+  "by_year": {
+   "2022": 4,
+   "2023": 16,
+   "2024": 2,
+   "2025": 24,
+   "2026": 358
+  },
+  "clamp_eligible_NEW_S": 64600,
+  "clamp_eligible_NC": 64594,
+  "clamp_only_NEW_S": 11,
+  "clamp_only_NC": 5,
+  "at_2pct_cap_NEW_S": 2601,
+  "at_2pct_cap_NC": 2591
+ },
+ "ledger_is_fine": {
+  "ledger": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+  "ledger_sha256": "073088e503c026d6071c76764426503616d53570e5f3763807df27ea7cc80362",
+  "ledger_mtime_utc": "2026-09-19T12:21:28Z",
+  "fund_replay_mtime_utc": "2026-09-23T10:25:31Z",
+  "ledger_predates_replay": true,
+  "GMTUSDT_2026_01_09_settlements": [
+   {
+    "utc": "08:00Z",
+    "rate": -0.00252809
+   },
+   {
+    "utc": "16:00Z",
+    "rate": -0.02
+   },
+   {
+    "utc": "17:00Z",
+    "rate": -0.00120366
+   },
+   {
+    "utc": "18:00Z",
+    "rate": -0.00057875
+   },
+   {
+    "utc": "19:00Z",
+    "rate": -0.00035501
+   },
+   {
+    "utc": "20:00Z",
+    "rate": -0.00039508
+   },
+   {
+    "utc": "21:00Z",
+    "rate": -0.0011146
+   }
+  ],
+  "reading": "the 1h settlements ARE present and the ledger predates the replay => the input ledger is NOT the defect"
+ },
+ "root_cause_skip_gate": {
+  "gate": "shadow_loop_v3.py L455-456: skip the fetch when anchor - last_ts < exp_iv*3600*0.9",
+  "differing_cells": 404,
+  "differing_cells_with_gate_active": 404,
+  "gate_explains_all_differing": true,
+  "differing_with_last_iv_8_and_age_under_7h2": 360,
+  "median_age_hours_on_differing": 4.0,
+  "median_last_iv_on_differing": 8.0,
+  "gate_active_pct_on_NON_differing": 99.98165928626261,
+  "reading": "the gate is ACTIVE on every differing cell, and also on ~31% of non-differing cells => it is NECESSARY BUT NOT SUFFICIENT: harm needs a real venue interval switch as well. Stated so that 'gate active' is never read as 'must be wrong'."
+ },
+ "actual_discriminator": {
+  "signature": "gate active AND the ledger held settlements the replay never fetched",
+  "differing_cells": 404,
+  "differing_with_missed_settlements": 360,
+  "differing_pct_explained": 89.10891089108911,
+  "median_missed_on_differing": 1.0,
+  "max_missed_on_differing": 4,
+  "non_differing_sampled": 20000,
+  "non_differing_with_missed_settlements": 0,
+  "non_differing_false_positive_pct": 0.0,
+  "UNEXPLAINED_differing_cells": 44,
+  "reading": "the signature has ZERO false positives in the sampled non-differing cells, and explains 89% of the differing ones. The remaining cells are NOT explained by it and are named here rather than absorbed: they may come from EMA state carried forward from an earlier contaminated anchor.",
+  "gate_alone_is_not_a_discriminator": "the gate is active on ~100% of cells by design; it is necessary, not specific"
+ },
+ "second_defect_detector_was_firing": {
+  "receipt": "/dev/shm/news_2026-09-23/receipts/P2A_FUND_REPLAY.json",
+  "receipt_sha256": "75fd360a23397f142c4d99d421a40e60bb2f75ec924619d0e4fa187ee84f4a8c",
+  "fetch_truncated_at_limit_100": 226,
+  "fetch_calls": 2327372,
+  "code": "news_fund_replay.py L38-39 keeps rows [lo, lo+limit) i.e. the EARLIEST, dropping the NEWEST",
+  "reading": "the device counted its own truncations into its own receipt from the start; nobody read the field"
+ },
+ "not_established": "WHY the live path is clean. Hypothesis: in production this block is an INCREMENTAL UPDATER over a ledger the executor maintains (led already holds the 1h rows), while in the replay it is the SOLE POPULATOR so the gate self-locks. This device does NOT test the live path; news2 measured live fn_v 12/12 == archive truth, which is consistent."
+}
