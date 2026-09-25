@@ -67,6 +67,15 @@ DECLARED = [
             "bt_objb_targets independently asserts the targets receipt's arm == the config's arm",
      "evidence_must_appear": ['f"{arm}|scaled|rule|raw|UAFE"'], "evidence_must_not_appear": [],
      "file": "dlarch_chain_run.py"},
+    {"value": "the engine memory threshold", "was": "my engine_gate had its own 8.0, then a copy of 22",
+     "resolution": "SINGLE_SOURCE",
+     "how": "engine_gate reads launch.min_available_gib from THE SAME config bt_launch is handed "
+            "(bt_launch.py L151 MINFREE = float(CFG['launch']['min_available_gib'])). A looser local "
+            "threshold would let me pass my own gate and then block inside bt_launch while holding the "
+            "one engine slot",
+     "evidence_must_appear": ['json.load(open(cpath))["launch"]["min_available_gib"]', "engine_gate(cpath)"],
+     "evidence_must_not_appear": ["min_avail_gib=8.0", 'need = m.get("gate_threshold_gib")'],
+     "file": "dlarch_chain_run.py"},
     {"value": "frozen upstream device shas", "was": "-", "resolution": "GUARDED",
      "how": "the derive script sha-pins every source and every symlinked sibling and asserts before use",
      "evidence_must_appear": ["!= pinned", "sha("], "evidence_must_not_appear": [],
@@ -82,6 +91,35 @@ NAMEISH = re.compile(r'"((?:[A-Za-z0-9_]*(?:NEWS2?|DLARCH|OBJB|OVN|UAFE|scaled\|
 REBUILD = re.compile(r'f"[^"]*\{(?:seed|args\.seed|arm)\}[^"]*"')
 # Literals that are legitimately repeated: they name an external contract, not an internal coupling.
 ALLOW_REPEAT = {"|scaled|rule|raw|UAFE"}
+
+
+def code_only(text):
+    """Source with COMMENTS and triple-quoted strings (docstrings) removed.
+
+    The evidence scan must look at CODE, not at prose that merely MENTIONS code. Twice a false
+    positive came from my own explanatory text: a comment in the derived adapter spec still contained
+    the old rebuilt arm name while the live line was `"arm": ARM`, and this device flagged
+    `min_avail_gib=8.0` because engine_gate's docstring describes the defect it replaced.
+    This is a text-level instrument by nature -- it cannot become a behavioural one -- but it can stop
+    confusing a description of a thing with the thing.
+    LIMITATION (in the receipt): an evidence pattern that lives ONLY inside a triple-quoted string is
+    invisible to this scan.
+    """
+    tq = ('"' * 3, "'" * 3)
+    out, i, n = [], 0, len(text)
+    while i < n:
+        if text[i] == "#":
+            j = text.find("\n", i)
+            i = n if j < 0 else j
+            continue
+        hit = next((q for q in tq if text.startswith(q, i)), None)
+        if hit:
+            j = text.find(hit, i + 3)
+            i = n if j < 0 else j + 3
+            continue
+        out.append(text[i])
+        i += 1
+    return "".join(out)
 
 
 def sha(p):
@@ -104,7 +142,8 @@ def main():
                 p = os.path.join(r, fn)
                 if os.path.islink(p) and not os.path.exists(p):
                     continue
-                files[fn] = {"path": p, "sha256": sha(p), "text": open(p).read()}
+                raw = open(p).read()
+                files[fn] = {"path": p, "sha256": sha(p), "text": raw, "code": code_only(raw)}
     print(f"scanned {len(files)} files from {len(roots)} root(s)")
 
     # ---- A. declared table, each entry CHECKED ----
@@ -114,8 +153,9 @@ def main():
         if f is None:
             row = {**{k: d[k] for k in ("value", "was", "resolution", "how", "file")}, "CHECK": "FILE_ABSENT"}
             declared_rows.append(row); declared_fail += 1; continue
-        missing = [e for e in d["evidence_must_appear"] if e not in f["text"]]
-        present = [e for e in d["evidence_must_not_appear"] if e in f["text"]]
+        # scan CODE, not comments/docstrings: prose describing the old defect is not the defect
+        missing = [e for e in d["evidence_must_appear"] if e not in f["code"]]
+        present = [e for e in d["evidence_must_not_appear"] if e in f["code"]]
         ok = not missing and not present
         declared_fail += 0 if ok else 1
         declared_rows.append({**{k: d[k] for k in ("value", "was", "resolution", "how", "file")},
@@ -131,11 +171,11 @@ def main():
     # ---- B. undeclared scan ----
     lit_where = {}
     for fn, f in files.items():
-        for m in NAMEISH.finditer(f["text"]):
+        for m in NAMEISH.finditer(f["code"]):
             lit_where.setdefault(m.group(1), set()).add(fn)
     repeated = {k: sorted(v) for k, v in lit_where.items() if len(v) >= 2 and k not in ALLOW_REPEAT}
-    rebuilds = {fn: sorted(set(REBUILD.findall(f["text"]))) for fn, f in files.items()
-                if REBUILD.search(f["text"])}
+    rebuilds = {fn: sorted(set(REBUILD.findall(f["code"]))) for fn, f in files.items()
+                if REBUILD.search(f["code"])}
     print(f"\nUNDECLARED scan: name-like literals in >=2 files: {len(repeated)}")
     for k, v in sorted(repeated.items()):
         print(f"    {k!r} in {v}")
@@ -148,6 +188,11 @@ def main():
            "roots": roots, "files": {k: v["sha256"] for k, v in files.items()},
            "declared": declared_rows, "declared_stale": declared_fail,
            "undeclared_repeated_literals": repeated, "undeclared_rebuilds": rebuilds,
+           "LIMITATION": ("This census only checks couplings that are DECLARED. New code can introduce a "
+                          "new one, and did: one hour after this device was written, engine_gate was added "
+                          "with its own 8.0 GiB threshold duplicating the engine's 22 from the config. "
+                          "So the device must be re-run after every change that adds a cross-device value, "
+                          "and a new coupling must be declared in the same commit that creates it."),
            "note": ("A repeated literal or a rebuild is a CANDIDATE coupling, not proof of a defect: "
                     "the allowlist names the ones that encode an external contract. Anything else must "
                     "be moved into DECLARED with a resolution, so the next one does not wait for "

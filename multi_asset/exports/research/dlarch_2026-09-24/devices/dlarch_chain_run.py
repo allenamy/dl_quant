@@ -123,9 +123,24 @@ def foreign_engines():
     return out
 
 
-def engine_gate(min_avail_gib=8.0, poll=60, max_wait=7200):
-    """Block until no foreign bt_launch is running AND cgroup headroom is sufficient. Returns the
-    observation log for the receipt (every poll, so a long wait is auditable)."""
+def engine_gate(cpath, poll=60, max_wait=14400):
+    """Block until no foreign bt_launch is running AND cgroup headroom clears the SAME threshold
+    bt_launch itself uses. Returns the observation log for the receipt (every poll, auditable).
+
+    The threshold is read from THE CONFIG bt_launch will read -- `launch.min_available_gib` in cpath,
+    the same file, so there is exactly ONE number and it cannot drift. bt_launch does
+    `MINFREE = float(CFG["launch"]["min_available_gib"])` (bt_launch.py L151) and blocks with
+    "memory: available 20.1 GiB < 22.0 ... polling every 60 s" (L210).
+
+    Two earlier versions of this docstring were wrong in the same way twice over: first I invented a
+    separate `min_avail_gib=8.0` default (looser than the engine's, so my gate would "pass" and then
+    the work would sit blocked INSIDE bt_launch while holding the one engine slot), then I pointed it
+    at my own `mem_gate()["gate_threshold_gib"] = 22`, which is still a COPY of the config's value.
+    Reading the config is the single source. I wrote the 8.0 version one hour after building the
+    coupled-constant census -- the census only checks couplings I declared, so new code can add a new
+    one; that is the census's real limitation and it is why this note is here."""
+    # single source: the very config bt_launch will be handed
+    need = float(json.load(open(cpath))["launch"]["min_available_gib"])
     obs = []
     t0 = time.monotonic()
     while True:
@@ -137,13 +152,15 @@ def engine_gate(min_avail_gib=8.0, poll=60, max_wait=7200):
                "avail_gib": avail, "mem_gate": m, "waited_s": int(time.monotonic() - t0)}
         # An unreadable process table or an unavailable headroom reading is NOT a pass: if I cannot
         # verify the condition, I must not start. (Absent evidence is not evidence of absence.)
-        ok = (not g) and avail is not None and avail >= min_avail_gib
+        rec["need_gib"] = need
+        rec["need_gib_source"] = f"{cpath}:launch.min_available_gib"
+        ok = (not g) and avail is not None and avail >= need
         rec["PASS"] = bool(ok)
         obs.append(rec)
         if ok:
-            log(f"engine gate PASS: no foreign bt_launch, avail {avail} GiB, waited {rec['waited_s']}s")
+            log(f"engine gate PASS: no foreign bt_launch, avail {avail} >= need {need} GiB, waited {rec['waited_s']}s")
             return obs
-        log(f"engine gate WAIT: foreign={list(g)} avail={avail} GiB waited={rec['waited_s']}s")
+        log(f"engine gate WAIT: foreign={list(g)} avail={avail} need={need} GiB waited={rec['waited_s']}s")
         assert time.monotonic() - t0 < max_wait, f"engine gate: still blocked after {max_wait}s, giving up"
         time.sleep(poll)
 
@@ -267,7 +284,7 @@ def main():
     # ---- 5. engine (upstream bt_launch, UNMODIFIED) ----
     if do_engine:
         # Team rule: one engine cell at a time. Gate BEFORE the engine step, never around it.
-        rec["engine_gate"] = engine_gate()
+        rec["engine_gate"] = engine_gate(cpath)
         rec["mem_gate_before_engine"] = mem_gate()
         t0 = time.monotonic()
         rc = run([PV, "-B", "bt_launch.py", "PATH,HOME,LC_CTYPE", cpath, "--resume", arm], f"{L}/engine.log",

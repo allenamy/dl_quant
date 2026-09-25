@@ -1,6 +1,6 @@
 {
   "device": "dlarch_pairwise_constants.py",
-  "self_sha256": "6138563e2b7c2a28b6074b4e7aa1a5f11456e51223b98cda08f22ff6cc0435d3",
+  "self_sha256": "5a2c6991dab50b9eeeddedfd2c232cb3bd957563384b34dc5d2d41e4a04097f9",
   "roots": [
     "/workspace/dlarch_2026-09-24",
     "/workspace/dlarch_2026-09-24/chain/devices"
@@ -8,14 +8,14 @@
   "files": {
     "dlarch_artifact_audit.py": "1c5908cf16d93a8344a59e1ae12f2e987c0ff4738d8fa4728ade58ae48633905",
     "dlarch_cell_retain.py": "c6ea9c27a300f6bbae7bb47b9d3a5d27c775fd8c106d94cf4b670f6b2f8ba440",
-    "dlarch_chain_run.py": "268049fb3eab0e49e3f1ab160202a2f55f8b843e99066c57d0069008d4c82c30",
+    "dlarch_chain_run.py": "134d6e46b62ce37f005dca08870ec7e23e196f2c0162837d7cd53840b4e535f4",
     "dlarch_chain_torch.py": "0355f9c51c5512a577c4daa617a6f2d14c44a5a56f8bed15c5383323eb5360db",
     "dlarch_derive_chain.py": "2d51ead44ef385da5225453ed08f8f052ba21d59dad57c6de4916b52fdfc0be4",
     "dlarch_identity_compare.py": "3a3f5fc944ea7d8a21cd10f73312a521d7e81edeb56717ffd89d3d5e35043348",
     "dlarch_leg_readout.py": "b7922bd7822f8154bb8d02bcb7e208abfbeda8e72a300efb1cda8a2f602cdd4f",
     "dlarch_null_gate_b200.py": "1090369cbb469f5833cd6e07aee425de8c9c1b60d92fc5ddb6f2358f226d36d4",
     "dlarch_null_gate_schemeA.py": "fca8f4a4dcd192086e3bddedc30eb17f2d018f6cc04b05a0ec1d3855075f080e",
-    "dlarch_pairwise_constants.py": "6138563e2b7c2a28b6074b4e7aa1a5f11456e51223b98cda08f22ff6cc0435d3",
+    "dlarch_pairwise_constants.py": "5a2c6991dab50b9eeeddedfd2c232cb3bd957563384b34dc5d2d41e4a04097f9",
     "dlarch_pregates.py": "b1187d2fe6c0103f00d9bfe14b56dc05a6c342f384a9636afa8a02e107acd661",
     "dlarch_pregates_rejudge.py": "3b69d945cf627ac24e5b25a5c9e7fe79c563cab69a3c5c75edf6f281c34cfcdd",
     "dlarch_readback_folds.py": "4a24a4941db24af0b02f0950e7369b6c646d07e851543547e02528d6c375654d",
@@ -114,6 +114,16 @@
       "forbidden_present": []
     },
     {
+      "value": "the engine memory threshold",
+      "was": "my engine_gate had its own 8.0, then a copy of 22",
+      "resolution": "SINGLE_SOURCE",
+      "how": "engine_gate reads launch.min_available_gib from THE SAME config bt_launch is handed (bt_launch.py L151 MINFREE = float(CFG['launch']['min_available_gib'])). A looser local threshold would let me pass my own gate and then block inside bt_launch while holding the one engine slot",
+      "file": "dlarch_chain_run.py",
+      "CHECK": "OK",
+      "missing_evidence": [],
+      "forbidden_present": []
+    },
+    {
       "value": "frozen upstream device shas",
       "was": "-",
       "resolution": "GUARDED",
@@ -158,7 +168,6 @@
     ],
     "dlarch_derive_chain.py": [
       "f\"/workspace/old_vs_new_2026-09-23/devices/ADAPTER_SPEC_NEW_s{seed}.json\"",
-      "f\"DLARCH_T0_s{seed}\"",
       "f\"NEWS2_s{seed}\""
     ],
     "dlarch_leg_readout.py": [
@@ -187,10 +196,10 @@
       "f\"DLARCH_TRAIN_DONE arm={arm} seed={args.seed} params={nparam} out={out} \""
     ],
     "news2_adapter_specs.py": [
-      "f\"DLARCH_T0_s{seed}\"",
       "f\"NEW_S2 (nc_2026-09-23 features, news2_2026-09-23 models) combo_s{seed}: full corrected producer contract, King + F10 s{seed} retrained\"",
       "f\"{W}/work/combo_s{seed}\""
     ]
   },
+  "LIMITATION": "This census only checks couplings that are DECLARED. New code can introduce a new one, and did: one hour after this device was written, engine_gate was added with its own 8.0 GiB threshold duplicating the engine's 22 from the config. So the device must be re-run after every change that adds a cross-device value, and a new coupling must be declared in the same commit that creates it.",
   "note": "A repeated literal or a rebuild is a CANDIDATE coupling, not proof of a defect: the allowlist names the ones that encode an external contract. Anything else must be moved into DECLARED with a resolution, so the next one does not wait for someone else's guard to catch it."
 }
