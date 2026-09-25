@@ -234,7 +234,11 @@ def main():
         # universe starts 2022-01-31, so 181 pre-universe anchors stayed in the slice and
         # book_universe.align raised 'universe missing anchor; no forward/backfill' -- T3's first ever run
         # died 23 s in. The worse half is the field below: `anchors_outside_universe` was computed from
-        # that same one-sided mask, so it would have printed 0 while 181 anchors were in fact outside.
+        # that same one-sided mask, so it would have printed 1 while 181 anchors were in fact outside.
+        # (I first wrote "0" here. MEASURED after the fix: outside=181 = before=180 + after=1, so the old
+        # one-sided `a <= u_ts[-1]` did catch the single anchor above the end and reported 1. The
+        # name/number mismatch is 1-vs-181, not 0-vs-181. I also predicted the split would be 181 before
+        # and 0 after; it is 180/1. Correcting rather than rounding my own prediction to "right".)
         # The name said "outside", the number meant "above". Both ends are clamped and reported separately
         # now, so the quantity matches its name.
         inuni = (a >= u_ts[0]) & (a <= u_ts[-1])

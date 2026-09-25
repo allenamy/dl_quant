@@ -34,6 +34,11 @@ W=/workspace/dlarch_2026-09-24
 DEV="${DEV:?set DEV to the probe copy of the device dir (never the delivered tree)}"
 SEED="${SEED:?}"; FOLD="${FOLD:?}"; LOAD_SEED="${LOAD_SEED:?}"
 ARM=T3
+# DO NOT reconstruct the output path from ARM: the trainer's arm name is 'T3_clamp' (the clamp mode is
+# part of it), so `$K/solo/$ARM/...` pointed at a directory that never existed and the probe reported
+# "produced no scores.npz" for a run that had in fact succeeded (rc=0, 282 s). Two constants that must
+# agree, written in two places, drift. Read the path from the producer's own DLARCH_TRAIN_DONE line.
+outdir(){ sed -n 's/.*DLARCH_TRAIN_DONE .* out=\([^ ]*\).*/\1/p' "$1" | tail -1; }
 K=$W/crosslevel_t3_$(date -u +%Y%m%dT%H%M%SZ)
 PY=/workspace/venv/bin/python
 mkdir -p "$K/solo" "$K/loaded" "$K/load_arm"
@@ -71,7 +76,9 @@ A0=$(date +%s)
 run "$K/solo" "$SEED" "$FOLD" "$K/run_solo.log"; RA=$?
 A1=$(date +%s)
 SOLO_SEC=$((A1-A0))
-SOLO=$(sha256sum "$K/solo/$ARM/f10_s$SEED/$FOLD/scores.npz" 2>/dev/null | cut -d' ' -f1)
+SOLO_DIR=$(outdir "$K/run_solo.log")
+log "run A out dir (from the trainer's own line): ${SOLO_DIR:-<none announced>}"
+SOLO=$(sha256sum "$SOLO_DIR/$FOLD/scores.npz" 2>/dev/null | cut -d' ' -f1)
 log "run A (solo)  : rc=$RA  ${SOLO_SEC}s  scores.npz sha $SOLO"
 [ -n "$SOLO" ] || { log "run A produced no scores.npz -- cannot form a reference; STOP"; exit 1; }
 
@@ -89,7 +96,9 @@ B0=$(date +%s)
 run "$K/loaded" "$SEED" "$FOLD" "$K/run_loaded.log"; RB=$?
 B1=$(date +%s)
 LOAD_SEC=$((B1-B0))
-LOADED=$(sha256sum "$K/loaded/$ARM/f10_s$SEED/$FOLD/scores.npz" 2>/dev/null | cut -d' ' -f1)
+LOADED_DIR=$(outdir "$K/run_loaded.log")
+log "run B out dir (from the trainer's own line): ${LOADED_DIR:-<none announced>}"
+LOADED=$(sha256sum "$LOADED_DIR/$FOLD/scores.npz" 2>/dev/null | cut -d' ' -f1)
 log "run B (loaded): rc=$RB  ${LOAD_SEC}s  scores.npz sha $LOADED"
 
 wait "$LOADPID" 2>/dev/null; log "background load finished (pid $LOADPID)"
