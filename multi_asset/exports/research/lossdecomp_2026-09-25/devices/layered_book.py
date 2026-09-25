@@ -73,6 +73,22 @@ def main():
     rb_ts = sorted(rb)
     orows = collections.defaultdict(lambda: collections.defaultdict(list))
     for o in OR: orows[o.get("rebalance_id")][o.get("symbol")].append(o)
+    # rev 3 (old-window run 2: 31 of 46 anchors failed the per-name L2 == L1 check; the difference was ONE name per anchor, e.g. BUSDT
+    # 2,335 -> 1,960 at 09-18 04Z): the executor's venue-cap step (scheduler/anchor_loop.py clamp_venue_cap L847, applied at L2204 AFTER the
+    # clamp) is recorded only as an alarm. Source: state/notify_audit.jsonl messages "场所上限截断 k 名 …: SYM +before→+after (cap C, kind)";
+    # a list truncated at 6 names ends with " …" and is flagged (then the anchor cannot close by name).
+    import re
+    CAPS = []
+    _na = f"{HOME}/dl_quant_live/state/notify_audit.jsonl"
+    if os.path.exists(_na):
+        for l in open(_na):
+            try: d = json.loads(l)
+            except ValueError: continue
+            m = str(d.get("message", ""))
+            if "场所上限截断" not in m or "失败" in m: continue
+            items = {x[0]: (float(x[1].replace(",", "")), float(x[2].replace(",", "")))
+                     for x in re.findall(r"([A-Z0-9]+USDT) ([+\-][\d,]+)→([+\-][\d,]+) \(cap", m)}
+            CAPS.append((float(d.get("ts") or 0), items, " …" in m))
     rec = {"device_sha256": sha(os.path.abspath(__file__)), "price_snapshot": last, "rolling_sha256": sha(f"{WS}/state/snap/{last}/rolling.npz"),
            "window": [fmt(t_from), fmt(t_to)], "anchors": []}
     T = collections.defaultdict(float)
@@ -100,6 +116,14 @@ def main():
         L2 = {s: float(num(rows[0].get("target_w")) or 0.0) * tg for s, rows in orr.items()} if tg else {}
         ca = rs.get("clamped_after_reshape") or {}
         row["checks"]["sum L2 == clamped_after_reshape.book_net_usdt"] = bool(tg) and abs(sum(L2.values()) - float(ca.get("book_net_usdt", 0))) < 1e-3 * G
+        caps = [c for c in CAPS if at - 120 <= c[0] <= at + 3600]
+        capped = {}; cap_trunc = any(c[2] for c in caps)
+        for c in caps: capped.update(c[1])
+        row["venue_capped"] = {k: list(v) for k, v in capped.items()}; row["venue_cap_list_truncated"] = cap_trunc
+        _cap_shift = sum(a_ - b_ for b_, a_ in capped.values())
+        row["checks"]["sum L2 == clamped_after_reshape.book_net_usdt"] = bool(tg) and abs(sum(L2.values()) - float(ca.get("book_net_usdt", 0)) - _cap_shift) < max(1e-3 * G, 1.0 * (len(capped) + 1))
+        row["checks"]["venue-capped names: L1 == before and L2 == after (alarm text rounded to 1 USDT)"] = (not cap_trunc) and all(
+            abs(L1.get(k, 0.0) - b_) <= 1.0 and abs(L2.get(k, 0.0) - a_) <= 1.0 for k, (b_, a_) in capped.items())
         row["L1_names_without_order_row"] = sorted(s for s in L1 if s not in orr and abs(L1[s]) > 1e-9)
         prev_t = [t for t in rb_ts if t < at]; prev = rb[prev_t[-1]] if prev_t else {}; post = rb.get(at, {})
         names = sorted(set(L0) | set(L1) | set(L2) | set(prev) | set(post))
@@ -135,7 +159,7 @@ def main():
                           "<designed abstention, pooled>", "filled") if c in reasons), "other"))
             e["clamped"] = s in set(ca.get("names") or [])
             per[s] = e
-        _nc = [abs(e["L2_clamped"] - e["L1_reshaped"]) for s_, e in per.items() if not e["clamped"] and s_ in L1 and s_ in L2]
+        _nc = [abs(e["L2_clamped"] - e["L1_reshaped"]) for s_, e in per.items() if not e["clamped"] and s_ not in capped and s_ in L1 and s_ in L2]
         row["checks"]["per name L2 == L1 for every NON-clamped name (the reshape population is the producer's names, no zero-target names)"] = \
             bool(_nc) and max(_nc) < 1e-6 * G
         row["max_abs_L2_minus_L1_nonclamped_usdt"] = max(_nc) if _nc else None
@@ -144,7 +168,7 @@ def main():
         cls = collections.defaultdict(float)
         for s, e in per.items():
             if e["L5_readback"] is None: continue
-            cls["clamp (L2-L1): " + ("clamped names" if e["clamped"] else "others")] += e["L2_clamped"] - e["L1_reshaped"]
+            cls["clamp/cap (L2-L1): " + ("clamped names" if e["clamped"] else ("venue-capped names" if s in capped else "others"))] += e["L2_clamped"] - e["L1_reshaped"]
             cls["L2->L5: " + e["class"]] += e["L5_readback"] - e["L2_clamped"]
         row["net_gap_by_class"] = dict(cls)
         row["closure"] = {"n_names_unknown_fill_qty": sum(1 for e in per.values() if e["closure_qty_residual"] is None),
