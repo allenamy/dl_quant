@@ -1,0 +1,18 @@
+{"site": "live/alarm_policy.py:179-180", "tier": 2, "verdict": "legitimate", "why": "dedup window: ts missing ⇒ 0 ⇒ outside the window ⇒ the page is SENT again (conservative: more paging, never less)"}
+{"site": "live/cost_buckets.py:120, 341", "tier": 2, "verdict": "legitimate", "why": "sign of rows already filtered to measured fills (cost report)"}
+{"site": "live/pilot_metrics.py:422", "tier": 2, "verdict": "defect (low)", "why": "filled_notional None ⇒ 0 in a realised-gross metric (an unknown fill reported as none)"}
+{"site": "live/telegram_notify.py:125", "tier": 2, "verdict": "legitimate", "why": "recent-send check: ts missing ⇒ not recent ⇒ send (conservative)"}
+{"site": "ops/alarm_digest.py:110-111, 143-144, 179, 221", "tier": 2, "verdict": "defect (low)", "why": "a row without ts ⇒ 0 ⇒ outside every window / sorted first: silently dropped from the digest rather than listed as undated"}
+{"site": "ops/assert_anchor_artifacts.py:441, 465, 479", "tier": 2, "verdict": "defect (low)", "why": "filled_notional missing ⇒ 0 ⇒ counted NOT filled in artifact assertions (a no-trade-day assertion could pass on rows whose fill is unknown)"}
+{"site": "ops/assert_anchor_artifacts.py:276", "tier": 2, "verdict": "legitimate", "why": "ts missing ⇒ 0 ⇒ the delivery reads as very old ⇒ the freshness assertion fails (conservative)"}
+{"site": "ops/backfill_markout.py:272", "tier": 2, "verdict": "legitimate", "why": "fill_ts is a required key of the rows grouped (KeyError, not a default)"}
+{"site": "ops/chase_readout.py:129, 220, 253, 276", "tier": 2, "verdict": "legitimate", "why": "experiment READOUT (report only, pooled); rows filtered to measured fills; the intended-notional sum is display. (Code read only — no experiment data was read, blind state.)"}
+{"site": "ops/check_funding_span.py:52", "tier": 2, "verdict": "legitimate", "why": "fundingIntervalHours missing ⇒ 0 ⇒ disagrees with every known interval ⇒ reported as a mismatch (conservative)"}
+{"site": "ops/daily_summary.py:588, 596-597, 611, 620, 640", "tier": 2, "verdict": "defect (low)", "why": "rows without nav_ts / ts / anchor_ts ⇒ 0 ⇒ outside the day's window: silently absent from the daily summary"}
+{"site": "ops/first_real_anchor.py:48", "tier": 2, "verdict": "legitimate", "why": "a print of a one-off tool"}
+{"site": "ops/ic_monitor.py:414, 442, 515, 605 (A and B)", "tier": 2, "verdict": "legitimate", "why": "cooldown / opened_at timestamps missing ⇒ 0 ⇒ the cooldown reads as elapsed ⇒ the monitor re-alarms (conservative)"}
+{"site": "ops/rejudge_ledger_rows.py:197", "tier": 2, "verdict": "defect (low)", "why": "readback qty missing ⇒ 0 in a closure identity of the re-judging tool: an absent quantity can make the closure hold or fail spuriously"}
+{"site": "ops/score_post_fix.py:342", "tier": 2, "verdict": "legitimate", "why": "anchor_ts is a required key (KeyError, not a default)"}
+{"site": "ops/verify_reshape_anchor.py:86-98, 157", "tier": 2, "verdict": "legitimate", "why": "report formatting; net_before read as required"}
+{"site": "ops/verify_reshape_anchor.py:148, 177", "tier": 2, "verdict": "legitimate", "why": "target_gross / net_shift missing ⇒ 0 makes the identity check STRICTER (fails red), not looser"}
+{"site": "ops/verify_reshape_anchor.py:201", "tier": 2, "verdict": "defect (low)", "why": "readback notional missing ⇒ 0 ⇒ the name is not counted as held in the verification report"}
