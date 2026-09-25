@@ -1,0 +1,61 @@
+{
+ "device": "fa_fx.py",
+ "self_sha256": "48cd634266ca31763b799e32bc9edaec54ecdcdf5fcd683cb2a9ec26493b6ab3",
+ "arm": "FX2",
+ "seed": "2027",
+ "utc": "2026-09-25T18:53:27Z",
+ "prereg": "docs/PREREG_FX1_FX3_same_caliber_2026-09-25.md + \u4fee\u8ba2 1",
+ "stage": "1 (PROVISIONAL) \u2014 rate from the LOCAL ledger last_rate; 5,613 cells already known to disagree between two local sources; the final verdict belongs to stage 2 (exchange-archive truth)",
+ "spec": {
+  "FTRIM_MODE": "half",
+  "FTRIM_TH": -0.003,
+  "source": "eda/w10_ftrim_63feb2f7193f_2026-08-30.py L178-187 (verbatim)"
+ },
+ "rate_field": {
+  "name": "FXRATE (panel f_fund_now + NC fn_v splice)",
+  "file": "/dev/shm/fanom_2026-09-24/fx/FXRATE.npz",
+  "sha256": "fad09cd7e8985e270271d8df0717dfa74394e7e8cc9e2c6acaa16cb58d148a3f",
+  "why": "08-30 applied the threshold to f_fund_now = the RAW settlement rate (r6_panel_splice.py L92 keeps the normalised rate as a SEPARATE variable rate_nf); fund_replay's last_rate was adjudicated WRONG 2017:0 by the archive",
+  "nan_policy": "NaN = no usable rate; it must NOT be turned into 0, because 0 is a valid rate and would silently become a non-hit under `rate <= TH`"
+ },
+ "modes": {
+  "scaled_diagnostic": {
+   "gross_conserved_on_hit_anchors_max_dev": 2.220446049250313e-16,
+   "gross_gate_verdict_unchanged": true,
+   "publish_only_base": 0,
+   "publish_only_variant": 0,
+   "publish_net": 0,
+   "trade_mask_bitwise_equal_base": true,
+   "hit_cells": 5496,
+   "hit_anchors": 3166,
+   "rate_nan_cells_excluded_from_hit_test": 3735951,
+   "nan_handling": "NaN excluded by an explicit isfinite, not converted to 0 (08-30 L179 used nan_to_num=0.0; that is a non-hit either way, but it would merge 'no data' with 'rate is 0')",
+   "weight_cells_differing": 744289,
+   "npz": "/dev/shm/fanom_2026-09-24/fx/FX2_s2027/scaled_diagnostic.npz",
+   "npz_sha256": "93f6872c5d2327854c80a590da0dc73d106ff1ad4981417ef8c3a5be2eb958c9",
+   "positive_control_gates_reproduce_kernel": {
+    "trade_mask": true,
+    "reason": true
+   }
+  },
+  "literal": {
+   "gross_conserved_on_hit_anchors_max_dev": 2.220446049250313e-16,
+   "gross_gate_verdict_unchanged": true,
+   "publish_only_base": 0,
+   "publish_only_variant": 0,
+   "publish_net": 0,
+   "trade_mask_bitwise_equal_base": true,
+   "hit_cells": 5496,
+   "hit_anchors": 3166,
+   "rate_nan_cells_excluded_from_hit_test": 3735951,
+   "nan_handling": "NaN excluded by an explicit isfinite, not converted to 0 (08-30 L179 used nan_to_num=0.0; that is a non-hit either way, but it would merge 'no data' with 'rate is 0')",
+   "weight_cells_differing": 626243,
+   "npz": "/dev/shm/fanom_2026-09-24/fx/FX2_s2027/literal.npz",
+   "npz_sha256": "c8255b2be989e193302edc42fc6be99b322fef1a490ec4ff8f674496dc86a776",
+   "positive_control_gates_reproduce_kernel": {
+    "trade_mask": true,
+    "reason": true
+   }
+  }
+ }
+}

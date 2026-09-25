@@ -1,0 +1,161 @@
+{
+ "device": "fa_rn8stall.py",
+ "self_sha256": "a371eb555a34007d24dbe6acc2fad649662b6d3ff9a2e5c9e9435ed0c3b0f118",
+ "utc": "2026-09-25T19:24:28Z",
+ "borrowed_from": "news2 D10_FX_STALL_DECOMPOSITION.json (four-class as-of decomposition)",
+ "population": "MY 404 cells = NEW_S legs RN8 != NC legs RN8 (NOT news2's 5,613 panel-vs-replay rate cells)",
+ "inputs": {
+  "news_legs": "18999e169c6b68546271f8194fd74eaa79041d1967ba44df978f4cbea33d6bd5",
+  "nc_legs": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65",
+  "replay": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4",
+  "p2_ledger": {
+   "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+   "sha256": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
+  },
+  "news2_cells_csv": {
+   "path": "/tmp/P2CELLS.csv",
+   "sha256": "f0dcb96fca24600642ae2576d76723d646e1246abff15efcc38bd4b481e72de0"
+  }
+ },
+ "positive_control_vs_news2": {
+  "my_cells": 404,
+  "shared_with_news2_population": 184,
+  "my_truth_asof_equals_theirs": 184,
+  "disagreements": [],
+  "reading": "my as-of computation is checked against news2's PUBLISHED per-cell as-of on the shared cells BEFORE I use it on the cells only I have. If the populations barely overlap the control is weak and that is stated rather than hidden."
+ },
+ "counts": {
+  "STALE_ASOF": 357,
+  "SAME_ASOF_DIFF_VALUE": 39,
+  "REPLAY_AHEAD": 8
+ },
+ "cells": 404,
+ "closure": {
+  "sum_of_classes": 404,
+  "equals_cells": true
+ },
+ "behind_s": {
+  "median": 14400,
+  "min": 14400,
+  "max": 1468800,
+  "median_hours": 4.0,
+  "median_days": 0.16666666666666666
+ },
+ "examples": {
+  "STALE_ASOF": [
+   {
+    "symbol": "SOLUSDT",
+    "anchor": "2022-11-09T20:00Z",
+    "replay_asof": "2022-11-09T16:00Z",
+    "truth_asof": "2022-11-09T20:00Z",
+    "behind_s": 14400,
+    "news_rn8": -0.014999999664723873,
+    "nc_rn8": -0.03999999910593033
+   },
+   {
+    "symbol": "FTTUSDT",
+    "anchor": "2022-11-10T04:00Z",
+    "replay_asof": "2022-11-10T00:00Z",
+    "truth_asof": "2022-11-10T04:00Z",
+    "behind_s": 14400,
+    "news_rn8": -0.02500000037252903,
+    "nc_rn8": -0.05000000074505806
+   },
+   {
+    "symbol": "BNXUSDT",
+    "anchor": "2022-12-04T12:00Z",
+    "replay_asof": "2022-12-04T08:00Z",
+    "truth_asof": "2022-12-04T12:00Z",
+    "behind_s": 14400,
+    "news_rn8": -0.006044529844075441,
+    "nc_rn8": -0.05000000074505806
+   },
+   {
+    "symbol": "HNTUSDT",
+    "anchor": "2022-12-21T20:00Z",
+    "replay_asof": "2022-12-21T16:00Z",
+    "truth_asof": "2022-12-21T20:00Z",
+    "behind_s": 14400,
+    "news_rn8": -0.009999999776482582,
+    "nc_rn8": -0.03999999910593033
+   }
+  ],
+  "SAME_ASOF_DIFF_VALUE": [
+   {
+    "symbol": "API3USDT",
+    "anchor": "2025-09-21T08:00Z",
+    "replay_asof": "2025-09-21T08:00Z",
+    "truth_asof": "2025-09-21T08:00Z",
+    "behind_s": 0,
+    "news_rn8": 0.00019999999494757503,
+    "nc_rn8": 9.999999747378752e-05
+   },
+   {
+    "symbol": "IPUSDT",
+    "anchor": "2025-10-01T16:00Z",
+    "replay_asof": "2025-10-01T16:00Z",
+    "truth_asof": "2025-10-01T16:00Z",
+    "behind_s": 0,
+    "news_rn8": 0.00019999999494757503,
+    "nc_rn8": 9.999999747378752e-05
+   },
+   {
+    "symbol": "LYNUSDT",
+    "anchor": "2025-10-24T04:00Z",
+    "replay_asof": "2025-10-24T04:00Z",
+    "truth_asof": "2025-10-24T04:00Z",
+    "behind_s": 0,
+    "news_rn8": 0.00019999999494757503,
+    "nc_rn8": 9.999999747378752e-05
+   },
+   {
+    "symbol": "AIAUSDT",
+    "anchor": "2025-10-30T16:00Z",
+    "replay_asof": "2025-10-30T16:00Z",
+    "truth_asof": "2025-10-30T16:00Z",
+    "behind_s": 0,
+    "news_rn8": 0.00019999999494757503,
+    "nc_rn8": 9.999999747378752e-05
+   }
+  ],
+  "REPLAY_AHEAD": [
+   {
+    "symbol": "ZKCUSDT",
+    "anchor": "2026-09-02T20:00Z",
+    "replay_asof": "2026-09-02T20:00Z",
+    "truth_asof": "2026-09-01T02:00Z",
+    "behind_s": 151200,
+    "news_rn8": -0.000557120016310364,
+    "nc_rn8": -0.000278560008155182
+   },
+   {
+    "symbol": "IOSTUSDT",
+    "anchor": "2026-09-10T04:00Z",
+    "replay_asof": "2026-09-10T00:00Z",
+    "truth_asof": "2026-09-01T00:00Z",
+    "behind_s": 777600,
+    "news_rn8": -0.019999999552965164,
+    "nc_rn8": -0.13902823626995087
+   },
+   {
+    "symbol": "SOPHUSDT",
+    "anchor": "2026-09-11T12:00Z",
+    "replay_asof": "2026-09-11T12:00Z",
+    "truth_asof": "2026-09-01T00:00Z",
+    "behind_s": 907200,
+    "news_rn8": -0.005466040223836899,
+    "nc_rn8": -0.0027330201119184494
+   },
+   {
+    "symbol": "MTLUSDT",
+    "anchor": "2026-09-13T12:00Z",
+    "replay_asof": "2026-09-13T08:00Z",
+    "truth_asof": "2026-09-01T00:00Z",
+    "behind_s": 1065600,
+    "news_rn8": -0.019999999552965164,
+    "nc_rn8": -0.03870784118771553
+   }
+  ]
+ },
+ "shape_reading": "news2's point: a distribution that piles up at ONE interval means 'one anchor late'; a median of days with a multi-hundred-day tail means SELF-LOCKING (the predicted-interval gate stops advancing once a name is recorded at 8h). Compare the spread below against that."
+}
