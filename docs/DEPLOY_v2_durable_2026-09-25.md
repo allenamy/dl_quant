@@ -43,10 +43,11 @@ Governing records: this release **changes no model and no state format**. The NC
 - The first snap_retention run: `state/snap/retention.log` and snap.log have no `rc≠0`; within 14 days nothing is deleted (today's snapshots are all < 14 days old; the first trim happens once the window is full).
 - Forward-log freshness (`nc_forward_freshness.py`).
 
-## 3. Rollback (reverse order)
+## 3. Rollback (the mirror image of the forward order; corrected per the lead's review 2026-09-25 — the first draft put "revert the upstream" AFTER the executor rollback, and the executor rollback's own safe_commit battery (5d3029c expects the UNPATCHED upstream) would then be red on drift_gate and block itself: the E-0925-D family)
 1. Stop the producer services (as W1).
-2. `nc_install_files.py rollback <PKG> <BK>` → `rolled_back_not_started` (every file back to the pre-release bytes, the four archive moves reversed, state untouched).
-3. Executor: roll the running tree back to 5d3029c (the NC handbook §R executor path, revert commit via safe_commit).
-4. Research repo: `git revert` the upstream patch (drift guard back to `no drift across 5`).
+2. Producer: `nc_install_files.py rollback <PKG> <BK>` → `rolled_back_not_started` (every file back to its pre-release bytes, the four archive moves reversed, state untouched).
+3. **Research repo: `git revert` the upstream patch** → the 5d3029c drift guard reads `no drift across 5` (check it before moving on).
+4. Executor: roll the running tree back to 5d3029c (revert commit + safe_commit full battery; drift should be green at this point) → ff_running_tree → all three equal.
 5. Start the services; the first anchor goes through B0–B6.
-- **Version-pairing hazard**: the v2 executor refuses a v1 field (version_mismatch), so M3 shadow would read "field refused" (no trading impact, but it alerts). Keep the executor and producer versions paired on rollback (both roll back together, or neither does).
+- Rehearsal of this order (in F-2): the 5d3029c guard against the patched upstream = DRIFT (red), against the unpatched upstream = no drift (green); the 6cc11cc guard is the reverse. So the order "upstream first, then executor" is the only one in which each step's own battery is green.
+- **Version-pairing hazard**: the v2 executor refuses a v1 field (version_mismatch), so M3 shadow would read "field refused" (no trading impact, but it alerts). Keep the executor and producer versions paired on rollback (steps 2–4 in the same window).
