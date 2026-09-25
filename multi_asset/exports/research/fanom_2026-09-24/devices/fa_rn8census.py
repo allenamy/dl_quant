@@ -189,6 +189,41 @@ rec["second_defect_detector_was_firing"] = {
     "code": "news_fund_replay.py L38-39 keeps rows [lo, lo+limit) i.e. the EARLIEST, dropping the NEWEST",
     "reading": "the device counted its own truncations into its own receipt from the start; nobody read the field"}
 
+# ---- 4. the per-arm table the lead asked for: binding.legs_used VERBATIM plus its sha, from each arm's own receipt ----
+import glob
+rec["per_arm_legs_binding"] = {}
+for f in sorted(glob.glob("/dev/shm/fanom_2026-09-24/*/*/FA_COMBO_RECEIPT.json")):
+    try: d = json.load(open(f))
+    except Exception: continue
+    # the key lives at .legs_f10_binding, NOT .binding -- I assumed "binding" and the table came back empty while
+    # grep found the string, which is the tell that the path was wrong rather than the data absent
+    b = d.get("legs_f10_binding") or d.get("binding") or {}
+    lu = b.get("legs_used")
+    if not lu: continue
+    arm = "/".join(f.split("/")[-3:-1])
+    lbl = next((k for k, v in LEGS.items() if os.path.realpath(v) == os.path.realpath(lu)), "UNKNOWN")
+    rec["per_arm_legs_binding"][arm] = {
+        "legs_used_verbatim": lu, "legs_sha256": b.get("legs_sha256"),
+        "which_legs": lbl, "verdict": rec["legs"].get(lbl, {}).get("verdict", "UNKNOWN")}
+# the rn8-clamp arms did not go through a combo receipt; their build log records the root itself
+for lg in sorted(glob.glob("/dev/shm/fanom_2026-09-24/logs/RN8*_s*.log")):
+    try: txt = open(lg, errors="replace").read()
+    except Exception: continue
+    for line in txt.split("\n"):
+        if line.startswith("FA_COMBO ") and '"legs"' in line:
+            try: j = json.loads(line[len("FA_COMBO "):])
+            except Exception: continue
+            root = j.get("legs")
+            lbl = {"news2_2026-09-23": "NC", "news_2026-09-23": "NEW_S", "fresh_2026-09-23": "FRESH"}.get(root, "UNKNOWN")
+            rec["per_arm_legs_binding"]["rn8_clamp/" + os.path.basename(lg).replace(".log", "")] = {
+                "legs_used_verbatim": root + "/work/legs.npz (from the arm's own FA_COMBO log line)",
+                "legs_sha256": rec["legs"].get(lbl, {}).get("sha256"),
+                "which_legs": lbl, "verdict": rec["legs"].get(lbl, {}).get("verdict", "UNKNOWN")}
+            break
+rec["deprecation"] = {"fresh_legs.py": "main() raises RuntimeError as of 2026-09-25 (lead ruling: retire, do not fix); "
+                                      "import still works so archived receipts remain readable",
+                      "news_fund_replay.py": "news2 to add the same (not my owner)"}
+
 rec["not_established"] = ("WHY the live path is clean. Hypothesis: in production this block is an INCREMENTAL "
                           "UPDATER over a ledger the executor maintains (led already holds the 1h rows), while in "
                           "the replay it is the SOLE POPULATOR so the gate self-locks. This device does NOT test "
@@ -208,6 +243,10 @@ print("  skip gate explains all differing cells: %s (%d/%d); gate also active on
          g["gate_active_pct_on_NON_differing"]), flush=True)
 print("  ledger predates replay: %s ; 1h settlements present: %d rows"
       % (rec["ledger_is_fine"]["ledger_predates_replay"], len(rec["ledger_is_fine"]["GMTUSDT_2026_01_09_settlements"])), flush=True)
+print("  per-arm legs binding (%d arms):" % len(rec["per_arm_legs_binding"]), flush=True)
+for k in sorted(rec["per_arm_legs_binding"], key=lambda x: (rec["per_arm_legs_binding"][x]["which_legs"], x)):
+    v = rec["per_arm_legs_binding"][k]
+    print("    %-28s %-6s %-13s %s" % (k, v["which_legs"], v["verdict"], (v["legs_sha256"] or "")[:16]), flush=True)
 print("  second defect, detector was firing: fetch_truncated_at_limit_100 = %s"
       % rec["second_defect_detector_was_firing"]["fetch_truncated_at_limit_100"], flush=True)
 d = rec["actual_discriminator"]
