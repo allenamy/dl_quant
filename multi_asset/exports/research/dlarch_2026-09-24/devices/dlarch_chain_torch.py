@@ -56,10 +56,16 @@ def log(*a): print(time.strftime("%H:%M:%S", time.gmtime()), *a, flush=True)
 
 
 def chain_torch(zc, sel, H, pm, NW, live, cap_mult, alpha, band, s_temp=0.0,
-                clamp_mode="clamp", _perturb=None):
+                clamp_mode="clamp", _perturb=None, census=None):
     """Differentiable `chain`. zc, sel: member-length. H, live: NW-length. Returns NW-length smv or None.
 
     _perturb: for the G3 RED control only -- a multiplicative nudge on `alpha`, which MUST break parity.
+    census:   if a dict is passed, it is filled with the DEAD-BAND census for gate G4:
+              `band_open_cells`  = cells the band let through (their value is not frozen to H)
+              `book_cells`       = cells that are non-zero in either H or the pre-band smv
+              This is the object G4 is about -- how much of the BOOK the band freezes. The network's
+              parameter-gradient sparsity is NOT that object: the last layer's gradient is a sum over
+              every pair in the span, so it is non-zero almost always regardless of the band.
     """
     dt = zc.dtype
     zero = torch.zeros((), dtype=dt, device=zc.device)
@@ -80,6 +86,11 @@ def chain_torch(zc, sel, H, pm, NW, live, cap_mult, alpha, band, s_temp=0.0,
     smv = H + a * (tgt - H)
     trade = smv - H
     gate = (trade.abs() >= band).to(dt) if s_temp <= 0 else torch.sigmoid((trade.abs() - band) / s_temp)
+    if census is not None:
+        pre = H + a * (tgt - H)
+        book = ((H.abs() > 0) | (pre.abs() > 0))
+        census["band_open_cells"] = int(((gate > 0) & book).sum())
+        census["book_cells"] = int(book.sum())
     smv = H + gate * (smv - H)
     keep_liq = torch.zeros(NW, dtype=torch.bool, device=zc.device)
     keep_liq[pm[sel]] = True
