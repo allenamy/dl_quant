@@ -105,6 +105,12 @@ eq64[a_both] = (NC[a_both] == PN[a_both])
 eq32[a_both] = np.abs(NC[a_both] - PN[a_both]) <= (np.abs(PN[a_both]) * 1.2e-7 + 1e-12)
 yr = np.array([int(iso(t)[:4]) for t in A_c])
 bad = a_both & ~eq64
+# lead 2026-09-25: split (b) by BOOK MEMBERSHIP. Only a MEMBER cell where NC is stale and the panel has a value can
+# move FX's hit set; a non-member cell never enters the book, so counting the two together overstates the exposure.
+is_member_full = np.zeros((len(A_c), len(sy)), bool)
+for _k, _t in enumerate(A_c):
+    _i = fi[int(_t)]; _lo, _hi = int(off[_i]), int(off[_i + 1])
+    is_member_full[_k, mem[_lo:_hi]] = True
 rec["overlap_classification"] = {
     "overlap_anchors": int(ov.sum()),
     "a_both_finite": int(a_both.sum()),
@@ -114,6 +120,13 @@ rec["overlap_classification"] = {
     "a_not_equal_by_year": {int(y): int(bad[yr == y].sum()) for y in sorted(set(yr.tolist()))},
     "b_nc_nan_panel_finite": int(b_nc_nan.sum()),
     "b_by_year": {int(y): int(b_nc_nan[yr == y].sum()) for y in sorted(set(yr.tolist()))},
+    "b_MEMBER_cells": int((b_nc_nan & is_member_full).sum()),
+    "b_NON_member_cells": int((b_nc_nan & ~is_member_full).sum()),
+    "b_MEMBER_by_year": {int(y): int((b_nc_nan & is_member_full)[yr == y].sum()) for y in sorted(set(yr.tolist()))},
+    "b_membership_note": ("only MEMBER cells can move FX's hit set: a non-member cell never enters the book. "
+                          "Counting both together overstates the exposure."),
+    "b_MEMBER_that_would_HIT_at_-0.0030": int((b_nc_nan & is_member_full & np.isfinite(PN) & (PN <= -0.0030)).sum()),
+    "b_MEMBER_that_would_HIT_at_-0.0010": int((b_nc_nan & is_member_full & np.isfinite(PN) & (PN <= -0.0010)).sum()),
     "c_panel_nan_nc_finite": int(c_panel_nan_nc_ok.sum()),
     "c_both_nan": int(c_both_nan.sum()),
     "dtype_note": "panel float32 promoted to float64 before comparison; both readings reported"}
@@ -168,7 +181,10 @@ print("FA_FXRATE receipt sha=%s  field %s" % (s[:16], rec["field"]["shape"]), fl
 print("  overlap anchors %d | (a) both finite %d -> bitwise equal %d, float32-equal %d, NOT equal %d"
       % (o["overlap_anchors"], o["a_both_finite"], o["a_bitwise_equal_after_promotion"],
          o["a_equal_within_float32_precision"], o["a_NOT_equal"]), flush=True)
-print("  (b) NC NaN & panel finite %d  by year %s" % (o["b_nc_nan_panel_finite"], o["b_by_year"]), flush=True)
+print("  (b) NC NaN & panel finite %d = MEMBER %d + non-member %d ; MEMBER by year %s"
+      % (o["b_nc_nan_panel_finite"], o["b_MEMBER_cells"], o["b_NON_member_cells"], o["b_MEMBER_by_year"]), flush=True)
+print("      of the MEMBER (b) cells, would HIT: %d at -0.0030, %d at -0.0010  <- this is the actual FX exposure"
+      % (o["b_MEMBER_that_would_HIT_at_-0.0030"], o["b_MEMBER_that_would_HIT_at_-0.0010"]), flush=True)
 print("  (c) panel NaN & NC finite %d | both NaN %d" % (o["c_panel_nan_nc_finite"], o["c_both_nan"]), flush=True)
 print("  splice from %s: %d combo anchors | NaN total %d = non-member %d + MEMBER-but-stale %d (%.3f%% of %d member cells) | real zeros %d"
       % (sp["from"], sp["splice_anchors"], sp["nan_cells_in_splice_total"], sp["nan_because_NOT_A_MEMBER"],
