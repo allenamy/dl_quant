@@ -1,0 +1,85 @@
+--- /tmp/cr3.before	2026-09-25 15:42:02
++++ multi_asset/exports/research/dlarch_2026-09-24/devices/dlarch_chain_run.py	2026-09-25 15:42:02
+@@ -97,6 +97,24 @@
+     return root
+ 
+ 
++# Team engine rule (lead 2026-09-25, updated): at most TWO cells in parallel.
++# MAX_FOREIGN_ENGINES is the count of OTHER bt_launch process groups tolerated -- 1, so that mine plus
++# one other makes two. The memory floor is the config's own launch.min_available_gib (single source,
++# read from the very file bt_launch is handed) PLUS a named margin, so the two numbers never drift:
++# the margin is explicit and the base is never copied.
++MAX_FOREIGN_ENGINES = 1
++ENGINE_GATE_MARGIN_GIB = 2.0      # named margin ON TOP OF the config's min_available_gib
++SHM_FREE_MIN_GIB = 4.0            # /dev/shm is shared with every other agent's caches
++
++
++def shm_free_gib():
++    try:
++        st = os.statvfs("/dev/shm")
++        return (st.f_bavail * st.f_frsize) / 2 ** 30
++    except OSError:
++        return None                # unreadable => caller must not proceed
++
++
+ def foreign_engines():
+     """Every bt_launch process group that is NOT mine, identified by the CONFIG PATH in its argv.
+ 
+@@ -124,8 +142,16 @@
+ 
+ 
+ def engine_gate(cpath, poll=60, max_wait=14400):
+-    """Block until no foreign bt_launch is running AND cgroup headroom clears the SAME threshold
+-    bt_launch itself uses. Returns the observation log for the receipt (every poll, auditable).
++    """Block until the team engine rule is satisfied, then return the observation log for the receipt
++    (every poll recorded, so a long wait is auditable).
++
++    THREE conditions, all measured, none inferred:
++      1 foreign bt_launch process groups <= MAX_FOREIGN_ENGINES (at most two cells in parallel),
++        identified by the CONFIG PATH in argv -- never by a familiar-looking pgid;
++      2 cgroup available (memory.max - anon - shmem) >= config's launch.min_available_gib + a named margin;
++      3 /dev/shm free >= SHM_FREE_MIN_GIB (it is shared with every other agent's caches).
++    An UNREADABLE process table, headroom or shm reading is NOT a pass: if I cannot verify a condition
++    I must not start.
+ 
+     The threshold is read from THE CONFIG bt_launch will read -- `launch.min_available_gib` in cpath,
+     the same file, so there is exactly ONE number and it cannot drift. bt_launch does
+@@ -140,7 +166,8 @@
+     coupled-constant census -- the census only checks couplings I declared, so new code can add a new
+     one; that is the census's real limitation and it is why this note is here."""
+     # single source: the very config bt_launch will be handed
+-    need = float(json.load(open(cpath))["launch"]["min_available_gib"])
++    base = float(json.load(open(cpath))["launch"]["min_available_gib"])
++    need = base + ENGINE_GATE_MARGIN_GIB
+     obs = []
+     t0 = time.monotonic()
+     while True:
+@@ -152,15 +179,24 @@
+                "avail_gib": avail, "mem_gate": m, "waited_s": int(time.monotonic() - t0)}
+         # An unreadable process table or an unavailable headroom reading is NOT a pass: if I cannot
+         # verify the condition, I must not start. (Absent evidence is not evidence of absence.)
++        shm = shm_free_gib()
+         rec["need_gib"] = need
+-        rec["need_gib_source"] = f"{cpath}:launch.min_available_gib"
+-        ok = (not g) and avail is not None and avail >= need
++        rec["need_gib_source"] = f"{cpath}:launch.min_available_gib ({base}) + named margin {ENGINE_GATE_MARGIN_GIB}"
++        rec["shm_free_gib"] = None if shm is None else round(shm, 2)
++        rec["shm_free_min_gib"] = SHM_FREE_MIN_GIB
++        rec["max_foreign_engines"] = MAX_FOREIGN_ENGINES
++        # Three conditions, all measured; an UNREADABLE reading is never a pass.
++        ok = (len(g) <= MAX_FOREIGN_ENGINES and "UNREADABLE" not in g
++              and avail is not None and avail >= need
++              and shm is not None and shm >= SHM_FREE_MIN_GIB)
+         rec["PASS"] = bool(ok)
+         obs.append(rec)
+         if ok:
+-            log(f"engine gate PASS: no foreign bt_launch, avail {avail} >= need {need} GiB, waited {rec['waited_s']}s")
++            log(f"engine gate PASS: foreign={len(g)}<={MAX_FOREIGN_ENGINES} avail={avail}>={need} "
++                f"shm={rec['shm_free_gib']}>={SHM_FREE_MIN_GIB} GiB, waited {rec['waited_s']}s")
+             return obs
+-        log(f"engine gate WAIT: foreign={list(g)} avail={avail} need={need} GiB waited={rec['waited_s']}s")
++        log(f"engine gate WAIT: foreign={list(g)}(max {MAX_FOREIGN_ENGINES}) avail={avail}/{need} "
++                f"shm={rec['shm_free_gib']}/{SHM_FREE_MIN_GIB} GiB waited={rec['waited_s']}s")
+         assert time.monotonic() - t0 < max_wait, f"engine gate: still blocked after {max_wait}s, giving up"
+         time.sleep(poll)
+ 
