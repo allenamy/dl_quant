@@ -1,7 +1,7 @@
 {
  "device": "fa_member_key.py",
- "self_sha256": "8a6529c0f4bba424a828a12d196d25dfb63af97a9c1e0381c6a43d252a267717",
- "utc": "2026-09-25T10:05:22Z",
+ "self_sha256": "401537c515da5a715511eaf45414d56a227eb108d89ea81ea084dec36e502115",
+ "utc": "2026-09-25T11:19:41Z",
  "purpose": "independent second key for family members, so that a later disagreement can distinguish 'the data changed' from 'one device changed'",
  "definition_executable": "h = sha256(); for k in sorted(z.files): a = ascontiguousarray(z[k]); h.update(k.encode()); h.update(str(a.dtype.str).encode()); h.update(str(a.shape).encode()); h.update(a.tobytes())  # NO separators; str(a.shape) is Python's default repr; keys sorted()",
  "readings_that_are_WRONG": {
@@ -43,6 +43,26 @@
   "/workspace/dlarch_2026-09-24/T3/T0/f10_s7/F10_OOF.npz": {
    "my_arrays_key": "44e99cad2212cda7c39df2bc98bcdec97543eaa86ae5aef0a79d7dc15f18277f",
    "container_sha256": "1c246c24fe78b98876baee13abeae1806d99c27da7bebfa96a3af435ff780b3f",
+   "npz_keys": [
+    "E_ts",
+    "P",
+    "symbols"
+   ],
+   "schema_ok": true
+  },
+  "/workspace/dlarch_2026-09-24/T3/T0/f10_s5/F10_OOF.npz": {
+   "my_arrays_key": "a04937525583b284a1943d194f798cd1c6f1daedbf6cf600780bb1cd78a8d804",
+   "container_sha256": "6754abba793dba005594f08931fb9e31d3891847cf14d3c6a70a715907c521c9",
+   "npz_keys": [
+    "E_ts",
+    "P",
+    "symbols"
+   ],
+   "schema_ok": true
+  },
+  "/workspace/dlarch_2026-09-24/T3/T0/f10_s23/F10_OOF.npz": {
+   "my_arrays_key": "302fcdd38952e4a95fb7e5b4f6f82c33b50b51dbe38c72f887cedd289f2d728b",
+   "container_sha256": "66242d6e3c779b9d9f1ec39b1b8588fe73dc0b729fdd5a7cb96ae72d1573ff50",
    "npz_keys": [
     "E_ts",
     "P",

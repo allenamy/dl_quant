@@ -47,6 +47,29 @@ def sha_file(p):
     return h.hexdigest()
 
 
+def write_json_verified(obj, path):
+    """write -> flush+fsync -> read back with the SAME reader -> compare -> only then commit.
+
+    dlarch 2026-09-25: the idiom `json.dump(x, open(p,"w")); assert os.path.exists(p)` is GREEN on a full disk.
+    The file object is never explicitly closed, so its buffer is flushed at interpreter exit where the error is
+    swallowed, and os.path.exists checks EXISTENCE, not CONTENT -- so a truncated receipt passes that assert.
+    Same root as the executor's _save (disk_full_swallowed_by_json_dump_open_idiom) and as my own near-miss
+    reading a sha off a truncated mirror log. The sha returned here is the one the verifying READ-BACK produced,
+    never an independent later re-read of the file (E-0925-A).
+    """
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(obj, f, indent=1)
+        f.flush(); os.fsync(f.fileno())
+    with open(tmp, "r") as f:
+        back = json.load(f)
+    assert back == obj, f"receipt did not read back equal: {path}"
+    s = sha_file(tmp)
+    os.replace(tmp, path)
+    assert sha_file(path) == s, f"receipt changed between verify and commit: {path}"
+    return s
+
+
 rec = {"device": "fa_member_key.py", "self_sha256": sha_file(os.path.abspath(__file__)),
        "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
        "purpose": ("independent second key for family members, so that a later disagreement can distinguish "
@@ -68,9 +91,10 @@ for p in FILES:
                          "schema_ok": bool(ok)}
     if not ok: bad.append(p)
 rec["all_schema_ok"] = bool(not bad)
-json.dump(rec, open(OUT + ".tmp", "w"), indent=1); os.replace(OUT + ".tmp", OUT)
-assert os.path.exists(OUT), "receipt not written"
-print("FA_MEMBER_KEY files=%d all_schema_ok=%s" % (len(FILES), rec["all_schema_ok"]), flush=True)
+# the sha is a LOCAL, not a field of rec: a file cannot contain its own sha, and writing it back in would make
+# the read-back comparison compare rec against a rec that no longer matches what was written.
+RECEIPT_SHA = write_json_verified(rec, OUT)
+print("FA_MEMBER_KEY files=%d all_schema_ok=%s receipt_sha256=%s" % (len(FILES), rec["all_schema_ok"], RECEIPT_SHA), flush=True)
 for p, v in rec["members"].items():
     if v.get("status"): print("  %-52s %s" % (os.path.basename(os.path.dirname(p)), v["status"])); continue
     print("  %-14s my_key %s  container %s  schema_ok %s"

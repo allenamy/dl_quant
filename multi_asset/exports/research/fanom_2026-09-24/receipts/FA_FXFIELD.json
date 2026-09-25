@@ -1,0 +1,149 @@
+{
+ "device": "fa_fxfield.py",
+ "self_sha256": "5ed7274ad860cf84b9a65c22a85ff51bf47ac7ece61d1da81061c0d9d918c8a9",
+ "utc": "2026-09-25T11:31:17Z",
+ "prereg": "docs/PREREG_FX1_FX3_same_caliber_2026-09-25.md (lead condition 1)",
+ "producing_line": {
+  "file": "multi_asset/exports/research/uplift_2026-09-11/r6_devices/r6_panel_splice.py",
+  "L92": "rate_nf = fr * (8.0 / iv_full)   # NORMALISED, separate variable",
+  "L98": "fn[okp] = fr[pos[okp]]           # f_fund_now takes the RAW rate fr",
+  "L101": "out['f_fund_now'][nC:, j] = fn.astype(np.float32)"
+ },
+ "panel": {
+  "path_given": "/workspace/fx_data_2026-09-13/a0dev/pod_backup_2026-08-21/wide_panel_4h_hist_v2.npz",
+  "resolved": "/workspace/data/wide_panel_4h_v2ext.npz",
+  "sha256": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116",
+  "ts_n": 10039,
+  "ts_first": "2022-01-31T00:00Z",
+  "ts_last": "2026-08-31T00:00Z",
+  "vintage_note": "the 08-30 device reads pod_backup_2026-08-21 on jpline (unreachable since 2026-09-04). Vintage is NOT asserted from the path name; the ts range above is the evidence a reader should judge it by."
+ },
+ "replay": {
+  "path": "/dev/shm/news2_2026-09-23/inputs/fund_replay.npz",
+  "sha256": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4",
+  "anchors_n": 10333
+ },
+ "common": {
+  "anchors": 10039,
+  "finite_cells": 3166207
+ },
+ "1a_is_f_fund_now_unnormalised": {
+  "equals_rate_times_8_over_iv_pct": 52.47493294026575,
+  "share_of_cells_with_iv_eq_8_pct": 52.573757811791836,
+  "equality_restricted_to_iv_eq_8": false,
+  "reading": "f_fund_now matches the normalised rate ONLY where iv==8, i.e. only where normalising is a no-op => f_fund_now is UN-normalised. This corroborates the producing line numerically."
+ },
+ "1b_equality_vs_last_rate": {
+  "exact_equal_as_float32_pct": 99.82272163506681,
+  "mismatched_cells": 5613,
+  "mismatch_is_representational": false,
+  "share_of_mismatches_with_rel_diff_gt_1e6_pct": 100.0,
+  "median_relative_diff_on_mismatches": 0.9891330336795779,
+  "abs_diff_max": 0.020667890256643295,
+  "abs_diff_median": 1.5988759659779292e-12,
+  "mismatches_by_year": {
+   "2022": 517,
+   "2023": 81,
+   "2024": 221,
+   "2025": 1227,
+   "2026": 3567
+  },
+  "distinct_symbols_affected": 438,
+  "worst_symbols": [
+   [
+    "RAYUSDT",
+    1148
+   ],
+   [
+    "BDXNUSDT",
+    749
+   ],
+   [
+    "SXPUSDT",
+    539
+   ],
+   [
+    "AERGOUSDT",
+    87
+   ],
+   [
+    "KNCUSDT",
+    81
+   ],
+   [
+    "ZRXUSDT",
+    70
+   ]
+  ],
+  "share_of_mismatches_where_iv_also_differs_pct": 30.233386780687688,
+  "examples": [
+   {
+    "symbol": "RAYUSDT",
+    "anchor": "2024-12-10T16:00Z",
+    "panel_f_fund_now": 4.999999873689376e-05,
+    "replay_last_rate": 0.0001,
+    "panel_iv": 4.0,
+    "replay_iv": 8.0
+   },
+   {
+    "symbol": "RAYUSDT",
+    "anchor": "2024-12-10T20:00Z",
+    "panel_f_fund_now": 4.999999873689376e-05,
+    "replay_last_rate": 0.0001,
+    "panel_iv": 4.0,
+    "replay_iv": 8.0
+   },
+   {
+    "symbol": "BDXNUSDT",
+    "anchor": "2025-06-03T16:00Z",
+    "panel_f_fund_now": 0.00018517000717110932,
+    "replay_last_rate": 0.00020995,
+    "panel_iv": 4.0,
+    "replay_iv": 8.0
+   },
+   {
+    "symbol": "BDXNUSDT",
+    "anchor": "2026-04-28T12:00Z",
+    "panel_f_fund_now": 4.999999873689376e-05,
+    "replay_last_rate": 0.0046011,
+    "panel_iv": 8.0,
+    "replay_iv": 4.0
+   },
+   {
+    "symbol": "SXPUSDT",
+    "anchor": "2026-06-02T08:00Z",
+    "panel_f_fund_now": 9.999999747378752e-05,
+    "replay_last_rate": -0.01080766,
+    "panel_iv": 8.0,
+    "replay_iv": 8.0
+   },
+   {
+    "symbol": "SXPUSDT",
+    "anchor": "2026-06-02T12:00Z",
+    "panel_f_fund_now": 9.999999747378752e-05,
+    "replay_last_rate": -0.01080766,
+    "panel_iv": 8.0,
+    "replay_iv": 8.0
+   }
+  ],
+  "VERDICT": "FAIL \u2014 the two sources genuinely disagree on these cells (not float32 representation): relative differences are O(1), and both directions occur."
+ },
+ "fx_hit_set_impact": {
+  "-0.001": {
+   "panel_hits": 42328,
+   "replay_hits": 42822,
+   "both": 42237,
+   "only_panel": 91,
+   "only_replay": 585,
+   "disagree_pct_of_union": 1.5752802181157226
+  },
+  "-0.003": {
+   "panel_hits": 13184,
+   "replay_hits": 13745,
+   "both": 13153,
+   "only_panel": 31,
+   "only_replay": 592,
+   "disagree_pct_of_union": 4.522357723577236
+  }
+ }
+}
