@@ -125,6 +125,11 @@ def main():
     seed = 42 if inservice_f10 else int(args[args.index("--seed") + 1])
     label = "parity" if parity else ("ref_nc_s42X" if reference else f"s{seed}")
     f10_src = f"{NS}/work/f10_s42" if inservice_f10 else f"{T0ROOT}/f10_s{seed}"
+    # ONE source of truth for the arm name. It used to be rebuilt in four places (here, the adapter
+    # spec device, the spec path, the targets path); the copies drifted as soon as --reference added a
+    # second arm, and the engine's bt_objb_targets caught it: arm_mismatch {receipt: DLARCH_T0_s42,
+    # want: DLARCH_REF_NC_s42X}. Computed once, passed down, recorded in the receipt.
+    arm = "DLARCH_REF_NC_s42X" if reference else f"DLARCH_T0_s{seed}"
     root = f"{CHAIN}/{label}"
     rec = {"device": "dlarch_chain_run.py", "self_sha256": sha(os.path.abspath(__file__)),
            "mode": "PARITY_GATE" if parity else ("REFERENCE_NC_s42X" if reference else "FAMILY_MEMBER"), "seed": seed, "root": root,
@@ -167,14 +172,14 @@ def main():
 
     # ---- 2. adapter spec (derived device takes the seed on argv) ----
     t0 = time.monotonic()
-    rc = run([PV, "-B", f"{DEV}/news2_adapter_specs.py", "PATH,HOME,LC_CTYPE", root, str(seed)], f"{L}/spec.log")
+    rc = run([PV, "-B", f"{DEV}/news2_adapter_specs.py", "PATH,HOME,LC_CTYPE", root, str(seed), arm], f"{L}/spec.log")
     rec["steps"]["adapter_spec"] = {"rc": rc, "seconds": round(time.monotonic() - t0, 1)}
     assert rc == 0, "adapter spec failed"
-    spec = f"{root}/configs/ADAPTER_SPEC_DLARCH_T0_s{seed}.json"
+    spec = f"{root}/configs/ADAPTER_SPEC_{arm}.json"
     rec["steps"]["adapter_spec"]["spec_sha256"] = sha(spec)
 
     # ---- 3. adapter -> TARGETS (upstream device, UNMODIFIED) ----
-    tnpz = f"{root}/targets/TARGETS_DLARCH_T0_s{seed}.npz"; tjson = tnpz.replace(".npz", ".json")
+    tnpz = f"{root}/targets/TARGETS_{arm}.npz"; tjson = tnpz.replace(".npz", ".json")
     t0 = time.monotonic()
     rc = run([PV, "-B", "ovn_adapter.py", "PATH,HOME,LC_CTYPE", spec, tnpz, tjson], f"{L}/adapter.log",
              cwd=f"{NS}/engine")
@@ -192,7 +197,6 @@ def main():
         f"found {[r['tag'] for r in base_run]}")
     BASE_TAG = base_run[0]["tag"]
     r0 = json.loads(json.dumps(base_run[0]))
-    arm = "DLARCH_REF_NC_s42X" if reference else f"DLARCH_T0_s{seed}"
     r0["arm"] = arm; r0["tag"] = f"{arm}|scaled|rule|raw|UAFE"; r0["targets"]["arm"] = arm
     for x in r0["targets"]["sources"]:
         x["npz"] = tnpz; x["npz_sha256"] = sha(tnpz); x["receipt"] = tjson; x["receipt_sha256"] = sha(tjson)

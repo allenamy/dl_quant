@@ -1,0 +1,66 @@
+--- /tmp/cr.before	2026-09-25 14:51:03
++++ multi_asset/exports/research/dlarch_2026-09-24/devices/dlarch_chain_run.py	2026-09-25 14:51:03
+@@ -125,6 +125,11 @@
+     seed = 42 if inservice_f10 else int(args[args.index("--seed") + 1])
+     label = "parity" if parity else ("ref_nc_s42X" if reference else f"s{seed}")
+     f10_src = f"{NS}/work/f10_s42" if inservice_f10 else f"{T0ROOT}/f10_s{seed}"
++    # ONE source of truth for the arm name. It used to be rebuilt in four places (here, the adapter
++    # spec device, the spec path, the targets path); the copies drifted as soon as --reference added a
++    # second arm, and the engine's bt_objb_targets caught it: arm_mismatch {receipt: DLARCH_T0_s42,
++    # want: DLARCH_REF_NC_s42X}. Computed once, passed down, recorded in the receipt.
++    arm = "DLARCH_REF_NC_s42X" if reference else f"DLARCH_T0_s{seed}"
+     root = f"{CHAIN}/{label}"
+     rec = {"device": "dlarch_chain_run.py", "self_sha256": sha(os.path.abspath(__file__)),
+            "mode": "PARITY_GATE" if parity else ("REFERENCE_NC_s42X" if reference else "FAMILY_MEMBER"), "seed": seed, "root": root,
+@@ -167,14 +172,14 @@
+ 
+     # ---- 2. adapter spec (derived device takes the seed on argv) ----
+     t0 = time.monotonic()
+-    rc = run([PV, "-B", f"{DEV}/news2_adapter_specs.py", "PATH,HOME,LC_CTYPE", root, str(seed)], f"{L}/spec.log")
++    rc = run([PV, "-B", f"{DEV}/news2_adapter_specs.py", "PATH,HOME,LC_CTYPE", root, str(seed), arm], f"{L}/spec.log")
+     rec["steps"]["adapter_spec"] = {"rc": rc, "seconds": round(time.monotonic() - t0, 1)}
+     assert rc == 0, "adapter spec failed"
+-    spec = f"{root}/configs/ADAPTER_SPEC_DLARCH_T0_s{seed}.json"
++    spec = f"{root}/configs/ADAPTER_SPEC_{arm}.json"
+     rec["steps"]["adapter_spec"]["spec_sha256"] = sha(spec)
+ 
+     # ---- 3. adapter -> TARGETS (upstream device, UNMODIFIED) ----
+-    tnpz = f"{root}/targets/TARGETS_DLARCH_T0_s{seed}.npz"; tjson = tnpz.replace(".npz", ".json")
++    tnpz = f"{root}/targets/TARGETS_{arm}.npz"; tjson = tnpz.replace(".npz", ".json")
+     t0 = time.monotonic()
+     rc = run([PV, "-B", "ovn_adapter.py", "PATH,HOME,LC_CTYPE", spec, tnpz, tjson], f"{L}/adapter.log",
+              cwd=f"{NS}/engine")
+@@ -192,7 +197,6 @@
+         f"found {[r['tag'] for r in base_run]}")
+     BASE_TAG = base_run[0]["tag"]
+     r0 = json.loads(json.dumps(base_run[0]))
+-    arm = "DLARCH_REF_NC_s42X" if reference else f"DLARCH_T0_s{seed}"
+     r0["arm"] = arm; r0["tag"] = f"{arm}|scaled|rule|raw|UAFE"; r0["targets"]["arm"] = arm
+     for x in r0["targets"]["sources"]:
+         x["npz"] = tnpz; x["npz_sha256"] = sha(tnpz); x["receipt"] = tjson; x["receipt_sha256"] = sha(tjson)
+--- /tmp/dc.before	2026-09-25 14:51:03
++++ multi_asset/exports/research/dlarch_2026-09-24/devices/dlarch_derive_chain.py	2026-09-25 14:51:03
+@@ -86,12 +86,17 @@
+          "realpath-normalised fold-artifact comparison; see the wrapper's own docstring"),
+     ],
+     "news2_adapter_specs.py": [
+-        ('for seed in ("42", "2027"):', 'for seed in [sys.argv[3]]:', 1,
+-         "one seed per invocation, taken from argv, so the 8 family seeds can each get a spec"),
+-        ('"arm": f"NEWS2_s{seed}"', '"arm": f"DLARCH_T0_s{seed}"', 1,
+-         "distinct arm name so these runs can never be confused with the in-service NEWS2 runs"),
+-        ('ADAPTER_SPEC_NEWS2_s{seed}.json', 'ADAPTER_SPEC_DLARCH_T0_s{seed}.json', 1,
+-         "output file name follows the arm name"),
++        ('for seed in ("42", "2027"):',
++         'ARM = sys.argv[4]   # DLARCH: the arm name is PASSED IN so it has exactly one source of truth\n'
++         '                    # (dlarch_chain_run). It used to be rebuilt as f"DLARCH_T0_s{seed}" here and in\n'
++         '                    # three other places; the copies drifted the moment a second arm existed\n'
++         '                    # (--reference), and bt_objb_targets caught it as arm_mismatch.\n'
++         'for seed in [sys.argv[3]]:', 1,
++         "one seed per invocation from argv, and the ARM name from argv too (single source of truth)"),
++        ('"arm": f"NEWS2_s{seed}"', '"arm": ARM', 1,
++         "arm comes from argv, never rebuilt here; distinct from the in-service NEWS2 runs by construction"),
++        ('ADAPTER_SPEC_NEWS2_s{seed}.json', 'ADAPTER_SPEC_{ARM}.json', 1,
++         "output file name follows the arm name, which now has one source"),
+         ('base = json.load(open(f"/workspace/old_vs_new_2026-09-23/devices/ADAPTER_SPEC_NEW_s{seed}.json"))',
+          'base = json.load(open("/workspace/old_vs_new_2026-09-23/devices/ADAPTER_SPEC_NEW_s42.json"))\n'
+          '    _b2 = json.load(open("/workspace/old_vs_new_2026-09-23/devices/ADAPTER_SPEC_NEW_s2027.json"))\n'
