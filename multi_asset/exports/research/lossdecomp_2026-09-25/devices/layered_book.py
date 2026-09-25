@@ -9,7 +9,7 @@ counted as 0. Here every layer is valued at the SAME decision-time price and ove
                     asserted: sum L1 == reshape.net_after, sum|L1| == reshape.gross_after (the reconstruction must reproduce the report)
   L2 clamped target the order rows' target_w x anchors.target_gross (asserted: sum == clamped_after_reshape.book_net_usdt); names with a
                     target but no order row are listed
-  L3 intended       prev position + the signed intended_notional of the SUBMITTED rows (buy +, sell -)
+  L3 tried          the clamped target for a name with >= 1 submitted row, else the previous position (rev 1: the per-attempt\n                    intended_notional sum double counted re-intended residuals)
   L4 filled         prev position + signed filled_notional (every row)
   L5 readback       this anchor's venue readback quantity x the same mid
   positions (prev, L5) are QUANTITIES from position_readback valued at mid_at_anchor (anchors row) — never the readback's own notional,
@@ -108,7 +108,7 @@ def main():
             fq, fq_known = 0.0, True; intended = 0.0; filled_usdt = 0.0
             for o in rows:
                 sd = 1.0 if str(o.get("side")).lower() == "buy" else (-1.0 if str(o.get("side")).lower() == "sell" else 0.0)
-                if o.get("submit_ts") is not None: intended += sd * float(num(o.get("intended_notional")) or 0.0)
+                pass   # rev 1: intended_notional is per ATTEMPT (a residual re-intended by later attempts / top-ups) — summing it double counts
                 fn = num(o.get("filled_notional")); filled_usdt += fn or 0.0
                 q = num(o.get("filled_qty"))
                 if q is None:
@@ -121,13 +121,21 @@ def main():
             if m is None or pq is None or qq is None:
                 unknown_mid.append(s); e.update({"L3_intended": None, "L4_filled": None, "L5_readback": None})
             else:
-                e["L3_intended"] = pq * m + intended; e["L4_filled"] = pq * m + filled_usdt; e["L5_readback"] = qq * m
+                # rev 1 (run 1 showed L3 net +9.7k..+20.7k: the per-attempt sum double counts): L3 = what the executor TRIED to reach —
+                # the clamped target for a name with >= 1 submitted row, the previous position for a name whose rows were all not sent
+                sent = any(o.get("submit_ts") is not None for o in rows)
+                e["L3_intended"] = e["L2_clamped"] if sent else pq * m
+                e["L4_filled"] = pq * m + filled_usdt; e["L5_readback"] = qq * m
             e["closure_qty_residual"] = (qq - pq - fq) if (fq_known and pq is not None and qq is not None) else None
             reasons = {("<designed abstention, pooled>" if bad(o.get("terminal_reason")) else str(o.get("terminal_reason"))) for o in rows}
             e["class"] = ("no_order_row" if not rows else next((c for c in ("venue_reject", "partial_expired", "blocked_by_halt", "skipped_min_notional",
                           "<designed abstention, pooled>", "filled") if c in reasons), "other"))
             e["clamped"] = s in set(ca.get("names") or [])
             per[s] = e
+        _nc = [abs(e["L2_clamped"] - e["L1_reshaped"]) for s_, e in per.items() if not e["clamped"] and s_ in L1 and s_ in L2]
+        row["checks"]["per name L2 == L1 for every NON-clamped name (the reshape population is the producer's names, no zero-target names)"] = \
+            bool(_nc) and max(_nc) < 1e-6 * G
+        row["max_abs_L2_minus_L1_nonclamped_usdt"] = max(_nc) if _nc else None
         row["net_by_layer"] = {Lk: sum(e[Lk] for e in per.values() if e[Lk] is not None) for Lk in LAYERS}
         row["unknown_price_names"] = unknown_mid
         cls = collections.defaultdict(float)
