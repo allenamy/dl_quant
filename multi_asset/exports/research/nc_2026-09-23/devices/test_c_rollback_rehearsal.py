@@ -7,7 +7,7 @@ Input: the NC-format snapshot state/snap/<A0> (A1 = A0 + 4h and A2 = A0 + 8h mus
   (o)  OLD producer (treeNC5) runs A1 on an identical copy; (o2) OLD combo at A1: rc 0, status ok.
   (d)  the durable writes change HOW files are written, not WHAT: the state files and outputs the two trees wrote for A1 are compared
        byte for byte (rolling.npz, aux.json, leg_returns_live.json, boundary_raw.npz, members_hist.npz, generation.json, weights/<A1>.npz,
-       target_live/<A1>.json minus written_utc, target_combo/<A1>.json, state_H_{kc,fc,f10}_<A1>.npz); any difference is listed by file
+       target_live/<A1>.json minus written_utc and minus beta_overlay (v2 vs v1 by design: version pair asserted, betas gated by nc_v2_beta_parity), target_combo/<A1>.json, state_H_{kc,fc,f10}_<A1>.npz); any difference is listed by file
        (a difference is a RED only if it is not a wall-clock field — each is named).
   (b)  ROLLBACK: the OLD producer loads the state the NEW producer wrote at A1 (its own generation verification) and runs A2; (b2) the OLD
        combo at A2: rc 0, status ok. This is the rollback path after a new anchor.
@@ -88,10 +88,20 @@ def main():
             else:
                 diffs[a] = "bytes differ"
     tl_n, tl_o = json.load(open(f"{wsn}/state/target_live/{A1}.json")), json.load(open(f"{wso}/state/target_live/{A1}.json"))
-    tl_keys = sorted(k for k in set(tl_n) | set(tl_o) if k != "written_utc" and tl_n.get(k) != tl_o.get(k))
+    # revision 2026-09-25 08:0xZ (before the first run): the old tree (treeNC5) is M3 v1 and the new tree (treeNC7) is v2 + durable, so the
+    # target_live `beta_overlay` field differs BY DESIGN (v2's betas read the unclipped channel-0 returns). It is excluded from the byte
+    # comparison and REPORTED: the version pair must be exactly (m3_beta_v2 new, m3_beta_v1 old) — anything else means a tree is not what it
+    # says; the beta values themselves are gated elsewhere (nc_v2_beta_parity.py SERVED == DIRECT; gate 3' non-beta identity).
+    tl_keys = sorted(k for k in set(tl_n) | set(tl_o) if k not in ("written_utc", "beta_overlay") and tl_n.get(k) != tl_o.get(k))
+    bo_n, bo_o = tl_n.get("beta_overlay") or {}, tl_o.get("beta_overlay") or {}
+    bo_rep = {"version_new_old": [bo_n.get("version"), bo_o.get("version")],
+              "n_betas_differing": sum(1 for k in (bo_n.get("betas") or {}) if (bo_n.get("betas") or {}).get(k) != (bo_o.get("betas") or {}).get(k)),
+              "n_betas_new_old": [len(bo_n.get("betas") or {}), len(bo_o.get("betas") or {})]}
+    bo_ok = bo_rep["version_new_old"] == ["m3_beta_v2", "m3_beta_v1"]
     WALL = {"written_utc", "created_utc", "utc", "t_wall", "wall_s", "generated_utc", "signed_utc"}
     nonwall = {k: v for k, v in diffs.items() if not (isinstance(v, dict) and set(v["differing_keys"]) <= WALL)}
-    C["d_same_bytes"] = {"ok": not nonwall and not tl_keys, "diffs": diffs, "non_wallclock_diffs": nonwall, "target_live_keys_differing_ex_written_utc": tl_keys}
+    C["d_same_bytes"] = {"ok": not nonwall and not tl_keys and bo_ok, "diffs": diffs, "non_wallclock_diffs": nonwall,
+                         "target_live_keys_differing_ex_written_utc_and_beta_overlay": tl_keys, "beta_overlay_report": bo_rep, "beta_overlay_versions_ok": bo_ok}
     dump()
     # (b) rollback: OLD code takes over the state the NEW code wrote at A1
     root_b = f"{out}/sb_rollback"; shutil.copytree(sides["new"][0], root_b, symlinks=True)
@@ -100,8 +110,17 @@ def main():
         shutil.copy2(f"{old_t}/{f}", f"{ws_b}/{f}")
     for f in os.listdir(f"{old_t}/fea171"):
         if os.path.isfile(f"{old_t}/fea171/{f}"): shutil.copy2(f"{old_t}/fea171/{f}", f"{ws_b}/fea171/{f}")
-    if os.path.exists(f"{ws_b}/fea171/durable_io.py") and not os.path.exists(f"{old_t}/fea171/durable_io.py"):
-        os.remove(f"{ws_b}/fea171/durable_io.py")                   # the rollback removes the new-only file, as nc_install_files does
+    # a tree holds only the files it changed: a new-tree file absent from the old tree is either NEW (absent from production too ⇒ the
+    # rollback removes it, as nc_install_files does: baseline None) or a production file the old tree did not change (⇒ restored to the
+    # production bytes). Revision 2026-09-25 08:0xZ, before the first run: the draft removed durable_io.py only.
+    rb_files = {"removed_new_only": [], "restored_from_production": []}
+    for f in sorted(os.listdir(f"{new_t}/fea171")):
+        if not os.path.isfile(f"{new_t}/fea171/{f}") or os.path.exists(f"{old_t}/fea171/{f}") or not os.path.exists(f"{ws_b}/fea171/{f}"): continue
+        if os.path.isfile(f"{L.WS}/fea171/{f}"):
+            shutil.copy2(f"{L.WS}/fea171/{f}", f"{ws_b}/fea171/{f}"); rb_files["restored_from_production"].append(f)
+        else:
+            os.remove(f"{ws_b}/fea171/{f}"); rb_files["removed_new_only"].append(f)
+    rec["rollback_file_actions"] = rb_files
     C["b_old_producer_A2_on_new_state"] = producer(ws_b, A2, aux2, "b_a2", cols2)
     C["b_old_combo_A2"] = combo(root_b, ws_b, exe_b, "b_a2") if C["b_old_producer_A2_on_new_state"]["ok"] else {"ok": False, "skipped": "producer failed"}
     dump()
