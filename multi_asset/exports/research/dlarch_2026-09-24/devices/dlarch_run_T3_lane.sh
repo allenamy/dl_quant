@@ -86,5 +86,11 @@ for S in $SEEDS; do
   fi
   NF=$(ls -d "$W/T3/T3_clamp/f10_s$S"/*/FOLD_RECEIPT.json 2>/dev/null | grep -c .)
   say "seed $S: DONE folds=$NF oof=$(sha256sum "$W/T3/T3_clamp/f10_s$S/F10_OOF.npz" 2>/dev/null | cut -c1-16)"
+  # A claim means "someone is working on this", not "this is finished". Leaving it in place after success
+  # makes a completed seed indistinguishable from an in-progress one, and would SILENTLY skip a
+  # legitimate re-run. Rename rather than delete: the directory is still useful evidence of who ran it
+  # and when, but it no longer reads as a live claim. (Same conflation as grepping a log for a done-marker
+  # to decide whether work is running -- that one put two trainers on seed 7 today.)
+  mv "$CLAIMS/$S" "$CLAIMS/done_$S" 2>/dev/null || true
 done
 say "=== T3 LANE DONE ==="
