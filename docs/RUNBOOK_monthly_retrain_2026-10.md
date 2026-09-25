@@ -207,6 +207,26 @@ DL refit 7.5min ×2 / walk-forward 4折 20min ×4(并发=25min)/ king+bundle 21m
 ## §8 待办(2026-09-02 立, E-0902-D): 回放 king 腿口径对齐实盘
 w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025 模型给)⇒ 2026 msharpe 席位 king≈0.01, 实盘 0.21。月度重训链的自然副产品 = 每月 bundle 对次月的真 OOS 预测; 从 2026-10 起把每月 booster 对"下月锚"的预测拼成 `slow_pred_rolling_oos.npy`(严格因果: 训练截止 < 预测锚), 作为回放 king 腿的第二口径, 与 hist_oos 并报; 席位敏感臂以 rolling 口径为主判。
 
+## §8b 待办(2026-09-25 立, lead 裁定; **owner: news2**): 用留存的 aux 快照对九月归档做切换窗审计
+
+**为什么在十月做**: 交易所**在 M+1 月初才发布 M 月**的归档(实测: 2026-09-25 时九月 zip 仍不存在, FX-DATA P4 同结论)。所以「在役活账本在九月有没有漏尖峰期的 1h 结算」只能等十月初九月归档发布后才能测 —— 而**九月正是实盘回撤那一段**, 这是最该被审计的月份。
+
+**背景(2026-09-25 已测)**: 静态回放工件 `fund_replay.npz` 的 `last_rate` 在 5,613 格上与宽面板分歧; 归档判决**面板对、`last_rate` 错 2017:0**; 根因是**回放的账本缺了资金费尖峰期的 1h 结算**, as-of 冻在触发间隔切换的那笔封顶 8h 结算上(`D10_ROOTCAUSE_last_rate.json`)。在役活账本在 **2026-08 全部 48 个切换事件 ±24h 内零缺失**(`D10_LIVE_LEDGER_VS_ARCHIVE_2026-08.json`, 305/305)。
+
+**十月要做的**:
+1. 九月归档发布后, 用 `d10_archive_inventory.py` 确认九月 zip 存在, 用 `p9_pull_monthly_funding_zips.py` 取下并**核 CHECKSUM**;
+2. 用 `d10_live_ledger_vs_archive.py`(已在库, 2026-08 用的就是它)对九月做同样的 **±24h 切换窗**审计;
+3. 活账本一侧用**留存的 `aux.json` 快照**。
+
+**⚠ 覆盖边界必须当时实测, 不许沿用任何写死的天数**: `ledger_tail` 是滚动 **400 行/名**(`shadow_loop_v3.py:421`), 而 2026 年很多名在 1h/4h 间隔上 ⇒ 400 行只有 **17–67 天**, 且**对尖峰活跃的名字最短**。所以:
+- 「对每一个名都完整」的起点 = **max over symbols(该名最早一行的时间)**, 当时算, 写进收据;
+- 只审计那个起点之后的锚; 起点之前的事件记 `OUT_OF_LIVE_TAIL_WINDOW`, **不计为缺失**;
+- 同一月若有两份快照覆盖(如 2026-07 被 09-04 与 09-25 两份覆盖), **双源交叉核对**, 比单源强。
+
+**若 §8b 的结论是「九月也缺」**: 那就不再是回测问题而是实盘问题(在役资金费腿的 `fe_v` 与 `RN8` 都来自活账本, 而尖峰名正是该腿做空的名), 按 `feedback_no_book_level_response_to_instrument_doubt` 先报用户与 lead, **不自行改书**。
+
+**结构性堵法(设计已交, 未部署)**: `docs/DESIGN_live_funding_ledger_archive_2026-09-25.md` —— 每日在静默窗只读 `aux.json` 的 `ledger_tail` 去重追加到 `~/funding_ledger_archive/`(Desktop 之外, 避 TCC 墙)。部署两个月后, 任何一段历史都能对归档做本审计, 不再受 400 行保留期限制。
+
 ## §9 修订(2026-09-04, 第三版 11:5xZ, E-0904-F): 席位历史口径 = Σ 5 分钟简单收益(面板 y4 原样), **导出器与生产者都不改**
 - **真相(代码+实证, 见 ERROR_LEDGER E-0904-F):** 面板 y4 = 行 [E, E+47] 的 Σ ret5(ret5 = c/pc − 1), 是交易所记账 Π(1+r)−1 的无偏代理(差 −0.04 bps/锚); 导出器 L108 用原始 y4、生产者 L439 用 Σ ret5 ⇒ **两处口径本来正确**。错的是回放装置 `w10_universe.py` 的 CAL=simple(expm1), 它给 king 腿加了 −2~−3 bps/锚伪拖累。
 - **本日经过:** 08:53Z 我按错口径把 `state/leg_returns_live.json` 换成 expm1 版 OOS 种子(king 席位 0.21→0.000); 11:46Z 已恢复原文件(sha 172715ce, 生产者 kickstart PID 58281), 12Z 运行前完成。撤回本节前两版的全部改动要求(① 导出器 expm1 ② 生产者 expm1 ③ "样本内"断言)。
