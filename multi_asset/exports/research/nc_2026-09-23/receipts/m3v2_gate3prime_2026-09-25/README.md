@@ -22,3 +22,16 @@ REVISION 1 (lead rulings ~05:10Z and ~05:15Z, w1) — nc_v2_nonbeta_gate_rev1.py
   inside that sandbox's run window); ch0 AST census over the executed code (T1 whitelist); two verdict lines (FAIL_LITERAL/PASS_LITERAL and REV1).
   Declaration ≠ implementation found: the gate code (4f8529505) excluded written_utc while its docstring said "every key except beta_overlay";
   docstring corrected in this commit (code unchanged in behaviour).
+REV1 judgement (commit 30de22823 rule; 05:14:04Z):
+  cd devices; ~/wide_shadow/venv/bin/python -B nc_v2_nonbeta_gate_rev1.py ~/cc_tmp/nc_20260923/treeNC5 ~/cc_tmp/nc_20260923/treeNC6 ~/cc_tmp/nc_20260923/v2gate_20260925T0503Z ../receipts/m3v2_gate3prime_2026-09-25/NC_V2_NONBETA_GATE_REV1.json > ../receipts/m3v2_gate3prime_2026-09-25/rev1_stdout.log 2>&1; echo "rev1 rc=$?"
+  → rev1 rc=1 · items 1/2 PASS on all 6 anchors (literal FAIL, rev1 PASS per anchor) · item 3 FAIL:
+    "item3 ch0 census over 16 executed files: 14 channel-0 subscripts, non-whitelisted 2
+     [('fea171/combo_stage_t3c_candidate.py', '_r5 = RD[:, _jb, 0].astype(np.float64)', 55), ('fea171/sidecar_blend.py', '_r5 = RD[:, _jb, 0].astype(np.float64)', 52)]"
+  → NC_V2_NONBETA_GATE FAIL_LITERAL anchors=6 · NC_V2_NONBETA_GATE_REV1 FAIL anchors=6 written_utc_ruling=w1 out_sha256=ef2feb2d…
+  Facts gathered AFTER the verdict (not changing it): both files are stale copies of the pre-v2 combo code (sidecar_blend.py 08-26, "combo_stage =
+  sidecar_blend full text + combo"; combo_stage_t3c_candidate.py 09-04); sidecar_blend reads rolling.npz `data` (the clipped float16 storage)
+  directly, i.e. it IS the ret5 defect class; it is run only by fea171/sidecar_daemon.sh, which is not running (no process; last log line
+  "ran for 1790222400.json rc=0 Thu Sep 24 04:21:07 UTC 2026"); no launchd service or script references either file (launchd: combolive →
+  combo_live_daemon.sh, shadowloop → shadow_loop_v3.py, combosnap, comboparity); target_blend is read by nothing in dl_quant_live.
+  My own defect exposed by this: test_m3_v2_ret5.py T1 censused only the files of the v2 TREE (the changed files), not the producer's full
+  fea171 as installed — an instance-shaped census; rev1's wider scope caught what T1 could not.
