@@ -16,7 +16,17 @@ rescale to sizing_gross; the anchor's clamped names pinned at the executor's rec
 priced with rr from this anchor's readback to the next (latest snapshot); unpriced names reported, never 0.
 Leg contribution (per anchor and summed) = P&L(base book) − P&L(book without the leg). Reported with the per-anchor values (no significance
 claim on 6 anchors).
-usage: ~/wide_shadow/venv/bin/python cf_legs.py <old tree = treeNC5> <out dir> <A,A,...>"""
+rev 1 (lead approval 2026-09-25 ~17:3xZ, main drawdown 09-16 12Z → 09-24 04Z, OLD producer era) — four additions, before any old-window run:
+  (a) old-format snapshots (no generation.json): every state file present in state/snap/<A> except the snapshot's own receipts is copied;
+  (b) --tree-at A=<dir>: a per-anchor code tree (09-17 12Z ran combo_stage BEFORE fp2-6b); tree files missing from an old tree are skipped
+      (the NC-only modules are not imported by the old combo_stage); --copy-extra <rel>: files taken from the tree instead of production
+      (the old F10 model fea171/f10_live_s42_np.npz 351ae26b);
+  (c) the executor's recorded VENUE CAPS (notify_audit "场所上限截断", as layered_book.py rev 3) are applied to every arm's book:
+      |target| capped at the recorded |after| for each capped name (base: exactly the recorded after);
+  (d) SEGMENTS "A,A;A,A": the EMA chain restarts at each segment start from production's own state of the anchor before — IDENTICAL for
+      every arm. Named limitation: within a segment the counterfactual is "the leg removed FROM THE SEGMENT START", not "the leg never
+      existed"; two segments are two chains, never one.
+usage: ~/wide_shadow/venv/bin/python cf_legs.py <default tree> <out dir> <A,A,...[;A,A,...]> [--tree-at A=<dir> ...] [--copy-extra <rel> ...]"""
 import collections, glob, hashlib, json, math, os, shutil, subprocess, sys, time
 import numpy as np
 
@@ -30,6 +40,23 @@ fmt = lambda t: time.strftime("%m-%dT%HZ", time.gmtime(t))
 bad = lambda k: "chase" in str(k).lower() or "arm" in str(k).lower()
 KC = 'z_kc = w3m[0] * np.nan_to_num(legz["king"]) + w3m[2] * np.nan_to_num(legz["fund"])'
 FC = 'z_fc = w3m[0] * np.nan_to_num(zf) + w3m[2] * np.nan_to_num(legz["fund"])'
+EXTRA = []; TREE_AT = {}
+
+
+def recorded_caps():
+    """rev 1 (c): the executor's venue-cap alarms (layered_book.py rev 3 recipe): [(ts, {sym: (before, after)}, truncated)]"""
+    import re
+    out = []
+    for l in open(f"{LIVE}/state/notify_audit.jsonl"):
+        try: d = json.loads(l)
+        except ValueError: continue
+        m = str(d.get("message", ""))
+        if "场所上限截断" not in m or "失败" in m: continue
+        items = {x[0]: (float(x[1].replace(",", "")), float(x[2].replace(",", ""))) for x in re.findall(r"([A-Z0-9]+USDT) ([+\-][\d,]+)→([+\-][\d,]+) \(cap", m)}
+        out.append((float(d.get("ts") or 0), items, " …" in m))
+    return out
+
+
 ARMS = {"base": {},
         "no_fund": {KC: 'z_kc = w3m[0] * np.nan_to_num(legz["king"])', FC: 'z_fc = w3m[0] * np.nan_to_num(zf)'},
         "no_king": {KC: 'z_kc = w3m[2] * np.nan_to_num(legz["fund"])'},
@@ -47,9 +74,20 @@ def build(tree, A, sb, arm, prev_sb):
     os.makedirs(f"{sb}/wide_shadow/state"); os.makedirs(f"{sb}/dl_quant_live")
     subprocess.run(["rsync", "-a"] + sum([["--exclude", e] for e in G.EX], []) + [f"{WS}/", f"{sb}/wide_shadow/"], check=True)
     os.symlink(f"{WS}/venv", f"{sb}/wide_shadow/venv")
-    for f in G.TREE_FILES: shutil.copy2(f"{tree}/{f}", f"{sb}/wide_shadow/{f}")
-    snap = f"{WS}/state/snap/{A}"; gen = json.load(open(f"{snap}/generation.json"))
-    for f in list(gen["files"]) + ["generation.json"]: shutil.copy2(f"{snap}/{f}", f"{sb}/wide_shadow/state/{f}")
+    for f in G.TREE_FILES:
+        if os.path.exists(f"{tree}/{f}"): shutil.copy2(f"{tree}/{f}", f"{sb}/wide_shadow/{f}")   # rev 1 (b): an old tree lacks the NC-only modules
+    for f in EXTRA:                                                                              # rev 1 (b): e.g. the old F10 model
+        shutil.copy2(f"{tree}/{f}", f"{sb}/wide_shadow/{f}")
+    snap = f"{WS}/state/snap/{A}"
+    if os.path.exists(f"{snap}/generation.json"):
+        gen = json.load(open(f"{snap}/generation.json"))
+        for f in list(gen["files"]) + ["generation.json"]: shutil.copy2(f"{snap}/{f}", f"{sb}/wide_shadow/state/{f}")
+    else:                                                                                        # rev 1 (a): old-format snapshot
+        gp = f"{sb}/wide_shadow/state/generation.json"
+        if os.path.exists(gp): os.remove(gp)
+        for f in sorted(os.listdir(snap)):
+            if f in ("COMPLETE", "SHA256SUMS", "combo_live_status.json") or f.startswith("PARITY"): continue
+            shutil.copy2(f"{snap}/{f}", f"{sb}/wide_shadow/state/{f}")
     os.makedirs(f"{sb}/wide_shadow/state/target_live", exist_ok=True)
     for suf in ("", ".sha256"):
         if os.path.exists(f"{WS}/state/target_live_king/{A}.json{suf}"): shutil.copy2(f"{WS}/state/target_live_king/{A}.json{suf}", f"{sb}/wide_shadow/state/target_live/{A}.json{suf}")
@@ -86,14 +124,26 @@ def run(sb):
 
 
 def main():
-    tree, out, Alist = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2]), [int(x) for x in sys.argv[3].split(",")]
+    tree, out = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2])
+    SEGS = [[int(x) for x in seg.split(",") if x] for seg in sys.argv[3].split(";")]; Alist = [A for seg in SEGS for A in seg]
+    seg_start = {seg[0] for seg in SEGS}
+    a = sys.argv[4:]
+    for i, x in enumerate(a):
+        if x == "--tree-at": k, v = a[i + 1].split("=", 1); TREE_AT[int(k)] = os.path.abspath(v)
+        if x == "--copy-extra": EXTRA.append(a[i + 1])
     assert not os.path.exists(out), "refusing to overwrite"; os.makedirs(out)
-    rec = {"device_sha256": sha(os.path.abspath(__file__)), "tree": tree, "anchors": [fmt(A) for A in Alist], "arms": {}, "checks": {}}
+    rec = {"device_sha256": sha(os.path.abspath(__file__)), "tree": tree, "tree_at": {fmt(k): v for k, v in TREE_AT.items()}, "copy_extra": EXTRA,
+           "segments": [[fmt(A) for A in seg] for seg in SEGS], "anchors": [fmt(A) for A in Alist], "arms": {}, "checks": {},
+           "named_limitation": "each segment starts every arm from production's state of the anchor before: the counterfactual is 'the leg removed from the segment start', not 'the leg never existed'; segments are separate chains"}
     W = {arm: {} for arm in ARMS}; prev = {arm: None for arm in ARMS}
     for A in Alist:
         G.require_quiet_window(min_remaining_min=10)
+        if A in seg_start:                                    # rev 1 (d): a new chain — every arm starts from production's state
+            for arm in ARMS:
+                if prev[arm]: shutil.rmtree(prev[arm], ignore_errors=True)
+                prev[arm] = None
         for arm in ARMS:
-            sb = f"{out}/{A}_{arm}"; cs_sha = build(tree, A, sb, arm, prev[arm]); rc = run(sb)
+            sb = f"{out}/{A}_{arm}"; cs_sha = build(TREE_AT.get(A, tree), A, sb, arm, prev[arm]); rc = run(sb)
             tl = f"{sb}/wide_shadow/state/target_live_PARITY/{A}.json"
             W[arm][A] = json.load(open(tl))["weights"] if (rc == 0 and os.path.exists(tl)) else None
             rec["arms"].setdefault(arm, {})[fmt(A)] = {"rc": rc, "combo_stage_sha256": cs_sha, "n": len(W[arm][A] or {})}
@@ -119,17 +169,29 @@ def main():
         i0 = int(np.searchsorted(ts, tA, side="right")) - 1; i1 = int(np.searchsorted(ts, tB, side="right")) - 1
         if i0 < 0 or i1 <= i0 or FIN[i0 + 1:i1 + 1, j].sum() < 0.9 * (i1 - i0): return None
         return float(np.expm1(LP[i1 + 1, j] - LP[i0 + 1, j]))
-    days = sorted(os.path.basename(p) for p in glob.glob(f"{L}/2026092*"))
+    days = sorted(os.path.basename(p) for p in glob.glob(f"{L}/202609*") if os.path.basename(p) >= time.strftime("%Y%m%d", time.gmtime(Alist[0] - 86400)))
     AN = [{k: v for k, v in json.loads(l).items() if not bad(k)} for d in days if os.path.exists(f"{L}/{d}/anchors.jsonl") for l in open(f"{L}/{d}/anchors.jsonl") if l.strip()]
     OR = [json.loads(l) for d in days if os.path.exists(f"{L}/{d}/orders.jsonl") for l in open(f"{L}/{d}/orders.jsonl") if l.strip()]
     RBr = [json.loads(l) for d in days if os.path.exists(f"{L}/{d}/position_readback.jsonl") for l in open(f"{L}/{d}/position_readback.jsonl") if l.strip()]
     rbt = {}
     for p in RBr: t = float(p["anchor_ts"]); rbt[t] = max(rbt.get(t, 0.0), float(p.get("read_ts") or t))
     rbk = sorted(rbt)
+    caps = recorded_caps(); CAPD = {}
+    for A in Alist:
+        an_ = [x for x in AN if int(float(x["anchor_ts"]) // 14400 * 14400) == A]
+        if an_:
+            at_ = float(an_[0]["anchor_ts"]); d_ = {}
+            for t_, items, trunc in caps:
+                if at_ - 120 <= t_ <= at_ + 3600:
+                    assert not trunc, f"venue-cap list truncated at {fmt(A)} — cannot apply by name"
+                    d_.update(items)
+            CAPD[A] = d_
+    rec["venue_caps_applied"] = {fmt(A): sorted(v) for A, v in CAPD.items() if v}
     res = collections.defaultdict(dict)
     for A in Alist:
         an = [a for a in AN if int(float(a["anchor_ts"]) // 14400 * 14400) == A][0]; rs = an["reshape"]; at = float(an["anchor_ts"])
-        Gs = float(rs["sizing_gross"]); removed = set(rs.get("removed_names") or rs.get("popped_names") or []); ca = rs.get("clamped_after_reshape") or {}
+        Gs = float(rs["sizing_gross"]); ca = rs.get("clamped_after_reshape") or {}
+        removed = set(rs["removed_names"]) if "removed_names" in rs else set(rs.get("popped_names") or []) | set(rs.get("forced_flat_names") or [])   # rev 1: pre-E6 records
         tg = num(an.get("target_gross")); orr = {o["symbol"]: o for o in OR if o.get("rebalance_id") == an["rebalance_id"]}
         L2x = {s: float(num(o.get("target_w")) or 0.0) * tg for s, o in orr.items()}
         nxt = [t for t in rbk if t > at]; tA, tB = rbt.get(at, at), (rbt[nxt[0]] if nxt else None)
@@ -138,6 +200,12 @@ def main():
             keep = [s for s in L0 if s not in removed]; v = np.array([L0[s] / Gs for s in keep]); v = v - v.mean(); v = v / np.abs(v).sum()
             book = dict(zip(keep, (v * Gs).tolist()))
             for s in ca.get("names") or []: book[s] = L2x.get(s, 0.0)
+            for s, (b_, a_) in CAPD.get(A, {}).items():            # rev 1 (c): recorded venue caps
+                if s in book and s not in set(ca.get("names") or []):
+                    book[s] = a_ if arm == "base" else math.copysign(min(abs(book[s]), abs(a_)), book[s])
+            if arm == "base":                                          # rev 1: the base book must equal the executor's own L2 (identity)
+                _d = [abs(book.get(s, 0.0) - L2x.get(s, 0.0)) for s in set(book) | set(L2x)]
+                rec["checks"][f"base book == executor L2 {fmt(A)} (max |diff| < 1 USDT)"] = bool(_d) and max(_d) < 1.0
             pnl, unp = 0.0, 0.0
             if tB is not None:
                 for s, x in book.items():
