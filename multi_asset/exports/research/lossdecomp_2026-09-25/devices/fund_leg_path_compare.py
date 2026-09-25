@@ -177,7 +177,9 @@ def main():
     for nm, e in per_name.items():
         j = col.get(nm); fr = int(first_row[j]) if j is not None else -1
         e["data_first_bar_utc"] = fmt(int(ts[fr])) if fr >= 0 else None; e["data_age_days_at_cache_end"] = round((int(ts[-1]) - int(ts[fr])) / 86400, 1) if fr >= 0 else None
-        e["data_age_is_cache_span_lower_bound"] = fr == int(first_row[first_row >= 0].min());   # rev 4: the cache's first finite row, not row 0 e["in_old_symbols_live"] = nm in set(old_live)
+        e["data_age_is_cache_span_lower_bound"] = fr == int(first_row[first_row >= 0].min())   # rev 4: the cache's first finite row, not row 0
+        e["in_old_symbols_live"] = nm in set(old_live)   # rev 5: rev 4's trailing comment had swallowed this statement (run 4 KeyError)
+        e["data_first_bar_is_common_backfill_start"] = fr == int(np.median(first_row[[col[x] for x in per_name if x in col]]))   # rev 5: all NC-only names share one first bar (NC backfill start) => not a listing age
     rec["nc_only_members"] = dict(sorted(per_name.items(), key=lambda kv: kv[1]["fund_paper"]))
     rec["totals"] = dict(tot)
     ov_min = min(a["bottomQ_overlap_old"] for a in rec["anchors"]); diff = (tot["fund_paper_old"] - tot["fund_paper_nc"]) / abs(tot["fund_paper_nc"]) if tot["fund_paper_nc"] else float("nan")
