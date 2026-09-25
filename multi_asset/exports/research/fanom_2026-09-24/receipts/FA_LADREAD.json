@@ -1,0 +1,656 @@
+{
+ "device": "fa_ladread.py",
+ "self_sha256": "78fcb4b8990b1ad297a7dc6ac3b3e0368c641f8f090b8f023a0f2890d4eb446f",
+ "utc": "2026-09-25T08:58:39Z",
+ "prereg": {
+  "path": "docs/PREREG_fresh_gap_carrier_ladder_2026-09-25.md",
+  "amendment_1": "a9a5fe8a5"
+ },
+ "segment_definition": {
+  "frozen_by": "6cd94f947 (lead, revision 3 of both decision-rule files)",
+  "2026": "2026-01-01 .. extended axis last anchor (2026-09-18T20:00Z)",
+  "fullwin": "pre2026 UNION the above 2026",
+  "also_reported": "the frozen-SEG-truncated 2026, side by side",
+  "method": "frozen news_stats functions called unchanged; only the mask is swapped"
+ },
+ "caliber": {
+  "news_stats.py": "7141ba42ab227b9f35b48acce62d5e2a2494f364fdf6a83189974cb2af67e03c",
+  "gate_uses": "frozen news_stats.dbar (per-path daily diff, then mean)",
+  "old_caliber": "path-mean first, then daily compounding -- REFERENCE ONLY, never a gate"
+ },
+ "sigma_1.0437": {
+  "source": "news2 4b8723720 PNOISE_DBAR_r1..r7.json",
+  "what_it_is": "sample SD of pre-2026 dbar over 7 King random_state perturbations",
+  "named_limitation": "this ladder swaps KZ / WL / F10, NOT King's random_state, so this scale is BORROWED. It is not this arm's own noise scale."
+ },
+ "seeds": {
+  "42": {
+   "axis": {
+    "n": 9252,
+    "first": "2022-06-30 00:00Z",
+    "last": "2026-09-18 20:00Z"
+   },
+   "segment_note": {
+    "2026_to_axis_end_anchors": 1566,
+    "2026_SEG_truncated_anchors": 1453,
+    "anchors_SEG_would_drop": 113
+   },
+   "G": {
+    "pre2026": {
+     "frozen_dbar_bps_per_day": -7.286649000578536,
+     "n_days": 915,
+     "n_windows": 5495,
+     "boot": {
+      "block_days": 30,
+      "n_days": 915,
+      "B": 10000,
+      "rng": [
+       20260923,
+       1
+      ],
+      "ci97.5_two_sided_bps": [
+       -14.825106589250213,
+       -1.7933279666966846
+      ],
+      "ci95_bps": [
+       -13.907016012517364,
+       -2.4056532552450176
+      ],
+      "draws_defined": 10000
+     }
+    },
+    "2026_to_axis_end": {
+     "frozen_dbar_bps_per_day": 0.8696830456596284,
+     "n_days": 261,
+     "n_windows": 1566
+    },
+    "2026_SEG_truncated": {
+     "frozen_dbar_bps_per_day": 0.8144915698813244,
+     "n_days": 242,
+     "n_windows": 1453
+    },
+    "fullwin_to_axis_end": {
+     "frozen_dbar_bps_per_day": -5.476442653581801,
+     "n_days": 1176,
+     "n_windows": 7061
+    },
+    "pre2026_OLD_CALIBER_reference_only": -7.439109518120244
+   },
+   "arms": {
+    "KZ": {
+     "series_sha256": "8e97695f26e49654c19a994833c248181c24e90a01d86dacda234ed2026c81ea",
+     "pre2026": {
+      "d_bps_per_day": -1.8193989725265638,
+      "n_days": 915,
+      "n_windows": 5495,
+      "boot": {
+       "block_days": 30,
+       "n_days": 915,
+       "B": 10000,
+       "rng": [
+        20260923,
+        1
+       ],
+       "ci97.5_two_sided_bps": [
+        -5.787592667045008,
+        1.5763421724171727
+       ],
+       "ci95_bps": [
+        -5.256112339997248,
+        1.1574693460289822
+       ],
+       "draws_defined": 10000
+      }
+     },
+     "2026_to_axis_end": {
+      "d_bps_per_day": 1.3410965307239213,
+      "n_days": 261,
+      "n_windows": 1566
+     },
+     "2026_SEG_truncated": {
+      "d_bps_per_day": 1.4703756118510998,
+      "n_days": 242,
+      "n_windows": 1453
+     },
+     "fullwin_to_axis_end": {
+      "d_bps_per_day": -1.1179624705296447,
+      "n_days": 1176,
+      "n_windows": 7061
+     },
+     "2026_definition_effect": {
+      "extended_minus_truncated_bps_per_day": -0.12927908112717845,
+      "sign_flips": false,
+      "note": "dlarch measured a SIGN FLIP on a same-axis stand-in (+0.0767 vs -0.2949); this is the same check on this arm"
+     },
+     "ratio_d_over_G": 0.24968939390138176,
+     "VERDICT": "INDISTINGUISHABLE",
+     "thresholds_used": {
+      "d_over_G_ge": 0.5,
+      "abs_d_ge": 2.0874,
+      "abs_d_le": 1.0437
+     },
+     "channels_pre2026_bps": {
+      "pnl": -837.5068766259994,
+      "car": 83.40226435478516,
+      "cst": -47.41566560866159,
+      "unk": 0.0,
+      "g": -873.4934753714143,
+      "NET_price_minus_funding_paid": -920.9091409807846
+     },
+     "note": "a configuration the pipeline cannot produce; this arm is a measuring instrument only"
+    },
+    "WL": {
+     "series_sha256": "63e7c2f498f42966c7759f3754c4928888eeb29f4331435f971d43f3087abcb6",
+     "pre2026": {
+      "d_bps_per_day": -1.2165585455962187,
+      "n_days": 915,
+      "n_windows": 5495,
+      "boot": {
+       "block_days": 30,
+       "n_days": 915,
+       "B": 10000,
+       "rng": [
+        20260923,
+        1
+       ],
+       "ci97.5_two_sided_bps": [
+        -3.646194634550549,
+        0.7258913647946186
+       ],
+       "ci95_bps": [
+        -3.3279953226150734,
+        0.4952191061527761
+       ],
+       "draws_defined": 10000
+      }
+     },
+     "2026_to_axis_end": {
+      "d_bps_per_day": -0.10648967143798684,
+      "n_days": 261,
+      "n_windows": 1566
+     },
+     "2026_SEG_truncated": {
+      "d_bps_per_day": 0.06749389209352986,
+      "n_days": 242,
+      "n_windows": 1453
+     },
+     "fullwin_to_axis_end": {
+      "d_bps_per_day": -0.97019121893355,
+      "n_days": 1176,
+      "n_windows": 7061
+     },
+     "2026_definition_effect": {
+      "extended_minus_truncated_bps_per_day": -0.1739835635315167,
+      "sign_flips": true,
+      "note": "dlarch measured a SIGN FLIP on a same-axis stand-in (+0.0767 vs -0.2949); this is the same check on this arm"
+     },
+     "ratio_d_over_G": 0.1669572042648998,
+     "VERDICT": "INDISTINGUISHABLE",
+     "thresholds_used": {
+      "d_over_G_ge": 0.5,
+      "abs_d_ge": 2.0874,
+      "abs_d_le": 1.0437
+     },
+     "channels_pre2026_bps": {
+      "pnl": -631.2842003381537,
+      "car": -98.0899859330963,
+      "cst": 38.593690998373276,
+      "unk": 0.0,
+      "g": -571.7879054028041,
+      "NET_price_minus_funding_paid": -533.1942144050574
+     },
+     "note": "a configuration the pipeline cannot produce; this arm is a measuring instrument only"
+    },
+    "F10": {
+     "series_sha256": "3e4050d2a559495bda826f8404ee817cea017ea02310b9db4ce6d3867c70cfde",
+     "pre2026": {
+      "d_bps_per_day": -1.2282414186217474,
+      "n_days": 915,
+      "n_windows": 5495,
+      "boot": {
+       "block_days": 30,
+       "n_days": 915,
+       "B": 10000,
+       "rng": [
+        20260923,
+        1
+       ],
+       "ci97.5_two_sided_bps": [
+        -7.086025063074022,
+        3.409665019145689
+       ],
+       "ci95_bps": [
+        -6.24867539540838,
+        2.9143145439188642
+       ],
+       "draws_defined": 10000
+      }
+     },
+     "2026_to_axis_end": {
+      "d_bps_per_day": -1.0094194935414251,
+      "n_days": 261,
+      "n_windows": 1566
+     },
+     "2026_SEG_truncated": {
+      "d_bps_per_day": -1.2713344597677,
+      "n_days": 242,
+      "n_windows": 1453
+     },
+     "fullwin_to_axis_end": {
+      "d_bps_per_day": -1.1796763485146344,
+      "n_days": 1176,
+      "n_windows": 7061
+     },
+     "2026_definition_effect": {
+      "extended_minus_truncated_bps_per_day": 0.26191496622627497,
+      "sign_flips": false,
+      "note": "dlarch measured a SIGN FLIP on a same-axis stand-in (+0.0767 vs -0.2949); this is the same check on this arm"
+     },
+     "ratio_d_over_G": 0.1685605301592308,
+     "VERDICT": "INDISTINGUISHABLE",
+     "thresholds_used": {
+      "d_over_G_ge": 0.5,
+      "abs_d_ge": 2.0874,
+      "abs_d_le": 1.0437
+     },
+     "channels_pre2026_bps": {
+      "pnl": -406.84807457243016,
+      "car": 294.0379540191507,
+      "cst": -118.52870468985839,
+      "unk": 0.0,
+      "g": -582.3573239018859,
+      "NET_price_minus_funding_paid": -700.8860285915808
+     },
+     "note": "a configuration the pipeline cannot produce; this arm is a measuring instrument only"
+    },
+    "KZWL": {
+     "series_sha256": "be08a56ada260b22ac21255bdcfe42d6f6a2d9b0f2b43106024973500e0c5b8b",
+     "pre2026": {
+      "d_bps_per_day": -3.2624904552097584,
+      "n_days": 915,
+      "n_windows": 5495,
+      "boot": {
+       "block_days": 30,
+       "n_days": 915,
+       "B": 10000,
+       "rng": [
+        20260923,
+        1
+       ],
+       "ci97.5_two_sided_bps": [
+        -7.742852931961419,
+        0.5703609766367471
+       ],
+       "ci95_bps": [
+        -7.252418724250712,
+        0.10219574878183121
+       ],
+       "draws_defined": 10000
+      }
+     },
+     "2026_to_axis_end": {
+      "d_bps_per_day": 1.284384329225883,
+      "n_days": 261,
+      "n_windows": 1566
+     },
+     "2026_SEG_truncated": {
+      "d_bps_per_day": 1.470927990836236,
+      "n_days": 242,
+      "n_windows": 1453
+     },
+     "fullwin_to_axis_end": {
+      "d_bps_per_day": -2.253362633153889,
+      "n_days": 1176,
+      "n_windows": 7061
+     },
+     "2026_definition_effect": {
+      "extended_minus_truncated_bps_per_day": -0.18654366161035307,
+      "sign_flips": false,
+      "note": "dlarch measured a SIGN FLIP on a same-axis stand-in (+0.0767 vs -0.2949); this is the same check on this arm"
+     },
+     "ratio_d_over_G": 0.44773536572857114,
+     "VERDICT": "INDISTINGUISHABLE",
+     "thresholds_used": {
+      "d_over_G_ge": 0.5,
+      "abs_d_ge": 2.0874,
+      "abs_d_le": 1.0437
+     },
+     "channels_pre2026_bps": {
+      "pnl": -1553.3012571172833,
+      "car": -1.5933681806022904,
+      "cst": 3.4833547492414203,
+      "unk": 0.0,
+      "g": -1555.1912436850052,
+      "NET_price_minus_funding_paid": -1551.707888936681
+     },
+     "note": "a configuration the pipeline cannot produce; this arm is a measuring instrument only"
+    }
+   }
+  },
+  "2027": {
+   "axis": {
+    "n": 9252,
+    "first": "2022-06-30 00:00Z",
+    "last": "2026-09-18 20:00Z"
+   },
+   "segment_note": {
+    "2026_to_axis_end_anchors": 1566,
+    "2026_SEG_truncated_anchors": 1453,
+    "anchors_SEG_would_drop": 113
+   },
+   "G": {
+    "pre2026": {
+     "frozen_dbar_bps_per_day": -6.81014956681894,
+     "n_days": 915,
+     "n_windows": 5495,
+     "boot": {
+      "block_days": 30,
+      "n_days": 915,
+      "B": 10000,
+      "rng": [
+       20260923,
+       1
+      ],
+      "ci97.5_two_sided_bps": [
+       -16.335875781325797,
+       -0.3574710539807308
+      ],
+      "ci95_bps": [
+       -15.039079896207491,
+       -1.0991765061912582
+      ],
+      "draws_defined": 10000
+     }
+    },
+    "2026_to_axis_end": {
+     "frozen_dbar_bps_per_day": 0.7675536468341583,
+     "n_days": 261,
+     "n_windows": 1566
+    },
+    "2026_SEG_truncated": {
+     "frozen_dbar_bps_per_day": 0.8484804364450726,
+     "n_days": 242,
+     "n_windows": 1453
+    },
+    "fullwin_to_axis_end": {
+     "frozen_dbar_bps_per_day": -5.128363394401035,
+     "n_days": 1176,
+     "n_windows": 7061
+    },
+    "pre2026_OLD_CALIBER_reference_only": -6.975006877146707
+   },
+   "arms": {
+    "KZ": {
+     "series_sha256": "bb5455b22f62b27e5c19cf65e5a81cb231e27fd766703894cf7d98c42f797f2c",
+     "pre2026": {
+      "d_bps_per_day": -3.212115275561549,
+      "n_days": 915,
+      "n_windows": 5495,
+      "boot": {
+       "block_days": 30,
+       "n_days": 915,
+       "B": 10000,
+       "rng": [
+        20260923,
+        1
+       ],
+       "ci97.5_two_sided_bps": [
+        -9.291988946633817,
+        1.1425966836124277
+       ],
+       "ci95_bps": [
+        -8.442697483681654,
+        0.6658691635192371
+       ],
+       "draws_defined": 10000
+      }
+     },
+     "2026_to_axis_end": {
+      "d_bps_per_day": 2.3703923850744135,
+      "n_days": 261,
+      "n_windows": 1566
+     },
+     "2026_SEG_truncated": {
+      "d_bps_per_day": 2.536721157282327,
+      "n_days": 242,
+      "n_windows": 1453
+     },
+     "fullwin_to_axis_end": {
+      "d_bps_per_day": -1.97314036108367,
+      "n_days": 1176,
+      "n_windows": 7061
+     },
+     "2026_definition_effect": {
+      "extended_minus_truncated_bps_per_day": -0.16632877220791364,
+      "sign_flips": false,
+      "note": "dlarch measured a SIGN FLIP on a same-axis stand-in (+0.0767 vs -0.2949); this is the same check on this arm"
+     },
+     "ratio_d_over_G": 0.4716658928038707,
+     "VERDICT": "INDISTINGUISHABLE",
+     "thresholds_used": {
+      "d_over_G_ge": 0.5,
+      "abs_d_ge": 2.0874,
+      "abs_d_le": 1.0437
+     },
+     "channels_pre2026_bps": {
+      "pnl": -1206.2222196915525,
+      "car": 239.94141827814843,
+      "cst": 69.7104828374726,
+      "unk": 0.1658590902043664,
+      "g": -1516.039979896801,
+      "NET_price_minus_funding_paid": -1446.1636379697009
+     },
+     "note": "a configuration the pipeline cannot produce; this arm is a measuring instrument only"
+    },
+    "WL": {
+     "series_sha256": "bf37bd4efb8b3a2a499bdebbd300aca997f3fbee78965886481db85b85f027e0",
+     "pre2026": {
+      "d_bps_per_day": -1.3201457284042033,
+      "n_days": 915,
+      "n_windows": 5495,
+      "boot": {
+       "block_days": 30,
+       "n_days": 915,
+       "B": 10000,
+       "rng": [
+        20260923,
+        1
+       ],
+       "ci97.5_two_sided_bps": [
+        -3.633020740829483,
+        0.5927117835227292
+       ],
+       "ci95_bps": [
+        -3.3289773918189085,
+        0.3753764018360185
+       ],
+       "draws_defined": 10000
+      }
+     },
+     "2026_to_axis_end": {
+      "d_bps_per_day": -0.021954959933803617,
+      "n_days": 261,
+      "n_windows": 1566
+     },
+     "2026_SEG_truncated": {
+      "d_bps_per_day": -0.11554652959495697,
+      "n_days": 242,
+      "n_windows": 1453
+     },
+     "fullwin_to_axis_end": {
+      "d_bps_per_day": -1.0320268588712318,
+      "n_days": 1176,
+      "n_windows": 7061
+     },
+     "2026_definition_effect": {
+      "extended_minus_truncated_bps_per_day": 0.09359156966115335,
+      "sign_flips": false,
+      "note": "dlarch measured a SIGN FLIP on a same-axis stand-in (+0.0767 vs -0.2949); this is the same check on this arm"
+     },
+     "ratio_d_over_G": 0.1938497408098558,
+     "VERDICT": "INDISTINGUISHABLE",
+     "thresholds_used": {
+      "d_over_G_ge": 0.5,
+      "abs_d_ge": 2.0874,
+      "abs_d_le": 1.0437
+     },
+     "channels_pre2026_bps": {
+      "pnl": -702.1800089921704,
+      "car": -125.06928869580248,
+      "cst": 35.827615341576525,
+      "unk": 0.0003836772239494351,
+      "g": -612.9387193148925,
+      "NET_price_minus_funding_paid": -577.110720296368
+     },
+     "note": "a configuration the pipeline cannot produce; this arm is a measuring instrument only"
+    },
+    "F10": {
+     "series_sha256": "b9c5b29aad111978e57f71c7ec77c585f0f716f29191d19fa76990ed27c4fcb4",
+     "pre2026": {
+      "d_bps_per_day": -1.719372943150027,
+      "n_days": 915,
+      "n_windows": 5495,
+      "boot": {
+       "block_days": 30,
+       "n_days": 915,
+       "B": 10000,
+       "rng": [
+        20260923,
+        1
+       ],
+       "ci97.5_two_sided_bps": [
+        -8.341229520795345,
+        3.653508861049768
+       ],
+       "ci95_bps": [
+        -7.477975349895492,
+        3.0640748156737376
+       ],
+       "draws_defined": 10000
+      }
+     },
+     "2026_to_axis_end": {
+      "d_bps_per_day": -0.9103024281767308,
+      "n_days": 261,
+      "n_windows": 1566
+     },
+     "2026_SEG_truncated": {
+      "d_bps_per_day": -0.9542211982773062,
+      "n_days": 242,
+      "n_windows": 1453
+     },
+     "fullwin_to_axis_end": {
+      "d_bps_per_day": -1.5398088237554426,
+      "n_days": 1176,
+      "n_windows": 7061
+     },
+     "2026_definition_effect": {
+      "extended_minus_truncated_bps_per_day": 0.04391877010057543,
+      "sign_flips": false,
+      "note": "dlarch measured a SIGN FLIP on a same-axis stand-in (+0.0767 vs -0.2949); this is the same check on this arm"
+     },
+     "ratio_d_over_G": 0.2524721265340955,
+     "VERDICT": "INDISTINGUISHABLE",
+     "thresholds_used": {
+      "d_over_G_ge": 0.5,
+      "abs_d_ge": 2.0874,
+      "abs_d_le": 1.0437
+     },
+     "channels_pre2026_bps": {
+      "pnl": -418.7779133037358,
+      "car": 311.34872500119883,
+      "cst": 96.52744986821821,
+      "unk": 0.06142236682936144,
+      "g": -826.7155105394145,
+      "NET_price_minus_funding_paid": -730.1266383049347
+     },
+     "note": "a configuration the pipeline cannot produce; this arm is a measuring instrument only"
+    },
+    "KZWL": {
+     "series_sha256": "f3c933d6479abceb2e8d8d7789ff0323039096fab3049ce282f4253d7ec6288a",
+     "pre2026": {
+      "d_bps_per_day": -4.838837186742624,
+      "n_days": 915,
+      "n_windows": 5495,
+      "boot": {
+       "block_days": 30,
+       "n_days": 915,
+       "B": 10000,
+       "rng": [
+        20260923,
+        1
+       ],
+       "ci97.5_two_sided_bps": [
+        -11.054924341801305,
+        -0.2705633743711009
+       ],
+       "ci95_bps": [
+        -10.183612821745825,
+        -0.7939582553592558
+       ],
+       "draws_defined": 10000
+      }
+     },
+     "2026_to_axis_end": {
+      "d_bps_per_day": 1.7886656671874013,
+      "n_days": 261,
+      "n_windows": 1566
+     },
+     "2026_SEG_truncated": {
+      "d_bps_per_day": 1.7071782024346256,
+      "n_days": 242,
+      "n_windows": 1453
+     },
+     "fullwin_to_axis_end": {
+      "d_bps_per_day": -3.3679373186510113,
+      "n_days": 1176,
+      "n_windows": 7061
+     },
+     "2026_definition_effect": {
+      "extended_minus_truncated_bps_per_day": 0.08148746475277568,
+      "sign_flips": false,
+      "note": "dlarch measured a SIGN FLIP on a same-axis stand-in (+0.0767 vs -0.2949); this is the same check on this arm"
+     },
+     "ratio_d_over_G": 0.710533173943619,
+     "VERDICT": "CARRIES_MOST_OF_THE_GAP",
+     "thresholds_used": {
+      "d_over_G_ge": 0.5,
+      "abs_d_ge": 2.0874,
+      "abs_d_le": 1.0437
+     },
+     "channels_pre2026_bps": {
+      "pnl": -1983.2362078177475,
+      "car": 190.03450155305384,
+      "cst": 99.05160407054333,
+      "unk": 0.16555010491646716,
+      "g": -2272.4878635455398,
+      "NET_price_minus_funding_paid": -2173.2707093708013
+     },
+     "note": "a configuration the pipeline cannot produce; this arm is a measuring instrument only"
+    }
+   }
+  }
+ },
+ "seed_reversal": {
+  "KZ": {
+   "d_s42": -1.8193989725265638,
+   "d_s2027": -3.212115275561549,
+   "opposite_sign": false
+  },
+  "WL": {
+   "d_s42": -1.2165585455962187,
+   "d_s2027": -1.3201457284042033,
+   "opposite_sign": false
+  },
+  "F10": {
+   "d_s42": -1.2282414186217474,
+   "d_s2027": -1.719372943150027,
+   "opposite_sign": false
+  },
+  "KZWL": {
+   "d_s42": -3.2624904552097584,
+   "d_s2027": -4.838837186742624,
+   "opposite_sign": false
+  }
+ }
+}
