@@ -87,8 +87,11 @@ def main():
         G = float(rs["sizing_gross"]); W = json.load(open(tl))["weights"]; sw = sum(abs(v) for v in W.values())
         mids = an.get("mid_at_anchor_vector"); mids = json.loads(mids) if isinstance(mids, str) else (mids or {})
         L0 = {s: v / sw * G for s, v in W.items()}
-        row["checks"]["E6 sum L0 == net_producer_usdt"] = abs(sum(L0.values()) - rs["net_producer_usdt"]) < 1e-6 * G
-        keep = [s for s in L0 if s not in set(rs.get("removed_names") or [])]
+        # rev 2 (old-window run: records before 2026-09-17 04Z predate E6 — no net_producer_usdt / removed_names): the E6 check is then
+        # NOT EVALUATED (None, named), and the removed set falls back to popped_names + forced_flat_names (what E6 later wrote as removed_names)
+        row["checks"]["E6 sum L0 == net_producer_usdt"] = (abs(sum(L0.values()) - rs["net_producer_usdt"]) < 1e-6 * G) if "net_producer_usdt" in rs else None
+        removed = set(rs["removed_names"]) if "removed_names" in rs else set(rs.get("popped_names") or []) | set(rs.get("forced_flat_names") or [])
+        keep = [s for s in L0 if s not in removed]
         v = np.array([L0[s] / G for s in keep]); v = v - v.mean(); v = v / np.abs(v).sum()
         L1 = {s: float(x * G) for s, x in zip(keep, v)}
         for s in rs.get("forced_flat_names") or []: L1[s] = 0.0
@@ -168,6 +171,12 @@ def main():
         for Lk in LAYERS: T["net_" + Lk] += row["net_by_layer"][Lk]
         T["n_anchors"] += 1
         rec["anchors"].append(row)
+    good = [r for r in rec["anchors"] if "skip" not in r and all(v is not False for v in r["checks"].values())]
+    rec["denominator"] = {"anchors_in_window": len(rec["anchors"]), "all_identity_checks_pass_or_not_evaluated": len(good),
+                          "e6_not_evaluated": sum(1 for r in good if r["checks"].get("E6 sum L0 == net_producer_usdt") is None),
+                          "priced_and_passing": sum(1 for r in good if r.get("priced")),
+                          "failing": [(r["A"], [k for k, v in r["checks"].items() if v is False]) for r in rec["anchors"] if "skip" not in r and any(v is False for v in r["checks"].values())],
+                          "skipped": [(r["A"], r["skip"]) for r in rec["anchors"] if "skip" in r]}
     rec["totals"] = dict(T)
     json.dump(rec, open(f"{out}/LAYERED_BOOK.json", "w"), indent=1, default=str)
     for r in rec["anchors"]:
@@ -178,6 +187,7 @@ def main():
         print("   closure:", r["closure"], "| unknown price names", len(r["unknown_price_names"]), "| L1 names w/o order row", r["L1_names_without_order_row"][:8])
         if "pnl_by_layer" in r: print("   P&L by layer" + ("" if r["priced"] else " (NOT fully priced: next readback after the price cache)") + ":",
                                      {k: round(v, 1) for k, v in r["pnl_by_layer"].items()}, "| unpriced |notional|", {k: round(v) for k, v in r["unpriced_abs_notional_by_layer"].items() if v})
+    print("DENOMINATOR", json.dumps(rec["denominator"])[:1500])
     print("TOTALS", {k: round(v, 1) for k, v in T.items()})
 
 
