@@ -1,4 +1,4 @@
-> **创建:** 2026-09-26 17:4xZ | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n(news2) | **状态:** 部署包,**由 lead 执行安装**,news2 不碰任何实盘/launchd | **作废条件:** `archive_live_ledger.py` 或 `venue_quiet_window.py` 的 sha 与本文不符;或设计 `docs/DESIGN_live_funding_ledger_archive_2026-09-25.md` 被改写
+> **创建:** 2026-09-26 17:3xZ(提交 72027a9b9 17:32:33Z;原写 17:4xZ 有误) | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n(news2) | **状态:** 部署包,**由 lead 执行安装**,news2 不碰任何实盘/launchd | **作废条件:** `archive_live_ledger.py` 或 `venue_quiet_window.py` 的 sha 与本文不符;或设计 `docs/DESIGN_live_funding_ledger_archive_2026-09-25.md` 被改写
 
 # 部署包:活账本归档作业 `com.hsy.funding_ledger_archive`
 
