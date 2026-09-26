@@ -1,0 +1,32 @@
+[0] BASELINE: consistent synthetic world ⇒ build OK, candidate == expected, positions == true anchors
+  OK    ★★★ baseline build exit 0  — candidate_sha256=3de207e7cdd9c4edc194097c3f4759d1a7b91ee0c7b7cef54b646ea76bfb5180 window 2026-04-26T00:00Z..2026-10-01T08:00Z replay 892 + live 58 seam 2026-09-21T12:00Z->2026-09-21T16:00Z seats old=[0.0, 0.5523, 0.4477] new=[0.0, 1.0, 0.0]
+  OK    ★★★ candidate values == expected series (replay ≤ end, then the live truth), 950 positions
+  OK    ★★★ positions_anchor_ts == the true anchors
+  OK    ★★ a 0-append step (the skipped run) and a 2-append step (the missing snapshot) were both MEASURED  — [{'from': '2026-09-26T08:00Z', 'to': '2026-09-26T12:00Z', 'anchors_elapsed': 1, 'appended': 0}, {'from': '2026-09-28T20:00Z', 'to': '2026-09-29T04:00Z', 'anchors_elapsed': 2, 'appended': 2}]
+[1] RED CONTROL: position→anchor by position ('k-th from the end is k anchors back') is WRONG here
+  OK    ★★★ the naive positional rule mislabels the live tail (it ignores the skipped run), the measured rule does not  — ([1790812800, 1790827200, 1790841600], [1790812800, 1790827200, 1790841600])
+[2] tail timestamp asserted against prev_rec
+  OK    ★★★ file one anchor behind prev_rec (last entry ≠ prev_rec − 4h) ⇒ STOP, nothing written  — RESEED STOP: the live tail's last entry belongs to 2026-10-01T04:00Z, not prev_rec.anchor_ts - 4h = 2026-10-01T08:00Z
+  OK    ★★ aux.last_anchor / prev_rec / generation disagree ⇒ STOP  — RESEED STOP: aux.last_anchor 1790856000 / prev_rec.anchor_ts 1790841600 / generation 1790856000 disagree
+[3] incomplete coverage ⇒ non-zero exit, never an equal-weight fallback
+  OK    ★★★ fewer than 950 timestamped entries ⇒ exit non-zero, 'NOT falling back', nothing written  — RESEED STOP: only 938 timestamped entries, 950 positions required — NOT falling back to equal weights
+[4] seam discontinuity ⇒ STOP
+  OK    ★★★ replay ends 4h early (gap at the seam) ⇒ STOP 'seam NOT continuous'  — RESEED STOP: seam NOT continuous: replay ends 2026-09-21T08:00Z, first kept live entry 2026-09-21T16:00Z (gap 8 h)
+[5] ambiguous step (1 append across 2 anchors) ⇒ STOP
+  OK    ★★ ambiguous ownership ⇒ STOP  — RESEED STOP: ambiguous step 2026-09-24T12:00Z -> 2026-09-24T20:00Z: 1 append(s) across 2 anchor(s) — which anchors own them is not measured
+[6] current file differs from its own anchor's snapshot ⇒ STOP
+  OK    ★★ current != snapshot of the same anchor ⇒ STOP  — RESEED STOP: current leg_returns_live.json differs from the snapshot of its own anchor 2026-10-01T12:00Z
+[7] install: producer must be stopped; inputs unchanged; generation re-issued (red control: without it the loader refuses)
+  OK    ★★★ a LIVE producer pid in the lock ⇒ install refuses, nothing changed  — Users/haosiyu/cc_tmp/reseed_20260926/selftest/rs_base_ethziy3d/shadow.lock names a LIVE pid 65657 — the producer must be STOPPED (it holds the series in memory)
+  OK    ★★★ RED CONTROL: file replaced without re-issuing generation.json ⇒ the producer's loader refuses (why install re-issues it)
+  OK    ★★★ stale lock (dead pid) ⇒ install proceeds, exit 0, and records it  — ("base_ethziy3d/state/leg_returns_live.json.pre_reseed_T1', '/Users/haosiyu/cc_tmp/reseed_20260926/selftest/rs_base_ethziy3d/state/generation.json.pre_reseed_T1']", 'stale lock (pid 999999 not alive)')
+  OK    ★★★ installed file == candidate bytes
+  OK    ★★★ the producer's own _read_verified_generation accepts the re-issued generation
+  OK    ★★ backups .pre_reseed_T1 inside state/ equal the pre-install bytes
+  OK    ★★ a second install against changed inputs ⇒ refuses ('changed since the build')  — RESEED STOP: leg_returns_live.json or generation.json changed since the build — rebuild
+[8] rollback restores bitwise and the generation verifies
+  OK    ★★★ rollback exit 0; both files bitwise == pre-install  — RESEED ROLLBACK OK restored bitwise from .pre_reseed_T1; generation verifies — re-run the seat comparison after the next anchor
+  OK    ★★ rollback with a LIVE producer pid ⇒ refuses  — ftest/rs_base_ethziy3d/shadow.lock names a LIVE pid 65657 — the producer must be STOPPED (it holds the series in memory)
+
+20/20 checks passed
+RESEED_SELFTEST ALL GREEN
