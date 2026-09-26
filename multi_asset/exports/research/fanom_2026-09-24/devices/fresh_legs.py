@@ -1,25 +1,3 @@
-"""★★★ DEPRECATED 2026-09-25 — DO NOT USE FOR ANY NEW READING. Calling main() raises. ★★★
-
-REASON: L80-81 of this file computes the combo kernel's RN8 from `fund_replay.npz`
-(`last_rate` / `last_iv`), and that artefact is CONTAMINATED. Root cause (receipt FA_RN8CENSUS.json,
-commit 9f9c8ac96; news2 2b87e8546):
-  * the producer block compiled by the replay (shadow_loop_v3 as pinned, sha 6080073964) SKIPS the fetch when
-    `anchor - last_ts < exp_iv*3600*0.9`. The LIVE producer (52baf979) L633-634 guards that same line with
-    `not _bulk_ok` -- "NC A4: under bulk, never skip on the predicted interval". The pinned copy predates the
-    guard and contains zero occurrences of `_bulk_ok` (news2 verified the three copies side by side).
-  * in the replay that block is the SOLE POPULATOR of `led` (cold start), so the gate self-locks: once a name
-    is recorded at iv=8 it is not looked at again for 7.2h, and every 1h spike settlement is skipped.
-  * effect vs the clean NC legs: 404 of 2,644,794 cells differ, 43 SIGN FLIPS, 358 of them in 2026
-    (TLMUSDT 2026-03-02: truth +0.0001, this file -0.02). Discriminator: gate active AND the ledger held
-    settlements never fetched -- 360/404 differing vs 0/20,000 non-differing.
-
-USE INSTEAD: the NC legs product `/dev/shm/news2_2026-09-23/work/legs.npz` (sha 9ee5886f...), whose RN8 is
-bitwise equal to the exchange archive on every adjudicated diagnostic cell. Read it; do not re-derive the rule.
-(lead ruling 2026-09-25: the replay is NOT fixed, it is RETIRED; research uses NC legs only.)
-
-Original docstring follows.
-"""
-
 """FRESH P3 legs/seats — news_legs.py with ONLY the roots changed (PREREG_fresh_models_newS_2026-09-23.md §1: the seat legs
 and the combo are rebuilt from FRESH's own King OOF; everything else is byte-for-byte news_legs.py).
   inputs  : NEW_S root (READ-ONLY) for NEWS_FEATURES.npz / fund_replay.npz / cache_x0918r_* / bundle_config.json
@@ -51,12 +29,6 @@ def prod_funcs():
 
 
 def main():
-    raise RuntimeError(
-        "fresh_legs.py is DEPRECATED (2026-09-25) and must not produce new readings: its L80-81 RN8 comes "
-        "from the contaminated fund_replay.npz (404 cells differ from the clean NC legs, 43 sign flips, 358 "
-        "in 2026). Use /dev/shm/news2_2026-09-23/work/legs.npz (sha 9ee5886f) instead. "
-        "See receipt FA_RN8CENSUS.json / commit 9f9c8ac96 and the file header for the root cause.")
-    # --- unreachable below; kept verbatim so the archived product remains reproducible if ever re-authorised ---
     t0 = time.time(); xz_in_base, xz = prod_funcs()
     F = np.load(f"{N}/work/NEWS_FEATURES.npz"); K = np.load(f"{W}/work/king/KING_OOF.npz")
     a = F["anchors"].astype(np.int64); syms = [str(s) for s in F["symbols"]]; off = F["off"]; cnt = F["count"]; n, NW = len(a), len(syms)

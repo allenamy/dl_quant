@@ -1,0 +1,40 @@
+{
+ "device": "test_no_fresh_legs_callers.py",
+ "self_sha256": "91db57f380a631f61c4e9fa031c6d6c754036108bb9df645dbe53509229eb0c8",
+ "utc": "2026-09-26T00:56:40Z",
+ "enforces": "lead ruling 2026-09-26: retirement enforced OUTSIDE the pinned file",
+ "suite_dir": "/dev/shm/fresh_2026-09-23/devices",
+ "fresh_legs_sha256": "97077d7e890223a966ed190ff4a1d6ffe7741ed333a2a4be94046756bf3fe776",
+ "sha_matches_pinned": true,
+ "violations": [],
+ "n_violations": 0,
+ "red_control": [
+  {
+   "kind": "IMPORT",
+   "planted": "import fresh_legs",
+   "detected": true
+  },
+  {
+   "kind": "IMPORTLIB",
+   "planted": "spec_from_file_location(\"x\", \"/tmp/fresh_legs.py\")",
+   "detected": true
+  },
+  {
+   "kind": "SUBPROCESS",
+   "planted": "/workspace/venv/bin/python -B fresh_legs.py PATH,HOME",
+   "detected": true
+  },
+  {
+   "kind": "SUBPROCESS_PY",
+   "planted": "subprocess.run([\"python\", \"fresh_legs.py\"])",
+   "detected": true
+  },
+  {
+   "kind": "PROSE_MENTION_must_NOT_flag",
+   "planted": "docstring naming the file",
+   "detected": true,
+   "note": "detected=True here means the mention was CORRECTLY ignored"
+  }
+ ],
+ "red_control_all_fired": true
+}
