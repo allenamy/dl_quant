@@ -27,7 +27,7 @@
 | 单元测试 U | **16/16**;旧谓词在 13/13 个有分辨力的用例上 RED | receipts/U_tests_prev_state_GAP4_stdout.txt |
 | 沙箱重放 | run 3 **GAP_FIX_JUDGE PASS 25/25**:C0×3 字节同一、T×3、G1/G2/G6、gap7、X1–X3、cold、poison、M | receipts/GAPFIX_JUDGE_run3.json(99fd8f1c6) |
 | 成员规则 | V1 **13/13** 快照逐元素复现;V2 事后重算平均 Jaccard 0.9987(carry-forward 0.9914) | receipts/MEMBERS_V1V2.json |
-| 发布边界测试 P | 该测试在生产上本身就红(E-0926-H,测试漂移),本包改用 AST 同一性证据:发布 Try 节点与现码完全相同 | receipts/P_publication_boundary*.txt |
+| 发布边界测试 P | 旧版在生产上本身就红(E-0926-H,测试漂移)。已修成 **v2**(fix-pkg-e 第 2 项):env 补 DIO/io,测试环境里的名字由 AST 从被测块推出,late_status 按 C 发布的合同;v2 在生产 12a76de8 与 GAP4 上都是 **7/7 OK**,并已作为 **W0 第 4 道门**跑在包的 combo_stage 上(W0 预演 ALL_PASS 4/4)。AST 同一性证据保留 | receipts/P_publication_boundary*.txt、receipts/W0_gates_dryrun_*.log、fixpkg_e_2026-09-27/receipts/PUBLICATION_V2_runs.txt |
 | 执行器侧 | 克隆 `~/cc_tmp/gapfix4_exec_20260926T1911Z`:d01e35d + 201188d(`ops/producer_release/20260927_gapfix/` 下的契约与收据,**未推送**);离线电池 **166/166 全绿** | §4 |
 | 版本探针 | `gap_version_probe.py`:钉 d01e35d,候选 sha 从包契约读(即 5eaabcdb);first-anchor 步检查来源必须为 own、不得有 GAP_PAGE | 在当前未安装机器上做控制:MISMATCH n=3,只差三个 sha,其余全 OK |
 | release_gates | `gap_classfix_2026-09-26/window/gates_gapfix_{W0_pre,W4_install,W5_after_start,W6_first_anchor_*,RB_rollback}.json`(release_gates.py 格式,全部能正常加载) | — |
@@ -41,7 +41,7 @@
 - 生产者 LR 洞(shadow_loop L752)**不在本包**:按 lead 对 news2 的裁定走路径 A,随十月重建处理,重播种构建加连续性门。news2 的附加建议记为下一个生产者包的设计项:恢复锚追加的条数 k 必须等于实际经过的锚数,否则显式记 0 并写出洞的位置,不许静默。
 
 ## 2. 窗 W = [N+1:00, N+3:40](目标 09-27 05:00–07:40Z;每步报判词行和真实退出码)
-- **W0 预检**:`/usr/bin/python3 release_gates.py window/gates_gapfix_W0_pre.json <LOG>`,内容是静默窗、真实 home 预检、包内单元测试。另外人工确认:`df` 剩余 ≥ 15 GiB;执行器运行树 = d01e35d。
+- **W0 预检**:`/usr/bin/python3 release_gates.py window/gates_gapfix_W0_pre.json <LOG>`,内容是静默窗、真实 home 预检、包内单元测试、发布边界测试 v2(跑在包的 combo_stage 上)。另外人工确认:`df` 剩余 ≥ 15 GiB;执行器运行树 = d01e35d。
 - **W1 停生产者侧服务**:`com.hsy.shadowloop com.hsy.combolive com.hsy.combosnap com.hsy.comboparity` 逐个 bootout。等周期作业自然结束,不按名字 kill;`ps` 里看不到它们的进程。
 - **W3 执行器候选**:
   1. 在运行树 HEAD 上新建克隆,cherry-pick 201188d 的两个文件;
