@@ -1,7 +1,7 @@
 {
  "device": "fa_rn8census.py",
- "self_sha256": "2cadc90e66a77c63fafd338eca23bca89fd95133c5be9cb63a94728787f366d1",
- "utc": "2026-09-25T15:21:26Z",
+ "self_sha256": "86028aa2761d46634401e456375c4b79caa608459d521278fc7eef752f683a61",
+ "utc": "2026-09-26T00:35:16Z",
  "ordered_by": "lead 2026-09-25 (RN8 provenance census)",
  "reading_lines": {
   "fa_ladder.py:187": "legs_p = LR_ROOT / 'work/legs.npz'",
@@ -85,6 +85,16 @@
   }
  },
  "size_NEW_S_vs_NC": {
+  "TOTAL_not_identical_cells": 639,
+  "of_which_both_finite_and_differ": 404,
+  "of_which_finite_in_NEW_S_NaN_in_NC": 183,
+  "of_which_NaN_in_NEW_S_finite_in_NC": 52,
+  "CORRECTION_note": "I first reported 404 = the both-finite differing count, which EXCLUDED 235 NaN-vs-value cells. Those are real behaviour changes: the clamp tests isfinite(rn8), so NaN can never fire it. The contamination size is 639, not 404.",
+  "clamp_eligibility_flips_FULL_population": 64,
+  "clamp_only_NEW_S_eligible": 11,
+  "clamp_only_NC_eligible": 5,
+  "clamp_flips_caused_by_NaN_vs_value": 48,
+  "clamp_flip_CORRECTION_note": "I first reported 16 eligibility flips, computed on the both-finite subset. On the full population it is 64, and 48 of those (75%) come from NaN-vs-value -- so the dominant cause was the part I had excluded.",
   "common_finite_cells": 2644794,
   "differing_cells": 404,
   "differing_pct": 0.015275291761853663,
@@ -260,6 +270,12 @@
    "verdict": "CONTAMINATED"
   },
   "ladder/WL_s42": {
+   "legs_used_verbatim": "/dev/shm/news_2026-09-23/work/legs.npz",
+   "legs_sha256": "18999e169c6b68546271f8194fd74eaa79041d1967ba44df978f4cbea33d6bd5",
+   "which_legs": "NEW_S",
+   "verdict": "CONTAMINATED"
+  },
+  "ladder2/CLEANRN8_NONE_s42": {
    "legs_used_verbatim": "/dev/shm/news_2026-09-23/work/legs.npz",
    "legs_sha256": "18999e169c6b68546271f8194fd74eaa79041d1967ba44df978f4cbea33d6bd5",
    "which_legs": "NEW_S",

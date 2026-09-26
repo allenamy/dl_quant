@@ -97,9 +97,32 @@ a, b = Z["NEW_S"]["RN8"], Z["NC"]["RN8"]
 A = Z["NEW_S"]["E_ts"].astype(np.int64)
 assert np.array_equal(A, Z["NC"]["E_ts"].astype(np.int64)), "anchor axes differ; a cell-level diff would be meaningless"
 m = np.isfinite(a) & np.isfinite(b); diff = m & (np.abs(a - b) > 1e-9)
+# ★ CORRECTION 2026-09-26: `m` exists so |a-b| is computable, but I previously reported diff.sum() AS the
+# contamination size. That excludes NaN-vs-value cells, and those are REAL behavioural differences: the clamp
+# condition is `isfinite(rn8) & (rn8 <= -.001)`, so a NaN can NEVER fire the clamp while a finite value can.
+# fa_ladder's own swap counter said 639 where I said 404, which is how this surfaced.
+only_a = np.isfinite(a) & ~np.isfinite(b)     # finite in NEW_S, NaN in NC
+only_b = ~np.isfinite(a) & np.isfinite(b)     # NaN in NEW_S, finite in NC
+not_identical = diff | only_a | only_b
+# clamp eligibility computed on the FULL population, not the both-finite subset
+ca = np.isfinite(a) & (a <= -0.001); cb = np.isfinite(b) & (b <= -0.001)
+elig_flip = ca ^ cb
 yr = np.array([datetime.datetime.fromtimestamp(int(t), datetime.timezone.utc).year for t in A])
 ca, cb = (a <= -0.001) & m, (b <= -0.001) & m
 rec["size_NEW_S_vs_NC"] = {
+    "TOTAL_not_identical_cells": int(not_identical.sum()),
+    "of_which_both_finite_and_differ": int(diff.sum()),
+    "of_which_finite_in_NEW_S_NaN_in_NC": int(only_a.sum()),
+    "of_which_NaN_in_NEW_S_finite_in_NC": int(only_b.sum()),
+    "CORRECTION_note": ("I first reported 404 = the both-finite differing count, which EXCLUDED 235 NaN-vs-value "
+                        "cells. Those are real behaviour changes: the clamp tests isfinite(rn8), so NaN can never "
+                        "fire it. The contamination size is 639, not 404."),
+    "clamp_eligibility_flips_FULL_population": int(elig_flip.sum()),
+    "clamp_only_NEW_S_eligible": int((ca & ~cb).sum()), "clamp_only_NC_eligible": int((cb & ~ca).sum()),
+    "clamp_flips_caused_by_NaN_vs_value": int((elig_flip & (np.isfinite(a) != np.isfinite(b))).sum()),
+    "clamp_flip_CORRECTION_note": ("I first reported 16 eligibility flips, computed on the both-finite subset. On "
+                                   "the full population it is 64, and 48 of those (75%) come from NaN-vs-value -- "
+                                   "so the dominant cause was the part I had excluded."),
     "common_finite_cells": int(m.sum()), "differing_cells": int(diff.sum()),
     "differing_pct": float(100 * diff.sum() / m.sum()),
     "sign_flips": int((np.sign(a[diff]) != np.sign(b[diff])).sum()),
@@ -234,9 +257,11 @@ print("FA_RN8CENSUS receipt sha=%s" % s[:16], flush=True)
 for lbl in ("FRESH", "NEW_S", "NC"):
     print("  %-6s %-46s %s" % (lbl, LEGS[lbl].replace("/dev/shm/", ""), rec["legs"][lbl]["verdict"]), flush=True)
 z = rec["size_NEW_S_vs_NC"]
-print("  NEW_S vs NC: %d/%d differing (%.4f%%), %d sign flips, clamp pop moves %d cells"
-      % (z["differing_cells"], z["common_finite_cells"], z["differing_pct"], z["sign_flips"],
-         z["clamp_only_NEW_S"] + z["clamp_only_NC"]), flush=True)
+print("  NEW_S vs NC: NOT IDENTICAL %d = both-finite-differ %d + NaN-vs-value %d ; clamp eligibility flips %d (%d from NaN-vs-value)"
+      % (z["TOTAL_not_identical_cells"], z["of_which_both_finite_and_differ"],
+         z["of_which_finite_in_NEW_S_NaN_in_NC"] + z["of_which_NaN_in_NEW_S_finite_in_NC"],
+         z["clamp_eligibility_flips_FULL_population"], z["clamp_flips_caused_by_NaN_vs_value"]), flush=True)
+print("     (my earlier 404 / 16 were the both-finite subset only -- both understated)", flush=True)
 g = rec["root_cause_skip_gate"]
 print("  skip gate explains all differing cells: %s (%d/%d); gate also active on %.1f%% of non-differing"
       % (g["gate_explains_all_differing"], g["differing_cells_with_gate_active"], g["differing_cells"],
