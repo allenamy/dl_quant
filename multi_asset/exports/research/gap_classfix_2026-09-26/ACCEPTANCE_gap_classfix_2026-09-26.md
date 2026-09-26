@@ -49,3 +49,4 @@ L59 `state/weights/{A-14400}.npz`(king 生产者 H, 自平价 ① 与回落源)�
 - 「现码 RED」的判法固定为: rc≠0, 或无目标, 或 target_combo 的 kc/fc 来源不以 `own` 开头(现码无任何缺锚页报机制, 故 X2 的静默回落记为 RED)。
 - C0 另查: 现码重放的权重与生产归档 target_live/<A>.json 逐位相等(装置自检; 除 written_utc / weights_sha)。
 - 装置提交 `1ffd…` 之前的 HEAD 为本修订的前提; 判官 = devices/gap_fix_judge.py(已提交)。
+- 更正(同日): 上一条「装置提交 `1ffd…`」是占位笔误; 实际装置提交 = `2d54e2622`(判官/钩子/运行器/补丁树生成器), 早于本修订与任何重放读数。
