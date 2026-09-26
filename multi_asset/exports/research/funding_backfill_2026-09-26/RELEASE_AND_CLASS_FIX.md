@@ -12,7 +12,7 @@
 - **逐笔金额**(settlement_ts、名、交易所 income)只能在 fetch 之后列出:执行器在 20:46 跳过这些行时没有保存金额,本地没有任何副本。fetch 是唯一需要联网的步骤。
 
 ## 2. 安装(lead 执行,静默窗内)
-1. `window/gates_plan_template.json` → release_gates:G0 静默窗、G1 执行器三个模块的 sha、G2 普查(裁决要求 `excluded 0`)、G3 **fetch**(只读 GET:income 带签名、fundingRate 与 fundingInfo 为公开接口;需要与执行器 plist 相同的环境变量 `BINANCE_KEY/SECRET/BINANCE_LIVE_CONFIRM`,并在装置内部再调一次 `require_quiet_window`)、G4 plan。
+1. `window/gates_plan_template.json` → release_gates:G0 静默窗、G1 执行器三个模块的 sha、G2 普查(裁决要求 `excluded 0`)、G3 **fetch**(只读 GET:income 带签名、fundingRate 与 fundingInfo 为公开接口;需要与执行器 plist 相同的环境变量 `BINANCE_KEY/SECRET/BINANCE_LIVE_CONFIRM`,并在装置内部再调一次 `require_quiet_window`)。**fetch 必须在加载了执行器 `.env` 的子 shell 里跑**:2026-09-26 21:0xZ 第一次安装停在 G3,原因是 broker 的 arming 环境变量没有加载;已在同一份 GATES 日志里具名、G4 plan。
 2. **人工核 PLAN.json**:`n_rows_planned` = `n_income_in_window` − `n_already_present_skipped` − `n_excluded_rows`,预计约 545。`writer_report.skipped_no_position` = 0;`alarms_during_replay` 为空;逐行的 `position_read_age_s` 记录 A 的真实陈旧时长,最长约 11.6h。
 3. `window/gates_apply_template.json`,把 PLAN 的 sha 填进 `<PLAN_SHA>`:G0、G5 apply(只追加进 `20260926/funding.jsonl`,旧文件先备份为 `.pre_gap_backfill_<STAMP>`)、G6 verify 必须为 VERIFIED。
 4. **回滚**:`funding_gap_backfill.py rollback --root … --apply-receipt …/APPLY_<STAMP>.json`。如果 apply 之后该文件又被追加过字节,回滚会拒绝(截断会顺带删掉别人的行)。
