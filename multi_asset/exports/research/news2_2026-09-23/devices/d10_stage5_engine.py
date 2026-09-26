@@ -97,9 +97,12 @@ def main():
         # rev 1 (dlarch's condition I missed on the first cell, 20:18Z): R1.4 cells have priority -- no engine start while any
         # CHAIN/.claim_NESTEP_s* exists. chain_run's engine_gate does not look at claims, so this wait is its own step, recorded.
         import glob as _g
-        claims, t_c = [], time.monotonic()
+        claims, t_c, polls = [], time.monotonic(), []
         while True:
             claims = sorted(_g.glob("/workspace/dlarch_2026-09-24/CHAIN/.claim_NESTEP_s*"))
+            owners = {c: (open(c + "/owner").read().strip() if os.path.isfile(c + "/owner") else None) for c in claims}
+            polls.append({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "claims": owners})   # every poll recorded (alloc 3871a0aeb)
+            rec["r14_claim_polls"] = polls
             if not claims: break
             assert time.monotonic() - t_c < 14400, f"R1.4 claims still present after 4 h: {claims}"
             time.sleep(60)
