@@ -22,6 +22,7 @@ while read -r LBL S; do
     [ -e $R/PREP_QUEUE_DONE ] && [ ! -e $W/READY_s$S ] && stop "prep queue done but $LBL s$S never READY"
     sleep 60
   done
+  while [ -e $R/PAUSE ]; do sleep 60; done          # courtesy pause for other agents' priority cells (between cells only)
   while :; do
     MY=$(ps -o pgid= -p $$ | tr -d ' ')
     NOTHER=$(ps -eo pgid,args | grep "bt_launch\.py" | grep -v grep | awk -v me="$MY" '$1 != me {print $1}' | sort -u | grep -c .)
