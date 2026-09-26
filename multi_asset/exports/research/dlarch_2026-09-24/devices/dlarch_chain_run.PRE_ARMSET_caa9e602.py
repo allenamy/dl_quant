@@ -24,7 +24,6 @@ usage: env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B dlarch
          PATH,HOME,LC_CTYPE <outdir> (--parity | --seed N) [--engine]
 """
 import os, sys, json, time, shutil, hashlib, subprocess
-import glob
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import dlarch_safe_io as sio          # E-0925-A: artifact sha must come from a verified write
 sio.install_guards()
@@ -245,31 +244,10 @@ def main():
     train_arm = "T0"
     if "--train-arm" in args:
         train_arm = args[args.index("--train-arm") + 1]
-    # DERIVED, not a literal list: an arm is valid iff the training it names actually produced a receipt
-    # at the path this cell would read. A typo cannot satisfy that, so it still fails loudly and by name;
-    # a NEW arm needs no edit here. (The literal list ("T0","T3_clamp") had to be edited for every arm,
-    # and F10_FULL's G1_T0_nomask_frac1 was the second such edit in two days.)
-    _cand = f"{BASE}/T3/{train_arm}/f10_s{seed}/TRAIN_RECEIPT.json"
-    if not (parity or reference):
-        # FILE EXISTENCE IS NOT COMPLETENESS. merge_folds writes TRAIN_RECEIPT.json after EVERY fold, so
-        # this file is present from fold 1 with status PARTIAL_FOLDS (measured: the F10_FULL arm had one
-        # at 15/23). Accepting it would build a book cell from a partially trained arm and label it like
-        # a finished one -- a hole the literal whitelist also had. Both halves are checked below and the
-        # refusal says WHICH one failed.
-        assert os.path.isfile(_cand), (
-            f"unknown train arm {train_arm!r}: no training receipt at {_cand}. "
-            f"arms that HAVE a receipt for seed {seed}: "
-            + ", ".join(sorted(os.path.basename(os.path.dirname(os.path.dirname(p)))
-                               for p in glob.glob(f"{BASE}/T3/*/f10_s{seed}/TRAIN_RECEIPT.json")) or ["none"]))
-        _st = json.load(open(_cand))
-        assert _st.get("status") == "ALL_DECLARED_FOLDS_SCORED_NOT_COMBO_CERTIFIED", (
-            f"train arm {train_arm!r} seed {seed} is NOT finished: status={_st.get('status')!r} with "
-            f"{len(_st.get('folds') or [])} folds recorded. Refusing to build a book cell from a partial "
-            f"training run -- it would carry a finished cell's name.")
+    assert train_arm in ("T0", "T3_clamp"), f"unknown train arm {train_arm}"
     assert not (inservice_f10 and train_arm != "T0"), "--parity/--reference use the in-service F10, so a train arm is meaningless there"
     TRAIN_ROOT = f"{BASE}/T3/{train_arm}"
-    label = "parity" if parity else (f"ref_nc_s{seed}X" if reference
-                                     else (f"s{seed}" if train_arm == "T0" else f"{train_arm}_s{seed}"))
+    label = "parity" if parity else (f"ref_nc_s{seed}X" if reference else f"{'s' if train_arm == 'T0' else train_arm + '_s'}{seed}")
     # --ref-f10 names the reference cell's F10 EXPLICITLY. Needed because seed 7 has no NC-recipe F10 in
     # news2's tree (only 42 and 2027 exist), so its reference must be built from dlarch's own --no-mask
     # product -- which G1 proved is BITWISE identical to the in-service F10 at s42. Passing the path
