@@ -1,0 +1,290 @@
+{
+  "device": "alloc_chain_run.py",
+  "self_sha256": "44ec6bb12d5d782d705e8271a2205aadfc10f917a69632dfc517de02c5fd301e",
+  "arm": "ALLOC_inservice_shared_s42X",
+  "rule": "inservice",
+  "mix": "shared",
+  "seed": 42,
+  "root": "/workspace/alloc_2026-09-26/cells/inservice_shared_s42",
+  "f10_source": "/dev/shm/news2_2026-09-23/work/f10_s42",
+  "reference_cell": "/workspace/dlarch_2026-09-24/chain/ref_nc_s42X/runs/DLARCH_REF_NC_s42X_scaled_rule_raw_UAFE",
+  "devices": {
+    "alloc_chain_run.py": "44ec6bb12d5d782d705e8271a2205aadfc10f917a69632dfc517de02c5fd301e",
+    "alloc_combo.py": "9c7fe394f6349183ae515f50cbd6134ceab65c2dcb16bec621cfc4fe61424aa2",
+    "alloc_rules.py": "980779c7990833d1d23c34b2c8fc81c7206c73667632beec0e51824dbace09fe",
+    "alloc_scale_probe.py": "2637c83d3716cfbc5d464a0d9545d4708345c3ad464bec3617231b803a3494c8",
+    "book_universe.py": "90e332cc27cf8f34aabcac13f9829f84e463ffa900efbe554e17c07436e8dcca",
+    "combo_target.py": "d7577e824298fb90a554f35ac9c4d634202a4ed7e4e00cabc597a2d4eafdb544",
+    "continuous_combo.py": "1501c9f63641bf447c4cb33661d08da25ced0948f9fae63cebb44cdfd1995d21",
+    "dlarch_safe_io.py": "36deb92fdd5e8c3506198d82bab8a53312f5c03a1b866e9318f8489d51e0cd4e",
+    "news2_adapter_specs.py": "429984a876b373350ba1f047e088fa92d08e412323116d34189dbdfb803e6828"
+  },
+  "devices_realpath": {
+    "alloc_chain_run.py": "/workspace/alloc_2026-09-26/devices/alloc_chain_run.py",
+    "alloc_combo.py": "/workspace/alloc_2026-09-26/devices/alloc_combo.py",
+    "alloc_rules.py": "/workspace/alloc_2026-09-26/devices/alloc_rules.py",
+    "alloc_scale_probe.py": "/workspace/alloc_2026-09-26/devices/alloc_scale_probe.py",
+    "book_universe.py": "/dev/shm/news2_2026-09-23/devices/book_universe.py",
+    "combo_target.py": "/dev/shm/news2_2026-09-23/devices/combo_target.py",
+    "continuous_combo.py": "/dev/shm/news2_2026-09-23/devices/continuous_combo.py",
+    "dlarch_safe_io.py": "/workspace/alloc_2026-09-26/devices/dlarch_safe_io.py",
+    "news2_adapter_specs.py": "/workspace/dlarch_2026-09-24/chain/devices/news2_adapter_specs.py"
+  },
+  "utc_start": "2026-09-26T17:33:12Z",
+  "mem_gate_at_start": {
+    "memory_max_bytes": "60999999488",
+    "anon_bytes": 354426880,
+    "shmem_bytes": 22454804480,
+    "available_gib_v2": 35.57
+  },
+  "steps": {
+    "combo": {
+      "rc": 0,
+      "seconds": 153.7,
+      "outputs": {
+        "scaled_diagnostic.npz": "f4630a20f796bce26590aedeadfc28791be7eeecee8c14789f418b5a08de4388",
+        "literal.npz": "210270198350cdce0287cb2659708f9db52ea4c027346347e7b1e5366a781991",
+        "TARGET_RECEIPT.json": "80a019488ec3dfc9a29d8cf9346dd8f437f2aea6d379206d10dcae15c8dc3198"
+      },
+      "arm_receipt": {
+        "rule": "inservice",
+        "mix": "shared",
+        "seat": {
+          "rule": "inservice",
+          "look": 900,
+          "G1_recompute_bitwise_WL": true,
+          "rows": 9247,
+          "note": "the recomputed seat is asserted bitwise == WL and then WL itself is passed, so the identity arm feeds evolve the identical float64 array production-parity combos were built from",
+          "anchors_seat_differs_from_WL_on_ready": 0
+        }
+      }
+    },
+    "adapter_spec": {
+      "rc": 0,
+      "spec_sha256": "521e4cc764e1c2b31b73289fdbe48e43c632133658afdaafb9f26e0749522236"
+    },
+    "adapter": {
+      "rc": 0,
+      "targets_npz_sha256": "cbb6d10748fc7aa913fcd9ec0872f17829bde72e6bbb32344c67ca13b4bb52b7",
+      "targets_json_sha256": "71b5e50b957ad1fecd25e3191dd08aeec7ce1be58391e97c1fcee08600ba04af",
+      "readback_verified": true
+    },
+    "run_config": {
+      "path": "/workspace/alloc_2026-09-26/cells/inservice_shared_s42/configs/RUN_CONFIG_ALLOC_inservice_shared_s42X.json",
+      "sha256": "4e4b1171ebba9c7f36d9706191d457e3144d5dc753971522677bc4e63f0ee480",
+      "base_config": "/dev/shm/news2_2026-09-23/configs/RUN_CONFIG_NEWS2_s42X_2026-09-23.json",
+      "base_config_sha256": "9526ad1883129f689bff53f9b68b91ade3db8885f67a43f8c21e038fb2e85e2a",
+      "base_tag_used": "NEWS2_s42X|scaled|rule|raw|UAFE"
+    },
+    "engine": {
+      "rc": 0,
+      "seconds": 707.0,
+      "path_npz_found": 32,
+      "expected": 32,
+      "run_dir": "/workspace/alloc_2026-09-26/cells/inservice_shared_s42/runs/ALLOC_inservice_shared_s42X_scaled_rule_raw_UAFE"
+    }
+  },
+  "COMBO_VS_ARCHIVE": {
+    "archive": "/dev/shm/news2_2026-09-23/work/combo_s42",
+    "files": {
+      "scaled_diagnostic.npz": {
+        "archive_sha256": "f4630a20f796bce26590aedeadfc28791be7eeecee8c14789f418b5a08de4388",
+        "arm_sha256": "f4630a20f796bce26590aedeadfc28791be7eeecee8c14789f418b5a08de4388",
+        "container_IDENTICAL": true,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      "literal.npz": {
+        "archive_sha256": "210270198350cdce0287cb2659708f9db52ea4c027346347e7b1e5366a781991",
+        "arm_sha256": "210270198350cdce0287cb2659708f9db52ea4c027346347e7b1e5366a781991",
+        "container_IDENTICAL": true,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      }
+    },
+    "ALL_IDENTICAL": true,
+    "expected_identical": true
+  },
+  "engine_gate": [
+    {
+      "utc": "2026-09-26T17:35:52Z",
+      "foreign_engine_pgids": {},
+      "avail_gib": 35.72,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/alloc_2026-09-26/cells/inservice_shared_s42/configs/RUN_CONFIG_ALLOC_inservice_shared_s42X.json:launch.min_available_gib (22.0) + 2.0",
+      "shm_free_gib": 7.03,
+      "PASS": true,
+      "waited_s": 0
+    }
+  ],
+  "ENGINE_IDENTITY": {
+    "reference": "/workspace/dlarch_2026-09-24/chain/ref_nc_s42X/runs/DLARCH_REF_NC_s42X_scaled_rule_raw_UAFE",
+    "n_paths_identical": 32,
+    "n_paths": 32,
+    "ALL_IDENTICAL": true,
+    "per_path": [
+      {
+        "seed": 0,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 1,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 2,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 3,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 4,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 5,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 6,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 7,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 8,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 9,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 10,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 11,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 12,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 13,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 14,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 15,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 16,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 17,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 18,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 19,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 20,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 21,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 22,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 23,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 24,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 25,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 26,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 27,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 28,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 29,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 30,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      },
+      {
+        "seed": 31,
+        "arrays_IDENTICAL": true,
+        "why": "all arrays bitwise"
+      }
+    ],
+    "note": "arrays compared, not containers: the PATH npz embeds the arm name, which differs by construction"
+  },
+  "utc_end": "2026-09-26T17:47:41Z"
+}

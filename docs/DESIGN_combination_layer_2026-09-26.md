@@ -202,7 +202,29 @@
 
 ## 6. 装置控制的结果(非候选)
 
-(本节在控制跑完后填入;运行记录见 `alloc_2026-09-26/receipts/ALLOC_CHAIN_*.json` 与 `logs/controls.log`,驱动 `run_controls.sh`,pod2 PGID 3285286。)
+判据 `DECISION_RULE_combination_layer_2026-09-26.md`(9d645e2dd / 8a3a1e208 / §6 补记)。执行进程 `run_family.sh` rev 2a(sha a53f69bf,PGID 3294352),标记日志 `/dev/shm/alloc_2026-09-26/logs/family.log`(副本入库于 `alloc_2026-09-26/receipts/pod2_logs/`)。
+
+| 控制 | 结果 | 收据(sha 前 16 位) |
+|---|---|---|
+| G1 席位恒等 / 红控 | PASS 9,247/9,247 逐位;+1 bps 扰动变 210 行 | `ALLOC_SCALE_PROBE_2026-09-26.json` b8c49d4c |
+| 恒等 combo s42 | PASS(容器 sha 与全部数组逐位) | `ALLOC_CHAIN_inservice_shared_s42.json` 82040652 |
+| 恒等引擎 s42 | PASS 32/32 条 PATH 全部数组逐位 | 同上 |
+| 恒等 combo s2027 | PASS | `ALLOC_CHAIN_inservice_shared_s2027.json` 8c3ce86d |
+| 判词零点(IDENTITY 模式) | PASS:七个段 D 全部恰为 0.0 | `JUDGE_IDENTITY.json` 274a70a9 |
+| 接线(红控臂 vs 存档) | 不相同(装置内断言) | `ALLOC_CHAIN_inservice_fundflip_s42.json` ec158f10 |
+| 因果探针 | PASS:inservice / cap050 / look1800 / invvol 在 8 个探针锚上 8/8 不变;正控 oracle 0/8 不变(被抓到) | `ALLOC_CAUSALITY.json` de3a1682 |
+| BTC beta 零点 | 在役臂对 NC 两段差 0.0000 | `BETA_identity_s42.json` d91f7109 |
+| **红控 R(fundflip,s42)** | **FAIL ⇒ 按判据全族停止**(18:21:02Z) | `JUDGE_R.json` d156491d |
+
+**红控 R 的读数**(bps/日):pre-2026 **+0.55**,MBB95 [−8.30, +7.63];2026 **−56.00**,[−120.8, −19.0];冻结截断 2026 −66.59;分年 2023H2 +4.85 / 2024 +5.04 / 2025 −6.13。判据要求两段都 < 0 且上界都 < 0,**pre-2026 不满足**。
+
+**为什么**:装置有分辨力(2026 −56,区间完全在 0 以下;pre-2026 两个通道都动得很大),而**写在读数之前的预期是错的**。pre-2026 的通道拆分(bps/锚,在役 → 换号):价格 +0.910 → +0.173,资金费支出 +0.240 → −0.525(由付变收),二者几乎抵消,净额 g +0.542 → +0.567。资金费腿做多高费率名字,赚价格、付资金费;换号后变成收资金费、亏价格。在 pre-2026,这两项大致相当;另有约 31.7% 的锚 fund 席位为 0,两本书的目标相同,进一步摊薄了差异。「与主信号反着做必然更差」只在 2026 成立。换号后 maxDD 路径均值:pre-2026 −31.4%(在役 −23.1%),2026 −64.4%(在役 −21.2%)。
+
+**状态**:全族停止。O、足迹、引擎格都没有跑。红控怎么替换(需要按构造必坏的控制)由 lead 裁定。
+
+**执行链事件**:
+- 17:54Z /workspace 配额满,写坏第一次红控格,E-0926-E;
+- 执行进程 18:21:02Z 打出 STOP。会话侧等待器同一时刻正常结束,但完成通知在会话空闲时没有送达,约 4 小时后 lead 巡检才发现(错题见 ERROR_LEDGER)。
 
 ---
 
