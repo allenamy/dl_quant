@@ -226,7 +226,16 @@ def main():
     assert not (parity and reference), "--parity and --reference are different modes"
     inservice_f10 = parity or reference
     do_engine = "--engine" in args
-    seed = 42 if inservice_f10 else int(args[args.index("--seed") + 1])
+    # --reference may now name a seed (lead revision 5: rebuild NC references at s2027 and s7 so the
+    # pairing is same-seed). Default stays 42, so every existing command line and the already-built
+    # DLARCH_REF_NC_s42X cell keep their exact identity. --parity stays pinned to 42 because the object
+    # it reproduces is the DEPLOYED book, which exists at one seed only.
+    if parity:
+        seed = 42
+    elif reference:
+        seed = int(args[args.index("--seed") + 1]) if "--seed" in args else 42
+    else:
+        seed = int(args[args.index("--seed") + 1])
     # --train-arm: which TRAINING arm's family member this cell is built from. Default T0, so every
     # existing command line keeps its exact meaning and the T0 cells already produced stay comparable.
     # lead 2026-09-25 asked for T3 to be PIPELINED -- each T3 seed's book cell run as soon as that seed
@@ -238,17 +247,23 @@ def main():
     assert train_arm in ("T0", "T3_clamp"), f"unknown train arm {train_arm}"
     assert not (inservice_f10 and train_arm != "T0"), "--parity/--reference use the in-service F10, so a train arm is meaningless there"
     TRAIN_ROOT = f"{BASE}/T3/{train_arm}"
-    label = "parity" if parity else ("ref_nc_s42X" if reference else f"{'s' if train_arm == 'T0' else train_arm + '_s'}{seed}")
-    f10_src = f"{NS}/work/f10_s42" if inservice_f10 else f"{TRAIN_ROOT}/f10_s{seed}"
+    label = "parity" if parity else (f"ref_nc_s{seed}X" if reference else f"{'s' if train_arm == 'T0' else train_arm + '_s'}{seed}")
+    f10_src = f"{NS}/work/f10_s{seed}" if inservice_f10 else f"{TRAIN_ROOT}/f10_s{seed}"
     # ONE source of truth for the arm name. It used to be rebuilt in four places (here, the adapter
     # spec device, the spec path, the targets path); the copies drifted as soon as --reference added a
     # second arm, and the engine's bt_objb_targets caught it: arm_mismatch {receipt: DLARCH_T0_s42,
     # want: DLARCH_REF_NC_s42X}. Computed once, passed down, recorded in the receipt.
-    arm = "DLARCH_REF_NC_s42X" if reference else f"DLARCH_{train_arm}_s{seed}"
+    arm = f"DLARCH_REF_NC_s{seed}X" if reference else f"DLARCH_{train_arm}_s{seed}"
     root = f"{CHAIN}/{label}"
     rec = {"device": "dlarch_chain_run.py", "self_sha256": sha(os.path.abspath(__file__)),
-           "mode": "PARITY_GATE" if parity else ("REFERENCE_NC_s42X" if reference else "FAMILY_MEMBER"), "seed": seed, "root": root,
+           "mode": "PARITY_GATE" if parity else (f"REFERENCE_NC_s{seed}X" if reference else "FAMILY_MEMBER"), "seed": seed, "root": root,
            "f10_source": f10_src, "train_arm": train_arm, "derived_devices": DEV,
+           "reference_is_the_deployed_book": bool(inservice_f10 and seed == 42),
+           "reference_note": (None if not reference else
+                              ("s42: the archived combo reproduced here IS the deployed production book"
+                               if seed == 42 else
+                               f"s{seed}: NC RECIPE at a seed production never ran; the parity assertion "
+                               "still validates this chain, but this cell is not 'the production book'")),
            "derive_receipt_sha256": sha(f"{DEV}/DERIVE_CHAIN.json"),
            "utc_start": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "mem_gate_at_start": mem_gate(), "steps": {}}
@@ -270,7 +285,11 @@ def main():
 
     # ---- PARITY GATE: must reproduce the archive BIT-FOR-BIT ----
     if parity or reference:
-        arch = f"{NS}/work/combo_s42"
+        # the archived combo to reproduce, at THIS seed. For s42 that archive IS the deployed production
+        # book; for any other seed it is an archived research combo at a seed production never ran. The
+        # parity assertion validates MY CHAIN equally in both cases, but only the s42 reference cell may
+        # be called "the production book" -- recorded in the receipt so the two are not conflated.
+        arch = f"{NS}/work/combo_s{seed}"
         cmp_ = {}
         for n in ("scaled_diagnostic.npz", "literal.npz"):
             a, b = sha(f"{arch}/{n}"), sha(f"{cdir}/{n}")
