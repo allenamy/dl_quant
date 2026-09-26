@@ -1,0 +1,82 @@
+{
+ "device": "d10_seed_provenance.py",
+ "self_sha256": "b00e2184b369439890f313ea5a5ca6186243fbda6605a855423c791903ea5fbb",
+ "task": "lead 2026-09-26 task 2: provenance of shadow_bundle/leg_returns.npz",
+ "seed": {
+  "path": "/Users/haosiyu/wide_shadow/shadow_bundle/leg_returns.npz",
+  "sha256": "6061af108e45fee5ea0257b37f35e9efd0783d494934cad398e003fd47de7c13",
+  "mtime_utc": "2026-09-01T05:58Z",
+  "entries": 10176,
+  "span": [
+   "2022-01-08T00:00Z",
+   "2026-08-30T20:00Z"
+  ],
+  "manifest_records_same_sha": true
+ },
+ "writer": {
+  "file": "multi_asset/exports/research/runpod_scripts/workspace_mirror/pod_export_shadow_bundle.py",
+  "line": 147,
+  "code": "np.savez_compressed(f\"{OUT}/leg_returns.npz\", ts=E_ts[np.array(idx)], **LRa)"
+ },
+ "leg_definitions_line": "pod_export_shadow_bundle.py:82-92",
+ "king_source": {
+  "lines": "pod_export_shadow_bundle.py:44-50",
+  "what": "PRED = full(nan); folds YV in (2024, 2025) each fit their OWN inline lgb.LGBMRegressor(n_estimators=400, learning_rate=0.05, num_leaves=63, subsample=0.8, colsample_bytree=0.8); the 2026 fold uses the pinned booster written to slow2026.txt",
+  "file_comment": "\u9489\u6b7b\u9884\u6d4b: 2026 \u6298\u7528\u672c booster; 2024/2025 \u6298\u7167\u65e7\u8bad\u7ec3(\u4ec5\u5386\u53f2\u817f\u6536\u76ca\u7528, \u4e0d\u8fdb\u5f71\u5b50)",
+  "implication": "the seed's King leg is NOT the NC King OOF the research replay uses; it is a model trained inside the bundle exporter"
+ },
+ "why_king_zero": {
+  "n": 4338,
+  "pct_of_seed": 42.6,
+  "span": [
+   "2022-01-08T00:00Z",
+   "2023-12-31T20:00Z"
+  ],
+  "first_nonzero_king": "2024-01-01T00:00Z",
+  "mechanism": "no 2022/2023 fold exists, so PRED is NaN there; xz(all-NaN) is all-NaN and np.nan_to_num turns it into all ZERO, so g == 0 and the append takes its `else 0.0` branch. The first non-zero king is exactly where the first fold starts.",
+  "rev24_zeros": 0,
+  "fund_zeros": 0,
+  "research_side_instead": "nc_legs.py refuses the anchor (king_oof_missing) rather than recording a zero, so it has NO entry there"
+ },
+ "seed_king_zero_by_year": {
+  "2022": 2148,
+  "2023": 2190
+ },
+ "research_not_ready_by_year": {
+  "2022": 1086
+ },
+ "difference_over_time": {
+  "2022": {
+   "n": 1104,
+   "median_abs_king": 10.91534739428738,
+   "median_abs_rev24": 2.372381313361389,
+   "median_abs_fund": 6.364138041149223
+  },
+  "2023": {
+   "n": 2190,
+   "median_abs_king": 12.472094640562894,
+   "median_abs_rev24": 2.402731672090088,
+   "median_abs_fund": 6.471167113049571
+  },
+  "2024": {
+   "n": 2196,
+   "median_abs_king": 6.553665837668629,
+   "median_abs_rev24": 2.4776938667636115,
+   "median_abs_fund": 6.702455871028612
+  },
+  "2025": {
+   "n": 2190,
+   "median_abs_king": 8.132999233901492,
+   "median_abs_rev24": 3.417113445347989,
+   "median_abs_fund": 7.37178386951117
+  },
+  "2026": {
+   "n": 1452,
+   "median_abs_king": 10.31587802618742,
+   "median_abs_rev24": 4.99531473964452,
+   "median_abs_fund": 6.030160220726623
+  }
+ },
+ "converges_over_time": false,
+ "conclusion": "Written by pod_export_shadow_bundle.py:147 on 2026-09-01T05:58Z (sha 6061af10, which the bundle MANIFEST also records). The king == 0.0 block over 2022-01-08..2023-12-31 (4,338 entries, 42.6%) is not a data gap but a construction artifact: the exporter builds King predictions only for the 2024, 2025 and 2026 folds, so PRED is NaN in 2022-23 and np.nan_to_num turns the all-NaN score vector into all zeros, which drives g to 0 and appends the literal 0.0. The research side refuses those anchors instead. AND the divergence does NOT converge: median |diff| on the King leg by year is 2022 10.92, 2023 12.47, 2024 6.55, 2025 8.13, 2026 10.32 -- it persists at a similar magnitude into 2026, where BOTH sides have real King predictions. So the gap is not merely the missing early folds: the seed's King leg comes from a different model (the exporter's own inline LGBM folds plus the pinned slow2026 booster) than the NC King OOF the research replay uses. That is exactly the shape lead was worried about -- live seats allocated from another model's leg returns."
+}
