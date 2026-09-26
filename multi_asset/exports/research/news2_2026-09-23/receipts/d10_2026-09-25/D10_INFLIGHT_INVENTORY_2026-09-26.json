@@ -1,0 +1,91 @@
+{
+ "created_utc": "2026-09-26T17:2xZ",
+ "author": "news2",
+ "purpose": "inventory of news2 in-flight work after the 2026-09-26 11:14-16:58Z macOS migration, committed BEFORE any relaunch (lead item 1)",
+ "pod2_measured": {
+  "2026-05": {
+   "dir_exists": true,
+   "n_zip": 592,
+   "n_part": 0,
+   "manifest": true,
+   "newest_zip_mtime_utc": "2026-09-25T18:43:37Z",
+   "n_symlist": 592
+  },
+  "2026-06": {
+   "dir_exists": true,
+   "n_zip": 281,
+   "n_part": 0,
+   "manifest": false,
+   "newest_zip_mtime_utc": "2026-09-25T18:51:07Z",
+   "n_symlist": 646
+  },
+  "2026-07": {
+   "dir_exists": false,
+   "n_zip": 0,
+   "n_part": 0,
+   "manifest": false,
+   "newest_zip_mtime_utc": null,
+   "n_symlist": 680
+  },
+  "pull_2026-06.log_mtime_utc": "2026-09-25T18:50:25Z",
+  "pull_2026-06.log_tail": [
+   "200/646 DRIFTUSDT 200 320s",
+   "250/646 GASUSDT 200 397s"
+  ],
+  "measured_utc": "2026-09-26T17:19:42Z"
+ },
+ "month_state_device": {
+  "2026-05": "VERIFIED n_zips=592 n_404=0 rehashed=592",
+  "2026-06": "ABSENT",
+  "2026-07": "ABSENT"
+ },
+ "items": [
+  {
+   "item": "May-July archive pull (d10_pull_may_to_july.sh, 4239158b9)",
+   "status": "DEAD SINCE 2026-09-25T18:51:08Z -- NOT killed by the migration",
+   "evidence": [
+    "local driver log (scratchpad d10/may_july.log) last line: '18:51:08Z 2026-06 PULL FAILED rc=255 -- stopping, not retrying'",
+    "rc 255 = ssh transport failure; the remote puller ran in the foreground of that ssh session and no file was written after it: newest 2026-06 zip mtime 2026-09-25T18:51:07Z, log mtime 18:50:25Z",
+    "no *.part files in 2026-06 (puller writes .part then os.replace, so the 281 zips on disk are whole files; they are re-verified against the venue .CHECKSUM on resume, never trusted)"
+   ],
+   "log_head": [
+    "18:28:32Z [mayjul-68104-20260925T182832Z] START run_id=mayjul-68104-20260925T182832Z months=2026-05,2026-06,2026-07",
+    "18:28:37Z [mayjul-68104-20260925T182832Z] 2026-05 START state=ABSENT symbols=592 window_remaining=71min",
+    "18:43:39Z [mayjul-68104-20260925T182832Z] 2026-05 DONE in 900s  VERIFIED n_zips=592 n_404=0 rehashed=592",
+    "18:43:45Z [mayjul-68104-20260925T182832Z] 2026-06 START state=ABSENT symbols=646 window_remaining=56min",
+    "18:51:08Z [mayjul-68104-20260925T182832Z] 2026-06 PULL FAILED rc=255 -- stopping, not retrying"
+   ],
+   "state": {
+    "2026-05": "VERIFIED 592/592 re-hashed",
+    "2026-06": "281/646 zips, no MANIFEST -> month_state ABSENT",
+    "2026-07": "not started (0/680)"
+   },
+   "correction": "STATE.md 2026-09-25 18:5xZ entry lists this pull as '在飞'. At the time it was written the pull had already failed (18:51:08Z). The label was stale for ~22 h before the migration; the migration is not the cause."
+  },
+  {
+   "item": "Jan-Aug re-audit (d10_reaudit_jan_to_aug.sh)",
+   "status": "NEVER RUN (waits for the pull)",
+   "existing_receipts": {
+    "D10_P2_LEDGER_VS_ARCHIVE_full.json": "months 2026-01..04 + 08",
+    "D10_LEGS_RN8_VS_ARCHIVE.json": "months 2026-01..05 + 08"
+   }
+  },
+  {
+   "item": "funding-features-only control cell s42 (PLAN e786a9ade)",
+   "status": "NOT RUN; nothing launched; engine queue = dlarch F10_FULL first",
+   "open_questions_to_lead": "plan s6 (September segment handling; producer_snap book-layer identity cell)"
+  },
+  {
+   "item": "live funding ledger archive job (4cf4de90c)",
+   "status": "BUILT, 7b controls passed on a copy; NOT DEPLOYED (lead: next quiet window after fix-pkg-d)"
+  },
+  {
+   "item": "ledger_full_ms e179071d5955 (b355c1a55)",
+   "status": "DONE; ends 2026-09-01T02:00Z (September needs the October monthly archive)"
+  },
+  {
+   "item": "local processes",
+   "status": "none of mine alive (reboot); ps shows no d10/news2/archive processes"
+  }
+ ]
+}
