@@ -63,6 +63,8 @@ def main():
     ap = argparse.ArgumentParser()
     for k in ("--engine", "--cell-ser", "--nc-ser", "--t0-ser", "--out"): ap.add_argument(k, required=True)
     ap.add_argument("--profile", default="")
+    ap.add_argument("--role", required=True, choices=["LINE_D_CELL", "POSITIVE_CONTROL"],
+                    help="POSITIVE_CONTROL runs the same arithmetic on existing cells and never writes a line-D verdict or implication")
     a = ap.parse_args()
     NS, BT = load(a.engine); gm = float(BT.GM)
     cells = {"cell": ser(a.cell_ser), "NC": ser(a.nc_ser), "T0": ser(a.t0_ser)}
@@ -96,7 +98,10 @@ def main():
             if base == "T0": S["vs"][base]["role"] = "REFERENCE COLUMN (R1.3 draft 2)"
         rec["segments"][seg] = S
     rec["profile"] = {p: json.load(open(p)) for p in a.profile.split(",") if p}
-    if closure_fail:
+    rec["role"] = a.role
+    if a.role == "POSITIVE_CONTROL":
+        rec["VERDICT_LINE"] = "POSITIVE CONTROL on existing cells -- NOT a line-D reading; no verdict, no implication"
+    elif closure_fail:
         rec["VERDICT_LINE"] = "CLOSURE_FAIL: no verdict line (R1.3 frozen)"
     else:
         v26 = rec["segments"]["2026"]["vs"]["NC"]
