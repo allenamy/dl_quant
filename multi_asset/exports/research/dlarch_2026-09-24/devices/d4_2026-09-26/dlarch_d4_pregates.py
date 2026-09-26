@@ -264,16 +264,25 @@ from scipy.stats import spearmanr                            # noqa: E402
 
 
 def month_starts(lo, hi):
+    # T(y, m) WITHOUT a day is day 0 = the last day of the previous month (calendar.timegm accepts it). The
+    # first run of this device (23:18Z) used exactly that, so every [ms, me) window was empty and the
+    # walk-forward made 0 refits; PG-D4-3 then read "UNDEFINED" and STOPPED -- an instrument failure, not
+    # a resolution reading. The day is now explicit everywhere and the test windows are asserted non-empty.
     y, m = time.gmtime(lo).tm_year, time.gmtime(lo).tm_mon; out = []
-    while T(y, m) < hi:
-        out.append(T(y, m)); y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    while T(y, m, 1) < hi:
+        out.append(T(y, m, 1)); y, m = (y + 1, 1) if m == 12 else (y, m + 1)
     return out
+
+
+def next_month(ms):
+    g = time.gmtime(ms); assert g.tm_mday == 1 and g.tm_hour == 0
+    return T(g.tm_year + (g.tm_mon == 12), g.tm_mon % 12 + 1, 1)
 
 
 def walk(D, X, fail, H, cols_used):
     P = np.full(len(D), np.nan); refits = []
     for ms in month_starts(OOS_PRE[0], OOS_26[1]):
-        me = T(time.gmtime(ms).tm_year + (time.gmtime(ms).tm_mon == 12), time.gmtime(ms).tm_mon % 12 + 1)
+        me = next_month(ms)
         tr = D + H * DAY <= ms
         te = (D >= ms) & (D < me)
         if not te.any():
@@ -285,6 +294,8 @@ def walk(D, X, fail, H, cols_used):
         mdl = LogisticRegression(C=1.0, solver='lbfgs', max_iter=1000).fit((Xt - mu) / sd, fail[tr])
         P[te] = mdl.predict_proba((X[te][:, cols_used] - mu) / sd)[:, 1]
         refits.append({'month': iso(ms), 'n_train': int(tr.sum()), 'max_train_label_end': iso(D[tr].max() + H * DAY)})
+    n_months_with_days = sum(1 for ms in month_starts(OOS_PRE[0], OOS_26[1]) if ((D >= ms) & (D < next_month(ms))).any())
+    assert len(refits) >= n_months_with_days - 1, f'walk-forward refit only {len(refits)} of {n_months_with_days} months'
     return P, refits
 
 
