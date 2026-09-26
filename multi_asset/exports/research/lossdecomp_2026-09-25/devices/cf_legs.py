@@ -27,7 +27,13 @@ rev 1 (lead approval 2026-09-25 ~17:3xZ, main drawdown 09-16 12Z → 09-24 04Z, 
       every arm. Named limitation: within a segment the counterfactual is "the leg removed FROM THE SEGMENT START", not "the leg never
       existed"; two segments are two chains, never one.
 rev 3 (lead approval, seg-1 run 1 STOP): the old tree's hard-coded root line is pointed at the sandbox home in the sandbox copy (see build()).
-usage: ~/wide_shadow/venv/bin/python cf_legs.py <default tree> <out dir> <A,A,...[;A,A,...]> [--tree-at A=<dir> ...] [--copy-extra <rel> ...]"""
+rev 4 (Task B synthesis 2026-09-26, Q1 EMA-lag magnitude; committed before any no_ema run): arm `no_ema` = the chain trades straight to its
+      target — the two chain lines `smv = H + P["alpha"] * (tgt - H)` -> `smv = tgt.copy()` and the band line -> a no-op (each asserted to
+      match once; the chain function is shared by kc / fc / f10 / self-parity, so the whole combo book is un-smoothed); `--arms a,b` runs a
+      subset (base always included, it is the validator); per-arm book turnover (sum |book_A - book_prev|, USDT, same reshape/clamp/caps)
+      is recorded so the no-EMA arm's extra trading can be costed separately (P&L here is GROSS of costs). EMA lag contribution =
+      P&L(base) - P&L(no_ema) per anchor. Named limitation as rev 1 (d): "EMA removed from the segment start".
+usage: ~/wide_shadow/venv/bin/python cf_legs.py <default tree> <out dir> <A,A,...[;A,A,...]> [--tree-at A=<dir> ...] [--copy-extra <rel> ...] [--arms base,no_ema]"""
 import collections, glob, hashlib, json, math, os, shutil, subprocess, sys, time
 import numpy as np
 
@@ -61,7 +67,10 @@ def recorded_caps():
 ARMS = {"base": {},
         "no_fund": {KC: 'z_kc = w3m[0] * np.nan_to_num(legz["king"])', FC: 'z_fc = w3m[0] * np.nan_to_num(zf)'},
         "no_king": {KC: 'z_kc = w3m[2] * np.nan_to_num(legz["fund"])'},
-        "no_f10": {FC: 'z_fc = w3m[2] * np.nan_to_num(legz["fund"])'}}
+        "no_f10": {FC: 'z_fc = w3m[2] * np.nan_to_num(legz["fund"])'},
+        "no_ema": {'smv = H + P["alpha"] * (tgt - H)': 'smv = tgt.copy()   # cf_legs rev 4 no_ema',
+                   'smv = np.where(np.abs(trade) < P["band"], H, smv)': 'smv = smv   # cf_legs rev 4 no_ema: no band'}}
+LEG_ARMS = (("fund", "no_fund"), ("king", "no_king"), ("f10", "no_f10"), ("ema", "no_ema"))
 
 
 def num(v):
@@ -160,9 +169,14 @@ def main():
     for i, x in enumerate(a):
         if x == "--tree-at": k, v = a[i + 1].split("=", 1); TREE_AT[int(k)] = os.path.abspath(v)
         if x == "--copy-extra": EXTRA.append(a[i + 1])
+        if x == "--arms":
+            keep = set(a[i + 1].split(",")) | {"base"}; assert keep <= set(ARMS), f"unknown arm in {keep}"
+            for k in [k for k in ARMS if k not in keep]: del ARMS[k]
+    if "--arms" not in a:
+        del ARMS["no_ema"]                                     # rev 4: default arm set unchanged (rev 3 runs are reproducible as before)
     assert not os.path.exists(out), "refusing to overwrite"; os.makedirs(out)
     rec = {"device_sha256": sha(os.path.abspath(__file__)), "tree": tree, "tree_at": {fmt(k): v for k, v in TREE_AT.items()}, "copy_extra": EXTRA,
-           "segments": [[fmt(A) for A in seg] for seg in SEGS], "anchors": [fmt(A) for A in Alist], "arms": {}, "checks": {},
+           "arms_run": list(ARMS), "segments": [[fmt(A) for A in seg] for seg in SEGS], "anchors": [fmt(A) for A in Alist], "arms": {}, "checks": {},
            "named_limitation": "each segment starts every arm from production's state of the anchor before: the counterfactual is 'the leg removed from the segment start', not 'the leg never existed'; segments are separate chains"}
     W = {arm: {} for arm in ARMS}; prev = {arm: None for arm in ARMS}
     for A in Alist:
@@ -216,7 +230,7 @@ def main():
                     d_.update(items)
             CAPD[A] = d_
     rec["venue_caps_applied"] = {fmt(A): sorted(v) for A, v in CAPD.items() if v}
-    res = collections.defaultdict(dict)
+    res = collections.defaultdict(dict); prev_book = {}
     for A in Alist:
         an = [a for a in AN if int(float(a["anchor_ts"]) // 14400 * 14400) == A][0]; rs = an["reshape"]; at = float(an["anchor_ts"])
         Gs = float(rs["sizing_gross"]); ca = rs.get("clamped_after_reshape") or {}
@@ -235,15 +249,18 @@ def main():
             if arm == "base":                                          # rev 1: the base book must equal the executor's own L2 (identity)
                 _d = [abs(book.get(s, 0.0) - L2x.get(s, 0.0)) for s in set(book) | set(L2x)]
                 rec["checks"][f"base book == executor L2 {fmt(A)} (max |diff| < 1 USDT)"] = bool(_d) and max(_d) < 1.0
+            pb = prev_book.get(arm); prev_book[arm] = dict(book)
+            turn = None if (pb is None or A in seg_start) else sum(abs(book.get(s, 0.0) - pb.get(s, 0.0)) for s in set(book) | set(pb))
             pnl, unp = 0.0, 0.0
             if tB is not None:
                 for s, x in book.items():
                     r = ret(s, tA, tB)
                     if r is None: unp += abs(x)
                     else: pnl += x * r
-            res[arm][fmt(A)] = {"pnl": pnl if tB is not None and tB <= ts[-1] + 300 else None, "unpriced_abs": unp}
+            res[arm][fmt(A)] = {"pnl": pnl if tB is not None and tB <= ts[-1] + 300 else None, "unpriced_abs": unp, "turnover_usdt": turn}
     contrib = {}
-    for leg, arm in (("fund", "no_fund"), ("king", "no_king"), ("f10", "no_f10")):
+    for leg, arm in LEG_ARMS:
+        if arm not in ARMS: continue
         per = {a: (res["base"][a]["pnl"] - res[arm][a]["pnl"]) if res["base"][a]["pnl"] is not None and res[arm][a]["pnl"] is not None else None for a in res["base"]}
         contrib[leg] = {"per_anchor": per, "sum": sum(x for x in per.values() if x is not None), "n_priced": sum(x is not None for x in per.values())}
     rec["book_pnl"] = res; rec["leg_contribution_counterfactual"] = contrib
