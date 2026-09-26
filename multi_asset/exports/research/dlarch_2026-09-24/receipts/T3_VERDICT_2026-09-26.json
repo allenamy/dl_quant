@@ -1,0 +1,156 @@
+{
+ "device": "dlarch_t3_verdict.py",
+ "self_sha256": "0b34102ba1d7c39691c1905906601f09f2162f687a3432e1906961cfb5a5034a",
+ "utc": "2026-09-26T00:29:27Z",
+ "sigma_receipt": "/workspace/dlarch_2026-09-24/receipts/SIGMA_F10_2026-09-25.json",
+ "sigma_receipt_sha256": "d4ba45d6cff42d6eb1f18cd1af562c92cc2b2b37b3e45abfed7cc4095ab87eaa",
+ "measurements": {
+  "pre2026": {
+   "segment": "pre2026",
+   "mean_d": -0.45289741620222573,
+   "sd_d": 1.6030886819256807,
+   "d_per_seed": {
+    "s7": -1.841596498041838,
+    "s42": 1.3014188540027873,
+    "s2027": -0.8185146045676266
+   },
+   "n_positive": 1,
+   "n": 3,
+   "sigma_hat_F10": 2.838171788209541,
+   "sigma_ref": 3.840897880983972,
+   "SE_measured_branch": 0.9255436820446341,
+   "SE_backstop_branch": 3.1360799875159615,
+   "SE": 3.1360799875159615,
+   "branch_taken": "backstop",
+   "three_SE": 9.408239962547885,
+   "threshold": 9.408239962547885
+  },
+  "2026": {
+   "segment": "2026",
+   "mean_d": -1.418164134137184,
+   "sd_d": 0.1580637744568764,
+   "d_per_seed": {
+    "s7": -1.5608556829963656,
+    "s42": -1.445375440674311,
+    "s2027": -1.2482612787408756
+   },
+   "n_positive": 0,
+   "n": 3,
+   "sigma_hat_F10": 0.5655282459583263,
+   "sigma_ref": 0.7653293752554029,
+   "SE_measured_branch": 0.09125816273180588,
+   "SE_backstop_branch": 0.6248888181795892,
+   "SE": 0.6248888181795892,
+   "branch_taken": "backstop",
+   "three_SE": 1.8746664545387675,
+   "threshold": 1.8746664545387675
+  }
+ },
+ "criterion_A_section3_rev1_BLIND": {
+  "criterion": "section 3 (stage 1) with revision 1's sigma_ref",
+  "main_window": "pre2026",
+  "blind_for_T3": true,
+  "why_blind": "written before any T3 book-layer reading existed (revision 1 timestamped 02:2xZ)",
+  "clauses": {
+   "1_mean_ge_threshold": {
+    "text": "mean(d) >= max(1.0, 3*SE)",
+    "lhs": -0.45289741620222573,
+    "rhs": 9.408239962547885,
+    "pass": false
+   },
+   "2_all_three_seeds_positive": {
+    "text": "3/3 seeds d > 0",
+    "n_positive": 1,
+    "pass": false
+   },
+   "3_2026_point_estimate_ge_0": {
+    "text": "mean(d_2026) >= 0",
+    "lhs": -1.418164134137184,
+    "pass": false
+   },
+   "4_drawdown_guardrail": {
+    "text": "pre-2026 maxdd not worse than T0 by > 3pp",
+    "seeds": [
+     7,
+     42,
+     2027
+    ],
+    "T3_mean_pp": -24.44932332686794,
+    "T0_mean_pp": -23.962729705626582,
+    "T3_minus_T0_pp": -0.48659362124135797,
+    "passes": true,
+    "note": "maxdd_5m path_mean over the pre-2026 segment, averaged across the seeds that have BOTH cells. Negative is worse; the guardrail allows T3 to be at most 3.0 pp worse."
+   }
+  },
+  "verdict": "REJECT",
+  "reject_clause_fired": [
+   "mean(d) <= 0",
+   "<=1 seed d > 0"
+  ]
+ },
+ "criterion_B_rev4_NOT_BLIND": {
+  "criterion": "revision 4 (user's dual main criteria)",
+  "main_window": "2026",
+  "blind_for_T3": false,
+  "why_not_blind": "section 10: the T3 readings existed at 18:22Z and were delivered ~18:3xZ; revision 4 was committed 23:57Z. Applies normally to LATER arms.",
+  "clauses": {
+   "1_2026_mean_ge_threshold": {
+    "text": "mean(d_2026) >= max(1.0, 3*SE_2026)",
+    "lhs": -1.418164134137184,
+    "rhs": 1.8746664545387675,
+    "pass": false
+   },
+   "2_2026_all_three_positive": {
+    "text": "2026: 3/3 seeds d > 0",
+    "n_positive": 0,
+    "pass": false
+   },
+   "3_pre2026_not_worse": {
+    "text": "mean(d_pre) >= 0",
+    "lhs": -0.45289741620222573,
+    "pass": false
+   },
+   "4_drawdown_guardrail": {
+    "text": "per section 3",
+    "seeds": [
+     7,
+     42,
+     2027
+    ],
+    "T3_mean_pp": -24.44932332686794,
+    "T0_mean_pp": -23.962729705626582,
+    "T3_minus_T0_pp": -0.48659362124135797,
+    "passes": true,
+    "note": "maxdd_5m path_mean over the pre-2026 segment, averaged across the seeds that have BOTH cells. Negative is worse; the guardrail allows T3 to be at most 3.0 pp worse."
+   }
+  },
+  "verdict": "REJECT",
+  "reject_clause_fired": [
+   "mean(d_2026) <= 0",
+   "<=1 seed positive in 2026"
+  ]
+ },
+ "vs_in_service_NC": {
+  "pre2026": {
+   "per_seed": {
+    "s7": -1.0808498019870874,
+    "s42": 1.814699403036722,
+    "s2027": 4.768064053474566
+   },
+   "mean": 1.8339712181747336
+  },
+  "2026": {
+   "per_seed": {
+    "s7": -3.0862274465261295,
+    "s42": -2.6995606663189977,
+    "s2027": -3.2578897683675208
+   },
+   "mean": -3.0145592937375496
+  }
+ },
+ "nc_wording_required_by_rev4_clause5": true,
+ "nc_wording": "2026 \u6bb5\u5bf9\u5728\u5f79 NC \u4ecd\u4e3a\u8d1f",
+ "both_criteria_agree": true,
+ "paraphrase_discrepancy": "section 10 describes A's outcome as 'cannot resolve, not recommended'. A's frozen REJECT clause is literally `mean(d) <= 0`, which fires here (mean(d_pre) = -0.453), so the frozen text yields REJECT, a stronger verdict word than the paraphrase. Reported, not reconciled -- the text is what this device implements.",
+ "authorship": "dlarch wrote no criterion here. Every threshold and verdict word is transcribed from the frozen document; dlarch has a stake in what this gate admits."
+}
