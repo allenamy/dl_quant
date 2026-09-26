@@ -4,7 +4,16 @@
 set -uo pipefail
 R=/dev/shm/mretrain_2026-09-26; D=$R/devices; PV=/workspace/venv/bin/python; L=$R/logs; mkdir -p $L $R/gate
 say() { echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $*" | tee -a $L/master.log; }
-say "MASTER_START pgid=$(ps -o pgid= -p $$ | tr -d ' ')"
+PG=$(ps -o pgid= -p $$ | tr -d ' ')
+echo "{\"what\":\"mr_master.sh\",\"pgid\":\"$PG\",\"started_utc\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"self_reported\":true}" > $L/PGID_master.json
+say "MASTER_START pgid=$PG"
+# ---- stage P (fresh2 2026-09-27, after the 18:35Z STOP that came 25 min in): pre-flight BEFORE any training. Every file a later
+# step reads must exist and match its pin now: the combo step's reads (mr_combo --preflight, via mr_prep mode preflight, which also
+# vendors combo_stage.py to the one path combo_target reads) and every reference outside the arms (mr_preflight_refs.py).
+bash $D/mr_prep.sh A0 0 preflight > $L/prep_A0_m0_preflight.out 2>&1 || { say "STOP: pre-flight (combo reads) FAILED, see $L/A0_m0/preflight.log"; exit 1; }
+$PV -B $D/mr_preflight_refs.py $D > $L/preflight_refs.log 2> $L/preflight_refs.json || true
+grep -q "^MR_PREFLIGHT_REFS PASS" $L/preflight_refs.log || { say "STOP: pre-flight (references) FAILED: $(head -c 600 $L/preflight_refs.log)"; exit 1; }
+say "PREFLIGHT_OK $(grep -h MR_COMBO_PREFLIGHT $L/A0_m0/prep.log | tail -1 | cut -c1-220) | $(cut -c1-120 $L/preflight_refs.log)"
 # ---- stage G: A0 m0 chain + an independent second training of A0 m0 (determinism) + gate device
 bash $D/mr_prep.sh A0 0 train > $L/prep_A0_m0.out 2>&1 &
 P1=$!

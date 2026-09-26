@@ -1,9 +1,11 @@
 #!/bin/bash
-# mr_prep.sh <ARM> <M> [train|shuffle|kingonly]   -- one (arm, member) of the King monthly-retrain family up to READY engine configs.
+# mr_prep.sh <ARM> <M> [train|shuffle|kingonly|preflight]   -- one (arm, member) of the King monthly-retrain family up to READY engine configs.
 # DECISION_RULE_king_monthly_retrain_2026-09-26.md (1f2f5c4e9). Steps: root -> King -> legs -> combo s42/s2027 -> specs -> adapter
 # -> X run configs -> READY_s{seed}. Any non-zero rc or Traceback stops THIS job with a FAILED marker (the queue then stops).
 # Space: combo arrays, legs and the OOF are deleted once the targets exist (regenerable, shas kept in receipts), except A0_m0
 # which the device gates read.
+# Pre-flight (fresh2 2026-09-27, after the 18:35Z STOP): before any training, every file the combo step reads is checked by
+# mr_combo.py --preflight (derived from mr_combo's own path lists, pinned to the in-service combo receipt); mode preflight stops there.
 set -euo pipefail
 ARM=$1; M=$2; MODE=${3:-train}
 R=/dev/shm/mretrain_2026-09-26; D=$R/devices; N=/dev/shm/news2_2026-09-23; NC=/dev/shm/nc_2026-09-23
@@ -17,11 +19,18 @@ fail() { say "FAILED: $*"; touch $W/FAILED; exit 1; }
 trap 'fail "rc=$? at line $LINENO"' ERR
 [ -e $W/FAILED ] && { echo "$LBL has a FAILED marker; refusing"; exit 1; }
 if [ -e $W/READY_s42 ] && [ -e $W/READY_s2027 ]; then echo "$LBL already READY"; exit 0; fi
-mkdir -p $W/{work,receipts,inputs,configs,targets,vendor_live/fea171}
+mkdir -p $W/{work,receipts,inputs,configs,targets}
 ln -f $N/work/NEWS_FEATURES.npz $W/work/NEWS_FEATURES.npz
 cp -f $N/receipts/P2B_FEATURES.json $W/receipts/; ln -f $N/receipts/P1_members_2025H2on.npz $W/receipts/P1_members_2025H2on.npz
-cp -f $N/inputs/bundle_config.json $W/inputs/; ln -f $N/vendor_live/fea171/combo_stage.py $W/vendor_live/fea171/combo_stage.py
-say "START mode=$MODE"
+cp -f $N/inputs/bundle_config.json $W/inputs/
+# the ONE vendoring rule: the path combo_target.source_kernels() reads, asked from the device itself (never an arm-local copy)
+STAGE=$(cd $D && MR_W=$W $P314 -B mr_combo.py --stage-path); mkdir -p $(dirname $STAGE)
+[ -e $STAGE ] || ln $N/vendor_live/fea171/combo_stage.py $STAGE || [ -e $STAGE ]   # a concurrent prep may have linked it first
+say "START mode=$MODE stage=$STAGE"
+cd $D && MR_W=$W NPY_DISABLE_CPU_FEATURES="$NPY" OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 $P314 -B -u mr_combo.py --preflight > $L/preflight.log 2>&1 || true
+grep -q "^MR_COMBO_PREFLIGHT PASS" $L/preflight.log || fail "combo preflight (see $L/preflight.log)"
+say "$(grep '^MR_COMBO_PREFLIGHT' $L/preflight.log)"
+[ "$MODE" = preflight ] && { say "PREFLIGHT_ONLY_DONE"; exit 0; }
 if [ ! -s $W/work/king/KING_OOF.npz ]; then
   rm -rf $W/work/king
   if [ "$MODE" = shuffle ]; then

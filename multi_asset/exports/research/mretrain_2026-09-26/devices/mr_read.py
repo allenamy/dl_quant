@@ -111,7 +111,9 @@ else:
     def a0_age(day):
         k = max(i for i, (st, _) in enumerate(a0_folds) if st <= day); return (day - a0_folds[k][1]) / 86400.0
     arms = [a for a in ("A1", "A3", "A2", "A4") if all(os.path.exists(f"{S}/SER_{a}_m{m}_s{s}.npz") for m in MEMBERS for s in SEEDS)]
-    missing = [f"{a}_m{m}_s{s}" for a in ("A1", "A3") for m in MEMBERS for s in SEEDS if not os.path.exists(f"{S}/SER_{a}_m{m}_s{s}.npz")]
+    # A1 (main arm) and A0 must be complete; A3 is judged independently (rule §2) and was deferred by the lead until A1's verdict
+    # exists (fresh2 2026-09-27, before any engine series of the family) -- it is read when all its series exist, never required
+    missing = [f"{a}_m{m}_s{s}" for a in ("A1",) for m in MEMBERS for s in SEEDS if not os.path.exists(f"{S}/SER_{a}_m{m}_s{s}.npz")]
     missing += [f"A0_m{m}_s{s}" for m in MEMBERS for s in SEEDS if not os.path.exists(f"{S}/SER_A0_m{m}_s{s}.npz")]
     if missing:
         rec["STATUS"] = "INCOMPLETE"; rec["missing"] = missing

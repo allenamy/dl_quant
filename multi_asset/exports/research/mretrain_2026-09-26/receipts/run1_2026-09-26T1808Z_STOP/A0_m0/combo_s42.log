@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+  File "/dev/shm/mretrain_2026-09-26/devices/mr_combo.py", line 80, in <module>
+    main()
+    ~~~~^^
+  File "/dev/shm/mretrain_2026-09-26/devices/mr_combo.py", line 60, in main
+    result = evolve(au, leg['KZ'][use].astype(np.float64), score['P'][use].astype(np.float64), leg['ZFD'][use].astype(np.float64), leg['WL'][use].astype(np.float64),
+                    leg['RN8'][use].astype(np.float64), mem_u, leg['QV'][use].astype(np.float64), book_legal, leg['ready'][use], config['params'], policy)
+  File "/dev/shm/mretrain_2026-09-26/devices/continuous_combo.py", line 34, in evolve
+    result=step(k[i,m],f10[i,m],fund[i,m],seats[i],rn8[i,m],m,qv[i,m],legal[i],params,kc,fc,publication)
+  File "/dev/shm/mretrain_2026-09-26/devices/combo_target.py", line 35, in step
+    ns=source_kernels();ns.update(P=params,NW=nw,pm=m,sel=np.isfinite(qv)&(np.asarray(qv)>=params['qv4h_min']),LIVE_MASK=np.asarray(legal,bool))
+  File "/dev/shm/mretrain_2026-09-26/devices/combo_target.py", line 14, in source_kernels
+    p=ROOT/'vendor_live/fea171/combo_stage.py';raw=p.read_bytes()
+                                                   ~~~~~~~~~~~~^^
+  File "/root/news_2026-09-23_env/.uvpy/cpython-3.14.4-linux-x86_64-gnu/lib/python3.14/pathlib/__init__.py", line 777, in read_bytes
+    with self.open(mode='rb', buffering=0) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/news_2026-09-23_env/.uvpy/cpython-3.14.4-linux-x86_64-gnu/lib/python3.14/pathlib/__init__.py", line 771, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/dev/shm/mretrain_2026-09-26/vendor_live/fea171/combo_stage.py'

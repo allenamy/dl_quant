@@ -1,0 +1,11 @@
+CASE C0_baseline_combo expect=PASS got=PASS OK :: MR_COMBO_PREFLIGHT PASS {"stage": "/dev/shm/mr_pftest_3337950/vendor_live/fea171/combo_stage.py", "W": "/dev/shm/mr_pftest_3337950/arms/X", "files_checked": 165}
+CASE R0_baseline_refs expect=PASS got=PASS OK :: MR_PREFLIGHT_REFS PASS {"n_checked": 25, "bad": []}
+CASE C1_vendor_missing_at_kernel_root expect=FAIL got=FAIL OK :: FileNotFoundError: [Errno 2] No such file or directory: '/dev/shm/mr_pftest_3337950/vendor_live/fea171/combo_stage.py'
+CASE C2_vendor_bytes_changed expect=FAIL got=FAIL OK :: ValueError: unreviewed producer source
+CASE C3_arm_static_input_changed expect=FAIL got=FAIL OK :: AssertionError: ('static input differs from the in-service combo input', '/dev/shm/mr_pftest_3337950/arms/X/inputs/bundle_config.json', '/dev/shm/news2_2026-09-23/inputs/bundle_config.json')
+CASE C4_arm_static_input_missing expect=FAIL got=FAIL OK :: AssertionError: ('static input missing', '/dev/shm/mr_pftest_3337950/arms/X/work/NEWS_FEATURES.npz')
+CASE R1_read_reference_missing expect=FAIL got=FAIL OK :: MR_PREFLIGHT_REFS FAIL {"n_checked": 25, "bad": [{"path": "/dev/shm/fanom_2026-09-24/receipts/NO_SUCH.npz", "why": "reading device X baseline s42", "result": "MISSING"}]}
+CASE R2_gate_reference_sha_changed expect=FAIL got=FAIL OK :: MR_PREFLIGHT_REFS FAIL {"n_checked": 25, "bad": [{"path": "/dev/shm/news2_2026-09-23/work/king/KING_OOF.npz", "why": "G2 reference", "result": "SHA a10b872506ca60af != b10b872506ca60af"}]}
+CASE R3_engine_queue_helper_missing expect=FAIL got=FAIL OK :: MR_PREFLIGHT_REFS FAIL {"n_checked": 25, "bad": [{"path": "/dev/shm/fresh_2026-09-23/devices/NO_SUCH.sh", "why": "engine queue GATE", "result": "MISSING"}]}
+CASE R4_parser_cannot_find_constant expect=FAIL got=FAIL OK :: MR_PREFLIGHT_REFS FAIL parser: mr_gates.py LEGS_SHA found 0x
+TEST_MR_PREFLIGHT ALL_OK=True seconds=10 sandbox_removed_on_exit
