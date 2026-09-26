@@ -37,6 +37,8 @@ REFTAG=DLARCH_REF_NC_s42X_scaled_rule_raw_UAFE
 ENG=/dev/shm/news2_2026-09-23/engine
 LOG=$W/CHAIN/f10full_cells_driver.log
 NFOLD=23
+DC="$PY -B $W/dlarch_done_check.py"   # completion is decided from content, never from a path existing (item 6)
+FAILED=""
 
 say(){ echo "$(date -u +%H:%M:%SZ) [f10full-cells] $*" | tee -a "$LOG"; }
 
@@ -45,7 +47,7 @@ printf 'pgid=%s pid=%s owner=dlarch driver=f10full_cells started=%s seeds=%s\n' 
   "$MYPGID" "$$" "$(date -u +%FT%TZ)" "$SEEDS" > "$W/CHAIN/f10full_cells_driver.pgid"
 say "=== START (pgid $MYPGID) arm=$ARM seeds: $SEEDS ==="
 
-[ -d "$REF" ] || { say "REFUSING: reference cell missing at $REF"; exit 9; }
+$DC cell "$REF" >> "$LOG" 2>&1 || { say "REFUSING: reference cell NOT complete at $REF (DONE_CHECK above)"; exit 9; }
 NCLAIM=$(ls -d "$W"/CHAIN/.claim_* 2>/dev/null | grep -c .)
 [ "$NCLAIM" -eq 0 ] || say "NOTE: $NCLAIM foreign claim(s) present; per-seed claims below still protect us"
 
@@ -63,7 +65,7 @@ for round in $(seq 1 240); do            # bound: 240 x 60 s = 4 h
     CELL=$W/chain/${ARM}_s$S/runs/$TAG
     OUT=$W/receipts/RETAIN_F10FULL_s${S}_2026-09-26.json
     EL=$W/CHAIN/engine_F10FULL_s$S.log
-    if [ -d "$OUT" ]; then say "seed $S: already retained, skipping"; continue; fi
+    if $DC retain "$OUT" --root "$W" >> "$LOG" 2>&1; then say "seed $S: retention already COMPLETE (content-checked), skipping"; continue; fi
     if ! mkdir "$W/CHAIN/.claim_F10FULL_s$S" 2>/dev/null; then
       say "seed $S: already claimed by another runner -- skipping, not racing it"
       continue
@@ -93,6 +95,7 @@ for round in $(seq 1 240); do            # bound: 240 x 60 s = 4 h
         --out "$OUT" --delete --cell-root "$W/chain/${ARM}_s$S" > "$W/CHAIN/retain_F10FULL_s$S.log" 2>&1
     say "seed $S: retention rc=$?  $(grep -h 'P1 judge table' "$W/CHAIN/retain_F10FULL_s$S.log" | tail -1)"
     say "seed $S: $(grep -h 'DLARCH_CELL_RETAIN' "$W/CHAIN/retain_F10FULL_s$S.log" | tail -1)"
+    $DC retain "$OUT" --root "$W" >> "$LOG" 2>&1 || { FAILED="$FAILED $S"; say "seed $S: retention NOT complete -- counted as FAILED"; }
     say "seed $S: workspace usage now $(du -sh $W 2>/dev/null | cut -f1)"
     rm -rf "$W/CHAIN/.claim_F10FULL_s$S"
   done
@@ -102,8 +105,9 @@ for round in $(seq 1 240); do            # bound: 240 x 60 s = 4 h
 done
 if [ -n "$LEFT" ]; then
   say "BOUND EXPIRED with seeds still untrained: $LEFT -- their cells were NOT run"
-  say "=== F10FULL_CELLS_DRIVER_DONE_WITH_MISSING ==="
+  say "=== F10FULL_CELLS_DRIVER_INCOMPLETE untrained: $LEFT ==="
   exit 1
 fi
+if [ -n "$FAILED" ]; then say "=== F10FULL_CELLS_DRIVER_INCOMPLETE failed:$FAILED ==="; exit 1; fi
 say "all F10_FULL cells done"
 say "=== F10FULL_CELLS_DRIVER_DONE ==="

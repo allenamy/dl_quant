@@ -158,7 +158,7 @@ P['cell_REFNC_s2027'] = cell('RETAIN_REFNC_s2027_2026-09-26.json')
 P['cell_REFNC_s7'] = cell('RETAIN_REFNC_s7_2026-09-26.json')
 for s in SEEDS:
     P[f'cell_T0_s{s}_reference_column'] = cell(f'RETAIN_s{s}_2026-09-25.json')
-inv['cells_driver_done_line'] = grep(f'{W}/CHAIN/f10full_cells_driver.log', r'F10FULL_CELLS_DRIVER_DONE')
+inv['cells_driver_done_line'] = grep(f'{W}/CHAIN/f10full_cells_driver.log', r' === F10FULL_CELLS_DRIVER_DONE ===$')
 inv['open_cell_claims'] = sorted(glob.glob(f'{W}/CHAIN/.claim_*'))
 inv['cell_retain_device_shas'] = sorted({P[k].get('retain_device_sha256') for k in P
                                          if k.startswith('cell_F10FULL') or k.startswith('cell_REFNC')})

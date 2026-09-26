@@ -29,6 +29,8 @@ REFTAG=DLARCH_REF_NC_s42X_scaled_rule_raw_UAFE
 ENG=/dev/shm/news2_2026-09-23/engine
 DRV=$W/CHAIN/cells_driver.log
 LOG=$W/CHAIN/t3_cells_driver.log
+DC="$PY -B $W/dlarch_done_check.py"   # completion is decided from content, never from a path existing (item 6)
+FAILED=""
 NFOLD=23                      # lead's ruling R10.4: 23 folds per T3 seed, not 14
 
 say(){ echo "$(date -u +%H:%M:%SZ) [t3cells] $*" | tee -a "$LOG"; }
@@ -38,16 +40,16 @@ printf 'pgid=%s pid=%s owner=dlarch driver=t3_cells started=%s seeds=%s\n' \
   "$MYPGID" "$$" "$(date -u +%FT%TZ)" "$SEEDS" > "$W/CHAIN/t3_cells_driver.pgid"
 say "=== START (pgid $MYPGID) seeds: $SEEDS ==="
 
-[ -d "$REF" ] || { say "REFUSING: reference cell missing at $REF"; exit 9; }
+$DC cell "$REF" >> "$LOG" 2>&1 || { say "REFUSING: reference cell NOT complete at $REF (DONE_CHECK above)"; exit 9; }
 
 # ---- wait for the T0 cell queue to be finished AND idle ----
 for i in $(seq 1 180); do
-  if grep -q CELLS_DRIVER_DONE "$DRV" 2>/dev/null; then
+  if grep -q ' === CELLS_DRIVER_DONE ===$' "$DRV" 2>/dev/null; then
     [ "$(ls -d "$W"/CHAIN/.claim_s* 2>/dev/null | grep -c .)" -eq 0 ] && break
   fi
   sleep 20
 done
-if ! grep -q CELLS_DRIVER_DONE "$DRV" 2>/dev/null; then
+if ! grep -q ' === CELLS_DRIVER_DONE ===$' "$DRV" 2>/dev/null; then
   say "BOUND EXPIRED: T0 cell queue never reported done -- not starting T3 cells, reporting instead"
   exit 1
 fi
@@ -68,7 +70,7 @@ for round in $(seq 1 180); do            # bound: 180 x 60 s = 3 h
     CELL=$W/chain/T3_clamp_s$S/runs/$TAG
     OUT=$W/receipts/RETAIN_T3_s${S}_2026-09-25.json
     EL=$W/CHAIN/engine_T3_s$S.log
-    if [ -d "$OUT" ]; then say "seed $S: T3 cell already retained, skipping"; continue; fi
+    if $DC retain "$OUT" --root "$W" >> "$LOG" 2>&1; then say "seed $S: T3 retention already COMPLETE (content-checked), skipping"; continue; fi
     if ! mkdir "$W/CHAIN/.claim_T3_s$S" 2>/dev/null; then
       say "seed $S: T3 cell already claimed by another runner -- skipping, not racing it"
       continue
@@ -92,6 +94,7 @@ for round in $(seq 1 180); do            # bound: 180 x 60 s = 3 h
         --control-cell "$REF" --control-tag "$REFTAG" --engine "$ENG" \
         --out "$OUT" --delete --cell-root "$W/chain/T3_clamp_s$S" > "$W/CHAIN/retain_T3_s$S.log" 2>&1
     say "seed $S: retention rc=$?  $(grep -h 'P1 judge table' "$W/CHAIN/retain_T3_s$S.log" | tail -1)"
+    $DC retain "$OUT" --root "$W" >> "$LOG" 2>&1 || { FAILED="$FAILED $S"; say "seed $S: retention NOT complete -- counted as FAILED"; }
     say "seed $S: $(grep -h 'DLARCH_CELL_RETAIN' "$W/CHAIN/retain_T3_s$S.log" | tail -1)"
     say "seed $S: usage now $(du -sh $W 2>/dev/null | cut -f1)"
     rm -rf "$W/CHAIN/.claim_T3_s$S"
@@ -102,7 +105,9 @@ for round in $(seq 1 180); do            # bound: 180 x 60 s = 3 h
 done
 if [ -n "$LEFT" ]; then
   say "BOUND EXPIRED with seeds still untrained: $LEFT  -- cells for these were NOT run"
-else
-  say "all T3 cells done"
 fi
+if [ -n "$LEFT" ] || [ -n "$FAILED" ]; then
+  say "=== T3_CELLS_DRIVER_INCOMPLETE untrained:${LEFT:-none} failed:${FAILED:-none} ==="; exit 1
+fi
+say "all T3 cells done"
 say "=== T3_CELLS_DRIVER_DONE ==="
