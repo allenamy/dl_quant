@@ -21,5 +21,14 @@
   "pgid_file": null,
   "terminal": "^(R14_PIPELINE_DONE|STOP|.*FAILED)",
   "closed": true
+ },
+ {
+  "name": "dlarch_D4_pregates",
+  "owner": "dlarch",
+  "log": "/workspace/dlarch_2026-09-24/d4_2026-09-26/d4.log",
+  "pgid_file": "/workspace/dlarch_2026-09-24/d4_2026-09-26/d4.pgid",
+  "terminal": "^(D4_PREGATES (DONE|STOPPED)|rc=[1-9]|Traceback)",
+  "host": "pod2",
+  "success": "^D4_PREGATES (DONE|STOPPED) (a STOPPED at a gate is a legitimate end); failure = Traceback or rc!=0"
  }
 ]
