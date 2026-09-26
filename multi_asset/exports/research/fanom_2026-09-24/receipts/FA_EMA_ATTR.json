@@ -1,0 +1,402 @@
+{
+ "device": "fa_ema_attr.py",
+ "self_sha256": "c40e863cca7dccabee7f170fb57d36e7a31ac0334a6200b316e79530f5b52e74",
+ "argv": [
+  "fa_ema_attr.py",
+  "PATH,HOME,LC_CTYPE",
+  "/dev/shm/fanom_2026-09-24/receipts/FA_EMA_ATTR.json"
+ ],
+ "utc": "2026-09-26T17:45:49Z",
+ "prereg": "docs/PREREG_ema_channel_attribution_and_truth_2026-09-26.md",
+ "inputs": {
+  "replay": {
+   "path": "/dev/shm/news_2026-09-23/work/fund_replay.npz",
+   "sha256": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4"
+  },
+  "legs_news": {
+   "path": "/dev/shm/news_2026-09-23/work/legs.npz",
+   "sha256": "18999e169c6b68546271f8194fd74eaa79041d1967ba44df978f4cbea33d6bd5"
+  },
+  "legs_nc": {
+   "path": "/dev/shm/news2_2026-09-23/work/legs.npz",
+   "sha256": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65"
+  },
+  "nc_feat": {
+   "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+   "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8"
+  },
+  "snap": {
+   "path": "/dev/shm/d10_2026-09-25/ms/rebuilt_features_snap.npz",
+   "sha256": "209c8f5338d34cf497661256d45fb6532f7e327447b32b54a6f6fa8896a700cd"
+  },
+  "d10": {
+   "path": "/dev/shm/d10_2026-09-25/ms/rebuilt_features_d10.npz",
+   "sha256": "2be2d7c8959894e0e2a59933e99ff410b72b21faf72afc073a6d97d9590c4d8a"
+  },
+  "ledger_ms": {
+   "path": "/dev/shm/d10_2026-09-25/ms/ledger_full_ms.npz",
+   "sha256": "e179071d595521987450f89e1774a95775a2593d76277a9c9dc6d86dcbc31a88"
+  },
+  "ledger_replay": {
+   "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+   "sha256": "073088e503c026d6071c76764426503616d53570e5f3763807df27ea7cc80362"
+  }
+ },
+ "controls": {
+  "K3_axis_legs_news": true,
+  "K3_axis_legs_nc": true,
+  "K3_axis_nc_feat": true,
+  "K3_axis_snap": true,
+  "K3_axis_d10": true,
+  "K3_member_layout_snap_equals_nc": true,
+  "K3_member_layout_d10_equals_nc": true,
+  "K2_known_answer": {
+   "planted": {
+    "exact0": 2742291,
+    "(0,1e-15]": 0,
+    "(1e-15,1e-12]": 0,
+    "(1e-12,1e-9]": 0,
+    "(1e-9,1e-7]": 0,
+    "(1e-7,1e-5]": 100,
+    "(1e-5,1e-4]": 0,
+    ">1e-4": 0
+   },
+   "self": {
+    "exact0": 2742391,
+    "(0,1e-15]": 0,
+    "(1e-15,1e-12]": 0,
+    "(1e-12,1e-9]": 0,
+    "(1e-9,1e-7]": 0,
+    "(1e-7,1e-5]": 0,
+    "(1e-5,1e-4]": 0,
+    ">1e-4": 0
+   },
+   "PASS": true
+  },
+  "K1_rn8_discriminator_reproduced": {
+   "differing": 404,
+   "with_sig": 360,
+   "with_gate_and_missed": 360,
+   "nd_sampled": 20000,
+   "nd_with_sig": 0,
+   "PASS": true
+  }
+ },
+ "population": {
+  "W_end": "2026-09-01T02:00:00Z",
+  "P_NC": 2742554,
+  "P_NS": 2601614,
+  "P_NS_and_P_NC": 2601594,
+  "P_NS_without_truth": 20
+ },
+ "controls_failed": [],
+ "T1_nc_vs_rebuild_producer_rule": {
+  "population": 2742554,
+  "both_finite": 2742391,
+  "left_finite_right_nan": 0,
+  "left_nan_right_finite": 0,
+  "buckets": {
+   "exact0": 2742391,
+   "(0,1e-15]": 0,
+   "(1e-15,1e-12]": 0,
+   "(1e-12,1e-9]": 0,
+   "(1e-9,1e-7]": 0,
+   "(1e-7,1e-5]": 0,
+   "(1e-5,1e-4]": 0,
+   ">1e-4": 0
+  },
+  "strata": {
+   "pre2026_settle": {
+    "population": 1467671,
+    "both_finite": 1467671,
+    "left_finite_right_nan": 0,
+    "left_nan_right_finite": 0,
+    "buckets": {
+     "exact0": 1467671,
+     "(0,1e-15]": 0,
+     "(1e-15,1e-12]": 0,
+     "(1e-12,1e-9]": 0,
+     "(1e-9,1e-7]": 0,
+     "(1e-7,1e-5]": 0,
+     "(1e-5,1e-4]": 0,
+     ">1e-4": 0
+    },
+    "differing_total": 0
+   },
+   "pre2026_nosettle": {
+    "population": 691283,
+    "both_finite": 691231,
+    "left_finite_right_nan": 0,
+    "left_nan_right_finite": 0,
+    "buckets": {
+     "exact0": 691231,
+     "(0,1e-15]": 0,
+     "(1e-15,1e-12]": 0,
+     "(1e-12,1e-9]": 0,
+     "(1e-9,1e-7]": 0,
+     "(1e-7,1e-5]": 0,
+     "(1e-5,1e-4]": 0,
+     ">1e-4": 0
+    },
+    "differing_total": 0
+   },
+   "2026_settle": {
+    "population": 514819,
+    "both_finite": 514819,
+    "left_finite_right_nan": 0,
+    "left_nan_right_finite": 0,
+    "buckets": {
+     "exact0": 514819,
+     "(0,1e-15]": 0,
+     "(1e-15,1e-12]": 0,
+     "(1e-12,1e-9]": 0,
+     "(1e-9,1e-7]": 0,
+     "(1e-7,1e-5]": 0,
+     "(1e-5,1e-4]": 0,
+     ">1e-4": 0
+    },
+    "differing_total": 0
+   },
+   "2026_nosettle": {
+    "population": 68781,
+    "both_finite": 68670,
+    "left_finite_right_nan": 0,
+    "left_nan_right_finite": 0,
+    "buckets": {
+     "exact0": 68670,
+     "(0,1e-15]": 0,
+     "(1e-15,1e-12]": 0,
+     "(1e-12,1e-9]": 0,
+     "(1e-9,1e-7]": 0,
+     "(1e-7,1e-5]": 0,
+     "(1e-5,1e-4]": 0,
+     ">1e-4": 0
+    },
+    "differing_total": 0
+   }
+  },
+  "VERDICT": "NC_TRUE_UNDER_PRODUCER_RULE"
+ },
+ "T2_nc_vs_rebuild_d10_rule": {
+  "population": 2742554,
+  "both_finite": 2742391,
+  "left_finite_right_nan": 0,
+  "left_nan_right_finite": 0,
+  "buckets": {
+   "exact0": 2407481,
+   "(0,1e-15]": 92862,
+   "(1e-15,1e-12]": 58863,
+   "(1e-12,1e-9]": 61623,
+   "(1e-9,1e-7]": 44702,
+   "(1e-7,1e-5]": 45329,
+   "(1e-5,1e-4]": 19002,
+   ">1e-4": 12529
+  },
+  "strata": {
+   "pre2026_settle": {
+    "population": 1467671,
+    "both_finite": 1467671,
+    "left_finite_right_nan": 0,
+    "left_nan_right_finite": 0,
+    "buckets": {
+     "exact0": 1213817,
+     "(0,1e-15]": 65482,
+     "(1e-15,1e-12]": 42481,
+     "(1e-12,1e-9]": 46970,
+     "(1e-9,1e-7]": 34814,
+     "(1e-7,1e-5]": 36402,
+     "(1e-5,1e-4]": 16454,
+     ">1e-4": 11251
+    }
+   },
+   "pre2026_nosettle": {
+    "population": 691283,
+    "both_finite": 691231,
+    "left_finite_right_nan": 0,
+    "left_nan_right_finite": 0,
+    "buckets": {
+     "exact0": 681396,
+     "(0,1e-15]": 3113,
+     "(1e-15,1e-12]": 1750,
+     "(1e-12,1e-9]": 1755,
+     "(1e-9,1e-7]": 1256,
+     "(1e-7,1e-5]": 1258,
+     "(1e-5,1e-4]": 530,
+     ">1e-4": 173
+    }
+   },
+   "2026_settle": {
+    "population": 514819,
+    "both_finite": 514819,
+    "left_finite_right_nan": 0,
+    "left_nan_right_finite": 0,
+    "buckets": {
+     "exact0": 443698,
+     "(0,1e-15]": 24198,
+     "(1e-15,1e-12]": 14615,
+     "(1e-12,1e-9]": 12893,
+     "(1e-9,1e-7]": 8629,
+     "(1e-7,1e-5]": 7665,
+     "(1e-5,1e-4]": 2016,
+     ">1e-4": 1105
+    }
+   },
+   "2026_nosettle": {
+    "population": 68781,
+    "both_finite": 68670,
+    "left_finite_right_nan": 0,
+    "left_nan_right_finite": 0,
+    "buckets": {
+     "exact0": 68570,
+     "(0,1e-15]": 69,
+     "(1e-15,1e-12]": 17,
+     "(1e-12,1e-9]": 5,
+     "(1e-9,1e-7]": 3,
+     "(1e-7,1e-5]": 4,
+     "(1e-5,1e-4]": 2,
+     ">1e-4": 0
+    }
+   }
+  },
+  "note": "interval-rule difference (producer snap vs D10 exact spacing); NOT a gate for (1); reported beside it"
+ },
+ "compare_replay_vs_truth": {
+  "population": 2601594,
+  "both_finite": 2601594,
+  "left_finite_right_nan": 0,
+  "left_nan_right_finite": 0,
+  "buckets": {
+   "exact0": 430175,
+   "(0,1e-15]": 1882489,
+   "(1e-15,1e-12]": 72592,
+   "(1e-12,1e-9]": 75814,
+   "(1e-9,1e-7]": 53863,
+   "(1e-7,1e-5]": 56302,
+   "(1e-5,1e-4]": 19201,
+   ">1e-4": 11158
+  }
+ },
+ "compare_replay_vs_d10": {
+  "population": 2601594,
+  "both_finite": 2601594,
+  "left_finite_right_nan": 0,
+  "left_nan_right_finite": 0,
+  "buckets": {
+   "exact0": 437718,
+   "(0,1e-15]": 1915031,
+   "(1e-15,1e-12]": 63508,
+   "(1e-12,1e-9]": 66853,
+   "(1e-9,1e-7]": 48059,
+   "(1e-7,1e-5]": 50120,
+   "(1e-5,1e-4]": 13209,
+   ">1e-4": 7096
+  }
+ },
+ "attribution": {
+  "GATE_NOW": {
+   "total": 364,
+   "by_bucket": {
+    "(0,1e-15]": 0,
+    "(1e-15,1e-12]": 0,
+    "(1e-12,1e-9]": 0,
+    "(1e-9,1e-7]": 11,
+    "(1e-7,1e-5]": 257,
+    "(1e-5,1e-4]": 49,
+    ">1e-4": 47
+   },
+   "by_year": {
+    "2022": 4,
+    "2023": 23,
+    "2024": 2,
+    "2025": 16,
+    "2026": 319
+   },
+   "gt_1e-7": 353,
+   "gt_1e-5": 96
+  },
+  "GATE_EPISODE": {
+   "total": 40095,
+   "by_bucket": {
+    "(0,1e-15]": 33489,
+    "(1e-15,1e-12]": 3008,
+    "(1e-12,1e-9]": 2010,
+    "(1e-9,1e-7]": 1028,
+    "(1e-7,1e-5]": 539,
+    "(1e-5,1e-4]": 21,
+    ">1e-4": 0
+   },
+   "by_year": {
+    "2023": 1159,
+    "2024": 362,
+    "2025": 141,
+    "2026": 38433
+   },
+   "gt_1e-7": 560,
+   "gt_1e-5": 21
+  },
+  "NOT_GATE": {
+   "total": 2130960,
+   "by_bucket": {
+    "(0,1e-15]": 1849000,
+    "(1e-15,1e-12]": 69584,
+    "(1e-12,1e-9]": 73804,
+    "(1e-9,1e-7]": 52824,
+    "(1e-7,1e-5]": 55506,
+    "(1e-5,1e-4]": 19131,
+    ">1e-4": 11111
+   },
+   "by_year": {
+    "2022": 117234,
+    "2023": 316071,
+    "2024": 489712,
+    "2025": 738888,
+    "2026": 469055
+   },
+   "gt_1e-7": 85748,
+   "gt_1e-5": 30242
+  },
+  "UNDETERMINABLE": {
+   "total": 0,
+   "by_bucket": {
+    "(0,1e-15]": 0,
+    "(1e-15,1e-12]": 0,
+    "(1e-12,1e-9]": 0,
+    "(1e-9,1e-7]": 0,
+    "(1e-7,1e-5]": 0,
+    "(1e-5,1e-4]": 0,
+    ">1e-4": 0
+   },
+   "by_year": {},
+   "gt_1e-7": 0,
+   "gt_1e-5": 0
+  }
+ },
+ "material": {
+  "gt_1e-7": {
+   "GATE_NOW": 353,
+   "GATE_EPISODE": 560,
+   "NOT_GATE": 85748,
+   "UNDETERMINABLE": 0,
+   "total": 86661,
+   "attributed_to_gate": 913,
+   "not_attributed": 85748,
+   "undeterminable": 0,
+   "not_gate_share": 0.9894646957685694
+  },
+  "gt_1e-5": {
+   "GATE_NOW": 96,
+   "GATE_EPISODE": 21,
+   "NOT_GATE": 30242,
+   "UNDETERMINABLE": 0,
+   "total": 30359,
+   "attributed_to_gate": 117,
+   "not_attributed": 30242,
+   "undeterminable": 0,
+   "not_gate_share": 0.9961461181198327
+  }
+ },
+ "second_mechanism_flag": true,
+ "second_mechanism_candidate": "news_fund_replay.py L38-39 keeps the EARLIEST rows at limit 100 (drops newest) -- named, not tested here",
+ "probe_838210c6a_note": "the earlier probe compared against NC fund_state EMA (no freshness gate); this device compares against the rebuilt fe_v",
+ "STATUS": "OK"
+}
