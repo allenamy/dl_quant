@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Build live/tests_fixtures/funding_gap/ for tests_funding_gap.py R1/G9 (read-only on production; writes only into the clone).
+"""rev 1 (news2 review 2026-09-27): r1_manifest also carries plan_rows_full (every key of every planned row).
+Build live/tests_fixtures/funding_gap/ for tests_funding_gap.py R1/G9 (read-only on production; writes only into the clone).
   binance_funding_d01e35d.py.txt   = git show d01e35d:live/binance_funding.py (the pre-fix module, frozen for G9)
   r1_pilot_log/20260926/           = production 20260926 position_readback (whole day), fills with fill_ts in (A, B) (originals and
                                      supersedes alike), and the PRE-BACKFILL funding file (funding.jsonl.pre_gap_backfill_20260926T2111Z)
@@ -29,5 +30,6 @@ json.dump({"income": raw["income"], "rates": raw["rates"], "intervals": raw["int
 plan = json.load(open(f"{FB}/plan/PLAN.json"))
 json.dump({"day": "20260926", "now_ms": 1790455620000, "A": A, "B": B, "n_plan": plan["n_rows_planned"],
            "plan_rows": [[r["symbol"], r["settlement_ts"], r["position_notional_at_settlement"], r["funding_paid"], r["funding_rate"]] for r in plan["rows"]],
+           "plan_rows_full": plan["rows"],   # rev 1 (news2 review): the WHOLE planned row, every key, for R1
            "plan_sha256": hashlib.sha256(open(f"{FB}/plan/PLAN.json", "rb").read()).hexdigest()}, open(f"{out}/r1_manifest.json", "w"))
 print("FIXTURE_OK", {"steps": len(steps), "of_syms": len(syms), "income": len(raw["income"]), "plan": plan["n_rows_planned"]})
