@@ -50,3 +50,17 @@ L59 `state/weights/{A-14400}.npz`(king 生产者 H, 自平价 ① 与回落源)�
 - C0 另查: 现码重放的权重与生产归档 target_live/<A>.json 逐位相等(装置自检; 除 written_utc / weights_sha)。
 - 装置提交 `1ffd…` 之前的 HEAD 为本修订的前提; 判官 = devices/gap_fix_judge.py(已提交)。
 - 更正(同日): 上一条「装置提交 `1ffd…`」是占位笔误; 实际装置提交 = `2d54e2622`(判官/钩子/运行器/补丁树生成器), 早于本修订与任何重放读数。
+
+## AMENDMENT 2(2026-09-26 17:4xZ, 成员历史组件; 写于该组件任何代码与读数之前)
+lead 派单(PROGRAM_loop §2-1b): 缺锚 ⇒ members_hist 无 12Z/16Z ⇒ 09-27 12Z/16Z 的 f8 三列 drank_*_1d 全 0(另: H:disp 序列在 180 锚窗里少 2 点)。
+**修法(类形状, 不改状态文件)**: combo_stage 在构造 ms_arr 时, 对窗口内缺成员历史的锚, 用生产者成员规则(shadow_loop_v3.py L676–L701 逐字抽成
+`fea171/members_rule.py`)在同一份滚动缓存上现算(fetch 名单 = aux.fetch_syms 减 nc_backfill_residual, 即 A 时刻名单), 具名计数
+`MH_RECOMPUTED`; 历史齐全时一行不执行(⇒ C0 字节同一仍须成立)。备选 = 用 T−4h 成员承接(carry-forward)。
+判据(冻结):
+- **V1 规则复现**: 8 个快照锚 S 各用 S 自己的输入重算 members(S) == members_hist[S] 逐元素相等, 须 8/8; 否则抽出的规则不是生产规则, 本组件作废。
+- **V2 事后重算精度**(描述 + 选择规则): 对每个 S 与 T = S−4h…S−24h(6 个滞后), 用 **S 的**输入重算 members(T) 对 members_hist[T];
+  报逐元素全等率与平均 Jaccard; 同时报 carry-forward(members_hist[T−4h] 当作 T)对 members_hist[T] 的同两量。
+  **选择规则**: 重算的平均 Jaccard ≥ carry-forward ⇒ 用重算; 否则用 carry-forward(并改实现)。
+- **M 影响量级**(描述, 不设门): 沙箱重放 A=1790409600, 臂 `mhdrop` = 删 members_hist 中 A−24h 一条(生成标记同步改 sha):
+  现码 vs 基线: F10 分数(有限名)Spearman、drank 三列在 A 行是否全 0、发布权重 L1 差与 max|dw|;
+  补丁码(含本组件) vs 基线: 同上; 若 V2 在 24h 滞后上逐元素全等, 则补丁码 mhdrop 的发布权重须与基线**逐位相等**(这是一条门)。
