@@ -1,0 +1,7 @@
+HOOK arm=bridge A=1790409600 P=1790395200 states_present=[True, True, True] weights_P=False
+combo_stage rc=0 (sandbox /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/gaparm_bridge/1790409600)
+[  36.9s] ④ COMBO 落盘 n=318 gross=0.8172 kc_src=own fc_src=own w3m=[0.4138, 0.0, 0.5862]
+[  37.0s] M3 beta_overlay: {'ok': True, 'version': 'm3_beta_v2', 'n_names': 450, 'n_estimated': 449, 'n_fallback': 0, 'n_no_cache_column': 0, 'elapsed_s': 0.108}
+[  37.8s] ⑤ COMBO_LIVE 写者完成 rehearsal=True n=318 gross=0.8172 读者验收 ok age=60.0s
+PARITY_MISMATCH anchor 1790409600 why=['gross_norm: archived 0.8173521616228554 != replay 0.817231756573611', 'weights: 122 names differ, max|dw| 4.260e-04', 'weights_sha: archived 19f901e8bf5135c491ff95cc != replay 7958ed3ea0c7899db2d582d1', 'replay weights npz sha != archived doc.weights_sha'] weights={'n_archived': 318, 'n_replay': 318, 'n_differing': 122, 'max_abs_dw': 0.00042599243624633423}
+EXIT rc=2

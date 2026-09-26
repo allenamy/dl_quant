@@ -1,0 +1,26 @@
+RELEASE_GATES start 2026-09-26T17:19:03Z n_gates=3
+--- gate 1/3 W0_check start 2026-09-26T17:19:03Z
+    argv=["/Users/haosiyu/wide_shadow/venv/bin/python", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_recovery_2026-09-26/devices/combo_state_bridge.py", "check", "--src", "1790409600", "--dst", "1790438400", "--receipt", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_recovery_2026-09-26/receipts/BRIDGE_RECEIPT_1790438400.json"]
+COMBO_STATE_BRIDGE check S=2026-09-26T08:00Z T=2026-09-26T16:00Z fea=/Users/haosiyu/wide_shadow/fea171
+COMBO_STATE_BRIDGE CHECK PASS
+    rc=0 elapsed_s=0.5 verdict_line='COMBO_STATE_BRIDGE CHECK PASS'
+    PASS W0_check
+--- gate 2/3 W1_apply start 2026-09-26T17:19:03Z
+    argv=["/Users/haosiyu/wide_shadow/venv/bin/python", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_recovery_2026-09-26/devices/combo_state_bridge.py", "apply", "--src", "1790409600", "--dst", "1790438400", "--receipt", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_recovery_2026-09-26/receipts/BRIDGE_RECEIPT_1790438400.json"]
+COMBO_STATE_BRIDGE apply S=2026-09-26T08:00Z T=2026-09-26T16:00Z fea=/Users/haosiyu/wide_shadow/fea171
+  kc: state_H_kc_1790438400.npz sha 85b6822722a337bd n=315 gross=0.856740 == source state_H_kc_1790409600.npz bitwise: True
+  fc: state_H_fc_1790438400.npz sha d9bc16d815393668 n=316 gross=0.808022 == source state_H_fc_1790409600.npz bitwise: True
+  f10: state_H_f10_1790438400.npz sha 7edb83b054b43622 n=315 gross=0.781504 == source state_H_f10_1790409600.npz bitwise: True
+COMBO_STATE_BRIDGE APPLY PASS
+    rc=0 elapsed_s=0.5 verdict_line='COMBO_STATE_BRIDGE APPLY PASS'
+    PASS W1_apply
+--- gate 3/3 W2_verify start 2026-09-26T17:19:04Z
+    argv=["/Users/haosiyu/wide_shadow/venv/bin/python", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_recovery_2026-09-26/devices/combo_state_bridge.py", "verify", "--src", "1790409600", "--dst", "1790438400", "--receipt", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_recovery_2026-09-26/receipts/BRIDGE_RECEIPT_1790438400.json"]
+COMBO_STATE_BRIDGE verify S=2026-09-26T08:00Z T=2026-09-26T16:00Z fea=/Users/haosiyu/wide_shadow/fea171
+  kc: state_H_kc_1790438400.npz sha 85b6822722a337bd n=315 gross=0.856740 == source state_H_kc_1790409600.npz bitwise: True
+  fc: state_H_fc_1790438400.npz sha d9bc16d815393668 n=316 gross=0.808022 == source state_H_fc_1790409600.npz bitwise: True
+  f10: state_H_f10_1790438400.npz sha 7edb83b054b43622 n=315 gross=0.781504 == source state_H_f10_1790409600.npz bitwise: True
+COMBO_STATE_BRIDGE VERIFY PASS
+    rc=0 elapsed_s=0.2 verdict_line='COMBO_STATE_BRIDGE VERIFY PASS'
+    PASS W2_verify
+RELEASE_GATES ALL_PASS n=3 2026-09-26T17:19:04Z
