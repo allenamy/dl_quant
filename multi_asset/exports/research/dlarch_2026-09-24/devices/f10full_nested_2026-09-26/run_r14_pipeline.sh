@@ -2,8 +2,8 @@
 # run_r14_pipeline.sh -- R1.4 end to end, EVERY step owned by a process in ONE process group (protocol 10-f):
 #   step 1  identity control (--force-epoch 7, seed 42, folds 2023,202609) + dlarch_nested_identity.py;
 #           not GREEN => the pipeline STOPS here, nothing else starts.
-#   step 2  training, ONE GPU lane (lead: at most two GPU jobs with news2's control cell), seeds 42 2027 7
-#           sequential, each through dlarch_f10full_launch.py (pins the trainer sha before exec).
+#   step 2  training, TWO GPU lanes (lead 18:0xZ): A = 42 then 7, B = 2027; each seed through
+#           dlarch_f10full_launch.py (pins the trainer sha before exec).
 #   step 3  book cells: dlarch_run_nested_cells.sh started alongside step 2, pipelined per seed, own run gate.
 #   step 4  verdict: dlarch_nested_verdict.py once step 2 and step 3 both ended clean.
 # Waiters must pin to this PGID (in r14.pgid) and to r14.log; success = a line that STARTS with
@@ -28,6 +28,15 @@ launch(){  # $1 = receipt name, rest = trainer args
       PATH,HOME,LC_CTYPE "$A" "$PIN" "$A/PREFLIGHT_F10FULL.json" "$A/receipts/$R" -- "$@"
 }
 
+# ---- step 0: write probe (lead: 2 GiB written AND read back before anything starts; df cannot see the quota) ----
+PR=$W/.r14_write_probe
+dd if=/dev/zero of="$PR" bs=1M count=2048 conv=fsync 2>> "$LOG"; DRC=$?
+SZ=$(stat -c %s "$PR" 2>/dev/null || echo 0)
+if [ $DRC -ne 0 ] || [ "$SZ" -ne 2147483648 ] || ! cmp -s -n 2147483648 "$PR" /dev/zero; then
+  rm -f "$PR"; stop "write probe failed (dd rc=$DRC, size $SZ of 2147483648, or read-back mismatch)"
+fi
+rm -f "$PR"; say "step 0: 2 GiB write probe written, fsynced, read back byte-identical, removed"
+
 # ---- step 1: identity control ----
 say "step 1: identity control (force-epoch 7) start"
 launch LAUNCH_IDCTL_s42.json --arm T0 --no-mask --train-frac 1.0 --nested-epoch --force-epoch 7 --seed 42 \
@@ -44,16 +53,30 @@ sh "$A/devices_scratch/dlarch_run_nested_cells.sh" "42 2027 7" > "$W/CHAIN/neste
 CELLS=$!
 say "step 3: cells driver pid $CELLS"
 
-# ---- step 2: training, one lane ----
+# ---- step 2: training, TWO GPU lanes (lead 18:0xZ: allowed, the engine run gate is enforced separately
+#      by the cells driver). Lane A = 42 then 7, lane B = 2027. Each lane is a child of this process group
+#      with its own log; a lane writes "LANE_<x>_DONE rc=<n>" at line start when it ends. ----
+lane(){  # $1 = lane name, rest = seeds
+  L=$1; shift; LRC=0
+  for S in "$@"; do
+    say "step 2: lane $L seed $S start"
+    launch LAUNCH_MAIN_s$S.json --arm T0 --no-mask --train-frac 1.0 --nested-epoch --seed "$S" >> "$A/main_lane$L.log" 2>&1
+    RC=$?
+    say "step 2: lane $L seed $S rc=$RC $(grep -h "^DLARCH_TRAIN_DONE .*seed=$S " "$A/main_lane$L.log" | tail -1)"
+    if [ $RC -ne 0 ]; then LRC=$RC; break; fi
+  done
+  echo "LANE_${L}_DONE rc=$LRC" >> "$A/main_lane$L.log"
+  return $LRC
+}
+lane A 42 7 & LA=$!
+lane B 2027 & LB=$!
+say "step 2: lane A pid $LA, lane B pid $LB"
 TRAIN_OK=1
-for S in 42 2027 7; do
-  say "step 2: seed $S start"
-  launch LAUNCH_MAIN_s$S.json --arm T0 --no-mask --train-frac 1.0 --nested-epoch --seed "$S" >> "$A/main.log" 2>&1
-  RC=$?
-  say "step 2: seed $S rc=$RC $(grep -h "^DLARCH_TRAIN_DONE .*seed=$S " "$A/main.log" | tail -1)"
-  if [ $RC -ne 0 ]; then TRAIN_OK=0; break; fi
-done
-grep -q Traceback "$A/main.log" && TRAIN_OK=0
+wait $LA || TRAIN_OK=0
+wait $LB || TRAIN_OK=0
+grep -q '^LANE_A_DONE rc=0$' "$A/main_laneA.log" || TRAIN_OK=0
+grep -q '^LANE_B_DONE rc=0$' "$A/main_laneB.log" || TRAIN_OK=0
+grep -q Traceback "$A/main_laneA.log" "$A/main_laneB.log" && TRAIN_OK=0
 
 # ---- wait for step 3 (if training failed, the cells driver would wait out its 12 h bound for seeds
 #      that can never finish: stop it -- it is this pipeline's own child, pid recorded above) ----
