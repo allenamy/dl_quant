@@ -51,7 +51,17 @@ for m in MODES:
 
     tm_b, tm_c = zb["trade_mask"].copy(), zc["trade_mask"].copy()
     w_b, w_c = zb["weights"], zc["weights"]
-    w_new = np.where(tm_b[:, None], w_c, 0.0)
+
+    # REVISION 1 (lead ruling (a)): "C3's weights" means the value recovered with the kernel's OWN expression,
+    # because `weights` is written only inside `if result['accepted']` while `raw` is written unconditionally --
+    # so on anchors C3 refused to publish, the stored `weights` row is all zero and the arm was UNDEFINED there.
+    # This is continuous_combo.py's expression verbatim, not a reimplementation.
+    w_rec = np.where(np.abs(zc["raw"]) > 1e-9, zc["raw"], 0.0)
+    # positive control, prereg revision 1: on the anchors C3 DID publish, the recovery must reproduce the stored
+    # weights BITWISE. This certifies the expression against the kernel's own behaviour rather than my reading of it.
+    rec_ok = bool(np.array_equal(w_rec[tm_c], w_c[tm_c]))
+    assert rec_ok, f"{m}: recovery expression does not reproduce stored weights on C3-published anchors"
+    w_new = np.where(tm_b[:, None], w_rec, 0.0)
 
     out = {k: zc[k] for k in FROM_C3}
     for k in FROM_BASE: out[k] = zb[k]
@@ -61,7 +71,8 @@ for m in MODES:
     c = {}
     c["1_mask_bitwise_equals_base"] = bool(np.array_equal(out["trade_mask"], tm_b))
     pub = tm_b
-    c["2_weights_bitwise_equal_C3_on_published"] = bool(np.array_equal(out["weights"][pub], w_c[pub]))
+    c["0_recovery_reproduces_stored_weights_on_C3_published"] = rec_ok
+    c["2_weights_bitwise_equal_C3_on_published"] = bool(np.array_equal(out["weights"][pub], w_rec[pub]))
     # np.all over an empty selection is True, which is the right degenerate answer; written flat so that no
     # reader has to resolve `and`/`or` precedence to know what the control asserts
     c["2b_zero_off_published"] = bool(np.all(out["weights"][~pub] == 0.0))
@@ -80,7 +91,22 @@ for m in MODES:
     # the receipt's sha is the one the verifying READ-BACK returns, not an independent later re-read (E-0925-A)
     zr = np.load(p_out, allow_pickle=False)
     assert all(np.array_equal(zr[k], out[k]) for k in out), f"{m}: written npz does not read back bitwise"
+    # the anchors where the BASE publishes and C3 does not: these are the ones the original definition left undefined.
+    # Their E_ts is saved so the readout can report their per-anchor d as its own column. The engine is path dependent,
+    # so they can NEVER be removed from the window and re-compared -- only their direct contribution is reportable.
+    only_base = tm_b & ~tm_c
+    gross_there = np.abs(w_new[only_base]).sum(1)
     rec["modes"][m] = {"npz": p_out, "npz_sha256": sha(p_out), "controls": c, "controls_failed": failed,
+                       "base_publishes_c3_does_not": {
+                           "n": int(only_base.sum()),
+                           "E_ts": [int(x) for x in zc["E_ts"][only_base]],
+                           "gross_published_there_min": float(gross_there.min()) if only_base.any() else None,
+                           "gross_published_there_max": float(gross_there.max()) if only_base.any() else None,
+                           "c3_reason_there": {str(k): int(v) for k, v in
+                                               zip(*[list(x) for x in np.unique(zc["reason"][only_base], return_counts=True)])},
+                           "cost": ("C3m publishes a book the production gate (0.4 floor) would REJECT on these "
+                                    "anchors; C3m is therefore NOT a deployable configuration"),
+                           "path_dependence": "direct contribution only; never removable from the window"},
                        "base_published": int(tm_b.sum()), "c3_published": int(tm_c.sum()),
                        "anchors_c3_publishes_and_base_does_not": int((tm_c & ~tm_b).sum()),
                        "anchors_base_publishes_and_c3_does_not": int((tm_b & ~tm_c).sum()),

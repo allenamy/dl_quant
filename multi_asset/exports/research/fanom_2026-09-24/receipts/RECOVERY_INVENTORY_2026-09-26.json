@@ -1,0 +1,123 @@
+{
+ "created_utc": "2026-09-26T17:29:20Z",
+ "author": "fresh (session_01VNPQL7t93ECz7Xkrv9rH6n)",
+ "event": "macOS migration 2026-09-26 11:14Z-16:58Z (2 reboots, 1 sleep): every Mac-side driver/waiter died",
+ "pod2_state_measured_2026-09-26T17:18Z": {
+  "uptime": "58 days (pod2 did NOT reboot; /dev/shm intact)",
+  "dev_shm": "28G size, 21G used, 7.1G avail",
+  "gpu0": "0% util, 2 MiB",
+  "running_bt_launch": "none (ps -eo scan, no pgrep)"
+ },
+ "ladder_two_ends_R25-05": {
+  "status": "ALL FOUR CELLS COMPLETED BEFORE THE OUTAGE; nothing to relaunch",
+  "driver": [
+   "devices/run_lad2_polite.sh (NONE s42, committed 3730674f9)",
+   "pod2 /tmp/run_lad2_rest.sh (remaining three; archived here as lad2/run_lad2_rest.sh, NOT previously committed)"
+  ],
+  "driver_stdout": "LOST (captured on the Mac side). It could only contain BT_LAUNCH VERDICT and FA_LADSAVE <sha> lines (lad2_pipe.sh f3805fba); no dbar is computed by the pipe",
+  "donor_legs": {
+   "path": "/dev/shm/news2_2026-09-23/work/legs.npz",
+   "sha256_measured": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65"
+  },
+  "device_shas_pod2_equal_repo": {
+   "fa_ladder.py": "fe854afc",
+   "lad2_pipe.sh": "f3805fba",
+   "fa_ladsave.py": "a2dccf15",
+   "fa_ladread.py": "78fcb4b8"
+  },
+  "cells": {
+   "CLEANRN8_NONE_s42": {
+    "pgid": "3197340",
+    "started_utc": "2026-09-26T00:32:33Z",
+    "engine_verdict_line": [
+     "BT_LAUNCH VERDICT=PASS label=full_lad2_CLEANRN8_NONE_42 runs=1 seeds=32 receipt_sha256=762d664c46f3c7227e520aa1fbe29e451eebd60e37ec182e357b2cb509af3967"
+    ],
+    "traceback_in_engine_log": false,
+    "combo_log": "FA_COMBO {\"swapped\": [\"RN8\"], \"negated\": [], \"swap_diff_cells\": {\"RN8\": 639}, \"tol_compare\": null, \"publish_changed\": null, \"kernel\": \"combo_target\", \"only_declared_hunk_differs\": \"N/A (production ker",
+    "adapter_log": "OVN_ADAPTER VERDICT=PASS arm=NEWS_s42 npz_sha256=e7bac09f1f3fd79294486b763f75de22ef50136fd5931898780b8f58fd1a596d receipt_sha256=fa088611f5154d2094b1ed94042670b4d9de976d1428fe3c33f9a0759ebbd645 roundtrip=bitwise scaled_published=6745 lit_published=3106 pad=1110",
+    "series": {
+     "path_pod2": "/dev/shm/fanom_2026-09-24/receipts/SER_LAD2_CLEANRN8_NONE_s42.npz",
+     "archived": "receipts/lad2/SER_LAD2_CLEANRN8_NONE_s42.npz",
+     "sha256": "9ecf57b0fbb99c5f620f823dc12b243c14ef7636f8ca4200b80ffb29eb1f2c82"
+    },
+    "cell_freed": "podroot/runs empty; combo arrays removed (pipe reached its last step)",
+    "pgid_live_now": false
+   },
+   "CLEANRN8_NONE_s2027": {
+    "pgid": "3223700",
+    "started_utc": "2026-09-26T04:36:26Z",
+    "engine_verdict_line": [
+     "BT_LAUNCH VERDICT=PASS label=full_lad2_CLEANRN8_NONE_2027 runs=1 seeds=32 receipt_sha256=7802fb249f5b758f501a7274e092608d11d6df811437b2236c6858d7c42df439"
+    ],
+    "traceback_in_engine_log": false,
+    "combo_log": "FA_COMBO {\"swapped\": [\"RN8\"], \"negated\": [], \"swap_diff_cells\": {\"RN8\": 639}, \"tol_compare\": null, \"publish_changed\": null, \"kernel\": \"combo_target\", \"only_declared_hunk_differs\": \"N/A (production ker",
+    "adapter_log": "OVN_ADAPTER VERDICT=PASS arm=NEWS_s2027 npz_sha256=682a25d7e4e9523d7dafbd0318a9ade8655c2fda4e19d43c8bd6921b475b4fc6 receipt_sha256=851472a79f6a131e7ed520d5bd2b061daa2c9fe60458f4a4552b12e553ab8e38 roundtrip=bitwise scaled_published=5910 lit_published=2971 pad=1110",
+    "series": {
+     "path_pod2": "/dev/shm/fanom_2026-09-24/receipts/SER_LAD2_CLEANRN8_NONE_s2027.npz",
+     "archived": "receipts/lad2/SER_LAD2_CLEANRN8_NONE_s2027.npz",
+     "sha256": "eb9d2f04cf90ad1a4f01473de8e04b6a2330b5701b4c4f974a0769d4f72b279d"
+    },
+    "cell_freed": "podroot/runs empty; combo arrays removed (pipe reached its last step)",
+    "pgid_live_now": false
+   },
+   "CLEANRN8_ALLNEW_s42": {
+    "pgid": "3221492",
+    "started_utc": "2026-09-26T04:23:10Z",
+    "engine_verdict_line": [
+     "BT_LAUNCH VERDICT=PASS label=full_lad2_CLEANRN8_ALLNEW_42 runs=1 seeds=32 receipt_sha256=d36ad064df1cce49fccd3a6c9f1b1e3e8cafd1c5cdc1fe85ca57b9fe1158e319"
+    ],
+    "traceback_in_engine_log": false,
+    "combo_log": "FA_COMBO {\"swapped\": [\"RN8\"], \"negated\": [], \"swap_diff_cells\": {\"RN8\": 639}, \"tol_compare\": null, \"publish_changed\": null, \"kernel\": \"combo_target\", \"only_declared_hunk_differs\": \"N/A (production ker",
+    "adapter_log": "OVN_ADAPTER VERDICT=PASS arm=FRESH_s42 npz_sha256=486de816b45137212c9d827cb0ad2afcf92fbdc2ca2a13c8e4da04997d9d062a receipt_sha256=1600f517fadf93f457905a531472e352079b8e3673fe79a3e7a62f84188b45ee roundtrip=bitwise scaled_published=6421 lit_published=2853 pad=1110",
+    "series": {
+     "path_pod2": "/dev/shm/fanom_2026-09-24/receipts/SER_LAD2_CLEANRN8_ALLNEW_s42.npz",
+     "archived": "receipts/lad2/SER_LAD2_CLEANRN8_ALLNEW_s42.npz",
+     "sha256": "30649459b7ccb1ece44938918b8cf2373bb61c97a8e02b9d143da36961fd9ee5"
+    },
+    "cell_freed": "podroot/runs empty; combo arrays removed (pipe reached its last step)",
+    "pgid_live_now": false
+   },
+   "CLEANRN8_ALLNEW_s2027": {
+    "pgid": "3225745",
+    "started_utc": "2026-09-26T04:48:39Z",
+    "engine_verdict_line": [
+     "BT_LAUNCH VERDICT=PASS label=full_lad2_CLEANRN8_ALLNEW_2027 runs=1 seeds=32 receipt_sha256=67bd08bdd793b9989ae1625c0a8097a8d2ddb6050ad8f05e2acd96716eb1c4d4"
+    ],
+    "traceback_in_engine_log": false,
+    "combo_log": "FA_COMBO {\"swapped\": [\"RN8\"], \"negated\": [], \"swap_diff_cells\": {\"RN8\": 639}, \"tol_compare\": null, \"publish_changed\": null, \"kernel\": \"combo_target\", \"only_declared_hunk_differs\": \"N/A (production ker",
+    "adapter_log": "OVN_ADAPTER VERDICT=PASS arm=FRESH_s2027 npz_sha256=cbfe32221ddfb374edb4f204ca8d614589d6ac2bd9fc35f393971276ac2a7ab3 receipt_sha256=167619e76d0d660e81c27568ce3ac5ab799e958754bd3298be1b5c7745b5b607 roundtrip=bitwise scaled_published=6696 lit_published=3010 pad=1110",
+    "series": {
+     "path_pod2": "/dev/shm/fanom_2026-09-24/receipts/SER_LAD2_CLEANRN8_ALLNEW_s2027.npz",
+     "archived": "receipts/lad2/SER_LAD2_CLEANRN8_ALLNEW_s2027.npz",
+     "sha256": "881cbe030d359655008b1392d7ef917d1c750a8c7f043b9528b8cdb63d83be89"
+    },
+    "cell_freed": "podroot/runs empty; combo arrays removed (pipe reached its last step)",
+    "pgid_live_now": false
+   }
+  }
+ },
+ "readings_exist": "NO. grep of /dev/shm/{fanom,fresh,news2} and /tmp for SER_LAD2 finds only the two driver scripts; no reading receipt in the repo",
+ "uncommitted_in_my_root_found": {
+  "devices/fa_c3m.py": "working copy sha 979df5bb = self_sha256 recorded in the COMMITTED C3m receipts (FA_C3M_RECEIPT_s42/s2027.json, d09ba6c0d) -> the device that produced them was never committed. Committed now as provenance repair, bytes unchanged.",
+  "receipts/FA_LADREAD_s42only{.json,_stdout.txt}": "deleted in the working tree (superseded by FA_LADREAD.json two-seed). Restored from HEAD, not deleted: receipts are append-only."
+ },
+ "orphans_not_killed": {
+  "pgids": [
+   2309242,
+   2311616
+  ],
+  "what": "bash -c 'tail -F ... /dev/shm/fresh_2026-09-23/logs/chain*.log | grep ...' log watchers, 3 days old (09-23 chain runs), no PGID record exists -> per team rule not killed; harmless (tail+grep); lead to decide"
+ },
+ "other_open_items_state": {
+  "Q2_four_cell": "maps onto EXISTING cells: (NEW_S,old RN8)=SER_LAD_BASE_NEWS, (NEW_S,true)=CLEANRN8_NONE, (FRESH,old)=SER_LAD_BASE_FRESH, (FRESH,true)=CLEANRN8_ALLNEW. No new engine cell needed; interaction = G_cln - G_old.",
+  "combo_census": "partial before outage: FA_RN8CENSUS.json per_arm_legs_binding (812c9c1bf), fund_replay_guard adopted in 5 consumers of my root (2c319deee); history annotation not done",
+  "monthly_retrain_design": "not started",
+  "FX_stage1": "RESULT FX1-FX3 stage 1 temporary (539cc3dfb); not in this brief"
+ },
+ "base_series_archived": {
+  "SER_LAD_BASE_FRESH_s2027X.npz": "14162531e8eeb54455afbbea1dd0e1b60859b764a86cc970bcaeb52ad79502f1",
+  "SER_LAD_BASE_FRESH_s42X.npz": "5244bf98969120be13b011c5219587623bf12493ddca75c0f0a4f89af3475ad5",
+  "SER_LAD_BASE_NEWS_s2027X.npz": "4d7dc7444b36de1a507a8a5271221c73a1a90f59b1564ae4646599ff3b7af2d4",
+  "SER_LAD_BASE_NEWS_s42X.npz": "1aa6a4cd08386859d855613eb159eb7b57bb312291d6f3fba688fd320fe10c45"
+ }
+}
