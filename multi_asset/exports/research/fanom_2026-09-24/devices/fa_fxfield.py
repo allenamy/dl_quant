@@ -24,6 +24,16 @@ usage: ... fa_fxfield.py WL <out.json> <panel.npz> <fund_replay.npz>
 import os, sys, json, hashlib, time, datetime
 import numpy as np
 
+# ---- D10 stage 2 §5: consumer-side gate on fund_replay.npz (news2 fund_replay_guard.py, lead-mandated) ----
+# A gate on the PRODUCER is not a gate on the CONSUMERS: the defect reaches conclusions through the consumers.
+import hashlib as _hl
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_GSHA = "9113d28a49b858df83c916c295ce0bc8286950b1d28b767dd07b61c9047ced25"
+_gp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fund_replay_guard.py")
+with open(_gp, "rb") as _f:
+    assert _hl.sha256(_f.read()).hexdigest() == _GSHA, "fund_replay_guard.py drifted from the pinned sha"
+from fund_replay_guard import require_clean_fund_replay, fund_replay_status, UNSTAMPED
+
 WL_ = set(sys.argv[1].split(",")); _x = sorted(set(os.environ) - WL_); assert not _x, f"env outside whitelist: {_x}"
 OUT, PANEL, REPLAY = sys.argv[2], sys.argv[3], sys.argv[4]
 CSV = sys.argv[5] if len(sys.argv) > 5 else None      # lead 2026-09-25 item 3: the full named list, fixed repo path
@@ -61,7 +71,16 @@ FN = P["f_fund_now"][pr]; IV = P["f_fund_iv"][pr]
 LR = R["last_rate"][fr]; LIV = R["last_iv"][fr]
 both = np.isfinite(FN) & np.isfinite(LR)
 
-rec = {"device": "fa_fxfield.py", "self_sha256": sha(os.path.abspath(__file__)),
+
+# This device exists to MEASURE the contamination, so refusing the dirty artefact would defeat it. Per the
+# guard's own contract the accepted state is NAMED (never a blanket bypass) and the returned status goes
+# into the receipt, so the conclusion carries the caliber of its input.
+# ★ placed BEFORE `rec` is built: putting it at the np.load site left `_frs` undefined when the receipt
+#   dict referenced it, and the device died with NameError/KeyError on its first run.
+_frs = require_clean_fund_replay(REPLAY, allow=(UNSTAMPED,))
+
+rec = {"fund_replay_guard_status": _frs,
+       "device": "fa_fxfield.py", "self_sha256": sha(os.path.abspath(__file__)),
        "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
        "prereg": "docs/PREREG_FX1_FX3_same_caliber_2026-09-25.md (lead condition 1)",
        "producing_line": {"file": "multi_asset/exports/research/uplift_2026-09-11/r6_devices/r6_panel_splice.py",

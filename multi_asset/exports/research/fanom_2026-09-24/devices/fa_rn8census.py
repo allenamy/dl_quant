@@ -33,6 +33,16 @@ usage: ... fa_rn8census.py WL <out.json>
 import os, sys, json, hashlib, time, datetime
 import numpy as np
 
+# ---- D10 stage 2 §5: consumer-side gate on fund_replay.npz (news2 fund_replay_guard.py, lead-mandated) ----
+# A gate on the PRODUCER is not a gate on the CONSUMERS: the defect reaches conclusions through the consumers.
+import hashlib as _hl
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_GSHA = "9113d28a49b858df83c916c295ce0bc8286950b1d28b767dd07b61c9047ced25"
+_gp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fund_replay_guard.py")
+with open(_gp, "rb") as _f:
+    assert _hl.sha256(_f.read()).hexdigest() == _GSHA, "fund_replay_guard.py drifted from the pinned sha"
+from fund_replay_guard import require_clean_fund_replay, fund_replay_status, UNSTAMPED
+
 WL_ = set(sys.argv[1].split(",")); _x = sorted(set(os.environ) - WL_); assert not _x, f"env outside whitelist: {_x}"
 OUT = sys.argv[2]
 LEGS = {"FRESH": "/dev/shm/fresh_2026-09-23/work/legs.npz",
@@ -63,7 +73,16 @@ def write_json_verified(obj, path):
 
 
 ts_of = lambda s: int(datetime.datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc).timestamp())
-rec = {"device": "fa_rn8census.py", "self_sha256": sha(os.path.abspath(__file__)),
+
+# This device exists to MEASURE the contamination, so refusing the dirty artefact would defeat it. Per the
+# guard's own contract the accepted state is NAMED (never a blanket bypass) and the returned status goes
+# into the receipt, so the conclusion carries the caliber of its input.
+# ★ placed BEFORE `rec` is built: putting it at the np.load site left `_frs` undefined when the receipt
+#   dict referenced it, and the device died with NameError/KeyError on its first run.
+_frs = require_clean_fund_replay(REPLAY, allow=(UNSTAMPED,))
+
+rec = {"fund_replay_guard_status": _frs,
+       "device": "fa_rn8census.py", "self_sha256": sha(os.path.abspath(__file__)),
        "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
        "ordered_by": "lead 2026-09-25 (RN8 provenance census)",
        "reading_lines": {"fa_ladder.py:187": "legs_p = LR_ROOT / 'work/legs.npz'",
