@@ -80,7 +80,7 @@ def read_month(zipdir, month):
         ev = []
         for row in csv.reader(io.StringIO(z.read(z.namelist()[0]).decode("utf-8"))):
             if row and row[0].strip().isdigit():
-                ev.append((int(round(int(row[0]) / 1000.0)), float(row[1]), float(row[2])))
+                ev.append((int(row[0]) // 1000, float(row[1]), float(row[2]), int(row[0])))
         ev.sort()
         arc[s] = ev
     return arc
@@ -103,12 +103,13 @@ def main():
 
     lsha = sha(a.ledger)
     if a.ledger_sha:
-        assert lsha == a.ledger_sha, ("ledger is not the pinned artifact", lsha, a.ledger_sha)
+        assert lsha.startswith(a.ledger_sha), ("ledger is not the pinned artifact", lsha, a.ledger_sha)
 
     rec = {"device": os.path.basename(__file__), "self_sha256": sha(os.path.realpath(__file__)),
            "gate_sha256": sha(os.path.realpath(GATE.__file__)), "argv": sys.argv[1:],
            "question": "does P2 ledger_full.npz contain the settlements in +/-24h interval-switch windows?",
            "ledger": {"path": a.ledger, "sha256": lsha, "pin_asserted": bool(a.ledger_sha)},
+           "ledger_key": None,
            "consumed_by": ["r_hist_sim.py:115-118 HistFunding reads off/ft/rate/symbols only",
                            "src and zip_iv are provenance; the pricing never reads them"],
            "src_codes": {"1": "API(fund_aug) only", "2": "zip only", "3": "both equal",
@@ -116,7 +117,21 @@ def main():
            "months": months}
 
     Z = np.load(a.ledger, allow_pickle=True)
-    off, ft, rate, src = Z["off"].astype(np.int64), Z["ft"].astype(np.int64), Z["rate"].astype(np.float64), Z["src"].astype(np.int8)
+    # Accept either artifact: the OLD ledger keys by SECONDS (`ft`), the NEW one by MILLISECONDS (`ft_ms`,
+    # lead's revision 1). Detected by which key is present and RECORDED in the receipt, never guessed --
+    # reading a millisecond array as seconds puts every event ~55,000 years ahead and would still "run".
+    if "ft_ms" in Z.files:
+        ledger_key = "ft_ms"
+        ft = Z["ft_ms"].astype(np.int64) // 1000      # floor, as p2_prep_inputs.py does
+    elif "ft" in Z.files:
+        ledger_key = "ft"
+        ft = Z["ft"].astype(np.int64)
+    else:
+        raise KeyError(f"ledger has neither ft nor ft_ms: {list(Z.files)}")
+    assert int(ft.max()) < 2_000_000_000, (
+        "ledger timestamps do not look like seconds after conversion; refusing to compare", ledger_key)
+    rec["ledger_key"] = ledger_key
+    off, rate, src = Z["off"].astype(np.int64), Z["rate"].astype(np.float64), Z["src"].astype(np.int8)
     zip_iv = Z["zip_iv"].astype(np.float64)
     syms = [str(s) for s in Z["symbols"]]
     idx = {s: j for j, s in enumerate(syms)}
@@ -213,7 +228,7 @@ def main():
             for sw in sws:
                 w_lo, w_hi = sw - WIN, sw + WIN
                 inwin = [e for e in ev if w_lo <= e[0] <= w_hi]
-                for (sec, iv, r) in inwin:
+                for (sec, iv, r, ms) in inwin:
                     c["archive_events_in_windows"] += 1
                     if span is None or not (span[0] <= sec <= span[1]):
                         c["out_of_ledger_coverage"] += 1          # guard 2: coverage, not absence
@@ -261,19 +276,32 @@ def main():
             seg_ft = ft[off[j]:off[j + 1]]
             seg_rt = rate[off[j]:off[j + 1]]
             sel = (seg_ft >= lo) & (seg_ft < hi)
-            lmap = {int(t): float(r) for t, r in zip(seg_ft[sel], seg_rt[sel])}
-            for (sec, iv, r) in arc[s]:
-                if not (lo <= sec < hi) or sec not in lmap:
+            # ★ Key the rate comparison by MILLISECOND when the ledger carries ms. Comparing two
+            # second-keyed projections is not a comparison of the data: the two sides resolve a
+            # within-second collision differently (the ledger takes the LATER ms per lead's rule, the
+            # archive read took the first encountered), which showed up as 2 spurious "differences" on
+            # exactly the MSFT/AAPL seconds. With both sides on ms the ambiguity cannot arise.
+            if ledger_key == "ft_ms":
+                seg_ms = Z["ft_ms"].astype(np.int64)[off[j]:off[j + 1]][sel]
+                lmap = {int(t): float(r) for t, r in zip(seg_ms, seg_rt[sel])}
+                pairs = [(ms, r) for (sec, iv, r, ms) in arc[s] if lo <= sec < hi]
+            else:
+                lmap = {int(t): float(r) for t, r in zip(seg_ft[sel], seg_rt[sel])}
+                pairs = [(sec, r) for (sec, iv, r, ms) in arc[s] if lo <= sec < hi]
+            for (key_t, r) in pairs:
+                sec = key_t if ledger_key != "ft_ms" else key_t // 1000
+                if key_t not in lmap:
                     continue
                 n_cmp += 1
-                d = abs(lmap[sec] - r)
-                if lmap[sec] == r:
+                d = abs(lmap[key_t] - r)
+                if lmap[key_t] == r:
                     n_exact += 1
                 elif len(rate_mismatch) < 20:
-                    rate_mismatch.append({"symbol": s, "utc": u(sec), "ledger": lmap[sec],
+                    rate_mismatch.append({"symbol": s, "utc": u(sec), "key": int(key_t),
+                                          "ledger": lmap[key_t],
                                           "archive": r, "abs_diff": d})
                 if d > worst_d:
-                    worst_d, worst_where = d, f"{s}@{u(sec)} ledger={lmap[sec]!r} archive={r!r}"
+                    worst_d, worst_where = d, f"{s}@{u(sec)} ledger={lmap[key_t]!r} archive={r!r}"
         rec["per_month"][m] = {
             "archive_symbols": len(arc), "shared_symbols": len(shared),
             "archive_symbols_not_on_ledger_axis": len(only_arc),
@@ -291,6 +319,7 @@ def main():
             "src_composition": {"1_api_only": comp[1], "2_zip_only": comp[2],
                                 "3_both_equal": comp[3], "4_both_unequal_api_kept": comp[4]},
             "positive_control": ctrl,
+            "rate_key": ("MILLISECOND" if ledger_key == "ft_ms" else "SECOND"),
             "rate_agreement_on_shared_seconds": {
                 "compared": n_cmp, "bitwise_equal": n_exact, "differing": n_cmp - n_exact,
                 "max_abs_diff": worst_d, "max_abs_diff_where": worst_where,

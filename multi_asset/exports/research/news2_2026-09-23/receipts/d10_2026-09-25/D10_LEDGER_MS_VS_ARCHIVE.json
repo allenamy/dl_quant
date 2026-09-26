@@ -1,0 +1,286 @@
+{
+ "device": "d10_p2_ledger_vs_archive.py",
+ "self_sha256": "c44824d13998dda3f4ec2ca7d0729d29b695b967454ec1ee50c2ef197f58cc97",
+ "gate_sha256": "793c5eb2e85e84232df8cf5f25b62207400e390b1552d9196f1b4f76adcdc956",
+ "argv": [
+  "--ledger",
+  "/dev/shm/d10_2026-09-25/ms/ledger_full_ms.npz",
+  "--ledger-sha",
+  "e179071d5955",
+  "--zips-root",
+  "/dev/shm/d10_2026-09-25/zips",
+  "--months",
+  "2026-08,2026-01,2026-02,2026-03,2026-04,2026-05",
+  "--out",
+  "/dev/shm/d10_2026-09-25/receipts/D10_LEDGER_MS_VS_ARCHIVE.json"
+ ],
+ "question": "does P2 ledger_full.npz contain the settlements in +/-24h interval-switch windows?",
+ "ledger": {
+  "path": "/dev/shm/d10_2026-09-25/ms/ledger_full_ms.npz",
+  "sha256": "e179071d595521987450f89e1774a95775a2593d76277a9c9dc6d86dcbc31a88",
+  "pin_asserted": true,
+  "symbols": 829,
+  "rows": 2633108,
+  "ft_min_utc": "2020-01-01T00:00Z",
+  "ft_max_utc": "2026-09-01T02:00Z",
+  "nan_zip_iv_iff_src1": true
+ },
+ "ledger_key": "ft_ms",
+ "consumed_by": [
+  "r_hist_sim.py:115-118 HistFunding reads off/ft/rate/symbols only",
+  "src and zip_iv are provenance; the pricing never reads them"
+ ],
+ "src_codes": {
+  "1": "API(fund_aug) only",
+  "2": "zip only",
+  "3": "both equal",
+  "4": "both unequal, API kept",
+  "source": "p2_prep_inputs.py L7,L70-77"
+ },
+ "months": [
+  "2026-08",
+  "2026-01",
+  "2026-02",
+  "2026-03",
+  "2026-04",
+  "2026-05"
+ ],
+ "per_month": {
+  "2026-08": {
+   "archive_symbols": 680,
+   "shared_symbols": 679,
+   "archive_symbols_not_on_ledger_axis": 1,
+   "archive_symbols_not_on_ledger_axis_examples": [
+    "DOSUSDT"
+   ],
+   "switch_events": 48,
+   "symbols_with_a_switch": 27,
+   "switch_windows": {
+    "archive_events_in_windows": 832,
+    "present_in_ledger": 832
+   },
+   "absent_rate_pct": 0.0,
+   "absent_by_symbol_top10": [],
+   "absent_examples": [],
+   "month_totals_shared_axis": {
+    "archive_events": 103527,
+    "ledger_rows": 103527,
+    "ledger_rows_with_no_archive_event": 0,
+    "note": "ledger is a union (zip u API), so rows the monthly zip lacks are EXPECTED, not errors"
+   },
+   "src_composition": {
+    "1_api_only": 103527,
+    "2_zip_only": 0,
+    "3_both_equal": 0,
+    "4_both_unequal_api_kept": 0
+   },
+   "positive_control": null,
+   "rate_key": "MILLISECOND",
+   "rate_agreement_on_shared_seconds": {
+    "compared": 103527,
+    "bitwise_equal": 103527,
+    "differing": 0,
+    "max_abs_diff": 0.0,
+    "max_abs_diff_where": null,
+    "examples": [],
+    "why_it_matters": "the rate is what prices the backtest; and where src==1 everywhere the builder's own src==4 check had no zip to compare against, so only this comparison can speak"
+   }
+  },
+  "2026-01": {
+   "archive_symbols": 560,
+   "shared_symbols": 560,
+   "archive_symbols_not_on_ledger_axis": 0,
+   "archive_symbols_not_on_ledger_axis_examples": [],
+   "switch_events": 66,
+   "symbols_with_a_switch": 46,
+   "switch_windows": {
+    "archive_events_in_windows": 1765,
+    "present_in_ledger": 1765
+   },
+   "absent_rate_pct": 0.0,
+   "absent_by_symbol_top10": [],
+   "absent_examples": [],
+   "month_totals_shared_axis": {
+    "archive_events": 91766,
+    "ledger_rows": 91766,
+    "ledger_rows_with_no_archive_event": 0,
+    "note": "ledger is a union (zip u API), so rows the monthly zip lacks are EXPECTED, not errors"
+   },
+   "src_composition": {
+    "1_api_only": 0,
+    "2_zip_only": 0,
+    "3_both_equal": 91766,
+    "4_both_unequal_api_kept": 0
+   },
+   "positive_control": null,
+   "rate_key": "MILLISECOND",
+   "rate_agreement_on_shared_seconds": {
+    "compared": 91766,
+    "bitwise_equal": 91766,
+    "differing": 0,
+    "max_abs_diff": 0.0,
+    "max_abs_diff_where": null,
+    "examples": [],
+    "why_it_matters": "the rate is what prices the backtest; and where src==1 everywhere the builder's own src==4 check had no zip to compare against, so only this comparison can speak"
+   }
+  },
+  "2026-02": {
+   "archive_symbols": 563,
+   "shared_symbols": 563,
+   "archive_symbols_not_on_ledger_axis": 0,
+   "archive_symbols_not_on_ledger_axis_examples": [],
+   "switch_events": 44,
+   "symbols_with_a_switch": 27,
+   "switch_windows": {
+    "archive_events_in_windows": 1295,
+    "present_in_ledger": 1295
+   },
+   "absent_rate_pct": 0.0,
+   "absent_by_symbol_top10": [],
+   "absent_examples": [],
+   "month_totals_shared_axis": {
+    "archive_events": 83676,
+    "ledger_rows": 83676,
+    "ledger_rows_with_no_archive_event": 0,
+    "note": "ledger is a union (zip u API), so rows the monthly zip lacks are EXPECTED, not errors"
+   },
+   "src_composition": {
+    "1_api_only": 0,
+    "2_zip_only": 0,
+    "3_both_equal": 83676,
+    "4_both_unequal_api_kept": 0
+   },
+   "positive_control": null,
+   "rate_key": "MILLISECOND",
+   "rate_agreement_on_shared_seconds": {
+    "compared": 83676,
+    "bitwise_equal": 83676,
+    "differing": 0,
+    "max_abs_diff": 0.0,
+    "max_abs_diff_where": null,
+    "examples": [],
+    "why_it_matters": "the rate is what prices the backtest; and where src==1 everywhere the builder's own src==4 check had no zip to compare against, so only this comparison can speak"
+   }
+  },
+  "2026-03": {
+   "archive_symbols": 573,
+   "shared_symbols": 573,
+   "archive_symbols_not_on_ledger_axis": 0,
+   "archive_symbols_not_on_ledger_axis_examples": [],
+   "switch_events": 50,
+   "symbols_with_a_switch": 30,
+   "switch_windows": {
+    "archive_events_in_windows": 1479,
+    "present_in_ledger": 1479
+   },
+   "absent_rate_pct": 0.0,
+   "absent_by_symbol_top10": [],
+   "absent_examples": [],
+   "month_totals_shared_axis": {
+    "archive_events": 93649,
+    "ledger_rows": 93649,
+    "ledger_rows_with_no_archive_event": 0,
+    "note": "ledger is a union (zip u API), so rows the monthly zip lacks are EXPECTED, not errors"
+   },
+   "src_composition": {
+    "1_api_only": 0,
+    "2_zip_only": 0,
+    "3_both_equal": 93649,
+    "4_both_unequal_api_kept": 0
+   },
+   "positive_control": null,
+   "rate_key": "MILLISECOND",
+   "rate_agreement_on_shared_seconds": {
+    "compared": 93649,
+    "bitwise_equal": 93649,
+    "differing": 0,
+    "max_abs_diff": 0.0,
+    "max_abs_diff_where": null,
+    "examples": [],
+    "why_it_matters": "the rate is what prices the backtest; and where src==1 everywhere the builder's own src==4 check had no zip to compare against, so only this comparison can speak"
+   }
+  },
+  "2026-04": {
+   "archive_symbols": 578,
+   "shared_symbols": 578,
+   "archive_symbols_not_on_ledger_axis": 0,
+   "archive_symbols_not_on_ledger_axis_examples": [],
+   "switch_events": 31,
+   "symbols_with_a_switch": 17,
+   "switch_windows": {
+    "archive_events_in_windows": 923,
+    "present_in_ledger": 923
+   },
+   "absent_rate_pct": 0.0,
+   "absent_by_symbol_top10": [],
+   "absent_examples": [],
+   "month_totals_shared_axis": {
+    "archive_events": 91097,
+    "ledger_rows": 91097,
+    "ledger_rows_with_no_archive_event": 0,
+    "note": "ledger is a union (zip u API), so rows the monthly zip lacks are EXPECTED, not errors"
+   },
+   "src_composition": {
+    "1_api_only": 0,
+    "2_zip_only": 0,
+    "3_both_equal": 91097,
+    "4_both_unequal_api_kept": 0
+   },
+   "positive_control": null,
+   "rate_key": "MILLISECOND",
+   "rate_agreement_on_shared_seconds": {
+    "compared": 91097,
+    "bitwise_equal": 91097,
+    "differing": 0,
+    "max_abs_diff": 0.0,
+    "max_abs_diff_where": null,
+    "examples": [],
+    "why_it_matters": "the rate is what prices the backtest; and where src==1 everywhere the builder's own src==4 check had no zip to compare against, so only this comparison can speak"
+   }
+  },
+  "2026-05": {
+   "archive_symbols": 592,
+   "shared_symbols": 592,
+   "archive_symbols_not_on_ledger_axis": 0,
+   "archive_symbols_not_on_ledger_axis_examples": [],
+   "switch_events": 19,
+   "symbols_with_a_switch": 11,
+   "switch_windows": {
+    "archive_events_in_windows": 553,
+    "present_in_ledger": 553
+   },
+   "absent_rate_pct": 0.0,
+   "absent_by_symbol_top10": [],
+   "absent_examples": [],
+   "month_totals_shared_axis": {
+    "archive_events": 92438,
+    "ledger_rows": 92438,
+    "ledger_rows_with_no_archive_event": 0,
+    "note": "ledger is a union (zip u API), so rows the monthly zip lacks are EXPECTED, not errors"
+   },
+   "src_composition": {
+    "1_api_only": 0,
+    "2_zip_only": 0,
+    "3_both_equal": 92438,
+    "4_both_unequal_api_kept": 0
+   },
+   "positive_control": null,
+   "rate_key": "MILLISECOND",
+   "rate_agreement_on_shared_seconds": {
+    "compared": 92438,
+    "bitwise_equal": 92438,
+    "differing": 0,
+    "max_abs_diff": 0.0,
+    "max_abs_diff_where": null,
+    "examples": [],
+    "why_it_matters": "the rate is what prices the backtest; and where src==1 everywhere the builder's own src==4 check had no zip to compare against, so only this comparison can speak"
+   }
+  }
+ },
+ "all_months": {
+  "archive_events_in_windows": 6847,
+  "present_in_ledger": 6847
+ },
+ "verdict": "P2_LEDGER_COMPLETE_IN_SWITCH_WINDOWS",
+ "absent_rate_pct_all": 0.0
+}
