@@ -1,0 +1,640 @@
+{
+ "title": "fund_replay.npz consumer census BY SOURCE (supersedes the by-column census D10_FUND_REPLAY_CONSUMER_CENSUS.json)",
+ "utc": "2026-09-27",
+ "author": "read-only census agent (session_01VNPQL7t93ECz7Xkrv9rH6n); nothing modified, nothing committed",
+ "repo_head_at_census": "9ddc3d779",
+ "method": {
+  "admission_rule": "a consumer is AFFECTED iff it reads fund_replay.npz (any channel: ema_acc, last_ft, last_rate, last_iv) directly, or reads an artifact whose receipt binds fund_replay or an artifact derived from it. Magnitude and the skip-gate signature are NOT admission criteria.",
+  "steps": [
+   "1. repo: `git grep -n fund_replay` over *.py *.sh; `git grep -l 'fund_replay|8a73588f|a490c294'` over *.json *.md and other text; also `git grep NEWS2_FUND` (env-var indirection: news2_d7_rows_gate.py L30, news2_year_probe.py L31 read the path from NEWS2_FUND, which run_d7rows_pod2.sh/run_probe_pod2.sh L11 set to fund_replay.npz -- a literal-name grep of the .py files alone misses these two consumers).",
+   "2. pod2: `grep -rl fund_replay` over /dev/shm/*/devices,/deploy,/common + top-level *.py; `grep -rlE` of the source sha and every derived-artifact sha (8a73588f a490c294 18999e16 486dfe37 744bc48e 4345541e aa6e3055 a37dab09 1d16cbed b4a97245 8b67ac59 b521ccdc 6e97dc8a e20c1e6c b4e7270e + the 8 combo policy shas) over *.json/*.txt/*.md/*.log in every /dev/shm/*/ (incl. bt_*) and /workspace/*/ (45-60 s timeout per root; /workspace/codex_research timed out and was re-searched bounded to *.json newer than 2026-09-23 (92 files, 0 hits); fund_replay's own mtime is 2026-09-23 10:25Z so older files cannot bind it).",
+   "3. read the consuming lines of every device found; follow derived artifacts only by receipt sha (TRAIN_RECEIPT.inputs, TARGET_RECEIPT.inputs, P3_LEGS.inputs, FA_COMBO_CENSUS per_array_root, engine report inputs), never by file name.",
+   "4. docs: grep docs/*.md for the run tags/shas; list RESULT/DECISION/STATE claims that rest on affected runs.",
+   "5. interval-rule label per family from code (producer block lines, nc_contract.snap_interval, common/funding_interval.py interval_d10) or receipt."
+  ],
+  "measured_not_inferred": [
+   "fund_replay_tail.npz (8b67ac59) == fund_replay.npz rows at the 9 anchors 2026-09-17T16Z..09-19T00Z, bitwise per array (sha256 of anchors/ema_acc/last_ft/last_rate/last_iv row blocks identical: 0564c03d/69862f91/c92c8c41/49077e1d/ef912d33, computed on Mac copy ~/cc_tmp/news_20260923/fund_replay_tail.npz and on pod2 /dev/shm/news2_2026-09-23/inputs/fund_replay.npz)",
+   "pod2 copies /dev/shm/news2_2026-09-23/inputs/fund_replay.npz and /dev/shm/pnoise_2026-09-24/inputs/fund_replay.npz both sha256 = 8a73588f... (sha256sum on pod2)",
+   "parity_fund_slice.npz sha b4e7270e identical at /dev/shm/news2_2026-09-23/inputs, /dev/shm/pnoise_2026-09-24/inputs and Mac ~/cc_tmp/news_20260923/parity"
+  ]
+ },
+ "source": {
+  "path": "/dev/shm/news_2026-09-23/work/fund_replay.npz (copies: /dev/shm/news2_2026-09-23/inputs/fund_replay.npz, /dev/shm/pnoise_2026-09-24/inputs/fund_replay.npz)",
+  "sha": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4",
+  "producer_device": "multi_asset/exports/research/news_2026-09-23/devices_pod2_1116Z/news_fund_replay.py (sha b8a1cfcf = P2A_FUND_REPLAY.json inputs_sha256['/dev/shm/news_2026-09-23/devices/news_fund_replay.py']; the current repo devices/news_fund_replay.py is a later guarded rewrite 1d65079c that refuses to run)",
+  "producer_receipt": "multi_asset/exports/research/news_2026-09-23/receipts/P2A_FUND_REPLAY.json (output_sha256 = 8a73588f..., inputs ledger 073088e5, producer shadow_loop_v3.py 6080073964)",
+  "channels": {
+   "ema_acc": "st.ema[s]['acc'] after the replayed producer block (devices_pod2_1116Z/news_fund_replay.py L65)",
+   "last_ft/last_rate/last_iv": "st.ledger[s][-1] (ft, rate, iv) (same file L66-68 region; written L71)",
+   "updates": "per-anchor update count (not consumed downstream)"
+  },
+  "rule_version": "OLD_PRODUCER",
+  "rule_evidence": "the block compiled verbatim is /dev/shm/news_2026-09-23/producer/shadow_loop_v3.py (sha 6080073964) L451-L484 (news_fund_replay.py L22-23 asserts the boundary lines); the interval is L472-473: iv=(ft-led[-1][0])/3600 if led else 8.0; iv=min([1,2,4,6,8], key=|a-(iv if 0<iv<=24 else 8)|) => first event and gaps>24h continue at 8h, ties -> the SMALLER grid value (min returns the first minimum). EMA L476-480 never resets. Read on pod2 2026-09-27.",
+  "defects": [
+   "(a) skip gate L456-457 `if anchor-last_ts < exp_iv*3600*0.9: continue` without bulk guard (small)",
+   "(b) OLD_PRODUCER interval rule vs NC_CONTRACT (nc_contract.snap_interval L32-44: ties->larger, >24h/first event -> None and EMA reset) vs D10 (common/funding_interval.py L164 interval_d10). RESULT_ema_second_mechanism_2026-09-26.md L54-56: the EMA divergence is caliber (rule), not a data defect."
+  ]
+ },
+ "substantive_consumers": [
+  {
+   "device": "multi_asset/exports/research/news_2026-09-23/devices/news_p2_build.py (sha 809c0c4a; one shard set also ran 419296e2 per P2B_FEATURES.json devices_by_shard_distinct) + news_hist_features.py (97a695d3)",
+   "root": "news_2026-09-23 (NEW_S)",
+   "channels_read": [
+    "ema_acc",
+    "last_ft",
+    "last_rate",
+    "last_iv"
+   ],
+   "lands_on": [
+    "King X78: FE_ANCH col 80 = fe_v (ema_acc gated by last_ft <=12h) and col 81 = fn_v (last_rate) (producer block L550-551 run via news_hist_features.py L58/L88); bundle_config keep_idx maps them to X78 cols 76 'fund_ema' and 77 'fund_now' (/dev/shm/news_2026-09-23/inputs/bundle_config.json keep_names) -- i.e. the KING MODEL reads the EMA channel, not only fund_now",
+    "F10 X82/X89: xfer_panel_live f_fund_ema = raw ema_acc (no freshness gate) and f_fund_now = last ledger rate, news_hist_features.py L122-130; dlw_features writes them to X82 cols 80/81 (news2 probe_fundrows.py docstring L3-6)",
+    "fe_v / fn_v / iv_v / base_val arrays stored in NEWS_FEATURES (news_p2_build.py L52, L70-71, L96); base_val = fund-leg rank base built from ema_acc (producer block L546-549)"
+   ],
+   "consuming_lines": "news_p2_build.py L27-30 (loads ema_acc,last_ft,last_rate,last_iv), L33-37 fund_dicts -> replay_anchor",
+   "rule_version": "OLD_PRODUCER",
+   "bound_sha": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4",
+   "downstream_artifacts": [
+    "NEWS_FEATURES.npz a490c294 (deleted 2026-09-23 20:10Z, ENV_KING_LEGS_COMBO_NEW_S.json erratum)"
+   ],
+   "receipts": [
+    "multi_asset/exports/research/news_2026-09-23/receipts/P2B_FEATURES.json inputs.fund_replay = 8a73588f, sha256 = a490c294"
+   ],
+   "conclusions_affected": "all conclusions of every model/leg/combo bound to a490c294 -- see derived_artifacts"
+  },
+  {
+   "device": "multi_asset/exports/research/news_2026-09-23/devices/news_legs.py (sha 2b890fe0 = P3_LEGS.json source_sha)",
+   "root": "news_2026-09-23 (NEW_S)",
+   "channels_read": [
+    "last_rate",
+    "last_iv (direct, L34, L76-77)",
+    "ema_acc via NEWS_FEATURES a490c294 fe_v/base_val (L68-69, L74)"
+   ],
+   "lands_on": [
+    "RN8 = last_rate*8/last_iv (L76-77, no freshness)",
+    "ZFD fund-leg z = xz_in_base(fe_v, base_vals) (L74) -> fund leg returns LR -> msharpe seat WL (L51-66)",
+    "KZ via KING_OOF 744bc48e (itself trained on a490c294)"
+   ],
+   "rule_version": "OLD_PRODUCER",
+   "bound_sha": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4",
+   "downstream_artifacts": [
+    "/dev/shm/news_2026-09-23/work/legs.npz 18999e16"
+   ],
+   "receipts": [
+    "multi_asset/exports/research/news_2026-09-23/receipts/P3_LEGS.json inputs {features a490c294, king_oof 744bc48e, fund_replay 8a73588f}"
+   ],
+   "conclusions_affected": "see derived_artifacts legs 18999e16"
+  },
+  {
+   "device": "multi_asset/exports/research/fresh_2026-09-23/devices/fresh_legs.py (sha 97077d7e; identical copy in fanom devices; main() later retired per fa_rn8parity.py L64)",
+   "root": "fresh_2026-09-23 (FRESH)",
+   "channels_read": [
+    "last_rate",
+    "last_iv (direct, L37, L80-81)",
+    "ema_acc via NEWS_FEATURES a490c294 fe_v/base_val (L72-73, L78)"
+   ],
+   "lands_on": [
+    "RN8 (L80-81)",
+    "ZFD fund leg -> LR -> WL seat (L78)",
+    "KZ via FRESH KING_OOF 4345541e (trained on a490c294)"
+   ],
+   "rule_version": "OLD_PRODUCER",
+   "bound_sha": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4",
+   "downstream_artifacts": [
+    "/dev/shm/fresh_2026-09-23/work/legs.npz 486dfe37"
+   ],
+   "receipts": [
+    "multi_asset/exports/research/fresh_2026-09-23/receipts/P3_LEGS.json inputs {features a490c294, king_oof 4345541e, fund_replay 8a73588f}"
+   ],
+   "conclusions_affected": "see derived_artifacts legs 486dfe37"
+  },
+  {
+   "device": "multi_asset/exports/research/news_2026-09-23/devices/p5_extract_slices.py L12-13",
+   "root": "news_2026-09-23",
+   "channels_read": [
+    "ema_acc",
+    "last_ft",
+    "last_rate",
+    "last_iv"
+   ],
+   "lands_on": [
+    "parity_fund_slice.npz b4e7270e = fund_replay rows for anchors >= 2026-09-16T16Z (A0-86400), all channels copied"
+   ],
+   "rule_version": "OLD_PRODUCER",
+   "bound_sha": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4",
+   "downstream_artifacts": [
+    "parity_fund_slice.npz b4e7270e (/dev/shm/news2_2026-09-23/inputs, /dev/shm/pnoise_2026-09-24/inputs, Mac ~/cc_tmp/news_20260923/parity)"
+   ],
+   "receipts": [
+    "no receipt emitted by the device (script writes no json); binding established by consumers' receipts, e.g. GLOBAL_GATE_pod2.json L13"
+   ],
+   "conclusions_affected": "see derived_artifacts parity_fund_slice"
+  },
+  {
+   "device": "fund_replay_tail.npz builder -- NOT FOUND in repo, pod2 /dev/shm/news_2026-09-23 or Mac ~/cc_tmp/news_20260923 (grep fund_replay_tail over py/sh/json/log/md)",
+   "root": "news_2026-09-23 (NEW_S deploy package)",
+   "channels_read": [
+    "ema_acc",
+    "last_ft",
+    "last_rate",
+    "last_iv"
+   ],
+   "lands_on": [
+    "fund_replay_tail.npz 8b67ac59 = the last 9 anchors of fund_replay, bitwise (measured, see method.measured_not_inferred)"
+   ],
+   "rule_version": "OLD_PRODUCER",
+   "bound_sha": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4",
+   "downstream_artifacts": [
+    "fund_replay_tail.npz 8b67ac59 (package_NEW_S/PACKAGE.json files.fund_replay_tail.npz; repo copy news_2026-09-23/receipts/parity/fund_replay_tail.npz same sha)"
+   ],
+   "receipts": [
+    "multi_asset/exports/research/news_2026-09-23/package_NEW_S/PACKAGE.json",
+    "docs/DEPLOY_new_servable_models_2026-09-23.md L25, L37"
+   ],
+   "conclusions_affected": "news_ema_reseed.py seed input (NEW_S deploy step B1; never executed live -- see answers.news_ema_reseed_executed)"
+  },
+  {
+   "device": "multi_asset/exports/research/news2_2026-09-23/devices/news2_d7_rows_gate.py (via run_d7rows_pod2.sh L11 NEWS2_FUND) and news2_year_probe.py (via run_probe_pod2.sh L11)",
+   "root": "news2_2026-09-23 (NEW_S2/NC design gates)",
+   "channels_read": [
+    "ema_acc",
+    "last_ft",
+    "last_rate",
+    "last_iv"
+   ],
+   "lands_on": [
+    "feature-layer gate: replay_anchor with ema/led built from fund_replay (d7 L63, L81-85; probe L73, L93-98) -> King X78 cols fund_ema/fund_now and F10 X82 cols 80/81 in every arm; the reported quantity is an arm-vs-arm row difference (D7 trend rows 'last' vs 'all'; D7/D8 movement by year) with funding identical across arms"
+   ],
+   "rule_version": "OLD_PRODUCER",
+   "bound_sha": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4",
+   "downstream_artifacts": [],
+   "receipts": [
+    "multi_asset/exports/research/news2_2026-09-23/receipts/D7_ROWS_GATE.json inputs (NEWS2_FUND sha 8a73588f)",
+    "multi_asset/exports/research/news2_2026-09-23/receipts/YEAR_PROBE_24anchors.json",
+    "multi_asset/exports/research/news2_2026-09-23/receipts/YEAR_PROBE_5anchors.json",
+    "multi_asset/exports/research/news2_2026-09-23/receipts/YEAR_PROBE_D5D6D14_16anchors.json",
+    "pod2-only: /dev/shm/news2_2026-09-23/receipts/YEAR_PROBE.json, D7_ROWS_GATE_envvar_version.json"
+   ],
+   "conclusions_affected": [
+    "D7 'last' admission verdict (D7_ROWS_GATE VERDICT) and D7/D8 cross-year cost/movement readings used in DESIGN_producer_new_contract_2026-09-23.md / RESULT_new_servable_v2_features_2026-09-23.md (feature-layer design decisions; funding is a shared input to both arms, so the paired difference is not expected to depend on it -- stated, not measured)"
+   ],
+   "note": "copies of these runner scripts also sit in /dev/shm/mretrain_2026-09-26/devices and /dev/shm/pnoise_2026-09-24/devices; no D7/probe receipt or log exists in those roots (pod2 ls + grep) => copies not run there"
+  },
+  {
+   "device": "multi_asset/exports/research/news2_2026-09-23/devices/news2_global_gate.py L139-156 and probe_fundrows.py L22 (read parity_fund_slice b4e7270e, all channels)",
+   "root": "news2_2026-09-23",
+   "channels_read": [
+    "ema_acc",
+    "last_ft",
+    "last_rate",
+    "last_iv",
+    "(via parity_fund_slice b4e7270e)"
+   ],
+   "lands_on": [
+    "GLOBAL_GATE (per-fix 'bitwise unchanged outside range' on archived live anchors): funding state = OLD_PRODUCER replay slice in every arm",
+    "A5_FUND_PANEL_HISTORICAL_ROWS: sentinel test (non-extracted panel rows poisoned); funding values only a carrier"
+   ],
+   "rule_version": "OLD_PRODUCER",
+   "bound_sha": "b4e7270e (derived from 8a73588f)",
+   "downstream_artifacts": [],
+   "receipts": [
+    "multi_asset/exports/research/news2_2026-09-23/receipts/GLOBAL_GATE_pod2.json L13",
+    "pod2-only /dev/shm/news2_2026-09-23/receipts/GLOBAL_GATE.json, GLOBAL_GATE_with_D11D13.json",
+    "multi_asset/exports/research/news2_2026-09-23/receipts/A5_FUND_PANEL_HISTORICAL_ROWS.json (ANSWER: NO)"
+   ],
+   "conclusions_affected": [
+    "GLOBAL_GATE_pod2 '8 PASS / 3 NO-MEASUREMENT' cited in DESIGN_producer_new_contract_2026-09-23.md L604, DESIGN_B_feature_layer_2026-09-23.md L154, AMENDMENT_1_new_servable_v2_features_2026-09-23.md L50",
+    "A5 answer 'historical fund-panel rows do not reach the model' (structural; not expected to depend on funding values)"
+   ]
+  },
+  {
+   "device": "multi_asset/exports/research/news_2026-09-23/devices/mac_p5a_features.py L26, mac_p5_datacheck.py L25, mac_p5_parity.py L55, deploy/smoke_candidate_harness.py L21 (+ news_live_check candidate acceptance --replay)",
+   "root": "news_2026-09-23 (NEW_S deploy parity / acceptance)",
+   "channels_read": [
+    "ema_acc",
+    "last_ft",
+    "last_rate",
+    "last_iv",
+    "(via parity_fund_slice b4e7270e)"
+   ],
+   "lands_on": [
+    "NEW_S P5 production-parity and candidate-acceptance checks (King/F10 features and combo step on the slice)"
+   ],
+   "rule_version": "OLD_PRODUCER",
+   "bound_sha": "b4e7270e",
+   "downstream_artifacts": [
+    "news_2026-09-23/receipts/parity/NEWS_FEATURES_parity9.npz (slice of a490c294)"
+   ],
+   "receipts": [
+    "multi_asset/exports/research/news_2026-09-23/receipts/parity/P5_DATA_PARITY.json, P5_0_PRODUCTION_REPRODUCTION.json, P5A_PLATFORM_BITWISE.json, MAC_TRAINBUILD_FEATURES.json",
+    "multi_asset/exports/research/news_2026-09-23/receipts/acceptance/shakedown_r2/CANDIDATE_ACCEPTANCE.json L22 (replay path)"
+   ],
+   "conclusions_affected": [
+    "NEW_S deploy-readiness parity (RESULT_new_servable_models_2026-09-23.md §7); NEW_S was never deployed (STATE.md L158-163)"
+   ]
+  }
+ ],
+ "derived_artifacts": [
+  {
+   "artifact": "NEWS_FEATURES.npz (NEW_S root)",
+   "path": "/dev/shm/news_2026-09-23/work/NEWS_FEATURES.npz (deleted 2026-09-23 20:10Z)",
+   "sha": "a490c294d90e0cdb2bb1dca503f3468dc1a4384396e3f7bae3e3020e161f79ac",
+   "channels_carried": [
+    "King X78 fund_ema (EMA, 12h-fresh) + fund_now",
+    "F10 X82 cols 80/81 f_fund_ema (raw EMA) + f_fund_now",
+    "fe_v/fn_v/iv_v",
+    "base_val (EMA fund-rank base)"
+   ],
+   "rule_version": "OLD_PRODUCER",
+   "bound_by_receipts": [
+    "multi_asset/exports/research/news_2026-09-23/receipts/train/king/TRAIN_RECEIPT.json inputs (-> KING_OOF 744bc48e, fold_2026 booster b521ccdc)",
+    "multi_asset/exports/research/news_2026-09-23/receipts/train/f10_s42/TRAIN_RECEIPT.json, f10_s2027/TRAIN_RECEIPT.json (+46 FOLD_RECEIPTs) (-> F10_OOF aa6e3055 / a37dab09)",
+    "multi_asset/exports/research/news_2026-09-23/receipts/train/combo_s42|s2027/TARGET_RECEIPT.json",
+    "multi_asset/exports/research/news_2026-09-23/receipts/P3_LEGS.json, P5_ACCEPT_ROWS.json, P5_DEPLOY_MANIFEST.json",
+    "multi_asset/exports/research/fresh_2026-09-23/receipts/P3_KING_TRAIN_RECEIPT.json (-> FRESH KING_OOF 4345541e), KING_FINAL_RECEIPT.json",
+    "multi_asset/exports/research/fresh_2026-09-23/receipts/P3_F10_s42|s2027_TRAIN_RECEIPT.json (-> 1d16cbed / b4a97245), F10_FINAL_RECEIPT_s42.json",
+    "multi_asset/exports/research/fresh_2026-09-23/receipts/P3_LEGS.json, P4_COMBO_s42|s2027_TARGET_RECEIPT.json, engine/FRESH_REPORT.json inputs.features",
+    "multi_asset/exports/research/fanom_2026-09-24/receipts/FA_COMBO_CENSUS.json: every b8/*, ladder/*, ladder2/* dir lists 'NEWS_FEATURES news (a490c294)'"
+   ]
+  },
+  {
+   "artifact": "KING_OOF NEW_S",
+   "path": "/dev/shm/news_2026-09-23/work/king/KING_OOF.npz",
+   "sha": "744bc48ea1e2f3b823d4ae9268d4d791606319691da23bfa9f1d98eedf232ab9",
+   "rule_version": "OLD_PRODUCER",
+   "via": "a490c294 (King X78 fund_ema/fund_now)",
+   "bound_by_receipts": [
+    "news_2026-09-23/receipts/P3_LEGS.json inputs.king_oof",
+    "P5_ACCEPT_ROWS.json sources.king_oof",
+    "FA_BRIDGE.json NEWS_king",
+    "news2 DIAG1_SCORE_IC.json sources"
+   ]
+  },
+  {
+   "artifact": "KING_OOF FRESH",
+   "path": "/dev/shm/fresh_2026-09-23/work/king/KING_OOF.npz",
+   "sha": "4345541e4450b24a0bdf59c11219f2e5dda4476fa6f934f2d6a0569fd7b21951",
+   "rule_version": "OLD_PRODUCER",
+   "via": "a490c294",
+   "bound_by_receipts": [
+    "fresh P3_LEGS.json inputs.king_oof",
+    "FA_BRIDGE.json FRESH_king"
+   ]
+  },
+  {
+   "artifact": "F10_OOF NEW_S s42 / s2027",
+   "sha": "aa6e3055... / a37dab09...",
+   "rule_version": "OLD_PRODUCER",
+   "via": "a490c294 X82/X89 + legs 18999e16 (Z24/ZFD/WL/ready)",
+   "bound_by_receipts": [
+    "news combo_s42|s2027 TARGET_RECEIPT.inputs",
+    "P5_ACCEPT_ROWS.json"
+   ]
+  },
+  {
+   "artifact": "F10_OOF FRESH s42 / s2027",
+   "sha": "1d16cbed... / b4a97245...",
+   "rule_version": "OLD_PRODUCER",
+   "via": "a490c294 + legs 486dfe37",
+   "bound_by_receipts": [
+    "fresh P4_COMBO_s42|s2027_TARGET_RECEIPT.inputs"
+   ]
+  },
+  {
+   "artifact": "legs.npz NEW_S",
+   "path": "/dev/shm/news_2026-09-23/work/legs.npz",
+   "sha": "18999e169c6b68546271f8194fd74eaa79041d1967ba44df978f4cbea33d6bd5",
+   "channels_carried": [
+    "RN8 (last_rate/last_iv)",
+    "ZFD + LR fund + WL seat (EMA)",
+    "KZ (King on EMA features)"
+   ],
+   "rule_version": "OLD_PRODUCER",
+   "bound_by_receipts": [
+    "news train/f10_*/TRAIN_RECEIPT.inputs",
+    "news combo_* TARGET_RECEIPT.inputs",
+    "fanom FA_B8_SEAT/FA_BRIDGE/FA_GATES",
+    "FA_COMBO_CENSUS ladder/*, ladder2/CLEANRN8_NONE_* (KZ/WL/ZFD from NEW_S)"
+   ]
+  },
+  {
+   "artifact": "legs.npz FRESH",
+   "path": "/dev/shm/fresh_2026-09-23/work/legs.npz",
+   "sha": "486dfe3765c5ef37adb6270b7c1642305bf0d6b1da9d1930b0963e8249f524d8",
+   "rule_version": "OLD_PRODUCER",
+   "bound_by_receipts": [
+    "fresh P3_F10_*_TRAIN_RECEIPT.inputs",
+    "fresh P4_COMBO_* TARGET_RECEIPT.inputs",
+    "F10_FINAL_RECEIPT_s42.json",
+    "FA_BUCKET/FA_BRIDGE/FA_GATES/FA_B8_SEAT",
+    "FA_COMBO_CENSUS ladder/*, ladder2/CLEANRN8_ALLNEW_* (KZ/WL/ZFD from FRESH)"
+   ]
+  },
+  {
+   "artifact": "combo targets + engine runs NEW_S",
+   "sha": "combo_s42 scaled 0c409fe3 / literal 58c09739; combo_s2027 10bbc571 / 0711e369",
+   "paths": [
+    "/dev/shm/news_2026-09-23/targets/TARGETS_NEWS_s42|s2027.npz",
+    "/dev/shm/news_2026-09-23/runs/NEWS_s42|s2027_scaled_rule_raw_UAFE"
+   ],
+   "rule_version": "OLD_PRODUCER",
+   "bound_by_receipts": [
+    "news_2026-09-23/receipts/engine/NEWS_STATS.json (VERDICT=SWAP, d86e96f4), NEWS_VS_NEW.json, NEWS_EXT.json",
+    "news2 receipts/engine/NEWS2_STATS.json runs_roots + B1/B2 'vs NEW_S' (VERDICT=NO_DEPLOY)",
+    "news2 THREE_WAY_TABLE.json (arms NEWS_s42/s2027)",
+    "fresh FRESH_STATS c1fb0bf0 (NEW_S control arm)"
+   ]
+  },
+  {
+   "artifact": "combo targets + engine runs FRESH",
+   "sha": "combo_s42 scaled 3cf96322 / literal 1809b337; s2027 358f6cf7 / fccc251f",
+   "paths": [
+    "/dev/shm/fresh_2026-09-23/configs/RUN_CONFIG_FRESH_*",
+    "/dev/shm/fanom_2026-09-24/ladder/BASE_FRESH_s42X|s2027X",
+    "/dev/shm/fanom_2026-09-24/evidence/TARGETS_FRESH_s42_REGENERATED_2026-09-24.json"
+   ],
+   "rule_version": "OLD_PRODUCER",
+   "bound_by_receipts": [
+    "fresh engine/FRESH_REPORT.json, FRESH_STATS c1fb0bf0",
+    "fanom FA_COMBO_G0_fresh*.json, ladder/*, lad2read/BASE_FRESH_*"
+   ]
+  },
+  {
+   "artifact": "fanom combo/engine cells built on the above",
+   "paths": [
+    "/dev/shm/fanom_2026-09-24/b8/g0_s2027_{fresh,news}",
+    "ladder/{F10,KZ,KZWL,WL}_s{42,2027}, ladder/{MUT,POS,RED}_s42",
+    "ladder2/CLEANRN8_{ALLNEW,NONE}_s{42,2027}"
+   ],
+   "rule_version": "OLD_PRODUCER",
+   "channel_status": "FA_COMBO_CENSUS.json: b8/ladder = RN8,EMA_ZFD,MODEL_FEATURES all CONTAM; ladder2 = RN8 CLEAN_NC_STATE but EMA_ZFD and MODEL_FEATURES CONTAM (clean-RN8 arms still read the EMA channel through ZFD/WL and the a490c294-trained King/F10)",
+   "bound_by_receipts": [
+    "fanom receipts/FA_COMBO_CENSUS.json (per_array_root)",
+    "ladder*/FA_COMBO_RECEIPT.json, TARGET_RECEIPT.json, FA_B8TRCPT_RECEIPT.json, RUN_CONFIG.json (pod2)"
+   ]
+  },
+  {
+   "artifact": "NEW_S deploy package",
+   "paths": [
+    "multi_asset/exports/research/news_2026-09-23/package_NEW_S/"
+   ],
+   "sha": "slow2026.txt b521ccdc (King fold_2026 from 744bc48e chain), f10_live_s42_np.npz 6e97dc8a (from f10_s42 fold 202609), NEWS_ACCEPT_ROWS e20c1e6c, fund_replay_tail 8b67ac59",
+   "rule_version": "OLD_PRODUCER",
+   "bound_by_receipts": [
+    "package_NEW_S/PACKAGE.json",
+    "news_2026-09-23/receipts/P5_DEPLOY_MANIFEST.json links.*"
+   ],
+   "deployed": "NO -- STATE.md L158 (NEW_S swap cancelled 09-23 17:0xZ); live pins after 09-24 are NC (NC_INSTALL_RECEIPT.json installed slow2026.txt 700d9e7b, f10_live_s42_np.npz 3d7d050f), not b521ccdc/6e97dc8a"
+  },
+  {
+   "artifact": "parity_fund_slice.npz",
+   "sha": "b4e7270efd8ceb90c01bc77f2c4272aced04490a1b24f4d67ab8c4b66864df0f",
+   "built_by": "news_2026-09-23/devices/p5_extract_slices.py L12-13",
+   "rule_version": "OLD_PRODUCER",
+   "bound_by_receipts": [
+    "news2 GLOBAL_GATE_pod2.json L13",
+    "news CANDIDATE_ACCEPTANCE.json L22 (path)"
+   ]
+  },
+  {
+   "artifact": "fund_replay_tail.npz",
+   "sha": "8b67ac597037ba135d3c52d61e0edfc15823865e220c51484e21c65f22d48e42",
+   "built_by": "UNKNOWN device; content = last 9 fund_replay rows (measured bitwise)",
+   "rule_version": "OLD_PRODUCER",
+   "bound_by_receipts": [
+    "package_NEW_S/PACKAGE.json",
+    "news_ema_reseed.py usage (L16)"
+   ]
+  }
+ ],
+ "conclusions_affected": [
+  {
+   "doc": "docs/RESULT_new_servable_models_2026-09-23.md",
+   "claim": "NEW_S verdict SWAP; +6.15/+4.80 bps/d vs OLD, NEW_S pre-2026 +80.0%/+61.9%, 0/32 halted (NEWS_STATS d86e96f4)",
+   "via": "a490c294, legs 18999e16, KING 744bc48e, F10 aa6e3055/a37dab09"
+  },
+  {
+   "doc": "docs/RESULT_fresh_models_newS_2026-09-23.md",
+   "claim": "FRESH verdict KEEP_NEWS; FRESH worse than NEW_S by 5.2-5.6 bps/d (FRESH_STATS c1fb0bf0) -- BOTH arms contaminated",
+   "via": "a490c294, legs 486dfe37/18999e16"
+  },
+  {
+   "doc": "docs/RESULT_new_servable_v2_features_2026-09-23.md L200-204 + docs/RULING_user_NC_s42_override_2026-09-24.md L7-10 + STATE.md L122-125",
+   "claim": "NC (NEW_S2) verdict NO_DEPLOY: s42 fails B1 'vs NEW_S -0.477 bps/d', s2027 B1 +1.403; 'NC and NEW_S equal within noise'. The NC arm is clean; the B1/B2 COMPARATOR arm NEW_S is contaminated, so B1/B2 readings (and the NO_DEPLOY verdict insofar as it rests on B1) rest on a contaminated comparator",
+   "via": "NEWS2_STATS.json runs_roots /dev/shm/news_2026-09-23/runs/NEWS_s42|s2027_scaled_rule_raw_UAFE"
+  },
+  {
+   "doc": "multi_asset/exports/research/news2_2026-09-23/receipts/THREE_WAY_TABLE.md L14-15",
+   "claim": "researcher NEW / NEW_S / NC per-segment table: NEW_S rows contaminated (NC and NEW rows not)",
+   "via": "TARGETS_NEWS_s42|s2027, combo_s42|s2027"
+  },
+  {
+   "doc": "multi_asset/exports/research/news2_2026-09-23/receipts/DIAG1_SCORE_IC.md",
+   "claim": "score-layer IC NEW(researcher)/NEW_S/NC: NEW_S column from KING_OOF 744bc48e",
+   "via": "744bc48e"
+  },
+  {
+   "doc": "docs/RESULT_tradfi_universe_gap_2026-09-24.md L37-38, L118-119",
+   "claim": "NEW_S Sharpe rows 1.11/0.96 and the reading 'NC only caught up with NEW_S'",
+   "via": "NEW_S engine runs"
+  },
+  {
+   "doc": "docs/RESULT_fresh_book_anomaly_2026-09-24.md",
+   "claim": "FRESH-vs-NEW_S loss located at seat layer; FRESH King +0.3989 bps/anchor, price channel -0.5671 (FA_GATES/FA_BRIDGE/FA_BUCKET/G0)",
+   "via": "legs 486dfe37/18999e16, KING 4345541e/744bc48e"
+  },
+  {
+   "doc": "docs/RESULT_fresh_gap_carrier_ladder_2026-09-25.md",
+   "claim": "FRESH vs NEW_S gap-carrier ladder (KZ/WL/F10/KZWL arms)",
+   "via": "ladder/* (all channels CONTAM)"
+  },
+  {
+   "doc": "docs/RESULT_gap_carrier_ladder_step3_2026-09-25.md",
+   "claim": "step-3 combo replacement ladder; its own §L323-340 note already marks RN8 contamination 'pending re-judgement' -- the EMA channel is ALSO present and not covered by that note",
+   "via": "NEW_S/FRESH legs"
+  },
+  {
+   "doc": "docs/RESULT_fresh_ladder_ends_cleanRN8_2026-09-26.md",
+   "claim": "Q2 four cells with clean RN8: only RN8 was cleaned; ZFD/WL (EMA) and King/F10 models (a490c294) remain OLD_PRODUCER-contaminated (FA_COMBO_CENSUS ladder2 EMA_ZFD/MODEL_FEATURES = CONTAM)",
+   "via": "ladder2/*"
+  },
+  {
+   "doc": "docs/RESULT_G4_why_fresh_underdelivers_2026-09-26.md",
+   "claim": "synthesis of why FRESH underdelivers (FRESH/NEW_S readings)",
+   "via": "FRESH/NEW_S chains"
+  },
+  {
+   "doc": "docs/RESULT_dlarch_G3_why_DL_underdelivers_2026-09-26.md L80-83",
+   "claim": "only the FRESH comparison bullets (G4 C-1/C-5, E-2/E-3); dlarch's own cells are clean (FUND_SOURCE_CENSUS)",
+   "via": "FRESH readings cited"
+  },
+  {
+   "doc": "docs/DECISION_RULE_king_monthly_retrain_2026-09-26.md L43-47",
+   "claim": "motivation cites FRESH '(pre-2026, input contaminated)'; the rule itself binds NC root (a10b8725/a12a8ed3/3c886a2b)",
+   "via": "reference only"
+  },
+  {
+   "doc": "STATE.md L71, L140-148, L165-168, L176",
+   "claim": "FRESH ladder readings; FRESH F1-F4 vs NEW_S (-5.59/-5.21 bps/d); NEW_S SWAP; FRESH score-layer IC 0.0694 vs 0.0617; 'training recipe = NEW_S recipe' decision (FRESH KEEP_NEWS)",
+   "via": "NEW_S/FRESH chains"
+  },
+  {
+   "doc": "memory feedback fresh_retrain_hurts_book_on_corrected_inputs_2026_09_23.md (index line)",
+   "claim": "'on correct inputs adding the latest data makes the book significantly worse' -- the inputs of both arms are OLD_PRODUCER funding (a490c294), not 'corrected' in the funding channel",
+   "via": "FRESH_STATS c1fb0bf0"
+  }
+ ],
+ "non_substantive_references": [
+  {
+   "ref": "multi_asset/exports/research/fanom_2026-09-24/devices/fa_ema_probe.py L6 (+ pod2 /dev/shm/fanom_2026-09-24/lad2read/ema_probe.py)",
+   "use": "audit: compares fund_replay ema_acc with NC fund_state (truth side)"
+  },
+  {
+   "ref": "multi_asset/exports/research/fanom_2026-09-24/devices/fa_ema_attr.py L12, fa_ema_mech2.py L12",
+   "use": "audit: attributes EMA divergence (RESULT_ema_channel_attribution_and_truth / RESULT_ema_second_mechanism: conclusions ABOUT fund_replay)"
+  },
+  {
+   "ref": "multi_asset/exports/research/fanom_2026-09-24/devices/fa_rn8census.py L51, fa_rn8stall.py L43, fa_rn8parity.py, fa_fxfield.py L80",
+   "use": "audit/diagnostic devices vs archive truth; guard with allow=(UNSTAMPED,)"
+  },
+  {
+   "ref": "multi_asset/exports/research/news2_2026-09-23/devices/d10_fxfield_adjudicate.py L108, d10_nc_fundnow_vs_archive.py L100, d10_legs_rn8_vs_archive.py",
+   "use": "audit vs exchange archive (D10_* receipts)"
+  },
+  {
+   "ref": "multi_asset/exports/research/fanom_2026-09-24/devices/fa_fx.py L29,L92 / fa_fxrate.py L4",
+   "use": "text only: FX rate field is FXRATE fad09cd7 (panel f_fund_now + NC fn_v), NOT fund_replay (FA_FX_RECEIPT_FX1_s42.json rate_field)"
+  },
+  {
+   "ref": "multi_asset/exports/research/fanom_2026-09-24/devices/fa_combo_census.py L30, dlarch .../dlarch_fund_source_census.py L34",
+   "use": "census devices (record sha prefixes)"
+  },
+  {
+   "ref": "multi_asset/exports/research/fresh_2026-09-23/devices/fresh_legs_receipt.py L87 / fanom copy L95-96",
+   "use": "records sha + guard state only"
+  },
+  {
+   "ref": "multi_asset/exports/research/fanom_2026-09-24/devices/fa_lad2read.py L4",
+   "use": "reads engine series of ladder2 cells (consumer of derived runs; its readings are listed under conclusions_affected via RESULT_fresh_ladder_ends_cleanRN8)"
+  },
+  {
+   "ref": "multi_asset/exports/research/common/fund_replay_guard.py (+ copies fanom/d10/fresh), tests_fund_replay_guard.py, news_2026-09-23/devices/tests_news_fund_replay_guard.py, fanom news_p2_build_guarded.py, test_no_fresh_legs_callers.py, test_pinned_sources_intact.py",
+   "use": "guard/tests; news_p2_build_guarded refuses the unstamped artifact (no allow)"
+  },
+  {
+   "ref": "/dev/shm/mretrain_2026-09-26/devices/run_d7rows_pod2.sh, run_probe_pod2.sh, news2_global_gate.py, probe_fundrows.py; /dev/shm/pnoise_2026-09-24/devices/(same) + /dev/shm/pnoise_2026-09-24/inputs/fund_replay.npz, parity_fund_slice.npz",
+   "use": "copied devices/inputs; no receipt or log in either root binds 8a73588f or b4e7270e (pod2 grep of receipts/logs) => not executed there"
+  },
+  {
+   "ref": "/dev/shm/mretrain_2026-09-26 mr_read.py L19 / mr_engine_queue.sh L10",
+   "use": "engine CODE path /dev/shm/news_2026-09-23/engine and fresh devices, not data"
+  },
+  {
+   "ref": "multi_asset/exports/research/nc_2026-09-23/receipts/build_2026-09-23/shm_cleanup_2026-09-23T2010Z.log, fresh P3_LEGS_crash_log.txt, news DEVICES_SHA256SUMS_*.txt, news_chain_resume.diff",
+   "use": "logs / sha lists"
+  }
+ ],
+ "clean_by_receipt": [
+  {
+   "family": "NC root features/state",
+   "chain": [
+    "nc_prep.py 6bfde57a (NC_PREP.json self_sha256) reads ledger 073088e5 (NC_PREP.json inputs) and builds fund_state a12a8ed3 via NC.ingest_settlements (nc_prep.py L105-122) -> nc_contract.snap_interval (nc_contract.py L32-44, L66-77; sha 316a0b9b = NC_PREP.json nc_contract_sha256)",
+    "NC_FEATURES/NEWS_FEATURES 3c886a2b (NC_FEATURES.json sha256; devices nc_p2_build 671b69e6, nc_hist_features 3eee6e88); nc_hist_features reads work/fund_state.npz (L93-118 in repo copy); `grep -c fund_replay` = 0 on every /dev/shm/nc_2026-09-23/devices/*.py",
+    "KING_OOF a10b8725 <- inputs NEWS_FEATURES 3c886a2b (news2 receipts/KING_TRAIN_RECEIPT.json inputs; pod2 KING_OOF sha measured a10b8725)",
+    "legs 9ee5886f <- features 3c886a2b, king_oof a10b8725, fund_state a12a8ed3 (news2 receipts/P3_LEGS.json inputs; builder nc_legs.py 18387627 found at /dev/shm/news2_2026-09-23/devices and /dev/shm/nc_2026-09-23/devices; RN8 = NC.funding_asof (nc_legs.py L73-74))"
+   ],
+   "rule_version": "NC_CONTRACT",
+   "consumers": [
+    "C1X / C3 / C3m / FX1-3 (FA_COMBO_CENSUS: RN8/EMA/MODEL = CLEAN or CLEAN_NC_STATE)",
+    "dlarch all cells (FUND_SOURCE_CENSUS_2026-09-26.json ANY_CONTAMINATED_BINDING=false)",
+    "pnoise ladder NC side (LADDER_*.json paths news2 work/legs.npz, NEWS_FEATURES)",
+    "alloc_2026-09-26 (alloc_footprint.py L24-26 NC combo + legs)",
+    "clamp_hook/c4hook (TARGETS_NEWS2_s42)",
+    "reseed_2026-09-26 live LR reseed (legs_9ee5886f_E_ts_LR_slice.npz)",
+    "NC deploy seed pack (below)"
+   ]
+  },
+  {
+   "family": "researcher NEW (codex_research corrected_combo_v1d funding_state.npz)",
+   "chain": [
+    "independent of fund_replay: 0 hits in the bounded codex_research grep; pnoise LADDER_* read it by path"
+   ],
+   "rule_version": "NC_CONTRACT-equivalent on a sample: NC_PREP.json checks.A4_A5_asof_bitwise_vs_researcher 107 anchors x 680 names, 33,693 finite cells, differ 0 (nc_prep.py L14, L124-126). Full-population rule not established here."
+  },
+  {
+   "family": "FX rate field FXRATE fad09cd7",
+   "chain": [
+    "fa_fxrate.py: panel f_fund_now + NC fn_v splice (L1-4, L55)",
+    "FA_FX_RECEIPT_FX*_s*.json rate_field.sha256 fad09cd7"
+   ],
+   "rule_version": "rate only (interval not applied to the value); splice segment from NC state (NC_CONTRACT)"
+  },
+  {
+   "family": "live producer EMA after 2026-09-24T05:06Z",
+   "chain": [
+    "NC deploy SEED_RECEIPT.json inputs.seed_pack 600d760e (= NC_SEED_PACK.json sha256, built by nc_export_seed.py daf904e1 from fund_state a12a8ed3, NC_SEED_PACK.json inputs.fund_state)",
+    "nc_seed_state.py 7f323a80 (SEED_RECEIPT device_sha256) advances the replay EMA over production ledger events with NC.ingest_settlements (L90-123), VERDICT=SEEDED",
+    "NC_INSTALL_RECEIPT.json state_installed.aux.json c44ba5d0 = SEED_RECEIPT outputs.aux.json"
+   ],
+   "rule_version": "NC_CONTRACT"
+  }
+ ],
+ "answers": {
+  "king_oof_a10b8725": {
+   "trained_on": "NEWS_FEATURES 3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8 (+ labels dlw_targets ca479fcc) -- news2_2026-09-23/receipts/KING_TRAIN_RECEIPT.json inputs; trainer news2_train_king.py b19459a5",
+   "touches_fund_replay": "NO. 3c886a2b = NC_FEATURES.npz built by nc_p2_build.py/nc_hist_features.py from /dev/shm/nc_2026-09-23/work/fund_state.npz a12a8ed3, which nc_prep.py built from ledger 073088e5 under nc_contract (receipts NC_FEATURES.json, NC_PREP.json; nc_prep.py L105-122). No receipt in the chain lists 8a73588f/a490c294; no NC device references fund_replay (pod2 grep count 0).",
+   "caveat": "fund_replay and fund_state share the same INPUT ledger 073088e5 (P2A_FUND_REPLAY.json vs NC_PREP.json inputs); only the processing rule differs (OLD_PRODUCER vs NC_CONTRACT). The NC EMA itself is not verified cell-by-cell against an exchange archive (dlarch census limits[0])."
+  },
+  "news_ema_reseed_executed": {
+   "answer": "NO evidence it was executed with --write against the live state; strong evidence it was not.",
+   "evidence": [
+    "STATE.md L158-163: user cancelled the NEW_S swap 2026-09-23 17:0xZ ('不上带缺陷的版本'); NEW_S kept as fallback, not deployed. The reseed is step B1 of that swap (DEPLOY_DRAFT.md L20, L61-64).",
+    "Only a read-only dry run and a state-COPY rehearsal exist: news_2026-09-23/deploy/EMA_RESEED_DRYRUN_0923T08Z.json (DEPLOY_DRAFT.md L66 '09-23 08Z 只读干跑'), TEST_EMA_RESEED_REHEARSAL.json (WIDE_SHADOW_HOME=<state copy>, test_ema_reseed_rehearsal.py L39-50).",
+    "ls ~/wide_shadow/state/ (2026-09-27): no EMA_RESEED_REPORT / B1 output and no pre-EMA-reseed backup; the only '*pre_reseed_20260926T0900Z' backups are generation.json and leg_returns_live.json from the 09-26 leg-return reseed (reseed_2026-09-26, legs 9ee5886f), which does not touch EMA.",
+    "The live producer was replaced by the NC tree on 2026-09-24 (NC_INSTALL_RECEIPT.json installed wide_shadow/shadow_loop_v3.py a68c7a5f); news_ema_reseed.py asserts the producer source sha == 6080073964 (L23, L27) and would refuse on the NC tree.",
+    "live aux.json after 09-24 05:06Z = c44ba5d0 from NC seeding (NC_INSTALL_RECEIPT.json state_installed), i.e. the EMA was re-seeded from the NC seed pack, not from fund_replay_tail."
+   ],
+   "limit": "absence-of-evidence for the window 2026-09-23 08Z..2026-09-24 05Z rests on STATE.md and the absence of backups/reports; ~/wide_shadow files were only listed, not opened (per task constraint)."
+  },
+  "nc_seed_pack": {
+   "answer": "YES -- the NC deploy (2026-09-24 05:0xZ) seeded the live producer state, including the funding EMA, from the NC seed pack.",
+   "evidence": [
+    "multi_asset/exports/research/nc_2026-09-23/receipts/deploy_2026-09-24T0500Z/SEED_RECEIPT.json: device nc_seed_state.py 7f323a80, inputs.seed_pack 600d760e, prod aux.json 95a23d7e in -> outputs.aux.json c44ba5d0, counts.ledger_rows_le_axis_agree 173,338 / disagree 0, events_advanced_after_axis 14,680, VERDICT SEEDED",
+    "multi_asset/exports/research/nc_2026-09-23/receipts/deploy_2026-09-24T0500Z/NC_INSTALL_RECEIPT.json: verb apply, preflight.seeded.* (seed pack checks), state_installed.aux.json c44ba5d0, completed 2026-09-24T05:06:17Z (VERDICT NO_DEPLOY + USER_OVERRIDE 053d50f4)",
+    "RUNLOG.md L13-14 (seed pack 600d760e from ~/cc_tmp/nc_20260923/seed_pack_0919.npz), L81-82 (NC_SEED SEEDED, rc=0)",
+    "NC_SEED_PACK.json (pod2 /dev/shm/nc_2026-09-23/receipts): sha 600d760e, inputs.fund_state a12a8ed3, device nc_export_seed.py daf904e1 (reads work/fund_state.npz ema/prev, nc_export_seed.py L38-47)",
+    "nc_seed_state.py L12-13, L90-123: EMA = replay state at axis end advanced over the production ledger's later events with nc_contract (gap rule, reset)"
+   ],
+   "rule_version": "NC_CONTRACT",
+   "touches_fund_replay": "NO"
+  }
+ },
+ "rule_versions": {
+  "OLD_PRODUCER": [
+   "fund_replay 8a73588f and every artifact above derived from it (a490c294, 744bc48e, 4345541e, F10 OOFs aa6e3055/a37dab09/1d16cbed/b4a97245, legs 18999e16/486dfe37, NEW_S/FRESH combos+engine runs, fanom b8/ladder/ladder2, NEW_S package b521ccdc/6e97dc8a, parity_fund_slice b4e7270e, fund_replay_tail 8b67ac59)",
+   "live producer EMA before 2026-09-24T05:06Z (same block, but its own live ledger, not fund_replay -- news_ema_reseed.py docstring L4-5)"
+  ],
+  "NC_CONTRACT": [
+   "nc fund_state a12a8ed3, NC_FEATURES 3c886a2b, KING_OOF a10b8725, legs 9ee5886f, NC combos/engine runs, dlarch, NC seed pack 600d760e, live producer EMA since 2026-09-24T05:06Z"
+  ],
+  "D10": [
+   "definition only: common/funding_interval.py L164 interval_d10 (commit 3f8bbe1cd); no model/leg/combo artifact in this census was found built on it; d10_* devices are audits"
+  ],
+  "UNKNOWN": [
+   "researcher codex funding_state.npz beyond the 107-anchor bitwise sample (see clean_by_receipt)"
+  ]
+ },
+ "unknowns": [
+  "fund_replay_tail.npz builder device not found (content verified bitwise = last 9 fund_replay rows, so its rule label is still OLD_PRODUCER).",
+  "whether the D7/D8/GLOBAL_GATE feature-layer verdicts would change under NC_CONTRACT funding was not measured (funding is common to both arms, so a change is not expected; stated, not measured).",
+  "engine funding ACCOUNTING source on the historical axis (open item carried from D10_FUND_REPLAY_CONSUMER_CENSUS b_engine_funding_paid) is outside this census: it is not fund_replay, and its rule/coverage was not re-examined.",
+  "pod2 grep had per-root timeouts; only /workspace/codex_research timed out and it was re-searched bounded to recent *.json. Binary artifacts (npz) were not content-searched; bindings are established through their receipts.",
+  "news_p2_build.py ran with two device shas across shards (419296e2 and 809c0c4a, P2B_FEATURES.json devices_by_shard_distinct); only 809c0c4a is in the repo. Both read fund_replay by the same path (the difference was not inspected)."
+ ],
+ "limits": [
+  "read-only: no file modified, nothing committed; ~/wide_shadow only listed (ls), ~/dl_quant_live not read; pod2 access was read-only except one light read of fund_replay rows to hash the 9 tail rows.",
+  "by-receipt tracing trusts that receipts record the inputs actually read (trainers/legs assert input shas at run time per dlarch census limits[1]).",
+  "conclusions_affected lists docs whose claims rest on affected runs; it does not quantify how much any number moves (magnitude is not an admission criterion).",
+  "repo copy of nc_hist_features.py (a1c26c62) differs from the executed pod2 copy (3eee6e88); the diff (mutate hook, c7 definition) was read and does not touch funding.",
+  "RESULT docs that already carry an RN8-only contamination note (C1X/C3/C3m 'not affected' notes are correct: those cells are NC); FRESH/NEW_S-side notes that mention only RN8 under-state the exposure: the EMA channel (King fund_ema col, F10 f_fund_ema, ZFD fund leg, WL seat) is contaminated in every NEW_S/FRESH cell, including the ladder2 'clean RN8' cells."
+ ]
+}
