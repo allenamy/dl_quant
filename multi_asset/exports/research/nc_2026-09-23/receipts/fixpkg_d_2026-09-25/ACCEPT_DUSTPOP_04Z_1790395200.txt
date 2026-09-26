@@ -1,0 +1,10 @@
+ACCEPT_DUSTPOP A=1790395200 (2026-09-26T04:00Z) day=20260926
+(a) reshape.n_dust_popped=3 dust_popped_names=['BCHUSDT', 'ENAUSDT', 'ZAMAUSDT'] n_popped=13 popped_names=['ARUSDT', 'BABYUSDT', 'BCHUSDT', 'BOMEUSDT', 'ENAUSDT', 'GUNUSDT', 'HUSDT', 'METUSDT', 'MINAUSDT', 'PHAUSDT', 'STARUSDT', 'TIAUSDT', 'ZAMAUSDT']
+(b) post-clamp book_net_usdt=9.416152197709323 NAV=109713.807864 ratio=0.0086% | still clamped: names=['BCHUSDT', 'ENAUSDT', 'PRLUSDT', 'SCRUSDT', 'SEIUSDT', 'SSVUSDT', 'TLMUSDT', 'YGGUSDT', 'ZAMAUSDT'] pinned_net_usdt=-273.723595 net_shift_usdt=9.41615219770813 | venue_net_usdt=203.877698 net_over_gross=0.00093
+    ref 09-25T20Z (pre-release) book_net_usdt=2472.782511391072 ratio=2.2608% clamped=['BCHUSDT', 'ENAUSDT', 'PRLUSDT', 'SCRUSDT', 'TLMUSDT', 'ZAMAUSDT']
+    ref 09-26T00Z (pre-release) book_net_usdt=2405.4242127252205 ratio=2.2049% clamped=['1000XECUSDT', 'BCHUSDT', 'ENAUSDT', 'FOGOUSDT', 'PRLUSDT', 'SCRUSDT', 'ZAMAUSDT']
+(c) orders rows of this rebalance (A1790396639) for popped names: 3; terminal=['skipped_min_notional']; with a quantity: [{'symbol': 'ZAMAUSDT', 'order_type': 'maker', 'intended_notional': 0.71557512, 'filled_qty': None, 'terminal_reason': 'skipped_min_notional'}, {'symbol': 'ENAUSDT', 'order_type': 'maker', 'intended_notional': 2.18122904, 'filled_qty': None, 'terminal_reason': 'skipped_min_notional'}, {'symbol': 'BCHUSDT', 'order_type': 'maker', 'intended_notional': 0.33730084, 'filled_qty': None, 'terminal_reason': 'skipped_min_notional'}]
+  (a) PASS
+  (b) NEUTRAL (|9.42| <= 109.71)
+  (c) RED (3 row(s) with a quantity)
+ACCEPT_DUSTPOP VERDICT=RED a=PASS b=NEUTRAL c=RED
