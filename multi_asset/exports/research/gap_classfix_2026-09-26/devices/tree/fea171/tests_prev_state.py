@@ -20,7 +20,7 @@ def state_bytes(anchor, idx, val, compressed=False, **extra):
 
 def good(anchor):
     idx = np.sort(rng.choice(NW, 300, replace=False)).astype(np.int64)
-    return idx, rng.normal(0, 2e-3, 300)
+    return idx, rng.normal(0, 3.5e-3, 300)          # gross ~0.84, the live kc/fc scale
 
 
 def old_lookup(d, leg, A_, NW_):
@@ -137,6 +137,13 @@ def _(lookup, d):
 def _(lookup, d):
     idx, val = good(0); idx = idx.copy(); idx[1] = idx[0]
     ref = case_files(d, [A - 28800], bad=(A - 14400, state_bytes(A - 14400, idx, val)))
+    return expect(d, lookup, "own_gap1_rejected1", A - 28800, ref)
+
+
+@case("degenerate_ramp_state", True)
+def _(lookup, d):
+    idx, val = good(0)
+    ref = case_files(d, [A - 28800], bad=(A - 14400, state_bytes(A - 14400, idx, val * 0.1)))   # a zero-started ramp, gross ~0.08
     return expect(d, lookup, "own_gap1_rejected1", A - 28800, ref)
 
 

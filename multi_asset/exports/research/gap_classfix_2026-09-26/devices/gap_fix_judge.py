@@ -118,6 +118,26 @@ def main():
     patched_arm("gap7", "bridge7", "own_gap7_beyond_bound", "own_gap7_beyond_bound", "own_gap7_beyond_bound", ["beyond_bound"])
     for x in ("x1", "x2", "x3"):
         patched_arm(x, "xref", "own_gap1_rejected1", "own", "own", [f"state_H_kc_{P}.npz", "rejected"])
+    # AMENDMENT 3 arms cold / poison (only judged when their sandboxes exist)
+    if os.path.isdir(sb(a.root, "patched", "cold", A)):
+        cur, pat = run(a.root, "current", "cold", A), run(a.root, "patched", "cold", A)
+        def st_written(code):
+            w = f"{sb(a.root, code, 'cold', A)}/wide_shadow/fea171"
+            return {leg: os.path.exists(f"{w}/state_H_{leg}_{A}.npz") for leg in ("kc", "fc", "f10")}
+        cw, pw = st_written("current"), st_written("patched")
+        red = cw["kc"] or cw["fc"] or cur.get("target") is not None
+        plog = open(f"{sb(a.root, 'patched', 'cold', A)}/run.log").read() if os.path.exists(f"{sb(a.root, 'patched', 'cold', A)}/run.log") else ""
+        abort_ok = any("COMBO_LIVE ABORT" in ln and "冷启动拒绝发布" in ln for ln in plog.splitlines())
+        ok = pat.get("rc") not in (0, None) and pat.get("target") is None and not any(pw.values()) and abort_ok
+        verdicts["cold_current_RED"] = red; verdicts["cold_patched"] = ok
+        R["cold"] = {"current_RED": red, "current": {"rc": cur.get("rc"), "target": cur.get("target") is not None, "state_written": cw},
+                     "patched_PASS": ok, "patched": {"rc": pat.get("rc"), "target": pat.get("target") is not None, "state_written": pw, "abort_line_names_cold_start": abort_ok},
+                     "abort_lines": [ln[:400] for ln in plog.splitlines() if "COMBO_LIVE ABORT" in ln]}
+    if os.path.isdir(sb(a.root, "patched", "poison", A)):
+        patched_arm("poison", "bridge1", "own_gap1_rejected1", "own_gap1_rejected1", "own_gap1_rejected1", ["degenerate"])
+        o = run(a.root, "current", "poison", A); kc, fc, _ = src(o)
+        verdicts["poison_current_RED"] = (kc == "own" or fc == "own" or o.get("target") is None)
+        R["poison"]["current_RED"] = verdicts["poison_current_RED"]
     # AMENDMENT 2 arm M (members history): descriptive readouts + one gate conditional on V2
     v2p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "receipts", "MEMBERS_V1V2.json")
     v2 = json.load(open(v2p)); row6 = [r for r in v2["V2"]["rows"] if r["S"] == A and r["lag"] == 6]

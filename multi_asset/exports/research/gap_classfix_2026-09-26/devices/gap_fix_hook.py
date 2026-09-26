@@ -7,6 +7,8 @@
   x2          state_H_kc_<A-4h> := its own idx/val with anchor key A-8h (mismatched)
   x3          state_H_kc_<A-4h> := its own anchor/val with one idx = NW (out of range)
   xref        reference for x1-x3: state_H_kc_<A-4h> := payload(state_H_kc_<A-8h>, A-4h)
+  cold        (AMENDMENT 3) every state_H_* and every weights file removed
+  poison      (AMENDMENT 3) the A-4h kc/fc/f10 states replaced by val x 0.1 (a zero-started ramp)
 Prints one HOOK line with the sha of every file it wrote or removed."""
 import hashlib, importlib.util, io, os, re, sys
 import numpy as np
@@ -65,6 +67,15 @@ elif arm in ("x1", "x2", "x3", "xref"):
         put(sp("kc", P), npz(anchor=P, idx=idx, val=z["val"]))
     else:
         put(sp("kc", P), B.payload(np.load(sp("kc", PP)), P))
+elif arm == "cold":
+    # AMENDMENT 3: no state at all — every state_H_* and every producer weights file before (and at) A removed
+    import glob as _g
+    for q in sorted(_g.glob(f"{fea}/state_H_*.npz")) + sorted(_g.glob(f"{st}/weights/*.npz")): rm(q)
+elif arm == "poison":
+    # AMENDMENT 3: the A-4h states are a zero-started ramp (own val x 0.1, anchor key correct)
+    P = A - H4
+    for leg in LEGS:
+        z = np.load(sp(leg, P)); put(sp(leg, P), npz(anchor=P, idx=z["idx"], val=z["val"] * 0.1))
 elif arm in ("mhbase", "mhdrop"):
     # AMENDMENT 2 arm M. Both arms append a DUMP after the whole stage (after publication; nothing the stage computes can change):
     # the F10 scores and the three drank_*_1d inputs of row A. mhdrop also deletes members_hist[A-24h] and re-signs generation.json.

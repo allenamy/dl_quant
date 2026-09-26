@@ -149,6 +149,29 @@ if _GAP_NONTRIVIAL:
 """           **({"state_lookup": STATE_LOOKUP} if _GAP_NONTRIVIAL else {}),
            **({"members_recomputed": {str(t): int(len(v)) for t, v in sorted(MH_RECOMPUTED.items())}, "members_recompute_errors": {str(t): e for t, e in MH_RECOMPUTE_ERR.items()}}
               if (MH_RECOMPUTED or MH_RECOMPUTE_ERR) else {})},"""),
+("""_hb = io.BytesIO(); np.savez(_hb, anchor=A, idx=nz, val=sm_f10[nz]); DIO.write_bytes_durable(hf_p, _hb.getvalue())""",
+"""_F10_COLD = _lk_f10["vec"] is None and float(np.abs(H_f10_prev).sum()) < PS.MIN_STATE_GROSS   # gap 类修复: 冷启动 = 无有效状态且回落也是零
+if not _F10_COLD:   # 冷启动绝不写状态(否则下一锚会把 ~0.1x 的书当作 own 承接, 约 5 锚后发布一本从零爬升的书)
+    _hb = io.BytesIO(); np.savez(_hb, anchor=A, idx=nz, val=sm_f10[nz]); DIO.write_bytes_durable(hf_p, _hb.getvalue())"""),
+("""_GAP_NONTRIVIAL = any(r.get("source") != "own" for r in STATE_LOOKUP.values())
+""",
+"""COLD_START = sorted([leg for leg, lk_vec, prev in (("kc", STATE_LOOKUP["kc"].get("source"), H_kc_prev), ("fc", STATE_LOOKUP["fc"].get("source"), H_fc_prev))
+                     if lk_vec is None and float(np.abs(prev).sum()) < PS.MIN_STATE_GROSS] + (["f10"] if _F10_COLD else []))
+for _leg in COLD_START:
+    STATE_LOOKUP.setdefault(_leg, {"source": None})["cold_start_refused"] = True
+COLD_LIVE = [l for l in COLD_START if l in ("kc", "fc")]   # the two chains of the published book; an f10-only cold start touches target_blend only
+_GAP_NONTRIVIAL = any(r.get("source") != "own" for r in STATE_LOOKUP.values())
+"""),
+("""for _p, _sm in ((f"{HERE}/state_H_kc_{A}.npz", sm_kc), (f"{HERE}/state_H_fc_{A}.npz", sm_fc)):""",
+"""for _p, _sm in (((f"{HERE}/state_H_kc_{A}.npz", sm_kc), (f"{HERE}/state_H_fc_{A}.npz", sm_fc)) if not COLD_LIVE else ()):   # 冷启动不写状态"""),
+("""           **({"state_lookup": STATE_LOOKUP} if _GAP_NONTRIVIAL else {}),""",
+"""           **({"state_lookup": STATE_LOOKUP} if _GAP_NONTRIVIAL else {}), **({"cold_start_refused": COLD_START} if COLD_START else {}),"""),
+("""    _rehearsal = _outdir != f"{WS}/state/target_live"
+""",
+"""    _rehearsal = _outdir != f"{WS}/state/target_live"
+    if COLD_LIVE:   # gap 类修复 设计原则: 承接最近一份有效状态; 一份都没有且回落为零 = 冷启动, 冷启动的书绝不发布(执行器会把它放大到满杠杆)
+        _bail(f"冷启动拒绝发布: {COLD_LIVE} 无任何有效状态(≥{PS.MIN_STATE_GROSS} gross)且回落为零; 状态未写; 需要人恢复状态 | " + " | ".join(_GAP_PAGE))
+"""),
 ]
 def main():
     out = os.path.abspath(sys.argv[1]); assert not os.path.exists(out), f"refusing to overwrite {out}"

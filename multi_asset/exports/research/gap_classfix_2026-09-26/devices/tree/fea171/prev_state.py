@@ -8,15 +8,18 @@ state with anchor < A, however far back, and names where it came from:
   ..._rejected<n>           n newer files existed but were invalid (reason per file in `rejected`)
   ..._beyond_bound          m > MAX_GAP_ANCHORS: still carried (the executor HOLDs the old book while no target is published, so the
                             old state is what it holds; a cold start is never better), but the caller pages HIGH
-A state with no valid predecessor at all returns vec None; the caller keeps its existing named fallback."""
+A state with no valid predecessor at all returns vec None; the caller keeps its existing named fallback — unless that fallback is itself
+below MIN_STATE_GROSS: that is a COLD START, and a cold-started book is never published and never written as state (combo_stage)."""
 import glob, io, os, re
 import numpy as np
 
 ANCHOR_S = 14400
 MAX_GAP_ANCHORS = 6          # 24 h. Declared bound: within it a gap is handled and recorded; beyond it the same carry pages HIGH.
+MIN_STATE_GROSS = 0.4        # a state whose gross is below this is DEGENERATE (a zero-started ramp: alpha 0.1 reaches 0.4 after ~5 anchors),
+                             # never a predecessor. Every retained kc/f10 state outside the 08-30 ramp is >= 0.78; the preflight floor is 0.4.
 
 
-def load_state_vec(path, NW, expect_anchor, anchor_key=True):
+def load_state_vec(path, NW, expect_anchor, anchor_key=True, min_gross=MIN_STATE_GROSS):
     """(vec, None) for a valid state file, else (None, reason). vec is float64 of length NW."""
     try:
         with open(path, "rb") as f:
@@ -47,6 +50,9 @@ def load_state_vec(path, NW, expect_anchor, anchor_key=True):
         return None, f"val dtype {val.dtype} or non-finite"
     v = np.zeros(NW)
     v[idx] = val.astype(np.float64)
+    g = float(np.abs(v).sum())
+    if g < min_gross:
+        return None, f"degenerate: gross {g:.4f} < {min_gross}"
     return v, None
 
 
@@ -64,12 +70,12 @@ def candidates(pattern, A):
     return out
 
 
-def latest_state(pattern, A, NW, anchor_key=True, max_gap=MAX_GAP_ANCHORS):
+def latest_state(pattern, A, NW, anchor_key=True, max_gap=MAX_GAP_ANCHORS, min_gross=MIN_STATE_GROSS):
     """Most recent valid state before A. Returns dict(vec, source, anchor, gap, rejected, beyond_bound, path)."""
     rejected = []
     for a in sorted(candidates(pattern, A), reverse=True):
         p = pattern.format(a=a)
-        v, why = load_state_vec(p, NW, a, anchor_key)
+        v, why = load_state_vec(p, NW, a, anchor_key, min_gross)
         if v is None:
             rejected.append({"path": p, "anchor": a, "reason": why})
             continue
