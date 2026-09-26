@@ -72,7 +72,7 @@ def main():
         c = ((rr or {}).get("reshape") or {}).get("clamped_after_reshape") or {}
         nv = num(((rr or {}).get("m3_beta_overlay") or {}).get("nav_usdt"))
         b2 = num(c.get("book_net_usdt"))
-        print(f"    ref {time.strftime('%m-%dT%HZ', time.gmtime(R))} (pre-release) book_net_usdt={b2} ratio={None if (b2 is None or not nv) else round(b2 / nv * 100, 4)}% clamped={c.get('names')}")
+        print(f"    ref {time.strftime('%m-%dT%HZ', time.gmtime(R))} (reference) book_net_usdt={b2} ratio={None if (b2 is None or not nv) else round(b2 / nv * 100, 4)}% clamped={c.get('names')}")
     if bn is None or not nav:
         verdict["b"] = "UNDECIDED (book_net or NAV missing)"
     else:
