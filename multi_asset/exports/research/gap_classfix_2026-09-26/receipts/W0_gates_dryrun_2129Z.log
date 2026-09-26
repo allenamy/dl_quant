@@ -1,0 +1,74 @@
+RELEASE_GATES start 2026-09-26T21:29:35Z n_gates=4
+--- gate 1/4 W0_quiet_window start 2026-09-26T21:29:35Z
+    argv=["/usr/bin/python3", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/common/venue_quiet_window.py"]
+OPEN · open · remaining 130.4 min
+    rc=0 elapsed_s=0.1 verdict_line='OPEN '
+    PASS W0_quiet_window
+--- gate 2/4 W0_package_preflight_real_home start 2026-09-26T21:29:35Z
+    argv=["/Users/haosiyu/wide_shadow/venv/bin/python", "-B", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/nc_2026-09-23/devices/nc_install_files.py", "preflight", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/package_GAP4"]
+NC_INSTALL_FILES PREFLIGHT_PASS {"contract_sha256": "27a0c4935839c109d7af1bd34f158458c8e91fc34687c6ee66c5c04bdfa96eec", "files": 4, "archive_moves": 0, "package": "PASS"}
+    rc=0 elapsed_s=0.2 verdict_line='NC_INSTALL_FILES PREFLIGHT_PASS '
+    PASS W0_package_preflight_real_home
+--- gate 3/4 W0_package_unit_tests start 2026-09-26T21:29:35Z
+    argv=["/Users/haosiyu/wide_shadow/venv/bin/python", "-B", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/package_GAP4/files/wide_shadow/fea171/tests_prev_state.py"]
+no_gap_own                                 disc=0  NEW=PASS  OLD=PASS
+gap1                                       disc=1  NEW=PASS  OLD=RED  source 'fallback' != 'own_gap1'
+gap2                                       disc=1  NEW=PASS  OLD=RED  source 'fallback' != 'own_gap2'
+gap6                                       disc=1  NEW=PASS  OLD=RED  source 'fallback' != 'own_gap6'
+gap7_beyond_bound                          disc=1  NEW=PASS  OLD=RED  source 'fallback' != 'own_gap7_beyond_bound'
+corrupt_garbage                            disc=1  NEW=PASS  OLD=RED  raised ValueError
+anchor_key_mismatch                        disc=1  NEW=PASS  OLD=RED  source 'fallback' != 'own_gap1_rejected1'
+idx_out_of_range                           disc=1  NEW=PASS  OLD=RED  raised IndexError
+nonfinite_val                              disc=1  NEW=PASS  OLD=RED  source 'own' != 'own_gap1_rejected1'
+duplicate_idx                              disc=1  NEW=PASS  OLD=RED  source 'own' != 'own_gap1_rejected1'
+degenerate_ramp_state                      disc=1  NEW=PASS  OLD=RED  source 'own' != 'own_gap1_rejected1'
+missing_key                                disc=1  NEW=PASS  OLD=RED  raised KeyError
+pickled_object_array                       disc=1  NEW=PASS  OLD=RED  raised ValueError
+future_and_offgrid_ignored                 disc=0  NEW=PASS  OLD=PASS
+no_state_at_all                            disc=1  NEW=PASS  OLD=RED  OLD returns a silent zero fallback (source 'fallback', no page)
+weights_mode_no_anchor_key_int32_float32   disc=0  NEW=PASS  OLD=PASS
+PREV_STATE_TESTS PASS cases=16 new_fail=[] old_not_red_on_discriminating=[] old_red=13/13
+    rc=0 elapsed_s=0.2 verdict_line='PREV_STATE_TESTS PASS '
+    PASS W0_package_unit_tests
+--- gate 4/4 W0_publication_boundary_v2_on_package start 2026-09-26T21:29:35Z
+    argv=["/usr/bin/env", "COMBO_PUBLICATION_SOURCE=/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/package_GAP4/files/wide_shadow/fea171/combo_stage.py", "/Users/haosiyu/wide_shadow/venv/bin/python", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/devices/publication_boundary_v2/tests_combo_publication_boundary_v2.py"]
+test_env_covers_every_free_name (__main__.FreeNameTests.test_env_covers_every_free_name)
+Every name the publication block reads and never assigns is provided — or ALLOWED_ABSENT and read only inside an ... /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/package_GAP4/files/wide_shadow/fea171/combo_stage.py:429: ResourceWarning: unclosed file <_io.TextIOWrapper name='/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/devices/publication_boundary_v2/20260922/test_tmp/combo-publication-offline-bvn_70r8/state/target_live/14400.json' mode='r' encoding='UTF-8'>
+  kdoc = json.load(open(_kp))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/package_GAP4/files/wide_shadow/fea171/combo_stage.py:429: ResourceWarning: unclosed file <_io.TextIOWrapper name='/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/devices/publication_boundary_v2/20260922/test_tmp/combo-publication-offline-auygjui9/state/target_live/14400.json' mode='r' encoding='UTF-8'>
+  kdoc = json.load(open(_kp))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_identity_error_before_publication_preserves_concurrent_target (__main__.PublicationTests.test_identity_error_before_publication_preserves_concurrent_target) ... /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/package_GAP4/files/wide_shadow/fea171/combo_stage.py:429: ResourceWarning: unclosed file <_io.TextIOWrapper name='/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/devices/publication_boundary_v2/20260922/test_tmp/combo-publication-offline-no57bit4/state/target_live/14400.json' mode='r' encoding='UTF-8'>
+  kdoc = json.load(open(_kp))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_invalid_payload_rejected_by_real_reader_before_any_live_write (__main__.PublicationTests.test_invalid_payload_rejected_by_real_reader_before_any_live_write) ... /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/package_GAP4/files/wide_shadow/fea171/combo_stage.py:429: ResourceWarning: unclosed file <_io.TextIOWrapper name='/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/devices/publication_boundary_v2/20260922/test_tmp/combo-publication-offline-dwvogwmb/state/target_live/14400.json' mode='r' encoding='UTF-8'>
+  kdoc = json.load(open(_kp))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_late_postpublication_error_never_restores_king (__main__.PublicationTests.test_late_postpublication_error_never_restores_king) ... /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/package_GAP4/files/wide_shadow/fea171/combo_stage.py:429: ResourceWarning: unclosed file <_io.TextIOWrapper name='/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/devices/publication_boundary_v2/20260922/test_tmp/combo-publication-offline-d1b5tstt/state/target_live/14400.json' mode='r' encoding='UTF-8'>
+  kdoc = json.load(open(_kp))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_partial_pair_failure_remains_rejected_and_never_restores_king (__main__.PublicationTests.test_partial_pair_failure_remains_rejected_and_never_restores_king) ... /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/package_GAP4/files/wide_shadow/fea171/combo_stage.py:429: ResourceWarning: unclosed file <_io.TextIOWrapper name='/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/devices/publication_boundary_v2/20260922/test_tmp/combo-publication-offline-0qe66hmx/state/target_live/14400.json' mode='r' encoding='UTF-8'>
+  kdoc = json.load(open(_kp))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_valid_candidate_passes_real_reader_before_live_replacements (__main__.PublicationTests.test_valid_candidate_passes_real_reader_before_live_replacements) ... /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/package_GAP4/files/wide_shadow/fea171/combo_stage.py:429: ResourceWarning: unclosed file <_io.TextIOWrapper name='/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/devices/publication_boundary_v2/20260922/test_tmp/combo-publication-offline-0jp_wvq3/state/target_live/14400.json' mode='r' encoding='UTF-8'>
+  kdoc = json.load(open(_kp))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_validation_crossing_deadline_does_not_publish (__main__.PublicationTests.test_validation_crossing_deadline_does_not_publish) ... /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/package_GAP4/files/wide_shadow/fea171/combo_stage.py:429: ResourceWarning: unclosed file <_io.TextIOWrapper name='/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/devices/publication_boundary_v2/20260922/test_tmp/combo-publication-offline-5599x02q/state/target_live/14400.json' mode='r' encoding='UTF-8'>
+  kdoc = json.load(open(_kp))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.199s
+
+OK
+    rc=0 elapsed_s=0.4 verdict_line='OK'
+    PASS W0_publication_boundary_v2_on_package
+RELEASE_GATES ALL_PASS n=4 2026-09-26T21:29:36Z
