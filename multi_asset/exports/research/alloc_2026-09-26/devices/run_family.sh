@@ -12,7 +12,7 @@
 #   * the red cell is run by THIS executor (the rev 0 control driver died with the quota); step 0a re-checks the two identity receipts.
 set -u
 B=/workspace/alloc_2026-09-26; D=$B/devices; R=$B/receipts; PY=/workspace/venv/bin/python
-S=/dev/shm/alloc_2026-09-26; LG=$S/logs; LOG=$LG/family.log; MIRROR=$LG/family.log
+S=/dev/shm/alloc_2026-09-26; LG=$S/logs; LOG=$LG/family.log; MIRROR=$B/logs/family.log
 E="env -i PATH=/usr/bin:/bin HOME=/root"
 SEEDS="42 2027 7"
 mkdir -p $LG || exit 9
