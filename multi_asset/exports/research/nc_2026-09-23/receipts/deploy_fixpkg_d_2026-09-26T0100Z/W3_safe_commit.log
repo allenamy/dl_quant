@@ -1,0 +1,91 @@
+W3 start 2026-09-26T01:00:30Z
+Updating 96acfdd..ee455fa
+Fast-forward
+ live/binance_executor.py                           |   48 +-
+ live/durable_io.py                                 |   35 +-
+ live/external_book.py                              |    6 +-
+ live/position_break.py                             |   20 +-
+ live/reconcile.py                                  |   12 +-
+ live/state_root.py                                 |    3 +
+ live/tests_book_reshape.py                         |    3 +-
+ live/tests_cond2_judged_text.py                    |    2 +-
+ live/tests_disposition_matrix.py                   |   80 +-
+ live/tests_drift_gate.py                           |   30 +
+ live/tests_durable_io.py                           |   61 +
+ live/tests_dust_pop.py                             |  143 +
+ .../check_upstream_drift_pre_R25_12.py             |  174 +
+ live/tests_fixtures/durable_io_pre_R25_10.py       |   84 +
+ .../dust_pop/reshape_A1790324640.json              | 1023 ++++++
+ .../tests_fixtures/pre_fixD2/anchor_loop.py.prefix | 3449 ++++++++++++++++++++
+ .../pre_fixD2/binance_executor.py.prefix           | 2604 +++++++++++++++
+ .../pre_fixD2/external_book.py.prefix              |  588 ++++
+ .../pre_fixD2/position_break.py.prefix             | 1020 ++++++
+ live/tests_fixtures/pre_fixD2/reconcile.py.prefix  | 1012 ++++++
+ .../tests_fixtures/pre_fixD2/venue_fills.py.prefix | 1401 ++++++++
+ live/tests_fixtures/pre_fixD2/watchdog.py.prefix   | 3334 +++++++++++++++++++
+ live/tests_guard_calibers.py                       |    6 +-
+ live/tests_nav_staleness.py                        |    2 +-
+ live/tests_numerator_honesty.py                    |    2 +-
+ live/tests_orphan_position.py                      |    2 +-
+ live/tests_proportional_response.py                |    6 +-
+ live/tests_quantity_unknowns.py                    |  143 +
+ live/tests_unseal_rehearsal_halt.py                |    4 +-
+ live/tests_watchdog.py                             |    7 +-
+ live/venue_fills.py                                |   21 +
+ live/watchdog.py                                   |   29 +-
+ ops/UPSTREAM_MANIFEST.sha256                       |    2 +-
+ ops/check_upstream_drift.py                        |    6 +
+ ops/gate_coverage.py                               |    2 +
+ run_acceptance.sh                                  |    2 +
+ scheduler/anchor_loop.py                           |   39 +-
+ scheduler/run_anchor.py                            |   14 +-
+ 38 files changed, 15339 insertions(+), 80 deletions(-)
+ create mode 100644 live/tests_dust_pop.py
+ create mode 100644 live/tests_fixtures/check_upstream_drift_pre_R25_12.py
+ create mode 100644 live/tests_fixtures/durable_io_pre_R25_10.py
+ create mode 100644 live/tests_fixtures/dust_pop/reshape_A1790324640.json
+ create mode 100644 live/tests_fixtures/pre_fixD2/anchor_loop.py.prefix
+ create mode 100644 live/tests_fixtures/pre_fixD2/binance_executor.py.prefix
+ create mode 100644 live/tests_fixtures/pre_fixD2/external_book.py.prefix
+ create mode 100644 live/tests_fixtures/pre_fixD2/position_break.py.prefix
+ create mode 100644 live/tests_fixtures/pre_fixD2/reconcile.py.prefix
+ create mode 100644 live/tests_fixtures/pre_fixD2/venue_fills.py.prefix
+ create mode 100644 live/tests_fixtures/pre_fixD2/watchdog.py.prefix
+ create mode 100644 live/tests_quantity_unknowns.py
+merge rc=0
+ee455faf8ab136fa385f3ee342351352d85c9450
+ee455fa fix-pkg-d battery run 2 (18:19Z) reds caused by 19c7ae1, fixed without touching pr
+19c7ae1 fix package D, R25-01 triage tier-1: unknown is not zero on the money path — posit
+cda0f1b fix package D, R25-01 triage tier-1 medium/low-medium: tests FIRST — tests_quantit
+20d7894 gate_coverage: state tests_dust_pop's blind spots (the battery requires every suit
+67f5ec8 R25-12 (independent review 7cbe907ba; NOT pushed): drift guard — a production->res
+b9daa11 R25-10 (independent review 7cbe907ba; NOT pushed): durable_io splits the failure: 
+1e70316 fix package D: withhold_pop treats a held residual below the name's venue min noti
+d9e1f10 fix package D tests FIRST (red on the unfixed tree: D1 x2, D5, D6 x2, D7 fail; D0 
+b1df4f5 R25-01 (independent review 7cbe907ba; NOT pushed): H1 predicate finiteness gate — 
+rsync rc=0
+battery interpreter /usr/bin/python3 sys.prefix /Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9 3.9.6
+ACCEPT_PY=<unset>
+?? docs/RELEASE_fixpkg_d_2026-09-26.md
+── 1/5 拉取远端(显式检查, 不经管道)
+From https://github.com/allenamy/dl_quant_live
+ * branch            main       -> FETCH_HEAD
+  ✓ 已是最新
+── 2/5 检查显式路径存在(只对新文件 intent-to-add —— 见第 4 步为什么)
+ docs/RELEASE_fixpkg_d_2026-09-26.md | 30 ++++++++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+── 3/5 离线隔离验收 runner(全绿才提交)
+----------------------------------------------------------------
+ACCEPTANCE: ALL GREEN (166/166 suites exit 0)
+OFFLINE_ACCEPTANCE_EXIT: 0
+── 4/5 提交(pathspec 形式 —— 只提交列出的路径)
+[main d01e35d] fix-pkg-d release: dust pop before reshape (D), H1 finiteness gate, durable_io split (R25-10, upstream first), drift guard research-copy-missing (R25-12), R25-01 tier-1 unknown-is-not-zero (7 sites); executor only; quant_research deploy_fixpkg_d_2026-09-26T0100Z W3
+ 1 file changed, 30 insertions(+)
+ create mode 100644 docs/RELEASE_fixpkg_d_2026-09-26.md
+── 5/5 推送
+To https://github.com/allenamy/dl_quant_live.git
+   96acfdd..d01e35d  main -> main
+✓ 完成: d01e35d fix-pkg-d release: dust pop before reshape (D), H1 finiteness gate, durable_io split (R25-10, upstream first), drift guard research-copy-missing (R25-12), R25-01 tier-1 unknown-is-not-zero (7 sites); executor only; quant_research deploy_fixpkg_d_2026-09-26T0100Z W3
+safe_commit rc=0
+NEWSHA=d01e35db56b4d7ed6abf0befd9f18452cd06c329
+W3 safe_commit end 2026-09-26T01:18:44Z
