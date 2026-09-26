@@ -82,7 +82,7 @@ for seed in ("42", "2027"):
             if key in ("pre2026", "2026_to_axis_end"):
                 filed = (S["G"][key]["frozen_dbar_bps_per_day"] if arm == "G_FRESH" else S["arms"][arm][key]["d_bps_per_day"])
                 ok = abs(y.mean() - filed) <= 1e-9
-                rec["controls"][f"C0_{arm}_s{seed}_{key}"] = {"mean": float(y.mean()), "filed": filed, "PASS": ok}
+                rec["controls"][f"C0_{arm}_s{seed}_{key}"] = {"mean": float(y.mean()), "filed": filed, "PASS": bool(ok)}
                 if not ok: FAIL.append(f"C0 {arm} s{seed} {key}")
             syn = 0.02 * ag / 100
             c1 = abs(slope(ag, syn) - 0.0002) <= 1e-12
@@ -113,7 +113,7 @@ def reading(arm):
 
 rec["READING"] = {"KZ": reading("KZ"), "KZWL_report_only": reading("KZWL"), "G_report_only": reading("G_FRESH")}
 rec["STATUS"] = "UNAVAILABLE" if FAIL else "OK"
-json.dump(rec, open(OUT + ".tmp", "w"), indent=1); os.replace(OUT + ".tmp", OUT)
+json.dump(rec, open(OUT + ".tmp", "w"), indent=1, default=float); os.replace(OUT + ".tmp", OUT)
 print("FA_G4_AGE STATUS=%s sha=%s FAIL=%s" % (rec["STATUS"], sha(OUT), FAIL))
 for s in ("42", "2027"):
     for arm, a in rec["seeds"][s].items():
