@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.hsy.onsetfwd_long</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>-B</string>
+    <string>/Users/haosiyu/pof_long/multi_asset/exports/live/pilot_journal/tools/parabolic_onset_forward_log.py</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/haosiyu/pof_long/multi_asset/exports/live/parabolic_onset_forward</string>
+  <!-- 07:27Z == 15:27 local (+08, no DST). launchd schedules in LOCAL time. 5 min after the short queue (15:22). -->
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>15</integer><key>Minute</key><integer>27</integer></dict>
+  <key>RunAtLoad</key><false/>
+  <key>StandardOutPath</key><string>/Users/haosiyu/pof_long/multi_asset/exports/live/parabolic_onset_forward/launchd.log</string>
+  <key>StandardErrorPath</key><string>/Users/haosiyu/pof_long/multi_asset/exports/live/parabolic_onset_forward/launchd.err</string>
+</dict>
+</plist>
