@@ -41,3 +41,11 @@ L59 `state/weights/{A-14400}.npz`(king 生产者 H, 自平价 ① 与回落源)�
 - 生产者 LR 洞策略(shadow_loop_v3.py L752), 与 news2 的数字对齐后定。
 - 成员历史缺锚 ⇒ f8 三列 24h 秩差置 0(combo_stage L167-176 → f8 L336-339), 修法与量级另冻判据。
 - 其余站点(regime_dash / per_name_stop / stop_overlay / anchor_report / notary)的逐站点分类表。
+
+## AMENDMENT 1(2026-09-26 17:4xZ, 写于任何重放读数之前; 只加细则, 不改上文)
+- 「HIGH 页报」在沙箱重放中的判法: 沙箱一律是演练分支(`COMBO_LIVE_DIR` ≠ target_live ⇒ `_rehearsal=True`), 补丁码与 M3 同样**演练不发只记**,
+  所以判据读 run.log 的 `GAP_PAGE` 行(即实盘会发出的同一段文字): X1–X3 该行须含 `state_H_kc_<A-4h>.npz` 与 `rejected`; B7 须含 `beyond_bound`;
+  G1/G2/G6 与 C0 **不得**出现该行。实盘发送路径 = 发布成功后 `_page("HIGH", …)`, 包在 try 里(页报失败不把已发布的书变成中止)。
+- 「现码 RED」的判法固定为: rc≠0, 或无目标, 或 target_combo 的 kc/fc 来源不以 `own` 开头(现码无任何缺锚页报机制, 故 X2 的静默回落记为 RED)。
+- C0 另查: 现码重放的权重与生产归档 target_live/<A>.json 逐位相等(装置自检; 除 written_utc / weights_sha)。
+- 装置提交 `1ffd…` 之前的 HEAD 为本修订的前提; 判官 = devices/gap_fix_judge.py(已提交)。
