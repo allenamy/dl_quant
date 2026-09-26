@@ -1,0 +1,401 @@
+{
+ "device": "fa_ema_mech2.py",
+ "self_sha256": "a95dc7090877434bf8505f0a40b2bd7a22581a5360e66080ea14cee3b383ad13",
+ "argv": [
+  "fa_ema_mech2.py",
+  "PATH,HOME,LC_CTYPE",
+  "/dev/shm/fanom_2026-09-24/receipts/FA_EMA_MECH2.json",
+  "--stage",
+  "full"
+ ],
+ "stage": "full",
+ "utc": "2026-09-26T17:59:37Z",
+ "prereg": "docs/PREREG_ema_second_mechanism_2026-09-26.md",
+ "inputs": {
+  "replay": {
+   "path": "/dev/shm/news_2026-09-23/work/fund_replay.npz",
+   "sha256": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4"
+  },
+  "ledger_replay": {
+   "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+   "sha256": "073088e503c026d6071c76764426503616d53570e5f3763807df27ea7cc80362"
+  },
+  "ledger_ms": {
+   "path": "/dev/shm/d10_2026-09-25/ms/ledger_full_ms.npz",
+   "sha256": "e179071d595521987450f89e1774a95775a2593d76277a9c9dc6d86dcbc31a88"
+  },
+  "snap": {
+   "path": "/dev/shm/d10_2026-09-25/ms/rebuilt_features_snap.npz",
+   "sha256": "209c8f5338d34cf497661256d45fb6532f7e327447b32b54a6f6fa8896a700cd"
+  },
+  "nc_feat": {
+   "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+   "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8"
+  },
+  "legs_news": {
+   "path": "/dev/shm/news_2026-09-23/work/legs.npz",
+   "sha256": "18999e169c6b68546271f8194fd74eaa79041d1967ba44df978f4cbea33d6bd5"
+  },
+  "legs_nc": {
+   "path": "/dev/shm/news2_2026-09-23/work/legs.npz",
+   "sha256": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65"
+  },
+  "mask": {
+   "path": "/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+   "sha256": "f752d8ae3bf92f001fcb5d6f83a7e4ae286d9f11f7548c2e965305615aa9ae51"
+  },
+  "crypto": {
+   "path": "/dev/shm/news_2026-09-23/receipts/P1_members_2025H2on.npz",
+   "sha256": "2323623fda9333710f5834911ab629377ab8c12b056f40ccfc9f7033c0c1f6f1"
+  },
+  "nc_contract": {
+   "path": "/dev/shm/nc_2026-09-23/devices_arm/nc_contract.py",
+   "sha256": "316a0b9bcf1461401740ebd79a3292a9bfcdc49d56f111219ff6e126110650cb"
+  },
+  "replay_receipt": {
+   "path": "/dev/shm/news_2026-09-23/receipts/P2A_FUND_REPLAY.json",
+   "sha256": "75fd360a23397f142c4d99d421a40e60bb2f75ec924619d0e4fa187ee84f4a8c"
+  },
+  "ema_attr": {
+   "path": "/dev/shm/fanom_2026-09-24/receipts/FA_EMA_ATTR.json",
+   "sha256": "a3aa35da247587d5077af8d6bc913418f7a75e68e0ee1165bee1cc4b646d0b8f"
+  }
+ },
+ "controls": {
+  "A_reproduce_classes": {
+   "GATE_NOW": 96,
+   "GATE_EPISODE": 21,
+   "NOT_GATE": 30242,
+   "UNDETERMINABLE": 0,
+   "PASS": true
+  },
+  "B_truncation_reconstruction": {
+   "B1_truncated_total": 226,
+   "B1_expected_receipt": 226,
+   "B2_fetched_not_truncated_but_stale": 0,
+   "PASS": true
+  },
+  "C_known_answer_interval": {
+   "old_3h": 2.0,
+   "new_3h": 4.0,
+   "old_first": 8.0,
+   "new_first": null,
+   "old_30h": 8.0,
+   "new_30h": null,
+   "PASS": true
+  },
+  "C_anchor_all_old_reproduces_replay": {
+   "cells": 2601594,
+   "bitwise_equal": 2601594,
+   "nan_mismatch": 0,
+   "PASS": true
+  },
+  "C_anchor_all_new_reproduces_truth": {
+   "cells": 2601594,
+   "bitwise_equal": 2601594,
+   "nan_mismatch": 0,
+   "PASS": true
+  }
+ },
+ "sim_seconds_two_anchors": 7.2,
+ "controls_summary": {
+  "A": true,
+  "B": true,
+  "C_known": true,
+  "C_anchor_old": true,
+  "C_anchor_new": true
+ },
+ "readings": {
+  "n_M": 30242,
+  "B_truncation": {
+   "M_stale": 0,
+   "M_stale_TRUNCATED": 0,
+   "M_stale_GATE_SKIP": 0,
+   "M_stale_BASE_ABSENT": 0,
+   "M_not_stale": 30242
+  },
+  "C_simulation_available": true,
+  "C_all_old_vs_truth": {
+   "both_finite": 2601594,
+   "sim_finite_truth_nan": 0,
+   "sim_nan_truth_finite": 0,
+   "buckets": {
+    "exact0": 430175,
+    "(0,1e-15]": 1882489,
+    "(1e-15,1e-12]": 72592,
+    "(1e-12,1e-09]": 75814,
+    "(1e-09,1e-07]": 53863,
+    "(1e-07,1e-05]": 56302,
+    "(1e-05,0.0001]": 19201,
+    "(0.0001,inf]": 11158
+   },
+   "material": 30359,
+   "M_resolved": 0,
+   "M_still_material": 30242,
+   "material_outside_M": 117
+  },
+  "C_all_new_vs_truth": {
+   "both_finite": 2601594,
+   "sim_finite_truth_nan": 0,
+   "sim_nan_truth_finite": 0,
+   "buckets": {
+    "exact0": 2601594,
+    "(0,1e-15]": 0,
+    "(1e-15,1e-12]": 0,
+    "(1e-12,1e-09]": 0,
+    "(1e-09,1e-07]": 0,
+    "(1e-07,1e-05]": 0,
+    "(1e-05,0.0001]": 0,
+    "(0.0001,inf]": 0
+   },
+   "material": 0,
+   "M_resolved": 30242,
+   "M_still_material": 0,
+   "material_outside_M": 0
+  },
+  "C_from_old": {
+   "L": {
+    "both_finite": 2601594,
+    "sim_finite_truth_nan": 0,
+    "sim_nan_truth_finite": 0,
+    "buckets": {
+     "exact0": 430175,
+     "(0,1e-15]": 1882489,
+     "(1e-15,1e-12]": 72592,
+     "(1e-12,1e-09]": 75814,
+     "(1e-09,1e-07]": 53863,
+     "(1e-07,1e-05]": 56302,
+     "(1e-05,0.0001]": 19201,
+     "(0.0001,inf]": 11158
+    },
+    "material": 30359,
+    "M_resolved": 0,
+    "M_still_material": 30242,
+    "material_outside_M": 117
+   },
+   "S": {
+    "both_finite": 2601594,
+    "sim_finite_truth_nan": 0,
+    "sim_nan_truth_finite": 0,
+    "buckets": {
+     "exact0": 430220,
+     "(0,1e-15]": 1882777,
+     "(1e-15,1e-12]": 72608,
+     "(1e-12,1e-09]": 75819,
+     "(1e-09,1e-07]": 53857,
+     "(1e-07,1e-05]": 56049,
+     "(1e-05,0.0001]": 19153,
+     "(0.0001,inf]": 11111
+    },
+    "material": 30264,
+    "M_resolved": 0,
+    "M_still_material": 30242,
+    "material_outside_M": 22
+   },
+   "K": {
+    "both_finite": 2601594,
+    "sim_finite_truth_nan": 0,
+    "sim_nan_truth_finite": 0,
+    "buckets": {
+     "exact0": 430175,
+     "(0,1e-15]": 1882489,
+     "(1e-15,1e-12]": 72592,
+     "(1e-12,1e-09]": 75814,
+     "(1e-09,1e-07]": 53863,
+     "(1e-07,1e-05]": 56302,
+     "(1e-05,0.0001]": 19201,
+     "(0.0001,inf]": 11158
+    },
+    "material": 30359,
+    "M_resolved": 0,
+    "M_still_material": 30242,
+    "material_outside_M": 117
+   },
+   "I": {
+    "both_finite": 2601594,
+    "sim_finite_truth_nan": 0,
+    "sim_nan_truth_finite": 0,
+    "buckets": {
+     "exact0": 471380,
+     "(0,1e-15]": 2129850,
+     "(1e-15,1e-12]": 0,
+     "(1e-12,1e-09]": 0,
+     "(1e-09,1e-07]": 11,
+     "(1e-07,1e-05]": 257,
+     "(1e-05,0.0001]": 49,
+     "(0.0001,inf]": 47
+    },
+    "material": 96,
+    "M_resolved": 30242,
+    "M_still_material": 0,
+    "material_outside_M": 96
+   },
+   "R": {
+    "both_finite": 2601594,
+    "sim_finite_truth_nan": 0,
+    "sim_nan_truth_finite": 0,
+    "buckets": {
+     "exact0": 2198336,
+     "(0,1e-15]": 114329,
+     "(1e-15,1e-12]": 72591,
+     "(1e-12,1e-09]": 75814,
+     "(1e-09,1e-07]": 53863,
+     "(1e-07,1e-05]": 56302,
+     "(1e-05,0.0001]": 19201,
+     "(0.0001,inf]": 11158
+    },
+    "material": 30359,
+    "M_resolved": 0,
+    "M_still_material": 30242,
+    "material_outside_M": 117
+   }
+  },
+  "C_from_new": {
+   "L": {
+    "both_finite": 2601594,
+    "sim_finite_truth_nan": 0,
+    "sim_nan_truth_finite": 0,
+    "buckets": {
+     "exact0": 2601594,
+     "(0,1e-15]": 0,
+     "(1e-15,1e-12]": 0,
+     "(1e-12,1e-09]": 0,
+     "(1e-09,1e-07]": 0,
+     "(1e-07,1e-05]": 0,
+     "(1e-05,0.0001]": 0,
+     "(0.0001,inf]": 0
+    },
+    "material": 0,
+    "M_resolved": 30242,
+    "M_still_material": 0,
+    "material_outside_M": 0
+   },
+   "S": {
+    "both_finite": 2601594,
+    "sim_finite_truth_nan": 0,
+    "sim_nan_truth_finite": 0,
+    "buckets": {
+     "exact0": 2601230,
+     "(0,1e-15]": 0,
+     "(1e-15,1e-12]": 0,
+     "(1e-12,1e-09]": 0,
+     "(1e-09,1e-07]": 11,
+     "(1e-07,1e-05]": 257,
+     "(1e-05,0.0001]": 49,
+     "(0.0001,inf]": 47
+    },
+    "material": 96,
+    "M_resolved": 30242,
+    "M_still_material": 0,
+    "material_outside_M": 96
+   },
+   "K": {
+    "both_finite": 2601594,
+    "sim_finite_truth_nan": 0,
+    "sim_nan_truth_finite": 0,
+    "buckets": {
+     "exact0": 2601594,
+     "(0,1e-15]": 0,
+     "(1e-15,1e-12]": 0,
+     "(1e-12,1e-09]": 0,
+     "(1e-09,1e-07]": 0,
+     "(1e-07,1e-05]": 0,
+     "(1e-05,0.0001]": 0,
+     "(0.0001,inf]": 0
+    },
+    "material": 0,
+    "M_resolved": 30242,
+    "M_still_material": 0,
+    "material_outside_M": 0
+   },
+   "I": {
+    "both_finite": 2601594,
+    "sim_finite_truth_nan": 0,
+    "sim_nan_truth_finite": 0,
+    "buckets": {
+     "exact0": 2198651,
+     "(0,1e-15]": 114347,
+     "(1e-15,1e-12]": 72607,
+     "(1e-12,1e-09]": 75819,
+     "(1e-09,1e-07]": 53857,
+     "(1e-07,1e-05]": 56049,
+     "(1e-05,0.0001]": 19153,
+     "(0.0001,inf]": 11111
+    },
+    "material": 30264,
+    "M_resolved": 0,
+    "M_still_material": 30242,
+    "material_outside_M": 22
+   },
+   "R": {
+    "both_finite": 2601594,
+    "sim_finite_truth_nan": 0,
+    "sim_nan_truth_finite": 0,
+    "buckets": {
+     "exact0": 471431,
+     "(0,1e-15]": 2130163,
+     "(1e-15,1e-12]": 0,
+     "(1e-12,1e-09]": 0,
+     "(1e-09,1e-07]": 0,
+     "(1e-07,1e-05]": 0,
+     "(1e-05,0.0001]": 0,
+     "(0.0001,inf]": 0
+    },
+    "material": 0,
+    "M_resolved": 30242,
+    "M_still_material": 0,
+    "material_outside_M": 0
+   }
+  },
+  "C_overlaps_resolved": {
+   "L&S": 0,
+   "L&K": 0,
+   "L&I": 0,
+   "L&R": 0,
+   "S&K": 0,
+   "S&I": 0,
+   "S&R": 0,
+   "K&I": 0,
+   "K&R": 0,
+   "I&R": 0
+  },
+  "C_residue_1e-15": {
+   "all_old": 1882489,
+   "all_old_R_new": 114329
+  },
+  "VERDICTS": {
+   "candidate_1_interval": {
+    "x": 1.0,
+    "y": 1.000727465114741,
+    "verdict": "EXPLAINS_1.000"
+   },
+   "candidate_2_truncation_sim_S": {
+    "x": 0.0,
+    "y": 0.0031743932279611137,
+    "verdict": "DOES_NOT_EXPLAIN"
+   },
+   "candidate_2_truncation_expB": {
+    "share": 0.0,
+    "verdict": "DOES_NOT_EXPLAIN"
+   },
+   "candidate_3_arithmetic": {
+    "x": 0.0,
+    "y": 0.0,
+    "verdict": "DOES_NOT_EXPLAIN"
+   },
+   "candidate_3_residue": "EXPLAINS_RESIDUE",
+   "non_candidate_L_event_set": {
+    "x": 0.0,
+    "y": 0.0,
+    "verdict": "DOES_NOT_EXPLAIN"
+   },
+   "non_candidate_K_cold_start": {
+    "x": 0.0,
+    "y": 0.0,
+    "verdict": "DOES_NOT_EXPLAIN"
+   }
+  }
+ },
+ "sim_seconds_total": 43.2,
+ "STATUS": "OK"
+}

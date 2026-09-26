@@ -1,0 +1,47 @@
+FA_EMA_MECH2 stage=full STATUS=OK sha=e9c3089df3fec7df1e4138b6fe90838539e9acd6496f9b968bb40e0bfa3ad6a4
+  controls {"A": true, "B": true, "C_known": true, "C_anchor_old": true, "C_anchor_new": true} {"A_reproduce_classes": {"GATE_NOW": 96, "GATE_EPISODE": 21, "NOT_GATE": 30242, "UNDETERMINABLE": 0, "PASS": true}, "B_truncation_reconstruction": {"B1_truncated_total": 226, "B1_expected_receipt": 226, "B2_fetched_not_truncated_but_stale": 0, "PASS": true}, "C_known_answer_interval": {"old_3h": 2.0, "new_3h": 4.0, "old_first": 8.0, "new_first": null, "old_30h": 8.0, "new_30h": null, "PASS": true}, "C_anchor_all_old_reproduces_replay": {"cells": 2601594, "bitwise_equal": 2601594, "nan_mismatch": 0, "PASS": true}, "C_anchor_all_new_reproduces_truth": {"cells": 2601594, "bitwise_equal": 2601594, "nan_mismatch": 0, "PASS": true}}
+{
+ "candidate_1_interval": {
+  "x": 1.0,
+  "y": 1.000727465114741,
+  "verdict": "EXPLAINS_1.000"
+ },
+ "candidate_2_truncation_sim_S": {
+  "x": 0.0,
+  "y": 0.0031743932279611137,
+  "verdict": "DOES_NOT_EXPLAIN"
+ },
+ "candidate_2_truncation_expB": {
+  "share": 0.0,
+  "verdict": "DOES_NOT_EXPLAIN"
+ },
+ "candidate_3_arithmetic": {
+  "x": 0.0,
+  "y": 0.0,
+  "verdict": "DOES_NOT_EXPLAIN"
+ },
+ "candidate_3_residue": "EXPLAINS_RESIDUE",
+ "non_candidate_L_event_set": {
+  "x": 0.0,
+  "y": 0.0,
+  "verdict": "DOES_NOT_EXPLAIN"
+ },
+ "non_candidate_K_cold_start": {
+  "x": 0.0,
+  "y": 0.0,
+  "verdict": "DOES_NOT_EXPLAIN"
+ }
+}
+{"M_stale": 0, "M_stale_TRUNCATED": 0, "M_stale_GATE_SKIP": 0, "M_stale_BASE_ABSENT": 0, "M_not_stale": 30242}
+  C_from_old L material   30359 M_resolved      0 M_still  30242 outside    117 nan(s/t) 0/0
+  C_from_old S material   30264 M_resolved      0 M_still  30242 outside     22 nan(s/t) 0/0
+  C_from_old K material   30359 M_resolved      0 M_still  30242 outside    117 nan(s/t) 0/0
+  C_from_old I material      96 M_resolved  30242 M_still      0 outside     96 nan(s/t) 0/0
+  C_from_old R material   30359 M_resolved      0 M_still  30242 outside    117 nan(s/t) 0/0
+  C_from_new L material       0 M_resolved  30242 M_still      0 outside      0 nan(s/t) 0/0
+  C_from_new S material      96 M_resolved  30242 M_still      0 outside     96 nan(s/t) 0/0
+  C_from_new K material       0 M_resolved  30242 M_still      0 outside      0 nan(s/t) 0/0
+  C_from_new I material   30264 M_resolved      0 M_still  30242 outside     22 nan(s/t) 0/0
+  C_from_new R material       0 M_resolved  30242 M_still      0 outside      0 nan(s/t) 0/0
+  overlaps {"L&S": 0, "L&K": 0, "L&I": 0, "L&R": 0, "S&K": 0, "S&I": 0, "S&R": 0, "K&I": 0, "K&R": 0, "I&R": 0}
+  residue {"all_old": 1882489, "all_old_R_new": 114329}
