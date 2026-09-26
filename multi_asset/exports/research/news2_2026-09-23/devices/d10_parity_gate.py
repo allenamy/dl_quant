@@ -104,7 +104,7 @@ def detect_layout(arr, n_anchors, n_syms, n_member_entries):
 
 
 def compare_column(av, bv, dt, name, off, m, anchors, syms, a_index, b_index,
-                   a_layout, b_layout, control=False, examples=10):
+                   a_layout, b_layout, control=False, examples=10, amax=None):
     """Compare one column over the MEMBER CELL SET, which is both lead's population and the only
     representation the two sides share. A CSR side is read at its entry k; a dense side at [anchor, column].
     """
@@ -114,6 +114,9 @@ def compare_column(av, bv, dt, name, off, m, anchors, syms, a_index, b_index,
     diffs = []
     ctrl = None
     for i, t in enumerate(anchors):
+        if amax is not None and int(t) > amax:
+            c["anchor_above_window"] += 1
+            continue
         ia = a_index.get(int(t)) if a_layout == DENSE else i
         ib = b_index.get(int(t)) if b_layout == DENSE else i
         if ia is None or ib is None:
@@ -182,9 +185,17 @@ def main():
                     help="comma list of name:a_key:b_key:dtype, e.g. fund_now:fn_v:fund_now:float32")
     ap.add_argument("--out", required=True)
     ap.add_argument("--positive-control", action="store_true")
+    ap.add_argument("--anchor-max-utc", default=None,
+                    help="restrict to anchors <= this (YYYY-MM-DDTHH:MMZ). Used to strip a COVERAGE factor out "
+                         "of the comparison: the two sides' event sets are identical below the splice boundary "
+                         "2026-09-01T02:00Z, so restricting there removes coverage and leaves the rule.")
     a = ap.parse_args()
 
     anchors, syms, members, total_member_cells = load_member_sets(a.features)
+    amax = None
+    if a.anchor_max_utc:
+        amax = int(datetime.datetime.strptime(a.anchor_max_utc, "%Y-%m-%dT%H:%MZ")
+                   .replace(tzinfo=datetime.timezone.utc).timestamp())
     Fz = np.load(a.features, allow_pickle=True)
     off, mcol = Fz["off"].astype(np.int64), Fz["m"].astype(np.int64)
     n_member_entries = int(mcol.size)
@@ -214,6 +225,11 @@ def main():
                              "construction": "members[i] = m[off[i]:off[i+1]]",
                              "explicitly_not": "cand = mask & crypto",
                              "total_member_cells_on_axis": total_member_cells},
+           "anchor_window": {"max_utc": a.anchor_max_utc, "epoch": amax,
+                             "why": ("the two sides' event sets are IDENTICAL below the spliced ledger's cut "
+                                     "1788228000 = 2026-09-01T02:00Z (measured: 2,633,090 each, 0 events on "
+                                     "either side only, 0 symbols differing), so restricting here removes the "
+                                     "coverage factor and leaves the rule difference")},
            "axis": {"anchor_sets_equal": bool(set(ta.tolist()) == set(tb.tolist())),
                     "comparable_anchors": len(set(ta.tolist()) & set(tb.tolist())),
                     "symbol_sets_equal": bool(set(sa) == set(sb)),
@@ -234,7 +250,7 @@ def main():
         la = detect_layout(arr_a, len(anchors), len(syms), n_member_entries)
         lb = detect_layout(arr_b, len(anchors), len(syms), n_member_entries)
         c, ex, ctrl, stats = compare_column(arr_a, arr_b, dt, name, off, mcol, anchors, syms, ia, ib,
-                                            la, lb, control=a.positive_control)
+                                            la, lb, control=a.positive_control, amax=amax)
         if ctrl:
             controls.append(ctrl)
         rec["columns"][name] = {

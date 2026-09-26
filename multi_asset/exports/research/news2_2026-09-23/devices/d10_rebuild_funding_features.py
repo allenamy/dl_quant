@@ -304,7 +304,16 @@ def rebuild(led, features_npz, ema_mode="d10_iv", anchors_filter=None):
         for (i, k) in sorted(cells):
             A = anchor_list[i]
             A_ms = A * 1000
-            while pos < len(ev) and ev[pos][0] <= A_ms:
+            # ★ THE AS-OF BOUNDARY IS THE WHOLE ANCHOR SECOND, not `<= anchor*1000`. Production:
+            #   shadow_loop_v3.py:646-647  endTime = anchor * 1000 + 999
+            #   and its own comment at L640-641: "本地过滤 `if ft > anchor: continue`(秒)本就允许
+            #   '等于锚'的那次结算 ... +999 只是让 API 侧与本地侧对齐到同一个整秒边界."
+            # My first version used `<= A_ms`, which silently DROPPED every settlement stamped 1-999 ms after
+            # the round anchor second. 57.17% of settlements carry a non-zero ms part, so this moved the as-of
+            # on 431,981 member cells -- the entire fund_now difference against the in-service features, in a
+            # window where the event sets are provably identical. Re-keying to milliseconds changes where the
+            # anchor boundary falls, and the boundary has to move with it.
+            while pos < len(ev) and ev[pos][0] <= A_ms + 999:
                 ft_ms, rate, decl = ev[pos]
                 r = FI.interval_d10(None if prev_ft_ms is None else prev_ft_ms // 1000,
                                     ft_ms // 1000, decl)
