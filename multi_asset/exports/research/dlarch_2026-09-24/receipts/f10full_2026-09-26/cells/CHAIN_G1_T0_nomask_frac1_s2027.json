@@ -1,0 +1,108 @@
+{
+  "device": "dlarch_chain_run.py",
+  "self_sha256": "6345132f245433ad702f15cf8d374b126bc0827482e59e25200a6ee8760bf9e3",
+  "mode": "FAMILY_MEMBER",
+  "seed": 2027,
+  "root": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_s2027",
+  "f10_source": "/workspace/dlarch_2026-09-24/T3/G1_T0_nomask_frac1/f10_s2027",
+  "train_arm": "G1_T0_nomask_frac1",
+  "derived_devices": "/workspace/dlarch_2026-09-24/chain/devices",
+  "reference_is_the_deployed_book": false,
+  "reference_note": null,
+  "derive_receipt_sha256": "42f65952b74c73dd28bc116833701236945d88fbe5df7b4510217be76aca4e97",
+  "utc_start": "2026-09-26T07:07:00Z",
+  "mem_gate_at_start": {
+    "memory_max_bytes": "60999999488",
+    "anon_bytes": 1775415296,
+    "shmem_bytes": 22417096704,
+    "available_gib_v2": 34.28,
+    "gate_threshold_gib": 22,
+    "gate_passes_now": true
+  },
+  "steps": {
+    "combo": {
+      "rc": 0,
+      "seconds": 156.8,
+      "outputs": {
+        "scaled_diagnostic.npz": "311d6d54b00a21b8ce7f1d28acb75a0f861c53db61614ae1c0ef0903d8b0b1bd",
+        "literal.npz": "f47d3d5b8fae6a2540bd4f180fed58604683acb80206647c176b86591c9ec24c",
+        "TARGET_RECEIPT.json": "3e37ce2402f3eed72be39330e522215e996cb1644e41547656215c230707827c"
+      }
+    },
+    "adapter_spec": {
+      "rc": 0,
+      "seconds": 0.2,
+      "spec_sha256": "9a6a7be93828d19fe0503f139ec5c616bd2ab42e05fb48c0b11deb03250094fe"
+    },
+    "adapter": {
+      "rc": 0,
+      "seconds": 2.7,
+      "readback_verified": {
+        "receipt_parses": true,
+        "npz_arrays_read_back": true,
+        "receipt_npz_sha_matches_artifact": true,
+        "why": "ovn_adapter rewrites the receipt then hashes it by re-reading; nothing asserted the rewrite is readable (E-0925-A family, flagged by fresh)"
+      },
+      "targets_npz_sha256": "d7d2e6f67ef51619b11004e0cbeb4153d385a82e546737140decd1714a82ed3b",
+      "targets_json_sha256": "8c5c972db67e50400b6c5aa7801f106f2763291d2992f354ff7d588f75ed8c01"
+    },
+    "run_config": {
+      "path": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_s2027/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_s2027.json",
+      "sha256": "1b6ab7967cf0fdb606a50d1ad3dbcbc91759c941df6cff34e1ab8de470833f3a",
+      "arm": "DLARCH_G1_T0_nomask_frac1_s2027",
+      "tag": "DLARCH_G1_T0_nomask_frac1_s2027|scaled|rule|raw|UAFE",
+      "base_tag_used": "NEWS2_s42X|scaled|rule|raw|UAFE",
+      "pod_root": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_s2027",
+      "base_config": "/dev/shm/news2_2026-09-23/configs/RUN_CONFIG_NEWS2_s42X_2026-09-23.json",
+      "base_config_sha256": "9526ad1883129f689bff53f9b68b91ade3db8885f67a43f8c21e038fb2e85e2a"
+    },
+    "engine": {
+      "rc": 0,
+      "seconds": 660.3,
+      "path_npz_found": 32,
+      "expected": 32,
+      "agg_npz_found": 1,
+      "all_npz": 33,
+      "count_note": "path_npz_found counts PATH*.npz only; the aggregate is counted separately so the field matches its name"
+    }
+  },
+  "engine_gate": [
+    {
+      "utc": "2026-09-26T07:09:40Z",
+      "foreign_engine_pgids": {},
+      "avail_gib": 32.81,
+      "mem_gate": {
+        "memory_max_bytes": "60999999488",
+        "anon_bytes": 3334156288,
+        "shmem_bytes": 22433714176,
+        "available_gib_v2": 32.81,
+        "gate_threshold_gib": 22,
+        "gate_passes_now": true
+      },
+      "waited_s": 0,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_s2027/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_s2027.json:launch.min_available_gib (22.0) + named margin 2.0",
+      "shm_free_gib": 7.08,
+      "shm_free_min_gib": 4.0,
+      "max_foreign_engines": 2,
+      "PASS": true
+    }
+  ],
+  "mem_gate_before_engine": {
+    "memory_max_bytes": "60999999488",
+    "anon_bytes": 3334156288,
+    "shmem_bytes": 22433714176,
+    "available_gib_v2": 32.81,
+    "gate_threshold_gib": 22,
+    "gate_passes_now": true
+  },
+  "mem_gate_after_engine": {
+    "memory_max_bytes": "60999999488",
+    "anon_bytes": 1753460736,
+    "shmem_bytes": 22417096704,
+    "available_gib_v2": 34.3,
+    "gate_threshold_gib": 22,
+    "gate_passes_now": true
+  },
+  "utc_end": "2026-09-26T07:20:40Z"
+}

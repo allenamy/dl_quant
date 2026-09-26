@@ -1,0 +1,174 @@
+{
+ "C1_7": {
+  "disposition": "s7 baseline KEPT; basis = bitwise identity on 2 seeds (42 via G1, 2027 via C1.7) x 2 folds; s7 itself remains INHERITED, never verified directly",
+  "n_gate": 3,
+  "reading": "IDENTICAL (2 folds 2023/202609, positive control PASS)",
+  "receipt_sha256": "2d9b9736f6d64c8a9fbb29e65c8165f6788fe27794f97031bac8d7c37f302ad3"
+ },
+ "VERDICT": "REJECT",
+ "blind": false,
+ "blindness_statement": "paired_d (the gated arithmetic) was committed before any F10_FULL book reading; this wrapper was written after all three cells existed and after dlarch read their dbar-vs-NC-s42 log lines; it authors no threshold (sources listed in the docstring)",
+ "clause_5_note": "still below the in-service NC in 2026 (the gate IS the NC pairing under revision 7)",
+ "control_1": {
+  "IC_shuf": -0.0031411463682759124,
+  "VERDICT": "PASS",
+  "null_p97_5": 0.009527566925765497,
+  "path": "/workspace/dlarch_2026-09-24/receipts/CTL1_VERDICT_2026-09-26.json",
+  "sha256": "8fa068e1683b5f4ba03e620f6da7375a0f2f104ed852e668fe35e3b659eae155"
+ },
+ "criterion": "DL-gate revision 4 clauses with revision 7 pairing (d vs in-service NC, same seed)",
+ "device": "dlarch_f10full_verdict.py",
+ "drawdown_guardrail": {
+  "comparators_agree": false,
+  "vs_NC_revision7_pairing": {
+   "arm_mean_pp": -25.26583720775119,
+   "arm_minus_base_pp": -3.072714454216051,
+   "base_mean_pp": -22.19312275353514,
+   "passes": false,
+   "per_seed_arm": {
+    "7": -0.2296032396907749,
+    "42": -0.27537841705164645,
+    "2027": -0.2529934594901143
+   },
+   "per_seed_base": {
+    "7": -0.20946460075915863,
+    "42": -0.23100265198271358,
+    "2027": -0.22532642986418203
+   },
+   "seeds": [
+    7,
+    42,
+    2027
+   ]
+  },
+  "vs_T0_literal_section3": {
+   "arm_mean_pp": -25.26583720775119,
+   "arm_minus_base_pp": -1.3031075021246075,
+   "base_mean_pp": -23.962729705626582,
+   "passes": true,
+   "per_seed_arm": {
+    "7": -0.2296032396907749,
+    "42": -0.27537841705164645,
+    "2027": -0.2529934594901143
+   },
+   "per_seed_base": {
+    "7": -0.22426599000689929,
+    "42": -0.2649179698061283,
+    "2027": -0.22969793135576982
+   },
+   "seeds": [
+    7,
+    42,
+    2027
+   ]
+  }
+ },
+ "gated_reject_clauses_fired": [
+  "mean(d_2026) <= 0",
+  "2026 has <= 1 seed with d > 0"
+ ],
+ "gated_segments": {
+  "2026": {
+   "SE": 0.6248888181795892,
+   "SE_backstop_branch": 0.6248888181795892,
+   "SE_measured_branch": 0.2389695461326403,
+   "branch_taken": "backstop",
+   "d_per_seed": {
+    "2027": -0.9929816049160276,
+    "42": -1.1924778248386187,
+    "7": -1.788509090460567
+   },
+   "mean_d": -1.324656173405071,
+   "n": 3,
+   "n_positive": 0,
+   "sd_d": 0.41390739536340765,
+   "sigma_hat_F10_from_T0x8": 0.5655282459583263,
+   "sigma_ref": 0.7653293752554029,
+   "three_SE": 1.8746664545387675,
+   "threshold_max_1_or_3SE": 1.8746664545387675
+  },
+  "pre2026": {
+   "SE": 3.1360799875159615,
+   "SE_backstop_branch": 3.1360799875159615,
+   "SE_measured_branch": 1.1583096055831656,
+   "branch_taken": "backstop",
+   "d_per_seed": {
+    "2027": -3.0303570427311204,
+    "42": -1.1620139129886724,
+    "7": 0.9790544710927382
+   },
+   "mean_d": -1.0711054948756848,
+   "n": 3,
+   "n_positive": 1,
+   "sd_d": 2.0062510877651096,
+   "sigma_hat_F10_from_T0x8": 2.838171788209541,
+   "sigma_ref": 3.840897880983972,
+   "three_SE": 9.408239962547885,
+   "threshold_max_1_or_3SE": 9.408239962547885
+  }
+ },
+ "not_a_deployment_authorisation": "any RECOMMEND is a book-behaviour change for the user; seed 42 only",
+ "paired_d_receipt": {
+  "path": "/workspace/dlarch_2026-09-24/receipts/PAIRED_D_F10FULL_2026-09-26.json",
+  "sha256": "2376c73def3649b1eff37e235f951e0e8ae3fcb82622cc0568f2fc0e04d5cc34"
+ },
+ "paired_d_verdict": "REJECT",
+ "reference_T0_column": {
+  "baseline": "DLARCH_T0_s",
+  "clause_5_dbar_vs_in_service_NC_is_dbar_itself": "every receipt is judged against DLARCH_REF_NC_s42X_scaled_rule_raw_UAFE, so dbar already IS the difference against the in-service NC reference; no extra computation is needed for clause 5.",
+  "drawdown_guardrail": "NOT evaluated here: section 3 condition 4 needs the maxdd table; dlarch_t3_verdict.py computes it and this device does not duplicate it.",
+  "reject_clauses_that_would_fire_NOT_THE_VERDICT": [
+   "mean(d_2026) <= 0"
+  ],
+  "role": "REFERENCE_ONLY",
+  "seeds_used": [
+   7,
+   42,
+   2027
+  ],
+  "segments": {
+   "2026": {
+    "SE": 0.6248888181795892,
+    "SE_backstop_branch": 0.6248888181795892,
+    "SE_measured_branch": 0.31725729250067064,
+    "branch_taken": "backstop",
+    "d_per_seed": {
+     "2027": 0.31472004500462614,
+     "42": 0.06170740080606807,
+     "7": -0.7379926030342057
+    },
+    "mean_d": -0.12052171907450382,
+    "n": 3,
+    "n_positive": 2,
+    "sd_d": 0.5495057496829021,
+    "sigma_hat_F10_from_T0x8": 0.5655282459583263,
+    "sigma_ref": 0.7653293752554029,
+    "three_SE": 1.8746664545387675,
+    "threshold_max_1_or_3SE": 1.8746664545387675
+   },
+   "pre2026": {
+    "SE": 3.1360799875159615,
+    "SE_backstop_branch": 3.1360799875159615,
+    "SE_measured_branch": 2.34235002799207,
+    "branch_taken": "backstop",
+    "d_per_seed": {
+     "2027": -8.081301052503841,
+     "42": -1.6752944620226071,
+     "7": -0.5653240088219823
+    },
+    "mean_d": -3.4406398411161434,
+    "n": 3,
+    "n_positive": 0,
+    "sd_d": 4.057069257592647,
+    "sigma_hat_F10_from_T0x8": 2.838171788209541,
+    "sigma_ref": 3.840897880983972,
+    "three_SE": 9.408239962547885,
+    "threshold_max_1_or_3SE": 9.408239962547885
+   }
+  },
+  "stage1_seeds_complete": true,
+  "verdict_if_this_were_the_gate_NOT_THE_VERDICT": "REJECT"
+ },
+ "self_sha256": "1524ad22ed87373c0971f775a4b27870cbaa81abe17b937dba04e6cd86455f89",
+ "utc": "2026-09-26T17:32:19Z"
+}

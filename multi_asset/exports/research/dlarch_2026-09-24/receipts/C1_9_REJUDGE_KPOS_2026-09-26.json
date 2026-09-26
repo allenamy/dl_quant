@@ -1,0 +1,125 @@
+{
+ "all_k_positive_D_negative": false,
+ "all_k_positive_within_1x": false,
+ "already_read_when_written": [
+  "F10_FULL s42 pooled spectrum",
+  "NC s42 / s2027 pooled spectra"
+ ],
+ "device": "dlarch_c19_rejudge.py",
+ "disposition": "NOT WRITTEN HERE -- lead (C1.10). This receipt only replaces the noise scale.",
+ "form": "D_k = mean_s{42,2027}(FULL_s - NC_s); sigma_k = sd_s{42,2027,7}(FULL_s), ddof 1; within iff |D_k| <= sigma_k",
+ "inputs": {
+  "FULL2027": {
+   "arm_dir": "/workspace/dlarch_2026-09-24/T3/G1_T0_nomask_frac1/f10_s2027",
+   "path": "/workspace/dlarch_2026-09-24/receipts/F10FULL_LEAK_s2027_23folds_2026-09-26.json",
+   "sha256": "6fd19e533a0a8e59b25cf88991e4fd38ad4d6328f7b895f0a5bb0a4c10b2d3d3"
+  },
+  "FULL42": {
+   "arm_dir": "/workspace/dlarch_2026-09-24/T3/G1_T0_nomask_frac1/f10_s42",
+   "path": "/workspace/dlarch_2026-09-24/receipts/F10FULL_LEAK_s42_23folds_2026-09-26.json",
+   "sha256": "38c452bdce7c6ca771fdde8719321804839b6b372692a719c76677a6772696bc"
+  },
+  "FULL7": {
+   "arm_dir": "/workspace/dlarch_2026-09-24/T3/G1_T0_nomask_frac1/f10_s7",
+   "path": "/workspace/dlarch_2026-09-24/receipts/F10FULL_LEAK_s7_23folds_2026-09-26.json",
+   "sha256": "013c02d1d0b8a8d73ad32727beee6fd8083ba64be8a36b4ce7550ab010d36bdc"
+  },
+  "NC2027": {
+   "arm_dir": "/dev/shm/news2_2026-09-23/work/f10_s2027",
+   "path": "/workspace/dlarch_2026-09-24/receipts/LEAK_NC_INSERVICE_s2027_2026-09-26.json",
+   "sha256": "22f5ad140e33d986efb4aceaec613c82600adb6bea56d3d319d86cc6b241c036"
+  },
+  "NC42": {
+   "arm_dir": "/dev/shm/news2_2026-09-23/work/f10_s42",
+   "path": "/workspace/dlarch_2026-09-24/receipts/LEAK_NC_INSERVICE_s42_2026-09-26.json",
+   "sha256": "2571285607b0e1168f68da327a806803a852e56f9163af36d43d16d2385cb1c3"
+  }
+ },
+ "multiple_inherited_from_C1_9_table_lead_to_confirm": 1.0,
+ "n_within": 3,
+ "named_limit": "sigma from n=3 seeds has a wide sampling band (a 1-sided 80% upper bound is ~1.8x the point value); D_k averages only 2 same-seed pairs because in-service NC exists at 42 and 2027 only.",
+ "per_k": {
+  "1": {
+   "D_k_mean_same_seed": 0.0006067978516954139,
+   "D_negative_safe_direction": false,
+   "FULL_s2027": 0.009481082229372214,
+   "FULL_s42": 0.008978789262191117,
+   "FULL_s7": 0.01303249991554163,
+   "NC_s2027": 0.008427272166007206,
+   "NC_s42": 0.008819003622165297,
+   "abs_D_over_sigma": 0.27460273195234847,
+   "d_same_seed_s2027": 0.0010538100633650082,
+   "d_same_seed_s42": 0.00015978564002581963,
+   "descriptive_C1_9_scale_NC_pair_spread": 0.00039173145615809153,
+   "descriptive_mean3FULL_minus_mean2NC": 0.0018743192416154006,
+   "sigma_k_FULL_3seed_sd": 0.0022097298427486544,
+   "within_1x": true
+  },
+  "2": {
+   "D_k_mean_same_seed": -0.0018850704690353823,
+   "D_negative_safe_direction": true,
+   "FULL_s2027": 0.003552056989678851,
+   "FULL_s42": 0.0028847738990922505,
+   "FULL_s7": 0.006936476753320771,
+   "NC_s2027": 0.004790724159411598,
+   "NC_s42": 0.005416247667430268,
+   "abs_D_over_sigma": 0.8677374432760379,
+   "d_same_seed_s2027": -0.001238667169732747,
+   "d_same_seed_s42": -0.0025314737683380176,
+   "descriptive_C1_9_scale_NC_pair_spread": 0.0006255235080186699,
+   "descriptive_mean3FULL_minus_mean2NC": -0.0006457166993903089,
+   "sigma_k_FULL_3seed_sd": 0.0021723972886528056,
+   "within_1x": true
+  },
+  "3": {
+   "D_k_mean_same_seed": -0.0021921259756399105,
+   "D_negative_safe_direction": true,
+   "FULL_s2027": 0.0016488305541235752,
+   "FULL_s42": 0.0010764580594388267,
+   "FULL_s7": 0.005276876875375988,
+   "NC_s2027": 0.0032607349176380154,
+   "NC_s42": 0.0038488056472042067,
+   "abs_D_over_sigma": 0.9623315598706832,
+   "d_same_seed_s2027": -0.0016119043635144403,
+   "d_same_seed_s42": -0.0027723475877653803,
+   "descriptive_C1_9_scale_NC_pair_spread": 0.0005880707295661913,
+   "descriptive_mean3FULL_minus_mean2NC": -0.0008873817861083152,
+   "sigma_k_FULL_3seed_sd": 0.002277932125529049,
+   "within_1x": true
+  },
+  "4": {
+   "D_k_mean_same_seed": -0.0022827403725140722,
+   "D_negative_safe_direction": true,
+   "FULL_s2027": 0.0033404430283442725,
+   "FULL_s42": 0.00269588729834951,
+   "FULL_s7": 0.006565041739693727,
+   "NC_s2027": 0.005054642779471751,
+   "NC_s42": 0.005547168292250176,
+   "abs_D_over_sigma": 1.1011799718463147,
+   "d_same_seed_s2027": -0.0017141997511274784,
+   "d_same_seed_s42": -0.002851280993900666,
+   "descriptive_C1_9_scale_NC_pair_spread": 0.0004925255127784254,
+   "descriptive_mean3FULL_minus_mean2NC": -0.0011004481803984596,
+   "sigma_k_FULL_3seed_sd": 0.0020729948154493507,
+   "within_1x": false
+  },
+  "5": {
+   "D_k_mean_same_seed": -0.0026211846842341367,
+   "D_negative_safe_direction": true,
+   "FULL_s2027": 0.0035338550304786476,
+   "FULL_s42": 0.003337158570026122,
+   "FULL_s7": 0.00613469506586641,
+   "NC_s2027": 0.0056555702116304965,
+   "NC_s42": 0.006457812757342547,
+   "abs_D_over_sigma": 1.6786568867246383,
+   "d_same_seed_s2027": -0.002121715181151849,
+   "d_same_seed_s42": -0.0031206541873164246,
+   "descriptive_C1_9_scale_NC_pair_spread": 0.0008022425457120501,
+   "descriptive_mean3FULL_minus_mean2NC": -0.0017214552623627949,
+   "sigma_k_FULL_3seed_sd": 0.0015614773364130057,
+   "within_1x": false
+  }
+ },
+ "self_sha256": "3b654b223f9a89f703633a86317618bc65d58f77da48e37cd5b25cbff0cb310f",
+ "utc": "2026-09-26T17:34:03Z"
+}

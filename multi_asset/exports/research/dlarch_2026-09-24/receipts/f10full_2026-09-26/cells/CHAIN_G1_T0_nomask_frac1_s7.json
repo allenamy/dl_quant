@@ -1,0 +1,108 @@
+{
+  "device": "dlarch_chain_run.py",
+  "self_sha256": "6345132f245433ad702f15cf8d374b126bc0827482e59e25200a6ee8760bf9e3",
+  "mode": "FAMILY_MEMBER",
+  "seed": 7,
+  "root": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_s7",
+  "f10_source": "/workspace/dlarch_2026-09-24/T3/G1_T0_nomask_frac1/f10_s7",
+  "train_arm": "G1_T0_nomask_frac1",
+  "derived_devices": "/workspace/dlarch_2026-09-24/chain/devices",
+  "reference_is_the_deployed_book": false,
+  "reference_note": null,
+  "derive_receipt_sha256": "42f65952b74c73dd28bc116833701236945d88fbe5df7b4510217be76aca4e97",
+  "utc_start": "2026-09-26T08:13:56Z",
+  "mem_gate_at_start": {
+    "memory_max_bytes": "60999999488",
+    "anon_bytes": 158629888,
+    "shmem_bytes": 22400479232,
+    "available_gib_v2": 35.8,
+    "gate_threshold_gib": 22,
+    "gate_passes_now": true
+  },
+  "steps": {
+    "combo": {
+      "rc": 0,
+      "seconds": 157.4,
+      "outputs": {
+        "scaled_diagnostic.npz": "d56afbfc04cc914358cb6e11cf0fc9d5e76bc9f46eaf4b750381b084f7b49ab0",
+        "literal.npz": "7ff320b926adfd45662bfcb1c9ed6af3da318c7869d2d26c47bfca5b31a199f4",
+        "TARGET_RECEIPT.json": "f67ffd559193f03b14be113c40cc1d8d4b869a2158c5c1cdb4c8eb3159d2970b"
+      }
+    },
+    "adapter_spec": {
+      "rc": 0,
+      "seconds": 0.2,
+      "spec_sha256": "8da7029d5148f004ff7a94b76be553814104d19c4669d658304566bbffd7bc2b"
+    },
+    "adapter": {
+      "rc": 0,
+      "seconds": 2.6,
+      "readback_verified": {
+        "receipt_parses": true,
+        "npz_arrays_read_back": true,
+        "receipt_npz_sha_matches_artifact": true,
+        "why": "ovn_adapter rewrites the receipt then hashes it by re-reading; nothing asserted the rewrite is readable (E-0925-A family, flagged by fresh)"
+      },
+      "targets_npz_sha256": "d70971febb265c2bc8597b08076583cee5797419ce067c30fe6fb46cbb5ba68b",
+      "targets_json_sha256": "ff58faeea5c07edfc0832a6334e580b804ac2dab2416157e65c14d469b1e5228"
+    },
+    "run_config": {
+      "path": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_s7/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_s7.json",
+      "sha256": "5617658413f31696c048809b77a2f3358a0fe3ad46c773b6b43cffbef8ea77c7",
+      "arm": "DLARCH_G1_T0_nomask_frac1_s7",
+      "tag": "DLARCH_G1_T0_nomask_frac1_s7|scaled|rule|raw|UAFE",
+      "base_tag_used": "NEWS2_s42X|scaled|rule|raw|UAFE",
+      "pod_root": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_s7",
+      "base_config": "/dev/shm/news2_2026-09-23/configs/RUN_CONFIG_NEWS2_s42X_2026-09-23.json",
+      "base_config_sha256": "9526ad1883129f689bff53f9b68b91ade3db8885f67a43f8c21e038fb2e85e2a"
+    },
+    "engine": {
+      "rc": 0,
+      "seconds": 712.5,
+      "path_npz_found": 32,
+      "expected": 32,
+      "agg_npz_found": 1,
+      "all_npz": 33,
+      "count_note": "path_npz_found counts PATH*.npz only; the aggregate is counted separately so the field matches its name"
+    }
+  },
+  "engine_gate": [
+    {
+      "utc": "2026-09-26T08:16:36Z",
+      "foreign_engine_pgids": {},
+      "avail_gib": 35.79,
+      "mem_gate": {
+        "memory_max_bytes": "60999999488",
+        "anon_bytes": 174149632,
+        "shmem_bytes": 22400479232,
+        "available_gib_v2": 35.79,
+        "gate_threshold_gib": 22,
+        "gate_passes_now": true
+      },
+      "waited_s": 0,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_s7/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_s7.json:launch.min_available_gib (22.0) + named margin 2.0",
+      "shm_free_gib": 7.08,
+      "shm_free_min_gib": 4.0,
+      "max_foreign_engines": 2,
+      "PASS": true
+    }
+  ],
+  "mem_gate_before_engine": {
+    "memory_max_bytes": "60999999488",
+    "anon_bytes": 174149632,
+    "shmem_bytes": 22400479232,
+    "available_gib_v2": 35.79,
+    "gate_threshold_gib": 22,
+    "gate_passes_now": true
+  },
+  "mem_gate_after_engine": {
+    "memory_max_bytes": "60999999488",
+    "anon_bytes": 174149632,
+    "shmem_bytes": 22400479232,
+    "available_gib_v2": 35.79,
+    "gate_threshold_gib": 22,
+    "gate_passes_now": true
+  },
+  "utc_end": "2026-09-26T08:28:29Z"
+}

@@ -1,0 +1,56 @@
+{
+ "IC_shuf": -0.0031411463682759124,
+ "VERDICT": "PASS",
+ "criterion": "IC_shuf <= p97.5(null of the shuffled model own predictions, B=2000, seeds 20260926+b) => PASS; one-sided. Authored/confirmed by lead (C1.12, CTL1_THRESHOLD_CONFIRMED sha 9eb2cbd1)",
+ "descriptive_per_anchor_sd": {
+  "null_draws_used": 200,
+  "null_mean_of_per_anchor_sd": 0.049812432133553075,
+  "shuffled_model": 0.0789526472568395
+ },
+ "device": "dlarch_ctl1_verdict.py",
+ "fold_receipt_sha256": "899f2b45f71791c6688f3aee81f75bb2b4338208411661063c7a2c3b1d037d7b",
+ "n_anchors_scored": 108,
+ "n_anchors_skipped": 1,
+ "null_mean": -9.403745144934933e-05,
+ "null_p97_5": 0.009527566925765497,
+ "null_percentiles": {
+  "p2.5": -0.009551385868036675,
+  "p5": -0.007965106726361484,
+  "p50": -3.510525413005963e-05,
+  "p95": 0.007867146652305465,
+  "p97.5": 0.009527566925765497
+ },
+ "null_receipt": {
+  "path": "/workspace/dlarch_2026-09-24/receipts/CTL1_VERDICT_2026-09-26_NULL_B2000.json",
+  "sha256": "2a2b512b8e79dfe33f92250fb290e935f9d807a2653c3a5174cb9558d0156595"
+ },
+ "null_sd": 0.004926896614387226,
+ "reference_unshuffled": {
+  "mean_ic": 0.050909852908802906,
+  "receipt_sha256": "54c9fa765b9b708ca4d9a13b44b7d210e909e04ceaa68f5617f8a81ad7df33f4",
+  "z": 10.315434764667355
+ },
+ "scope_not_covered": "a PASS does not prove no leakage anywhere; it says the model cannot learn a cross-sectional signal from shuffled labels on this fold. Features built with future information (upstream NEWS_FEATURES.npz) are outside this control (prereg \u00a74).",
+ "scores_sha256": "0d95d0594b4079d2518c03259266dc687ad597111b793a2150d549db8b665ae8",
+ "self_sha256": "382bc74df0e3882f3d513e2c9fe0699d51fd16c60b10ba38ea16c05f085c284c",
+ "shuffle_census": {
+  "anchors_permuted": 10291,
+  "cells_permuted": 2784994,
+  "finiteness_pattern_identical": true,
+  "per_anchor_member_multiset_identical": true,
+  "rng": "default_rng(20260926 + 42)",
+  "scope": "member AND finite cells, within each anchor"
+ },
+ "shuffled_fold": "/workspace/dlarch_2026-09-24/T3/G1_T0_nomask_SHUFFLED_frac1/f10_s42/202609",
+ "train_params": {
+  "arm": "T0",
+  "band_temp_div": 10.0,
+  "clamp_mode": "clamp",
+  "no_mask": true,
+  "seed": 42,
+  "shuffle_labels": true,
+  "train_frac": 1.0
+ },
+ "utc": "2026-09-26T17:31:49Z",
+ "z_shuf_vs_own_null": -0.6184641479848755
+}

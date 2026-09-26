@@ -1,0 +1,30 @@
+17:25:58Z [ctl1] === START pgid=3282471 pid=3282471 ===
+17:25:58Z [ctl1] shuffled_outputs_before_start=0
+17:25:59Z [ctl1] gpu before: 0 %, 2 MiB
+17:26:10 train params b73b3808aad7f140 {"arm": "T0", "band_temp_div": 10.0, "clamp_mode": "clamp", "no_mask": true, "seed": 42, "shuffle_labels": true, "train_frac": 1.0}
+17:26:46 shuffle-labels census {"rng": "default_rng(20260926 + 42)", "anchors_permuted": 10291, "cells_permuted": 2784994, "finiteness_pattern_identical": true, "per_anchor_member_multiset_identical": true, "scope": "member AND finite cells, within each anchor"}
+17:26:47 seat census {"population": "ready anchors with finite WL", "n_population": 9247, "n_anchors_total": 10333, "n_excluded_not_ready_or_nonfinite_WL": 1086, "raw_WL_mean": [0.48381054401397705, 0.1610119640827179, 0.35517749190330505], "masked_WL_mean": [0.48381054401397705, 0.1610119640827179, 0.35517749190330505], "anchors_where_WL_changed": 0, "masking_applied": false}
+17:26:47 F10 admission G1_T0_nomask_SHUFFLED_frac1 42 {'fold': '202609', 'accepted_windows': 178, 'rejected': {'unpriced_possible_holding': 9}, 'train_anchors': 9078, 'max_train_label_end': 1787356800, 'test_start': 1788220800, 'cutoff': 1787356800}
+17:27:25 F10 G1_T0_nomask_SHUFFLED_frac1 202609 42 {'epoch_index': 0, 'train_loss': 4.41516841864318, 'alpha': 0.0991455465555191, 'seconds': 29.86474340595305} g4_band_open 1.0
+17:27:53 F10 G1_T0_nomask_SHUFFLED_frac1 202609 42 {'epoch_index': 1, 'train_loss': 3.9887007809756847, 'alpha': 0.09748013317584991, 'seconds': 28.185490541160107} g4_band_open 1.0
+17:28:21 F10 G1_T0_nomask_SHUFFLED_frac1 202609 42 {'epoch_index': 2, 'train_loss': 3.7551289950863698, 'alpha': 0.09588995575904846, 'seconds': 27.819409968331456} g4_band_open 1.0
+17:28:49 F10 G1_T0_nomask_SHUFFLED_frac1 202609 42 {'epoch_index': 3, 'train_loss': 3.496732189749064, 'alpha': 0.09459170699119568, 'seconds': 28.386306585744023} g4_band_open 1.0
+17:29:17 F10 G1_T0_nomask_SHUFFLED_frac1 202609 42 {'epoch_index': 4, 'train_loss': 3.333204847038462, 'alpha': 0.09365691244602203, 'seconds': 28.237129108048975} g4_band_open 1.0
+17:29:45 F10 G1_T0_nomask_SHUFFLED_frac1 202609 42 {'epoch_index': 5, 'train_loss': 3.125961153359895, 'alpha': 0.09291963279247284, 'seconds': 27.80770979076624} g4_band_open 1.0
+17:30:13 F10 G1_T0_nomask_SHUFFLED_frac1 202609 42 {'epoch_index': 6, 'train_loss': 2.922195370947377, 'alpha': 0.09238970279693604, 'seconds': 28.108583108521998} g4_band_open 1.0
+17:30:42 F10 G1_T0_nomask_SHUFFLED_frac1 202609 42 {'epoch_index': 7, 'train_loss': 2.755564952499411, 'alpha': 0.0919310599565506, 'seconds': 28.584637188352644} g4_band_open 1.0
+17:30:44 F10_FOLD_DONE G1_T0_nomask_SHUFFLED_frac1 202609 42
+DLARCH_TRAIN_DONE arm=G1_T0_nomask_SHUFFLED_frac1 seed=42 params=110082 out=/workspace/dlarch_2026-09-24/T3/G1_T0_nomask_SHUFFLED_frac1/f10_s42 oof_sha=80d5b3c475cfeef4 receipt_sha=683729901ea32655
+17:30:48Z [ctl1] training rc=0
+fold            : 202609
+anchors scored  : 108 (skipped 1, MIN_NAMES=20)
+unshuffled IC   : -0.003141
+null (B=2000)   : mean -0.000094  sd 0.004927  [p2.5 -0.009551, p97.5 +0.009528]
+z vs null       : -0.62
+POWER           : NO_RESOLUTION
+  the unshuffled model is NOT clearly above the null on this fold, so a shuffled run landing at the null would be uninformative -- it would happen with or without leakage. Spending GPU on control 1 for this fold is not justified as written.
+receipt=/workspace/dlarch_2026-09-24/receipts/CTL1_VERDICT_2026-09-26_NULL_B2000.json sha256=2a2b512b8e79dfe3
+IC_shuf -0.003141  own-null p97.5 +0.009528  z -0.62  (unshuffled ref +0.050910 z +10.32)
+CTL1_VERDICT=PASS out=/workspace/dlarch_2026-09-24/receipts/CTL1_VERDICT_2026-09-26.json sha256=8fa068e1683b5f4ba03e620f6da7375a0f2f104ed852e668fe35e3b659eae155
+17:31:49Z [ctl1] verdict rc=0
+CTL1_RUN_DONE rc=0
