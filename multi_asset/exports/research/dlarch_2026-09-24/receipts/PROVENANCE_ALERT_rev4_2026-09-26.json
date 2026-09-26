@@ -1,0 +1,49 @@
+{
+ "receipt": "PROVENANCE_ALERT_rev4_2026-09-26",
+ "owner": "dlarch",
+ "utc": "2026-09-26T00:1xZ",
+ "raised_because": "DECISION_RULE_dl_program_book_gate_2026-09-25.md revision 4 (commit 8d82c31b1) carries the header claim 'written before any T3 book-layer reading'. The timestamps contradict that claim.",
+
+ "timeline_utc": [
+  {"t": "2026-09-25T18:22:16Z", "event": "the three T3 book-layer cells finished", "evidence": "CHAIN/t3_cells_driver.log line 'all T3 cells done'"},
+  {"t": "2026-09-25T18:27:53Z", "event": "dlarch committed the T3 readings (per-seed dbar, both columns, sd(d))", "evidence": "commit 0cbc80cb4, author date 2026-09-26 02:27:53 +0800"},
+  {"t": "2026-09-25T~18:3xZ", "event": "dlarch sent lead the per-seed double-column table and sd(d)", "evidence": "message titled 'T3 3/3 done: T3 is WORSE than T0 and than NC in 2026 (-1.418 / -3.015); sd(d) verified by two agreeing routes'"},
+  {"t": "2026-09-25T23:57:36Z", "event": "revision 4 committed", "evidence": "commit 8d82c31b1, author date 2026-09-26 07:57:36 +0800"}
+ ],
+ "gap": "revision 4 postdates the delivery of the readings by about 5.5 hours",
+
+ "why_it_matters_substantively": {
+  "change": "revision 4 moves the MAIN criterion from the pre-2026 segment to the 2026 segment",
+  "effect_on_the_verdict": "the two segments give qualitatively DIFFERENT outcomes for T3, so the choice of window is outcome-relevant",
+  "original_section_3_pre2026": {"threshold": 9.408, "measured_mean_d": -0.453,
+    "reading": "|d| is 4.8% of the floor -> NO RESOLUTION"},
+  "revision_4_2026": {"threshold": 1.875, "measured_mean_d": -1.418, "seeds_positive": "0/3",
+    "reading": "all three conditions fail -> DECISIVE REJECT"},
+  "summary": "switching the main window turns 'cannot be resolved' into 'clearly rejected'"
+ },
+
+ "disclosures": {
+  "direction_of_bias": "the change is AGAINST dlarch's own arm. Both readings reject T3; revision 4 only makes the rejection harder. This alert brings dlarch no benefit, which is stated so the alert is not read as advocacy for a looser gate.",
+  "who_should_judge": "NOT dlarch. dlarch has a stake in what this gate admits, so whether revision 4 still stands is lead's determination, per the project rule that a criterion must not be authored or adjudicated by a party with an interest in what it admits.",
+  "benign_explanations_that_remain_open": [
+   "the user's ruling may have been formed independently of dlarch's readings",
+   "the message may have been unread in lead's queue when revision 4 was written",
+   "either way the falsifiable header claim is now falsified and needs correcting, because a later reader would otherwise believe this gate was written blind"
+  ]
+ },
+
+ "arithmetic_verified_independently": {
+  "sigma_hat_F10_2026": 0.5655,
+  "sigma_ref_2026": 0.7653,
+  "lead_stated": 0.766,
+  "SE_2026_measured_branch": 0.0913,
+  "SE_2026_backstop_branch": 0.6249,
+  "SE_2026_taken": 0.6249,
+  "three_SE": 1.875,
+  "lead_stated_three_SE": "~1.88",
+  "note": "under revision 4 the backstop branch is 6.8x the measured branch, because sd(d_2026) is only 0.158. The 'backstop always binds' observation raised on 2026-09-25 is therefore MORE extreme in the 2026 segment, not less."
+ },
+
+ "action_withheld": "dlarch will not implement the verdict device under revision 4 until lead disposes of this timeline, because coding it would freeze a criterion whose authorship is unresolved into the instrument.",
+ "action_taken": "reported to lead with the timestamps; this receipt filed so the alert exists on disk and not only in a message."
+}
