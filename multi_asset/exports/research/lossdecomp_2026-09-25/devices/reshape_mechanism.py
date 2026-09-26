@@ -23,7 +23,7 @@ def mkt(tA, tB):
 rows = []
 for a in LB["anchors"]:
     A = calendar.timegm(time.strptime("2026-" + a["A"], "%Y-%m-%dT%H:%MZ"))
-    if not a.get("priced"): continue
+    if not a.get("priced") or "L1_reshaped" not in (a.get("pnl_by_layer") or {}): continue
     d = a["pnl_by_layer"]["L1_reshaped"] - a["pnl_by_layer"]["L0_raw"]; n0 = a["net_by_layer"]["L0_raw"]; m = mkt(A + 1800, A + 14400 + 1800)
     if m is None: continue
     rows.append({"A": a["A"], "net_L0": round(n0, 1), "r_mkt": round(m, 6), "est": round(-n0 * m, 1), "reshape_step": round(d, 1)})
