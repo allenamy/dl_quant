@@ -1,0 +1,118 @@
+{
+ "device": "d10_parity_gate.py",
+ "self_sha256": "521c6a2847745aa3629da50a8fa948541224b929e27a4d2c99e001f544b97278",
+ "criteria": "docs/DECISION_RULE_D10_stage2_2026-09-26.md (1814d4334, rev 1 57fa49eea) \u00a72",
+ "mode": "GATE",
+ "sides": {
+  "a": {
+   "path": "/dev/shm/d10_2026-09-25/ms/rebuilt_features_snap.npz",
+   "sha256": "209c8f5338d34cf497661256d45fb6532f7e327447b32b54a6f6fa8896a700cd",
+   "anchors": 10333,
+   "symbols": 829
+  },
+  "b": {
+   "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+   "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+   "anchors": 10333,
+   "symbols": 829
+  }
+ },
+ "member_source": {
+  "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+  "construction": "members[i] = m[off[i]:off[i+1]]",
+  "explicitly_not": "cand = mask & crypto",
+  "total_member_cells_on_axis": 2785754
+ },
+ "anchor_window": {
+  "max_utc": "2026-09-01T02:00Z",
+  "epoch": 1788228000,
+  "why": "the two sides' event sets are IDENTICAL below the spliced ledger's cut 1788228000 = 2026-09-01T02:00Z (measured: 2,633,090 each, 0 events on either side only, 0 symbols differing), so restricting here removes the coverage factor and leaves the rule difference"
+ },
+ "axis": {
+  "anchor_sets_equal": true,
+  "comparable_anchors": 10333,
+  "symbol_sets_equal": true,
+  "note": "only the intersection is comparable; equality is reported, never asserted"
+ },
+ "columns": {
+  "fund_now": {
+   "status": "COMPARED",
+   "a_key": "fn_v",
+   "b_key": "fn_v",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "csr[member_entry]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2742554,
+   "equal": 2742554,
+   "DIFFER": 0,
+   "book_cells_compared": 2742554,
+   "book_equal": 2742554,
+   "book_DIFFER": 0,
+   "closes": true,
+   "DIFFER_nan_vs_finite": 0,
+   "DIFFER_both_finite": 0,
+   "magnitude_buckets": {},
+   "abs_diff_stats_both_finite": null,
+   "why_split": "one DIFFER count conflates a coverage difference (NaN vs finite), a float-level difference (~1e-20) and a large value difference (~1e-2); merging them hides the last inside the first two. DESCRIPTIVE ONLY -- per lead 2026-09-26 the gate stays bitwise: with both sides calling the same function even a 1e-12 difference must not occur, so a float-level bucket is evidence of two implementations, not a pass",
+   "examples": [],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  },
+  "fund_ema": {
+   "status": "COMPARED",
+   "a_key": "fe_v",
+   "b_key": "fe_v",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "csr[member_entry]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2742554,
+   "equal": 2742554,
+   "DIFFER": 0,
+   "book_cells_compared": 2742554,
+   "book_equal": 2742554,
+   "book_DIFFER": 0,
+   "closes": true,
+   "DIFFER_nan_vs_finite": 0,
+   "DIFFER_both_finite": 0,
+   "magnitude_buckets": {},
+   "abs_diff_stats_both_finite": null,
+   "why_split": "one DIFFER count conflates a coverage difference (NaN vs finite), a float-level difference (~1e-20) and a large value difference (~1e-2); merging them hides the last inside the first two. DESCRIPTIVE ONLY -- per lead 2026-09-26 the gate stays bitwise: with both sides calling the same function even a 1e-12 difference must not occur, so a float-level bucket is evidence of two implementations, not a pass",
+   "examples": [],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  },
+  "iv": {
+   "status": "COMPARED",
+   "a_key": "iv_v",
+   "b_key": "iv_v",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "csr[member_entry]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2742554,
+   "equal": 2742554,
+   "DIFFER": 0,
+   "book_cells_compared": 2742554,
+   "book_equal": 2742554,
+   "book_DIFFER": 0,
+   "closes": true,
+   "DIFFER_nan_vs_finite": 0,
+   "DIFFER_both_finite": 0,
+   "magnitude_buckets": {},
+   "abs_diff_stats_both_finite": null,
+   "why_split": "one DIFFER count conflates a coverage difference (NaN vs finite), a float-level difference (~1e-20) and a large value difference (~1e-2); merging them hides the last inside the first two. DESCRIPTIVE ONLY -- per lead 2026-09-26 the gate stays bitwise: with both sides calling the same function even a 1e-12 difference must not occur, so a float-level bucket is evidence of two implementations, not a pass",
+   "examples": [],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  }
+ },
+ "totals": {
+  "columns_compared": 3,
+  "columns_absent": [],
+  "any_DIFFER": false,
+  "any_book_DIFFER": false,
+  "total_DIFFER": 0,
+  "total_book_DIFFER": 0
+ },
+ "verdict": "PARITY_GREEN"
+}
