@@ -94,6 +94,16 @@ def main():
     if do_engine:
         shm = CR.shm_free_gib(); rec["shm_free_gib_before_gate"] = shm
         assert shm is not None and shm >= SHM_MIN_GIB, f"/dev/shm free {shm} GiB < {SHM_MIN_GIB}: not starting (lead rule)"
+        # rev 1 (dlarch's condition I missed on the first cell, 20:18Z): R1.4 cells have priority -- no engine start while any
+        # CHAIN/.claim_NESTEP_s* exists. chain_run's engine_gate does not look at claims, so this wait is its own step, recorded.
+        import glob as _g
+        claims, t_c = [], time.monotonic()
+        while True:
+            claims = sorted(_g.glob("/workspace/dlarch_2026-09-24/CHAIN/.claim_NESTEP_s*"))
+            if not claims: break
+            assert time.monotonic() - t_c < 14400, f"R1.4 claims still present after 4 h: {claims}"
+            time.sleep(60)
+        rec["r14_claims_waited_s"] = int(time.monotonic() - t_c)
         rec["engine_gate"] = CR.engine_gate(cpath)
         rec["mem_gate_before_engine"] = CR.mem_gate(); rec["shm_free_gib_at_start"] = CR.shm_free_gib()
         t0 = time.monotonic()
