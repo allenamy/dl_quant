@@ -1,0 +1,65 @@
+{
+ "schema": "nc_files_contract_v1",
+ "label": "gapfix_20260926",
+ "built_utc": "2026-09-26T18:07:08Z",
+ "device_sha256": "5bccf4f2295e04e4ef95dc443e7123f3e96defed7b8270563844523ab9a21efa",
+ "home": "/Users/haosiyu",
+ "tree": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/integ/treeGAP3",
+ "tree_receipt_sha256": "bbbc95c801a425cd5d6c5c08689e1edb9d876308e2a4e71ece47675948decf7f",
+ "files": [
+  {
+   "dest": "wide_shadow/fea171/combo_stage.py",
+   "candidate_sha256": "fa0c7466e7b5b305a3cbcb0f0012562b806ff706ba24bef8a55f6b09bf64cf55",
+   "baseline_sha256": "12a76de89831fb42d05ec722f2e2506d6b288b4b9f5b86be04bc390c789a62a9"
+  },
+  {
+   "dest": "wide_shadow/fea171/members_rule.py",
+   "candidate_sha256": "be6915608818ad48ea94b26c2a63b6cb8518582fd3e8b21cced6d4607a08a757",
+   "baseline_sha256": null
+  },
+  {
+   "dest": "wide_shadow/fea171/prev_state.py",
+   "candidate_sha256": "9729dafa5f4176cd73c0246adbdaa9eb80966ffc8d7feb9f7a11b7a43d52fb2a",
+   "baseline_sha256": null
+  },
+  {
+   "dest": "wide_shadow/fea171/tests_prev_state.py",
+   "candidate_sha256": "1fcfe0e231d17962547d3c2db66b0e02af6315444f4e68ce2d5c15af735c2707",
+   "baseline_sha256": null
+  }
+ ],
+ "archive_moves": [],
+ "unchanged": {
+  "wide_shadow/fea171/beta_overlay_producer.py": "fc990a0b7bf34199430968ea015e90d9312e65b3d3d7ec2484f2033dba5b9846",
+  "wide_shadow/fea171/combo_live_daemon.sh": "97ab9ef589df444241c490ebb69c523dce5aafb4c281da1684d941b5ebab54af",
+  "wide_shadow/fea171/dlw_features.py": "db985ee41f825f0dae0c92846fb47e086ee3f75da1df8e72ba7597ed536d8155",
+  "wide_shadow/fea171/durable_io.py": "34da08f875055eedc48d0823fe51a6013d610552e603c9317cd18a69e7f1d28c",
+  "wide_shadow/fea171/f10_live_s42_np.npz": "3d7d050f78a98cb09586ac9c75c0c12526bfd54b5d9f4c6d151f6121b333139f",
+  "wide_shadow/fea171/f8_higher_order_features.py": "0e23d359ad2764ddf7d2a6cf01acfcf62efb721578039704725efd5540cb28b7",
+  "wide_shadow/fea171/feature_cache_identity.py": "57070424895e5c0e2f5a140993b0c07fef1a22a285b2210e460919c7157ae24c",
+  "wide_shadow/fea171/nc_contract.py": "316a0b9bcf1461401740ebd79a3292a9bfcdc49d56f111219ff6e126110650cb",
+  "wide_shadow/fea171/tradability.py": "a9fad82ce26845a6f3d61cfa9077a6286949346e92c1fbfea17a663363264914",
+  "wide_shadow/shadow_bundle/MANIFEST.json": "d4290418f398466d00582600f343d0ea72f1348ef0ae45f547a89dac74490e53",
+  "wide_shadow/shadow_bundle/config.json": "3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e",
+  "wide_shadow/shadow_bundle/crypto_axis.json": "a4df6824fbcdf613eba5802c3a44c6dc6514e7d1a6f8df288382b1494dc01d2f",
+  "wide_shadow/shadow_bundle/slow2026.txt": "700d9e7b7ee992a786528477ff9007ec93c3d16654f1abc52766e5406654020d",
+  "wide_shadow/shadow_loop_v3.py": "52baf979095752642cde16b1281911c6692f3251cd3b9d6d214a4b624d8d5f38"
+ },
+ "services": {
+  "stop": [
+   "com.hsy.shadowloop",
+   "com.hsy.combolive",
+   "com.hsy.combosnap",
+   "com.hsy.comboparity"
+  ],
+  "not_loaded": [
+   "com.hsy.sidecar"
+  ]
+ },
+ "forbidden_dest_prefixes": [
+  "wide_shadow/state/"
+ ],
+ "release_basis": {
+  "statement": "code-only producer release: gap class fix (combo_stage previous state = most recent valid state before A with a named source and a declared bound; member history of anchors the producer never ran recomputed with the producer rule). No model, state or book-configuration change; with no gap the outputs are byte-identical (receipt C0). Acceptance: multi_asset/exports/research/gap_classfix_2026-09-26/ACCEPTANCE_gap_classfix_2026-09-26.md."
+ }
+}
