@@ -8,13 +8,16 @@
       fixed rule vs +2,464 recorded; the engine cell's post-clamp |net| p95 was 0.08 %. Not neutral ⇒ the clamped names that are still
       pinned (reshape.clamped_after_reshape.names, pinned_net_usdt) are listed so the residual is attributed, never silently passed.
       The pre-release anchors' book_net_usdt are printed beside it (the same field, same caliber).
-  (c) NO QUANTITY for popped names: in orders rows of this rebalance_id, every row of a name in reshape.popped_names must have
-      |intended_notional| == 0 (or absent) and filled_qty == 0 (or absent); any other row = RED, listed.
+  (c) NOTHING SENT TO THE VENUE for popped names (rev 1, lead ruling 2026-09-26 ~05:0xZ, committed before the 08Z anchor): in orders
+      rows of this rebalance_id, every row of a name in reshape.popped_names must have submit_ts empty, request_ledger empty and no fill
+      (filled_qty empty or 0, first_fill_ts empty); any other row = RED, listed. rev 0 read the ledger's intended_notional (the
+      residual's size, which a skipped_min_notional plan row also carries) as an order quantity and judged the 04Z D4 skip rows RED —
+      a mis-operationalisation of the intent accepted with D4 before any reading ("no order with a quantity goes to the venue").
 Unknown is not zero: a missing row / field is UNDECIDED (named), never PASS.
 usage: /usr/bin/python3 accept_dustpop_first_anchor.py <anchor_ts> [--ref-anchors a,b,c]"""
 import json, math, os, sys, time
 
-LIVE = os.path.expanduser("~/dl_quant_live/state/live/pilot_log")
+LIVE = os.environ.get("DUSTPOP_PILOT_LOG") or os.path.expanduser("~/dl_quant_live/state/live/pilot_log")   # override only for controls
 bad = lambda k: "chase" in str(k).lower() or "arm" in str(k).lower()
 
 
@@ -83,13 +86,17 @@ def main():
     else:
         pr = [o for o in od if o.get("rebalance_id") == rid and o.get("symbol") in set(popped)]
         viol = []
+        empty = lambda v: v is None or v == [] or v == {} or v == ""
         for o in pr:
-            inot = num(o.get("intended_notional")); fq = num(o.get("filled_qty"))
-            if (o.get("intended_notional") is not None and (inot is None or abs(inot) > 0)) or (o.get("filled_qty") is not None and (fq is None or abs(fq) > 0)):
-                viol.append({k: o.get(k) for k in ("symbol", "order_type", "intended_notional", "filled_qty", "terminal_reason") if not bad(k)})
+            fq = num(o.get("filled_qty"))
+            sent = (not empty(o.get("submit_ts"))) or (not empty(o.get("request_ledger"))) or (not empty(o.get("first_fill_ts"))) \
+                   or (o.get("filled_qty") is not None and (fq is None or abs(fq) > 0))
+            if sent:
+                viol.append({k: o.get(k) for k in ("symbol", "order_type", "submit_ts", "filled_qty", "first_fill_ts", "terminal_reason") if not bad(k)})
         print(f"(c) orders rows of this rebalance ({rid}) for popped names: {len(pr)}; "
-              f"terminal={sorted(set(str(o.get('terminal_reason')) for o in pr))}; with a quantity: {viol}")
-        verdict["c"] = "PASS" if not viol else f"RED ({len(viol)} row(s) with a quantity)"
+              f"terminal={sorted(set(str(o.get('terminal_reason')) for o in pr))}; "
+              f"intended_notional (residual size, informational)={[(o.get('symbol'), o.get('intended_notional')) for o in pr]}; sent to the venue: {viol}")
+        verdict["c"] = "PASS" if not viol else f"RED ({len(viol)} row(s) sent to the venue)"
     for k in "abc": print(f"  ({k}) {verdict[k]}")
     overall = ("RED" if any(v.startswith("RED") for v in verdict.values()) else
                "UNDECIDED" if any(v.startswith("UNDECIDED") for v in verdict.values()) else
