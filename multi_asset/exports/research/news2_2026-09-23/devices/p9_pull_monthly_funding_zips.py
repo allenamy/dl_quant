@@ -6,9 +6,19 @@ before any write; write-probe of the output directory before the first write; ne
 Output: <out>/<SYM>-fundingRate-<MONTH>.zip, <out>/MANIFEST_<MONTH>.json {symbol: {status, bytes, sha256, checksum_file_sha256_field, rows,
 iv_counts}}. Usage: python3 -B p9_pull_monthly_funding_zips.py <month YYYY-MM> <symbols file, one per line> <out dir>"""
 import os, sys, io, json, time, hashlib, zipfile, csv, urllib.request, urllib.error
+
+
+def _crash(t, v, tb):
+    # rev 1 (lead-approved class fix 2026-09-26): ANY unhandled failure exits 4. Python's default for an uncaught exception is 1,
+    # which is also this device's "checksum mismatch" code -- the drivers answer 1 by dropping mismatched files and re-fetching,
+    # so a write failure was being handled as a data mismatch. 4 is outside {0, 1}: every driver stops on it, by name.
+    import traceback; traceback.print_exception(t, v, tb); sys.stderr.flush(); os._exit(4)
+
+
+sys.excepthook = _crash
 MONTH, SYMF, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
 assert len(MONTH) == 7 and MONTH[4] == "-"
-BASE = "https://data.binance.vision/data/futures/um/monthly/fundingRate"
+BASE = os.environ.get("P9_BASE", "https://data.binance.vision/data/futures/um/monthly/fundingRate")   # rev 1: override for the self-test only (file://); recorded in the manifest
 syms = [l.strip() for l in open(SYMF) if l.strip()]
 os.makedirs(OUT, exist_ok=True)
 probe = OUT + "/.write_probe"
@@ -63,17 +73,25 @@ for i, s in enumerate(syms):
     ivc = {}
     for r in rows: ivc[r[1]] = ivc.get(r[1], 0) + 1
     with open(fn + ".part", "wb") as f:
-        f.write(b)
+        f.write(b); f.flush(); os.fsync(f.fileno())
     assert hashlib.sha256(open(fn + ".part", "rb").read()).hexdigest() == h
     os.replace(fn + ".part", fn)
     man[s] = {"status": 200, "bytes": len(b), "sha256": h, "checksum_file_sha256_field": c_field, "checksum_match": (c_field == h) if c_field else None, "member": name, "rows": len(rows), "iv_counts": ivc}
     if i % 50 == 0: print(f"{i}/{len(syms)} {s} {man[s]['status']} {time.time() - t0:.0f}s", flush=True)
 mp = f"{OUT}/MANIFEST_{MONTH}.json"
-json.dump(dict(month=MONTH, base=BASE, n_symbols=len(syms), self_sha256=hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest(),
+# rev 1: json.dump(x, open(p, "w")) does not raise on a full disk (E-0925 executor defect); temp -> fsync -> read-back -> os.replace,
+# and the printed sha comes from the verified bytes, not from re-reading the file afterwards.
+_body = json.dumps(dict(month=MONTH, base=BASE, n_symbols=len(syms), self_sha256=hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest(),
                symbols_file_sha256=hashlib.sha256(open(SYMF, "rb").read()).hexdigest(), started_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)),
-               finished_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), files=man), open(mp, "w"), indent=1)
+               finished_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), files=man), indent=1).encode()
+with open(mp + ".tmp", "wb") as f:
+    f.write(_body); f.flush(); os.fsync(f.fileno())
+if open(mp + ".tmp", "rb").read() != _body:
+    raise IOError(f"manifest read-back differs: {mp}.tmp")
+os.replace(mp + ".tmp", mp)
+_man_sha = hashlib.sha256(_body).hexdigest()
 st = {}
 for v in man.values(): st[str(v["status"])] = st.get(str(v["status"]), 0) + 1
 bad = sum(1 for v in man.values() if v.get("checksum_match") is False)
-print(f"SUMMARY p9_pull_monthly_funding_zips month={MONTH} status={st} checksum_mismatch={bad} manifest_sha256={hashlib.sha256(open(mp, 'rb').read()).hexdigest()}", flush=True)
+print(f"SUMMARY p9_pull_monthly_funding_zips month={MONTH} status={st} checksum_mismatch={bad} manifest_sha256={_man_sha}", flush=True)
 sys.exit(1 if bad else 0)
