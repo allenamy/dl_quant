@@ -136,6 +136,14 @@ def cmd_build(a):
     if len(new) < n_keep:
         stop(f"only {len(new)} timestamped entries, {n_keep} positions required — NOT falling back to equal weights")
     win = new[-n_keep:]
+    # rev 1 (lead ruling 2026-09-26 after the 12Z/16Z outage): the WINDOW must be contiguous, not only the seam. Rev 0 asserted
+    # tail[0] == replay_end + 4h and then carried any hole INSIDE the kept live tail into the new file, visible only in the
+    # receipt's gap histogram. A hole is filled only when the replay covers it (path A); otherwise refuse, naming every hole.
+    holes = [(x[0] + STEP, y[0] - STEP) for x, y in zip(win, win[1:]) if y[0] - x[0] != STEP]
+    if holes:
+        stop(f"window NOT contiguous: {sum((b - a) // STEP + 1 for a, b in holes)} missing anchor(s) at "
+             f"{[u(a) if a == b else u(a) + '..' + u(b) for a, b in holes]} (replay end {u(rep_end)}) — "
+             f"a hole is filled only by a replay that covers it (path A); nothing written")
     # the live tail kept verbatim must equal the current file's own last entries (same values the producer holds)
     k = len(tail)
     if [tuple(cur[l][len(cur['king']) - k + i] for l in LEGS) for i in range(k)] != [v for _, v in tail]:

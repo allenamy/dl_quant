@@ -29,15 +29,17 @@ R_END = 1790000000 // STEP * STEP            # replay end (synthetic)
 G = R_END + 60 * STEP                         # generation anchor (the last processed anchor)
 SKIP = R_END + 30 * STEP                      # the run at SKIP appends nothing ⇒ no entry for SKIP - 4h
 MISSING_SNAP = R_END + 45 * STEP              # no snapshot here ⇒ a 2-append step
+OUT_T = R_END + 50 * STEP                     # rev 1: outage world — runs at OUT_T+4h/+8h never happen, the run at OUT_T+12h appends
+                                              # nothing (12 h gap) ⇒ entries OUT_T, OUT_T+4h, OUT_T+8h missing (the 09-26 12Z/16Z shape)
 
 
-def world(tag, rep_drop_tail=0, rep_n=1200, ambiguous=False, cur_mismatch=False, lag_file=False):
+def world(tag, rep_drop_tail=0, rep_n=1200, ambiguous=False, cur_mismatch=False, lag_file=False, rep_extend=0, outage=False):
     """Build a synthetic state + snap + legs.npz. Returns dict of paths and the ground truth."""
     rnd = random.Random(7); d = tempfile.mkdtemp(prefix=f"rs_{tag}_", dir=S)
     st, snap = os.path.join(d, "state"), os.path.join(d, "state", "snap"); os.makedirs(snap)
     # replay: rep_n entries ending at R_END (then drop some from the tail for the seam case)
-    E = np.array([R_END - STEP * (rep_n - 1 - i) for i in range(rep_n)], np.int64)
-    LR = np.array([[rnd.gauss(0, 10) for _ in range(3)] for _ in range(rep_n)])
+    E = np.array([R_END - STEP * (rep_n - 1 - i) for i in range(rep_n + rep_extend)], np.int64)   # rev 1: rep_extend anchors past R_END
+    LR = np.array([[rnd.gauss(0, 10) for _ in range(3)] for _ in range(rep_n + rep_extend)])
     if rep_drop_tail: E, LR = E[:-rep_drop_tail], LR[:-rep_drop_tail]
     legs = os.path.join(d, "legs.npz"); np.savez(legs, E_ts=E, LR=LR)
     # live truth: a seeded prefix (junk) + one entry per processed anchor from R_END+4h..G-4h, except SKIP-4h
@@ -47,7 +49,8 @@ def world(tag, rep_drop_tail=0, rep_n=1200, ambiguous=False, cur_mismatch=False,
     snaps = {}
     first_snap = R_END + STEP                    # its file already ends with... nothing assignable; assignment starts at the next step
     for t in range(first_snap, G + STEP, STEP):
-        if t > first_snap and t != SKIP:         # the run at t appends the entry for t - 4h
+        if outage and t in (OUT_T + STEP, OUT_T + 2 * STEP): continue   # no run, no snapshot
+        if t > first_snap and t != SKIP and not (outage and t == OUT_T + 3 * STEP):         # the run at t appends the entry for t - 4h
             if ambiguous and t == R_END + 20 * STEP:   # the run at t appends nothing although the gap is 2 anchors (see below)
                 pass
             else:
@@ -69,7 +72,7 @@ def world(tag, rep_drop_tail=0, rep_n=1200, ambiguous=False, cur_mismatch=False,
     rep_keep = [(int(E[i]), tuple(LR[i])) for i in range(len(E))]
     rep_end = rep_keep[-1][0]
     exp = [x for x in rep_keep if x[0] <= rep_end] + sorted((t, v) for t, v in truth.items() if t > rep_end)
-    return {"d": d, "state": st, "snap": snap, "legs": legs, "truth": truth, "expected": exp[-NKEEP:], "cur": cur}
+    return {"d": d, "state": st, "snap": snap, "legs": legs, "truth": truth, "expected": exp[-NKEEP:], "cur": cur, "rep_end": rep_end}
 
 
 def run(*args):
@@ -85,7 +88,9 @@ def build(w, tag="b"):
 
 
 print("[0] BASELINE: consistent synthetic world ⇒ build OK, candidate == expected, positions == true anchors")
-w = world("base"); rc, o, out = build(w)
+# rev 1: the rev-0 baseline carried a 1-anchor hole (the SKIP run) BEYOND the replay end and was green — i.e. it certified a
+# hole-carrying build. The baseline replay now extends 40 anchors past R_END, so the SKIP hole is covered by the replay (path A).
+w = world("base", rep_extend=40); rc, o, out = build(w)
 check("★★★ baseline build exit 0", rc == 0, o[-240:])
 if rc == 0:
     B = json.load(open(os.path.join(out, "BUILD.json"))); cand = json.load(open(os.path.join(out, "leg_returns_live.NEW.json")))
@@ -99,9 +104,9 @@ if rc == 0:
 print("[1] RED CONTROL: position→anchor by position ('k-th from the end is k anchors back') is WRONG here")
 naive = [G - STEP * (len(w["cur"]["king"]) - i) for i in range(len(w["cur"]["king"]))]
 true_tail = sorted(w["truth"])
-kept = [t for t in B["positions_anchor_ts"] if t > R_END] if rc == 0 else []
+kept = [t for t in B["positions_anchor_ts"] if t > w["rep_end"]] if rc == 0 else []
 check("★★★ the naive positional rule mislabels the live tail (it ignores the skipped run), the measured rule does not",
-      naive[-len(true_tail):] != true_tail and kept == [t for t in true_tail if t > R_END], (naive[-3:], true_tail[-3:]))
+      naive[-len(true_tail):] != true_tail and kept == [t for t in true_tail if t > w["rep_end"]] and len(kept) > 0, (naive[-3:], true_tail[-3:]))
 
 print("[2] tail timestamp asserted against prev_rec")
 w2 = world("lag", lag_file=True); rc2, o2, out2 = build(w2)
@@ -126,6 +131,19 @@ check("★★ ambiguous ownership ⇒ STOP", rc5 != 0 and "ambiguous" in o5, o5[
 print("[6] current file differs from its own anchor's snapshot ⇒ STOP")
 w6 = world("cur", cur_mismatch=True); rc6, o6, _ = build(w6)
 check("★★ current != snapshot of the same anchor ⇒ STOP", rc6 != 0 and "differs from the snapshot" in o6, o6[-200:])
+
+print("[9] rev 1 — window contiguity (lead ruling after the 09-26 outage): a hole the replay does not cover ⇒ STOP")
+w9a = world("hole1"); rc9a, o9a, out9a = build(w9a)
+check("★★★ RED: 1-anchor hole (skipped run) beyond the replay end ⇒ STOP naming it, nothing written",
+      rc9a != 0 and "window NOT contiguous: 1 missing" in o9a and not os.path.exists(out9a), o9a[-220:])
+w9b = world("outage3", rep_extend=40, outage=True); rc9b, o9b, out9b = build(w9b)
+want = RS_u = __import__("datetime").datetime.fromtimestamp(OUT_T, __import__("datetime").timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
+check("★★★ RED: the 3-anchor outage hole (12 h gap, 0 appends) beyond the replay end ⇒ STOP naming all 3, nothing written",
+      rc9b != 0 and "window NOT contiguous: 3 missing" in o9b and want in o9b and not os.path.exists(out9b), o9b[-220:])
+w9c = world("outage3_covered", rep_extend=55, outage=True); rc9c, o9c, out9c = build(w9c)
+ok9c = rc9c == 0 and json.load(open(os.path.join(out9c, "BUILD.json")))["window"]["gap_histogram_in_anchors"] == {"1": NKEEP - 1}
+check("★★★ POSITIVE: the same outage with a replay that covers it ⇒ build OK, window contiguous ({1: 949}), path A fills the hole",
+      ok9c and json.load(open(os.path.join(out9c, "leg_returns_live.NEW.json")))["king"] == [float(v[0]) for _, v in w9c["expected"]], o9c[-220:])
 
 print("[7] install: producer must be stopped; inputs unchanged; generation re-issued (red control: without it the loader refuses)")
 lock = os.path.join(w["d"], "shadow.lock"); open(lock, "w").write(str(os.getpid()))
