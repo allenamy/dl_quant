@@ -1,6 +1,6 @@
 #!/bin/bash
 # run_family.sh — the EXECUTOR (TEAM_PROTOCOL §10-f) for DECISION_RULE_combination_layer_2026-09-26 §2, steps 0 -> 3 and the verdicts.
-# Every judge it calls was committed before this driver was started. Line-start markers: "GATE_OK <step>", "STOP <reason>", "DONE".
+# Every judge it calls was committed before this driver was started. rev 1 (lead 17:5xZ): BTC beta is a process step before the verdicts. Line-start markers: "GATE_OK <step>", "STOP <reason>", "DONE".
 # A step that fails prints STOP and exits non-zero; nothing after it runs. The session only reads and reports.
 set -u
 B=/workspace/alloc_2026-09-26; D=$B/devices; R=$B/receipts; PY=/workspace/venv/bin/python
@@ -78,7 +78,13 @@ for arm in $ENG_ARMS; do
     echo "CELL_OK ${arm} s$s $(date -u +%FT%TZ)"
   done
 done
-# ── verdicts (rule §3); BTC daily beta is NOT computed here: named manual step (ledger) ──
+# ── BTC daily beta (rule §5 required report; lead 2026-09-26: a process step BEFORE the verdicts, failure = STOP) ──
+for arm in $ENG_ARMS; do
+  $E $PY -B alloc_beta.py PATH,HOME,LC_CTYPE $arm 42,2027,7 $R/BETA_$arm.json > $B/logs/beta_$arm.log 2>&1 || stop "beta_rc_$arm"
+  grep -q '^ALLOC_BETA DONE' $B/logs/beta_$arm.log || stop "beta_done_missing_$arm"
+done
+echo "GATE_OK btc_beta"
+# ── verdicts (rule §3) ──
 for arm in $ENG_ARMS; do
   case $arm in cap050_shared) c=A1;; look1800_shared) c=A2;; inservice_orth) c=A3;; invvol_shared) c=A4;; esac
   extra=""
