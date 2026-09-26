@@ -17,7 +17,7 @@
 | 沙箱重放(判官) | run 2 **GAP_FIX_JUDGE PASS 21/21**(run 1 为 FAIL 4,只有页报那一条;修的是代码,判官没动,见 RUN1_VERDICT_NOTE.md) | receipts/GAPFIX_JUDGE_run2.json(b14137400) |
 | 成员规则 | V1 **13/13** 快照逐元素复现生产者成员集;V2 事后重算平均 Jaccard 0.9987,carry-forward 0.9914 ⇒ 用重算 | receipts/MEMBERS_V1V2.json |
 | 发布边界测试 P | **作废**:20260922 那套测试在生产 12a76de8 上本身就 4/6 红。替代证据:发布 Try 节点的 AST 与现码完全相同 | receipts/P_publication_boundary.txt |
-| 执行器侧 | 克隆 `~/cc_tmp/gapfix_exec_20260926T1807Z`,在 d01e35d 上本地提交 `ops/producer_release/20260927_gapfix/{INSTALL_CONTRACT.json,PATCH_RECEIPT.json}`(c78bcd0,**未推送**,origin 已指向无效路径);离线电池 | 见 §4 |
+| 执行器侧 | 克隆 `~/cc_tmp/gapfix_exec_20260926T1807Z`,在 d01e35d 上本地提交 `ops/producer_release/20260927_gapfix/{INSTALL_CONTRACT.json,PATCH_RECEIPT.json}`(c78bcd0,**未推送**,origin 已指向无效路径);离线电池 **166/166 全绿** | §4 |
 | 版本探针 | `gap_version_probe.py`(由 v2c 探针派生;钉更新为 d01e35d;新增 first-anchor 步)。控制:在当前(未安装)机器上跑 first-anchor → MISMATCH n=3,符合预期 | receipts/VERSION_PROBE_control_*.txt |
 
 ## 1. 修法(类形状)
@@ -55,7 +55,7 @@
 **回滚后的已知风险**:如果回滚之后又出现缺锚,就回到原缺陷(零回落 → ABORT)。那时仍需 lead 的 state-only 桥接(gap_recovery_2026-09-26/devices/combo_state_bridge.py)。
 
 ## 4. 执行器侧电池
-克隆 `~/cc_tmp/gapfix_exec_20260926T1807Z`(d01e35d + c78bcd0,状态 rsync 自生产,56 个完成日全覆盖),用 `ops/run_acceptance_offline.sh` 跑(ACCEPT_PY 未设,解释器 /usr/bin/python3 3.9.6)。结果见 receipts/BATTERY_gapfix_*.log(完成后补记)。本克隆**不推送**;窗内由 lead 按 W3 重做。
+克隆 `~/cc_tmp/gapfix_exec_20260926T1807Z`(d01e35d + c78bcd0,状态 rsync 自生产,56 个完成日全覆盖),用 `ops/run_acceptance_offline.sh` 跑(ACCEPT_PY 未设,解释器 /usr/bin/python3 3.9.6)。**ACCEPTANCE: ALL GREEN (166/166 suites exit 0), OFFLINE_ACCEPTANCE_EXIT 0**(receipts/BATTERY_gapfix_c78bcd0_20260926T1807Z.log)。本克隆**不推送**;窗内由 lead 按 W3 重做。
 
 ## 5. 全栈「上一锚」查找逐站点表(只读核查,2026-09-26;combo_stage 与 shadow_loop L752 之外)
 | 站点 | 分类 | 缺锚后果 | 建议 |
