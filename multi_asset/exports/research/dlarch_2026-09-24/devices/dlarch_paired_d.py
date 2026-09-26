@@ -2,12 +2,18 @@
 """dlarch_paired_d.py -- the paired difference d for ANY arm, under BOTH candidate baselines, and
 revision 4's clauses evaluated on each. Written BEFORE any F10_FULL book-layer reading existed.
 
-WHY BOTH. Revision 4 defines `d_k = dbar(arm_k) - dbar(T0_k)`. Revision 5(b) then made the common
-baseline "the in-service NC F10 recipe (unmasked)". Those are two different d's, and which one is GATED
-decides what the arm is measured against. dlarch has a stake in F10_FULL's admission, so dlarch does not
-choose: both are computed and reported side by side, and `ambiguity_for_lead` names the open question.
-The criterion's author decides; this device only makes both answers available at once so that no ordering
-of "see number, then pick baseline" is possible.
+WHICH PAIRING IS THE GATE -- RULED. Revision 4 defined `d_k = dbar(arm_k) - dbar(T0_k)`; revision 5(b)
+made the common baseline the in-service NC recipe. dlarch raised the conflict WITHOUT choosing (dlarch has
+a stake in F10_FULL's admission) and lead ruled it in DL-gate revision 7 section 13 (`2ddf8dada`):
+
+    the GATED d pairs against the IN-SERVICE NC AT THE SAME SEED:  d_k = dbar(arm_k) - dbar(NC_k)
+    the difference against T0 is a MANDATORY REFERENCE COLUMN, never a gate
+    sigma_ref keeps the sigma_hat_F10 measured on the T0 x 8 family
+    the MEASURED sd(d) against NC must be reported
+
+Both pairings are still computed, because the reference column is mandatory and because computing only
+the gated one would make the other unavailable later. Only the NC one carries `verdict`; the T0 one is
+labelled REFERENCE_ONLY and its verdict field is suppressed so it cannot be quoted as one.
 
 WHAT CANCELS, AND WHY IT MATTERS. Every RETAIN receipt in this campaign was judged against ONE control,
 `DLARCH_REF_NC_s42X`. So each receipt's `dbar` is already "this cell minus in-service NC s42", and in
@@ -198,6 +204,14 @@ for key, base in BASES.items():
     results[key] = judge(i_per, key)
     results[key]['seeds_used'] = seeds
     results[key]['stage1_seeds_complete'] = set(seeds) == STAGE1_SEEDS
+    # revision 7: only the NC pairing is the gate. The T0 column is mandatory but must not be readable
+    # as a verdict, so its verdict is MOVED to a differently-named field rather than left in place.
+    is_gate = 'REF_NC' in key
+    results[key]['role'] = 'GATED' if is_gate else 'REFERENCE_ONLY'
+    if not is_gate:
+        results[key]['verdict_if_this_were_the_gate_NOT_THE_VERDICT'] = results[key].pop('verdict')
+        results[key]['reject_clauses_that_would_fire_NOT_THE_VERDICT'] = results[key].pop(
+            'reject_clauses_fired')
 
 rec = {'device': 'dlarch_paired_d.py', 'self_sha256': sha(os.path.abspath(__file__)),
        'utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
@@ -210,24 +224,43 @@ rec = {'device': 'dlarch_paired_d.py', 'self_sha256': sha(os.path.abspath(__file
        'common_control_tag': COMMON_CONTROL,
        'arm_cells': {s: ARM[s]['tag'] for s in sorted(ARM)},
        'base_cells': {k: {s: v[s]['tag'] for s in sorted(v)} for k, v in BASES.items()},
-       'routes': routes, 'verdict_per_baseline': results,
-       'ambiguity_for_lead': (
-           'revision 4 defines d against T0; revision 5(b) made the common baseline the in-service NC '
-           'recipe. Both are computed above and NEITHER is privileged here. Two things need lead: '
-           '(1) which pairing is the GATED d; (2) whether sigma_ref, whose sigma_hat was measured on the '
-           'T0 x 8 family, applies unchanged to an NC-paired difference. dlarch has a stake in this '
-           "arm's admission and does not choose.")}
+       'routes': routes, 'per_baseline': results,
+       'criterion_ruling': (
+           'DL-gate revision 7 section 13 (2ddf8dada): the gated d pairs against the in-service NC at the '
+           'same seed; the T0 difference is a mandatory reference column; sigma_ref keeps the T0 x 8 '
+           'sigma_hat; the measured sd(d) against NC must be reported.')}
+_gated = [k for k, v in results.items() if v.get('role') == 'GATED']
+if len(_gated) != 1:
+    rec['VERDICT'] = 'REFUSED_NO_SINGLE_GATED_PAIRING'
+    rec['why_refused'] = ('exactly one baseline must carry role GATED (the in-service NC pairing); found '
+                          '%d. Refusing to emit a verdict rather than guess which column is the gate.'
+                          % len(_gated))
+else:
+    g = results[_gated[0]]
+    rec['VERDICT'] = g.get('verdict', 'REFUSED_' + str(g.get('status')))
+    rec['VERDICT_from_baseline'] = _gated[0]
+    rec['VERDICT_measured_sd_d_vs_NC'] = {seg: g['segments'][seg]['sd_d'] for seg in SEGS} \
+        if 'segments' in g else None
+    rec['VERDICT_reject_clauses_fired'] = g.get('reject_clauses_fired')
 with open(OUT, 'w') as f:
     json.dump(rec, f, indent=1, sort_keys=True)
 
 for k, v in results.items():
     if v.get('status'):
-        print(f'  {k}: {v["status"]}')
+        print(f'  {k} [{v.get("role", "?")}]: {v["status"]}')
         continue
+    print('  --- %s [%s] ---' % (k, v['role']))
     for g in SEGS:
         sg = v['segments'][g]
         print('  %-28s %-8s mean(d)=%+.4f  %d/%d positive  thr=%.4f (%s branch)'
               % (k, g, sg['mean_d'], sg['n_positive'], sg['n'], sg['threshold_max_1_or_3SE'],
                  sg['branch_taken']))
-    print('  %-28s VERDICT=%s  fired=%s' % (k, v['verdict'], v['reject_clauses_fired'] or 'none'))
-print('DLARCH_PAIRED_D out=%s sha256=%s' % (OUT, sha(OUT)[:16]))
+    if v['role'] == 'GATED':
+        print('  %-28s VERDICT=%s  fired=%s  sd(d): %s'
+              % (k, v['verdict'], v['reject_clauses_fired'] or 'none',
+                 {g: round(v['segments'][g]['sd_d'], 4) for g in SEGS}))
+    else:
+        print('  %-28s REFERENCE ONLY (would-be verdict %s, NOT the verdict)'
+              % (k, v['verdict_if_this_were_the_gate_NOT_THE_VERDICT']))
+print('DLARCH_PAIRED_D VERDICT=%s (from %s) out=%s sha256=%s'
+      % (rec['VERDICT'], rec.get('VERDICT_from_baseline'), OUT, sha(OUT)[:16]))

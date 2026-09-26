@@ -54,40 +54,70 @@ def sha(p):
 
 assert sha(LAB) == LAB_SHA, 'the label file changed'
 T = np.load(LAB, allow_pickle=True)
-A = T['E_ts'].astype(np.int64)
+A = T['E_ts'].astype(np.int64)     # the LABEL axis
 Y = T['y4s']                       # the accounting-caliber label; SCORE-layer use only
 SYM = list(T['symbols'])
-pos = {t: i for i, t in enumerate(A)}
+pos = {int(t): i for i, t in enumerate(A)}
+
+# ── ★ THE AXES ARE NOT THE SAME AXIS, AND THE INDICES ARE NOT INTERCHANGEABLE.
+# scores.npz['rows'] indexes the TRAINER's axis (F['anchors'] == legs['E_ts'], 10333 anchors); the label
+# file's axis has 10321. Both END at 2026-09-19T00:00Z, so "same last anchor" invites the assumption that
+# they are the same axis. They are not: the 12 anchors the label file lacks are the FIRST twelve
+# (2022-01-01 and 01-02), so the label axis is shifted by exactly 12 positions and ALL 10321 indices are
+# mismatched. Indexing Y with `rows` therefore compares a prediction at anchor t against the label at
+# t+48h -- which is what this device did on its first run, for every row of every fold.
+# It survived 19 folds silently and only crashed on the 23rd, where rows reach past the shorter axis.
+# The fix is to stop using indices as identity: scores.npz carries E_ts, the TRUE timestamps, so labels
+# are looked up BY TIMESTAMP. And because a positive control that plants a RELATIVE shift cannot detect a
+# CONSTANT misalignment (the planted peak moved correctly while everything was 12 anchors off), the
+# alignment is now asserted DIRECTLY -- see assert_aligned().
+TRAINER_AXIS = np.load('/dev/shm/news2_2026-09-23/work/legs.npz')['E_ts'].astype(np.int64)
+
+# THE IC IS THE FROZEN ONE, IMPORTED. My own per-anchor Spearman gave the same shape but there is no
+# reason to run a second implementation of a quantity news2 already froze, and `ic_series` takes SEPARATE
+# row lists for P and Y, which is exactly what a shifted spectrum needs.
+sys.path.insert(0, '/dev/shm/news2_2026-09-23/devices')
+import news2_diag1_score_ic as DIAG                                  # noqa: E402
+FROZEN_IC_SHA = sha('/dev/shm/news2_2026-09-23/devices/news2_diag1_score_ic.py')
 
 
-def xsec_ic(p_rows, y_rows):
-    """Mean per-anchor Spearman IC over anchors with >= 20 finite pairs."""
-    vals = []
-    for pr, yr in zip(p_rows, y_rows):
-        ok = np.isfinite(pr) & np.isfinite(yr)
-        n = int(ok.sum())
-        if n < 20:
-            continue
-        a = pr[ok].argsort().argsort().astype(np.float64)
-        b = yr[ok].argsort().argsort().astype(np.float64)
-        a -= a.mean(); b -= b.mean()
-        d = float(np.sqrt((a * a).sum() * (b * b).sum()))
-        if d > 0:
-            vals.append(float((a * b).sum() / d))
-    return (float(np.mean(vals)), len(vals)) if vals else (float('nan'), 0)
+def xsec_ic(P, Y_, rows_p, rows_y):
+    """Mean per-anchor cross-sectional Spearman, via the FROZEN ic_series (not re-implemented)."""
+    ics, _nn, _sk = DIAG.ic_series(P, Y_, rows_p, rows_y)
+    return (float(ics.mean()) if ics.size else float('nan')), int(ics.size)
 
 
-def spectrum(P, rows_ts, shift_labels_by=0):
-    """IC as a function of k: predictions at anchor t vs labels at anchor t+k (in anchor steps)."""
+def label_index(ts):
+    """Label-axis index for each TRUE timestamp; -1 where that anchor has no label at all."""
+    return np.array([pos.get(int(t), -1) for t in ts])
+
+
+def assert_aligned(ts, ai):
+    """At k = 0 the label timestamp must EQUAL the prediction timestamp, elementwise.
+
+    This is the control a planted relative shift cannot give: a constant misalignment moves every k
+    together, so the peak's SHAPE still looks right while k = 0 means something else entirely."""
+    ok = ai >= 0
+    lhs = np.asarray(ts)[ok].astype(np.int64)
+    rhs = A[ai[ok]].astype(np.int64)
+    bad = int((lhs != rhs).sum())
+    assert bad == 0, (f'{bad} of {ok.sum()} rows have label timestamp != prediction timestamp at k=0; '
+                      'the spectrum would be measuring a shifted alignment')
+    return {'rows_with_a_label': int(ok.sum()), 'rows_without_any_label': int((~ok).sum()),
+            'timestamp_mismatches_at_k0': bad}
+
+
+def spectrum(P, ts, shift_labels_by=0):
+    """IC vs k: prediction at anchor t against the label at t + k anchors, matched BY TIMESTAMP."""
     out = {}
-    ai = np.array([pos[t] for t in rows_ts])
+    ai = label_index(ts)
     for k in range(-K, K + 1):
         j = ai + k + shift_labels_by
-        keep = (j >= 0) & (j < len(A))
+        keep = (ai >= 0) & (j >= 0) & (j < len(A))
         if keep.sum() < 5:
             out[k] = None
             continue
-        ic, n = xsec_ic(P[keep], Y[j[keep]])
+        ic, n = xsec_ic(P, Y, np.flatnonzero(keep), j[keep])
         out[k] = {'ic': ic, 'n_anchors': n}
     return out
 
@@ -119,27 +149,39 @@ for tag in sorted(os.listdir(ARMDIR)):
 _ALLP, _ALLTS = [], []
 for _t in sorted(folds):
     _z = np.load(folds[_t])
-    _ALLP.append(_z['P']); _ALLTS.append(A[_z['rows']])
+    # E_ts is written by the trainer as a[te] -- the TRUE timestamps. Never A[rows].
+    _ALLP.append(_z['P']); _ALLTS.append(_z['E_ts'].astype(np.int64))
 P = np.concatenate(_ALLP, 0)
 rows_ts = np.concatenate(_ALLTS)
 assert len(P) == len(rows_ts)
+ALIGN = assert_aligned(rows_ts, label_index(rows_ts))
 
 PLANT = -2
 # SIGN, derived once and written down because I got it backwards on the first run: spectrum() evaluates
 # labels at index ai + k + PLANT, so the true alignment (label index ai) sits at k = -PLANT. Planting -2
 # must therefore move the measured peak to k = +2, NOT to -2. My first expectation said -2, the device
 # answered +2, and the device was right. Keeping the derivation here so the next reader cannot repeat it.
-EXPECT_PEAK = -PLANT
+# ★ THE CONTROL IS RELATIVE, and my first two attempts at it were not. Planting a shift can only show
+# that the device MOVES the peak by the right amount; it cannot show that k = 0 is the true alignment,
+# because a constant misalignment moves every k together. I first wrote PASS as "planted peak == -PLANT",
+# which silently assumes the unplanted peak is already at 0 -- so the control failed whenever the data's
+# own peak was elsewhere, and it would have PASSED a device that was uniformly misaligned. Absolute
+# alignment is established separately and directly by assert_aligned(); this control now checks only what
+# it can: planted_peak - unplanted_peak == -PLANT.
 pos_ctl = spectrum(P, rows_ts, shift_labels_by=PLANT)
 pc = {k: v['ic'] for k, v in pos_ctl.items() if v}
 pos_peak = max(pc, key=lambda k: pc[k]) if pc else None
+_base = spectrum(P, rows_ts)
+_bv = {k: v['ic'] for k, v in _base.items() if v}
+base_peak = max(_bv, key=lambda k: _bv[k]) if _bv else None
+EXPECT_PEAK = (base_peak - PLANT) if base_peak is not None else None
 worst = 'POOLED_%d_folds_%d_anchors' % (len(folds), len(P))
 
 # per-fold resolution, MEASURED rather than asserted: how many single folds locate the planted lead?
 perfold_ctl = {}
 for _t in sorted(folds):
     _z = np.load(folds[_t])
-    _s = spectrum(_z['P'], A[_z['rows']], shift_labels_by=PLANT)
+    _s = spectrum(_z['P'], _z['E_ts'].astype(np.int64), shift_labels_by=PLANT)
     _v = {k: q['ic'] for k, q in _s.items() if q}
     perfold_ctl[_t] = max(_v, key=lambda k: _v[k]) if _v else None
 perfold_hits = sum(1 for v in perfold_ctl.values() if v == EXPECT_PEAK)
@@ -155,7 +197,7 @@ spec['POOLED'] = {'spectrum': _sp, 'peak_k': _peak, 'peak_at_zero': _peak == 0,
 # per fold kept ONLY as descriptive context, explicitly not read as a verdict
 for tag in sorted(folds):
     zz = np.load(folds[tag])
-    ss = spectrum(zz['P'], A[zz['rows']])
+    ss = spectrum(zz['P'], zz['E_ts'].astype(np.int64))
     vv = {k: v['ic'] for k, v in ss.items() if v}
     pk = max(vv, key=lambda k: vv[k]) if vv else None
     spec['PERFOLD_DESCRIPTIVE_' + tag] = {
@@ -167,15 +209,26 @@ rec = {'device': 'dlarch_f10full_leak.py', 'self_sha256': sha(os.path.abspath(__
        'utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
        'arm_dir': ARMDIR, 'max_shift_anchors': K,
        'label_file': LAB, 'label_sha256': LAB_SHA,
+       'frozen_ic_device': '/dev/shm/news2_2026-09-23/devices/news2_diag1_score_ic.py',
+       'frozen_ic_sha256': FROZEN_IC_SHA, 'frozen_ic_min_names': DIAG.MIN_NAMES,
        'caliber': 'dlw_targets y4s, SCORE layer only; never quote as a return',
        'control_3_foldout_leakage': c3,
        'control_3_all_folds_pass': all(v['3a_max_train_label_end_le_cutoff']
                                        and v['3b_cutoff_plus_240h_equals_test_start']
                                        for v in c3.values()),
+       'control_2_absolute_alignment': dict(
+           ALIGN, note=('asserted elementwise: at k=0 the label timestamp equals the prediction '
+                        'timestamp. A planted relative shift CANNOT establish this -- it moves every k '
+                        'together -- and this device\'s first run was 12 anchors (48 h) misaligned while '
+                        'its planted-shift control still passed.')),
        'control_2_positive_control': {
            'population': worst, 'labels_planted_shift_anchors': PLANT,
-           'expected_peak_k': EXPECT_PEAK, 'measured_peak_k': pos_peak,
-           'PASS': pos_peak == EXPECT_PEAK,
+           'unplanted_peak_k': base_peak, 'expected_planted_peak_k': EXPECT_PEAK,
+           'measured_planted_peak_k': pos_peak,
+           'PASS': pos_peak is not None and EXPECT_PEAK is not None and pos_peak == EXPECT_PEAK,
+           'what_this_control_does_NOT_establish': (
+               'that k=0 is the true alignment. A constant misalignment moves every k together, so only '
+               'assert_aligned() (elementwise timestamp equality at k=0) can establish that.'),
            'per_fold_peak_under_planted_shift': perfold_ctl,
            'per_fold_hits': perfold_hits, 'per_fold_n': len(perfold_ctl),
            'per_fold_resolution_note': (
@@ -199,8 +252,8 @@ for t, v in sorted(c3.items()):
           % (t, v['3a_max_train_label_end_le_cutoff'], v['3a_slack_s'],
              v['3b_cutoff_plus_240h_equals_test_start'], v['3b_measured_lag_days'], v['train_anchors']))
 print('control 3 ALL PASS = %s' % rec['control_3_all_folds_pass'])
-print('control 2 POSITIVE CONTROL on %s: planted %+d -> expect peak %+d, measured %s  PASS=%s'
-      % (worst, PLANT, EXPECT_PEAK, pos_peak, pos_peak == EXPECT_PEAK))
+print('control 2 POSITIVE CONTROL on %s: unplanted peak %s, planted %+d -> expect %s, measured %s  PASS=%s'
+      % (worst, base_peak, PLANT, EXPECT_PEAK, pos_peak, pos_peak == EXPECT_PEAK))
 print('  per-fold resolution: %d/%d single folds locate the planted lead' % (perfold_hits, len(perfold_ctl)))
 pv = spec['POOLED']
 print('control 2 POOLED (%d folds): peak_k=%s ic(0)=%+.5f ic(-1)=%+.5f ic(+1)=%+.5f far_null=%+.5f'

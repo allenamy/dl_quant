@@ -1,5 +1,14 @@
 {
- "ambiguity_for_lead": "revision 4 defines d against T0; revision 5(b) made the common baseline the in-service NC recipe. Both are computed above and NEITHER is privileged here. Two things need lead: (1) which pairing is the GATED d; (2) whether sigma_ref, whose sigma_hat was measured on the T0 x 8 family, applies unchanged to an NC-paired difference. dlarch has a stake in this arm's admission and does not choose.",
+ "VERDICT": "REJECT",
+ "VERDICT_from_baseline": "DLARCH_REF_NC_s",
+ "VERDICT_measured_sd_d_vs_NC": {
+  "2026": 0.07241973158992494,
+  "pre2026": 2.266543599731411
+ },
+ "VERDICT_reject_clauses_fired": [
+  "mean(d_2026) <= 0",
+  "2026 has <= 1 seed with d > 0"
+ ],
  "arm_cells": {
   "7": "DLARCH_T3_clamp_s7_scaled_rule_raw_UAFE",
   "42": "DLARCH_T3_clamp_s42_scaled_rule_raw_UAFE",
@@ -23,10 +32,127 @@
   }
  },
  "common_control_tag": "DLARCH_REF_NC_s42X_scaled_rule_raw_UAFE",
+ "criterion_ruling": "DL-gate revision 7 section 13 (2ddf8dada): the gated d pairs against the in-service NC at the same seed; the T0 difference is a mandatory reference column; sigma_ref keeps the T0 x 8 sigma_hat; the measured sd(d) against NC must be reported.",
  "criterion_source": "DECISION_RULE_dl_program_book_gate_2026-09-25.md revision 4, transcribed; thresholds not authored here",
  "device": "dlarch_paired_d.py",
  "frozen_judge": "/dev/shm/news2_2026-09-23/engine/news_stats.py",
  "frozen_judge_sha256": "7141ba42ab227b9f35b48acce62d5e2a2494f364fdf6a83189974cb2af67e03c",
+ "per_baseline": {
+  "DLARCH_REF_NC_s": {
+   "baseline": "DLARCH_REF_NC_s",
+   "clause_5_dbar_vs_in_service_NC_is_dbar_itself": "every receipt is judged against DLARCH_REF_NC_s42X_scaled_rule_raw_UAFE, so dbar already IS the difference against the in-service NC reference; no extra computation is needed for clause 5.",
+   "drawdown_guardrail": "NOT evaluated here: section 3 condition 4 needs the maxdd table; dlarch_t3_verdict.py computes it and this device does not duplicate it.",
+   "reject_clauses_fired": [
+    "mean(d_2026) <= 0",
+    "2026 has <= 1 seed with d > 0"
+   ],
+   "role": "GATED",
+   "seeds_used": [
+    7,
+    42,
+    2027
+   ],
+   "segments": {
+    "2026": {
+     "SE": 0.6248888181795892,
+     "SE_backstop_branch": 0.6248888181795892,
+     "SE_measured_branch": 0.041811551528083614,
+     "branch_taken": "backstop",
+     "d_per_seed": {
+      "7": -2.611372170422727,
+      "42": -2.6995606663189977,
+      "2027": -2.555962928661529
+     },
+     "mean_d": -2.622298588467751,
+     "n": 3,
+     "n_positive": 0,
+     "sd_d": 0.07241973158992494,
+     "sigma_hat_F10_from_T0x8": 0.5655282459583263,
+     "sigma_ref": 0.7653293752554029,
+     "three_SE": 1.8746664545387675,
+     "threshold_max_1_or_3SE": 1.8746664545387675
+    },
+    "pre2026": {
+     "SE": 3.1360799875159615,
+     "SE_backstop_branch": 3.1360799875159615,
+     "SE_measured_branch": 1.3085895574349538,
+     "branch_taken": "backstop",
+     "d_per_seed": {
+      "7": -0.29721801812711746,
+      "42": 1.814699403036722,
+      "2027": 4.232429405205094
+     },
+     "mean_d": 1.9166369300382329,
+     "n": 3,
+     "n_positive": 2,
+     "sd_d": 2.266543599731411,
+     "sigma_hat_F10_from_T0x8": 2.838171788209541,
+     "sigma_ref": 3.840897880983972,
+     "three_SE": 9.408239962547885,
+     "threshold_max_1_or_3SE": 9.408239962547885
+    }
+   },
+   "stage1_seeds_complete": true,
+   "verdict": "REJECT"
+  },
+  "DLARCH_T0_s": {
+   "baseline": "DLARCH_T0_s",
+   "clause_5_dbar_vs_in_service_NC_is_dbar_itself": "every receipt is judged against DLARCH_REF_NC_s42X_scaled_rule_raw_UAFE, so dbar already IS the difference against the in-service NC reference; no extra computation is needed for clause 5.",
+   "drawdown_guardrail": "NOT evaluated here: section 3 condition 4 needs the maxdd table; dlarch_t3_verdict.py computes it and this device does not duplicate it.",
+   "reject_clauses_that_would_fire_NOT_THE_VERDICT": [
+    "mean(d_2026) <= 0",
+    "2026 has <= 1 seed with d > 0"
+   ],
+   "role": "REFERENCE_ONLY",
+   "seeds_used": [
+    7,
+    42,
+    2027
+   ],
+   "segments": {
+    "2026": {
+     "SE": 0.6248888181795892,
+     "SE_backstop_branch": 0.6248888181795892,
+     "SE_measured_branch": 0.09125816273180588,
+     "branch_taken": "backstop",
+     "d_per_seed": {
+      "7": -1.5608556829963656,
+      "42": -1.445375440674311,
+      "2027": -1.2482612787408756
+     },
+     "mean_d": -1.418164134137184,
+     "n": 3,
+     "n_positive": 0,
+     "sd_d": 0.1580637744568764,
+     "sigma_hat_F10_from_T0x8": 0.5655282459583263,
+     "sigma_ref": 0.7653293752554029,
+     "three_SE": 1.8746664545387675,
+     "threshold_max_1_or_3SE": 1.8746664545387675
+    },
+    "pre2026": {
+     "SE": 3.1360799875159615,
+     "SE_backstop_branch": 3.1360799875159615,
+     "SE_measured_branch": 0.925543682044634,
+     "branch_taken": "backstop",
+     "d_per_seed": {
+      "7": -1.841596498041838,
+      "42": 1.3014188540027873,
+      "2027": -0.8185146045676266
+     },
+     "mean_d": -0.45289741620222573,
+     "n": 3,
+     "n_positive": 1,
+     "sd_d": 1.6030886819256804,
+     "sigma_hat_F10_from_T0x8": 2.838171788209541,
+     "sigma_ref": 3.840897880983972,
+     "three_SE": 9.408239962547885,
+     "threshold_max_1_or_3SE": 9.408239962547885
+    }
+   },
+   "stage1_seeds_complete": true,
+   "verdict_if_this_were_the_gate_NOT_THE_VERDICT": "REJECT"
+  }
+ },
  "routes": {
   "DLARCH_REF_NC_s": {
    "max_abs_route_disagreement": {
@@ -91,125 +217,11 @@
    "routes_agree": true
   }
  },
- "self_sha256": "6c51fb80ec58fa9cbf4f8d349a5b90efa8b0b7609cb4c0c1d9f6f4a3a1df551c",
+ "self_sha256": "4e2931477654e5cfa006b75c93f85b4333fee92196f2e4ea2fce7f365df0e741",
  "sigma_source": {
   "note": "sigma_hat read from the delivered T0 x 8 receipt, NOT recomputed",
   "path": "/workspace/dlarch_2026-09-24/receipts/SIGMA_F10_2026-09-25.json",
   "sha256": "d4ba45d6cff42d6eb1f18cd1af562c92cc2b2b37b3e45abfed7cc4095ab87eaa"
  },
- "utc": "2026-09-26T05:39:58Z",
- "verdict_per_baseline": {
-  "DLARCH_REF_NC_s": {
-   "baseline": "DLARCH_REF_NC_s",
-   "clause_5_dbar_vs_in_service_NC_is_dbar_itself": "every receipt is judged against DLARCH_REF_NC_s42X_scaled_rule_raw_UAFE, so dbar already IS the difference against the in-service NC reference; no extra computation is needed for clause 5.",
-   "drawdown_guardrail": "NOT evaluated here: section 3 condition 4 needs the maxdd table; dlarch_t3_verdict.py computes it and this device does not duplicate it.",
-   "reject_clauses_fired": [
-    "mean(d_2026) <= 0",
-    "2026 has <= 1 seed with d > 0"
-   ],
-   "seeds_used": [
-    7,
-    42,
-    2027
-   ],
-   "segments": {
-    "2026": {
-     "SE": 0.6248888181795892,
-     "SE_backstop_branch": 0.6248888181795892,
-     "SE_measured_branch": 0.041811551528083614,
-     "branch_taken": "backstop",
-     "d_per_seed": {
-      "7": -2.611372170422727,
-      "42": -2.6995606663189977,
-      "2027": -2.555962928661529
-     },
-     "mean_d": -2.622298588467751,
-     "n": 3,
-     "n_positive": 0,
-     "sd_d": 0.07241973158992494,
-     "sigma_hat_F10_from_T0x8": 0.5655282459583263,
-     "sigma_ref": 0.7653293752554029,
-     "three_SE": 1.8746664545387675,
-     "threshold_max_1_or_3SE": 1.8746664545387675
-    },
-    "pre2026": {
-     "SE": 3.1360799875159615,
-     "SE_backstop_branch": 3.1360799875159615,
-     "SE_measured_branch": 1.3085895574349538,
-     "branch_taken": "backstop",
-     "d_per_seed": {
-      "7": -0.29721801812711746,
-      "42": 1.814699403036722,
-      "2027": 4.232429405205094
-     },
-     "mean_d": 1.9166369300382329,
-     "n": 3,
-     "n_positive": 2,
-     "sd_d": 2.266543599731411,
-     "sigma_hat_F10_from_T0x8": 2.838171788209541,
-     "sigma_ref": 3.840897880983972,
-     "three_SE": 9.408239962547885,
-     "threshold_max_1_or_3SE": 9.408239962547885
-    }
-   },
-   "stage1_seeds_complete": true,
-   "verdict": "REJECT"
-  },
-  "DLARCH_T0_s": {
-   "baseline": "DLARCH_T0_s",
-   "clause_5_dbar_vs_in_service_NC_is_dbar_itself": "every receipt is judged against DLARCH_REF_NC_s42X_scaled_rule_raw_UAFE, so dbar already IS the difference against the in-service NC reference; no extra computation is needed for clause 5.",
-   "drawdown_guardrail": "NOT evaluated here: section 3 condition 4 needs the maxdd table; dlarch_t3_verdict.py computes it and this device does not duplicate it.",
-   "reject_clauses_fired": [
-    "mean(d_2026) <= 0",
-    "2026 has <= 1 seed with d > 0"
-   ],
-   "seeds_used": [
-    7,
-    42,
-    2027
-   ],
-   "segments": {
-    "2026": {
-     "SE": 0.6248888181795892,
-     "SE_backstop_branch": 0.6248888181795892,
-     "SE_measured_branch": 0.09125816273180588,
-     "branch_taken": "backstop",
-     "d_per_seed": {
-      "7": -1.5608556829963656,
-      "42": -1.445375440674311,
-      "2027": -1.2482612787408756
-     },
-     "mean_d": -1.418164134137184,
-     "n": 3,
-     "n_positive": 0,
-     "sd_d": 0.1580637744568764,
-     "sigma_hat_F10_from_T0x8": 0.5655282459583263,
-     "sigma_ref": 0.7653293752554029,
-     "three_SE": 1.8746664545387675,
-     "threshold_max_1_or_3SE": 1.8746664545387675
-    },
-    "pre2026": {
-     "SE": 3.1360799875159615,
-     "SE_backstop_branch": 3.1360799875159615,
-     "SE_measured_branch": 0.925543682044634,
-     "branch_taken": "backstop",
-     "d_per_seed": {
-      "7": -1.841596498041838,
-      "42": 1.3014188540027873,
-      "2027": -0.8185146045676266
-     },
-     "mean_d": -0.45289741620222573,
-     "n": 3,
-     "n_positive": 1,
-     "sd_d": 1.6030886819256804,
-     "sigma_hat_F10_from_T0x8": 2.838171788209541,
-     "sigma_ref": 3.840897880983972,
-     "three_SE": 9.408239962547885,
-     "threshold_max_1_or_3SE": 9.408239962547885
-    }
-   },
-   "stage1_seeds_complete": true,
-   "verdict": "REJECT"
-  }
- }
+ "utc": "2026-09-26T05:59:21Z"
 }
