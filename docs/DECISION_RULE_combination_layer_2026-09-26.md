@@ -1,4 +1,4 @@
-> **创建:** 2026-09-26 17:5xZ | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n(lead) | **状态:** 冻结判据,写于任何候选臂(A1–A4、O)的 combo 足迹与书层读数之前;对应设计 `docs/DESIGN_combination_layer_2026-09-26.md`(`f45730e5d`,alloc 写,不含阈值) | **作废条件:** 设计 §1 #9 装置或其输入钉变化;或用户改写本族的判定形状
+> **创建:** 2026-09-26 17:41Z(提交 9d645e2dd;原写 17:5xZ,系 lead 估错时钟) | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n(lead) | **状态:** 冻结判据,写于任何候选臂(A1–A4、O)的 combo 足迹与书层读数之前;对应设计 `docs/DESIGN_combination_layer_2026-09-26.md`(`f45730e5d`,alloc 写,不含阈值) | **作废条件:** 设计 §1 #9 装置或其输入钉变化;或用户改写本族的判定形状
 
 # 判据:组合层 / 权重分配族(第一族:A1 cap050、A2 look1800、A3 orth;A4 描述、R 红控、O 上限控制)
 
