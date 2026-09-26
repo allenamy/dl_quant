@@ -12,6 +12,9 @@ Committed BEFORE any reading it produces. Three modes, one measurement:
   --mode IDENTITY  zero-point control of THIS judge (TEAM_PROTOCOL §10-d): the in-service arm through the alloc chain vs its reference,
                  s42. PASS iff D == 0.0 exactly in every segment (the engine identity already proved the PATH arrays equal).
   --mode R       red control (fundflip, s42).  PASS iff pre2026 D < 0 AND 2026 D < 0 AND both MBB 95% upper bounds < 0 (rule §2-0).
+  --mode RPRIME  red control R' (rule §7, negbook, s42). For each of pre2026 / 2026: if the NC reference's price channel (pnl, bps/anchor/
+                 gross, read from the REF cell only) is > 0 the segment is judged and needs D < 0 AND MBB 95% upper < 0; if NC pnl <= 0 the
+                 segment is named EXCLUDED. PASS iff every judged segment passes and at least one segment is judged.
   --mode O       ceiling control (oracle, s42). RUN_SEAT_ARMS = NOT( pre2026 D < 3.84*SE AND 2026 D < 3.84*SE ), SE from O's own
                  paired series (rule §2-1). O is never admissible.
   --mode FAMILY  one candidate arm, seeds {42, 2027, 7} (rule §3). Return track for A1/A2/A3; non-inferiority track for A3 only
@@ -19,7 +22,7 @@ Committed BEFORE any reading it produces. Three modes, one measurement:
 Required reports (rule §5) that are computed here: four channels (pnl/car/cst/unk bps/anchor), turnover, hold/halt counts, per-year
 dbar table, every seed listed, maxDD 5m path means. BTC daily beta is NOT computed here (no BTC series in the engine output): reported by
 a separate named step before the family verdict is sent; its absence is written into every output as PENDING.
-usage: env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B alloc_judge.py PATH,HOME,LC_CTYPE --mode IDENTITY|R|O|FAMILY
+usage: env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B alloc_judge.py PATH,HOME,LC_CTYPE --mode IDENTITY|R|RPRIME|O|FAMILY
          --arm <rule>_<mix> --seeds 42[,2027,7] [--arm-class A1|A2|A3|A4] [--noninf-mech-corr X] --out <json>
 """
 import os, sys, json, math, hashlib, time
@@ -48,9 +51,10 @@ def main():
     for _k in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"): os.environ[_k] = "1"
     args = sys.argv[2:]; mode = arg(args, "--mode"); armname = arg(args, "--arm"); out = arg(args, "--out")
     seeds = [int(x) for x in arg(args, "--seeds").split(",")]; aclass = arg(args, "--arm-class")
-    assert mode in ("IDENTITY", "R", "O", "FAMILY")
+    assert mode in ("IDENTITY", "R", "RPRIME", "O", "FAMILY")
     if mode == "IDENTITY": assert armname == "inservice_shared" and seeds == [42]
     if mode == "R": assert armname == "inservice_fundflip" and seeds == [42]
+    if mode == "RPRIME": assert armname == "inservice_negbook" and seeds == [42]
     if mode == "O": assert armname == "oracle_shared" and seeds == [42]
     if mode == "FAMILY": assert sorted(seeds) == [7, 42, 2027] and aclass in ("A1", "A2", "A3", "A4")
     assert sha(f"{ENG}/news_stats.py") == NS_SHA, "frozen judge drifted"
@@ -100,6 +104,16 @@ def main():
     elif mode == "R":
         ok = P["D_bps_per_day"] < 0 and T["D_bps_per_day"] < 0 and P["mbb30_ci95"][1] < 0 and T["mbb30_ci95"][1] < 0
         V.update(VERDICT="PASS" if ok else "FAIL_FAMILY_STOPS", rule="pre2026 D<0 & 2026 D<0 & both MBB95 upper<0")
+    elif mode == "RPRIME":
+        seg_v = {}
+        for k in ("pre2026", "2026"):
+            ncp = per[k][seeds[0]]["channels_bps_per_anchor"]["pnl"]["ref"]
+            if ncp > 0:
+                seg_v[k] = {"NC_pnl": ncp, "judged": True, "PASS": bool(stat[k]["D_bps_per_day"] < 0 and stat[k]["mbb30_ci95"][1] < 0)}
+            else:
+                seg_v[k] = {"NC_pnl": ncp, "judged": False, "EXCLUDED": "NC price channel <= 0"}
+        ok = any(v["judged"] for v in seg_v.values()) and all(v["PASS"] for v in seg_v.values() if v["judged"])
+        V.update(segments=seg_v, VERDICT="PASS" if ok else "FAIL_FAMILY_STOPS", rule="rule §7: every segment with NC pnl > 0 needs D<0 & MBB95 upper<0")
     elif mode == "O":
         mde = {k: MDE_K * stat[k]["SE"] for k in ("pre2026", "2026")}
         below = {k: stat[k]["D_bps_per_day"] < mde[k] for k in mde}

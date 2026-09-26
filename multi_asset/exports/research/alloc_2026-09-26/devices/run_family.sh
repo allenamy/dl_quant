@@ -10,9 +10,12 @@
 #     then delete it; failure = STOP (not a wait);
 #   * GO FILE: the executor waits for /dev/shm/alloc_2026-09-26/GO (created by alloc only after the lead confirms space was released);
 #   * the red cell is run by THIS executor (the rev 0 control driver died with the quota); step 0a re-checks the two identity receipts.
+# rev 3 (rule §7, 22:4xZ): R (fundflip) failed on a wrong expectation; restart with R' = whole combo target negated (mix negbook), judged by
+#   alloc_judge --mode RPRIME. Fresh marker log family_rev3.log (the old log ends in the rev 2a STOP, which a regex would re-match);
+#   PGID written to $S/PGID_rev3 for INFLIGHT_REGISTRY. Terminal markers: '^STOP ' or '^DONE '.
 set -u
 B=/workspace/alloc_2026-09-26; D=$B/devices; R=$B/receipts; PY=/workspace/venv/bin/python
-S=/dev/shm/alloc_2026-09-26; LG=$S/logs; LOG=$LG/family.log; MIRROR=$B/logs/family.log
+S=/dev/shm/alloc_2026-09-26; LG=$S/logs; LOG=$LG/family_rev3.log; MIRROR=$B/logs/family_rev3.log
 E="env -i PATH=/usr/bin:/bin HOME=/root"
 SEEDS="42 2027 7"
 mkdir -p $LG || exit 9
@@ -25,19 +28,20 @@ space_gate() {
   [ $ok -eq 0 ] || stop "space_gate_$1"
 }
 cd $D || exit 9
-mark "START rev2 $(date -u +%FT%TZ) pgid=$(ps -o pgid= $$ | tr -d ' ')"
+PG=$(ps -o pgid= $$ | tr -d ' '); echo "$PG" > $S/PGID_rev3; [ "$(cat $S/PGID_rev3)" = "$PG" ] || exit 9
+mark "START rev3 $(date -u +%FT%TZ) pgid=$PG"
 until [ -f $S/GO ]; do sleep 60; done
 mark "GO_SEEN $(date -u +%FT%TZ)"
-# ── step 0a: red cell (rev 0's control driver died with the quota; nothing was read from it) ──
-space_gate red
-$E $PY -B alloc_chain_run.py PATH,HOME,LC_CTYPE $R --seed 42 --rule inservice --mix fundflip --engine > $LG/cell_red_s42.log 2>&1 || stop "red_cell_rc"
-mark "CELL_OK inservice_fundflip s42 $(date -u +%FT%TZ)"
+# ── step 0a: red cell R' (rule §7) ──
+space_gate redprime
+$E $PY -B alloc_chain_run.py PATH,HOME,LC_CTYPE $R --seed 42 --rule inservice --mix negbook --engine > $LG/cell_redprime_s42.log 2>&1 || stop "redprime_cell_rc"
+mark "CELL_OK inservice_negbook s42 $(date -u +%FT%TZ)"
 # ── step 0b: identity receipts (combo s42 + s2027 bitwise, engine 32/32) and wiring of the red arm ──
 $PY -B - <<'EOF' || stop "identity_receipts"
 import json
 R="/workspace/alloc_2026-09-26/receipts"
 a=json.load(open(f"{R}/ALLOC_CHAIN_inservice_shared_s42.json")); b=json.load(open(f"{R}/ALLOC_CHAIN_inservice_shared_s2027.json"))
-r=json.load(open(f"{R}/ALLOC_CHAIN_inservice_fundflip_s42.json"))
+r=json.load(open(f"{R}/ALLOC_CHAIN_inservice_negbook_s42.json"))
 ok = a["COMBO_VS_ARCHIVE"]["ALL_IDENTICAL"] is True and a["ENGINE_IDENTITY"]["ALL_IDENTICAL"] is True and a["ENGINE_IDENTITY"]["n_paths_identical"]==32 \
      and b["COMBO_VS_ARCHIVE"]["ALL_IDENTICAL"] is True and r["COMBO_VS_ARCHIVE"]["ALL_IDENTICAL"] is False
 print("IDENTITY combo_s42", a["COMBO_VS_ARCHIVE"]["ALL_IDENTICAL"], "engine_s42", a["ENGINE_IDENTITY"]["n_paths_identical"], "/32 combo_s2027",
@@ -52,9 +56,9 @@ mark "GATE_OK judge_zero_point"
 $E $PY -B alloc_causality.py $R/ALLOC_CAUSALITY.json > $LG/causality.log 2>&1 || stop "causality_rc"
 grep -q '^ALLOC_CAUSALITY VERDICT=PASS' $LG/causality.log || stop "causality_verdict"
 mark "GATE_OK causality"
-# ── step 0d: red control R ──
-$E $PY -B alloc_judge.py PATH,HOME,LC_CTYPE --mode R --arm inservice_fundflip --seeds 42 --out $R/JUDGE_R.json > $LG/judge_R.log 2>&1 || stop "judge_R_rc"
-grep -q 'VERDICT=PASS' $LG/judge_R.log || stop "RED_CONTROL_FAILED_family_stops"
+# ── step 0d: red control R' (rule §7; a second failure stops the family with no further revision) ──
+$E $PY -B alloc_judge.py PATH,HOME,LC_CTYPE --mode RPRIME --arm inservice_negbook --seeds 42 --out $R/JUDGE_RPRIME.json > $LG/judge_RPRIME.log 2>&1 || stop "judge_RPRIME_rc"
+grep -q 'VERDICT=PASS' $LG/judge_RPRIME.log || stop "RED_CONTROL_RPRIME_FAILED_family_stops_final"
 mark "GATE_OK red_control"
 # ── step 1: ceiling control O (s42) ──
 space_gate oracle

@@ -101,7 +101,7 @@ def sha(p):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--seed', type=int, choices=(42, 2027, 7, 11, 23, 101, 3, 5), required=True)
-    ap.add_argument('--rule', required=True); ap.add_argument('--mix', required=True, choices=('shared', 'orth', 'fundflip')); args = ap.parse_args()
+    ap.add_argument('--rule', required=True); ap.add_argument('--mix', required=True, choices=('shared', 'orth', 'fundflip', 'negbook')); args = ap.parse_args()
     froot = W / f'work/f10_s{args.seed}'
     paths = [W / 'work/NEWS_FEATURES.npz', W / 'work/legs.npz', W / 'receipts/P3_LEGS.json', froot / 'F10_OOF.npz', froot / 'TRAIN_RECEIPT.json', W / 'inputs/bundle_config.json',
              W / 'receipts/P1_members_2025H2on.npz', pathlib.Path('/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz')]

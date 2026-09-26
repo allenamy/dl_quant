@@ -13,7 +13,8 @@ Mixes (how the two books are built from the masked seat w = [w0, 0, w2]):
   shared      in service:  King book = chain(w0*king + w2*fund), F10 book = chain(w0*zf10 + w2*fund), raw = 0.55*K + 0.45*F
   orth        (c):         King book = chain((0.55*w0*king + w2*fund)/(1-0.45*w0)), F10 book = chain(zf10), raw = (1-0.45*w0)*K + 0.45*w0*F
               -> the SAME pre-chain linear combination 0.55*w0*king + 0.45*w0*zf10 + w2*fund as `shared`, with the fund term held once
-  fundflip    RED CONTROL: `shared` with fund -> -fund in both books (trades against the funding signal the book is built on)
+  fundflip    RED CONTROL R (failed 18:21Z, rule §7): `shared` with fund -> -fund in both books
+  negbook     RED CONTROL R' (rule §7): `shared` with raw -> -raw (every target weight x -1; kc/fc states and gross unchanged)
 """
 import numpy as np
 
@@ -131,6 +132,8 @@ def mix_weights(mix, w):
         return w[0], w[2], w[0], w[2], .55, .45, 1.0
     if mix == "fundflip":
         return w[0], w[2], w[0], w[2], .55, .45, -1.0
+    if mix == "negbook":                    # RED CONTROL R' (DECISION_RULE §7): the whole combo target negated, states and gross unchanged
+        return w[0], w[2], w[0], w[2], -.55, -.45, 1.0
     if mix == "orth":
         d = 1.0 - .45 * w[0]
         return .55 * w[0] / d, w[2] / d, 1.0, 0.0, d, .45 * w[0], 1.0

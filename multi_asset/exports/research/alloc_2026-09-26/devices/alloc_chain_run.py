@@ -216,7 +216,7 @@ def main():
         # lead 2026-09-26 18:1xZ team engine-slot priority: candidate cells run only when the lead places them. While the hold file
         # exists, a CANDIDATE arm waits here (controls -- the in-service identity, the fundflip red control, the oracle ceiling -- are
         # exempt). Scheduling only: nothing about the cell changes. Every poll is recorded in the receipt.
-        control_arm = (rule in ("inservice", "oracle") and mix in ("shared", "fundflip"))
+        control_arm = (rule in ("inservice", "oracle") and mix in ("shared", "fundflip", "negbook"))
         rec["candidate_hold"] = []
         while (not control_arm) and os.path.exists(HOLD_FILE):
             rec["candidate_hold"].append(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
