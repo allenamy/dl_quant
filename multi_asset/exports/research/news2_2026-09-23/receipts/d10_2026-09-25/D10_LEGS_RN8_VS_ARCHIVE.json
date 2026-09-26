@@ -1,6 +1,6 @@
 {
  "device": "d10_legs_rn8_vs_archive.py",
- "self_sha256": "4d87500b8b08199a814450d6ddeacd778eb6d44a008d1fbdac5d0fdd53c5b005",
+ "self_sha256": "871d8bf4ecfc9c96324b45aa2a1a2cc3434a41c0c172dbf0c331d64e026b54c6",
  "gate_sha256": "793c5eb2e85e84232df8cf5f25b62207400e390b1552d9196f1b4f76adcdc956",
  "argv": [
   "--legs",
@@ -28,6 +28,17 @@
    "2026-09-19T00:00Z"
   ]
  },
+ "standard_iv_set": {
+  "value": [
+   1.0,
+   2.0,
+   4.0,
+   6.0,
+   8.0
+  ],
+  "source": "common/funding_interval.py ALLOWED_IV, imported not redeclared",
+  "why": "lead's ruling names that module's tiering as authoritative"
+ },
  "cited": [
   "nc_legs.py:74 RN8 = funding_asof(...)[3]",
   "nc_contract.py:98 rn8 = rate*8/iv",
@@ -54,8 +65,8 @@
     "bitwise_equal": 73888,
     "legs_nan_correct_NOT_a_member": 50807,
     "asof_row_where_iv_column_disagrees_with_spacing": 64,
-    "  of_those_spacing_is_standard": 20,
-    "  of_those_spacing_is_NONSTANDARD": 44,
+    "  of_those_spacing_is_standard": 24,
+    "  of_those_spacing_is_NONSTANDARD": 40,
     "unresolved_nonstandard_spacing_legs_used_iv_column": 2,
     "both_nan_agree": 666
    },
@@ -493,8 +504,8 @@
   "bitwise_equal": 433700,
   "legs_nan_correct_NOT_a_member": 194672,
   "asof_row_where_iv_column_disagrees_with_spacing": 150,
-  "  of_those_spacing_is_standard": 76,
-  "  of_those_spacing_is_NONSTANDARD": 74,
+  "  of_those_spacing_is_standard": 80,
+  "  of_those_spacing_is_NONSTANDARD": 70,
   "unresolved_nonstandard_spacing_legs_used_iv_column": 28,
   "both_nan_agree": 3684,
   "out_of_coverage_no_in_month_asof": 9130

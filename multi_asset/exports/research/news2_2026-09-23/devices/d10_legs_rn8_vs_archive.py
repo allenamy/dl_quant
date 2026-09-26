@@ -54,7 +54,22 @@ sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import d10_manifest_gate as GATE
 
 FRESH_S = 43200  # nc_contract.py:21
-STANDARD_IV = (1.0, 2.0, 4.0, 8.0)   # common/funding_interval.py ALLOWED_IV
+# DERIVED, not redeclared. I first hardcoded (1.0, 2.0, 4.0, 8.0) here while the canonical set in
+# common/funding_interval.py is ALLOWED_IV = (1.0, 2.0, 4.0, 6.0, 8.0) -- it includes 6.0. Two constants that
+# must agree, written twice, drift; so this imports the one that lead's ruling names as authoritative. (No
+# judged verdict changed: all 28 UNRESOLVED cells have a 3.0h gap, checked before the fix. What was wrong was
+# the DESCRIPTIVE label on any 6h-spacing as-of row.)
+for _c in (os.path.dirname(os.path.realpath(__file__)),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "common"),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), "common"),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+               os.path.realpath(__file__))))), "common")):
+    if os.path.exists(os.path.join(_c, "funding_interval.py")):
+        sys.path.insert(0, _c)
+        break
+else:
+    raise ImportError("common/funding_interval.py not found; this device must not redeclare ALLOWED_IV")
+from funding_interval import ALLOWED_IV as STANDARD_IV   # lead's ruling: use this module's tiering
 
 
 def sha(p):
@@ -123,6 +138,9 @@ def main():
            "legs": {"path": a.legs, "sha256": lsha, "anchors": int(E.size), "symbols": len(syms),
                     "ready_anchors": int(ready.sum()),
                     "E_ts_range": [u(E.min()), u(E.max())]},
+           "standard_iv_set": {"value": list(STANDARD_IV),
+                               "source": "common/funding_interval.py ALLOWED_IV, imported not redeclared",
+                               "why": "lead's ruling names that module's tiering as authoritative"},
            "cited": ["nc_legs.py:74 RN8 = funding_asof(...)[3]",
                      "nc_contract.py:98 rn8 = rate*8/iv", "nc_contract.py:95 FRESH_S=43200 gate",
                      "nc_contract.py:92 raises if the as-of row is after the anchor"],
