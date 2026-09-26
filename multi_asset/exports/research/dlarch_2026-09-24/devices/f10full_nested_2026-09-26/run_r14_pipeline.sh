@@ -16,7 +16,10 @@ PY=/workspace/venv/bin/python
 LOG=$A/r14.log
 CLAIM=$W/CHAIN/.claim_R14
 MYPGID=$(ps -o pgid= -p $$ | tr -d ' ')
-mkdir "$CLAIM" 2>/dev/null || { echo "$(date -u +%T) REFUSING: $CLAIM exists" >> "$LOG"; exit 4; }
+if ! mkdir "$CLAIM" 2>/dev/null; then
+  if [ -d "$CLAIM" ]; then echo "$(date -u +%T) REFUSING: $CLAIM exists (another runner holds R1.4)" >> "$LOG"; exit 4; fi
+  echo "$(date -u +%T) REFUSING: cannot create $CLAIM (not a claim conflict -- filesystem/quota?)" >> "$LOG"; exit 5
+fi
 echo "pgid=$MYPGID pid=$$ owner=dlarch job=r14_pipeline started=$(date -u +%FT%TZ)" | tee "$CLAIM/owner" > "$A/r14.pgid"
 say(){ echo "$(date -u +%H:%M:%SZ) [r14] $*" >> "$LOG"; }
 stop(){ say "$1"; echo "R14_PIPELINE_STOPPED $1" >> "$LOG"; rm -rf "$CLAIM"; exit 1; }
