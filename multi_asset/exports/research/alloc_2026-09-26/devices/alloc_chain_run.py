@@ -43,7 +43,7 @@ SHARE = {
     "receipts/P1_members_2025H2on.npz": f"{NS}/receipts/P1_members_2025H2on.npz",
     "vendor_live/fea171/combo_stage.py": f"{NS}/vendor_live/fea171/combo_stage.py",
 }
-MAX_FOREIGN_ENGINES = 2
+MAX_FOREIGN_ENGINES = 1      # lead 2026-09-26 17:5xZ: at most TWO engine cells in parallel team-wide (mine + 1); was 2 (three-cell rule)
 ENGINE_GATE_MARGIN_GIB = 2.0
 SHM_FREE_MIN_GIB = 4.0
 

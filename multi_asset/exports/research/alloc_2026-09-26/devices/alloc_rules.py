@@ -72,6 +72,23 @@ def inverse_vol(LR, look=INSERVICE_LOOK):
     return W
 
 
+def oracle_future(LR, look=INSERVICE_LOOK):
+    """O (ceiling control, NEVER admissible): the in-service estimator on the NEXT `look` finite LR rows, i.e. rows i .. i+look-1 in
+    nc_legs order -- the same smoothness as the in-service seat with perfect foresight of the coming ~150 days. Where fewer than `look`
+    future rows exist (the axis tail) it uses the rows that exist, down to 1; with none it falls back to [1/3]*3 like production."""
+    fin = np.isfinite(LR).all(1); rows = LR[fin]; pos = np.cumsum(fin)          # pos[i] = finite rows at index <= i
+    W = np.full((LR.shape[0], 3), np.nan)
+    for i in range(LR.shape[0]):
+        k0 = int(pos[i - 1]) if i >= 1 else 0                                     # first finite row NOT yet seen at anchor i
+        r = rows[k0:k0 + look].T
+        if r.shape[1] >= 1:
+            shp = r.mean(1) / (r.std(1) + 1e-9); shp = np.maximum(shp, 0.0)
+            W[i] = shp / shp.sum() if shp.sum() > 0 else np.array([1 / 3] * 3)
+        else:
+            W[i] = np.array([1 / 3] * 3)
+    return W
+
+
 def seats_for(rule, LR, WL):
     """-> (seats (n,3) float64, receipt dict). `WL` is legs.npz WL (float32), used ONLY by the in-service identity assertion."""
     if rule == "inservice":
@@ -88,6 +105,9 @@ def seats_for(rule, LR, WL):
     if rule.startswith("look"):                                      # look1800
         L = int(rule[4:])
         return msharpe(LR, L).astype(np.float32).astype(np.float64), {"rule": rule, "look": L}
+    if rule == "oracle":
+        return oracle_future(LR).astype(np.float32).astype(np.float64), {"rule": rule, "look": INSERVICE_LOOK, "LOOK_AHEAD": True,
+                                                                          "admissible": False, "role": "ceiling control"}
     if rule == "invvol":
         return inverse_vol(LR).astype(np.float32).astype(np.float64), {"rule": rule, "look": INSERVICE_LOOK}
     raise ValueError(f"unknown seat rule {rule!r}")
