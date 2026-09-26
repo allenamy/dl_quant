@@ -1,0 +1,8 @@
+legs_d10/legs.npz 104af853... (nc_legs 18387627 unchanged; NC_W = R2 -> fund_state_d10 f07e4ebd; NEWS_FEATURES_D10 f1cd3fa2; KING_OOF_SWAP ac2fad4d)
+measured 2026-09-26 20:1xZ, inline read-only numpy on pod2, legs_id (== 9ee5886f bitwise) vs legs_d10:
+  ready lost 105 anchors, ALL after the ledger cut (2026-09-01T16:00Z .. 2026-09-19T00:00Z; reason fund_base<10: no rebuilt events in September); pre-cut lost 0, gained 0
+  pre-cut cells differing: KZ 196,381 (King P moved on 13,811 cells; KZ is a within-anchor rank, so one moved P reorders its anchor)
+                           ZFD 1,024,664 (fund-leg rank over the base; fe_v moved on 334,910 member rows and 383,004 base cells)
+                           RN8 39 (== the iv_v count)
+  WL (seats) differ on 7,031 pre-cut anchors; max |dWL| 1.0 (seat-degenerate windows where a leg's msharpe clips to 0 in one arm only)
+No book-layer number.
