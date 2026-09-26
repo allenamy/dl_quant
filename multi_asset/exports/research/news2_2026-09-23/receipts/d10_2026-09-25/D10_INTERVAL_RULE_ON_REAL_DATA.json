@@ -1,0 +1,343 @@
+{
+ "device": "d10_interval_rule_on_real_data.py",
+ "self_sha256": "d8e2970962a4df7a22c040b60cbc196cdc9db8047a51d0c2ccd85ff63ba25e15",
+ "rule_module_sha256": "5d5bf20797ca41c0b83ce0d6d710acb9baf2c500c93c9b40b7084c23182afb3f",
+ "rule": "common/funding_interval.py interval_d10 -- IMPORTED, not reimplemented",
+ "criteria": "docs/DECISION_RULE_D10_stage2_2026-09-26.md (1814d4334) \u00a71",
+ "months": [
+  "2026-01",
+  "2026-02",
+  "2026-03",
+  "2026-04",
+  "2026-05",
+  "2026-08"
+ ],
+ "symbols": 736,
+ "events": 556275,
+ "tier_counts": {
+  "DECLARED_FIRST_EVENT": 736,
+  "SPACING_EXACT": 554938,
+  "DECLARED_LONG_GAP": 579,
+  "UNRESOLVED_NON_INCREASING_TIME": 2,
+  "SPACING_CLAMPED_LOW": 20
+ },
+ "vs_declared_column": {
+  "equals_declared": 556147,
+  "differs_from_declared": 126
+ },
+ "measured_transition_cases": {
+  "ACEUSDT@2026-08-10T04:00Z": {
+   "rule_iv": 2.0,
+   "tier": "SPACING_EXACT",
+   "declared": 4.0,
+   "expected_from_measurement": 2.0,
+   "matches": true
+  },
+  "COTIUSDT@2026-08-31T20:00Z": {
+   "rule_iv": 1.0,
+   "tier": "SPACING_EXACT",
+   "declared": 4.0,
+   "expected_from_measurement": 1.0,
+   "matches": true
+  },
+  "DEXEUSDT@2026-08-07T08:00Z": {
+   "rule_iv": 2.0,
+   "tier": "SPACING_EXACT",
+   "declared": 4.0,
+   "expected_from_measurement": 2.0,
+   "matches": true
+  },
+  "PROMUSDT@2026-08-14T12:00Z": {
+   "rule_iv": 2.0,
+   "tier": "SPACING_EXACT",
+   "declared": 4.0,
+   "expected_from_measurement": 2.0,
+   "matches": true
+  }
+ },
+ "all_measured_cases_reproduced": true,
+ "clamp_examples": [
+  {
+   "symbol": "AAPLUSDT",
+   "utc": "2026-08-10T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "MSFTUSDT",
+   "utc": "2026-08-20T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "VUSDT",
+   "utc": "2026-08-11T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "WMTUSDT",
+   "utc": "2026-08-21T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "AMATUSDT",
+   "utc": "2026-08-20T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "BXUSDT",
+   "utc": "2026-08-03T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "EBAYUSDT",
+   "utc": "2026-08-28T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "GLWUSDT",
+   "utc": "2026-08-31T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "GLWUSDT",
+   "utc": "2026-08-31T01:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.9997222222222222,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "HYUNDAIUSDT",
+   "utc": "2026-08-27T23:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "HYUNDAIUSDT",
+   "utc": "2026-08-28T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.9997222222222222,
+   "iv": 1.0,
+   "declared": 4.0
+  },
+  {
+   "symbol": "IBMUSDT",
+   "utc": "2026-08-10T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "KLACUSDT",
+   "utc": "2026-08-17T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "LLYUSDT",
+   "utc": "2026-08-14T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "NVOUSDT",
+   "utc": "2026-08-17T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "SKHYNIXUSDT",
+   "utc": "2026-08-27T23:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "SKHYNIXUSDT",
+   "utc": "2026-08-28T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.9997222222222222,
+   "iv": 1.0,
+   "declared": 4.0
+  },
+  {
+   "symbol": "STRCUSDT",
+   "utc": "2026-08-14T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "STRCUSDT",
+   "utc": "2026-08-31T00:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.0002777777777777778,
+   "iv": 1.0,
+   "declared": 1.0
+  },
+  {
+   "symbol": "STRCUSDT",
+   "utc": "2026-08-31T01:00Z",
+   "tier": "SPACING_CLAMPED_LOW",
+   "gap_h": 0.9997222222222222,
+   "iv": 1.0,
+   "declared": 1.0
+  }
+ ],
+ "long_gap_examples": [
+  {
+   "symbol": "0GUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1468.0,
+   "iv": 4.0
+  },
+  {
+   "symbol": "1000000BOBUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1468.0,
+   "iv": 4.0
+  },
+  {
+   "symbol": "1000000MOGUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1468.0,
+   "iv": 4.0
+  },
+  {
+   "symbol": "1000BONKUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1468.0,
+   "iv": 4.0
+  },
+  {
+   "symbol": "1000CATUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1468.0,
+   "iv": 4.0
+  },
+  {
+   "symbol": "1000CHEEMSUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1468.0,
+   "iv": 4.0
+  },
+  {
+   "symbol": "1000FLOKIUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1472.0,
+   "iv": 8.0
+  },
+  {
+   "symbol": "1000LUNCUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1472.0,
+   "iv": 8.0
+  },
+  {
+   "symbol": "1000PEPEUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1472.0,
+   "iv": 8.0
+  },
+  {
+   "symbol": "1000RATSUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1468.0,
+   "iv": 4.0
+  },
+  {
+   "symbol": "1000SATSUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1468.0,
+   "iv": 4.0
+  },
+  {
+   "symbol": "1000SHIBUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1472.0,
+   "iv": 8.0
+  },
+  {
+   "symbol": "1000XECUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1472.0,
+   "iv": 4.0
+  },
+  {
+   "symbol": "1INCHUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1472.0,
+   "iv": 8.0
+  },
+  {
+   "symbol": "1MBABYDOGEUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1468.0,
+   "iv": 4.0
+  },
+  {
+   "symbol": "2ZUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1468.0,
+   "iv": 4.0
+  },
+  {
+   "symbol": "4USDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1468.0,
+   "iv": 4.0
+  },
+  {
+   "symbol": "AAVEUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1472.0,
+   "iv": 8.0
+  },
+  {
+   "symbol": "ACEUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1468.0,
+   "iv": 4.0
+  },
+  {
+   "symbol": "ACHUSDT",
+   "utc": "2026-08-01T00:00Z",
+   "gap_h": 1472.0,
+   "iv": 8.0
+  }
+ ]
+}

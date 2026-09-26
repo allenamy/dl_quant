@@ -119,3 +119,103 @@ def gate_interval(res, *, what):
         return iv
     raise IntervalError("%s: refusing to use a %s row as an interval (source %r). %s"
                         % (what, res["tier"], res.get("source"), res["note"]))
+
+# ======================================================================================================
+# D10 stage 2 truth rule -- lead's DECISION_RULE_D10_stage2_2026-09-26.md (1814d4334) §1, THE SINGLE DEFINITION
+# ======================================================================================================
+# lead's words: "按实际结算间距记, 用小时的精确值, 不吸附到网格". Rationale, measured: funding accrues over the
+# time actually elapsed, while the archive's per-settlement COLUMN is forward-looking on a transition row (it
+# carries the NEW regime). The four measured cases are all the moment a name leaves a 1h spike -- DEXE/ACE/PROM
+# column 4.0 against a real 2.0h gap, COTI 4.0 against 1.0h -- and that is the population the funding leg
+# shorts, so using the column understates RN8 by 2-4x exactly there.
+#
+# THIS IS DELIBERATELY NOT `resolve()`. Two rules live in this file on purpose and must not be conflated:
+#   * `resolve()` / `gate_interval()` serve the FX-DATA FND-01/02/03 rebuild (consumers:
+#     docs/fixprogram_2026-09-13/FX_DATA/devices/fx_fnd_hol_rebuild{,_v2}.py). There, off-grid spacing is
+#     UNRESOLVED_NONSTANDARD_SPACING -- named, counted, never guessed. That behaviour is UNCHANGED.
+#   * `interval_d10()` below is the D10 stage 2 truth rule, where lead has ruled the exact spacing IS the
+#     answer, 3h included. So a 3h gap is 3.0 here and UNRESOLVED there, and that is not a contradiction: they
+#     answer different questions for different consumers.
+# ALLOWED_IV governs the DECLARED/column tiers only. It is not applied to the D10 spacing value, because
+# snapping is exactly what lead's ruling removes.
+#
+# This rule is a MODELLING CONVENTION and differs from the live NC `snap_interval` (which snaps, ties to the
+# larger). Per the user ruling, train and live must share one rule, so the producer adopts this one in the
+# October rebuild via the deployment protocol -- until then, live and this differ BY DESIGN and any parity
+# reading across that boundary must say so.
+
+SPACING_MIN_H = 1.0            # lead: "实际间距超出 [1, 8] 小时: 截到边界"
+SPACING_MAX_H = 8.0
+DECLARED_FALLBACK_GAP_H = 24.0  # lead: "与上一笔相隔超过 24h: 用交易所声明的间隔"
+
+SPACING_EXACT = "SPACING_EXACT"
+SPACING_CLAMPED_LOW = "SPACING_CLAMPED_LOW"
+SPACING_CLAMPED_HIGH = "SPACING_CLAMPED_HIGH"
+DECLARED_FIRST_EVENT = "DECLARED_FIRST_EVENT"
+DECLARED_LONG_GAP = "DECLARED_LONG_GAP"
+DECLARED_UNAVAILABLE = "UNRESOLVED_DECLARED_UNAVAILABLE"
+NON_INCREASING_TIME = "UNRESOLVED_NON_INCREASING_TIME"
+
+D10_CLAMPED = (SPACING_CLAMPED_LOW, SPACING_CLAMPED_HIGH)
+D10_DECLARED = (DECLARED_FIRST_EVENT, DECLARED_LONG_GAP)
+D10_USABLE = (SPACING_EXACT,) + D10_CLAMPED + D10_DECLARED
+
+
+def interval_d10(prev_ft, ft, declared_iv):
+    """The D10 stage 2 interval for ONE settlement. Returns {iv, tier, gap_h, declared_iv}.
+
+    prev_ft -- the previous settlement's unix seconds for the SAME symbol, or None if this is its first
+    ft      -- this settlement's unix seconds
+    declared_iv -- the exchange's declared interval for this settlement (the archive column), or None
+
+    Order is lead's, and it matters: the long-gap fallback is checked BEFORE clamping, so a 30h gap uses the
+    declared interval rather than clamping to 8.0. A gap of exactly 24h is NOT "> 24h", so it clamps.
+
+    Never returns a default 8.0. The defect family this file exists for is precisely
+    `declared-if-present -> else spacing -> else 8.0`, so when the declared value is needed and absent the
+    answer is UNRESOLVED_DECLARED_UNAVAILABLE and the caller must handle it, not a silent 8.
+    """
+    d = _f(declared_iv)
+    ft = None if ft is None else int(ft)
+    if ft is None:
+        return {"iv": None, "tier": NON_INCREASING_TIME, "gap_h": None, "declared_iv": d,
+                "note": "no settlement timestamp"}
+    if prev_ft is None:
+        if d is None:
+            return {"iv": None, "tier": DECLARED_UNAVAILABLE, "gap_h": None, "declared_iv": None,
+                    "note": "first event for this symbol and no declared interval; not defaulted to 8.0"}
+        return {"iv": d, "tier": DECLARED_FIRST_EVENT, "gap_h": None, "declared_iv": d}
+    gap_s = ft - int(prev_ft)
+    if gap_s <= 0:
+        return {"iv": None, "tier": NON_INCREASING_TIME, "gap_h": gap_s / 3600.0, "declared_iv": d,
+                "note": "settlements are not strictly increasing; a data error, refused rather than guessed"}
+    gap_h = gap_s / 3600.0
+    if gap_h > DECLARED_FALLBACK_GAP_H:
+        if d is None:
+            return {"iv": None, "tier": DECLARED_UNAVAILABLE, "gap_h": gap_h, "declared_iv": None,
+                    "note": "gap exceeds the fallback threshold and no declared interval is available"}
+        return {"iv": d, "tier": DECLARED_LONG_GAP, "gap_h": gap_h, "declared_iv": d}
+    if gap_h < SPACING_MIN_H:
+        return {"iv": SPACING_MIN_H, "tier": SPACING_CLAMPED_LOW, "gap_h": gap_h, "declared_iv": d}
+    if gap_h > SPACING_MAX_H:
+        return {"iv": SPACING_MAX_H, "tier": SPACING_CLAMPED_HIGH, "gap_h": gap_h, "declared_iv": d}
+    return {"iv": gap_h, "tier": SPACING_EXACT, "gap_h": gap_h, "declared_iv": d}
+
+
+def interval_d10_series(fts, declared_ivs):
+    """Apply interval_d10 across one symbol's settlement series.
+
+    Returns (list of per-event results, Counter of tiers). lead requires the clamped events to be counted
+    per event and named, so the counter is part of the contract rather than a convenience.
+    """
+    import collections
+    out, tiers = [], collections.Counter()
+    prev = None
+    for k, ft in enumerate(fts):
+        d = declared_ivs[k] if declared_ivs is not None and k < len(declared_ivs) else None
+        r = interval_d10(prev, ft, d)
+        out.append(r)
+        tiers[r["tier"]] += 1
+        if r["tier"] != NON_INCREASING_TIME:
+            prev = int(ft)
+    return out, tiers
