@@ -128,7 +128,12 @@ def ledger(path, key, scale):
     return [(ft[o[j]:o[j + 1]] / scale, rate[o[j]:o[j + 1]]) for j in range(NW)]
 
 
+# D10 windowing uses floor(ms / 1000): settlements are stamped a few ms after the hour (e.g. ...600002 ms), so a
+# float ms/1000 key pushed every on-the-hour settlement at A+4h into the NEXT window -- run 2 (23:21Z) showed
+# producer != d10 at 4,842 anchors for that reason alone, not because of the 18 same-second events. Flooring
+# keeps every ms event (the 18 extra included) and puts it in the same window as the producer's second key.
 LEDGERS = {'producer': ledger(LED_PROD, 'ft', 1.0), 'd10': ledger(LED_D10, 'ft_ms', 1000.0)}
+LEDGERS['d10'] = [(np.floor(ft), rt) for ft, rt in LEDGERS['d10']]
 LEDGER_END = min(max((float(f[-1]) for f, _ in L if len(f)), default=0) for L in LEDGERS.values())
 rec['ledger_end_utc'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(LEDGER_END))
 
@@ -200,7 +205,8 @@ def daily(x):
 
 TBD = {c: daily(tb[c]) for c in LEDGERS}
 rec['daily_T_b_days'] = {c: len(v) for c, v in TBD.items()}
-rec['carry_caliber_diff'] = {'anchors_where_producer_ne_d10': int(np.sum(np.isfinite(tb['producer']) & (np.abs(tb['producer'] - tb['d10']) > 1e-12)))}
+rec['carry_caliber_diff'] = {'anchors_where_producer_ne_d10': int(np.sum(np.isfinite(tb['producer']) & (np.abs(tb['producer'] - tb['d10']) > 1e-12))),
+                             'expected': 'only anchors whose window holds one of the 18 same-second extra settlements (b355c1a55)'}
 
 # ── features and labels per UTC day ──────────────────────────────────────────────────────────
 aidx = {int(t): i for i, t in enumerate(a)}
