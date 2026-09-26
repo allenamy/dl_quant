@@ -1,0 +1,22 @@
+{
+ "device": "test_pinned_sources_intact.py",
+ "self_sha256": "616f35cd83c930f1b481b60c14d6732ba34958326405c54ac74490db92bc5bdf",
+ "utc": "2026-09-26T04:19:04Z",
+ "rule": "a source file pinned by a training receipt must not be edited in place (lead 2026-09-26)",
+ "receipt_globs": [
+  "/dev/shm/fresh_2026-09-23/work/f10_s*/TRAIN_RECEIPT.json",
+  "/dev/shm/news_2026-09-23/work/f10_s*/TRAIN_RECEIPT.json",
+  "/dev/shm/news2_2026-09-23/work/f10_s*/TRAIN_RECEIPT.json"
+ ],
+ "distinct_pinned_sources": 15,
+ "pinned_entries_checked": 30,
+ "drifted": [],
+ "missing": [],
+ "history": "broken twice on 2026-09-25/26 -- fresh_legs.py (deprecation raise) and news_p2_build.py (fund_replay_guard wiring). Both were discovered by fa_ladder.py L206 at run time, which is one engine run too late; this test moves the detection earlier.",
+ "red_control": {
+  "attempted": true,
+  "victim": "/dev/shm/fresh_2026-09-23/devices/f10_observability.py",
+  "drift_detected": true
+ },
+ "red_control_fired": true
+}

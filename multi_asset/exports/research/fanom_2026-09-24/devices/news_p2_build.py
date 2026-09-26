@@ -5,14 +5,6 @@ Usage: python news_p2_build.py worker <worker_id>      (run N of these)
 """
 import os, sys, json, time, hashlib, traceback
 import numpy as np
-
-# ---- D10 stage 2 section 5: consumer-side gate on fund_replay.npz (news2 fund_replay_guard.py) ----
-import hashlib as _hl
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-_gp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fund_replay_guard.py")
-with open(_gp, "rb") as _f:
-    assert _hl.sha256(_f.read()).hexdigest() == "9113d28a49b858df83c916c295ce0bc8286950b1d28b767dd07b61c9047ced25", "fund_replay_guard.py drifted from the pinned sha"
-from fund_replay_guard import require_clean_fund_replay, fund_replay_status
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import news_hist_features as H
 
@@ -32,10 +24,6 @@ def load():
     mk = np.load(MASK); A = mk["ts"].astype(np.int64); legal = mk["mask"]
     cfg = json.load(open(f"{W}/inputs/bundle_config.json"))
     crypto = np.load(f"{W}/receipts/P1_members_2025H2on.npz")["crypto"]
-    # ★ NO allow= ARGUMENT HERE, deliberately. This device writes fund_now into the F10 features, i.e. it is the
-    # path by which the fund_replay defect reached trained models. A measurement device may name a dirty
-    # state and proceed; a PRODUCER may not. It refuses until the artefact is stamped clean.
-    require_clean_fund_replay(f"{W}/work/fund_replay.npz")
     fr = np.load(f"{W}/work/fund_replay.npz")
     assert np.array_equal(fr["anchors"], A) and [str(s) for s in fr["symbols"]] == syms
     return dict(ts=ts, syms=syms, chn=chn, D=D, holes=holes, A=A, legal=legal, cfg=cfg, crypto=crypto,
