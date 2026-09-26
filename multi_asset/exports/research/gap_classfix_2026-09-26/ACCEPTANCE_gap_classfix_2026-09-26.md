@@ -64,3 +64,15 @@ lead 派单(PROGRAM_loop §2-1b): 缺锚 ⇒ members_hist 无 12Z/16Z ⇒ 09-27 
 - **M 影响量级**(描述, 不设门): 沙箱重放 A=1790409600, 臂 `mhdrop` = 删 members_hist 中 A−24h 一条(生成标记同步改 sha):
   现码 vs 基线: F10 分数(有限名)Spearman、drank 三列在 A 行是否全 0、发布权重 L1 差与 max|dw|;
   补丁码(含本组件) vs 基线: 同上; 若 V2 在 24h 滞后上逐元素全等, 则补丁码 mhdrop 的发布权重须与基线**逐位相等**(这是一条门)。
+
+## AMENDMENT 3(2026-09-26 19:0xZ, lead 裁定后; 写于 GAP4 任何重放读数之前)
+lead 裁定(1)越界 = 承接最近有效状态 + 发布 + HIGH(采纳本包原设计);(2)设计原则写成:**承接最近一份有效状态;一份都没有且回落为零 = 冷启动,冷启动的书绝不发布**,并补测试。
+读码+读数发现(本修订的动因,只读): 历史上 08-29 20Z 缺锚后 f10 状态从零爬升(08-30 00Z gross 0.0896 → 04Z 0.170…),combo 在 08-30 04Z 以 gross 0.515 发布 —— 一本部分从零爬升的书已上过实盘。
+修法(tree GAP4): prev_state 增 `MIN_STATE_GROSS = 0.4`,gross 低于它的状态判「degenerate」具名拒绝(不作前驱);combo_stage 在 kc/fc 找不到任何有效状态且回落向量 gross < 0.4 时判冷启动:**不写该锚任何 kc/fc 状态、COMBO_LIVE 下 _bail(HIGH 页报)不发布**;f10 单独冷启动只不写 f10 状态(它不进发布的书)。
+新增臂(A=1790409600)与判据:
+| 臂 | 构造 | 现码 RED 判法 | 补丁码 PASS |
+|---|---|---|---|
+| cold | 删沙箱内全部 state_H_{kc,fc,f10}_* 与 state/weights/*.npz | 现码写出了 state_H_kc_<A> 或 state_H_fc_<A>(毒化后续锚),或发布了目标 | rc≠0 且无目标;state_H_kc_<A>、state_H_fc_<A>、state_H_f10_<A> 均不存在;run.log 的 COMBO_LIVE ABORT 行含「冷启动拒绝发布」 |
+| poison | A−4h 的 kc/fc/f10 状态换成自身 val×0.1(anchor 键正确,模拟从零爬升的状态) | 现码 kc/fc 来源为 own(承接了退化状态)或无目标 | rc 0 已发布;kc/fc/f10 来源 == `own_gap1_rejected1`;GAP_PAGE 行含 `degenerate`;权重与现码 bridge1 参照臂逐位相等 |
+另: GAP4 上**全部既有臂按原判据重跑**(C0×3 / T / G1 G2 G6 / gap7 / X1–X3 / M),判官只加上两臂; U 为 16 例(新增 degenerate 例,旧谓词须 RED)。
+首锚验收(手册 W6)补一条: 正常锚 kc/fc/f10 来源必须为 `own`;与现码字节相同的性质由 C0 负责。
