@@ -91,7 +91,7 @@ def check(a, T, C):
     if cd.shape[1] != len(syms): bad.append(f"C3 axis: rolling has {cd.shape[1]} columns, symbols_panel {len(syms)}")
     if crs != syms: bad.append("C3 axis: crypto_axis symbols != symbols_panel")
     if not (off[0] == 0 and off[-1] == len(idx) and np.all(np.diff(off) >= 0) and len(off) == len(an) + 1): bad.append("C3 members_hist offsets inconsistent")
-    if bad: return bad, None
+    if any(x.startswith(("C2", "C3")) for x in bad): return bad, None      # structural: nothing below is meaningful; C1 alone does not hide C4-C6
     fm = MR.fetch_mask_from_aux(aux, syms); rows = {int(t): i for i, t in enumerate(cts)}
     got = {}
     for c in C:

@@ -1,0 +1,47 @@
+  OK   P1 check PASS on the fixture  — MEMBERS_HIST_BACKFILL check targets=['09-26T04:00Z'] controls=['09-26T00:00Z', '09-26T08:00Z'] state=/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/integ/mhb_test3/f1/state
+MEMBERS_HIST_BACKFILL CHECK PASS
+
+  OK   P2 apply PASS  — MEMBERS_HIST_BACKFILL apply targets=['09-26T04:00Z'] controls=['09-26T00:00Z', '09-26T08:00Z'] state=/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/integ/mhb_test3/f1/state
+MEMBERS_HIST_BACKFILL APPLY PASS {"09-26T04:00Z": 400}
+
+  OK   P2 appended 04Z == the deleted ground truth, bitwise  — n 400
+  OK   P3 verify PASS  — MEMBERS_HIST_BACKFILL verify targets=['09-26T04:00Z'] controls=['09-26T04:00Z', '09-26T08:00Z'] state=/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/integ/mhb_test3/f1/state
+MEMBERS_HIST_BACKFILL VERIFY PASS
+
+  OK   R1 target already present => FAIL C4  — p-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/integ/mhb_test3/f1/state
+  RED C4 target 09-26T00:00Z already in members_hist (append-only; refusing)
+MEMBERS_HIST_BACKFILL CHECK FAIL
+
+  OK   P4 rollback PASS  — 9-26T08:00Z'] state=/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/integ/mhb_test3/f1/state
+MEMBERS_HIST_BACKFILL ROLLBACK PASS
+
+  OK   P4 bytes restored
+  OK   R2a axis misaligned => FAIL C3  — b3-a08b-e8ea13fdceb0/scratchpad/integ/mhb_test3/f2/state
+  RED C3 axis: rolling has 829 columns, symbols_panel 828
+  RED C3 axis: crypto_axis symbols != symbols_panel
+MEMBERS_HIST_BACKFILL CHECK FAIL
+
+  OK   R2b target not a rolling row => FAIL C4  — a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/integ/mhb_test3/f2/state
+  RED C4 target 05-29T00:00Z is not a row of the rolling cache (axis not aligned / not backfilled)
+MEMBERS_HIST_BACKFILL CHECK FAIL
+
+  OK   R3 member count wrong => FAIL C6  — 000XECUSDT']
+  RED C5 POSITIVE CONTROL FAILED at 09-26T08:00Z: recomputed 100 vs recorded 400, +[] -['0GUSDT', '1000FLOKIUSDT', '1000LUNCUSDT', '1000SATSUSDT', '1000XECUSDT']
+  RED C6 member count at 09-26T04:00Z = 100 (NTOP 100, nearest recorded 09-26T00:00Z = 400)
+MEMBERS_HIST_BACKFILL CHECK FAIL
+
+  OK   R4 positive control altered => FAIL C5  — ', '09-26T08:00Z'] state=/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/integ/mhb_test3/f4/state
+  RED C5 POSITIVE CONTROL FAILED at 09-26T08:00Z: recomputed 400 vs recorded 400, +['0GUSDT'] -[]
+MEMBERS_HIST_BACKFILL CHECK FAIL
+
+  OK   R5 producer label running => FAIL C1  — b3-a08b-e8ea13fdceb0/scratchpad/integ/mhb_test3/f2/state
+  RED C1 producer com.hsy.combolive is running (it holds members_hist in memory and would overwrite the file)
+MEMBERS_HIST_BACKFILL CHECK FAIL
+
+  OK   R6 rollback after the file changed => FAIL  — 8b-e8ea13fdceb0/scratchpad/integ/mhb_test3/f6/state
+  RED members_hist.npz or generation.json changed since the backfill (the producer saved again?) — not restored
+MEMBERS_HIST_BACKFILL ROLLBACK FAIL
+
+
+13/13 checks passed
+TEST_MEMBERS_HIST_BACKFILL PASS 
