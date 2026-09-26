@@ -1,0 +1,122 @@
+{
+ "device": "dlarch_t2_pregate_2026.py",
+ "self_sha256": "510adc68335ff31329dfeb0467c91f7cc81322da8f4b19a448b02bbe75b187c3",
+ "utc": "2026-09-26T05:27:45Z",
+ "criterion_source": "lead revision 5 (c), transcribed; thresholds not authored here",
+ "preds": "/workspace/dlarch_2026-09-24/out_pgret/T2_RESIDUAL_PREDS.npz",
+ "preds_sha256": "bcc7a9bd3b58b648bfaa4c5b055c5c4aa5e558d4b0f37e67586a5bcbbd7318c5",
+ "assembly_positive_control": {
+  "kc": true,
+  "fc": true,
+  "raw": true,
+  "weights": true,
+  "trade_mask": true,
+  "ALL": true
+ },
+ "fold_2026_embargo": {
+  "fold": "2026",
+  "test_start_utc": "2026-01-01T00:00:00Z",
+  "embargo_anchors": 60,
+  "rule": "king_folds.fold_rows: train = a + 14400 <= start - embargo*14400",
+  "n_train_anchors": 8706,
+  "max_train_anchor_utc": "2025-12-21T20:00:00Z",
+  "train_label_end_utc": "2025-12-22T00:00:00Z",
+  "uses_no_2026_label": true
+ },
+ "condition_1_residual_ic_2026": {
+  "ridge": {
+   "ic_2026_mean": 0.018380485286666436,
+   "n_anchors_2026": 1566,
+   "ic_pooled_2023_2026_DESCRIPTIVE_ONLY": 0.02906095630124094,
+   "n_days_2026": 261,
+   "n_days_dropped_all_anchors_skipped": 0,
+   "n_anchors_skipped_by_ic_series": 0,
+   "block_days_main_from_frozen_judge": 30,
+   "block_days_sensitivity": 5,
+   "ci95_lower_bound": 0.01278128808312364,
+   "ci95_lower_bound_sensitivity_block": 0.014095249347734852,
+   "ci95_bps_raw_main": [
+    127.8128808312364,
+    233.21073652281703
+   ],
+   "ci95_bps_raw_sensitivity": [
+    140.95249347734853,
+    227.61093526531155
+   ],
+   "B_draws": 10000,
+   "rng": [
+    20260923,
+    1
+   ],
+   "PASS_condition_1": true,
+   "PASS_condition_1_under_sensitivity_block": true
+  },
+  "lgbm": {
+   "ic_2026_mean": 0.011883536509130918,
+   "n_anchors_2026": 1566,
+   "ic_pooled_2023_2026_DESCRIPTIVE_ONLY": 0.02816073524429255,
+   "n_days_2026": 261,
+   "n_days_dropped_all_anchors_skipped": 0,
+   "n_anchors_skipped_by_ic_series": 0,
+   "block_days_main_from_frozen_judge": 30,
+   "block_days_sensitivity": 5,
+   "ci95_lower_bound": 0.006661148084591696,
+   "ci95_lower_bound_sensitivity_block": 0.007916743050738221,
+   "ci95_bps_raw_main": [
+    66.61148084591696,
+    152.59224353877664
+   ],
+   "ci95_bps_raw_sensitivity": [
+    79.1674305073822,
+    158.91452070351755
+   ],
+   "B_draws": 10000,
+   "rng": [
+    20260923,
+    1
+   ],
+   "PASS_condition_1": true,
+   "PASS_condition_1_under_sensitivity_block": true
+  }
+ },
+ "condition_2_weight_corr_2026": {
+  "ridge": {
+   "n_anchors_used": 1566,
+   "n_anchors_2026": 1566,
+   "median": 0.9360070949896748,
+   "mean": 0.8894162378980158,
+   "rule": "dlarch_s1s3 Q1: per-anchor Pearson over the union of non-zero cells, >= 20 names",
+   "threshold": 0.8,
+   "PASS_condition_2": false
+  },
+  "lgbm": {
+   "n_anchors_used": 1566,
+   "n_anchors_2026": 1566,
+   "median": 0.9289504573569742,
+   "mean": 0.8850991794605323,
+   "rule": "dlarch_s1s3 Q1: per-anchor Pearson over the union of non-zero cells, >= 20 names",
+   "threshold": 0.8,
+   "PASS_condition_2": false
+  }
+ },
+ "frozen_receipt_controls": {
+  "R2_target_on_king_per_anchor_frozen": {
+   "n": 10291,
+   "mean": 0.011875582566404872,
+   "median": 0.004360327712995216,
+   "p90": 0.033159611334269146
+  },
+  "finite_residual_pairs_frozen": 2784994,
+  "train_pairs_frozen_2023_2025": {
+   "2023": 290199,
+   "2024": 694838,
+   "2025": 1289444
+  },
+  "note": "these are TEST_YEARS-independent or per-year, so the probe copy must reproduce them exactly; the pooled ic_vs_* values are NOT comparable because adding 2026 widens the pooled window"
+ },
+ "verdict_per_model": {
+  "ridge": "DO_NOT_RUN_T2",
+  "lgbm": "DO_NOT_RUN_T2"
+ },
+ "ambiguity_for_lead": "the criterion says 'the residual IC' without naming ridge or lgbm; the frozen PG-T2 reported both (0.06186 / 0.06216). Both are evaluated here and neither is privileged. If the gate is meant to be one of them, or both jointly, lead should say which -- dlarch does not choose."
+}
