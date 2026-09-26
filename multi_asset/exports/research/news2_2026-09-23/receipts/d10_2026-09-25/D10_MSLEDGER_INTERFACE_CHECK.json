@@ -1,0 +1,44 @@
+{
+ "device": "d10_rebuild_funding_features.py",
+ "self_sha256": "fab6bbd048eae0473c2b4c9c6f899ed0f3d27cc6cc4128cd4e7325b57d750a53",
+ "rule_module_sha256": "5d5bf20797ca41c0b83ce0d6d710acb9baf2c500c93c9b40b7084c23182afb3f",
+ "criteria": "DECISION_RULE_D10_stage2_2026-09-26.md \u00a71 + revision 1 (ms key)",
+ "design": "docs/DESIGN_D10_lineD_prep_2026-09-26.md \u00a71",
+ "rule": "common/funding_interval.py interval_d10 -- IMPORTED, not reimplemented",
+ "argv": [
+  "--source",
+  "zipapi",
+  "--zips-root",
+  "/dev/shm/d10_2026-09-25/zips",
+  "--months",
+  "2026-01,2026-02,2026-03,2026-04,2026-05,2026-08",
+  "--api-gz",
+  "/workspace/fund_aug.json.gz",
+  "--interface-check",
+  "--out",
+  "/dev/shm/d10_2026-09-25/receipts/D10_MSLEDGER_INTERFACE_CHECK.json"
+ ],
+ "interface_check": {
+  "provenance": {
+   "source": "monthly zips u fund_aug (by ft_ms)",
+   "resolution": "MILLISECONDS"
+  },
+  "symbols": 828,
+  "stats": {
+   "zip_rows": 556275,
+   "api_intervals_key_len": 0,
+   "api_only_rows": 1918098,
+   "api_row_already_present": 556153
+  },
+  "checks": {
+   "events": 2474373,
+   "strictly_increasing": true,
+   "order_violations": [],
+   "events_with_nonzero_ms": 1092587,
+   "extra_events_sharing_a_second": 18,
+   "events_without_declared_interval": 1918098,
+   "resolution_usable_for_ms_key": true
+  },
+  "reading": "2474373 events, 1092587 with a non-zero millisecond part, 18 extra events that share a second with another (these are exactly the ones a second key would DROP), 1918098 without a declared interval (only the first-event and >24h-gap branches of interval_d10 need one)."
+ }
+}
