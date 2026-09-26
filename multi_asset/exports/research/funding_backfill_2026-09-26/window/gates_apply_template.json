@@ -1,0 +1,5 @@
+[
+ {"name": "G0_quiet_window", "argv": ["/usr/bin/python3", "~/Desktop/quant_research/multi_asset/exports/research/common/venue_quiet_window.py", "--json"], "verdict": "\"open\": true", "timeout_s": 60},
+ {"name": "G5_apply", "argv": ["/usr/bin/python3", "-B", "~/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/devices/funding_gap_backfill.py", "apply", "--root", "~/dl_quant_live/state/live/pilot_log", "--plan", "<WD>/plan", "--plan-sha", "<PLAN_SHA>", "--stamp", "<STAMP>"], "verdict": "^APPLY rows \\d+ prefix_unchanged True ", "timeout_s": 120},
+ {"name": "G6_verify", "argv": ["/usr/bin/python3", "-B", "~/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/devices/funding_gap_backfill.py", "verify", "--root", "~/dl_quant_live/state/live/pilot_log", "--apply-receipt", "<WD>/plan/APPLY_<STAMP>.json"], "verdict": "\"VERDICT\": \"VERIFIED\"", "timeout_s": 120}
+]

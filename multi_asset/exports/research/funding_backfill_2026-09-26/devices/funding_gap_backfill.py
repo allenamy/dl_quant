@@ -66,7 +66,10 @@ def census(root, day, exinfo):
     A, B = gaps[0]
     snapA = {r["symbol"]: r for r in rb if abs(float(r["read_ts"]) - A) < 1e-6}
     snapB = {r["symbol"]: r for r in rb if abs(float(r["read_ts"]) - B) < 1e-6}
-    fills = [f for f in day_rows(root, day, "fills") if f.get("fill_ts") is not None and A < float(f["fill_ts"]) < B]
+    # the executor's reader contract (pilot_log L289-L292): collapse ORIGINAL + SUPERSEDE rows to the last row per
+    # (symbol, trade_id) BEFORE counting -- the 20Z rebalance writes a supersede for 291 of its 335 executions (mark backfill),
+    # and a raw sum counts those fills twice (my first census run: 233 names mis-excluded, every one off by exactly net/2)
+    fills = [f for f in PL.collapse_supersedes(day_rows(root, day, "fills")) if f.get("fill_ts") is not None and A < float(f["fill_ts"]) < B]
     reb = collections.Counter(f["rebalance_id"] for f in fills)
     post_rid = None
     if reb:

@@ -1,0 +1,53 @@
+{
+ "device_sha256": "234cad7fbcdfad4b7fdf5d83abf32d5bb6ce683620273a43e1b1010f9a244c7d",
+ "selftest_sha256": "582b3a3b37a737ea4eac67f84e090161b889c3fbe996e6ab377af92d304ca889",
+ "controls": [
+  {
+   "control": "P1 constructor identity: re-planned 12:00Z rows == the executor's own rows, field for field",
+   "pass": true,
+   "detail": "n=231 differ=0 []"
+  },
+  {
+   "control": "P0 census on the unmodified day: every name equal, 0 excluded (the supersede rows are collapsed, not double counted)",
+   "pass": true,
+   "detail": "names 318 equal 318 fills 335"
+  },
+  {
+   "control": "P2 baseline: census -> plan -> apply -> verify VERIFIED",
+   "pass": true,
+   "detail": "census gap 2026-09-26T08:44:51Z->2026-09-26T20:45:24Z fills 335 rows 80 in_window 80 present 0 excluded_rows 0 ([]) sha c5f022f8d654c9853e2bd1b0727a4aa0c2312b4107de3ff4105806fb6e6bbc67 | _applied_key_exactly_once\": true, \"bytes_after_apply\": 0, \"VERDICT\": \"VERIFIED\"}"
+  },
+  {
+   "control": "R5a rollback restores the pre-apply bytes",
+   "pass": true,
+   "detail": "ROLLBACK {\"rolled_back\": true, \"size\": 362262}"
+  },
+  {
+   "control": "R5b rollback refuses when bytes were appended after the backfill",
+   "pass": true,
+   "detail": "BACKFILL STOP: 9 byte(s) were appended after the backfill: truncation would remove them -- manual"
+  },
+  {
+   "control": "R1 position changed in the gap -> that name EXCLUDED and named (stray fill; post-gap qty moved)",
+   "pass": true,
+   "detail": "{'0GUSDT': '1 fill(s) inside the gap outside the post-gap rebalance', '1000BONKUSDT': 'qty changed across the gap: pre-gap -348573.0 vs post-gap reconstructed -520752.5 (tol 0.5)'}"
+  },
+  {
+   "control": "R2 existing row skipped at plan; second apply STOPs (target changed); re-plan plans 0 rows",
+   "pass": true,
+   "detail": "present=1 replan_rows=0"
+  },
+  {
+   "control": "R3 schema: key set != executor rows STOPs the plan; tampered plan refused by sha; re-pinned tampered row refused by validate()",
+   "pass": true,
+   "detail": "ttlement', 'position_read_age_s', 'position_read_ts', 'settlement_ts', 'symbol') | ozen -- a missing field means the metric it feeds cannot be reconstructed later."
+  },
+  {
+   "control": "R4 target changed between plan and apply -> STOP",
+   "pass": true,
+   "detail": "OP: the target funding.jsonl changed since the plan -- re-plan (idempotency is decided at plan time)"
+  }
+ ],
+ "all_pass": true,
+ "note": "sandbox copies of pilot_log/20260925-26; the live tree is imported read-only; no network"
+}

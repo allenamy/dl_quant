@@ -89,6 +89,9 @@ def main():
     rc2, o2 = run("apply", "--root", root, "--plan", os.path.join(d, "plan"), "--plan-sha", psha, "--stamp", "T1")
     rcpt = os.path.join(d, "plan", "APPLY_T1.json")
     rc3, o3 = run("verify", "--root", root, "--apply-receipt", rcpt)
+    check("P0 census on the unmodified day: every name equal, 0 excluded (the supersede rows are collapsed, not double counted)",
+          cen["n_equal"] == cen["n_names"] and not cen["excluded"] and cen["fills_outside_post_gap_rebalance"] == 0,
+          f"names {cen['n_names']} equal {cen['n_equal']} fills {cen['fills_between_readbacks']}")
     check("P2 baseline: census -> plan -> apply -> verify VERIFIED", rc == 0 and rc2 == 0 and rc3 == 0 and "VERIFIED" in o3,
           f"census gap {cen['readback_before_gap']['utc']}->{cen['readback_after_gap']['utc']} fills {cen['fills_between_readbacks']} {o.strip()[-120:]} | {o3.strip()[-80:]}")
     # ---------------- R5 rollback (on the P2 sandbox)
