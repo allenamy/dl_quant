@@ -1,71 +1,99 @@
-> **创建:** 2026-09-26 18:1xZ | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n (integ) | **状态:** DRAFT 发布手册, 交 lead 审; 窗口未定(lead 定; 建议 09-27 09:00–11:40Z, 须在 09-27 12Z 之前) | **作废条件:** §0 任一 sha 变动(生产 combo_stage 不再是 12a76de8、包或执行器 HEAD 变化), 或 lead / 用户裁定
+> **创建:** 2026-09-26 18:1xZ(rev 2 19:2xZ: GAP4) | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n (integ) | **状态:** 发布手册,交 lead 审;目标窗 **09-27 05:00–07:40Z**,备用窗 09:00–11:40Z(都在 12Z 之前) | **作废条件:** §0 任一 sha 变动(生产 combo_stage 不再是 12a76de8,或包、执行器 HEAD 变化),或 lead / 用户裁定
 
-# 发布手册: 缺锚类修复(gap class fix) —— 生产者 files-only 发布 + 执行器侧发布归档
+# 发布手册:缺锚类修复(gap class fix,tree GAP4)—— 生产者 files-only 发布 + 执行器侧发布归档
 
-验收线(lead): **下一次任意长度的缺锚, 不需要人即可被处理。** 判据: `multi_asset/exports/research/gap_classfix_2026-09-26/ACCEPTANCE_gap_classfix_2026-09-26.md`
-(冻结 11bc3b4be; 修订 1 2a7567019、修订 2 483713a15, 都在读数之前)。
-**这是书行为改动**: 只在出现缺锚(或状态文件损坏)时改变发布的书(原先是 ABORT → HOLD 约 5 锚 → 冷启动;改后是承接最近一份有效状态)。无缺锚时输出与现码字节相同(C0)。按 CLAUDE.md 约束 5, 需要用户裁定。
+- 验收线(lead):**下一次任意长度的缺锚,不需要人即可被处理。**
+- 判据:`multi_asset/exports/research/gap_classfix_2026-09-26/ACCEPTANCE_gap_classfix_2026-09-26.md`。冻结于 11bc3b4be;修订 1(2a7567019)、修订 2(483713a15)、修订 3(ffa978f27)都写在读数之前。
+- **这是书行为改动**:只在出现缺锚、状态损坏,或(一份有效状态都没有的)冷启动时,才改变发布的书。无缺锚时输出与现码字节相同(C0)。按 CLAUDE.md 约束 5,需要用户裁定。
+
+## 设计原则(lead 裁定 2026-09-26,含一处更正)
+1. **承接最近一份有效状态**:不再恰好取 A−14400。来源具名为 `own` / `own_gap<m>` / `_rejected<n>` / `_beyond_bound`。
+2. **越界(> 6 锚)**:照样承接、照样发布,另发 HIGH 页报。
+   - **更正**:lead 早先写的是「越界 HOLD」。改为发布,依据是实测论证:执行器缺目标时一直持旧书(on_unavailable=hold),旧状态就是它手里拿着的书;HOLD 只会让旧书无限期变旧。
+3. **冷启动的书绝不发布**。
+   - 冷启动的定义:kc 或 fc 找不到任何有效状态,并且回落向量的 gross 低于 0.4。
+   - 冷启动时,本锚不写任何 kc/fc 状态,COMBO_LIVE 中止并发 HIGH 页报,由人恢复状态。
+   - 理由:执行器不保留生产者的 gross,会把冷启动书放大到满杠杆。旧码下,冷启动还会写出 ~0.1× 的状态,后续约 5 锚把它当作 own 承接,最终发布一本从零爬升的书。这已经发生过一次:08-30 04Z 以 gross 0.515 发布。
+4. **退化状态不作前驱**:gross 低于 0.4(`MIN_STATE_GROSS`)的状态文件按「degenerate」具名拒绝。在留存的状态里,除 08-30 那段爬升外,kc/f10 的 gross 都 ≥ 0.78。
+5. **成员历史缺锚**:在 combo 里用生产者成员规则现算,不改任何状态文件。
 
 ## 0. 组件与门(窗前实测)
 | 组件 | 对象 | 状态(收据) |
 |---|---|---|
-| 生产者树 | tree GAP3 = `make_tree.py`(基于生产 combo_stage **12a76de8** 的逐处唯一替换)→ combo_stage **fa0c7466**,新增 prev_state **9729dafa**、members_rule **be691560**、tests_prev_state **1fcfe0e2** | receipts/TREE_GAP3_PATCH_RECEIPT.json |
-| 生产者包 | `package_GAP3/INSTALL_CONTRACT.json` sha **bca5c63b**(nc_files_contract_v1:4 个文件、0 个归档移动、钉住 14 个不变文件) | `gap_package_files.py` |
-| 真实 home 预检 | `nc_install_files.py preflight package_GAP3` → **PREFLIGHT_PASS** | receipts/PREFLIGHT_real_home_*.txt |
-| 安装演练(机器布局副本) | TEST_GAP_INSTALL_FILES **13/13**(F0 预检;F1 装后状态零改动、生产者能加载、装上的单元测试过;F5 回滚逐字节还原;红控 F2/F3/F8/F9 各自拒绝) | receipts/TEST_GAP_INSTALL_FILES_run1.log |
-| 单元测试 U | tests_prev_state **15/15**;旧谓词在 12/12 个有分辨力的用例上 RED;4/4 个变异被抓住 | receipts/U_tests_prev_state_stdout.txt |
-| 沙箱重放(判官) | run 2 **GAP_FIX_JUDGE PASS 21/21**(run 1 为 FAIL 4,只有页报那一条;修的是代码,判官没动,见 RUN1_VERDICT_NOTE.md) | receipts/GAPFIX_JUDGE_run2.json(b14137400) |
-| 成员规则 | V1 **13/13** 快照逐元素复现生产者成员集;V2 事后重算平均 Jaccard 0.9987,carry-forward 0.9914 ⇒ 用重算 | receipts/MEMBERS_V1V2.json |
-| 发布边界测试 P | **作废**:20260922 那套测试在生产 12a76de8 上本身就 4/6 红。替代证据:发布 Try 节点的 AST 与现码完全相同 | receipts/P_publication_boundary.txt |
-| 执行器侧 | 克隆 `~/cc_tmp/gapfix_exec_20260926T1807Z`,在 d01e35d 上本地提交 `ops/producer_release/20260927_gapfix/{INSTALL_CONTRACT.json,PATCH_RECEIPT.json}`(c78bcd0,**未推送**,origin 已指向无效路径);离线电池 **166/166 全绿** | §4 |
-| 版本探针 | `gap_version_probe.py`(由 v2c 探针派生;钉更新为 d01e35d;新增 first-anchor 步)。控制:在当前(未安装)机器上跑 first-anchor → MISMATCH n=3,符合预期 | receipts/VERSION_PROBE_control_*.txt |
+| 生产者树 | tree GAP4:combo_stage **5eaabcdb**(基于 12a76de8,逐处唯一替换)+ prev_state **5150aeae** + members_rule **be691560** + tests_prev_state **eee8dcdc** | receipts/TREE_GAP4_PATCH_RECEIPT.json |
+| 生产者包 | `package_GAP4/INSTALL_CONTRACT.json`,sha **27a0c493**:4 个文件,0 个归档移动,钉住 14 个不变文件 | `gap_package_files.py` |
+| 真实 home 预检 | `nc_install_files.py preflight package_GAP4` → **PREFLIGHT_PASS** | receipts/PREFLIGHT_GAP4_real_home_*.txt |
+| 安装演练 | TEST_GAP_INSTALL_FILES **13/13**(GAP4) | receipts/TEST_GAP_INSTALL_FILES_GAP4.log |
+| 单元测试 U | **16/16**;旧谓词在 13/13 个有分辨力的用例上 RED | receipts/U_tests_prev_state_GAP4_stdout.txt |
+| 沙箱重放 | run 3 **GAP_FIX_JUDGE PASS 25/25**:C0×3 字节同一、T×3、G1/G2/G6、gap7、X1–X3、cold、poison、M | receipts/GAPFIX_JUDGE_run3.json(99fd8f1c6) |
+| 成员规则 | V1 **13/13** 快照逐元素复现;V2 事后重算平均 Jaccard 0.9987(carry-forward 0.9914) | receipts/MEMBERS_V1V2.json |
+| 发布边界测试 P | 该测试在生产上本身就红(E-0926-H,测试漂移),本包改用 AST 同一性证据:发布 Try 节点与现码完全相同 | receipts/P_publication_boundary*.txt |
+| 执行器侧 | 克隆 `~/cc_tmp/gapfix4_exec_20260926T1911Z`:d01e35d + 201188d(`ops/producer_release/20260927_gapfix/` 下的契约与收据,**未推送**);离线电池 | §4 |
+| 版本探针 | `gap_version_probe.py`:钉 d01e35d,候选 sha 从包契约读(即 5eaabcdb);first-anchor 步检查来源必须为 own、不得有 GAP_PAGE | 在当前未安装机器上做控制:MISMATCH n=3,只差三个 sha,其余全 OK |
+| release_gates | `gap_classfix_2026-09-26/window/gates_gapfix_{W0_pre,W4_install,W5_after_start,W6_first_anchor_*,RB_rollback}.json`(release_gates.py 格式,全部能正常加载) | — |
 
-## 1. 修法(类形状)
-1. **上一锚状态 = A 之前最近一份有效状态**(`prev_state.latest_state`)。四条状态都改:weights(生产者 H,L59)、f10(L237)、kc/fc(L310)。原先都恰好取 `A−14400`。
-   - 有效的条件:可读;无 pickle;键齐;anchor 键 == 文件名锚;idx 为 1 维整数、落在 [0, NW)、不重复;val 有限且与 idx 等长。不满足的**具名跳过**,继续往前找。
-   - 来源标签:`own`(与现码逐字同)/ `own_gap<m>` / `…_rejected<n>` / `…_beyond_bound`。标签写进 target_combo(`kc_state_source` 等)。只要不是 `own`,就另写 `state_lookup` 字段到 target_combo 和 combo_live_status。anchor_report 已有「kc/fc 状态断链」告警,对非 own 会响。
-2. **界 = 6 锚(24h)**。界内:自动处理,不页报,只留记录。
-3. **越界时怎么办**:照样承接最近一份有效状态并发布,另发 HIGH 页报。理由如下:
-   - 执行器缺目标时按 `on_unavailable=hold` 一直持旧书(anchor_loop L1453),旧状态正是执行器手里拿着的书;
-   - 冷启动从零出发,gross 约 0.07;而执行器不保留生产者的 gross(external_book L506-507 除以 gross_in,legs.py L199 归一,再乘 NAV×2.0)。所以冷启动书一旦过了 0.4 门,就会按满杠杆一次性换仓;
-   - 如果改成 HOLD,旧书会无限期地越来越旧。
-   唯一需要人的情形是「一份有效状态都没有」(全新安装或状态全毁)。这时保留原有具名回落(warmstart_live_H / warmstart_f10_H),另发 HIGH 页报;飞前 0.4 门仍会挡住零书。
-4. **页报**:以下三种情况在发布之后发 HIGH:有被拒文件、越界、无有效状态。页报不占截止余量;页报失败不会把已发布的书变成中止;演练只记不发(与 M3 相同)。日志一事件一行。
-5. **成员历史缺锚**:members_hist 里没有条目的窗口锚,用生产者成员规则现算(`members_rule.members_at`,即 shadow_loop L676-701 原文),fetch 名单取 A 时刻的;计数 `MH_RECOMPUTED` 写进日志和 target_combo。**本次实例**:09-26 12Z/16Z 没有成员历史,若不修,09-27 12Z/16Z 的 drank_*_1d 三列会全为 0。M 臂实测:现码 F10 分数 Spearman 0.9940,发布权重 L1 差 0.00126;补丁码与基线逐位相等。⇒ 本包在 09-27 12Z 之前装上,就**不需要**另做成员历史回填,也不改任何状态文件或 generation.json。
-6. **不在本包**(设计选项 / 下一个包):
-   - 生产者 LR 洞(shadow_loop L752):按 lead 对 news2 的裁定走路径 A,随十月重建处理,重播种构建加连续性门;量级 0.4–0.7pp,判为不实质。
-   - 已中止锚的状态仍然写盘(L254/L323):有了 1,零状态不再出现,毒化链也就断了。「只承接已发布锚的状态」列为选项,不做。
-   - 执行器侧:不信生产者 gross 的问题(建议加一个连续性字段或换手门),per_name_stop 按次数而非槽位计数。见 §5。
+## 1. 修法要点(文件级)
+- `prev_state.latest_state`:取最近一份有效状态,具名拒绝无效文件(读不出 / pickle / 缺键 / 错锚 / 越界 / 重复 / 非有限 / 退化)。界 6 锚,越界照样承接并标 `_beyond_bound`。
+- combo_stage 的四处查找(weights L59、f10、kc、fc)都改用它;非 own 时,在 target_combo 和 combo_live_status 里写 `state_lookup` 字段。
+- **页报**:有被拒文件、越界、无有效状态,都在**发布之后**发 HIGH;页报失败不影响已发布的书;演练只记不发;日志一事件一行。
+- **冷启动**:见设计原则第 3 条。
+- **成员历史**:`members_rule.members_at`(即 shadow_loop L676–701 原文)。在 10 月底前,每锚会重算 2 个锚(09-26 12Z/16Z),日志记 `MH_RECOMPUTED`,target_combo 记 `members_recomputed`。
+- 生产者 LR 洞(shadow_loop L752)**不在本包**:按 lead 对 news2 的裁定走路径 A,随十月重建处理,重播种构建加连续性门。news2 的附加建议记为下一个生产者包的设计项:恢复锚追加的条数 k 必须等于实际经过的锚数,否则显式记 0 并写出洞的位置,不许静默。
 
-## 2. 窗 W = [N+1:00, N+3:40](lead 批准起算;每步报判词行和真实退出码)
-- **W0 预检**:`venue_quiet_window.py` rc 0,剩余 ≥ 60 min;`df` 剩余 ≥ 15 GiB;执行器运行树 = d01e35d;`nc_install_files.py preflight package_GAP3` → PREFLIGHT_PASS(生产 combo_stage 仍是 12a76de8,14 个钉住的文件未变)。
-- **W1 停生产者侧服务**:`com.hsy.shadowloop com.hsy.combolive com.hsy.combosnap com.hsy.comboparity` 逐个 bootout。等周期作业自然结束,不按名字 kill;`ps` 里看不到它们的进程。(shadowloop 不 import 被改的文件,本包也可以不停它;为与既往协议一致,仍列入。)
-- **W2** 无(没有上游补丁)。
-- **W3 执行器候选**:在运行树 HEAD 上新建克隆,cherry-pick 归档提交(c78bcd0 的两个文件)→ rsync state(A4 排除项)→ `ops/safe_commit.sh`(全电池必须全绿,pathspec 只有这两个文件)→ 推送 → 在 anchor.lock 下执行 `ff_running_tree.py <NEWSHA>` → `gap_version_probe.py after-w3 <NEWSHA> <两个文件>` 末行必须 `OK n=0`(book.json 与 d01e35d 逐字节相同)。
-- **W4 生产者 files-only 安装**:`~/wide_shadow/venv/bin/python nc_install_files.py apply package_GAP3 <BK>` → `installed_not_started`,state_manifest_diff == [] → `gap_version_probe.py after-w4 package_GAP3 <BK>/NC_FILES_INSTALL_RECEIPT.json` OK n=0。
-- **W5 启动** 四个服务 → `gap_version_probe.py after-w5 …` OK n=0(运行路径的 combo_stage == fa0c7466)。
-- **W6 首锚验收**(下一锚 N+30 之后):标准验收(inspect_anchor / VERSION_PROBE / M3_SELFCHECK / parity / B4_POOLED / report / watchdog)再加 `gap_version_probe.py first-anchor package_GAP3 <A>`。本修复特有的预期(冻结):
-  - (a) 若 A 距上一份状态恰为 4h:kc/fc/f10 来源为 `own`,无 GAP_PAGE,combo_live_status 无 state_lookup。
-  - (b) 约 11-05 之前(09-26 12Z/16Z 还在 239 锚 ≈ 39.8 天的窗内),每锚日志有 `MH_RECOMPUTED … 2 anchors [1790424000, 1790438400]`,target_combo 有 `members_recomputed`,errors 为 {}。
-  - (c) comboparity 对该锚 PARITY(它重放的就是新代码)。
+## 2. 窗 W = [N+1:00, N+3:40](目标 09-27 05:00–07:40Z;每步报判词行和真实退出码)
+- **W0 预检**:`/usr/bin/python3 release_gates.py window/gates_gapfix_W0_pre.json <LOG>`,内容是静默窗、真实 home 预检、包内单元测试。另外人工确认:`df` 剩余 ≥ 15 GiB;执行器运行树 = d01e35d。
+- **W1 停生产者侧服务**:`com.hsy.shadowloop com.hsy.combolive com.hsy.combosnap com.hsy.comboparity` 逐个 bootout。等周期作业自然结束,不按名字 kill;`ps` 里看不到它们的进程。
+- **W3 执行器候选**:
+  1. 在运行树 HEAD 上新建克隆,cherry-pick 201188d 的两个文件;
+  2. rsync state(A4 排除项);
+  3. `ops/safe_commit.sh`,全电池必须全绿,pathspec 只有这两个文件;
+  4. 推送 → 在 anchor.lock 下执行 `ff_running_tree.py <NEWSHA>`;
+  5. `gap_version_probe.py after-w3 <NEWSHA> ops/producer_release/20260927_gapfix/INSTALL_CONTRACT.json ops/producer_release/20260927_gapfix/PATCH_RECEIPT.json`,末行必须 `OK n=0`。
+- **W4 files-only 安装**:`release_gates.py window/gates_gapfix_W4_install.json <LOG>`。它执行 apply → `installed_not_started`,再跑 after-w4 探针(OK n=0)。BK = `~/cc_tmp/gapfix_install_BK_20260927`(必须不存在)。
+- **W5 启动** 四个服务 → `release_gates.py window/gates_gapfix_W5_after_start.json <LOG>`:运行路径上的 combo_stage 必须是 5eaabcdb。
+- **W6 首锚验收**(首锚 = 08Z 1790467200;备用窗时 = 12Z 1790481600):标准验收(inspect_anchor / VERSION_PROBE / M3_SELFCHECK / parity / B4_POOLED / report / watchdog),再加 `window/gates_gapfix_W6_first_anchor_<A>.json`。首锚判据(冻结):
+  - (a) 正常锚:kc/fc/f10 来源**必须为 own**;本锚不得有 GAP_PAGE;combo_live_status ok 且 anchor = A。与现码字节相同的性质由 C0 负责,C0 已在沙箱 3 锚上验过。
+  - (b) 日志有 `MH_RECOMPUTED … 2 anchors [1790424000, 1790438400]`,errors {};target_combo 有 `members_recomputed`。09-27 12Z/16Z 的 drank 三列因此恢复为按生产者规则计算的值。
+  - (c) comboparity 对该锚 PARITY。
   - 任何一项不符 ⇒ 停,交 lead。
 
 ## 3. 回滚
-`nc_install_files.py rollback package_GAP3 <BK>`:combo_stage 逐字节回到 12a76de8,三个新文件移到旁边,状态零改动(演练 F5 已验证)。执行器侧归档提交可以保留(它不影响行为),或 revert。
-**回滚后的已知风险**:如果回滚之后又出现缺锚,就回到原缺陷(零回落 → ABORT)。那时仍需 lead 的 state-only 桥接(gap_recovery_2026-09-26/devices/combo_state_bridge.py)。
+- `release_gates.py window/gates_gapfix_RB_rollback.json <LOG>`:combo_stage 逐字节回到 12a76de8,三个新文件移到旁边,状态零改动(演练 F5 已验证)。执行器侧归档提交可以保留,它不影响行为。
+- **回滚后的已知风险**:回到原缺陷。缺锚时仍需 state-only 桥接(`gap_recovery_2026-09-26/devices/combo_state_bridge.py`);如果当时在 12Z 之前,还需要成员历史回填(§6)。
 
 ## 4. 执行器侧电池
-克隆 `~/cc_tmp/gapfix_exec_20260926T1807Z`(d01e35d + c78bcd0,状态 rsync 自生产,56 个完成日全覆盖),用 `ops/run_acceptance_offline.sh` 跑(ACCEPT_PY 未设,解释器 /usr/bin/python3 3.9.6)。**ACCEPTANCE: ALL GREEN (166/166 suites exit 0), OFFLINE_ACCEPTANCE_EXIT 0**(receipts/BATTERY_gapfix_c78bcd0_20260926T1807Z.log)。本克隆**不推送**;窗内由 lead 按 W3 重做。
+克隆 `~/cc_tmp/gapfix4_exec_20260926T1911Z`:d01e35d + 201188d,状态 rsync 自生产。用 `ops/run_acceptance_offline.sh` 跑,ACCEPT_PY 未设,解释器 /usr/bin/python3。结果:见 receipts/BATTERY_gapfix4_*.log。前一版 GAP3 契约的同一电池已经 166/166 全绿(9ddc3d779)。
 
-## 5. 全栈「上一锚」查找逐站点表(只读核查,2026-09-26;combo_stage 与 shadow_loop L752 之外)
+## 5. 缺锚影响量级(lead 项 (a);沙箱 A = 09-26 08Z,删掉 A−24h 的成员历史)
+收据 receipts/M_READOUTS_run2.json、GAPFIX_JUDGE_run2/3.json 的 M 节。
+| 量 | 现码 | 补丁码 |
+|---|---|---|
+| drank 三列在 A 行为 0 的比例 | 100%(基线 1.9%) | 1.9%(= 基线) |
+| F10 分数与基线的 Spearman | 0.9940 | 1.0(逐位) |
+| F10 书(state_H_f10)Σ\|dw\| | 0.0041(gross 0.78) | 0 |
+| combo 的 F10 半本(state_H_fc)Σ\|dw\| | 0.0028 | 0 |
+| combo 目标 Σ\|dw\| | 0.00126(gross 0.817,68 个名) | 0 |
+训练分布里这三列为 0 的比例:已向 dlarch 询问训练特征文件,只读;结果回来后补在这里。
+
+## 6. 备用:成员历史回填装置(只在本包未能在 12Z 前装上时使用)
+- `devices/members_hist_backfill.py`,子命令 check / apply / verify / rollback。**只追加**,已有的锚不许改;generation.json 只重签 members_hist 的 sha。
+- 判据 C1–C6 写在装置头部,入库在任何读数之前(首提 a0449c09a,rev 1 561433f28)。
+- 沙箱测试 **13/13**(receipts/TEST_MEMBERS_HIST_BACKFILL_run.log):
+  - 正控:把 04Z 删掉后回填,结果与删掉的真值**逐位相同**;
+  - 红控:目标锚已存在 / 轴不对齐 / 目标不是缓存行 / 成员数不对 / 已记录的控制锚被改 / 生产者在运行 / 回滚时文件已被改,**各自拒绝**。
+- 实盘只读 check(当前,09-26 19:0xZ):C1 红(shadowloop 在跑,**必须在 W1 停服务之后才能 apply**,否则生产者下次保存时会用内存里的旧历史覆盖文件);C4 红(12Z/16Z 晚于生产者最后一锚 08Z,20Z 那一锚跑完后才会变成缓存行)。控制锚 04Z/08Z 在实盘缓存上逐位复现。
+- 用法:`~/wide_shadow/venv/bin/python devices/members_hist_backfill.py {check|apply|verify} --targets 1790424000,1790438400 --receipt <R>`,在服务停止的窗内执行。
+
+## 7. 下一个执行器包(本包不含;按 lead 裁定列表)
 | 站点 | 分类 | 缺锚后果 | 建议 |
 |---|---|---|---|
-| external_book.py L506-507 + legs.py L199 + _size_book | 放大 | 执行器丢弃生产者 gross,任何过了 0.4 门的低 gross 书都按 2.0×NAV 交易;执行器无换手或连续性检查 | 下一个执行器包:目标文件加「状态来源」字段,执行器对非 own 且 gross_norm 偏离近期中位的目标页报或拒绝(需判据) |
-| combo_stage L167-176 → f8 L336-339(成员历史) | 静默降级 | 缺锚 +24h 的 drank 三列为 0 | **本包已修** |
-| per_name_stop.py L131 | 静默降级 | 「连续 2 个终锚」按次数而非槽位,跨缺锚也照算;HOLD 期间不执行止损出场 | 下一个执行器包:计数器存锚时戳,缺锚即复位(或写明跨缺锚照算) |
-| regime_dash.py L68 `prevA=A-14400` | 静默降级 | 缺锚后第一锚的已实现 IC 和 sleeve 归因为 None;缺锚区间的价格与资金费损益不进累计 | 取最近一次记录,并把缺锚区间具名成一行 |
+| external_book.py L506-507 + legs.py L199 + _size_book | 放大 | 执行器丢弃生产者 gross,任何过了 0.4 门的低 gross 书都按 2.0×NAV 交易;执行器没有换手或连续性检查 | 目标文件加「状态来源」字段;执行器对非 own 且 gross_norm 偏离近期中位的目标页报或拒绝(需判据) |
+| 20260922 发布边界测试 | 测试漂移(E-0926-H) | 在生产上 4/6 红 | env 从被测模块派生;late_status_error 改为 C 发布的合同;接进生产者发布门 |
+| per_name_stop.py L131 | 静默降级 | 「连续 2 个终锚」按次数不按槽位;HOLD 期间不执行止损出场 | 计数器存锚时戳;缺锚即复位,或写明跨缺锚照算 |
+| regime_dash.py L68 `prevA=A-14400` | 静默降级 | 缺锚后第一锚的已实现 IC 和 sleeve 归因为 None;缺锚区间的损益不进累计 | 取最近一次记录,并具名写出缺锚区间 |
 | regime_weekly / regime_dash_ext `rows[-42:]` 等 | 标签失真 | 「7 天」「连续 12 锚」实为行数 | 改为按时间窗 |
-| stop_overlay.py L80-88, L40, L95 | 静默降级 | NEED=2 和 42 锚冷却按处理过的文件计数;积压时一个价格快照被用于多个文件;另 `done[-500:]` 约 43 天后会重处理旧文件(与缺锚无关) | 证据收集器,低优先 |
+| stop_overlay.py L80-88, L40, L95 | 静默降级 | NEED=2 和 42 锚冷却按文件计数;积压时共用一个价格快照;另 `done[-500:]` 约 43 天后会重处理旧文件 | 证据收集器,低优先 |
 | anchor_report.py L301 prev_row | 响亮降级 | 告警「上一锚持仓未知」 | 外观问题 |
-| notarize_ledgers.py L196/L316 | 天粒度 | 若当日作业漏跑,该日不被公证,事后回补会因顺序检查被拒 | 与缺锚无关,记为另一个缺陷 |
-| pilot_log.anchor_series、parity_summary、external_book.age_anchors、anchor_loop prev_nonzero、reconcile、M3 m3_overlay_last、watchdog、combo daemons、feature_cache_identity、nc_contract 衰减、beta_overlay_producer(k≤6)、dlw_features、depth_watch、backfill_markout | 安全 | 取「最近一次」、实耗时间,或具名缺槽 | — |
+| notarize_ledgers.py L196/L316 | 天粒度 | 当日作业漏跑的那天不会被公证,事后回补会因顺序检查被拒 | 与缺锚无关,记为另一个缺陷 |
+| 生产者 LR(shadow_loop L752) | 静默留洞 | 3 个洞,席位偏 0.4–0.7pp(news2) | 路径 A;恢复锚的追加条数必须等于经过的锚数,或显式记 0 |
+| 安全站点(取「最近一次」、实耗时间或具名缺槽) | 安全 | — | pilot_log.anchor_series、parity_summary、external_book.age_anchors、anchor_loop prev_nonzero、reconcile、M3 m3_overlay_last、watchdog、combo daemons、feature_cache_identity、nc_contract、beta_overlay_producer、dlw_features、depth_watch、backfill_markout |

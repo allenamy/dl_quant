@@ -1,0 +1,21 @@
+GAP_PACKAGE_FILES_OK {"files": [["wide_shadow/fea171/combo_stage.py", "5eaabcdb9e4d", "12a76de89831"], ["wide_shadow/fea171/members_rule.py", "be6915608818", "NEW"], ["wide_shadow/fea171/prev_state.py", "5150aeae9fc3", "NEW"], ["wide_shadow/fea171/tests_prev_state.py", "eee8dcdceedf", "NEW"]], "unchanged": 14, "contract_sha256": "7addd6156a8568bf9ad7f6acd65ceb9badfd616528c338d2272783de3ab3e5e4"}
+ 
+  OK   F0 baseline green: preflight PASS on the fixture  — 4 files, 14 pinned unchanged
+  OK   F1 apply reached installed_not_started
+  OK   F1 every dest == candidate
+  OK   F1 files-only: the state manifest is unchanged (diff empty)  — []
+  OK   F1 the installed producer loads the state  — {'module_sha256': '52baf979095752642cde16b1281911c6692f3251cd3b9d6d214a4b624d8d5f38', 'state_files': ['aux.json', 'boundary_raw.npz', 'leg_returns_live.json', 'members_hist.npz', 'rolling.npz'], 'generation_anchor': 1790409600, 'last_anchor': 1790409600}
+  OK   F1 the INSTALLED tests_prev_state.py passes (and the old predicate is red)  — o fallback (source 'fallback', no page)
+weights_mode_no_anchor_key_int32_float32   disc=0  NEW=PASS  OLD=PASS
+PREV_STATE_TESTS PASS cases=16 new_fail=[] old_not_red_on_discriminating=[] old_red=13/13
+
+  OK   F5 rollback reached rolled_back_not_started
+  OK   F5 every dest back at its pre-release bytes (None = removed)
+  OK   F5 rollback touched no state file  — []
+  OK   F2 RED: a contract writing wide_shadow/state/ is refused at preflight  — a files-only contract may not write state: wide_shadow/state/aux.json
+  OK   F3 RED: one state file touched during apply => FILES-ONLY VIOLATION  — FILES-ONLY VIOLATION: 1 state file(s) touched during the install: ['aux.json']
+  OK   F8 RED: combo_stage changed after packaging => refused  — destination not at its baseline: wide_shadow/fea171/combo_stage.py 9312332750d75632e039554be12ed066642b5a4af05426ffdd063d4f88fd3647 != 12a76de89831fb42d05ec722f2e2506d6b288b4b9f5b86be04bc390c789a62a9
+  OK   F9 RED: a pinned unchanged import changed => refused  — a file the release keeps has changed: wide_shadow/fea171/nc_contract.py
+
+13/13 checks passed
+TEST_GAP_INSTALL_FILES PASS 

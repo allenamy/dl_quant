@@ -101,7 +101,10 @@ def first_anchor(pkg, A):
         cmp_(rel, sha(f"{HOME}/{rel}") if os.path.exists(f"{HOME}/{rel}") else None, cand[rel])
     tc = f"{WS}/state/target_combo/{A}.json"
     if os.path.exists(tc):
-        d = json.load(open(tc)); say(f"  VAL target_combo kc/fc sources {d.get('kc_state_source')}/{d.get('fc_state_source')} state_lookup={'yes' if 'state_lookup' in d else 'no'} members_recomputed={d.get('members_recomputed')}")
+        d = json.load(open(tc)); say(f"  VAL target_combo state_lookup={'yes' if 'state_lookup' in d else 'no'} members_recomputed={d.get('members_recomputed')} cold_start_refused={d.get('cold_start_refused')}")
+        cmp_("kc_state_source (a normal anchor must be own)", d.get("kc_state_source"), "own"); cmp_("fc_state_source (a normal anchor must be own)", d.get("fc_state_source"), "own")
+        tb = f"{WS}/state/target_blend/{A}.json"
+        cmp_("f10 h_source (target_blend; a normal anchor must be own)", json.load(open(tb)).get("h_source") if os.path.exists(tb) else None, "own")
     else:
         cmp_("target_combo exists", False, True)
     log = open(f"{WS}/fea171/combo_live.log", errors="replace").read().splitlines()
@@ -110,6 +113,7 @@ def first_anchor(pkg, A):
     i = ends[-1]; j = max(k for k in range(i + 1) if k == 0 or log[k - 1].startswith("=== combo_live anchor=")) if i else 0
     for l in log[j:i + 1]:
         if any(t in l for t in ("STATE_LOOKUP", "MH_RECOMPUTED", "GAP_PAGE", "NC A2 member history", "COMBO_LIVE", "④", "⑤", "=== combo_live")): say("  LOG " + l[:300])
+    cmp_("no GAP_PAGE line in this anchor's block (a normal anchor pages nothing)", sum("GAP_PAGE" in l for l in log[j:i + 1]), 0)
 
 
 def main():
