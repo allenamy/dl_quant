@@ -1,0 +1,64 @@
+{
+ "ALL_GATES_PASS": true,
+ "arm_dir": "/workspace/dlarch_2026-09-24/f10full_nested_2026-09-26",
+ "arm_dir_module_sha256": {
+  "dlarch_chain_torch.py": "0355f9c51c5512a577c4daa617a6f2d14c44a5a56f8bed15c5383323eb5360db",
+  "dlarch_safe_io.py": "36deb92fdd5e8c3506198d82bab8a53312f5c03a1b866e9318f8489d51e0cd4e",
+  "dlarch_train_f10.py": "39839252b95914b1ed9195f77c8959e930979fa79331dfe1b947bc5847be365a"
+ },
+ "checks": [
+  {
+   "check": "trainer_sha_matches_declared_pin",
+   "expected": "39839252b95914b1ed9195f77c8959e930979fa79331dfe1b947bc5847be365a",
+   "got": "39839252b95914b1ed9195f77c8959e930979fa79331dfe1b947bc5847be365a",
+   "pass": true,
+   "path": "/workspace/dlarch_2026-09-24/f10full_nested_2026-09-26/dlarch_train_f10.py"
+  },
+  {
+   "certified_this_path": false,
+   "check": "preflight_certified_the_file_that_runs",
+   "pass": true,
+   "preflight": "/workspace/dlarch_2026-09-24/f10full_nested_2026-09-26/PREFLIGHT_F10FULL.json",
+   "preflight_all_ok": true,
+   "residual": "the preflight receipt certifies /workspace/dlarch_2026-09-24/dlarch_train_f10.py and NOT /workspace/dlarch_2026-09-24/f10full_nested_2026-09-26/dlarch_train_f10.py. Its trainer path is copied from a delivered TRAIN_RECEIPT, so it certifies the canonical file whatever directory it is pointed at. Coverage for the file that runs comes from check (1) of this device, not from the preflight.",
+   "trainer_paths_it_DID_certify": [
+    "/workspace/dlarch_2026-09-24/dlarch_train_f10.py"
+   ]
+  },
+  {
+   "check": "no_undeclared_py_in_arm_dir",
+   "declared": [
+    "dlarch_chain_torch.py",
+    "dlarch_safe_io.py",
+    "dlarch_train_f10.py"
+   ],
+   "found": [
+    "dlarch_chain_torch.py",
+    "dlarch_safe_io.py",
+    "dlarch_train_f10.py"
+   ],
+   "missing": [],
+   "pass": true,
+   "unexpected": []
+  }
+ ],
+ "device": "dlarch_f10full_launch.py",
+ "self_sha256": "1b27dcae520620c62c360d1882bffe3d2aea447eb90418117a20d23d90b44aab",
+ "trainer_args": [
+  "--arm",
+  "T0",
+  "--no-mask",
+  "--train-frac",
+  "1.0",
+  "--nested-epoch",
+  "--force-epoch",
+  "7",
+  "--seed",
+  "42",
+  "--folds",
+  "2023,202609",
+  "--out-root",
+  "/workspace/dlarch_2026-09-24/f10full_nested_2026-09-26/idctl"
+ ],
+ "utc": "2026-09-26T18:06:11Z"
+}
