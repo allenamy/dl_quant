@@ -46,6 +46,7 @@ SHARE = {
 MAX_FOREIGN_ENGINES = 1      # lead 2026-09-26 17:5xZ: at most TWO engine cells in parallel team-wide (mine + 1); was 2 (three-cell rule)
 ENGINE_GATE_MARGIN_GIB = 2.0
 SHM_FREE_MIN_GIB = 4.0
+HOLD_FILE = "/dev/shm/alloc_2026-09-26/HOLD_CANDIDATE_CELLS"   # lead-placed priority slot for candidate cells
 
 
 def sha(p):
@@ -210,6 +211,15 @@ def main():
     rec["steps"]["run_config"] = {"path": cpath, "sha256": sha(cpath), "base_config": BASE_CFG, "base_config_sha256": sha(BASE_CFG), "base_tag_used": base_run[0]["tag"]}
     # ---- 5. engine (UNMODIFIED) ----
     if do_engine:
+        # lead 2026-09-26 18:1xZ team engine-slot priority: candidate cells run only when the lead places them. While the hold file
+        # exists, a CANDIDATE arm waits here (controls -- the in-service identity, the fundflip red control, the oracle ceiling -- are
+        # exempt). Scheduling only: nothing about the cell changes. Every poll is recorded in the receipt.
+        control_arm = (rule in ("inservice", "oracle") and mix in ("shared", "fundflip"))
+        rec["candidate_hold"] = []
+        while (not control_arm) and os.path.exists(HOLD_FILE):
+            rec["candidate_hold"].append(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+            if len(rec["candidate_hold"]) % 10 == 1: log(f"candidate hold: {HOLD_FILE} exists, waiting")
+            time.sleep(60)
         rec["engine_gate"] = engine_gate(cpath)
         t0 = time.monotonic()
         rc = run([PV, "-B", "bt_launch.py", "PATH,HOME,LC_CTYPE", cpath, "--resume", arm], f"{L}/engine.log", cwd=f"{NS}/engine")
