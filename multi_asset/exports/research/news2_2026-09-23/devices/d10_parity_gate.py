@@ -24,8 +24,19 @@ WHY THE ULP MUST BE IN THE TARGET'S dtype:
   np.nextafter on operands of the array's own dtype steps one real ULP; this device asserts the perturbation
   did not collapse before using it.
 
+★ THE GATE IS BITWISE, AND THE MAGNITUDE BUCKETS DO NOT SOFTEN IT (lead's ruling, 2026-09-26).
+  The three-way split (NaN-vs-finite / float-level / large) is a REQUIRED DESCRIPTIVE report and is NOT an
+  exculpation. In the October rebuild the training side and the live side must call the SAME function, so even
+  a 1e-12 accumulation difference MUST NOT appear -- if it does, that is evidence the two sides are NOT the
+  same implementation, and the column is RED just the same. My own earlier wording ("89.6% of the differing
+  EMA cells are within 1e-12, i.e. float accumulation noise") read as though that bucket were benign; it is
+  not. It is the signature of two implementations where there should be one. Nothing in this device treats a
+  small |diff| as passing: `eq` is bitwise equality in the declared dtype, and the buckets only say WHAT KIND
+  of failure is present.
+
 WHAT THIS DEVICE DOES NOT DO: it does not decide whether a difference is acceptable. It reports bitwise
-equality per column, the two counts, and the control outcome. The threshold is lead's and there is none here.
+equality per column, the counts, the buckets and the control outcome. The threshold is lead's and there is
+none here.
 """
 import argparse
 import collections
@@ -239,9 +250,11 @@ def main():
             "DIFFER_both_finite": int(c["DIFFER_both_finite"]),
             "magnitude_buckets": {k[4:]: int(v) for k, v in c.items() if k.startswith("mag_")},
             "abs_diff_stats_both_finite": stats,
-            "why_split": ("one DIFFER count conflates a coverage difference (NaN vs finite), float "
-                          "accumulation noise (~1e-20) and a real value defect (~1e-2); merging them hides "
-                          "the last one inside the first two"),
+            "why_split": ("one DIFFER count conflates a coverage difference (NaN vs finite), a float-level "
+                          "difference (~1e-20) and a large value difference (~1e-2); merging them hides the "
+                          "last inside the first two. DESCRIPTIVE ONLY -- per lead 2026-09-26 the gate stays "
+                          "bitwise: with both sides calling the same function even a 1e-12 difference must "
+                          "not occur, so a float-level bucket is evidence of two implementations, not a pass"),
             "examples": ex,
             "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"}
         assert rec["columns"][name]["closes"], (name, "column classification does not close")

@@ -1,0 +1,83 @@
+{
+ "device": "archive_live_ledger.py",
+ "self_sha256": "0b2c2a4327c5f1953b10e31e56880c561ff5d1b140ba71563de30c36f1dfb021",
+ "utc": "2026-09-26T00:58:14Z",
+ "design": "docs/DESIGN_live_funding_ledger_archive_2026-09-25.md 7b",
+ "controls": [
+  {
+   "control": "archive equals the union by (symbol, funding_time), key by key",
+   "kind": "POSITIVE",
+   "pass": true,
+   "detail": "keys=['AUSDT|1777000000', 'AUSDT|1777014400', 'BUSDT|1777000000'] status=OK new=3"
+  },
+  {
+   "control": "shard sha returned by the read-back equals MANIFEST",
+   "kind": "POSITIVE",
+   "pass": true,
+   "detail": "shards=['2026-04'] mismatched=[]"
+  },
+  {
+   "control": "R1 unenumerable root raises, not treated as empty",
+   "kind": "RED",
+   "pass": true,
+   "detail": "cannot enumerate archive root /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/archsel/archsel_xpqbo9bg/blocked/arch: PermissionError(13, 'Permission denied') -- unknown is not empty (R1)"
+  },
+  {
+   "control": "R2 re-running the same aux adds exactly 0 events",
+   "kind": "RED",
+   "pass": true,
+   "detail": "events_new=0"
+  },
+  {
+   "control": "R3 conflicting key keeps BOTH and logs it, never overwrites",
+   "kind": "RED",
+   "pass": true,
+   "detail": "conflicts=1 kept_existing=True both_kept=True logged=True"
+  },
+  {
+   "control": "R4 window closed -> SKIPPED_WINDOW_CLOSED and zero bytes written",
+   "kind": "RED",
+   "pass": true,
+   "detail": "status=SKIPPED_WINDOW_CLOSED dir_before=[] dir_after=[]"
+  },
+  {
+   "control": "R5 shard edited behind the manifest -> sha self-check reds",
+   "kind": "RED",
+   "pass": true,
+   "detail": "shard 2026-04 sha mismatch: manifest b8a0b1ea6e20654ad52f5527fa8839462aee0a6334fad8f6cf289dee563daf5f disk d398941f971e5b485ae7ce9409e79ada9f12c396f132ac51a11ea796aaf9abba (R5)"
+  },
+  {
+   "control": "R6 emptied archive with a non-empty manifest -> red",
+   "kind": "RED",
+   "pass": true,
+   "detail": "MANIFEST records shards but none are on disk: the archive lost data (R6)"
+  },
+  {
+   "control": "R7 root under ~/Desktop or ~/wide_shadow -> refuses to start",
+   "kind": "RED",
+   "pass": true,
+   "detail": "[('/Users/haosiyu/Desktop/zz_archive_probe', True, 'archive root /Users/haosiyu/Desktop/zz_archive_probe is inside /Users/haosiyu/De'), ('/Users/haosiyu/wide_shadow/zz_archive_probe', True, 'archive root /Users/haosiyu/wide_shadow/zz_archive_probe is inside /Users/haosiy')]"
+  },
+  {
+   "control": "R8a truncated aux.json -> error and zero bytes written",
+   "kind": "RED",
+   "pass": true,
+   "detail": "aux.json does not parse: JSONDecodeError(\"Expecting ',' delimiter: line 1 column 35 (char 34)\") -- nothing written (R8a)"
+  },
+  {
+   "control": "R8b aux unstable across reads -> retries ONCE then reds (retry proven taken)",
+   "kind": "RED",
+   "pass": true,
+   "detail": "aux.json changed between reads twice in a row; refusing (R8b): [{'attempt': 1, 'sha_read1' reads=4"
+  },
+  {
+   "control": "R9 write failure -> raises, shard byte-identical, no temp left behind",
+   "kind": "RED",
+   "pass": true,
+   "detail": "raised=True shard_unchanged=True tmp_leftovers=[]"
+  }
+ ],
+ "all_pass": true,
+ "n_positive": 2,
+ "n_red": 10
+}
