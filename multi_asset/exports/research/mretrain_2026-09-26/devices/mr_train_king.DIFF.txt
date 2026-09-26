@@ -1,0 +1,66 @@
+1c1,6
+< """NEWS P3 King: the NEW recipe (codex_combo_20260923 devices/train_king.py 1c...: LGBM params, annual folds via
+---
+> """MRETRAIN King (fresh, DECISION_RULE_king_monthly_retrain_2026-09-26.md 1f2f5c4e9): news2_train_king.py b19459a5 with ONLY
+>   (1) OUT dir from --out (inputs still read from the news2 root, read-only); (2) random_state from --rs;
+>   (3) fold specs from --arm: A0 annual (in service, verbatim) / A1 monthly / A2 quarterly, expanding / A3 annual, rolling 24-month
+>       train window; (4) arm, rs and window written into the receipt; (5) model .txt files deleted after the OOF is written unless
+>       --keep-models (their sha stays in KING_OOF model_sha256 and in the receipt). Embargo 60, params, target, loop body verbatim.
+> ORIGINAL DOCSTRING: NEWS P3 King: the NEW recipe (codex_combo_20260923 devices/train_king.py 1c...: LGBM params, annual folds via
+9c14
+< import sys, pathlib, json, time, calendar, hashlib
+---
+> import sys, pathlib, json, time, calendar, hashlib, argparse
+28a34,50
+> def arm_specs(arm, a):
+>     utc = lambda yr, mo=1, day=1: calendar.timegm((yr, mo, day, 0, 0, 0))
+>     if arm in ('A0', 'A3'):
+>         return [('2022H2_WARMUP', utc(2022, 7), utc(2023))] + [(str(yr), utc(yr), utc(yr + 1)) for yr in (2023, 2024, 2025, 2026)]
+>     step = {'A1': 1, 'A2': 3}[arm]; out = []; y, m = 2022, 7
+>     while utc(y, m) <= int(a[-1]):
+>         ny, nm = y + (m - 1 + step) // 12, (m - 1 + step) % 12 + 1
+>         out.append((f'{y}{m:02d}', utc(y, m), utc(ny, nm))); y, m = ny, nm
+>     return out
+> 
+> 
+> def window_start(arm, start):
+>     """A3: rolling 24 calendar months before the fold start (train rows with anchor >= this); others: None (expanding)"""
+>     if arm != 'A3': return None
+>     t = time.gmtime(start); return calendar.timegm((t.tm_year - 2, t.tm_mon, 1, 0, 0, 0))
+> 
+> 
+29a52,53
+>     ap = argparse.ArgumentParser(); ap.add_argument('--out', required=True); ap.add_argument('--arm', choices=('A0', 'A1', 'A2', 'A3'), required=True)
+>     ap.add_argument('--rs', type=int, required=True); ap.add_argument('--keep-models', action='store_true'); args = ap.parse_args()
+31c55
+<     out = W / 'work/king'; out.mkdir(exist_ok=False)
+---
+>     out = pathlib.Path(args.out); out.mkdir(parents=True, exist_ok=False)
+49c73
+<     params = dict(n_estimators=400, learning_rate=.05, num_leaves=63, subsample=.8, colsample_bytree=.8, n_jobs=8, verbose=-1, random_state=0)
+---
+>     params = dict(n_estimators=400, learning_rate=.05, num_leaves=63, subsample=.8, colsample_bytree=.8, n_jobs=8, verbose=-1, random_state=args.rs)
+51,52c75
+<     utc = lambda yr, mo=1, day=1: calendar.timegm((yr, mo, day, 0, 0, 0))
+<     specs = [('2022H2_WARMUP', utc(2022, 7), utc(2023))] + [(str(yr), utc(yr), utc(yr + 1)) for yr in (2023, 2024, 2025, 2026)]
+---
+>     specs = arm_specs(args.arm, a)
+54c77,81
+<         train, test = fold_rows(a, start, end, 60); tr = np.isin(pa, train) & np.isfinite(target); te = np.isin(pa, test)
+---
+>         train, test = fold_rows(a, start, end, 60)
+>         ws = window_start(args.arm, start)
+>         if ws is not None: train = train[a[train] >= ws]
+>         if len(test) == 0: continue
+>         tr = np.isin(pa, train) & np.isfinite(target); te = np.isin(pa, test)
+68c95
+<         rr = {'fold': tag, 'score_start': int(a[test[0]]), 'score_end': int(a[test[-1]]), 'max_train_label_end': int(a[pa[tr]].max() + 14400), 'embargo_anchors': 60,
+---
+>         rr = {'fold': tag, 'score_start': int(a[test[0]]), 'score_end': int(a[test[-1]]), 'max_train_label_end': int(a[pa[tr]].max() + 14400), 'embargo_anchors': 60, 'train_window_start': ws,
+74c101,104
+<     receipt = {'status': 'OOF_KING_NOT_FULL_STRATEGY', 'recipe': params, 'folds': folds,
+---
+>     if not args.keep_models:
+>         for rr in folds: os.remove(rr['model_path'])
+>     receipt = {'status': 'OOF_KING_NOT_FULL_STRATEGY', 'recipe': params, 'folds': folds, 'arm': args.arm, 'random_state': args.rs,
+>                'models_kept': bool(args.keep_models),
