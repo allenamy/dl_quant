@@ -326,3 +326,13 @@ lead(06:1xZ):字面判词照记 FAIL 不改措辞;但判断「F10_FULL 有没有
 - trainer 要新增一个 `--shuffle-labels` 旗标 ⇒ **改动放在独立目录**(`f10full_shuffle_2026-09-26/`),**不动正在跑的 `f10full_2026-09-26/` 那份**,否则会让种子 7 的启动门因 sha 变化而红;新 sha 作为**声明式钉值**交给 `dlarch_f10full_launch.py`;
 - 预算:1 折 ≈ **4 分钟 GPU**(202609 是最大的一折,8 epoch × ~28 s);
 - **预先声明的退化结局**:若 `IC_shuf` 落在 null 内(预期结局),这**不证明**没有任何泄漏 —— 它只说明「在这一折上,模型无法从被打乱的标签里学出横截面信号」。用未来信息构造的**特征**那一类通道仍不在射程内(§4 末段)。
+
+## C1.12 lead 确认控制 1 的阈值(2026-09-26 06:4xZ,照录内容)
+
+> **确认阈值**:`IC_shuf ≤ p97.5(打乱后模型自己的 null)` 为 PASS,单侧。这是我原话的正确操作化,把收据里的 `threshold_pending_lead_confirmation` 改为 `confirmed_by_lead`。
+
+⇒ C1.11.2 里那个 `threshold_pending_lead_confirmation: true` **作废**,以 `confirmed_by_lead: true` 取代。
+**落盘**:`receipts/CTL1_THRESHOLD_CONFIRMED_2026-09-26.json`(sha `9eb2cbd125422999`)。
+
+**★ 该收据带一条顺序证明,而不是一句顺序声明**:它写于打乱臂**还什么都没产出**的时刻,并把这一点作为**事实字段**记下来 —— `shuffled_run_started: false`、`shuffle_arm_fold_receipts: 0`、以及打乱臂 trainer 的 sha。⇒ 「阈值先于它所判的读数」是**文件里的事实**,不是消息里的主张。这正是修订 4 时序声明出过问题的那个位置(§10:「写于任何读数之前」要在写的那一刻去核**读数是否已产出、已送达**,不能只核"我有没有读过")。
+lead 同时确认:**先测分辨力(z = +10.3)再花 GPU**、以及**只在成员 ∧ 有限格内置换**,两者做法正确。
