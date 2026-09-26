@@ -46,6 +46,7 @@ SHARE = {
 MAX_FOREIGN_ENGINES = 1      # lead 2026-09-26 17:5xZ: at most TWO engine cells in parallel team-wide (mine + 1); was 2 (three-cell rule)
 ENGINE_GATE_MARGIN_GIB = 2.0
 SHM_FREE_MIN_GIB = 4.0
+PRIORITY_CLAIMS = "/workspace/dlarch_2026-09-24/CHAIN/.claim_NESTEP_s*"   # dlarch 18:2xZ: a claim = its cell is due; do not start a new cell
 HOLD_FILE = "/dev/shm/alloc_2026-09-26/HOLD_CANDIDATE_CELLS"   # lead-placed priority slot for candidate cells
 
 
@@ -94,19 +95,20 @@ def foreign_engines():
     return out
 
 
-def engine_gate(cpath, poll=60, max_wait=14400):
+def engine_gate(cpath, poll=60, max_wait=6 * 3600):
     base = float(json.load(open(cpath))["launch"]["min_available_gib"]); need = base + ENGINE_GATE_MARGIN_GIB
     obs = []; t0 = time.monotonic()
     while True:
         g = foreign_engines(); m = mem_gate(); avail = m.get("available_gib_v2"); shm = shm_free_gib()
-        ok = (len(g) <= MAX_FOREIGN_ENGINES and "UNREADABLE" not in g and avail is not None and avail >= need
+        claims = sorted(glob.glob(PRIORITY_CLAIMS))     # dlarch R1.4 priority-1 claims (lead's team order): yield while any exists
+        ok = (not claims and len(g) <= MAX_FOREIGN_ENGINES and "UNREADABLE" not in g and avail is not None and avail >= need
               and shm is not None and shm >= SHM_FREE_MIN_GIB)
         obs.append({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "foreign_engine_pgids": {str(k): v for k, v in g.items()},
                     "avail_gib": avail, "need_gib": need, "need_gib_source": f"{cpath}:launch.min_available_gib ({base}) + {ENGINE_GATE_MARGIN_GIB}",
-                    "shm_free_gib": None if shm is None else round(shm, 2), "PASS": bool(ok), "waited_s": int(time.monotonic() - t0)})
+                    "shm_free_gib": None if shm is None else round(shm, 2), "priority_claims": claims, "PASS": bool(ok), "waited_s": int(time.monotonic() - t0)})
         if ok:
             log(f"engine gate PASS foreign={len(g)} avail={avail}>={need} shm={obs[-1]['shm_free_gib']}"); return obs
-        log(f"engine gate WAIT foreign={list(g)} avail={avail}/{need} shm={obs[-1]['shm_free_gib']}")
+        log(f"engine gate WAIT claims={claims} foreign={list(g)} avail={avail}/{need} shm={obs[-1]['shm_free_gib']}")
         assert time.monotonic() - t0 < max_wait, f"engine gate: still blocked after {max_wait}s"
         time.sleep(poll)
 
