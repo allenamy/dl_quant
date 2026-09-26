@@ -1,0 +1,9 @@
+> **Created:** 2026-09-26 09:0xZ | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n (C-4) | **Status:** formal W4 receipt of the reseed window (lead ruling: keep, do not roll back; re-run W4 read-only with the fixed instrument) | **Invalidated by:** none (record)
+
+# W4 (start the producer) — receipt
+- **Original W4, 09:00:15–16Z: FAIL, an instrument race, not a start failure.** producer_services rev 0 left its wait loop as soon as shadow.lock named the new pid and loop.out's LAST line began with "next". At that moment the last line was still the OLD process's "next 12:12 … in 14368s". The later "written after --after" check then failed. The new process wrote its own "next 12:12 … in 11502s" at 09:00:17Z. release_gates stopped as designed (GATES_20260926T0900Z.log).
+- Read-only re-verification at 09:00:43Z of every W4 assertion (W4_readonly_reverify_0900Z.log): pid == lock (23543), SHADOW_OFFSET_MIN=12, started 09:00:15Z after the stop, fresh "next" line at 09:00:17Z, live file sha == candidate 5a1ed5a0, generation verifies with the producer's own verifier.
+- **Fix: e334f305f** (producer_services rev 1). A pure `ready()` requires the last "next" line to be written after --after. Red control for the 09:00Z race state: must wait, not ready (6/6). A read-only `verify` subcommand runs the start assertions alone.
+- **W4 re-run with the fixed instrument, read-only, through release_gates.py: 09:01:47Z → PASS** (`PRODUCER_SERVICES VERIFIED shadowloop_pid=23543`; GATES_W4_rerun_verify.log).
+- Live red control of the fixed wait: `verify` with --after one hour in the future waited the full 60 s and FAILED (GATES_W4_redcontrol_future_after.log). It no longer releases on an older "next" line.
+- Services were not touched after 09:00:16Z. The reseed stays installed (lead ruling). First reseeded anchor: 12Z, acceptance about 12:55Z (reseed_first_anchor.py, criteria frozen in d02c2c3cb).

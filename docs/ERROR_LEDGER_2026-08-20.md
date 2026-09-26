@@ -1077,6 +1077,24 @@ R16   a3aafd01:  单跑 53,494/4   续跑 50,998/2,496/4  state_sha 不同  逐�
 **还有一条我该做没做的**: 那几个 7 日 / 365 日均值是我在会话里临时算的, **没有落盘装置** ⇒ 复审无法逐位复现。**判决装置与结论同寿命**, 这次我违反了自己的规矩, 装置补交。
 
 
+
+## E-0926-B A readiness wait that checked only the PREFIX of loop.out's last line released on the OLD process's output: W4 of the reseed window went red on the instrument (integrator; lead ruling: keep the reseed, fix the instrument)
+**Facts**: 2026-09-26 09:00:15Z, reseed window, gate W4 (`producer_services.py start`).
+- After `launchctl bootstrap`, the wait loop's exit condition was: shadowloop pid == shadow.lock AND the last loop.out line starts with "next ".
+- The new process wrote shadow.lock first. loop.out's last line was still the previous process's "next 12:12 … in 14368s". The loop exited after 1 s, and the separate "loop.out written after --after" check failed. The new process wrote its own "next … in 11502s" line at 09:00:17Z.
+- release_gates stopped (fail-closed, working as designed). Every W4 assertion was re-verified read-only at 09:00:43Z and held.
+- The frozen restore path (stop → rollback → start) was NOT executed: an instrument doubt must not trigger a book-level response. The lead ruled: keep.
+- Receipts: reseed_2026-09-26/window/ (GATES_20260926T0900Z.log, W4_readonly_reverify_0900Z.log, W4_RECEIPT.md).
+
+**Class shape**: a readiness predicate that matches the SHAPE of an output line (its prefix) cannot tell the new writer's line from the old writer's line of the same shape. When two processes write the same kind of line to the same file, "the latest line looks right" is not evidence that the new process wrote it.
+- Same family as E-0926-A: the check looked at text that could be present for the wrong reason.
+- Same family as `regular_output_is_not_evidence_of_the_mechanism`.
+
+**Rule**: a readiness or "is it the new one" check must bind the evidence to the new instance: a timestamp after the action (mtime ≥ --after), a pid match, or a nonce. Its red control must reproduce the old-instance-output state and show the check WAITS.
+- Fix: e334f305f (`ready()` requires the "next" line written after --after; red control 6/6).
+- W4 re-run read-only through release_gates.py: PASS at 09:01:47Z.
+- Live red control (future --after): waits 60 s, then FAILS.
+
 ## E-0926-A A release gate that could not START was read as passed: the fix-pkg-d fast-forward ran without its pair check (integrator self-reported; lead ruling: fix the class)
 **Facts**: 2026-09-26 01:18:57Z, fix-pkg-d window, W3 switch.
 - The step was a zsh sequence: `PAIR="/usr/bin/python3 …/v2c_upstream_pair_check.py"; $PAIR $XC --expect-n 6 …; echo "pair check (candidate) rc=$?"; … ff_running_tree.py $NEWSHA; …`.
