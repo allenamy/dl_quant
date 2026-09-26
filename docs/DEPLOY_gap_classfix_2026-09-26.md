@@ -73,7 +73,7 @@
 | F10 书(state_H_f10)Σ\|dw\| | 0.0041(gross 0.78) | 0 |
 | combo 的 F10 半本(state_H_fc)Σ\|dw\| | 0.0028 | 0 |
 | combo 目标 Σ\|dw\| | 0.00126(gross 0.817,68 个名) | 0 |
-训练分布里这三列为 0 的比例:已向 dlarch 询问训练特征文件,只读;结果回来后补在这里。
+训练分布(dlarch 实测,收据 360062c09 `receipts/f10full_2026-09-26/DRANK_ZERO_SHARE_live_F10_train_2026-09-26.json`):在役 F10 训练窗口 7,656 锚 / 201 万行里,逐格为 0 的比例是 0.61–0.62%,三列同时为 0 的行占 0.43%;**「全部名三列全 0」的锚一个都没有(0 / 7,656)**。⇒ 09-27 12Z/16Z 那种整锚全 0 的输入,在训练分布之外。模型在这种输入上的实际反应以上表的沙箱实测为准(Spearman 0.994,目标 Σ|dw| 0.00126)。
 
 ## 6. 备用:成员历史回填装置(只在本包未能在 12Z 前装上时使用)
 - `devices/members_hist_backfill.py`,子命令 check / apply / verify / rollback。**只追加**,已有的锚不许改;generation.json 只重签 members_hist 的 sha。
