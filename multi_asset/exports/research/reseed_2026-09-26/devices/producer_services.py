@@ -8,6 +8,7 @@ Same recipe as the 2026-09-25 v2c window's W1 / W5 (deploy_v2c_2026-09-25T1300Z/
   start  : `launchctl bootstrap` comboparity, combosnap, combolive, shadowloop (that order); then ASSERT within 60 s: shadowloop has a
            pid, shadow.lock names that live pid, its environment carries SHADOW_OFFSET_MIN=12, the process started at/after --after
            (UTC epoch), and loop.out's last line is a "next <slot>" line written after --after.            verdict: PRODUCER_SERVICES STARTED
+  verify : the start assertions alone, READ-ONLY (rev 1: re-run of W4 after the 09:00Z race).        verdict: PRODUCER_SERVICES VERIFIED
   status : prints each label's pid (never changes anything).                                            verdict: PRODUCER_SERVICES STATUS
 Never kills by name; only launchctl on these four labels. Any failed assertion ⇒ exit 1 with the reason."""
 import json, os, re, subprocess, sys, time
@@ -62,15 +63,29 @@ def stop():
     print("PRODUCER_SERVICES STOPPED n=4")
 
 
+def ready(pid, lock_text, last_line, loop_mtime, after):
+    """rev 1 (2026-09-26 09:00Z race): the NEW process is ready only when shadow.lock names its pid AND loop.out's last line is a
+    'next' line WRITTEN AFTER `after`. rev 0 accepted the OLD process's last 'next' line (the file was not yet rewritten) and exited
+    the wait loop 1 s after bootstrap; its later mtime check then failed on a start that was in fact fine."""
+    return bool(pid) and lock_text == str(pid) and last_line.startswith("next ") and loop_mtime is not None and loop_mtime >= after
+
+
 def start(after):
     for L in ("com.hsy.comboparity", "com.hsy.combosnap", "com.hsy.combolive", "com.hsy.shadowloop"):
         r = subprocess.run(["launchctl", "bootstrap", f"gui/{UID}", f"{HOME}/Library/LaunchAgents/{L}.plist"], capture_output=True, text=True)
         print(f"bootstrap {L} rc={r.returncode} {r.stderr.strip()[:120]}")
         if r.returncode != 0: fail(f"bootstrap {L} rc {r.returncode}")
+    verify(after, "STARTED")
+
+
+def verify(after, word="VERIFIED"):
+    """The post-start assertions alone (READ-ONLY: no launchctl call changes anything). Used by start, and by `verify` to re-run W4."""
     for _ in range(60):
         pid = pid_of("com.hsy.shadowloop")
         out = open(f"{WS}/loop.out").read().splitlines() if os.path.exists(f"{WS}/loop.out") else []
-        if pid and os.path.exists(f"{WS}/shadow.lock") and open(f"{WS}/shadow.lock").read().strip() == str(pid) and out and out[-1].startswith("next "):
+        lock_text = open(f"{WS}/shadow.lock").read().strip() if os.path.exists(f"{WS}/shadow.lock") else ""
+        mt = os.path.getmtime(f"{WS}/loop.out") if os.path.exists(f"{WS}/loop.out") else None
+        if ready(pid, lock_text, out[-1] if out else "", mt, after):
             break
         time.sleep(1)
     else: fail("shadowloop did not reach its 'next' line with a matching shadow.lock within 60 s")
@@ -81,12 +96,13 @@ def start(after):
     if t0 + 1 < after: fail(f"shadowloop pid {pid} started {st} (local) before --after")
     if os.path.getmtime(f"{WS}/loop.out") < after: fail("loop.out not written after --after")
     print(f"shadowloop pid {pid} started {st} (local); last loop.out line: {out[-1][:80]}")
-    print(f"PRODUCER_SERVICES STARTED shadowloop_pid={pid} " + " ".join(f"{L.split('.')[-1]}={pid_of(L)}" for L in LABELS))
+    print(f"PRODUCER_SERVICES {word} shadowloop_pid={pid} " + " ".join(f"{L.split('.')[-1]}={pid_of(L)}" for L in LABELS))
 
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "stop": stop()
     elif cmd == "start": start(float(sys.argv[2]))
+    elif cmd == "verify": verify(float(sys.argv[2]))
     elif cmd == "status": print("PRODUCER_SERVICES STATUS " + json.dumps({L: pid_of(L) for L in LABELS}))
     else: print(__doc__); sys.exit(2)

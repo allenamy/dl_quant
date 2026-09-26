@@ -1,0 +1,8 @@
+  OK    BASELINE: fresh 'next' line written after --after, lock == new pid ⇒ ready -> True
+  OK    RED CONTROL (the 09:00Z race): new pid in the lock, last line = the OLD process's 'next' line written before --after ⇒ must WAIT -> False
+  OK    lock still names the old pid -> False
+  OK    no pid yet -> False
+  OK    last line not a 'next' line (e.g. a traceback) ⇒ not ready -> False
+  OK    loop.out missing ⇒ not ready -> False
+6/6 checks passed
+READY_SELFTEST ALL GREEN

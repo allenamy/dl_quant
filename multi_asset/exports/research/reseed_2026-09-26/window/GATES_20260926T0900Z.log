@@ -1,0 +1,53 @@
+RELEASE_GATES start 2026-09-26T09:00:10Z n_gates=6
+--- gate 1/6 W0_quiet_window start 2026-09-26T09:00:10Z
+    argv=["/usr/bin/python3", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/common/venue_quiet_window.py", "--json"]
+{
+ "now_utc": "2026-09-26T09:00:10Z",
+ "anchor_N_utc": "2026-09-26T08:00:00Z",
+ "minutes_since_N": 60.2,
+ "window": "[N+60m, N+220m]",
+ "remaining_min": 159.8,
+ "open": true,
+ "reason": "open",
+ "override": null,
+ "last_anchor_start_utc": "2026-09-26T08:00:00Z",
+ "last_anchor_done_utc": "2026-09-26T08:55:59Z",
+ "anchor_in_progress": false,
+ "stale_start": false
+}
+    rc=0 elapsed_s=0.1 verdict_line='"open": true'
+    PASS W0_quiet_window
+--- gate 2/6 W0_producer_code_unchanged start 2026-09-26T09:00:10Z
+    argv=["/usr/bin/python3", "-c", "import hashlib,os,sys; h=lambda p: hashlib.sha256(open(os.path.expanduser(p),'rb').read()).hexdigest()[:16]; a=(h('~/wide_shadow/shadow_loop_v3.py'), h('~/wide_shadow/fea171/combo_stage.py')); ok=a==('52baf97909575264','12a76de89831fb42'); print('PRODUCER_CODE_UNCHANGED' if ok else f'PRODUCER_CODE_CHANGED {a}'); sys.exit(0 if ok else 1)"]
+PRODUCER_CODE_UNCHANGED
+    rc=0 elapsed_s=0.1 verdict_line='PRODUCER_CODE_UNCHANGED'
+    PASS W0_producer_code_unchanged
+--- gate 3/6 W1_stop_producer start 2026-09-26T09:00:10Z
+    argv=["/usr/bin/python3", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/reseed_2026-09-26/devices/producer_services.py", "stop"]
+bootout com.hsy.shadowloop rc=0 
+bootout com.hsy.combolive rc=0 
+bootout com.hsy.combosnap rc=0 
+bootout com.hsy.comboparity rc=0 
+shadow.lock stale (pid 70541 dead)
+PRODUCER_SERVICES STOPPED n=4
+    rc=0 elapsed_s=2.3 verdict_line='PRODUCER_SERVICES STOPPED n=4'
+    PASS W1_stop_producer
+--- gate 4/6 W2_fresh_build start 2026-09-26T09:00:13Z
+    argv=["/Users/haosiyu/wide_shadow/venv/bin/python", "-B", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/reseed_2026-09-26/devices/reseed_leg_returns.py", "build", "--state", "/Users/haosiyu/wide_shadow/state", "--snap", "/Users/haosiyu/wide_shadow/state/snap", "--legs", "/Users/haosiyu/cc_tmp/reseed_20260926/legs_9ee5886f.npz", "--legs-sha", "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65", "--producer", "/Users/haosiyu/wide_shadow/shadow_loop_v3.py", "--out", "/Users/haosiyu/cc_tmp/reseed_20260926/build_20260926T0900Z"]
+RESEED BUILD OK candidate_sha256=5a1ed5a06980b70da38bf67cd66fa4e1a9d830e30cdb6b568d805f1b9fe9025f window 2026-04-21T00:00Z..2026-09-26T04:00Z replay 906 + live 44 seam 2026-09-18T20:00Z->2026-09-19T00:00Z seats old=[0.3319, 0.198, 0.4702] new=[0.3103, 0.2208, 0.4689]
+    rc=0 elapsed_s=0.9 verdict_line='RESEED BUILD OK candidate_sha256=5a1ed5a06980b70da38bf67cd66fa4e1a9d830e30cdb6b568d805f1b9fe9025f '
+    PASS W2_fresh_build
+--- gate 5/6 W3_install start 2026-09-26T09:00:14Z
+    argv=["/Users/haosiyu/wide_shadow/venv/bin/python", "-B", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/reseed_2026-09-26/devices/reseed_leg_returns.py", "install", "--state", "/Users/haosiyu/wide_shadow/state", "--build", "/Users/haosiyu/cc_tmp/reseed_20260926/build_20260926T0900Z", "--stamp", "20260926T0900Z", "--lock", "/Users/haosiyu/wide_shadow/shadow.lock", "--producer", "/Users/haosiyu/wide_shadow/shadow_loop_v3.py"]
+RESEED INSTALL OK leg_returns_live_sha256=5a1ed5a06980b70da38bf67cd66fa4e1a9d830e30cdb6b568d805f1b9fe9025f generation verified (anchor 2026-09-26T08:00Z) backups=['/Users/haosiyu/wide_shadow/state/leg_returns_live.json.pre_reseed_20260926T0900Z', '/Users/haosiyu/wide_shadow/state/generation.json.pre_reseed_20260926T0900Z']
+    rc=0 elapsed_s=0.9 verdict_line='RESEED INSTALL OK leg_returns_live_sha256=5a1ed5a06980b70da38bf67cd66fa4e1a9d830e30cdb6b568d805f1b9fe9025f generation verified'
+    PASS W3_install
+--- gate 6/6 W4_start_producer start 2026-09-26T09:00:15Z
+    argv=["/usr/bin/python3", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/reseed_2026-09-26/devices/producer_services.py", "start", "1790413210"]
+bootstrap com.hsy.comboparity rc=0 
+bootstrap com.hsy.combosnap rc=0 
+bootstrap com.hsy.combolive rc=0 
+bootstrap com.hsy.shadowloop rc=0 
+PRODUCER_SERVICES FAIL loop.out not written after --after
+    rc=1 elapsed_s=1.2 verdict_line=None
+RELEASE_GATES STOP at gate 6 W4_start_producer: exit code 1 (non-zero) — later gates NOT started 2026-09-26T09:00:16Z
