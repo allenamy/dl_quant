@@ -1078,6 +1078,22 @@ R16   a3aafd01:  单跑 53,494/4   续跑 50,998/2,496/4  state_sha 不同  逐�
 
 
 
+## E-0926-C combo 层的「上一锚状态」只按 A−14400 取: 任何缺锚都会退回零状态 ⇒ 发布自检失败 ⇒ 执行器 HOLD 约 5 锚, 然后从冷启动的书重新建仓(lead 读代码发现, 装置实证; 实例已桥接, 类修复已派)
+**事实**: 09-26 11:14Z–16:58Z 期间主机做 macOS 迁移(2 次重启、1 次睡眠), 12Z 与 16Z 两锚全链未运行。用户判定: 漏锚本身正常, 但要求恢复后一切正常。
+**缺陷**: `~/wide_shadow/fea171/combo_stage.py`(12a76de8)有三处按**恰好** A−14400 取状态: L59 `weights/{A-14400}`、L237–248 `state_H_f10_{A-14400}`、L311–318 `state_H_kc/fc_{A-14400}`。取不到时退回**零向量**。于是 smv = α·tgt,约为 0.1 倍 gross,大部分名落在带内。
+**实证**(沙盒重放 08Z 的快照, `gap_recovery_2026-09-26/receipts/GAPARM_*`):
+  - 基线逐位 PARITY;
+  - 删掉 04Z 状态的缺锚臂: gross **0.0709** ⇒ `COMBO_LIVE ABORT`(自检要求 gross 在 [0.4, 1.2]);
+  - 桥接臂: 正常发布, gross 0.8172 对 0.8174, max|dw| 4.3e-4。
+  - 另外, `state_H_*_{A}` 在 ABORT **之前**就已写盘 ⇒ 下一锚会从约 0.1 倍的状态接着走,连续约 5 锚失败后,才以冷启动的书发布。
+**处置**:
+  - **实例**: 17:19Z 按 `release_gates` ALL_PASS 3/3 装了只动状态的桥: state_H_*_16Z 与 08Z 逐位相同(锚字段写 16Z),语义为「缺口期间持仓不变」,与生产者自己把 st.H 原样沿用一致。
+  - `weights/16Z` 故意不写: stop_overlay 会 glob 这个目录,写了会记一笔假的调仓。代价是 20Z 的自平价诊断会读到 H=0,已事先具名。
+  - **类修复**: 已派 integ。按上限内的最近状态取,并具名来源;超过上限就告警。测试须覆盖缺 1、2、6 锚。整栈普查所有「上一锚」查找点。发布走正常部署协议。
+**类形状**: **按「恰好上一格」寻址的状态,在缺格时会静默退回初值,而且初值是合法的数(零)。** 这与「缺失当零」同族(R25-01/02),但发生在时间轴上:取不到的状态被当成「空仓」,真实持仓其实一直没动。
+**另一处同类**: 生产者 `shadow_loop_v3.py` L752 只在相邻 4h 时追加腿收益。缺锚会在席位历史里永久留下空洞(本次 3 格),研究端重放却没有这个洞 ⇒ 席位平价缺口会复发。news2 正在量化并设计回填。
+**规矩**: 任何「按上一锚取状态」的代码,要回答三个问题: 缺一锚会怎样?缺六锚会怎样?退回值是否会被下游当成合法输入?
+
 ## E-0926-B A readiness wait that checked only the PREFIX of loop.out's last line released on the OLD process's output: W4 of the reseed window went red on the instrument (integrator; lead ruling: keep the reseed, fix the instrument)
 **Facts**: 2026-09-26 09:00:15Z, reseed window, gate W4 (`producer_services.py start`).
 - After `launchctl bootstrap`, the wait loop's exit condition was: shadowloop pid == shadow.lock AND the last loop.out line starts with "next ".
