@@ -20,8 +20,17 @@ RED = "--red" in sys.argv[2:]
 HERE = os.path.dirname(os.path.abspath(__file__))
 PINNED = "97077d7e890223a966ed190ff4a1d6ff"          # first 32 hex of the sha the FRESH training receipt pins
 TARGET = "fresh_legs"
+# lead ruling 2026-09-26: news_p2_build.py is PINNED, so its gate lives in news_p2_build_guarded.py. Nothing may
+# invoke the pinned file directly -- only the wrapper may. This is the same enforcement shape as fresh_legs, but the
+# reason differs: fresh_legs is RETIRED (never run it), news_p2_build is GATED (run it only through the wrapper).
+GUARDED_TARGET = "news_p2_build"
 
 IMPORT_PAT = re.compile(r"^\s*(?:import\s+fresh_legs|from\s+fresh_legs\s+import)", re.M)
+# the wrapper itself legitimately runpy's the pinned file; everything else must go through the wrapper
+G_SUBPROC_SH = re.compile(r"(?:^|[;&|]|\$\()\s*(?:(?:/\S+/)?(?:python[0-9.]*|bash|sh)\s+(?:-\S+\s+)*\S*news_p2_build\.py"
+                          r"|\./news_p2_build\.py)", re.M)
+G_SUBPROC_PY = re.compile(r"(?:subprocess\.\w+|os\.system|os\.popen|os\.exec\w*|runpy\.run_path)\([^\n]*news_p2_build\.py", re.M)
+G_IMPORT_PAT = re.compile(r"^\s*(?:import\s+news_p2_build|from\s+news_p2_build\s+import)", re.M)
 IMPORTLIB_PAT = re.compile(r"spec_from_file_location\([^)]*fresh_legs", re.S)
 # ★ FIRST VERSION WAS WRONG and its own run proved it: a bare `fresh_legs.py(?=\s|$)` alternative matched the
 # name in PROSE and reported 19 "violations", every one of them a docstring citing the file's line numbers.
@@ -34,6 +43,8 @@ SUBPROC_SH = re.compile(r"(?:^|[;&|]|\$\()\s*(?:(?:/\S+/)?(?:python[0-9.]*|bash|
 SUBPROC_PY = re.compile(r"(?:subprocess\.\w+|os\.system|os\.popen|os\.exec\w*)\([^\n]*fresh_legs\.py", re.M)
 # the sidecar and this test are allowed to NAME it; they must not call it
 EXEMPT = {"test_no_fresh_legs_callers.py", "fresh_legs.DEPRECATED.md", "fresh_legs.py"}
+# the wrapper is the ONE sanctioned caller of the pinned builder; the pinned file may name itself
+G_EXEMPT = {"test_no_fresh_legs_callers.py", "news_p2_build_guarded.py", "news_p2_build.py"}
 
 
 def scan(extra=None):
@@ -49,6 +60,9 @@ def scan(extra=None):
         except Exception: continue
         pats = [(IMPORT_PAT, "IMPORT"), (IMPORTLIB_PAT, "IMPORTLIB"), (SUBPROC_PY, "SUBPROCESS")]
         if f.endswith(".sh"): pats.append((SUBPROC_SH, "SUBPROCESS"))
+        if f not in G_EXEMPT:
+            pats += [(G_IMPORT_PAT, "GUARDED_BYPASS_IMPORT"), (G_SUBPROC_PY, "GUARDED_BYPASS_CALL")]
+            if f.endswith(".sh"): pats.append((G_SUBPROC_SH, "GUARDED_BYPASS_CALL"))
         for pat, kind in pats:
             for m in pat.finditer(txt):
                 ln = txt[:m.start()].count("\n") + 1
@@ -65,7 +79,9 @@ def sha(p):
 
 rec = {"device": "test_no_fresh_legs_callers.py", "self_sha256": sha(os.path.abspath(__file__)),
        "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-       "enforces": "lead ruling 2026-09-26: retirement enforced OUTSIDE the pinned file",
+       "enforces": ("lead ruling 2026-09-26: enforcement lives OUTSIDE pinned files. fresh_legs.py is RETIRED "
+                    "(no caller at all); news_p2_build.py is PINNED AND GATED (callable only via "
+                    "news_p2_build_guarded.py, which applies require_clean_fund_replay with no allow)"),
        "suite_dir": HERE}
 
 # ---- 3. the pinned file must not have drifted ----
@@ -85,8 +101,10 @@ if RED:
     for kind, body in (("IMPORT", "import fresh_legs\n"),
                        ("IMPORTLIB", 'spec_from_file_location("x", "/tmp/fresh_legs.py")\n'),
                        ("SUBPROCESS", "/workspace/venv/bin/python -B fresh_legs.py PATH,HOME\n"),
-                       ("SUBPROCESS_PY", 'subprocess.run(["python", "fresh_legs.py"])\n')):
-        tmp = os.path.join(HERE, "_RED_PROBE_tmp.sh" if kind == "SUBPROCESS" else "_RED_PROBE_tmp.py")
+                       ("SUBPROCESS_PY", 'subprocess.run(["python", "fresh_legs.py"])\n'),
+                       ("GUARDED_BYPASS_PY", 'subprocess.run(["python", "news_p2_build.py", "merge"])\n'),
+                       ("GUARDED_BYPASS_SH", "/workspace/venv/bin/python -B news_p2_build.py merge\n")):
+        tmp = os.path.join(HERE, "_RED_PROBE_tmp.sh" if kind in ("SUBPROCESS", "GUARDED_BYPASS_SH") else "_RED_PROBE_tmp.py")
         with open(tmp, "w") as f: f.write(body)
         try:
             caught = [v for v in scan() if v[0] == os.path.basename(tmp)]

@@ -1,8 +1,8 @@
 {
  "device": "test_no_fresh_legs_callers.py",
- "self_sha256": "91db57f380a631f61c4e9fa031c6d6c754036108bb9df645dbe53509229eb0c8",
- "utc": "2026-09-26T00:56:40Z",
- "enforces": "lead ruling 2026-09-26: retirement enforced OUTSIDE the pinned file",
+ "self_sha256": "9a7262b020695a1201661942533912d1117b1875c07962105913dd4a068faf9d",
+ "utc": "2026-09-26T04:23:55Z",
+ "enforces": "lead ruling 2026-09-26: enforcement lives OUTSIDE pinned files. fresh_legs.py is RETIRED (no caller at all); news_p2_build.py is PINNED AND GATED (callable only via news_p2_build_guarded.py, which applies require_clean_fund_replay with no allow)",
  "suite_dir": "/dev/shm/fresh_2026-09-23/devices",
  "fresh_legs_sha256": "97077d7e890223a966ed190ff4a1d6ffe7741ed333a2a4be94046756bf3fe776",
  "sha_matches_pinned": true,
@@ -27,6 +27,16 @@
   {
    "kind": "SUBPROCESS_PY",
    "planted": "subprocess.run([\"python\", \"fresh_legs.py\"])",
+   "detected": true
+  },
+  {
+   "kind": "GUARDED_BYPASS_PY",
+   "planted": "subprocess.run([\"python\", \"news_p2_build.py\", \"merge\"])",
+   "detected": true
+  },
+  {
+   "kind": "GUARDED_BYPASS_SH",
+   "planted": "/workspace/venv/bin/python -B news_p2_build.py merge",
    "detected": true
   },
   {
