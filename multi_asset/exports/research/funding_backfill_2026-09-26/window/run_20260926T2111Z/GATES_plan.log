@@ -1,0 +1,83 @@
+RELEASE_GATES start 2026-09-26T21:11:34Z n_gates=5
+--- gate 1/5 G0_quiet_window start 2026-09-26T21:11:34Z
+    argv=["/usr/bin/python3", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/common/venue_quiet_window.py", "--json"]
+{
+ "now_utc": "2026-09-26T21:11:34Z",
+ "anchor_N_utc": "2026-09-26T20:00:00Z",
+ "minutes_since_N": 71.6,
+ "window": "[N+60m, N+220m]",
+ "remaining_min": 148.4,
+ "open": true,
+ "reason": "open",
+ "override": null,
+ "last_anchor_start_utc": "2026-09-26T20:00:00Z",
+ "last_anchor_done_utc": "2026-09-26T20:56:45Z",
+ "anchor_in_progress": false,
+ "stale_start": false
+}
+    rc=0 elapsed_s=0.1 verdict_line='"open": true'
+    PASS G0_quiet_window
+--- gate 2/5 G1_executor_modules_unchanged start 2026-09-26T21:11:34Z
+    argv=["/usr/bin/python3", "-c", "import hashlib,os,sys; h=lambda p: hashlib.sha256(open(os.path.expanduser(p),'rb').read()).hexdigest()[:16]; a=(h('~/dl_quant_live/live/binance_funding.py'), h('~/dl_quant_live/live/pilot_log.py'), h('~/dl_quant_live/live/binance_broker.py')); ok=a==('71c4ff613bc15324','2999fdd63ca09a31','cc8c4e4acd8558cd'); print('EXECUTOR_MODULES_UNCHANGED' if ok else f'EXECUTOR_MODULES_CHANGED {a}'); sys.exit(0 if ok else 1)"]
+EXECUTOR_MODULES_UNCHANGED
+    rc=0 elapsed_s=0.0 verdict_line='EXECUTOR_MODULES_UNCHANGED'
+    PASS G1_executor_modules_unchanged
+--- gate 3/5 G2_census start 2026-09-26T21:11:34Z
+    argv=["/usr/bin/python3", "-B", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/devices/funding_gap_backfill.py", "census", "--root", "/Users/haosiyu/dl_quant_live/state/live/pilot_log", "--day", "20260926", "--out", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/window/run_20260926T2111Z/CENSUS.json"]
+CENSUS gap 2026-09-26T08:44:51Z -> 2026-09-26T20:45:24Z window_ms [1790426691182, 1790454244731] fills 335 (outside post-gap rebalance 0) names 318 equal 318 excluded 0 sha f27d4f9438d4807a
+    rc=0 elapsed_s=0.4 verdict_line='CENSUS gap 2026-09-26T08:44:51Z -> 2026-09-26T20:45:24Z window_ms [1790426691182, 1790454244731] fills 335 (outside post-gap rebalance 0) names 318 equal 318 excluded 0 '
+    PASS G2_census
+--- gate 4/5 G3_fetch_READONLY_NETWORK start 2026-09-26T21:11:35Z
+    argv=["/usr/bin/python3", "-B", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/devices/funding_gap_backfill.py", "fetch", "--root", "/Users/haosiyu/dl_quant_live/state/live/pilot_log", "--census", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/window/run_20260926T2111Z/CENSUS.json", "--out", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/window/run_20260926T2111Z/RAW.json"]
+Traceback (most recent call last):
+  File "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/devices/funding_gap_backfill.py", line 275, in <module>
+    main()
+  File "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/devices/funding_gap_backfill.py", line 257, in main
+    rec = dict(base, **fetch(x.root, json.load(open(x.census)), x.out)); s = write_json(x.out, rec)
+  File "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/devices/funding_gap_backfill.py", line 118, in fetch
+    b = BB.BinanceBroker(mode="LIVE")
+  File "/Users/haosiyu/dl_quant_live/live/binance_broker.py", line 832, in __init__
+    raise ArmingRefused("LIVE requires BINANCE_LIVE_CONFIRM=I_UNDERSTAND")
+binance_broker.ArmingRefused: LIVE requires BINANCE_LIVE_CONFIRM=I_UNDERSTAND
+    rc=1 elapsed_s=0.1 verdict_line=None
+RELEASE_GATES STOP at gate 4 G3_fetch_READONLY_NETWORK: exit code 1 (non-zero) — later gates NOT started 2026-09-26T21:11:35Z
+RELEASE_GATES start 2026-09-26T21:11:56Z n_gates=5
+--- gate 1/5 G0_quiet_window start 2026-09-26T21:11:56Z
+    argv=["/usr/bin/python3", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/common/venue_quiet_window.py", "--json"]
+{
+ "now_utc": "2026-09-26T21:11:56Z",
+ "anchor_N_utc": "2026-09-26T20:00:00Z",
+ "minutes_since_N": 71.9,
+ "window": "[N+60m, N+220m]",
+ "remaining_min": 148.1,
+ "open": true,
+ "reason": "open",
+ "override": null,
+ "last_anchor_start_utc": "2026-09-26T20:00:00Z",
+ "last_anchor_done_utc": "2026-09-26T20:56:45Z",
+ "anchor_in_progress": false,
+ "stale_start": false
+}
+    rc=0 elapsed_s=0.1 verdict_line='"open": true'
+    PASS G0_quiet_window
+--- gate 2/5 G1_executor_modules_unchanged start 2026-09-26T21:11:56Z
+    argv=["/usr/bin/python3", "-c", "import hashlib,os,sys; h=lambda p: hashlib.sha256(open(os.path.expanduser(p),'rb').read()).hexdigest()[:16]; a=(h('~/dl_quant_live/live/binance_funding.py'), h('~/dl_quant_live/live/pilot_log.py'), h('~/dl_quant_live/live/binance_broker.py')); ok=a==('71c4ff613bc15324','2999fdd63ca09a31','cc8c4e4acd8558cd'); print('EXECUTOR_MODULES_UNCHANGED' if ok else f'EXECUTOR_MODULES_CHANGED {a}'); sys.exit(0 if ok else 1)"]
+EXECUTOR_MODULES_UNCHANGED
+    rc=0 elapsed_s=0.0 verdict_line='EXECUTOR_MODULES_UNCHANGED'
+    PASS G1_executor_modules_unchanged
+--- gate 3/5 G2_census start 2026-09-26T21:11:57Z
+    argv=["/usr/bin/python3", "-B", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/devices/funding_gap_backfill.py", "census", "--root", "/Users/haosiyu/dl_quant_live/state/live/pilot_log", "--day", "20260926", "--out", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/window/run_20260926T2111Z/CENSUS.json"]
+CENSUS gap 2026-09-26T08:44:51Z -> 2026-09-26T20:45:24Z window_ms [1790426691182, 1790454244731] fills 335 (outside post-gap rebalance 0) names 318 equal 318 excluded 0 sha f27d4f9438d4807a
+    rc=0 elapsed_s=0.3 verdict_line='CENSUS gap 2026-09-26T08:44:51Z -> 2026-09-26T20:45:24Z window_ms [1790426691182, 1790454244731] fills 335 (outside post-gap rebalance 0) names 318 equal 318 excluded 0 '
+    PASS G2_census
+--- gate 4/5 G3_fetch_READONLY_NETWORK start 2026-09-26T21:11:57Z
+    argv=["/usr/bin/python3", "-B", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/devices/funding_gap_backfill.py", "fetch", "--root", "/Users/haosiyu/dl_quant_live/state/live/pilot_log", "--census", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/window/run_20260926T2111Z/CENSUS.json", "--out", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/window/run_20260926T2111Z/RAW.json"]
+FETCH income 545 symbols 308 intervals 791 sha 48d8df83d4871d09
+    rc=0 elapsed_s=54.6 verdict_line='FETCH income 545 '
+    PASS G3_fetch_READONLY_NETWORK
+--- gate 5/5 G4_plan start 2026-09-26T21:12:51Z
+    argv=["/usr/bin/python3", "-B", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/devices/funding_gap_backfill.py", "plan", "--root", "/Users/haosiyu/dl_quant_live/state/live/pilot_log", "--census", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/window/run_20260926T2111Z/CENSUS.json", "--raw", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/window/run_20260926T2111Z/RAW.json", "--out", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/window/run_20260926T2111Z/plan"]
+PLAN rows 545 in_window 545 present 0 excluded_rows 0 ([]) sha ea69ba13d71141821f5ffb892f4766b05ea9921049df6358e877f244301c7a8d
+    rc=0 elapsed_s=2.3 verdict_line='PLAN rows 545 '
+    PASS G4_plan
+RELEASE_GATES ALL_PASS n=5 2026-09-26T21:12:54Z

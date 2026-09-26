@@ -1,0 +1,30 @@
+RELEASE_GATES start 2026-09-26T21:13:04Z n_gates=3
+--- gate 1/3 G0_quiet_window start 2026-09-26T21:13:04Z
+    argv=["/usr/bin/python3", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/common/venue_quiet_window.py", "--json"]
+{
+ "now_utc": "2026-09-26T21:13:04Z",
+ "anchor_N_utc": "2026-09-26T20:00:00Z",
+ "minutes_since_N": 73.1,
+ "window": "[N+60m, N+220m]",
+ "remaining_min": 146.9,
+ "open": true,
+ "reason": "open",
+ "override": null,
+ "last_anchor_start_utc": "2026-09-26T20:00:00Z",
+ "last_anchor_done_utc": "2026-09-26T20:56:45Z",
+ "anchor_in_progress": false,
+ "stale_start": false
+}
+    rc=0 elapsed_s=0.1 verdict_line='"open": true'
+    PASS G0_quiet_window
+--- gate 2/3 G5_apply start 2026-09-26T21:13:04Z
+    argv=["/usr/bin/python3", "-B", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/devices/funding_gap_backfill.py", "apply", "--root", "/Users/haosiyu/dl_quant_live/state/live/pilot_log", "--plan", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/window/run_20260926T2111Z/plan", "--plan-sha", "ea69ba13d71141821f5ffb892f4766b05ea9921049df6358e877f244301c7a8d", "--stamp", "20260926T2111Z"]
+APPLY rows 545 prefix_unchanged True receipt /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/window/run_20260926T2111Z/plan/APPLY_20260926T2111Z.json sha 61af69ba0a4a4e1d
+    rc=0 elapsed_s=0.3 verdict_line='APPLY rows 545 prefix_unchanged True '
+    PASS G5_apply
+--- gate 3/3 G6_verify start 2026-09-26T21:13:05Z
+    argv=["/usr/bin/python3", "-B", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/devices/funding_gap_backfill.py", "verify", "--root", "/Users/haosiyu/dl_quant_live/state/live/pilot_log", "--apply-receipt", "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/funding_backfill_2026-09-26/window/run_20260926T2111Z/plan/APPLY_20260926T2111Z.json"]
+VERIFY {"prefix_unchanged": true, "tail_is_what_apply_wrote": true, "each_applied_key_exactly_once": true, "bytes_after_apply": 0, "VERDICT": "VERIFIED"}
+    rc=0 elapsed_s=0.2 verdict_line='"VERDICT": "VERIFIED"'
+    PASS G6_verify
+RELEASE_GATES ALL_PASS n=3 2026-09-26T21:13:05Z
