@@ -1,0 +1,17 @@
+no_gap_own                                 disc=0  NEW=PASS  OLD=PASS
+gap1                                       disc=1  NEW=PASS  OLD=RED  source 'fallback' != 'own_gap1'
+gap2                                       disc=1  NEW=PASS  OLD=RED  source 'fallback' != 'own_gap2'
+gap6                                       disc=1  NEW=PASS  OLD=RED  source 'fallback' != 'own_gap6'
+gap7_beyond_bound                          disc=1  NEW=PASS  OLD=RED  source 'fallback' != 'own_gap7_beyond_bound'
+corrupt_garbage                            disc=1  NEW=PASS  OLD=RED  raised ValueError
+anchor_key_mismatch                        disc=1  NEW=PASS  OLD=RED  source 'fallback' != 'own_gap1_rejected1'
+idx_out_of_range                           disc=1  NEW=PASS  OLD=RED  raised IndexError
+nonfinite_val                              disc=1  NEW=PASS  OLD=RED  source 'own' != 'own_gap1_rejected1'
+duplicate_idx                              disc=1  NEW=PASS  OLD=RED  source 'own' != 'own_gap1_rejected1'
+missing_key                                disc=1  NEW=PASS  OLD=RED  raised KeyError
+pickled_object_array                       disc=1  NEW=PASS  OLD=RED  raised ValueError
+future_and_offgrid_ignored                 disc=0  NEW=PASS  OLD=PASS
+no_state_at_all                            disc=1  NEW=PASS  OLD=RED  OLD returns a silent zero fallback (source 'fallback', no page)
+weights_mode_no_anchor_key_int32_float32   disc=0  NEW=PASS  OLD=PASS
+PREV_STATE_TESTS PASS cases=15 new_fail=[] old_not_red_on_discriminating=[] old_red=12/12
+rc=0
