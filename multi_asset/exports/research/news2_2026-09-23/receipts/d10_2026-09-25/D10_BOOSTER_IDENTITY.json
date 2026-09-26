@@ -1,0 +1,52 @@
+{
+ "task": "lead 2026-09-26: bitwise comparison of slow2026.txt vs the in-service NC King booster",
+ "live_king": {
+  "line": "shadow_loop_v3.py:218 booster = lgb.Booster(model_file=f\"{BUNDLE}/slow2026.txt\")",
+  "sha256": "700d9e7b7ee992a786528477ff9007ec (first 32)",
+  "mtime_utc": "2026-09-24T05:06Z",
+  "manifest_matches": true
+ },
+ "research_king_model_sha256_by_year": {
+  "2022": "bf73779a (1104 anchors) + EMPTY for 1086 (king_oof_missing)",
+  "2023": "197a48f1",
+  "2024": "4328f21a",
+  "2025": "33a10281",
+  "2026": "700d9e7b7ee992a786528477ff9007ec"
+ },
+ "finding_live_and_research_share_2026_king": true,
+ "seed_king": {
+  "written_by": "pod_export_shadow_bundle.py:42 gbm.booster_.save_model(f\"{OUT}/slow2026.txt\")",
+  "pred_saved_by": "pod_export_shadow_bundle.py:64 np.save(f\"{OUT}/slow_pred_pinned.npy\", PRED)",
+  "pred_shape": [
+   10176,
+   829
+  ],
+  "pred_mtime_utc": "2026-09-01T05:58Z",
+  "booster_recoverable": false,
+  "why_not": "slow2026.txt was overwritten in place on 2026-09-24 and the MANIFEST updated with it, so the 09-01 booster's sha survives nowhere in the bundle; the only other on-disk booster is an Aug-16 backup (29ffaf58), a fourth version"
+ },
+ "seed_pred_vs_nc_king_oof": {
+  "2024": {
+   "cells": 600192,
+   "bitwise_equal": 0,
+   "median_abs": 0.00748725
+  },
+  "2025": {
+   "cells": 849078,
+   "bitwise_equal": 0,
+   "median_abs": 0.00564511
+  },
+  "2026": {
+   "cells": 545581,
+   "bitwise_equal": 0,
+   "median_abs": 0.00464919
+  },
+  "ALL": {
+   "cells": 1994851,
+   "bitwise_equal": 0
+  },
+  "2022_2023": "no comparison: seed PRED is all-NaN there (no fold)"
+ },
+ "corrected_statement": "The live seats are computed from leg returns produced by a King model that is neither the one the live producer now runs nor the one research uses -- both of those are 700d9e7b for 2026. It is a third booster, overwritten in place on 2026-09-24, unrecoverable from the bundle. So the seat divergence is not a research-vs-live model disagreement; it is a stale artifact never rebuilt after the booster was replaced.",
+ "corrects_my_earlier_message": "I implied the seed's King differed from what research uses and that this was a research-vs-live gap. Research and live share 700d9e7b for 2026; only the seed differs."
+}
