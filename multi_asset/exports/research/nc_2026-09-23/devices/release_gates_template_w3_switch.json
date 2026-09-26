@@ -1,0 +1,50 @@
+[
+ {
+  "name": "pair_check_candidate",
+  "argv": [
+   "/usr/bin/python3",
+   "~/Desktop/quant_research/multi_asset/exports/research/nc_2026-09-23/devices/v2c_upstream_pair_check.py",
+   "<XC>",
+   "--expect-n",
+   "6",
+   "--out",
+   "<RL>/PAIR_CHECK_after_battery.txt"
+  ],
+  "verdict": "^UPSTREAM_PAIR_CHECK PASS compared_equal=6 manifest_entries=6 expected=6 durable_io=COMPARED_EQUAL$",
+  "timeout_s": 300
+ },
+ {
+  "name": "no_run_anchor",
+  "argv": [
+   "/usr/bin/python3",
+   "-c",
+   "import os,subprocess,sys; pat='/dl_quant_live/scheduler/'+'run_anchor'+'.py'; me={os.getpid(),os.getppid()}; o=subprocess.run(['ps','-A','-o','pid=,args='],capture_output=True,text=True,check=True).stdout; h=[l.strip() for l in o.splitlines() if pat in l and int(l.split()[0]) not in me]; print('RUN_ANCHOR_PRESENT', h) if h else print('NO_RUN_ANCHOR'); sys.exit(1 if h else 0)"
+  ],
+  "verdict": "^NO_RUN_ANCHOR$",
+  "timeout_s": 60
+ },
+ {
+  "name": "ff_running_tree",
+  "argv": [
+   "/usr/bin/python3",
+   "~/cc_tmp/lead_deploy_20260923/ff_running_tree.py",
+   "<NEWSHA>"
+  ],
+  "verdict": "^FF_OK before=\\S+ after=<NEWSHA10> origin/main=<NEWSHA10>$",
+  "timeout_s": 300
+ },
+ {
+  "name": "pair_check_running",
+  "argv": [
+   "/usr/bin/python3",
+   "~/Desktop/quant_research/multi_asset/exports/research/nc_2026-09-23/devices/v2c_upstream_pair_check.py",
+   "~/dl_quant_live",
+   "--expect-n",
+   "6",
+   "--out",
+   "<RL>/PAIR_CHECK_after_ff.txt"
+  ],
+  "verdict": "^UPSTREAM_PAIR_CHECK PASS compared_equal=6 manifest_entries=6 expected=6 durable_io=COMPARED_EQUAL$",
+  "timeout_s": 300
+ }
+]

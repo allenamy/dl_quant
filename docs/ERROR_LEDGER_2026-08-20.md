@@ -1076,6 +1076,32 @@ R16   a3aafd01:  单跑 53,494/4   续跑 50,998/2,496/4  state_sha 不同  逐�
 **另**: 复审给出同端点下触线后 90 天终点平均仍 **−2.43%**、一年内最低点平均 **−12.52%**(最差路径 −14.97%)⇒「30 天内没再跌 13%」成立, 但**推不出恢复是安全的**。
 **还有一条我该做没做的**: 那几个 7 日 / 365 日均值是我在会话里临时算的, **没有落盘装置** ⇒ 复审无法逐位复现。**判决装置与结论同寿命**, 这次我违反了自己的规矩, 装置补交。
 
+
+## E-0926-A A release gate that could not START was read as passed: the fix-pkg-d fast-forward ran without its pair check (integrator self-reported; lead ruling: fix the class)
+**Facts**: 2026-09-26 01:18:57Z, fix-pkg-d window, W3 switch.
+- The step was a zsh sequence: `PAIR="/usr/bin/python3 …/v2c_upstream_pair_check.py"; $PAIR $XC --expect-n 6 …; echo "pair check (candidate) rc=$?"; … ff_running_tree.py $NEWSHA; …`.
+- zsh does not split an unquoted `$PAIR`, so the gate never launched: `no such file or directory: /usr/bin/python3 /…/v2c_upstream_pair_check.py`, rc 127.
+- The sequence went on to the fast-forward (FF_OK 01:18:59Z). The post-FF "pair check (running) rc=0" was the exit code of `| tail -1`, not of the check.
+- Both checks were rerun at 01:19:06Z: candidate and running tree PASS, compared_equal=6, durable_io=COMPARED_EQUAL. The battery's drift suites (inside ALL GREEN 166/166) had already covered durable_io before the push, so no wrong tree went live; the protocol order was broken all the same.
+- Receipts: nc_2026-09-23/receipts/deploy_fixpkg_d_2026-09-26T0100Z/W3_switch.log + W3_pair_checks_rerun.log.
+
+**Class shape**: a gate whose stop condition is "it printed RED" is silent when it cannot start, and silence passed.
+- Same family as `swap_arm_manufactures_its_own_defect_reason_vocabulary_detector` (a detector that only fires when it speaks cannot certify silence).
+- Same family as the zsh `$F` word-splitting slip this session already guards with `${=F}` in commits: the rule lived in memory, not in the instrument.
+- The same happens with a missing file, a wrong interpreter, a crash before the verdict line, or `| tail` hiding the exit code.
+
+**Rule (lead 2026-09-26 ~01:2xZ)**: every release-window gate runs through `nc_2026-09-23/devices/release_gates.py`, which is fail-closed:
+- each gate is an argv LIST (no shell, no splitting);
+- a launch failure, any non-zero exit (not only an explicit red), a timeout, or a missing verdict line (each gate must name the regex of its verdict line) stops the run; later gates never start;
+- an empty gate list and a gate without a verdict regex are refused.
+
+Evidence: `release_gates_selftest.py`, 11/11 (receipts/release_gates_2026-09-26/):
+- baseline green;
+- the 01:18Z shape (unsplit argv[0]) stops with LAUNCH FAILED, and the next gate does not start;
+- red control: the old zsh `;` sequence reaches the next step with rc 127.
+
+Template for the W3 switch (pair check candidate → no run_anchor → FF → pair check running): `devices/release_gates_template_w3_switch.json`.
+
 ## E-0925-D The integrator committed the vendored-upstream patch to the research repo BEFORE the executor release: the deployed executor's drift_gate went red for about 2 minutes (self-reported, recovered)
 **Facts**: 2026-09-25 ~06:30Z. B-2 (durable writes) needed three research→production vendored modules (`multi_asset/engine/live/{regime_classifier,deliver_report,factor_version_registry}.py`) plus the new `durable_io.py` changed upstream and re-vendored. I committed the upstream patch 8bde2f8dc to the research repo and re-vendored into the **candidate clone**. At that moment the **deployed** executor (5d3029c) `ops/check_upstream_drift.py` measured `DRIFT DETECTED` on all three modules, because its UPSTREAM path is the working tree of this research repo. Its battery (safe_commit / rollback) would have been blocked by drift_gate. Reverted about 2 minutes later (47494838e); the deployed guard is back to `no drift across 5 vendored modules`. The patch is held back until the release window.
 **Class shape**: the research repo's `multi_asset/engine/live/` modules vendored by drift_gate are **coupled** to the deployed executor's battery: **any commit in the research repo can turn the deployed drift_gate red** (a research→production file changing upstream is itself the definition of "upstream moved since vendoring"). Same family as `a_gate_that_judges_a_copy_only_sees_inside_the_copied_root` (the gate reads the other repo's live working tree, not a pinned version).

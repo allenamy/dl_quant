@@ -1,0 +1,23 @@
+[0] baseline: two passing gates ⇒ exit 0, both ran
+  OK    ★★★ BASELINE green: rc 0, ALL_PASS, the next gate ran  — (0, 'PASS pair: UPSTREAM_PAIR_CHECK PASS \nPASS next: NEXT_OK\nRELEASE_GATES ALL_PASS n=2')
+[1] the 01:18Z shape: argv[0] is the whole unsplit command string ⇒ launch failure ⇒ STOP
+  OK    ★★★ launch failure stops: rc 3, 'LAUNCH FAILED', next gate NOT started  — (3, "RELEASE_GATES STOP gate=pair reason=LAUNCH FAILED: FileNotFoundError(2, 'No such file or directory')")
+[2] non-zero exit WITHOUT any red verdict ⇒ STOP
+  OK    ★★★ exit 1 with no output stops, next NOT started  — (3, 'RELEASE_GATES STOP gate=g reason=exit code 1 (non-zero)')
+[3] exit 0 but NO verdict line ⇒ STOP (the gate did not judge)
+  OK    ★★★ silent exit 0 stops, next NOT started  — (3, "RELEASE_GATES STOP gate=g reason=exit 0 but NO verdict line matching '^UPSTREAM_PAIR_CHECK PASS ' (the gate did not judge)")
+[4] explicit red verdict with exit 1 ⇒ STOP
+  OK    ★★ explicit red stops, next NOT started  — (3, 'RELEASE_GATES STOP gate=pair reason=exit code 1 (non-zero)')
+[5] a PASS-looking line but exit 1 ⇒ STOP (rc wins over text)
+  OK    ★★ verdict text with non-zero exit still stops  — (3, 'RELEASE_GATES STOP gate=pair reason=exit code 1 (non-zero)')
+[6] timeout ⇒ STOP
+  OK    ★ timeout stops, next NOT started  — (3, 'RELEASE_GATES STOP gate=slow reason=timeout after 1 s')
+[7] malformed gate files ⇒ exit 2, nothing runs
+  OK    ★★ an EMPTY gate list does not pass vacuously (exit 2)  — (2, "RELEASE_GATES MALFORMED ValueError('gate file must be a NON-EMPTY list')")
+  OK    ★★ a gate without a verdict regex is refused (exit 2) and nothing ran  — (2, "RELEASE_GATES MALFORMED ValueError('gate g: a verdict regex is REQUIRED (a gate without one cannot be told from a silent pass)')")
+  OK    ★ argv given as one STRING is refused (exit 2)  — (2, "RELEASE_GATES MALFORMED ValueError('gate g: argv must be a non-empty list of non-empty strings')")
+[8] RED CONTROL: the old shell-sequence pattern (zsh, unsplit $PAIR; `;`) reaches the next step
+  OK    ★★★ RED CONTROL: old pattern — the gate fails to launch (rc 127) and the next step still runs  — ('pair rc=127', 'zsh:1: no such file or directory: /usr/bin/python3 /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/nc_2026-09-23/devices/v2c_upstre')
+
+11/11 checks passed
+RELEASE_GATES_SELFTEST ALL GREEN
