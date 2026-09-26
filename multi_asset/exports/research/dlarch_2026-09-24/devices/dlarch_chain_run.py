@@ -248,7 +248,17 @@ def main():
     assert not (inservice_f10 and train_arm != "T0"), "--parity/--reference use the in-service F10, so a train arm is meaningless there"
     TRAIN_ROOT = f"{BASE}/T3/{train_arm}"
     label = "parity" if parity else (f"ref_nc_s{seed}X" if reference else f"{'s' if train_arm == 'T0' else train_arm + '_s'}{seed}")
-    f10_src = f"{NS}/work/f10_s{seed}" if inservice_f10 else f"{TRAIN_ROOT}/f10_s{seed}"
+    # --ref-f10 names the reference cell's F10 EXPLICITLY. Needed because seed 7 has no NC-recipe F10 in
+    # news2's tree (only 42 and 2027 exist), so its reference must be built from dlarch's own --no-mask
+    # product -- which G1 proved is BITWISE identical to the in-service F10 at s42. Passing the path
+    # rather than inferring it keeps the receipt honest about which array was used.
+    if "--ref-f10" in args:
+        assert reference, "--ref-f10 only means something with --reference"
+        f10_src = args[args.index("--ref-f10") + 1]
+    elif inservice_f10:
+        f10_src = f"{NS}/work/f10_s{seed}"
+    else:
+        f10_src = f"{TRAIN_ROOT}/f10_s{seed}"
     # ONE source of truth for the arm name. It used to be rebuilt in four places (here, the adapter
     # spec device, the spec path, the targets path); the copies drifted as soon as --reference added a
     # second arm, and the engine's bt_objb_targets caught it: arm_mismatch {receipt: DLARCH_T0_s42,
@@ -290,17 +300,43 @@ def main():
         # parity assertion validates MY CHAIN equally in both cases, but only the s42 reference cell may
         # be called "the production book" -- recorded in the receipt so the two are not conflated.
         arch = f"{NS}/work/combo_s{seed}"
-        cmp_ = {}
-        for n in ("scaled_diagnostic.npz", "literal.npz"):
-            a, b = sha(f"{arch}/{n}"), sha(f"{cdir}/{n}")
-            cmp_[n] = {"archive_sha256": a, "chain_sha256": b, "IDENTICAL": a == b}
-        rec["PARITY"] = {"archive": arch, "files": cmp_, "ALL_IDENTICAL": all(v["IDENTICAL"] for v in cmp_.values())}
+        if not os.path.isdir(arch):
+            # No archived combo exists at this seed, so this cell CANNOT carry a bitwise self-proof.
+            # s42 and s2027 have archives and do prove themselves; s7 does not exist upstream at all.
+            # Recording the absence explicitly, because a missing proof must not read as a passed one.
+            rec["PARITY"] = {"archive": arch, "ARCHIVE_ABSENT": True, "ALL_IDENTICAL": None,
+                             "why_no_self_proof": (
+                                 "no archived combo at this seed, so there is nothing to reproduce. This "
+                                 "cell's standing rests on two OTHER things, both named: (a) the chain is "
+                                 "the same code that reproduced the s42 and s2027 archives bit-for-bit, "
+                                 "and (b) its F10 is dlarch's --no-mask product, which G1 proved bitwise "
+                                 "identical to the in-service F10 AT s42 -- inherited, never verified at "
+                                 "this seed, and unverifiable here because no NC F10 exists at this seed.")}
+            assert reference, "only a --reference cell may proceed without an archive"
+        else:
+            cmp_ = {}
+            for n in ("scaled_diagnostic.npz", "literal.npz"):
+                a, b = sha(f"{arch}/{n}"), sha(f"{cdir}/{n}")
+                cmp_[n] = {"archive_sha256": a, "chain_sha256": b, "IDENTICAL": a == b}
+            rec["PARITY"] = {"archive": arch, "files": cmp_,
+                             "ALL_IDENTICAL": all(v["IDENTICAL"] for v in cmp_.values())}
         rec["utc_end"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         op = os.path.join(outdir, "CHAIN_PARITY.json")
         jsha = sio.write_json(op, rec)      # sha comes from the verified write, not a later re-read
+        # `cmp_` exists ONLY when an archive was present. My first archive-absent patch added the new
+        # branch but did not follow this consumer, so the s7 run died here with UnboundLocalError AFTER
+        # completing its combo -- a branch changed without checking who reads its variables.
+        _files = rec["PARITY"].get("files") or {}
         print(f"DLARCH_CHAIN_PARITY ALL_IDENTICAL={rec['PARITY']['ALL_IDENTICAL']} "
-              + " ".join(f"{n}={v['IDENTICAL']}" for n, v in cmp_.items()) + f" json={jsha[:16]}", flush=True)
-        assert rec["PARITY"]["ALL_IDENTICAL"], "CHAIN PARITY FAILED -- the derived chain is not the production chain"
+              + " ".join(f"{n}={v['IDENTICAL']}" for n, v in _files.items()) + f" json={jsha[:16]}", flush=True)
+        # Distinguish ABSENT from FAILED. A missing archive is a named limitation recorded above; a
+        # present archive that does not match is a hard stop. Collapsing the two would let "no proof"
+        # pass as "proof".
+        if rec["PARITY"].get("ARCHIVE_ABSENT"):
+            print("DLARCH_CHAIN_PARITY SKIPPED: no archive at this seed; this cell carries NO self-proof "
+                  "(see PARITY.why_no_self_proof)", flush=True)
+        else:
+            assert rec["PARITY"]["ALL_IDENTICAL"], "CHAIN PARITY FAILED -- the derived chain is not the production chain"
         if parity:
             return                      # the gate stops here; --reference goes on to build the cell
 

@@ -1,0 +1,34 @@
+{
+ "receipt": "INCIDENT_s7_idle_2h30_2026-09-26",
+ "owner": "dlarch",
+ "recorded_at_utc": "2026-09-26T04:3xZ",
+ "what_happened": "the s7 NC reference cell died at 01:48:43Z and was not noticed until 04:22:09Z; for about 2 h 34 min nothing was running while dlarch believed it was",
+
+ "timeline_utc": [
+  {"t": "01:46:06Z", "event": "cell launched, build root created"},
+  {"t": "01:48:43Z", "event": "combo step SUCCEEDED (three output shas recorded)"},
+  {"t": "01:48:43Z", "event": "died immediately after: UnboundLocalError: cannot access local variable 'cmp_'"},
+  {"t": "01:4xZ", "event": "dlarch's waiter grepped PARITY|engine rc|DLARCH_CHAIN, printed NOTHING, and dlarch read the empty output as 'still running'"},
+  {"t": "04:22:09Z", "event": "noticed while checking the cell before the next step"},
+  {"t": "04:23:08Z", "event": "relaunched after fixing the cause"}
+ ],
+ "idle_minutes": 154,
+ "data_lost": "none -- the combo artifacts were intact; the loss is wall-clock only",
+
+ "cause_1_incomplete_patch": {
+  "what": "dlarch added an ARCHIVE_ABSENT branch (a reference cell at a seed with no archived combo cannot carry a bitwise self-proof) but did not follow who CONSUMES that branch's variables",
+  "detail": "the print statement after the branch reads `cmp_`, which is bound only inside the else (archive-present) path, so the archive-absent path reached it unbound",
+  "class": "same family as 'a deletion gate must cover every consumer, not one statistic': a branch was changed without tracing its readers",
+  "fix": "the print now reads rec['PARITY'].get('files') or {}, which is defined on both paths; the comment in the code records why"
+ },
+
+ "cause_2_the_one_that_cost_the_time": {
+  "what": "the waiter grepped for success markers and printed nothing; dlarch read EMPTY as 'still running' and moved on",
+  "why_it_is_the_worse_half": "the patch bug cost seconds -- it would have been found on the next look. Reading 'empty' as 'in progress' is what cost 2.5 hours, and it is a reading error, not a coding error.",
+  "already_written_twice_today": "dlarch had recorded, twice on 2026-09-25, that a waiter which can only succeed turns a stall into silence. This time dlarch READ the blank output and still walked away, which is worse than not having looked.",
+  "fix": "waiters must print an explicit outcome word -- DONE / FAILED / RUNNING / GONE_WITHOUT_MARKER -- computed from a chain of tests, never leaving the reader to infer state from whether a grep matched. Verified in use at 04:24:37Z, which printed STATE=RUNNING."
+ },
+
+ "why_this_is_filed": "lead asked for the idle time to be recorded honestly in a receipt. Filed so the cost exists on disk and not only in a message, and so the two causes are separable by a later reader: one was a coding slip, the other was a habit of reading absence as progress.",
+ "cross_reference": "the same 'absence is not progress' shape appears in the 2026-09-25 waiter that reported 'T0 FAMILY STALLED 0/8' when the truth was 8/8 -- there the instrument lied loudly; here it said nothing at all, which was harder to notice."
+}
