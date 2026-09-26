@@ -1,0 +1,598 @@
+{
+ "device": "d10_legs_rn8_vs_archive.py",
+ "self_sha256": "871d8bf4ecfc9c96324b45aa2a1a2cc3434a41c0c172dbf0c331d64e026b54c6",
+ "gate_sha256": "793c5eb2e85e84232df8cf5f25b62207400e390b1552d9196f1b4f76adcdc956",
+ "argv": [
+  "--legs",
+  "/dev/shm/news2_2026-09-23/work/legs.npz",
+  "--legs-sha",
+  "9ee5886f",
+  "--features",
+  "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "--zips-root",
+  "/dev/shm/d10_2026-09-25/zips",
+  "--months",
+  "2026-01,2026-02,2026-03,2026-04,2026-05,2026-06,2026-07,2026-08",
+  "--out",
+  "/dev/shm/d10_2026-09-25/receipts/D10_LEGS_RN8_VS_ARCHIVE_JAN_AUG.json"
+ ],
+ "what": "legs.npz RN8 vs the last archive settlement at or before each anchor (rate*8/iv)",
+ "legs": {
+  "path": "/dev/shm/news2_2026-09-23/work/legs.npz",
+  "sha256": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65",
+  "anchors": 10333,
+  "symbols": 829,
+  "ready_anchors": 9247,
+  "E_ts_range": [
+   "2022-01-01T00:00Z",
+   "2026-09-19T00:00Z"
+  ]
+ },
+ "standard_iv_set": {
+  "value": [
+   1.0,
+   2.0,
+   4.0,
+   6.0,
+   8.0
+  ],
+  "source": "common/funding_interval.py ALLOWED_IV, imported not redeclared",
+  "why": "lead's ruling names that module's tiering as authoritative"
+ },
+ "cited": [
+  "nc_legs.py:74 RN8 = funding_asof(...)[3]",
+  "nc_contract.py:98 rn8 = rate*8/iv",
+  "nc_contract.py:95 FRESH_S=43200 gate",
+  "nc_contract.py:92 raises if the as-of row is after the anchor"
+ ],
+ "provenance_instrument_1": {
+  "source_sha_18387627": "/dev/shm/news2_2026-09-23/devices/nc_legs.py",
+  "features_3c886a2b": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "king_oof_a10b8725": "/dev/shm/news2_2026-09-23/work/king/KING_OOF.npz",
+  "fund_state_a12a8ed3": "/dev/shm/nc_2026-09-23/work/fund_state.npz",
+  "tree_shadow_loop_9403dedd": "/dev/shm/nc_2026-09-23/tree/shadow_loop_v3.py",
+  "method": "matched BY HASH over /dev/shm, not by directory name",
+  "note": "P3_LEGS.json is not modified by this device; its own file sha256 is 21cf687f, which nothing in the fanom receipts pins -- their legs_receipt_sha256 field is lr['sha256'], the receipt's CLAIM about legs.npz, not the receipt file's hash"
+ },
+ "months": {
+  "2026-01": {
+   "anchors_in_month": 186,
+   "shared_symbols": 560,
+   "cells": {
+    "legs_finite_but_no_spacing_available": 503,
+    "out_of_coverage_no_spacing": 198,
+    "out_of_coverage_no_in_month_asof": 2302,
+    "compared_finite": 73894,
+    "bitwise_equal": 73891,
+    "legs_nan_correct_NOT_a_member": 26849,
+    "asof_row_where_iv_column_disagrees_with_spacing": 23,
+    "  of_those_spacing_is_standard": 20,
+    "  of_those_spacing_is_NONSTANDARD": 3,
+    "unresolved_nonstandard_spacing_legs_used_iv_column": 3,
+    "both_nan_agree": 414
+   },
+   "agreement_pct": 99.99594,
+   "mismatch_examples": [
+    {
+     "symbol": "LAUSDT",
+     "anchor": "2026-01-03T16:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.000878979975823313,
+     "by_spacing": -0.0011719733010977507,
+     "by_iv_column": -0.000878979975823313,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-01-03T16:00Z"
+    },
+    {
+     "symbol": "ZKPUSDT",
+     "anchor": "2026-01-12T00:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.00158607994671911,
+     "by_spacing": -0.0021147732622921467,
+     "by_iv_column": -0.00158607994671911,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-01-12T00:00Z"
+    },
+    {
+     "symbol": "STOUSDT",
+     "anchor": "2026-01-20T08:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.0007870999979786575,
+     "by_spacing": -0.0010494666639715433,
+     "by_iv_column": -0.0007870999979786575,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-01-20T08:00Z"
+    }
+   ],
+   "legs_nan_archive_fresh_note": "NOT a miss: RN8 is filled only at member columns and this device has no member mask, so this count is undecidable here"
+  },
+  "2026-02": {
+   "anchors_in_month": 168,
+   "shared_symbols": 563,
+   "cells": {
+    "legs_finite_but_no_spacing_available": 499,
+    "out_of_coverage_no_spacing": 208,
+    "out_of_coverage_no_in_month_asof": 621,
+    "compared_finite": 66690,
+    "bitwise_equal": 66685,
+    "legs_nan_correct_NOT_a_member": 25792,
+    "asof_row_where_iv_column_disagrees_with_spacing": 16,
+    "  of_those_spacing_is_NONSTANDARD": 5,
+    "unresolved_nonstandard_spacing_legs_used_iv_column": 5,
+    "  of_those_spacing_is_standard": 11,
+    "both_nan_agree": 774
+   },
+   "agreement_pct": 99.992503,
+   "mismatch_examples": [
+    {
+     "symbol": "PIPPINUSDT",
+     "anchor": "2026-02-02T08:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": 9.999999747378752e-05,
+     "by_spacing": 0.00013333333481568843,
+     "by_iv_column": 9.999999747378752e-05,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-02-02T08:00Z"
+    },
+    {
+     "symbol": "ZKPUSDT",
+     "anchor": "2026-02-08T08:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.0009396799723617733,
+     "by_spacing": -0.0012529066298156977,
+     "by_iv_column": -0.0009396799723617733,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-02-08T08:00Z"
+    },
+    {
+     "symbol": "INITUSDT",
+     "anchor": "2026-02-19T04:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.0001619200047571212,
+     "by_spacing": -0.0002158933348255232,
+     "by_iv_column": -0.0001619200047571212,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-02-19T04:00Z"
+    },
+    {
+     "symbol": "RPLUSDT",
+     "anchor": "2026-02-22T16:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.0005148799973540008,
+     "by_spacing": -0.0006865066825412214,
+     "by_iv_column": -0.0005148799973540008,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-02-22T16:00Z"
+    },
+    {
+     "symbol": "AZTECUSDT",
+     "anchor": "2026-02-27T00:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.00040821998845785856,
+     "by_spacing": -0.0005442933179438114,
+     "by_iv_column": -0.00040821998845785856,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-02-27T00:00Z"
+    }
+   ],
+   "legs_nan_archive_fresh_note": "NOT a miss: RN8 is filled only at member columns and this device has no member mask, so this count is undecidable here"
+  },
+  "2026-03": {
+   "anchors_in_month": 186,
+   "shared_symbols": 573,
+   "cells": {
+    "legs_finite_but_no_spacing_available": 503,
+    "out_of_coverage_no_spacing": 218,
+    "out_of_coverage_no_in_month_asof": 2028,
+    "compared_finite": 73880,
+    "bitwise_equal": 73869,
+    "legs_nan_correct_NOT_a_member": 29445,
+    "asof_row_where_iv_column_disagrees_with_spacing": 23,
+    "  of_those_spacing_is_NONSTANDARD": 11,
+    "unresolved_nonstandard_spacing_legs_used_iv_column": 11,
+    "  of_those_spacing_is_standard": 12,
+    "both_nan_agree": 504
+   },
+   "agreement_pct": 99.985111,
+   "mismatch_examples": [
+    {
+     "symbol": "SKRUSDT",
+     "anchor": "2026-03-02T04:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.0010768199572339654,
+     "by_spacing": -0.0014357599429786205,
+     "by_iv_column": -0.0010768199572339654,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-03-02T04:00Z"
+    },
+    {
+     "symbol": "STEEMUSDT",
+     "anchor": "2026-03-05T12:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.0008634600089862943,
+     "by_spacing": -0.0011512800119817257,
+     "by_iv_column": -0.0008634600089862943,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-03-05T12:00Z"
+    },
+    {
+     "symbol": "ESPUSDT",
+     "anchor": "2026-03-06T00:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.0007485600071959198,
+     "by_spacing": -0.0009980800095945597,
+     "by_iv_column": -0.0007485600071959198,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-03-06T00:00Z"
+    },
+    {
+     "symbol": "COSUSDT",
+     "anchor": "2026-03-10T20:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.00035519999801181257,
+     "by_spacing": -0.0004735999973490834,
+     "by_iv_column": -0.00035519999801181257,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-03-10T20:00Z"
+    },
+    {
+     "symbol": "JELLYJELLYUSDT",
+     "anchor": "2026-03-11T04:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.0013451799750328064,
+     "by_spacing": -0.0017935733776539564,
+     "by_iv_column": -0.0013451799750328064,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-03-11T04:00Z"
+    },
+    {
+     "symbol": "ANIMEUSDT",
+     "anchor": "2026-03-19T20:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -2.0479999875533395e-05,
+     "by_spacing": -2.7306667107040994e-05,
+     "by_iv_column": -2.0479999875533395e-05,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-03-19T20:00Z"
+    },
+    {
+     "symbol": "ENJUSDT",
+     "anchor": "2026-03-23T16:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.0010736000258475542,
+     "by_spacing": -0.001431466662324965,
+     "by_iv_column": -0.0010736000258475542,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-03-23T16:00Z"
+    },
+    {
+     "symbol": "ORDERUSDT",
+     "anchor": "2026-03-23T20:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": 9.999999747378752e-05,
+     "by_spacing": 0.00013333333481568843,
+     "by_iv_column": 9.999999747378752e-05,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-03-23T20:00Z"
+    },
+    {
+     "symbol": "SAHARAUSDT",
+     "anchor": "2026-03-24T00:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.0016504200175404549,
+     "by_spacing": -0.0022005599457770586,
+     "by_iv_column": -0.0016504200175404549,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-03-24T00:00Z"
+    },
+    {
+     "symbol": "RIVERUSDT",
+     "anchor": "2026-03-28T12:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.0007816799916327,
+     "by_spacing": -0.0010422399500384927,
+     "by_iv_column": -0.0007816799916327,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-03-28T12:00Z"
+    },
+    {
+     "symbol": "PTBUSDT",
+     "anchor": "2026-03-29T20:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": 9.999999747378752e-05,
+     "by_spacing": 0.00013333333481568843,
+     "by_iv_column": 9.999999747378752e-05,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-03-29T20:00Z"
+    }
+   ],
+   "legs_nan_archive_fresh_note": "NOT a miss: RN8 is filled only at member columns and this device has no member mask, so this count is undecidable here"
+  },
+  "2026-04": {
+   "anchors_in_month": 180,
+   "shared_symbols": 578,
+   "cells": {
+    "legs_finite_but_no_spacing_available": 492,
+    "out_of_coverage_no_spacing": 235,
+    "out_of_coverage_no_in_month_asof": 914,
+    "compared_finite": 71479,
+    "bitwise_equal": 71474,
+    "legs_nan_correct_NOT_a_member": 29882,
+    "asof_row_where_iv_column_disagrees_with_spacing": 14,
+    "  of_those_spacing_is_NONSTANDARD": 5,
+    "unresolved_nonstandard_spacing_legs_used_iv_column": 5,
+    "  of_those_spacing_is_standard": 9,
+    "both_nan_agree": 1038
+   },
+   "agreement_pct": 99.993005,
+   "mismatch_examples": [
+    {
+     "symbol": "SIRENUSDT",
+     "anchor": "2026-04-02T00:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": 9.999999747378752e-05,
+     "by_spacing": 0.00013333333481568843,
+     "by_iv_column": 9.999999747378752e-05,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-04-02T00:00Z"
+    },
+    {
+     "symbol": "STABLEUSDT",
+     "anchor": "2026-04-03T12:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": 9.999999747378752e-05,
+     "by_spacing": 0.00013333333481568843,
+     "by_iv_column": 9.999999747378752e-05,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-04-03T12:00Z"
+    },
+    {
+     "symbol": "BLURUSDT",
+     "anchor": "2026-04-03T20:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.00030683999648317695,
+     "by_spacing": -0.0004091199953109026,
+     "by_iv_column": -0.00030683999648317695,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-04-03T20:00Z"
+    },
+    {
+     "symbol": "STOUSDT",
+     "anchor": "2026-04-07T04:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.000321339990478009,
+     "by_spacing": -0.0004284533206373453,
+     "by_iv_column": -0.000321339990478009,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-04-07T04:00Z"
+    },
+    {
+     "symbol": "ARIAUSDT",
+     "anchor": "2026-04-16T00:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": 9.999999747378752e-05,
+     "by_spacing": 0.00013333333481568843,
+     "by_iv_column": 9.999999747378752e-05,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-04-16T00:00Z"
+    }
+   ],
+   "legs_nan_archive_fresh_note": "NOT a miss: RN8 is filled only at member columns and this device has no member mask, so this count is undecidable here"
+  },
+  "2026-05": {
+   "anchors_in_month": 186,
+   "shared_symbols": 592,
+   "cells": {
+    "legs_finite_but_no_spacing_available": 493,
+    "out_of_coverage_no_spacing": 274,
+    "out_of_coverage_no_in_month_asof": 3265,
+    "compared_finite": 73895,
+    "bitwise_equal": 73893,
+    "legs_nan_correct_NOT_a_member": 31897,
+    "asof_row_where_iv_column_disagrees_with_spacing": 10,
+    "  of_those_spacing_is_NONSTANDARD": 6,
+    "unresolved_nonstandard_spacing_legs_used_iv_column": 2,
+    "  of_those_spacing_is_standard": 4,
+    "both_nan_agree": 288
+   },
+   "agreement_pct": 99.997293,
+   "mismatch_examples": [
+    {
+     "symbol": "LAYERUSDT",
+     "anchor": "2026-05-12T04:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.0007790200179442763,
+     "by_spacing": -0.0010386933572590351,
+     "by_iv_column": -0.0007790200179442763,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-05-12T04:00Z"
+    },
+    {
+     "symbol": "GUAUSDT",
+     "anchor": "2026-05-30T20:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": 0.0008587400079704821,
+     "by_spacing": 0.0011449867160990834,
+     "by_iv_column": 0.0008587400079704821,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-05-30T20:00Z"
+    }
+   ],
+   "legs_nan_archive_fresh_note": "NOT a miss: RN8 is filled only at member columns and this device has no member mask, so this count is undecidable here"
+  },
+  "2026-06": {
+   "anchors_in_month": 180,
+   "shared_symbols": 646,
+   "cells": {
+    "legs_finite_but_no_spacing_available": 491,
+    "out_of_coverage_no_spacing": 392,
+    "out_of_coverage_no_in_month_asof": 3360,
+    "compared_finite": 71491,
+    "bitwise_equal": 71490,
+    "legs_nan_correct_NOT_a_member": 40036,
+    "asof_row_where_iv_column_disagrees_with_spacing": 461,
+    "  of_those_spacing_is_standard": 457,
+    "both_nan_agree": 510,
+    "  of_those_spacing_is_NONSTANDARD": 4,
+    "unresolved_nonstandard_spacing_legs_used_iv_column": 1
+   },
+   "agreement_pct": 99.998601,
+   "mismatch_examples": [
+    {
+     "symbol": "PLAYUSDT",
+     "anchor": "2026-06-12T08:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": 0.002004799898713827,
+     "by_spacing": 0.0026730666868388653,
+     "by_iv_column": 0.002004799898713827,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-06-12T08:00Z"
+    }
+   ],
+   "legs_nan_archive_fresh_note": "NOT a miss: RN8 is filled only at member columns and this device has no member mask, so this count is undecidable here"
+  },
+  "2026-07": {
+   "anchors_in_month": 186,
+   "shared_symbols": 680,
+   "cells": {
+    "legs_finite_but_no_spacing_available": 481,
+    "out_of_coverage_no_spacing": 456,
+    "out_of_coverage_no_in_month_asof": 3309,
+    "compared_finite": 73913,
+    "bitwise_equal": 73911,
+    "legs_nan_correct_NOT_a_member": 48147,
+    "asof_row_where_iv_column_disagrees_with_spacing": 56,
+    "  of_those_spacing_is_standard": 21,
+    "  of_those_spacing_is_NONSTANDARD": 35,
+    "both_nan_agree": 174,
+    "unresolved_nonstandard_spacing_legs_used_iv_column": 2
+   },
+   "agreement_pct": 99.997294,
+   "mismatch_examples": [
+    {
+     "symbol": "PARTIUSDT",
+     "anchor": "2026-07-12T20:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": 9.999999747378752e-05,
+     "by_spacing": 0.00013333333481568843,
+     "by_iv_column": 9.999999747378752e-05,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-07-12T20:00Z"
+    },
+    {
+     "symbol": "1000XECUSDT",
+     "anchor": "2026-07-23T00:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": -0.0013910799752920866,
+     "by_spacing": -0.0018547733779996634,
+     "by_iv_column": -0.0013910799752920866,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-07-23T00:00Z"
+    }
+   ],
+   "legs_nan_archive_fresh_note": "NOT a miss: RN8 is filled only at member columns and this device has no member mask, so this count is undecidable here"
+  },
+  "2026-08": {
+   "anchors_in_month": 186,
+   "shared_symbols": 679,
+   "cells": {
+    "legs_finite_but_no_spacing_available": 492,
+    "out_of_coverage_no_spacing": 439,
+    "compared_finite": 73890,
+    "bitwise_equal": 73888,
+    "legs_nan_correct_NOT_a_member": 50807,
+    "asof_row_where_iv_column_disagrees_with_spacing": 64,
+    "  of_those_spacing_is_standard": 24,
+    "  of_those_spacing_is_NONSTANDARD": 40,
+    "unresolved_nonstandard_spacing_legs_used_iv_column": 2,
+    "both_nan_agree": 666
+   },
+   "agreement_pct": 99.997293,
+   "mismatch_examples": [
+    {
+     "symbol": "BANKUSDT",
+     "anchor": "2026-08-05T08:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": 2.8360000214888714e-05,
+     "by_spacing": 3.781333361985162e-05,
+     "by_iv_column": 2.8360000214888714e-05,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-08-05T08:00Z"
+    },
+    {
+     "symbol": "ONGUSDT",
+     "anchor": "2026-08-25T08:00Z",
+     "class": "UNRESOLVED_NONSTANDARD_SPACING",
+     "legs_rn8": 9.999999747378752e-05,
+     "by_spacing": 0.00013333333481568843,
+     "by_iv_column": 9.999999747378752e-05,
+     "iv_gap_h": 3.0,
+     "iv_column_h": 4.0,
+     "asof_event": "2026-08-25T08:00Z"
+    }
+   ],
+   "legs_nan_archive_fresh_note": "NOT a miss: RN8 is filled only at member columns and this device has no member mask, so this count is undecidable here"
+  }
+ },
+ "member_source": {
+  "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+  "construction": "members[i] = m[off[i]:off[i+1]] -> columns into symbols",
+  "explicitly_not": "cand = mask & crypto (tradable/candidate mask)",
+  "axes_identical_in_order": true,
+  "total_member_cells": 2785754
+ },
+ "all_months": {
+  "legs_finite_but_no_spacing_available": 3954,
+  "out_of_coverage_no_spacing": 2420,
+  "out_of_coverage_no_in_month_asof": 15799,
+  "compared_finite": 579132,
+  "bitwise_equal": 579101,
+  "legs_nan_correct_NOT_a_member": 282855,
+  "asof_row_where_iv_column_disagrees_with_spacing": 667,
+  "  of_those_spacing_is_standard": 558,
+  "  of_those_spacing_is_NONSTANDARD": 109,
+  "unresolved_nonstandard_spacing_legs_used_iv_column": 31,
+  "both_nan_agree": 4368
+ },
+ "undecidable_by_this_device": {
+  "legs_finite_but_no_spacing_available": 3954,
+  "unresolved_nonstandard_spacing_legs_used_iv_column": 31,
+  "legs_nan_archive_fresh_UNDECIDABLE_no_member_mask": 0,
+  "legs_nan_correct_NOT_a_member": 282855,
+  "out_of_coverage_no_in_month_asof": 15799,
+  "out_of_coverage_no_spacing": 2420
+ },
+ "classification_closes": true,
+ "verdict": "LEGS_RN8_MATCHES_ARCHIVE_AS_OF"
+}
