@@ -1,0 +1,37 @@
+  OK    PRE-ASSERT the scenario has gap settlements of both intervals  — (12, ['XUSDT', 'YUSDT', 'ZUSDT'])
+[G1] 12 h outage, then readbacks resume
+  OK    ★★ after the post-gap readback every settlement is on disk (gap rows included), none twice  — missing [] dup 0
+  OK    the gap rows — and only they — carry pricing_rule carried_across_gap  — (12, 12)
+  OK    carried rows are priced off the pre-gap readback A (our record), with its true age
+  OK    the queue is empty at the end
+[G2/G3/G4] a name that moved inside the gap stays queued, named, and survives the resume point
+  OK    G2 X's gap rows after the injected fill are NOT written
+  OK    G3 Y's gap rows (post-gap quantity altered) are NOT written
+  OK    the unaffected name Z is written
+  OK    ★★ G4 X and Y are still queued AFTER the resume point moved past the gap (nothing lost)  — (10, 10)
+  OK    each queued row carries a named reason  — [{'row': {'symbol': 'YUSDT', 'income': '-0.07', 'time': 1789592400000, 'incomeType': 'FUNDING_FEE', 'tranId': 17895924001, 'asset': 'USDT', 'info': 'FUNDING_FEE'}, 'reason': 'quantity moved across the gap outside our fills: qty(A) 50.0 vs q
+  OK    the queue is alarmed HIGH, naming X and Y  — ["10 funding settlement(s) could not be priced and are QUEUED (retried every pull, never dropped): ['XUSDT', 'YUSDT']; rea", "10 funding settlement(s) could not be priced and are QUEUED (retried every pull, never dropped): ['XUSDT', 'YUSDT'
+[G7] a queued settlement past the venue's retention becomes a NAMED permanent gap
+  OK    expired rows leave the queue
+  OK    ...into permanent_gaps, each by (symbol, settlement)  — 10
+  OK    ...and that is HIGH  — ["funding ledger gap 1.03d is past the venue's 90-day retention — those settlements cannot be recovered by any means. The ", "10 queued funding settlement(s) passed the venue's 90-day retention unpriced and are now PERMANENT gaps: ['XUSDT',
+[G5] the queue write fails => nothing is written this pull
+  OK    no row written
+  OK    reported as a failure and alarmed HIGH  — ('DurableWriteNotReplaced: injected: disk full', [('HIGH', 'funding pending queue could not be written (DurableWriteNotReplaced: injected: disk full); NOTHING is written this pull — the 6 unpriced settlement(s) would otherwise be lost once 
+[G6] a corrupt queue file => fail-closed
+  OK    no row written
+  OK    reported unreadable and alarmed HIGH  — JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+  OK    the corrupt file is left for a human (not overwritten)
+[G8] a queued row that someone else already wrote is dequeued, never written twice
+  OK    PRE-ASSERT G8 the first pull queued something  — 6
+  OK    the pre-written key appears exactly once  — 1
+  OK    it is no longer queued
+[G9] identity on the normal path against the pre-fix module (d01e35d)
+  OK    PRE-ASSERT the normal path wrote rows  — 6
+  OK    ★ new == old field for field on the normal path (no new field added)
+[R1] regression: 2026-09-26 outage, real day files + recorded venue answers
+  OK    ★★ R1 545 rows written across the gap  — (545, 545, 0)
+  OK    R1 nothing queued, nothing permanent  — (0, 0)
+  OK    ★ R1 every row equals the installed backfill plan (position, paid, rate)  — (545, [])
+
+FUNDING_GAP ALL PASS
