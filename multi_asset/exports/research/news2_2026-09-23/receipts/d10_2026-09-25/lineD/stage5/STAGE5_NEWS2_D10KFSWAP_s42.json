@@ -1,0 +1,92 @@
+{
+  "device": "d10_stage5_engine.py",
+  "self_sha256": "a1f586c09ca806d38b028dcdd324a97c31c726cee5234d46a063e08784b930e7",
+  "chain_run": [
+    "/workspace/dlarch_2026-09-24/dlarch_chain_run.py",
+    "6345132f245433ad702f15cf8d374b126bc0827482e59e25200a6ee8760bf9e3"
+  ],
+  "arm": "NEWS2_D10KFSWAP_s42",
+  "root": "/workspace/d10_lineD_2026-09-26/stage5/d10",
+  "combo_dir": "/workspace/d10_lineD_2026-09-26/stage4/combo_d10",
+  "utc_start": "2026-09-26T20:18:14Z",
+  "steps": {
+    "stage_combo": {
+      "target_receipt_sha256": "f99a1d0062bb2c1a974bc23b1cb0ea4f756984f5725a40ed16fbc9781887ff76",
+      "policies": {
+        "literal": "23ae4b3ca8f1174ea81e2c3eab1570c3863daa0638ab25f3710c70458c0d6ac4",
+        "scaled_diagnostic": "088440e90f9cc8a4384d128db3da096f001b68c0442f0c68d7de9ccb17b19e80"
+      }
+    },
+    "adapter_spec": {
+      "sha256": "2f6c1fe093d67ccae4dd3a564bea4ed960d0ba9d8d816babeed0ed3b731b0376"
+    },
+    "adapter": {
+      "targets_npz_sha256": "f15fb621f4f9be08e9f6acd074a8146fc941b705979798b0328d2b16bfd38ec3",
+      "targets_json_sha256": "3323fc6f4b5ef10a0f61313a57606f1ae71def5adccaee91200d38a38c4e255a",
+      "readback_verified": true
+    },
+    "run_config": {
+      "path": "/workspace/d10_lineD_2026-09-26/stage5/d10/configs/RUN_CONFIG_NEWS2_D10KFSWAP_s42.json",
+      "sha256": "fe9dd25e3579fd2fc98c87c65e692d91d5ef5d3d4b5bbea7a377dfe72cf0369e",
+      "tag": "NEWS2_D10KFSWAP_s42|scaled|rule|raw|UAFE",
+      "base_config": [
+        "/dev/shm/news2_2026-09-23/configs/RUN_CONFIG_NEWS2_s42X_2026-09-23.json",
+        "9526ad1883129f689bff53f9b68b91ade3db8885f67a43f8c21e038fb2e85e2a"
+      ]
+    },
+    "engine": {
+      "rc": 0,
+      "seconds": 695.7,
+      "path_npz_found": 32,
+      "expected": 32,
+      "run_dir": "/workspace/d10_lineD_2026-09-26/stage5/d10/runs/NEWS2_D10KFSWAP_s42_scaled_rule_raw_UAFE"
+    },
+    "retain": {
+      "rc": 0,
+      "out": "/workspace/d10_lineD_2026-09-26/stage5/d10/receipts/RETAIN_NEWS2_D10KFSWAP_s42"
+    }
+  },
+  "shm_free_gib_before_gate": 6.588924407958984,
+  "engine_gate": [
+    {
+      "utc": "2026-09-26T20:18:21Z",
+      "foreign_engine_pgids": {
+        "3295302": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s42/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_nestep_s42.json"
+      },
+      "avail_gib": 30.72,
+      "mem_gate": {
+        "memory_max_bytes": "60999999488",
+        "anon_bytes": 5073895424,
+        "shmem_bytes": 22941806592,
+        "available_gib_v2": 30.72,
+        "gate_threshold_gib": 22,
+        "gate_passes_now": true
+      },
+      "waited_s": 0,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/d10_lineD_2026-09-26/stage5/d10/configs/RUN_CONFIG_NEWS2_D10KFSWAP_s42.json:launch.min_available_gib (22.0) + named margin 2.0",
+      "shm_free_gib": 6.59,
+      "shm_free_min_gib": 4.0,
+      "max_foreign_engines": 2,
+      "PASS": true
+    }
+  ],
+  "mem_gate_before_engine": {
+    "memory_max_bytes": "60999999488",
+    "anon_bytes": 5073895424,
+    "shmem_bytes": 22941806592,
+    "available_gib_v2": 30.72,
+    "gate_threshold_gib": 22,
+    "gate_passes_now": true
+  },
+  "shm_free_gib_at_start": 6.588939666748047,
+  "mem_gate_after_engine": {
+    "memory_max_bytes": "60999999488",
+    "anon_bytes": 1757802496,
+    "shmem_bytes": 22941818880,
+    "available_gib_v2": 33.81,
+    "gate_threshold_gib": 22,
+    "gate_passes_now": true
+  },
+  "utc_end": "2026-09-26T20:30:08Z"
+}
