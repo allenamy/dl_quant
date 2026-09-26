@@ -41,5 +41,17 @@
   "terminal": "^(D2_PREGATES (DONE|STOPPED)|rc=[1-9]|Traceback)",
   "host": "pod2",
   "success": "^D2_PREGATES (DONE|STOPPED) (a STOPPED at a gate is a legitimate end); failure = Traceback or rc!=0"
+ },
+ {
+  "name": "fresh2_monthly_retrain",
+  "owner": "fresh2",
+  "host": "pod2",
+  "log": "/dev/shm/mretrain_2026-09-26/logs/master.log",
+  "pgid_file": "/dev/shm/mretrain_2026-09-26/logs/PGID_master.json",
+  "terminal": "^\\S+ (STOP|MASTER_DONE|MASTER_STOPPED)",
+  "success": "^\\S+ MASTER_DONE (engine queue rc=0; family reading line READ_FAMILY in the same log's engine queue); STOP = device gate / pre-flight / prep / engine / red-control stop (engine-queue STOPs are also written to master.log)",
+  "patrol": "/dev/shm/mretrain_2026-09-26/logs/patrol.log (one PATROL line per 5 min; PGID_patrol.json)",
+  "started_utc": "2026-09-26T23:54:01Z",
+  "relaunch_of": "fresh_monthly_retrain (run 1 STOP 18:35:32Z)"
  }
 ]
