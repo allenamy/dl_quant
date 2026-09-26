@@ -27,8 +27,13 @@ SAFETY PROPERTIES, each with a red control in --selftest:
   * The archive root is refused if it resolves under ~/Desktop or ~/wide_shadow.
 
 Usage:
-  archive_live_ledger.py --root <archive dir>            one archiving pass
-  archive_live_ledger.py --selftest --root <tmp dir>     the 2 positive + 9 red controls of design 7b
+  archive_live_ledger.py --root <archive dir> --runs <receipt dir>   one archiving pass (+ runs/RUN_<utc>.json always)
+  archive_live_ledger.py --selftest --root <tmp dir>                 design 7b (2 positive + 9 red) + rev-1 R10-R12
+
+rev 1 (2026-09-26, deployment package): guard = installed sibling copy (R10); every run leaves a receipt in a runs dir
+outside the archive (R11); the producer's state dir is ENUMERATED in-run (R12); derived liveness thresholds in every
+receipt (design s5); MANIFEST.last_update_utc (design s5 name); conflicts.jsonl rewritten atomically, not appended;
+no json.dump(x, open(p,'w')) anywhere.
 """
 import argparse
 import collections
@@ -42,8 +47,10 @@ import sys
 import tempfile
 
 AUX = os.path.expanduser("~/wide_shadow/state/aux.json")
-QW = os.path.expanduser(
-    "~/Desktop/quant_research/multi_asset/exports/research/common/venue_quiet_window.py")
+# rev 1 (2026-09-26, deployment package): the guard is the INSTALLED SIBLING copy, never the repo under ~/Desktop.
+# Rev 0 called ~/Desktop/quant_research/.../venue_quiet_window.py, which a launchd job may be unable to read (the
+# TCC wall on record for ~/Desktop); a missing sibling is an error, there is no fallback path to drift to.
+QW = os.path.join(os.path.dirname(os.path.realpath(__file__)), "venue_quiet_window.py")
 FORBIDDEN_ROOTS = (os.path.expanduser("~/Desktop"), os.path.expanduser("~/wide_shadow"))
 
 
@@ -107,10 +114,28 @@ def read_aux_twice(path):
 def durable_write_json(path, obj):
     """temp -> fsync -> read back -> compare -> os.replace. Never json.dump(x, open(p,'w')): that does not
     raise on a full disk, which is the recorded executor defect (R9)."""
+    return durable_write_bytes(path, json.dumps(obj, sort_keys=True).encode("utf-8"))
+
+
+TAIL_ROWS = 400      # shadow_loop_v3.py L421: ledger_tail keeps the last 400 rows per symbol
+
+
+def derive_thresholds(tail):
+    """Design s5: the longest tolerable gap is the shortest coverage among TRUNCATED names (exactly TAIL_ROWS rows;
+    a newly listed name is short because it is new, not because rows were dropped). Recomputed every run."""
+    cov = {s: (int(r[-1][0]) - int(r[0][0])) / 3600.0 for s, r in tail.items() if len(r) >= 2}
+    trunc = {s: h for s, h in cov.items() if len(tail[s]) >= TAIL_ROWS}
+    if not trunc:
+        return {"basis": "no truncated name", "hard_fail_h": None, "warn_h": None}
+    s_min = min(trunc, key=trunc.get)
+    return {"basis": f"min coverage over {len(trunc)} names with {TAIL_ROWS} rows", "shortest_name": s_min,
+            "hard_fail_h": round(trunc[s_min], 2), "warn_h": round(trunc[s_min] / 2.0, 2)}
+
+
+def durable_write_bytes(path, payload):
     d = os.path.dirname(path) or "."
     fd, tmp = tempfile.mkstemp(dir=d, prefix=".tmp_", suffix=".json")
     try:
-        payload = json.dumps(obj, sort_keys=True).encode("utf-8")
         with os.fdopen(fd, "wb") as fh:
             fh.write(payload)
             fh.flush()
@@ -148,14 +173,23 @@ def archive_pass(root, aux_path=AUX, check_window=True, manifest_selfcheck=True)
            "status": None}
     rec["root"] = check_root(root)                                   # R7 before anything else
     if check_window:
+        if not os.path.isfile(QW):                                   # R10: no guard is not an open window
+            raise ArchiveError(f"quiet-window guard {QW} not installed next to this file -- unknown is not open (R10)")
+        rec["window"] = {"guard": QW, "guard_sha256": sha_file(QW)}
         try:
             out = subprocess.run([sys.executable, "-B", QW, "--json"], capture_output=True, text=True,
                                  timeout=60)
             ok = out.returncode == 0
-            rec["window"] = {"exit": out.returncode, "open": ok,
-                             "reason": (json.loads(out.stdout).get("reason") if out.stdout else None)}
+            st = json.loads(out.stdout) if out.stdout else {}
+            rec["window"].update({"exit": out.returncode, "open": ok, "reason": st.get("reason"),
+                                  "now_utc": st.get("now_utc"), "remaining_min": st.get("remaining_min")})
         except Exception as e:
             raise ArchiveError(f"quiet-window guard could not be run: {e!r} -- unknown is not open")
+        if out.returncode not in (0, 3):
+            # R13 (rev 1): the guard's CLI contract is 0 = open, 3 = closed. Rev 0 read ANY non-zero as "closed", so a
+            # guard that cannot even be opened (exit 2) produced SKIPPED_WINDOW_CLOSED forever -- measured on rev 0.
+            raise ArchiveError(f"quiet-window guard exited {out.returncode} (contract: 0 open / 3 closed): "
+                               f"{(out.stderr or '')[-200:]!r} -- a broken guard is not a closed window (R13)")
         if not ok:
             rec["status"] = "SKIPPED_WINDOW_CLOSED"                  # R4: not one byte written
             return rec
@@ -178,9 +212,16 @@ def archive_pass(root, aux_path=AUX, check_window=True, manifest_selfcheck=True)
             if got != meta.get("sha256"):
                 raise ArchiveError(f"shard {m} sha mismatch: manifest {meta.get('sha256')} disk {got} (R5)")
 
+    # R12 (design s7 "must be measured in the launchd context, not assumed"): ENUMERATE the producer's state dir.
+    # Opening aux.json by path can succeed where listdir fails (the ~/Desktop TCC shape), so this is its own check.
+    try:
+        rec["aux"]["dir_enumerated_n"] = len(os.listdir(os.path.dirname(os.path.realpath(aux_path))))
+    except OSError as e:
+        raise ArchiveError(f"cannot enumerate {os.path.dirname(aux_path)}: {e!r} -- measured, not assumed (R12)")
     aux, aux_sha, attempts = read_aux_twice(aux_path)                # R8
     rec["aux"].update({"sha256": aux_sha, "read_attempts": attempts})
     tail = aux.get("ledger_tail") or {}
+    rec["liveness_thresholds"] = derive_thresholds(tail)
     by_month = collections.defaultdict(dict)
     for sym, rows in tail.items():
         for r in rows:
@@ -206,12 +247,14 @@ def archive_pass(root, aux_path=AUX, check_window=True, manifest_selfcheck=True)
             rec["shards_written"][month] = {"added": added, "keys": len(shard), "sha256": got}
             rec["events_new"] += added
     if conflicts:
-        with open(os.path.join(rec["root"], "conflicts.jsonl"), "a") as fh:
-            for c in conflicts:
-                fh.write(json.dumps(c, sort_keys=True) + "\n")
+        # rev 1: whole rewrite + os.replace like the shards (rev 0 appended, which can leave a half line)
+        cj = os.path.join(rec["root"], "conflicts.jsonl")
+        old = open(cj, "rb").read() if os.path.exists(cj) else b""
+        durable_write_bytes(cj, old + b"".join(json.dumps(c, sort_keys=True).encode() + b"\n" for c in conflicts))
         rec["conflicts"] = len(conflicts)
     manifest["runs"] = manifest.get("runs", 0) + 1
-    manifest["last_utc"] = utc()
+    manifest["last_update_utc"] = utc()                              # rev 1: the design's s5 field name (rev 0: last_utc)
+    manifest.pop("last_utc", None)
     durable_write_json(mpath, manifest)
     rec["status"] = "OK"
     return rec
@@ -305,6 +348,12 @@ def selftest(base):
                 f"conflicts={r['conflicts']} kept_existing={kept_tampered} "
                 f"both_kept={has_conflict_key and incoming_present} logged={logged}")
     check("R3 conflicting key keeps BOTH and logs it, never overwrites", "RED", r3)
+
+    # rev 1: the guard must exist as a sibling file; the stubbed-guard controls get a dummy one
+    global QW
+    real_qw = QW
+    QW = os.path.join(base, "venue_quiet_window.py")
+    open(QW, "w").write("# selftest dummy guard; subprocess.run is stubbed in every control that reaches it\n")
 
     # ---- R4 window closed -> SKIPPED and not one byte written
     def r4():
@@ -438,6 +487,91 @@ def selftest(base):
                 f"raised={ok_raised} shard_unchanged={after_bytes == before_bytes} tmp_leftovers={leftovers}")
     check("R9 write failure -> raises, shard byte-identical, no temp left behind", "RED", r9)
 
+    # ---- rev 1 R10: guard not installed next to the device -> error, archive root untouched (no fallback path)
+    def r10():
+        global QW
+        probe = os.path.join(base, "arch_r10"); os.makedirs(probe, exist_ok=True)
+        saved, QW = QW, os.path.join(base, "no_such_dir", "venue_quiet_window.py")
+        try:
+            archive_pass(probe, aux, check_window=True)
+            return False, "ran without a guard"
+        except ArchiveError as e:
+            return "not installed" in str(e) and os.listdir(probe) == [], str(e)[:120]
+        finally:
+            QW = saved
+    check("R10 guard missing next to the device -> error, nothing written", "RED", r10)
+
+    # ---- rev 1 R11: every exit path leaves a run receipt; a skip still writes nothing into the archive
+    def r11():
+        real = subprocess.run
+        class _Closed:
+            returncode = 3; stdout = json.dumps({"reason": "test: forced closed"}); stderr = ""
+        arch, runs = os.path.join(base, "arch_r11"), os.path.join(base, "runs_r11")
+        os.makedirs(arch, exist_ok=True)
+        subprocess.run = lambda *a, **k: _Closed()
+        try:
+            rc_skip = run_with_receipt(arch, runs, aux, check_window=True)
+        finally:
+            subprocess.run = real
+        skip_recs = [json.load(open(os.path.join(runs, n))) for n in sorted(os.listdir(runs))]
+        arch_after_skip = os.listdir(arch)
+        bad = os.path.join(base, "aux_trunc_r11.json"); open(bad, "w").write('{"ledger_tail": {')
+        import time as _t; _t.sleep(1.1)                             # receipt names are per-second
+        rc_fail = run_with_receipt(arch, runs, bad, check_window=False)
+        recs = [json.load(open(os.path.join(runs, n))) for n in sorted(os.listdir(runs))]
+        try:
+            run_with_receipt(arch, os.path.join(arch, "runs"), aux, check_window=False)
+            inside_refused = False
+        except ArchiveError:
+            inside_refused = True
+        ok = (rc_skip == 0 and [r["status"] for r in skip_recs] == ["SKIPPED_WINDOW_CLOSED"] and arch_after_skip == []
+              and rc_fail == 2 and [r["status"] for r in recs] == ["SKIPPED_WINDOW_CLOSED", "FAILED"]
+              and "does not parse" in recs[-1]["error"] and inside_refused)
+        return ok, (f"rc_skip={rc_skip} rc_fail={rc_fail} statuses={[r['status'] for r in recs]} "
+                    f"arch_after_skip={arch_after_skip} runs_inside_root_refused={inside_refused}")
+    check("R11 skip and failure each leave a run receipt; the archive gets nothing on a skip", "RED", r11)
+
+    # ---- rev 1 R12: producer state dir openable by path but NOT enumerable (the TCC shape) -> error
+    def r12():
+        d = os.path.join(base, "state_x"); os.makedirs(d, exist_ok=True)
+        ax = _fake_aux(os.path.join(d, "aux.json"), {"AUSDT": [[1777000000, 0.0001, 4.0]]})
+        probe = os.path.join(base, "arch_r12"); os.makedirs(probe, exist_ok=True)
+        os.chmod(d, 0o100)                                           # execute only: open() by path works, listdir fails
+        try:
+            opened = len(open(ax, "rb").read()) > 0
+            archive_pass(probe, ax, check_window=False)
+            return False, f"not detected (open by path works={opened})"
+        except ArchiveError as e:
+            return opened and "cannot enumerate" in str(e) and "R12" in str(e), f"open_by_path={opened} {str(e)[:100]}"
+        finally:
+            os.chmod(d, 0o755)
+    check("R12 producer state dir not enumerable (open by path still works) -> error", "RED", r12)
+
+    # ---- rev 1 R13: a guard that exits outside its 0/3 contract is an error, never a closed window
+    def r13():
+        real = subprocess.run
+        class _Broken:
+            returncode = 2; stdout = ""; stderr = "python3: can't open file 'venue_quiet_window.py': [Errno 1] Operation not permitted"
+        probe = os.path.join(base, "arch_r13"); os.makedirs(probe, exist_ok=True)
+        subprocess.run = lambda *a, **k: _Broken()
+        try:
+            r = archive_pass(probe, aux, check_window=True)
+            return False, f"status={r['status']} (a broken guard read as a closed window)"
+        except ArchiveError as e:
+            return "R13" in str(e) and os.listdir(probe) == [], str(e)[:120]
+        finally:
+            subprocess.run = real
+    check("R13 guard exit outside 0/3 (e.g. 2 = cannot open, the TCC shape) -> error, not SKIPPED", "RED", r13)
+
+    # ---- rev 1 positive 3: derived thresholds come from the truncated names only
+    def p3():
+        t = {"OLD": [[1777000000 + 3600 * i, 0.0, 1.0] for i in range(TAIL_ROWS)],
+             "NEW": [[1777000000, 0.0, 8.0], [1777003600, 0.0, 8.0]]}
+        th = derive_thresholds(t)
+        return th["shortest_name"] == "OLD" and th["hard_fail_h"] == TAIL_ROWS - 1, str(th)
+    check("derived liveness thresholds use truncated names only (a new short name is not truncation)", "POSITIVE", p3)
+
+    QW = real_qw
     npass = sum(1 for r in res if r["pass"])
     print(f"\n7b CONTROLS {npass}/{len(res)} pass "
           f"({sum(1 for r in res if r['kind'] == 'POSITIVE')} positive, "
@@ -448,6 +582,7 @@ def selftest(base):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", required=True)
+    ap.add_argument("--runs", default=None, help="receipt dir, outside --root (required for a pass)")
     ap.add_argument("--aux", default=AUX)
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--no-window", action="store_true", help="only for --selftest")
@@ -463,16 +598,36 @@ def main():
                    "n_positive": sum(1 for r in res if r["kind"] == "POSITIVE"),
                    "n_red": sum(1 for r in res if r["kind"] == "RED")}
             if a.out:
-                json.dump(rec, open(a.out, "w"), indent=1)
-                print(f"receipt -> {a.out}  sha256={sha_file(a.out)}")
+                got = durable_write_json(a.out, rec)                  # rev 1: sha from the verified write
+                print(f"receipt -> {a.out}  sha256={got}")
             return 0 if ok else 1
         finally:
             shutil.rmtree(base, ignore_errors=True)
-    rec = archive_pass(a.root, a.aux, check_window=not a.no_window)
-    print(json.dumps(rec, indent=1))
-    if a.out:
-        json.dump(rec, open(a.out, "w"), indent=1)
-    return 0 if rec["status"] in ("OK", "SKIPPED_WINDOW_CLOSED") else 2
+    if not a.runs:
+        print("--runs is required for an archiving pass (design s6: every run leaves a receipt)", file=sys.stderr)
+        return 2
+    return run_with_receipt(a.root, a.runs, a.aux, check_window=not a.no_window)
+
+
+def run_with_receipt(root, runs, aux_path, check_window=True):
+    """rev 1 (design s5/s6): EVERY invocation leaves runs/RUN_<utc>.json -- OK, SKIPPED_WINDOW_CLOSED and FAILED alike --
+    so the per-anchor liveness check can tell 'skipped' and 'failed' from 'never started' (no receipt at all). The runs
+    dir is separate from the archive root, so R4's 'not one byte in the archive' still holds on a skip."""
+    runs_r = check_root(runs)
+    if os.path.realpath(root) == runs_r or runs_r.startswith(os.path.realpath(root) + os.sep):
+        raise ArchiveError(f"runs dir {runs_r} must not be inside the archive root (R11)")
+    try:
+        rec = archive_pass(root, aux_path, check_window=check_window)
+        rc = 0
+    except Exception as e:                                            # ArchiveError, OSError (disk full), anything
+        rec = {"utc": utc(), "root": root, "aux": {"path": aux_path}, "status": "FAILED", "error": repr(e)[:500]}
+        rc = 2
+    rec["device_sha256"] = sha_file(os.path.realpath(__file__))
+    os.makedirs(runs_r, exist_ok=True)
+    p = os.path.join(runs_r, f"RUN_{rec['utc'].replace(':', '')}.json")
+    got = durable_write_json(p, rec)                                  # a failure here raises -> launchd.err, rc != 0
+    print(json.dumps({"receipt": p, "sha256": got, "status": rec["status"]}))
+    return rc
 
 
 if __name__ == "__main__":

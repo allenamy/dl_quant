@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.hsy.funding_ledger_archive</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>-B</string>
+    <string>/Users/haosiyu/funding_ledger_archive/archive_live_ledger.py</string>
+    <string>--root</string><string>/Users/haosiyu/funding_ledger_archive/ledger</string>
+    <string>--runs</string><string>/Users/haosiyu/funding_ledger_archive/runs</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/haosiyu/funding_ledger_archive</string>
+  <!-- 09:30Z == 17:30 local (+08, no DST). launchd schedules in LOCAL time, so Hour is 17, not 9.
+       09:30Z is inside the 08:00Z anchor's quiet window [09:00Z, 11:40Z]; the script re-checks the window itself. -->
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>17</integer><key>Minute</key><integer>30</integer></dict>
+  <key>RunAtLoad</key><false/>
+  <key>StandardOutPath</key><string>/Users/haosiyu/funding_ledger_archive/launchd.log</string>
+  <key>StandardErrorPath</key><string>/Users/haosiyu/funding_ledger_archive/launchd.err</string>
+</dict>
+</plist>
