@@ -1,0 +1,52 @@
+{
+  "VERDICT_by_intent": "PASS",
+  "VERDICT_by_intent_grounds": {
+    "i_literal_criterion_also_rejects_the_in_service_recipe": {
+      "FULL_s42_peak_k": -3,
+      "NC_s2027_peak_k": -4,
+      "NC_s42_peak_k": -4,
+      "all_three_fail_peak_at_0": true
+    },
+    "ii_k_negative_shape_is_shared": {
+      "max_ratio_to_seed_pair_spread_over_k_lt_0": 2.377466279989749,
+      "reading": "every k<0 point sits within 2.4x the NC seed-pair spread"
+    },
+    "iii_every_k_positive_exceedance_is_negative": {
+      "all_k_ge_2_differences_negative": true,
+      "k_positive_within_seed_spread": {
+        "1": true,
+        "2": false,
+        "3": false,
+        "4": false,
+        "5": false
+      },
+      "meaning": "lower correlation with FUTURE labels than the in-service NC, i.e. the opposite direction to look-ahead. The exceedances are real (3.9-5.8x) and are reported as exceedances, not as passes."
+    }
+  },
+  "VERDICT_by_intent_meaning": "no NEWLY INTRODUCED look-ahead relative to the in-service recipe. This is NOT a claim that no look-ahead exists anywhere, and NOT a claim about features built upstream from future information.",
+  "VERDICT_literal": "FAIL",
+  "VERDICT_literal_basis": "the pre-registered wording requires the offset-spectrum peak at k=0; the pooled peak is at k=-3",
+  "criterion_source": "PREREG_dlarch_F10_FULL_2026-09-26.md section 4 control 2; ruling by lead 2026-09-26 06:2xZ",
+  "device": "lead ruling transcribed by dlarch; NO measurement is performed here",
+  "measurement_receipt": {
+    "path": "/workspace/dlarch_2026-09-24/receipts/LEAK_SPECTRUM_COMPARISON_2026-09-26.json",
+    "sha256": "c0378e78f9d110b05c20371c4a49166e182ccb15554d4fadc4423faa8a7c9658"
+  },
+  "named_limit_carried_forward": "the seed scale is ONE pairwise difference between two NC seeds, not a sigma; n=2 cannot form a dispersion. F10_FULL own 3-seed spread will replace it once s2027 and s7 finish.",
+  "pending_rejudge": "C1.9: once F10_FULL has all three seeds (42/2027/7), re-judge the k>0 condition using F10_FULL's OWN across-seed dispersion instead of the single NC seed-pair difference. Until then every k>0 multiple has a one-observation denominator.",
+  "ruling_author": "lead, who has no stake in what this arm admits; dlarch has a stake and did not author the ruling (criterion_author_must_have_no_stake)",
+  "upstream_receipts": {
+    "F10FULL_LEAK_s42_23folds_2026-09-26.json": {
+      "sha256": "38c452bdce7c6ca771fdde8719321804839b6b372692a719c76677a6772696bc"
+    },
+    "LEAK_NC_INSERVICE_s2027_2026-09-26.json": {
+      "sha256": "22f5ad140e33d986efb4aceaec613c82600adb6bea56d3d319d86cc6b241c036"
+    },
+    "LEAK_NC_INSERVICE_s42_2026-09-26.json": {
+      "sha256": "2571285607b0e1168f68da327a806803a852e56f9163af36d43d16d2385cb1c3"
+    }
+  },
+  "utc": "2026-09-26T06:25:03Z",
+  "what_this_verdict_does_NOT_cover": "control 1 (shuffle-future) has NOT been run -- it needs a one-fold retrain and its place in the GPU queue is not yet assigned. So section 4 is satisfied by controls 2 and 3 only.",
+  "why_a_separate_receipt": "the measurement receipt is already committed (daf21cc47); editing it after the fact would put the numbers and the verdict in ONE mutable object, so a later change to the verdict would look like a change to the measurement. This receipt pins that one by sha and adds only the ruling."
+}
