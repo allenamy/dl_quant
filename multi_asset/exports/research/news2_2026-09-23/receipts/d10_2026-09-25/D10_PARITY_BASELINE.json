@@ -1,0 +1,67 @@
+{
+ "device": "d10_parity_gate.py",
+ "self_sha256": "6212f966e3e8bebea4b27115c152dfd89108b1ceb2a354cde0495316690a7b8e",
+ "criteria": "docs/DECISION_RULE_D10_stage2_2026-09-26.md (1814d4334, rev 1 57fa49eea) \u00a72",
+ "mode": "GATE",
+ "sides": {
+  "a": {
+   "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+   "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+   "anchors": 10333,
+   "symbols": 829
+  },
+  "b": {
+   "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+   "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+   "anchors": 10333,
+   "symbols": 829
+  }
+ },
+ "member_source": {
+  "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+  "construction": "members[i] = m[off[i]:off[i+1]]",
+  "explicitly_not": "cand = mask & crypto",
+  "total_member_cells_on_axis": 2785754
+ },
+ "axis": {
+  "anchor_sets_equal": true,
+  "comparable_anchors": 10333,
+  "symbol_sets_equal": true,
+  "note": "only the intersection is comparable; equality is reported, never asserted"
+ },
+ "columns": {
+  "fund_now": {
+   "status": "COMPARED",
+   "a_key": "fn_v",
+   "b_key": "fn_v",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "csr[member_entry]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2785754,
+   "equal": 2785754,
+   "DIFFER": 0,
+   "book_cells_compared": 2785754,
+   "book_equal": 2785754,
+   "book_DIFFER": 0,
+   "closes": true,
+   "DIFFER_nan_vs_finite": 0,
+   "DIFFER_both_finite": 0,
+   "magnitude_buckets": {},
+   "abs_diff_stats_both_finite": null,
+   "why_split": "one DIFFER count conflates a coverage difference (NaN vs finite), float accumulation noise (~1e-20) and a real value defect (~1e-2); merging them hides the last one inside the first two",
+   "examples": [],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  }
+ },
+ "totals": {
+  "columns_compared": 1,
+  "columns_absent": [],
+  "any_DIFFER": false,
+  "any_book_DIFFER": false,
+  "total_DIFFER": 0,
+  "total_book_DIFFER": 0
+ },
+ "verdict": "PARITY_GREEN"
+}

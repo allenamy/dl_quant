@@ -83,7 +83,25 @@ def main():
                              "D10_P2_POSITIVE_CONTROL_2026-08.json (1 ULP and an in-window drop both seen)",
                "limits": ("the ledger ends 2026-09-01T02:00Z, so September is NOT covered by it either; "
                           "and the API side cannot be checked against a zip for any month whose zip the "
-                          "builder never had")}}
+                          "builder never had"),
+               "LIMIT_ADDED_BY_LEAD_RULING_REVISION_1": (
+                   "src == 4 only covers conflicts that survive a BY-SECOND comparison. It does NOT cover a "
+                   "settlement discarded INSIDE one second: p2_prep_inputs.py unions by t_ms // 1000, so when "
+                   "the venue publishes two settlements milliseconds apart only one survives, and the "
+                   "surviving row is marked src == 3 ('both sources present and equal') because the collision "
+                   "was resolved before the sources were compared. The detector sits DOWNSTREAM of the "
+                   "transformation that causes the loss, so it is structurally blind to it -- and so was my "
+                   "own audit, which compared by second and therefore returned 463,715 rates bitwise equal. "
+                   "Two independently built chains agreed while sharing one key convention, which counts a "
+                   "single blind spot twice. Measured instances: MSFTUSDT 2026-05-21T00:00Z (6 ms apart, lost "
+                   "-0.00217887) and AAPLUSDT 2026-05-11T00:00Z (3 ms apart, lost -0.00092193), found by the "
+                   "UNRESOLVED_NON_INCREASING_TIME branch of interval_d10. Book impact is STRUCTURALLY zero, "
+                   "verified rather than assumed: both names are book members at 0 of 10,333 anchors and "
+                   "carry crypto = False in the candidate mask (680 of 829 symbols are crypto). Fixed as a "
+                   "class per lead's DECISION_RULE_D10_stage2_2026-09-26.md revision 1: the October rebuild "
+                   "keys events by fundingTime MILLISECONDS, keeps every settlement inside a second, takes "
+                   "the later millisecond as the as-of, and counts such events by name."),
+               "src4_does_not_cover": "within-second discards; see the limit above"}}
 
     print(f"P2 ledger_full src composition   sha {s[:16]}  rows {int(ft.size)}")
     print(f"  GLOBAL  api_only={glob[1]}  zip_only={glob[2]}  both_equal={glob[3]}  both_UNEQUAL={glob[4]}")

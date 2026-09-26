@@ -1,6 +1,6 @@
 {
  "device": "d10_p2_src_composition.py",
- "self_sha256": "07a31b0e2ca89908804b7200c5fdad0c0d3a73551c257417f1e47989c591a8d7",
+ "self_sha256": "8bf9e71074eab3ef0cdf4a7699055554ad238704fd1d1e967a249117b44ffd8a",
  "ledger": {
   "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
   "sha256": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad",
@@ -841,6 +841,8 @@
   "src4_across_whole_ledger": 0,
   "statement": "src==4 -- the API and the monthly zip disagreeing on a shared second -- is 0 across all 2633090 rows, i.e. the two sources never once conflicted where both were present. Combined with 2026-08 matching the later-published zip BITWISE on 103,527 events and rates while being 100% API-only in the ledger (an independent, non-circular check), P2 ledger_full.npz is adopted as the truth source for the October retrain and the final FX verdict. Months that are 100% src==3 are largely circular evidence and are not what carries this conclusion.",
   "audited_by": "D10_P2_LEDGER_VS_ARCHIVE_full.json (6,294/6,294 switch-window settlements present; 463,715 rates bitwise equal) with its positive control D10_P2_POSITIVE_CONTROL_2026-08.json (1 ULP and an in-window drop both seen)",
-  "limits": "the ledger ends 2026-09-01T02:00Z, so September is NOT covered by it either; and the API side cannot be checked against a zip for any month whose zip the builder never had"
+  "limits": "the ledger ends 2026-09-01T02:00Z, so September is NOT covered by it either; and the API side cannot be checked against a zip for any month whose zip the builder never had",
+  "LIMIT_ADDED_BY_LEAD_RULING_REVISION_1": "src == 4 only covers conflicts that survive a BY-SECOND comparison. It does NOT cover a settlement discarded INSIDE one second: p2_prep_inputs.py unions by t_ms // 1000, so when the venue publishes two settlements milliseconds apart only one survives, and the surviving row is marked src == 3 ('both sources present and equal') because the collision was resolved before the sources were compared. The detector sits DOWNSTREAM of the transformation that causes the loss, so it is structurally blind to it -- and so was my own audit, which compared by second and therefore returned 463,715 rates bitwise equal. Two independently built chains agreed while sharing one key convention, which counts a single blind spot twice. Measured instances: MSFTUSDT 2026-05-21T00:00Z (6 ms apart, lost -0.00217887) and AAPLUSDT 2026-05-11T00:00Z (3 ms apart, lost -0.00092193), found by the UNRESOLVED_NON_INCREASING_TIME branch of interval_d10. Book impact is STRUCTURALLY zero, verified rather than assumed: both names are book members at 0 of 10,333 anchors and carry crypto = False in the candidate mask (680 of 829 symbols are crypto). Fixed as a class per lead's DECISION_RULE_D10_stage2_2026-09-26.md revision 1: the October rebuild keys events by fundingTime MILLISECONDS, keeps every settlement inside a second, takes the later millisecond as the as-of, and counts such events by name.",
+  "src4_does_not_cover": "within-second discards; see the limit above"
  }
 }

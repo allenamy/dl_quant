@@ -1,0 +1,159 @@
+{
+ "device": "d10_parity_gate.py",
+ "self_sha256": "5504e5a0f0b888a1fb9f0bc5ddc9f807e9b65c6558a0a60d0c3d8afb7e93b0d3",
+ "criteria": "docs/DECISION_RULE_D10_stage2_2026-09-26.md (1814d4334, rev 1 57fa49eea) \u00a72",
+ "mode": "POSITIVE_CONTROL",
+ "sides": {
+  "a": {
+   "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+   "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+   "anchors": 10333,
+   "symbols": 829
+  },
+  "b": {
+   "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+   "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+   "anchors": 10333,
+   "symbols": 829
+  }
+ },
+ "member_source": {
+  "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+  "construction": "members[i] = m[off[i]:off[i+1]]",
+  "explicitly_not": "cand = mask & crypto",
+  "total_member_cells_on_axis": 2785754
+ },
+ "axis": {
+  "anchor_sets_equal": true,
+  "comparable_anchors": 10333,
+  "symbol_sets_equal": true,
+  "note": "only the intersection is comparable; equality is reported, never asserted"
+ },
+ "columns": {
+  "fund_now": {
+   "status": "COMPARED",
+   "a_key": "fn_v",
+   "b_key": "fn_v",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "csr[member_entry]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2785754,
+   "equal": 2785753,
+   "DIFFER": 1,
+   "book_cells_compared": 2785754,
+   "book_equal": 2785753,
+   "book_DIFFER": 1,
+   "closes": true,
+   "examples": [
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "1000SHIBUSDT",
+     "a": 0.00010000000000000002,
+     "b": 0.0001,
+     "dtype": "float64",
+     "abs_diff": 1.3552527156068805e-20
+    }
+   ],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  },
+  "fund_ema": {
+   "status": "COMPARED",
+   "a_key": "fe_v",
+   "b_key": "fe_v",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "csr[member_entry]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2785754,
+   "equal": 2785753,
+   "DIFFER": 1,
+   "book_cells_compared": 2785754,
+   "book_equal": 2785753,
+   "book_DIFFER": 1,
+   "closes": true,
+   "examples": [
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "1000SHIBUSDT",
+     "a": 8.641799066808807e-05,
+     "b": 8.641799066808806e-05,
+     "dtype": "float64",
+     "abs_diff": 1.3552527156068805e-20
+    }
+   ],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  },
+  "iv": {
+   "status": "COMPARED",
+   "a_key": "iv_v",
+   "b_key": "iv_v",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "csr[member_entry]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2785754,
+   "equal": 2785753,
+   "DIFFER": 1,
+   "book_cells_compared": 2785754,
+   "book_equal": 2785753,
+   "book_DIFFER": 1,
+   "closes": true,
+   "examples": [
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "1000SHIBUSDT",
+     "a": 8.000000000000002,
+     "b": 8.0,
+     "dtype": "float64",
+     "abs_diff": 1.7763568394002505e-15
+    }
+   ],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  }
+ },
+ "totals": {
+  "columns_compared": 3,
+  "columns_absent": [],
+  "any_DIFFER": true,
+  "any_book_DIFFER": true,
+  "total_DIFFER": 3,
+  "total_book_DIFFER": 3
+ },
+ "positive_control": {
+  "cells": [
+   {
+    "column": "fund_now",
+    "anchor": "2022-01-07T20:00Z",
+    "symbol": "1000SHIBUSDT",
+    "dtype": "float64",
+    "from": 0.0001,
+    "to": 0.00010000000000000002,
+    "expect": "must be reported as differing"
+   },
+   {
+    "column": "fund_ema",
+    "anchor": "2022-01-07T20:00Z",
+    "symbol": "1000SHIBUSDT",
+    "dtype": "float64",
+    "from": 8.641799066808806e-05,
+    "to": 8.641799066808807e-05,
+    "expect": "must be reported as differing"
+   },
+   {
+    "column": "iv",
+    "anchor": "2022-01-07T20:00Z",
+    "symbol": "1000SHIBUSDT",
+    "dtype": "float64",
+    "from": 8.0,
+    "to": 8.000000000000002,
+    "expect": "must be reported as differing"
+   }
+  ],
+  "n": 3,
+  "verdict": "CONTROL_PASS",
+  "meaning": "one ULP of each column's OWN dtype was injected and must be reported as differing; every red count in this run is mine"
+ },
+ "verdict": "POSITIVE_CONTROL_RUN_NOT_A_GATE"
+}

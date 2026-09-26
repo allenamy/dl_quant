@@ -1,0 +1,449 @@
+{
+ "device": "d10_parity_gate.py",
+ "self_sha256": "6212f966e3e8bebea4b27115c152dfd89108b1ceb2a354cde0495316690a7b8e",
+ "criteria": "docs/DECISION_RULE_D10_stage2_2026-09-26.md (1814d4334, rev 1 57fa49eea) \u00a72",
+ "mode": "GATE",
+ "sides": {
+  "a": {
+   "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+   "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+   "anchors": 10333,
+   "symbols": 829
+  },
+  "b": {
+   "path": "/dev/shm/news2_2026-09-23/inputs/fund_replay.npz",
+   "sha256": "8a73588f350587176a45817716cb0566d4438a82a3af707f94bd685541036eb4",
+   "anchors": 10333,
+   "symbols": 829
+  }
+ },
+ "member_source": {
+  "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+  "construction": "members[i] = m[off[i]:off[i+1]]",
+  "explicitly_not": "cand = mask & crypto",
+  "total_member_cells_on_axis": 2785754
+ },
+ "axis": {
+  "anchor_sets_equal": true,
+  "comparable_anchors": 10333,
+  "symbol_sets_equal": true,
+  "note": "only the intersection is comparable; equality is reported, never asserted"
+ },
+ "columns": {
+  "fund_now": {
+   "status": "COMPARED",
+   "a_key": "fn_v",
+   "b_key": "last_rate",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "dense[anchor,symbol]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2785754,
+   "equal": 2785397,
+   "DIFFER": 357,
+   "book_cells_compared": 2785754,
+   "book_equal": 2785397,
+   "book_DIFFER": 357,
+   "closes": true,
+   "DIFFER_nan_vs_finite": 163,
+   "DIFFER_both_finite": 194,
+   "magnitude_buckets": {
+    "gt_1e-3": 46,
+    "le_1e-3": 146,
+    "le_1e-6": 2
+   },
+   "abs_diff_stats_both_finite": {
+    "n": 194,
+    "median": 7.09e-05,
+    "p90": 0.016242492,
+    "p99": 0.0196915179,
+    "p99_9": 0.019964904270000004,
+    "max": 0.0200125
+   },
+   "why_split": "one DIFFER count conflates a coverage difference (NaN vs finite), float accumulation noise (~1e-20) and a real value defect (~1e-2); merging them hides the last one inside the first two",
+   "examples": [
+    {
+     "anchor": "2022-11-09T20:00Z",
+     "symbol": "SOLUSDT",
+     "a": -0.02,
+     "b": -0.015,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 0.005000000000000001
+    },
+    {
+     "anchor": "2022-12-04T12:00Z",
+     "symbol": "BNXUSDT",
+     "a": -0.025,
+     "b": -0.00604453,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 0.018955470000000002
+    },
+    {
+     "anchor": "2022-12-21T20:00Z",
+     "symbol": "HNTUSDT",
+     "a": -0.02,
+     "b": -0.01,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 0.01
+    },
+    {
+     "anchor": "2023-06-07T20:00Z",
+     "symbol": "MTLUSDT",
+     "a": -0.00376588,
+     "b": -0.02,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 0.01623412
+    },
+    {
+     "anchor": "2023-07-23T12:00Z",
+     "symbol": "STMXUSDT",
+     "a": -0.01379602,
+     "b": -0.025,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 0.01120398
+    },
+    {
+     "anchor": "2023-08-31T12:00Z",
+     "symbol": "CYBERUSDT",
+     "a": -0.00182505,
+     "b": -0.0097599,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 0.00793485
+    },
+    {
+     "anchor": "2023-09-02T20:00Z",
+     "symbol": "NMRUSDT",
+     "a": -0.00822913,
+     "b": -0.02,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 0.011770870000000001
+    },
+    {
+     "anchor": "2023-09-05T20:00Z",
+     "symbol": "BLZUSDT",
+     "a": -0.01520987,
+     "b": -0.025,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 0.009790130000000001
+    },
+    {
+     "anchor": "2023-09-05T20:00Z",
+     "symbol": "FLMUSDT",
+     "a": -0.01250372,
+     "b": -0.00041998,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 0.012083739999999999
+    },
+    {
+     "anchor": "2023-10-12T12:00Z",
+     "symbol": "AMBUSDT",
+     "a": 5e-05,
+     "b": 0.0001,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 5e-05
+    }
+   ],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  },
+  "fund_ema": {
+   "status": "COMPARED",
+   "a_key": "fe_v",
+   "b_key": "ema_acc",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "dense[anchor,symbol]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2785754,
+   "equal": 452351,
+   "DIFFER": 2333403,
+   "book_cells_compared": 2785754,
+   "book_equal": 452351,
+   "book_DIFFER": 2333403,
+   "closes": true,
+   "DIFFER_nan_vs_finite": 163,
+   "DIFFER_both_finite": 2333240,
+   "magnitude_buckets": {
+    "le_1e-6": 84054,
+    "le_1e-9": 99136,
+    "le_1e-12": 2090837,
+    "le_1e-3": 57659,
+    "gt_1e-3": 1554
+   },
+   "abs_diff_stats_both_finite": {
+    "n": 2333240,
+    "median": 4.0657581468206416e-20,
+    "p90": 1.9047786446540193e-12,
+    "p99": 2.1790161897101902e-05,
+    "p99_9": 0.0006592566784680017,
+    "max": 0.023935623591630296
+   },
+   "why_split": "one DIFFER count conflates a coverage difference (NaN vs finite), float accumulation noise (~1e-20) and a real value defect (~1e-2); merging them hides the last one inside the first two",
+   "examples": [
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "1000SHIBUSDT",
+     "a": 8.641799066808806e-05,
+     "b": 8.641468506281582e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 3.3056052722418286e-09
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "1000XECUSDT",
+     "a": -0.0013735937268167582,
+     "b": -0.0013735957800469463,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 2.053230188083996e-09
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "1INCHUSDT",
+     "a": -1.767826407359408e-06,
+     "b": -1.763103485030388e-06,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 4.722922329019854e-09
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "AAVEUSDT",
+     "a": 9.998332530735646e-05,
+     "b": 9.998188899385544e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.4363135010238108e-09
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "ADAUSDT",
+     "a": 8.800778405970297e-05,
+     "b": 8.80066386072239e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.1454524790699763e-09
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "AKROUSDT",
+     "a": 0.0001000035375920751,
+     "b": 0.00010000260372376393,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 9.338683111726918e-10
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "ALGOUSDT",
+     "a": 9.999820811571459e-05,
+     "b": 9.999894855939457e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 7.404436799752969e-10
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "ALICEUSDT",
+     "a": 9.101642104538794e-05,
+     "b": 9.101551719354013e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 9.038518478045494e-10
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "ALPHAUSDT",
+     "a": 9.974451732398224e-05,
+     "b": 9.974308910763372e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.4282163485180265e-09
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "ANKRUSDT",
+     "a": -0.00012166298729821359,
+     "b": -0.00012166355158596469,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 5.642877511015821e-10
+    }
+   ],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  },
+  "iv": {
+   "status": "COMPARED",
+   "a_key": "iv_v",
+   "b_key": "last_iv",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "dense[anchor,symbol]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2785754,
+   "equal": 2785180,
+   "DIFFER": 574,
+   "book_cells_compared": 2785754,
+   "book_equal": 2785180,
+   "book_DIFFER": 574,
+   "closes": true,
+   "DIFFER_nan_vs_finite": 163,
+   "DIFFER_both_finite": 411,
+   "magnitude_buckets": {
+    "gt_1e-3": 411
+   },
+   "abs_diff_stats_both_finite": {
+    "n": 411,
+    "median": 4.0,
+    "p90": 4.0,
+    "p99": 7.0,
+    "p99_9": 7.0,
+    "max": 7.0
+   },
+   "why_split": "one DIFFER count conflates a coverage difference (NaN vs finite), float accumulation noise (~1e-20) and a real value defect (~1e-2); merging them hides the last one inside the first two",
+   "examples": [
+    {
+     "anchor": "2022-11-09T20:00Z",
+     "symbol": "SOLUSDT",
+     "a": 4.0,
+     "b": 8.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 4.0
+    },
+    {
+     "anchor": "2022-11-10T04:00Z",
+     "symbol": "FTTUSDT",
+     "a": 4.0,
+     "b": 8.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 4.0
+    },
+    {
+     "anchor": "2022-12-04T12:00Z",
+     "symbol": "BNXUSDT",
+     "a": 4.0,
+     "b": 8.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 4.0
+    },
+    {
+     "anchor": "2022-12-21T20:00Z",
+     "symbol": "HNTUSDT",
+     "a": 4.0,
+     "b": 8.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 4.0
+    },
+    {
+     "anchor": "2023-06-07T20:00Z",
+     "symbol": "MTLUSDT",
+     "a": 4.0,
+     "b": 8.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 4.0
+    },
+    {
+     "anchor": "2023-07-23T12:00Z",
+     "symbol": "STMXUSDT",
+     "a": 2.0,
+     "b": 8.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 6.0
+    },
+    {
+     "anchor": "2023-08-13T12:00Z",
+     "symbol": "LPTUSDT",
+     "a": 4.0,
+     "b": 8.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 4.0
+    },
+    {
+     "anchor": "2023-08-14T12:00Z",
+     "symbol": "BLZUSDT",
+     "a": 4.0,
+     "b": 8.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 4.0
+    },
+    {
+     "anchor": "2023-08-31T12:00Z",
+     "symbol": "CYBERUSDT",
+     "a": 4.0,
+     "b": 8.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 4.0
+    },
+    {
+     "anchor": "2023-09-02T20:00Z",
+     "symbol": "NMRUSDT",
+     "a": 2.0,
+     "b": 8.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 6.0
+    }
+   ],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  }
+ },
+ "totals": {
+  "columns_compared": 3,
+  "columns_absent": [],
+  "any_DIFFER": true,
+  "any_book_DIFFER": true,
+  "total_DIFFER": 2334334,
+  "total_book_DIFFER": 2334334
+ },
+ "verdict": "PARITY_RED"
+}
