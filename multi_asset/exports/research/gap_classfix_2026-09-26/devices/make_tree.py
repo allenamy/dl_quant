@@ -96,12 +96,59 @@ if _GAP_NONTRIVIAL:
     if _GAP_PAGE:
         _gap_msg = (f"combo 写者: 上一锚状态非常规 [{time.strftime('%m-%d %H:%M', time.gmtime(A))}锚] 已发布, 来源如下(界 {PS.MAX_GAP_ANCHORS} 锚):\\n"
                     + "\\n".join(_GAP_PAGE))[:1500]
-        log(f"GAP_PAGE {'(rehearsal: recorded, not sent)' if _rehearsal else 'HIGH'}: {_gap_msg}")
+        log(f"GAP_PAGE {'(rehearsal: recorded, not sent)' if _rehearsal else 'HIGH'}: {_gap_msg.replace(chr(10), ' | ')}")   # one log line per event
         if not _rehearsal:
             try:
                 _page("HIGH", _gap_msg)
             except Exception:                         # noqa: BLE001 — a page failure never turns a published book into an abort
                 pass"""),
+("""    MH_MISSING = 0
+    for i in range(len(e_rows)):
+        _ea = int(rts[e_rows[i]])
+        if _ea == A:
+            ms_arr[i] = pm
+        elif _ea in MEMBERS_HIST:
+            ms_arr[i] = np.asarray(MEMBERS_HIST[_ea], np.int64)
+        else:
+            ms_arr[i] = np.zeros(0, np.int64); MH_MISSING += 1
+    log(f"NC A2 member history: {len(e_rows) - MH_MISSING}/{len(e_rows)} window anchors have members (missing {MH_MISSING})")
+""",
+"""    MH_MISSING = 0
+    # gap 类修复(ACCEPTANCE AMENDMENT 2): 生产者没跑的锚在 members_hist 里无条目 ⇒ 用生产者成员规则(members_rule.py = shadow_loop_v3 L676-L701)
+    # 在同一份滚动缓存上现算, fetch 名单取 A 时刻的(V2 实测: 事后重算平均 Jaccard 0.9987, carry-forward 0.9914); 历史齐全时本段不执行
+    MH_RECOMPUTED, MH_RECOMPUTE_ERR = {}, {}
+    _mh_need = [int(rts[e_rows[i]]) for i in range(len(e_rows)) if int(rts[e_rows[i]]) != A and int(rts[e_rows[i]]) not in MEMBERS_HIST]
+    if _mh_need:
+        import members_rule as MR, tradability as _TR
+        _cr = json.load(open(f"{WS}/shadow_bundle/crypto_axis.json"))
+        assert [str(x) for x in _cr["symbols"]] == [str(x) for x in _symbols], "crypto_axis.json axis differs from the producer axis"
+        _crypto = np.array([bool(x) for x in _cr["crypto"]], bool)
+        _cd16 = RD.astype(np.float16); _cd16[:, :, 0] = _source_snapshot["ch0_storage_f16"]   # the producer's st.cd (f16 storage, ch0 not rr)
+        _fm = MR.fetch_mask_from_aux(aux, [str(x) for x in _symbols])
+        for _t in _mh_need:
+            try:
+                MH_RECOMPUTED[_t] = MR.members_at(rts, _cd16, _t, _crypto, _fm, P, _TR, NC)
+            except Exception as _me:                  # noqa: BLE001 — a failed recompute leaves the anchor memberless (named), never blocks
+                MH_RECOMPUTE_ERR[_t] = f"{type(_me).__name__}: {str(_me)[:80]}"
+        del _cd16
+    for i in range(len(e_rows)):
+        _ea = int(rts[e_rows[i]])
+        if _ea == A:
+            ms_arr[i] = pm
+        elif _ea in MEMBERS_HIST:
+            ms_arr[i] = np.asarray(MEMBERS_HIST[_ea], np.int64)
+        elif _ea in MH_RECOMPUTED:
+            ms_arr[i] = MH_RECOMPUTED[_ea]
+        else:
+            ms_arr[i] = np.zeros(0, np.int64); MH_MISSING += 1
+    log(f"NC A2 member history: {len(e_rows) - MH_MISSING}/{len(e_rows)} window anchors have members (missing {MH_MISSING})")
+    if _mh_need:
+        log(f"MH_RECOMPUTED (gap class fix) {len(MH_RECOMPUTED)} anchors {sorted(MH_RECOMPUTED)[:12]} errors {MH_RECOMPUTE_ERR}")
+"""),
+("""           **({"state_lookup": STATE_LOOKUP} if _GAP_NONTRIVIAL else {})},""",
+"""           **({"state_lookup": STATE_LOOKUP} if _GAP_NONTRIVIAL else {}),
+           **({"members_recomputed": {str(t): int(len(v)) for t, v in sorted(MH_RECOMPUTED.items())}, "members_recompute_errors": {str(t): e for t, e in MH_RECOMPUTE_ERR.items()}}
+              if (MH_RECOMPUTED or MH_RECOMPUTE_ERR) else {})},"""),
 ]
 def main():
     out = os.path.abspath(sys.argv[1]); assert not os.path.exists(out), f"refusing to overwrite {out}"
@@ -113,11 +160,11 @@ def main():
     os.makedirs(f"{out}/fea171")
     b = s.encode()
     with open(f"{out}/fea171/combo_stage.py", "wb") as f: f.write(b)
-    for _f in ("prev_state.py", "tests_prev_state.py"):
+    for _f in ("prev_state.py", "tests_prev_state.py", "members_rule.py"):
         shutil.copyfile(f"{HERE}/tree/fea171/{_f}", f"{out}/fea171/{_f}")
     rec = {"device": "make_tree.py", "device_sha256": hashlib.sha256(open(__file__, "rb").read()).hexdigest(), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "base": {"fea171/combo_stage.py": BASE_SHA}, "gap_classfix": True, "n_edits": len(EDITS),
-           "files": {r: hashlib.sha256(open(f"{out}/{r}", "rb").read()).hexdigest() for r in ("fea171/combo_stage.py", "fea171/prev_state.py", "fea171/tests_prev_state.py")}}
+           "files": {r: hashlib.sha256(open(f"{out}/{r}", "rb").read()).hexdigest() for r in ("fea171/combo_stage.py", "fea171/prev_state.py", "fea171/tests_prev_state.py", "fea171/members_rule.py")}}
     with open(f"{out}/PATCH_RECEIPT.json", "w") as f: json.dump(rec, f, indent=1)
     print("GAP_TREE_OK", json.dumps(rec["files"]))
 if __name__ == "__main__":

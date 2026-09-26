@@ -118,6 +118,39 @@ def main():
     patched_arm("gap7", "bridge7", "own_gap7_beyond_bound", "own_gap7_beyond_bound", "own_gap7_beyond_bound", ["beyond_bound"])
     for x in ("x1", "x2", "x3"):
         patched_arm(x, "xref", "own_gap1_rejected1", "own", "own", [f"state_H_kc_{P}.npz", "rejected"])
+    # AMENDMENT 2 arm M (members history): descriptive readouts + one gate conditional on V2
+    v2p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "receipts", "MEMBERS_V1V2.json")
+    v2 = json.load(open(v2p)); row6 = [r for r in v2["V2"]["rows"] if r["S"] == A and r["lag"] == 6]
+    gate_applies = bool(row6) and row6[0]["recompute_equal"]
+    M = {"V2_row_S=A_lag6": row6[0] if row6 else None, "gate_applies": gate_applies}
+    def mdump(code, arm):
+        o = run(a.root, code, arm, A); p = f"{sb(a.root, code, arm, A)}/M_DUMP.npz"
+        z = dict(np.load(p)) if os.path.exists(p) else None
+        return o, z
+    def spear(x, y):
+        from scipy.stats import spearmanr
+        return float(spearmanr(x, y).correlation)
+    for code in ("current", "patched"):
+        ob, zb = mdump(code, "mhbase"); od, zd = mdump(code, "mhdrop"); base = run(a.root, code, "base", A)
+        r = {"rc": [ob.get("rc"), od.get("rc")], "dump": [zb is not None, zd is not None]}
+        if zb is not None and zd is not None:
+            assert np.array_equal(zb["scol"], zd["scol"])
+            r["drank_row_A_zero_share"] = {"mhbase": float((zb["drank"] == 0).mean()), "mhdrop": float((zd["drank"] == 0).mean())}
+            r["mh_missing"] = [int(zb["mh_missing"]), int(zd["mh_missing"])]
+            fb, fd = zb["f10"].astype(float), zd["f10"].astype(float); ok_ = np.isfinite(fb) & np.isfinite(fd)
+            r["f10_spearman_drop_vs_base"] = spear(fb[ok_], fd[ok_]); r["f10_max_abs_diff"] = float(np.max(np.abs(fb[ok_] - fd[ok_])))
+        wb, wd = (ob.get("target") or {}).get("weights"), (od.get("target") or {}).get("weights")
+        if wb and wd:
+            ks = set(wb) | set(wd); dif = [abs(wb.get(k, 0.0) - wd.get(k, 0.0)) for k in ks]
+            r["weights_L1_diff"] = float(sum(dif)); r["weights_max_abs_dw"] = float(max(dif)); r["weights_bit_equal"] = wb == wd
+        r["dump_does_not_touch_output (mhbase == base weights)"] = weights_equal(base.get("target"), ob.get("target"))[0]
+        r["recompute_log"] = [ln[:300] for ln in (open(f"{sb(a.root, code, 'mhdrop', A)}/run.log").read().splitlines() if os.path.exists(f"{sb(a.root, code, 'mhdrop', A)}/run.log") else []) if "MH_RECOMPUTED" in ln or "member history" in ln]
+        M[code] = r
+    m_ok = (M["patched"].get("dump_does_not_touch_output (mhbase == base weights)") is True
+            and M["current"].get("dump_does_not_touch_output (mhbase == base weights)") is True
+            and ((not gate_applies) or M["patched"].get("weights_bit_equal") is True))
+    verdicts["M_patched_mhdrop_bitwise_to_base (gate iff V2 lag-6 exact)"] = m_ok
+    R["M"] = M
     ok = all(verdicts.values())
     rec = {"device": "gap_fix_judge.py", "self_sha256": hashlib.sha256(rd(os.path.abspath(__file__))).hexdigest(),
            "criteria": "ACCEPTANCE_gap_classfix_2026-09-26.md (frozen 11bc3b4be)", "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

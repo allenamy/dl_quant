@@ -27,7 +27,7 @@ rsync -a --exclude venv --exclude '.env*' --exclude '.git' --exclude 'state/gene
 ln -s "$WS/venv" "$SB/wide_shadow/venv" || exit 3
 if [ "$CODE" = patched ]; then
   [ -f "$TREE/PATCH_RECEIPT.json" ] || { echo "CANNOT_REPLAY no patched tree $TREE"; exit 3; }
-  for f in combo_stage.py prev_state.py; do cp "$TREE/fea171/$f" "$SB/wide_shadow/fea171/$f" || exit 3; done
+  for f in combo_stage.py prev_state.py members_rule.py; do [ -f "$TREE/fea171/$f" ] || continue; cp "$TREE/fea171/$f" "$SB/wide_shadow/fea171/$f" || exit 3; done
 elif [ "$CODE" != current ]; then echo "CANNOT_REPLAY code must be current|patched"; exit 3; fi
 echo "CODE=$CODE combo_stage sha $(shasum -a 256 "$SB/wide_shadow/fea171/combo_stage.py" | cut -c1-12)" > "$SB/CODE"
 SF=$("$WS/venv/bin/python" "$HERE/generation_files.py" "$SNAP/generation.json") || exit 3   # NC release (§A7 addendum): exactly the files the snapshot's marker commits

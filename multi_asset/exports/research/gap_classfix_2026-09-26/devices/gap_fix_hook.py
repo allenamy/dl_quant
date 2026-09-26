@@ -65,6 +65,26 @@ elif arm in ("x1", "x2", "x3", "xref"):
         put(sp("kc", P), npz(anchor=P, idx=idx, val=z["val"]))
     else:
         put(sp("kc", P), B.payload(np.load(sp("kc", PP)), P))
+elif arm in ("mhbase", "mhdrop"):
+    # AMENDMENT 2 arm M. Both arms append a DUMP after the whole stage (after publication; nothing the stage computes can change):
+    # the F10 scores and the three drank_*_1d inputs of row A. mhdrop also deletes members_hist[A-24h] and re-signs generation.json.
+    import json
+    cs = f"{fea}/combo_stage.py"
+    dump = ("\n# ---- gap_fix_hook M-arm DUMP (sandbox only, appended after the stage) ----\n"
+            "_dn = [str(x) for x in F89['names']]; _di = [F82['X'].shape[1] + _dn.index(n) for n in ('J:drank_m7_1d', 'J:drank_v7_1d', 'J:drank_r24_1d')]\n"
+            "np.savez(os.path.join(os.path.dirname(WS), 'M_DUMP.npz'), f10=f10, scol=scol, drank=X171[:, _di], mh_missing=MH_MISSING)\n")
+    with open(cs, "a") as f: f.write(dump)
+    done.append(f"append-dump {os.path.relpath(cs, sb)}")
+    if arm == "mhdrop":
+        mp = f"{st}/members_hist.npz"
+        with np.load(mp) as m: an, off, idx = m["anchors"].astype(np.int64), m["off"].astype(np.int64), m["idx"]
+        T = A - 86400; k = int(np.where(an == T)[0][0])
+        keep = [j for j in range(len(an)) if j != k]
+        new_idx = np.concatenate([idx[off[j]:off[j + 1]] for j in keep]); new_off = np.concatenate([[0], np.cumsum([off[j + 1] - off[j] for j in keep])])
+        b = io.BytesIO(); np.savez(b, anchors=an[keep], off=new_off.astype(off.dtype), idx=new_idx.astype(idx.dtype)); raw = b.getvalue()
+        put(mp, raw)
+        gp = f"{st}/generation.json"; g = json.load(open(gp)); g["files"]["members_hist.npz"]["sha256"] = hashlib.sha256(raw).hexdigest()
+        graw = json.dumps(g).encode(); put(gp, graw)
 else:
     raise SystemExit(f"unknown arm {arm}")
 print(f"HOOK arm={arm} A={A} " + " | ".join(done))
