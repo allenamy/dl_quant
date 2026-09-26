@@ -1,0 +1,179 @@
+{
+ "device": "d10_parity_gate.py",
+ "self_sha256": "6212f966e3e8bebea4b27115c152dfd89108b1ceb2a354cde0495316690a7b8e",
+ "criteria": "docs/DECISION_RULE_D10_stage2_2026-09-26.md (1814d4334, rev 1 57fa49eea) \u00a72",
+ "mode": "GATE",
+ "sides": {
+  "a": {
+   "path": "/dev/shm/d10_2026-09-25/ms/rebuilt_features_d10.npz",
+   "sha256": "d63dd85a9988e3324c00bd6f9f731e18a5af6daf87a493ddf351666e72a0d1d7",
+   "anchors": 10333,
+   "symbols": 829
+  },
+  "b": {
+   "path": "/dev/shm/news2_2026-09-23/work/legs.npz",
+   "sha256": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65",
+   "anchors": 10333,
+   "symbols": 829
+  }
+ },
+ "member_source": {
+  "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+  "construction": "members[i] = m[off[i]:off[i+1]]",
+  "explicitly_not": "cand = mask & crypto",
+  "total_member_cells_on_axis": 2785754
+ },
+ "axis": {
+  "anchor_sets_equal": true,
+  "comparable_anchors": 10333,
+  "symbol_sets_equal": true,
+  "note": "only the intersection is comparable; equality is reported, never asserted"
+ },
+ "columns": {
+  "rn8": {
+   "status": "COMPARED",
+   "a_key": "RN8",
+   "b_key": "RN8",
+   "judged_in_dtype": "float32",
+   "a_layout": "dense[anchor,symbol]",
+   "b_layout": "dense[anchor,symbol]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2785754,
+   "equal": 2200027,
+   "DIFFER": 585727,
+   "book_cells_compared": 2785754,
+   "book_equal": 2200027,
+   "book_DIFFER": 585727,
+   "closes": true,
+   "DIFFER_nan_vs_finite": 182745,
+   "DIFFER_both_finite": 402982,
+   "magnitude_buckets": {
+    "le_1e-3": 377482,
+    "gt_1e-3": 23313,
+    "le_1e-6": 2187
+   },
+   "abs_diff_stats_both_finite": {
+    "n": 402982,
+    "median": 0.00011875999916810542,
+    "p90": 0.0006287000069278292,
+    "p99": 0.004735168942715975,
+    "p99_9": 0.021420833137352317,
+    "max": 0.1629885563161224
+   },
+   "why_split": "one DIFFER count conflates a coverage difference (NaN vs finite), float accumulation noise (~1e-20) and a real value defect (~1e-2); merging them hides the last one inside the first two",
+   "examples": [
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "1000SHIBUSDT",
+     "a": 9.999999747378752e-05,
+     "b": NaN,
+     "dtype": "float32",
+     "a_finite": true,
+     "b_finite": false,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "1000XECUSDT",
+     "a": -0.0005986199830658734,
+     "b": NaN,
+     "dtype": "float32",
+     "a_finite": true,
+     "b_finite": false,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "1INCHUSDT",
+     "a": -0.00018898000416811556,
+     "b": NaN,
+     "dtype": "float32",
+     "a_finite": true,
+     "b_finite": false,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "AAVEUSDT",
+     "a": 9.999999747378752e-05,
+     "b": NaN,
+     "dtype": "float32",
+     "a_finite": true,
+     "b_finite": false,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "ADAUSDT",
+     "a": 9.999999747378752e-05,
+     "b": NaN,
+     "dtype": "float32",
+     "a_finite": true,
+     "b_finite": false,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "AKROUSDT",
+     "a": 9.999999747378752e-05,
+     "b": NaN,
+     "dtype": "float32",
+     "a_finite": true,
+     "b_finite": false,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "ALGOUSDT",
+     "a": 9.999999747378752e-05,
+     "b": NaN,
+     "dtype": "float32",
+     "a_finite": true,
+     "b_finite": false,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "ALICEUSDT",
+     "a": 9.999999747378752e-05,
+     "b": NaN,
+     "dtype": "float32",
+     "a_finite": true,
+     "b_finite": false,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "ALPHAUSDT",
+     "a": 9.999999747378752e-05,
+     "b": NaN,
+     "dtype": "float32",
+     "a_finite": true,
+     "b_finite": false,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "ANKRUSDT",
+     "a": -0.0004677099932450801,
+     "b": NaN,
+     "dtype": "float32",
+     "a_finite": true,
+     "b_finite": false,
+     "abs_diff": null
+    }
+   ],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  }
+ },
+ "totals": {
+  "columns_compared": 1,
+  "columns_absent": [],
+  "any_DIFFER": true,
+  "any_book_DIFFER": true,
+  "total_DIFFER": 585727,
+  "total_book_DIFFER": 585727
+ },
+ "verdict": "PARITY_RED"
+}
