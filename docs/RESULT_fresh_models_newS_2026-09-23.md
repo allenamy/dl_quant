@@ -518,3 +518,6 @@ lead 2026-09-23 裁定不加跑 King 双方案对照(理由:那是分数层,不�
 预注册 §3 的这句话,原样抄自 `docs/PREREG_fresh_models_newS_2026-09-23.md`(b6e682e0a)第 77 行:
 
 > 30 日块自举区间照报不作门。仪器区间半宽约 3–10 bps/日(E-0923-B),"下界 > 0"等于要求效应超过这个量级;本规则是**候选选择规则**,不是显著性声明,结果文档原样写这句话。
+
+
+> ⚠ **组合层通道普查注记(2026-09-26 18:xZ, fresh;原文未动, 历史不重算)**:本件读数 = FRESH / NEW_S 两根。按 `receipts/FA_COMBO_CENSUS.json`(07d7812a, 装置 `fa_combo_census.py` 1e5ffff8, 按字面 sha 与 FA_COMBO 的逐数组来源判):RN8 污染 · EMA→ZFD/base 污染 · 模型特征(King + F10 训练用 NEWS_FEATURES a490c294)污染。输入全部早于 2026-09-25 的 fund_replay 盖戳 ⇒ `fund_replay_guard` 状态 **UNSTAMPED(输入未盖戳, 不等于干净)**。⇒ 本件的水平值与 FRESH−NEW_S 差值**三个通道全部待重判**;差值不因「两臂共用」而免(R25-05)。EMA 通道的实测分歧见 `838210c6a`。

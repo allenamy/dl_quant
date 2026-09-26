@@ -103,3 +103,6 @@ TLMUSDT 2026-03-02T04Z **+0.00010000**; 同格若走 `fund_replay` 会是 **−0
 与 `news2_` 只差一个字符)。普查装置 `devices/fa_rn8census.py`, 收据 `receipts/FA_RN8CENSUS.json`(`812c9c1bf`)。
 
 **注**: lead 12:4x 曾把本件一并标为「待重判」, 该判断**过宽**, 已由普查更正并经 lead 确认(裁定 2026-09-25)。
+
+
+> ⚠ **组合层通道普查注记(2026-09-26 18:xZ, fresh;原文未动, 历史不重算)**:本件读数 = C1X(NC 根, legs 9ee5886f)。按 `receipts/FA_COMBO_CENSUS.json`(07d7812a, 装置 `fa_combo_census.py` 1e5ffff8, 按字面 sha 与 FA_COMBO 的逐数组来源判):RN8 / EMA / 模型特征均来自 NC 状态(fund_state a12a8ed3), 不经 fund_replay。输入全部早于 2026-09-25 的 fund_replay 盖戳 ⇒ `fund_replay_guard` 状态 **UNSTAMPED(输入未盖戳, 不等于干净)**。⇒ fund_replay 通道不适用;唯一残余限定:NC 的 EMA 尚未对归档逐格核过。EMA 通道的实测分歧见 `838210c6a`。

@@ -496,3 +496,6 @@ lead 2026-09-24 要求加分母下限。我写的规则(**在 look=360 读数之
 ### E.4 §2 / C.1 的就地标注已追加指向本节
 
 原句字节保留;标注改为「分母未过下限 + 按 lead 裁定改报绝对贡献与逐锚率差, 见附录 E」。
+
+
+> ⚠ **组合层通道普查注记(2026-09-26 18:xZ, fresh;原文未动, 历史不重算)**:本件读数 = B 系列(b8 等, NEW_S / FRESH 根)。按 `receipts/FA_COMBO_CENSUS.json`(07d7812a, 装置 `fa_combo_census.py` 1e5ffff8, 按字面 sha 与 FA_COMBO 的逐数组来源判):RN8 污染 · EMA→ZFD/base 污染 · 模型特征污染。输入全部早于 2026-09-25 的 fund_replay 盖戳 ⇒ `fund_replay_guard` 状态 **UNSTAMPED(输入未盖戳, 不等于干净)**。⇒ 三个通道全部待重判。EMA 通道的实测分歧见 `838210c6a`。

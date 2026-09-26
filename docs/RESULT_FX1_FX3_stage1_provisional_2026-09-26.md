@@ -112,3 +112,6 @@ rate/iv/RN8 全部相等, 其中 rate **float64 逐位相等**(`FA_RN8PARITY.jso
 - **不回答"该不该剪空头"** —— 需阶段 2 在真值费率上重跑, 且需族门 n ≥ 8。
 - **不证明再分配是 2026 损失的原因**(§3 是对照与假说, 不是受控实验)。
 - **不给基线夹子的真实命中集**(`z<0` 在 `step()` 内部, 只能给上界)。
+
+
+> ⚠ **组合层通道普查注记(2026-09-26 18:xZ, fresh;原文未动, 历史不重算)**:本件读数 = FX1–FX3(NC 根)。按 `receipts/FA_COMBO_CENSUS.json`(07d7812a, 装置 `fa_combo_census.py` 1e5ffff8, 按字面 sha 与 FA_COMBO 的逐数组来源判):RN8 / EMA / 模型特征均来自 NC 状态, 不经 fund_replay。输入全部早于 2026-09-25 的 fund_replay 盖戳 ⇒ `fund_replay_guard` 状态 **UNSTAMPED(输入未盖戳, 不等于干净)**。⇒ 同上;阶段 1 本身仍是临时读数。EMA 通道的实测分歧见 `838210c6a`。
