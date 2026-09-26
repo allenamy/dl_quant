@@ -76,3 +76,37 @@ scp multi_asset/exports/research/fanom_2026-09-24/devices/fa_lad2read.py pod2:/d
 ssh pod2 'cd /dev/shm/fresh_2026-09-23/devices && env -i PATH=/usr/bin:/bin HOME=/root nice -n 12 /workspace/venv/bin/python -B fa_lad2read.py PATH,HOME,LC_CTYPE /dev/shm/fanom_2026-09-24/receipts/FA_LAD2READ.json'
 ```
 输入序列已归档在 `multi_asset/exports/research/fanom_2026-09-24/receipts/lad2/`(`f32700a37`)。
+
+---
+
+## ⚠ 更正(2026-09-26 18:0xZ, 同日自查;原文字节保留)——「解除待重判」**只对 RN8 通道成立**;资金费 EMA 通道**从未被换过, 且实测污染量级远大于 RN8**
+
+**我漏掉了什么**:`fund_replay.npz` 除 `last_rate`/`last_iv`(→ RN8)外还存 `ema_acc`。生产者资金费块里跳过门 `continue` 在 EMA 更新
+(`if est: st.ema[s] = est`, 被编译块的末行)之前, 所以被跳过的名的 **EMA 同样停住**。EMA 经 king block 变成 `fe_v`
+(`news_hist_features.py` L125 `fe[-1, j] = est["acc"]`) ⇒ 进入 **ZFD(资金费腿 z, 书里权重最大的腿)**、`base_val`,
+以及 King/F10 的 `f_fund_ema` 特征。D10 消费者普查(`1a7976366`)只点了 RN8 与 `fund_now` 两列;本文与冻结文件也只换了 RN8。
+
+**实测(装置 `devices/fa_ema_probe.py` c07dfeaf, 输出 `receipts/FA_EMA_PROBE_stdout.txt`)**:`fund_replay` 8a73588f 的 `ema_acc`
+对 NC `fund_state.npz` a12a8ed3 的同一 (锚, 名) EMA, 限 NEW_S legs 里 ZFD 有限的**成员格** 2,644,814 个, 按 |差| 分桶:
+
+| |差| | 格数 |
+|---|---|
+| < 1e-15 | 2,354,064 |
+| 1e-15 .. 1e-9(浮点量级) | 149,802 |
+| 1e-9 .. 1e-7 | 54,005 |
+| **> 1e-7** | **86,943**(7,755 个锚;2025 年 46,389) |
+| **> 1e-5** | **30,449**(6,431 个锚;成员 EMA 中位数只有 9.0e-5) |
+| 相对差 > 10% | 22,614 |
+| 符号翻转(|差|>1e-9) | 2,715 |
+
+对照:RN8 通道不相同格是 **639**。**EMA 通道的实质差异格(>1e-5)是它的约 48 倍, 且集中在 pre-2026(进门段)**。
+
+**限定**:NC `fund_state` 的 EMA 本身**没有**对归档做过逐格核对(RN8 那侧做过, 359,807/359,833);差异也**尚未**按
+「门活跃 ∧ 未取结算」签名归因到跳过门(RN8 那侧 360/404 对 0/20,000)。所以此处是「研究 EMA 与 NC 状态 EMA 实测分歧」, 不是已判定的错格数。
+
+**对本文结论的影响**:
+1. §3「重判清单为空」与「解除待重判」**收窄为**:**RN8 通道**的更正不改变任何在案判词。
+2. **资金费 EMA 通道(ZFD / base_val / 模型特征)在四格里全部仍是污染版**, 其对 G 与各臂的影响**未测**;
+   复审 R25-05 的「共同误差不抵消」论证对它同样适用 ⇒ **FRESH 与 King 承载份额恢复标「待重判」**。
+3. §4 限定 3 写的「FRESH f10_s42 与 NEW_S f10_s2027」**也低报了**:pod2 训练收据实测, NEW_S 与 FRESH 两根的 **King 与四个 F10 全部**
+   绑定污染的 `NEWS_FEATURES` a490c294, F10 训练还绑定污染 legs(18999e16 / 486dfe37, 用其 Z24/ZFD/WL/ready)。
