@@ -95,5 +95,6 @@
 | stop_overlay.py L80-88, L40, L95 | 静默降级 | NEED=2 和 42 锚冷却按文件计数;积压时共用一个价格快照;另 `done[-500:]` 约 43 天后会重处理旧文件 | 证据收集器,低优先 |
 | anchor_report.py L301 prev_row | 响亮降级 | 告警「上一锚持仓未知」 | 外观问题 |
 | notarize_ledgers.py L196/L316 | 天粒度 | 当日作业漏跑的那天不会被公证,事后回补会因顺序检查被拒 | 与缺锚无关,记为另一个缺陷 |
+| 资金费账本 binance_funding.py(positions_at L270 + write_funding_rows L463) | 静默丢行(news2,7f08ff7cb / 515b3fb8c) | (a) 回读老于一个锚间隔就拒绝定价,缺口里的结算全部跳过;(b) 续跑点 = 盘上最新结算 + 1ms,被跳过的行不落盘,之后永不重试(09-26 实例 545 行,靠显式按窗口回填) | ① durable 待定价队列(交易所原始 income 行含 tranId,出口只有定价写入或 90 天具名永久缺口);② 跨缺口定价三条件(有 t 后回读 B;(A,t) 折叠 supersede 后成交为 0;qty(A)=qty(B)−净成交,容差半 stepSize),行记 pricing_rule;验收测试「明天再停机一次」(12h 无回读含 4h/1h 结算;注入成交/改 B 必留队;续跑点越过缺口后队列仍在;队列写失败=失败+告警;20260926 真实日文件回归 = 545 行;1788033600 / 1790006400 作正控) |
 | 生产者 LR(shadow_loop L752) | 静默留洞 | 3 个洞,席位偏 0.4–0.7pp(news2) | 路径 A;恢复锚的追加条数必须等于经过的锚数,或显式记 0 |
 | 安全站点(取「最近一次」、实耗时间或具名缺槽) | 安全 | — | pilot_log.anchor_series、parity_summary、external_book.age_anchors、anchor_loop prev_nonzero、reconcile、M3 m3_overlay_last、watchdog、combo daemons、feature_cache_identity、nc_contract、beta_overlay_producer、dlw_features、depth_watch、backfill_markout |
