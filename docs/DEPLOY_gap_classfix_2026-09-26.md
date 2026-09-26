@@ -28,7 +28,7 @@
 | 沙箱重放 | run 3 **GAP_FIX_JUDGE PASS 25/25**:C0×3 字节同一、T×3、G1/G2/G6、gap7、X1–X3、cold、poison、M | receipts/GAPFIX_JUDGE_run3.json(99fd8f1c6) |
 | 成员规则 | V1 **13/13** 快照逐元素复现;V2 事后重算平均 Jaccard 0.9987(carry-forward 0.9914) | receipts/MEMBERS_V1V2.json |
 | 发布边界测试 P | 该测试在生产上本身就红(E-0926-H,测试漂移),本包改用 AST 同一性证据:发布 Try 节点与现码完全相同 | receipts/P_publication_boundary*.txt |
-| 执行器侧 | 克隆 `~/cc_tmp/gapfix4_exec_20260926T1911Z`:d01e35d + 201188d(`ops/producer_release/20260927_gapfix/` 下的契约与收据,**未推送**);离线电池 | §4 |
+| 执行器侧 | 克隆 `~/cc_tmp/gapfix4_exec_20260926T1911Z`:d01e35d + 201188d(`ops/producer_release/20260927_gapfix/` 下的契约与收据,**未推送**);离线电池 **166/166 全绿** | §4 |
 | 版本探针 | `gap_version_probe.py`:钉 d01e35d,候选 sha 从包契约读(即 5eaabcdb);first-anchor 步检查来源必须为 own、不得有 GAP_PAGE | 在当前未安装机器上做控制:MISMATCH n=3,只差三个 sha,其余全 OK |
 | release_gates | `gap_classfix_2026-09-26/window/gates_gapfix_{W0_pre,W4_install,W5_after_start,W6_first_anchor_*,RB_rollback}.json`(release_gates.py 格式,全部能正常加载) | — |
 
@@ -62,7 +62,7 @@
 - **回滚后的已知风险**:回到原缺陷。缺锚时仍需 state-only 桥接(`gap_recovery_2026-09-26/devices/combo_state_bridge.py`);如果当时在 12Z 之前,还需要成员历史回填(§6)。
 
 ## 4. 执行器侧电池
-克隆 `~/cc_tmp/gapfix4_exec_20260926T1911Z`:d01e35d + 201188d,状态 rsync 自生产。用 `ops/run_acceptance_offline.sh` 跑,ACCEPT_PY 未设,解释器 /usr/bin/python3。结果:见 receipts/BATTERY_gapfix4_*.log。前一版 GAP3 契约的同一电池已经 166/166 全绿(9ddc3d779)。
+克隆 `~/cc_tmp/gapfix4_exec_20260926T1911Z`:d01e35d + 201188d,状态 rsync 自生产。用 `ops/run_acceptance_offline.sh` 跑,ACCEPT_PY 未设,解释器 /usr/bin/python3。结果:**ACCEPTANCE: ALL GREEN (166/166 suites exit 0), OFFLINE_ACCEPTANCE_EXIT 0**(receipts/BATTERY_gapfix4_201188d_20260926T1911Z.log)。前一版 GAP3 契约的同一电池已经 166/166 全绿(9ddc3d779)。
 
 ## 5. 缺锚影响量级(lead 项 (a);沙箱 A = 09-26 08Z,删掉 A−24h 的成员历史)
 收据 receipts/M_READOUTS_run2.json、GAPFIX_JUDGE_run2/3.json 的 M 节。
