@@ -1,0 +1,108 @@
+{
+  "device": "dlarch_chain_run.py",
+  "self_sha256": "6345132f245433ad702f15cf8d374b126bc0827482e59e25200a6ee8760bf9e3",
+  "mode": "FAMILY_MEMBER",
+  "seed": 7,
+  "root": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s7",
+  "f10_source": "/workspace/dlarch_2026-09-24/T3/G1_T0_nomask_frac1_nestep/f10_s7",
+  "train_arm": "G1_T0_nomask_frac1_nestep",
+  "derived_devices": "/workspace/dlarch_2026-09-24/chain/devices",
+  "reference_is_the_deployed_book": false,
+  "reference_note": null,
+  "derive_receipt_sha256": "42f65952b74c73dd28bc116833701236945d88fbe5df7b4510217be76aca4e97",
+  "utc_start": "2026-09-26T21:21:18Z",
+  "mem_gate_at_start": {
+    "memory_max_bytes": "60999999488",
+    "anon_bytes": 156360704,
+    "shmem_bytes": 22925201408,
+    "available_gib_v2": 35.31,
+    "gate_threshold_gib": 22,
+    "gate_passes_now": true
+  },
+  "steps": {
+    "combo": {
+      "rc": 0,
+      "seconds": 154.6,
+      "outputs": {
+        "scaled_diagnostic.npz": "afb7076067fa387eaa5afb7aa1ef1a3445bfbf8262a7baf0d9de6f77ac724670",
+        "literal.npz": "2312daa178530e3ddfdeb124ff34b3132cc67a42289df7b635c1a120a2bbbb4b",
+        "TARGET_RECEIPT.json": "4ca44a8cb4fa65fcfd1861fb81b3a9f2810724a4363960c7a52c926a15df9456"
+      }
+    },
+    "adapter_spec": {
+      "rc": 0,
+      "seconds": 0.2,
+      "spec_sha256": "232ffc18753dfa51d494042f891d6a2cff72b90031d8989f5a2459c008090b9c"
+    },
+    "adapter": {
+      "rc": 0,
+      "seconds": 2.5,
+      "readback_verified": {
+        "receipt_parses": true,
+        "npz_arrays_read_back": true,
+        "receipt_npz_sha_matches_artifact": true,
+        "why": "ovn_adapter rewrites the receipt then hashes it by re-reading; nothing asserted the rewrite is readable (E-0925-A family, flagged by fresh)"
+      },
+      "targets_npz_sha256": "092ca8acb53c4a108aa80ef49776b20cfa3570a6e92bf9533efc3f001d94d7c7",
+      "targets_json_sha256": "2f2b2badf66012eac93a302a6464b1d89e839ce01a24746d4664bfd94a99789f"
+    },
+    "run_config": {
+      "path": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s7/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_nestep_s7.json",
+      "sha256": "1b9468d6c94f065a0d2fa99466f71079d04b6be11ad26154973d7c944d975f48",
+      "arm": "DLARCH_G1_T0_nomask_frac1_nestep_s7",
+      "tag": "DLARCH_G1_T0_nomask_frac1_nestep_s7|scaled|rule|raw|UAFE",
+      "base_tag_used": "NEWS2_s42X|scaled|rule|raw|UAFE",
+      "pod_root": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s7",
+      "base_config": "/dev/shm/news2_2026-09-23/configs/RUN_CONFIG_NEWS2_s42X_2026-09-23.json",
+      "base_config_sha256": "9526ad1883129f689bff53f9b68b91ade3db8885f67a43f8c21e038fb2e85e2a"
+    },
+    "engine": {
+      "rc": 0,
+      "seconds": 700.8,
+      "path_npz_found": 32,
+      "expected": 32,
+      "agg_npz_found": 1,
+      "all_npz": 33,
+      "count_note": "path_npz_found counts PATH*.npz only; the aggregate is counted separately so the field matches its name"
+    }
+  },
+  "engine_gate": [
+    {
+      "utc": "2026-09-26T21:23:56Z",
+      "foreign_engine_pgids": {},
+      "avail_gib": 35.3,
+      "mem_gate": {
+        "memory_max_bytes": "60999999488",
+        "anon_bytes": 174374912,
+        "shmem_bytes": 22925201408,
+        "available_gib_v2": 35.3,
+        "gate_threshold_gib": 22,
+        "gate_passes_now": true
+      },
+      "waited_s": 0,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s7/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_nestep_s7.json:launch.min_available_gib (22.0) + named margin 2.0",
+      "shm_free_gib": 6.59,
+      "shm_free_min_gib": 4.0,
+      "max_foreign_engines": 2,
+      "PASS": true
+    }
+  ],
+  "mem_gate_before_engine": {
+    "memory_max_bytes": "60999999488",
+    "anon_bytes": 174374912,
+    "shmem_bytes": 22925201408,
+    "available_gib_v2": 35.3,
+    "gate_threshold_gib": 22,
+    "gate_passes_now": true
+  },
+  "mem_gate_after_engine": {
+    "memory_max_bytes": "60999999488",
+    "anon_bytes": 174370816,
+    "shmem_bytes": 22925201408,
+    "available_gib_v2": 35.3,
+    "gate_threshold_gib": 22,
+    "gate_passes_now": true
+  },
+  "utc_end": "2026-09-26T21:35:36Z"
+}

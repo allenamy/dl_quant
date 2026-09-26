@@ -1,0 +1,39 @@
+18:06:04Z [r14] === START pgid=3295302 trainer pin 39839252b95914b1ed9195f77c8959e930979fa79331dfe1b947bc5847be365a ===
+18:06:04Z [r14] gpu: 0 %, 2 MiB
+2048+0 records in
+2048+0 records out
+2147483648 bytes (2.1 GB, 2.0 GiB) copied, 3.61267 s, 594 MB/s
+18:06:11Z [r14] step 0: 2 GiB write probe written, fsynced, read back byte-identical, removed
+18:06:11Z [r14] step 1: identity control (force-epoch 7) start
+  2023    I1 final==F10_FULL True (0 finite cells differ; max|d|=0.000e+00) | I2 calib==NC True (0 finite cells differ; max|d|=0.000e+00) | I3 loss curve True | E370 1 E428 1 va [-2.7143, -2.7021, -3.2201, -2.8616, -3.0077, -3.581, -3.3624, -4.0]
+  202609  I1 final==F10_FULL True (0 finite cells differ; max|d|=0.000e+00) | I2 calib==NC True (0 finite cells differ; max|d|=0.000e+00) | I3 loss curve True | E370 2 E428 2 va [-5.8952, -6.0284, -5.8925, -5.9977, -6.0798, -6.0716, -6.0709, -6.0853]
+  positive control PASS=True (1 finite cells differ; max|d|=9.984e-07)
+NESTED_IDENTITY GREEN=True out=/workspace/dlarch_2026-09-24/f10full_nested_2026-09-26/receipts/NESTED_IDENTITY_s42.json sha256=3905160cd0900488346859dcc81800862412c12309d95d03304437de388b61ae
+18:15:01Z [r14] step 1: identity control GREEN
+18:15:01Z [r14] step 3: cells driver pid 3297854
+18:15:01Z [r14] step 2: lane B seed 2027 start
+18:15:01Z [r14] step 2: lane A pid 3297857, lane B pid 3297860
+18:15:01Z [r14] step 2: lane A seed 42 start
+19:44:33Z [r14] step 2: lane B seed 2027 rc=0 DLARCH_TRAIN_DONE arm=G1_T0_nomask_frac1_nestep seed=2027 params=110082 out=/workspace/dlarch_2026-09-24/T3/G1_T0_nomask_frac1_nestep/f10_s2027 oof_sha=48482b980d93b4ee receipt_sha=a971a394819503e0
+19:46:36Z [r14] step 2: lane A seed 42 rc=0 DLARCH_TRAIN_DONE arm=G1_T0_nomask_frac1_nestep seed=42 params=110082 out=/workspace/dlarch_2026-09-24/T3/G1_T0_nomask_frac1_nestep/f10_s42 oof_sha=c7fd82a4bd5229fe receipt_sha=fddf34a52fe74da1
+19:46:36Z [r14] step 2: lane A seed 7 start
+21:20:28Z [r14] step 2: lane A seed 7 rc=0 DLARCH_TRAIN_DONE arm=G1_T0_nomask_frac1_nestep seed=7 params=110082 out=/workspace/dlarch_2026-09-24/T3/G1_T0_nomask_frac1_nestep/f10_s7 oof_sha=5092c13f1ebf7b3b receipt_sha=969617901bee01f8
+21:35:49Z [r14] step 3: cells driver rc=0
+  --- DLARCH_REF_NC_s [GATED] ---
+  DLARCH_REF_NC_s              pre2026  mean(d)=-2.7339  0/3 positive  thr=9.4082 (backstop branch)
+  DLARCH_REF_NC_s              2026     mean(d)=-1.6670  0/3 positive  thr=1.8747 (backstop branch)
+  DLARCH_REF_NC_s              VERDICT=REJECT  fired=['mean(d_2026) <= 0', '2026 has <= 1 seed with d > 0']  sd(d): {'pre2026': 1.3329, '2026': 0.5086}
+  --- DLARCH_T0_s [REFERENCE_ONLY] ---
+  DLARCH_T0_s                  pre2026  mean(d)=-5.1035  0/3 positive  thr=9.4082 (backstop branch)
+  DLARCH_T0_s                  2026     mean(d)=-0.4629  0/3 positive  thr=1.8747 (backstop branch)
+  DLARCH_T0_s                  REFERENCE ONLY (would-be verdict REJECT, NOT the verdict)
+  --- DLARCH_G1_T0_nomask_frac1_s [REFERENCE_ONLY] ---
+  DLARCH_G1_T0_nomask_frac1_s  pre2026  mean(d)=-1.6628  1/3 positive  thr=9.4082 (backstop branch)
+  DLARCH_G1_T0_nomask_frac1_s  2026     mean(d)=-0.3423  1/3 positive  thr=1.8747 (backstop branch)
+  DLARCH_G1_T0_nomask_frac1_s  REFERENCE ONLY (would-be verdict REJECT, NOT the verdict)
+DLARCH_PAIRED_D VERDICT=REJECT (from DLARCH_REF_NC_s) out=/workspace/dlarch_2026-09-24/receipts/PAIRED_D_NESTEP.json sha256=1b5cb68962f8f4c4
+epoch histogram {0: 16, 1: 8, 2: 10, 3: 8, 4: 6, 5: 11, 6: 4, 7: 6}  selector disagreements 0  foldout_ok True  degenerate {42: {'all_folds_epoch_7': False}, 2027: {'all_folds_epoch_7': False}, 7: {'all_folds_epoch_7': False}}
+guardrail vs_NC_revision8_GATE   arm -25.29 pp base -22.19 pp diff -3.10 pp passes=False
+guardrail vs_T0_reported_only    arm -25.29 pp base -23.96 pp diff -1.33 pp passes=True
+NESTEP_VERDICT=REJECT out=/workspace/dlarch_2026-09-24/receipts/NESTEP_VERDICT.json sha256=08c6d98a60016fd3d02501524bd7dee22e6820b243e40dcb68f9ffd932981b25
+R14_PIPELINE_DONE rc=0 NESTEP_VERDICT=REJECT out=/workspace/dlarch_2026-09-24/receipts/NESTEP_VERDICT.json sha256=08c6d98a60016fd3d02501524bd7dee22e6820b243e40dcb68f9ffd932981b25

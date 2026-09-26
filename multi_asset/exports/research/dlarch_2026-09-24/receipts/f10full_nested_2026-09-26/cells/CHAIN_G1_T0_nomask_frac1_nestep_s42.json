@@ -1,0 +1,308 @@
+{
+  "device": "dlarch_chain_run.py",
+  "self_sha256": "6345132f245433ad702f15cf8d374b126bc0827482e59e25200a6ee8760bf9e3",
+  "mode": "FAMILY_MEMBER",
+  "seed": 42,
+  "root": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s42",
+  "f10_source": "/workspace/dlarch_2026-09-24/T3/G1_T0_nomask_frac1_nestep/f10_s42",
+  "train_arm": "G1_T0_nomask_frac1_nestep",
+  "derived_devices": "/workspace/dlarch_2026-09-24/chain/devices",
+  "reference_is_the_deployed_book": false,
+  "reference_note": null,
+  "derive_receipt_sha256": "42f65952b74c73dd28bc116833701236945d88fbe5df7b4510217be76aca4e97",
+  "utc_start": "2026-09-26T19:59:33Z",
+  "mem_gate_at_start": {
+    "memory_max_bytes": "60999999488",
+    "anon_bytes": 2346954752,
+    "shmem_bytes": 27995070464,
+    "available_gib_v2": 28.55,
+    "gate_threshold_gib": 22,
+    "gate_passes_now": true
+  },
+  "steps": {
+    "combo": {
+      "rc": 0,
+      "seconds": 154.8,
+      "outputs": {
+        "scaled_diagnostic.npz": "4cb06cbdc90ca0929bd8c54e54d62bbb4564599a11be89fc9574c23ab89f5033",
+        "literal.npz": "42486c1a11376757b3d3fb5ddd12646411436ce6444b7e3fbabdcdf24940f079",
+        "TARGET_RECEIPT.json": "d8dd23bef702e2c80aac929f7dff8c60d7afdbe85e6e394a11a7e45dff5cd26d"
+      }
+    },
+    "adapter_spec": {
+      "rc": 0,
+      "seconds": 0.2,
+      "spec_sha256": "ef73773af4210047e74728506a885afe799807c104e84a124f5ce2841dd86342"
+    },
+    "adapter": {
+      "rc": 0,
+      "seconds": 2.7,
+      "readback_verified": {
+        "receipt_parses": true,
+        "npz_arrays_read_back": true,
+        "receipt_npz_sha_matches_artifact": true,
+        "why": "ovn_adapter rewrites the receipt then hashes it by re-reading; nothing asserted the rewrite is readable (E-0925-A family, flagged by fresh)"
+      },
+      "targets_npz_sha256": "c777414214c9d7ee56673aafdd5bcdfc6da0d4123a9d63225e56e1fa5f3041d7",
+      "targets_json_sha256": "0109f422c3548b7001d72e0c4e3bfce546ba61c027cfe1fb4e0bce81949e8813"
+    },
+    "run_config": {
+      "path": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s42/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_nestep_s42.json",
+      "sha256": "0d37731d829e057e8d50bcaa56dc97f95330087ebcc12e960df1bc04d78403ff",
+      "arm": "DLARCH_G1_T0_nomask_frac1_nestep_s42",
+      "tag": "DLARCH_G1_T0_nomask_frac1_nestep_s42|scaled|rule|raw|UAFE",
+      "base_tag_used": "NEWS2_s42X|scaled|rule|raw|UAFE",
+      "pod_root": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s42",
+      "base_config": "/dev/shm/news2_2026-09-23/configs/RUN_CONFIG_NEWS2_s42X_2026-09-23.json",
+      "base_config_sha256": "9526ad1883129f689bff53f9b68b91ade3db8885f67a43f8c21e038fb2e85e2a"
+    },
+    "engine": {
+      "rc": 0,
+      "seconds": 592.5,
+      "path_npz_found": 32,
+      "expected": 32,
+      "agg_npz_found": 1,
+      "all_npz": 33,
+      "count_note": "path_npz_found counts PATH*.npz only; the aggregate is counted separately so the field matches its name"
+    }
+  },
+  "engine_gate": [
+    {
+      "utc": "2026-09-26T20:02:11Z",
+      "foreign_engine_pgids": {},
+      "avail_gib": 28.57,
+      "mem_gate": {
+        "memory_max_bytes": "60999999488",
+        "anon_bytes": 2330791936,
+        "shmem_bytes": 27995070464,
+        "available_gib_v2": 28.57,
+        "gate_threshold_gib": 22,
+        "gate_passes_now": true
+      },
+      "waited_s": 0,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s42/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_nestep_s42.json:launch.min_available_gib (22.0) + named margin 2.0",
+      "shm_free_gib": 1.88,
+      "shm_free_min_gib": 4.0,
+      "max_foreign_engines": 2,
+      "PASS": false
+    },
+    {
+      "utc": "2026-09-26T20:03:11Z",
+      "foreign_engine_pgids": {},
+      "avail_gib": 28.6,
+      "mem_gate": {
+        "memory_max_bytes": "60999999488",
+        "anon_bytes": 2297147392,
+        "shmem_bytes": 27995070464,
+        "available_gib_v2": 28.6,
+        "gate_threshold_gib": 22,
+        "gate_passes_now": true
+      },
+      "waited_s": 60,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s42/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_nestep_s42.json:launch.min_available_gib (22.0) + named margin 2.0",
+      "shm_free_gib": 1.88,
+      "shm_free_min_gib": 4.0,
+      "max_foreign_engines": 2,
+      "PASS": false
+    },
+    {
+      "utc": "2026-09-26T20:04:11Z",
+      "foreign_engine_pgids": {},
+      "avail_gib": 28.55,
+      "mem_gate": {
+        "memory_max_bytes": "60999999488",
+        "anon_bytes": 2354188288,
+        "shmem_bytes": 27995070464,
+        "available_gib_v2": 28.55,
+        "gate_threshold_gib": 22,
+        "gate_passes_now": true
+      },
+      "waited_s": 120,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s42/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_nestep_s42.json:launch.min_available_gib (22.0) + named margin 2.0",
+      "shm_free_gib": 1.88,
+      "shm_free_min_gib": 4.0,
+      "max_foreign_engines": 2,
+      "PASS": false
+    },
+    {
+      "utc": "2026-09-26T20:05:11Z",
+      "foreign_engine_pgids": {},
+      "avail_gib": 28.6,
+      "mem_gate": {
+        "memory_max_bytes": "60999999488",
+        "anon_bytes": 2297241600,
+        "shmem_bytes": 27995070464,
+        "available_gib_v2": 28.6,
+        "gate_threshold_gib": 22,
+        "gate_passes_now": true
+      },
+      "waited_s": 180,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s42/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_nestep_s42.json:launch.min_available_gib (22.0) + named margin 2.0",
+      "shm_free_gib": 1.88,
+      "shm_free_min_gib": 4.0,
+      "max_foreign_engines": 2,
+      "PASS": false
+    },
+    {
+      "utc": "2026-09-26T20:06:11Z",
+      "foreign_engine_pgids": {},
+      "avail_gib": 28.6,
+      "mem_gate": {
+        "memory_max_bytes": "60999999488",
+        "anon_bytes": 2297253888,
+        "shmem_bytes": 27995070464,
+        "available_gib_v2": 28.6,
+        "gate_threshold_gib": 22,
+        "gate_passes_now": true
+      },
+      "waited_s": 240,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s42/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_nestep_s42.json:launch.min_available_gib (22.0) + named margin 2.0",
+      "shm_free_gib": 1.88,
+      "shm_free_min_gib": 4.0,
+      "max_foreign_engines": 2,
+      "PASS": false
+    },
+    {
+      "utc": "2026-09-26T20:07:11Z",
+      "foreign_engine_pgids": {},
+      "avail_gib": 28.59,
+      "mem_gate": {
+        "memory_max_bytes": "60999999488",
+        "anon_bytes": 2307366912,
+        "shmem_bytes": 27995070464,
+        "available_gib_v2": 28.59,
+        "gate_threshold_gib": 22,
+        "gate_passes_now": true
+      },
+      "waited_s": 300,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s42/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_nestep_s42.json:launch.min_available_gib (22.0) + named margin 2.0",
+      "shm_free_gib": 1.88,
+      "shm_free_min_gib": 4.0,
+      "max_foreign_engines": 2,
+      "PASS": false
+    },
+    {
+      "utc": "2026-09-26T20:08:11Z",
+      "foreign_engine_pgids": {},
+      "avail_gib": 28.6,
+      "mem_gate": {
+        "memory_max_bytes": "60999999488",
+        "anon_bytes": 2297262080,
+        "shmem_bytes": 27995070464,
+        "available_gib_v2": 28.6,
+        "gate_threshold_gib": 22,
+        "gate_passes_now": true
+      },
+      "waited_s": 360,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s42/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_nestep_s42.json:launch.min_available_gib (22.0) + named margin 2.0",
+      "shm_free_gib": 1.88,
+      "shm_free_min_gib": 4.0,
+      "max_foreign_engines": 2,
+      "PASS": false
+    },
+    {
+      "utc": "2026-09-26T20:09:11Z",
+      "foreign_engine_pgids": {},
+      "avail_gib": 29.07,
+      "mem_gate": {
+        "memory_max_bytes": "60999999488",
+        "anon_bytes": 1761136640,
+        "shmem_bytes": 28029976576,
+        "available_gib_v2": 29.07,
+        "gate_threshold_gib": 22,
+        "gate_passes_now": true
+      },
+      "waited_s": 420,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s42/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_nestep_s42.json:launch.min_available_gib (22.0) + named margin 2.0",
+      "shm_free_gib": 1.85,
+      "shm_free_min_gib": 4.0,
+      "max_foreign_engines": 2,
+      "PASS": false
+    },
+    {
+      "utc": "2026-09-26T20:10:11Z",
+      "foreign_engine_pgids": {},
+      "avail_gib": 29.07,
+      "mem_gate": {
+        "memory_max_bytes": "60999999488",
+        "anon_bytes": 1761124352,
+        "shmem_bytes": 28029976576,
+        "available_gib_v2": 29.07,
+        "gate_threshold_gib": 22,
+        "gate_passes_now": true
+      },
+      "waited_s": 480,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s42/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_nestep_s42.json:launch.min_available_gib (22.0) + named margin 2.0",
+      "shm_free_gib": 1.85,
+      "shm_free_min_gib": 4.0,
+      "max_foreign_engines": 2,
+      "PASS": false
+    },
+    {
+      "utc": "2026-09-26T20:11:11Z",
+      "foreign_engine_pgids": {},
+      "avail_gib": 30.0,
+      "mem_gate": {
+        "memory_max_bytes": "60999999488",
+        "anon_bytes": 1763872768,
+        "shmem_bytes": 27029028864,
+        "available_gib_v2": 30.0,
+        "gate_threshold_gib": 22,
+        "gate_passes_now": true
+      },
+      "waited_s": 540,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s42/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_nestep_s42.json:launch.min_available_gib (22.0) + named margin 2.0",
+      "shm_free_gib": 2.78,
+      "shm_free_min_gib": 4.0,
+      "max_foreign_engines": 2,
+      "PASS": false
+    },
+    {
+      "utc": "2026-09-26T20:12:11Z",
+      "foreign_engine_pgids": {},
+      "avail_gib": 33.61,
+      "mem_gate": {
+        "memory_max_bytes": "60999999488",
+        "anon_bytes": 1968029696,
+        "shmem_bytes": 22941794304,
+        "available_gib_v2": 33.61,
+        "gate_threshold_gib": 22,
+        "gate_passes_now": true
+      },
+      "waited_s": 600,
+      "need_gib": 24.0,
+      "need_gib_source": "/workspace/dlarch_2026-09-24/chain/G1_T0_nomask_frac1_nestep_s42/configs/RUN_CONFIG_DLARCH_G1_T0_nomask_frac1_nestep_s42.json:launch.min_available_gib (22.0) + named margin 2.0",
+      "shm_free_gib": 6.59,
+      "shm_free_min_gib": 4.0,
+      "max_foreign_engines": 2,
+      "PASS": true
+    }
+  ],
+  "mem_gate_before_engine": {
+    "memory_max_bytes": "60999999488",
+    "anon_bytes": 1968029696,
+    "shmem_bytes": 22941794304,
+    "available_gib_v2": 33.61,
+    "gate_threshold_gib": 22,
+    "gate_passes_now": true
+  },
+  "mem_gate_after_engine": {
+    "memory_max_bytes": "60999999488",
+    "anon_bytes": 5127200768,
+    "shmem_bytes": 22941851648,
+    "available_gib_v2": 30.67,
+    "gate_threshold_gib": 22,
+    "gate_passes_now": true
+  },
+  "utc_end": "2026-09-26T20:22:04Z"
+}
