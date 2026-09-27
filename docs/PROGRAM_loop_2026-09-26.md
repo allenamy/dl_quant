@@ -61,3 +61,4 @@
 - 2026-09-26 22:4xZ | 实盘正常 | 在飞:alloc_family 终态(R 红控失败,错在期望)、dlarch_R14 终态(REJECT,H-EP 不成立)、fresh 重训终态(A0 prep 失败,已唤醒,尚未回报)| 发现:**资金费腿净贡献 pre-2026 约 0、2026 很大**(fundflip:+0.55 对 −56 bps/日)| 组合层判据修订 1(R′ = 整本取反);dlarch 转去写 D2/D4 预注册;前两项在 registry 标为 closed
 - 2026-09-26 23:12Z | 实盘正常 | 在飞:fresh 重训仍停在 STOP(18:35Z),A0 的 legs 逐位等于 9ee5886f,失败在第 48 行(合成步?);fresh 1 小时无回音 ⇒ 第二次催 | alloc:R 的四通道分解(5dcff753b,pre-2026 价格边际 +0.74 对资金费成本 0.77,几乎抵消)、R′ 装置已入库(ba94a044c);dlarch:D2/D4 预注册草案(9278f59ef)待 lead 冻结阈值
 - 2026-09-26 23:4xZ | 实盘正常 | 在飞:D4 前置门终态 FAIL(4cbf1ee52:分辨力 PASS z 3.78、目标有效 3/4,但 pre-2026 AUC 0.426 < 0.60 ⇒ 6 个事先钉死的特征不能事前识别资金费腿失效,D4 关闭);D2 前置门 DONE,判词待交;fresh 重训 STOP 的原因 = combo_target 的 ROOT 下缺 vendor_live/combo_stage.py(路径缺陷)| fresh 1.5h 无回音 ⇒ 改派 fresh2 接手月度重训(按类修复 + 起跑前预检);fresh 已告知不要再起跑
+- 2026-09-27 00:1xZ | 00Z 执行器在跑 | fresh2 run 2 装置门 FAIL:只差模型文本 sha,三方分数逐位相同 ⇒ 判据修订 1(门判分数,文本 sha 只报),重启;D2 前置门 DONE,等 dlarch 交判词 | 00Z 完成后做验收与重播种全判
