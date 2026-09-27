@@ -1,11 +1,11 @@
 #!/bin/sh
 # run_kic.sh -- executor (protocol 10-f) for the King-family IC readout: waits on fresh2's manifest executor, bound to its
-# PGID (3365832) AND the line-start marker in its log; then reads KN and A1 through dlarch_king_ic.py PAIRED mode (addendum 1:
+# PGID (argv 1) AND the line-start marker in its log; then reads KN and A1 through dlarch_king_ic.py PAIRED mode (addendum 1:
 # the manifest must carry an "A0" list of 8 members m0..m7; m0 = in-service rs=0).
 # Terminal line (line start): 'KIC_DONE rc=<n>' ; 'KIC_STOP <why>' on any failure. Traceback anywhere = failure.
 set -u
 W=/workspace/dlarch_2026-09-24; A=$W/king_fam_2026-09-27; LOG=$A/kic.log; PY=/workspace/venv/bin/python
-FL=/workspace/kingfam_2026-09-27/logs/kingfam.log; FPG=3365832
+FL=/workspace/kingfam_2026-09-27/logs/kingfam.log; FPG=${1:?usage: run_kic.sh <fresh2 paired-manifest executor PGID>}
 mkdir "$W/CHAIN/.claim_KIC" 2>/dev/null || { echo "KIC_STOP claim exists or cannot be created" >> "$LOG"; exit 4; }
 echo "pgid=$(ps -o pgid= -p $$ | tr -d ' ') pid=$$ owner=dlarch job=king_ic_readout started=$(date -u +%FT%TZ)" | tee "$W/CHAIN/.claim_KIC/owner" > "$A/kic.pgid"
 stop(){ echo "KIC_STOP $1" >> "$LOG"; rm -rf "$W/CHAIN/.claim_KIC"; exit 1; }
