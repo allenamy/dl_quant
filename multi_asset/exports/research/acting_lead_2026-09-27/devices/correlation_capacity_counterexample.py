@@ -25,6 +25,12 @@ def main():
     residual = [b - projection * a for a, b in zip(base, candidate)]
     orthogonal_share = math.fsum(map(abs, residual))
     returns = [0., 0., .1, -.1]
+    # Replication preserves the construction and meets the actual diagnostic's
+    # union-of-nonzero population >=20 requirement (dlarch_t2_pregate_2026.py).
+    expanded_base = [x / 100 for x in base] * 100
+    expanded_candidate = [x / 100 for x in candidate] * 100
+    expanded_returns = returns * 100
+    expanded_rho = dot(expanded_base, expanded_candidate) / (norm(expanded_base) * norm(expanded_candidate))
     result = {
         "status": "CORRELATION_IS_NOT_CAPACITY_OR_PNL_BOUND",
         "rho": measured,
@@ -39,6 +45,13 @@ def main():
         "base_pnl": dot(base, returns),
         "candidate_pnl": dot(candidate, returns),
         "sign_reversed_candidate_pnl": -dot(candidate, returns),
+        "expanded_400_name_control": {
+            "correlation": expanded_rho,
+            "union_nonzero_names": sum(a != 0 or b != 0 for a, b in zip(expanded_base, expanded_candidate)),
+            "both_gross": [math.fsum(map(abs, x)) for x in (expanded_base, expanded_candidate)],
+            "both_net": [math.fsum(x) for x in (expanded_base, expanded_candidate)],
+            "candidate_pnl": dot(expanded_candidate, expanded_returns),
+        },
         "source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "limits": [
             "Algebraic counterexample only; no market data or performance estimate.",
@@ -53,6 +66,11 @@ def main():
     assert abs(norm(residual) / norm(candidate) - residual_ratio) < 1e-14
     assert orthogonal_share > 1. - rho
     assert result["candidate_pnl"] > 0. and result["base_pnl"] == 0.
+    assert abs(expanded_rho - rho) < 1e-14
+    assert result["expanded_400_name_control"]["union_nonzero_names"] == 400
+    assert all(abs(x - 1.) < 1e-14 for x in result["expanded_400_name_control"]["both_gross"])
+    assert result["expanded_400_name_control"]["both_net"] == [0., 0.]
+    assert abs(dot(expanded_candidate, expanded_returns) - result["candidate_pnl"]) < 1e-14
     print(json.dumps(result, indent=2, allow_nan=False))
 
 
