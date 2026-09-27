@@ -93,6 +93,7 @@ def main():
                 for i in np.flatnonzero(trace):
                     rr.append({'utc':dt.datetime.fromtimestamp(int(au[i]),dt.timezone.utc).isoformat(),
                       'gross_raw':float(np.abs(o['raw'][i]).sum()),'names':int((np.abs(o['raw'][i])>1e-9).sum()),
+                      'kc_gross':float(np.abs(o['kc'][i]).sum()),'fc_gross':float(np.abs(o['fc'][i]).sum()),
                       'reason':str(o['reason'][i]),'publish':bool(o['trade_mask'][i])})
                 rows[f'{role}_s{seed}']=rr
                 print('CELL_VERIFIED',role,seed,'seconds',round(time.monotonic()-start,1),flush=True)
