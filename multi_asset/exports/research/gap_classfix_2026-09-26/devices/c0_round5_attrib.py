@@ -49,7 +49,9 @@ if tl["current"] and tl["patched"]:
 chk = {
     "i_current_vs_archived_bitwise": bool(re.fullmatch(r"\d+ weights bit-equal", str(C0.get("current_vs_archived")))),
     "iii_a_holes_before_A_equal_literal": holes == lit,
-    "iii_a_patched_MH_RECOMPUTED_equals_literal_no_errors": bool(mh) and int(mh.group(1)) == len(lit) and json.loads(mh.group(2)) == lit and mh.group(3) == "{}",
+    # an empty literal (a gap-free anchor) means NO recompute line at all (control on run 4's 09-26 08Z found rev 0 demanded a line there)
+    "iii_a_patched_MH_RECOMPUTED_equals_literal_no_errors": (bool(mh) and int(mh.group(1)) == len(lit) and json.loads(mh.group(2)) == lit and mh.group(3) == "{}")
+                                                            if lit else (mh is None and "MH_RECOMPUTED" not in log["patched"]),
     "iii_a_patched_missing_0": "(missing 0)" in log["patched"],
     "iii_a_current_missing_equals_len_literal": f"(missing {len(lit)})" in log["current"],
     "iii_b_patched_sources_own": tc.get("kc_state_source") == "own" and tc.get("fc_state_source") == "own" and tb.get("h_source") == "own",

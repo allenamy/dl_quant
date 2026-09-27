@@ -1,0 +1,74 @@
+{
+ "device": "c0_round5_attrib.py",
+ "self_sha256": "7723a69aa1b5cec72c49feda96a4df6a5672826fd7b169f02e8137fb36de911b",
+ "A": 1790467200,
+ "expect_mh": [
+  1790424000,
+  1790438400
+ ],
+ "utc": "2026-09-27T05:37:00Z",
+ "checks": {
+  "i_current_vs_archived_bitwise": false,
+  "iii_a_holes_before_A_equal_literal": true,
+  "iii_a_patched_MH_RECOMPUTED_equals_literal_no_errors": true,
+  "iii_a_patched_missing_0": true,
+  "iii_a_current_missing_equals_len_literal": true,
+  "iii_b_patched_sources_own": true,
+  "iii_b_no_state_lookup_no_cold_no_page": true,
+  "iii_b_members_recomputed_keys_equal_literal": true,
+  "iii_b_rc_both_0": true,
+  "iii_c_kc_state_bitwise": true
+ },
+ "named_differences": {
+  "f10_state": {
+   "bitwise": false,
+   "max_abs_val_diff": 4.582867295218219e-06,
+   "n_val_differ": 84
+  },
+  "fc_state": {
+   "bitwise": false,
+   "max_abs_val_diff": 1.8147969427038252e-06,
+   "n_val_differ": 64
+  },
+  "kc_state": {
+   "bitwise": true
+  },
+  "weights": {
+   "n_names": 319,
+   "n_differ": 64,
+   "max_abs": 8.166586242166346e-07,
+   "key_sets_equal": true
+  },
+  "target_combo_bytes_equal": false,
+  "target_blend_bytes_equal": false,
+  "weights_combo_arrays_equal": false
+ },
+ "c0_section": {
+  "PASS": false,
+  "current_vs_archived": "other keys differ: ['beta_overlay']",
+  "weights": "64 weights differ, max |dw| 8.167e-07",
+  "states_bitwise": {
+   "kc": true,
+   "fc": false,
+   "f10": false
+  },
+  "target_combo_bytes_equal": false,
+  "target_blend_bytes_equal": false,
+  "weights_combo_arrays_equal": false,
+  "rc": [
+   0,
+   0
+  ],
+  "code": [
+   "CODE=current combo_stage sha 12a76de89831",
+   "CODE=patched combo_stage sha 5eaabcdb9e4d"
+  ],
+  "T": {
+   "PASS": true,
+   "elapsed_current_s": 8.6,
+   "elapsed_patched_s": 8.8
+  }
+ },
+ "ii_cited": "receipts/GAPFIX_JUDGE_run4_arm64.json: C0 current==patched bitwise on 1790380800/1790395200/1790409600 (arm64)",
+ "VERDICT": "FAIL"
+}
