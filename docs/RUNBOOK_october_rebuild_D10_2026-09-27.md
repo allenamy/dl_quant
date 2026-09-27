@@ -227,7 +227,7 @@
 | 1b | legs 重建(2d),用十月 King OOF | news2 | #3 之后约 20 分钟 | **09-27 07:32:51Z**(控制 07:14Z 逐位重现 104af853;交付检查 L1–L4 PASS) | legs 383e3ddc;NC_LEGS_RECEIPT 390a860e;King OOF 274ba08a;只有 KZ/LR/WL 与线 D 不同 |
 | 4 | F10 训练器入库 + 契约测试 | dlarch | 开工后约 3 小时 | **09-27 07:13:48Z**(G1 run 3 两折对在役 NC s42 逐位 IDENTICAL,19785f3c1;书层格装置 eb22eeb52、run_f10d10.sh rev 3 deffd121d 均写于读数之前;契约 35/35) | 19785f3c1;cc5b392d3;9fc2c664a |
 | 5 | F10 三个种子 | dlarch | #4 之后约 3 小时 | 起跑 **07:37:13Z**;**s42 训完 08:36:12Z**(59 分钟,OOF 82db26dfa124);s2027、s7 进行中,预计约 10:45Z 全部训完 | registry dlarch_f10d10_train;/dev/shm/dlarch_f10d10/f10d10.log |
-| 6 | 书层格(联合臂) | dlarch | #5 之后 15 分钟 | 起跑 07:37:38Z(随每个种子训完建格,对 NC 同种子;预计最后一格约 11:00Z;PGID 3435391) | registry dlarch_f10d10_cells |
+| 6 | 书层格(联合臂) | dlarch | #5 之后 15 分钟 | 起跑 07:37:38Z;**s42 格 08:51:33Z 完成**(RETAIN,ALL_PRECONDITIONS_PASS=True);s2027、s7 格随训练;预计最后一格约 11:00Z | registry dlarch_f10d10_cells |
 | 7 | lead 判词(修订 4/5) | lead | 读数之后 | 待 | — |
 | 8 | 候选生产者树 | integ | 最早 09-28 18Z / 中位 09-29 06Z | 待(开工约 09-27 17Z) | — |
 | 9 | 平价门 4a | news2 | #8 之后约 1 小时 | 待 | — |
