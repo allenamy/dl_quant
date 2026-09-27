@@ -131,3 +131,5 @@ L组定义：EMA<0、fund_z≤−.25、当前RN8<0，且RN8≥EMA/2；C组为同
 Pod部署根为`/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/network_fixture_20260927`，stored-NPZ只读mmap目标row，不复制全量特征。17:06:30Z门：cgroup max60,999,999,488/current46,052,999,168，余量14,947,000,320 bytes，仍低于14GiB的15,032,385,536；同UID RSS13,717,983,232 bytes，GPU2MiB/util0。没有因为差85MB降门；未启动GPU或训练、未开始15分钟额度。每轮失败门已归档，停止60秒轮询，等待现有作业/主审释放资源后5–10分钟级重查。守卫只停止自己的PGID，首次通过后单一15分钟预算跨重试保持。
 
 完整fold最小方案另见`PLAN_acting_funding_fold_clock_2026-09-27.md`（8b5fe0f58）：已定位原始价全网格23af32bd…、meta d1e49cc9…、历史CfgMap31/逐fill offset、D10真实ledger76b777…与已归档共同特征ad80d50d…，先120锚mmap小包校准，不需要重新寻找历史实盘全tape。新候选必须等待D10共同输入验收，保留NC参照，通过完整King+F10+fund书、32执行路径和UNKNOWN人口评价。第一span预算CPU1/2GiB/5分钟；整fold两臂一epoch预计45–120 GPU秒但尚未实测，完整训练/整书资源另排；未自动延长本轮范围。
+
+17:11:54Z按约5分钟重查仍红：余量14,897,160,192 bytes<14GiB，同UID RSS16,806,248,448 bytes，GPU2MiB/util0；仍未启动任何GPU/训练。代码、预注册、实际失败资源收据和单次续跑命令均已归档，等待资源释放，无后台高频轮询。
