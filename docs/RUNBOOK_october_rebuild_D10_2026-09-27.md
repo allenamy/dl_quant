@@ -223,9 +223,9 @@
 |---|---|---|---|---|---|
 | — | `common/funding_interval.py` 冻结 | news2 | 树开工前 | **09-27 06:45Z** | 2864babfd,契约 C6 |
 | 2 | King 训练器入库 + 装置控制 | fresh2 | 09-27 10:00Z 前 | **09-27 06:40Z / 06:45Z** | 8dd1a0068;5078fd402(KOC_DONE all_pass=True 06:44:21Z) |
-| 3 | 十月 King 训练(服务运行 --keep-models)+ OOF | fresh2 | 约 07:00Z | 待 | MANIFEST_RELEASE |
-| 1b | legs 重建(2d),用十月 King OOF | news2 | #3 之后约 20 分钟 | 待(控制 06:53:42Z 起跑) | legs_oct.log;King OOF sha |
-| 4 | F10 训练器入库 + 契约测试 | dlarch | 开工后约 3 小时 | 待 | 闭包里 5 处棘轮钉由 dlarch 处理 |
+| 3 | 十月 King 训练(服务运行 --keep-models)+ OOF | fresh2 | 约 07:00Z | **09-27 06:58:08Z**(KOR_DONE release_ok=True) | e7181349d;MANIFEST_RELEASE 2d0fa3f9;OOF 274ba08a;要钉的 king_2026.txt 8534e56b(news2 在 pod2 实测 sha 一致) |
+| 1b | legs 重建(2d),用十月 King OOF | news2 | #3 之后约 20 分钟 | 待(控制 06:53:42Z 起跑,07:05Z 仍在跑;r22 已暂停让路) | legs_oct.log;King OOF sha |
+| 4 | F10 训练器入库 + 契约测试 | dlarch | 开工后约 3 小时 | 进行中:闭包 5 处裸写已修(cc5b392d3),棘轮钉 07:0xZ 取消(9fc2c664a);G1 两折恒等重跑中 | — |
 | 5 | F10 三个种子 | dlarch | #4 之后约 3 小时 | 待 | — |
 | 6 | 书层格(联合臂) | dlarch | #5 之后 15 分钟 | 待 | — |
 | 7 | lead 判词(修订 4/5) | lead | 读数之后 | 待 | — |
