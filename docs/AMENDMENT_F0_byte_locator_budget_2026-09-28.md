@@ -1,4 +1,4 @@
-> **创建:** 2026-09-28 07:04 SGT | **Session:** Codex root / acting-lead-20260927 | **状态:** frozen-before-followup | **作废条件:** 数值算法、输入、种子或预算改变；不可用于候选晋级
+> **创建:** 2026-09-28 07:03 SGT | **Session:** Codex root / acting-lead-20260927 | **状态:** frozen-before-followup | **作废条件:** 数值算法、输入、种子或预算改变；不可用于候选晋级
 
 # F0 只定位字节差的一次追加预算
 
