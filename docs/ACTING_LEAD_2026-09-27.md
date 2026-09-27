@@ -117,3 +117,8 @@
 - 20:01:03Z KSR与两个等待器PID/start_ticks核同；KSR原ORDER的36候选中27个文件存在，最新mtime19:51:18，未读数、未称27个通过；D10仍等KSR。root纠正自己前两次轻探针的marker位置：实际DONE在workspace根的DONE.json，FAILED在/dev/shm marker_root的FAILED.json（不能查裸DONE/FAILED或只查workspace）；本次按源码逐一核均不存在，实时wait日志也证仍RUNNING。此纠正不改既有等待器代码。收据ROOT_HEARTBEAT_20260927T2001Z.json。
 
 - 20:30Z轻读：20Z生产快照已于20:20:13Z PARITY，321名权重逐位相等；watchdog尚未形成20Z判词，仍为16:49Z。有限尾读未包含start行，不能把空的lifecycle筛选读为漏锚，20:00:05Z的真实start证据已在上一收据。完整验收及K1仍等21Z且done。Pod三个PID/start_ticks核同、DONE/FAILED实际路径均无终态；原ORDER中30/36文件存在，最新20:26:04，仅为落盘进度。没有重启首120被拒作业、没有额外场所读取或部署。收据ROOT_HEARTBEAT_20260927T2030Z.json。
+
+- 21:02:35Z **恢复20Z完整验收完成**：20:58:35Z真实done rc=0之后，在21Z静默窗执行已审核包装器（最终SHA `d64017daf8fcca64774d228aa3d0d8cbd4d63c42d5b8601b3004ebf4c76019c5`，取代上文17:19的早期包装器SHA），9/9 PASS；VERSION_PROBE / M3 shadow / 321名逐位PARITY / B4合池分别PASS。目标gross212,015.23，实际212,221.27073，到位100.097182%；停机门拦单0，新HIGH0，watchdog明确false/null/LIVE，无再跳闸。King/F10实物、目标携带值、执行器pin一致，生产仍d01e35d、M3仍shadow。
+- K1本轮范围RID `A1790540640` 前600秒至21:00:46.056Z，211名、329笔成交，未知外来订单0；合池taker份额27.6%，场所与账本相符。只证明commission命中的成交订单及该查询窗，**不证明全局单写者**；没有追加场所调用。按用户计划下一次且最后一次恢复K1是09-28 00Z，须等01Z静默窗与真实done。
+- 20Z收据存 `acting_lead_2026-09-27/receipts/RECOVERY_20Z_20260927/`（10份+MANIFEST）；root在归档前重新核了判官所用全部原始文件sha，含当时watchdog state副本。大日志留独立临时目录且sha已绑定。定时报表早于done，保留原件；仍只用gather/build_report纯读生成收尾后报告，无生产文件写入、无Telegram。
+- 21:00:48Z Pod三个PID/start_ticks核同，KSR原ORDER的32/36文件落盘、最新20:58:01Z；实际DONE/FAILED路径均无终态，D10继续等KSR读数。收据 `ROOT_POD_20260927T2100Z.json`。这是文件进度不是候选通过数；不读未完成收益、不重复启动等待器，不重开RESOURCE_REFUSED的首120作业。
