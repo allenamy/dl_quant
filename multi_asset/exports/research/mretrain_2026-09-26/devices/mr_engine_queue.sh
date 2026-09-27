@@ -5,12 +5,13 @@
 # Waits are bound to run identity (§10-c): the recorded PGID must stay alive until a line-anchored verdict appears;
 # Traceback / No space / PGID gone without a verdict => STOP (marker written, queue exits non-zero).
 set -uo pipefail
-ORDER=$1
+ORDER=$1; QMODE=${2:-family}   # rootcause = descriptive single-condition cells (fresh2 2026-09-27): no red/family reading, no family gate
 R=/dev/shm/mretrain_2026-09-26; N=/dev/shm/news2_2026-09-23; PV=/workspace/venv/bin/python
 FSAVE=/dev/shm/fresh_2026-09-23/devices/fa_ladsave.py; GATE=/dev/shm/fresh_2026-09-23/devices/memgate.sh
 L=$R/logs/engine; mkdir -p $L $R/series
 say() { echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $*" | tee -a $L/queue.log; }
-stop() { say "STOP: $*"; echo "$*" > $R/ENGINE_QUEUE_STOPPED; echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) STOP: engine queue: $*" >> $R/logs/master.log; exit 1; }   # master.log = the registered log
+ML=$R/logs/master.log; [ "$QMODE" = family ] || ML=$R/logs/rootcause.log   # the registered log of whichever job runs this queue
+stop() { say "STOP: $*"; [ "$QMODE" = family ] && echo "$*" > $R/ENGINE_QUEUE_STOPPED; echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) STOP: engine queue: $*" >> $ML; exit 1; }
 say "ENGINE_QUEUE_START pgid=$(ps -o pgid= -p $$ | tr -d ' ') order=$ORDER"
 while read -r LBL S; do
   [ -z "$LBL" ] && continue
@@ -58,7 +59,7 @@ while read -r LBL S; do
   say "done $LBL s$S $(sha256sum $SER | cut -c1-16) king_P=$(grep -o '"P": "[0-9a-f]\{16\}' $W/receipts/KING_IDENTITY.json 2>/dev/null | cut -c7-)"   # rule §7: score sha per cell
   # rule §0.4 red control + engine-reproducibility control, executed HERE as soon as its four series exist (§10-f: a process
   # executor, not the session). Not PASS => the family stops (rule §0), before any further cell.
-  if [ ! -e $R/RED_READ_PASS ] && ls $R/series/SER_RED_m0_s42.npz $R/series/SER_RED_m0_s2027.npz $R/series/SER_A0_m0_s42.npz $R/series/SER_A0_m0_s2027.npz > /dev/null 2>&1; then
+  if [ "$QMODE" = family ] && [ ! -e $R/RED_READ_PASS ] && ls $R/series/SER_RED_m0_s42.npz $R/series/SER_RED_m0_s2027.npz $R/series/SER_A0_m0_s42.npz $R/series/SER_A0_m0_s2027.npz > /dev/null 2>&1; then
     mkdir -p $R/receipts
     (cd $R/devices && env -i PATH=/usr/bin:/bin HOME=/root $PV -B mr_read.py PATH,HOME,LC_CTYPE red $R/receipts/MR_READ_red.json > $L/read_red.log 2>&1)
     say "$(grep -h '^MR_READ mode=red' $L/read_red.log | cut -c1-200)"
@@ -66,7 +67,8 @@ while read -r LBL S; do
     touch $R/RED_READ_PASS; say "RED_READ_PASS"
   fi
 done < $ORDER
-say "ENGINE_QUEUE_DONE"
+say "ENGINE_QUEUE_DONE mode=$QMODE"
+[ "$QMODE" = family ] || exit 0
 # rule §1-§4 applied mechanically by the committed reading device (process executor; exit 4 = INCOMPLETE is reported, not hidden)
 (cd $R/devices && env -i PATH=/usr/bin:/bin HOME=/root $PV -B mr_read.py PATH,HOME,LC_CTYPE family $R/receipts/MR_READ_family.json > $L/read_family.log 2>&1); rc=$?
 say "READ_FAMILY rc=$rc $(grep -h '^MR_READ\|VERDICT=' $L/read_family.log | tr '\n' ' ' | cut -c1-400)"

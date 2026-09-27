@@ -15,7 +15,8 @@ PV=/workspace/venv/bin/python; P314=/root/news_2026-09-23_env/venv314/bin/python
 NPY="X86_V4 AVX512_ICL AVX512_SPR"
 mkdir -p $L
 say() { echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) [$LBL] $*" | tee -a $L/prep.log; }
-fail() { say "FAILED: $*"; touch $W/FAILED; echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) STOP: prep $LBL FAILED: $*" >> $R/logs/master.log; exit 1; }   # master.log = the registered log
+ML=${MR_MASTER_LOG:-$R/logs/master.log}   # the registered log of the job that runs this prep (root-cause cells use their own)
+fail() { say "FAILED: $*"; touch $W/FAILED; echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) STOP: prep $LBL FAILED: $*" >> $ML; exit 1; }
 DUP_MEMBERS="A1_m0 A3_m0"   # rule §7 (revision 1, da04c28f9): one duplicate-trained member per candidate arm, scores must be bitwise equal
 trap 'fail "rc=$? at line $LINENO"' ERR
 [ -e $W/FAILED ] && { echo "$LBL has a FAILED marker; refusing"; exit 1; }
