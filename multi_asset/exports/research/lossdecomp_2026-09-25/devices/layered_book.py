@@ -192,7 +192,7 @@ def main():
                 n_unp += r is None and any(abs(e[Lk] or 0) > 0 for Lk in LAYERS)
             row["pnl_by_layer"] = dict(pnl); row["unpriced_abs_notional_by_layer"] = dict(unpriced); row["n_unpriced_names"] = n_unp
             if dump is not None:
-                dump.write(json.dumps({"A": A, "tA": tA, "tB": tB, "priced": tB <= ts[-1] + 300,
+                dump.write(json.dumps({"A": A, "tA": tA, "tB": tB, "priced": bool(tB <= ts[-1] + 300),
                                        "names": {s: [e["L5_readback"], ret(s, tA, tB), e["L2_clamped"]] for s, e in per.items()}}) + "\n")
             row["priced"] = tB <= ts[-1] + 300
             if row["priced"]:
