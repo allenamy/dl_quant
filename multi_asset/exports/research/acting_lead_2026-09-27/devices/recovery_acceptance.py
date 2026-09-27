@@ -5,8 +5,8 @@ PASS covers these recovery checks only, not VERSION_PROBE/M3/PARITY or global
 single-writer exclusivity. Output contains no raw source rows or arm outcomes.
 Missing/not-yet-current evidence is PENDING; malformed/unreadable is UNKNOWN;
 positive adverse evidence is FAIL. Precedence: FAIL > UNKNOWN > PENDING > PASS.
-The watchdog-state path must be explicitly supplied; an enumerable parent plus
-an absent entry is normal after resume. CLI writes one new output file (no overwrite).
+The watchdog-state path must be explicitly supplied; absence with an enumerable
+parent or an explicit untripped LIVE state is normal. CLI never overwrites output.
 """
 import argparse
 import datetime as dt
@@ -88,6 +88,20 @@ def evaluate(inputs, anchor, observed_at, minimum_fill_ratio=0.60):
 
     row = {}
     done = {}
+    state_observation = {}
+
+    def state_presence():
+        if "present" not in state_observation:
+            path = Path(inputs["watchdog_state"])
+            try:
+                names = [p.name for p in path.parent.iterdir()]
+            except OSError:
+                raise EvidenceError("UNKNOWN", "watchdog-state parent cannot be enumerated")
+            present = path.name in names
+            state_observation.update(present=present)
+            provenance["watchdog_state"] = {"path": str(path), "parent_enumerated": True,
+                                             "present": present, "absent": not present}
+        return state_observation["present"]
 
     def inspect_check():
         text = read("inspect", "text")
@@ -111,7 +125,31 @@ def evaluate(inputs, anchor, observed_at, minimum_fill_ratio=0.60):
         ats = number(r.get("anchor_ts")); eb = r.get("external_book") or {}
         require(anchor <= ats < anchor + 14400 and eb.get("nominal_ts") == anchor,
                 "nominal anchor and wall time disagree")
-        require(r.get("rebalance_id") == "A" + str(int(ats)), "RID and wall time disagree")
+        rid = r.get("rebalance_id")
+        require(isinstance(rid, str) and re.fullmatch(r"A[0-9]+", rid) is not None,
+                "RID is not a LIVE batch identity")
+        require(anchor <= int(rid[1:]) <= ats, "RID mint time is outside anchor or after capture")
+        phases = []
+        for line in read("anchor_log", "text").splitlines():
+            m = re.match(r"^(\S+) phase_A: (.*)$", line)
+            if m and anchor <= epoch(m[1]) < anchor + 14400:
+                fresh(epoch(m[1]))
+                phases.append((epoch(m[1]), json.loads(m[2])))
+        require(bool(phases), "phase_A identity evidence not yet present", "PENDING")
+        require(len(phases) == 1, "duplicate or ambiguous phase_A records")
+        pt, phase = phases[0]
+        require(phase.get("action") == "TRADE" and phase.get("book_source") == "external",
+                "phase_A is not external-book TRADE")
+        require(phase.get("rebalance_id") == rid and number(phase.get("anchor_ts")) == ats,
+                "anchor RID/capture identity disagrees with phase_A")
+        # run_anchor.log serializes whole seconds; compare at that exact precision.
+        require(pt >= int(ats), "phase_A log predates capture")
+        for book_key in ("external_filters", "external_book"):
+            book = phase.get(book_key)
+            if isinstance(book, dict):
+                for nominal_key in ("nominal_ts", "anchor_ts"):
+                    if nominal_key in book:
+                        require(book[nominal_key] == anchor, "phase_A nominal external anchor mismatch")
         fresh(ats)
         require(type(r.get("opening_halted")) is bool, "opening_halted missing", "UNKNOWN")
         require(r["opening_halted"] is False, "opening is halted")
@@ -149,19 +187,31 @@ def evaluate(inputs, anchor, observed_at, minimum_fill_ratio=0.60):
         fresh(epoch(r.get("utc")), done.get("ts", row["ats"]))
         require(type(r.get("K4_blocked_by_halt_rows")) is int, "blocked count missing", "UNKNOWN")
         require(r["K4_blocked_by_halt_rows"] == 0, "blocked_by_halt rows present")
-        require(r.get("K5_watchdog_state_json_exists") is False, "ledger receipt reports watchdog state or omits it")
+        presence = r.get("K5_watchdog_state_json_exists")
+        require(type(presence) is bool, "ledger watchdog presence is missing/nonboolean", "UNKNOWN")
+        require(presence == state_presence(), "ledger watchdog presence disagrees with direct observation")
         ratio = number(r.get("K2_fill_ratio"))
         require(abs(ratio - row["ratio"]) <= 0.00011, "ledger fill ratio disagrees with anchor")
         require(ratio >= minimum_fill_ratio, "ledger fill ratio below required threshold")
 
     def state_check():
-        path = Path(inputs["watchdog_state"])
-        try:
-            names = [p.name for p in path.parent.iterdir()]
-        except OSError:
-            raise EvidenceError("UNKNOWN", "watchdog-state parent cannot be enumerated")
-        require(path.name not in names, "watchdog state entry exists")
-        provenance["watchdog_state"] = {"path": str(path), "parent_enumerated": True, "absent": True}
+        if not state_presence():
+            return {"policy": "absent_after_resume"}
+        r = read("watchdog_state")
+        provenance["watchdog_state"].update(parent_enumerated=True, present=True, absent=False)
+        require(isinstance(r, dict), "watchdog state must be an object", "UNKNOWN")
+        require(r.get("reduce_only") is not True, "watchdog reduce_only is active")
+        require(type(r.get("reduce_only")) is bool, "watchdog reduce_only missing/nonboolean", "UNKNOWN")
+        require("tripped_at" in r, "watchdog tripped_at missing", "UNKNOWN")
+        require(r["tripped_at"] is None, "watchdog persisted trip is active")
+        require("_mode" in r, "watchdog state mode missing", "UNKNOWN")
+        require(r["_mode"] == "LIVE", "watchdog state is not LIVE")
+        for key in ("tripped", "opening_halted", "book_flattened"):
+            if key in r:
+                require(r[key] is False, "watchdog state carries contradictory " + key)
+        require(not r.get("kind") and r.get("degradation") is None and not r.get("triggers")
+                and not r.get("reason"), "watchdog state carries contradictory trip metadata")
+        return {"policy": "explicit_untripped_live"}
 
     def watchdog_check():
         r = read("watchdog_eval")

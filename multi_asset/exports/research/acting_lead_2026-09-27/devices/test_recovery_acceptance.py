@@ -30,7 +30,7 @@ class RecoveryAcceptanceTests(unittest.TestCase):
                 "opening_halted": False, "external_book": {"nominal_ts": A,
                     "ok": True, "reason": None, "sha_ok": True},
                 "chase_experiment": {"secret_arm_result": "DO_NOT_ECHO"}}],
-            "anchor_log": "2026-09-27T16:00:01Z anchor start mode=LIVE\n2026-09-27T16:49:00Z anchor done rc=0\n",
+            "anchor_log": '2026-09-27T16:00:01Z anchor start mode=LIVE\n2026-09-27T16:25:00Z phase_A: {"action":"TRADE","book_source":"external","rebalance_id":"A1790526240","anchor_ts":1790526240.8}\n2026-09-27T16:49:00Z anchor done rc=0\n',
             "ledger_receipt": {"A": A, "rebalance_id": "A1790526240", "utc": "2026-09-27T17:02:00Z",
                 "K2_fill_ratio": 0.70, "K4_blocked_by_halt_rows": 0,
                 "K5_watchdog_state_json_exists": False},
@@ -125,6 +125,68 @@ class RecoveryAcceptanceTests(unittest.TestCase):
     def test_existing_watchdog_state_fails(self):
         self.data["watchdog_state"] = {"reduce_only": True}
         self.check(self.run_case(), "watchdog_state", "FAIL")
+
+    def test_normal_live_watchdog_file_passes_and_records_presence(self):
+        self.data["watchdog_state"] = {"reduce_only": False, "tripped_at": None, "_mode": "LIVE"}
+        self.data["ledger_receipt"]["K5_watchdog_state_json_exists"] = True
+        r = self.run_case()
+        self.assertEqual(r["verdict"], "PASS")
+        self.assertTrue(r["inputs"]["watchdog_state"]["present"])
+        self.assertIn("sha256", r["inputs"]["watchdog_state"])
+
+    def test_state_missing_malformed_contradictory_or_wrong_mode_never_passes(self):
+        normal = {"reduce_only": False, "tripped_at": None, "_mode": "LIVE"}
+        states = [{}, [], {**normal, "reduce_only": "false"}, {**normal, "reduce_only": 0},
+                  {**normal, "tripped_at": "2026-09-27T16:48:00Z"}, {**normal, "_mode": "DRY_RUN"},
+                  {**normal, "tripped": True}, {**normal, "kind": "proportional_local"},
+                  {**normal, "degradation": {}}, {**normal, "opening_halted": True}]
+        states += [{k: v for k, v in normal.items() if k != missing} for missing in normal]
+        for state in states:
+            with self.subTest(state=state):
+                self.data["watchdog_state"] = state
+                self.data["ledger_receipt"]["K5_watchdog_state_json_exists"] = True
+                self.assertNotEqual(self.run_case()["checks"]["watchdog_state"]["status"], "PASS")
+
+    def test_ledger_presence_is_observation_and_must_match_direct_state(self):
+        for present, receipt in [(True, False), (False, True), (False, 0), (False, None)]:
+            self.data["watchdog_state"] = {"reduce_only": False, "tripped_at": None, "_mode": "LIVE"} if present else None
+            self.data["ledger_receipt"]["K5_watchdog_state_json_exists"] = receipt
+            self.assertNotEqual(self.run_case()["checks"]["ledger_receipt"]["status"], "PASS")
+
+    def test_existing_state_invalid_json_or_unreadable_is_unknown(self):
+        self.data["watchdog_state"] = {"reduce_only": False, "tripped_at": None, "_mode": "LIVE"}
+        self.data["ledger_receipt"]["K5_watchdog_state_json_exists"] = True
+        self.run_case(); p = Path(self.inputs["watchdog_state"])
+        p.write_text("{broken DO_NOT_ECHO")
+        self.check(R.evaluate(self.inputs, A, NOW), "watchdog_state", "UNKNOWN")
+        original = Path.read_bytes
+        def unreadable(path):
+            if path == p: raise PermissionError("denied")
+            return original(path)
+        with patch.object(Path, "read_bytes", unreadable):
+            self.check(R.evaluate(self.inputs, A, NOW), "watchdog_state", "UNKNOWN")
+
+    def test_separate_rid_clock_and_capture_clock_bind_to_real_phase_a(self):
+        self.data["anchors"][0]["anchor_ts"] = A + 1441.442726
+        self.data["anchor_log"] = self.data["anchor_log"].replace('1790526240.8', '1790526241.442726')
+        self.assertEqual(self.run_case()["verdict"], "PASS")
+
+    def test_phase_a_missing_wrong_identity_or_duplicate_cannot_pass(self):
+        base = self.data["anchor_log"]
+        phase = next(line for line in base.splitlines() if "phase_A:" in line)
+        cases = [(base.replace(phase + "\n", ""), "PENDING"),
+                 (base.replace('"anchor_ts":1790526240.8', '"anchor_ts":1790526241.8'), "FAIL"),
+                 (base.replace('"rebalance_id":"A1790526240"', '"rebalance_id":"A1790526200"'), "FAIL"),
+                 (base + phase + "\n", "FAIL")]
+        for log, status in cases:
+            self.data["anchor_log"] = log
+            self.check(self.run_case(), "anchor", status)
+
+    def test_phase_a_log_seconds_are_truncated_and_optional_nominal_is_checked(self):
+        self.data["anchor_log"] = self.data["anchor_log"].replace('16:25:00Z', '16:24:00Z')
+        self.assertEqual(self.run_case()["verdict"], "PASS")
+        self.data["anchor_log"] = self.data["anchor_log"].replace('"action":"TRADE"', '"action":"TRADE","external_filters":{"nominal_ts":1790510400}')
+        self.check(self.run_case(), "anchor", "FAIL")
 
     def test_unlistable_state_parent_is_unknown(self):
         self.run_case()

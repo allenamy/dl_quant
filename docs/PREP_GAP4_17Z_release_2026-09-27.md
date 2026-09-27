@@ -228,5 +228,7 @@ cp /Users/haosiyu/dl_quant_live/state/anchor_report_last.json "$COL/anchor_repor
 
 ## 追加 B：发布脚本路径与行为
 
+**2026-09-27 16:56Z 具名更正追加A**：watchdog state运行期允许明确`reduce_only=false,tripped_at=null,_mode=LIVE`，正常评估会无条件创建该文件。恢复门读取真实state判policy，并要求ledger的K5存在性布尔值与直读presence一致；存在本身不代表停机。上文“可列父目录下缺失”仍是合法恢复瞬间分支，不是唯一合法状态。RID与capture时间来自两个时钟，门改为与anchor_runs.log内真实phase_A的双字段精确绑定，外部书名义锚仍必须等于A。详见`docs/CORRECTION_recovery_acceptance_contract_2026-09-27.md`。
+
 - `~/dl_quant_live/ops/safe_commit.sh:110–117`在电池通过、显式pathspec提交后**自动`git push origin main`**。W3会发布提交；push失败时可能已本地提交，不能重跑混淆候选。
 - `/Users/haosiyu/cc_tmp/lead_deploy_20260923/ff_running_tree.py:4`使用`expanduser("~/dl_quant_live")`。本机account home与expanduser均为`/Users/haosiyu`，realpath相同且非symlink。`:7–26`非阻塞flock、code dirty拒绝、fetch、origin expected匹配和ff-only兼容新机；调用给完整NEWSHA。无额外架构白名单。本次未执行fetch、merge或锁写入。

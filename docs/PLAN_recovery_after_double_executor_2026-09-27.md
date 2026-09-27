@@ -240,6 +240,7 @@
 | K7 | 成本 | `/usr/bin/python3 $DEV/rebuild_stats.py ~/dl_quant_live` 的 REBUILD 行 | 只作描述,参照 5.1–12.4 bps |
 
 - **VENUE_ANCHOR 的末行**:PASS(rc 0)= K1、K2、K4 全部成立;FAIL(rc 1)列出失败项;UNKNOWN(rc 2)= 查不到,**不等于通过**。
+- **具名更正（2026-09-27 16:56Z，acting lead，原K5句保留作历史）**：上表K5的“不存在 state.json”只适用于刚执行resume后、尚未再次评估的瞬间，不能作为首锚运行期判据。`live/watchdog.py:3133–3135,3325`正常评估也无条件写state；`scheduler/anchor_loop.py:1179`实际开仓门读的是`reduce_only`或`tripped_at`，并对不可读/跨模式失败关闭。首锚可接受可列父目录下缺文件，或明确`reduce_only=false,tripped_at=null,_mode=LIVE`；缺字段、畸形、不可读、跨模式或矛盾停机证据不得通过。§7第9步恢复瞬间检查保持。此为纠正验收合同，不是放宽停机政策；详见`docs/CORRECTION_recovery_acceptance_contract_2026-09-27.md`。
 - **处置**:K1 > 0 ⇒ 立即交 lead,视为第二个执行者仍在;K2 < 0.60 ⇒ 交 lead,不自动处置;下一锚会继续朝目标建仓。
 - **装置测试**(离线、禁网、无凭据):`tests_venue_readonly.py` **ALL PASS**,收据 `TESTS_venue_readonly.txt`。覆盖:只读白名单拒绝下单路径、Q1–Q4 各自的红格、翻页边界不丢行也不重复计数、真实相同的两行都保留、读取失败判 UNKNOWN、收据不覆盖、外来单即使 clientOrderId 与本机相同仍被判为外来、平仓行按 clientOrderId 认领、到位率与停机行的红格、userTrades 页饱和判 UNKNOWN。
 - `local_ledger` 已在真实账本上离线跑过(00Z / 08Z 两锚,rid 能找到,本机 orderId 共 1,437 个)。**这两个装置从没对真实场所跑过**;第一次联网运行就是第 4 步,由 lead 执行。
