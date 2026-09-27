@@ -19,6 +19,16 @@ usage: d10_build_fund_state.py --mode {snap,d10} --axes AXES.npz --out fund_stat
 import argparse, collections, hashlib, importlib.util, json, os, sys, time
 import numpy as np
 
+for _c in (os.path.dirname(os.path.realpath(__file__)),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "common"),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), "common")):
+    if os.path.exists(os.path.join(_c, "durable_write.py")):
+        sys.path.insert(0, _c)
+        break
+else:
+    raise ImportError("common/durable_write.py not found next to or above this device; deploy it with the device")
+import durable_write as DW  # every file this device writes goes through it (news2 class fix 2026-09-27)
+
 HERE = os.path.dirname(os.path.realpath(__file__))
 spec = importlib.util.spec_from_file_location("d10_rebuild", os.path.join(HERE, "d10_rebuild_funding_features.py"))
 RB = importlib.util.module_from_spec(spec); spec.loader.exec_module(RB)
@@ -100,11 +110,9 @@ def main():
         rec["identity_vs"] = {"path": a.compare, "sha256": sha(a.compare), "fields": compare(got, a.compare)}
         rec["identity_verdict"] = "BITWISE" if all(v.get("differ", 1) == 0 for v in rec["identity_vs"]["fields"].values()) else "DIFFERS"
         print("IDENTITY", rec["identity_verdict"], json.dumps(rec["identity_vs"]["fields"]), flush=True)
-    np.savez(a.out, **got)
-    rec["output"] = {"path": a.out, "sha256": sha(a.out)}; rec["seconds"] = round(time.time() - t0, 1)
+    rec["output"] = {"path": a.out, "sha256": DW.write_npz(a.out, **got)}; rec["seconds"] = round(time.time() - t0, 1)
     rp = a.out.replace(".npz", "_RECEIPT.json")
-    with open(rp, "w") as fh:
-        fh.write(json.dumps(rec, indent=1)); fh.flush(); os.fsync(fh.fileno())
+    DW.write_json(rp, rec, indent=1, allow_nan=True)
     print("FUND_STATE_DONE", a.mode, rec["output"]["sha256"], rec["events"], json.dumps(tiers), flush=True)
 
 

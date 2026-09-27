@@ -38,6 +38,15 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import d10_manifest_gate as GATE   # R25-11: checksum_match must be True, set equality, per-file re-hash
+for _c in (os.path.dirname(os.path.realpath(__file__)),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "common"),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), "common")):
+    if os.path.exists(os.path.join(_c, "durable_write.py")):
+        sys.path.insert(0, _c)
+        break
+else:
+    raise ImportError("common/durable_write.py not found next to or above this device; deploy it with the device")
+import durable_write as DW  # every file this device writes goes through it (news2 class fix 2026-09-27)
 
 WINDOW_S = 24 * 3600
 
@@ -180,8 +189,7 @@ def main():
     rec["limits"] = ["one month (2026-08) and only +/-24h around interval switches, per lead's scoping",
                      "the live tail is a rolling 400 rows, so coverage is per-symbol and is guarded, not assumed",
                      "membership is evaluated at the first anchor at or after the settlement"]
-    with open(a.out, "w") as f:
-        json.dump(rec, f, indent=2)
+    print("receipt_sha256", DW.write_json(a.out, rec, indent=2, allow_nan=True))
 
     print("LIVE LEDGER vs ARCHIVE, +/-24h around interval switches, " + a.month)
     print(f"  archive: {rec['archive']['symbols']} symbols, {rec['archive']['events']} events")

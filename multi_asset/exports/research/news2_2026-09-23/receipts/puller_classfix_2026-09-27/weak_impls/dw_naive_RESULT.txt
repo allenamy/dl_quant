@@ -1,0 +1,18 @@
+  [PASS] G1_write_bytes_roundtrip_no_temp_left 
+  [PASS] G2_write_json_replaces_existing_file 
+  [FAIL] G3_write_npz_exact_path_and_loadable assert: ['X.npz']
+  [PASS] G4_mode_matches_plain_open 
+  [FAIL] G5_directory_fsynced_after_rename assert: the directory entry of the rename must be fsync'd: []
+  [PASS] G7_write_json_allow_nan_is_byte_identical_to_json_dump 
+  [PASS] R1_replace_fails_no_temp_left 
+  [FAIL] R2_readback_mismatch_raises_keeps_old assert: did not raise OSError
+  [FAIL] R3_fsync_enospc_raises_keeps_old assert: did not raise OSError
+  [FAIL] R4_silent_short_write_caught_by_readback assert: did not raise OSError
+  [FAIL] R5_non_bytes_refused_before_any_file assert: 
+  [FAIL] R6_json_nan_refused assert: did not raise ValueError
+  [PASS] R7_missing_directory_raises 
+  [FAIL] R8_npz_truncated_caught AttributeError: module 'durable_write' has no attribute '_npz_writer'
+  [FAIL] R9_npz_corrupt_byte_caught_by_crc AttributeError: module 'durable_write' has no attribute '_npz_writer'
+  [FAIL] R10_npz_member_set_differs_caught AttributeError: module 'durable_write' has no attribute '_npz_writer'
+  [PASS] G6_npz_streams_not_whole_file_readback 
+DURABLE_WRITE_TESTS 7/17 RED

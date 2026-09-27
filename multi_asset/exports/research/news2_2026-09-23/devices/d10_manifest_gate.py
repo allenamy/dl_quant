@@ -168,7 +168,7 @@ def _make_synthetic(root, month="2099-01", n_ok=4, n_404=2):
                     "checksum_file_sha256_field": _sha256(p)}
     for i in range(n_404):
         files[f"GONE{i}USDT"] = {"status": 404}
-    json.dump({"files": files}, open(os.path.join(root, f"MANIFEST_{month}.json"), "w"))
+    json.dump({"files": files}, open(os.path.join(root, f"MANIFEST_{month}.json"), "w"))  # durable-exempt: selftest fixture inside a mkdtemp dir, read back by the check under test  # durable-exempt: selftest fixture inside a mkdtemp dir, read back by the check under test
     return month
 
 
@@ -203,7 +203,7 @@ def _selftest(zipdir, month):
         full = json.load(open(os.path.join(work, mp)))
 
         def restore():
-            json.dump(full, open(os.path.join(work, mp), "w"))
+            json.dump(full, open(os.path.join(work, mp), "w"))  # durable-exempt: selftest fixture inside a mkdtemp dir, read back by the check under test  # durable-exempt: selftest fixture inside a mkdtemp dir, read back by the check under test
             shutil.copy(os.path.join(zipdir, f"{victim}-fundingRate-{month}.zip"), vzip)
             for n in os.listdir(work):
                 if n.endswith(f"-fundingRate-{month}.zip") and n[: -len(f"-fundingRate-{month}.zip")] not in syms:
@@ -212,7 +212,7 @@ def _selftest(zipdir, month):
         def mutate_flip():
             b = bytearray(open(vzip, "rb").read())
             b[len(b) // 2] ^= 0x01
-            open(vzip, "wb").write(bytes(b))
+            open(vzip, "wb").write(bytes(b))  # durable-exempt: selftest fixture inside a mkdtemp dir, read back by the check under test
 
         def mutate_delete():
             os.remove(vzip)
@@ -223,17 +223,17 @@ def _selftest(zipdir, month):
         def mutate_none():
             d = json.load(open(os.path.join(work, mp)))
             d["files"][victim]["checksum_match"] = None
-            json.dump(d, open(os.path.join(work, mp), "w"))
+            json.dump(d, open(os.path.join(work, mp), "w"))  # durable-exempt: selftest fixture inside a mkdtemp dir, read back by the check under test  # durable-exempt: selftest fixture inside a mkdtemp dir, read back by the check under test
 
         def mutate_drop_key():
             d = json.load(open(os.path.join(work, mp)))
             d["files"][victim].pop("checksum_match", None)
-            json.dump(d, open(os.path.join(work, mp), "w"))
+            json.dump(d, open(os.path.join(work, mp), "w"))  # durable-exempt: selftest fixture inside a mkdtemp dir, read back by the check under test  # durable-exempt: selftest fixture inside a mkdtemp dir, read back by the check under test
 
         def mutate_drop_sha():
             d = json.load(open(os.path.join(work, mp)))
             d["files"][victim].pop("sha256", None)
-            json.dump(d, open(os.path.join(work, mp), "w"))
+            json.dump(d, open(os.path.join(work, mp), "w"))  # durable-exempt: selftest fixture inside a mkdtemp dir, read back by the check under test  # durable-exempt: selftest fixture inside a mkdtemp dir, read back by the check under test
 
         cases = [("byte flipped in a pulled zip", mutate_flip, "REHASH_MISMATCH"),
                  ("a pulled zip deleted", mutate_delete, "SET_MISMATCH"),

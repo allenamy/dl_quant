@@ -1,0 +1,83 @@
+{
+ "driver": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/news2_2026-09-23/devices/d10_pull_months_pod2.sh",
+ "driver_sha256": "d85952b6ae520be3f2438b568422cc362898860e3aa7f1e571c984f70b7a117c",
+ "old_driver": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/news2_2026-09-23/devices/d10_pull_resume_pod2.sh",
+ "old_driver_sha256": "49ee1db511131db1c138bc9fbe92a08e18623882ea390b871515d73a0e3bbe99",
+ "devices_sha256": {
+  "p9_pull_monthly_funding_zips.py": "3c9a41c6f342b645b0a7f5bae83af98073134d351a166017c05f6e6fcde77eb2",
+  "p9_pull_verdict.py": "d83116f60ce07852b403eae0277e7801aaac9b37761851fa1c5e7e27524ced24",
+  "d10_month_state.py": "600cda6c17dc195293e47d1a8e40f1b30fe75c3d0e75e88d916ef54dec997b98",
+  "d10_manifest_gate.py": "6a8b16ca268aa5856c59a7d2372105346d72f208a8bd2cc55eb189b4cd3f8937",
+  "d10_drop_mismatched.py": "9e11fc0663283a258a1bf4cdd991a0ee959ffa489a2fa363afdce087d0c5f9ec",
+  "d10_pull_months_pod2.sh": "d85952b6ae520be3f2438b568422cc362898860e3aa7f1e571c984f70b7a117c"
+ },
+ "durable_write_sha256": "c5cc16eb924928531ed827f4eb03f5757596c096f6947cb937c2fbadabcf79bd",
+ "selftest_sha256": "96b73bce2930b31f94ae2a1ebb42dc208796ce0d211e707ed550998d665cedd5",
+ "python": "3.9.6",
+ "controls": {
+  "DG_good_world": {
+   "rc": 0,
+   "last": "2026-09-27T05:23:14Z [months-53323-20260927T052313Z] COMPLETE all_verified=yes",
+   "gate": [
+    "2026-05 VERIFIED  entries=2 zip_entries=2 on_disk=2 404=0 rehashed=2"
+   ],
+   "pass": true
+  },
+  "DG2_verified_month_not_repulled": {
+   "rc": 0,
+   "last": "2026-09-27T05:23:14Z [months-53358-20260927T052314Z] COMPLETE all_verified=yes",
+   "pass": true
+  },
+  "DM_persistent_mismatch_named": {
+   "rc": 2,
+   "last": "2026-09-27T05:23:15Z [months-53373-20260927T052314Z] COMPLETE all_verified=no months_not_verified=2026-05",
+   "pass": true
+  },
+  "DC1_import_crash_rc1_touches_nothing": {
+   "rc": 1,
+   "last": "2026-09-27T05:23:16Z [months-53417-20260927T052316Z] FAILED 2026-05 pull did not end in a stated outcome -- stopping, nothing deleted",
+   "zips_unchanged": true,
+   "pass": true
+  },
+  "DC2_sigkill_touches_nothing": {
+   "rc": 1,
+   "last": "2026-09-27T05:23:16Z [months-53439-20260927T052316Z] FAILED 2026-05 pull did not end in a stated outcome -- stopping, nothing deleted",
+   "pass": true
+  },
+  "DC3_rc0_without_manifest_FAILED": {
+   "rc": 1,
+   "last": "2026-09-27T05:23:16Z [months-53461-20260927T052316Z] FAILED 2026-05 pull did not end in a stated outcome -- stopping, nothing deleted",
+   "pass": true
+  },
+  "DC4_state_device_crash_FAILED_before_pull": {
+   "rc": 1,
+   "last": "2026-09-27T05:23:16Z [months-53483-20260927T052316Z] FAILED 2026-05 month-state device gave no known state: 'Traceback (most recent call last):'",
+   "pass": true
+  },
+  "DC5_verdict_device_missing_FAILED": {
+   "rc": 1,
+   "last": "2026-09-27T05:23:17Z [months-53493-20260927T052316Z] FAILED 2026-05 pull did not end in a stated outcome -- stopping, nothing deleted",
+   "pass": true
+  },
+  "DC6_repair_crash_FAILED_no_second_pass": {
+   "rc": 1,
+   "last": "2026-09-27T05:23:17Z [months-53515-20260927T052317Z] FAILED 2026-05 repair device exited 1 -- not re-fetching",
+   "pass": true
+  },
+  "DC7_missing_symbol_list_FAILED": {
+   "rc": 1,
+   "last": "2026-09-27T05:23:17Z [months-53540-20260927T052317Z] FAILED 2026-05 symbol list /var/folders/bv/k_p7xhdx4nl9tny1wwgzfbdm0000gn/T/p9drv_ultppgk7/symlists/2026-05.txt missing or empty",
+   "pass": true
+  },
+  "OLD_driver_same_crash_touches_nothing": {
+   "rc": 0,
+   "repaired": true,
+   "zips_unchanged": false,
+   "zips_after": [
+    "AUSDT-fundingRate-2026-05.zip"
+   ],
+   "pass": false
+  }
+ },
+ "ALL_NEW_PASS": true
+}

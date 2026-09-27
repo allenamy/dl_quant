@@ -21,6 +21,16 @@ event-level completeness. It answers "which months of truth exist at all" and pr
 """
 import argparse, collections, datetime, hashlib, json, os, re, sys, time, urllib.error, urllib.request
 
+for _c in (os.path.dirname(os.path.realpath(__file__)),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "common"),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), "common")):
+    if os.path.exists(os.path.join(_c, "durable_write.py")):
+        sys.path.insert(0, _c)
+        break
+else:
+    raise ImportError("common/durable_write.py not found next to or above this device; deploy it with the device")
+import durable_write as DW  # every file this device writes goes through it (news2 class fix 2026-09-27)
+
 BUCKET = "https://s3-ap-northeast-1.amazonaws.com/data.binance.vision"
 PREFIX = "data/futures/um/monthly/fundingRate/"
 MIN_SPACING_S = 0.21
@@ -123,10 +133,9 @@ def main():
         inv[s] = {"months": months, "n_months": len(months),
                   "bytes": int(sum(months.values())), "listing_pages": pages}
         if a.progress and (i % 25 == 0 or i == len(syms) - 1):
-            with open(a.progress, "w") as f:
-                json.dump({"done": i + 1, "of": len(syms), "requests": rate.n,
-                           "elapsed_s": round(time.time() - t0, 1),
-                           "symbols_with_data": len(inv), "failed": len(failed)}, f, indent=1)
+            DW.write_json(a.progress, {"done": i + 1, "of": len(syms), "requests": rate.n,
+                                       "elapsed_s": round(time.time() - t0, 1),
+                                       "symbols_with_data": len(inv), "failed": len(failed)}, indent=1, allow_nan=True)
 
     rec["elapsed_s"] = round(time.time() - t0, 1)
     rec["requests_made"] = rate.n
@@ -176,8 +185,7 @@ def main():
     rec["verdict"] = "MEASURED"
     rec["limits"] = ["month granularity only; event-level completeness (question 2) needs the zip contents",
                      "a listing proves a file exists, not that its contents are complete"]
-    with open(a.out, "w") as f:
-        json.dump(rec, f, indent=2)
+    print("receipt_sha256", DW.write_json(a.out, rec, indent=2, allow_nan=True))
 
     print("INVENTORY MEASURED")
     print(f"  requests {rate.n} in {rec['elapsed_s']}s   symbols ok {len(inv)}   failed {len(failed)}")

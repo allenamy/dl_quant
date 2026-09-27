@@ -448,8 +448,7 @@ def main():
 
     print(f"  VERDICT {rec['verdict']}")
     if a.out:
-        json.dump(rec, open(a.out, "w"), indent=1)
-        print(f"  receipt -> {a.out}  sha256={sha(a.out)}")
+        print(f"  receipt -> {a.out}  sha256={DW.write_json(a.out, rec, indent=1, allow_nan=True)}")
     return 0
 
 

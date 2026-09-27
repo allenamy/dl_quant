@@ -13,6 +13,16 @@ therefore expected and is not evidence that every symbol had a file.
 """
 import json, os, sys
 
+for _c in (os.path.dirname(os.path.realpath(__file__)),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "common"),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), "common")):
+    if os.path.exists(os.path.join(_c, "durable_write.py")):
+        sys.path.insert(0, _c)
+        break
+else:
+    raise ImportError("common/durable_write.py not found next to or above this device; deploy it with the device")
+import durable_write as DW  # every file this device writes goes through it (news2 class fix 2026-09-27)
+
 inv = json.load(open(sys.argv[1]))["inventory"]
 out = sys.argv[2]
 os.makedirs(out, exist_ok=True)
@@ -22,8 +32,7 @@ for s, d in inv.items():
         per.setdefault(m, []).append(s)
 tot = 0
 for m, syms in sorted(per.items()):
-    with open(os.path.join(out, f"{m}.txt"), "w") as f:
-        f.write("\n".join(sorted(syms)) + "\n")
+    DW.write_bytes(os.path.join(out, f"{m}.txt"), ("\n".join(sorted(syms)) + "\n").encode())
     tot += len(syms)
 print(f"wrote {len(per)} per-month symbol lists, {tot} symbol-months total, into {out}")
 print("months with the most symbols:", sorted(((len(v), k) for k, v in per.items()), reverse=True)[:3])

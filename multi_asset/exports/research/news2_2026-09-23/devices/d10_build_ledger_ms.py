@@ -41,6 +41,16 @@ import zipfile
 
 import numpy as np
 
+for _c in (os.path.dirname(os.path.realpath(__file__)),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "common"),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), "common")):
+    if os.path.exists(os.path.join(_c, "durable_write.py")):
+        sys.path.insert(0, _c)
+        break
+else:
+    raise ImportError("common/durable_write.py not found next to or above this device; deploy it with the device")
+import durable_write as DW  # every file this device writes goes through it (news2 class fix 2026-09-27)
+
 OLD = "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz"
 OLD_SHA = "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
 FUND_DIR = "/workspace/wide_multisrc/funding"
@@ -152,8 +162,7 @@ def main():
         seg = FT[off[j]:off[j + 1]]
         assert np.all(np.diff(seg) > 0), SYMS[j]
     outp = os.path.join(a.out, "ledger_full_ms.npz")
-    np.savez(outp, off=off, ft_ms=FT, rate=RT, src=SR, zip_iv=ZI, symbols=np.array(SYMS))
-    new_sha = sha(outp)
+    new_sha = DW.write_npz(outp, off=off, ft_ms=FT, rate=RT, src=SR, zip_iv=ZI, symbols=np.array(SYMS))
     log("built", len(FT), "rows ->", outp, new_sha[:16])
 
     # ---------------- positive control: fold to seconds and reconcile with the old ledger ----------------
@@ -243,9 +252,9 @@ def main():
            "positive_control_reconciliation": ctrl,
            "seconds": round(time.time() - t0, 1)}
     outj = os.path.join(a.out, "D10_LEDGER_MS_BUILD.json")
-    json.dump(rec, open(outj, "w"), indent=1)
+    rsha = DW.write_json(outj, rec, indent=1, allow_nan=True)
     log("control", ctrl["verdict"], "bitwise", ctrl.get("bitwise"), "extras", len(expected_extras))
-    log("receipt ->", outj, sha(outj)[:16])
+    log("receipt ->", outj, rsha[:16])
     return 0 if ctrl["verdict"] == "RECONCILED" else 2
 
 

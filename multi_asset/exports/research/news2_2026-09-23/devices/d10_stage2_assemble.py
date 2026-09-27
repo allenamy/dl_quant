@@ -18,6 +18,16 @@ usage: d10_stage2_assemble.py --features NF.npz --features-sha SHA --r0 R0_DIR -
 import argparse, hashlib, json, os, sys, time
 import numpy as np
 
+for _c in (os.path.dirname(os.path.realpath(__file__)),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "common"),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), "common")):
+    if os.path.exists(os.path.join(_c, "durable_write.py")):
+        sys.path.insert(0, _c)
+        break
+else:
+    raise ImportError("common/durable_write.py not found next to or above this device; deploy it with the device")
+import durable_write as DW  # every file this device writes goes through it (news2 class fix 2026-09-27)
+
 
 def sha(p):
     h = hashlib.sha256()
@@ -39,7 +49,7 @@ def neq(a, b):
 
 
 def stop(msg, rec, out):
-    rec["STOP"] = msg; open(out + ".STOP.json", "w").write(json.dumps(rec, indent=1)); print("STOP", msg, flush=True); sys.exit(3)
+    rec["STOP"] = msg; DW.write_json(out + ".STOP.json", rec, indent=1, allow_nan=True); print("STOP", msg, flush=True); sys.exit(3)
 
 
 def main():
@@ -120,10 +130,8 @@ def main():
         xc[k] = neq(out[k][pre], Rb[k][pre])
     rec["profile"] = prof; rec["crosscheck_vs_stage1_rebuild_pre_cut"] = {"rebuilt": [a.rebuilt, sha(a.rebuilt)], "differing_rows": xc}
     print("PROFILE", json.dumps(prof), "XCHECK", xc, flush=True)
-    np.savez(a.out, **out)
-    rec["output"] = {"path": a.out, "sha256": sha(a.out)}
-    with open(a.out.replace(".npz", "_RECEIPT.json"), "w") as fh:
-        fh.write(json.dumps(rec, indent=1)); fh.flush(); os.fsync(fh.fileno())
+    rec["output"] = {"path": a.out, "sha256": DW.write_npz(a.out, **out)}
+    DW.write_json(a.out.replace(".npz", "_RECEIPT.json"), rec, indent=1, allow_nan=True)
     print("ASSEMBLE_DONE", rec["output"]["sha256"], flush=True)
 
 

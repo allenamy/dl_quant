@@ -48,6 +48,16 @@ import sys
 
 import numpy as np
 
+for _c in (os.path.dirname(os.path.realpath(__file__)),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "common"),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), "common")):
+    if os.path.exists(os.path.join(_c, "durable_write.py")):
+        sys.path.insert(0, _c)
+        break
+else:
+    raise ImportError("common/durable_write.py not found next to or above this device; deploy it with the device")
+import durable_write as DW  # every file this device writes goes through it (news2 class fix 2026-09-27)
+
 
 def sha(p):
     h = hashlib.sha256()
@@ -321,8 +331,7 @@ def main():
     if rec["verdict"] == "PARITY_RED":
         print("  RED MEANS STOP (lead §2): no retrain, no book-layer reading, no new producer publish. "
               "Widening the tolerance is not a remedy.")
-    json.dump(rec, open(a.out, "w"), indent=1)
-    print(f"  receipt -> {a.out}  sha256={sha(a.out)}")
+    print(f"  receipt -> {a.out}  sha256={DW.write_json(a.out, rec, indent=1, allow_nan=True)}")
     return 0 if rec["verdict"] in ("PARITY_GREEN", "POSITIVE_CONTROL_RUN_NOT_A_GATE") else 2
 
 
