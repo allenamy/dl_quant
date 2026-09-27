@@ -98,3 +98,11 @@ L组定义：EMA<0、fund_z≤−.25、当前RN8<0，且RN8≥EMA/2；C组为同
 - 通过金额闭合后才对同clock损失作同score局部导数/有限差分。原八span的price梯度、carry梯度和ES尾部都重新计算，不复用旧梯度分母。若源码adapter、price覆盖、q路径或输入身份任何一项不闭合，停在测量不可得，不用原始9.9%推进。
 
 以上包只量仪器，完整书验证仍保留King、fund席位、F10、链、GM、执行费用、保护逻辑；不能用独立F10证明候选。CPU扩窗和两臂GPU烟测在资源门后排，由/root核协议后执行，不抢KSR/D10。
+
+## 9. 最小控制已执行、条件训练未启动（2026-09-27 16:19:24 UTC起）
+
+预注册及装置提交a19e3a725。直接提取当前v3 `on_funding/push/step_until/PRI`，只用固定fill夹具：三笔现金−.10,+.48,−.495美元，合计−.115；new-fill幅度导数−.09美元/单位幅度，有限差分误差<1e−9。F=0和反号通过，回溯给new、同刻fill先于funding、ms两笔强接int键均报红。收据`funding_cash_clock_result.json`，只判IMPLEMENTATION_CONTROL_PASS。按秒字典的风险只是**本次ms接入风险**；未查明现役消费者有真实重复扣费，不能由旧文件推翻已有引擎结论。
+
+**具体数据阻塞**：仓内v3 seed02完整window金额在，但INPUT_MANIFEST原镜像`.../scratchpad/replay_exec_mirror`本地不存在；pod2`/workspace/replay_exec_2026-09-19`也不存在。pod2 R/work/exec_mirror只有filters和executor tree，没有pilot_log或producer，不能据它复现v3逐fill路径。实际live funding记录的position_notional来自旧position_read_ts，首条示例读数落后838秒，所以现成notional×rate不能当独立实时q×P真值校验。所需最小恢复物是**某个已经认证的固定路径初始state、trade_log、fund_log、结算price来源及其源码/calibration SHA**；或者找回同版本mirror，再由原引擎只读导出。无需重写模拟器，亦无需可微替身复现全部非线性撮合。
+
+16:15资源预检：GPU约32GiB总量、仅2MiB使用、util0；cgroup max60,999,999,488/current45,907,533,824字节，余量刚超过6GiB+8GiB；同UID RSS约15.69GiB，加6GiB小于30GiB。这只是当刻快照，真实启动必须重检。已授权两臂CPU1/RSS6GiB/GPU8GiB，但实际现金输入门未闭合，**没有启动GPU或训练**。预测两臂一epoch45–60GPU秒、端到端≤8分钟；本轮最多15分钟wall，不以余量逼近而绕过缺失输入。NC旧输入若用只可标实现测试；候选需D10正确共同输入。

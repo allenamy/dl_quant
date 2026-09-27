@@ -1,0 +1,45 @@
+{
+  "utc": "2026-09-27T16:19:25Z",
+  "source_sha": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24",
+  "methods": [
+    "on_funding",
+    "push",
+    "step_until"
+  ],
+  "priority": {
+    "xfer": 1,
+    "funding": 2,
+    "fill": 3,
+    "flatten": 4,
+    "anchor": 5,
+    "eval": 6,
+    "win": 9
+  },
+  "cash_each": [
+    -0.1,
+    0.48000000000000004,
+    -0.49499999999999994
+  ],
+  "cash_total": -0.11499999999999994,
+  "analytic_derivative_d_cash_d_newfill_scale": -0.08999999999999994,
+  "finite_difference_derivative": -0.09000000000009001,
+  "first_event_derivative_newfill": 0.0,
+  "controls": {
+    "literal_cash": true,
+    "zero_funding": true,
+    "sign_flip": true,
+    "backdate_new_red": -0.2149999999999999,
+    "wrong_same_time_fill_red": -0.23499999999999993,
+    "ms_int_key_collision_red": {
+      "wrong_cash": -0.6,
+      "true_event_cash": -0.39999999999999997
+    }
+  },
+  "verdict": "IMPLEMENTATION_CONTROL_PASS",
+  "economic_gate": "UNAVAILABLE_FIXED_V3_PATH_MIRROR_MISSING",
+  "limitations": [
+    "Synthetic fixed fill path; no learned scores or actual strategy change",
+    "Does not claim existing integer-second funding adapter violates its stated source contract",
+    "No full-engine differentiability requirement; actual cash path still required before training smoke"
+  ]
+}
