@@ -312,6 +312,22 @@
   "started_utc": "2026-09-27T06:15:39Z",
   "rows": "S0, D3 recorded NOT_RUN(quota), D4a D4b D4pc D5a D5b D5c D6 D9 D10",
   "devices": "d10_dryrun_run.py rev 2 aca7dd6a (commit 8d1a572bd632264c434367b644cf5f1b624aa0bd)",
-  "delivery": "session cron 9ed50f8e every 10 min (7-59/10) reads this log and reports to lead (E-0926-J rule)"
+  "delivery": "session cron 9ed50f8e every 10 min (7-59/10) reads this log and reports to lead (E-0926-J rule)",
+  "closed": true,
+  "ended": "DRYRUN_STOP at D5a 2026-09-27T06:16:50Z: NameError DW (missing import from d3a7f013d, fixed ac8960d8b); S0 PASS, D3 NOT_RUN(quota), D4a/D4b IDENTICAL, D4pc PASS"
+ },
+ {
+  "name": "news2_rebuild_devices_dry_run_part3",
+  "owner": "news2",
+  "host": "pod2",
+  "log": "/dev/shm/news2_dryrun_2026-09-27/part3/dryrun.log",
+  "pgid": 3411532,
+  "terminal": "^\\S+ (DRYRUN_DONE|DRYRUN_STOP)",
+  "success": "^\\S+ DRYRUN_DONE",
+  "result": "/dev/shm/news2_dryrun_2026-09-27/part3/DRYRUN_RESULT_part3.json",
+  "started_utc": "2026-09-27T06:24:56Z",
+  "rows": "S0, D5a D5b D5c D6 D9 D10 (lead-approved after the D5a fix)",
+  "devices": "fixed p2/legs devices from ac8960d8b489d1f9de28dccd64ea4ac8077dbf99; runner aca7dd6a",
+  "delivery": "session cron 9ed50f8e every 10 min"
  }
 ]
