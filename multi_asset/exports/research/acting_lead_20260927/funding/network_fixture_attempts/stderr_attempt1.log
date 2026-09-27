@@ -1,0 +1,15 @@
+/usr/local/lib/python3.11/dist-packages/torch/cuda/__init__.py:230: UserWarning: 
+NVIDIA RTX PRO 4500 Blackwell with CUDA capability sm_120 is not compatible with the current PyTorch installation.
+The current PyTorch install supports CUDA capabilities sm_50 sm_60 sm_70 sm_75 sm_80 sm_86 sm_90.
+If you want to use the NVIDIA RTX PRO 4500 Blackwell GPU with PyTorch, please check the instructions at https://pytorch.org/get-started/locally/
+
+  warnings.warn(
+Traceback (most recent call last):
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/network_fixture_20260927/funding_network_fixture.py", line 93, in <module>
+    ck=torch.load(inputs['nc_model'][0],map_location='cpu',weights_only=False);mu=ck['mu'].to(dev);sd=ck['sd'].to(dev)
+                                                                                  ^^^^^^^^^^^^^^^^
+RuntimeError: CUDA error: no kernel image is available for execution on the device
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+

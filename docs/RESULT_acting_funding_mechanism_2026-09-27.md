@@ -135,3 +135,12 @@ Pod部署根为`/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/fun
 17:11:54Z按约5分钟重查仍红：余量14,897,160,192 bytes<14GiB，同UID RSS16,806,248,448 bytes，GPU2MiB/util0；仍未启动任何GPU/训练。代码、预注册、实际失败资源收据和单次续跑命令均已归档，等待资源释放，无后台高频轮询。
 
 完整fold方案经research_resume_0927独立静态复核后，0507907f1/82f3f0971补齐六项：同秒压缩须整个秒桶到末事件期间q不变且同价/同窗口；fill价保留decision reference×原signed slip；producer EMA权重h与实际数量q分开；terminal固定末锚+4h、不延标签；固定GM=2只进数量一次、现金统一NAV归一且不叠收3.52；canonical沿实际100000 USDT运行并保留lot/min-notional，随后按NAV归到V0=1，首span必须非零fill及可达结算。它们仍是未执行前置合同，未扩展训练。
+
+
+## 12. 首次资源放行后运行环境失败，重试门再次排队
+
+17:17:09Z首次资源门GREEN：cgroup余量15,123,767,296 bytes≥14GiB，同UID RSS17,049,116,672+6GiB≤30GiB，GPU2MiB/util0；16MiB真实quota probe通过。开始单一15分钟wall，截止17:32:09Z，后续排队与修复不重置。
+
+17:17:14–23Z Pod完整manifest与输入身份通过，原六窗price/fee/cash对账全部≤1e−8USD，枚举1819笔结算（其中400笔重建q严格为0）。随后默认/usr/bin/python的torch2.4.1+cu124在首个CUDA张量报`no kernel image`，17:17:25Z退出；未到网络forward、梯度或optimizer step。guard实测RSS峰1,020,203,008 bytes，GPU进程峰256MiB，child wall15.90秒。HANDOFF本来已指定F10用/workspace/venv；本次漏用是装置环境选择错误，不是资金费模型故障。失败stdout/stderr/guard/env原件保留。
+
+42987619e/e08cdc494在未见网络梯度前固定现成/workspace/venv/bin/python（torch2.11.0+cu128、numpy2.4.6），不安装任何包；guard明确用此子解释器。按原冻结全事件谓词，在CUDA前新增持久化CLOCK_PREFLIGHT以保留q=0省略事件的完整导数更正；没有改变输入、双臂、损失、阈值或预算。17:19:13及17:24:22资源门重新变红，后者余量14,348,087,296 bytes<14GiB，故没有发出第二个GPU子进程。此前§11未启动GPU是17:11当时事实；当前已经发生一次CUDA上下文初始化，但模型/优化步骤仍为0。
