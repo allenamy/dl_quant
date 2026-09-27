@@ -1,0 +1,342 @@
+{
+ "device": "d10_declared_iv_evidence.py",
+ "self_sha256": "6e1784484b0e90090a3c90d2b90cb083f8a6e9818b8333318cca5e463fff0d3d",
+ "argv": {
+  "zips_root": "/dev/shm/d10_2026-09-25/zips",
+  "months": "2026-01,2026-02,2026-03,2026-04,2026-05,2026-06,2026-07,2026-08",
+  "out": "/workspace/d10_ivevidence_2026-09-27/out/D10_DECLARED_IV_EVIDENCE.json",
+  "info_file": null,
+  "selftest": false
+ },
+ "python": {
+  "version": "3.11.10",
+  "executable": "/workspace/venv/bin/python"
+ },
+ "fetched_utc": "2026-09-27T06:37:56Z",
+ "fundingInfo": {
+  "url": "https://fapi.binance.com/fapi/v1/fundingInfo",
+  "sha256": "623d0ecd227205a9d6ecaa3b310a67e692dfaf267729a2a50186c697721b6f37",
+  "n": 791,
+  "interval_counts": {
+   "1": 1,
+   "4": 469,
+   "8": 321
+  },
+  "raw_saved": [
+   "/workspace/d10_ivevidence_2026-09-27/out/D10_DECLARED_IV_EVIDENCE_fundingInfo_raw.json",
+   "623d0ecd227205a9d6ecaa3b310a67e692dfaf267729a2a50186c697721b6f37"
+  ]
+ },
+ "exchangeInfo_sha256": "fe3a1bdf790ef32bd530e707ba034464bfe2cc3243f4e3688e2b71ecbfb28771",
+ "listed_perpetual_trading": 570,
+ "doc_statement": "Query funding rate info for symbols that had FundingRateCap/FundingRateFloor / fundingIntervalHours adjustment",
+ "doc_note": "the doc does not state that absent symbols are 8h; this device tests that inference on the archive",
+ "latest_month": "2026-08",
+ "A_absent_names_checked": 11,
+ "A_mismatch": [],
+ "A_mismatch_delisted": [
+  {
+   "symbol": "ACXUSDT",
+   "intervals": [
+    "4"
+   ],
+   "rows": 39
+  },
+  {
+   "symbol": "HFTUSDT",
+   "intervals": [
+    "1"
+   ],
+   "rows": 27
+  },
+  {
+   "symbol": "ICXUSDT",
+   "intervals": [
+    "4"
+   ],
+   "rows": 153
+  },
+  {
+   "symbol": "SCRTUSDT",
+   "intervals": [
+    "4"
+   ],
+   "rows": 153
+  },
+  {
+   "symbol": "STGUSDT",
+   "intervals": [
+    "4"
+   ],
+   "rows": 186
+  },
+  {
+   "symbol": "STORJUSDT",
+   "intervals": [
+    "4"
+   ],
+   "rows": 153
+  },
+  {
+   "symbol": "VANRYUSDT",
+   "intervals": [
+    "4"
+   ],
+   "rows": 39
+  },
+  {
+   "symbol": "VICUSDT",
+   "intervals": [
+    "4"
+   ],
+   "rows": 39
+  }
+ ],
+ "B_present_names": 791,
+ "B_agree": 655,
+ "B_differ_after_archive_end_possible": [
+  {
+   "symbol": "GSUSDT",
+   "fundingInfo": 8,
+   "last_archive_iv": 1.0
+  },
+  {
+   "symbol": "HK0700USDT",
+   "fundingInfo": 4,
+   "last_archive_iv": 8.0
+  },
+  {
+   "symbol": "HK1810USDT",
+   "fundingInfo": 4,
+   "last_archive_iv": 8.0
+  },
+  {
+   "symbol": "IOSTUSDT",
+   "fundingInfo": 4,
+   "last_archive_iv": 8.0
+  },
+  {
+   "symbol": "MINIMAXUSDT",
+   "fundingInfo": 4,
+   "last_archive_iv": 8.0
+  },
+  {
+   "symbol": "MTLUSDT",
+   "fundingInfo": 4,
+   "last_archive_iv": 8.0
+  },
+  {
+   "symbol": "ONEUSDT",
+   "fundingInfo": 1,
+   "last_archive_iv": 8.0
+  },
+  {
+   "symbol": "ONGUSDT",
+   "fundingInfo": 4,
+   "last_archive_iv": 1.0
+  },
+  {
+   "symbol": "POPMARTUSDT",
+   "fundingInfo": 4,
+   "last_archive_iv": 8.0
+  },
+  {
+   "symbol": "SKRUSDT",
+   "fundingInfo": 4,
+   "last_archive_iv": 1.0
+  },
+  {
+   "symbol": "TENCENTUSDT",
+   "fundingInfo": 4,
+   "last_archive_iv": 8.0
+  },
+  {
+   "symbol": "WENUSDT",
+   "fundingInfo": 8,
+   "last_archive_iv": 1.0
+  },
+  {
+   "symbol": "ZHIPUUSDT",
+   "fundingInfo": 4,
+   "last_archive_iv": 8.0
+  },
+  {
+   "symbol": "ZKCUSDT",
+   "fundingInfo": 4,
+   "last_archive_iv": 1.0
+  }
+ ],
+ "B_not_in_archive": [
+  "1000BONKUSDC",
+  "1000PEPEUSDC",
+  "1000SHIBUSDC",
+  "AAVEUSDC",
+  "AAVEUSD_PERP",
+  "ADAUSDC",
+  "ADAUSD_PERP",
+  "AGPUUSDT",
+  "AMCUSDT",
+  "ANETUSDT",
+  "APLDUSDT",
+  "ARBUSDC",
+  "AVAXUSDC",
+  "AVAXUSD_PERP",
+  "BCHUSDC",
+  "BCHUSD_PERP",
+  "BIOUSDC",
+  "BNBUSDC",
+  "BNBUSD_PERP",
+  "BOMEUSDC",
+  "BTCU",
+  "BTCUSD1",
+  "BTCUSDC",
+  "BTCUSD_PERP",
+  "BYDUSDT",
+  "CRVUSDC",
+  "CSOPSAMSUNG2LUSDT",
+  "CSOPSKHYNIX2LUSDT",
+  "CXMTUSDT",
+  "CYPHUSDT",
+  "DATAIPUSDC",
+  "DDOGUSDT",
+  "DJTUSDT",
+  "DOGEUSDC",
+  "DOGEUSD_PERP",
+  "DOTUSD_PERP",
+  "ENAUSDC",
+  "ETCUSD_PERP",
+  "ETHBTC",
+  "ETHFIUSDC",
+  "ETHU",
+  "ETHUSD1",
+  "ETHUSDC",
+  "ETHUSD_PERP",
+  "FILUSDC",
+  "FILUSD_PERP",
+  "GDXUSDT",
+  "GIGADEVUSDT",
+  "GPROUSDT",
+  "GTLBUSDT",
+  "HANMIUSDT",
+  "HBARUSDC",
+  "HK0625USDT",
+  "HK0992USDT",
+  "HUTUSDT",
+  "IONQUSDT",
+  "KAITOUSDC",
+  "KODEX200USDT",
+  "KOUSDT",
+  "KUAISHOUUSDT",
+  "LGELECTRONICSUSDT",
+  "LINKUSDC",
+  "LINKUSD_PERP",
+  "LTCUSDC",
+  "LTCUSD_PERP",
+  "LYTEUSDT",
+  "MARAUSDT",
+  "MARSCOINUSDT",
+  "MDBUSDT",
+  "MEITUANUSDT",
+  "MOONSHOTUSDT",
+  "MRKUSDT",
+  "MRNAUSDT",
+  "NAVERUSDT",
+  "NEARUSDC",
+  "NEARUSD_PERP",
+  "NEOUSDC",
+  "NETUSDT",
+  "NVDLUSDT",
+  "ORDIUSDC",
+  "OURAUSDT",
+  "PATHUSDT",
+  "PDDUSDT",
+  "PENGUUSDC",
+  "PNUTUSDC",
+  "PONSUSDT",
+  "RAMUSDT",
+  "RDDTUSDT",
+  "SAMSUNGEMUSDT",
+  "SHOPUSDT",
+  "SKDDUSDT",
+  "SKUUUSDT",
+  "SOLUSDC",
+  "SOLUSD_PERP",
+  "SPCXUSD1",
+  "SUIUSDC",
+  "SUIUSD_PERP",
+  "TEAMUSDT",
+  "TEMUSDT",
+  "TIAUSDC",
+  "TRUMPUSDC",
+  "TRXUSD_PERP",
+  "TSLLUSDT",
+  "UNITREEUSDT",
+  "UNIUSDC",
+  "UNIUSD_PERP",
+  "USDBRLUSDT",
+  "VSTUSDT",
+  "WIFUSDC",
+  "WLDUSDC",
+  "WLFIUSDC",
+  "XLMUSD_PERP",
+  "XRPUSDC",
+  "XRPUSD_PERP",
+  "ZECUSDC",
+  "ZHONGJIUSDT",
+  "ZSUSDT",
+  "\u54c8\u57fa\u7c73USDT",
+  "\u5e01\u5b89\u4eba\u751fUSDT",
+  "\u6211\u8e0f\u9a6c\u6765\u4e86USDT",
+  "\u725b\u6765USDT",
+  "\u9f99\u867eUSDT"
+ ],
+ "C_absent_but_adjusted_earlier": [
+  {
+   "symbol": "ACXUSDT",
+   "older_non8": [
+    "4"
+   ]
+  },
+  {
+   "symbol": "ICXUSDT",
+   "older_non8": [
+    "1",
+    "4"
+   ]
+  },
+  {
+   "symbol": "SCRTUSDT",
+   "older_non8": [
+    "4"
+   ]
+  },
+  {
+   "symbol": "STGUSDT",
+   "older_non8": [
+    "1",
+    "4"
+   ]
+  },
+  {
+   "symbol": "STORJUSDT",
+   "older_non8": [
+    "1",
+    "4"
+   ]
+  },
+  {
+   "symbol": "VANRYUSDT",
+   "older_non8": [
+    "1",
+    "4"
+   ]
+  },
+  {
+   "symbol": "VICUSDT",
+   "older_non8": [
+    "4"
+   ]
+  }
+ ],
+ "verdict": "RULE_HOLDS_ON_ARCHIVE"
+}
