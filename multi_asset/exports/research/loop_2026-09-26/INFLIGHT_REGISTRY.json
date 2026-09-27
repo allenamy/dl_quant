@@ -77,10 +77,10 @@
   "success": "^DONE (all steps: R' gate, O, footprint, engine cells, beta, verdicts). Intermediate markers ^GATE_OK / ^CELL_OK / ^VERDICT_OK / ^NOTE; candidate engine cells wait on /dev/shm/alloc_2026-09-26/HOLD_CANDIDATE_CELLS (lead places them)",
   "started_utc": "2026-09-27T00:43:31Z",
   "pgid": 3345374,
-  "relaunch_of": "alloc_family (rev 2a STOP 18:21:02Z, red control R failed; rule §7 R')",
+  "relaunch_of": "alloc_family (rev 2a STOP 18:21:02Z, red control R failed; rule \u00a77 R')",
   "patrol": "session cron 0a490f62 every 10 min + /dev/shm/alloc_2026-09-26/logs/patrol.log",
   "closed": true,
-  "ended": "STOP RED_CONTROL_RPRIME_FAILED_family_stops_final 2026-09-27T00:57:31Z (first family terminated per rule §7; receipt JUDGE_RPRIME.json d2ba0acb, commit 012f1ffe0)"
+  "ended": "STOP RED_CONTROL_RPRIME_FAILED_family_stops_final 2026-09-27T00:57:31Z (first family terminated per rule \u00a77; receipt JUDGE_RPRIME.json d2ba0acb, commit 012f1ffe0)"
  },
  {
   "name": "dlarch_momentum_seat_decomp",
@@ -106,5 +106,14 @@
   "patrol": "session cron (alloc) every 10 min + /dev/shm/alloc_2026-09-26/logs/patrol.log",
   "closed": true,
   "ended": "STOP MECHANISM_GATE_FAILED 2026-09-27T01:24:15Z (no engine cell run; MFOOT.json dc2d1095)"
+ },
+ {
+  "name": "dlarch_king_rootcause",
+  "owner": "dlarch",
+  "log": "/workspace/dlarch_2026-09-24/king_rc_2026-09-27/krc.log",
+  "pgid_file": "/workspace/dlarch_2026-09-24/king_rc_2026-09-27/krc.pgid",
+  "terminal": "^(KING_RC DONE|rc=[1-9]|Traceback)",
+  "host": "pod2",
+  "success": "^KING_RC DONE and then rc=0"
  }
 ]
