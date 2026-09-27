@@ -21,7 +21,10 @@ integ 2026-09-27, run by the lead with the NEW key in a quiet window (never insi
 ★ CREDENTIALS: loaded lazily, only inside `_get`, through the executor's own loader (live/envfile.load of ~/dl_quant_live/.env);
   never printed — only sha256(key)[:10] is printed so the operator can confirm it is the NEW key.
 ★ UNKNOWN IS NOT PASS: any HTTP / JSON / venue error, a page cap hit, or a saturated userTrades window => UNKNOWN, exit 2.
-★ BLIND STATE: pooled numbers only (no arm split); per-name lists are position names, not execution-arm data."""
+★ BLIND STATE: pooled numbers only (no arm split); per-name lists are position names, not execution-arm data.
+★ KNOWN BLIND SPOT (named 2026-09-27 13:0xZ, first live run): /fapi/v3/account lists ONLY symbols that hold a position or an open
+  order, so Q2 reads `positions: []` (n_listed 0) as flat — correct for v3, but Q2 alone cannot tell "flat" from "the endpoint returned
+  nothing". The same endpoint listed 314 held positions at 05:00Z, and Q3/Q4 (no trades since t_off) cover the same fact independently."""
 import argparse, collections, datetime, hashlib, hmac, json, os, sys, time, urllib.parse, urllib.request
 
 BASE = "https://fapi.binance.com"
