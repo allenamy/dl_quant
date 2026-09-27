@@ -38,3 +38,17 @@ A0/A1输出用同D10特征训练的King/资金费席位和同一合法成员、r
 独立静态复核：research_resume_0927于17:12–13Z指出上述聚合压缩区间、decision-reference成交价、EMA/数量双状态、末端边界、GM/fee单位五项；均在首120锚执行前写明。该复核未跑执行器或候选，不构成cash新读数。
 
 17:15Z再补独立复核的numeraire映射：已只读核真实config nav0_usdt=100000及make_sim使用c.NAV0，冻结非零fill与可达结算门，未运行canonical。
+
+## 17:43Z共同输入调用链审查后的实施入口
+
+research_resume_0927已提交1dbe61fa0，独立身份manifest为`multi_asset/exports/research/acting_lead_2026-09-27/receipts/d10_first_span_identity_20260928/IDENTITY_MANIFEST.json`，SHA `9a7de4e6cb0a02b9b8fff94c232635bce6aec8ba15ba06cb2baca3522c920b78`。同目录README给出实际路径和完整调用链；本节消费该只读结果，不重复大哈希或修改D10旧pin。
+
+实际D10RR_s42的config SHA `7f71cfa4fccb53996183cb572eff577f96065992fbe577151bff2e0347c3b5c4`，launch SHA `1e22d40152bc2bbd336f48a40a5a64bb3227078f2f4c804df8dd0ca8b5686fba`。它的特征/legs/King输入是D10重建来源，但现金`ledger_full`明确指向旧秒账 `073088e503c026d6071c76764426503616d53570e5f3763807df27ea7cc80362`。实际bt_launch→bt_driver_lib.load_context→BH.HistFunding→make_sim→ES.on_funding没有ms override。**因此现有D10RR并没有验收76b7毫秒现金消费者。** rerun6只是16行特征重建干跑，没有RUN_CONFIG，不能代替该接口验证。
+
+旧账截止09-19T00Z，新账截止09-27T07Z；行数差含时间延长，共同时段集合/现金差尚未逐事件量过。接口差异不等于旧cash损坏，更不把历史收益推翻。D10 feature已知阈值是ft_ms≤A*1000+999，仍早于A+1440决策；现金经济时刻单独保留ms，不能把feature整锚秒合同误判为泄漏。
+
+旧D10RR的TARGETS NPZ当前缺失，只有生成身份收据，不能凭收据假装目标数组可读，也不能借旧NC目标代替。首次120需要在新根用上述已认证共同输入及原完整书target生成器重建独立targets；保留King+F10+fund、合法成员和必要因果warm state，不能只拼独立F10。目标文件、生成源码及所有共同pins进入新config；原D10 config/213件均不改。该重建只是正确输入下的桥接/固定目标现金正控，不是新候选收益。
+
+精确输入入口用`multi_asset/exports/research/acting_lead_2026-09-27/devices/d10_first_span_identity.py::check_and_load`（source SHA `0d2556e1e322611c221673952ec25175f41256f6bfd1a025a5d36ea10496abee`）。新adapter必须只消费其返回的ft_ms/symbol_index/rate，不能再另开未绑定账本。接口目前只是INPUT_CONTRACT_PASS_CASH_UNVALIDATED、execution_ready=false；10项输入控制不等于cash正确。
+
+最小cash接法是独立HistSim31子类在on_funding(t)前激活该精确ms事件的rate视图，再调用原super.on_funding；旧int(t)查询仅对该激活事件生效，不跨事件复用同秒字典。F.times保留可回转原int64 ms的时间，FundAudit沿float事件记录。先测同秒.100 fill/.900 fund、同symbol同秒两fund夹fill、同ms多symbol、同刻fund先fill、B/B+1ms、held/partial/new及F=0；这些现金消费者控制尚未实现或执行。之后才导出首span非零成交和可达结算，按正文同钟单位核对。首span目前未运行，也未获得新GPU预算。

@@ -149,3 +149,7 @@ Pod部署根为`/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/fun
 17:35:02Z终态已关闭：`EXPIRED_AFTER_RUNTIME_FAILURE_AND_RESOURCE_REFUSALS`。原15分钟wall共900秒用尽，唯一child活动15.896秒；成功网络forward=0、optimizer更新=0、没有model artifact，原PID3515866已不存在。17:29:00最后资源复查余量14,224,306,176 bytes仍<14GiB。Pod独立根保存NO_RESCHEDULE.json，guard校验此标记优先拒绝；只读终态重入测试exit78，未创建child。**本轮没有两臂模型结果**，F=0参数/optimizer、网络carry梯度以及补全q=0事件的导数仍NOT_RUN/NOT_MEASURED，不能把CPU现金闭合替代这些门。旧预算不会重置/重新尝试。
 
 预算工程单列提出，不改本轮identity：首失败child峰RSS1,020,203,008 bytes=约0.950GiB（CUDA上下文已建，未到有效网络计算）；NPY头静态核Panel显式数组保守上界601,661,800 bytes、六锚171维特征1,641,600 bytes、三份完整tape系数709,920 bytes。正确torch2.11的完整CUDA宿主峰尚未测，不能宣称3GiB已获证明。任何较低RSS续试需新方案/新授权/新独立根，保持8GiB余量和GPU8GiB，不清共享cache、不动KSR/D10。
+
+17:43Z独立资源提案见`PLAN_acting_funding_memory_cap_2026-09-27.md`：CPU现金/系数进程退出后再启动GPU小包进程，静态载荷与运行时未知项分开；3GiB仍是待证预算，没有重排。现有cgroup subtree_control为空，未证明有私有memory硬限，采样RSS watchdog不能冒充内核保证。
+
+首120输入审查1dbe61fa0另确认：当前D10RR虽已用D10重建特征，实跑cash链仍读073088旧秒账，未接76b7毫秒账；rerun6不是RUN_CONFIG。当前旧TARGETS NPZ缺失，需要用已绑定共同输入/原完整书生成器在新根重建，不借NC旧目标。身份检查器已交付，明确仅INPUT_CONTRACT_PASS_CASH_UNVALIDATED；新精确ms消费者、真实独立targets和首span逐事件现金门仍未运行，详见更新后的完整fold计划。不能把该接口发现写成已证实旧现金bug。
