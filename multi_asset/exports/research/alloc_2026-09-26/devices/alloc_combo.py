@@ -42,7 +42,7 @@ def verify_training(out, rec, seed, sha):
 
 
 # ───── S2: combo_target.step (d7577e82) verbatim except the marked lines ─────
-def alloc_step(king_rank,f10_score,fund_rank,seats,rn8,members,qv,legal,params,kc_prev,fc_prev,publication,mix):
+def alloc_step(king_rank,f10_score,fund_rank,seats,rn8,members,qv,legal,params,kc_prev,fc_prev,publication,mix,mom=None):
     m=np.asarray(members,int);nw=len(kc_prev);n=len(m)
     if len(fc_prev)!=nw or np.asarray(legal).shape!=(nw,) or len(np.unique(m))!=n or np.any(m<0) or np.any(m>=nw):raise ValueError('combo identity')
     if any(np.asarray(v).shape!=(n,) for v in (king_rank,f10_score,fund_rank,rn8,qv)):raise ValueError('member field axes')
@@ -57,12 +57,14 @@ def alloc_step(king_rank,f10_score,fund_rank,seats,rn8,members,qv,legal,params,k
     fr=sg*np.nan_to_num(fund_rank,nan=0.)                                                    # ALLOC S2 (sg=1.0 for shared: bitwise no-op)
     zkc=ak*np.nan_to_num(king_rank,nan=0.)+bk*fr                                             # ALLOC S2 (step: w[0]*king + w[2]*fund)
     zfc=af*np.nan_to_num(zf,nan=0.)+bf*fr                                                    # ALLOC S2 (step: w[0]*zf + w[2]*fund)
+    if mix=='momneutral':zkc=alloc_rules.mom_residualise(zkc,mom);zfc=alloc_rules.mom_residualise(zfc,mom)   # ALLOC M (rule §8/§9, M-a: before the rn8 clamp and the chain)
     zkc=np.where((zkc<0)&np.isfinite(rn8)&(rn8<=-.001),0.,zkc)
     zfc=np.where((zfc<0)&np.isfinite(rn8)&(rn8<=-.001),0.,zfc)
     ns=source_kernels();ns.update(P=params,NW=nw,pm=m,sel=np.isfinite(qv)&(np.asarray(qv)>=params['qv4h_min']),LIVE_MASK=np.asarray(legal,bool))
     ns['H']=kc_prev;kc=ns['chain'](zkc);ns['H']=fc_prev;fc=ns['chain'](zfc)
     if kc is None or fc is None:return {'accepted':False,'reason':'degenerate signal','kc':kc_prev.copy(),'fc':fc_prev.copy(),'raw':None,'executor_reshaped':None}
     raw=mk*kc+mf*fc;gross=float(np.abs(raw).sum());names=int((np.abs(raw)>1e-9).sum())         # ALLOC S2 (step: .55*kc+.45*fc)
+    if mix=='conc20':raw=alloc_rules.concentrate(raw,0.20)   # ALLOC R_M (rule §9): gross unchanged by construction; the publication gates (gross, names) are evaluated on the combo BEFORE this red-control transform, else the 0.375*n names gate would hold every anchor and R_M would never trade
     coverage_gate=380 if publication=='literal' else int(np.ceil(.95*n));names_gate=150 if publication=='literal' else int(np.ceil(.375*n))
     reasons=[]
     if okf.sum()<coverage_gate:reasons.append('F10 coverage')
@@ -72,7 +74,7 @@ def alloc_step(king_rank,f10_score,fund_rank,seats,rn8,members,qv,legal,params,k
 
 
 # ───── S2: continuous_combo.evolve (1501c9f6) verbatim except step -> alloc_step(..., mix) ─────
-def alloc_evolve(anchors,king,f10,fund,seats,rn8,members,qv,legal,ready,params,publication,mix):
+def alloc_evolve(anchors,king,f10,fund,seats,rn8,members,qv,legal,ready,params,publication,mix,mom=None):
     a=np.asarray(anchors);k=np.asarray(king);n,w=k.shape
     if len(a)!=n or not np.isfinite(a).all() or np.any(a!=np.floor(a)) or np.any(a%14400) or np.any(np.diff(a)!=14400):raise ValueError('continuous 4h anchor axis required')
     if any(np.asarray(v).shape!=(n,w) for v in (f10,fund,rn8,qv,legal)) or np.asarray(seats).shape!=(n,3) or len(members)!=n or np.asarray(ready).shape!=(n,):raise ValueError('combo field axes')
@@ -82,7 +84,7 @@ def alloc_evolve(anchors,king,f10,fund,seats,rn8,members,qv,legal,ready,params,p
         if not ready[i]:
             reasons.append('unready causal legs');out['kc'][i]=kc;out['fc'][i]=fc;continue
         m=np.asarray(members[i],int)
-        result=alloc_step(k[i,m],f10[i,m],fund[i,m],seats[i],rn8[i,m],m,qv[i,m],legal[i],params,kc,fc,publication,mix)   # ALLOC S2
+        result=alloc_step(k[i,m],f10[i,m],fund[i,m],seats[i],rn8[i,m],m,qv[i,m],legal[i],params,kc,fc,publication,mix,None if mom is None else mom[i][m])   # ALLOC S2
         kc=np.where(np.abs(result['kc'])>1e-9,result['kc'],0.);fc=np.where(np.abs(result['fc'])>1e-9,result['fc'],0.)
         out['kc'][i]=kc;out['fc'][i]=fc;reasons.append(result['reason'])
         if result['raw'] is not None:out['raw'][i]=result['raw']
@@ -101,7 +103,7 @@ def sha(p):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--seed', type=int, choices=(42, 2027, 7, 11, 23, 101, 3, 5), required=True)
-    ap.add_argument('--rule', required=True); ap.add_argument('--mix', required=True, choices=('shared', 'orth', 'fundflip', 'negbook')); args = ap.parse_args()
+    ap.add_argument('--rule', required=True); ap.add_argument('--mix', required=True, choices=('shared', 'orth', 'fundflip', 'negbook', 'momneutral', 'conc20')); args = ap.parse_args()
     froot = W / f'work/f10_s{args.seed}'
     paths = [W / 'work/NEWS_FEATURES.npz', W / 'work/legs.npz', W / 'receipts/P3_LEGS.json', froot / 'F10_OOF.npz', froot / 'TRAIN_RECEIPT.json', W / 'inputs/bundle_config.json',
              W / 'receipts/P1_members_2025H2on.npz', pathlib.Path('/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz')]
@@ -125,6 +127,11 @@ def main():
     ident[UNIVERSE_PATH] = UNIVERSE_SHA
     config = json.loads(paths[5].read_text())
     seats_all, seat_rec = alloc_rules.seats_for(args.rule, leg['LR'], leg['WL'])                      # ALLOC S1
+    mom_u = None
+    if args.mix == 'momneutral':                                                                          # ALLOC M: past 1/3/7-day log returns, causal
+        MP = pathlib.Path('/workspace/alloc_2026-09-26/work/mom_features.npz'); ident[str(MP)] = sha(MP)
+        MZ = np.load(MP); assert np.array_equal(MZ['E_ts'].astype(np.int64), a) and np.array_equal(MZ['symbols'], syms)
+        mom_u = MZ['mom'][use]
     seats_u = seats_all[use]
     wl_u = leg['WL'][use].astype(np.float64)
     seat_rec['anchors_seat_differs_from_WL_on_ready'] = int(((seats_u != wl_u).any(1) & leg['ready'][use]).sum())
@@ -136,7 +143,7 @@ def main():
     summary = {}
     for policy in ('literal', 'scaled_diagnostic'):
         result = alloc_evolve(au, leg['KZ'][use].astype(np.float64), score['P'][use].astype(np.float64), leg['ZFD'][use].astype(np.float64), seats_u,
-                              leg['RN8'][use].astype(np.float64), mem_u, leg['QV'][use].astype(np.float64), book_legal, leg['ready'][use], config['params'], policy, args.mix)
+                              leg['RN8'][use].astype(np.float64), mem_u, leg['QV'][use].astype(np.float64), book_legal, leg['ready'][use], config['params'], policy, args.mix, mom_u)
         p = out / (policy + '.npz'); tmp = out / (policy + '.tmp.npz'); np.savez_compressed(tmp, E_ts=au, symbols=syms, **result); tmp.replace(p)
         counts = dict(collections.Counter(result['reason'])); years = {}
         yr = np.array([datetime.datetime.fromtimestamp(int(x), datetime.timezone.utc).year for x in au])

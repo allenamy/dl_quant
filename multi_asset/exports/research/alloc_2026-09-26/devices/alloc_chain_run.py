@@ -143,7 +143,10 @@ def main():
     assert seed in F10_SRC, f"seed {seed}: no NC reference cell to pair with"
     identity_arm = (rule == "inservice" and mix == "shared")
     assert not eng_ident or (identity_arm and do_engine), "--engine-identity is the in-service arm's end-to-end check"
-    arm = f"ALLOC_{rule}_{mix}_s{seed}X"; label = f"{rule}_{mix}_s{seed}"; root = f"{CELLS}/{label}"
+    arm = f"ALLOC_{rule}_{mix}_s{seed}X"; label = f"{rule}_{mix}_s{seed}"
+    if "--label" in args:     # a separate root (e.g. a re-identity combo that must not rmtree the kept identity cell's PATH files)
+        assert not do_engine, "--label is for combo-only runs"; label = args[args.index("--label") + 1]
+    root = f"{CELLS}/{label}"
     rec = {"device": "alloc_chain_run.py", "self_sha256": sha(os.path.abspath(__file__)), "arm": arm, "rule": rule, "mix": mix, "seed": seed,
            "root": root, "f10_source": F10_SRC[seed], "reference_cell": REF_CELL[seed],
            "devices": {n: sha(os.path.join(DEV, n)) for n in sorted(os.listdir(DEV)) if n.endswith(".py")},
@@ -216,7 +219,7 @@ def main():
         # lead 2026-09-26 18:1xZ team engine-slot priority: candidate cells run only when the lead places them. While the hold file
         # exists, a CANDIDATE arm waits here (controls -- the in-service identity, the fundflip red control, the oracle ceiling -- are
         # exempt). Scheduling only: nothing about the cell changes. Every poll is recorded in the receipt.
-        control_arm = (rule in ("inservice", "oracle") and mix in ("shared", "fundflip", "negbook"))
+        control_arm = (rule in ("inservice", "oracle") and mix in ("shared", "fundflip", "negbook", "conc20"))
         rec["candidate_hold"] = []
         while (not control_arm) and os.path.exists(HOLD_FILE):
             rec["candidate_hold"].append(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))

@@ -134,7 +134,40 @@ def mix_weights(mix, w):
         return w[0], w[2], w[0], w[2], .55, .45, -1.0
     if mix == "negbook":                    # RED CONTROL R' (DECISION_RULE §7): the whole combo target negated, states and gross unchanged
         return w[0], w[2], w[0], w[2], -.55, -.45, 1.0
+    if mix in ("momneutral", "conc20"):     # family M arm / its red control R_M: the in-service scalars; the transform lives in alloc_step
+        return w[0], w[2], w[0], w[2], .55, .45, 1.0
     if mix == "orth":
         d = 1.0 - .45 * w[0]
         return .55 * w[0] / d, w[2] / d, 1.0, 0.0, d, .45 * w[0], 1.0
     raise ValueError(f"unknown mix {mix!r}")
+
+
+def _crank(v):
+    """centred within-set rank in [-.5, .5] (the xz convention)."""
+    from scipy.stats import rankdata
+    return rankdata(v) / max(len(v) - 1, 1) - 0.5
+
+
+def mom_residualise(z, mom):
+    """family M arm (rule §8, M-a): OLS-residualise the member z vector on the within-anchor centred ranks of past 1/3/7-day returns
+    (all three jointly, with intercept), over the members whose three momentum values are finite; other members keep their z. Then
+    re-demean over all members and rescale so sum|z| is unchanged. No parameters."""
+    z = np.asarray(z, float); mom = np.asarray(mom, float)
+    ok = np.isfinite(mom).all(1)
+    if ok.sum() < 10: return z
+    X = np.column_stack([np.ones(ok.sum())] + [_crank(mom[ok, j]) for j in range(mom.shape[1])])
+    beta = np.linalg.lstsq(X, z[ok], rcond=None)[0]
+    out = z.copy(); out[ok] = z[ok] - X @ beta
+    out = out - out.mean(); g0 = np.abs(z).sum(); g1 = np.abs(out).sum()
+    return out * (g0 / g1) if g1 > 1e-12 else out
+
+
+def concentrate(raw, frac):
+    """R_M red control (rule §9): keep only the top `frac` of names by |weight| (ceil of frac x nonzero count), re-demean over the kept
+    names, restore the original gross. Diversification falls by construction."""
+    raw = np.asarray(raw, float); nz = np.flatnonzero(np.abs(raw) > 1e-9)
+    if len(nz) < 2: return raw
+    k = int(np.ceil(frac * len(nz))); keep = nz[np.argsort(-np.abs(raw[nz]), kind="stable")[:k]]
+    out = np.zeros_like(raw); out[keep] = raw[keep] - raw[keep].mean()
+    g0 = np.abs(raw).sum(); g1 = np.abs(out).sum()
+    return out * (g0 / g1) if g1 > 1e-12 else raw

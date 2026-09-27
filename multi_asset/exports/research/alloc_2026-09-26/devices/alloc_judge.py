@@ -15,6 +15,13 @@ Committed BEFORE any reading it produces. Three modes, one measurement:
   --mode RPRIME  red control R' (rule §7, negbook, s42). For each of pre2026 / 2026: if the NC reference's price channel (pnl, bps/anchor/
                  gross, read from the REF cell only) is > 0 the segment is judged and needs D < 0 AND MBB 95% upper < 0; if NC pnl <= 0 the
                  segment is named EXCLUDED. PASS iff every judged segment passes and at least one segment is judged.
+  --mode RM      family M red control R_M (rule §9, conc20, s42): daily-return variance ratio VR = var(arm)/var(NC) per segment on the
+                 32-path mean daily series, 30-day MBB 95% (days resampled jointly). PASS iff BOTH segments' MBB95 LOWER bound > 1.
+  --mode MFAM    family M arm momneutral, seeds {42, 2027, 7} (rule §9). VR_seg = mean over seeds of VR_k (MBB resamples days jointly for
+                 all seeds). RISK: VR_pre < 1 AND VR_2026 < 1 AND 2026 MBB95 upper < 1 AND the §3 maxDD guard. MEAN NON-INFERIORITY:
+                 D_seg >= -max(1.0, 2*SE_seg) for both segments (SE as §1) AND full-window daily Sharpe (seed mean of the 32-path mean series)
+                 >= NC's. All => RECOMMEND_TO_USER "lower momentum risk, mean not worse" (+ F10-not-retrained limit); else NOT_RECOMMENDED,
+                 naming each failed item.
   --mode O       ceiling control (oracle, s42). RUN_SEAT_ARMS = NOT( pre2026 D < 3.84*SE AND 2026 D < 3.84*SE ), SE from O's own
                  paired series (rule §2-1). O is never admissible.
   --mode FAMILY  one candidate arm, seeds {42, 2027, 7} (rule §3). Return track for A1/A2/A3; non-inferiority track for A3 only
@@ -22,7 +29,7 @@ Committed BEFORE any reading it produces. Three modes, one measurement:
 Required reports (rule §5) that are computed here: four channels (pnl/car/cst/unk bps/anchor), turnover, hold/halt counts, per-year
 dbar table, every seed listed, maxDD 5m path means. BTC daily beta is NOT computed here (no BTC series in the engine output): reported by
 a separate named step before the family verdict is sent; its absence is written into every output as PENDING.
-usage: env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B alloc_judge.py PATH,HOME,LC_CTYPE --mode IDENTITY|R|RPRIME|O|FAMILY
+usage: env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B alloc_judge.py PATH,HOME,LC_CTYPE --mode IDENTITY|R|RPRIME|RM|MFAM|O|FAMILY
          --arm <rule>_<mix> --seeds 42[,2027,7] [--arm-class A1|A2|A3|A4] [--noninf-mech-corr X] --out <json>
 """
 import os, sys, json, math, hashlib, time
@@ -51,11 +58,13 @@ def main():
     for _k in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"): os.environ[_k] = "1"
     args = sys.argv[2:]; mode = arg(args, "--mode"); armname = arg(args, "--arm"); out = arg(args, "--out")
     seeds = [int(x) for x in arg(args, "--seeds").split(",")]; aclass = arg(args, "--arm-class")
-    assert mode in ("IDENTITY", "R", "RPRIME", "O", "FAMILY")
+    assert mode in ("IDENTITY", "R", "RPRIME", "RM", "MFAM", "O", "FAMILY")
     if mode == "IDENTITY": assert armname == "inservice_shared" and seeds == [42]
     if mode == "R": assert armname == "inservice_fundflip" and seeds == [42]
     if mode == "RPRIME": assert armname == "inservice_negbook" and seeds == [42]
     if mode == "O": assert armname == "oracle_shared" and seeds == [42]
+    if mode == "RM": assert armname == "inservice_conc20" and seeds == [42]
+    if mode == "MFAM": assert armname == "inservice_momneutral" and sorted(seeds) == [7, 42, 2027]
     if mode == "FAMILY": assert sorted(seeds) == [7, 42, 2027] and aclass in ("A1", "A2", "A3", "A4")
     assert sha(f"{ENG}/news_stats.py") == NS_SHA, "frozen judge drifted"
     import news_stats as S, bt_tables as BT, bt_driver_lib as DL
@@ -114,6 +123,43 @@ def main():
                 seg_v[k] = {"NC_pnl": ncp, "judged": False, "EXCLUDED": "NC price channel <= 0"}
         ok = any(v["judged"] for v in seg_v.values()) and all(v["PASS"] for v in seg_v.values() if v["judged"])
         V.update(segments=seg_v, VERDICT="PASS" if ok else "FAIL_FAMILY_STOPS", rule="rule §7: every segment with NC pnl > 0 needs D<0 & MBB95 upper<0")
+    elif mode in ("RM", "MFAM"):
+        def vr_block(k):
+            xa = []; xr = []
+            for s in seeds:
+                ma, mr = S.BT.series_mean(cells[s]["arm"]), S.BT.series_mean(cells[s]["ref"])
+                xa.append(S.daily_on(A[masks[k]], ma["r"][masks[k]], days[k])); xr.append(S.daily_on(A[masks[k]], mr["r"][masks[k]], days[k]))
+            xa = np.stack(xa); xr = np.stack(xr); idx = BT.mbb_indices(xa.shape[1], BLOCK, B, RNG)
+            vr_k = xa.var(1, ddof=1) / xr.var(1, ddof=1)
+            boot = np.mean([xa[j][idx].var(1, ddof=1) / xr[j][idx].var(1, ddof=1) for j in range(len(seeds))], 0)
+            sh = lambda x: float(x.mean() / x.std(ddof=1) * math.sqrt(365.0))
+            return {"VR": float(vr_k.mean()), "VR_by_seed": {str(s): float(v) for s, v in zip(seeds, vr_k)},
+                    "mbb95": [float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))],
+                    "sharpe_arm_seedmean": float(np.mean([sh(x) for x in xa])), "sharpe_NC_seedmean": float(np.mean([sh(x) for x in xr]))}
+        vr = {k: vr_block(k) for k in ("pre2026", "2026")}
+        if mode == "RM":
+            ok = all(vr[k]["mbb95"][0] > 1 for k in vr)
+            V.update(variance_ratio=vr, VERDICT="PASS" if ok else "FAIL_FAMILY_STOPS", rule="rule §9 R_M: both segments' VR MBB95 lower > 1")
+        else:
+            full = {}
+            xa_f = []; xr_f = []
+            for s in seeds:
+                ma, mr = S.BT.series_mean(cells[s]["arm"]), S.BT.series_mean(cells[s]["ref"])
+                xa_f.append(np.concatenate([S.daily_on(A[masks[k]], ma["r"][masks[k]], days[k]) for k in ("pre2026", "2026")]))
+                xr_f.append(np.concatenate([S.daily_on(A[masks[k]], mr["r"][masks[k]], days[k]) for k in ("pre2026", "2026")]))
+            sh = lambda x: float(x.mean() / x.std(ddof=1) * math.sqrt(365.0))
+            full = {"sharpe_arm_seedmean": float(np.mean([sh(x) for x in xa_f])), "sharpe_NC_seedmean": float(np.mean([sh(x) for x in xr_f]))}
+            dd_ok = all(np.mean([per[k][s]["maxdd_5m_path_mean"]["arm"] for s in seeds]) >= np.mean([per[k][s]["maxdd_5m_path_mean"]["ref"] for s in seeds]) - 0.03
+                        for k in ("pre2026", "2026"))
+            items = {"VR_pre_lt_1": vr["pre2026"]["VR"] < 1, "VR_2026_lt_1": vr["2026"]["VR"] < 1, "VR_2026_mbb95_upper_lt_1": vr["2026"]["mbb95"][1] < 1,
+                     "dd_guard": bool(dd_ok),
+                     "mean_noninferior_pre": stat["pre2026"]["D_bps_per_day"] >= -max(1.0, 2 * stat["pre2026"]["SE"]),
+                     "mean_noninferior_2026": stat["2026"]["D_bps_per_day"] >= -max(1.0, 2 * stat["2026"]["SE"]),
+                     "full_sharpe_not_below_NC": full["sharpe_arm_seedmean"] >= full["sharpe_NC_seedmean"]}
+            items = {k: bool(v) for k, v in items.items()}
+            V.update(variance_ratio=vr, full_window=full, items=items,
+                     VERDICT=("RECOMMEND_TO_USER (lower momentum risk, mean not worse; F10 not retrained for the new structure -- full-pipeline confirmation required)"
+                              if all(items.values()) else "NOT_RECOMMENDED failed=" + ",".join(k for k, v in items.items() if not v)))
     elif mode == "O":
         mde = {k: MDE_K * stat[k]["SE"] for k in ("pre2026", "2026")}
         below = {k: stat[k]["D_bps_per_day"] < mde[k] for k in mde}
