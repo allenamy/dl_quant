@@ -134,7 +134,7 @@ for x in NM:
                 bchecks.append(okp and okr)
             row["buckets"][var] = {"edges_low_mid_high": edges, "n_defined": nv, "cells": {k_: {kk: round(vv, 2) for kk, vv in v.items()} for k_, v in sorted(agg.items())}}
             for k_, v in agg.items():
-                for kk, vv in v.items(): tot[f"B|{var}|{k_}|{kk}"] += vv
+                for kk, vv in v.items(): tot[f"B#{var}#{k_}#{kk}"] += vv
     res.append(row)
     dkey = time.strftime("%m-%d", time.gmtime(tA))
     for k, v in c.items():
@@ -151,8 +151,8 @@ out = {"device": "side_split.py", "self_sha256": hashlib.sha256(open(os.path.abs
 if BUCKETS:
     wb = collections.defaultdict(dict)
     for k, v in tot.items():
-        if k.startswith("B|"):
-            _, var, cell, kk = k.split("|")
+        if k.startswith("B#"):
+            _, var, cell, kk = k.split("#")
             wb[var].setdefault(cell, {})[kk] = round(v, 2)
     out["window_buckets"] = {var: dict(sorted(v.items())) for var, v in sorted(wb.items())}
     out["bucket_sums_equal_side_totals_every_interval"] = bool(bchecks) and all(bchecks)
