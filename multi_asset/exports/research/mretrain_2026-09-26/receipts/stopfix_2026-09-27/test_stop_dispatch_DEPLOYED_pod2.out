@@ -1,0 +1,38 @@
+== S structural (devices dir itself)
+  not a family script (no family root): mr_stop.sh
+  not a family script (no family root): pnoise_setup.sh
+  not a family script (no family root): rerun_stats_ext.sh
+  not a family script (no family root): run_chain_corrected.sh
+  not a family script (no family root): run_d7rows_pod2.sh
+  not a family script (no family root): run_gate_pod2.sh
+  not a family script (no family root): run_gates_after_parity.sh
+  not a family script (no family root): run_p3_legs_f10.sh
+  not a family script (no family root): run_p4_after_p3.sh
+  not a family script (no family root): run_p4_chain.sh
+  not a family script (no family root): run_parity_arms.sh
+  not a family script (no family root): run_parity_pair.sh
+  not a family script (no family root): run_probe_pod2.sh
+  launch sites found: 8, unguarded: 0
+PASS S sites=8 all guarded
+== T1 master: STOP during the slot wait
+  [T1] preps launched: 3; master.log tail: 2026-09-27T05:16:30Z engine queue rc=1|2026-09-27T05:16:30Z MASTER_STOPPED|
+PASS T1 3 preps (all before the STOP), PREP_QUEUE_STOPPED
+== B1 master baseline: an earlier run's STOP before the offset, no new STOP
+  [B1] preps launched: 6; master.log tail: 2026-09-27T05:16:44Z engine queue rc=0|2026-09-27T05:16:44Z MASTER_DONE|
+PASS B1 6/6 preps, MASTER_DONE
+== T2 engine queue: STOP during the PAUSE wait
+  [T2] engine launches: 0, queue rc=1; queue.log tail: 2026-09-27T05:16:46Z HALT (no launch): family STOP during PAUSE before A s42
+PASS T2 no engine launch after the STOP, rc=1
+== B2 engine queue baseline: earlier run's STOP only
+  [B2] engine launches: 1, queue rc=1; queue.log tail: 2026-09-27T05:16:57Z STOP: A s42 series unreadable
+PASS B2 1 engine launch(es) (earlier STOP ignored)
+== T3a consumer: no stop scope declared
+  [T3a] prep rc=3, FAILED marker=no, STOP lines added=0, refused line=1
+PASS T3a refused rc 3, nothing written
+== T3b consumer: STOP after the offset
+  [T3b] prep rc=3, FAILED marker=no, STOP lines added=0, refused line=1
+PASS T3b refused rc 3, nothing written
+== B3 consumer baseline: earlier run's STOP only (the prep proceeds; in the sandbox it then fails on missing inputs)
+  [B3] prep rc=1, FAILED marker=yes, STOP lines added=1, refused line=0
+PASS B3 not refused (rc=1)
+TEST_MR_STOP_DISPATCH devices=/dev/shm/mretrain_2026-09-26/devices pass=8 fail=0 sandbox=/tmp/fresh2_stoptest.Or4wxT

@@ -1,0 +1,33 @@
+== S structural (devices dir itself)
+  unguarded launch mr_engine_queue.sh:   setsid env -i PATH=/usr/bin:/bin HOME=/root nice -n 12 $PV -B bt_launch.py PATH,HOME,LC_CTYPE \
+  unguarded launch mr_master.sh: bash $D/mr_prep.sh A0 0 preflight > $L/prep_A0_m0_preflight.out 2>&1 || { say "STOP: pre-flight (combo reads) FAILED, see $L/A0_m0/preflight
+  unguarded launch mr_master.sh: bash $D/mr_prep.sh A0 0 train > $L/prep_A0_m0.out 2>&1 &
+  unguarded launch mr_master.sh:   (cd $D && nice -n 12 $PV -B mr_train_king.py --out $R/gate/A0_m0_dup --arm A0 --rs 0 > $L/king_dup.log 2>&1)
+  unguarded launch mr_master.sh: bash $D/mr_engine_queue.sh $D/ORDER.txt > $L/engine_queue.out 2>&1 &
+  unguarded launch mr_master.sh:   bash $D/mr_prep.sh $ARM $M $MODE > $L/prep_${ARM}_m${M}_${MODE}.out 2>&1 &
+  unguarded launch rc_hybrid.sh:   MR_MASTER_LOG=$LG bash $D/mr_prep.sh $H 0 train > $R/logs/prep_${H}_m0.out 2>&1 || stop "prep ${H}_m0 failed (see $R/logs/${H}_m0/prep.log
+  unguarded launch rc_hybrid.sh: bash $D/mr_engine_queue.sh $D/ORDER_rc.txt rootcause > $R/logs/engine_queue_rc.out 2>&1 || stop "engine queue (rootcause) rc!=0 (see $R/logs
+  launch sites found: 8, unguarded: 8
+FAIL S sites=8 unguarded=8 (population >= 7 required)
+== T1 master: STOP during the slot wait
+  [T1] preps launched: 4; master.log tail: 2026-09-27T05:17:10Z engine queue rc=1|2026-09-27T05:17:10Z MASTER_STOPPED|
+FAIL T1 4 preps launched (3 expected: the 4th waited for a slot across the STOP)
+== B1 master baseline: an earlier run's STOP before the offset, no new STOP
+  [B1] preps launched: 6; master.log tail: 2026-09-27T05:17:24Z engine queue rc=0|2026-09-27T05:17:24Z MASTER_DONE|
+PASS B1 6/6 preps, MASTER_DONE
+== T2 engine queue: STOP during the PAUSE wait
+  [T2] engine launches: 1, queue rc=1; queue.log tail: 2026-09-27T05:17:34Z STOP: A s42 series unreadable
+FAIL T2 1 engine launch(es) after the STOP
+== B2 engine queue baseline: earlier run's STOP only
+  [B2] engine launches: 1, queue rc=1; queue.log tail: 2026-09-27T05:17:43Z STOP: A s42 series unreadable
+PASS B2 1 engine launch(es) (earlier STOP ignored)
+== T3a consumer: no stop scope declared
+  [T3a] prep rc=1, FAILED marker=yes, STOP lines added=1, refused line=0
+FAIL T3a rc=1 failed=yes added=1
+== T3b consumer: STOP after the offset
+  [T3b] prep rc=1, FAILED marker=yes, STOP lines added=1, refused line=0
+FAIL T3b rc=1 failed=yes added=1
+== B3 consumer baseline: earlier run's STOP only (the prep proceeds; in the sandbox it then fails on missing inputs)
+  [B3] prep rc=1, FAILED marker=yes, STOP lines added=1, refused line=0
+PASS B3 not refused (rc=1)
+TEST_MR_STOP_DISPATCH devices=/tmp/fresh2_stoptest_src/old pass=3 fail=5 sandbox=/tmp/fresh2_stoptest.dH9Itw

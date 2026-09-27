@@ -19,6 +19,10 @@ ML=${MR_MASTER_LOG:-$R/logs/master.log}   # the registered log of the job that r
 fail() { say "FAILED: $*"; touch $W/FAILED; echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) STOP: prep $LBL FAILED: $*" >> $ML; exit 1; }
 DUP_MEMBERS="A1_m0 A3_m0"   # rule §7 (revision 1, da04c28f9): one duplicate-trained member per candidate arm, scores must be bitwise equal
 trap 'fail "rc=$? at line $LINENO"' ERR
+# consumer-side stop guard (mr_stop.sh rule 3): whoever dispatched this prep, a STOP in its registered log after its start offset
+# (or no declared scope) => refuse with rc 3 before touching anything; not a failure (no FAILED marker, no second STOP line)
+. $D/mr_stop.sh
+if ! mr_guard "prep $LBL $MODE" 2>> $L/prep.log; then echo "$LBL REFUSED: family stopped (see $L/prep.log)"; exit 3; fi
 [ -e $W/FAILED ] && { echo "$LBL has a FAILED marker; refusing"; exit 1; }
 mkdir -p $W/{work,receipts,inputs,configs,targets}
 ln -f $N/work/NEWS_FEATURES.npz $W/work/NEWS_FEATURES.npz
