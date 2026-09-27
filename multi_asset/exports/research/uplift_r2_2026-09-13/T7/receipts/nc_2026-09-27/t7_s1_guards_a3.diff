@@ -1,0 +1,43 @@
+2c2,6
+< """t7_s1_guards.py — S1 data guards G1–G5 on the full pull (frozen PREREG_T7_S1.md §2.4 with §11 additions). Runs on the Mac against /Users/haosiyu/cc_tmp/krw_pull.
+---
+> """t7_s1_guards_a3.py — AMENDMENT-3 (frozen 70edf17ed) copy of the frozen t7_s1_guards.py; ONLY G2 changes: (a) the G2 gate covers the NC evaluation years
+> 2023-2026 only; (b) cells the frozen rules themselves invalidate (coin / BTC perp zero-trade hour under §11.11, BTC-leg G5 day) are removed from the G2
+> denominator iff every failing cause of the cell is in that set (the strict rule of t7_g2_split.py, receipt 9877771b). Threshold 0.99, venues, definitions unchanged.
+> Original docstring follows.
+> t7_s1_guards.py — S1 data guards G1–G5 on the full pull (frozen PREREG_T7_S1.md §2.4 with §11 additions). Runs on the Mac against /Users/haosiyu/cc_tmp/krw_pull.
+26a31
+> EVAL_YEARS = (2023, 2024, 2025, 2026)   # AMENDMENT-3 (a)
+91a97,108
+>         # AMENDMENT-3 (b): strict rule-only exclusion flags (verbatim logic of t7_g2_split.py)
+>         _o = dg["o"]; _has = dg["has_bar"]; _pc = C.at(Pp["open_s"], _o); _dk = C.day_keys(v, _o)
+>         _g5c = G5.get((v, mk), set()); _g5btc = G5.get((v, "KRW-BTC"), set()); _g5u = G5.get((v, "KRW-USDT"), set())
+>         _pmiss = _has & dg["idx_ok"] & (_pc < 0); _pzero = _has & dg["idx_ok"] & (_pc >= 0) & (Pp["count"][np.maximum(_pc, 0)] == 0)
+>         _cg5 = _has & np.isin(_dk, list(_g5c)) if _g5c else np.zeros(N.size, bool)
+>         _bk = C.at(KB["open_s"], _o); _bi = C.at(IBTC["open_s"], _o); _bp = C.at(PBTC["open_s"], _o)
+>         _bpz = _has & (_bp >= 0) & (PBTC["count"][np.maximum(_bp, 0)] == 0); _bg5 = _has & np.isin(_dk, list(_g5btc)) if _g5btc else np.zeros(N.size, bool)
+>         _iu = C.latest_in(KU["open_s"], _o - 3 * 3600, _o); _du = C.day_keys(v, np.where(_iu >= 0, KU["open_s"][np.maximum(_iu, 0)], -1))
+>         _ug5 = _has & (_iu >= 0) & np.isin(_du, list(_g5u)) if _g5u else np.zeros(N.size, bool)
+>         _nonrule_common = ~_has | (_has & ~dg["idx_ok"]) | _pmiss | _cg5
+>         _rule = {"A": _pzero | _bpz | _bg5, "B": _pzero}
+>         _nonrule = {"A": _nonrule_common | (_has & (_bk < 0)) | (_has & (_bi < 0)) | (_has & (_bp < 0)), "B": _nonrule_common | (_has & (_iu < 0)) | _ug5}
+92a110
+>             _rx = cells & ~valid & _rule[dfn] & ~_nonrule[dfn]
+94a113
+>                 a["RULE_EXCLUDED"] += int((_rx & (yrs == y)).sum())
+104,105c123,126
+<         g2rows.append({"venue": k[0], "year": k[1], "def": k[2], **a, "hit_rate": round(a["valid"] / a["cells"], 6) if a["cells"] else None})
+< G2_PASS = all(r["hit_rate"] is not None and r["hit_rate"] >= 0.99 for r in g2rows)
+---
+>         g2rows.append({"venue": k[0], "year": k[1], "def": k[2], **a, "hit_rate_frozen": round(a["valid"] / a["cells"], 6) if a["cells"] else None,
+>                        "hit_rate": round(a["valid"] / (a["cells"] - a["RULE_EXCLUDED"]), 6) if a["cells"] - a["RULE_EXCLUDED"] > 0 else None,
+>                        "gated": k[1] in EVAL_YEARS})
+> G2_PASS = all(r["hit_rate"] is not None and r["hit_rate"] >= 0.99 for r in g2rows if r["gated"]) and {r["year"] for r in g2rows if r["gated"]} == set(EVAL_YEARS)
+139c160
+< out = {"device": os.path.basename(__file__), "device_sha256": DEVICE_SHA, "common_sha256": COMMON_SHA, "prereg_sha256": "62c6da526ac919304ef464389a0f5024015c37664a9721a11b70f33549f252ac",
+---
+> out = {"device": os.path.basename(__file__), "device_sha256": DEVICE_SHA, "common_sha256": COMMON_SHA, "prereg_sha256": "62c6da526ac919304ef464389a0f5024015c37664a9721a11b70f33549f252ac", "amendment_3_commit": "70edf17edbc52ceb4cdacb4c69913052251f68ad",
+146c167
+< for r in g2rows: print("G2", r["venue"], r["year"], r["def"], r["cells"], r["hit_rate"], {k: r[k] for k in ("NO_BAR", "NO_INDEX", "NO_PERP_TRADE", "OTHER")})
+---
+> for r in g2rows: print("G2", r["venue"], r["year"], r["def"], "gated" if r["gated"] else "not-gated", r["cells"], r["hit_rate_frozen"], r["RULE_EXCLUDED"], r["hit_rate"], {k: r[k] for k in ("NO_BAR", "NO_INDEX", "NO_PERP_TRADE", "OTHER")})
