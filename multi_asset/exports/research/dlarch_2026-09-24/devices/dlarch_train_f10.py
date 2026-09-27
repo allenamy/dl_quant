@@ -23,6 +23,15 @@ the end of the fold must equal its initial value.
 
 READ-ONLY inputs under /dev/shm; ALL outputs under /workspace. No writes to /dev/shm, none to live trees.
 
+OCTOBER D10 REBUILD (2026-09-27, runbook RUNBOOK_october_rebuild_D10_2026-09-27.md §3, option (ii)): the data root is no longer
+hard-wired. --features/--legs (+ their receipts) are ARGUMENTS with LITERAL expected shas (--features-sha/--legs-sha; defaults =
+the in-service NC pins 3c886a2b / 9ee5886f, so every existing command line keeps its meaning and the G1 identity path is the
+same code path). A receipt check is kept as a second, self-consistency check only; the literal pin is what identifies the data.
+--train-cut-utc: every fold asserts that the last training label it uses ends at or before this instant (option (ii): the D10
+funding events stop at 2026-09-01T02:00Z); REQUIRED whenever the features are not the NC pin, never defaulted. The frozen 23
+folds are unchanged, so folds whose TEST rows lie after the cut are still scored -- on features whose funding columns saw no event
+after the cut; the fold receipt counts those rows ('test_anchors_after_train_cut') and the reader decides (runbook: both the
+to-09-18T20Z segment and the frozen truncated one are reported). Receipts now carry argv = vars(args) and the interpreter.
 usage: env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B dlarch_train_f10.py \
          --env-whitelist PATH,HOME,LC_CTYPE --arm T0|T3 --seed N [--clamp-mode clamp|tanh] [--folds ...]
 """
@@ -162,6 +171,13 @@ def main():
     ap.add_argument('--no-mask', action='store_true',
                     help='G1 IDENTITY CONTROL ONLY: leave WL unmasked. With --arm T0 this must reproduce the '
                          'existing news2 F10 run BIT-FOR-BIT, proving T0 changed exactly one thing. Never a result arm.')
+    ap.add_argument('--features', default=str(W / 'work' / 'NEWS_FEATURES.npz'))
+    ap.add_argument('--features-sha', default='3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8')
+    ap.add_argument('--features-receipt', default=str(W / 'receipts' / 'P2B_FEATURES.json'))
+    ap.add_argument('--legs', default=str(W / 'work' / 'legs.npz'))
+    ap.add_argument('--legs-sha', default=LEGS_SHA)
+    ap.add_argument('--legs-receipt', default=str(W / 'receipts' / 'P3_LEGS.json'))
+    ap.add_argument('--train-cut-utc', default=None, help='ISO UTC; required unless --features-sha is the NC pin')
     ap.add_argument('--out-root', default=None,
                     help='Write artifacts under this root instead of OUT_ROOT. For PROBES ONLY: a probe that '
                          'has to retrain an already-produced fold must not delete and rebuild the delivered '
@@ -178,18 +194,24 @@ def main():
     if args.no_mask:
         assert args.arm == 'T0', '--no-mask is the G1 identity control for T0 only'
         arm = 'G1_T0_nomask'
-    r = W / 'work'
     root = pathlib.Path(args.out_root) if args.out_root else OUT_ROOT
+    NC_FEATURES_SHA = '3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8'
+    if args.features_sha != NC_FEATURES_SHA:
+        assert args.train_cut_utc, '--train-cut-utc is required for non-NC features (never defaulted)'
+        assert args.out_root, '--out-root is required for non-NC features (never write next to the NC runs)'
+    CUT = calendar.timegm(time.strptime(args.train_cut_utc, '%Y-%m-%dT%H:%M:%SZ')) if args.train_cut_utc else None
     out = root / arm / f'f10_s{args.seed}'; out.mkdir(parents=True, exist_ok=True)
-    files = [r / 'NEWS_FEATURES.npz', NEWT, r / 'legs.npz', W / 'receipts/P2B_FEATURES.json', W / 'receipts/P3_LEGS.json']
+    files = [pathlib.Path(args.features), NEWT, pathlib.Path(args.legs), pathlib.Path(args.features_receipt), pathlib.Path(args.legs_receipt)]
     inputs = {str(p): sha(p) for p in files}
     sources = {str(p): sha(p) for p in (pathlib.Path(os.path.abspath(__file__)), REF,
                                        pathlib.Path(os.path.dirname(os.path.abspath(__file__))) / 'dlarch_chain_torch.py',
                                        VENDOR / 'devices/f10_observability.py', VENDOR / 'devices/nc_hist_features.py',
                                        VENDOR / 'devices/nc_legs.py', VENDOR / 'devices/nc_p2_build.py')}
-    assert inputs[str(files[1])] == NEWT_SHA and json.load(open(files[3]))['sha256'] == inputs[str(files[0])] and json.load(open(files[4]))['sha256'] == inputs[str(files[2])]
-    assert inputs[str(files[2])] == LEGS_SHA, (
-        f"legs.npz is {inputs[str(files[2])][:16]}, expected {LEGS_SHA[:16]}. A self-consistent receipt+file "
+    rsha = lambda rp: (lambda j: j.get('sha256') or (j.get('output') or {}).get('sha256'))(json.load(open(rp)))   # P2B/P3: 'sha256'; D10: output.sha256
+    assert inputs[str(files[1])] == NEWT_SHA and rsha(files[3]) == inputs[str(files[0])] and rsha(files[4]) == inputs[str(files[2])]
+    assert inputs[str(files[0])] == args.features_sha, f'features are {inputs[str(files[0])][:16]}, expected (literal) {args.features_sha[:16]}'
+    assert inputs[str(files[2])] == args.legs_sha, (
+        f"legs.npz is {inputs[str(files[2])][:16]}, expected {args.legs_sha[:16]}. A self-consistent receipt+file "
         "pair from the WRONG tree would pass the assertion above; this literal pin is what catches it.")
     F = np.load(files[0]); T = np.load(files[1], allow_pickle=True); leg = np.load(files[2])
     a = F['anchors'].astype(np.int64)
@@ -320,6 +342,7 @@ def main():
         te = np.flatnonzero((a >= start) & (a < end)); first = int(te[0]); cutoff = int(a[first]) - 60 * 14400
         tr = np.flatnonzero((a + 14400 <= cutoff) & ready & (np.diff(st) >= 50)); assert len(tr) >= 300
         cut = int(len(tr) * .85); tr1 = tr[:cut]; assert a[tr1[-1]] + 14400 <= cutoff
+        if CUT is not None: assert a[tr1[-1]] + 14400 <= CUT, f'fold {tag}: training label end {a[tr1[-1]] + 14400} after --train-cut-utc {CUT}' 
         windows = []; rejected = collections.Counter()
         for s in range(int(tr1[0]) + 24, int(tr1[-1]) - 96, 48):
             span = np.arange(s - 24, s + 96); ok, why = span_admissible(members, y, span, ready)
@@ -379,6 +402,8 @@ def main():
               'param_count': nparam, 'a_init': a_init, 'a_final': a_final, 'seat_census': seat_census,
               'anchors_skipped_in_spans': skipped_total, 't3_extra': {k: extra[k] for k in ('anchors_outside_universe', 'anchors_sel_below_min', 's_temp')} if args.arm == 'T3' else None,
               'score_sha256': score_sha, 'model_sha256': model_sha,
+              'train_cut_utc': args.train_cut_utc, 'test_anchors_after_train_cut': int((a[te] > CUT).sum()) if CUT is not None else None,
+              'argv': vars(args), 'python': sys.version,
               'elapsed_seconds': time.monotonic() - started, 'gpu': torch.cuda.get_device_name(0)}
         for p, hsh in inputs.items(): assert sha(p) == hsh
         for p, hsh in sources.items(): assert sha(p) == hsh
