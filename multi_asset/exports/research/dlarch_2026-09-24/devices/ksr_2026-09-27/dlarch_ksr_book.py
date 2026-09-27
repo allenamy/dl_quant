@@ -18,7 +18,8 @@ SEGMENTS: H1 years Y in 2023/2024/2025 = [Y-10-01, Y+1-01-01); H1 merged = their
   half only and says so.
 §3 guards: (a) drawdown: per H1 year, maxDD of the fixed-2x per-anchor compounded NAV of each path (nav = cumprod(1 + r); rev 1: r is already
   the NAV return at the fixed 2x gross, r * 1e4 == GM * g measured on the NC s2027 series, so no extra GM factor) over
-  the window's anchors), mean over paths and (m, s); then mean over the three years; FAIL iff S1 is worse than S0 by > 3 pp.
+  the window's anchors), mean over paths and (m, s) within EACH year; FAIL iff ANY H1 year is worse than S0 by > 3 pp.
+  The three-year mean is descriptive only. A missing H1 year is UNAVAILABLE (nonzero exit, no book verdict).
   (b) switch anchors: for every S1 cell and seed, sum|dw| and the seat change L1(WL_t - WL_{t-1}) at each window's first anchor and
   at the first anchor after it (hand-back), against the p99 of the same cell's non-switch anchors; any exceedance => the rule
   requires a hand-over smoothing design with any recommendation (reported as FLAG, not a verdict change).
@@ -116,14 +117,22 @@ def maxdd(c, s, m):
     return float(np.mean(np.max(1.0 - nav / peak, axis=1)))
 
 
+missing_years = [str(y) for y in H1 if not SEG[f'H1_{y}'].any()]
+if missing_years:
+    raise SystemExit('KSR_BOOK UNAVAILABLE missing_H1_years=' + ','.join(missing_years))
 dd = {}
 for y in H1:
     m = SEG[f'H1_{y}']
     dd[str(y)] = {'S1': float(np.mean([maxdd(cmap['S1'][k], s, m) for k in MEM for s in SEEDS])),
                   'S0': float(np.mean([maxdd(cmap['S0'][k], s, m) for k in MEM for s in SEEDS]))}
+    dd[str(y)]['S1_minus_S0_pp'] = 100 * (dd[str(y)]['S1'] - dd[str(y)]['S0'])
+    dd[str(y)]['FAIL'] = bool(dd[str(y)]['S1_minus_S0_pp'] > 3.0)
+failed_years = [str(y) for y in H1 if dd[str(y)]['FAIL']]
 dd_s1 = float(np.mean([v['S1'] for v in dd.values()])); dd_s0 = float(np.mean([v['S0'] for v in dd.values()]))
 guard_dd = {'per_year': dd, 'mean_S1': dd_s1, 'mean_S0': dd_s0, 'S1_minus_S0_pp': 100 * (dd_s1 - dd_s0),
-            'FAIL': bool(100 * (dd_s1 - dd_s0) > 3.0), 'basis': 'maxDD of nav = cumprod(1 + r) per path over the window anchors (r = NAV return at fixed 2x); mean over 32 paths x 16 (m, s)'}
+            'failed_years': failed_years, 'FAIL': bool(failed_years),
+            'three_year_mean_role': 'DESCRIPTIVE_ONLY_NOT_A_GATE',
+            'basis': 'maxDD of nav = cumprod(1 + r) per path over the window anchors (r = NAV return at fixed 2x); mean over 32 paths x 16 (m, s) within each H1 year; any year worse by > 3 pp fails'}
 
 # ---- §3 (b) switch anchors
 wins = [(T_(y, 10), T_(y + 1, 1)) for y in H1] + [(T_(2026, 7), None)]
