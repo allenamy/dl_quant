@@ -1,6 +1,6 @@
 #!/bin/bash
 # round 5 (lead ruling 2026-09-27): C0 only on a same-host (arm64) production anchor: current base + patched base replays, then gap_fix_judge_c0.py.
-# usage: run_c0_round5.sh <new root> <A> <receipt out>      (tree GAP4 = the package files, so no scratch tree is needed)
+# usage: EXPECT_MH=t1,t2,.. run_c0_round5.sh <new root> <A> <receipt out>      (tree GAP4 = the package files, so no scratch tree is needed)
 set -uo pipefail
 ROOT=${1:?}; A=${2:?}; OUT=${3:?}; D=$(cd "$(dirname "$0")" && pwd -P); PKG="$D/../package_GAP4"; TREE="$ROOT/treeGAP4"
 [ -e "$ROOT" ] && { echo "REFUSED root exists: $ROOT"; exit 2; }
@@ -15,10 +15,11 @@ for it in C["files"]:
     assert h == it["candidate_sha256"], (src, h); shutil.copy(src, f"{tree}/fea171/{it['dest'].split('/')[-1]}")
     print("TREE", it["dest"], h[:12])
 PY
-# part i: hook base (the anchor exactly as production ran it)  -> the frozen C0 section, read for current_vs_archived (same-host reference)
-# part ii: hook mhfill for BOTH codes (member-history holes filled in the sandbox) -> the frozen C0 section, read for current == patched
-for part in i ii; do hk=base; [ $part = ii ] && hk=mhfill; mkdir -p "$ROOT/$part"
-  for code in current patched; do sbr="$ROOT/$part/${code}_base"; mkdir -p "$sbr"; echo "=== $(date -u +%FT%TZ) part $part $code hook=$hk $A"
-    bash "$D/gap_fix_replay.sh" "$A" - "$sbr" "$hk" "$code" "$TREE" 2>&1 | tail -4; done
-  ~/wide_shadow/venv/bin/python "$D/gap_fix_judge_c0.py" "$ROOT/$part" "$A" --out "${OUT%.json}_part_$part.json"; echo "JUDGE_C0_PART_${part}_RC=$?"; done
-~/wide_shadow/venv/bin/python "$D/c0_round5_verdict.py" "$ROOT" "$A" "${OUT%.json}_part_i.json" "${OUT%.json}_part_ii.json" --out "$OUT"; echo "ROUND5_RC=$?"
+# lead ruling (P5 clarification 05:5xZ, before any 08Z reading; mhfill vetoed): base replays only, both codes; then
+#   (i)   the frozen C0 section (gap_fix_judge_c0.py) read ONLY for current_vs_archived: weights and beta_overlay bitwise vs the arm64 archive
+#   (ii)  cited: run 4 (arm64) current == patched bitwise on 3 gap-free anchors (receipts/GAPFIX_JUDGE_run4_arm64.json)
+#   (iii) c0_round5_attrib.py: every current/patched difference at A attributed to the MH_RECOMPUTED anchors (literal EXPECT_MH)
+for code in current patched; do sbr="$ROOT/${code}_base"; mkdir -p "$sbr"; echo "=== $(date -u +%FT%TZ) $code base $A"
+  bash "$D/gap_fix_replay.sh" "$A" - "$sbr" base "$code" "$TREE" 2>&1 | tail -4; done
+~/wide_shadow/venv/bin/python "$D/gap_fix_judge_c0.py" "$ROOT" "$A" --out "${OUT%.json}_c0_section.json"; echo "JUDGE_C0_SECTION_RC=$? (whole-section verdict is informational; round 5 reads (i) and (iii))"
+~/wide_shadow/venv/bin/python "$D/c0_round5_attrib.py" "$ROOT" "$A" "${OUT%.json}_c0_section.json" "${EXPECT_MH:?EXPECT_MH=t1,t2,.. required}" --out "$OUT"; echo "ROUND5_RC=$?"

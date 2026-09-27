@@ -9,9 +9,6 @@
   xref        reference for x1-x3: state_H_kc_<A-4h> := payload(state_H_kc_<A-8h>, A-4h)
   cold        (AMENDMENT 3) every state_H_* and every weights file removed
   poison      (AMENDMENT 3) the A-4h kc/fc/f10 states replaced by val x 0.1 (a zero-started ramp)
-  mhfill      (round 5, 2026-09-27) every member-history hole on the 4 h grid in [first recorded anchor, A) is filled in the SANDBOX copy by the
-              tested backfill device (members_hist_backfill.py apply, rule = the package's members_rule), so the anchor has no gap of any kind;
-              used for BOTH codes, so patched vs current at A is the no-gap C0 comparison on a live arm64 anchor whose history has holes
 Prints one HOOK line with the sha of every file it wrote or removed."""
 import hashlib, importlib.util, io, os, re, sys
 import numpy as np
@@ -99,21 +96,6 @@ elif arm in ("mhbase", "mhdrop"):
         put(mp, raw)
         gp = f"{st}/generation.json"; g = json.load(open(gp)); g["files"]["members_hist.npz"]["sha256"] = hashlib.sha256(raw).hexdigest()
         graw = json.dumps(g).encode(); put(gp, graw)
-elif arm == "mhfill":
-    import subprocess
-    mp = f"{st}/members_hist.npz"
-    with np.load(mp) as m: an = sorted(int(x) for x in m["anchors"])
-    holes = [t for t in range(an[0], A, H4) if t not in set(an)]
-    before = sha(open(mp, "rb").read())
-    if holes:
-        dev = os.path.join(os.path.dirname(os.path.abspath(__file__)), "members_hist_backfill.py")
-        pkg_fea = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "package_GAP4", "files", "wide_shadow", "fea171")
-        r = subprocess.run([sys.executable, dev, "apply", "--targets", ",".join(map(str, holes)), "--receipt", f"{sb}/MHFILL_RECEIPT.json",
-                            "--state", st, "--bundle", f"{sb}/wide_shadow/shadow_bundle", "--fea", os.path.realpath(pkg_fea),
-                            "--producer-label", "com.hsy.sandbox_has_no_producer"], capture_output=True, text=True)
-        open(f"{sb}/MHFILL.log", "w").write(r.stdout + r.stderr)
-        assert r.returncode == 0 and "APPLY PASS" in r.stdout, f"mhfill backfill failed rc={r.returncode}: {r.stdout[-400:]} {r.stderr[-400:]}"
-    done.append(f"mhfill holes={holes} members_hist {before} -> {sha(open(mp, 'rb').read())}")
 else:
     raise SystemExit(f"unknown arm {arm}")
 print(f"HOOK arm={arm} A={A} " + " | ".join(done))
