@@ -10,6 +10,7 @@ Per anchor A the producer actually computed:
   p_k (k = 1/3/7 d) = sum log1p(rr) over the 288k 5-minute bars closing at or before A (latest snapshot's rr, causal slice asserted),
       defined when >= 80% of those bars are finite; zp = standardised over the members with a defined p_k
   L(x) = mean over those members of (x - mean x) * zp;  T_K = w0*0.55*L(KZ), T_F10 = w0*0.45*L(zf), T_FUND = w2*L(ZFD), S = T_K+T_F10+T_FUND
+  S = L(combo_z): the pre-chain, pre-clamp loading (dlarch's S_k, 1b6baf38f); era means reported apart (old tree / NC)
   control: L(combo_z) with combo_z = w0*(0.55*KZ + 0.45*zf) + w2*ZFD equals S within 1e-12 (asserted per anchor and k)
   E = sum w_pub*zp / sum|w_pub| over published names that are members with a defined p_k (w_pub = target_live/<A>.json; a name outside the
       members is excluded and counted) — reference only
@@ -91,6 +92,9 @@ res = {"device": "momentum_loadings_live.py", "self_sha256": hashlib.sha256(open
        "price_snapshot": last, "dump_dirs": dump_dirs, "n_rows": len(rows), "missing": missing,
        "identity_L_combo_z_equals_S": "asserted per anchor and k (1e-12)",
        "mean_0919_0926": mean_over(pre), "mean_before_reseed": mean_over([r for r in rows if r["reseed"] == "before"]),
-       "mean_after_reseed": mean_over([r for r in rows if r["reseed"] == "after"]), "rows": rows}
+       "mean_after_reseed": mean_over([r for r in rows if r["reseed"] == "after"]),
+       # dlarch 2026-09-27 (before any reading): the two producer eras apart — old tree + F10 351ae26b up to 09-24 04Z, NC from 09-24 08Z
+       "mean_old_era_0919_0924T04": mean_over([r for r in rows if r["A"] < "09-24T08Z"]),
+       "mean_nc_era_0924T08_on": mean_over([r for r in rows if r["A"] >= "09-24T08Z"]), "rows": rows}
 json.dump(res, open(outp, "w"), indent=1)
-print(json.dumps({k: res[k] for k in ("n_rows", "missing", "mean_0919_0926", "mean_after_reseed")}, indent=1))
+print(json.dumps({k: res[k] for k in ("n_rows", "missing", "mean_0919_0926", "mean_old_era_0919_0924T04", "mean_nc_era_0924T08_on", "mean_after_reseed")}, indent=1))
