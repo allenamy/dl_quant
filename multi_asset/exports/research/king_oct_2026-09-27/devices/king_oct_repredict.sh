@@ -36,9 +36,10 @@ import sys, numpy as np   # described, not gated: the new axis is longer, so com
 N, R = np.load(sys.argv[1]), np.load(sys.argv[2])
 assert np.array_equal(N["symbols"], R["symbols"]), "symbol axes differ"
 en, er = N["E_ts"].astype(np.int64), R["E_ts"].astype(np.int64); com, i_n, i_r = np.intersect1d(en, er, return_indices=True)
-pn, pr = N["P"][i_n], R["P"][i_r]; both = np.isfinite(pn) & np.isfinite(pr)
-print("KRP_DESC anchors_new=%d anchors_release=%d common=%d only_new=%d cells_finite_in_both=%d cells_differing=%d nan_pattern_differs=%d last_new=%d" % (
-      len(en), len(er), len(com), len(np.setdiff1d(en, er)), both.sum(), (both & (pn != pr)).sum(), (np.isfinite(pn) != np.isfinite(pr)).sum(), en[-1]))
+pn, pr = N["P"][i_n], R["P"][i_r]; both = np.isfinite(pn) & np.isfinite(pr); dif = both & (pn != pr); nanp = np.isfinite(pn) != np.isfinite(pr)
+pre = com < 1788228000   # D10 line-D cut 2026-09-01T02:00Z: the new features differ only after it (news2), so pre-cut differences are named
+print("KRP_DESC anchors_new=%d anchors_release=%d common=%d only_new=%d cells_finite_in_both=%d cells_differing=%d (pre_cut %d, post_cut %d) nan_pattern_differs=%d (pre_cut %d) last_new=%d" % (
+      len(en), len(er), len(com), len(np.setdiff1d(en, er)), both.sum(), dif.sum(), dif[pre].sum(), dif[~pre].sum(), nanp.sum(), nanp[pre].sum(), en[-1]))
 PY
 say "NEW vs release m0 (described, not gated): $(grep -h '^KRP_DESC' $K/logs/repredict_${TAG}_NEW_describe.log)"
 say "KRP_ALL_DONE out=$O/NEW/KING_OOF.npz"
