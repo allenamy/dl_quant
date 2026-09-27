@@ -24,6 +24,19 @@ from the millisecond key itself, then compared with what the fold actually dropp
 
 Usage:
   d10_build_ledger_ms.py --out <dir> [--limit-symbols N]     build + reconcile + receipt
+
+rev 2 (news2 2026-09-27, runbook 1c -- the September extension; with none of the options below it is rev 1 byte for byte in every
+array and every receipt key except argv/self_sha256):
+  --extra-zips-root R --extra-months M1,M2   also read R/<M>/<SYM>-fundingRate-<M>.zip, only for months the manifest gate VERIFIES
+  --extra-api F                              a second API source of the fund_aug shape (d10_pull_api_funding_ms.py); merged after
+                                             fund_aug with setdefault (fund_aug wins); overlapping keys with unequal rates are
+                                             counted (api_overlap_unequal) and must be 0 for a clean build
+  --prefix-ledger P --prefix-sha S           prefix identity: for every row with ft_ms <= max(P.ft_ms) the event set and every rate
+                                             must equal P's bitwise; src / zip_iv may change ONLY api-only -> both inside
+                                             --extra-months (P2 had no 2026-08 zip, so adding it upgrades those rows; P = e179071d)
+  --out-name N                               output file name (default ledger_full_ms.npz; October: ledger_full_ms_2026-09.npz)
+With extra sources the fold-to-seconds reconciliation is restricted to rows at or before the old ledger's last second -- the
+only window in which the old P2 ledger can be a reference.
 """
 import argparse
 import collections
@@ -78,6 +91,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--limit-symbols", type=int, default=None)
+    ap.add_argument("--extra-zips-root", default=None); ap.add_argument("--extra-months", default=None)
+    ap.add_argument("--extra-api", default=None)
+    ap.add_argument("--prefix-ledger", default=None); ap.add_argument("--prefix-sha", default=None)
+    ap.add_argument("--out-name", default="ledger_full_ms.npz")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     t0 = time.time()
@@ -90,6 +107,15 @@ def main():
     log("axis", len(SYMS), "symbols; old ledger sha", OLD_SHA[:16])
 
     AUG = json.loads(gzip.open(FUND_AUG, "rt").read())["rates"]
+    EXTRA_MONTHS = [m for m in (a.extra_months or "").split(",") if m]
+    if EXTRA_MONTHS:
+        assert a.extra_zips_root, "--extra-months needs --extra-zips-root"
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import d10_manifest_gate as GATE
+        for m in EXTRA_MONTHS:
+            GATE.require_verified(os.path.join(a.extra_zips_root, m), m, what="d10_build_ledger_ms rev 2")
+    EXTRA_API = json.loads(gzip.open(a.extra_api, "rt").read())["rates"] if a.extra_api else {}
+    extended = bool(EXTRA_MONTHS or a.extra_api)
     off = [0]
     FT, RT, SR, ZI = [], [], [], []
     st = collections.Counter()
@@ -97,7 +123,8 @@ def main():
 
     for j, s in enumerate(SYMS):
         zrows = {}
-        for zp in sorted(glob.glob(f"{FUND_DIR}/{s}/*.zip")):
+        extra_zips = [os.path.join(a.extra_zips_root, m, f"{s}-fundingRate-{m}.zip") for m in EXTRA_MONTHS]
+        for zp in sorted(glob.glob(f"{FUND_DIR}/{s}/*.zip")) + [z for z in extra_zips if os.path.exists(z)]:
             with zipfile.ZipFile(zp) as zf:
                 with zf.open(zf.namelist()[0]) as fh:
                     rd = csv.reader(io.TextIOWrapper(fh))
@@ -122,6 +149,10 @@ def main():
         arows = {}
         for t_ms, r in AUG.get(s, []):
             arows.setdefault(int(t_ms), float(r))      # ★ MILLISECONDS
+        for t_ms, r in EXTRA_API.get(s, []):            # rev 2: fund_aug wins on an overlap; an unequal overlap is counted
+            if int(t_ms) in arows and arows[int(t_ms)] != float(r):
+                st["api_overlap_unequal"] += 1
+            arows.setdefault(int(t_ms), float(r))
         keys = sorted(set(zrows) | set(arows))
         if not keys:
             st["symbols_no_rows"] += 1
@@ -161,7 +192,7 @@ def main():
     for j in range(len(SYMS)):
         seg = FT[off[j]:off[j + 1]]
         assert np.all(np.diff(seg) > 0), SYMS[j]
-    outp = os.path.join(a.out, "ledger_full_ms.npz")
+    outp = os.path.join(a.out, a.out_name)
     new_sha = DW.write_npz(outp, off=off, ft_ms=FT, rate=RT, src=SR, zip_iv=ZI, symbols=np.array(SYMS))
     log("built", len(FT), "rows ->", outp, new_sha[:16])
 
@@ -169,6 +200,7 @@ def main():
     # Expected extras DERIVED from the millisecond key (lead's correction: a derived set, never a hardcoded
     # count). Within one second the fold keeps the EARLIEST ms, matching p2_prep_inputs' setdefault order.
     expected_extras = []
+    old_max_sec = int(Zo["ft"].max())
     fold_off = [0]
     fFT, fRT, fSR, fZI = [], [], [], []
     for j in range(len(SYMS)):
@@ -176,6 +208,8 @@ def main():
         seen = {}
         for k in range(a0, b0):
             sec = int(FT[k]) // 1000                    # FLOOR, as p2_prep_inputs does
+            if extended and sec > old_max_sec:          # rev 2: the old ledger is a reference only up to its last second
+                continue
             if sec in seen:
                 expected_extras.append({"symbol": SYMS[j], "kept_ms": int(FT[seen[sec]]),
                                         "dropped_ms": int(FT[k]), "utc": iso_ms(FT[k]),
@@ -235,6 +269,53 @@ def main():
     ctrl["derived_set_matches_fold"] = bool(ctrl["fold_removed"] == len(expected_extras))
     ctrl["verdict"] = ("RECONCILED" if ctrl["ALL_BITWISE"] and ctrl["derived_set_matches_fold"]
                        else "NOT_RECONCILED")
+    if extended:
+        ctrl["window_note"] = f"rev 2: fold restricted to rows at or before the old ledger's last second {old_max_sec}"
+        ctrl["api_overlap_unequal"] = int(st["api_overlap_unequal"])
+        if st["api_overlap_unequal"]:
+            ctrl["verdict"] = "NOT_RECONCILED"
+    prefix = None
+    if a.prefix_ledger:
+        assert a.prefix_sha and sha(a.prefix_ledger).startswith(a.prefix_sha), "prefix ledger is not the pinned one"
+        P = np.load(a.prefix_ledger, allow_pickle=True)
+        pft, poff = P["ft_ms"].astype(np.int64), P["off"].astype(np.int64)
+        psyms = [str(x) for x in P["symbols"]]
+        pmax = int(pft.max())
+        bad, new_rows_after, upgraded, upgraded_by_month = [], 0, 0, collections.Counter()
+        extra_ms_ranges = []
+        for m in EXTRA_MONTHS:
+            y, mo = int(m[:4]), int(m[5:7])
+            lo = datetime.datetime(y, mo, 1, tzinfo=datetime.timezone.utc)
+            hi = datetime.datetime(y + (mo == 12), mo % 12 + 1, 1, tzinfo=datetime.timezone.utc)
+            extra_ms_ranges.append((int(lo.timestamp() * 1000), int(hi.timestamp() * 1000)))
+        assert psyms[:len(SYMS)] == SYMS, "prefix ledger symbol axis differs"
+        for j in range(len(SYMS)):
+            n0, n1, p0, p1 = int(off[j]), int(off[j + 1]), int(poff[j]), int(poff[j + 1])
+            nm = FT[n0:n1] <= pmax
+            new_rows_after += int((~nm).sum())
+            nft, nrt, nsr, nzi = FT[n0:n1][nm], RT[n0:n1][nm], SR[n0:n1][nm], ZI[n0:n1][nm]
+            oft, ort, osr = pft[p0:p1], P["rate"][p0:p1].astype(np.float64), P["src"][p0:p1].astype(np.int8)
+            ozi = P["zip_iv"][p0:p1].astype(np.float32)
+            if not (np.array_equal(nft, oft) and np.array_equal(nrt, ort)):
+                bad.append(SYMS[j]); continue
+            # the core (the event set and every rate) is identical; src / zip_iv may change ONLY where a newly added archive month
+            # now also covers an event the prefix had from the API alone: src 1 -> 3 and zip_iv NaN -> a value
+            in_extra = np.zeros(nft.size, bool)
+            for lo_, hi_ in extra_ms_ranges:
+                in_extra |= (nft >= lo_) & (nft < hi_)
+            same_zi = (np.isnan(nzi) & np.isnan(ozi)) | (nzi == ozi)
+            ch = (nsr != osr) | ~same_zi
+            ok_up = in_extra & (osr == 1) & (nsr == 3) & np.isnan(ozi) & ~np.isnan(nzi)
+            if np.any(ch & ~ok_up):
+                bad.append(SYMS[j]); continue
+            upgraded += int(ch.sum())
+            for t in nft[ch]:
+                upgraded_by_month[datetime.datetime.fromtimestamp(int(t) / 1000, datetime.timezone.utc).strftime("%Y-%m")] += 1
+        prefix = {"path": a.prefix_ledger, "sha256": sha(a.prefix_ledger), "prefix_max_ms": pmax, "prefix_max_utc": iso_ms(pmax),
+                  "symbols_differing": bad[:40], "n_symbols_differing": len(bad), "rows_after_prefix": new_rows_after,
+                  "src_upgraded_rows_api_to_both": upgraded, "src_upgraded_by_month": dict(upgraded_by_month),
+                  "rule": "event set and rates bitwise; src/zip_iv may change only api-only -> both inside --extra-months",
+                  "verdict": "PREFIX_BITWISE" if not bad else "PREFIX_DIFFERS"}
 
     rec = {"device": os.path.basename(__file__), "self_sha256": sha(os.path.realpath(__file__)),
            "argv": vars(a), "python": {"version": sys.version.split()[0], "executable": sys.executable},  # lead 09-27: derived, not listed
@@ -252,11 +333,17 @@ def main():
                "second -- the failure mode that motivated this rebuild."),
            "positive_control_reconciliation": ctrl,
            "seconds": round(time.time() - t0, 1)}
+    if extended or prefix:
+        rec["rev2_extension"] = {"extra_months": EXTRA_MONTHS, "extra_api": a.extra_api,
+                                 "extra_api_sha256": sha(a.extra_api) if a.extra_api else None, "prefix_identity": prefix}
     outj = os.path.join(a.out, "D10_LEDGER_MS_BUILD.json")
     rsha = DW.write_json(outj, rec, indent=1, allow_nan=True)
     log("control", ctrl["verdict"], "bitwise", ctrl.get("bitwise"), "extras", len(expected_extras))
     log("receipt ->", outj, rsha[:16])
-    return 0 if ctrl["verdict"] == "RECONCILED" else 2
+    ok = ctrl["verdict"] == "RECONCILED" and (prefix is None or prefix["verdict"] == "PREFIX_BITWISE")
+    if prefix:
+        log("prefix", prefix["verdict"], "rows_after_prefix", prefix["rows_after_prefix"])
+    return 0 if ok else 2
 
 
 if __name__ == "__main__":
