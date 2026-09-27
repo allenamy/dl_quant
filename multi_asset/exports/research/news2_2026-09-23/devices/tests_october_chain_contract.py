@@ -241,6 +241,20 @@ def import_closure(resolved):
     return out
 
 
+def stale_dw_copies(root):
+    import glob
+    ref_p = os.path.join(root, "common", "durable_write.py")
+    ref = hashlib.sha256(open(ref_p, "rb").read()).hexdigest()
+    out = {}
+    for p in glob.glob(os.path.join(root, "**", "durable_write.py"), recursive=True):
+        if os.path.realpath(p) == os.path.realpath(ref_p):
+            continue
+        h = hashlib.sha256(open(p, "rb").read()).hexdigest()
+        if h != ref:
+            out[os.path.relpath(p, root)] = h[:16]
+    return out
+
+
 RES = []
 def cell(n, fn):
     try:
@@ -417,6 +431,24 @@ def register():
         assert got == FUNDING_INTERVAL_FROZEN_SHA, "common/funding_interval.py changed after the freeze: %s" % got
         return {"funding_interval_sha256": got}
     cell("C6_funding_interval_frozen", c_freeze)
+
+    def c_dw_copies():
+        """fresh2 2026-09-27: the W rule skips durable_write.py by name, so a stale VENDORED copy next to a device is invisible to it.
+        Every durable_write.py in the research tree must be byte-identical to common/durable_write.py. (Deployments on pod2 are not in
+        the repo; they are covered by the three-way sha check at deploy time.) Today's population is 0 copies, so the rule's power is
+        shown on a temp tree first (a population of 0 proves nothing by itself)."""
+        import tempfile
+        d = tempfile.mkdtemp(prefix="dwcopies_"); os.makedirs(os.path.join(d, "common")); os.makedirs(os.path.join(d, "x", "devices"))
+        good = open(os.path.join(COMMON, "durable_write.py"), "rb").read()
+        open(os.path.join(d, "common", "durable_write.py"), "wb").write(good)  # durable-exempt: selftest fixture in a mkdtemp dir
+        open(os.path.join(d, "x", "devices", "durable_write.py"), "wb").write(good + b"# stale\n")  # durable-exempt: selftest fixture in a mkdtemp dir
+        assert stale_dw_copies(d), "a stale vendored copy in a temp tree must be flagged"
+        open(os.path.join(d, "x", "devices", "durable_write.py"), "wb").write(good)  # durable-exempt: selftest fixture in a mkdtemp dir
+        assert stale_dw_copies(d) == {}, "an identical copy must not be flagged"
+        bad = stale_dw_copies(RESEARCH)
+        assert not bad, "vendored durable_write.py copies differ from common: %s" % bad
+        return {"real_tree_copies_differing": 0}
+    cell("C7_vendored_durable_write_copies_equal_common", c_dw_copies)
 
 
 def main():
