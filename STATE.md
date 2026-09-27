@@ -6,6 +6,8 @@
 > **[2026-09-27 03:0xZ] ⏸ 用户要求暂停代理工作:迁移到新工作电脑。用户裁定:实盘先留在旧机,新机准备好后再一次性切换(任何时刻只能有一台机器在跑执行器);今天的 GAP4(05:00Z)与 M3 on(09:00Z)发布全部推迟到迁移完成之后**
 > - 已向全部代理发暂停令:不起新作业;pod2 上能自己跑完并写终态标记的作业(S1 CHECKSUM/统计、KN/A1 训练与 IC 读数、3b 根因格)允许跑完;各自提交并写 `docs/HANDOFF_<agent>_2026-09-27.md`。lead 的 30 分钟巡检 cron 已取消。
 > - integ 起草实盘迁移清单 `docs/DRAFT_live_migration_checklist_2026-09-27.md`(只写清单,不操作)。
+> - 交接说明已入库:fresh2 `517f84216`、fresh `cdffb6e39`、dlarch `d05e1071d`、news2 `744f9c13a`、alloc `8ad92d38b`;integ 待交(另附实盘迁移清单草稿)。
+> - pod2 上还在跑、会自己写终态的作业:S1 全量 CHECKSUM → 统计(alloc,约 05:30–06:00Z 之后)、KN/A1 训练 → A0 成员与配对清单 → IC 读数(fresh2 / dlarch,约 03:30–03:45Z)、King 根因 3b 四格(约 03:35–03:45Z)。
 > - 换机后恢复的入口:本文件、`docs/PROGRAM_loop_2026-09-26.md`、各代理的 HANDOFF 文件、`multi_asset/exports/research/loop_2026-09-26/INFLIGHT_REGISTRY.json`。
 
 > **[2026-09-27 02:4xZ] 用户裁定:实盘不动(M3 今天开);研究转向 King 根因 + 资金费以外的收益来源;几条新结论**
