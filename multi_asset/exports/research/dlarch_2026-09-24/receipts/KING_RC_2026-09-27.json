@@ -1,0 +1,419 @@
+{
+ "channel_units": "r: bps/day of NAV (the D-bar of MR_READ); g/pnl/car/cst/unk: bps/day per unit gross, g = pnl - car - cst - unk; car = funding PAID (positive = paid)",
+ "descriptive_only": true,
+ "device": "dlarch_king_rootcause.py",
+ "inputs": {
+  "/dev/shm/mretrain_2026-09-26/series/SER_A0_m0_s2027.npz": "421ff513a07befd812ca285102de8693038bdf7da09790fcc762a84dbf13c039",
+  "/dev/shm/mretrain_2026-09-26/series/SER_A0_m0_s42.npz": "074e8fb25238e5a2b036bf98e105b33d7a7c6bd82a98a009320749e09b330564",
+  "/dev/shm/mretrain_2026-09-26/series/SER_RED_m0_s2027.npz": "1483918fb73ecf0a049d1d6f21a4e04f2305ab55b32d9950f586024fd07cc1de",
+  "/dev/shm/mretrain_2026-09-26/series/SER_RED_m0_s42.npz": "f5d58088ebd3270d2ebbf7700ceb5b862c2876e42b2902ef9482aa3fddd57fe7",
+  "/dev/shm/nc_2026-09-23/work/R_crypto.npy": "16458cab70cfa65a24360fe602951cfa04f8f33ed0e9a374c0ca598a1e56f185",
+  "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+  "/dev/shm/news2_2026-09-23/work/king/KING_OOF.npz": "a10b872506ca60afcd0f69b0e43d17a548cdd7c6956075000aac954b21e3df9a",
+  "/dev/shm/news2_2026-09-23/work/legs.npz": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65",
+  "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz": "ca479fccd3d3245e9438a8c82ba7b4a1950ab6e06607f28b25923c4526924d62",
+  "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
+ },
+ "king_vs_fund": {
+  "2026-01": {
+   "King_net_sum": 241.22848010938168,
+   "daily_net_corr_King_fund": 0.11664418686566785,
+   "fund_net_sum": -128.25832064111512,
+   "hedge_beta_King_on_fund": 0.13700049023815225,
+   "kingBottom_in_fundTop": 0.37298017552306373,
+   "kingTop_in_fundBottom": 0.24926784945029884,
+   "kingTop_in_fundTop": 0.2810058366909088,
+   "n_anchors": 186,
+   "n_days": 31,
+   "opposition_share": 0.515868063977147,
+   "pearson": 0.040137435406969,
+   "spearman": 0.08233685833238488
+  },
+  "2026-02": {
+   "King_net_sum": -271.1117157174539,
+   "daily_net_corr_King_fund": -0.20146915754052613,
+   "fund_net_sum": 357.22410576464824,
+   "hedge_beta_King_on_fund": -0.24302921712755612,
+   "kingBottom_in_fundTop": 0.36207222480508305,
+   "kingTop_in_fundBottom": 0.20618343566806138,
+   "kingTop_in_fundTop": 0.29416792247142376,
+   "n_anchors": 168,
+   "n_days": 28,
+   "opposition_share": 0.503745493976926,
+   "pearson": 0.08438389826339081,
+   "spearman": 0.1368353896790254
+  },
+  "2026-03": {
+   "King_net_sum": -196.71839364025013,
+   "daily_net_corr_King_fund": -0.12598120247605765,
+   "fund_net_sum": 278.41227833217107,
+   "hedge_beta_King_on_fund": -0.14983564838912877,
+   "kingBottom_in_fundTop": 0.3916445387918667,
+   "kingTop_in_fundBottom": 0.24545223540168173,
+   "kingTop_in_fundTop": 0.2608894676179221,
+   "n_anchors": 186,
+   "n_days": 31,
+   "opposition_share": 0.526086747482829,
+   "pearson": 0.03339332463747704,
+   "spearman": 0.07090544653683059
+  },
+  "2026-04": {
+   "King_net_sum": -269.2698799552576,
+   "daily_net_corr_King_fund": 0.2337926925959003,
+   "fund_net_sum": 1436.3238702488418,
+   "hedge_beta_King_on_fund": 0.2604293565686641,
+   "kingBottom_in_fundTop": 0.4293189441264854,
+   "kingTop_in_fundBottom": 0.26120026434244814,
+   "kingTop_in_fundTop": 0.23124540206236985,
+   "n_anchors": 180,
+   "n_days": 30,
+   "opposition_share": 0.5594505047881198,
+   "pearson": -0.0341722100622885,
+   "spearman": 0.004874417677719937
+  },
+  "2026-05": {
+   "King_net_sum": -275.2877677806033,
+   "daily_net_corr_King_fund": -0.08869411616982736,
+   "fund_net_sum": 614.3312089125524,
+   "hedge_beta_King_on_fund": -0.08287349164476568,
+   "kingBottom_in_fundTop": 0.43313248031591806,
+   "kingTop_in_fundBottom": 0.333932731260608,
+   "kingTop_in_fundTop": 0.22689339227615588,
+   "n_anchors": 186,
+   "n_days": 31,
+   "opposition_share": 0.562768817204301,
+   "pearson": -0.09764041872936235,
+   "spearman": -0.07002869172968014
+  },
+  "2026-06": {
+   "King_net_sum": -959.9263225737317,
+   "daily_net_corr_King_fund": -0.05116820100294051,
+   "fund_net_sum": 1284.642110630776,
+   "hedge_beta_King_on_fund": -0.04637973959171206,
+   "kingBottom_in_fundTop": 0.43106447900242084,
+   "kingTop_in_fundBottom": 0.34238391659837064,
+   "kingTop_in_fundTop": 0.2255923475581763,
+   "n_anchors": 180,
+   "n_days": 30,
+   "opposition_share": 0.5578673767752715,
+   "pearson": -0.09568106669188896,
+   "spearman": -0.06833730337219526
+  },
+  "2026-07": {
+   "King_net_sum": 407.75379157516386,
+   "daily_net_corr_King_fund": 0.03916650095093622,
+   "fund_net_sum": 797.2449199067228,
+   "hedge_beta_King_on_fund": 0.039946129622499715,
+   "kingBottom_in_fundTop": 0.43196218760671534,
+   "kingTop_in_fundBottom": 0.3274287669100532,
+   "kingTop_in_fundTop": 0.2194551134697601,
+   "n_anchors": 186,
+   "n_days": 31,
+   "opposition_share": 0.5611507262780608,
+   "pearson": -0.0697410362580594,
+   "spearman": -0.045125247389123435
+  },
+  "2026-08": {
+   "King_net_sum": 173.25360085413732,
+   "daily_net_corr_King_fund": -0.0583790941090843,
+   "fund_net_sum": -230.84359751304322,
+   "hedge_beta_King_on_fund": -0.046925747225896604,
+   "kingBottom_in_fundTop": 0.418282103911681,
+   "kingTop_in_fundBottom": 0.36088100626085573,
+   "kingTop_in_fundTop": 0.23546285195488245,
+   "n_anchors": 186,
+   "n_days": 31,
+   "opposition_share": 0.5583439149150772,
+   "pearson": -0.06768768805982314,
+   "spearman": -0.05921080313781401
+  },
+  "2026-09": {
+   "kingBottom_in_fundTop": 0.3580035601807477,
+   "kingTop_in_fundBottom": 0.3047377789949336,
+   "kingTop_in_fundTop": 0.30405312885115704,
+   "n_anchors": 109,
+   "opposition_share": 0.5024770642201835,
+   "pearson": 0.04282920157895018,
+   "spearman": 0.05948056842786461
+  },
+  "pre2026": {
+   "King_net_sum": -5918.476963509173,
+   "daily_net_corr_King_fund": -0.08819692589226148,
+   "fund_net_sum": -3673.5688248226725,
+   "hedge_beta_King_on_fund": -0.09678160341415402,
+   "kingBottom_in_fundTop": 0.34902383573755397,
+   "kingTop_in_fundBottom": 0.29799300922457317,
+   "kingTop_in_fundTop": 0.3328887007184097,
+   "n_anchors": 5496,
+   "n_days": 916,
+   "opposition_share": 0.49179435344287065,
+   "pearson": 0.04447787194898755,
+   "spearman": 0.0490283026756756
+  }
+ },
+ "random_expectation": {
+  "opposition_share": 0.5,
+  "pearson": 0.0,
+  "tercile_cross_overlap": 0.3333333333333333
+ },
+ "red_minus_A0_channels": {
+  "2027": {
+   "2026_X": {
+    "car": 0.0308468186712824,
+    "cst": 0.012128124554316243,
+    "g": 2.3287528089530545,
+    "n_days": 261,
+    "pnl": 2.371727752179373,
+    "r": 4.736863034429291,
+    "unk": 0.0
+   },
+   "pre2026": {
+    "car": 1.8265399474804358,
+    "cst": -0.13657861061333665,
+    "g": -2.8992992494224095,
+    "n_days": 916,
+    "pnl": -1.2093386026578106,
+    "r": -5.789159939120542,
+    "unk": -6.901025584688676e-07
+   },
+   "reproduction": {
+    "2026": {
+     "match_1e-6": true,
+     "mine_r_dbar": 4.736863034429291,
+     "mr_read": 4.736863034429291
+    },
+    "pre2026": {
+     "match_1e-6": false,
+     "mine_r_dbar": -5.789159939120542,
+     "mr_read": -5.765570369233967
+    }
+   }
+  },
+  "42": {
+   "2026_X": {
+    "car": 0.031094765007223378,
+    "cst": 0.013700650169023611,
+    "g": 1.8783752644421143,
+    "n_days": 261,
+    "pnl": 1.9231706796181811,
+    "r": 3.836574383815537,
+    "unk": 0.0
+   },
+   "pre2026": {
+    "car": 1.6379943214419392,
+    "cst": -0.1958225674704368,
+    "g": -2.8905838528960146,
+    "n_days": 916,
+    "pnl": -1.4484120990731575,
+    "r": -5.722255568618709,
+    "unk": -1.4933003023789812e-10
+   },
+   "reproduction": {
+    "2026": {
+     "match_1e-6": true,
+     "mine_r_dbar": 3.836574383815537,
+     "mr_read": 3.836574383815537
+    },
+    "pre2026": {
+     "match_1e-6": false,
+     "mine_r_dbar": -5.722255568618709,
+     "mr_read": -5.7562329421296115
+    }
+   }
+  }
+ },
+ "score_layer_IC": {
+  "King_OOF": {
+   "2026": {
+    "ci95": [
+     0.06089178528476949,
+     0.07273826773290597
+    ],
+    "ic_mean_of_days": 0.06768021961035207,
+    "n_days": 243
+   },
+   "pre2026": {
+    "ci95": [
+     0.0525068608010242,
+     0.06586892335887089
+    ],
+    "ic_mean_of_days": 0.05941592666908816,
+    "n_days": 916
+   }
+  },
+  "fund_rank_ZFD": {
+   "2026": {
+    "ci95": [
+     0.009943098143238798,
+     0.022005926673973452
+    ],
+    "ic_mean_of_days": 0.014354674679849574,
+    "n_days": 243
+   },
+   "pre2026": {
+    "ci95": [
+     -0.0031672098284517805,
+     0.006505959150194984
+    ],
+    "ic_mean_of_days": 0.0026319802381151694,
+    "n_days": 916
+   }
+  }
+ },
+ "segments": {
+  "2026": [
+   "2026-01-01",
+   "2026-09-01"
+  ],
+  "pre2026": [
+   "2023-06-30",
+   "2026-01-01"
+  ]
+ },
+ "self_sha256": "f25125b4772a8a993d0db000eb87ad5f876aef7adcc8cdcecb80bc9d4e0a86d5",
+ "single_leg_books": {
+  "King": {
+   "2026": {
+    "fee": {
+     "ci95": [
+      11.364542384671303,
+      11.645505411714257
+     ],
+     "mean_bps_per_day": 11.521063140880116,
+     "n_days": 243
+    },
+    "funding": {
+     "ci95": [
+      6.189132948623463,
+      10.970116412492292
+     ],
+     "mean_bps_per_day": 8.347341074212014,
+     "n_days": 243
+    },
+    "net": {
+     "ci95": [
+      -15.918638903994141,
+      1.4857617567398476
+     ],
+     "mean_bps_per_day": -4.732832128101291,
+     "n_days": 243
+    },
+    "price": {
+     "ci95": [
+      4.015140100800463,
+      21.53615404275937
+     ],
+     "mean_bps_per_day": 15.135572086990845,
+     "n_days": 243
+    }
+   },
+   "pre2026": {
+    "fee": {
+     "ci95": [
+      12.711742224718007,
+      13.705410859826106
+     ],
+     "mean_bps_per_day": 13.186071317579529,
+     "n_days": 916
+    },
+    "funding": {
+     "ci95": [
+      2.0971631898244745,
+      3.8940163478305534
+     ],
+     "mean_bps_per_day": 3.0495014109002954,
+     "n_days": 916
+    },
+    "net": {
+     "ci95": [
+      -12.232611480843929,
+      -1.0790556229730408
+     ],
+     "mean_bps_per_day": -6.461219392477264,
+     "n_days": 916
+    },
+    "price": {
+     "ci95": [
+      3.9309149004190878,
+      15.236173080576732
+     ],
+     "mean_bps_per_day": 9.774353336002559,
+     "n_days": 916
+    }
+   },
+   "price_reconstruction_max_abs_diff_bps": 2.432095328686046e-06
+  },
+  "fund": {
+   "2026": {
+    "fee": {
+     "ci95": [
+      0.6981112063525817,
+      0.7577018796713927
+     ],
+     "mean_bps_per_day": 0.7221451154586375,
+     "n_days": 243
+    },
+    "funding": {
+     "ci95": [
+      12.764165775076949,
+      18.319404396394823
+     ],
+     "mean_bps_per_day": 15.378020762466358,
+     "n_days": 243
+    },
+    "net": {
+     "ci95": [
+      11.89031905318565,
+      33.8983573830375
+     ],
+     "mean_bps_per_day": 18.14434804790763,
+     "n_days": 243
+    },
+    "price": {
+     "ci95": [
+      28.96048353239402,
+      49.582505382907506
+     ],
+     "mean_bps_per_day": 34.24451392583263,
+     "n_days": 243
+    }
+   },
+   "pre2026": {
+    "fee": {
+     "ci95": [
+      0.9174283214302644,
+      1.0589330529999714
+     ],
+     "mean_bps_per_day": 0.9824067029554314,
+     "n_days": 916
+    },
+    "funding": {
+     "ci95": [
+      5.2709888689729425,
+      8.397047753365678
+     ],
+     "mean_bps_per_day": 6.8770268142414634,
+     "n_days": 916
+    },
+    "net": {
+     "ci95": [
+      -9.345452124135138,
+      1.2167249922338619
+     ],
+     "mean_bps_per_day": -4.010446315308594,
+     "n_days": 916
+    },
+    "price": {
+     "ci95": [
+      -1.8564128441640835,
+      9.25272722019971
+     ],
+     "mean_bps_per_day": 3.8489872018883013,
+     "n_days": 916
+    }
+   },
+   "price_reconstruction_max_abs_diff_bps": 2.6265980466178007e-06
+  }
+ },
+ "single_leg_units": "bps per day per unit gross of a standalone leg book (sum of 6 anchors); fee = 3.52 bps x raw leg turnover (proxy)"
+}
