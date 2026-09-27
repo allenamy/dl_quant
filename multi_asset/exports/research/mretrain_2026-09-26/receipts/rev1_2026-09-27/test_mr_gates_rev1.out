@@ -1,0 +1,10 @@
+CASE B0_identical_copy expect=PASS got=PASS OK :: {'gated_arrays': ['E_ts', 'P', 'symbols'], 'differing_arrays': [], 'provenance_equal_reported_not_gated': {'model_sha256': True}}
+CASE B1_only_model_sha256_differs expect=PASS got=PASS OK :: {'gated_arrays': ['E_ts', 'P', 'symbols'], 'differing_arrays': [], 'provenance_equal_reported_not_gated': {'model_sha256': False}}
+CASE R1_one_P_element_one_ulp expect=FAIL got=FAIL OK :: {'gated_arrays': ['E_ts', 'P', 'symbols'], 'differing_arrays': ['P'], 'provenance_equal_reported_not_gated': {'model_sha256': True}}
+CASE R2_P_differs_and_model_sha256_differs expect=FAIL got=FAIL OK :: {'gated_arrays': ['E_ts', 'P', 'symbols'], 'differing_arrays': ['P'], 'provenance_equal_reported_not_gated': {'model_sha256': False}}
+CASE R3_E_ts_shifted expect=FAIL got=FAIL OK :: {'gated_arrays': ['E_ts', 'P', 'symbols'], 'differing_arrays': ['E_ts'], 'provenance_equal_reported_not_gated': {'model_sha256': True}}
+CASE R4_symbols_renamed expect=FAIL got=FAIL OK :: {'gated_arrays': ['E_ts', 'P', 'symbols'], 'differing_arrays': ['symbols'], 'provenance_equal_reported_not_gated': {'model_sha256': True}}
+CASE R5_P_dtype_float64 expect=FAIL got=FAIL OK :: {'gated_arrays': ['E_ts', 'P', 'symbols'], 'differing_arrays': ['P'], 'provenance_equal_reported_not_gated': {'model_sha256': True}}
+CASE R6_extra_array expect=FAIL got=FAIL OK :: {'files': [['E_ts', 'P', 'model_sha256', 'symbols'], ['E_ts', 'P', 'extra', 'model_sha256', 'symbols']]}
+CASE R7_model_sha256_missing expect=FAIL got=FAIL OK :: {'files': [['E_ts', 'P', 'model_sha256', 'symbols'], ['E_ts', 'P', 'symbols']]}
+TEST_MR_GATES_REV1 ALL_OK=True cases=9 scratch_removed

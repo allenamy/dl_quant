@@ -55,7 +55,7 @@ while read -r LBL S; do
   $PV -c "import numpy,sys; z=numpy.load(sys.argv[1]); assert z['r_per_path'].shape[0]==32" "$SER" || stop "$LBL s$S series unreadable"
   rm -rf "$CELL"; [ "$LBL" != A0_m0 ] && rm -f $W/targets/TARGETS_NEWS2_s$S.npz
   touch $W/DONE_s$S
-  say "done $LBL s$S $(sha256sum $SER | cut -c1-16)"
+  say "done $LBL s$S $(sha256sum $SER | cut -c1-16) king_P=$(grep -o '"P": "[0-9a-f]\{16\}' $W/receipts/KING_IDENTITY.json 2>/dev/null | cut -c7-)"   # rule §7: score sha per cell
   # rule §0.4 red control + engine-reproducibility control, executed HERE as soon as its four series exist (§10-f: a process
   # executor, not the session). Not PASS => the family stops (rule §0), before any further cell.
   if [ ! -e $R/RED_READ_PASS ] && ls $R/series/SER_RED_m0_s42.npz $R/series/SER_RED_m0_s2027.npz $R/series/SER_A0_m0_s42.npz $R/series/SER_A0_m0_s2027.npz > /dev/null 2>&1; then

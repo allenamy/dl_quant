@@ -13,7 +13,8 @@ say "MASTER_START pgid=$PG"
 bash $D/mr_prep.sh A0 0 preflight > $L/prep_A0_m0_preflight.out 2>&1 || { say "STOP: pre-flight (combo reads) FAILED, see $L/A0_m0/preflight.log"; exit 1; }
 $PV -B $D/mr_preflight_refs.py $D > $L/preflight_refs.log 2> $L/preflight_refs.json || true
 grep -q "^MR_PREFLIGHT_REFS PASS" $L/preflight_refs.log || { say "STOP: pre-flight (references) FAILED: $(head -c 600 $L/preflight_refs.log)"; exit 1; }
-say "PREFLIGHT_OK $(grep -h MR_COMBO_PREFLIGHT $L/A0_m0/prep.log | tail -1 | cut -c1-220) | $(cut -c1-120 $L/preflight_refs.log)"
+grep -q "MR_COMBO_PREFLIGHT PASS" $L/prep_A0_m0_preflight.out || { say "STOP: pre-flight (combo reads) printed no PASS line in THIS invocation"; exit 1; }
+say "PREFLIGHT_OK $(grep -h MR_COMBO_PREFLIGHT $L/prep_A0_m0_preflight.out | tail -1 | cut -c1-220) | $(cut -c1-120 $L/preflight_refs.log)"
 # ---- stage G: A0 m0 chain + an independent second training of A0 m0 (determinism) + gate device
 bash $D/mr_prep.sh A0 0 train > $L/prep_A0_m0.out 2>&1 &
 P1=$!

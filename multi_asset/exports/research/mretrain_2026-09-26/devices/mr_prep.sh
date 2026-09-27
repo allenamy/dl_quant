@@ -15,10 +15,10 @@ PV=/workspace/venv/bin/python; P314=/root/news_2026-09-23_env/venv314/bin/python
 NPY="X86_V4 AVX512_ICL AVX512_SPR"
 mkdir -p $L
 say() { echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) [$LBL] $*" | tee -a $L/prep.log; }
-fail() { say "FAILED: $*"; touch $W/FAILED; exit 1; }
+fail() { say "FAILED: $*"; touch $W/FAILED; echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) STOP: prep $LBL FAILED: $*" >> $R/logs/master.log; exit 1; }   # master.log = the registered log
+DUP_MEMBERS="A1_m0 A3_m0"   # rule §7 (revision 1, da04c28f9): one duplicate-trained member per candidate arm, scores must be bitwise equal
 trap 'fail "rc=$? at line $LINENO"' ERR
 [ -e $W/FAILED ] && { echo "$LBL has a FAILED marker; refusing"; exit 1; }
-if [ -e $W/READY_s42 ] && [ -e $W/READY_s2027 ]; then echo "$LBL already READY"; exit 0; fi
 mkdir -p $W/{work,receipts,inputs,configs,targets}
 ln -f $N/work/NEWS_FEATURES.npz $W/work/NEWS_FEATURES.npz
 cp -f $N/receipts/P2B_FEATURES.json $W/receipts/; ln -f $N/receipts/P1_members_2025H2on.npz $W/receipts/P1_members_2025H2on.npz
@@ -31,6 +31,7 @@ cd $D && MR_W=$W NPY_DISABLE_CPU_FEATURES="$NPY" OMP_NUM_THREADS=1 OPENBLAS_NUM_
 grep -q "^MR_COMBO_PREFLIGHT PASS" $L/preflight.log || fail "combo preflight (see $L/preflight.log)"
 say "$(grep '^MR_COMBO_PREFLIGHT' $L/preflight.log)"
 [ "$MODE" = preflight ] && { say "PREFLIGHT_ONLY_DONE"; exit 0; }
+if [ -e $W/READY_s42 ] && [ -e $W/READY_s2027 ]; then say "already READY"; exit 0; fi   # after the pre-flight: a READY arm is re-checked too
 if [ ! -s $W/work/king/KING_OOF.npz ]; then
   rm -rf $W/work/king
   if [ "$MODE" = shuffle ]; then
@@ -42,6 +43,19 @@ if [ ! -s $W/work/king/KING_OOF.npz ]; then
   grep -q "^Traceback" $L/king.log && fail "king traceback"
 fi
 say "king sha=$(sha256sum $W/work/king/KING_OOF.npz | cut -c1-16)"
+# rule §7 report: model-text shas and score-array shas of this member (kept in receipts/, which the space cleanup never deletes)
+$PV -B $D/mr_gates.py --identity $W/work/king/KING_OOF.npz $W/receipts/KING_IDENTITY.json > $L/identity.log 2>&1 || fail "king identity (see $L/identity.log)"
+say "$(grep '^MR_IDENTITY' $L/identity.log | cut -c1-300)"
+if [ "$MODE" = train ] && [[ " $DUP_MEMBERS " == *" $LBL "* ]] && ! grep -qs '"PASS": true' $R/gate/${LBL}_dup/DUP_CHECK.json; then
+  if [ ! -s $R/gate/${LBL}_dup/KING_OOF.npz ]; then
+    rm -rf $R/gate/${LBL}_dup
+    cd $D && nice -n 12 $PV -B mr_train_king.py --out $R/gate/${LBL}_dup --arm $ARM --rs $M > $L/king_dup.log 2>&1
+    grep -q "^Traceback" $L/king_dup.log && fail "duplicate king traceback"
+  fi
+  $PV -B $D/mr_gates.py --dup $W/work/king/KING_OOF.npz $R/gate/${LBL}_dup/KING_OOF.npz $R/gate/${LBL}_dup/DUP_CHECK.json > $L/dup.log 2>&1 || true
+  grep -q "^MR_DUP PASS=True" $L/dup.log || fail "rule section 7 duplicate training: scores not bitwise equal (see $L/dup.log) -> family stops"
+  say "$(grep '^MR_DUP' $L/dup.log | cut -c1-300)"
+fi
 [ "$MODE" = kingonly ] && { say "KINGONLY_DONE"; exit 0; }
 if [ ! -s $W/receipts/P3_LEGS.json ]; then
   OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NPY_DISABLE_CPU_FEATURES="$NPY" NC_W=$NC NC_TREE=$NC/tree NC_WS=$NC/ws \
