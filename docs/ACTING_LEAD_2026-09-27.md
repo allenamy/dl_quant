@@ -77,3 +77,7 @@
 - 17:42:33Z资金费完整RED终态：168套166绿/2红，wrapper exit1。两红分别为新故障控tests_funding_gap与既有08Z事故tests_disposition_matrix；日志SHA05cf69387e93764f4f84759fa09fac53bb5d106e8d3812cf8432c27f81bf9b52。root从session39774与完整退出码表独立确认后才放行代理编辑。后续补真实损坏末行、stat PermissionError、新鲜读数未知及冲突重复行红控，再实现只影响资金费调用的严格证据读者与durable-ack；不全局改变读者，不混入发布GAP4。
 - D10首120身份/输入门1dbe61fa0已交：实跑特征新ms账与现金旧秒账的两条调用链确认；两账覆盖期不同，尚无共同期现金差证明，不能说旧回测资金费已错。原D10 targets已缺失，首120必须重建独立目标/适配器/配置。root审发现uint offsets回绕及FD/路径身份边界，已要求同输入红绿修后再接新消费者。checker只能签INPUT_CONTRACT_PASS_CASH_UNVALIDATED，不代表书收益通过。
 - 原六窗网络夹具不再排队。独立内存工程提案fd8d70dc4只记录CPU/GPU分阶段办法，未将约1GiB失败阶段峰值当正确CUDA的3GiB硬限，未改共享cgroup。研究代理优先推进真正D10共同输入的ms现金消费者与首120，不为修正运行时重置旧900秒实验预算。
+
+- 17:50Z root按见数前冻结3b7c7ced4做共同期资金费事件事实核对（CPU1/8.416秒、峰RSS123428KiB，无q/价格/收益读取）：一对一费率改变0，1473283格毫秒也同，1220216格仅子秒不同；18个同秒多事件；另149个old-only尚需核是否终端覆盖或合成行。原共同比较收据归档，不以样本猜总体，不以秒/ms接口不同宣布旧回测现金错。装置目录T1758Z只是预命名标签，实际执行约17:50Z；预读NPZ头探针因numpy私有API不存在而失败，未产生读数，实际装置走公开np.load通过。
+- D10输入门844de1505由root再次独立13/13通过，修无符号offset回绕与打开文件身份；旧manifest不改。精确ms消费者cash方法+真实HistSim31 run/push/dispatch的小型控制由root独立10/10通过（包括同秒两结算夹fill、同刻fund先于fill）；只是固定q/price夹具，不是完整组合回放。原首120实查F10 OOF未覆盖2022-07：UNAVAILABLE，保留原拒绝；后续只能在见现金/收益前按固定完整OOF支持域另立机械修订，不能以利润/非零成交挑窗。
+- 20Z与09-28 00Z验收脚本已准备，尚未执行。修正了20Z包装器先查K1后等done的次序：现在首个probe/API前必须先有唯一LIVE start与rc0 done，允许静默窗内跨小时收尾；1正/5负控制及bash语法通过。新sha为d64017da(20Z)/f69b0020(00Z)，收据RECOVERY_20Z_00Z_PREP_20260927.json；分别只在21Z/01Z静默窗执行，不创建额外K1轮询、不自动resume。
