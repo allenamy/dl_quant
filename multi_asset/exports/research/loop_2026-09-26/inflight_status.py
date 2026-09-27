@@ -6,6 +6,27 @@ Agents add their jobs to INFLIGHT_REGISTRY.json (name, owner, log, pgid_file, te
 import json, os, subprocess, sys
 REG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "INFLIGHT_REGISTRY.json")
 jobs = [j for j in json.load(open(REG)) if not j.get("closed")]   # a job the lead has handled is marked closed: true
+# rev 1 (2026-09-27, new arm64 host): jobs on this mac were sent to pod2 and came back NO_LOG, which reads like "not
+# started" whether they run or not (silence has two meanings). They are now checked here: PGID alive via killpg(pg, 0);
+# a RESIDENT job with a heartbeat file is alive only while the heartbeat is younger than 3 minutes.
+local = [j for j in jobs if str(j.get("host", "")).startswith("mac")]
+jobs = [j for j in jobs if j not in local]
+import time
+for j in local:
+    out = {"name": j["name"], "owner": j["owner"], "host": "mac"}
+    if j.get("pgid"):
+        try: os.killpg(int(j["pgid"]), 0); out["process_alive"] = True
+        except ProcessLookupError: out["process_alive"] = False
+        except PermissionError: out["process_alive"] = True
+        out["state"] = "RUNNING" if out["process_alive"] else "ENDED_CHECK_OWNER_LOG"
+    elif "heartbeat" in j.get("liveness", ""):
+        hb = os.path.expanduser(j["liveness"].split()[0])
+        try:
+            age = time.time() - json.load(open(hb))["run_ms"] / 1000; out["heartbeat_age_s"] = round(age)
+            out["state"] = "RUNNING" if age < 180 else "STALE_HEARTBEAT"
+        except Exception as e: out["state"] = f"HEARTBEAT_UNREADABLE {type(e).__name__}"
+    else: out["state"] = "LOCAL_NO_PROBE"
+    print(json.dumps(out))
 remote = r'''
 import json,os,re,time,sys,glob
 jobs=json.loads(sys.argv[1])
