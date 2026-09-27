@@ -3,6 +3,7 @@
 # 1. static audit (L1 fold boundaries, L2 shared features, L3 offset spectrum, L5 model age) -- read-only, runs beside step 2;
 # 2. three A1 rs=0 retrains with dlarch_a1leak_train.py: future (all folds), pastlast (folds 202301,202506,202608), all (all folds);
 # 3. shuffle reading (L4a/b/c) once all three trainings wrote KING_DONE.
+# rev 1: a training whose KING_OOF and KING_DONE both exist is not re-run (re-entry after the static rev-1 fix).
 # Terminal line (line start): 'A1LEAK_DONE rc=<n>' ; 'A1LEAK_STOP <why>'. Traceback anywhere in the log = failure (rc 1).
 set -u
 W=/workspace/dlarch_2026-09-24; A=$W/a1leak_2026-09-27; LOG=$A/a1leak.log; PY=/workspace/venv/bin/python; R=$W/receipts
@@ -17,6 +18,8 @@ say "A1LEAK_START devices audit=$(sha256sum $A/dlarch_a1leak_audit.py | cut -c1-
 PS=$!
 train(){ # <tag> <mode> [folds]
   local F=""; [ -n "${3:-}" ] && F="--folds $3"
+  if [ -s $A/arms/$1/KING_OOF.npz ] && grep -q KING_DONE $A/logs/train_$1.log 2>/dev/null; then return 0; fi   # rev 1: re-entrant
+  rm -rf $A/arms/$1
   ( cd $A && $ENV nice -n 12 $PY -B dlarch_a1leak_train.py --out $A/arms/$1 --arm A1 --rs 0 --label y4s --shuffle $2 $F > $A/logs/train_$1.log 2>&1 )
   grep -q KING_DONE $A/logs/train_$1.log || { echo "FAIL $1" > $A/logs/FAIL_$1; return 1; }
 }

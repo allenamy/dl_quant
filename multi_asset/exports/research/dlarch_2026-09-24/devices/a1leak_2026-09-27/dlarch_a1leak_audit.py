@@ -39,6 +39,9 @@ MODE shuffle <out.json> <future_dir> <pastlast_dir> <all_dir>   (dirs written by
   L4c all: the noise-trained model's pooled IC vs the TRUE y4s (and T_net) per segment, and its own permutation null: B = 200
       pooled means of ic_series with the pairing destroyed (ic_series' rng argument, seeds 20260927 + b). Within null iff the
       observed value lies in the null's [2.5, 97.5] percentiles. Power check: A1 m0 read the same way (B = 50) must lie outside.
+REVISION 1 (05:2xZ, before any reading; the first static run died at the L1 receipt assertion, KeyError 'arm', no number
+produced): A0 m0 in the manifest is the in-service OOF a10b8725, whose news2 receipt has no arm / random_state / label_switch
+fields -- accepted for exactly that path, with its label field checked instead.
 usage: dlarch_a1leak_audit.py <env-whitelist> static <out.json>
        dlarch_a1leak_audit.py <env-whitelist> shuffle <out.json> <future_dir> <pastlast_dir> <all_dir>
 """
@@ -52,6 +55,7 @@ MODE, OUT = sys.argv[2], sys.argv[3]
 NS2 = '/dev/shm/news2_2026-09-23'; KF = '/workspace/kingfam_2026-09-27'; DL = '/workspace/dlarch_2026-09-24'
 FEAT = f'{NS2}/work/NEWS_FEATURES.npz'; MAN = f'{KF}/MANIFEST_IC.json'
 LAB = '/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz'
+INSERVICE = f'{NS2}/work/king/KING_OOF.npz'
 TNET, TREC = f'{DL}/king_fam_2026-09-27/T_NET.npz', f'{DL}/receipts/T_NET_2026-09-27.json'
 PIN = {FEAT: '3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8',
        MAN: 'e606a778102f1266b9529ce1603e842c57dfeead83fa7e8c9d6f9383b35d2cde',
@@ -180,7 +184,10 @@ if MODE == 'static':
         specs = KFT.arm_specs(arm, a)
         for k, p in enumerate(MEM[arm]):
             r = receipt(p); P, msha = load(p)
-            assert r['arm'] == arm and r['random_state'] == k and r['label_switch'] == 'y4s'
+            if 'arm' not in r:   # rev 1: A0 m0 IS the in-service OOF (manifest), whose news2 receipt predates the arm/rs/label fields
+                assert arm == 'A0' and k == 0 and p == INSERVICE and r['label'].startswith('NEW dlw_targets y4s'), 'receipt without arm field'
+            else:
+                assert r['arm'] == arm and r['random_state'] == k and r['label_switch'] == 'y4s'
             spec = {t: (s, e) for t, s, e in specs}; rows = []
             for f in r['folds']:
                 s, e = spec[f['fold']]; tr, te = fold_rows(a, s, e, 60)
