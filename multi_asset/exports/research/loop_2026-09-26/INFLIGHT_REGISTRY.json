@@ -359,5 +359,35 @@
   "terminal": "^\\S+ (KOC_STOP|KOC_DONE)",
   "success": "^\\S+ KOC_DONE all_pass=True (R0 red refusal, C1 bitwise == in-service KING_OOF a10b8725, C1s/C2s served fold-2026 file reproduces P, C2 determinism on D10, C3 D10 != in-service)",
   "devices": "8dd1a0068 (king_oct_train.py / king_oct_check.py / king_oct_controls.sh)"
+ },
+ {
+  "name": "alloc_S1_eta_identity_hoist",
+  "owner": "alloc",
+  "host": "pod2 (foreground of a local ssh session; stdout only in the local task file below)",
+  "log": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/92407480-61c5-4e1d-ae09-ad0855fa0a8f/tasks/b56o60otx.output",
+  "pgid": 3414931,
+  "pgid_file": null,
+  "terminal": "^1 \\{|Traceback|Error",
+  "success": "two lines '0 {...}' and '1 {...}' with y_bitwise_equal true and null_ic_equal true",
+  "started_utc": "2026-09-27T06:39:22Z",
+  "purpose": "identity control: D['SF_A'] hoisted vs re-read per anchor, s42 R, r=0,1 (y2 array_equal, null IC float.hex)",
+  "liveness_checked": "2026-09-27T06:41:53Z pid 3414932 alive 90% CPU",
+  "risk": "dies with the ssh connection (no nohup); writes nothing to /workspace",
+  "closed": false
+ },
+ {
+  "name": "alloc_S1_judge_identity_rev1",
+  "owner": "alloc",
+  "host": "pod2 (foreground of a local ssh session; receipt on tmpfs)",
+  "log": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/92407480-61c5-4e1d-ae09-ad0855fa0a8f/tasks/bkc4p2h7d.output",
+  "pgid": 3415341,
+  "pgid_file": null,
+  "terminal": "^IDENTITY |Traceback|Error",
+  "success": "'IDENTITY ALL_EQUAL' and /dev/shm/alloc_2026-09-26/eta/IDENTITY_judge_rev1.json ALL_EQUAL true",
+  "started_utc": "2026-09-27T06:41:19Z",
+  "purpose": "lead condition 1: l2n_judge.py vs l2n_judge_rev1.py MAIN on s42 R with 2 nulls; y2 r0/r1, null ICs and the whole non-permutation cell bitwise",
+  "liveness_checked": "2026-09-27T06:41:53Z pid 3415342 alive 62% CPU",
+  "risk": "dies with the ssh connection (no nohup); writes only /dev/shm",
+  "closed": false
  }
 ]
