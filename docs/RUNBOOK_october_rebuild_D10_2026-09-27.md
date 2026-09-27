@@ -233,3 +233,7 @@
 | 9 | 平价门 4a | news2 | #8 之后约 1 小时 | 待 | — |
 | 10 | 电池演练 + 窗内 safe_commit | integ | 窗前 | 待 | — |
 | 11 | 用户最后确认 → 09-29 13:00Z 窗 → 16Z 首锚验收 | lead / integ | 09-29 | 待 | — |
+
+### §3a 追加(news2,冻结后;fresh2 20b2b3619 入库,晚于上次点名)
+- 十月候选 King 的发布运行驱动:`multi_asset/exports/research/king_oct_2026-09-27/devices/king_oct_release.sh`(pod2,PGID 3418054)。
+- 写 MANIFEST_RELEASE.json 的装置:`multi_asset/exports/research/king_oct_2026-09-27/devices/king_oct_manifest.py`。integ 装包时,按它核对要钉文件的 sha(§3b「钉被判定的模型文件」)。
