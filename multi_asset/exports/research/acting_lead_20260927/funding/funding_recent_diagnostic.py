@@ -25,10 +25,11 @@ for day in ('20260924','20260925','20260926'):
     fund.extend(json.loads(l) for l in b.splitlines() if l.strip())
 keys=[(f['settlement_ts'],f['symbol']) for f in fund];assert len(keys)==len(set(keys)),'funding duplicate key, no silent dedup'
 groups=('lag','not_lag','other','unknown');tot={g:collections.defaultdict(float) for g in groups};windows=[];pairs=[];allshort=collections.defaultdict(float)
-fmt=lambda a:time.strftime('%m-%dT%HZ',time.gmtime(a))
+fmt=lambda a:time.strftime('%m-%dT%H:%MZ',time.gmtime(a))
+assert set(known)=={fmt(x['A']) for x in nm if x['priced']},'absolute anchor-key population identity'
 for x in nm:
     if not x['priced']:continue
-    A=x['A'];s=known[A];auxp=ROOT/f'state/snap/{A}/aux.json';tp=ROOT/f'state/target_live/{A}.json'
+    A=x['A'];s=known[fmt(A)];auxp=ROOT/f'state/snap/{A}/aux.json';tp=ROOT/f'state/target_live/{A}.json'
     aux=read(auxp);rec=aux['prev_rec'];assert rec['anchor_ts']==A,'snapshot time identity'
     tar=read(tp);assert tar['anchor_ts']==A and tar['beta_overlay']['data_cutoff_ts']<=A,'beta causal'
     betas=tar['beta_overlay']['betas'];rz=rec['legz'];m=rec['members'];byname={symbols[j]:{k:rz[k][i] for k in ('fund','king','rev24')} for i,j in enumerate(m)}
