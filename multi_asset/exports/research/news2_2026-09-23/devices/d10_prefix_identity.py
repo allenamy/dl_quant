@@ -69,7 +69,7 @@ def legs(R, N, cut):
     ok = neq(R["symbols"], N["symbols"]) == 0 and neq(R["E_ts"], N["E_ts"]) == 0
     pre = R["E_ts"].astype(np.int64) < cut
     per = {}
-    for k in sorted(set(R.files) & set(N.files)):
+    for k in sorted(set(R) & set(N)):
         if k == "symbols":
             continue
         a, b = R[k], N[k]
@@ -78,12 +78,15 @@ def legs(R, N, cut):
         per[k] = {"pre_cut_differ": neq(a[pre], b[pre]), "post_cut_differ": neq(a[~pre], b[~pre])}
     ok = ok and all(v["pre_cut_differ"] == 0 for v in per.values())
     return ok, {"rows_pre_cut": int(pre.sum()), "rows_post_cut": int((~pre).sum()), "per_key": per,
-                "keys_only_ref": sorted(set(R.files) - set(N.files)), "keys_only_new": sorted(set(N.files) - set(R.files))}
+                "keys_only_ref": sorted(set(R) - set(N)), "keys_only_new": sorted(set(N) - set(R))}
 
 
 def main():
     kind, ref, new, cut, outp = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), sys.argv[5]
-    R, N = np.load(ref, allow_pickle=True), np.load(new, allow_pickle=True)
+    # load every array ONCE: indexing an NpzFile re-reads the member on every access (680 columns x 5 fields would re-read 2.6M-row
+    # arrays thousands of times -- the first pod2 run of this device was stopped for exactly that, before it produced any reading)
+    R = {k: v for k, v in np.load(ref, allow_pickle=True).items()}
+    N = {k: v for k, v in np.load(new, allow_pickle=True).items()}
     ok, res = (fund_state if kind == "fund_state" else legs)(R, N, cut)
     rec = {"device": os.path.basename(__file__), "self_sha256": sha(os.path.realpath(__file__)), "kind": kind, "cut": cut,
            "ref": [ref, sha(ref)], "new": [new, sha(new)], "result": res, "verdict": "PASS" if ok else "FAIL"}
