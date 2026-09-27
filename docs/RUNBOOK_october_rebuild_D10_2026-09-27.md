@@ -14,6 +14,7 @@
 
 | 项 | 约定 | 依据 |
 |---|---|---|
+| 主机(§7 裁定 11) | 实盘主机为 arm64 Mac mini(09-27 起);`SHADOW_OFFSET_MIN = 12`(旧 runbook L168 写 16,已过期) | STATE 09-27 迁移条目 |
 | 解释器 | pod2:资金费特征/腿用 venv314(`/root/news_2026-09-23_env/venv314/bin/python`,3.14.4);F10、combo、引擎、拉取器与核对装置用 `/workspace/venv/bin/python`(3.11.10)。Mac(arm64):执行器相关用 `/usr/bin/python3`(3.9.6);生产者用 `~/wide_shadow/venv/bin/python`(3.14.7) | HANDOFF §4;STATE 09-27 04:1xZ 迁移条目 |
 | 复跑 | 每个装置的 argv 逐字抄自上一次的收据或提交信息;装置自报 sha 写进产物 | CLAUDE.md 约束 6 |
 | 本机重活 | 只在 [N+1:00, N+3:40];启动脚本第一行调 `venue_quiet_window.py --json` | 团队规则 |
@@ -64,20 +65,29 @@
 ## 3. King 与 F10 重训,与生产者切换同一次发布
 
 ### 3a 训练(研究侧)
-- **F10**:dlarch 的训练器,在役 NC 配方(`--no-mask`;G1 恒等已证与在役 F10 OOF 逐位相同,DL 书层门修订 5(b)),输入换成 §2 的 D10 特征。种子 42 / 2027 / 7;部署永远用 s42(书层门 L48)。owner:dlarch(**待 lead 指派确认**)。
-- **King**:**十月配方未定**(§7-4)。月度重训族已于 09-26 01:31Z 停止,且按设计用的是 snap_interval(`DECISION_RULE_king_monthly_retrain_2026-09-26.md` L46、L65);KN/A1 族在 IC 层判。草案建议:在役 NC 的 King 配方,只把特征换成 D10;控制照月度族的做法:确定性、A0 逐位重现 `KING_OOF a10b8725`、legs 逐位重现 `9ee5886f`。owner:fresh / fresh2(**待 lead 指派**)。
-- **书层判据**:DL 书层门修订 4(双主判据,2026 段为主、pre-2026 不得变差)+ 修订 5(基线 = 在役 NC,同种子配对 s42/s2027/s7;回撤护栏对 NC,3pp,pre-2026,固定 2× 逐锚复利);「2026」段到延长轴末锚 09-18T20Z,冻结截断版并排报。判的对象是**联合臂**:King 与 F10 都在 D10 特征上重训,喂同一条 combo 与引擎(与线 D 同链,32 路径,冻结 `dbar`)。九月段(09-18T20Z 之后)单独报,不并入。**RECOMMEND_TO_USER 不是部署授权**(书层门 L49)。
+- **F10**(§7 裁定 1):dlarch 的训练器,在役 NC 配方(`--no-mask`;G1 恒等已证与在役 F10 OOF 逐位相同,DL 书层门修订 5(b)),输入换成 §2 的 D10 特征。种子 42 / 2027 / 7;部署永远用 s42(书层门 L48)。owner:dlarch。**训练器入库并通过 `tests_october_chain_contract.py` 之后,才把它的文件名写进本节**(裁定 1)。
+- **King**(§7 裁定 1、4):**在役配方(A0 形态),只把特征换成 D10 后重训**;随机种子固定为在役的 random_state(rs = 0)。装置沿 kingfam 系的 kf_train_king,owner 为 fresh2 / dlarch;同样要先入库并过契约测试,才写进本节。成员 m0–m7 的离散度只作描述列,不作门(裁定 2)。A1(按月重训)按冻结判据 FAIL(d585e1792),不采用。A0 模型老化的发现(dlarch L5)另立预注册再议,不在十月顺带改(裁定 4)。控制照月度族:确定性;在原特征上逐位重现 `KING_OOF a10b8725`;legs 逐位重现 `9ee5886f`。
+- **书层判据**(§7 裁定 2):联合臂按 DL 书层门修订 4 判(DR10 §4)。修订 4 的内容:双主判据,2026 段为主、pre-2026 不得变差。再加修订 5:基线 = 在役 NC,同种子配对;回撤护栏对 NC,3pp,pre-2026,固定 2× 逐锚复利。种子配对只用在 F10 上(s42 / s2027 / s7),King 固定 rs = 0。「2026」段到延长轴末锚 09-18T20Z,冻结截断版并排报。判的对象是**联合臂**:King 与 F10 都在 D10 特征上重训,喂同一条 combo 与引擎(与线 D 同链,32 路径,冻结 `dbar`)。09-18T20Z 之后的九月段单独报,不并入。**RECOMMEND_TO_USER 不是部署授权**(书层门 L49)。
 - **收据**:训练器自报 config、self_sha 与输入 sha;OOF 与模型文件的 sha;书层读数的逐种子双列表(对 NC、对 T0)。
 
 ### 3b 生产者切换(实盘侧;**news2 不写 `~/wide_shadow`**)
 - **改哪里**:`nc_contract.py` L77 `iv = snap_interval(ft - int(led[-1][0])) if led else None` 改为调 `funding_interval.interval_d10(prev_ft, ft, declared_iv)`(研究仓快照 `nc_2026-09-23/devices/nc_contract.py`,sha `316a0b9b…`,与已部署的 `fea171/nc_contract.py` 相同,见 `DEPLOY_producer_new_contract_2026-09-23.md` L37)。实盘调用点 `shadow_loop_v3.py:654 NC.ingest_settlements(...)`。
-- **同一棵树里必须一起改的调用方**(否则训练侧与服务侧再次分叉):`nc_prep.py:116`(训练侧 fund_state)、`nc_seed_state.py:121,193,195`(安装时播种)、`nc_derive_producer.py:280`。
+- **同一棵树里必须一起改的调用方**(§7 裁定 7:都改):`nc_prep.py:116`(训练侧 fund_state)、`nc_seed_state.py:121,193,195`(安装时播种)、`nc_derive_producer.py:280`。否则训练侧与服务侧会再次分叉。
 - **常量只写一处**:生产者树里带一份 `funding_interval.py`,其 sha 必须等于研究仓 `common/funding_interval.py`;找不到就抛错,不许回落到本地常量(DR10 §1 末条)。平价门核这个 sha。
-- **状态**:fund_ema 状态是按 snap 规则累积的,切换时要用 D10 规则重新播种(`nc_seed_state.py`),播种来源与 §2 的特征同源;播种方式、以及 ledger_tail 按秒存储而 DR10 修订 1 要求毫秒键,这两点见 §7-5/§7-6。
+- **状态**(§7 裁定 6):切换时从归档**按毫秒键整体重新播种**(`nc_seed_state.py`),播种来源与 §2 的特征同源;九月的 API 源同样按毫秒重取。**回滚 = 按字节恢复切换前的状态快照**,快照的 sha 在窗口开始前写进收据。
+- **声明间隔 declared_iv**(§7 裁定 5):主源是 `/fapi/v1/fundingInfo`;premiumIndex 的 nextFundingTime 作交叉核对。「名字不在 fundingInfo 响应里 ⇒ 按 8h」**必须先取证才可用**:要交易所文档快照作收据,并逐名核对历史结算间隔,期望 0 例不符。取证装置与收据见 §3c。两个来源都拿不到 ⇒ UNRESOLVED:该名在该锚记为资金费未知,具名告警,**不许默认成 8**。
+- **一个行为改动**(§7 裁定 3):生产者 + King + F10 = 一个窗口、一套回滚、一次首锚验收;冻结前向用户报告。
 - **执行器侧**:King booster 与 F10 模型换装,`booster_sha_pin` 与 `f10_sha_pin` 在同一静默窗里改,回滚时一起回退(RUNBOOK_monthly_retrain_2026-10 L270;STATE L373)。
 - **部署协议**:执行器走隔离检出 → 拷实盘状态 → `ops/safe_commit.sh` 离线全电池 → 推送 → 在 `anchor.lock` 下于静默窗内快进(`DEPLOY_new_servable_models_2026-09-23.md` L5);生产者照 09-24 先例:代码、状态格式、模型、钉在同一窗口 W = [N+1:00, N+3:40] 内改,A3(生产者)与 A4(执行器快进)落在同一对锚之间,且早于 N+4:12;回滚 R-A/R-B(`nc_install.py rollback`、`nc_downgrade_state.py`、`book.json` 逐字节恢复)(`DEPLOY_producer_new_contract_2026-09-23.md` L9–13、L219–233、L492–515)。
-- **谁装**:草案建议 integ 执行、lead 监督(09-24 先例,同文 L66);**用户最终确认后才可安装**(用户裁定 L14;书行为改动)。
+- **谁装**(§7 裁定 9):integ 执行,lead 监督。**需要用户确认**,与 §6 的时间选项一并请示;用户最终确认之后才可安装(用户裁定 L14;书行为改动)。
 - **发布后首锚验收**:判据由 lead 在读数之前冻结(同 09-26 20Z 验收的做法,`6b238f24d`);至少包含 §4 的 4b。
+
+### 3c declared_iv 取证(owner:news2;§7 裁定 5 的前置,**未完成前 3b 不得使用「缺名 ⇒ 8h」**)
+1. 交易所文档快照:`/fapi/v1/fundingInfo` 的官方说明原文,存入收据,记录抓取时间与内容 sha。
+2. 当前 fundingInfo 响应:从 pod2 取一次(公共行情端点,不走 Mac 的实盘出口),存原始字节与 sha。
+3. 逐名核对:不在响应里的每个名,在归档 zip 最近 N 个月里,`funding_interval_hours` 应全部等于 8。期望 0 例不符。不符的逐名列出,这条规则即不成立。
+4. 反向核对:在响应里的每个名,其 `fundingIntervalHours` 与归档最近一行的间隔应一致。
+5. 结果:三项全过才写「取证成立」;否则按 UNRESOLVED 路径处理,由 lead 另裁。
 
 ## 4. 平价门(线 B;owner:news2 跑,lead 读)
 
@@ -85,7 +95,7 @@
 
 | 时点 | a | b | 红了怎么办 |
 |---|---|---|---|
-| 4a 发布前(研究侧) | §2 的 D10 特征 | **候选生产者树**(经 `H.set_tree` 指向候选树,不是在役生产者)在同一本账本上重算 | 不重训 / 不发布 |
+| 4a 发布前(研究侧;§7 裁定 8 已确认) | §2 的 D10 特征 | **候选生产者树**(经 `H.set_tree` 指向候选树,不是在役生产者)在同一本账本上重算 | 不重训 / 不发布 |
 | 4b 发布后首锚(实盘侧) | 在役生产者当锚输出 | 研究侧在同一锚的实盘账本上重算 | 按 3b 的回滚走 |
 
 另核:生产者树里 `funding_interval.py` 的 sha = 研究仓 `common/funding_interval.py`。
@@ -110,6 +120,8 @@
 用户裁定的目标是「10-01 或更早,无过渡版」(`RULING_user_D10_…` L24)。**用真实九月数据做不到 10-01**,见 §7-10。
 
 ## 7. 冲突与未定项(冻结前请 lead 逐条裁定)
+
+> **状态(news2 06:4xZ)**:11 条 lead 已逐条裁定,见文末「§7 裁定」。第 1–8 条和第 11 条已改进上文(§0、§3a、§3b、§3c、§4);第 9、10 条待用户确认;第 10 条的两个日期见 §6。下列原文保留,作为出处。
 
 1. **现有月度重训 runbook 不适用**:`RUNBOOK_monthly_retrain_2026-10.md` §0★ 是 v4 bundle 链(`chain_v4_monthly.sh`),而该形态已被裁定「现形态不建」(`RULINGS_best_recommendation_2026-09-19.md` L11);在役是 NC(booster `700d9e7b`、F10 `3d7d050f`)。NC/news2 链上没有月度重训 runbook,本文件 §3 只写到「谁、用什么判」,训练装置本身需要各 owner 补。
 2. **书层门对 King 的适用范围**:书层门 L9 写「不适用于 King 改动」,而 DR10 §4 把修订 4 用于 King+F10 联合重训;F10 的种子配对也对不上 King 的 `random_state`。需要裁定:联合臂按修订 4 判,King 的种子怎么配。
