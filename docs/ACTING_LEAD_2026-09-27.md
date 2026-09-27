@@ -25,3 +25,15 @@
 
 ## 进度追加
 - 15:38Z：三项独立核验已派：线上恢复、King/FRESH/DL续跑、资金费机制；读数器问题在读候选结局前发现，待合成反例核实。未部署、未宣称盈利能力改善。
+- 15:50Z 前已完成：KSR 读数器修复 `4c2512057`，root 独立复跑 6/6；按冻结判据对各历史年对应窗口独立判回撤，不再跨年抵消。KSR 36 格仍在跑；最高判词仍需 IC 与整书证据合并，不能凭此自动换装。
+- 恢复验收修复：`5370d3a36` 新增纯离线逐门判词；`88e5de74f`/`80503090d` 修复 K1 的跨币 orderId/clientId 误归属及无损解析。旧工具可把 ETH 的 oid 77 与外来 BTC 的 oid 77 当同单；新工具拒绝，root 独立复跑 10+23 测试绿。只改研究侧验收，没有部署生产代码。
+- GAP4 同主机参照已在16Z结果之前冻结（`93acbe3f1`）：A=1790524800，洞固定3个；下一可能发布窗17:00–19:40Z，首个补丁锚20Z=1790539200。详见 `PREREG_GAP4_recovery_release_2026-09-27.md`。原 C0 shell 的末行echo会遮掉子判官退出码，必须读真实收据与子RC。
+- D10 rerun6 的三方版本核验重跑 PASS（21 个装置、4 个 common、7 个外部依赖；检查器16反例全绿），归档 `acting_lead_2026-09-27/receipts/RERUN6_CHAIN_VERIFY_before_queue.json`，SHA `fea79b5096f4ea2fd2312d2ee460a81e2b7f99a8abab9b7e051a726c0e004b6d`。尚未起跑；KSR和约26GiB的rerun6不并跑。Pod host可用内存不能代替cgroup余量。后续队列由research_resume_0927准备。
+
+## 接续必须使用的新入口
+
+恢复机械判词与修后的只读场所核验在 `multi_asset/exports/research/acting_lead_2026-09-27/devices/`：`recovery_acceptance.py`、`venue_readonly_symbol_bound.py`。不再接受旧裸orderId装置的PASS。正常恢复后 `watchdog/state.json` 不存在，须先确认父目录可列；不得把FileNotFoundError当故障，也不得把权限错误当空目录。
+
+详细实际路径、17Z命令、静默窗守卫和未覆盖项在 `/Users/haosiyu/.codex/tmp/acting_lead_20260927/live_audit.md`。`inspect_anchor` 保持默认盲态；N+55报告出齐后，在17Z静默窗做K1。20Z验收到位率门0.95，16Z重建首锚0.60。新K1仍只能证明其查询窗口内、commission命中的已成交订单，不证明全局单写者。
+
+后续修复排序：GAP4恢复首锚绿以后，继续逐项处理生产者LR缺槽/资金费未定价持久队列/HOLD止损盲区；不能因GAP4成功宣布它们关闭。训练与策略试验保持与生产发布分离，新结果未过原门不换装。
