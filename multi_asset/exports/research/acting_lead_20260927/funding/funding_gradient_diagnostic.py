@@ -23,6 +23,7 @@ paths={
  'l':('/dev/shm/news2_2026-09-23/work/legs.npz','9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65'),
  'f':('/workspace/dlarch_2026-09-24/king_fam_2026-09-27/T_NET.npz','929ff9f6c68280f1994ffb3c34c0c53114d96ad034686183f9dfd9b09b5c7a5c'),
  'y':('/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz','ca479fccd3d3245e9438a8c82ba7b4a1950ab6e06607f28b25923c4526924d62'),
+ 'd':('/workspace/d10_reread_2026-09-27/r2b_20260927T113701Z/r2/ledger_full_ms_ext_20260927T08.npz','76b777bf07d5b3630e9d4818b562cd798f1ca495af8af190c8f24421c9b538db'),
  'b':('/dev/shm/news2_2026-09-23/work/combo_s42/scaled_diagnostic.npz','f4630a20f796bce26590aedeadfc28791be7eeecee8c14789f418b5a08de4388')}
 for p,h in paths.values():assert sha(p)==h,p
 z={k:np.load(p,allow_pickle=False) for k,(p,h) in paths.items()}
@@ -34,7 +35,25 @@ identity=float(np.max(np.abs(TN[finite]+F0[finite]-Y0[finite])));assert identity
 del TN,finite
 Y=np.full(P.shape,np.nan,np.float32);F=np.full(P.shape,np.nan,np.float32);cov=np.zeros(len(A),bool)
 ij=np.searchsorted(A,AF);assert np.array_equal(A[ij],AF)
-Y[ij]=Y0;F[ij]=F0;cov[ij]=covered0
+Y[ij]=Y0;cov[ij]=covered0
+# Actual settlement cash uses each event rate and the strict millisecond half-open interval.
+D=z['d'];assert np.array_equal(D['symbols'],S)
+off=D['off'];ft=D['ft_ms'];rates=D['rate'];F64=np.zeros(P.shape,np.float64)
+boundary_t=np.array([0,1,14400000,14400001]);boundary_r=np.array([1.,2.,4.,8.])
+assert boundary_r[(boundary_t>0)&(boundary_t<=14400000)].sum()==6.
+assert boundary_r[(boundary_t>=0)&(boundary_t<=14400000)].sum()!=6.
+for j in range(len(S)):
+ tm=ft[off[j]:off[j+1]];rt=rates[off[j]:off[j+1]]
+ assert np.all(np.diff(tm)>0),(j,'duplicate or unsorted ms')
+ cc=np.r_[0.,np.cumsum(rt)];lo=np.searchsorted(tm,A*1000,side='right');hi=np.searchsorted(tm,(A+14400)*1000,side='right')
+ F64[:,j]=cc[hi]-cc[lo]
+ for i in np.linspace(0,len(A)-1,8,dtype=int):
+  direct=rt[(tm>A[i]*1000)&(tm<=(A[i]+14400)*1000)].sum()
+  assert abs(F64[i,j]-direct)<2e-12,(i,j)
+F[:]=F64.astype(np.float32)
+legacy_delta=F64[ij]-F0
+legacy_diff={'cells_abs_gt_1e_12':int((np.abs(legacy_delta[covered0])>1e-12).sum()),'max_abs_rate_delta':float(np.max(np.abs(legacy_delta[covered0]))),'d10_F_array_sha256':hashlib.sha256(F64.tobytes()).hexdigest(),'boundary_positive_and_red_pass':True,'independent_direct_sum_checks':8*len(S),'interval':'(A*1000,(A+14400)*1000]'}
+del F64,legacy_delta,off,ft,rates,Y0,F0
 WL=z['l']['WL'];Z24=z['l']['Z24'];ZFD=z['l']['ZFD'];ready=z['l']['ready']
 fold=np.array([time.strftime('%Y',time.gmtime(int(a))) if a<1735689600 else time.strftime('%Y%m',time.gmtime(int(a))) for a in A])
 C=[np.flatnonzero(np.isfinite(p)) for p in P]
@@ -118,5 +137,5 @@ book=np.array(book);summ={}
 for era,mask in [('pre2026',book[:,0]<1767225600),('2026',book[:,0]>=1767225600)]:summ[era]={'anchors':int(mask.sum()),'price_bps':stats(book[mask,1]),'carry_paid_bps':stats(book[mask,2]),'turnover_bps':stats(book[mask,3]),'mean_net_omitted_carry_bps':float(book[mask,2].mean())}
 meas=[r for r in rows if r['status']=='MEASURED'];allcontrols=all(r['controls']['finite_difference_pass'] for r in meas)
 medp=np.median([r['score_grad_ratios']['carry_to_price'] for r in meas]);medt=np.median([r['score_grad_ratios']['carry_to_turnover'] for r in meas])
-out={'utc_started':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime(START)),'utc_ended':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'prereg_commit':'db643ed57','source_utility_sha':UTILITY_SOURCE_SHA,'inputs':paths,'identity_max_error':identity,'eligible':eligible,'fold_receipts':receipts,'spans':rows,'existing_book':summ,'all_controls_pass':allcontrols,'median_carry_to_price_score_gradient':float(medp),'median_carry_to_turnover_score_gradient':float(medt),'predicate':'LOCAL_DIRECTION_WORTH_TWO_ARM_TEST' if allcontrols and (medp>=.01 or medt>=.1) else 'NOT_ESTABLISHED','wall_seconds':time.time()-START,'rss_max_kb':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,'limitations':['s42 only; OOF eval scores treated as independent local variables, not network-parameter gradients','Legacy P2 settled F, not D10 funding truth; no September samples','Existing-book turnover is 3.52 proxy for context, not cash certification','No sampling confidence or efficacy MDE from eight descriptive spans']}
+out={'utc_started':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime(START)),'utc_ended':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'prereg_commit':'db643ed57_with_D10_reading_before_run_revision','source_utility_sha':UTILITY_SOURCE_SHA,'inputs':paths,'unit':'bps on training utility nominal normalization, no GM=2; not NAV bps','identity_max_error':identity,'funding_truth':legacy_diff,'eligible':eligible,'fold_receipts':receipts,'spans':rows,'existing_book':summ,'all_controls_pass':allcontrols,'median_carry_to_price_score_gradient':float(medp),'median_carry_to_turnover_score_gradient':float(medt),'predicate':'LOCAL_DIRECTION_WORTH_TWO_ARM_TEST' if allcontrols and (medp>=.01 or medt>=.1) else 'NOT_ESTABLISHED','wall_seconds':time.time()-START,'rss_max_kb':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,'limitations':['s42 only; OOF eval scores treated as independent local variables, not network-parameter gradients','D10 extended millisecond event F; frozen original covered window excludes September; interval state rules are irrelevant to settled cash sum','Existing-book turnover is 3.52 proxy for context, not cash certification','No sampling confidence or efficacy MDE from eight descriptive spans']}
 print(json.dumps(out,indent=2,allow_nan=False))
