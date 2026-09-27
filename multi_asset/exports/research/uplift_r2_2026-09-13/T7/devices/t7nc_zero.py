@@ -13,6 +13,8 @@ stage A (inputs; light):
 stage B (after the frozen t7_s1_guards.py / t7_s1_build.py; candidates contain no returns):
   3 KRW coverage on NC: valid K1 names / NC eligible names per year; share of NC held gross (s42, s2027) on K1-valid names
   4 valid anchors per year per candidate (|U_K ∩ NC eligible| >= 30) and the EXPECTED_EVAL_YEARS assertion (with its two synthetic controls)
+  rev 1 (AMENDMENT-2, frozen 435559a61): stage B's NC eligible set = U_NC (LIVE, t7nc_universe.py) ∩ {KZ, ZFD finite}, not TRD; per-year B-undefined
+  exclusions and per-candidate O1 set sizes reported. Stage A unchanged (inputs / overlap / seats do not depend on this row).
 usage: /opt/homebrew/bin/python3 t7nc_zero.py A|B
 """
 import os, sys, io, json, time, hashlib, calendar
@@ -29,6 +31,7 @@ PIN = {"legs.npz": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f20
        "combo_s2027_scaled_diagnostic.npz": "fe09d81744030e3fc7da3367ed7da8668d390a68d1db66764be4cc74f40b00ce"}
 META_PIN = "0e3c09ac86c727ac1a7893889918e3b367463fd059a154f5e320eed47f5725c3"
 A0ELIG = T7 + "/receipts/pod2/T7_universe_elig.npz"; A0ELIG_PREFIX = "a530e123"
+UNC = f"{D}/U_NC.npz"; UNC_PIN = "19b9dc35ab86b232f52199ad0d3642bc48dfca78e75d2640a829316da4564625"   # AMENDMENT-2 (frozen 435559a61), t7nc_universe.py receipt 0f055ef4
 CAND = "/Users/haosiyu/cc_tmp/krw_pull/s1/T7_S1_CANDIDATES.npz"; CAND_REC = "/Users/haosiyu/cc_tmp/krw_pull/s1/T7_S1_BUILD_RECEIPT.json"
 FORBIDDEN = ("y4", "Y4", "y24", "Y24", "ret", "LR", "rA", "rB")
 FETCHED = {}
@@ -108,7 +111,11 @@ if STAGE == "A":
 else:
     CR = json.load(open(CAND_REC)); Z = LoggedNpz(CAND, CR["candidates_sha256"]); ze = Z["E_ts"].astype(np.int64)
     assert np.array_equal(ze, ae) and [str(s) for s in Z["symbols"]] == lsym, "candidate grid != A0 grid"
-    en = TM[pos]; held = {}
+    UN = LoggedNpz(UNC, UNC_PIN); assert np.array_equal(UN["E_ts"].astype(np.int64), ca) and [str(s) for s in UN["symbols"]] == lsym, "U_NC axis/symbols"
+    U = UN["U"].astype(bool)[: EV.size]; BF = UN["B_finite"].astype(bool)[: EV.size]
+    en = U & BF                               # AMENDMENT-2 §1-§2: DeltaIC set = U_NC ∩ {KZ, ZFD finite} (replaces TRD for stage B)
+    rec["excluded_cells_B_undefined_by_year"] = {int(y): int((U & ~BF)[EVY == y].sum()) for y in EXPECTED_EVAL_YEARS}
+    held = {}
     for k in C:
         W = C[k]["weights"].astype(np.float64); tm = C[k]["trade_mask"].astype(bool); H = np.zeros_like(W); cur = np.zeros(W.shape[1])
         for i in range(len(tm)):
@@ -123,6 +130,7 @@ else:
         valid[nm] = {int(y): int(((nv >= MIN_SUBSET) & (EVY == y)).sum()) for y in sorted(set(EVY.tolist()))}
         checks[nm] = years_assert(valid[nm])
         cov[nm] = {int(y): round(float(v[EVY == y].sum() / max(en[EVY == y].sum(), 1)), 4) for y in EXPECTED_EVAL_YEARS}
+        rec.setdefault("O1_mean_set_size_by_year", {})[nm] = {int(y): round(float(nv[EVY == y].mean()), 1) for y in EXPECTED_EVAL_YEARS}
     k1v = np.isfinite(cand["K1"]) & en
     gross = {k: {int(y): round(float((held[k][EVY == y] * k1v[EVY == y]).sum() / max(held[k][EVY == y].sum(), 1e-12)), 4) for y in EXPECTED_EVAL_YEARS} for k in held}
     # controls of the assertion itself (AMENDMENT §2 item 5)
