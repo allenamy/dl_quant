@@ -78,7 +78,7 @@ def mmap_npy(p,name):
  return np.memmap(p,mode='r',offset=offset,shape=shape,dtype=dtype)
 fp=inputs['features'][0];a=mmap_npy(fp,'anchors');off=mmap_npy(fp,'off');symbols=np.array(mmap_npy(fp,'symbols'));mm=mmap_npy(fp,'m');X82=mmap_npy(fp,'X82');X89=mmap_npy(fp,'X89')
 A=np.arange(R['run_start_anchor']+14400,R['run_start_anchor']+7*14400,14400);ii=np.searchsorted(a,A);assert np.array_equal(a[ii],A)
-leg=np.load(inputs['legs'][0]);assert np.array_equal(leg['E_ts'],a) and np.array_equal(leg['symbols'],symbols)
+leg=np.load(inputs['legs'][0]);assert leg['ready'][ii].all();assert np.array_equal(leg['E_ts'],a) and np.array_equal(leg['symbols'],symbols)
 X=[];C=[]
 for i in ii:
  sl=slice(int(off[i]),int(off[i+1]));X.append(np.concatenate((X82[sl],X89[sl]),1).copy());C.append(np.array(mm[sl],dtype=np.int64));assert np.isfinite(X[-1]).all()
