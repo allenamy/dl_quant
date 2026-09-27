@@ -43,6 +43,11 @@ NEVER_ON_POD2.update({
     # hard-codes EXP=/dev/shm/d10_2026-09-25 (found by this device's first derivation: UNMAPPED_ROOT), so running it as-is would run
     # the 09-25 deploy's devices.
     "d10_reaudit_jan_to_aug_pod2.sh": "runbook 1d template only (hard-codes the 09-25 EXP); the step runs the new driver",
+    # rev 1 (13:4xZ): once the runbook's §0.2 addendum named this device and fresh2's tool, they entered their own population: this
+    # file's exclusion table and selftest fixtures were read as pod2 code refs (4 x UNMAPPED_ROOT), and its string "d10_stage5_engine.py"
+    # was followed as an importlib-by-filename import. Both run on the Mac; S14 went red on it.
+    "d10_deploy_verify_chain.py": "runs on the Mac (ssh to pod2); its literals are its exclusion table and selftest fixtures",
+    "pod2_deploy_verify.sh": "fresh2's three-way tool; runs on the Mac",
 })
 # Shared pod2 roots the chain's code runs from, and where their bytes live in the repo. The nc root and the news2 root run the
 # EXECUTED nc_legs / nc_hist_features (nc_2026-09-23/devices/README_executed_versions_2026-09-27.md), so those two names map there.
@@ -116,7 +121,9 @@ def source_for(root, name):
 
 def derive():
     _, resolved, _ = C.chain_from_runbook()
-    pop = dict(resolved, **C.import_closure(resolved))
+    # the closure is taken over what runs on pod2 only: a Mac-side tool's imports (and its string literals) are not pod2 code
+    on_pod2 = {k: p for k, p in resolved.items() if os.path.basename(p) not in NEVER_ON_POD2}
+    pop = dict(resolved, **C.import_closure(on_pod2))
     exp_dev, exp_common, skipped, foreign = {}, {}, {}, {}
     for key, p in sorted(pop.items()):
         n, home = os.path.basename(p), os.path.dirname(os.path.realpath(p))
@@ -284,6 +291,8 @@ def selftest():
         "/dev/shm/nc_2026-09-23/devices/nc_p2_build.py", "/dev/shm/nc_2026-09-23/devices/nc_hist_features.py",
         "/dev/shm/nc_2026-09-23/devices_arm/nc_contract.py"} <= set(m["external"]))
     ok("S14_real_derive_has_no_problems", m["derive_problems"] == [])
+    ok("S16_mac_tools_and_their_closure_not_in_pod2_population",
+       not ({"d10_deploy_verify_chain.py", "pod2_deploy_verify.sh", "d10_stage5_engine.py"} & (set(m["exp_devices"]) | set(m["exp_common"]))))
     n_ok = sum(r[1] for r in res)
     print("DEPLOY_CHAIN_SELFTEST %d/%d %s" % (n_ok, len(res), "ALL_PASS" if n_ok == len(res) else "RED"))
     return n_ok == len(res)
@@ -299,6 +308,9 @@ def main():
     if not (a.exp and a.out) or os.path.exists(a.out):
         sys.exit("usage: --exp DIR --out NEW_RECEIPT.json (the receipt must not exist yet)")
     exp = a.exp.rstrip("/")
+    # rev 1: the selftest (incl. S14 "real derivation has no problems") runs first; a red derivation never syncs or verifies
+    if not selftest():
+        sys.exit("CHAIN_DEPLOY_VERIFY PASS=False selftest red -- nothing synced, nothing verified")
     man = derive()
     if a.sync:
         sync(exp, man)
