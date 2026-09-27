@@ -1,4 +1,4 @@
-> **创建:** 2026-09-27 02:4xZ | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n(news2) | **状态:** 交接(用户迁移到新电脑,lead 暂停令) | **作废条件:** 下一个接手的 news2 会话读完并在 STATE 记下接手
+> **创建:** 2026-09-27 02:4xZ | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n(news2) | **状态:** 交接(用户迁移到新电脑,lead 暂停令);§5 追加于 09-27 14:1xZ(lead 离线) | **作废条件:** 下一个接手的 news2 会话读完并在 STATE 记下接手
 
 # news2 交接说明(2026-09-27)
 
@@ -55,3 +55,59 @@
    - pod2:pass1/legs 用 venv314;F10、combo、引擎用 `/workspace/venv`
    - Mac:执行器相关用 `/usr/bin/python3`
 4. 本机的 scratchpad 路径(`~/cc_tmp/claude-501/...`)不会跟着迁移。其中需要长期保留的件都已入库:暂存的真实跑收据、自测收据、pre20Z 副本的 sha 都在收据里。
+
+---
+
+## 5. 追加(2026-09-27 14:1xZ,lead 额度用尽、预计 09-30 接回;接手人见 `HANDOFF_independent_researcher_2026-09-27.md` §7,d889e647c)
+
+**本节之后 news2 不开新的重作业、不做部署。** 唯一例外是 lead 已排定的 rerun6(见 5.3),它排在 dlarch 的 D10 重读之后。
+
+### 5.1 在飞
+- news2 自己:无(截至 14:1xZ)。rerun6 已备好,尚未起跑,见 5.3。
+- 挡在 rerun6 前面的是 dlarch 的 `dlarch_d10_reread`(pgid 3483262)。14:07Z 实测它在跑 s7 格。fresh2 的 `fresh2_ksr_book_cells` 为它暂停。
+
+### 5.2 runbook §6 (ii) 时间线(执行记录在 `docs/RUNBOOK_october_rebuild_D10_2026-09-27.md` §6「执行记录」,news2 为关键路径协调人)
+| # | 项 | 状态 |
+|---|---|---|
+| 1 | D10 输入 | 已有 |
+| 2 / 3 | King 训练器 / 十月 King + OOF | 06:45Z / 06:58:08Z 完成(fresh2) |
+| 1b | legs(十月 King OOF) | 07:32:51Z 完成,legs 383e3ddc |
+| 4 / 5 / 6 | F10 训练器 / 三种子 / 书层格 | 07:13:48Z / 10:32:29Z / 10:47:17Z 完成(dlarch) |
+| 7 | lead 判词 | **UNDECIDED**(6838a219a)。新前提:用户对 UNDECIDED 的发布裁定。描述性重读的数字(dlarch 交表)与判词并排呈用户(接手人 §7 第 3 条) |
+| 8 | 候选生产者树(integ) | **未开工**。16Z 首锚验收通过后开工(接手人 §7 第 2 条通知 integ) |
+| 9 | 平价门 4a(news2) | 待 #8;约 1 小时。lead 离线期间不开新重作业,**#8 完成后由接手人决定谁跑**。装置与判据见 runbook §4a |
+| 10 / 11 | 电池演练 / 09-30 13:00Z 窗 | 待;窗是有条件的(用户对 UNDECIDED 的裁定 + 事故结案 + 实盘验收) |
+
+**#8 的滑期基准(报给接手人,不再报 lead)**:
+- 09-27 23:00Z 仍未开工 ⇒ 报。
+- 09-29 12:00Z 仍未完成 ⇒ 报;这是中位 06Z + 6 小时,开工若晚于 17Z 则相应顺延。
+- **最晚可接受完成 09-30 09:00Z**。依据:窗前还要依次做完 4a(约 1 小时)、电池演练(25–85 分钟)、用户最后确认。晚于这个时刻,09-30 窗就不可达。
+
+巡检:我的 30 分钟 patrol 由本会话的 cron 驱动,会话结束即停(执行与监督分属不同所有者)。接手后请按 `PROGRAM_loop_2026-09-26.md` §0 自己巡检;巡检行在我的 scratchpad `patrol.log`,那不是正典。
+
+### 5.3 rerun6(十六行干跑重跑,lead 排定)
+- 目录 `/workspace/d10_dryrun_rerun6_20260927T133902Z`,从 HEAD 同步,`CHAIN_DEPLOY_VERIFY PASS=True`(a6f16c86a)。refs 12/12 与钉住的清单相同(`RERUN6_refs_sha256_20260927T133108Z.txt`)。
+- 预声明 `news2_2026-09-23/prereg/RERUN6_EXPECTED_DIFFS_2026-09-27.json`(c9765f2c3,sha 0b514102…),只有三处:
+  - D1 收据多出 `rows_in_old_window`,值 = rows_new_ms;
+  - D2a、D2b 收据的 `rebuild_device_sha256` 从 98c6b105 变为 a1015980。
+  - runner rev 4 用 `--expect` 机械判:差异集合必须**完全等于**声明;声明之外的差异,或声明了却没出现,一律 DIFFERS,按原规则停。控制见 `receipts/rerun6_prereg_2026-09-27/CONTROLS.txt`。
+- 起跑命令(pod2,过资源门后;用 `registry_edit.py add` 登记):
+  `W=/workspace/d10_dryrun_rerun6_20260927T133902Z; setsid nohup /workspace/venv/bin/python -B $W/devices/d10_dryrun_run.py $W --part rerun6 --expect $W/prereg/RERUN6_EXPECTED_DIFFS_2026-09-27.json --expect-sha 0b514102aa092f96e2f33c669381529a16365d00d904fef55d152298e88a4d71 </dev/null >/dev/null 2>&1 &`
+  - 日志 `/dev/shm/news2_dryrun_2026-09-27/rerun6/dryrun.log`,末行锚定 `DRYRUN_DONE` 或 `DRYRUN_STOP`;
+  - 结果 `$W/out/DRYRUN_RESULT.json`。
+- 起跑前先只核对一次(不同步):`python3 -B news2_2026-09-23/devices/d10_deploy_verify_chain.py --exp $W --out <新收据>`。
+- 结果:**待填**(本节在跑完后更新)。
+
+### 5.4 今天 11:01Z 交接之后做完的事(收据均已入库)
+- **D10 描述性重读输入**交付 dlarch(85f2a340b):R3–R8 控制全 PASS,features ad80d50d,legs 37c0b5d3。
+- **nc 执行版入库**(a41fd2496、2468cb368、966ca3954):nc_legs 18387627 / nc_hist_features 3eee6e88 与 README,原文件不覆盖。
+- **事项 D**(e7235d50d):契约规则 W 也扫描 durable_write.py 本身,钉 1 处(它自己的临时写入器)。契约 37/37。
+- **事项 A**(61432f487,rev 1 4996097bc;验收 220eaf7d6):`d10_deploy_verify_chain.py`,每次 pod2 起跑前的三方同一性检查,用 fresh2 的 `pod2_deploy_verify.sh`。runbook §0.2 追加(5a5fd4d43)。
+  - 首次派生就抓到:1d 的模板驱动把 EXP 写死为 09-25 的旧部署。
+  - rev 1 修了检查器把自己纳入自身清单的缺陷,红收据保留。
+
+### 5.5 未结(news2 名下,lead 离线期间不动)
+- 1d 新驱动 `d10_reaudit_months_pod2.sh` 未写(仅选项 (i) 或九月归档核对需要)。
+- 平价门 4a 等 #8。
+- 早先两个 rerun6 暂存目录(`..._133108Z`、`..._133729Z`)同步于 rev 4 / rev 1 之前,不用,也不删。
+- ERROR_LEDGER:检查器进入自身清单一事,只写了记忆,尚未起草账本条目。
