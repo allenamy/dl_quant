@@ -1,5 +1,5 @@
 > **[2026-09-27 13:0xZ] ✅ 实盘已恢复(原参数)**:用户 12:2xZ 确认旧机已全部停,下令「直接尽快高质量恢复」(密钥轮换由用户暂缓,旧密钥指纹仍为 88d264fe14)。13:00:24Z Q1–Q4 PASS:08:49Z 起无挂单、无持仓、无成交(收据 `recovery_2026-09-27/receipts/Q1Q4_*.json`);隔离克隆 `--check` RESUMABLE,各条件都 CLEAN;13:01:11Z `resume_from_trip.sh` 4/4 ✓,证据隔离到 `watchdog/quarantine/state_20260927T130111Z_resumed.json`,state.json 已不存在。**首锚 = 16Z(1790524800)**,按恢复方案 §8 加查:外来 orderId = 0、到位率 ≥ 0.60、taker 份额、blocked_by_halt = 0、无再跳闸。今天不要往合约钱包划转(§4-2 缺陷)。交接总账:`docs/HANDOFF_independent_researcher_2026-09-27.md`(ee2717652)。
-> - **密钥轮换之前的临时规矩(integ 建议,lead 采纳)**:旧密钥仍然有效,第二个执行者唯一的哨兵是 K1。所以**每一锚**在 N+30 之后的静默窗里跑一次 `venue_readonly.py anchor --anchor <A>`,K1(外来 orderId)必须 = 0;不为 0 ⇒ 立即手动 halt,并报用户。
+> - **用户裁定(13:1xZ):密钥暂时不换;K1 只查恢复后的前几锚(16Z、20Z、09-28 00Z),不必每锚都查。** 原临时规矩如下,仅作历史:旧密钥仍然有效,第二个执行者唯一的哨兵是 K1。所以**每一锚**在 N+30 之后的静默窗里跑一次 `venue_readonly.py anchor --anchor <A>`,K1(外来 orderId)必须 = 0;不为 0 ⇒ 立即手动 halt,并报用户。
 
 > **[2026-09-27 09:1xZ] 🔴 实盘事故:双执行器 ⇒ 整本书被平仓;新机处于 reduce_only / open_orders_halted,发布全部冻结**
 > - **经过**:08Z 是新机的第一个实盘锚。新机执行器 08:25Z 按计划做了一次小幅换仓(maker 意向约 1.6 万、taker 约 0.6 万)。**旧机实际上一直开着(锁屏状态下 launchd 照常运行,用户 09:0xZ 确认)**,也在跑它自己的 08Z 锚。旧机的 watchdog 看到场所持仓与自己的记账对不上,于 08:31:12Z 跳闸:clientOrderId 前缀 F20260927083112,MARKET reduce-only,315 个名、约 3,479 笔成交,平掉约 21.5 万名义。随后新机 watchdog 于 08:47:50Z 跳闸(§4-5b / §4-5e split_unauth 100.2%),平掉剩余约 2k。

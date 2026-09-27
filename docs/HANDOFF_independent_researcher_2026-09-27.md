@@ -42,7 +42,7 @@
 ### 1.3 恢复(进行中)
 - 用户 12:2xZ 裁定:**直接尽快恢复,不等密钥轮换**(旧机已全部停掉)。
 - 步骤单:`docs/PLAN_recovery_after_double_executor_2026-09-27.md` §7(integ)+ 通用手册 `docs/RUNBOOK_post_trip_resume_generic_2026-09-27.md`(alloc)。要点:静默窗内 Q1–Q4 只读核验(无挂单、无持仓、平仓后无外来成交)→ 隔离克隆 `recheck_clone.sh` 跑 `resume_from_trip.sh --check` → `LIVE_MODE=LIVE bash ops/resume_from_trip.sh "<原因>"` → 首锚按 §8 加查(外来 orderId=0、到位率 ≥0.60、taker 份额、blocked_by_halt=0、无再跳闸)。历史重建 1–2 锚到位,成本约 110–290 USDT。
-- **结果**:13:01Z 已恢复(`f332176c3`),首锚 16Z。**密钥未轮换期间,每一锚都要跑 K1(外来 orderId = 0)**,见 STATE 顶部。
+- **结果**:13:01Z 已恢复(`f332176c3`),首锚 16Z。用户裁定密钥暂不轮换;K1(外来 orderId = 0)只查恢复后的前几锚(16Z、20Z、09-28 00Z),见 STATE 顶部。
 - **结果以 STATE.md 顶部最新条目为准。**
 
 ### 1.4 未发布的包(全部冻结,恢复后重排)
