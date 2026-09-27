@@ -1,4 +1,4 @@
-> **创建:** 2026-09-27 13:3xZ | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n(news2,按 lead 裁定) | **状态:** 溯源补录;不改任何运行 | **作废条件:** 本目录的 nc_legs.py 或 nc_hist_features.py 再改动(须更新本表)
+> **创建:** 2026-09-27 13:1xZ(首次提交 a41fd2496 于 13:18:33Z;原写 13:3xZ,晚于提交时刻,已更正) | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n(news2,按 lead 裁定) | **状态:** 溯源补录;不改任何运行 | **作废条件:** 本目录的 nc_legs.py 或 nc_hist_features.py 再改动(须更新本表)
 
 # nc_legs / nc_hist_features:仓库版本与 pod2 实际执行版本
 
