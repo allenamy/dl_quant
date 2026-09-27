@@ -16,7 +16,8 @@ SEGMENTS: H1 years Y in 2023/2024/2025 = [Y-10-01, Y+1-01-01); H1 merged = their
   D >= -max(0.5, 3.5 SE) and not REJECT. (IMPROVE is not assessed: rule §2 last line.) The overall OPTION_FOR_USER / UNDECIDED
   verdict also needs the IC gate and the 2026F IC point, which live in KSR_IC (dlarch_ksr_read.py); this device reports the book
   half only and says so.
-§3 guards: (a) drawdown: per H1 year, maxDD of the fixed-2x per-anchor compounded NAV of each path (nav = cumprod(1 + GM * r) over
+§3 guards: (a) drawdown: per H1 year, maxDD of the fixed-2x per-anchor compounded NAV of each path (nav = cumprod(1 + r); rev 1: r is already
+  the NAV return at the fixed 2x gross, r * 1e4 == GM * g measured on the NC s2027 series, so no extra GM factor) over
   the window's anchors), mean over paths and (m, s); then mean over the three years; FAIL iff S1 is worse than S0 by > 3 pp.
   (b) switch anchors: for every S1 cell and seed, sum|dw| and the seat change L1(WL_t - WL_{t-1}) at each window's first anchor and
   at the first anchor after it (hand-back), against the p99 of the same cell's non-switch anchors; any exceedance => the rule
@@ -110,7 +111,7 @@ rec['S1_vs_S0'] = book
 
 # ---- §3 (a) drawdown: fixed 2x per-anchor compounded NAV inside each H1 window
 def maxdd(c, s, m):
-    r = ser(c, s)['r_per_path'][:, m]; nav = np.cumprod(1.0 + GM * r, axis=1)
+    r = ser(c, s)['r_per_path'][:, m]; nav = np.cumprod(1.0 + r, axis=1)   # rev 1: r is already the NAV return at the fixed 2x gross
     peak = np.maximum.accumulate(np.concatenate([np.ones((nav.shape[0], 1)), nav], 1), axis=1)[:, 1:]
     return float(np.mean(np.max(1.0 - nav / peak, axis=1)))
 
@@ -122,7 +123,7 @@ for y in H1:
                   'S0': float(np.mean([maxdd(cmap['S0'][k], s, m) for k in MEM for s in SEEDS]))}
 dd_s1 = float(np.mean([v['S1'] for v in dd.values()])); dd_s0 = float(np.mean([v['S0'] for v in dd.values()]))
 guard_dd = {'per_year': dd, 'mean_S1': dd_s1, 'mean_S0': dd_s0, 'S1_minus_S0_pp': 100 * (dd_s1 - dd_s0),
-            'FAIL': bool(100 * (dd_s1 - dd_s0) > 3.0), 'basis': 'maxDD of nav = cumprod(1 + GM * r) per path over the window anchors; mean over 32 paths x 16 (m, s)'}
+            'FAIL': bool(100 * (dd_s1 - dd_s0) > 3.0), 'basis': 'maxDD of nav = cumprod(1 + r) per path over the window anchors (r = NAV return at fixed 2x); mean over 32 paths x 16 (m, s)'}
 
 # ---- §3 (b) switch anchors
 wins = [(T_(y, 10), T_(y + 1, 1)) for y in H1] + [(T_(2026, 7), None)]

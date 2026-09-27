@@ -10,7 +10,10 @@ Per seed s in 42 / 2027 / 7, arm = DLARCH_D10_s (King + F10 on D10 features), ba
   end 09-18T20Z), 2026_frozen_truncated (frozen SEG, to 08-31), plus 2023H2 / 2024 / 2025. The pre2026 / 2026 d must equal
   paired_d's d_per_seed (asserted to 1e-12) -- the two routes are independent (scalar difference here vs frozen-judge series there).
   T0 reference column, sd(d), sigma_ref, SE: copied from PAIRED_D (not recomputed).
-Drawdown guard (rule: vs NC same seed, pre-2026, fixed 2x per-anchor compounding, pp): maxDD of nav = cumprod(1 + GM * r) over the
+REVISION 1 (before its output was delivered): the first run compounded 1 + GM * r, but r is already the NAV return at the fixed
+  2x gross -- measured on the NC s2027 series: r * 1e4 == 2 * g exactly, the same relation rc_read's D_bar ~ GM x g shows. That run
+  doubled the leverage; its drawdowns (~0.39-0.47) are void and were not delivered. Fixed: nav = cumprod(1 + r).
+Drawdown guard (rule: vs NC same seed, pre-2026, fixed 2x per-anchor compounding, pp): maxDD of nav = cumprod(1 + r) over the
   pre-2026 anchors, per path, mean over the 32 paths; reported arm - NC in pp (negative = arm deeper). The frozen judge's maxdd_5m
   path_mean (5-minute NAV; what earlier verdicts used) is reported beside it and labelled.
 Channels (NAV bps/day, x GM, arm - NC, same seed, full UTC days as news_stats.full_days): pnl (price), car (+ = funding paid), cst
@@ -76,7 +79,7 @@ for s in SEEDS:
     m = seg_masks['pre2026']
 
     def dd2x(S):
-        nav = np.cumprod(1.0 + GM * S['r_per_path'][:, m], axis=1)
+        nav = np.cumprod(1.0 + S['r_per_path'][:, m], axis=1)   # r is ALREADY the NAV return at the fixed 2x gross (r*1e4 == GM*g, measured)
         peak = np.maximum.accumulate(np.concatenate([np.ones((nav.shape[0], 1)), nav], 1), axis=1)[:, 1:]
         return float(np.mean(np.max(1.0 - nav / peak, axis=1)))
     da, db = dd2x(Sa), dd2x(Sb)
