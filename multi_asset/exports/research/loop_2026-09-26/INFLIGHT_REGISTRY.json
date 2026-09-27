@@ -267,7 +267,9 @@
   "result": "/workspace/d10_dryrun_2026-09-27/out/DRYRUN_RESULT.json",
   "started_utc": "2026-09-27T05:39:04Z",
   "devices": "d10_dryrun_run.py d40eca80 + d10_dryrun_compare.py 1c8f6148 (commit 09a7b0275); plan frozen acd2303b6 + addendum 1",
-  "resources": "nice 10, CPU only, outputs under /workspace/d10_dryrun_2026-09-27/out; team gate checked by the runner before D1 and D3"
+  "resources": "nice 10, CPU only, outputs under /workspace/d10_dryrun_2026-09-27/out; team gate checked by the runner before D1 and D3",
+  "closed": true,
+  "ended": "DRYRUN_STOP at D3_assemble 2026-09-27T05:42:49Z (EDQUOT on /workspace; D1/D2a/D2b IDENTICAL before it). Lead ruling: D3 suspended as NOT_RUN(quota), D4-D10 in part 2"
  },
  {
   "name": "fresh_a1seat",
@@ -297,5 +299,19 @@
   "started_utc": "2026-09-27T05:59:26Z",
   "pgid": 3402756,
   "devices": "a738af249"
+ },
+ {
+  "name": "news2_rebuild_devices_dry_run_part2",
+  "owner": "news2",
+  "host": "pod2",
+  "log": "/dev/shm/news2_dryrun_2026-09-27/part2/dryrun.log",
+  "pgid": 3408190,
+  "terminal": "^\\S+ (DRYRUN_DONE|DRYRUN_STOP)",
+  "success": "^\\S+ DRYRUN_DONE",
+  "result": "/dev/shm/news2_dryrun_2026-09-27/part2/DRYRUN_RESULT_part2.json (authoritative; /workspace copy best-effort)",
+  "started_utc": "2026-09-27T06:15:39Z",
+  "rows": "S0, D3 recorded NOT_RUN(quota), D4a D4b D4pc D5a D5b D5c D6 D9 D10",
+  "devices": "d10_dryrun_run.py rev 2 aca7dd6a (commit 8d1a572bd632264c434367b644cf5f1b624aa0bd)",
+  "delivery": "session cron 9ed50f8e every 10 min (7-59/10) reads this log and reports to lead (E-0926-J rule)"
  }
 ]
