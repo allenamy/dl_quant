@@ -1,0 +1,1170 @@
+diff --git a/live/binance_funding.py b/live/binance_funding.py
+index e10d71a..f3544ff 100644
+--- a/live/binance_funding.py
++++ b/live/binance_funding.py
+@@ -33,10 +33,12 @@ from __future__ import annotations
+ 
+ import bisect
+ import json
++import math
+ import os
+ import sys
+ import time
+ from typing import Any, Dict, List, Optional, Tuple
++from decimal import Decimal
+ 
+ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+ from binance_broker import BinanceBroker, VenueError  # noqa: E402
+@@ -268,7 +270,7 @@ def funding_marker_path(root: str) -> str:
+     return os.path.join(os.path.dirname(os.path.abspath(root)), "funding_last_pull.json")
+ 
+ def positions_at(root: str, settlement_ms: int, max_age_s: float,
+-                 now_ms: Optional[int] = None) -> Optional[Dict[str, Any]]:
++                 now_ms: Optional[int] = None, *, strict_evidence: bool = False) -> Optional[Dict[str, Any]]:
+     """Our own position record for the moment a settlement was charged.
+ 
+     Returns {"positions": {sym: signed notional}, "read_ts": …, "age_s": …} when a usable
+@@ -304,8 +306,11 @@ def positions_at(root: str, settlement_ms: int, max_age_s: float,
+     rows: List[Dict[str, Any]] = []
+     for d in days:
+         try:
+-            rows.extend(_PL.read_day(root, d).get("position_readback", []))
++            opts = {"strict_tables": ("position_readback",)} if strict_evidence else {}
++            rows.extend(_PL.read_day(root, d, **opts).get("position_readback", []))
+         except Exception:
++            if strict_evidence:
++                raise
+             continue
+     if not rows:
+         # ★ SAY THE WINDOW. This branch and the stale one below are both refusals, so neither can
+@@ -319,6 +324,8 @@ def positions_at(root: str, settlement_ms: int, max_age_s: float,
+                        f"(days read: {days}) — stale beyond the lookback, or never written"}
+ 
+     def _ts(r):
++        if strict_evidence:
++            return _readback_ts(r)
+         v = r.get("read_ts")
+         if v is None:
+             v = r.get("anchor_ts")
+@@ -340,6 +347,11 @@ def positions_at(root: str, settlement_ms: int, max_age_s: float,
+                        f"({age / 3600.0:.2f}h > {max_age_s / 3600.0:.2f}h = one anchor interval); "
+                        f"an anchor was missed, or its readback landed late — either way what we "
+                        f"held at the settlement is UNKNOWN"}
++    if strict_evidence:
++        snap = {s: _finite(r["venue_position_notional"], "fresh readback notional")
++                for s, r in _strict_snapshot(before, newest).items()}
++        return {"positions": snap, "read_ts": newest, "age_s": round(age, 3),
++                "source": "position_readback (our own record of the venue's answer)"}
+     snap = {}
+     for r in before:
+         if abs(_ts(r) - newest) < 1e-6:
+@@ -483,15 +495,46 @@ def _income_key(i: Dict[str, Any]) -> Tuple[str, int, Any]:
+     return (str(i["symbol"]), int(i["time"]), i.get("tranId"))
+ 
+ 
++def _finite(value, label):
++    if isinstance(value, bool):
++        raise ValueError(f"invalid evidence: {label} is boolean")
++    number = float(value)
++    if not math.isfinite(number):
++        raise ValueError(f"invalid evidence: {label} is not finite")
++    return number
++
++
++def _validate_income(i):
++    if not isinstance(i, dict) or not isinstance(i.get("symbol"), str) or not i["symbol"].strip():
++        raise ValueError("income row has no symbol")
++    t = i.get("time")
++    if isinstance(t, bool) or not (type(t) is int or isinstance(t, str) and t.isdigit()) or int(t) <= 0:
++        raise ValueError("income row has no lossless positive millisecond time")
++    _finite(i["income"], "income cash")
++    tid = i.get("tranId")
++    if tid is not None and (isinstance(tid, bool) or not isinstance(tid, (int, str))):
++        raise ValueError("income row has malformed tranId")
++    if i.get("incomeType", "FUNDING_FEE") != "FUNDING_FEE":
++        raise ValueError("pending income is not FUNDING_FEE")
++
++
+ def _load_pending(path: str):
+     """(doc, None) or (None, reason). An ABSENT file is an empty queue; an unreadable one is NOT (fail-closed)."""
+-    if not os.path.exists(path):
+-        return {"pending": [], "permanent_gaps": []}, None
+     try:
+-        with open(path) as f:
+-            d = json.load(f)
++        try:
++            with open(path) as f:
++                d = json.load(f)
++        except FileNotFoundError:
++            if os.path.basename(path) in os.listdir(os.path.dirname(path)):
++                raise ValueError("pending file is listed but cannot be opened")
++            return {"pending": [], "permanent_gaps": []}, None
+         if not (isinstance(d, dict) and isinstance(d.get("pending"), list) and isinstance(d.get("permanent_gaps"), list)):
+             return None, "queue document lacks the pending / permanent_gaps lists"
++        for field in ("pending", "permanent_gaps"):
++            for p in d[field]:
++                if not isinstance(p, dict):
++                    raise ValueError("pending entry is not an object")
++                _validate_income(p["row"])
+         return d, None
+     except Exception as e:
+         return None, f"{type(e).__name__}: {str(e)[:120]}"
+@@ -502,30 +545,42 @@ def _write_pending(path: str, doc: Dict[str, Any]) -> None:
+     _DIO.write_json_durable(path, doc, indent=1, default=str)
+ 
+ 
++def _readback_ts(row):
++    v = row.get("read_ts")
++    return _finite(row.get("anchor_ts") if v is None else v, "readback time")
++
++
++def _strict_snapshot(rows, read_ts):
++    """One exact effective timestamp; duplicate names must carry identical facts."""
++    snap = {}
++    for row in rows:
++        if _readback_ts(row) != read_ts:
++            continue
++        sym = row.get("symbol")
++        if not isinstance(sym, str) or not sym:
++            raise ValueError("invalid snapshot symbol")
++        if sym in snap and snap[sym] != row:
++            raise ValueError(f"conflicting snapshot rows for {sym} at {read_ts}")
++        snap[sym] = row
++    return snap
++
++
+ class _GapEvidence:
+     """Readbacks and (collapsed) fills around a stale settlement, read once per pull, day files loaded lazily."""
+ 
+     def __init__(self, root: str, now_s: float):
+         import pilot_log as _PL
+         self._PL, self.root, self.now_s = _PL, root, now_s
+-        self.days = sorted(_PL.available_days(root))
++        self.days = sorted(_PL.available_days(root, strict=True))
+         self._rb: Dict[str, List[Dict[str, Any]]] = {}
+         self._fills: Optional[List[Dict[str, Any]]] = None
+ 
+     def _day_rows(self, d: str, table: str) -> List[Dict[str, Any]]:
+-        try:
+-            return self._PL.read_day(self.root, d).get(table, [])
+-        except Exception:
+-            return []
++        return self._PL.read_day(self.root, d, strict_tables=(table,))[table]
+ 
+     @staticmethod
+     def _ts(r):
+-        v = r.get("read_ts")
+-        v = r.get("anchor_ts") if v is None else v
+-        try:
+-            return float(v)
+-        except (TypeError, ValueError):
+-            return None
++        return _readback_ts(r)
+ 
+     def readbacks(self, d: str) -> List[Dict[str, Any]]:
+         if d not in self._rb:
+@@ -550,13 +605,15 @@ class _GapEvidence:
+ 
+     def snapshot(self, T: float) -> Dict[str, Dict[str, Any]]:
+         near = {time.strftime("%Y%m%d", time.gmtime(T + k * 86400)) for k in (-1, 0, 1)}
+-        return {r["symbol"]: r for d in self.days if d in near for r in self.readbacks(d) if abs(self._ts(r) - T) < 1e-6}
++        return _strict_snapshot((r for d in self.days if d in near for r in self.readbacks(d)), T)
+ 
+     def fills(self) -> List[Dict[str, Any]]:
+         if self._fills is None:
+             rows: List[Dict[str, Any]] = []
+             for d in self.days:
+                 rows.extend(self._day_rows(d, "fills"))
++            if any(not isinstance(r.get("symbol"), str) or not r["symbol"] for r in rows):
++                raise ValueError("invalid evidence: a fill has no symbol")
+             self._fills = self._PL.collapse_supersedes(rows)     # the table's reader contract: last write wins per execution
+         return self._fills
+ 
+@@ -571,18 +628,24 @@ def carried_position(ev: "_GapEvidence", sym: str, settlement_ms: int, steps: Di
+         return None, "no readback before the settlement within the venue's retention"
+     if B is None:
+         return None, "no readback after the settlement yet (the post-gap readback B does not exist)"
++    try:
++        A, B = _finite(A, "readback A time"), _finite(B, "readback B time")
++        if not A < t < B <= ev.now_s:
++            return None, "invalid evidence: readbacks do not bracket settlement before this pull"
++    except (TypeError, ValueError):
++        return None, "invalid evidence: nonfinite readback times"
+     ra = snapA.get(sym)
+     if ra is None:
+         return None, f"{sym} absent from the pre-gap readback A"
+     try:
+-        qa = float(ra["venue_position_qty"]); na = float(ra["venue_position_notional"])
++        qa = _finite(ra["venue_position_qty"], "A quantity"); na = _finite(ra["venue_position_notional"], "A notional")
+     except (KeyError, TypeError, ValueError):
+         return None, "pre-gap readback A carries no usable qty / notional for this name"
+     if qa == 0.0:
+         return None, "pre-gap readback A holds 0 of this name"
+     rb = snapB.get(sym)
+     try:
+-        qb = float(rb["venue_position_qty"]) if rb is not None else 0.0      # absent from B = not held at B
++        qb = _finite(rb["venue_position_qty"], "B quantity") if rb is not None else 0.0
+     except (KeyError, TypeError, ValueError):
+         return None, "post-gap readback B carries no usable qty for this name"
+     net, in_gap = 0.0, 0
+@@ -592,28 +655,39 @@ def carried_position(ev: "_GapEvidence", sym: str, settlement_ms: int, steps: Di
+         ft = f.get("fill_ts")
+         if ft is None:
+             try:
+-                at = float(f.get("anchor_ts"))
++                at = _finite(f.get("anchor_ts"), "fill anchor time")
+             except (TypeError, ValueError):
+                 at = None
+             if at is None or A - 4 * 3600 <= at <= B:
+                 return None, "a fill of this name without fill_ts near the gap: its time is unknown"
+             continue
+-        ft = float(ft)
++        try:
++            ft = _finite(ft, "fill time")
++        except (TypeError, ValueError):
++            return None, "invalid evidence: a fill of this name has an unusable time"
+         if not (A < ft < B):
+             continue
+         if ft < t:
+             in_gap += 1
+         try:
+-            px, nt = float(f["fill_px"]), float(f["fill_notional"])
++            px, nt = _finite(f["fill_px"], "fill price"), _finite(f["fill_notional"], "fill notional")
+         except (KeyError, TypeError, ValueError):
+             return None, "a fill of this name in (A, B) has no usable price / notional"
+         if not (px > 0) or nt != nt:
+             return None, "a fill of this name in (A, B) has no usable price / notional"
+         q = abs(nt) / px
+-        net += q if str(f.get("side", "")).upper() == "BUY" else -q
++        side = str(f.get("side", "")).upper()
++        if side not in ("BUY", "SELL"):
++            return None, "invalid evidence: a fill has an unknown side"
++        net += q if side == "BUY" else -q
++        if not math.isfinite(net):
++            return None, "invalid evidence: net fill quantity is not finite"
+     if in_gap:
+         return None, f"{in_gap} fill(s) of this name between the pre-gap readback and the settlement"
+-    step = steps.get(sym)
++    try:
++        step = _finite(steps.get(sym), "stepSize")
++    except (TypeError, ValueError):
++        step = None
+     if not step or step <= 0:
+         return None, "no stepSize known for this name: quantity equality cannot be judged"
+     if abs(qa - (qb - net)) > 0.5 * float(step) + 1e-12:
+@@ -634,8 +708,9 @@ def _qty_steps(broker, root: str):
+         with open(p) as f:
+             cc = json.load(f)
+         c = {k: float(v["step"]) for k, v in cc.items() if isinstance(v, dict) and v.get("step")}
+-    except Exception:
+-        pass
++    except FileNotFoundError:
++        if os.path.basename(p) in os.listdir(os.path.dirname(p)):
++            raise ValueError("filter cache is listed but cannot be opened")
+     conflicts = {k: (b[k], c[k]) for k in set(b) & set(c) if b[k] != c[k]}
+     steps = {k: v for k, v in {**c, **b}.items() if k not in conflicts}
+     return steps, conflicts
+@@ -674,13 +749,17 @@ def write_funding_rows(broker, log, root: str, now_ms: Optional[int] = None,
+     # resume point: the newest settlement already on disk, across every day we have
+     last_ms = None
+     try:
+-        for d in reversed(_PL.available_days(root)):
+-            rows = _PL.read_day(root, d).get("funding", [])
++        for d in reversed(_PL.available_days(root, strict=True)):
++            rows = _PL.read_day(root, d, strict_tables=("funding",))["funding"]
+             if rows:
+-                last_ms = int(max(float(r["settlement_ts"]) for r in rows) * 1000)
++                last_ms = int(max(_finite(r["settlement_ts"], "stored settlement time") for r in rows) * 1000)
+                 break
+     except Exception as e:
+         out["resume_error"] = f"{type(e).__name__}: {str(e)[:120]}"
++        out["evidence_failed"] = [out["resume_error"]]
++        alarm("HIGH", f"funding resume evidence unreadable: {out['resume_error']}; no rows written")
++        _stamp_pull(root, out, state_path)
++        return out
+     out["gap"] = lg.gap_report(last_ms, now_ms)
+     if out["gap"]["status"] == "PERMANENT_GAP":
+         alarm("HIGH", f"funding ledger gap {out['gap']['gap_days']}d is past the venue's 90-day "
+@@ -694,18 +773,96 @@ def write_funding_rows(broker, log, root: str, now_ms: Optional[int] = None,
+     out["n_income"] = len(income)
+     # fix-pkg-e: candidates = new income ∪ the queue (by the venue's identity); a candidate already on disk (a later
+     # pull or a backfill wrote it) leaves the queue and is never written twice; one past retention is a NAMED gap
++    try:
++        for i in income:
++            _validate_income(i)
++    except Exception as e:
++        out["identity_failed"] = [f"invalid income: {type(e).__name__}: {str(e)[:160]}"]
++        alarm("HIGH", out["identity_failed"][0] + "; no rows written or cursor advanced")
++        _stamp_pull(root, out, state_path)
++        return out
+     queued = {_income_key(p["row"]): p for p in qdoc["pending"]}
+-    _new_keys = {_income_key(i) for i in income}
+-    cand = list(income) + [p["row"] for k, p in queued.items() if k not in _new_keys]
+-    on_disk = set()
+-    if cand:
+-        _d0 = time.strftime("%Y%m%d", time.gmtime(min(int(i["time"]) for i in cand) / 1000.0))
+-        for d in _PL.available_days(root):
+-            if d >= _d0:
+-                for r in _PL.read_day(root, d).get("funding", []):
+-                    on_disk.add((str(r["symbol"]), int(round(float(r["settlement_ts"]) * 1000))))
+-    out["n_dequeued_already_on_disk"] = sum(1 for i in cand if (str(i["symbol"]), int(i["time"])) in on_disk and _income_key(i) in queued)
+-    cand = [i for i in cand if (str(i["symbol"]), int(i["time"])) not in on_disk]
++    # Only an identical raw row is a retry. Same identity with different facts
++    # must survive into the collision check, not overwrite the old queue row.
++    cand = list(income) + [p["row"] for p in qdoc["pending"] if p["row"] not in income]
++
++    def entry(i, why):
++        return {"row": i, "reason": why[:240], "last_try_utc": now_utc,
++                "first_queued_utc": (queued.get(_income_key(i)) or {}).get("first_queued_utc", now_utc)}
++
++    def issue(field, why):
++        out.setdefault(field, []).append(why[:240])
++        alarm("HIGH", "funding " + why[:240] + "; original income stays pending")
++
++    held = []
++    on_disk = {}
++    try:
++        if cand:
++            _d0 = time.strftime("%Y%m%d", time.gmtime(min(int(i["time"]) for i in cand) / 1000.0))
++            for d in _PL.available_days(root, strict=True):
++                if d >= _d0:
++                    identities = {}
++                    for r in _PL.read_day(root, d, strict_tables=("funding",), strict_identities=identities)["funding"]:
++                        k = (str(r["symbol"]), int(round(_finite(r["settlement_ts"], "stored settlement time") * 1000)))
++                        on_disk.setdefault(k, []).append((d, r, identities["funding"]))
++    except Exception as e:
++        why = f"ledger evidence unreadable: {type(e).__name__}: {str(e)[:120]}"
++        issue("evidence_failed", why)
++        try:
++            _write_pending(qpath, {"schema": "funding_pending_v1", "updated_utc": now_utc,
++                                   "pending": [entry(i, why) for i in cand],
++                                   "permanent_gaps": list(qdoc["permanent_gaps"])})
++        except Exception as qe:
++            out["pending_write_failed"] = f"{type(qe).__name__}: {str(qe)[:160]}"
++            alarm("HIGH", "funding could not preserve fetched income: " + out["pending_write_failed"])
++        _stamp_pull(root, out, state_path)
++        return out
++    by_settlement = {}
++    for i in cand:
++        by_settlement.setdefault((i["symbol"], int(i["time"])), []).append(i)
++    out["n_legacy_asset_unspecified"] = sum("asset" not in i for i in cand)
++    out["identity_scope"] = "legacy symbol/settlement/cash only; absent asset is unspecified, not proof of USDT or tranId"
++    out["n_dequeued_already_on_disk"] = 0
++    remaining = []
++    for i in cand:
++        k = (i["symbol"], int(i["time"]))
++        why = None
++        if "asset" in i and i["asset"] != "USDT":
++            why = f"{i['symbol']}: unsupported explicit income asset {i['asset']!r}"
++        elif len(by_settlement[k]) != 1:
++            why = f"{i['symbol']}: multiple income identities at one legacy settlement key"
++        disk = on_disk.get(k, [])
++        if why is None and disk:
++            try:
++                if len(disk) != 1:
++                    raise ValueError("multiple ledger rows at one settlement key")
++                d, row, _identity = disk[0]
++                _PL.validate("funding", row)
++                for field in ("settlement_ts", "position_notional_at_settlement", "funding_paid"):
++                    _finite(row[field], "stored " + field)
++                if row["funding_rate"] is not None:
++                    _finite(row["funding_rate"], "stored funding rate")
++                if Decimal(str(row["funding_paid"])) != Decimal(str(i["income"])):
++                    raise ValueError("stored funding cash disagrees with the queued income")
++                for field in ("asset", "tranId"):
++                    if field in row and (field not in i or row[field] != i[field]):
++                        raise ValueError("stored " + field + " disagrees with the queued income")
++            except Exception as e:
++                why = f"{i['symbol']}: duplicate identity not proven: {type(e).__name__}: {str(e)[:140]}"
++        if why is not None:
++            issue("identity_failed", why); held.append(entry(i, why))
++        elif disk:
++            try:
++                _PL.ack_funding_file(root, disk[0][0], expected_identity=disk[0][2])
++            except Exception as e:
++                why = f"{i['symbol']}: visible duplicate durable ack failed: {type(e).__name__}: {str(e)[:120]}"
++                issue("funding_durability_failed", why); held.append(entry(i, why))
++                continue
++            if _income_key(i) in queued:
++                out["n_dequeued_already_on_disk"] += 1
++        else:
++            remaining.append(i)
++    cand = remaining
+     _floor = lg.retention_floor_ms(now_ms)
+     expired = [i for i in cand if int(i["time"]) < _floor]
+     new_perm = [{"row": i, "reason": "past the venue's 90-day income retention while still unpriced",
+@@ -716,20 +873,16 @@ def write_funding_rows(broker, log, root: str, now_ms: Optional[int] = None,
+         alarm("HIGH", f"{len(new_perm)} queued funding settlement(s) passed the venue's 90-day retention unpriced and are now "
+                       f"PERMANENT gaps: {sorted({p['row']['symbol'] for p in new_perm})[:30]} — M6 is incomplete for them for good.")
+     income = [i for i in cand if int(i["time"]) >= _floor]
+-    if not income and (queued or new_perm):
+-        # everything queued was either found on disk or declared permanent: record that, then the usual empty path
+-        try:
+-            _write_pending(qpath, {"schema": "funding_pending_v1", "updated_utc": now_utc, "pending": [],
+-                                   "permanent_gaps": list(qdoc.get("permanent_gaps", [])) + new_perm})
+-        except Exception as e:
+-            out["pending_final_write_failed"] = f"{type(e).__name__}: {str(e)[:160]}"
+-            alarm("HIGH", f"funding pending queue update failed ({out['pending_final_write_failed']})")
+-        out["n_pending"] = 0
+     if not income:
+-        # ★ STAMPED EVEN ON THE EMPTY PATH — this is the branch DRY_RUN and a quiet window both
+-        # take, and it is exactly the branch where "the ledger ran and found nothing" has to be
+-        # distinguishable from "the ledger never ran". Returning early without a stamp would make
+-        # the two identical on disk, which is the state we have been in since the port.
++        if queued or new_perm or held:
++            try:
++                _write_pending(qpath, {"schema": "funding_pending_v1", "updated_utc": now_utc, "pending": held,
++                                       "permanent_gaps": list(qdoc["permanent_gaps"]) + new_perm})
++                out["n_pending"] = len(held)
++            except Exception as e:
++                out["pending_final_write_failed"] = f"{type(e).__name__}: {str(e)[:160]}"
++                out["n_pending"] = None
++                alarm("HIGH", "funding pending queue update failed: " + out["pending_final_write_failed"])
+         _stamp_pull(root, out, state_path)
+         return out
+ 
+@@ -750,10 +903,17 @@ def write_funding_rows(broker, log, root: str, now_ms: Optional[int] = None,
+     # one readback lookup per DISTINCT settlement instant, not per income row
+     pos_cache: Dict[int, Dict[str, Any]] = {}
+     our_positions: Dict[Tuple[str, int], float] = {}
++    bad_position_times = set()
+     for i in income:
+         t = int(i["time"])
+         if t not in pos_cache:
+-            pos_cache[t] = positions_at(root, t, max_age_s, now_ms=now_ms) or {}
++            try:
++                pos_cache[t] = positions_at(root, t, max_age_s, now_ms=now_ms, strict_evidence=True) or {}
++            except Exception as e:
++                why = f"position evidence failed: {type(e).__name__}: {str(e)[:160]}"
++                issue("evidence_failed", why)
++                pos_cache[t] = {"positions": None, "why": why}
++                bad_position_times.add(t)
+         snap = pos_cache[t].get("positions")
+         sym = str(i["symbol"])
+         if snap is not None and sym in snap:
+@@ -765,15 +925,24 @@ def write_funding_rows(broker, log, root: str, now_ms: Optional[int] = None,
+     _ev = None; _steps: Dict[str, float] = {}; _step_conflicts: Dict[str, Tuple[float, float]] = {}
+     for i in income:
+         sym, t = str(i["symbol"]), int(i["time"])
++        if t in bad_position_times:
++            carry_why[(sym, t)] = pos_cache[t]["why"]
++            continue
+         if (sym, t) in our_positions or (pos_cache.get(t) or {}).get("positions") is not None:
+             continue                     # priced, or a FRESH readback that does not hold the name: the existing rule stands
+-        if _ev is None:
+-            _ev = _GapEvidence(root, now_ms / 1000.0); _steps, _step_conflicts = _qty_steps(broker, root)
+-        if sym in _step_conflicts:
+-            carry_why[(sym, t)] = (f"stepSize sources disagree for {sym}: broker {_step_conflicts[sym][0]} vs "
+-                                   f"exchange_info_cache {_step_conflicts[sym][1]} — which one the orders used is unknown")
++        try:
++            if _ev is None:
++                _ev = _GapEvidence(root, now_ms / 1000.0); _steps, _step_conflicts = _qty_steps(broker, root)
++            if sym in _step_conflicts:
++                carry_why[(sym, t)] = (f"stepSize sources disagree for {sym}: broker {_step_conflicts[sym][0]} vs "
++                                       f"exchange_info_cache {_step_conflicts[sym][1]} — which one the orders used is unknown")
++                continue
++            rec, why = carried_position(_ev, sym, t, _steps)
++        except Exception as e:
++            why = f"{sym}: gap evidence failed: {type(e).__name__}: {str(e)[:160]}"
++            issue("evidence_failed", why)
++            carry_why[(sym, t)] = why
+             continue
+-        rec, why = carried_position(_ev, sym, t, _steps)
+         if rec is None:
+             carry_why[(sym, t)] = why
+             continue
+@@ -787,7 +956,7 @@ def write_funding_rows(broker, log, root: str, now_ms: Optional[int] = None,
+                           f"settlements stay QUEUED (two constants that must agree do not)")
+ 
+     rows = lg.build_rows(income, rates, our_positions)
+-    to_write, still = [], []
++    to_write, still = [], list(held)
+     for raw_i, r in zip(income, rows):
+         sym, t = r["symbol"], int(round(r["settlement_ts"] * 1000))
+         if r["position_notional_at_settlement"] is None:
+@@ -818,7 +987,7 @@ def write_funding_rows(broker, log, root: str, now_ms: Optional[int] = None,
+                       f"— the {len(still)} unpriced settlement(s) would otherwise be lost once later rows move the resume point.")
+         _stamp_pull(root, out, state_path)
+         return out
+-    for raw_i, r in to_write:
++    for write_idx, (raw_i, r) in enumerate(to_write):
+         sym, t = r["symbol"], int(round(r["settlement_ts"] * 1000))
+         h = intervals.get(sym)
+         r["funding_interval_h"] = h
+@@ -837,16 +1006,21 @@ def write_funding_rows(broker, log, root: str, now_ms: Optional[int] = None,
+             log.funding(**r)
+             out["rows_written"] += 1
+         except Exception as e:
++            issue("funding_durability_failed", f"{sym}: writer durable ack failed: {type(e).__name__}: {str(e)[:120]}")
+             out.setdefault("rejects", []).append(f"{sym}: {type(e).__name__}: {str(e)[:100]}")
+-            still.append({"row": raw_i, "reason": f"the writer rejected the row: {type(e).__name__}: {str(e)[:120]}",
+-                          "first_queued_utc": now_utc, "last_try_utc": now_utc})
++            # The failure may have left a partial JSONL prefix. Do not append
++            # another row to it. All unattempted income was already queued.
++            for unacked_i, _row in to_write[write_idx:]:
++                still.append(entry(unacked_i, f"append stopped after writer failure: {type(e).__name__}: {str(e)[:120]}"))
++            break
+     try:
+         _write_pending(qpath, {"schema": "funding_pending_v1", "updated_utc": now_utc, "permanent_gaps": _perm, "pending": still})
++        out["n_pending"] = len(still)
+     except Exception as e:
++        out["n_pending"] = None
+         out["pending_final_write_failed"] = f"{type(e).__name__}: {str(e)[:160]}"
+         alarm("HIGH", f"funding pending queue final update failed ({out['pending_final_write_failed']}); rows already written stay "
+                       f"queued as duplicates and are removed next pull by the on-disk check")
+-    out["n_pending"] = len(still)
+ 
+     if out["skipped_no_position"]:
+         alarm("HIGH", f"{out['skipped_no_position']} funding settlement(s) could not be priced (no usable position readback, and the "
+diff --git a/live/pilot_log.py b/live/pilot_log.py
+index fb5d91c..524ef67 100644
+--- a/live/pilot_log.py
++++ b/live/pilot_log.py
+@@ -30,7 +30,7 @@ Storage: JSONL per table under <root>/<YYYYMMDD>/<table>.jsonl (append-only, hum
+ crash-safe line-by-line).
+ """
+ from __future__ import annotations
+-import json, os, time
++import json, os, time, stat
+ from typing import Any, Dict, List, Optional
+ 
+ SCHEMA_VERSION = "v2"
+@@ -443,9 +443,15 @@ class PilotLogger:
+ 
+     def __init__(self, root: str, day: str | None = None):
+         self.day = day or time.strftime("%Y%m%d", time.gmtime())
++        self.root = os.path.abspath(root)
++        # Funding requires an established root/parent chain. Other table writers
++        # retain their existing mkdir behavior; funding must not claim it acked
++        # a newly created ancestor which is outside its day -> root barrier.
++        self._funding_root_preexisting = os.path.isdir(self.root)
+         self.dir = os.path.join(root, self.day)
+         os.makedirs(self.dir, exist_ok=True)
+         self._fh: Dict[str, Any] = {}
++        self._funding_failed = None
+         # LED-01 write-time guard state (see `fill`)
+         self.fill_quarantined: List[Dict[str, Any]] = []
+         self.fill_guard_errors: List[str] = []
+@@ -541,7 +547,19 @@ class PilotLogger:
+         return True
+ 
+     def anchor(self, **row):            self._w("anchors", row)
+-    def funding(self, **row):           self._w("funding", row)
++    def funding(self, **row):
++        if not self._funding_root_preexisting:
++            raise ValueError("funding requires a pre-existing pilot_log root and parent chain")
++        if self._funding_failed is not None:
++            raise RuntimeError("funding writer unusable after previous failure: " + self._funding_failed)
++        try:
++            self._w("funding", row)
++            ack_funding_file(self.root, self.day, fh=self._fh["funding"])
++        except Exception as exc:
++            # A partial write/flush can leave a broken JSONL prefix. No caller
++            # may append a later row through this same funding writer afterward.
++            self._funding_failed = f"{type(exc).__name__}: {str(exc)[:120]}"
++            raise
+     def position_readback(self, **row): self._w("position_readback", row)
+     def daily_nav(self, **row):         self._w("daily_nav", row)
+ 
+@@ -756,7 +774,91 @@ def _read_jsonl(path: str) -> List[Dict[str, Any]]:
+     return rows
+ 
+ 
+-def read_day(root: str, day: str) -> Dict[str, List[Dict[str, Any]]]:
++def _file_identity(st):
++    return st.st_dev, st.st_ino
++
++
++def ack_funding_file(root: str, day: str, *, fh=None, expected_identity=None) -> None:
++    """Ack appended OR already-visible funding bytes before pending dequeue.
++
++    The root and its ancestors must have existed before this funding writer.
++    A newly created day and funding file are covered by file -> day -> root.
++    The writer passes its actual append handle; duplicate readers pass the
++    identity of the file they read. A replacement path cannot acknowledge it.
++    Failures propagate; an open/readable row alone is not a durable receipt.
++    """
++    d = os.path.join(root, day)
++    path = os.path.join(d, "funding.jsonl")
++    fd = os.open(path, os.O_RDONLY) if fh is None else fh.fileno()
++    try:
++        identity = _file_identity(os.fstat(fd))
++        if expected_identity is not None and identity != expected_identity:
++            raise ValueError("funding file identity changed since evidence read")
++
++        def same_path():
++            if _file_identity(os.stat(path)) != identity:
++                raise ValueError("funding path no longer names the acknowledged file")
++
++        same_path()
++        os.fsync(fd)
++        for directory in (d, root):
++            dir_fd = os.open(directory, os.O_RDONLY)
++            try:
++                os.fsync(dir_fd)
++            finally:
++                os.close(dir_fd)
++        same_path()
++    finally:
++        if fh is None:
++            os.close(fd)
++
++
++def _read_table_strict(root: str, day: str, table: str, identities=None) -> List[Dict[str, Any]]:
++    """Funding's proof reader: absence must be observable; damaged tails fail.
++
++    Kept in the table owner so callers never open fills directly. Ordinary
++    readers keep their historical tolerant-tail contract.
++    """
++    d = os.path.join(root, day)
++    name = f"{table}.jsonl"
++    p = os.path.join(d, name)
++    try:
++        identity = _file_identity(os.stat(p))  # unlike exists(), EACCES is not absence
++    except FileNotFoundError:
++        try:
++            names = os.listdir(d)
++        except FileNotFoundError:
++            if day in os.listdir(root):
++                raise ValueError(f"unreadable or dangling day directory: {d}")
++            return []
++        if name in names:
++            raise ValueError(f"unreadable or dangling table: {p}")
++        return []
++    rows = []
++    with open(p) as f:
++        if _file_identity(os.fstat(f.fileno())) != identity:
++            raise ValueError(f"evidence file changed before read: {p}")
++        for n, line in enumerate(f, 1):
++            if not line.strip():
++                continue
++            if not line.endswith("\n"):
++                raise ValueError(f"incomplete final record: {p}:{n}")
++            row = json.loads(line)
++            if not isinstance(row, dict):
++                raise ValueError(f"non-object evidence record: {p}:{n}")
++            rows.append(row)
++        if _file_identity(os.stat(p)) != identity:
++            raise ValueError(f"evidence file changed during read: {p}")
++        if identities is not None:
++            identities[table] = identity
++    return rows
++
++
++def read_day(root: str, day: str, *, strict_tables=None, strict_identities=None) -> Dict[str, List[Dict[str, Any]]]:
++    if strict_tables is not None:
++        if any(t not in SCHEMA for t in strict_tables):
++            raise ValueError("unknown strict evidence table")
++        return {t: _read_table_strict(root, day, t, strict_identities) for t in strict_tables}
+     out: Dict[str, List[Dict[str, Any]]] = {}
+     d = os.path.join(root, day)
+     for table in SCHEMA:
+@@ -802,7 +904,15 @@ def read_range(root: str, days: List[str]) -> Dict[str, List[Dict[str, Any]]]:
+     return agg
+ 
+ 
+-def available_days(root: str) -> List[str]:
++def available_days(root: str, *, strict: bool = False) -> List[str]:
++    if strict:
++        days = []
++        for d in os.listdir(root):
++            if len(d) == 8 and d.isdigit():
++                if not stat.S_ISDIR(os.stat(os.path.join(root, d)).st_mode):
++                    raise ValueError(f"malformed evidence day: {os.path.join(root, d)} is not a directory")
++                days.append(d)
++        return sorted(days)
+     if not os.path.isdir(root):
+         return []
+     return sorted(d for d in os.listdir(root)
+diff --git a/live/tests_binance_funding.py b/live/tests_binance_funding.py
+index 131c9d4..80112d2 100644
+--- a/live/tests_binance_funding.py
++++ b/live/tests_binance_funding.py
+@@ -6,6 +6,7 @@ and the rate, and both sides of the comparison become the same two numbers. A ch
+ fail is a green light with no bulb behind it, so the tests below deliberately feed it a wired-wrong
+ ledger and require it to say so.
+ """
++import json
+ import os
+ import shutil
+ import sys
+@@ -222,7 +223,15 @@ print("\n[K] ★★ the writer: a settlement we cannot price gets NO ROW, and is
+ # cannot be written at all. That is the correct outcome — but it means the ABSENCE has to be
+ # reported by the writer, or a 100%-coverage claim would be computed over rows that quietly
+ # excluded every settlement we could not price.
+-_rootW = tempfile.mkdtemp()
++def _isolated_pilot_root():
++    # pending_path belongs to the account's parent, so independent accounts
++    # require independent parents as well as different pilot_log directories.
++    root = os.path.join(tempfile.mkdtemp(), "live", "pilot_log")
++    os.makedirs(root)
++    return root
++
++
++_rootW = _isolated_pilot_root()
+ _wb2 = PL.PilotLogger(_rootW, day=time.strftime("%Y%m%d", time.gmtime(_SET - 3600)))
+ for s_, v_ in {"BTCUSDT": 1000.0, "ETHUSDT": -800.0}.items():
+     _wb2.position_readback(anchor_ts=_SET - 3600, symbol=s_, venue_position_notional=v_,
+@@ -320,7 +329,10 @@ print("\n[M] ★★ B22: the PRICING PATH, on synthetic income — the only way
+ #   confirms is a path already known to be wired rather than one running for the first time.
+ #   (Real rows also only ever give ONE sample; the fixture covers sign, both boundary sides, the
+ #   zero-position branch and the resume path.)
+-_rootM = tempfile.mkdtemp()
++_rootM = _isolated_pilot_root()
++check("independent writer fixtures own different pending files",FL.pending_path(_rootW)!=FL.pending_path(_rootM),
++      {"W":FL.pending_path(_rootW),"M":FL.pending_path(_rootM)})
++_M_pending_before, _M_pending_error = FL._load_pending(FL.pending_path(_rootM))
+ _SETM = int(time.time()) // 3600 * 3600 - 3600          # relative to now (see [J]'s time bomb)
+ _READ_TS = _SETM - 3600                                  # 1h before: strictly before, and fresh
+ # our own readback, written an hour before the settlement. THE VALUES ARE CHOSEN SO THAT
+@@ -391,6 +403,11 @@ _bM = _SynthIncomeBroker()
+ _repM = FL.write_funding_rows(_bM, _logM, _rootM, now_ms=(_SETM + 60) * 1000,
+                               max_age_s=_ANCHOR_S, alarm=lambda s_, m_: None)
+ _logM.close()
++print("M_FIXTURE_PENDING_PROOF " + json.dumps({
++    "W_pending_path":FL.pending_path(_rootW),"M_pending_path":FL.pending_path(_rootM),
++    "before_M_pending":[{k:p["row"].get(k) for k in ("symbol","time","income","tranId","asset")} for p in (_M_pending_before or {}).get("pending",[])],
++    "M_income":[{"symbol":s,"time":_SETM*1000,"income":v} for s,v in _INCOME.items()],
++    "M_identity_failed":_repM.get("identity_failed"),"pending_read_error":_M_pending_error},sort_keys=True))
+ _rowsM = {r["symbol"]: r for r in PL.read_day(_rootM, _dayM)["funding"]}
+ 
+ check("PRE-ASSERT: the writer produced a row per settlement (an empty block proves nothing)",
+diff --git a/live/tests_funding_gap.py b/live/tests_funding_gap.py
+index e54ee13..68a339d 100644
+--- a/live/tests_funding_gap.py
++++ b/live/tests_funding_gap.py
+@@ -291,7 +291,20 @@ class ReplayBroker(BB.BinanceBroker):
+ 
+ alr = []
+ lg = PL.PilotLogger(root, day=man["day"])
++r1_funding_real = lg.funding
++r1_timing = {"n_calls": 0, "writer_ack_seconds": 0.0}
++def r1_funding_timed(**row):
++    started = time.perf_counter()
++    try:
++        return r1_funding_real(**row)
++    finally:
++        r1_timing["n_calls"] += 1
++        r1_timing["writer_ack_seconds"] += time.perf_counter() - started
++lg.funding = r1_funding_timed
++r1_started = time.perf_counter()
+ rr = FL.write_funding_rows(ReplayBroker(), lg, root, now_ms=man["now_ms"], max_age_s=4 * H, alarm=lambda s_, m_: alr.append((s_, m_)))
++r1_timing["whole_pull_seconds"] = time.perf_counter() - r1_started
++print("R1_REAL_WRITER_TIMING " + json.dumps(r1_timing, sort_keys=True))
+ lg.close()
+ new = [r for r in PL.read_day(root, man["day"])["funding"] if r.get("pricing_rule") == "carried_across_gap"]
+ check("★★ R1 545 rows written across the gap", len(new) == 545 == man["n_plan"], (len(new), man["n_plan"], rr.get("skipped_no_position")))
+@@ -336,5 +349,413 @@ except PL.SchemaError as e:
+     _bad = str(e)
+ check("a misspelled pricing_rule is REFUSED by validate", _bad is not None and "pricing_rule" in _bad, _bad)
+ 
++# Acting lead 2026-09-27: written before the durability/evidence fix. These tests
++# are intentionally RED on cea1e15; only ops/run_acceptance_offline.sh may run them.
++from unittest import mock
++
++
++def same_file_descriptor(fd, path):
++    try:
++        a, b = os.fstat(fd), os.stat(path)
++        return (a.st_dev, a.st_ino) == (b.st_dev, b.st_ino)
++    except OSError:
++        return False
++
++
++def single_gap_world(tag):
++    top, root, qb = world(tag)
++    readback(root, B_READ, qb)
++    raw = income_rows([("ZUSDT", T0 + 8 * H)])
++    return top, root, raw
++
++
++print("[D1] real funding writer must acknowledge file and new day directory chain")
++top = tempfile.mkdtemp(prefix="fgap-durable-real-")
++root = os.path.join(top, "live", "pilot_log"); os.makedirs(root)
++lg = PL.PilotLogger(root, day=day(B_READ))
++fp = os.path.join(lg.dir, "funding.jsonl")
++seen_sync = []
++real_fsync = os.fsync
++def recording_fsync(fd):
++    for label, path in (("file", fp), ("day", lg.dir), ("root", root)):
++        if same_file_descriptor(fd, path):
++            seen_sync.append(label)
++    return real_fsync(fd)  # REAL macOS file/directory calls, not a success stub
++with mock.patch.object(os, "fsync", side_effect=recording_fsync):
++    lg.funding(settlement_ts=T0, symbol="ZUSDT", position_notional_at_settlement=200.0,
++               funding_rate=0.0001, funding_paid=-0.02)
++check("real funding ack completes file -> day -> root fsync before returning", seen_sync == ["file", "day", "root"], seen_sync)
++lg.close(); shutil.rmtree(top)
++
++
++print("[D2] fsync failure retains pending; visible duplicate requires ack on retry")
++for failed_part in ("file", "day", "root"):
++    top, root, raw = single_gap_world("durable-" + failed_part)
++    lg = PL.PilotLogger(root, day=day(B_READ + 120))
++    target = {"file": os.path.join(lg.dir, "funding.jsonl"), "day": lg.dir, "root": root}[failed_part]
++    attempts = []
++    def fail_funding_ack(fd):
++        if same_file_descriptor(fd, target):
++            attempts.append(failed_part)
++            raise OSError("injected funding " + failed_part + " fsync failure")
++        return real_fsync(fd)
++    al = []
++    try:
++        with mock.patch.object(os, "fsync", side_effect=fail_funding_ack):
++            rep = FL.write_funding_rows(GapBroker(raw), lg, root, now_ms=(B_READ + 120) * 1000,
++                                        alarm=lambda sev, msg: al.append((sev, msg)))
++        check(f"{failed_part} fsync was actually attempted", bool(attempts), attempts)
++        check(f"{failed_part} failure is explicit and HIGH, rows_written excludes unacked row",
++              rep.get("funding_durability_failed") and rep.get("rows_written") == 0 and any(s == "HIGH" for s, _ in al),
++              {k: rep.get(k) for k in ("funding_durability_failed", "rows_written", "n_pending")})
++        check(f"{failed_part} failure leaves original income in pending", [p["row"] for p in readq(root).get("pending", [])] == raw)
++        with mock.patch.object(os, "fsync", side_effect=fail_funding_ack):
++            retry = FL.write_funding_rows(GapBroker([]), lg, root, now_ms=(B_READ + 180) * 1000,
++                                          alarm=lambda sev, msg: al.append((sev, msg)))
++        check(f"visible duplicate cannot be dequeued when {failed_part} ack still fails",
++              retry.get("funding_durability_failed") and [p["row"] for p in readq(root).get("pending", [])] == raw)
++        clean = FL.write_funding_rows(GapBroker([]), lg, root, now_ms=(B_READ + 240) * 1000,
++                                      alarm=lambda sev, msg: al.append((sev, msg)))
++        check(f"{failed_part} recovery acknowledges visible row once without another append",
++              len(on_disk(root)) == 1 and readq(root).get("pending") == [] and clean.get("rows_written") == 0)
++    finally:
++        lg.close(); shutil.rmtree(top)
++
++
++print("[D3] append acknowledged then final queue write fails; retry never double-counts")
++top, root, raw = single_gap_world("final-queue-fails")
++al = []; writeq = FL._write_pending; calls = []
++def fail_final_queue(path, doc):
++    calls.append(len(doc["pending"]))
++    if len(calls) == 2:
++        raise DIO.DurableWriteNotReplaced("injected final queue failure")
++    return writeq(path, doc)
++with mock.patch.object(FL, "_write_pending", side_effect=fail_final_queue):
++    rep = pull(FL, root, B_READ + 120, raw, al)
++check("final queue failure is named and HIGH", rep.get("pending_final_write_failed") and any(s == "HIGH" for s, _ in al))
++check("durably written row remains in old pending after queue failure", len(on_disk(root)) == 1 and [p["row"] for p in readq(root).get("pending", [])] == raw)
++rep = pull(FL, root, B_READ + 180, [], al)
++check("retry acks old row and removes duplicate without append", len(on_disk(root)) == 1 and readq(root).get("pending") == [] and rep["rows_written"] == 0)
++shutil.rmtree(top)
++
++
++print("[D4] funding root parent chain is a precondition, not silently created")
++top = tempfile.mkdtemp(prefix="fgap-root-precondition-")
++absent_root = os.path.join(top, "not_created", "pilot_log")
++lg = None; rejected = False
++try:
++    lg = PL.PilotLogger(absent_root, day=day(B_READ))
++    lg.funding(settlement_ts=T0, symbol="ZUSDT", position_notional_at_settlement=200.0,
++               funding_rate=0.0001, funding_paid=-0.02)
++except (OSError, ValueError):
++    rejected = True
++finally:
++    if lg is not None: lg.close()
++check("funding refuses a root whose parent chain was not pre-existing", rejected)
++shutil.rmtree(top)
++
++
++print("[E1] unreadable gap evidence must never mean zero trades")
++top, root, raw = single_gap_world("unknown-evidence")
++al = []; read_day = PL.read_day
++def unreadable_day(path, d, **kwargs):
++    if path == root: raise PermissionError("injected historical day unreadable")
++    return read_day(path, d, **kwargs)
++ev = FL._GapEvidence(root, B_READ + 120)
++with mock.patch.object(PL, "read_day", side_effect=unreadable_day):
++    raised = False
++    try: ev._day_rows(day(A_READ), "fills")
++    except (OSError, ValueError): raised = True
++check("historical read failure is not returned as empty fills", raised)
++# Exercise the real pending writer with only the gap-evidence read failing;
++# the ordinary read_day disk scan must not accidentally mask this route.
++with mock.patch.object(FL._GapEvidence, "_day_rows", side_effect=PermissionError("gap evidence permission denied")):
++    try:
++        rep = pull(FL, root, B_READ + 120, raw, al); unhandled = None
++    except Exception as exc:
++        rep = {}; unhandled = type(exc).__name__
++check("evidence failure is handled, named HIGH and preserves original income", unhandled is None and
++      rep.get("evidence_failed") and any(s == "HIGH" for s, _ in al) and [p["row"] for p in readq(root).get("pending", [])] == raw,
++      (unhandled, rep.get("evidence_failed")))
++check("no row priced from unreadable evidence", on_disk(root) == [])
++shutil.rmtree(top)
++
++
++print("[E2] nonfinite/unknown evidence cannot prove position unchanged")
++def refuse_evidence(tag, mutate):
++    top, root, raw = single_gap_world(tag)
++    ev = FL._GapEvidence(root, B_READ + 120)
++    a, sa, b, sb = ev.around((T0 + 8 * H))
++    fills = ev.fills(); steps = dict(STEPS)
++    mutate(sa, sb, fills, steps)
++    with mock.patch.object(ev, "around", return_value=(a, sa, b, sb)), mock.patch.object(ev, "fills", return_value=fills):
++        try: result, why = FL.carried_position(ev, "ZUSDT", (T0 + 8 * H) * 1000, steps)
++        except Exception: result, why = "UNHANDLED", None
++    check(tag + " is refused with a named reason", result is None and bool(why), why)
++    shutil.rmtree(top)
++for val in (float("nan"), float("inf"), -float("inf")):
++    for field in ("venue_position_qty", "venue_position_notional"):
++        refuse_evidence("A " + field + " " + str(val), lambda a,b,f,s,v=val,k=field: a["ZUSDT"].update({k:v}))
++    refuse_evidence("B qty " + str(val), lambda a,b,f,s,v=val: b["ZUSDT"].update(venue_position_qty=v))
++    refuse_evidence("step " + str(val), lambda a,b,f,s,v=val: s.update(ZUSDT=v))
++def unknown_fill(field, value):
++    def mutate(a,b,f,s):
++        # After settlement: a normal zero-size row preserves quantity identity,
++        # so rejection must come from the malformed field, not the pre-t fill gate.
++        row={"symbol":"ZUSDT", "fill_ts":B_READ-60, "fill_px":20.0, "fill_notional":0.0, "side":"BUY"}
++        row[field]=value; f.append(row)
++    return mutate
++for field, value in (("fill_ts", float("nan")), ("fill_ts", float("inf")), ("fill_ts", "bad"),
++                     ("side", "UNKNOWN"), ("fill_px", float("inf")), ("fill_notional", float("nan"))):
++    refuse_evidence(field + " " + str(value), unknown_fill(field, value))
++
++
++print("[E3] malformed or unreadable pending document is never reset to empty")
++top, root, raw = single_gap_world("queue-invalid")
++qp = pending_path(root)
++bad = {"schema":"funding_pending_v1", "pending":[{"row":{"symbol":"ZUSDT"}}], "permanent_gaps":[]}
++with open(qp,"w") as f: json.dump(bad,f)
++before = open(qp).read(); al=[]
++try: rep=pull(FL,root,B_READ+120,raw,al); unhandled=None
++except Exception as exc: rep={};unhandled=type(exc).__name__
++check("malformed pending row is named unreadable, not unhandled or overwritten", unhandled is None and
++      rep.get("pending_unreadable") and any(s == "HIGH" for s,_ in al) and open(qp).read()==before,
++      (unhandled,rep.get("pending_unreadable")))
++real_open = open
++def denied_pending(path,*args,**kwargs):
++    if os.fspath(path)==qp: raise PermissionError("injected pending read denied")
++    return real_open(path,*args,**kwargs)
++with mock.patch("builtins.open",side_effect=denied_pending), mock.patch.object(os.path,"exists",return_value=False):
++    doc,why=FL._load_pending(qp)
++check("exists false cannot disguise pending permission failure as absence", doc is None and bool(why),why)
++shutil.rmtree(top)
++
++
++print("[E4] real malformed last fill and stat PermissionError cannot prove no trades")
++for fault in ("malformed_tail", "stat_permission"):
++    top, root, raw = single_gap_world("strict-fill-" + fault)
++    fp = os.path.join(root, day(A_READ), "fills.jsonl")
++    with open(fp, "w") as f:
++        f.write('{"symbol":"ZUSDT"' if fault == "malformed_tail" else "")
++    real_stat = os.stat
++    def denied_fill_stat(path, *args, **kwargs):
++        if os.fspath(path) == fp:
++            raise PermissionError("injected real fill stat denied")
++        return real_stat(path, *args, **kwargs)
++    al = []
++    patch = mock.patch.object(os, "stat", side_effect=denied_fill_stat) if fault == "stat_permission" else mock.patch.object(FL, "PAGE_LIMIT", FL.PAGE_LIMIT)
++    with patch:
++        ev = FL._GapEvidence(root, B_READ + 120)
++        raised = False
++        try: ev._day_rows(day(A_READ), "fills")
++        except (OSError, ValueError): raised = True
++        check(fault + " real table read is UNKNOWN, not empty", raised)
++        try: rep = pull(FL, root, B_READ + 120, raw, al); unhandled = None
++        except Exception as exc: rep = {}; unhandled = type(exc).__name__
++    check(fault + " is named HIGH and leaves original income pending", unhandled is None and rep.get("evidence_failed")
++          and any(s == "HIGH" for s,_ in al) and [p["row"] for p in readq(root).get("pending",[])] == raw,
++          (unhandled, rep.get("evidence_failed")))
++    check(fault + " never writes a funding row", on_disk(root) == [])
++    shutil.rmtree(top)
++
++print("[E5] the fresh-readback path also refuses damaged or unreadable evidence")
++for fault in ("malformed_tail", "stat_permission", "nonfinite_notional"):
++    top, root, raw = single_gap_world("strict-fresh-" + fault)
++    raw = income_rows([("ZUSDT", T0 + 4 * H)])  # A is fresh, so carried_position is never required.
++    fp = os.path.join(root, day(A_READ), "position_readback.jsonl")
++    if fault == "malformed_tail":
++        with open(fp,"a") as f: f.write('{"symbol":"ZUSDT"')
++    elif fault == "nonfinite_notional":
++        rows = [json.loads(x) for x in open(fp) if x.strip()]
++        for r in rows:
++            if r["symbol"] == "ZUSDT": r["venue_position_notional"] = float("nan")
++        with open(fp,"w") as f:
++            for r in rows: f.write(json.dumps(r)+"\n")
++    real_stat = os.stat
++    def denied_rb_stat(path,*args,**kwargs):
++        if os.fspath(path)==fp: raise PermissionError("injected fresh readback stat denied")
++        return real_stat(path,*args,**kwargs)
++    al=[]
++    patch = mock.patch.object(os,"stat",side_effect=denied_rb_stat) if fault=="stat_permission" else mock.patch.object(FL,"PAGE_LIMIT",FL.PAGE_LIMIT)
++    with patch:
++        try: rep=pull(FL,root,B_READ+120,raw,al);unhandled=None
++        except Exception as exc: rep={};unhandled=type(exc).__name__
++    check("fresh " + fault + " is named HIGH and queued", unhandled is None and rep.get("evidence_failed")
++          and any(s=="HIGH" for s,_ in al) and [p["row"] for p in readq(root).get("pending",[])]==raw,
++          (unhandled,rep.get("evidence_failed")))
++    check("fresh " + fault + " does not write unproved funding",on_disk(root)==[])
++    shutil.rmtree(top)
++
++print("[D5] same ledger key is insufficient evidence for duplicate dequeue")
++for fault in ("different_cash", "missing_required", "multiple_disk_rows"):
++    top,root,raw=single_gap_world("duplicate-"+fault);al=[]
++    pull(FL,root,B_READ+120,raw,al)
++    fp=os.path.join(root,day(B_READ+120),"funding.jsonl")
++    rows=[json.loads(x) for x in open(fp) if x.strip()]
++    if fault=="different_cash": rows[0]["funding_paid"] += 1.0
++    elif fault=="missing_required": rows[0].pop("position_notional_at_settlement")
++    else: rows.append(dict(rows[0],funding_paid=rows[0]["funding_paid"]+1.0))
++    with open(fp,"w") as f:
++        for r in rows:f.write(json.dumps(r)+"\n")
++    FL._write_pending(pending_path(root),{"schema":"funding_pending_v1","pending":[{"row":raw[0],"reason":"retry"}],"permanent_gaps":[]})
++    before=open(fp).read();al=[]
++    try: rep=pull(FL,root,B_READ+180,[],al);unhandled=None
++    except Exception as exc:rep={};unhandled=type(exc).__name__
++    check(fault+" duplicate remains queued with named identity failure",unhandled is None and rep.get("identity_failed")
++          and any(s=="HIGH" for s,_ in al) and [p["row"] for p in readq(root).get("pending",[])]==raw,
++          (unhandled,rep.get("identity_failed")))
++    check(fault+" duplicate never appends/replaces ledger",open(fp).read()==before)
++    shutil.rmtree(top)
++
++print("[E6] unsupported asset and income identity collisions stay pending")
++for fault in ("non_USDT", "same_key_same_cash_different_tranId", "same_key_different_cash"):
++    top,root,raw=single_gap_world("income-identity-"+fault);al=[]
++    if fault=="non_USDT":raw[0]["asset"]="USDC"
++    else:
++        other=dict(raw[0],tranId=raw[0]["tranId"]+1)
++        if fault=="same_key_different_cash":other["income"]="-0.50"
++        raw.append(other)
++    try: rep=pull(FL,root,B_READ+120,raw,al);unhandled=None
++    except Exception as exc:rep={};unhandled=type(exc).__name__
++    queued_rows=[p["row"] for p in readq(root).get("pending",[])]
++    check(fault+" remains pending with identity/asset reason",unhandled is None and rep.get("identity_failed")
++          and any(s=="HIGH" for s,_ in al) and sorted(queued_rows,key=lambda x:x["tranId"])==sorted(raw,key=lambda x:x["tranId"]),
++          (unhandled,rep.get("identity_failed")))
++    check(fault+" never invents USDT cash or merges income",on_disk(root)==[])
++    shutil.rmtree(top)
++
++
++print("[E7] exact readback snapshots reject conflicts independently of file order")
++for reverse in (False, True):
++    top, root, qb = world("snapshot-conflict-" + str(reverse))
++    readback(root, B_READ, dict(qb, ZUSDT=5.0))
++    fp=os.path.join(root,day(A_READ),"position_readback.jsonl")
++    rows=[json.loads(x) for x in open(fp) if x.strip()]
++    old=next(r for r in rows if r["symbol"]=="ZUSDT")
++    conflict=dict(old,venue_position_qty=5.0,venue_position_notional=100.0)
++    zrows=[old,conflict][::-1] if reverse else [old,conflict]
++    with open(fp,"w") as f:
++        for r in [r for r in rows if r["symbol"]!="ZUSDT"]+zrows:f.write(json.dumps(r)+"\n")
++    ev=FL._GapEvidence(root,B_READ+120)
++    try: result,why=FL.carried_position(ev,"ZUSDT",(T0+8*H)*1000,STEPS)
++    except (ValueError,OSError) as exc: result,why=None,str(exc)
++    check("conflicting gap snapshot order="+str(reverse)+" is named and rejected",result is None and "conflict" in str(why).lower(),why)
++    try: fresh=FL.positions_at(root,(T0+4*H)*1000,4*H,strict_evidence=True);why=None
++    except (ValueError,OSError) as exc:fresh=None;why=str(exc)
++    check("conflicting fresh snapshot order="+str(reverse)+" is named and rejected",fresh is None and "conflict" in str(why).lower(),why)
++    raw=income_rows([("ZUSDT",T0+8*H)]);al=[]
++    rep=pull(FL,root,B_READ+120,raw,al)
++    check("conflicting snapshot is handled HIGH and kept pending",rep.get("evidence_failed") and any(s=="HIGH" for s,_ in al)
++          and [p["row"] for p in readq(root).get("pending",[])]==raw and not on_disk(root))
++    shutil.rmtree(top)
++
++top,root,raw=single_gap_world("snapshot-identical")
++fp=os.path.join(root,day(A_READ),"position_readback.jsonl")
++z=next(json.loads(x) for x in open(fp) if json.loads(x)["symbol"]=="ZUSDT")
++with open(fp,"a") as f:f.write(json.dumps(z)+"\n")
++ev=FL._GapEvidence(root,B_READ+120)
++rec,why=FL.carried_position(ev,"ZUSDT",(T0+8*H)*1000,STEPS)
++fresh=FL.positions_at(root,(T0+4*H)*1000,4*H,strict_evidence=True)
++check("identical duplicate snapshot rows preserve gap and fresh positives",rec and rec["notional"]==200.0 and fresh["positions"]["ZUSDT"]==200.0)
++shutil.rmtree(top)
++
++print("[E8] nearby but distinct snapshot times are never merged by a tolerance")
++import math
++top,root,qb=world("snapshot-exact-time")
++readback(root,B_READ,dict(qb,ZUSDT=5.0))
++fp=os.path.join(root,day(A_READ),"position_readback.jsonl")
++rows=[json.loads(x) for x in open(fp) if x.strip()]
++z=next(r for r in rows if r["symbol"]=="ZUSDT")
++near=dict(z,read_ts=math.nextafter(float(A_READ),math.inf),venue_position_qty=5.0,venue_position_notional=100.0)
++with open(fp,"w") as f:
++    for r in [near]+rows:f.write(json.dumps(r)+"\n") # newer snapshot first, older rows last
++try:
++    ev=FL._GapEvidence(root,B_READ+120);rec,why=FL.carried_position(ev,"ZUSDT",(T0+8*H)*1000,STEPS)
++    fresh=FL.positions_at(root,(T0+4*H)*1000,4*H,strict_evidence=True)
++except Exception as exc:rec=None;fresh={};why=str(exc)
++check("gap uses exact latest read_ts rather than nearby older rows",rec and rec["notional"]==100.0,why)
++check("strict fresh reader uses the same exact snapshot",(fresh.get("positions") or {}).get("ZUSDT")==100.0)
++shutil.rmtree(top)
++
++print("[E9] a YYYYMMDD regular file is malformed evidence, not an absent day")
++top,root,raw=single_gap_world("malformed-date-entry")
++with open(os.path.join(root,"20260918"),"w") as f:f.write("not a day directory")
++FL._write_pending(pending_path(root),{"schema":"funding_pending_v1","pending":[{"row":raw[0],"reason":"retry"}],"permanent_gaps":[]})
++try:PL.available_days(root,strict=True);why=None
++except (OSError,ValueError) as exc:why=str(exc)
++check("strict day enumeration refuses the malformed date entry",bool(why),why)
++al=[];rep=pull(FL,root,B_READ+120,[],al)
++check("malformed day entry is HIGH and existing income remains queued",rep.get("evidence_failed") and any(s=="HIGH" for s,_ in al)
++      and [p["row"] for p in readq(root).get("pending",[])]==raw and not on_disk(root))
++check("ordinary day enumeration keeps its existing behavior","20260918" not in PL.available_days(root))
++shutil.rmtree(top)
++
++print("[D6] partial append failure stops every subsequent append in the pull")
++top,root,_raw=single_gap_world("partial-append")
++raw=income_rows([("XUSDT",T0+8*H),("ZUSDT",T0+8*H)])
++lg=PL.PilotLogger(root,day=day(B_READ+120));fp=os.path.join(lg.dir,"funding.jsonl")
++real_file=open(fp,"a");writes=[]
++class PartialFile:
++    def __getattr__(self,name):return getattr(real_file,name)
++    def write(self,data):
++        writes.append(len(data))
++        if len(writes)==1:
++            real_file.write(data[:10]);real_file.flush()
++            raise OSError("injected after ten actual funding bytes")
++        return real_file.write(data)
++lg._fh["funding"]=PartialFile();al=[]
++try:
++    rep=FL.write_funding_rows(GapBroker(raw),lg,root,now_ms=(B_READ+120)*1000,alarm=lambda s,m:al.append((s,m)))
++    try:
++        lg.funding(settlement_ts=T0, symbol="ZUSDT", position_notional_at_settlement=200.0,
++                   funding_rate=0.0001, funding_paid=-0.02)
++        owner_why = None
++    except RuntimeError as exc:
++        owner_why = str(exc)
++    check("funding owner refuses later calls on its failed handle",owner_why and "previous failure" in owner_why)
++finally:lg.close()
++check("partial failure stops before the second physical write",len(writes)==1,writes)
++check("partial failure reports no later rows acknowledged",rep.get("rows_written")==0 and rep.get("funding_durability_failed"),rep.get("rows_written"))
++check("failed and unattempted original income are both pending",[p["row"] for p in readq(root).get("pending",[])]==raw)
++check("later row was not concatenated onto the broken prefix",os.path.getsize(fp)==10,os.path.getsize(fp))
++rep=pull(FL,root,B_READ+180,[],al)
++check("retry refuses the actual broken file and preserves both incomes",rep.get("evidence_failed")
++      and [p["row"] for p in readq(root).get("pending",[])]==raw and os.path.getsize(fp)==10)
++shutil.rmtree(top)
++
++print("[D7] funding acknowledgements bind the inode that held the evidence")
++top,root,raw=single_gap_world("writer-inode-replaced")
++lg=PL.PilotLogger(root,day=day(B_READ+120));fp=os.path.join(lg.dir,"funding.jsonl")
++real_w=lg._w;changed=[]
++def replace_after_write(table,row):
++    real_w(table,row)
++    if table=="funding" and not changed:
++        os.replace(fp,fp+".displaced")
++        with open(fp,"w"):pass
++        changed.append(True)
++lg._w=replace_after_write;al=[]
++try:rep=FL.write_funding_rows(GapBroker(raw),lg,root,now_ms=(B_READ+120)*1000,alarm=lambda s,m:al.append((s,m)))
++finally:lg.close()
++check("writer cannot ack a replacement path while its row is on another inode",rep.get("funding_durability_failed") and rep["rows_written"]==0
++      and [p["row"] for p in readq(root).get("pending",[])]==raw)
++shutil.rmtree(top)
++
++top,root,raw=single_gap_world("duplicate-inode-replaced");al=[]
++pull(FL,root,B_READ+120,raw,al)
++FL._write_pending(pending_path(root),{"schema":"funding_pending_v1","pending":[{"row":raw[0],"reason":"retry"}],"permanent_gaps":[]})
++fp=os.path.join(root,day(B_READ+120),"funding.jsonl");real_ack=PL.ack_funding_file
++changed=[]
++def replace_before_ack(*args,**kwargs):
++    if not changed:
++        os.replace(fp,fp+".displaced")
++        with open(fp,"w"):pass
++        changed.append(True)
++    return real_ack(*args,**kwargs)
++with mock.patch.object(PL,"ack_funding_file",side_effect=replace_before_ack):
++    rep=pull(FL,root,B_READ+180,[],al)
++check("duplicate cannot ack another inode after reading its evidence",rep.get("funding_durability_failed")
++      and [p["row"] for p in readq(root).get("pending",[])]==raw)
++shutil.rmtree(top)
++
+ print(f"\nFUNDING_GAP {'ALL PASS' if FAILS == 0 else f'{FAILS} FAIL'}")
+ sys.exit(1 if FAILS else 0)

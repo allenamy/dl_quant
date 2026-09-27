@@ -1,0 +1,113 @@
+[A] retention is treated as a hard wall, not a soft preference
+  OK    floor is exactly 90 days back
+  OK    cold start is labelled COLD_START, not silently 'fine'
+  OK    a 3-day-old ledger resumes continuously
+  OK    a 200-day-old ledger reports a PERMANENT gap
+  OK    the permanent gap states its size in days  — 110.0
+  OK    it says explicitly that the data cannot be recovered
+
+[B] rows are schema-shaped
+  OK    every required funding field present  — complete
+  OK    PRE-ASSERT: our record and paid/rate DISAGREE here, so the next check can discriminate  — readback 22000 vs -paid/rate 15000
+  OK    ★★ position came from OUR record, not from paid/rate  — 22000.0
+
+[C] ★ the sign check PASSES on a correctly wired ledger
+  OK    verdict OK  — {'checked': 1, 'unverifiable': 0, 'mismatched': 0, 'mismatch_frac': 0.0, 'threshold': 0.05, 'verdict': 'OK', 'examples': []}
+  OK    one settlement was actually checked (not vacuously zero)  — 1
+
+[D] ★★ the sign check FAILS on a wired-wrong ledger — it must be able to fail
+  OK    verdict WIRING_ERROR  — WIRING_ERROR
+  OK    mismatch fraction is 100%  — 1.0
+  OK    an offending example is surfaced for diagnosis
+
+[E] a settlement it cannot verify is counted as UNVERIFIABLE, never as a pass
+  OK    checked counts only the verifiable one  — 1
+  OK    the other is reported as unverifiable, not silently OK
+
+[F] with no data at all the verdict is NO_DATA, not OK
+  OK    empty ledger => NO_DATA (an empty check must never read as a pass)  — NO_DATA
+
+[G] short-side sign convention is right (this is where sign bugs actually hide)
+  OK    short + positive rate + received money => OK
+  OK    short + positive rate + PAID money => WIRING_ERROR
+
+[H] rate matching is time-bounded (a far-away rate must not be silently attached)
+  OK    no rate attached when none is within tolerance
+  OK    and that settlement then counts as unverifiable, not as a pass
+
+[I] DRY_RUN performs no network call
+  OK    fetch_income returns empty without contacting the venue
+  OK    fetch_rates returns empty without contacting the venue
+
+[J] ★★ positions_at: OUR OWN record, with the assertion on BOTH sides
+  OK    ★ the readback used is the last one STRICTLY BEFORE the settlement  — 1000.0 (5000.0 = took the one AFTER)
+  OK    ...and it carries its own age, so the caliber travels with the number  — 3600.0
+  OK    the short is signed, not absolute  — -800.0
+  OK    ★★ a readback older than one anchor interval is REFUSED, not used  — 21600.0s old — using it would price a settlement off a book nobody has verified since
+  OK    ...and the refusal says which side of the assertion failed  — the newest readback before this settlement is stale (6.00h > 4.00h = one anchor interval); an anchor was missed, or its readback landed late — either way what we held at the settlement is UNKNOWN
+  OK    ...and it reports the age it rejected, so the bound is auditable from the log  — 21600.0
+  OK    no readback at all => None, never an empty book (an empty book reads as 'flat')  — {'positions': None, 'why': "no position_readback rows in the 2 days before this settlement (days read: ['20260926', '20260927']) — stale beyond the lookback, or never written"}
+
+[K] ★★ the writer: a settlement we cannot price gets NO ROW, and is counted
+  OK    ★★ funding.jsonl finally has rows (the writer was never constructed in production)  — 1 rows
+  OK    ...and it is the settlement we could price  — ['BTCUSDT']
+  OK    ★ the one we could NOT price is skipped, counted, and named  — skipped=1 ['DOGEUSDT']
+  OK    ...and skipping is ALARMED — a silent skip makes coverage read 100% of what survived  — ["1 funding settlement(s) could not be priced (no usable position readback, and the cross-gap rule did not prove the position unchanged) and are QUEUED (retried every pull, never dropped): ['DOGEUSDT']; reasons e.g. [('DOGEUSDT', 'we held no readback for this symbol at that settlement')]. M6 is incomplete for them until they price.", '1 settlement(s) were pulled less than 600s after they settled; the venue credits a settlement progressively (measured ~248s to stabilise) so these row counts may be PARTIAL. They are present in the ledger, which is exactly why a settlement-count coverage metric would score them 100%.']
+  OK    the position on the row is OUR record, not funding_paid/funding_rate  — 1000.0
+
+[L] ★ per-symbol settlement interval travels ON the row (0C item (a))
+  OK    ★ the row carries this symbol's own interval, from the venue we are TRADING on  — 4
+  OK    ...with its source named  — /fapi/v1/fundingInfo on the venue that charged it
+  OK    ★ a symbol ABSENT from fundingInfo is UNKNOWN, never defaulted to 8h  — {'BTCUSDT': 4}
+  OK    ★ expected-settlement count refuses to answer for an unknown interval
+  OK    and counts correctly for a known 4h interval (24h => 6)  — 6
+
+[M] ★★ B22: the PRICING PATH, on synthetic income — the only way it can ever be proved
+  OK    PRE-ASSERT: the writer produced a row per settlement (an empty block proves nothing)  — ['BTCUSDT', 'DOGEUSDT', 'ETHUSDT']
+  [M-1] sign convention
+  OK    ★★ long + POSITIVE rate => funding_paid < 0 (we PAY)  — {'position_notional_at_settlement': 12345.0, 'funding_rate': 0.0003, 'funding_paid': -1.23}
+  OK    ★ short + positive rate => funding_paid > 0 (we RECEIVE) — the twin, not assumed  — 0.4
+  OK    ★ ...and §3f agrees with the convention on the rows the writer actually wrote  — {'checked': 2, 'unverifiable': 1, 'mismatched': 0, 'mismatch_frac': 0.0, 'threshold': 0.05, 'verdict': 'OK', 'examples': []}
+  [M-2] positions_at: the STRICTLY-BEFORE side, against a fixture that contains a violation
+  OK    PRE-ASSERT: the tree really holds a post-settlement readback for BTCUSDT (without one, this block cannot tell the guard from its absence)  — 0C removed the guard entirely and this block stayed green without it
+  OK    ★★ BTCUSDT: the readback used is STRICTLY BEFORE the settlement  — read 1790521200.0 vs settlement 1790524800
+  OK    ★★ DOGEUSDT: the readback used is STRICTLY BEFORE the settlement  — read 1790521200.0 vs settlement 1790524800
+  OK    ★★ BTCUSDT took the EARLIER book, not the 99,999 one stamped after the settlement  — 12345.0 (99999.0 = took the one AFTER)
+  OK    ★ the age caliber travels ON THE ROW, so a reader need not re-derive it to trust the row  — {'BTCUSDT': 3600.0, 'DOGEUSDT': 3600.0, 'ETHUSDT': 3600.0}
+  OK    ...and it is within the bound here (a VALUE check; [J] owns the guard's reverse control)  — {'BTCUSDT': 3600.0, 'DOGEUSDT': 3600.0}
+  [M-3] ★★ the position is OUR READBACK and cannot be paid/rate — the anti-tautology
+  OK    PRE-ASSERT BTCUSDT: readback and -paid/rate DISAGREE, so the check discriminates  — readback 12345.0 vs -paid/rate 4100.0
+  OK    ★★ BTCUSDT: the row carries the READBACK value, not the derived one  — 12345.0 (derived would be 4100.0)
+  OK    PRE-ASSERT DOGEUSDT: readback and -paid/rate DISAGREE, so the check discriminates  — readback -5000.0 vs -paid/rate -1333.3
+  OK    ★★ DOGEUSDT: the row carries the READBACK value, not the derived one  — -5000.0 (derived would be -1333.3)
+  [M-4] a ZERO position is UNVERIFIABLE, never a pass
+  OK    ★ the flat name still gets a ROW (we know the position: it is zero)
+  OK    ★★ it is counted as unverifiable and NOT as a checked agreement  — checked=2 unverifiable=1
+  OK    ★ ...so a book of nothing but flat names would read NO_DATA, never OK
+  [M-6] a HELD name with a ZERO rate legitimately gets NO row (criterion correction)
+  OK    ★★ a held name absent from income is NOT a missing row when its rate is zero  — the ledger has rows for what was CHARGED; the denominator must match that
+  OK    ★ ...so the coverage denominator is |held AND |rate| > 0|, not |held|  — held=2 but chargeable=1; scoring 1/2 would be a permanent false gap
+  [M-5] gap classification turns CONTINUOUS once the ledger has rows
+  OK    ★ the first pull was a COLD_START (nothing on disk to resume from)  — COLD_START
+  OK    ★★ the SECOND pull resumes CONTINUOUS — the ledger now has a resume point  — {'status': 'CONTINUOUS', 'resume_from_ms': 1790524800001}
+  OK    ★ ...and it resumes from AFTER the newest settlement already stored (no double-write)  — 1790524800001 vs 1790524800001
+  OK    ★ so the second pull writes nothing new
+
+[N] ★★ B23: pagination must not drop rows at a single-millisecond boundary
+  OK    PRE-ASSERT: the fixture straddles a page boundary (otherwise it proves nothing)  — 1308 rows vs limit 1000
+  OK    ★★ every row the venue holds is fetched — NOT 'it did not raise'  — got 1308 of 1308
+  OK    ★★ no PARTIAL settlement — the dangerous outcome is present-but-truncated, not absent  — partial settlements: {}
+  OK    ★ every settlement instant is present  — 12
+  OK    ★ rows are de-duplicated by tranId (the boundary re-query overlaps the page)  — 1308 unique of 1308
+  OK    ★ the repair costs a bounded number of extra calls  — 3 venue calls for 1308 rows
+  [N-2] a single millisecond larger than the endpoint can express must RAISE, not advance
+  OK    ★★ an unenumerable millisecond RAISES rather than advancing past it  — income millisecond 1785168000000 holds at least 1000 rows — more than this endpoint can enumerate for a single instant. 
+
+[O] ★★ B28: a settlement is credited PROGRESSIVELY, so an early pull is partial
+  OK    ★ a pull 60s after the settlement is marked POSSIBLY INCOMPLETE  — {'lag_s': 60.0, 'possibly_incomplete': True, 'min_lag_s': 600, 'basis': 'measured 2026-07-27T16:04:08Z: the 16:00:00.000Z settlement took ~248s to finish crediting (0 -> 12 -> 84 -> 107 rows). The bound is ~2.4x that. Production pulls at ~1113s.', 'usable_as_coverage_evidence': False, 'note': 'a partial settlement is PRESENT in the ledger, so a coverage metric counting distinct settlements would score it 100% while rows are missing. Do not compute coverage from a pull marked possibly_incomplete.'}
+  OK    ★★ ...and it says so BECAUSE of a measured stabilisation time, not a guess  — measured 2026-07-27T16:04:08Z: the 16:00:00.000Z settlement took ~248s to finish crediting (0 -> 12 -> 84 -> 107 rows). The bound is ~2.4x that. Production pulls at ~1113s.
+  OK    ★ a pull 20 minutes later is NOT marked (the production cadence pulls at ~17min)  — {'lag_s': 1200.0, 'possibly_incomplete': False, 'min_lag_s': 600, 'basis': 'measured 2026-07-27T16:04:08Z: the 16:00:00.000Z settlement took ~248s to finish crediting (0 -> 12 -> 84 -> 107 rows). The bound is ~2.4x that. Production pulls at ~1113s.', 'usable_as_coverage_evidence': True, 'note': 'a partial settlement is PRESENT in the ledger, so a coverage metric counting distinct settlements would score it 100% while rows are missing. Do not compute coverage from a pull marked possibly_incomplete.'}
+  OK    ★★ the LAG is recorded either way, so 'complete' is auditable rather than assumed  — a claim of completeness with no lag beside it is the shape this whole protocol removes
+  OK    ★ a settlement in the FUTURE relative to the pull is refused, not scored as fresh  — {'lag_s': -60.0, 'possibly_incomplete': True, 'min_lag_s': 600, 'basis': 'measured 2026-07-27T16:04:08Z: the 16:00:00.000Z settlement took ~248s to finish crediting (0 -> 12 -> 84 -> 107 rows). The bound is ~2.4x that. Production pulls at ~1113s.', 'usable_as_coverage_evidence': False, 'note': 'a partial settlement is PRESENT in the ledger, so a coverage metric counting distinct settlements would score it 100% while rows are missing. Do not compute coverage from a pull marked possibly_incomplete.'}
+
+ALL PASS

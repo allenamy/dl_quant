@@ -1,0 +1,152 @@
+  OK    PRE-ASSERT the scenario has gap settlements of both intervals  — (12, ['XUSDT', 'YUSDT', 'ZUSDT'])
+[G1] 12 h outage, then readbacks resume
+  OK    ★★ after the post-gap readback every settlement is on disk (gap rows included), none twice  — missing [] dup 0
+  OK    the gap rows — and only they — carry pricing_rule carried_across_gap  — (12, 12)
+  OK    carried rows are priced off the pre-gap readback A (our record), with its true age
+  OK    the queue is empty at the end
+[G2/G3/G4] a name that moved inside the gap stays queued, named, and survives the resume point
+  OK    G2 X's gap rows after the injected fill are NOT written
+  OK    G3 Y's gap rows (post-gap quantity altered) are NOT written
+  OK    the unaffected name Z is written
+  OK    ★★ G4 X and Y are still queued AFTER the resume point moved past the gap (nothing lost)  — (10, 10)
+  OK    each queued row carries a named reason  — [{'row': {'symbol': 'YUSDT', 'income': '-0.07', 'time': 1789592400000, 'incomeType': 'FUNDING_FEE', 'tranId': 17895924001, 'asset': 'USDT', 'info': 'FUNDING_FEE'}, 'reason': 'quantity moved across the gap outside our fills: qty(A) 50.0 vs q
+  OK    the queue is alarmed HIGH, naming X and Y  — ['10 funding settlement(s) could not be priced (no usable position readback, and the cross-gap rule did not prove the posi', '10 funding settlement(s) could not be priced (no usable position readback, and the cross-gap rule did not prove th
+[G7] a queued settlement past the venue's retention becomes a NAMED permanent gap
+  OK    expired rows leave the queue
+  OK    ...into permanent_gaps, each by (symbol, settlement)  — 10
+  OK    ...and that is HIGH  — ["funding ledger gap 1.03d is past the venue's 90-day retention — those settlements cannot be recovered by any means. The ", "10 queued funding settlement(s) passed the venue's 90-day retention unpriced and are now PERMANENT gaps: ['XUSDT',
+[G5] the queue write fails => nothing is written this pull
+  OK    no row written
+  OK    reported as a failure and alarmed HIGH  — ('DurableWriteNotReplaced: injected: disk full', [('HIGH', 'funding pending queue could not be written (DurableWriteNotReplaced: injected: disk full); NOTHING is written this pull — the 6 unpriced settlement(s) would otherwise be lost once 
+[G6] a corrupt queue file => fail-closed
+  OK    no row written
+  OK    reported unreadable and alarmed HIGH  — JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+  OK    the corrupt file is left for a human (not overwritten)
+[G8] a queued row that someone else already wrote is dequeued, never written twice
+  OK    PRE-ASSERT G8 the first pull queued something  — 6
+  OK    the pre-written key appears exactly once  — 1
+  OK    it is no longer queued
+[G9] identity on the normal path against the pre-fix module (d01e35d)
+  OK    PRE-ASSERT the normal path wrote rows  — 6
+  OK    ★ new == old field for field on the normal path (no new field added)
+[R1] regression: 2026-09-26 outage, real day files + recorded venue answers
+R1_REAL_WRITER_TIMING {"n_calls": 545, "whole_pull_seconds": 0.6283678749999999, "writer_ack_seconds": 0.03477087200000151}
+  OK    ★★ R1 545 rows written across the gap  — (545, 545, 0)
+  OK    R1 nothing queued, nothing permanent  — (0, 0)
+  OK    PRE-ASSERT R1 the plan rows are whole rows (every key the executor wrote on the day)
+  OK    ★ R1 every row equals the installed backfill plan on EVERY key, bitwise (news2 review: whole-row comparison)  — (545, [])
+  OK    R1 the one extra key is pricing_rule == carried_across_gap on every row
+[G10] the two stepSize sources disagree for one name => that name stays queued, named (never 'pick one')
+  OK    X (steps disagree) is NOT written across the gap
+  OK    Y and Z (steps agree) are written
+  OK    X is queued with the disagreement named  — [{'row': {'symbol': 'XUSDT', 'income': '-0.10', 'time': 1789603200000, 'incomeType': 'FUNDING_FEE', 'tranId': 17896032000, 'asset': 'USDT', 'info': 'FUNDING_FEE'}, 'reason': 'stepSize sources disagree for XUSDT: broker 1.0 vs exchange_info_
+  OK    ...alarmed HIGH naming X  — ["stepSize disagrees between the broker and exchange_info_cache for ['XUSDT']: their gap settlements s", '2 funding settlement(s) could not be priced (no usable position readback, and the cross-gap rule did']
+  OK    the report lists the conflict  — {'XUSDT': [1.0, 0.5]}
+[S] the new column is declared in the schema and its value is enumerated
+  OK    SCHEMA['funding'] declares pricing_rule as optional
+  OK    a misspelled pricing_rule is REFUSED by validate  — [funding] pricing_rule 'carried_accross_gap' not in {'carried_across_gap'}
+[D1] real funding writer must acknowledge file and new day directory chain
+  OK    real funding ack completes file -> day -> root fsync before returning  — ['file', 'day', 'root']
+[D2] fsync failure retains pending; visible duplicate requires ack on retry
+  OK    file fsync was actually attempted  — ['file']
+  OK    file failure is explicit and HIGH, rows_written excludes unacked row  — {'funding_durability_failed': ['ZUSDT: writer durable ack failed: OSError: injected funding file fsync failure'], 'rows_written': 0, 'n_pending': 1}
+  OK    file failure leaves original income in pending
+  OK    visible duplicate cannot be dequeued when file ack still fails
+  OK    file recovery acknowledges visible row once without another append
+  OK    day fsync was actually attempted  — ['day']
+  OK    day failure is explicit and HIGH, rows_written excludes unacked row  — {'funding_durability_failed': ['ZUSDT: writer durable ack failed: OSError: injected funding day fsync failure'], 'rows_written': 0, 'n_pending': 1}
+  OK    day failure leaves original income in pending
+  OK    visible duplicate cannot be dequeued when day ack still fails
+  OK    day recovery acknowledges visible row once without another append
+  OK    root fsync was actually attempted  — ['root']
+  OK    root failure is explicit and HIGH, rows_written excludes unacked row  — {'funding_durability_failed': ['ZUSDT: writer durable ack failed: OSError: injected funding root fsync failure'], 'rows_written': 0, 'n_pending': 1}
+  OK    root failure leaves original income in pending
+  OK    visible duplicate cannot be dequeued when root ack still fails
+  OK    root recovery acknowledges visible row once without another append
+[D3] append acknowledged then final queue write fails; retry never double-counts
+  OK    final queue failure is named and HIGH
+  OK    durably written row remains in old pending after queue failure
+  OK    retry acks old row and removes duplicate without append
+[D4] funding root parent chain is a precondition, not silently created
+  OK    funding refuses a root whose parent chain was not pre-existing
+[E1] unreadable gap evidence must never mean zero trades
+  OK    historical read failure is not returned as empty fills
+  OK    evidence failure is handled, named HIGH and preserves original income  — (None, ['ZUSDT: gap evidence failed: PermissionError: gap evidence permission denied'])
+  OK    no row priced from unreadable evidence
+[E2] nonfinite/unknown evidence cannot prove position unchanged
+  OK    A venue_position_qty nan is refused with a named reason  — pre-gap readback A carries no usable qty / notional for this name
+  OK    A venue_position_notional nan is refused with a named reason  — pre-gap readback A carries no usable qty / notional for this name
+  OK    B qty nan is refused with a named reason  — post-gap readback B carries no usable qty for this name
+  OK    step nan is refused with a named reason  — no stepSize known for this name: quantity equality cannot be judged
+  OK    A venue_position_qty inf is refused with a named reason  — pre-gap readback A carries no usable qty / notional for this name
+  OK    A venue_position_notional inf is refused with a named reason  — pre-gap readback A carries no usable qty / notional for this name
+  OK    B qty inf is refused with a named reason  — post-gap readback B carries no usable qty for this name
+  OK    step inf is refused with a named reason  — no stepSize known for this name: quantity equality cannot be judged
+  OK    A venue_position_qty -inf is refused with a named reason  — pre-gap readback A carries no usable qty / notional for this name
+  OK    A venue_position_notional -inf is refused with a named reason  — pre-gap readback A carries no usable qty / notional for this name
+  OK    B qty -inf is refused with a named reason  — post-gap readback B carries no usable qty for this name
+  OK    step -inf is refused with a named reason  — no stepSize known for this name: quantity equality cannot be judged
+  OK    fill_ts nan is refused with a named reason  — invalid evidence: a fill of this name has an unusable time
+  OK    fill_ts inf is refused with a named reason  — invalid evidence: a fill of this name has an unusable time
+  OK    fill_ts bad is refused with a named reason  — invalid evidence: a fill of this name has an unusable time
+  OK    side UNKNOWN is refused with a named reason  — invalid evidence: a fill has an unknown side
+  OK    fill_px inf is refused with a named reason  — a fill of this name in (A, B) has no usable price / notional
+  OK    fill_notional nan is refused with a named reason  — a fill of this name in (A, B) has no usable price / notional
+[E3] malformed or unreadable pending document is never reset to empty
+  OK    malformed pending row is named unreadable, not unhandled or overwritten  — (None, 'ValueError: income row has no lossless positive millisecond time')
+  OK    exists false cannot disguise pending permission failure as absence  — PermissionError: injected pending read denied
+[E4] real malformed last fill and stat PermissionError cannot prove no trades
+  OK    malformed_tail real table read is UNKNOWN, not empty
+  OK    malformed_tail is named HIGH and leaves original income pending  — (None, ['ZUSDT: gap evidence failed: ValueError: incomplete final record: /Users/haosiyu/cc_tmp/funding_durable_ack_exec_20260927/state/acceptance/offline.D3ccI5/fgap-strict-fill-malformed_tail-bd8s0zzg/live/p'])
+  OK    malformed_tail never writes a funding row
+  OK    stat_permission real table read is UNKNOWN, not empty
+  OK    stat_permission is named HIGH and leaves original income pending  — (None, ['ZUSDT: gap evidence failed: PermissionError: injected real fill stat denied'])
+  OK    stat_permission never writes a funding row
+[E5] the fresh-readback path also refuses damaged or unreadable evidence
+  OK    fresh malformed_tail is named HIGH and queued  — (None, ['position evidence failed: ValueError: incomplete final record: /Users/haosiyu/cc_tmp/funding_durable_ack_exec_20260927/state/acceptance/offline.D3ccI5/fgap-strict-fresh-malformed_tail-idq_80fu/live/'])
+  OK    fresh malformed_tail does not write unproved funding
+  OK    fresh stat_permission is named HIGH and queued  — (None, ['position evidence failed: PermissionError: injected fresh readback stat denied'])
+  OK    fresh stat_permission does not write unproved funding
+  OK    fresh nonfinite_notional is named HIGH and queued  — (None, ['position evidence failed: ValueError: invalid evidence: fresh readback notional is not finite'])
+  OK    fresh nonfinite_notional does not write unproved funding
+[D5] same ledger key is insufficient evidence for duplicate dequeue
+  OK    different_cash duplicate remains queued with named identity failure  — (None, ['ZUSDT: duplicate identity not proven: ValueError: stored funding cash disagrees with the queued income'])
+  OK    different_cash duplicate never appends/replaces ledger
+  OK    missing_required duplicate remains queued with named identity failure  — (None, ["ZUSDT: duplicate identity not proven: SchemaError: [funding] missing required field(s): ['position_notional_at_settlement']. Schema v2 is frozen -- a missing field means the metric it feeds c"])
+  OK    missing_required duplicate never appends/replaces ledger
+  OK    multiple_disk_rows duplicate remains queued with named identity failure  — (None, ['ZUSDT: duplicate identity not proven: ValueError: multiple ledger rows at one settlement key'])
+  OK    multiple_disk_rows duplicate never appends/replaces ledger
+[E6] unsupported asset and income identity collisions stay pending
+  OK    non_USDT remains pending with identity/asset reason  — (None, ["ZUSDT: unsupported explicit income asset 'USDC'"])
+  OK    non_USDT never invents USDT cash or merges income
+  OK    same_key_same_cash_different_tranId remains pending with identity/asset reason  — (None, ['ZUSDT: multiple income identities at one legacy settlement key', 'ZUSDT: multiple income identities at one legacy settlement key'])
+  OK    same_key_same_cash_different_tranId never invents USDT cash or merges income
+  OK    same_key_different_cash remains pending with identity/asset reason  — (None, ['ZUSDT: multiple income identities at one legacy settlement key', 'ZUSDT: multiple income identities at one legacy settlement key'])
+  OK    same_key_different_cash never invents USDT cash or merges income
+[E7] exact readback snapshots reject conflicts independently of file order
+  OK    conflicting gap snapshot order=False is named and rejected  — conflicting snapshot rows for ZUSDT at 1789577040.0
+  OK    conflicting fresh snapshot order=False is named and rejected  — conflicting snapshot rows for ZUSDT at 1789577040.0
+  OK    conflicting snapshot is handled HIGH and kept pending
+  OK    conflicting gap snapshot order=True is named and rejected  — conflicting snapshot rows for ZUSDT at 1789577040.0
+  OK    conflicting fresh snapshot order=True is named and rejected  — conflicting snapshot rows for ZUSDT at 1789577040.0
+  OK    conflicting snapshot is handled HIGH and kept pending
+  OK    identical duplicate snapshot rows preserve gap and fresh positives
+[E8] nearby but distinct snapshot times are never merged by a tolerance
+  OK    gap uses exact latest read_ts rather than nearby older rows
+  OK    strict fresh reader uses the same exact snapshot
+[E9] a YYYYMMDD regular file is malformed evidence, not an absent day
+  OK    strict day enumeration refuses the malformed date entry  — malformed evidence day: /Users/haosiyu/cc_tmp/funding_durable_ack_exec_20260927/state/acceptance/offline.D3ccI5/fgap-malformed-date-entry-74uo_cev/live/pilot_log/20260918 is not a directory
+  OK    malformed day entry is HIGH and existing income remains queued
+  OK    ordinary day enumeration keeps its existing behavior
+[D6] partial append failure stops every subsequent append in the pull
+  OK    funding owner refuses later calls on its failed handle
+  OK    partial failure stops before the second physical write  — [349]
+  OK    partial failure reports no later rows acknowledged
+  OK    failed and unattempted original income are both pending
+  OK    later row was not concatenated onto the broken prefix  — 10
+  OK    retry refuses the actual broken file and preserves both incomes
+[D7] funding acknowledgements bind the inode that held the evidence
+  OK    writer cannot ack a replacement path while its row is on another inode
+  OK    duplicate cannot ack another inode after reading its evidence
+
+FUNDING_GAP ALL PASS
