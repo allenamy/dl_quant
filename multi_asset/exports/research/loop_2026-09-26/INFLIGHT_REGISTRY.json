@@ -976,5 +976,20 @@
   "notes": [
    "Waiter only until exact KSR_DONE series=36; then bind 38 series +16 targets stats +11 gate4 receipts and run corrected reader once. No new training or replay. CPU20min, RLIMIT_AS3GiB, cgroup headroom>=4GiB, OMP/BLAS=1. Independent output root /workspace/codex_research/QNT-2026-0907/acting_lead_20260927/ksr_readout."
   ]
+ },
+ {
+  "name": "acting_lead_d10_rerun6_queue",
+  "owner": "Codex acting-lead / research_resume_0927",
+  "host": "pod2",
+  "log": "/dev/shm/acting_lead_20260927/d10_rerun6_queue/queue.log",
+  "terminal": "^\\S+ D10_QUEUE_(DONE|FAILED)\\b",
+  "pgid": 3506841,
+  "pgid_file": "/dev/shm/acting_lead_20260927/d10_rerun6_queue/PGID.json",
+  "role": "WAIT_KSR_READOUT_THEN_SERIAL_DRYRUN",
+  "upstream_pgid": 3505287,
+  "upstream_log": "/dev/shm/acting_lead_20260927/ksr_readout/waiter.log",
+  "notes": [
+   "Light waiter now; frozen rerun6 can start only after exact corrected KSR readout DONE receipt/hash then cgroup headroom >=28GiB, other same-UID RSS <=4GiB, /dev/shm >=4GiB; fail on unknown/changed SHA/import inventory, existing result/log, dependency failed or disappeared. Pins 211 files, source receipt fea79b5096f4ea2fd2312d2ee460a81e2b7f99a8abab9b7e051a726c0e004b6d. 60h deadline. No source sync, kills, changes to frozen runner/gates, training, or trading writes. NOT_RUN never means all_rows_pass. Independent root /workspace/codex_research/QNT-2026-0907/acting_lead_20260927/d10_rerun6_queue; start_ticks509498027."
+  ]
  }
 ]
