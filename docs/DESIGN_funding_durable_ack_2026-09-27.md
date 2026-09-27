@@ -95,3 +95,11 @@ GREEN2由 `/Users/haosiyu/cc_tmp/funding_durable_ack_exec_20260927/ops/run_accep
 | eea02b2 | PATCH_from_eea02b2.diff | d40dc4986a54f00e6ab1962ac8aad43b1867b79a363d8b8186ca822f7b135832 |
 
 未验证/未闭合点保持：候选未在生产运行；离线545行成本不是生产耗时上界；跨缺口本地账本证明不独立替代完整venue路径取证；旧schema的缺asset/tranId身份域未扩大。发布仍被08Z OPENUSDT真实667.0389 involuntary gap阻断。此件是可审候选交付，不是发布PASS收据。
+
+## 基线依赖：不能当作d01e35d上的独立发布整包
+
+只读Git元数据确认：`merge-base(d01e35d, cea1e15)=d01e35d`，生产d01是候选基线的祖先，cea基线领先10个尚未部署提交；`merge-base(cea1e15, 13ca2cc)=cea1e15`，本轮再加5个提交。因此生产至本候选共15个提交，而本件4文件diff仅相对cea基线。**本次结果不是生产d01上的集成PASS；不能把最后一个提交或4文件patch当成可直接发布的完整包。**
+
+直接资金费前置：4ce03f5（G/R夹具）、ef3c9d6（持久pending与跨缺口类修复及suite注册）、99bac95（告警修正）、8102559（funding schema）、7ff6968（step来源冲突与545行完整对照）。其余继承基线提交仍须在后续包组装中交代：ceb582d（producer publication边界测试）、2c19df9（anchor_report前锚选择）、20a4748/4e3fc6c（per-name-stop缺锚记录及测试）、cea1e15（A10主机无关红控）。这些是提交元数据及依赖边界，不借旧commit message中的测试声称代替新验收。
+
+完整SHA、父提交、Git tree与祖先关系见 `multi_asset/exports/research/acting_lead_2026-09-27/receipts/FUNDING_CANDIDATE_dependencies_20260927.json`。后续须依据已批准包依赖组装准确集成树，并在该树上运行原offline wrapper；本次没有另开clone、没有新电池、没有遍历或提交state内容diff。

@@ -1,0 +1,162 @@
+{
+  "utc": "2026-09-27T18:47:34.019638+00:00",
+  "scope": "Git ancestry/commit metadata only; no state-content diff",
+  "production_baseline": "d01e35db56b4d7ed6abf0befd9f18452cd06c329",
+  "candidate_base": "cea1e15fa4051df1fb506a5989a3e582291ce95b",
+  "tested_candidate": "13ca2cc7533ecc4cf5ad4372b69f4b771589279e",
+  "relationships": [
+    {
+      "from": "d01e35db56b4d7ed6abf0befd9f18452cd06c329",
+      "to": "cea1e15fa4051df1fb506a5989a3e582291ce95b",
+      "merge_base": "d01e35db56b4d7ed6abf0befd9f18452cd06c329",
+      "is_ancestor": true,
+      "ahead": 10
+    },
+    {
+      "from": "cea1e15fa4051df1fb506a5989a3e582291ce95b",
+      "to": "13ca2cc7533ecc4cf5ad4372b69f4b771589279e",
+      "merge_base": "cea1e15fa4051df1fb506a5989a3e582291ce95b",
+      "is_ancestor": true,
+      "ahead": 5
+    },
+    {
+      "from": "d01e35db56b4d7ed6abf0befd9f18452cd06c329",
+      "to": "13ca2cc7533ecc4cf5ad4372b69f4b771589279e",
+      "merge_base": "d01e35db56b4d7ed6abf0befd9f18452cd06c329",
+      "is_ancestor": true,
+      "ahead": 15
+    }
+  ],
+  "not_deployed_base_chain": [
+    {
+      "commit": "4ce03f585db168b6eb862744827e4ce8b81e044b",
+      "parents": [
+        "d01e35db56b4d7ed6abf0befd9f18452cd06c329"
+      ],
+      "committed_tree": "d5db4fcb91f8ab3f00e1299800172c28282d5384",
+      "subject": "fix-pkg-e item 1, TESTS FIRST: tests_funding_gap.py (G1-G9 + R1 regression on the 2026-09-26 outage with news2's recorded venue answers) and fixtures; measured on this tree (d01e35d code): 19 FAIL (red on G1/G4/G5/G6/G7/R1), G9 identity baseline green"
+    },
+    {
+      "commit": "ef3c9d685117570a6441f46b53e3d07f3f5dcbc8",
+      "parents": [
+        "4ce03f585db168b6eb862744827e4ce8b81e044b"
+      ],
+      "committed_tree": "ace070546c86ed0cbf132db56e54e298196c2c2b",
+      "subject": "fix-pkg-e item 1: funding ledger across an outage \u2014 durable pending queue (funding_pending.json: venue income rows kept until priced or declared a NAMED permanent gap past the 90-day retention; queue read first, unreadable => nothing written; queue written BEFORE the rows and again after, so no row can vanish) + cross-gap pricing rule (pre-gap readback A used only if a post-settlement readback B exists, zero collapsed fills of the name in (A,t), and qty(A) == qty(B) - net fills in (A,B) within half a stepSize; rows carry pricing_rule carried_across_gap), normal path field-identical. tests_funding_gap ALL PASS (was 19 FAIL on d01e35d code), 5/5 mutants caught; existing tests_binance_funding green; suite registered in run_acceptance.sh + gate_coverage.py"
+    },
+    {
+      "commit": "99bac95b3fadb14b224f433208bf908e7e312892",
+      "parents": [
+        "ef3c9d685117570a6441f46b53e3d07f3f5dcbc8"
+      ],
+      "committed_tree": "0a68cf1f41944798863e3c4df5c1ae4621585137",
+      "subject": "fix-pkg-e item 1 correction: the previous commit's message claimed tests_binance_funding green \u2014 it was NOT run before that commit and was 1 FAIL ([K] requires the skip alarm to say 'position'; my new alarm text dropped the word). Alarm text restored to name the position readback; now tests_binance_funding ALL PASS and tests_funding_gap ALL PASS (sandbox single-suite runs, network denied)"
+    },
+    {
+      "commit": "8102559ae7f2a7253431090dd160f5f07b88de42",
+      "parents": [
+        "99bac95b3fadb14b224f433208bf908e7e312892"
+      ],
+      "committed_tree": "cc641d72048694f13ea0e69f74bd6b200d4eb901",
+      "subject": "fix-pkg-e item 1 (news2 review): pilot_log SCHEMA['funding'] declares the optional columns the writer adds (funding_interval_h/_source, position_read_ts/_age_s, pricing_rule) so reader key-set checks know them; validate refuses a pricing_rule outside FUNDING_PRICING_RULES={'carried_across_gap'} (tests_funding_gap [S], a misspelling is refused). Single-suite sandbox runs: tests_funding_gap / tests_binance_funding / tests_pilot_log ALL PASS"
+    },
+    {
+      "commit": "7ff6968da1a8cd2d1df3f4c4ae1de0f4a2968e1a",
+      "parents": [
+        "8102559ae7f2a7253431090dd160f5f07b88de42"
+      ],
+      "committed_tree": "1e268250c6e01a5da68ce4750a1f624fda1e8a8e",
+      "subject": "fix-pkg-e item 1 (news2 review 2): (1) stepSize = LOT_SIZE step from BOTH sources (broker.qty_steps and exchange_info_cache.json); a name whose two values differ is a named conflict \u2014 its gap settlements stay queued with HIGH, never 'pick one' (new G10; the pick-one mutant is caught); (2) R1 compares WHOLE rows: every key of all 545 rows equals news2's installed plan bitwise, the single extra key is pricing_rule == carried_across_gap (fixture r1_manifest now carries plan_rows_full). Test worlds use the executor layout state/live/pilot_log. tests_funding_gap / tests_binance_funding ALL PASS"
+    },
+    {
+      "commit": "ceb582d04952061dbab8e28f490c5a2d1c40d997",
+      "parents": [
+        "7ff6968da1a8cd2d1df3f4c4ae1de0f4a2968e1a"
+      ],
+      "committed_tree": "0010e8d537bd7941b0f1ace486b755d662b99109",
+      "subject": "fix-pkg-e item 2 (E-0926-H): ops/producer_release/tests_combo_publication_boundary_v2.py \u2014 env += io + the producer's durable_io; FreeNameTests derives the publication Try's free names from its AST and compares them with the env ACTUALLY handed in (no hand-written copy), ALLOWED_ABSENT (rts/RD/_symbols/_page, each with a reason) must be read only inside an except-Exception try (derived); late_status_error on the C contract (post-publication status failure is not an abort). Measured: production 12a76de8 7/7 OK, GAP4 5eaabcdb 7/7 OK, NC 363dd8c8 2 FAIL as expected (no DIO in that block; old late-status contract); red controls: new global -> named, ALLOWED_ABSENT read outside a try -> named line, dropped DIO -> named (in-suite)"
+    },
+    {
+      "commit": "2c19df90e2f36c2295abedbd2e648f5a3e5b7b9b",
+      "parents": [
+        "ceb582d04952061dbab8e28f490c5a2d1c40d997"
+      ],
+      "committed_tree": "55fd1c9a9ac4c3f8e9e89776ebf030aaa5e2e85a",
+      "subject": "fix-pkg-e item 5 (executor-side cosmetic): anchor_report's previous-anchor row = the most recent earlier row within 7 days (was exactly A-14400, so after any missed anchor the previous position read 'unknown' although the executor held the last traded book through the gap); the gap is named in the flat-book funding line. Tests: 3 new checks in tests_anchor_report_builder (26/26 on the fix; the pre-fix module has no prev_slot_row => the suite errors, rc 1)"
+    },
+    {
+      "commit": "20a47485b2ef9b242ec5c51d2e686443fe1c8dbd",
+      "parents": [
+        "2c19df90e2f36c2295abedbd2e648f5a3e5b7b9b"
+      ],
+      "committed_tree": "f72930c99272a60eefc815a4d1244329206720bf",
+      "subject": "fix-pkg-e item 3, TESTS FIRST (lead ruling (B)): tests_per_name_stop_gap.py \u2014 measured on d01e35d code: 3 FAIL (G1a no anchor stamp, G1c no gap text, G3 no 'spacing unknown'), G5 identity baseline green"
+    },
+    {
+      "commit": "4e3fc6c7ba0d3b10b1283bf4288f81ebc7d6beed",
+      "parents": [
+        "20a47485b2ef9b242ec5c51d2e686443fe1c8dbd"
+      ],
+      "committed_tree": "907d2025c087c489ef72b63160803394d453f053",
+      "subject": "fix-pkg-e item 3 (lead ruling (B)): per_name_stop keeps its timing; each counter records the anchor it counted and the anchors skipped inside its run; a trigger spanning missed anchors says '\u8de8\u7f3a\u951a k \u951a' (legacy stamp-less counter: '\u951a\u8ddd\u672a\u77e5') in its event, which anchor_loop alarms HIGH. Disabled / blind paths stay the identity. tests_per_name_stop_gap ALL PASS (was 3 FAIL), tests_per_name_stop ALL PASS; suite registered"
+    },
+    {
+      "commit": "cea1e15fa4051df1fb506a5989a3e582291ce95b",
+      "parents": [
+        "4e3fc6c7ba0d3b10b1283bf4288f81ebc7d6beed"
+      ],
+      "committed_tree": "57b303266c54a9bc81d4238df9b171a0a8e15057",
+      "subject": "tests_nosleep A10 host-independent (arm64 migration 2026-09-27): the red capability is manufactured, never borrowed from the host's log size"
+    }
+  ],
+  "this_task_chain": [
+    {
+      "commit": "14795a1121418ee955fc5401658c2077278650df",
+      "parents": [
+        "cea1e15fa4051df1fb506a5989a3e582291ce95b"
+      ],
+      "committed_tree": "8bf75a8930078a2f32b482a606dafd9df10c0212",
+      "subject": "tests: prepare funding durable-ack and unknown-evidence red controls; execution deferred"
+    },
+    {
+      "commit": "841e771680cd36d416181382ca1d5b1632f71b27",
+      "parents": [
+        "14795a1121418ee955fc5401658c2077278650df"
+      ],
+      "committed_tree": "5b18d39d929c060a833a87e72cf637620200b883",
+      "subject": "test: expose strict evidence and funding duplicate identity failures"
+    },
+    {
+      "commit": "eea02b242f4448fc335d0374549a1191a5da3640",
+      "parents": [
+        "841e771680cd36d416181382ca1d5b1632f71b27"
+      ],
+      "committed_tree": "f3eaeaf8ca8b7579ca74c39543925635c5adfc2c",
+      "subject": "fix: acknowledge funding durability and reject unknown evidence"
+    },
+    {
+      "commit": "056877397be50d8967452c30351451d41d347656",
+      "parents": [
+        "eea02b242f4448fc335d0374549a1191a5da3640"
+      ],
+      "committed_tree": "fbf64f4323eba2f3467f5a476e38348d4d7234c5",
+      "subject": "test: expose funding snapshot append and inode acknowledgement failures"
+    },
+    {
+      "commit": "13ca2cc7533ecc4cf5ad4372b69f4b771589279e",
+      "parents": [
+        "056877397be50d8967452c30351451d41d347656"
+      ],
+      "committed_tree": "be4716981dcaedbe8645cd081e5e45190880f279",
+      "subject": "fix: bind funding evidence and stop appends after durability failure"
+    }
+  ],
+  "direct_funding_prerequisites": [
+    "4ce03f585db168b6eb862744827e4ce8b81e044b",
+    "ef3c9d685117570a6441f46b53e3d07f3f5dcbc8",
+    "99bac95b3fadb14b224f433208bf908e7e312892",
+    "8102559ae7f2a7253431090dd160f5f07b88de42",
+    "7ff6968da1a8cd2d1df3f4c4ae1de0f4a2968e1a"
+  ],
+  "interpretation": "The four-file patch is relative to un-deployed fix-pkg-e base cea1e15, not a complete production d01e35d release package. Base also carries publication-boundary tests, anchor-report and per-name-stop changes, and A10 host independence. Future release must assemble approved package dependencies and validate that exact integrated tree through the offline wrapper; current evidence is not production integration PASS. Commit subjects are historical metadata, not fresh verification claims."
+}
