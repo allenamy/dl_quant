@@ -27,7 +27,7 @@ else:
 assert time.time()<budget['deadline_unix'],'original 15-minute budget exhausted'
 t0=time.monotonic()
 with open(R/'stdout.log','w') as out,open(R/'stderr.log','w') as err:
- p=subprocess.Popen([sys.executable,'-B',str(R/'funding_network_fixture.py')],stdout=out,stderr=err,start_new_session=True,cwd=R)
+ p=subprocess.Popen(['/workspace/venv/bin/python','-B',str(R/'funding_network_fixture.py')],stdout=out,stderr=err,start_new_session=True,cwd=R)
  reason=None;peakrss=0;peakgpu=0
  while p.poll() is None:
   time.sleep(1)

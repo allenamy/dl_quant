@@ -31,3 +31,5 @@ A0=-mean(price-fee)+.25 ES5%；A1仅加事件时持有carry现金。两臂共同
 仅Pod CPU1、进程RSS≤6GiB、GPU≤8GiB；启动必须cgroup剩余≥14GiB、GPU空闲、同UID RSS+6GiB≤30GiB，输出真实16MiB quota probe后移除probe文件。不满足写QUEUE收据，不降预算绕门。以通过启动门时开始最多15分钟wall，watchdog只停止本任务PGID，RSS/GPU超限即停止并留日志。预计输入哈希/小切片/Panel<90秒，控制与双臂一步<30秒，输出<10MiB；不抢KSR/D10，资源不够等待。
 
 文件：`multi_asset/exports/research/acting_lead_20260927/funding/funding_network_fixture.py`实现；同目录独立run receipt/日志/小型结果；Pod新根`/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/network_fixture_20260927`。不写共享registry/STATE。
+
+17:20 UTC 执行修正（未见网络梯度/优化结果）：17:17:09资源门首次通过，默认/usr/bin/python的torch2.4.1+cu124不支持Blackwell，首个CUDA张量即失败，未作优化器更新。HANDOFF原已指定/workspace/venv；本次遗漏由装置环境选择造成。复跑固定既有/workspace/venv/bin/python（torch2.11.0+cu128、numpy2.4.6），不安装、不改任何输入/损失/阈值；失败日志保留。首次15分钟wall仍截至约17:32:09Z，资源每次须再通过原门。另在CUDA前落盘CLOCK_PREFLIGHT，保留q=0省略事件对导数范围的更正；只是持久化既定全事件现金控制，不添加收益规格。
