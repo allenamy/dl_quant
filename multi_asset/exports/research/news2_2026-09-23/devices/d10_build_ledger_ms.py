@@ -95,6 +95,9 @@ def main():
     ap.add_argument("--extra-api", default=None)
     ap.add_argument("--prefix-ledger", default=None); ap.add_argument("--prefix-sha", default=None)
     ap.add_argument("--out-name", default="ledger_full_ms.npz")
+    ap.add_argument("--control-mutation", default="none", choices=["none", "rate_extra", "ft_extra", "rate_prefix"],
+                    help="CONTROL RUNS ONLY: change exactly one row in memory before the controls (a rate / a fundingTime by +1 s in "
+                         "the first --extra-months month, or a rate in the month before it); the controls must go red")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     t0 = time.time()
@@ -189,6 +192,25 @@ def main():
     SR = np.array(SR, np.int8)
     ZI = np.array(ZI, np.float32)
     off = np.array(off, np.int64)
+    mutation = None
+    if a.control_mutation != "none":
+        assert EXTRA_MONTHS, "--control-mutation needs --extra-months"
+        y, mo = int(EXTRA_MONTHS[0][:4]), int(EXTRA_MONTHS[0][5:7])
+        if a.control_mutation == "rate_prefix":
+            y, mo = (y - 1, 12) if mo == 1 else (y, mo - 1)
+        lo = int(datetime.datetime(y, mo, 1, tzinfo=datetime.timezone.utc).timestamp() * 1000)
+        j0 = SYMS.index("BTCUSDT")
+        seg = np.flatnonzero(FT[off[j0]:off[j0 + 1]] >= lo) + off[j0]
+        k = int(seg[0])
+        before = (int(FT[k]), float(RT[k]))
+        if a.control_mutation == "ft_extra":
+            assert FT[k + 1] - FT[k] > 2000
+            FT[k] += 1000
+        else:
+            RT[k] = np.nextafter(RT[k], np.inf)
+        mutation = {"kind": a.control_mutation, "symbol": "BTCUSDT", "row": k, "before": before, "after": (int(FT[k]), float(RT[k])),
+                    "utc": iso_ms(FT[k])}
+        log("CONTROL MUTATION", mutation)
     for j in range(len(SYMS)):
         seg = FT[off[j]:off[j + 1]]
         assert np.all(np.diff(seg) > 0), SYMS[j]
@@ -263,10 +285,15 @@ def main():
                 ctrl.setdefault("first_differences", {})[k] = [
                     {"index": int(i), "new": float(arr_new[i]), "old": float(arr_old[i])} for i in bad[:10]]
         ctrl["ALL_BITWISE"] = all(ctrl["bitwise"].values())
-        if extended and not ctrl["ALL_BITWISE"] and all(ctrl["bitwise"][k] for k in ("ft", "rate", "off")):
-            # rev 2 (V2 finding 06:49Z): P2 had no zip for a month now added via --extra-months, so on the fold those rows go
-            # api-only -> both (src 1 -> 3, zip_iv NaN -> value). The SAME rule as the prefix identity: allowed only there.
+        if extended:
+            # rev 2.1 -- POST-READING revision (explanatory), written after V2 at 06:49Z read NOT_RECONCILED: P2 had no zip for a
+            # month now added via --extra-months, so on the fold those rows go api-only -> both (src 1 -> 3, zip_iv NaN -> value).
+            # The SAME rule as the prefix identity: allowed only there. Every other difference -- any ft, any rate, any src/zip_iv
+            # change outside the rule -- is counted in one number, and RECONCILED requires that number to be 0 and off to be equal.
+            # Its power is shown by --control-mutation (lead 2026-09-27: 1 changed rate or ft must give not_allowed == 1).
             ozi = old_zi.astype(np.float32); osr = old_sr.astype(np.int8)
+            ft_d = fFT != old_ft.astype(np.int64)
+            rt_d = fRT.view(np.uint64) != old_rt.astype(np.float64).view(np.uint64)
             ch = (fSR != osr) | ~((np.isnan(fZI) & np.isnan(ozi)) | (fZI == ozi))
             in_extra = np.zeros(fFT.size, bool)
             for m in EXTRA_MONTHS:
@@ -274,11 +301,15 @@ def main():
                 lo = int(datetime.datetime(y, mo, 1, tzinfo=datetime.timezone.utc).timestamp())
                 hi = int(datetime.datetime(y + (mo == 12), mo % 12 + 1, 1, tzinfo=datetime.timezone.utc).timestamp())
                 in_extra |= (fFT >= lo) & (fFT < hi)
-            ok_up = in_extra & (osr == 1) & (fSR == 3) & np.isnan(ozi) & ~np.isnan(fZI)
+            ok_up = in_extra & (osr == 1) & (fSR == 3) & np.isnan(ozi) & ~np.isnan(fZI) & ~ft_d & ~rt_d
+            bad_rows = ft_d | rt_d | (ch & ~ok_up)
+            ctrl["ft_differences"] = int(ft_d.sum()); ctrl["rate_differences"] = int(rt_d.sum())
             ctrl["src_zip_iv_changes"] = int(ch.sum())
             ctrl["src_zip_iv_changes_that_are_allowed_upgrades"] = int((ch & ok_up).sum())
-            ctrl["src_zip_iv_changes_not_allowed"] = int((ch & ~ok_up).sum())
-            ctrl["ALL_BITWISE_EXCEPT_ALLOWED_UPGRADES"] = bool(ctrl["src_zip_iv_changes_not_allowed"] == 0)
+            ctrl["not_allowed_differences"] = int(bad_rows.sum())
+            ctrl["not_allowed_examples"] = [int(k) for k in np.flatnonzero(bad_rows)[:5]]
+            ctrl["ALL_BITWISE_EXCEPT_ALLOWED_UPGRADES"] = bool(ctrl["not_allowed_differences"] == 0 and ctrl["bitwise"]["off"])
+            ctrl["rule_revision"] = "rev 2.1, post-reading (explanatory): written after V2 read NOT_RECONCILED at 06:49Z"
     else:
         ctrl["ALL_BITWISE"] = False
         ctrl["shape_detail"] = {"fold": list(fFT.shape), "old": list(old_ft.shape)}
@@ -349,6 +380,8 @@ def main():
                "second -- the failure mode that motivated this rebuild."),
            "positive_control_reconciliation": ctrl,
            "seconds": round(time.time() - t0, 1)}
+    if mutation:
+        rec["CONTROL_MUTATION"] = mutation
     if extended or prefix:
         rec["rev2_extension"] = {"extra_months": EXTRA_MONTHS, "extra_api": a.extra_api,
                                  "extra_api_sha256": sha(a.extra_api) if a.extra_api else None, "prefix_identity": prefix}
