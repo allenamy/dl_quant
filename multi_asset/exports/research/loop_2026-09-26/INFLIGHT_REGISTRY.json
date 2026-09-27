@@ -503,5 +503,17 @@
   "delivery": "session cron 6b996533",
   "closed": true,
   "closed_note": "news2: DRYRUN_STOP 06:58:43Z at D1: team resource gate CLOSED (cgroup headroom 16.6 GiB < 24) -- consumed by news2's own concurrent r21/r22/legs-control runs; S0/D7/D8 passed; to be relaunched as rerun6 after those finish"
+ },
+ {
+  "name": "dlarch_f10d10_g1_run2",
+  "owner": "dlarch",
+  "host": "pod2",
+  "log": "/dev/shm/dlarch_f10d10/f10d10.log",
+  "pgid_file": "/dev/shm/dlarch_f10d10/f10d10.pgid",
+  "terminal": "^(F10D10_G1_DONE rc=|F10D10_STOP)",
+  "success": "a second ^F10D10_G1 PASS after the 07:03:28Z START line, then ^F10D10_G1_DONE rc=0 (the log also holds run 1 lines; read after the run-2 START)",
+  "started_utc": "2026-09-27T07:03:28Z",
+  "pgid": 3424408,
+  "devices": "a4cfaf9f3 + cc5b392d3 (safe_io fsync, chain_torch C1)"
  }
 ]
