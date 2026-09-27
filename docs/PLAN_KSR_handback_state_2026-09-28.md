@@ -1,4 +1,4 @@
-> **创建:** 2026-09-28 06:45 SGT | **Session:** Codex root / acting-lead-20260927 | **状态:** in-progress | **作废条件:** KSR 来源、组合源码或保存人口改变；不得用本件晋级候选
+> **创建:** 2026-09-28 06:38 SGT | **Session:** Codex root / acting-lead-20260927 | **状态:** in-progress | **作废条件:** KSR 来源、组合源码或保存人口改变；不得用本件晋级候选
 
 # King 交回后状态：只读诊断
 
