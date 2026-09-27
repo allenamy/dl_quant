@@ -237,3 +237,8 @@
 ### §3a 追加(news2,冻结后;fresh2 20b2b3619 入库,晚于上次点名)
 - 十月候选 King 的发布运行驱动:`multi_asset/exports/research/king_oct_2026-09-27/devices/king_oct_release.sh`(pod2,PGID 3418054)。
 - 写 MANIFEST_RELEASE.json 的装置:`multi_asset/exports/research/king_oct_2026-09-27/devices/king_oct_manifest.py`。integ 装包时,按它核对要钉文件的 sha(§3b「钉被判定的模型文件」)。
+
+### 发布前提追加(lead 09:1xZ;实盘事故,见 STATE.md 顶部 09-27 09:1xZ 条目)
+- **09-29 发布新增前提**:双执行器事故已结案,实盘已恢复,并通过验收。已有前提不变:书层门修订 4/5、平价门 4a、电池全绿、用户最后确认。
+- 事故经过:旧机锁屏状态下仍在运行,两台机器同时跑执行器;08:31:12Z 旧机的 watchdog 平掉了整本书。新机现处于 reduce_only,**今天的发布全部冻结**。恢复方案由 integ 只读起草,经用户裁定后才执行。
+- 研究侧照常进行:F10 训练与书层格(#5/#6)。**#8 候选生产者树的开工时间取决于 integ 的事故处置排期**:integ 原计划约 17Z 开工,如果顺延,#8 的「最早 09-28 18Z」随之顺延。滑期超过 6 小时,按规则报 lead。
