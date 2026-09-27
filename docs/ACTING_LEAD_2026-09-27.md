@@ -37,3 +37,13 @@
 详细实际路径、17Z命令、静默窗守卫和未覆盖项在 `/Users/haosiyu/.codex/tmp/acting_lead_20260927/live_audit.md`。`inspect_anchor` 保持默认盲态；N+55报告出齐后，在17Z静默窗做K1。20Z验收到位率门0.95，16Z重建首锚0.60。新K1仍只能证明其查询窗口内、commission命中的已成交订单，不证明全局单写者。
 
 后续修复排序：GAP4恢复首锚绿以后，继续逐项处理生产者LR缺槽/资金费未定价持久队列/HOLD止损盲区；不能因GAP4成功宣布它们关闭。训练与策略试验保持与生产发布分离，新结果未过原门不换装。
+
+## 16:07Z 接续更新（UTC；当地已09-28）
+
+- 16Z运行日志已出现 start、preds/arm/filter；截至本节没有锚完成验收。不得复用12Z报告，也不得在N+55报告和17Z场所门之前宣称恢复正常。
+- KSR修后读数等待器实际在跑：PGID `3505287`、start_ticks `509421593`，日志 `/dev/shm/acting_lead_20260927/ksr_readout/waiter.log`。上游KSR PGID `3479615`；当前无DONE/STOP。等待器绑定36候选路径加两基线，只有准确终态后才读数，非人工口头排队。
+- D10串行等待器16:05:29Z已启动：PGID `3506841`、start_ticks `509498027`，装置 `688cb50e7`、registry `b5deb4c2f`。**重任务未开始**；先等修后KSR读数DONE，再要求cgroup余量28GiB、其它进程RSS≤4GiB、shm余量4GiB及211个pin未变。root独立复跑queue与KSR waiter共12测试通过（第一次在仓根执行因模块路径错误未运行测试，切到devices后成功，不隐去失败）。D10的DONE还须单看行判词，NOT_RUN不是PASS。
+- GAP4发布准备已提交 `d668ed837`，入口 `docs/PREP_GAP4_17Z_release_2026-09-27.md`；24项静态核验只证明准备无漂移，未执行C0、发布或电池。safe_commit会自动push；先查每个实际门，再在anchor.lock下FF。20Z W6已固定epoch与三MH洞。完整首次验收仍含旧标准VERSION_PROBE/M3 shadow/PARITY/B4，不能仅用新9门替代。
+- F7冷静期至09-30 08:47Z约束新的停机/恢复协议；本次只推进已有批准的GAP4，再单独推进M3。新跳闸绝不自动恢复。D10最早发布窗09-30 13Z且当前候选UNDECIDED，不把演练当换装批准。
+- 资金费局部梯度仪器 `48f86de0a` + 见数前单位/来源修订 `0215deef2` 已做8个冻结片段CPU测量，**不是新策略收益证据**。root随后提出执行钟反例：整点+毫秒结算先于A+24m决策，应由旧持仓负担；new(A)承担全部(A,A+4h]会把不可达的避费动作写入目标。旧P2与新ms标签约150万格差异已由代理拆到此边界及18格同秒事件，不能称为大面积数据污染。待独立确认事件钟与持仓钟后才发两臂训练；完整引擎已有funding-before-fill事件顺序，不据此撤销现有整书回放。
+- 研究独立分支已推送 `origin/codex/acting-lead-20260927`（首推至当时HEAD）；本节及代理随后提交需再push。生产树本轮零修改。
