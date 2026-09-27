@@ -60,3 +60,7 @@
 - 定时报表16:55Z早于真实anchor done16:58:34Z，原件保留。17:02:55Z用生产anchor_report的gather/build_report纯读函数在独立目录形成收尾后报告，未调main、未写生产报告、未发Telegram；未放宽报告新鲜度。
 - 17:06Z GAP4同机C0 PASS10/10，current归档321名逐位相等；补丁58名权重变动最大0.0001307082，均由冻结三洞MH重算解释，KC不变。W0四门通过；17:07Z四生产者服务已bootout，发布clone仅两份契约归档+A10测试文件进入safe_commit全电池。尚未安装候选，执行器仍d01e35d。
 - root独立复跑KSR终态补充装置14/14通过，来源`874a8cf16`/`65ca5f65f`，只在既有reader DONE后人工单CPU读取；没有第三个等待器或未完成候选读数。
+
+- 17:19Z **GAP4发布被safe_commit拒绝**：166套165绿/1红，唯一红为tests_disposition_matrix的稳态非自愿缺口<200U断言。具名失败RID A1790497440是今日08Z双执行器事故锚（约667U），不是16Z恢复锚；16Z仍为REBUILD且验收PASS。断言与OD源码在候选/生产逐字节相同，不能称GAP4代码回归，也不能因解释事故就豁免历史红。已派纯离线逐行定位，未放宽阈值、未删锚、未重跑碰绿。
+- safe_commit未提交/推送，未FF/安装任何候选。17:19:56Z已恢复原四服务shadowloop/combolive/combosnap/comboparity，PID分别37089/37091/37093/37095；生产HEAD仍d01e35db，原生产者字节未变，未调用resume。收据GAP4_W3_REFUSED_20260927T1719Z.json及GAP4_BASELINE_SERVICES_RESTORED.json。**后续不得重复bootout或沿旧stage4直接安装；W3未过，GAP4和后续M3仍未发布。**
+- 20Z恢复核验入口已准备于临时目录run_accept_20Z_after_done_report.sh（SHA383cf0bafef78a15605311b7312ed55e8dd395a468263d9636b98907a66c7f3d），只在21Z且真实done/N+55报告之后执行，到位率门0.95。GAP4 W6仅在确实发布过候选后适用，现在不适用。
