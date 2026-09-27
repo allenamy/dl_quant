@@ -96,3 +96,8 @@
 
 - root新发现并用固定gross/net数学反例证伪G3的容量读法：null权重相关0.9441不推出F10独立敞口≤0.0559；同相关合成书的正交gross可为0.2588。FINDING_F10_capacity_not_correlation_2026-09-27.md列出原三处和可复跑源码，约束后续研究读法；不改原失败实验判词、不估计生产真实容量、不宣称发现盈利策略。
 - 独立CUDA资源探针18:34:23–49Z实际完成且root复核源码/命令/终态/worker SHA：一次synthetic forward/backward、无optimizer、参数逐位未变，RSS观测峰1.389GB、GPU观测峰1.088GB、26.11秒。只证明正确Blackwell环境可运行这份固定MLP，不证明完整训练内存上界。CPU小型共享参数/一步更新控制获准固定300秒预算，未批准完整120网络训练或重开旧六窗。
+
+- 资金费GREEN2完整终态已由root独立解析168项退出表并核源码：167通过/1红、wrapper exit1，唯一红仍为08Z历史disposition。代码冻结提交13ca2cc7533ecc4cf5ad4372b69f4b771589279e；资金费123/123及原binance_funding76/76通过，R1的545行保持逐字段相同。独立AST四类审查e886e404b也通过。driver SHA3cb259c1…，root收据ROOT_FUNDING_GREEN2_COMMIT_20260927.json。结束本批实现反复修订，不重复跑电池碰绿。
+- 发布边界再次钉住：13ca2cc基于cea1e15，后者比在役d01e35d多10个尚未部署提交（fix-pkg-e/A10等），本轮另外5提交；不是直接可在d01上打四文件就算集成通过。保留全部依赖的增量Git bundle已git bundle verify通过，183694字节、SHA7b8b3712…，前提d01e35d；生产未修改/未部署，GAP4/M3门仍被真实历史FAIL挡住。
+- CPU参数控制原attempt18:46:45–18:47:16Z完成，原rc0/RESULT保留：共享参数现金反例通过，10项参数FD最大误差1.47e−10；8个给定输入step前向最大误差1.74e−18，错误phi 8/8拒。**不得把它签成整项PASS**：F=0两臂torch.equal相等，但全对象SHA不等，原字段名F0_bitwise过强，严格字节身份UNRESOLVED。未知是否仅signed-zero/其它字段，原件未覆盖。只准原300秒截止前追加纯F0定位，不重置预算；给定输入step平价不等于完整连续HOLD/执行库存验收。
+- 下一轮仍按原队列：KSR及D10等待器最近18:37:57Z核实仍在跑、无终态；只在reader DONE后跑既有KSR审计装置，不增加waiter。20Z恢复验收在21Z静默窗按d64017da脚本（先done后probe/K1），09-28 00Z在01Z按f69b0020；不自动resume、不额外Telegram。
