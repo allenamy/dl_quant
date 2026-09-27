@@ -20,7 +20,8 @@ Channels (NAV bps/day, x GM, arm - NC, same seed, full UTC days as news_stats.fu
   (fees), unk, and g; the per-path channel series are already in bps (rc_read.py / rc_decomp.py caliber: x GM, no 1e4), r is a
   fraction (dbar multiplies it by 1e4). The closure g - (pnl - car - cst - unk) is REPORTED, not asserted (rc_decomp measured a
   residual up to ~1e-6).
-usage: dlarch_f10d10_table.py <env-whitelist> <receipts_dir> <paired_d.json> <out.json>
+usage: dlarch_f10d10_table.py <env-whitelist> <receipts_dir> <paired_d.json> <out.json> [<arm prefix, default D10>]
+  rev 2: optional arm prefix (e.g. D10RR for the descriptive re-read cells DLARCH_D10RR_s<seed>); default keeps the D10 run's meaning.
 """
 import glob, hashlib, json, os, sys, time
 import numpy as np
@@ -28,7 +29,7 @@ import numpy as np
 WL = set(sys.argv[1].split(','))
 _x = sorted(set(os.environ) - WL - {'OPENBLAS_NUM_THREADS', 'OMP_NUM_THREADS'})
 assert not _x, f'env outside whitelist: {_x}'
-RD, PDP, OUT = sys.argv[2:5]
+RD, PDP, OUT = sys.argv[2:5]; ARMP = sys.argv[5] if len(sys.argv) > 5 else 'D10'
 ENG = '/dev/shm/news_2026-09-23/engine'; sys.path.insert(0, ENG)
 NS_SHA = '7141ba42ab227b9f35b48acce62d5e2a2494f364fdf6a83189974cb2af67e03c'
 CONTROL = 'DLARCH_REF_NC_s42X_scaled_rule_raw_UAFE'; SEEDS = (42, 2027, 7); DAY = 86400
@@ -57,12 +58,12 @@ def one(pattern):
 
 PD = json.load(open(PDP)); rec = {'device': 'dlarch_f10d10_table.py', 'self_sha256': sha(os.path.abspath(__file__)),
                                    'utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'status': 'NUMBERS_ONLY_NO_VERDICT',
-                                   'paired_d': {'path': PDP, 'sha256': sha(PDP)}, 'GM': GM, 'receipts': {}, 'per_seed': {}}
+                                   'paired_d': {'path': PDP, 'sha256': sha(PDP)}, 'arm_prefix': ARMP, 'GM': GM, 'receipts': {}, 'per_seed': {}}
 SEGS = ('2023H2', '2024', '2025', 'pre2026', '2026', '2026_frozen_truncated')
 for s in SEEDS:
-    ra, pa = one(f'RETAIN_D10_s{s}_2026-09-27.json')
+    ra, pa = one(f'RETAIN_{ARMP}_s{s}_2026-09-27.json')
     rb, pb = one(f'RETAIN_REFNC_s{s}_*2026-09-26.json')
-    assert ra['tag'] == f'DLARCH_D10_s{s}_scaled_rule_raw_UAFE' and rb['tag'] == f'DLARCH_REF_NC_s{s}X_scaled_rule_raw_UAFE'
+    assert ra['tag'] == f'DLARCH_{ARMP}_s{s}_scaled_rule_raw_UAFE' and rb['tag'] == f'DLARCH_REF_NC_s{s}X_scaled_rule_raw_UAFE'
     rec['receipts'][str(s)] = {'arm': [pa, sha(pa)], 'nc': [pb, sha(pb)]}
     row = {'d_bps_day': {g: ra['dbar_vs_control'][g]['mean_bps_per_day'] - rb['dbar_vs_control'][g]['mean_bps_per_day'] for g in SEGS},
            'n_days': {g: ra['dbar_vs_control'][g]['n_days'] for g in SEGS}}
