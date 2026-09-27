@@ -20,6 +20,7 @@ arm: dIC must be < 0 with 95% upper < 0 in BOTH segments, else the instrument ha
 
 usage: dlarch_king_ic.py <env-whitelist> <T_NET.npz> <T_NET_receipt.json> <A0 KING_OOF.npz> <out.json> red
        dlarch_king_ic.py <env-whitelist> <T_NET.npz> <T_NET_receipt.json> <A0 KING_OOF.npz> <out.json> arm <NAME> <score1.npz> [...]
+       dlarch_king_ic.py <env-whitelist> <T_NET.npz> <T_NET_receipt.json> <A0 KING_OOF.npz> <out.json> manifest <NAME> <MANIFEST.json>
 """
 import calendar, hashlib, json, os, sys, time
 import numpy as np
@@ -125,8 +126,16 @@ if MODE == 'red':
     ok = all(st[s].get('mean', 0) < 0 and st[s].get('ci95', [0, 0])[1] < 0 for s in SEG)
     rec.update({'red_dIC': st, 'gate': 'shuffled A0: dIC < 0 and 95% upper < 0 in BOTH segments', 'RED_PASS': bool(ok)})
     tag = 'RED_PASS=%s' % ok
-elif MODE == 'arm':
-    name, files = sys.argv[7], sys.argv[8:]
+elif MODE in ('arm', 'manifest'):
+    if MODE == 'manifest':
+        # fresh2's MANIFEST.json: {"arms": {"<NAME>": [{"path": ..., "sha256": ...}, ...]}}; every sha is re-hashed here
+        name, man = sys.argv[7], json.load(open(sys.argv[8]))
+        ents = man['arms'][name]; files = [e['path'] for e in ents]
+        bad = [e['path'] for e in ents if sha(e['path']) != e['sha256']]
+        assert not bad, f'manifest sha mismatch: {bad}'
+        rec['manifest'] = {'path': sys.argv[8], 'sha256': sha(sys.argv[8]), 'entries_verified': len(ents)}
+    else:
+        name, files = sys.argv[7], sys.argv[8:]
     members, per_day = {}, {}
     for p in files:
         dd = diff(daily_ic(load_scores(p)))
