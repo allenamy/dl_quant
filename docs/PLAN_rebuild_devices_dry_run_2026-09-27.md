@@ -77,3 +77,17 @@ D1、D2、D4 的收据**没有记录 argv**,本次只能从 inputs 字段和日�
 - 决定 1:**先补**。给 ledger_ms、fund_state、平价门三个装置的收据加上 argv 与解释器版本。argv 由 `vars(args)` 派生,不许手写清单。补完后,干跑本身就是这处小改动的验证。
 - 决定 2:D6 当时用的实盘快照若已不在,记为 `NOT_RUN (input absent)`,并具名写明原因。不算通过,也不许拿别的快照代替。
 - 执行只在 pod2 上做,过资源门;作业登记进 INFLIGHT_REGISTRY。
+
+## 冻结补遗 1(lead,2026-09-27;对 news2 起跑前 4 处澄清的答复,写于任何干跑读数之前,入库后才可起跑)
+可,附 3 个条件。
+1. D4 同意,改用 521c6a28 的两份收据(SNAP_CONTROL GREEN、COMMON_WINDOW RED)做恒等对照。RED 那份也必须逐键复现,仍然是 RED,内容相同。正控只作功能检查,判据按你写的。
+2. argv 里的 --out 同意,但不许只凭下标:比较器对每个豁免下标 i 断言 argv[i-1] == "--out"。断言不成立 ⇒ 这一行判 DIFFERS,不静默跳过。argv 的长度也必须相等。
+3. gate_sha256 同意归「被改动装置自身 sha」一类,前提是先证明 793c5eb2 → 6a8b16ca 只改了注释:取两版源码做 ast.dump 比较,相等才豁免,并把两个 ast 的 sha 写进收据;不相等 ⇒ 该键判 DIFFERS。
+补充:output.sha256 只在输出是 npz 时算易变(因为数组另外逐位比)。输出若是 JSON、文本或 parquet,sha 必须相等。请逐行标明 D1、D2、D3 的输出属于哪种。
+4. 解释器照你说的办。D1–D3 若出现 DIFFERS,就如实记为 DIFFERS,并附原因调查;不许因为「只是解释器不同」改判为通过。
+
+**news2 逐行标注(按补遗 1 第 3 条补充要求)**:
+- D1 `new_ledger.sha256` 指 `ledger_full_ms.npz`,是 npz,算易变;D1 的收据 JSON 本身逐键比较。
+- D2a/D2b `output.sha256` 指 `fund_state_*.npz`,是 npz,算易变。
+- D3 `output.sha256` 指 `NEWS_FEATURES_D10.npz`,是 npz,算易变。
+- 这三行都没有 JSON、文本或 parquet 的输出 sha 被列为易变。
