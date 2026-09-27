@@ -30,6 +30,7 @@ src = open(JUDGE).read(); assert hashlib.sha256(src.encode()).hexdigest() == JUD
 SUBS = [
     ('"g3b": (f"{D}/T7NC_G3B.json", None),', '"g3b": (f"{D}/S1_GUARDS_a3.json", None),'),
     ('if not G3B.get("PASS"): stop("guards", "G3b not PASS")', 'pass   # CONTROL: G3b not yet run'),
+    ('"g3b_PASS": G3B["PASS"]', '"g3b_PASS": "CONTROL_BYPASS"'),   # rev 1: rev 0 crashed here (KeyError 'PASS') at 10:07:49Z, before any stage ran
     ('Y4 = M["y4"]; QVK = M["qvk"]; REV = P["f_rev_24h"]', 'Y4 = _CTL_Y(M["y4"], im, EV); QVK = M["qvk"]; REV = P["f_rev_24h"]'),
     ('       "K2_bt": C["K2_bt"], "K2B": C["K2B"], "K3krw_up": C["K3krw_up"], "K3krw_bt": C["K3krw_bt"]}',
      '       "K2_bt": C["K2_bt"], "K2B": C["K2B"], "K3krw_up": C["K3krw_up"], "K3krw_bt": C["K3krw_bt"]}\nRAW = _CTL_RAW(RAW, Y4, im, ic, EV)'),
