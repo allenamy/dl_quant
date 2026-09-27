@@ -328,6 +328,22 @@
   "started_utc": "2026-09-27T06:24:56Z",
   "rows": "S0, D5a D5b D5c D6 D9 D10 (lead-approved after the D5a fix)",
   "devices": "fixed p2/legs devices from ac8960d8b489d1f9de28dccd64ea4ac8077dbf99; runner aca7dd6a",
+  "delivery": "session cron 9ed50f8e every 10 min",
+  "closed": true,
+  "ended": "DRYRUN_DONE 2026-09-27T06:27:35Z {IDENTICAL: 6}: D5a D5b D5c D6 D9 D10 all IDENTICAL, not_run none"
+ },
+ {
+  "name": "news2_rebuild_devices_dry_run_part4_D3",
+  "owner": "news2",
+  "host": "pod2",
+  "log": "/dev/shm/news2_dryrun_2026-09-27/part4/dryrun.log",
+  "pgid": 3412888,
+  "terminal": "^\\S+ (DRYRUN_DONE|DRYRUN_STOP)",
+  "success": "^\\S+ DRYRUN_DONE",
+  "result": "/dev/shm/news2_dryrun_2026-09-27/part4/DRYRUN_RESULT_part4.json",
+  "started_utc": "2026-09-27T06:28:09Z",
+  "rows": "S0, D3_assemble alone (after part 3 exited; write probe ref size + 1 GiB first)",
+  "resources": "writes ~2.96 GB to /workspace after lead's quota relief (~25 GiB, POD2_QUOTA_RELIEF_20260927.md)",
   "delivery": "session cron 9ed50f8e every 10 min"
  }
 ]
