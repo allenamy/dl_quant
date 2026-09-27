@@ -11,7 +11,7 @@
 # start); each phase ends with 'KSR_<PHASE>_DONE rc=<n>'. Writes: compressed OOFs; a 1 GiB write probe runs first (protocol, quota).
 set -u
 W=/workspace/dlarch_2026-09-24; A=$W/ksr_2026-09-27; LOG=$A/ksr.log; PY=/workspace/venv/bin/python; R=$W/receipts
-PHASE=${1:?usage: run_ksr.sh gates|arms|read|h2|splice}
+PHASE=${1:?usage: run_ksr.sh gates|arms|read|h2|splice|book}
 mkdir -p $A/arms $A/logs $A/splice
 mkdir "$W/CHAIN/.claim_KSR" 2>/dev/null || { echo "KSR_STOP claim exists or cannot be created ($PHASE)" >> "$LOG"; exit 4; }
 echo "pgid=$(ps -o pgid= -p $$ | tr -d ' ') pid=$$ owner=dlarch job=ksr_$PHASE started=$(date -u +%FT%TZ)" | tee "$W/CHAIN/.claim_KSR/owner" > "$A/ksr.pgid"
@@ -129,6 +129,18 @@ assert open(p + '.tmp').read() == txt; os.replace(p + '.tmp', p)
 print('KSR_OOF_MANIFEST', sha(p))
 PY
   say "spliced OOFs + KSR_OOF_MANIFEST.json ready under $A/splice (fresh2 schema 65df8b070; gate 4 run by fresh2's driver)" ;;
+book)
+  # after fresh2's driver (65df8b070) wrote ^KSR_DONE in /dev/shm/mretrain_2026-09-26/logs/ksr.log; cell names from its
+  # PREP_LIST_ksr.txt / ORDER_ksr.txt: KSR_S1_m*, KSR_S0_m* (m0 = hard link of SER_A0_m0), KSR_RED_m0, KSR_SEAT_ONLY_m0, KSR_COMP_ONLY_m0
+  grep -q "^\S* *KSR_DONE" /dev/shm/mretrain_2026-09-26/logs/ksr.log || stop "fresh2 KSR driver has not written KSR_DONE"
+  $PY -c "
+import json
+m = {'S1': {f'm{k}': f'KSR_S1_m{k}' for k in range(8)}, 'S0': {f'm{k}': f'KSR_S0_m{k}' for k in range(8)}, 'RED': {'m0': 'KSR_RED_m0'},
+     'HYB': {'SEAT_ONLY': 'KSR_SEAT_ONLY_m0', 'COMP_ONLY': 'KSR_COMP_ONLY_m0'}}
+json.dump(m, open('$A/cell_map.json', 'w'), indent=1)  # durable-exempt: tiny config written once, sha recorded by the reader
+" || stop "cell map"
+  ( cd $A && $ENV OMP_NUM_THREADS=4 $PY -B dlarch_ksr_book.py PATH,HOME,LC_CTYPE $A/cell_map.json /dev/shm/mretrain_2026-09-26/series \
+      /workspace/ksr_2026-09-27/targets_stats $R/KSR_BOOK_2026-09-27.json >> "$LOG" 2>&1 ) || stop "book reader failed" ;;
 *) stop "unknown phase" ;;
 esac
 RC=0; grep -q Traceback "$LOG" $A/logs/*.log 2>/dev/null && RC=1
