@@ -27,13 +27,13 @@
 
 # 实测控制与来源
 
-本地14/14专属测试通过（含子测），绿色日志在 `../receipts/ksr_terminal_audit_20260928/GREEN.log`。红控日志保留：装置不存在时缺功能红；无首窗前历史却想声称逐位相等红；同值但错成员腿路径红。后两项都在修前实见断言失败，修后转绿。
+本地14/14专属测试通过（含子测），EMPTY_HISTORY_RED.log仅规范化行尾空格，原始SHA保留在VERIFICATION.json；其余日志原样保存。绿色日志在 `../receipts/ksr_terminal_audit_20260928/GREEN.log`。红控日志保留：装置不存在时缺功能红；无首窗前历史却想声称逐位相等红；同值但错成员腿路径红。后两项都在修前实见断言失败，修后转绿。
 
 已知答案控制包括：四臂相同⇒所有差与INT全零；baseline10/FULL17/SEAT12/COMP13⇒INT2（逐path可异）；两seed倍数1/2⇒INT均值3；日复利先路径后平均；无重复gross；不完整UTC日排除；缺DONE时np.load不可触达；m7真实首差延迟但旧PASS和首差字段仍在时拒绝；HYB不读LR门；冻结NS逐路径对照；小合成全输出JSON回读。
 
 - 装置 sourceSHA：`5a2fc0070e6425eca9077e54696ecd391ccb066b234e3a8cbc7d15f0a6e4c3f7`
 - 专属测试SHA：`ca13222d9580385abd2852bd9ca4e293cca3f60d62ed315ab314898ad7f28fcf`
-- 证据清单 `../receipts/ksr_terminal_audit_20260928/VERIFICATION.json` SHA：`d2a7404b0772e8da58717c0120aab704350a138e6fd6a5adf05b76782e315ed4`
+- 证据清单 `../receipts/ksr_terminal_audit_20260928/VERIFICATION.json` SHA：`1cbfe0dfb7cdd9f0fa3140a2f301d6fae5ae9d34b8f9ec67eed73041961fc017`
 - 保存器 `fa_ladsave.py` SHA a2dccf15a232a546c886e12fb2e1cd5522762509f42edd324eb3df4e57d17855；队列 `mr_engine_queue.sh` SHA000b6a4ba599ee0fd701a705effa2fba096dbc86296a23783462561676732f98。两者17:00Z与Pod实际文件同SHA，此次SSH只读代码SHA，没有读候选。
 - NS/BT/DL的完整源SHA，以及冻结规则、设计、G4文件SHA均在VERIFICATION.json，运行时再次核reader原code_pins。
 
