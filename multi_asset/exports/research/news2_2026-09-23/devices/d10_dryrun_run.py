@@ -33,6 +33,13 @@ import durable_write as DW
 import d10_dryrun_compare as CMP
 
 os.makedirs(OUT, exist_ok=True); os.makedirs(LOGD, exist_ok=True)
+# rev 3 (lead 2026-09-27, TEAM_PROTOCOL f0ee74b54): no scratch on pod2's root overlay (/tmp). Every tempfile of this runner, its
+# comparator and every device it starts goes to a TMPDIR on /dev/shm, removed when the runner ends.
+TMPD = f"/dev/shm/news2_dryrun_2026-09-27/{PART}/tmp"
+os.makedirs(TMPD, exist_ok=True)
+os.environ["TMPDIR"] = TMPD
+import tempfile
+tempfile.tempdir = TMPD
 LOG = f"{LOGD}/dryrun.log"
 
 
@@ -377,7 +384,14 @@ def main():
     say(f"DRYRUN_DONE {json.dumps(counts)} not_run={[r['row'] for r in RESULT['rows'] if r['verdict'] == 'NOT_RUN']}")
 
 
+def _cleanup_tmp():
+    import shutil
+    shutil.rmtree(TMPD, ignore_errors=True)
+
+
 if __name__ == "__main__":
+    import atexit
+    atexit.register(_cleanup_tmp)
     try:
         main()
     except SystemExit:

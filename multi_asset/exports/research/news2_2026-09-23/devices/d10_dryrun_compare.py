@@ -260,6 +260,8 @@ def selftest(ref_npz, ref_json):
         o["argv"] = ["--x", "1", "--out", "/new/out.json", "--extra"]; return o
     res["S14_argv_length_change_is_DIFFERS"] = compare_json(pa, pa, argv_out=[3], mutate=longer)["verdict"] == "DIFFERS"
     res["S15_argv_out_value_change_without_exemption_is_DIFFERS"] = compare_json(pa, pa, mutate=newout)["verdict"] == "DIFFERS"
+    import shutil
+    shutil.rmtree(td, ignore_errors=True)   # rev 1 (lead 2026-09-27): the selftest's scratch is removed; TMPDIR decides where it lives
     ok = all(v for k, v in res.items() if k.startswith("S") and isinstance(v, bool))
     return {"kind": "selftest", "ref_npz": ref_npz, "ref_json": ref_json, "cells": res, "verdict": "SELFTEST_PASS" if ok else "SELFTEST_RED"}
 
