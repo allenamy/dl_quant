@@ -1,0 +1,18 @@
+parity gate   mode=GATE
+  A /dev/shm/d10_2026-09-25/ms/rebuilt_features_d10.npz
+    sha 2be2d7c8959894e0  anchors=10333 symbols=829
+  B /dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz
+    sha 3c886a2bc0ff65c1  anchors=10333 symbols=829
+  comparable anchors 10333  anchor sets equal True  symbols equal True
+    fund_now     dtype=float64  a=csr[m b=csr[m cells=  2742554 DIFFER=      0 (nan_vs_finite=0 both_finite=0)
+    fund_ema     dtype=float64  a=csr[m b=csr[m cells=  2742554 DIFFER= 334910 (nan_vs_finite=0 both_finite=334910)
+                 |diff| median=6.170e-12 p99=5.859e-04 max=1.965e-02   buckets={'le_1e-12': 151725, 'le_1e-9': 61623, 'le_1e-3': 51780, 'le_1e-6': 67848, 'gt_1e-3': 1934}
+        {'anchor': '2022-01-07T20:00Z', 'symbol': '1000XECUSDT', 'a': -0.001373593726822781, 'b': -0.0013735937268167582, 'dtype': 'float64', 'a_finite': True, 'b_finite': True, 'abs_diff': 6.022743068156977e-15}
+        {'anchor': '2022-01-07T20:00Z', 'symbol': 'ARPAUSDT', 'a': 1.6797231025378795e-05, 'b': 1.6797224724607353e-05, 'dtype': 'float64', 'a_finite': True, 'b_finite': True, 'abs_diff': 6.30077144159278e-12}
+    iv           dtype=float64  a=csr[m b=csr[m cells=  2742554 DIFFER=     39 (nan_vs_finite=0 both_finite=39)
+                 |diff| median=1.000e+00 p99=1.000e+00 max=1.000e+00   buckets={'gt_1e-3': 39}
+        {'anchor': '2025-09-21T08:00Z', 'symbol': 'API3USDT', 'a': 3.0, 'b': 4.0, 'dtype': 'float64', 'a_finite': True, 'b_finite': True, 'abs_diff': 1.0}
+        {'anchor': '2025-10-01T16:00Z', 'symbol': 'IPUSDT', 'a': 3.0, 'b': 4.0, 'dtype': 'float64', 'a_finite': True, 'b_finite': True, 'abs_diff': 1.0}
+  VERDICT PARITY_RED
+  RED MEANS STOP (lead §2): no retrain, no book-layer reading, no new producer publish. Widening the tolerance is not a remedy.
+  receipt -> /workspace/d10_dryrun_2026-09-27/out/D10_PARITY_COMMON_WINDOW.json  sha256=d0b9750015da3db4ba2e0affa4ff81286eae6ff23c0223dd618846b1fe929e66

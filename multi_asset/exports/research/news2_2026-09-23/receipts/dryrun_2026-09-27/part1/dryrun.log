@@ -1,0 +1,11 @@
+2026-09-27T05:39:04Z START pgid=3399839 runner=d40eca805e182e7d W=/workspace/d10_dryrun_2026-09-27
+2026-09-27T05:39:06Z ROW S0_comparator_selftest PASS {"S1_npz_self_IDENTICAL": true, "S2_npz_1ulp_detected": true, "S2_key": "rate", "S2_bucket": {"le_1e-12": 1, "le_1e-9": 0, "le_1e-6": 0, "le_1e-3": 0, "gt_1e-3": 0}, "S3_npz_dtype_change_detected": true, "S4_json_self_IDENTICAL": true, "S5_json_1ulp_detected": true, "S5_path": "seconds", "S6_json_nonvolatile_change_detected": true, "S7_json_volatile_change_ignored": true, "S8_json_oneway_new_key_i
+2026-09-27T05:39:08Z ROW D7_symlists IDENTICAL rc=0 files=80 differing=[] sets={'only_ref': [], 'only_new': []}
+2026-09-27T05:39:08Z ROW D8_manifest_gate_selftest PASS rc=0 0.4s last=['SELFTEST GREEN 7/7']
+2026-09-27T05:39:08Z GATE D1_ledger_ms OPEN others_bt_launch_pgids=0 cgroup_headroom_gib=24.9 shm_free_gib=6.0
+2026-09-27T05:42:12Z ROW D1_ledger_ms IDENTICAL rc=0 183.2s npz=IDENTICAL; receipt=IDENTICAL
+2026-09-27T05:42:20Z ROW D2a_fund_state_snap IDENTICAL rc=0 7.2s npz=IDENTICAL; receipt=IDENTICAL
+2026-09-27T05:42:28Z ROW D2b_fund_state_d10 IDENTICAL rc=0 7.6s npz=IDENTICAL; receipt=IDENTICAL
+2026-09-27T05:42:28Z GATE D3_assemble OPEN others_bt_launch_pgids=0 cgroup_headroom_gib=25.0 shm_free_gib=6.0
+2026-09-27T05:42:49Z ROW D3_assemble ERROR comparison crashed or output missing (device rc 1): FileNotFoundError: [Errno 2] No such file or directory: '/workspace/d10_dryrun_2026-09-27/out/NEWS_FEATURES_D10.npz'
+2026-09-27T05:42:49Z DRYRUN_STOP at D3_assemble: ERROR -- rows after it are not run (plan s3)

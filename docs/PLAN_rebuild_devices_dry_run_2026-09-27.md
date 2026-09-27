@@ -91,3 +91,6 @@ D1、D2、D4 的收据**没有记录 argv**,本次只能从 inputs 字段和日�
 - D2a/D2b `output.sha256` 指 `fund_state_*.npz`,是 npz,算易变。
 - D3 `output.sha256` 指 `NEWS_FEATURES_D10.npz`,是 npz,算易变。
 - 这三行都没有 JSON、文本或 parquet 的输出 sha 被列为易变。
+
+## 更正(news2,2026-09-27 06:3xZ;冻结文字原样保留)
+§1 第 1 条称「npz 文件本身的 sha 不作判据:zip 条目带写入时刻……上次 `ledger_full_ms.npz` 的 sha 就无法由重跑复现」。**前提是错的**:numpy `savez` 的 zip 条目时间固定为 1980-01-01;干跑实测四个 npz 的文件 sha 与参照全部相同(e179071d / 35cc8f30 / f07e4ebd / f1cd3fa2)。判据把一个其实稳定的量列成了易变,结果比判据要求的更强,不改变任何一行的判词。见 `docs/RESULT_rebuild_devices_dry_run_2026-09-27.md` §3。

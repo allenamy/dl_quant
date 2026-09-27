@@ -1,0 +1,56 @@
+G1 429 {'m': 0, 'X78': 0, 'fe_v': 0, 'fn_v': 0, 'iv_v': 0, 'qvm': 0, 'rev24': 0, 'base_val': 0, 'anchors_not_in_features': 0, 'count_mismatch': 0}
+G2 {"m": [], "qvm": 0, "rev24": 0, "X78_other_cols": 0, "X78_fund_cols_vs_fe_fn": 0, "king_but_skip_mismatch": 0, "m_anchors_differ": 0}
+PROFILE {"fe_v": {"member_rows_differ_pre_cut": 334910, "post_cut": 43113, "rows": 2785754}, "fn_v": {"member_rows_differ_pre_cut": 0, "post_cut": 42469, "rows": 2785754}, "iv_v": {"member_rows_differ_pre_cut": 39, "post_cut": 42000, "rows": 2785754}, "base_val": {"cells_differ_pre_cut": 383004, "post_cut": 56050, "finite_pattern_changes_pre_cut": 364}} XCHECK {'fe_v': 0, 'fn_v': 0}
+Traceback (most recent call last):
+  File "/workspace/venv/lib/python3.11/site-packages/numpy/lib/_npyio_impl.py", line 786, in _savez
+    format.write_array(fid, val,
+  File "/workspace/venv/lib/python3.11/site-packages/numpy/lib/_format_impl.py", line 777, in write_array
+    fp.write(chunk.tobytes('C'))
+  File "/usr/lib/python3.11/zipfile.py", line 1180, in write
+    self._fileobj.write(data)
+OSError: [Errno 122] Disk quota exceeded
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/venv/lib/python3.11/site-packages/numpy/lib/_npyio_impl.py", line 785, in _savez
+    with zipf.open(fname, 'w', force_zip64=True) as fid:
+  File "/usr/lib/python3.11/zipfile.py", line 1220, in close
+    self._fileobj.seek(self._zipfile.start_dir)
+OSError: [Errno 122] Disk quota exceeded
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/d10_dryrun_2026-09-27/common/durable_write.py", line 60, in _commit
+    write_fn(f)
+  File "/workspace/d10_dryrun_2026-09-27/common/durable_write.py", line 102, in write
+    _npz_writer(f, arrays)
+  File "/workspace/d10_dryrun_2026-09-27/common/durable_write.py", line 95, in _npz_writer
+    np.savez(f, **arrays)
+  File "/workspace/venv/lib/python3.11/site-packages/numpy/lib/_npyio_impl.py", line 673, in savez
+    _savez(file, args, kwds, False, allow_pickle=allow_pickle)
+  File "/workspace/venv/lib/python3.11/site-packages/numpy/lib/_npyio_impl.py", line 790, in _savez
+    zipf.close()
+  File "/usr/lib/python3.11/zipfile.py", line 1912, in close
+    self.fp.seek(self.start_dir)
+OSError: [Errno 122] Disk quota exceeded
+
+During handling of the above exception, another exception occurred:
+
+OSError: [Errno 122] Disk quota exceeded
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/d10_dryrun_2026-09-27/devices/d10_stage2_assemble.py", line 139, in <module>
+    main()
+  File "/workspace/d10_dryrun_2026-09-27/devices/d10_stage2_assemble.py", line 133, in main
+    rec["output"] = {"path": a.out, "sha256": DW.write_npz(a.out, **out)}
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/d10_dryrun_2026-09-27/common/durable_write.py", line 126, in write_npz
+    return _commit(path, write, verify)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/d10_dryrun_2026-09-27/common/durable_write.py", line 59, in _commit
+    with os.fdopen(fd, "wb") as f:
+OSError: [Errno 122] Disk quota exceeded
