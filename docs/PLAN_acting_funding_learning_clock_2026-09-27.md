@@ -77,3 +77,7 @@ CPU系数/合成控制：1核、2GiB、≤5分钟、预计首窗<60秒（参考�
 ```
 
 源码经 root 复核并单独授权后才上传/运行。观察成功仅给这个固定 MLP 的实测 CUDA/RSS峰值；不覆盖 soft-rank NxN图、120锚库存链、Adam状态或预处理，不能自动缩小真正两臂训练预算，也不恢复过期六窗实验。
+
+## 18:36Z 独立探针终态
+
+root 见 §7 源码后授权一次，18:34:23–49Z 完成。RSS/HWM观测和1.293GiB、GPU进程峰1.014GiB；实际Torch2.11+cu128/Blackwell前向和反向可用，optimizer0。详见 funding/cuda_shape_probe_20260927/README.md；结果不自动缩训练预算，原六窗仍关闭。下一步按root新指令只做小型CPU网络参数FD/F=0一步与独立共享θ oracle对照；完整120网络链待另批。
