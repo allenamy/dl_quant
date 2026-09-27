@@ -14,9 +14,9 @@
 
 ## 只新增一个因果执行代理
 
-复用原Net、合法成员utility、alpha与held递推。决策以当前可见价格P(floor5m(t_dec))把目标名义换成数量；在原first-leg五个tau及原权重tw时分配同一次目标数量变化。新数量只在各fill时刻生效，结算按funding先于同刻fill规则。先held、后partial fills、再new-held的数量通路必须保留；不允许把new target提前到A整点。
+复用原Net、合法成员utility、alpha与held递推。决策以当前可见价格P(floor5m(t_dec))把目标名义换成数量；把同一次目标数量变化按既定期望成交核分配：first-leg五个tau用原tw乘r1，later-leg五个tau用原tw乘r2；未成交余量保持旧持仓。新数量只在各fill时刻生效，结算按funding先于同刻fill规则。先held、后partial fills、再new-held的数量通路必须保留；不允许把new target提前到A整点。
 
-这个代理明确假设：固定first-leg成交时间核、固定执行比例、忽略拒单/撤单/保护反馈；费率、maker/taker混合及slippage使用同一个既定calibration成本格，不在两臂之间改变。它不是实际订单实现，既不承诺满额成交也不拿代理收益当可交易净收益。first/later路径不能为了利润从数据中挑选；后续canonical引擎仍按真实计划、拒单/partial、min-notional与保护逻辑执行。
+这个代理明确假设：固定十个成交时间atom，r1=(1−p_rej)*(p_full+p_part*fbar_part)，r2=(1−r1)*pi_fill；忽略lot/min-notional门、撤单及保护反馈。first-leg为maker，later-leg费用用maker_share混合；历史fee使用HistSim31的当前USDT费格，slippage分别用原first/later值，不在两臂之间改变。它不是实际订单实现，既不承诺满额成交也不拿代理收益当可交易净收益。由现有calibration直接得到r1=0.581006080491、r2=0.252908573708、总期望执行比例=0.833914654199，没有新参数。它把已存在成本假设施于历史，是固定benchmark执行假设而非该历史时点已知的重新估计。first/later路径不能为了利润从数据中挑选；后续canonical引擎仍按真实计划、拒单/partial、min-notional与保护逻辑执行。
 
 以同一数量事件流计算三项：价格为持仓在每段标价变化及fill现金的账；手续费在fill时刻收取（平滑abs只用于梯度，原引擎账保持实际abs）；资金费为每个事件`−q(t−)*P(floor5m(t))*rate`。所有项使用同一锚边界和归一化名义，GM/NAV单位显式写入收据。A0/A1一起改为此同钟价格及成本，A1仅新增实际carry，不声称对原NC的单变量改动。原NC价格标签/损失保留为独立参照。
 
