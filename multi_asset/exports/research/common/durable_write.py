@@ -10,6 +10,7 @@ fsync'd the directory. Writing that sequence by hand in each device is how each 
     sha = write_bytes(path, body)          # temp in the same dir -> write -> fsync -> read-back == body -> os.replace -> fsync dir
     sha = write_json(path, obj, indent=1)  # allow_nan=False: NaN is not JSON
     sha = write_npz(path, **arrays)        # exactly `path` (np.savez(str) appends .npz when the suffix is missing)
+    sha = write_npz_compressed(path, **arrays)   # the same through np.savez_compressed
 
 The returned sha256 is of the bytes that were read back and matched, never of a later re-read of the file (E-0925-A).
 write_npz streams (NEWS_FEATURES_D10 is 2.96 GB; holding it twice in memory is not free on a shared pod), so its read-back check is
@@ -90,16 +91,28 @@ def write_json(path, obj, **dumps_kw):
     return write_bytes(path, json.dumps(obj, **dumps_kw).encode())
 
 
-def _npz_writer(f, arrays):
+def _npz_writer(f, arrays, compressed=False):
     import numpy as np
-    np.savez(f, **arrays)
+    (np.savez_compressed if compressed else np.savez)(f, **arrays)
+
+
+def write_npz_compressed(path, **arrays):
+    """Same as write_npz, through np.savez_compressed (byte-identical to calling it on a file object)."""
+    return _write_npz(path, arrays, True)
 
 
 def write_npz(path, **arrays):
+    return _write_npz(path, arrays, False)
+
+
+def _write_npz(path, arrays, compressed):
     written = {}
 
     def write(f):
-        _npz_writer(f, arrays)
+        if compressed:
+            _npz_writer(f, arrays, True)
+        else:
+            _npz_writer(f, arrays)
         written["n"] = f.tell()
 
     def verify(tmp):

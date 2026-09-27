@@ -91,6 +91,16 @@ def g7():
         assert open(os.path.join(d, "ref%d" % k), "rb").read() == open(os.path.join(d, "dw%d" % k), "rb").read(), k
 cell("G7_write_json_allow_nan_is_byte_identical_to_json_dump", g7)
 
+def g8():
+    import numpy as np, io as _io
+    d = tdir(); p = os.path.join(d, "C.npz")
+    arr = dict(a=np.arange(1000), b=np.array(["x", "y"]))
+    sha = DW.write_npz_compressed(p, **arr)
+    ref = _io.BytesIO(); np.savez_compressed(ref, **arr)
+    assert open(p, "rb").read() == ref.getvalue(), "must be byte-identical to np.savez_compressed"
+    assert sha == hashlib.sha256(ref.getvalue()).hexdigest() and leftovers(d, {"C.npz"}) == []
+cell("G8_write_npz_compressed_byte_identical_to_savez_compressed", g8)
+
 # ---- red cells: every failure raises, keeps the old file, leaves no temp ----
 def r1():
     d = tdir(); p = os.path.join(d, "M.json"); os.makedirs(p)          # the target is a directory: os.replace fails

@@ -263,11 +263,27 @@ def main():
                 ctrl.setdefault("first_differences", {})[k] = [
                     {"index": int(i), "new": float(arr_new[i]), "old": float(arr_old[i])} for i in bad[:10]]
         ctrl["ALL_BITWISE"] = all(ctrl["bitwise"].values())
+        if extended and not ctrl["ALL_BITWISE"] and all(ctrl["bitwise"][k] for k in ("ft", "rate", "off")):
+            # rev 2 (V2 finding 06:49Z): P2 had no zip for a month now added via --extra-months, so on the fold those rows go
+            # api-only -> both (src 1 -> 3, zip_iv NaN -> value). The SAME rule as the prefix identity: allowed only there.
+            ozi = old_zi.astype(np.float32); osr = old_sr.astype(np.int8)
+            ch = (fSR != osr) | ~((np.isnan(fZI) & np.isnan(ozi)) | (fZI == ozi))
+            in_extra = np.zeros(fFT.size, bool)
+            for m in EXTRA_MONTHS:
+                y, mo = int(m[:4]), int(m[5:7])
+                lo = int(datetime.datetime(y, mo, 1, tzinfo=datetime.timezone.utc).timestamp())
+                hi = int(datetime.datetime(y + (mo == 12), mo % 12 + 1, 1, tzinfo=datetime.timezone.utc).timestamp())
+                in_extra |= (fFT >= lo) & (fFT < hi)
+            ok_up = in_extra & (osr == 1) & (fSR == 3) & np.isnan(ozi) & ~np.isnan(fZI)
+            ctrl["src_zip_iv_changes"] = int(ch.sum())
+            ctrl["src_zip_iv_changes_that_are_allowed_upgrades"] = int((ch & ok_up).sum())
+            ctrl["src_zip_iv_changes_not_allowed"] = int((ch & ~ok_up).sum())
+            ctrl["ALL_BITWISE_EXCEPT_ALLOWED_UPGRADES"] = bool(ctrl["src_zip_iv_changes_not_allowed"] == 0)
     else:
         ctrl["ALL_BITWISE"] = False
         ctrl["shape_detail"] = {"fold": list(fFT.shape), "old": list(old_ft.shape)}
     ctrl["derived_set_matches_fold"] = bool(ctrl["fold_removed"] == len(expected_extras))
-    ctrl["verdict"] = ("RECONCILED" if ctrl["ALL_BITWISE"] and ctrl["derived_set_matches_fold"]
+    ctrl["verdict"] = ("RECONCILED" if (ctrl["ALL_BITWISE"] or ctrl.get("ALL_BITWISE_EXCEPT_ALLOWED_UPGRADES")) and ctrl["derived_set_matches_fold"]
                        else "NOT_RECONCILED")
     if extended:
         ctrl["window_note"] = f"rev 2: fold restricted to rows at or before the old ledger's last second {old_max_sec}"

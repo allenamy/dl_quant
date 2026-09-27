@@ -65,8 +65,8 @@
 ## 3. King 与 F10 重训,与生产者切换同一次发布
 
 ### 3a 训练(研究侧)
-- **F10**(§7 裁定 1):dlarch 的训练器,在役 NC 配方(`--no-mask`;G1 恒等已证与在役 F10 OOF 逐位相同,DL 书层门修订 5(b)),输入换成 §2 的 D10 特征。种子 42 / 2027 / 7;部署永远用 s42(书层门 L48)。owner:dlarch。**训练器入库并通过 `tests_october_chain_contract.py` 之后,才把它的文件名写进本节**(裁定 1)。
-- **King**(§7 裁定 1、4):**在役配方(A0 形态),只把特征换成 D10 后重训**;随机种子固定为在役的 random_state(rs = 0)。装置沿 kingfam 系的 kf_train_king,owner 为 fresh2 / dlarch;同样要先入库并过契约测试,才写进本节。成员 m0–m7 的离散度只作描述列,不作门(裁定 2)。A1(按月重训)按冻结判据 FAIL(d585e1792),不采用。A0 模型老化的发现(dlarch L5)另立预注册再议,不在十月顺带改(裁定 4)。控制照月度族:确定性;在原特征上逐位重现 `KING_OOF a10b8725`;legs 逐位重现 `9ee5886f`。
+- **F10**(§7 裁定 1):dlarch 的训练器 `multi_asset/exports/research/dlarch_2026-09-24/devices/dlarch_train_f10.py`,在役 NC 配方(`--no-mask`;G1 恒等已证与在役 F10 OOF 逐位相同,DL 书层门修订 5(b)),输入换成 §2 的 D10 特征。种子 42 / 2027 / 7;部署永远用 s42(书层门 L48)。owner:dlarch。按完整路径点名,契约测试就能自动派生到它和它 import 的本地模块;dlarch 改装置之前,测试结果见契约收据。方案 (ii) 的训练必须显式截在切点 2026-09-01T02:00Z 以内。
+- **King**(§7 裁定 1、4;lead 06:4xZ 确认):在役 fold 2026 服务模型的配方(A0 形态、年折),训练窗不变(标签到 2025-12-22),只把特征换成 D10;rs = 0。训练器 `multi_asset/exports/research/king_oct_2026-09-27/devices/king_oct_train.py`(fresh2,入库于 8dd1a0068),控制装置 `multi_asset/exports/research/king_oct_2026-09-27/devices/king_oct_check.py` 与 `multi_asset/exports/research/king_oct_2026-09-27/devices/king_oct_controls.sh`(收据 5078fd402,KOC_DONE all_pass=True)。服务运行必须带 `--keep-models`:fold 2026 的 king_2026.txt 就是要服务的 booster。成员 m0–m7 只作描述列(裁定 2)。A1 不采用(d585e1792)。截到切点的全量拟合是配方改动,另立判据(DECISION_RULE_king_serving_refresh_2026-09-27.md,dlarch),十月不做。控制:C1 在役特征上 A0 m0 逐位等于 `KING_OOF a10b8725`;C2 D10 上重复训练逐位相同。
 - **书层判据**(§7 裁定 2):联合臂按 DL 书层门修订 4 判(DR10 §4)。修订 4 的内容:双主判据,2026 段为主、pre-2026 不得变差。再加修订 5:基线 = 在役 NC,同种子配对;回撤护栏对 NC,3pp,pre-2026,固定 2× 逐锚复利。种子配对只用在 F10 上(s42 / s2027 / s7),King 固定 rs = 0。「2026」段到延长轴末锚 09-18T20Z,冻结截断版并排报。判的对象是**联合臂**:King 与 F10 都在 D10 特征上重训,喂同一条 combo 与引擎(与线 D 同链,32 路径,冻结 `dbar`)。09-18T20Z 之后的九月段单独报,不并入。**RECOMMEND_TO_USER 不是部署授权**(书层门 L49)。
 - **收据**:训练器自报 config、self_sha 与输入 sha;OOF 与模型文件的 sha;书层读数的逐种子双列表(对 NC、对 T0)。
 
@@ -77,6 +77,7 @@
 - **状态**(§7 裁定 6):切换时从归档**按毫秒键整体重新播种**(`nc_seed_state.py`),播种来源与 §2 的特征同源;九月的 API 源同样按毫秒重取。**回滚 = 按字节恢复切换前的状态快照**,快照的 sha 在窗口开始前写进收据。
 - **声明间隔 declared_iv**(§7 裁定 5,lead 06:5xZ 终裁):主源 `/fapi/v1/fundingInfo`;premiumIndex 的 nextFundingTime 作交叉核对。**不启用「缺名 ⇒ 8h」**:缺名一律 UNRESOLVED,该名在该锚记为资金费未知并具名告警,不许默认成 8。依据见 §3c 的取证:当前 570 个 TRADING 永续全部在 fundingInfo 里,缺名为 0,所以这条规则今天的成本为 0。生产者树只实现 UNRESOLVED 这一个分支。fundingInfo 间隔与归档末行不一致的 14 个名交给 4a/4b 平价门处理,名单见取证收据。
 - **一个行为改动**(§7 裁定 3):生产者 + King + F10 = 一个窗口、一套回滚、一次首锚验收;冻结前向用户报告。
+- **钉的是被判定的那个模型文件**(lead 06:5xZ,依据 fresh2 5078fd402):King 与 F10 的模型文本 sha 每次重训都会变(ulp 级),但分数不变。所以执行器钉的必须是**被判定的那一次运行写出的模型文件**;判定之后不许重训再换上去。装包时逐字节核对该文件与判定收据里的 sha,不一致即停。
 - **执行器侧**:King booster 与 F10 模型换装,`booster_sha_pin` 与 `f10_sha_pin` 在同一静默窗里改,回滚时一起回退(RUNBOOK_monthly_retrain_2026-10 L270;STATE L373)。
 - **部署协议**:执行器走隔离检出 → 拷实盘状态 → `ops/safe_commit.sh` 离线全电池 → 推送 → 在 `anchor.lock` 下于静默窗内快进(`DEPLOY_new_servable_models_2026-09-23.md` L5);生产者照 09-24 先例:代码、状态格式、模型、钉在同一窗口 W = [N+1:00, N+3:40] 内改,A3(生产者)与 A4(执行器快进)落在同一对锚之间,且早于 N+4:12;回滚 R-A/R-B(`nc_install.py rollback`、`nc_downgrade_state.py`、`book.json` 逐字节恢复)(`DEPLOY_producer_new_contract_2026-09-23.md` L9–13、L219–233、L492–515)。
 - **谁装**(§7 裁定 9):integ 执行,lead 监督。**需要用户确认**,与 §6 的时间选项一并请示;用户最终确认之后才可安装(用户裁定 L14;书行为改动)。
@@ -151,14 +152,14 @@
 | 4 | **NC 轴延长到 09-30(价格、标签、King 特征、成员)** | **未指派** | **未知** | 不只是资金费;**必须先指派 owner** |
 | 5 | D10 特征 2a–2d | news2 | 10-01 约 13Z | pass1 上次 69 分钟;其余是分钟级 |
 | 6 | F10 三个种子 + 书层格 | dlarch | 10-01 约 16:15Z | 同 (ii) #5–#6 |
-| 7 | King | fresh2 | 与 #6 并行 | 见下方注 |
+| 7 | King | fresh2 | 与 #6 并行(约 2.5 分钟) | 训练窗不随选项变 |
 | 8 | lead 判词 → 用户裁定 U | lead / 用户 | 10-01 晚 → U | 用户时区 +08 |
 | 9 | 平价门 4a(对用九月数据重跑后的候选树)+ 电池演练 | news2 / integ | U 之前 | — |
 | 10 | 发布窗 → 16Z 首锚验收 | integ / lead | **最早 10-02 13:00Z;保守 10-03 13:00Z** | 10-01 的 13Z 窗在读数之前,赶不上 |
 
 - **(i) 最早 10-02**,晚于用户「10-01 或更早」的目标。另有一项 #4 未指派,工期未知;不先指派,(i) 就没有可信的日期。
 - (i) 与 (ii) 的差别:约 3 天(或 1 天,取决于 integ 的树用的是中位还是保守估计),换来 F10 多一个月的训练数据和九月归档核对。
-- **King 两种选项可能没有区别**(fresh2):在役服务模型是 A0 的 fold 2026,训练窗截在 2025 年底(在役 King 导出装置 news2_export_models 的 L104、L143;只作出处引用,不是链上步骤)。前提是 lead 确认「A0 形态 = 年折 + 服务用 fold 2026」。若另训一个训练窗到切点的全量服务模型,那是配方改动,要另判。
+- **King 两种选项没有区别**(fresh2;lead 06:4xZ 确认 A0 形态 = 年折 + 服务用 fold 2026,训练窗截在 2025-12-22):King 不在任何一个选项的关键路径上。截到切点的全量服务模型另立判据,十月不做。
 
 ## 7. 冲突与未定项(冻结前请 lead 逐条裁定)
 

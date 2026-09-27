@@ -52,6 +52,15 @@ for _c in (os.path.dirname(os.path.realpath(__file__)),
 else:
     raise ImportError("common/funding_interval.py not found; this device must not reimplement interval_d10")
 import funding_interval as FI
+for _c in (os.path.dirname(os.path.realpath(__file__)),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "common"),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), "common")):
+    if os.path.exists(os.path.join(_c, "durable_write.py")):
+        sys.path.insert(0, _c)
+        break
+else:
+    raise ImportError("common/durable_write.py not found next to or above this device; deploy it with the device")
+import durable_write as DW  # every file this device writes goes through it (news2 class fix 2026-09-27)
 
 # The producer's OWN funding contract: ema_step (the verbatim EMA arithmetic) and snap_interval. Imported and
 # CALLED -- "using the frozen caliber" only holds when the code is called, and an EMA reimplementation differs at
@@ -381,10 +390,9 @@ def main():
         assert a.features, "--features is required for a rebuild"
         cols, tiers, anchors, syms = rebuild(led, a.features, ema_mode=a.ema_mode)
         if a.save:
-            np.savez_compressed(a.save, anchors=anchors, symbols=np.array(syms),
-                                fn_v=cols["fund_now"], fe_v=cols["fund_ema"], iv_v=cols["iv"],
-                                RN8=cols["rn8"], off=np.load(a.features)["off"], m=np.load(a.features)["m"])
-            rec["saved"] = {"path": a.save, "sha256": sha(a.save)}
+            rec["saved"] = {"path": a.save, "sha256": DW.write_npz_compressed(
+                a.save, anchors=anchors, symbols=np.array(syms), fn_v=cols["fund_now"], fe_v=cols["fund_ema"], iv_v=cols["iv"],
+                RN8=cols["rn8"], off=np.load(a.features)["off"], m=np.load(a.features)["m"])}
         rec["rebuild"] = {"tiers": {k: int(v) for k, v in tiers.items()},
                           "anchors": int(len(anchors)), "symbols": len(syms),
                           "shapes": {k: list(np.shape(v)) for k, v in cols.items()},
@@ -399,8 +407,7 @@ def main():
                               "reproduces today's live behaviour for comparison. lead to confirm.")}
         print(json.dumps(rec["rebuild"], indent=1)[:1200])
 
-    json.dump(rec, open(a.out, "w"), indent=1)
-    print(f"receipt -> {a.out}  sha256={sha(a.out)}")
+    print(f"receipt -> {a.out}  sha256={DW.write_json(a.out, rec, indent=1, allow_nan=True)}")
     return 0
 
 

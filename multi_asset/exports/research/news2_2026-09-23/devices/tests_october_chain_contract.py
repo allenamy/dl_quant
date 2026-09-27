@@ -36,7 +36,13 @@ HISTORICAL_PULL_DRIVERS = {   # sha at the commit that ran them; they branch on 
 KNOWN_VIOLATIONS = {
     # installed as ~/funding_ledger_archive/archive_live_ledger.py (sha a71c2a22..., lead 2026-09-26 21:01Z); its writes are durable
     # by its own hand-rolled helper, which this scanner cannot see through. Changing it means a redeploy by lead, not an edit here.
-    "archive_live_ledger.py": 6,   # 1 = its own temp/fsync/read-back helper (os.fdopen L139), 5 = its 7b selftest fixtures
+    "archive_live_ledger.py": 6,
+    # dlarch's F10 trainer (named by path in runbook 3a, lead 2026-09-27) imports these; pinned at first scan, OWNER dlarch to review:
+    #   dlarch_safe_io.py: L113 write_json writes its temp with write_text then reads back and os.replace -- no fsync of file or dir;
+    #                      L230/L239/L253 are its own selftest's deliberate corruptions / guard probes.
+    #   dlarch_chain_torch.py: L224 G3_CHAIN_PARITY.json via temp + os.replace, no fsync, no read-back.
+    "dlarch_safe_io.py": 4,
+    "dlarch_chain_torch.py": 1,   # 1 = its own temp/fsync/read-back helper (os.fdopen L139), 5 = its 7b selftest fixtures
 }
 # lead 2026-09-27 (October timeline ruling 3): the interval rule the producer tree vendors is FROZEN before integ starts the tree.
 # A literal expected value, not "receipt sha == file sha": an edited file with a re-signed receipt must still turn this red.
@@ -137,8 +143,12 @@ def scan_python(src, name="<src>"):
                 what = "open(..., %r)" % m
         elif isinstance(f, ast.Attribute):
             base = f.value.id if isinstance(f.value, ast.Name) else None
-            if f.attr == "dump" and base in ("json", "pickle"):
+            if f.attr == "dump" and base in ("json", "pickle", "joblib"):
                 what = "%s.dump" % base
+            elif f.attr == "save" and base == "torch":
+                what = "torch.save"
+            elif f.attr in ("save_model", "savefig") or (f.attr == "save" and base not in ("np", "numpy") and base not in DW_NAMES):
+                what = ".%s" % f.attr
             elif f.attr in NP_WRITERS and base in ("np", "numpy"):
                 what = "np.%s" % f.attr
             elif f.attr in DF_WRITERS:
@@ -201,6 +211,39 @@ def chain_from_runbook(text=None):
     return text, resolved, elsewhere
 
 
+def import_closure(resolved):
+    """The runbook names entry points; what they import runs too (memory: a sources list is not the import closure). Local modules
+    are looked up where the devices themselves look: their own dir, ../common, ../../common. Returns {key: path} for modules NOT
+    already in `resolved`; a device that writes through its own helper is only as durable as that helper, so the helper is scanned."""
+    seen = {os.path.realpath(p) for p in resolved.values()}
+    todo = [p for n, p in resolved.items() if n.endswith(".py")]
+    out = {}
+    while todo:
+        p = todo.pop()
+        d = os.path.dirname(os.path.realpath(p))
+        try:
+            tree = ast.parse(open(p).read(), p)
+        except SyntaxError:
+            continue
+        mods = set()
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Import):
+                mods.update(al.name.split(".")[0] for al in n.names)
+            elif isinstance(n, ast.ImportFrom) and n.module and n.level == 0:
+                mods.add(n.module.split(".")[0])
+            elif isinstance(n, ast.Constant) and isinstance(n.value, str) and re.fullmatch(r"[A-Za-z0-9_]+\.py", n.value):
+                mods.add(n.value[:-3])      # importlib.util.spec_from_file_location(..., os.path.join(HERE, "x.py"))
+        for m in sorted(mods):
+            for cand in (os.path.join(d, m + ".py"), os.path.join(os.path.dirname(d), "common", m + ".py"),
+                         os.path.join(os.path.dirname(os.path.dirname(d)), "common", m + ".py")):
+                rc = os.path.realpath(cand)
+                if os.path.isfile(rc):
+                    if rc not in seen:
+                        seen.add(rc); out["closure:" + os.path.relpath(rc, RESEARCH)] = rc; todo.append(rc)
+                    break
+    return out
+
+
 RES = []
 def cell(n, fn):
     try:
@@ -226,6 +269,13 @@ def register():
         "os_fdopen_w": 'import os\nos.fdopen(fd, "wb")\n',
         "exempt_without_reason": 'open(p, "w")  # durable-exempt:\n',
         "exempt_short_reason": 'open(p, "w")  # durable-exempt: probe\n',
+    # 2026-09-27 (fresh2 found, lead ruling): model writers write the file straight onto its final name as well
+    "lgb_save_model": 'booster.save_model(path)\n',
+    "xgb_save_model": 'model.get_booster().save_model(p)\n',
+    "torch_save": 'import torch\ntorch.save(state, p)\n',
+    "joblib_dump": 'import joblib\njoblib.dump(obj, p)\n',
+    "generic_save": 'net.save(p)\n',
+    "savefig": 'fig.savefig(p)\n',
     }
     MUT_CLEAN = {
         "durable_write_calls": 'import durable_write as DW\nDW.write_json(p, x)\nDW.write_bytes(p, b)\nDW.write_npz(p, a=1)\n',
@@ -279,29 +329,43 @@ def register():
         assert (k in res) or ("absent:" + k in el), (res, el)
     cell("M_path_qualified_names_resolve", m_path)
 
+    def m_closure():
+        import tempfile
+        d = tempfile.mkdtemp(prefix="closure_"); dd = os.path.join(d, "x", "devices"); os.makedirs(dd); os.makedirs(os.path.join(d, "x", "common"))
+        open(os.path.join(dd, "a.py"), "w").write('import b\nimport importlib.util\nS = importlib.util.spec_from_file_location("c", "c.py")\n')  # durable-exempt: selftest fixture in a mkdtemp dir
+        open(os.path.join(dd, "b.py"), "w").write('import json\njson.dump({}, open("p", "w"))\n')  # durable-exempt: selftest fixture in a mkdtemp dir
+        open(os.path.join(dd, "c.py"), "w").write('import h\n')  # durable-exempt: selftest fixture in a mkdtemp dir
+        open(os.path.join(d, "x", "common", "h.py"), "w").write('x = 1\n')  # durable-exempt: selftest fixture in a mkdtemp dir
+        got = sorted(os.path.basename(v) for v in import_closure({"a.py": os.path.join(dd, "a.py")}).values())
+        assert got == ["b.py", "c.py", "h.py"], got
+        assert scan_python(open(os.path.join(dd, "b.py")).read()), "the helper's raw write must be visible once it is in the closure"
+    cell("M_import_closure_follows_static_importlib_and_common", m_closure)
+
 
     # ---- the real population ----
     def c_runbook():
         text, resolved, elsewhere = chain_from_runbook()
         missing = [n for n in MUST_BE_IN_CHAIN if n not in resolved]
         assert not missing, "runbook does not name (or they do not resolve): %s" % missing
-        return {"n_resolved": len(resolved), "resolved": sorted(resolved), "named_but_outside_lint_scope": elsewhere}
+        return {"n_resolved": len(resolved), "resolved": sorted(resolved), "named_but_outside_lint_scope": elsewhere,
+                "import_closure": sorted(import_closure(resolved))}
     cell("C0_runbook_population", c_runbook)
 
     def c_w():
         _, resolved, _ = chain_from_runbook()
         viol = {}
-        for n, p in sorted(resolved.items()):
-            if n.endswith(".py") and n != "durable_write.py":
+        for n, p in sorted(dict(resolved, **import_closure(resolved)).items()):
+            if n.endswith(".py") and os.path.basename(n) != "durable_write.py":
                 v = scan_python(open(p).read(), p)
                 if v:
                     viol[n] = v
-        counts = {n: len(v) for n, v in viol.items()}
-        new = {n: viol[n] for n in viol if n not in KNOWN_VIOLATIONS}
+        counts = {os.path.basename(n): len(v) for n, v in viol.items()}
+        new = {n: viol[n] for n in viol if os.path.basename(n) not in KNOWN_VIOLATIONS}
         assert not new, "raw writes in chain devices: %s" % json.dumps(new)
+        scanned = {os.path.basename(n) for n in dict(resolved, **import_closure(resolved))}
         for n, pin in KNOWN_VIOLATIONS.items():
             got = counts.get(n, 0)
-            if n in resolved:
+            if n in scanned:
                 assert pin is not None and got == pin, "ratchet: %s has %d raw writes, pin says %r" % (n, got, pin)
         return {"known_violation_counts": {n: counts.get(n, 0) for n in KNOWN_VIOLATIONS}}
     cell("C1_W_no_raw_writes_in_chain", c_w)
@@ -345,7 +409,7 @@ def register():
 
     def c_undef():
         _, resolved, _ = chain_from_runbook()
-        bad = {n: undefined_names(open(p).read()) for n, p in resolved.items() if n.endswith(".py")}
+        bad = {n: undefined_names(open(p).read()) for n, p in dict(resolved, **import_closure(resolved)).items() if n.endswith(".py")}
         bad = {n: v for n, v in bad.items() if v}
         assert not bad, bad
         return {"n_python_devices_checked": sum(1 for n in resolved if n.endswith(".py"))}
