@@ -141,7 +141,9 @@
   "terminal": "^\\S+ (STOP|RC_HYBRID_DONE)",
   "success": "^\\S+ RC_HYBRID_DONE (descriptive SEAT_ONLY/COMP_ONLY x 2 seeds read by rc_read.py; no gate)",
   "started_utc": "2026-09-27T02:23:35Z",
-  "devices": "e16524796"
+  "devices": "e16524796",
+  "closed": true,
+  "closed_note": "RC_HYBRID_DONE 03:49:34Z (PGID 3360754 gone). RC_READ_hybrid.json sha 2e75f1b3 + full rc_decomp (device 0f88e1ce == e16524796, run 05:0xZ on legs_RED.npz, ran <1 min, rc 0) RC_DECOMP_full.json sha dd26b562; both copied into mretrain_2026-09-26/receipts/rootcause_2026-09-27/ (sha checked against pod2)"
  },
  {
   "name": "dlarch_king_family_tnet_red",
@@ -178,7 +180,9 @@
   "started_utc": "2026-09-27T02:39:46Z",
   "rule": "docs/DECISION_RULE_king_improvement_family_2026-09-27.md (4158f1521)",
   "devices": "95010d4c7",
-  "T_NET": "929ff9f6 (dlarch 621da7919)"
+  "T_NET": "929ff9f6 (dlarch 621da7919)",
+  "closed": true,
+  "closed_note": "KF_TRAIN_DONE arms=KN A1 03:53:08Z (MANIFEST_KN_A1 sha 036f37c4...); dup KN_m0 / A1_m0 PASS; A1_m0/m1 == run-3 scores. NB the terminal regex also matches the later 'KF_TRAIN_DONE arms=A0' line written by kf_manifest_ic3.sh into the same log. Receipts in kingfam_2026-09-27/receipts/train_2026-09-27/ (87 files sha-checked vs pod2)"
  },
  {
   "name": "dlarch_king_ic_readout",
@@ -221,7 +225,9 @@
   "terminal": "^\\S+ (KF_MANIFEST_IC STOP|KF_MANIFEST_IC_PAIRED_DONE)",
   "success": "^\\S+ KF_MANIFEST_IC_PAIRED_DONE (A0 m0..m7 trained after KN/A1, A0_m0 == in-service, MANIFEST_IC.json with KN/A1/A0; dlarch run_kic.sh binds this PGID)",
   "started_utc": "2026-09-27T02:43:57Z",
-  "devices": "kf_manifest_ic3.sh"
+  "devices": "kf_manifest_ic3.sh",
+  "closed": true,
+  "closed_note": "KF_MANIFEST_IC_PAIRED_DONE 03:58:59Z (MANIFEST_IC sha e606a778; A0_m0 == in-service P ea78c2f6; dup A0_m0 PASS). IC verdict dlarch d585e1792: KN and A1 both IC_LAYER_MAIN_PASS=False => rule \u00a73 book-layer cells not run, KN1 not started"
  },
  {
   "name": "dlarch_a1_leak_audit",
