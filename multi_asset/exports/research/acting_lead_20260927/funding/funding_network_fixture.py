@@ -4,6 +4,7 @@ import os
 for k in ('OMP_NUM_THREADS','OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','NUMEXPR_NUM_THREADS'):os.environ[k]='1'
 os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:8'
 import pathlib,json,hashlib,time,sys,resource,zipfile,struct,ast,copy,collections
+import math
 import numpy as np
 import torch
 from torch import nn
@@ -32,6 +33,8 @@ inputs={
 for k,(p,h) in inputs.items():assert sha(p)==h,(k,p)
 for n in ('funding_real_cash_result.json','simlib.py','INPUT_MANIFEST.json','seed_02.json'):
  inputs[n]=(str(ROOT/n),sha(ROOT/n))
+assert inputs['funding_real_cash_result.json'][1]=='7e29bbe6d413dcf9ff82265aa9d5587429b98b6eed7edcd1889418811015b019'
+assert inputs['simlib.py'][1]=='55246fe98da2d57a33bbbe0f22fc67e6581da539c353b026d8ef41673dfec2f1'
 assert inputs['INPUT_MANIFEST.json'][1]=='59875e5a69db415f5ce20b35b888f2d49a31427fdde8b7b847a9645ee135a5ae'
 log('input identities verified')
 D=json.load(open(ROOT/'funding_real_cash_result.json'));R=json.load(open(ROOT/'seed_02.json'));W=R['windows'][:6]
@@ -40,7 +43,7 @@ assert D['reference_sha']==sha(ROOT/'seed_02.json')
 assert D['initial_state_sha']==R['initial_state_sha256']
 # Canonical readers only; no second execution simulator.
 import simlib as L
-M=L.Mirror('/workspace/replay_exec_mirror_59875e5a');P=L.Panel(M);L.build_references(M,P);F=L.FundingBook(M)
+M=L.Mirror('/workspace/replay_exec_mirror_59875e5a');assert not M.verify_manifest(),'Pod durable mirror input hash mismatch';P=L.Panel(M);L.build_references(M,P);F=L.FundingBook(M)
 tr=sorted(D['trade_log'],key=lambda v:v[0]);nav=D['initial_state']['nav0_usdt'];initial=D['initial_state']['positions_qty'];syms=sorted(set(initial)|{x[1] for x in tr})
 tb=collections.defaultdict(list)
 for j,x in enumerate(tr):tb[x[1]].append((j,x))
@@ -128,7 +131,9 @@ et,es,ep,er,eq=early[-1];correct=d[col]*0.;wrong=-d[col]*ep*er
 pre_norm=norm(flatgrad(correct,model0));wrong_norm=norm(flatgrad(wrong,model0));assert pre_norm==0 and wrong_norm>0
 # Linear cash FD at an actual fill, including zero-held future events absent from fund_log.
 eps=1e-4;exact=float(cf[:,col].sum());pert=tt(np.zeros(len(jj)));pert[col]=eps
-fd=float(((cf@pert).sum()-(cf@(-pert)).sum())/(2*eps));assert abs(fd-exact)<1e-12
+plus=[-(eq+(eps if es==chosen[1] and et>chosen[0] else 0))*ep*er for et,es,ep,er,eq in E]
+minus=[-(eq-(eps if es==chosen[1] and et>chosen[0] else 0))*ep*er for et,es,ep,er,eq in E]
+fd=math.fsum(x-y for x,y in zip(plus,minus))/(2*eps);assert abs(fd-exact)<1e-8
 initstate=copy.deepcopy(model0.state_dict())
 def same(a,b):
  if isinstance(a,torch.Tensor):return torch.equal(a,b)

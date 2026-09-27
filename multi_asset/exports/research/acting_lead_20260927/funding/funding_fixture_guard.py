@@ -3,6 +3,8 @@
 import os,pathlib,time,json,subprocess,signal,sys
 R=pathlib.Path(__file__).resolve().parent;G=2**30
 os.sched_setaffinity(0,{min(os.sched_getaffinity(0))})
+if (R/'QUEUE_PAUSE').exists():
+ print('QUEUE_PAUSED_BY_PARENT_RECHECK_AFTER_5_TO_10_MINUTES',flush=True);sys.exit(77)
 def snapshot():
  maxmem=int(pathlib.Path('/sys/fs/cgroup/memory.max').read_text());current=int(pathlib.Path('/sys/fs/cgroup/memory.current').read_text())
  rows=subprocess.check_output(['ps','-u',str(os.getuid()),'-o','rss='],text=True).split();rss=sum(int(x) for x in rows)*1024
