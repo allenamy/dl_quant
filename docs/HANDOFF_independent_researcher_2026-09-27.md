@@ -129,3 +129,24 @@
 - 长作业必须带送达机制;标记写在与产物不同的卷;pod2 ≥1 GiB 写入先探针(E-0927-C/D)。
 - 引用记忆要读到最后一节(含更正)。
 - 任何时刻只能有一台机器跑执行器;迁机先轮换密钥(本次事故)。
+
+---
+## 7. 接手时刻的状态与首要动作(追加 2026-09-27 14:0xZ;lead 额度用尽,预计 09-30 接回)
+
+**实盘**:13:01Z 已恢复,原参数(`f332176c3`)。16Z(1790524800)是恢复后的首锚:从空书重建,预计 1–2 锚建满。密钥按用户裁定暂不轮换。旧机实盘作业已停,**不要开旧机**。
+
+**接手人要按时间做的事**
+1. **16Z 首锚验收**(16:50Z 之后,执行器写出 `anchor done` 之后):
+   - `zsh multi_asset/exports/research/nc_2026-09-23/receipts/anchor_accept_2026-09-25/accept_anchor_v2.sh 1790524800 <out>`
+   - 静默窗内跑场所侧:`/usr/bin/python3 multi_asset/exports/research/recovery_2026-09-27/devices/venue_readonly.py anchor --anchor 1790524800 --out multi_asset/exports/research/recovery_2026-09-27/receipts/ANCHOR_1790524800.json`
+   - 按 `docs/PLAN_recovery_after_double_executor_2026-09-27.md` §8 判:K1 外来 orderId = 0;K2 到位率 ≥ 0.60;K3 taker 份额(描述);K4 blocked_by_halt = 0;K5 没有再跳闸;K7 成本。integ 会离线独立算账本侧并对照。
+   - K1 在 20Z 与 09-28 00Z 再各查一次(用户裁定只查前几锚)。
+   - **K1 ≠ 0 或再跳闸** ⇒ 停止,不许再跑 resume;报用户。
+2. 16Z 验收通过后:通知 **alloc** 起停机窗步 0;通知 **integ** 开工 D10 候选生产者树(关键路径,最晚完成 09-30 09:00Z)。
+3. **D10 描述性重读**(dlarch,约 14:10Z 交表,只交数字):数字出来后与判词 `6838a219a` 并排,**呈用户**,决定 09-30 13:00Z 发不发。冻结判词 UNDECIDED 不改。
+4. **KSR 书层 36 格**(fresh2,预计 09-28 01–04Z 完成):按 `DECISION_RULE_king_serving_refresh_2026-09-27.md` §2 下书层判词;IC 层已 PASS(`82ce7fd13`)。判词最高只到 OPTION_FOR_USER。
+5. **rerun6**(news2,排在 D10 重读之后):按预声明 `RERUN6_EXPECTED_DIFFS_2026-09-27.json`(c9765f2c3)机械判,预声明之外的差异一律 DIFFERS 并查原因。
+6. **冻结中的发布**:GAP4 → M3 on → 影子 A/B,每个占一个静默窗 [N+1:00, N+3:40],都在 16Z 首锚验收通过之后;执行器改动只经 `ops/safe_commit.sh` 加电池全绿,A10 修复随第一个 W3 提交。手册见 §1.4。**这些属于书行为改动或发布,开窗前请先得到用户的同意。**
+7. 巡检:`docs/PROGRAM_loop_2026-09-26.md` §0 的 30 分钟循环规则;在飞看 `inflight_status.py`,登记只用 `registry_edit.py`。
+
+**代理**:dlarch、fresh2、alloc、integ、fresh、news2 都在本会话里。lead 离线后,它们只收尾在飞作业、提交收据,不开新的重作业、不做部署。它们的交接件是 `docs/HANDOFF_<名字>_2026-09-27.md`,以及各自给 lead 的最后一条消息(已写进仓库的收据)。
