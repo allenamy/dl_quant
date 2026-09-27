@@ -112,3 +112,6 @@
 
 - 19:30Z root复核full120最终源码8422dc61f、6项stdlib正负控与实际依赖/初始状态门，通过后批准唯一无optimizer尝试。19:31:36Z guard在0.119秒即RESOURCE_REFUSED：cgroup余量14,193,893,376B低于冻结14GiB门15,032,385,536B；UID RSS与GPU空闲门通过。worker未出生，未加载网络/反传，未生成COMMAND/PID/WORKER_RESULT；root远端独立核源与终态于ROOT_FIRST120_FORWARD_REFUSED_20260927.json。不是模型或梯度失败，不降低预算、不换目录重试、不新建等待器。
 - 19:30:26Z KSR/修后读数器/D10队列三个PID与start_ticks均核同，无终态。19:31:27Z本机轻读生产仍d01e35db、代码区diff空、King/F10 pin与在役匹配、M3 shadow；watchdog最近16:49:42Z仍LIVE/false/null且trigger/blind/unevaluated均空。这是既有16Z状态，不冒称20Z验收。主仓STATE没有接回通知。
+
+- 20:00:05Z执行器已按LIVE启动20Z锚；20:00:09Z轻读生产HEAD仍d01e35db，watchdog仍为16:49既有正常读数，不能据此验收新锚。未调场所、未做本地重活、未resume。21Z且真实done后才用既定包装器验收。
+- 20:01:03Z KSR与两个等待器PID/start_ticks核同；KSR原ORDER的36候选中27个文件存在，最新mtime19:51:18，未读数、未称27个通过；D10仍等KSR。root纠正自己前两次轻探针的marker位置：实际DONE在workspace根的DONE.json，FAILED在/dev/shm marker_root的FAILED.json（不能查裸DONE/FAILED或只查workspace）；本次按源码逐一核均不存在，实时wait日志也证仍RUNNING。此纠正不改既有等待器代码。收据ROOT_HEARTBEAT_20260927T2001Z.json。
