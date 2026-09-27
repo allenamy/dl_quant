@@ -89,3 +89,7 @@
 - 18:12Z Pod轻读：KSR与两个等待器PID/start_ticks核同，无终态；cgroup46.65GB/61GB。18:18Z生产轻读仍d01e35d、代码区diff空，watchdog LIVE/false/null、triggers空。没有新resume、API调用或部署。
 - 资金费GREEN1 18:15终态exit1：168项166绿/2红，原资金费故障格103/103已绿，但tests_binance_funding[M]新增7红，另保留历史disposition红。原因追到W/M测试根同父目录导致pending队列串用；新“冲突不覆盖”把旧夹具隐蔽冲突显露。后续只修夹具隔离，不改M行为期望或真实账户冲突门。
 - 独立审查e101bba96（root纯AST逐位复现）发现继承未闭合P1两条：同快照冲突后行覆盖；部分append失败后继续下一笔，后笔被ack出队却拼在坏JSONL行上。另P2日期名普通文件被忽略、条件性P2写者FD与ack路径inode未绑定；后者没有已认证生产触发证据。RED3已启动唯一offline wrapper（session85622）；在修前原实现上新增资金费17格已红。新增诊断漏import json导致M诊断NameError和静态名门红，保留原失败，不冒称完整诊断完成；不为这条输出错误额外重复整套RED。终态后同批修四类实现与隔离夹具，再跑GREEN2。尚未发布。
+
+- 18:33Z root独立两锚共享参数反例通过：当前成交前现金对当前目标导数0，但对前锚库存/共享参数非零；总梯度−1.46，与删去早结算所得−0.72、错误提前用新仓所得+0.39均不同。源码与JSON归档ROOT_SHARED_PARAMETER_CLOCK_20260927；只验合成因果，不验神经网络或盈利。已交资金费研究代理作为独立参考。
+- 已审fd045e069并仅授权一次独立固定形状CUDA探针（合成零输入120×829×171、一次forward/backward、无optimizer/模型/市场数据，60秒、RSS申报3GiB/软件止线2.5GiB、公共余量8GiB/GPU空闲门）。不是旧六窗预算续期，不据一次峰值自动降低真实训练预算；待实际终态。CPU小规模参数/硬forward控制继续准备，未授权完整训练。
+- 资金费RED3终态168项164绿4红，具名包含原故障、夹具共享路径、诊断漏import和历史disposition；保留原收据。GREEN2由未改offline wrapper于18:31:30Z启动(session75860)，资金费及原binance_funding子套件已绿，完整终态未出。独立审查继续；同选集360文件SHA与GREEN1核同，不扩称完整state同字节。
