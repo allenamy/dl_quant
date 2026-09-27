@@ -15,12 +15,17 @@ SEGMENTS: pre-2026 = 2023-01-01 .. 2025-12-31 (the King OOF test years); 2026 = 
 ARM READING (rule §3, transcribed): per member, the mean dIC per segment; the arm series = per-day mean dIC across the
 members defined that day; PASS per segment iff arm 95% lower > 0 AND arm point >= 0.002; plus >= 6 of the members with a
 positive mean dIC (per segment). Both segments must pass.
+PAIRED READING (lead addendum 1, rule §5, written before any KN/A1 reading): dIC_k = IC(arm m_k) - IC(A0 m_k), A0 m_k =
+the in-service recipe with only random_state changed; the arm series and the ">= 6 of 8 positive" count use these 8 pairs.
+The comparison against the in-service rs=0 A0 is reported beside it as a REFERENCE column. Mode 'paired' takes a manifest
+with "A0" members; A0 m_k and arm m_k are matched by list position (m0..m7) and the member tags are recorded.
 RED CONTROL (rule §3): the A0 scores shuffled across names within each anchor (finite cells only, seed 20260927) read as an
 arm: dIC must be < 0 with 95% upper < 0 in BOTH segments, else the instrument has no resolution and the family stops.
 
 usage: dlarch_king_ic.py <env-whitelist> <T_NET.npz> <T_NET_receipt.json> <A0 KING_OOF.npz> <out.json> red
        dlarch_king_ic.py <env-whitelist> <T_NET.npz> <T_NET_receipt.json> <A0 KING_OOF.npz> <out.json> arm <NAME> <score1.npz> [...]
        dlarch_king_ic.py <env-whitelist> <T_NET.npz> <T_NET_receipt.json> <A0 KING_OOF.npz> <out.json> manifest <NAME> <MANIFEST.json>
+       dlarch_king_ic.py <env-whitelist> <T_NET.npz> <T_NET_receipt.json> <A0 KING_OOF.npz> <out.json> paired <NAME> <MANIFEST.json>
 """
 import calendar, hashlib, json, os, sys, time
 import numpy as np
@@ -126,6 +131,35 @@ if MODE == 'red':
     ok = all(st[s].get('mean', 0) < 0 and st[s].get('ci95', [0, 0])[1] < 0 for s in SEG)
     rec.update({'red_dIC': st, 'gate': 'shuffled A0: dIC < 0 and 95% upper < 0 in BOTH segments', 'RED_PASS': bool(ok)})
     tag = 'RED_PASS=%s' % ok
+elif MODE == 'paired':
+    name, man = sys.argv[7], json.load(open(sys.argv[8]))
+    ents, ents0 = man['arms'][name], man['arms']['A0']
+    assert len(ents) == len(ents0) == 8, (len(ents), len(ents0))
+    bad = [e['path'] for e in ents + ents0 if sha(e['path']) != e['sha256']]
+    assert not bad, f'manifest sha mismatch: {bad}'
+    rec['manifest'] = {'path': sys.argv[8], 'sha256': sha(sys.argv[8]), 'entries_verified': len(ents) + len(ents0)}
+    members, per_day, ref_per_day = {}, {}, {}
+    for k, (e, e0) in enumerate(zip(ents, ents0)):
+        ica, ic0k = daily_ic(load_scores(e['path'])), daily_ic(load_scores(e0['path']))
+        dk = {t: ica[t] - ic0k[t] for t in ica if t in ic0k}
+        dref = {t: ica[t] - IC0[t] for t in ica if t in IC0}
+        members[f'm{k}'] = {'arm_path': e['path'], 'A0_path': e0['path'], 'dIC_paired': seg_stats(dk), 'dIC_vs_inservice_rs0_REFERENCE': seg_stats(dref)}
+        for t, v in dk.items():
+            per_day.setdefault(t, []).append(v)
+        for t, v in dref.items():
+            ref_per_day.setdefault(t, []).append(v)
+    arm = seg_stats({t: float(np.mean(v)) for t, v in per_day.items() if len(v) == 8})
+    ref = seg_stats({t: float(np.mean(v)) for t, v in ref_per_day.items() if len(v) == 8})
+    verdict = {}
+    for s in SEG:
+        npos = sum(1 for m in members.values() if m['dIC_paired'][s].get('mean', 0) > 0)
+        verdict[s] = {'arm_ci95_lower_gt_0': bool(arm[s].get('ci95', [0])[0] > 0), 'arm_point_ge_0.002': bool(arm[s].get('mean', 0) >= 0.002),
+                      'members_positive': npos, 'members_needed': 6,
+                      'PASS': bool(arm[s].get('ci95', [0])[0] > 0 and arm[s].get('mean', 0) >= 0.002 and npos >= 6)}
+    rec.update({'arm': name, 'pairing': 'per member (addendum 1)', 'members': members, 'arm_dIC_paired': arm,
+                'arm_dIC_vs_inservice_rs0_REFERENCE': ref, 'segment_verdicts': verdict,
+                'IC_LAYER_MAIN_PASS': all(v['PASS'] for v in verdict.values())})
+    tag = 'ARM=%s PAIRED IC_LAYER_MAIN_PASS=%s' % (name, rec['IC_LAYER_MAIN_PASS'])
 elif MODE in ('arm', 'manifest'):
     if MODE == 'manifest':
         # fresh2's MANIFEST.json: {"arms": {"<NAME>": [{"path": ..., "sha256": ...}, ...]}}; every sha is re-hashed here
