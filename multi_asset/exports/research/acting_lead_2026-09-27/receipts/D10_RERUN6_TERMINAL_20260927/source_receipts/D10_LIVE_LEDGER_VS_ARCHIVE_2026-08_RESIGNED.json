@@ -1,0 +1,117 @@
+{
+  "device": "d10_live_ledger_vs_archive.py",
+  "self_sha256": "b86fb146b8e212f07badd531073756a867d51974ecbf4e9c5d3725677c50a49a",
+  "argv": [
+    "--live",
+    "/dev/shm/d10_2026-09-25/inputs_live_ledger_2026-08.json",
+    "--zips",
+    "/dev/shm/d10_2026-09-25/zips/2026-08",
+    "--month",
+    "2026-08",
+    "--mask",
+    "/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+    "--crypto-axis",
+    "/dev/shm/pnoise_2026-09-24/receipts/P1_members_2025H2on.npz",
+    "--out",
+    "/workspace/d10_dryrun_rerun6_20260927T133902Z/out/D10_LIVE_LEDGER_VS_ARCHIVE_2026-08_RESIGNED.json"
+  ],
+  "gate_sha256": "6a8b16ca268aa5856c59a7d2372105346d72f208a8bd2cc55eb189b4cd3f8937",
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "task": "lead: does the LIVE ledger ingest the 1h spike settlements",
+  "live_ledger": {
+    "extract": "/dev/shm/d10_2026-09-25/inputs_live_ledger_2026-08.json",
+    "extract_sha256": "91a1a2cdb33b3761950733057ef15e2a015f62477dee42d748d838249eb45312",
+    "source": "/Users/haosiyu/wide_shadow/state/aux.json",
+    "source_sha256": "0c3d3c3e57c41c108eae762d8bc1912c7a8a859b77f6578759c1d8288aa9c2de",
+    "window": "2026-07-31T00:00Z .. 2026-09-01T00:00Z (24h margin before August)",
+    "n_symbols": 535,
+    "n_rows": 90762
+  },
+  "live_lineage_cited": {
+    "warm_state": "shadow_loop_v3.py:376 self.ledger = aux['ledger_tail']",
+    "live_fetch": "shadow_loop_v3.py:645 /fapi/v1/fundingRate startTime=(last_ts+1)*1000 endTime=anchor*1000+999 limit=100",
+    "ingest": "shadow_loop_v3.py:654 NC.ingest_settlements(led, ema, _ev)",
+    "truncation": "shadow_loop_v3.py:421 ledger_tail keeps r[-400:] per symbol"
+  },
+  "guards": [
+    "per-symbol comparison starts at that symbol's own earliest live row (400-row truncation)",
+    "archive events outside the fetched month are not counted as absent"
+  ],
+  "archive_gate": {
+    "verdict": "VERIFIED",
+    "n_entries": 832,
+    "n_zip_entries": 680,
+    "n_on_disk": 680,
+    "n_404": 152,
+    "n_rehashed": 680,
+    "manifest_sha256": "026471168f4fe844d61b7274b89758f5ae1eea449e3fa2f058394de0eb746185"
+  },
+  "archive": {
+    "month": "2026-08",
+    "symbols": 680,
+    "events": 103649,
+    "manifest_sha256": "026471168f4fe844d61b7274b89758f5ae1eea449e3fa2f058394de0eb746185"
+  },
+  "interval_switches": {
+    "symbols_with_a_switch": 27,
+    "switch_events": 48,
+    "top_symbols": [
+      [
+        4,
+        "STRCUSDT"
+      ],
+      [
+        3,
+        "ONGUSDT"
+      ],
+      [
+        2,
+        "WMTUSDT"
+      ],
+      [
+        2,
+        "VUSDT"
+      ],
+      [
+        2,
+        "SKHYNIXUSDT"
+      ],
+      [
+        2,
+        "PROMUSDT"
+      ],
+      [
+        2,
+        "NVOUSDT"
+      ],
+      [
+        2,
+        "MSFTUSDT"
+      ],
+      [
+        2,
+        "LLYUSDT"
+      ],
+      [
+        2,
+        "KLACUSDT"
+      ]
+    ]
+  },
+  "counts_in_switch_windows": {
+    "symbol_absent_from_live_tail": 436,
+    "present_in_live": 305,
+    "out_of_live_tail_window_400row_truncation": 91
+  },
+  "comparable_events": 305,
+  "absent_rate_pct": 0.0,
+  "absent_by_name_top20": [],
+  "absent_examples": [],
+  "verdict": "LIVE_LEDGER_COMPLETE_IN_SWITCH_WINDOWS",
+  "limits": [
+    "one month (2026-08) and only +/-24h around interval switches, per lead's scoping",
+    "the live tail is a rolling 400 rows, so coverage is per-symbol and is guarded, not assumed",
+    "membership is evaluated at the first anchor at or after the settlement"
+  ]
+}

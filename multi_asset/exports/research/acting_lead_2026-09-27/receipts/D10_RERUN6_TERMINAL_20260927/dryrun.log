@@ -1,0 +1,23 @@
+2026-09-27T22:22:49Z START pgid=3548735 runner=ead8d781a742732b W=/workspace/d10_dryrun_rerun6_20260927T133902Z
+2026-09-27T22:22:52Z ROW S0b_declared_selftest PASS expect_sha=0b514102aa092f96e2f33c669381529a16365d00d904fef55d152298e88a4d71 rows=['D1_ledger_ms', 'D2a_fund_state_snap', 'D2b_fund_state_d10']
+2026-09-27T22:22:52Z ROW S0_comparator_selftest PASS {"S1_npz_self_IDENTICAL": true, "S2_npz_1ulp_detected": true, "S2_key": "rate", "S2_bucket": {"le_1e-12": 1, "le_1e-9": 0, "le_1e-6": 0, "le_1e-3": 0, "gt_1e-3": 0}, "S3_npz_dtype_change_detected": true, "S4_json_self_IDENTICAL": true, "S5_json_1ulp_detected": true, "S5_path": "seconds", "S6_json_nonvolatile_change_detected": true, "S7_json_volatile_change_ignored": true, "S8_json_oneway_new_key_i
+2026-09-27T22:22:53Z ROW D7_symlists IDENTICAL rc=0 files=80 differing=[] sets={'only_ref': [], 'only_new': []}
+2026-09-27T22:22:53Z ROW D8_manifest_gate_selftest PASS rc=0 0.3s last=['SELFTEST GREEN 7/7']
+2026-09-27T22:22:53Z GATE D1_ledger_ms OPEN others_bt_launch_pgids=0 cgroup_headroom_gib=29.8 shm_free_gib=19.0
+2026-09-27T22:25:29Z ROW D1_ledger_ms IDENTICAL_EXCEPT_DECLARED rc=0 155.4s npz=IDENTICAL; receipt=DIFFERS(paths [] only_ref [] only_new ['positive_control_reconciliation.rows_in_old_window']); declared=IDENTICAL_EXCEPT_DECLARED
+2026-09-27T22:25:38Z ROW D2a_fund_state_snap IDENTICAL_EXCEPT_DECLARED rc=0 7.8s npz=IDENTICAL; receipt=DIFFERS(paths ['rebuild_device_sha256'] only_ref [] only_new []); declared=IDENTICAL_EXCEPT_DECLARED
+2026-09-27T22:25:46Z ROW D2b_fund_state_d10 IDENTICAL_EXCEPT_DECLARED rc=0 7.6s npz=IDENTICAL; receipt=DIFFERS(paths ['rebuild_device_sha256'] only_ref [] only_new []); declared=IDENTICAL_EXCEPT_DECLARED
+2026-09-27T22:25:53Z PROBE D3_assemble need=4034360591 wrote=4034360591 OK (deleted)
+2026-09-27T22:25:53Z GATE D3_assemble OPEN others_bt_launch_pgids=0 cgroup_headroom_gib=29.5 shm_free_gib=19.0
+2026-09-27T22:26:37Z ROW D3_assemble IDENTICAL rc=0 25.3s npz=IDENTICAL; receipt=IDENTICAL
+2026-09-27T22:26:59Z ROW D4a_parity_snap_control IDENTICAL rc=0 20.0s receipt=IDENTICAL
+2026-09-27T22:27:22Z ROW D4b_parity_common_window IDENTICAL rc=2 20.6s receipt=IDENTICAL
+2026-09-27T22:27:44Z ROW D4pc_parity_positive_control PASS rc=0 22.4s verdict=POSITIVE_CONTROL_RUN_NOT_A_GATE control=CONTROL_PASS
+2026-09-27T22:27:45Z GATE_AST_PROOF exempt=True ast_equal=True old_ast=21aebc27a281d077 new_ast=21aebc27a281d077
+2026-09-27T22:27:48Z ROW D5a_p2_old_vs_archive IDENTICAL rc=0 3.1s receipt=IDENTICAL; gate_sha256=IDENTICAL
+2026-09-27T22:30:11Z ROW D5b_ledger_ms_vs_archive IDENTICAL rc=0 143.2s receipt=IDENTICAL; gate_sha256=IDENTICAL
+2026-09-27T22:30:23Z ROW D5c_legs_rn8_vs_archive IDENTICAL rc=0 9.3s receipt=IDENTICAL; gate_sha256=IDENTICAL
+2026-09-27T22:30:24Z ROW D6_live_ledger_vs_archive IDENTICAL rc=0 0.8s receipt=IDENTICAL; gate_sha256=IDENTICAL
+2026-09-27T22:30:33Z ROW D9_inventory_3 IDENTICAL rc=0 9.9s differing=[]
+2026-09-27T22:30:40Z ROW D10_pull_3 IDENTICAL rc=0 5.9s last=' [months-3549303-20260927T223034Z] COMPLETE all_verified=yes' zips=['IDENTICAL', 'IDENTICAL', 'IDENTICAL'] manifest_diffs={}
+2026-09-27T22:30:40Z DRYRUN_DONE {"IDENTICAL": 10, "PASS": 2, "IDENTICAL_EXCEPT_DECLARED": 3} not_run=[]

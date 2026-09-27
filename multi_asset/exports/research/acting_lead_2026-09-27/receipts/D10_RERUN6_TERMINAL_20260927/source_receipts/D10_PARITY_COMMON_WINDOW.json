@@ -1,0 +1,355 @@
+{
+ "device": "d10_parity_gate.py",
+ "self_sha256": "947fa86f2729f55fdcddf0d02be4cbf0f741c131e123dd75f741eb7965a7e0cb",
+ "argv": {
+  "a": "/dev/shm/d10_2026-09-25/ms/rebuilt_features_d10.npz",
+  "b": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "features": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "columns": "fund_now:fn_v:fn_v:float64,fund_ema:fe_v:fe_v:float64,iv:iv_v:iv_v:float64",
+  "out": "/workspace/d10_dryrun_rerun6_20260927T133902Z/out/D10_PARITY_COMMON_WINDOW.json",
+  "positive_control": false,
+  "anchor_max_utc": "2026-09-01T02:00Z"
+ },
+ "python": {
+  "version": "3.11.10",
+  "executable": "/workspace/venv/bin/python"
+ },
+ "criteria": "docs/DECISION_RULE_D10_stage2_2026-09-26.md (1814d4334, rev 1 57fa49eea) \u00a72",
+ "mode": "GATE",
+ "sides": {
+  "a": {
+   "path": "/dev/shm/d10_2026-09-25/ms/rebuilt_features_d10.npz",
+   "sha256": "2be2d7c8959894e0e2a59933e99ff410b72b21faf72afc073a6d97d9590c4d8a",
+   "anchors": 10333,
+   "symbols": 829
+  },
+  "b": {
+   "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+   "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+   "anchors": 10333,
+   "symbols": 829
+  }
+ },
+ "member_source": {
+  "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+  "construction": "members[i] = m[off[i]:off[i+1]]",
+  "explicitly_not": "cand = mask & crypto",
+  "total_member_cells_on_axis": 2785754
+ },
+ "anchor_window": {
+  "max_utc": "2026-09-01T02:00Z",
+  "epoch": 1788228000,
+  "why": "the two sides' event sets are IDENTICAL below the spliced ledger's cut 1788228000 = 2026-09-01T02:00Z (measured: 2,633,090 each, 0 events on either side only, 0 symbols differing), so restricting here removes the coverage factor and leaves the rule difference"
+ },
+ "axis": {
+  "anchor_sets_equal": true,
+  "comparable_anchors": 10333,
+  "symbol_sets_equal": true,
+  "note": "only the intersection is comparable; equality is reported, never asserted"
+ },
+ "columns": {
+  "fund_now": {
+   "status": "COMPARED",
+   "a_key": "fn_v",
+   "b_key": "fn_v",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "csr[member_entry]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2742554,
+   "equal": 2742554,
+   "DIFFER": 0,
+   "book_cells_compared": 2742554,
+   "book_equal": 2742554,
+   "book_DIFFER": 0,
+   "closes": true,
+   "DIFFER_nan_vs_finite": 0,
+   "DIFFER_both_finite": 0,
+   "magnitude_buckets": {},
+   "abs_diff_stats_both_finite": null,
+   "why_split": "one DIFFER count conflates a coverage difference (NaN vs finite), a float-level difference (~1e-20) and a large value difference (~1e-2); merging them hides the last inside the first two. DESCRIPTIVE ONLY -- per lead 2026-09-26 the gate stays bitwise: with both sides calling the same function even a 1e-12 difference must not occur, so a float-level bucket is evidence of two implementations, not a pass",
+   "examples": [],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  },
+  "fund_ema": {
+   "status": "COMPARED",
+   "a_key": "fe_v",
+   "b_key": "fe_v",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "csr[member_entry]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2742554,
+   "equal": 2407644,
+   "DIFFER": 334910,
+   "book_cells_compared": 2742554,
+   "book_equal": 2407644,
+   "book_DIFFER": 334910,
+   "closes": true,
+   "DIFFER_nan_vs_finite": 0,
+   "DIFFER_both_finite": 334910,
+   "magnitude_buckets": {
+    "le_1e-12": 151725,
+    "le_1e-9": 61623,
+    "le_1e-3": 51780,
+    "le_1e-6": 67848,
+    "gt_1e-3": 1934
+   },
+   "abs_diff_stats_both_finite": {
+    "n": 334910,
+    "median": 6.170049321181474e-12,
+    "p90": 8.083637001326238e-06,
+    "p99": 0.0005858972168323901,
+    "p99_9": 0.0034848110332009576,
+    "max": 0.019649403677364927
+   },
+   "why_split": "one DIFFER count conflates a coverage difference (NaN vs finite), a float-level difference (~1e-20) and a large value difference (~1e-2); merging them hides the last inside the first two. DESCRIPTIVE ONLY -- per lead 2026-09-26 the gate stays bitwise: with both sides calling the same function even a 1e-12 difference must not occur, so a float-level bucket is evidence of two implementations, not a pass",
+   "examples": [
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "1000XECUSDT",
+     "a": -0.001373593726822781,
+     "b": -0.0013735937268167582,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 6.022743068156977e-15
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "ARPAUSDT",
+     "a": 1.6797231025378795e-05,
+     "b": 1.6797224724607353e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 6.30077144159278e-12
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "C98USDT",
+     "a": 3.3838509620687146e-05,
+     "b": 3.3838509620681684e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 5.4616684438957286e-18
+    },
+    {
+     "anchor": "2022-01-07T20:00Z",
+     "symbol": "CTSIUSDT",
+     "a": 9.888047242176576e-05,
+     "b": 9.888047354571229e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.1239465304638263e-12
+    },
+    {
+     "anchor": "2022-01-08T00:00Z",
+     "symbol": "1000XECUSDT",
+     "a": -0.001426632317688045,
+     "b": -0.0014266323176824688,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 5.5762686135274464e-15
+    },
+    {
+     "anchor": "2022-01-08T00:00Z",
+     "symbol": "ARPAUSDT",
+     "a": 2.2964660214116693e-05,
+     "b": 2.296465438039175e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 5.833724941919222e-12
+    },
+    {
+     "anchor": "2022-01-08T00:00Z",
+     "symbol": "C98USDT",
+     "a": 3.666575856884525e-05,
+     "b": 3.66657585688402e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 5.0550926292136644e-18
+    },
+    {
+     "anchor": "2022-01-08T00:00Z",
+     "symbol": "CTSIUSDT",
+     "a": 9.896345772560469e-05,
+     "b": 9.896345876623836e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.0406336708145003e-12
+    },
+    {
+     "anchor": "2022-01-08T04:00Z",
+     "symbol": "1000XECUSDT",
+     "a": -0.001426632317688045,
+     "b": -0.0014266323176824688,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 5.5762686135274464e-15
+    },
+    {
+     "anchor": "2022-01-08T04:00Z",
+     "symbol": "ARPAUSDT",
+     "a": 2.2964660214116693e-05,
+     "b": 2.296465438039175e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 5.833724941919222e-12
+    }
+   ],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  },
+  "iv": {
+   "status": "COMPARED",
+   "a_key": "iv_v",
+   "b_key": "iv_v",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "csr[member_entry]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2742554,
+   "equal": 2742515,
+   "DIFFER": 39,
+   "book_cells_compared": 2742554,
+   "book_equal": 2742515,
+   "book_DIFFER": 39,
+   "closes": true,
+   "DIFFER_nan_vs_finite": 0,
+   "DIFFER_both_finite": 39,
+   "magnitude_buckets": {
+    "gt_1e-3": 39
+   },
+   "abs_diff_stats_both_finite": {
+    "n": 39,
+    "median": 1.0,
+    "p90": 1.0,
+    "p99": 1.0,
+    "p99_9": 1.0,
+    "max": 1.0
+   },
+   "why_split": "one DIFFER count conflates a coverage difference (NaN vs finite), a float-level difference (~1e-20) and a large value difference (~1e-2); merging them hides the last inside the first two. DESCRIPTIVE ONLY -- per lead 2026-09-26 the gate stays bitwise: with both sides calling the same function even a 1e-12 difference must not occur, so a float-level bucket is evidence of two implementations, not a pass",
+   "examples": [
+    {
+     "anchor": "2025-09-21T08:00Z",
+     "symbol": "API3USDT",
+     "a": 3.0,
+     "b": 4.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.0
+    },
+    {
+     "anchor": "2025-10-01T16:00Z",
+     "symbol": "IPUSDT",
+     "a": 3.0,
+     "b": 4.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.0
+    },
+    {
+     "anchor": "2025-10-24T04:00Z",
+     "symbol": "LYNUSDT",
+     "a": 3.0,
+     "b": 4.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.0
+    },
+    {
+     "anchor": "2025-10-30T16:00Z",
+     "symbol": "AIAUSDT",
+     "a": 3.0,
+     "b": 4.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.0
+    },
+    {
+     "anchor": "2025-11-25T08:00Z",
+     "symbol": "COAIUSDT",
+     "a": 3.0,
+     "b": 4.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.0
+    },
+    {
+     "anchor": "2025-12-12T16:00Z",
+     "symbol": "DOODUSDT",
+     "a": 3.0,
+     "b": 4.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.0
+    },
+    {
+     "anchor": "2025-12-22T00:00Z",
+     "symbol": "TRUSTUSDT",
+     "a": 3.0,
+     "b": 4.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.0
+    },
+    {
+     "anchor": "2025-12-31T08:00Z",
+     "symbol": "PLUMEUSDT",
+     "a": 3.0,
+     "b": 4.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.0
+    },
+    {
+     "anchor": "2026-01-03T16:00Z",
+     "symbol": "LAUSDT",
+     "a": 3.0,
+     "b": 4.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.0
+    },
+    {
+     "anchor": "2026-01-12T00:00Z",
+     "symbol": "ZKPUSDT",
+     "a": 3.0,
+     "b": 4.0,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.0
+    }
+   ],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  }
+ },
+ "totals": {
+  "columns_compared": 3,
+  "columns_absent": [],
+  "any_DIFFER": true,
+  "any_book_DIFFER": true,
+  "total_DIFFER": 334949,
+  "total_book_DIFFER": 334949
+ },
+ "verdict": "PARITY_RED"
+}
