@@ -172,3 +172,61 @@ W4与W5门本身打印简明判词；完整probe日志会包含进程参数，�
 ## 未验证与回滚入口
 
 6段Bash命令通过`bash -n`，5段Python heredoc只做compile语法检查，均未执行其中命令。未调用GitHub远端、未在17Z重新preflight、未跑C0或电池；16Z完整验收还未产出，20Z前驱自然未知。已经存在的候选绿收据不替代此次真实候选safe_commit。未复演rollback；原门`$GAP/window/gates_gapfix_RB_rollback.json`读相同backup，必须先停止同四服务、静默窗及锁成立，由root决定执行。成功字段为`rolled_back_not_started`，新文件移入backup下的具名aside，状态保持不变；随后启动服务并核baseline。回滚恢复原缺锚缺陷，不能据此声称恢复正常。
+
+## 追加 A：16Z 完整验收 actual inputs（N+55 报告；17Z 才能一次收齐）
+
+报告 launchd `/Users/haosiyu/Library/LaunchAgents/com.hsy.anchor_report.plist` 使用 `/usr/bin/python3 /Users/haosiyu/dl_quant_live/ops/anchor_report.py`，每四小时55分触发；venue收据另要求N+60、锚done及静默窗。故**只到16:55不够全9PASS**。以下命令供root于17Z执行；先inspect，再标准门与恢复门。本附录未执行这些命令。输出保存在新目录，不回显完整文件或臂结局。
+
+```bash
+set -euo pipefail
+QR=/Users/haosiyu/.codex/worktrees/acting-lead-20260927/quant_research
+RC="$QR/multi_asset/exports/research/nc_2026-09-23"
+AD="$QR/multi_asset/exports/research/acting_lead_2026-09-27/devices"
+RCP=/Users/haosiyu/.codex/tmp/acting_lead_20260927
+COL="$RCP/FIRST_ACCEPT_16Z_20260927T1700Z"
+A=1790524800
+mkdir "$COL"
+/usr/bin/python3 -B "$QR/multi_asset/exports/live/pilot_journal/tools/inspect_anchor.py" "$A" > "$COL/INSPECT_16Z.txt"
+/usr/bin/python3 -B /Users/haosiyu/cc_tmp/nc_20260923/src/nc_version_probe.py --out "$COL/VERSION_PROBE_16Z.txt" first-anchor /Users/haosiyu/cc_tmp/nc_20260923/package_NC "$A" > "$COL/VERSION_PROBE_16Z.stdout.txt" 2>&1
+/Users/haosiyu/wide_shadow/venv/bin/python -B "$RC/devices/nc_m3_selfcheck.py" /Users/haosiyu/cc_tmp/nc_20260923/package_v2c_20260925 "$A" --expect-version m3_beta_v2 --out "$COL/M3_SELFCHECK_16Z.txt" > "$COL/M3_SELFCHECK_16Z.stdout.txt" 2>&1
+# PARITY由launchd产出；此处只读收据，不手动重放。
+/usr/bin/python3 -B - "$COL" <<'PY'
+from pathlib import Path
+import json,sys
+A=1790524800; p=Path('/Users/haosiyu/wide_shadow/state/snap')/str(A)
+assert (p/'COMPLETE').is_file(), 'SNAPSHOT_PENDING'
+r=json.loads((p/'PARITY.json').read_text())
+assert r['device']=='combo_parity_compare.py' and r['anchor_ts']==A
+assert r['combo_stage_rc']==0 and r['VERDICT']=='PARITY' and r['why']==[]
+i=r['anchor_identity']
+assert i['requested']==i['archived']==i['replayed']==A
+assert i['schema_archived']==i['schema_replayed']=='wide_target_v1'
+w=r['weights']; assert w['n_archived']==w['n_replay'] and w['n_archived']>0
+assert w['n_differing']==0 and w['max_abs_dw']==0
+Path(sys.argv[1],'PARITY_16Z.json').write_bytes((p/'PARITY.json').read_bytes())
+print('SNAPSHOT_PARITY PASS identity/rc/keys/weights')
+PY
+/usr/bin/python3 -B "$RC/devices/nc_b4_pooled.py" "$A" > "$COL/B4_POOLED_16Z.txt" 2>&1
+/usr/bin/python3 -B "$QR/multi_asset/exports/research/recovery_2026-09-27/devices/ledger_side_check.py" "$A" --out "$COL/LEDGER_16Z.json" > "$COL/LEDGER_16Z.stdout.txt" 2>&1
+/usr/bin/python3 -B "$QR/multi_asset/exports/research/common/venue_quiet_window.py" --json > "$COL/QUIET_16Z.json"
+# 唯一联网步骤，只能root在已授权静默窗执行；本子任务没有执行。
+/usr/bin/python3 -B "$AD/venue_readonly_symbol_bound.py" anchor --anchor "$A" --out "$COL/VENUE_16Z.json" > "$COL/VENUE_16Z.stdout.txt" 2>&1
+# 保存会覆盖或增长的来源；不得将state.json的缺失复制成空文件。
+cp /Users/haosiyu/dl_quant_live/state/live/pilot_log/20260927/anchors.jsonl "$COL/anchors.jsonl"
+cp /Users/haosiyu/dl_quant_live/state/anchor_runs.log "$COL/anchor_runs.log"
+cp /Users/haosiyu/dl_quant_live/state/live/watchdog/ALARM.log "$COL/ALARM.log"
+cp /Users/haosiyu/dl_quant_live/state/live/watchdog/last_eval.json "$COL/last_eval.json"
+cp /Users/haosiyu/dl_quant_live/state/anchor_report_last.json "$COL/anchor_report_last.json"
+/usr/bin/python3 -B "$AD/recovery_acceptance.py" --anchor "$A" --observed-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --inspect "$COL/INSPECT_16Z.txt" --anchors "$COL/anchors.jsonl" --anchor-log "$COL/anchor_runs.log" \
+  --ledger-receipt "$COL/LEDGER_16Z.json" --alarm-log "$COL/ALARM.log" --watchdog-eval "$COL/last_eval.json" \
+  --watchdog-state /Users/haosiyu/dl_quant_live/state/live/watchdog/state.json \
+  --anchor-report "$COL/anchor_report_last.json" --venue-receipt "$COL/VENUE_16Z.json" --out "$RCP/ACCEPT_16Z.json"
+```
+
+恢复门9个输入分别为inspect、anchors、anchor_runs、ledger、ALARM、last_eval、可列父目录下缺失的state.json、N+55报告、新symbol-bound venue收据。标准门必须各自rc0并留收据；原`accept_anchor_v2.sh`的DONE/脚本rc不能替代。B4只输出opening_halted/external_book而未门控，由恢复门补；M3_SELFCHECK只消费shadow合池，不能打开M3。报告或PARITY尚未来保持PENDING，不能补旧文件；COL/ACCEPT若已存在须具名续次，禁止覆盖。K1仍仅覆盖commission列名的已成交订单及RID−600s至采集末端。
+
+## 追加 B：发布脚本路径与行为
+
+- `~/dl_quant_live/ops/safe_commit.sh:110–117`在电池通过、显式pathspec提交后**自动`git push origin main`**。W3会发布提交；push失败时可能已本地提交，不能重跑混淆候选。
+- `/Users/haosiyu/cc_tmp/lead_deploy_20260923/ff_running_tree.py:4`使用`expanduser("~/dl_quant_live")`。本机account home与expanduser均为`/Users/haosiyu`，realpath相同且非symlink。`:7–26`非阻塞flock、code dirty拒绝、fetch、origin expected匹配和ff-only兼容新机；调用给完整NEWSHA。无额外架构白名单。本次未执行fetch、merge或锁写入。
