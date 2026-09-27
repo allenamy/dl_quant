@@ -1,0 +1,64 @@
+{
+ "device": "mr_read.py",
+ "self_sha256": "d7d6b566ffd7f0484f0f6be065fa4403f003e9bf56cb104c49f35c91bec05d49",
+ "argv": [
+  "mr_read.py",
+  "PATH,HOME,LC_CTYPE",
+  "red",
+  "/dev/shm/mretrain_2026-09-26/receipts/MR_READ_red.json"
+ ],
+ "mode": "red",
+ "utc": "2026-09-27T01:31:57Z",
+ "rule": "docs/DECISION_RULE_king_monthly_retrain_2026-09-26.md (1f2f5c4e9)",
+ "inputs": {
+  "A0_m0_s42": "074e8fb25238e5a2b036bf98e105b33d7a7c6bd82a98a009320749e09b330564",
+  "RED_m0_s42": "f5d58088ebd3270d2ebbf7700ceb5b862c2876e42b2902ef9482aa3fddd57fe7",
+  "A0_m0_s2027": "421ff513a07befd812ca285102de8693038bdf7da09790fcc762a84dbf13c039",
+  "RED_m0_s2027": "1483918fb73ecf0a049d1d6f21a4e04f2305ab55b32d9950f586024fd07cc1de"
+ },
+ "controls": {
+  "engine_reproduces_in_service_X_s42": {
+   "PASS": true,
+   "reference": "/dev/shm/fanom_2026-09-24/receipts/SER_EXT_NEWS2_s42X.npz",
+   "reference_sha_ok": true
+  },
+  "engine_reproduces_in_service_X_s2027": {
+   "PASS": true,
+   "reference": "/dev/shm/fanom_2026-09-24/receipts/SER_EXT_NEWS2_s2027X.npz",
+   "reference_sha_ok": true
+  }
+ },
+ "red_control": {
+  "pre2026": {
+   "D_bar": -5.7609016556817885,
+   "per_seed": {
+    "42": -5.7562329421296115,
+    "2027": -5.765570369233967
+   },
+   "MBB_SE": 5.156246897021649,
+   "MBB95": [
+    -16.129344145104685,
+    4.176264985610985
+   ],
+   "PASS": false
+  },
+  "2026": {
+   "D_bar": 4.286718709122413,
+   "per_seed": {
+    "42": 3.836574383815537,
+    "2027": 4.736863034429291
+   },
+   "MBB_SE": 3.297714038332182,
+   "MBB95": [
+    0.2022159168085442,
+    13.1108753339475
+   ],
+   "PASS": false
+  }
+ },
+ "RED_CONTROL_PASS": false,
+ "controls_failed": [
+  "red control: expected D<0 with MBB95 upper <0 in both segments"
+ ],
+ "FAMILY_MAY_CONTINUE": false
+}
