@@ -1,0 +1,111 @@
+commit cea1e15fa4051df1fb506a5989a3e582291ce95b
+Author: haosiyu <siyuhao0702@gmail.com>
+Date:   Sun Sep 27 13:16:06 2026 +0800
+
+    tests_nosleep A10 host-independent (arm64 migration 2026-09-27): the red capability is manufactured, never borrowed from the host's log size
+    
+    Old A10 ran the REAL `pmset -g log` under a 0.5 s timeout and relied on the old Intel host's 185 MB store taking 74 s to render. The arm64 host
+    renders its store in 0.1 s, so A10 read ([], 0.1) and went red with nothing wrong in the code; every battery on the new host is 165/166 and
+    safe_commit (all-green required) refuses every release. Test-only change; ops/check_nosleep.py untouched.
+    
+    - _host_sealed(serve): inside, CN._run(cmd) runs serve(cmd) through the REAL _run with the caller's timeout (real subprocess, real
+      TimeoutExpired); a command serve() does not answer is refused (rc 126) and recorded — nothing inside a seal reaches this machine.
+    - A10p positive control: a fast synthetic reader printing one fixture pmset line => a LIST with that sleep (so None below is the timeout).
+    - A10 red capability: a synthetic child that sleeps 10 s under timeout 0.5 => None, returned in < 5 s.
+    - A10h: both calls were `pmset -g log` and both were served; zero host calls inside a seal.
+    - A10s (class): every check titled RED CAPABILITY / RED CONTROL in this file sits inside a `with _host_sealed(...)` — derived from the
+      file's own AST, at least one seen (never 0/0); guard control on a planted source names both unsealed labels and passes the sealed one.
+    - A9 (THIS MACHINE positive, real store) unchanged.
+    
+    Measured (arm64, /usr/bin/python3 3.9.6): suite ALL PASS; mutation ladder 7/7 as expected (baseline green; timeout dropped,
+    failure-reads-as-empty, _run swallowing the timeout => A10 red; reader command changed => A10p + A10h red; parser drops the sleep => A10p
+    red; red check moved out of its seal => A10s red). Census: only tests_nosleep (A9 intended, A10) and tests_entrypoint_wiring (synthetic log)
+    touch host power/log commands in the executor battery.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01VNPQL7t93ECz7Xkrv9rH6n
+
+diff --git a/live/tests_nosleep.py b/live/tests_nosleep.py
+index da02df2..f0a2e36 100644
+--- a/live/tests_nosleep.py
++++ b/live/tests_nosleep.py
+@@ -177,9 +177,76 @@ check("A8 the verdict carries the source note and an unreadable log still blocks
+ _t0 = _tm.time(); evs, note = CN.sleep_events_detail(_tm.time() - 4.5 * 3600); _dt = _tm.time() - _t0
+ check("★★★ A9 THIS MACHINE (the condition production reported red for two days): a 4.5 h window reads as a LIST from the store files in under 20 s",
+       isinstance(evs, list) and note.startswith("asl:") and _dt < 20, (type(evs).__name__, note, round(_dt, 1)))
+-_t0 = _tm.time(); old = CN.sleep_events_pmset(_tm.time() - 3600, timeout=0.5); _dt = _tm.time() - _t0
+-check("★★ A10 RED CAPABILITY, the old reader's failure shape: `pmset -g log` under a timeout it cannot meet returns None (UNKNOWN) — the whole-store render is what timed out",
+-      old is None and _dt < 5, (old, round(_dt, 1)))
++
++print("\n[A10] the old reader's red capability, MANUFACTURED here — never borrowed from this machine's log size")
++# 2026-09-27 (arm64 host migration): A10 used to run the REAL `pmset -g log` under a 0.5 s timeout and relied on this machine's store being too big
++# to render in time (185 MB / 74 s on the old host). The new host renders its small store in 0.1 s, so A10 went red with nothing wrong in the code:
++# the red capability was a property of the host, not of the suite. Now the slow reader is a synthetic child process that is slower than the timeout
++# by construction, served through the REAL CN._run (real subprocess, real TimeoutExpired), and every command CN issues inside a seal is either
++# served by the check or refused and recorded — so no check inside a seal can pass or fail because of this machine (A10h), and every red-capability
++# check of this file (title marked RED CAPABILITY or RED CONTROL) must sit inside a seal (A10s, derived from this file's own AST, so a red check added tomorrow outside a seal is named).
++import ast as _ast, contextlib as _cl
++_PMSET = ["pmset", "-g", "log"]
++_HOST_CALLS, _SERVED = [], []
++_RED_MARKS = ("RED CAPABILITY", "RED CONTROL")
++_PM_LINE = "2026-09-01 03:04:05 +0800 Sleep               \tEntering Sleep state due to 'Maintenance Sleep':TCPKeepAlive=active Using AC (Charge:100%) 12 secs"
++_FAST = [sys.executable, "-c", "import sys; sys.stdout.write(sys.argv[1] + '\\n')", _PM_LINE]
++_SLOW = [sys.executable, "-c", "import time; time.sleep(10)"]
++
++
++@_cl.contextmanager
++def _host_sealed(serve):
++    """Inside: CN._run(cmd) runs serve(cmd) (a replacement argv) through the REAL _run with the caller's timeout; a command serve() does not
++    answer (None) is refused (rc 126) and recorded in _HOST_CALLS — it never reaches this machine."""
++    real = CN._run
++    def _sealed(cmd, timeout=20):
++        rep = serve(list(cmd))
++        if rep is None:
++            _HOST_CALLS.append(list(cmd)); return 126, "", "host command refused inside a seal"
++        _SERVED.append(list(cmd)); return real(rep, timeout)
++    CN._run = _sealed
++    try:
++        yield
++    finally:
++        CN._run = real
++
++
++def _unsealed_red_checks(src):
++    """(line, title) of every check(...) whose title carries a _RED_MARKS label and that has no enclosing `with _host_sealed(...)`; plus the count seen."""
++    tree = _ast.parse(src); parent = {c: p for p in _ast.walk(tree) for c in _ast.iter_child_nodes(p)}
++    out, seen = [], 0
++    for n in _ast.walk(tree):
++        if not (isinstance(n, _ast.Call) and isinstance(n.func, _ast.Name) and n.func.id == "check" and n.args):
++            continue
++        t = n.args[0]; title = t.value if isinstance(t, _ast.Constant) and isinstance(t.value, str) else \
++            "".join(v.value for v in getattr(t, "values", []) if isinstance(v, _ast.Constant) and isinstance(v.value, str))
++        if not any(m in title for m in _RED_MARKS):
++            continue
++        seen += 1; p = parent.get(n)
++        while p is not None and not (isinstance(p, _ast.With) and any(isinstance(i.context_expr, _ast.Call) and isinstance(i.context_expr.func, _ast.Name)
++                                                                     and i.context_expr.func.id == "_host_sealed" for i in p.items)):
++            p = parent.get(p)
++        if p is None:
++            out.append((n.lineno, title[:60]))
++    return out, seen
++
++
++with _host_sealed(lambda cmd: _FAST if cmd == _PMSET else None):
++    fast = CN.sleep_events_pmset(0, timeout=30)
++    check("A10p POSITIVE CONTROL: the same substitution with a reader that finishes returns a LIST holding the fixture sleep (so None below is the timeout, not the seal)",
++          isinstance(fast, list) and len(fast) == 1 and fast[0]["reason"] == "Maintenance Sleep" and fast[0]["utc"] == "2026-08-31T19:04:05Z", fast)
++with _host_sealed(lambda cmd: _SLOW if cmd == _PMSET else None):
++    _t0 = _tm.time(); old = CN.sleep_events_pmset(_tm.time() - 3600, timeout=0.5); _dt = _tm.time() - _t0
++    check("★★ A10 RED CAPABILITY, the old reader's failure shape: `pmset -g log` under a timeout it cannot meet returns None (UNKNOWN), and returns at the timeout — the reader is a synthetic child that sleeps 10 s",
++          old is None and _dt < 5, (old, round(_dt, 1)))
++check("A10h neither check reached this machine: both calls were `pmset -g log` and both were served; no host command was issued inside a seal",
++      _SERVED == [_PMSET, _PMSET] and _HOST_CALLS == [], (_SERVED, _HOST_CALLS))
++_uns, _seen = _unsealed_red_checks(open(os.path.abspath(__file__)).read())
++check("★ A10s every red-capability check of this file sits inside a `with _host_sealed(...)` (derived from this file's AST; at least one seen, never 0/0)",
++      _seen >= 1 and _uns == [], (_seen, _uns))
++_PLANT = 'check("x RED CAPABILITY outside", True)\nwith _host_sealed(lambda c: None):\n    check(f"y RED CONTROL {1} inside", True)\ncheck("z plain", True)\ncheck("w RED CONTROL outside", True)\n'
++check("A10s guard control: planted red-capability checks outside a seal are named (lines 1 and 5, both labels), the sealed f-string one and the plain one are not",
++      _unsealed_red_checks(_PLANT) == ([(1, "x RED CAPABILITY outside"), (5, "w RED CONTROL outside")], 3), _unsealed_red_checks(_PLANT))
+ 
+ print(f"\n{'ALL PASS' if FAILS == 0 else str(FAILS) + ' FAIL'}")
+ sys.exit(1 if FAILS else 0)

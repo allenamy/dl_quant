@@ -1,0 +1,703 @@
+{
+ "device": "gap_fix_judge.py",
+ "self_sha256": "01760c370f2078184a89f721c0384f60968a42f75c47645a411a8babaf5b07b3",
+ "criteria": "ACCEPTANCE_gap_classfix_2026-09-26.md (frozen 11bc3b4be)",
+ "utc": "2026-09-27T05:11:48Z",
+ "root": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/integ/replay4_arm64",
+ "verdicts": {
+  "C0_1790380800": false,
+  "T_1790380800": true,
+  "C0_1790395200": false,
+  "T_1790395200": true,
+  "C0_1790409600": false,
+  "T_1790409600": true,
+  "gap1_current_RED": true,
+  "gap1_patched": true,
+  "gap2_current_RED": true,
+  "gap2_patched": true,
+  "gap6_current_RED": true,
+  "gap6_patched": true,
+  "gap7_current_RED": true,
+  "gap7_patched": true,
+  "x1_current_RED": true,
+  "x1_patched": true,
+  "x2_current_RED": true,
+  "x2_patched": true,
+  "x3_current_RED": true,
+  "x3_patched": true,
+  "cold_current_RED": true,
+  "cold_patched": true,
+  "poison_current_RED": true,
+  "poison_patched": true,
+  "M_patched_mhdrop_bitwise_to_base (gate iff V2 lag-6 exact)": true
+ },
+ "arms": {
+  "C0_1790380800": {
+   "PASS": false,
+   "current_vs_archived": "other keys differ: ['beta_overlay']",
+   "weights": "319 weights bit-equal",
+   "states_bitwise": {
+    "kc": true,
+    "fc": true,
+    "f10": true
+   },
+   "target_combo_bytes_equal": true,
+   "target_blend_bytes_equal": true,
+   "weights_combo_arrays_equal": true,
+   "rc": [
+    0,
+    0
+   ],
+   "code": [
+    "CODE=current combo_stage sha 12a76de89831",
+    "CODE=patched combo_stage sha 5eaabcdb9e4d"
+   ],
+   "T": {
+    "PASS": true,
+    "elapsed_current_s": 12.1,
+    "elapsed_patched_s": 9.0
+   }
+  },
+  "C0_1790395200": {
+   "PASS": false,
+   "current_vs_archived": "other keys differ: ['beta_overlay']",
+   "weights": "318 weights bit-equal",
+   "states_bitwise": {
+    "kc": true,
+    "fc": true,
+    "f10": true
+   },
+   "target_combo_bytes_equal": true,
+   "target_blend_bytes_equal": true,
+   "weights_combo_arrays_equal": true,
+   "rc": [
+    0,
+    0
+   ],
+   "code": [
+    "CODE=current combo_stage sha 12a76de89831",
+    "CODE=patched combo_stage sha 5eaabcdb9e4d"
+   ],
+   "T": {
+    "PASS": true,
+    "elapsed_current_s": 8.9,
+    "elapsed_patched_s": 8.8
+   }
+  },
+  "C0_1790409600": {
+   "PASS": false,
+   "current_vs_archived": "other keys differ: ['beta_overlay']",
+   "weights": "318 weights bit-equal",
+   "states_bitwise": {
+    "kc": true,
+    "fc": true,
+    "f10": true
+   },
+   "target_combo_bytes_equal": true,
+   "target_blend_bytes_equal": true,
+   "weights_combo_arrays_equal": true,
+   "rc": [
+    0,
+    0
+   ],
+   "code": [
+    "CODE=current combo_stage sha 12a76de89831",
+    "CODE=patched combo_stage sha 5eaabcdb9e4d"
+   ],
+   "T": {
+    "PASS": true,
+    "elapsed_current_s": 8.8,
+    "elapsed_patched_s": 8.9
+   }
+  },
+  "gap1": {
+   "current_RED": true,
+   "current": "rc=3 target=no kc=warmstart_live_H fc=warmstart_f10_H abort=['[   8.6s] COMBO_LIVE ABORT: AssertionError: combo gross 0.0709 \u51fa\u754c [0.4,1.2]']",
+   "patched_PASS": true,
+   "patched_rc": 0,
+   "patched_sources(kc,fc,f10)": [
+    "own_gap1",
+    "own_gap1",
+    "own_gap1"
+   ],
+   "want": [
+    "own_gap1",
+    "own_gap1",
+    "own_gap1"
+   ],
+   "vs_reference": "bridge1: rc=0 318 weights bit-equal",
+   "gap_page_lines": [],
+   "page_names_required": [],
+   "state_lookup": {
+    "weights": {
+     "source": "own_gap1",
+     "anchor": 1790380800,
+     "gap": 1,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "f10": {
+     "source": "own_gap1",
+     "anchor": 1790380800,
+     "gap": 1,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "kc": {
+     "source": "own_gap1",
+     "anchor": 1790380800,
+     "gap": 1,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "fc": {
+     "source": "own_gap1",
+     "anchor": 1790380800,
+     "gap": 1,
+     "beyond_bound": false,
+     "rejected": []
+    }
+   },
+   "hooks": [
+    "HOOK arm=gap1 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | rm wide_shadow/fea171/state_H_fc_1790395200.npz d9752d62752f | rm wide_shadow/fea171/state_H_f10_1790395200.npz c4ae9d72f960 | rm wide_shadow/state/weights/1790395200.npz cb614bd13929",
+    "HOOK arm=gap1 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | rm wide_shadow/fea171/state_H_fc_1790395200.npz d9752d62752f | rm wide_shadow/fea171/state_H_f10_1790395200.npz c4ae9d72f960 | rm wide_shadow/state/weights/1790395200.npz cb614bd13929",
+    "HOOK arm=bridge1 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | rm wide_shadow/fea171/state_H_fc_1790395200.npz d9752d62752f | rm wide_shadow/fea171/state_H_f10_1790395200.npz c4ae9d72f960 | rm wide_shadow/state/weights/1790395200.npz cb614bd13929 | put wide_shadow/fea171/state_H_kc_1790395200.npz bcbe97abe1ce | put wide_shadow/fea171/state_H_fc_1790395200.npz 6b65e0e4"
+   ]
+  },
+  "gap2": {
+   "current_RED": true,
+   "current": "rc=3 target=no kc=warmstart_live_H fc=warmstart_f10_H abort=['[   8.8s] COMBO_LIVE ABORT: AssertionError: combo gross 0.0709 \u51fa\u754c [0.4,1.2]']",
+   "patched_PASS": true,
+   "patched_rc": 0,
+   "patched_sources(kc,fc,f10)": [
+    "own_gap2",
+    "own_gap2",
+    "own_gap2"
+   ],
+   "want": [
+    "own_gap2",
+    "own_gap2",
+    "own_gap2"
+   ],
+   "vs_reference": "bridge2: rc=0 317 weights bit-equal",
+   "gap_page_lines": [],
+   "page_names_required": [],
+   "state_lookup": {
+    "weights": {
+     "source": "own_gap2",
+     "anchor": 1790366400,
+     "gap": 2,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "f10": {
+     "source": "own_gap2",
+     "anchor": 1790366400,
+     "gap": 2,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "kc": {
+     "source": "own_gap2",
+     "anchor": 1790366400,
+     "gap": 2,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "fc": {
+     "source": "own_gap2",
+     "anchor": 1790366400,
+     "gap": 2,
+     "beyond_bound": false,
+     "rejected": []
+    }
+   },
+   "hooks": [
+    "HOOK arm=gap2 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | rm wide_shadow/fea171/state_H_fc_1790395200.npz d9752d62752f | rm wide_shadow/fea171/state_H_f10_1790395200.npz c4ae9d72f960 | rm wide_shadow/state/weights/1790395200.npz cb614bd13929 | rm wide_shadow/fea171/state_H_kc_1790380800.npz d1e38431bef3 | rm wide_shadow/fea171/state_H_fc_1790380800.npz 814e69fd75e3 ",
+    "HOOK arm=gap2 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | rm wide_shadow/fea171/state_H_fc_1790395200.npz d9752d62752f | rm wide_shadow/fea171/state_H_f10_1790395200.npz c4ae9d72f960 | rm wide_shadow/state/weights/1790395200.npz cb614bd13929 | rm wide_shadow/fea171/state_H_kc_1790380800.npz d1e38431bef3 | rm wide_shadow/fea171/state_H_fc_1790380800.npz 814e69fd75e3 ",
+    "HOOK arm=bridge2 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | rm wide_shadow/fea171/state_H_fc_1790395200.npz d9752d62752f | rm wide_shadow/fea171/state_H_f10_1790395200.npz c4ae9d72f960 | rm wide_shadow/state/weights/1790395200.npz cb614bd13929 | rm wide_shadow/fea171/state_H_kc_1790380800.npz d1e38431bef3 | rm wide_shadow/fea171/state_H_fc_1790380800.npz 814e69fd75"
+   ]
+  },
+  "gap6": {
+   "current_RED": true,
+   "current": "rc=3 target=no kc=warmstart_live_H fc=warmstart_f10_H abort=['[   8.7s] COMBO_LIVE ABORT: AssertionError: combo gross 0.0709 \u51fa\u754c [0.4,1.2]']",
+   "patched_PASS": true,
+   "patched_rc": 0,
+   "patched_sources(kc,fc,f10)": [
+    "own_gap6",
+    "own_gap6",
+    "own_gap6"
+   ],
+   "want": [
+    "own_gap6",
+    "own_gap6",
+    "own_gap6"
+   ],
+   "vs_reference": "bridge6: rc=0 317 weights bit-equal",
+   "gap_page_lines": [],
+   "page_names_required": [],
+   "state_lookup": {
+    "weights": {
+     "source": "own_gap6",
+     "anchor": 1790308800,
+     "gap": 6,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "f10": {
+     "source": "own_gap6",
+     "anchor": 1790308800,
+     "gap": 6,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "kc": {
+     "source": "own_gap6",
+     "anchor": 1790308800,
+     "gap": 6,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "fc": {
+     "source": "own_gap6",
+     "anchor": 1790308800,
+     "gap": 6,
+     "beyond_bound": false,
+     "rejected": []
+    }
+   },
+   "hooks": [
+    "HOOK arm=gap6 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | rm wide_shadow/fea171/state_H_fc_1790395200.npz d9752d62752f | rm wide_shadow/fea171/state_H_f10_1790395200.npz c4ae9d72f960 | rm wide_shadow/state/weights/1790395200.npz cb614bd13929 | rm wide_shadow/fea171/state_H_kc_1790380800.npz d1e38431bef3 | rm wide_shadow/fea171/state_H_fc_1790380800.npz 814e69fd75e3 ",
+    "HOOK arm=gap6 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | rm wide_shadow/fea171/state_H_fc_1790395200.npz d9752d62752f | rm wide_shadow/fea171/state_H_f10_1790395200.npz c4ae9d72f960 | rm wide_shadow/state/weights/1790395200.npz cb614bd13929 | rm wide_shadow/fea171/state_H_kc_1790380800.npz d1e38431bef3 | rm wide_shadow/fea171/state_H_fc_1790380800.npz 814e69fd75e3 ",
+    "HOOK arm=bridge6 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | rm wide_shadow/fea171/state_H_fc_1790395200.npz d9752d62752f | rm wide_shadow/fea171/state_H_f10_1790395200.npz c4ae9d72f960 | rm wide_shadow/state/weights/1790395200.npz cb614bd13929 | rm wide_shadow/fea171/state_H_kc_1790380800.npz d1e38431bef3 | rm wide_shadow/fea171/state_H_fc_1790380800.npz 814e69fd75"
+   ]
+  },
+  "gap7": {
+   "current_RED": true,
+   "current": "rc=3 target=no kc=warmstart_live_H fc=warmstart_f10_H abort=['[   8.7s] COMBO_LIVE ABORT: AssertionError: combo gross 0.0709 \u51fa\u754c [0.4,1.2]']",
+   "patched_PASS": true,
+   "patched_rc": 0,
+   "patched_sources(kc,fc,f10)": [
+    "own_gap7_beyond_bound",
+    "own_gap7_beyond_bound",
+    "own_gap7_beyond_bound"
+   ],
+   "want": [
+    "own_gap7_beyond_bound",
+    "own_gap7_beyond_bound",
+    "own_gap7_beyond_bound"
+   ],
+   "vs_reference": "bridge7: rc=0 315 weights bit-equal",
+   "gap_page_lines": [
+    "[   8.9s] GAP_PAGE (rehearsal: recorded, not sent): combo \u5199\u8005: \u4e0a\u4e00\u951a\u72b6\u6001\u975e\u5e38\u89c4 [09-26 08:00\u951a] \u5df2\u53d1\u5e03, \u6765\u6e90\u5982\u4e0b(\u754c 6 \u951a): | weights: own_gap7_beyond_bound (used 1790294400, gap 7) | f10: own_gap7_beyond_bound (used 1790294400, gap 7) | kc: own_gap7_beyond_bound (used 1790294400, gap 7) | fc: own_gap7_beyond_bound (used 1790294400, gap 7)"
+   ],
+   "page_names_required": [
+    "beyond_bound"
+   ],
+   "state_lookup": {
+    "weights": {
+     "source": "own_gap7_beyond_bound",
+     "anchor": 1790294400,
+     "gap": 7,
+     "beyond_bound": true,
+     "rejected": []
+    },
+    "f10": {
+     "source": "own_gap7_beyond_bound",
+     "anchor": 1790294400,
+     "gap": 7,
+     "beyond_bound": true,
+     "rejected": []
+    },
+    "kc": {
+     "source": "own_gap7_beyond_bound",
+     "anchor": 1790294400,
+     "gap": 7,
+     "beyond_bound": true,
+     "rejected": []
+    },
+    "fc": {
+     "source": "own_gap7_beyond_bound",
+     "anchor": 1790294400,
+     "gap": 7,
+     "beyond_bound": true,
+     "rejected": []
+    }
+   },
+   "hooks": [
+    "HOOK arm=gap7 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | rm wide_shadow/fea171/state_H_fc_1790395200.npz d9752d62752f | rm wide_shadow/fea171/state_H_f10_1790395200.npz c4ae9d72f960 | rm wide_shadow/state/weights/1790395200.npz cb614bd13929 | rm wide_shadow/fea171/state_H_kc_1790380800.npz d1e38431bef3 | rm wide_shadow/fea171/state_H_fc_1790380800.npz 814e69fd75e3 ",
+    "HOOK arm=gap7 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | rm wide_shadow/fea171/state_H_fc_1790395200.npz d9752d62752f | rm wide_shadow/fea171/state_H_f10_1790395200.npz c4ae9d72f960 | rm wide_shadow/state/weights/1790395200.npz cb614bd13929 | rm wide_shadow/fea171/state_H_kc_1790380800.npz d1e38431bef3 | rm wide_shadow/fea171/state_H_fc_1790380800.npz 814e69fd75e3 ",
+    "HOOK arm=bridge7 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | rm wide_shadow/fea171/state_H_fc_1790395200.npz d9752d62752f | rm wide_shadow/fea171/state_H_f10_1790395200.npz c4ae9d72f960 | rm wide_shadow/state/weights/1790395200.npz cb614bd13929 | rm wide_shadow/fea171/state_H_kc_1790380800.npz d1e38431bef3 | rm wide_shadow/fea171/state_H_fc_1790380800.npz 814e69fd75"
+   ]
+  },
+  "x1": {
+   "current_RED": true,
+   "current": "rc=1 target=no kc=None fc=None abort=['Traceback (most recent call last):']",
+   "patched_PASS": true,
+   "patched_rc": 0,
+   "patched_sources(kc,fc,f10)": [
+    "own_gap1_rejected1",
+    "own",
+    "own"
+   ],
+   "want": [
+    "own_gap1_rejected1",
+    "own",
+    "own"
+   ],
+   "vs_reference": "xref: rc=0 318 weights bit-equal",
+   "gap_page_lines": [
+    "[   9.1s] GAP_PAGE (rehearsal: recorded, not sent): combo \u5199\u8005: \u4e0a\u4e00\u951a\u72b6\u6001\u975e\u5e38\u89c4 [09-26 08:00\u951a] \u5df2\u53d1\u5e03, \u6765\u6e90\u5982\u4e0b(\u754c 6 \u951a): | kc: own_gap1_rejected1 (used 1790380800, gap 1); rejected state_H_kc_1790395200.npz: unreadable: ValueError: This file contains pickled (object) data. If you trust the file you can load it "
+   ],
+   "page_names_required": [
+    "state_H_kc_1790395200.npz",
+    "rejected"
+   ],
+   "state_lookup": {
+    "weights": {
+     "source": "own",
+     "anchor": 1790395200,
+     "gap": 0,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "f10": {
+     "source": "own",
+     "anchor": 1790395200,
+     "gap": 0,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "kc": {
+     "source": "own_gap1_rejected1",
+     "anchor": 1790380800,
+     "gap": 1,
+     "beyond_bound": false,
+     "rejected": [
+      {
+       "path": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/integ/replay4_arm64/patched_x1/1790409600/wide_shadow/fea171/state_H_kc_1790395200.npz",
+       "anchor": 1790395200,
+       "reason": "unreadable: ValueError: This file contains pickled (object) data. If you trust the file you can load it "
+      }
+     ]
+    },
+    "fc": {
+     "source": "own",
+     "anchor": 1790395200,
+     "gap": 0,
+     "beyond_bound": false,
+     "rejected": []
+    }
+   },
+   "hooks": [
+    "HOOK arm=x1 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | put wide_shadow/fea171/state_H_kc_1790395200.npz 799f1b4e62d1",
+    "HOOK arm=x1 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | put wide_shadow/fea171/state_H_kc_1790395200.npz 799f1b4e62d1",
+    "HOOK arm=xref A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | put wide_shadow/fea171/state_H_kc_1790395200.npz bcbe97abe1ce"
+   ]
+  },
+  "x2": {
+   "current_RED": true,
+   "current": "rc=0 target=yes kc=warmstart_live_H fc=own abort=[]",
+   "patched_PASS": true,
+   "patched_rc": 0,
+   "patched_sources(kc,fc,f10)": [
+    "own_gap1_rejected1",
+    "own",
+    "own"
+   ],
+   "want": [
+    "own_gap1_rejected1",
+    "own",
+    "own"
+   ],
+   "vs_reference": "xref: rc=0 318 weights bit-equal",
+   "gap_page_lines": [
+    "[  11.7s] GAP_PAGE (rehearsal: recorded, not sent): combo \u5199\u8005: \u4e0a\u4e00\u951a\u72b6\u6001\u975e\u5e38\u89c4 [09-26 08:00\u951a] \u5df2\u53d1\u5e03, \u6765\u6e90\u5982\u4e0b(\u754c 6 \u951a): | kc: own_gap1_rejected1 (used 1790380800, gap 1); rejected state_H_kc_1790395200.npz: anchor key 1790380800 != file anchor 1790395200"
+   ],
+   "page_names_required": [
+    "state_H_kc_1790395200.npz",
+    "rejected"
+   ],
+   "state_lookup": {
+    "weights": {
+     "source": "own",
+     "anchor": 1790395200,
+     "gap": 0,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "f10": {
+     "source": "own",
+     "anchor": 1790395200,
+     "gap": 0,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "kc": {
+     "source": "own_gap1_rejected1",
+     "anchor": 1790380800,
+     "gap": 1,
+     "beyond_bound": false,
+     "rejected": [
+      {
+       "path": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/integ/replay4_arm64/patched_x2/1790409600/wide_shadow/fea171/state_H_kc_1790395200.npz",
+       "anchor": 1790395200,
+       "reason": "anchor key 1790380800 != file anchor 1790395200"
+      }
+     ]
+    },
+    "fc": {
+     "source": "own",
+     "anchor": 1790395200,
+     "gap": 0,
+     "beyond_bound": false,
+     "rejected": []
+    }
+   },
+   "hooks": [
+    "HOOK arm=x2 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | put wide_shadow/fea171/state_H_kc_1790395200.npz 0a01ac32bb3c",
+    "HOOK arm=x2 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | put wide_shadow/fea171/state_H_kc_1790395200.npz 0a01ac32bb3c",
+    "HOOK arm=xref A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | put wide_shadow/fea171/state_H_kc_1790395200.npz bcbe97abe1ce"
+   ]
+  },
+  "x3": {
+   "current_RED": true,
+   "current": "rc=1 target=no kc=None fc=None abort=['Traceback (most recent call last):']",
+   "patched_PASS": true,
+   "patched_rc": 0,
+   "patched_sources(kc,fc,f10)": [
+    "own_gap1_rejected1",
+    "own",
+    "own"
+   ],
+   "want": [
+    "own_gap1_rejected1",
+    "own",
+    "own"
+   ],
+   "vs_reference": "xref: rc=0 318 weights bit-equal",
+   "gap_page_lines": [
+    "[  11.0s] GAP_PAGE (rehearsal: recorded, not sent): combo \u5199\u8005: \u4e0a\u4e00\u951a\u72b6\u6001\u975e\u5e38\u89c4 [09-26 08:00\u951a] \u5df2\u53d1\u5e03, \u6765\u6e90\u5982\u4e0b(\u754c 6 \u951a): | kc: own_gap1_rejected1 (used 1790380800, gap 1); rejected state_H_kc_1790395200.npz: idx outside [0,829): min 0 max 829"
+   ],
+   "page_names_required": [
+    "state_H_kc_1790395200.npz",
+    "rejected"
+   ],
+   "state_lookup": {
+    "weights": {
+     "source": "own",
+     "anchor": 1790395200,
+     "gap": 0,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "f10": {
+     "source": "own",
+     "anchor": 1790395200,
+     "gap": 0,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "kc": {
+     "source": "own_gap1_rejected1",
+     "anchor": 1790380800,
+     "gap": 1,
+     "beyond_bound": false,
+     "rejected": [
+      {
+       "path": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/integ/replay4_arm64/patched_x3/1790409600/wide_shadow/fea171/state_H_kc_1790395200.npz",
+       "anchor": 1790395200,
+       "reason": "idx outside [0,829): min 0 max 829"
+      }
+     ]
+    },
+    "fc": {
+     "source": "own",
+     "anchor": 1790395200,
+     "gap": 0,
+     "beyond_bound": false,
+     "rejected": []
+    }
+   },
+   "hooks": [
+    "HOOK arm=x3 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | put wide_shadow/fea171/state_H_kc_1790395200.npz 416c5bc4687e",
+    "HOOK arm=x3 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | put wide_shadow/fea171/state_H_kc_1790395200.npz 416c5bc4687e",
+    "HOOK arm=xref A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | put wide_shadow/fea171/state_H_kc_1790395200.npz bcbe97abe1ce"
+   ]
+  },
+  "cold": {
+   "current_RED": true,
+   "current": {
+    "rc": 3,
+    "target": false,
+    "state_written": {
+     "kc": true,
+     "fc": true,
+     "f10": true
+    }
+   },
+   "patched_PASS": true,
+   "patched": {
+    "rc": 3,
+    "target": false,
+    "state_written": {
+     "kc": false,
+     "fc": false,
+     "f10": false
+    },
+    "abort_line_names_cold_start": true
+   },
+   "abort_lines": [
+    "[  12.1s] COMBO_LIVE ABORT: \u51b7\u542f\u52a8\u62d2\u7edd\u53d1\u5e03: ['fc', 'kc'] \u65e0\u4efb\u4f55\u6709\u6548\u72b6\u6001(\u22650.4 gross)\u4e14\u56de\u843d\u4e3a\u96f6; \u72b6\u6001\u672a\u5199; \u9700\u8981\u4eba\u6062\u590d\u72b6\u6001 | weights: NO_VALID_STATE\u2192None | f10: NO_VALID_STATE\u2192None | kc: NO_VALID_STATE\u2192warmstart_live_H | fc: NO_VALID_STATE\u2192warmstart_f10_H"
+   ]
+  },
+  "poison": {
+   "current_RED": true,
+   "current": "rc=3 target=no kc=own fc=own abort=['[   9.1s] COMBO_LIVE ABORT: AssertionError: combo gross 0.1437 \u51fa\u754c [0.4,1.2]']",
+   "patched_PASS": true,
+   "patched_rc": 0,
+   "patched_sources(kc,fc,f10)": [
+    "own_gap1_rejected1",
+    "own_gap1_rejected1",
+    "own_gap1_rejected1"
+   ],
+   "want": [
+    "own_gap1_rejected1",
+    "own_gap1_rejected1",
+    "own_gap1_rejected1"
+   ],
+   "vs_reference": "bridge1: rc=0 318 weights bit-equal",
+   "gap_page_lines": [
+    "[   9.7s] GAP_PAGE (rehearsal: recorded, not sent): combo \u5199\u8005: \u4e0a\u4e00\u951a\u72b6\u6001\u975e\u5e38\u89c4 [09-26 08:00\u951a] \u5df2\u53d1\u5e03, \u6765\u6e90\u5982\u4e0b(\u754c 6 \u951a): | f10: own_gap1_rejected1 (used 1790380800, gap 1); rejected state_H_f10_1790395200.npz: degenerate: gross 0.0784 < 0.4 | kc: own_gap1_rejected1 (used 1790380800, gap 1); rejected state_H_kc_1790395200.npz: degenerate: gross 0.0857 < 0.4 | fc: own_gap1_rejected1 (used 1790380800, gap 1); rejected state_H_fc_1790395200.npz: degenerate: gross 0.0807 < 0.4"
+   ],
+   "page_names_required": [
+    "degenerate"
+   ],
+   "state_lookup": {
+    "weights": {
+     "source": "own",
+     "anchor": 1790395200,
+     "gap": 0,
+     "beyond_bound": false,
+     "rejected": []
+    },
+    "f10": {
+     "source": "own_gap1_rejected1",
+     "anchor": 1790380800,
+     "gap": 1,
+     "beyond_bound": false,
+     "rejected": [
+      {
+       "path": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/integ/replay4_arm64/patched_poison/1790409600/wide_shadow/fea171/state_H_f10_1790395200.npz",
+       "anchor": 1790395200,
+       "reason": "degenerate: gross 0.0784 < 0.4"
+      }
+     ]
+    },
+    "kc": {
+     "source": "own_gap1_rejected1",
+     "anchor": 1790380800,
+     "gap": 1,
+     "beyond_bound": false,
+     "rejected": [
+      {
+       "path": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/integ/replay4_arm64/patched_poison/1790409600/wide_shadow/fea171/state_H_kc_1790395200.npz",
+       "anchor": 1790395200,
+       "reason": "degenerate: gross 0.0857 < 0.4"
+      }
+     ]
+    },
+    "fc": {
+     "source": "own_gap1_rejected1",
+     "anchor": 1790380800,
+     "gap": 1,
+     "beyond_bound": false,
+     "rejected": [
+      {
+       "path": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/integ/replay4_arm64/patched_poison/1790409600/wide_shadow/fea171/state_H_fc_1790395200.npz",
+       "anchor": 1790395200,
+       "reason": "degenerate: gross 0.0807 < 0.4"
+      }
+     ]
+    }
+   },
+   "hooks": [
+    "HOOK arm=poison A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | put wide_shadow/fea171/state_H_kc_1790395200.npz 50bc7ff0770c | rm wide_shadow/fea171/state_H_fc_1790395200.npz d9752d62752f | put wide_shadow/fea171/state_H_fc_1790395200.npz f083f57120ad | rm wide_shadow/fea171/state_H_f10_1790395200.npz c4ae9d72f960 | put wide_shadow/fea171/state_H_f10_1790395200.npz ef7",
+    "HOOK arm=poison A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | put wide_shadow/fea171/state_H_kc_1790395200.npz 50bc7ff0770c | rm wide_shadow/fea171/state_H_fc_1790395200.npz d9752d62752f | put wide_shadow/fea171/state_H_fc_1790395200.npz f083f57120ad | rm wide_shadow/fea171/state_H_f10_1790395200.npz c4ae9d72f960 | put wide_shadow/fea171/state_H_f10_1790395200.npz ef7",
+    "HOOK arm=bridge1 A=1790409600 rm wide_shadow/fea171/state_H_kc_1790395200.npz 6d25b203d0b5 | rm wide_shadow/fea171/state_H_fc_1790395200.npz d9752d62752f | rm wide_shadow/fea171/state_H_f10_1790395200.npz c4ae9d72f960 | rm wide_shadow/state/weights/1790395200.npz cb614bd13929 | put wide_shadow/fea171/state_H_kc_1790395200.npz bcbe97abe1ce | put wide_shadow/fea171/state_H_fc_1790395200.npz 6b65e0e4"
+   ]
+  },
+  "M": {
+   "V2_row_S=A_lag6": {
+    "S": 1790409600,
+    "T": 1790323200,
+    "lag": 6,
+    "recompute_equal": true,
+    "recompute_jaccard": 1.0,
+    "recompute_diff": [
+     [],
+     []
+    ],
+    "carry_equal": false,
+    "carry_jaccard": 0.995012
+   },
+   "gate_applies": true,
+   "current": {
+    "rc": [
+     0,
+     0
+    ],
+    "dump": [
+     true,
+     true
+    ],
+    "drank_row_A_zero_share": {
+     "mhbase": 0.019166666666666665,
+     "mhdrop": 1.0
+    },
+    "mh_missing": [
+     0,
+     1
+    ],
+    "f10_spearman_drop_vs_base": 0.9939521497009355,
+    "f10_max_abs_diff": 0.030987666930888003,
+    "weights_L1_diff": 0.0012571059743238986,
+    "weights_max_abs_dw": 0.00012850227900847557,
+    "weights_bit_equal": false,
+    "dump_does_not_touch_output (mhbase == base weights)": true,
+    "recompute_log": [
+     "[   0.5s] NC A2 member history: 238/239 window anchors have members (missing 1)"
+    ]
+   },
+   "patched": {
+    "rc": [
+     0,
+     0
+    ],
+    "dump": [
+     true,
+     true
+    ],
+    "drank_row_A_zero_share": {
+     "mhbase": 0.019166666666666665,
+     "mhdrop": 0.019166666666666665
+    },
+    "mh_missing": [
+     0,
+     0
+    ],
+    "f10_spearman_drop_vs_base": 0.9999999999999999,
+    "f10_max_abs_diff": 0.0,
+    "weights_L1_diff": 0.0,
+    "weights_max_abs_dw": 0.0,
+    "weights_bit_equal": true,
+    "dump_does_not_touch_output (mhbase == base weights)": true,
+    "recompute_log": [
+     "[   0.5s] NC A2 member history: 239/239 window anchors have members (missing 0)",
+     "[   0.5s] MH_RECOMPUTED (gap class fix) 1 anchors [1790323200] errors {}"
+    ]
+   }
+  }
+ },
+ "VERDICT": "FAIL"
+}

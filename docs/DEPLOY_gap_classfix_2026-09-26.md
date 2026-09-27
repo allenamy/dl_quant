@@ -1,6 +1,90 @@
-> **创建:** 2026-09-26 18:1xZ(rev 2 19:2xZ: GAP4) | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n (integ) | **状态:** 发布手册,交 lead 审;目标窗 **09-27 05:00–07:40Z**,备用窗 09:00–11:40Z(都在 12Z 之前) | **作废条件:** §0 任一 sha 变动(生产 combo_stage 不再是 12a76de8,或包、执行器 HEAD 变化),或 lead / 用户裁定
+> **创建:** 2026-09-26 18:1xZ(rev 2 19:2xZ: GAP4) | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n (integ) | **状态:** 发布手册 rev 3(09-27 05:xZ,arm64 新机复核 + 两处自身缺陷更正 + 改期,见 §rev 3),交 lead 审;目标窗 **09-27 09:00–11:40Z**(08Z 新机首锚验收之后,首锚 12Z 1790510400),备用窗 13:00–15:40Z(首锚 16Z 1790524800) | **作废条件:** §0 任一 sha 变动(生产 combo_stage 不再是 12a76de8,或包、执行器 HEAD 变化),或 lead / 用户裁定
 
 # 发布手册:缺锚类修复(gap class fix,tree GAP4)—— 生产者 files-only 发布 + 执行器侧发布归档
+
+## rev 3(2026-09-27 05:xZ,integ):arm64 新机复核、两处自身缺陷更正、改期
+**这一节优先于下文。凡与下文冲突,以本节为准。**
+
+### R3.1 新机复核结果
+新机:arm64;生产者 venv 为 python 3.14.7 / numpy 2.5.2;执行器用 /usr/bin/python3 3.9.6。收据都在 `gap_classfix_2026-09-26/receipts/arm64_2026-09-27/`。
+
+| 项 | 新机结果 | 与旧机(x86)比 |
+|---|---|---|
+| 安装演练 TEST_GAP_INSTALL_FILES | **13/13 PASS**(F0–F9 红控全部拒绝) | 判词相同。演练夹具契约的 sha 不同(6b0f87 对 7addd6):它把 built_utc 和工作目录路径写进了契约,每跑一次都会变。真实包契约 27a0c493 在真实 home 上预检 PREFLIGHT_PASS |
+| release_gates W0 预演 | **ALL_PASS 4/4**(05:04:06Z) | 相同 |
+| 回放判官 run 4:在新机上把 33 个臂×锚全部重跑,两套代码都重跑,不复用任何 x86 产物(`devices/run_arms4_arm64.sh`) | **GAP_FIX_JUDGE FAIL n_bad=3**:三条都是 C0 里的 `current_vs_archived` 子项,另外 22 条判词全部 PASS | 见 R3.2 |
+| 跨机逐文件对比(`devices/cross_host_compare.py`,收据 `receipts/CROSS_HOST_x86_run3_vs_arm64_run4.json`) | 33 个臂×锚,共 208 个输出文件:**180 个逐位相同**;所有 state_H_{kc,fc,f10}、weights_combo、target_blend 都逐位相同;退出码 33/33 一致;文件有无 33/33 一致 | 其余 28 个见 R3.2 |
+| 执行器侧电池(克隆 201188d) | **165/166**,唯一的红是 tests_nosleep A10 | 旧机 166/166 |
+
+### R3.2 回放判官 FAIL 的来源:beta_overlay 差 1–2 ulp,属于容差,不是逐位
+- C0 的核心性质在新机上**同机逐位成立**:每个锚上 current 与 patched 的权重、三份状态、target_combo 字节、target_blend 字节、weights_combo 全部相同,两边 rc 都是 0,T 也 PASS。
+- 挂掉的是 C0 里的附属合理性检查:新机的 current 回放,对比旧机生产存档的 `target_live/<A>.json`。
+  - 两边权重 319 / 318 / 318 个**逐位相同**;
+  - 只有 `beta_overlay` 键不同:每个文件有 21–26 个名的 beta 差 ≤ 4.4e-16(1–2 ulp)。迁移收据在 00Z 已经记过同类现象(18/450,≤ 2.2e-16)。
+- 28 个非逐位文件的构成:
+  - 24 个是 target_live_PARITY:weights 逐位相同,只有 beta_overlay(≤ 4.4e-16)和 written_utc 不同;
+  - 4 个是 target_combo:把沙箱根路径换成同一个占位符后完全相同,差别只在 state_lookup.rejected[].path 里嵌的沙箱路径。
+- **判定**:回放判官的判词本身不改(它是冻结的)。照实报告:**权重、状态、书层逐位跨机一致;M3 的 beta 跨机差 1–2 ulp**。M3 仍是 shadow,beta 不进书。M3 开启后,对冲量相对差约 1e-16 量级。
+- 新机上此后的存档都在新机上产生,同机平价不受影响。迁移收据里 00Z 的 parity 已是 319/319 逐位。
+
+### R3.3 更正:我包里的两处缺陷(窗前发现,未造成任何后果)
+1. **W6 首锚门的 epoch 标错了 8 小时**(UTC+8 换算错误):
+   - `…_1790467200_08Z.json` 里的 1790467200 实际是 09-27 **00Z**;
+   - `…_1790481600_12Z_backup.json` 里的 1790481600 实际是 **04Z**;
+   - 下文 §2 W6 的「首锚 = 08Z 1790467200 / 12Z 1790481600」同样错了。
+   - 两个旧文件已改名为 `*.VOID_epoch_is_00Z.json` / `*.VOID_epoch_is_04Z.json`。新门的文件名标签由生成脚本从 epoch 反算并断言。
+2. **gap_version_probe after-w5 会崩**:它只按包里的候选文件取期望 sha,本包不含 shadow_loop_v3.py,于是抛 `KeyError`,W5 门必然 FAIL(而且是在服务已经启动之后)。
+   - 另外,新机上根本没有 com.hsy.sidecar 的 plist,也就没有 disabled 覆盖项,旧谓词会把这台机器判为 BAD。
+   - 探针 rev 1:
+     - 期望 sha = 候选 ∪ 契约 unchanged 钉;两边都没钉的路径具名 BAD,不再崩;
+     - sidecar 满足「被 disabled」或「launchd 找得到的地方都没有 plist」之一即可;
+     - first-anchor 新增 `--expect-mh`,把 W6 (b) 从人工读日志改为机械核对。
+   - 控制(未安装的本机):after-w5 只有 combo_stage 的 sha 一行 BAD;first-anchor 的 BAD 恰好是未安装的 3 个 sha 行和 members_recomputed 行;把字面量换成 3 锚时,「字面量 == 洞」一行也变 BAD(`VP_*control*.txt`)。
+
+### R3.4 新机的发布前提(窗前必须成立)
+- **P1 GitHub 凭据**:
+  - `~/.gitconfig` 的 github 凭据助手写的是 `/usr/local/bin/gh`(Intel brew 路径),新机的 gh 在 `/opt/homebrew/bin/gh`。实测 ls-remote 返回 rc=128「Authentication failed」。
+  - 在修好之前:safe_commit 的 fetch / push、ff_running_tree 的 fetch、两个探针的「GitHub main」行都会失败。
+  - 修法属于主机配置,由 lead 处理:`gh auth setup-git`。
+  - 验证:`GIT_TERMINAL_PROMPT=0 git ls-remote https://github.com/allenamy/dl_quant_live.git refs/heads/main` 返回运行树 HEAD。
+- **P2 A10**:新机上任何电池都会停在 165/166,而 safe_commit 要求全绿,所以任何发布都会被拒。
+  - 修复是 fix-pkg-e 克隆的提交 **cea1e15fa4051df1fb506a5989a3e582291ce95b**,只改测试 `live/tests_nosleep.py`。
+  - 它作为 **T0** 单独发布,放在 GAP4 窗内 W3 之前(见 R3.5)。
+  - 补丁留档在 `fixpkg_e_2026-09-27/receipts/arm64_2026-09-27/A10_fix_cea1e15.patch`,克隆丢了可以从这里重建。
+- **P3**:08Z(1790496000)是新机上的第一个锚,必须先通过 lead 的验收。
+- **P4**:运行树 HEAD 仍是 d01e35d;combo_stage 仍是 12a76de8;真实 home 预检仍是 PREFLIGHT_PASS。
+
+### R3.5 改期后的窗与步骤
+- **主窗 09-27 09:00–11:40Z**,首锚为 **12Z = 1790510400**。
+- **备用窗 13:00–15:40Z**,首锚为 **16Z = 1790524800**。
+  - 走备用窗时,12Z 会用现码跑:members_hist 缺 09-26 12Z/16Z,F10 的 drank 三列在 12Z 输入为 0。§5 的沙箱量级是目标 Σ|dw| 0.00126。
+  - 要避免这一点,只能在 12Z 前停服务、用 §6 的回填装置补上。由 lead 决定。
+- **T0(A10,只改测试)**,在 W0 之后、W1 之前:
+  ```
+  XT=~/cc_tmp/a10_release_$(date -u +%Y%m%dT%H%MZ); git clone ~/dl_quant_live $XT && git -C $XT remote set-url origin https://github.com/allenamy/dl_quant_live.git \
+    && git -C $XT config user.name haosiyu && git -C $XT config user.email siyuhao0702@gmail.com
+  git -C $XT rev-parse HEAD                      # 必须 == d01e35db56b4d7ed6abf0befd9f18452cd06c329
+  git -C $XT fetch ~/cc_tmp/fixpkg_e_exec cea1e15fa4051df1fb506a5989a3e582291ce95b \
+    && git -C $XT show cea1e15fa4051df1fb506a5989a3e582291ce95b:live/tests_nosleep.py > $XT/live/tests_nosleep.py   # 完整 sha;短 sha 无法 fetch(已实测)
+  rsync -a --exclude acceptance/ --exclude quarantine/ --exclude __pycache__/ --exclude pycache_void/ --exclude '/*.log' --exclude '/*.out' --exclude anchor.lock ~/dl_quant_live/state/ $XT/state/
+  (cd $XT && bash ops/safe_commit.sh "tests_nosleep A10 host-independent (arm64 host): red capability manufactured by a synthetic slow reader; test-only; quant_research DEPLOY_gap_classfix rev 3 T0" live/tests_nosleep.py); echo "rc=$?"
+  T0SHA=$(git -C $XT rev-parse HEAD); /usr/bin/python3 ~/cc_tmp/lead_deploy_20260923/ff_running_tree.py $T0SHA; echo "rc=$?"
+  /usr/bin/python3 /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/gap_classfix_2026-09-26/devices/gap_version_probe.py after-w3 $T0SHA live/tests_nosleep.py   # 末行必须 OK n=0
+  ```
+- **W3(GAP4 执行器侧归档)** 从 T0SHA 出发:
+  - 新克隆的 HEAD 必须 == T0SHA;
+  - `git fetch ~/cc_tmp/gapfix4_exec_20260926T1911Z 201188d652c69c2518be0d6457464940d24cca2e`;
+  - 然后用 `git show 201188d652c69c2518be0d6457464940d24cca2e:<path> > <path>` 取出两个文件:`ops/producer_release/20260927_gapfix/INSTALL_CONTRACT.json` 和 `…/PATCH_RECEIPT.json`;
+  - safe_commit,pathspec 就是这两个路径;
+  - ff;
+  - `gap_version_probe.py after-w3 <NEWSHA> <两个路径>`。
+- **W5**:门文件不变,调用的探针已是 rev 1。
+- **W6**:改用 `window/gates_gapfix_W6_first_anchor_1790510400_12Z.json`(备用窗用 `…_1790524800_16Z_backup.json`)。(b) 的期望改为 **3 个锚 [1790424000, 1790438400, 1790481600]**,即 09-26 12Z、09-26 16Z,再加 09-27 04Z(迁移中漏跑)。探针同时核对「字面量 == members_hist 在 A 之前的洞」,所以 08Z 若意外补上了 04Z,门会点名。**本条修订写于任何 GAP4 锚读数之前。**
+- **窗前演练**(克隆,离线电池,新机,rsync 了完整 state):
+  - T0 单独(d01e35d + A10):**ALL GREEN 166/166(克隆 80ea0d5,收据 BATTERY_rehearse_T0_A10_80ea0d5.log)**;
+  - T0 + GAP4 归档:**ALL GREEN 166/166(克隆 0d77784,收据 BATTERY_rehearse_T0_GAP4_0d77784.log)**;
+  - T0 + GAP4 + M3 一行:**ALL GREEN 166/166(克隆 527eec6,收据 m3_on_2026-09-27/receipts/arm64_2026-09-27/BATTERY_rehearse_T0_GAP4_M3_527eec6.log)**。
+  - 这三棵树与窗内将产生的树内容相同(文件互不相交),只有提交顺序和 sha 不同。
 
 - 验收线(lead):**下一次任意长度的缺锚,不需要人即可被处理。**
 - 判据:`multi_asset/exports/research/gap_classfix_2026-09-26/ACCEPTANCE_gap_classfix_2026-09-26.md`。冻结于 11bc3b4be;修订 1(2a7567019)、修订 2(483713a15)、修订 3(ffa978f27)都写在读数之前。

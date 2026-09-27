@@ -1,0 +1,16 @@
+OK   baseline                       rc=0 n_fail=0 expected_red=[] caught=[]
+OK   timeout_dropped                rc=1 n_fail=1 expected_red=['A10 RED CAPABILITY'] caught=['A10 RED CAPABILITY']
+          FAIL  ★★ A10 RED CAPABILITY, the old reader's failure shape: `pmset -g log` under a timeout it cannot meet returns None (UNKNOWN), and returns at th
+OK   failure_reads_as_empty         rc=1 n_fail=2 expected_red=['A10 RED CAPABILITY'] caught=['A10 RED CAPABILITY']
+          FAIL  A6 store unlistable ⇒ pmset fallback; pmset failing too ⇒ None + UNREADABLE  — ([], 'pmset (asl store unlistable)')
+          FAIL  ★★ A10 RED CAPABILITY, the old reader's failure shape: `pmset -g log` under a timeout it cannot meet returns None (UNKNOWN), and returns at th
+OK   run_swallows_timeout_as_ok     rc=1 n_fail=1 expected_red=['A10 RED CAPABILITY'] caught=['A10 RED CAPABILITY']
+          FAIL  ★★ A10 RED CAPABILITY, the old reader's failure shape: `pmset -g log` under a timeout it cannot meet returns None (UNKNOWN), and returns at th
+OK   reader_command_changed         rc=1 n_fail=2 expected_red=['A10p', 'A10h'] caught=['A10p', 'A10h']
+          FAIL  A10p POSITIVE CONTROL: the same substitution with a reader that finishes returns a LIST holding the fixture sleep (so None below is the timeou
+          FAIL  A10h neither check reached this machine: both calls were `pmset -g log` and both were served; no host command was issued inside a seal  — ([],
+OK   parser_drops_sleep             rc=1 n_fail=1 expected_red=['A10p'] caught=['A10p']
+          FAIL  A10p POSITIVE CONTROL: the same substitution with a reader that finishes returns a LIST holding the fixture sleep (so None below is the timeou
+OK   red_check_moved_out_of_seal    rc=1 n_fail=1 expected_red=['A10s every'] caught=['A10s every']
+          FAIL  ★ A10s every red-capability check of this file sits inside a `with _host_sealed(...)` (derived from this file's AST; at least one seen, never 
+A10_MUTANTS PASS

@@ -1,0 +1,20 @@
+first-anchor A=1790467200 status={'anchor': 1790467200, 'ok': True, 'step': 'done', 'utc': '2026-09-27T00:17:38Z'}
+  OK  combo_live_status anchor: measured=1790467200 compared_with=1790467200
+  OK  combo_live_status ok: measured=True compared_with=True
+  BAD combo_stage.py at the daemon run path == candidate: measured=12a76de89831fb42d05ec722f2e2506d6b288b4b9f5b86be04bc390c789a62a9 compared_with=5eaabcdb9e4d69c1af2339217ae46d11fe54c2f5d7e743409c5b585ff4a6e3a3
+  BAD wide_shadow/fea171/prev_state.py: measured=None compared_with=5150aeae9fc3732ec9b9d4f5ce80735507a31dbf9632321b3ede3ab35271fdc2
+  BAD wide_shadow/fea171/members_rule.py: measured=None compared_with=be6915608818ad48ea94b26c2a63b6cb8518582fd3e8b21cced6d4607a08a757
+  VAL target_combo state_lookup=no members_recomputed=None cold_start_refused=None
+  OK  kc_state_source (a normal anchor must be own): measured=own compared_with=own
+  OK  fc_state_source (a normal anchor must be own): measured=own compared_with=own
+  OK  f10 h_source (target_blend; a normal anchor must be own): measured=own compared_with=own
+  LOG [   2.1s] NC A2 member history: 237/239 window anchors have members (missing 2)
+  LOG [  32.9s] ④ COMBO 落盘 n=319 gross=0.8036 kc_src=own fc_src=own w3m=[0.3934, 0.0, 0.6066]
+  LOG [  33.9s] ⑤ COMBO_LIVE 写者完成 rehearsal=False n=319 gross=0.8036 读者验收 ok age=0.7s
+  LOG === combo_live anchor=1790467200 rc=0 Sun Sep 27 00:17:39 UTC 2026
+  OK  no GAP_PAGE line in this anchor's block (a normal anchor pages nothing): measured=0 compared_with=0
+  BAD members_recomputed anchors == frozen literal: measured=[] compared_with=[1790424000, 1790438400, 1790481600]
+  OK  members_recompute_errors: measured={} compared_with={}
+  VAL members_hist holes in [first, A): [1790424000, 1790438400]
+  BAD frozen literal == members_hist holes before A: measured=[1790424000, 1790438400] compared_with=[1790424000, 1790438400, 1790481600]
+GAP_VERSION_PROBE first-anchor MISMATCH n=5 ['combo_stage.py at the daemon run path == candidate', 'wide_shadow/fea171/prev_state.py', 'wide_shadow/fea171/members_rule.py', 'members_recomputed anchors == frozen literal', 'frozen literal == members_hist holes before A']
