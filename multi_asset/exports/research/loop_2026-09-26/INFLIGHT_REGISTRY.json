@@ -961,5 +961,20 @@
   "inputs": "features ad80d50d, legs 37c0b5d3, King OOF 6579bc4e (news2 85f2a340b)",
   "closed": true,
   "closed_note": "dlarch: D10RR_ALL_DONE rc=0 14:09:35Z; PAUSE removed by trap; receipts committed"
+ },
+ {
+  "name": "acting_lead_ksr_readout_waiter",
+  "owner": "Codex acting-lead / research_resume_0927",
+  "host": "pod2",
+  "log": "/dev/shm/acting_lead_20260927/ksr_readout/waiter.log",
+  "terminal": "^\\S+ KSR_READOUT_(DONE|FAILED)\\b",
+  "pgid": 3505287,
+  "pgid_file": "/dev/shm/acting_lead_20260927/ksr_readout/PGID.json",
+  "role": "WAIT_THEN_READ_ONLY",
+  "upstream_pgid": 3479615,
+  "upstream_log": "/dev/shm/mretrain_2026-09-26/logs/ksr.log",
+  "notes": [
+   "Waiter only until exact KSR_DONE series=36; then bind 38 series +16 targets stats +11 gate4 receipts and run corrected reader once. No new training or replay. CPU20min, RLIMIT_AS3GiB, cgroup headroom>=4GiB, OMP/BLAS=1. Independent output root /workspace/codex_research/QNT-2026-0907/acting_lead_20260927/ksr_readout."
+  ]
  }
 ]
