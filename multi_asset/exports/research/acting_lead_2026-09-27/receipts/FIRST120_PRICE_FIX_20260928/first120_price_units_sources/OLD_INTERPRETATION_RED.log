@@ -1,0 +1,32 @@
+test_negative_log_is_not_negative_price (test_price_units.PriceUnitControls.test_negative_log_is_not_negative_price) ... FAIL
+test_before_listing_stays_unknown (test_price_units.PriceUnitControls.test_before_listing_stays_unknown) ... FAIL
+test_zero_log_uses_reference (test_price_units.PriceUnitControls.test_zero_log_uses_reference) ... FAIL
+
+======================================================================
+FAIL: test_negative_log_is_not_negative_price (test_price_units.PriceUnitControls.test_negative_log_is_not_negative_price)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/first120_price_units_sources/test_price_units.py", line 35, in test_negative_log_is_not_negative_price
+    self.assertEqual(price[0,0],100.)
+AssertionError: np.float64(-1.0) != 100.0
+
+======================================================================
+FAIL: test_before_listing_stays_unknown (test_price_units.PriceUnitControls.test_before_listing_stays_unknown)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/first120_price_units_sources/test_price_units.py", line 41, in test_before_listing_stays_unknown
+    self.assertTrue(np.isnan(price[0,1]))
+AssertionError: np.False_ is not true
+
+======================================================================
+FAIL: test_zero_log_uses_reference (test_price_units.PriceUnitControls.test_zero_log_uses_reference)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/first120_price_units_sources/test_price_units.py", line 46, in test_zero_log_uses_reference
+    self.assertEqual(self.call(d)[0][0,1],2.)
+AssertionError: np.float64(0.0) != 2.0
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.005s
+
+FAILED (failures=3)
