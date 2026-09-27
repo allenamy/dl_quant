@@ -10,11 +10,11 @@
 # Gate order: phases after 'gates' refuse to start unless KSR_GATES PASS is in the log. Any failure -> 'KSR_STOP <why>' (line
 # start); each phase ends with 'KSR_<PHASE>_DONE rc=<n>'. Writes: compressed OOFs; a 1 GiB write probe runs first (protocol, quota).
 set -u
-W=/workspace/dlarch_2026-09-24; A=$W/ksr_2026-09-27; LOG=$A/ksr.log; PY=/workspace/venv/bin/python; R=$W/receipts
+W=/workspace/dlarch_2026-09-24; A=$W/ksr_2026-09-27; M=/dev/shm/dlarch_ksr; mkdir -p $M; LOG=$M/ksr.log; PY=/workspace/venv/bin/python; R=$W/receipts   # rev: marker log on /dev/shm (protocol: not the products volume)
 PHASE=${1:?usage: run_ksr.sh gates|arms|read|h2|splice|book}
 mkdir -p $A/arms $A/logs $A/splice
 mkdir "$W/CHAIN/.claim_KSR" 2>/dev/null || { echo "KSR_STOP claim exists or cannot be created ($PHASE)" >> "$LOG"; exit 4; }
-echo "pgid=$(ps -o pgid= -p $$ | tr -d ' ') pid=$$ owner=dlarch job=ksr_$PHASE started=$(date -u +%FT%TZ)" | tee "$W/CHAIN/.claim_KSR/owner" > "$A/ksr.pgid"
+echo "pgid=$(ps -o pgid= -p $$ | tr -d ' ') pid=$$ owner=dlarch job=ksr_$PHASE started=$(date -u +%FT%TZ)" | tee "$W/CHAIN/.claim_KSR/owner" > "$M/ksr_$PHASE.pgid"
 say(){ echo "$(date -u +%FT%TZ) $*" >> "$LOG"; }
 stop(){ echo "KSR_STOP $PHASE: $1" >> "$LOG"; rm -rf "$W/CHAIN/.claim_KSR"; exit 1; }
 ENV="env -i PATH=/usr/bin:/bin HOME=/root LC_CTYPE=C"
