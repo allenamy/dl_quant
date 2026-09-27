@@ -49,7 +49,7 @@ CF3(`RESULT_three_signal_counterfactual_2026-09-20.md`, 旧 object-B 链, 单位
 2. 进到书里之后, 2026 年 King 在构成上**系统性地做空资金费腿做多的名**(4–8 月最明显), 恰好是资金费腿价格收益最大的时期; 打乱 King 让书变好, **改善来自价格通道**。这与「King 抵消了正在赚钱的资金费敞口」相容。
 3. 但红控同时移动了席位, 所以「经构成」还是「经席位」要等 (3b)。单腿 King 扣完资金费与换手后本身就是净负, 这一点对两种解释都成立。
 
-## (3a-2) 与 fresh2 独立算的通道分解对账(fresh2 `rc_decomp.py`(入库 `e16524796`), 结果 `RC_DECOMP_partial.json` sha 4971ebfd 出自入库前一版: 该版 resid 列公式错写, **pnl / car / cst / g 各通道数值不受影响**(fresh2 02:1xZ 说明); 带席位部分的正式版 RC_DECOMP.json 入库后以其为准; 数字引用自 fresh2 02:0xZ 消息)
+## (3a-2) 与 fresh2 独立算的通道分解对账(**引用更新 05:3xZ**: 正式出处改为装置 rc_decomp.py 0f88e1ce(`e16524796`)+ 收据 `RC_DECOMP_full.json` dd26b562(`242c84797`); 下列通道数与该收据逐位一致, 见 (3b)。原括注保留如下: fresh2 `rc_decomp.py`(入库 `e16524796`), 结果 `RC_DECOMP_partial.json` sha 4971ebfd 出自入库前一版: 该版 resid 列公式错写, **pnl / car / cst / g 各通道数值不受影响**(fresh2 02:1xZ 说明); 带席位部分的正式版 RC_DECOMP.json 入库后以其为准; 数字引用自 fresh2 02:0xZ 消息)
 - 口径: RED − A0, 两种子平均, ×GM = 2 折成 NAV bps/日。2026 **+4.21** = 价格 +4.29 − 多付资金费 +0.06 − 费用 +0.03; pre-2026 −5.80 = 价格 −2.66 − 多付资金费 +3.47 − 费用 −0.33。**与本文 §(3a) 对得上**(本文 g 均值 ≈ +2.1 × 2 ≈ +4.2)。
 - **fresh2 给出的、本文没有的两条(承重)**:
   1. **2026 的改善高度集中在 4 月**: 逐月总差 01 −1.8 / 02 +2.3 / 03 −4.3 / **04 +34.2** / 05 +10.2 / 06 +8.7 / 07 −3.1 / 08 +0.0 / 09 −15.6; 4 月约占 2026 全段的 93%。去掉 4 月其余约 +0.3/日; 去掉 4–6 月约 −3.0/日。**9 月打乱 King 反而更差(−15.6)**。
@@ -65,7 +65,7 @@ CF3(`RESULT_three_signal_counterfactual_2026-09-20.md`, 旧 object-B 链, 单位
 
 ## (3b) 单条件格: 只换席位 / 只换构成(fresh2, 定稿用)
 **装置** fresh2 `rc_hybrid.sh` / `rc_hybrid_legs.py` / `rc_read.py`(入库 `e16524796`, 先于读数; rc_read.py sha 3dd2d635 == 收据自报); 已知答案冒烟 `mretrain_2026-09-26/receipts/rootcause_2026-09-27/RC_READ_smoke_known_answer.json`。
-**收据**(pod2, 待 fresh2 入库; 本地取回后 sha 两端一致): `/dev/shm/mretrain_2026-09-26/receipts/RC_READ_hybrid.json` sha **2e75f1b3**(03:47:30Z, 终态 `RC_HYBRID_DONE` 03:49:34Z); 带席位路径的完整通道分解 `RC_DECOMP_full.json` sha **dd26b562**(rc_decomp.py 0f88e1ce, 05:02:58Z)。完整版的 RED−A0 通道与 §(3a-2) 所引数逐位一致(2026 g +4.21 / 价格 +4.29 / 资金费 +0.06 / 费用 +0.03), 所以 §(3a-2) 的数字不需要改。
+**收据**(fresh2 已入库 `242c84797`, `mretrain_2026-09-26/receipts/rootcause_2026-09-27/`; 仓库副本与 pod2 原件 sha 一致, 05:3xZ 核): `RC_READ_hybrid.json` sha **2e75f1b3**(03:47:30Z, 终态 `RC_HYBRID_DONE` 03:49:34Z); 带席位路径的完整通道分解 `RC_DECOMP_full.json` sha **dd26b562**(rc_decomp.py 0f88e1ce, 05:02:58Z)。完整版的 RED−A0 通道与 §(3a-2) 所引数逐位一致(2026 g +4.21 / 价格 +4.29 / 资金费 +0.06 / 费用 +0.03), 所以 §(3a-2) 的数字不需要改。
 **两格定义**: RED legs 与 A0 legs 只在 KZ / LR / WL 三个数组上不同(`RC_HYBRID_LEGS` 行)。**SEAT_ONLY** = RED 的席位(King 腿 LR 被打乱 ⇒ msharpe 把席位移向资金费腿) + 真实 King 排序; **COMP_ONLY** = 打乱的 King 排序 + A0 的席位。对照都是 A0_m0 同种子; 两 F10 种子(42 / 2027)平均; NAV bps/日, MBB 块 30。**单项替换不可相加; 交互项 = RED − SEAT − COMP, 照报。**
 
 | 段 | RED(两件都换) | **SEAT_ONLY** | **COMP_ONLY** | 交互 |
