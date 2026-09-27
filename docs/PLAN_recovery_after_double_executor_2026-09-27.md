@@ -217,10 +217,10 @@
 |---|---|---|---|---|
 | 1 | 用户 | 旧机:断网 → `launchctl bootout` 并 `disable` 全部 com.hsy.* / com.dlquant.* → 关机。报出**断网时刻 T_off**(UTC,精确到秒) | 用户口头或书面确认,附 T_off | 不往下走 |
 | 2 | 用户 | 在交易所界面:新建 API 密钥(只开期货交易,禁止提币,IP 限定 103.252.201.68)→ **删除旧密钥**。报出轮换时刻,并截图密钥列表(只剩新的一把) | 截图入库 | 不往下走 |
-| 3 | lead | 把新密钥写进 `~/dl_quant_live/.env`,只换 `BINANCE_KEY` 和 `BINANCE_SECRET` 两行,其余保留;然后 `chmod 600 ~/dl_quant_live/.env`。另外自查 `~/.quant_readonly.env` 装的是哪把密钥:若是被删的旧密钥,研究侧只读拉取器会失效,需要换掉或记下 | — | — |
-| 4 | lead | 在静默窗执行 `/usr/bin/python3 $DEV/venue_readonly.py q1q4 --t-off <T_off> --out $RCP/Q1Q4_<UTC时刻>.json` | 首行 `KEY fingerprint sha256[:10] = …` 与新密钥相符(可对照 `printf %s "<新key>" \| shasum -a 256 \| cut -c1-10`);末行 **`VENUE_Q1_Q4 PASS`**,rc 0 | FAIL(rc 1)或 UNKNOWN(rc 2)⇒ **停,不恢复** |
+| 3 | 用户(lead 核对) | 用户把新密钥写进 `~/dl_quant_live/.env`:只换 `BINANCE_KEY` 和 `BINANCE_SECRET` 两行,其余保留;然后 `chmod 600`。lead 不经手密钥,只核对指纹:第 4 步首行打印的 `KEY fingerprint sha256[:10]` 必须**不等于**旧实盘密钥的指纹 `88d264fe14`。`~/.quant_readonly.env` 是另一把单独的只读密钥(指纹 `f952dbea01`),不在这次轮换范围内,研究侧拉取器不受影响(lead 09-27 核实) | 指纹已变 | 指纹仍为 88d264fe14 ⇒ 不往下走 |
+| 4 | lead | 在静默窗执行 `/usr/bin/python3 $DEV/venue_readonly.py q1q4 --t-off <T_off> --out $RCP/Q1Q4_<UTC时刻>.json` | 首行 `KEY fingerprint sha256[:10] = …` 不等于 `88d264fe14`(旧密钥);末行 **`VENUE_Q1_Q4 PASS`**,rc 0 | FAIL(rc 1)或 UNKNOWN(rc 2)⇒ **停,不恢复** |
 | 5 | integ | 认领研究仓在 03:59Z 之后的未提交改动 | **已完成(09:22Z)**:只有 lead 的 `ACCEPT_08Z_1790496000_arm64_first.txt` 和 integ 的恢复装置,没有来路不明的写入(收据 `REPO_UNCOMMITTED_TOUCHED_after_0359Z.txt`)。第 8 步前再跑一次 | 出现来路不明的文件 ⇒ 报 lead |
-| 6 | lead 或 integ | `bash $DEV/recheck_clone.sh`:新建隔离克隆 + 完整 state 拷贝,在沙箱里跑 `resume --check` 和逐条件判词 | 末行 **`RECHECK RESUMABLE`**,rc 0;tripped False,无 blind,5b 与 5e 都为 CLEAN。09:23Z 实测已是如此 | NOT_RESUMABLE ⇒ 停,交 lead |
+| 6 | lead | `bash $DEV/recheck_clone.sh`:新建隔离克隆 + 完整 state 拷贝,在沙箱里跑 `resume --check` 和逐条件判词 | 末行 **`RECHECK RESUMABLE`**,rc 0;tripped False,无 blind,5b 与 5e 都为 CLEAN。09:23Z 实测已是如此 | NOT_RESUMABLE ⇒ 停,交 lead |
 | 7 | 用户 | 今天全天冻结合约钱包的转入与转出(§1.3 第 4 条) | 用户确认 | — |
 | 8 | lead(以用户字为前提) | `cd ~/dl_quant_live && LIVE_MODE=LIVE bash ops/resume_from_trip.sh "双执行器事故 09-27 08:31Z:旧机于 <T_off> 断网关机、旧密钥于 <T_rot> 删除;Q1–Q4 于 <时刻> PASS;克隆 --check RESUMABLE"` | 依次出现:`✓ LIVE is the tripped mode` → `1/4 … ✓ no condition currently fires …` → `2/4 … -> …/quarantine/state_<stamp>_resumed.json` → `3/4 removed …/state.json`,以及 `removed …/harvest_ema.json`(整书平仓,不保留 EMA 记忆)→ `4/4 ✓ no halt/reduce-only state remains` → `✓ resumed (reason: …)`;rc 0 | 任何一步 ✗ ⇒ 脚本自己拒绝、不改状态;交 lead,**不要重跑到绿** |
 | 9 | lead | 恢复后立即只读核对:`python3 -c "import os;print(os.path.exists(os.path.expanduser('~/dl_quant_live/state/live/watchdog/state.json')))"` | `False` | 交 lead |
