@@ -37,6 +37,11 @@ KNOWN_VIOLATIONS = {
     # installed as ~/funding_ledger_archive/archive_live_ledger.py (sha a71c2a22..., lead 2026-09-26 21:01Z); its writes are durable
     # by its own hand-rolled helper, which this scanner cannot see through. Changing it means a redeploy by lead, not an edit here.
     "archive_live_ledger.py": 6,
+    # common/durable_write.py: its own temp-file writer (os.fdopen(fd, "wb") into the mkstemp temp, then fsync/read-back/replace).
+    # Until 2026-09-27 rule W skipped this file by NAME, so a raw write added to the helper everyone writes through was invisible
+    # (lead ruling after the re-read delivery). Pinned here rather than annotated in the file: an in-file exemption comment would
+    # change the sha of the shared module and of every vendored/deployed copy. A second raw write makes the count 2 -> red.
+    "durable_write.py": 1,
     # dlarch_safe_io.py 4 -> 0 and dlarch_chain_torch.py 1 -> 0 after dlarch's fix cc5b392d3 (fsync + read-back in all three
     # writers, reasoned exemptions for the writer itself and the selftest fixtures); pins removed 2026-09-27, so any new raw write is red.
   # 1 = its own temp/fsync/read-back helper (os.fdopen L139), 5 = its 7b selftest fixtures
@@ -255,6 +260,26 @@ def stale_dw_copies(root):
     return out
 
 
+def w_rule(srcs):
+    """Rule W + the K ratchet over {name: source}; every .py is scanned, durable_write.py included (no name-based skip since
+    2026-09-27). Raises AssertionError on a raw write outside KNOWN_VIOLATIONS or on a pinned count that moved; returns the counts."""
+    viol = {}
+    for n, src in sorted(srcs.items()):
+        if n.endswith(".py"):
+            v = scan_python(src, n)
+            if v:
+                viol[n] = v
+    counts = {os.path.basename(n): len(v) for n, v in viol.items()}
+    new = {n: viol[n] for n in viol if os.path.basename(n) not in KNOWN_VIOLATIONS}
+    assert not new, "raw writes in chain devices: %s" % json.dumps(new)
+    scanned = {os.path.basename(n) for n in srcs}
+    for n, pin in KNOWN_VIOLATIONS.items():
+        got = counts.get(n, 0)
+        if n in scanned:
+            assert pin is not None and got == pin, "ratchet: %s has %d raw writes, pin says %r" % (n, got, pin)
+    return counts
+
+
 RES = []
 def cell(n, fn):
     try:
@@ -352,6 +377,20 @@ def register():
         assert scan_python(open(os.path.join(dd, "b.py")).read()), "the helper's raw write must be visible once it is in the closure"
     cell("M_import_closure_follows_static_importlib_and_common", m_closure)
 
+    def m_dw_not_skipped():
+        """lead 2026-09-27 (D): the helper itself is scanned. Baseline first (the real source sits exactly at its pin), then a raw
+        write injected into it must turn the rule red, under the name the chain gives it and under a vendored path."""
+        dw = open(os.path.join(COMMON, "durable_write.py")).read()
+        assert w_rule({"closure:common/durable_write.py": dw}) == {"durable_write.py": 1}, "baseline: real helper is not at its pin"
+        inj = dw + '\ndef _leak(p, x):\n    json.dump(x, open(p, "w"))\n'
+        for key in ("closure:common/durable_write.py", "durable_write.py", "closure:x/devices/durable_write.py"):
+            try:
+                w_rule({key: inj})
+            except AssertionError:
+                continue
+            raise AssertionError("raw write injected into durable_write.py not flagged under key %s" % key)
+    cell("M_durable_write_itself_scanned", m_dw_not_skipped)
+
 
     # ---- the real population ----
     def c_runbook():
@@ -364,20 +403,9 @@ def register():
 
     def c_w():
         _, resolved, _ = chain_from_runbook()
-        viol = {}
-        for n, p in sorted(dict(resolved, **import_closure(resolved)).items()):
-            if n.endswith(".py") and os.path.basename(n) != "durable_write.py":
-                v = scan_python(open(p).read(), p)
-                if v:
-                    viol[n] = v
-        counts = {os.path.basename(n): len(v) for n, v in viol.items()}
-        new = {n: viol[n] for n in viol if os.path.basename(n) not in KNOWN_VIOLATIONS}
-        assert not new, "raw writes in chain devices: %s" % json.dumps(new)
-        scanned = {os.path.basename(n) for n in dict(resolved, **import_closure(resolved))}
-        for n, pin in KNOWN_VIOLATIONS.items():
-            got = counts.get(n, 0)
-            if n in scanned:
-                assert pin is not None and got == pin, "ratchet: %s has %d raw writes, pin says %r" % (n, got, pin)
+        srcs = {n: open(p).read() for n, p in sorted(dict(resolved, **import_closure(resolved)).items())}
+        assert any(os.path.basename(n) == "durable_write.py" for n in srcs), "durable_write.py is not in the scanned population"
+        counts = w_rule(srcs)
         return {"known_violation_counts": {n: counts.get(n, 0) for n in KNOWN_VIOLATIONS}}
     cell("C1_W_no_raw_writes_in_chain", c_w)
 
@@ -433,7 +461,7 @@ def register():
     cell("C6_funding_interval_frozen", c_freeze)
 
     def c_dw_copies():
-        """fresh2 2026-09-27: the W rule skips durable_write.py by name, so a stale VENDORED copy next to a device is invisible to it.
+        """fresh2 2026-09-27: the W rule skipped durable_write.py by name (until the same day), so a stale VENDORED copy next to a device was invisible to it.
         Every durable_write.py in the research tree must be byte-identical to common/durable_write.py. (Deployments on pod2 are not in
         the repo; they are covered by the three-way sha check at deploy time.) Today's population is 0 copies, so the rule's power is
         shown on a temp tree first (a population of 0 proves nothing by itself)."""
