@@ -744,5 +744,17 @@
   "plan": "docs/PLAN_d10_reread_past_cut_2026-09-27.md (f97de160dcb1fa5f09d1211a13d062ad8e1c60e9) step R1",
   "note": "public fapi fundingRate from pod2 only, <=430 req/5min; descriptive re-read, frozen verdict unchanged",
   "delivery": "session cron 6b996533 + waiter"
+ },
+ {
+  "name": "dlarch_ksr_gates_run2",
+  "owner": "dlarch",
+  "host": "pod2",
+  "log": "/dev/shm/dlarch_ksr/ksr.log",
+  "pgid_file": "/dev/shm/dlarch_ksr/ksr_gates.pgid",
+  "pgid": 3458354,
+  "terminal": "^(KSR_GATES_DONE rc=|KSR_STOP)",
+  "success": "^KSR_GATES PASS then ^KSR_GATES_DONE rc=0",
+  "started_utc": "2026-09-27T11:05:06Z",
+  "devices": "reader rev 1 1fdf7dde (60d66e16196)"
  }
 ]
