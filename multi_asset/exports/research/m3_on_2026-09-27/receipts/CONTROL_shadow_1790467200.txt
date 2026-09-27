@@ -1,0 +1,11 @@
+M3 ON first-anchor acceptance A=1790467200 (09-27T00:00:00Z) expect=shadow
+  PASS       F1 config / versions  book.mode=shadow cap=2.5 field.version=m3_beta_v2 field.anchor/cutoff=1790467200/1790467200 rec.mode=shadow rec.version_expected=m3_beta_v2 field_ok=True
+  PASS       F2 status  status=shadow shadow_would_be=applied
+  PASS       F3 hedge arithmetic (on caliber)  {'c1': True, 'c2': True, 'c3': True, 'c4': True} S=216222.5076343944 G=216222.5076343944 beta_exec=-8726.160559622378 recon=-8726.160559622364 intent=8726.160559622378 scale=1.0 hedge=8726.160559622378 btc_book=268.11896731976475 combined=8994.279526942142 B7v2_tol(ref)=108.18848999967001 missing_beta=[]
+  PASS       F4 hedge leg ordered  shadow: overlay-leg rows=0 (must be 0)
+  N/A        F5 delivery (readback)  shadow
+  PASS       F6 combined gross <= 2.5 NAV  combined_target=216222.5076343944 readback=216428.3399210502 nav=108188.48999967001 limit=270471.22499917506
+  N/A        F7 BTC leg execution & fees  shadow: BTC fills of the book itself=0
+  PASS       F8 book identity (non-BTC L2 == L1)  E6=True L1_reproduces=True n_checked=308 max|L2-L1|=2.2737367544323206e-13 (tol 0.216) clamped=7 capped=[] BTC L2-L1-hedge=None
+  PASS       F9 no false alarms  HIGH/CRITICAL in [A,A+1h]=1 flagged=[] watchdog_events=[] net_over_gross=-0.001134 caliber=signed sum of the venue's own position notionals at the end-of-anchor read; a SNAPSHOT, not a P&L and not a forecast. net_over_gross is the leverage-independent reading — use it to compare across anchors.
+M3_ON_FIRST_ANCHOR 1790467200 expect=shadow VERDICT=PASS F1=PASS F2=PASS F3=PASS F4=PASS F5=N/A F6=PASS F7=N/A F8=PASS F9=PASS
