@@ -120,6 +120,48 @@ class TerminalAuditTest(unittest.TestCase):
         self.assertEqual(a[seg['PRE2026_G4_COMMON']][0], DEV.ts(2023, 6, 30) + 14400)
         self.assertEqual(a[seg['PRE2026_G4_COMMON']][-1], DEV.ts(2026, 1, 1) - 14400)
 
+    def test_source_declared_lr_warmup_and_unclosed_tail(self):
+        # nc_legs leaves LR before first ready and the final, unclosed row as NaN.
+        # A blanket isfinite gate rejects a valid source object; ignoring arbitrary
+        # NaNs would instead admit a missing observation inside the used history.
+        a = W0 + np.arange(-3, 4, dtype=np.int64) * 14400
+        ready = np.array([False, False, True, True, True, True, True])
+        base = np.zeros((7, 3)); base[:2] = np.nan; base[-1] = np.nan
+        changed = base.copy(); changed[3:-1, 0] = 1
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); (root/'gate4').mkdir(); (root/'legs').mkdir()
+            old = root/'legs/KSR_S0_m0.npz'; new = root/'legs/KSR_S1_m0.npz'
+            gate = root/'gate4/KSR_S1_m0.json'
+            def run(x, y, r0, r1):
+                np.savez(old, E_ts=a, LR=x, ready=r0)
+                np.savez(new, E_ts=a, LR=y, ready=r1)
+                rec = dict(PASS=True, self_sha256=DEV.GATE4_SHA, mode='legs', first_window_anchor=W0,
+                           S0_legs=str(old), S0_legs_sha256=DEV.sha(old), spliced_legs=str(new), spliced_legs_sha256=DEV.sha(new),
+                           arrays={'LR': dict(axis0_is_anchor=True, pre_window_bitwise_equal=True,
+                                              first_differing_anchor=W0, n_anchors_differing=3)})
+                gate.write_text(json.dumps(rec))
+                result, _ = DEV.check_gate4_and_axes({'gate4': str(root/'gate4')}, {'S1': {'m0': 'KSR_S1_m0'}},
+                                                    {str(gate): DEV.sha(gate)}, [], [])
+                return result['S1_first_difference']['m0']
+            ok = run(base, changed, ready, ready)
+            self.assertEqual(ok['king_first_differing_anchor'], W0)
+            self.assertEqual(ok['structural_missing']['prefix_rows'], 2)
+            self.assertEqual(ok['structural_missing']['unclosed_tail_rows'], 1)
+            for problem in ('interior_nan', 'prefix_inf', 'one_sided_missing', 'readiness_diff',
+                            'readiness_hole', 'nonbool_ready', 'prefix_value', 'tail_value', 'no_finite_pre'):
+                x=base.copy(); y=changed.copy(); r0=ready.copy(); r1=ready.copy()
+                if problem == 'interior_nan': x[4]=np.nan; y[4]=np.nan
+                if problem == 'prefix_inf': x[0]=np.inf; y[0]=np.inf
+                if problem == 'one_sided_missing': y[1]=0
+                if problem == 'readiness_diff': r1[1]=True
+                if problem == 'readiness_hole': r0[4]=False; r1[4]=False
+                if problem == 'nonbool_ready': r0=r0.astype(int); r1=r1.astype(int)
+                if problem == 'prefix_value': x[0]=0; y[0]=0
+                if problem == 'tail_value': x[-1]=0; y[-1]=0
+                if problem == 'no_finite_pre': x[2]=np.nan; y[2]=np.nan; r0[2]=False; r1[2]=False
+                with self.subTest(problem=problem), self.assertRaises(DEV.Unavailable):
+                    run(x,y,r0,r1)
+
     def test_done_identity_required(self):
         good = dict(status='DONE', pgid=3505287, upstream_pgid=3479615,
                     upstream_start_ticks=508358906, waiter_sha256=DEV.WAITER_SHA,

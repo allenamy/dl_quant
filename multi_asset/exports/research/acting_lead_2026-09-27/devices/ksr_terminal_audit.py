@@ -27,6 +27,7 @@ CONFIG_SHA = '5a0a12dc9cf959844a10b4e34ae304cb1e0e7be0666c7f8926d7fd0521279775'
 READER_SHA = '816d373458906f397f8b8e564feb67250f86a981d74e99b168162a9c20232118'
 GATE4_SHA = '9557d128585a9d4ff1a8f25daa5d2a91454a87ecc2cd9e129d4f948e705bd267'
 PATH_ORDER_PINS = {
+    '/dev/shm/mretrain_2026-09-26/devices/nc_legs.py': '18387627f8426a45135b348dd4508281b4811894c91eb50af87751760609c0a0',
     '/dev/shm/fresh_2026-09-23/devices/fa_ladsave.py': 'a2dccf15a232a546c886e12fb2e1cd5522762509f42edd324eb3df4e57d17855',
     '/dev/shm/mretrain_2026-09-26/devices/mr_engine_queue.sh': '000b6a4ba599ee0fd701a705effa2fba096dbc86296a23783462561676732f98',
 }
@@ -78,7 +79,7 @@ def exact_edges(a, edges):
     return {iso(edge): int(np.searchsorted(a, edge)) for edge in edges}
 
 
-def check_s1_lr(a0, a1, lr0, lr1):
+def check_s1_lr(a0, a1, lr0, lr1, ready0=None, ready1=None):
     a0, a1 = axis(a0), axis(a1)
     need(np.array_equal(a0, a1), 'S0/S1 legs axes differ')
     exact_edges(a0, [W0])
@@ -86,7 +87,27 @@ def check_s1_lr(a0, a1, lr0, lr1):
     x, y = np.asarray(lr0), np.asarray(lr1)
     need(x.shape == y.shape == (len(a0), 3), 'LR shape must be anchor x [King,rev24,fund]')
     need(x.dtype == y.dtype and x.dtype.kind in 'fiu', 'LR dtype differs or is not numeric')
-    need(bool(np.isfinite(x).all() and np.isfinite(y).all()), 'non-finite LR; equality of NaNs is not evidence')
+    # Pinned nc_legs initializes LR as NaN, writes row i-1 from row i,
+    # and has no King OOF before first ready. These are unavailable returns,
+    # never zero returns. Require their exact declared support, not equal_nan.
+    missing = {'prefix_rows': 0, 'unclosed_tail_rows': 0}
+    if ready0 is None and ready1 is None:
+        need(bool(np.isfinite(x).all() and np.isfinite(y).all()), 'non-finite LR without source readiness')
+    else:
+        r0, r1 = np.asarray(ready0), np.asarray(ready1)
+        need(r0.dtype == r1.dtype == np.dtype(bool) and r0.shape == r1.shape == a0.shape,
+             'LR readiness must be two boolean anchor axes')
+        need(np.array_equal(r0, r1), 'S0/S1 LR readiness differs')
+        ix = np.flatnonzero(r0)
+        need(len(ix) > 0 and a0[ix[0]] < W0, 'no finite pre-window LR history')
+        first = int(ix[0])
+        need(np.array_equal(r0, np.arange(len(a0)) >= first), 'interior readiness gap is not a warmup prefix')
+        expected_nan = np.broadcast_to(((np.arange(len(a0)) < first) | (np.arange(len(a0)) == len(a0)-1))[:, None], x.shape)
+        for arr in (x, y):
+            need(not np.isinf(arr).any(), 'infinite LR is never a structural missing value')
+            need(np.array_equal(np.isnan(arr), expected_nan), 'LR missing support differs from source warmup and unclosed tail')
+        missing = {'prefix_rows': first, 'unclosed_tail_rows': 1,
+                   'first_measured_anchor': int(a0[first]), 'unclosed_tail_anchor': int(a0[-1])}
 
     def differing_rows(left, right):
         lb = np.ascontiguousarray(left).view(np.uint8).reshape(len(a0), -1)
@@ -102,7 +123,7 @@ def check_s1_lr(a0, a1, lr0, lr1):
             'king_first_differing_anchor': int(a0[king_rows[0]]),
             'first_window_anchor_exists': True, 'pre_window_bitwise_equal': True,
             'LR_differing_rows': len(all_rows), 'king_differing_rows': len(king_rows),
-            'LR_shape': list(x.shape), 'LR_dtype': str(x.dtype)}
+            'LR_shape': list(x.shape), 'LR_dtype': str(x.dtype), 'structural_missing': missing}
 
 
 def segment_masks(a):
@@ -227,7 +248,9 @@ def check_gate4_and_axes(cfg, cmap, pins, series, targets):
             need(pins.get(path, digest) == digest, 'conflicting legs binding: ' + path)
         check_hashes(leg_pins); pins.update(leg_pins)
         with np.load(r['S0_legs'], allow_pickle=False) as old, np.load(r['spliced_legs'], allow_pickle=False) as new:
-            result = check_s1_lr(old['E_ts'], new['E_ts'], old['LR'], new['LR'])
+            result = check_s1_lr(old['E_ts'], new['E_ts'], old['LR'], new['LR'],
+                                 old['ready'] if 'ready' in old.files else None,
+                                 new['ready'] if 'ready' in new.files else None)
         need(result['LR_differing_rows'] == lr_meta['n_anchors_differing'], 'actual LR differs from gate4 receipt')
         facts[member] = {'gate4_path': str(p), 'gate4_sha256': pins[str(p)], 'legs': leg_pins, **result}
     edges = [ts(y, m) for y, m in [(2023, 10), (2024, 1), (2024, 10), (2025, 1), (2025, 10), (2026, 1), (2026, 7)]]
