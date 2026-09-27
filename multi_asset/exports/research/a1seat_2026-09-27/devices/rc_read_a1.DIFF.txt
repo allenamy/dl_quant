@@ -1,0 +1,114 @@
+1,7c1,11
+< """rc_read.py — reading of the (3b) single-condition cells (King root cause; DESCRIPTIVE, no gate, no verdict). Same caliber as the
+< family's red reading (mr_read.py red): frozen news_stats (7141ba42) dbar per F10 seed vs A0_m0 of the same seed, mean over seeds,
+< MBB block 30 with the frozen B / RNG. Arms: RED_m0 (both conditions), SEAT_ONLY_m0 (RED seats, A0 King rank), COMP_ONLY_m0 (RED King
+< rank, A0 seats). Interaction = RED − SEAT_ONLY − COMP_ONLY (single replacements are NOT additive; the interaction is reported, never
+< dropped). Channels as rc_decomp.py: price pnl, funding PAID car (+ = paid), fee cst; NAV bps/day with g = pnl − car − cst.
+< usage: python rc_read.py <out.json>"""
+< import os, sys, json, hashlib, time
+---
+> """rc_read_a1.py — rc_read.py (3dd2d635, the (3b) reading) with ONLY the arm labels, members, series directory and MBB block made
+> parameters (fresh 2026-09-27, rule DECISION_RULE_A1_seat_decomp_2026-09-27.md b41ac9985; DESCRIPTIVE, no gate, no verdict here —
+> the verdict is applied by the lead). Everything else is rc_read.py verbatim: frozen news_stats (7141ba42) dbar per F10 seed vs the
+> control arm of the same member and seed, mean over (member, seed), MBB with the frozen B / RNG. Arms: FULL (both conditions),
+> SEAT_ONLY (FULL seats, control King rank), COMP_ONLY (FULL King rank, control seats). Interaction = FULL − SEAT_ONLY − COMP_ONLY
+> (single replacements are NOT additive; the interaction is reported, never dropped). Channels as rc_decomp.py: price pnl, funding
+> PAID car (+ = paid), fee cst; NAV bps/day with g = pnl − car − cst.
+> Identity control: with the (3b) configuration (--series /dev/shm/mretrain_2026-09-26/series --control A0 --full RED --seat SEAT_ONLY
+> --comp COMP_ONLY --members 0 --block 30) the "segments" of the output must equal RC_READ_hybrid.json (2e75f1b3) exactly.
+> usage: python rc_read_a1.py <out.json> --series DIR --control P --full P --seat P --comp P --members 0[,1,...] --block N"""
+> import os, sys, json, hashlib, time, argparse
+9c13
+< R = "/dev/shm/mretrain_2026-09-26"; S = f"{R}/series"; ENG = "/dev/shm/news_2026-09-23/engine"; sys.path.insert(0, ENG)
+---
+> ENG = "/dev/shm/news_2026-09-23/engine"; sys.path.insert(0, ENG)
+11c15,22
+< OUT = sys.argv[1]; SEEDS = ("42", "2027"); DAY = 86400; ARMS = ("RED_m0", "SEAT_ONLY_m0", "COMP_ONLY_m0")
+---
+> ap = argparse.ArgumentParser(); ap.add_argument("out"); ap.add_argument("--series", required=True); ap.add_argument("--control", required=True)
+> ap.add_argument("--full", required=True); ap.add_argument("--seat", required=True); ap.add_argument("--comp", required=True)
+> ap.add_argument("--members", required=True); ap.add_argument("--block", type=int, required=True); args = ap.parse_args()
+> OUT = args.out; S = args.series; SEEDS = ("42", "2027"); DAY = 86400; MEMBERS = [int(k) for k in args.members.split(",")]
+> MSFX = "_m%d" % MEMBERS[0] if len(MEMBERS) == 1 else "_m" + "-".join(map(str, MEMBERS))
+> ARMS = (args.full + MSFX, args.seat + MSFX, args.comp + MSFX); CTRL = args.control + MSFX; INTER = f"INTERACTION_{args.full}_minus_SEAT_minus_COMP"
+> PREFIX = {ARMS[0]: args.full, ARMS[1]: args.seat, ARMS[2]: args.comp, CTRL: args.control}
+> PAIRS = [(k, s) for k in MEMBERS for s in SEEDS]   # member-major, seed-minor: with one member this is rc_read.py's seed order
+27c38,39
+< rec = {"device": "rc_read.py", "self_sha256": sha(os.path.abspath(__file__)), "utc": iso(time.time()), "status": "DESCRIPTIVE_NO_GATE", "GM": GM, "inputs": {}}
+---
+> rec = {"device": "rc_read_a1.py", "self_sha256": sha(os.path.abspath(__file__)), "utc": iso(time.time()), "status": "DESCRIPTIVE_NO_GATE", "GM": GM,
+>        "config": vars(args), "inputs": {}}
+29,32c41,44
+< for lbl in ("A0_m0",) + ARMS:
+<     for s in SEEDS:
+<         p = f"{S}/SER_{lbl}_s{s}.npz"; rec["inputs"][p] = sha(p); Z[(lbl, s)] = np.load(p)
+< A = Z[("A0_m0", "42")]["anchors"].astype(np.int64)
+---
+> for lbl in (CTRL,) + ARMS:
+>     for k, s in PAIRS:
+>         p = f"{S}/SER_{PREFIX[lbl]}_m{k}_s{s}.npz"; rec["inputs"][p] = sha(p); Z[(lbl, k, s)] = np.load(p)
+> A = Z[(CTRL, MEMBERS[0], "42")]["anchors"].astype(np.int64)
+34c46
+< paths = lambda lbl, s: [{"A": A, "r": Z[(lbl, s)]["r_per_path"][j]} for j in range(32)]
+---
+> paths = lambda lbl, k, s: [{"A": A, "r": Z[(lbl, k, s)]["r_per_path"][j]} for j in range(32)]
+41,42c53,54
+< def mbb(x):   # verbatim statistic of mr_read.mbb (frozen block 30, B, RNG)
+<     idx = BT.mbb_indices(len(x), 30, NS.B, NS.RNG); mb = x[idx].mean(1)
+---
+> def mbb(x):   # verbatim statistic of mr_read.mbb (frozen B, RNG); block = --block (rc_read.py: 30)
+>     idx = BT.mbb_indices(len(x), args.block, NS.B, NS.RNG); mb = x[idx].mean(1)
+47c59
+<     """NAV bps/day of channel c, arm − A0, mean over seeds (paths averaged, full UTC days, × GM)"""
+---
+>     """NAV bps/day of channel c, arm − control, mean over (member, seed) (paths averaged, full UTC days, × GM)"""
+49,50c61,62
+<     for s in SEEDS:
+<         x = Z[(lbl, s)][c + "_per_path"].mean(0) - Z[("A0_m0", s)][c + "_per_path"].mean(0)
+---
+>     for k, s in PAIRS:
+>         x = Z[(lbl, k, s)][c + "_per_path"].mean(0) - Z[(CTRL, k, s)][c + "_per_path"].mean(0)
+54a67
+> pkey = lambda k, s: s if len(MEMBERS) == 1 else f"m{k}_s{s}"
+56c69
+< for k, m in segs.items():
+---
+> for seg, m in segs.items():
+59,61c72,74
+<         per = {s: NS.dbar(paths(lbl, s), paths("A0_m0", s), m, days)[0] for s in SEEDS}
+<         x = np.mean([per[s] for s in SEEDS], axis=0)
+<         e = {"D_bar": float(1e4 * x.mean()), "per_seed": {s: float(1e4 * per[s].mean()) for s in SEEDS}, "n_days": int(len(days)),
+---
+>         per = {(k, s): NS.dbar(paths(lbl, k, s), paths(CTRL, k, s), m, days)[0] for k, s in PAIRS}
+>         x = np.mean([per[p] for p in PAIRS], axis=0)
+>         e = {"D_bar": float(1e4 * x.mean()), "per_seed": {pkey(*p): float(1e4 * per[p].mean()) for p in PAIRS}, "n_days": int(len(days)),
+63c76
+<         if k in ("pre2026", "2026", "2023H2", "2024", "2025"): e["MBB_SE"], e["MBB95"] = mbb(x)
+---
+>         if seg in ("pre2026", "2026", "2023H2", "2024", "2025"): e["MBB_SE"], e["MBB95"] = mbb(x)
+65,69c78,82
+<     inter = row["RED_m0"]["_daily"] - row["SEAT_ONLY_m0"]["_daily"] - row["COMP_ONLY_m0"]["_daily"]
+<     row["INTERACTION_RED_minus_SEAT_minus_COMP"] = {"D_bar": float(1e4 * inter.mean()),
+<                                                     "channels_NAV_bps_day": {c: row["RED_m0"]["channels_NAV_bps_day"][c] - row["SEAT_ONLY_m0"]["channels_NAV_bps_day"][c]
+<                                                                              - row["COMP_ONLY_m0"]["channels_NAV_bps_day"][c] for c in ("pnl", "car", "cst", "g")}}
+<     if "MBB_SE" in row["RED_m0"]: row["INTERACTION_RED_minus_SEAT_minus_COMP"]["MBB_SE"], row["INTERACTION_RED_minus_SEAT_minus_COMP"]["MBB95"] = mbb(inter)
+---
+>     inter = row[ARMS[0]]["_daily"] - row[ARMS[1]]["_daily"] - row[ARMS[2]]["_daily"]
+>     row[INTER] = {"D_bar": float(1e4 * inter.mean()),
+>                   "channels_NAV_bps_day": {c: row[ARMS[0]]["channels_NAV_bps_day"][c] - row[ARMS[1]]["channels_NAV_bps_day"][c]
+>                                            - row[ARMS[2]]["channels_NAV_bps_day"][c] for c in ("pnl", "car", "cst", "g")}}
+>     if "MBB_SE" in row[ARMS[0]]: row[INTER]["MBB_SE"], row[INTER]["MBB95"] = mbb(inter)
+71c84
+<     res[k] = row
+---
+>     res[seg] = row
+74,77c87,90
+< back = json.load(open(OUT)); assert back["self_sha256"] == rec["self_sha256"]
+< print("RC_READ sha=%s" % sha(OUT), flush=True)
+< for k in ("pre2026", "2026"):
+<     print(" ", k, json.dumps({a: {kk: res[k][a][kk] for kk in ("D_bar", "MBB95")} for a in ARMS + ("INTERACTION_RED_minus_SEAT_minus_COMP",)}), flush=True)
+---
+> back = json.load(open(OUT)); assert back["self_sha256"] == rec["self_sha256"] and back["segments"] == json.loads(json.dumps(res))
+> print("RC_READ_A1 sha=%s" % sha(OUT), flush=True)
+> for seg in ("pre2026", "2026"):
+>     print(" ", seg, json.dumps({a: {kk: res[seg][a][kk] for kk in ("D_bar", "MBB95")} for a in ARMS + (INTER,)}), flush=True)
