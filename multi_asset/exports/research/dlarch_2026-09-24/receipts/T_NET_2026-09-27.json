@@ -1,0 +1,39 @@
+{
+ "ALL_CONTROLS_PASS": true,
+ "C1_price_identity": {
+  "PASS": true,
+  "bitwise_where_F_is_0": true,
+  "cells_F0": 1105080,
+  "max_abs(T_net + F - y4s)": 1.1102230246251565e-16
+ },
+ "C2_known_answer": {
+  "F_synthetic": 0.00030000000000000003,
+  "PASS": 1.0,
+  "expected": 0.0003
+ },
+ "C3_red_shift": {
+  "PASS": true,
+  "anchors_changed_by_4h_shift": 10212
+ },
+ "C4_census": {
+  "anchors_covered": 10212,
+  "anchors_total": 10321,
+  "anchors_with_any_settlement": 8466,
+  "last_covered_anchor_utc": "2026-08-31T20:00:00Z",
+  "ledger_end_utc": "2026-09-01T02:00:00Z",
+  "share_cells_F_nonzero_among_finite_y": 0.680191327243035
+ },
+ "criterion": "DECISION_RULE_king_improvement_family_2026-09-27.md \u00a71 (4158f1521)",
+ "definition": "T_net = y4s - F, F = sum of settled rates in (A, A+4h], producer caliber (old P2, second key); decimal units",
+ "device": "dlarch_t_net.py",
+ "inputs": {
+  "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz": "ca479fccd3d3245e9438a8c82ba7b4a1950ab6e06607f28b25923c4526924d62",
+  "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
+ },
+ "output": {
+  "path": "/workspace/dlarch_2026-09-24/king_fam_2026-09-27/T_NET.npz",
+  "sha256": "929ff9f6c68280f1994ffb3c34c0c53114d96ad034686183f9dfd9b09b5c7a5c"
+ },
+ "self_sha256": "be31f06bfbd9904d2f83a4587cf7377599e8ce09e5d4e652dad86d60601347e0",
+ "utc": "2026-09-27T02:26:24Z"
+}
