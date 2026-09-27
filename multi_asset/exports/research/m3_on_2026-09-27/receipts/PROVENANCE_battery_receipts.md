@@ -8,6 +8,6 @@
 经过:integ 执行 `git add -f <这三个路径>` 时,另一个 git 进程正持有 index.lock,那次提交报错失败。随后这三个路径以已暂存的状态,被那个并发提交一并带走。
 内容已核对:两份电池日志的末行分别是 `ACCEPTANCE: ALL GREEN (166/166 suites exit 0)` 和 `(167/167 suites exit 0)`,与 scratch 里的原始日志逐字节相同(sha 见下)。
 
-sha256 (repo vs scratch source):
-ecf6795962cd174e
-e3b0c44298fc1c14
+更正(同日):上一版末尾的 sha 行算错了(scratch 一侧对空输入求了哈希),作废。正确核对如下 —— 仓库里的收据 = scratch 原始日志,再加 integ 追加的一行克隆说明:
+- BATTERY_m3on_a6f8c21_20260927T0102Z.log: 以 scratch 原始日志为前缀 = True;原始日志 sha256 e1d01259f91bd757;追加 173 字节(克隆说明行)
+- BATTERY_fixpkg_e_2c19df9_20260927T0105Z.log: 以 scratch 原始日志为前缀 = True;原始日志 sha256 0ae3f9a0281e4882;追加 0 字节(克隆说明行)
