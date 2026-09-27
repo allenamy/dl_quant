@@ -1,0 +1,22 @@
+8a9,12
+> # ── SHADOW_AB (fresh 2026-09-27): this file = the in-service combo_parity_replay.sh (7fa0881a) with ONLY: default sandbox root
+> #    ~/cc_tmp/shadow_ab; helpers resolved from the in-service combosnap dir; the sandbox combo_stage.py gets the SHADOW_AB hook
+> #    block inserted after its ④ log line (in the sandbox copy only); arm states copied in; the compare step replaced by
+> #    shadow_ab_collect.py (identity control vs live target_combo + store). usage: shadow_ab_replay.sh <A> <receipt> [sandbox_root]
+10c14
+< A=${1:?anchor_ts}; OUT=${2:?receipt}; SBR=${3:-"$HOME/cc_tmp/parity"}; WS="${WIDE_SHADOW_HOME:-$HOME/wide_shadow}"; LIVE_REPO="${DL_QUANT_LIVE_ROOT:-$HOME/dl_quant_live}"; SNAP="$WS/state/snap/$A"; HERE=$(cd "$(dirname "$0")" && pwd -P)
+---
+> A=${1:?anchor_ts}; OUT=${2:?receipt}; SBR=${3:-"$HOME/cc_tmp/shadow_ab"}; WS="${WIDE_SHADOW_HOME:-$HOME/wide_shadow}"; LIVE_REPO="${DL_QUANT_LIVE_ROOT:-$HOME/dl_quant_live}"; SNAP="$WS/state/snap/$A"; ABDEV=$(cd "$(dirname "$0")" && pwd -P); HERE="$WS/fea171/combosnap"; AB="${SHADOW_AB_HOME:-$HOME/shadow_ab}"
+39a44,47
+> # SHADOW_AB: hook the SANDBOX copy of combo_stage.py (fail-closed if the insertion point is not unique); copy the arm states in
+> "$WS/venv/bin/python" -B "$ABDEV/shadow_ab_insert_hook.py" "$SB/wide_shadow/fea171/combo_stage.py" "$ABDEV/ab_hook_block.py" "$SB/HOOK.json" || { echo "UNAVAILABLE hook insertion"; exit 3; }
+> mkdir -p "$SB/ab_in" "$SB/ab_out" || exit 3
+> PREV=$((A - 14400)); if [ -d "$AB/state/$PREV" ]; then for f in "$AB/state/$PREV"/*_kc.npz "$AB/state/$PREV"/*_fc.npz; do [ -f "$f" ] && cp "$f" "$SB/ab_in/"; done; fi
+58c66
+<   COMBO_LIVE=1 "COMBO_LIVE_DIR=$PAR" \
+---
+>   COMBO_LIVE=1 "COMBO_LIVE_DIR=$PAR" "SHADOW_AB_IN=$SB/ab_in" "SHADOW_AB_OUT=$SB/ab_out" \
+68c76
+< "$WS/venv/bin/python" "$HERE/combo_parity_compare.py" "$A" "$WS/state/target_live/$A.json" "$PAR/$A.json" "$SB" "$RC" "$OUT"
+---
+> "$WS/venv/bin/python" -B "$ABDEV/shadow_ab_collect.py" "$A" "$WS/state/target_combo/$A.json" "$SB" "$RC" "$AB" "$OUT"
