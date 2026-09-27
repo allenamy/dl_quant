@@ -1,0 +1,136 @@
+{
+  "utc": "2026-09-27T17:48:47.384269+00:00",
+  "clone": "/Users/haosiyu/cc_tmp/funding_durable_ack_exec_20260927",
+  "base": "cea1e15fa4051df1fb506a5989a3e582291ce95b",
+  "tests_commits": [
+    "14795a1121418ee955fc5401658c2077278650df",
+    "841e771"
+  ],
+  "production_implementation_unchanged": true,
+  "test_entry": "bash ops/run_acceptance_offline.sh",
+  "execution": "RED1 full wrapper exit1 confirmed by root; RED2 funding suite complete, full wrapper still running",
+  "files": {
+    "live/binance_funding.py": "8bc91372466ab7d20dd714ae3281752510efc81db0613dff38573561f91b9c46",
+    "live/pilot_log.py": "10d48c6ae81e29a363226e4c5506c9c6d12707988bd00f5c796584f719169c54",
+    "live/tests_funding_gap.py": "ea1ff3394ded6f5bb1078727545e1376c9e1f9e040962ce866d97c4950ca85b8"
+  },
+  "red_suites": [
+    {
+      "path": "/Users/haosiyu/cc_tmp/funding_durable_ack_exec_20260927/state/acceptance/20260927T173108Z_tests_funding_gap.log",
+      "sha256": "61814cb870198950bef1d2737734e04fb1b7e15274ee62ac478acba0f3339478",
+      "failures": [
+        "FAIL  real funding ack completes file -> day -> root fsync before returning",
+        "FAIL  file fsync was actually attempted",
+        "FAIL  file failure is explicit and HIGH, rows_written excludes unacked row  — {'funding_durability_failed': None, 'rows_written': 1, 'n_pending': 0}",
+        "FAIL  file failure leaves original income in pending",
+        "FAIL  visible duplicate cannot be dequeued when file ack still fails",
+        "FAIL  day fsync was actually attempted",
+        "FAIL  day failure is explicit and HIGH, rows_written excludes unacked row  — {'funding_durability_failed': None, 'rows_written': 1, 'n_pending': 0}",
+        "FAIL  day failure leaves original income in pending",
+        "FAIL  visible duplicate cannot be dequeued when day ack still fails",
+        "FAIL  root fsync was actually attempted",
+        "FAIL  root failure is explicit and HIGH, rows_written excludes unacked row  — {'funding_durability_failed': None, 'rows_written': 1, 'n_pending': 0}",
+        "FAIL  root failure leaves original income in pending",
+        "FAIL  visible duplicate cannot be dequeued when root ack still fails",
+        "FAIL  funding refuses a root whose parent chain was not pre-existing",
+        "FAIL  historical read failure is not returned as empty fills",
+        "FAIL  evidence failure is handled, named HIGH and preserves original income  — ('PermissionError', None)",
+        "FAIL  A venue_position_qty nan is refused with a named reason",
+        "FAIL  A venue_position_notional nan is refused with a named reason",
+        "FAIL  B qty nan is refused with a named reason",
+        "FAIL  step nan is refused with a named reason",
+        "FAIL  A venue_position_notional inf is refused with a named reason",
+        "FAIL  step inf is refused with a named reason",
+        "FAIL  A venue_position_notional -inf is refused with a named reason",
+        "FAIL  fill_ts nan is refused with a named reason",
+        "FAIL  fill_ts inf is refused with a named reason",
+        "FAIL  fill_ts bad is refused with a named reason",
+        "FAIL  side UNKNOWN is refused with a named reason",
+        "FAIL  fill_px inf is refused with a named reason",
+        "FAIL  malformed pending row is named unreadable, not unhandled or overwritten  — ('KeyError', None)",
+        "FAIL  exists false cannot disguise pending permission failure as absence"
+      ],
+      "result": [
+        "FUNDING_GAP 30 FAIL"
+      ],
+      "r1_writer_timing": []
+    },
+    {
+      "path": "/Users/haosiyu/cc_tmp/funding_durable_ack_exec_20260927/state/acceptance/20260927T174625Z_tests_funding_gap.log",
+      "sha256": "ca3fe15ed328d0a684bd8fe5b941a3e6145e269176fd4e2d319580a2107c4bc1",
+      "failures": [
+        "FAIL  real funding ack completes file -> day -> root fsync before returning",
+        "FAIL  file fsync was actually attempted",
+        "FAIL  file failure is explicit and HIGH, rows_written excludes unacked row  — {'funding_durability_failed': None, 'rows_written': 1, 'n_pending': 0}",
+        "FAIL  file failure leaves original income in pending",
+        "FAIL  visible duplicate cannot be dequeued when file ack still fails",
+        "FAIL  day fsync was actually attempted",
+        "FAIL  day failure is explicit and HIGH, rows_written excludes unacked row  — {'funding_durability_failed': None, 'rows_written': 1, 'n_pending': 0}",
+        "FAIL  day failure leaves original income in pending",
+        "FAIL  visible duplicate cannot be dequeued when day ack still fails",
+        "FAIL  root fsync was actually attempted",
+        "FAIL  root failure is explicit and HIGH, rows_written excludes unacked row  — {'funding_durability_failed': None, 'rows_written': 1, 'n_pending': 0}",
+        "FAIL  root failure leaves original income in pending",
+        "FAIL  visible duplicate cannot be dequeued when root ack still fails",
+        "FAIL  funding refuses a root whose parent chain was not pre-existing",
+        "FAIL  historical read failure is not returned as empty fills",
+        "FAIL  evidence failure is handled, named HIGH and preserves original income  — ('PermissionError', None)",
+        "FAIL  A venue_position_qty nan is refused with a named reason",
+        "FAIL  A venue_position_notional nan is refused with a named reason",
+        "FAIL  B qty nan is refused with a named reason",
+        "FAIL  step nan is refused with a named reason",
+        "FAIL  A venue_position_notional inf is refused with a named reason",
+        "FAIL  step inf is refused with a named reason",
+        "FAIL  A venue_position_notional -inf is refused with a named reason",
+        "FAIL  fill_ts nan is refused with a named reason",
+        "FAIL  fill_ts inf is refused with a named reason",
+        "FAIL  fill_ts bad is refused with a named reason",
+        "FAIL  side UNKNOWN is refused with a named reason",
+        "FAIL  fill_px inf is refused with a named reason",
+        "FAIL  malformed pending row is named unreadable, not unhandled or overwritten  — ('KeyError', None)",
+        "FAIL  exists false cannot disguise pending permission failure as absence",
+        "FAIL  malformed_tail real table read is UNKNOWN, not empty",
+        "FAIL  malformed_tail is named HIGH and leaves original income pending  — (None, None)",
+        "FAIL  malformed_tail never writes a funding row",
+        "FAIL  stat_permission real table read is UNKNOWN, not empty",
+        "FAIL  stat_permission is named HIGH and leaves original income pending  — (None, None)",
+        "FAIL  stat_permission never writes a funding row",
+        "FAIL  fresh malformed_tail is named HIGH and queued  — (None, None)",
+        "FAIL  fresh malformed_tail does not write unproved funding",
+        "FAIL  fresh stat_permission is named HIGH and queued  — (None, None)",
+        "FAIL  fresh nonfinite_notional is named HIGH and queued  — (None, None)",
+        "FAIL  fresh nonfinite_notional does not write unproved funding",
+        "FAIL  different_cash duplicate remains queued with named identity failure  — (None, None)",
+        "FAIL  missing_required duplicate remains queued with named identity failure  — (None, None)",
+        "FAIL  multiple_disk_rows duplicate remains queued with named identity failure  — (None, None)",
+        "FAIL  non_USDT remains pending with identity/asset reason  — (None, None)",
+        "FAIL  non_USDT never invents USDT cash or merges income",
+        "FAIL  same_key_same_cash_different_tranId remains pending with identity/asset reason  — (None, None)",
+        "FAIL  same_key_same_cash_different_tranId never invents USDT cash or merges income",
+        "FAIL  same_key_different_cash remains pending with identity/asset reason  — (None, None)",
+        "FAIL  same_key_different_cash never invents USDT cash or merges income"
+      ],
+      "result": [
+        "FUNDING_GAP 50 FAIL"
+      ],
+      "r1_writer_timing": [
+        "R1_REAL_WRITER_TIMING {\"n_calls\": 545, \"whole_pull_seconds\": 0.41235591699999996, \"writer_ack_seconds\": 0.0031326240000010275}"
+      ]
+    }
+  ],
+  "asset_population": {
+    "r1_recorded_venue_income": {
+      "USDT": 545
+    },
+    "historical_funding_schema_rows": {
+      "missing_asset": 55395,
+      "bad_lines": 0
+    },
+    "older_writer_positive_fixture": "tests_binance_funding.py W/M income rows omit asset; legacy unspecified, not claimed USDT"
+  },
+  "scope_limits": [
+    "no source/API/production mutations during this RED run",
+    "full historical disposition red remains separate",
+    "no schema expansion to store asset/tranId; explicit unsupported asset/collisions remain pending; old-schema identity proof remains limited"
+  ]
+}
