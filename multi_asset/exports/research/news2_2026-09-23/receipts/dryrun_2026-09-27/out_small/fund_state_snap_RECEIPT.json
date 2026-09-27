@@ -1,0 +1,109 @@
+{
+ "device": "d10_build_fund_state.py",
+ "self_sha256": "e90addf6146b3ee2295aa8b0e6603432ab21dca68c1119cb9ffe00b1353a4671",
+ "argv": {
+  "mode": "snap",
+  "ledger_ms": "/dev/shm/d10_2026-09-25/ms/ledger_full_ms.npz",
+  "ledger_ms_sha": "e179071d595521987450f89e1774a95775a2593d76277a9c9dc6d86dcbc31a88",
+  "axes": "/dev/shm/nc_2026-09-23/work/axes.npz",
+  "out": "/workspace/d10_dryrun_2026-09-27/out/fund_state_snap.npz",
+  "compare": "/dev/shm/nc_2026-09-23/work/fund_state.npz",
+  "compare_sha": "a12a8ed3"
+ },
+ "python": {
+  "version": "3.11.10",
+  "executable": "/workspace/venv/bin/python"
+ },
+ "rebuild_device_sha256": "98c6b1054e276ece9ef26e401c01b6c5d9390505b1003e0b160373c6a3eb6927",
+ "rule_module_sha256": "5d5bf20797ca41c0b83ce0d6d710acb9baf2c500c93c9b40b7084c23182afb3f",
+ "nc_contract": [
+  "/dev/shm/nc_2026-09-23/devices_arm/nc_contract.py",
+  "316a0b9bcf1461401740ebd79a3292a9bfcdc49d56f111219ff6e126110650cb"
+ ],
+ "mode": "snap",
+ "rule": "nc_contract.snap_interval",
+ "inputs": {
+  "ledger_ms": [
+   "/dev/shm/d10_2026-09-25/ms/ledger_full_ms.npz",
+   "e179071d595521987450f89e1774a95775a2593d76277a9c9dc6d86dcbc31a88"
+  ],
+  "axes": [
+   "/dev/shm/nc_2026-09-23/work/axes.npz",
+   "ec7723c4a4dfbbcc6e5e3a6e4cb026fda3cde6af059bac5739d65681862b2389"
+  ]
+ },
+ "events": 2583575,
+ "d10_tiers": {},
+ "same_second_on_crypto_cols": {
+  "n": 0,
+  "examples": []
+ },
+ "identity_vs": {
+  "path": "/dev/shm/nc_2026-09-23/work/fund_state.npz",
+  "sha256": "a12a8ed347ee56ef9aa7008350a2c3b928cd55d32c955016fe894fa3c66d2a90",
+  "fields": {
+   "anchors": {
+    "cells": 10333,
+    "differ": 0
+   },
+   "cols": {
+    "cells": 680,
+    "differ": 0
+   },
+   "ev_off": {
+    "cells": 681,
+    "differ": 680
+   },
+   "kidx": {
+    "cells": 7026440,
+    "differ": 56801
+   },
+   "ft": {
+    "shape_got": [
+     2583575
+    ],
+    "shape_ref": [
+     2635290
+    ]
+   },
+   "rate": {
+    "shape_got": [
+     2583575
+    ],
+    "shape_ref": [
+     2635290
+    ]
+   },
+   "iv": {
+    "shape_got": [
+     2583575
+    ],
+    "shape_ref": [
+     2635290
+    ]
+   },
+   "ema": {
+    "shape_got": [
+     2583575
+    ],
+    "shape_ref": [
+     2635290
+    ]
+   },
+   "prev": {
+    "shape_got": [
+     2583575
+    ],
+    "shape_ref": [
+     2635290
+    ]
+   }
+  }
+ },
+ "identity_verdict": "DIFFERS",
+ "output": {
+  "path": "/workspace/d10_dryrun_2026-09-27/out/fund_state_snap.npz",
+  "sha256": "35cc8f309267ea7b7019595178a8367947700c07f39ee6512ea42e2ec8069542"
+ },
+ "seconds": 6.3
+}
