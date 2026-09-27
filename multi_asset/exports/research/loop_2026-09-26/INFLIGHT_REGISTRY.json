@@ -389,5 +389,18 @@
   "liveness_checked": "2026-09-27T06:41:53Z pid 3415342 alive 62% CPU",
   "risk": "dies with the ssh connection (no nohup); writes only /dev/shm",
   "closed": false
+ },
+ {
+  "name": "news2_ledger_ms_rev2_validation",
+  "owner": "news2",
+  "host": "pod2",
+  "log": "/dev/shm/news2_ledgerms_rev2_2026-09-27/run.log",
+  "pgid": 3415720,
+  "terminal": "^\\S+ DONE$",
+  "success": "^\\S+ DONE$ (then read V1/V2 lines)",
+  "started_utc": "2026-09-27T06:43:09Z",
+  "devices": "d10_build_ledger_ms.py rev 2 a5d487e8 (commit 72bd8e4f28f9d4abb4953282ec43ef528a2fb883)",
+  "expected": "V1 IDENTICAL to e179071d + receipt; V2 RECONCILED + PREFIX_BITWISE, upgrades only 2026-08",
+  "delivery": "session cron 9ed50f8e"
  }
 ]
