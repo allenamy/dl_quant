@@ -17,3 +17,5 @@ root 在 CUDA 探针 5723603f3 后授权本次独立小控制：CPU1，RSS申报
 运行前提交worker、guard、合同，核部署SHA；guard只停止本任务PGID，50ms RSS/HWM监视和worker同截止SIGALRM。软件停止不是Linux硬限；实测峰值及采样间隔保留。资源拒绝即终态，不等待重试。旧六窗NO_RESCHEDULE、单独CUDA形状探针终态均不变。
 
 执行前源码审查补充（2026-09-27 18:47 UTC，尚未数值运行）：F=0控制显式运行 A0(coefficient0) 与 A1(coefficient1, rates0)，不能把 coefficient0 同一分支调用两次冒称臂开关恒等。部署后未发运行命令；原 b99ad8632 保留，新 worker SHA 入 CPU_CONTRACT。
+
+主审同步审查后的执行前补充：F=0从cash_tensor逐事件rate输入归零，A0/A1分别关闭/开启carry；不是事后把聚合cash置零。硬forward仅签给定输入step平价，虽按abs>1e-9准备下一步h，不签原evolve/连续HOLD执行库存协议；后者留完整120授权后核。本次数值实验范围不扩。

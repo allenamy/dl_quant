@@ -33,11 +33,11 @@ def cash_tensor(T,q0,q1,initial=3.,rate_factor=1.,events=EVENTS):
  return rows
 
 
-def parts(T,model,X):
+def parts(T,model,X,cash_rate_factor=1.):
  q=model.f(X).squeeze(-1);q0,q1=q[0],q[1];z=0*model.a
  price=T.stack((3.*(10.-8.)+(q0-3.)*(10.-8.2),q0*(11.-10.)+(q1-q0)*(11.-9.1)))+z
  fee=T.stack(((q0-3.).abs()*8.2*.0002,(q1-q0).abs()*9.1*.0002))+z
- rows=cash_tensor(T,q0,q1)
+ rows=cash_tensor(T,q0,q1,rate_factor=cash_rate_factor)
  cash=T.stack((rows[0][1]+z,T.stack([v for _,v in rows[1:]]).sum()+z))
  return price/10.,fee/10.,cash/10.,q # 1e4/V0=0.1; all NAV bps
 
@@ -180,7 +180,7 @@ def run(out):
  dump(out/'NETWORK_FD.json',{'parameter_count':n,'gradient_norms_NAV_bps_per_parameter':norms,'fd':fd,'carry_sign_exact':True,'mode':'float64 eval, synthetic quantities; not production rank/chain'})
  def update(carry,rate_factor=1.):
   model=copy.deepcopy(base).train();opt=T.optim.AdamW(model.parameters(),lr=3e-4,weight_decay=1e-4);T.manual_seed(20260927)
-  p,f,c,q=parts(T,model,X);value=loss(T,p,f,c*rate_factor,carry);value.backward();grads={k:v.grad.detach().clone() for k,v in model.named_parameters()}
+  p,f,c,q=parts(T,model,X,cash_rate_factor=rate_factor);value=loss(T,p,f,c,carry);value.backward();grads={k:v.grad.detach().clone() for k,v in model.named_parameters()}
   T.nn.utils.clip_grad_norm_(model.parameters(),1.);opt.step()
   return {'loss':value.detach(),'gradients':grads,'parameters':copy.deepcopy(model.state_dict()),'optimizer':copy.deepcopy(opt.state_dict()),'parts_before_NAV_bps':{'price':p.detach(),'fee':f.detach(),'carry':c.detach()}},model
  z0,_=update(0.,0.);z1,_=update(1.,0.)
@@ -210,7 +210,7 @@ def run(out):
     kh=N.where(N.abs(ref['kc'])>1e-9,ref['kc'],0.);fh=N.where(N.abs(ref['fc'])>1e-9,ref['fc'],0.)
     kt=T.where(got['kc'].abs()>1e-9,got['kc'],0.);ft=T.where(got['fc'].abs()>1e-9,got['fc'],0.)
  assert published>0 and held>0 and mutations>0,(published,held,mutations)
- hard={'cases':count,'max_abs_weight_error':worst,'published':published,'holds':held,'wrong_phi_rejected_cases':mutations,'hard_rank_has_no_claimed_derivative':True}
+ hard={'scope':'GIVEN_INPUT_STEP_FORWARD_PARITY_ONLY; no continuous evolve/HOLD execution inventory certification','cases':count,'max_abs_weight_error':worst,'published':published,'holds':held,'wrong_phi_rejected_cases':mutations,'hard_rank_has_no_claimed_derivative':True}
  dump(out/'HARD_FORWARD.json',hard)
  assert not T.cuda.is_initialized()
  result={'status':'NO_ALPHA_IMPLEMENTATION_ONLY_PASS','utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'source_sha256':sha(__file__),'pins':pins,'scalar':scalar,'network_fd_controls':len(fd),'hard_forward':hard,'parameter_updates':'F0 two control steps plus A0/A1 one step each; all synthetic, no saved candidate','torch':T.__version__,'python':sys.version,'executable':sys.executable,'cuda_initialized':T.cuda.is_initialized(),'elapsed_seconds':time.monotonic()-t0}
