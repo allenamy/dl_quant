@@ -1,4 +1,4 @@
-> **创建:** 2026-09-27 15:45 UTC | **Session:** Codex acting-lead / research_resume_0927 | **状态:** final | **作废条件:** KSR 冻结判据 §3 或读数器/测试 SHA 改变；本说明不构成候选臂判词
+> **创建:** 2026-09-27 15:42 UTC | **Session:** Codex acting-lead / research_resume_0927 | **状态:** final | **作废条件:** KSR 冻结判据 §3 或读数器/测试 SHA 改变；本说明不构成候选臂判词
 
 # KSR 逐年回撤护栏转录修复
 
