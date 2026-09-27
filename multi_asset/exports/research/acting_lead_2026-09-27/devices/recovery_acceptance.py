@@ -197,7 +197,8 @@ def evaluate(inputs, anchor, observed_at, minimum_fill_ratio=0.60):
         require(r.get("anchor") == anchor, "venue receipt anchor mismatch")
         require(bool(row), "valid anchor identity unavailable", "UNKNOWN")
         require(r.get("rebalance_id") == row["rid"], "venue receipt RID mismatch")
-        require(r.get("device") == "venue_readonly.py", "unrecognized venue receipt device", "UNKNOWN")
+        require(r.get("device") == "venue_readonly_symbol_bound.py" and r.get("identity_key") == "symbol_orderId_v1",
+                "venue receipt lacks the required symbol-bound identity contract", "UNKNOWN")
         receipt_ts = epoch(r.get("utc")); fresh(receipt_ts, anchor + 3600)
         require(r.get("VERDICT") in ("PASS", "FAIL", "UNKNOWN"), "venue verdict missing", "UNKNOWN")
         require(r["VERDICT"] != "UNKNOWN", "venue observation UNKNOWN", "UNKNOWN")
@@ -230,7 +231,7 @@ def evaluate(inputs, anchor, observed_at, minimum_fill_ratio=0.60):
             "inputs": provenance, "coverage": {"scope": "recovery evidence only; VERSION_PROBE/M3/PARITY remain separate",
                 "global_single_writer_proven": False,
                 "venue_limits": ["only rid-minus-600s to receipt window end", "only commission-listed symbols and filled orders",
-                    "orderId alone, not symbol/orderId, in existing venue device", "clientOrderId fallback for no-orderId local rows",
+                    "symbol/orderId identity; symbol/clientOrderId fallback for no-orderId local rows",
                     "no coverage of gaps between monitored windows or future activity"]}}
 
 

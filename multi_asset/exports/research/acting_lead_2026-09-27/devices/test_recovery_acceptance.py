@@ -39,7 +39,7 @@ class RecoveryAcceptanceTests(unittest.TestCase):
                 "triggers": [], "conditions_blind": [], "conditions_unevaluated": []},
             "anchor_report": {"anchor_ts": A, "utc": "2026-09-27T16:55:06Z", "status": "green", "lines": []},
             "venue_receipt": {"anchor": A, "rebalance_id": "A1790526240", "utc": "2026-09-27T17:01:30Z",
-                "device": "venue_readonly.py", "VERDICT": "PASS", "bad": [],
+                "device": "venue_readonly_symbol_bound.py", "identity_key": "symbol_orderId_v1", "VERDICT": "PASS", "bad": [],
                 "window_ms": [1790525640000, 1790528480000], "n_commission_rows": 320,
                 "n_symbols": 300, "n_venue_trades": 320, "n_foreign_order_ids": 0,
                 "fill_ratio_realized_over_target": 0.70, "blocked_by_halt_rows": 0},
@@ -160,6 +160,11 @@ class RecoveryAcceptanceTests(unittest.TestCase):
     def test_ledger_blocked_rows_fail(self):
         self.data["ledger_receipt"]["K4_blocked_by_halt_rows"] = 1
         self.assertEqual(self.run_case()["verdict"], "FAIL")
+
+    def test_legacy_bare_id_receipt_cannot_pass(self):
+        self.data["venue_receipt"].update(device="venue_readonly.py")
+        self.data["venue_receipt"].pop("identity_key")
+        self.check(self.run_case(), "venue_receipt", "UNKNOWN")
 
     def test_missing_anchor_done_pending_and_failed_done_fail(self):
         start = "2026-09-27T16:00:01Z anchor start mode=LIVE\n"
