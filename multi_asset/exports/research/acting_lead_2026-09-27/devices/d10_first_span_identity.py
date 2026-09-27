@@ -7,6 +7,7 @@ Passing this gate proves input/clock binding only, never consumer cash correctne
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -27,7 +28,22 @@ def stream_sha(f):
 
 
 def sha(path):
-    with Path(path).open('rb') as f: return stream_sha(f)
+    p = Path(path)
+    with p.open('rb') as f:
+        before = os.fstat(f.fileno()); digest = stream_sha(f)
+        stable_fd(p, f, before)
+    return digest
+
+
+def stat_identity(s):
+    return (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
+
+
+def stable_fd(path, f, before):
+    after = os.fstat(f.fileno())
+    need(stat_identity(before) == stat_identity(after), 'opened file changed while reading: ' + str(path))
+    need(stat_identity(after) == stat_identity(Path(path).stat()),
+         'path no longer identifies the opened file: ' + str(path))
 
 
 def pinned_file(obj, name):
@@ -74,33 +90,36 @@ def check_and_load(contract, identity_path, identity_sha):
     source identities are recorded but their behavior still needs independent controls.
     """
     identity_path = Path(identity_path)
-    need(sha(identity_path) == identity_sha, 'actual identity manifest SHA differs')
-    identity = json.loads(identity_path.read_text())
+    with identity_path.open('rb') as f:
+        before = os.fstat(f.fileno()); identity_bytes = f.read()
+        stable_fd(identity_path, f, before)
+    need(hashlib.sha256(identity_bytes).hexdigest() == identity_sha, 'actual identity manifest SHA differs')
+    identity = json.loads(identity_bytes)
     lo, hi = validate_contract(contract, identity, identity_sha)
     consumer = pinned_file(contract['consumer'], 'consumer source')
     target = pinned_file(contract['targets'], 'fresh targets')
     fmeta = contract['funding']; p = Path(fmeta['path'])
     need(p.is_file(), 'actual ms ledger missing')
     with p.open('rb') as f:
-        before = p.stat(); actual_sha = stream_sha(f)
+        before = os.fstat(f.fileno()); actual_sha = stream_sha(f)
         need(actual_sha == fmeta['sha256'], 'loaded funding file SHA differs')
         f.seek(0)
         with np.load(f, allow_pickle=False) as z:
             need('ft_ms' in z.files and 'ft' not in z.files, 'actual funding schema is not exclusively ft_ms')
             need({'off', 'symbols', 'rate'} <= set(z.files), 'actual funding schema incomplete')
             ft = z['ft_ms']; off = z['off']; syms = z['symbols']; rate = z['rate']
-        after = p.stat()
-        need((before.st_ino, before.st_size, before.st_mtime_ns) ==
-             (after.st_ino, after.st_size, after.st_mtime_ns), 'funding file changed while loading')
+        stable_fd(p, f, before)
     need(ft.ndim == 1 and ft.dtype.str == '<i8' and len(ft) > 0, 'actual ft_ms must be nonempty int64')
     need(int(ft.min()) >= 1000000000000, 'ft_ms magnitude is seconds or outside supported history')
     need(syms.ndim == 1 and syms.dtype.kind in 'US' and len(set(syms.tolist())) == len(syms), 'invalid symbol axis')
-    need(off.ndim == 1 and off.dtype.kind in 'iu' and len(off) == len(syms) + 1 and
-         off[0] == 0 and off[-1] == len(ft) and bool((np.diff(off) >= 0).all()), 'invalid funding offsets')
+    need(off.ndim == 1 and off.dtype.kind in 'iu' and len(off) == len(syms) + 1, 'invalid funding offset schema')
+    offsets = [int(x) for x in off]  # Python ints: no unsigned subtraction or signed overflow.
+    need(offsets[0] == 0 and offsets[-1] == len(ft) and all(0 <= x <= len(ft) for x in offsets) and
+         all(x <= y for x, y in zip(offsets, offsets[1:])), 'invalid funding offsets')
     need(rate.shape == ft.shape and rate.dtype.kind == 'f' and bool(np.isfinite(rate).all()), 'invalid/nonfinite funding rate')
     selected = []
     for j in range(len(syms)):
-        l, r = int(off[j]), int(off[j + 1]); times = ft[l:r]
+        l, r = offsets[j], offsets[j + 1]; times = ft[l:r]
         need(bool((np.diff(times) > 0).all()), 'duplicate or unsorted exact-ms event within symbol')
         ix = np.flatnonzero((times > lo) & (times <= hi)) + l
         if len(ix): selected.append((j, ix))

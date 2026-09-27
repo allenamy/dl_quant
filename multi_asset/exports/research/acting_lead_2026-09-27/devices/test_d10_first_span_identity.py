@@ -2,9 +2,11 @@
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -110,6 +112,38 @@ class IdentityControls(unittest.TestCase):
         self.consumer.write_text('# changed\n')
         with self.assertRaises(M.Unavailable): self.run_input()
         with self.assertRaises(M.Unavailable): M.check_and_load(self.cfg, self.manifest, '0' * 64)
+
+    def test_unsigned_offsets_cannot_wrap_or_exceed_row_count(self):
+        for offsets in ([0, 4, 2, 6], [0, 7, 6]):
+            with self.subTest(offsets=offsets):
+                np.savez(self.ledger, off=np.array(offsets, np.uint64),
+                         symbols=np.array(['S', 'T', 'U'][:len(offsets) - 1]),
+                         rate=np.full(6, 0.01), ft_ms=self.lo + np.arange(1, 7, dtype=np.int64))
+                self.rebind_ledger()
+                with self.assertRaises(M.Unavailable): self.run_input()
+
+    def test_path_swap_after_open_is_not_same_loaded_identity(self):
+        replacement = self.root / 'replacement.npz'; replacement.write_bytes(self.ledger.read_bytes())
+        original_open = Path.open; swapped = []
+        def swap_after_open(path, *args, **kwargs):
+            f = original_open(path, *args, **kwargs)
+            if path == self.ledger and not swapped:
+                os.replace(replacement, self.ledger); swapped.append(True)
+            return f
+        with patch.object(Path, 'open', swap_after_open):
+            with self.assertRaises(M.Unavailable): self.run_input()
+        self.assertTrue(swapped)
+
+    def test_manifest_parse_cannot_use_a_second_unhashed_read(self):
+        copy = self.root / 'other_ledger.npz'; copy.write_bytes(self.ledger.read_bytes())
+        forged = json.loads(json.dumps(self.identity))
+        forged['assets']['ms_ledger'].update(path=str(copy), resolved=str(copy.resolve()))
+        self.cfg['funding']['path'] = str(copy)
+        original_read = Path.read_text
+        def second_read(path, *args, **kwargs):
+            return json.dumps(forged) if path == self.manifest else original_read(path, *args, **kwargs)
+        with patch.object(Path, 'read_text', second_read):
+            with self.assertRaises(M.Unavailable): self.run_input()
 
 
 if __name__ == '__main__': unittest.main(verbosity=2)
