@@ -897,5 +897,18 @@
   "terminal": "^\\S+ (KRP_STOP|KRP_ALL_DONE)",
   "success": "^\\S+ KRP_ALL_DONE out=... (C0 identity on f1cd3fa2 == 274ba08a, then frozen Oct King re-predicted on NEWS_FEATURES_D10EXT ad80d50d)",
   "devices": "26db8aa82 / fb99b12a3 / 7ac42f075 king_oct_repredict.py/.sh"
+ },
+ {
+  "name": "news2_reread_r7_legs",
+  "owner": "news2",
+  "host": "pod2",
+  "log": "/workspace/d10_reread_2026-09-27/r7_legs_20260927T124547Z/legs_oct.log",
+  "pgid": 3477079,
+  "terminal": "^LEGS_OCT (DONE|FAILED)",
+  "success": "^LEGS_OCT DONE [0-9a-f]{64}$",
+  "started_utc": "2026-09-27T12:45:50Z",
+  "inputs": "King OOF 6579bc4e (fresh2 frozen-booster re-predict on D10EXT; C0 reproduced 274ba08a), features ad80d50d, NC_W r5_R2ext",
+  "expected": "then prefix identity (legs) vs 383e3ddc: rows E_ts < cut identical on every key; delivery check L1-L4",
+  "delivery": "session cron 6b996533 + waiter"
  }
 ]
