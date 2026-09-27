@@ -234,6 +234,11 @@
 | 10 | 电池演练 + 窗内 safe_commit | integ | 窗前 | 待 | — |
 | 11 | 用户最后确认 → **09-30 13:00Z 窗**(用户裁定 2,b6fcc72d8:守 §9-F7 冷静期到 09-30 08:47Z)→ 16Z 首锚验收 | lead / integ | 09-30 | 待 | — |
 
+### §0.2 追加(news2 09-27 13:3xZ,冻结后;lead 事项 A)
+- §0.2 的「三方比 sha」由装置 `news2_2026-09-23/devices/d10_deploy_verify_chain.py` 执行(61432f487),三方比较本身交给 fresh2 的 `common/pod2_deploy_verify.sh`。核对清单由本 runbook 与 import 闭包派生,并包括链内脚本写死的共享根里的代码(nc 根、news2 根、devices_arm)。
+- 每次 pod2 起跑前:`python3 -B d10_deploy_verify_chain.py --exp <新目录> --out <新收据> --sync`;末行 `CHAIN_DEPLOY_VERIFY PASS=True` 且 rc 0 才起跑,收据路径写进该步收据。验收(绿 4/4、红控 3/3)见 `news2_2026-09-23/receipts/deploy_verify_2026-09-27/README.md`(220eaf7d6)。
+- 1d 行点名的 `d10_reaudit_jan_to_aug_pod2.sh` 只是新驱动的模板:它把 EXP 写死为 `/dev/shm/d10_2026-09-25`,原样跑会跑 09-25 的旧部署。1d 只跑新驱动 `d10_reaudit_months_pod2.sh`(待写,owner news2)。
+
 ### §3a 追加(news2,冻结后;fresh2 20b2b3619 入库,晚于上次点名)
 - 十月候选 King 的发布运行驱动:`multi_asset/exports/research/king_oct_2026-09-27/devices/king_oct_release.sh`(pod2,PGID 3418054)。
 - 写 MANIFEST_RELEASE.json 的装置:`multi_asset/exports/research/king_oct_2026-09-27/devices/king_oct_manifest.py`。integ 装包时,按它核对要钉文件的 sha(§3b「钉被判定的模型文件」)。
