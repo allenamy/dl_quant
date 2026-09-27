@@ -28,7 +28,7 @@ groups=('lag','not_lag','other','unknown');tot={g:collections.defaultdict(float)
 fmt=lambda a:time.strftime('%m-%dT%HZ',time.gmtime(a))
 for x in nm:
     if not x['priced']:continue
-    A=x['A'];s=known[fmt(A)];auxp=ROOT/f'state/snap/{A}/aux.json';tp=ROOT/f'state/target_live/{A}.json'
+    A=x['A'];s=known[A];auxp=ROOT/f'state/snap/{A}/aux.json';tp=ROOT/f'state/target_live/{A}.json'
     aux=read(auxp);rec=aux['prev_rec'];assert rec['anchor_ts']==A,'snapshot time identity'
     tar=read(tp);assert tar['anchor_ts']==A and tar['beta_overlay']['data_cutoff_ts']<=A,'beta causal'
     betas=tar['beta_overlay']['betas'];rz=rec['legz'];m=rec['members'];byname={symbols[j]:{k:rz[k][i] for k in ('fund','king','rev24')} for i,j in enumerate(m)}
