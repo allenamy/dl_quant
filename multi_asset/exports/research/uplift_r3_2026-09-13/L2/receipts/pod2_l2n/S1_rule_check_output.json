@@ -1,0 +1,111 @@
+{
+ "stage1_resolution": {
+  "R": {
+   "plant_detected": {
+    "s42|pre2026": true,
+    "s42|2026": true,
+    "s2027|pre2026": true,
+    "s2027|2026": true
+   },
+   "null_detected(expect all False)": {
+    "s42|pre2026": false,
+    "s42|2026": false,
+    "s2027|pre2026": false,
+    "s2027|2026": false
+   }
+  },
+  "L": {
+   "plant_detected": {
+    "s42|pre2026": true,
+    "s42|2026": true,
+    "s2027|pre2026": true,
+    "s2027|2026": true
+   },
+   "null_detected(expect all False)": {
+    "s42|pre2026": false,
+    "s42|2026": false,
+    "s2027|pre2026": false,
+    "s2027|2026": false
+   }
+  }
+ },
+ "agree": true,
+ "eligible_models": [
+  "R",
+  "L"
+ ],
+ "stage2_leakage": {
+  "s42|R": {
+   "forward_peak_h": 0,
+   "shuffle_future_ok": true
+  },
+  "s42|L": {
+   "forward_peak_h": 0,
+   "shuffle_future_ok": true
+  },
+  "s2027|R": {
+   "forward_peak_h": 0,
+   "shuffle_future_ok": true
+  },
+  "s2027|L": {
+   "forward_peak_h": 0,
+   "shuffle_future_ok": true
+  }
+ },
+ "stage3_main": {
+  "R": {
+   "s42|pre2026": {
+    "IC": 0.010021662885980871,
+    "lo": 0.005530044396337813,
+    "ok": false
+   },
+   "s42|2026": {
+    "IC": 0.007244332604104993,
+    "lo": 0.002460473655269395,
+    "ok": false
+   },
+   "s42|same_sign": true,
+   "s42|sd_ratio": 0.003988018561023807,
+   "s2027|pre2026": {
+    "IC": 0.009883232360177165,
+    "lo": 0.005576758085269741,
+    "ok": false
+   },
+   "s2027|2026": {
+    "IC": 0.006721688579022262,
+    "lo": 0.0020720274320061975,
+    "ok": false
+   },
+   "s2027|same_sign": true,
+   "s2027|sd_ratio": 0.004197299090149476
+  },
+  "L": {
+   "s42|pre2026": {
+    "IC": 0.007443785734978736,
+    "lo": 0.003453729359597825,
+    "ok": false
+   },
+   "s42|2026": {
+    "IC": 0.009075156626936668,
+    "lo": 0.004191596662811296,
+    "ok": false
+   },
+   "s42|same_sign": true,
+   "s42|sd_ratio": 0.016488518885979738,
+   "s2027|pre2026": {
+    "IC": 0.005386267269392997,
+    "lo": 0.0012028175500047886,
+    "ok": false
+   },
+   "s2027|2026": {
+    "IC": 0.00947766877306371,
+    "lo": 0.004556452232969887,
+    "ok": false
+   },
+   "s2027|same_sign": true,
+   "s2027|sd_ratio": 0.016569311002998088
+  }
+ },
+ "passing_models": [],
+ "RESULT": "FAIL at stage 3 (no eligible model meets IC >= 0.015, lower > 0, same sign, both segments, both seeds)"
+}
