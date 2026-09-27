@@ -238,5 +238,5 @@ elif MODE == 'h2':
                             for y in sorted({yr(u) for u in days})},
                 'within_day_demeaned_IC_by_age_month': {k: {'n': len(v), 'mean': float(np.mean(v))} for k, v in sorted(demeaned.items())}})
     write(rec, 'slope_per_30d=%.6f' % x.mean())
-else:
+elif MODE != 'gate12':   # rev 1: gate12 is handled by the first if-chain; this chain must not reject it (first gates run exited 1 here AFTER writing a valid receipt)
     raise SystemExit('mode gate12|ic|spectrum|h2')
