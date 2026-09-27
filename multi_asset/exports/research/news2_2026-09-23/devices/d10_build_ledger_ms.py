@@ -95,7 +95,7 @@ def main():
     ap.add_argument("--extra-api", default=None)
     ap.add_argument("--prefix-ledger", default=None); ap.add_argument("--prefix-sha", default=None)
     ap.add_argument("--out-name", default="ledger_full_ms.npz")
-    ap.add_argument("--control-mutation", default="none", choices=["none", "rate_extra", "ft_extra", "rate_prefix"],
+    ap.add_argument("--control-mutation", default="none", choices=["none", "rate_extra", "ft_extra", "rate_prefix", "same_second_extra"],
                     help="CONTROL RUNS ONLY: change exactly one row in memory before the controls (a rate / a fundingTime by +1 s in "
                          "the first --extra-months month, or a rate in the month before it); the controls must go red")
     a = ap.parse_args()
@@ -194,8 +194,11 @@ def main():
     off = np.array(off, np.int64)
     mutation = None
     if a.control_mutation != "none":
-        assert EXTRA_MONTHS, "--control-mutation needs --extra-months"
-        y, mo = int(EXTRA_MONTHS[0][:4]), int(EXTRA_MONTHS[0][5:7])
+        if a.control_mutation == "same_second_extra":
+            y, mo = 2026, 7                       # rev 2.3: a row well inside the old window; needs no --extra-months
+        else:
+            assert EXTRA_MONTHS, "--control-mutation needs --extra-months"
+            y, mo = int(EXTRA_MONTHS[0][:4]), int(EXTRA_MONTHS[0][5:7])
         if a.control_mutation == "rate_prefix":
             y, mo = (y - 1, 12) if mo == 1 else (y, mo - 1)
         lo = int(datetime.datetime(y, mo, 1, tzinfo=datetime.timezone.utc).timestamp() * 1000)
@@ -206,6 +209,11 @@ def main():
         if a.control_mutation == "ft_extra":
             assert FT[k + 1] - FT[k] > 2000
             FT[k] += 1000
+        elif a.control_mutation == "same_second_extra":
+            # rev 2.3: insert one extra event 1 ms after row k (same second): the derived set and the fold must both grow by exactly 1
+            assert FT[k + 1] - FT[k] > 2000 and (int(FT[k]) + 1) // 1000 == int(FT[k]) // 1000
+            FT = np.insert(FT, k + 1, FT[k] + 1); RT = np.insert(RT, k + 1, RT[k]); SR = np.insert(SR, k + 1, SR[k])
+            ZI = np.insert(ZI, k + 1, ZI[k]); off = off.copy(); off[j0 + 1:] += 1
         else:
             RT[k] = np.nextafter(RT[k], np.inf)
         mutation = {"kind": a.control_mutation, "symbol": "BTCUSDT", "row": k, "before": before, "after": (int(FT[k]), float(RT[k])),
@@ -253,7 +261,11 @@ def main():
             "extras": expected_extras[:40],
             "rows_new_ms": int(FT.size), "rows_after_fold": int(fFT.size),
             "rows_old_p2": int(Zo["ft"].size),
-            "fold_removed": int(FT.size - fFT.size)}
+            # rev 2.3 -- POST-READING revision (explanatory), after re-read R2 read NOT_RECONCILED at 11:30Z: in extended mode the fold
+            # skips rows after the old ledger's last second, and those rows were being counted as "removed by the fold" (87,962 of them),
+            # so the count could never equal the derived same-second set. Only rows INSIDE the old window can be removed by the fold.
+            "rows_in_old_window": int((FT // 1000 <= old_max_sec).sum()) if extended else int(FT.size),
+            "fold_removed": (int((FT // 1000 <= old_max_sec).sum()) if extended else int(FT.size)) - int(fFT.size)}
     if a.limit_symbols:
         ctrl["note"] = "partial run (--limit-symbols): the old ledger covers all 829, so array equality is " \
                        "only checked on the symbols built here"
