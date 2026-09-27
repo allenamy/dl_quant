@@ -1,0 +1,10 @@
+Controls of the rerun6 declaration (news2 2026-09-27, before any rerun6 row ran). Run on the Mac, python3 -B.
+Declared-matcher selftest (d10_dryrun_compare.declared_selftest, synthetic pair): T1..T8 all true, DECLARED_SELFTEST_PASS
+  (exact declaration accepted; declared value wrong / undeclared extra key / declared difference absent / other differ value /
+   declaration naming a missing comparison / an undeclared differing comparison -> each DIFFERS; undeclared identical row -> IDENTICAL).
+On the REAL reference receipts (refs of W, sha list RERUN6_refs_sha256_20260927T133108Z.txt), with the declaration file:
+  X1 last dry run's own D1 receipt (411d79a26 device, no new key) -> DIFFERS "declared difference did not occur (IDENTICAL)"
+  X2 same receipt + rows_in_old_window = rows_new_ms (the rev 2.3 shape)          -> IDENTICAL_EXCEPT_DECLARED
+  X3 same + rows_in_old_window = rows_new_ms + 1                                   -> DIFFERS (declared relation violated)
+  X4 D2a / D2b reference receipt with rebuild_device_sha256 set to HEAD a1015980... -> IDENTICAL_EXCEPT_DECLARED (both)
+These are synthetic new sides; no rerun6 output existed when they ran.

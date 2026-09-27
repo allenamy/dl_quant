@@ -167,6 +167,87 @@ def compare_json(ref, new, volatile=(), oneway=(), mutate=None, argv_out=()):
     return out
 
 
+def apply_declared(comps, decl):
+    """rev 2 (lead 2026-09-27, before rerun6): a row whose differences were DECLARED before the run. decl = {tag: spec} for this row,
+    spec = {"only_new": {path: {"equals_new_path": p} | {"value": v}}, "only_ref": [path, ...], "differ": {path: {"ref": v, "new": v}}}.
+    The row is IDENTICAL_EXCEPT_DECLARED only if every comparison is either IDENTICAL and undeclared, or a json comparison whose
+    difference sets equal the declared sets EXACTLY (paths and values). Anything else is DIFFERS: an undeclared difference, a declared
+    difference that did not occur, a declared value that came out different, a declaration naming a comparison the row does not have."""
+    notes = []
+    tags = [c.get("tag") for c in comps]
+    for t in decl:
+        if t not in tags:
+            notes.append(f"declared comparison {t!r} does not exist in this row")
+    matched = 0
+    for c in comps:
+        t, d = c.get("tag"), decl.get(c.get("tag"))
+        if d is None:
+            if c["verdict"] != "IDENTICAL":
+                notes.append(f"{t}: undeclared difference ({c['kind']} {c['verdict']})")
+            continue
+        if c["kind"] != "json":
+            notes.append(f"{t}: declarations are only defined for json comparisons, got {c['kind']}"); continue
+        if c["verdict"] == "IDENTICAL":
+            notes.append(f"{t}: declared difference did not occur (IDENTICAL)"); continue
+        if c.get("argv_out_failures"):
+            notes.append(f"{t}: argv --out exemption failed {c['argv_out_failures']}")
+        on, orf, df = d.get("only_new", {}), list(d.get("only_ref", [])), d.get("differ", {})
+        if c["n_only_new"] != len(on) or set(c["only_new"]) != set(on):
+            notes.append(f"{t}: only_new {c['only_new'][:8]} (n={c['n_only_new']}) != declared {sorted(on)}")
+        if c["n_only_ref"] != len(orf) or set(c["only_ref"]) != set(orf):
+            notes.append(f"{t}: only_ref {c['only_ref'][:8]} (n={c['n_only_ref']}) != declared {sorted(orf)}")
+        got = {x["path"]: x for x in c["differ"]}
+        if c["n_differ"] != len(df) or set(got) != set(df):
+            notes.append(f"{t}: differ {sorted(got)[:8]} (n={c['n_differ']}) != declared {sorted(df)}")
+        else:
+            for pth, want in df.items():
+                if not (_same(got[pth]["ref"], want["ref"]) and _same(got[pth]["new"], want["new"])):
+                    notes.append(f"{t}: {pth} ref/new {got[pth]['ref']!r}/{got[pth]['new']!r} != declared {want['ref']!r}/{want['new']!r}")
+        if on:
+            N = _flat(json.load(open(c["new"])))
+            for pth, spec in on.items():
+                if "equals_new_path" in spec:
+                    ok = pth in N and spec["equals_new_path"] in N and _same(N[pth], N[spec["equals_new_path"]])
+                else:
+                    ok = pth in N and _same(N[pth], spec["value"])
+                if not ok:
+                    notes.append(f"{t}: only_new {pth}={N.get(pth)!r} does not satisfy declared {spec}")
+        matched += 1
+    if notes:
+        return "DIFFERS", notes
+    return ("IDENTICAL_EXCEPT_DECLARED" if matched else "IDENTICAL"), []
+
+
+def declared_selftest():
+    """Power of apply_declared on a synthetic pair (run by the runner at S0, before any row): exact declaration -> accepted; each of
+    six ways of being wrong -> DIFFERS."""
+    import tempfile, shutil
+    td = tempfile.mkdtemp(prefix="dryrun_decl_")
+    try:
+        pr, pn = os.path.join(td, "r.json"), os.path.join(td, "n.json")
+        DW.write_json(pr, {"a": 1, "b": {"x": 2, "n": 5}, "s": "old"})
+        def run(newobj, decl, extra=()):
+            DW.write_json(pn, newobj)
+            comps = [dict(compare_json(pr, pn), tag="receipt")] + list(extra)
+            return apply_declared(comps, decl)[0]
+        good_new = {"a": 1, "b": {"x": 2, "n": 5, "k": 5}, "s": "new"}
+        D = {"receipt": {"only_new": {"b.k": {"equals_new_path": "b.n"}}, "differ": {"s": {"ref": "old", "new": "new"}}}}
+        res = {
+            "T1_exact_declaration_accepted": run(good_new, D) == "IDENTICAL_EXCEPT_DECLARED",
+            "T2_declared_value_wrong": run(dict(good_new, b={"x": 2, "n": 5, "k": 6}), D) == "DIFFERS",
+            "T3_undeclared_extra_key": run(dict(good_new, z=1), D) == "DIFFERS",
+            "T4_declared_difference_absent": run({"a": 1, "b": {"x": 2, "n": 5}, "s": "old"},
+                                                 {"receipt": {"differ": {"s": {"ref": "old", "new": "new"}}}}) == "DIFFERS",
+            "T5_differ_new_value_not_declared_one": run(dict(good_new, s="other"), D) == "DIFFERS",
+            "T6_declaration_names_missing_comparison": run(good_new, dict(D, npz2={"differ": {}})) == "DIFFERS",
+            "T7_undeclared_other_comparison_differs": run(good_new, D, extra=[{"tag": "npz", "kind": "npz", "verdict": "DIFFERS"}]) == "DIFFERS",
+            "T8_no_declaration_identical_row": apply_declared([dict(compare_json(pr, pr), tag="receipt")], {})[0] == "IDENTICAL",
+        }
+    finally:
+        shutil.rmtree(td, ignore_errors=True)
+    return {"cells": res, "verdict": "DECLARED_SELFTEST_PASS" if all(res.values()) else "DECLARED_SELFTEST_RED"}
+
+
 def compare_bytes(ref, new):
     a, b = open(ref, "rb").read(), open(new, "rb").read()
     out = {"kind": "bytes", "ref": ref, "new": new, "ref_sha256": hashlib.sha256(a).hexdigest(),

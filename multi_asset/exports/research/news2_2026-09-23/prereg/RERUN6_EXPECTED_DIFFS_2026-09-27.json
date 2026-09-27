@@ -1,0 +1,34 @@
+{
+ "title": "rerun6 of the rebuild-device dry run: differences declared BEFORE the run (lead 2026-09-27 13:4xZ)",
+ "author": "news2",
+ "written_before": "any rerun6 row ran; W=/workspace/d10_dryrun_rerun6_20260927T133108Z has no out/ yet",
+ "rule": "Judged by d10_dryrun_compare.apply_declared via d10_dryrun_run.py rev 4 --expect. A declared row is IDENTICAL_EXCEPT_DECLARED only if its differences equal these EXACTLY (paths and values); any other difference, or a declared one that does not occur, is DIFFERS and stops the run. No explanation is added after the run.",
+ "method": "Every device a row runs (and every module it imports) was compared with the version the last dry run used (sha recorded in receipts/dryrun_2026-09-27/part1..4 DRYRUN_RESULT*.json). Changed since then: d10_build_ledger_ms.py (411d79a26 -> rev 2.3), d10_rebuild_funding_features.py (29c9250e5 -> 7ee2cc6dd), common/durable_write.py (d3a7f013d -> + write_npz_compressed, write_npz path unchanged), and the harness itself (comparator selftest cleanup, runner rev 3/4). Then every 64-hex value in the 12 reference receipts was matched against the git history of news2 devices, common and nc devices: the only code sha that is NOT volatile in its row and whose code changed is rebuild_device_sha256 in the two fund_state receipts.",
+ "rows": {
+  "D1_ledger_ms": {
+   "receipt": {
+    "only_new": {"positive_control_reconciliation.rows_in_old_window": {"equals_new_path": "positive_control_reconciliation.rows_new_ms"}},
+    "why": "rev 2.3 (bd6d2bdd7) added the key rows_in_old_window to positive_control_reconciliation. Without extra sources (D1 passes only --out) it is int(FT.size), i.e. equal to rows_new_ms; fold_removed keeps its rev-1 value. The reference receipt (built by b355c1a55) has no such key. argv/python are one-way already (the reference has neither)."
+   }
+  },
+  "D2a_fund_state_snap": {
+   "receipt": {
+    "differ": {"rebuild_device_sha256": {"ref": "98c6b1054e276ece9ef26e401c01b6c5d9390505b1003e0b160373c6a3eb6927",
+                                         "new": "a10159804908bb2d6f3caf1985806f6617996b7cfa5c50c10089c8a22a6aef16"}},
+    "why": "d10_build_fund_state.py records the sha of the module it imports, d10_rebuild_funding_features.py. That module changed in 7ee2cc6dd (durable_write import at module level; main() now writes through DW) -- ref value = its 29c9250e5 bytes, new value = HEAD bytes. The functions fund_state calls (LedgerMs, _load_nc, the rebuild helpers) are unchanged, so the npz comparison is expected IDENTICAL and is NOT declared."
+   }
+  },
+  "D2b_fund_state_d10": {
+   "receipt": {
+    "differ": {"rebuild_device_sha256": {"ref": "98c6b1054e276ece9ef26e401c01b6c5d9390505b1003e0b160373c6a3eb6927",
+                                         "new": "a10159804908bb2d6f3caf1985806f6617996b7cfa5c50c10089c8a22a6aef16"}},
+    "why": "same as D2a"
+   }
+  }
+ },
+ "no_difference_expected": {
+  "all npz / bytes comparisons (D1, D2a, D2b, D3, D7, D10 zips)": "no computational code changed in any row since the last dry run (all IDENTICAL then)",
+  "D3_assemble, D4a, D4b, D4pc, D5a, D5b, D5c, D6, D7, D8, D9, D10": "their devices and imports are byte-identical to the last dry run's; code shas in their receipts are volatile there (self_sha256, device_sha256) or covered by the gate AST proof (gate_sha256; d10_manifest_gate.py unchanged since that proof)",
+  "external state": "D9 (CDN listing) and D10 (2026-08 zips) read Binance's public archive; any change there is still DIFFERS, reported as such"
+ }
+}

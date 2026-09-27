@@ -22,6 +22,22 @@ def _opt(k, d=None):
 PART = _opt("--part", "part1")
 ROWS = set(_opt("--rows", "").split(",")) - {""}
 D3_NOTRUN = _opt("--d3-notrun")
+# rev 4 (lead 2026-09-27, before rerun6): --expect FILE --expect-sha SHA -- differences DECLARED before the run (row, comparison, path,
+# values, why). A row with a declaration is judged by d10_dryrun_compare.apply_declared: IDENTICAL_EXCEPT_DECLARED only if its
+# differences equal the declared ones exactly; anything undeclared, or a declared one that does not occur, is DIFFERS (and stops).
+IDENTITY_ROWS = ("D1_ledger_ms", "D2a_fund_state_snap", "D2b_fund_state_d10", "D3_assemble", "D4a_parity_snap_control",
+                 "D4b_parity_common_window", "D5a_p2_old_vs_archive", "D5b_ledger_ms_vs_archive", "D5c_legs_rn8_vs_archive",
+                 "D6_live_ledger_vs_archive")
+EXPECT, EXPECT_SHA = {}, None
+if _opt("--expect"):
+    _eb = open(_opt("--expect"), "rb").read(); EXPECT_SHA = hashlib.sha256(_eb).hexdigest()
+    if not _opt("--expect-sha") or EXPECT_SHA != _opt("--expect-sha"):
+        sys.exit(f"REFUSED: --expect file sha {EXPECT_SHA} != --expect-sha {_opt('--expect-sha')}")
+    EXPECT = {k: {t: {kk: vv for kk, vv in spec.items() if kk != "why"} for t, spec in v.items()}
+              for k, v in json.loads(_eb)["rows"].items()}
+    _bad = [k for k in EXPECT if k not in IDENTITY_ROWS]
+    if _bad:
+        sys.exit(f"REFUSED: declarations for rows that are not identity rows: {_bad}")
 DEV, OUT, REFS = f"{W}/devices", f"{W}/out", f"{W}/refs"
 LOGD = f"/dev/shm/news2_dryrun_2026-09-27/{PART}" if PART != "part1" else f"{W}/logs"
 EXP = "/dev/shm/d10_2026-09-25"
@@ -192,6 +208,9 @@ def identity_row(name, cmd, cwd, inputs, compares, env=None, gate=False):
     except Exception as e:
         return finish(name, "ERROR", f"comparison crashed or output missing (device rc {rc}): {type(e).__name__}: {e}", comps, rc, secs, cmd)
     v = "IDENTICAL" if comps and all(c["verdict"] == "IDENTICAL" for c in comps) else "DIFFERS"
+    if name in EXPECT:
+        v, dnotes = CMP.apply_declared(comps, EXPECT[name])
+        comps.append({"kind": "declared", "tag": "declared", "verdict": v, "notes": dnotes, "declaration": EXPECT[name]})
     brief = "; ".join(f"{c['tag']}={c['verdict']}" + (f"(keys {c.get('differing_keys')})" if c.get("differing_keys") else "")
                       + (f"(paths {[d['path'] for d in c.get('differ', [])][:4]} only_ref {c.get('only_ref', [])[:3]} only_new {c.get('only_new', [])[:3]})"
                          if c["kind"] == "json" and c["verdict"] != "IDENTICAL" else "") for c in comps)
@@ -209,6 +228,11 @@ def main():
     # S0 -- plan s1.5: comparator self-test on a real reference npz + json before any row is read
     st = CMP.selftest(f"{EXP}/lineD/stage2/fund_state_snap.npz", f"{REFS}/fund_state_snap_RECEIPT.json")
     RESULT["selftest"] = st; save()
+    dst = CMP.declared_selftest(); RESULT["declared_selftest"] = dst
+    RESULT["expect"] = {"path": _opt("--expect"), "sha256": EXPECT_SHA, "rows": sorted(EXPECT)}; save()
+    say(f"ROW S0b_declared_selftest {'PASS' if dst['verdict'] == 'DECLARED_SELFTEST_PASS' else 'FAIL'} expect_sha={EXPECT_SHA} rows={sorted(EXPECT)}")
+    if dst["verdict"] != "DECLARED_SELFTEST_PASS":
+        RESULT["final"] = "STOP at S0b"; save(); say("DRYRUN_STOP at S0b: declaration matcher has no demonstrated power"); sys.exit(1)
     say(f"ROW S0_comparator_selftest {'PASS' if st['verdict'] == 'SELFTEST_PASS' else 'FAIL'} {json.dumps(st['cells'])[:400]}")
     if st["verdict"] != "SELFTEST_PASS":
         RESULT["final"] = "STOP at S0"; save(); say("DRYRUN_STOP at S0: comparator has no demonstrated power"); sys.exit(1)
