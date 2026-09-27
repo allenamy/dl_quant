@@ -72,3 +72,4 @@
 - 2026-09-27 02:3xZ | 用户:「King 能否建模资金费和成本?」要求高效推进 King / DL / FRESH 的根因与修复 | lead 冻结 King 改进族判据(4158f1521):KN 改用扣除资金费的标签,A1 改为按月重训,主判在 IC 层(对 T_net),书层只作不劣与风险;fresh2 负责训练,dlarch 负责 T_net 与 IC 装置;线 D 闭合定义已裁定(加性日和)
 - 2026-09-27 02:4xZ | 实盘正常 | 线 D 读数(news2 ab8fc621e):只换资金费特征、模型不动,2026 段 −0.17 [−0.36, −0.03],按 3SE 分辨不出;**但预先声明的含义条件成立 ⇒ 十月重建时生产者改用 D10 规则必须与重训同一次发布,不许先单独换特征**;alloc S2 两类事件都 FAIL;S1 已起跑(全量 CHECKSUM → 统计,约 3 小时以上);King 改进族训练已起(fresh2,T_net sha 929ff9f6,IC 红控 PASS);dlarch 补充:4 月 King 席位塌到 0.07 | 裁定 ΔIC 按成员配对(cac83247e)、per_name_stop 选 (B)、S1 的三处定义采纳;**lead 于 02:42Z 安装 S3 跨所采集器(launchd,心跳 OK)**
 - 2026-09-27 02:5xZ | fresh(原会话)02:42Z 回来报到,消息积压约 8 小时;它什么都没碰 ⇒ 改派做前瞻影子 A/B 设计(用户点名的方向),A1 判词后写 G4 终版;alloc 把 S3 登记为常驻作业(775ce5ddd);fresh2 补训 A0 m0–m7 已排队,MANIFEST_IC 约 03:40Z,之后 dlarch 起 IC 读数
+- 2026-09-27 02:4xZ | 实盘正常 | 在飞:S1 net/stat、3b 根因格、King 族训练与清单都在 RUNNING;两个 dlarch 终态已处理并关闭 | inflight_status 修复:会读 registry 的 pgid 字段与纯文本 PGID 文件,原先误报 SILENT_DEATH

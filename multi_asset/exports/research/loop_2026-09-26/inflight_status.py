@@ -21,11 +21,22 @@ for j in jobs:
         try:
             if os.path.realpath(p+"/cwd").startswith(os.path.dirname(d)) or any(os.path.realpath(f)==os.path.realpath(lg) for f in glob.glob(p+"/fd/*")): alive=True; break
         except Exception: pass
+    gs=set()
+    if j.get("pgid"): gs.add(int(j["pgid"]))
     pg=j.get("pgid_file")
     if pg and os.path.exists(pg):
+        raw=open(pg).read().strip()
+        try: gs.add(int(json.loads(raw).get("pgid")))
+        except Exception:
+            try: gs.add(int(raw.split()[0]))
+            except Exception: pass
+    for x in os.listdir("/proc"):
+        if not x.isdigit(): continue
         try:
-            g=int(json.load(open(pg)).get("pgid")); alive = alive or any(open(f"/proc/{x}/stat").read().split()[4]==str(g) for x in os.listdir("/proc") if x.isdigit())
+            st=open(f"/proc/{x}/stat").read(); pgid=int(st.rsplit(")",1)[1].split()[2])
+            if pgid in gs: alive=True; break
         except Exception: pass
+    out["pgids"]=sorted(gs)
     out["process_alive"]=alive
     out["state"]="TERMINAL" if term else ("RUNNING" if alive else "SILENT_DEATH")
     print(json.dumps(out))
