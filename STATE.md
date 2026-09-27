@@ -3,6 +3,18 @@
 > - **门**(`reseed_2026-09-26` rev 1):build 要求窗口内部连续,重放没覆盖到的洞一律 STOP 并逐锚点名;selftest 23/23。旧 selftest 的基线本身带一个越过重放末端的 1 格洞却判绿,已改。**路径 A 的前提**:跨安装边界(09:00Z)时快照差分量不出追加数 ⇒ 下一次 build 需以 INSTALL 记录为带时间戳的基底(已点名,未实现)。
 > - **归档**:05/06/07 VERIFIED(`f66b286de`);1–8 月切换窗 9,266 事件在两本账本中全部在册;旧 P2 在 05/06 月的 18 格费率差,恰为毫秒账本派生的 18 笔同秒事件(`e8ce8e4d9`,同源限定见 `4e23e55ff`);legs RN8 真实分歧 0。归档作业 rev 1 待 lead 于 21:00–23:40Z 安装(`72027a9b9`)。错题 E-0926-F / G。
 
+> **[2026-09-27 04:1xZ] 迁移到新机(Mac mini,**arm64**;旧机 Intel x86_64 已关机)。实盘自 04Z 起停止(04Z 锚未运行,持仓不动)**
+> - **03:59:28Z lead 拦截**:迁移助手把 22 个 launchd 作业原样带到新机并已加载(执行器将在 04:00Z 触发)。lead 对 21 个实盘相关作业做了 bootout 与持久 `disable`,只留 caffeinate。当时旧机是否已关尚不确定,这样做是为了防止双机同时下单。
+> - **文件完整性**:研究仓 HEAD 9d99b6aa2,只有 1 个 iCloud 占位文件(未跟踪的 BTCUSDT.csv);记忆 573 个文件;~/wide_shadow(5.0G)与 ~/dl_quant_live(1.2G,运行树 d01e35d,.env 在)齐全;funding_ledger_archive / xvenue_collector / pof_long / regime_dash 都在。
+> - **网络**:公网出口 IP 仍是 103.252.201.68,与旧机日志里记录的出口 637 次一致 ⇒ 交易所 API 的 IP 白名单**不需要改**;pod2 的 ssh 连通,配置不变。时钟偏差 −3 ms。
+> - **环境重建(arm64)**:
+>   - 旧环境全是 x86_64 二进制:生产者 venv 指向不存在的 Intel brew python3.14;/usr/bin/python3 用户包的 numpy 报 incompatible architecture。
+>   - 生产者:`brew install python@3.14 libomp`(3.14.7,旧机为 3.14.4),重建 ~/wide_shadow/venv,包版本与旧机逐一相同(numpy 2.5.2 / scipy 1.18.0 / pandas 3.0.5 / lightgbm 4.7.0 / narwhals / dateutil / six)。旧 venv 保留在 venv.x86_64_bak_20260927。
+>   - 执行器:/usr/bin/python3 3.9.6 的用户包 48 个,按原版本 `--force-reinstall` 成 arm64(numpy 1.26.4 / pandas 2.3.3 / scipy 1.13.1 / sklearn 1.6.1 / torch 2.2.2 / xgboost 2.1.4 等)。旧包备份在 ~/Library/Python/3.9.x86_64_bak_20260927。
+> - **平价**:combo_parity_replay 在 arm64 上重放 00Z(1790467200),**319 名权重逐位相同(n_differing 0)**;只有 beta_overlay 的 18/450 个 beta 差 ≤ 2.2e-16(1 ulp,M3 仍是 shadow)。
+> - **待办**:执行器离线全电池(克隆 d01e35d,arm64)→ 用 combo_state_bridge 桥接 04Z(src 00Z)→ 在 08Z 前重新启用 launchd 作业 → 08Z 首锚验收。
+> - **需用户处理**:系统睡眠设为 1 分钟,只靠 caffeinate 撑着,建议 `sudo pmset -a sleep 0 autorestart 1`;旧机的 x86 环境备份可在确认稳定后清理。
+
 > **[2026-09-27 03:0xZ] ⏸ 用户要求暂停代理工作:迁移到新工作电脑。用户裁定:实盘先留在旧机,新机准备好后再一次性切换(任何时刻只能有一台机器在跑执行器);今天的 GAP4(05:00Z)与 M3 on(09:00Z)发布全部推迟到迁移完成之后**
 > - 已向全部代理发暂停令:不起新作业;pod2 上能自己跑完并写终态标记的作业(S1 CHECKSUM/统计、KN/A1 训练与 IC 读数、3b 根因格)允许跑完;各自提交并写 `docs/HANDOFF_<agent>_2026-09-27.md`。lead 的 30 分钟巡检 cron 已取消。
 > - integ 起草实盘迁移清单 `docs/DRAFT_live_migration_checklist_2026-09-27.md`(只写清单,不操作)。
