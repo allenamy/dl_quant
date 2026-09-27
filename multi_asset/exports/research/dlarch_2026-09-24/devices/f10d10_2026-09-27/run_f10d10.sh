@@ -8,6 +8,9 @@
 #   train : seeds 42 2027 7 in sequence on the D10 inputs given by env (all REQUIRED, never defaulted): F10D10_FEATURES, F10D10_FEATURES_SHA,
 #           F10D10_FEATURES_RECEIPT, F10D10_LEGS, F10D10_LEGS_SHA, F10D10_LEGS_RECEIPT; --train-cut-utc 2026-09-01T02:00:00Z. Refuses unless
 #           'F10D10_G1 PASS' is in the marker log.
+# rev 1 (07:0xZ): the G1 PASS line now carries the shas of the code it certified ('F10D10_G1 PASS code=<t>,<c>,<s>'), and 'train'
+# requires a PASS line whose code shas equal the CURRENT files -- a PASS left in the log by an earlier code version (run 1, before
+# the safe_io fsync change) must not admit a later one. Found while re-running G1 after the C1 fix: the log still held run 1's PASS.
 # Terminal line (line start): 'F10D10_<PHASE>_DONE rc=<n>' ; 'F10D10_STOP <why>'.
 set -u
 C=/workspace/dlarch_2026-09-24/f10d10_2026-09-27; M=/dev/shm/dlarch_f10d10; LOG=$M/f10d10.log; PY=/workspace/venv/bin/python
@@ -18,6 +21,7 @@ echo "pgid=$(ps -o pgid= -p $$ | tr -d ' ') pid=$$ owner=dlarch job=f10d10_$PHAS
 say(){ echo "$(date -u +%FT%TZ) $*" >> $LOG; }
 stop(){ echo "F10D10_STOP $PHASE: $1" >> $LOG; rm -rf /workspace/dlarch_2026-09-24/CHAIN/.claim_F10D10; exit 1; }
 ENV="env -i PATH=/usr/bin:/bin HOME=/root LC_CTYPE=C"
+CODE=$(cd $C && sha256sum dlarch_train_f10.py dlarch_chain_torch.py dlarch_safe_io.py | awk '{print substr($1,1,16)}' | paste -sd, -)
 say "F10D10_${PHASE}_START shas $(cd $C && sha256sum dlarch_train_f10.py dlarch_chain_torch.py dlarch_safe_io.py dlarch_identity_compare.py | awk '{print substr($1,1,16)}' | tr '\n' ' ')"
 nvidia-smi --query-compute-apps=pid --format=csv,noheader | grep -q . && stop "GPU busy (another compute process present)"
 case $PHASE in
@@ -29,9 +33,9 @@ g1)
         --label "F10D10_G1 modified trainer (NC defaults) vs in-service NC F10 s42" --out $C/receipts/F10D10_G1_IDENTITY.json \
         --env-whitelist PATH,HOME,LC_CTYPE > $C/runs/g1_compare.log 2>&1 ) || stop "g1 compare rc!=0 (see $C/runs/g1_compare.log)"
   $PY -c "import json,sys; d=json.load(open('$C/receipts/F10D10_G1_IDENTITY.json')); sys.exit(0 if d['all_identical'] and d['positive_control'].startswith('PASS') else 1)" \
-    && echo "F10D10_G1 PASS" >> $LOG || { echo "F10D10_G1 FAIL" >> $LOG; stop "G1 not identical"; } ;;
+    && echo "F10D10_G1 PASS code=$CODE" >> $LOG || { echo "F10D10_G1 FAIL" >> $LOG; stop "G1 not identical"; } ;;
 train)
-  grep -q "^F10D10_G1 PASS" $LOG || stop "G1 has not passed"
+  grep -qx "F10D10_G1 PASS code=$CODE" $LOG || stop "no G1 PASS for the current code ($CODE)"
   for v in F10D10_FEATURES F10D10_FEATURES_SHA F10D10_FEATURES_RECEIPT F10D10_LEGS F10D10_LEGS_SHA F10D10_LEGS_RECEIPT; do [ -n "${!v:-}" ] || stop "env $v not set"; done
   for S in 42 2027 7; do
     ( cd $C && $ENV $PY -B dlarch_train_f10.py --env-whitelist PATH,HOME,LC_CTYPE --arm T0 --no-mask --seed $S \
