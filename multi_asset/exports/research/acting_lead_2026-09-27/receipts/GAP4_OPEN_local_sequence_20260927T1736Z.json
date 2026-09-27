@@ -1,0 +1,109 @@
+{
+  "utc": "2026-09-27T17:36:00Z",
+  "scope": "source and archived local data only; no API, imports of execution modules, tests, service mutations, or arm outcomes",
+  "rid": "A1790497440",
+  "source": "/Users/haosiyu/cc_tmp/recovery_check_20260927T0909Z/state/live/watchdog/events.jsonl",
+  "source_sha256": "dd910a0684456e05d13c3081ca8ed89572cccc3daf707433f2c3255b0d6ed578",
+  "jsonl_line": 17,
+  "event_ts": "2026-09-27T08:47:50Z",
+  "actions": [
+    {
+      "index": 269,
+      "action": {
+        "action": "submit_failed",
+        "order": {
+          "symbol": "OPENUSDT",
+          "side": "sell",
+          "quantity": 4708.0,
+          "price": 0.1417,
+          "tif": "GTX",
+          "client_id": "A1790497440-OPENUSDT-1",
+          "reduce_only": true
+        },
+        "code": -5022,
+        "msg": "Due to the order could not be executed as maker, the Post Only order will be rejected. The order will not be recorded in the order history",
+        "classification": "benign_rejection",
+        "consecutive_failures": 0,
+        "reason": "rebalance A1790497440 maker",
+        "ts": 1790497500.383942
+      }
+    },
+    {
+      "index": 326,
+      "action": {
+        "action": "submit",
+        "order": {
+          "symbol": "OPENUSDT",
+          "side": "sell",
+          "quantity": 4708.0,
+          "price": 0.1418,
+          "tif": "GTX",
+          "client_id": "A1790497440-OPENUSDT-2",
+          "reduce_only": true
+        },
+        "resp": {
+          "orderId": 910475678,
+          "symbol": "OPENUSDT",
+          "status": "NEW",
+          "clientOrderId": "A1790497440-OPENUSDT-2",
+          "price": "0.1418000",
+          "origQty": "4708",
+          "executedQty": "0",
+          "cumQty": "0",
+          "timeInForce": "GTX",
+          "type": "LIMIT",
+          "reduceOnly": true,
+          "closePosition": false,
+          "side": "SELL",
+          "positionSide": "BOTH",
+          "stopPrice": "0.0000000",
+          "workingType": "CONTRACT_PRICE",
+          "priceProtect": false,
+          "origType": "LIMIT",
+          "priceMatch": "NONE",
+          "selfTradePreventionMode": "EXPIRE_MAKER",
+          "goodTillDate": 0,
+          "updateTime": 1790497511875
+        },
+        "reason": "rebalance A1790497440 maker-requote",
+        "ts": 1790497511.917863
+      }
+    },
+    {
+      "index": 534,
+      "action": {
+        "action": "cancel_noop",
+        "symbol": "OPENUSDT",
+        "code": -2011,
+        "msg": "Unknown order sent.",
+        "client_id": "A1790497440-OPENUSDT-2",
+        "ts": 1790498623.253014
+      }
+    },
+    {
+      "index": 545,
+      "action": {
+        "action": "submit_failed",
+        "order": {
+          "symbol": "OPENUSDT",
+          "side": "sell",
+          "quantity": 4709.0,
+          "tif": "IOC",
+          "client_id": "A1790497440-OPENUSDT-3",
+          "chunks": null,
+          "reduce_only": true
+        },
+        "code": -2022,
+        "msg": "ReduceOnly Order is rejected.",
+        "classification": "reduce_only_rejected_verify_position",
+        "consecutive_failures": 1,
+        "reason": "rebalance A1790497440 topup",
+        "ts": 1790498693.882659
+      }
+    }
+  ],
+  "conclusion": "Confirmed local send-quality failure: OPENUSDT topup rejected -2022, not sent-success and not a gap arithmetic error. External close consistent with known old-host incident but OPEN-specific old-host order/fill absent from available evidence.",
+  "involuntary_gap_usdt": 667.0389,
+  "causal_attribution": "UNRESOLVED_ORDER_LEVEL_FORENSICS",
+  "release_gate": "FAIL_RETAINED"
+}
