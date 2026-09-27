@@ -1,4 +1,4 @@
-> **创建:** 2026-09-27 09:2xZ | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n(integ,lead 指派,只读起草) | **状态:** 恢复方案草稿,交 lead 审。未执行任何一步,没碰凭据,没联网 | **作废条件:** 旧机状态与本文假设不符;执行器运行树不再是 d01e35d;lead / 用户另行裁定
+> **创建:** 2026-09-27 09:2xZ | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n(integ,lead 指派,只读起草) | **状态:** rev 1(09:2xZ):加入最终步骤单 §7 与 12Z 加查清单 §8;装置已离线测试,未对场所运行,没碰凭据,没联网 | **作废条件:** 旧机状态与本文假设不符;执行器运行树不再是 d01e35d;lead / 用户另行裁定
 
 # 双执行器事故后的恢复方案(2026-09-27)
 
@@ -206,3 +206,40 @@
 - `receipts/GATE_CONDITIONS_clone_0909Z.txt`:同一评估路径的逐条件判词(装置 `devices/gate_conditions.py`)。
 - `receipts/REBUILD_STATS_pooled.txt`:§2 的表格(装置 `devices/rebuild_stats.py`,运行树只读)。
 - `devices/offline_clone.sb`:沙箱配置,禁网、生产目录不可读、只允许写克隆目录与系统临时目录。
+
+---
+## 7. 恢复步骤单·最终版(2026-09-27 09:2xZ,依据用户裁定 ①②③)
+- 用户裁定:① 轮换 API 密钥,由用户操作,新密钥只写入新机 `.env`;② 前提齐备就以原参数复场,赶得上 12Z 就从 12Z 开始,否则 16Z;③ D10 顺延到 09-30 13Z 窗。§4 的类修法 a–d 在 09-30 08:47Z 之后再预注册。
+- 以下 `DEV` = `/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/recovery_2026-09-27/devices`,`RCP` = 同目录下的 `receipts`。
+- **截止时间**:第 8 步必须在 **12:20Z 之前**完成,12Z 才能交易;否则顺延,第 8 步在 16:20Z 之前完成,首锚改为 16Z。任何一步都不要在 N+24 到 N+30 之间做。
+
+| # | 谁 | 做什么(命令) | 期望 | 不符时 |
+|---|---|---|---|---|
+| 1 | 用户 | 旧机:断网 → `launchctl bootout` 并 `disable` 全部 com.hsy.* / com.dlquant.* → 关机。报出**断网时刻 T_off**(UTC,精确到秒) | 用户口头或书面确认,附 T_off | 不往下走 |
+| 2 | 用户 | 在交易所界面:新建 API 密钥(只开期货交易,禁止提币,IP 限定 103.252.201.68)→ **删除旧密钥**。报出轮换时刻,并截图密钥列表(只剩新的一把) | 截图入库 | 不往下走 |
+| 3 | lead | 把新密钥写进 `~/dl_quant_live/.env`,只换 `BINANCE_KEY` 和 `BINANCE_SECRET` 两行,其余保留;然后 `chmod 600 ~/dl_quant_live/.env`。另外自查 `~/.quant_readonly.env` 装的是哪把密钥:若是被删的旧密钥,研究侧只读拉取器会失效,需要换掉或记下 | — | — |
+| 4 | lead | 在静默窗执行 `/usr/bin/python3 $DEV/venue_readonly.py q1q4 --t-off <T_off> --out $RCP/Q1Q4_<UTC时刻>.json` | 首行 `KEY fingerprint sha256[:10] = …` 与新密钥相符(可对照 `printf %s "<新key>" \| shasum -a 256 \| cut -c1-10`);末行 **`VENUE_Q1_Q4 PASS`**,rc 0 | FAIL(rc 1)或 UNKNOWN(rc 2)⇒ **停,不恢复** |
+| 5 | integ | 认领研究仓在 03:59Z 之后的未提交改动 | **已完成(09:22Z)**:只有 lead 的 `ACCEPT_08Z_1790496000_arm64_first.txt` 和 integ 的恢复装置,没有来路不明的写入(收据 `REPO_UNCOMMITTED_TOUCHED_after_0359Z.txt`)。第 8 步前再跑一次 | 出现来路不明的文件 ⇒ 报 lead |
+| 6 | lead 或 integ | `bash $DEV/recheck_clone.sh`:新建隔离克隆 + 完整 state 拷贝,在沙箱里跑 `resume --check` 和逐条件判词 | 末行 **`RECHECK RESUMABLE`**,rc 0;tripped False,无 blind,5b 与 5e 都为 CLEAN。09:23Z 实测已是如此 | NOT_RESUMABLE ⇒ 停,交 lead |
+| 7 | 用户 | 今天全天冻结合约钱包的转入与转出(§1.3 第 4 条) | 用户确认 | — |
+| 8 | lead(以用户字为前提) | `cd ~/dl_quant_live && LIVE_MODE=LIVE bash ops/resume_from_trip.sh "双执行器事故 09-27 08:31Z:旧机于 <T_off> 断网关机、旧密钥于 <T_rot> 删除;Q1–Q4 于 <时刻> PASS;克隆 --check RESUMABLE"` | 依次出现:`✓ LIVE is the tripped mode` → `1/4 … ✓ no condition currently fires …` → `2/4 … -> …/quarantine/state_<stamp>_resumed.json` → `3/4 removed …/state.json`,以及 `removed …/harvest_ema.json`(整书平仓,不保留 EMA 记忆)→ `4/4 ✓ no halt/reduce-only state remains` → `✓ resumed (reason: …)`;rc 0 | 任何一步 ✗ ⇒ 脚本自己拒绝、不改状态;交 lead,**不要重跑到绿** |
+| 9 | lead | 恢复后立即只读核对:`python3 -c "import os;print(os.path.exists(os.path.expanduser('~/dl_quant_live/state/live/watchdog/state.json')))"` | `False` | 交 lead |
+| 10 | lead + integ | 首锚:N+30 之后按 §8 的加查清单执行 | §8 全部通过 | 按 §8 的处置 |
+
+## 8. 12Z 首锚加查清单(16Z 同理,A 换成 1790524800)
+在 lead 的标准首锚验收(inspect_anchor / VERSION_PROBE / M3_SELFCHECK / parity / B4_POOLED / report / watchdog)之外,加查以下几项:
+
+| # | 查什么 | 命令 | 判据 |
+|---|---|---|---|
+| K1 | **外来 orderId = 0** | `/usr/bin/python3 $DEV/venue_readonly.py anchor --anchor 1790510400 --out $RCP/ANCHOR_1790510400.json`(N+30 之后,静默窗内) | `n_foreign_order_ids == 0`。窗口 = [rid − 600 s, 现在],范围是有佣金行的所有 symbol。归属按 orderId ∈ 本机 `request_ledger` 判;没有记 orderId 的本机行(平仓阶梯)才按 clientOrderId 判。所以即便两台机器同一秒铸出相同的 rid,外来单仍会被判为外来(已有测试) |
+| K2 | **建仓到位率** | 同上(`fill_ratio_realized_over_target` = anchors 行的 realized_gross / target_gross) | **≥ 0.60**(装置判据);参照区间 0.62–0.97(§2)。第二锚(16Z)另查 ≥ 0.95 |
+| K3 | **taker 份额**(合池) | 同上:`taker_share_venue_pooled`(userTrades.maker)与 `taker_share_ledger_pooled`(fills.venue_maker_flag)两边都报 | 只作描述,不作门。参照:近 42 锚 0.256,09-13 重建锚 0.314。两边相差 > 0.05 ⇒ 具名记下(说明账本与场所口径不一致) |
+| K4 | 没有被停机拦下的行 | 同上(`blocked_by_halt_rows`) | == 0 |
+| K5 | 看门狗没有再次跳闸 | 读 `state/live/watchdog/state.json` 是否存在,以及 `ALARM.log` 的末行 | 不存在 state.json;锚内的 watchdog `tripped=False` |
+| K6 | 旧机依然静默 | 重跑第 4 步的 `q1q4`,T_off 不变 | Q1 可以有本机的挂单(chase 阶段结束后应为 0);Q3/Q4 的行数 = 本机本锚的成交所产生的行。这一项由 K1 按 orderId 覆盖,**以 K1 为准** |
+| K7 | 成本 | `/usr/bin/python3 $DEV/rebuild_stats.py ~/dl_quant_live` 的 REBUILD 行 | 只作描述,参照 5.1–12.4 bps |
+
+- **VENUE_ANCHOR 的末行**:PASS(rc 0)= K1、K2、K4 全部成立;FAIL(rc 1)列出失败项;UNKNOWN(rc 2)= 查不到,**不等于通过**。
+- **处置**:K1 > 0 ⇒ 立即交 lead,视为第二个执行者仍在;K2 < 0.60 ⇒ 交 lead,不自动处置;下一锚会继续朝目标建仓。
+- **装置测试**(离线、禁网、无凭据):`tests_venue_readonly.py` **ALL PASS**,收据 `TESTS_venue_readonly.txt`。覆盖:只读白名单拒绝下单路径、Q1–Q4 各自的红格、翻页边界不丢行也不重复计数、真实相同的两行都保留、读取失败判 UNKNOWN、收据不覆盖、外来单即使 clientOrderId 与本机相同仍被判为外来、平仓行按 clientOrderId 认领、到位率与停机行的红格、userTrades 页饱和判 UNKNOWN。
+- `local_ledger` 已在真实账本上离线跑过(00Z / 08Z 两锚,rid 能找到,本机 orderId 共 1,437 个)。**这两个装置从没对真实场所跑过**;第一次联网运行就是第 4 步,由 lead 执行。

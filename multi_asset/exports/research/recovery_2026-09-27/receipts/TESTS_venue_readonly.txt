@@ -1,0 +1,33 @@
+[Q1–Q4]
+  OK    baseline: nothing open, flat, no income since t_off => PASS
+  OK    only GET endpoints on the allow-list were called
+  OK    Q3/Q4 windows start exactly at t_off and end at now
+  OK    an open order anywhere => FAIL Q1
+  OK    a nonzero position => FAIL Q2 with its notional
+  OK    one commission row after t_off => FAIL Q3 only
+  OK    rows BEFORE t_off (the incident itself) do not count => PASS
+  OK    paging: 1,002 rows across a full page boundary are all counted (boundary rows subtracted once, not lost)
+  OK    two genuinely identical rows the venue returned are BOTH kept (E-0909-H)
+  OK    an income outage => Unknown (never PASS)
+  OK    t_off not in the past => Unknown
+  OK    a trading path (/fapi/v1/order) is REFUSED before any transport
+  OK    importing and testing never loaded a credential
+
+[main: exit codes and receipt]
+  OK    pass: rc 0 and last line starts 'VENUE_Q1_Q4 PASS'
+  OK    fail: rc 1 and last line starts 'VENUE_Q1_Q4 FAIL ['Q1_open_orders']'
+  OK    unknown: rc 2 and last line starts 'VENUE_Q1_Q4 UNKNOWN /fapi/v3/account HTTP 503'
+  OK    the receipt records the verdict and the device sha
+  OK    an existing receipt is never overwritten (open 'x')
+
+[anchor: foreign orderIds, fill ratio, taker share]
+  OK    all venue orderIds are ours, 95% filled, no halt rows => PASS
+  OK    venue taker share pooled = 100/400 = 0.25
+  OK    the userTrades window starts 600 s before the rid
+  OK    a foreign order with OUR anchor clientOrderId (same-second rid collision) is still FOREIGN => FAIL
+  OK    an order id the ledger lacks but whose clientOrderId is one of our id-less rows (flatten ladder) is ours => PASS
+  OK    fill ratio 0.50 < 0.60 => FAIL
+  OK    blocked_by_halt rows at the resumed anchor => FAIL
+  OK    a saturated userTrades page => Unknown, never a partial PASS
+
+ALL PASS
