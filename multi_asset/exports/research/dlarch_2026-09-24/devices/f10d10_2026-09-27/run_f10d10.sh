@@ -17,12 +17,16 @@
 #   from the same env it trained on) --f10-src <that seed> --arm-name DLARCH_D10_s<seed> --label d10_s<seed> --engine, then
 #   dlarch_cell_retain.py against DLARCH_REF_NC_s42X (verify, then --delete after its four preconditions). A write probe of 1.4 GiB
 #   (a cell is ~0.36 GB, plus 1 GiB) precedes every cell. Bound 6 h. Needs env F10D10_KING_OOF too (recorded, not read by combo).
+# rev 3: RETAIN receipts go to $W/receipts (beside the NC references, so one receipts dir serves the paired reading); phase 'read':
+#   dlarch_paired_d.py (pinned 4e293147 family, unchanged) -- arm RETAIN_D10_s*_2026-09-27.json (DLARCH_D10_s), bases RETAIN_REFNC
+#   (DLARCH_REF_NC_s, the gated same-seed pairing, DL-gate rev 7 §13) and RETAIN_s*_2026-09-25 (DLARCH_T0_s, reference only), sigma
+#   receipt SIGMA_F10_2026-09-25.json. Transcribes revision 4/5; the October verdict is lead's.
 # Terminal line (line start): 'F10D10_<PHASE>_DONE rc=<n>' ; 'F10D10_STOP <why>'.
 set -u
 C=/workspace/dlarch_2026-09-24/f10d10_2026-09-27; M=/dev/shm/dlarch_f10d10; LOG=$M/f10d10.log; PY=/workspace/venv/bin/python
-PHASE=${1:?usage: run_f10d10.sh g1|train|cells}
+PHASE=${1:?usage: run_f10d10.sh g1|train|cells|read}
 mkdir -p $M $C/runs $C/receipts
-CL=/workspace/dlarch_2026-09-24/CHAIN/.claim_F10D10; [ "$PHASE" = cells ] && CL=${CL}_CELLS
+CL=/workspace/dlarch_2026-09-24/CHAIN/.claim_F10D10; [ "$PHASE" = cells ] && CL=${CL}_CELLS; [ "$PHASE" = read ] && CL=${CL}_READ
 mkdir "$CL" 2>/dev/null || { echo "F10D10_STOP claim exists ($PHASE)" >> $LOG; exit 4; }
 echo "pgid=$(ps -o pgid= -p $$ | tr -d ' ') pid=$$ owner=dlarch job=f10d10_$PHASE started=$(date -u +%FT%TZ)" | tee $CL/owner > $M/f10d10_$PHASE.pgid
 say(){ echo "$(date -u +%FT%TZ) $*" >> $LOG; }
@@ -30,7 +34,7 @@ stop(){ echo "F10D10_STOP $PHASE: $1" >> $LOG; rm -rf "$CL"; exit 1; }
 ENV="env -i PATH=/usr/bin:/bin HOME=/root LC_CTYPE=C"
 CODE=$(cd $C && sha256sum dlarch_train_f10.py dlarch_chain_torch.py dlarch_safe_io.py | awk '{print substr($1,1,16)}' | paste -sd, -)
 say "F10D10_${PHASE}_START shas $(cd $C && sha256sum dlarch_train_f10.py dlarch_chain_torch.py dlarch_safe_io.py dlarch_identity_compare.py | awk '{print substr($1,1,16)}' | tr '\n' ' ')"
-[ "$PHASE" != cells ] && nvidia-smi --query-compute-apps=pid --format=csv,noheader | grep -q . && stop "GPU busy (another compute process present)"
+[ "$PHASE" != cells ] && [ "$PHASE" != read ] && nvidia-smi --query-compute-apps=pid --format=csv,noheader | grep -q . && stop "GPU busy (another compute process present)"
 case $PHASE in
 g1)
   ( cd $C && $ENV $PY -B dlarch_train_f10.py --env-whitelist PATH,HOME,LC_CTYPE --arm T0 --no-mask --seed 42 --folds 2023,202609 \
@@ -76,13 +80,21 @@ cells)
           --f10-src $C/runs/d10/G1_T0_nomask/f10_s$S --arm-name DLARCH_D10_s$S --label d10_s$S --engine > $C/runs/cell_s$S.log 2>&1 ) || stop "chain s$S rc!=0 (see $C/runs/cell_s$S.log)"
       TAG=DLARCH_D10_s${S}_scaled_rule_raw_UAFE
       ( cd $C && $ENV $PY -B $W/dlarch_cell_retain.py --env-whitelist PATH,HOME,LC_CTYPE --cell $W/chain/d10_s$S/runs/$TAG --tag $TAG \
-          --control-cell $REF --control-tag $REFTAG --engine $ENG --out $C/receipts/RETAIN_D10_s$S.json --delete --cell-root $W/chain/d10_s$S \
+          --control-cell $REF --control-tag $REFTAG --engine $ENG --out $W/receipts/RETAIN_D10_s${S}_2026-09-27.json --delete --cell-root $W/chain/d10_s$S \
           > $C/runs/retain_s$S.log 2>&1 ) || stop "retain s$S rc!=0 (see $C/runs/retain_s$S.log)"
       say "F10D10_CELL_DONE s$S $(grep -h DLARCH_CELL_RETAIN $C/runs/retain_s$S.log | tail -1)"
     done
     LEFT=$(echo "$NEWLEFT" | sed 's/^ *//'); [ -z "$LEFT" ] && break; sleep 60
   done
   [ -z "$LEFT" ] || stop "bound expired, seeds without cells: $LEFT" ;;
+read)
+  W=/workspace/dlarch_2026-09-24
+  for S in 42 2027 7; do [ -s $W/receipts/RETAIN_D10_s${S}_2026-09-27.json ] || stop "no RETAIN_D10 for s$S"; done
+  ( cd $W && $ENV $PY -B dlarch_paired_d.py PATH,HOME,LC_CTYPE $W/receipts $W/receipts/SIGMA_F10_2026-09-25.json /dev/shm/news2_2026-09-23/engine \
+      $W/receipts/PAIRED_D_D10_2026-09-27.json --arm-glob 'RETAIN_D10_s*_2026-09-27.json' --arm-tagkey DLARCH_D10_s \
+      --base-glob 'RETAIN_REFNC_s*_2026-09-26.json' --base-tagkey DLARCH_REF_NC_s --base-glob 'RETAIN_s*_2026-09-25.json' --base-tagkey DLARCH_T0_s \
+      > $C/runs/read.log 2>&1 ) || stop "paired_d rc!=0 (see $C/runs/read.log)"
+  say "F10D10_READ $(tail -1 $C/runs/read.log | cut -c1-200)" ;;
 *) stop "unknown phase" ;;
 esac
 RC=0; grep -q Traceback $C/runs/*.log 2>/dev/null && RC=1
