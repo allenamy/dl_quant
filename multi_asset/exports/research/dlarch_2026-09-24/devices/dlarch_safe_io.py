@@ -24,6 +24,11 @@ RED CONTROLS (selftest, all must fail-to-pass):
   R3 one flipped value byte   -- proves the comparison is bitwise, not structural
   R4 guard fires on a raw call
 A green selftest without R1-R4 failing would mean the verification is vacuous.
+
+DURABILITY (2026-09-27, October chain contract C1, news2 review): the temp file is fsync'd before its read-back and the
+directory is fsync'd after os.replace, in all three writers (write_json / save_npz / save_torch). Before this, a power loss
+after the replace could have lost a verified write. The four raw-write sites the contract scanner sees are this module's own
+temp write (the verified writer itself) and three deliberate selftest fixtures; each carries a reasoned durable-exempt comment.
 """
 import hashlib
 import json
@@ -38,6 +43,14 @@ _ORIG_SAVEZ = np.savez
 _ORIG_TORCH_SAVE = None  # bound in install_guards() if torch is present
 
 _IN_HELPER = False  # only the helpers in this module may reach the raw writers
+
+
+def _fsync_path(p):
+    fd = os.open(str(p), os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
 
 
 def _tmp_for(path: "pathlib.Path") -> "pathlib.Path":
@@ -95,9 +108,11 @@ def save_npz(path, **arrays) -> str:
         _ORIG_SAVEZ_COMPRESSED(tmp, **arrays)
     finally:
         _IN_HELPER = False
+    _fsync_path(tmp)
     _verify_npz(tmp, arrays)
     want = sha(tmp)
     os.replace(tmp, path)
+    _fsync_path(path.parent)
     got = sha(path)
     if got != want:
         raise ArtifactVerifyError(f"{path}: sha changed across replace ({got[:16]} != {want[:16]})")
@@ -110,7 +125,8 @@ def write_json(path, obj) -> str:
     path = pathlib.Path(path)
     tmp = _tmp_for(path)
     text = json.dumps(obj, indent=2, allow_nan=False, sort_keys=False)
-    tmp.write_text(text)
+    tmp.write_text(text)  # durable-exempt: this IS the verified writer -- temp write, fsync, read-back compare, atomic replace, fsync dir
+    _fsync_path(tmp)
     back = tmp.read_text()
     if back != text:
         raise ArtifactVerifyError(f"{path}: text read back differs ({len(back)} vs {len(text)} chars)")
@@ -119,6 +135,7 @@ def write_json(path, obj) -> str:
         raise ArtifactVerifyError(f"{path}: json does not round-trip")
     want = sha(tmp)
     os.replace(tmp, path)
+    _fsync_path(path.parent)
     got = sha(path)
     if got != want:
         raise ArtifactVerifyError(f"{path}: sha changed across replace")
@@ -138,6 +155,7 @@ def save_torch(path, obj) -> str:
         (_ORIG_TORCH_SAVE or torch.save)(obj, tmp)
     finally:
         _IN_HELPER = False
+    _fsync_path(tmp)
     try:
         back = torch.load(tmp, map_location="cpu", weights_only=True)
     except Exception as e:
@@ -158,6 +176,7 @@ def save_torch(path, obj) -> str:
             raise ArtifactVerifyError(f"{path}[{k}]: tensor differs on read-back")
     want = sha(tmp)
     os.replace(tmp, path)
+    _fsync_path(path.parent)
     got = sha(path)
     if got != want:
         raise ArtifactVerifyError(f"{path}: sha changed across replace")
@@ -227,7 +246,7 @@ def selftest(workdir):
     p1 = w / "r1.npz"
     save_npz(p1, P=A, rows=B)
     n = p1.stat().st_size
-    with open(p1, "r+b") as f:
+    with open(p1, "r+b") as f:  # durable-exempt: selftest red control R1 corrupts its own fixture on purpose
         f.seek(-200, os.SEEK_END)
         f.write(b"\0" * 200)
     assert p1.stat().st_size == n, "R1 must preserve size to model E-0925-A"
@@ -236,7 +255,7 @@ def selftest(workdir):
     # R2: ordinary short write.
     p2 = w / "r2.npz"
     save_npz(p2, P=A, rows=B)
-    with open(p2, "r+b") as f:
+    with open(p2, "r+b") as f:  # durable-exempt: selftest red control R2 truncates its own fixture on purpose
         f.truncate(p2.stat().st_size - 512)
     ok &= _expect_raise("R2 tail truncated", lambda: _verify_npz(p2, {"P": A, "rows": B}))
 
@@ -250,7 +269,7 @@ def selftest(workdir):
     # R4: the behavioural guard stops a bypassing call site.
     install_guards()
     ok &= _expect_raise("R4 guard on raw np.savez_compressed",
-                        lambda: np.savez_compressed(w / "r4.npz", P=A))
+                        lambda: np.savez_compressed(w / "r4.npz", P=A))  # durable-exempt: selftest red control R4, the guard must raise
     print("GREEN after guards: the helpers still work (they hold the original writer)")
     s2 = save_npz(w / "green2.npz", P=A, rows=B)
     ok &= s2 == s  # same arrays, same bytes

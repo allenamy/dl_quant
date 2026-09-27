@@ -221,7 +221,8 @@ def main():
                        "clamp_actually_fires": bool(green["s42"]["clamped_cells_fc"] > 0)}}
     rec["utc_end"] = iso(time.time())
     op = os.path.join(outdir, "G3_CHAIN_PARITY.json")
-    tmp = op + ".tmp"; open(tmp, "w").write(json.dumps(rec, indent=1, allow_nan=False)); os.replace(tmp, op)
+    import dlarch_safe_io as _sio   # October contract C1 (2026-09-27): verified, fsync'd write instead of a raw open(..., "w")
+    _sio.write_json(op, rec)
     G = rec["G3"]
     print(f"G3_CHAIN_PARITY GREEN={G['GREEN']} green_max_abs_dw={gmax:.3e} green_margin={G['green_margin_x']:.2e}x | "
           f"RED_alpha={G['red_alpha']['RED']} {G['red_alpha']['max_abs_dw']:.3e} ({G['red_alpha']['margin_x']:.1f}x, "

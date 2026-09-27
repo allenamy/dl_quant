@@ -1,0 +1,12 @@
+self_sha256=40cd3ba5476c224fe2ae24efac52531f00f370feed124e54dfda3b6c82890203
+GREEN: an honest write verifies and returns a sha
+  sha=c072de3eec18c204 size=95894
+  json sha=e293cfa8e20d0e8c
+RED controls (each MUST raise, else verification is decoration)
+  RED-OK   R1 NUL tail, size preserved: ArtifactVerifyError: w2/r1.npz: unreadable on read-back (BadZipFile: File is not a zip file)
+  RED-OK   R2 tail truncated: ArtifactVerifyError: w2/r2.npz: unreadable on read-back (BadZipFile: File is not a zip file)
+  RED-OK   R3 one changed value: ArtifactVerifyError: w2/r3.npz[P]: bytes differ on read-back
+  RED-OK   R4 guard on raw np.savez_compressed: RuntimeError: np.savez_compressed called directly: artifact writes must go through dlarch_safe_io (save_
+GREEN after guards: the helpers still work (they hold the original writer)
+  sha=c072de3eec18c204 equal_to_first=True
+DLARCH_SAFE_IO_SELFTEST=GREEN
