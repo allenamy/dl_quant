@@ -133,3 +133,5 @@ Pod部署根为`/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/fun
 完整fold最小方案另见`PLAN_acting_funding_fold_clock_2026-09-27.md`（8b5fe0f58）：已定位原始价全网格23af32bd…、meta d1e49cc9…、历史CfgMap31/逐fill offset、D10真实ledger76b777…与已归档共同特征ad80d50d…，先120锚mmap小包校准，不需要重新寻找历史实盘全tape。新候选必须等待D10共同输入验收，保留NC参照，通过完整King+F10+fund书、32执行路径和UNKNOWN人口评价。第一span预算CPU1/2GiB/5分钟；整fold两臂一epoch预计45–120 GPU秒但尚未实测，完整训练/整书资源另排；未自动延长本轮范围。
 
 17:11:54Z按约5分钟重查仍红：余量14,897,160,192 bytes<14GiB，同UID RSS16,806,248,448 bytes，GPU2MiB/util0；仍未启动任何GPU/训练。代码、预注册、实际失败资源收据和单次续跑命令均已归档，等待资源释放，无后台高频轮询。
+
+完整fold方案经research_resume_0927独立静态复核后，0507907f1/82f3f0971补齐六项：同秒压缩须整个秒桶到末事件期间q不变且同价/同窗口；fill价保留decision reference×原signed slip；producer EMA权重h与实际数量q分开；terminal固定末锚+4h、不延标签；固定GM=2只进数量一次、现金统一NAV归一且不叠收3.52；canonical沿实际100000 USDT运行并保留lot/min-notional，随后按NAV归到V0=1，首span必须非零fill及可达结算。它们仍是未执行前置合同，未扩展训练。
