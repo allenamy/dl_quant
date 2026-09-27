@@ -1,0 +1,46 @@
+{
+  "created_utc": "2026-09-27T18:12:11.647537+00:00",
+  "clone": "/Users/haosiyu/cc_tmp/funding_durable_ack_exec_20260927",
+  "diff_base": "841e771680cd36d416181382ca1d5b1632f71b27",
+  "observed_head": "841e771680cd36d416181382ca1d5b1632f71b27",
+  "reviewed_source_sha256": {
+    "binance_funding.py": "7e92718e3af06c729c38ca7dd38b865cd5cd9b6d1a1d6d3081e6780f7c650ec1",
+    "pilot_log.py": "73a69a4f14e833ea3a598ffa31fa8b482e787219ba466c0c9a7be68df898bda7"
+  },
+  "files": {
+    "ast_counterexamples.py": "2285e6c436362d208cfdee7d83ea6d025aa3fae7d172e1c9f4cbe651e36bccc5",
+    "AST_STDOUT.json": "3e990934ae66886d7b0165889019114fea050d2eb1ac5395ed48d869d2d5793c",
+    "REVIEWED_DIFF.patch": "026a8f76b6e1466260564cacf46cb0bc80c1786ba64d8049e2e7d519640584f6"
+  },
+  "observed_source_lines": {
+    "snapshot_conflict": [
+      "live/binance_funding.py:353-357",
+      "live/binance_funding.py:588-590"
+    ],
+    "day_entry_filtered": [
+      "live/pilot_log.py:869-872",
+      "live/binance_funding.py:554",
+      "live/binance_funding.py:595-596"
+    ],
+    "partial_append_continue": [
+      "live/pilot_log.py:469-474",
+      "live/pilot_log.py:552-553",
+      "live/binance_funding.py:971-995"
+    ],
+    "different_fd_ack": [
+      "live/pilot_log.py:471-474",
+      "live/pilot_log.py:549-553",
+      "live/pilot_log.py:775-781"
+    ]
+  },
+  "deployment_evidence": {
+    "scheduler": "scheduler/run_anchor.py:125 flock; :307 PilotLogger; :385 funding call; :1097 close",
+    "backfill": "multi_asset/exports/research/funding_backfill_2026-09-26/devices/funding_gap_backfill.py:202-207 copy2 backup then append, no target replacement"
+  },
+  "limits": [
+    "AST counterexamples, not execution suite or live occurrence claims.",
+    "No local executor suite or production module import run.",
+    "No clone edits, live state, network, candidate returns or root ledger writes.",
+    "Inherited snapshot/partial-append behavior is not classified as a newly introduced regression."
+  ]
+}

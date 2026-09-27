@@ -1,0 +1,81 @@
+{
+  "source_sha256": {
+    "binance_funding.py": "7e92718e3af06c729c38ca7dd38b865cd5cd9b6d1a1d6d3081e6780f7c650ec1",
+    "pilot_log.py": "73a69a4f14e833ea3a598ffa31fa8b482e787219ba466c0c9a7be68df898bda7"
+  },
+  "scope": "selected AST and in-memory fakes; no actual module import, executor suite, network, state read or filesystem mutation",
+  "snapshot_conflict": [
+    {
+      "ordered_A_qty": [
+        10.0,
+        5.0
+      ],
+      "gap": [
+        {
+          "notional": 100.0,
+          "read_ts": 1000000.0,
+          "age_s": 300.0
+        },
+        null
+      ],
+      "fresh_strict": {
+        "positions": {
+          "XUSDT": 100.0
+        },
+        "read_ts": 1000000.0,
+        "age_s": 300.0,
+        "source": "position_readback (our own record of the venue's answer)"
+      }
+    },
+    {
+      "ordered_A_qty": [
+        5.0,
+        10.0
+      ],
+      "gap": [
+        null,
+        "quantity moved across the gap outside our fills: qty(A) 10.0 vs qty(B) - net fills 5.0 (tol 0.5)"
+      ],
+      "fresh_strict": {
+        "positions": {
+          "XUSDT": 200.0
+        },
+        "read_ts": 1000000.0,
+        "age_s": 300.0,
+        "source": "position_readback (our own record of the venue's answer)"
+      }
+    }
+  ],
+  "strict_calendar_regular_file": {
+    "listed": [
+      "20260924 dir",
+      "20260925 regular file",
+      "20260926 dir"
+    ],
+    "returned": [
+      "20260924",
+      "20260926"
+    ]
+  },
+  "partial_append": {
+    "caller_written": [
+      "YUSDT"
+    ],
+    "caller_pending": [
+      "XUSDT"
+    ],
+    "ack_count": 1,
+    "jsonl_parse_error": "Expecting ':' delimiter: line 1 column 13 (char 12)",
+    "limitation": "synthetic partial-write fault; no actual ENOSPC experiment"
+  },
+  "different_fd_ack": {
+    "append_fd": 101,
+    "synced_fds": [
+      202,
+      303,
+      404
+    ],
+    "funding_returned_success": true,
+    "limitation": "assumes an external path replacement; no such live occurrence was inspected or established"
+  }
+}
