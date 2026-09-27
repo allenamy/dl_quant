@@ -144,3 +144,8 @@ Pod部署根为`/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/fun
 17:17:14–23Z Pod完整manifest与输入身份通过，原六窗price/fee/cash对账全部≤1e−8USD，枚举1819笔结算（其中400笔重建q严格为0）。随后默认/usr/bin/python的torch2.4.1+cu124在首个CUDA张量报`no kernel image`，17:17:25Z退出；未到网络forward、梯度或optimizer step。guard实测RSS峰1,020,203,008 bytes，GPU进程峰256MiB，child wall15.90秒。HANDOFF本来已指定F10用/workspace/venv；本次漏用是装置环境选择错误，不是资金费模型故障。失败stdout/stderr/guard/env原件保留。
 
 42987619e/e08cdc494在未见网络梯度前固定现成/workspace/venv/bin/python（torch2.11.0+cu128、numpy2.4.6），不安装任何包；guard明确用此子解释器。按原冻结全事件谓词，在CUDA前新增持久化CLOCK_PREFLIGHT以保留q=0省略事件的完整导数更正；没有改变输入、双臂、损失、阈值或预算。17:19:13及17:24:22资源门重新变红，后者余量14,348,087,296 bytes<14GiB，故没有发出第二个GPU子进程。此前§11未启动GPU是17:11当时事实；当前已经发生一次CUDA上下文初始化，但模型/优化步骤仍为0。
+
+
+17:35:02Z终态已关闭：`EXPIRED_AFTER_RUNTIME_FAILURE_AND_RESOURCE_REFUSALS`。原15分钟wall共900秒用尽，唯一child活动15.896秒；成功网络forward=0、optimizer更新=0、没有model artifact，原PID3515866已不存在。17:29:00最后资源复查余量14,224,306,176 bytes仍<14GiB。Pod独立根保存NO_RESCHEDULE.json，guard校验此标记优先拒绝；只读终态重入测试exit78，未创建child。**本轮没有两臂模型结果**，F=0参数/optimizer、网络carry梯度以及补全q=0事件的导数仍NOT_RUN/NOT_MEASURED，不能把CPU现金闭合替代这些门。旧预算不会重置/重新尝试。
+
+预算工程单列提出，不改本轮identity：首失败child峰RSS1,020,203,008 bytes=约0.950GiB（CUDA上下文已建，未到有效网络计算）；NPY头静态核Panel显式数组保守上界601,661,800 bytes、六锚171维特征1,641,600 bytes、三份完整tape系数709,920 bytes。正确torch2.11的完整CUDA宿主峰尚未测，不能宣称3GiB已获证明。任何较低RSS续试需新方案/新授权/新独立根，保持8GiB余量和GPU8GiB，不清共享cache、不动KSR/D10。

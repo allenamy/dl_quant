@@ -3,6 +3,8 @@
 import os,pathlib,time,json,subprocess,signal,sys
 R=pathlib.Path(__file__).resolve().parent;G=2**30
 os.sched_setaffinity(0,{min(os.sched_getaffinity(0))})
+if (R/'NO_RESCHEDULE.json').exists():
+ print('EXPERIMENT_CLOSED_NO_RESCHEDULE',flush=True);sys.exit(78)
 if (R/'QUEUE_PAUSE').exists():
  print('QUEUE_PAUSED_BY_PARENT_RECHECK_AFTER_5_TO_10_MINUTES',flush=True);sys.exit(77)
 def snapshot():
