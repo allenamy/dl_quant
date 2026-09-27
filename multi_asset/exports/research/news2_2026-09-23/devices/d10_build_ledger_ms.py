@@ -237,6 +237,7 @@ def main():
                        else "NOT_RECONCILED")
 
     rec = {"device": os.path.basename(__file__), "self_sha256": sha(os.path.realpath(__file__)),
+           "argv": vars(a), "python": {"version": sys.version.split()[0], "executable": sys.executable},  # lead 09-27: derived, not listed
            "criteria": "DECISION_RULE_D10_stage2_2026-09-26.md revisions 1-3 (ms key; new artifact; old pins unchanged)",
            "semantics": "p2_prep_inputs.py verbatim EXCEPT the key is milliseconds (not t_ms // 1000)",
            "old_ledger": {"path": OLD, "sha256": OLD_SHA, "untouched": True},

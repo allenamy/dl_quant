@@ -227,6 +227,7 @@ def main():
     tb, sb, ib = axis(B)
 
     rec = {"device": os.path.basename(__file__), "self_sha256": sha(os.path.realpath(__file__)),
+           "argv": vars(a), "python": {"version": sys.version.split()[0], "executable": sys.executable},  # lead 09-27: derived, not listed
            "criteria": "docs/DECISION_RULE_D10_stage2_2026-09-26.md (1814d4334, rev 1 57fa49eea) §2",
            "mode": "POSITIVE_CONTROL" if a.positive_control else "GATE",
            "sides": {"a": {"path": a.a, "sha256": sha(a.a), "anchors": int(ta.size), "symbols": len(sa)},

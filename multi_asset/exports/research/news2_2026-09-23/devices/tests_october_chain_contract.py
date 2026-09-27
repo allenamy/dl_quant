@@ -38,6 +38,41 @@ KNOWN_VIOLATIONS = {
     # by its own hand-rolled helper, which this scanner cannot see through. Changing it means a redeploy by lead, not an edit here.
     "archive_live_ledger.py": 6,   # 1 = its own temp/fsync/read-back helper (os.fdopen L139), 5 = its 7b selftest fixtures
 }
+# lead 2026-09-27 (dry-run plan freeze, decision 1): these receipts must carry argv DERIVED from vars(<parse_args result>) -- never a
+# hand-written list -- and the interpreter version.
+RECEIPT_ARGV_REQUIRED = ("d10_build_ledger_ms.py", "d10_build_fund_state.py", "d10_parity_gate.py")
+
+
+def receipt_argv_problems(src):
+    """[] if the source assigns X = <..>.parse_args(), and puts "argv": vars(X) and "python": ... into a dict (or rec["argv"] = vars(X))."""
+    tree = ast.parse(src)
+    parsed = {t.id for n in ast.walk(tree) if isinstance(n, ast.Assign) and isinstance(n.value, ast.Call)
+              and isinstance(n.value.func, ast.Attribute) and n.value.func.attr == "parse_args" for t in n.targets if isinstance(t, ast.Name)}
+    def is_vars_of_parsed(v):
+        return (isinstance(v, ast.Call) and isinstance(v.func, ast.Name) and v.func.id == "vars" and len(v.args) == 1
+                and isinstance(v.args[0], ast.Name) and v.args[0].id in parsed)
+    keys = {}
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Dict):
+            for k, v in zip(n.keys, n.values):
+                if isinstance(k, ast.Constant) and k.value in ("argv", "python"):
+                    keys.setdefault(k.value, []).append(v)
+        elif isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Subscript):
+            sl = n.targets[0].slice
+            if type(sl).__name__ == "Index":         # Python < 3.9 wraps the key; 3.9+ gives the Constant itself
+                sl = sl.value
+            if isinstance(sl, ast.Constant) and sl.value in ("argv", "python"):
+                keys.setdefault(sl.value, []).append(n.value)
+    out = []
+    if not parsed:
+        out.append("no X = ....parse_args() found")
+    if not any(is_vars_of_parsed(v) for v in keys.get("argv", [])):
+        out.append("receipt argv is not vars(<parse_args result>)")
+    if not keys.get("python"):
+        out.append("receipt has no python (interpreter) field")
+    return out
+
+
 EXEMPT_RE = re.compile(r"#\s*durable-exempt:\s*(.*)$")
 WRITE_MODE = re.compile(r"[wax+]")
 NP_WRITERS = {"save", "savez", "savez_compressed", "savetxt"}
@@ -169,6 +204,19 @@ def register():
         assert scan_shell(old), "the old rc-branching driver must be flagged"
     cell("M_shell_rules_bite", m_shell)
 
+    def m_argv():
+        good = 'import argparse, sys\nap = argparse.ArgumentParser()\na = ap.parse_args()\nrec = {"argv": vars(a), "python": sys.version}\n'
+        assert receipt_argv_problems(good) == [], receipt_argv_problems(good)
+        hand = good.replace('vars(a)', '["--out", a.out]')
+        assert receipt_argv_problems(hand), "a hand-written argv list must be flagged"
+        other = good.replace('vars(a)', 'vars(b)')
+        assert receipt_argv_problems(other), "vars() of something that is not the parse_args result must be flagged"
+        nopy = good.replace(', "python": sys.version', '')
+        assert receipt_argv_problems(nopy), "missing interpreter field must be flagged"
+        sub = 'import argparse, sys\na = argparse.ArgumentParser().parse_args()\nrec = {}\nrec["argv"] = vars(a)\nrec["python"] = sys.version\n'
+        assert receipt_argv_problems(sub) == [], receipt_argv_problems(sub)
+    cell("M_receipt_argv_rule_bites", m_argv)
+
 
     # ---- the real population ----
     def c_runbook():
@@ -226,6 +274,12 @@ def register():
         assert sorted(hist) == sorted(HISTORICAL_PULL_DRIVERS), "a pinned historical driver no longer matches: %s" % sorted(hist)
         return {"historical_pinned": hist}
     cell("C3_H_every_pull_driver_in_dir", c_h)
+
+    def c_argv():
+        bad = {n: receipt_argv_problems(open(os.path.join(HERE, n)).read()) for n in RECEIPT_ARGV_REQUIRED}
+        bad = {n: v for n, v in bad.items() if v}
+        assert not bad, bad
+    cell("C4_receipts_carry_vars_args_and_python", c_argv)
 
 
 def main():

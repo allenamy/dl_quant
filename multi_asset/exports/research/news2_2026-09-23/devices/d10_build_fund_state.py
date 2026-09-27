@@ -100,6 +100,7 @@ def main():
     NC = RB._load_nc(); led = RB.LedgerMs(a.ledger_ms, a.ledger_ms_sha)
     got, tiers, same_second = build(led, NC, a.axes, a.mode)
     rec = {"device": os.path.basename(__file__), "self_sha256": sha(os.path.realpath(__file__)),
+           "argv": vars(a), "python": {"version": sys.version.split()[0], "executable": sys.executable},  # lead 09-27: derived, not listed
            "rebuild_device_sha256": sha(os.path.join(HERE, "d10_rebuild_funding_features.py")),
            "rule_module_sha256": sha(os.path.realpath(FI.__file__)), "nc_contract": [RB.NC_CONTRACT, sha(RB.NC_CONTRACT)],
            "mode": a.mode, "rule": "interval_d10" if a.mode == "d10" else "nc_contract.snap_interval",
