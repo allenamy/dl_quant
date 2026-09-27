@@ -13,23 +13,26 @@
 ---
 >     ap.add_argument('--rs', type=int, required=True); ap.add_argument('--keep-models', action='store_true')
 >     ap.add_argument('--label', choices=('y4s', 'tnet'), default='y4s'); ap.add_argument('--tnet'); ap.add_argument('--tnet-sha'); args = ap.parse_args()
-64a72,82
->     tnet_input = {}
+64a72,85
+>     tnet_input = {}; tnet_cells_rec = None
 >     if args.label == 'tnet':   # KINGFAM: the only change of the KN arm -- the label's funding term
+>         # dlarch T_NET.npz (1231f7f72): E_ts (NEWT axis), symbols, T_net (float64) = y4s - F, F (long funding paid), covered (bool)
 >         assert args.tnet and args.tnet_sha and sha(args.tnet) == args.tnet_sha, 'T_NET file identity'
 >         TN = np.load(args.tnet, allow_pickle=False)
 >         assert np.array_equal(TN['symbols'], syms) and np.array_equal(TN['E_ts'].astype(np.int64), ya), 'T_NET axes must be the NEWT axes'
->         pr, y4 = TN['PRICE'], T['y4s']
->         assert pr.dtype == y4.dtype and pr.shape == y4.shape and pr.tobytes() == y4.tobytes(), 'T_NET PRICE must be bitwise the y4s it replaces'
->         tn = TN['T_NET']; assert tn.shape == y4.shape
->         assert np.array_equal(np.isfinite(tn), np.isfinite(y4) & np.isfinite(TN['FUND_LONG_PAID'])), 'T_NET NaN pattern'
->         y = np.full((len(a), len(syms)), np.nan, np.float32); y[ok] = tn[ix[ok]]
->         tnet_input = {args.tnet: args.tnet_sha}
-103c121
+>         tn, FU, y4 = TN['T_net'], TN['F'], T['y4s']; assert tn.shape == FU.shape == y4.shape and tn.dtype == np.float64
+>         fin = np.isfinite(tn)
+>         assert not (fin & ~np.isfinite(y4)).any(), 'T_net finite where y4s is not'
+>         assert (y4[fin].astype(np.float64) - FU[fin]).tobytes() == tn[fin].tobytes(), 'T_net must be bitwise y4s - F (price half = the y4s it replaces)'
+>         tnet_cells = {'finite_T_net': int(fin.sum()), 'finite_y4s': int(np.isfinite(y4).sum()), 'y4s_finite_but_T_net_NaN': int((np.isfinite(y4) & ~fin).sum())}
+>         log('T_NET', json.dumps(tnet_cells))
+>         y = np.full((len(a), len(syms)), np.nan, np.float64); y[ok] = tn[ix[ok]]   # float64: ranks of the label as delivered (no float32 ties)
+>         tnet_input = {args.tnet: args.tnet_sha}; tnet_cells_rec = tnet_cells   # FU, not F: F is the feature file
+103c124
 <     receipt = {'status': 'OOF_KING_NOT_FULL_STRATEGY', 'recipe': params, 'folds': folds, 'arm': args.arm, 'random_state': args.rs,
 ---
->     receipt = {'status': 'OOF_KING_NOT_FULL_STRATEGY', 'recipe': params, 'folds': folds, 'arm': args.arm, 'random_state': args.rs, 'label_switch': args.label,
-106,107c124,126
+>     receipt = {'status': 'OOF_KING_NOT_FULL_STRATEGY', 'recipe': params, 'folds': folds, 'arm': args.arm, 'random_state': args.rs, 'label_switch': args.label, 'T_NET_cells': tnet_cells_rec,
+106,107c127,129
 <                'inputs': {str(feat): sha(feat), str(NEWT): NEWT_SHA}, 'predictions_sha256': sha(out / 'KING_OOF.npz'),
 <                'label': 'NEW dlw_targets y4s (raw compounded, all closes observed; NaN excluded, never 0)',
 ---

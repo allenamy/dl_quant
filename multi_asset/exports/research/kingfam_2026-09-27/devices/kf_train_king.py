@@ -69,17 +69,20 @@ def main():
     ya = T['E_ts'].astype(np.int64); y = np.full((len(a), len(syms)), np.nan, np.float32)
     ix = np.searchsorted(ya, a); ok = (ix < len(ya)) & (ya[np.minimum(ix, len(ya) - 1)] == a)
     y[ok] = T['y4s'][ix[ok]]
-    tnet_input = {}
+    tnet_input = {}; tnet_cells_rec = None
     if args.label == 'tnet':   # KINGFAM: the only change of the KN arm -- the label's funding term
+        # dlarch T_NET.npz (1231f7f72): E_ts (NEWT axis), symbols, T_net (float64) = y4s - F, F (long funding paid), covered (bool)
         assert args.tnet and args.tnet_sha and sha(args.tnet) == args.tnet_sha, 'T_NET file identity'
         TN = np.load(args.tnet, allow_pickle=False)
         assert np.array_equal(TN['symbols'], syms) and np.array_equal(TN['E_ts'].astype(np.int64), ya), 'T_NET axes must be the NEWT axes'
-        pr, y4 = TN['PRICE'], T['y4s']
-        assert pr.dtype == y4.dtype and pr.shape == y4.shape and pr.tobytes() == y4.tobytes(), 'T_NET PRICE must be bitwise the y4s it replaces'
-        tn = TN['T_NET']; assert tn.shape == y4.shape
-        assert np.array_equal(np.isfinite(tn), np.isfinite(y4) & np.isfinite(TN['FUND_LONG_PAID'])), 'T_NET NaN pattern'
-        y = np.full((len(a), len(syms)), np.nan, np.float32); y[ok] = tn[ix[ok]]
-        tnet_input = {args.tnet: args.tnet_sha}
+        tn, FU, y4 = TN['T_net'], TN['F'], T['y4s']; assert tn.shape == FU.shape == y4.shape and tn.dtype == np.float64
+        fin = np.isfinite(tn)
+        assert not (fin & ~np.isfinite(y4)).any(), 'T_net finite where y4s is not'
+        assert (y4[fin].astype(np.float64) - FU[fin]).tobytes() == tn[fin].tobytes(), 'T_net must be bitwise y4s - F (price half = the y4s it replaces)'
+        tnet_cells = {'finite_T_net': int(fin.sum()), 'finite_y4s': int(np.isfinite(y4).sum()), 'y4s_finite_but_T_net_NaN': int((np.isfinite(y4) & ~fin).sum())}
+        log('T_NET', json.dumps(tnet_cells))
+        y = np.full((len(a), len(syms)), np.nan, np.float64); y[ok] = tn[ix[ok]]   # float64: ranks of the label as delivered (no float32 ties)
+        tnet_input = {args.tnet: args.tnet_sha}; tnet_cells_rec = tnet_cells   # FU, not F: F is the feature file
     pa = np.repeat(np.arange(len(a)), cnt).astype(np.int64); ps = F['m'].astype(np.int64); x = F['X78'].astype(np.float32)
     assert x.shape[1] == 78 and np.isfinite(x).all() and len(pa) == len(ps) == len(x) == off[-1]
     # ---- verbatim from train_king.py from here (target, params, folds, receipts) ----
@@ -118,7 +121,7 @@ def main():
     np.savez(out / 'KING_OOF.npz', P=pred, E_ts=a, symbols=syms, model_sha256=model_id)
     if not args.keep_models:
         for rr in folds: os.remove(rr['model_path'])
-    receipt = {'status': 'OOF_KING_NOT_FULL_STRATEGY', 'recipe': params, 'folds': folds, 'arm': args.arm, 'random_state': args.rs, 'label_switch': args.label,
+    receipt = {'status': 'OOF_KING_NOT_FULL_STRATEGY', 'recipe': params, 'folds': folds, 'arm': args.arm, 'random_state': args.rs, 'label_switch': args.label, 'T_NET_cells': tnet_cells_rec,
                'models_kept': bool(args.keep_models),
                'source_sha': {__file__: sha(os.path.abspath(__file__)), str(FOLDS_SRC): sha(FOLDS_SRC)},
                'inputs': {str(feat): sha(feat), str(NEWT): NEWT_SHA, **tnet_input}, 'predictions_sha256': sha(out / 'KING_OOF.npz'),
