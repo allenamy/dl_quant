@@ -77,10 +77,10 @@
   "success": "^DONE (all steps: R' gate, O, footprint, engine cells, beta, verdicts). Intermediate markers ^GATE_OK / ^CELL_OK / ^VERDICT_OK / ^NOTE; candidate engine cells wait on /dev/shm/alloc_2026-09-26/HOLD_CANDIDATE_CELLS (lead places them)",
   "started_utc": "2026-09-27T00:43:31Z",
   "pgid": 3345374,
-  "relaunch_of": "alloc_family (rev 2a STOP 18:21:02Z, red control R failed; rule §7 R')",
+  "relaunch_of": "alloc_family (rev 2a STOP 18:21:02Z, red control R failed; rule \u00a77 R')",
   "patrol": "session cron 0a490f62 every 10 min + /dev/shm/alloc_2026-09-26/logs/patrol.log",
   "closed": true,
-  "ended": "STOP RED_CONTROL_RPRIME_FAILED_family_stops_final 2026-09-27T00:57:31Z (first family terminated per rule §7; receipt JUDGE_RPRIME.json d2ba0acb, commit 012f1ffe0)"
+  "ended": "STOP RED_CONTROL_RPRIME_FAILED_family_stops_final 2026-09-27T00:57:31Z (first family terminated per rule \u00a77; receipt JUDGE_RPRIME.json d2ba0acb, commit 012f1ffe0)"
  },
  {
   "name": "dlarch_momentum_seat_decomp",
@@ -203,7 +203,18 @@
    "xvenue_collect.py": "see INSTALL.md",
    "com.hsy.xvenuecollector.plist": "see INSTALL.md"
   },
-  "evaluate_after": "6 months (DECISION_RULE_nonfunding_sources_2026-09-27 §0-4)",
+  "evaluate_after": "6 months (DECISION_RULE_nonfunding_sources_2026-09-27 \u00a70-4)",
   "closed": false
+ },
+ {
+  "name": "fresh2_kingfam_manifest",
+  "owner": "fresh2",
+  "host": "pod2",
+  "log": "/workspace/kingfam_2026-09-27/logs/kingfam.log",
+  "pgid_file": "/workspace/kingfam_2026-09-27/logs/PGID_manifest_ic.json",
+  "terminal": "^\\S+ (KF_MANIFEST_IC STOP|KF_MANIFEST_IC_PAIRED_DONE)",
+  "success": "^\\S+ KF_MANIFEST_IC_PAIRED_DONE (A0 m0..m7 trained after KN/A1, A0_m0 == in-service, MANIFEST_IC.json with KN/A1/A0; dlarch run_kic.sh binds this PGID)",
+  "started_utc": "2026-09-27T02:43:57Z",
+  "devices": "kf_manifest_ic3.sh"
  }
 ]
