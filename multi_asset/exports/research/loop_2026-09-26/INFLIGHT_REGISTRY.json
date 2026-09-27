@@ -771,5 +771,17 @@
   "started_utc": "2026-09-27T11:06:03Z",
   "eta": "~30-40 min",
   "resources": "pod2 CPU 24 threads, /workspace ~0.3 GB compressed OOFs (1 GiB probe passed first)"
+ },
+ {
+  "name": "dlarch_f10_rescore_identity",
+  "owner": "dlarch",
+  "host": "pod2",
+  "log": "/dev/shm/dlarch_f10d10/rescore.log",
+  "pgid_file": "/dev/shm/dlarch_f10d10/rescore_identity.pgid",
+  "pgid": 3459509,
+  "terminal": "^(RESCORE_IDENTITY_DONE rc=|RESCORE_STOP)",
+  "success": "^RESCORE_IDENTITY PASS code=... then ^RESCORE_IDENTITY_DONE rc=0 (frozen F10 re-scored on old D10 features == frozen OOF bitwise, 3 seeds)",
+  "started_utc": "2026-09-27T11:08:24Z",
+  "devices": "c51936b04f2 + b2bb2ec6934"
  }
 ]
