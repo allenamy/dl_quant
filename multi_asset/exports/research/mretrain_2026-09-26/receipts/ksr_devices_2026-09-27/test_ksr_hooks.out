@@ -1,0 +1,12 @@
+fixtures w0 1727395200
+  [B0] rc=0 2026-09-27T07:21:35Z HOOK GATE4 PASS CELL_B0 KSR_SPLICE PASS=True mode=legs first_window=1727395200 reached=True
+PASS B0 post-window change passes gate 4
+  [T1] rc=1 2026-09-27T07:21:38Z HOOK GATE4 FAIL CELL_T1 rc=2 KSR_SPLICE PASS=False mode=legs first_window=1727395200 reached=False
+PASS T1 unreached splice refused
+  [T2] rc=1 2026-09-27T07:21:40Z HOOK GATE4 FAIL CELL_T2 rc=2 KSR_SPLICE PASS=False mode=legs first_window=1727395200 reached=True
+PASS T2 pre-window difference refused
+  [T3] rc=1 2026-09-27T07:21:41Z HOOK FAIL: gate-4 device is not the pinned 0000000000000000000000000000000000000000000000000000000000000000
+PASS T3 unpinned device refused, not run
+PASS T4 second export refused
+PASS B1 targets stats both seeds
+TEST_KSR_HOOKS devices=/tmp/fresh2_ksrdev pass=6 fail=0 sandbox=/workspace/fresh2_scratch/ksrhook.KORmwo

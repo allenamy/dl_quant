@@ -10,7 +10,9 @@ R=/dev/shm/mretrain_2026-09-26; N=/dev/shm/news2_2026-09-23; PV=/workspace/venv/
 FSAVE=/dev/shm/fresh_2026-09-23/devices/fa_ladsave.py; GATE=/dev/shm/fresh_2026-09-23/devices/memgate.sh
 L=$R/logs/engine; mkdir -p $L $R/series
 say() { echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $*" | tee -a $L/queue.log; }
-ML=$R/logs/master.log; [ "$QMODE" = family ] || ML=$R/logs/rootcause.log   # the registered log of whichever job runs this queue
+case $QMODE in family) ML=$R/logs/master.log;; rootcause) ML=$R/logs/rootcause.log;; ksr) ML=$R/logs/ksr.log;;   # registered log of the job running this queue
+  *) echo "unknown queue mode $QMODE" >&2; exit 1;; esac
+PQ=$R/PREP_QUEUE; [ "$QMODE" = family ] || PQ=$R/PREP_QUEUE_$QMODE   # prep-queue end markers scoped to the job that writes them
 . $R/devices/mr_stop.sh   # stop scope inherited from the dispatcher (mr_master / rc_hybrid: mr_scope_begin); unset => every launch refused
 [ "${MR_MASTER_LOG:-$ML}" = "$ML" ] || { echo "stop scope log ${MR_MASTER_LOG} != this queue's registered log $ML" >&2; exit 1; }
 halt() { say "HALT (no launch): $*"; exit 1; }   # a STOP already stands in $ML (or no scope): exit without writing a second STOP
@@ -22,8 +24,8 @@ while read -r LBL S; do
   [ -e $W/DONE_s$S ] && { say "skip $LBL s$S (DONE)"; continue; }
   while [ ! -e $W/READY_s$S ]; do
     [ -e $W/FAILED ] && stop "$LBL prep FAILED"
-    [ -e $R/PREP_QUEUE_STOPPED ] && stop "prep queue stopped before $LBL was ready"
-    [ -e $R/PREP_QUEUE_DONE ] && [ ! -e $W/READY_s$S ] && stop "prep queue done but $LBL s$S never READY"
+    [ -e ${PQ}_STOPPED ] && stop "prep queue stopped before $LBL was ready"
+    [ -e ${PQ}_DONE ] && [ ! -e $W/READY_s$S ] && stop "prep queue done but $LBL s$S never READY"
     mr_stopped && halt "family STOP while waiting for $LBL s$S READY"
     sleep 60
   done

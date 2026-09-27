@@ -70,6 +70,8 @@ if [ ! -s $W/receipts/P3_LEGS.json ]; then
   cp -f $W/work/NC_LEGS_RECEIPT.json $W/receipts/P3_LEGS.json
 fi
 say "legs sha=$(sha256sum $W/work/legs.npz | cut -c1-16)"
+# optional per-family step on the legs (KSR: export + gate 4), run before anything below may delete them; unset MR_HOOK = no-op
+[ -z "${MR_HOOK:-}" ] || bash $MR_HOOK after_legs $LBL $W >> $L/hook.log 2>&1 || fail "hook after_legs (see $L/hook.log)"
 for s in 42 2027; do
   if [ ! -s $W/work/combo_s$s/TARGET_RECEIPT.json ]; then
     rm -rf $W/work/combo_s$s
@@ -105,6 +107,7 @@ print("config", s, sha(npz)[:16])
 PY
   mkdir -p $W/pod_s$s/runs $W/pod_s$s/receipts
 done
+[ -z "${MR_HOOK:-}" ] || bash $MR_HOOK after_targets $LBL $W >> $L/hook.log 2>&1 || fail "hook after_targets (see $L/hook.log)"
 if [ "$LBL" != A0_m0 ]; then rm -f $W/work/combo_s*/literal.npz $W/work/combo_s*/scaled_diagnostic.npz $W/work/legs.npz $W/work/king/KING_OOF.npz; fi
 for s in 42 2027; do touch $W/READY_s$s; done
 say "PREP_DONE"
