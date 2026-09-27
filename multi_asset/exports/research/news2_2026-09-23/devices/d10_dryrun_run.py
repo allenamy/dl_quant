@@ -24,7 +24,10 @@ import d10_dryrun_compare as CMP
 
 os.makedirs(OUT, exist_ok=True); os.makedirs(LOGD, exist_ok=True)
 LOG = f"{LOGD}/dryrun.log"
-RESULT = {"plan": "docs/PLAN_rebuild_devices_dry_run_2026-09-27.md (frozen acd2303b6)", "runner_sha256": None, "rows": [],
+RESULT = {"plan": "docs/PLAN_rebuild_devices_dry_run_2026-09-27.md (frozen acd2303b6 + addendum 1)",
+          "output_kinds": {"D1": "new_ledger.sha256 -> ledger_full_ms.npz (npz: file sha volatile, arrays compared)",
+                           "D2a": "output.sha256 -> fund_state_snap.npz (npz)", "D2b": "output.sha256 -> fund_state_d10.npz (npz)",
+                           "D3": "output.sha256 -> NEWS_FEATURES_D10.npz (npz)"}, "runner_sha256": None, "rows": [],
           "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "pgid": os.getpgid(0)}
 
 
@@ -87,8 +90,32 @@ def cmp_npz(ref, new, tag):
     return CMP.compare_npz(ref, new) | {"tag": tag}
 
 
-def cmp_json(ref, new, vol, oneway, tag):
-    return CMP.compare_json(ref, new, vol, oneway) | {"tag": tag}
+def cmp_json(ref, new, vol, oneway, tag, argv_out=()):
+    return CMP.compare_json(ref, new, vol, oneway, argv_out=argv_out) | {"tag": tag}
+
+
+GATE_OLD_SHA = "793c5eb2e85e8423"   # d10_manifest_gate.py as the reference receipts recorded it (fa6ac194b)
+GATE_NEW_SHA = "6a8b16ca268aa585"   # after d3a7f013d (durable-exempt comments only -- to be PROVEN, not assumed)
+
+
+def gate_ast_check():
+    """lead freeze addendum 1 item 3: gate_sha256 is exempt only if ast.dump of the two gate versions is equal."""
+    import ast
+    old, new = f"{REFS}/d10_manifest_gate_793c5eb2.py", f"{DEV}/d10_manifest_gate.py"
+    so, sn = sha(old), sha(new)
+    ao, an = ast.dump(ast.parse(open(old).read())), ast.dump(ast.parse(open(new).read()))
+    r = {"old_file_sha256": so, "new_file_sha256": sn, "old_ast_sha256": hashlib.sha256(ao.encode()).hexdigest(),
+         "new_ast_sha256": hashlib.sha256(an.encode()).hexdigest(), "ast_equal": ao == an,
+         "files_are_the_named_versions": so.startswith(GATE_OLD_SHA) and sn.startswith(GATE_NEW_SHA)}
+    r["exempt"] = bool(r["ast_equal"] and r["files_are_the_named_versions"])
+    return r
+
+
+def gate_values_check(ref, new, g):
+    """When exempting, the receipts must carry exactly the two proven versions -- not some third gate."""
+    rv, nv = json.load(open(ref)).get("gate_sha256"), json.load(open(new)).get("gate_sha256")
+    ok = rv == g["old_file_sha256"] and nv == g["new_file_sha256"]
+    return {"kind": "gate_sha_values", "tag": "gate_sha256", "ref": rv, "new": nv, "verdict": "IDENTICAL" if ok else "DIFFERS"}
 
 
 def finish(name, verdict, detail, comps=None, rc=None, secs=None, argv=None):
@@ -187,7 +214,7 @@ def main():
                  {NF: "3c886a2bc0ff", f"{EXP}/ms/rebuilt_features_d10.npz": "2be2d7c89598"},
                  [lambda: cmp_npz("/workspace/d10_lineD_2026-09-26/stage2/NEWS_FEATURES_D10.npz", f"{OUT}/NEWS_FEATURES_D10.npz", "npz"),
                   lambda: cmp_json(f"{REFS}/NEWS_FEATURES_D10_RECEIPT.json", f"{OUT}/NEWS_FEATURES_D10_RECEIPT.json",
-                                   ["device_sha256", "utc", "output.path", "output.sha256", "argv[13]"], [], "receipt")],
+                                   ["device_sha256", "utc", "output.path", "output.sha256"], [], "receipt", argv_out=[13])],
                  gate=True)
 
     # D4 parity gate: identity against the two receipts of the immediate predecessor 521c6a28 (lead-acked reference, see header)
@@ -208,6 +235,11 @@ def main():
     except Exception as e:
         finish("D4pc_parity_positive_control", "ERROR", f"rc={rc} receipt unreadable: {type(e).__name__}: {e}", rc=rc, secs=secs, argv=cmd)
 
+    # gate_sha256 exemption for D5/D6 is conditional on the AST proof (addendum 1 item 3); proof and ast shas go into the result
+    G = gate_ast_check(); RESULT["gate_sha256_ast_proof"] = G; save()
+    say(f"GATE_AST_PROOF exempt={G['exempt']} ast_equal={G['ast_equal']} old_ast={G['old_ast_sha256'][:16]} new_ast={G['new_ast_sha256'][:16]}")
+    gvol = ["gate_sha256"] if G["exempt"] else []
+
     # D5 re-audits: argv verbatim from each receipt, only --out replaced; cwd = EXP (as the re-audit driver ran)
     for tag, dev, ref, zin in (("D5a_p2_old_vs_archive", "d10_p2_ledger_vs_archive.py", "D10_P2_LEDGER_VS_ARCHIVE_JAN_AUG.json",
                                 {"/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz": "bea6f5752772"}),
@@ -219,7 +251,8 @@ def main():
         i = rv.index("--out") + 1
         argv = rv[:i] + [f"{OUT}/{ref}"] + rv[i + 1:]
         identity_row(tag, [PYV, "-B", f"{DEV}/{dev}"] + argv, EXP, zin,
-                     [lambda ref=ref, i=i: cmp_json(f"{REFS}/{ref}", f"{OUT}/{ref}", ["self_sha256", "gate_sha256", f"argv[{i}]"], [], "receipt")])
+                     [lambda ref=ref, i=i: cmp_json(f"{REFS}/{ref}", f"{OUT}/{ref}", ["self_sha256"] + gvol, [], "receipt", argv_out=[i])]
+                     + ([lambda ref=ref: gate_values_check(f"{REFS}/{ref}", f"{OUT}/{ref}", G)] if G["exempt"] else []))
 
     # D6 live ledger vs archive: argv verbatim; an absent input is NOT_RUN, never substituted (lead decision 2)
     ref = "D10_LIVE_LEDGER_VS_ARCHIVE_2026-08_RESIGNED.json"
@@ -231,7 +264,8 @@ def main():
     ext_sha = (rj.get("live_ledger") or {}).get("extract_sha256") or (rj.get("live_ledger") or {}).get("sha256") or ""
     live_in[rv[rv.index("--live") + 1]] = ext_sha
     identity_row("D6_live_ledger_vs_archive", [PYV, "-B", f"{DEV}/d10_live_ledger_vs_archive.py"] + argv, EXP, live_in,
-                 [lambda: cmp_json(f"{REFS}/{ref}", f"{OUT}/{ref}", ["self_sha256", "gate_sha256", f"argv[{i}]"], [], "receipt")])
+                 [lambda: cmp_json(f"{REFS}/{ref}", f"{OUT}/{ref}", ["self_sha256"] + gvol, [], "receipt", argv_out=[i])]
+                 + ([lambda: gate_values_check(f"{REFS}/{ref}", f"{OUT}/{ref}", G)] if G["exempt"] else []))
 
     # D9 inventory, 3 names, real listing requests (public CDN): the three names' inventory entries must equal the reference
     names = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]

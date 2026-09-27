@@ -123,12 +123,28 @@ def _same(u, v):
     return type(u) == type(v) and u == v
 
 
-def compare_json(ref, new, volatile=(), oneway=(), mutate=None):
+def compare_json(ref, new, volatile=(), oneway=(), mutate=None, argv_out=()):
+    """argv_out: indices i of argv whose value is the output path. Exempt ONLY after asserting, on both sides, that argv[i-1] ==
+    "--out" and that the two argv lists have the same length (lead freeze addendum 1, item 2); a failed assertion is DIFFERS."""
     R = json.load(open(ref))
     N = json.load(open(new))
     if mutate is not None:
         N = mutate(N)
     vol = set(volatile)
+    argv_fail = []
+    if argv_out:
+        ra, na = R.get("argv"), N.get("argv")
+        if not isinstance(ra, list) or not isinstance(na, list):
+            argv_fail.append("argv missing or not a list on one side")
+        else:
+            if len(ra) != len(na):
+                argv_fail.append(f"argv length {len(ra)} != {len(na)}")
+            for i in argv_out:
+                for side, a in (("ref", ra), ("new", na)):
+                    if not (0 < i < len(a)) or a[i - 1] != "--out":
+                        argv_fail.append(f"{side} argv[{i - 1}] is {a[i - 1] if 0 < i <= len(a) else '<out of range>'!r}, not '--out'")
+            if not argv_fail:
+                vol |= {f"argv[{i}]" for i in argv_out}
     fr, fn = _flat(R), _flat(N)
 
     def is_vol(p):
@@ -142,11 +158,12 @@ def compare_json(ref, new, volatile=(), oneway=(), mutate=None):
     only_new = sorted(p for p in fn if p not in fr and not is_vol(p) and not is_oneway(p))
     differ = sorted(p for p in fr if p in fn and not is_vol(p) and not _same(fr[p], fn[p]))
     out = {"kind": "json", "ref": ref, "new": new, "volatile": sorted(vol), "oneway": sorted(oneway),
+           "argv_out": list(argv_out), "argv_out_failures": argv_fail,
            "paths_compared": sum(1 for p in fr if p in fn and not is_vol(p)),
            "only_ref": only_ref[:50], "n_only_ref": len(only_ref), "only_new": only_new[:50], "n_only_new": len(only_new),
            "differ": [{"path": p, "ref": fr[p], "new": fn[p]} for p in differ[:50]], "n_differ": len(differ),
            "volatile_seen": {v: [p for p in fr if p == v or p.startswith(v + ".") or p.startswith(v + "[")][:3] for v in sorted(vol)}}
-    out["verdict"] = "IDENTICAL" if not (only_ref or only_new or differ) else "DIFFERS"
+    out["verdict"] = "IDENTICAL" if not (only_ref or only_new or differ or argv_fail) else "DIFFERS"
     return out
 
 
@@ -229,6 +246,20 @@ def selftest(ref_npz, ref_json):
     open(p, "wb").write(b[:-2] + bytes([b[-2] ^ 1]) + b[-1:])  # durable-exempt: selftest fixture in a mkdtemp dir, read back here
     res["S10_bytes_flip_detected"] = compare_bytes(ref_json, p)["verdict"] == "DIFFERS"
     res["S11_bytes_self_IDENTICAL"] = compare_bytes(ref_json, ref_json)["verdict"] == "IDENTICAL"
+    base = json.load(open(ref_json))
+    base["argv"] = ["--x", "1", "--out", "/old/out.json"]
+    pa = os.path.join(td, "argv_ref.json")
+    DW.write_json(pa, base, allow_nan=True)
+
+    def newout(o):
+        o["argv"] = ["--x", "1", "--out", "/new/out.json"]; return o
+    res["S12_argv_out_exempt_when_flag_matches"] = compare_json(pa, pa, argv_out=[3], mutate=newout)["verdict"] == "IDENTICAL"
+    res["S13_argv_out_wrong_index_is_DIFFERS"] = compare_json(pa, pa, argv_out=[1], mutate=newout)["verdict"] == "DIFFERS"
+
+    def longer(o):
+        o["argv"] = ["--x", "1", "--out", "/new/out.json", "--extra"]; return o
+    res["S14_argv_length_change_is_DIFFERS"] = compare_json(pa, pa, argv_out=[3], mutate=longer)["verdict"] == "DIFFERS"
+    res["S15_argv_out_value_change_without_exemption_is_DIFFERS"] = compare_json(pa, pa, mutate=newout)["verdict"] == "DIFFERS"
     ok = all(v for k, v in res.items() if k.startswith("S") and isinstance(v, bool))
     return {"kind": "selftest", "ref_npz": ref_npz, "ref_json": ref_json, "cells": res, "verdict": "SELFTEST_PASS" if ok else "SELFTEST_RED"}
 
