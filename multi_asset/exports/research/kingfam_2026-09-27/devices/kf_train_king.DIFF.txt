@@ -1,0 +1,38 @@
+1c1,7
+< """MRETRAIN King (fresh, DECISION_RULE_king_monthly_retrain_2026-09-26.md 1f2f5c4e9): news2_train_king.py b19459a5 with ONLY
+---
+> """KINGFAM King trainer (fresh2 2026-09-27, DECISION_RULE_king_improvement_family_2026-09-27.md 4158f1521) = mr_train_king.py
+> (2444fe22, passed the monthly-retrain family's device gates) with ONE addition: --label y4s|tnet (default y4s = in-service behaviour,
+> byte-for-byte the same code path). tnet = the KN arm: the training label is dlarch's T_NET (price − long funding paid over (A, A+4h]),
+> read from --tnet whose sha must equal --tnet-sha, mapped onto the feature anchors exactly as y4s is, and whose PRICE array must be
+> bitwise equal to the y4s it replaces on the NEWT axis (one change only: the funding term). Target construction is unchanged
+> (within-anchor rank over members with >= 50 finite labels). Diff vs mr_train_king.py: kf_train_king.DIFF.txt.
+> MRETRAIN docstring: news2_train_king.py b19459a5 with ONLY
+53c59,60
+<     ap.add_argument('--rs', type=int, required=True); ap.add_argument('--keep-models', action='store_true'); args = ap.parse_args()
+---
+>     ap.add_argument('--rs', type=int, required=True); ap.add_argument('--keep-models', action='store_true')
+>     ap.add_argument('--label', choices=('y4s', 'tnet'), default='y4s'); ap.add_argument('--tnet'); ap.add_argument('--tnet-sha'); args = ap.parse_args()
+64a72,82
+>     tnet_input = {}
+>     if args.label == 'tnet':   # KINGFAM: the only change of the KN arm -- the label's funding term
+>         assert args.tnet and args.tnet_sha and sha(args.tnet) == args.tnet_sha, 'T_NET file identity'
+>         TN = np.load(args.tnet, allow_pickle=False)
+>         assert np.array_equal(TN['symbols'], syms) and np.array_equal(TN['E_ts'].astype(np.int64), ya), 'T_NET axes must be the NEWT axes'
+>         pr, y4 = TN['PRICE'], T['y4s']
+>         assert pr.dtype == y4.dtype and pr.shape == y4.shape and pr.tobytes() == y4.tobytes(), 'T_NET PRICE must be bitwise the y4s it replaces'
+>         tn = TN['T_NET']; assert tn.shape == y4.shape
+>         assert np.array_equal(np.isfinite(tn), np.isfinite(y4) & np.isfinite(TN['FUND_LONG_PAID'])), 'T_NET NaN pattern'
+>         y = np.full((len(a), len(syms)), np.nan, np.float32); y[ok] = tn[ix[ok]]
+>         tnet_input = {args.tnet: args.tnet_sha}
+103c121
+<     receipt = {'status': 'OOF_KING_NOT_FULL_STRATEGY', 'recipe': params, 'folds': folds, 'arm': args.arm, 'random_state': args.rs,
+---
+>     receipt = {'status': 'OOF_KING_NOT_FULL_STRATEGY', 'recipe': params, 'folds': folds, 'arm': args.arm, 'random_state': args.rs, 'label_switch': args.label,
+106,107c124,126
+<                'inputs': {str(feat): sha(feat), str(NEWT): NEWT_SHA}, 'predictions_sha256': sha(out / 'KING_OOF.npz'),
+<                'label': 'NEW dlw_targets y4s (raw compounded, all closes observed; NaN excluded, never 0)',
+---
+>                'inputs': {str(feat): sha(feat), str(NEWT): NEWT_SHA, **tnet_input}, 'predictions_sha256': sha(out / 'KING_OOF.npz'),
+>                'label': 'NEW dlw_targets y4s (raw compounded, all closes observed; NaN excluded, never 0)' if args.label == 'y4s' else
+>                         'T_NET = y4s (bitwise) - long funding paid over (A, A+4h] (dlarch, producer caliber); NaN excluded, never 0',
