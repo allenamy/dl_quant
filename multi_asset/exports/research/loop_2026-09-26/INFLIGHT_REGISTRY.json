@@ -872,5 +872,18 @@
   "delivery": "session cron 6b996533 + waiter",
   "closed": true,
   "closed_note": "news2: PASS1_EXT COMPLETE 12:24:03Z: 24/24 shards, 0 failed; MERGE1_DONE anchors 10333, King features 10293, pairs 2785890 (same counts as line D)"
+ },
+ {
+  "name": "news2_reread_r6_assemble",
+  "owner": "news2",
+  "host": "pod2",
+  "log": "/dev/shm/news2_reread/r6_assemble.log",
+  "pgid": 3474617,
+  "terminal": "^(ASSEMBLE_DONE|STOP)",
+  "started_utc": "2026-09-27T12:26Z",
+  "plan": "PLAN_d10_reread_past_cut R6",
+  "expected": "G1 + G2 pass, pre-cut crosscheck 0; then parity gate --anchor-max-utc cut vs f1cd3fa2: PARITY_GREEN",
+  "probe": "4 GiB write probe OK before start",
+  "delivery": "session cron 6b996533 + waiter"
  }
 ]
