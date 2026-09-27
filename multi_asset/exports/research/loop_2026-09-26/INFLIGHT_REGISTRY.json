@@ -266,5 +266,22 @@
   "started_utc": "2026-09-27T05:39:04Z",
   "devices": "d10_dryrun_run.py d40eca80 + d10_dryrun_compare.py 1c8f6148 (commit 09a7b0275); plan frozen acd2303b6 + addendum 1",
   "resources": "nice 10, CPU only, outputs under /workspace/d10_dryrun_2026-09-27/out; team gate checked by the runner before D1 and D3"
+ },
+ {
+  "name": "fresh_a1seat",
+  "owner": "fresh",
+  "host": "pod2",
+  "log": "/dev/shm/a1seat_2026-09-27/logs/rootcause.log",
+  "pgid_file": "/dev/shm/a1seat_2026-09-27/logs/PGID_a1seat.json",
+  "pgid": "3402063",
+  "terminal": "^\\S+ (STOP|A1SEAT_DONE)",
+  "success": "^\\S+ A1SEAT_DONE; a line-start STOP (incl. leak-gate STOP) is a named end, not a crash; Traceback in driver.out = failure",
+  "phases": "P prep + identity controls -> G waits for /workspace/a1seat_2026-09-27/LEAK_CLEARED (lead) or LEAK_FOUND -> E 6 engine cells -> R reading",
+  "expected_quiet": "phase G may wait indefinitely on the lead's marker: log line 'WAITING leak gate' is the healthy state while the PGID lives",
+  "rule": "docs/DECISION_RULE_A1_seat_decomp_2026-09-27.md b41ac9985 + rev 1 552475325",
+  "devices": "55d8f24aa",
+  "mirror": "/workspace/a1seat_2026-09-27/mirror",
+  "started_utc": "2026-09-27T05:54:24Z",
+  "closed": false
  }
 ]
