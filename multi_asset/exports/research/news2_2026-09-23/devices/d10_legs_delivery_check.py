@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""d10_legs_delivery_check.py <out dir> <reference legs.npz> <king oof sha> <out.json> -- the checks before an October legs.npz is
+"""d10_legs_delivery_check.py <out dir> <reference legs.npz> <king oof sha> <out.json> [<features sha> <fund_state sha prefix>] -- the checks before an October legs.npz is
 handed to dlarch (lead 2026-09-27, after pod2's root overlay filled for ~1 min at 07:17-07:20Z during the October build):
   L1 the driver log's last line is `LEGS_OCT DONE <sha>` and the log has no Traceback / ENOSPC / "No space" / "FAILED"
   L2 legs.npz re-read byte by byte: its sha equals the DONE line; the zip opens and every member passes its CRC
@@ -36,6 +36,9 @@ def sha(p):
 
 def main():
     out_dir, ref, koof_sha, outp = sys.argv[1:5]
+    # rev 1 (descriptive re-read R8): the expected features sha and fund_state prefix may be given as argv 5/6; defaults = line D
+    feat_sha = sys.argv[5] if len(sys.argv) > 5 else FEATURES_SHA
+    fs_prefix = sys.argv[6] if len(sys.argv) > 6 else FUND_STATE_PREFIX
     fails, rec = [], {"device": os.path.basename(__file__), "self_sha256": sha(os.path.realpath(__file__)), "out_dir": out_dir}
     log = open(os.path.join(out_dir, "legs_oct.log")).read()
     lines = [l for l in log.splitlines() if l.strip()]
@@ -60,8 +63,9 @@ def main():
     inp = r.get("inputs", {})
     rec["L3"] = {"receipt": rp, "receipt_sha256": sha(rp) if os.path.exists(rp) else None, "sha256": r.get("sha256"),
                  "king_oof": inp.get("king_oof"), "features": inp.get("features"), "fund_state": inp.get("fund_state")}
-    if not (r.get("sha256") == got and inp.get("king_oof") == koof_sha and inp.get("features") == FEATURES_SHA
-            and str(inp.get("fund_state", "")).startswith(FUND_STATE_PREFIX)):
+    rec["L3"]["expected"] = {"king_oof": koof_sha, "features": feat_sha, "fund_state_prefix": fs_prefix}
+    if not (r.get("sha256") == got and inp.get("king_oof") == koof_sha and inp.get("features") == feat_sha
+            and str(inp.get("fund_state", "")).startswith(fs_prefix)):
         fails.append("L3 receipt")
     A, B = np.load(p, allow_pickle=True), np.load(ref, allow_pickle=True)
     layout = {k: {"new": [list(A[k].shape), str(A[k].dtype)], "ref": [list(B[k].shape), str(B[k].dtype)]}
