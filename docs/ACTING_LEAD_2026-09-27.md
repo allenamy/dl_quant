@@ -115,3 +115,5 @@
 
 - 20:00:05Z执行器已按LIVE启动20Z锚；20:00:09Z轻读生产HEAD仍d01e35db，watchdog仍为16:49既有正常读数，不能据此验收新锚。未调场所、未做本地重活、未resume。21Z且真实done后才用既定包装器验收。
 - 20:01:03Z KSR与两个等待器PID/start_ticks核同；KSR原ORDER的36候选中27个文件存在，最新mtime19:51:18，未读数、未称27个通过；D10仍等KSR。root纠正自己前两次轻探针的marker位置：实际DONE在workspace根的DONE.json，FAILED在/dev/shm marker_root的FAILED.json（不能查裸DONE/FAILED或只查workspace）；本次按源码逐一核均不存在，实时wait日志也证仍RUNNING。此纠正不改既有等待器代码。收据ROOT_HEARTBEAT_20260927T2001Z.json。
+
+- 20:30Z轻读：20Z生产快照已于20:20:13Z PARITY，321名权重逐位相等；watchdog尚未形成20Z判词，仍为16:49Z。有限尾读未包含start行，不能把空的lifecycle筛选读为漏锚，20:00:05Z的真实start证据已在上一收据。完整验收及K1仍等21Z且done。Pod三个PID/start_ticks核同、DONE/FAILED实际路径均无终态；原ORDER中30/36文件存在，最新20:26:04，仅为落盘进度。没有重启首120被拒作业、没有额外场所读取或部署。收据ROOT_HEARTBEAT_20260927T2030Z.json。

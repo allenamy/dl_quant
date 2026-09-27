@@ -1,0 +1,90 @@
+{
+  "status": "IN_PROGRESS_NOT_ACCEPTED",
+  "local": {
+    "utc": "2026-09-27T20:30:42.547044+00:00",
+    "head": "d01e35db56b4d7ed6abf0befd9f18452cd06c329",
+    "lifecycle": [],
+    "parity_tail": [
+      "parity 1790510400 rc=0 2026-09-27T12:21:38Z PARITY_PARITY anchor 1790510400 why=[] weights={'n_archived': 318, 'n_replay': 318, 'n_differing': 0, 'max_abs_dw': 0.0}",
+      "parity 1790524800 rc=0 2026-09-27T16:21:58Z PARITY_PARITY anchor 1790524800 why=[] weights={'n_archived': 321, 'n_replay': 321, 'n_differing': 0, 'max_abs_dw': 0.0}",
+      "parity 1790539200 rc=0 2026-09-27T20:20:13Z PARITY_PARITY anchor 1790539200 why=[] weights={'n_archived': 321, 'n_replay': 321, 'n_differing': 0, 'max_abs_dw': 0.0}"
+    ],
+    "state": {
+      "tripped_at": null,
+      "reduce_only": false,
+      "_mode": "LIVE"
+    },
+    "eval": {
+      "evaluated_utc": "2026-09-27T16:49:42Z",
+      "tripped": false,
+      "triggers": [],
+      "conditions_blind": [],
+      "conditions_unevaluated": []
+    }
+  },
+  "pod": {
+    "utc": "2026-09-27T20:30:45.031718+00:00",
+    "processes": [
+      {
+        "pid": 3479615,
+        "state": "S",
+        "start_ticks": 508358906,
+        "identity_match": true
+      },
+      {
+        "pid": 3505287,
+        "state": "S",
+        "start_ticks": 509421593,
+        "identity_match": true
+      },
+      {
+        "pid": 3506841,
+        "state": "S",
+        "start_ticks": 509498027,
+        "identity_match": true
+      }
+    ],
+    "queues": {
+      "ksr_readout": {
+        "done": {
+          "exists": false
+        },
+        "failed": {
+          "exists": false
+        },
+        "latest_log": [
+          "2026-09-27T20:30:03Z KSR_READOUT_WAIT RUNNING"
+        ]
+      },
+      "d10_rerun6_queue": {
+        "done": {
+          "exists": false
+        },
+        "failed": {
+          "exists": false
+        },
+        "latest_log": [
+          "2026-09-27T20:29:47Z D10_QUEUE_WAIT KSR_READOUT_RUNNING"
+        ]
+      }
+    },
+    "progress_metadata_only": {
+      "required": 36,
+      "exists": 30,
+      "newest_mtime_utc": "2026-09-27T20:26:04.861288+00:00",
+      "not_acceptance_count": true
+    },
+    "memory": {
+      "memory.current": "43333705728",
+      "memory.max": "60999999488"
+    }
+  },
+  "limits": [
+    "lifecycle scan was only last 12000 bytes; empty selection does not imply missing anchor start",
+    "20Z production snapshot parity passed, full anchor/K1 acceptance still pending",
+    "pod candidate existence count is not completed/accepted count"
+  ],
+  "exchange_calls": 0,
+  "deployments": 0,
+  "resume_calls": 0
+}
