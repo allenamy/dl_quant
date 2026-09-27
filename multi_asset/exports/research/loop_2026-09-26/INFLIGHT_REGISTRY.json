@@ -484,5 +484,18 @@
   "launch": "setsid nohup, env -i whitelist, nice 10, taskset 40-47; writes only /dev/shm",
   "purpose": "lead condition 1: l2n_judge.py vs l2n_judge_rev1.py MAIN on s42 R, 2 nulls: y2 r0/r1, null ICs, whole non-permutation cell bitwise",
   "closed": false
+ },
+ {
+  "name": "news2_dry_run_rerun5_all_rows",
+  "owner": "news2",
+  "host": "pod2",
+  "log": "/dev/shm/news2_dryrun_2026-09-27/rerun5/dryrun.log",
+  "pgid": 3421890,
+  "terminal": "^\\S+ (DRYRUN_DONE|DRYRUN_STOP)",
+  "success": "^\\S+ DRYRUN_DONE",
+  "started_utc": "2026-09-27T06:58Z",
+  "why": "lead: chain devices changed after the dry run (ledger_ms rev 2.2, rebuild_funding_features, durable_write) => re-run affected rows; durable_write touches every row, so all rows",
+  "outputs": "/workspace/d10_dryrun_rerun_20260927T065719Z/out (new dir)",
+  "delivery": "session cron 6b996533"
  }
 ]
