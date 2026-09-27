@@ -3,6 +3,13 @@
 > - **门**(`reseed_2026-09-26` rev 1):build 要求窗口内部连续,重放没覆盖到的洞一律 STOP 并逐锚点名;selftest 23/23。旧 selftest 的基线本身带一个越过重放末端的 1 格洞却判绿,已改。**路径 A 的前提**:跨安装边界(09:00Z)时快照差分量不出追加数 ⇒ 下一次 build 需以 INSTALL 记录为带时间戳的基底(已点名,未实现)。
 > - **归档**:05/06/07 VERIFIED(`f66b286de`);1–8 月切换窗 9,266 事件在两本账本中全部在册;旧 P2 在 05/06 月的 18 格费率差,恰为毫秒账本派生的 18 笔同秒事件(`e8ce8e4d9`,同源限定见 `4e23e55ff`);legs RN8 真实分歧 0。归档作业 rev 1 待 lead 于 21:00–23:40Z 安装(`72027a9b9`)。错题 E-0926-F / G。
 
+> **[2026-09-27 05:1xZ] ▶ 新机(arm64)恢复运行:实盘 05:01Z 恢复;全部代理按交接说明重启**
+> - **04Z 桥接**:state_H_*_04Z 取自 00Z,逐位相同,release_gates 3/3(`a9ec08ef8`);combo_state_bridge rev 1 已放宽为「T > S」,支持只缺 1 锚的情形(`bf02a7c3f`)。
+> - **交易所只读核验**:新机上签名账户请求 OK,NAV 107,900,314 个持仓,gross 215k,net −493 ⇒ IP 白名单无需改动。
+> - **launchd**:21 个作业 05:01Z 重新启用;shadowloop 用 arm64 venv 运行,下一轮 08:12Z;**08Z 是新机第一锚**。
+> - **代理**:旧会话的进程内代理无法寻址 ⇒ 按同名新起 6 个(dlarch / fresh2 / alloc / integ / fresh / news2),各自读 HANDOFF 续做。巡检 cron 已重建(rev 2)。
+> - **已知待办**:04Z 缺锚后,08Z 执行器拉取资金费时 04–08Z 的结算可能无法定价(类修复在 fix-pkg-e,未部署)⇒ 需要时再用回填装置;GAP4 → M3 on → 影子 A/B,在 08Z 首锚通过之后分窗发布。
+
 > **[2026-09-27 04:1xZ] 迁移到新机(Mac mini,**arm64**;旧机 Intel x86_64 已关机)。实盘自 04Z 起停止(04Z 锚未运行,持仓不动)**
 > - **03:59:28Z lead 拦截**:迁移助手把 22 个 launchd 作业原样带到新机并已加载(执行器将在 04:00Z 触发)。lead 对 21 个实盘相关作业做了 bootout 与持久 `disable`,只留 caffeinate。当时旧机是否已关尚不确定,这样做是为了防止双机同时下单。
 > - **文件完整性**:研究仓 HEAD 9d99b6aa2,只有 1 个 iCloud 占位文件(未跟踪的 BTCUSDT.csv);记忆 573 个文件;~/wide_shadow(5.0G)与 ~/dl_quant_live(1.2G,运行树 d01e35d,.env 在)齐全;funding_ledger_archive / xvenue_collector / pof_long / regime_dash 都在。
