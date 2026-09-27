@@ -84,7 +84,7 @@ def check_s1_lr(a0, a1, lr0, lr1):
     exact_edges(a0, [W0])
     need(a0[0] < W0, 'no pre-window history; bitwise equality would be vacuous')
     x, y = np.asarray(lr0), np.asarray(lr1)
-    need(x.shape == y.shape == (len(a0), 3), 'LR shape must be anchor x [King,F10,fund]')
+    need(x.shape == y.shape == (len(a0), 3), 'LR shape must be anchor x [King,rev24,fund]')
     need(x.dtype == y.dtype and x.dtype.kind in 'fiu', 'LR dtype differs or is not numeric')
     need(bool(np.isfinite(x).all() and np.isfinite(y).all()), 'non-finite LR; equality of NaNs is not evidence')
 

@@ -31,7 +31,8 @@
 
 已知答案控制包括：四臂相同⇒所有差与INT全零；baseline10/FULL17/SEAT12/COMP13⇒INT2（逐path可异）；两seed倍数1/2⇒INT均值3；日复利先路径后平均；无重复gross；不完整UTC日排除；缺DONE时np.load不可触达；m7真实首差延迟但旧PASS和首差字段仍在时拒绝；HYB不读LR门；冻结NS逐路径对照；小合成全输出JSON回读。
 
-- 装置 sourceSHA：`5a2fc0070e6425eca9077e54696ecd391ccb066b234e3a8cbc7d15f0a6e4c3f7`
+- 装置 sourceSHA：`075382db08c2974a7a18f51b3b8a3b6d7ffc9703a820171862252c86336655d5`
+- 17:18Z列名更正：只将异常提示中的 `[King,F10,fund]` 改为 `[King,rev24,fund]`。KSR `ksr_master.sh:93` 调 `mr_prep.sh:67` 的 `nc_legs.py`，后者第56行按king/rev24/fund写LR；F10在另一组合层。逐字比较确认源码仅这一字符串替换，归一该字符串后AST相等；数值、门和控制均未改。独立收据 `../receipts/ksr_terminal_audit_20260928/LR_LABEL_CORRECTION.json` SHA `802daf40f21a1c64bd3a5f2b3ea98d716ad71bff96568a6c413edb07e04a3158`。原14/14验证属于旧 sourceSHA `5a2fc0070e6425eca9077e54696ecd391ccb066b234e3a8cbc7d15f0a6e4c3f7`；原VERIFICATION与日志原样保留，不把旧测试收据改绑新SHA。
 - 专属测试SHA：`ca13222d9580385abd2852bd9ca4e293cca3f60d62ed315ab314898ad7f28fcf`
 - 证据清单 `../receipts/ksr_terminal_audit_20260928/VERIFICATION.json` SHA：`1cbfe0dfb7cdd9f0fa3140a2f301d6fae5ae9d34b8f9ec67eed73041961fc017`
 - 保存器 `fa_ladsave.py` SHA a2dccf15a232a546c886e12fb2e1cd5522762509f42edd324eb3df4e57d17855；队列 `mr_engine_queue.sh` SHA000b6a4ba599ee0fd701a705effa2fba096dbc86296a23783462561676732f98。两者17:00Z与Pod实际文件同SHA，此次SSH只读代码SHA，没有读候选。
@@ -62,7 +63,7 @@ ssh pod2 env -i PATH=/usr/bin:/bin HOME=/root LC_CTYPE=C OMP_NUM_THREADS=1 OPENB
   /workspace/codex_research/QNT-2026-0907/acting_lead_20260927/ksr_terminal_audit_device_20260928/ksr_terminal_audit.py \
   --readout-root /workspace/codex_research/QNT-2026-0907/acting_lead_20260927/ksr_readout \
   --out-dir /workspace/codex_research/QNT-2026-0907/acting_lead_20260927/ksr_terminal_audit_20260928 \
-  --self-sha 5a2fc0070e6425eca9077e54696ecd391ccb066b234e3a8cbc7d15f0a6e4c3f7
+  --self-sha 075382db08c2974a7a18f51b3b8a3b6d7ffc9703a820171862252c86336655d5
 ```
 
 输出目录必须是reader目录的独立新同级目录、名字以ksr_terminal_audit_开头；已存在则拒绝，不重复claim/覆盖。输出KSR_TERMINAL_AUDIT.json和DONE.json（绑定输出SHA），成功stdout `KSR_POSTPROCESS_DONE` / rc0；技术失败stdout `KSR_POSTPROCESS_UNAVAILABLE` / rc2，若新输出目录已建则同时写FAILED.json。timeout的rc124、信号退出或进程消失**不算完成**，不得仅见result文件就读结论。
