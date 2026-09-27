@@ -1,0 +1,68 @@
+{
+  "status": "FOUR_REVIEW_DEFECTS_CLOSED_IN_SELECTED_AST",
+  "source_sha256": {
+    "binance_funding.py": "d96b377f86e9d55a1ddd7f63d94a60d872256b97d1b5cfa513c214292c9dfd69",
+    "pilot_log.py": "6e5ccf3ef25a190c8290a2e1058bfff9454e6e7f72fd1f6d48204e6ac48dd83a"
+  },
+  "checks": {
+    "fresh_and_gap_both_refuse_conflict_in_both_orders": true,
+    "identical_duplicate_and_exact_nearby_timestamp_positives": true,
+    "strict_calendar_rejects_regular_file": true,
+    "partial_failure_retains_failed_and_unattempted_rows": true,
+    "owner_poison_blocks_all_later_calls": true,
+    "caller_final_pending_uses_preserved_still_list": true,
+    "writer_uses_actual_fd_and_refuses_replacement_path": true,
+    "duplicate_ack_refuses_inode_different_from_read": true,
+    "strict_read_binds_fd_and_detects_path_swap": true,
+    "duplicate_caller_passes_identity_from_strict_read": true
+  },
+  "details": {
+    "snapshot_refusals": [
+      {
+        "gap": "conflicting snapshot rows for XUSDT at 1000000000.0",
+        "fresh": "conflicting snapshot rows for XUSDT at 1000000000.0"
+      },
+      {
+        "gap": "conflicting snapshot rows for XUSDT at 1000000000.0",
+        "fresh": "conflicting snapshot rows for XUSDT at 1000000000.0"
+      }
+    ],
+    "regular_date_file": "malformed evidence day: /IN_MEMORY/20260925 is not a directory",
+    "partial": {
+      "rows_written": 1,
+      "pending_symbols": [
+        "FAILUSDT",
+        "LATERUSDT"
+      ],
+      "physical_write_calls": 2,
+      "owner_refusal": "funding writer unusable after previous failure: OSError: partial append after ten bytes",
+      "successful_ack_fds": [
+        101,
+        303,
+        404
+      ]
+    },
+    "writer_path_swap": "funding path no longer names the acknowledged file",
+    "duplicate_ack_swap": "funding file identity changed since evidence read",
+    "reader": [
+      [
+        "stable",
+        "identity carried"
+      ],
+      [
+        "swapped_before_open",
+        "evidence file changed before read: /IN_MEMORY/20260927/funding.jsonl"
+      ],
+      [
+        "swapped_during_read",
+        "evidence file changed during read: /IN_MEMORY/20260927/funding.jsonl"
+      ]
+    ]
+  },
+  "limitations": [
+    "Not the full executor suite; wrapper remains root-owned.",
+    "Does not authorize rollout or waive historical disposition failures.",
+    "In-place rewriting/truncation on the same inode and arbitrary post-ack mutation remain outside append-only ledger assumptions.",
+    "Pending queue/filesystem durability is assessed by separate full-wrapper controls, not mocked memory alone."
+  ]
+}
