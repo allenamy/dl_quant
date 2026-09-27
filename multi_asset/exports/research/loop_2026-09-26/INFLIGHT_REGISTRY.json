@@ -222,5 +222,17 @@
   "success": "^\\S+ KF_MANIFEST_IC_PAIRED_DONE (A0 m0..m7 trained after KN/A1, A0_m0 == in-service, MANIFEST_IC.json with KN/A1/A0; dlarch run_kic.sh binds this PGID)",
   "started_utc": "2026-09-27T02:43:57Z",
   "devices": "kf_manifest_ic3.sh"
+ },
+ {
+  "name": "dlarch_a1_leak_audit",
+  "owner": "dlarch",
+  "host": "pod2",
+  "log": "/workspace/dlarch_2026-09-24/a1leak_2026-09-27/a1leak.log",
+  "pgid_file": "/workspace/dlarch_2026-09-24/a1leak_2026-09-27/a1leak.pgid",
+  "terminal": "^(A1LEAK_DONE rc=|A1LEAK_STOP)",
+  "success": "^A1LEAK_DONE rc=0 (receipts A1LEAK_STATIC / A1LEAK_SHUFFLE _2026-09-27.json; descriptive, no verdict)",
+  "started_utc": "2026-09-27T05:16:01Z",
+  "devices": "1e218e8fd + rev 1 088520e83",
+  "run": "run 1 PGID 3393611: static died at the L1 receipt assertion (KeyError 'arm', no number) while the 3 trainings continue; waiter wait_rev1.sh (PGID 3396777) archives run 1's log to a1leak_run1.log and execs run_a1leak.sh rev 1 (re-entrant) in its own PGID 3396777"
  }
 ]
