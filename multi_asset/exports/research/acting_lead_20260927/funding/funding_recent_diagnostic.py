@@ -18,6 +18,10 @@ def read(p):
 nb=blob(R+'NAMES.jsonl');assert sha(nb)=='4e84c8ddab83a177ca9d90e67f7935422daaccde42608c115b2ca2eaae833382'
 nm=[json.loads(l) for l in nb.splitlines() if l.strip()];ssb=blob(R+'SIDE_SPLIT.json');side=json.loads(ssb)
 known={r['A']:r for r in side['intervals']};source=blob('multi_asset/exports/research/nc_2026-09-23/devices/nc_contract.py');nc={};exec(compile(source,'frozen_nc_contract.py','exec'),nc)
+lb=json.loads(blob(R+'LAYERED_BOOK.json'));layered={r['A']:r for r in lb['anchors']}
+def money_equal(actual,reference):
+    assert round(actual+0.01,2)!=reference,'one-cent red control fails'
+    return round(actual,2)==reference
 symbols=read(ROOT/'shadow_bundle/config.json')['symbols_panel']
 fund=[]
 for day in ('20260924','20260925','20260926'):
@@ -33,7 +37,10 @@ for x in nm:
     aux=read(auxp);rec=aux['prev_rec'];assert rec['anchor_ts']==A,'snapshot time identity'
     tar=read(tp);assert tar['anchor_ts']==A and tar['beta_overlay']['data_cutoff_ts']<=A,'beta causal'
     betas=tar['beta_overlay']['betas'];rz=rec['legz'];m=rec['members'];byname={symbols[j]:{k:rz[k][i] for k in ('fund','king','rev24')} for i,j in enumerate(m)}
-    bg={g:collections.defaultdict(float) for g in groups};classes={};matching={};rb=s['r_btc']
+    bg={g:collections.defaultdict(float) for g in groups};classes={};matching={};rb=x['names']['BTCUSDT'][1]
+    assert round(rb,5)==s['r_btc'],'BTC source representation identity'
+    whole=sum(v[0]*v[1] for v in x['names'].values() if v[0] is not None and v[1] is not None)
+    assert abs(whole-layered[fmt(A)]['pnl_by_layer']['L5_readback'])<1e-6,'unrounded full-book price closure'
     for name,(nom,ret,_) in x['names'].items():
         if nom is None or nom>=0:continue
         if ret is None:allshort['unpriced_abs_notional']+=abs(nom);continue
@@ -54,8 +61,8 @@ for x in nm:
         if be is None:z['missing_beta_abs_notional']+=abs(nom);z['missing_beta_price_pnl']+=nom*ret
         else:z['beta_pnl']+=nom*be*rb;z['residual_pnl']+=nom*(ret-be*rb)
         if d is not None and be is not None and g in ('lag','not_lag'):matching[name]=(g,d)
-    pr=sum(v['price_pnl'] for v in bg.values());assert abs(pr-s['price_short'])<1e-6,('price closure',A,pr,s['price_short'])
-    bp=sum(v['beta_pnl'] for v in bg.values());assert abs(bp-s['beta_short'])<1e-6,('beta closure',A,bp,s['beta_short'])
+    pr=sum(v['price_pnl'] for v in bg.values());assert money_equal(pr,s['price_short']),('price closure',A,pr,s['price_short'])
+    bp=sum(v['beta_pnl'] for v in bg.values());assert money_equal(bp,s['beta_short']),('beta closure',A,bp,s['beta_short'])
     cands={n:d for n,(g,d) in matching.items() if g=='not_lag'}
     for name,(g,d) in sorted(matching.items()):
         if g!='lag':continue
@@ -74,7 +81,7 @@ for x in nm:
         g=classes.get(f['symbol'],'unknown');z=bg[g];z['funding_cashflow']+=cash;z['funding_settlements']+=1
         if cash<0:z['funding_paid_abs']-=cash;z['pay_settlements']+=1
         elif cash>0:z['funding_received']+=cash;z['receive_settlements']+=1
-    cash=sum(v['funding_cashflow'] for v in bg.values());assert abs(cash-s['funding_short'])<1e-6,('cash closure',A,cash,s['funding_short'])
+    cash=sum(v['funding_cashflow'] for v in bg.values());assert money_equal(cash,s['funding_short']),('cash closure',A,cash,s['funding_short'])
     for g,v in bg.items():
         for k,value in v.items():tot[g][k]+=value
     allshort['abs_notional']+=sum(v['abs_notional'] for v in bg.values());allshort['name_intervals']+=sum(v['name_intervals'] for v in bg.values())
