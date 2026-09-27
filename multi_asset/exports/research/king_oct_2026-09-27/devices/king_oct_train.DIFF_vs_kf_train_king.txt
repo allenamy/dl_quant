@@ -1,0 +1,161 @@
+1,16c1,13
+< """KINGFAM King trainer (fresh2 2026-09-27, DECISION_RULE_king_improvement_family_2026-09-27.md 4158f1521) = mr_train_king.py
+< (2444fe22, passed the monthly-retrain family's device gates) with ONE addition: --label y4s|tnet (default y4s = in-service behaviour,
+< byte-for-byte the same code path). tnet = the KN arm: the training label is dlarch's T_NET (price − long funding paid over (A, A+4h]),
+< read from --tnet whose sha must equal --tnet-sha, mapped onto the feature anchors exactly as y4s is, and whose PRICE array must be
+< bitwise equal to the y4s it replaces on the NEWT axis (one change only: the funding term). Target construction is unchanged
+< (within-anchor rank over members with >= 50 finite labels). Diff vs mr_train_king.py: kf_train_king.DIFF.txt.
+< MRETRAIN docstring: news2_train_king.py b19459a5 with ONLY
+<   (1) OUT dir from --out (inputs still read from the news2 root, read-only); (2) random_state from --rs;
+<   (3) fold specs from --arm: A0 annual (in service, verbatim) / A1 monthly / A2 quarterly, expanding / A3 annual, rolling 24-month
+<       train window; (4) arm, rs and window written into the receipt; (5) model .txt files deleted after the OOF is written unless
+<       --keep-models (their sha stays in KING_OOF model_sha256 and in the receipt). Embargo 60, params, target, loop body verbatim.
+< ORIGINAL DOCSTRING: NEWS P3 King: the NEW recipe (codex_combo_20260923 devices/train_king.py 1c...: LGBM params, annual folds via
+< king_folds.fold_rows embargo 60, target = within-anchor rank of the raw label over members with >= 50 finite labels)
+< applied UNCHANGED to the NEWS inputs: X78 = producer King block features (NEWS_FEATURES.npz), members = producer member
+< screen on legal ∧ crypto candidates, labels = NEW dlw_targets y4s (raw compounded (E,E+48], all closes observed, NaN never 0).
+< Only the input-loading lines differ from train_king.py (diff archived); the fold loop is copied verbatim.
+---
+> """king_oct_train.py -- the October King trainer (fresh2 2026-09-27; lead ruling on RUNBOOK_october_rebuild_D10 §7-1/4: King's
+> October recipe = the in-service recipe (A0 annual folds, rs=0 served, m0..m7 descriptive only), retrained on D10 features).
+> = kf_train_king.py (bf4594ff, the KINGFAM trainer whose A0_m0 reproduced the in-service KING_OOF a10b8725 bitwise) with the KN
+> T_NET branch and the A1/A2/A3 fold shapes removed and FOUR changes, none in the fold loop / target / params:
+>   (1) features and labels are arguments, each with a required sha that is asserted before use (--features/--features-sha,
+>       --labels/--labels-sha; the labels default to the in-service dlw_targets ca479fcc) -- no path is read from a receipt file;
+>   (2) every file written goes through common/durable_write.py (model text, PROGRESS, KING_OOF, TRAIN_RECEIPT): temp -> fsync ->
+>       read-back -> replace; the shas in the receipt are the ones the verified writes returned, never a later re-read (E-0925-A);
+>   (3) the receipt carries argv = vars(parsed args) and the interpreter (lead 09-27 decision 1), plus the trainer's own sha;
+>   (4) king_folds.py (fold boundaries) is pinned by sha (4886c278, the file every KINGFAM receipt names).
+> Output format is unchanged (KING_OOF.npz: P, E_ts, symbols, model_sha256; TRAIN_RECEIPT.json keys a superset of the old ones; the
+> fold "2026" model is the served booster -- news2_export_models.py L104/L143 -- so --keep-models is required for the served run).
+> usage: python king_oct_train.py --out DIR --rs 0 --features F.npz --features-sha SHA [--labels L.npz --labels-sha SHA] [--keep-models]
+24,25c21,31
+< W = pathlib.Path('/dev/shm/news2_2026-09-23')
+< NEWT = pathlib.Path('/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz')
+---
+> for _c in (os.path.dirname(os.path.realpath(__file__)),
+>            os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "common"),
+>            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), "common")):
+>     if os.path.exists(os.path.join(_c, "durable_write.py")):
+>         sys.path.insert(0, _c)
+>         break
+> else:
+>     raise ImportError("common/durable_write.py not found next to or above this device; deploy it with the device")
+> import durable_write as DW  # every file this device writes goes through it
+> 
+> NEWT = '/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz'
+27c33,34
+< FOLDS_SRC = W / 'devices/king_folds.py'
+---
+> FOLDS_SRC = pathlib.Path('/dev/shm/news2_2026-09-23/devices/king_folds.py')
+> FOLDS_SHA = '4886c278c12b0f5126bb1e8ad6b4789db95e604180a77d0cd02f1e7c612df640'
+40c47
+< def arm_specs(arm, a):
+---
+> def a0_specs():   # in service, verbatim (kf_train_king.arm_specs('A0'))
+42,48c49
+<     if arm in ('A0', 'A3'):
+<         return [('2022H2_WARMUP', utc(2022, 7), utc(2023))] + [(str(yr), utc(yr), utc(yr + 1)) for yr in (2023, 2024, 2025, 2026)]
+<     step = {'A1': 1, 'A2': 3}[arm]; out = []; y, m = 2022, 7
+<     while utc(y, m) <= int(a[-1]):
+<         ny, nm = y + (m - 1 + step) // 12, (m - 1 + step) % 12 + 1
+<         out.append((f'{y}{m:02d}', utc(y, m), utc(ny, nm))); y, m = ny, nm
+<     return out
+---
+>     return [('2022H2_WARMUP', utc(2022, 7), utc(2023))] + [(str(yr), utc(yr), utc(yr + 1)) for yr in (2023, 2024, 2025, 2026)]
+51,56d51
+< def window_start(arm, start):
+<     """A3: rolling 24 calendar months before the fold start (train rows with anchor >= this); others: None (expanding)"""
+<     if arm != 'A3': return None
+<     t = time.gmtime(start); return calendar.timegm((t.tm_year - 2, t.tm_mon, 1, 0, 0, 0))
+< 
+< 
+58,61c53,62
+<     ap = argparse.ArgumentParser(); ap.add_argument('--out', required=True); ap.add_argument('--arm', choices=('A0', 'A1', 'A2', 'A3'), required=True)
+<     ap.add_argument('--rs', type=int, required=True); ap.add_argument('--keep-models', action='store_true')
+<     ap.add_argument('--label', choices=('y4s', 'tnet'), default='y4s'); ap.add_argument('--tnet'); ap.add_argument('--tnet-sha'); args = ap.parse_args()
+<     sys.path.insert(0, str(W / 'devices')); from king_folds import fold_rows
+---
+>     ap = argparse.ArgumentParser(); ap.add_argument('--out', required=True); ap.add_argument('--rs', type=int, required=True)
+>     ap.add_argument('--features', required=True); ap.add_argument('--features-sha', required=True)
+>     ap.add_argument('--labels', default=NEWT); ap.add_argument('--labels-sha', default=NEWT_SHA)
+>     ap.add_argument('--keep-models', action='store_true'); args = ap.parse_args()
+>     assert sha(FOLDS_SRC) == FOLDS_SHA, 'king_folds.py is not the pinned fold-boundary source'
+>     sys.path.insert(0, str(FOLDS_SRC.parent)); from king_folds import fold_rows
+>     feat, lab = pathlib.Path(args.features), pathlib.Path(args.labels)
+>     fsha, lsha = sha(feat), sha(lab)   # identities before anything is created: a refused run leaves no output dir behind
+>     assert fsha == args.features_sha, 'features sha %s != --features-sha %s' % (fsha, args.features_sha)
+>     assert lsha == args.labels_sha, 'labels sha %s != --labels-sha %s' % (lsha, args.labels_sha)
+63,65c64
+<     feat = W / 'work/NEWS_FEATURES.npz'; frec = json.load(open(W / 'receipts/P2B_FEATURES.json'))
+<     assert sha(feat) == frec['sha256'] and sha(NEWT) == NEWT_SHA
+<     F = np.load(feat); T = np.load(NEWT, allow_pickle=True)
+---
+>     F = np.load(feat); T = np.load(lab, allow_pickle=True)
+67c66
+<     assert np.array_equal(T['symbols'], syms)
+---
+>     assert np.array_equal(T['symbols'], syms), 'feature and label symbol axes differ'
+72,85d70
+<     tnet_input = {}; tnet_cells_rec = None
+<     if args.label == 'tnet':   # KINGFAM: the only change of the KN arm -- the label's funding term
+<         # dlarch T_NET.npz (1231f7f72): E_ts (NEWT axis), symbols, T_net (float64) = y4s - F, F (long funding paid), covered (bool)
+<         assert args.tnet and args.tnet_sha and sha(args.tnet) == args.tnet_sha, 'T_NET file identity'
+<         TN = np.load(args.tnet, allow_pickle=False)
+<         assert np.array_equal(TN['symbols'], syms) and np.array_equal(TN['E_ts'].astype(np.int64), ya), 'T_NET axes must be the NEWT axes'
+<         tn, FU, y4 = TN['T_net'], TN['F'], T['y4s']; assert tn.shape == FU.shape == y4.shape and tn.dtype == np.float64
+<         fin = np.isfinite(tn)
+<         assert not (fin & ~np.isfinite(y4)).any(), 'T_net finite where y4s is not'
+<         assert (y4[fin].astype(np.float64) - FU[fin]).tobytes() == tn[fin].tobytes(), 'T_net must be bitwise y4s - F (price half = the y4s it replaces)'
+<         tnet_cells = {'finite_T_net': int(fin.sum()), 'finite_y4s': int(np.isfinite(y4).sum()), 'y4s_finite_but_T_net_NaN': int((np.isfinite(y4) & ~fin).sum())}
+<         log('T_NET', json.dumps(tnet_cells))
+<         y = np.full((len(a), len(syms)), np.nan, np.float64); y[ok] = tn[ix[ok]]   # float64: ranks of the label as delivered (no float32 ties)
+<         tnet_input = {args.tnet: args.tnet_sha}; tnet_cells_rec = tnet_cells   # FU, not F: F is the feature file
+88c73
+<     # ---- verbatim from train_king.py from here (target, params, folds, receipts) ----
+---
+>     # ---- verbatim from train_king.py from here (target, params, folds); only the writes go through DW ----
+96,97c81
+<     specs = arm_specs(args.arm, a)
+<     for tag, start, end in specs:
+---
+>     for tag, start, end in a0_specs():
+99,100d82
+<         ws = window_start(args.arm, start)
+<         if ws is not None: train = train[a[train] >= ws]
+105,106c87,89
+<         model = lgb.LGBMRegressor(**params).fit(x[tr], target[tr]); modelpath = out / ('king_' + tag + '.txt'); model.booster_.save_model(str(modelpath))
+<         pred[pa[te], ps[te]] = model.predict(x[te]); mh = sha(modelpath); model_id[test] = mh
+---
+>         model = lgb.LGBMRegressor(**params).fit(x[tr], target[tr]); modelpath = out / ('king_' + tag + '.txt')
+>         mh = DW.write_bytes(str(modelpath), model.booster_.model_to_string().encode())
+>         pred[pa[te], ps[te]] = model.predict(x[te]); model_id[test] = mh
+116c99
+<         rr = {'fold': tag, 'score_start': int(a[test[0]]), 'score_end': int(a[test[-1]]), 'max_train_label_end': int(a[pa[tr]].max() + 14400), 'embargo_anchors': 60, 'train_window_start': ws,
+---
+>         rr = {'fold': tag, 'score_start': int(a[test[0]]), 'score_end': int(a[test[-1]]), 'max_train_label_end': int(a[pa[tr]].max() + 14400), 'embargo_anchors': 60, 'train_window_start': None,
+120,121c103,104
+<         folds.append(rr); log(json.dumps(rr)); (out / 'PROGRESS.json').write_text(json.dumps(folds, indent=2, allow_nan=False))
+<     np.savez(out / 'KING_OOF.npz', P=pred, E_ts=a, symbols=syms, model_sha256=model_id)
+---
+>         folds.append(rr); log(json.dumps(rr)); DW.write_json(str(out / 'PROGRESS.json'), folds, indent=2, allow_nan=False)
+>     psha = DW.write_npz(str(out / 'KING_OOF.npz'), P=pred, E_ts=a, symbols=syms, model_sha256=model_id)
+124,131c107,115
+<     receipt = {'status': 'OOF_KING_NOT_FULL_STRATEGY', 'recipe': params, 'folds': folds, 'arm': args.arm, 'random_state': args.rs, 'label_switch': args.label, 'T_NET_cells': tnet_cells_rec,
+<                'models_kept': bool(args.keep_models),
+<                'source_sha': {__file__: sha(os.path.abspath(__file__)), str(FOLDS_SRC): sha(FOLDS_SRC)},
+<                'inputs': {str(feat): sha(feat), str(NEWT): NEWT_SHA, **tnet_input}, 'predictions_sha256': sha(out / 'KING_OOF.npz'),
+<                'label': 'NEW dlw_targets y4s (raw compounded, all closes observed; NaN excluded, never 0)' if args.label == 'y4s' else
+<                         'T_NET = y4s (bitwise) - long funding paid over (A, A+4h] (dlarch, producer caliber); NaN excluded, never 0',
+<                'features': 'producer shadow_loop_v3 King block replayed (P2B_FEATURES.json)', 'lightgbm': lgb.__version__, 'numpy': np.__version__}
+<     (out / 'TRAIN_RECEIPT.json').write_text(json.dumps(receipt, indent=2, allow_nan=False)); log('KING_DONE')
+---
+>     receipt = {'status': 'OOF_KING_NOT_FULL_STRATEGY', 'recipe': params, 'folds': folds, 'arm': 'A0', 'random_state': args.rs, 'label_switch': 'y4s',
+>                'models_kept': bool(args.keep_models), 'argv': vars(args),
+>                'python': {'version': sys.version.split()[0], 'executable': sys.executable},
+>                'source_sha': {os.path.abspath(__file__): sha(os.path.abspath(__file__)), str(FOLDS_SRC): FOLDS_SHA,
+>                               os.path.realpath(DW.__file__): sha(os.path.realpath(DW.__file__))},
+>                'inputs': {str(feat): fsha, str(lab): lsha}, 'predictions_sha256': psha,
+>                'label': 'dlw_targets y4s (raw compounded, all closes observed; NaN excluded, never 0)',
+>                'features': 'producer King block X78 from --features (in-service NEWS_FEATURES or its D10 rebuild)', 'lightgbm': lgb.__version__, 'numpy': np.__version__}
+>     DW.write_json(str(out / 'TRAIN_RECEIPT.json'), receipt, indent=2, allow_nan=False); log('KING_DONE')
