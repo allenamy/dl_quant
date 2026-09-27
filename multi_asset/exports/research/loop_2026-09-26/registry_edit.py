@@ -7,6 +7,8 @@ byte-for-byte unchanged after a re-read, commits exactly that one path, and chec
 
   registry_edit.py add   --json '<entry object>'            --by <agent>
   registry_edit.py close --name <entry name> --note '<text>'  --by <agent>
+  registry_edit.py note  --name <entry name> --note '<text>'  --by <agent>   (rev 1: append a dated status note, e.g.
+                   paused/resumed/stale field; the entry's own fields are never rewritten, the history stays readable)
 """
 import argparse, json, os, subprocess, sys
 
@@ -28,7 +30,7 @@ def dump(entries):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["add", "close"])
+    ap.add_argument("cmd", choices=["add", "close", "note"])
     ap.add_argument("--json"); ap.add_argument("--name"); ap.add_argument("--note"); ap.add_argument("--by", required=True)
     a = ap.parse_args()
     st = git("status", "--porcelain", "--", REL)
@@ -46,6 +48,13 @@ def main():
             if k not in e: sys.exit(f"REFUSED: entry lacks '{k}'")
         if e["name"] in before: sys.exit(f"REFUSED: name {e['name']} already registered")
         entries.append(e); target = e["name"]; msg = f"INFLIGHT: register {target} ({a.by})"
+    elif a.cmd == "note":
+        hit = [e for e in entries if e["name"] == a.name]
+        if len(hit) != 1: sys.exit(f"REFUSED: expected exactly one entry named {a.name}, found {len(hit)}")
+        if not a.note: sys.exit("REFUSED: --note is required")
+        import time
+        hit[0].setdefault("notes", []).append(f"{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} {a.by}: {a.note}")
+        target = a.name; msg = f"INFLIGHT: note on {target} ({a.by}): {a.note[:80]}"
     else:
         hit = [e for e in entries if e["name"] == a.name]
         if len(hit) != 1: sys.exit(f"REFUSED: expected exactly one entry named {a.name}, found {len(hit)}")
