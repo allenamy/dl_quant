@@ -20,6 +20,14 @@ Nothing is ever written under /dev/shm. runs/ lives under /workspace via paths.p
 archived work/combo_s42/{scaled_diagnostic,literal}.npz BIT-FOR-BIT. That is the gate on the chain
 itself; only after it passes is the chain used on family members.
 
+OCTOBER D10 (2026-09-27, runbook §3 option (ii)): three optional arguments, all absent => every existing command line and cell keeps
+its exact meaning.
+  --share-json <file>  {rel: path} overriding entries of SHARE (only existing keys; e.g. work/NEWS_FEATURES.npz -> D10 features,
+                       work/legs.npz + receipts/P3_LEGS.json -> the legs rebuilt from the October King, work/king/KING_OOF.npz -> the
+                       October King OOF). Every override is recorded in the receipt with its sha.
+  --f10-src <dir>      the F10 training output to build the cell from (instead of T3/<train-arm>/f10_s<seed>); the same
+                       completeness check (finished TRAIN_RECEIPT status) applies.
+  --arm-name <NAME>    the cell's arm / tag stem (e.g. DLARCH_D10_s42) and --label <L> its root directory name under chain/.
 usage: env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B dlarch_chain_run.py \
          PATH,HOME,LC_CTYPE <outdir> (--parity | --seed N) [--engine]
 """
@@ -242,6 +250,11 @@ def main():
     # lead 2026-09-25 asked for T3 to be PIPELINED -- each T3 seed's book cell run as soon as that seed
     # finishes training, rather than waiting for 3/3 -- which needs the source root and the cell's arm
     # name to follow the training arm instead of being hardcoded to T0.
+    share_over = {}
+    if "--share-json" in args:
+        share_over = json.load(open(args[args.index("--share-json") + 1]))
+        bad = sorted(set(share_over) - set(SHARE)); assert not bad, f"--share-json keys not in SHARE: {bad}"
+        SHARE.update(share_over)
     train_arm = "T0"
     if "--train-arm" in args:
         train_arm = args[args.index("--train-arm") + 1]
@@ -249,7 +262,8 @@ def main():
     # at the path this cell would read. A typo cannot satisfy that, so it still fails loudly and by name;
     # a NEW arm needs no edit here. (The literal list ("T0","T3_clamp") had to be edited for every arm,
     # and F10_FULL's G1_T0_nomask_frac1 was the second such edit in two days.)
-    _cand = f"{BASE}/T3/{train_arm}/f10_s{seed}/TRAIN_RECEIPT.json"
+    f10_explicit = args[args.index("--f10-src") + 1] if "--f10-src" in args else None
+    _cand = f"{f10_explicit}/TRAIN_RECEIPT.json" if f10_explicit else f"{BASE}/T3/{train_arm}/f10_s{seed}/TRAIN_RECEIPT.json"
     if not (parity or reference):
         # FILE EXISTENCE IS NOT COMPLETENESS. merge_folds writes TRAIN_RECEIPT.json after EVERY fold, so
         # this file is present from fold 1 with status PARTIAL_FOLDS (measured: the F10_FULL arm had one
@@ -274,7 +288,10 @@ def main():
     # news2's tree (only 42 and 2027 exist), so its reference must be built from dlarch's own --no-mask
     # product -- which G1 proved is BITWISE identical to the in-service F10 at s42. Passing the path
     # rather than inferring it keeps the receipt honest about which array was used.
-    if "--ref-f10" in args:
+    if f10_explicit:
+        assert not inservice_f10, "--f10-src is for family/candidate cells, not --parity/--reference"
+        f10_src = f10_explicit
+    elif "--ref-f10" in args:
         assert reference, "--ref-f10 only means something with --reference"
         f10_src = args[args.index("--ref-f10") + 1]
     elif inservice_f10:
@@ -286,6 +303,9 @@ def main():
     # second arm, and the engine's bt_objb_targets caught it: arm_mismatch {receipt: DLARCH_T0_s42,
     # want: DLARCH_REF_NC_s42X}. Computed once, passed down, recorded in the receipt.
     arm = f"DLARCH_REF_NC_s{seed}X" if reference else f"DLARCH_{train_arm}_s{seed}"
+    if "--arm-name" in args:
+        assert "--label" in args and not inservice_f10, "--arm-name needs --label and a candidate cell"
+        arm = args[args.index("--arm-name") + 1]; label = args[args.index("--label") + 1]
     root = f"{CHAIN}/{label}"
     rec = {"device": "dlarch_chain_run.py", "self_sha256": sha(os.path.abspath(__file__)),
            "mode": "PARITY_GATE" if parity else (f"REFERENCE_NC_s{seed}X" if reference else "FAMILY_MEMBER"), "seed": seed, "root": root,
@@ -297,6 +317,8 @@ def main():
                                f"s{seed}: NC RECIPE at a seed production never ran; the parity assertion "
                                "still validates this chain, but this cell is not 'the production book'")),
            "derive_receipt_sha256": sha(f"{DEV}/DERIVE_CHAIN.json"),
+           "share_overrides": {k: {"path": v, "sha256": sha(v)} for k, v in share_over.items()},
+           "argv": sys.argv[1:], "python": sys.version,
            "utc_start": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "mem_gate_at_start": mem_gate(), "steps": {}}
     log(f"build root {root}  f10<-{f10_src}")
@@ -424,6 +446,8 @@ def main():
                   "bitwise identical to the production archive in this same run"
                   if reference else
                   f"dlarch T0 family member seed {seed} (sigma_F10 + fresh's fusion-layer family)")
+    if "--arm-name" in args:
+        r0["role"] = f"October D10 joint-arm candidate cell {arm} (King + F10 on D10 features; runbook §3, option (ii))"
     cfg["runs"] = [r0]; cfg["paths"]["pod_root"] = root; cfg["config"] = f"RUN_CONFIG_{arm}"
     cpath = f"{root}/configs/RUN_CONFIG_{arm}.json"
     sio.write_json(cpath, cfg)             # the engine reads this; read back before it is used

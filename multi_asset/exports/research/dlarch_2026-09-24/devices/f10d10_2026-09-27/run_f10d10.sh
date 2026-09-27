@@ -11,19 +11,26 @@
 # rev 1 (07:0xZ): the G1 PASS line now carries the shas of the code it certified ('F10D10_G1 PASS code=<t>,<c>,<s>'), and 'train'
 # requires a PASS line whose code shas equal the CURRENT files -- a PASS left in the log by an earlier code version (run 1, before
 # the safe_io fsync change) must not admit a later one. Found while re-running G1 after the C1 fix: the log still held run 1's PASS.
+# rev 2: phase 'cells' (own claim, started beside 'train'): for each seed whose D10 F10 training has FINISHED (TRAIN_RECEIPT status
+#   ALL_DECLARED_FOLDS_SCORED_NOT_COMBO_CERTIFIED), build the joint-arm book cell through dlarch_chain_run.py (copy in this dir) with
+#   --share-json $C/share_d10.json (D10 features, the October-King legs + their receipt, the October King OOF; written by 'train'
+#   from the same env it trained on) --f10-src <that seed> --arm-name DLARCH_D10_s<seed> --label d10_s<seed> --engine, then
+#   dlarch_cell_retain.py against DLARCH_REF_NC_s42X (verify, then --delete after its four preconditions). A write probe of 1.4 GiB
+#   (a cell is ~0.36 GB, plus 1 GiB) precedes every cell. Bound 6 h. Needs env F10D10_KING_OOF too (recorded, not read by combo).
 # Terminal line (line start): 'F10D10_<PHASE>_DONE rc=<n>' ; 'F10D10_STOP <why>'.
 set -u
 C=/workspace/dlarch_2026-09-24/f10d10_2026-09-27; M=/dev/shm/dlarch_f10d10; LOG=$M/f10d10.log; PY=/workspace/venv/bin/python
-PHASE=${1:?usage: run_f10d10.sh g1|train}
+PHASE=${1:?usage: run_f10d10.sh g1|train|cells}
 mkdir -p $M $C/runs $C/receipts
-mkdir "/workspace/dlarch_2026-09-24/CHAIN/.claim_F10D10" 2>/dev/null || { echo "F10D10_STOP claim exists ($PHASE)" >> $LOG; exit 4; }
-echo "pgid=$(ps -o pgid= -p $$ | tr -d ' ') pid=$$ owner=dlarch job=f10d10_$PHASE started=$(date -u +%FT%TZ)" | tee /workspace/dlarch_2026-09-24/CHAIN/.claim_F10D10/owner > $M/f10d10.pgid
+CL=/workspace/dlarch_2026-09-24/CHAIN/.claim_F10D10; [ "$PHASE" = cells ] && CL=${CL}_CELLS
+mkdir "$CL" 2>/dev/null || { echo "F10D10_STOP claim exists ($PHASE)" >> $LOG; exit 4; }
+echo "pgid=$(ps -o pgid= -p $$ | tr -d ' ') pid=$$ owner=dlarch job=f10d10_$PHASE started=$(date -u +%FT%TZ)" | tee $CL/owner > $M/f10d10_$PHASE.pgid
 say(){ echo "$(date -u +%FT%TZ) $*" >> $LOG; }
-stop(){ echo "F10D10_STOP $PHASE: $1" >> $LOG; rm -rf /workspace/dlarch_2026-09-24/CHAIN/.claim_F10D10; exit 1; }
+stop(){ echo "F10D10_STOP $PHASE: $1" >> $LOG; rm -rf "$CL"; exit 1; }
 ENV="env -i PATH=/usr/bin:/bin HOME=/root LC_CTYPE=C"
 CODE=$(cd $C && sha256sum dlarch_train_f10.py dlarch_chain_torch.py dlarch_safe_io.py | awk '{print substr($1,1,16)}' | paste -sd, -)
 say "F10D10_${PHASE}_START shas $(cd $C && sha256sum dlarch_train_f10.py dlarch_chain_torch.py dlarch_safe_io.py dlarch_identity_compare.py | awk '{print substr($1,1,16)}' | tr '\n' ' ')"
-nvidia-smi --query-compute-apps=pid --format=csv,noheader | grep -q . && stop "GPU busy (another compute process present)"
+[ "$PHASE" != cells ] && nvidia-smi --query-compute-apps=pid --format=csv,noheader | grep -q . && stop "GPU busy (another compute process present)"
 case $PHASE in
 g1)
   ( cd $C && $ENV $PY -B dlarch_train_f10.py --env-whitelist PATH,HOME,LC_CTYPE --arm T0 --no-mask --seed 42 --folds 2023,202609 \
@@ -36,7 +43,15 @@ g1)
     && echo "F10D10_G1 PASS code=$CODE" >> $LOG || { echo "F10D10_G1 FAIL" >> $LOG; stop "G1 not identical"; } ;;
 train)
   grep -qx "F10D10_G1 PASS code=$CODE" $LOG || stop "no G1 PASS for the current code ($CODE)"
-  for v in F10D10_FEATURES F10D10_FEATURES_SHA F10D10_FEATURES_RECEIPT F10D10_LEGS F10D10_LEGS_SHA F10D10_LEGS_RECEIPT; do [ -n "${!v:-}" ] || stop "env $v not set"; done
+  for v in F10D10_FEATURES F10D10_FEATURES_SHA F10D10_FEATURES_RECEIPT F10D10_LEGS F10D10_LEGS_SHA F10D10_LEGS_RECEIPT F10D10_KING_OOF; do [ -n "${!v:-}" ] || stop "env $v not set"; done
+  [ "$(sha256sum $F10D10_LEGS | cut -c1-64)" = "$F10D10_LEGS_SHA" ] || stop "legs sha differs from F10D10_LEGS_SHA"
+  $PY - "$C/share_d10.json" <<PYJ || stop "share json"
+import json, sys
+json.dump({"work/NEWS_FEATURES.npz": "$F10D10_FEATURES", "work/legs.npz": "$F10D10_LEGS", "receipts/P3_LEGS.json": "$F10D10_LEGS_RECEIPT",
+           "work/king/KING_OOF.npz": "$F10D10_KING_OOF"}, open(sys.argv[1] + ".tmp", "w"), indent=1)  # durable-exempt: tiny config, re-read and compared on the next line
+import os; os.replace(sys.argv[1] + ".tmp", sys.argv[1]); assert json.load(open(sys.argv[1]))["work/legs.npz"] == "$F10D10_LEGS"
+PYJ
+  say "share_d10.json $(sha256sum $C/share_d10.json | cut -c1-16)"
   for S in 42 2027 7; do
     ( cd $C && $ENV $PY -B dlarch_train_f10.py --env-whitelist PATH,HOME,LC_CTYPE --arm T0 --no-mask --seed $S \
         --features $F10D10_FEATURES --features-sha $F10D10_FEATURES_SHA --features-receipt $F10D10_FEATURES_RECEIPT \
@@ -45,7 +60,30 @@ train)
     grep -q "^DLARCH_TRAIN_DONE" $C/runs/train_s$S.log || stop "seed $S no DONE line"
     say "F10D10_SEED_DONE s$S $(grep '^DLARCH_TRAIN_DONE' $C/runs/train_s$S.log)"
   done ;;
+cells)
+  W=/workspace/dlarch_2026-09-24; REF=$W/chain/ref_nc_s42X/runs/DLARCH_REF_NC_s42X_scaled_rule_raw_UAFE; REFTAG=DLARCH_REF_NC_s42X_scaled_rule_raw_UAFE
+  ENG=/dev/shm/news2_2026-09-23/engine; LEFT="42 2027 7"
+  for round in $(seq 1 360); do
+    NEWLEFT=""
+    for S in $LEFT; do
+      TR=$C/runs/d10/G1_T0_nomask/f10_s$S/TRAIN_RECEIPT.json
+      if [ ! -f "$TR" ] || ! grep -q '"ALL_DECLARED_FOLDS_SCORED_NOT_COMBO_CERTIFIED"' "$TR"; then NEWLEFT="$NEWLEFT $S"; continue; fi
+      [ -s $C/share_d10.json ] || stop "share_d10.json missing (train phase writes it)"
+      dd if=/dev/zero of=$C/.probe bs=1M count=1434 conv=fsync status=none && [ "$(stat -c %s $C/.probe)" = $((1434*1048576)) ] || { rm -f $C/.probe; stop "write probe 1.4 GiB failed (quota) before seed $S"; }
+      rm -f $C/.probe
+      say "cell s$S start"
+      ( cd $C && $ENV $PY -B dlarch_chain_run.py PATH,HOME,LC_CTYPE $C/receipts/chain_s$S --seed $S --share-json $C/share_d10.json \
+          --f10-src $C/runs/d10/G1_T0_nomask/f10_s$S --arm-name DLARCH_D10_s$S --label d10_s$S --engine > $C/runs/cell_s$S.log 2>&1 ) || stop "chain s$S rc!=0 (see $C/runs/cell_s$S.log)"
+      TAG=DLARCH_D10_s${S}_scaled_rule_raw_UAFE
+      ( cd $C && $ENV $PY -B $W/dlarch_cell_retain.py --env-whitelist PATH,HOME,LC_CTYPE --cell $W/chain/d10_s$S/runs/$TAG --tag $TAG \
+          --control-cell $REF --control-tag $REFTAG --engine $ENG --out $C/receipts/RETAIN_D10_s$S.json --delete --cell-root $W/chain/d10_s$S \
+          > $C/runs/retain_s$S.log 2>&1 ) || stop "retain s$S rc!=0 (see $C/runs/retain_s$S.log)"
+      say "F10D10_CELL_DONE s$S $(grep -h DLARCH_CELL_RETAIN $C/runs/retain_s$S.log | tail -1)"
+    done
+    LEFT=$(echo "$NEWLEFT" | sed 's/^ *//'); [ -z "$LEFT" ] && break; sleep 60
+  done
+  [ -z "$LEFT" ] || stop "bound expired, seeds without cells: $LEFT" ;;
 *) stop "unknown phase" ;;
 esac
 RC=0; grep -q Traceback $C/runs/*.log 2>/dev/null && RC=1
-echo "F10D10_${PHASE^^}_DONE rc=$RC" >> $LOG; rm -rf /workspace/dlarch_2026-09-24/CHAIN/.claim_F10D10
+echo "F10D10_${PHASE^^}_DONE rc=$RC" >> $LOG; rm -rf "$CL"
