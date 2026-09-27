@@ -470,5 +470,19 @@
   "expected": "V1 IDENTICAL; V2 none RECONCILED not_allowed 0 allowed 103527 PREFIX_BITWISE; rate_extra/ft_extra/rate_prefix NOT_RECONCILED not_allowed 1 PREFIX_DIFFERS",
   "outputs": "/workspace/d10_ledgerms_rev2_2026-09-27/r22_20260927T065456Z (new dir; nothing deleted)",
   "delivery": "session cron 9ed50f8e"
+ },
+ {
+  "name": "alloc_S1_judge_identity_rev1b",
+  "owner": "alloc",
+  "host": "pod2",
+  "log": "/dev/shm/alloc_2026-09-26/eta/judge_identity_b.log",
+  "pgid": 3419992,
+  "pgid_file": null,
+  "terminal": "^IDENTITY |Traceback",
+  "success": "^IDENTITY ALL_EQUAL and /dev/shm/alloc_2026-09-26/eta/IDENTITY_judge_rev1.json ALL_EQUAL true",
+  "started_utc": "2026-09-27T06:57Z",
+  "launch": "setsid nohup, env -i whitelist, nice 10, taskset 40-47; writes only /dev/shm",
+  "purpose": "lead condition 1: l2n_judge.py vs l2n_judge_rev1.py MAIN on s42 R, 2 nulls: y2 r0/r1, null ICs, whole non-permutation cell bitwise",
+  "closed": false
  }
 ]
