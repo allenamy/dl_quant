@@ -77,10 +77,10 @@
   "success": "^DONE (all steps: R' gate, O, footprint, engine cells, beta, verdicts). Intermediate markers ^GATE_OK / ^CELL_OK / ^VERDICT_OK / ^NOTE; candidate engine cells wait on /dev/shm/alloc_2026-09-26/HOLD_CANDIDATE_CELLS (lead places them)",
   "started_utc": "2026-09-27T00:43:31Z",
   "pgid": 3345374,
-  "relaunch_of": "alloc_family (rev 2a STOP 18:21:02Z, red control R failed; rule \u00a77 R')",
+  "relaunch_of": "alloc_family (rev 2a STOP 18:21:02Z, red control R failed; rule §7 R')",
   "patrol": "session cron 0a490f62 every 10 min + /dev/shm/alloc_2026-09-26/logs/patrol.log",
   "closed": true,
-  "ended": "STOP RED_CONTROL_RPRIME_FAILED_family_stops_final 2026-09-27T00:57:31Z (first family terminated per rule \u00a77; receipt JUDGE_RPRIME.json d2ba0acb, commit 012f1ffe0)"
+  "ended": "STOP RED_CONTROL_RPRIME_FAILED_family_stops_final 2026-09-27T00:57:31Z (first family terminated per rule §7; receipt JUDGE_RPRIME.json d2ba0acb, commit 012f1ffe0)"
  },
  {
   "name": "dlarch_momentum_seat_decomp",
@@ -186,5 +186,24 @@
   "terminal": "^(KIC_DONE rc=|KIC_STOP)",
   "host": "pod2",
   "success": "^KIC_DONE rc=0; waits on fresh2 kf_manifest_ic.sh (PGID 3365832) line-start KF_MANIFEST_IC_DONE"
+ },
+ {
+  "name": "alloc_S3_xvenue_collector",
+  "owner": "alloc",
+  "host": "mac (launchd gui/<uid>/com.hsy.xvenuecollector)",
+  "kind": "RESIDENT (long-running; no DONE by design)",
+  "log": "~/xvenue_collector/logs/collect_<UTC date>.log (one RUN line per minute)",
+  "pgid_file": null,
+  "terminal": "DISK_LOW",
+  "liveness": "~/xvenue_collector/state/heartbeat.json run_utc not older than 3 minutes (checked by the patrol, not by inflight_status's log+regex check); per-venue fail_streak / last_error in ~/xvenue_collector/state/venues.json",
+  "installed_utc": "2026-09-27T02:42Z",
+  "installed_by": "lead",
+  "devices_commit": "c4c4a93c8",
+  "files_sha256": {
+   "xvenue_collect.py": "see INSTALL.md",
+   "com.hsy.xvenuecollector.plist": "see INSTALL.md"
+  },
+  "evaluate_after": "6 months (DECISION_RULE_nonfunding_sources_2026-09-27 §0-4)",
+  "closed": false
  }
 ]
