@@ -1,0 +1,4 @@
+> **创建:** 2026-09-27 00:5xZ | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n (integ) | **状态:** dlarch 的规格原文转录(写于任何读数之前),装置 = devices/momentum_loadings_live.py + cf_legs rev 5 --dump-f10 | **作废条件:** dlarch / lead 修改规格
+
+规格(dlarch 2026-09-27 ~00:4xZ,逐条):逐锚 A(09-19 00Z .. 09-27 04Z,生产者实际计算过的锚);成员 = 当锚 members;p_k = 过去 k 天(1/3/7)累计 log 收益,仅 ≤A 的 5m bar,有限 ≥80%;zp = 有限名上标准化;腿 KZ = king_rank、ZFD = fund_rank、zf = F10 均匀秩(combo L232-L233);席位 w0,w2 = 掩码后席位;L(x) = mean((x − mean x)·zp);T_K = w0·0.55·L(KZ),T_F10 = w0·0.45·L(zf),T_FUND = w2·L(ZFD);控制 L(combo_z) == T_K+T_F10+T_FUND(1e-12);E = Σ w_pub·zp / Σ|w_pub|(只作参照);逐锚一行 + 09-19..09-26 均值;缺锚照实标缺;标出 09-26 09:00Z 席位重新播种前后。
+实现上的两处说明(写在读数之前):(1) zf 不在任何留存文件里,由 cf_legs rev 5 的 base 臂沙箱重放在整段计算之后导出,重放必须逐位复现生产 target_live(cf_legs 的 STOP 规则),否则该锚标缺;(2) E 只计入既是成员、又有 p_k 的已发布名,排除的名数逐锚报出。

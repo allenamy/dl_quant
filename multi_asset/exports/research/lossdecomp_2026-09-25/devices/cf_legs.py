@@ -33,7 +33,8 @@ rev 4 (Task B synthesis 2026-09-26, Q1 EMA-lag magnitude; committed before any n
       subset (base always included, it is the validator); per-arm book turnover (sum |book_A - book_prev|, USDT, same reshape/clamp/caps)
       is recorded so the no-EMA arm's extra trading can be costed separately (P&L here is GROSS of costs). EMA lag contribution =
       P&L(base) - P&L(no_ema) per anchor. Named limitation as rev 1 (d): "EMA removed from the segment start".
-usage: ~/wide_shadow/venv/bin/python cf_legs.py <default tree> <out dir> <A,A,...[;A,A,...]> [--tree-at A=<dir> ...] [--copy-extra <rel> ...] [--arms base,no_ema]"""
+rev 5 (2026-09-27): --dump-f10 (see DUMP_CODE); use with --arms base.
+usage: ~/wide_shadow/venv/bin/python cf_legs.py <default tree> <out dir> <A,A,...[;A,A,...]> [--tree-at A=<dir> ...] [--copy-extra <rel> ...] [--arms base,no_ema] [--dump-f10]"""
 import collections, glob, hashlib, json, math, os, shutil, subprocess, sys, time
 import numpy as np
 
@@ -47,7 +48,12 @@ fmt = lambda t: time.strftime("%m-%dT%HZ", time.gmtime(t))
 bad = lambda k: "chase" in str(k).lower() or "arm" in str(k).lower()
 KC = 'z_kc = w3m[0] * np.nan_to_num(legz["king"]) + w3m[2] * np.nan_to_num(legz["fund"])'
 FC = 'z_fc = w3m[0] * np.nan_to_num(zf) + w3m[2] * np.nan_to_num(legz["fund"])'
-EXTRA = []; TREE_AT = {}
+EXTRA = []; TREE_AT = {}; DUMP = {"on": False}
+# rev 5 (2026-09-27, dlarch/lead: live per-leg momentum loadings): --dump-f10 appends, to the BASE arm's sandbox copy only and AFTER the whole
+# stage (nothing it computes can change), a dump of the per-member F10 uniform rank zf and the member order pm; copied to <out>/dumps/<A>.npz.
+# The base arm must still reproduce production bitwise (the existing STOP rule), so a dump from a non-reproducing replay cannot be used.
+DUMP_CODE = ("\n# ---- cf_legs rev 5 DUMP (sandbox base arm only, appended after the stage) ----\n"
+             "np.savez(os.path.join(os.path.dirname(WS), 'F10_DUMP.npz'), zf=np.asarray(zf, float), pm=np.asarray(pm), anchor=A)\n")
 
 
 def recorded_caps():
@@ -139,6 +145,9 @@ def build(tree, A, sb, arm, prev_sb):
     for old, new in ARMS[arm].items():
         assert src.count(old) == 1, f"{arm}: the leg line matched {src.count(old)} times"
         src = src.replace(old, new)
+    if DUMP["on"] and arm == "base":
+        assert "zf = np.full(len(pm), np.nan)" in src, "rev 5: the tree's combo_stage has no zf/pm to dump"
+        src = src + DUMP_CODE
     open(cs, "w").write(src)
     if prev_sb:                                           # the arm's OWN EMA state from its previous anchor
         for t in ("kc", "fc"):
@@ -166,6 +175,7 @@ def main():
     SEGS = [[int(x) for x in seg.split(",") if x] for seg in sys.argv[3].split(";")]; Alist = [A for seg in SEGS for A in seg]
     seg_start = {seg[0] for seg in SEGS}
     a = sys.argv[4:]
+    DUMP["on"] = "--dump-f10" in a
     for i, x in enumerate(a):
         if x == "--tree-at": k, v = a[i + 1].split("=", 1); TREE_AT[int(k)] = os.path.abspath(v)
         if x == "--copy-extra": EXTRA.append(a[i + 1])
@@ -189,6 +199,8 @@ def main():
             sb = f"{out}/{A}_{arm}"; cs_sha = build(TREE_AT.get(A, tree), A, sb, arm, prev[arm]); rc = run(sb)
             tl = f"{sb}/wide_shadow/state/target_live_PARITY/{A}.json"
             W[arm][A] = json.load(open(tl))["weights"] if (rc == 0 and os.path.exists(tl)) else None
+            if DUMP["on"] and arm == "base" and os.path.exists(f"{sb}/F10_DUMP.npz"):
+                os.makedirs(f"{out}/dumps", exist_ok=True); shutil.copy2(f"{sb}/F10_DUMP.npz", f"{out}/dumps/{A}.npz")
             rec["arms"].setdefault(arm, {})[fmt(A)] = {"rc": rc, "combo_stage_sha256": cs_sha, "n": len(W[arm][A] or {})}
             print(f"{fmt(A)} {arm:8s} rc {rc} n {len(W[arm][A] or {})}", flush=True)
             if prev[arm]: shutil.rmtree(prev[arm], ignore_errors=True)
