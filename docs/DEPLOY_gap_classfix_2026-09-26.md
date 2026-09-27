@@ -183,3 +183,8 @@
 | 资金费账本 binance_funding.py(positions_at L270 + write_funding_rows L463) | 静默丢行(news2,7f08ff7cb / 515b3fb8c) | (a) 回读老于一个锚间隔就拒绝定价,缺口里的结算全部跳过;(b) 续跑点 = 盘上最新结算 + 1ms,被跳过的行不落盘,之后永不重试(09-26 实例 545 行,靠显式按窗口回填) | ① durable 待定价队列(交易所原始 income 行含 tranId,出口只有定价写入或 90 天具名永久缺口);② 跨缺口定价三条件(有 t 后回读 B;(A,t) 折叠 supersede 后成交为 0;qty(A)=qty(B)−净成交,容差半 stepSize),行记 pricing_rule;验收测试「明天再停机一次」(12h 无回读含 4h/1h 结算;注入成交/改 B 必留队;续跑点越过缺口后队列仍在;队列写失败=失败+告警;20260926 真实日文件回归 = 545 行;1788033600 / 1790006400 作正控) |
 | 生产者 LR(shadow_loop L752) | 静默留洞 | 3 个洞,席位偏 0.4–0.7pp(news2) | 路径 A;恢复锚的追加条数必须等于经过的锚数,或显式记 0 |
 | 安全站点(取「最近一次」、实耗时间或具名缺槽) | 安全 | — | pilot_log.anchor_series、parity_summary、external_book.age_anchors、anchor_loop prev_nonzero、reconcile、M3 m3_overlay_last、watchdog、combo daemons、feature_cache_identity、nc_contract、beta_overlay_producer、dlw_features、depth_watch、backfill_markout |
+
+## lead 审阅(2026-09-27 05:4xZ)
+- rev 3 批准。P1(GitHub 凭据)lead 于 05:30Z 实测已成立:助手指向 `/opt/homebrew/bin/gh`,`ls-remote` 返回 d01e35db…,`fetch` rc=0。P4 实测:运行树 HEAD d01e35d,combo_stage 12a76de8。
+- **追加一个开窗前提 P5**:回放判官第 4 轮的 FAIL(C0 current_vs_archived,beta_overlay 跨机 1–2 ulp)原样入账,判据不改。等 08Z(1790496000)在新机上的生产产物落盘后,拿它当同主机参照物,只重跑 C0 这一子项,作为第 5 轮。逐位相同才开窗;有任何差异就停,不发布。
+- **备用窗的裁定**:主窗若没发成,改走备用窗,接受 12Z 用现码运行(drank 三列为 0,沙箱量级 Σ|dw| 0.00126)。不为此停服务回填,因为停服务回填本身引入的风险大于这点影响。
