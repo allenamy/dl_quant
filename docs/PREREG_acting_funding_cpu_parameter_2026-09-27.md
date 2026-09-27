@@ -19,3 +19,5 @@ root 在 CUDA 探针 5723603f3 后授权本次独立小控制：CPU1，RSS申报
 执行前源码审查补充（2026-09-27 18:47 UTC，尚未数值运行）：F=0控制显式运行 A0(coefficient0) 与 A1(coefficient1, rates0)，不能把 coefficient0 同一分支调用两次冒称臂开关恒等。部署后未发运行命令；原 b99ad8632 保留，新 worker SHA 入 CPU_CONTRACT。
 
 主审同步审查后的执行前补充：F=0从cash_tensor逐事件rate输入归零，A0/A1分别关闭/开启carry；不是事后把聚合cash置零。硬forward仅签给定输入step平价，虽按abs>1e-9准备下一步h，不签原evolve/连续HOLD执行库存协议；后者留完整120授权后核。本次数值实验范围不扩。
+
+18:49Z见数后勘误：上面手写“18:47 UTC”不准确，第一次执行前修订机器时间18:44:58.473Z（14fac14d7），逐事件rate修订18:46:05.282Z、提交8007d41b3为18:46:22Z；唯一数值运行18:46:45Z才开始。全部原句保留，冻结时序以CPU_CONTRACT和git时间为准。原运行rc0，但F0整体hash不同，torch.equal不足以签字节恒等；详见cpu_parameter_control_20260927/POSTRUN_ACCEPTANCE_AUDIT.json，不签完整通过。

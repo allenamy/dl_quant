@@ -1,0 +1,28 @@
+{
+  "utc": "2026-09-27T18:50:09.339810+00:00",
+  "status": "PARTIAL_CONTROLS_PASS_F0_BYTE_IDENTITY_UNRESOLVED",
+  "original_runtime_status": "COMPLETED",
+  "original_worker_status": "NO_ALPHA_IMPLEMENTATION_ONLY_PASS",
+  "original_result_sha256": "cf54d0b5f4f8396ae24f1ffd0b2a81d330766512d9c33335383f659951f3c511",
+  "original_one_step_sha256": "2da667e57e7c6ef360319a993671f940a643a98a80779714a6c1abbc58a78106",
+  "F0_value_equality": {
+    "loss": true,
+    "gradients": true,
+    "parameters": true,
+    "optimizer": true
+  },
+  "F0_whole_object_sha256": [
+    "d1260ef24800962ee0f4316c065bb7326f33cf8813c65a6f212159d706982f42",
+    "8c6bd47bee8b49ecad7d991338a322e954ccfc254a4a830aef1e8de7f578eb14"
+  ],
+  "strict_byte_identity_certified": false,
+  "reason": "torch.equal compares values, not signed-zero representation. Whole hashes include parts_before_NAV_bps also, which were not compared individually. No full state tensors retained; source inspection alone does not identify differing fields.",
+  "source_correction_needed": "Per-field byte hashes and first differing tensor byte/value/signbit; do not silently treat torch.equal as byte equality.",
+  "initial_identity": "seed42 original Net AST; double/eval for FD, train seed20260927 for one step",
+  "network_fd_count": 10,
+  "network_fd_max_absolute_error": 1.466449239600695e-10,
+  "cuda_initialized": false,
+  "no_rerun": true,
+  "no_alpha": true,
+  "full120_not_authorized": true
+}
