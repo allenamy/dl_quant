@@ -43,6 +43,7 @@ assert D['reference_sha']==sha(ROOT/'seed_02.json')
 assert D['initial_state_sha']==R['initial_state_sha256']
 # Canonical readers only; no second execution simulator.
 import simlib as L
+L.install_readonly_guard()
 M=L.Mirror('/workspace/replay_exec_mirror_59875e5a');assert not M.verify_manifest(),'Pod durable mirror input hash mismatch';P=L.Panel(M);L.build_references(M,P);F=L.FundingBook(M)
 tr=sorted(D['trade_log'],key=lambda v:v[0]);nav=D['initial_state']['nav0_usdt'];initial=D['initial_state']['positions_qty'];syms=sorted(set(initial)|{x[1] for x in tr})
 tb=collections.defaultdict(list)
