@@ -1,0 +1,116 @@
+{
+  "schema": "recovery_acceptance_v1",
+  "anchor": 1790524800,
+  "observed_at": "2026-09-27T17:02:55Z",
+  "minimum_fill_ratio": 0.6,
+  "verdict": "PASS",
+  "checks": {
+    "inspect": {
+      "status": "PASS",
+      "reason": "evidence agrees"
+    },
+    "anchor": {
+      "status": "PASS",
+      "reason": "evidence agrees",
+      "rebalance_id": "A1790526240",
+      "fill_ratio": 0.9756184894426999,
+      "minimum": 0.6
+    },
+    "anchor_done": {
+      "status": "PASS",
+      "reason": "evidence agrees"
+    },
+    "ledger_receipt": {
+      "status": "PASS",
+      "reason": "evidence agrees"
+    },
+    "watchdog_state": {
+      "status": "PASS",
+      "reason": "evidence agrees",
+      "policy": "explicit_untripped_live"
+    },
+    "watchdog_eval": {
+      "status": "PASS",
+      "reason": "evidence agrees"
+    },
+    "alarms": {
+      "status": "PASS",
+      "reason": "evidence agrees",
+      "new_high_count": 0
+    },
+    "anchor_report": {
+      "status": "PASS",
+      "reason": "evidence agrees"
+    },
+    "venue_receipt": {
+      "status": "PASS",
+      "reason": "evidence agrees",
+      "window_ms": [
+        1790525640000,
+        1790528407242
+      ],
+      "foreign_order_ids": 0
+    }
+  },
+  "inputs": {
+    "inspect": {
+      "path": "/Users/haosiyu/.codex/tmp/acting_lead_20260927/FIRST_ACCEPT_16Z_20260927T1700Z/INSPECT_16Z.txt",
+      "sha256": "66850e9cf50d523f5ff3aabcc44a4157693b93465ad62a3b6995b0f789a08df1",
+      "bytes": 4370
+    },
+    "anchors": {
+      "path": "/Users/haosiyu/.codex/tmp/acting_lead_20260927/FIRST_ACCEPT_16Z_20260927T1700Z/anchors.jsonl",
+      "sha256": "463e345619ad4181f670c8a0a0ca925b355405b9a49d8c91476cfc219d84f03d",
+      "bytes": 138183
+    },
+    "anchor_log": {
+      "path": "/Users/haosiyu/.codex/tmp/acting_lead_20260927/FIRST_ACCEPT_16Z_20260927T1700Z/anchor_runs.log",
+      "sha256": "fa6418b33fbff094400241ab69d2081d097adc8e578e248c7f6ad62bd8be55ae",
+      "bytes": 10079192
+    },
+    "ledger_receipt": {
+      "path": "/Users/haosiyu/.codex/tmp/acting_lead_20260927/FIRST_ACCEPT_16Z_20260927T1700Z/LEDGER_16Z.json",
+      "sha256": "4a9825deb446d25986cfba7b999554d2046d99d6364694da688863513988ccff",
+      "bytes": 686
+    },
+    "watchdog_state": {
+      "path": "/Users/haosiyu/dl_quant_live/state/live/watchdog/state.json",
+      "sha256": "aee27811c1d6875f9304d4dc3a3ed89a9ffbc0de126411ec87db7c12716fa8f9",
+      "bytes": 64,
+      "parent_enumerated": true,
+      "present": true,
+      "absent": false
+    },
+    "watchdog_eval": {
+      "path": "/Users/haosiyu/.codex/tmp/acting_lead_20260927/FIRST_ACCEPT_16Z_20260927T1700Z/last_eval.json",
+      "sha256": "1925ed3accf04c64356b613fc86076116d6c77a81a7d43694a45a39735e7ec05",
+      "bytes": 11031517
+    },
+    "alarm_log": {
+      "path": "/Users/haosiyu/.codex/tmp/acting_lead_20260927/FIRST_ACCEPT_16Z_20260927T1700Z/ALARM.log",
+      "sha256": "fa4805173b18fbb79cbfdbaf0ea4c55f5adc156ac7a1b63b3e008308494d16c7",
+      "bytes": 12585
+    },
+    "anchor_report": {
+      "path": "/Users/haosiyu/.codex/tmp/acting_lead_20260927/FIRST_ACCEPT_16Z_20260927T1700Z/anchor_report_last.json",
+      "sha256": "f44de0cf881dd68b51a3efc59401a2302e26f646953191058455c4da8678b66e",
+      "bytes": 1057
+    },
+    "venue_receipt": {
+      "path": "/Users/haosiyu/.codex/tmp/acting_lead_20260927/FIRST_ACCEPT_16Z_20260927T1700Z/VENUE_16Z.json",
+      "sha256": "15f1947fa66bd722725ec3da7710ad17f238a73bac71b6dc3e56b2c0fb86c561",
+      "bytes": 1164
+    }
+  },
+  "coverage": {
+    "scope": "recovery evidence only; VERSION_PROBE/M3/PARITY remain separate",
+    "global_single_writer_proven": false,
+    "venue_limits": [
+      "only rid-minus-600s to receipt window end",
+      "only commission-listed symbols and filled orders",
+      "symbol/orderId identity; symbol/clientOrderId fallback for no-orderId local rows",
+      "no coverage of gaps between monitored windows or future activity"
+    ]
+  },
+  "self_sha256": "0e78dba29aa235fd120c11e12e0212a81648a570d9ab6ad1e3ee9942f007fc82"
+}

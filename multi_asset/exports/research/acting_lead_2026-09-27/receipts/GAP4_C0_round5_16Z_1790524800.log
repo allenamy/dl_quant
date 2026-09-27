@@ -1,0 +1,33 @@
+HOST arm64
+TREE wide_shadow/fea171/combo_stage.py 5eaabcdb9e4d
+TREE wide_shadow/fea171/members_rule.py be6915608818
+TREE wide_shadow/fea171/prev_state.py 5150aeae9fc3
+TREE wide_shadow/fea171/tests_prev_state.py eee8dcdceedf
+=== 2026-09-27T17:05:56Z current base 1790524800
+[   8.4s] ④ COMBO 落盘 n=321 gross=0.7854 kc_src=own fc_src=own w3m=[0.3882, 0.0, 0.6118]
+[   8.4s] M3 beta_overlay: {'ok': True, 'version': 'm3_beta_v2', 'n_names': 450, 'n_estimated': 449, 'n_fallback': 0, 'n_no_cache_column': 0, 'elapsed_s': 0.03}
+[   8.5s] ⑤ COMBO_LIVE 写者完成 rehearsal=True n=321 gross=0.7854 读者验收 ok age=60.0s
+GAP_FIX_REPLAY_DONE anchor=1790524800 arm=base code=current rc=0 sandbox=/Users/haosiyu/cc_tmp/gapfix_c0_round5_16Z_20260927/current_base/1790524800
+=== 2026-09-27T17:06:08Z patched base 1790524800
+[   8.4s] ④ COMBO 落盘 n=321 gross=0.7854 kc_src=own fc_src=own w3m=[0.3882, 0.0, 0.6118]
+[   8.4s] M3 beta_overlay: {'ok': True, 'version': 'm3_beta_v2', 'n_names': 450, 'n_estimated': 449, 'n_fallback': 0, 'n_no_cache_column': 0, 'elapsed_s': 0.027}
+[   8.6s] ⑤ COMBO_LIVE 写者完成 rehearsal=True n=321 gross=0.7854 读者验收 ok age=60.0s
+GAP_FIX_REPLAY_DONE anchor=1790524800 arm=base code=patched rc=0 sandbox=/Users/haosiyu/cc_tmp/gapfix_c0_round5_16Z_20260927/patched_base/1790524800
+  BAD C0_1790524800
+  OK  T_1790524800
+GAP_FIX_JUDGE_C0 FAIL A=1790524800 n_bad=1
+JUDGE_C0_SECTION_RC=1 (whole-section verdict is informational; round 5 reads (i) and (iii))
+  OK  i_current_vs_archived_bitwise
+  OK  iii_a_holes_before_A_equal_literal
+  OK  iii_a_patched_MH_RECOMPUTED_equals_literal_no_errors
+  OK  iii_a_patched_missing_0
+  OK  iii_a_current_missing_equals_len_literal
+  OK  iii_b_patched_sources_own
+  OK  iii_b_no_state_lookup_no_cold_no_page
+  OK  iii_b_members_recomputed_keys_equal_literal
+  OK  iii_b_rc_both_0
+  OK  iii_c_kc_state_bitwise
+  VAL (i) 321 weights bit-equal | holes [1790424000, 1790438400, 1790481600] | MH line MH_RECOMPUTED (gap class fix) 3 anchors [1790424000, 1790438400, 1790481600] errors {}
+  VAL named differences: {"f10_state": {"bitwise": false, "idx_sets_differ": true}, "fc_state": {"bitwise": false, "max_abs_val_diff": 0.00029046268431507944, "n_val_differ": 58}, "kc_state": {"bitwise": true}, "weights": {"n_names": 321, "n_differ": 58, "max_abs": 0.0001307082079417864, "key_sets_equal": true}, "target_combo_bytes_equal": false, "target_blend_bytes_equal": false, "weights_combo_arrays_equal": false}
+C0_ROUND5 PASS A=1790524800
+ROUND5_RC=0

@@ -55,3 +55,8 @@
 - 16:50–16:53Z：16Z看门狗已评估`tripped=false`，无triggers/blind/unevaluated；target214,469.60、回读gross209,240.51（到位约97.56%），321名生产快照重放逐位相等。完整锚尚待done/N+55报告/K1，不能提前验收。新增316笔资金费因停机读数缺口未定价，沿既有funding修复队列处理；不影响NAV读取但账本不完整。
 - 本次验收工具自身两处错误在真验收前发现：正常watchdog评估会写`reduce_only=false,tripped_at=null,_mode=LIVE`，不能把文件存在当跳闸；RID出生时钟与anchor_ts分别读取，真实相差1.44秒，不能硬断言整数秒相等。live_recovery_audit_0927正按生产源码补同输入红绿，不改实盘/风险阈值，不删除正常state。旧验收源码及错误测试保留在提交链，修后root复核再使用。
 - 16:47Z KSR与两个等待器身份仍核同、无终态，cgroup使用46.13GB/61GB。research_resume_0927接续KSR最终按年/首差/同m0交互审计，仅写独立后处理与合成控制，不读未完成候选收益、不改在飞门、不起第三个等待器。
+
+- 17:02:55Z 恢复16Z完整验收已真实完成：9/9 PASS；VERSION_PROBE、M3 shadow、321名PARITY与合池B4分别PASS。到位率97.5618489%，K1查询窗口外来成交订单0，没有新增HIGH或再跳闸；仅证明具名查询范围，不证明全局单写者。收据归档`acting_lead_2026-09-27/receipts/RECOVERY_16Z_20260927/`。正常watchdog state以false/null/LIVE验收，不能引用上文文件不存在那句当唯一门。
+- 定时报表16:55Z早于真实anchor done16:58:34Z，原件保留。17:02:55Z用生产anchor_report的gather/build_report纯读函数在独立目录形成收尾后报告，未调main、未写生产报告、未发Telegram；未放宽报告新鲜度。
+- 17:06Z GAP4同机C0 PASS10/10，current归档321名逐位相等；补丁58名权重变动最大0.0001307082，均由冻结三洞MH重算解释，KC不变。W0四门通过；17:07Z四生产者服务已bootout，发布clone仅两份契约归档+A10测试文件进入safe_commit全电池。尚未安装候选，执行器仍d01e35d。
+- root独立复跑KSR终态补充装置14/14通过，来源`874a8cf16`/`65ca5f65f`，只在既有reader DONE后人工单CPU读取；没有第三个等待器或未完成候选读数。

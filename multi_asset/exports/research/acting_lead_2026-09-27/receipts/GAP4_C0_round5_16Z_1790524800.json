@@ -1,0 +1,74 @@
+{
+ "device": "c0_round5_attrib.py",
+ "self_sha256": "7723a69aa1b5cec72c49feda96a4df6a5672826fd7b169f02e8137fb36de911b",
+ "A": 1790524800,
+ "expect_mh": [
+  1790424000,
+  1790438400,
+  1790481600
+ ],
+ "utc": "2026-09-27T17:06:20Z",
+ "checks": {
+  "i_current_vs_archived_bitwise": true,
+  "iii_a_holes_before_A_equal_literal": true,
+  "iii_a_patched_MH_RECOMPUTED_equals_literal_no_errors": true,
+  "iii_a_patched_missing_0": true,
+  "iii_a_current_missing_equals_len_literal": true,
+  "iii_b_patched_sources_own": true,
+  "iii_b_no_state_lookup_no_cold_no_page": true,
+  "iii_b_members_recomputed_keys_equal_literal": true,
+  "iii_b_rc_both_0": true,
+  "iii_c_kc_state_bitwise": true
+ },
+ "named_differences": {
+  "f10_state": {
+   "bitwise": false,
+   "idx_sets_differ": true
+  },
+  "fc_state": {
+   "bitwise": false,
+   "max_abs_val_diff": 0.00029046268431507944,
+   "n_val_differ": 58
+  },
+  "kc_state": {
+   "bitwise": true
+  },
+  "weights": {
+   "n_names": 321,
+   "n_differ": 58,
+   "max_abs": 0.0001307082079417864,
+   "key_sets_equal": true
+  },
+  "target_combo_bytes_equal": false,
+  "target_blend_bytes_equal": false,
+  "weights_combo_arrays_equal": false
+ },
+ "c0_section": {
+  "PASS": false,
+  "current_vs_archived": "321 weights bit-equal",
+  "weights": "58 weights differ, max |dw| 1.307e-04",
+  "states_bitwise": {
+   "kc": true,
+   "fc": false,
+   "f10": false
+  },
+  "target_combo_bytes_equal": false,
+  "target_blend_bytes_equal": false,
+  "weights_combo_arrays_equal": false,
+  "rc": [
+   0,
+   0
+  ],
+  "code": [
+   "CODE=current combo_stage sha 12a76de89831",
+   "CODE=patched combo_stage sha 5eaabcdb9e4d"
+  ],
+  "T": {
+   "PASS": true,
+   "elapsed_current_s": 8.5,
+   "elapsed_patched_s": 8.6
+  }
+ },
+ "ii_cited": "receipts/GAPFIX_JUDGE_run4_arm64.json: C0 current==patched bitwise on 1790380800/1790395200/1790409600 (arm64)",
+ "VERDICT": "PASS"
+}
