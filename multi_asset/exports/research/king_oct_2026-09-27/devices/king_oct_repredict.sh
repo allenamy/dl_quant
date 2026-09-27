@@ -1,5 +1,5 @@
 #!/bin/bash
-# king_oct_repredict.sh <new features> <new features sha> <tag> -- process executor (§10-f) of the frozen-October-King re-prediction
+# king_oct_repredict.sh <new features | C0ONLY> <new features sha | -> <tag> -- process executor (§10-f) of the frozen-October-King re-prediction
 # (fresh2 2026-09-27; lead: descriptive D10 re-read on extended features). Gate frozen here, before any run:
 #   C0 identity: king_oct_repredict.py on the OLD features f1cd3fa2 must reproduce release m0's KING_OOF (274ba08a) P / E_ts / symbols
 #      bitwise (king_oct_check.py same). Not PASS => KRP_STOP, the new features are never scored.
@@ -28,6 +28,7 @@ rp $OLDF $OLDF_SHA $O/C0_identity $K/logs/repredict_${TAG}_C0.log || stop "C0 re
 $PV -B $D/king_oct_check.py same $O/C0_identity/KING_OOF.npz $REF $O/checks/C0_same.json > $K/logs/repredict_${TAG}_C0_check.log 2>&1
 say "C0 $(grep -h '^KOC_CHECK' $K/logs/repredict_${TAG}_C0_check.log | cut -c1-240)"
 grep -q "^KOC_CHECK same PASS=True" $K/logs/repredict_${TAG}_C0_check.log || stop "C0 identity not PASS: the re-prediction does not reproduce release m0"
+[ "$NEWF" = C0ONLY ] && { say "KRP_ALL_DONE c0_only (identity control ahead of the new features; the full run repeats C0)"; exit 0; }
 rp $NEWF $NEWF_SHA $O/NEW $K/logs/repredict_${TAG}_NEW.log || stop "re-prediction on the new features failed (see $K/logs/repredict_${TAG}_NEW.log)"
 say "NEW $(grep -h '^KRP_DONE' $K/logs/repredict_${TAG}_NEW.log)"
 $PV - $O/NEW/KING_OOF.npz $REF > $K/logs/repredict_${TAG}_NEW_describe.log 2>&1 <<'PY' || true
