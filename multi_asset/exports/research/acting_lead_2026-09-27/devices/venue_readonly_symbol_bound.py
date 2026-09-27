@@ -262,7 +262,9 @@ def main(argv=None):
         rec = q1q4(a.t_off) if a.cmd == "q1q4" else anchor_check(a.anchor)
     except Unknown as e:
         rec = {"VERDICT": "UNKNOWN", "why": str(e)}
-    rec.update(device="venue_readonly_symbol_bound.py", source_commit="3b4a2815a", self_sha256=hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest(),
+    with open(os.path.abspath(__file__), "rb") as source:
+        self_sha = hashlib.sha256(source.read()).hexdigest()
+    rec.update(device="venue_readonly_symbol_bound.py", source_commit="3b4a2815a", self_sha256=self_sha,
                utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
     with open(a.out, "x") as f:                                # never overwrite an earlier receipt
         json.dump(rec, f, indent=1, default=str)
