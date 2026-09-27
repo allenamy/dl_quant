@@ -15,3 +15,5 @@ root 在 CUDA 探针 5723603f3 后授权本次独立小控制：CPU1，RSS申报
 硬forward另用2锚、80个合成成员/84全轴，两个已冻结初始状态（全0、平衡gross1）及literal/scaled两口径；包含ties/NaN/RN8夹子/qv过滤/成员退出。把独立Torch硬rank/chain实现与钉源码的原combo_target.step比较，kc/fc/raw/exec_reshape/accepted/reason，金额无关，float64权重容差1e−12。必须有至少一个发布及一个HOLD；错误将raw混合系数从.55改.5应由同一核对函数拒绝。源只提取原函数，禁止运行combo_stage顶层或任何data/model加载。生产硬rank不对θ宣称可微；硬平价与参数FD是两个各自有边界的小控制。
 
 运行前提交worker、guard、合同，核部署SHA；guard只停止本任务PGID，50ms RSS/HWM监视和worker同截止SIGALRM。软件停止不是Linux硬限；实测峰值及采样间隔保留。资源拒绝即终态，不等待重试。旧六窗NO_RESCHEDULE、单独CUDA形状探针终态均不变。
+
+执行前源码审查补充（2026-09-27 18:47 UTC，尚未数值运行）：F=0控制显式运行 A0(coefficient0) 与 A1(coefficient1, rates0)，不能把 coefficient0 同一分支调用两次冒称臂开关恒等。部署后未发运行命令；原 b99ad8632 保留，新 worker SHA 入 CPU_CONTRACT。

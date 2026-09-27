@@ -178,12 +178,12 @@ def run(out):
    fd.append({'part':part,'eps':eps,'autograd':ad,'finite_difference':measured,'absolute_error':error})
  gneg=gradient(T,base,-objective(base,'carry'));assert T.equal(gneg,-gradients['carry'])
  dump(out/'NETWORK_FD.json',{'parameter_count':n,'gradient_norms_NAV_bps_per_parameter':norms,'fd':fd,'carry_sign_exact':True,'mode':'float64 eval, synthetic quantities; not production rank/chain'})
- def update(carry):
+ def update(carry,rate_factor=1.):
   model=copy.deepcopy(base).train();opt=T.optim.AdamW(model.parameters(),lr=3e-4,weight_decay=1e-4);T.manual_seed(20260927)
-  p,f,c,q=parts(T,model,X);value=loss(T,p,f,c,carry);value.backward();grads={k:v.grad.detach().clone() for k,v in model.named_parameters()}
+  p,f,c,q=parts(T,model,X);value=loss(T,p,f,c*rate_factor,carry);value.backward();grads={k:v.grad.detach().clone() for k,v in model.named_parameters()}
   T.nn.utils.clip_grad_norm_(model.parameters(),1.);opt.step()
   return {'loss':value.detach(),'gradients':grads,'parameters':copy.deepcopy(model.state_dict()),'optimizer':copy.deepcopy(opt.state_dict()),'parts_before_NAV_bps':{'price':p.detach(),'fee':f.detach(),'carry':c.detach()}},model
- z0,_=update(0.);z1,_=update(0.)
+ z0,_=update(0.,0.);z1,_=update(1.,0.)
  for field in ('loss','gradients','parameters','optimizer'):assert tensor_tree_equal(T,z0[field],z1[field]),('F0',field)
  a0,m0=update(0.);a1,m1=update(1.)
  delta=max(float((a0['parameters'][k]-a1['parameters'][k]).abs().max()) for k in a0['parameters'])
