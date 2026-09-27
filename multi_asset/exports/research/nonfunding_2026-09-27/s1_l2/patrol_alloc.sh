@@ -3,14 +3,15 @@
 # alloc_S3_xvenue_collector (this Mac). Prints one PATROL line plus every marker line not seen by the previous patrol.
 # Silence has one meaning only (TEAM_PROTOCOL §10-c): each job is classified RUNNING / TERMINAL / DEAD_SILENT / LOG_MISSING,
 # ssh failure prints SSH_FAIL (never read as "no news"). PGIDs are the registered ones, compared against the tmpfs PGID files.
+# rev 1 (07:1xZ): also watches alloc_S1_l2n_main_rev1 (MAIN rerun with l2n_judge_rev1.py, 66676d57c).
 # usage: bash patrol_alloc.sh <state_dir>
 set -u
 ST=${1:?state_dir}; mkdir -p "$ST" || exit 9
 NOW=$(date -u +%FT%TZ)
-REG_NET=${REG_NET:-3360852}; REG_STAT=${REG_STAT:-3362766}
+REG_NET=${REG_NET:-3360852}; REG_STAT=${REG_STAT:-3362766}; REG_MAIN_REV1=${REG_MAIN_REV1:-3425198}
 OUT=$(ssh -o ConnectTimeout=20 -o BatchMode=yes ${POD_HOST:-pod2} "
 S=/dev/shm/alloc_2026-09-26/l2n; R=/workspace/uplift_r3_2026-09-13/L2/receipts
-for x in net stat; do
+for x in net stat main_rev1; do
   L=\$S/l2n_\$x.log
   if [ ! -f \$L ]; then echo \"JOB \$x LOG_MISSING\"; continue; fi
   PF=\$(cat \$S/PGID_\$x 2>/dev/null || echo NA)
@@ -25,9 +26,9 @@ ls -1 \$R 2>/dev/null | grep L2N | sed 's/^/RECEIPT /'
 if [ $RC -ne 0 ]; then echo "PATROL $NOW SSH_FAIL rc=$RC $(echo "$OUT" | tail -1)"; POD=SSH_FAIL; else POD=OK; fi
 STATES=""
 if [ $POD = OK ]; then
-  for x in net stat; do
+  for x in net stat main_rev1; do
     J=$(echo "$OUT" | grep "^JOB $x ")
-    REG=$REG_NET; [ $x = stat ] && REG=$REG_STAT
+    REG=$REG_NET; [ $x = stat ] && REG=$REG_STAT; [ $x = main_rev1 ] && REG=$REG_MAIN_REV1
     if echo "$J" | grep -q LOG_MISSING; then s=LOG_MISSING
     else
       pf=$(echo "$J" | sed -E 's/.*pgid_file=([^ ]*).*/\1/'); al=$(echo "$J" | sed -E 's/.*alive=([0-9]+).*/\1/'); te=$(echo "$J" | sed -E 's/.*terminal=([0-9]+).*/\1/')
