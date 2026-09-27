@@ -77,10 +77,10 @@
   "success": "^DONE (all steps: R' gate, O, footprint, engine cells, beta, verdicts). Intermediate markers ^GATE_OK / ^CELL_OK / ^VERDICT_OK / ^NOTE; candidate engine cells wait on /dev/shm/alloc_2026-09-26/HOLD_CANDIDATE_CELLS (lead places them)",
   "started_utc": "2026-09-27T00:43:31Z",
   "pgid": 3345374,
-  "relaunch_of": "alloc_family (rev 2a STOP 18:21:02Z, red control R failed; rule §7 R')",
+  "relaunch_of": "alloc_family (rev 2a STOP 18:21:02Z, red control R failed; rule \u00a77 R')",
   "patrol": "session cron 0a490f62 every 10 min + /dev/shm/alloc_2026-09-26/logs/patrol.log",
   "closed": true,
-  "ended": "STOP RED_CONTROL_RPRIME_FAILED_family_stops_final 2026-09-27T00:57:31Z (first family terminated per rule §7; receipt JUDGE_RPRIME.json d2ba0acb, commit 012f1ffe0)"
+  "ended": "STOP RED_CONTROL_RPRIME_FAILED_family_stops_final 2026-09-27T00:57:31Z (first family terminated per rule \u00a77; receipt JUDGE_RPRIME.json d2ba0acb, commit 012f1ffe0)"
  },
  {
   "name": "dlarch_momentum_seat_decomp",
@@ -130,5 +130,16 @@
   "network": "data.binance.vision public archive only, l2_net limiter <= 20 req/s",
   "patrol": "session cron (alloc) every 10 min",
   "closed": false
+ },
+ {
+  "name": "fresh2_king_rootcause_3b",
+  "owner": "fresh2",
+  "host": "pod2",
+  "log": "/dev/shm/mretrain_2026-09-26/logs/rootcause.log",
+  "pgid_file": "/dev/shm/mretrain_2026-09-26/logs/PGID_rootcause.json",
+  "terminal": "^\\S+ (STOP|RC_HYBRID_DONE)",
+  "success": "^\\S+ RC_HYBRID_DONE (descriptive SEAT_ONLY/COMP_ONLY x 2 seeds read by rc_read.py; no gate)",
+  "started_utc": "2026-09-27T02:23:35Z",
+  "devices": "e16524796"
  }
 ]
