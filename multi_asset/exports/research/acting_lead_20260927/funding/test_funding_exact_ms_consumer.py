@@ -11,6 +11,8 @@ import unittest
 HERE = pathlib.Path(__file__).resolve().parent
 SOURCE = HERE.parents[1] / 'replay_exec_2026-09-19' / 'exec_sim.py'
 CANONICAL_SHA = '29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24'
+HIST_SOURCE = HERE.parents[1] / 'baseline_tables_2026-09-19' / 'devices' / 'bt_hist_sim31.py'
+HIST_SHA = '8ae6e2a441d700824372784b1bc0bd9e0ee2f686a3c22f522b6bb962911022a1'
 A = 1787702400
 
 
@@ -19,10 +21,24 @@ def canonical_base():
     assert hashlib.sha256(src).hexdigest() == CANONICAL_SHA
     tree = ast.parse(src)
     cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'Sim')
-    ns = {'L': types.SimpleNamespace(floor_b=lambda t: int(t) // 300 * 300)}
-    method = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == 'on_funding')
-    exec(compile(ast.Module(body=[method], type_ignores=[]), str(SOURCE), 'exec'), ns)
-    return type('CanonicalCashBase', (), {'on_funding': ns['on_funding']})
+    pri = next(n for n in tree.body if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'PRI' for t in n.targets))
+    ns = {'L': types.SimpleNamespace(floor_b=lambda t: int(t) // 300 * 300), 'heapq': heapq, 'PRI': ast.literal_eval(pri.value)}
+    names = ('on_funding', 'push', 'dispatch')
+    methods = [n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name in names]
+    exec(compile(ast.Module(body=methods, type_ignores=[]), str(SOURCE), 'exec'), ns)
+    return type('CanonicalCashBase', (), {name: ns[name] for name in names})
+
+
+def actual_scheduler(base):
+    raw = HIST_SOURCE.read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == HIST_SHA
+    tree = ast.parse(raw)
+    cls = next(n for n in ast.walk(tree) if isinstance(n, ast.ClassDef) and n.name == 'HistSim31')
+    cls.body = [n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name in ('run', 'dispatch')]
+    assert len(cls.body) == 2
+    ns = {'ES': types.SimpleNamespace(Sim=base), 'heapq': heapq}
+    exec(compile(ast.Module(body=[cls], type_ignores=[]), str(HIST_SOURCE), 'exec'), ns)
+    return ns['HistSim31']
 
 
 def load_device():
@@ -121,6 +137,37 @@ class Controls(unittest.TestCase):
     def test_duplicate_exact_event_is_rejected(self):
         with self.assertRaises(ValueError):
             self.run_path([(A*1000+1, 0, .001), (A*1000+1, 0, .002)])
+
+    def test_actual_hist_run_push_dispatch_order(self):
+        scheduler = actual_scheduler(self.Base)
+        cls = type('ActualSchedulerProbe', (self.device.ExactMsFundingMixin, scheduler), {})
+        sim = cls()
+        sim.q = {'S': 10.}; sim.K = 0.; sim.k = {}; sim.acc = collections.Counter()
+        sim.F = self.device.ExactMsFunding({'ft_ms': [A*1000+1, A*1000+100, A*1000+900],
+            'symbol_index': [0, 0, 0], 'rate': [.001, .002, .003], 'symbols': ['S']}, A*1000, (A+14400)*1000)
+        sim.px = lambda s, b: 10.
+        sim.ev = []; sim.seq = 0; sim.anchors = [A]; sim.t_start = A; sim.t_end = A+14400
+        sim.cfg = {A: {'t_dec': A+1440}}; sim.stop_at = None
+        sim.eval_time = lambda anchor: anchor+1485
+        sim.on_anchor = lambda anchor: None
+        sim.on_eval = lambda anchor, t: None
+        sim._boundary = lambda t, k: None
+        sim._flush_nav = lambda t: None
+        sim.windows = lambda: sim.K
+        trace = []
+        class TraceLog(list):
+            def append(self, row):
+                trace.append(('funding', row[0], row[2])); super().append(row)
+        sim.fund_log = TraceLog()
+        def fill(t, dq):
+            sim.q['S'] += dq; trace.append(('fill', t, sim.q['S']))
+        sim.on_fill = fill
+        # Enqueued before run adds funding: priority, not insertion, must win.
+        sim.push(A+.1, 'fill', 5.)
+        sim.run()
+        self.assertEqual(trace, [('funding', A+.001, 10.), ('funding', A+.1, 10.),
+                                 ('fill', A+.1, 15.), ('funding', A+.9, 15.)])
+        self.assertAlmostEqual(sim.K, -.75, places=13)
 
 
 if __name__ == '__main__':
