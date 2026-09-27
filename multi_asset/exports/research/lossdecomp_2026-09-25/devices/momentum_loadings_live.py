@@ -51,7 +51,10 @@ rows, missing = [], []
 for A in range(T_FROM, T_TO + 1, 14400):
     snap = f"{WS}/state/snap/{A}"
     if not os.path.exists(f"{snap}/aux.json"):
-        missing.append({"A": fmt(A), "why": "the producer never ran this anchor (no snapshot)"}); continue
+        why = ("not yet run at the time of this reading" if A > time.time() - 1800 else
+               ("the producer ran (target_live exists) but combo did not publish, so no snapshot" if os.path.exists(f"{WS}/state/target_live/{A}.json")
+                else "the producer never ran this anchor (no target_live, no snapshot)"))
+        missing.append({"A": fmt(A), "why": why}); continue
     pr = json.load(open(f"{snap}/aux.json"))["prev_rec"]; assert int(pr["anchor_ts"]) == A
     pm = np.array(pr["members"], int); KZ = np.array(pr["legz"]["king"], float); ZFD = np.array(pr["legz"]["fund"], float)
     tc = f"{WS}/state/target_combo/{A}.json"
