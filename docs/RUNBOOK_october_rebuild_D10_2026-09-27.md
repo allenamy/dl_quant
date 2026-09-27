@@ -1,4 +1,4 @@
-> **创建:** 2026-09-27 05:3xZ | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n(news2) | **状态:** **草稿,待 lead 冻结**;冻结前不得据此起任何作业 | **作废条件:** lead 冻结时改写;或 `DECISION_RULE_D10_stage2_2026-09-26.md`、DL 书层门修订 4/5、用户 D10 裁定(`RULING_user_D10_funding_interval_truth_2026-09-25.md`)任一被改写
+> **创建:** 2026-09-27 05:2xZ(原写 05:3xZ,时间写错,以提交 aa6269556 05:23Z 为准) | **Session:** session_01VNPQL7t93ECz7Xkrv9rH6n(news2) | **状态:** **草稿,待 lead 冻结**;冻结前不得据此起任何作业 | **作废条件:** lead 冻结时改写;或 `DECISION_RULE_D10_stage2_2026-09-26.md`、DL 书层门修订 4/5、用户 D10 裁定(`RULING_user_D10_funding_interval_truth_2026-09-25.md`)任一被改写
 
 # 十月重建 runbook(D10 资金费规则):九月归档 → D10 特征 → King 与 F10 重训并与生产者切换同一次发布 → 平价门 → 归档核对
 
