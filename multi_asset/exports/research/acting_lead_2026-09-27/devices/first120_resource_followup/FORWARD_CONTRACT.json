@@ -3,11 +3,12 @@
   "status": "REVIEW_READY_RUN_NOT_STARTED",
   "source_sha256": {
     "funding_first120_clock_core.py": "95405f57ad9f6c3f662784fdfa5049c44d2f24251b13cdc94328f34fc6ae756f",
-    "funding_first120_forward.py": "47b71f7badea89f50629386263ed26426695e062119b6abcae1107e1a70ed1e9",
-    "funding_first120_forward_guard.py": "76aff79625d1190bf67b85bc848dee1d0044798f0e8b923af9b5043605df4455",
+    "funding_first120_forward.py": "66b796343bd24b85dcfed89a094513c7a28e2910408fc6e2c5431ca2335e85df",
+    "funding_first120_forward_guard.py": "bc971758ce6f0272cfd2ab43e2f6e4b0b5222ad85f537e8652ce132f3dcdee53",
     "funding_pack_acceptance.py": "301764e0105a0f181018eebf3c161e100d82fa88fb85ca973996bc3bc748da25",
     "test_funding_first120_forward_source.py": "6477d0292b44facae0dbf6ae88a3b12304af61a7bf7ad09b53183f0fc6b702f3",
-    "test_funding_pack_acceptance.py": "3cfe70346893754a033c332bda351738fff3663507ee59ab778d7d514b99c5b9"
+    "test_funding_pack_acceptance.py": "3cfe70346893754a033c332bda351738fff3663507ee59ab778d7d514b99c5b9",
+    "test_guard_worker_output.py": "7d4b39a5f004b8bec2c7d48d8f6285d162acc00558886d49f680d672d18c6238"
   },
   "source_directory": "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/first120_resource_followup_sources",
   "input_pack": "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/first120_input_pack_20260927",
@@ -57,5 +58,13 @@
     "allowed_source_delta": "guard OUTPUT path only",
     "original_resource_refusal_preserved": true,
     "new_budget_explicit": true
+  },
+  "post_attempt_preparation": {
+    "status": "FIXED_NOT_RERUN",
+    "failure": "guard/worker duplicated OUTPUT contract mismatch before numerical entry",
+    "attempt_commit": "9c7542468",
+    "fix_scope": "worker OUTPUT path; guard verifies worker declared output before process launch; two regression controls",
+    "original_failed_receipt_preserved": true,
+    "run_authorized_by_this_fix": false
   }
 }

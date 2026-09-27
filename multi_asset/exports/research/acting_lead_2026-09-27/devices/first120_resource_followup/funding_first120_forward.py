@@ -2,7 +2,7 @@
 import argparse,hashlib,json,math,os,pathlib,resource,signal,sys,time
 ROOT=pathlib.Path('/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding')
 PACK=ROOT/'first120_input_pack_20260927'
-OUTPUT=ROOT/'first120_network_clock_20260928'
+OUTPUT=ROOT/'first120_network_clock_20260928_followup'
 def sha(p):
     h=hashlib.sha256()
     with open(p,'rb') as f:

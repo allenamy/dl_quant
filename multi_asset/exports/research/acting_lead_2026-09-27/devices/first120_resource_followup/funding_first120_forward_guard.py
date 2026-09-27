@@ -8,6 +8,16 @@ MEMORY=pathlib.Path('/sys/fs/cgroup')
 
 def sha(path):return hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
 
+def verify_worker_output():
+    # Called only after contract source hashes pass; this pinned worker imports stdlib only.
+    import importlib.util
+    path=(ROOT/'funding_first120_forward.py').resolve()
+    spec=importlib.util.spec_from_file_location('funding_worker_output_preflight',path)
+    worker=importlib.util.module_from_spec(spec);spec.loader.exec_module(worker)
+    if pathlib.Path(worker.__file__).resolve()!=path:raise ValueError('worker import mismatch')
+    if worker.OUTPUT!=OUTPUT:raise ValueError('guard/worker output mismatch')
+    return str(path)
+
 def write(path,value):
     with open(path,'x') as f:
         json.dump(value,f,indent=2,allow_nan=False);f.write('\n');f.flush();os.fsync(f.fileno())
@@ -79,6 +89,7 @@ def run_guard():
         if contract['rss_budget_bytes']!=DECLARED_RSS or contract['wall_seconds']!=WALL_SECONDS:raise ValueError('budget changed')
         for n,h in contract['source_sha256'].items():
             if sha(ROOT/n)!=h:raise ValueError('source drift:'+n)
+        verify_worker_output()
         s=snapshot();s['guard_pid']=os.getpid();s['reasons']=gate_reasons(s);write(OUTPUT/'PREFLIGHT.json',s)
         if s['reasons']:reason='RESOURCE_REFUSED';return 75
         probe=OUTPUT/'owned_quota_probe.bin'
