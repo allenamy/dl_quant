@@ -109,3 +109,6 @@
 
 - 首120真实输入包已完成：19:02:42–19:03:08Z、CPU1、RSS/HWM峰688369664B、26.25秒；只做输入整理，未运行候选网络或optimizer。6项读取器控制通过，归档93fd499d0。root另从Pod逐文件重算22个产物的53,475,791字节，全部SHA和打开文件身份吻合（ROOT_FIRST120_INPUT_PACK_20260927.json，19:11:30Z）。三个原目标与实际fold receipt/μσ来源及7份训练源码另经postverify，终态1正6负控闭合；不把原OOF的9次发布当新checkpoint的发布次数。
 - 下一件为完整120锚网络forward/backward实现验证：沿冻结202608 checkpoint、原μσ和当前ad80特征，连续组合状态、HOLD数量与事件库存现金。代码准备中、尚未启动；这仍是样本内工程检查，不是正确输入重新训练或OOS改善。F0数值相同但字节hash不同的开放项保留。主仓STATE顶部19:17Z仍未变，无主研究员接回。
+
+- 19:30Z root复核full120最终源码8422dc61f、6项stdlib正负控与实际依赖/初始状态门，通过后批准唯一无optimizer尝试。19:31:36Z guard在0.119秒即RESOURCE_REFUSED：cgroup余量14,193,893,376B低于冻结14GiB门15,032,385,536B；UID RSS与GPU空闲门通过。worker未出生，未加载网络/反传，未生成COMMAND/PID/WORKER_RESULT；root远端独立核源与终态于ROOT_FIRST120_FORWARD_REFUSED_20260927.json。不是模型或梯度失败，不降低预算、不换目录重试、不新建等待器。
+- 19:30:26Z KSR/修后读数器/D10队列三个PID与start_ticks均核同，无终态。19:31:27Z本机轻读生产仍d01e35db、代码区diff空、King/F10 pin与在役匹配、M3 shadow；watchdog最近16:49:42Z仍LIVE/false/null且trigger/blind/unevaluated均空。这是既有16Z状态，不冒称20Z验收。主仓STATE没有接回通知。
