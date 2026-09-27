@@ -131,3 +131,13 @@
 
 - 22:20:53–22:22:50Z Pod资源阻塞已实际处理：706个已完成历史单链接文件共13,933,310,928B迁到私有持久盘，每件复制fsync后独立复哈希、日志确认、原路径原子换成symlink并再次复哈希；原字节保留，未删训练证据。root另核706映射/大小/prepare-commit配对均正确。路径`/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/tmpfs_archive_20260927T2230Z/`，标签2230不是开始时间；日志真实时钟如前。仅新建私有副本做fadvise，未清共享cache。7/7 Linux控制通过；初次控制因无能力的其它UID nginx的/proc不可读而拒绝，随后明确只核可写主体，未声称全系统无读者。
 - **D10原队列22:22:48Z已启动真实runner3548735**，先通过原28GiB/4GiB/4GiB资源门及211pin；没有调低预算或另起任务。D7名单80文件IDENTICAL、D8自检PASS，D1毫秒资金费账本重建已OPEN；仍在执行，不是全链DONE，也不是训练/换装已批准。归档资源门/进程身份与迁移原件位于`receipts/tmpfs_relocation_20260927/`，registry已逐项关闭KSR与迁移、更新D10。
+
+- **D10原队列22:30:40Z已完成**：15项真实执行，10 IDENTICAL / 2 PASS / 3 IDENTICAL_EXCEPT_DECLARED，无NOT_RUN。root独立核215个pin、11份子收据及八个新旧NPZ共6.558GB的字节；四个新产物均与原件SHA相同。`D4b`实际子门仍为PARITY_RED/rc2，终态IDENTICAL只表示复现该红判词，不能写成生产平价通过。即时费率2742554格全同；新间隔政策的EMA334910格不同（1934格abs>0.001）、间隔39格各差1h。原UNDECIDED及冷静期不变，无新训练或换装。报告`RESULT_D10_input_dryrun_2026-09-28.md`，归档提交72bf99de4；registry已关闭，不再重复演练。
+- **KSR交回机制实际重建完成**：从2023-01-01原零状态按原Python/源码重算BASE/COMP×两种子，各4740锚发布与编码gross对原存档完全相同，112.4秒/448528KiB。2025-01-01当前King分数、F10、席位和其它输入相同，但s42基线gross0.3844924017不过0.4、COMP0.4029288540发布；差落在继承的King组合状态，F10侧gross相同。s2027两边仍不过门。三次交回的完整一/二月均报告，不以2025单窗晋级；不能把HOLD目标零当空仓，也未归因全部现金差。报告`RESULT_KSR_handback_state_2026-09-28.md`；原始结果SHA bad781c0…，registry6452efd52关闭。KSR仍REJECT，未改生产或门。
+- 22:47:21Z最新生产轻读：d01e35db代码区diff空；20:47:46Z看门狗false/null/LIVE，triggers、blind、unevaluated空；ALARM仍fa480517…与20Z验收相同。旧cond2/cond4历史partial照留，不把恢复PASS当全史完整。主仓STATE仍是13Z恢复记录，无接回。下一恢复K1只在09-28 00Z真实done后01Z静默窗跑既定f69b0020包装器；本轮未调用场所、未resume、未发Telegram。
+
+### 下一步，勿重做本轮终态
+
+1. 00Z恢复验收照原计划；16Z/20Z完成，不再重复K1。GAP4与M3仍被历史disposition FAIL挡住；资金费durable修复已封存，不能绕过发布门。
+2. King机制已定位到连续状态与发布门的一条具体路径。先核已有发布门/chain实验范围，再决定最小状态干预；不重新扫0.4阈值，不把“修后当前输入相同”当作整书状态相同。
+3. D10输入演练已结束。下一研究需区分D10改变的间隔政策与已干净的NC基线，先闭合训练目标的执行时钟/连续库存合同；首120资源拒绝及F0字节未决不借新名称重复。没有新的可部署更优策略。
