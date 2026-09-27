@@ -235,6 +235,7 @@ def finish(a, E):
     else: v = "PASS"
     say(f"M3_ON_FIRST_ANCHOR {a.A} expect={E} VERDICT={v} " + " ".join(f"{k.split()[0]}={x}" for k, x in RES.items()))
     if a.out:
+        os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
         with open(a.out, "w") as f: f.write("\n".join(LINES) + "\n")
     return 0 if v in ("PASS", "PASS_WITH_WARN") else 3
 
