@@ -404,5 +404,16 @@
   "devices": "d10_build_ledger_ms.py rev 2 a5d487e8 (commit 72bd8e4f28f9d4abb4953282ec43ef528a2fb883)",
   "expected": "V1 IDENTICAL to e179071d + receipt; V2 RECONCILED + PREFIX_BITWISE, upgrades only 2026-08",
   "delivery": "session cron 9ed50f8e"
+ },
+ {
+  "name": "fresh2_king_oct_release",
+  "owner": "fresh2",
+  "host": "pod2",
+  "log": "/workspace/king_oct_2026-09-27/logs/release.log",
+  "pgid_file": "/workspace/king_oct_2026-09-27/logs/PGID_release.json",
+  "terminal": "^\\S+ (KOR_STOP|KOR_DONE)",
+  "success": "^\\S+ KOR_DONE release_ok=True (G1 m0==m0_dup, G2 m0==controls C2a, G3 served file reproduces fold-2026 P; MANIFEST_RELEASE.json names the file to pin)",
+  "devices": "20b2b3619 king_oct_release.sh / king_oct_manifest.py + 8dd1a0068 king_oct_train.py",
+  "rule": "lead: user chose October plan (ii), runbook 1fa4e3be5; recipe = in-service A0, D10 features f1cd3fa2"
  }
 ]
