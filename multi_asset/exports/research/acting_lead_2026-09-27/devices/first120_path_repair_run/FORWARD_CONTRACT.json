@@ -1,0 +1,80 @@
+{
+  "utc": "2026-09-27T19:21:47.446114+00:00",
+  "status": "REVIEW_READY_RUN_NOT_STARTED",
+  "source_sha256": {
+    "funding_first120_clock_core.py": "95405f57ad9f6c3f662784fdfa5049c44d2f24251b13cdc94328f34fc6ae756f",
+    "funding_first120_forward.py": "48ab059f35a6c91f54a6888d210c0b066856d5091a8158bd525e0c55c924ad0c",
+    "funding_first120_forward_guard.py": "3cfeabf217674dbdc539d4f675f114c56b80b22953adbf571be719a7a35115fe",
+    "funding_pack_acceptance.py": "301764e0105a0f181018eebf3c161e100d82fa88fb85ca973996bc3bc748da25",
+    "test_funding_first120_forward_source.py": "6477d0292b44facae0dbf6ae88a3b12304af61a7bf7ad09b53183f0fc6b702f3",
+    "test_funding_pack_acceptance.py": "3cfe70346893754a033c332bda351738fff3663507ee59ab778d7d514b99c5b9",
+    "test_guard_worker_output.py": "7d4b39a5f004b8bec2c7d48d8f6285d162acc00558886d49f680d672d18c6238"
+  },
+  "source_directory": "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/first120_path_repair_sources",
+  "input_pack": "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/first120_input_pack_20260927",
+  "output": "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/first120_network_clock_20260928_pathrepair",
+  "runtime": "/workspace/venv/bin/python",
+  "command": [
+    "/workspace/venv/bin/python",
+    "-B",
+    "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/first120_path_repair_sources/funding_first120_forward_guard.py",
+    "--run"
+  ],
+  "rss_budget_bytes": 6442450944,
+  "software_stop_bytes": 5905580032,
+  "public_spare_bytes": 8589934592,
+  "gpu_budget_bytes": 8589934592,
+  "wall_seconds": 300,
+  "cpu_cores": 1,
+  "optimizer_updates_allowed": 0,
+  "parameters": 110082,
+  "X_shape": [
+    17520,
+    171
+  ],
+  "score_pairs": 17520,
+  "global_names": 829,
+  "anchors": 120,
+  "burn": 24,
+  "soft_rank_tau": 0.3,
+  "parameter_fd_eps": [
+    0.001,
+    0.0001
+  ],
+  "fd_atol": 0.0005,
+  "fd_rtol": 0.02,
+  "F0_strict_byte_identity": "UNRESOLVED_PREVIOUS_ATTEMPT_NOT_RERUN",
+  "statistical_scope": "implementation only; 202608 checkpoint on Jan2023 not OOS; zero publications/gradients do not permit a window change",
+  "no_reschedule": true,
+  "not_a_hard_memory_cap": true,
+  "old_attempts_unchanged": true,
+  "pre_run_axis_guard_added_utc": "2026-09-27T19:25:07.304674+00:00",
+  "resource_followup": {
+    "utc": "2026-09-27T23:06:25.484322+00:00",
+    "amendment": "docs/AMENDMENT_first120_resource_followup_2026-09-28.md",
+    "original_contract_sha256": "f30dcfc897e983244d7fd3c262cb48a34252939fef11dba94fc18e870e71c41b",
+    "original_terminal_sha256": "ae366778aecf16a596ae1cb43f1fad6a7351cd7dd455f5a35cff162804e76f96",
+    "numeric_worker_unchanged": true,
+    "allowed_source_delta": "guard OUTPUT path only",
+    "original_resource_refusal_preserved": true,
+    "new_budget_explicit": true
+  },
+  "post_attempt_preparation": {
+    "status": "FIXED_NOT_RERUN",
+    "failure": "guard/worker duplicated OUTPUT contract mismatch before numerical entry",
+    "attempt_commit": "9c7542468",
+    "fix_scope": "worker OUTPUT path; guard verifies worker declared output before process launch; two regression controls",
+    "original_failed_receipt_preserved": true,
+    "run_authorized_by_this_fix": false
+  },
+  "repair_allocation": {
+    "utc": "2026-09-27T23:34:06.101204+00:00",
+    "amendment": "docs/AMENDMENT_first120_path_repair_allocation_2026-09-28.md",
+    "repair_commit": "823ae153a0abbf2ff7cb6ad27f63f4773e3cc1de",
+    "new_wall_seconds": 300,
+    "no_implicit_deadline_reset": true,
+    "original_failures_preserved": true,
+    "numerical_change": false,
+    "guard_worker_output_equal_required": true
+  }
+}
