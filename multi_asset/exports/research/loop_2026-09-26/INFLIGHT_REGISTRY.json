@@ -253,5 +253,18 @@
   "success": "^NEW_RECEIPT RUN_2026-09-27T",
   "started_utc": "2026-09-27T05:06Z",
   "closes_by_utc": "2026-09-27T10:10Z"
+ },
+ {
+  "name": "news2_rebuild_devices_dry_run",
+  "owner": "news2",
+  "host": "pod2",
+  "log": "/workspace/d10_dryrun_2026-09-27/logs/dryrun.log",
+  "pgid": 3399839,
+  "terminal": "^\\S+ (DRYRUN_DONE|DRYRUN_STOP)",
+  "success": "^\\S+ DRYRUN_DONE",
+  "result": "/workspace/d10_dryrun_2026-09-27/out/DRYRUN_RESULT.json",
+  "started_utc": "2026-09-27T05:39:04Z",
+  "devices": "d10_dryrun_run.py d40eca80 + d10_dryrun_compare.py 1c8f6148 (commit 09a7b0275); plan frozen acd2303b6 + addendum 1",
+  "resources": "nice 10, CPU only, outputs under /workspace/d10_dryrun_2026-09-27/out; team gate checked by the runner before D1 and D3"
  }
 ]
