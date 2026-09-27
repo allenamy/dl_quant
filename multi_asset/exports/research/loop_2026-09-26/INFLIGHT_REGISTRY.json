@@ -828,5 +828,18 @@
   "delivery": "session cron 6b996533 + waiter",
   "closed": true,
   "closed_note": "news2: 11:30:05Z NOT_RECONCILED solely from a count defect (fold_removed counted 87,962 post-window rows); all columns bitwise, PREFIX_BITWISE 0 upgrades, overlap_unequal 0; fixed as rev 2.3 bd6d2bdd7 (post-reading); re-run registered"
+ },
+ {
+  "name": "news2_reread_r2b_ledger_rev23",
+  "owner": "news2",
+  "host": "pod2",
+  "log": "/dev/shm/news2_reread/r2b_20260927T113701Z/run.log",
+  "pgid": 3466871,
+  "terminal": "^\\S+ DONE$",
+  "started_utc": "2026-09-27T11:37Z",
+  "devices": "d10_build_ledger_ms.py rev 2.3 911fa4f5 (commit bd6d2bdd71087e98508b83fd75d4dcaf0da9014a)",
+  "expected": "V1 IDENTICAL to e179071d (npz + receipt); R2 RECONCILED fold_removed == derived == 18, bitwise, PREFIX_BITWISE 0 upgrades, overlap_unequal 0; same_second_extra fold_removed == derived == 19 RECONCILED",
+  "outputs": "/workspace/d10_reread_2026-09-27/r2b_20260927T113701Z (new dir; r2_ledger kept)",
+  "delivery": "session cron 6b996533 + waiter"
  }
 ]
