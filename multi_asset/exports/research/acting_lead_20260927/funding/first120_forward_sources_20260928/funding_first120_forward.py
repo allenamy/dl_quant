@@ -49,6 +49,9 @@ def run(out):
     if not np.array_equal(axes['anchors'],np.array(cfg['anchors'])):raise ValueError('frozen anchors differ')
     off=axes['off'];members=[axes['m'][off[i]:off[i+1]].astype(np.int64) for i in range(120)]
     data={**axes,'members':members,'legs':legs,'legal':np.load(PACK/'LEGAL.npy',mmap_mode='r'),'params':params,'events':nz(PACK/'EVENTS.npz'),'price':np.load(PACK/'PRICE_RAW.npy',mmap_mode='r'),'price_ts':np.load(PACK/'PRICE_TS.npy',mmap_mode='r')}
+    if not np.array_equal(data['events']['symbols'],axes['symbols']):raise ValueError('ledger/member/price symbol order differs')
+    if data['legal'].shape!=(120,829) or data['price'].shape!=(5762,829) or not np.all(np.diff(data['price_ts'])==300):raise ValueError('fixed pack axes differ')
+    if data['events']['ft_ms'].dtype!=np.dtype('<i8') or len(data['events']['ft_ms'])!=9104:raise ValueError('fixed exact-ms events differ')
     coeff,atoms,event_rows=core.coefficient_pack(np,data,cal)
     dump(out/'COEFFICIENT_EVENT_CONTROL.json',core.coefficient_control(np,data,coeff,atoms,event_rows))
     dump(out/'CLOCK_COEFFICIENT_RECEIPT.json',{'all_events':len(event_rows),'structural_zero_unknown_price':sum(x['structural_zero_unknown_price'] for x in event_rows),'all_event_ids_sha256':hashlib.sha256(json.dumps(event_rows,sort_keys=True,allow_nan=False).encode()).hexdigest(),'atoms':atoms,'formula':'q_old*C_old + delta*C_delta; every event enumerated; funding strictly before same-time fill','price_fee_clock':'cash balances marked at A/B; fill price decision_mid*(1+side*signed_slip); USDT fee; fixed NAV100000 GM2','scope':'fixed expected-fill proxy, excludes canonical lot/min-notional/stops/dynamic NAV','no_new_cash_truth_claim':True})
