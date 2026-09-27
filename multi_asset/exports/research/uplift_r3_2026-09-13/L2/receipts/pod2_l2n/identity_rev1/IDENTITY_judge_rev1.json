@@ -1,0 +1,58 @@
+{
+ "y2_r0_equal": true,
+ "y2_r1_equal": true,
+ "y2_sha": [
+  [
+   "04742432edf32747",
+   "5f46105d4e44a25d"
+  ],
+  [
+   "04742432edf32747",
+   "5f46105d4e44a25d"
+  ]
+ ],
+ "nulls_hex_old": [
+  "-0x1.3cee36ec461fcp-9",
+  "0x1.9ca4432908917p-10"
+ ],
+ "nulls_hex_new": [
+  "-0x1.3cee36ec461fcp-9",
+  "0x1.9ca4432908917p-10"
+ ],
+ "nulls_equal": true,
+ "cell_hex_equal": true,
+ "cell_sha_old": "0db24e3bedcc0e93b830f64d6dd36d1e634f945ca905ca8a8e681ac650936c69",
+ "cell_sha_new": "0db24e3bedcc0e93b830f64d6dd36d1e634f945ca905ca8a8e681ac650936c69",
+ "wall_s": {
+  "old": 364.6294572353363,
+  "new": 10.635089874267578
+ },
+ "self_sha256": {
+  "old": "dc31ace5fdcdcbcb958c702b90a300cf49927b2d6cc14e2753e513f7b5bd427f",
+  "new": "2f54f1554d8d59fa25ea9651a1ddfe3c3cba6c9eb95076fcdcf7756081e32f3c"
+ },
+ "harness_subs": [
+  [
+   "SEEDS = (\"42\", \"2027\"); MODELS = (\"R\", \"L\")",
+   "SEEDS = (\"42\",); MODELS = (\"R\",)"
+  ],
+  [
+   "for r in range(200):",
+   "for r in range(2):"
+  ],
+  [
+   "v, _, _ = anchor_ic(p, y2, i, day); nulls.append(float(v.mean()))",
+   "v, _, _ = anchor_ic(p, y2, i, day); nulls.append(float(v.mean())); _Y2.append(y2.copy())"
+  ],
+  [
+   "p = f\"{REC}/RECEIPT_L2N_judge_{STAGE}.json\"",
+   "p = _RECP"
+  ],
+  [
+   "elig = RJ[\"eligible_models\"]; void = []",
+   "elig = [m for m in RJ[\"eligible_models\"] if m in MODELS]; void = []"
+  ]
+ ],
+ "harness_sha256": "c1686cca0defcff05eb99536102a9df79c5f9a30ebe92bcc98081e8a55245218",
+ "ALL_EQUAL": true
+}
