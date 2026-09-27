@@ -37,12 +37,9 @@ KNOWN_VIOLATIONS = {
     # installed as ~/funding_ledger_archive/archive_live_ledger.py (sha a71c2a22..., lead 2026-09-26 21:01Z); its writes are durable
     # by its own hand-rolled helper, which this scanner cannot see through. Changing it means a redeploy by lead, not an edit here.
     "archive_live_ledger.py": 6,
-    # dlarch's F10 trainer (named by path in runbook 3a, lead 2026-09-27) imports these; pinned at first scan, OWNER dlarch to review:
-    #   dlarch_safe_io.py: L113 write_json writes its temp with write_text then reads back and os.replace -- no fsync of file or dir;
-    #                      L230/L239/L253 are its own selftest's deliberate corruptions / guard probes.
-    #   dlarch_chain_torch.py: L224 G3_CHAIN_PARITY.json via temp + os.replace, no fsync, no read-back.
-    "dlarch_safe_io.py": 4,
-    "dlarch_chain_torch.py": 1,   # 1 = its own temp/fsync/read-back helper (os.fdopen L139), 5 = its 7b selftest fixtures
+    # dlarch_safe_io.py 4 -> 0 and dlarch_chain_torch.py 1 -> 0 after dlarch's fix cc5b392d3 (fsync + read-back in all three
+    # writers, reasoned exemptions for the writer itself and the selftest fixtures); pins removed 2026-09-27, so any new raw write is red.
+  # 1 = its own temp/fsync/read-back helper (os.fdopen L139), 5 = its 7b selftest fixtures
 }
 # lead 2026-09-27 (October timeline ruling 3): the interval rule the producer tree vendors is FROZEN before integ starts the tree.
 # A literal expected value, not "receipt sha == file sha": an edited file with a re-signed receipt must still turn this red.
