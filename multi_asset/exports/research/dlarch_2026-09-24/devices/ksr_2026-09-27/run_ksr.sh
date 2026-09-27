@@ -102,7 +102,33 @@ for arm, k in jobs:
     wins = [f'{A}/arms/{arm}_{w}_m{k}/KING_OOF.npz' for w in ('2023', '2024', '2025', '2026F')]
     subprocess.run(['/workspace/venv/bin/python', '-B', f'{A}/dlarch_ksr_splice.py', 'build', a0[k]['path'], d] + wins, check=True)
 PY
-  say "spliced OOFs ready under $A/splice (book cells: owner per lead; gate 4 = dlarch_ksr_splice.py legs on their legs.npz)" ;;
+  $PY -B - $A <<'PY' >> "$LOG" 2>&1 || stop "KSR_OOF_MANIFEST build failed"
+# fresh2's driver schema (65df8b070): 17 cells, role == second name field, S0 without splice receipt, S1/RED with; KSR_S0_m0 = a10b8725
+import json, sys, os, hashlib
+A = sys.argv[1]
+def sha(p):
+    h = hashlib.sha256()
+    with open(p, 'rb') as f:
+        for b in iter(lambda: f.read(1 << 24), b''): h.update(b)
+    return h.hexdigest()
+a0 = json.load(open('/workspace/kingfam_2026-09-27/MANIFEST_IC.json'))['arms']['A0']
+cells = {}
+for k, e in enumerate(a0):
+    assert sha(e['path']) == e['sha256']
+    cells[f'KSR_S0_m{k}'] = {'role': 'S0', 'oof': e['path'], 'oof_sha256': e['sha256'], 'splice_receipt': None, 'splice_receipt_sha256': None}
+for arm, ks in (('S1', range(8)), ('RED', [0])):
+    for k in ks:
+        d = f'{A}/splice/{arm}_m{k}'; o, r = f'{d}/KING_OOF.npz', f'{d}/SPLICE_RECEIPT.json'
+        rr = json.load(open(r)); assert rr['out_sha256'] == sha(o)
+        cells[f'KSR_{arm}_m{k}'] = {'role': arm, 'oof': o, 'oof_sha256': sha(o), 'splice_receipt': r, 'splice_receipt_sha256': sha(r),
+                                   'S0_base': rr['S0'], 'windows': rr['windows']}
+assert len(cells) == 17 and cells['KSR_S0_m0']['oof_sha256'].startswith('a10b872506ca60af')
+p = f'{A}/splice/KSR_OOF_MANIFEST.json'; txt = json.dumps({'cells': cells}, indent=1)
+open(p + '.tmp', 'w').write(txt)  # durable-exempt: small manifest, read back and compared before the atomic replace
+assert open(p + '.tmp').read() == txt; os.replace(p + '.tmp', p)
+print('KSR_OOF_MANIFEST', sha(p))
+PY
+  say "spliced OOFs + KSR_OOF_MANIFEST.json ready under $A/splice (fresh2 schema 65df8b070; gate 4 run by fresh2's driver)" ;;
 *) stop "unknown phase" ;;
 esac
 RC=0; grep -q Traceback "$LOG" $A/logs/*.log 2>/dev/null && RC=1
