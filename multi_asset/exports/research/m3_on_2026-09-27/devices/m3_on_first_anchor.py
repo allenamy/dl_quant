@@ -36,10 +36,12 @@ def jl(table, days):
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("A", type=int); ap.add_argument("--expect", choices=["on", "shadow"], default="on")
+    ap = argparse.ArgumentParser(); ap.add_argument("A", type=int); ap.add_argument("--expect", choices=["on", "shadow", "rollback"], default="on")
     ap.add_argument("--out"); a = ap.parse_args(); A, E = a.A, a.expect
     days = sorted({time.strftime("%Y%m%d", time.gmtime(A + d)) for d in (-86400, 0, 86400)})
     say(f"M3 ON first-anchor acceptance A={A} ({fmt(A)}) expect={E}")
+    if E == "rollback":
+        return rollback(a, A, days)
     rows = [r for r in jl("anchors", days) if int((r.get("external_book") or {}).get("nominal_ts") or -1) == A]
     if not rows:
         verdict("F0 anchors row for A", "FAIL", "none"); return finish(a, E)
@@ -187,6 +189,42 @@ def main():
     verdict("F9 no false alarms", "PASS" if ok9 else "FAIL",
             f"HIGH/CRITICAL in [A,A+1h]={len(alarms)} flagged={bad9[:3]} watchdog_events={wd[:2]} net_over_gross={nog} caliber={r.get('neutrality_caliber')}")
     return finish(a, E)
+
+
+def rollback(a, A, days):
+    """AMENDMENT 1 (R1-R5): the first anchor after an explicit on -> shadow."""
+    rows = [r for r in jl("anchors", days) if int((r.get("external_book") or {}).get("nominal_ts") or -1) == A]
+    if not rows:
+        verdict("R0 anchors row for A", "FAIL", "none"); return finish(a, "rollback")
+    r = rows[-1]; m = r.get("m3_beta_overlay") or {}; at = float(r["anchor_ts"]); rid = r.get("rebalance_id")
+    book = json.load(open(f"{DQ}/config/book.json")).get("beta_overlay") or {}
+    verdict("R1 mode shadow", "PASS" if book.get("mode") == "shadow" and book.get("max_combined_leverage") == 2.5 and m.get("mode") == "shadow"
+            and m.get("status") == "shadow" else "FAIL", f"book={book.get('mode')}/{book.get('max_combined_leverage')} rec={m.get('mode')}/{m.get('status')}")
+    orders = jl("orders", days); plan = {}
+    for o in orders:
+        if o.get("rebalance_id") == rid and num(o.get("target_w")) is not None: plan.setdefault(o["symbol"], num(o["target_w"]))
+    S = num(m.get("gross_final_target_usdt")); bb = num(m.get("btc_book_target_usdt")) or 0.0
+    pb = plan.get(BTC, 0.0) * S if S else None
+    verdict("R2 BTC plan == book component", "PASS" if pb is not None and math.isclose(pb, bb, rel_tol=1e-9, abs_tol=1e-6) else "FAIL", f"plan_btc={pb} book={bb}")
+    rb = jl("position_readback", days); by = collections.defaultdict(dict)
+    for p in rb: by[float(p["anchor_ts"])][p["symbol"]] = p
+    prev_t = max([t for t in by if t < at], default=None)
+    mid = num((json.loads(r["mid_at_anchor_vector"]) if isinstance(r.get("mid_at_anchor_vector"), str) else (r.get("mid_at_anchor_vector") or {})).get(BTC))
+    def _q(snap):
+        if not snap: return None
+        return num((snap.get(BTC) or {}).get("venue_position_qty")) if BTC in snap else 0.0
+    qpre, qpost = (_q(by.get(prev_t, {})) if prev_t else None), _q(by.get(at, {}))
+    if None in (mid, qpre, qpost):
+        verdict("R3 unwind order sent", "FAIL", f"not measurable mid={mid} pre={qpre} post={qpost}"); verdict("R4 closer to book", "FAIL", "")
+    else:
+        gap_pre, gap_post = qpre * mid - bb, qpost * mid - bb
+        sent = [o for o in orders if o.get("rebalance_id") == rid and o.get("symbol") == BTC and o.get("submit_ts") is not None]
+        want = "SELL" if gap_pre > 0 else "BUY"
+        need = abs(gap_pre) >= 200.0
+        verdict("R3 unwind order sent", "PASS" if (not need) or (sent and {str(o.get("side")).upper() for o in sent} <= {want}) else "FAIL",
+                f"gap_pre={gap_pre:.1f} need_order={need} sent={len(sent)} sides={sorted({str(o.get('side')).upper() for o in sent})} expected={want}")
+        verdict("R4 closer to book", "PASS" if abs(gap_post) < abs(gap_pre) or abs(gap_post) <= 100.0 else "FAIL", f"gap_pre={gap_pre:.1f} gap_post={gap_post:.1f}")
+    return finish(a, "rollback")
 
 
 def finish(a, E):

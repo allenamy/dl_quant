@@ -25,3 +25,13 @@
 - **控制(写在读数之前)**:
   - 对 00Z 锚(1790467200,shadow)用 `--expect shadow` 跑,全部检查必须 PASS。shadow 口径下:F2 要求 `status == shadow`;F4 要求**没有**对冲腿订单;F5 不适用;F8 对全部未钳位名成立。这是基线为绿。
   - 同一锚用 `--expect on` 跑,必须在 F1 / F2 / F4 上 FAIL。这证明装置有分辨力。
+
+## AMENDMENT 1(2026-09-27 01:0xZ,写于任何回滚读数之前:从未回滚过)—— 回滚后首锚判据(`--expect rollback`)
+回滚 = 显式把 `beta_overlay.mode` 从 on 改回 shadow。依据 book.json 语义:已持有的 BTC 对冲被释放,经书自身的只减通道平掉;执行器测试 [T] T2 已覆盖这一行为(显式 off / shadow ⇒ 发出只减 BTC 单,state 记 released_by)。
+| # | 通过条件 |
+|---|---|
+| R1 | 运行树 book.json `mode == "shadow"`,cap 仍为 2.5;锚行记录 `mode == "shadow"` 且 `status == "shadow"` |
+| R2 | BTC 的 plan 目标(target_w × gross_final_target_usdt)== 记录中的 `btc_book_target_usdt`(相对 1e-9),即不再含对冲 |
+| R3 | 若上锚回读的 BTC 与书内目标之差 ≥ 2 × minNotional(按 100 USDT 计),本锚必须有 BTC 订单被发出,方向朝书内目标 |
+| R4 | 本锚回读 BTC 离书内目标比上锚更近,或差已在 100 USDT 以内 |
+| R5 | F8(非 BTC 书的恒等式)与 F9(无误报)照常 |
