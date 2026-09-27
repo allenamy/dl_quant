@@ -74,3 +74,4 @@
 - 2026-09-27 02:5xZ | fresh(原会话)02:42Z 回来报到,消息积压约 8 小时;它什么都没碰 ⇒ 改派做前瞻影子 A/B 设计(用户点名的方向),A1 判词后写 G4 终版;alloc 把 S3 登记为常驻作业(775ce5ddd);fresh2 补训 A0 m0–m7 已排队,MANIFEST_IC 约 03:40Z,之后 dlarch 起 IC 读数
 - 2026-09-27 02:4xZ | 实盘正常 | 在飞:S1 net/stat、3b 根因格、King 族训练与清单都在 RUNNING;两个 dlarch 终态已处理并关闭 | inflight_status 修复:会读 registry 的 pgid 字段与纯文本 PGID 文件,原先误报 SILENT_DEATH
 - 2026-09-27 02:5xZ | 实盘正常 | integ:M3 on 电池 166/166、fix-pkg-e 电池 167/167、per_name_stop (B) 完成;dlarch 的提交 6213fe12c 没带 pathspec,把 integ 暂存的文件一起带走(内容无误,已补出处)⇒ 已提醒 | M 族重开条件已写入判据 §10
+- 2026-09-27 03:0xZ | **⏸ 暂停:用户迁移新电脑**。实盘先留旧机,新机就绪后一次性切换;GAP4 与 M3 发布推迟;巡检 cron 取消;全体代理写 HANDOFF;integ 起草实盘迁移清单
