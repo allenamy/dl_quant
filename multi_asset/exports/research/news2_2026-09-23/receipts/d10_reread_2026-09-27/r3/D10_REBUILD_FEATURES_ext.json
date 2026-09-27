@@ -1,0 +1,62 @@
+{
+ "device": "d10_rebuild_funding_features.py",
+ "self_sha256": "a10159804908bb2d6f3caf1985806f6617996b7cfa5c50c10089c8a22a6aef16",
+ "rule_module_sha256": "5d5bf20797ca41c0b83ce0d6d710acb9baf2c500c93c9b40b7084c23182afb3f",
+ "criteria": "DECISION_RULE_D10_stage2_2026-09-26.md \u00a71 + revision 1 (ms key)",
+ "design": "docs/DESIGN_D10_lineD_prep_2026-09-26.md \u00a71",
+ "rule": "common/funding_interval.py interval_d10 -- IMPORTED, not reimplemented",
+ "argv": [
+  "--source",
+  "ledger_ms",
+  "--ledger-ms",
+  "/workspace/d10_reread_2026-09-27/r2b_20260927T113701Z/r2/ledger_full_ms_ext_20260927T08.npz",
+  "--ledger-ms-sha",
+  "76b777bf07d5b3630e9d4818b562cd798f1ca495af8af190c8f24421c9b538db",
+  "--features",
+  "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "--ema-mode",
+  "d10_iv",
+  "--save",
+  "/workspace/d10_reread_2026-09-27/r3_rebuild/rebuilt_features_d10ext.npz",
+  "--out",
+  "/workspace/d10_reread_2026-09-27/r3_rebuild/D10_REBUILD_FEATURES_ext.json"
+ ],
+ "source_provenance": {
+  "source": "ledger_full_ms.npz",
+  "resolution": "MILLISECONDS",
+  "sha256": "76b777bf07d5b3630e9d4818b562cd798f1ca495af8af190c8f24421c9b538db"
+ },
+ "saved": {
+  "path": "/workspace/d10_reread_2026-09-27/r3_rebuild/rebuilt_features_d10ext.npz",
+  "sha256": "b8659396102eef2f53c6fb7c44be8162eb2a1f4f2f648beb5015a224d7e05134"
+ },
+ "rebuild": {
+  "tiers": {
+   "DECLARED_FIRST_EVENT": 668,
+   "SPACING_EXACT": 2539216,
+   "gated_nan": 163,
+   "UNRESOLVED_DECLARED_UNAVAILABLE": 8,
+   "DECLARED_LONG_GAP": 8
+  },
+  "anchors": 10333,
+  "symbols": 829,
+  "shapes": {
+   "fund_now": [
+    2785754
+   ],
+   "fund_ema": [
+    2785754
+   ],
+   "iv": [
+    2785754
+   ],
+   "rn8": [
+    10333,
+    829
+   ]
+  },
+  "ema_mode": "d10_iv",
+  "ema_source": "/dev/shm/nc_2026-09-23/devices_arm/nc_contract.py ema_step + funding_asof, CALLED not reimplemented",
+  "ema_conflict_note": "lead requires both the D10 interval and the producer's own EMA code; ingest_settlements L77 computes the interval itself via snap_interval, so the wrapper cannot be used verbatim without putting two interval rules in one artifact. ema_step IS the producer's verbatim EMA arithmetic and takes iv as an argument, so it is called with the D10 iv (mode d10_iv). producer_snap reproduces today's live behaviour for comparison. lead to confirm."
+ }
+}

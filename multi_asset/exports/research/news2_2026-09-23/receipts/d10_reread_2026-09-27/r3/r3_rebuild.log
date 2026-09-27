@@ -1,0 +1,30 @@
+{
+ "tiers": {
+  "DECLARED_FIRST_EVENT": 668,
+  "SPACING_EXACT": 2539216,
+  "gated_nan": 163,
+  "UNRESOLVED_DECLARED_UNAVAILABLE": 8,
+  "DECLARED_LONG_GAP": 8
+ },
+ "anchors": 10333,
+ "symbols": 829,
+ "shapes": {
+  "fund_now": [
+   2785754
+  ],
+  "fund_ema": [
+   2785754
+  ],
+  "iv": [
+   2785754
+  ],
+  "rn8": [
+   10333,
+   829
+  ]
+ },
+ "ema_mode": "d10_iv",
+ "ema_source": "/dev/shm/nc_2026-09-23/devices_arm/nc_contract.py ema_step + funding_asof, CALLED not reimplemented",
+ "ema_conflict_note": "lead requires both the D10 interval and the producer's own EMA code; ingest_settlements L77 computes the interval itself via snap_interval, so the wrapper cannot be used verbatim without putting two interval rules in one artifact. ema_step IS the producer's verbatim EMA arithmetic and takes iv as an argument, so it is called with the D10 iv (mode d10_iv). producer_snap reproduces today's live behaviour for comparison. lead to confirm."
+}
+receipt -> /workspace/d10_reread_2026-09-27/r3_rebuild/D10_REBUILD_FEATURES_ext.json  sha256=3a570a7944cea16f2f1137157b224623ed0efbc5fce712c4f6b453a205a8e632

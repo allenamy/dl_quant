@@ -1,0 +1,458 @@
+{
+ "device": "d10_parity_gate.py",
+ "self_sha256": "947fa86f2729f55fdcddf0d02be4cbf0f741c131e123dd75f741eb7965a7e0cb",
+ "argv": {
+  "a": "/dev/shm/d10_2026-09-25/ms/rebuilt_features_d10.npz",
+  "b": "/workspace/d10_reread_2026-09-27/r3_rebuild/rebuilt_features_d10ext.npz",
+  "features": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "columns": "fund_now:fn_v:fn_v:float64,fund_ema:fe_v:fe_v:float64,iv:iv_v:iv_v:float64",
+  "out": "/workspace/d10_reread_2026-09-27/r3_rebuild/PARITY_FULLAXIS_vs_2be2d7c8_descriptive.json",
+  "positive_control": false,
+  "anchor_max_utc": null
+ },
+ "python": {
+  "version": "3.11.10",
+  "executable": "/workspace/venv/bin/python"
+ },
+ "criteria": "docs/DECISION_RULE_D10_stage2_2026-09-26.md (1814d4334, rev 1 57fa49eea) \u00a72",
+ "mode": "GATE",
+ "sides": {
+  "a": {
+   "path": "/dev/shm/d10_2026-09-25/ms/rebuilt_features_d10.npz",
+   "sha256": "2be2d7c8959894e0e2a59933e99ff410b72b21faf72afc073a6d97d9590c4d8a",
+   "anchors": 10333,
+   "symbols": 829
+  },
+  "b": {
+   "path": "/workspace/d10_reread_2026-09-27/r3_rebuild/rebuilt_features_d10ext.npz",
+   "sha256": "b8659396102eef2f53c6fb7c44be8162eb2a1f4f2f648beb5015a224d7e05134",
+   "anchors": 10333,
+   "symbols": 829
+  }
+ },
+ "member_source": {
+  "path": "/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz",
+  "sha256": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+  "construction": "members[i] = m[off[i]:off[i+1]]",
+  "explicitly_not": "cand = mask & crypto",
+  "total_member_cells_on_axis": 2785754
+ },
+ "anchor_window": {
+  "max_utc": null,
+  "epoch": null,
+  "why": "the two sides' event sets are IDENTICAL below the spliced ledger's cut 1788228000 = 2026-09-01T02:00Z (measured: 2,633,090 each, 0 events on either side only, 0 symbols differing), so restricting here removes the coverage factor and leaves the rule difference"
+ },
+ "axis": {
+  "anchor_sets_equal": true,
+  "comparable_anchors": 10333,
+  "symbol_sets_equal": true,
+  "note": "only the intersection is comparable; equality is reported, never asserted"
+ },
+ "columns": {
+  "fund_now": {
+   "status": "COMPARED",
+   "a_key": "fn_v",
+   "b_key": "fn_v",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "csr[member_entry]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2785754,
+   "equal": 2743285,
+   "DIFFER": 42469,
+   "book_cells_compared": 2785754,
+   "book_equal": 2743285,
+   "book_DIFFER": 42469,
+   "closes": true,
+   "DIFFER_nan_vs_finite": 42000,
+   "DIFFER_both_finite": 469,
+   "magnitude_buckets": {
+    "le_1e-3": 451,
+    "gt_1e-3": 14,
+    "le_1e-6": 4
+   },
+   "abs_diff_stats_both_finite": {
+    "n": 469,
+    "median": 6.325e-05,
+    "p90": 0.00036224599999999993,
+    "p99": 0.0014867991999999994,
+    "p99_9": 0.0024472953600000492,
+    "max": 0.00304071
+   },
+   "why_split": "one DIFFER count conflates a coverage difference (NaN vs finite), a float-level difference (~1e-20) and a large value difference (~1e-2); merging them hides the last inside the first two. DESCRIPTIVE ONLY -- per lead 2026-09-26 the gate stays bitwise: with both sides calling the same function even a 1e-12 difference must not occur, so a float-level bucket is evidence of two implementations, not a pass",
+   "examples": [
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "0GUSDT",
+     "a": -0.0016303,
+     "b": -0.00188913,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 0.00025883000000000004
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "1000BONKUSDT",
+     "a": 3.57e-05,
+     "b": 5e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.4300000000000002e-05
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "4USDT",
+     "a": 9.567e-05,
+     "b": 0.00013917,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 4.3500000000000014e-05
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "ACEUSDT",
+     "a": -0.00037415,
+     "b": -0.00039395,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.9799999999999993e-05
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "AEROUSDT",
+     "a": -8.982e-05,
+     "b": 2.506e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 0.00011488000000000001
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "AIXBTUSDT",
+     "a": 3.963e-05,
+     "b": 5e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.0370000000000004e-05
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "ALTUSDT",
+     "a": 2.55e-06,
+     "b": 5e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 4.745e-05
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "ANIMEUSDT",
+     "a": -0.0020957,
+     "b": -0.00108385,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 0.00101185
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "ARCUSDT",
+     "a": 0.00017594,
+     "b": 0.00034431,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 0.00016837000000000002
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "ARIAUSDT",
+     "a": 0.00046287,
+     "b": 5e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 0.00041286999999999997
+    }
+   ],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  },
+  "fund_ema": {
+   "status": "COMPARED",
+   "a_key": "fe_v",
+   "b_key": "fe_v",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "csr[member_entry]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2785754,
+   "equal": 2742641,
+   "DIFFER": 43113,
+   "book_cells_compared": 2785754,
+   "book_equal": 2742641,
+   "book_DIFFER": 43113,
+   "closes": true,
+   "DIFFER_nan_vs_finite": 42000,
+   "DIFFER_both_finite": 1113,
+   "magnitude_buckets": {
+    "le_1e-3": 680,
+    "le_1e-6": 410,
+    "le_1e-9": 12,
+    "le_1e-12": 9,
+    "gt_1e-3": 2
+   },
+   "abs_diff_stats_both_finite": {
+    "n": 1113,
+    "median": 2.0059667790870756e-06,
+    "p90": 2.153532970995038e-05,
+    "p99": 0.00019981970677954418,
+    "p99_9": 0.0010948620297696618,
+    "max": 0.001911275845629239
+   },
+   "why_split": "one DIFFER count conflates a coverage difference (NaN vs finite), a float-level difference (~1e-20) and a large value difference (~1e-2); merging them hides the last inside the first two. DESCRIPTIVE ONLY -- per lead 2026-09-26 the gate stays bitwise: with both sides calling the same function even a 1e-12 difference must not occur, so a float-level bucket is evidence of two implementations, not a pass",
+   "examples": [
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "0GUSDT",
+     "a": -0.0005548711358672556,
+     "b": -0.0006766383993523303,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 0.00012176726348507474
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "1000BONKUSDT",
+     "a": -2.8392040930284303e-05,
+     "b": -2.3541882250608294e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 4.85015867967601e-06
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "1000RATSUSDT",
+     "a": 0.00021756996263240015,
+     "b": 0.00021312862054764935,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 4.441342084750792e-06
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "1000SATSUSDT",
+     "a": 7.627924227669223e-05,
+     "b": 7.717532148944237e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 8.960792127501419e-07
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "2ZUSDT",
+     "a": 7.370735834315982e-05,
+     "b": 7.47005934628724e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 9.93235119712581e-07
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "4USDT",
+     "a": 0.0005666152163939808,
+     "b": 0.0005557252848001062,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.0889931593874563e-05
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "ACEUSDT",
+     "a": -0.002802621252732429,
+     "b": -0.0027265128140763766,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 7.610843865605253e-05
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "ACTUSDT",
+     "a": 9.97135000313599e-05,
+     "b": 9.972432290090507e-05,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 1.082286954516207e-08
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "ACUUSDT",
+     "a": 0.00010869199359020349,
+     "b": 0.0001083636434226249,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 3.2835016757858224e-07
+    },
+    {
+     "anchor": "2026-09-01T04:00Z",
+     "symbol": "AEROUSDT",
+     "a": -3.1279514819694775e-06,
+     "b": -1.1164481817339528e-06,
+     "dtype": "float64",
+     "a_finite": true,
+     "b_finite": true,
+     "abs_diff": 2.011503300235525e-06
+    }
+   ],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  },
+  "iv": {
+   "status": "COMPARED",
+   "a_key": "iv_v",
+   "b_key": "iv_v",
+   "judged_in_dtype": "float64",
+   "a_layout": "csr[member_entry]",
+   "b_layout": "csr[member_entry]",
+   "population": "the member cell set -- the only representation the two sides share",
+   "cells_compared": 2785754,
+   "equal": 2743754,
+   "DIFFER": 42000,
+   "book_cells_compared": 2785754,
+   "book_equal": 2743754,
+   "book_DIFFER": 42000,
+   "closes": true,
+   "DIFFER_nan_vs_finite": 42000,
+   "DIFFER_both_finite": 0,
+   "magnitude_buckets": {},
+   "abs_diff_stats_both_finite": null,
+   "why_split": "one DIFFER count conflates a coverage difference (NaN vs finite), a float-level difference (~1e-20) and a large value difference (~1e-2); merging them hides the last inside the first two. DESCRIPTIVE ONLY -- per lead 2026-09-26 the gate stays bitwise: with both sides calling the same function even a 1e-12 difference must not occur, so a float-level bucket is evidence of two implementations, not a pass",
+   "examples": [
+    {
+     "anchor": "2026-09-01T16:00Z",
+     "symbol": "0GUSDT",
+     "a": NaN,
+     "b": 4.0,
+     "dtype": "float64",
+     "a_finite": false,
+     "b_finite": true,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2026-09-01T16:00Z",
+     "symbol": "1000BONKUSDT",
+     "a": NaN,
+     "b": 4.0,
+     "dtype": "float64",
+     "a_finite": false,
+     "b_finite": true,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2026-09-01T16:00Z",
+     "symbol": "1000FLOKIUSDT",
+     "a": NaN,
+     "b": 8.0,
+     "dtype": "float64",
+     "a_finite": false,
+     "b_finite": true,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2026-09-01T16:00Z",
+     "symbol": "1000LUNCUSDT",
+     "a": NaN,
+     "b": 8.0,
+     "dtype": "float64",
+     "a_finite": false,
+     "b_finite": true,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2026-09-01T16:00Z",
+     "symbol": "1000PEPEUSDT",
+     "a": NaN,
+     "b": 8.0,
+     "dtype": "float64",
+     "a_finite": false,
+     "b_finite": true,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2026-09-01T16:00Z",
+     "symbol": "1000RATSUSDT",
+     "a": NaN,
+     "b": 4.0,
+     "dtype": "float64",
+     "a_finite": false,
+     "b_finite": true,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2026-09-01T16:00Z",
+     "symbol": "1000SATSUSDT",
+     "a": NaN,
+     "b": 4.0,
+     "dtype": "float64",
+     "a_finite": false,
+     "b_finite": true,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2026-09-01T16:00Z",
+     "symbol": "1000SHIBUSDT",
+     "a": NaN,
+     "b": 8.0,
+     "dtype": "float64",
+     "a_finite": false,
+     "b_finite": true,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2026-09-01T16:00Z",
+     "symbol": "1INCHUSDT",
+     "a": NaN,
+     "b": 8.0,
+     "dtype": "float64",
+     "a_finite": false,
+     "b_finite": true,
+     "abs_diff": null
+    },
+    {
+     "anchor": "2026-09-01T16:00Z",
+     "symbol": "2ZUSDT",
+     "a": NaN,
+     "b": 4.0,
+     "dtype": "float64",
+     "a_finite": false,
+     "b_finite": true,
+     "abs_diff": null
+    }
+   ],
+   "impact_caliber": "book_DIFFER -- the raw DIFFER count is reported but is not the impact number"
+  }
+ },
+ "totals": {
+  "columns_compared": 3,
+  "columns_absent": [],
+  "any_DIFFER": true,
+  "any_book_DIFFER": true,
+  "total_DIFFER": 127582,
+  "total_book_DIFFER": 127582
+ },
+ "verdict": "PARITY_RED"
+}
