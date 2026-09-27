@@ -22,7 +22,9 @@ readback vs fills (L5-L4).
 Net tilt per layer (sum, USDT) for every anchor with a reshape record; the L2 -> L5 net gap per name classified by the name's order outcome:
   skipped_min_notional / partial_expired / venue_reject / blocked_by_halt / filled / designed abstention (arm-named label, pooled) /
   no_order_row / other.
-usage: ~/wide_shadow/venv/bin/python layered_book.py <out dir> [--from 2026-09-24T08] [--to 2026-09-25T08]"""
+rev 4 (2026-09-27, lead: side split): `--dump-names` also writes <out>/NAMES.jsonl — per anchor, per name: L5 readback value, the same rr
+return r over the same interval (None = unpriced), L2; no computation line changes (the totals are byte-for-byte those of rev 3).
+usage: ~/wide_shadow/venv/bin/python layered_book.py <out dir> [--from 2026-09-24T08] [--to 2026-09-25T08] [--dump-names]"""
 import calendar, collections, glob, hashlib, json, math, os, sys, time
 import numpy as np
 
@@ -92,6 +94,7 @@ def main():
     rec = {"device_sha256": sha(os.path.abspath(__file__)), "price_snapshot": last, "rolling_sha256": sha(f"{WS}/state/snap/{last}/rolling.npz"),
            "window": [fmt(t_from), fmt(t_to)], "anchors": []}
     T = collections.defaultdict(float)
+    dump = open(f"{out}/NAMES.jsonl", "w") if "--dump-names" in a else None
     for an in AN:
         at = float(an["anchor_ts"]); A = int(at // 14400 * 14400)
         if not (t_from <= A <= t_to): continue
@@ -188,6 +191,9 @@ def main():
                     else: pnl[Lk] += x * r
                 n_unp += r is None and any(abs(e[Lk] or 0) > 0 for Lk in LAYERS)
             row["pnl_by_layer"] = dict(pnl); row["unpriced_abs_notional_by_layer"] = dict(unpriced); row["n_unpriced_names"] = n_unp
+            if dump is not None:
+                dump.write(json.dumps({"A": A, "tA": tA, "tB": tB, "priced": tB <= ts[-1] + 300,
+                                       "names": {s: [e["L5_readback"], ret(s, tA, tB), e["L2_clamped"]] for s, e in per.items()}}) + "\n")
             row["priced"] = tB <= ts[-1] + 300
             if row["priced"]:
                 for Lk in LAYERS: T["pnl_" + Lk] += pnl[Lk]
@@ -202,6 +208,7 @@ def main():
                           "failing": [(r["A"], [k for k, v in r["checks"].items() if v is False]) for r in rec["anchors"] if "skip" not in r and any(v is False for v in r["checks"].values())],
                           "skipped": [(r["A"], r["skip"]) for r in rec["anchors"] if "skip" in r]}
     rec["totals"] = dict(T)
+    if dump is not None: dump.close()
     json.dump(rec, open(f"{out}/LAYERED_BOOK.json", "w"), indent=1, default=str)
     for r in rec["anchors"]:
         if "skip" in r: print(r["A"], r["skip"]); continue
