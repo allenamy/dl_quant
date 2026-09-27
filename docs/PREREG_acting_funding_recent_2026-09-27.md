@@ -1,4 +1,4 @@
-> **创建:** 2026-09-27 15:46:08 UTC | **Session:** acting_lead/funding_mechanism_0927 | **状态:** frozen-before-join | **作废条件:** 输入身份或同人口闭合失败、读数后改分组/匹配
+> **创建:** 2026-09-27 15:46:08 UTC | **Session:** acting_lead/funding_mechanism_0927 | **状态:** final | **作废条件:** 输入身份或同人口闭合失败、读数后改分组/匹配
 
 # 近期资金费状态迟滞：描述性人口闭合
 

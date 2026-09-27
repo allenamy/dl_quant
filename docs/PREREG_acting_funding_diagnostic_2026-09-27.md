@@ -1,4 +1,4 @@
-> **创建:** 2026-09-27 15:41 UTC | **Session:** acting_lead/funding_mechanism_0927 | **状态:** frozen-before-new-readout | **作废条件:** 输入 SHA 不符、标签/人口断言失败、或读数后改谓词
+> **创建:** 2026-09-27 15:41 UTC | **Session:** acting_lead/funding_mechanism_0927 | **状态:** final | **作废条件:** 输入 SHA 不符、标签/人口断言失败、或读数后改谓词
 
 # 单一诊断：资金费当前状态相对三日 EMA 的恢复，是否预示空头进一步损失
 

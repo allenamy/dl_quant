@@ -1,0 +1,140 @@
+{
+  "utc_start": "2026-09-27T16:03:28Z",
+  "utc_end": "2026-09-27T16:04:37Z",
+  "inputs": {
+    "old": [
+      "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+      "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
+    ],
+    "new": [
+      "/workspace/d10_reread_2026-09-27/r2b_20260927T113701Z/r2/ledger_full_ms_ext_20260927T08.npz",
+      "76b777bf07d5b3630e9d4818b562cd798f1ca495af8af190c8f24421c9b538db"
+    ],
+    "label": [
+      "/workspace/dlarch_2026-09-24/king_fam_2026-09-27/T_NET.npz",
+      "929ff9f6c68280f1994ffb3c34c0c53114d96ad034686183f9dfd9b09b5c7a5c"
+    ]
+  },
+  "same_symbol_axis": true,
+  "covered_anchors": 10212,
+  "symbols": 829,
+  "counts": {
+    "changed_total": 1497091,
+    "changed_ms_boundary": 1497097,
+    "changed_extra_event_or_rate": 18,
+    "old_label_not_exact_rate_sum": 0,
+    "left_nonzero": 1018513,
+    "right_nonzero": 1018960,
+    "both_nonzero": 350573,
+    "extra_only": 0,
+    "boundary_only": 1497079,
+    "both_sources": 18
+  },
+  "maxima": {
+    "decomposition_error": 4.272840761765373e-16,
+    "old_label_error": 0.0,
+    "prefix_collapsed_error": 0.0,
+    "left_rate_max": 0.03,
+    "right_rate_max": 0.03
+  },
+  "examples": [
+    {
+      "symbol": "ADAUSDT",
+      "anchor": 1641168000,
+      "anchor_utc": "2022-01-03T00:00:00Z",
+      "F_old": 0.0,
+      "F_ms": 9.999999999998899e-05,
+      "left_plus": 0.0001,
+      "right_minus": 0.0,
+      "extra_event": 0.0,
+      "events": [
+        {
+          "ft_ms": 1641168000010,
+          "utc": "2022-01-03T00:00:00.010Z",
+          "rate": 0.0001,
+          "included_ms": true,
+          "included_old_second": false
+        }
+      ]
+    },
+    {
+      "symbol": "BTCUSDT",
+      "anchor": 1641168000,
+      "anchor_utc": "2022-01-03T00:00:00Z",
+      "F_old": 0.0,
+      "F_ms": 9.999999999998899e-05,
+      "left_plus": 0.0001,
+      "right_minus": 0.0,
+      "extra_event": 0.0,
+      "events": [
+        {
+          "ft_ms": 1641168000010,
+          "utc": "2022-01-03T00:00:00.010Z",
+          "rate": 0.0001,
+          "included_ms": true,
+          "included_old_second": false
+        }
+      ]
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "anchor": 1641168000,
+      "anchor_utc": "2022-01-03T00:00:00Z",
+      "F_old": 0.0,
+      "F_ms": 9.999999999998899e-05,
+      "left_plus": 0.0001,
+      "right_minus": 0.0,
+      "extra_event": 0.0,
+      "events": [
+        {
+          "ft_ms": 1641168000010,
+          "utc": "2022-01-03T00:00:00.010Z",
+          "rate": 0.0001,
+          "included_ms": true,
+          "included_old_second": false
+        }
+      ]
+    },
+    {
+      "symbol": "ETHUSDT",
+      "anchor": 1641168000,
+      "anchor_utc": "2022-01-03T00:00:00Z",
+      "F_old": 0.0,
+      "F_ms": 6.972999999999008e-05,
+      "left_plus": 6.973e-05,
+      "right_minus": 0.0,
+      "extra_event": 0.0,
+      "events": [
+        {
+          "ft_ms": 1641168000010,
+          "utc": "2022-01-03T00:00:00.010Z",
+          "rate": 6.973e-05,
+          "included_ms": true,
+          "included_old_second": false
+        }
+      ]
+    },
+    {
+      "symbol": "SOLUSDT",
+      "anchor": 1641168000,
+      "anchor_utc": "2022-01-03T00:00:00Z",
+      "F_old": 0.0,
+      "F_ms": 9.999999999998899e-05,
+      "left_plus": 0.0001,
+      "right_minus": 0.0,
+      "extra_event": 0.0,
+      "events": [
+        {
+          "ft_ms": 1641168000010,
+          "utc": "2022-01-03T00:00:00.010Z",
+          "rate": 0.0001,
+          "included_ms": true,
+          "included_old_second": false
+        }
+      ]
+    }
+  ],
+  "formula": "F_ms - F_old = rates at A+(0,1s) minus rates at A+4h+(0,1s) plus difference after flooring ALL new events vs old seconds ledger",
+  "wall_seconds": 69.60907936096191,
+  "rss_max_kb": 181300
+}
