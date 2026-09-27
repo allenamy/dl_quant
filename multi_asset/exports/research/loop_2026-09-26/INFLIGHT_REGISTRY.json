@@ -77,10 +77,10 @@
   "success": "^DONE (all steps: R' gate, O, footprint, engine cells, beta, verdicts). Intermediate markers ^GATE_OK / ^CELL_OK / ^VERDICT_OK / ^NOTE; candidate engine cells wait on /dev/shm/alloc_2026-09-26/HOLD_CANDIDATE_CELLS (lead places them)",
   "started_utc": "2026-09-27T00:43:31Z",
   "pgid": 3345374,
-  "relaunch_of": "alloc_family (rev 2a STOP 18:21:02Z, red control R failed; rule §7 R')",
+  "relaunch_of": "alloc_family (rev 2a STOP 18:21:02Z, red control R failed; rule \u00a77 R')",
   "patrol": "session cron 0a490f62 every 10 min + /dev/shm/alloc_2026-09-26/logs/patrol.log",
   "closed": true,
-  "ended": "STOP RED_CONTROL_RPRIME_FAILED_family_stops_final 2026-09-27T00:57:31Z (first family terminated per rule §7; receipt JUDGE_RPRIME.json d2ba0acb, commit 012f1ffe0)"
+  "ended": "STOP RED_CONTROL_RPRIME_FAILED_family_stops_final 2026-09-27T00:57:31Z (first family terminated per rule \u00a77; receipt JUDGE_RPRIME.json d2ba0acb, commit 012f1ffe0)"
  },
  {
   "name": "dlarch_momentum_seat_decomp",
@@ -212,7 +212,7 @@
    "xvenue_collect.py": "see INSTALL.md",
    "com.hsy.xvenuecollector.plist": "see INSTALL.md"
   },
-  "evaluate_after": "6 months (DECISION_RULE_nonfunding_sources_2026-09-27 §0-4)",
+  "evaluate_after": "6 months (DECISION_RULE_nonfunding_sources_2026-09-27 \u00a70-4)",
   "closed": false,
   "patrol": "session cron 6aace55f (alloc, new host, from 2026-09-27 05:13Z; every 10 min at :03/:13/...) running nonfunding_2026-09-27/s1_l2/patrol_alloc.sh (ccc26a949); rule re-application s1_rule_check.py (ccc26a949)",
   "migration_gaps_utc": "no RUN lines 03:03:55Z->03:40:12Z (36.3 min) and 03:58:32Z->05:01:01Z (62.5 min, lead's launchd disable during host migration); verified on the arm64 host 05:02Z: heartbeat 21 s old, okx ok:492 bybit ok:891 hl ok:234, data/2026-09-27/*.csv.gz growing"
@@ -228,7 +228,7 @@
   "started_utc": "2026-09-27T02:43:57Z",
   "devices": "kf_manifest_ic3.sh",
   "closed": true,
-  "closed_note": "KF_MANIFEST_IC_PAIRED_DONE 03:58:59Z (MANIFEST_IC sha e606a778; A0_m0 == in-service P ea78c2f6; dup A0_m0 PASS). IC verdict dlarch d585e1792: KN and A1 both IC_LAYER_MAIN_PASS=False => rule §3 book-layer cells not run, KN1 not started"
+  "closed_note": "KF_MANIFEST_IC_PAIRED_DONE 03:58:59Z (MANIFEST_IC sha e606a778; A0_m0 == in-service P ea78c2f6; dup A0_m0 PASS). IC verdict dlarch d585e1792: KN and A1 both IC_LAYER_MAIN_PASS=False => rule \u00a73 book-layer cells not run, KN1 not started"
  },
  {
   "name": "dlarch_a1_leak_audit",
@@ -242,7 +242,7 @@
   "devices": "1e218e8fd + rev 1 088520e83",
   "run": "run 1 PGID 3393611: static died at the L1 receipt assertion (KeyError 'arm', no number) while the 3 trainings continue; waiter wait_rev1.sh (PGID 3396777) archives run 1's log to a1leak_run1.log and execs run_a1leak.sh rev 1 (re-entrant) in its own PGID 3396777",
   "closed": true,
-  "closed_note": "lead 2026-09-27 05:5xZ: A1LEAK_DONE rc=0; read -> LEAK_CLEARED for seat decomp (0867f27bb); L4c reservation sent to dlarch"
+  "closed_note": "A1LEAK_DONE rc=0 05:41Z; receipts A1LEAK_STATIC 482047ae / A1LEAK_SHUFFLE 4f495b46 (b1068aaf2)"
  },
  {
   "name": "news2_archive_job_first_arm64_receipt_waiter",
@@ -285,5 +285,17 @@
   "mirror": "/workspace/a1seat_2026-09-27/mirror",
   "started_utc": "2026-09-27T05:54:24Z",
   "closed": false
+ },
+ {
+  "name": "dlarch_a1leak_floor",
+  "owner": "dlarch",
+  "host": "pod2",
+  "log": "/workspace/dlarch_2026-09-24/a1leak_2026-09-27/floor.log",
+  "pgid_file": "/workspace/dlarch_2026-09-24/a1leak_2026-09-27/floor.pgid",
+  "terminal": "^(FLOOR_DONE rc=|FLOOR_STOP)",
+  "success": "^FLOOR_DONE rc=0 (receipt A1LEAK_FLOOR_2026-09-27.json; lead's two L4c questions, descriptive)",
+  "started_utc": "2026-09-27T05:59:26Z",
+  "pgid": 3402756,
+  "devices": "a738af249"
  }
 ]
