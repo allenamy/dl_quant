@@ -27,3 +27,5 @@ CPU小窗上限1线程/2GiB/5分钟，启动cgroup余量至少10GiB（2+8）且�
 主审在见这些坐标之前已授权支持域修订。现在固定：仍只在原149个accepted窗中，按时间取第一个A≥2023-01-01、全部120锚被当前D10共同轴覆盖、当前D10合法producer成员上King与F10预测均有限、D10 legs ready全真的窗口。只读有限性/成员/轴，不读回报、现金、是否成交或是否触及资金费；不以publish、gross、成交或收益来排序。不存在就UNAVAILABLE，不放宽。新旧成员如有差异逐格报告，原admission不冒称D10新raw价准入；新窗仍需后续同钟raw价/UNKNOWN门。
 
 完整书state仍从2023-01-01连续递推到该窗，绝不在新窗重置producer。若存在已认证、SHA一致且来源就是这组共同D10输入的连续combo数组，可从中提取独立目标并保留其状态来源；否则用原生成器及必要前缀重建。canonical执行库存仍按该小窗已冻结的cash初始化，不声称这是原全史账户库存。先固定窗口后再看publish/fill/结算，若无非零fill或可达费则本窗UNAVAILABLE，不再搜索下一窗。
+
+18:01Z读数前实施固定：机械修订选择rows2190–2309，A=1672531200（2023-01-01T00Z）、B=1674259200（01-21T00Z），拒绝前23窗仅因早于状态起点；当前成员17,520格、与原成员一致，producer prefix=0。现有scaled/literal数组均缺失，采用首120完整evolve重建，未读任何新窗收益/成交。构建器SHA `118a12b187a715994c5e2dcc7951e49108d7d52bc07e086802d5fd9837af9053`。主书沿原scaled reading，literal只作适配接口对照；固定执行路径seed=0，模型来源s42。原ovn_adapter build/write/verify_roundtrip逐位核新targets，禁止选不同路径或publication策略求非零现金。构建与cash tap合计CPU预算5分钟，RSS≤2GiB；原GPU禁启继续。

@@ -32,7 +32,8 @@ def utc(t):
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument('--out', required=True); args = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument('--out', required=True)
+    ap.add_argument('--supported-first120', action='store_true'); args = ap.parse_args()
     out = pathlib.Path(args.out); out.mkdir(parents=True, exist_ok=False)
     current = int(pathlib.Path('/sys/fs/cgroup/memory.current').read_text())
     maximum = int(pathlib.Path('/sys/fs/cgroup/memory.max').read_text())
@@ -52,6 +53,9 @@ def main():
              'admission': nc/'work/f10_s42/202608/ADMISSION.json', 'predicate': nc/'devices/f10_observability.py',
              'd10_king': pathlib.Path('/workspace/dlarch_2026-09-24/chain/d10rr_s42/work/king/KING_OOF.npz'),
              'd10_f10': pathlib.Path('/workspace/dlarch_2026-09-24/chain/d10rr_s42/work/f10_s42/F10_OOF.npz')}
+    if args.supported_first120:
+        paths.update(d10_features=pathlib.Path('/workspace/dlarch_2026-09-24/chain/d10rr_s42/work/NEWS_FEATURES.npz'),
+                     d10_legs=pathlib.Path('/workspace/dlarch_2026-09-24/chain/d10rr_s42/work/legs.npz'))
     pins = {k: {'path': str(p), 'sha256': sha(p)} for k, p in paths.items()}
     assert pins['features']['sha256'] == '3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8'
     assert pins['legs']['sha256'] == '9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65'
@@ -86,7 +90,7 @@ def main():
     assert dict(rejected) == original['rejected']
     assert len(tr1) == original['train_anchors'] and int(a[tr1[-1]]+14400) == original['max_train_label_end']
     span = accepted[0]; start, end = int(a[span[0]]), int(a[span[-1]]+14400)
-    support = {}
+    support = {}; finite_by_key = {}
     for key in ('d10_king', 'd10_f10'):
         with np.load(paths[key]) as z:
             keys = z.files; pa = z['E_ts']; ps = z['symbols']; assert np.array_equal(ps, syms)
@@ -94,6 +98,8 @@ def main():
             assert len(matrix_keys) == 1, (key, keys)
             pk = matrix_keys[0]; finite = np.isfinite(z[pk])
         assert finite.shape == (len(pa), len(syms))
+        assert np.array_equal(pa, a), (key, 'score axis differs')
+        finite_by_key[key] = finite
         any_rows = np.flatnonzero(finite.any(1))
         pi = np.searchsorted(pa, a[span]); onaxis = (pi < len(pa)) & (pa[np.minimum(pi, len(pa)-1)] == a[span])
         counts = [int(finite[pi[k], members[i]].sum()) if onaxis[k] else 0 for k, i in enumerate(span)]
@@ -111,8 +117,44 @@ def main():
               'original_contract_status': 'UNAVAILABLE_BEFORE_FULL_BOOK_STATE_ORIGIN' if start < 1672531200 else 'SUPPORT_REQUIRES_REVIEW',
               'no_return_or_score_aggregate': True, 'no_window_reselection': True, 'no_simulator_or_training': True,
               'elapsed_seconds': time.monotonic()-START, 'rss_peak_bytes': resource.getrusage(resource.RUSAGE_SELF).ru_maxrss*1024}
+    if args.supported_first120:
+        assert pins['d10_features']['sha256'] == 'ad80d50d1f8b953a317845a88ff2ae7399ad8cfdd967a49f492cb8094a6314c1'
+        assert pins['d10_legs']['sha256'] == '37c0b5d373af18e24fa0ad0961ad60a4ecec8fda07c2e6fe1c09368c1ab536c3'
+        with np.load(paths['d10_features']) as z:
+            assert np.array_equal(z['anchors'], a) and np.array_equal(z['symbols'], syms)
+            doff, dm = z['off'], z['m']
+        dmembers = [dm[int(doff[i]):int(doff[i+1])] for i in range(len(a))]
+        with np.load(paths['d10_legs']) as z:
+            assert np.array_equal(z['E_ts'], a) and np.array_equal(z['symbols'], syms)
+            dready = z['ready']
+        reasons = collections.Counter(); selected = None
+        for candidate in accepted:
+            if int(a[candidate[0]]) < 1672531200:
+                reasons['before_state_origin'] += 1; continue
+            if not dready[candidate].all():
+                reasons['d10_legs_unready'] += 1; continue
+            if not all(len(dmembers[i]) and all(finite_by_key[k][i, dmembers[i]].all()
+                       for k in ('d10_king', 'd10_f10')) for i in candidate):
+                reasons['incomplete_oof_on_current_members'] += 1; continue
+            selected = candidate; break
+        revised = {'rule': 'first original-admitted 120 span in complete current D10 OOF/state domain; no cash/fill criterion',
+                   'rejected_before_selected': dict(reasons), 'status': 'UNAVAILABLE' if selected is None else 'SUPPORT_PASS_CASH_UNVALIDATED'}
+        if selected is not None:
+            revised.update(rows=selected.tolist(), anchors=a[selected].tolist(), first_A=int(a[selected[0]]),
+                           first_A_utc=utc(a[selected[0]]), terminal_B=int(a[selected[-1]]+14400),
+                           terminal_B_utc=utc(a[selected[-1]]+14400),
+                           current_member_cells=sum(len(dmembers[i]) for i in selected),
+                           member_axis_equal_original=all(np.array_equal(members[i], dmembers[i]) for i in selected),
+                           producer_prefix_anchors=int(((a>=1672531200)&(a<a[selected[0]])).sum()))
+        combo = pathlib.Path('/workspace/dlarch_2026-09-24/chain/d10rr_s42/work/combo_s42')
+        revised['existing_combo_files'] = {n: {'exists': (combo/n).is_file(), 'bytes': (combo/n).stat().st_size if (combo/n).is_file() else None}
+                                           for n in ('scaled_diagnostic.npz', 'literal.npz')}
+        result['supported_revision'] = revised
+        result['elapsed_seconds'] = time.monotonic()-START
+        result['rss_peak_bytes'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss*1024
     (out/'RESULT.json').write_text(json.dumps(result, indent=2, allow_nan=False))
-    print(json.dumps({k: result[k] for k in ('original_contract_status','elapsed_seconds','rss_peak_bytes','first120','support')}, indent=2))
+    report_keys = ('original_contract_status','elapsed_seconds','rss_peak_bytes','supported_revision') if args.supported_first120 else ('original_contract_status','elapsed_seconds','rss_peak_bytes','first120','support')
+    print(json.dumps({k: result[k] for k in report_keys}, indent=2))
 
 
 if __name__ == '__main__': main()
