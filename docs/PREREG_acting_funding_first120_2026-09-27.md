@@ -19,3 +19,11 @@
 首span终端固定B=lastA+14400，现金(start,B]、fund先同刻fill；初始canonical库存为0，保留非线性原引擎。逐笔从原initial q与实际fill独立重建q(t−)，以原price panel和ms ledger核每次cash，并核窗口price−fee+fund=equity差。每笔所用经济时间/实际float事件时刻/int64ms及数量、价格、费率均导出。此处未证明外部venue成交真值。
 
 CPU小窗上限1线程/2GiB/5分钟，启动cgroup余量至少10GiB（2+8）且同UID RSS+2GiB≤30GiB；不启动GPU，不清共享cache，不改共享cgroup。元数据恢复阶段采用2GiB地址空间上限且不mmap整价格/特征；后续raw价格只在已授权范围按行块读取。输出预计KB/MB，不超过64MiB；实际输出小probe后写，仅本任务新根。新GPU/两臂训练不在本件授权内。
+
+## 支持域机械修订（原失败已封存，尚未见新窗现金/成交）
+
+原门实测为UNAVAILABLE_BEFORE_FULL_BOOK_STATE_ORIGIN：完全复现149 accepted/6 rejected，第一窗A=2022-07-01T00Z、B=2022-07-21T00Z，King在16,680个成员格全部有预测，F10为0格。F10首非空与完整producer状态起点均2023-01-01。原收据c2bb21fd1保持不变；这不是现金或信号负面证据。
+
+主审在见这些坐标之前已授权支持域修订。现在固定：仍只在原149个accepted窗中，按时间取第一个A≥2023-01-01、全部120锚被当前D10共同轴覆盖、当前D10合法producer成员上King与F10预测均有限、D10 legs ready全真的窗口。只读有限性/成员/轴，不读回报、现金、是否成交或是否触及资金费；不以publish、gross、成交或收益来排序。不存在就UNAVAILABLE，不放宽。新旧成员如有差异逐格报告，原admission不冒称D10新raw价准入；新窗仍需后续同钟raw价/UNKNOWN门。
+
+完整书state仍从2023-01-01连续递推到该窗，绝不在新窗重置producer。若存在已认证、SHA一致且来源就是这组共同D10输入的连续combo数组，可从中提取独立目标并保留其状态来源；否则用原生成器及必要前缀重建。canonical执行库存仍按该小窗已冻结的cash初始化，不声称这是原全史账户库存。先固定窗口后再看publish/fill/结算，若无非零fill或可达费则本窗UNAVAILABLE，不再搜索下一窗。
