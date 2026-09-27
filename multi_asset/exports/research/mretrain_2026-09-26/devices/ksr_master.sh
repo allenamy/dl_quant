@@ -71,6 +71,10 @@ PE=$!
 # ---- preps, one at a time, S0 m_k before S1 m_k (PREP_LIST_ksr order)
 while read -r LBL; do
   [ -z "$LBL" ] && continue
+  # lead 2026-09-27: yield to dlarch's D10 re-read -- while $R/PAUSE exists no NEW prep starts (the engine queue already waits on the same
+  # file between cells); the running prep / cell finishes, nothing is killed. Placed and removed on dlarch's notice; each wait is logged.
+  if [ -e $R/PAUSE ]; then say "PAUSE seen before prep $LBL (waiting; $(cat $R/PAUSE 2>/dev/null | head -c 120))"
+    while [ -e $R/PAUSE ]; do mr_stopped && stop "STOP while paused before $LBL"; sleep 60; done; say "PAUSE lifted, resuming with prep $LBL"; fi
   while [ "$(df -k --output=avail /dev/shm | tail -1)" -lt 4194304 ]; do mr_stopped && stop "STOP while waiting for /dev/shm >= 4 GiB before $LBL"; sleep 60; done
   ARM=${LBL%_m*}; M=${LBL##*_m}
   case $LBL in

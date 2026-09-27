@@ -29,6 +29,7 @@ while read -r LBL S; do
     mr_stopped && halt "family STOP while waiting for $LBL s$S READY"
     sleep 60
   done
+  [ -e $R/PAUSE ] && say "PAUSE seen before $LBL s$S (waiting)"
   while [ -e $R/PAUSE ]; do mr_stopped && halt "family STOP during PAUSE before $LBL s$S"; sleep 60; done          # courtesy pause for other agents' priority cells (between cells only)
   # lead's team priority (2026-09-26): 1 dlarch R1.4, 2 alloc R/O, 3 this family (red + A0/A1), 4 alloc candidates, 5 news2 D seg 5,
   # 6 this family's A3. Shared convention: an agent with a cell READY and waiting drops /dev/shm/ENGINE_PRIORITY/p<rank>_<name>.waiting;
