@@ -1,0 +1,19 @@
+PASS price compounded known answer
+PASS price 45 finite rows -> unpriced (never 0)
+PASS price 46 finite rows -> priced over finite rows
+PASS funding window (A, N]
+PASS funding coverage flag / absent flag
+PASS arm price known answer
+PASS arm funding sign (long pays positive, short receives negative rate -> pays)
+PASS arm cost = kappa * sum|dw|
+PASS unheld unknown names do not count
+PASS no previous book -> cost and net unknown (None), not 0
+PASS book scaled to gross 2.0
+PASS ledger good chain
+PASS ledger tampered line -> BROKEN
+PASS hook ok
+PASS hook no insertion line -> refuse
+PASS hook missing sm_fc -> refuse
+PASS collect identity equal -> 0
+PASS collect identity off by 1e-8 -> VOID (2)
+SHADOW_AB_TESTS 18/18

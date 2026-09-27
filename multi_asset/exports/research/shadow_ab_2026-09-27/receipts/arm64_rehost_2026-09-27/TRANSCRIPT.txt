@@ -1,0 +1,13 @@
+PGID 28815 start 2026-09-27T05:03:28Z
+2026-09-27T05:03:28Z RUN SHADOW_AB_HOME=/Users/haosiyu/shadow_ab_dryrun_arm64 bash /Users/haosiyu/shadow_ab_dryrun_arm64/devices/shadow_ab_replay.sh 1790452800 /Users/haosiyu/shadow_ab_dryrun_arm64/receipts/REPLAY_1790452800.json /Users/haosiyu/cc_tmp/shadow_ab_dryrun_arm64
+2026-09-27T05:03:42Z 1790452800 rc=0
+2026-09-27T05:03:42Z RUN SHADOW_AB_HOME=/Users/haosiyu/shadow_ab_dryrun_arm64 bash /Users/haosiyu/shadow_ab_dryrun_arm64/devices/shadow_ab_replay.sh 1790467200 /Users/haosiyu/shadow_ab_dryrun_arm64/receipts/REPLAY_1790467200.json /Users/haosiyu/cc_tmp/shadow_ab_dryrun_arm64
+2026-09-27T05:03:57Z 1790467200 rc=0
+2026-09-27T05:04:02Z RUN /Users/haosiyu/wide_shadow/venv/bin/python -B /Users/haosiyu/shadow_ab_dryrun_arm64/devices/shadow_ab_pnl.py 1790452800 /Users/haosiyu/shadow_ab_dryrun_arm64 /Users/haosiyu/wide_shadow
+2026-09-27T05:04:02Z pnl 1790452800 rc=0
+2026-09-27T05:04:02Z RUN /Users/haosiyu/wide_shadow/venv/bin/python -B /Users/haosiyu/shadow_ab_dryrun_arm64/devices/shadow_ab_pnl.py 1790467200 /Users/haosiyu/shadow_ab_dryrun_arm64 /Users/haosiyu/wide_shadow
+2026-09-27T05:04:02Z pnl 1790467200 rc=4
+verify rc=0
+2026-09-27T05:04:31Z RUN env -i HOME=/Users/haosiyu PATH=/usr/bin:/bin:/usr/sbin:/sbin SHADOW_AB_HOME=/Users/haosiyu/shadow_ab_dryrun_arm64/agent_home /bin/bash /Users/haosiyu/shadow_ab_dryrun_arm64/agent_home/devices/shadow_ab_agent.sh (x2)
+run1 rc=0 {"utc":"2026-09-27T05:04:49Z","pid":32838,"status":"DONE","last_replayed":"1790452800","last_priced":"1790452800"}
+run2 rc=0 {"utc":"2026-09-27T05:04:49Z","pid":33291,"status":"DONE (terminal)","last_replayed":"1790452800","last_priced":"1790452800"}
