@@ -1,0 +1,386 @@
+{
+  "schema": "acting-d10-first120-canonical-cash/1",
+  "status": "INPUT_TARGET_PASS_CASH_UNVALIDATED",
+  "base_config": {
+    "path": "/workspace/dlarch_2026-09-24/chain/d10rr_s42/configs/RUN_CONFIG_DLARCH_D10RR_s42.json",
+    "sha256": "7f71cfa4fccb53996183cb572eff577f96065992fbe577151bff2e0347c3b5c4"
+  },
+  "identity_manifest_sha256": "9a7de4e6cb0a02b9b8fff94c232635bce6aec8ba15ba06cb2baca3522c920b78",
+  "anchors": [
+    1672531200,
+    1672545600,
+    1672560000,
+    1672574400,
+    1672588800,
+    1672603200,
+    1672617600,
+    1672632000,
+    1672646400,
+    1672660800,
+    1672675200,
+    1672689600,
+    1672704000,
+    1672718400,
+    1672732800,
+    1672747200,
+    1672761600,
+    1672776000,
+    1672790400,
+    1672804800,
+    1672819200,
+    1672833600,
+    1672848000,
+    1672862400,
+    1672876800,
+    1672891200,
+    1672905600,
+    1672920000,
+    1672934400,
+    1672948800,
+    1672963200,
+    1672977600,
+    1672992000,
+    1673006400,
+    1673020800,
+    1673035200,
+    1673049600,
+    1673064000,
+    1673078400,
+    1673092800,
+    1673107200,
+    1673121600,
+    1673136000,
+    1673150400,
+    1673164800,
+    1673179200,
+    1673193600,
+    1673208000,
+    1673222400,
+    1673236800,
+    1673251200,
+    1673265600,
+    1673280000,
+    1673294400,
+    1673308800,
+    1673323200,
+    1673337600,
+    1673352000,
+    1673366400,
+    1673380800,
+    1673395200,
+    1673409600,
+    1673424000,
+    1673438400,
+    1673452800,
+    1673467200,
+    1673481600,
+    1673496000,
+    1673510400,
+    1673524800,
+    1673539200,
+    1673553600,
+    1673568000,
+    1673582400,
+    1673596800,
+    1673611200,
+    1673625600,
+    1673640000,
+    1673654400,
+    1673668800,
+    1673683200,
+    1673697600,
+    1673712000,
+    1673726400,
+    1673740800,
+    1673755200,
+    1673769600,
+    1673784000,
+    1673798400,
+    1673812800,
+    1673827200,
+    1673841600,
+    1673856000,
+    1673870400,
+    1673884800,
+    1673899200,
+    1673913600,
+    1673928000,
+    1673942400,
+    1673956800,
+    1673971200,
+    1673985600,
+    1674000000,
+    1674014400,
+    1674028800,
+    1674043200,
+    1674057600,
+    1674072000,
+    1674086400,
+    1674100800,
+    1674115200,
+    1674129600,
+    1674144000,
+    1674158400,
+    1674172800,
+    1674187200,
+    1674201600,
+    1674216000,
+    1674230400,
+    1674244800
+  ],
+  "terminal_B": 1674259200,
+  "seed_execution": 0,
+  "seed_model": 42,
+  "reading": "scaled",
+  "arm": "ACTING_D10_FIRST120_CLOCK_s42",
+  "nav0_usdt": 100000.0,
+  "current_production_config": {
+    "gross_mult": 2.0,
+    "chase_weights": {
+      "chase": 0.5,
+      "no_chase": 0.5
+    },
+    "E4_from_anchor": 0,
+    "requote_assignment_from_anchor": 0,
+    "fee_era": "USDT_era maker/taker of the pooled calibration for every trade",
+    "decision": "t_dec = A + decision_offset_default_s (1440 = N+24:00), rid = A{t_dec}; decision bar = floor_5m(t_dec) = N+20",
+    "stop_eval": "A + eval_offset_without_frame_s (2700 = N+45; no live readback frames in history)",
+    "rule_flatten": "max(A + rule_flatten_offset_s (2760 = N+46), t_eval + 1 s)",
+    "per_name_stop": "409ea16 config/book.json active_profile wide (\u22120.30 \u00d7 2 consecutive, 7-day cooldown, 5 USDT)",
+    "on_unavailable": "hold",
+    "venue_tradable": "tradability_v1 state_W24H == 2 at A",
+    "meta_exclusions": "none",
+    "exchange_filters": "stream-E mirror exchange_info_cache.json (current values)"
+  },
+  "policy": "UA-FREEZE-EXCLUDE",
+  "ua_set": "UNAVAILABLE_3084",
+  "events": "rule",
+  "price": "raw",
+  "paths": {
+    "pod_root": "/workspace/dlarch_2026-09-24/chain/d10rr_s42",
+    "exec_mirror": "/workspace/replay_r_2026-09-19/work/exec_mirror",
+    "mac_root": "multi_asset/exports/research/baseline_tables_2026-09-19"
+  },
+  "targets": {
+    "npz": "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/first120_canonical_20260927/TARGETS.npz",
+    "npz_sha256": "53bbe3dc1db680798c1260e5320dc55a1bb19666529bb07e140934001f02e34e",
+    "receipt": "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/first120_canonical_20260927/TARGETS.json",
+    "receipt_sha256": "f959d71d80ecb34a191e66d5fb21521b2552822c3a1e4843f8ddd301a191f442"
+  },
+  "cash_contract": {
+    "path": "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/first120_canonical_20260927/INPUT_CONTRACT.json",
+    "sha256": "d125ab84a640f911af64e05799cb6878d63f2b8d2df2b078895c15c26465e405"
+  },
+  "checker_sha256": "5f1ba04e22ac45ae4b7c632a9df1ae11f8f55b164c59ba33e7bc0fc62800c104",
+  "adapter_roundtrip": {
+    "scaled": {
+      "anchors_compared": 120,
+      "published_equal": 9,
+      "bitwise_equal": true,
+      "padded_checked": 0,
+      "loader_counts": {
+        "window_anchors": 120,
+        "combo": 9,
+        "king": 0,
+        "hold": 111,
+        "written_rows_without_weights": 0
+      }
+    },
+    "lit": {
+      "anchors_compared": 120,
+      "published_equal": 0,
+      "bitwise_equal": true,
+      "padded_checked": 0,
+      "loader_counts": {
+        "window_anchors": 120,
+        "combo": 0,
+        "king": 0,
+        "hold": 120,
+        "written_rows_without_weights": 0
+      }
+    }
+  },
+  "inherited_pins": {
+    "prereg": {
+      "path": "/workspace/baseline_tables_2026-09-19/pins/PREREG_baseline_tables_certified_2026-09-19.md",
+      "sha256": "d9fe45e3191f56e564e1df951ddfc9465e75d7ef03e680e31943cc9057398ae2"
+    },
+    "prereg_amendment_1": {
+      "path": "/workspace/baseline_tables_2026-09-19/pins/AMENDMENT_1_baseline_tables_certified_2026-09-19.md",
+      "sha256": "766bc367743d8542a2da4c2c547df16d2bac7c6984acf7f734ddd1e59c5c26cb"
+    },
+    "exec_sim": {
+      "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/exec_sim.py",
+      "sha256": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24"
+    },
+    "simlib": {
+      "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/simlib.py",
+      "sha256": "55246fe98da2d57a33bbbe0f22fc67e6581da539c353b026d8ef41673dfec2f1"
+    },
+    "v1b_gate": {
+      "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/v1b_gate.py",
+      "sha256": "4a725921a470f4c11f47cda5a8e210979215079cea16b496c709c7cc62fb5410"
+    },
+    "v1_gate": {
+      "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/v1_gate.py",
+      "sha256": "c97d9b3d49212b49ea2cde883d7a06fe749f43ed23f3aef7de6345a4d8075d0d"
+    },
+    "calibration": {
+      "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/CALIBRATION_v3_POOLED_20260826_20260910.json",
+      "sha256": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6"
+    },
+    "input_manifest": {
+      "path": "/workspace/baseline_tables_2026-09-19/devices/exec_copy/INPUT_MANIFEST.json",
+      "sha256": "59875e5a69db415f5ce20b35b888f2d49a31427fdde8b7b847a9645ee135a5ae"
+    },
+    "p2_s2_lib": {
+      "path": "/workspace/uplift_r2_2026-09-13/P2/devices/p2_s2_lib.py",
+      "sha256": "c53f5c495036727fcd7115bad6838229923c91f6b76bed955ebdb0f25d57c831"
+    },
+    "price_full_raw": {
+      "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r.npy",
+      "sha256": "23af32bd97c267d126c2109641815b92082b8688e35bcfbaaa1e88c2dc5bb5d8"
+    },
+    "price_full_meta": {
+      "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r_meta.npz",
+      "sha256": "d1e49cc9f0a7ddc4104feb52a42da3024ba1e66ad5891a26c96f00cff7ce5d90"
+    },
+    "price_receipt": {
+      "path": "/workspace/baseline_tables_2026-09-19/receipts/BT_PRICES_FULL_X0918R.json",
+      "sha256": "130592b122831e03c24916e771be5174c9be3930500eb735a7d268907ee000f2"
+    },
+    "price_source_table_x0918r": {
+      "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/work/price_logtable_raw_x0918r.npy",
+      "sha256": "9249b0da4a4c578900cbafd29e1cec28de57f4437f037f1280040b2a84196608"
+    },
+    "price_source_meta_x0918r": {
+      "path": "/workspace/raw_price_fix_2026-09-19/ext_x0918r/work/price_meta_raw_x0918r.npz",
+      "sha256": "da136830cee7e1a219e56e69ce9d50de2eead6864df7d205cdb7559151162df3"
+    },
+    "ledger_full": {
+      "path": "/workspace/baseline_tables_2026-09-19/funding/ledger_spliced_p2_to_20260901T0200_streamD_after.npz",
+      "sha256": "073088e503c026d6071c76764426503616d53570e5f3763807df27ea7cc80362"
+    },
+    "funding_overlap_proof": {
+      "path": "/workspace/baseline_tables_2026-09-19/funding/BT_FUNDING_OVERLAP.json",
+      "sha256": "0ee6d99bfa2acfb9576efb90655ac3e6b1f68fbdb7de14fcecbd3b02531c635b"
+    },
+    "funding_source_p2": {
+      "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+      "sha256": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
+    },
+    "funding_source_stream_d": {
+      "path": "/workspace/axis_0919/funding/funding_ledger.npz",
+      "sha256": "74b69e635efbf3556fe706520fda9d5a1b5cda86dda9d04a844ba5d617a3a09d"
+    },
+    "funding_4h_accounting_stream_d": {
+      "path": "/workspace/axis_0919/funding/funding_4h_accounting.npz",
+      "sha256": "2838e5f6cf42fff5619460f64708d952cd56e23e6621195d8e3d8bd5466aca72"
+    },
+    "tradability": {
+      "path": "/workspace/axis_0919/x0918r/trd/tradability_v1.npz",
+      "sha256": "bebf69ab9ddb3b05b49552e66dccf9b8cde3caee0593b14e1b3fe1a4c93c9db8"
+    },
+    "universe": {
+      "path": "/workspace/uplift_r2_2026-09-13/P2/work/universe.npz",
+      "sha256": "6322b57366078ed0022fd8a8156ee36f527bf309e0d66bfa5f6ec17d7a09efa7"
+    },
+    "g0_labels": {
+      "path": "/workspace/baseline_tables_2026-09-19/g0x/g0_labels_x0918.npz",
+      "sha256": "c3832939e1b0133369af96ea2866e3cfb226274aeda98c81b82e531654b185b6"
+    },
+    "g0_receipt": {
+      "path": "/workspace/baseline_tables_2026-09-19/g0x/RECEIPT_bt_g0_extend.json",
+      "sha256": "8afd680472ef21be2731bf4b7e55cea018dc80ac44c370ef8321f9cb02fc82de"
+    }
+  },
+  "input_pins": {
+    "features": {
+      "path": "/workspace/dlarch_2026-09-24/chain/d10rr_s42/work/NEWS_FEATURES.npz",
+      "sha256": "ad80d50d1f8b953a317845a88ff2ae7399ad8cfdd967a49f492cb8094a6314c1"
+    },
+    "legs": {
+      "path": "/workspace/dlarch_2026-09-24/chain/d10rr_s42/work/legs.npz",
+      "sha256": "37c0b5d373af18e24fa0ad0961ad60a4ecec8fda07c2e6fe1c09368c1ab536c3"
+    },
+    "f10_oof": {
+      "path": "/workspace/dlarch_2026-09-24/chain/d10rr_s42/work/f10_s42/F10_OOF.npz",
+      "sha256": "081bd6e60895f76ee8f1dfd1c47347305d0139ad674638360ccb15d02e261411"
+    },
+    "king_oof": {
+      "path": "/workspace/dlarch_2026-09-24/chain/d10rr_s42/work/king/KING_OOF.npz",
+      "sha256": "6579bc4e390493a31873d790bdbc366c48bfddc9c06b79c24eef73bc8b911e18"
+    },
+    "legs_receipt": {
+      "path": "/workspace/dlarch_2026-09-24/chain/d10rr_s42/receipts/P3_LEGS.json",
+      "sha256": "e8447dee6ad0f0d22635f4aab74c9ddb1061ac3df2f0784d389d3bda49314e5d"
+    },
+    "f10_receipt": {
+      "path": "/workspace/dlarch_2026-09-24/chain/d10rr_s42/work/f10_s42/TRAIN_RECEIPT.json",
+      "sha256": "26fb220b7bd14a9f3f9e9563604a1be006837f7e6bdf331eb198c243ad156953"
+    },
+    "combo_receipt": {
+      "path": "/workspace/dlarch_2026-09-24/chain/d10rr_s42/work/combo_s42/TARGET_RECEIPT.json",
+      "sha256": "9f7d08273a8ce254da73862d5a7af80a33d318c709c851986aa72d6804ee7610"
+    },
+    "combo_source_news2_combo.py": {
+      "path": "/workspace/dlarch_2026-09-24/chain/devices/news2_combo.py",
+      "sha256": "81e2d274f2202755103a0dc3ab2fa31f8ff42c0da5000a3752708e34990d3201"
+    },
+    "combo_source_continuous_combo.py": {
+      "path": "/workspace/dlarch_2026-09-24/chain/devices/continuous_combo.py",
+      "sha256": "1501c9f63641bf447c4cb33661d08da25ced0948f9fae63cebb44cdfd1995d21"
+    },
+    "combo_source_combo_target.py": {
+      "path": "/workspace/dlarch_2026-09-24/chain/devices/combo_target.py",
+      "sha256": "d7577e824298fb90a554f35ac9c4d634202a4ed7e4e00cabc597a2d4eafdb544"
+    },
+    "combo_source_book_universe.py": {
+      "path": "/workspace/dlarch_2026-09-24/chain/devices/book_universe.py",
+      "sha256": "90e332cc27cf8f34aabcac13f9829f84e463ffa900efbe554e17c07436e8dcca"
+    },
+    "combo_source_combo_stage.py": {
+      "path": "/workspace/dlarch_2026-09-24/chain/d10rr_s42/vendor_live/fea171/combo_stage.py",
+      "sha256": "fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8"
+    },
+    "combo_input_member_mask_tradable_AND_live_W24H_cachegrid.npz": {
+      "path": "/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz",
+      "sha256": "f752d8ae3bf92f001fcb5d6f83a7e4ae286d9f11f7548c2e965305615aa9ae51"
+    },
+    "combo_input_P1_members_2025H2on.npz": {
+      "path": "/workspace/dlarch_2026-09-24/chain/d10rr_s42/receipts/P1_members_2025H2on.npz",
+      "sha256": "2323623fda9333710f5834911ab629377ab8c12b056f40ccfc9f7033c0c1f6f1"
+    },
+    "target_universe": {
+      "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+      "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f"
+    },
+    "combo_input_bundle_config.json": {
+      "path": "/workspace/dlarch_2026-09-24/chain/d10rr_s42/inputs/bundle_config.json",
+      "sha256": "3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e"
+    },
+    "engine_ovn_adapter.py": {
+      "path": "/dev/shm/news2_2026-09-23/engine/ovn_adapter.py",
+      "sha256": "17555e56362c53ce4e961e0d8cb050be65cddae31088b275f190eecacd5794ea"
+    },
+    "engine_bt_objb_targets.py": {
+      "path": "/dev/shm/news2_2026-09-23/engine/bt_objb_targets.py",
+      "sha256": "05cc5dc25df99459d93b34c9b10477f08002dd301b9b45ec6aa47bd77fc95373"
+    },
+    "price_full_meta": {
+      "path": "/workspace/baseline_tables_2026-09-19/work/price_full_raw_x0918r_meta.npz",
+      "sha256": "d1e49cc9f0a7ddc4104feb52a42da3024ba1e66ad5891a26c96f00cff7ce5d90"
+    },
+    "actual_config": {
+      "path": "/workspace/dlarch_2026-09-24/chain/d10rr_s42/configs/RUN_CONFIG_DLARCH_D10RR_s42.json",
+      "sha256": "7f71cfa4fccb53996183cb572eff577f96065992fbe577151bff2e0347c3b5c4"
+    }
+  },
+  "legacy_ledger_is_reference_only": true,
+  "cash_source": "INPUT_CONTRACT exact-ms checker events; never base ledger_full",
+  "limitations": [
+    "fixed-window cash instrument; not candidate/OOS evidence",
+    "source producer state starts Jan1; simulation inventory starts cash",
+    "NC/D10RR reference is preserved, no frozen pins changed"
+  ]
+}

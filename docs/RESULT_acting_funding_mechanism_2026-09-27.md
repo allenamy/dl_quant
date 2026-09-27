@@ -153,3 +153,16 @@ Pod部署根为`/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/fun
 17:43Z独立资源提案见`PLAN_acting_funding_memory_cap_2026-09-27.md`：CPU现金/系数进程退出后再启动GPU小包进程，静态载荷与运行时未知项分开；3GiB仍是待证预算，没有重排。现有cgroup subtree_control为空，未证明有私有memory硬限，采样RSS watchdog不能冒充内核保证。
 
 首120输入审查1dbe61fa0另确认：当前D10RR虽已用D10重建特征，实跑cash链仍读073088旧秒账，未接76b7毫秒账；rerun6不是RUN_CONFIG。当前旧TARGETS NPZ缺失，需要用已绑定共同输入/原完整书生成器在新根重建，不借NC旧目标。身份检查器已交付，明确仅INPUT_CONTRACT_PASS_CASH_UNVALIDATED；新精确ms消费者、真实独立targets和首span逐事件现金门仍未运行，详见更新后的完整fold计划。不能把该接口发现写成已证实旧现金bug。
+
+
+## 13. 首 120 锚 D10 完整书的现金接口已闭合（18:06:50Z；18:18Z 归档）
+
+原 admission 首窗落在 2022-07，F10 有效分数从 2023-01 才开始，故原合同 UNAVAILABLE，不是信号或现金负面证据。先于读数按原 admission 的时间上首个共同 OOF/状态支持域修订，固定 2023-01-01 至 2023-01-21 的 120 锚（1d16536c9/972208645）。共同 D10 特征/legs/King/F10、原完整 combo、OVN adapter 与 loader 逐位回读通过。**scaled 9/120 发布、111 HOLD；literal 0/120 发布；本次 PASS 只签现金接口，不签策略代表性或收益。**
+
+新独立 exact-ms consumer 经原 HistSim31 的真实 scheduler 控制后接入，原始价与 NAV100000/GM2/fees/保护规则保持既有合同。一次 canonical tap 得到 5,225 fill、659 fund_log、9,104 全部精确 ms 事件，656 次可达且非零库存结算。原事件 cash 最大差 0，逐窗误差≤1.16e−14 USD，price/fee/equity 三项同钟恒等误差≤4.51e−10 USD。目标构建 11.00秒/RSS337.30MiB，cash 10.25秒/RSS100.64MiB；单核、2GiB、5分钟独立预算，实测资源门及 quota probe通过，无 GPU。
+
+Root 指出原脚本的 quantity 只测未 assert、+0.01只是算术控制；原 RESULT/TAPE/command/source 全字节保留。独立纯 tape revalidator 绑定 sim.sealed 初始 q={}，按严格早于 funding 的实际 fills 重建全部 q(t−)，数量精确相等、逐事件与逐窗现金差均 0；真实记录 cash+0.01、q+1、初始仓变异及零费率遮蔽数量差全部经同一核对函数拒绝。Root 再以自己的零 engine import 读器完成独立复核并拒绝重复现金。没有再跑模拟器。
+
+consumer SHA 钉值与 contract 相同；原进程缺 module.__file__ 遥测，18:17:28Z 事后同序 sys.path 解析命中该精确源。此限制明留，不将事后解析冒称当时遥测。局部 FD 验证 fill 前当前增量偏导0、fill 后 reachable carry 可达；它没有验证网络 θ 梯度。连续120锚若旧库存来自前一预测，fill 前现金仍对共享 θ 可有梯度，不能将所有 decision 前费用从训练删除。下一阶段专门测此反例。
+
+完整证据见 `multi_asset/exports/research/acting_lead_20260927/funding/first120_canonical_20260927/README.md`；旧六窗 NO_RESCHEDULE 及预算终态不变。§7、§11中的未测陈述以本节为准：真实现金消费者已经闭合，网络参数梯度与候选 OOS仍未测。

@@ -52,3 +52,7 @@ research_resume_0927已提交1dbe61fa0，独立身份manifest为`multi_asset/exp
 精确输入入口用`multi_asset/exports/research/acting_lead_2026-09-27/devices/d10_first_span_identity.py::check_and_load`（source SHA `0d2556e1e322611c221673952ec25175f41256f6bfd1a025a5d36ea10496abee`）。新adapter必须只消费其返回的ft_ms/symbol_index/rate，不能再另开未绑定账本。接口目前只是INPUT_CONTRACT_PASS_CASH_UNVALIDATED、execution_ready=false；10项输入控制不等于cash正确。
 
 最小cash接法是独立HistSim31子类在on_funding(t)前激活该精确ms事件的rate视图，再调用原super.on_funding；旧int(t)查询仅对该激活事件生效，不跨事件复用同秒字典。F.times保留可回转原int64 ms的时间，FundAudit沿float事件记录。先测同秒.100 fill/.900 fund、同symbol同秒两fund夹fill、同ms多symbol、同刻fund先fill、B/B+1ms、held/partial/new及F=0；这些现金消费者控制尚未实现或执行。之后才导出首span非零成交和可达结算，按正文同钟单位核对。首span目前未运行，也未获得新GPU预算。
+
+## 18:18Z 首 span 交付
+
+上述 17:43Z 入口状态已推进：checker 使用修后 SHA5f1ba04e…；原首窗支持域失败和机械修订均保留；2023-01 首 120 完整目标与真实 HistSim31 exact-ms cash 已通过，详见 RESULT_acting_funding_mechanism_2026-09-27.md §13 及 first120_canonical_20260927/README.md。9/120 发布、111 HOLD 只作接口验收。下一步为固定完整组合的两臂 reachable-carry 参数通路，不是旧六窗 GPU 预算续跑。
