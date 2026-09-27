@@ -75,7 +75,7 @@
 - **同一棵树里必须一起改的调用方**(§7 裁定 7:都改):`nc_prep.py:116`(训练侧 fund_state)、`nc_seed_state.py:121,193,195`(安装时播种)、`nc_derive_producer.py:280`。否则训练侧与服务侧会再次分叉。
 - **常量只写一处**:生产者树里带一份 `funding_interval.py`,其 sha 必须等于研究仓 `common/funding_interval.py`;找不到就抛错,不许回落到本地常量(DR10 §1 末条)。平价门核这个 sha。
 - **状态**(§7 裁定 6):切换时从归档**按毫秒键整体重新播种**(`nc_seed_state.py`),播种来源与 §2 的特征同源;九月的 API 源同样按毫秒重取。**回滚 = 按字节恢复切换前的状态快照**,快照的 sha 在窗口开始前写进收据。
-- **声明间隔 declared_iv**(§7 裁定 5):主源是 `/fapi/v1/fundingInfo`;premiumIndex 的 nextFundingTime 作交叉核对。「名字不在 fundingInfo 响应里 ⇒ 按 8h」**必须先取证才可用**:要交易所文档快照作收据,并逐名核对历史结算间隔,期望 0 例不符。取证装置与收据见 §3c。两个来源都拿不到 ⇒ UNRESOLVED:该名在该锚记为资金费未知,具名告警,**不许默认成 8**。
+- **声明间隔 declared_iv**(§7 裁定 5,lead 06:5xZ 终裁):主源 `/fapi/v1/fundingInfo`;premiumIndex 的 nextFundingTime 作交叉核对。**不启用「缺名 ⇒ 8h」**:缺名一律 UNRESOLVED,该名在该锚记为资金费未知并具名告警,不许默认成 8。依据见 §3c 的取证:当前 570 个 TRADING 永续全部在 fundingInfo 里,缺名为 0,所以这条规则今天的成本为 0。生产者树只实现 UNRESOLVED 这一个分支。fundingInfo 间隔与归档末行不一致的 14 个名交给 4a/4b 平价门处理,名单见取证收据。
 - **一个行为改动**(§7 裁定 3):生产者 + King + F10 = 一个窗口、一套回滚、一次首锚验收;冻结前向用户报告。
 - **执行器侧**:King booster 与 F10 模型换装,`booster_sha_pin` 与 `f10_sha_pin` 在同一静默窗里改,回滚时一起回退(RUNBOOK_monthly_retrain_2026-10 L270;STATE L373)。
 - **部署协议**:执行器走隔离检出 → 拷实盘状态 → `ops/safe_commit.sh` 离线全电池 → 推送 → 在 `anchor.lock` 下于静默窗内快进(`DEPLOY_new_servable_models_2026-09-23.md` L5);生产者照 09-24 先例:代码、状态格式、模型、钉在同一窗口 W = [N+1:00, N+3:40] 内改,A3(生产者)与 A4(执行器快进)落在同一对锚之间,且早于 N+4:12;回滚 R-A/R-B(`nc_install.py rollback`、`nc_downgrade_state.py`、`book.json` 逐字节恢复)(`DEPLOY_producer_new_contract_2026-09-23.md` L9–13、L219–233、L492–515)。
@@ -88,6 +88,12 @@
 3. 逐名核对:不在响应里的每个名,在归档 zip 最近 N 个月里,`funding_interval_hours` 应全部等于 8。期望 0 例不符。不符的逐名列出,这条规则即不成立。
 4. 反向核对:在响应里的每个名,其 `fundingIntervalHours` 与归档最近一行的间隔应一致。
 5. 结果:三项全过才写「取证成立」;否则按 UNRESOLVED 路径处理,由 lead 另裁。
+
+**结果(2026-09-27,收据 `news2_2026-09-23/receipts/declared_iv_2026-09-27/`)**:
+- 文档原文不含「缺名 ⇒ 8h」。原文只经 WebFetch 转述取得;页面对 curl 返回 202 空内容,**没有字节快照,不作字节证据**。
+- 当前 fundingInfo 共 791 名,570 个 TRADING 永续全部在内。
+- 2026-08 归档里的 11 个缺名全部已下架 ⇒ 这条回落在在役人口里没有适用对象。
+- **lead 终裁:不启用回落,缺名 ⇒ UNRESOLVED。**
 
 ## 4. 平价门(线 B;owner:news2 跑,lead 读)
 

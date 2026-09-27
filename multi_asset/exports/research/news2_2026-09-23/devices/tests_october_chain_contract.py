@@ -38,6 +38,10 @@ KNOWN_VIOLATIONS = {
     # by its own hand-rolled helper, which this scanner cannot see through. Changing it means a redeploy by lead, not an edit here.
     "archive_live_ledger.py": 6,   # 1 = its own temp/fsync/read-back helper (os.fdopen L139), 5 = its 7b selftest fixtures
 }
+# lead 2026-09-27 (October timeline ruling 3): the interval rule the producer tree vendors is FROZEN before integ starts the tree.
+# A literal expected value, not "receipt sha == file sha": an edited file with a re-signed receipt must still turn this red.
+FUNDING_INTERVAL_FROZEN_SHA = "5d5bf20797ca41c0b83ce0d6d710acb9baf2c500c93c9b40b7084c23182afb3f"   # last changed 3f8bbe1cd
+
 # lead 2026-09-27 (dry-run plan freeze, decision 1): these receipts must carry argv DERIVED from vars(<parse_args result>) -- never a
 # hand-written list -- and the interpreter version.
 RECEIPT_ARGV_REQUIRED = ("d10_build_ledger_ms.py", "d10_build_fund_state.py", "d10_parity_gate.py")
@@ -168,10 +172,24 @@ def scan_shell(src):
     return bad
 
 
-def chain_from_runbook():
-    text = open(RUNBOOK).read()
-    names = sorted(set(re.findall(r"\b([A-Za-z0-9_]+\.(?:py|sh))\b", text)))
+PATH_RE = re.compile(r"\b((?:multi_asset/exports/research/)?[A-Za-z0-9_.-]+/devices/[A-Za-z0-9_]+\.(?:py|sh))\b")
+
+
+def chain_from_runbook(text=None):
+    """Bare names resolve in this devices dir or common/; a path-qualified name (<research dir>/devices/<name>) resolves to exactly
+    that file, so a device owned by another agent stays in its own directory and is still checked (fresh2's kf trainer, dlarch's
+    F10 trainer -- 2026-09-27). A path-qualified name that does not exist yet is reported, not resolved."""
+    text = open(RUNBOOK).read() if text is None else text
     resolved, elsewhere = {}, []
+    for rel in sorted(set(PATH_RE.findall(text))):
+        rel2 = rel if rel.startswith("multi_asset/") else "multi_asset/exports/research/" + rel
+        p = os.path.join(REPO, rel2)
+        if os.path.isfile(p):
+            resolved[rel2] = p
+        else:
+            elsewhere.append("absent:" + rel2)
+    text = PATH_RE.sub(" ", text)
+    names = sorted(set(re.findall(r"\b([A-Za-z0-9_]+\.(?:py|sh))\b", text)))
     for n in names:
         for d in (HERE, COMMON):
             p = os.path.join(d, n)
@@ -252,6 +270,15 @@ def register():
         assert undefined_names(clean) == [], undefined_names(clean)
     cell("M_undefined_name_rule_bites", m_undef)
 
+    def m_path():
+        t = "run `kingfam_2026-09-27/devices/kf_train_king.py` and `multi_asset/exports/research/news2_2026-09-23/devices/p9_pull_verdict.py` and d10_parity_gate.py"
+        _, res, el = chain_from_runbook(t)
+        assert "multi_asset/exports/research/news2_2026-09-23/devices/p9_pull_verdict.py" in res, res
+        assert "d10_parity_gate.py" in res, res
+        k = "multi_asset/exports/research/kingfam_2026-09-27/devices/kf_train_king.py"
+        assert (k in res) or ("absent:" + k in el), (res, el)
+    cell("M_path_qualified_names_resolve", m_path)
+
 
     # ---- the real population ----
     def c_runbook():
@@ -323,6 +350,12 @@ def register():
         assert not bad, bad
         return {"n_python_devices_checked": sum(1 for n in resolved if n.endswith(".py"))}
     cell("C5_no_unresolvable_names_in_chain", c_undef)
+
+    def c_freeze():
+        got = hashlib.sha256(open(os.path.join(COMMON, "funding_interval.py"), "rb").read()).hexdigest()
+        assert got == FUNDING_INTERVAL_FROZEN_SHA, "common/funding_interval.py changed after the freeze: %s" % got
+        return {"funding_interval_sha256": got}
+    cell("C6_funding_interval_frozen", c_freeze)
 
 
 def main():

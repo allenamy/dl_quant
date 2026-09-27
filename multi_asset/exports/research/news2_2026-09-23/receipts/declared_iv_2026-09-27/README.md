@@ -17,3 +17,11 @@
 6. **C**:7 个缺名在更早的月份用过非 8h 间隔、之后又回到 8h,全部已下架。
 
 **建议**(lead 裁定):不启用「缺名 ⇒ 8h」,缺名一律走 UNRESOLVED 并具名告警。依据:在役人口中缺名为 0,所以这样做今天的成本也是 0;而这条规则的证据在在役人口上为空。
+
+## lead 终裁(2026-09-27 06:5xZ)与补记
+- **终裁**:不启用「缺名 ⇒ 8h」,缺名一律 UNRESOLVED 并具名告警;生产者树只做 UNRESOLVED 这一个分支。
+- **证据缺口(明写)**:文档原文是 WebFetch 转述的引文,页面对 curl 返回 HTTP 202 且内容为 0 字节(2026-09-27T06:36:31Z,两个 URL 都是如此)。**这里没有字节快照,文档部分不作字节证据。** 真正的证据是 §4 的人口事实。
+- **交给 4a/4b 平价门的 14 个名**(fundingInfo 的 fundingIntervalHours 与归档最后一行间隔不同,可能是 9 月的调整;格式为 名:fundingInfo/归档末行):
+  - GSUSDT 8/1、HK0700USDT 4/8、HK1810USDT 4/8、IOSTUSDT 4/8、MINIMAXUSDT 4/8
+  - MTLUSDT 4/8、ONEUSDT 1/8、ONGUSDT 4/1、POPMARTUSDT 4/8、SKRUSDT 4/1
+  - TENCENTUSDT 4/8、WENUSDT 8/1、ZHIPUUSDT 4/8、ZKCUSDT 4/1
