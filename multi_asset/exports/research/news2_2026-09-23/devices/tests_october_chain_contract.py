@@ -73,6 +73,34 @@ def receipt_argv_problems(src):
     return out
 
 
+def undefined_names(src):
+    """Names that are loaded somewhere but bound nowhere in the module (no import, assignment, def/class, argument, loop/with/except
+    target, comprehension variable) and are not builtins. Coarse on purpose -- binding anywhere counts -- so it only reports names that
+    CANNOT resolve at run time. Added after the dry run hit NameError: DW in two devices whose writes I routed through durable_write
+    without inserting the import (d3a7f013d); parse and --help both passed because the name is only reached at the very end."""
+    import builtins
+    tree = ast.parse(src)
+    bound, loaded = set(dir(builtins)) | {"__file__", "__name__", "__doc__", "__spec__", "__builtins__"}, {}
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Name):
+            if isinstance(n.ctx, (ast.Store, ast.Del)):
+                bound.add(n.id)
+            else:
+                loaded.setdefault(n.id, n.lineno)
+        elif isinstance(n, (ast.Import, ast.ImportFrom)):
+            for al in n.names:
+                bound.add((al.asname or al.name).split(".")[0])
+        elif isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            bound.add(n.name)
+        elif isinstance(n, ast.arg):
+            bound.add(n.arg)
+        elif isinstance(n, ast.ExceptHandler) and n.name:
+            bound.add(n.name)
+        elif isinstance(n, (ast.Global, ast.Nonlocal)):
+            bound.update(n.names)
+    return sorted((ln, nm) for nm, ln in loaded.items() if nm not in bound)
+
+
 EXEMPT_RE = re.compile(r"#\s*durable-exempt:\s*(.*)$")
 WRITE_MODE = re.compile(r"[wax+]")
 NP_WRITERS = {"save", "savez", "savez_compressed", "savetxt"}
@@ -217,6 +245,13 @@ def register():
         assert receipt_argv_problems(sub) == [], receipt_argv_problems(sub)
     cell("M_receipt_argv_rule_bites", m_argv)
 
+    def m_undef():
+        assert undefined_names('import json\nprint(DW.write_json("p", {}))\n') == [(2, "DW")], undefined_names('import json\nprint(DW.write_json("p", {}))\n')
+        clean = ('import durable_write as DW, os\nfrom x import y as z\ndef f(a, *b, **c):\n    global G\n    G = [i for i in a]\n'
+                 '    try:\n        pass\n    except OSError as e:\n        print(e, z, b, c, os, DW, len)\nclass K: pass\nwith open(__file__) as fh: K\n')
+        assert undefined_names(clean) == [], undefined_names(clean)
+    cell("M_undefined_name_rule_bites", m_undef)
+
 
     # ---- the real population ----
     def c_runbook():
@@ -280,6 +315,14 @@ def register():
         bad = {n: v for n, v in bad.items() if v}
         assert not bad, bad
     cell("C4_receipts_carry_vars_args_and_python", c_argv)
+
+    def c_undef():
+        _, resolved, _ = chain_from_runbook()
+        bad = {n: undefined_names(open(p).read()) for n, p in resolved.items() if n.endswith(".py")}
+        bad = {n: v for n, v in bad.items() if v}
+        assert not bad, bad
+        return {"n_python_devices_checked": sum(1 for n in resolved if n.endswith(".py"))}
+    cell("C5_no_unresolvable_names_in_chain", c_undef)
 
 
 def main():

@@ -48,6 +48,15 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import d10_manifest_gate as GATE
+for _c in (os.path.dirname(os.path.realpath(__file__)),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "common"),
+           os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), "common")):
+    if os.path.exists(os.path.join(_c, "durable_write.py")):
+        sys.path.insert(0, _c)
+        break
+else:
+    raise ImportError("common/durable_write.py not found next to or above this device; deploy it with the device")
+import durable_write as DW  # every file this device writes goes through it (news2 class fix 2026-09-27)
 
 WIN = 24 * 3600
 
