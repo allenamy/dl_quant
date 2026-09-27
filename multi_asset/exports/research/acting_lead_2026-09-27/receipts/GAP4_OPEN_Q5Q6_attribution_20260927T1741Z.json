@@ -1,0 +1,142 @@
+{
+  "utc": "2026-09-27T17:41:49.317837+00:00",
+  "device": "stdlib-only independent source/data audit; no API or execution-module imports",
+  "scope": "OPENUSDT only; 08:20–08:47Z historical Q5/Q6; no arm or PnL reads",
+  "provenance": {
+    "utc": "2026-09-27T17:39:35.899762+00:00",
+    "reader_sha256": "3c81186d87a41ac61800752aa7f83ade2c011bdfe5f3e42503388fcae05ee692",
+    "scope": "historical single-symbol incident forensics, GET only; no K1 rescan",
+    "params": {
+      "symbol": "OPENUSDT",
+      "startTime": 1790497200000,
+      "endTime": 1790498820000,
+      "limit": 1000
+    },
+    "responses": [
+      {
+        "name": "allOrders",
+        "path": "/Users/haosiyu/.codex/tmp/acting_lead_20260927/OPEN_Q5Q6_20260927T173935Z/allOrders.json",
+        "sha256": "b87bf71acac323838534673948955facf89c35a835707247d55a316b980809ac",
+        "count": 2
+      },
+      {
+        "name": "userTrades",
+        "path": "/Users/haosiyu/.codex/tmp/acting_lead_20260927/OPEN_Q5Q6_20260927T173935Z/userTrades.json",
+        "sha256": "4a0591f5323b888a02a7609a4bb0b17455189b20f25c6787b614651f7f2a313e",
+        "count": 5
+      }
+    ],
+    "status": "RAW_FETCH_COMPLETE_NOT_ATTRIBUTION"
+  },
+  "manifest_sha256": "c8a2f16ea24271823458cc584f88898300894b55b4bd3fcbd5c4d9e11c712c2e",
+  "controls": {
+    "allOrders_hash_count": true,
+    "userTrades_hash_count": true,
+    "bounded_unsaturated_lists": true,
+    "fixed_params": true,
+    "all_symbols_OPEN": true,
+    "all_times_in_window": true,
+    "unique_order_keys": true,
+    "unique_trade_keys": true,
+    "all_trades_join": true,
+    "trade_quantities_finite_positive": true,
+    "trade_quantity_matches_order": true,
+    "local_maker_final": true,
+    "foreign_F_filled": true,
+    "only_foreign_trades": true,
+    "strict_event_order": true,
+    "local_capture_exchange_match": true,
+    "F_fills_between_local_maker_and_topup": true
+  },
+  "orders": [
+    {
+      "symbol": "OPENUSDT",
+      "orderId": 910475678,
+      "clientOrderId": "A1790497440-OPENUSDT-2",
+      "time": 1790497511875,
+      "updateTime": 1790497870485,
+      "origQty": "4708",
+      "executedQty": "0",
+      "status": "CANCELED",
+      "type": "LIMIT",
+      "side": "SELL",
+      "reduceOnly": true,
+      "positionSide": "BOTH"
+    },
+    {
+      "symbol": "OPENUSDT",
+      "orderId": 910476907,
+      "clientOrderId": "F20260927083112-OPENUSDT-106",
+      "time": 1790497911518,
+      "updateTime": 1790497911518,
+      "origQty": "4708",
+      "executedQty": "4708",
+      "status": "FILLED",
+      "type": "MARKET",
+      "side": "SELL",
+      "reduceOnly": true,
+      "positionSide": "BOTH"
+    }
+  ],
+  "trades": [
+    {
+      "symbol": "OPENUSDT",
+      "orderId": 910476907,
+      "id": 127677736,
+      "time": 1790497911518,
+      "qty": "576",
+      "side": "SELL",
+      "positionSide": "BOTH"
+    },
+    {
+      "symbol": "OPENUSDT",
+      "orderId": 910476907,
+      "id": 127677737,
+      "time": 1790497911518,
+      "qty": "429",
+      "side": "SELL",
+      "positionSide": "BOTH"
+    },
+    {
+      "symbol": "OPENUSDT",
+      "orderId": 910476907,
+      "id": 127677738,
+      "time": 1790497911518,
+      "qty": "1271",
+      "side": "SELL",
+      "positionSide": "BOTH"
+    },
+    {
+      "symbol": "OPENUSDT",
+      "orderId": 910476907,
+      "id": 127677739,
+      "time": 1790497911518,
+      "qty": "179",
+      "side": "SELL",
+      "positionSide": "BOTH"
+    },
+    {
+      "symbol": "OPENUSDT",
+      "orderId": 910476907,
+      "id": 127677740,
+      "time": 1790497911518,
+      "qty": "2253",
+      "side": "SELL",
+      "positionSide": "BOTH"
+    }
+  ],
+  "timeline": {
+    "local_maker_accepted_exchange": "2026-09-27T08:25:11.875000+00:00",
+    "local_maker_canceled_exchange": "2026-09-27T08:31:10.485000+00:00",
+    "external_F_order_filled_exchange": "2026-09-27T08:31:51.518000+00:00",
+    "local_topup_rejected_broker": "2026-09-27T08:44:53.882659Z",
+    "post_anchor_OPEN_qty0_readback": "2026-09-27T08:46:44.639903Z"
+  },
+  "conclusion": "F-prefixed external reduce-only MARKET SELL closed exactly 4708 OPEN; local maker canceled with zero executed, local topup subsequently rejected. Order-level external close linkage proven. Physical old-host identity additionally relies on incident record, not exchange payload authentication.",
+  "classification": "HISTORICAL_EXECUTION_FAILURE_CONFIRMED",
+  "release_gate": "FAIL_RETAINED",
+  "unverified": [
+    "Exchange payload does not authenticate which physical host sent the F-prefixed order or cancel.",
+    "This bounded historical query does not prove current/future global single-writer exclusivity."
+  ]
+}

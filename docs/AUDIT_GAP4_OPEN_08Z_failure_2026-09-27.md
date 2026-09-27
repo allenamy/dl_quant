@@ -41,3 +41,16 @@
 ## 未验证点
 
 OPEN旧机原始成交/旧maker终态未取得；当前归档无法排除其它外来平仓来源；16Z收据不证明全时段单写者；未重新调用venue、未运行任何执行器测试、未独立重新检查当前生产服务。funding clone及其已留档RED由root串行运行，未在此诊断期间改动。
+
+
+## 17:41Z 追加：Q5/Q6 场所原文已补齐逐 OPEN 归因
+
+本节更新上文“缺OPEN原始订单/终态”的未验证点；原审计与当时的UNKNOWN保留。root在安静窗用固定已审装置SHA `3c81186d87a41ac61800752aa7f83ade2c011bdfe5f3e42503388fcae05ee692`只GET两次，固定OPENUSDT、08:20–08:47、limit1000；allOrders2行、userTrades5行，未饱和。原文和manifest保存在private `/Users/haosiyu/.codex/tmp/acting_lead_20260927/OPEN_Q5Q6_20260927T173935Z`。本子任务只离线读它们，未调用API。
+
+- 本机 order910475678 / `A1790497440-OPENUSDT-2`：SELL LIMIT RO，orig4708、executed0、CANCELED；exchange time08:25:11.875，update08:31:10.485。
+- 外来 order910476907 / `F20260927083112-OPENUSDT-106`：SELL MARKET RO、FILLED，orig=executed4708；time=update08:31:51.518。
+- 五笔symbol-bound独立tradeId127677736–127677740，全归910476907，数量576+429+1271+179+2253=4708，时间均08:31:51.518；本机maker没有成交。交易时间严格在本机maker接受与08:44:53.882659 topup -2022之间，恰好解释先前+4708到后读0。
+
+因此“F前缀外来订单实际平掉本名”的订单级归因已闭合；本机maker在F单成交前约41秒被取消。谁发出了cancel、F订单的物理主机是哪台，单靠交易所载荷不能认证；旧机归属另依赖用户确认及事故记录。**这加强真实历史失败的解释，不把本机gap改0、不改steady人口、不使发布绿。**
+
+独立17项纯数据检查（原文SHA/计数、请求边界、symbol、无损ID、唯一成交ID、范围、联结、有限正数、成交数量总和、终态、精确时间顺序）均通过；字段白名单收据 `GAP4_OPEN_Q5Q6_attribution_20260927T1741Z.json` 只保存身份/时间/数量，未保存P&L或臂结果。allOrders SHA `b87bf71acac323838534673948955facf89c35a835707247d55a316b980809ac`，userTrades SHA `4a0591f5323b888a02a7609a4bb0b17455189b20f25c6787b614651f7f2a313e`。当前/未来全局单写者仍未由此证明；没有GAP4部署或门变更。
