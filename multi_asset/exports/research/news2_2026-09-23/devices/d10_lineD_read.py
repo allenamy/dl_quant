@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """d10_lineD_read.py -- the reading of the line D funding-only control cell, by the FROZEN rule
 (docs/PLAN_funding_only_control_cell_2026-09-26.md R1.3, frozen by lead c5cfeb5e5; closure definition per lead's ruling on
-news2's 20:1xZ question, quoted in CLOSURE_DEFINITION below). Written and committed BEFORE the cell's engine output exists.
+news2's 20:1xZ question: lead ruled 2026-09-27 02:2xZ, quoted in CLOSURE_DEFINITION below). Written and committed BEFORE the cell's engine output exists.
 
 Judge: the frozen news_stats.py (sha 7141ba42) imported and initialised exactly as dlarch_cell_retain.load_frozen does (never forked).
 All three cells are read from their RETAIN small series (dlarch_cell_retain schema): the D10 cell, DLARCH_REF_NC_s42X (in-service
@@ -27,7 +27,7 @@ import numpy as np
 
 JUDGE_SHA = "7141ba42ab227b9f35b48acce62d5e2a2494f364fdf6a83189974cb2af67e03c"
 CLOSURE_TOL = 1e-6
-CLOSURE_DEFINITION = "PENDING lead ruling (news2 proposal: additive daily sums; compounded dbar is the headline D)"
+CLOSURE_DEFINITION = ("lead ruling 2026-09-27 02:2xZ: closure is checked on ADDITIVE daily sums, |gm*g additive total - (pnl - car - cst - unk)| <= 1e-6 bps/day per segment per column; the headline D stays the compounded frozen dbar; the compounding term is reported on its own line")
 
 
 def sha(p):
