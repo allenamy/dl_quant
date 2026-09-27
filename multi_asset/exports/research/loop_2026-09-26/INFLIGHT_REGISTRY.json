@@ -928,5 +928,17 @@
   "resources": "CPU only, OMP 4; yields to the D10 re-read (news2 inputs ~13:30Z)",
   "closed": true,
   "closed_note": "dlarch: KSR_READ_DONE rc=0; KSR_IC 0cc70d1c, KSR_SPECTRUM 1347e841"
+ },
+ {
+  "name": "fresh2_ksr_book_cells",
+  "owner": "fresh2",
+  "host": "pod2",
+  "log": "/dev/shm/mretrain_2026-09-26/logs/ksr.log",
+  "pgid_file": "/dev/shm/mretrain_2026-09-26/logs/PGID_ksr.json",
+  "terminal": "^\\S+ (STOP|KSR_DONE)",
+  "success": "^\\S+ KSR_DONE series=36 (18 cells x s42/s2027; gate 4 PASS on every S1/RED/hybrid prep; legs, gate4, targets_stats under /workspace/ksr_2026-09-27)",
+  "devices": "65df8b070 + 12e179c37 (PAUSE yield) ksr_master.sh / ksr_hooks.sh / ksr_targets_stats.py; gate-4 device dlarch_ksr_splice.py 9557d128",
+  "rule": "DECISION_RULE_king_serving_refresh_2026-09-27 5b4fc6cda + rev 1 c1f9571b5; manifest 609f8ff3; preflight KSR_PREFLIGHT_OK 12:53:43Z",
+  "pause_protocol": "lead ruling (a): /dev/shm/mretrain_2026-09-26/PAUSE placed/removed on dlarch notice for the D10 re-read; no new prep/engine cell while present; each PAUSE/lift is a line in ksr.log / engine queue.log"
  }
 ]
