@@ -1,0 +1,19 @@
+FAIL G1a first count records the anchor it counted
+PASS G1b trigger across 2 missed anchors (behaviour unchanged: it still fires)
+FAIL G1c ...and the event names the gap — ['★ per_name_stop 触发: A 深度 -30.0% 连续 2 个终锚读回 ≤ -25% ⇒ flatten_only(先挂 reduce-only maker; 被场所拒绝的 maker 转市价 reduce-only, 受 25 bps 点差门; 部分成交残差不追, 下一锚再挂), 出场后 7 天禁入 — 条款 cf40ea21, 30 天反事实对照待回填']
+PASS G2 consecutive anchors: triggers, no gap text
+FAIL G3 legacy counter without a stamp: triggers, spacing named unknown — ['★ per_name_stop 触发: C 深度 -30.0% 连续 2 个终锚读回 ≤ -25% ⇒ flatten_only(先挂 reduce-only maker; 被场所拒绝的 maker 转市价 reduce-only, 受 25 bps 点差门; 部分成交残差不追, 下一锚再挂), 出场后 7 天禁入 — 条款 cf40ea21, 30 天反事实对照待回填']
+PASS G4a depth back above the line clears counter and stamp
+PASS G4b an unseen name clears counter and stamp
+PASS G5 identity with the pre-fix module at t=1790412300
+PASS G5 same number of events at t=1790412300
+PASS G5 identity with the pre-fix module at t=1790455500
+PASS G5 same number of events at t=1790455500
+PASS G5 identity with the pre-fix module at t=1790469900
+PASS G5 same number of events at t=1790469900
+PASS G5 identity with the pre-fix module at t=1790484300
+PASS G5 same number of events at t=1790484300
+PASS G5 identity with the pre-fix module at t=1791189900
+PASS G5 same number of events at t=1791189900
+
+PER_NAME_STOP_GAP 3 FAIL
