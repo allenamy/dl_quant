@@ -33,3 +33,7 @@
 - fresh2 负责 A1 与 KN(沿用它已修好的机器);dlarch 负责 T_net 装置与 IC 统计装置(复用 T2 / D2 前置门的 ic_series)。
 - 顺序:T_net 装置与恒等控制 → 红控 → KN 与 A1 并行(纯 CPU,King 单折 3–21 秒)→ IC 判词 → 书层格。
 - 预计:King 训练约 1 小时;IC 统计约 1 小时;书层 2 臂 × 2 格约 1 小时引擎。
+
+## 5. 补记 1(lead,写于任何 KN/A1 读数之前)
+- **ΔIC 按成员配对**:ΔIC_k = IC(臂 m_k) − IC(A0 m_k),其中 A0 m_k 用在役配方、只换 random_state 训练。「≥ 6/8 为正」按这 8 对来数。对在役 rs=0 的比较照报,作参考列。理由:否则 8 个成员共用同一个 A0 抽样,A0 自身的 random_state 噪声不在比较里(dlarch 指出)。
+- **T_net 的价格部分**:取 King 训练实际读的 dlw_targets y4s(RAW Π(1+r)−1),不取 legs 的 y4v。这样 KN 相对在役只多改资金费这一处。
