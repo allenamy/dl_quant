@@ -122,3 +122,5 @@
 - K1本轮范围RID `A1790540640` 前600秒至21:00:46.056Z，211名、329笔成交，未知外来订单0；合池taker份额27.6%，场所与账本相符。只证明commission命中的成交订单及该查询窗，**不证明全局单写者**；没有追加场所调用。按用户计划下一次且最后一次恢复K1是09-28 00Z，须等01Z静默窗与真实done。
 - 20Z收据存 `acting_lead_2026-09-27/receipts/RECOVERY_20Z_20260927/`（10份+MANIFEST）；root在归档前重新核了判官所用全部原始文件sha，含当时watchdog state副本。大日志留独立临时目录且sha已绑定。定时报表早于done，保留原件；仍只用gather/build_report纯读生成收尾后报告，无生产文件写入、无Telegram。
 - 21:00:48Z Pod三个PID/start_ticks核同，KSR原ORDER的32/36文件落盘、最新20:58:01Z；实际DONE/FAILED路径均无终态，D10继续等KSR读数。收据 `ROOT_POD_20260927T2100Z.json`。这是文件进度不是候选通过数；不读未完成收益、不重复启动等待器，不重开RESOURCE_REFUSED的首120作业。
+
+- 21:30Z：KSR34/36文件落盘，最新21:22:39Z；三个PID/start_ticks均核同、正确路径无终态，D10继续等待。生产d01e35d代码区diff空，20:47:46Z看门狗false/null/LIVE，ALARM与20Z验收逐字节相同。历史条件partial仍具名：cond2八个划转日排除、cond4的08-29缺target_gross；没有把恢复锚PASS扩大为历史现金链完整。首次轻探针猜错ALARM路径，随后按已审wrapper的watchdog/ALARM.log重读核同，未把缺文件当空。无额外场所读取、无新作业或部署。收据ROOT_HEARTBEAT_20260927T2130Z.json。
