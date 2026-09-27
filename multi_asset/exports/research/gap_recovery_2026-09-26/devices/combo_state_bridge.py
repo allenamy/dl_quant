@@ -46,8 +46,10 @@ def check(a, now=None):
     now = time.time() if now is None else now
     bad = []
     S, T = a.src, a.dst
-    if S % 14400 or T % 14400 or T - S < 28800:
-        bad.append(f"anchors: S={S} T={T} must be 4h-aligned with T-S >= 8h (a 4h step needs no bridge)")
+    # rev 1 (2026-09-27, lead): the bridge is needed whenever the slot the NEXT combo reads (T = A-4h) has no real state, i.e. T > S.
+    # rev 0 required T-S >= 8h (written for the 2-anchor gap of 09-26) and refused the 1-missed-anchor case (T-S = 4h) — instance-shaped.
+    if S % 14400 or T % 14400 or T - S < 14400:
+        bad.append(f"anchors: S={S} T={T} must be 4h-aligned with T > S (T == S means nothing is missing)")
     A = T + 14400
     if not (now < A + 17 * 60):
         bad.append(f"too late: now {u(now)} >= combo start {u(A + 17 * 60)} for A={u(A)}")

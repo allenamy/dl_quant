@@ -62,7 +62,7 @@ rc, out = run("check", "--src", str(S), "--dst", str(T), "--fea", fea, "--state"
 ok("RED combo predicate changed -> check FAIL", rc != 0 and "predicates" in out, out); shutil.rmtree(d)
 # a 4h step needs no bridge -> check red
 d, fea, st = sandbox()
-rc, out = run("check", "--src", str(S), "--dst", str(S + 14400), "--fea", fea, "--state", st, "--receipt", os.path.join(d, "r.json"))
-ok("RED 4h step -> check FAIL", rc != 0 and "T-S >= 8h" in out, out); shutil.rmtree(d)
+rc, out = run("check", "--src", str(S), "--dst", str(S), "--fea", fea, "--state", st, "--receipt", os.path.join(d, "r.json"))
+ok("RED T == S (nothing missing) -> check FAIL", rc != 0 and "T > S" in out, out); shutil.rmtree(d)
 print(f"SELFTEST {'PASS' if all(res) else 'FAIL'} {sum(res)}/{len(res)}")
 sys.exit(0 if all(res) else 1)
