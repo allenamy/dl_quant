@@ -99,10 +99,22 @@ L组定义：EMA<0、fund_z≤−.25、当前RN8<0，且RN8≥EMA/2；C组为同
 
 以上包只量仪器，完整书验证仍保留King、fund席位、F10、链、GM、执行费用、保护逻辑；不能用独立F10证明候选。CPU扩窗和两臂GPU烟测在资源门后排，由/root核协议后执行，不抢KSR/D10。
 
-## 9. 最小控制已执行、条件训练未启动（2026-09-27 16:19:24 UTC起）
+## 9. 最小控制已执行、条件训练未启动（2026-09-27 16:19:24 UTC起；输入缺失判断已被§10作废）
 
 预注册及装置提交a19e3a725。直接提取当前v3 `on_funding/push/step_until/PRI`，只用固定fill夹具：三笔现金−.10,+.48,−.495美元，合计−.115；new-fill幅度导数−.09美元/单位幅度，有限差分误差<1e−9。F=0和反号通过，回溯给new、同刻fill先于funding、ms两笔强接int键均报红。收据`funding_cash_clock_result.json`，只判IMPLEMENTATION_CONTROL_PASS。按秒字典的风险只是**本次ms接入风险**；未查明现役消费者有真实重复扣费，不能由旧文件推翻已有引擎结论。
 
-**具体数据阻塞**：仓内v3 seed02完整window金额在，但INPUT_MANIFEST原镜像`.../scratchpad/replay_exec_mirror`本地不存在；pod2`/workspace/replay_exec_2026-09-19`也不存在。pod2 R/work/exec_mirror只有filters和executor tree，没有pilot_log或producer，不能据它复现v3逐fill路径。实际live funding记录的position_notional来自旧position_read_ts，首条示例读数落后838秒，所以现成notional×rate不能当独立实时q×P真值校验。所需最小恢复物是**某个已经认证的固定路径初始state、trade_log、fund_log、结算price来源及其源码/calibration SHA**；或者找回同版本mirror，再由原引擎只读导出。无需重写模拟器，亦无需可微替身复现全部非线性撮合。
+**当时报告的数据阻塞（定位不充分，已解除，见§10）**：仓内v3 seed02完整window金额在，但INPUT_MANIFEST原镜像`.../scratchpad/replay_exec_mirror`本地不存在；pod2`/workspace/replay_exec_2026-09-19`也不存在。pod2 R/work/exec_mirror只有filters和executor tree，没有pilot_log或producer，不能据它复现v3逐fill路径。实际live funding记录的position_notional来自旧position_read_ts，首条示例读数落后838秒，所以现成notional×rate不能当独立实时q×P真值校验。所需最小恢复物是**某个已经认证的固定路径初始state、trade_log、fund_log、结算price来源及其源码/calibration SHA**；或者找回同版本mirror，再由原引擎只读导出。无需重写模拟器，亦无需可微替身复现全部非线性撮合。
 
 16:15资源预检：GPU约32GiB总量、仅2MiB使用、util0；cgroup max60,999,999,488/current45,907,533,824字节，余量刚超过6GiB+8GiB；同UID RSS约15.69GiB，加6GiB小于30GiB。这只是当刻快照，真实启动必须重检。已授权两臂CPU1/RSS6GiB/GPU8GiB，但实际现金输入门未闭合，**没有启动GPU或训练**。预测两臂一epoch45–60GPU秒、端到端≤8分钟；本轮最多15分钟wall，不以余量逼近而绕过缺失输入。NC旧输入若用只可标实现测试；候选需D10正确共同输入。
+
+## 10. 持久镜像找到，认证模拟路径真实cash门已完成（16:43:38–40Z）
+
+前轮只核原scratchpad即判缺失，定位不完整；本轮按主审要求继续搜索，找到仓内`MIRROR_DURABLE_COPIES_2026-09-19.json`，明确原镜像已持久化到本地`/Users/haosiyu/quant_mirrors/replay_exec_mirror_59875e5a`与pod2`/workspace/replay_exec_mirror_59875e5a`，现时两处均存在。本次实际用本地副本，不读取实时生产树，也不重新拼历史镜像。§9缺失判断作废，失败过程保留。
+
+预注册及装置先提交4ff3f9a7c，定点核验manifest505/505输入（257,175,687字节）、332个executor源码；v3.1 `29679672…`、calibration `fda34243…`、seed02、live模式全固定。只重跑原认证CAL路径前6窗，初始sealed SHA一致，窗口所有数字对已存参考最大差1.46e−11美元。不是新窗口或新策略，也没有复跑全史。
+
+独立现金：从initial_state数量出发，按严格先于结算的4,930笔原引擎实际fill增减重建q；以固定价格panel与FundingBook费率重算1,083笔结算。最大q差1.46e−11、现金差1.67e−16美元，6窗各自闭合≤1e−8美元。六窗现金为−4.2290228482、−4.4467628684、−2.8079652984、0、0、−4.3521065793。源码/镜像/独立数量路径与原认证参考共同闭合，不是仅将fund_log的q乘其自报rate作同式自证。价格来源仍是canonical panel，**不是另一个独立price oracle**；这里的“真实路径”指已认证执行模拟的事件路径，不冒称逐笔venue成交真值。
+
+同钟线性通路：按时间第一笔具有后续结算的真实fill是1000BONK，t=1787718198.759，334.8单位；对这笔增量q、保持后续已执行成交不变，carry导数−8.4650768783e−8美元/数量，独立现金有限差分−8.4652285182e−8，fill前导数0。相同fill price到窗尾的价格导数1.8146030902e−6美元/数量。它证明**可达后的old-held/new-fill线性carry通路**，不包含未来止损/重规划反馈，不推成171维网络参数梯度或收益。另附原事件流里“同锚先fund、后fill”的可读例，展示把当前fill回溯收费的红控。
+
+耗时2.009秒、CPU1、Mac ru_maxrss=1,119,830,016字节（约1.043GiB）。完整初始state、trade_log、fund_log、独立cash导出1.14MB，均留在独立证据根；零GPU、零远端写。最新授权已明确旧GPU额度不延长，因此本轮以**FIXED_CANONICAL_PATH_CASH_PASS**交付，不自启训练。下一步可在此事件钟基础上冻结因果可达carry代理与同钟价格两臂；无需再恢复镜像或重写模拟器。
