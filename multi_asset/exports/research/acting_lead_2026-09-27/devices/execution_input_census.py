@@ -12,16 +12,16 @@ def finite(v):return type(v) in (int,float) and math.isfinite(v)
 def select(r,keys):return {k:r[k] for k in keys if k in r}
 def order_record(r):
     out=select(r,ORDER_KEYS)
-    if 'request_ledger' in out:
+    if 'request_ledger' in out and out['request_ledger'] is not None:
         if not isinstance(out['request_ledger'],list) or any(not isinstance(x,dict) for x in out['request_ledger']):raise ValueError('request_ledger_schema')
         out['request_ledger']=[select(x,REQUEST_KEYS) for x in out['request_ledger']]
     return out
 def order_coverage(rows):
     missing={k:sum(not finite(r.get(k)) or (k=='mid_at_anchor' and r[k]<=0) for r in rows) for k in ('prev_w','target_w','mid_at_anchor')}
-    requests=[x for r in rows for x in r.get('request_ledger',[])]
+    requests=[x for r in rows for x in (r.get('request_ledger') or [])]
     return {'rows':len(rows),'names':len({r.get('symbol') for r in rows}),'complete_plan_fields':bool(rows) and not any(missing.values()),'missing_plan_fields':missing,
       'row_reduce_only_missing':sum(type(r.get('reduce_only')) is not bool for r in rows),'row_side_missing':sum(str(r.get('side','')).lower() not in ('buy','sell') for r in rows),
-      'request_ledger_missing':sum('request_ledger' not in r for r in rows),'request_entries':len(requests),'request_quantity_missing':sum(not finite(x.get('qty')) for x in requests),
+      'request_ledger_null':sum('request_ledger' in r and r['request_ledger'] is None for r in rows),'request_ledger_missing':sum('request_ledger' not in r for r in rows),'request_entries':len(requests),'request_quantity_missing':sum(not finite(x.get('qty')) for x in requests),
       'request_client_id_missing':sum(not isinstance(x.get('client_id'),str) or not x['client_id'] for x in requests)}
 def anchor_candidates(rows,a):return [r for r in rows if (r.get('external_book') or {}).get('nominal_ts')==a and finite(r.get('anchor_ts')) and a<=r['anchor_ts']<a+14400]
 def population_context(rows):
@@ -80,6 +80,7 @@ def main():
         cov=order_coverage(od)
         if not cov['complete_plan_fields']:status.append('plan_field_population_not_complete')
         if cov['row_reduce_only_missing'] or cov['row_side_missing']:status.append('request_owner_fields_incomplete')
+        if cov['request_ledger_null']:status.append('request_ledger_null_rows_not_request_loss_claim')
         if cov['request_ledger_missing'] or cov['request_quantity_missing'] or cov['request_client_id_missing']:status.append('request_evidence_incomplete')
         if row.get('opening_halted') is not False:status.append('opening_halted_or_unknown')
         rbs=[r for r in all_rb if r.get('rebalance_id')==rid]

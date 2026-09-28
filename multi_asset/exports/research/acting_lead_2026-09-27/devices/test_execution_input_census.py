@@ -30,6 +30,11 @@ class CensusControls(unittest.TestCase):
     def test_fixed_population_with_prior_context(self):
         rows=[{'anchor_ts':x} for x in [1790222399,1790222400,1790559999,1790568000,None]]
         self.assertEqual([r['anchor_ts'] for r in M.population_context(rows)],[1790222400,1790559999])
+    def test_explicit_null_request_ledger_retained_and_counted(self):
+        r=M.order_record({'symbol':'X','request_ledger':None})
+        self.assertIsNone(r['request_ledger'])
+        self.assertEqual(M.order_coverage([r])['request_ledger_null'],1)
+        self.assertEqual(M.order_coverage([r])['request_entries'],0)
     def test_malformed_request_population_not_dropped(self):
         for ledger in ({},[None]):
             with self.assertRaises(ValueError):M.order_record({'request_ledger':ledger})
