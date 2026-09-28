@@ -1,0 +1,33 @@
+{
+  "status": "RECENT_NC_CASH_COMPLETE_SAMPLER_TERMINAL_1ULP_DECLARED",
+  "utc": "2026-09-28T13:35:50Z",
+  "source_sha256": "8050518e65922b7ba897c6ba340325043fc2706e1b95ebfb9b5af6cb5f7eb9b3",
+  "paths": 64,
+  "all64_anchor_and_interior_prefixes_bitwise_equal": true,
+  "all64_old_prefixes_bitwise_equal": false,
+  "terminal_sampler_exception": "old final NAV5 only, <=1 ULP; economic accounts and all other historical samples exact",
+  "probe": {
+    "path": "/dev/shm/recent_nc_cash_seam_probe_20260928/RESULT.json",
+    "sha256": "533ee59fc0d73146a873388eb709c7703f4518775c705380409bf0f2e52b1663"
+  },
+  "old_failed_terminal_sha256": "c448dbe6c0eb789c1ff8d3d4cf058065fe1c47bf059ada5ed35b5b9180f4b2c6",
+  "controls_sha256": "549a8ac3feaef76bc4be26beda90cc83691ddf5c3607f972faf21319be4e1145",
+  "configs": {
+    "42": {
+      "path": "/dev/shm/recent_nc_cash_20260928/s42/CONFIG.json",
+      "sha256": "7439208a90dc690cdec90f951b991b191e78112a67617130e869aa28ca533c22"
+    },
+    "2027": {
+      "path": "/dev/shm/recent_nc_cash_20260928/s2027/CONFIG.json",
+      "sha256": "0be68404d5ad9935a3fc9a2a8a6eebfc558d20f6278b760d107228a7fba8410e"
+    }
+  },
+  "limitations": [
+    "Legacy price unit retained per symbol; recent absolute exchange closes differ by documented scale",
+    "UA-FREEZE-EXCLUDE remains conditional not complete cash certification",
+    "Existing execution mirror and pooled calibration unchanged, not current live tree certification",
+    "NC state continued without September live manual reseed/dual-executor event",
+    "Exact old terminal NAV5 bytes are not preserved in all paths; explicit sampler geometry exception"
+  ],
+  "seconds": 666.1742690755054
+}
