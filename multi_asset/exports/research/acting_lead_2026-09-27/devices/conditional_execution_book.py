@@ -14,6 +14,13 @@ def withheld_names(phase,external,target):
  if not isinstance(tradable,list):raise ValueError('venue_tradable_unavailable')
  return (set(target)-set(tradable)) | set().union(*[set(v) for v in phase['untradable_names'].values()]) | set(external.get('held_exit') or []) | set(external.get('meta_excluded') or {}) | set((external.get('below_min_notional') or {}).get('names') or [])
 
+def recorded_restrictions(phase,reshape):
+ names=reshape['popped_names'];rec=phase['untradable_names'];counts=phase['untradable_disposition']
+ if len(set(names))!=len(names) or len(names)!=reshape['n_popped'] or rec.get('popped',[])!=sorted(names)[:12] or counts.get('popped',0)!=len(names):raise ValueError('popped_display_prefix_conflict')
+ for key,n in counts.items():
+  if key!='popped' and n!=len(rec.get(key,[])):raise ValueError('other_class_truncated')
+ return set(names)|set().union(*[set(v) for k,v in rec.items() if k!='popped'])
+
 def compare(target,recorded,halted):
  if not target or not recorded:raise ValueError('empty_population')
  if any(type(v) not in (int,float) or not math.isfinite(v) for v in list(target.values())+list(recorded.values())):raise ValueError('nonfinite_target')
@@ -21,7 +28,7 @@ def compare(target,recorded,halted):
  return {'same_names':set(target)==set(recorded),'max_abs_usdt':max([abs(x) for x in ds.values()]+[0.]),'n_differing':sum(abs(x)>1e-6 for x in ds.values()),'missing_recorded':sorted(set(target)-set(recorded)),'unexpected_recorded':sorted(set(recorded)-set(target)),
  'conditional_target_match':set(target)==set(recorded) and bool(ds) and all(abs(x)<=1e-6 for x in ds.values()),'execution_claim':False,'opening_halted':halted}
 
-def run(root,mutation=False):
+def run(root,mutation=False,full=False):
  root=Path(root);c=json.loads((root/'RESULT.json').read_bytes());bind=json.loads((root/'SOURCE_BINDING.json').read_bytes())
  if bind['input_result_sha256']!=hashfile(root/'RESULT.json'):raise ValueError('census_identity')
  for n,h in c['outputs'].items():
@@ -53,12 +60,13 @@ def run(root,mutation=False):
    if len({(x['prev_w'],x['target_w']) for x in rr})!=1:raise ValueError('conflicting_order_plan:'+str(a)+':'+s)
   held={s:rr[0]['prev_w']*row['target_gross'] for s,rr in by.items()};observed={s:rr[0]['target_w']*row['target_gross'] for s,rr in by.items()}
   untr=withheld_names(pa,row['external_book'],target)
+  if full:untr|=recorded_restrictions(pa,row['reshape'])
   unknown_held=sorted(untr-set(held));floors={s:float(flraw[s]['min_notional']) for s in target if s in flraw and flraw[s].get('min_notional') is not None}
   clamp,rs=compiled[version['commit']](target,held,untr,g,floors_usdt=floors,floors_source='current_cache_assumption_not_historical',force_flat=force)
   res=compare(target,observed,row['opening_halted']);res.update(anchor=a,commit=version['commit'],unknown_held_names_defaulted_zero=unknown_held,stop_state_utc=prev['logged_utc'],n_target=len(target),n_recorded=len(observed),scope='conditional_mapping_only_no_execution_certification')
   out.append(res)
- return {'rows':out,'matched':sum(x['conditional_target_match'] for x in out),'n':len(out),'max_abs_usdt':max(x['max_abs_usdt'] for x in out),'census_sha256':hashfile(root/'RESULT.json'),'sources_sha256':hashfile(root/'SOURCE_BINDING.json'),'device_sha256':hashfile(__file__),'python':sys.executable,'numpy':np.__version__,'mutation':mutation}
+ return {'rows':out,'matched':sum(x['conditional_target_match'] for x in out),'n':len(out),'max_abs_usdt':max(x['max_abs_usdt'] for x in out),'census_sha256':hashfile(root/'RESULT.json'),'sources_sha256':hashfile(root/'SOURCE_BINDING.json'),'device_sha256':hashfile(__file__),'python':sys.executable,'numpy':np.__version__,'mutation':mutation,'actual_full_restrictions_conditioned':full}
 if __name__=='__main__':
- r=run(sys.argv[1],len(sys.argv)>2 and sys.argv[2]=='--mutate');p=Path(sys.argv[1])/('BOOK_MAPPING_GATES_MUTATION.json' if r['mutation'] else 'BOOK_MAPPING_GATES.json')
+ r=run(sys.argv[1],'--mutate' in sys.argv,'--full-recorded-restrictions' in sys.argv);name='BOOK_MAPPING_FULL_RESTRICTIONS' if r['actual_full_restrictions_conditioned'] else 'BOOK_MAPPING_GATES';p=Path(sys.argv[1])/(name+('_MUTATION' if r['mutation'] else '')+'.json')
  with p.open('x') as f:json.dump(r,f,indent=2,allow_nan=False);f.write('\n')
  print(json.dumps({k:v for k,v in r.items() if k!='rows'}))
