@@ -3,6 +3,20 @@
 # 代理主研究员执行台账
 
 
+## 10:43Z输入验收完成（优先读本段）
+
+- channel_parity已17.73秒rc0结束，**原判DIFFERS保留**：共同有限11,832,311值7通道全部精确；08Z当前fetch519名子群无数值/缺测差异。全轴有noncrypto149与不在当前抓取名单的名字产生缺测差，不准抹成全表平价或把原始存在bar当可交易。完整837轴面板已隔离生成ac8bfa6f…，原生产不动。报告`RESULT_recent_raw_input_parity_2026-09-28.md`，原件/分组/资金费同快照绑定收据已落盘。近期funding九月归档927cac43…已冻结，不代表独立场所完备性。
+- F10 score诊断补齐：两种子近期rank-IC NC→R180为.02544→.03359/.03339→.03973，逐名P/S亦升，但完整组合均亏更多。不要再写“近期训练没学到信息”；要定位信号到最终资本权重/连续仓位的哪一步损益反向。不是据此撤销CRITERION_NOT_MET，未改判据。详见同一F10报告新增表。
+- 10:36:24Z本地轻审LIVE/no trip，历史partial2无变化，S3心跳2.35s。没有新锚/场所验收，不重复K1。F10/近期取数/通道验收任务都已结束，**没有须等的本批训练/GPU作业**。接旧认证原价重叠的只读小工具e5f615bde已冻结到`/dev/shm/recent_inputs_overlap_20260928`，10:46:37Z已rc0/5.49秒完成；PRICE_OVERLAP.json为描述性非精确平价：458850个5m收益差中位9.56e−8/max5.86e−5，31名×576旧有限新缺测，不拼接、不改旧源，不能当在飞训练；随后绑定逐锚fetch/合法性、资金费事件与连续状态，补09-19..27；或做F10同人口逐层价格归因，禁止再扫R180超参。
+
+## 10:35Z调度覆盖（09-28；旧在飞记录已终结）
+
+- **F10近期适应完整组合已结束，禁止重复起跑。** 最终根`/dev/shm/f10_recent_adapt_20260928_finish`，10:13:54Z rc0；128新路径+64NC对照。原90分钟预算10:10:18Z失败(124/128)，另立10分钟只补四条，原失败未抹去。实际总93m39s。判词**CRITERION_NOT_MET 18/28**：R180−NC近期−0.474/−1.718 bps/日，两种子九月皆更差；U亦近期变差。不换装、不网格追赢。原数组独立192文件6510核对最大差3.15e-14。报告`RESULT_F10_recent_adaptation_full_book_2026-09-28.md`。registry已b2d416ada关闭。
+- **最近行情采集完成，禁止重抓。** tail10:17:01rc0；三段严格原9207请求合并8866 verified+341显式404，全部档案有288行。不能把404当退市或填0。本机ZIP91,930,085字节sha b9686fad…，17,746成员全部size/sha核过；registry2ed19daff关闭。`RECENT_PUBLIC_PRICES_20260928/MERGED.json`给完整人口。下一层是输入同源/通道/合法成员/资金费/连续状态，不是直接宣称最新回放完成。
+- **当前唯一计算**：本机隔离`/Users/haosiyu/.codex/tmp/recent_channel_parity_20260928`，冻结源747ef12ab；09-17..27官方原价按生产两函数AST提取生成七通道，与08Z冻结rolling比较。9控制红→绿；只读快照/源，单线程、600秒预算，无网络/GPU/交易所。需读TERMINAL与RESULT；尚未得判词，不重复起跑。
+- 自犯资源问题已纠正：首版现金归档跟随文件symlink，四次复制2.96GB相同特征，生成13.93GB冗余ZIP致/dev/shm只余0.39GiB。逐件复核160源成员/148唯一路径原件完好后，只删除此冗余ZIP；修helper跳过并钉symlink，重新压缩现金归档1.079GB，空间回到约13GiB。原数据/模型/现金路径零删除。两次错误传输明确.partial；10:35:30Z新档案本机203+144成员/128PATH全验，sha6c8eb311…，不把partial算归档。收据ARCHIVE_DUPLICATE_REMOVAL。
+- 生产10:02Z所见仍d01e35d、LIVE/no trip，08Zdone验收已记；cond2/cond4老partial继续。无resume、部署、改2倍、API或Telegram。全部研究收益仍止09-18。
+
 ## 10:03Z调度追加
 
 - 新近价格attempt2按原预算PARTIAL结束：4547 verified /181 absent /4479 unattempted。续取已独立登记f41f90b38，根`/dev/shm/recent_public_prices_20260928_continue1`、源同名_sources，09:57:00Z PID/PGID3604363 ticks515931443，deadline10:12:00Z，contract7d7e9b86…。只补4479缺口、最新优先、四线程静态CDN；不再重启原全部人口。未知与404保留。
