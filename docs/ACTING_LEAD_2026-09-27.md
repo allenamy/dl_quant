@@ -157,3 +157,11 @@
 - 显式新预算d34f6838d保留原失败、输入、窗和资源门，23:46:57–23:47:39Z完成完整120网络forward/backward；RSS2.05GB/GPU0.679GB/42.02秒/rc0，参数前后hash同，optimizer0。20输入复哈希未变，32原件root归档核同；所有registry任务已关闭，勿重跑F0/价格/已完成通路。
 - **冻结梯度门仍UNRESOLVED**：eps1e−4的9分项全核过，eps1e−3全部跨producer/fill_sign分支。不能丢大步长宣称通过。硬映射对原连续实现≤3.47e−18且发布原因相同；同一固定checkpoint的缩放历史门硬发布30/120、soft-rank代理90/120。下一件先做全120锚硬/软层首差和尺度机制，不搜发布阈值，不把soft结果当整书收益。当前Jan2023+202608checkpoint仍是实现检查，不是OOS或正确输入新重训。
 - 报告RESULT_first120_network_clock_2026-09-28.md；实际结果SHA88eb9cc7…；两套完整归档FIRST120_PRICE_FIX_20260928、FIRST120_NETWORK_COMPLETED_20260928。GAP4/M3历史电池阻塞及D10未决/冷静期全部照旧，本轮没有部署。
+
+## 09-28 00Z接续与用户亏损追问
+
+- 00:00:05Z实盘锚按时start；00:17:12Z combo ok/anchor1790553600。00:19:52轻读仍d01e35d、代码diff空、watchdog仍20Z false/LIVE、ALARM hash不变。**00Z未完成，不提前验收，K1仍等01Z静默窗且实际done。** 主仓未接回。
+- 用户问核心进展及持续扩大亏损。root从同account-call的16:47:51→20:45:56读回及329唯一成交(坍缩286重复)独立拆最新损失：NAV106043.12、窗差−1019.21(−0.952%)；309共同人口数量全闭合，原多头+190.02、原空头−1195.54、原平名+1.41 USDT；155原空头129亏，期间无跨方向。覆盖起点100%、终点99.886%gross。3个不配对名字不补0；共同价格与账户价格差0.15975、NAV桥接另余1.64923具名未解释。手续费3.06、资金费13.87。**确认本窗空头篮子普遍上涨，不足以归因全月/每条模型腿；执行相对意图贡献也未重估。** 详见STATUS_core_progress_and_latest_loss_2026-09-28.md及LATEST_LOSS归档。
+- rank-action机制原形完成(8447db73a)：同排序的×.1/×1/×10令soft发布113/90/41，hard全30。**交叉读旧T3源码后确认root新proxy漏了既有标准化，不能据此指认现役训练。** 已立即告知用户归属，保留原形及post-read ROOT KeyError失败。新修订fab831b78先冻结，normalized源码a97cefeb4，经修前真红、修后6/6与真120锚复跑，00:23:04Z rc0；全部正尺度/平移soft都35、hard30，30共同发布/5soft-only/85共同HOLD。硬与原continuous≤3.47e−18、frame tracing不改输出。
+- normalized测试26.24秒/RSS1.355GB/GPU0.463GB，参数hash前后6cf9079f…相同、optimizer0。**原raw双eps梯度UNRESOLVED不得因修正标准化或动作更近而改PASS；新图尚未做完整参数FD。** 本窗样本内工程不报收益，不当新训练。完整旧74件/新39件归档root校验；三个registry条目均closed，无在跑研究任务。
+- 下一研究：按修正后的标准化核新图梯度/完整硬动作，不重复F0/价格转换/原形尺度测量；逐笔损失已定位方向，接着核这些真实空头的因果fund状态与组合状态。GAP4/M3仍历史电池真红、durable包未部署、D10UNDECIDED/冷静期；勿把研究工具修复当成盈利或发布。
