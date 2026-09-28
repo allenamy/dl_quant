@@ -31,6 +31,15 @@ def rank_delta(base,candidate):
  if a.shape!=b.shape or a.ndim!=1 or len(a)<2 or not np.isfinite(a).all() or not np.isfinite(b).all():raise ValueError('rank population')
  return (rankdata(b)-rankdata(a))/(len(a)-1)
 
+def validate_cash(data):
+ u=np.asarray(data['unknown']);active=np.zeros(u.shape,bool)
+ for k in ['q0','q1','mv0','mv1','cash','price','funding','fee','net']:
+  v=np.asarray(data[k])
+  if v.shape!=u.shape or not np.isfinite(v).all():raise ValueError('nonfinite cash field '+k)
+  active|=v!=0
+ if np.any(u&active) or not np.allclose(data['price']+data['funding']-data['fee'],data['net'],rtol=0,atol=1e-9):raise ValueError('exposed unknown/identity')
+ return int((u&~active).sum())
+
 def aggregate(price,fund,fee,mv,nav,q,target,groups,n_groups):
  values=list(map(np.asarray,(price,fund,fee,mv,q,target)));g=np.asarray(groups);v=np.asarray(nav)
  if any(z.shape!=g.shape or not np.isfinite(z).all() for z in values) or g.ndim!=2 or v.shape!=(g.shape[0],) or not np.isfinite(v).all() or np.any(v<=0):raise ValueError('cash shape/nonfinite')
@@ -65,8 +74,8 @@ def main(contract,out):
  for si,seed in enumerate(('42','2027')):
   q=np.load(C['cash'][seed],allow_pickle=False);cb=np.load(C['combo'][seed],allow_pickle=False);ci=align(q['A'],A);bi=align(cb['E_ts'],A)
   if not np.array_equal(sy,q['symbols']) or not np.array_equal(sy,cb['symbols']) or not cb['trade_mask'][bi].all():raise ValueError('cash/target population or HOLD')
-  data={k:q[k][ci] for k in ['q0','q1','mv0','nav0','price','funding','fee','net','unknown']}
-  if data['unknown'].any() or not np.allclose(data['price']+data['funding']-data['fee'],data['net'],rtol=0,atol=1e-9):raise ValueError('cash unknown/identity')
+  data={k:q[k][ci] for k in ['q0','q1','mv0','mv1','cash','nav0','price','funding','fee','net','unknown']}
+  unknown_unexposed=validate_cash(data)
   member=np.zeros(strength.shape,bool);delta=np.full(strength.shape,np.nan)
   for t,j in enumerate(pi):
    m=cols[off[j]:off[j+1]];v=P[off[j]:off[j+1],si*3:si*3+2]
@@ -81,7 +90,7 @@ def main(contract,out):
    'fund_rate8':(signed(rn8),3,['negative','nonnegative','unknown']),
    'conditional_rank_shift':(np.where(np.isfinite(delta),np.where(delta>0,1,0),2),3,['nonpositive','positive','unavailable']),
    'score_membership':(member.astype(int),2,['outside','inside'])}
-  R[seed]={}
+  R[seed]={'unknown_unexposed_retained':unknown_unexposed}
   for name,(g,n,names) in specs.items():
    gg=direction*n+g;rs=aggregate(data['price'],data['funding'],data['fee'],data['mv0'],data['nav0'],data['q0'],target,gg,3*n)
    for k,row in enumerate(rs):row.update(direction=['long','short','flat'][k//n],condition=names[k%n])

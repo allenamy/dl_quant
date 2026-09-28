@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from held_strength import align, partition, aggregate, rank_delta
+from held_strength import align, partition, aggregate, rank_delta, validate_cash
 
 class Controls(unittest.TestCase):
  def test_exact_axis(self):
@@ -27,5 +27,13 @@ class Controls(unittest.TestCase):
   with self.assertRaises(ValueError):aggregate(np.array([[np.nan]]),np.zeros((1,1)),np.zeros((1,1)),np.zeros((1,1)),np.array([100.]),np.zeros((1,1)),np.zeros((1,1)),np.zeros((1,1),int),1)
  def test_partition_hole_refused(self):
   with self.assertRaises(ValueError):aggregate(np.ones((1,1)),np.zeros((1,1)),np.zeros((1,1)),np.zeros((1,1)),np.array([100.]),np.zeros((1,1)),np.zeros((1,1)),np.array([[-1]]),1)
+ def test_unknown_flat_no_cash_allowed(self):
+  d={k:np.zeros((1,1)) for k in ['q0','q1','mv0','mv1','cash','price','funding','fee','net']};d['unknown']=np.ones((1,1),bool)
+  self.assertEqual(validate_cash(d),1)
+ def test_unknown_any_observed_quantity_or_cash_refused(self):
+  for key in ['q0','q1','mv0','mv1','cash','price','funding','fee','net']:
+   d={k:np.zeros((1,1)) for k in ['q0','q1','mv0','mv1','cash','price','funding','fee','net']};d['unknown']=np.ones((1,1),bool);d[key][0,0]=1
+   with self.subTest(key=key):
+    with self.assertRaises(ValueError):validate_cash(d)
 
 if __name__=='__main__':unittest.main()
