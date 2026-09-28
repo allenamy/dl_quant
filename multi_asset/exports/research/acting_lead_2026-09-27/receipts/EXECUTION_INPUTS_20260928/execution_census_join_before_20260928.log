@@ -1,0 +1,20 @@
+======================================================================
+ERROR: test_readback_cannot_substitute_nominal_time (test_execution_input_census.CensusControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/haosiyu/.codex/worktrees/acting-lead-20260927/quant_research/multi_asset/exports/research/acting_lead_2026-09-27/devices/test_execution_input_census.py", line 46, in test_readback_cannot_substitute_nominal_time
+    self.assertEqual(M.readback_candidates([{'anchor_ts':1000}],{'anchor_ts':1001.25}),[])
+AttributeError: module 'census' has no attribute 'readback_candidates'
+
+======================================================================
+ERROR: test_readback_joins_execution_timestamp_without_rid (test_execution_input_census.CensusControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/haosiyu/.codex/worktrees/acting-lead-20260927/quant_research/multi_asset/exports/research/acting_lead_2026-09-27/devices/test_execution_input_census.py", line 44, in test_readback_joins_execution_timestamp_without_rid
+    self.assertEqual(M.readback_candidates(r,a),r[:1])
+AttributeError: module 'census' has no attribute 'readback_candidates'
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.000s
+
+FAILED (errors=2)

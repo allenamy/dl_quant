@@ -1,0 +1,14 @@
+======================================================================
+ERROR: test_explicit_null_request_ledger_retained_and_counted (test_execution_input_census.CensusControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/haosiyu/.codex/worktrees/acting-lead-20260927/quant_research/multi_asset/exports/research/acting_lead_2026-09-27/devices/test_execution_input_census.py", line 34, in test_explicit_null_request_ledger_retained_and_counted
+    r=M.order_record({'symbol':'X','request_ledger':None})
+  File "/Users/haosiyu/.codex/worktrees/acting-lead-20260927/quant_research/multi_asset/exports/research/acting_lead_2026-09-27/devices/execution_input_census.py", line 16, in order_record
+    if not isinstance(out['request_ledger'],list) or any(not isinstance(x,dict) for x in out['request_ledger']):raise ValueError('request_ledger_schema')
+ValueError: request_ledger_schema
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.001s
+
+FAILED (errors=1)
