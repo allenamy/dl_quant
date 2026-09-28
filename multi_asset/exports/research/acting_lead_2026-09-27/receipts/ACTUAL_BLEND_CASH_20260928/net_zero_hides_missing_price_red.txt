@@ -1,0 +1,32 @@
+test_bad_index (test_actual_blend_cash.Tests.test_bad_index) ... ok
+test_cancelled_components_need_price (test_actual_blend_cash.Tests.test_cancelled_components_need_price) ... FAIL
+test_combination (test_actual_blend_cash.Tests.test_combination) ... ok
+test_common_not_independent_scale (test_actual_blend_cash.Tests.test_common_not_independent_scale) ... ok
+test_component_value (test_actual_blend_cash.Tests.test_component_value) ... ok
+test_duplicate_index (test_actual_blend_cash.Tests.test_duplicate_index) ... ok
+test_float_index (test_actual_blend_cash.Tests.test_float_index) ... ok
+test_forced_removed (test_actual_blend_cash.Tests.test_forced_removed) ... ok
+test_named_clamp (test_actual_blend_cash.Tests.test_named_clamp) ... ok
+test_nonfinite (test_actual_blend_cash.Tests.test_nonfinite) ... ok
+test_raw_mismatch_refused (test_actual_blend_cash.Tests.test_raw_mismatch_refused) ... ok
+test_state (test_actual_blend_cash.Tests.test_state) ... ok
+test_state_wrong_anchor (test_actual_blend_cash.Tests.test_state_wrong_anchor) ... ok
+test_unlisted_difference (test_actual_blend_cash.Tests.test_unlisted_difference) ... ok
+test_zero_components_no_price (test_actual_blend_cash.Tests.test_zero_components_no_price) ... ok
+
+======================================================================
+FAIL: test_cancelled_components_need_price (test_actual_blend_cash.Tests.test_cancelled_components_need_price)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/haosiyu/.codex/worktrees/acting-lead-20260927/quant_research/multi_asset/exports/research/acting_lead_2026-09-27/devices/test_actual_blend_cash.py", line 42, in test_cancelled_components_need_price
+    self.assertEqual(r['verdict'],'COMPONENT_UNPRICED')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'PRICED' != 'COMPONENT_UNPRICED'
+- PRICED
++ COMPONENT_UNPRICED
+
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.001s
+
+FAILED (failures=1)
