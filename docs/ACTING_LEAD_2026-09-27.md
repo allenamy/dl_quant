@@ -9,6 +9,7 @@
 - **证据已持久保存**：小归档156件、模型29件、大NPZ72件逐件size/sha全核。大档案本机`/Users/haosiyu/.codex/tmp/pod_archive_20260928/HORIZON_REVIEW_LARGE_ARTIFACTS_20260928.zip`，sha36eac94f955740c034273676aa60e50214009902e6d1cc9757860c8e85b2ae0e；经济sha568b2617c6c82d5f00cb52b5e2b8bd111a3bef2d03890bd317c8084deafa9341。内部会计误差≤1.43e−14，不冒充场所现金认证。
 - 05:33本地轻读实盘d01e35d、04:49看门狗false/triggers空、ALARM sha未变。04Z目标与模型身份核对同前。**本次只读排查04Z的39名reconcile告警**，这是名义缓存差异，不先认定外来单；不增K1、不调场所。没有部署/自动恢复/改杠杆。
 - 原residual、score_book_probe、KSR、cap50、invvol、149窗inventory、D10 dryrun均已结束，不能再起旧队列。当前无本轮在飞训练；先解决实际告警证据，不因GPU空闲重复失败规格。所有研究收益仍保留409ea16历史镜像、scaled门等限制。
+- **05:52Z对账提示排查完成**：恢复后三个区间312/311/312名、329/344/437笔唯一成交，逐名张数恒等全部精确0；4个完整OBSERVED快照、998重复行按(symbol,trade_id)坍缩。04Z日志只保留39超带名中的10名，样本价格均下降，但不能声称39名金额差全部逐项归因。告警测名义缓存差，文字beyond revaluation不构成已排除价格影响。独立4控通过，报告`RESULT_reconcile_notice_2026-09-28.md`。无新增外来单证据，不增加场所请求、不修改生产告警/风控。
 
 ## 前次调度覆盖（09-28 05:19Z）
 
