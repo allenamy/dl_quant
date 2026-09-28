@@ -2,6 +2,12 @@
 
 # 代理主研究员执行台账
 
+## 15:02Z 同轴桥接完成；单币控制固定消融在跑（优先读）
+
+- 同轴桥接8.605s rc0，RESULTbd911bfb；8922锚2612140成员格的轴/成员/raw标签/rank标签精确、两full baseline训练行数同。102列相对78列近期ΔIC+.006152、9月+.008574，静态价格分别+.678/+2.372bps/锚，**非整书**、混合改动不能归因；报告RESULT_prediction_axis_bridge_2026-09-28.md。6工程控制；先前流量同伴三列失败结论不动。registry关闭a5c29945b，5daebd3fe更正scp未完即写验过的时序错误，现三实物sha均验过。
+- **唯一计算 own_control_ablation_20260928**：14:59:57Z PID/PGID3631627 ticks517749129，**截止15:15:57Z**；源c21cb7c8、合同6064a0e9、2ff1ffbd8，registry64c2de29a。根/dev/shm/own_control_ablation_20260928，日志同名.run.log，源码peer_flow_panel_20260928_sources。39月×5=195小Ridge单CPU，复用旧NC78/full102；固定NC→D10→fund表示→自身价格→自身流量→交互→pricepeer，仅机制诊断，无晋级规则。52控制过，无GPU/新数据下载。等完整TERMINAL，不读局部经济数。
+- 15:00:14本地轻审LIVE/no trip，12:49最后watchdog零trigger/error/blind，老partial2；S3心跳45s。12Z已验收，16Z未开始，不重复K1，无API/生产写/Telegram/恢复/杠杆变化。
+
 ## 14:43Z 同伴流量/资金费族完成：未晋级（优先读）
 
 - **没有本批在飞训练/计算，不重复起跑。** 39月×4=156模型213.54秒rc0、峰值5.614GiB；RESULTc6fd69a7，预测043bc08a。registrye3027b384关闭。七门3/7：近期ΔrankIC−.000284（5d CI[−.000874,+.000114]），原价P亦降、未胜打乱同伴（−.000065）、sigma .01536<.02。九月ΔrankIC+.000038、静态无费价格+.0242bps/锚，CI跨0。**本规格不扩GPU、不换装**，不推论全部联动特征无效。
