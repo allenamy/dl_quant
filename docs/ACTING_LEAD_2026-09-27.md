@@ -2,6 +2,13 @@
 
 # 代理主研究员执行台账
 
+## 最新调度覆盖（09-28 06:49Z）
+
+- **唯一新在飞：NC流动性混合目标/成本支持。** 预注册094a62431（时间元信息在b97c376f6更正）、装置b97c376f6/c69ccd9bc、登记5f7e1071d。只测固定50% fund排名+50%滞后Amihud排名，两固定NC F10种子；重算fund LR/动态席位/连续组合，不是换分数沿用旧席位。原信号/原组合先精确复现，未读任何候选收益；不占GPU、不训练、不调场所。
+- Pod根`/dev/shm/nc_liquidity_blend_support_20260928`，源码同名`_sources`。06:46:24Z启动控制器PID/PGID3587844 ticks514787838；子PID/PGID3587855 ticks514788357。**截止07:11:24Z，1500秒，8GiB子进程RSS上限。** 06:49Z子进程身份仍同，原fund分数/LR/席位已过、s42两政策完整数组已相同，尚非全部终态。每次检查PID和TERMINAL，勿再开同任务。
+- 当前研究输入特征sha3c886a2b是主研究员09-25交接明确核过的干净NC分支，不是同名a490c294污染文件。仍保留NC间隔snap规则、固定模型/旧执行镜像等边界；本件是NC移植新规格，不冒充旧XIB数值复现，也不产生可上线判词。
+- 06:46–47Z本地轻读executor仍d01e35d，watchdog `_mode=LIVE`、reduce_only=false、无tripped_at；04:49:20Z评估false/triggers/blind/unevaluated空，ALARM sha未变。root又用错state键，原null另存，按真实`_mode`另发更正收据；未将null当作状态通过。无resume/额外K1/API/Telegram/杠杆或模型变更。
+
 ## 最新调度覆盖（09-28 06:25Z）
 
 - **liquidity_cost_probe已完成，勿重跑。** 预注册24ee54677、首版装置35109d05c；只对NC的qvm与实盘合池历史成交做成本诊断，无GPU/模型训练/策略收益。144锚源特征sha3c886a2b同既有NC；36,376唯一普通调仓、1,777,769.10U全部连接。报告`RESULT_liquidity_cost_probe_2026-09-28.md`，正式收据sha2c64c27c87754a4843428831b435af8201903471707dfe2fe98e2cc9a8892c47。
