@@ -21,6 +21,7 @@ from book_universe import align as align_universe, PATH as UNIVERSE_PATH, SHA as
 import alloc_rules
 
 W = pathlib.Path(os.environ.get('PNOISE_W', '/dev/shm/pnoise_2026-09-24'))
+combo_target.ROOT = W  # isolated output root contains the source-pinned producer copy
 
 
 def verify_training(out, rec, seed, sha):

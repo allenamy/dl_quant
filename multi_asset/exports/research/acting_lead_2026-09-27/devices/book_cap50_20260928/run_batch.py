@@ -57,7 +57,7 @@ def launch(label, args, cwd):
 
 def wait_all(group):
     while any(p.poll() is None for p, *_ in group):
-        if time.monotonic() - START > C['wall_seconds']: raise TimeoutError('batch 3h budget')
+        if time.time() > C['deadline_epoch']: raise TimeoutError('original batch absolute 3h budget')
         if any(p.poll() not in (None, 0) for p, *_ in group):
             raise RuntimeError('child failed; stopping remaining batch')
         time.sleep(2)
@@ -82,6 +82,7 @@ def main():
     for n,h in C['copied_sources'].items():
         if sha(HERE/n) != h: raise ValueError('source drift: '+n)
     if sha(__file__) != C['runner_sha256']: raise ValueError('runner drift')
+    if time.time() >= C['deadline_epoch']: raise TimeoutError('original batch deadline already expired')
     # All environment and source identities are collected before the first run.
     write('PREFLIGHT.json', {'utc': time.strftime('%FT%TZ',time.gmtime()),
            'contract_sha256': sha(HERE/'CONTRACT.json'), 'sources': C['copied_sources'],
