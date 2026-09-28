@@ -2,7 +2,14 @@
 
 # 代理主研究员执行台账
 
-## 最新调度覆盖（09-28 02:54Z，优先于下文旧队列）
+## 最新调度覆盖（09-28 03:26Z，优先于下文旧队列）
+
+- **invvol已完成并关闭登记，勿重跑**。报告`0374ffb66`，registry关闭`efb88aa5b`；64路径审计通过，03:11:34Z rc0、1116秒；归档107件复哈希。全史Δ−8.764/−8.903bps/日，两CI均低于0；2026Jan–Aug回撤改善，但2024/2025与9月恶化，拒绝此规格不部署。见`docs/RESULT_inverse_risk_complete_book_2026-09-28.md`。席位还把2023–25许多HOLD改为发布，不能说纯风险权重效应。
+- **唯一新作业residual_book_20260928**：预注册d89788736、源码943f3c741、登记bd6f80f06。03:23:45Z启动PID/PGID3572046、ticks513571889，绝对截止**04:08:45Z**（2700秒不可续期）；根`/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/residual_book_20260928`，同名`_sources`有CONTRACT/LAUNCH/controller.log。先核旧恒等与所有基线PATH，然后RAW和RESID两确定性Ridge→两完整组合→64执行路径→自动经济表。不是两F10种子，不是DL换装；训练仅CPU2线程，资源门24GiB。上游MODEL_DONE不是整书完成，须TERMINAL rc0和ECONOMIC_FULL_BOOK。输出见数前冻结，主对照RESID−RAW，两者分别对NC42/2027辅助；不据IC宣布获益。
+- 启动前独立复核与修复见`docs/REVIEW_residual_book_prelaunch_2026-09-28.md`。当前配置绑定原成功控制12项PASS；9纯测试Pod绿。没有GPU占用，不重复原基线全跑，不再次启动相同任务。
+- 03:24Z轻读生产HEAD仍d01e35d、watchdog false/无triggers/reduce_only=false；未做任何部署/自动恢复/场所请求。前三恢复K1已经完成，不重复。用户降杠杆提问未答，保持2倍。不能用新研究代替风险裁定。
+
+## 旧调度记录（09-28 02:54Z，已被上文取代）
 
 - **cap50已完成并关闭登记，勿重跑。** `e244faa87`报告`docs/RESULT_cap50_complete_book_2026-09-28.md`；64路径全过、两完整基线身份逐字节相等，02:45:12Z终态（1227秒），经济读数15.8秒/sha `da1ac29a837849e085e2f37d14644b98448dcfb34bf8549c91de9e7d5155addd`。两种子2024与2026Jan–Aug回撤改善，2023H2/2025均值恶化；Sep1–18多亏0.7–0.9pp、价格项变差且手续费升。风险取舍，不是近期亏损方案、不部署；主要年度CI均含0，不称非劣。完整JSON/判词在CAP50_ECONOMIC_20260928。旧现金秒接口、409ea16历史镜像局限保留，不升级当前实盘认证。
 - **唯一新在飞：book_invvol_20260928**。见数前登记`9332a8a20`、代码`b341dd202`、registry `15deddf2c`；只测已有`inverse_vol(LR,look=900)/shared`，不用收益均值、不同于固定50%上限，不扫参。02:52:57Z启动PID/PGID3569357，ticks513387118；绝对截止**03:22:57Z**（1800秒，不能续期）。根`/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/book_invvol_20260928`，源码/控制器日志同名`_sources/`；终态`TERMINAL.json`，模拟先终态`SIMULATION_TERMINAL.json`，经济表`receipts/ECONOMIC_FULL_BOOK.json`自动串行生成。02:53Z源及父收据/64基线PATH复哈希通过，三个未来扰动控制true，候选组合两种子已启动；暂未有候选数字。不得另起同任务。原第一族判词不变，此为探索性风险比较。
