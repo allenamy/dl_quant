@@ -40,12 +40,16 @@ def residual_targets(y,k,f,minimum=50):
 
 def fit_predict(x,y,tr,te):
     from sklearn.linear_model import Ridge
+    from scipy.linalg import LinAlgWarning
+    import warnings
     x,y=np.asarray(x),np.asarray(y);tr,te=np.asarray(tr),np.asarray(te)
     if x.ndim!=2 or y.shape!=(len(x),) or not len(tr) or not len(te):raise ValueError('fit shape')
     if np.intersect1d(tr,te).size or len(np.unique(tr))!=len(tr) or len(np.unique(te))!=len(te):raise ValueError('overlap/duplicate')
     if not np.isfinite(x[tr]).all() or not np.isfinite(x[te]).all() or not np.isfinite(y[tr]).all():raise ValueError('unknown fit inputs')
     mu=x[tr].mean(0,dtype=np.float64);sd=x[tr].std(0,dtype=np.float64)+1e-9
-    model=Ridge(alpha=1.0).fit(((x[tr]-mu)/sd),y[tr])
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", LinAlgWarning)
+        model=Ridge(alpha=1.0).fit(((x[tr]-mu)/sd),y[tr])
     pred=model.predict(((x[te]-mu)/sd))
     if not np.isfinite(pred).all():raise ValueError('nonfinite prediction')
     return pred,dict(mu=mu,sd=sd,coef=np.asarray(model.coef_),intercept=np.asarray(model.intercept_))
