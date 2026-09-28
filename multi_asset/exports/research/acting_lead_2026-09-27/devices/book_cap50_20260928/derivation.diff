@@ -1,0 +1,32 @@
+--- frozen/alloc_chain_run.py
++++ private/alloc_chain_run.py
+@@ -23,9 +23,9 @@
+ sio.install_guards()
+ 
+ NS = "/dev/shm/news2_2026-09-23"
+-BASE = "/workspace/alloc_2026-09-26"
++BASE = "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/book_cap50_20260928"
+ CELLS = f"{BASE}/cells"
+-DEV = f"{BASE}/devices"
++DEV = HERE
+ PV = "/workspace/venv/bin/python"
+ BASE_CFG = f"{NS}/configs/RUN_CONFIG_NEWS2_s42X_2026-09-23.json"
+ BASE_CELL_SUFFIX = "|scaled|rule|raw|UAFE"
+@@ -47,7 +47,7 @@
+ ENGINE_GATE_MARGIN_GIB = 2.0
+ SHM_FREE_MIN_GIB = 4.0
+ PRIORITY_CLAIMS = "/workspace/dlarch_2026-09-24/CHAIN/.claim_NESTEP_s*"   # dlarch 18:2xZ: a claim = its cell is due; do not start a new cell
+-HOLD_FILE = "/dev/shm/alloc_2026-09-26/HOLD_CANDIDATE_CELLS"   # lead-placed priority slot for candidate cells
++HOLD_FILE = f"{BASE}/HOLD_CANDIDATE_CELLS"   # lead-placed priority slot for candidate cells
+ 
+ 
+ def sha(p):
+@@ -153,7 +153,7 @@
+            "devices_realpath": {n: os.path.realpath(os.path.join(DEV, n)) for n in sorted(os.listdir(DEV)) if n.endswith(".py")},
+            "utc_start": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "mem_gate_at_start": mem_gate(), "steps": {}}
+     # ---- root ----
+-    if os.path.lexists(root): shutil.rmtree(root)
++    if os.path.lexists(root): raise RuntimeError("private output already exists: " + root)
+     for d in ("work/king", "inputs", "receipts", "vendor_live/fea171", "configs", "targets", "runs", "logs"):
+         os.makedirs(f"{root}/{d}", exist_ok=True)
+     for rel, src in SHARE.items():
