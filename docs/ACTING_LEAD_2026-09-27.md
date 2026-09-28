@@ -2,7 +2,12 @@
 
 # 代理主研究员执行台账
 
-## 最新调度覆盖（09-28 03:26Z，优先于下文旧队列）
+## 最新调度覆盖（09-28 03:32Z，优先于下文旧队列）
+
+- **residual实际在attempt2，切勿拿旧根失败当新任务失败或重复启动。** 首轮03:27:53Z数值警告触发人工SIGINT，控制器finally清理自有子进程，终态rc1，未读任何候选书层数字。float32共线系数合成反例误差1.81%，双精度修后10/10本地及Pod通过；遇后续LinAlgWarning即拒。修复498e91ad5→10f55e8ad，不改alpha/人口/折/标签。
+- **03:30:33Z attempt2已启动**：PID/PGID3572799、ticks513612713；根`/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/residual_book_20260928_attempt2`、源码同名`_sources`；合同sha872e0ff46af6b30241731515242f6f832d2dbf77289ca4572159d8e944cb560e。**截止仍04:08:45Z，不续期**。见数前计划末节记数值修订，旧失败与当前LAUNCH/CONTRACT都在RESIDUAL_BOOK_20260928/attempt1、attempt2。
+
+## 前次调度覆盖（09-28 03:26Z，实际在飞身份以上文为准）
 
 - **invvol已完成并关闭登记，勿重跑**。报告`0374ffb66`，registry关闭`efb88aa5b`；64路径审计通过，03:11:34Z rc0、1116秒；归档107件复哈希。全史Δ−8.764/−8.903bps/日，两CI均低于0；2026Jan–Aug回撤改善，但2024/2025与9月恶化，拒绝此规格不部署。见`docs/RESULT_inverse_risk_complete_book_2026-09-28.md`。席位还把2023–25许多HOLD改为发布，不能说纯风险权重效应。
 - **唯一新作业residual_book_20260928**：预注册d89788736、源码943f3c741、登记bd6f80f06。03:23:45Z启动PID/PGID3572046、ticks513571889，绝对截止**04:08:45Z**（2700秒不可续期）；根`/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/residual_book_20260928`，同名`_sources`有CONTRACT/LAUNCH/controller.log。先核旧恒等与所有基线PATH，然后RAW和RESID两确定性Ridge→两完整组合→64执行路径→自动经济表。不是两F10种子，不是DL换装；训练仅CPU2线程，资源门24GiB。上游MODEL_DONE不是整书完成，须TERMINAL rc0和ECONOMIC_FULL_BOOK。输出见数前冻结，主对照RESID−RAW，两者分别对NC42/2027辅助；不据IC宣布获益。
