@@ -23,7 +23,7 @@ SAFE_IO_SHA = "36deb92fdd5e8c3506198d82bab8a53312f5c03a1b866e9318f8489d51e0cd4e"
 sio.install_guards()
 
 NS = "/dev/shm/news2_2026-09-23"
-BASE = "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/horizon_book_20260928"
+BASE = "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/horizon_book_20260928_attempt2"
 CELLS = f"{BASE}/cells"
 DEV = HERE
 PV = "/workspace/venv/bin/python"

@@ -113,7 +113,7 @@ def main():
              W / 'receipts/P1_members_2025H2on.npz', pathlib.Path('/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz')]
     ident = {str(p): sha(p) for p in paths}
     rec = json.loads(paths[4].read_text()); lr = json.loads(paths[2].read_text())
-    assert rec['status'] in ('ALL_DECLARED_FOLDS_SCORED_NOT_COMBO_CERTIFIED', 'LINEAR_ALL_DECLARED_FOLDS_SCORED_NOT_COMBO_CERTIFIED') and rec['pred_sha256'] == ident[str(paths[3])]
+    assert rec['status'] in ('ALL_DECLARED_FOLDS_SCORED_NOT_COMBO_CERTIFIED', 'LINEAR_ALL_DECLARED_FOLDS_SCORED_NOT_COMBO_CERTIFIED', 'HORIZON_LINEAR_FOLDS_COMPLETE_NOT_COMBO_CERTIFIED') and rec['pred_sha256'] == ident[str(paths[3])]
     verify_training(froot, rec, args.seed, sha)
     assert set(rec['folds']) == set(rec['expected_folds'])
     for p, h in rec['inputs'].items(): assert sha(p) == h, ('training input drift', p)

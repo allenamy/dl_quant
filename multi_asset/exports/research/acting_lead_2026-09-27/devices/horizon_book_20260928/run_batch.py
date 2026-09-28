@@ -112,7 +112,24 @@ def main():
         if maximum.isdigit() and (int(maximum)-int(stats['anon'])-int(stats['shmem']))>=24*2**30:break
         if time.time()>C['deadline_epoch']:raise TimeoutError('training memory headroom unavailable')
         time.sleep(10)
-    wait_all([launch('train_models',[PY,'-B',str(HERE/'train_ridge.py')],HERE)])
+    if 'reuse_model_root' in C:
+        # An interface retry reuses the sealed model bytes, never refits them.
+        from residual_model import verify_training
+        old=pathlib.Path(C['reuse_model_root'])
+        for name,h in C['reuse_model_pins'].items():
+            if sha(old/name)!=h:raise ValueError('sealed model reuse drift '+name)
+        (ROOT/'models').mkdir()
+        for kind in ('fast','slow'):
+            src=old/'models'/kind
+            rec=json.loads((src/'TRAIN_RECEIPT.json').read_text())
+            if rec['target']!=kind:raise ValueError('model reuse target identity')
+            verify_training(src,rec,42)
+            (ROOT/'models'/kind).symlink_to(src,target_is_directory=True)
+        write('MODEL_DONE.json',json.loads((old/'MODEL_DONE.json').read_text()))
+        write('MODEL_REUSE.json',{'source_root':str(old),'pins':C['reuse_model_pins'],
+              'refit':False,'reason':'only exact completed-training status admitted by combo reader'})
+    else:
+        wait_all([launch('train_models',[PY,'-B',str(HERE/'train_ridge.py')],HERE)])
     wait_all([launch(f'candidate_{k}',chain(k,True),HERE) for k in ('fast','slow')])
     write('SIMULATION_TERMINAL.json',{'rc':0,'status':'SIMULATIONS_AUDITED',
       'utc':time.strftime('%FT%TZ',time.gmtime()),'steps':STEPS})

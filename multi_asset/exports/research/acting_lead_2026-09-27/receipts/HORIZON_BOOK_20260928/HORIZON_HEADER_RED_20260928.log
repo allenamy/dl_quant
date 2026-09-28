@@ -1,0 +1,19 @@
+test_existing_f10_control_unchanged (header.HeaderTest.test_existing_f10_control_unchanged) ... ok
+test_horizon_training_complete_accepts (header.HeaderTest.test_horizon_training_complete_accepts) ... FAIL
+test_unknown_status_and_changed_scores_refuse (header.HeaderTest.test_unknown_status_and_changed_scores_refuse) ... ok
+
+======================================================================
+FAIL: test_horizon_training_complete_accepts (header.HeaderTest.test_horizon_training_complete_accepts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/test_combo_training_header_20260928.py", line 15, in test_horizon_training_complete_accepts
+    gate({'status':'HORIZON_LINEAR_FOLDS_COMPLETE_NOT_COMBO_CERTIFIED','pred_sha256':'abc'})
+  File "/tmp/test_combo_training_header_20260928.py", line 10, in gate
+    exec(compile(ast.Module(body=[node],type_ignores=[]),'<real-main-header>','exec'),
+  File "<real-main-header>", line 116, in <module>
+AssertionError
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.019s
+
+FAILED (failures=1)
