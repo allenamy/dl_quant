@@ -1,0 +1,137 @@
+{
+  "status": "DIAGNOSTIC_COMPLETE_NOT_STRATEGY_EVIDENCE",
+  "utc": "2026-09-28T16:00:08Z",
+  "source_sha256": "620831bdecc68ea035bb1fcf9f40ff0b201ff6261bddd5f885cc5a6f71ca8b1d",
+  "contract_sha256": "52a169fbf85642b3c12fa8230312305161d85ca1f20c32901ae7422844402933",
+  "inputs": {
+    "/dev/shm/peer_price_panel_20260928/PRICE_PEERS.npz": "f9e6d386f005c01fcea96af3f6bf6545edc80b9f3555d0932c494f0618dca26d",
+    "/dev/shm/serving_population_20260928_sources/FROZEN_FETCH_SNAPSHOT.json": "2ffc613607b3a32013dc622813b6f0f7e97e7013c3c0350f628c53c04547b1b9"
+  },
+  "day": 1790553600,
+  "snapshot_anchor": 1790582400,
+  "cache_support": {
+    "closed_before_day": 236,
+    "first": 1787155200,
+    "last": 1790539200,
+    "scope": "upper bound assuming every observed 5m row finite for each name"
+  },
+  "required_min_obs": 240,
+  "fetch_count": 519,
+  "fetch_outside_research_axis": [],
+  "active_full": 519,
+  "active_fetch": 519,
+  "eligible_full": 519,
+  "eligible_fetch": 519,
+  "differences": {
+    "beta": {
+      "population": 519,
+      "common": 519,
+      "left_only": 0,
+      "right_only": 0,
+      "neither": 0,
+      "changed": 519,
+      "abs_delta_p50": 0.0011583159589546588,
+      "abs_delta_p95": 0.006023300129863541,
+      "abs_delta_max": 0.01955449804641285
+    },
+    "scale": {
+      "population": 519,
+      "common": 519,
+      "left_only": 0,
+      "right_only": 0,
+      "neither": 0,
+      "changed": 519,
+      "abs_delta_p50": 5.917665064966021e-06,
+      "abs_delta_p95": 2.373688834170564e-05,
+      "abs_delta_max": 3.96769675009255e-05
+    },
+    "own_residual4h": {
+      "population": 519,
+      "common": 519,
+      "left_only": 0,
+      "right_only": 0,
+      "neither": 0,
+      "changed": 519,
+      "abs_delta_p50": 0.00015694948348032867,
+      "abs_delta_p95": 0.0014800097151385749,
+      "abs_delta_max": 0.017901808164702437
+    },
+    "own_residual24h": {
+      "population": 519,
+      "common": 519,
+      "left_only": 0,
+      "right_only": 0,
+      "neither": 0,
+      "changed": 519,
+      "abs_delta_p50": 0.00024039092771815929,
+      "abs_delta_p95": 0.0014823634583668974,
+      "abs_delta_max": 0.011693909844107786
+    },
+    "peer_residual4h": {
+      "population": 519,
+      "common": 519,
+      "left_only": 0,
+      "right_only": 0,
+      "neither": 0,
+      "changed": 519,
+      "abs_delta_p50": 9.505214652025251e-05,
+      "abs_delta_p95": 0.05498795303784013,
+      "abs_delta_max": 7.946191982490298
+    },
+    "peer_residual24h": {
+      "population": 519,
+      "common": 519,
+      "left_only": 0,
+      "right_only": 0,
+      "neither": 0,
+      "changed": 519,
+      "abs_delta_p50": 0.00015864050671639263,
+      "abs_delta_p95": 0.06102427326591577,
+      "abs_delta_max": 16.568959100480228
+    },
+    "own_minus_peer24h": {
+      "population": 519,
+      "common": 519,
+      "left_only": 0,
+      "right_only": 0,
+      "neither": 0,
+      "changed": 519,
+      "abs_delta_p50": 0.0002739418419024364,
+      "abs_delta_p95": 0.060853619078021226,
+      "abs_delta_max": 16.56916756118426
+    },
+    "peer_up_breadth": {
+      "population": 519,
+      "common": 519,
+      "left_only": 0,
+      "right_only": 0,
+      "neither": 0,
+      "changed": 43,
+      "abs_delta_p50": 0.0,
+      "abs_delta_p95": 0.0625,
+      "abs_delta_max": 0.0625
+    }
+  },
+  "peer_jaccard_median": 1.0,
+  "controls": {
+    "saved_beta_exact": true,
+    "saved_scale_exact": true,
+    "saved_X_exact": true,
+    "actual_cache_history_refused": true,
+    "future_poison_graph_exact": true
+  },
+  "seconds": 1.4818299552425742,
+  "peak_rss_gib": 0.41950225830078125,
+  "outputs": {
+    "COMPARISON.npz": "c537810cbc47c0420ac2785d4689181713163ac91eed57c02f8a41696b830a4c"
+  },
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6",
+  "limits": [
+    "One frozen current-day fetch-list sensitivity; not a historical fetch-universe reconstruction",
+    "Same research raw prices in both arms; this is not a raw-price or arrival-time parity test",
+    "No labels, predictions, training, PnL or strategy decision",
+    "Existing production King/F10 do not use these proposed peer features; this is not evidence of a new production defect",
+    "Rolling-file timestamps are read from the previously verified 08Z snapshot; whole file hash reused from that prior verification"
+  ]
+}
