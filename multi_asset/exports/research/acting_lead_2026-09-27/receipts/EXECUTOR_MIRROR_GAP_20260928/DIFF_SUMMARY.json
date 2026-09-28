@@ -1,0 +1,36 @@
+{
+  "scope": "exact source identity only; no economic or runtime parity claim",
+  "current_commit": "d01e35db56b4d7ed6abf0befd9f18452cd06c329",
+  "mirror_config": {
+    "path": "/dev/shm/recent_nc_cash_20260928/s42/CONFIG.json",
+    "sha256": "7439208a90dc690cdec90f951b991b191e78112a67617130e869aa28ca533c22"
+  },
+  "comparisons": [
+    {
+      "file": "scheduler/anchor_loop.py",
+      "function": "withhold_pop",
+      "same_source": false
+    },
+    {
+      "file": "scheduler/anchor_loop.py",
+      "function": "apply_withhold_and_reshape",
+      "same_source": false
+    },
+    {
+      "file": "scheduler/anchor_loop.py",
+      "function": "clamp_held_untradable",
+      "same_source": true
+    },
+    {
+      "file": "live/binance_executor.py",
+      "function": "RebalanceExecutor",
+      "same_source": false
+    },
+    {
+      "file": "live/external_book.py",
+      "function": "below_min_notional",
+      "same_source": false
+    }
+  ],
+  "audit_correction": "Initial AST hashes were computed under Python3.14 and3.11: FunctionDef adds type_params. Do not compare them. Source hashes are cross-runtime; corrected before publication."
+}
