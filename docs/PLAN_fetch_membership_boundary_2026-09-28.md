@@ -1,4 +1,4 @@
-> **创建:** 2026-09-28 19:27 UTC | **Session:** Codex root / acting-lead-20260927 | **状态:** in-progress | **作废条件:** 所引源码或输入SHA改变；仅固定八锚成员机制诊断，不是收益认证
+> **创建:** 2026-09-28 19:24 UTC | **Session:** Codex root / acting-lead-20260927 | **状态:** in-progress | **作废条件:** 所引源码或输入SHA改变；仅固定八锚成员机制诊断，不是收益认证
 
 接续 RESULT_live_replay_layer_alignment_2026-09-28.md。已有观察：09-24 12Z 至09-25 08Z六锚，研究成员含STG而生产各用另一名；归档aux显示这六锚STG不在实际fetch/base，研究W24H判活仍真。09-24 08Z与09-25 12Z作两端控制。该观察已见，不冒充盲态预注册。
 
