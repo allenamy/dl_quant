@@ -9,6 +9,11 @@ def compile_pure(path,names,env):
  if {n.name for n in nodes}!=set(names):raise ValueError('pure_names')
  source='from __future__ import annotations\n'+'\n\n'.join(ast.get_source_segment(text,n) for n in nodes);ns=dict(env);exec(compile(source,str(path), 'exec'),ns);return ns
 
+def withheld_names(phase,external,target):
+ tradable=phase['universe'].get('tradable')
+ if not isinstance(tradable,list):raise ValueError('venue_tradable_unavailable')
+ return (set(target)-set(tradable)) | set().union(*[set(v) for v in phase['untradable_names'].values()]) | set(external.get('held_exit') or []) | set(external.get('meta_excluded') or {}) | set((external.get('below_min_notional') or {}).get('names') or [])
+
 def compare(target,recorded,halted):
  if not target or not recorded:raise ValueError('empty_population')
  if any(type(v) not in (int,float) or not math.isfinite(v) for v in list(target.values())+list(recorded.values())):raise ValueError('nonfinite_target')
@@ -41,19 +46,19 @@ def run(root,mutation=False):
   if cap.get('capped') or cap.get('error') or cap.get('invalid'):raise ValueError('venue_cap_not_replayed')
   g=pa['sizing']['gross'];norm=row['external_book']['gross_norm'];targetfile=json.loads((root/f'TARGET_{a}.json').read_bytes())
   target={s:float(w)/norm*g for s,w in targetfile['weights'].items()}
-  if mutation and a==c['rows'][0]['anchor']:target[sorted(target)[0]]+=100.
+  if mutation and a==1790553600:target[sorted(target)[0]]+=100.
   od=[x for x in orders if x['rebalance_id']==rid];by=collections.defaultdict(list)
   for x in od:by[x['symbol']].append(x)
   for s,rr in by.items():
    if len({(x['prev_w'],x['target_w']) for x in rr})!=1:raise ValueError('conflicting_order_plan:'+str(a)+':'+s)
   held={s:rr[0]['prev_w']*row['target_gross'] for s,rr in by.items()};observed={s:rr[0]['target_w']*row['target_gross'] for s,rr in by.items()}
-  untr=set().union(*[set(v) for v in pa['untradable_names'].values()])|set(pa['external_book'].get('held_exit') or [])|set(pa['external_book'].get('meta_excluded') or {})
+  untr=withheld_names(pa,row['external_book'],target)
   unknown_held=sorted(untr-set(held));floors={s:float(flraw[s]['min_notional']) for s in target if s in flraw and flraw[s].get('min_notional') is not None}
   clamp,rs=compiled[version['commit']](target,held,untr,g,floors_usdt=floors,floors_source='current_cache_assumption_not_historical',force_flat=force)
   res=compare(target,observed,row['opening_halted']);res.update(anchor=a,commit=version['commit'],unknown_held_names_defaulted_zero=unknown_held,stop_state_utc=prev['logged_utc'],n_target=len(target),n_recorded=len(observed),scope='conditional_mapping_only_no_execution_certification')
   out.append(res)
  return {'rows':out,'matched':sum(x['conditional_target_match'] for x in out),'n':len(out),'max_abs_usdt':max(x['max_abs_usdt'] for x in out),'census_sha256':hashfile(root/'RESULT.json'),'sources_sha256':hashfile(root/'SOURCE_BINDING.json'),'device_sha256':hashfile(__file__),'python':sys.executable,'numpy':np.__version__,'mutation':mutation}
 if __name__=='__main__':
- r=run(sys.argv[1],len(sys.argv)>2 and sys.argv[2]=='--mutate');p=Path(sys.argv[1])/('BOOK_MAPPING_MUTATION.json' if r['mutation'] else 'BOOK_MAPPING.json')
+ r=run(sys.argv[1],len(sys.argv)>2 and sys.argv[2]=='--mutate');p=Path(sys.argv[1])/('BOOK_MAPPING_GATES_MUTATION.json' if r['mutation'] else 'BOOK_MAPPING_GATES.json')
  with p.open('x') as f:json.dump(r,f,indent=2,allow_nan=False);f.write('\n')
  print(json.dumps({k:v for k,v in r.items() if k!='rows'}))
