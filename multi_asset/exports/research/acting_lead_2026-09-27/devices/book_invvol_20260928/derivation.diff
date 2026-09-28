@@ -1,0 +1,37 @@
+--- cap50/alloc_chain_run.py
++++ invvol/alloc_chain_run.py
+@@ -23,7 +23,7 @@
+ sio.install_guards()
+ 
+ NS = "/dev/shm/news2_2026-09-23"
+-BASE = "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/book_cap50_20260928_attempt2"
++BASE = "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/book_invvol_20260928"
+ CELLS = f"{BASE}/cells"
+ DEV = HERE
+ PV = "/workspace/venv/bin/python"
+--- cap50/economic_readout.py
++++ invvol/economic_readout.py
+@@ -90,9 +90,9 @@
+ 
+ 
+ def run(root, out):
+-    terminal = root / 'TERMINAL.json'
++    terminal = root / 'SIMULATION_TERMINAL.json'
+     t = json.loads(terminal.read_text())
+-    if t['rc'] != 0 or t['status'] != 'EXPLORATORY_COMPARISON_COMPLETE_NOT_RELEASE':
++    if t['rc'] != 0 or t['status'] != 'SIMULATIONS_AUDITED':
+         raise ValueError('batch not complete')
+     if sha(ENGINE / 'news_stats.py') != STATS_SHA:
+         raise ValueError('stats source drift')
+@@ -115,9 +115,9 @@
+                stress='1.25x observed fees, actions and stops fixed; not a policy rerun',
+                python=sys.executable, numpy=np.__version__, results={})
+     for seed in (42, 2027):
+-        at = f'ALLOC_cap050_shared_s{seed}X_scaled_rule_raw_UAFE'
++        at = f'ALLOC_invvol_shared_s{seed}X_scaled_rule_raw_UAFE'
+         rt = f'DLARCH_REF_NC_s{seed}X_scaled_rule_raw_UAFE'
+-        pa, fa = S.load_cell(str(root / f'cells/cap050_shared_s{seed}/runs/{at}'), at)
++        pa, fa = S.load_cell(str(root / f'cells/invvol_shared_s{seed}/runs/{at}'), at)
+         pr, fr = S.load_cell(f'/workspace/dlarch_2026-09-24/chain/ref_nc_s{seed}X/runs/{rt}', rt)
+         if len(pa) != 32 or len(pr) != 32 or not np.array_equal(pa[0]['A'], pr[0]['A']):
+             raise ValueError('paired population incomplete')
