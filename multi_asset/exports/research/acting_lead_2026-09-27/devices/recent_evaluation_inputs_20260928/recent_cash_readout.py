@@ -52,8 +52,17 @@ def summarize_path(p,lo,hi):
     return out,ds,d
 
 def table(root,out):
-    result=json.loads((root/'RESULT.json').read_text());t=json.loads((root/'TERMINAL.json').read_text())
-    if t.get('rc')!=0 or t['result_sha256']!=sha(root/'RESULT.json') or not result['all64_old_prefixes_bitwise_equal']:raise ValueError('cash terminal/identity')
+    t=json.loads((root/'TERMINAL.json').read_text())
+    if t.get('rc')!=0:raise ValueError('upstream cash failed: '+str(t.get('error')))
+    result=json.loads((root/'RESULT.json').read_text())
+    if t['result_sha256']!=sha(root/'RESULT.json'):raise ValueError('cash terminal/identity')
+    if not result.get('all64_old_prefixes_bitwise_equal'):
+        if not result.get('all64_anchor_and_interior_prefixes_bitwise_equal'):raise ValueError('prefix identity')
+        pp=root/'PREFIX_CONTROLS.json';probe=result['probe']
+        if sha(pp)!=result['controls_sha256'] or sha(probe['path'])!=probe['sha256']:raise ValueError('prefix proof drift')
+        proof=json.loads(pp.read_text())
+        if set(proof)!= {'42','2027'} or any(set(v)!=set(map(str,range(32))) for v in proof.values()):raise ValueError('prefix population')
+        if not all(v['economic_and_interior_prefix_bitwise_equal'] and all(abs(z['delta_usd'])<=z['ulp_usd'] for z in v['endpoint_samples_changed']) for d in proof.values() for v in d.values()):raise ValueError('prefix proof')
     windows={'recent9':(START,END),'september27':(stamp('2026-09-01'),END),'last3_descriptive':(stamp('2026-09-25'),END)};R={};pins={str(root/'RESULT.json'):sha(root/'RESULT.json')};daily={}
     for sd in (42,2027):
         c=result['configs'][str(sd)];cp=Path(c['path'])
@@ -74,7 +83,7 @@ def table(root,out):
     (out/'ECONOMIC.json').write_text(json.dumps(rec,indent=2,allow_nan=False)+'\n');return rec
 
 def trace(sd,out):
-    cp=ROOT/f's{sd}/CONFIG.json';cfg=json.loads(cp.read_text());engine=ROOT/'engine';sys.path.insert(0,str(engine));import bt_driver_lib as DL
+    result=json.loads((ROOT/'RESULT.json').read_text());cp=Path(result['configs'][str(sd)]['path']);cfg=json.loads(cp.read_text());engine=Path(cfg['pins']['engine_bt_driver_lib']['path']).parent;sys.path.insert(0,str(engine));import bt_driver_lib as DL
     checks=[]
     def check(name,ok,detail=None):
         checks.append({'name':name,'ok':bool(ok)})
@@ -118,8 +127,10 @@ def trace(sd,out):
     result={'model_seed':sd,'execution_seed':0,'reference_path_sha256':sha(str(stem(cp.parent,r['tag'],0))+'.npz'),'path_unchanged':gate,'anchors':len(rows),'source_identity_checks':len(checks),'seconds':time.monotonic()-began,'per_name_max_identity_error':max(r0['max_error'] for r0 in rows),'npz_sha256':sha(out/f'PER_NAME_s{sd}_p0.npz')}
     (out/f'TRACE_s{sd}.json').write_text(json.dumps(result,indent=2)+'\n');shutil.rmtree(tdir);return result
 
-def main(out):
-    out=Path(out);out.mkdir(exist_ok=False);deadline=1790604000  # 2026-09-28 14:00Z, fixed before reading numbers
+def main(out,cash_root=None,deadline_arg='1790604000'):
+    global ROOT
+    if cash_root is not None:ROOT=Path(cash_root)
+    out=Path(out);out.mkdir(exist_ok=False);deadline=int(deadline_arg)
     while not (ROOT/'TERMINAL.json').exists():
         if time.time()>deadline:raise TimeoutError('cash readout waiting deadline')
         time.sleep(20)

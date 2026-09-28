@@ -6,8 +6,8 @@
 
 ## 现有内容与证据边界
 
-- NC冻结生产树 `/dev/shm/nc_2026-09-23/tree/shadow_loop_v3.py` 585–624：40个单名滚动值、40个截面秩、fund_ema/fund_now，经keep_idx取78列。这已经包含截面排名，不能把新增“截面排名”当创新。
-- DL base82及f8 89列已有单名偏度/波动动态/流动性/买量、自身滞后、全局离散度与BTC波动率交互；89列明细在冻结NC树的`fea171/f8_higher_order_features.py`。没有在此清单找到动态同伴关系或同伴收益/流量聚合。主仓不同代文件可能同名，实施时须绑定NC树SHA，不能只凭文件名。
+- NC冻结生产树 `/dev/shm/nc_2026-09-23/tree/shadow_loop_v3.py` 585–624：40个单名滚动值、40个截面秩、fund_ema/fund_now，经keep_idx取78列。这已经包含截面排名，不能把新增“截面排名”当创新。进一步实读冻结bundle keep_idx=4..81，所以**当前King确实已有fund_ema/fund_now两列**；新方向是交互与关系，不是首次引入费率。
+- DL base82及f8 89列已有单名偏度/波动动态/流动性/买量、自身滞后、全局离散度与BTC波动率交互；89列明细在冻结NC树的`fea171/f8_higher_order_features.py`。没有在此清单找到动态同伴关系或同伴收益/流量聚合。冻结NC的f8源码SHA为98bc036d98a1b2385dd9e035a4803e03426047ba058d30e93df959b3f3788fb6。主仓不同代文件可能同名，实施时须绑定NC树SHA，不能只凭文件名。
 - 今晨已测R180：近期IC提高但整书变差。原秩收益优势在fund/FTRIM及流动性筛选/配平后大幅流失；LQ仅对训练人口做流动性对齐仍不晋级。故新特征必须验证新增信号和组合传递两件事。
 - 历史研究提供市场/规模/动量和联动传播的机制背景，不证明我们的4h永续、费用后有alpha。参考Liu/Tsyvinski/Wu, Common Risk Factors in Cryptocurrency, https://www.nber.org/papers/w25882；Cohen/Frazzini, Economic Links and Predictable Returns, https://pages.stern.nyu.edu/~afrazzin/pdf/Economic%20Links%20and%20Predictable%20Returns%20-%20Cohen%20and%20Frazzini.pdf 。后者是股票关系，不能直接移植其收益量级。
 
