@@ -1,0 +1,43 @@
+test_cash_closed_roundtrip (test_actual_directional_cash.Direction.test_cash_closed_roundtrip) ... ok
+test_close_is_not_flip (test_actual_directional_cash.Direction.test_close_is_not_flip) ... ok
+test_different_time_confirms (test_actual_directional_cash.Direction.test_different_time_confirms) ... ok
+test_flat (test_actual_directional_cash.Direction.test_flat) ... ok
+test_flip (test_actual_directional_cash.Direction.test_flip) ... ok
+test_income_only_unknown_position (test_actual_directional_cash.Direction.test_income_only_unknown_position) ... ok
+test_long (test_actual_directional_cash.Direction.test_long) ... ok
+test_nonfinite_refused (test_actual_directional_cash.Direction.test_nonfinite_refused) ... ok
+test_quantity_missing_refused (test_actual_directional_cash.Direction.test_quantity_missing_refused) ... ok
+test_same_time_ambiguity (test_actual_directional_cash.Direction.test_same_time_ambiguity) ... FAIL
+test_same_time_nonambiguous (test_actual_directional_cash.Direction.test_same_time_nonambiguous) ... ok
+test_short (test_actual_directional_cash.Direction.test_short) ... ok
+test_short_cash_sign (test_actual_directional_cash.Direction.test_short_cash_sign) ... ok
+test_zero_start_ambiguous (test_actual_directional_cash.Direction.test_zero_start_ambiguous) ... FAIL
+
+======================================================================
+FAIL: test_same_time_ambiguity (test_actual_directional_cash.Direction.test_same_time_ambiguity)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/haosiyu/.codex/worktrees/acting-lead-20260927/quant_research/multi_asset/exports/research/acting_lead_2026-09-27/devices/test_actual_directional_cash.py", line 22, in test_same_time_ambiguity
+    self.assertEqual(D.classify(1,x,10),'INTRATIMESTAMP_AMBIGUOUS')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'LONG_ONLY' != 'INTRATIMESTAMP_AMBIGUOUS'
+- LONG_ONLY
++ INTRATIMESTAMP_AMBIGUOUS
+
+
+======================================================================
+FAIL: test_zero_start_ambiguous (test_actual_directional_cash.Direction.test_zero_start_ambiguous)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/haosiyu/.codex/worktrees/acting-lead-20260927/quant_research/multi_asset/exports/research/acting_lead_2026-09-27/devices/test_actual_directional_cash.py", line 29, in test_zero_start_ambiguous
+    self.assertEqual(D.classify(0,[trade(1,-1),trade(1,1)],10),'INTRATIMESTAMP_AMBIGUOUS')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'SHORT_ONLY' != 'INTRATIMESTAMP_AMBIGUOUS'
+- SHORT_ONLY
++ INTRATIMESTAMP_AMBIGUOUS
+
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.001s
+
+FAILED (failures=2)
