@@ -41,7 +41,7 @@ def main():
     peak=max(peak,rss(p.pid)+rss(os.getpid()))
     if peak>8*G:why='RSS_STOP';break
     if free()<8*G:why='PUBLIC_HEADROOM_STOP';break
-    if time.monotonic()-start>900:why='WALL_STOP';break
+    if time.monotonic()-start>900 or time.time()>c['deadline_unix']:why='WALL_STOP';break
     time.sleep(.1)
    stop(p);rc=p.wait(1)
   if rc==0 and why=='NOT_STARTED':
