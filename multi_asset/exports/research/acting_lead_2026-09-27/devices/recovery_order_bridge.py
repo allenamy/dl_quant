@@ -86,6 +86,7 @@ def main(root):
  summaries=[r for r in allrows if r.get('order_type')=='protective_flatten' and valid(r.get('first_fill_ts')) and valid(r.get('last_fill_ts')) and r['last_fill_ts']>START and r['first_fill_ts']<=END]
  wanted={(r.get('symbol'),r.get('client_id')) for r in summaries}
  rows=[r for r in allrows if r.get('order_type')=='topup_taker' and any((r.get('symbol'),q.get('client_id')) in wanted for q in (r.get('request_ledger') or []))]
+ B.put(root/'MATCH_CENSUS.json',{'protective_summaries':len(summaries),'request_rows_matching_identity':len(rows),'window':[START,END],'selected_by':'symbol plus exact client_id, bounded first/last fill; no equal-count or nearest-time join'})
  agg=aggregate(rows,summaries,START,END,{(t['symbol'],t['trade_id']) for t in basefills})
  def snap(anchor):
   a=next(s['execution_anchor'] for s in parent['snapshots'] if s['anchor']==anchor);obs=data['observations'][str(a)];demand(len(obs)==1,'phase_C_identity')
@@ -108,4 +109,9 @@ def main(root):
  B.put(root/'RESULT.json',result)
  print(json.dumps({k:result[k] for k in ('supplement_quantity_verdict','original_quantity_failures','max_quantity_residual_equiv_usdt','price_trade_cash_usdt','commission_native_comparison')}))
 if __name__=='__main__':
- p=argparse.ArgumentParser();p.add_argument('mode',choices=['capture','analyze']);p.add_argument('root',type=Path);a=p.parse_args();(capture if a.mode=='capture' else main)(a.root)
+ p=argparse.ArgumentParser();p.add_argument('mode',choices=['capture','analyze']);p.add_argument('root',type=Path);a=p.parse_args()
+ try:(capture if a.mode=='capture' else main)(a.root)
+ except ValueError as e:
+  out={'verdict':'UNAVAILABLE','reason':str(e),'utc':time.strftime('%FT%TZ',time.gmtime()),'source_sha256':B.sha(Path(__file__).read_bytes()),'production_untouched':True}
+  if a.mode=='analyze':B.put(a.root/'UNAVAILABLE.json',out)
+  print(json.dumps(out));sys.exit(3)
