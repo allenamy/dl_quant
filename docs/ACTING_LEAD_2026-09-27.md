@@ -2,6 +2,13 @@
 
 # 代理主研究员执行台账
 
+## 14:36Z D10联动面板与独立输入检查完成，Ridge在跑（优先读）
+
+- 面板14:34:10左右完成，383.05秒/峰值6.092GiB，RESULT880f29ce、NPZcb51a7ad；8929锚原四价格列精确复现，2645843成员资金费行与D10fe/fn逐位同。registrya92475fa3关闭，不重做面板。96直接窗口/MAD/单位独立核对14:34:37通过，最大相对尺度差4.40e−8（存储f32，非逐位），源f8a5c391。
+- 见数前新增自身negativefund×自身残差控制，避免把条件动量冒称同伴传播；68d97f4ef。最终两基线102列/候选105列，42测试绿；七门不变。
+- **唯一在飞计算peer_flow_ridge_20260928**：14:35:17Z PID/PGID3629725 ticks517601146，**截止14:51:17Z**；源747776e4、合同32a9ca3e，代码387b763de。根/dev/shm/peer_flow_ridge_20260928，日志同名.run.log，源码/dev/shm/peer_flow_panel_20260928_sources。39月×4模型，单CPU、不占GPU；完整终态前无收益或晋级结论，不读部分折选规格。
+- 14:30:24只读轻审LIVE、无trip/trigger/metric_errors/blind，老partial2，S3心跳17.85秒。不是新锚验收；无API/Telegram/部署/恢复/改2倍。原完整近期现金与第一价格族均封存，禁止重复跑。
+
 ## 14:28Z 同伴流量/资金费增量检验启动（优先读）
 
 - 唯一在跑计算peer_flow_panel_20260928，14:27:47Z PID/PGID3629051 ticks517556123，**截止14:43:47Z**；源d86cf54e，合同5ee400f0，9b97b54a7，registry4493506db。CPU1，无GPU/模型/经济数字；40控制先红后绿。读取D10 state49ce0fac、featuread80d50d及ms ledger76b777bf，不把NC snap旧规则叫最新修正。
