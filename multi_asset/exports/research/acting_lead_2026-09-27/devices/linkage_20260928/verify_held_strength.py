@@ -19,7 +19,11 @@ def main(root,contract):
  def eq(a,b,tol=1e-7):
   nonlocal checks,worst
   a,b=np.asarray(a),np.asarray(b);assert a.shape==b.shape and np.array_equal(np.isnan(a),np.isnan(b))
-  u=np.isfinite(a);assert np.array_equal(u,np.isfinite(b));d=float(np.max(np.abs(a[u]-b[u]))) if u.any() else 0.;assert d<=tol,(d,tol);checks+=1;worst=max(worst,d)
+  u=np.isfinite(a);assert np.array_equal(u,np.isfinite(b))
+  if a.dtype.kind=='b' or b.dtype.kind=='b':
+   assert a.dtype.kind==b.dtype.kind and np.array_equal(a,b);d=0.
+  else:d=float(np.max(np.abs(a[u]-b[u]))) if u.any() else 0.
+  assert d<=tol,(d,tol);checks+=1;worst=max(worst,d)
  F=np.load(C['panel']);fi=[list(F['anchors']).index(a) for a in A];eq(z['own4'],F['own'][fi,:,4],0);eq(z['own24'],F['own'][fi,:,5],0)
  L=np.load(C['legs']);li=[list(L['E_ts']).index(a) for a in A];eq(z['NC_ZFD'],L['ZFD'][li],0);eq(z['NC_RN8'],L['RN8'][li],0)
  P=np.load(C['predictions']);pi=[list(P['anchors']).index(a) for a in A]
