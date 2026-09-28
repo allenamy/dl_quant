@@ -45,7 +45,7 @@
 - 主装置耗时1.348s、峰值0.320GiB，无训练/无GPU；11个工程控制。
 - 独立读取原输入重组1372项，最大绝对差7.45058e−9美元；没有独立重建成交模拟或原始特征，不声称穷尽认证。
 - 首版将全829名轴unknown误当持仓unknown而拒绝。1488格=31个无仓无现金名字×48锚，两种子都没有任何非零量或现金；修法保留它们，拒绝所有非零量/现金载体与unknown相交。失败根和失败合同保留，修后另批120秒，未改窗口/分组。
-- 独立校验首版对bool数组做减法触发TypeError，随后改为bool逐位比较，真实全量重验通过；一次提前读取未生成校验票据被FileNotFoundError阻断，未据此发布结果。首行预注册时刻曾手填偏后，已以原提交15:28Z更正。
+- 独立校验首版对bool数组做减法触发TypeError，随后改为bool逐位比较，真实全量重验通过；两次提前读取未生成校验票据被FileNotFoundError阻断，未据此发布结果。首行预注册时刻曾手填偏后，已以原提交15:28Z更正。
 - 本机保存成功ALIGNED/RESULT/TERMINAL/INDEPENDENT_CHECK、启动记录/日志及首失败记录，LOCAL_MANIFEST逐件SHA；无源数据删除。
 
 提交：a7e626b11预注册/源码；4caa0214a时刻更正；83ecd87d4未知人口修复；f9603b47a独立核账；c69a1925a布尔核验修复。
@@ -54,3 +54,5 @@ RESULT f1412bda64b2801acba56c41083f9330aba83cff265cd06b0e7e0445a2075c6d；ALIGNE
 路径：multi_asset/exports/research/acting_lead_2026-09-27/receipts/HELD_STRENGTH_CASH_20260928/；Pod /dev/shm/held_strength_cash_repair_20260928。
 
 15:33:29Z生产轻读仍LIVE/no trip、没有新trigger/error/blind，cond2/4历史partial2保留；S3心跳37秒。不是16Z验收、不是场所读取。没有生产写、模型/杠杆改变、Telegram或自动恢复。
+
+全件另已保存ZIP：/Users/haosiyu/.codex/tmp/pod_archive_20260928/held_strength_cash.zip，2313364字节、15成员逐件SHA核验，SHA 88fb3136ea997056aae0a286c80618c62e6f39768f87e9976fc7beb99189c01b。ALIGNED受Git忽略，不冒称它已推远端；本机完整ZIP与Pod原件都保留。
