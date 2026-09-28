@@ -1,0 +1,19 @@
+test_hard_positive_affine_invariance_and_average_ties (test_trace_step.TraceTests.test_hard_positive_affine_invariance_and_average_ties) ... ok
+test_real_layers_not_just_an_output_label (test_trace_step.TraceTests.test_real_layers_not_just_an_output_label) ... ok
+test_soft_scale_standardization_matches_training_contract (test_trace_step.TraceTests.test_soft_scale_standardization_matches_training_contract) ... FAIL
+test_soft_shift_invariance (test_trace_step.TraceTests.test_soft_shift_invariance) ... ok
+test_source_drift_refuses_before_observation (test_trace_step.TraceTests.test_source_drift_refuses_before_observation) ... ok
+test_tracing_cannot_change_numeric_or_gate_outputs (test_trace_step.TraceTests.test_tracing_cannot_change_numeric_or_gate_outputs) ... ok
+
+======================================================================
+FAIL: test_soft_scale_standardization_matches_training_contract (test_trace_step.TraceTests.test_soft_scale_standardization_matches_training_contract)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/funding/normalized_rank_action_20260928_sources/test_trace_step.py", line 41, in test_soft_scale_standardization_matches_training_contract
+    self.assertLessEqual(float((a[1]-b[1]).abs().max()),1e-6)
+AssertionError: 0.0043240538897480404 not less than or equal to 1e-06
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.210s
+
+FAILED (failures=1)
