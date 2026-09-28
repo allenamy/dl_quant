@@ -1,0 +1,55 @@
+{
+  "paths": {
+    "price_panel": "/dev/shm/peer_price_panel_20260928/PRICE_PEERS.npz",
+    "old_axes": "/dev/shm/nc_2026-09-23/work/axes.npz",
+    "old_cache": "/dev/shm/nc_2026-09-23/work/cache_crypto.npy",
+    "new_axes": "/dev/shm/recent_rolling_inputs_20260928/axes.npz",
+    "new_cache": "/dev/shm/recent_rolling_inputs_20260928/cache_crypto.npy",
+    "fund_state": "/workspace/d10_reread_2026-09-27/r4_fund_state/fund_state_d10ext.npz",
+    "d10_features": "/workspace/d10_reread_2026-09-27/r6_assemble/NEWS_FEATURES_D10EXT.npz",
+    "fund_source": "/workspace/d10_reread_2026-09-27/devices/d10_build_fund_state.py",
+    "fund_rule": "/workspace/d10_reread_2026-09-27/common/funding_interval.py",
+    "ema_source": "/dev/shm/nc_2026-09-23/tree/fea171/nc_contract.py",
+    "fund_receipt": "/workspace/d10_reread_2026-09-27/r4_fund_state/fund_state_d10ext_RECEIPT.json",
+    "ledger_ms": "/workspace/d10_reread_2026-09-27/r2b_20260927T113701Z/r2/ledger_full_ms_ext_20260927T08.npz",
+    "fund_rebuild": "/workspace/d10_reread_2026-09-27/devices/d10_rebuild_funding_features.py"
+  },
+  "inputs": {
+    "/dev/shm/peer_price_panel_20260928/PRICE_PEERS.npz": "f9e6d386f005c01fcea96af3f6bf6545edc80b9f3555d0932c494f0618dca26d",
+    "/dev/shm/nc_2026-09-23/work/axes.npz": "ec7723c4a4dfbbcc6e5e3a6e4cb026fda3cde6af059bac5739d65681862b2389",
+    "/dev/shm/nc_2026-09-23/work/cache_crypto.npy": "7d22ca41af29a5ef2ea69d3f350d76201606232550ffc60e88e4dfc71bf5f0a7",
+    "/dev/shm/recent_rolling_inputs_20260928/axes.npz": "5f52c24b760fbd713145f877f2eb6be38453c3f9d856abe310248c1924e55153",
+    "/dev/shm/recent_rolling_inputs_20260928/cache_crypto.npy": "7e9b8007ec362844b72b3f27c92df77c8998f2d2227691db7453acfef4c99b68",
+    "/workspace/d10_reread_2026-09-27/r4_fund_state/fund_state_d10ext.npz": "49ce0faca521906baa3057d3901742689c7d1a95a87c3661155c7ef6a8a7268d",
+    "/workspace/d10_reread_2026-09-27/r6_assemble/NEWS_FEATURES_D10EXT.npz": "ad80d50d1f8b953a317845a88ff2ae7399ad8cfdd967a49f492cb8094a6314c1",
+    "/workspace/d10_reread_2026-09-27/devices/d10_build_fund_state.py": "e90addf6146b3ee2295aa8b0e6603432ab21dca68c1119cb9ffe00b1353a4671",
+    "/workspace/d10_reread_2026-09-27/common/funding_interval.py": "5d5bf20797ca41c0b83ce0d6d710acb9baf2c500c93c9b40b7084c23182afb3f",
+    "/dev/shm/nc_2026-09-23/tree/fea171/nc_contract.py": "316a0b9bcf1461401740ebd79a3292a9bfcdc49d56f111219ff6e126110650cb",
+    "/workspace/d10_reread_2026-09-27/r4_fund_state/fund_state_d10ext_RECEIPT.json": "3819d3197a401f2c560b0533b3ce3431e233cca1d9e2fb47efef1951082c7bb2",
+    "/workspace/d10_reread_2026-09-27/r2b_20260927T113701Z/r2/ledger_full_ms_ext_20260927T08.npz": "76b777bf07d5b3630e9d4818b562cd798f1ca495af8af190c8f24421c9b538db",
+    "/workspace/d10_reread_2026-09-27/devices/d10_rebuild_funding_features.py": "a10159804908bb2d6f3caf1985806f6617996b7cfa5c50c10089c8a22a6aef16"
+  },
+  "created_utc": "2026-09-28T14:25:36.097202+00:00",
+  "status": "FROZEN_BEFORE_SIGNAL_OUTCOME",
+  "helpers": {
+    "flow_funding.py": "16cfcc837d8188e846f9c3197a8d7d1cabc5384de8047f50f71486cc40aada5a",
+    "peer_features.py": "895c4f75341735fbdb6079d9929f2c99c1a7b6e5824302c284a47e915cefa235",
+    "price_panel.py": "f5f1ad0296baa57aac2f170bdce9810a645ea501e684fa17f79389ddfc0ce999"
+  },
+  "feature_start": 1661990400,
+  "eval_end": 1790467200,
+  "graph": {
+    "window": 360,
+    "min_obs": 240,
+    "k": 16,
+    "min_peers": 8,
+    "min_market": 20
+  },
+  "budget_seconds": 900,
+  "formula": {
+    "flow": "mean tbf last48 minus mean previous288, strictly finite windows; daily past360/min240 per-name MAD z",
+    "volume": "mean log1p(qv) last48 minus mean previous2016, strictly finite windows; daily past360/min240 per-name MAD z",
+    "fund": "D10 archived full state; EMA already 8h, only raw last rate times8/iv; fresh<=12h; no future events",
+    "interactions": "peer flow minus own; peer volume minus own; max(-fund8,0)*peer_residual4h"
+  }
+}
