@@ -45,8 +45,8 @@ def fit_predict(x,y,tr,te):
     if np.intersect1d(tr,te).size or len(np.unique(tr))!=len(tr) or len(np.unique(te))!=len(te):raise ValueError('overlap/duplicate')
     if not np.isfinite(x[tr]).all() or not np.isfinite(x[te]).all() or not np.isfinite(y[tr]).all():raise ValueError('unknown fit inputs')
     mu=x[tr].mean(0,dtype=np.float64);sd=x[tr].std(0,dtype=np.float64)+1e-9
-    model=Ridge(alpha=1.0).fit(((x[tr]-mu)/sd).astype(np.float32),y[tr])
-    pred=model.predict(((x[te]-mu)/sd).astype(np.float32))
+    model=Ridge(alpha=1.0).fit(((x[tr]-mu)/sd),y[tr])
+    pred=model.predict(((x[te]-mu)/sd))
     if not np.isfinite(pred).all():raise ValueError('nonfinite prediction')
     return pred,dict(mu=mu,sd=sd,coef=np.asarray(model.coef_),intercept=np.asarray(model.intercept_))
 

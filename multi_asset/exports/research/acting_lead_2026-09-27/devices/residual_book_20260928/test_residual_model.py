@@ -55,6 +55,14 @@ class ResidualModelTest(unittest.TestCase):
         with self.assertRaises(ValueError):aligned_labels(a,['A','B'],a[::-1],['A','B'],y)
         with self.assertRaises(ValueError):aligned_labels(a+.5,['A','B'],a,['A','B'],y)
 
+    def test_collinear_ridge_matches_closed_form_in_double_precision(self):
+        v=np.linspace(-3,3,4000)
+        x=np.repeat(v[:,None],64,axis=1);y=2*v+.01*np.sin(v)
+        pred,m=fit_predict(x,y,np.arange(3000),np.arange(3000,4000))
+        z=(v[:3000]-m['mu'][0])/m['sd'][0]
+        expected=np.dot(z,y[:3000]-y[:3000].mean())/(1+64*np.dot(z,z))
+        np.testing.assert_allclose(m['coef'],expected,rtol=1e-9,atol=1e-11)
+
     def test_missing_label_anchor_stays_unknown(self):
         a=np.arange(5)*14400;y=np.arange(8).reshape(4,2)
         out=aligned_labels(a,['A','B'],a[:4],['A','B'],y)

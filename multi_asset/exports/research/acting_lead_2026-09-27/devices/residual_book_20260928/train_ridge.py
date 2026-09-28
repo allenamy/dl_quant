@@ -78,7 +78,7 @@ def main():
             rec=dict(schema=SCHEMA,fold=tag,target=kind,inputs=PINS,sources=sources,
                 train_label_end=trainend,test_start=teststart,train_pairs=len(tr),test_pairs=len(te),
                 training_rows_sha256=__import__('hashlib').sha256(tr.tobytes()).hexdigest(),
-                algorithm='Ridge(alpha=1.0), training-only mean/std, float32 standardized features',
+                algorithm='Ridge(alpha=1.0), training-only mean/std, float64 standardized solve (input features unchanged float32)',
                 python=sys.executable,numpy=np.__version__,sklearn=sklearn.__version__,
                 model_sha256=sha(d/'model.npz'),score_sha256=sha(d/'scores.npz'),seconds=time.monotonic()-started)
             write(d/'FOLD_RECEIPT.json',rec)
