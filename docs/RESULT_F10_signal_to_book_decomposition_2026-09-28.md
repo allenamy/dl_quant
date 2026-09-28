@@ -102,3 +102,7 @@ OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /workspace/venv/bin/python -B /dev/shm/
 ```
 
 逐项输入路径/sha、原argv、环境与失败原件见同目录COMMAND/PREFLIGHT/RESULT。两份数组已本机持久封存于 `/Users/haosiyu/.codex/tmp/pod_archive_20260928/f10_diagnostic/`，逐件sha验证。选择细分的实际调用与参数读取 `devices/f10_stage_diagnostic_20260928/selection.py`，不得凭文件名替换基线。LQ结果待真实终态与64条新现金路径完成，另立结果件。
+
+## 17:43Z 补充分解（不修改上述历史判断）
+
+最高5%组“更多做空/更少做多”的未测边界现由RESULT_F10_tail_position_split_2026-09-28.md补齐：原两种子/两候选均有两类损失；六手算控制、逐锚父恒等及720独立标量核对通过。仍是纯F10秩书价格账，不能据此解释全部实盘或宣称改变损失即可提高收益。原所有候选失败与现金边界不变。
