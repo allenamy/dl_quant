@@ -12,3 +12,7 @@
 - 任何行/请求不合格就拒绝整个补充人口。未知不补0；汇总条数不是证明。原16/19基线不覆盖、不回写生产账本。只出独立补充结果，仍缺315名旧机原件、STG结算价和USD计价/收入完整门。
 
 控制：无终态拒、非有限拒、错误方向拒、记录重复只计一次、冲突订单拒、跨界成交拒、未知余量拒、摘要重复不加、改一请求的确认金额拒、规范成交已有重叠拒。静默窗读取已写订单一次封存字节和SHA；不读/输出CFG04/06逐臂结果、不调用API/执行套件/生产写。源码和计划先于实测汇总数字提交。
+
+## 输入结构澄清（全量金额计算之前）
+
+执行器原文 ledger_row_fields 将已证明无unknown的filled_unknown_qty/residual写为None；request qty及confirmed_qty/notional为带符号值，trade_qty/trade_quote为逐trade id的正数映射。因此本件不用None当0，而要求每个请求终态/双final、child id集合相同且和等于signed confirmed、所有行known/filled合计闭合，独立推导无未知；None只允许在这组正证据成立时出现。请求中保留子成交ID后，可检查与原fills的(symbol,id)全量互斥。没有每笔时间，仍仅认证整个first/last封闭区间金额，不生成伪精确成交时间。
