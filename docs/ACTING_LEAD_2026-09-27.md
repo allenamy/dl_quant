@@ -6,7 +6,7 @@
 
 - **score_book_probe已完成勿重跑**：04:11:55Z rc0，36.39秒/929MiB；RAW/RESID/NC42/NC2027各8142锚目标全逐位一致。报告`RESULT_residual_score_to_book_probe_2026-09-28.md`（8310d4329），registry f2a74930b已关闭。2025残差新目标价格代理较高，在EMA阶段首次落后RAW；九月最终组合资金费排序载荷四组接近。仅同步原价标签诊断、非现金因果证据；不重开已判负加速交易、不撤销残差整书失败。
 - **唯一新在飞horizon_book_20260928**：预注册711bc7945、装置93250c364、登记f9205e7d0。04:26:39Z启动PID/PGID3577692、ticks513949303；后处理3577693/ticks513949304。根`/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/horizon_book_20260928`，源码/日志同名`_sources`。**绝对截止05:10:52Z，不续期**；合同sha001696ca610b091eae06492fbf28bfc1078f30cb742ef8a97c97d1d0ff9db8ae。FAST下一4h与SLOW固定48h衰减价格标签，配对相同stride12不重叠训练人口、60锚标签端点隔离、同171特征/Ridge；不改alpha0.1、资金费/席位/组合/执行。CPU无GPU；自动两完整组合/64路径/经济表/双口径预测诊断/判词/封存。15测试绿、两真标签变异红；初次tar仅权限元数据返回非0，已改zip并重跑精确版本通过。模型完成不是整书终态，不重复起跑。
-- 04Z仅已确认04:00:06Z启动。04:22本地轻读watchdog最近仍00:48:03Z false/triggers空，ALARM sha未变；未声称04Z验收。恢复三锚K1已完不重做。用户未答临时1倍提问，保持2倍；无部署、场所调用、resume或Telegram。
+- 04Z目标1790568000.json现已落盘，King/F10与在役配置钉分别相等；target sha7363e4a5a417a3eb641dd551644b6acbec6522fde827120f772726d05c4c4591。仅本地身份核对，不是首锚验收。04Z已确认04:00:06Z启动。04:22本地轻读watchdog最近仍00:48:03Z false/triggers空，ALARM sha未变；未声称04Z验收。恢复三锚K1已完不重做。用户未答临时1倍提问，保持2倍；无部署、场所调用、resume或Telegram。
 
 ## 前次调度覆盖（09-28 03:54Z）
 
