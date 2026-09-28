@@ -1,0 +1,24 @@
+--- multi_asset/exports/research/acting_lead_2026-09-27/devices/f10_liquid_population_20260928/run_batch.py
++++ multi_asset/exports/research/acting_lead_2026-09-27/devices/f10_label_repair_20260928/run_batch.py
+@@ -1,4 +1,4 @@
+-"""Owned GPU liquidity-population continuation -> two serial full combo cells -> matched U/NC readout."""
++"""Owned GPU label repair -> two serial full combo cells -> matched U/NC readout."""
+ import os,sys,json,hashlib,pathlib,subprocess,time,signal,traceback,zipfile
+ H=pathlib.Path(__file__).resolve().parent;C=json.loads((H/'CONTRACT.json').read_text());R=pathlib.Path(C['root'])
+ PY='/workspace/venv/bin/python';ENV={'PATH':'/usr/bin:/bin','HOME':'/root'};CH=[];STEPS=[];START=time.monotonic()
+@@ -99,7 +99,7 @@
+  wait([launch('unit_controls',[PY,'-B','-m','unittest','discover','-s',str(H),'-p','test_*.py','-v'])])
+  wait([launch('train_adapt',[PY,'-B',str(H/'train_adapt.py')])],True)
+  wait([launch('score_diagnostics',[PY,'-B',str(H/'score_diagnostics.py')])])
+- for kind in ('LQ',):
++ for kind in ('REPAIR',):
+   for seed in (42,2027):
+    args=[PY,'-B',str(H/'alloc_chain_run.py'),'PATH,HOME,LC_CTYPE',str(R/'receipts'),'--seed',str(seed),'--rule','inservice','--mix','shared','--kind',kind,'--engine']
+    wait([launch(f'{kind}_{seed}',args)])
+@@ -117,5 +117,5 @@
+  except BaseException as e:error=repr(e);traceback.print_exc()
+  finally:
+   stop_own()
+-  if R.exists():write('TERMINAL.json',{'rc':rc,'status':'EXPLORATORY_COMPARISON_COMPLETE_NOT_RELEASE' if rc==0 else 'FAILED','error':error,'utc':time.strftime('%FT%TZ',time.gmtime()),'wall_seconds':time.monotonic()-START,'steps':STEPS,'production_changes':0,'GPU_training_requested':True,'completed_neural_fold_outputs':len(list((R/'models').glob('LQ_s*/*/FOLD_RECEIPT.json')))})
++  if R.exists():write('TERMINAL.json',{'rc':rc,'status':'EXPLORATORY_COMPARISON_COMPLETE_NOT_RELEASE' if rc==0 else 'FAILED','error':error,'utc':time.strftime('%FT%TZ',time.gmtime()),'wall_seconds':time.monotonic()-START,'steps':STEPS,'production_changes':0,'GPU_training_requested':True,'completed_neural_fold_outputs':len(list((R/'models').glob('REPAIR_s*/*/FOLD_RECEIPT.json')))})
+  sys.exit(rc)

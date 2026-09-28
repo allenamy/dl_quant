@@ -1,0 +1,17 @@
+--- multi_asset/exports/research/acting_lead_2026-09-27/devices/f10_liquid_population_20260928/decision.py
++++ multi_asset/exports/research/acting_lead_2026-09-27/devices/f10_label_repair_20260928/decision.py
+@@ -1,4 +1,4 @@
+-"""Fixed recent-first LQ gates; old years are tail stress, not equal-weight utility."""
++"""Fixed recent-first REPAIR gates; old years are tail stress, not equal-weight utility."""
+ import math
+ 
+ def decide(r):
+@@ -8,7 +8,7 @@
+         return x
+     def diff(w,k):return val(w['paired_metric_difference'][k]['mean'])
+     for seed in (42,2027):
+-        rnc=r['results'][f'LQ_s{seed}_vs_NC']['results'];u=r['results'][f'LQ_s{seed}_vs_U']['results']['recent_primary'];w=rnc['recent_primary']
++        rnc=r['results'][f'REPAIR_s{seed}_vs_NC']['results'];u=r['results'][f'REPAIR_s{seed}_vs_U']['results']['recent_primary'];w=rnc['recent_primary']
+         checks[f'{seed}_recent_vs_NC']=val(w['paired_daily_bps'])>0
+         checks[f'{seed}_recent_vs_U']=val(u['paired_daily_bps'])>0
+         checks[f'{seed}_september']=diff(rnc['Sep01_18_descriptive'],'return_compound')>=0

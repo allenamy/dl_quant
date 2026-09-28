@@ -1,0 +1,146 @@
+--- multi_asset/exports/research/acting_lead_2026-09-27/devices/f10_recent_adapt_20260928/train_adapt.py
++++ multi_asset/exports/research/acting_lead_2026-09-27/devices/f10_label_repair_20260928/train_adapt.py
+@@ -1,7 +1,8 @@
+-"""96-step matched U/R180 continuation of each frozen NC fold. No checkpoint selection."""
++"""Label repair only: reuse identical folds; exact old-input GPU control before four refits."""
+ import os
+ os.environ.update(OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',NPY_DISABLE_CPU_FEATURES='X86_V4 AVX512_ICL AVX512_SPR')
+-import sys,json,pathlib,hashlib,time,collections,copy
++import sys,json,pathlib,hashlib,time,collections,copy,shutil
++from label_contract import validate_overlay,needs_refit,assert_reproduction
+ import numpy as np
+ import torch
+ from torch import nn
+@@ -23,6 +24,7 @@
+  return h.hexdigest()
+ def main():
+  if not __debug__:raise RuntimeError('optimized assertions forbidden')
++ PINS['/dev/shm/f10_y4s_repair_20260928/Y4S_OVERLAY.npz']='ea6e4b73876035ab6d5a94ca5049746a6ee1e18542ab6d180896e931a49ed81a'
+  for p,h in PINS.items():assert sha(p)==h,('input drift',p)
+  source=NS/'devices/news2_train_f10.py';obs=NS/'devices/f10_observability.py'
+  assert sha(source)=='66bc7c3e69af7aab7062b562674fb3bbe272fd9a28fc3ea9639143f4549420db'
+@@ -30,18 +32,28 @@
+  sys.path.insert(0,str(NS/'devices'));import news2_train_f10 as N
+  from f10_observability import span_admissible
+  torch.set_num_threads(2);assert torch.cuda.is_available()
+- sources={str(p):sha(p) for p in [H/'train_adapt.py',H/'adapt_contract.py',source,obs]}
++ sources={str(p):sha(p) for p in [H/'train_adapt.py',H/'adapt_contract.py',H/'label_contract.py',source,obs]}
++ inventory=H/'ADMISSION_INVENTORY.json';assert sha(inventory)==C['inventory_sha256'];inputs_inventory=json.loads(inventory.read_text());assert inputs_inventory['affected']==['202608','202609']
++ PINS[str(inventory)]=sha(inventory)
+  for seed in (42,2027):
+   recp=NS/f'work/f10_s{seed}/TRAIN_RECEIPT.json';rec=json.loads(recp.read_text())
+   assert rec['seed']==seed and set(rec['folds'])==set(rec['expected_folds'])
+   for p,h in {**rec['sources'],**rec['inputs'],**rec['fold_artifacts']}.items():assert sha(p)==h,('base provenance',p)
+   PINS[str(recp)]=sha(recp)
++ for seed in (42,2027):
++  up=pathlib.Path(f'/dev/shm/f10_recent_adapt_20260928_attempt2/models/U_s{seed}/TRAIN_RECEIPT.json');ur=json.loads(up.read_text())
++  for p,h in ur['fold_artifacts'].items():assert sha(p)==h,('U source artifact',p)
++  PINS.update(ur['fold_artifacts']);PINS[str(up)]=sha(up)
+  inputs=dict(PINS)
+  F=np.load(NS/'work/NEWS_FEATURES.npz');T=np.load(list(PINS)[2],allow_pickle=True);L=np.load(NS/'work/legs.npz')
+  a=F['anchors'].astype(np.int64);sy=F['symbols'];off=F['off'];m=F['m'].astype(int);n=len(a);w=len(sy)
+  assert np.array_equal(T['symbols'],sy) and np.array_equal(L['symbols'],sy) and np.array_equal(L['E_ts'],a)
+  ti=np.asarray(align_indices(T['E_ts'].tolist(),a.tolist()));ok=ti>=0
+- y=np.full((n,w),np.nan,np.float32);y[ok]=T['y4s'][ti[ok]];ready=L['ready'];counts=np.diff(off)
++ old_full=T['y4s'];newfile=np.load('/dev/shm/f10_y4s_repair_20260928/Y4S_OVERLAY.npz',allow_pickle=True);new_full=newfile['y4s']
++ assert np.array_equal(T['E_ts'],newfile['E_ts']) and np.array_equal(T['symbols'],newfile['symbols'])
++ assert validate_overlay(old_full,new_full)==852
++ yold=np.full((n,w),np.nan,np.float32);yold[ok]=old_full[ti[ok]]
++ y=np.full((n,w),np.nan,np.float32);y[ok]=new_full[ti[ok]];ready=L['ready'];counts=np.diff(off)
+  write(ROOT/'models/LABEL_ALIGNMENT.json',{'missing_axis_anchors':a[~ok].tolist(),'missing_kept_as':'NaN, original NC contract; no zero fill'})
+  x=np.concatenate([F['X82'].astype(np.float32),F['X89']],1).astype(np.float32);assert np.isfinite(x).all()
+  XT=torch.from_numpy(x).to('cuda');del x
+@@ -70,9 +82,20 @@
+    held=new
+   if bool(torch.stack(bad).any().item()):raise ValueError('unknown held labels')
+   return torch.stack(nets)
++ def fit(ck,seed,windows,ends,cutoff,uniforms,mu,sd):
++  torch.manual_seed(seed);np.random.seed(seed);model=N.Net().cuda();model.load_state_dict(ck['state_dict'])
++  opt=torch.optim.AdamW(model.parameters(),lr=3e-5,weight_decay=1e-4);probs=probabilities(ends,cutoff,None);chosen=choose(probs,uniforms)
++  start_t=time.monotonic();curve=[];model.train()
++  for step,wi in enumerate(chosen):
++   if time.time()>C['training_deadline_epoch']:raise TimeoutError('20 minute training budget')
++   nets=run_span(model,windows[wi],mu,sd);es=torch.topk(-nets,max(1,int(np.ceil(.05*len(nets))))).values.mean();loss=-nets.mean()+.25*es
++   assert torch.isfinite(loss),'nonfinite adaptation loss'
++   opt.zero_grad();loss.backward();nn.utils.clip_grad_norm_(model.parameters(),1.);opt.step();curve.append(float(loss.detach()))
++  del opt
++  return model,probs,chosen,curve,start_t
+  # Same fold order for both model seeds; no inference from unfinished folds.
+  for seed in (42,2027):
+-  outs={k:ROOT/f'models/{k}_s{seed}' for k in ('U','R180')};preds={k:np.full((n,w),np.nan,np.float32) for k in outs};arts={k:{} for k in outs};tags=[]
++  outs={k:ROOT/f'models/{k}_s{seed}' for k in ('REPAIR',)};preds={k:np.full((n,w),np.nan,np.float32) for k in outs};arts={k:{} for k in outs};tags=[]
+   for tag,start,end in N.fold_specs(a):
+    te=np.flatnonzero((a>=start)&(a<end));cutoff=int(a[te[0]])-60*14400
+    rawwindows=causal_windows(a.tolist(),ready.tolist(),counts.tolist(),cutoff);windows=[];rejected=collections.Counter()
+@@ -81,6 +104,25 @@
+     if ok:windows.append(span)
+     else:rejected[why['reason']]+=1
+    assert len(windows)>=5
++   oldwindows=[span for span in rawwindows if span_admissible(members,yold,span,ready)[0]]
++   ubase=pathlib.Path(f'/dev/shm/f10_recent_adapt_20260928_attempt2/models/U_s{seed}/{tag}')
++   urec=json.loads((ubase/'FOLD_RECEIPT.json').read_text());assert sha(ubase/'model.pt')==urec['model_sha256'] and sha(ubase/'scores.npz')==urec['score_sha256']
++   assert len(oldwindows)==urec['admission']['accepted_windows'] and cutoff==urec['admission']['cutoff']
++   changed=needs_refit(oldwindows,windows);assert changed==(tag in inputs_inventory['affected'])
++   if not changed:
++    # Conservative reuse proof: labels across each admitted span's entire name union are identical.
++    for span in windows:
++     names=np.unique(np.concatenate([members[i] for i in span]));oi=yold[np.ix_(span,names)];ni=y[np.ix_(span,names)]
++     assert np.array_equal(oi,ni,equal_nan=True),('unchanged-window label drift',tag)
++    out=outs['REPAIR']/tag;out.mkdir(parents=True,exist_ok=False)
++    for name in ('model.pt','scores.npz'):
++     shutil.copyfile(ubase/name,out/name);assert sha(out/name)==sha(ubase/name);arts['REPAIR'][str(out/name)]=sha(out/name)
++    z=np.load(out/'scores.npz');assert np.array_equal(z['rows'],te) and np.array_equal(z['symbols'],sy);preds['REPAIR'][te]=z['P']
++    reuse={'status':'UNCHANGED_LABELS_AND_EXACT_WINDOW_INDICES','from':str(ubase),'old_receipt_sha256':sha(ubase/'FOLD_RECEIPT.json'),'arm':'REPAIR','original_arm':'U','windows_sha256':hashlib.sha256(json.dumps(windows).encode()).hexdigest()}
++    # This is a new derived receipt, not a relabelled old training run. Original receipt is pinned in inputs.
++    write(out/'FOLD_RECEIPT.json',{**urec,'status':'REUSED_U_NO_TRAINING_PERFORMED','arm':'REPAIR','inputs':inputs,'sources':sources,'reuse':reuse})
++    arts['REPAIR'][str(out/'FOLD_RECEIPT.json')]=sha(out/'FOLD_RECEIPT.json');tags.append(tag)
++    print(time.strftime('%FT%TZ',time.gmtime()),'FOLD_REUSED',seed,tag,flush=True);continue
+    base=NS/f'work/f10_s{seed}/{tag}';br=json.loads((base/'FOLD_RECEIPT.json').read_text());assert br['model_sha256']==sha(base/'model.pt') and br['score_sha256']==sha(base/'scores.npz')
+    ck=torch.load(base/'model.pt',map_location='cuda',weights_only=False);mu=ck['mu'];sd=ck['sd'];assert torch.isfinite(mu).all() and torch.isfinite(sd).all() and (sd>0).all()
+    model=N.Net().cuda();model.load_state_dict(ck['state_dict']);initial=model_sha(model)
+@@ -89,16 +131,21 @@
+    assert np.array_equal(np.isfinite(p0),np.isfinite(ref));delta=float(np.max(np.abs(p0[np.isfinite(p0)]-ref[np.isfinite(ref)])));assert delta<=1e-6,('warmstart parity',tag,delta)
+    assert model_sha(model)==initial
+    ends=[int(a[s[-1]])+14400 for s in windows];us=np.random.default_rng(seed+int(tag)).random(96).tolist()
+-   for kind,hl in [('U',None),('R180',180)]:
+-    out=outs[kind]/tag;out.mkdir(parents=True,exist_ok=False);torch.manual_seed(seed);np.random.seed(seed)
+-    model=N.Net().cuda();model.load_state_dict(ck['state_dict']);assert model_sha(model)==initial
+-    opt=torch.optim.AdamW(model.parameters(),lr=3e-5,weight_decay=1e-4);probs=probabilities(ends,cutoff,hl);chosen=choose(probs,us)
+-    start_t=time.monotonic();curve=[];model.train()
+-    for step,wi in enumerate(chosen):
+-     if time.time()>C['training_deadline_epoch']:raise TimeoutError('45 minute training budget')
+-     nets=run_span(model,windows[wi],mu,sd);es=torch.topk(-nets,max(1,int(np.ceil(.05*len(nets))))).values.mean();loss=-nets.mean()+.25*es
+-     assert torch.isfinite(loss),'nonfinite adaptation loss'
+-     opt.zero_grad();loss.backward();nn.utils.clip_grad_norm_(model.parameters(),1.);opt.step();curve.append(float(loss.detach()))
++   if seed==42 and tag==inputs_inventory['affected'][0]:
++    repaired_YT,repaired_YVALID=YT,YVALID
++    YT=torch.from_numpy(np.where(np.isfinite(yold),yold,0.)).cuda();YVALID=torch.from_numpy(np.isfinite(yold)).cuda()
++    oldends=[int(a[q[-1]])+14400 for q in oldwindows]
++    control,cp,cc,cl,ct=fit(ck,seed,oldwindows,oldends,cutoff,us,mu,sd)
++    control_pred=predict(control,mu,sd,te);oldscore=np.load(ubase/'scores.npz')['P'];actual=model_sha(control)
++    observed={'status':'OBSERVED_BEFORE_ASSERT','seed':seed,'fold':tag,'old_state':urec['final_state_sha256'],'actual_state':actual,'samples_equal':cc==urec['admission']['sampled_windows'],'scores_bytes_equal':control_pred.tobytes()==oldscore.tobytes(),'elapsed_seconds':time.monotonic()-ct}
++    write(ROOT/'models/OLD_INPUT_CONTROL_OBSERVED.json',observed)
++    assert_reproduction(urec['final_state_sha256'],actual,urec['admission']['sampled_windows'],cc,oldscore,control_pred)
++    write(ROOT/'models/OLD_INPUT_CONTROL_PASS.json',{**observed,'status':'EXACT_OLD_INPUT_REPRODUCTION'})
++    del control,YT,YVALID;YT,YVALID=repaired_YT,repaired_YVALID;torch.cuda.empty_cache()
++   assert (ROOT/'models/OLD_INPUT_CONTROL_PASS.json').exists()
++   for kind,hl in [('REPAIR',None)]:
++    out=outs[kind]/tag;out.mkdir(parents=True,exist_ok=False)
++    model,probs,chosen,curve,start_t=fit(ck,seed,windows,ends,cutoff,us,mu,sd)
+     final=model_sha(model);assert final!=initial
+     pred=predict(model,mu,sd,te);preds[kind][te]=pred
+     torch.save({'state_dict':model.state_dict(),'mu':mu,'sd':sd,'input_dim':171,'fixed_epoch_index':None,'continuation_updates':96},out/'model.pt')
+@@ -108,11 +155,11 @@
+     write(out/'FOLD_RECEIPT.json',rr)
+     for p in (out/'FOLD_RECEIPT.json',out/'scores.npz',out/'model.pt'):arts[kind][str(p)]=sha(p)
+     print(time.strftime('%FT%TZ',time.gmtime()),'FOLD_DONE',seed,tag,kind,round(rr['elapsed_seconds'],2),flush=True)
+-    del model,opt;torch.cuda.empty_cache()
++    del model;torch.cuda.empty_cache()
+    tags.append(tag)
+   for kind,out in outs.items():
+    np.savez_compressed(out/'F10_OOF.npz',P=preds[kind],E_ts=a,symbols=sy)
+    write(out/'TRAIN_RECEIPT.json',{'status':'ALL_DECLARED_FOLDS_SCORED_NOT_COMBO_CERTIFIED','seed':seed,'folds':tags,'expected_folds':[t[0] for t in N.fold_specs(a)],'fold_artifacts':arts[kind],'inputs':inputs,'sources':sources,'pred_sha256':sha(out/'F10_OOF.npz'),'model_kind':'NC_F10_warm_start_fixed_96_updates','model_target':kind,'experimental_only':True})
+  for p,h in {**inputs,**sources}.items():assert sha(p)==h,('source/input drift',p)
+- write(ROOT/'models/TRAINING_COMPLETE.json',{'status':'FOUR_MODEL_STREAMS_COMPLETE_NOT_BOOK','utc':time.strftime('%FT%TZ',time.gmtime()),'seeds':[42,2027],'arms':['U','R180'],'folds_per_stream':23,'optimizer_updates_per_fold':96,'peak_gpu_bytes':torch.cuda.max_memory_allocated()})
++ write(ROOT/'models/TRAINING_COMPLETE.json',{'status':'TWO_MODEL_STREAMS_COMPLETE_NOT_BOOK','utc':time.strftime('%FT%TZ',time.gmtime()),'seeds':[42,2027],'arms':['REPAIR'],'trained_folds':4,'reused_folds':42,'old_input_control_folds':1,'folds_per_stream':23,'optimizer_updates_per_fold':96,'peak_gpu_bytes':torch.cuda.max_memory_allocated()})
+ if __name__=='__main__':main()

@@ -12,3 +12,9 @@ def validate_overlay(old,new):
 
 def needs_refit(old_windows,new_windows):
  return [tuple(x) for x in old_windows]!=[tuple(x) for x in new_windows]
+
+def assert_reproduction(old_state,new_state,old_samples,new_samples,old_scores,new_scores):
+ if not old_state or old_state!=new_state:raise ValueError('old-input model state differs')
+ if list(old_samples)!=list(new_samples):raise ValueError('old-input sampled windows differ')
+ a,b=np.asarray(old_scores),np.asarray(new_scores)
+ if a.dtype!=b.dtype or a.shape!=b.shape or a.tobytes()!=b.tobytes():raise ValueError('old-input score bytes differ')
