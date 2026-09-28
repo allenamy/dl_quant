@@ -1,9 +1,17 @@
 import unittest
 import numpy as np
-from recent_legs import seed_history, require_boundary, extract_loop
+from recent_legs import seed_history, require_boundary, extract_loop,same_values_as_schema
 
 
 class Controls(unittest.TestCase):
+    def test_original_merged_arithmetic_dtype_preserved(self):
+        f={'qvm':np.array([13.51],np.float32)}
+        out=same_values_as_schema(f,{'qvm':np.dtype('float64')})
+        self.assertEqual(out['qvm'].dtype,np.dtype('float64'))
+        self.assertTrue(np.array_equal(out['qvm'],f['qvm']))
+
+    def test_lossy_cast_refused(self):
+        with self.assertRaises(ValueError):same_values_as_schema({'v':np.array([1.000000001])},{'v':np.dtype('float16')})
     def test_history_preserves_observed_order_and_zero(self):
         x=np.array([[np.nan]*3,[0.,2.,3.],[1.,4.,5.],[np.nan]*3])
         h=seed_history(x)

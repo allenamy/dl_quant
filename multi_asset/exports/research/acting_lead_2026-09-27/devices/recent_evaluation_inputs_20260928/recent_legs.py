@@ -2,7 +2,7 @@
 import os
 os.environ.update(OMP_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='1',NPY_DISABLE_CPU_FEATURES='X86_V4 AVX512_ICL AVX512_SPR')
 from pathlib import Path
-import ast,json,sys,time,importlib.util,traceback
+import ast,json,sys,time,importlib.util,traceback,zipfile
 from types import SimpleNamespace
 import numpy as np
 from funding_overlap import sha
@@ -10,6 +10,26 @@ from recent_king_features import materialize,exact,PINS,BASE
 
 LEG_SHA='18387627f8426a45135b348dd4508281b4811894c91eb50af87751760609c0a0'
 OLD_LEGS_SHA='9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65'
+
+def feature_schema(path,keys):
+    out={}
+    with zipfile.ZipFile(path) as z:
+        for k in keys:
+            with z.open(k+'.npy') as f:
+                version=np.lib.format.read_magic(f)
+                if version==(1,0):_,_,dt=np.lib.format.read_array_header_1_0(f)
+                elif version==(2,0):_,_,dt=np.lib.format.read_array_header_2_0(f)
+                else:raise ValueError('unsupported feature array header')
+                out[k]=dt
+    return out
+
+def same_values_as_schema(F,schema):
+    out=F.copy()
+    for k,dt in schema.items():
+        v=np.asarray(F[k]);q=v.astype(dt)
+        if not np.array_equal(v,q,equal_nan=True):raise ValueError('lossy feature conversion '+k)
+        out[k]=q
+    return out
 
 def seed_history(x):
     x=np.asarray(x)
@@ -62,6 +82,9 @@ def main(root):
     wr=Path('/dev/shm/recent_rolling_inputs_20260928');fr=Path('/dev/shm/recent_funding_continuation_20260928_materialized');kr=Path('/dev/shm/recent_king_features_20260928');pr=Path('/dev/shm/recent_nc_predictions_20260928')
     for r in (wr,fr,kr,pr):certified(r,pins)
     old=materialize(oldp);F=materialize(kr/'KING_FEATURES_AND_MEMBERS.npz');F['base_val']=F.pop('base_vals');K=materialize(pr/'KING_PREDICTIONS.npz');ax=materialize(wr/'axes.npz');fund=materialize(fr/'FUND_CONTINUATION.npz')
+    original_features=Path('/dev/shm/news2_2026-09-23/work/NEWS_FEATURES.npz');pins[str(original_features)]='3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8'
+    if sha(original_features)!=pins[str(original_features)]:raise ValueError('original feature schema identity')
+    schema=feature_schema(original_features,('anchors','symbols','off','m','fe_v','qvm','rev24','base_val'));F=same_values_as_schema(F,schema)
     require_boundary(old['E_ts'],F['anchors'])
     for z in (K,ax,fund):
         if not np.array_equal(z['symbols'],F['symbols']) or not np.array_equal(z.get('E_ts',z.get('anchors')),F['anchors']):raise ValueError('axis identity')
@@ -92,7 +115,7 @@ def main(root):
     np.savez_compressed(out,E_ts=F['anchors'],symbols=F['symbols'],**arrays)
     for p,h in pins.items():
         if sha(p)!=h:raise ValueError('changed upstream '+p)
-    rec={'status':'CONTINUOUS_ORIGINAL_NC_LEGS_NOT_BOOK_OR_CASH','utc':time.strftime('%FT%TZ',time.gmtime()),'inputs':pins,'outputs':{out.name:sha(out)},'anchors':len(F['anchors']),'old_lr_count':len(seed['king']),'new_observed_return_intervals':int(np.isfinite(result['LRm']).all(1).sum()),'controls':controls,'seconds':time.monotonic()-start,'limits':['Seat history is original hypothetical NC path, not current live intervention state','Last anchor next return is unknown, not zero','No model change, fee/cash, or deployable strategy claim']}
+    rec={'status':'CONTINUOUS_ORIGINAL_NC_LEGS_NOT_BOOK_OR_CASH','utc':time.strftime('%FT%TZ',time.gmtime()),'inputs':pins,'outputs':{out.name:sha(out)},'anchors':len(F['anchors']),'original_input_schema':{k:str(v) for k,v in schema.items()},'python':sys.executable,'numpy':np.__version__,'old_lr_count':len(seed['king']),'new_observed_return_intervals':int(np.isfinite(result['LRm']).all(1).sum()),'controls':controls,'seconds':time.monotonic()-start,'limits':['Seat history is original hypothetical NC path, not current live intervention state','Last anchor next return is unknown, not zero','No model change, fee/cash, or deployable strategy claim']}
     (root/'RESULT.json').write_text(json.dumps(rec,indent=2,allow_nan=False)+'\n');(root/'TERMINAL.json').write_text(json.dumps({'rc':0,'result_sha256':sha(root/'RESULT.json')})+'\n');print({k:rec[k] for k in ('status','anchors','controls','seconds')})
 
 if __name__=='__main__':
