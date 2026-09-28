@@ -73,10 +73,13 @@ def summarize(state, ev, jobs, heartbeat, now):
         errors.append("watchdog_schema")
     try:
         assert isinstance(jobs, list)
-        assert all(isinstance(j, dict) and isinstance(j["name"], str) and j["name"] and type(j["closed"]) is bool for j in jobs)
+        # registry_edit.add does not require closed; its matching inflight_status
+        # treats absence as still open. Never infer completion from another label.
+        assert all(isinstance(j, dict) and isinstance(j["name"], str) and j["name"] and ("closed" not in j or type(j["closed"]) is bool) for j in jobs)
         assert len({j["name"] for j in jobs}) == len(jobs)
-        out["active_jobs"] = [j["name"] for j in jobs if not j["closed"]]
-        out["closed_jobs_count"] = sum(j["closed"] for j in jobs)
+        out["active_jobs"] = [j["name"] for j in jobs if not j.get("closed", False)]
+        out["closed_jobs_count"] = sum(j.get("closed", False) for j in jobs)
+        out["registry_implicit_open_names"] = [j["name"] for j in jobs if "closed" not in j]
         out["registry_scope"] = "recorded_status_not_process_liveness"
     except (AssertionError, KeyError, TypeError):
         errors.append("registry_schema")

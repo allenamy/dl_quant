@@ -35,8 +35,15 @@ class AuditTests(unittest.TestCase):
         self.state["reduce_only"] = "false"
         self.assertEqual(self.go()["verdict"], "UNAVAILABLE")
 
-    def test_registry_missing_closed_string_and_duplicate_refused(self):
-        for jobs in ([{"name": "x", "status": "done"}], [{"name": "x", "closed": "false"}], self.jobs + [self.jobs[0]]):
+    def test_registry_missing_closed_remains_active_like_writer_contract(self):
+        self.jobs = [{"name": "x", "status": "done"}]
+        r = self.go()
+        self.assertEqual(r["active_jobs"], ["x"])
+        self.assertEqual(r["registry_implicit_open_names"], ["x"])
+        self.assertEqual(r["closed_jobs_count"], 0)
+
+    def test_registry_string_and_duplicate_refused(self):
+        for jobs in ([{"name": "x", "closed": "false"}], [{"name": "x", "closed": None}], self.jobs + [self.jobs[0]]):
             self.jobs = jobs
             self.assertEqual(self.go()["verdict"], "UNAVAILABLE")
 
