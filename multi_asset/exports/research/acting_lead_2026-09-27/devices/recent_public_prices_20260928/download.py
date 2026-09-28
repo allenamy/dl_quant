@@ -2,9 +2,13 @@
 Missing archives and partial days remain explicit. No zero fill or price inference.
 """
 import concurrent.futures as cf
-import csv,datetime as dt,hashlib,io,json,math,os,re,sys,time,urllib.request,urllib.error,zipfile
+import csv,datetime as dt,hashlib,io,json,math,os,re,sys,time,urllib.request,urllib.error,urllib.parse,zipfile
 from pathlib import Path
 BASE='https://data.binance.vision/data/futures/um/daily/klines'
+def archive_url(symbol, day):
+ if not isinstance(symbol,str) or not symbol.isalnum():raise ValueError('symbol path component')
+ if dt.date.fromisoformat(day).isoformat()!=day:raise ValueError('day')
+ return f'{BASE}/{urllib.parse.quote(symbol,safe="")}/5m/{urllib.parse.quote(symbol+"-5m-"+day+".zip",safe="")}'
 def digest(b):return hashlib.sha256(b).hexdigest()
 def validate(raw, checksum, symbol, day):
  name=f'{symbol}-5m-{day}.zip';parts=checksum.split()
@@ -39,10 +43,10 @@ def read_url(url):
 def run(contract):
  C=json.loads(Path(contract).read_text());root=Path(C['root']);root.mkdir(exist_ok=False)
  if digest(Path(__file__).read_bytes())!=C['device_sha256']:raise ValueError('device drift')
- if len(C['symbols'])!=len(set(C['symbols'])) or any(not re.fullmatch('[A-Z0-9]+',s) for s in C['symbols']):raise ValueError('symbols')
+ if len(C['symbols'])!=len(set(C['symbols'])) or any(not isinstance(s,str) or not s.isalnum() for s in C['symbols']):raise ValueError('symbols')
  results=[];jobs=[(s,d) for d in C['days'] for s in C['symbols']]
  def one(job):
-  s,d=job;name=f'{s}-5m-{d}.zip';url=f'{BASE}/{s}/5m/{name}'
+  s,d=job;name=f'{s}-5m-{d}.zip';url=archive_url(s,d)
   rec={'symbol':s,'day':d,'url':url,'retrieved_utc':dt.datetime.now(dt.timezone.utc).isoformat()}
   if time.time()>C['deadline_epoch']:return dict(rec,status='UNATTEMPTED_BUDGET')
   try:
@@ -64,4 +68,9 @@ def run(contract):
  bad=sum(v for k,v in counts.items() if k not in ('VERIFIED_ARCHIVE','ARCHIVE_ABSENT'))
  write(root/'TERMINAL.json',(json.dumps({'rc':1 if bad else 0,'status':'COLLECTION_WITH_EXPLICIT_GAPS' if not bad else 'PARTIAL_COLLECTION','counts':counts,'manifest_sha256':digest((root/'MANIFEST.json').read_bytes()),'utc':out['utc']},indent=2)+'\n').encode())
  print('FINISHED',counts,flush=True)
-if __name__=='__main__':run(sys.argv[1])
+if __name__=='__main__':
+ try:run(sys.argv[1])
+ except BaseException as e:
+  c=json.loads(Path(sys.argv[1]).read_text());root=Path(c['root']);root.mkdir(exist_ok=True)
+  if not (root/'TERMINAL.json').exists():write(root/'TERMINAL.json',(json.dumps({'rc':1,'status':'FAILED','error':repr(e),'utc':dt.datetime.now(dt.timezone.utc).isoformat()},indent=2)+'\n').encode())
+  raise

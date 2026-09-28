@@ -1,5 +1,5 @@
 import csv,hashlib,io,json,unittest,zipfile
-from download import validate
+from download import validate, archive_url
 
 class ArchiveTests(unittest.TestCase):
  def make(self, rows=None, name='BTCUSDT-5m-2026-09-26.csv'):
@@ -9,6 +9,10 @@ class ArchiveTests(unittest.TestCase):
   b=out.getvalue();return b,hashlib.sha256(b).hexdigest()+'  BTCUSDT-5m-2026-09-26.zip\n'
  def check(self,**kw):
   b,c=self.make(**kw);return validate(b,c,'BTCUSDT','2026-09-26')
+ def test_unicode_exchange_symbol(self):
+  self.assertIn('%E5%B8%81',archive_url('币安人生USDT','2026-09-26'))
+ def test_path_component_reject(self):
+  with self.assertRaises(ValueError):archive_url('../BTCUSDT','2026-09-26')
  def test_partial_is_visible(self):
   x=self.check();self.assertEqual(x['rows'],1);self.assertFalse(x['full_day'])
  def test_bad_hash(self):
