@@ -1,0 +1,2531 @@
+{
+  "schema": "exploratory_signal_to_book_price_diagnostic/1",
+  "status": "DESCRIPTIVE_NOT_CASH_OR_PROMOTION",
+  "source_sha256": "3aa4b8eb3093fc08c05da2fc27481b5f045381baee6f786ddd3bf1c661a490a7",
+  "inputs": {
+    "/dev/shm/f10_recent_adapt_20260928_attempt2/cells/U_s42/work/combo_s42/TARGET_RECEIPT.json": "40656237aa8dd33340be190a1e8fc947f69011d377fe1f42c557cfcea535d0a0",
+    "/dev/shm/f10_stage_diagnostic_20260928_attempt2_sources/stage.py": "3aa4b8eb3093fc08c05da2fc27481b5f045381baee6f786ddd3bf1c661a490a7",
+    "/dev/shm/f10_recent_adapt_20260928_attempt2/cells/U_s42/work/NEWS_FEATURES.npz": "3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8",
+    "/dev/shm/f10_recent_adapt_20260928_attempt2/cells/U_s42/work/legs.npz": "9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65",
+    "/dev/shm/f10_recent_adapt_20260928_attempt2/cells/U_s42/receipts/P3_LEGS.json": "21cf687fc7ddab98b1c03c2332d7a3a4179addafd1aa06fc90b203e28b219aef",
+    "/dev/shm/f10_recent_adapt_20260928_attempt2/cells/U_s42/work/f10_s42/F10_OOF.npz": "031dc9f614403348b43a49c52f289af190e67f92ff2ab1a880ea16543c501806",
+    "/dev/shm/f10_recent_adapt_20260928_attempt2/cells/U_s42/work/f10_s42/TRAIN_RECEIPT.json": "49e7f65b5615ed7df7c13e4ce80ca2643180137534ba5a6d74f0da790dd7720c",
+    "/dev/shm/f10_recent_adapt_20260928_attempt2/cells/U_s42/inputs/bundle_config.json": "3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e",
+    "/dev/shm/f10_recent_adapt_20260928_attempt2/cells/U_s42/receipts/P1_members_2025H2on.npz": "2323623fda9333710f5834911ab629377ab8c12b056f40ccfc9f7033c0c1f6f1",
+    "/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz": "f752d8ae3bf92f001fcb5d6f83a7e4ae286d9f11f7548c2e965305615aa9ae51",
+    "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+    "/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz": "ca479fccd3d3245e9438a8c82ba7b4a1950ab6e06607f28b25923c4526924d62",
+    "/dev/shm/f10_recent_adapt_20260928_attempt2/cells/U_s42/vendor_live/fea171/combo_stage.py": "fb5a94074583b328b949cd08767c031d9eb705fbdc23d6a371d9bd657b3ca4a8",
+    "/workspace/dlarch_2026-09-24/chain/ref_nc_s42X/work/combo_s42/scaled_diagnostic.npz": "f4630a20f796bce26590aedeadfc28791be7eeecee8c14789f418b5a08de4388",
+    "/workspace/dlarch_2026-09-24/chain/ref_nc_s42X/work/combo_s42/TARGET_RECEIPT.json": "646db6f6b90259c48b265fc676e75b32edf390e78cfddf741e1d70222e69c632",
+    "/workspace/dlarch_2026-09-24/chain/ref_nc_s42X/work/f10_s42/F10_OOF.npz": "2af48f7c84bfd5de2df83fa1266455ca718558a80ae68017de444b510a592d51",
+    "/dev/shm/f10_recent_adapt_20260928_attempt2/cells/U_s42/work/combo_s42/scaled_diagnostic.npz": "c7f7f1b3fa2a79bb9e07e0adb910c5bd0762e111668ea211a4d5128f4a9b79bc",
+    "/dev/shm/f10_recent_adapt_20260928_cash_resume1/cells/R180_s42/work/combo_s42/scaled_diagnostic.npz": "bccd001e63bd65ea7837a6f10b3fb9b77809a17d58ca828f23a265e238ac83c5",
+    "/dev/shm/f10_recent_adapt_20260928_cash_resume1/cells/R180_s42/work/combo_s42/TARGET_RECEIPT.json": "1f224006910da8a2fca8bf8c19ca6ec2c9bd55ff93ee5dfbd4d14af8e1f59fa6",
+    "/dev/shm/f10_recent_adapt_20260928_cash_resume1/cells/R180_s42/work/f10_s42/F10_OOF.npz": "0167358e0343fc12c653cc01314eba8464500e3d9d03d7a95312f00bb91089ac",
+    "/workspace/dlarch_2026-09-24/chain/ref_nc_s2027X/work/combo_s2027/scaled_diagnostic.npz": "fe09d81744030e3fc7da3367ed7da8668d390a68d1db66764be4cc74f40b00ce",
+    "/workspace/dlarch_2026-09-24/chain/ref_nc_s2027X/work/combo_s2027/TARGET_RECEIPT.json": "249dc687cac5908aae2e7e67e0ffaa944fccbb1584ed2b7b56065b11dc53fc96",
+    "/workspace/dlarch_2026-09-24/chain/ref_nc_s2027X/work/f10_s2027/F10_OOF.npz": "7d60074078368ddee25b301e157edb711896caef9efef1479559ebd41b486503",
+    "/dev/shm/f10_recent_adapt_20260928_attempt2/cells/U_s2027/work/combo_s2027/scaled_diagnostic.npz": "9c3f58accbd11af4bc8eafd29d22fe17f64f01ac2152ba3cfba8b652e1679431",
+    "/dev/shm/f10_recent_adapt_20260928_attempt2/cells/U_s2027/work/combo_s2027/TARGET_RECEIPT.json": "f8acf0b8dd8eb3384f95da0b580433e6daa0afeca1f0084dfc2f0ed84854b15c",
+    "/dev/shm/f10_recent_adapt_20260928_attempt2/cells/U_s2027/work/f10_s2027/F10_OOF.npz": "54d5f4e37960ee4ad70bd46f58f0188ccae7fa7c4c0401695e39ceb9974260a3",
+    "/dev/shm/f10_recent_adapt_20260928_cash_resume1/cells/R180_s2027/work/combo_s2027/scaled_diagnostic.npz": "d182892e21dfd1c3f27658c1fb19757f4e230a46c7b12d3939b4c578e4eabf5a",
+    "/dev/shm/f10_recent_adapt_20260928_cash_resume1/cells/R180_s2027/work/combo_s2027/TARGET_RECEIPT.json": "fb3168279aae94d386d2265503a4a71bfdd4f983e0c489dcf82694f9dfcc47b3",
+    "/dev/shm/f10_recent_adapt_20260928_cash_resume1/cells/R180_s2027/work/f10_s2027/F10_OOF.npz": "020ca29b00c512cc17f3db7fdeadebecb563f9ae4055f7096695942d959e1aa1"
+  },
+  "stages": [
+    "rank_unit",
+    "fund_blend_unit",
+    "ftrim_unit",
+    "liquidity_demean_unit",
+    "cap_renorm",
+    "ema",
+    "band",
+    "legal_fc",
+    "combo_raw",
+    "executor_neutral"
+  ],
+  "units": "bps per 4h anchor, natural or own-gross-normalized; not NAV/day",
+  "population": "joint published AND all stages/arms nonzero exposures have raw y4s; no missing=zero",
+  "limits": [
+    "holding clocks differ from cash simulation",
+    "old frozen universe proxy and producer kernels inherited",
+    "no unique causal attribution",
+    "post-hoc diagnostic with frozen spec",
+    "all outcomes end September 18"
+  ],
+  "verified": {
+    "NC_s42": {
+      "fc_bitwise_anchors": 7056,
+      "kc_bitwise_anchors": 7056,
+      "combo_identity": true,
+      "missing_return_anchors": [
+        {
+          "anchor": 1747814400,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747828800,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747843200,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747857600,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1782864000,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1782878400,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1782892800,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1786579200,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786593600,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786608000,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786622400,
+          "symbols": [
+            "ARXUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        }
+      ]
+    },
+    "U_s42": {
+      "fc_bitwise_anchors": 7056,
+      "kc_bitwise_anchors": 7056,
+      "combo_identity": true,
+      "missing_return_anchors": [
+        {
+          "anchor": 1747814400,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747828800,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747843200,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747857600,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1782864000,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1782878400,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1782892800,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1786579200,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786593600,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786608000,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786622400,
+          "symbols": [
+            "ARXUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        }
+      ]
+    },
+    "R180_s42": {
+      "fc_bitwise_anchors": 7056,
+      "kc_bitwise_anchors": 7056,
+      "combo_identity": true,
+      "missing_return_anchors": [
+        {
+          "anchor": 1747814400,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747828800,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747843200,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747857600,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1782864000,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1782878400,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1782892800,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1786579200,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786593600,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786608000,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786622400,
+          "symbols": [
+            "ARXUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        }
+      ]
+    },
+    "NC_s2027": {
+      "fc_bitwise_anchors": 7056,
+      "kc_bitwise_anchors": 7056,
+      "combo_identity": true,
+      "missing_return_anchors": [
+        {
+          "anchor": 1747814400,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747828800,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747843200,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747857600,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1782864000,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1782878400,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1782892800,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1786579200,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786593600,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786608000,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786622400,
+          "symbols": [
+            "ARXUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        }
+      ]
+    },
+    "U_s2027": {
+      "fc_bitwise_anchors": 7056,
+      "kc_bitwise_anchors": 7056,
+      "combo_identity": true,
+      "missing_return_anchors": [
+        {
+          "anchor": 1747814400,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747828800,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747843200,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747857600,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1782864000,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1782878400,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1782892800,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1786579200,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786593600,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786608000,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786622400,
+          "symbols": [
+            "ARXUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        }
+      ]
+    },
+    "R180_s2027": {
+      "fc_bitwise_anchors": 7056,
+      "kc_bitwise_anchors": 7056,
+      "combo_identity": true,
+      "missing_return_anchors": [
+        {
+          "anchor": 1747814400,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747828800,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747843200,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1747857600,
+          "symbols": [
+            "EOSUSDT"
+          ]
+        },
+        {
+          "anchor": 1782864000,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1782878400,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1782892800,
+          "symbols": [
+            "AERGOUSDT"
+          ]
+        },
+        {
+          "anchor": 1786579200,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786593600,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786608000,
+          "symbols": [
+            "ARXUSDT",
+            "AVAUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "GRAMUSDT",
+            "GRVTUSDT",
+            "MAVIAUSDT",
+            "OUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        },
+        {
+          "anchor": 1786622400,
+          "symbols": [
+            "ARXUSDT",
+            "BTWUSDT",
+            "CAPUSDT",
+            "REUSDT",
+            "SLXUSDT",
+            "ZESTUSDT"
+          ]
+        }
+      ]
+    }
+  },
+  "results": {
+    "U_minus_NC_s42": {
+      "pre2026": {
+        "natural": {
+          "period_anchors": 5490,
+          "common_published": 3641,
+          "measured_published": 3637,
+          "unmeasured_published": 4,
+          "mean_baseline": [
+            2.0063163878423746,
+            1.8857345575709301,
+            1.438471560283696,
+            1.4391987832038227,
+            1.4213360984353107,
+            0.6962939144406154,
+            0.7066809385487088,
+            0.6576269708167951,
+            0.5537188312254557,
+            0.5711396372855303
+          ],
+          "mean_candidate": [
+            2.0152035669506447,
+            1.9681878603896463,
+            1.4957682424763474,
+            1.4929068202038625,
+            1.4731442827121157,
+            0.6521023398229531,
+            0.6564356933506978,
+            0.6072691246229368,
+            0.5310578004382218,
+            0.5469663068157473
+          ],
+          "mean_delta": [
+            0.008887179108277877,
+            0.0824533028187162,
+            0.05729668219264406,
+            0.05370803700003681,
+            0.051808184276806064,
+            -0.0441915746176623,
+            -0.050245245198008735,
+            -0.05035784619385711,
+            -0.022661030787235515,
+            -0.024173330469785
+          ]
+        },
+        "unit": {
+          "period_anchors": 5490,
+          "common_published": 3641,
+          "measured_published": 3637,
+          "unmeasured_published": 4,
+          "mean_baseline": [
+            2.0063163878423746,
+            1.88573455757093,
+            1.438471560283696,
+            1.4391987832038224,
+            1.42133609843531,
+            1.0468171721230506,
+            1.0697027919489677,
+            1.0139649277052254,
+            0.9714389980344352,
+            1.0319620017773583
+          ],
+          "mean_candidate": [
+            2.015203566950645,
+            1.9681878603896459,
+            1.4957682424763474,
+            1.4929068202038627,
+            1.4731442827121155,
+            1.005148923028711,
+            1.017462657411547,
+            0.9602413176280805,
+            0.9598257201851201,
+            1.0210205065692166
+          ],
+          "mean_delta": [
+            0.00888717910827792,
+            0.08245330281871634,
+            0.05729668219264402,
+            0.05370803700003676,
+            0.05180818427680619,
+            -0.041668249094341685,
+            -0.052240134537420095,
+            -0.05372361007714663,
+            -0.011613277849312237,
+            -0.010941495208139989
+          ]
+        },
+        "hold_mask_differences": 607,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.6974427743389924,
+          0.6909442500007804,
+          0.683980094218882,
+          0.6274830081145892,
+          0.6274830081145892
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.688129410170439,
+          0.6819513136335754,
+          0.6749132002793995,
+          0.6214253273865741,
+          0.6214253273865741
+        ]
+      },
+      "2026_H1": {
+        "natural": {
+          "period_anchors": 1086,
+          "common_published": 1086,
+          "measured_published": 1086,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            3.035284736430446,
+            6.82135212261276,
+            4.2786170054348,
+            4.71670664342891,
+            4.642334767350948,
+            4.047477273189843,
+            4.037045764678634,
+            3.9969965962605594,
+            3.73279662375849,
+            3.582481665339721
+          ],
+          "mean_candidate": [
+            3.1695705568923493,
+            6.90449924612797,
+            4.314800399182028,
+            4.77373738513782,
+            4.696213767034936,
+            4.039802133222519,
+            4.014058872177108,
+            3.9755784852501614,
+            3.723158473803808,
+            3.577713506668212
+          ],
+          "mean_delta": [
+            0.13428582046190843,
+            0.08314712351519159,
+            0.03618339374722651,
+            0.05703074170891179,
+            0.053878999683987745,
+            -0.007675139967329512,
+            -0.022986892501522607,
+            -0.021418111010400972,
+            -0.009638149954680403,
+            -0.004768158671508526
+          ]
+        },
+        "unit": {
+          "period_anchors": 1086,
+          "common_published": 1086,
+          "measured_published": 1086,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            3.0352847364304454,
+            6.821352122612762,
+            4.278617005434799,
+            4.71670664342891,
+            4.64233476735095,
+            5.11832172152181,
+            5.1304948854951435,
+            5.1358192659893716,
+            4.9029897878603395,
+            4.7052841673309
+          ],
+          "mean_candidate": [
+            3.1695705568923502,
+            6.90449924612797,
+            4.314800399182029,
+            4.77373738513782,
+            4.696213767034936,
+            5.107370949139176,
+            5.099681749044617,
+            5.1074814336779495,
+            4.8909555363870405,
+            4.699454874593791
+          ],
+          "mean_delta": [
+            0.13428582046190832,
+            0.08314712351519164,
+            0.03618339374722677,
+            0.05703074170891166,
+            0.0538789996839879,
+            -0.010950772382627722,
+            -0.030813136450539447,
+            -0.02833783231141607,
+            -0.01203425147329616,
+            -0.0058292927371134924
+          ]
+        },
+        "hold_mask_differences": 0,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.7857102261150936,
+          0.7817587728572999,
+          0.7729940362961611,
+          0.755496151261345,
+          0.7554961512613451
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.7860592818219893,
+          0.7822036195306344,
+          0.7734019687081611,
+          0.7556871953570795,
+          0.7556871953570795
+        ]
+      },
+      "recent_primary": {
+        "natural": {
+          "period_anchors": 480,
+          "common_published": 480,
+          "measured_published": 473,
+          "unmeasured_published": 7,
+          "mean_baseline": [
+            3.6252667099818536,
+            3.189468844495847,
+            2.1159714211157814,
+            2.353295065346543,
+            2.340803018945214,
+            0.7658307752090917,
+            0.7236044730488369,
+            0.5906885570125282,
+            0.48082448671587835,
+            0.7264709789042665
+          ],
+          "mean_candidate": [
+            4.163187296362651,
+            3.2891936700463718,
+            2.221689754045002,
+            2.3979171744186436,
+            2.3972303303133264,
+            0.7111264032128038,
+            0.6671086175041976,
+            0.5260827845160201,
+            0.451751889092449,
+            0.6941461786145751
+          ],
+          "mean_delta": [
+            0.5379205863807949,
+            0.09972482555052069,
+            0.10571833292921735,
+            0.0446221090720973,
+            0.056427311368104374,
+            -0.0547043719962868,
+            -0.05649585554464122,
+            -0.06460577249650763,
+            -0.029072597623428315,
+            -0.03232480028969118
+          ]
+        },
+        "unit": {
+          "period_anchors": 480,
+          "common_published": 480,
+          "measured_published": 473,
+          "unmeasured_published": 7,
+          "mean_baseline": [
+            3.6252667099818536,
+            3.189468844495847,
+            2.115971421115781,
+            2.353295065346543,
+            2.3408030189452127,
+            1.082258546681064,
+            1.0414059429370606,
+            0.9033948074373112,
+            0.7870502597189437,
+            1.1082743856345447
+          ],
+          "mean_candidate": [
+            4.163187296362651,
+            3.289193670046371,
+            2.221689754045002,
+            2.3979171744186436,
+            2.3972303303133264,
+            1.0170584041653186,
+            0.9751207931681385,
+            0.8252541792479627,
+            0.7506517140195196,
+            1.0672809750145469
+          ],
+          "mean_delta": [
+            0.5379205863807952,
+            0.09972482555052066,
+            0.10571833292921734,
+            0.04462210907209717,
+            0.05642731136810453,
+            -0.06520014251575028,
+            -0.06628514976892211,
+            -0.07814062818934306,
+            -0.03639854569942328,
+            -0.04099341061999928
+          ]
+        },
+        "hold_mask_differences": 0,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.8061519824682649,
+          0.8028203836917259,
+          0.79084120092811,
+          0.7787197355024205,
+          0.7787197355024205
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.8036558304043611,
+          0.8000463783432891,
+          0.7881159429224844,
+          0.7776111329207883,
+          0.7776111329207883
+        ]
+      },
+      "september": {
+        "natural": {
+          "period_anchors": 108,
+          "common_published": 108,
+          "measured_published": 108,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            0.9566086235393904,
+            -1.258337811678993,
+            -1.1726041714003368,
+            -0.476540520318206,
+            -0.5192328612910215,
+            -2.8695453299858515,
+            -2.9584551342060497,
+            -3.043076722279083,
+            -3.1679092263480886,
+            -2.386006841326713
+          ],
+          "mean_candidate": [
+            0.76927051628932,
+            -1.2992743594752834,
+            -1.2117606981725748,
+            -0.6202372012808989,
+            -0.6443697359006597,
+            -3.031803833775771,
+            -3.1547234558414172,
+            -3.2471391000184777,
+            -3.2597372963308153,
+            -2.479876553422556
+          ],
+          "mean_delta": [
+            -0.1873381072500704,
+            -0.040936547796290586,
+            -0.03915652677223755,
+            -0.14369668096269378,
+            -0.12513687460963843,
+            -0.16225850378991769,
+            -0.19626832163536692,
+            -0.20406237773939598,
+            -0.09182806998272784,
+            -0.09386971209584571
+          ]
+        },
+        "unit": {
+          "period_anchors": 108,
+          "common_published": 108,
+          "measured_published": 108,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            0.9566086235393902,
+            -1.258337811678993,
+            -1.172604171400337,
+            -0.4765405203182052,
+            -0.519232861291021,
+            -3.542587231132373,
+            -3.6626816263443933,
+            -3.815149144709435,
+            -4.079756014870247,
+            -3.031851113868955
+          ],
+          "mean_candidate": [
+            0.7692705162893198,
+            -1.2992743594752842,
+            -1.211760698172574,
+            -0.6202372012808992,
+            -0.6443697359006585,
+            -3.7607242853794496,
+            -3.919772873001875,
+            -4.083676297197828,
+            -4.2059055571476405,
+            -3.1630962332651897
+          ],
+          "mean_delta": [
+            -0.18733810725007036,
+            -0.0409365477962909,
+            -0.039156526772237236,
+            -0.14369668096269483,
+            -0.12513687460963802,
+            -0.21813705424707452,
+            -0.25709124665748007,
+            -0.26852715248839193,
+            -0.12614954227739464,
+            -0.13124511939623595
+          ]
+        },
+        "hold_mask_differences": 0,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.8154253893670236,
+          0.8141430061424091,
+          0.8041059691792546,
+          0.7903692971549449,
+          0.7903692971549449
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.8135503495354328,
+          0.8120917609139332,
+          0.8020689137203201,
+          0.7898782436581384,
+          0.7898782436581384
+        ]
+      }
+    },
+    "R180_minus_NC_s42": {
+      "pre2026": {
+        "natural": {
+          "period_anchors": 5490,
+          "common_published": 3785,
+          "measured_published": 3782,
+          "unmeasured_published": 3,
+          "mean_baseline": [
+            2.069474094893723,
+            1.938039366794853,
+            1.490435597691223,
+            1.4878897073579318,
+            1.4707105860812137,
+            0.6796811411259868,
+            0.6879419011909632,
+            0.6382839294639884,
+            0.5917858906656531,
+            0.6098642263787986
+          ],
+          "mean_candidate": [
+            2.0957636257441656,
+            1.99318480615754,
+            1.5117638615995437,
+            1.5004281459717135,
+            1.477161030393681,
+            0.6256645752329494,
+            0.6259500948580299,
+            0.5768523039339818,
+            0.5641416591771512,
+            0.5855307005995061
+          ],
+          "mean_delta": [
+            0.026289530850446538,
+            0.055145439362690986,
+            0.02132826390831996,
+            0.012538438613779058,
+            0.006450444312466567,
+            -0.05401656589303581,
+            -0.06199180633293082,
+            -0.061431625530006514,
+            -0.027644231488502934,
+            -0.024333525779293465
+          ]
+        },
+        "unit": {
+          "period_anchors": 5490,
+          "common_published": 3785,
+          "measured_published": 3782,
+          "unmeasured_published": 3,
+          "mean_baseline": [
+            2.0694740948937227,
+            1.9380393667948528,
+            1.4904355976912227,
+            1.4878897073579316,
+            1.4707105860812135,
+            1.0195426660308329,
+            1.0373278976125258,
+            0.9780259962865255,
+            1.070124977741089,
+            1.1322649953825221
+          ],
+          "mean_candidate": [
+            2.095763625744166,
+            1.9931848061575406,
+            1.5117638615995437,
+            1.5004281459717135,
+            1.477161030393681,
+            0.9553632132759434,
+            0.959912527250668,
+            0.8984429313887392,
+            1.0470201991611592,
+            1.1196673152609786
+          ],
+          "mean_delta": [
+            0.026289530850446573,
+            0.055145439362691236,
+            0.021328263908319968,
+            0.01253843861377907,
+            0.006450444312466547,
+            -0.06417945275489348,
+            -0.07741537036185697,
+            -0.07958306489778588,
+            -0.023104778579933365,
+            -0.012597680121545803
+          ]
+        },
+        "hold_mask_differences": 535,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.6923478875806335,
+          0.6859296329257447,
+          0.6790573937995972,
+          0.6199789187594386,
+          0.6199789187594386
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.6813861620777263,
+          0.6753026721144836,
+          0.6683259045670126,
+          0.6162073117660108,
+          0.6162073117660108
+        ]
+      },
+      "2026_H1": {
+        "natural": {
+          "period_anchors": 1086,
+          "common_published": 1086,
+          "measured_published": 1086,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            3.035284736430446,
+            6.82135212261276,
+            4.2786170054348,
+            4.71670664342891,
+            4.642334767350948,
+            4.047477273189843,
+            4.037045764678634,
+            3.9969965962605594,
+            3.73279662375849,
+            3.582481665339721
+          ],
+          "mean_candidate": [
+            2.8869229743854463,
+            6.85666592873339,
+            4.240308711329016,
+            4.69334491630741,
+            4.61018885173041,
+            4.048255447389089,
+            4.042058869654167,
+            4.006055305527705,
+            3.7368730429287056,
+            3.589215091849232
+          ],
+          "mean_delta": [
+            -0.14836176204500173,
+            0.03531380612061909,
+            -0.038308294105793624,
+            -0.02336172712149877,
+            -0.0321459156205368,
+            0.0007781741992435986,
+            0.005013104975532224,
+            0.009058709267150584,
+            0.004076419170217938,
+            0.006733426509511071
+          ]
+        },
+        "unit": {
+          "period_anchors": 1086,
+          "common_published": 1086,
+          "measured_published": 1086,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            3.0352847364304454,
+            6.821352122612762,
+            4.278617005434799,
+            4.71670664342891,
+            4.64233476735095,
+            5.11832172152181,
+            5.1304948854951435,
+            5.1358192659893716,
+            4.9029897878603395,
+            4.7052841673309
+          ],
+          "mean_candidate": [
+            2.8869229743854463,
+            6.85666592873339,
+            4.240308711329015,
+            4.693344916307412,
+            4.61018885173041,
+            5.0933578517101274,
+            5.1071095112258496,
+            5.118462240903457,
+            4.886584926798848,
+            4.692391260548957
+          ],
+          "mean_delta": [
+            -0.14836176204500168,
+            0.035313806120619386,
+            -0.038308294105793575,
+            -0.023361727121499077,
+            -0.03214591562053685,
+            -0.02496386981168532,
+            -0.023385374269304645,
+            -0.01735702508591018,
+            -0.01640486106147887,
+            -0.012892906781953126
+          ]
+        },
+        "hold_mask_differences": 0,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.7857102261150936,
+          0.7817587728572999,
+          0.7729940362961611,
+          0.755496151261345,
+          0.7554961512613451
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.7891562449711791,
+          0.7857435165220475,
+          0.776836868897333,
+          0.7584585994919149,
+          0.7584585994919149
+        ]
+      },
+      "recent_primary": {
+        "natural": {
+          "period_anchors": 480,
+          "common_published": 480,
+          "measured_published": 473,
+          "unmeasured_published": 7,
+          "mean_baseline": [
+            3.6252667099818536,
+            3.189468844495847,
+            2.1159714211157814,
+            2.353295065346543,
+            2.340803018945214,
+            0.7658307752090917,
+            0.7236044730488369,
+            0.5906885570125282,
+            0.48082448671587835,
+            0.7264709789042665
+          ],
+          "mean_candidate": [
+            4.019260317938492,
+            3.2958092869683417,
+            2.20698661359174,
+            2.3027012003710543,
+            2.2937057791905606,
+            0.7110423664214426,
+            0.6837165240336683,
+            0.5436478607549095,
+            0.4596561733999512,
+            0.7032085387462019
+          ],
+          "mean_delta": [
+            0.3939936079566382,
+            0.10634044247248982,
+            0.09101519247595859,
+            -0.050593864975489906,
+            -0.047097239754659494,
+            -0.05478840878764873,
+            -0.03988794901516962,
+            -0.04704069625761951,
+            -0.021168313315928458,
+            -0.02326244015806349
+          ]
+        },
+        "unit": {
+          "period_anchors": 480,
+          "common_published": 480,
+          "measured_published": 473,
+          "unmeasured_published": 7,
+          "mean_baseline": [
+            3.6252667099818536,
+            3.189468844495847,
+            2.115971421115781,
+            2.353295065346543,
+            2.3408030189452127,
+            1.082258546681064,
+            1.0414059429370606,
+            0.9033948074373112,
+            0.7870502597189437,
+            1.1082743856345447
+          ],
+          "mean_candidate": [
+            4.019260317938492,
+            3.2958092869683404,
+            2.20698661359174,
+            2.3027012003710534,
+            2.2937057791905615,
+            1.0089320277737326,
+            0.9871255412706839,
+            0.839667435525813,
+            0.7597991223518537,
+            1.0773082513123262
+          ],
+          "mean_delta": [
+            0.3939936079566382,
+            0.1063404424724901,
+            0.09101519247595861,
+            -0.05059386497548964,
+            -0.047097239754659424,
+            -0.07332651890733313,
+            -0.05428040166637771,
+            -0.06372737191148954,
+            -0.027251137367088073,
+            -0.030966134322217922
+          ]
+        },
+        "hold_mask_differences": 0,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.8061519824682649,
+          0.8028203836917259,
+          0.79084120092811,
+          0.7787197355024205,
+          0.7787197355024205
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.8044105917452897,
+          0.8009181088310379,
+          0.788958117771195,
+          0.7782755138889915,
+          0.7782755138889916
+        ]
+      },
+      "september": {
+        "natural": {
+          "period_anchors": 108,
+          "common_published": 108,
+          "measured_published": 108,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            0.9566086235393904,
+            -1.258337811678993,
+            -1.1726041714003368,
+            -0.476540520318206,
+            -0.5192328612910215,
+            -2.8695453299858515,
+            -2.9584551342060497,
+            -3.043076722279083,
+            -3.1679092263480886,
+            -2.386006841326713
+          ],
+          "mean_candidate": [
+            0.7742492997600932,
+            -1.3044231504369992,
+            -1.209895017640451,
+            -0.6525854223108225,
+            -0.7031209148819338,
+            -2.858947434755945,
+            -2.909379982830368,
+            -3.0108276490460617,
+            -3.1533971433932284,
+            -2.392870270351242
+          ],
+          "mean_delta": [
+            -0.18235932377929698,
+            -0.04608533875800621,
+            -0.037290846240114604,
+            -0.17604490199261755,
+            -0.18388805359091243,
+            0.010597895229906536,
+            0.04907515137568127,
+            0.032249073233018725,
+            0.014512082954859836,
+            -0.006863429024531697
+          ]
+        },
+        "unit": {
+          "period_anchors": 108,
+          "common_published": 108,
+          "measured_published": 108,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            0.9566086235393902,
+            -1.258337811678993,
+            -1.172604171400337,
+            -0.4765405203182052,
+            -0.519232861291021,
+            -3.542587231132373,
+            -3.6626816263443933,
+            -3.815149144709435,
+            -4.079756014870247,
+            -3.031851113868955
+          ],
+          "mean_candidate": [
+            0.7742492997600933,
+            -1.3044231504369987,
+            -1.209895017640452,
+            -0.6525854223108226,
+            -0.7031209148819334,
+            -3.5611419423726733,
+            -3.635531601984196,
+            -3.8059546943596936,
+            -4.072058864309071,
+            -3.0547951651733873
+          ],
+          "mean_delta": [
+            -0.18235932377929678,
+            -0.04608533875800542,
+            -0.03729084624011488,
+            -0.1760449019926178,
+            -0.1838880535909125,
+            -0.018554711240300458,
+            0.027150024360196905,
+            0.009194450349741324,
+            0.0076971505611773605,
+            -0.022944051304432483
+          ]
+        },
+        "hold_mask_differences": 0,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.8154253893670236,
+          0.8141430061424091,
+          0.8041059691792546,
+          0.7903692971549449,
+          0.7903692971549449
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.8113056914379385,
+          0.8091332472387193,
+          0.7992111272558928,
+          0.7892174198727994,
+          0.7892174198727995
+        ]
+      }
+    },
+    "U_minus_NC_s2027": {
+      "pre2026": {
+        "natural": {
+          "period_anchors": 5490,
+          "common_published": 3693,
+          "measured_published": 3689,
+          "unmeasured_published": 4,
+          "mean_baseline": [
+            2.320417151850838,
+            2.2289502446186593,
+            1.749150779599946,
+            1.744503376434735,
+            1.734657684347905,
+            0.7455665329781601,
+            0.7371636089633451,
+            0.6881130398135687,
+            0.5610629766891074,
+            0.5477285402708189
+          ],
+          "mean_candidate": [
+            2.3332606115862173,
+            2.2930766771385676,
+            1.8253997984691535,
+            1.8216588859923772,
+            1.806797481075043,
+            0.7877715311383946,
+            0.7763361019780906,
+            0.724263590574953,
+            0.5773307245317302,
+            0.5639241974490791
+          ],
+          "mean_delta": [
+            0.012843459735376653,
+            0.06412643251990707,
+            0.07624901886920973,
+            0.07715550955764086,
+            0.07213979672714223,
+            0.04220499816023554,
+            0.039172493014744965,
+            0.036150550761386034,
+            0.01626774784262371,
+            0.016195657178260336
+          ]
+        },
+        "unit": {
+          "period_anchors": 5490,
+          "common_published": 3693,
+          "measured_published": 3689,
+          "unmeasured_published": 4,
+          "mean_baseline": [
+            2.3204171518508385,
+            2.2289502446186593,
+            1.749150779599946,
+            1.744503376434735,
+            1.734657684347905,
+            1.1394602734989137,
+            1.1350770311526468,
+            1.076775336457556,
+            0.9957290056560779,
+            0.9849815181985592
+          ],
+          "mean_candidate": [
+            2.3332606115862182,
+            2.293076677138568,
+            1.8253997984691537,
+            1.8216588859923772,
+            1.8067974810750422,
+            1.2012432593357492,
+            1.1920698264437377,
+            1.1285397855831598,
+            1.016532612167097,
+            1.0086112318970601
+          ],
+          "mean_delta": [
+            0.01284345973537666,
+            0.06412643251990695,
+            0.07624901886920979,
+            0.07715550955764085,
+            0.07213979672714224,
+            0.0617829858368345,
+            0.056992795291089776,
+            0.051764449125601054,
+            0.020803606511019763,
+            0.023629713698501382
+          ]
+        },
+        "hold_mask_differences": 350,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.6891076940808926,
+          0.6827340105433243,
+          0.6757590712839283,
+          0.617943855211084,
+          0.617943855211084
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.6838784379688103,
+          0.6775542402731544,
+          0.6705839338161813,
+          0.6195393852749375,
+          0.6195393852749376
+        ]
+      },
+      "2026_H1": {
+        "natural": {
+          "period_anchors": 1086,
+          "common_published": 1086,
+          "measured_published": 1086,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            2.6947928182380454,
+            6.710085518766717,
+            4.030343719043909,
+            4.569731757870389,
+            4.496509559993028,
+            3.864255372249173,
+            3.853683861424621,
+            3.8172228532867933,
+            3.6518984394202976,
+            3.499975502676927
+          ],
+          "mean_candidate": [
+            2.7447425870908697,
+            6.717291612358189,
+            4.023751995478519,
+            4.5619515818116705,
+            4.489841267858007,
+            3.8590981905009034,
+            3.850637805699613,
+            3.812136905176926,
+            3.6496097627708552,
+            3.5055546168341425
+          ],
+          "mean_delta": [
+            0.0499497688528186,
+            0.0072060935914556885,
+            -0.006591723565384522,
+            -0.00778017605872894,
+            -0.0066682921350244475,
+            -0.005157181748270329,
+            -0.003046055725012934,
+            -0.005085948109863163,
+            -0.0022886766494385983,
+            0.005579114157210904
+          ]
+        },
+        "unit": {
+          "period_anchors": 1086,
+          "common_published": 1086,
+          "measured_published": 1086,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            2.6947928182380454,
+            6.710085518766716,
+            4.030343719043908,
+            4.5697317578703895,
+            4.496509559993028,
+            4.898977522007713,
+            4.91542953373631,
+            4.923734542752789,
+            4.794279014878493,
+            4.592752461849524
+          ],
+          "mean_candidate": [
+            2.7447425870908706,
+            6.71729161235819,
+            4.023751995478518,
+            4.5619515818116705,
+            4.489841267858008,
+            4.890930393875174,
+            4.909661692721984,
+            4.914732461786099,
+            4.790625272483468,
+            4.600596811246352
+          ],
+          "mean_delta": [
+            0.04994976885281868,
+            0.007206093591455659,
+            -0.006591723565384324,
+            -0.007780176058728969,
+            -0.006668292135024416,
+            -0.008047128132541603,
+            -0.005767841014323038,
+            -0.009002080966696035,
+            -0.00365374239501829,
+            0.007844349396827733
+          ]
+        },
+        "hold_mask_differences": 0,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.7843562731534354,
+          0.780272552146917,
+          0.7713154553369058,
+          0.7560190241775361,
+          0.756019024177536
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.7845548894639897,
+          0.7803957578737083,
+          0.7714387072475833,
+          0.7558218158731635,
+          0.7558218158731635
+        ]
+      },
+      "recent_primary": {
+        "natural": {
+          "period_anchors": 480,
+          "common_published": 480,
+          "measured_published": 473,
+          "unmeasured_published": 7,
+          "mean_baseline": [
+            4.6818797435294615,
+            3.4409026399402407,
+            2.4332082091247793,
+            2.5980802257455524,
+            2.5847235313409755,
+            0.8740598295180346,
+            0.8262639894755037,
+            0.6944396629196582,
+            0.5275124843740887,
+            0.8000506341684027
+          ],
+          "mean_candidate": [
+            4.8617550738533355,
+            3.5005995461885604,
+            2.473034621439616,
+            2.5858048785086583,
+            2.564656441121829,
+            0.8408845468018299,
+            0.8041494228139271,
+            0.6608792364471527,
+            0.51241029246146,
+            0.7734878202446591
+          ],
+          "mean_delta": [
+            0.17987533032387784,
+            0.05969690624832271,
+            0.03982641231483675,
+            -0.012275347236888683,
+            -0.02006709021914489,
+            -0.03317528271620579,
+            -0.0221145666615777,
+            -0.03356042647250672,
+            -0.015102191912628224,
+            -0.026562813923742237
+          ]
+        },
+        "unit": {
+          "period_anchors": 480,
+          "common_published": 480,
+          "measured_published": 473,
+          "unmeasured_published": 7,
+          "mean_baseline": [
+            4.681879743529461,
+            3.440902639940241,
+            2.4332082091247806,
+            2.5980802257455533,
+            2.584723531340977,
+            1.239727907945195,
+            1.1905287029571836,
+            1.0535998157484483,
+            0.854981027893363,
+            1.2106235325701709
+          ],
+          "mean_candidate": [
+            4.8617550738533355,
+            3.5005995461885595,
+            2.473034621439618,
+            2.5858048785086583,
+            2.564656441121829,
+            1.1825177872428894,
+            1.1508533478986949,
+            0.9985261123448624,
+            0.828890347279692,
+            1.1702676620054568
+          ],
+          "mean_delta": [
+            0.17987533032387742,
+            0.05969690624832298,
+            0.03982641231483672,
+            -0.012275347236888962,
+            -0.020067090219144764,
+            -0.057210120702310595,
+            -0.03967535505848656,
+            -0.05507370340359011,
+            -0.02609068061366721,
+            -0.04035587056471647
+          ]
+        },
+        "hold_mask_differences": 0,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.802740072389522,
+          0.7990345414593866,
+          0.7871151247037081,
+          0.7772404076385954,
+          0.7772404076385955
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.8001067361105213,
+          0.7960818213228131,
+          0.784212287405329,
+          0.7763337584001743,
+          0.7763337584001742
+        ]
+      },
+      "september": {
+        "natural": {
+          "period_anchors": 108,
+          "common_published": 108,
+          "measured_published": 108,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            1.0784021638799326,
+            -1.0880228639197098,
+            -0.9514766801719212,
+            -0.43008768469634434,
+            -0.47606642668610405,
+            -2.820865337233437,
+            -2.942692009130053,
+            -3.002191444417533,
+            -3.1495108513103904,
+            -2.3072706299735244
+          ],
+          "mean_candidate": [
+            0.5180715016928162,
+            -1.2238477444336884,
+            -1.1398292215530466,
+            -0.6722515518708808,
+            -0.7666739281936431,
+            -2.8151806468725993,
+            -2.873872756139603,
+            -2.9644320509954505,
+            -3.132519124270451,
+            -2.339636907808765
+          ],
+          "mean_delta": [
+            -0.5603306621871165,
+            -0.13582488051397784,
+            -0.18835254138112514,
+            -0.24216386717453672,
+            -0.2906075015075385,
+            0.00568469036083897,
+            0.06881925299044808,
+            0.0377593934220831,
+            0.01699172703993788,
+            -0.032366277835239717
+          ]
+        },
+        "unit": {
+          "period_anchors": 108,
+          "common_published": 108,
+          "measured_published": 108,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            1.0784021638799337,
+            -1.0880228639197098,
+            -0.951476680171921,
+            -0.4300876846963433,
+            -0.47606642668610455,
+            -3.4776576367789773,
+            -3.6430347039418782,
+            -3.7644753266964677,
+            -4.0447849125750714,
+            -2.9189024792912583
+          ],
+          "mean_candidate": [
+            0.5180715016928162,
+            -1.2238477444336884,
+            -1.1398292215530466,
+            -0.6722515518708818,
+            -0.7666739281936427,
+            -3.548511605307917,
+            -3.627382852391864,
+            -3.790159830508394,
+            -4.058222381755418,
+            -2.99300044026949
+          ],
+          "mean_delta": [
+            -0.5603306621871174,
+            -0.13582488051397767,
+            -0.18835254138112495,
+            -0.24216386717453756,
+            -0.2906075015075385,
+            -0.0708539685289404,
+            0.01565185155001187,
+            -0.02568450381192536,
+            -0.01343746918034858,
+            -0.07409796097823182
+          ]
+        },
+        "hold_mask_differences": 0,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.8173356903944322,
+          0.8159860738406499,
+          0.8059631069679148,
+          0.7912155443795545,
+          0.7912155443795543
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.8073485000460117,
+          0.804684991980283,
+          0.794936136818575,
+          0.7878084704555108,
+          0.7878084704555108
+        ]
+      }
+    },
+    "R180_minus_NC_s2027": {
+      "pre2026": {
+        "natural": {
+          "period_anchors": 5490,
+          "common_published": 3632,
+          "measured_published": 3628,
+          "unmeasured_published": 4,
+          "mean_baseline": [
+            2.3407511483525636,
+            2.244517522185742,
+            1.7546484380721514,
+            1.7492011020081444,
+            1.7393456652177222,
+            0.7688341712331888,
+            0.7594746190475277,
+            0.7107998909194652,
+            0.5964443446298449,
+            0.584123665523776
+          ],
+          "mean_candidate": [
+            2.3901839993146687,
+            2.293899445124123,
+            1.7923519150520708,
+            1.7852976332481012,
+            1.7722607000062756,
+            0.7272679500983303,
+            0.7176416715572413,
+            0.6652264448884817,
+            0.5759362939159035,
+            0.574690274042133
+          ],
+          "mean_delta": [
+            0.04943285096210133,
+            0.049381922938379105,
+            0.03770347697992146,
+            0.03609653123995252,
+            0.03291503478855406,
+            -0.04156622113485982,
+            -0.041832947490287646,
+            -0.04557344603098249,
+            -0.020508050713942218,
+            -0.009433391481641492
+          ]
+        },
+        "unit": {
+          "period_anchors": 5490,
+          "common_published": 3632,
+          "measured_published": 3628,
+          "unmeasured_published": 4,
+          "mean_baseline": [
+            2.3407511483525636,
+            2.2445175221857414,
+            1.7546484380721514,
+            1.7492011020081444,
+            1.7393456652177222,
+            1.1747617890502173,
+            1.1680331858537754,
+            1.1114206711967793,
+            1.0786027269978646,
+            1.0703803028084262
+          ],
+          "mean_candidate": [
+            2.3901839993146683,
+            2.293899445124123,
+            1.7923519150520713,
+            1.7852976332481016,
+            1.7722607000062753,
+            1.1164949146103196,
+            1.108733065468902,
+            1.0456203200882572,
+            1.0373615135677574,
+            1.049568413019008
+          ],
+          "mean_delta": [
+            0.049432850962101295,
+            0.04938192293837902,
+            0.03770347697992146,
+            0.036096531239952455,
+            0.0329150347885539,
+            -0.05826687443989979,
+            -0.05930012038487471,
+            -0.0658003511085241,
+            -0.0412412134301073,
+            -0.020811889789417018
+          ]
+        },
+        "hold_mask_differences": 437,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.6904272116924773,
+          0.6840152698161284,
+          0.676993918236483,
+          0.6215134397880403,
+          0.6215134397880405
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.6852733454510798,
+          0.6789844585292782,
+          0.6719395627451095,
+          0.6223556314475777,
+          0.6223556314475777
+        ]
+      },
+      "2026_H1": {
+        "natural": {
+          "period_anchors": 1086,
+          "common_published": 1086,
+          "measured_published": 1086,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            2.6947928182380454,
+            6.710085518766717,
+            4.030343719043909,
+            4.569731757870389,
+            4.496509559993028,
+            3.864255372249173,
+            3.853683861424621,
+            3.8172228532867933,
+            3.6518984394202976,
+            3.499975502676927
+          ],
+          "mean_candidate": [
+            3.0708578167917873,
+            6.916981605657808,
+            4.189338784816553,
+            4.709355579237798,
+            4.621274239068397,
+            3.8935565192142403,
+            3.8802185798682274,
+            3.8414398629712725,
+            3.6627960937783053,
+            3.5185896533660683
+          ],
+          "mean_delta": [
+            0.37606499855374,
+            0.20689608689108083,
+            0.1589950657726541,
+            0.13962382136741108,
+            0.12476467907537432,
+            0.029301146965066735,
+            0.026534718443598813,
+            0.02421700968447828,
+            0.010897654358014937,
+            0.01861415068914259
+          ]
+        },
+        "unit": {
+          "period_anchors": 1086,
+          "common_published": 1086,
+          "measured_published": 1086,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            2.6947928182380454,
+            6.710085518766716,
+            4.030343719043908,
+            4.5697317578703895,
+            4.496509559993028,
+            4.898977522007713,
+            4.91542953373631,
+            4.923734542752789,
+            4.794279014878493,
+            4.592752461849524
+          ],
+          "mean_candidate": [
+            3.0708578167917873,
+            6.916981605657808,
+            4.1893387848165515,
+            4.709355579237798,
+            4.621274239068396,
+            4.9309856868330515,
+            4.944792374746176,
+            4.949596172629414,
+            4.807028128888256,
+            4.61606886407855
+          ],
+          "mean_delta": [
+            0.37606499855374,
+            0.2068960868910805,
+            0.15899506577265368,
+            0.13962382136741086,
+            0.12476467907537432,
+            0.032008164825337325,
+            0.02936284100987147,
+            0.025861629876626425,
+            0.012749114009769292,
+            0.02331640222902466
+          ]
+        },
+        "hold_mask_differences": 0,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.7843562731534354,
+          0.780272552146917,
+          0.7713154553369058,
+          0.7560190241775361,
+          0.756019024177536
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.7853246221790396,
+          0.7813089733569649,
+          0.7723377851372947,
+          0.75664516046645,
+          0.7566451604664501
+        ]
+      },
+      "recent_primary": {
+        "natural": {
+          "period_anchors": 480,
+          "common_published": 480,
+          "measured_published": 473,
+          "unmeasured_published": 7,
+          "mean_baseline": [
+            4.6818797435294615,
+            3.4409026399402407,
+            2.4332082091247793,
+            2.5980802257455524,
+            2.5847235313409755,
+            0.8740598295180346,
+            0.8262639894755037,
+            0.6944396629196582,
+            0.5275124843740887,
+            0.8000506341684027
+          ],
+          "mean_candidate": [
+            5.061814604764702,
+            3.510606386125552,
+            2.4743438135320814,
+            2.571006222032168,
+            2.54322904754152,
+            0.6552835835678279,
+            0.6143102753457286,
+            0.4715414349872419,
+            0.4272082818045009,
+            0.6827455235300895
+          ],
+          "mean_delta": [
+            0.37993486123524794,
+            0.06970374618531572,
+            0.04113560440729718,
+            -0.027074003713379362,
+            -0.04149448379945832,
+            -0.218776245950208,
+            -0.21195371412977537,
+            -0.2228982279324179,
+            -0.10030420256958789,
+            -0.11730511063831231
+          ]
+        },
+        "unit": {
+          "period_anchors": 480,
+          "common_published": 480,
+          "measured_published": 473,
+          "unmeasured_published": 7,
+          "mean_baseline": [
+            4.681879743529461,
+            3.440902639940241,
+            2.4332082091247806,
+            2.5980802257455533,
+            2.584723531340977,
+            1.239727907945195,
+            1.1905287029571836,
+            1.0535998157484483,
+            0.854981027893363,
+            1.2106235325701709
+          ],
+          "mean_candidate": [
+            5.061814604764702,
+            3.5106063861255534,
+            2.4743438135320805,
+            2.5710062220321674,
+            2.5432290475415216,
+            0.9535959748051811,
+            0.9138796613043233,
+            0.7583854319492558,
+            0.7196850863151653,
+            1.0529769029170906
+          ],
+          "mean_delta": [
+            0.37993486123524783,
+            0.06970374618531616,
+            0.041135604407296925,
+            -0.027074003713379716,
+            -0.041494483799458234,
+            -0.2861319331400164,
+            -0.2766490416528625,
+            -0.2952143837991955,
+            -0.13529594157819683,
+            -0.15764662965308052
+          ]
+        },
+        "hold_mask_differences": 0,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.802740072389522,
+          0.7990345414593866,
+          0.7871151247037081,
+          0.7772404076385954,
+          0.7772404076385955
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.8010202489323542,
+          0.7971961251905669,
+          0.7853209951261564,
+          0.7769969030878476,
+          0.7769969030878476
+        ]
+      },
+      "september": {
+        "natural": {
+          "period_anchors": 108,
+          "common_published": 108,
+          "measured_published": 108,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            1.0784021638799326,
+            -1.0880228639197098,
+            -0.9514766801719212,
+            -0.43008768469634434,
+            -0.47606642668610405,
+            -2.820865337233437,
+            -2.942692009130053,
+            -3.002191444417533,
+            -3.1495108513103904,
+            -2.3072706299735244
+          ],
+          "mean_candidate": [
+            0.41471340661877626,
+            -1.3486903769418068,
+            -1.2209115561384964,
+            -0.767460178286067,
+            -0.888056300623107,
+            -3.1655191825517734,
+            -3.239511640724581,
+            -3.331866682408196,
+            -3.297864708406187,
+            -2.5010948734621583
+          ],
+          "mean_delta": [
+            -0.6636887572611565,
+            -0.26066751302209645,
+            -0.26943487596657495,
+            -0.33737249358972315,
+            -0.411989873937003,
+            -0.344653845318334,
+            -0.29681963159452895,
+            -0.32967523799066206,
+            -0.14835385709579801,
+            -0.19382424348863406
+          ]
+        },
+        "unit": {
+          "period_anchors": 108,
+          "common_published": 108,
+          "measured_published": 108,
+          "unmeasured_published": 0,
+          "mean_baseline": [
+            1.0784021638799337,
+            -1.0880228639197098,
+            -0.951476680171921,
+            -0.4300876846963433,
+            -0.47606642668610455,
+            -3.4776576367789773,
+            -3.6430347039418782,
+            -3.7644753266964677,
+            -4.0447849125750714,
+            -2.9189024792912583
+          ],
+          "mean_candidate": [
+            0.414713406618776,
+            -1.3486903769418066,
+            -1.2209115561384967,
+            -0.7674601782860672,
+            -0.8880563006231076,
+            -3.9485449074785057,
+            -4.05110615029784,
+            -4.220099099153573,
+            -4.247876888857127,
+            -3.1842122061356046
+          ],
+          "mean_delta": [
+            -0.6636887572611571,
+            -0.26066751302209606,
+            -0.26943487596657545,
+            -0.3373724935897236,
+            -0.41198987393700315,
+            -0.4708872706995277,
+            -0.40807144635596304,
+            -0.455623772457106,
+            -0.20309197628205594,
+            -0.26530972684434706
+          ]
+        },
+        "hold_mask_differences": 0,
+        "gross_baseline": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.8173356903944322,
+          0.8159860738406499,
+          0.8059631069679148,
+          0.7912155443795545,
+          0.7912155443795543
+        ],
+        "gross_candidate": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.8084732021567455,
+          0.8062641384646128,
+          0.7964558719410848,
+          0.7891264940220899,
+          0.7891264940220899
+        ]
+      }
+    }
+  },
+  "seats": {
+    "pre2026": {
+      "masked_king_mean": 0.645972671850575,
+      "masked_king_p10_p90": [
+        0.0,
+        1.0
+      ],
+      "implied_f10_score_coefficient_mean": 0.2906877023327588
+    },
+    "2026_H1": {
+      "masked_king_mean": 0.35114202254639315,
+      "masked_king_p10_p90": [
+        0.202081589624324,
+        0.49639619750334546
+      ],
+      "implied_f10_score_coefficient_mean": 0.1580139101458769
+    },
+    "recent_primary": {
+      "masked_king_mean": 0.23039720228571461,
+      "masked_king_p10_p90": [
+        0.16778927182602438,
+        0.3223731021511149
+      ],
+      "implied_f10_score_coefficient_mean": 0.10367874102857157
+    },
+    "september": {
+      "masked_king_mean": 0.3047124039870579,
+      "masked_king_p10_p90": [
+        0.25554904381490123,
+        0.35220837614548645
+      ],
+      "implied_f10_score_coefficient_mean": 0.13712058179417605
+    }
+  },
+  "arrays_sha256": "f3a5efccd994da9894b468cadbb38d826782a978ae889f772a0f56699e0b324b",
+  "runtime_seconds": 25.66544198989868,
+  "python": "/workspace/venv/bin/python",
+  "numpy": "2.4.6"
+}
