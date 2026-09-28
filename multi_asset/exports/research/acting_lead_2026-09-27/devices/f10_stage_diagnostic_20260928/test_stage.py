@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 from stage import price_contributions, joint_measurable, verify_combo, period_readout
+from selection import selection_steps
 
 
 class Controls(unittest.TestCase):
@@ -48,6 +49,14 @@ class Controls(unittest.TestCase):
         k=np.array([[.5,-.5]]);f=np.array([[1e-10,-.2]]);r=.55*k+.45*f
         verify_combo(k,f,r)
         with self.assertRaises(ValueError):verify_combo(k,np.where(abs(f)>1e-9,f,0),r)
+
+    def test_selection_not_recenter_confused(self):
+        w=np.array([.5,-.3,-.2]);sel=np.array([True,True,False]);s=selection_steps(w,sel)
+        np.testing.assert_allclose(s[1],[.5,-.3,0]);np.testing.assert_allclose(s[2],[.4,-.4,0])
+        np.testing.assert_allclose(s[3],[.5,-.5,0]);self.assertAlmostEqual(sum(np.diff(s@np.array([.01,.02,.1]))),float((s[-1]-s[0])@np.array([.01,.02,.1])))
+
+    def test_selection_nonfinite_refused(self):
+        with self.assertRaises(ValueError):selection_steps(np.array([np.nan,1]),np.ones(2,bool))
 
 
 if __name__=='__main__':unittest.main()
