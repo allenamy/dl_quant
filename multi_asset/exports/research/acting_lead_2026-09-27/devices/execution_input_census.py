@@ -26,6 +26,8 @@ def order_coverage(rows):
 def anchor_candidates(rows,a):return [r for r in rows if (r.get('external_book') or {}).get('nominal_ts')==a and finite(r.get('anchor_ts')) and a<=r['anchor_ts']<a+14400]
 def population_context(rows):
     return [r for r in rows if finite(r.get('anchor_ts')) and 1790222400<=r['anchor_ts']<1790568000]
+def readback_candidates(rows,anchor):
+    return [r for r in rows if finite(r.get('anchor_ts')) and r['anchor_ts']==anchor['anchor_ts']]
 def phases(text):
     out=[]
     for l in text.splitlines():
@@ -83,9 +85,9 @@ def main():
         if cov['request_ledger_null']:status.append('request_ledger_null_rows_not_request_loss_claim')
         if cov['request_ledger_missing'] or cov['request_quantity_missing'] or cov['request_client_id_missing']:status.append('request_evidence_incomplete')
         if row.get('opening_halted') is not False:status.append('opening_halted_or_unknown')
-        rbs=[r for r in all_rb if r.get('rebalance_id')==rid]
+        rbs=readback_candidates(all_rb,row)
         rec.update(rid=rid,execution_anchor=row.get('anchor_ts'),phase_A_records=len(pp),action=pp[0]['data'].get('action') if len(pp)==1 else None,opening_halted=row.get('opening_halted'),coverage=cov,
-          readback_rows=len(rbs),readback_timestamp_keys={k:sum(finite(r.get(k)) for r in rbs) for k in ('read_ts','readback_ts')},
+          readback_rows=len(rbs),readback_sources=sorted({str(r.get('source')) for r in rbs}),readback_identity='exact_execution_anchor_ts_not_rid',readback_timestamp_keys={k:sum(finite(r.get(k)) for r in rbs) for k in ('read_ts','readback_ts')},
           target_sha256=ts,consumed_target_sha256=row['external_book'].get('json_sha'),issues=status,status='FIELD_CENSUS_ONLY_NO_PARITY_CLAIM',
           historical_filters='UNAVAILABLE_CURRENT_FILE_NOT_HISTORICAL',runtime_code='UNAVAILABLE_NO_PER_ANCHOR_CODE_IDENTITY_BOUND')
         records.append(rec)

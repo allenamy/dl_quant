@@ -38,6 +38,12 @@ class CensusControls(unittest.TestCase):
     def test_malformed_request_population_not_dropped(self):
         for ledger in ({},[None]):
             with self.assertRaises(ValueError):M.order_record({'request_ledger':ledger})
+    def test_readback_joins_execution_timestamp_without_rid(self):
+        a={'anchor_ts':1001.25,'rebalance_id':'A1000'}
+        r=[{'anchor_ts':1001.25,'source':'post_anchor'},{'anchor_ts':1002.25,'source':'post_anchor'}]
+        self.assertEqual(M.readback_candidates(r,a),r[:1])
+    def test_readback_cannot_substitute_nominal_time(self):
+        self.assertEqual(M.readback_candidates([{'anchor_ts':1000}],{'anchor_ts':1001.25}),[])
     def test_phase_parse_not_silent(self):
         with self.assertRaises(ValueError):M.phases('2026-09-28T00:24:00Z phase_A: {broken}')
         self.assertEqual(M.phases('2026-09-28T00:24:00Z other: not-json'),[])
