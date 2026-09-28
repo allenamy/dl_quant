@@ -1,0 +1,40 @@
+{
+  "frozen_utc": "2026-09-28T17:40:00Z",
+  "scope": "Follow-up of already published tail accounting; no new model or economic test",
+  "pairs": [
+    "U-NC s42",
+    "R180-NC s42",
+    "U-NC s2027",
+    "R180-NC s2027"
+  ],
+  "windows": [
+    "2026-07-01..2026-09-18",
+    "2026-09-01..2026-09-18"
+  ],
+  "population": "Exactly original tail arrays used masks and raw scoring members; preselection F10 rank-unit portfolio",
+  "bins": "Reuse fixed bottom/top ceil(.05*N) future outcome bins, stable ties by symbol axis",
+  "parts": [
+    "add_long",
+    "remove_long",
+    "add_short",
+    "remove_short"
+  ],
+  "invariants": [
+    "four parts equal original delta price per bin/anchor",
+    "same anchors and window totals",
+    "all nonzero records finite",
+    "all inputs unchanged before/after"
+  ],
+  "tail_result": "/dev/shm/f10_tail_geometry_20260928/RESULT.json",
+  "tail_sha256": "996cc1f5a5d5fc7dd9f9db4ed99ccb44bce7783a5365b491cc80e0638f743191",
+  "output_root": "/dev/shm/f10_tail_position_split_20260928",
+  "runtime_limit_seconds": 120,
+  "cpu_threads": 1,
+  "memory_gib": 3,
+  "limits": [
+    "Post-hoc explanatory split, not causal attribution to a training change",
+    "No new bin, seed, horizon, population or parameter search",
+    "No costs, funding, continuous positions or execution; not live full-book PNL",
+    "Does not authorize model change, new GPU training, short removal or promotion"
+  ]
+}
