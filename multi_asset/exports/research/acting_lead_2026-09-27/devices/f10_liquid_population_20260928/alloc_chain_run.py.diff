@@ -1,0 +1,11 @@
+--- multi_asset/exports/research/acting_lead_2026-09-27/devices/f10_recent_adapt_20260928/alloc_chain_run.py
++++ multi_asset/exports/research/acting_lead_2026-09-27/devices/f10_liquid_population_20260928/alloc_chain_run.py
+@@ -142,7 +142,7 @@
+     do_engine = "--engine" in args; eng_ident = "--engine-identity" in args
+     assert seed in F10_SRC, f"seed {seed}: no NC reference cell to pair with"
+     kind = args[args.index("--kind") + 1]
+-    assert kind in ("U", "R180")
++    assert kind in ("LQ",)
+     F10_SRC[seed] = f"{BASE}/models/{kind}_s{seed}"
+     identity_arm = False  # Entire score component replaced; seats remain inservice.
+     assert not eng_ident or (identity_arm and do_engine), "--engine-identity is the in-service arm's end-to-end check"

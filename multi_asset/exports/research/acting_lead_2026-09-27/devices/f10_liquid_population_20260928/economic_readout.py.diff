@@ -1,0 +1,11 @@
+--- multi_asset/exports/research/acting_lead_2026-09-27/devices/f10_recent_adapt_20260928/economic_readout.py
++++ multi_asset/exports/research/acting_lead_2026-09-27/devices/f10_liquid_population_20260928/economic_readout.py
+@@ -117,7 +117,7 @@
+                clock='six 4h windows per UTC date; terminal window includes returns through next 00Z',
+                stress='1.25x observed fees, actions and stops fixed; not a policy rerun',
+                python=sys.executable, numpy=np.__version__, results={})
+-    pairs=[(kind,seed,'NC') for seed in (42,2027) for kind in ('U','R180')]+[('R180',seed,'U') for seed in (42,2027)]
++    pairs=[('LQ',seed,ref) for seed in (42,2027) for ref in ('NC','U')]
+     for kind,seed,refkind in pairs:
+         label_pair=f'{kind}_s{seed}_vs_{refkind}'
+         at=f'ADAPT_{kind}_s{seed}X_scaled_rule_raw_UAFE'

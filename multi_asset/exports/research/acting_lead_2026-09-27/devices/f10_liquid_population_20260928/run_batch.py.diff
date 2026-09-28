@@ -1,0 +1,71 @@
+--- multi_asset/exports/research/acting_lead_2026-09-27/devices/f10_recent_adapt_20260928/run_batch.py
++++ multi_asset/exports/research/acting_lead_2026-09-27/devices/f10_liquid_population_20260928/run_batch.py
+@@ -1,4 +1,4 @@
+-"""Owned-process bounded GPU continuation -> four full combo cells -> paired economics."""
++"""Owned GPU liquidity-population continuation -> two serial full combo cells -> matched U/NC readout."""
+ import os,sys,json,hashlib,pathlib,subprocess,time,signal,traceback,zipfile
+ H=pathlib.Path(__file__).resolve().parent;C=json.loads((H/'CONTRACT.json').read_text());R=pathlib.Path(C['root'])
+ PY='/workspace/venv/bin/python';ENV={'PATH':'/usr/bin:/bin','HOME':'/root'};CH=[];STEPS=[];START=time.monotonic()
+@@ -53,6 +53,22 @@
+   f.flush();s={'label':label,'rc':p.returncode,'wall_seconds':time.monotonic()-t,'log_sha256':sha(R/'logs'/f'{label}.log'),'peak_total_uid_rss_bytes':peak,'resource_checks':observations};STEPS.append(s);write('steps/'+label+'.json',s)
+   if p.returncode:raise RuntimeError(label+' failed')
+ 
++def verify_uniform():
++ p=pathlib.Path('/dev/shm/f10_recent_adapt_20260928_finish/receipts/ECONOMIC_FULL_BOOK.json')
++ if sha(p)!='2b64ec6521c2951cb7061a2ccf67d5e1e7ed7bebd82c0506cfa87e411effcad8':raise ValueError('uniform economic receipt')
++ eco=json.loads(p.read_text());out={str(p):sha(p)}
++ for seed in (42,2027):
++  root=pathlib.Path(f'/dev/shm/f10_recent_adapt_20260928_attempt2');tag=f'ADAPT_U_s{seed}X_scaled_rule_raw_UAFE'
++  for f in eco['results'][f'U_s{seed}_vs_NC']['candidate_paths']:
++   path=root/f'cells/U_s{seed}/runs/{tag}/PATH_{tag}_seed_{f["seed"]:02d}.npz'
++   if sha(path)!=f['npz_sha256']:raise ValueError('U cash drift')
++   out[str(path)]=sha(path)
++  rp=root/f'models/U_s{seed}/TRAIN_RECEIPT.json';rec=json.loads(rp.read_text());out[str(rp)]=sha(rp)
++  for path,h in rec['fold_artifacts'].items():
++   if sha(path)!=h:raise ValueError('U training drift')
++   out[path]=h
++ return out
++
+ def main():
+  if not __debug__:raise RuntimeError('optimized mode refused')
+  R.mkdir(exist_ok=False)
+@@ -69,6 +85,11 @@
+   for f in d['ref']['facts']:
+    p=pathlib.Path(d['ref']['dir'])/f"PATH_{d['ref']['tag']}_seed_{f['seed']:02d}.npz"
+    assert sha(p)==f['npz_sha256'],str(p)
++ uniform_before=verify_uniform()
++ for seed in (42,2027):
++  (R/f'cells/U_s{seed}').symlink_to(f'/dev/shm/f10_recent_adapt_20260928_attempt2/cells/U_s{seed}',target_is_directory=True)
++  (R/f'models/U_s{seed}').symlink_to(f'/dev/shm/f10_recent_adapt_20260928_attempt2/models/U_s{seed}',target_is_directory=True)
++ write('UNIFORM_CONTROL_IDENTITIES.json',uniform_before)
+  write('ENGINE_IDENTITIES.json',json.loads((parent/'ENGINE_IDENTITIES.json').read_text()))
+  gpu=subprocess.check_output(['nvidia-smi','--query-compute-apps=pid,used_memory','--format=csv,noheader,nounits'],text=True,timeout=15).strip()
+  assert not gpu,('GPU already owned',gpu)
+@@ -78,17 +99,16 @@
+  wait([launch('unit_controls',[PY,'-B','-m','unittest','discover','-s',str(H),'-p','test_*.py','-v'])])
+  wait([launch('train_adapt',[PY,'-B',str(H/'train_adapt.py')])],True)
+  wait([launch('score_diagnostics',[PY,'-B',str(H/'score_diagnostics.py')])])
+- for kind in ('U','R180'):
+-  jobs=[]
++ for kind in ('LQ',):
+   for seed in (42,2027):
+    args=[PY,'-B',str(H/'alloc_chain_run.py'),'PATH,HOME,LC_CTYPE',str(R/'receipts'),'--seed',str(seed),'--rule','inservice','--mix','shared','--kind',kind,'--engine']
+-   jobs.append(launch(f'{kind}_{seed}',args))
+-  wait(jobs)
++   wait([launch(f'{kind}_{seed}',args)])
+  write('SIMULATION_TERMINAL.json',{'rc':0,'status':'SIMULATIONS_AUDITED','steps':STEPS,'utc':time.strftime('%FT%TZ',time.gmtime())})
+  wait([launch('economic',[PY,'-B',str(H/'economic_readout.py'),'--root',str(R),'--out',str(R/'receipts/ECONOMIC_FULL_BOOK.json')])])
+  from decision import decide
+  write('receipts/BOOK_DECISION.json',decide(json.loads((R/'receipts/ECONOMIC_FULL_BOOK.json').read_text())))
+  assert ext==verify_controls(parent)
++ assert uniform_before==verify_uniform(),'uniform control changed'
+  for n,h in C['copied_sources'].items():assert sha(H/n)==h,('end source drift',n)
+  if time.time()>C['deadline_epoch']:raise TimeoutError('total budget')
+ if __name__=='__main__':
+@@ -97,5 +117,5 @@
+  except BaseException as e:error=repr(e);traceback.print_exc()
+  finally:
+   stop_own()
+-  if R.exists():write('TERMINAL.json',{'rc':rc,'status':'EXPLORATORY_COMPARISON_COMPLETE_NOT_RELEASE' if rc==0 else 'FAILED','error':error,'utc':time.strftime('%FT%TZ',time.gmtime()),'wall_seconds':time.monotonic()-START,'steps':STEPS,'production_changes':0,'GPU_training_requested':True,'completed_neural_fold_outputs':len(list((R/'models').glob('*/*/FOLD_RECEIPT.json')))})
++  if R.exists():write('TERMINAL.json',{'rc':rc,'status':'EXPLORATORY_COMPARISON_COMPLETE_NOT_RELEASE' if rc==0 else 'FAILED','error':error,'utc':time.strftime('%FT%TZ',time.gmtime()),'wall_seconds':time.monotonic()-START,'steps':STEPS,'production_changes':0,'GPU_training_requested':True,'completed_neural_fold_outputs':len(list((R/'models').glob('LQ_s*/*/FOLD_RECEIPT.json')))})
+  sys.exit(rc)
