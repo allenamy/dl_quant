@@ -19,3 +19,7 @@
 ## 启动后、收益前数值修订（03:29Z）
 
 首轮float32 Ridge矩阵rcond约2e−8至8e−8，小于单精度机器精度，出现LinAlgWarning。只对已钉PID/PGID/start_ticks的本批控制器发SIGINT，由其finally停止自有子进程，失败终态保留。未读取候选组合/收益数字。合成64列完全共线测试，旧实现各系数相对解析解最大偏差1.81%；改为训练标准化/求解/推理内部float64后该测试与原9个测试全过。原数据特征仍相同float32值、alpha1.0、窗口、标签、两臂人口均不改；最后输出float32只是既有推理接口量化。本次只修数值精度，不调模型超参。attempt2独立根保留first attempt全部证据；预算仍从03:23:45Z起算，04:08:45Z原截止不变。若再出现数值警告或失败，具名终止，不按收益选择精度。
+
+## 标准预测诊断（03:37Z；不修改经济判据）
+
+按AGENTS双口径要求，另存原始未裁标签上的逐年avg-per-asset Pearson/Spearman、CS Pearson/rank-IC/IR、y-on-pred beta、sigma比与去均值偏差。四模型用相同成员且四方均有预测/标签的人口，另报各自预测覆盖；4h stride=4h标签长度，clean=dense。此装置单独路径运行、不改在飞源码或参数，不把IC诊断用作择优/换装门。NC预测必须核对旧成功控制TARGET_RECEIPT的输入sha。最终结论仍按原RAW/RESID完整组合判据。
