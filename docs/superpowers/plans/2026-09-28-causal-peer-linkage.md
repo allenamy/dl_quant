@@ -34,3 +34,7 @@ Files: multi_asset/exports/research/acting_lead_2026-09-27/devices/linkage_20260
 - [ ] No grid. Null future shuffle, graph scrambling/own-feature controls, coverage equality. Cross-regime/year results required before whole-book candidate. Price and carry labels separate; fees and stateful final portfolio must still be evaluated for promotion.
 
 Task2 is not started by this plan; its runtime/data contract must be written after input inventory. Do not claim a new model exists until predictions and whole-book readout exist.
+
+## Ruling and progress 2026-09-28 14:03 UTC
+
+Price-family first: four of eight columns materialized with actual historical data; flow/funding unit adapters remain pending. This is an implementation order change before any peer signal number, not dropping a losing feature family. Contract PREREG_peer_price_incremental_screen_2026-09-28.md freezes monthly Ridge; first family running under 16-minute cap. Task2 overall incomplete until outcomes, input archive, controls and coverage are reviewed. No new strategy release.
