@@ -4,6 +4,10 @@ from recent_legs import seed_history, require_boundary, extract_loop,same_values
 
 
 class Controls(unittest.TestCase):
+    def test_symbol_schema_preserves_identity(self):
+        f={'symbols':np.array(['BTCUSDT','ETHUSDT'])}
+        out=same_values_as_schema(f,{'symbols':np.dtype('<U15')})
+        self.assertTrue(np.array_equal(out['symbols'],f['symbols']))
     def test_original_merged_arithmetic_dtype_preserved(self):
         f={'qvm':np.array([13.51],np.float32)}
         out=same_values_as_schema(f,{'qvm':np.dtype('float64')})

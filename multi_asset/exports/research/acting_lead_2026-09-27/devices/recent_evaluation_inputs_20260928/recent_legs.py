@@ -27,7 +27,7 @@ def same_values_as_schema(F,schema):
     out=F.copy()
     for k,dt in schema.items():
         v=np.asarray(F[k]);q=v.astype(dt)
-        if not np.array_equal(v,q,equal_nan=True):raise ValueError('lossy feature conversion '+k)
+        if not np.array_equal(v,q,equal_nan=v.dtype.kind in 'fc'):raise ValueError('lossy feature conversion '+k)
         out[k]=q
     return out
 
