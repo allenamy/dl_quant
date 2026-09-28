@@ -1,0 +1,31 @@
+--- archive_adapt_cash_20260928.py
++++ archive_liquid_cash_20260928.py
+@@ -1,4 +1,4 @@
+-"""Archive complete cash evidence, explicitly following the two U cell roots."""
++"""Archive completed LQ evidence without duplicating immutable U controls."""
+ from pathlib import Path
+ import hashlib,json,zipfile,sys
+ def sha(p):
+@@ -15,18 +15,18 @@
+    if p.is_symlink():
+     external[name]={'source':str(p),'resolved':str(p.resolve()),'sha256':sha(p),'bytes':p.stat().st_size}
+     return
+-   d=large if p.suffix=='.npz' else small
++   d=large if p.suffix in ('.npz','.pt') else small
+    if name in d:raise ValueError('duplicate archive name')
+    d[name]=p
+- for name in ('logs','steps','processes','receipts'):
++ for name in ('logs','steps','processes','receipts','models'):
+   for p in (root/name).rglob('*'):add(p,str(p.relative_to(root)))
+  for p in root.glob('*.json'):add(p,p.name)
+  for p in root.with_name(root.name+'_sources').glob('*'):add(p,'sources/'+p.name)
+- for kind in ('U','R180'):
++ for kind in ('LQ',):
+   for seed in (42,2027):
+    logical=root/f'cells/{kind}_s{seed}';actual=logical.resolve()
+    for p in actual.rglob('*'):add(p,f'cells/{kind}_s{seed}/'+str(p.relative_to(actual)))
+- if sum(Path(n).name.startswith('PATH_') for n in large)!=128:raise ValueError('cash population')
++ if sum(Path(n).name.startswith('PATH_') for n in large)!=64:raise ValueError('cash population')
+  if sum(p.stat().st_size for p in large.values())>3*2**30:raise ValueError('archive unexpectedly exceeds 3GiB; inspect duplicate inputs')
+  result={}
+  for name,files in [('small',small),('large',large)]:

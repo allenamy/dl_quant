@@ -1,0 +1,17 @@
+--- verify_adapt_cash_20260928.py
++++ verify_liquid_cash_20260928.py
+@@ -1,4 +1,4 @@
+-"""Recalculate recent-adaptation metrics from raw NPZs without original readers."""
++"""Recalculate liquidity-population metrics from raw NPZs without original readers."""
+ import os
+ for k in ('OMP_NUM_THREADS','OPENBLAS_NUM_THREADS','MKL_NUM_THREADS'):os.environ[k]='1'
+ from pathlib import Path
+@@ -46,7 +46,7 @@
+      data[w].append((v,daily,stress,[len(ds),len(ix),a[ix[0]],a[ix[-1]]]))
+   cached[key]=data;return data
+  for name,row in e['results'].items():
+-  match=re.fullmatch(r'(U|R180)_s(42|2027)_vs_(NC|U)',name)
++  match=re.fullmatch(r'(LQ)_s(42|2027)_vs_(NC|U)',name)
+   if not match:raise ValueError('pair identity')
+   kind,seed,ref=match.groups();seed=int(seed);ca,ba=population(kind,seed),population(ref,seed)
+   for w,r in row['results'].items():
