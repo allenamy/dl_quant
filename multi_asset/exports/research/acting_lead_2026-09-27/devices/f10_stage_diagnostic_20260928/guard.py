@@ -1,7 +1,7 @@
 """One CPU stage diagnostic; only its own exact Popen child may be stopped."""
 import os,sys,pathlib,subprocess,time,json,signal,hashlib
 ROOT=pathlib.Path(__file__).resolve().parent
-OUT=pathlib.Path('/dev/shm/f10_stage_diagnostic_20260928')
+OUT=pathlib.Path('/dev/shm/f10_stage_diagnostic_20260928_attempt2')
 MEM=pathlib.Path('/sys/fs/cgroup');G=2**30
 
 def put(name,d):

@@ -44,5 +44,10 @@ class Controls(unittest.TestCase):
                         np.array([[1.,10.],[2.,100.]]),np.array([[2.,20.],[4.,200.]]))
         self.assertEqual(r['mean_delta'],[1.,2.]);self.assertEqual(r['unmeasured_published'],1)
 
+    def test_combo_uses_pre_serialization_leg(self):
+        k=np.array([[.5,-.5]]);f=np.array([[1e-10,-.2]]);r=.55*k+.45*f
+        verify_combo(k,f,r)
+        with self.assertRaises(ValueError):verify_combo(k,np.where(abs(f)>1e-9,f,0),r)
+
 
 if __name__=='__main__':unittest.main()

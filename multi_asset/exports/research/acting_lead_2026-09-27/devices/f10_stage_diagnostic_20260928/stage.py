@@ -120,7 +120,6 @@ def main(out):
             kc=z['kc'];fc=z['fc'];raw=z['raw'];trade=z['trade_mask'][ci]
             if kref is None:kref=kc.copy()
             elif not np.array_equal(kref,kc):raise ValueError('King branch changed')
-            verify_combo(kc,fc,raw)
             natural=np.zeros((len(STAGES),len(ai)));unit=natural.copy();gross=natural.copy();support=np.zeros(y.shape,bool)
             fc_checks=kc_checks=0;bad_details=[]
             for r,(i,j) in enumerate(zip(ai,ci)):
@@ -144,7 +143,10 @@ def main(out):
                 zkc=np.where((zkc<0)&np.isfinite(rn)&(rn<=-.001),0.,zkc);ns['H']=kc[j-1];kr=ns['chain_original'](zkc)
                 if kr is None or not np.array_equal(np.where(np.abs(kr)>1e-9,kr,0.),kc[j]):raise ValueError('kc parity')
                 kc_checks+=1
-                w=np.stack([unit_member(zf,m,nw),unit_member(blend,m,nw),unit_member(trim,m,nw),probes['liquidity_demean_unit'],probes['cap_renorm'],probes['ema'],probes['band'],final,raw[j],ns['exec_reshape'](raw[j])])
+                # raw is formed BEFORE the sparse state floor; serialized kc/fc
+                # are next-anchor state, not always the precise current target.
+                verify_combo(kr,traced,raw[j])
+                w=np.stack([unit_member(zf,m,nw),unit_member(blend,m,nw),unit_member(trim,m,nw),probes['liquidity_demean_unit'],probes['cap_renorm'],probes['ema'],probes['band'],traced,raw[j],ns['exec_reshape'](raw[j])])
                 n,u,g=price_contributions(w[:,None,:],y[r:r+1]);natural[:,r]=n[:,0];unit[:,r]=u[:,0];gross[:,r]=g[:,0];support[r]=np.any(w!=0,0)
                 bad=support[r]&~np.isfinite(y[r])
                 if bad.any():bad_details.append({'anchor':int(a[r]),'symbols':symbols[bad].tolist()})
