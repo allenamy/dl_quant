@@ -1,0 +1,29 @@
+28_sources/alloc_combo.py", line 169, in <module>
+    main()
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/book_cap50_20260928_sources/alloc_combo.py", line 145, in main
+    result = alloc_evolve(au, leg['KZ'][use].astype(np.float64), score['P'][use].astype(np.float64), leg['ZFD'][use].astype(np.float64), seats_u,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/book_cap50_20260928_sources/alloc_combo.py", line 87, in alloc_evolve
+    result=alloc_step(k[i,m],f10[i,m],fund[i,m],seats[i],rn8[i,m],m,qv[i,m],legal[i],params,kc,fc,publication,mix,None if mom is None else mom[i][m])   # ALLOC S2
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/book_cap50_20260928_sources/alloc_combo.py", line 63, in alloc_step
+    ns=source_kernels();ns.update(P=params,NW=nw,pm=m,sel=np.isfinite(qv)&(np.asarray(qv)>=params['qv4h_min']),LIVE_MASK=np.asarray(legal,bool))
+       ^^^^^^^^^^^^^^^^
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/book_cap50_20260928_sources/combo_target.py", line 14, in source_kernels
+    p=ROOT/'vendor_live/fea171/combo_stage.py';raw=p.read_bytes()
+                                                   ^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/pathlib.py", line 1050, in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/vendor_live/fea171/combo_stage.py'
+
+Traceback (most recent call last):
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/book_cap50_20260928_sources/alloc_chain_run.py", line 255, in <module>
+    main()
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/book_cap50_20260928_sources/alloc_chain_run.py", line 169, in main
+    assert rc == 0, "combo failed"
+           ^^^^^^^
+AssertionError: combo failed
