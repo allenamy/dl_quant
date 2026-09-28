@@ -19,7 +19,9 @@ def main(contract):
    return dict(r,status='VERIFIED_ARCHIVE',file=str(p),checksum_sha256=D.digest(chk),**v)
   except urllib.error.HTTPError as e:return dict(r,status='ARCHIVE_ABSENT' if e.code==404 else 'HTTP_ERROR',http_status=e.code)
   except Exception as e:return dict(r,status='UNAVAILABLE',error=repr(e))
- with cf.ThreadPoolExecutor(max_workers=4) as ex:
+ workers=c.get('workers',4)
+ if type(workers)!=int or workers not in (4,8):raise ValueError('bounded static-download workers')
+ with cf.ThreadPoolExecutor(max_workers=workers) as ex:
   for r in ex.map(one,jobs):
    results.append(r)
    if len(results)%25==0:print('processed',len(results),'/',len(jobs),flush=True)
