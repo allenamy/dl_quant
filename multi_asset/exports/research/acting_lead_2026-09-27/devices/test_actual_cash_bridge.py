@@ -1,5 +1,7 @@
 import unittest, copy
 import actual_cash_bridge as B
+import actual_cash_income_diagnostic as I
+import json
 
 def fill(tid=1,symbol='AAA',side='BUY',ts=15,amount=20):
  return dict(trade_id=tid,symbol=symbol,side=side,fill_ts=ts,fill_notional=amount,fill_px=10,commission=.01,commission_asset='USDT')
@@ -42,4 +44,19 @@ class BridgeTests(unittest.TestCase):
   f=fill();g=fill(tid=2);g['commission_asset']='BNB'
   w=B.window(snapshot(1,10),snapshot(5,20),B.trades([f,g]))
   self.assertEqual(w['fees_native'],{'USDT':.01,'BNB':.01});self.assertEqual(w['full_cash_verdict'],'UNAVAILABLE_INDEPENDENT_INCOME_AND_USD_VALUATION')
+class IncomeTests(unittest.TestCase):
+ def raw(self,**kw):return dict(tranId=1,type='COMMISSION',symbol='AAA',income=-.01,asset='USDT',time=15000,**kw)
+ def test_exact_duplicate_is_once(self):
+  r=self.raw();self.assertEqual(len(I.rows((json.dumps(r)+'\n'+json.dumps(r)).encode())),1)
+ def test_conflict_refused(self):
+  r=self.raw();s=dict(r,income=-.02)
+  with self.assertRaises(ValueError):I.rows((json.dumps(r)+'\n'+json.dumps(s)).encode())
+ def test_cross_asset_separate(self):
+  r=self.raw();s=dict(r,asset='BNB')
+  self.assertEqual(len(I.rows((json.dumps(r)+'\n'+json.dumps(s)).encode())),2)
+ def test_nonfinite_refused(self):
+  r=dict(self.raw(),income=float('nan'))
+  with self.assertRaises(ValueError):I.rows(json.dumps(r).encode())
+ def test_truncated_json_refused(self):
+  with self.assertRaises(ValueError):I.rows(b'{')
 if __name__=='__main__':unittest.main()
