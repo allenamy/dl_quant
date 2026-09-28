@@ -2,7 +2,14 @@
 
 # 代理主研究员执行台账
 
-## 最新调度覆盖（09-28 04:41Z，优先于下文旧队列）
+## 最新调度覆盖（09-28 05:19Z）
+
+- **horizon原批次关闭为GONE_WITHOUT_MARKER**：模型已封存，但attempt2控制器与两个子进程消失；两个TARGET_RECEIPT与steps文件0字节，TERMINAL未写。05:08直接写探针errno122证实配额耗尽，df整共享盘余量无效；没有原退出栈，不能伪造rc。原05:10:52Z到点结束，不算按时完成。只轮询终态未核PID导致迟发现，是root遗漏。
+- **一次单列预算的I/O恢复在跑**（cab55f4a9预登记；源码2e3f96601、合同749e5ad26；registry9f0a1dee8）。05:17:26Z启动，根`/dev/shm/horizon_book_io_recovery_20260928`，源码同名`_sources`；PID/PGID3581618、ticks514254034，后处理3581619/ticks514254035。**截止05:40:00Z，不再续跑**；合同sha213331abb24f315b2c551409c20064b2870d756596cb726ffa2ab392389320ff。仍原两模型/预测/标签/判据、无重新训练、无GPU；输出临时盘，须本机归档验sha后称持久保存。每次状态查PID/start_ticks与终态，不能只看无终态。无经济读数前的资源例外，明确偏离原45min预算，不声称原预算通过。
+- **Pod清理已实做**：交接`HANDOFF_alloc_2026-09-27.md §5`已结题M输入与红控NPZ共82文件，1,365,205,284字节；全部原字节先归档本机并逐件复哈希再删除Pod副本，所有JSON与恒等基线保留。归档`/Users/haosiyu/.codex/tmp/pod_archive_20260928/ALLOC_closed_artifacts_20260928.zip`，sha9d5bb5d46b68292e69bcde88fa6e433a64f34dfc301daead6fb42fcc52377d56，必要时按manifest还原原路径。05:17:46Z workspace写+fsync已恢复；仍近配额，后续任务不可凭df放行。
+- **04Z已done04:58:35Z**，无跳闸/停机拦单，模型实物两钉同、执行器d01e35d配置等HEAD；321名PARITY逐位0差，到位99.618%，合池taker21.1%、费2.63bps。7项本地检查PASS；报告04:55:05Z早于done，严格报告门PENDING；新K1未请求（授权三恢复锚已完）。不宣称9/9；未额外发Telegram。position reconcile 39名告警是现有读数，未据此推导外来单。杠杆2倍、无部署/恢复。
+
+## 前次调度覆盖（09-28 04:41Z，优先于下文旧队列）
 
 - **horizon试验现为attempt2，不重复训练。** 首批04:28:16Z训练两模型完成；04:28:26Z组合main缺少新完成状态白名单而FAILED，尚无现金路径。schema路由测试漏了第二个入口断言，是root自己的接口遗漏。8eef1607f修精确状态，真实main AST旧红/新绿，18测试通过；不接收泛化PASS。首根/模型/源码保持不变。
 - **04:37:26Z attempt2启动**：PID/PGID3578724、ticks514014035；自动后处理3578725、ticks514014036。根`/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/horizon_book_20260928_attempt2`、源码同名`_sources`。合同sha591231f099274a70fb3ce5451875ba10d3af58b858d8aba506677a8b042a8312；**原截止05:10:52Z不延长**。所有模型/折/依赖重新复哈希、通过MODEL_REUSE指向首批封存模型，没有重新拟合；两连续组合→64现金路径→经济/预测诊断/判词/归档自动接续，须读取实际两个终态而非以MODEL_DONE宣称完成。

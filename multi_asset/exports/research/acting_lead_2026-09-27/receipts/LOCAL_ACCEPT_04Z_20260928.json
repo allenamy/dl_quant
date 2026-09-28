@@ -1,0 +1,106 @@
+{
+  "schema": "recovery_acceptance_v1",
+  "anchor": 1790568000,
+  "observed_at": "2026-09-28T05:07:35Z",
+  "minimum_fill_ratio": 0.95,
+  "verdict": "PENDING",
+  "checks": {
+    "inspect": {
+      "status": "PASS",
+      "reason": "evidence agrees"
+    },
+    "anchor": {
+      "status": "PASS",
+      "reason": "evidence agrees",
+      "rebalance_id": "A1790569440",
+      "fill_ratio": 0.9961844990013664,
+      "minimum": 0.95
+    },
+    "anchor_done": {
+      "status": "PASS",
+      "reason": "evidence agrees"
+    },
+    "ledger_receipt": {
+      "status": "PASS",
+      "reason": "evidence agrees"
+    },
+    "watchdog_state": {
+      "status": "PASS",
+      "reason": "evidence agrees",
+      "policy": "explicit_untripped_live"
+    },
+    "watchdog_eval": {
+      "status": "PASS",
+      "reason": "evidence agrees"
+    },
+    "alarms": {
+      "status": "PASS",
+      "reason": "evidence agrees",
+      "new_high_count": 0
+    },
+    "anchor_report": {
+      "status": "PENDING",
+      "reason": "evidence predates this anchor"
+    },
+    "venue_receipt": {
+      "status": "PENDING",
+      "reason": "input not present"
+    }
+  },
+  "inputs": {
+    "inspect": {
+      "path": "/Users/haosiyu/.codex/worktrees/acting-lead-20260927/quant_research/multi_asset/exports/research/acting_lead_2026-09-27/receipts/INSPECT_04Z_20260928.txt",
+      "sha256": "0f9572395df3af0e3dc71ed396aa9be9313f863e7da6ecfe9aafae6229291576",
+      "bytes": 5071
+    },
+    "anchors": {
+      "path": "/Users/haosiyu/dl_quant_live/state/live/pilot_log/20260928/anchors.jsonl",
+      "sha256": "55984add8fe59d33bca6499bb1956064a8b0bcb18f436828bade44b38ad3d4ff",
+      "bytes": 68099
+    },
+    "anchor_log": {
+      "path": "/Users/haosiyu/dl_quant_live/state/anchor_runs.log",
+      "sha256": "da638b5e270eb39a6d0d5581e7c38c0e3232fb08f47613072ee293602d92d03f",
+      "bytes": 10139283
+    },
+    "ledger_receipt": {
+      "path": "/Users/haosiyu/.codex/worktrees/acting-lead-20260927/quant_research/multi_asset/exports/research/acting_lead_2026-09-27/receipts/LEDGER_04Z_20260928.json",
+      "sha256": "045ce9c6ae0b7ae5d97858ebf1ed946aedf1eca77c3722842bd303ddb4a974ba",
+      "bytes": 687
+    },
+    "watchdog_state": {
+      "path": "/Users/haosiyu/dl_quant_live/state/live/watchdog/state.json",
+      "sha256": "aee27811c1d6875f9304d4dc3a3ed89a9ffbc0de126411ec87db7c12716fa8f9",
+      "bytes": 64,
+      "parent_enumerated": true,
+      "present": true,
+      "absent": false
+    },
+    "watchdog_eval": {
+      "path": "/Users/haosiyu/dl_quant_live/state/live/watchdog/last_eval.json",
+      "sha256": "91ad47af24550a0946dc1045bc3cd7618d2b3f9117fcdedcf0863dc608707646",
+      "bytes": 11167244
+    },
+    "alarm_log": {
+      "path": "/Users/haosiyu/dl_quant_live/state/live/watchdog/ALARM.log",
+      "sha256": "fa4805173b18fbb79cbfdbaf0ea4c55f5adc156ac7a1b63b3e008308494d16c7",
+      "bytes": 12585
+    },
+    "anchor_report": {
+      "path": "/Users/haosiyu/dl_quant_live/state/anchor_report_last.json",
+      "sha256": "7448552f6eb9dfc0aabc6751301162ad2b57d0594ebcf6d37308a10972c4de2e",
+      "bytes": 740
+    }
+  },
+  "coverage": {
+    "scope": "recovery evidence only; VERSION_PROBE/M3/PARITY remain separate",
+    "global_single_writer_proven": false,
+    "venue_limits": [
+      "only rid-minus-600s to receipt window end",
+      "only commission-listed symbols and filled orders",
+      "symbol/orderId identity; symbol/clientOrderId fallback for no-orderId local rows",
+      "no coverage of gaps between monitored windows or future activity"
+    ]
+  },
+  "scope_note": "04Z local checks only; new venue K1 intentionally not requested. Recovery venue authorization covered 16Z/20Z/00Z only."
+}
