@@ -29,3 +29,11 @@
 收据目录：`multi_asset/exports/research/acting_lead_2026-09-27/receipts/EXECUTOR_MIRROR_GAP_20260928/`。只读git对象与Pod配置/源码，静默窗内完成，零API/生产修改。
 
 本轮取证两次自查更正：最初猜`live/legs.py`不存在，按真实import与git树确认是`signal/legs.py`后重读；首次AST哈希跨Python3.14/3.11，`FunctionDef.type_params`导致不可直接比较，已改为跨运行时原文SHA并明确记录。不能将该AST不一致当行为差异。
+
+## 18:33Z 实现与工程验收（未读新经济结果）
+
+隔离装置已实现，当前与旧函数均从冻结git原文提取，六文件SHA与父文件SHA绑定。仅在历史引擎建立执行代码对象后插入一个显式hook；原输入/镜像/会计检查继续执行。旧控制两种子须全NPZ字段（dtype/shape/bytes）一致，才启动当前语义。
+
+本机与Pod各10个纯函数/挂钩控制通过；固定旧源码两类反例2/2失败、0错误：小残余让整形后净额为90而非0；缺下限被误写为已检查。源变更负控拒绝。第一次人为移除helper的红控包含一个测试装饰器时机错误，不算红能力；改用两项显式用例形成RED_class_control.log。
+
+注意实际源码最后会由clamp把已撤出的尘仓名重新写入target=0，持仓本身没有改变，不能宣称“已平”。历史调用者缺过滤器时仍默认5USD，本轮仅计数保留，不顺手修其它机制。单CPU、无GPU，四路径合计预算30分钟，不扩随机种子。来源/合同在devices/executor_bridge_20260928。

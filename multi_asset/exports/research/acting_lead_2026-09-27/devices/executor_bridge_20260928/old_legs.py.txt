@@ -1,0 +1,90 @@
+def reshape_after_withhold(w, sizing_gross, redemean=True, rescale=True,
+                           floors_usdt=None, strict=False):
+    """Restore the two shaping properties a withhold destroys. Returns {"w", ...report...}.
+
+    ★★★ THE DEFECT (measured, first live anchor 2026-08-01 12:00Z). The book is demeaned over all
+        110 members, then the universe gate WITHHOLDS untradable names — PORTALUSDT at w = -1.80%.
+        Nothing re-shapes the remainder, and the precise statement is what explains why nobody saw
+        it: **the pop triggers a RE-SUMMATION OF GROSS but not a RE-DEMEANING.** `target_gross`
+        becomes the sum of the surviving |notional|, so `w = notional/target_gross` makes sum|w|
+        exactly 1.000000 while sum(w) keeps +1.797%. Of the two properties, unit-gross self-heals
+        and market-neutrality is silently dropped — **and the gross half looking correct is the
+        camouflage**.
+        Two consequences, both equal to |w_popped| x sizing_gross: the book is SMALLER than
+        decided (4194.26 against 4269.63) and NET LONG by 75.37 before a single order is sent.
+        Unbounded: mainnet reports 169 zero-cap names against testnet's 50.
+
+    ★ TWO SWITCHES, TWO JUSTIFICATIONS, SEPARATELY REVERTIBLE (lead's ruling):
+        redemean — neutrality is the foundation of the risk argument. Order-preserving (a uniform
+                   shift and an L1 rescale both preserve rank), so no alpha is given up.
+                   ★★★ CORRECTION (2026-09-16, independent review REVIEW_fixprogram_progress_
+                   2026-09-14 §7.1; the sentence above is kept VERBATIM and marked false here,
+                   per FIXPROGRAM §11). "so no alpha is given up" DOES NOT FOLLOW. Rank
+                   preservation is not alpha preservation: the book's P&L is a function of the
+                   VALUES and SIGNS of the weights, not of their order. The reviewer re-ran this
+                   very function and got
+                       [+0.40, -0.59, -0.01]  ->  [+0.44586, -0.50, +0.05414]
+                   — the ranking is preserved and the small SHORT becomes a LONG. Measured at
+                   book scale (EXE-03 / PROD-25): of 109 combo anchors, 99 flip the direction of
+                   a small position once names are withheld, and on 09-13 12Z 91.363% of the
+                   remaining net short came from the producer's own net short rather than from
+                   the withheld names. What survives of the original claim: the transform is
+                   order-preserving. What does not: the inference from that to "no alpha lost".
+                   Also unproven either way: producer and executor hold DIFFERENT intents after
+                   reshaping, and a two-sided-scaling alternative has not been measured.
+        rescale  — leverage is a RISK DECISION and must not be a by-product of tradability.
+      They are approved together and must stay independently revertible; welded into one function
+      neither could be rolled back alone.
+
+    ★★ BUT `rescale` WITHOUT `redemean` IS REFUSED UNDER `strict`. Scaling a still-tilted book UP
+       grows the net in proportion — strictly worse than doing nothing, not merely "less
+       complete". A configuration that can express it will eventually be set that way by someone
+       reverting the other half. Independence is about ROLLBACK; this is about a state that must
+       not run.
+
+    ★ IT REPORTS WHAT IT DID. A silent correction and a correction that did not happen are the
+      same output — the shape that cost this repo four defects on 2026-08-01. `net_before` is the
+      DEFECT'S SIZE, so the log answers "how much was wrong", not only "it is fixed now".
+
+    ★ FLOOR INTERACTION: re-demeaning moves every weight, so a name can cross its min-notional
+      floor. That is REPORTED and the function STOPS — one pass, never a silent
+      demean/pop/demean loop, which would converge on a book nobody specified.
+    """
+    w = np.asarray(w, dtype=float).copy()
+    g = float(sizing_gross)
+    if strict and rescale and not redemean:
+        raise ValueError(
+            "rescale without redemean amplifies a tilted book: the net grows in proportion, "
+            "which is strictly worse than leaving it alone. Enable redemean, or disable both.")
+
+    gross_before = float(np.abs(w).sum()) * g
+    net_before = float(w.sum()) * g
+    before = w.copy()
+
+    def _above_floor(vec):
+        if not floors_usdt:
+            return set()
+        return {i for i in range(len(vec))
+                if abs(float(vec[i])) * g >= float(floors_usdt.get(i, 0.0))}
+
+    floor_before = _above_floor(w)
+    if redemean:
+        w = w - w.mean()
+    if rescale:
+        s = float(np.abs(w).sum())
+        if s > 0:
+            w = w / s                       # unit gross; the caller multiplies by sizing_gross
+    floor_after = _above_floor(w)
+    crossed = sorted(floor_before.symmetric_difference(floor_after))
+
+    return {"w": w,
+            "net_before": net_before, "net_after": float(w.sum()) * g,
+            "gross_before": gross_before, "gross_after": float(np.abs(w).sum()) * g,
+            "max_name_delta_pp": float(np.abs(w - before).max()) * 100.0,
+            "floor_set_changed": bool(crossed),
+            "names_crossed_floor": crossed,
+            "iterations": 1,
+            "redemean_applied": bool(redemean), "rescale_applied": bool(rescale),
+            "caliber": ("net/gross are in USDT at `sizing_gross`; max_name_delta_pp is in "
+                        "percentage POINTS of weight. One pass only — a crossed floor is "
+                        "reported, never iterated away.")}

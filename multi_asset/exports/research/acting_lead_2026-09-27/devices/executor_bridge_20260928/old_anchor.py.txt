@@ -1,0 +1,170 @@
+def withhold_pop(target, held, untradable):
+    """Pass 1 of the withhold: drop the untradable names we do NOT hold. Mutates `target`.
+
+    Returns the popped symbols. Nothing to close and we may not open, so the name simply leaves
+    the book — which is precisely why the remainder must be reshaped afterwards.
+
+    ★ A NAMED FUNCTION BECAUSE THE TEST CALLS IT. `tests_orphan_position` used to lift this rule
+      out of the source by string offsets and `exec` it; splitting the loop in two made the
+      injected anchor `if cur == 0.0:` match twice and the lift silently span the reshape block.
+      A test that reaches into a file by byte offset breaks on edits that have nothing to do with
+      it — and worse, can keep passing while spanning code it never meant to execute.
+    """
+    popped = []
+    for s_ in untradable:                       # scored, but withheld by the venue
+        if float((held or {}).get(s_, 0.0) or 0.0) == 0.0:
+            target.pop(s_, None)
+            popped.append(s_)
+    return popped
+
+def apply_withhold_and_reshape(target, held, untradable, sizing_gross,
+                               floors_usdt=None, floors_source="not supplied",
+                               redemean=None, rescale=None, force_flat=()):
+    """POP -> RESHAPE -> CLAMP, in that order. Mutates `target`; returns (disposition, report).
+
+    ★★★ W9 (2026-09-13, DESIGN_stopped_long_flatten_2026-09-13): `force_flat` = names whose target a CLAUSE requires to be
+        EXACTLY 0 (the per-name stop, cf40ea21: "目标归零 ⇒ 既有 flatten_only 通道"). They used to be zeroed by the CALLER before
+        this function — and step 2 then re-demeaned the WHOLE target, those zeros included, moving every name by the same
+        shift a = −sizing·mean/L1. The clamp saw a, not 0: a stopped holding with the sign of a became `add_blocked` (pinned at
+        its position) or `reduced` (cut to ≈ a). Measured on the live ledger 2026-08-20..09-12: 157 stopped-and-held
+        instances, 144 longs pinned or merely reduced, and — before the external book, when a < 0 — shorts instead. So the
+        order this function owns now includes them: POP (an unheld force_flat name is popped like any unheld untradable) →
+        the HELD force_flat names leave the reshape population → RESHAPE the rest → those names go back at exactly 0.0 →
+        CLAMP (target 0 ⇒ flatten_only, reduce-only, never past flat). A force_flat name is untradable by definition.
+        Empty (the default) ⇒ bit-for-bit the previous behaviour. `net_before` is unchanged by construction (a zero adds
+        nothing to Σw); only the mean's divisor and the L1 norm lose the stopped names, so the rest of the book is neutral and
+        at the sizing gross over the names that still trade.
+
+    ★★★ THE ORDER IS THE DESIGN, WHICH IS WHY THE THREE STEPS LIVE IN ONE NAMED FUNCTION RATHER
+        THAN AS THREE STATEMENTS IN `run_anchor`. A caller can get the sequence wrong; a caller
+        cannot get this wrong without editing it.
+        A POP is a SHAPE change — a name leaves the book and the remainder is no longer the thing
+        we decided. A CLAMP is a VENUE CONSTRAINT on a name that STAYS. So:
+          · reshaping BEFORE the clamps means the clamp comparisons run on the FINAL numbers — a
+            `reduced` name cannot be pushed back above its own position by the rescale and quietly
+            become an ADD, which is precisely what the clamp exists to prevent.
+          · reshaping AFTER them would normalise the venue's constraint away — taking a name the
+            venue pinned at `cur` and scaling it to something else. That is the one thing we may
+            not do, and it would look like success in every aggregate.
+
+    ★★ THE LIMIT, STATED RATHER THAN PAPERED OVER: when a HELD untradable exists, the clamps
+       re-break neutrality by exactly the pinned amount. That residue is VENUE-FORCED, it is
+       reported as `clamped_after_reshape`, and it is NOT absorbed into the other names. Absorbing
+       it would mean tilting ~100 alpha weights to offset one stuck coin — a hedging decision
+       nobody has made. Today this is unexercised: all three live anchors popped only (ARKM /
+       PORTAL, never held). Unexercised is not impossible, which is why it is written down.
+
+    THE DEFECT IT REPAIRS (measured, 2026-08-01 12:00Z and 16:01Z): the pop triggers a
+    RE-SUMMATION OF GROSS but never a RE-DEMEANING. `plan()` computes `target_w = tgt / Σ|tgt|`,
+    so sum|w| self-heals to exactly 1.000000 while sum(w) keeps the popped name's weight.
+    16:01Z: sum(w) = +0.0096 on a 4246.04 book = **+40.76 USDT of direction nobody chose**, and
+    the book deployed 4246.04 against the 4278.81 sizing had decided. Of the two properties, the
+    one that self-heals is the camouflage for the one that does not.
+    """
+    redemean = RESHAPE_REDEMEAN if redemean is None else redemean
+    rescale = RESHAPE_RESCALE if rescale is None else rescale
+    g = float(sizing_gross)
+    clamp = {"reduced": [], "add_blocked": [], "flatten_only": [], "popped": []}
+    _force = sorted(set(force_flat or ()))
+    if _force and set(_force) - set(untradable):
+        untradable = list(untradable) + sorted(set(_force) - set(untradable))   # a force_flat name is untradable
+
+    # ★ E6 (EXE-03): the book's net AS COMPOSED, before anything leaves it — so the reshape report can say how much of the
+    #   pre-reshape net is the producer's own and how much the removed names took away (the alarm used to blame the removed names
+    #   for all of it; 09-13 12Z the producer's book was itself −8.46% of its gross and the 11 withheld names were +0.80%).
+    _net_composed = float(sum(float(v or 0.0) for v in target.values()))
+    # ── 1. the UNHELD untradables: pop. This is the shape change. ──────────────────────────
+    clamp["popped"] = withhold_pop(target, held, untradable)
+    # ── 1b. W9: the HELD force_flat names still in the target leave the reshape population ───────
+    _flat_out = [s_ for s_ in _force if s_ in target]
+    _flat_out_net = float(sum(float(target.get(s_) or 0.0) for s_ in _flat_out))
+    for s_ in _flat_out:
+        target.pop(s_)
+
+    # ── 2. restore what the pop destroyed ──────────────────────────────────────────────────
+    rs = None
+    # ★ NOT `and (redemean or rescale)`. With both switches off the reshape is a no-op — but it
+    #   must still RUN, because its report is how "we declined to correct 120 USDT" reaches the
+    #   ledger. Gating the call on the switches makes a disabled correction indistinguishable from
+    #   a book that never needed one, which is the exact shape this whole seam exists to kill.
+    if target and g > 0:
+        import numpy as _np
+        syms = sorted(target)                  # deterministic: the report indexes into this
+        vec = _np.array([target[s_] / g for s_ in syms], float)
+        # floors let the reshape report a name that crosses its min-notional BECAUSE of the move.
+        # A floors-less run reports "nothing crossed", which is indistinguishable from "nothing
+        # was checked" unless the source is labelled — so it always is.
+        fl = ({i: float((floors_usdt or {}).get(s_, 0.0) or 0.0) for i, s_ in enumerate(syms)}
+              if floors_usdt is not None else None)
+        rs = LG.reshape_after_withhold(vec, sizing_gross=g, redemean=redemean, rescale=rescale,
+                                       floors_usdt=fl, strict=True)
+        for i, s_ in enumerate(syms):
+            target[s_] = float(rs["w"][i]) * g
+        rs.pop("w", None)                      # the vector IS the book; the row keeps the report
+        rs["names_crossed_floor"] = [syms[i] for i in rs["names_crossed_floor"]]
+        rs["floors_source"] = floors_source if floors_usdt is not None else (
+            "NOT SUPPLIED — floor crossings were not checked, not 'none found'")
+        rs["n_popped"] = len(clamp["popped"])
+        rs["popped_names"] = sorted(clamp["popped"])
+        rs["sizing_gross"] = g
+        # ★ E6 (EXE-03): net_before == net_producer_usdt − net_removed_usdt, both stated
+        rs["net_producer_usdt"] = _net_composed
+        rs["net_removed_usdt"] = _net_composed - float(rs["net_before"])
+        rs["n_removed"] = len(clamp["popped"]) + len(_flat_out)
+        rs["removed_names"] = sorted(set(clamp["popped"]) | set(_flat_out))
+        rs["net_removed_flat_out_usdt"] = _flat_out_net
+    # ── 2b. W9: the held force_flat names come back at EXACTLY 0.0 — after the reshape, so no shift reaches them ──
+    for s_ in _flat_out:
+        target[s_] = 0.0
+    if rs is not None:
+        rs["forced_flat_names"] = list(_flat_out)
+
+    # ── 3. the HELD untradables: clamp, never pop. Venue constraint, applied LAST. ─────────
+    pinned_before = {s_: float(target.get(s_, 0.0) or 0.0) for s_ in untradable}
+    clamp.update(clamp_held_untradable(target, held, untradable))
+    if rs is not None:
+        pinned = clamp["add_blocked"] + clamp["flatten_only"]
+        # ★★ THE NUMBER THAT EXPLAINS THE BOOK IS THE SHIFT, NOT THE PIN. Reporting the pinned
+        #    notional alone ("P is 200") does not tell an operator why the book's net is not zero:
+        #    the reshape had already placed P at some value, and the clamp MOVED it. The net you
+        #    end up with is `0 - (what the clamp took away)`, so that difference is the reportable
+        #    quantity. `book_net_usdt` is then stated outright rather than left to be re-derived —
+        #    a reader who has to recompute it will eventually recompute it differently.
+        rs["clamped_after_reshape"] = {
+            "names": sorted(pinned),
+            "pinned_net_usdt": float(sum(float(target.get(s_, 0.0) or 0.0) for s_ in pinned)),
+            "net_shift_usdt": float(sum(float(target.get(s_, 0.0) or 0.0) - pinned_before.get(s_, 0.0)
+                                        for s_ in pinned)),
+            "book_net_usdt": float(sum(target.values())),
+            "caliber": ("`net_shift_usdt` is how far the venue's clamps moved the book's net away "
+                        "from the zero the reshape had just established; `book_net_usdt` is where "
+                        "it ended up. The residue is deliberately NOT absorbed into the other "
+                        "names — that would be an unmade hedging decision."),
+        }
+    return clamp, rs
+
+def clamp_held_untradable(target, held, untradable):
+    """Pass 2 of the withhold: the names we DO hold. Mutates `target`; returns the disposition.
+
+    WITHHELD MEANS "CANNOT OPEN", NOT "CANNOT CLOSE" — and until 2026-08-01 the code meant the
+    second [S1]. `target.pop()` erased the name, `plan()` iterates the target, so a
+    WITHHELD-BUT-HELD name produced NOT ONE ROW: no reduction, no record, no alarm. The position
+    was silently orphaned, while the comment beside the withholding rule had always read "a cap of
+    0 blocks opening, not closing" — the comment said the opposite of what the code did, which is
+    why reading either alone could not find it.
+    """
+    out = {"reduced": [], "add_blocked": [], "flatten_only": []}
+    for s_ in untradable:
+        cur = float((held or {}).get(s_, 0.0) or 0.0)
+        if cur == 0.0:
+            continue                                       # already popped in pass 1
+        tgt = float(target.get(s_, 0.0) or 0.0)
+        if tgt * cur > 0 and abs(tgt) <= abs(cur):
+            out["reduced"].append(s_)                      # already a reduction: leave it
+        elif tgt * cur > 0:
+            target[s_] = cur                               # would ADD: no movement permitted
+            out["add_blocked"].append(s_)
+        else:
+            target[s_] = 0.0                               # flatten, and never past flat
+            out["flatten_only"].append(s_)
+    return out

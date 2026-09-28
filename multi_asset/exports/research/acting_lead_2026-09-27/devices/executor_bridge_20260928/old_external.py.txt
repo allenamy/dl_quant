@@ -1,0 +1,16 @@
+def below_min_notional(target: Dict[str, float], floors: Optional[Dict[str, float]],
+                       mult: float) -> Dict[str, Any]:
+    """Names whose |target| < mult x venue min_notional. The design's eligibility filter
+    ("最小名义额可达 NAV×gross/名 ≥ 2×minNotional"): a position that cannot clear twice its floor
+    cannot be ADJUSTED later (every delta lands under the floor), so it is withheld at planning —
+    through the existing untradable channel (pop if unheld, clamp if held: reduce-only, never
+    opened). floors None -> NOT CHECKED (reported as such, never as 'none below')."""
+    if floors is None:
+        return {"checked": False, "names": set(), "n": 0, "mass_frac": None,
+                "note": "floors unavailable — min-notional eligibility NOT checked"}
+    gross = float(sum(abs(v) for v in target.values())) or 1.0
+    names = {s for s, v in target.items()
+             if abs(float(v)) < float(mult) * float((floors or {}).get(s, 0.0) or 0.0)}
+    mass = float(sum(abs(float(target[s])) for s in names)) / gross
+    return {"checked": True, "names": names, "n": len(names), "mass_frac": round(mass, 6),
+            "mult": float(mult)}
