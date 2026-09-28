@@ -1,0 +1,195 @@
+--- invvol/economic_readout.py
++++ residual/economic_readout.py
+@@ -116,11 +116,15 @@
+                clock='six 4h windows per UTC date; terminal window includes returns through next 00Z',
+                stress='1.25x observed fees, actions and stops fixed; not a policy rerun',
+                python=sys.executable, numpy=np.__version__, results={})
+-    for seed in (42, 2027):
+-        at = f'ALLOC_invvol_shared_s{seed}X_scaled_rule_raw_UAFE'
+-        rt = f'DLARCH_REF_NC_s{seed}X_scaled_rule_raw_UAFE'
+-        pa, fa = S.load_cell(str(root / f'cells/invvol_shared_s{seed}/runs/{at}'), at)
+-        pr, fr = S.load_cell(f'/workspace/dlarch_2026-09-24/chain/ref_nc_s{seed}X/runs/{rt}', rt)
++    for label_pair, kind, seed in [('raw_vs_NC42','raw',42),('raw_vs_NC2027','raw',2027),('resid_vs_NC42','resid',42),('resid_vs_NC2027','resid',2027),('resid_vs_raw','resid',None)]:
++        at = f'D2_{kind}_s42X_scaled_rule_raw_UAFE'
++        pa, fa = S.load_cell(str(root / f'cells/{kind}/runs/{at}'), at)
++        if seed is None:
++            rt='D2_raw_s42X_scaled_rule_raw_UAFE'
++            pr,fr=S.load_cell(str(root / f'cells/raw/runs/{rt}'),rt)
++        else:
++            rt = f'DLARCH_REF_NC_s{seed}X_scaled_rule_raw_UAFE'
++            pr, fr = S.load_cell(f'/workspace/dlarch_2026-09-24/chain/ref_nc_s{seed}X/runs/{rt}', rt)
+         if len(pa) != 32 or len(pr) != 32 or not np.array_equal(pa[0]['A'], pr[0]['A']):
+             raise ValueError('paired population incomplete')
+         for p in pa + pr:
+@@ -151,8 +155,8 @@
+                 ci_status='MEASURED_30D_MBB' if len(days)>30 else 'UNAVAILABLE_SHORTER_THAN_BLOCK',
+                 fee125_paired_daily_bps=float(1e4*sd.mean()), fee125_ci95_bps=ci30(sd,S),
+                 paired_market_days=[int(x) for x in days], paired_daily_returns=d.tolist())
+-            print('processed',seed,label,len(days),flush=True)
+-        rec['results'][str(seed)] = sr
++            print('processed',label_pair,label,len(days),flush=True)
++        rec['results'][label_pair] = sr
+         del pa, pr
+         gc.collect()
+     with open(out, 'x') as f:
+--- invvol/news2_adapter_specs.py
++++ residual/news2_adapter_specs.py
+@@ -20,7 +20,7 @@
+         assert json.dumps(base[_k], sort_keys=True) == json.dumps(_b2[_k], sort_keys=True), \
+             f"DLARCH: base spec field {_k} is NOT seed-independent; using s42 for all seeds would be wrong"
+     c = f"{W}/work/combo_s{seed}"
+-    spec = {"arm": ARM, "data": f"NEW_S2 (nc_2026-09-23 features, news2_2026-09-23 models) combo_s{seed}: full corrected producer contract, King + F10 s{seed} retrained",
++    spec = {"arm": ARM, "data": f"Exploratory {ARM}: NC features/King/funding with deterministic Ridge scores replacing F10; historical scaled publication and execution contract",
+             "scaled": {"npz": f"{c}/scaled_diagnostic.npz", "sha256": sha(f"{c}/scaled_diagnostic.npz")},
+             "lit": {"npz": f"{c}/literal.npz", "sha256": sha(f"{c}/literal.npz")},
+             "new_receipt": {"path": f"{c}/TARGET_RECEIPT.json", "sha256": sha(f"{c}/TARGET_RECEIPT.json")},
+--- invvol/run_batch.py
++++ residual/run_batch.py
+@@ -1,8 +1,8 @@
+-"""One inverse-risk comparison; immutable cap50 controls are reused.
++"""Two deterministic residual-model controls; immutable cap50 controls are reused.
+ 
+-Runs original-combo identities, full-axis seed-0 engine identities, then two
++Revalidates archived combo and full-axis engine identities, then runs two
+ 32-path candidate cells. Never trades, never edits reference files or resumes
+-production. Thirty-minute wall bound applies to this entire batch.
++production. Forty-five-minute wall bound applies to this entire batch.
+ """
+ import os, sys, json, hashlib, pathlib, subprocess, time, signal, traceback
+ 
+@@ -57,7 +57,7 @@
+ 
+ def wait_all(group):
+     while any(p.poll() is None for p, *_ in group):
+-        if time.time() > C['deadline_epoch']: raise TimeoutError('registered absolute 30m budget')
++        if time.time() > C['deadline_epoch']: raise TimeoutError('registered absolute 45m budget')
+         if any(p.poll() not in (None, 0) for p, *_ in group):
+             raise RuntimeError('child failed; stopping remaining batch')
+         time.sleep(2)
+@@ -69,9 +69,9 @@
+         if p.returncode: raise RuntimeError(f'{label}: rc={p.returncode}')
+ 
+ 
+-def chain(seed, rule, engine=False):
++def chain(kind, engine=False):
+     args = [PY, '-B', str(HERE / 'alloc_chain_run.py'), 'PATH,HOME,LC_CTYPE',
+-            str(ROOT/'receipts'), '--seed', str(seed), '--rule', rule, '--mix', 'shared']
++            str(ROOT/'receipts'), '--seed', '42', '--rule', 'inservice', '--mix', 'shared', '--kind', kind]
+     if engine: args.append('--engine')
+     return args
+ 
+@@ -92,24 +92,33 @@
+         for f in d['ref']['facts']:
+             p=pathlib.Path(d['ref']['dir'])/f"PATH_{d['ref']['tag']}_seed_{f['seed']:02d}.npz"
+             if sha(p)!=f['npz_sha256']:raise ValueError('reference path changed '+str(p))
++    from control_binding import verify_controls
++    external = verify_controls(parent)
+     identity=json.loads((parent/'ENGINE_IDENTITIES.json').read_text())
+     write('ENGINE_IDENTITIES.json',identity)
+     write('PREFLIGHT.json',{'utc':time.strftime('%FT%TZ',time.gmtime()),
+       'contract_sha256':sha(HERE/'CONTRACT.json'),'sources':C['copied_sources'],
+       'parent_receipts':C['parent_receipts'],'reuse':'same kernels, inputs and reference paths; no claim of rerunning controls',
+-      'python':sys.executable,'env':ENV})
+-    import numpy as np
+-    import alloc_rules
+-    with np.load('/dev/shm/news2_2026-09-23/work/legs.npz',allow_pickle=False) as z:
+-        LR=z['LR'];WL=z['WL']
+-    checks=alloc_rules.causality_probe('invvol',LR,WL,[1000,4000,8000])
+-    write('CAUSALITY.json',{'checks':checks,'source_sha256':sha(HERE/'alloc_rules.py')})
+-    if not all(checks.values()):raise ValueError('future perturbation changed prior seat')
+-    wait_all([launch(f'candidate_invvol_s{s}',chain(s,'invvol',True),HERE) for s in (42,2027)])
++      'python':sys.executable,'env':ENV,'external_control_bindings':external})
++    previous=pathlib.Path(C['wait_for_terminal'])
++    while not previous.exists():
++        if time.time()>C['deadline_epoch']:raise TimeoutError('previous batch not terminal')
++        time.sleep(10)
++    # Do not compete with the existing batch. Its finally block stops all its
++    # own children BEFORE it writes terminal, including the failure path.
++    while True:
++        maximum=pathlib.Path('/sys/fs/cgroup/memory.max').read_text().strip()
++        stats=dict(line.split() for line in pathlib.Path('/sys/fs/cgroup/memory.stat').read_text().splitlines())
++        if maximum.isdigit() and (int(maximum)-int(stats['anon'])-int(stats['shmem']))>=24*2**30:break
++        if time.time()>C['deadline_epoch']:raise TimeoutError('training memory headroom unavailable')
++        time.sleep(10)
++    wait_all([launch('train_models',[PY,'-B',str(HERE/'train_ridge.py')],HERE)])
++    wait_all([launch(f'candidate_{k}',chain(k,True),HERE) for k in ('raw','resid')])
+     write('SIMULATION_TERMINAL.json',{'rc':0,'status':'SIMULATIONS_AUDITED',
+       'utc':time.strftime('%FT%TZ',time.gmtime()),'steps':STEPS})
+     wait_all([launch('economic_readout',[PY,'-B',str(HERE/'economic_readout.py'),
+       '--root',str(ROOT),'--out',str(ROOT/'receipts/ECONOMIC_FULL_BOOK.json')],HERE)])
++    if verify_controls(parent)!=external:raise ValueError('external configuration changed during batch')
+     for n,h in C['copied_sources'].items():
+         if sha(HERE/n)!=h:raise ValueError('source changed during batch '+n)
+ 
+@@ -122,6 +131,6 @@
+         if ROOT.exists():
+             write('TERMINAL.json',{'utc':time.strftime('%FT%TZ',time.gmtime()),'status':status,
+               'rc':rc,'error':error,'wall_seconds':time.monotonic()-START,'steps':STEPS,
+-              'production_changes':0,'new_model_training':False,'GPU_used':False,
++              'production_changes':0,'new_model_training':True, 'model_kind':'deterministic_Ridge_not_DL','GPU_used':False,
+               'warning':'exploratory risk comparison; no swap or equivalence claim'})
+     sys.exit(rc)
+--- invvol/alloc_chain_run.py
++++ residual/alloc_chain_run.py
+@@ -23,7 +23,7 @@
+ sio.install_guards()
+ 
+ NS = "/dev/shm/news2_2026-09-23"
+-BASE = "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/book_invvol_20260928"
++BASE = "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/residual_book_20260928"
+ CELLS = f"{BASE}/cells"
+ DEV = HERE
+ PV = "/workspace/venv/bin/python"
+@@ -141,9 +141,12 @@
+     seed = int(args[args.index("--seed") + 1]); rule = args[args.index("--rule") + 1]; mix = args[args.index("--mix") + 1]
+     do_engine = "--engine" in args; eng_ident = "--engine-identity" in args
+     assert seed in F10_SRC, f"seed {seed}: no NC reference cell to pair with"
+-    identity_arm = (rule == "inservice" and mix == "shared")
++    kind = args[args.index("--kind") + 1]
++    assert kind in ("raw", "resid") and seed == 42
++    F10_SRC[42] = f"{BASE}/models/{kind}"
++    identity_arm = False  # Entire score component replaced; seats remain inservice.
+     assert not eng_ident or (identity_arm and do_engine), "--engine-identity is the in-service arm's end-to-end check"
+-    arm = f"ALLOC_{rule}_{mix}_s{seed}X"; label = f"{rule}_{mix}_s{seed}"
++    arm = f"D2_{kind}_s{seed}X"; label = kind
+     if "--label" in args:     # a separate root (e.g. a re-identity combo that must not rmtree the kept identity cell's PATH files)
+         assert not do_engine, "--label is for combo-only runs"; label = args[args.index("--label") + 1]
+     root = f"{CELLS}/{label}"
+--- invvol/alloc_combo.py
++++ residual/alloc_combo.py
+@@ -27,6 +27,9 @@
+ def verify_training(out, rec, seed, sha):
+     """dlarch substitution 2 (verbatim from news2_combo.py 81e2d274): continuous_combo.verify_training with the fold-artifact path set
+     compared by REALPATH. Nothing relaxed."""
++    if rec.get("schema") == "residual_ridge_book/1":
++        from residual_model import verify_training as verify_linear
++        return verify_linear(out, rec, seed, sha)
+     import pathlib as _pl
+     if rec.get("seed") != seed: raise ValueError("wrong training seed")
+     exp = {os.path.realpath(str(_pl.Path(out) / tag / name)) for tag in rec["folds"]
+@@ -110,7 +113,7 @@
+              W / 'receipts/P1_members_2025H2on.npz', pathlib.Path('/workspace/axis_0919/x0918r/masks/member_mask_tradable_AND_live_W24H_cachegrid.npz')]
+     ident = {str(p): sha(p) for p in paths}
+     rec = json.loads(paths[4].read_text()); lr = json.loads(paths[2].read_text())
+-    assert rec['status'] == 'ALL_DECLARED_FOLDS_SCORED_NOT_COMBO_CERTIFIED' and rec['pred_sha256'] == ident[str(paths[3])]
++    assert rec['status'] in ('ALL_DECLARED_FOLDS_SCORED_NOT_COMBO_CERTIFIED', 'LINEAR_ALL_DECLARED_FOLDS_SCORED_NOT_COMBO_CERTIFIED') and rec['pred_sha256'] == ident[str(paths[3])]
+     verify_training(froot, rec, args.seed, sha)
+     assert set(rec['folds']) == set(rec['expected_folds'])
+     for p, h in rec['inputs'].items(): assert sha(p) == h, ('training input drift', p)
+@@ -155,13 +158,14 @@
+     for p, h in sources.items(): assert sha(p) == h
+     receipt = {'status': 'ALLOC_ARM_TARGETS_NOT_EXECUTION_PNL', 'seed': args.seed, 'arm': {'rule': args.rule, 'mix': args.mix, 'seat': seat_rec},
+                'inputs': ident, 'sources': sources, 'policies': summary,
++               'model_kind': rec.get('model_kind','F10'), 'model_target':rec.get('target'),
++               'seed_note':rec.get('seed_note','F10 model seed'),
+                'member_cells_outside_book_universe': outside,
+                'state_init': 'zero at 2023-01-01; hypothetical common start, not live archived state',
+                'hold_contract': 'trade_mask False = maintain quantities, never King substitution',
+                'limits': ['production-caliber legs replayed on history; seat history starts with King OOF (2022H2)', 'no execution/cash or policy-stop result',
+                           'scaled_diagnostic changes historical publication gate; never current-live literal',
+-                          'F10 is the in-service NC F10 trained on the in-service WL; an arm that changes seats or mix is a configuration the full '
+-                          'pipeline would retrain F10 for -- this combo does not']}
++                          'F10 score slot is replaced by the model_kind/model_target named above; seed may be interface-only. King/funding/seat stay NC; this is not a new F10 training run']}
+     (out / 'TARGET_RECEIPT.json').write_text(json.dumps(receipt, indent=2, allow_nan=False))
+     print(json.dumps({k: receipt[k] for k in ('seed', 'member_cells_outside_book_universe')}), json.dumps(receipt['arm']), json.dumps({k: v['reasons'] for k, v in summary.items()}), flush=True)
+ 
