@@ -7,6 +7,10 @@ import numpy as np
 from scipy.stats import rankdata
 from flow_funding import baseline_inputs
 
+def add_own_interaction(x,own):
+ p=own[:,3]*own[:,4];ok=np.isfinite(p)
+ return np.c_[x,np.where(ok,p,0),ok.astype(float)]
+
 def sha(p):
  h=hashlib.sha256()
  with open(p,'rb') as f:
@@ -58,7 +62,7 @@ def main(root,contract_path):
  assert np.all(np.diff(T)==14400) and X.shape==(len(m),78) and np.isfinite(X).all()
  ai=np.searchsorted(A,T);assert np.all(ai<len(A)) and np.array_equal(A[ai],T)
  rid=np.repeat(np.arange(len(T)),count);rows=PX[ai[rid],m];own=OWN[ai[rid],m];price=PRICE[ai[rid],m];y=Y[ai[rid],m];finite=np.isfinite(y);haspeer=np.isfinite(rows).all(1)&np.isfinite(own).all(1)&np.isfinite(price).all(1);yr=np.full(len(y),np.nan)
- X=baseline_inputs(X,own,price);del OWN,PRICE,own,price
+ X=add_own_interaction(baseline_inputs(X,own,price),own);del OWN,PRICE,own,price
  shuffled=rows.copy();min_names=50
  for k in range(len(T)):
   sl=np.arange(off[k],off[k+1]);good=sl[finite[sl]]
@@ -119,7 +123,7 @@ def main(root,contract_path):
  np.savez_compressed(root/'PREDICTIONS.npz',anchors=T,count=count,off=off,m=m,symbols=sy,raw_y=y,rank_y=yr,pred=pred,return_pred=return_pred,has_peer=haspeer,metrics=metrics,coverage=coverage)
  for p,h in pins.items():
   if sha(p)!=h:raise ValueError('input changed '+p)
- res={'status':'EXPLORATORY_SCREEN_PASS' if all(gates.values()) else 'CRITERION_NOT_MET','utc':time.strftime('%FT%TZ',time.gmtime()),'source_sha256':sha(__file__),'contract_sha256':sha(contract_path),'inputs':pins,'folds':folds,'windows':windows,'results':results,'gates':gates,'metric_order':['raw_y_Pearson','raw_y_Spearman','gross_one_rank_price_bps_no_cost'],'prediction_order':['baseline_full','baseline_common','peer','shuffled'],'prediction_units':'cross-sectional rank scores, not calibrated returns','baseline_definition':'76 nonfund NC/D10 columns + 8 own D10/price/flow values and 8 availability flags + 4 prior price-peer values and 4 availability flags; candidate adds only three interactions','funding_policy':'D10 exact spacing convention, identical in every arm, not deployed NC policy','seconds':time.monotonic()-begun,'peak_rss_gib':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/2**20,'python':sys.executable,'numpy':np.__version__,'outputs':{p.name:sha(p) for p in root.glob('*.npz')},'limits':['Historical windows have been seen: not confirmatory','No cash/fees/funding/combination state, no production model or release','Unknown peer entries revert exactly to matched baseline','Per-asset calibration/collapse interpretation requires return-unit prediction; these are rank scores']}
+ res={'status':'EXPLORATORY_SCREEN_PASS' if all(gates.values()) else 'CRITERION_NOT_MET','utc':time.strftime('%FT%TZ',time.gmtime()),'source_sha256':sha(__file__),'contract_sha256':sha(contract_path),'inputs':pins,'folds':folds,'windows':windows,'results':results,'gates':gates,'metric_order':['raw_y_Pearson','raw_y_Spearman','gross_one_rank_price_bps_no_cost'],'prediction_order':['baseline_full','baseline_common','peer','shuffled'],'prediction_units':'cross-sectional rank scores, not calibrated returns','baseline_definition':'76 nonfund NC/D10 columns + 8 own D10/price/flow values and 8 availability flags + 4 prior price-peer values and 4 availability flags; plus own negativefund8 x residual4h and its flag; candidate adds only three interactions','funding_policy':'D10 exact spacing convention, identical in every arm, not deployed NC policy','seconds':time.monotonic()-begun,'peak_rss_gib':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/2**20,'python':sys.executable,'numpy':np.__version__,'outputs':{p.name:sha(p) for p in root.glob('*.npz')},'limits':['Historical windows have been seen: not confirmatory','No cash/fees/funding/combination state, no production model or release','Unknown peer entries revert exactly to matched baseline','Per-asset calibration/collapse interpretation requires return-unit prediction; these are rank scores']}
  (root/'RESULT.json').write_text(json.dumps(res,indent=2,allow_nan=False)+'\n');(root/'TERMINAL.json').write_text(json.dumps({'rc':0,'result_sha256':sha(root/'RESULT.json')})+'\n');print('RIDGE COMPLETE',res['status'],flush=True)
 if __name__=='__main__':
  try:main(*sys.argv[1:])
