@@ -23,7 +23,7 @@ SAFE_IO_SHA = "36deb92fdd5e8c3506198d82bab8a53312f5c03a1b866e9318f8489d51e0cd4e"
 sio.install_guards()
 
 NS = "/dev/shm/news2_2026-09-23"
-BASE = "/dev/shm/f10_recent_adapt_20260928"
+BASE = json.load(open(os.path.join(HERE,"CONTRACT.json")))["root"]
 CELLS = f"{BASE}/cells"
 DEV = HERE
 PV = "/workspace/venv/bin/python"

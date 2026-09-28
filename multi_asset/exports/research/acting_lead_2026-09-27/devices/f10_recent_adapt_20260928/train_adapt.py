@@ -5,7 +5,7 @@ import sys,json,pathlib,hashlib,time,collections,copy
 import numpy as np
 import torch
 from torch import nn
-from adapt_contract import probabilities,choose,causal_windows
+from adapt_contract import probabilities,choose,causal_windows,align_indices
 H=pathlib.Path(__file__).resolve().parent
 C=json.loads((H/'CONTRACT.json').read_text());ROOT=pathlib.Path(C['root']);NS=pathlib.Path('/dev/shm/news2_2026-09-23')
 PINS={str(NS/'work/NEWS_FEATURES.npz'):'3c886a2bc0ff65c10b7e0a621c9468210bbd77ef58c90e625f0a29354d63c4d8',str(NS/'work/legs.npz'):'9ee5886f37d1727c306d0fb692d2cad1e6400ae13f19d5cd4e280dc59f208f65','/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz':'ca479fccd3d3245e9438a8c82ba7b4a1950ab6e06607f28b25923c4526924d62'}
@@ -40,8 +40,9 @@ def main():
  F=np.load(NS/'work/NEWS_FEATURES.npz');T=np.load(list(PINS)[2],allow_pickle=True);L=np.load(NS/'work/legs.npz')
  a=F['anchors'].astype(np.int64);sy=F['symbols'];off=F['off'];m=F['m'].astype(int);n=len(a);w=len(sy)
  assert np.array_equal(T['symbols'],sy) and np.array_equal(L['symbols'],sy) and np.array_equal(L['E_ts'],a)
- ti=np.searchsorted(T['E_ts'],a);assert np.all(ti<len(T['E_ts'])) and np.array_equal(T['E_ts'][ti],a)
- y=T['y4s'][ti].astype(np.float32);ready=L['ready'];counts=np.diff(off)
+ ti=np.asarray(align_indices(T['E_ts'].tolist(),a.tolist()));ok=ti>=0
+ y=np.full((n,w),np.nan,np.float32);y[ok]=T['y4s'][ti[ok]];ready=L['ready'];counts=np.diff(off)
+ write(ROOT/'models/LABEL_ALIGNMENT.json',{'missing_axis_anchors':a[~ok].tolist(),'missing_kept_as':'NaN, original NC contract; no zero fill'})
  x=np.concatenate([F['X82'].astype(np.float32),F['X89']],1).astype(np.float32);assert np.isfinite(x).all()
  XT=torch.from_numpy(x).to('cuda');del x
  YT=torch.from_numpy(np.where(np.isfinite(y),y,0.)).cuda();YVALID=torch.from_numpy(np.isfinite(y)).cuda()

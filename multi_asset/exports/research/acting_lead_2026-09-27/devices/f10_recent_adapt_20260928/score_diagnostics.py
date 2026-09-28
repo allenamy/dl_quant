@@ -5,13 +5,14 @@ import json,pathlib,hashlib,sys
 from datetime import datetime,timezone
 import numpy as np
 from scipy.stats import rankdata
+from adapt_contract import align_indices
 H=pathlib.Path(__file__).resolve().parent;C=json.loads((H/'CONTRACT.json').read_text());R=pathlib.Path(C['root']);NS=pathlib.Path('/dev/shm/news2_2026-09-23')
 def sha(p):return hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
 def corr(x,y):
  x=x-x.mean();y=y-y.mean();d=np.sqrt((x*x).sum()*(y*y).sum())
  return float((x*y).sum()/d) if d>0 else None
 T=np.load('/workspace/codex_research/QNT-2026-0907/combo_20260923/corrected_combo_v1d/data/dlw_targets.npz',allow_pickle=True)
-F=np.load(NS/'work/NEWS_FEATURES.npz');a=F['anchors'];sy=F['symbols'];ix=np.searchsorted(T['E_ts'],a);assert np.array_equal(a,T['E_ts'][ix]);y=T['y4s'][ix]
+F=np.load(NS/'work/NEWS_FEATURES.npz');a=F['anchors'];sy=F['symbols'];ix=np.asarray(align_indices(T['E_ts'].tolist(),a.tolist()));ok=ix>=0;y=np.full((len(a),len(sy)),np.nan,np.float32);y[ok]=T['y4s'][ix[ok]]
 stamp=lambda s:int(datetime.fromisoformat(s).replace(tzinfo=timezone.utc).timestamp())
 periods={'pre2026':(stamp('2023-07-01'),stamp('2026-01-01')),'2026_H1':(stamp('2026-01-01'),stamp('2026-07-01')),'recent_primary':(stamp('2026-07-01'),stamp('2026-09-19'))}
 out={'schema':'diagnostic_not_gate','source_sha256':sha(__file__),'python':sys.executable,'units':'raw score not calibrated as return; beta/sigma descriptive only','results':{}}

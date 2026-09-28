@@ -27,3 +27,11 @@ def causal_windows(anchors,ready,counts,cutoff):
         span=list(range(s-24,s+96))
         if all(ready[i] and counts[i]>=50 and anchors[i]+14400<=cutoff for i in span):out.append(span)
     return out
+
+def align_indices(source,target):
+    for axis in (source,target):
+        if not len(axis) or any(not math.isfinite(t) or t!=int(t) or t%14400 for t in axis) or any(b<=a for a,b in zip(axis,axis[1:])):raise ValueError('label time axis')
+    out=[]
+    for t in target:
+        i=bisect.bisect_left(source,t);out.append(i if i<len(source) and source[i]==t else -1)
+    return out

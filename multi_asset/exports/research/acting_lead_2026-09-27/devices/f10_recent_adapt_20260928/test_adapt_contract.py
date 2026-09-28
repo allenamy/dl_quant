@@ -1,5 +1,5 @@
 import unittest, math
-from adapt_contract import probabilities, choose, causal_windows
+from adapt_contract import probabilities, choose, causal_windows, align_indices
 
 class ContractTests(unittest.TestCase):
     def test_uniform(self):
@@ -30,6 +30,9 @@ class ContractTests(unittest.TestCase):
         a=[i*14400 for i in range(400)];ready=[True]*400;ready[100]=False
         w=causal_windows(a,ready,[60]*400,350*14400)
         self.assertTrue(all(100 not in s for s in w))
+    def test_partial_label_axis(self):
+        self.assertEqual(align_indices([14400,28800],[0,14400,28800,43200]),[-1,0,1,-1])
+        with self.assertRaises(ValueError):align_indices([0,0],[0])
     def test_axis(self):
         with self.assertRaises(ValueError):causal_windows([0,14400,30000],[True]*3,[60]*3,100000)
 

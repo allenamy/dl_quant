@@ -97,5 +97,5 @@ if __name__=='__main__':
  except BaseException as e:error=repr(e);traceback.print_exc()
  finally:
   stop_own()
-  if R.exists():write('TERMINAL.json',{'rc':rc,'status':'EXPLORATORY_COMPARISON_COMPLETE_NOT_RELEASE' if rc==0 else 'FAILED','error':error,'utc':time.strftime('%FT%TZ',time.gmtime()),'wall_seconds':time.monotonic()-START,'steps':STEPS,'production_changes':0,'GPU_training':True})
+  if R.exists():write('TERMINAL.json',{'rc':rc,'status':'EXPLORATORY_COMPARISON_COMPLETE_NOT_RELEASE' if rc==0 else 'FAILED','error':error,'utc':time.strftime('%FT%TZ',time.gmtime()),'wall_seconds':time.monotonic()-START,'steps':STEPS,'production_changes':0,'GPU_training_requested':True,'completed_neural_fold_outputs':len(list((R/'models').glob('*/*/FOLD_RECEIPT.json')))})
  sys.exit(rc)
