@@ -173,3 +173,11 @@
 - 宽截phase_A曾意外看到嵌套requote字段，未转述臂内数/未用于臂比较和政策；后续白名单仅存合池，不声称执行诊断全程严格未见字段。CFG判决仍停止点原装置。读取猜键/phase错误和源码传输缺rsync已如实记录。
 - normalized新图FD于01:10:18Z完成45秒、RSS2.04GB/GPU0.679GB、optimizer0；小eps9/9同分支，大eps仍跨producer/fill_sign，双eps门**UNRESOLVED保留**。30pin与17原件root复核，registry关闭。报告RESULT_normalized_network_gradient_check_2026-09-28.md。无在飞研究作业。
 - 下轮只增量核实盘，无异常不重复K1或已完成FD。研究须把共享fund低秩篮子与独立模型信号分开，若继续T3先定义门内梯度/门外硬动作两类验收；不删旧UNRESOLVED。GAP4/M3历史FAIL、durable未部署、D10未决与冷静期均原样。
+
+## 09-28 01:29心跳：完整120锚双臂一步试验
+
+- 主仓未接回。01:45本地轻读仍d01e35d，最新评估00:48:03 false/no triggers，reduce_only=false、ALARM未变；不重复K1，不调用场所/Telegram/resume。
+- 新预注册446d8a71a、源码cf6d7c51e、登记a65aa0552；01:39:54→01:41:10Z完成固定120锚4次独立单步AdamW，76.10秒/RSS2.134GB/GPU0.661GB/rc0。严格F0的loss、gradient、model、optimizer字节完全一致；每次硬映射对原continuous≤3.47e−18。29pin和32原件root独立复核。注册已8226fbdde关闭，无研究作业仍在跑。
+- **新发现：A0/A1单步均令soft35→0、hard30→0发布。** 不是score常数化：KC不动、FC增大但与KC更反向，混合gross最大.45326→.37593，120/120落到.4门下。loss归0来自空仓原点一直未建仓，不能称利润或carry有效；属于本次新训练代理，不是已证明的在役F10缺陷。
+- 见数后固定接缝(原点首次发布+1=index63)的独立库存核查：保留144名数量再HOLD，57锚价格−304.129/carry−2.389代理NAVbps；错误重置数量则全0。硬cash实现正确保留数量，不能把全HOLD当自动避险/平仓。非生产者隐状态一致反事实，不作策略收益。
+- 报告RESULT_clock_paired_update_probe_2026-09-28.md。工程实施PASS不关闭原双epsUNRESOLVED，不放行完整训练/换装。下一项是原149训练窗的因果前缀、生产者状态和库存支持域清单/资源预算；**勿重跑F0/单步/FD去调到过**。真实学习不得每窗清空账户后以零损失假改进。GAP4/M3历史FAIL与D10未决/冷静期仍原样。
