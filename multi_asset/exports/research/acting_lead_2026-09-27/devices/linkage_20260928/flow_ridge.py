@@ -47,6 +47,9 @@ def main(root,contract_path):
  begun=time.monotonic();root=Path(root);root.mkdir(exist_ok=False);C=json.loads(Path(contract_path).read_text());pins=C['inputs'].copy()
  panel=Path(C['panel_root']);t=json.loads((panel/'TERMINAL.json').read_text());pr=json.loads((panel/'RESULT.json').read_text())
  if t['rc']!=0 or t['result_sha256']!=sha(panel/'RESULT.json') or pr['contract_sha256']!=C['panel_contract_sha256']:raise ValueError('panel gate')
+ ck=json.loads((panel/'DIRECT_INPUT_CHECK.json').read_text())
+ if ck['status']!='DIRECT_WINDOW_D10_UNIT_CHECK_PASS' or ck['result_sha256']!=sha(panel/'RESULT.json') or ck['source_sha256']!=C['input_verifier_sha256']:raise ValueError('independent input gate')
+ pins[str(panel/'RESULT.json')]=sha(panel/'RESULT.json');pins[str(panel/'DIRECT_INPUT_CHECK.json')]=sha(panel/'DIRECT_INPUT_CHECK.json')
  for n,h in pr['outputs'].items():pins[str(panel/n)]=h
  for p,h in pins.items():
   if sha(p)!=h:raise ValueError('source identity '+p)
