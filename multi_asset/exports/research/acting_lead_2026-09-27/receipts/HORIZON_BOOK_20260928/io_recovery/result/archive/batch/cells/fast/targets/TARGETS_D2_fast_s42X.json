@@ -1,0 +1,150 @@
+{
+ "tag": "TARGETS_D2_fast_s42X",
+ "arm": "D2_fast_s42X",
+ "data": "Exploratory D2_fast_s42X: NC features/King/funding with deterministic Ridge scores replacing F10; historical scaled publication and execution contract",
+ "comparison": "OVN Stage 1 (docs/PREREG_old_vs_new_models_same_engine_2026-09-23.md)",
+ "axis": [
+  "2022-06-30T00:00:00Z",
+  "2026-09-18T20:00:00Z"
+ ],
+ "n_anchors": 9252,
+ "B_CORE_start": null,
+ "PRE_window": null,
+ "B_CORE_note": "object-B B_CORE is an OLD-chain concept; the judgment window is fixed by the prereg (2023-06-30T04Z), not by this file",
+ "adapter": {
+  "n_pad": 1110,
+  "pad_span": [
+   "2022-06-30T00:00:00Z",
+   "2022-12-31T20:00:00Z"
+  ],
+  "new_axis": [
+   "2023-01-01T00:00:00Z",
+   "2026-09-18T20:00:00Z"
+  ],
+  "n_new": 8142,
+  "readings": {
+   "scaled": {
+    "counts_by_year": {
+     "2022": {
+      "pad_hold": 1110
+     },
+     "2023": {
+      "hold": 203,
+      "combo": 1987
+     },
+     "2024": {
+      "combo": 1429,
+      "hold": 767
+     },
+     "2025": {
+      "hold": 878,
+      "combo": 1312
+     },
+     "2026": {
+      "combo": 1566
+     }
+    },
+    "published": 6294,
+    "hold_on_new_axis": 1848,
+    "gross_published_min_max": [
+     0.40006237665755795,
+     0.8577983254721275
+    ],
+    "nnz": 1593955,
+    "names_outside_universe_on_published_rows": 0,
+    "published_rows_with_names_outside_universe": 0,
+    "reasons": {
+     "gross": 1848,
+     "publish": 6294
+    }
+   },
+   "lit": {
+    "counts_by_year": {
+     "2022": {
+      "pad_hold": 1110
+     },
+     "2023": {
+      "hold": 2190
+     },
+     "2024": {
+      "hold": 2196
+     },
+     "2025": {
+      "hold": 962,
+      "combo": 1228
+     },
+     "2026": {
+      "combo": 1566
+     }
+    },
+    "published": 2794,
+    "hold_on_new_axis": 5348,
+    "gross_published_min_max": [
+     0.40014620559280284,
+     0.8577983254721275
+    ],
+    "nnz": 859562,
+    "names_outside_universe_on_published_rows": 0,
+    "published_rows_with_names_outside_universe": 0,
+    "reasons": {
+     "F10 coverage,gross,names": 61,
+     "F10 coverage,names": 419,
+     "F10 coverage": 3081,
+     "F10 coverage,gross": 1402,
+     "gross": 385,
+     "publish": 2794
+    }
+   }
+  },
+  "sources": {
+   "scaled": {
+    "npz": "/dev/shm/horizon_book_io_recovery_20260928/cells/fast/work/combo_s42/scaled_diagnostic.npz",
+    "sha256": "a27c9b98869d88ef675918c2b2056456d4cce31d1e47d0765478fe9b46df52ce"
+   },
+   "lit": {
+    "npz": "/dev/shm/horizon_book_io_recovery_20260928/cells/fast/work/combo_s42/literal.npz",
+    "sha256": "207b83da2a857985cc2a4ea517494ad9e1d9be0933cc947eb842861e3c3e5369"
+   }
+  },
+  "new_receipt": {
+   "path": "/dev/shm/horizon_book_io_recovery_20260928/cells/fast/work/combo_s42/TARGET_RECEIPT.json",
+   "sha256": "c0fd0bf3527c75832290aecc65e47c1c19221db03120364db7d4c4ee0ba6347a",
+   "state_init": "zero at 2023-01-01; hypothetical common start, not live archived state",
+   "hold_contract": "trade_mask False = maintain quantities, never King substitution"
+  },
+  "symbols_sha256": "381b7f01eedcf31b6d6a94116a32855b545bf584b26f3000aa9545c81068c19a"
+ },
+ "device": "ovn_adapter.py",
+ "self_sha256": "17555e56362c53ce4e961e0d8cb050be65cddae31088b275f190eecacd5794ea",
+ "utc": "2026-09-28T05:20:15Z",
+ "targets_npz_sha256": "287d651a8f2524952c2ed19495d7c610c606a1b188930b0dbead7d3cc7716eb5",
+ "roundtrip": {
+  "scaled": {
+   "anchors_compared": 8142,
+   "published_equal": 6294,
+   "bitwise_equal": true,
+   "padded_checked": 1110,
+   "loader_counts": {
+    "window_anchors": 8142,
+    "combo": 6294,
+    "king": 0,
+    "hold": 1848,
+    "written_rows_without_weights": 0
+   }
+  },
+  "lit": {
+   "anchors_compared": 8142,
+   "published_equal": 2794,
+   "bitwise_equal": true,
+   "padded_checked": 1110,
+   "loader_counts": {
+    "window_anchors": 8142,
+    "combo": 2794,
+    "king": 0,
+    "hold": 5348,
+    "written_rows_without_weights": 0
+   }
+  }
+ },
+ "roundtrip_loader_sha256": "05cc5dc25df99459d93b34c9b10477f08002dd301b9b45ec6aa47bd77fc95373"
+}

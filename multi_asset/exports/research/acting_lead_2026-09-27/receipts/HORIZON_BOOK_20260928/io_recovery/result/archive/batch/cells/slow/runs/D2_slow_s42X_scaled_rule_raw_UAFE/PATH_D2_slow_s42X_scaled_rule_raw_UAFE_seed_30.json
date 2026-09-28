@@ -1,0 +1,208 @@
+{
+ "tag": "D2_slow_s42X|scaled|rule|raw|UAFE",
+ "seed": 30,
+ "run": {
+  "arm": "D2_slow_s42X",
+  "events": "rule",
+  "price": "raw",
+  "policy": "UA-FREEZE-EXCLUDE",
+  "ua_set": "UNAVAILABLE_3084",
+  "tag": "D2_slow_s42X|scaled|rule|raw|UAFE",
+  "book": "scaled",
+  "targets": {
+   "source": "objb",
+   "reading": "scaled",
+   "arm": "D2_slow_s42X",
+   "sources": [
+    {
+     "npz": "/dev/shm/horizon_book_io_recovery_20260928/cells/slow/targets/TARGETS_D2_slow_s42X.npz",
+     "npz_sha256": "22707ed9906ba7a83cbcefbad60070bdd75bd54a954f1ee62dbfa1e0aab47c36",
+     "receipt": "/dev/shm/horizon_book_io_recovery_20260928/cells/slow/targets/TARGETS_D2_slow_s42X.json",
+     "receipt_sha256": "eba6cabead3f9438a193f572d3b899e8de114c0b038320d703988d48ed67978c"
+    }
+   ],
+   "universe": {
+    "path": "/workspace/object_b_2026-09-19/work/ext_inputs/universe_ext.npz",
+    "sha256": "3ee838cfc4ee4b90cef9202716af8645ff601b69137346d518ea706a5f4d598f",
+    "note": "object-B's own universe for the P3 chain incl. the x0918r extension (mk_ext_inputs.py); pre-run check at go: its first 10,039 rows == P2 universe.npz 6322b573"
+   }
+  },
+  "role": "alloc combination-layer arm rule=inservice mix=shared seed=42 (DESIGN_combination_layer_2026-09-26)"
+ },
+ "cost_cell": null,
+ "calibration_params_used": {
+  "first_leg": {
+   "p_rej": 0.29064420092883164,
+   "p_full": 0.7943724646654531,
+   "p_zero": 0.16010763154798172,
+   "p_part": 0.04551990378656358,
+   "fbar_part": 0.5423806238648515
+  },
+  "completion": {
+   "pi_fill": 0.6036091741001739,
+   "maker_share": 0.46459607978536605
+  },
+  "timing_offsets_after_decision_s": {
+   "first_leg": [
+    18.759000062942505,
+    44.73900008201599,
+    80.42600011825562,
+    181.9649999141693,
+    433.3220000267029
+   ],
+   "later_leg": [
+    58.18400001525879,
+    122.4430000782013,
+    1106.7460000514984,
+    1163.454999923706,
+    1198.2590000629425
+   ],
+   "weights": [
+    0.2,
+    0.2,
+    0.2,
+    0.2,
+    0.2
+   ]
+  },
+  "timing_offsets_after_flatten_start_s": {
+   "flatten": [
+    12.263999938964844,
+    43.86899995803833,
+    66.04999995231628,
+    90.53499984741211,
+    123.14499998092651
+   ],
+   "weights": [
+    0.2,
+    0.2,
+    0.2,
+    0.2,
+    0.2
+   ]
+  },
+  "slippage_vs_executor_mid": {
+   "first_leg": -0.0002659700385302392,
+   "later_leg": -8.691237012976664e-05,
+   "flatten": 0.000428667274030964
+  },
+  "fee_rate": {
+   "switch_ts": 1788755049.539,
+   "switch_utc": "09-07 04:24:09Z",
+   "BNB_era": {
+    "maker": 0.00017999413804774668,
+    "taker": 0.0004564900305399589
+   },
+   "USDT_era": {
+    "maker": 0.00019999980281386174,
+    "taker": 0.0004999999566512067
+   }
+  },
+  "decision_offset_default_s": 1440,
+  "decision_offset_why": "config/book.json external_book.anchor_offset_min = 24 (N+23 before 08-27 08Z); the sim uses the executor's recorded rid timestamp where one exists",
+  "eval_offset_without_frame_s": 2700,
+  "eval_why": "per-name stop / \u00a74-2 are judged on the post-run readback; with the live frame that is the window's t0 readback, without it N+45 (after the pooled later-leg timing)",
+  "rule_flatten_offset_s": 2760,
+  "rule_flatten_why": "the live 09-06 \u00a74-2 trip flattened at 08:46:08Z (N+46)"
+ },
+ "runtime_s": 80.6,
+ "n_windows": 9252,
+ "n_anchors": 9252,
+ "nav_first": 100000.0,
+ "nav_last": 283962.83791082853,
+ "navm_last": 283962.83791082853,
+ "sealed_initial_sha256": "e13899b5663e5d431012c864025e8c6dddc37a2c57423b9b3d100bf02f90e65c",
+ "policy": "UA-FREEZE-EXCLUDE",
+ "price": "raw",
+ "ua_set": "UNAVAILABLE_3084",
+ "status_counts": {
+  "HOLD": 2398,
+  "TRADE": 6841,
+  "HALT": 13
+ },
+ "events_fired_counts": {
+  "STOP": 1593,
+  "FLATTEN": 7
+ },
+ "flatten_log": [
+  [
+   "2025-04-03T12:46:00Z",
+   "\u00a74-2 day loss -4.28% at 04-03 12:45:00Z (ref 124,861 @ 04-02 20:45:00Z, E 119,517)"
+  ],
+  [
+   "2025-10-11T00:46:00Z",
+   "\u00a74-2 day loss -4.69% at 10-11 00:45:00Z (ref 137,998 @ 10-10 20:45:00Z, E 131,529)"
+  ],
+  [
+   "2026-04-24T20:46:00Z",
+   "\u00a74-2 day loss -4.07% at 04-24 20:45:00Z (ref 193,583 @ 04-23 20:45:00Z, E 185,710)"
+  ],
+  [
+   "2026-05-07T20:46:00Z",
+   "\u00a74-2 day loss -4.36% at 05-07 20:45:00Z (ref 209,778 @ 05-06 20:45:00Z, E 200,626)"
+  ],
+  [
+   "2026-08-21T08:46:00Z",
+   "\u00a74-2 day loss -4.16% at 08-21 08:45:00Z (ref 315,686 @ 08-20 20:45:00Z, E 302,567)"
+  ],
+  [
+   "2026-08-22T16:46:00Z",
+   "\u00a74-2 day loss -4.57% at 08-22 16:45:00Z (ref 301,999 @ 08-21 20:45:00Z, E 288,185)"
+  ],
+  [
+   "2026-09-06T12:46:00Z",
+   "\u00a74-2 day loss -4.42% at 09-06 12:45:00Z (ref 309,170 @ 09-05 20:45:00Z, E 295,519)"
+  ]
+ ],
+ "stop_events_by_year": {
+  "2023": 82,
+  "2024": 502,
+  "2025": 661,
+  "2026": 348
+ },
+ "target_stats": {
+  "no_fresh_target": 2398,
+  "written": 6854
+ },
+ "diag": {},
+ "clock": {
+  "notional_scheduled": 116957982.18339112
+ },
+ "ua_counters": {
+  "anchors_with_frozen_names": 66.0,
+  "frozen_name_anchors": 69.0
+ },
+ "ua_panel_cells_held": 0,
+ "audits": {
+  "trades": 6088810,
+  "max_fee_err": 0.0,
+  "trades_by_kind": {
+   "first": 4231555,
+   "later": 1847460,
+   "flatten": 9795
+  },
+  "notional_maker": 97912307.5530743,
+  "notional_taker": 22082602.8882563,
+  "funding_charges": 1525318,
+  "funding_max_err": 0.0,
+  "funding_dup": 0,
+  "exits": 22223,
+  "exit_subfloor_remainders": 19862,
+  "window_identity_max_abs_err": 4.905814421363175e-09,
+  "main_return_identity_max_abs_err": 1.1102230246251565e-16,
+  "nav5_vs_window_start_max_rel_err": 6.661338147750939e-16,
+  "nav5main_vs_window_start_max_rel_err": 6.661338147750939e-16,
+  "nav5_nan": 0,
+  "nav5_main_nan": 0
+ },
+ "device_sha256": {
+  "bt_hist_sim31.py": "8ae6e2a441d700824372784b1bc0bd9e0ee2f686a3c22f522b6bb962911022a1",
+  "bt_driver_lib.py": "ba3bc2610b12a3f0280ff8f03c039ff5c2e81b8c05789183fd2b1acab661bddb",
+  "bt_launch.py": "393a8dc8d43193f6cac37ec39700a0263b5d459f5571065528448745d50281cb",
+  "exec_sim.py": "29679672e68d4842a62616e40c5fc57143f724b9ebfa6bbde927670624247c24"
+ },
+ "config_sha256": "5cd519b41a11d5a4e5830f7743886b1f6c569655da411cf03a3c3b36dfc0f5d4",
+ "calibration_sha256": "fda342431d39703e8a2cc49d566f0cdd89155248c1f7bd46a6e46b3ffbc937e6",
+ "price_pin": "23af32bd97c267d126c2109641815b92082b8688e35bcfbaaa1e88c2dc5bb5d8",
+ "npz_sha256": "501e53c6915bfcae27610a2de9f376c2b9067ecef796a9fa7100581195abb2f4"
+}

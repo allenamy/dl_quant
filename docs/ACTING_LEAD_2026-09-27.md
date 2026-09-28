@@ -2,7 +2,15 @@
 
 # 代理主研究员执行台账
 
-## 最新调度覆盖（09-28 05:19Z）
+## 最新调度覆盖（09-28 05:45Z）
+
+- **horizon完整组合已完成，不再等、不再重跑。** I/O恢复05:32:10Z rc0，后处理05:32:38Z rc0；64现金路径全部审计。见`RESULT_holding_horizon_full_book_2026-09-28.md`。模型未重新训练，通用终态的new_model_training=true元数据不准确，以MODEL_REUSE与29件模型sha为准。
+- **FOLLOWUP_CRITERION_NOT_MET，不扩此规格DL、不换装。** SLOW−FAST pre2026 +3.421、2026JanAug +0.086bps/日，两CI均含0；SLOW−NC42/2027 pre2026 −4.184/−4.720，2026 −1.734/−0.909。六正均值只过两格；2024对两NC、2025对NC2027的CI全负。九月比FAST好、比两NC差。不能把弱对照改善当现书改善。
+- **证据已持久保存**：小归档156件、模型29件、大NPZ72件逐件size/sha全核。大档案本机`/Users/haosiyu/.codex/tmp/pod_archive_20260928/HORIZON_REVIEW_LARGE_ARTIFACTS_20260928.zip`，sha36eac94f955740c034273676aa60e50214009902e6d1cc9757860c8e85b2ae0e；经济sha568b2617c6c82d5f00cb52b5e2b8bd111a3bef2d03890bd317c8084deafa9341。内部会计误差≤1.43e−14，不冒充场所现金认证。
+- 05:33本地轻读实盘d01e35d、04:49看门狗false/triggers空、ALARM sha未变。04Z目标与模型身份核对同前。**本次只读排查04Z的39名reconcile告警**，这是名义缓存差异，不先认定外来单；不增K1、不调场所。没有部署/自动恢复/改杠杆。
+- 原residual、score_book_probe、KSR、cap50、invvol、149窗inventory、D10 dryrun均已结束，不能再起旧队列。当前无本轮在飞训练；先解决实际告警证据，不因GPU空闲重复失败规格。所有研究收益仍保留409ea16历史镜像、scaled门等限制。
+
+## 前次调度覆盖（09-28 05:19Z）
 
 - **horizon原批次关闭为GONE_WITHOUT_MARKER**：模型已封存，但attempt2控制器与两个子进程消失；两个TARGET_RECEIPT与steps文件0字节，TERMINAL未写。05:08直接写探针errno122证实配额耗尽，df整共享盘余量无效；没有原退出栈，不能伪造rc。原05:10:52Z到点结束，不算按时完成。只轮询终态未核PID导致迟发现，是root遗漏。
 - **一次单列预算的I/O恢复在跑**（cab55f4a9预登记；源码2e3f96601、合同749e5ad26；registry9f0a1dee8）。05:17:26Z启动，根`/dev/shm/horizon_book_io_recovery_20260928`，源码同名`_sources`；PID/PGID3581618、ticks514254034，后处理3581619/ticks514254035。**截止05:40:00Z，不再续跑**；合同sha213331abb24f315b2c551409c20064b2870d756596cb726ffa2ab392389320ff。仍原两模型/预测/标签/判据、无重新训练、无GPU；输出临时盘，须本机归档验sha后称持久保存。每次状态查PID/start_ticks与终态，不能只看无终态。无经济读数前的资源例外，明确偏离原45min预算，不声称原预算通过。
