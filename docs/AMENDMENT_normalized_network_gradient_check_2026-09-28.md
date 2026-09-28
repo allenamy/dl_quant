@@ -1,4 +1,4 @@
-> **创建:** 2026-09-28 01:12 UTC | **Session:** codex-acting-lead-20260927 | **状态:** in-progress | **作废条件:** 固定输入/方向/双eps/资源门或源码改变
+> **创建:** 2026-09-28 01:08 UTC | **Session:** codex-acting-lead-20260927 | **状态:** in-progress | **作废条件:** 固定输入/方向/双eps/资源门或源码改变
 
 接续 `RESULT_first120_rank_action_2026-09-28.md`。新图修回旧训练器原有的分数标准化后，必须重新验证参数梯度；原raw图双eps未决不会自动升级。
 

@@ -1,0 +1,39 @@
+### anchor 1790553600 = 09-28 00:00:00Z  [BLIND: per-arm outcomes withheld until the CFG-04/CFG-06 stop points]
+producer: {'e': 'signal', 'members': 400, 'sel': 349, 'coverage': 1.0, 'fund_updates': 450, 'forced_exit_n': 15, 'w3': [0.3056, 0.2238, 0.4706], 'runtime_s': 36.1, 'fetched': 519, 'missing': 0}
+  masked king = 0.3937
+score(prev anchor): {'gross_bps': -40.042, 'net_bps': -40.993, 'carry_bps': 0.846, 'cost_bps': 0.105, 'gross_bps_total': -40.042, 'net_bps_total': -40.993}
+anchor_skip rows: 0
+combo: waiting launch-window anchor=1790553600 elapsed=1013 Mon Sep 28 00:16:53 UTC 2026
+combo: waiting launch-window anchor=1790553600 elapsed=1018 Mon Sep 28 00:16:58 UTC 2026
+combo: [   8.2s] ④ COMBO 落盘 n=320 gross=0.7765 kc_src=own fc_src=own w3m=[0.3937, 0.0, 0.6063]
+combo: === combo_live anchor=1790553600 rc=0 Mon Sep 28 00:17:12 UTC 2026
+target_combo: {'w3_masked': [0.393731, 0.0, 0.606269], 'book_form': 'combo_v2main_norev24', 'kc_gross': 0.807046, 'fc_gross': 0.772442, 'rho_kc_fc': 0.9, 'phi': 0.45} n weights 320
+target_live: {'producer': 'combo_stage_v1(kingLGBM 0.55 + V2MAIN 0.45, rev24 leg removed; base shadow_loop_v3)', 'universe_sha': '93ad1d25c2ca8ffe7bf7be7b4e961c93c1434d7f5ff8e4e09639aeb302626295'} n 320 gross 0.7765
+counterfactual rewrite: sum|Δw|/gross_king = 33.9% (king n 318, live n 320)
+orders n 567 terminal: {'skipped_min_notional': 216, 'partial_expired': 153, 'venue_reject': 104, 'filled': 85, 'skipped_no_chase_arm': 8, 'abandoned_max_attempts': 1}
+post-only refusals: first-attempt -5022 82, rested attempt-1 139 ⇒ true rate 37.1%
+requote_arm on rows: {'requote': 72, 'direct': 46}
+placement arms: {'join': 146, 'behind': 177, 'exempt': 1} behind share 0.548
+chase arms: {'no_chase': 78, 'chase': 75}
+fills n 344 notional 7615 maker share 0.503 commission by asset [2.657737 USDT] (no USDT conversion here); markout coverage 247/344
+requote report (blind: assignment/balance fields only): {'n_candidates': 36, 'n_requoted': 36, 'n_direct': 46, 'n_exempt': 0, 'p_requote': 0.5, 'error': None}
+reject-rate log line (blind: book-level first attempt only): 拒单率 post-only 穿价(-5022) 首次尝试 82/221 = 37.1% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 82 + 首次落单 139)
+post_only_refusals: [blind: unparsable, withheld]
+readback: {'anchor_ts': 1790555042.0494652, 'symbol': 'ZROUSDT', 'venue_position_notional': -493.85372505, 'venue_position_qty': -301.0, 'source': 'fapi/v3/account@post_anchor', 'held': True, 'targeted': True, 'read_ts': 1790556372.682108}
+anchors row: {}
+daily_nav: {'sizing_policy': 'constant_leverage_2.00', 'day': '20260928', 'target_gross': 211474.02, 'nav': 105975.44899027, 'realised_pnl': -24.504304800000007, 'realised_pnl_source': '/fapi/v1/income since 00:00Z, sum of REALIZED_PNL+COMMISSION+FUNDING_FEE', 'realised_by_type': {'FUNDING_FEE': -7.9993957899999995, 'REALIZED_PNL': -13.847172360000007, 'COMMISSION': -2.65773665}, 'realised_by_type_asset': {'FUNDING_FEE': {'USDT': -7.9993957899999995}, 'REALIZED_PNL': {'USDT': -13.847172360000007}, 'COMMISSION': {'USDT': -2.65773665}}, 'realised_non_usdt_assets': [], 'realised_truncated': False}
+anchor_runs tail: ['2026-09-28T00:58:34Z rate_timeline: 3894 rows (dropped 0) -> /Users/haosiyu/dl_quant_live/state/live/rate_timeline/A1790', '2026-09-28T00:58:35Z venue_rate: DECIDED_ON=window_high_water(aligned 1m) peak_window_weight=986 | REPORTED_ONLY peak_us', '2026-09-28T00:58:35Z anchor done rc=0']
+alarm: HIGH ⚠️ HIGH
+position reconcile: 10 name(s) differ from the venue beyond revaluation (sign flip / one-sided / >5%) — adopting venue truth
+alarm: INFO ⚠️ HIGH
+1 name(s) withheld: the venue reports maxNotionalValue=0 (no new position permitted) — ['TLMUSDT']
+alarm: INFO ⚠️ HIGH
+重整后 1 个名字跨过了 min_notional 门槛: ['BBUSDT'] — 这些名字的可交易性由这次重整改变, 不是由信号改变。仅报告, 不迭代。
+alarm: INFO ⚠️ HIGH
+撤名残差 -4900.79 USDT = 目标 gross 的 -2.32% (>2%) = 生产者书自身净 -11314.19 (-5.35%) − 撤下 11 名的净 -6413.40 (-3.03%): ['AEROUSDT', 'BCHUSDT', 'HUSDT', 'METUSDT', 'MINAUSDT', 'MMTUSDT', 'PHAUSDT', 'QNTUSDT'
+alarm: INFO ⚠️ HIGH
+2 held name(s) withheld, reduce-only from here — by source: 外部书不再持有(持仓出场): ['KOMAUSDT']; 外部书目标低于 2×minNotional: ['CHZUSDT']. reducing=[] add_blocked=['CHZUSDT'] flatten_only=['KOMAUSDT']
+alarm: INFO ⚠️ HIGH
+68 个 maker 被 -5022 拒(post-only 会立刻成交), 其残差按全额进入 taker 补单: ['1000BONKUSDT', 'AIXBTUSDT', 'AVAAIUSDT', 'BRUSDT', 'CAKEUSDT', 'CCUSDT', 'CLOUSDT', 'CRVUSDT']。这些名字此前会整个从本锚消失 —— 04:00Z 那次占了 §4-5e 缺
+per_name_stop: {'cooldown': 9, 'stopped': 0}
+DONE

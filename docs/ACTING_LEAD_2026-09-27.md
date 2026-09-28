@@ -165,3 +165,11 @@
 - rank-action机制原形完成(8447db73a)：同排序的×.1/×1/×10令soft发布113/90/41，hard全30。**交叉读旧T3源码后确认root新proxy漏了既有标准化，不能据此指认现役训练。** 已立即告知用户归属，保留原形及post-read ROOT KeyError失败。新修订fab831b78先冻结，normalized源码a97cefeb4，经修前真红、修后6/6与真120锚复跑，00:23:04Z rc0；全部正尺度/平移soft都35、hard30，30共同发布/5soft-only/85共同HOLD。硬与原continuous≤3.47e−18、frame tracing不改输出。
 - normalized测试26.24秒/RSS1.355GB/GPU0.463GB，参数hash前后6cf9079f…相同、optimizer0。**原raw双eps梯度UNRESOLVED不得因修正标准化或动作更近而改PASS；新图尚未做完整参数FD。** 本窗样本内工程不报收益，不当新训练。完整旧74件/新39件归档root校验；三个registry条目均closed，无在跑研究任务。
 - 下一研究：按修正后的标准化核新图梯度/完整硬动作，不重复F0/价格转换/原形尺度测量；逐笔损失已定位方向，接着核这些真实空头的因果fund状态与组合状态。GAP4/M3仍历史电池真红、durable包未部署、D10UNDECIDED/冷静期；勿把研究工具修复当成盈利或发布。
+
+## 09-28 01Z：末次恢复验收与真实信号接线
+
+- 00:58:35Z真实done之后，01:00:05–01:01:57Z按f69b0020包装器完成最后一次计划K1。**8/9 PASS、总体FAIL**：唯一红是合池taker49.7%超近期42%线；VERSION_PROBE/M3 shadow/320名精确PARITY/B4通过。到位99.080801%、未知外来订单0（212名344成交范围）、halt0/HIGH0、watchdog false/null/LIVE。未降门、未再resume；16/20/00三个K1均已执行，非新事故不再自动续查。原件在RECOVERY_00Z_20260928。00:46:12.682Z NAV105975.45，合池104条post-only拒绝、其它初次拒绝/限频0，费用3.49bps与合池构成相符。生产仍d01e35d代码diff空。
+- 实际完成16Z事前信号桥接（固定309共同名/155原空头）：发布组合状态与源KC重算均全轴误差0。153空头fund秩负，但132最新费率正、124EMA正，末结算全在16Z；本窗不能只用极端负费率尾巴解释。King/fund同负84名亏867.45、King正fund负69名亏326.05；这是分组损失，不是独立腿因果贡献。共享fund席位61.18%，非线性前有效系数King21.35/F1017.47/fund61.18%。KC131名受带阻止更新，但当锚新目标仍有130名空头，不能据此推去带或加速盈利。F10逐名原打分缺测，未从权重反推。详见RESULT_recovery00_and_live_signal_bridge_2026-09-28.md和LATEST_LOSS_SIGNAL归档。
+- 宽截phase_A曾意外看到嵌套requote字段，未转述臂内数/未用于臂比较和政策；后续白名单仅存合池，不声称执行诊断全程严格未见字段。CFG判决仍停止点原装置。读取猜键/phase错误和源码传输缺rsync已如实记录。
+- normalized新图FD于01:10:18Z完成45秒、RSS2.04GB/GPU0.679GB、optimizer0；小eps9/9同分支，大eps仍跨producer/fill_sign，双eps门**UNRESOLVED保留**。30pin与17原件root复核，registry关闭。报告RESULT_normalized_network_gradient_check_2026-09-28.md。无在飞研究作业。
+- 下轮只增量核实盘，无异常不重复K1或已完成FD。研究须把共享fund低秩篮子与独立模型信号分开，若继续T3先定义门内梯度/门外硬动作两类验收；不删旧UNRESOLVED。GAP4/M3历史FAIL、durable未部署、D10未决与冷静期均原样。

@@ -1,0 +1,14 @@
+B4 A=1790553600 rebalance anchor_ts=1790555042.0494652 rebalance_id=A1790555040 opening_halted=False external_book ok=True reason=None book_source=external
+B4 orders 567 | order_type {'maker': 346, 'topup_taker': 221} | terminal {'venue_reject': 104, 'skipped_min_notional': 216, 'partial_expired': 153, '<arm-named label, pooled>': 8, 'filled': 85, 'abandoned_max_attempts': 1}
+B4 gross target 211468.90769314062 realized 209525.08837925992 venue_gross 209525.088379 venue_net 392.1672 net/gross 0.001872
+B4 m3: mode shadow status shadow field_ok True reason None version_expected m3_beta_v2 n_betas 450 n_fallback 0 data_cutoff_ts 1790553600 betas_sha256 8c2dc1b518738a64 beta_exec_usdt -13779.911373653858 hedge_target_usdt 13779.911373653858 shadow_would_be applied
+B4 orders with an overlay/hedge marker: 0
+B6 anchor_report anchor_ts 1790553600 status warn utc 2026-09-28T00:55:05Z warn(non-arm) ['taker 占比 50% > 近42锚 中位 26% + 3MAD = 42%']
+    锚 09-28 00:00Z 排查(常驻器)
+    守护 2/2
+    fund_upd 450 cov 1.0 forced 15
+    w3m [0.394, 0.0, 0.606] kc/fc own/own f10 400
+    gross 209525 net 392(0.19%) gaps 349U
+    基线(近42锚, 不含重建/停开仓): taker 中位 26% 线 42% | |净/gross| 中位 0.75% 线 2.43%
+    参照(S1a_2026-08-28_2026-09-01T12Z): taker 中位 5.0% → 当前 26.1% (Δ+21.14pp) | |净/gross| 中位 0.36% → 当前 0.75% (Δ+0.39pp) · 判词见日报
+B4_POOLED OK []
