@@ -32,7 +32,14 @@ def main(root):
     op=Path('/dev/shm/nc_2026-09-23');prep=json.loads((op/'receipts/NC_PREP.json').read_text());ncp=op/'tree/fea171/nc_contract.py'
     if sha(ncp)!=prep['nc_contract_sha256']:raise ValueError('wrong funding contract')
     pins[str(ncp)]=sha(ncp);spec=importlib.util.spec_from_file_location('fixed_nc',ncp);nc=importlib.util.module_from_spec(spec);spec.loader.exec_module(nc)
-    f=np.load(op/'work/fund_state.npz');ax=np.load(op/'work/axes.npz');cols=ax['crypto_cols'];symbols=ax['symbols'];begin=int(ax['anchors'][-1]);anchors=np.arange(begin,END+1,14400,dtype=np.int64)
+    # NpzFile is lazy: indexing it inside the symbol loop decompresses the whole
+    # member every time. Materialize each fixed input exactly once, then index
+    # the same arrays; no state, event order or numerical operation is changed.
+    with np.load(op/'work/fund_state.npz') as z:
+        f={k:z[k] for k in ('ev_off','ft','kidx','iv','ema','prev','rate')}
+    with np.load(op/'work/axes.npz') as z:
+        ax={k:z[k] for k in ('crypto_cols','symbols','anchors')}
+    cols=ax['crypto_cols'];symbols=ax['symbols'];begin=int(ax['anchors'][-1]);anchors=np.arange(begin,END+1,14400,dtype=np.int64)
     raw=json.loads(Path('/dev/shm/recent_funding_overlap_20260928/funding_ledger_2026-09.json').read_text(),object_pairs_hook=no_duplicates);new=event_map(raw);by={str(s):[] for s in symbols}
     for (s,t),rate in sorted(new.items()):
         if s in by:by[s].append((t,rate))
