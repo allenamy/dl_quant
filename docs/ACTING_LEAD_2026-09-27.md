@@ -1,5 +1,11 @@
 > **创建:** 2026-09-27 15:38 UTC | **Session:** Codex root / acting-lead-20260927 | **状态:** in-progress | **作废条件:** 用户停止、主研究员接回或 2026-10-01T00:00+08:00；引用的版本变化时重新核验
 
+## 20:34Z 独立LR席位递推在飞（优先读）
+
+- 唯一计算lr_recurrence_20260928，20:32:09Z PID/PGID3656268 ticks519742299，预算300秒；根/dev/shm/lr_recurrence_20260928，日志同名.run.log，源0d3a48670，冻结d2c127b4a，registry7f726dc7f。Pod12控制先红后绿；CPU1、无GPU/训练。不要重复启动。
+- 20个同NC发布锚仅一次真实LR/H/prev_rec起点，之后自行记腿收益与席位，复用C4/C5特征。**必须重放09-26 09Z实际LR重播种**：原INSTALL8ce1b803/BUILD8a1f9789/安装文件5a1ed5a0身份闭合；旧历史约900项变化、尾44项不变是已部署干预，不是新算法缺陷。实际后续LR仅比较，不能注入。预定无事件/不遮蔽停抓名两对照、三HOLD原样。先冻结LR1e-4bps/席位1e-7/目标1e-8，不称bitwise/新收益。
+- 本机仍20Z非静默，主仓STATE未接回；最后生产轻读19:22，21Z且done后验20Z，K1已完不重复。无API/生产写/Telegram/恢复/模型或2倍更改，原GAP4/M3门红、D10未决/冷静期保留。
+
 ## 20:15Z 三缺槽传播已完成，20锚条件化目标对齐（优先读）
 
 - **无在飞计算/训练，仅S3；不要重跑这两批特征。** gap_history_propagation_20260928在20:13:53Z rc0，132.254秒；源5bea730a0/冻结6bfad6d7d、RESULTf4ce1303、registry46e8ac7c8关闭。18控制、1完整正常F10控制+7干预；独立410核对max0。20件ZIP5d4412ae/2054081字节本机全SHA，源未删。报告RESULT_gap_history_propagation_2026-09-28.md。
