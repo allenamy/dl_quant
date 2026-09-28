@@ -2,7 +2,7 @@ import unittest, tempfile, json, contextlib, io
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 import numpy as np
-from cost_probe import finite, project, reference, measure, quartiles, run
+from cost_probe import finite, project, reference, measure, quartiles, run, bootstrap
 
 
 class CostProbeTest(unittest.TestCase):
@@ -33,6 +33,13 @@ class CostProbeTest(unittest.TestCase):
 
     def test_quartile_missing_refused(self):
         with self.assertRaises(ValueError):quartiles([1,float('nan')])
+
+    def test_bootstrap_missing_population_cannot_be_conditioned_away(self):
+        a=np.zeros((8,4,3));a[0,0]=[1,1,1];a[:,3]=[0,1,1]
+        b=bootstrap(a,1)
+        self.assertLess(b['draws'],2000)
+        self.assertIsNone(b['ci95_bps'])
+        self.assertEqual(b['status'],'UNAVAILABLE_MISSING_BUCKET_RESAMPLES')
 
     def test_actual_entry_same_id_two_symbols_and_mark_append(self):
         reader=Path(__file__).resolve().parents[5]/'live/pilot_journal/tools/fills_reader.py'

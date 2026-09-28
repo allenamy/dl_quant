@@ -58,7 +58,10 @@ def bootstrap(daily,block):
         starts=rng.integers(0,n,size=math.ceil(n/block))
         ix=((starts[:,None]+np.arange(block))%n).ravel()[:n];s=a[ix].sum(0)
         if s[0,1]>0 and s[3,1]>0:vals.append((s[0,0]/s[0,1]-s[3,0]/s[3,1])*1e4)
-    return {'block_days':block,'draws':len(vals),'ci95_bps':np.quantile(vals,[.025,.975]).tolist() if vals else None}
+    complete=len(vals)==2000
+    return {'block_days':block,'draws':len(vals),'requested_draws':2000,
+            'status':'COMPLETE' if complete else 'UNAVAILABLE_MISSING_BUCKET_RESAMPLES',
+            'ci95_bps':np.quantile(vals,[.025,.975]).tolist() if complete else None}
 
 
 def run(live,liquidity,reader,out):
@@ -126,6 +129,7 @@ def run(live,liquidity,reader,out):
             s=a[sl].sum(0);q=[]
             for i in range(4):
                 q.append({'quartile':i,'population_fills':int(pop[i,1]),'population_notional_usdt':float(pop[i,0]),
+                    'population_days':int((population[sl,i,0]>0).sum()),
                     'measured_fills':int(s[i,2]),'measured_notional_usdt':float(s[i,1]),
                     'notional_coverage':float(s[i,1]/pop[i,0]) if pop[i,0] else None,
                     'cost_bps':float(s[i,0]/s[i,1]*1e4) if s[i,1] else None})

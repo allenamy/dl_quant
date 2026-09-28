@@ -2,6 +2,13 @@
 
 # 代理主研究员执行台账
 
+## 最新调度覆盖（09-28 06:25Z）
+
+- **liquidity_cost_probe已完成，勿重跑。** 预注册24ee54677、首版装置35109d05c；只对NC的qvm与实盘合池历史成交做成本诊断，无GPU/模型训练/策略收益。144锚源特征sha3c886a2b同既有NC；36,376唯一普通调仓、1,777,769.10U全部连接。报告`RESULT_liquidity_cost_probe_2026-09-28.md`，正式收据sha2c64c27c87754a4843428831b435af8201903471707dfe2fe98e2cc9a8892c47。
+- **XIB尚不能由旧正效直接晋级。** 原实现是50%资金费排名+50%滞后一锚Amihud排名，不是相乘；当前模拟器按阶段用统一合池滑点，不看流动性。NC成员qvm最低四分位仅08-26/27有76笔，其后无成交；其余档成本跨段变化。这里只证明现有成本支持范围不足，不否定XIB，也不推翻所有旧研究；qvm不等于Amihud，不能误称已修成本模型。
+- root自查首版bootstrap跳过空桶重采样，真实函数红控复现后改为整项CI UNAVAILABLE；原输出保留，修后点估计不动。9/9控制；导出每日分子分母独立算术差0。无候选经济读数、没有在飞训练。下一次若推进XIB，先固定NC完整组合构造并导出最终意图的成本人口覆盖；不得再耗时重复既有失败规格或直接套统一成本宣布突破。
+- 06:21本地轻读实盘HEAD仍d01e35d，state LIVE/reduce_only=false，最近真实评估04:49:20Z tripped=false、triggers/blind/unevaluated空，ALARM sha fa4805…未变。首版light probe猜ts/eval_ts/blind键得到None，已按真实schema另存更正收据，未把None判故障或通过。授权三恢复锚K1已完不重做；没有新API、Telegram、resume、部署或改杠杆。
+
 ## 最新调度覆盖（09-28 05:45Z）
 
 - **horizon完整组合已完成，不再等、不再重跑。** I/O恢复05:32:10Z rc0，后处理05:32:38Z rc0；64现金路径全部审计。见`RESULT_holding_horizon_full_book_2026-09-28.md`。模型未重新训练，通用终态的new_model_training=true元数据不准确，以MODEL_REUSE与29件模型sha为准。
