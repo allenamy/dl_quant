@@ -3,6 +3,12 @@
 # 代理主研究员执行台账
 
 
+## 10:03Z调度追加
+
+- 新近价格attempt2按原预算PARTIAL结束：4547 verified /181 absent /4479 unattempted。续取已独立登记f41f90b38，根`/dev/shm/recent_public_prices_20260928_continue1`、源同名_sources，09:57:00Z PID/PGID3604363 ticks515931443，deadline10:12:00Z，contract7d7e9b86…。只补4479缺口、最新优先、四线程静态CDN；不再重启原全部人口。未知与404保留。
+- F10现金09:59:26Z开始最后R180_s2027格，前三格96路径已成；总截止仍10:10:15Z。若超预算必须原失败保留，不可把训练完成或部分路径当全组合完成。已准备独立raw-array核算和完整归档工具（31e148a75/17b85dcdc），还没执行，须等终态。
+- 10:02:44Z轻读生产LIVE/no trip、无trigger/blind/unevaluated；历史cond2/cond4 partial仍在，无新动作。
+
 ## 09:52Z标签可观测性类缺口已取证并独立修复（09-28）
 
 - 新发现/动作见`FINDING_F10_recent_training_admission_2026-09-28.md`。207份官方日文件180验证/27不存在；1041缺标签中852经完整49价证明可恢复。隔离overlay ea6e4b73…实建并本机验sha；所有旧有限标签逐字节不变。原训练门实跑187窗接受178→181，最新标签08-09→08-17；六旧窗仍拒。模型/收益/生产未变。证据ZIP652c5163…364成员本机全核，registry该取证作业已fe583445d关闭；不是再等在飞。
