@@ -16,10 +16,12 @@ def main(source,out):
         if t[q]%14400==0 and t[q]<day and np.array_equal(t[q-48:q+1],np.arange(t[q]-14400,t[q]+1,300)):ends.append(int(t[q]))
     assert len(ends)==R['cache_support']['closed_before_day'] and ends[0]==R['cache_support']['first'] and ends[-1]==R['cache_support']['last']
     z=np.load(C['panel']);a=np.load(out/'COMPARISON.npz');sy=z['symbols'];ts=z['anchors'];ix=int(np.flatnonzero(ts==day)[0])
-    mask=(ts>=day-360*14400)&(ts<day);r=z['r4'][mask];l=z['legal'][mask];fetch=np.isin(sy,snap['fetch_names']);common=a['scope']
-    assert np.array_equal(common,z['legal'][ix]&fetch)
+    mask=(ts>=day-360*14400)&(ts<day);r4=z['r4'];r24=z['r24'];legal=z['legal']
+    r=r4[mask];l=legal[mask];fetch=np.isin(sy,snap['fetch_names']);common=a['scope']
+    current={'r4':r4[ix],'r24':r24[ix]}
+    assert np.array_equal(common,legal[ix]&fetch)
     errors=[];checks=0;recomputed={}
-    for kind,active,now in [('full',l,z['legal'][ix]),('fetch',l&fetch,z['legal'][ix]&fetch)]:
+    for kind,active,now in [('full',l,legal[ix]),('fetch',l&fetch,legal[ix]&fetch)]:
         beta=np.full(len(sy),np.nan);scale=beta.copy();m4=beta.copy();m24=beta.copy()
         for j in np.flatnonzero(common):
             others=np.arange(len(sy))!=j;means=[];ys=[]
@@ -33,8 +35,8 @@ def main(source,out):
             for key,v in [('beta',beta[j]),('scale',scale[j])]:
                 saved=a[key+'_'+kind][j];errors.append(abs(v-saved));assert np.isclose(v,saved,rtol=1e-10,atol=1e-12);checks+=1
             for key,dest in [('r4',m4),('r24',m24)]:
-                ok=others&now&np.isfinite(z[key][ix]);dest[j]=z[key][ix,ok].mean()
-        e4=z['r4'][ix]-beta*m4;e24=z['r24'][ix]-beta*m24
+                ok=others&now&np.isfinite(current[key]);dest[j]=current[key][ok].mean()
+        e4=current['r4']-beta*m4;e24=current['r24']-beta*m24
         own=np.column_stack((e4/scale,e24/(scale*np.sqrt(6))));peers=a['peers_'+kind];X=np.full((len(sy),4),np.nan)
         for j in np.flatnonzero(common):
             ps=peers[j];ps=ps[(ps>=0)];ps=ps[now[ps]]
