@@ -1,0 +1,24 @@
+test_path_compound_decay (test_horizon.HorizonTests.test_path_compound_decay) ... FAIL
+test_unknown_refused_not_zero (test_horizon.HorizonTests.test_unknown_refused_not_zero) ... FAIL
+
+======================================================================
+FAIL: test_path_compound_decay (test_horizon.HorizonTests.test_path_compound_decay)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/horizon_book_20260928_sources/test_horizon.py", line 10, in test_path_compound_decay
+    self.assertAlmostEqual(slow[0,0],(.1+.9*(-.11)+.81*.198)/sum(.9**np.arange(12)))
+AssertionError: np.float64(0.1) != np.float64(0.022489777409257446) within 7 places (np.float64(0.07751022259074256) difference)
+
+======================================================================
+FAIL: test_unknown_refused_not_zero (test_horizon.HorizonTests.test_unknown_refused_not_zero)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/horizon_book_20260928_sources/test_horizon.py", line 20, in test_unknown_refused_not_zero
+    self.assertTrue(np.isnan(targets(y)[0,0]));self.assertEqual(targets(y)[0,1],0.)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: np.False_ is not true
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.004s
+
+FAILED (failures=2)
