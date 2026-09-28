@@ -1,5 +1,5 @@
 """Thread-local persistent TLS for public static archives, without API access."""
-import http.client,ssl,threading,urllib.parse,urllib.error
+import http.client,ssl,threading,urllib.parse,urllib.error,io
 
 class Reader:
  def __init__(self,factory=None):
@@ -14,7 +14,7 @@ class Reader:
    r=c.getresponse();b=r.read(2000001)
    if len(b)>2000000:raise ValueError('response size')
    if r.will_close:c.close();self.local.conn=None
-   if r.status!=200:raise urllib.error.HTTPError(url,r.status,'public static status',None,None)
+   if r.status!=200:raise urllib.error.HTTPError(url,r.status,'public static status',None,io.BytesIO(b))
    return b
   except BaseException:
    c.close();self.local.conn=None;raise

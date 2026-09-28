@@ -18,6 +18,7 @@ class Controls(unittest.TestCase):
   p=self.m.Reader(lambda:Conn([Response(404)]))
   with self.assertRaises(urllib.error.HTTPError) as e:p.read('https://data.binance.vision/a')
   self.assertEqual(e.exception.code,404)
+  e.exception.close()
  def test_size_bound_closes_connection(self):
   c=Conn([Response(data=b'x'*2000001)]);p=self.m.Reader(lambda:c)
   with self.assertRaises(ValueError):p.read('https://data.binance.vision/a')
