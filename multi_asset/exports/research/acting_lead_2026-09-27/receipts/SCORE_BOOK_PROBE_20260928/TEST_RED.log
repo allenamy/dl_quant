@@ -1,0 +1,39 @@
+test_nonzero_unknown_never_zero (test_trace_chain.TraceTest.test_nonzero_unknown_never_zero) ... ok
+test_observers_preserve_original_output_and_states (test_trace_chain.TraceTest.test_observers_preserve_original_output_and_states) ... FAIL
+test_structure_drift_refused (test_trace_chain.TraceTest.test_structure_drift_refused) ... ERROR
+test_zero_portfolio_unmeasurable (test_trace_chain.TraceTest.test_zero_portfolio_unmeasurable) ... ok
+
+======================================================================
+ERROR: test_structure_drift_refused (test_trace_chain.TraceTest.test_structure_drift_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/score_book_probe_20260928/test_trace_chain.py", line 43, in test_structure_drift_refused
+    with self.assertRaises(ValueError): compile_trace(SOURCE.replace('w = w / g','w = w / (g + 1)'))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/score_book_probe_20260928/trace_chain.py", line 5, in compile_trace
+    ns={'np':np};exec(source,ns)
+                 ^^^^^^^^^^^^^^^
+  File "<string>", line 10
+    if g2 > 1e-9: w = w / (g + 1)2
+                                 ^
+SyntaxError: invalid syntax
+
+======================================================================
+FAIL: test_observers_preserve_original_output_and_states (test_trace_chain.TraceTest.test_observers_preserve_original_output_and_states)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/codex_research/QNT-2026-0907/acting_lead_20260927/score_book_probe_20260928/test_trace_chain.py", line 38, in test_observers_preserve_original_output_and_states
+    self.assertEqual([x[0] for x in traces],['demean','normalize','cap_normalize','ema','band','eligible'])
+AssertionError: Lists differ: [] != ['demean', 'normalize', 'cap_normalize', 'ema', 'band', 'eligible']
+
+Second list contains 6 additional elements.
+First extra element 0:
+'demean'
+
+- []
++ ['demean', 'normalize', 'cap_normalize', 'ema', 'band', 'eligible']
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.096s
+
+FAILED (failures=1, errors=1)
