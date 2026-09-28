@@ -44,6 +44,17 @@ class BridgeTests(unittest.TestCase):
  def test_unknown_floor_not_reported_checked(self):
   r=self.X.EXT.below_min_notional({'A':7.},{},1.)
   self.assertEqual(r.get('unchecked_names'),['A'])
+ def test_empty_reshape_dust_diagnostic(self):
+  for held in (1.,-1.):
+   t={'A':-90.};h={'A':held}
+   result=self.X.AL.apply_withhold_and_reshape(t,h,{'A'},180.,floors_usdt={'A':5.})
+   self.assertIsNone(result[1])
+   f=getattr(EB,'dust_names',lambda result,held: (result[1] or {}).get('dust_popped_names',[]))
+   self.assertEqual(f(result,h),['A'])
+ def test_zero_held_pop_is_not_dust_diagnostic(self):
+  t={'A':-90.};result=self.X.AL.apply_withhold_and_reshape(t,{}, {'A'},180.,floors_usdt={'A':5.})
+  f=getattr(EB,'dust_names',lambda result,held: (result[1] or {}).get('dust_popped_names',[]))
+  self.assertEqual(f(result,{}),[])
  @unittest.skipIf(EB is None,'bridge not yet implemented')
  def test_source_mutation_refused(self):
   import tempfile,shutil

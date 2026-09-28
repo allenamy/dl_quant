@@ -4,6 +4,11 @@ import ast,copy,hashlib,json,types
 
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
+def dust_names(result,held):
+ # POP's disposition survives even when no reshape population remains.
+ # A nonzero held name can only be popped by the pinned dust predicate.
+ return sorted(s for s in result[0]['popped'] if float((held or {}).get(s,0.) or 0.)!=0.)
+
 def verified_sources(root):
  root=Path(root);m=json.loads((root/'SOURCES.json').read_text())
  for name,rec in m.items():
@@ -47,11 +52,11 @@ def install(C,CFG,check):
   result=new(target,held,untradable,sizing_gross,*args,**kw)
   names=sorted(set(target)|set(old_t));d={s:target.get(s,0.)-old_t.get(s,0.) for s in names};rs=result[1] or {}
   rec={'anchor':context['A'],'sizing_gross':sizing_gross,'n_before':len(before),'n_after':len(target),
-       'dust_popped':rs.get('dust_popped_names',[]),'same_state_target_l1_delta':sum(abs(v) for v in d.values()),
+       'dust_popped':dust_names(result,held),'same_state_target_l1_delta':sum(abs(v) for v in d.values()),
        'same_state_target_max_delta':max([abs(v) for v in d.values()]+[0.]),
        'old_target_net':sum(old_t.values()),'new_target_net':sum(target.values()),
        'old_target_gross':sum(abs(v) for v in old_t.values()),'new_target_gross':sum(abs(v) for v in target.values()),
-       'residual_held_usdt':{s:held[s] for s in rs.get('dust_popped_names',[])},
+       'residual_held_usdt':{s:held[s] for s in dust_names(result,held)},
        'caller_defaulted_floor_names':[s for s in before if (C.X.filters.f.get(s) or {}).get('min_notional') is None],
        'scope':'same decision input; targets are not actual holdings or fills'}
   with Path(spec['trace']).open('a') as f:f.write(json.dumps(rec,allow_nan=False)+'\n')
