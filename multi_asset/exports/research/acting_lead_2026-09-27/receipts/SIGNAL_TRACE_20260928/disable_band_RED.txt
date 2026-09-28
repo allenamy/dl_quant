@@ -1,0 +1,38 @@
+F...........
+======================================================================
+FAIL: test_band_freezes_each_part (test_signal_state_trace.TraceTests.test_band_freezes_each_part)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/haosiyu/.codex/worktrees/acting-lead-20260927/quant_research/multi_asset/exports/research/acting_lead_2026-09-27/devices/test_signal_state_trace.py", line 17, in test_band_freezes_each_part
+    p=dict(self.p,band=.2);np.testing.assert_array_equal(self.tr([[1,0,-1],[0,1,-1]],h,p),h)
+                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/haosiyu/Library/Python/3.14/lib/python/site-packages/numpy/testing/_private/utils.py", line 1121, in assert_array_equal
+    assert_array_compare(operator.__eq__, actual, desired, err_msg=err_msg,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         verbose=verbose, header='Arrays are not equal',
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         strict=strict)
+                         ^^^^^^^^^^^^^^
+  File "/Users/haosiyu/Library/Python/3.14/lib/python/site-packages/numpy/testing/_private/utils.py", line 983, in assert_array_compare
+    raise AssertionError(msg)
+AssertionError:
+Arrays are not equal
+
+Mismatched elements: 5 / 8 (62.5%)
+Mismatch at indices:
+ [0, 0]: 0.043000000000000003 (ACTUAL), 0.02 (DESIRED)
+ [0, 2]: -0.043000000000000003 (ACTUAL), -0.02 (DESIRED)
+ [1, 0]: 0.027 (ACTUAL), 0.03 (DESIRED)
+ [1, 1]: 0.025 (ACTUAL), 0.0 (DESIRED)
+ [1, 2]: -0.052000000000000005 (ACTUAL), -0.03 (DESIRED)
+Max absolute difference among violations: 0.025
+Max relative difference among violations: 1.15
+ ACTUAL: array([[ 0.043,  0.   , -0.043,  0.   ],
+       [ 0.027,  0.025, -0.052,  0.   ]])
+ DESIRED: array([[ 0.02,  0.  , -0.02,  0.  ],
+       [ 0.03,  0.  , -0.03,  0.  ]])
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.012s
+
+FAILED (failures=1)

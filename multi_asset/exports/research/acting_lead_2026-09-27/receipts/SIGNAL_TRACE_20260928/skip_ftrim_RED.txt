@@ -1,0 +1,35 @@
+..........F.
+======================================================================
+FAIL: test_trim_common_mask (test_signal_state_trace.TraceTests.test_trim_common_mask)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/haosiyu/.codex/worktrees/acting-lead-20260927/quant_research/multi_asset/exports/research/acting_lead_2026-09-27/devices/test_signal_state_trace.py", line 31, in test_trim_common_mask
+    c=np.array([[-1.,1.],[.5,-.5]]);np.testing.assert_array_equal(trim_parts(c,np.array([-.002,-.002])),[[0,1],[0,-.5]])
+                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/haosiyu/Library/Python/3.14/lib/python/site-packages/numpy/testing/_private/utils.py", line 1121, in assert_array_equal
+    assert_array_compare(operator.__eq__, actual, desired, err_msg=err_msg,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         verbose=verbose, header='Arrays are not equal',
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         strict=strict)
+                         ^^^^^^^^^^^^^^
+  File "/Users/haosiyu/Library/Python/3.14/lib/python/site-packages/numpy/testing/_private/utils.py", line 983, in assert_array_compare
+    raise AssertionError(msg)
+AssertionError:
+Arrays are not equal
+
+Mismatched elements: 2 / 4 (50%)
+Mismatch at indices:
+ [0, 0]: -1.0 (ACTUAL), 0.0 (DESIRED)
+ [1, 0]: 0.5 (ACTUAL), 0.0 (DESIRED)
+Max absolute difference among violations: 1.
+Max relative difference among violations: inf
+ ACTUAL: array([[-1. ,  1. ],
+       [ 0.5, -0.5]])
+ DESIRED: array([[ 0. ,  1. ],
+       [ 0. , -0.5]])
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.001s
+
+FAILED (failures=1)
