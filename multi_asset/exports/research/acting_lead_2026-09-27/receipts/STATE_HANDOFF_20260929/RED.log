@@ -1,0 +1,102 @@
+FFFFFFFFFFFF
+======================================================================
+FAIL: test_clock_gap_refused (test_state_handoff.PathTests.test_clock_gap_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_20260929_sources/test_state_handoff.py", line 58, in test_clock_gap_refused
+    with self.assertRaises(ValueError):evolve(controlled_step,self.frames[::2],{},self.seed,set())
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_failed_gate_keeps_new_H (test_state_handoff.PathTests.test_failed_gate_keeps_new_H)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_20260929_sources/test_state_handoff.py", line 41, in test_failed_gate_keeps_new_H
+    self.assertIsInstance(r,list)
+AssertionError: None is not an instance of <class 'list'>
+
+======================================================================
+FAIL: test_missing_anchor_no_signal_step (test_state_handoff.PathTests.test_missing_anchor_no_signal_step)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_20260929_sources/test_state_handoff.py", line 47, in test_missing_anchor_no_signal_step
+    self.assertIsInstance(r,list)
+AssertionError: None is not an instance of <class 'list'>
+
+======================================================================
+FAIL: test_no_seed_mutation (test_state_handoff.PathTests.test_no_seed_mutation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_20260929_sources/test_state_handoff.py", line 56, in test_no_seed_mutation
+    self.assertIsInstance(r,list);np.testing.assert_array_equal(self.seed['kc'],before)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not an instance of <class 'list'>
+
+======================================================================
+FAIL: test_same_seed_identical (test_state_handoff.PathTests.test_same_seed_identical)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_20260929_sources/test_state_handoff.py", line 52, in test_same_seed_identical
+    self.assertIsInstance(a,list)
+AssertionError: None is not an instance of <class 'list'>
+
+======================================================================
+FAIL: test_unknown_hold_refused (test_state_handoff.PathTests.test_unknown_hold_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_20260929_sources/test_state_handoff.py", line 60, in test_unknown_hold_refused
+    with self.assertRaises(ValueError):evolve(controlled_step,self.frames,{},self.seed,{14401})
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_duplicate_time (test_state_handoff.SeedTests.test_duplicate_time)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_20260929_sources/test_state_handoff.py", line 23, in test_duplicate_time
+    with self.assertRaises(ValueError):select_seed(self.x,['A','B'],14400)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_exact_prior (test_state_handoff.SeedTests.test_exact_prior)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_20260929_sources/test_state_handoff.py", line 12, in test_exact_prior
+    self.assertIsInstance(z,dict)
+AssertionError: None is not an instance of <class 'dict'>
+
+======================================================================
+FAIL: test_future_values_do_not_enter (test_state_handoff.SeedTests.test_future_values_do_not_enter)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_20260929_sources/test_state_handoff.py", line 27, in test_future_values_do_not_enter
+    self.assertIsInstance(a,dict)
+AssertionError: None is not an instance of <class 'dict'>
+
+======================================================================
+FAIL: test_no_nearest (test_state_handoff.SeedTests.test_no_nearest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_20260929_sources/test_state_handoff.py", line 15, in test_no_nearest
+    with self.assertRaises(ValueError):select_seed(self.x,['A','B'],14401)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_nonfinite_seed (test_state_handoff.SeedTests.test_nonfinite_seed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_20260929_sources/test_state_handoff.py", line 20, in test_nonfinite_seed
+    with self.assertRaises(ValueError):select_seed(self.x,['A','B'],14400)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_order_is_identity (test_state_handoff.SeedTests.test_order_is_identity)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_20260929_sources/test_state_handoff.py", line 17, in test_order_is_identity
+    with self.assertRaises(ValueError):select_seed(self.x,['B','A'],14400)
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.001s
+
+FAILED (failures=12)

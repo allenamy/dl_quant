@@ -1,0 +1,28 @@
+.F..........
+======================================================================
+FAIL: test_failed_gate_keeps_new_H (test_state_handoff.PathTests.test_failed_gate_keeps_new_H)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_20260929_sources/drop_H_on_gate_fail/test_state_handoff.py", line 42, in test_failed_gate_keeps_new_H
+    np.testing.assert_allclose(r[1]['kc'],[.3,-.3]);self.assertFalse(r[1]['accepted'])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/venv/lib/python3.11/site-packages/numpy/testing/_private/utils.py", line 1768, in assert_allclose
+    assert_array_compare(compare, actual, desired, err_msg=str(err_msg),
+  File "/workspace/venv/lib/python3.11/site-packages/numpy/testing/_private/utils.py", line 983, in assert_array_compare
+    raise AssertionError(msg)
+AssertionError:
+Not equal to tolerance rtol=1e-07, atol=0
+
+Mismatched elements: 2 / 2 (100%)
+Mismatch at indices:
+ [0]: 0.2 (ACTUAL), 0.3 (DESIRED)
+ [1]: -0.2 (ACTUAL), -0.3 (DESIRED)
+Max absolute difference among violations: 0.1
+Max relative difference among violations: 0.33333333
+ ACTUAL: array([ 0.2, -0.2])
+ DESIRED: array([ 0.3, -0.3])
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.085s
+
+FAILED (failures=1)
