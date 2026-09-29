@@ -1,0 +1,92 @@
+{
+ "absent_tables": [],
+ "appends": [
+  {
+   "after": {
+    "bytes": 1476346,
+    "sha256": "f9aefcf201db16da85d967d8ae037c756e24933257ddd07c4183ac19d07c2d15"
+   },
+   "before": {
+    "bytes": 1473630,
+    "sha256": "2c5e77e682460ceaf48d296caee7a026beb6611f8f4b86e96b083b7cb22afac8",
+    "source": "manifest_20260927.json appends"
+   },
+   "day": "20260926",
+   "device": {
+    "path": "ops/notarize_ledgers.py",
+    "sha256": "b9bf2a2d6e33cc4499bad2e5097038d3564d1c2a4d21513a73435e544dccd3b2"
+   },
+   "file": "fills.jsonl",
+   "n_lines": 4,
+   "n_unparseable": 0,
+   "reason": "append observed by the daily notary run since the last recorded checkpoint"
+  },
+  {
+   "after": {
+    "bytes": 2928765,
+    "sha256": "ef40eb70be05e5c4d67b94424533b26ee012fa5db0a48562b26177fa34426890"
+   },
+   "before": {
+    "bytes": 2560191,
+    "sha256": "3661b1fbfa3d754471114a814dd2f60b3da8c9bababfb281abf9e5fc1c512ea4",
+    "source": "manifest_20260927.json"
+   },
+   "day": "20260927",
+   "device": {
+    "path": "ops/notarize_ledgers.py",
+    "sha256": "b9bf2a2d6e33cc4499bad2e5097038d3564d1c2a4d21513a73435e544dccd3b2"
+   },
+   "file": "fills.jsonl",
+   "n_lines": 628,
+   "n_unparseable": 0,
+   "reason": "append observed by the daily notary run since the last recorded checkpoint"
+  }
+ ],
+ "created_utc": "2026-09-29T00:12:05Z",
+ "day": "20260928",
+ "device": {
+  "path": "ops/notarize_ledgers.py",
+  "sha256": "b9bf2a2d6e33cc4499bad2e5097038d3564d1c2a4d21513a73435e544dccd3b2"
+ },
+ "files": {
+  "anchors.jsonl": {
+   "bytes": 209080,
+   "sha256": "565555c544c55bfef3ef96f79e4c3634290d75ddc5ff74a4e464464cd34da42b",
+   "tail_excluded_bytes": 0
+  },
+  "daily_nav.jsonl": {
+   "bytes": 6241,
+   "sha256": "fdf6be2865cde58b11d8f23a2107bb3f38af0d5ae1f0be7a41839b9decbe4903",
+   "tail_excluded_bytes": 0
+  },
+  "fills.jsonl": {
+   "bytes": 2281604,
+   "sha256": "be773907e19edf3269f04f790644cba0870ea7d6feffc5703be2871da5c8ff3d",
+   "tail_excluded_bytes": 0
+  },
+  "funding.jsonl": {
+   "bytes": 546357,
+   "sha256": "58131f712dff7cc629ada4db929d01ea35117db4e47b4bb9a634829719bb84df",
+   "tail_excluded_bytes": 0
+  },
+  "orders.jsonl": {
+   "bytes": 4811768,
+   "sha256": "38c66f481c7fe4304b7f632bf562bca03997f3d05d89a7ee983b6277e39f89b9",
+   "tail_excluded_bytes": 0
+  },
+  "position_readback.jsonl": {
+   "bytes": 428053,
+   "sha256": "2a66b3f472371cc272ae7d82f481e35f0ddd600f42e0ccfbebe1fed814456f3b",
+   "tail_excluded_bytes": 0
+  }
+ },
+ "format": "notary_manifest_v2",
+ "integrity_findings": [],
+ "n_files": 6,
+ "not_notarized": [
+  "_schema.json"
+ ],
+ "note": "SHA-256 of the live trading ledger tables (pilot_log.SCHEMA). Each file entry hashes exactly its first `bytes` bytes, cut at a line boundary; the ledger is append-only, so a later file verifies when its first `bytes` bytes still hash to this value. `appends` checkpoints bytes added to earlier days since their last record. Chain: `prev_manifest_sha256` is the sha256 of the previous manifest file. `created_utc` is the actual observation time, including for delayed ledger days; it does not assert historical publication time.",
+ "prev_manifest": "manifest_20260927.json",
+ "prev_manifest_sha256": "dfab4024c33460c4a172063f9555a9b9832a237ffa588c927087f82404c641c5"
+}
