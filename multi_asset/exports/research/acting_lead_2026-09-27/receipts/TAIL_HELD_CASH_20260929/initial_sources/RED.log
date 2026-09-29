@@ -1,0 +1,147 @@
+test_equal_probabilities_not_split_by_name (test_tail_held_cash.Contract.test_equal_probabilities_not_split_by_name) ... FAIL
+test_flat_cash_retained (test_tail_held_cash.Contract.test_flat_cash_retained) ... FAIL
+test_increasing_probability_order (test_tail_held_cash.Contract.test_increasing_probability_order) ... FAIL
+test_missing_is_own_bin (test_tail_held_cash.Contract.test_missing_is_own_bin) ... ERROR
+test_nav_denominator (test_tail_held_cash.Contract.test_nav_denominator) ... FAIL
+test_negative_nav_refused (test_tail_held_cash.Contract.test_negative_nav_refused) ... FAIL
+test_no_nearest_time (test_tail_held_cash.Contract.test_no_nearest_time) ... FAIL
+test_nonfinite_refused (test_tail_held_cash.Contract.test_nonfinite_refused) ... FAIL
+test_noninteger_time (test_tail_held_cash.Contract.test_noninteger_time) ... FAIL
+test_positive_negative_not_netted (test_tail_held_cash.Contract.test_positive_negative_not_netted) ... FAIL
+test_probability_outside_range (test_tail_held_cash.Contract.test_probability_outside_range) ... FAIL
+test_unrecognized_group_refused (test_tail_held_cash.Contract.test_unrecognized_group_refused) ... FAIL
+
+======================================================================
+ERROR: test_missing_is_own_bin (test_tail_held_cash.Contract.test_missing_is_own_bin)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/tail_held_cash_20260929_sources/test_tail_held_cash.py", line 9, in test_missing_is_own_bin
+    self.assertEqual(bins(np.array([.1,.2,np.nan]))[-1],5)
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^
+TypeError: 'NoneType' object is not subscriptable
+
+======================================================================
+FAIL: test_equal_probabilities_not_split_by_name (test_tail_held_cash.Contract.test_equal_probabilities_not_split_by_name)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/tail_held_cash_20260929_sources/test_tail_held_cash.py", line 7, in test_equal_probabilities_not_split_by_name
+    np.testing.assert_array_equal(bins(np.ones(10)*.05),np.full(10,2))
+  File "/workspace/venv/lib/python3.11/site-packages/numpy/testing/_private/utils.py", line 1121, in assert_array_equal
+    assert_array_compare(operator.__eq__, actual, desired, err_msg=err_msg,
+  File "/workspace/venv/lib/python3.11/site-packages/numpy/testing/_private/utils.py", line 983, in assert_array_compare
+    raise AssertionError(msg)
+AssertionError: 
+Arrays are not equal
+
+Mismatched elements: 10 / 10 (100%)
+First 5 mismatches are at indices:
+ [0]: None (ACTUAL), 2 (DESIRED)
+ [1]: None (ACTUAL), 2 (DESIRED)
+ [2]: None (ACTUAL), 2 (DESIRED)
+ [3]: None (ACTUAL), 2 (DESIRED)
+ [4]: None (ACTUAL), 2 (DESIRED)
+ ACTUAL: array(None, dtype=object)
+ DESIRED: array([2, 2, 2, 2, 2, 2, 2, 2, 2, 2])
+
+======================================================================
+FAIL: test_flat_cash_retained (test_tail_held_cash.Contract.test_flat_cash_retained)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/tail_held_cash_20260929_sources/test_tail_held_cash.py", line 21, in test_flat_cash_retained
+    r=group_cash(**self.fixture());self.assertIsInstance(r,list);self.assertEqual(r[5]['price_usd'],-3.);self.assertEqual(r[5]['gross_usd_sum'],0.)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not an instance of <class 'list'>
+
+======================================================================
+FAIL: test_increasing_probability_order (test_tail_held_cash.Contract.test_increasing_probability_order)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/tail_held_cash_20260929_sources/test_tail_held_cash.py", line 11, in test_increasing_probability_order
+    np.testing.assert_array_equal(bins(np.arange(10)/10),np.repeat(np.arange(5),2))
+  File "/workspace/venv/lib/python3.11/site-packages/numpy/testing/_private/utils.py", line 1121, in assert_array_equal
+    assert_array_compare(operator.__eq__, actual, desired, err_msg=err_msg,
+  File "/workspace/venv/lib/python3.11/site-packages/numpy/testing/_private/utils.py", line 983, in assert_array_compare
+    raise AssertionError(msg)
+AssertionError: 
+Arrays are not equal
+
+Mismatched elements: 10 / 10 (100%)
+First 5 mismatches are at indices:
+ [0]: None (ACTUAL), 0 (DESIRED)
+ [1]: None (ACTUAL), 0 (DESIRED)
+ [2]: None (ACTUAL), 1 (DESIRED)
+ [3]: None (ACTUAL), 1 (DESIRED)
+ [4]: None (ACTUAL), 2 (DESIRED)
+ ACTUAL: array(None, dtype=object)
+ DESIRED: array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4])
+
+======================================================================
+FAIL: test_nav_denominator (test_tail_held_cash.Contract.test_nav_denominator)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/tail_held_cash_20260929_sources/test_tail_held_cash.py", line 25, in test_nav_denominator
+    r=group_cash(**self.fixture());self.assertIsInstance(r,list);self.assertAlmostEqual(r[0]['price_anchor_bps'][0],-100.)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not an instance of <class 'list'>
+
+======================================================================
+FAIL: test_negative_nav_refused (test_tail_held_cash.Contract.test_negative_nav_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/tail_held_cash_20260929_sources/test_tail_held_cash.py", line 31, in test_negative_nav_refused
+    with self.assertRaises(ValueError):group_cash(**p)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_no_nearest_time (test_tail_held_cash.Contract.test_no_nearest_time)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/tail_held_cash_20260929_sources/test_tail_held_cash.py", line 15, in test_no_nearest_time
+    with self.assertRaises(ValueError):align(np.array([0,28800]),np.array([14400]))
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_nonfinite_refused (test_tail_held_cash.Contract.test_nonfinite_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/tail_held_cash_20260929_sources/test_tail_held_cash.py", line 28, in test_nonfinite_refused
+    with self.assertRaises(ValueError):group_cash(**p)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_noninteger_time (test_tail_held_cash.Contract.test_noninteger_time)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/tail_held_cash_20260929_sources/test_tail_held_cash.py", line 17, in test_noninteger_time
+    with self.assertRaises(ValueError):align(np.array([0.,14400.5]),np.array([0]))
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_positive_negative_not_netted (test_tail_held_cash.Contract.test_positive_negative_not_netted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/tail_held_cash_20260929_sources/test_tail_held_cash.py", line 23, in test_positive_negative_not_netted
+    p=self.fixture();p['groups'][:]=0;r=group_cash(**p);self.assertIsInstance(r,list);self.assertEqual(r[0]['price_loss_usd'],13.);self.assertEqual(r[0]['price_gain_usd'],20.);self.assertEqual(r[0]['price_usd'],7.)
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not an instance of <class 'list'>
+
+======================================================================
+FAIL: test_probability_outside_range (test_tail_held_cash.Contract.test_probability_outside_range)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/tail_held_cash_20260929_sources/test_tail_held_cash.py", line 13, in test_probability_outside_range
+    with self.assertRaises(ValueError):bins(np.array([.1,1.1]))
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_unrecognized_group_refused (test_tail_held_cash.Contract.test_unrecognized_group_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/tail_held_cash_20260929_sources/test_tail_held_cash.py", line 34, in test_unrecognized_group_refused
+    with self.assertRaises(ValueError):group_cash(**p)
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.129s
+
+FAILED (failures=11, errors=1)
