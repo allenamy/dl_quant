@@ -1,0 +1,60 @@
+{
+  "status": "PASS",
+  "meaning": "Volatile research files preserved; user may stop Pod while retaining the same network volume. No processes or trading are restarted.",
+  "verified_utc": "2026-09-29T02:57:04Z",
+  "destination": "/workspace/pod_preservation_20260929T024300Z",
+  "network_mount": {
+    "path": "/workspace",
+    "type": "fuse",
+    "source": "mfs\\043eur-is-1.runpod.net:9421"
+  },
+  "archive_bytes": 40421191680,
+  "archive_entries": 135840,
+  "archive_sha256": {
+    "rootfs.tar": "8c6357dcfaa8b0596bcee31ec58eb587208b45f9fa2e625b8dec1acb77864676",
+    "shm.tar": "fbd987d1070a53692995a40168280775f20475a4e08bd568a26fa38859333a22"
+  },
+  "source_checks": [
+    {
+      "label": "rootfs",
+      "original_entries": 87681,
+      "current_entries": 87698,
+      "changed": 0,
+      "missing": 0,
+      "verified_additions": 17
+    },
+    {
+      "label": "shm",
+      "original_entries": 48159,
+      "current_entries": 48159,
+      "changed": 0,
+      "missing": 0,
+      "verified_additions": 0
+    }
+  ],
+  "network_external_links": {
+    "total": 435,
+    "covered": 435,
+    "missing": 0,
+    "native_set_equal": true
+  },
+  "restore_smoke_checks": 24,
+  "offline_checks": 7,
+  "gpu_processes": 0,
+  "unknown_python_processes": 0,
+  "legacy_paused_collector_pids": [
+    332865,
+    333197,
+    339486,
+    339489
+  ],
+  "ram_checkpoint_saved": false,
+  "pod_stop_executed": false,
+  "production_modified": false,
+  "readme": "README_ZH.md",
+  "limitations": [
+    "No running-process RAM checkpoint or automatic collector resume.",
+    "New-container OS/driver/package and model parity require validation after restore.",
+    "Network volume itself is retained, not independently backed up in full."
+  ]
+}
