@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 from tail_held_cash import bins,group_cash,align
+import tail_held_cash as T
 
 class Contract(unittest.TestCase):
  def test_equal_probabilities_not_split_by_name(self):
@@ -32,5 +33,10 @@ class Contract(unittest.TestCase):
  def test_unrecognized_group_refused(self):
   p=self.fixture();p['groups'][0,1]=18
   with self.assertRaises(ValueError):group_cash(**p)
+ def test_eligibility_columns_are_seeds_not_tails(self):
+  y=np.array([[1.,0.],[0.,1.]]);e=np.array([[True,False],[False,True]])
+  a=T.observed_labels(y,e,0);b=T.observed_labels(y,e,1)
+  np.testing.assert_array_equal(a[0],y[0]);self.assertTrue(np.isnan(a[1]).all())
+  np.testing.assert_array_equal(b[1],y[1]);self.assertTrue(np.isnan(b[0]).all())
 
 if __name__=='__main__':unittest.main()

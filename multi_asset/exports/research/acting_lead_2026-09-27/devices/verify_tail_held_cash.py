@@ -3,7 +3,7 @@ import copy,hashlib,json,math
 from decimal import Decimal
 from pathlib import Path
 import numpy as np
-ROOT=Path('/dev/shm/tail_held_cash_20260929')
+ROOT=Path('/dev/shm/tail_held_cash_20260929_seedfix')
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def verify(result):
  for p,s in result['inputs'].items():assert sha(p)==s,('input',p)
@@ -32,7 +32,8 @@ def verify(result):
     i=index[int(a)];lo,hi=int(off[i]),int(off[i+1]);m=ms[lo:hi]
     assert len(set(m.tolist()))==len(m) and min(m)>=0 and max(m)<len(h['symbols'])
     full=np.full((q.shape[1],2),np.nan);full[m]=pred[lo:hi,col]
-    ys=np.full((q.shape[1],2),np.nan);ys[m]=np.where(el[lo:hi],ym[lo:hi],np.nan)
+    ys=np.full((q.shape[1],2),np.nan);ys[m]=ym[lo:hi]
+    ys[m[~el[lo:hi,offset//3]]]=np.nan
     qs=[]
     for tail in (0,1):
      values=full.sum(1).clip(0,1) if mode=='symmetric' else full[:,tail]

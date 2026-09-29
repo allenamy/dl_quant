@@ -2,6 +2,12 @@
 import numpy as np
 from scipy.stats import rankdata
 
+def observed_labels(labels,eligible,seed_index):
+    labels=np.asarray(labels);eligible=np.asarray(eligible)
+    if labels.ndim!=2 or labels.shape[1]!=2 or eligible.shape!=labels.shape or eligible.dtype!=bool or seed_index not in (0,1):
+        raise ValueError('seed eligibility schema')
+    return np.where(eligible[:,seed_index,None],labels,np.nan)
+
 def bins(p):
     p=np.asarray(p,dtype=float)
     if p.ndim!=1 or np.isinf(p).any() or ((p<0)|(p>1)).any():

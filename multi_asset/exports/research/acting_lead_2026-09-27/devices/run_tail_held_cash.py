@@ -2,9 +2,9 @@
 import hashlib,json,time,os,sys
 from pathlib import Path
 import numpy as np
-from tail_held_cash import bins,align,group_cash
+from tail_held_cash import bins,align,group_cash,observed_labels
 
-ROOT=Path('/dev/shm/tail_held_cash_20260929')
+ROOT=Path('/dev/shm/tail_held_cash_20260929_seedfix')
 FILES={
  '/dev/shm/held_strength_cash_repair_20260928/ALIGNED.npz':'b47360d630f16f6351d048427a89e781372b7ce13dc17948a51f63c6d706a5da',
  '/dev/shm/held_strength_cash_repair_20260928/RESULT.json':'f1412bda64b2801acba56c41083f9330aba83cff265cd06b0e7e0445a2075c6d',
@@ -47,7 +47,8 @@ def main():
     sl=slice(offs[i],offs[i+1]);m=members[sl]
     assert len(m)==len(set(m)) and np.issubdtype(m.dtype,np.integer) and ((m>=0)&(m<len(S))).all()
     up[t,m]=P[sl,col,0];down[t,m]=P[sl,col,1]
-    yu[t,m]=np.where(elig[sl,0],Y[sl,0],np.nan);yd[t,m]=np.where(elig[sl,1],Y[sl,1],np.nan)
+    observed=observed_labels(Y[sl],elig[sl],base//3)
+    yu[t,m]=observed[:,0];yd[t,m]=observed[:,1]
     if mode=='symmetric':
      v=np.minimum(up[t]+down[t],1);pr[t]=v;yy[t]=np.maximum(yu[t],yd[t]);b=bins(v)
     else:
