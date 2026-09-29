@@ -1,0 +1,108 @@
+FFFFFFFFFFFF
+======================================================================
+FAIL: test_common_inventory_target (test_handoff_cash_contract.Books.test_common_inventory_target)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_cash_20260929_sources/test_handoff_cash_contract.py", line 17, in test_common_inventory_target
+    v=books(self.r,self.s,self.i,self.a);self.assertIsInstance(v,dict)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not an instance of <class 'dict'>
+
+======================================================================
+FAIL: test_future_row_ignored (test_handoff_cash_contract.Books.test_future_row_ignored)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_cash_20260929_sources/test_handoff_cash_contract.py", line 20, in test_future_row_ignored
+    v=books(self.r,self.s,self.i,self.a);self.assertIsInstance(v,dict)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not an instance of <class 'dict'>
+
+======================================================================
+FAIL: test_gap_refused (test_handoff_cash_contract.Books.test_gap_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_cash_20260929_sources/test_handoff_cash_contract.py", line 24, in test_gap_refused
+    with self.assertRaises(ValueError):books(self.r,self.s,self.i,self.a[[0,2]])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_hold_not_zero_trade (test_handoff_cash_contract.Books.test_hold_not_zero_trade)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_cash_20260929_sources/test_handoff_cash_contract.py", line 14, in test_hold_not_zero_trade
+    v=books(self.r,self.s,self.i,self.a);self.assertIsInstance(v,dict)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not an instance of <class 'dict'>
+
+======================================================================
+FAIL: test_missing_population (test_handoff_cash_contract.Books.test_missing_population)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_cash_20260929_sources/test_handoff_cash_contract.py", line 26, in test_missing_population
+    with self.assertRaises(ValueError):books(self.r[1:],self.s,self.i,self.a)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_raw_not_reshaped (test_handoff_cash_contract.Books.test_raw_not_reshaped)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_cash_20260929_sources/test_handoff_cash_contract.py", line 11, in test_raw_not_reshaped
+    v=books(self.r,self.s,self.i,self.a);self.assertIsInstance(v,dict)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not an instance of <class 'dict'>
+
+======================================================================
+FAIL: test_bad_identity_refused (test_handoff_cash_contract.Cash.test_bad_identity_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_cash_20260929_sources/test_handoff_cash_contract.py", line 39, in test_bad_identity_refused
+    with self.assertRaises(ValueError):cash_metrics(p,0,28800)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_compound_not_sum (test_handoff_cash_contract.Cash.test_compound_not_sum)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_cash_20260929_sources/test_handoff_cash_contract.py", line 34, in test_compound_not_sum
+    r=cash_metrics(self.fixture(),0,28800);self.assertIsInstance(r,dict);self.assertAlmostEqual(r['compound'],-.01)
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not an instance of <class 'dict'>
+
+======================================================================
+FAIL: test_first_setup_excluded (test_handoff_cash_contract.Cash.test_first_setup_excluded)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_cash_20260929_sources/test_handoff_cash_contract.py", line 36, in test_first_setup_excluded
+    r=cash_metrics(self.fixture(),14400,28800);self.assertIsInstance(r,dict);self.assertAlmostEqual(r['compound'],-.1);self.assertEqual(r['fee'],1.)
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not an instance of <class 'dict'>
+
+======================================================================
+FAIL: test_missing_endpoint_refused (test_handoff_cash_contract.Cash.test_missing_endpoint_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_cash_20260929_sources/test_handoff_cash_contract.py", line 42, in test_missing_endpoint_refused
+    with self.assertRaises(ValueError):cash_metrics(p,0,28800)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_nonfinite_refused (test_handoff_cash_contract.Cash.test_nonfinite_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_cash_20260929_sources/test_handoff_cash_contract.py", line 47, in test_nonfinite_refused
+    with self.assertRaises(ValueError):cash_metrics(p,0,28800)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_unknown_not_certified (test_handoff_cash_contract.Cash.test_unknown_not_certified)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/dev/shm/state_handoff_cash_20260929_sources/test_handoff_cash_contract.py", line 44, in test_unknown_not_certified
+    p=self.fixture();p['unk_held'][1]=1;r=cash_metrics(p,0,28800);self.assertIsInstance(r,dict);self.assertFalse(r['priced_complete'])
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not an instance of <class 'dict'>
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.007s
+
+FAILED (failures=12)
